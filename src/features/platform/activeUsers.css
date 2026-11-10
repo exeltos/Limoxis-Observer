@@ -1,0 +1,31 @@
+/* «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο» (Platform Owner). */
+.active-users{display:flex;flex-direction:column;gap:12px;min-height:0}
+.active-users-file{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.active-users-pick{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 14px;border:1px dashed #9db4c9;border-radius:10px;background:#f6f9fc;color:#1f5a94;font-size:13px;font-weight:700;cursor:pointer}
+.active-users-pick input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.active-users-note{margin:0;padding:10px 12px;border-radius:10px;background:#f4f7f9;color:#475467;font-size:12.5px;line-height:1.5}
+.active-users-error,.active-users-banner,.active-users-warning{display:flex;align-items:center;gap:8px;margin:0;padding:9px 12px;border-radius:10px;font-size:13px;font-weight:700;line-height:1.45}
+.active-users-error svg,.active-users-banner svg,.active-users-warning svg{flex:0 0 auto}
+.active-users-error{background:#fdeceb;color:#b42318}
+.active-users-banner.ok{background:#e7f5ec;color:#1d6b3a}
+.active-users-banner.partial{background:#fff1dc;color:#8a4b00}
+.active-users-warning{background:#fff6df;border:1px solid #f0dfae;color:#5e4510;font-weight:600}
+.active-users-summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;font-size:12px;color:var(--lo-color-muted)}
+.active-users-summary>span{display:inline-flex;align-items:baseline;gap:6px}
+.active-users-summary strong{font-size:15px;color:var(--lo-color-text)}
+.active-users-summary .ok strong{color:#1d6b3a}
+.active-users-summary .error strong{color:#b42318}
+.active-users-table{max-height:46vh;overflow:auto}
+.active-users-table td small{display:block;margin-top:3px;font-size:11px;color:var(--lo-color-muted)}
+.active-users-row-error td{background:#fdf5f4}
+.active-users-code{font-family:Consolas,Menlo,monospace;font-size:13px;letter-spacing:.02em;white-space:nowrap}
+
+/* The forms of the «Νέος χρήστης ▾» dialogs (active, invitation): two columns, large controls and readable labels. */
+.user-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 20px;align-items:start}
+.user-form-grid .field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.user-form-grid .field>span{font-size:13px;font-weight:600;color:var(--lo-color-text)}
+.user-form-grid .field input,.user-form-grid .field select{width:100%;min-height:var(--lo-control-height,44px);height:var(--lo-control-height,44px);padding:0 12px;font-size:14.5px}
+.user-form-grid .field small{font-size:12.5px;line-height:1.45;color:var(--lo-color-muted)}
+.user-form-grid .user-form-wide{grid-column:1/-1}
+.user-form-grid .active-users-note{font-size:13.5px;padding:12px 14px}
+@media (max-width:640px){.user-form-grid{grid-template-columns:minmax(0,1fr)}}

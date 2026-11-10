@@ -1,0 +1,2 @@
+/* Legislation & sources: the search box has the same width on every tab (the Guides tab shares its row with the counts). */
+.platform-legal-tabs+.registry-workspace .filter-primary-row>.filter-search{flex:0 1 320px;width:320px;min-width:0;max-width:320px}

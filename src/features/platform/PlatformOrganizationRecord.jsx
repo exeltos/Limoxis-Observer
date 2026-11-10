@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, Archive, Building2, KeyRound, LogIn, PauseCircle, PlayCircle, Trash2, Users } from 'lucide-react'
+import { Activity, Archive, Boxes, Building2, KeyRound, LogIn, PauseCircle, PlayCircle, Trash2, Users } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { PageSkeleton } from '../../design-system/LoadingSkeleton'
 
 import { PlatformRecordActions } from './PlatformRecordActions'
 
@@ -11,14 +13,20 @@ import { roleLabel } from '../../core/permissions/roleLabels'
 import { createOrganizationUser, listOrganizationMembersDetailed, manageOrganizationUser, setPlatformOrganizationStatus, updatePlatformOrganization } from '../../core/tenant/tenantService'
 import { HospitalDiagnosticsPanel } from './HospitalDiagnosticsPanel'
 import { OrganizationOffboardingPanel } from './OrganizationOffboardingPanel'
+import { OperatingProfileSection } from './OperatingProfileSection'
+import { listLoginSessions } from './platformAuditService'
+import { initialsOf, statusOf } from './platformOverviewShared'
+import './platformDashboard.css'
 
 import { PlatformOrganizationDetailsTab } from './PlatformOrganizationDetailsTab'
 import { PlatformOrganizationUsersTab } from './PlatformOrganizationUsersTab'
+import { platformUserState } from './PlatformUsersRegistry'
 import { PlatformOrganizationUserRecord } from './PlatformOrganizationUserRecord'
 import { ROLES, toDraft } from './platformOrganizationShared'
 import { loadEmployeesAsync } from '../employees/employeeService'
 
 import { loadEmployeeAccounts } from './bulkAccountsService'
+import './activeUsers.css'
 
 export function PlatformOrganizationRecord({
   organization,
@@ -30,6 +38,11 @@ export function PlatformOrganizationRecord({
   onDelete,
   onChanged,
   onOpenEmployee,
+  // The user record and «Νέος χρήστης» follow the address (&user=…, &new=…), so the registry of platform users can open them directly.
+  initialUserId = '',
+  onUserChange,
+  initialNew = '',
+  onNewHandled,
 }) {
   const en = language === 'en',
     tx = (elText, enText) => (en ? enText : elText)
@@ -44,7 +57,13 @@ export function PlatformOrganizationRecord({
   const [invitationLink, setInvitationLink] = useState(null)
   const [employeeLinkDrafts, setEmployeeLinkDrafts] = useState({})
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '' })
-  const [selectedUserId, setSelectedUserId] = useState('')
+  const [selectedUserId, setSelectedUserIdState] = useState(initialUserId)
+  const setSelectedUserId = (id, backTab) => {
+    setSelectedUserIdState(id)
+    onUserChange?.(id, backTab)
+  }
+  useEffect(() => setSelectedUserIdState(initialUserId), [initialUserId])
+  const [startMode] = useState(initialTab === 'users' && (initialNew === 'single' || initialNew === 'file') ? initialNew : '')
   const [editing, setEditing] = useState(false)
   const [userEditing, setUserEditing] = useState(false)
   const [userDraft, setUserDraft] = useState({
@@ -56,8 +75,12 @@ export function PlatformOrganizationRecord({
   })
   const [userQuery, setUserQuery] = useState('')
   const [userPage, setUserPage] = useState(1)
+  const [userFilter, setUserFilter] = useState('all')
   const [userPageSize, setUserPageSize] = useState(15)
-  const [createUserOpen, setCreateUserOpen] = useState(false)
+  const [createUserOpen, setCreateUserOpen] = useState(initialTab === 'users' && initialNew === 'invite')
+  useEffect(() => {
+    if (initialNew) onNewHandled?.()
+  }, [initialNew]) // eslint-disable-line react-hooks/exhaustive-deps
   const [createUserDraft, setCreateUserDraft] = useState({
     fullName: '',
     email: '',
@@ -87,7 +110,7 @@ export function PlatformOrganizationRecord({
           ]),
         ),
       )
-      setSelectedUserId(current =>
+      setSelectedUserIdState(current =>
         current && rows.some(user => user.userId === current) ? current : '',
       )
       return rows
@@ -101,6 +124,26 @@ export function PlatformOrganizationRecord({
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
+  // The sign-ins of the last 90 days (Χρήστες › Τελευταία σύνδεση, Δραστηριότητα › Συνδέσεις); kept to this organization's users below.
+  const [allSessions, setAllSessions] = useState([])
+  const [loadingSessions, setLoadingSessions] = useState(true)
+  const loadSessions = useCallback(async () => {
+    setLoadingSessions(true)
+    try {
+      setAllSessions(await listLoginSessions({ days: 90 }))
+    } catch {
+      setAllSessions([])
+    } finally {
+      setLoadingSessions(false)
+    }
+  }, [])
+  useEffect(() => {
+    loadSessions()
+  }, [loadSessions])
+  const sessions = useMemo(() => {
+    const ids = new Set(users.map(user => user.userId))
+    return allSessions.filter(row => ids.has(row.userId))
+  }, [allSessions, users])
   // «Χρήστες & Ρόλοι» › «Εργαζόμενοι χωρίς λογαριασμό» (N1, Platform Owner only).
   const [usersView, setUsersView] = useState('accounts')
   const [roster, setRoster] = useState({ employees: [], departments: [] })
@@ -115,9 +158,10 @@ export function PlatformOrganizationRecord({
       setRosterLoading(false)
     }
   }, [organization.id, notifyError])
+  // The roster of employees without an account is the list's; an open user record does not need it.
   useEffect(() => {
-    if (initialTab === 'users') loadRoster()
-  }, [initialTab, loadRoster])
+    if (initialTab === 'users' && !selectedUserId) loadRoster()
+  }, [initialTab, loadRoster, selectedUserId])
   const rosterWithoutAccount = roster.employees.filter(row => row.accountState === 'none').length
   const admins = useMemo(() => users.filter(user => user.role === 'hospital_admin'), [users])
   const selectedUser = useMemo(
@@ -138,18 +182,28 @@ export function PlatformOrganizationRecord({
         : [],
     [employees, selectedUser],
   )
+  const onlineUserIds = useMemo(() => new Set(sessions.filter(row => row.online).map(row => row.userId)), [sessions])
+  const orgUserState = user => platformUserState({ status: user.status, invitation: user.invitationStatus })
   const filteredUsers = useMemo(() => {
     const locale = language === 'el' ? 'el-GR' : 'en-US',
       query = userQuery.trim().toLocaleLowerCase(locale)
-    if (!query) return users
-    return users.filter(user =>
+    const byFilter = users.filter(user => {
+      const state = platformUserState({ status: user.status, invitation: user.invitationStatus })
+      if (userFilter === 'active') return state === 'active'
+      if (userFilter === 'invited') return state === 'pending' || state === 'expired'
+      if (userFilter === 'inactive') return state === 'inactive'
+      if (userFilter === 'online') return onlineUserIds.has(user.userId)
+      return true
+    })
+    if (!query) return byFilter
+    return byFilter.filter(user =>
       [user.name, user.email, user.username, roleLabel(user.role, language)].some(value =>
         String(value || '')
           .toLocaleLowerCase(locale)
           .includes(query),
       ),
     )
-  }, [users, userQuery, language])
+  }, [users, userQuery, userFilter, onlineUserIds, language])
   const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize)),
     safeUserPage = Math.min(userPage, userTotalPages),
     pagedUsers = filteredUsers.slice((safeUserPage - 1) * userPageSize, safeUserPage * userPageSize)
@@ -160,7 +214,7 @@ export function PlatformOrganizationRecord({
     createUserDraft.role,
   )
 
-  useEffect(() => setUserPage(1), [userQuery, userPageSize])
+  useEffect(() => setUserPage(1), [userQuery, userFilter, userPageSize])
   useEffect(() => {
     if (userPage > userTotalPages) setUserPage(userTotalPages)
   }, [userPage, userTotalPages])
@@ -561,21 +615,22 @@ export function PlatformOrganizationRecord({
     }
   }
 
+  // The tab ids stay those of older links (details, users, diagnostics, offboarding); «modules» is the package.
   const tabs = [
-    { id: 'details', label: tx('Στοιχεία & Ρυθμίσεις', 'Details & Settings'), icon: Building2 },
+    { id: 'details', label: tx('Στοιχεία', 'Details'), icon: Building2 },
+    { id: 'modules', label: tx('Πακέτο & ενότητες', 'Package & modules'), icon: Boxes },
     {
       id: 'users',
-      label: `${tx('Χρήστες & Ρόλοι', 'Users & Roles')} (${users.length})`,
+      label: `${tx('Χρήστες', 'Users')} (${users.length})`,
       icon: Users,
     },
-    { id: 'diagnostics', label: tx('Λειτουργία & Συμβάντα', 'Activity & Events'), icon: Activity },
+    { id: 'diagnostics', label: tx('Δραστηριότητα', 'Activity'), icon: Activity },
     { id: 'offboarding', label: tx('Αντίγραφο & διαγραφή', 'Export & deletion'), icon: Archive },
   ]
   const actions = (
     <PlatformRecordActions
       label={tx('Ενέργειες οργανισμού', 'Organization actions')}
       moreLabel={tx('Περισσότερες ενέργειες', 'More actions')}
-      moreText={tx('Περισσότερα', 'More')}
       actions={[
         {
           id: 'enter',
@@ -587,7 +642,7 @@ export function PlatformOrganizationRecord({
         },
         {
           id: 'pause',
-          placement: 'secondary',
+          placement: 'menu',
           icon:
             record.status === 'suspended' ? <PlayCircle size={16} /> : <PauseCircle size={16} />,
           label:
@@ -596,7 +651,7 @@ export function PlatformOrganizationRecord({
               : tx('Παύση', 'Suspend'),
           title:
             record.status === 'suspended'
-              ? tx('Ενεργοποίηση οργανισμού', 'Reactivate organization')
+              ? tx('Επανενεργοποίηση οργανισμού', 'Reactivate organization')
               : tx('Παύση οργανισμού', 'Suspend organization'),
           disabled: working,
           onClick: togglePause,
@@ -625,24 +680,25 @@ export function PlatformOrganizationRecord({
     />
   )
 
+  const recordStatus = statusOf(tx, record, admins[0]?.status)
+
+  // The address names a user whose list is still loading: the loading screen, not the organization for an instant.
+  if (initialTab === 'users' && selectedUserId && !selectedUser && loadingUsers) return <PageSkeleton metrics={0} rows={6} />
+
   if (initialTab === 'users' && selectedUser) {
-    return <PlatformOrganizationUserRecord ctx={{ deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working }} />
+    return <PlatformOrganizationUserRecord key={selectedUser.userId} ctx={{ employees, loadSessions, sessions, deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working }} />
   }
 
   return (
     <>
       <EntityRecordShell
         className="platform-owner-record-shell platform-organization-record-workspace"
-        avatar={<Building2 size={20} />}
+        avatar={<span aria-hidden="true">{initialsOf(draft.name || record.name)}</span>}
         eyebrow={tx('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ', 'ORGANIZATION RECORD')}
         title={draft.name || record.name}
         subtitle={`${record.code || '—'} · ${draft.city || '—'} · ${draft.region || '—'}`}
-        status={
-          <span className={`status-badge ${record.status === 'active' ? 'active' : 'danger'}`}>
-            {record.status === 'active' ? tx('Ενεργός', 'Active') : tx('Σε παύση', 'Suspended')}
-          </span>
-        }
-        headerActions={initialTab === 'details' ? actions : null}
+        status={<StatusBadge tone={recordStatus[0]}>{recordStatus[1]}</StatusBadge>}
+        headerActions={actions}
         tabs={tabs}
         activeTab={initialTab}
         onTabChange={onTabChange}
@@ -650,10 +706,22 @@ export function PlatformOrganizationRecord({
         backLabel={tx('Πίσω', 'Back')}
       >
         {initialTab === 'details' && <PlatformOrganizationDetailsTab ctx={{ admins, canSave, draft, editing, inviteAdmin, language, loadingUsers, newAdmin, onChanged, record, saveOrganization, saving, setDraft, setEditing, setNewAdmin, setRecord, tx, users, working }} />}
+        {initialTab === 'modules' && (
+          <div className="platform-owner-details">
+            <OperatingProfileSection
+              organization={record}
+              language={language}
+              onSaved={saved => {
+                setRecord(r => ({ ...r, ...saved }))
+                onChanged?.({ ...record, ...saved })
+              }}
+            />
+          </div>
+        )}
 
-        {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
+        {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ startMode, filteredUsers, onlineUserIds, orgUserState, setUserFilter, userFilter, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
         {initialTab === 'diagnostics' && (
-          <HospitalDiagnosticsPanel organization={record} language={language} />
+          <HospitalDiagnosticsPanel organization={record} language={language} sessions={sessions} loadingSessions={loadingSessions || loadingUsers} onReloadSessions={loadSessions} knownUserIds={new Set(users.map(user => user.userId))} onOpenUser={userId => setSelectedUserId(userId, 'diagnostics')} />
         )}
         {initialTab === 'offboarding' && (
           <div className="platform-owner-details">
@@ -669,14 +737,14 @@ export function PlatformOrganizationRecord({
 
       {createUserOpen && (
         <ObserverDialog
-          eyebrow={tx('ΧΡΗΣΤΕΣ & ΡΟΛΟΙ', 'USERS & ROLES')}
+          eyebrow={tx('ΧΡΗΣΤΕΣ', 'USERS')}
           title={tx('Νέος χρήστης', 'New user')}
           subtitle={tx(
             `Πρόσθεσε χρήστη στον οργανισμό ${record.name}. Θα σταλεί πρόσκληση στο email του.`,
             `Add a user to ${record.name}. An invitation will be sent to their email.`,
           )}
           onClose={() => !working && setCreateUserOpen(false)}
-          width="compact"
+          width="wide"
           footer={
             <DialogActions
               onCancel={() => setCreateUserOpen(false)}
@@ -691,8 +759,8 @@ export function PlatformOrganizationRecord({
           }
         >
           <div className="platform-form-shell">
-            <div className="platform-form-grid">
-              <label className="field field-wide">
+            <div className="user-form-grid">
+              <label className="field">
                 <span>{tx('Ονοματεπώνυμο', 'Full name')} *</span>
                 <input
                   autoFocus
@@ -700,7 +768,7 @@ export function PlatformOrganizationRecord({
                   onChange={e => setCreateUserDraft(x => ({ ...x, fullName: e.target.value }))}
                 />
               </label>
-              <label className="field field-wide">
+              <label className="field">
                 <span>Email *</span>
                 <input
                   type="email"
@@ -708,7 +776,7 @@ export function PlatformOrganizationRecord({
                   onChange={e => setCreateUserDraft(x => ({ ...x, email: e.target.value }))}
                 />
               </label>
-              <label className="field field-wide">
+              <label className="field user-form-wide">
                 <span>{tx('Ρόλος', 'Role')} *</span>
                 <select
                   value={createUserDraft.role}

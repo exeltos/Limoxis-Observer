@@ -1,3 +1,5 @@
+import { addDays, seededRandom } from '../../core/data/demoSeed'
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 const def=(id,fields)=>({
  id,
  organization_id:null,
@@ -76,4 +78,27 @@ export const indicatorDefinitionRows=[
  def('open-high-incidents',{category:'quality',title_el:'Ανοιχτά συμβάντα υψηλής σοβαρότητας',title_en:'Open high-severity incidents',unit:'συμβάντα',unit_en:'incidents',calculation_type:'auto',numerator_metric:'open_high_incidents',target_value:0,direction:'lower',source_authority:'Ποιότητα',version:'2026.2'}),
 ]
 
-export const indicatorSnapshotRows=[]
+// The values entered by hand for the manual indicators, one approved snapshot a month from January 2025 to
+// the last whole month, and the whole of 2025: the year review (dossier) and each indicator's history read
+// them. The calculated indicators keep their live values and have no stored snapshots. Seeded by month.
+const MANUAL_VALUES={
+ 'mdr-introduction-index':[14,24,1],'outbreak-response-hours':[10,30,0],'administrative-recording-time':[11,19,0],
+ 'eody-reporting-completeness':[92,100,0],'eody-reporting-timeliness':[84,100,0],
+}
+const monthEnd=month=>new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10)
+const snapshot=(key,from,to,value)=>{const definition=indicatorDefinitionRows.find(row=>row.id===key),reviewed=`${addDays(to,5)}T10:00:00Z`;return {id:`snap-${key}-${from}-${to}`,organization_id:null,indicator_key:key,definition_id:key,department_id:null,period_start:from,period_end:to,numerator:null,denominator:null,value,unit:definition.unit,target_value:definition.target_value,direction:definition.direction,calculation_type:'manual',source_snapshot:{},status:'approved',calculated_at:reviewed,calculated_by:null,reviewed_at:reviewed,reviewed_by:'demo-user',notes:null,created_at:reviewed,updated_at:reviewed}}
+export const indicatorSnapshotRows=(()=>{
+ const rows=[],now=new Date(),last=new Date(Date.UTC(now.getFullYear(),now.getMonth(),0)).toISOString().slice(0,7)
+ for(const [key,[min,max,decimals]] of Object.entries(MANUAL_VALUES)){
+  const values=[]
+  for(let index=0;;index++){
+   const month=new Date(Date.UTC(2025,index,1)).toISOString().slice(0,7)
+   if(month>last)break
+   const rand=seededRandom(`indicator-snapshot|${key}|${month}`),value=Number((min+rand()*(max-min)).toFixed(decimals))
+   if(month.startsWith('2025'))values.push(value)
+   rows.push(snapshot(key,`${month}-01`,monthEnd(month),value))
+  }
+  if(values.length===12)rows.push(snapshot(key,'2025-01-01','2025-12-31',Number((values.reduce((sum,value)=>sum+value,0)/12).toFixed(decimals))))
+ }
+ return emptyInPreview(rows)
+})()

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BookMarked, ExternalLink, FilePlus2, Inbox, Link2, Pencil, Plus, Radar, RefreshCw, Scale, Trash2, XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
-import { PlatformLibrariesTabs } from '../platform/PlatformLibrariesTabs'
+import { PlatformLegalTabs } from '../platform/PlatformLegalTabs'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -46,6 +46,9 @@ export function LegislationPage() {
   // Inside «Έγγραφα & Κανονισμοί» ?tab= picks the section's tab; this page's own tab travels as ?view=.
   const requested = requestedParams.get('view') || requestedParams.get('tab')
   const [tab, setTab] = useState(() => (tabs.some(item => item.value === requested) ? requested : tabs[0]?.value || 'register'))
+  // The owner's «Νομοθεσία & πηγές»: the choice travels in the address (?view=), so the menu and old links open it.
+  const ownerView = ownerRoute && requested !== 'register' ? (['review', 'sources'].includes(requested) ? requested : 'library') : null
+  useEffect(() => { if (ownerView) setTab(ownerView) }, [ownerView])
   const [register, setRegister] = useState({ loading: true, versions: [], rows: [] })
   const [library, setLibrary] = useState({ loading: true, texts: [], versions: [] })
   const [candidates, setCandidates] = useState({ loading: true, items: [] })
@@ -74,7 +77,7 @@ export function LegislationPage() {
     {tab === 'library' && <ActionButton tone="primary" label={en ? 'New text' : 'Νέο κείμενο'} onClick={() => navigate(`${base}/library/new`)}><Plus size={18} /><span>{en ? 'New text' : 'Νέο κείμενο'}</span></ActionButton>}
   </div>
 
-  return <Page fill className="registry-fill-page" title={ownerRoute ? (en ? 'Settings' : 'Ρυθμίσεις') : en ? 'Legislation' : 'Νομοθεσία'} subtitle={!tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>{ownerRoute && <PlatformLibrariesTabs extra={tabs.length > 1 ? <div className="platform-settings-switch" role="group" aria-label={en ? 'Legislation' : 'Νομοθεσία'}>{tabs.map(item => { const count = item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0; return <button key={item.value} type="button" className={tab === item.value ? 'is-active' : ''} aria-pressed={tab === item.value} onClick={() => setTab(item.value)}>{item.label}{count > 0 ? ` ${count}` : ''}</button> })}</div> : null} />}
+  return <Page fill className="registry-fill-page" title={ownerRoute ? (en ? 'Legislation & sources' : 'Νομοθεσία & πηγές') : en ? 'Legislation' : 'Νομοθεσία'} subtitle={ownerRoute ? undefined : !tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>{ownerRoute && <PlatformLegalTabs active={tab === 'review' ? 'review' : tab === 'sources' ? 'checks' : 'legislation'} counts={{ review: pending.length, checks: failing.length }} />}
     {tabs.length > 1 && !ownerRoute && <CanonicalTabs items={tabs.map(item => ({ ...item, count: item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0 }))} value={tab} onChange={setTab} ariaLabel={en ? 'Legislation' : 'Νομοθεσία'} />}
     <section className="surface registry-workspace workspace-column workspace-fill">
       {tab === 'register' && <RegisterList entries={visible} counts={counts} loading={register.loading} filters={filters} setFilters={setFilters} language={language} onOpen={entry => navigate(`/legislation/${entry.text.id}`)} />}
@@ -171,7 +174,7 @@ function ReviewList({ candidates, texts, language, onChanged, base }) {
   }
   return <>
     <div className="leg-sources-head"><p className="leg-note">{en ? 'Found by the automatic check of the sources (every 2 hours). Nothing reaches the hospitals until you publish it from the library; you get a morning e-mail when something new is found.' : 'Ό,τι βρήκε ο αυτόματος έλεγχος των πηγών (κάθε 2 ώρες). Τίποτα δεν φτάνει στα νοσοκομεία πριν το δημοσιεύσετε από τη βιβλιοθήκη· όταν βρεθεί κάτι νέο, σας έρχεται email το πρωί.'}</p>
-      <SearchableSelect hideLabel className="leg-status-filter" label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={next=>next&&(setStatus)(next)} options={[{ value: 'pending', label: en ? 'To review' : 'Προς έλεγχο' }, { value: 'linked', label: en ? 'Added' : 'Καταχωρίστηκαν' }, { value: 'dismissed', label: en ? 'Dismissed' : 'Απορρίφθηκαν' }, { value: 'all', label: en ? 'All' : 'Όλα' }]}/></div>
+      <FilterSelect className="leg-status-filter" label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus}><option value="pending">{en ? 'To review' : 'Προς έλεγχο'}</option><option value="linked">{en ? 'Added' : 'Καταχωρίστηκαν'}</option><option value="dismissed">{en ? 'Dismissed' : 'Απορρίφθηκαν'}</option><option value="all">{en ? 'All' : 'Όλα'}</option></FilterSelect></div>
     <div className="scroll-table">
       <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!candidates.loading && !rows.length}
         columns={[{ key: 'found', label: en ? 'Found' : 'Βρέθηκε' }, { key: 'item', label: en ? 'Item' : 'Εύρημα' }, { key: 'keywords', label: en ? 'Matched' : 'Λέξεις' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }, { key: 'actions', label: '' }]}
@@ -202,6 +205,7 @@ function SourcesList({ sources, language, onChanged }) {
   const { notify, confirm } = useFeedback()
   const [editing, setEditing] = useState(null)
   const [busy, setBusy] = useState(false)
+  const paging = usePaging(sources.items, [])
   async function save() {
     if (!String(editing.name || '').trim() || !/^https?:\/\//.test(String(editing.url || '').trim())) { notify(en ? 'Give a name and an address starting with https://' : 'Δώστε όνομα και διεύθυνση που αρχίζει από https://', 'error'); return }
     setBusy(true)
@@ -225,7 +229,7 @@ function SourcesList({ sources, language, onChanged }) {
       <div className="row-actions"><Button variant="secondary" disabled={busy} onClick={checkNow}><RefreshCw size={15} />{en ? 'Check now' : 'Έλεγχος τώρα'}</Button><Button onClick={() => setEditing({ name: '', url: '', kind: 'rss', keywordsText: '', active: true })}><Plus size={15} />{en ? 'Source' : 'Πηγή'}</Button></div>
     </div>
     <div className="scroll-table">
-      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={sources.items} rowKey={item => item.id} empty={!sources.loading && !sources.items.length}
+      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!sources.loading && !sources.items.length}
         columns={[{ key: 'source', label: en ? 'Source' : 'Πηγή' }, { key: 'keywords', label: en ? 'Keywords' : 'Λέξεις-κλειδιά' }, { key: 'checked', label: en ? 'Last check' : 'Τελευταίος έλεγχος' }, { key: 'health', label: en ? 'State' : 'Κατάσταση' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No sources' : 'Δεν υπάρχουν πηγές'}
         renderRow={item => { const health = sourceHealth(item); return <>
@@ -236,6 +240,7 @@ function SourcesList({ sources, language, onChanged }) {
           <td><div className="row-actions"><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ ...item, keywordsText: item.keywords.join(', ') })}><Pencil size={14} /></IconButton><IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => remove(item)}><Trash2 size={14} /></IconButton></div></td>
         </> }} />
     </div>
+    {sources.items.length > 0 && <RegistryPagination language={language} page={paging.page} totalPages={paging.totalPages} totalItems={sources.items.length} pageSize={paging.pageSize} onPageChange={paging.setPage} onPageSizeChange={paging.setPageSize} />}
     {editing && <ObserverDialog title={editing.id ? (en ? 'Source' : 'Πηγή') : (en ? 'New source' : 'Νέα πηγή')} onClose={() => setEditing(null)}
       footer={<DialogActions onCancel={() => setEditing(null)} onSave={save} saveLabel={en ? 'Save' : 'Αποθήκευση'} disabled={busy} />}>
       <div className="leg-form">

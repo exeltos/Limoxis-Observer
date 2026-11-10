@@ -5,7 +5,7 @@ import { legislationDigestEmail, legislationUpdateEmail } from '../_shared/legis
 import { newCandidates, parseFeed, parsePage } from '../_shared/legislationWatch.ts'
 import { supplierCertificateRenewalEmail, supplierCertificateSubmittedEmail } from '../_shared/supplierCertificateEmail.ts'
 import { runTranslations } from '../_shared/translateContent.ts'
-import { accountAccessAddedEmail, accountBatchSummaryEmail, accountCreatedEmail } from '../_shared/accountCreatedEmail.ts'
+import { accountAccessAddedEmail, accountBatchSummaryEmail, accountCreatedEmail, accountReadyEmail } from '../_shared/accountCreatedEmail.ts'
 
 // Called by pg_cron (private.platform_dispatch_scheduled_tasks / platform_dispatch_task)
 // with the shared secret from Vault, never by a browser. Tasks:
@@ -18,7 +18,7 @@ const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status
 // Supplier certificate links are also sent here, so an approved request goes out even
 // when no browser drains the outbox (process-notification-outbox claims rows the same way).
 // So are the account e-mails of the bulk creation from the employee roster (N1).
-const MAILED=['platform_lifecycle_reminder','legislation_update','legislation_digest','supplier_certificate_renewal','supplier_certificate_submitted','account_created','account_access_added','account_batch_summary']
+const MAILED=['platform_lifecycle_reminder','legislation_update','legislation_digest','supplier_certificate_renewal','supplier_certificate_submitted','account_created','account_access_added','account_batch_summary','account_ready']
 const DIGEST_ENTITY='00000000-0000-0000-0000-00000000a11e'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin=any
@@ -88,6 +88,7 @@ function messageFor(type:string,p:Record<string,unknown>,actionUrl:string){
   if(type==='supplier_certificate_submitted')return supplierCertificateSubmittedEmail({organizationName:String(p.organizationName||''),certificates:Array.isArray(p.certificates)?p.certificates:[],actionUrl:actionUrl.replace('/quality/resources/suppliers/renewals','/quality/suppliers/renewals')})
   if(type==='account_created')return accountCreatedEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),recipientName:String(p.recipientName||''),username:String(p.username||''),roleLabel:String(p.roleLabel||''),departmentName:String(p.departmentName||''),expiresAt:typeof p.expiresAt==='string'?p.expiresAt:null,kind:p.kind==='resend'?'resend':'send',actionUrl})
   if(type==='account_access_added')return accountAccessAddedEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),recipientName:String(p.recipientName||''),username:String(p.username||''),roleLabel:String(p.roleLabel||''),departmentName:String(p.departmentName||''),actionUrl})
+  if(type==='account_ready')return accountReadyEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),recipientName:String(p.recipientName||''),username:String(p.username||''),roleLabel:String(p.roleLabel||''),departmentName:String(p.departmentName||''),actionUrl})
   if(type==='account_batch_summary')return accountBatchSummaryEmail({organizationName:String(p.organizationName||''),recipientName:String(p.recipientName||''),createdAt:typeof p.createdAt==='string'?p.createdAt:null,people:Array.isArray(p.people)?p.people:[],actionUrl})
   if(type==='legislation_update')return legislationUpdateEmail(p,actionUrl)
   if(type==='legislation_digest')return legislationDigestEmail(p as Parameters<typeof legislationDigestEmail>[0],actionUrl)

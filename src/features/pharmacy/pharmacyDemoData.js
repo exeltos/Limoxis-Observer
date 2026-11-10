@@ -1,6 +1,6 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
-import { DEMO_HISTORY_MONTHS, lastDayOfMonth, pad2, seededRandom } from '../../core/data/demoSeed'
+import { DEMO_HISTORY_LEAD, DEMO_HISTORY_MONTHS, lastDayOfMonth, pad2, seededRandom } from '../../core/data/demoSeed'
 export const pharmacyDepartments=[
   {id:'dep-icu',el:'ΜΕΘ',en:'ICU'},
   {id:'dep-internal',el:'Παθολογική',en:'Internal Medicine'},
@@ -59,7 +59,7 @@ DEMO_HISTORY_MONTHS.forEach((month,monthIndex)=>{
     if(antibioticDispensingRows.some(row=>row.departmentEl===department.el&&row.productCode===product.code&&row.period===month))return
     const rand=seededRandom(`dispensing|${month}|${department.id}|${product.id}`)
     dispensingReference+=1
-    antibioticDispensingRows.push(dispensingRow({id:`ABXD-${month.replace('-','').slice(2)}-${index+1}`,periodStart,periodEnd,department,product,quantityGrams:Math.round((grams+trend*monthIndex)*(0.9+rand()*0.2)/10)*10,method:'manual',referenceNumber:`ΦΑ-${dispensingReference}`,responsible:'Φαρμακείο'}))
+    antibioticDispensingRows.push(dispensingRow({id:`ABXD-${month.replace('-','').slice(2)}-${index+1}`,periodStart,periodEnd,department,product,quantityGrams:Math.round((grams+trend*(monthIndex-DEMO_HISTORY_LEAD))*(0.9+rand()*0.2)/10)*10,method:'manual',referenceNumber:`ΦΑ-${dispensingReference}`,responsible:'Φαρμακείο'}))
   })
 })
 

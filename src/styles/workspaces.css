@@ -288,11 +288,12 @@
 .canonical-tab.active,.canonical-tab[aria-selected="true"]{border-bottom-color:#2582bd;background:transparent;color:#0b6097;font-weight:700;box-shadow:none}
 .canonical-tab:focus-visible{outline:2px solid rgba(37,130,189,.24);outline-offset:-3px}
 
-.entity-record-tabs{display:flex!important;align-items:stretch!important;min-height:38px!important;height:38px!important;gap:0!important;padding:0 6px!important;margin:0!important;overflow-x:auto!important;overflow-y:hidden!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
+.entity-record-tabs:not(:where(.platform-owner-record-shell>.entity-record-tabs)){border:0!important;border-radius:0!important}
+.entity-record-tabs{display:flex!important;align-items:stretch!important;min-height:38px!important;height:38px!important;gap:0!important;padding:0 6px!important;margin:0!important;overflow-x:auto!important;overflow-y:hidden!important;border-bottom:1px solid var(--lo-color-border)!important;background:#fff!important;box-shadow:none!important}
 .entity-record-tabs>button{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;height:38px!important;padding:0 10px!important;gap:5px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#65788d!important;font-size:13px!important;line-height:1!important;font-weight:600!important;white-space:nowrap!important}
 .entity-record-tabs>button svg{width:16px!important;height:16px!important;color:currentColor!important;stroke-width:1.7}
 .entity-record-tabs>button.active,.entity-record-tabs>button[aria-selected="true"]{border-bottom-color:#2582bd!important;background:transparent!important;color:#0b6097!important;font-weight:700!important}
-.entity-record-tabs.surface{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important}
+.entity-record-tabs.surface:not(:where(.platform-owner-record-shell>.entity-record-tabs)){border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important}
 
 .registry-workspace>.environmental-registry{min-height:0!important;height:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
 .registry-workspace>.environmental-registry .scroll-table{height:100%!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:auto!important}

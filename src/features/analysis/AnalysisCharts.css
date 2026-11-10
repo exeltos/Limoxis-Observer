@@ -89,3 +89,30 @@
 @media print{.analysis-matrix tr.analysis-matrix-extra{display:table-row}.analysis-matrix-more{display:none}}
 .analysis-matrix-more{margin:6px 0 0;padding:0;font:inherit;font-size:12px;font-weight:700;color:var(--lo-color-primary);background:none;border:0;cursor:pointer}
 .analysis-empty-charts{margin:4px 0 0;padding:10px 14px;border:1px dashed var(--lo-color-border);border-radius:12px;font-size:12.5px;color:var(--lo-color-muted)}
+/* The figures line of every analysis section (here, not in the executive styles: the platform reports load it too). */
+.analysis-figures{display:flex;flex-wrap:nowrap;min-width:0;overflow:hidden;gap:6px 18px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font-size:13px;color:var(--lo-color-muted)}
+.analysis-figures b{color:#1d3a52;font-size:15px;font-variant-numeric:tabular-nums}
+.analysis-figures .analysis-figure-danger b{color:#a32121}
+.analysis-figures .analysis-figure-warning b{color:#8a5a00}
+.analysis-figures .analysis-figure-good b{color:#1f7a45}
+
+/* Platform reports (owner, 10/11/2026): flat like the rest of the owner console. Filters are one compact row, the
+   report is not a card around cards, section titles are plain headings, the figures are the registry-totals pills. */
+.platform-report-top{margin:0 var(--lo-layout-page-x)}
+.platform-report-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 18px;padding:0 0 10px}
+.platform-report-filter-set,.platform-report-filter-set>.analysis-filter-group-fields{display:contents}
+.platform-report-filter-set>.analysis-filter-group-title{display:none}
+.platform-report-filters .analysis-filter-field{flex:0 1 190px;min-width:150px}
+.platform-report-scroll{flex:1 1 auto;min-width:0;min-height:0;overflow:auto;padding:12px var(--lo-layout-page-x) 24px;background:transparent}
+.platform-report-scroll .analysis-report{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.platform-report-title{display:none}
+.analysis-print-frame .platform-report-title{display:block}
+.platform-analysis-page .analysis-chart-card>header span{display:none}
+.platform-analysis-page .analysis-chart-card>header{margin-bottom:10px}
+.platform-analysis-page .viz-bar-row,.platform-analysis-page .viz-bars.has-detail .viz-bar-row{grid-template-columns:minmax(120px,46%) minmax(0,1fr) minmax(44px,max-content)}
+.platform-analysis-page .viz-bar-label{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}
+.analysis-workspace.platform-analysis-page>.analysis-subtabs{margin:8px var(--lo-layout-page-x) 0;padding:0;background:transparent}
+.analysis-demo-note{margin-left:10px;padding:2px 8px;border-radius:999px;background:var(--lo-color-surface-muted,#eef3f7);color:var(--lo-color-muted);font-size:11px;font-weight:600;vertical-align:middle}
+.analysis-figures{gap:5px;padding:0;border:0;background:transparent;align-items:center}
+.analysis-figures>span{display:block;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;min-height:28px;padding:0 8px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:12px;line-height:28px;white-space:nowrap}
+.analysis-figures b{font-size:13px}

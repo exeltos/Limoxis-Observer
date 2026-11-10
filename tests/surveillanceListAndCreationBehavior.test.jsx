@@ -77,6 +77,8 @@ const openTab = async name => {
   })
 }
 const rowOf = text => screen.getByText(text).closest('tr')
+// The Demo screens each employee several times since 2025: the latest record is the first row.
+const latestRowOf = text => screen.getAllByText(text)[0].closest('tr')
 const statusCell = row => row.querySelector('td:last-child')
 const metric = label => screen.getByText(label).closest('.registry-total')
 // The create button creates what the open tab lists.
@@ -175,7 +177,7 @@ describe('Employees tab: status column', () => {
     finalizedAt: '2026-09-22T10:00:00+03:00',
   }
   beforeEach(() => {
-    employeeSurveillanceRecords.push(record)
+    employeeSurveillanceRecords.unshift(record)
     laboratorySamples.push(sample)
   })
   afterEach(() => {
@@ -187,14 +189,14 @@ describe('Employees tab: status column', () => {
     await openCenter()
     await openTab(/Εργαζόμενοι/)
     expect(screen.getByRole('columnheader', { name: 'Κατάσταση' })).toBeInTheDocument()
-    expect(statusCell(rowOf('Παπαδοπούλου Μαρία'))).toHaveTextContent('Ενεργός')
-    expect(statusCell(rowOf('Κωνσταντίνου Ελένη'))).toHaveTextContent('Ολοκληρώθηκε')
+    expect(statusCell(latestRowOf('Παπαδοπούλου Μαρία'))).toHaveTextContent('Ενεργός')
+    expect(statusCell(latestRowOf('Κωνσταντίνου Ελένη'))).toHaveTextContent('Ολοκληρώθηκε')
   })
 
   it('marks a positive screening without follow-up as needing follow-up', async () => {
     await openCenter()
     await openTab(/Εργαζόμενοι/)
-    const badge = within(statusCell(rowOf('Σταθάτου Δήμητρα'))).getByText(
+    const badge = within(statusCell(latestRowOf('Σταθάτου Δήμητρα'))).getByText(
       'Χρειάζεται παρακολούθηση',
     )
     expect(badge).toHaveClass('warning')

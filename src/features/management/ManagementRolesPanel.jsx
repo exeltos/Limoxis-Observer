@@ -24,13 +24,18 @@ const actionLabels={view:['Προβολή','View'],finalize:['Οριστικοπ
 const groupLabel=(value,en)=>domainLabels[value]?.[en?1:0]||value
 const scopeLabel=(value,en)=>scopeLabels[value]?.[en?1:0]||value||'—'
 const actionLabel=(item,en)=>actionLabels[item?.actionType]?.[en?1:0]||(en?'Other':'Άλλο')
+// The Demo's own custom roles (owner, 9/11/2026: every screen of the Demo has data), in the shape loadCustomRoles returns.
+const demoCustomRoles=en=>[
+ {id:'custom-demo-kitchen',name:en?'Kitchen manager':'Υπεύθυνος/η κουζίνας',description:'',is_active:true,capabilities:['view_kitchen','record_kitchen','manage_kitchen','view_documents','report_incident']},
+ {id:'custom-demo-training',name:en?'Training coordinator':'Συντονιστής/τρια εκπαίδευσης',description:'',is_active:true,capabilities:['view_training','manage_training','view_staff','view_documents','report_incident']},
+]
 
 export function ManagementRolesPanel(){
  const {language,t}=useLanguage();const en=language==='en';const {tenant,isDemo}=useTenant();const {notify,confirm}=useFeedback()
  const [customRoles,setCustomRoles]=useState([]);const [roleQuery,setRoleQuery]=useState('');const [loading,setLoading]=useState(false);const [selected,setSelected]=useState(null);const [editor,setEditor]=useState(null)
  const customPermissions=useMemo(()=>Object.values(capabilityCatalogue).filter(item=>item.customRoleClass!=='system_only'),[])
  const systemRoles=useMemo(()=>Object.entries(managementRoleNames).filter(([key])=>key!=='demo'&&key!=='platform_owner').map(([key,labelKey])=>({id:key,name:t(labelKey),system:true,capabilities:roleCapabilities[key]||[]})),[t])
- useEffect(()=>{if(isDemo){setCustomRoles([]);return}if(!tenant?.id)return;let active=true;setLoading(true);loadCustomRoles(tenant.id).then(rows=>active&&setCustomRoles(rows)).catch(error=>active&&notify(error?.message||(en?'Failed to load roles.':'Αποτυχία φόρτωσης ρόλων.'),'error')).finally(()=>active&&setLoading(false));return()=>{active=false}},[isDemo,tenant?.id,notify,en])
+ useEffect(()=>{if(isDemo){setCustomRoles(demoCustomRoles(en).filter(role=>role.capabilities.every(isCustomRoleEligible)));return}if(!tenant?.id)return;let active=true;setLoading(true);loadCustomRoles(tenant.id).then(rows=>active&&setCustomRoles(rows)).catch(error=>active&&notify(error?.message||(en?'Failed to load roles.':'Αποτυχία φόρτωσης ρόλων.'),'error')).finally(()=>active&&setLoading(false));return()=>{active=false}},[isDemo,tenant?.id,notify,en])
  const selectedRole=useMemo(()=>selected?.system?systemRoles.find(x=>x.id===selected.id)||null:customRoles.find(x=>x.id===selected?.id)||null,[selected,systemRoles,customRoles])
  function openNew(){setSelected(null);setEditor({mode:'new',id:null,name:'',capabilities:[]})}
  function openEdit(role){if(role?.system)return;setEditor({mode:'edit',id:role.id,name:role.name||'',capabilities:[...(role.capabilities||[])]})}

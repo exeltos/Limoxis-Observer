@@ -67,8 +67,10 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
   const entries = []
   const identities = {}
   const [year, month] = today.split('-').map(Number)
+  // From January 2025 on (owner, 9/11/2026: the Demo shows the whole of 2025), at least fourteen months.
+  const historyBack = Math.max(13, (year - 2025) * 12 + month - 1)
   let caseNumber = 10613000
-  for (let back = 13; back >= 0; back -= 1) {
+  for (let back = historyBack; back >= 0; back -= 1) {
     const date = new Date(Date.UTC(year, month - 1 - back, 1))
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
     const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
@@ -148,7 +150,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
   // ICU: General and Cardiac surgery patients, its own seed so the NICU's numbers stay the same.
   const icuRandom = seeded(20261107)
   let icuNumber = 10590000
-  for (let back = 13; back >= 0; back -= 1) {
+  for (let back = historyBack; back >= 0; back -= 1) {
     const date = new Date(Date.UTC(year, month - 1 - back, 1))
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
     const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
@@ -197,7 +199,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
   const edMeans = { surgical: [9, 7, 3], urgent: [5, 4, 2], admissions: [3, 3, 2], dressings: [4, 3, 0.6], septic: [1.5, 1, 0.4], assessments: [0.3, 0.2, 0.1], checkup: [0.6, 0.3, 0.05], preop: [2.5, 0.3, 0], left_without_seen: [0.2, 0.2, 0.2], revisit_72h: [0.3, 0.2, 0.1], transfers: [0.2, 0.2, 0.1] }
   const shifts = ['morning', 'afternoon', 'night']
   const edValues = factor => Object.fromEntries(Object.entries(edMeans).map(([row, means]) => [row, Object.fromEntries(shifts.map((shift, index) => [shift, Math.max(0, Math.round(means[index] * factor * (0.5 + edRandom())))]))]))
-  for (let back = 13; back >= 0; back -= 1) {
+  for (let back = historyBack; back >= 0; back -= 1) {
     const date = new Date(Date.UTC(year, month - 1 - back, 1))
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
     if (back > 0) entries.push({ id: `reg-entry-ed-${y}-${pad(m)}`, registerId: DEMO_EMERGENCY_ID, entryDate: `${y}-${pad(m)}-01`, periodStart: `${y}-${pad(m)}-01`, values: edValues(22), status: 'complete', locked: false, createdAt: `${y}-${pad(m)}-28T14:00:00Z`, createdByLabel: 'Προϊστάμενος ΤΕΠ' })
@@ -212,7 +214,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
   // Obstetrics: one card per mother, its own seed.
   const momRandom = seeded(20261111)
   let momNumber = 10550000
-  for (let back = 13; back >= 0; back -= 1) {
+  for (let back = historyBack; back >= 0; back -= 1) {
     const date = new Date(Date.UTC(year, month - 1 - back, 1))
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
     const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
@@ -236,7 +238,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
   // Paediatrics: children up to 16 (newborns stay with the NICU), its own seed.
   const kidRandom = seeded(20261109)
   let kidNumber = 10570000
-  for (let back = 13; back >= 0; back -= 1) {
+  for (let back = historyBack; back >= 0; back -= 1) {
     const date = new Date(Date.UTC(year, month - 1 - back, 1))
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
     const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
@@ -285,7 +287,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
   }
   for (const [registerId, means] of Object.entries(sheetMeans)) {
     const label = registerId === DEMO_OPHTHALMOLOGY_ID ? 'Προϊσταμένη Οφθαλμολογικού' : 'Μαία Αίθουσας Τοκετών'
-    for (let back = 13; back >= 0; back -= 1) {
+    for (let back = historyBack; back >= 0; back -= 1) {
       const date = new Date(Date.UTC(year, month - 1 - back, 1))
       const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
       const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
@@ -304,7 +306,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
   // Cath lab: one card per patient procedure, its own seed.
   const cathRandom = seeded(20261117)
   let cathNumber = 10610000
-  for (let back = 13; back >= 0; back -= 1) {
+  for (let back = historyBack; back >= 0; back -= 1) {
     const date = new Date(Date.UTC(year, month - 1 - back, 1))
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
     const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
@@ -332,7 +334,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
   // Chemotherapy: one card per patient, active until an end date; about a third have finished.
   const chemoRandom = seeded(20261121)
   let chemoNumber = 10520000
-  for (let back = 13; back >= 0; back -= 1) {
+  for (let back = historyBack; back >= 0; back -= 1) {
     const date = new Date(Date.UTC(year, month - 1 - back, 1))
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
     const days = new Date(Date.UTC(y, m, 0)).getUTCDate()

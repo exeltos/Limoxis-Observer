@@ -2,6 +2,7 @@ import { useEffect,useRef,useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Eye,EyeOff,Lock,LogIn } from 'lucide-react'
 import { supabase } from '../core/supabase/client'
+import { signInWithPassword } from '../core/auth/authService'
 import { readLocalValue,readSessionValue,removeSessionValue,writeLocalValue,writeSessionValue } from '../core/storage/browserStorage'
 import './idleLock.css'
 
@@ -11,7 +12,14 @@ const ACTIVITY_EVENTS=['pointerdown','pointermove','keydown','wheel','touchstart
 // than the setting).
 const CHECK_MS=15000
 export const DEFAULT_IDLE_LOCK_MINUTES=15
-export const IDLE_LOCK_OPTIONS=[0,5,10,15,30,60]
+// Hospitals: 5–30 minutes, never off (owner, 9/11/2026). Older stored values outside the range are clamped.
+export const IDLE_LOCK_OPTIONS=[5,10,15,30]
+export const MIN_IDLE_LOCK_MINUTES=5
+export const MAX_IDLE_LOCK_MINUTES=30
+// The Platform Owner's account reaches every hospital: its screen always locks, after 10 minutes at most
+// (also inside a hospital whose own setting is longer or off).
+export const OWNER_IDLE_LOCK_MINUTES=10
+export const ownerIdleLockMinutes=minutes=>{const value=Number(minutes);return value>0?Math.min(value,OWNER_IDLE_LOCK_MINUTES):OWNER_IDLE_LOCK_MINUTES}
 
 const readLocked=()=>readSessionValue(LOCK_KEY)==='1'
 const writeLocked=value=>{if(value)writeSessionValue(LOCK_KEY,'1');else removeSessionValue(LOCK_KEY)}
@@ -26,7 +34,9 @@ export function idleLockMinutesFor(tenant,isDemo){
  const raw=isDemo?readLocalValue(DEMO_MINUTES_KEY,null):tenant?.idle_lock_minutes
  if(raw==null||raw==='')return DEFAULT_IDLE_LOCK_MINUTES
  const value=Number(raw)
- return Number.isFinite(value)&&value>=0?value:DEFAULT_IDLE_LOCK_MINUTES
+ if(!Number.isFinite(value))return DEFAULT_IDLE_LOCK_MINUTES
+ if(value<=0)return MAX_IDLE_LOCK_MINUTES
+ return Math.min(MAX_IDLE_LOCK_MINUTES,Math.max(MIN_IDLE_LOCK_MINUTES,value))
 }
 export function announceIdleLockMinutes(minutes,{isDemo=false}={}){
  if(isDemo)writeLocalValue(DEMO_MINUTES_KEY,String(minutes))
@@ -96,8 +106,10 @@ function LockScreen({en,userName,organizationName,email,onUnlock,onSwitchUser}){
   if(!password)return
   setBusy(true);setError('')
   // The email is the signed-in account's own, so only that account's password unlocks.
-  const {data,error:signInError}=await supabase.auth.signInWithPassword({email,password})
+  let data=null,signInError=null
+  try{data=await signInWithPassword(email,password)}catch(caught){signInError=caught}
   setBusy(false)
+  if(String(signInError?.message||'')==='LOGIN_LOCKED'){setError(en?'Too many failed attempts. Sign-in is locked for 15 minutes.':'Πολλές αποτυχημένες προσπάθειες. Η σύνδεση κλειδώθηκε για 15 λεπτά.');setPassword('');setShowPassword(false);return}
   if(signInError||!data?.user){setError(en?'Wrong password.':'Λάθος κωδικός.');setPassword('');setShowPassword(false);return}
   setPassword('')
   onUnlock()

@@ -43,12 +43,19 @@ const baseProps = {
 }
 
 describe('PlatformDashboardView', () => {
-  it('shows the live-platform pill; organizations open from their own card', () => {
-    render(<PlatformDashboardView {...baseProps}/>)
-    expect(screen.getByText('Πλατφόρμα ενεργή')).toBeInTheDocument()
-    // Hospitals appear on the Overview only in the health list (last activity, errors / 24 h).
-    expect(screen.getByText('Lena Hospital').closest('.platform-health-row')).not.toBeNull()
+  it('greets the owner by first name; hospitals are rows of the hospitals table', () => {
+    render(<PlatformDashboardView {...baseProps} ownerName="Άρης Ιωάννου"/>)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/^(Καλημέρα|Καλησπέρα), Άρη$/)
+    expect(screen.getByText('Lena Hospital').closest('.platform-hospital-row')).not.toBeNull()
     expect(screen.getAllByText(/Οργανισμοί/).length).toBeGreaterThan(0)
+  })
+
+  it('works on an empty platform: the hospitals card offers the first organization', () => {
+    const created = []
+    render(<PlatformDashboardView {...baseProps} organizations={[]} onCreateOrganization={() => created.push(1)}/>)
+    expect(screen.getByText('Δεν υπάρχει ακόμη οργανισμός στην πλατφόρμα.')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByText('Νέος οργανισμός').at(-1))
+    expect(created).toEqual([1])
   })
 })
 

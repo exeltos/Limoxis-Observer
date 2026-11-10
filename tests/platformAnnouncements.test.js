@@ -39,9 +39,17 @@ describe('platform announcements: file and demo (owner, 8/11/2026)', () => {
     expect(announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο' })).toMatchObject({ attachment_path: null, show_in_demo: false })
   })
 
-  it('opens the form in the page, not a window, and shows the demo ones in a demo hospital', () => {
+  it('opens the form as a record screen with Back (not a window), rows only open it, and shows the demo ones in a demo hospital', () => {
     const page = readFileSync('src/features/platform/PlatformAnnouncementsPage.jsx', 'utf8')
-    expect(page).toContain('<InlineDialogContext.Provider value>')
+    expect(page).toContain('<EntityRecordShell')
+    expect(page).toContain('onBack={() => setDraft(null)}')
+    expect(page).not.toContain('<ObserverDialog')
+    // A row opens the record; Stop and Delete live in the record's «⋯», not on the row.
+    expect(page).not.toContain('<OverflowMenu')
+    expect(page).toContain("placement: 'menu', danger: true")
+    // The maintenance message is the pinned first item and has its own editor.
+    expect(page).toContain('platform-maintenance-item')
+    expect(page).toContain('function MaintenanceEditor(')
     const gate = readFileSync('src/features/platform/PlatformAnnouncementGate.jsx', 'utf8')
     expect(gate).toContain('loadDemoAnnouncements()')
   })

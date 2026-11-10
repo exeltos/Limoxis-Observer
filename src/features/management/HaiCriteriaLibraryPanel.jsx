@@ -1,9 +1,8 @@
 import { useEffect,useState } from 'react'
-import { Pencil,Plus,Trash2 } from 'lucide-react'
+import { Plus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { IconButton } from '../../design-system/IconButton'
-import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -50,11 +49,11 @@ export function HaiCriteriaLibraryPanel({global=false}={}){
   <RegistryTable
     wrapperClassName="table-wrap scroll-table bundle-library-table-wrap"
     className="bundle-library-table"
-    columns={[{key:'set',label:en?'Criteria set':'Σετ κριτηρίων'},{key:'source',label:en?'Source':'Πηγή'},{key:'groups',label:en?'Groups':'Ομάδες'},{key:'items',label:en?'Items':'Κριτήρια'},{key:'actions',label:''}]}
+    columns={[{key:'set',label:en?'Criteria set':'Σετ κριτηρίων'},{key:'source',label:en?'Source':'Πηγή'},{key:'groups',label:en?'Groups':'Ομάδες'},{key:'items',label:en?'Items':'Κριτήρια'}]}
     rows={rows}
     rowKey={item=>item.id}
     rowProps={item=>({className:'clickable-row',onClick:()=>openItem(item)})}
-    renderRow={item=><><td><strong>{en?item.labelEn:item.labelEl}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'Σύστημα · Μόνο ιδιοκτήτης'}</span>}</td><td>{(en?item.source:String(item.source||'').replace('simplified, age ≤1 year LCBI criteria','απλοποιημένα, κριτήρια LCBI για ηλικία ≤1 έτους').replace('(simplified)','(απλοποιημένα)'))||'—'}</td><td>{item.groups?.length||0}</td><td>{item.groups?.reduce((sum,group)=>sum+(group.items?.length||0),0)||0}</td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={[{id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,hidden:!isPlatformOwner,onClick:()=>openItem(item)}]}/></td></>}
+    renderRow={item=><><td><strong>{en?item.labelEn:item.labelEl}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'Σύστημα · Μόνο ιδιοκτήτης'}</span>}</td><td>{(en?item.source:String(item.source||'').replace('simplified, age ≤1 year LCBI criteria','απλοποιημένα, κριτήρια LCBI για ηλικία ≤1 έτους').replace('(simplified)','(απλοποιημένα)'))||'—'}</td><td>{item.groups?.length||0}</td><td>{item.groups?.reduce((sum,group)=>sum+(group.items?.length||0),0)||0}</td></>}
   />{!loading&&!rows.length&&<div className="inline-empty">{en?'No criteria sets found.':'Δεν βρέθηκαν σετ κριτηρίων.'}</div>}
   {selected&&<HaiCriteriaEditor language={language} draft={selected} ruleLabels={ruleLabels} onClose={()=>setSelected(null)} onSave={save}/>}
  </div>

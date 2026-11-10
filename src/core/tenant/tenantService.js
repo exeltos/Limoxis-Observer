@@ -253,7 +253,7 @@ export async function listOrganizationMembersDetailed(organizationId) {
     const profile = profileById.get(row.user_id) || {}
     const invite = latestInviteByUser.get(row.user_id)
     const invitationStatus = invitationState(invite)
-    return { id: row.id, userId: row.user_id, role: row.role, status: row.status, username: profile.username || '—', name: profile.full_name || '—', email: profile.contact_email || invite?.delivery_email || '', phone: profile.phone || '', jobTitle: profile.job_title || '', invitationStatus, invitationCreatedAt: invite?.created_at || null, invitationExpiresAt: invite?.expires_at || null }
+    return { id: row.id, userId: row.user_id, role: row.role, status: row.status, username: profile.username || '—', name: profile.full_name || '—', email: profile.contact_email || invite?.delivery_email || '', phone: profile.phone || '', jobTitle: profile.job_title || '', invitationStatus, invitationCreatedAt: invite?.created_at || null, invitationExpiresAt: invite?.expires_at || null, createdAt: row.created_at || null }
   })
 }
 

@@ -63,12 +63,14 @@ export function controlsExport(rows,{en,frequencyLabel=()=>'' ,stateLabel=value=
 
 export function qualityExport(section,rows,{en,t=value=>value}){
  const owner=r=>(r.owners?.length?r.owners:[r.owner].filter(Boolean)).join(', ')
+ // A bare number is the FileMaker record number of an imported record: kept in the data, not printed.
+ const shownSource=id=>/^\d+$/.test(String(id??'').trim())?'':(id||'')
  const title=r=>(en?r.titleEn:r.title)||r.title
  const department=r=>(en?r.departmentEn:r.department)||r.department
  const common=[en?'Code':'Κωδικός',en?'Title':'Τίτλος',en?'Department':'Τμήμα']
  if(section==='capas'){
   return {name:en?'capa':'capa',headers:[...common,en?'Type':'Τύπος',en?'Priority':'Προτεραιότητα',en?'Owner':'Υπεύθυνος',en?'Due':'Προθεσμία',en?'Steps done':'Βήματα',en?'Source':'Πηγή',en?'Effectiveness review':'Έλεγχος αποτελεσματικότητας',en?'Effectiveness':'Αποτελεσματικότητα',en?'Status':'Κατάσταση'],
-   rows:rows.map(r=>{const steps=r.subActions||[];return [r.displayId||r.id,title(r),department(r),t(r.actionType),t(r.priority),owner(r),day(r.dueDate,en),steps.length?`${steps.filter(s=>s.done).length}/${steps.length}`:'',r.sourceId||'',day(r.effectivenessDue,en),t(r.effectivenessStatus),t(r.status)]})}
+   rows:rows.map(r=>{const steps=r.subActions||[];return [r.displayId||r.id,title(r),department(r),t(r.actionType),t(r.priority),owner(r),day(r.dueDate,en),steps.length?`${steps.filter(s=>s.done).length}/${steps.length}`:'',shownSource(r.sourceId),day(r.effectivenessDue,en),t(r.effectivenessStatus),t(r.status)]})}
  }
  if(section==='incidents'){
   return {name:en?'incidents':'symvanta',headers:[...common,en?'Date':'Ημερομηνία',en?'Type':'Τύπος',en?'Severity':'Σοβαρότητα',en?'Reached patient':'Έφτασε στον ασθενή',en?'Harm':'Βλάβη',en?'Owner':'Υπεύθυνος',en?'Status':'Κατάσταση'],
@@ -76,7 +78,7 @@ export function qualityExport(section,rows,{en,t=value=>value}){
  }
  if(section==='findings'){
   return {name:en?'findings':'evrimata',headers:[...common,en?'Date':'Ημερομηνία',en?'Severity':'Σοβαρότητα',en?'Source':'Πηγή',en?'Owner':'Υπεύθυνος',en?'Status':'Κατάσταση'],
-   rows:rows.map(r=>[r.displayId||r.id,title(r),department(r),day(r.date,en),t(r.severity),[t(r.source),r.sourceId].filter(Boolean).join(' · '),owner(r),t(r.status)])}
+   rows:rows.map(r=>[r.displayId||r.id,title(r),department(r),day(r.date,en),t(r.severity),[t(r.source),shownSource(r.sourceId)].filter(Boolean).join(' · '),owner(r),t(r.status)])}
  }
  return {name:en?'audits':'epitheoriseis',headers:[en?'Code':'Κωδικός',en?'Title':'Τίτλος',en?'Type':'Τύπος',en?'Planned':'Προγραμματισμένη',en?'Completed':'Ολοκληρώθηκε',en?'Lead auditor':'Επικεφαλής ελεγκτής',en?'Status':'Κατάσταση'],
   rows:rows.map(r=>[r.displayId||r.id,title(r),t(r.auditType),day(r.plannedDate,en),day(r.completedDate,en),r.leadAuditor||'',t(r.status)])}

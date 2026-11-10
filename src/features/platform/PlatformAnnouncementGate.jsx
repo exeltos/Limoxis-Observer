@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Component, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileText, Megaphone } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -57,16 +57,39 @@ export function PlatformAnnouncementGate({ hold = false }) {
     if (!demo) markAnnouncementSeen(current.id, tenant.id, user.id).catch(() => {})
     setQueue(list => list.slice(1))
   }
-  return <PlatformAnnouncementDialog announcement={current} onClose={close} language={language} navigate={navigate} />
+  // In the hospital the card is large; whatever it carries (a broken image, odd text), it never stops the application.
+  return (
+    <AnnouncementBoundary onError={close}>
+      <PlatformAnnouncementDialog announcement={current} onClose={close} language={language} navigate={navigate} large />
+    </AnnouncementBoundary>
+  )
+}
+
+class AnnouncementBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch() {
+    this.props.onError?.()
+  }
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
 }
 
 // The announcement itself: the gate shows it to the administrator, the owner's page as a preview.
-export function PlatformAnnouncementDialog({ announcement: current, onClose: close, language, navigate }) {
+export function PlatformAnnouncementDialog({ announcement: current, onClose: close, language, navigate, large = false }) {
   const en = language === 'en'
   const [fileUrl, setFileUrl] = useState('')
+  const [imageFailed, setImageFailed] = useState(false)
   useEffect(() => {
     let alive = true
     setFileUrl('')
+    setImageFailed(false)
     if (current.attachmentPath) announcementAttachmentUrl(current.attachmentPath).then(url => alive && setFileUrl(url)).catch(() => {})
     return () => {
       alive = false
@@ -74,19 +97,20 @@ export function PlatformAnnouncementDialog({ announcement: current, onClose: clo
   }, [current.attachmentPath])
   const pick = (el, enText) => (en && enText ? enText : el)
   const title = pick(current.titleEl, current.titleEn)
-  const image = isImageAttachment(current) ? fileUrl : current.imageUrl
-  const cta = current.ctaUrl ? pick(current.ctaLabelEl, current.ctaLabelEn) || (en ? 'Learn more' : 'Δείτε περισσότερα') : ''
+  const image = imageFailed ? '' : isImageAttachment(current) ? fileUrl : current.imageUrl
+  const ctaUrl = typeof current.ctaUrl === 'string' ? current.ctaUrl.trim() : ''
+  const cta = ctaUrl ? pick(current.ctaLabelEl, current.ctaLabelEn) || (en ? 'Learn more' : 'Δείτε περισσότερα') : ''
   const follow = () => {
     close()
-    if (current.ctaUrl.startsWith('/')) navigate?.(current.ctaUrl)
-    else window.open(current.ctaUrl, '_blank', 'noopener,noreferrer')
+    if (ctaUrl.startsWith('/')) navigate?.(ctaUrl)
+    else window.open(ctaUrl, '_blank', 'noopener,noreferrer')
   }
   return (
     <ObserverDialog
       title={title}
       eyebrow={current.kind === 'promotion' ? (en ? 'New in Limoxis' : 'Νέο στο Limoxis') : en ? 'Announcement' : 'Ανακοίνωση'}
-      width="compact"
-      className={`platform-announcement-dialog is-${current.kind}`}
+      width={large ? 'wide' : 'compact'}
+      className={`platform-announcement-dialog is-${current.kind}${large ? ' is-large' : ''}`}
       onClose={close}
       footer={
         <>
@@ -98,13 +122,13 @@ export function PlatformAnnouncementDialog({ announcement: current, onClose: clo
       }
     >
       {image ? (
-        <img className="platform-announcement-image" src={image} alt="" />
+        <img className="platform-announcement-image" src={image} alt="" onError={() => setImageFailed(true)} />
       ) : (
         <div className="platform-announcement-band" aria-hidden="true">
           <Megaphone size={22} />
         </div>
       )}
-      <p className="platform-announcement-body">{pick(current.bodyEl, current.bodyEn)}</p>
+      <p className="platform-announcement-body">{pick(current.bodyEl, current.bodyEn) || ''}</p>
       {current.attachmentPath && !isImageAttachment(current) && fileUrl && (
         <a className="platform-announcement-file" href={fileUrl} target="_blank" rel="noopener noreferrer">
           <FileText size={16} aria-hidden="true" />

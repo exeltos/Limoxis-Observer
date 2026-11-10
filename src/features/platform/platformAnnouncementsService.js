@@ -1,4 +1,5 @@
 import { supabase } from '../../core/supabase/client'
+import { isOwnerPreview, previewPlatformAnnouncements } from '../../core/preview/ownerPreview'
 
 // Announcements of the platform owner to the hospital administrators (owner, 8/11/2026). The table and its RLS:
 // supabase/migrations/20261231260000_platform_announcements.sql — the owner writes them, a hospital administrator reads
@@ -56,6 +57,7 @@ export function announcementPayload(draft) {
 
 // The owner's list, with how many administrators have seen each one.
 export async function loadPlatformAnnouncements() {
+  if (isOwnerPreview()) return previewPlatformAnnouncements()
   const [{ data, error }, views] = await Promise.all([
     supabase.from('platform_announcements').select(COLUMNS).order('created_at', { ascending: false }),
     supabase.from('platform_announcement_views').select('announcement_id'),

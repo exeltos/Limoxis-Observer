@@ -1,6 +1,11 @@
 {
   "$comment": "SECURITY DEFINER functions in public that anon or authenticated may execute. Checked by tools/check-security-definer.mjs (npm run audit:security-definer). rls-helper: returns only what the caller may do; rpc: must check the caller itself; public-token: callable before sign-in, guarded by a random access token or exposing no organisation data.",
   "functions": {
+    "complete_password_change": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "First sign-in with a temporary password (accounts created active by the Platform Owner): after supabase.auth.updateUser the signed-in user clears profiles.must_change_password for their own row only (auth.uid()); nothing else is changed or returned."
+    },
     "analysis_crosstab_metrics": {
       "category": "rpc",
       "authenticated": true,
@@ -599,6 +604,31 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Sets the area and type of employment of a not yet used tablet application link; checks manage_interviews of the link's organisation itself."
+    },
+    "touch_login_session": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Heartbeat of the open app: marks the caller's own current session (auth.uid() + JWT session_id) as alive and returns false when the session was ended (by the Platform Owner or expiry), so the app signs out."
+    },
+    "platform_login_sessions_list": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Platform Owner only (current_user_is_platform_owner()): login history — user, IP, device, start, last activity, end — joined with profiles and organization names."
+    },
+    "platform_end_login_sessions": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Platform Owner only (current_user_is_platform_owner()): ends one session or all sessions of a user (deletes the auth.sessions rows, revoking refresh tokens) and writes system_audit_log."
+    },
+    "resolve_legacy_person": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Hospital Admin of the organisation (is_org_admin, Platform Owner included) links one legacy FileMaker name text to an employee of the same organisation: updates only the employee link columns of the whitelisted tables, never the text, and writes system_audit_log."
+    },
+    "platform_release_login_lock": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Platform Owner only (current_user_is_platform_owner()): releases a login lock (account or IP) before it expires and writes system_audit_log."
     }
   }
 }

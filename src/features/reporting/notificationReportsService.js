@@ -7,11 +7,17 @@ const demoReports = new Map()
 // patient's record under «Δηλωτέα νοσήματα» even though the patient has no admission.
 const DEMO_NOTIFIED_AT = new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10)
 demoReports.set('clinical|demo-1', { id: 'clinical|demo-1', findingKey: 'clinical|demo-1', status: 'notified', notifiedAt: DEMO_NOTIFIED_AT, reference: 'ΕΟΔΥ-2026-0147', notes: '', updatedAt: `${DEMO_NOTIFIED_AT}T10:00:00Z`, sampleId: '', patientRecordId: 'PT-260231', disease: 'Ελονοσία', diseaseCode: 'malaria', createdAt: `${DEMO_NOTIFIED_AT}T09:30:00Z` })
+// The rest of the Demo's notifications of 2025–2026 (demoNotificationReports.js), added once on the first demo read;
+// loaded on demand so production never loads the Demo data.
+let demoSeeded = null
+const seedDemoReports = () => (demoSeeded ||= import('./demoNotificationReports')
+  .then(({ demoNotificationReports }) => { for (const report of demoNotificationReports()) if (!demoReports.has(report.findingKey)) demoReports.set(report.findingKey, report) })
+  .catch(() => {}))
 
 const mapRow = row => ({ id: row.id, findingKey: row.finding_key, status: row.status, notifiedAt: row.notified_at || '', reference: row.reference || '', notes: row.notes || '', updatedBy: row.updated_by || null, updatedAt: row.updated_at, sampleId: row.sample_id || '', patientRecordId: row.patient_id || '', disease: row.disease_label || '', diseaseCode: row.disease_code || '', createdAt: row.created_at || '' })
 
 export async function loadNotificationReports(organizationId, { isDemo = false } = {}) {
-  if (isDemo) return [...demoReports.values()]
+  if (isDemo) { await seedDemoReports(); return [...demoReports.values()] }
   if (!supabase || !organizationId) return []
   const { data, error } = await supabase.from('notifiable_disease_reports').select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').eq('organization_id', organizationId)
   if (error) throw error
@@ -49,6 +55,7 @@ export async function saveNotificationReport(organizationId, finding, draft, { i
 // The notifications that belong to one record: those of the given laboratory samples (the
 // episode's, reached through sample_id) and the clinical ones carrying the patient. Newest first.
 export async function loadRecordNotificationReports(organizationId, { sampleRecordIds = [], patientRecordId = null } = {}, { isDemo = false } = {}) {
+  if (isDemo) await seedDemoReports()
   if (isDemo) return [...demoReports.values()].filter(report => (patientRecordId && report.patientRecordId === patientRecordId) || sampleRecordIds.some(id => String(report.findingKey).startsWith(`${id}|`)))
   if (!supabase || !organizationId) return []
   const ids = [...new Set(sampleRecordIds.filter(Boolean))]

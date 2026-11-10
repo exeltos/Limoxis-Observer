@@ -718,8 +718,8 @@ export function CommitteeRecordPage() {
         className="committee-record-shell"
         avatar={<Users size={19} />}
         eyebrow={record.id}
-        title={record.name}
-        subtitle={record.shortName || ''}
+        title={(en && record.nameEn) || record.name}
+        subtitle={(en && record.shortNameEn) || record.shortName || ''}
         status={
           <span className={`status-badge ${record.status === 'active' ? 'active' : ''}`}>
             {record.status === 'active' ? (en ? 'Active' : 'Ενεργή') : en ? 'Inactive' : 'Ανενεργή'}

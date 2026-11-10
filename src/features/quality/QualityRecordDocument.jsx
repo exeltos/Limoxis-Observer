@@ -1,6 +1,6 @@
 import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
 import { useLibraries } from '../management/useLibraries'
-import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, reportKindOf, reporterText, vocabularyLabel } from './qualityVocabulary'
+import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, reportKindOf, reporterText, visibleSourceId, vocabularyLabel } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
 import { AFFECTS, odipyGroupOf, odipyItem, odipyLabel } from './odipyCategories'
 import { ISHIKAWA_CATEGORIES, normalizeAnalysis } from './rootCauseAnalysis'
@@ -43,7 +43,7 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
     findings: [
       [t('severity'), t(record.severity)],
       [L('Ημερομηνία', 'Date'), day(record.date)],
-      [L('Πηγή', 'Source'), [vocabularyLabel(FINDING_SOURCES, record.source || 'manual', language), record.sourceId].filter(Boolean).join(' · ')],
+      [L('Πηγή', 'Source'), [vocabularyLabel(FINDING_SOURCES, record.source || 'manual', language), visibleSourceId(record.sourceId)].filter(Boolean).join(' · ')],
       [L('Υπεύθυνος', 'Responsible'), owners],
     ],
     capas: [
@@ -53,7 +53,7 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
       [L('Προθεσμία', 'Due'), day(record.dueDate)],
       [L('Έλεγχος αποτελεσματικότητας έως', 'Effectiveness check by'), day(record.effectivenessDue)],
       [L('Αποτελεσματικότητα', 'Effectiveness'), vocabularyLabel(EFFECTIVENESS, record.effectivenessStatus || 'pending', language)],
-      record.sourceId && [L('Προέλευση', 'Source'), record.sourceId],
+      visibleSourceId(record.sourceId) && [L('Προέλευση', 'Source'), record.sourceId],
     ],
     audits: [
       [L('Τύπος', 'Type'), vocabularyLabel(AUDIT_TYPES, record.auditType || 'internal', language)],

@@ -34,13 +34,6 @@ export const escapeHtml = value =>
     /[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   )
-// A CSS string for the page margin boxes. «<» is escaped too, so no text can close the <style>.
-const cssString = value =>
-  `"${String(value ?? '')
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/</g, '\\3c ')
-    .replace(/[\r\n]+/g, ' ')}"`
 const text = (value, fallback = '—') => {
   const v = value == null ? '' : String(value)
   return v.trim() ? escapeHtml(v).replace(/\n/g, '<br>') : fallback
@@ -140,7 +133,11 @@ const REPORT_CSS = `
 html,body{margin:0;background:#fff}
 body{font-family:Arial,'Helvetica Neue',sans-serif;color:#17324a;font-size:10.5pt;line-height:1.4}
 .rd-page{padding:0}
-@media screen{body{background:#e9eef3}.rd-page{max-width:var(--rd-width);margin:18px auto;background:#fff;padding:14mm 13mm;box-shadow:0 2px 12px rgba(23,50,74,.15)}}
+@media screen{html{background:#e9eef3}body{background:#e9eef3;min-height:100vh}.rd-page{width:calc(100% - 24px);max-width:var(--rd-width);margin:18px auto;background:#fff;padding:14mm 13mm;box-shadow:0 2px 12px rgba(23,50,74,.15)}.rd-sheet>thead,.rd-sheet>tfoot,.rd-foot{display:none}}
+.rd-sheet{width:100%;border-collapse:collapse}
+.rd-sheet>tbody>tr>td,.rd-sheet>thead>tr>td,.rd-sheet>tfoot>tr>td{padding:0;border:0;vertical-align:top}
+.rd-gap-top{height:12mm}.rd-gap-bottom{height:16mm}
+@media print{.rd-page{padding:0 11mm}.rd-foot{position:fixed;left:11mm;right:11mm;bottom:6mm;display:flex;justify-content:flex-end;gap:12px;font-size:7.5pt;line-height:1.2;color:#5d7083}}
 .rd-band{width:100%;border-collapse:collapse;border-bottom:2px solid #17324a;margin:0 0 10px}
 .rd-band td{vertical-align:middle;padding:0 0 8px}
 .rd-logo{width:1%;padding-right:12px!important}
@@ -226,13 +223,11 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-certificate .rd-cert-number{margin:4mm 0 0;font-size:9pt;color:#5d7083}
 `
 
-function pageCss(doc, branding, printedOn, en) {
+function pageCss(doc) {
   const size = doc.orientation === 'landscape' ? 'A4 landscape' : 'A4'
-  const left = doc.footer || [doc.code, doc.title].filter(Boolean).join(' · ')
-  const demo = branding?.demo ? ` · ${en ? 'DEMO' : 'DEMO'}` : ''
-  const center = `${en ? 'Printed' : 'Εκτύπωση'} ${printedOn}${demo}`
-  const top = branding?.name || ''
-  return `@page{size:${size};margin:12mm 11mm 14mm;@top-right{content:${cssString(top)};font-family:Arial,sans-serif;font-size:7.5pt;line-height:1.2;color:#8296a8}@bottom-left{content:${cssString(left)};font-family:Arial,sans-serif;font-size:7.5pt;line-height:1.2;color:#5d7083}@bottom-center{content:${cssString(center)};font-family:Arial,sans-serif;font-size:7.5pt;line-height:1.2;color:${branding?.demo ? '#9a3412' : '#5d7083'}}@bottom-right{content:${cssString(en ? 'Page ' : 'Σελίδα ')} counter(page) " / " counter(pages);font-family:Arial,sans-serif;font-size:7.5pt;line-height:1.2;color:#5d7083}}@page:first{@top-right{content:none}}`
+  // The page margin is 0 so Chrome/Edge add no date, title, address or page number of their own; the document keeps
+  // its margins itself (.rd-page side padding, the .rd-sheet gaps above and below on every page) and its own footer line.
+  return `@page{size:${size};margin:0}`
 }
 
 export function buildReportHtml(
@@ -274,10 +269,10 @@ export function buildReportHtml(
     ? `@page Section1{size:${doc.orientation === 'landscape' ? '841.9pt 595.3pt;mso-page-orientation:landscape' : '595.3pt 841.9pt'};margin:42pt 36pt 42pt 36pt}div.Section1{page:Section1}`
     : ''
   const width = doc.orientation === 'landscape' ? '297mm' : '210mm'
-  const head = `<meta charset="utf-8"><title>${escapeHtml(reportFileName(doc, branding))}</title><style>${REPORT_CSS}:root{--rd-width:${width}}${word ? wordPage : pageCss(doc, branding, printedOn, en)}</style>`
+  const head = `<meta charset="utf-8"><title>${escapeHtml(reportFileName(doc, branding))}</title><style>${REPORT_CSS}:root{--rd-width:${width}}${word ? wordPage : pageCss(doc)}</style>`
   const html = word
     ? `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="${en ? 'en' : 'el'}"><head>${head}</head><body><div class="Section1">${band}${demo}${main}${wordFooter}</div></body></html>`
-    : `<!doctype html><html lang="${en ? 'en' : 'el'}"><head>${head}</head><body>${pdfHint}<div class="rd-page ${doc.orientation === 'landscape' ? 'rd-landscape' : ''}">${band}${demo}${main}</div></body></html>`
+    : `<!doctype html><html lang="${en ? 'en' : 'el'}"><head>${head}</head><body>${pdfHint}<div class="rd-page ${doc.orientation === 'landscape' ? 'rd-landscape' : ''}"><table class="rd-sheet" cellspacing="0" cellpadding="0"><thead><tr><td><div class="rd-gap-top"></div></td></tr></thead><tfoot><tr><td><div class="rd-gap-bottom"></div></td></tr></tfoot><tbody><tr><td>${band}${demo}${main}</td></tr></tbody></table><div class="rd-foot"><span>${escapeHtml(`${en ? 'Printed' : 'Εκτύπωση'} ${printedOn}${branding?.demo ? ' · DEMO' : ''}`)}</span></div></div></body></html>`
   return html
 }
 

@@ -21,8 +21,19 @@ describe('shared report document', () => {
     expect(html).toContain('2. Αποφάσεις')
     expect(html).toContain('<td>Παπαδόπουλος</td>')
     expect(html).toContain('Συντάχθηκε')
-    expect(html).toContain('counter(pages)')
+    // Page margin 0: the browser adds no header or footer of its own; the document has its own footer line.
+    expect(html).toContain('@page{size:A4;margin:0}')
+    expect(html).toContain('class="rd-foot"')
+    // The footer carries only the print date: no code · title line.
+    expect(html).not.toMatch(/rd-foot"><span>[^<]*DOC-1/)
+    expect(html).toContain('class="rd-gap-top"')
     expect(html).not.toContain('DEMO')
+  })
+
+  it('adds a third «Έλαβε γνώση» box next to the two signatures', () => {
+    const html = buildReportHtml({ ...doc, signatures: ['Συντάχθηκε', 'Εγκρίθηκε', { role: 'Έλαβε γνώση', name: 'Α Β' }] }, { branding: { name: 'Ν', demo: false } })
+    expect(html).toContain('Έλαβε γνώση')
+    expect(html).toContain('Ονοματεπώνυμο: Α Β')
   })
 
   it('marks a Demo organization’s document and file name', () => {

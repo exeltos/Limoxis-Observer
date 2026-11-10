@@ -24,5 +24,3 @@
 .offboarding-export{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:9px;background:#fff;font-size:12.5px;color:#334b61}
 .offboarding-export small{color:var(--lo-text-secondary,#5f6f7c)}
 .offboarding-export .offboarding-spacer{flex:1}
-.organization-deletion-badge{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--lo-status-danger-bg,#fff0f0);color:var(--lo-status-danger-fg,#a23f46);border:1px solid var(--lo-status-danger-border,#efcfd2);font-size:10.5px;font-weight:800;vertical-align:middle}
-.organization-deletion-badge.due{background:#b42318;color:#fff}

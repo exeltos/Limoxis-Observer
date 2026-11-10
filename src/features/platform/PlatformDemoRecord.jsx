@@ -67,9 +67,10 @@ export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenD
   function requestDelete(){setDeleteOpen(true)}
   function handleDeleted(){setDeleteOpen(false);if(onDeleted)onDeleted(record.id);else onBack?.()}
 
-  const actions=<PlatformRecordActions label={tx('Ενέργειες Demo','Demo actions')} moreLabel={tx('Περισσότερες ενέργειες','More actions')} moreText={tx('Περισσότερα','More')} actions={[
+  // As the organization record (owner, 10/11/2026): «Είσοδος» and one «⋯» with the rest, pause first.
+  const actions=<PlatformRecordActions label={tx('Ενέργειες Demo','Demo actions')} moreLabel={tx('Περισσότερες ενέργειες','More actions')} actions={[
     {id:'enter',placement:'primary',icon:<LogIn size={16}/>,label:tx('Είσοδος','Enter'),title:tx('Είσοδος στο Demo','Open Demo'),onClick:onOpenDemo},
-    {id:'pause',placement:'secondary',icon:record.status==='paused'?<PlayCircle size={16}/>:<PauseCircle size={16}/>,label:record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause'),title:record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo'),disabled:working,onClick:togglePause},
+    {id:'pause',placement:'menu',icon:record.status==='paused'?<PlayCircle size={16}/>:<PauseCircle size={16}/>,label:record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause'),title:record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo'),disabled:working,onClick:togglePause},
     {id:'convert',placement:'menu',icon:<Building2 size={16}/>,title:tx('Μετατροπή σε κανονικό οργανισμό','Convert to production organization'),disabled:working||!record.organization_id,onClick:convertToOrganization},
     {id:'data',placement:'menu',icon:<DatabaseZap size={16}/>,title:tx('Επαναφορά δεδομένων Demo','Reset Demo data'),disabled:working||!record.organization_id,onClick:resetData},
     {id:'password',placement:'menu',icon:<KeyRound size={16}/>,title:tx('Επαναφορά κωδικού Demo χρήστη','Reset Demo user password'),disabled:working||!record.demo_user_id||!record.organization_id,onClick:resetPassword},
@@ -77,7 +78,7 @@ export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenD
   ]}/>
 
   return <>
-    <EntityRecordShell className="platform-owner-record-shell platform-demo-record-workspace" avatar={<FlaskConical size={20}/>} eyebrow={tx('ΚΑΡΤΕΛΑ DEMO','DEMO RECORD')} title={draft.label||org?.name||record.label} subtitle={tx('Πλήρης επεξεργάσιμη καρτέλα Demo με τα ίδια βασικά στοιχεία της δημιουργίας.','Full editable Demo record with the same core fields as creation.')} status={<span className={`status-badge ${active?'active':status==='paused'?'temporary':'danger'}`}>{statusLabel}</span>} headerActions={actions} onBack={onBack} backLabel={tx('Πίσω','Back')}>
+    <EntityRecordShell className="platform-owner-record-shell platform-demo-record-workspace" avatar={<FlaskConical size={20}/>} eyebrow={tx('ΚΑΡΤΕΛΑ DEMO','DEMO RECORD')} title={draft.label||org?.name||record.label} subtitle={org?.code||null} status={<span className={`status-badge ${active?'active':status==='paused'?'temporary':'danger'}`}>{statusLabel}</span>} headerActions={actions} onBack={onBack} backLabel={tx('Πίσω','Back')}>
       <div className="platform-owner-details platform-demo-record-form">
         <div className="platform-demo-record-status"><span className="platform-demo-icon"><FlaskConical size={20}/></span><div><strong>{statusLabel}{interested&&<span className="demo-interest-badge">{tx('Θέλει την εφαρμογή','Wants the application')}</span>}</strong><span>{active?`${remaining} ${tx('ημέρες υπόλοιπο','days remaining')}`:status==='paused'?tx('Η πρόσβαση έχει τεθεί σε παύση.','Access is paused.'):tx('Η πρόσβαση δεν είναι ενεργή.','Access is not active.')}</span></div></div>
         <DemoExtendControls validUntil={record.valid_until} language={language} working={working} onExtend={extendDemo}/>

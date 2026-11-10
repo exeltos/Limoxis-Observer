@@ -139,6 +139,72 @@ const seed=[
       {at:'2025-09-30T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
       {at:'2025-09-30T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-013 · 1.0'}
     ]
+  },
+  {
+    id:'DOC-014',title:'Πρωτόκολλο πρόληψης πνευμονίας σχετιζόμενης με αναπνευστήρα',type:'protocol',protocolKind:'medical',clinicalArea:'Λοιμώξεις',department:'ΜΕΘ',
+    audience:'department',status:'published',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
+    effectiveDate:'2025-02-03',reviewDate:'2027-02-03',description:'Δέσμη μέτρων VAP: ανύψωση κεφαλής, καθημερινή διακοπή καταστολής, στοματική υγιεινή.',
+    attachments:[],publishedAt:'2025-02-03T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-01-20T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-02-03T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-01-20T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-02-03T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-014 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-015',title:'Οδηγία αναφοράς ανεπιθύμητων συμβάντων',type:'instruction',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2025-04-07',reviewDate:'2026-04-07',description:'Πώς και πότε αναφέρεται ένα συμβάν, ένα παρ’ ολίγον συμβάν ή ένα παράπονο.',
+    attachments:[],publishedAt:'2025-04-07T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-03-24T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-04-07T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-03-24T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-04-07T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-015 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-016',title:'Πολιτική ποιότητας του νοσοκομείου',type:'policy',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'2.0',owner:'Διοίκηση',
+    effectiveDate:'2025-06-02',reviewDate:'2027-06-02',description:'Δέσμευση της Διοίκησης για ασφαλή, αποτελεσματική και ανθρωποκεντρική φροντίδα (ISO 9001 §5.2).',
+    attachments:[],publishedAt:'2025-06-02T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-05-12T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-06-02T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-05-12T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-06-02T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-016 · 2.0'}
+    ]
+  },
+  {
+    id:'DOC-017',title:'Έντυπο αξιολόγησης κινδύνου πτώσης (κλίμακα Morse)',type:'form',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Νοσηλευτική Υπηρεσία',
+    effectiveDate:'2025-10-06',reviewDate:'2027-10-06',description:'Αξιολόγηση κατά την εισαγωγή και σε κάθε αλλαγή της κατάστασης του ασθενούς.',
+    attachments:[],publishedAt:'2025-10-06T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-09-22T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-10-06T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-09-22T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-10-06T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-017 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-018',title:'Πρωτόκολλο διαχείρισης σήψης στο ΤΕΠ',type:'protocol',protocolKind:'medical',clinicalArea:'Επείγουσα Ιατρική',department:'ΤΕΠ',
+    audience:'department',status:'published',version:'1.0',owner:'Διευθυντής ΤΕΠ',
+    effectiveDate:'2026-01-19',reviewDate:'2028-01-19',description:'Αναγνώριση με NEWS2 και δέσμη της πρώτης ώρας: καλλιέργειες, γαλακτικό, αντιβιοτικό, υγρά.',
+    attachments:[],publishedAt:'2026-01-19T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-01-05T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-01-19T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-01-05T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-01-19T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-018 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-019',title:'Οδηγία καθαρισμού και απολύμανσης θαλάμων απομόνωσης',type:'instruction',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
+    effectiveDate:'2026-05-11',reviewDate:'2027-05-11',description:'Σειρά καθαρισμού, απολυμαντικά και έλεγχος με φθορίζουσα σήμανση.',
+    attachments:[],publishedAt:'2026-05-11T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-04-27T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-05-11T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-04-27T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-05-11T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-019 · 1.0'}
+    ]
   }
 ]
 

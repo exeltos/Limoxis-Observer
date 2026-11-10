@@ -2,6 +2,8 @@
 .leg-note{margin:0;color:var(--lo-color-muted);font-size:13px;line-height:1.5}
 .leg-sources-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:12px 20px 4px}
 .leg-sources-head>.leg-note{flex:1 1 320px}
+.leg-sources-head .filter-field{flex-direction:row;align-items:center;gap:8px}
+.leg-sources-head .filter-field select{min-width:180px}
 .leg-keywords-cell{max-width:360px;white-space:normal;color:var(--lo-color-muted);font-size:13px}
 .leg-candidate-cell{max-width:520px;white-space:normal}
 .leg-candidate-cell a{color:var(--lo-color-primary);font-weight:600;text-decoration:none}

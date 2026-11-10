@@ -1,3 +1,4 @@
+import { demoOffsetDays, shiftDemoMonth } from './demoClock'
 // Deterministic helpers for the generated Demo history. The same seed always
 // gives the same rows, so tests and screenshots stay stable (no Math.random).
 // Dates are written in the Demo's authored frame (DEMO_AUTHORED_ON in
@@ -25,11 +26,20 @@ export const pick = (rand, list) => list[Math.floor(rand() * list.length)]
 export const between = (rand, min, max) => min + Math.floor(rand() * (max - min + 1))
 export const pad2 = value => String(value).padStart(2, '0')
 
-// The twelve authored months of history, oldest first: 2025-09 … 2026-08.
-export const DEMO_HISTORY_MONTHS = Array.from({ length: 12 }, (_, index) => {
-  const date = new Date(Date.UTC(2025, 8 + index, 1))
-  return date.toISOString().slice(0, 7)
-})
+// The authored months of history, oldest first, up to 2026-08. They start so that, once the Demo's dates move to
+// today, the history begins in January 2025 (owner, 9/11/2026: the Demo shows the whole of 2025): 2025-01 … 2026-08
+// as authored, and two months earlier for every two months since.
+export const DEMO_HISTORY_MONTHS = (() => {
+  const back = Math.round(demoOffsetDays() / 30.4375)
+  const first = shiftDemoMonth('2025-01', -back)
+  const [year, month] = first.split('-').map(Number)
+  const count = (2026 - year) * 12 + 8 - month + 1
+  return Array.from({ length: Math.max(12, count) }, (_, index) => new Date(Date.UTC(year, month - 1 + index, 1)).toISOString().slice(0, 7))
+})()
+
+// The months before the last twelve: trends (compliance rising month by month) keep their last-twelve values and
+// run backwards over the earlier months.
+export const DEMO_HISTORY_LEAD = DEMO_HISTORY_MONTHS.length - 12
 
 export function lastDayOfMonth(month) {
   const [year, value] = month.split('-').map(Number)

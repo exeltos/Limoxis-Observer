@@ -38,8 +38,11 @@ describe('Kitchen mock recall drill', () => {
     expect(lot).toMatchObject({ received: 8, used: 5, writtenOff: 1, inStock: 2, percent: 100 })
     expect(lot.writeoffs[0]).toMatchObject({ reason: 'expired', quantity: 1 })
     const product = recallTrace(state, { scenario: 'product', productId: 'kp-1', productName: 'Στήθος κοτόπουλο φιλέτο' })
-    expect(product.batches.map(batch => batch.receiptItemId).sort()).toEqual(['kri-1', 'kri-11', 'kri-13'])
-    expect(product.received).toBe(54)
+    // This week's three batches and the weekly deliveries of the history since January 2025.
+    const chicken = state.receipts.flatMap(receipt => receipt.items).filter(item => item.productId === 'kp-1')
+    expect(product.batches.map(batch => batch.receiptItemId)).toEqual(expect.arrayContaining(['kri-1', 'kri-11', 'kri-13']))
+    expect(product.batches).toHaveLength(chicken.length)
+    expect(product.received).toBe(chicken.reduce((sum, item) => sum + Number(item.quantity), 0))
   })
 
   it('traces a dish backward to its batches, then forward from them', () => {

@@ -150,6 +150,15 @@ const STAFF=[
  ['Ιωάννα','Ioanna','Σπυροπούλου','Spyropoulou','Ορθοπαιδική','head','2008-04-07'],
  ['Νικόλαος','Nikolaos','Αργυρίου','Argyriou','Ορθοπαιδική','resident','2026-08-17'],
  ['Μαρίνα','Marina','Κουτσού','Koutsou','Εργαστήριο','lab','2012-10-01'],
+ // The ICU's nursing team on the ward rota (owner, 9/11/2026: the Demo's ICU roster keeps every rule; two people on
+ // every shift need about ten nurses besides the head).
+ ['Σοφία','Sofia','Αλεξίου','Alexiou','ΜΕΘ','icuNurse','2017-02-13'],
+ ['Ιωάννης','Ioannis','Κυριακίδης','Kyriakidis','ΜΕΘ','icuNurse','2019-09-02'],
+ ['Θεοδώρα','Theodora','Μαργαρίτη','Margariti','ΜΕΘ','icuNurse','2021-05-17'],
+ ['Νικόλαος','Nikolaos','Πετρόπουλος','Petropoulos','ΜΕΘ','icuNurse','2016-11-07'],
+ ['Ειρήνη','Eirini','Γεωργίου','Georgiou','ΜΕΘ','icuNurse','2022-03-28'],
+ ['Αντώνης','Antonis','Δημητρίου','Dimitriou','ΜΕΘ','icuNurse','2015-06-22'],
+ ['Δέσποινα','Despoina','Ξανθοπούλου','Xanthopoulou','ΜΕΘ','icuNurse','2023-10-09'],
 ]
 const EXPOSURES=[
  ['needlestick','Βελόνα ενδοφλέβιου καθετήρα','Δεξιός δείκτης','negative'],
@@ -179,6 +188,51 @@ STAFF.forEach(([firstName,firstNameEn,lastName,lastNameEn,department,role,hireDa
  employeeEvaluations.push(recentHire
   ?evaluation(`EV-${String(index+11).padStart(2,'0')}`,id,'Δοκιμαστική περίοδος',addDays(hireDate,10),'Γραφείο Ιατρικής Υπηρεσίας',scores,'draft','Αξιολόγηση λήξης δοκιμαστικής περιόδου.')
   :evaluation(`EV-${String(index+11).padStart(2,'0')}`,id,'2025',dayInMonth(DEMO_HISTORY_MONTHS[4+index%5],5+index),'Γραφείο Νοσηλευτικής / Ιατρικής Υπηρεσίας',scores,index%6===5?'hr_approved':'finalized','Ετήσια αξιολόγηση απόδοσης.'))
+ // The mid-year review of 2026 for every third person (submitted or still a draft).
+ if(!recentHire&&index%3===0)employeeEvaluations.push(evaluation(`EV-26-${String(n).padStart(2,'0')}`,id,'2026 · Α΄ εξάμηνο',dayInMonth(DEMO_HISTORY_MONTHS[DEMO_HISTORY_MONTHS.length-3+index%2],3+index%9),'Γραφείο Νοσηλευτικής / Ιατρικής Υπηρεσίας',scores.map((s,i)=>Math.min(5,s+((n+i)%4===0?1:0))),index%2?'draft':'submitted','Ενδιάμεση αξιολόγηση εξαμήνου.'))
+})
+// The whole of 2025 and 2026 (owner, 9/11/2026): the first eight people also have the
+// annual evaluation of 2024 (early 2025) and the mid-year review of 2025.
+const FIRST_EVALUATORS={'EMP-001':'Αικατερίνη Λάμπρου','EMP-002':'Δρ. Παναγιώτης Ρήγας','EMP-003':'Ιωάννα Σπυροπούλου','EMP-004':'Δρ. Μαρίνα Κουτσού','EMP-005':'Δρ. Στέφανος Καλλέργης','EMP-006':'Γεωργία Φωτίου','EMP-007':'Θεόδωρος Αλεξίου','EMP-008':'Διονύσης Μαυρίδης'}
+Object.entries(FIRST_EVALUATORS).forEach(([employeeId,evaluatorName],index)=>{
+ const base=CRITERIA.map((_,i)=>3+((index*5+i*3)%4>0?1:0)+((index+i)%7===0?1:0))
+ employeeEvaluations.push(evaluation(`EV-24-${String(index+1).padStart(2,'0')}`,employeeId,'2024',dayInMonth(DEMO_HISTORY_MONTHS[index%3],4+index),evaluatorName,base,'finalized','Ετήσια αξιολόγηση απόδοσης του 2024.'))
+ employeeEvaluations.push(evaluation(`EV-25H-${String(index+1).padStart(2,'0')}`,employeeId,'2025 · Α΄ εξάμηνο',dayInMonth(DEMO_HISTORY_MONTHS[6+index%2],3+index),evaluatorName,base.map((s,i)=>Math.min(5,s+(i%3===index%3?1:0))),'finalized','Ενδιάμεση αξιολόγηση εξαμήνου.'))
+})
+
+// Training summary over 2025 and 2026: two to three sessions per person, none before
+// they joined and none after they left.
+const TRAINING_TOPICS=[['Υγιεινή Χεριών','Hand Hygiene'],['Πρόληψη Λοιμώξεων','Infection Prevention'],['Ορθή χρήση ΜΑΠ','Correct PPE use'],['Ασφάλεια ασθενών','Patient Safety'],['Πυρασφάλεια και εκκένωση','Fire safety and evacuation'],['Βασική υποστήριξη ζωής (BLS)','Basic life support (BLS)'],['Πρόληψη τραυματισμών από αιχμηρά','Sharps injury prevention'],['Προστασία προσωπικών δεδομένων (GDPR)','Personal data protection (GDPR)']]
+const months2026=DEMO_HISTORY_MONTHS.length-12
+employeeRows.forEach((employee,index)=>{
+ const dates=[dayInMonth(DEMO_HISTORY_MONTHS[(index*5)%12],2+index%12),dayInMonth(DEMO_HISTORY_MONTHS[(index*5+6)%12],3+index%11),dayInMonth(DEMO_HISTORY_MONTHS[12+(index*3)%months2026],2+index%10)]
+ dates.forEach((date,k)=>{
+  if(employee.hireDate&&date<employee.hireDate)return
+  if(employee.employmentStatus!=='active'&&k===2)return
+  const [titleEl,titleEn]=TRAINING_TOPICS[(index+k*3)%TRAINING_TOPICS.length]
+  employeeTraining.push({id:`TR-${String(100+index*3+k)}`,employeeId:employee.id,titleEl,titleEn,date,status:'completed'})
+ })
+})
+
+// More certificates for the ward staff, issued over 2025 and 2026.
+const STAFF_CERTIFICATES=[['BLS','BLS','ERC',24,'BLS'],['ALS','ALS','ERC',24,'ALS'],['Link nurse πρόληψης λοιμώξεων','Infection prevention link nurse','Demo Hospital',24,'IPC-LN'],['Ακτινοπροστασία','Radiation protection','ΕΕΑΕ',60,'RP'],['Διαχείριση πολυανθεκτικών μικροοργανισμών','Management of multidrug-resistant organisms','ΕΟΔΥ',36,'MDRO']]
+const NLS_CERTIFICATE=['Νεογνική ανάνηψη (NLS)','Newborn life support (NLS)','ERC',48,'NLS']
+employeeRows.filter(e=>e.employmentStatus==='active'&&Number(e.id.slice(4))>8).forEach((employee,index)=>{
+ if(index%2)return
+ const [titleEl,titleEn,issuer,months,prefix]=employee.department==='Νεογνολογική / ΜΕΝΝ'?NLS_CERTIFICATE:STAFF_CERTIFICATES[(index/2)%STAFF_CERTIFICATES.length]
+ const issueDate=dayInMonth(DEMO_HISTORY_MONTHS[(index*3)%DEMO_HISTORY_MONTHS.length],4+index%10)
+ if(issueDate<employee.hireDate)return
+ const until=new Date(Date.parse(`${issueDate}T00:00:00Z`));until.setUTCMonth(until.getUTCMonth()+months)
+ employeeCertificates.push({id:`CERT-${String(9+index/2).padStart(2,'0')}`,employeeId:employee.id,titleEl,titleEn,issuer,issueDate,validUntil:addDays(until.toISOString().slice(0,10),-1),certificateNumber:`${prefix}-${issueDate.slice(0,4)}-${String(300+index).padStart(3,'0')}`,attachments:[]})
+})
+
+// The administrative trail of 2025–2026: contact details, department moves and accounts.
+const TRAIL=[[['phone'],'Γραφείο Προσωπικού'],[['email','phone'],'Γραφείο Προσωπικού'],[['user_id'],'Διαχειριστής Demo'],[['position'],'Γραφείο Προσωπικού'],[['department_name'],'Γραφείο Προσωπικού']]
+employeeRows.filter(e=>Number(e.id.slice(4))>8).forEach((employee,index)=>{
+ const date=dayInMonth(DEMO_HISTORY_MONTHS[(index*7+2)%DEMO_HISTORY_MONTHS.length],5+index%9)
+ if(date<=employee.hireDate)return
+ const [changedFields,actorName]=TRAIL[index%TRAIL.length]
+ employeeHistoryDemo.push({id:`EH-${employeeHistoryDemo.length+1}`,employeeId:employee.id,at:`${date}T10:${String(10+index).padStart(2,'0')}:00Z`,action:'update',changedFields,actorName,actorRole:''})
 })
 
 // Documents tab (demo): certifications, licences and training certificates.

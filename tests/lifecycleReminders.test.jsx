@@ -22,8 +22,8 @@ describe('lifecycle reminders', () => {
     const titles = [...document.querySelectorAll('.platform-action-copy strong')].map(x => x.textContent)
     expect(titles).toEqual(['Νοσοκομείο Α', 'Νοσοκομείο Β', 'Demo Χ'])
     expect(screen.getByText('Έφτασε η ημερομηνία οριστικής διαγραφής')).toBeInTheDocument()
-    // The action list comes first; the health list below names the hospital too.
-    fireEvent.click(screen.getAllByText('Νοσοκομείο Α')[0])
+    // The hospitals table names the hospital too: click the one in the action list.
+    fireEvent.click(screen.getAllByText('Νοσοκομείο Α').find(el => el.closest('.platform-action-item')))
     fireEvent.click(screen.getByText('Demo Χ'))
     expect(nav).toEqual(['/platform#organizations?organization=o1&tab=offboarding'])
     expect(opened).toEqual(['d1'])

@@ -90,7 +90,10 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
  const filtered=visible.filter(x=>`${x.manual.title} ${x.manual.summary} ${x.manual.chapters.flat().join(' ')}`.toLowerCase().includes(normalizedQuery))
  const current=resolveManual(selected,book)
  const hashKey=hash.replace(/^#/,'').split('?')[0]
- const currentSection=platformMode?(book[`${pathname}#${hashKey}`]?`${pathname}#${hashKey}`:(book[pathname]?pathname:'/platform')):(visible.find(x=>pathname===x.to||(x.to!=='/'&&pathname.startsWith(`${x.to}/`)))?.to??'/')
+ // The owner's «Legislation & sources» spans the legislation, the Library's guides and the external sources (#management?group=sources); LIRA & AI is #management?group=lira.
+ const managementGroup=hashKey==='management'?new URLSearchParams(hash.split('?')[1]||'').get('group'):null
+ const platformKey=pathname.startsWith('/platform/legislation')||pathname.startsWith('/platform/library')||managementGroup==='sources'?'/platform/legislation':managementGroup==='lira'?'/platform#management?group=lira':`${pathname}#${hashKey}`
+ const currentSection=platformMode?(book[platformKey]?platformKey:(book[pathname]?pathname:'/platform')):(visible.find(x=>pathname===x.to||(x.to!=='/'&&pathname.startsWith(`${x.to}/`)))?.to??'/')
  const extras=platformMode?null:(helpExtras[selected]||helpExtras['/'])
  const checks=extras?.checks?.[language==='en'?'en':'el']||[]
  const tip=extras?.tip?.[language==='en'?'en':'el']||''

@@ -3010,7 +3010,7 @@ button{letter-spacing:0}
 .page-heading-copy p,.page-header p{margin:3px 0 0!important;font-size:11.5px!important;line-height:1.4!important;color:var(--lo-color-muted)!important}
 .eyebrow{font-size:9.5px!important;line-height:1.2!important;letter-spacing:.065em!important;text-transform:uppercase!important;font-weight:700!important;color:#657486!important}
 .page-actions,.record-actions,.section-actions{gap:6px!important}
-.surface,.lo-card,.entry-card{border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-radius-card)!important;background:#fff!important;box-shadow:var(--lo-shadow-soft)!important}
+.surface:not(:where(.canonical-module-tabs+.registry-workspace,.platform-owner-record-shell>:is(.entity-record-tabs,.entity-record-body),.entity-record-body>.workspace-column.workspace-fill>.registry-workspace,.platform-owner-record-shell .registry-workspace)),.lo-card,.entry-card{border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-radius-card)!important;background:#fff!important;box-shadow:var(--lo-shadow-soft)!important}
 
 /* Buttons and actions */
 .button,.lo-action-button{min-height:34px!important;height:34px!important;padding:0 11px!important;border-radius:7px!important;font-size:12px!important;font-weight:600!important;gap:6px!important;box-shadow:none!important;border-width:1px!important}
@@ -3056,7 +3056,7 @@ button{letter-spacing:0}
 
 /* Registries and tables */
 .registry-workspace,.workspace-fill{min-height:0!important}
-.scroll-table,.table-wrap,.record-table-wrap{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important;overflow:auto!important}
+.scroll-table:not(:where(.management-shell .scroll-table)),.table-wrap:not(:where(.management-shell .table-wrap)),.record-table-wrap{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important;overflow:auto!important}
 .data-table,.record-table{font-size:11.5px!important;border-collapse:separate!important;border-spacing:0!important}
 .data-table th,.record-table th{height:34px!important;padding:7px 10px!important;background:#f7f9fb!important;border-bottom:1px solid var(--lo-color-border)!important;color:#5b6d80!important;font-size:9.5px!important;line-height:1.2!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.035em!important;white-space:nowrap!important}
 .data-table td,.record-table td{padding:8px 10px!important;border-bottom:1px solid #edf1f4!important;line-height:1.25!important;vertical-align:middle!important}
@@ -3092,7 +3092,7 @@ button{letter-spacing:0}
 .status-badge.danger,.error .status-badge,.risk-badge{background:var(--lo-status-danger-bg)!important;color:var(--lo-status-danger-fg)!important;border-color:var(--lo-status-danger-border)!important}
 
 /* Record pages */
-.entity-record-shell{gap:8px!important;background:transparent!important}
+.entity-record-shell:not(:where(.platform-owner-record-shell)){gap:8px!important;background:transparent!important}
 .entity-record-header{min-height:70px!important;padding:10px 13px!important;border-radius:10px!important;box-shadow:none!important}
 .entity-record-avatar{width:36px!important;height:36px!important;border-radius:9px!important;font-size:14px!important}
 .entity-record-identity h2{font-size:17px!important;font-weight:660!important;letter-spacing:-.015em!important}
@@ -3100,7 +3100,8 @@ button{letter-spacing:0}
 .page-record-header{align-self:stretch;flex:0 0 auto;width:auto;max-width:none}
 .page-record-header .entity-record-identity h1{margin:1px 0 2px;font-size:17px;font-weight:660;letter-spacing:-.015em;line-height:1.25;color:#172b42}
 .page-record-header .entity-record-identity p{white-space:normal}
-.entity-record-body{padding:13px!important;border-radius:10px!important;box-shadow:none!important}
+.entity-record-body{padding:13px!important;box-shadow:none!important}
+.entity-record-body:not(:where(.platform-owner-record-shell>.entity-record-body)){border-radius:10px!important}
 .record-section,.clinical-panel,.full-panel,.record-subcard{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important;padding:12px!important}
 .record-section-header{margin-bottom:8px!important;padding-bottom:7px!important;border-bottom:1px solid #eef1f4!important}
 .record-section-header h3,.clinical-panel h3{font-size:13px!important;font-weight:650!important}
