@@ -35,6 +35,11 @@ export function PlatformOrganizationRecord({
   onDelete,
   onChanged,
   onOpenEmployee,
+  // The user record and «Νέος χρήστης» follow the address (&user=…, &new=…), so the registry of platform users can open them directly.
+  initialUserId = '',
+  onUserChange,
+  initialNew = '',
+  onNewHandled,
 }) {
   const en = language === 'en',
     tx = (elText, enText) => (en ? enText : elText)
@@ -49,7 +54,13 @@ export function PlatformOrganizationRecord({
   const [invitationLink, setInvitationLink] = useState(null)
   const [employeeLinkDrafts, setEmployeeLinkDrafts] = useState({})
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '' })
-  const [selectedUserId, setSelectedUserId] = useState('')
+  const [selectedUserId, setSelectedUserIdState] = useState(initialUserId)
+  const setSelectedUserId = id => {
+    setSelectedUserIdState(id)
+    onUserChange?.(id)
+  }
+  useEffect(() => setSelectedUserIdState(initialUserId), [initialUserId])
+  const [startMode] = useState(initialTab === 'users' && (initialNew === 'single' || initialNew === 'file') ? initialNew : '')
   const [editing, setEditing] = useState(false)
   const [userEditing, setUserEditing] = useState(false)
   const [userDraft, setUserDraft] = useState({
@@ -62,7 +73,10 @@ export function PlatformOrganizationRecord({
   const [userQuery, setUserQuery] = useState('')
   const [userPage, setUserPage] = useState(1)
   const [userPageSize, setUserPageSize] = useState(15)
-  const [createUserOpen, setCreateUserOpen] = useState(false)
+  const [createUserOpen, setCreateUserOpen] = useState(initialTab === 'users' && initialNew === 'invite')
+  useEffect(() => {
+    if (initialNew) onNewHandled?.()
+  }, [initialNew]) // eslint-disable-line react-hooks/exhaustive-deps
   const [createUserDraft, setCreateUserDraft] = useState({
     fullName: '',
     email: '',
@@ -92,7 +106,7 @@ export function PlatformOrganizationRecord({
           ]),
         ),
       )
-      setSelectedUserId(current =>
+      setSelectedUserIdState(current =>
         current && rows.some(user => user.userId === current) ? current : '',
       )
       return rows
@@ -654,7 +668,7 @@ export function PlatformOrganizationRecord({
   const recordStatus = statusOf(tx, record, admins[0]?.status)
 
   if (initialTab === 'users' && selectedUser) {
-    return <PlatformOrganizationUserRecord ctx={{ deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working }} />
+    return <PlatformOrganizationUserRecord key={selectedUser.userId} ctx={{ loadSessions, sessions, deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working }} />
   }
 
   return (
@@ -687,7 +701,7 @@ export function PlatformOrganizationRecord({
           </div>
         )}
 
-        {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
+        {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ startMode, filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
         {initialTab === 'diagnostics' && (
           <HospitalDiagnosticsPanel organization={record} language={language} sessions={sessions} loadingSessions={loadingSessions || loadingUsers} onReloadSessions={loadSessions} />
         )}

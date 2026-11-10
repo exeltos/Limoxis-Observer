@@ -1,10 +1,11 @@
-import { BarChart3, Bot, Building2, Database, FlaskConical, LayoutDashboard, Megaphone, Scale, ShieldCheck } from 'lucide-react'
+import { BarChart3, Bot, Building2, Database, FlaskConical, LayoutDashboard, Megaphone, Scale, ShieldCheck, Users } from 'lucide-react'
 
 // User guide for the Platform Owner screens (outside any hospital). Keys match
 // the platform routes: path, or path#hash for the Platform Center sections.
 export const platformHelpNavigation=[
  {to:'/platform',icon:LayoutDashboard},
  {to:'/platform#organizations',icon:Building2},
+ {to:'/platform#users',icon:Users},
  {to:'/platform#demo',icon:FlaskConical},
  {to:'/platform#reports',icon:BarChart3},
  {to:'/platform/audit',icon:ShieldCheck},
@@ -31,6 +32,11 @@ export const platformHelp={
    ['Προφίλ λειτουργίας','Στην καρτέλα «Πακέτο & ενότητες» του οργανισμού επιλέγετε πακέτο (Βασική καταγραφή, Εργαστήριο & Επιτήρηση, Πλήρες πρόγραμμα) και μετά πατάτε το κλειδί μιας ενότητας για να την ξεκλειδώσετε ή να την κλειδώσετε. Ό,τι κλειδώνεται κρύβεται από όλους τους χρήστες του νοσοκομείου, χωρίς να διαγράφονται δεδομένα. Η πορτοκαλί προειδοποίηση «Χρειάζεται και…» δείχνει ότι λείπει προαπαιτούμενη ενότητα. Δεν μπλοκάρει την αποθήκευση.'],
    ['Ρυθμίσεις','Το γρανάζι δίπλα στην «Εξαγωγή» ανοίγει τις ρυθμίσεις που αφορούν όλους τους οργανισμούς: την περίοδο χάριτος (ημέρες από τον προγραμματισμό έως την οριστική διαγραφή ενός οργανισμού) και το email υποστήριξης που βλέπουν τα νοσοκομεία. Κάθε αλλαγή καταγράφεται στο Ιστορικό & Υγεία.']
   ],steps:['Αναζητήστε τον οργανισμό.','Ανοίξτε την καρτέλα του.','Κάντε την αλλαγή ή την είσοδο που χρειάζεται.']},
+  '/platform#users':{title:'Χρήστες πλατφόρμας',summary:'Όλοι οι χρήστες της πλατφόρμας: νοσοκομεία, Demo και Ιδιοκτήτης.',audience:audienceEl,chapters:[
+   ['Μητρώο','Κάθε γραμμή δείχνει τον χρήστη, το όνομα χρήστη, τον ρόλο, τον οργανισμό, την τελευταία σύνδεση (πότε και από ποια IP, ή «Συνδεδεμένος τώρα» με πράσινη κουκκίδα) και την κατάσταση. Τα σύνολα δίπλα στην αναζήτηση φιλτράρουν με ένα κλικ: χρήστες νοσοκομείων, συνδεδεμένοι τώρα, Demo, Ιδιοκτήτης, εκκρεμείς προσκλήσεις, ανενεργοί.'],
+   ['Νέος χρήστης','Το «Νέος χρήστης» ρωτά πρώτα σε ποιον οργανισμό και συνεχίζει στα γνωστά παράθυρα του οργανισμού: ενεργός με προσωρινό κωδικό, πρόσκληση με email ή εισαγωγή από αρχείο.'],
+   ['Καρτέλα χρήστη','Το κλικ σε μια γραμμή ανοίγει την καρτέλα του χρήστη με τρεις καρτέλες: Στοιχεία (με την «Επεξεργασία» και την ενότητα Ασφάλεια: κλείδωμα λογαριασμού με «Ξεκλείδωμα» και αποτυχημένες προσπάθειες 24 ωρών), Συνδέσεις (με τερματισμό σύνδεσης) και Δραστηριότητα (οι ενέργειές του). Το «⋯» έχει επαναφορά κωδικού, παύση ή επανενεργοποίηση, αποσύνδεση από όλες τις συσκευές και διαγραφή.'],
+  ],steps:['Αναζητήστε ή φιλτράρετε τον χρήστη.','Ανοίξτε την καρτέλα του.','Κάντε την ενέργεια που χρειάζεται από το «⋯».']},
   '/platform#demo':{title:'Demo',summary:'Χρονικά περιορισμένες προσβάσεις με αποκλειστικά συνθετικά δεδομένα.',audience:audienceEl,chapters:[
    ['Απομόνωση','Τα Demo είναι πλήρως απομονωμένα από τα πραγματικά δεδομένα. Κανένα στοιχείο ασθενούς ή εργαζομένου δεν εμφανίζεται σε αυτά.'],
    ['Νέο Demo','Ορίζετε υποψήφιο οργανισμό, υπεύθυνο επικοινωνίας, email πρόσκλησης και διάρκεια. Η προτεινόμενη διάρκεια και οι χρήστες ανά Demo ορίζονται από το γρανάζι «Ρυθμίσεις Demo» δίπλα στην «Εξαγωγή».'],
@@ -76,6 +82,11 @@ export const platformHelp={
    ['Operating profile','In the organization’s “Package & modules” tab choose a package (Basic records, Laboratory & surveillance, Full programme), then click a module’s lock to unlock or lock it. Whatever is locked is hidden from every user of the hospital, and no data is deleted. The orange “Also needs…” warning shows that a prerequisite module is missing; it does not block saving.'],
    ['Settings','The gear beside “Export” opens the settings that apply to every organization: the grace period (days from scheduling until an organization is deleted for good) and the support email the hospitals see. Every change is recorded in History & Health.']
   ],steps:['Search for the organization.','Open its record.','Make the change or enter as needed.']},
+  '/platform#users':{title:'Platform users',summary:'Everyone on the platform: hospitals, Demo and the Owner.',audience:audienceEn,chapters:[
+   ['Registry','Each row shows the user, username, role, organization, last sign-in (when and from which IP, or “Online now” with a green dot) and status. The totals beside the search filter with one click: hospital users, online now, Demo, Owner, pending invitations, inactive.'],
+   ['New user','“New user” first asks for the organization, then continues into that organization’s own dialogs: active with a temporary password, invitation by e-mail or import from a file.'],
+   ['User record','A click on a row opens the user’s record with three tabs: Details (with “Edit” and the Security section: account lock with “Unlock” and the failed attempts of 24 hours), Sign-ins (with ending a session) and Activity (their actions). The “⋯” holds password reset, suspend or reactivate, sign out of every device and delete.'],
+  ],steps:['Search or filter for the user.','Open the record.','Take the action you need from “⋯”.']},
   '/platform#demo':{title:'Demo',summary:'Time-limited access with synthetic data only.',audience:audienceEn,chapters:[
    ['Isolation','Demos are fully isolated from production data. No patient or employee record is ever shown in them.'],
    ['New demo','Set the prospect, contact person, invitation email and duration. The suggested duration and the users per Demo are set from the “Demo settings” gear beside “Export”.'],

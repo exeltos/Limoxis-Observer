@@ -11,7 +11,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { listPlatformAuditEvents } from './platformAuditService'
 
-function fmtDate(value){
+export function fmtDate(value){
   if(!value)return '—'
   const date=new Date(value)
   if(Number.isNaN(date.getTime()))return value
@@ -23,7 +23,7 @@ function fmtDate(value){
   return `${dd}/${mm}/${yyyy}, ${hh}:${min}`
 }
 
-function eventLabel(value,en){
+export function eventLabel(value,en){
   const labels={
     create:{el:'Δημιουργία',en:'Created'},update:{el:'Ενημέρωση',en:'Updated'},delete:{el:'Διαγραφή',en:'Deleted'},suspend:{el:'Παύση',en:'Suspended'},reactivate:{el:'Επανενεργοποίηση',en:'Reactivated'},reset_password:{el:'Επαναφορά κωδικού',en:'Password reset'},invite:{el:'Πρόσκληση',en:'Invited'},
     platform_organization_create:{el:'Δημιουργία οργανισμού',en:'Organization created'},platform_organization_update:{el:'Ενημέρωση οργανισμού',en:'Organization updated'},
@@ -35,7 +35,7 @@ function eventLabel(value,en){
   return labels[value]?.[en?'en':'el']||String(value||'—').replaceAll('_',' ')
 }
 
-function entityLabel(value,en){
+export function entityLabel(value,en){
   const labels={organization:{el:'Οργανισμός',en:'Organization'},organization_member:{el:'Χρήστης / ρόλος',en:'User / role'},demo_entitlement:{el:'Demo πρόσβαση',en:'Demo access'},profile:{el:'Προφίλ',en:'Profile'},platform_settings:{el:'Ρυθμίσεις πλατφόρμας',en:'Platform settings'}}
   return labels[value]?.[en?'en':'el']||String(value||'—').replaceAll('_',' ')
 }

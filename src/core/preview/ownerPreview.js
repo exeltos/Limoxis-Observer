@@ -36,7 +36,7 @@ export const previewMemberships=()=>ORGANIZATIONS.map(organization=>({id:`platfo
 
 export const previewPlatformMembers=()=>Object.entries(PEOPLE).flatMap(([orgId,list])=>{const organization=ORGANIZATIONS.find(o=>o.id===orgId);return list.map(([role,status],index)=>({id:`m-${orgId.slice(-1)}-${index}`,organization_id:orgId,user_id:`u-${orgId.slice(-1)}-${index}`,role,status,organization:{id:orgId,name:organization.name,code:organization.code,is_demo:false}}))})
 
-export const previewOrganizationMembers=organizationId=>(PEOPLE[organizationId]||[]).map(([role,status,name,username,jobTitle],index)=>({id:`m-${organizationId.slice(-1)}-${index}`,userId:`u-${organizationId.slice(-1)}-${index}`,role,status,username,name,email:`${username}@example.org`,phone:'',jobTitle,invitationStatus:status==='invited'?'pending':'accepted',invitationCreatedAt:status==='invited'?at(-2):null,invitationExpiresAt:status==='invited'?at(5):null}))
+export const previewOrganizationMembers=organizationId=>(PEOPLE[organizationId]||[]).map(([role,status,name,username,jobTitle],index)=>({id:`m-${organizationId.slice(-1)}-${index}`,userId:`u-${organizationId.slice(-1)}-${index}`,role,status,username,name,email:`${username}@example.org`,phone:'',jobTitle,invitationStatus:status==='invited'?'pending':'accepted',invitationCreatedAt:status==='invited'?at(-2):null,invitationExpiresAt:status==='invited'?at(5):null,createdAt:day(-200+index*9)}))
 
 export const previewDemos=()=>[
  {id:'demo-1',label:'Γ.Ν. Λάρισας — αξιολόγηση',contact_name:'Δρ. Αθηνά Κ.',contact_email:'athina@larisa.example',valid_from:day(-20),valid_until:day(10),status:'active',organization_id:'demo-org-1',demo_user_id:'demo-u-1',organization:{id:'demo-org-1',name:'Demo · Γ.Ν. Λάρισας',code:'DEMO-LAR',is_demo:true}},
@@ -68,9 +68,12 @@ export const previewAuditEvents=()=>[
  ['owner',ORGANIZATIONS[1].id,'platform_owner','update','organization',ORGANIZATIONS[1].id,-0.1],
  ['Μαρία Γεωργίου',ORGANIZATIONS[0].id,'hospital_admin','create','organization_member','u-1-4',-0.4],
  ['Μαρία Γεωργίου',ORGANIZATIONS[0].id,'hospital_admin','update','organization',ORGANIZATIONS[0].id,-1],
+ ['Μαρία Γεωργίου',ORGANIZATIONS[0].id,'hospital_admin','update','organization_member','u-1-2',-2],
+ ['Μαρία Γεωργίου',ORGANIZATIONS[0].id,'hospital_admin','suspend','organization_member','u-1-3',-6],
+ ['Μαρία Γεωργίου',ORGANIZATIONS[0].id,'hospital_admin','create','organization_member','u-1-3',-9],
  ['owner',ORGANIZATIONS[2].id,'platform_owner','suspend','organization',ORGANIZATIONS[2].id,-12],
  ['owner','','platform_owner','update','platform_settings','global',-15],
-].map(([actor,organizationId,actorRole,eventType,entityType,entityId,offset],index)=>({id:`audit-${index}`,organizationId,actorId:actor,actorName:actor==='owner'?'Platform Owner':actor,actorRole,eventType,entityType,entityId,metadata:{},createdAt:at(offset)}))
+].map(([actor,organizationId,actorRole,eventType,entityType,entityId,offset],index)=>({id:`audit-${index}`,organizationId,actorId:actor==='Μαρία Γεωργίου'?'u-1-0':actor,actorName:actor==='owner'?'Platform Owner':actor,actorRole,eventType,entityType,entityId,metadata:{},createdAt:at(offset)}))
 
 export const previewRuntimeEvents=organizationId=>[
  ['error','surveillance','/surveillance/new','Η αποθήκευση απέτυχε: λήξη χρόνου σύνδεσης.','DB-TIMEOUT',-0.2],
@@ -106,23 +109,25 @@ const memberUserId=username=>{const found=memberOf(username);return found?`u-${f
 const memberOrganizationId=username=>memberOf(username)?.orgId||''
 export const previewLoginSessions=()=>[
  ['Άρης Ιωάννου','owner','',true,'94.64.59.134','mac',95,1,null,null],
- ['Μαρία Γεωργίου','m.georgiou',ORGANIZATIONS[0].name,false,'109.242.139.64','win',140,3,null,null],
+ ['Μαρία Γεωργίου','m.georgiou',ORGANIZATIONS[0].name,false,'109.242.139.64','win',190,160,160,'signed_out'],
  ['Δρ. Νίκος Αλεξίου','n.alexiou',ORGANIZATIONS[0].name,false,'109.242.185.33','iphone',38,6,null,null],
  ['Δρ. Σοφία Ιωάννου','s.ioannou',ORGANIZATIONS[1].name,false,'85.74.12.201','win',260,70,null,null],
  ['Ελένη Παπά','e.papa',ORGANIZATIONS[0].name,false,'109.242.140.12','mac',600,420,420,'signed_out'],
  ['Μαρία Γεωργίου','m.georgiou',ORGANIZATIONS[0].name,false,'109.242.139.64','win',1500,1310,1310,'signed_out'],
  ['Δρ. Νίκος Αλεξίου','n.alexiou',ORGANIZATIONS[0].name,false,'185.220.101.4','win',2900,2880,2880,'ended_by_owner'],
+ ['Δρ. Νίκος Αλεξίου','n.alexiou',ORGANIZATIONS[0].name,false,'109.242.185.33','win',300,95,null,null],
+ ['Δρ. Νίκος Αλεξίου','n.alexiou',ORGANIZATIONS[0].name,false,'109.242.185.40','mac',1700,1650,1650,'signed_out'],
 ].map(([fullName,username,organizations,owner,ip,device,started,seen,ended,reason],index)=>({sessionId:`s-${index}`,userId:owner?'owner':memberUserId(username),organizationId:owner?'':memberOrganizationId(username),fullName,username,email:`${username}@example.org`,isPlatformOwner:owner,organizations,ip,lastIp:ip,userAgent:DEVICE[device],startedAt:minutesAgo(started),lastSeenAt:minutesAgo(seen),endedAt:ended==null?null:minutesAgo(ended),endedReason:reason,active:ended==null&&seen<720,online:ended==null&&seen<10}))
 export const previewLoginAttempts=()=>[
- ['m.georgiou','109.242.139.64',true,'ok',140],
+ ['m.georgiou','109.242.139.64',true,'ok',190],
  ['n.alexiou','109.242.185.33',true,'ok',38],
  ['admin','185.220.101.4',false,'unknown_user',22],
  ['admin','185.220.101.4',false,'unknown_user',21],
- ['m.georgiou','185.220.101.4',false,'wrong_password',20],
- ['m.georgiou','185.220.101.4',false,'wrong_password',19],
- ['m.georgiou','185.220.101.4',false,'wrong_password',18],
- ['m.georgiou','185.220.101.4',false,'wrong_password',17],
- ['m.georgiou','185.220.101.4',false,'wrong_password',16],
- ['m.georgiou','185.220.101.4',false,'locked',12],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',6],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',5],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',4],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',3],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',2],
+ ['m.georgiou','185.220.101.4',false,'locked',1],
 ].map(([identifier,ip,success,reason,ago],index)=>({id:index+1,identifier,ip,userAgent:DEVICE.win,success,reason,createdAt:minutesAgo(ago)})).sort((a,b)=>b.createdAt.localeCompare(a.createdAt))
-export const previewLoginLocks=()=>[{id:1,kind:'account',subject:'m.georgiou',failures:5,lockedUntil:minutesAgo(1),createdAt:minutesAgo(16),releasedAt:null},{id:2,kind:'ip',subject:'185.220.101.4',failures:20,lockedUntil:new Date(Date.now()+9*60000).toISOString(),createdAt:minutesAgo(6),releasedAt:null}]
+export const previewLoginLocks=()=>[{id:1,kind:'account',subject:'m.georgiou',failures:5,lockedUntil:new Date(Date.now()+13*60000).toISOString(),createdAt:minutesAgo(2),releasedAt:null},{id:2,kind:'ip',subject:'185.220.101.4',failures:20,lockedUntil:new Date(Date.now()+9*60000).toISOString(),createdAt:minutesAgo(6),releasedAt:null}]

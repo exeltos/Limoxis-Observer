@@ -16,6 +16,7 @@ const service = {
   setPlatformOrganizationStatus: vi.fn(async () => ({})),
 }
 vi.mock('../src/core/supabase/client', () => ({ supabase: { rpc: vi.fn(async () => ({ data: null, error: null })), from: vi.fn(), functions: { invoke: vi.fn() } } }))
+vi.mock('../src/core/auth/AuthContext', async original => ({ ...(await original()), useAuth: () => ({ session: null }) }))
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => feedback, useOptionalFeedback: () => feedback }))
 vi.mock('../src/core/tenant/tenantService', async original => ({
   ...(await original()),

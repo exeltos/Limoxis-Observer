@@ -14,10 +14,10 @@ import { latestSessionByUser, sinceText } from './platformOverviewShared'
 // «Χρήστες» of an organization record: the accounts, or the employee roster with who has no
 // account yet. The state and the actions stay in PlatformOrganizationRecord (ctx).
 export function PlatformOrganizationUsersTab({ ctx }) {
-  const { filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions = [], setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView } = ctx
+  const { startMode = '', filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions = [], setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView } = ctx
   // «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο»: accounts active at once,
   // with a temporary password the owner hands over (ActiveUsersDialog).
-  const [activeUsersMode, setActiveUsersMode] = useState('')
+  const [activeUsersMode, setActiveUsersMode] = useState(startMode)
   // The latest sign-in of each user (last 90 days): when and from which IP.
   const latest = latestSessionByUser(sessions)
   const lastSignIn = user => latest.get(user.userId)
