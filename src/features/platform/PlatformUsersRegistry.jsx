@@ -78,12 +78,12 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
   }
   return <Page title={tx('Χρήστες πλατφόρμας', 'Platform users')}
     actions={<div className="row-actions">
+      <ExportMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>
       {onNewUser && <OverflowMenu label={tx('Νέος χρήστης', 'New user')} triggerTone="primary" width={280} trigger={<><UserPlus size={15} aria-hidden="true"/>{tx('Νέος χρήστης', 'New user')}</>} items={[
         { id: 'active', label: tx('Ενεργός με προσωρινό κωδικό', 'Active, with a temporary password'), icon: UserCheck, onClick: () => setNewMode('single') },
         { id: 'invite', label: tx('Πρόσκληση με email', 'Invitation by e-mail'), icon: Mail, onClick: () => setNewMode('invite') },
         { id: 'file', label: tx('Εισαγωγή από αρχείο (Excel/CSV)', 'Import from a file (Excel/CSV)'), icon: FileUp, separatorBefore: true, onClick: () => setNewMode('file') },
       ]}/>}
-      <ExportMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>
     </div>}>
     {tabs}
     <div className="platform-registry-shell workspace-column">
