@@ -1,7 +1,7 @@
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { meterTone } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
-import { EFFECTIVENESS,FINDING_SOURCES,IMPACTS,INCIDENT_CLASSES,harmLevel,reportKindOf,vocabularyLabel } from './qualityVocabulary'
+import { EFFECTIVENESS,FINDING_SOURCES,IMPACTS,INCIDENT_CLASSES,harmLevel,reportKindOf,visibleSourceId,vocabularyLabel } from './qualityVocabulary'
 import { auditCompliance } from './qualityAudit'
 import { analysisProgress } from './rootCauseAnalysis'
 import { subActionProgress } from './qualityDeviations'
@@ -63,7 +63,7 @@ export function glanceItems(recordType,record,{language,t,linked=[]}){
     {id:'severity',label:t('severity'),value:t(record.severity),tone:severityTone},
     age(en?'Since it was found':'Από τον εντοπισμό',record.date,{en,language,open}),
     followUps(en?'Corrective actions':'Διορθωτικές ενέργειες',linked,{en,open,noneText:en?'None yet':'Καμία ακόμη'}),
-    {id:'source',label:en?'Source':'Πηγή',value:vocabularyLabel(FINDING_SOURCES,record.source||'manual',language),note:record.sourceId||undefined},
+    {id:'source',label:en?'Source':'Πηγή',value:vocabularyLabel(FINDING_SOURCES,record.source||'manual',language),note:visibleSourceId(record.sourceId)||undefined},
   ].filter(Boolean)
   if(recordType==='capas'){
     const steps=subActionProgress(record.subActions||[])
@@ -122,7 +122,7 @@ export function findingSummary(record,{language,t,linked=[]}){
   if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτή ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστή')})
   const done=linked.filter(isClosed).length
   items.push(linked.length?{text:en?`${done}/${linked.length} corrective actions done`:`${done}/${linked.length} διορθωτικές ενέργειες ολοκληρώθηκαν`}:{text:en?'no corrective action yet':'χωρίς διορθωτική ενέργεια',tone:open?'danger':undefined})
-  items.push({text:`${en?'Source':'Πηγή'}: ${vocabularyLabel(FINDING_SOURCES,record.source||'manual',language)}${record.sourceId?` ${record.sourceId}`:''}`})
+  items.push({text:`${en?'Source':'Πηγή'}: ${vocabularyLabel(FINDING_SOURCES,record.source||'manual',language)}${visibleSourceId(record.sourceId)?` ${record.sourceId}`:''}`})
   return items
 }
 

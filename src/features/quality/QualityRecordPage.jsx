@@ -28,7 +28,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { useLibraries } from '../management/useLibraries'
 import { AFFECTS,isOdipyCategory,odipyGroupOf,odipyGroupOptions,odipyItem,odipyItemOptions } from './odipyCategories'
-import { CAPA_TYPES, CAUSE_CATEGORIES, DEVIATION_KINDS, EFFECTIVENESS, causeCategoriesText, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
+import { CAPA_TYPES, CAUSE_CATEGORIES, DEVIATION_KINDS, EFFECTIVENESS, causeCategoriesText, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, isLegacyRecordNumber, visibleSourceId, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
 import { loadQualityRecord, loadQualityRecords, saveQualityRecord } from './qualityService'
@@ -398,7 +398,7 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
         <EditChoice editing={editing} label={en?'Recurring':'Επαναλαμβανόμενη'} value={draft.recurring==null?'':draft.recurring?'yes':'no'} onChange={v=>set('recurring',v==='yes'?true:v==='no'?false:null)} options={[{value:'yes',label:en?'Yes':'Ναι'},{value:'no',label:en?'No':'Όχι'}]}/>
         <div className="detail-item editable quality-edit-wide"><MultiSelect label={en?'Categories of the causes':'Κατηγορίες αιτιών'} tags options={vocabularyOptions(CAUSE_CATEGORIES,language)} selected={draft.causeCategories||[]} onChange={v=>set('causeCategories',v)} placeholder={en?'Choose one or more':'Επιλέξτε μία ή περισσότερες'} searchPlaceholder={en?'Search':'Αναζήτηση'} emptyLabel={en?'Nothing found':'Δεν βρέθηκε'}/></div>
         <EditArea label={en?'Analysis of the causes':'Ανάλυση αιτιών'} value={draft.rootCause} onChange={v=>set('rootCause',v)}/>
-        <p className="quality-edit-note">{en?'Found':'Εντοπίστηκε'} <strong>{formatDay(draft.date,language)}</strong> · {en?'Source':'Πηγή'} <strong>{[vocabularyLabel(FINDING_SOURCES,draft.source||'manual',language),draft.sourceId].filter(Boolean).join(' ')}</strong>{draft.clauseRef&&<> · <strong>{[standardLabel(draft.standard,language),draft.clauseRef].filter(Boolean).join(' · ')}</strong></>}</p>
+        <p className="quality-edit-note">{en?'Found':'Εντοπίστηκε'} <strong>{formatDay(draft.date,language)}</strong> · {en?'Source':'Πηγή'} <strong>{[vocabularyLabel(FINDING_SOURCES,draft.source||'manual',language),visibleSourceId(draft.sourceId)].filter(Boolean).join(' ')}</strong>{draft.clauseRef&&<> · <strong>{[standardLabel(draft.standard,language),draft.clauseRef].filter(Boolean).join(' · ')}</strong></>}</p>
         {(draft.source==='audit'||draft.findingClass)&&<>
           <EditChoice editing={editing} label={en?'Effectiveness verified':'Επαλήθευση αποτελεσματικότητας'} value={draft.verificationStatus||'pending'} onChange={v=>set('verificationStatus',v)} options={VERIFICATION_OPTIONS(en)}/>
           {(draft.verificationStatus||'pending')!=='pending'&&<>
@@ -467,7 +467,7 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   // A committee decision brought over without its meeting has no page to open.
   else if(source?.kind==='committee')links.push({label:sourceKindLabel('committee',language),id:language==='en'?'Committee decision (brought over without its meeting)':'Απόφαση επιτροπής (μεταφέρθηκε χωρίς τη συνεδρίαση)',external:true})
   // A bare number is the reference of an imported record (nothing to open).
-  else if(record.sourceId)links.push({label:language==='en'?'Source':'Πηγή',id:`${language==='en'?'Imported from the source file · no. ':'Εισαγωγή από το αρχείο πηγής · αρ. '}${record.sourceId}`,external:true})
+  else if(record.sourceId)links.push({label:language==='en'?'Source':'Πηγή',id:language==='en'?'Imported from FileMaker':'Εισαγωγή από FileMaker',external:true})
   if(record.findingIds?.length)record.findingIds.forEach(id=>links.push({label:t('qualityRecords.finding'),id,path:`/quality/findings/${id}`}))
   const navigationOptions={returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'}
   const openLinked=path=>goTo(path,navigationOptions)
@@ -497,7 +497,7 @@ function sourceRecordPath(id){
 const HISTORY_LABELS={source_reconciled:['Συμφωνία με το αρχείο πηγής','Reconciled with the source file'],recordImported:['Εισαγωγή εγγραφής','Record imported'],recordUpdated:['Ενημέρωση εγγραφής','Record updated'],recordCreated:['Δημιουργία εγγραφής','Record created']}
 const historyTitle=(entry,t,en)=>{const text=entry.action?t(entry.action):'';return text&&text!==entry.action?text:(HISTORY_LABELS[entry.action]?.[en?1:0]||(en?'Change':'Αλλαγή'))}
 const historyActor=(actor,en)=>String(actor||'').replace(/^Reconciliation (?:από|from)\s+/i,en?'Reconciled with the file ':'Συμφωνήθηκε με το αρχείο ')
-function QualityHistory({record,t,language}){const en=language==='en';const events=[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)).map(x=>({at:x.at,title:historyTitle(x,t,en),detail:[x.note,x.detail].find(value=>typeof value==='string'),meta:[historyActor(x.actor,en)]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={events} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
+function QualityHistory({record,t,language}){const en=language==='en';const imported=isLegacyRecordNumber(record.sourceId)&&record.createdAt?[{at:record.createdAt,title:en?`Imported from FileMaker #${String(record.sourceId).trim()}`:`Εισαγωγή από FileMaker #${String(record.sourceId).trim()}`,meta:[]}]:[];const events=[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)).map(x=>({at:x.at,title:historyTitle(x,t,en),detail:[x.note,x.detail].find(value=>typeof value==='string'),meta:[historyActor(x.actor,en)]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={[...events,...imported]} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
 function Detail({label,value}){if(!value&&value!==0)return null;return <div className="detail-item"><span className="lo-field-label">{label}</span><strong>{value||'—'}</strong></div>}
 // A longer text (people involved, causes, notes): a few lines, the full width of the form.
 function EditArea({label,value,onChange}){return <div className="detail-item editable quality-edit-wide"><Field label={label}><textarea rows={3} value={value||''} onChange={e=>onChange(e.target.value)}/></Field></div>}

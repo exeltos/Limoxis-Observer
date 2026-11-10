@@ -178,6 +178,10 @@ export function qualityCode(record, language = 'el') {
   return language === 'en' ? code : code.replace(/^CAPA-/, 'ΔΕ-')
 }
 
+// The bare number of a record brought over from FileMaker: it is kept in the data and the history, not shown.
+export const isLegacyRecordNumber = id => /^\d+$/.test(String(id ?? '').trim())
+export const visibleSourceId = id => (isLegacyRecordNumber(id) ? '' : id)
+
 // Who a report says it came from: the name, or the kind of private report.
 export function reporterText(record, en) {
   if (record?.privacy === 'confidential') return en ? 'Confidential report' : 'Εμπιστευτική αναφορά'

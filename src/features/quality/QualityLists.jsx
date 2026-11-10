@@ -10,7 +10,7 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { Meter,meterTone } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
 import { readRegistryViewState,writeRegistryViewState } from '../../core/navigation/useRegistryMemory'
-import { CAPA_TYPES,qualityCode,qualityStatusTone,vocabularyLabel } from './qualityVocabulary'
+import { CAPA_TYPES,qualityCode,qualityStatusTone,visibleSourceId,vocabularyLabel } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
 import { subActionProgress } from './qualityDeviations'
 import { SOURCE_KINDS,capaSourceInfo,sourceKindLabel } from './capaSources'
@@ -57,7 +57,7 @@ export const isOrphanFinding=row=>row.kind==='finding'&&isOpenRecord(row)
 function sourceOf(capa){
  const info=capaSourceInfo(capa.sourceId,capa.sourceType||capa.source)
  // An imported reference this map does not read keeps the kind the action was saved with.
- return info.kind==='manual'&&capa.sourceId&&SOURCE_KINDS[capa.source]?{...info,kind:capa.source,code:String(capa.sourceId).split('#')[0]}:info
+ return info.kind==='manual'&&capa.sourceId&&SOURCE_KINDS[capa.source]?{...info,kind:capa.source,code:String(visibleSourceId(capa.sourceId)||'').split('#')[0]}:info
 }
 
 export function actionRows(findings,capas,incidents=[]){
@@ -65,7 +65,7 @@ export function actionRows(findings,capas,incidents=[]){
  const handled=new Set(live.map(capa=>capa.sourceId).filter(Boolean))
  const byId=new Map([...findings,...incidents].map(record=>[record.id,record]))
  const actions=capas.map(row=>{const origin=byId.get(row.sourceId)||null;const source=sourceOf(row);return {...row,kind:'capa',sortDate:row.dueDate||row.date,sourceKind:source.kind,sourceCode:origin?qualityCode(origin):source.code,sourcePath:source.path,sourceTitle:origin?origin.title:'',sourceTitleEn:origin?origin.titleEn||origin.title:''}})
- const orphans=findings.filter(row=>!handled.has(row.id)).map(row=>({...row,kind:'finding',sortDate:row.date,sourceKind:row.source==='audit'?'audit':row.source||'manual',sourceCode:capaSourceInfo(row.sourceId).code||String(row.sourceId||'').split('#')[0],sourceTitle:'',sourceTitleEn:''}))
+ const orphans=findings.filter(row=>!handled.has(row.id)).map(row=>({...row,kind:'finding',sortDate:row.date,sourceKind:row.source==='audit'?'audit':row.source||'manual',sourceCode:capaSourceInfo(row.sourceId).code||String(visibleSourceId(row.sourceId)||'').split('#')[0],sourceTitle:'',sourceTitleEn:''}))
  return [...orphans,...actions].sort((a,b)=>(a.kind===b.kind?0:a.kind==='finding'?-1:1)||String(b.sortDate||'').localeCompare(String(a.sortDate||'')))
 }
 
