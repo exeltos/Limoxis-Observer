@@ -19,3 +19,13 @@
 .active-users-table td small{display:block;margin-top:3px;font-size:11px;color:var(--lo-color-muted)}
 .active-users-row-error td{background:#fdf5f4}
 .active-users-code{font-family:Consolas,Menlo,monospace;font-size:13px;letter-spacing:.02em;white-space:nowrap}
+
+/* The forms of the «Νέος χρήστης ▾» dialogs (active, invitation): two columns, large controls and readable labels. */
+.user-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 20px;align-items:start}
+.user-form-grid .field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.user-form-grid .field>span{font-size:13px;font-weight:600;color:var(--lo-color-text)}
+.user-form-grid .field input,.user-form-grid .field select{width:100%;min-height:var(--lo-control-height,44px);height:var(--lo-control-height,44px);padding:0 12px;font-size:14.5px}
+.user-form-grid .field small{font-size:12.5px;line-height:1.45;color:var(--lo-color-muted)}
+.user-form-grid .user-form-wide{grid-column:1/-1}
+.user-form-grid .active-users-note{font-size:13.5px;padding:12px 14px}
+@media (max-width:640px){.user-form-grid{grid-template-columns:minmax(0,1fr)}}

@@ -24,6 +24,7 @@ import { ROLES, toDraft } from './platformOrganizationShared'
 import { loadEmployeesAsync } from '../employees/employeeService'
 
 import { loadEmployeeAccounts } from './bulkAccountsService'
+import './activeUsers.css'
 
 export function PlatformOrganizationRecord({
   organization,
@@ -726,7 +727,7 @@ export function PlatformOrganizationRecord({
             `Add a user to ${record.name}. An invitation will be sent to their email.`,
           )}
           onClose={() => !working && setCreateUserOpen(false)}
-          width="compact"
+          width="wide"
           footer={
             <DialogActions
               onCancel={() => setCreateUserOpen(false)}
@@ -741,8 +742,8 @@ export function PlatformOrganizationRecord({
           }
         >
           <div className="platform-form-shell">
-            <div className="platform-form-grid">
-              <label className="field field-wide">
+            <div className="user-form-grid">
+              <label className="field">
                 <span>{tx('Ονοματεπώνυμο', 'Full name')} *</span>
                 <input
                   autoFocus
@@ -750,7 +751,7 @@ export function PlatformOrganizationRecord({
                   onChange={e => setCreateUserDraft(x => ({ ...x, fullName: e.target.value }))}
                 />
               </label>
-              <label className="field field-wide">
+              <label className="field">
                 <span>Email *</span>
                 <input
                   type="email"
@@ -758,7 +759,7 @@ export function PlatformOrganizationRecord({
                   onChange={e => setCreateUserDraft(x => ({ ...x, email: e.target.value }))}
                 />
               </label>
-              <label className="field field-wide">
+              <label className="field user-form-wide">
                 <span>{tx('Ρόλος', 'Role')} *</span>
                 <select
                   value={createUserDraft.role}

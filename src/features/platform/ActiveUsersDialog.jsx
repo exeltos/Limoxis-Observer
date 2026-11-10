@@ -147,7 +147,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
         `${organization.name}: the account is active at once with a temporary password, which must be changed at the first sign-in.`,
       )}
       onClose={busy ? undefined : () => void close()}
-      width={mode === 'single' && !results ? 'compact' : 'wide'}
+      width="wide"
       footer={footer}
     >
       <div className="active-users">
@@ -202,8 +202,8 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
             </div>
           </>
         ) : mode === 'single' ? (
-          <div className="platform-form-grid">
-            <label className="field field-wide">
+          <div className="user-form-grid">
+            <label className="field">
               <span>{tx('Ονοματεπώνυμο', 'Full name')} *</span>
               <input autoFocus value={draft.fullName} onChange={e => setDraft(x => ({ ...x, fullName: e.target.value }))} />
             </label>
@@ -215,7 +215,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
               <span>{tx('Όνομα χρήστη', 'Username')}</span>
               <input value={draft.username} placeholder={tx('Αυτόματα, αν μείνει κενό', 'Automatic when left empty')} onChange={e => setDraft(x => ({ ...x, username: e.target.value }))} />
             </label>
-            <label className="field field-wide">
+            <label className="field">
               <span>{tx('Ρόλος', 'Role')} *</span>
               <select value={draft.role} onChange={e => setDraft(x => ({ ...x, role: e.target.value }))}>
                 {ROLES.map(role => (
@@ -242,15 +242,16 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
             <label className="field">
               <span>{tx('Κωδικός εργαζομένου', 'Employee code')}</span>
               <input value={draft.employeeCode} onChange={e => setDraft(x => ({ ...x, employeeCode: e.target.value }))} />
+              <small>{tx('Αν ταιριάζει με υπάρχοντα εργαζόμενο, ο λογαριασμός συνδέεται με την εγγραφή του.', 'If it matches an existing employee, the account is linked to their record.')}</small>
             </label>
-            <p className="active-users-note field-wide">
+            <p className="active-users-note user-form-wide">
               {tx(
                 'Χωρίς email ο χρήστης συνδέεται με το όνομα χρήστη και δεν λαμβάνει email. Με email λαμβάνει μήνυμα καλωσορίσματος χωρίς τον κωδικό.',
                 'Without e-mail the user signs in with the username and receives no e-mail. With e-mail they get a welcome message without the password.',
               )}
             </p>
             {singleError && (
-              <p className="active-users-error field-wide" role="alert">
+              <p className="active-users-error user-form-wide" role="alert">
                 <AlertTriangle size={15} />
                 {singleError}
               </p>
