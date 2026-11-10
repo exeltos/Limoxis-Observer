@@ -31,7 +31,7 @@
 .operating-profile-row-report{flex:none;color:var(--lo-color-primary,#1f5f93);opacity:.7}
 .operating-profile .operating-profile-group-title{margin:12px 0 0;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.035em;color:var(--lo-color-muted)}
 .operating-profile .operating-profile-group-title+.operating-profile-modules{margin-top:4px;padding-top:4px}
-.operating-profile .operating-profile-summary{border-left-color:var(--lo-color-border);position:sticky;bottom:0;z-index:2}
+.operating-profile .operating-profile-summary{border-left-color:var(--lo-color-border)}
 .operating-profile .operating-profile-summary.changed{border-left-color:#c9791a;background:#fffaf2}
 .operating-profile .operating-profile-summary>header{margin-bottom:0;padding-bottom:0;border-bottom:0}
 .operating-profile .operating-profile-summary .operating-profile-change{margin-top:4px;font-size:11px}
