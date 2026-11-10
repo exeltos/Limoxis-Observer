@@ -182,6 +182,9 @@ export function qualityCode(record, language = 'el') {
 export const isLegacyRecordNumber = id => /^\d+$/.test(String(id ?? '').trim())
 export const visibleSourceId = id => (isLegacyRecordNumber(id) ? '' : id)
 
+// A finding or deviation about a person (staff behaviour, an altercation): its printout gets the «Έλαβε γνώση» box.
+export const concernsPerson = record => ['staff_behaviour', 'dispute'].includes(record?.deviationKind)
+
 // Who a report says it came from: the name, or the kind of private report.
 export function reporterText(record, en) {
   if (record?.privacy === 'confidential') return en ? 'Confidential report' : 'Εμπιστευτική αναφορά'

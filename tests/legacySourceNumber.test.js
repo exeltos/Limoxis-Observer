@@ -48,3 +48,14 @@ describe('printed finding document',()=>{
     }
   })
 })
+
+describe('«Έλαβε γνώση» box on a printed record',()=>{
+  it('is added for a record about a person and offered otherwise',async()=>{
+    const { concernsPerson }=await import('../src/features/quality/qualityVocabulary')
+    expect(concernsPerson({deviationKind:'staff_behaviour'})).toBe(true)
+    expect(concernsPerson({deviationKind:'breakdown'})).toBe(false)
+    const page=read('QualityRecordPage.jsx')
+    expect(page).toContain("role:en?'Acknowledged':'Έλαβε γνώση'")
+    expect(page).toContain('Πεδίο «Έλαβε γνώση» (αναφορά σε τρίτο πρόσωπο)')
+  })
+})

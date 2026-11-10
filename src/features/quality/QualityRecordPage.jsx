@@ -4,6 +4,7 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { AlertOctagon, AlertTriangle, CheckSquare2, Scale, ChevronRight, ClipboardCheck, FileClock, Link2, ListChecks, Paperclip, Pencil, Plus, RotateCcw, ShieldCheck, Trash2, GitBranch } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
+import { PrintOptionsDialog } from '../../design-system/PrintOptionsDialog'
 import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -28,7 +29,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { useLibraries } from '../management/useLibraries'
 import { AFFECTS,isOdipyCategory,odipyGroupOf,odipyGroupOptions,odipyItem,odipyItemOptions } from './odipyCategories'
-import { CAPA_TYPES, CAUSE_CATEGORIES, DEVIATION_KINDS, EFFECTIVENESS, causeCategoriesText, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, isLegacyRecordNumber, visibleSourceId, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
+import { CAPA_TYPES, CAUSE_CATEGORIES, DEVIATION_KINDS, EFFECTIVENESS, causeCategoriesText, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, concernsPerson, isLegacyRecordNumber, visibleSourceId, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
 import { loadQualityRecord, loadQualityRecords, saveQualityRecord } from './qualityService'
@@ -86,12 +87,19 @@ export function QualityRecordPage(){
   // «Download» is the record as a PDF document (QualityRecordDocument, off screen).
   const documentRef=useRef(null)
   // Printed on the shared document layout (hospital band, page X / Y, DEMO mark): real text, not a picture.
-  function downloadPdf(pdf){
+  // «Έλαβε γνώση»: a third box for the person a report refers to (shown at once when the record is about a person, else asked).
+  const [printAsk,setPrintAsk]=useState(null)
+  function startPrint(pdf){
+    if(recordType==='audits'||concernsPerson(record))downloadPdf(pdf,concernsPerson(record))
+    else setPrintAsk({pdf})
+  }
+  function downloadPdf(pdf,acknowledged=false){
     if(!documentRef.current)return
     const en=language==='en'
     // An incident prints as the ΟΔΙΠΥ «Αναφορά Συμβάντος»: signed by the reporter, the head of the department and Quality.
     const incident=recordType==='incidents'
     const signatures=incident?[{role:en?'Reported by':'Αναφέρων το συμβάν',name:reporterText(record,en)||''},{role:en?'Head of department / sector':'Προϊστάμενος / Τομεάρχης'},{role:en?'Quality manager':'Υπεύθυνος Ποιότητας',name:recordOwners(record).join(', ')}]:[en?'Prepared by':'Συντάχθηκε',en?'Approved by':'Εγκρίθηκε']
+    if(acknowledged)signatures.push({role:en?'Acknowledged':'Έλαβε γνώση'})
     const ok=printReport({language,kind:incident?(en?'Incident report':'Αναφορά συμβάντος'):{findings:en?'Finding':'Εύρημα',capas:en?'Corrective action':'Διορθωτική ενέργεια',audits:en?'Audit':'Επιθεώρηση'}[recordType],code:record.displayId||record.id,title:en?(record.titleEn||record.title):record.title,
      body:`<div class="rd-html">${documentRef.current.innerHTML}</div>`,signatures,filename:record.displayId||record.id}, { pdf: pdf === true })
     if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
@@ -139,7 +147,7 @@ export function QualityRecordPage(){
     headerActions={canPrint&&(audit
       // The audit report on the shared layout, and its answers as Excel.
       ?<ExportMenu onPrint={()=>printAudit(false)} onPdf={()=>printAudit(true)} onExcel={record.checklist?.length?()=>exportRegistry(auditAnswersExport(record,language)):undefined}/>
-      :<ExportMenu onPrint={()=>downloadPdf(false)} onPdf={()=>downloadPdf(true)} />)}
+      :<ExportMenu onPrint={()=>startPrint(false)} onPdf={()=>startPrint(true)} />)}
     tabs={tabs} activeTab={tab} onTabChange={id=>openTab(id)}>
       {incident&&(tab==='details'||tab==='assessment')?<div className="quality-record-layout">
         <QualityDetails key={`${tab}:${autoEdit}`} autoEdit={autoEdit} view={tab} recordType={recordType} record={record} linked={linked} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>
@@ -156,6 +164,7 @@ export function QualityRecordPage(){
       {recordType==='capas'&&<QualityDocuments recordType={recordType} record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage} organizationId={organizationId}/>}</div>}
       {tab==='documents'&&<QualityDocuments recordType={recordType} record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage} organizationId={organizationId}/>}
       {tab==='history'&&<QualityHistory record={record} t={t} language={language}/>}
+  {printAsk&&<PrintOptionsDialog storageKey="limoxis.quality.record.print" title={language==='en'?'Print the record':'Εκτύπωση εγγραφής'} options={[{key:'acknowledged',label:language==='en'?'«Acknowledged» box (report about a third person)':'Πεδίο «Έλαβε γνώση» (αναφορά σε τρίτο πρόσωπο)',initial:'no',choices:[{value:'no',label:language==='en'?'No':'Όχι'},{value:'yes',label:language==='en'?'Yes':'Ναι'}]}]} onClose={()=>setPrintAsk(null)} onConfirm={values=>{const pdf=printAsk.pdf;setPrintAsk(null);downloadPdf(pdf,values.acknowledged==='yes')}}/>}
   </EntityRecordShell>
   {canPrint&&<QualityRecordDocument recordType={recordType} record={record} linked={linked} language={language} t={t} documentRef={documentRef}/>}
   </Page>
