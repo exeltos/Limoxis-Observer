@@ -12,6 +12,8 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase } from '../../core/supabase/client'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { useSortedPaging } from '../quality/useSortedPaging'
 
 const statusLabel=(value,en)=>({review:en?'In review':'Προς έλεγχο',approved:en?'Approved':'Εγκεκριμένη',retired:en?'Retired':'Αποσυρμένη'}[value]||value)
 const ingestionLabel=(value,en)=>({ingested:en?'Ready':'Έτοιμη',pending:en?'Pending':'Εκκρεμεί',failed:en?'Failed':'Αποτυχία'}[value]||value)
@@ -25,6 +27,8 @@ export function LiraKnowledgePanel(){
  useEffect(()=>{load()},[load,tenant?.id])
  const authorities=useMemo(()=>[...new Set(rows.map(x=>x.authority).filter(Boolean))].sort(),[rows])
  const filtered=useMemo(()=>{const q=query.trim().toLocaleLowerCase();return rows.filter(x=>(authority==='all'||x.authority===authority)&&(status==='all'||x.status===status)&&(!q||[x.authority,x.title,x.source_version].some(v=>String(v||'').toLocaleLowerCase().includes(q))))},[rows,query,authority,status])
+ // Pages of 15 with the registries' pager (owner, 10/11/2026: every owner list pages, the page itself does not scroll).
+ const paging=useSortedPaging(filtered,`${query}|${authority}|${status}`,{authority:x=>x.authority,source:x=>x.title,version:x=>x.source_version,status:x=>x.status,knowledge:x=>x.ingestion_status})
  async function open(row){setSelected(row);setVersion('');const {data,error}=await supabase.from('lira_knowledge_chunks').select('id,chunk_index,heading,content,citation_label,page_start,page_end').eq('source_id',row.id).order('chunk_index');if(error)notify(error.message,'error');setChunks(data||[])}
  async function approve(){const {error}=await supabase.rpc('approve_lira_knowledge_source',{p_source_id:selected.id,p_review_notes:'Approved from LIRA Knowledge Center'});if(error)return notify(error.message,'error');notify(en?'Knowledge source approved.':'Η πηγή γνώσης εγκρίθηκε.','success');setSelected(null);load()}
  async function retire(){const {error}=await supabase.rpc('retire_lira_knowledge_source',{p_source_id:selected.id,p_review_notes:'Retired from LIRA Knowledge Center'});if(error)return notify(error.message,'error');notify(en?'Source retired.':'Η πηγή αποσύρθηκε.','success');setSelected(null);load()}
@@ -36,16 +40,18 @@ export function LiraKnowledgePanel(){
   <FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search sources…':'Αναζήτηση πηγών…'} onClear={()=>{setQuery('');setAuthority('all');setStatus('all')}} activeAdvancedCount={(authority==='all'?0:1)+(status==='all'?0:1)} advanced={<><label className="filter-select"><span>{en?'Authority':'Φορέας'}</span><select value={authority} onChange={e=>setAuthority(e.target.value)}><option value="all">{en?'All authorities':'Όλοι οι φορείς'}</option>{authorities.map(x=><option key={x} value={x}>{x}</option>)}</select></label><label className="filter-select"><span>{en?'Status':'Κατάσταση'}</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">{en?'All statuses':'Όλες οι καταστάσεις'}</option><option value="review">{en?'In review':'Προς έλεγχο'}</option><option value="approved">{en?'Approved':'Εγκεκριμένες'}</option><option value="retired">{en?'Retired':'Αποσυρμένες'}</option></select></label></>}/>
   {loading?<TableSkeleton/>:<RegistryTable
    wrapperClassName="table-wrap scroll-table"
-   columns={[{key:'authority',label:en?'Authority':'Φορέας'},{key:'source',label:en?'Source':'Πηγή'},{key:'version',label:en?'Version':'Έκδοση'},{key:'status',label:en?'Approval':'Έγκριση'},{key:'knowledge',label:en?'Knowledge':'Γνώση'}]}
-   rows={filtered}
+   columns={[{key:'authority',label:en?'Authority':'Φορέας',sortable:true},{key:'source',label:en?'Source':'Πηγή',sortable:true},{key:'version',label:en?'Version':'Έκδοση',sortable:true},{key:'status',label:en?'Approval':'Έγκριση',sortable:true},{key:'knowledge',label:en?'Knowledge':'Γνώση',sortable:true}]}
+   rows={paging.rows}
+   sort={paging.sort}
+   onSort={paging.onSort}
    rowKey={x=>x.id}
    rowProps={x=>({className:`clickable-row ${selected?.id===x.id?'is-selected':''}`,tabIndex:0,onClick:()=>open(x),onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(x)}}})}
    renderRow={x=><><td><strong>{x.authority}</strong></td><td>{x.title}</td><td>{x.source_version||'—'}</td><td><span className={`status-badge ${badgeClass(x.status)}`}>{statusLabel(x.status,en)}</span></td><td><span className={`status-badge ${badgeClass(x.ingestion_status)}`}>{ingestionLabel(x.ingestion_status,en)}</span></td></>}
    emptyTitle={rows.length?(en?'No sources match the filters.':'Δεν βρέθηκαν πηγές με αυτά τα φίλτρα.'):(en?'No knowledge sources yet.':'Δεν υπάρχουν ακόμη πηγές γνώσης.')}
-   emptyText={rows.length?undefined:(en?'Sources are imported from the External sources with «Check & update platform».':'Οι πηγές εισάγονται από τις Εξωτερικές πηγές με το «Έλεγχος & ενημέρωση πλατφόρμας».')}
+   emptyText={rows.length?undefined:(en?'Sources are imported from the External sources with «Check now» of the Lists.':'Οι πηγές εισάγονται από τις Εξωτερικές πηγές με το «Έλεγχος τώρα» των Λιστών.')}
    emptyIcon={rows.length?undefined:Globe2}
    emptyAction={rows.length||!platformScreen?undefined:{label:en?'Open external sources':'Άνοιγμα εξωτερικών πηγών',icon:Globe2,onClick:()=>navigate('/platform#management?group=sources')}}
-  />}
+  />}{!loading&&<RegistryPagination language={language} {...paging.props}/>}
   {selected&&<ObserverDialog onClose={()=>setSelected(null)} eyebrow={en?'KNOWLEDGE SOURCE':'ΠΗΓΗ ΓΝΩΣΗΣ'} title={selected.title||''} subtitle={[selected.authority,selected.source_version].filter(Boolean).join(' · ')} width="wide" className="lira-knowledge-dialog" footer={<DialogActions>
     
     {selected.status==='review'&&<><Button variant="secondary" onClick={()=>setEdit({...selected})}><Pencil size={15}/>{en?'Edit details':'Επεξεργασία'}</Button><Button onClick={approve}><CheckCircle2 size={15}/>{en?'Approve':'Έγκριση'}</Button></>}

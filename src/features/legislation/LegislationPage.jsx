@@ -205,6 +205,7 @@ function SourcesList({ sources, language, onChanged }) {
   const { notify, confirm } = useFeedback()
   const [editing, setEditing] = useState(null)
   const [busy, setBusy] = useState(false)
+  const paging = usePaging(sources.items, [])
   async function save() {
     if (!String(editing.name || '').trim() || !/^https?:\/\//.test(String(editing.url || '').trim())) { notify(en ? 'Give a name and an address starting with https://' : 'Δώστε όνομα και διεύθυνση που αρχίζει από https://', 'error'); return }
     setBusy(true)
@@ -228,7 +229,7 @@ function SourcesList({ sources, language, onChanged }) {
       <div className="row-actions"><Button variant="secondary" disabled={busy} onClick={checkNow}><RefreshCw size={15} />{en ? 'Check now' : 'Έλεγχος τώρα'}</Button><Button onClick={() => setEditing({ name: '', url: '', kind: 'rss', keywordsText: '', active: true })}><Plus size={15} />{en ? 'Source' : 'Πηγή'}</Button></div>
     </div>
     <div className="scroll-table">
-      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={sources.items} rowKey={item => item.id} empty={!sources.loading && !sources.items.length}
+      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!sources.loading && !sources.items.length}
         columns={[{ key: 'source', label: en ? 'Source' : 'Πηγή' }, { key: 'keywords', label: en ? 'Keywords' : 'Λέξεις-κλειδιά' }, { key: 'checked', label: en ? 'Last check' : 'Τελευταίος έλεγχος' }, { key: 'health', label: en ? 'State' : 'Κατάσταση' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No sources' : 'Δεν υπάρχουν πηγές'}
         renderRow={item => { const health = sourceHealth(item); return <>
@@ -239,6 +240,7 @@ function SourcesList({ sources, language, onChanged }) {
           <td><div className="row-actions"><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ ...item, keywordsText: item.keywords.join(', ') })}><Pencil size={14} /></IconButton><IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => remove(item)}><Trash2 size={14} /></IconButton></div></td>
         </> }} />
     </div>
+    {sources.items.length > 0 && <RegistryPagination language={language} page={paging.page} totalPages={paging.totalPages} totalItems={sources.items.length} pageSize={paging.pageSize} onPageChange={paging.setPage} onPageSizeChange={paging.setPageSize} />}
     {editing && <ObserverDialog title={editing.id ? (en ? 'Source' : 'Πηγή') : (en ? 'New source' : 'Νέα πηγή')} onClose={() => setEditing(null)}
       footer={<DialogActions onCancel={() => setEditing(null)} onSave={save} saveLabel={en ? 'Save' : 'Αποθήκευση'} disabled={busy} />}>
       <div className="leg-form">
