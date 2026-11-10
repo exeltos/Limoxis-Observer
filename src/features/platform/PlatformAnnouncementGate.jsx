@@ -85,6 +85,7 @@ class AnnouncementBoundary extends Component {
 export function PlatformAnnouncementDialog({ announcement: current, onClose: close, language, navigate, large = false }) {
   const en = language === 'en'
   const [fileUrl, setFileUrl] = useState('')
+  const [documentUrl, setDocumentUrl] = useState('')
   const [imageFailed, setImageFailed] = useState(false)
   useEffect(() => {
     let alive = true
@@ -95,6 +96,14 @@ export function PlatformAnnouncementDialog({ announcement: current, onClose: clo
       alive = false
     }
   }, [current.attachmentPath])
+  useEffect(() => {
+    let alive = true
+    setDocumentUrl('')
+    if (current.documentPath) announcementAttachmentUrl(current.documentPath).then(url => alive && setDocumentUrl(url)).catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [current.documentPath])
   const pick = (el, enText) => (en && enText ? enText : el)
   const title = pick(current.titleEl, current.titleEn)
   const image = imageFailed ? '' : isImageAttachment(current) ? fileUrl : current.imageUrl
@@ -121,20 +130,24 @@ export function PlatformAnnouncementDialog({ announcement: current, onClose: clo
         </>
       }
     >
-      {image ? (
-        <img className="platform-announcement-image" src={image} alt="" onError={() => setImageFailed(true)} />
-      ) : (
-        <div className="platform-announcement-band" aria-hidden="true">
-          <Megaphone size={22} />
+      <div className={`platform-announcement-layout is-${image ? current.imagePosition || 'top' : 'top'}`}>
+        {image ? (
+          <img className="platform-announcement-image" src={image} alt="" onError={() => setImageFailed(true)} />
+        ) : (
+          <div className="platform-announcement-band" aria-hidden="true">
+            <Megaphone size={22} />
+          </div>
+        )}
+        <div className="platform-announcement-text">
+          <p className="platform-announcement-body">{pick(current.bodyEl, current.bodyEn) || ''}</p>
+          {current.documentPath && documentUrl && (
+            <a className="platform-announcement-file" href={documentUrl} target="_blank" rel="noopener noreferrer">
+              <FileText size={16} aria-hidden="true" />
+              {current.documentName || (en ? 'Open the file' : 'Άνοιγμα αρχείου')}
+            </a>
+          )}
         </div>
-      )}
-      <p className="platform-announcement-body">{pick(current.bodyEl, current.bodyEn) || ''}</p>
-      {current.attachmentPath && !isImageAttachment(current) && fileUrl && (
-        <a className="platform-announcement-file" href={fileUrl} target="_blank" rel="noopener noreferrer">
-          <FileText size={16} aria-hidden="true" />
-          {current.attachmentName || (en ? 'Open the file' : 'Άνοιγμα αρχείου')}
-        </a>
-      )}
+      </div>
     </ObserverDialog>
   )
 }

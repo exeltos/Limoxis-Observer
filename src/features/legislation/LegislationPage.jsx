@@ -6,6 +6,7 @@ import { PlatformLegalTabs } from '../platform/PlatformLegalTabs'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -166,15 +167,27 @@ function ReviewList({ candidates, texts, language, onChanged, base }) {
   const navigate = useNavigate()
   const { notify } = useFeedback()
   const [status, setStatus] = useState('pending')
+  const [query, setQuery] = useState('')
   const [linking, setLinking] = useState(null)
-  const rows = candidates.items.filter(item => status === 'all' || item.status === status)
-  const paging = usePaging(rows, [status])
+  const needle = query.trim().toLowerCase()
+  const rows = candidates.items.filter(item => (status === 'all' || item.status === status) && (!needle || [item.title, item.sourceName, item.excerpt, ...(item.matchedKeywords || [])].join(' ').toLowerCase().includes(needle)))
+  const paging = usePaging(rows, [status, query])
   async function dismiss(item) {
     try { await setCandidate(item.id, { status: 'dismissed' }); onChanged() } catch { notify(en ? 'Could not save.' : 'Δεν αποθηκεύτηκε.', 'error') }
   }
+  // The row has no buttons: what can be done with a finding is in its «⋯».
+  const candidateMenu = item => [
+    ...(item.url ? [{ id: 'open', label: en ? 'Open the source' : 'Άνοιγμα πηγής', icon: ExternalLink, onClick: () => window.open(item.url, '_blank', 'noopener,noreferrer') }] : []),
+    ...(item.status === 'pending' ? [
+      { id: 'new', label: en ? 'New text' : 'Νέο κείμενο', icon: FilePlus2, onClick: () => navigate(`${base}/library/new`, { state: { candidate: item } }) },
+      { id: 'link', label: en ? 'Update of an existing text' : 'Ενημέρωση υπάρχοντος κειμένου', icon: Link2, onClick: () => setLinking({ candidate: item, textId: '' }) },
+      { id: 'dismiss', label: en ? 'Dismiss' : 'Απόρριψη', icon: XCircle, tone: 'danger', separatorBefore: true, onClick: () => dismiss(item) },
+    ] : []),
+  ]
   return <>
-    <div className="leg-sources-head"><p className="leg-note">{en ? 'Found by the automatic check of the sources (every 2 hours). Nothing reaches the hospitals until you publish it from the library; you get a morning e-mail when something new is found.' : 'Ό,τι βρήκε ο αυτόματος έλεγχος των πηγών (κάθε 2 ώρες). Τίποτα δεν φτάνει στα νοσοκομεία πριν το δημοσιεύσετε από τη βιβλιοθήκη· όταν βρεθεί κάτι νέο, σας έρχεται email το πρωί.'}</p>
-      <FilterSelect className="leg-status-filter" label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus}><option value="pending">{en ? 'To review' : 'Προς έλεγχο'}</option><option value="linked">{en ? 'Added' : 'Καταχωρίστηκαν'}</option><option value="dismissed">{en ? 'Dismissed' : 'Απορρίφθηκαν'}</option><option value="all">{en ? 'All' : 'Όλα'}</option></FilterSelect></div>
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search the findings…' : 'Αναζήτηση ευρημάτων…'} activeAdvancedCount={status !== 'pending' ? 1 : 0} onClear={() => { setQuery(''); setStatus('pending') }}>
+      <FilterSelect label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus}><option value="pending">{en ? 'To review' : 'Προς έλεγχο'}</option><option value="linked">{en ? 'Added' : 'Καταχωρίστηκαν'}</option><option value="dismissed">{en ? 'Dismissed' : 'Απορρίφθηκαν'}</option><option value="all">{en ? 'All' : 'Όλα'}</option></FilterSelect>
+    </FilterBar>
     <div className="scroll-table">
       <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!candidates.loading && !rows.length}
         columns={[{ key: 'found', label: en ? 'Found' : 'Βρέθηκε' }, { key: 'item', label: en ? 'Item' : 'Εύρημα' }, { key: 'keywords', label: en ? 'Matched' : 'Λέξεις' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }, { key: 'actions', label: '' }]}
@@ -184,11 +197,7 @@ function ReviewList({ candidates, texts, language, onChanged, base }) {
           <td className="leg-candidate-cell">{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title} <ExternalLink size={12} /></a> : item.title}{item.excerpt && <small>{item.excerpt}</small>}</td>
           <td>{item.matchedKeywords.join(', ')}</td>
           <td><StatusBadge tone={candidateStatusTone(item.status)}>{candidateStatusLabel(item.status, language)}</StatusBadge></td>
-          <td>{item.status === 'pending' && <div className="row-actions leg-candidate-actions">
-            <Button onClick={() => navigate(`${base}/library/new`, { state: { candidate: item } })}><FilePlus2 size={15} />{en ? 'New text' : 'Νέο κείμενο'}</Button>
-            <IconButton label={en ? 'Update of an existing text' : 'Ενημέρωση υπάρχοντος κειμένου'} onClick={() => setLinking({ candidate: item, textId: '' })}><Link2 size={15} /></IconButton>
-            <IconButton tone="danger" label={en ? 'Dismiss' : 'Απόρριψη'} onClick={() => dismiss(item)}><XCircle size={15} /></IconButton>
-          </div>}</td>
+          <td className="leg-candidate-menu">{candidateMenu(item).length > 0 && <OverflowMenu label={en ? 'Actions' : 'Ενέργειες'} items={candidateMenu(item)} />}</td>
         </>} />
     </div>
     {rows.length > 0 && <RegistryPagination language={language} page={paging.page} totalPages={paging.totalPages} totalItems={rows.length} pageSize={paging.pageSize} onPageChange={paging.setPage} onPageSizeChange={paging.setPageSize} />}
