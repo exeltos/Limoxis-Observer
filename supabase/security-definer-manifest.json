@@ -620,6 +620,11 @@
       "authenticated": true,
       "reason": "Platform Owner only (current_user_is_platform_owner()): ends one session or all sessions of a user (deletes the auth.sessions rows, revoking refresh tokens) and writes system_audit_log."
     },
+    "resolve_legacy_person": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Hospital Admin of the organisation (is_org_admin, Platform Owner included) links one legacy FileMaker name text to an employee of the same organisation: updates only the employee link columns of the whitelisted tables, never the text, and writes system_audit_log."
+    },
     "platform_release_login_lock": {
       "category": "rpc",
       "authenticated": true,
