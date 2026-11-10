@@ -446,7 +446,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       kpis: [
         [tx('Διερευνήσεις εξάρσεων', 'Outbreak investigations'), l.investigations ?? 0, tx(`${l.active ?? 0} ενεργές`, `${l.active ?? 0} active`), l.active ? 'warning' : ''],
         [tx('Ολοκληρωμένες', 'Closed'), l.closed ?? 0, averageDays == null ? tx('Χωρίς χρόνο ολοκλήρωσης', 'No closing time yet') : tx(`μέσος χρόνος ${String(averageDays).replace('.', ',')} ημέρες`, `average ${averageDays} days to close`)],
-        [tx('Ενεργές συρροές (clusters)', 'Active clusters'), l.clusters ?? 0, tx('ανιχνευμένες από την επιτήρηση', 'detected by surveillance'), l.clusters ? 'danger' : ''],
+        [tx('Ενεργές συρροές', 'Active clusters'), l.clusters ?? 0, tx('ανιχνευμένες από την επιτήρηση', 'detected by surveillance'), l.clusters ? 'danger' : ''],
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Νέες διερευνήσεις ανά μήνα', 'New investigations by month'), subtitle: tx('Έναρξη διερεύνησης ανά μήνα.', 'Investigations opened per month.'), points: l.monthly || [] },
