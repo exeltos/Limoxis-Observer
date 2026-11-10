@@ -169,3 +169,7 @@
 /* Documents tab: the files and the protocols scroll together, each at its full height. */
 .employee-documents-tab{display:flex;flex-direction:column;gap:14px;flex:1 1 auto;min-height:0;overflow:auto}
 .employee-documents-tab>*{flex:0 0 auto;min-height:auto;max-height:none;overflow:visible}
+
+/* A list tab of the employee record is the card itself: the section has no frame of its own (one frame, the pager on its bottom edge). */
+.entity-record-shell .entity-record-body>.record-secondary-registry:has(.registry-pagination){border:0;border-radius:0;box-shadow:none;margin:0}
+.entity-record-body:has(>.record-secondary-registry .registry-pagination){padding:0}
