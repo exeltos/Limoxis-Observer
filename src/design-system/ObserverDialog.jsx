@@ -28,6 +28,8 @@ export function ObserverDialog({
   // at the height of their content, never at a fixed tall height.
   fixedHeight=false,
   className='',
+  // The × of the header; a card that closes in another way (the announcement) leaves it out.
+  showClose=true,
 }){
   const {language}=useLanguage();const en=language==='en'
   const inline=useContext(InlineDialogContext)
@@ -118,7 +120,7 @@ export function ObserverDialog({
             {subtitle&&<p>{subtitle}</p>}
           </div>
         </div>
-        {(headerActions||!workspace)&&<div className="observer-dialog-header-actions">{headerActions}{!workspace&&<IconButton label={en?'Close':'Κλείσιμο'} tone="neutral" className="entity-record-icon-button" onClick={requestClose}><X size={17}/></IconButton>}</div>}
+        {(headerActions||(!workspace&&showClose))&&<div className="observer-dialog-header-actions">{headerActions}{!workspace&&showClose&&<IconButton label={en?'Close':'Κλείσιμο'} tone="neutral" className="entity-record-icon-button" onClick={requestClose}><X size={17}/></IconButton>}</div>}
       </header>
       <div className="observer-dialog-body">{children}</div>
       {footer&&<footer>{footer}</footer>}

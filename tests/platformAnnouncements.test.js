@@ -75,3 +75,15 @@ describe('platform announcements: image position and attached file (owner, 10/11
     expect(image).toMatchObject({ attachmentPath: '1-a.png', documentPath: '2-b.pdf' })
   })
 })
+
+describe('platform announcements: the card has no × (owner, 10/11/2026)', () => {
+  const read = file => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+  it('leaves out the × and the Close beside the announcement\'s own button; Close stays only when there is no button', () => {
+    const gate = read('src/features/platform/PlatformAnnouncementGate.jsx')
+    expect(gate).toContain('showClose={false}')
+    expect(gate).toContain('cta ? (')
+    const dialog = read('src/design-system/ObserverDialog.jsx')
+    expect(dialog).toContain('showClose=true')
+    expect(dialog).toContain('!workspace&&showClose&&<IconButton')
+  })
+})
