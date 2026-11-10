@@ -66,11 +66,6 @@
 .exec-dot-danger{background:#c43c3c}
 .exec-dot-warning{background:#d89a1c}
 .exec-dot-good{background:#2e9b5f}
-.analysis-figures{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font-size:13px;color:var(--lo-color-muted)}
-.analysis-figures b{color:#1d3a52;font-size:15px;font-variant-numeric:tabular-nums}
-.analysis-figures .analysis-figure-danger b{color:#a32121}
-.analysis-figures .analysis-figure-warning b{color:#8a5a00}
-.analysis-figures .analysis-figure-good b{color:#1f7a45}
 .analysis-figure-versus{color:var(--lo-color-muted);font-size:12px}
 .analysis-comparison-card{margin:0 0 14px}
 

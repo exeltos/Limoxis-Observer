@@ -1,6 +1,7 @@
 import './platformDashboard.css'
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Activity,AlertTriangle,CheckCircle2,RefreshCw,ShieldAlert,XCircle } from 'lucide-react'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { Page } from '../../design-system/Page'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
@@ -86,13 +87,11 @@ export function PlatformHealthView({organizations=[],language='el',tabs=null}){
 
   return <Page
     title={tx('Ιστορικό & Υγεία','History & Health')}
-    subtitle={tx('Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων της πλατφόρμας.','Traceability of actions, access changes and operational events across the platform.')}
     actions={<div className="row-actions"><ExportMenu items={[{id:'events',label:tx('Excel: συμβάντα','Excel: events'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('symvanta-leitourgias','platform-events'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Κατάσταση','Status'),tx('Ενότητα','Area'),'Route',tx('Περιγραφή','Description'),tx('Αναφορά','Reference'),tx('Χρήστης','User'),tx('Έκδοση','Version')],rows:filtered.map(row=>[fmtDate(row.occurredAt),organizationMap.get(row.organizationId)?.name||row.organizationName||'',(severityMeta[row.severity]||severityMeta.info)[en?'en':'el'],localModule(row.module,language),row.route||'',row.message||'',row.diagnosticCode||'',row.actorName||'',row.appVersion||''])})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}
   >
     {tabs}
-    <p className="platform-history-summary">{healthLabel} · {failures} {tx('αποτυχίες / αποκλεισμοί','errors / blocked')} · {warnings} {tx('προειδοποιήσεις','warnings')} · {affectedOrganizations}/{organizations.length} {tx('οργανισμοί με συμβάντα','organizations affected')}</p>
     <div className="platform-registry-shell workspace-column">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση οργανισμού, περιγραφής ή ενότητας…','Search organization, description or area…')} activeAdvancedCount={(organizationId!=='all'?1:0)+(severity!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setSeverity('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση οργανισμού, περιγραφής ή ενότητας…','Search organization, description or area…')} end={<RegistryTotals label={healthLabel} items={[{key:'failures',value:failures,always:true,label:tx('αποτυχίες / αποκλεισμοί','errors / blocked'),tone:failures?'danger':'good',title:healthLabel},{key:'warnings',value:warnings,always:true,label:tx('προειδοποιήσεις','warnings'),tone:warnings?'warning':undefined},{key:'organizations',value:affectedOrganizations,always:true,display:`${affectedOrganizations}/${organizations.length}`,label:tx('οργανισμοί με συμβάντα','organizations affected')}]}/>} activeAdvancedCount={(organizationId!=='all'?1:0)+(severity!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setSeverity('all')}}>
         <FilterSelect label={tx('Οργανισμός','Organization')} value={organizationId} onChange={setOrganizationId}>
           <option value="all">{tx('Όλοι','All')}</option>
           {organizations.map(org=><option key={org.id} value={org.id}>{org.name||org.code}</option>)}

@@ -89,3 +89,9 @@
 @media print{.analysis-matrix tr.analysis-matrix-extra{display:table-row}.analysis-matrix-more{display:none}}
 .analysis-matrix-more{margin:6px 0 0;padding:0;font:inherit;font-size:12px;font-weight:700;color:var(--lo-color-primary);background:none;border:0;cursor:pointer}
 .analysis-empty-charts{margin:4px 0 0;padding:10px 14px;border:1px dashed var(--lo-color-border);border-radius:12px;font-size:12.5px;color:var(--lo-color-muted)}
+/* The figures line of every analysis section (here, not in the executive styles: the platform reports load it too). */
+.analysis-figures{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font-size:13px;color:var(--lo-color-muted)}
+.analysis-figures b{color:#1d3a52;font-size:15px;font-variant-numeric:tabular-nums}
+.analysis-figures .analysis-figure-danger b{color:#a32121}
+.analysis-figures .analysis-figure-warning b{color:#8a5a00}
+.analysis-figures .analysis-figure-good b{color:#1f7a45}

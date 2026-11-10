@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
@@ -41,7 +42,9 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize)), safePage = Math.min(page, totalPages)
   const paged = useMemo(() => visible.slice((safePage - 1) * pageSize, safePage * pageSize), [visible, safePage, pageSize])
   useEffect(() => setPage(1), [query, filter, pageSize])
-  const chips = [['all', tx('Όλοι', 'All'), sorted.length], ['hospital', tx('Νοσοκομεία', 'Hospitals'), counts.hospital || 0], ['demo', 'Demo', counts.demo || 0], ['platform', tx('Πλατφόρμα', 'Platform'), counts.platform || 0], ['invited', tx('Πρόσκληση σε αναμονή', 'Invitation pending'), counts.invited], ...(counts.none ? [['none', tx('Χωρίς οργανισμό', 'No organization'), counts.none]] : [])]
+  // The totals beside the search, as on Organizations (owner, 10/11/2026): each one filters the list; a second click clears it.
+  const toggle = key => setFilter(current => (current === key ? 'all' : key))
+  const totals = [['hospital', tx('νοσοκομεία', 'hospitals'), counts.hospital || 0], ['demo', 'Demo', counts.demo || 0], ['platform', tx('πλατφόρμα', 'platform'), counts.platform || 0], ['invited', tx('πρόσκληση σε αναμονή', 'invitation pending'), counts.invited, 'warning'], ['none', tx('χωρίς οργανισμό', 'no organization'), counts.none || 0]].map(([key, label, value, tone]) => ({ key, label, value, tone: value ? tone : undefined, active: filter === key, onClick: () => toggle(key) }))
   function exportUsers() {
     exportRegistry({ name: tx('xristes', 'users'),
       headers: [tx('Ονοματεπώνυμο', 'Name'), 'Email', 'Username', tx('Ρόλος', 'Role'), tx('Οργανισμός', 'Organization'), tx('Τύπος', 'Type'), tx('Κατάσταση', 'Status'), tx('Από', 'Since')],
@@ -52,10 +55,7 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
     actions={<ExportMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>}>
     {tabs}
     <div className="platform-registry-shell workspace-column">
-      <div className="platform-demo-toolbar">
-        <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση χρήστη, email ή οργανισμού…', 'Search user, email or organization…')}/>
-        <div className="platform-demo-status-chips" role="group" aria-label={tx('Φίλτρο', 'Filter')}>{chips.map(([value, label, count]) => <button key={value} type="button" className={`platform-demo-status-chip${filter === value ? ' is-active' : ''}`} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}<b>{count}</b></button>)}</div>
-      </div>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση χρήστη, email ή οργανισμού…', 'Search user, email or organization…')} end={sorted.length ? <RegistryTotals label={tx('Σύνολα χρηστών', 'User totals')} items={totals}/> : null}/>
       <div className="platform-center-section platform-registry-card workspace-column">
         {loading ? <div className="registry-empty-state"><span>{tx('Φόρτωση…', 'Loading…')}</span></div> : visible.length ? <>
           <div className="scroll-table">

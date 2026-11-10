@@ -267,7 +267,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       charts: [
         { type: 'scoreboard', wide: true, ...(byHospital ? { title: tx('Σύγκριση νοσοκομείων', 'Hospitals side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε νοσοκομείου για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each hospital\'s headline figures for the period; shading marks the highest in each column.'), rowLabel: tx('Νοσοκομείο', 'Hospital'), rows: (snapshot.hospitals || []).map(row => ({ ...row, key: row.organizationId })).sort((a, b) => b.episodes + b.positives - (a.episodes + a.positives)) } : { title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot) }), columns: [
           { key: 'episodes', label: tx('Επιτηρήσεις', 'Surveillance') },
-          { key: 'hai', label: tx('HAI', 'HAI'), tone: 'warn' },
+          { key: 'hai', label: tx('ΛΣΦΥ', 'HAI'), tone: 'warn' },
           { key: 'positives', label: tx('Θετικές καλλιέργειες', 'Positive cultures') },
           { key: 'mdro', label: 'MDR/XDR/PDR', tone: 'danger' },
           { key: 'hand', label: tx('Υγιεινή χεριών', 'Hand hygiene'), shade: false, format: value => fmtPct(value) },
