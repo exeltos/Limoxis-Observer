@@ -124,7 +124,6 @@ export function PlatformOrganizationUserRecord({ ctx }) {
           placement: 'menu',
           icon: <KeyRound size={16} />,
           label: tx('Νέος προσωρινός κωδικός', 'New temporary password'),
-          title: tx('Νέος κωδικός 7 ημερών· ξεκλειδώνει και λογαριασμό που κλείδωσε', 'A new 7-day password; also unlocks an account that was locked'),
           disabled: working,
           onClick: () => setReissueOpen(true),
         },
