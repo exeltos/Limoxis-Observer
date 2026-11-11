@@ -357,12 +357,14 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     } }
     case 'controls': return {
       kpis: [
-        [tx('Εκτελέσεις ελέγχων', 'Control executions'), c.executions ?? 0, tx(`${pct(c.completed, c.executions) ?? 0}% ολοκληρωμένες`, `${pct(c.completed, c.executions) ?? 0}% completed`)],
-        [tx('Με εύρημα', 'With findings'), c.withFinding ?? 0, tx(`${pct(c.withFinding, c.executions) ?? 0}% των εκτελέσεων`, `${pct(c.withFinding, c.executions) ?? 0}% of executions`), c.withFinding ? 'warning' : ''],
-        [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : ''],
+        ...((c.executions ?? 0) || (c.overdueAssignments ?? 0) ? [
+          [tx('Εκτελέσεις ελέγχων', 'Control executions'), c.executions ?? 0, tx(`${pct(c.completed, c.executions) ?? 0}% ολοκληρωμένες`, `${pct(c.completed, c.executions) ?? 0}% completed`)],
+          [tx('Με εύρημα', 'With findings'), c.withFinding ?? 0, tx(`${pct(c.withFinding, c.executions) ?? 0}% των εκτελέσεων`, `${pct(c.withFinding, c.executions) ?? 0}% of executions`), c.withFinding ? 'warning' : ''],
+          [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : ''],
+        ] : []),
       ],
       charts: [
-        { type: 'matrix', wide: true, title: tx('Ευρήματα ανά έλεγχο και τμήμα', 'Findings by control and department'), subtitle: tx('Σε ποιον έλεγχο και ποιο τμήμα εντοπίζονται ευρήματα.', 'Which control and which department the findings come from.'), rowLabel: tx('Έλεγχος', 'Control'), cells: c.findingsByControl },
+        { type: 'matrix', wide: true, emptyText: tx('δεν έχουν καταγραφεί εκτελέσεις ελέγχων στην περίοδο.', 'no control executions have been recorded in the period.'), title: tx('Ευρήματα ανά έλεγχο και τμήμα', 'Findings by control and department'), subtitle: tx('Σε ποιον έλεγχο και ποιο τμήμα εντοπίζονται ευρήματα.', 'Which control and which department the findings come from.'), rowLabel: tx('Έλεγχος', 'Control'), cells: c.findingsByControl },
         { type: 'bars', title: tx('Εκτελέσεις ανά τμήμα', 'Executions by department'), subtitle: tx('Ολοκληρωμένοι έλεγχοι στην περίοδο.', 'Controls performed in the period.'), rows: (c.byDepartment || []).map(([key, n]) => [key, n]) },
         { type: 'rate', relative: true, title: tx('Ποσοστό ευρημάτων ανά τμήμα', 'Finding rate by department'), subtitle: tx('Εκτελέσεις με εύρημα προς το σύνολο των εκτελέσεων.', 'Executions with a finding over all executions.'), rows: (c.byDepartment || []).map(([key, total, findings]) => [key, pct(findings, total) ?? 0, `${findings ?? 0}/${total ?? 0}`]) },
       ],
