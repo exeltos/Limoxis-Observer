@@ -121,3 +121,11 @@
 .platform-analysis-page .analysis-actions .filter-system,.platform-analysis-page .analysis-actions .filter-primary-row{min-height:0;height:auto}.platform-analysis-page .analysis-actions .filter-trigger{height:34px;margin:0}
 .platform-analysis-page .analysis-report .analysis-chart-card{height:auto}
 .platform-analysis-page .analysis-report .analysis-chart-card{min-height:0}
+/* The possible-clusters card: the same text size as the other cards (it was 8–10px). */
+.analysis-report .analysis-signal-card>header strong{font-size:14px}
+.analysis-report .analysis-signal-card>header span{font-size:12px}
+.analysis-report .analysis-signal-grid strong{font-size:13px}
+.analysis-report .analysis-signal-grid span{font-size:12px}
+.analysis-report .analysis-signal-grid small{font-size:11.5px}
+/* Organisms with too few isolates: the list under the note, one per line. */
+.analysis-chart-note-list{margin:2px 0 0;padding:0;list-style:none;font-size:12px;line-height:1.5;color:var(--lo-color-muted)}
