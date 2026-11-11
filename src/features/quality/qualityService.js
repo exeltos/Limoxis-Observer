@@ -142,6 +142,11 @@ export function mapRow(section,row){
     verifiedBy:row.verified_by_label||'',
     verificationNote:row.verification_note||'',
     followUpAuditId:row.follow_up_audit_code||'',
+    // The assessment: is a corrective action needed (null = not decided), why not, who assessed it and when.
+    correctiveActionNeeded:row.corrective_action_needed??null,
+    noActionReason:row.no_action_reason||'',
+    assessedAt:row.assessed_at||'',
+    assessedBy:row.assessed_by_label||'',
   }
   if(section==='capas') return {
     ...common,
@@ -376,6 +381,10 @@ const findingDetailsPayload=record=>({
   root_cause:String(record.rootCause||'').trim()||null,
   recurring:typeof record.recurring==='boolean'?record.recurring:null,
   reported_by_label:String(record.reportedBy||'').trim()||null,
+  corrective_action_needed:typeof record.correctiveActionNeeded==='boolean'?record.correctiveActionNeeded:null,
+  no_action_reason:record.correctiveActionNeeded===false?String(record.noActionReason||'').trim()||null:null,
+  assessed_at:record.assessedAt||null,
+  assessed_by_label:String(record.assessedBy||'').trim()||null,
 })
 function findingAuditPayload(record){
   return {

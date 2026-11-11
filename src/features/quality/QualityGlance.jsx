@@ -121,7 +121,7 @@ export function findingSummary(record,{language,t,linked=[]}){
   const since=-daysUntil(record.date)
   if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτή ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστή')})
   const done=linked.filter(isClosed).length
-  items.push(linked.length?{text:en?`${done}/${linked.length} corrective actions done`:`${done}/${linked.length} διορθωτικές ενέργειες ολοκληρώθηκαν`}:{text:en?'no corrective action yet':'χωρίς διορθωτική ενέργεια',tone:open?'danger':undefined})
+  items.push(linked.length?{text:en?`${done}/${linked.length} corrective actions done`:`${done}/${linked.length} διορθωτικές ενέργειες ολοκληρώθηκαν`}:record.correctiveActionNeeded===false?{text:en?'no corrective action needed':'δεν απαιτείται διορθωτική ενέργεια'}:{text:en?'no corrective action yet':'χωρίς διορθωτική ενέργεια',tone:open?'danger':undefined})
   items.push({text:`${en?'Source':'Πηγή'}: ${vocabularyLabel(FINDING_SOURCES,record.source||'manual',language)}${visibleSourceId(record.sourceId)?` ${record.sourceId}`:''}`})
   return items
 }
