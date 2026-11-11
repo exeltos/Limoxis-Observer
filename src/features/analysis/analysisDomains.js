@@ -430,11 +430,13 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       kpis: [
         [tx('Επιπολασμός ΛΣΦΥ', 'HAI prevalence'), fmtPct(haiNow), delta(haiNow, haiBefore), haiNow != null && haiBefore != null && haiNow > haiBefore ? 'warning' : ''],
         [tx('Χρήση αντιβιοτικών', 'Antibiotic use'), fmtPct(abxNow), delta(abxNow, abxBefore), abxNow != null && abxBefore != null && abxNow > abxBefore ? 'warning' : ''],
-        [tx('Μελέτες στην περίοδο', 'Surveys in the period'), p.surveys ?? 0, tx(`${p.patients ?? 0} ασθενείς συνολικά`, `${p.patients ?? 0} patients in total`)],
-        [tx('Ασθενείς με ΛΣΦΥ', 'Patients with HAI'), p.withHai ?? 0, tx(`${fmtPct(pct(p.withHai, p.patients))} του συνόλου`, `${fmtPct(pct(p.withHai, p.patients))} of the total`)],
+        ...((p.surveys ?? 0) || (p.withHai ?? 0) ? [
+          [tx('Μελέτες στην περίοδο', 'Surveys in the period'), p.surveys ?? 0, tx(`${p.patients ?? 0} ασθενείς συνολικά`, `${p.patients ?? 0} patients in total`)],
+          [tx('Ασθενείς με ΛΣΦΥ', 'Patients with HAI'), p.withHai ?? 0, tx(`${fmtPct(pct(p.withHai, p.patients))} του συνόλου`, `${fmtPct(pct(p.withHai, p.patients))} of the total`)],
+        ] : []),
       ],
       charts: [
-        { type: 'trend', wide: true, sparse: true, title: tx('Επιπολασμός ΛΣΦΥ ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με ΛΣΦΥ προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
+        { type: 'trend', wide: true, sparse: true, emptyText: tx('δεν έχει καταγραφεί ακόμη μέτρηση επιπολασμού στην περίοδο.', 'no prevalence survey has been recorded in the period yet.'), title: tx('Επιπολασμός ΛΣΦΥ ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με ΛΣΦΥ προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
         { type: 'trend', wide: true, sparse: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]) => [key, pct(abx, total) ?? 0]) },
         // One row per survey, in time order: the month, the patients and the two rates (not bars of «2026-07» sorted by size).
         { type: 'scoreboard', wide: true, title: tx('Οι μετρήσεις', 'The surveys'), subtitle: tx('Μία γραμμή ανά μέτρηση επιπολασμού.', 'One row per prevalence survey.'), rowLabel: tx('Μέτρηση', 'Survey'),

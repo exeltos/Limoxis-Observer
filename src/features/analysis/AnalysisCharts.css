@@ -129,6 +129,7 @@
 .analysis-report .analysis-signal-grid small{font-size:11.5px}
 /* Organisms with too few isolates: the list under the note, one per line. */
 .analysis-chart-note-list{margin:2px 0 0;padding:0;list-style:none;font-size:12px;line-height:1.5;color:var(--lo-color-muted)}
-/* On the platform reports the donut is a little smaller and its legend spreads across the whole card (a lone donut card is full width). */
-.platform-analysis-page .viz-donut{grid-template-columns:140px minmax(0,1fr);max-width:none}
+/* On the platform reports the donut is a little smaller; its legend (label, count, percent) stays compact beside it. */
+.platform-analysis-page .viz-donut{grid-template-columns:140px minmax(0,1fr)}
+.platform-analysis-page .viz-legend{max-width:420px}
 .platform-analysis-page .viz-donut svg{width:140px;height:140px}
