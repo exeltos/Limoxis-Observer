@@ -1,18 +1,22 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileSpreadsheet, KeyRound, Upload } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { readSpreadsheet } from '../../core/import/spreadsheetImport'
 import { downloadXlsx } from '../../core/export/xlsxExport'
 import { ROLES } from './platformOrganizationShared'
-import { checkPerson, errorText, mergeVerdicts, needsDepartment, planFile, previewCounts, resultsSheet, templateSheet } from './activeUsersModel'
+import { TEMPORARY_PASSWORD_DAYS, checkPerson, errorText, isDivisionRole, mergeVerdicts, needsDepartment, planFile, previewCounts, resultsSheet, templateSheet } from './activeUsersModel'
+import { loadDivisions } from '../interviews/interviewsService'
 import { createActiveUsers, previewActiveUsers } from './activeUsersService'
 import './activeUsers.css'
 
-const EMPTY = { fullName: '', email: '', username: '', role: 'department_user', departmentId: '', employeeCode: '' }
+const EMPTY = { fullName: '', email: '', username: '', role: 'department_user', departmentId: '', employeeCode: '', phone: '', passwordMode: 'random', divisionName: '', departmentIds: [] }
+// Names offered for a new division; the hospital's own divisions come first.
+const DIVISION_SUGGESTIONS = ['Νοσηλευτική Υπηρεσία', 'Διεύθυνση Λειτουργιών', 'Ιατρική Υπηρεσία', 'Διοικητική Υπηρεσία']
 
 // «Νέος ενεργός χρήστης» (mode single) and «Εισαγωγή χρηστών από αρχείο» (mode file),
 // Platform Owner only, in the hospital's record › «Χρήστες & Ρόλοι». The accounts are
@@ -32,6 +36,21 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   const [results, setResults] = useState(null)
   const [downloaded, setDownloaded] = useState(false)
   const [singleError, setSingleError] = useState('')
+  const [divisions, setDivisions] = useState([])
+  const [fileRows, setFileRows] = useState(null)
+  const [passwordMode, setPasswordMode] = useState('random')
+
+  // The hospital's divisions, to choose from (a name that is not there yet creates a new one).
+  useEffect(() => {
+    let active = true
+    loadDivisions(organization.id).then(data => { if (active) setDivisions(data?.divisions || []) }).catch(() => { if (active) setDivisions([]) })
+    return () => { active = false }
+  }, [organization.id])
+  const divisionNames = [...new Set([...divisions.map(item => item.name), ...DIVISION_SUGGESTIONS])]
+  const passwordOptions = [
+    { value: 'random', label: tx('Τυχαίος (προτείνεται)', 'Random (recommended)') },
+    { value: 'phone', label: tx('Το κινητό του χρήστη', "The user's mobile number") },
+  ]
 
   const counts = useMemo(() => (people ? previewCounts(people) : { ok: 0, error: 0 }), [people])
   const ready = people ? people.filter(person => person.status === 'ok') : []
@@ -63,12 +82,24 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
     setPlan(null)
     setFileName(file.name)
     try {
-      const next = planFile(await readSpreadsheet(file), departments, en)
+      const rows = await readSpreadsheet(file)
+      setFileRows(rows)
+      const next = planFile(rows, departments, en, passwordMode)
       setPlan(next)
       if (!next.missingColumns.length && next.people.length) await verify(next.people)
     } catch (error) {
       setReadError(error?.message === 'SPREADSHEET_UNSUPPORTED_TYPE' ? tx('Επιλέξτε αρχείο .xlsx ή .csv.', 'Choose an .xlsx or .csv file.') : tx('Δεν ήταν δυνατή η ανάγνωση του αρχείου.', 'The file could not be read.'))
     }
+  }
+
+  // The password of the file's users can be changed after the file is chosen: the rows are read again.
+  async function changeFileMode(mode) {
+    setPasswordMode(mode)
+    if (!fileRows) return
+    const next = planFile(fileRows, departments, en, mode)
+    setPlan(next)
+    setPeople(null)
+    if (!next.missingColumns.length && next.people.length) await verify(next.people)
   }
 
   async function run(list) {
@@ -164,8 +195,8 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
               <p className="active-users-warning" role="alert">
                 <KeyRound size={16} />
                 {tx(
-                  'Οι προσωρινοί κωδικοί εμφανίζονται μόνο τώρα και δεν αποθηκεύονται πουθενά. Κατεβάστε το Excel (Εξαγωγή ▾) και δώστε τον κωδικό σε κάθε χρήστη προσωπικά· στην πρώτη σύνδεση θα ορίσει δικό του.',
-                  'The temporary passwords are shown only now and are not stored anywhere. Download the Excel (Export ▾) and give each user their password in person; at the first sign-in they set their own.',
+                  `Οι προσωρινοί κωδικοί ισχύουν ${TEMPORARY_PASSWORD_DAYS} ημέρες. Εμφανίζονται μόνο τώρα και δεν αποθηκεύονται πουθενά. Κατεβάστε το Excel (Εξαγωγή ▾) και δώστε τον κωδικό σε κάθε χρήστη προσωπικά· στην πρώτη σύνδεση θα ορίσει δικό του.`,
+                  `The temporary passwords are valid for ${TEMPORARY_PASSWORD_DAYS} days. They are shown only now and are not stored anywhere. Download the Excel (Export ▾) and give each user their password in person; at the first sign-in they set their own.`,
                 )}
               </p>
             )}
@@ -176,6 +207,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                     <th>{tx('Χρήστης', 'User')}</th>
                     <th>{tx('Όνομα χρήστη', 'Username')}</th>
                     <th>{tx('Προσωρινός κωδικός', 'Temporary password')}</th>
+                    <th>{tx('Ισχύει έως', 'Valid until')}</th>
                     <th>{tx('Αποτέλεσμα', 'Result')}</th>
                   </tr>
                 </thead>
@@ -184,10 +216,11 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                     <tr key={row.line} className={row.status === 'created' ? '' : 'active-users-row-error'}>
                       <td>
                         <strong>{row.fullName}</strong>
-                        <small>{[roleLabel(row.role, language), row.departmentName].filter(Boolean).join(' · ')}</small>
+                        <small>{[roleLabel(row.role, language), row.divisionName, row.departmentName].filter(Boolean).join(' · ')}</small>
                       </td>
                       <td className="active-users-code">{row.username || '—'}</td>
                       <td className="active-users-code">{row.temporaryPassword || '—'}</td>
+                      <td>{row.temporaryPasswordExpiresAt ? String(row.temporaryPasswordExpiresAt).slice(0, 10).split('-').reverse().join('/') : '—'}</td>
                       <td>
                         {row.status === 'created' ? (
                           <span className="status-badge active">{row.welcomeEmail ? tx('Ενεργός · στάλθηκε email', 'Active · e-mail sent') : tx('Ενεργός · χωρίς email', 'Active · no e-mail')}</span>
@@ -225,24 +258,80 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                 ))}
               </select>
             </label>
-            <label className="field">
-              <span>
-                {tx('Τμήμα', 'Department')}
-                {needsDepartment(draft.role) ? ' *' : ''}
-              </span>
-              <select value={draft.departmentId} onChange={e => setDraft(x => ({ ...x, departmentId: e.target.value }))}>
-                <option value="">—</option>
-                {departments.map(department => (
-                  <option key={department.id} value={department.id}>
-                    {department.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {isDivisionRole(draft.role) ? (
+              <label className="field">
+                <span>{tx('Διεύθυνση', 'Division')} *</span>
+                <input
+                  list="active-users-divisions"
+                  value={draft.divisionName}
+                  placeholder={tx('Επιλέξτε ή γράψτε νέα', 'Choose or type a new one')}
+                  onChange={e => {
+                    const value = e.target.value
+                    const known = divisions.find(item => item.name.trim().toLowerCase() === value.trim().toLowerCase())
+                    // A division that already has departments offers them; the owner can change the choice.
+                    setDraft(x => ({ ...x, divisionName: value, departmentIds: !x.departmentIds.length && known?.departments?.length ? known.departments.filter(id => departments.some(row => row.id === id)) : x.departmentIds }))
+                  }}
+                />
+                <datalist id="active-users-divisions">
+                  {divisionNames.map(name => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+              </label>
+            ) : (
+              <label className="field">
+                <span>
+                  {tx('Τμήμα', 'Department')}
+                  {needsDepartment(draft.role) ? ' *' : ''}
+                </span>
+                <select value={draft.departmentId} onChange={e => setDraft(x => ({ ...x, departmentId: e.target.value }))}>
+                  <option value="">—</option>
+                  {departments.map(department => (
+                    <option key={department.id} value={department.id}>
+                      {department.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="field">
               <span>{tx('Κωδικός εργαζομένου', 'Employee code')}</span>
               <input value={draft.employeeCode} onChange={e => setDraft(x => ({ ...x, employeeCode: e.target.value }))} />
               <small>{tx('Αν ταιριάζει με υπάρχοντα εργαζόμενο, ο λογαριασμός συνδέεται με την εγγραφή του.', 'If it matches an existing employee, the account is linked to their record.')}</small>
+            </label>
+            {isDivisionRole(draft.role) && (
+              <div className="field user-form-wide">
+                <MultiSelect
+                  label={`${tx('Τμήματα που θα βλέπει', 'Departments they will see')} *`}
+                  tags
+                  options={departments.filter(department => department.is_active !== false).map(department => ({ value: department.id, label: department.name }))}
+                  selected={draft.departmentIds}
+                  onChange={ids => setDraft(x => ({ ...x, departmentIds: ids }))}
+                  placeholder={tx('Επιλέξτε ένα ή περισσότερα τμήματα', 'Choose one or more departments')}
+                  searchPlaceholder={tx('Αναζήτηση τμήματος', 'Search departments')}
+                  emptyLabel={tx('Δεν βρέθηκε τμήμα', 'No department found')}
+                  selectAllLabel={tx('Επιλογή όλων', 'Select all')}
+                  clearAllLabel={tx('Καθαρισμός', 'Clear')}
+                />
+              </div>
+            )}
+            <label className="field">
+              <span>
+                {tx('Κινητό τηλέφωνο', 'Mobile number')}
+                {draft.passwordMode === 'phone' ? ' *' : ''}
+              </span>
+              <input type="tel" inputMode="numeric" value={draft.phone} placeholder="69XXXXXXXX" onChange={e => setDraft(x => ({ ...x, phone: e.target.value }))} />
+            </label>
+            <label className="field">
+              <span>{tx('Προσωρινός κωδικός', 'Temporary password')}</span>
+              <select value={draft.passwordMode} onChange={e => setDraft(x => ({ ...x, passwordMode: e.target.value }))}>
+                {passwordOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <small>{tx(`Αλλάζει υποχρεωτικά στην πρώτη σύνδεση· λήγει σε ${TEMPORARY_PASSWORD_DAYS} ημέρες αν δεν γίνει σύνδεση.`, `Must be changed at the first sign-in; expires in ${TEMPORARY_PASSWORD_DAYS} days if nobody signs in.`)}</small>
             </label>
             <p className="active-users-note user-form-wide">
               {tx(
@@ -259,6 +348,17 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
           </div>
         ) : (
           <>
+            <label className="field active-users-mode">
+              <span>{tx('Προσωρινός κωδικός', 'Temporary password')}</span>
+              <select value={passwordMode} disabled={busy} onChange={e => void changeFileMode(e.target.value)}>
+                {passwordOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <small>{passwordMode === 'phone' ? tx('Κάθε χρήστης χρειάζεται κινητό στη στήλη «Κινητό».', 'Every user needs a mobile number in the «Mobile» column.') : tx(`Λήγει σε ${TEMPORARY_PASSWORD_DAYS} ημέρες αν δεν γίνει σύνδεση.`, `Expires in ${TEMPORARY_PASSWORD_DAYS} days if nobody signs in.`)}</small>
+            </label>
             <div className="active-users-file">
               <label className="active-users-pick">
                 <Upload size={16} />
@@ -279,8 +379,8 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
             {!plan && !readError && (
               <p className="active-users-note">
                 {tx(
-                  'Στήλες: Ονοματεπώνυμο, Email ή Όνομα χρήστη, Ρόλος (όνομα ή κωδικός), Τμήμα (υποχρεωτικό για ρόλους τμήματος), Κωδικός εργαζομένου (προαιρετικά, συνδέει τον εργαζόμενο). Κατεβάστε το πρότυπο για να ξεκινήσετε.',
-                  'Columns: Full name, Email or Username, Role (name or code), Department (required for department roles), Employee code (optional, links the employee). Download the template to start.',
+                  'Στήλες: Ονοματεπώνυμο, Email ή Όνομα χρήστη, Ρόλος (όνομα ή κωδικός), Τμήμα (υποχρεωτικό για ρόλους τμήματος), Κωδικός εργαζομένου (προαιρετικά, συνδέει τον εργαζόμενο), Κινητό (υποχρεωτικό αν ο κωδικός είναι το κινητό). Για Διευθυντή Διεύθυνσης: Διεύθυνση και Τμήματα που βλέπει (χωρισμένα με ;). Κατεβάστε το πρότυπο για να ξεκινήσετε.',
+                  'Columns: Full name, Email or Username, Role (name or code), Department (required for department roles), Employee code (optional, links the employee), Mobile (required when the password is the mobile number). For a Division Director: Division and Departments seen (separated by ;). Download the template to start.',
                 )}
               </p>
             )}

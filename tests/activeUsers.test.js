@@ -9,13 +9,18 @@ import {
   activeUserFailureCode,
   generateTemporaryPassword,
   matchDepartment as serverMatchDepartment,
+  isValidMobile,
+  normalizeMobile,
   planActiveUser,
+  temporaryPasswordExpiry,
+  TEMPORARY_PASSWORD_DAYS,
   resolveRole as serverResolveRole,
   syntheticEmail,
   validateActiveUsersRequest,
 } from '../supabase/functions/_shared/activeUsers.ts'
 import { strongPassword } from '../supabase/functions/_shared/bulkAccounts.ts'
 import { accountReadyEmail } from '../supabase/functions/_shared/accountCreatedEmail.ts'
+import { isValidMobile as clientIsValidMobile, normalizeMobile as clientNormalizeMobile, splitNames } from '../src/features/platform/activeUsersModel.js'
 import { checkPerson, errorText, mapHeaders, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel.js'
 
 const root = path.resolve(__dirname, '..')
@@ -81,10 +86,10 @@ describe('server request', () => {
 
   it('plans the department, the employee and the existing accounts', () => {
     const row = (user, errors = []) => ({ user: { line: 1, fullName: 'Α Β', email: '', username: '', role: 'department_user', roleText: 'x', departmentId: null, departmentName: '', employeeCode: '', ...user }, errors })
-    expect(planActiveUser(row({ departmentName: 'ICU' }), emptyCtx())).toEqual({ code: null, departmentId: DEP, employeeId: null })
+    expect(planActiveUser(row({ departmentName: 'ICU' }), emptyCtx())).toEqual({ code: null, departmentId: DEP, employeeId: null, divisionId: null, newDivisionName: null, departmentIds: [] })
     expect(planActiveUser(row({}), emptyCtx()).code).toBe('DEPARTMENT_REQUIRED')
     expect(planActiveUser(row({ departmentName: 'Παλιό' }), emptyCtx()).code).toBe('DEPARTMENT_NOT_FOUND')
-    expect(planActiveUser(row({ role: 'laboratory', departmentName: 'ΜΕΘ' }), emptyCtx())).toEqual({ code: null, departmentId: null, employeeId: null })
+    expect(planActiveUser(row({ role: 'laboratory', departmentName: 'ΜΕΘ' }), emptyCtx())).toEqual({ code: null, departmentId: null, employeeId: null, divisionId: null, newDivisionName: null, departmentIds: [] })
     const ctx = emptyCtx()
     ctx.existingEmails.add('a@b.gr')
     ctx.takenUsernames.add('ab12345')
@@ -94,7 +99,7 @@ describe('server request', () => {
     expect(planActiveUser(row({ username: 'AB12345' }), ctx).code).toBe('USERNAME_TAKEN')
     expect(planActiveUser(row({ employeeCode: '9999' }), ctx).code).toBe('EMPLOYEE_NOT_FOUND')
     expect(planActiveUser(row({ employeeCode: '1002' }), ctx).code).toBe('EMPLOYEE_ALREADY_LINKED')
-    expect(planActiveUser(row({ employeeCode: '1001' }), ctx)).toEqual({ code: null, departmentId: DEP, employeeId: 'e1' })
+    expect(planActiveUser(row({ employeeCode: '1001' }), ctx)).toMatchObject({ code: null, departmentId: DEP, employeeId: 'e1' })
     expect(planActiveUser(row({}, ['INVALID_EMAIL']), ctx).code).toBe('INVALID_EMAIL')
   })
 
@@ -155,7 +160,7 @@ describe('screen model', () => {
     expect(errorText('UNKNOWN', true)).toBe('The account could not be created')
     const sheet = resultsSheet([{ fullName: 'Α', username: 'AA12345', temporaryPassword: 'Xy#7abcdEFGhjk', role: 'laboratory', status: 'created' }])
     expect(sheet.headers).toContain('Προσωρινός κωδικός')
-    expect(sheet.rows[0]).toEqual(['Α', 'AA12345', 'Xy#7abcdEFGhjk', 'Εργαστήριο', '', '', 'Δημιουργήθηκε · ενεργός'])
+    expect(sheet.rows[0]).toEqual(['Α', 'AA12345', 'Xy#7abcdEFGhjk', '', 'Εργαστήριο', '', '', '', 'Δημιουργήθηκε · ενεργός'])
   })
 })
 
@@ -194,5 +199,81 @@ describe('wiring', () => {
     const page = read('src/features/auth/ForcePasswordChangePage.jsx')
     expect(page).toContain('supabase.auth.updateUser({password})')
     expect(page).toContain("supabase.rpc('complete_password_change')")
+  })
+})
+
+describe('mobile number as the temporary password', () => {
+  const base = { fullName: 'Α Β', email: 'a@b.gr', role: 'department_user', departmentId: DEP }
+  it('reads a Greek mobile number the same way on the screen and on the server', () => {
+    for (const text of ['6912345678', '69 1234 5678', '+30 691 234 5678', '0030-6912345678', '691-234-5678']) {
+      expect(normalizeMobile(text)).toBe('6912345678')
+      expect(clientNormalizeMobile(text)).toBe('6912345678')
+      expect(isValidMobile(text)).toBe(true)
+      expect(clientIsValidMobile(text)).toBe(true)
+    }
+    for (const text of ['', '2101234567', '691234567', '69123456789', 'abc']) {
+      expect(isValidMobile(text)).toBe(false)
+      expect(clientIsValidMobile(text)).toBe(false)
+    }
+  })
+
+  it('needs the number only when it is the password, and checks it when it is given', () => {
+    const server = users => validateActiveUsersRequest({ organizationId: ORG, passwordMode: 'phone', users }).rows.map(row => row.errors)
+    expect(server([{ ...base }])).toEqual([['PHONE_REQUIRED']])
+    expect(server([{ ...base, phone: '12345' }])).toEqual([['PHONE_INVALID']])
+    expect(server([{ ...base, phone: '+30 6912345678' }])).toEqual([[]])
+    expect(validateActiveUsersRequest({ organizationId: ORG, users: [{ ...base }] }).rows[0].errors).toEqual([])
+    expect(validateActiveUsersRequest({ organizationId: ORG, users: [{ ...base, phone: '12' }] }).rows[0].errors).toEqual(['PHONE_INVALID'])
+    expect(checkPerson({ ...base, line: 1, passwordMode: 'phone' }, departments).errors).toContain('PHONE_REQUIRED')
+    expect(checkPerson({ ...base, line: 1, passwordMode: 'phone', phone: '69 1234 5678' }, departments)).toMatchObject({ phone: '6912345678', passwordMode: 'phone', errors: [] })
+    expect(requestUser(checkPerson({ ...base, line: 1, passwordMode: 'phone', phone: '6912345678' }, departments))).toMatchObject({ phone: '6912345678', passwordMode: 'phone' })
+  })
+
+  it('expires in 7 days', () => {
+    expect(TEMPORARY_PASSWORD_DAYS).toBe(7)
+    expect(temporaryPasswordExpiry(new Date('2026-11-11T10:00:00Z'))).toBe('2026-11-18T10:00:00.000Z')
+  })
+})
+
+describe('division director', () => {
+  const DEP2 = '44444444-0000-4000-8000-000000000004'
+  const DIV = '55555555-0000-4000-8000-000000000005'
+  const deps = [...departments, { id: DEP2, name: 'Χειρουργική', name_en: 'Surgery', is_active: true }]
+  const ctx = () => ({ ...emptyCtx(), departments: deps, divisions: [{ id: DIV, name: 'Νοσηλευτική Υπηρεσία' }] })
+  const row = user => ({ user: { line: 1, fullName: 'Α Β', email: '', username: 'ab12345', role: 'division_director', roleText: 'x', departmentId: null, departmentName: '', employeeCode: '', phone: '', passwordMode: 'random', divisionId: null, divisionName: '', departmentIds: [], departmentNames: [], ...user }, errors: [] })
+
+  it('needs a division and the departments they will see', () => {
+    expect(planActiveUser(row({}), ctx()).code).toBe('DEPARTMENTS_REQUIRED')
+    expect(planActiveUser(row({ departmentIds: [DEP] }), ctx()).code).toBe('DIVISION_REQUIRED')
+    expect(planActiveUser(row({ divisionName: 'Λειτουργιών', departmentIds: ['99999999-0000-4000-8000-000000000009'] }), ctx()).code).toBe('DEPARTMENT_NOT_FOUND')
+    expect(planActiveUser(row({ divisionId: '99999999-0000-4000-8000-000000000009', departmentIds: [DEP] }), ctx()).code).toBe('DIVISION_NOT_FOUND')
+  })
+
+  it('uses an existing division (by id or by name) or asks for a new one, with the departments chosen', () => {
+    expect(planActiveUser(row({ divisionId: DIV, departmentIds: [DEP, DEP2] }), ctx())).toMatchObject({ code: null, divisionId: DIV, newDivisionName: null, departmentIds: [DEP, DEP2], departmentId: null })
+    expect(planActiveUser(row({ divisionName: ' νοσηλευτικη  υπηρεσια ', departmentNames: ['ΜΕΘ', 'surgery'] }), ctx())).toMatchObject({ code: null, divisionId: DIV, departmentIds: [DEP, DEP2] })
+    expect(planActiveUser(row({ divisionName: 'Διεύθυνση Λειτουργιών', departmentIds: [DEP] }), ctx())).toMatchObject({ code: null, divisionId: null, newDivisionName: 'Διεύθυνση Λειτουργιών', departmentIds: [DEP] })
+  })
+
+  it('is read from the screen and from the file like on the server', () => {
+    expect(splitNames('ΜΕΘ; Χειρουργική, ΜΕΘ\nΤΕΠ')).toEqual(['ΜΕΘ', 'Χειρουργική', 'ΤΕΠ'])
+    const person = checkPerson({ line: 1, fullName: 'Α Β', username: 'ab12345', role: 'division_director', divisionName: 'Νοσηλευτική Υπηρεσία', divisionDepartments: 'ΜΕΘ; Χειρουργική' }, deps)
+    expect(person).toMatchObject({ errors: [], divisionName: 'Νοσηλευτική Υπηρεσία', departmentIds: [DEP, DEP2] })
+    expect(requestUser(person)).toMatchObject({ divisionName: 'Νοσηλευτική Υπηρεσία', departmentIds: [DEP, DEP2] })
+    expect(checkPerson({ line: 1, fullName: 'Α Β', username: 'ab12345', role: 'division_director' }, deps).errors).toEqual(['DIVISION_REQUIRED', 'DEPARTMENTS_REQUIRED'])
+    expect(checkPerson({ line: 1, fullName: 'Α Β', username: 'ab12345', role: 'division_director', divisionName: 'Χ', divisionDepartments: 'Άγνωστο' }, deps).errors).toEqual(['DEPARTMENT_NOT_FOUND'])
+  })
+
+  it('is wired in the Edge Function: division, its members, the departments chosen, the expiry', () => {
+    const fn = read('supabase/functions/platform-create-active-users/index.ts')
+    expect(fn).toContain("from('hr_division_members').insert")
+    expect(fn).toContain('setMemberDepartments')
+    expect(fn).toContain('temporary_password_expires_at:expiresAt')
+    expect(fn).toContain("user.passwordMode==='phone'?user.phone:generateTemporaryPassword()")
+    expect(read('supabase/functions/_shared/organizationAccount.ts')).toContain('granted_by_division:false')
+    const sql = read('supabase/migrations/20261231310000_temporary_password_expiry.sql')
+    expect(sql).toContain("cron.schedule('lock-expired-temporary-passwords'")
+    expect(sql).toContain("banned_until = 'infinity'")
+    expect(sql).not.toMatch(/\b(drop table|delete from|alter policy)\b/i)
   })
 })
