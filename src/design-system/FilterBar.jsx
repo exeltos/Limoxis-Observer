@@ -1,5 +1,6 @@
 import { ManualDateField } from './ManualDateField'
 import { ActionButton } from './ActionButton'
+import { Button } from './Button'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Filter, Search, X } from 'lucide-react'
@@ -68,7 +69,11 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
       aria-label={t('filters')}
     >
       <div className="filter-popover-fields">{filterContent}</div>
-      {onClear&&activeAdvancedCount>0&&<div className="filter-popover-footer"><ActionButton label={clearLabel} tone="neutral" className="filter-popover-clear" onClick={()=>{onClear();setOpen(false)}}><X size={14}/><span>{clearLabel}</span></ActionButton></div>}
+      {/* The window closes with its own «OK» (not only by a click elsewhere on the screen); «Clear filters» sits right beside it while a filter is set. */}
+      <div className="filter-popover-footer">
+        {onClear&&activeAdvancedCount>0&&<ActionButton label={clearLabel} tone="neutral" className="filter-popover-clear" onClick={()=>{onClear();setOpen(false)}}><X size={14}/><span>{clearLabel}</span></ActionButton>}
+        <Button className="filter-popover-done" onClick={()=>setOpen(false)}>{t('filtersDone')}</Button>
+      </div>
     </div>,
     document.body
   )
