@@ -11,6 +11,8 @@ import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { Field } from '../../design-system/Field'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
+import { MultiSelect } from '../../design-system/MultiSelect'
+import { loadDepartments } from '../management/departmentsService'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -28,40 +30,47 @@ export function DivisionsPanel({ organizationId, onBack }) {
   const { notify, confirm } = useFeedback()
   const [divisions, setDivisions] = useState(null)
   const [directors, setDirectors] = useState([])
+  const [departments, setDepartments] = useState([])
   const [draft, setDraft] = useState(null)
   const [saving, setSaving] = useState(false)
   const reload = () => loadDivisions(organizationId).then(data => setDivisions(data.divisions)).catch(error => { console.error(error); setDivisions([]) })
-  useEffect(() => { void reload(); loadDivisionDirectors(organizationId).then(setDirectors).catch(() => setDirectors([])) }, [organizationId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void reload(); loadDivisionDirectors(organizationId).then(setDirectors).catch(() => setDirectors([])); loadDepartments(organizationId).then(setDepartments).catch(() => setDepartments([])) }, [organizationId]) // eslint-disable-line react-hooks/exhaustive-deps
   const nameOf = userId => directors.find(item => item.userId === userId)?.name || '—'
+  const departmentName = departmentId => departments.find(item => item.id === departmentId)?.name || ''
+  // «A, B, C +4»: the first three departments of a division, the rest counted.
+  const departmentsText = ids => { const names = (ids || []).map(departmentName).filter(Boolean); return names.length ? `${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}` : '—' }
   async function save() {
     setSaving(true)
     try { await saveDivision(organizationId, draft); notify(en ? 'Saved.' : 'Αποθηκεύτηκε.', 'success'); setDraft(null); await reload() } catch (error) { console.error(error); notify(interviewsErrorMessage(error, language), 'error') } finally { setSaving(false) }
   }
   async function remove(item) {
-    if (!await confirm({ title: en ? 'Delete division' : 'Διαγραφή διεύθυνσης', message: en ? 'Its directors lose access to the candidates; no application is deleted.' : 'Οι διευθυντές της χάνουν την πρόσβαση στους υποψηφίους· καμία αίτηση δεν διαγράφεται.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
+    if (!await confirm({ title: en ? 'Delete division' : 'Διαγραφή διεύθυνσης', message: en ? 'Its directors lose access to the candidates and to its departments; no application is deleted.' : 'Οι διευθυντές της χάνουν την πρόσβαση στους υποψηφίους και στα τμήματά της· καμία αίτηση δεν διαγράφεται.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
     try { await removeDivision(organizationId, item.id); await reload() } catch (error) { notify(interviewsErrorMessage(error, language), 'error') }
   }
   if (draft) {
     const options = Object.entries(PROFESSIONAL_CATEGORIES).map(([value, labels]) => ({ value, label: labels[en ? 1 : 0] }))
     const toggle = (key, value) => setDraft(current => ({ ...current, [key]: current[key].includes(value) ? current[key].filter(item => item !== value) : [...current[key], value] }))
-    return <RecordTabPanel title={draft.id ? (en ? 'Edit division' : 'Επεξεργασία διεύθυνσης') : (en ? 'New division' : 'Νέα διεύθυνση')} subtitle={en ? 'The director of a division sees only the candidates of the categories below.' : 'Ο διευθυντής μιας διεύθυνσης βλέπει μόνο τους υποψηφίους των κατηγοριών που ορίζονται εδώ.'}
+    return <RecordTabPanel title={draft.id ? (en ? 'Edit division' : 'Επεξεργασία διεύθυνσης') : (en ? 'New division' : 'Νέα διεύθυνση')} subtitle={en ? 'The director of a division sees the candidates of the categories below and the departments below.' : 'Ο διευθυντής μιας διεύθυνσης βλέπει τους υποψηφίους των κατηγοριών και τα τμήματα που ορίζονται εδώ.'}
       footer={<div className="row-actions"><Button variant="secondary" onClick={() => setDraft(null)}>{en ? 'Cancel' : 'Ακύρωση'}</Button><Button disabled={saving || !draft.name.trim()} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</Button></div>}>
       <div className="interviews-division-form">
         <Field label={en ? 'Division' : 'Διεύθυνση'}><input value={draft.name} placeholder={en ? 'e.g. Nursing Directorate' : 'π.χ. Νοσηλευτική Υπηρεσία'} onChange={event => setDraft({ ...draft, name: event.target.value })} /></Field>
         <ChoiceChips className="interviews-span-3" label={en ? 'Professional categories of the division' : 'Επαγγελματικές κατηγορίες της διεύθυνσης'} options={options} selected={draft.categories} onToggle={value => toggle('categories', value)} />
+        <MultiSelect className="interviews-span-3" label={en ? 'Departments of the division' : 'Τμήματα της διεύθυνσης'} tags options={departments.map(item => ({ value: item.id, label: item.name }))} selected={draft.departments || []} onChange={value => setDraft(current => ({ ...current, departments: value }))}
+          hint={en ? 'Its directors see exactly these departments.' : 'Οι διευθυντές της βλέπουν ακριβώς αυτά τα τμήματα.'} />
         <ChoiceChips className="interviews-span-3" label={en ? 'Directors (users with the role «Division Director»)' : 'Διευθυντές (χρήστες με ρόλο «Διευθυντής Διεύθυνσης»)'} options={directors.map(item => ({ value: item.userId, label: item.name }))} selected={draft.members} onToggle={value => toggle('members', value)}
           hint={directors.length ? '' : (en ? 'No user has the role yet: create one in Management › Users.' : 'Κανένας χρήστης δεν έχει ακόμα τον ρόλο: δημιουργήστε στη Διαχείριση › Χρήστες.')} />
       </div>
     </RecordTabPanel>
   }
-  return <RecordTabPanel title={en ? 'Divisions' : 'Διευθύνσεις'} subtitle={en ? 'Which professional category belongs to which division, and who directs it.' : 'Ποια επαγγελματική κατηγορία ανήκει σε ποια διεύθυνση και ποιος τη διευθύνει.'}
-    actions={<><Button variant="secondary" onClick={onBack}><ArrowLeft size={15} />{en ? 'Back to applications' : 'Πίσω στις αιτήσεις'}</Button><Button onClick={() => { setDraft({ id: '', name: '', categories: [], members: [] }) }}><Plus size={15} />{en ? 'Division' : 'Διεύθυνση'}</Button></>}>
-    <RegistryTable sortable={false} rows={divisions || []} rowKey={item => item.id} columns={[{ key: 'name', label: en ? 'Division' : 'Διεύθυνση' }, { key: 'categories', label: en ? 'Categories' : 'Κατηγορίες' }, { key: 'members', label: en ? 'Directors' : 'Διευθυντές' }, { key: 'actions', label: '' }]}
+  return <RecordTabPanel title={en ? 'Divisions' : 'Διευθύνσεις'} subtitle={en ? 'Which staff categories and departments belong to each division, and who directs it.' : 'Ποιες κατηγορίες προσωπικού και ποια τμήματα ανήκουν σε κάθε διεύθυνση, και ποιος τη διευθύνει.'}
+    actions={<><Button variant="secondary" onClick={onBack}><ArrowLeft size={15} />{en ? 'Back to applications' : 'Πίσω στις αιτήσεις'}</Button><Button onClick={() => { setDraft({ id: '', name: '', categories: [], members: [], departments: [] }) }}><Plus size={15} />{en ? 'Division' : 'Διεύθυνση'}</Button></>}>
+    <RegistryTable sortable={false} rows={divisions || []} rowKey={item => item.id} columns={[{ key: 'name', label: en ? 'Division' : 'Διεύθυνση' }, { key: 'categories', label: en ? 'Categories' : 'Κατηγορίες' }, { key: 'departments', label: en ? 'Departments' : 'Τμήματα' }, { key: 'members', label: en ? 'Directors' : 'Διευθυντές' }, { key: 'actions', label: '' }]}
       empty={divisions != null && !divisions.length} emptyIcon={Building2} emptyTitle={en ? 'No divisions yet' : 'Δεν υπάρχουν διευθύνσεις'}
       emptyText={en ? 'Add the divisions, e.g. the Nursing Directorate, and the categories it covers.' : 'Προσθέστε τις διευθύνσεις, π.χ. Νοσηλευτική Υπηρεσία, και τις κατηγορίες που καλύπτουν.'}
       renderRow={item => <>
         <td><strong>{item.name}</strong></td>
         <td>{item.categories.map(value => categoryLabel(value, language)).join(', ') || '—'}</td>
+        <td title={(item.departments || []).map(departmentName).filter(Boolean).join(', ') || undefined}>{departmentsText(item.departments)}</td>
         <td>{item.members.map(nameOf).join(', ') || '—'}</td>
         <td className="nowrap-cell"><OverflowMenu label={en ? 'Actions' : 'Ενέργειες'} items={[
           { id: 'edit', label: en ? 'Edit' : 'Επεξεργασία', icon: Pencil, onClick: () => setDraft({ ...item }) },
