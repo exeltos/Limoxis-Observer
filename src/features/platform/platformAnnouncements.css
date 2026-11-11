@@ -3,6 +3,8 @@
 .platform-announcement-dialog.is-promotion .platform-announcement-band{background:linear-gradient(135deg,#1f7a6a,#3fa98f)}
 .platform-announcement-image{display:block;width:100%;max-height:180px;object-fit:contain;margin:0 0 14px;border-radius:12px;background:#f2f6fa}
 .platform-announcement-body{margin:0;font-size:14px;line-height:1.55;color:#1f3348;white-space:pre-line;overflow-wrap:anywhere}
+/* While the card's image is on its way: only a round spinner over the dimmed screen, the card comes whole. */
+.platform-announcement-loading{color:#fff;margin:auto}
 /* The image sits above, below, left or right of the text (the owner chooses it in the editor). */
 .platform-announcement-layout{display:flex;flex-direction:column;gap:14px}
 .platform-announcement-layout>.platform-announcement-image,.platform-announcement-layout>.platform-announcement-band{margin:0}
