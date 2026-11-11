@@ -280,3 +280,26 @@ describe('division director', () => {
     expect(sql).not.toMatch(/\b(drop table|delete from|alter policy)\b/i)
   })
 })
+
+describe('Νέος προσωρινός κωδικός (reissue) και φραγή μέχρι την πρώτη αλλαγή', () => {
+  const read = file => fs.readFileSync(path.resolve(__dirname, '..', file), 'utf8')
+  it('η συνάρτηση: μόνο ο owner, ban_duration none, νέα λήξη, ξεκλείδωμα, audit, κωδικός μία φορά', () => {
+    const src = read('supabase/functions/platform-create-active-users/index.ts')
+    expect(src).toContain("body?.action==='reissue'")
+    expect(src).toContain("ban_duration:'none'")
+    expect(src).toContain('temporary_password_locked_at:null')
+    expect(src).toContain('organization.user.temporary_password_reissued')
+    expect(src).toContain('is_platform_owner')
+    expect(src).not.toMatch(/temporaryPassword[^\n]*console\./)
+  })
+  it('η οθόνη: μενού «Νέος προσωρινός κωδικός» και τηλέφωνο μόνο όταν επιλεγεί κινητό', () => {
+    expect(read('src/features/platform/PlatformOrganizationUserRecord.jsx')).toContain('Νέος προσωρινός κωδικός')
+    expect(read('src/features/platform/ReissuePasswordDialog.jsx')).toContain('isValidMobile(phone)')
+  })
+  it('το SQL φραγής αλλάζει τις 4 συναρτήσεις και δεν έχει drop/alter policy', () => {
+    const sql = read('supabase/manual/20261231320000_password_change_gate.sql')
+    for (const name of ['is_org_member', 'has_org_role', 'current_user_has_department_scope', 'current_user_has_capability']) expect(sql).toContain(`public.${name}`)
+    expect(sql).toContain('private.password_change_pending()')
+    expect(sql).not.toMatch(/\b(drop |delete from|alter policy)/i)
+  })
+})

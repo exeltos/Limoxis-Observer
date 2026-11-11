@@ -43,3 +43,10 @@ export async function createActiveUsers(organizationId, people, { onProgress } =
   }
   return results
 }
+
+// «Νέος προσωρινός κωδικός» for an existing account: a new 7-day password; it also unlocks an account
+// locked after the deadline. The password comes back once. The preview frame / Demo send nothing.
+export async function reissueTemporaryPassword({ organizationId, userId, passwordMode, phone }) {
+  if (simulated()) return { ok: true, temporaryPassword: samplePassword(), temporaryPasswordExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString(), passwordMode }
+  return invokeAuthenticatedFunction(FUNCTION, { action: 'reissue', organizationId, userId, passwordMode, phone })
+}

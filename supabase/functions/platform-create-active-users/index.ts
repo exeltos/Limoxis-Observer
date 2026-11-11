@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serveWithCors } from '../_shared/cors.ts'
 import { ROLE_LABELS, generateUserName, setMemberDepartment, setMemberDepartments } from '../_shared/organizationAccount.ts'
-import { MAX_ACTIVE_USERS_PER_CALL, activeUserFailureCode, fold, TEMPORARY_PASSWORD_DAYS,generateTemporaryPassword,temporaryPasswordExpiry,DIVISION_ROLES, isDeliverable, planActiveUser, syntheticEmail, validateActiveUsersRequest } from '../_shared/activeUsers.ts'
+import { MAX_ACTIVE_USERS_PER_CALL, activeUserFailureCode, fold, TEMPORARY_PASSWORD_DAYS,generateTemporaryPassword,temporaryPasswordExpiry,DIVISION_ROLES, isDeliverable, isValidMobile, normalizeMobile, planActiveUser, syntheticEmail, validateActiveUsersRequest } from '../_shared/activeUsers.ts'
 import type { ActiveUserInput, DepartmentRow, EmployeeRow, PlanContext } from '../_shared/activeUsers.ts'
 
 // «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο» (Platform Owner only).
@@ -129,6 +129,26 @@ async function createOne(admin:Admin,org:Org,ctx:PlanContext,row:Row,caller:{id:
   }
 }
 
+async function reissue(admin:Admin,body:Admin,caller:{id:string}){
+  const organizationId=String(body.organizationId||''),userId=String(body.userId||'')
+  if(!organizationId||!userId)return fail('INVALID_REQUEST')
+  const mode=body.passwordMode==='phone'?'phone':'random'
+  const phone=normalizeMobile(body.phone)
+  if(mode==='phone'&&!isValidMobile(phone))return fail('PHONE_INVALID')
+  const {data:member}=await admin.from('organization_members').select('id,role').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
+  if(!member)return fail('MEMBERSHIP_NOT_FOUND',404)
+  const {data:target}=await admin.from('profiles').select('is_platform_owner').eq('id',userId).maybeSingle()
+  if(target?.is_platform_owner)return fail('NOT_AUTHORIZED',403)
+  const temporaryPassword=mode==='phone'?phone:generateTemporaryPassword()
+  const expiresAt=temporaryPasswordExpiry()
+  const {error:authError}=await admin.auth.admin.updateUserById(userId,{password:temporaryPassword,ban_duration:'none'})
+  if(authError)return fail('REISSUE_FAILED',500)
+  const {error:profileError}=await admin.from('profiles').update({must_change_password:true,temporary_password_expires_at:expiresAt,temporary_password_locked_at:null,...(mode==='phone'?{phone}:{})}).eq('id',userId)
+  if(profileError)return fail('REISSUE_FAILED',500)
+  await admin.from('system_audit_log').insert({organization_id:organizationId,actor_user_id:caller.id,actor_role:'platform_owner',event_type:'organization.user.temporary_password_reissued',entity_type:'user',entity_id:userId,metadata:{password_mode:mode,temporary_password_expires_at:expiresAt,temporary_password_days:TEMPORARY_PASSWORD_DAYS}})
+  return reply({ok:true,temporaryPassword,temporaryPasswordExpiresAt:expiresAt,passwordMode:mode})
+}
+
 serveWithCors(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors})
   if(req.method!=='POST')return fail('METHOD_NOT_ALLOWED',405)
@@ -142,6 +162,9 @@ serveWithCors(async(req)=>{
   // The Platform Owner only.
   const {data:profile}=await admin.from('profiles').select('is_platform_owner,full_name').eq('id',callerData.user.id).maybeSingle()
   if(!profile?.is_platform_owner)return fail('NOT_AUTHORIZED',403)
+  // «Νέος προσωρινός κωδικός»: a new 7-day password for an existing account (it also lifts a lock after the
+  // deadline). POST { action:'reissue', organizationId, userId, passwordMode:'random'|'phone', phone? }
+  if(body?.action==='reissue')return await reissue(admin,body,{id:callerData.user.id})
   const validated=validateActiveUsersRequest(body)
   if(validated.ok===false)return fail(validated.code)
   if(validated.rows.length>MAX_ACTIVE_USERS_PER_CALL)return fail('TOO_MANY_USERS')

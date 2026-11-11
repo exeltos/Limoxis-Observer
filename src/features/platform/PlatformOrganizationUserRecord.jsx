@@ -11,6 +11,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { SupplierRenewalSenderField } from '../quality/resources/SupplierRenewalSenderField'
 import { InvitationLinkDialog } from './InvitationLinkDialog'
+import { ReissuePasswordDialog } from './ReissuePasswordDialog'
 import { PlatformRecordActions } from './PlatformRecordActions'
 import { fmtDate } from './PlatformAuditSecurityView'
 import { describeAuditGroup, groupAuditEvents } from './auditTrailModel'
@@ -38,6 +39,7 @@ export function PlatformOrganizationUserRecord({ ctx }) {
   // The employee picker is a searchable list (a hospital has hundreds of employees); built once, not on every render.
   const employeePickerOptions = useMemo(() => employeeOptions.map(employee => ({ value: employee.dbId, label: `${employee.lastName} ${employee.firstName}`, description: [employee.id, employee.department].filter(Boolean).join(' · ') })), [employeeOptions])
   const [tab, setTab] = useState('details')
+  const [reissueOpen, setReissueOpen] = useState(false)
   const [signIns, setSignIns] = useState({ attempts: [], locks: [] })
   const [now, setNow] = useState(() => Date.now())
   const loadSignIns = useCallback(async () => {
@@ -116,6 +118,15 @@ export function PlatformOrganizationUserRecord({ ctx }) {
           label: selectedUser.status === 'invited' ? tx('Επαναποστολή πρόσκλησης', 'Resend invitation') : tx('Επαναφορά κωδικού', 'Reset password'),
           disabled: working,
           onClick: () => resetUserAccess(selectedUser),
+        },
+        selectedUser.status !== 'invited' && {
+          id: 'temporary-password',
+          placement: 'menu',
+          icon: <KeyRound size={16} />,
+          label: tx('Νέος προσωρινός κωδικός', 'New temporary password'),
+          title: tx('Νέος κωδικός 7 ημερών· ξεκλειδώνει και λογαριασμό που κλείδωσε', 'A new 7-day password; also unlocks an account that was locked'),
+          disabled: working,
+          onClick: () => setReissueOpen(true),
         },
         selectedUser.status === 'invited' && {
           id: 'link',
@@ -398,6 +409,7 @@ export function PlatformOrganizationUserRecord({ ctx }) {
           </RecordTabPanel>
         )}
       </EntityRecordShell>
+      {reissueOpen && <ReissuePasswordDialog organizationId={organization?.id} user={selectedUser} onClose={() => setReissueOpen(false)} />}
       {invitationLink && <InvitationLinkDialog link={invitationLink.link} name={invitationLink.name} onClose={() => setInvitationLink(null)} />}
     </>
   )
