@@ -122,7 +122,7 @@ export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalL
   const total=en?'Total':'Σύνολο'
   return <div className="analysis-matrix-wrap"><table className="analysis-matrix"><thead><tr><th scope="col">{rowLabel}</th>{columns.map(column=><th key={column} scope="col">{column}</th>)}<th scope="col">{totalLabel||total}</th></tr></thead>
     <tbody>{rows.map((row,index)=><tr key={row} className={hidden&&index>=shown?'analysis-matrix-extra':undefined}><th scope="row">{row}</th>{columns.map(column=>{const n=values.get(`${row}\u0000${column}`)||0;return <td key={column} className={n?'':'is-zero'} style={n?{'--cell-heat':(0.08+0.34*n/peak).toFixed(2)}:undefined}>{n||'·'}</td>})}<td className="analysis-matrix-total">{rowTotals.get(row)}</td></tr>)}</tbody>
-    <tfoot><tr><th scope="row">{total}</th>{columns.map(column=><td key={column}>{columnTotals.get(column)}</td>)}<td className="analysis-matrix-total">{[...rowTotals.values()].reduce((sum,n)=>sum+n,0)}</td></tr></tfoot></table>{hidden>0&&<button type="button" className="analysis-matrix-more" data-pdf-ignore="" onClick={()=>setAll(true)}>{en?`+${hidden} more`:`+${hidden} ακόμα`}</button>}</div>
+    <tfoot><tr><th scope="row">{total}</th>{columns.map(column=><td key={column}>{columnTotals.get(column)}</td>)}<td className="analysis-matrix-total">{[...rowTotals.values()].reduce((sum,n)=>sum+n,0)}</td></tr></tfoot></table>{hidden>0&&<button type="button" className="analysis-matrix-more" data-pdf-ignore="" onClick={()=>setAll(true)}>{en?`Show all (${hidden} more)`:`Εμφάνιση όλων (${hidden} ακόμα)`}</button>}</div>
 }
 
 // One row per department (or hospital, `rowLabel`) with the headline figures

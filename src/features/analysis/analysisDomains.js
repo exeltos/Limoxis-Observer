@@ -294,10 +294,10 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Ενεργές επεμβατικές συσκευές', 'Active invasive devices'), s.devicesActive ?? 0, tx('σε ενεργές επιτηρήσεις', 'in surveillance episodes')],
       ],
       charts: [
-        { type: 'trend', wide: true, title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
+        { type: 'trend', title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
+        { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
         ...(classified ? [] : [{ type: 'note', text: tx('Δεν γίνεται ταξινόμηση ΛΣΦΥ: τα γραφήματα των λοιμώξεων εμφανίζονται όταν ταξινομηθούν επεισόδια.', 'No HAI is classified: the infection charts appear once episodes are classified.') }]),
         classified && { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
-        { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
         classified && { type: 'matrix', wide: true, organisms: 'rows', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
       ].filter(Boolean),
     } }
