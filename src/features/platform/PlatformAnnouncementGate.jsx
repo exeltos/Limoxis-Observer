@@ -121,18 +121,8 @@ export function PlatformAnnouncementDialog({ announcement: current, onClose: clo
       width={large ? 'wide' : 'compact'}
       className={`platform-announcement-dialog is-${current.kind}${large ? ' is-large' : ''}`}
       onClose={close}
-      showClose={false}
-      footer={
-        // The button of the announcement is the one button; a click outside or Escape still closes it. Without a button of
-        // its own the card keeps a single Close, so there is always a visible way out.
-        cta ? (
-          <Button onClick={follow}>{cta}</Button>
-        ) : (
-          <Button variant="secondary" onClick={close}>
-            {en ? 'Close' : 'Κλείσιμο'}
-          </Button>
-        )
-      }
+      closeOnBackdrop={false}
+      footer={cta ? <Button onClick={follow}>{cta}</Button> : undefined}
     >
       <div className={`platform-announcement-layout is-${image ? current.imagePosition || 'top' : 'top'}`}>
         {image ? (

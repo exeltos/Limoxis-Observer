@@ -76,14 +76,15 @@ describe('platform announcements: image position and attached file (owner, 10/11
   })
 })
 
-describe('platform announcements: the card has no × (owner, 10/11/2026)', () => {
+describe('platform announcements: the card is read at leisure (owner, 11/11/2026)', () => {
   const read = file => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
-  it('leaves out the × and the Close beside the announcement\'s own button; Close stays only when there is no button', () => {
+  it('keeps the × and does not close on a click outside; only the announcement\'s own button is in the footer', () => {
     const gate = read('src/features/platform/PlatformAnnouncementGate.jsx')
-    expect(gate).toContain('showClose={false}')
-    expect(gate).toContain('cta ? (')
+    expect(gate).toContain('closeOnBackdrop={false}')
+    expect(gate).toContain('footer={cta ? <Button onClick={follow}>{cta}</Button> : undefined}')
+    expect(gate).not.toContain('showClose')
     const dialog = read('src/design-system/ObserverDialog.jsx')
-    expect(dialog).toContain('showClose=true')
-    expect(dialog).toContain('!workspace&&showClose&&<IconButton')
+    expect(dialog).toContain('closeOnBackdrop=true')
+    expect(dialog).toContain('closeOnBackdrop&&e.target===e.currentTarget')
   })
 })
