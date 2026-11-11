@@ -120,5 +120,5 @@
 .platform-analysis-page .analysis-actions{align-items:flex-start}.platform-analysis-page .analysis-actions>*{align-self:flex-start;height:auto}
 .platform-analysis-page .analysis-actions .filter-system{margin:0;padding:0;border:0;background:transparent}
 .platform-analysis-page .analysis-actions .filter-system,.platform-analysis-page .analysis-actions .filter-primary-row{min-height:0;height:auto}.platform-analysis-page .analysis-actions .filter-trigger{height:34px;margin:0}
-.platform-analysis-page .analysis-report .analysis-chart-card{height:auto!important;align-self:start}
-.platform-analysis-page .analysis-report .analysis-chart-card{min-height:0!important}
+.platform-analysis-page .analysis-report .analysis-chart-card{height:auto;align-self:start}
+.platform-analysis-page .analysis-report .analysis-chart-card{min-height:0}
