@@ -40,7 +40,9 @@
 .interviews-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
 .interviews-record-shell .record-tab-panel-body{flex:1 1 auto}
 .interviews-division-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,2fr) auto;gap:12px;align-items:start}
-.interviews-division-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+/* The division form sits inside the card with the same air as the other record tabs (it used to touch the left edge). */
+.interviews-division-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px 20px;align-items:start;padding:16px 13px 20px}
+.interviews-division-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 13px;border-top:1px solid var(--lo-color-border)}
 .interviews-division-form .interviews-span-3{grid-column:1/-1}
 /* The tabs made of stacked blocks: padded like the panel header, one scroll for the whole tab (no table scrolls inside another). */
 .interviews-record-shell .record-tab-panel-body{overflow:auto}

@@ -49,3 +49,32 @@ describe('interviews: the Division Director role', () => {
     for (const hidden of ['id_number', 'father_name', 'birth_date', 'phone_mobile', 'email', 'address', 'marital_status']) expect(projection, hidden).not.toContain(`c.${hidden}`)
   })
 })
+
+describe('divisions with departments (phase 1, 11/11/2026)', () => {
+  const sql = read('supabase/migrations/20261231290000_division_departments.sql')
+
+  it('links a division to departments and keeps a division director\'s department scopes in step, only for the scopes it granted', () => {
+    expect(sql).toContain('create table if not exists public.hr_division_departments')
+    expect(sql).toContain('granted_by_division boolean not null default false')
+    expect(sql).toContain("v_role = 'division_director'")
+    // only the scopes the divisions granted are removed; a scope given by hand is never touched
+    expect(sql).toMatch(/delete from public\.organization_member_scopes s\s+where s\.membership_id = v_membership\s+and s\.granted_by_division/)
+    for (const trigger of ['hr_division_members_sync_scopes', 'hr_division_departments_sync_scopes', 'organization_members_sync_division_scopes', 'hr_division_departments_check_organization']) expect(sql).toContain(trigger)
+  })
+
+  it('adds only: no existing policy is changed, the new table is read by the interviews capabilities and closed to anonymous visitors', () => {
+    expect(sql).not.toMatch(/alter policy|drop policy|drop table|revoke .* from authenticated/i)
+    expect(sql).toContain('revoke all on public.hr_division_departments from anon')
+    expect(sql).toContain("current_user_has_capability(organization_id, 'manage_interviews')")
+  })
+
+  it('saves the departments of a division and shows the departments an overseeing director has on the home screen', () => {
+    const service = read('src/features/interviews/interviewsService.js')
+    expect(service).toContain("from('hr_division_departments')")
+    const screen = read('src/features/interviews/InterviewDivisions.jsx')
+    expect(screen).toContain("'Τμήματα της διεύθυνσης'")
+    const home = read('src/features/dashboard/DashboardPage.jsx')
+    expect(home).toContain('ROLES.DIVISION_DIRECTOR')
+    expect(home).toContain('dashboard-my-departments')
+  })
+})

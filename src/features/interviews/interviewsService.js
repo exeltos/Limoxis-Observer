@@ -200,18 +200,18 @@ export async function removeInterview(organizationId, candidate, interviewId) {
 // --- Divisions and opinions (20261231190100_interview_divisions_opinions.sql) -------------------
 
 // The hospital's divisions with the professional categories that belong to each and the
-// users who direct it: { divisions: [{ id, name, categories: [], members: [userId] }] }.
+// users who direct it and the departments it covers: { divisions: [{ id, name, categories: [], members: [userId], departments: [departmentId] }] }.
 export async function loadDivisions(organizationId) {
   if (isLocal()) return { divisions: local().divisions || [] }
   if (!organizationId) return { divisions: [] }
-  const [divisions, categories, members] = await Promise.all([byOrg('hr_divisions', organizationId, 'name'), byOrg('hr_division_categories', organizationId, 'professional_category'), byOrg('hr_division_members', organizationId)])
-  return { divisions: divisions.map(row => ({ id: row.id, name: row.name, categories: categories.filter(item => item.division_id === row.id).map(item => item.professional_category), members: members.filter(item => item.division_id === row.id).map(item => item.user_id) })) }
+  const [divisions, categories, members, departments] = await Promise.all([byOrg('hr_divisions', organizationId, 'name'), byOrg('hr_division_categories', organizationId, 'professional_category'), byOrg('hr_division_members', organizationId), byOrg('hr_division_departments', organizationId)])
+  return { divisions: divisions.map(row => ({ id: row.id, name: row.name, categories: categories.filter(item => item.division_id === row.id).map(item => item.professional_category), members: members.filter(item => item.division_id === row.id).map(item => item.user_id), departments: departments.filter(item => item.division_id === row.id).map(item => item.department_id) })) }
 }
 export async function saveDivision(organizationId, division) {
   const name = String(division.name || '').trim()
   if (isLocal()) {
     const state = local(), id = division.id || localId('div')
-    const next = { id, name, categories: division.categories || [], members: division.members || [] }
+    const next = { id, name, categories: division.categories || [], members: division.members || [], departments: division.departments || [] }
     state.divisions = (state.divisions || []).some(item => item.id === id) ? state.divisions.map(item => (item.id === id ? next : item)) : [...(state.divisions || []), next]
     saveLocal(state); return id
   }
@@ -234,6 +234,13 @@ export async function saveDivision(organizationId, division) {
   if (dropMembers.length) must(await supabase.from('hr_division_members').delete().eq('organization_id', organizationId).in('id', dropMembers))
   const addMembers = wantedMembers.filter(userId => !currentMembers.some(item => item.user_id === userId))
   if (addMembers.length) must(await supabase.from('hr_division_members').insert(addMembers.map(userId => ({ organization_id: organizationId, division_id: row.id, user_id: userId }))))
+  // The departments of the division: its directors get access to exactly these (the database keeps their scopes in step).
+  const currentDepartments = must(await supabase.from('hr_division_departments').select('id, department_id').eq('organization_id', organizationId).eq('division_id', row.id)) || []
+  const wantedDepartments = [...new Set(division.departments || [])]
+  const dropDepartments = currentDepartments.filter(item => !wantedDepartments.includes(item.department_id)).map(item => item.id)
+  if (dropDepartments.length) must(await supabase.from('hr_division_departments').delete().eq('organization_id', organizationId).in('id', dropDepartments))
+  const addDepartments = wantedDepartments.filter(departmentId => !currentDepartments.some(item => item.department_id === departmentId))
+  if (addDepartments.length) must(await supabase.from('hr_division_departments').insert(addDepartments.map(departmentId => ({ organization_id: organizationId, division_id: row.id, department_id: departmentId }))))
   return row.id
 }
 export async function removeDivision(organizationId, divisionId) {
