@@ -116,9 +116,8 @@
 .analysis-figures{gap:5px;padding:0;border:0;background:transparent;align-items:center}
 .analysis-figures>span{display:block;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;min-height:28px;padding:0 8px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:12px;line-height:28px;white-space:nowrap}
 .analysis-figures b{font-size:13px}
-.platform-analysis-page .analysis-report .analysis-chart-grid{align-items:start}
 .platform-analysis-page .analysis-actions{align-items:flex-start}.platform-analysis-page .analysis-actions>*{align-self:flex-start;height:auto}
 .platform-analysis-page .analysis-actions .filter-system{margin:0;padding:0;border:0;background:transparent}
 .platform-analysis-page .analysis-actions .filter-system,.platform-analysis-page .analysis-actions .filter-primary-row{min-height:0;height:auto}.platform-analysis-page .analysis-actions .filter-trigger{height:34px;margin:0}
-.platform-analysis-page .analysis-report .analysis-chart-card{height:auto;align-self:start}
+.platform-analysis-page .analysis-report .analysis-chart-card{height:auto}
 .platform-analysis-page .analysis-report .analysis-chart-card{min-height:0}
