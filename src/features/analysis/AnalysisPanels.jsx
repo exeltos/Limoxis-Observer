@@ -27,7 +27,7 @@ export function FiguresLine({rows:allRows,compareRows,tx}){const rows=allRows.fi
 // A donut with a single slice (one outcome, one status: «1 · 100%») says nothing a figure does not: left out.
 const donutSays=chart=>(chart.rows||[]).filter(row=>Number(row?.[1])>0).length>1
 // A half-width card left alone in its row (before a wide one, or last) takes the whole width.
-function withLoneCardsWide(charts){const out=charts.map(chart=>({...chart}));let open=null;const widen=chart=>{if(chart.type!=='donut')chart.wide=true};for(const chart of out){const wide=chart.wide||chart.type==='note';if(wide){if(open)widen(open);open=null}else open=open?null:chart}if(open)widen(open);return out}
+function withLoneCardsWide(charts){const out=charts.map(chart=>({...chart}));let open=null;for(const chart of out){const wide=chart.wide||chart.type==='note';if(wide){if(open)open.wide=true;open=null}else open=open?null:chart}if(open)open.wide=true;return out}
 // Organisms: only those the surveillance names (WHO priority pathogens, national surveillance), on the rows or the columns.
 const surveillanceCells=chart=>chart.organisms==='rows'?(chart.cells||[]).filter(([row])=>isSurveillanceOrganism(row)):chart.organisms==='columns'?(chart.cells||[]).filter(([,column])=>isSurveillanceOrganism(column)):chart.cells
 // A chart with something to show; the empty ones go to one line at the end (owner, 7/11/2026: nothing empty in between).
