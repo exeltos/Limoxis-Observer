@@ -51,7 +51,7 @@ export function DivisionsPanel({ organizationId, onBack }) {
     const options = Object.entries(PROFESSIONAL_CATEGORIES).map(([value, labels]) => ({ value, label: labels[en ? 1 : 0] }))
     const toggle = (key, value) => setDraft(current => ({ ...current, [key]: current[key].includes(value) ? current[key].filter(item => item !== value) : [...current[key], value] }))
     return <RecordTabPanel title={draft.id ? (en ? 'Edit division' : 'Επεξεργασία διεύθυνσης') : (en ? 'New division' : 'Νέα διεύθυνση')} subtitle={en ? 'The director of a division sees the candidates of the categories below and the departments below.' : 'Ο διευθυντής μιας διεύθυνσης βλέπει τους υποψηφίους των κατηγοριών και τα τμήματα που ορίζονται εδώ.'}
-      footer={<div className="row-actions"><Button variant="secondary" onClick={() => setDraft(null)}>{en ? 'Cancel' : 'Ακύρωση'}</Button><Button disabled={saving || !draft.name.trim()} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</Button></div>}>
+      footer={<div className="interviews-division-footer"><Button variant="secondary" onClick={() => setDraft(null)}>{en ? 'Cancel' : 'Ακύρωση'}</Button><Button disabled={saving || !draft.name.trim()} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</Button></div>}>
       <div className="interviews-division-form">
         <Field label={en ? 'Division' : 'Διεύθυνση'}><input value={draft.name} placeholder={en ? 'e.g. Nursing Directorate' : 'π.χ. Νοσηλευτική Υπηρεσία'} onChange={event => setDraft({ ...draft, name: event.target.value })} /></Field>
         <ChoiceChips className="interviews-span-3" label={en ? 'Professional categories of the division' : 'Επαγγελματικές κατηγορίες της διεύθυνσης'} options={options} selected={draft.categories} onToggle={value => toggle('categories', value)} />
