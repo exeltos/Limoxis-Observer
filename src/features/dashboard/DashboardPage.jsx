@@ -22,6 +22,7 @@ import { buildCalendarEvents, calendarKindLabel, dayKey } from '../calendar/cale
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples } from '../laboratory/sampleReviewModel'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import { loadDepartments } from '../management/departmentsService'
 
 
 const n=v=>Number.isFinite(Number(v))?Number(v):'—'
@@ -95,6 +96,15 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
   const role=actualRole===ROLES.DEMO||(actualRole===ROLES.PLATFORM_OWNER&&tenant)?ROLES.HOSPITAL_ADMIN:actualRole
+  // A Division Director: the departments of the divisions they direct (the database keeps their department scopes in step with the divisions).
+  const overseenIds=membership?.departmentIds
+  const [overseen,setOverseen]=useState(null)
+  useEffect(()=>{
+    if(role!==ROLES.DIVISION_DIRECTOR||!tenant?.id){setOverseen(null);return undefined}
+    let active=true
+    loadDepartments(tenant.id).then(rows=>{if(active)setOverseen(rows.filter(row=>(overseenIds||[]).includes(row.id)).map(row=>row.name))}).catch(()=>{if(active)setOverseen([])})
+    return()=>{active=false}
+  },[role,tenant?.id,overseenIds])
   const {language}=useLanguage()
   const english=language==='en'
   const tr=(el,en)=>english?en:el
@@ -170,6 +180,10 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
         {todo.length>TODO_FOLDED&&<button type="button" className="text-button dashboard-more" onClick={()=>setAllTodo(value=>!value)}>{allTodo?tr('Λιγότερα','Fewer'):tr(`Όλα (${todo.length})`,`All (${todo.length})`)}</button>}
       </Card>
       <div className="dashboard-side">
+        {role===ROLES.DIVISION_DIRECTOR&&<Card className="dashboard-card" id="dashboard-my-departments" tabIndex={-1}>
+          <CardHeader icon={Building2} title={tr('Τμήματα που εποπτεύω','Departments I oversee')}/>
+          {overseen===null?<TableSkeleton/>:overseen.length?<ul className="dashboard-departments">{overseen.map(name=><li key={name}>{name}</li>)}</ul>:<div className="inline-empty">{tr('Δεν σας έχει ανατεθεί ακόμα διεύθυνση με τμήματα.','No division with departments has been assigned to you yet.')}</div>}
+        </Card>}
         <Card className="dashboard-card" id="dashboard-announcements" tabIndex={-1}>
           <CardHeader icon={Megaphone} title={tr('Ενημερώσεις & ανακοινώσεις','Updates & announcements')} subtitle={nctx.unreadCount?`${nctx.unreadCount} ${tr('μη αναγνωσμένες ειδοποιήσεις','unread notifications')}`:tr('Όλα διαβασμένα','All caught up')} actions={nctx.unreadCount>0&&<button type="button" className="text-button" onClick={nctx.markAllRead}><Bell size={14}/>{tr('Σήμανση όλων','Mark all read')}</button>}/>
           {announcements.length?<div className="dashboard-announcements">{announcements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{roleTitleText(a.createdBy,language)}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}

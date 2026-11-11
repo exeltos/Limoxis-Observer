@@ -45,8 +45,10 @@ describe('shared semantic action design',()=>{
 
   it('keeps the analytics print and PDF actions in the one export control of the analysis toolbar',()=>{
     expect(analysis).toContain('className="analysis-actions"')
-    expect(analysis).toContain("tx('Εκτύπωση','Print')")
     expect(analysis).toContain('<ExportMenu')
+    // One «Εκτύπωση» and one «PDF» for the section on screen, not a pair per section.
+    expect(analysis).toContain("onPrint={()=>printSection(tab)} onPdf={()=>exportSectionPdf(tab)}")
+    expect(analysis).not.toContain('visibleTabs.filter(([id])=>id!==\'reporting\').flatMap')
   })
 
   it('centralizes edit, destructive and success tones in one stylesheet',()=>{
