@@ -28,6 +28,8 @@ export function ObserverDialog({
   // at the height of their content, never at a fixed tall height.
   fixedHeight=false,
   className='',
+  // A click outside the window closes it, unless the card is to be read at leisure (the announcement): then only × or Escape.
+  closeOnBackdrop=true,
 }){
   const {language}=useLanguage();const en=language==='en'
   const inline=useContext(InlineDialogContext)
@@ -107,7 +109,7 @@ export function ObserverDialog({
       {footer}
     </footer>}
   </section>
-  return <div className={`modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-${dialogPresentation}`} role="presentation" onMouseDown={e=>{if(!workspace&&e.target===e.currentTarget)requestClose()}}>
+  return <div className={`modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-${dialogPresentation}`} role="presentation" onMouseDown={e=>{if(!workspace&&closeOnBackdrop&&e.target===e.currentTarget)requestClose()}}>
     <section ref={sectionRef} className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${fixedHeight?'observer-dialog-fixed-height':''} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} tabIndex={-1} onKeyDown={closeOnEscape} onChangeCapture={markDirty} onInputCapture={markDirty}>
       <header>
         <div className={workspace?'observer-dialog-workspace-heading':''}>

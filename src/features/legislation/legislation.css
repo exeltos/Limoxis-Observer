@@ -8,6 +8,8 @@
 .leg-candidate-cell{max-width:520px;white-space:normal}
 .leg-candidate-cell a{color:var(--lo-color-primary);font-weight:600;text-decoration:none}
 .leg-candidate-cell a svg{vertical-align:-1px}
+.leg-candidate-cell small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.leg-candidate-menu{width:44px;text-align:right}
 .leg-bar{display:inline-flex;align-items:center;gap:8px;min-width:140px}
 .leg-bar-track{display:flex;flex:1 1 auto;height:8px;min-width:90px;overflow:hidden;border-radius:999px;background:var(--lo-color-surface-muted)}
 .leg-bar-track i{display:block;height:100%}
@@ -50,7 +52,6 @@
 .leg-versions small{color:var(--lo-color-muted)}
 .leg-form{display:grid;gap:14px}
 @media (max-width:640px){.leg-requirements>li{padding-left:36px}.leg-requirement-head{flex-direction:column}.leg-requirement-badges{justify-content:flex-start}.leg-summary .leg-bar{min-width:0;width:100%}}
-.leg-candidate-actions button{white-space:nowrap}
 .leg-decision{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface-muted)}
 .leg-decision>div:first-child{display:grid;gap:3px;flex:1 1 280px;font-size:13px}
 .leg-decision>div:first-child strong{font-size:14px}

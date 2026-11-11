@@ -4,9 +4,14 @@ import { isOwnerPreview, previewPlatformAnnouncements } from '../../core/preview
 // Announcements of the platform owner to the hospital administrators (owner, 8/11/2026). The table and its RLS:
 // supabase/migrations/20261231260000_platform_announcements.sql — the owner writes them, a hospital administrator reads
 // the active ones meant for their hospital and records that they saw them.
-const COLUMNS = 'id,kind,title_el,title_en,body_el,body_en,cta_label_el,cta_label_en,cta_url,image_url,attachment_path,attachment_name,attachment_type,show_in_demo,starts_at,ends_at,audience_org_ids,frequency,status,created_at,updated_at'
+const COLUMNS = 'id,kind,title_el,title_en,body_el,body_en,cta_label_el,cta_label_en,cta_url,image_url,attachment_path,attachment_name,attachment_type,image_position,document_path,document_name,document_type,show_in_demo,starts_at,ends_at,audience_org_ids,frequency,status,created_at,updated_at'
+
+// Where the image sits next to the text.
+export const IMAGE_POSITIONS = ['top', 'left', 'right', 'bottom']
+const isImageType = type => /^image\//.test(type || '')
 
 export function mapAnnouncement(row) {
+  const legacyFile = Boolean(row.attachment_path) && !isImageType(row.attachment_type)
   return {
     id: row.id,
     kind: row.kind || 'announcement',
@@ -18,9 +23,15 @@ export function mapAnnouncement(row) {
     ctaLabelEn: row.cta_label_en || '',
     ctaUrl: row.cta_url || '',
     imageUrl: row.image_url || '',
-    attachmentPath: row.attachment_path || '',
-    attachmentName: row.attachment_name || '',
-    attachmentType: row.attachment_type || '',
+    // The uploaded image (attachment_*) and the attached file, PDF / Word / PowerPoint / Excel (document_*): both can be
+    // there. A file the first version stored in attachment_* is read as the attached file.
+    attachmentPath: legacyFile ? '' : row.attachment_path || '',
+    attachmentName: legacyFile ? '' : row.attachment_name || '',
+    attachmentType: legacyFile ? '' : row.attachment_type || '',
+    documentPath: row.document_path || (legacyFile ? row.attachment_path : ''),
+    documentName: row.document_name || (legacyFile ? row.attachment_name || '' : ''),
+    documentType: row.document_type || (legacyFile ? row.attachment_type || '' : ''),
+    imagePosition: IMAGE_POSITIONS.includes(row.image_position) ? row.image_position : 'top',
     showInDemo: Boolean(row.show_in_demo),
     startsAt: row.starts_at || null,
     endsAt: row.ends_at || null,
@@ -46,6 +57,10 @@ export function announcementPayload(draft) {
     attachment_path: blank(draft.attachmentPath),
     attachment_name: blank(draft.attachmentName),
     attachment_type: blank(draft.attachmentType),
+    image_position: IMAGE_POSITIONS.includes(draft.imagePosition) ? draft.imagePosition : 'top',
+    document_path: blank(draft.documentPath),
+    document_name: blank(draft.documentName),
+    document_type: blank(draft.documentType),
     show_in_demo: Boolean(draft.showInDemo),
     starts_at: draft.startsAt ? new Date(`${draft.startsAt}T00:00:00`).toISOString() : new Date().toISOString(),
     ends_at: draft.endsAt ? new Date(`${draft.endsAt}T23:59:59`).toISOString() : null,
@@ -111,9 +126,16 @@ export async function loadDemoAnnouncements() {
 
 // The uploaded image or file: a private bucket, read through a short signed link.
 const BUCKET = 'platform-announcements'
-export const ATTACHMENT_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,application/pdf,.docx,.pptx,.xlsx'
+export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
+export const DOCUMENT_ACCEPT = 'application/pdf,.docx,.pptx,.xlsx'
+export const ATTACHMENT_ACCEPT = `${IMAGE_ACCEPT},${DOCUMENT_ACCEPT}`
 export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
-export const isImageAttachment = item => /^image\//.test(item?.attachmentType || '')
+export const isImageAttachment = item => isImageType(item?.attachmentType)
+// The attached file (PDF, Word, PowerPoint, Excel) is uploaded the same way; it comes back under the document_* names.
+export async function uploadAnnouncementDocument(file) {
+  const uploaded = await uploadAnnouncementAttachment(file)
+  return { documentPath: uploaded.attachmentPath, documentName: uploaded.attachmentName, documentType: uploaded.attachmentType }
+}
 export async function uploadAnnouncementAttachment(file) {
   if (Number(file?.size || 0) > ATTACHMENT_MAX_BYTES) throw new Error('ATTACHMENT_TOO_LARGE')
   const safe = String(file.name || 'file').normalize('NFKD').replace(/[^\w.-]+/g, '_').slice(-80)

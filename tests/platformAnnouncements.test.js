@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { announcementPayload, pendingFor } from '../src/features/platform/platformAnnouncementsService'
+import { announcementPayload, mapAnnouncement, pendingFor } from '../src/features/platform/platformAnnouncementsService'
 
 // The platform owner's announcements to the hospital administrators (owner, 8/11/2026).
 const base = { id: 'a1', status: 'active', startsAt: '2026-11-01T00:00:00Z', endsAt: '2026-11-30T00:00:00Z', audience: [], frequency: 'once' }
@@ -52,5 +52,39 @@ describe('platform announcements: file and demo (owner, 8/11/2026)', () => {
     expect(page).toContain('function MaintenanceEditor(')
     const gate = readFileSync('src/features/platform/PlatformAnnouncementGate.jsx', 'utf8')
     expect(gate).toContain('loadDemoAnnouncements()')
+  })
+})
+
+describe('platform announcements: image position and attached file (owner, 10/11/2026)', () => {
+  it('saves the position of the image and the attached file next to it', () => {
+    const row = announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο', attachmentPath: '1-a.png', attachmentName: 'a.png', attachmentType: 'image/png', imagePosition: 'right', documentPath: '2-b.pdf', documentName: 'b.pdf', documentType: 'application/pdf' })
+    expect(row).toMatchObject({ attachment_path: '1-a.png', image_position: 'right', document_path: '2-b.pdf', document_name: 'b.pdf', document_type: 'application/pdf' })
+  })
+
+  it('puts the image above the text unless a known position is chosen', () => {
+    expect(announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο' })).toMatchObject({ image_position: 'top', document_path: null })
+    expect(announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο', imagePosition: 'diagonal' }).image_position).toBe('top')
+    expect(mapAnnouncement({ id: 'a', image_position: 'left' }).imagePosition).toBe('left')
+    expect(mapAnnouncement({ id: 'a' }).imagePosition).toBe('top')
+  })
+
+  it('reads a file that the first version kept as the attachment as the attached file, and keeps an image as the image', () => {
+    const legacy = mapAnnouncement({ id: 'a', attachment_path: '1-a.pdf', attachment_name: 'a.pdf', attachment_type: 'application/pdf' })
+    expect(legacy).toMatchObject({ attachmentPath: '', documentPath: '1-a.pdf', documentName: 'a.pdf', documentType: 'application/pdf' })
+    const image = mapAnnouncement({ id: 'a', attachment_path: '1-a.png', attachment_type: 'image/png', document_path: '2-b.pdf', document_name: 'b.pdf' })
+    expect(image).toMatchObject({ attachmentPath: '1-a.png', documentPath: '2-b.pdf' })
+  })
+})
+
+describe('platform announcements: the card is read at leisure (owner, 11/11/2026)', () => {
+  const read = file => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+  it('keeps the × and does not close on a click outside; only the announcement\'s own button is in the footer', () => {
+    const gate = read('src/features/platform/PlatformAnnouncementGate.jsx')
+    expect(gate).toContain('closeOnBackdrop={false}')
+    expect(gate).toContain('footer={cta ? <Button onClick={follow}>{cta}</Button> : undefined}')
+    expect(gate).not.toContain('showClose')
+    const dialog = read('src/design-system/ObserverDialog.jsx')
+    expect(dialog).toContain('closeOnBackdrop=true')
+    expect(dialog).toContain('closeOnBackdrop&&e.target===e.currentTarget')
   })
 })

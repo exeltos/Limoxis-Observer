@@ -7,6 +7,7 @@
    one card's lists below the others; the cards also share one height. */
 .operating-profile-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:12px;row-gap:0;align-items:stretch}
 .operating-profile-option{display:grid;grid-row:span 4;grid-template-rows:subgrid;row-gap:0;align-content:start;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);cursor:pointer}
+.operating-profile-option.is-locked,.operating-profile-option.is-locked .operating-profile-option-head,.operating-profile-option.is-locked .operating-profile-option-head input{cursor:default}
 .operating-profile-option.selected{border-color:var(--lo-color-primary,#1f5f93);box-shadow:inset 0 0 0 1px var(--lo-color-primary,#1f5f93);background:#f4f9fd;cursor:default}
 .operating-profile-option-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .operating-profile-option-head input{flex:none;margin:2px 0 0;width:16px;height:16px;cursor:pointer}

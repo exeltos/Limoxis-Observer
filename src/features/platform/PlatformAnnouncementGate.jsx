@@ -1,12 +1,13 @@
 import { Component, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileText, Megaphone } from 'lucide-react'
+import { FileText, LoaderCircle, Megaphone } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { announcementAttachmentUrl, isImageAttachment, loadDemoAnnouncements, loadPendingAnnouncements, markAnnouncementSeen } from './platformAnnouncementsService'
+import '../../design-system/LoadingSkeleton.css'
 import './platformAnnouncements.css'
 
 // The platform owner's announcement or promotion, shown to a hospital administrator when they open the application
@@ -84,26 +85,55 @@ class AnnouncementBoundary extends Component {
 // The announcement itself: the gate shows it to the administrator, the owner's page as a preview.
 export function PlatformAnnouncementDialog({ announcement: current, onClose: close, language, navigate, large = false }) {
   const en = language === 'en'
-  const [fileUrl, setFileUrl] = useState('')
-  const [imageFailed, setImageFailed] = useState(false)
+  // The card appears once, whole: its image and its file are fetched first (a signed link, then the picture itself), so it
+  // does not show the green band, then the image, then change size. A slow or broken image never holds it for more than 6 s.
+  const wantsMedia = Boolean(current.attachmentPath || current.documentPath || current.imageUrl)
+  const [media, setMedia] = useState({ ready: !wantsMedia, image: '', documentUrl: '' })
   useEffect(() => {
     let alive = true
-    setFileUrl('')
-    setImageFailed(false)
-    if (current.attachmentPath) announcementAttachmentUrl(current.attachmentPath).then(url => alive && setFileUrl(url)).catch(() => {})
+    if (!wantsMedia) {
+      setMedia({ ready: true, image: '', documentUrl: '' })
+      return undefined
+    }
+    setMedia({ ready: false, image: '', documentUrl: '' })
+    const sign = path => (path ? announcementAttachmentUrl(path).catch(() => '') : Promise.resolve(''))
+    const preload = src =>
+      new Promise(resolve => {
+        if (!src) return resolve('')
+        const picture = new Image()
+        const done = ok => {
+          clearTimeout(timer)
+          resolve(ok ? src : '')
+        }
+        const timer = setTimeout(() => done(false), 6000)
+        picture.onload = () => done(true)
+        picture.onerror = () => done(false)
+        picture.src = src
+      })
+    Promise.all([isImageAttachment(current) ? sign(current.attachmentPath) : Promise.resolve(current.imageUrl || ''), sign(current.documentPath)]).then(async ([imageSrc, documentSrc]) => {
+      const image = await preload(imageSrc)
+      if (alive) setMedia({ ready: true, image, documentUrl: documentSrc })
+    })
     return () => {
       alive = false
     }
-  }, [current.attachmentPath])
+  }, [wantsMedia, current.attachmentPath, current.attachmentType, current.imageUrl, current.documentPath]) // eslint-disable-line react-hooks/exhaustive-deps
   const pick = (el, enText) => (en && enText ? enText : el)
   const title = pick(current.titleEl, current.titleEn)
-  const image = imageFailed ? '' : isImageAttachment(current) ? fileUrl : current.imageUrl
+  const { image, documentUrl } = media
   const ctaUrl = typeof current.ctaUrl === 'string' ? current.ctaUrl.trim() : ''
   const cta = ctaUrl ? pick(current.ctaLabelEl, current.ctaLabelEn) || (en ? 'Learn more' : 'Δείτε περισσότερα') : ''
   const follow = () => {
     close()
     if (ctaUrl.startsWith('/')) navigate?.(ctaUrl)
     else window.open(ctaUrl, '_blank', 'noopener,noreferrer')
+  }
+  if (!media.ready) {
+    return (
+      <div className="modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-modal" role="status" aria-busy="true" aria-label={en ? 'Loading' : 'Φόρτωση'}>
+        <LoaderCircle className="loading-spinner platform-announcement-loading" size={34} aria-hidden="true" />
+      </div>
+    )
   }
   return (
     <ObserverDialog
@@ -112,29 +142,27 @@ export function PlatformAnnouncementDialog({ announcement: current, onClose: clo
       width={large ? 'wide' : 'compact'}
       className={`platform-announcement-dialog is-${current.kind}${large ? ' is-large' : ''}`}
       onClose={close}
-      footer={
-        <>
-          <Button variant="secondary" onClick={close}>
-            {en ? 'Close' : 'Κλείσιμο'}
-          </Button>
-          {cta && <Button onClick={follow}>{cta}</Button>}
-        </>
-      }
+      closeOnBackdrop={false}
+      footer={cta ? <Button onClick={follow}>{cta}</Button> : undefined}
     >
-      {image ? (
-        <img className="platform-announcement-image" src={image} alt="" onError={() => setImageFailed(true)} />
-      ) : (
-        <div className="platform-announcement-band" aria-hidden="true">
-          <Megaphone size={22} />
+      <div className={`platform-announcement-layout is-${image ? current.imagePosition || 'top' : 'top'}`}>
+        {image ? (
+          <img className="platform-announcement-image" src={image} alt="" onError={() => setMedia(current => ({ ...current, image: '' }))} />
+        ) : (
+          <div className="platform-announcement-band" aria-hidden="true">
+            <Megaphone size={22} />
+          </div>
+        )}
+        <div className="platform-announcement-text">
+          <p className="platform-announcement-body">{pick(current.bodyEl, current.bodyEn) || ''}</p>
+          {current.documentPath && documentUrl && (
+            <a className="platform-announcement-file" href={documentUrl} target="_blank" rel="noopener noreferrer">
+              <FileText size={16} aria-hidden="true" />
+              {current.documentName || (en ? 'Open the file' : 'Άνοιγμα αρχείου')}
+            </a>
+          )}
         </div>
-      )}
-      <p className="platform-announcement-body">{pick(current.bodyEl, current.bodyEn) || ''}</p>
-      {current.attachmentPath && !isImageAttachment(current) && fileUrl && (
-        <a className="platform-announcement-file" href={fileUrl} target="_blank" rel="noopener noreferrer">
-          <FileText size={16} aria-hidden="true" />
-          {current.attachmentName || (en ? 'Open the file' : 'Άνοιγμα αρχείου')}
-        </a>
-      )}
+      </div>
     </ObserverDialog>
   )
 }

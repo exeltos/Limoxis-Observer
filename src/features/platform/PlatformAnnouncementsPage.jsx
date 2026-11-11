@@ -15,15 +15,18 @@ import { CheckboxField } from '../../design-system/CheckboxField'
 import { FieldLabelText } from '../../design-system/FormValidation'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { useSortedPaging } from '../quality/useSortedPaging'
 import { PlatformAnnouncementDialog } from './PlatformAnnouncementGate'
 import { PlatformRecordActions } from './PlatformRecordActions'
 import { getPlatformSettings, updatePlatformSettings } from './platformSettingsService'
 import {
-  ATTACHMENT_ACCEPT,
+  DOCUMENT_ACCEPT,
+  IMAGE_ACCEPT,
   deletePlatformAnnouncement,
   uploadAnnouncementAttachment,
+  uploadAnnouncementDocument,
   loadPlatformAnnouncements,
   savePlatformAnnouncement,
   setPlatformAnnouncementStatus,
@@ -39,7 +42,7 @@ import './platformSettings.css'
 // first, pinned item of the list and opens its own small editor.
 const day = value => (value ? String(value).slice(0, 10) : '')
 const fmt = value => (value ? new Date(value).toLocaleDateString('el-GR') : '—')
-const EMPTY = { kind: 'announcement', titleEl: '', titleEn: '', bodyEl: '', bodyEn: '', ctaLabelEl: '', ctaUrl: '', imageUrl: '', attachmentPath: '', attachmentName: '', attachmentType: '', showInDemo: false, startsAt: '', endsAt: '', audience: [], frequency: 'once', status: 'active' }
+const EMPTY = { kind: 'announcement', titleEl: '', titleEn: '', bodyEl: '', bodyEn: '', ctaLabelEl: '', ctaUrl: '', imageUrl: '', attachmentPath: '', attachmentName: '', attachmentType: '', imagePosition: 'top', documentPath: '', documentName: '', documentType: '', showInDemo: false, startsAt: '', endsAt: '', audience: [], frequency: 'once', status: 'active' }
 const SORT = { title: row => row.titleEl, kind: row => row.kind, period: row => day(row.startsAt), seen: row => row.seenCount, status: row => row.status }
 
 export function PlatformAnnouncementsPage() {
@@ -59,7 +62,8 @@ export function PlatformAnnouncementsPage() {
   const [preview, setPreview] = useState(null)
   const [settings, setSettings] = useState(null)
   const [maintenance, setMaintenance] = useState(null)
-  const fileInput = useRef(null)
+  const imageInput = useRef(null)
+  const documentInput = useRef(null)
   const navigate = useNavigate()
   const organizations = useMemo(
     () => memberships.map(item => item.organization).filter(org => org?.id && org.mode !== 'demo'),
@@ -128,14 +132,15 @@ export function PlatformAnnouncementsPage() {
       notifyError(error, 'delete', { operation: 'platform_announcement_delete' })
     }
   }
-  async function attach(event) {
+  // The image and the attached file (PDF, Word, PowerPoint, Excel) are two separate uploads.
+  const upload = (upload, patch) => async event => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
     setUploading(true)
     try {
-      const uploaded = await uploadAnnouncementAttachment(file)
-      setDraft(current => ({ ...current, ...uploaded, imageUrl: '' }))
+      const uploaded = await upload(file)
+      setDraft(current => ({ ...current, ...uploaded, ...patch }))
     } catch (error) {
       if (error?.message === 'ATTACHMENT_TOO_LARGE') notify(tx('Το αρχείο ξεπερνά τα 10 MB.', 'The file is over 10 MB.'), 'warning')
       else notifyError(error, 'save', { operation: 'platform_announcement_upload' })
@@ -143,6 +148,8 @@ export function PlatformAnnouncementsPage() {
       setUploading(false)
     }
   }
+  const attachImage = upload(uploadAnnouncementAttachment, { imageUrl: '' })
+  const attachDocument = upload(uploadAnnouncementDocument, {})
   const edit = row => setDraft({ ...EMPTY, ...row, startsAt: day(row.startsAt), endsAt: day(row.endsAt) })
   const openRowProps = row => ({
     className: 'registry-row-clickable',
@@ -232,27 +239,60 @@ export function PlatformAnnouncementsPage() {
                 <span className="lo-field-label">{tx('Σύνδεσμος κουμπιού', 'Button link')}</span>
                 <input value={draft.ctaUrl} placeholder={tx('π.χ. /about ή https://…', 'e.g. /about or https://…')} onChange={event => set('ctaUrl', event.target.value)} />
               </label>
-              <div className="field platform-announcement-wide">
-                <span className="lo-field-label"><FieldLabelText label={tx('Εικόνα ή αρχείο', 'Image or file')} optional optionalLabel={tx('Προαιρετικό · έως 10 MB', 'Optional · up to 10 MB')} /></span>
+              <div className="field">
+                <span className="lo-field-label"><FieldLabelText label={tx('Εικόνα', 'Image')} optional optionalLabel={tx('Προαιρετικό · έως 10 MB', 'Optional · up to 10 MB')} /></span>
                 <div className="platform-announcement-upload">
                   {draft.attachmentPath || draft.imageUrl ? (
                     <span className="platform-announcement-attached">
                       <Paperclip size={15} aria-hidden="true" />
                       {draft.attachmentName || draft.imageUrl}
-                      <button type="button" aria-label={tx('Αφαίρεση', 'Remove')} onClick={() => setDraft(current => ({ ...current, attachmentPath: '', attachmentName: '', attachmentType: '', imageUrl: '' }))}>
+                      <button type="button" aria-label={tx('Αφαίρεση εικόνας', 'Remove the image')} onClick={() => setDraft(current => ({ ...current, attachmentPath: '', attachmentName: '', attachmentType: '', imageUrl: '' }))}>
                         <X size={14} aria-hidden="true" />
                       </button>
                     </span>
                   ) : (
                     <>
-                      <Button variant="secondary" className="platform-announcement-pick" disabled={uploading} onClick={() => fileInput.current?.click()}>
+                      <Button variant="secondary" className="platform-announcement-pick" disabled={uploading} onClick={() => imageInput.current?.click()}>
                         <Paperclip size={15} aria-hidden="true" />
-                        {uploading ? tx('Ανέβασμα…', 'Uploading…') : tx('Ανέβασμα εικόνας ή αρχείου', 'Upload an image or file')}
+                        {uploading ? tx('Ανέβασμα…', 'Uploading…') : tx('Ανέβασμα εικόνας', 'Upload an image')}
                       </Button>
-                      <input ref={fileInput} className="platform-announcement-file-input" type="file" accept={ATTACHMENT_ACCEPT} tabIndex={-1} aria-hidden="true" onChange={attach} />
+                      <input ref={imageInput} className="platform-announcement-file-input" type="file" accept={IMAGE_ACCEPT} tabIndex={-1} aria-hidden="true" onChange={attachImage} />
                     </>
                   )}
-                  <small>{tx('Η εικόνα εμφανίζεται στην ανακοίνωση· τα PDF, Word, PowerPoint και Excel ως σύνδεσμος.', 'An image shows in the announcement; PDF, Word, PowerPoint and Excel as a link.')}</small>
+                </div>
+              </div>
+              <SearchableSelect
+                label={tx('Θέση εικόνας', 'Image position')}
+                value={draft.imagePosition}
+                onChange={value => set('imagePosition', value || 'top')}
+                options={[
+                  { value: 'top', label: tx('Πάνω από το κείμενο', 'Above the text') },
+                  { value: 'left', label: tx('Αριστερά του κειμένου', 'Left of the text') },
+                  { value: 'right', label: tx('Δεξιά του κειμένου', 'Right of the text') },
+                  { value: 'bottom', label: tx('Κάτω από το κείμενο', 'Below the text') },
+                ]}
+              />
+              <div className="field platform-announcement-wide">
+                <span className="lo-field-label"><FieldLabelText label={tx('Συνημμένο αρχείο', 'Attached file')} optional optionalLabel={tx('Προαιρετικό · PDF, Word, PowerPoint, Excel · έως 10 MB', 'Optional · PDF, Word, PowerPoint, Excel · up to 10 MB')} /></span>
+                <div className="platform-announcement-upload">
+                  {draft.documentPath ? (
+                    <span className="platform-announcement-attached">
+                      <Paperclip size={15} aria-hidden="true" />
+                      {draft.documentName}
+                      <button type="button" aria-label={tx('Αφαίρεση αρχείου', 'Remove the file')} onClick={() => setDraft(current => ({ ...current, documentPath: '', documentName: '', documentType: '' }))}>
+                        <X size={14} aria-hidden="true" />
+                      </button>
+                    </span>
+                  ) : (
+                    <>
+                      <Button variant="secondary" className="platform-announcement-pick" disabled={uploading} onClick={() => documentInput.current?.click()}>
+                        <Paperclip size={15} aria-hidden="true" />
+                        {uploading ? tx('Ανέβασμα…', 'Uploading…') : tx('Επισύναψη αρχείου', 'Attach a file')}
+                      </Button>
+                      <input ref={documentInput} className="platform-announcement-file-input" type="file" accept={DOCUMENT_ACCEPT} tabIndex={-1} aria-hidden="true" onChange={attachDocument} />
+                    </>
+                  )}
+                  <small>{tx('Στην ανακοίνωση εμφανίζεται ως σύνδεσμος που ανοίγει σε νέα καρτέλα.', 'It shows in the announcement as a link that opens in a new tab.')}</small>
                 </div>
               </div>
               <CheckboxField
