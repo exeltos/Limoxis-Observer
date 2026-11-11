@@ -266,6 +266,9 @@ describe('division director', () => {
 
   it('is wired in the Edge Function: division, its members, the departments chosen, the expiry', () => {
     const fn = read('supabase/functions/platform-create-active-users/index.ts')
+    // departments has no name_en column: asking for it failed every request (CONTEXT_FAILED).
+    expect(fn).toContain("from('departments').select('id,name,is_active')")
+    expect(fn).not.toContain('name,name_en')
     expect(fn).toContain("from('hr_division_members').insert")
     expect(fn).toContain('setMemberDepartments')
     expect(fn).toContain('temporary_password_expires_at:expiresAt')

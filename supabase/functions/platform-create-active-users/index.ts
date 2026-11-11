@@ -38,7 +38,7 @@ async function loadContext(admin:Admin,organizationId:string,rows:Row[]):Promise
   const usernames=[...new Set(rows.map(row=>row.user.username).filter(Boolean))]
   const codes=[...new Set(rows.map(row=>row.user.employeeCode).filter(Boolean))]
   const [{data:departments,error:departmentError},{data:profiles,error:profileError},{data:divisions,error:divisionError}]=await Promise.all([
-    admin.from('departments').select('id,name,name_en,is_active').eq('organization_id',organizationId),
+    admin.from('departments').select('id,name,is_active').eq('organization_id',organizationId),
     emails.length?admin.from('profiles').select('id,contact_email').in('contact_email',emails):Promise.resolve({data:[],error:null}),
     admin.from('hr_divisions').select('id,name').eq('organization_id',organizationId),
   ])
