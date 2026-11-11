@@ -90,6 +90,37 @@ export function incidentFlow(record, capas = []) {
   })
 }
 
+// The flow of a deviation (finding), the same steps as an incident's: found →
+// assessment → CAPA → effectiveness → closed. The assessment is where Quality
+// decides whether a corrective action is needed at all: «no» (with its reason)
+// skips the CAPA and its effectiveness check.
+export function findingFlow(record, capas = []) {
+  const linked = capas.filter(capa => capa.lifecycleStatus !== 'voided')
+  const closed = record?.status === 'closed'
+  const noAction = record?.correctiveActionNeeded === false && linked.length === 0
+  // A deviation closed before this step existed counts as assessed.
+  const hasCapa = linked.length > 0
+  // One with a CAPA was decided already: an action was needed.
+  const assessed = closed || hasCapa || Boolean(record?.assessedAt) || record?.correctiveActionNeeded === false || record?.correctiveActionNeeded === true
+  const effective = hasCapa && linked.every(capa => capa.effectivenessStatus === 'effective')
+  const state = [
+    ['reported', 'done'],
+    ['assessment', assessed ? 'done' : 'current'],
+    ['capa', hasCapa ? 'done' : noAction || closed ? 'skipped' : assessed ? 'current' : 'todo'],
+    ['effectiveness', effective ? 'done' : noAction ? 'skipped' : !hasCapa ? (closed ? 'skipped' : 'todo') : 'current'],
+    ['closed', closed ? 'done' : effective || (assessed && noAction) ? 'current' : 'todo'],
+  ]
+  let seen = false
+  return state.map(([id, status]) => {
+    if (status === 'current') { if (seen) return { id, status: 'todo' }; seen = true }
+    return { id, status }
+  })
+}
+
+// A deviation waits for an action when it is open, has no CAPA and nobody decided that none is needed.
+export const findingNeedsAction = (record, capas = []) =>
+  record?.status !== 'closed' && record?.correctiveActionNeeded !== false && !capas.some(capa => capa.lifecycleStatus !== 'voided')
+
 // Where an open incident waits, read from its flow: to be assessed, under
 // investigation (assessed, no CAPA yet), a CAPA in progress, its effectiveness
 // to be checked (every CAPA done or in verification), ready to close, closed.

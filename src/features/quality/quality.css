@@ -228,8 +228,6 @@ td.quality-register-actions{width:48px;text-align:right}
 .quality-summary-line b{font-size:14px;color:var(--lo-color-text)}
 .quality-summary-line .is-late b{color:var(--lo-status-danger-fg)}
 .quality-summary-line>button.is-active{color:var(--lo-color-primary);text-decoration:underline}
-.quality-finding-next{display:flex;align-items:center;gap:12px;border-top:0;padding:4px 0 12px}
-.quality-finding-next>button{width:auto}
 .quality-summary-line>span.is-late{color:var(--lo-status-danger-fg);font-weight:700}
 .quality-record-line{margin:0 0 14px;padding:0}
 .quality-sentinel-banner button{margin-left:auto;flex:0 0 auto}
