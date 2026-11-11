@@ -8,6 +8,19 @@ export const DEPARTMENT_ROLES = Object.freeze(['department_manager', 'link_nurse
 export const ACTIVE_USERS_CHUNK = 25
 export const MAX_FILE_ROWS = 500
 export const needsDepartment = role => DEPARTMENT_ROLES.includes(role)
+// The roles that see several departments of a division, chosen one by one (not a single department).
+export const DIVISION_ROLES = Object.freeze(['division_director'])
+export const isDivisionRole = role => DIVISION_ROLES.includes(role)
+export const TEMPORARY_PASSWORD_DAYS = 7
+
+// A Greek mobile number as digits only: +30 / 0030, spaces and dashes are dropped; 10 digits starting with 69.
+export function normalizeMobile(value) {
+  const digits = String(value ?? '').replace(/[^\d+]/g, '')
+  return digits.replace(/^\+?30(?=69)/, '').replace(/^0030(?=69)/, '').replace(/\D/g, '')
+}
+export const isValidMobile = value => /^69\d{8}$/.test(normalizeMobile(value))
+// The departments of a division director in a file cell: «ΜΕΘ; Χειρουργική» (or separated by commas or lines).
+export const splitNames = value => [...new Set(String(value ?? '').split(/[;,\n\r]+/).map(name => name.trim()).filter(Boolean))]
 
 // [key, Greek header, English header, other accepted headers]
 const COLUMNS = [
@@ -17,6 +30,9 @@ const COLUMNS = [
   ['role', 'Ρόλος', 'Role', []],
   ['department', 'Τμήμα', 'Department', ['κλινικη', 'τμημα / κλινικη']],
   ['employeeCode', 'Κωδικός εργαζομένου', 'Employee code', ['κωδικος', 'code']],
+  ['phone', 'Κινητό', 'Mobile', ['κινητο τηλεφωνο', 'τηλεφωνο', 'mobile phone', 'phone']],
+  ['division', 'Διεύθυνση', 'Division', ['διευθυνση διευθυντη']],
+  ['divisionDepartments', 'Τμήματα που βλέπει', 'Departments seen', ['τμηματα διευθυνσης', 'τμηματα διευθυντη']],
 ]
 const REQUIRED_COLUMNS = ['fullName', 'role']
 
@@ -46,12 +62,14 @@ export function templateSheet(en = false) {
     headers: COLUMNS.map(column => (en ? column[2] : column[1])),
     rows: en
       ? [
-          ['Maria Papadopoulou', 'm.papadopoulou@example.org', '', 'Department User', 'ICU', '1001'],
-          ['Georgios Nikolaou', '', 'GNikolaou', 'Laboratory', '', ''],
+          ['Maria Papadopoulou', 'm.papadopoulou@example.org', '', 'Department User', 'ICU', '1001', '6912345678', '', ''],
+          ['Georgios Nikolaou', '', 'GNikolaou', 'Laboratory', '', '', '', '', ''],
+          ['Eleni Ioannou', '', 'EIoannou', 'Division Director', '', '', '6987654321', 'Nursing Service', 'ICU; Surgery'],
         ]
       : [
-          ['Μαρία Παπαδοπούλου', 'm.papadopoulou@example.org', '', 'Χρήστης Τμήματος', 'ΜΕΘ', '1001'],
-          ['Γεώργιος Νικολάου', '', 'GNikolaou', 'Εργαστήριο', '', ''],
+          ['Μαρία Παπαδοπούλου', 'm.papadopoulou@example.org', '', 'Χρήστης Τμήματος', 'ΜΕΘ', '1001', '6912345678', '', ''],
+          ['Γεώργιος Νικολάου', '', 'GNikolaou', 'Εργαστήριο', '', '', '', '', ''],
+          ['Ελένη Ιωάννου', '', 'EIoannou', 'Διευθυντής Διεύθυνσης', '', '', '6987654321', 'Νοσηλευτική Υπηρεσία', 'ΜΕΘ; Χειρουργική'],
         ],
   }
 }
@@ -78,6 +96,15 @@ export function checkPerson(raw, departments = []) {
   const departmentName = String(raw.department ?? '').trim()
   const department = raw.departmentId ? departments.find(row => row.id === raw.departmentId) || null : matchDepartment(departments, departmentName)
   const employeeCode = String(raw.employeeCode ?? '').trim()
+  const phoneText = String(raw.phone ?? '').trim()
+  const phone = normalizeMobile(phoneText)
+  const passwordMode = raw.passwordMode === 'phone' ? 'phone' : 'random'
+  const divisionName = String(raw.divisionName ?? '').trim().replace(/\s+/g, ' ')
+  // A division director: the departments chosen in the form (ids) or named in the file.
+  const chosenIds = Array.isArray(raw.departmentIds) ? raw.departmentIds : []
+  const namedDepartments = splitNames(raw.divisionDepartments)
+  const matchedByName = namedDepartments.map(name => matchDepartment(departments, name))
+  const departmentIds = [...new Set([...chosenIds, ...matchedByName.filter(Boolean).map(row => row.id)])].filter(id => departments.some(row => row.id === id))
   const errors = []
   if (!fullName) errors.push('FULL_NAME_REQUIRED')
   if (!email && !username) errors.push('EMAIL_OR_USERNAME_REQUIRED')
@@ -85,8 +112,14 @@ export function checkPerson(raw, departments = []) {
   if (username && !USERNAME.test(username)) errors.push('INVALID_USERNAME')
   if (!roleText) errors.push('ROLE_REQUIRED')
   else if (!role) errors.push('ROLE_NOT_ALLOWED')
-  if ((departmentName || raw.departmentId) && !department) errors.push('DEPARTMENT_NOT_FOUND')
+  if (isDivisionRole(role)) {
+    if (!divisionName) errors.push('DIVISION_REQUIRED')
+    if (matchedByName.some(row => !row) || chosenIds.some(id => !departments.some(row => row.id === id))) errors.push('DEPARTMENT_NOT_FOUND')
+    else if (!departmentIds.length) errors.push('DEPARTMENTS_REQUIRED')
+  } else if ((departmentName || raw.departmentId) && !department) errors.push('DEPARTMENT_NOT_FOUND')
   else if (role && needsDepartment(role) && !department && !employeeCode) errors.push('DEPARTMENT_REQUIRED')
+  if (passwordMode === 'phone' && !phoneText) errors.push('PHONE_REQUIRED')
+  else if (phoneText && !isValidMobile(phoneText)) errors.push('PHONE_INVALID')
   return {
     line: raw.line || 1,
     fullName,
@@ -94,9 +127,13 @@ export function checkPerson(raw, departments = []) {
     username,
     roleText,
     role,
-    departmentName: department?.name || departmentName,
+    departmentName: isDivisionRole(role) ? departments.filter(row => departmentIds.includes(row.id)).map(row => row.name).join(', ') : department?.name || departmentName,
     departmentId: department?.id || null,
     employeeCode,
+    phone,
+    passwordMode,
+    divisionName,
+    departmentIds: isDivisionRole(role) ? departmentIds : [],
     errors,
   }
 }
@@ -110,7 +147,7 @@ export function markDuplicates(people) {
 }
 
 // The rows of the file ([header, ...rows]) as people; empty rows are left out.
-export function planFile(rows = [], departments = [], en = false) {
+export function planFile(rows = [], departments = [], en = false, passwordMode = 'random') {
   const [header = [], ...body] = rows
   const columns = mapHeaders(header)
   const missing = REQUIRED_COLUMNS.filter(key => columns[key] == null)
@@ -119,7 +156,7 @@ export function planFile(rows = [], departments = [], en = false) {
   const cell = (row, key) => (columns[key] == null ? '' : String(row[columns[key]] ?? '').trim())
   const filled = body.map((row, index) => ({ row, line: index + 2 })).filter(({ row }) => row.some(value => String(value ?? '').trim()))
   const people = filled.slice(0, MAX_FILE_ROWS).map(({ row, line }) =>
-    checkPerson({ line, fullName: cell(row, 'fullName'), email: cell(row, 'email'), username: cell(row, 'username'), role: cell(row, 'role'), department: cell(row, 'department'), employeeCode: cell(row, 'employeeCode') }, departments),
+    checkPerson({ line, fullName: cell(row, 'fullName'), email: cell(row, 'email'), username: cell(row, 'username'), role: cell(row, 'role'), department: cell(row, 'department'), employeeCode: cell(row, 'employeeCode'), phone: cell(row, 'phone'), passwordMode, divisionName: cell(row, 'division'), divisionDepartments: cell(row, 'divisionDepartments') }, departments),
   )
   return { missingColumns: [], people: markDuplicates(people), tooMany: filled.length > MAX_FILE_ROWS }
 }
@@ -134,6 +171,10 @@ export const requestUser = person => ({
   departmentId: person.departmentId || undefined,
   departmentName: person.departmentId ? undefined : person.departmentName || undefined,
   employeeCode: person.employeeCode || undefined,
+  phone: person.phone || undefined,
+  passwordMode: person.passwordMode === 'phone' ? 'phone' : undefined,
+  divisionName: person.divisionName || undefined,
+  departmentIds: person.departmentIds?.length ? person.departmentIds : undefined,
 })
 
 // The person with the server's verdict (the first error found locally wins).
@@ -166,6 +207,12 @@ const ERRORS = {
   USERNAME_TAKEN: ['Το όνομα χρήστη χρησιμοποιείται ήδη', 'The username is already taken'],
   EMPLOYEE_NOT_FOUND: ['Ο κωδικός εργαζομένου δεν βρέθηκε', 'Employee code not found'],
   EMPLOYEE_ALREADY_LINKED: ['Ο εργαζόμενος έχει ήδη λογαριασμό', 'The employee already has an account'],
+  PHONE_REQUIRED: ['Ο κωδικός είναι το κινητό: λείπει ο αριθμός', 'The password is the mobile number: the number is missing'],
+  PHONE_INVALID: ['Μη έγκυρο κινητό (10 ψηφία, ξεκινά από 69)', 'Invalid mobile number (10 digits starting with 69)'],
+  DIVISION_REQUIRED: ['Ο ρόλος χρειάζεται διεύθυνση', 'The role needs a division'],
+  DIVISION_NOT_FOUND: ['Η διεύθυνση δεν βρέθηκε', 'Division not found'],
+  DEPARTMENTS_REQUIRED: ['Επιλέξτε τα τμήματα που θα βλέπει', 'Choose the departments they will see'],
+  DIVISION_SAVE_FAILED: ['Δεν αποθηκεύτηκε η διεύθυνση του χρήστη', 'The division could not be saved'],
   PASSWORD_REJECTED: ['Ο προσωρινός κωδικός απορρίφθηκε· δοκιμάστε ξανά', 'The temporary password was rejected; try again'],
   ORGANIZATION_PAUSED: ['Ο οργανισμός είναι σε παύση', 'The organization is suspended'],
 }
@@ -179,13 +226,15 @@ export function resultsSheet(results, en = false) {
   return {
     name: en ? 'Accounts' : 'Λογαριασμοί',
     headers: en
-      ? ['Full name', 'Username', 'Temporary password', 'Role', 'Department', 'Email', 'Result']
-      : ['Ονοματεπώνυμο', 'Όνομα χρήστη', 'Προσωρινός κωδικός', 'Ρόλος', 'Τμήμα', 'Email', 'Αποτέλεσμα'],
+      ? ['Full name', 'Username', 'Temporary password', 'Valid until', 'Role', 'Division', 'Department', 'Email', 'Result']
+      : ['Ονοματεπώνυμο', 'Όνομα χρήστη', 'Προσωρινός κωδικός', 'Ισχύει έως', 'Ρόλος', 'Διεύθυνση', 'Τμήμα', 'Email', 'Αποτέλεσμα'],
     rows: results.map(row => [
       row.fullName,
       row.username || '',
       row.temporaryPassword || '',
+      row.temporaryPasswordExpiresAt ? String(row.temporaryPasswordExpiresAt).slice(0, 10).split('-').reverse().join('/') : '',
       row.role ? ROLE_LABELS[row.role]?.[en ? 'en' : 'el'] || row.role : row.roleText,
+      row.divisionName || '',
       row.departmentName || '',
       row.email || '',
       row.status === 'created' ? (en ? 'Created · active' : 'Δημιουργήθηκε · ενεργός') : errorText(row.code, en),

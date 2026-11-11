@@ -17,11 +17,23 @@ const STEPS = {
   closed: { label: ['Κλείσιμο', 'Closed'], tab: 'assessment' },
 }
 
+// A deviation (finding) goes through the same steps; only some words differ.
+const FINDING_REPORTED = ['Εντοπίστηκε', 'Found']
+
 const isDone = capa => ['closed', 'completed', 'cancelled'].includes(capa.status)
 
 // What a step says under its name.
-function stepNote(id, status, { record, capas, language, t }) {
+function stepNote(id, status, { record, capas, language, t, kind = 'incident' }) {
   const en = language === 'en'
+  if (kind === 'finding') {
+    if (status === 'skipped') return en ? 'Not needed' : 'Δεν χρειάστηκε'
+    if (id === 'reported') return [formatDay(record.date, language), record.reportedBy].filter(Boolean).join(' · ')
+    if (id === 'assessment') {
+      if (status !== 'done') return en ? 'Severity, causes, is an action needed' : 'Σοβαρότητα, αιτίες, αν χρειάζεται ενέργεια'
+      return [t(record.severity), record.correctiveActionNeeded === false ? (en ? 'No action needed' : 'Δεν απαιτείται ενέργεια') : record.correctiveActionNeeded === true ? (en ? 'Action needed' : 'Απαιτείται ενέργεια') : ''].filter(Boolean).join(' · ')
+    }
+    if (id === 'closed') return status === 'done' ? (en ? 'The deviation is closed' : 'Η απόκλιση έκλεισε') : ''
+  }
   if (status === 'skipped') return en ? 'Not needed' : 'Δεν χρειάστηκε'
   if (id === 'reported') return [formatDay(record.date, language), record.privacy === 'confidential' ? (en ? 'Confidential' : 'Εμπιστευτικά') : record.anonymous ? (en ? 'Anonymous' : 'Ανώνυμα') : record.reportedBy].filter(Boolean).join(' · ')
   if (id === 'assessment') return status === 'done' ? [t(record.severity), record.sentinel ? 'Sentinel' : ''].filter(Boolean).join(' · ') : en ? 'Severity, harm, root cause' : 'Σοβαρότητα, βλάβη, βασική αιτία'
@@ -33,28 +45,34 @@ function stepNote(id, status, { record, capas, language, t }) {
 }
 
 // The next step for whoever manages Quality: its label and what it opens.
-export function nextIncidentStep(steps, { record, capas, en }) {
+export function nextIncidentStep(steps, { record, capas, en, kind = 'incident' }) {
   const current = steps.find(step => step.status === 'current')?.id
   if (!current || record.status === 'closed') return null
+  if (kind === 'finding') {
+    if (current === 'assessment') return { id: 'assess', label: en ? 'Assess the deviation' : 'Αξιολόγηση απόκλισης' }
+    if (current === 'capa') return { id: 'capa', label: en ? 'New corrective action' : 'Νέα διορθωτική ενέργεια', hint: en ? 'The assessment says an action is needed.' : 'Η αξιολόγηση ορίζει ότι χρειάζεται ενέργεια.' }
+    if (current === 'effectiveness') return { id: 'openCapa', label: en ? 'Open the corrective action' : 'Άνοιγμα διορθωτικής ενέργειας', capa: capas.find(capa => !isDone(capa)) || capas[0] }
+    return { id: 'close', label: en ? 'Close the deviation' : 'Κλείσιμο απόκλισης' }
+  }
   if (current === 'assessment') return { id: 'assess', label: en ? 'Assess the incident' : 'Αξιολόγηση συμβάντος' }
   if (current === 'capa') return { id: 'capa', label: record.sentinel ? (en ? 'Open the root cause analysis' : 'Άνοιγμα ανάλυσης ριζικής αιτίας') : (en ? 'New corrective action' : 'Νέα διορθωτική ενέργεια'), hint: record.sentinel ? '' : (en ? 'Or close the incident if none is needed.' : 'Ή κλείστε το συμβάν, αν δεν χρειάζεται.') }
   if (current === 'effectiveness') return { id: 'openCapa', label: en ? 'Open the corrective action' : 'Άνοιγμα διορθωτικής ενέργειας', capa: capas.find(capa => !isDone(capa)) || capas[0] }
   return { id: 'close', label: en ? 'Close the incident' : 'Κλείσιμο συμβάντος' }
 }
 
-export function IncidentFlowPanel({ steps = [], record, capas = [], language = 'el', t, activeTab, canAct = false, onSelect, onStep, onOpenCapa }) {
+export function IncidentFlowPanel({ steps = [], record, capas = [], language = 'el', t, activeTab, canAct = false, kind = 'incident', onSelect, onStep, onOpenCapa }) {
   const en = language === 'en'
-  const next = canAct ? nextIncidentStep(steps, { record, capas, en }) : null
+  const next = canAct ? nextIncidentStep(steps, { record, capas, en, kind }) : null
   return (
     <aside className="quality-record-aside">
       <section className="risk-panel quality-panel">
         <header><h3>{en ? 'Flow' : 'Πορεία'}</h3><small>{en ? 'ISO 9001 §10.2' : 'ISO 9001 §10.2'}</small></header>
-        <ol className="quality-flow" aria-label={en ? 'Incident flow' : 'Ροή συμβάντος'}>
+        <ol className="quality-flow" aria-label={kind === 'finding' ? (en ? 'Deviation flow' : 'Ροή απόκλισης') : (en ? 'Incident flow' : 'Ροή συμβάντος')}>
           {steps.map(({ id, status }, index) => (
             <li key={id} className={`is-${status}${STEPS[id].tab === activeTab && status === 'current' ? ' is-open' : ''}`}>
               <button type="button" onClick={() => onSelect?.(STEPS[id].tab)} aria-current={status === 'current' ? 'step' : undefined}>
                 <span className="quality-flow-mark">{status === 'done' ? <Check size={12} /> : status === 'skipped' ? <Minus size={12} /> : index + 1}</span>
-                <span className="quality-flow-text"><strong>{STEPS[id].label[en ? 1 : 0]}</strong><small>{stepNote(id, status, { record, capas, language, t })}</small></span>
+                <span className="quality-flow-text"><strong>{(kind === 'finding' && id === 'reported' ? FINDING_REPORTED : STEPS[id].label)[en ? 1 : 0]}</strong><small>{stepNote(id, status, { record, capas, language, t, kind })}</small></span>
               </button>
             </li>
           ))}

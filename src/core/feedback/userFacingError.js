@@ -162,7 +162,7 @@ export function userFacingError(error,{language='el',context='generic'}={}){
     return en?'Too many failed attempts. Sign-in is locked for 15 minutes; try again later or contact the Platform Owner.':'Πολλές αποτυχημένες προσπάθειες. Η σύνδεση κλειδώθηκε για 15 λεπτά· δοκιμάστε αργότερα ή επικοινωνήστε με τον Ιδιοκτήτη Πλατφόρμας.'
   }
   if(lower.includes('invalid login')||lower.includes('invalid credentials')||lower.includes('email not confirmed')){
-    return en?'Sign in failed. Check your username and password.':'Η σύνδεση απέτυχε. Ελέγξτε το όνομα χρήστη και τον κωδικό πρόσβασης.'
+    return en?'Sign in failed. Check your username and password. A temporary password stops working after 7 days: ask your administrator for a new one.':'Η σύνδεση απέτυχε. Ελέγξτε το όνομα χρήστη και τον κωδικό πρόσβασης. Ο προσωρινός κωδικός ισχύει 7 ημέρες: αν έχει περάσει διάστημα, ζητήστε νέο από τον διαχειριστή σας.'
   }
 
   const generic={

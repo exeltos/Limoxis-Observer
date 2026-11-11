@@ -68,6 +68,16 @@ export async function setMemberDepartment(admin:Admin,{organizationId,userId,dep
   if(insertError)throw new Error('DEPARTMENT_SAVE_FAILED')
 }
 
+// Several departments for one membership (a division director sees the ones chosen for them). Replaces the manual ones.
+export async function setMemberDepartments(admin:Admin,{organizationId,userId,departmentIds}:{organizationId:string,userId:string,departmentIds:string[]}){
+  const {data:member,error:memberError}=await admin.from('organization_members').select('id').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
+  if(memberError||!member)throw new Error('MEMBERSHIP_NOT_FOUND')
+  const ids=[...new Set(departmentIds)]
+  if(!ids.length)return
+  const {error:insertError}=await admin.from('organization_member_scopes').upsert(ids.map(department_id=>({membership_id:member.id,department_id,granted_by_division:false})),{onConflict:'membership_id,department_id'})
+  if(insertError)throw new Error('DEPARTMENT_SAVE_FAILED')
+}
+
 // The departments of a membership, to carry over when the membership is replaced.
 export async function memberDepartmentIds(admin:Admin,{organizationId,userId}:{organizationId:string,userId:string}):Promise<string[]>{
   const {data:member}=await admin.from('organization_members').select('id').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
