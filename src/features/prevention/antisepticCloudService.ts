@@ -1,25 +1,25 @@
-import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { antisepticLibrary } from './preventionDemoData'
 import { antisepticPeriodBounds } from './antisepticMethods'
 import { loadAntisepticLocal, saveAntisepticLocal } from './preventionStore'
-import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
-import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments } from './preventionCloud'
+import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
+import type { AnyRecord } from '../../types/featureTypes'
+import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments, type PreventionOrgId } from './preventionCloud'
 
-const monthLabel = (from, to) => {
+const monthLabel = (from: string | null, to: string | null) => {
   if (!from) return ''
   const start = String(from).slice(0, 7)
   const end = String(to || from).slice(0, 7)
   return start === end ? start : `${start} – ${end}`
 }
-const isAbhrItem = item =>
+const isAbhrItem = (item: AnyRecord | null | undefined) =>
   Boolean(item && (item.metadata?.is_abhr === true || item.code === 'ANT-ABHR'))
-const isHospitalRecord = record =>
+const isHospitalRecord = (record: AnyRecord | null | undefined) =>
   record?.departmentScope === 'hospital' ||
   record?.departmentEl === 'Όλο το νοσοκομείο' ||
   record?.departmentEn === 'Whole hospital'
 
-function mapRow(row) {
+function mapRow(row: AnyRecord) {
   const productEl = row.antiseptic_item?.name_el || ''
   const productEn = row.antiseptic_item?.name_en || productEl
   const patientDays = Number(row.patient_days) || 0
@@ -56,7 +56,7 @@ function mapRow(row) {
   }
 }
 
-export async function loadAntisepticSupportData(organizationId) {
+export async function loadAntisepticSupportData(organizationId: PreventionOrgId) {
   if (isDemoDataEnvironment())
     return {
       departments: await loadPreventionDepartments(organizationId),
@@ -65,10 +65,10 @@ export async function loadAntisepticSupportData(organizationId) {
   assertCloud(organizationId)
   const [departments, productsResult] = await Promise.all([
     loadPreventionDepartments(organizationId),
-    supabase
+    cloudClient()
       .from('master_library_items')
       .select('id,name_el,name_en,code,metadata')
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .eq('library_key', 'antiseptics')
       .eq('is_active', true)
       .order('name_el'),
@@ -89,7 +89,7 @@ export async function loadAntisepticSupportData(organizationId) {
 
 // One department's approved patient-days for the month; for the whole
 // hospital its total row, else the sum of the department rows.
-export async function findPatientDaysForPeriod(organizationId, departmentId, from, to) {
+export async function findPatientDaysForPeriod(organizationId: PreventionOrgId, departmentId: string | null, from: string | null | undefined, to: string | null | undefined) {
   const rows = await findApprovedPatientDayRows(organizationId, { departmentId, from, to })
   if (!rows) return null
   if (departmentId) return rows.length ? Number(rows[0].patient_days) || 0 : null
@@ -101,22 +101,22 @@ export async function findPatientDaysForPeriod(organizationId, departmentId, fro
     : null
 }
 
-export async function loadAntisepticRecords(organizationId) {
+export async function loadAntisepticRecords(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
   if (isDemoDataEnvironment()) return loadAntisepticLocal()
   assertCloud(organizationId)
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('antiseptic_consumption_periods')
     .select(
       '*,department:departments(id,name),antiseptic_item:master_library_items(id,name_el,name_en,code,metadata)',
     )
-    .eq('organization_id', organizationId)
+    .eq('organization_id', organizationId as string)
     .order('period_start', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data || []).map(mapRow)
 }
 
-export async function saveAntisepticRecord(organizationId, record, { existingId = null } = {}) {
+export async function saveAntisepticRecord(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadAntisepticLocal()
     const id = existingId || `ANT-${Date.now()}`
@@ -148,7 +148,7 @@ export async function saveAntisepticRecord(organizationId, record, { existingId 
   const periodStart = bounds.from
   const periodEnd = bounds.to
   const payload = {
-    organization_id: organizationId,
+    organization_id: organizationId as string,
     department_id: department?.id || null,
     period_start: periodStart,
     period_end: periodEnd,
@@ -166,17 +166,17 @@ export async function saveAntisepticRecord(organizationId, record, { existingId 
   }
   let saved
   if (existingId) {
-    const { data, error } = await supabase
+    const { data, error } = await cloudClient()
       .from('antiseptic_consumption_periods')
       .update(payload)
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .eq('id', existingId)
       .select('*')
       .single()
     if (error) throw error
     saved = data
   } else {
-    const { data, error } = await supabase
+    const { data, error } = await cloudClient()
       .from('antiseptic_consumption_periods')
       .insert({ ...payload, created_by: userId })
       .select('*')
@@ -188,6 +188,6 @@ export async function saveAntisepticRecord(organizationId, record, { existingId 
   return rows.find(x => x.id === saved.id) || null
 }
 
-export function deleteAntisepticRecord(organizationId, id) {
+export function deleteAntisepticRecord(organizationId: PreventionOrgId, id: string | null | undefined) {
   return deletePreventionRecord(organizationId, id, { table: 'antiseptic_consumption_periods', localTable: 'prevention_antiseptic', label: 'Αντισηπτικά', loadLocal: loadAntisepticLocal, saveLocal: saveAntisepticLocal })
 }

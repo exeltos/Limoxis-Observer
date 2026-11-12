@@ -11,17 +11,18 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { normalizeWhoMoments, sessionHandHygieneStats } from './whoHandHygieneStats'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
+import type { AnyRecord } from '../../types/featureTypes'
 
-export const formatMonth = value => (value ? antisepticPeriodLabel(value) : '')
+export const formatMonth = (value: string | null | undefined) => (value ? antisepticPeriodLabel(value) : '')
 
 // Prevention records share one layout: the context as a details sheet, the key
 // figures as a metric strip, then the record's own list under a section header.
-export function HandHygieneDetails({ record, language }) {
+export function HandHygieneDetails({ record, language }: { record: AnyRecord; language: string }) {
   const en = language === 'en'
   const items = record.whoObservations || []
   const stats = sessionHandHygieneStats(record)
   const session = record.session || {}
-  const actionLabel = item =>
+  const actionLabel = (item: AnyRecord) =>
     item.action === 'HR'
       ? en
         ? 'Alcohol-based hand rub'
@@ -33,7 +34,7 @@ export function HandHygieneDetails({ record, language }) {
         : en
           ? 'Not performed'
           : 'Δεν πραγματοποιήθηκε'
-  const profession = item => {
+  const profession = (item: AnyRecord) => {
     const p = WHO_PROFESSIONS.find(([el]) => el === item.professionalCategory)
     return p ? (en ? p[1] : p[0]) : item.professionalCategory || '—'
   }
@@ -68,12 +69,12 @@ export function HandHygieneDetails({ record, language }) {
       </section>
       {/* The figures of the observation in one line (owner, 8/11/2026: not six boxes). */}
       <div className="who-record-totals"><RegistryTotals label={en ? 'Observation figures' : 'Αριθμοί παρατήρησης'} items={[
-        { key: 'compliance', always: true, value: 0, display: `${stats.compliance}%`, label: en ? 'WHO compliance' : 'συμμόρφωση WHO', tone: stats.opportunities ? (Number(stats.compliance) >= HAND_HYGIENE_TARGET ? 'good' : 'danger') : null, title: `${stats.compliant || 0} / ${stats.opportunities || 0} ${en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'} · ${en ? 'target' : 'στόχος'} ≥ ${HAND_HYGIENE_TARGET}%` },
+        { key: 'compliance', always: true, value: 0, display: `${stats.compliance}%`, label: en ? 'WHO compliance' : 'συμμόρφωση WHO', tone: stats.opportunities ? (Number(stats.compliance) >= HAND_HYGIENE_TARGET ? 'good' : 'danger') : undefined, title: `${stats.compliant || 0} / ${stats.opportunities || 0} ${en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'} · ${en ? 'target' : 'στόχος'} ≥ ${HAND_HYGIENE_TARGET}%` },
         { key: 'opportunities', always: true, value: stats.opportunities || 0, label: en ? 'opportunities' : 'ευκαιρίες' },
         { key: 'professionals', always: true, value: stats.professionals || 0, label: en ? 'professionals' : 'επαγγελματίες' },
         { key: 'hw', always: true, value: stats.handWash || 0, label: en ? 'hand wash' : 'πλύσιμο' },
         { key: 'hr', always: true, value: stats.handRub || 0, label: en ? 'hand rub' : 'αντισηπτικό' },
-        { key: 'missed', always: true, value: stats.missed || 0, label: en ? 'not performed' : 'μη συμμορφούμενες', tone: stats.missed ? 'danger' : null },
+        { key: 'missed', always: true, value: stats.missed || 0, label: en ? 'not performed' : 'μη συμμορφούμενες', tone: stats.missed ? 'danger' : undefined },
       ]} /></div>
       <section>
         <SectionHeader
@@ -134,7 +135,7 @@ export function HandHygieneDetails({ record, language }) {
   )
 }
 
-export function AntisepticDetails({ record, language, locale }) {
+export function AntisepticDetails({ record, language, locale }: { record: AnyRecord; language: string; locale: string }) {
   const en = language === 'en'
   return (
     <div className="record-view-stack">
@@ -203,29 +204,29 @@ export function AntisepticDetails({ record, language, locale }) {
   )
 }
 
-const SHIFT_LABELS = {
+const SHIFT_LABELS: Record<string, [string, string]> = {
   morning: ['Πρωινή', 'Morning'],
   afternoon: ['Απογευματινή', 'Afternoon'],
   evening: ['Απογευματινή', 'Evening'],
   night: ['Νυχτερινή', 'Night'],
 }
-function shiftLabel(value, en) {
+function shiftLabel(value: string, en: boolean) {
   const pair = SHIFT_LABELS[value]
   return pair ? (en ? pair[1] : pair[0]) : value || '—'
 }
 // Corrected, still open, no longer applicable, or not reviewed yet.
-const FOLLOW_UP_TONES = { resolved: 'success', open: 'danger', not_applicable: 'neutral' }
-export const bundleFollowUpTone = status => FOLLOW_UP_TONES[status] || 'warning'
-export function BundleDetails({ record, language, canEdit, onFollowUp }) {
+const FOLLOW_UP_TONES: Record<string, string> = { resolved: 'success', open: 'danger', not_applicable: 'neutral' }
+export const bundleFollowUpTone = (status: string | undefined) => FOLLOW_UP_TONES[status as string] || 'warning'
+export function BundleDetails({ record, language, canEdit, onFollowUp }: { record: AnyRecord; language: string; canEdit: boolean; onFollowUp: (item: AnyRecord) => void }) {
   const en = language === 'en'
   const template = record.templateSnapshot || {}
-  const elements = template.elements || []
+  const elements: [string, string][] = template.elements || []
   const findings =
     record.findings ||
     elements
       .filter(([id]) => record.answers?.[id] === 'no')
       .map(([id, label]) => ({ id, label, note: record.answerNotes?.[id] || '' }))
-  const followUpLabel = status =>
+  const followUpLabel = (status: string | undefined) =>
     status === 'resolved'
       ? en
         ? 'Corrected'
@@ -340,7 +341,7 @@ export function BundleDetails({ record, language, canEdit, onFollowUp }) {
                 : 'Επανελέγξτε κάθε απόκλιση και καταγράψτε αν διορθώθηκε, παραμένει ή δεν εφαρμόζεται πλέον.'
             }
           />
-          {findings.map(item => {
+          {findings.map((item: AnyRecord) => {
             const followUp = record.followUps?.[item.id]
             return (
               <div

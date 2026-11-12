@@ -12,6 +12,10 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
 import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment } from './preventionCloud'
+
+interface WasteEntryEditorProps { onSave?: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[]; wasteTypes?: AnyRecord[]; findPatientDays?: (departmentId: string, from: string, to: string) => Promise<AnyRecord | null>; readOnly?: boolean }
 
 export function WasteEntryEditor({
   onSave,
@@ -21,7 +25,7 @@ export function WasteEntryEditor({
   wasteTypes: loadedWasteTypes = [],
   findPatientDays,
   readOnly = false,
-}) {
+}: WasteEntryEditorProps) {
   // Waste categories from the central library (the screen's list until it loads).
   const wasteTypes = usePreventionLibrary('wasteTypes', loadedWasteTypes)
   const { profile, user } = useAuth()
@@ -33,7 +37,7 @@ export function WasteEntryEditor({
     initialRecord?.wasteType || initialRecord?.type || wasteTypes[0]?.el || ''
   const initialPeriodStart = initialRecord?.periodStart || initialRecord?.date || ''
   const initialPeriodEnd = initialRecord?.periodEnd || initialRecord?.date || ''
-  const [draft, setDraft] = useState(() =>
+  const [draft, setDraft] = useState<AnyRecord>(() =>
     initialRecord
       ? {
           ...JSON.parse(JSON.stringify(initialRecord)),
@@ -57,9 +61,9 @@ export function WasteEntryEditor({
           notes: '',
         },
   )
-  const [suggestedPatientDays, setSuggestedPatientDays] = useState(null)
+  const [suggestedPatientDays, setSuggestedPatientDays] = useState<AnyRecord | null>(null)
   const [saving, setSaving] = useState(false)
-  const set = (key, value) => {
+  const set = (key: string, value: unknown) => {
     if (!readOnly) setDraft(state => ({ ...state, [key]: value }))
   }
   const departmentRows = usePreventionDepartments(departments)
@@ -138,7 +142,7 @@ export function WasteEntryEditor({
       <WasteRecordDetails record={{ ...draft, indicator }} language={language} locale={locale} />
     )
 
-  function changeWasteType(value) {
+  function changeWasteType(value: string) {
     const selected = wasteTypes.find(item => item.id === value)
     if (!selected) return
     setDraft(state => ({
@@ -181,7 +185,7 @@ export function WasteEntryEditor({
     }
     try {
       setSaving(true)
-      await onSave(record)
+      await onSave!(record)
     } finally {
       setSaving(false)
     }
@@ -312,7 +316,7 @@ export function WasteEntryEditor({
               <label className="field entry-span-2">
                 <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
                 <textarea
-                  rows="2"
+                  rows={2}
                   value={draft.notes || ''}
                   onChange={event => set('notes', event.target.value)}
                   placeholder={en ? 'Optional notes' : 'Προαιρετικές παρατηρήσεις'}
@@ -423,10 +427,10 @@ export function WasteEntryEditor({
   )
 }
 
-function WasteRecordDetails({ record, language, locale }) {
+function WasteRecordDetails({ record, language, locale }: { record: AnyRecord; language: string; locale: string }) {
   const en = language === 'en'
-  const fmtDate = value => formatDay(value, language)
-  const fmtNumber = (value, digits = 1) =>
+  const fmtDate = (value: string) => formatDay(value, language)
+  const fmtNumber = (value: unknown, digits = 1) =>
     Number(value || 0).toLocaleString(locale, {
       maximumFractionDigits: digits,
       minimumFractionDigits: 0,
@@ -452,7 +456,7 @@ function WasteRecordDetails({ record, language, locale }) {
           ? 'Manual entry'
           : 'Χειροκίνητη καταχώριση'
         : '—'
-  const fmtDateTime = value => formatDateTime(value, language)
+  const fmtDateTime = (value: string) => formatDateTime(value, language)
   // Same layout as every prevention record: details sheet, key figures, notes.
   return (
     <div className="record-view-stack waste-record-view">

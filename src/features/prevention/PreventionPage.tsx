@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -21,29 +21,31 @@ import { loadBundleAssessments, loadBundleSupportData } from './bundleCloudServi
 import { loadWasteMeasurements, loadWasteSupportData } from './wasteCloudService'
 import { readRegistryViewState, useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { AntisepticTable, BundleTable, HandTable, PreventionEmpty, PreventionKpis, VaccinationTable, WasteTable, dayLabel, fmtMonth, tabIcons } from './PreventionTables'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment } from './preventionCloud'
 
-const tabs = [
+const tabs: [string, string][] = [
   ['handHygiene', 'handHygiene'],
   ['waste', 'wasteManagement'],
   ['antiseptics', 'antisepticConsumption'],
   ['bundles', 'preventionBundles'],
   ['vaccinations', 'vaccinations'],
 ]
-const tabCapabilities = {
+const tabCapabilities: Record<string, string> = {
   handHygiene: CAPABILITIES.RECORD_HAND_HYGIENE,
   waste: CAPABILITIES.RECORD_WASTE,
   antiseptics: CAPABILITIES.RECORD_ANTISEPTIC,
   bundles: CAPABILITIES.RECORD_PREVENTION_BUNDLE,
   vaccinations: CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,
 }
-const createCapabilities = {
+const createCapabilities: Record<string, string> = {
   handHygiene: CAPABILITIES.RECORD_HAND_HYGIENE,
   waste: CAPABILITIES.RECORD_WASTE,
   antiseptics: CAPABILITIES.RECORD_ANTISEPTIC,
   bundles: CAPABILITIES.RECORD_PREVENTION_BUNDLE,
   vaccinations: CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
 }
-const createLabelKeys = {
+const createLabelKeys: Record<string, string> = {
   handHygiene: 'preventionNewHandHygieneLabel',
   waste: 'preventionNewWasteLabel',
   antiseptics: 'preventionNewAntisepticsLabel',
@@ -52,15 +54,15 @@ const createLabelKeys = {
 
 // The department filter keeps the Greek name (what records store); a view saved
 // with the English name still matches.
-const departmentOption = (el, en, language) => ({ value: el, label: language === 'el' ? el : en || el })
-const inDepartment = (department, el, en) => department === 'all' || department === el || department === en
+const departmentOption = (el: string, en: string | undefined, language: string) => ({ value: el, label: language === 'el' ? el : en || el })
+const inDepartment = (department: string, el: string | undefined, en: string | undefined) => department === 'all' || department === el || department === en
 export function PreventionPage() {
   const { t, language } = useLanguage()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { notifyError } = useFeedback()
   const { role, membership, canAccessRecord, tenant } = useTenant()
-  const { data: employeeRows } = useEmployeesData()
+  const employeeRows: AnyRecord[] = useEmployeesData().data
   const addOns = useMemo(() => membership?.capabilities ?? [], [membership?.capabilities])
   const custom = useMemo(
     () => membership?.customCapabilities ?? [],
@@ -80,7 +82,7 @@ export function PreventionPage() {
     [role, broadPreventionView, addOns, custom],
   )
   const visibleTabs = useMemo(() => tabs.filter(([id]) => tabAccess[id]), [tabAccess])
-  const [tab, setTab] = useState(() => searchParams.get('tab') || 'handHygiene')
+  const [tab, setTab] = useState<string>(() => searchParams.get('tab') || 'handHygiene')
   const registry = useRegistryMemory(`prevention-${tab}`)
   const savedView = registry.loadViewState({
     query: '',
@@ -98,22 +100,22 @@ export function PreventionPage() {
   const [status, setStatus] = useState(savedView.status)
   const [page, setPage] = useState(1),
     [pageSize, setPageSize] = useState(15)
-  const [handRows, setHandRows] = useState([]),
-    [handDepartments, setHandDepartments] = useState([]),
+  const [handRows, setHandRows] = useState<AnyRecord[]>([]),
+    [handDepartments, setHandDepartments] = useState<PreventionDepartment[]>([]),
     [handLoading, setHandLoading] = useState(true)
-  const [wasteRows, setWasteRows] = useState([]),
-    [wasteSupport, setWasteSupport] = useState({ departments: [], wasteTypes: [] }),
+  const [wasteRows, setWasteRows] = useState<AnyRecord[]>([]),
+    [wasteSupport, setWasteSupport] = useState<{ departments: PreventionDepartment[]; wasteTypes: AnyRecord[] }>({ departments: [], wasteTypes: [] }),
     [wasteLoading, setWasteLoading] = useState(true)
-  const [antisepticRows, setAntisepticRows] = useState([]),
-    [antisepticSupport, setAntisepticSupport] = useState({ departments: [], products: [] }),
+  const [antisepticRows, setAntisepticRows] = useState<AnyRecord[]>([]),
+    [antisepticSupport, setAntisepticSupport] = useState<{ departments: PreventionDepartment[]; products: AnyRecord[] }>({ departments: [], products: [] }),
     [antisepticLoading, setAntisepticLoading] = useState(true)
-  const [bundleRows, setBundleRows] = useState([]),
-    [bundleSupport, setBundleSupport] = useState({ departments: [], templates: [] }),
+  const [bundleRows, setBundleRows] = useState<AnyRecord[]>([]),
+    [bundleSupport, setBundleSupport] = useState<{ departments: PreventionDepartment[]; templates: AnyRecord[] }>({ departments: [], templates: [] }),
     [bundleLoading, setBundleLoading] = useState(true)
-  const [vaccinationRows, setVaccinationRows] = useState([]),
+  const [vaccinationRows, setVaccinationRows] = useState<AnyRecord[]>([]),
     [vaccinationLoading, setVaccinationLoading] = useState(true)
   const employeeMap = useMemo(() => {
-    const out = {}
+    const out: Record<string, AnyRecord> = {}
     for (const x of employeeRows) {
       out[x.id] = x
       if (x.dbId) out[x.dbId] = x
@@ -360,8 +362,8 @@ export function PreventionPage() {
     reloadVaccinations,
   ])
   // The arrows in the headers sort the whole filtered list of the tab; the page is cut afterwards.
-  const departmentOf = x => (language === 'el' ? x.departmentEl : x.departmentEn)
-  const sortAccessors = {
+  const departmentOf = (x: AnyRecord) => (language === 'el' ? x.departmentEl : x.departmentEn)
+  const sortAccessors: Record<string, (x: AnyRecord) => unknown> = {
     date: x => x.date || x.period,
     department: departmentOf,
     profession: x => (x.profession ? t(x.profession) : ''),
@@ -395,12 +397,12 @@ export function PreventionPage() {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)),
     safePage = Math.min(page, totalPages),
     pagedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const fmtDate = v => dayLabel(v, language)
+  const fmtDate = (v: string) => dayLabel(v, language)
   const createLabel =
     tab === 'vaccinations'
       ? t('newVaccinationRecord')
       : (createLabelKeys[tab] && t(createLabelKeys[tab])) || t('preventionNewRecordFallback')
-  function changeTab(id) {
+  function changeTab(id: string) {
     if (!tabAccess[id]) return
     registry.saveViewState({ tab, query, department, period, product, method, status })
     const next = readRegistryViewState(`prevention-${id}`)
@@ -413,7 +415,7 @@ export function PreventionPage() {
     setStatus(next?.status || 'all')
     setSearchParams({ tab: id }, { replace: true })
   }
-  function openPreventionRecord(id, type) {
+  function openPreventionRecord(id: string, type: string) {
     if (!tabAccess[type]) return
     registry.saveViewState({ tab: type, query, department, period, product, method, status })
     registry.openRecord(
@@ -424,7 +426,7 @@ export function PreventionPage() {
       { returnState: { tab: type } },
     )
   }
-  function openVaccinationRecord(row) {
+  function openVaccinationRecord(row: AnyRecord) {
     registry.saveViewState({ tab: 'vaccinations', query, department, period, product, method, status })
     registry.openRecord(navigate, `/prevention/vaccinations/${row.id}?fromTab=vaccinations`, row.id, rows.map(x => x.id), { returnState: { tab: 'vaccinations' } })
   }
@@ -444,7 +446,7 @@ export function PreventionPage() {
     }
     navigate(`/prevention/${tab}/new?fromTab=${tab}`)
   }
-  function pageAction(action) {
+  function pageAction(action: string) {
     if (action === UI_ACTIONS.CREATE) createRecord()
   }
   // Placeholders only until the tab's first read ends: a reload after a save keeps the rows.
@@ -559,7 +561,7 @@ export function PreventionPage() {
             ))}
           </FilterSelect>
         </FilterBar>
-        <div className="scroll-table" ref={registry.scrollRef}>
+        <div className="scroll-table" ref={registry.scrollRef as RefObject<HTMLDivElement>}>
           {loading && <TableSkeleton />}
           {tab === 'handHygiene' && !loading && (
             <HandTable

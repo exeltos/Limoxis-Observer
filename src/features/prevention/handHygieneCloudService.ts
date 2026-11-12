@@ -1,18 +1,18 @@
-import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { deletePreventionRecord, findPreventionDepartment, loadPreventionDepartments } from './preventionCloud'
+import { deletePreventionRecord, findPreventionDepartment, loadPreventionDepartments, type PreventionOrgId } from './preventionCloud'
 import {
   normalizeWhoMoments,
   observationWeight,
   whoStatsFromObservations,
 } from './whoHandHygieneStats'
 import { loadHandHygieneLocal, saveHandHygieneLocal } from './preventionStore'
-import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
+import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
+import type { AnyRecord } from '../../types/featureTypes'
 
-function mapSession(row) {
+function mapSession(row: AnyRecord) {
   const items = (row.observations_detail || [])
-    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map(x => ({
+    .sort((a: AnyRecord, b: AnyRecord) => (a.sort_order || 0) - (b.sort_order || 0))
+    .map((x: AnyRecord) => ({
       id: x.id,
       professionalsCount: x.professionals_count,
       professionalCategory: x.professional_category,
@@ -60,24 +60,24 @@ function mapSession(row) {
   }
 }
 
-export function loadHandHygieneDepartments(organizationId) {
+export function loadHandHygieneDepartments(organizationId: PreventionOrgId) {
   return loadPreventionDepartments(organizationId)
 }
 
-export async function loadHandHygieneSessions(organizationId) {
+export async function loadHandHygieneSessions(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
   if (isDemoDataEnvironment()) return loadHandHygieneLocal()
   assertCloud(organizationId)
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('hand_hygiene_sessions')
     .select('*,department:departments(id,name),observations_detail:hand_hygiene_observations(*)')
-    .eq('organization_id', organizationId)
+    .eq('organization_id', organizationId as string)
     .order('observation_date', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data || []).map(mapSession)
 }
 
-export async function saveHandHygieneSession(organizationId, record, { existingId = null } = {}) {
+export async function saveHandHygieneSession(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadHandHygieneLocal()
     const id = existingId || `HH-${Date.now()}`
@@ -94,13 +94,13 @@ export async function saveHandHygieneSession(organizationId, record, { existingI
     organizationId,
     record.departmentEl || record.session?.department || '',
   )
-  const items = record.whoObservations || []
+  const items: AnyRecord[] = record.whoObservations || []
   if (!items.length) throw new Error('At least one WHO observation is required.')
   if (items.some(item => !normalizeWhoMoments(item).length))
     throw new Error('Each WHO opportunity requires at least one indication.')
   const stats = whoStatsFromObservations(items)
   const payload = {
-    organization_id: organizationId,
+    organization_id: organizationId as string,
     department_id: department.id,
     observation_date: record.date || record.session?.date,
     professional_category: items[0]?.professionalCategory || null,
@@ -118,23 +118,23 @@ export async function saveHandHygieneSession(organizationId, record, { existingI
   }
   let session
   if (existingId) {
-    const { data, error } = await supabase
+    const { data, error } = await cloudClient()
       .from('hand_hygiene_sessions')
       .update(payload)
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .eq('id', existingId)
       .select('*')
       .single()
     if (error) throw error
     session = data
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await cloudClient()
       .from('hand_hygiene_observations')
       .delete()
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .eq('session_id', existingId)
     if (deleteError) throw deleteError
   } else {
-    const { data, error } = await supabase
+    const { data, error } = await cloudClient()
       .from('hand_hygiene_sessions')
       .insert({ ...payload, created_by: userId })
       .select('*')
@@ -146,7 +146,7 @@ export async function saveHandHygieneSession(organizationId, record, { existingI
     const moments = normalizeWhoMoments(item)
     return {
       session_id: session.id,
-      organization_id: organizationId,
+      organization_id: organizationId as string,
       professional_category: item.professionalCategory || 'Άλλο',
       professionals_count: observationWeight(item),
       who_moment: moments[0],
@@ -157,7 +157,7 @@ export async function saveHandHygieneSession(organizationId, record, { existingI
       sort_order: index,
     }
   })
-  const { error: observationsError } = await supabase
+  const { error: observationsError } = await cloudClient()
     .from('hand_hygiene_observations')
     .insert(observationRows)
   if (observationsError) throw observationsError
@@ -165,6 +165,6 @@ export async function saveHandHygieneSession(organizationId, record, { existingI
   return rows.find(x => x.id === session.id) || null
 }
 
-export function deleteHandHygieneSession(organizationId, id) {
+export function deleteHandHygieneSession(organizationId: PreventionOrgId, id: string | null | undefined) {
   return deletePreventionRecord(organizationId, id, { table: 'hand_hygiene_sessions', localTable: 'prevention_hand_hygiene', label: 'Υγιεινή χεριών', loadLocal: loadHandHygieneLocal, saveLocal: saveHandHygieneLocal, children: [{ table: 'hand_hygiene_observations', column: 'session_id' }] })
 }

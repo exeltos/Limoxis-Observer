@@ -1,11 +1,11 @@
-import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { bundleTemplateLibrary } from './preventionDemoData'
 import { loadBundlesLocal, saveBundlesLocal } from './preventionStore'
-import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
-import { deletePreventionRecord, loadPreventionDepartments, sharedInFlight } from './preventionCloud'
+import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
+import type { AnyRecord } from '../../types/featureTypes'
+import { deletePreventionRecord, loadPreventionDepartments, sharedInFlight, type PreventionOrgId } from './preventionCloud'
 
-function mapTemplate(row) {
+function mapTemplate(row: AnyRecord) {
   const elements = Array.isArray(row.elements) ? row.elements : []
   return {
     dbId: row.id,
@@ -29,7 +29,7 @@ function mapTemplate(row) {
     rawElements: elements,
   }
 }
-function mapAssessment(row, templates = []) {
+function mapAssessment(row: AnyRecord, templates: AnyRecord[] = []) {
   const criteria = row.criteria && typeof row.criteria === 'object' ? row.criteria : {}
   const evidence = Array.isArray(row.evidence) ? row.evidence : []
   const template =
@@ -84,7 +84,7 @@ function mapAssessment(row, templates = []) {
     updatedById: row.updated_by,
   }
 }
-export async function loadBundleSupportData(organizationId) {
+export async function loadBundleSupportData(organizationId: PreventionOrgId) {
   if (isDemoDataEnvironment())
     return {
       departments: await loadPreventionDepartments(organizationId),
@@ -95,7 +95,7 @@ export async function loadBundleSupportData(organizationId) {
   const [departments, templatesResult] = await Promise.all([
     loadPreventionDepartments(organizationId),
     sharedInFlight(`bundle-templates|${organizationId}`, () =>
-      supabase
+      cloudClient()
         .from('prevention_bundle_templates')
         .select('*')
         .eq('status', 'published')
@@ -112,22 +112,22 @@ export async function loadBundleSupportData(organizationId) {
     templates: (templatesResult.data || []).map(mapTemplate),
   }
 }
-export async function loadBundleClinicalOptions(organizationId) {
+export async function loadBundleClinicalOptions(organizationId: PreventionOrgId) {
   if (isDemoDataEnvironment()) return { patients: [], devices: [] }
   assertCloud(organizationId)
   const [patientsResult, devicesResult] = await Promise.all([
-    supabase
+    cloudClient()
       .from('patients')
       .select(
         'id,patient_code,first_name,last_name,department_id,status,admission_date,discharge_date',
       )
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .order('last_name')
       .order('first_name'),
-    supabase
+    cloudClient()
       .from('surveillance_devices')
       .select('id,patient_id,department_id,device_type,site,status,inserted_at,removed_at')
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .order('inserted_at', { ascending: false }),
   ])
   if (patientsResult.error) throw patientsResult.error
@@ -159,14 +159,14 @@ export async function loadBundleClinicalOptions(organizationId) {
   }))
   return { patients, devices }
 }
-export async function loadBundleAssessments(organizationId) {
+export async function loadBundleAssessments(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
   if (isDemoDataEnvironment()) return loadBundlesLocal()
   assertCloud(organizationId)
   const support = await loadBundleSupportData(organizationId)
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('prevention_bundle_assessments')
     .select('*,department:departments(id,name)')
-    .eq('organization_id', organizationId)
+    .eq('organization_id', organizationId as string)
     .order('assessment_date', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -174,24 +174,24 @@ export async function loadBundleAssessments(organizationId) {
 }
 // The checks made from one episode (its devices), newest first. Production reads only the
 // episode's rows; the demo filters its in-memory list.
-export async function loadEpisodeBundleAssessments(organizationId, caseIds = []) {
+export async function loadEpisodeBundleAssessments(organizationId: PreventionOrgId, caseIds: string[] = []) {
   const ids = [...new Set(caseIds.map(String).filter(Boolean))]
   if (!ids.length) return []
   if (isDemoDataEnvironment())
     return loadBundlesLocal().filter(row => ids.includes(String(row.surveillanceCaseId || '')))
   assertCloud(organizationId)
   const support = await loadBundleSupportData(organizationId)
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('prevention_bundle_assessments')
     .select('*,department:departments(id,name)')
-    .eq('organization_id', organizationId)
+    .eq('organization_id', organizationId as string)
     .in('surveillance_case_id', ids)
     .order('assessment_date', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data || []).map(row => mapAssessment(row, support.templates))
 }
-export async function saveBundleAssessment(organizationId, record, { existingId = null } = {}) {
+export async function saveBundleAssessment(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadBundlesLocal()
     const id = existingId || `BND-${Date.now()}`
@@ -250,7 +250,7 @@ export async function saveBundleAssessment(organizationId, record, { existingId 
     templateSnapshot: template,
   }
   const payload = {
-    organization_id: organizationId,
+    organization_id: organizationId as string,
     department_id: department.id,
     bundle_key: template.bundleKey,
     assessment_date: record.date,
@@ -268,17 +268,17 @@ export async function saveBundleAssessment(organizationId, record, { existingId 
   }
   let saved
   if (existingId) {
-    const { data, error } = await supabase
+    const { data, error } = await cloudClient()
       .from('prevention_bundle_assessments')
       .update(payload)
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .eq('id', existingId)
       .select('*')
       .single()
     if (error) throw error
     saved = data
   } else {
-    const { data, error } = await supabase
+    const { data, error } = await cloudClient()
       .from('prevention_bundle_assessments')
       .insert({ ...payload, created_by: userId })
       .select('*')
@@ -289,7 +289,7 @@ export async function saveBundleAssessment(organizationId, record, { existingId 
   const rows = await loadBundleAssessments(organizationId)
   return rows.find(x => x.id === saved.id) || null
 }
-export async function saveBundleFollowUp(organizationId, assessmentId, itemId, followUp) {
+export async function saveBundleFollowUp(organizationId: PreventionOrgId, assessmentId: string, itemId: string, followUp: AnyRecord) {
   if (!assessmentId || !itemId)
     throw new Error('Bundle assessment and follow-up item are required.')
   if (isDemoDataEnvironment()) {
@@ -306,28 +306,28 @@ export async function saveBundleFollowUp(organizationId, assessmentId, itemId, f
   }
   assertCloud(organizationId)
   const userId = await currentUserId()
-  const { data: current, error: loadError } = await supabase
+  const { data: current, error: loadError } = await cloudClient()
     .from('prevention_bundle_assessments')
     .select('criteria')
-    .eq('organization_id', organizationId)
+    .eq('organization_id', organizationId as string)
     .eq('id', assessmentId)
     .single()
   if (loadError) throw loadError
-  const criteria = current?.criteria && typeof current.criteria === 'object' ? current.criteria : {}
+  const criteria: AnyRecord = current?.criteria && typeof current.criteria === 'object' ? current.criteria : {}
   const followUps = { ...(criteria.followUps || {}), [itemId]: followUp }
-  const { error: updateError } = await supabase
+  const { error: updateError } = await cloudClient()
     .from('prevention_bundle_assessments')
     .update({
       criteria: { ...criteria, followUps },
       updated_by: userId,
       updated_at: new Date().toISOString(),
     })
-    .eq('organization_id', organizationId)
+    .eq('organization_id', organizationId as string)
     .eq('id', assessmentId)
   if (updateError) throw updateError
   const rows = await loadBundleAssessments(organizationId)
   return rows.find(item => item.id === assessmentId) || null
 }
-export function deleteBundleAssessment(organizationId, id) {
+export function deleteBundleAssessment(organizationId: PreventionOrgId, id: string | null | undefined) {
   return deletePreventionRecord(organizationId, id, { table: 'prevention_bundle_assessments', localTable: 'prevention_bundles', label: 'Δέσμη μέτρων', loadLocal: loadBundlesLocal, saveLocal: saveBundlesLocal })
 }

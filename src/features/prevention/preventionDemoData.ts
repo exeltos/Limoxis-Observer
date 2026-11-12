@@ -12,11 +12,12 @@ import {
   seededRandom,
 } from '../../core/data/demoSeed'
 import { whoStatsFromObservations } from './whoHandHygieneStats'
+import type { AnyRecord } from '../../types/featureTypes'
 import { antisepticLibrary, bundleTemplateLibrary, preventionDepartments, wasteTypeLibrary } from './preventionDemoLibraries'
 
 export { antisepticLibrary, bundleTemplateLibrary, preventionDepartments, wasteTypeLibrary } from './preventionDemoLibraries'
 
-function handHygieneRow({ id, date, department, profession, observer, startTime, endTime, items }) {
+function handHygieneRow({ id, date, department, profession, observer, startTime, endTime, items }: AnyRecord) {
   const stats = whoStatsFromObservations(items)
   return {
     id,
@@ -273,7 +274,7 @@ function wasteRow({
   responsible,
   documentNumber,
   collectionCompany,
-}) {
+}: AnyRecord) {
   return {
     id,
     date: periodEnd,
@@ -357,7 +358,7 @@ function antisepticRow({
   method,
   referenceNumber,
   responsible,
-}) {
+}: AnyRecord) {
   const eligible = Boolean(product.metadata?.is_abhr)
   return {
     id,
@@ -426,8 +427,8 @@ export const antisepticRows = [
   }),
 ]
 
-function bundleAssessmentRow({ id, template, department, date, answers, shift, context, owner, links = {} }) {
-  const elementIds = template.rawElements.map(item => item.id)
+function bundleAssessmentRow({ id, template, department, date, answers, shift, context, owner, links = {} }: AnyRecord) {
+  const elementIds: string[] = template.rawElements.map((item: AnyRecord) => item.id)
   const applicable = elementIds
     .map(itemId => answers[itemId])
     .filter(x => x === 'yes' || x === 'no')
@@ -435,8 +436,8 @@ function bundleAssessmentRow({ id, template, department, date, answers, shift, c
   const score = applicable.length ? Math.round((yes / applicable.length) * 100) : null
   const failedCount = applicable.length - yes
   const findings = template.rawElements
-    .filter(item => answers[item.id] === 'no')
-    .map(item => ({ id: item.id, label: item.labelEl, note: '' }))
+    .filter((item: AnyRecord) => answers[item.id] === 'no')
+    .map((item: AnyRecord) => ({ id: item.id, label: item.labelEl, note: '' }))
   return {
     id,
     bundle: template.bundleKey,
@@ -607,8 +608,8 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
   }
 })
 
-const monthPeriod = month => [`${month}-01`, `${month}-${pad2(lastDayOfMonth(month))}`]
-const hasMonthlyRow = (rows, department, key, value, month) =>
+const monthPeriod = (month: string) => [`${month}-01`, `${month}-${pad2(lastDayOfMonth(month))}`]
+const hasMonthlyRow = (rows: AnyRecord[], department: AnyRecord, key: string, value: string, month: string) =>
   rows.some(
     row =>
       row.departmentEl === department.el && row[key] === value && row.periodStart.startsWith(month),
@@ -628,7 +629,7 @@ DEMO_HISTORY_MONTHS.forEach(month => {
         type.id === 'wt-sharps'
           ? 30 + rand() * 18
           : (department.id === 'dep-icu' ? 290 : 190) + rand() * 60
-      const weight = Number(((perThousand * patientDays) / 1000).toFixed(1))
+      const weight = Number(((perThousand * patientDays!) / 1000).toFixed(1))
       wasteDocument += 1
       wasteRows.push(
         wasteRow({
@@ -671,7 +672,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
           periodEnd,
           department,
           product,
-          litres: Number(((perThousand * patientDays) / 1000).toFixed(1)),
+          litres: Number(((perThousand * patientDays!) / 1000).toFixed(1)),
           patientDays,
           method: 'direct_measurement',
           referenceNumber: `ΔΤ-${antisepticReference}`,
@@ -683,15 +684,15 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
 })
 
 const [clabsi, vae, cauti, ssi] = bundleTemplateLibrary
-const ward = id => preventionDepartments.find(department => department.id === id)
-const BUNDLE_PLAN = [
+const ward = (id: string) => preventionDepartments.find(department => department.id === id)
+const BUNDLE_PLAN: [AnyRecord, string, string, number][] = [
   [clabsi, 'dep-icu', 'Κεντρικός φλεβικός καθετήρας', 6],
   [vae, 'dep-icu', 'Μηχανικός αερισμός', 12],
   [cauti, 'dep-icu', 'Ουροκαθετήρας', 17],
   [cauti, 'dep-internal', 'Ουροκαθετήρας', 20],
   [ssi, 'dep-surgery', 'Χειρουργική επέμβαση', 9],
 ]
-const BUNDLE_EXTRA = [
+const BUNDLE_EXTRA: [AnyRecord, string, string, number][] = [
   [clabsi, 'dep-surgery', 'Κεντρικός φλεβικός καθετήρας', 23],
   [ssi, 'dep-ortho', 'Χειρουργική επέμβαση', 14],
   [clabsi, 'dep-nicu', 'Κεντρικός φλεβικός καθετήρας', 25],
@@ -703,7 +704,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
     const rand = seededRandom(`bundle|${month}|${index}`)
     const reliability = 0.84 + (monthIndex - DEMO_HISTORY_LEAD) * 0.009
     const answers = Object.fromEntries(
-      template.rawElements.map(item => [
+      template.rawElements.map((item: AnyRecord) => [
         item.id,
         rand() < 0.05 ? 'na' : rand() < reliability ? 'yes' : 'no',
       ]),

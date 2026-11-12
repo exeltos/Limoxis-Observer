@@ -5,8 +5,10 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
+import type { AnyRecord } from '../../types/featureTypes'
 
-export function BundleFollowUpDialog({ item, value, onClose, onSave }) {
+interface BundleFollowUpDialogProps { item?: { label?: string; note?: string } | null; value?: AnyRecord | null; onClose: () => void; onSave?: (followUp: AnyRecord) => void }
+export function BundleFollowUpDialog({ item, value, onClose, onSave }: BundleFollowUpDialogProps) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { profile, user } = useAuth()
@@ -66,7 +68,7 @@ export function BundleFollowUpDialog({ item, value, onClose, onSave }) {
         <label className="field bundle-followup-comment">
           <span className="lo-field-label">{en ? 'Comment / action' : 'Σχόλιο / ενέργεια'}</span>
           <textarea
-            rows="4"
+            rows={4}
             value={draft.comment}
             onChange={e => setDraft(current => ({ ...current, comment: e.target.value }))}
             placeholder={

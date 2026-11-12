@@ -9,21 +9,34 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { translate } from '../../core/i18n/LanguageContext'
 import { antisepticMethodLabel, antisepticPeriodLabel } from './antisepticMethods'
 import { wasteCategoryTone, wastePeriodLabel } from './wasteVisuals'
+import type { RegistryTotal } from '../../design-system/RegistryTotals'
+import type { SortState } from '../../design-system/useTableSort'
+import type { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// What every tab's table gets from the page: its sorted rows, the sort, the registry memory
+// (highlighted row, scroll) and how to open a record.
+interface PreventionTableProps { sort?: SortState | null; onSort?: (key: string) => void; rows: AnyRecord[]; t: (key: string) => string; language: string; onOpen: (id: string) => void; registry: ReturnType<typeof useRegistryMemory> }
+type DatedTableProps = PreventionTableProps & { fmtDate: (value: string) => string }
+// The vaccinations open from the row itself, with its employee.
+type VaccinationTableProps = Omit<DatedTableProps, 'onOpen'> & { employeeMap: Record<string, AnyRecord>; onOpen: (row: AnyRecord) => void }
+// The rows of the tabs with key figures, as the page loaded them.
+interface KpiSource { rows: AnyRecord[]; loading?: boolean }
 
 // Numbers in the user's language (79,1% in Greek) and the antiseptic month
 // as MM/YYYY instead of the stored YYYY-MM.
-const fmtNumber = (value, language) =>
+const fmtNumber = (value: unknown, language: string) =>
   new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(
     Number(value),
   )
 // Every prevention date as dd/mm/yyyy (two-digit day and month), like the other registries.
-export const dayLabel = (value, language) => {
+export const dayLabel = (value: string, language: string) => {
   const text = String(value || '').slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return formatDay(value, language)
   return new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${text}T12:00:00`))
 }
-export const fmtMonth = value => antisepticPeriodLabel(value)
-export const tabIcons = {
+export const fmtMonth = (value: string | null | undefined) => antisepticPeriodLabel(value)
+export const tabIcons: Record<string, typeof ShieldCheck> = {
   handHygiene: ClipboardCheck,
   waste: Recycle,
   antiseptics: Droplets,
@@ -32,13 +45,13 @@ export const tabIcons = {
 }
 // The key figures of the open tab, with their period and target (preventionKpis.js): one line of totals beside the
 // search (owner, 8/11/2026: no cards); the period and the target are in the tooltip.
-export function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }) {
+export function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }: { tab: string; language: string; hand: KpiSource; waste: KpiSource; antiseptic: KpiSource; bundle: KpiSource }) {
   const en = language === 'en'
-  const tr = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value), translate(`preventionKpis.${key}`, language))
-  const fmt = value => (value == null ? null : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value))
+  const tr = (key: string, values: Record<string, string | number> = {}) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, String(value)), translate(`preventionKpis.${key}`, language))
+  const fmt = (value: number | null | undefined) => (value == null ? null : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value))
   const days30 = tr('days30')
-  const item = (key, label, value, { unit = '', tone, title } = {}) => (value == null || value === '' ? null : { key, always: true, value: 0, display: `${value}${unit}`, label, tone, title: [label, title].filter(Boolean).join(' · ') })
-  const strip = (label, items) => <RegistryTotals label={label} items={items.filter(Boolean)} />
+  const item = (key: string, label: string, value: unknown, { unit = '', tone, title }: { unit?: string; tone?: string | null; title?: string } = {}): RegistryTotal | null => (value == null || value === '' ? null : { key, always: true, value: 0, display: `${value}${unit}`, label, tone: tone as string | undefined, title: [label, title].filter(Boolean).join(' · ') })
+  const strip = (label: string, items: (RegistryTotal | null)[]) => <RegistryTotals label={label} items={items.filter(Boolean)} />
   if (tab === 'handHygiene') {
     const k = handHygieneKpis(hand.rows)
     return strip(tr('handHygiene'), [
@@ -76,7 +89,7 @@ export function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle 
   }
   return null
 }
-const preventionEmptyTitleKeys = {
+const preventionEmptyTitleKeys: Record<string, string> = {
   handHygiene: 'preventionEmptyHandHygieneTitle',
   waste: 'preventionEmptyWasteTitle',
   antiseptics: 'preventionEmptyAntisepticsTitle',
@@ -84,7 +97,7 @@ const preventionEmptyTitleKeys = {
 }
 // The empty list says what to do next: the filters when they hide everything,
 // else the button that adds the first record.
-export function PreventionEmpty({ t, tab, filtered, createLabel, onCreate, onClearFilters }) {
+export function PreventionEmpty({ t, tab, filtered, createLabel, onCreate, onClearFilters }: { t: (key: string) => string; tab: string; filtered: boolean; createLabel?: string; onCreate?: () => void; onClearFilters?: () => void }) {
   const text = filtered
     ? undefined
     : createLabel
@@ -101,11 +114,11 @@ export function PreventionEmpty({ t, tab, filtered, createLabel, onCreate, onCle
     />
   )
 }
-function rowPropsWithOpen(registry, id, onOpen) {
+function rowPropsWithOpen(registry: PreventionTableProps['registry'], id: string, onOpen: (id: string) => void) {
   const rp = registry.rowProps(id)
   return { ...rp, className: `${rp.className} clickable-row`, onClick: () => onOpen(id) }
 }
-export function HandTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }) {
+export function HandTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }: DatedTableProps) {
   return (
     <RegistryTable
       bare
@@ -144,7 +157,7 @@ export function HandTable({ sort, onSort, rows, t, language, fmtDate, onOpen, re
     />
   )
 }
-export function WasteTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }) {
+export function WasteTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }: DatedTableProps) {
   return (
     <RegistryTable
       bare
@@ -196,7 +209,7 @@ export function WasteTable({ sort, onSort, rows, t, language, fmtDate, onOpen, r
 // The usual source (direct measurement) is not repeated on every row: the column appears only
 // when some record has another one.
 const DEFAULT_SOURCE = 'direct_measurement'
-export function AntisepticTable({ sort, onSort, rows, t, language, onOpen, registry }) {
+export function AntisepticTable({ sort, onSort, rows, t, language, onOpen, registry }: PreventionTableProps) {
   const showSource = rows.some(x => x.method !== DEFAULT_SOURCE)
   return (
     <RegistryTable
@@ -254,7 +267,7 @@ export function AntisepticTable({ sort, onSort, rows, t, language, onOpen, regis
     />
   )
 }
-export function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }) {
+export function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }: PreventionTableProps) {
   return (
     <RegistryTable
       bare
@@ -306,8 +319,8 @@ export function BundleTable({ sort, onSort, rows, t, language, onOpen, registry 
     />
   )
 }
-export function VaccinationTable({ sort, onSort, rows, t, language, fmtDate, employeeMap, onOpen, registry }) {
-  const name = e =>
+export function VaccinationTable({ sort, onSort, rows, t, language, fmtDate, employeeMap, onOpen, registry }: VaccinationTableProps) {
+  const name = (e: AnyRecord | undefined) =>
     !e
       ? '—'
       : language === 'el'
@@ -355,6 +368,6 @@ export function VaccinationTable({ sort, onSort, rows, t, language, fmtDate, emp
     />
   )
 }
-function localeFromLanguage(language) {
+function localeFromLanguage(language: string) {
   return language === 'en' ? 'en-GB' : 'el-GR'
 }

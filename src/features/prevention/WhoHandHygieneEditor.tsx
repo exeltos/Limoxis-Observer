@@ -15,6 +15,8 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { PreventionDepartmentField, selectTexts } from './PreventionFields'
 import { normalizeWhoMoments, whoStatsFromObservations } from './whoHandHygieneStats'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment } from './preventionCloud'
 export const WHO_MOMENTS = [
   {
     id: 'moment1',
@@ -66,7 +68,7 @@ const blankObservation = () => ({
   notes: '',
 })
 
-const actionLabel = (action, en) =>
+const actionLabel = (action: string, en: boolean) =>
   !action
     ? en
       ? 'Select action'
@@ -82,7 +84,7 @@ const actionLabel = (action, en) =>
         : en
           ? 'Missed'
           : 'Δεν έγινε'
-const momentLabels = (moments, en) =>
+const momentLabels = (moments: string[], en: boolean) =>
   normalizeWhoMoments({ moments })
     .map(id => WHO_MOMENTS.find(moment => moment.id === id))
     .filter(Boolean)
@@ -93,7 +95,7 @@ export function WhoHandHygieneEditor({
   fixedDepartment = '',
   initialRecord = null,
   departments = [],
-}) {
+}: { onSave: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[] }) {
   const { profile, user } = useAuth()
   const { tenant } = useTenant()
   const { language } = useLanguage()
@@ -102,7 +104,7 @@ export function WhoHandHygieneEditor({
   const { confirm, notify, notifyError } = useFeedback()
   const today = hospitalToday()
   const firstDepartment = fixedDepartment || initialRecord?.departmentEl || departments[0]?.el || ''
-  const [session, setSession] = useState(() =>
+  const [session, setSession] = useState<AnyRecord>(() =>
     initialRecord?.session
       ? {
           ...initialRecord.session,
@@ -120,11 +122,11 @@ export function WhoHandHygieneEditor({
           endTime: '',
         },
   )
-  const [current, setCurrent] = useState(blankObservation())
+  const [current, setCurrent] = useState<AnyRecord>(blankObservation())
   const [currentTouched, setCurrentTouched] = useState(false)
-  const [items, setItems] = useState(() =>
+  const [items, setItems] = useState<AnyRecord[]>(() =>
     initialRecord?.whoObservations
-      ? JSON.parse(JSON.stringify(initialRecord.whoObservations)).map(item => ({
+      ? JSON.parse(JSON.stringify(initialRecord.whoObservations)).map((item: AnyRecord) => ({
           ...item,
           moments: normalizeWhoMoments(item),
         }))
@@ -144,7 +146,7 @@ export function WhoHandHygieneEditor({
   useEffect(() => {
     if (!supabase || !tenant?.id) return
     let active = true
-    supabase
+    Promise.resolve(supabase
       .from('master_library_items')
       .select('id,name_el,name_en')
       .eq('organization_id', tenant.id)
@@ -170,8 +172,8 @@ export function WhoHandHygieneEditor({
             ? { ...state, professionalCategory: preferred.value }
             : state
         })
-      })
-      .catch(error => {
+      }))
+      .catch((error: unknown) => {
         if (active)
           notifyError(error, 'load', { operation: 'hand_hygiene_professional_categories_load' })
       })
@@ -198,17 +200,17 @@ export function WhoHandHygieneEditor({
     return options
   }, [professionalCategories, current.professionalCategory, en])
 
-  const professionalLabel = value => {
+  const professionalLabel = (value: string) => {
     const category = professionalCategories.find(item => item.value === value)
     return category ? (en ? category.labelEn : category.labelEl) : value
   }
 
-  const setS = (key, value) => setSession(state => ({ ...state, [key]: value }))
-  const setO = (key, value) => {
+  const setS = (key: string, value: unknown) => setSession(state => ({ ...state, [key]: value }))
+  const setO = (key: string, value: unknown) => {
     setCurrentTouched(true)
     setCurrent(state => ({ ...state, [key]: value }))
   }
-  const toggleMoment = id => {
+  const toggleMoment = (id: string) => {
     setCurrentTouched(true)
     setCurrent(state => {
       const selected = normalizeWhoMoments(state)
@@ -249,7 +251,7 @@ export function WhoHandHygieneEditor({
     setCurrentTouched(false)
   }
 
-  async function removeObservation(id) {
+  async function removeObservation(id: string) {
     const ok = await confirm({
       title: en ? 'Remove observation' : 'Αφαίρεση παρατήρησης',
       message: en

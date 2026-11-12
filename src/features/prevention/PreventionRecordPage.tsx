@@ -53,28 +53,31 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { AntisepticDetails, BundleDetails, HandHygieneDetails, formatMonth } from './PreventionRecordDetails'
+import type { RecordNavigation } from '../../design-system/EntityRecordShell'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment, PreventionOrgId } from './preventionCloud'
 
 export { bundleFollowUpTone } from './PreventionRecordDetails'
 
-const icons = {
+const icons: Record<string, typeof ShieldCheck> = {
   handHygiene: ShieldCheck,
   waste: Recycle,
   antiseptics: Droplets,
   bundles: ClipboardCheck,
 }
-const loaders = {
+const loaders: Record<string, (organizationId: PreventionOrgId) => Promise<AnyRecord[]>> = {
   handHygiene: loadHandHygieneSessions,
   waste: loadWasteMeasurements,
   antiseptics: loadAntisepticRecords,
   bundles: loadBundleAssessments,
 }
-const deleters = {
+const deleters: Record<string, (organizationId: PreventionOrgId, id: string) => Promise<unknown>> = {
   handHygiene: deleteHandHygieneSession,
   waste: deleteWasteMeasurement,
   antiseptics: deleteAntisepticRecord,
   bundles: deleteBundleAssessment,
 }
-const editCapabilities = {
+const editCapabilities: Record<string, string> = {
   handHygiene: CAPABILITIES.RECORD_HAND_HYGIENE,
   waste: CAPABILITIES.RECORD_WASTE,
   antiseptics: CAPABILITIES.RECORD_ANTISEPTIC,
@@ -82,7 +85,8 @@ const editCapabilities = {
 }
 
 export function PreventionRecordPage() {
-  const { recordType, recordId } = useParams()
+  // The route always names both (/prevention/:recordType/:recordId).
+  const { recordType, recordId } = useParams() as { recordType: string; recordId: string }
   const navigate = useNavigate()
   const location = useLocation()
   // A check opened from a device of an episode (Φόρμες & ερωτηματολόγια): it returns there.
@@ -97,27 +101,27 @@ export function PreventionRecordPage() {
   const supportsPageEditor = ['handHygiene', 'waste', 'antiseptics', 'bundles'].includes(recordType)
   const creating = supportsPageEditor && recordId === 'new'
   const editing = supportsPageEditor && !creating && searchParams.get('edit') === '1'
-  const [record, setRecord] = useState(null)
+  const [record, setRecord] = useState<AnyRecord | null>(null)
   const [loading, setLoading] = useState(!creating)
-  const [handDepartments, setHandDepartments] = useState([])
-  const [wasteSupport, setWasteSupport] = useState({ departments: [], wasteTypes: [] })
-  const [antisepticSupport, setAntisepticSupport] = useState({ departments: [], products: [] })
-  const [bundleSupport, setBundleSupport] = useState({ departments: [], templates: [] })
-  const [bundleFollowUpItem, setBundleFollowUpItem] = useState(null)
+  const [handDepartments, setHandDepartments] = useState<PreventionDepartment[]>([])
+  const [wasteSupport, setWasteSupport] = useState<{ departments: PreventionDepartment[]; wasteTypes: AnyRecord[] }>({ departments: [], wasteTypes: [] })
+  const [antisepticSupport, setAntisepticSupport] = useState<{ departments: PreventionDepartment[]; products: AnyRecord[] }>({ departments: [], products: [] })
+  const [bundleSupport, setBundleSupport] = useState<{ departments: PreventionDepartment[]; templates: AnyRecord[] }>({ departments: [], templates: [] })
+  const [bundleFollowUpItem, setBundleFollowUpItem] = useState<AnyRecord | null>(null)
   const recordNavigation = useRecordSequenceNavigation({
     registry: `prevention-${recordType}`,
     currentId: recordId,
-    pathForId: id => `/prevention/${recordType}/${id}?fromTab=${recordType}`,
+    pathForId: (id: string) => `/prevention/${recordType}/${id}?fromTab=${recordType}`,
   })
   const addOns = membership?.capabilities ?? []
   const custom = membership?.customCapabilities ?? []
   const ownDepartment =
-    membership?.previewDepartment || membership?.departmentName || membership?.department || ''
-  const departmentScoped = [
+    membership?.previewDepartment || membership?.departmentName || (membership as AnyRecord | null)?.department || ''
+  const departmentScoped = ([
     ROLES.DEPARTMENT_MANAGER,
     ROLES.DEPARTMENT_USER,
     ROLES.LINK_NURSE,
-  ].includes(role)
+  ] as (string | null)[]).includes(role)
   const recordCapability = editCapabilities[recordType]
   const broadPreventionView = can(role, CAPABILITIES.VIEW_PREVENTION, [], custom)
   const recordTypeAccess =
@@ -144,11 +148,11 @@ export function PreventionRecordPage() {
     }
     let active = true
     setLoading(true)
-    loader(tenant.id)
+    loader(tenant?.id)
       .then(rows => {
         if (active) setRecord(rows.find(row => row.id === recordId) || null)
       })
-      .catch(error => {
+      .catch((error: unknown) => {
         if (active) {
           setRecord(null)
           notifyError(error, 'load', { operation: `${recordType}_record_load` })
@@ -166,25 +170,25 @@ export function PreventionRecordPage() {
     if (!tenant?.id || !recordTypeAccess) return
     let active = true
     if (recordType === 'handHygiene')
-      loadHandHygieneDepartments(tenant.id)
+      loadHandHygieneDepartments(tenant?.id)
         .then(rows => {
           if (active) setHandDepartments(rows)
         })
         .catch(error => notifyError(error, 'load', { operation: 'hand_hygiene_departments_load' }))
     if (recordType === 'waste')
-      loadWasteSupportData(tenant.id)
+      loadWasteSupportData(tenant?.id)
         .then(data => {
           if (active) setWasteSupport(data)
         })
         .catch(error => notifyError(error, 'load', { operation: 'waste_support_load' }))
     if (recordType === 'antiseptics')
-      loadAntisepticSupportData(tenant.id)
+      loadAntisepticSupportData(tenant?.id)
         .then(data => {
           if (active) setAntisepticSupport(data)
         })
         .catch(error => notifyError(error, 'load', { operation: 'antiseptic_support_load' }))
     if (recordType === 'bundles')
-      loadBundleSupportData(tenant.id)
+      loadBundleSupportData(tenant?.id)
         .then(data => {
           if (active) setBundleSupport(data)
         })
@@ -242,7 +246,7 @@ export function PreventionRecordPage() {
     )
 
   const Icon = icons[recordType] || ShieldCheck
-  const fmtDate = value => formatDay(value, language)
+  const fmtDate = (value: string) => formatDay(value, language)
   const wasteCategory = record?.wasteType || record?.type
   const recordTitle = creating
     ? recordType === 'waste'
@@ -323,11 +327,11 @@ export function PreventionRecordPage() {
     </StatusBadge>
   ) : null
 
-  async function saveHandHygiene(updated) {
+  async function saveHandHygiene(updated: AnyRecord) {
     if (!canEditRecord) return
     try {
-      const saved = await saveHandHygieneSession(tenant.id, updated, {
-        existingId: creating ? null : record.id,
+      const saved = await saveHandHygieneSession(tenant!.id, updated, {
+        existingId: creating ? null : record!.id,
       })
       if (saved) setRecord(saved)
       if (creating) signalDemoScenario('hand_hygiene')
@@ -354,11 +358,11 @@ export function PreventionRecordPage() {
       throw error
     }
   }
-  async function saveWaste(updated) {
+  async function saveWaste(updated: AnyRecord) {
     if (!canEditRecord) return
     try {
-      const saved = await saveWasteMeasurement(tenant.id, updated, {
-        existingId: creating ? null : record.id,
+      const saved = await saveWasteMeasurement(tenant!.id, updated, {
+        existingId: creating ? null : record!.id,
       })
       if (saved) setRecord(saved)
       notify(
@@ -380,11 +384,11 @@ export function PreventionRecordPage() {
       throw error
     }
   }
-  async function saveAntiseptic(updated) {
+  async function saveAntiseptic(updated: AnyRecord) {
     if (!canEditRecord) return
     try {
-      const saved = await saveAntisepticRecord(tenant.id, updated, {
-        existingId: creating ? null : record.id,
+      const saved = await saveAntisepticRecord(tenant!.id, updated, {
+        existingId: creating ? null : record!.id,
       })
       if (saved) setRecord(saved)
       notify(
@@ -410,11 +414,11 @@ export function PreventionRecordPage() {
       throw error
     }
   }
-  async function saveBundle(updated) {
+  async function saveBundle(updated: AnyRecord) {
     if (!canEditRecord) return
     try {
-      const saved = await saveBundleAssessment(tenant.id, updated, {
-        existingId: creating ? null : record.id,
+      const saved = await saveBundleAssessment(tenant!.id, updated, {
+        existingId: creating ? null : record!.id,
       })
       if (saved) setRecord(saved)
       notify(
@@ -440,10 +444,10 @@ export function PreventionRecordPage() {
       throw error
     }
   }
-  async function saveBundleFollowUpRecord(followUp) {
+  async function saveBundleFollowUpRecord(followUp: AnyRecord) {
     if (!canEditRecord || !bundleFollowUpItem) return
     try {
-      const saved = await saveBundleFollowUp(tenant.id, record.id, bundleFollowUpItem.id, followUp)
+      const saved = await saveBundleFollowUp(tenant!.id, record!.id, bundleFollowUpItem!.id, followUp)
       if (saved) setRecord(saved)
       setBundleFollowUpItem(null)
       notify(en ? 'Follow-up saved.' : 'Ο επανέλεγχος αποθηκεύτηκε.', 'success')
@@ -465,7 +469,7 @@ export function PreventionRecordPage() {
     })
     if (!ok) return
     try {
-      await deleters[recordType]?.(tenant.id, record.id)
+      await deleters[recordType]?.(tenant!.id, record!.id)
       notify(en ? 'Record deleted.' : 'Η εγγραφή διαγράφηκε.', 'success')
       navigate(`/prevention?tab=${recordType}`, { replace: true })
     } catch (error) {
@@ -481,7 +485,7 @@ export function PreventionRecordPage() {
               label={en ? 'Edit' : 'Επεξεργασία'}
               tone="edit"
               onClick={() =>
-                navigate(`/prevention/${recordType}/${record.id}?edit=1`, { replace: true })
+                navigate(`/prevention/${recordType}/${record!.id}?edit=1`, { replace: true })
               }
             >
               <Pencil size={16} />
@@ -504,7 +508,7 @@ export function PreventionRecordPage() {
   const backToList = () =>
     creating && episodeBundle?.returnTo ? backToEpisode() : navigate(`/prevention?tab=${recordType}`, { replace: true })
   const backToRecord = () =>
-    navigate(`/prevention/${recordType}/${record.id}?fromTab=${recordType}`, { replace: true })
+    navigate(`/prevention/${recordType}/${record!.id}?fromTab=${recordType}`, { replace: true })
   let editor = null
   if (recordType === 'handHygiene')
     editor = (
@@ -523,7 +527,7 @@ export function PreventionRecordPage() {
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
         findPatientDays={(departmentId, from, to) =>
-          findWastePatientDays(tenant.id, departmentId, from, to)
+          findWastePatientDays(tenant!.id, departmentId, from, to)
         }
         onSave={saveWaste}
       />
@@ -536,7 +540,7 @@ export function PreventionRecordPage() {
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
         findPatientDays={(departmentId, from, to) =>
-          findPatientDaysForPeriod(tenant.id, departmentId, from, to)
+          findPatientDaysForPeriod(tenant!.id, departmentId, from, to)
         }
         onSave={saveAntiseptic}
       />
@@ -561,8 +565,8 @@ export function PreventionRecordPage() {
   const recordHistory = [
     record?.createdAt && { at: record.createdAt, title: en ? 'Recorded' : 'Καταγραφή', detail: record.createdByName || record.responsible || record.observer || '' },
     record?.updatedAt && record.updatedAt !== record.createdAt && { at: record.updatedAt, title: en ? 'Last change' : 'Τελευταία αλλαγή', detail: record.updatedByName || '' },
-    ...Object.values(record?.followUps || {}).map(item => item?.at && { at: item.at, title: en ? 'Re-check recorded' : 'Καταγραφή επανελέγχου', detail: item.note || '' }),
-  ].filter(Boolean).sort((a, b) => new Date(b.at) - new Date(a.at))
+    ...Object.values((record?.followUps || {}) as Record<string, AnyRecord>).map((item: AnyRecord) => item?.at && { at: item.at, title: en ? 'Re-check recorded' : 'Καταγραφή επανελέγχου', detail: item.note || '' }),
+  ].filter(Boolean).sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 
   return (
     <Page fill>
@@ -572,7 +576,7 @@ export function PreventionRecordPage() {
         title={recordTitle}
         subtitle={subtitle}
         status={recordStatus}
-        recordNavigation={creating || editing ? null : recordNavigation}
+        recordNavigation={creating || editing ? null : recordNavigation as RecordNavigation}
         headerActions={recordActions}
         tabs={creating || editing ? [] : recordTabs}
         activeTab={recordTab}
@@ -603,7 +607,7 @@ export function PreventionRecordPage() {
         ) : (
           <div className="record-section prevention-record-card">
             {recordType === 'handHygiene' ? (
-              <HandHygieneDetails record={record} language={language} />
+              <HandHygieneDetails record={record!} language={language} />
             ) : recordType === 'waste' ? (
               <WasteEntryEditor
                 readOnly
@@ -612,10 +616,10 @@ export function PreventionRecordPage() {
                 initialRecord={record}
               />
             ) : recordType === 'antiseptics' ? (
-              <AntisepticDetails record={record} language={language} locale={locale} />
+              <AntisepticDetails record={record!} language={language} locale={locale} />
             ) : (
               <BundleDetails
-                record={record}
+                record={record!}
                 language={language}
                 canEdit={canEditRecord}
                 onFollowUp={setBundleFollowUpItem}
@@ -627,7 +631,7 @@ export function PreventionRecordPage() {
       {bundleFollowUpItem && (
         <BundleFollowUpDialog
           item={bundleFollowUpItem}
-          value={record?.followUps?.[bundleFollowUpItem.id]}
+          value={record?.followUps?.[bundleFollowUpItem!.id]}
           onClose={() => setBundleFollowUpItem(null)}
           onSave={saveBundleFollowUpRecord}
         />
