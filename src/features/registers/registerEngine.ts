@@ -6,6 +6,13 @@
 // The definition lives in the register (fields, sheet, indicators), so a
 // hospital builds its own without a code change.
 
+import type { AnyRecord } from '../../types/featureTypes'
+
+// A period of a report: its first and last day and a key «month:2026-11».
+export type Period = { from: string, to: string, key: string }
+// An option of the lists above: its value and its label [Greek, English].
+export type LabelledOption = { value: string, label: string[] }
+
 export const FIELD_TYPES = [
   { value: 'number', label: ['Αριθμός', 'Number'] },
   { value: 'date', label: ['Ημερομηνία', 'Date'] },
@@ -27,8 +34,8 @@ export const COMPUTED_KINDS = [
 
 // Predicted mortality (%) by APACHE II score band (0–4, 5–9 … 35+), for
 // non-operative and post-operative admissions (Knaus 1985).
-const APACHE_MORTALITY = { medical: [4, 8, 15, 25, 40, 55, 75, 85], postop: [1, 3, 7, 12, 30, 35, 73, 88] }
-export function apacheMortality(score, postop) {
+const APACHE_MORTALITY: Record<string, number[]> = { medical: [4, 8, 15, 25, 40, 55, 75, 85], postop: [1, 3, 7, 12, 30, 35, 73, 88] }
+export function apacheMortality(score: unknown, postop: unknown) {
   if (score === null || score === undefined || score === '' || typeof postop !== 'boolean' || !Number.isFinite(Number(score))) return null
   return APACHE_MORTALITY[postop ? 'postop' : 'medical'][Math.min(7, Math.max(0, Math.floor(Number(score) / 5)))]
 }
@@ -36,7 +43,7 @@ export function apacheMortality(score, postop) {
 // Sheets are recorded day by day from November 2026; the months before keep their one monthly total.
 export const DAILY_SHEETS_FROM = '2026-11-01'
 // The day a sheet starts being recorded day by day (a month, «2026-11», means its first day).
-export const dailyStart = value => { const text = String(value || DAILY_SHEETS_FROM); return text.length === 7 ? `${text}-01` : text.slice(0, 10) }
+export const dailyStart = (value?: unknown) => { const text = String(value || DAILY_SHEETS_FROM); return text.length === 7 ? `${text}-01` : text.slice(0, 10) }
 
 export const AGGREGATIONS = [
   { value: 'count', label: ['Πλήθος', 'Count'] },
@@ -61,26 +68,26 @@ export const FILTER_OPS = [
 // Below this many cases an indicator is shown as unreliable (small numbers).
 export const SMALL_COUNT = 5
 
-export const optionLabel = (list, value, language = 'el') => {
+export const optionLabel = (list: LabelledOption[], value: string, language = 'el') => {
   const item = list.find(option => option.value === value)
   return item ? item.label[language === 'en' ? 1 : 0] : value || ''
 }
-export const optionsOf = (list, language = 'el') => list.map(option => ({ value: option.value, label: option.label[language === 'en' ? 1 : 0] }))
-export const textOf = (item, language = 'el') => (language === 'en' ? item?.labelEn || item?.titleEn || item?.nameEn : '') || item?.label || item?.title || item?.name || ''
+export const optionsOf = (list: LabelledOption[], language = 'el') => list.map(option => ({ value: option.value, label: option.label[language === 'en' ? 1 : 0] }))
+export const textOf = (item: AnyRecord | null | undefined, language = 'el'): string => (language === 'en' ? item?.labelEn || item?.titleEn || item?.nameEn : '') || item?.label || item?.title || item?.name || ''
 
-const isBlank = value => value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)
-const dayNumber = value => {
+const isBlank = (value: unknown) => value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)
+const dayNumber = (value: unknown) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ''))
   return match ? Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / 86400000 : null
 }
-export const daysBetween = (from, to) => {
+export const daysBetween = (from: unknown, to: unknown) => {
   const a = dayNumber(from), b = dayNumber(to)
   return a == null || b == null ? null : b - a
 }
 
 // Gestation is stored as total days and shown as weeks+days (37+4).
-export const gestationText = days => (Number.isFinite(Number(days)) && days !== '' && days != null ? `${Math.floor(Number(days) / 7)}+${Number(days) % 7}` : '')
-export function parseGestation(text) {
+export const gestationText = (days: unknown) => (Number.isFinite(Number(days)) && days !== '' && days != null ? `${Math.floor(Number(days) / 7)}+${Number(days) % 7}` : '')
+export function parseGestation(text: unknown) {
   const match = /^\s*(\d{1,2})(?:\s*[+,.]\s*(\d))?\s*$/.exec(String(text || ''))
   if (!match) return null
   const days = Number(match[2] || 0)
@@ -88,12 +95,12 @@ export function parseGestation(text) {
 }
 
 // The values of an entry with its computed fields filled in.
-export function computeValues(fields = [], values = {}) {
-  const next = { ...values }
+export function computeValues(fields: AnyRecord[] = [], values: AnyRecord = {}): AnyRecord {
+  const next: AnyRecord = { ...values }
   for (const field of fields) {
     if (field.type !== 'computed') continue
     const from = next[field.from], to = field.to ? next[field.to] : null
-    let value = null
+    let value: number | null = null
     if (field.computed === 'days') value = daysBetween(from, to)
     if (field.computed === 'ageDays') value = daysBetween(from, to)
     if (field.computed === 'apacheII') value = apacheMortality(from, to)
@@ -107,19 +114,19 @@ export function computeValues(fields = [], values = {}) {
 }
 
 // Whether a field is shown: always, or when another field has a value.
-export function fieldVisible(field, values = {}) {
+export function fieldVisible(field: AnyRecord, values: AnyRecord = {}) {
   if (!field.showWhen?.field) return true
   const value = values[field.showWhen.field]
   return field.showWhen.value === undefined ? !isBlank(value) && value !== false : Array.isArray(value) ? value.includes(field.showWhen.value) : value === field.showWhen.value
 }
 
 // A field required only from a date on (data the register did not keep in its early years).
-export const isRequired = (field, entryDate) => Boolean(field.required) && !(field.requiredFrom && entryDate && String(entryDate).slice(0, 10) < field.requiredFrom)
+export const isRequired = (field: AnyRecord, entryDate: unknown) => Boolean(field.required) && !(field.requiredFrom && entryDate && String(entryDate).slice(0, 10) < field.requiredFrom)
 
 // Errors stop the save; warnings ask the user to check (an unusual value).
-export function validateEntry(fields = [], values = {}, language = 'el', entryDate = '') {
+export function validateEntry(fields: AnyRecord[] = [], values: AnyRecord = {}, language = 'el', entryDate: unknown = '') {
   const en = language === 'en'
-  const errors = {}, warnings = {}
+  const errors: Record<string, string> = {}, warnings: Record<string, string> = {}
   const full = computeValues(fields, values)
   for (const field of fields) {
     if (field.type === 'computed' || !fieldVisible(field, full)) continue
@@ -129,7 +136,7 @@ export function validateEntry(fields = [], values = {}, language = 'el', entryDa
     if (field.type === 'number' || field.type === 'gestation') {
       const number = Number(value)
       if (!Number.isFinite(number)) { errors[field.key] = en ? 'Not a number' : 'Δεν είναι αριθμός'; continue }
-      const shown = field.type === 'gestation' ? gestationText : String
+      const shown: (value: unknown) => string = field.type === 'gestation' ? gestationText : String
       if (field.min !== undefined && field.min !== '' && number < Number(field.min)) errors[field.key] = en ? `At least ${shown(field.min)}` : `Τουλάχιστον ${shown(field.min)}`
       else if (field.max !== undefined && field.max !== '' && number > Number(field.max)) errors[field.key] = en ? `At most ${shown(field.max)}` : `Το πολύ ${shown(field.max)}`
       else if (field.usualMin !== undefined && field.usualMin !== '' && number < Number(field.usualMin)) warnings[field.key] = en ? 'Unusually low, please check' : 'Ασυνήθιστα χαμηλό, ελέγξτε'
@@ -137,19 +144,19 @@ export function validateEntry(fields = [], values = {}, language = 'el', entryDa
     }
     if (field.type === 'date' && field.notBefore && !isBlank(full[field.notBefore])) {
       const before = fields.find(item => item.key === field.notBefore)
-      if (daysBetween(full[field.notBefore], value) < 0) errors[field.key] = en ? `Not before «${textOf(before, 'en')}»` : `Όχι πριν από «${textOf(before)}»`
+      if ((daysBetween(full[field.notBefore], value) ?? 0) < 0) errors[field.key] = en ? `Not before «${textOf(before, 'en')}»` : `Όχι πριν από «${textOf(before)}»`
     }
   }
   return { errors, warnings, valid: Object.keys(errors).length === 0 }
 }
 
 // How a value reads in a list or a report.
-export function formatValue(field, value, language = 'el') {
+export function formatValue(field: AnyRecord, value: unknown, language = 'el') {
   const en = language === 'en'
   if (isBlank(value)) return '—'
   if (field.type === 'yesNo') return value === true || value === 'yes' ? (en ? 'Yes' : 'Ναι') : value === false || value === 'no' ? (en ? 'No' : 'Όχι') : en ? 'Unknown' : 'Άγνωστο'
-  if (field.type === 'choice') return textOf((field.options || []).find(option => option.value === value), language) || String(value)
-  if (field.type === 'multiChoice') return (Array.isArray(value) ? value : [value]).map(item => textOf((field.options || []).find(option => option.value === item), language) || item).join(', ')
+  if (field.type === 'choice') return textOf((field.options || []).find((option: AnyRecord) => option.value === value), language) || String(value)
+  if (field.type === 'multiChoice') return (Array.isArray(value) ? value : [value]).map(item => textOf((field.options || []).find((option: AnyRecord) => option.value === item), language) || item).join(', ')
   if (field.type === 'gestation') return `${gestationText(value)} ${en ? 'wk' : 'εβδ.'}`
   if (field.type === 'date') { const [y, m, d] = String(value).slice(0, 10).split('-'); return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : String(value) }
   if (field.type === 'number' || field.type === 'computed') {
@@ -168,28 +175,28 @@ export const PERIODS = [
   { value: 'year', label: ['Έτος', 'Year'] },
 ]
 
-const pad = n => String(n).padStart(2, '0')
-const lastDay = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate()
+const pad = (n: number) => String(n).padStart(2, '0')
+const lastDay = (year: number, month: number) => new Date(Date.UTC(year, month, 0)).getUTCDate()
 
 // The period (kind) that contains a day: { from, to, key }.
-export function periodOf(kind, day) {
+export function periodOf(kind: string, day: unknown): Period {
   const [year, month] = String(day).slice(0, 7).split('-').map(Number)
-  const length = { month: 1, quarter: 3, half: 6, year: 12 }[kind] || 1
+  const length = ({ month: 1, quarter: 3, half: 6, year: 12 } as Record<string, number>)[kind] || 1
   const first = Math.floor((month - 1) / length) * length + 1
   const last = first + length - 1
   return { from: `${year}-${pad(first)}-01`, to: `${year}-${pad(last)}-${pad(lastDay(year, last))}`, key: `${kind}:${year}-${pad(first)}` }
 }
 
 // The same period one step back (previous) and one year back.
-export function shiftPeriod(period, months) {
+export function shiftPeriod(period: Period, months: number) {
   const [year, month] = period.from.split('-').map(Number)
   const date = new Date(Date.UTC(year, month - 1 + months, 1))
   const kind = period.key.split(':')[0]
   return periodOf(kind, `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-01`)
 }
-export const periodLength = period => ({ month: 1, quarter: 3, half: 6, year: 12 }[period.key.split(':')[0]] || 1)
+export const periodLength = (period: Period) => (({ month: 1, quarter: 3, half: 6, year: 12 } as Record<string, number>)[period.key.split(':')[0]] || 1)
 
-export function periodLabel(period, language = 'el') {
+export function periodLabel(period: Period, language = 'el') {
   const en = language === 'en'
   const [kind, start] = period.key.split(':')
   const [year, month] = start.split('-').map(Number)
@@ -201,7 +208,7 @@ export function periodLabel(period, language = 'el') {
 
 // --- Indicators --------------------------------------------------------------
 
-const matches = (filter, values) => {
+const matches = (filter: AnyRecord, values: AnyRecord) => {
   if (!filter?.field) return true
   const value = values[filter.field]
   switch (filter.op) {
@@ -215,15 +222,15 @@ const matches = (filter, values) => {
     default: return true
   }
 }
-export const matchesAll = (filters = [], values = {}) => filters.every(filter => matches(filter, values))
+export const matchesAll = (filters: AnyRecord[] = [], values: AnyRecord = {}) => filters.every(filter => matches(filter, values))
 
 // The day an entry counts on for an indicator: the indicator's date field
 // (e.g. the discharge date for length of stay), else the entry date.
-const entryDay = (entry, indicator) => (indicator?.dateField ? entry.values?.[indicator.dateField] : null) || entry.periodStart || entry.entryDate
+const entryDay = (entry: AnyRecord, indicator?: AnyRecord | null) => (indicator?.dateField ? entry.values?.[indicator.dateField] : null) || entry.periodStart || entry.entryDate
 
 // A sheet entry that holds the total of several months (periodEnd, e.g. a year imported as one figure) counts only in a
 // period that holds all of it (the year), never in one of its months.
-export const entriesInPeriod = (entries = [], period, indicator) => entries.filter(entry => {
+export const entriesInPeriod = (entries: AnyRecord[] = [], period: Period, indicator?: AnyRecord | null) => entries.filter(entry => {
   const day = String(entryDay(entry, indicator) || '').slice(0, 10)
   if (!day || day < period.from || day > period.to) return false
   return !entry.periodEnd || indicator?.dateField || String(entry.periodEnd).slice(0, 10) <= period.to
@@ -231,31 +238,31 @@ export const entriesInPeriod = (entries = [], period, indicator) => entries.filt
 
 // A register of treatments (chemotherapy): «Active patients» is a picture on the last day of the period, not the patients
 // recorded in it: whoever has started (the day recorded, when the start is unknown) and not ended by then.
-export const isTreatmentRegister = register => register.kind !== 'sheet' && ['start_date', 'end_date'].every(key => (register.fields || []).some(field => field.key === key && field.type === 'date'))
-export const isActiveCensus = (register, indicator) => indicator?.id === 'active_patients' && isTreatmentRegister(register)
-export const treatmentActive = (entry, day) => {
+export const isTreatmentRegister = (register: AnyRecord) => register.kind !== 'sheet' && ['start_date', 'end_date'].every(key => (register.fields || []).some((field: AnyRecord) => field.key === key && field.type === 'date'))
+export const isActiveCensus = (register: AnyRecord, indicator?: AnyRecord | null) => indicator?.id === 'active_patients' && isTreatmentRegister(register)
+export const treatmentActive = (entry: AnyRecord, day: string) => {
   const start = String(entry.values?.start_date || entry.entryDate || '').slice(0, 10)
   const end = String(entry.values?.end_date || '').slice(0, 10)
   return Boolean(start) && start <= day && (!end || end > day)
 }
-export const periodEntries = (register, entries = [], period, indicator) => (isActiveCensus(register, indicator) ? entries.filter(entry => treatmentActive(entry, period.to)) : entriesInPeriod(entries, period, indicator))
+export const periodEntries = (register: AnyRecord, entries: AnyRecord[] = [], period: Period, indicator?: AnyRecord | null) => (isActiveCensus(register, indicator) ? entries.filter(entry => treatmentActive(entry, period.to)) : entriesInPeriod(entries, period, indicator))
 
-const mean = numbers => (numbers.length ? numbers.reduce((sum, n) => sum + n, 0) / numbers.length : null)
-const median = numbers => {
+const mean = (numbers: number[]) => (numbers.length ? numbers.reduce((sum, n) => sum + n, 0) / numbers.length : null)
+const median = (numbers: number[]) => {
   if (!numbers.length) return null
   const sorted = [...numbers].sort((a, b) => a - b)
   const middle = Math.floor(sorted.length / 2)
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
 }
-const numbersOf = (rows, field) => rows.map(values => values[field]).filter(value => !isBlank(value) && Number.isFinite(Number(value))).map(Number)
-const round = (value, digits = 1) => (value == null || !Number.isFinite(value) ? null : Number(value.toFixed(digits)))
+const numbersOf = (rows: AnyRecord[], field: string) => rows.map(values => values[field]).filter(value => !isBlank(value) && Number.isFinite(Number(value))).map(Number)
+const round = (value: number | null, digits = 1) => (value == null || !Number.isFinite(value) ? null : Number(value.toFixed(digits)))
 
 // A sheet entry as the totals the indicators read: row × measure.
-const sheetCell = (values, row, measure) => {
+const sheetCell = (values: AnyRecord | null | undefined, row: string, measure: string) => {
   const cell = values?.[row]?.[measure]
   return isBlank(cell) ? null : Number(cell)
 }
-export function sheetTotal(entries = [], rows = [], measures = []) {
+export function sheetTotal(entries: AnyRecord[] = [], rows: string[] = [], measures: string[] = []) {
   let total = 0, filled = 0
   for (const entry of entries) for (const row of rows) for (const measure of measures) {
     const cell = sheetCell(entry.values, row, measure)
@@ -272,12 +279,12 @@ export function sheetTotal(entries = [], rows = [], measures = []) {
 // An indicator that rests on something the register never records (a field no entry has filled, a sheet row no day has a
 // number for) is «not recorded» (owner, 2/11/2026), not a 0 or a rate that looks judged: its value is empty and it is never
 // judged against a target. Read over the whole register, so a quiet period of a register that does record it still counts 0.
-const recordedCache = new WeakMap()
-const isFilled = value => value != null && value !== '' && !(Array.isArray(value) && !value.length)
-function recordedFields(register, entries) {
-  let known = recordedCache.get(entries)
+const recordedCache = new WeakMap<AnyRecord[], { register: AnyRecord, fields: Set<string> }>()
+const isFilled = (value: unknown) => value != null && value !== '' && !(Array.isArray(value) && !value.length)
+function recordedFields(register: AnyRecord, entries: AnyRecord[]) {
+  const known = recordedCache.get(entries)
   if (known?.register === register) return known.fields
-  const fields = new Set()
+  const fields = new Set<string>()
   for (const entry of entries) {
     const values = computeValues(register.fields, entry.values || {})
     for (const key of Object.keys(values)) if (isFilled(values[key])) fields.add(key)
@@ -286,17 +293,17 @@ function recordedFields(register, entries) {
   return fields
 }
 // The indicators that read the entries of a case register (a sheet's counts, and the census of those still in treatment, stand on their own).
-const indicatorNeedsEntries = (register, indicator) => register.kind !== 'sheet' && !isActiveCensus(register, indicator)
-export function indicatorNotRecorded(register, indicator, entries = []) {
+const indicatorNeedsEntries = (register: AnyRecord, indicator: AnyRecord) => register.kind !== 'sheet' && !isActiveCensus(register, indicator)
+export function indicatorNotRecorded(register: AnyRecord, indicator: AnyRecord, entries: AnyRecord[] = []) {
   // A register with no entry at all measures nothing yet: its counts are not zeros that meet a target.
   if (!entries.length) return indicatorNeedsEntries(register, indicator)
   if (register.kind === 'sheet') {
     if (indicator.aggregation === 'count' || !indicator.rows?.length) return false
-    const measures = indicator.measure ? [indicator.measure] : (register.sheet?.measures || []).map(measure => measure.key)
+    const measures = indicator.measure ? [indicator.measure] : (register.sheet?.measures || []).map((measure: AnyRecord) => measure.key)
     return sheetTotal(entries, indicator.rows, measures) == null
   }
   if (isActiveCensus(register, indicator)) return false
-  const need = new Set([...(indicator.denominatorFilters || []).map(filter => filter.field), indicator.field, indicator.denominatorField].filter(Boolean))
+  const need = new Set<string>([...(indicator.denominatorFilters || []).map((filter: AnyRecord) => filter.field), indicator.field, indicator.denominatorField].filter(Boolean))
   // A date-based count of a treatment register rests on the start dates (no one ended yet is a real 0, no dates at all is not).
   if (indicator.dateField) need.add(isTreatmentRegister(register) ? 'start_date' : indicator.dateField)
   if (!need.size) return false
@@ -304,16 +311,17 @@ export function indicatorNotRecorded(register, indicator, entries = []) {
   return [...need].some(key => !recorded.has(key))
 }
 
-export function computeIndicator(register, indicator, entries = [], period) {
+export type IndicatorResult = { id: string, value: number | null, numerator: number | null, denominator: number | null, n: number, small: boolean, status?: string, notRecorded?: boolean }
+export function computeIndicator(register: AnyRecord, indicator: AnyRecord, entries: AnyRecord[] = [], period: Period): IndicatorResult {
   const result = computeIndicatorValue(register, indicator, entries, period)
   return indicatorNotRecorded(register, indicator, entries)
     ? { ...result, value: null, numerator: null, denominator: null, small: false, status: 'context', notRecorded: true }
     : result
 }
 
-function computeIndicatorValue(register, indicator, entries = [], period) {
+function computeIndicatorValue(register: AnyRecord, indicator: AnyRecord, entries: AnyRecord[] = [], period: Period): IndicatorResult {
   const inPeriod = periodEntries(register, entries, period, indicator)
-  const result = { id: indicator.id, value: null, numerator: null, denominator: null, n: inPeriod.length, small: false }
+  const result: IndicatorResult = { id: indicator.id, value: null, numerator: null, denominator: null, n: inPeriod.length, small: false }
   if (register.kind === 'sheet') {
     const sheet = register.sheet || {}
     // «Daily only» indicators read the days recorded one by one, never a month's single total.
@@ -324,10 +332,10 @@ function computeIndicatorValue(register, indicator, entries = [], period) {
       result.value = indicator.dailyOnly && !used.length ? null : used.length
       return withStatus(result, indicator)
     }
-    const allRows = (sheet.rows || []).map(row => row.key)
-    const allMeasures = (sheet.measures || []).map(measure => measure.key)
-    const numRows = indicator.rows?.length ? indicator.rows : allRows
-    const numMeasures = indicator.measure ? [indicator.measure] : allMeasures
+    const allRows: string[] = (sheet.rows || []).map((row: AnyRecord) => row.key)
+    const allMeasures: string[] = (sheet.measures || []).map((measure: AnyRecord) => measure.key)
+    const numRows: string[] = indicator.rows?.length ? indicator.rows : allRows
+    const numMeasures: string[] = indicator.measure ? [indicator.measure] : allMeasures
     const numerator = sheetTotal(used, numRows, numMeasures)
     result.numerator = numerator
     if (indicator.aggregation === 'percent') {
@@ -398,7 +406,7 @@ function computeIndicatorValue(register, indicator, entries = [], period) {
 }
 
 // On target, attention (past the threshold) or no target.
-function withStatus(result, indicator) {
+function withStatus(result: IndicatorResult, indicator: AnyRecord): IndicatorResult {
   const target = indicator.target === '' || indicator.target == null ? null : Number(indicator.target)
   const threshold = indicator.threshold === '' || indicator.threshold == null ? null : Number(indicator.threshold)
   if (result.value == null || (target == null && threshold == null) || !['higher', 'lower'].includes(indicator.direction)) return { ...result, status: 'context' }
@@ -409,7 +417,7 @@ function withStatus(result, indicator) {
 }
 
 // The indicator month by month for a year (the trend line of a report).
-export function monthlySeries(register, indicator, entries = [], year) {
+export function monthlySeries(register: AnyRecord, indicator: AnyRecord, entries: AnyRecord[] = [], year: number | string) {
   return Array.from({ length: 12 }, (_, index) => {
     const period = periodOf('month', `${year}-${pad(index + 1)}-01`)
     return { month: index + 1, period, ...computeIndicator(register, indicator, entries, period) }
@@ -417,13 +425,13 @@ export function monthlySeries(register, indicator, entries = [], year) {
 }
 
 // An indicator split by the values of a list field (per doctor, per procedure).
-export function breakdown(register, indicator, entries = [], period, field) {
-  const definition = (register.fields || []).find(item => item.key === field)
+export function breakdown(register: AnyRecord, indicator: AnyRecord, entries: AnyRecord[] = [], period: Period, field: string) {
+  const definition = (register.fields || []).find((item: AnyRecord) => item.key === field)
   if (!definition) return []
   const inPeriod = periodEntries(register, entries, period, indicator).map(entry => computeValues(register.fields, entry.values || {}))
   // A text field (the diagnosis) is split by what was written, the most frequent first.
-  const written = definition.type === 'text' ? [...inPeriod.reduce((map, values) => { const text = String(values[field] || '').trim(); return text ? map.set(text, (map.get(text) || 0) + 1) : map }, new Map())].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([text]) => ({ value: text, label: text, labelEn: text })) : null
-  const options = [...(written || definition.options || []), { value: '', label: 'Χωρίς τιμή', labelEn: 'No value' }]
+  const written = definition.type === 'text' ? [...inPeriod.reduce<Map<string, number>>((map, values) => { const text = String(values[field] || '').trim(); return text ? map.set(text, (map.get(text) || 0) + 1) : map }, new Map<string, number>())].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([text]) => ({ value: text, label: text, labelEn: text })) : null
+  const options: AnyRecord[] = [...(written || definition.options || []), { value: '', label: 'Χωρίς τιμή', labelEn: 'No value' }]
   return options.map(option => {
     const rows = inPeriod.filter(values => (option.value === '' ? isBlank(values[field]) : Array.isArray(values[field]) ? values[field].includes(option.value) : values[field] === option.value))
     return { option, count: rows.length, share: inPeriod.length ? round((rows.length / inPeriod.length) * 100) : null }
@@ -431,35 +439,36 @@ export function breakdown(register, indicator, entries = [], period, field) {
 }
 
 // A sheet indicator split by the rows it counts (per procedure) and by the measures (per shift).
-export function sheetBreakdowns(register, indicator, entries = [], period) {
+export function sheetBreakdowns(register: AnyRecord, indicator: AnyRecord, entries: AnyRecord[] = [], period: Period) {
   if (register.kind !== 'sheet') return []
   const sheet = register.sheet || {}
   const inPeriod = entriesInPeriod(entries, period, indicator)
-  const rows = (sheet.rows || []).filter(row => !indicator.rows?.length || indicator.rows.includes(row.key))
-  const measures = (sheet.measures || []).filter(measure => !indicator.measure || measure.key === indicator.measure)
-  const split = (key, label, labelEn, items, totalOf) => {
+  const rows: AnyRecord[] = (sheet.rows || []).filter((row: AnyRecord) => !indicator.rows?.length || indicator.rows.includes(row.key))
+  const measures: AnyRecord[] = (sheet.measures || []).filter((measure: AnyRecord) => !indicator.measure || measure.key === indicator.measure)
+  const split = (key: string, label: string, labelEn: string, items: AnyRecord[], totalOf: (key: string) => number) => {
     const counts = items.map(item => ({ option: { value: item.key, label: item.label, labelEn: item.labelEn }, count: totalOf(item.key) })).filter(item => item.count)
     const total = counts.reduce((sum, item) => sum + item.count, 0)
     return { key, label, labelEn, rows: counts.map(item => ({ ...item, share: total ? round((item.count / total) * 100) : null })) }
   }
-  const keys = list => list.map(item => item.key)
+  const keys = (list: AnyRecord[]): string[] => list.map(item => item.key)
   return [
     rows.length > 1 && split('rows', 'Ανά γραμμή', 'By row', rows, row => sheetTotal(inPeriod, [row], keys(measures)) || 0),
     measures.length > 1 && split('measures', 'Ανά στήλη', 'By column', measures, measure => sheetTotal(inPeriod, keys(rows), [measure]) || 0),
-  ].filter(item => item && item.rows.length)
+  ].filter(Boolean).filter(item => item.rows.length)
 }
 
 // The rows of an indicator report: this period, the previous one, the same
 // period a year before.
-export function indicatorReport(register, entries = [], period) {
+export type IndicatorReportRow = { indicator: AnyRecord, current: IndicatorResult, previous: IndicatorResult, lastYear: IndicatorResult }
+export function indicatorReport(register: AnyRecord, entries: AnyRecord[] = [], period: Period): IndicatorReportRow[] {
   const previous = shiftPeriod(period, -periodLength(period))
   const lastYear = shiftPeriod(period, -12)
   // An indicator that counts only the cases with an answer recorded («Επιπλοκή», «Ένδειξη») waits until one case has it.
-  const answerField = key => (register.fields || []).some(field => field.key === key && ['yesNo', 'choice'].includes(field.type) && field.key !== 'outcome')
-  const never = indicator => entries.length > 0 && (indicator.denominatorFilters || []).some(filter => ['filled', 'eq', 'yes', 'no'].includes(filter.op) && answerField(filter.field) && !entries.some(entry => { const value = entry.values?.[filter.field]; return value != null && value !== '' }))
+  const answerField = (key: string) => (register.fields || []).some((field: AnyRecord) => field.key === key && ['yesNo', 'choice'].includes(field.type) && field.key !== 'outcome')
+  const never = (indicator: AnyRecord) => entries.length > 0 && (indicator.denominatorFilters || []).some((filter: AnyRecord) => ['filled', 'eq', 'yes', 'no'].includes(filter.op) && answerField(filter.field) && !entries.some(entry => { const value = entry.values?.[filter.field]; return value != null && value !== '' }))
   // A mean of a field nobody has filled (the age, when no birth date is known) has nothing to show.
-  const empty = indicator => entries.length > 0 && ['mean', 'median'].includes(indicator.aggregation) && register.kind !== 'sheet' && !entries.some(entry => !isBlank(computeValues(register.fields, entry.values || {})[indicator.field]))
-  return (register.indicators || []).filter(indicator => !never(indicator) && !empty(indicator)).map(indicator => ({
+  const empty = (indicator: AnyRecord) => entries.length > 0 && ['mean', 'median'].includes(indicator.aggregation) && register.kind !== 'sheet' && !entries.some(entry => !isBlank(computeValues(register.fields, entry.values || {})[indicator.field]))
+  return (register.indicators || []).filter((indicator: AnyRecord) => !never(indicator) && !empty(indicator)).map((indicator: AnyRecord) => ({
     indicator,
     current: computeIndicator(register, indicator, entries, period),
     previous: computeIndicator(register, indicator, entries, previous),
@@ -469,9 +478,9 @@ export function indicatorReport(register, entries = [], period) {
 
 // How much of a period a sheet has: months (before the daily sheets) or days with an entry, out
 // of those that have passed. null when the period mixes the two or has not started.
-export function sheetCoverage(entries = [], period, today, dailyFromValue) {
+export function sheetCoverage(entries: AnyRecord[] = [], period: Period, today: string, dailyFromValue?: unknown) {
   const dailyFrom = dailyStart(dailyFromValue)
-  const months = []
+  const months: string[] = []
   for (let month = period.from.slice(0, 7); month <= period.to.slice(0, 7); month = shiftPeriod(periodOf('month', `${month}-01`), 1).from.slice(0, 7)) if (`${month}-01` <= today) months.push(month)
   if (!months.length) return null
   // A month is whole before the start, whole after it, or cut by it (then nothing is said).
@@ -484,8 +493,8 @@ export function sheetCoverage(entries = [], period, today, dailyFromValue) {
 }
 
 // What a filter says in words («Είδος τοκετού είναι Κ/Τ»).
-export function filterText(register, filter, language = 'el') {
-  const field = (register.fields || []).find(item => item.key === filter.field)
+export function filterText(register: AnyRecord, filter: AnyRecord, language = 'el') {
+  const field = (register.fields || []).find((item: AnyRecord) => item.key === filter.field)
   if (!field) return ''
   const op = optionLabel(FILTER_OPS, filter.op, language)
   const value = ['eq', 'gt', 'lt'].includes(filter.op) ? ` ${filter.op === 'eq' ? formatValue(field, filter.value, language) : filter.value}` : ''
@@ -493,8 +502,8 @@ export function filterText(register, filter, language = 'el') {
 }
 
 // A stable key for a new field or indicator from its label.
-export function keyFrom(label, taken = []) {
-  const map = { α: 'a', β: 'v', γ: 'g', δ: 'd', ε: 'e', ζ: 'z', η: 'i', θ: 'th', ι: 'i', κ: 'k', λ: 'l', μ: 'm', ν: 'n', ξ: 'x', ο: 'o', π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't', υ: 'y', φ: 'f', χ: 'ch', ψ: 'ps', ω: 'o', ά: 'a', έ: 'e', ή: 'i', ί: 'i', ό: 'o', ύ: 'y', ώ: 'o', ϊ: 'i', ϋ: 'y', ΐ: 'i', ΰ: 'y' }
+export function keyFrom(label: unknown, taken: string[] = []) {
+  const map: Record<string, string> = { α: 'a', β: 'v', γ: 'g', δ: 'd', ε: 'e', ζ: 'z', η: 'i', θ: 'th', ι: 'i', κ: 'k', λ: 'l', μ: 'm', ν: 'n', ξ: 'x', ο: 'o', π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't', υ: 'y', φ: 'f', χ: 'ch', ψ: 'ps', ω: 'o', ά: 'a', έ: 'e', ή: 'i', ί: 'i', ό: 'o', ύ: 'y', ώ: 'o', ϊ: 'i', ϋ: 'y', ΐ: 'i', ΰ: 'y' }
   const base = String(label || '').toLowerCase().split('').map(char => map[char] ?? char).join('').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32) || 'field'
   let key = base, index = 2
   while (taken.includes(key)) key = `${base}_${index++}`

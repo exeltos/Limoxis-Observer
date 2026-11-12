@@ -1,6 +1,10 @@
 import { useMemo } from 'react'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES, ROLES } from '../../core/permissions/roles'
+import type { AnyRecord } from '../../types/featureTypes'
+
+type RegisterCheck = (register: AnyRecord | null | undefined) => boolean
+export interface RegisterAccess { canDefine: boolean, seesAll: boolean, isMember: RegisterCheck, canSee: RegisterCheck, canRecord: RegisterCheck, canSeeIdentity: RegisterCheck, canReopen: RegisterCheck }
 
 // Who does what with a department register (as the database policies of
 // 20261105100000_department_registers.sql):
@@ -21,18 +25,18 @@ export function useRegisterAccess() {
   const departmentKey = [...(membership?.departmentIds || []), membership?.previewDepartment].filter(Boolean).join('|')
   // The same object while the user and role stay the same: lists filtered with it
   // (and screens that report their rows back) would otherwise render without end.
-  return useMemo(() => {
+  return useMemo((): RegisterAccess => {
     const ownDepartments = departmentKey ? departmentKey.split('|') : []
-    const isMember = register => Boolean(register) && (everyDepartment || ownDepartments.includes(register.departmentId) || ownDepartments.includes(register.department))
+    const isMember: RegisterCheck = register => Boolean(register) && (everyDepartment || ownDepartments.includes(register!.departmentId) || ownDepartments.includes(register!.department))
     return {
       canDefine,
       seesAll,
       isMember,
       canSee: register => seesAll || isMember(register),
-      canRecord: register => !overseer && Boolean(register) && register.status === 'active' && (isMember(register) || role === ROLES.HOSPITAL_ADMIN),
+      canRecord: register => !overseer && Boolean(register) && register!.status === 'active' && (isMember(register) || role === ROLES.HOSPITAL_ADMIN),
       canSeeIdentity: register => !overseer && isMember(register),
       // Reopening a closed period: Quality or the department's manager.
-      canReopen: register => canDefine || (isMember(register) && [ROLES.DEPARTMENT_MANAGER, ROLES.HOSPITAL_ADMIN, ROLES.DEMO].includes(role)),
+      canReopen: register => canDefine || (isMember(register) && ([ROLES.DEPARTMENT_MANAGER, ROLES.HOSPITAL_ADMIN, ROLES.DEMO] as (string | null)[]).includes(role)),
     }
   }, [canDefine, seesAll, everyDepartment, departmentKey, role, overseer])
 }

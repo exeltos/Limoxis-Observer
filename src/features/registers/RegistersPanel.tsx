@@ -14,6 +14,12 @@ import { useRegisterAccess } from './registerAccess'
 import { registerKindLabel, registerStatusLabel } from './registerText'
 import './registers.css'
 import { hospitalDate } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Period } from './registerEngine'
+import type { ReactNode, RefObject } from 'react'
+
+export type RegisterList = { registers: AnyRecord[], loading: boolean }
+type RegisterHealth = { breach: number, attention: number, onTarget: number, period: Period }
 
 // The registers a user may open: every register for Quality, the registers of
 // their own department for a department. Used by the Quality Center tab and by
@@ -21,7 +27,7 @@ import { hospitalDate } from '../../core/dates/hospitalDate'
 export function useRegisterList() {
   const { tenant } = useTenant()
   const access = useRegisterAccess()
-  const [registers, setRegisters] = useState([])
+  const [registers, setRegisters] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     let active = true
@@ -35,11 +41,11 @@ export function useRegisterList() {
 
 // How each register's indicators stand for the last full month: read one register after the other,
 // kept for the session, so the list shows «2 past the limit» without opening the register.
-const healthCache = new Map()
+const healthCache = new Map<string, RegisterHealth>()
 const lastFullMonth = () => { const date = new Date(`${hospitalDate().slice(0, 7)}-01T12:00:00Z`); date.setUTCMonth(date.getUTCMonth() - 1); return date.toISOString().slice(0, 7) }
-function useRegisterHealth(registers) {
+function useRegisterHealth(registers: AnyRecord[]) {
   const { tenant } = useTenant()
-  const [health, setHealth] = useState(() => new Map())
+  const [health, setHealth] = useState(() => new Map<string, RegisterHealth | undefined>())
   const signature = registers.map(register => `${register.id}:${register.entryCount}:${register.lastEntry}:${register.indicators?.length}`).join('|')
   useEffect(() => {
     let active = true
@@ -47,7 +53,7 @@ function useRegisterHealth(registers) {
     ;(async () => {
       for (const register of registers) {
         if (!register.indicators?.length) continue
-        const key = `${tenant?.id}:${register.id}:${register.entryCount}:${register.lastEntry}:${period.key}:${JSON.stringify(register.indicators.map(item => [item.id, item.target, item.threshold, item.direction]))}`
+        const key = `${tenant?.id}:${register.id}:${register.entryCount}:${register.lastEntry}:${period.key}:${JSON.stringify(register.indicators.map((item: AnyRecord) => [item.id, item.target, item.threshold, item.direction]))}`
         if (!healthCache.has(key)) {
           try {
             const entries = await loadEntries(tenant?.id, register.id, { withIdentity: false, register })
@@ -66,7 +72,8 @@ function useRegisterHealth(registers) {
 
 // filterEnd: content at the right of the filter row (the Quality Center's view switch).
 // only: a predicate the caller narrows the list with (registers without recent entries).
-export function RegistersPanel({ list, only = null, onBeforeOpen, filterEnd = null, onRowsChange }) {
+interface RegistersPanelProps { list: RegisterList, only?: ((register: AnyRecord) => boolean) | null, onBeforeOpen?: () => void, filterEnd?: ReactNode, onRowsChange?: (rows: AnyRecord[]) => void }
+export function RegistersPanel({ list, only = null, onBeforeOpen, filterEnd = null, onRowsChange }: RegistersPanelProps) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -83,13 +90,13 @@ export function RegistersPanel({ list, only = null, onBeforeOpen, filterEnd = nu
   // The Quality Center's «Download» exports what the filters leave on screen.
   useEffect(() => { onRowsChange?.(rows) }, [rows, onRowsChange])
   const health = useRegisterHealth(list.registers)
-  const open = register => { onBeforeOpen?.(); registry.openRecord(navigate, `/registers/${register.id}`, register.id, rows.map(row => row.id)) }
+  const open = (register: AnyRecord) => { onBeforeOpen?.(); registry.openRecord(navigate, `/registers/${register.id}`, register.id, rows.map(row => row.id)) }
   return <>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search register or department' : 'Αναζήτηση μητρώου ή τμήματος'} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (kind !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setDepartment('all'); setKind('all') }} end={filterEnd}>
       <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(name => <option key={name} value={name}>{name}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Kind' : 'Είδος'} value={kind} onChange={setKind}><option value="all">{t('all')}</option><option value="case">{registerKindLabel('case', language)}</option><option value="sheet">{registerKindLabel('sheet', language)}</option></FilterSelect>
     </FilterBar>
-    <RegistryTable className="register-table" wrapperRef={registry.scrollRef} rows={rows} columns={[{ key: 'name', label: en ? 'Register' : 'Μητρώο', sortValue: register => (en ? register.nameEn : register.name) }, { key: 'department', label: t('department'), sortValue: register => (en ? register.departmentEn : register.department) }, { key: 'kind', label: en ? 'Kind' : 'Είδος', sortValue: register => register.kind }, { key: 'entries', label: en ? 'Entries' : 'Καταχωρίσεις', sortValue: register => register.entryCount ?? 0 }, { key: 'last', label: en ? 'Last entry' : 'Τελευταία καταχώριση', sortValue: register => register.lastEntry }, { key: 'indicators', label: en ? 'Indicators' : 'Δείκτες', sortValue: register => register.indicators?.length || 0 }, { key: 'status', label: t('status') }]}
+    <RegistryTable className="register-table" wrapperRef={registry.scrollRef as RefObject<HTMLDivElement>} rows={rows} columns={[{ key: 'name', label: en ? 'Register' : 'Μητρώο', sortValue: register => (en ? register.nameEn : register.name) }, { key: 'department', label: t('department'), sortValue: register => (en ? register.departmentEn : register.department) }, { key: 'kind', label: en ? 'Kind' : 'Είδος', sortValue: register => register.kind }, { key: 'entries', label: en ? 'Entries' : 'Καταχωρίσεις', sortValue: register => register.entryCount ?? 0 }, { key: 'last', label: en ? 'Last entry' : 'Τελευταία καταχώριση', sortValue: register => register.lastEntry }, { key: 'indicators', label: en ? 'Indicators' : 'Δείκτες', sortValue: register => register.indicators?.length || 0 }, { key: 'status', label: t('status') }]}
       rowProps={register => ({ ...registry.rowProps(register.id), onClick: () => open(register) })}
       renderRow={register => <>
         <td><strong>{en ? register.nameEn : register.name}</strong><small>{register.code}</small></td>
@@ -97,7 +104,7 @@ export function RegistersPanel({ list, only = null, onBeforeOpen, filterEnd = nu
         <td><span className="register-kind">{register.kind === 'sheet' ? <CalendarRange size={14} /> : <ClipboardList size={14} />}{registerKindLabel(register.kind, language)}</span></td>
         <td>{register.entryCount ?? 0}</td>
         <td>{formatDay(register.lastEntry, language) || '—'}</td>
-        <td>{register.indicators?.length || 0}{(item => item && (item.breach ? <StatusBadge tone="danger" title={periodLabel(item.period, language)}>{en ? `${item.breach} past the limit` : `${item.breach} πέρα από το όριο`}</StatusBadge> : item.attention ? <StatusBadge tone="warning" title={periodLabel(item.period, language)}>{en ? `${item.attention} below target` : `${item.attention} εκτός στόχου`}</StatusBadge> : item.onTarget ? <StatusBadge tone="success" title={periodLabel(item.period, language)}>{en ? 'On target' : 'Εντός στόχου'}</StatusBadge> : null))(health.get(register.id))}</td>
+        <td>{register.indicators?.length || 0}{((item: RegisterHealth | undefined) => item && (item.breach ? <StatusBadge tone="danger" title={periodLabel(item.period, language)}>{en ? `${item.breach} past the limit` : `${item.breach} πέρα από το όριο`}</StatusBadge> : item.attention ? <StatusBadge tone="warning" title={periodLabel(item.period, language)}>{en ? `${item.attention} below target` : `${item.attention} εκτός στόχου`}</StatusBadge> : item.onTarget ? <StatusBadge tone="success" title={periodLabel(item.period, language)}>{en ? 'On target' : 'Εντός στόχου'}</StatusBadge> : null))(health.get(register.id))}</td>
         <td><StatusBadge tone={register.status === 'active' ? 'success' : register.status === 'draft' ? 'info' : 'neutral'}>{registerStatusLabel(register.status, language)}</StatusBadge></td>
       </>}
       emptyTitle={!list.loading && !rows.length ? (en ? 'No registers' : 'Δεν υπάρχουν μητρώα') : ''}

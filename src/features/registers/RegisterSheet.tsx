@@ -22,19 +22,22 @@ import { useRegisterAccess } from './registerAccess'
 import { DAILY_SHEETS_FROM, dailyStart, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { registerThemeKey } from './registerThemes'
 import { hospitalMonth, hospitalToday } from '../../core/dates/hospitalDate'
+import type { KeyboardEvent, RefObject } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { ExportApi, Register } from './registerTypes'
 
 const thisMonth = () => hospitalMonth()
-const blank = value => value === undefined || value === null || value === ''
-const monthShift = (month, by) => shiftPeriod(periodOf('month', `${month}-01`), by).from.slice(0, 7)
+const blank = (value: unknown) => value === undefined || value === null || value === ''
+const monthShift = (month: string, by: number) => shiftPeriod(periodOf('month', `${month}-01`), by).from.slice(0, 7)
 // The sum of a row's measures in one month's values (null: nothing recorded).
-const rowSum = (values, row, measures) => { const cells = measures.map(measure => values?.[row]?.[measure.key]).filter(cell => !blank(cell)); return cells.length ? cells.reduce((sum, cell) => sum + Number(cell), 0) : null }
+const rowSum = (values: AnyRecord | null | undefined, row: string, measures: AnyRecord[]): number | null => { const cells = measures.map(measure => values?.[row]?.[measure.key]).filter(cell => !blank(cell)); return cells.length ? cells.reduce((sum, cell) => sum + Number(cell), 0) : null }
 
 // What a row looked like before this month: the previous month, and whether
 // today's value is far from the usual (more than half away from the average of
 // the three months before; rows that usually count fewer than 5 are not judged).
-export function rowContext(row, measures, valuesOf, month, current) {
+export function rowContext(row: string, measures: AnyRecord[], valuesOf: (month: string) => AnyRecord | undefined, month: string, current: number | null) {
   const previous = rowSum(valuesOf(monthShift(month, -1)), row, measures)
-  const before = [1, 2, 3].map(back => rowSum(valuesOf(monthShift(month, -back)), row, measures)).filter(value => value != null)
+  const before = [1, 2, 3].map(back => rowSum(valuesOf(monthShift(month, -back)), row, measures)).filter((value): value is number => value != null)
   const average = before.length ? before.reduce((sum, value) => sum + value, 0) / before.length : null
   const unusual = current != null && average != null && average >= 5 && Math.abs(current - average) / average > 0.5
   return { previous, average, unusual }
@@ -45,21 +48,22 @@ export function rowContext(row, measures, valuesOf, month, current) {
 // recorded before the daily sheets (one total for the month, on its first day) stay as they were.
 const today = () => hospitalToday()
 // The day the entry opens on: today, or the last working day before it (a Saturday opens on the Friday).
-const lastWorkingDay = day => { let current = day; for (let step = 0; step < 3; step += 1) { const weekday = new Date(`${current}T00:00:00Z`).getUTCDay(); if (weekday !== 0 && weekday !== 6) return current; current = dayShift(current, -1) } return day }
-const dayShift = (day, by) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + by); return date.toISOString().slice(0, 10) }
-const daysOf = month => { const [y, m] = month.split('-').map(Number); return Array.from({ length: new Date(Date.UTC(y, m, 0)).getUTCDate() }, (_, index) => `${month}-${String(index + 1).padStart(2, '0')}`) }
+const lastWorkingDay = (day: string) => { let current = day; for (let step = 0; step < 3; step += 1) { const weekday = new Date(`${current}T00:00:00Z`).getUTCDay(); if (weekday !== 0 && weekday !== 6) return current; current = dayShift(current, -1) } return day }
+const dayShift = (day: string, by: number) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + by); return date.toISOString().slice(0, 10) }
+const daysOf = (month: string) => { const [y, m] = month.split('-').map(Number); return Array.from({ length: new Date(Date.UTC(y, m, 0)).getUTCDate() }, (_, index) => `${month}-${String(index + 1).padStart(2, '0')}`) }
 // The values of several entries added together, row by row and measure by measure.
-const sumValues = list => list.reduce((total, values) => { for (const [row, cells] of Object.entries(values || {})) { total[row] = total[row] || {}; for (const [measure, cell] of Object.entries(cells || {})) if (!blank(cell)) total[row][measure] = (total[row][measure] || 0) + Number(cell) } return total }, {})
+const sumValues = (list: AnyRecord[]) => list.reduce<AnyRecord>((total, values) => { for (const [row, cells] of Object.entries(values || {})) { total[row] = total[row] || {}; for (const [measure, cell] of Object.entries(cells || {})) if (!blank(cell)) total[row][measure] = (total[row][measure] || 0) + Number(cell) } return total }, {})
 // Sheets are recorded day by day from November 2026; the months before keep their one monthly total.
 export { DAILY_SHEETS_FROM }
-export const dailyFromOf = register => dailyStart(register.sheet?.dailyFrom)
+export const dailyFromOf = (register: Register) => dailyStart(register.sheet?.dailyFrom)
 
 // newDayTick: «New day» in the record's header (each press opens today's entry).
-export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onExportApi = null }) {
+interface RegisterSheetProps { register: Register, entries: AnyRecord[], onSaved?: () => void | Promise<void>, newDayTick?: number, onExportApi?: ((api: ExportApi | null) => void) | null }
+export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onExportApi = null }: RegisterSheetProps) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
-  const tableRef = useRef(null)
+  const tableRef = useRef<HTMLDivElement>(null)
   const { tenant } = useTenant()
   const access = useRegisterAccess()
   const navigate = useNavigate()
@@ -76,7 +80,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const periodStart = legacy ? `${month}-01` : day
   const monthEntries = useMemo(() => entries.filter(item => String(item.periodStart).startsWith(month)), [entries, month])
   const entry = entries.find(item => item.periodStart === periodStart) || null
-  const [values, setValues] = useState({})
+  const [values, setValues] = useState<AnyRecord>({})
   const [saving, setSaving] = useState(false)
   useEffect(() => setValues(structuredClone(entry?.values || {})), [entry?.id, periodStart]) // eslint-disable-line react-hooks/exhaustive-deps
   const rows = register.sheet?.rows || []
@@ -88,48 +92,48 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   // A saved day opens as it is; «Edit» in «⋯» unlocks it. A day nobody recorded yet is open for typing.
   const canEdit = canRecordDay && (!entry || editing)
   const shown = isMonth && !legacy ? sumValues(monthEntries.map(item => item.values)) : values
-  const set = (row, measure, text) => setValues(current => {
+  const set = (row: string, measure: string, text: unknown) => setValues(current => {
     const next = { ...current, [row]: { ...(current[row] || {}) } }
     const clean = String(text).replace(/[^0-9]/g, '')
     if (clean === '') delete next[row][measure]; else next[row][measure] = Number(clean)
     return next
   })
-  const rowTotal = row => { const cells = measures.map(measure => shown[row]?.[measure.key]).filter(cell => !blank(cell)); return cells.length ? cells.reduce((sum, cell) => sum + Number(cell), 0) : null }
+  const rowTotal = (row: string) => { const cells = measures.map(measure => shown[row]?.[measure.key]).filter(cell => !blank(cell)); return cells.length ? cells.reduce((sum, cell) => sum + Number(cell), 0) : null }
   const grand = rows.reduce((sum, row) => sum + (rowTotal(row.key) || 0), 0)
   const dirty = JSON.stringify(values) !== JSON.stringify(entry?.values || {})
   // What a row usually is: by month for the month and the earlier monthly totals, by day for a day.
-  const valuesByMonth = useMemo(() => { const byMonth = new Map(); for (const item of entries) { const key = String(item.periodStart).slice(0, 7); byMonth.set(key, [...(byMonth.get(key) || []), item.values || {}]) } return new Map([...byMonth].map(([key, list]) => [key, sumValues(list)])) }, [entries])
+  const valuesByMonth = useMemo(() => { const byMonth = new Map<string, AnyRecord[]>(); for (const item of entries) { const key = String(item.periodStart).slice(0, 7); byMonth.set(key, [...(byMonth.get(key) || []), item.values || {}]) } return new Map([...byMonth].map(([key, list]) => [key, sumValues(list)])) }, [entries])
   const valuesByDay = useMemo(() => new Map(entries.map(item => [String(item.periodStart), item.values || {}])), [entries])
-  const dayContext = (row, current) => {
+  const dayContext = (row: string, current: number | null) => {
     const previous = rowSum(valuesByDay.get(dayShift(day, -1)), row, measures)
-    const before = Array.from({ length: 7 }, (_, index) => rowSum(valuesByDay.get(dayShift(day, -(index + 1))), row, measures)).filter(value => value != null)
+    const before = Array.from({ length: 7 }, (_, index) => rowSum(valuesByDay.get(dayShift(day, -(index + 1))), row, measures)).filter((value): value is number => value != null)
     const average = before.length ? before.reduce((sum, value) => sum + value, 0) / before.length : null
     return { previous, average, unusual: current != null && average != null && average >= 5 && Math.abs(current - average) / average > 0.5 }
   }
   const filled = rows.filter(row => rowSum(shown, row.key, measures) != null).length
   const byDay = isDay && !legacy
-  const contexts = new Map(rows.map(row => [row.key, byDay ? dayContext(row.key, rowSum(shown, row.key, measures)) : rowContext(row.key, measures, item => valuesByMonth.get(item), month, rowSum(shown, row.key, measures))]))
+  const contexts = new Map(rows.map(row => [row.key, byDay ? dayContext(row.key, rowSum(shown, row.key, measures)) : rowContext(row.key, measures, (item: string) => valuesByMonth.get(item), month, rowSum(shown, row.key, measures))]))
   const unusualCount = [...contexts.values()].filter(context => context.unusual).length
-  const fmt = value => (value == null ? '—' : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value))
+  const fmt = (value: number | null) => (value == null ? '—' : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value))
   const monthLabel = periodLabel(periodOf('month', `${month}-01`), language)
   const dayLabel = new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
   const label = isDay && !legacy ? dayLabel : monthLabel
   // Another day or month: unsaved numbers are not dropped without asking.
-  async function goTo(next) {
+  async function goTo(next: string) {
     if (next === day) return
     if (dirty && canEdit && !(await confirm({ title: en ? 'Unsaved changes' : 'Μη αποθηκευμένες αλλαγές', message: en ? `The changes to ${label} are not saved. Leave them?` : `Οι αλλαγές του φύλλου «${label}» δεν έχουν αποθηκευτεί. Να χαθούν;`, confirmLabel: en ? 'Leave without saving' : 'Αλλαγή χωρίς αποθήκευση', danger: true }))) return
     setEditing(false)
     setDay(next)
   }
-  const goToMonth = next => goTo(next === thisMonth() ? today() : `${next}-01`)
-  const openDay = next => { setView('day'); goTo(next) }
+  const goToMonth = (next: string) => goTo(next === thisMonth() ? today() : `${next}-01`)
+  const openDay = (next: string) => { setView('day'); goTo(next) }
   useEffect(() => { if (newDayTick > 0) openDay(today() >= dailyFrom ? today() : `${thisMonth()}-01`) }, [newDayTick]) // eslint-disable-line react-hooks/exhaustive-deps
   // Enter moves to the next cell, as in a spreadsheet.
-  function nextCell(event) {
+  function nextCell(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== 'Enter') return
     event.preventDefault()
-    const inputs = [...(tableRef.current?.querySelectorAll('input:not(:disabled)') || [])]
-    inputs[inputs.indexOf(event.target) + 1]?.focus()
+    const inputs = [...(tableRef.current?.querySelectorAll<HTMLInputElement>('input:not(:disabled)') || [])]
+    inputs[inputs.indexOf(event.target as HTMLInputElement) + 1]?.focus()
   }
 
   async function save() {
@@ -156,8 +160,8 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
     }
     if (view === 'year') {
       const keys = Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}`)
-      const short = key => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${key}-01T00:00:00Z`))
-      exportRegistry({ name, headers: [rowLabel, ...keys.map(short), en ? 'Year' : 'Έτος'], rows: rows.map(row => { const cells = keys.map(key => rowSum(valuesByMonth.get(key), row.key, measures)); return [textOf(row, language), ...cells.map(cell => cell ?? ''), cells.some(cell => cell != null) ? cells.reduce((sum, cell) => sum + (cell || 0), 0) : ''] }) })
+      const short = (key: string) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${key}-01T00:00:00Z`))
+      exportRegistry({ name, headers: [rowLabel, ...keys.map(short), en ? 'Year' : 'Έτος'], rows: rows.map(row => { const cells = keys.map(key => rowSum(valuesByMonth.get(key), row.key, measures)); return [textOf(row, language), ...cells.map(cell => cell ?? ''), cells.some(cell => cell != null) ? cells.reduce<number>((sum, cell) => sum + (cell || 0), 0) : ''] }) })
       return
     }
     exportRegistry({ name, headers: [rowLabel, ...(measures.length > 1 ? measures.map(measure => textOf(measure, language)) : []), en ? 'Total' : 'Σύνολο'], rows: [...rows.map(row => [textOf(row, language), ...(measures.length > 1 ? measures.map(measure => shown[row.key]?.[measure.key] ?? '') : []), rowTotal(row.key) ?? '']), [en ? 'Total' : 'Σύνολο', ...(measures.length > 1 ? measures.map(measure => rows.reduce((sum, row) => sum + Number(shown[row.key]?.[measure.key] || 0), 0)) : []), grand]] })
@@ -170,14 +174,14 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   useEffect(() => { onExportApi?.({ excel: exportExcel, pdf: exportPdf, busy: exporting, disabled: !entries.length }); return () => onExportApi?.(null) }, [view, periodStart, entries, values, exporting]) // eslint-disable-line react-hooks/exhaustive-deps
   const grouped = groups.length ? [...groups.map(group => ({ group, rows: rows.filter(row => row.group === group.key) })), { group: null, rows: rows.filter(row => !groups.some(group => group.key === row.group)) }].filter(item => item.rows.length) : [{ group: null, rows }]
   const year = month.slice(0, 4)
-  const previousTotal = rows.reduce((sum, row) => sum + (contexts.get(row.key).previous || 0), 0)
+  const previousTotal = rows.reduce((sum, row) => sum + (contexts.get(row.key)!.previous || 0), 0)
   // The month's tools that are not daily work wait in «⋯».
   const menu = [
     canRecordDay && entry && !editing && { id: 'edit', label: en ? 'Edit' : 'Επεξεργασία', icon: Pencil, onClick: () => setEditing(true) },
     access.canRecord(register) && { id: 'import', label: en ? 'Import from file' : 'Εισαγωγή από αρχείο', icon: Upload, onClick: () => navigate(`/registers/${register.id}/import`) },
   ].filter(Boolean)
   // Under the fields: the total of what is on screen, the one before it, the month so far and how much is filled.
-  const entryTotal = item => rows.reduce((sum, row) => sum + (rowSum(item, row.key, measures) || 0), 0)
+  const entryTotal = (item: AnyRecord) => rows.reduce((sum, row) => sum + (rowSum(item, row.key, measures) || 0), 0)
   const monthSoFar = monthEntries.reduce((sum, item) => sum + (item.periodStart === periodStart ? 0 : entryTotal(item.values)), 0) + (isDay ? grand : 0)
   const previousLabel = byDay ? (en ? 'previous day' : 'προηγ. ημέρα') : (en ? 'previous month' : 'προηγ. μήνας')
   const subtitle = view === 'list'
@@ -201,10 +205,10 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
       {grouped.map(({ group, rows: groupRows }) => <section key={group?.key || 'rows'} className="register-ledger">
         <header className="register-ledger-head"><strong>{group ? textOf(group, language) : (en ? 'Totals of the day' : 'Σύνολα ημέρας')}</strong><span>{en ? 'Number' : 'Αριθμός'}</span></header>
         <div className="register-ledger-lines">
-          {groupRows.map(row => { const context = contexts.get(row.key); const only = measures.length > 1 && shift !== 'total' ? measures.find(measure => measure.key === shift) : null; const total = rowTotal(row.key); return <div key={row.key} className={`register-ledger-line${context.unusual ? ' is-unusual' : ''}`} onClick={event => { if (event.target.tagName !== 'INPUT') event.currentTarget.querySelector('input')?.focus() }}>
+          {groupRows.map(row => { const context = contexts.get(row.key)!; const only = measures.length > 1 && shift !== 'total' ? measures.find(measure => measure.key === shift) : null; const total = rowTotal(row.key); return <div key={row.key} className={`register-ledger-line${context.unusual ? ' is-unusual' : ''}`} onClick={event => { if ((event.target as HTMLElement).tagName !== 'INPUT') event.currentTarget.querySelector('input')?.focus() }}>
             <span className="register-ledger-name">{textOf(row, language)}</span>
             {only || measures.length === 1 ? (canEdit ? <input className="register-sheet-input" aria-label={`${textOf(row, language)} · ${textOf(only || measures[0], language)}`} inputMode="numeric" value={values[row.key]?.[(only || measures[0]).key] ?? ''} onChange={event => set(row.key, (only || measures[0]).key, event.target.value)} onKeyDown={nextCell} /> : <strong className="register-sheet-value">{fmt(shown[row.key]?.[(only || measures[0]).key] ?? null)}</strong>) : <strong className="register-sheet-value">{fmt(total)}</strong>}
-            <small className="register-sheet-field-note register-ledger-note">{context.unusual ? <><AlertTriangle size={12} />{en ? `usually about ${fmt(Math.round(context.average))}` : `συνήθως περίπου ${fmt(Math.round(context.average))}`}</> : context.previous != null ? `${previousLabel} ${fmt(context.previous)}` : '\u00a0'}</small>
+            <small className="register-sheet-field-note register-ledger-note">{context.unusual ? <><AlertTriangle size={12} />{en ? `usually about ${fmt(Math.round(context.average!))}` : `συνήθως περίπου ${fmt(Math.round(context.average!))}`}</> : context.previous != null ? `${previousLabel} ${fmt(context.previous)}` : '\u00a0'}</small>
           </div> })}
         </div>
       </section>)}
@@ -221,19 +225,20 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
 
 // All the entries as a list, like the cases of a register: the day (or, before the daily
 // sheets, the month's total), the total and the rows filled. Newest first.
-function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen }) {
+interface SheetDaysProps { innerRef: RefObject<HTMLDivElement>, register: Register, entries: AnyRecord[], dailyFrom: string, language: string, onOpen: (day: string) => void }
+function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen }: SheetDaysProps) {
   const en = language === 'en'
   const rows = register.sheet?.rows || []
   const measures = register.sheet?.measures || []
-  const fmt = value => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
+  const fmt = (value: number) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
   // Everything recorded, newest first; the filters narrow it to a year and a month.
   const [year, setYear] = useState('all')
   const [month, setMonth] = useState('all')
   const years = [...new Set(entries.map(item => String(item.periodStart).slice(0, 4)))].sort().reverse()
-  const monthName = number => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, number - 1, 1)))
-  const totalOf = item => rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
+  const monthName = (number: number) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, number - 1, 1)))
+  const totalOf = (item: AnyRecord) => rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
   // Each entry against the one recorded before it.
-  const olderTotal = new Map(); { const ascending = [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))); ascending.forEach((item, index) => { if (index > 0) olderTotal.set(String(item.periodStart), totalOf(ascending[index - 1])) }) }
+  const olderTotal = new Map<string, number>(); { const ascending = [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))); ascending.forEach((item, index) => { if (index > 0) olderTotal.set(String(item.periodStart), totalOf(ascending[index - 1])) }) }
   const sorted = [...entries]
     .filter(item => (year === 'all' || String(item.periodStart).startsWith(year)) && (month === 'all' || String(item.periodStart).slice(5, 7) === month))
     .sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart)))
@@ -241,23 +246,23 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen })
   const dailyItems = sorted.filter(item => String(item.periodStart) >= dailyFrom)
   const sumAll = sorted.reduce((sum, item) => sum + totalOf(item), 0)
   const recordedDays = new Set(dailyItems.map(item => String(item.periodStart)))
-  let missingDays = null
+  let missingDays: number | null = null
   if (dailyItems.length) {
     const ordered = [...recordedDays].sort()
     missingDays = 0
     for (let day = ordered[0]; day <= ordered[ordered.length - 1]; day = dayShift(day, 1)) { const weekday = new Date(`${day}T00:00:00Z`).getUTCDay(); if (weekday !== 0 && weekday !== 6 && !recordedDays.has(day)) missingDays += 1 }
   }
   // The bars compare days with days and months with months.
-  const maxOf = daily => Math.max(1, ...sorted.filter(item => (String(item.periodStart) >= dailyFrom) === daily).map(totalOf))
+  const maxOf = (daily: boolean) => Math.max(1, ...sorted.filter(item => (String(item.periodStart) >= dailyFrom) === daily).map(totalOf))
   const maxDaily = maxOf(true), maxMonthly = maxOf(false)
   const figures = [
     { key: 'entries', icon: CalendarDays, value: sorted.length, label: en ? 'Entries' : 'Καταχωρίσεις' },
     { key: 'total', icon: Sigma, value: fmt(sumAll), label: en ? 'Total of the choice' : 'Σύνολο της επιλογής' },
-    { key: 'mean', icon: Gauge, value: dailyItems.length ? fmt(Math.round(dailyItems.reduce((sum, item) => sum + totalOf(item), 0) / dailyItems.length)) : null, label: en ? 'Mean per day' : 'Μέσο ανά ημέρα', hint: dailyItems.length ? null : (en ? 'from the daily sheets' : 'από τα ημερήσια φύλλα') },
+    { key: 'mean', icon: Gauge, value: dailyItems.length ? fmt(Math.round(dailyItems.reduce((sum, item) => sum + totalOf(item), 0) / dailyItems.length)) : null, label: en ? 'Mean per day' : 'Μέσο ανά ημέρα', hint: dailyItems.length ? undefined : (en ? 'from the daily sheets' : 'από τα ημερήσια φύλλα') },
     { key: 'missing', icon: CalendarX2, value: missingDays, label: en ? 'Working days not recorded' : 'Εργάσιμες χωρίς καταχώριση', tone: 'warning' },
   ]
-  const dayText = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
-  const monthText = day => periodLabel(periodOf('month', day), language)
+  const dayText = (day: string) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
+  const monthText = (day: string) => periodLabel(periodOf('month', day), language)
   if (!entries.length) return <div className="register-sheet-body"><div className="inline-empty">{en ? 'No day recorded yet. Start with «New day».' : 'Καμία ημέρα ακόμη. Ξεκινήστε με «Νέα ημέρα».'}</div></div>
   const narrowed = year !== 'all' || month !== 'all'
   const filters = <div className="register-sheet-filter-row">
@@ -283,18 +288,19 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen })
 }
 
 // The year: one column per month, one row per sheet row (sum of measures).
-function SheetYear({ innerRef, register, entries, year, selected, onSelect }) {
+interface SheetYearProps { innerRef: RefObject<HTMLDivElement>, register: Register, entries: AnyRecord[], year: string, selected: string, onSelect: (day: string) => void }
+function SheetYear({ innerRef, register, entries, year, selected, onSelect }: SheetYearProps) {
   const { language } = useLanguage()
   const en = language === 'en'
   const months = useMemo(() => Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}-01`), [year])
   // A month's column adds up its days (or holds its earlier monthly total).
   const byMonth = new Map(months.map(first => { const list = entries.filter(entry => String(entry.periodStart).startsWith(first.slice(0, 7))); return [first, list.length ? { values: sumValues(list.map(entry => entry.values)) } : null] }))
-  const cell = (entry, row) => {
+  const cell = (entry: AnyRecord | null | undefined, row: string) => {
     if (!entry) return null
     const cells = (register.sheet?.measures || []).map(measure => entry.values?.[row]?.[measure.key]).filter(value => !blank(value))
     return cells.length ? cells.reduce((sum, value) => sum + Number(value), 0) : null
   }
-  const short = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
+  const short = (day: string) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
   return <div ref={innerRef} className="scroll-table register-sheet-year"><table className="data-table register-year-table">
       <thead><tr><th>{en ? 'Row' : 'Γραμμή'}</th>{months.map(day => <th key={day} className={`register-num ${day === selected ? 'is-selected' : ''}`}><button type="button" onClick={() => onSelect(day)}>{short(day)}</button></th>)}<th className="register-num">{en ? 'Year' : 'Έτος'}</th></tr></thead>
       <tbody>{(register.sheet?.rows || []).map(row => {

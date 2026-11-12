@@ -28,6 +28,8 @@ import { RegisterIndicators } from './RegisterIndicators'
 import { RegisterBuilder } from './RegisterBuilder'
 import './registers.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { ExportApi, Register } from './registerTypes'
 
 // One department register: its entries (cases, or the monthly sheet), its
 // indicators with the report, its definition and its history.
@@ -41,17 +43,17 @@ export function RegisterRecordPage() {
   const navigate = useNavigate()
   const { goBack } = useContextualNavigation('/registers')
   const access = useRegisterAccess()
-  const [register, setRegister] = useState(null)
-  const [entries, setEntries] = useState([])
+  const [register, setRegister] = useState<Register | null>(null)
+  const [entries, setEntries] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState(() => location.state?.registerTab || 'entries')
   // «Set a target» in Indicators opens that indicator in Definition.
-  const [defineIndicator, setDefineIndicator] = useState(null)
+  const [defineIndicator, setDefineIndicator] = useState<string | null>(null)
   const [newDayTick, setNewDayTick] = useState(0)
   // The indicators tab's export handlers, shown in the header like the entries' export.
-  const [indicatorExport, setIndicatorExport] = useState(null)
+  const [indicatorExport, setIndicatorExport] = useState<ExportApi | null>(null)
   // The sheet's export handlers: what is on screen (the day, the month, the year or the list).
-  const [sheetExport, setSheetExport] = useState(null)
+  const [sheetExport, setSheetExport] = useState<ExportApi | null>(null)
   const withIdentity = register ? access.canSeeIdentity(register) : false
   const reload = useCallback(async () => {
     setLoading(true)
@@ -93,23 +95,24 @@ export function RegisterRecordPage() {
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={(() => { const key = registerThemeKey(register); const Icon = key ? themeIcon(key) : sheet ? CalendarRange : ClipboardList; return <Icon size={19} /> })()} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
 >
     {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
-    {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? indicatorId => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
-    {tab === 'definition' && <RegisterBuilder entries={entries} register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={next => setRegister(next)} />}
+    {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? (indicatorId: string) => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
+    {tab === 'definition' && <RegisterBuilder entries={entries} register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={(next: Register | null) => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}
   </EntityRecordShell></Page>
 }
 
-const historyTitle = (action, language) => (language === 'en' ? { created: 'Register created', updated: 'Definition changed', archived: 'Register archived', activated: 'Register activated' } : { created: 'Δημιουργία μητρώου', updated: 'Αλλαγή ορισμού', archived: 'Αρχειοθέτηση μητρώου', activated: 'Ενεργοποίηση μητρώου' })[action] || action
+const historyTitle = (action: string, language: string) => ((language === 'en' ? { created: 'Register created', updated: 'Definition changed', archived: 'Register archived', activated: 'Register activated' } : { created: 'Δημιουργία μητρώου', updated: 'Αλλαγή ορισμού', archived: 'Αρχειοθέτηση μητρώου', activated: 'Ενεργοποίηση μητρώου' }) as Record<string, string>)[action] || action
 
 // The columns of the case list: the date the case counts on, then the fields
 // marked `list` (or the first four).
-export function listFields(register) {
+export function listFields(register: Register): AnyRecord[] {
   const dateField = register.fields.find(field => field.key === register.settings?.entryDateField)
   const marked = register.fields.filter(field => field.list && field !== dateField)
   return [dateField, ...(marked.length ? marked : register.fields.filter(field => field !== dateField && field.type !== 'text').slice(0, 4))].filter(Boolean)
 }
 
-function RegisterCases({ register, entries, withIdentity, canRecord, loading }) {
+interface RegisterCasesProps { register: Register, entries: AnyRecord[], withIdentity: boolean, canRecord: boolean, loading: boolean }
+function RegisterCases({ register, entries, withIdentity, canRecord, loading }: RegisterCasesProps) {
   const { language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -137,7 +140,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
   const paged = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
   // The cases open in the list's order, so the case page steps to the previous and next one.
   const registry = useRegistryMemory(`register-cases-${register.id}`)
-  const open = entry => registry.openRecord(navigate, `/registers/${register.id}/entries/${entry.id}`, entry.id, rows.map(item => item.id))
+  const open = (entry: AnyRecord) => registry.openRecord(navigate, `/registers/${register.id}/entries/${entry.id}`, entry.id, rows.map(item => item.id))
   return <RecordTabPanel className="register-cases" title={en ? 'Cases' : 'Περιστατικά'} subtitle={withIdentity ? (en ? 'Your department’s cases. The case number and name stay inside the department.' : 'Τα περιστατικά του τμήματος. Αριθμός περιστατικού και όνομα μένουν στο τμήμα.') : (en ? 'The values the indicators read, without names.' : 'Οι τιμές που διαβάζουν οι δείκτες, χωρίς ονόματα.')}
     footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={(year !== 'all' ? 1 : 0) + (stay !== 'all' ? 1 : 0) + (state !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setYear('all'); setStay('all'); setState('all') }}>
@@ -160,7 +163,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
 }
 
 // CSV for Excel: the values of every entry (no names, whoever exports).
-export function registerExport(register, entries, { language = 'el' } = {}) {
+export function registerExport(register: Register, entries: AnyRecord[], { language = 'el' }: { language?: string, withIdentity?: boolean } = {}) {
   const en = language === 'en'
   const title = en ? register.nameEn : register.name
   if (register.kind === 'sheet') {
