@@ -60,9 +60,11 @@ function touch(record: AnyRecord,actor: AnyRecord|null,type: string,detail: stri
 interface CreateClinicalRepositoryOptions {
   isDemo: boolean
   organizationId: string | null | undefined
-  actor: AnyRecord|null
+  // The audit actor ({ id, name }); callers outside the module may hand it untyped.
+  actor: unknown
 }
-export function createClinicalRepository({isDemo,organizationId,actor}: CreateClinicalRepositoryOptions){
+export function createClinicalRepository({isDemo,organizationId,actor: actorValue}: CreateClinicalRepositoryOptions){
+  const actor=actorValue as AnyRecord|null
   async function withAdmissionLinks(rows: AnyRecord[]){
     if(isDemo||!rows?.length)return rows||[]
     const links=await loadSurveillanceAdmissionLinks(organizationId,rows.map((row: AnyRecord)=>row.recordId||row.id))
