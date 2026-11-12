@@ -16,7 +16,7 @@ function sourceFiles(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const full = path.join(dir, entry.name)
     if (entry.isDirectory()) return sourceFiles(full)
-    return /\.(js|jsx)$/.test(entry.name) ? [full] : []
+    return /\.(js|jsx|ts|tsx)$/.test(entry.name) ? [full] : []
   })
 }
 

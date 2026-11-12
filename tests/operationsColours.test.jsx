@@ -32,7 +32,7 @@ describe('Operations colours (finding Ο4)', () => {
     // One exception (owner's choice): the state of a control in the «Programme» list is a
     // coloured label for every state, so «On schedule» reads as plainly as «Overdue».
     for (const dir of ['src/features/controls', 'src/features/kitchen']) {
-      for (const file of readdirSync(dir).filter(name => name.endsWith('.jsx'))) {
+      for (const file of readdirSync(dir).filter(name => /\.(jsx|tsx)$/.test(name))) {
         expect(readSource(`${dir}/${file}`).replaceAll('<StatusBadge className="control-state-badge"', ''), `${dir}/${file}`).not.toMatch(/<StatusBadge\b/)
       }
     }

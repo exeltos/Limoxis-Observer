@@ -1,0 +1,346 @@
+// The other FileMaker registers (ICU, Obstetrics, Delivery room, Cath lab,
+// Chemotherapy, Emergency department, Physiotherapy) and the new Paediatrics register, with
+// the corrections of docs/quality/DEPARTMENT_REGISTERS_FILEMAKER.md. Lists
+// follow the values found in the FileMaker exports; `aliases` are the
+// FileMaker column names and `match` the beginnings of the FileMaker values,
+// so an export is imported without retyping. AMKA is never imported or kept.
+
+import type { AnyRecord } from '../../types/featureTypes'
+
+const o = (value: string, label: string, labelEn: string, match?: string[]) => (match ? { value, label, labelEn, match } : { value, label, labelEn })
+const row = (key: string, label: string, labelEn: string, aliases?: string[], group?: string) => ({ key, label, labelEn, ...(aliases ? { aliases } : {}), ...(group ? { group } : {}) })
+const sex = (key = 'sex', extra = {}) => ({ key, type: 'choice', label: 'Φύλο', labelEn: 'Sex', aliases: ['ΦΥΛΟ', 'Φύλο'], options: [o('male', 'Άνδρας', 'Male', ['ΑΝΔΡ', 'ΑΡΡΕΝ']), o('female', 'Γυναίκα', 'Female', ['ΓΥΝΑΙΚ', 'ΘΗΛΥ'])], ...extra })
+const yes = (key: string, label: string, labelEn: string, extra = {}) => ({ key, type: 'yesNo', label, labelEn, ...extra })
+const days = (key: string, label: string, labelEn: string, extra = {}) => ({ key, type: 'number', unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label, labelEn, ...extra })
+const stay = (from: string, to: string) => ({ key: 'length_of_stay', type: 'computed', computed: 'days', from, to, unit: 'ημέρες', unitEn: 'days', label: 'Διάρκεια νοσηλείας', labelEn: 'Length of stay' })
+const count = (id: string, title: string, titleEn: string, extra = {}) => ({ id, title, titleEn, aggregation: 'count', filters: [], direction: 'context', ...extra })
+const share = (id: string, title: string, titleEn: string, filters: AnyRecord[], extra = {}) => ({ id, title, titleEn, aggregation: 'percent', filters, denominatorFilters: [], unit: '%', direction: 'context', ...extra })
+const average = (id: string, title: string, titleEn: string, field: string, extra = {}) => ({ id, title, titleEn, aggregation: 'mean', field, filters: [], direction: 'context', ...extra })
+
+const ICU = {
+  key: 'icu',
+  kind: 'case',
+  name: 'Μητρώο ασθενών ΜΕΘ',
+  nameEn: 'ICU patient register',
+  description: 'Μία καρτέλα ανά νοσηλεία, Γενική και Καρδιοχειρουργική ΜΕΘ. Δείκτες: θνησιμότητα, SMR έναντι APACHE II, ημέρες ΜΕΘ, κατακλίσεις, επανεισαγωγές 48ώρου.',
+  descriptionEn: 'One card per stay, General and Cardiac surgery ICU. Indicators: mortality, observed vs APACHE II predicted, ICU days, pressure ulcers, 48-hour readmissions.',
+  identity: { caseNumber: true, patientName: true, caseNumberAliases: ['ΑΡΙΘΜΟΣ ΠΕΡΙΣΤΑΤΙΚΟΥ', 'ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'], patientNameAliases: ['ΟΝΟΜΑΤΕΠΩΝΥΜΟ ΑΣΘΕΝΟΥΣ'] },
+  entryDateField: 'admission_date',
+  entryDateFallbacks: ['discharge_date'],
+  // FileMaker kept these percentages without their decimal point (2,42 → 242).
+  importRepairs: { euroscore: 'decimal' },
+  sections: [{ key: 'admission', label: 'Εισαγωγή', labelEn: 'Admission' }, { key: 'severity', label: 'Βαρύτητα', labelEn: 'Severity' }, { key: 'stay', label: 'Νοσηλεία', labelEn: 'Stay' }, { key: 'discharge', label: 'Έξοδος από τη ΜΕΘ', labelEn: 'Leaving the ICU' }],
+  breakdowns: ['category', 'admission_reason', 'outcome'],
+  fields: [
+    { key: 'admission_date', section: 'admission', type: 'date', required: true, label: 'Ημερομηνία εισαγωγής', labelEn: 'Admission date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΙΣΑΓΩΓΗΣ ΜΕΘ'] },
+    { key: 'category', section: 'admission', type: 'choice', required: true, list: true, label: 'Κατηγορία ασθενούς', labelEn: 'Patient category', aliases: ['ICU PATIENT CATEGORY', 'ΚΑΤΗΓΟΡΙΑ ΑΣΘΕΝΟΥΣ'], options: [o('general', 'Γενική ΜΕΘ', 'General ICU', ['ΓΕΝΙΚΗ']), o('cardiac', 'Καρδιοχειρουργική ΜΕΘ', 'Cardiac surgery ICU', ['ΚΑΡΔΙΟΧ'])] },
+    { key: 'age', section: 'admission', type: 'number', unit: 'έτη', unitEn: 'years', min: 0, max: 120, list: true, label: 'Ηλικία', labelEn: 'Age', aliases: ['ΗΛΙΚΙΑ'] },
+    sex('sex', { section: 'admission' }),
+    { key: 'admission_reason', section: 'admission', type: 'choice', provisional: true, label: 'Αιτία εισαγωγής', labelEn: 'Reason for admission', options: [o('respiratory', 'Αναπνευστική ανεπάρκεια', 'Respiratory failure', ['ΑΝΑΠΝΕΥΣΤΙΚΗ', 'ΟΞΕΙΑ ΑΝΑΠΝΕΥΣΤΙΚΗ', 'ΠΝΕΥΜΟΝΙΚΗ ΕΜΒΟΛΗ', 'ΠΝΕΥΜΟΝΙΚΟ ΟΙΔΗΜΑ', 'ΟΞΥ ΠΝΕΥΜΟΝΙΚΟ ΟΙΔΗΜΑ', 'ΠΝΕΥΜΟΝΙΑ', 'ΑΜΦΟΤΕΡΟΠΛΕΥΡΗ ΠΝΕΥΜΟΝΙΑ']), o('sepsis', 'Σήψη / σηπτική καταπληξία', 'Sepsis / septic shock', ['ΣΗΨΗ', 'ΣΗΠΤΙΚ', 'ΣΗΠΤΙΚΗ ΚΑΤΑΠΛΗΞΙΑ']), o('cardiac_surgery', 'Καρδιοχειρουργική επέμβαση', 'Cardiac surgery', ['ΑΟΡΤΟΣΤΕΦΑΝΙΑΙΑ', 'ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΑΟΡΤΙΚΗΣ', 'ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΜΙΤΡΟΕΙΔΟΥΣ', 'ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΤΡΙΓΛΩΧΙΝΑΣ', 'ΠΛΑΣΤΙΚΗ ΜΙΤΡΟΕΙΔΟΥΣ', 'CABG', 'BYPASS']), o('postop', 'Μετεγχειρητική παρακολούθηση', 'Post-operative care', ['ΜΕΤΕΓΧΕΙΡΗΤΙΚΗ', 'ΕΝΔΑΡΤΗΡΕΚΤΟΜΗ', 'ΣΤΕΝΩΣΗ ΚΑΡΩΤΙΔΑΣ', 'ΚΟΛΕΚΤΟΜΗ', 'ΝΕΦΡΕΚΤΟΜΗ', 'ΥΣΤΕΡΕΚΤΟΜΗ', 'ΟΛΙΚΗ ΥΣΤΕΡΕΚΤΟΜΗ', 'ΛΟΒΕΚΤΟΜΗ', 'ΣΙΓΜΟΕΙΔΕΚΤΟΜΗ', 'ΕΝΤΕΡΕΚΤΟΜΗ', 'ΣΠΟΝΔΥΛΟΔΕΣΙΑ', 'ΑΦΑΙΡΕΣΗ', 'ΓΑΣΤΡΕΚΤΟΜΗ', 'ΧΟΛΟΚΥΣΤΕΚΤΟΜΗ', 'ΟΞΕΙΑ ΚΟΙΛΙΑ', 'ΕΙΛΕΟΣ', 'ΑΠΟΦΡΑΚΤΙΚΟΣ ΕΙΛΕΟΣ', 'ΙΣΧΑΙΜΙΑ ΕΝΤΕΡΟΥ', 'CA Ω', 'CA Π', 'CA Ε', 'CA Ο', 'CA Μ', 'CA Σ', 'CA Ν', 'CA Κ', 'CA Λ', 'CA Γ', 'CA Υ', 'CA Τ', 'CA Χ']), o('cardiac', 'Καρδιολογική', 'Cardiac', ['ΟΞΥ ΕΜΦΡΑΓΜΑ', 'ΕΜΦΡΑΓΜΑ', 'ΑΝΑΚΟΠΗ', 'ΑΝΑΤΑΧΘΕΙΣΑ ΑΝΑΚΟΠΗ', 'ΚΑΡΔΙΟΓΕΝΕΣ', 'ΚΑΡΔΙΑΚΗ ΑΝΕΠΑΡΚΕΙΑ', 'ΑΙΜΟΔΥΝΑΜΙΚΗ ΑΣΤΑΘΕΙΑ', 'ΑΡΡΥΘΜΙΑ']), o('neuro', 'Νευρολογική', 'Neurological', ['ΠΤΩΣΗ ΕΠΙΠΕΔΟΥ', 'ΕΝΔΟΕΓΚΕΦΑΛΙΚΗ', 'ΑΓΓΕΙΑΚΟ ΕΓΚΕΦΑΛΙΚΟ', 'ΑΕΕ', 'ΕΠΙΛΗΠΤ', 'ΣΠΑΣΜΟΙ', 'ΥΠΑΡΑΧΝΟΕΙΔΗΣ']), o('trauma', 'Τραύμα', 'Trauma', ['ΠΟΛΥΤΡΑΥΜΑ', 'ΚΡΑΝΙΟΕΓΚΕΦΑΛΙΚΗ', 'ΚΑΚ']), o('other', 'Άλλο', 'Other')] },
+    yes('requisition', 'Επίταξη', 'Requisitioned bed', { section: 'admission', aliases: ['ΕΠΙΤΑΞΗ'] }),
+    yes('readmission_48h', 'Επανεισαγωγή εντός 48 ωρών', 'Readmission within 48 h', { section: 'admission', aliases: ['ΕΠΑΝΕΙΣΑΓΩΓΗ 48ΩΡΟΥ'] }),
+    { key: 'apache_score', section: 'severity', type: 'number', min: 0, max: 71, label: 'APACHE II score', labelEn: 'APACHE II score', aliases: ['APACHE II SCORE'] },
+    yes('apache_postop', 'Μετεγχειρητικός ασθενής', 'Post-operative admission', { section: 'severity', help: 'Για τον πίνακα θνητότητας APACHE II.', helpEn: 'Selects the APACHE II mortality table.' }),
+    { key: 'apache_mortality', section: 'severity', type: 'computed', computed: 'apacheII', from: 'apache_score', to: 'apache_postop', unit: '%', unitEn: '%', label: 'Προβλεπόμενη θνητότητα APACHE II', labelEn: 'APACHE II predicted mortality', help: 'Υπολογίζεται από το APACHE II score και το αν ο ασθενής είναι μετεγχειρητικός.', helpEn: 'Computed from the APACHE II score and whether the admission is post-operative.' },
+    { key: 'euroscore', section: 'severity', type: 'number', unit: '%', unitEn: '%', min: 0, max: 100, label: 'EuroSCORE II', labelEn: 'EuroSCORE II', aliases: ['EUROSCORE'], showWhen: { field: 'category', value: 'cardiac' }, help: 'Μόνο για την Καρδιοχειρουργική ΜΕΘ, ως %.', helpEn: 'Cardiac surgery ICU only, as %.' },
+    { key: 'ventilator_hours', section: 'stay', type: 'number', unit: 'ώρες', unitEn: 'hours', min: 0, max: 8760, label: 'Ώρες στον αναπνευστήρα', labelEn: 'Ventilator hours', aliases: ['ΧΡΟΝΟΣ ΠΑΡΑΜΟΝΗΣ ΣΤΟΝ ΑΝΑΠΝΕΥΣΤΗΡΑ'] },
+    yes('pressure_ulcer', 'Εμφάνιση κατάκλισης', 'Pressure ulcer developed', { section: 'stay', aliases: ['ΕΜΦΑΝΙΣΗ ΚΑΤΑΚΛΙΣΕΩΝ', 'ΚΑΤΑΚΛΙΣΕΙΣ'] }),
+    yes('vap', 'VAP', 'VAP', { section: 'stay', aliases: ['VAP', 'ΥΠΑΡΧΕΙ VAP'], help: 'Θα συνδεθεί με το επεισόδιο στην Επιτήρηση.', helpEn: 'To be linked with the Surveillance episode.' }),
+    yes('air_mattress', 'Αερόστρωμα', 'Air mattress', { section: 'stay', aliases: ['ΑΕΡΟΣΤΡΩΜΑ', 'ΥΠΑΡΧΕΙ ΑΕΡΟΣΤΡΩΜΑ'] }),
+    yes('daily_cleaning', 'Καθημερινή καθαριότητα', 'Daily cleaning', { section: 'stay', aliases: ['ΕΚΤΕΛΕΙΤΑΙ ΚΑΘΗΜΕΡΙΝΗ ΚΑΘΑΡΙΟΤΗΤΑ', 'ΚΑΘΗΜΕΡΙΝΗ ΚΑΘΑΡΙΟΤΗΤΑ'] }),
+    yes('line_care', 'Καθημερινή περιποίηση γραμμών', 'Daily line care', { section: 'stay', aliases: ['ΕΚΤΕΛΕΙΤΑΙ ΚΑΘΗΜΕΡΙΝΗ ΠΕΡΙΠΟΙΗΣΗ ΓΡΑΜΜΩΝ', 'ΠΕΡΙΠΟΙΗΣΗ ΓΡΑΜΜΩΝ'] }),
+    yes('cultures', 'Λήψη καλλιεργειών', 'Cultures taken', { section: 'stay', aliases: ['ΛΗΨΗ ΚΑΛΛΙΕΡΓΕΙΩΝ', 'ΕΓΙΝΕ ΛΗΨΗ ΚΑΛΛΙΕΡΓΕΙΩΝ'] }),
+    { key: 'discharge_date', section: 'discharge', type: 'date', notBefore: 'admission_date', list: true, label: 'Ημερομηνία εξόδου', labelEn: 'Discharge date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ ΑΠΟ ΤΗ ΜΕΘ'] },
+    { ...stay('admission_date', 'discharge_date'), section: 'discharge', label: 'Ημέρες ΜΕΘ', labelEn: 'ICU days' },
+    { key: 'outcome', section: 'discharge', type: 'choice', list: true, label: 'Πού πήγε', labelEn: 'Where to', aliases: ['ΕΚΒΑΣΗ'], showWhen: { field: 'discharge_date' }, options: [o('transfer_ward', 'Μεταφορά σε νοσηλευτικό τμήμα', 'Transfer to a ward', ['ΜΕΤΑΦΟΡΑ']), o('transfer_hospital', 'Διακομιδή σε άλλο νοσοκομείο', 'Transfer to another hospital', ['ΔΙΑΚΟΜΙΔΗ']), o('death', 'Θάνατος', 'Death', ['ΘΑΝΑΤΟΣ'])] },
+    { key: 'transfer_department', section: 'discharge', type: 'choice', provisional: true, label: 'Τμήμα μεταφοράς', labelEn: 'Receiving ward', showWhen: { field: 'outcome', value: 'transfer_ward' }, help: 'Το νοσηλευτικό τμήμα όπου πήγε ο ασθενής. Η λίστα συμπληρώνεται με τα τμήματα του νοσοκομείου.', helpEn: 'The ward the patient went to. The list is completed with the hospital’s wards.', options: [o('internal', 'Παθολογική', 'Internal Medicine'), o('surgical', 'Χειρουργική', 'Surgery'), o('cardiology', 'Καρδιολογική', 'Cardiology'), o('cardiac_surgery_ward', 'Καρδιοχειρουργική κλινική', 'Cardiac surgery ward'), o('neurology', 'Νευρολογική', 'Neurology'), o('orthopaedic', 'Ορθοπαιδική', 'Orthopaedics'), o('pulmonary', 'Πνευμονολογική', 'Pulmonology'), o('other_ward', 'Άλλο τμήμα', 'Other ward')] },
+  ],
+  indicators: [
+    count('patients', 'Ασθενείς', 'Patients'),
+    share('cardiac_share', '% Καρδιοχειρουργικής ΜΕΘ', '% Cardiac surgery ICU', [{ field: 'category', op: 'eq', value: 'cardiac' }]),
+    average('mean_age', 'Μέση ηλικία', 'Mean age', 'age', { unit: 'έτη', unitEn: 'years' }),
+    average('mean_icu_days', 'Μέσες ημέρες ΜΕΘ', 'Mean ICU days', 'length_of_stay', { filters: [{ field: 'discharge_date', op: 'filled' }], dateField: 'discharge_date', unit: 'ημέρες', unitEn: 'days', direction: 'lower' }),
+    share('mortality', 'Θνησιμότητα ΜΕΘ', 'ICU mortality', [{ field: 'outcome', op: 'eq', value: 'death' }], { denominatorFilters: [{ field: 'outcome', op: 'filled' }], dateField: 'discharge_date', direction: 'lower' }),
+    average('predicted_mortality', 'Μέση προβλεπόμενη θνητότητα (APACHE II)', 'Mean predicted mortality (APACHE II)', 'apache_mortality', { filters: [{ field: 'outcome', op: 'filled' }], dateField: 'discharge_date', unit: '%' }),
+    share('mortality_scored', 'Θνησιμότητα ασθενών με APACHE II', 'Mortality of APACHE II-scored patients', [{ field: 'outcome', op: 'eq', value: 'death' }], { denominatorFilters: [{ field: 'outcome', op: 'filled' }, { field: 'apache_mortality', op: 'filled' }], dateField: 'discharge_date', direction: 'lower', note: 'Συγκρίνεται με τη μέση προβλεπόμενη θνητότητα: ίδιοι ασθενείς.', noteEn: 'Compare with the mean predicted mortality: same patients.' }),
+    { id: 'smr', title: 'SMR (θνησιμότητα προς προβλεπόμενη)', titleEn: 'SMR (observed to predicted mortality)', aggregation: 'smr', field: 'apache_mortality', filters: [{ field: 'outcome', op: 'eq', value: 'death' }], denominatorFilters: [{ field: 'outcome', op: 'filled' }, { field: 'apache_mortality', op: 'filled' }], dateField: 'discharge_date', direction: 'lower', note: 'Θάνατοι ÷ θάνατοι που προβλέπει το APACHE II. Κάτω από 1: λιγότεροι από τους αναμενόμενους. Χρειάζεται αρκετούς ασθενείς.', noteEn: 'Deaths ÷ deaths predicted by APACHE II. Below 1: fewer than expected. Needs enough patients.' },
+    average('mean_apache', 'Μέσο APACHE II', 'Mean APACHE II', 'apache_score'),
+    average('mean_ventilator_hours', 'Μέσες ώρες αναπνευστήρα (διασωληνωμένοι)', 'Mean ventilator hours (ventilated)', 'ventilator_hours', { filters: [{ field: 'ventilator_hours', op: 'gt', value: 0 }], dateField: 'discharge_date', unit: 'ώρες', unitEn: 'hours', direction: 'lower' }),
+    share('pressure_ulcers', '% με κατάκλιση', '% pressure ulcers', [{ field: 'pressure_ulcer', op: 'yes' }], { denominatorFilters: [{ field: 'discharge_date', op: 'filled' }], dateField: 'discharge_date', direction: 'lower', note: 'Μόνο όσοι βγήκαν, στον μήνα εξόδου.', noteEn: 'Discharged patients only, in the month of discharge.' }),
+    share('readmissions_48h', '% επανεισαγωγών 48ώρου', '% readmissions within 48 h', [{ field: 'readmission_48h', op: 'yes' }], { denominatorFilters: [{ field: 'readmission_48h', op: 'filled' }], direction: 'lower' }),
+    count('requisitions', 'Επιτάξεις', 'Requisitioned beds', { filters: [{ field: 'requisition', op: 'yes' }] }),
+  ],
+}
+
+const OBSTETRICS = {
+  key: 'obstetrics',
+  kind: 'case',
+  name: 'Μητρώο λεχωίδων Μαιευτικής',
+  nameEn: 'Obstetrics postpartum register',
+  description: 'Μία καρτέλα ανά λεχωίδα: τοκετός, θηλασμός κατά την έξοδο, προγεννητικά μαθήματα, θήλαστρο.',
+  descriptionEn: 'One card per mother: delivery, breastfeeding at discharge, antenatal classes, breast pump.',
+  identity: { caseNumber: true, patientName: true, caseNumberAliases: ['ΑΠ', 'ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'], patientNameAliases: ['ΕΠΩΝΥΜΟ'] },
+  entryDateField: 'date',
+  sections: [{ key: 'main', label: 'Λεχωίδα', labelEn: 'Mother' }],
+  breakdowns: ['delivery', 'breastfeeding', 'antenatal'],
+  fields: [
+    { key: 'date', section: 'main', type: 'date', required: true, label: 'Ημερομηνία τοκετού', labelEn: 'Delivery date', aliases: ['Date', 'Ημερομηνία'] },
+    { key: 'delivery', section: 'main', type: 'choice', required: true, list: true, label: 'Τοκετός', labelEn: 'Delivery', aliases: ['ΤΟΚΕΤΟΣ'], options: [o('vaginal', 'Φυσιολογικός (Φ/Τ)', 'Vaginal', ['Φ/Τ', 'ΦΤ', 'Φ.Τ']), o('cs', 'Καισαρική τομή (Κ/Τ)', 'Caesarean section', ['Κ/Τ', 'ΚΤ', 'Κ.Τ'])] },
+    { key: 'breastfeeding', section: 'main', type: 'choice', list: true, label: 'Μητρικός θηλασμός κατά την έξοδο', labelEn: 'Breastfeeding at discharge', aliases: ['Μ_Θ', 'ΜΗΤΡΙΚΟΣ ΘΗΛΑΣΜΟΣ'], options: [o('exclusive', 'Αποκλειστικός μητρικός θηλασμός', 'Exclusive breastfeeding', ['ΝΑΙ']), o('mixed', 'Μεικτή διατροφή', 'Mixed feeding', ['ΜΕΙΚΤΗ', 'ΜΙΚΤΗ']), o('weaning', 'Απογαλακτισμός', 'Weaning', ['ΑΠΟΓΑΛΑΚΤ'])] },
+    { key: 'antenatal', section: 'main', type: 'choice', list: true, label: 'Προγεννητικά μαθήματα', labelEn: 'Antenatal classes', aliases: ['ΠΡΟΓΕΝΝΗΤΙΚΑ ΜΑΘΗΜΑΤΑ'], options: [o('attended', 'Παρακολούθησε', 'Attended', ['ΝΑΙ', 'ΕΚΑΝΕ', 'ΜΕ ΤΗΝ ΜΑΙΑ', 'ΜΕ ΤΙΣ ΜΑΙΕΣ', 'ΤΑ ΕΚΑΝΕ', 'Η ΜΗΤΕΡΑ ΕΙΝΑΙ ΜΑΙΑ', 'ΕΙΝΑΙ ΜΑΙΑ', 'ΠΑΡΑΚΟΛΟΥΘ', 'ΤΑ ΠΑΡΑΚΟΛΟΥΘ', 'ΤΟ ΠΑΡΑΚΟΛΟΥΘ', 'ΤΑ ΕΙΧΕ ΠΑΡΑΚΟΛΟΥΘ', 'ΤΟ ΕΙΧΕ ΠΑΡΑΚΟΛΟΥΘ']), o('aware_not_attended', 'Το γνώριζε, δεν παρακολούθησε', 'Aware, did not attend', ['ΤΟ ΓΝΩΡΙΖΕ', 'ΓΝΩΡΙΖΕ']), o('not_aware', 'Δεν το γνώριζε', 'Not aware', ['ΔΕΝ ΤΟ ΓΝΩΡΙΖ', 'ΔΕΝ ΓΝΩΡΙΖ', 'ΔΕΝ ΤΟΓΝΩΡΙΖ', 'ΟΧΙ ΔΕΝ']), o('no', 'Όχι', 'No', ['ΟΧΙ', 'ΔΕΝ ΗΘΕΛΕ'])] },
+    yes('breast_pump', 'Θήλαστρο', 'Breast pump', { section: 'main', aliases: ['ΘΗΛΑΣΤΡΟ'] }),
+    { key: 'physician', section: 'main', type: 'choice', provisional: true, label: 'Θεράπων ιατρός', labelEn: 'Attending physician', aliases: ['ΘΕΡΑΠΩΝ', 'ΘΕΡΑΠΟΝ', 'ΘΕΡΑΠΩΝ ΙΑΤΡΟΣ'], options: [], help: 'Οι ιατροί προστίθενται κατά την εισαγωγή ή στον ορισμό του μητρώου.', helpEn: 'Physicians are added on import or in the register definition.' },
+    { key: 'notes', section: 'main', type: 'text', label: 'Παρατηρήσεις', labelEn: 'Notes', aliases: ['ΠΑΡΑΤΗΡΗΣΕΙΣ'] },
+  ],
+  indicators: [
+    count('mothers', 'Λεχωίδες', 'Mothers'),
+    share('cs_rate', '% καισαρικών τομών', '% caesarean sections', [{ field: 'delivery', op: 'eq', value: 'cs' }], { denominatorFilters: [{ field: 'delivery', op: 'filled' }], note: 'Ανά λεχωίδα του τμήματος. Η Αίθουσα Τοκετών μετράει όλους τους τοκετούς.', noteEn: 'Per mother on the ward. The delivery room counts every delivery.' }),
+    share('exclusive_bf', '% αποκλειστικού μητρικού θηλασμού', '% exclusive breastfeeding', [{ field: 'breastfeeding', op: 'eq', value: 'exclusive' }], { denominatorFilters: [{ field: 'breastfeeding', op: 'filled' }], direction: 'higher' }),
+    share('weaning', '% απογαλακτισμού', '% weaning', [{ field: 'breastfeeding', op: 'eq', value: 'weaning' }], { denominatorFilters: [{ field: 'breastfeeding', op: 'filled' }], direction: 'lower' }),
+    share('antenatal', '% με προγεννητικά μαθήματα', '% attended antenatal classes', [{ field: 'antenatal', op: 'eq', value: 'attended' }], { denominatorFilters: [{ field: 'antenatal', op: 'filled' }], direction: 'higher' }),
+    share('breast_pump', '% με θήλαστρο', '% breast pump', [{ field: 'breast_pump', op: 'yes' }]),
+  ],
+}
+
+const DELIVERY_ROOM = {
+  key: 'deliveryRoom',
+  kind: 'sheet',
+  name: 'Πράξεις Αίθουσας Τοκετών',
+  nameEn: 'Delivery room activity',
+  description: 'Ένα φύλλο ανά ημέρα: τοκετοί και λοιπές πράξεις. Οι φυσιολογικοί μετά από καισαρική μετριούνται ως μέρος των φυσιολογικών τοκετών, όχι επιπλέον.',
+  descriptionEn: 'One sheet per month: deliveries and other procedures. VBAC is counted within vaginal deliveries, not on top.',
+  sheet: {
+    period: 'month',
+    rows: [
+      row('vaginal', 'Φυσιολογικοί τοκετοί', 'Vaginal deliveries', ['Φ.Τ', 'Φ/Τ'], 'deliveries'),
+      row('cs', 'Καισαρικές τομές', 'Caesarean sections', ['Κ.Τ', 'Κ/Τ'], 'deliveries'),
+      row('vbac', 'Φυσιολογικοί μετά από καισαρική (μέρος των φυσιολογικών)', 'Vaginal after caesarean (within vaginal)', ['Vbac', 'V Bac'], 'deliveries'),
+      row('multiple_vaginal', 'Πολύδυμες με φυσιολογικό τοκετό', 'Multiple pregnancies, vaginal', ['Πολύδυμες Κυήσεις με Φ.Τ', 'Πολυδ κύηση με φτ'], 'deliveries'),
+      row('multiple_cs', 'Πολύδυμες με καισαρική τομή', 'Multiple pregnancies, caesarean', ['Πολύδυμες Κυήσεις με Κ.Τ', 'Πολυδ κύηση με κτ'], 'deliveries'),
+      row('born_before_arrival', 'Τοκετοί πριν την άφιξη στο νοσοκομείο', 'Born before arrival', ['Τοκετός εν τη Πόλη', 'Τοκετοί εν τη πόλη', 'Τεκετοί εν τη πόλη'], 'deliveries'),
+      row('hysteroscopy', 'Υστεροσκοπήσεις', 'Hysteroscopies', ['Υστεροσκοπήσεις'], 'other'),
+      row('septic', 'Σηπτικά', 'Septic procedures', ['Σηπτικά'], 'other'),
+      row('pregnancy_monitoring', 'Παρακολούθηση κύησης', 'Pregnancy monitoring', ['Παρακολούθηση κύησης'], 'other'),
+      row('cerclage', 'Περίδεση τραχήλου', 'Cervical cerclage', ['Περίδεση Τραχήλου', 'Περίδεση'], 'other'),
+    ],
+    groups: [{ key: 'deliveries', label: 'Τοκετοί', labelEn: 'Deliveries' }, { key: 'other', label: 'Λοιπές πράξεις', labelEn: 'Other procedures' }],
+    measures: [{ key: 'count', label: 'Αριθμός', labelEn: 'Number' }],
+  },
+  indicators: [
+    { id: 'deliveries', title: 'Σύνολο τοκετών', titleEn: 'Total deliveries', aggregation: 'sum', rows: ['vaginal', 'cs'], direction: 'context' },
+    { id: 'cs_rate', title: '% καισαρικών τομών', titleEn: '% caesarean sections', aggregation: 'percent', rows: ['cs'], denominatorRows: ['vaginal', 'cs'], unit: '%', direction: 'lower' },
+    // Δεν καταγράφονται οι γυναίκες με προηγούμενη καισαρική: πλήθος, όχι ποσοστό (ιδιοκτήτης, 2/11/2026).
+    { id: 'vbac_rate', title: 'Φυσιολογικοί τοκετοί μετά από καισαρική', titleEn: 'Vaginal births after caesarean', aggregation: 'sum', rows: ['vbac'], direction: 'context' },
+    // Παρονομαστής οι πολύδυμοι τοκετοί, όχι όλοι (ιδιοκτήτης, 2/11/2026).
+    { id: 'multiple_cs_rate', title: '% πολύδυμων που γεννήθηκαν με καισαρική', titleEn: '% multiple pregnancies born by caesarean', aggregation: 'percent', rows: ['multiple_cs'], denominatorRows: ['multiple_cs', 'multiple_vaginal'], unit: '%', direction: 'context' },
+    { id: 'hysteroscopies', title: 'Υστεροσκοπήσεις', titleEn: 'Hysteroscopies', aggregation: 'sum', rows: ['hysteroscopy'], direction: 'context' },
+    { id: 'septic', title: 'Σηπτικά', titleEn: 'Septic procedures', aggregation: 'sum', rows: ['septic'], direction: 'context' },
+    { id: 'born_before_arrival', title: 'Τοκετοί πριν την άφιξη στο νοσοκομείο', titleEn: 'Births before arrival at the hospital', aggregation: 'sum', rows: ['born_before_arrival'], direction: 'context', note: 'Δεν περιλαμβάνονται στο σύνολο των τοκετών.', noteEn: 'Not included in the total deliveries.' },
+    { id: 'cerclages', title: 'Περιδέσεις τραχήλου', titleEn: 'Cervical cerclages', aggregation: 'sum', rows: ['cerclage'], direction: 'context' },
+    { id: 'pregnancy_monitoring', title: 'Παρακολουθήσεις κύησης', titleEn: 'Pregnancy monitoring', aggregation: 'sum', rows: ['pregnancy_monitoring'], direction: 'context' },
+    { id: 'daily_deliveries', title: 'Μέσος αριθμός τοκετών ανά ημέρα', titleEn: 'Mean deliveries per day', aggregation: 'mean', rows: ['vaginal', 'cs'], dailyOnly: true, direction: 'context', note: 'Από τα ημερήσια φύλλα· οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.', noteEn: 'From the daily sheets; months recorded as one total do not count.' },
+  ],
+}
+
+const CATH_LAB = {
+  key: 'cathLab',
+  kind: 'case',
+  name: 'Πράξεις Αιμοδυναμικού',
+  nameEn: 'Cath lab procedures',
+  description: 'Μία καρτέλα ανά ασθενή-πράξη, μόνο με αριθμό περιστατικού. Πολλαπλή επιλογή πράξεων: η στεφανιογραφία με αγγειοπλαστική μετράει και στις δύο.',
+  descriptionEn: 'One card per patient procedure, with the case number only. Several procedures per case: coronary angiography with angioplasty counts in both.',
+  identity: { caseNumber: true, patientName: false, caseNumberAliases: ['Αρ. περιστατικού', 'ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'] },
+  entryDateField: 'date',
+  sections: [{ key: 'procedure', label: 'Πράξη', labelEn: 'Procedure' }, { key: 'patient', label: 'Ασθενής', labelEn: 'Patient' }, { key: 'outcome', label: 'Έκβαση', labelEn: 'Outcome' }],
+  breakdowns: ['procedures', 'indication', 'sex'],
+  fields: [
+    { key: 'date', section: 'procedure', type: 'date', required: true, label: 'Ημερομηνία', labelEn: 'Date', aliases: ['Ημερομηνία', 'ΗΜΕΡΟΜΗΝΙΑ'] },
+    { key: 'procedures', section: 'procedure', type: 'multiChoice', required: true, list: true, label: 'Πράξεις', labelEn: 'Procedures', aliases: ['Πράξη', 'ΠΡΑΞΕΙΣ'], options: [o('angiography', 'Στεφανιογραφία', 'Coronary angiography', ['ΣΤΕΦΑΝΙΟΓΡΑΦΙΑ']), o('angioplasty', 'Αγγειοπλαστική', 'Angioplasty', ['ΑΓΓΕΙΟΠΛΑΣΤΙΚΗ', 'ΣΤΕΦΑΝΙΟΓΡΑΦΙΑ & ΑΓΓΕΙΟΠΛΑΣΤΙΚΗ']), o('pacemaker', 'Βηματοδότης', 'Pacemaker', ['ΒΗΜΑΤΟΔΟΤΗΣ']), o('icd', 'Απινιδωτής', 'Defibrillator (ICD)', ['ΑΠΙΝΙΔΩΤΗΣ']), o('ep_study', 'Ηλεκτροφυσιολογική μελέτη', 'Electrophysiology study', ['ΗΛΕΚΤΡΟΦΥΣΙΟΛΟΓΙΚΗ']), o('other', 'Άλλη', 'Other')] },
+    { key: 'indication', section: 'procedure', type: 'choice', list: true, label: 'Ένδειξη', labelEn: 'Indication', options: [o('stemi', 'Οξύ έμφραγμα με ανάσπαση ST', 'ST-elevation myocardial infarction'), o('nstemi', 'Έμφραγμα χωρίς ανάσπαση ST', 'Non-ST-elevation myocardial infarction'), o('unstable_angina', 'Ασταθής στηθάγχη', 'Unstable angina'), o('stable', 'Σταθερή στεφανιαία νόσος', 'Stable coronary disease'), o('rhythm', 'Αρρυθμία ή συσκευή', 'Arrhythmia or device'), o('other', 'Άλλη', 'Other')] },
+    yes('urgent', 'Επείγουσα πράξη', 'Urgent procedure', { section: 'procedure' }),
+    { key: 'age', section: 'patient', type: 'number', unit: 'έτη', unitEn: 'years', min: 0, max: 120, list: true, label: 'Ηλικία', labelEn: 'Age', aliases: ['Ηλικία', 'ΗΛΙΚΙΑ'] },
+    sex('sex', { section: 'patient', list: true }),
+    yes('to_surgery', 'Προς καρδιοχειρουργείο', 'Referred to cardiac surgery', { section: 'outcome', aliases: ['Προς Χ/Ο', 'ΠΡΟΣ ΧΕΙΡΟΥΡΓΕΙΟ'] }),
+  ],
+  indicators: [
+    // One card is one procedure (a patient may have several), so it counts «procedures», not «patients» (owner, 2/11/2026).
+    count('patients', 'Πράξεις', 'Procedures'),
+    count('angiographies', 'Στεφανιογραφίες', 'Coronary angiographies', { filters: [{ field: 'procedures', op: 'eq', value: 'angiography' }] }),
+    count('angioplasties', 'Αγγειοπλαστικές', 'Angioplasties', { filters: [{ field: 'procedures', op: 'eq', value: 'angioplasty' }] }),
+    share('angioplasty_share', '% αγγειοπλαστικής στις στεφανιογραφίες', '% angioplasty among coronary angiographies', [{ field: 'procedures', op: 'eq', value: 'angioplasty' }], { denominatorFilters: [{ field: 'procedures', op: 'eq', value: 'angiography' }], note: 'Αγγειοπλαστικές προς στεφανιογραφίες· οι βηματοδότες και οι άλλες πράξεις δεν μπαίνουν στον παρονομαστή.', noteEn: 'Angioplasties over coronary angiographies; pacemakers and other procedures are not in the denominator.' }),
+    count('devices', 'Βηματοδότες', 'Pacemakers', { filters: [{ field: 'procedures', op: 'eq', value: 'pacemaker' }] }),
+    count('ep_studies', 'Ηλεκτροφυσιολογικές μελέτες', 'Electrophysiology studies', { filters: [{ field: 'procedures', op: 'eq', value: 'ep_study' }] }),
+    count('icds', 'Απινιδωτές (ICD)', 'Defibrillators (ICD)', { filters: [{ field: 'procedures', op: 'eq', value: 'icd' }] }),
+    average('mean_age', 'Μέση ηλικία', 'Mean age', 'age', { unit: 'έτη', unitEn: 'years' }),
+    share('urgent_share', '% επείγουσες πράξεις', '% urgent procedures', [{ field: 'urgent', op: 'yes' }], { denominatorFilters: [{ field: 'urgent', op: 'filled' }], note: 'Μόνο όσες πράξεις έχουν καταγραφή (ναι/όχι).', noteEn: 'Only procedures with the answer recorded (yes/no).' }),
+    share('stemi_share', '% με οξύ έμφραγμα (ανάσπαση ST)', '% with ST-elevation infarction', [{ field: 'indication', op: 'eq', value: 'stemi' }], { denominatorFilters: [{ field: 'indication', op: 'filled' }], note: 'Μόνο όσες πράξεις έχουν καταγεγραμμένη ένδειξη.', noteEn: 'Only procedures with the indication recorded.' }),
+    share('primary_pci', '% αγγειοπλαστικής στο οξύ έμφραγμα', '% angioplasty in ST-elevation infarction', [{ field: 'indication', op: 'eq', value: 'stemi' }, { field: 'procedures', op: 'eq', value: 'angioplasty' }], { denominatorFilters: [{ field: 'indication', op: 'eq', value: 'stemi' }], direction: 'higher', note: 'Από τους ασθενείς με οξύ έμφραγμα, όσοι έκαναν αγγειοπλαστική.', noteEn: 'Of the patients with ST-elevation infarction, those who had an angioplasty.' }),
+    share('to_surgery', '% προς καρδιοχειρουργείο', '% referred to cardiac surgery', [{ field: 'to_surgery', op: 'yes' }]),
+  ],
+}
+
+const CHEMOTHERAPY = {
+  key: 'chemotherapy',
+  kind: 'case',
+  name: 'Μητρώο ασθενών Χημειοθεραπείας',
+  nameEn: 'Chemotherapy patient register',
+  description: 'Μία καρτέλα ανά ασθενή σε θεραπεία. Ενεργός όσο δεν έχει ημερομηνία λήξης. Το ΑΜΚΑ δεν καταχωρείται.',
+  descriptionEn: 'One card per patient on treatment. Active until an end date is set. AMKA is not recorded.',
+  identity: { caseNumber: true, patientName: true, caseNumberAliases: ['ΑΡ. ΜΗΤΡΩΟΥ', 'ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'], patientNameAliases: ['ΕΠΩΝΥΜΟ ΑΣΘΕΝΟΥΣ', 'ΟΝΟΜΑ ΑΣΘΕΝΟΥΣ'] },
+  entryDateField: 'start_date',
+  // FileMaker keeps the active patients without dates: they come in on the day they are recorded, start left empty.
+  undatedImport: true,
+  sections: [{ key: 'patient', label: 'Ασθενής', labelEn: 'Patient' }, { key: 'treatment', label: 'Θεραπεία', labelEn: 'Treatment' }, { key: 'end', label: 'Λήξη', labelEn: 'End' }],
+  breakdowns: ['physician', 'diagnosis', 'sex'],
+  fields: [
+    { key: 'birth_date', section: 'patient', type: 'date', label: 'Ημερομηνία γέννησης', labelEn: 'Date of birth', aliases: ['ΗΜ/ΝΙΑ ΓΕΝΝΗΣΗΣ', 'ΗΜΕΡΟΜΗΝΙΑ ΓΕΝΝΗΣΗΣ'] },
+    { key: 'age', section: 'patient', type: 'computed', computed: 'ageYears', from: 'birth_date', to: 'start_date', unit: 'έτη', unitEn: 'years', list: true, label: 'Ηλικία στην έναρξη', labelEn: 'Age at start' },
+    sex('sex', { section: 'patient', list: true }),
+    { key: 'start_date', section: 'treatment', type: 'date', required: true, label: 'Έναρξη θεραπείας', labelEn: 'Treatment start', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΙΣΟΔΟΥ', 'ΜΕΡΟΜΗΝΙΑ ΕΙΣΟΔΟΥ', 'ΗΜΕΡΟΜΗΝΙΑ ΕΙΣΑΓΩΓΗΣ'] },
+    { key: 'diagnosis', section: 'treatment', type: 'text', list: true, label: 'Διάγνωση (ICD-10)', labelEn: 'Diagnosis (ICD-10)', aliases: ['ΔΙΑΓΝΩΣΗ', 'ΑΙΤΙΑ ΕΙΣΑΓΩΓΗΣ'] },
+    { key: 'physician', section: 'treatment', type: 'choice', list: true, provisional: true, label: 'Θεράπων ιατρός', labelEn: 'Attending physician', aliases: ['ΘΕΡΑΠΟΝ', 'ΘΕΡΑΠΩΝ ΙΑΤΡΟΣ'], options: [], help: 'Οι ιατροί προστίθενται στον ορισμό του μητρώου ή κατά την εισαγωγή.', helpEn: 'Physicians are added in the register definition or on import.' },
+    { key: 'regimen', section: 'treatment', type: 'text', label: 'Σχήμα', labelEn: 'Regimen', aliases: ['ΣΧΗΜΑ'] },
+    { key: 'end_date', section: 'end', type: 'date', notBefore: 'start_date', label: 'Λήξη θεραπείας', labelEn: 'Treatment end', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ', 'ΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ'], help: 'Όσο μένει κενή, ο ασθενής είναι ενεργός.', helpEn: 'While it is empty, the patient is active.' },
+    { key: 'end_reason', section: 'end', type: 'text', label: 'Αιτία λήξης', labelEn: 'Reason for ending', aliases: ['ΑΙΤΙΑ ΕΞΟΔΟΥ'], showWhen: { field: 'end_date' } },
+    { key: 'notes', section: 'end', type: 'text', label: 'Παρατηρήσεις', labelEn: 'Notes', aliases: ['ΠΑΡΑΤΗΡΗΣΕΙΣ'] },
+  ],
+  indicators: [
+    count('active_patients', 'Ενεργοί ασθενείς', 'Active patients', { note: 'Όσοι έχουν ξεκινήσει και δεν έχουν λήξει στο τέλος της περιόδου.', noteEn: 'Patients who have started and not ended by the end of the period.' }),
+    count('new_patients', 'Νέοι ασθενείς', 'New patients', { filters: [{ field: 'start_date', op: 'filled' }], dateField: 'start_date' }),
+    count('ended', 'Λήξεις θεραπείας', 'Treatments ended', { filters: [{ field: 'end_date', op: 'filled' }], dateField: 'end_date' }),
+    average('mean_age', 'Μέση ηλικία', 'Mean age', 'age', { unit: 'έτη', unitEn: 'years' }),
+  ],
+}
+
+// FileMaker «ΦΥΣΙΚΟΘΕΡΑΠΕΙΕΣ»: one row per patient referred to physiotherapy.
+// The ward codes 3Α / 3Β are the Surgical and Medical wards (the FileMaker
+// fractions), the diagnosis abbreviations become a list (ΟΑΓ = total knee,
+// ΟΑΙ = total hip arthroplasty, # = fracture), «ΑΜΦΩ» its own yes/no.
+const PHYSIOTHERAPY = {
+  key: 'physiotherapy',
+  kind: 'case',
+  name: 'Μητρώο φυσικοθεραπειών',
+  nameEn: 'Physiotherapy register',
+  description: 'Μία καρτέλα ανά παραπομπή ασθενούς για φυσικοθεραπεία: τμήμα νοσηλείας, διάγνωση ή επέμβαση, φυσικοθεραπευτής, θεράπων ιατρός.',
+  descriptionEn: 'One card per patient referred for physiotherapy: ward, diagnosis or operation, physiotherapist, attending physician.',
+  identity: { caseNumber: true, patientName: true, caseNumberAliases: ['ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'], patientNameAliases: ['ΕΠΩΝΥΜΟ', 'ΟΝΟΜΑ'] },
+  entryDateField: 'date',
+  sections: [{ key: 'main', label: 'Παραπομπή', labelEn: 'Referral' }],
+  breakdowns: ['ward', 'diagnosis', 'physiotherapist'],
+  fields: [
+    { key: 'date', section: 'main', type: 'date', required: true, label: 'Ημερομηνία', labelEn: 'Date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ'] },
+    { key: 'ward', section: 'main', type: 'choice', required: true, list: true, label: 'Τμήμα νοσηλείας', labelEn: 'Ward', aliases: ['TMHMA', 'ΤΜΗΜΑ'], options: [o('surgical', 'Χειρουργική (3Α)', 'Surgical ward (3A)', ['3Α', '3A']), o('medical', 'Παθολογική (3Β)', 'Medical ward (3B)', ['3Β', '3B']), o('cardiac_surgery', 'Καρδιοχειρουργική', 'Cardiac surgery', ['ΚΡΧ']), o('icu', 'ΜΕΘ', 'ICU', ['ΜΕΘ']), o('other', 'Άλλο', 'Other')] },
+    { key: 'diagnosis', section: 'main', type: 'multiChoice', list: true, label: 'Διάγνωση / επέμβαση', labelEn: 'Diagnosis / operation', aliases: ['ΔΙΑΓΝΩΣΗ'], options: [o('knee_arthroplasty', 'Ολική αρθροπλαστική γόνατος', 'Total knee arthroplasty', ['ΟΑΓ']), o('hip_arthroplasty', 'Ολική αρθροπλαστική ισχίου', 'Total hip arthroplasty', ['ΟΑΙ', 'ΟΑ Ι']), o('hip_hemiarthroplasty', 'Ημιολική αρθροπλαστική ισχίου', 'Hip hemiarthroplasty', ['ΗΜΙΟΛΙΚΗ']), o('hip_fracture', 'Κάταγμα ισχίου', 'Hip fracture', ['#ΙΣΧΙΟΥ', '# ΙΣΧΙΟΥ']), o('other_fracture', 'Άλλο κάταγμα', 'Other fracture', ['#']), o('spine', 'Επέμβαση σπονδυλικής στήλης', 'Spine surgery', ['ΣΠΟΝΔΥΛΟΔΕΣΙΑ', 'ΔΙΣΚΕΚΤΟΜΗ']), o('cabg', 'Αορτοστεφανιαία παράκαμψη', 'Coronary artery bypass', ['ΑΟΡΤΟΣΤΕΦΑΝΙΑΙΑ']), o('abdominal', 'Επέμβαση κοιλίας', 'Abdominal surgery', ['ΛΑΠ', 'ΚΟΛΕΚΤΟΜΗ', 'ΕΝΤΕΡΕΚΤΟΜΗ', 'WHIPPLE', 'ΜΙΚΡΗ ΕΠΕΜΒ']), o('other', 'Άλλη', 'Other')] },
+    yes('bilateral', 'Αμφοτερόπλευρη', 'Bilateral', { section: 'main', help: 'Το «ΑΜΦΩ».', helpEn: '«ΑΜΦΩ».' }),
+    { key: 'diagnosis_detail', section: 'main', type: 'text', label: 'Διάγνωση (λεπτομέρειες)', labelEn: 'Diagnosis (details)', help: 'Η ακριβής επέμβαση ή το κάταγμα, όταν η λίστα δεν το λέει.', helpEn: 'The exact operation or fracture, when the list does not say it.' },
+    { key: 'physiotherapist', section: 'main', type: 'choice', list: true, provisional: true, label: 'Φυσικοθεραπευτής', labelEn: 'Physiotherapist', aliases: ['ΦΥΣΙΚΟΘΕΡΑΠΕΥΤΗΣ'], options: [], help: 'Οι φυσικοθεραπευτές προστίθενται κατά την εισαγωγή ή στον ορισμό του μητρώου.', helpEn: 'Physiotherapists are added on import or in the register definition.' },
+    { key: 'physician', section: 'main', type: 'choice', provisional: true, label: 'Θεράπων ιατρός', labelEn: 'Attending physician', aliases: ['ΘΕΡΑΠΩΝ ΙΑΤΡΟΣ', 'ΘΕΡΑΠΩΝ'], options: [], help: 'Οι ιατροί προστίθενται κατά την εισαγωγή ή στον ορισμό του μητρώου.', helpEn: 'Physicians are added on import or in the register definition.' },
+    { key: 'notes', section: 'main', type: 'text', label: 'Παρατηρήσεις', labelEn: 'Notes', aliases: ['ΠΑΡΑΤΗΡΗΣΕΙΣ'] },
+  ],
+  indicators: [
+    count('referrals', 'Παραπομπές για φυσικοθεραπεία', 'Physiotherapy referrals'),
+    share('surgical_share', '% από τη Χειρουργική', '% from the Surgical ward', [{ field: 'ward', op: 'eq', value: 'surgical' }], { denominatorFilters: [{ field: 'ward', op: 'filled' }] }),
+    share('medical_share', '% από την Παθολογική', '% from the Medical ward', [{ field: 'ward', op: 'eq', value: 'medical' }], { denominatorFilters: [{ field: 'ward', op: 'filled' }] }),
+    share('icu_share', '% από τη ΜΕΘ', '% from the ICU', [{ field: 'ward', op: 'eq', value: 'icu' }], { denominatorFilters: [{ field: 'ward', op: 'filled' }] }),
+    share('knee_share', '% αρθροπλαστικών γόνατος', '% knee arthroplasties', [{ field: 'diagnosis', op: 'eq', value: 'knee_arthroplasty' }], { denominatorFilters: [{ field: 'diagnosis', op: 'filled' }] }),
+    share('hip_share', '% αρθροπλαστικών ισχίου', '% hip arthroplasties', [{ field: 'diagnosis', op: 'eq', value: 'hip_arthroplasty' }], { denominatorFilters: [{ field: 'diagnosis', op: 'filled' }] }),
+    count('hip_fractures', 'Κατάγματα ισχίου', 'Hip fractures', { filters: [{ field: 'diagnosis', op: 'eq', value: 'hip_fracture' }] }),
+  ],
+}
+
+const SHIFTS = [{ key: 'morning', label: '07:00-15:00', labelEn: '07:00-15:00', aliases: ['07:00-15:00', '07:00-1'] }, { key: 'afternoon', label: '15:00-23:00', labelEn: '15:00-23:00', aliases: ['15:00-23:00', '15:00-2'] }, { key: 'night', label: '23:00-07:00', labelEn: '23:00-07:00', aliases: ['23:00-07:00', '23:00-0'] }]
+
+const EMERGENCY = {
+  key: 'emergency',
+  kind: 'sheet',
+  name: 'Δραστηριότητα ΤΕΠ ανά βάρδια',
+  nameEn: 'Emergency department activity by shift',
+  description: 'Ένα φύλλο ανά μήνα: κάθε κατηγορία ανά βάρδια. Ο καταχωρητής καταγράφεται αυτόματα.',
+  descriptionEn: 'One sheet per month: each category per shift. Who recorded it is kept automatically.',
+  sheet: {
+    period: 'month',
+    rows: [
+      row('surgical', 'Χειρουργικά', 'Surgical', ['ΧΕΙΡΟΥΡΓΕΙΑ']),
+      row('urgent', 'Έκτακτα', 'Urgent', ['ΕΚΤΑΚΤΑ', 'Έκτακτα']),
+      row('admissions', 'Εισαγωγές', 'Admissions', ['ΕΙΣΑΓΩΓΕΣ']),
+      row('dressings', 'Αλλαγές', 'Dressings', ['ΑΛΛΑΓΕΣ']),
+      row('septic', 'Σηπτικά', 'Septic', ['ΣΗΠΤΙΚΑ']),
+      row('assessments', 'Εκτιμήσεις', 'Assessments', ['ΕΚΤΙΜΗΣΕΙΣ']),
+      row('checkup', 'ΗΚΓ - check up', 'ECG - check-up', ['CHECK UP', 'ΗΚΓ- CHECK UP']),
+      row('preop', 'Προεγχειρητικός έλεγχος', 'Pre-operative check', ['ΠΡΟΕΓΧΕΙΡΗΤΙΚΟΣ', 'ΠΡΟΕΓΧΕΙΡΗΤΙΚΟΣ ΕΛΕΓΧΟΣ']),
+      row('left_without_seen', 'Αποχώρησαν χωρίς εξέταση', 'Left without being seen'),
+      row('revisit_72h', 'Επανεπισκέψεις εντός 72 ωρών', 'Return visits within 72 hours'),
+      row('transfers', 'Διακομιδές σε άλλο νοσοκομείο', 'Transfers to another hospital'),
+    ],
+    measures: SHIFTS,
+    measureColumn: ['ΒΑΡΔΙΑ'],
+  },
+  indicators: [
+    { id: 'total', title: 'Σύνολο περιστατικών', titleEn: 'Total cases', aggregation: 'sum', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], direction: 'context' },
+    { id: 'admissions', title: 'Εισαγωγές', titleEn: 'Admissions', aggregation: 'sum', rows: ['admissions'], direction: 'context' },
+    { id: 'admission_rate', title: '% εισαγωγών από τα ΤΕΠ', titleEn: '% admitted from the emergency department', aggregation: 'percent', rows: ['admissions'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context', note: 'Εισαγωγές ÷ περιστατικά του ΤΕΠ.', noteEn: 'Admissions ÷ the department’s cases.' },
+    { id: 'daily_cases', title: 'Μέσος αριθμός περιστατικών ανά ημέρα', titleEn: 'Mean cases per day', aggregation: 'mean', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], dailyOnly: true, direction: 'context', note: 'Από τα ημερήσια φύλλα· οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.', noteEn: 'From the daily sheets; months recorded as one total do not count.' },
+    { id: 'night_share', title: '% περιστατικών στη νυχτερινή βάρδια', titleEn: '% of cases on the night shift', aggregation: 'percent', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], measure: 'night', denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context' },
+    { id: 'septic', title: 'Σηπτικά', titleEn: 'Septic', aggregation: 'sum', rows: ['septic'], direction: 'context' },
+    // Recorded but not part of the total cases (they are procedures on cases already counted).
+    { id: 'dressings', title: 'Αλλαγές τραυμάτων', titleEn: 'Wound dressings', aggregation: 'sum', rows: ['dressings'], direction: 'context', note: 'Δεν περιλαμβάνονται στο σύνολο περιστατικών.', noteEn: 'Not part of the total cases.' },
+    { id: 'left_without_seen_rate', title: '% αποχωρήσεων χωρίς εξέταση', titleEn: '% left without being seen', aggregation: 'percent', rows: ['left_without_seen'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', target: 2, direction: 'lower', note: 'Οι ασθενείς που έφυγαν πριν εξεταστούν, ως ποσοστό των περιστατικών του ΤΕΠ.', noteEn: "Patients who left before being seen, as a share of the emergency department's cases." },
+    { id: 'revisit_72h_rate', title: '% επανεπισκέψεων εντός 72 ωρών', titleEn: '% return visits within 72 hours', aggregation: 'percent', rows: ['revisit_72h'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', target: 5, direction: 'lower', note: 'Ασθενείς που ξαναήρθαν στο ΤΕΠ εντός 72 ωρών από προηγούμενη επίσκεψη.', noteEn: 'Patients who came back to the emergency department within 72 hours of a previous visit.' },
+    { id: 'transfer_rate', title: '% διακομιδών σε άλλο νοσοκομείο', titleEn: '% transfers to another hospital', aggregation: 'percent', rows: ['transfers'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context', note: 'Πληροφοριακός δείκτης: δεν κρίνεται ως καλός ή κακός.', noteEn: 'Informative: it is not judged as good or bad.' },
+  ],
+}
+
+// New: there is no usable FileMaker register for Paediatrics (test data only),
+// so it starts here with the corrections the other registers needed.
+const PAEDIATRICS = {
+  key: 'paediatrics',
+  kind: 'case',
+  name: 'Μητρώο νοσηλευομένων Παιδιατρικής',
+  nameEn: 'Paediatrics inpatient register',
+  description: 'Νέο μητρώο: μία καρτέλα ανά νοσηλεία παιδιού. Αιτία εισαγωγής ως λίστα, ηλικία από την ημερομηνία γέννησης, διάρκεια νοσηλείας υπολογιζόμενη, επανεισαγωγές 30 ημερών, μεταφορές σε ΜΕΘ Παίδων.',
+  descriptionEn: 'New register: one card per child stay. Reason as a list, age from the date of birth, length of stay computed, 30-day readmissions, transfers to the paediatric ICU.',
+  identity: { caseNumber: true, patientName: true, caseNumberAliases: ['ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ', 'ΑΡ.ΜΗΤΡΩΟΥ'], patientNameAliases: ['ΕΠΩΝΥΜΟ', 'ΟΝΟΜΑ'] },
+  entryDateField: 'admission_date',
+  sections: [{ key: 'admission', label: 'Εισαγωγή', labelEn: 'Admission' }, { key: 'stay', label: 'Νοσηλεία', labelEn: 'Stay' }, { key: 'discharge', label: 'Έξοδος', labelEn: 'Discharge' }],
+  breakdowns: ['admission_reason', 'age_group', 'outcome'],
+  fields: [
+    { key: 'admission_date', section: 'admission', type: 'date', required: true, label: 'Ημερομηνία εισαγωγής', labelEn: 'Admission date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΙΣΟΔΟΥ'] },
+    { key: 'birth_date', section: 'admission', type: 'date', required: true, label: 'Ημερομηνία γέννησης', labelEn: 'Date of birth' },
+    { key: 'age', section: 'admission', type: 'computed', computed: 'ageYears', from: 'birth_date', to: 'admission_date', unit: 'έτη', unitEn: 'years', list: true, label: 'Ηλικία', labelEn: 'Age' },
+    { key: 'age_group', section: 'admission', type: 'choice', required: true, label: 'Ηλικιακή ομάδα', labelEn: 'Age group', options: [o('infant', 'Βρέφος (< 1 έτους)', 'Infant (< 1 year)'), o('toddler', 'Νήπιο (1–4)', 'Toddler (1–4)'), o('child', 'Παιδί (5–11)', 'Child (5–11)'), o('adolescent', 'Έφηβος (12–16)', 'Adolescent (12–16)')] },
+    sex('sex', { section: 'admission', required: true, options: [o('male', 'Άρρεν', 'Male', ['ΑΡΡΕΝ', 'ΑΝΔΡ']), o('female', 'Θήλυ', 'Female', ['ΘΗΛΥ', 'ΓΥΝΑΙΚ'])] }),
+    { key: 'admission_reason', section: 'admission', type: 'choice', required: true, list: true, label: 'Αιτία εισαγωγής', labelEn: 'Reason for admission', aliases: ['ΑΙΤΙΟΛΟΓΙΑ ΕΙΣΑΓΩΓΗΣ'], options: [o('respiratory', 'Λοίμωξη αναπνευστικού', 'Respiratory infection'), o('gastro', 'Γαστρεντερίτιδα / αφυδάτωση', 'Gastroenteritis / dehydration'), o('fever', 'Πυρετός προς διερεύνηση', 'Fever under investigation'), o('uti', 'Ουρολοίμωξη', 'Urinary tract infection'), o('seizure', 'Σπασμοί', 'Seizures'), o('injury', 'Ατύχημα / τραυματισμός', 'Injury'), o('surgical', 'Χειρουργικό', 'Surgical'), o('other', 'Άλλο', 'Other')] },
+    { key: 'admission_reason_text', section: 'admission', type: 'text', label: 'Αιτία εισαγωγής (λεπτομέρειες)', labelEn: 'Reason (details)' },
+    yes('from_ed', 'Από τα ΤΕΠ', 'Admitted through the ED', { section: 'admission' }),
+    yes('readmission_30d', 'Επανεισαγωγή εντός 30 ημερών', 'Readmission within 30 days', { section: 'admission' }),
+    { key: 'physician', section: 'admission', type: 'text', label: 'Θεράπων ιατρός', labelEn: 'Attending physician', aliases: ['ΘΕΡΑΠΩΝ ΙΑΤΡΟΣ'] },
+    yes('isolation', 'Απομόνωση', 'Isolation', { section: 'stay' }),
+    yes('iv_antibiotics', 'Ενδοφλέβια αντιβίωση', 'IV antibiotics', { section: 'stay' }),
+    days('iv_antibiotic_days', 'Ημέρες ενδοφλέβιας αντιβίωσης', 'IV antibiotic days', { section: 'stay', showWhen: { field: 'iv_antibiotics', value: true } }),
+    days('peripheral_line_days', 'Ημέρες περιφερικού φλεβοκαθετήρα', 'Peripheral line days', { section: 'stay' }),
+    yes('phlebitis', 'Φλεβίτιδα περιφερικού καθετήρα', 'Peripheral line phlebitis', { section: 'stay', showWhen: { field: 'peripheral_line_days' }, help: 'Για τον δείκτη φλεβίτιδας ανά 1.000 ημέρες καθετήρα.', helpEn: 'For the phlebitis rate per 1,000 line days.' }),
+    yes('hai', 'Λοίμωξη σχετιζόμενη με τη νοσηλεία', 'Healthcare-associated infection', { section: 'stay', help: 'Θα συνδεθεί με το επεισόδιο στην Επιτήρηση.', helpEn: 'To be linked with the Surveillance episode.' }),
+    yes('fall', 'Πτώση', 'Fall', { section: 'stay', help: 'Κάθε πτώση δηλώνεται και ως αναφορά συμβάντος.', helpEn: 'Every fall is also reported as an incident.' }),
+    { key: 'discharge_date', section: 'discharge', type: 'date', notBefore: 'admission_date', list: true, label: 'Ημερομηνία εξόδου', labelEn: 'Discharge date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ'] },
+    { ...stay('admission_date', 'discharge_date'), section: 'discharge' },
+    { key: 'outcome', section: 'discharge', type: 'choice', list: true, label: 'Έκβαση', labelEn: 'Outcome', showWhen: { field: 'discharge_date' }, options: [o('home', 'Εξιτήριο', 'Discharged home', ['ΕΞΟΔΟΣ', 'ΕΞΙΤΗΡΙΟ']), o('picu', 'Μεταφορά σε ΜΕΘ Παίδων', 'Transfer to paediatric ICU'), o('transfer_hospital', 'Διακομιδή σε άλλο νοσοκομείο', 'Transfer to another hospital', ['ΔΙΑΚΟΜΙΔΗ']), o('against_advice', 'Αποχώρηση με ευθύνη γονέων', 'Left against medical advice'), o('death', 'Θάνατος', 'Death', ['ΘΑΝΑΤΟΣ'])] },
+    { key: 'notes', section: 'discharge', type: 'text', label: 'Παρατηρήσεις', labelEn: 'Notes', aliases: ['ΠΑΡΑΤΗΡΗΣΕΙΣ'] },
+  ],
+  indicators: [
+    count('admissions', 'Εισαγωγές', 'Admissions'),
+    average('mean_los', 'Μέση διάρκεια νοσηλείας', 'Mean length of stay', 'length_of_stay', { filters: [{ field: 'discharge_date', op: 'filled' }], dateField: 'discharge_date', unit: 'ημέρες', unitEn: 'days', direction: 'lower' }),
+    { id: 'median_los', title: 'Διάμεση διάρκεια νοσηλείας', titleEn: 'Median length of stay', aggregation: 'median', field: 'length_of_stay', filters: [{ field: 'discharge_date', op: 'filled' }], dateField: 'discharge_date', unit: 'ημέρες', unitEn: 'days', direction: 'context' },
+    share('readmissions', '% επανεισαγωγών 30 ημερών', '% 30-day readmissions', [{ field: 'readmission_30d', op: 'yes' }], { direction: 'lower' }),
+    share('picu', '% μεταφορών σε ΜΕΘ Παίδων', '% transfers to paediatric ICU', [{ field: 'outcome', op: 'eq', value: 'picu' }], { denominatorFilters: [{ field: 'outcome', op: 'filled' }], dateField: 'discharge_date', direction: 'lower' }),
+    share('iv_antibiotics', '% με ενδοφλέβια αντιβίωση', '% on IV antibiotics', [{ field: 'iv_antibiotics', op: 'yes' }], { direction: 'context' }),
+    share('hai', '% με λοίμωξη σχετιζόμενη με τη νοσηλεία', '% healthcare-associated infection', [{ field: 'hai', op: 'yes' }], { direction: 'lower' }),
+    count('falls', 'Πτώσεις', 'Falls', { filters: [{ field: 'fall', op: 'yes' }], direction: 'lower' }),
+    { id: 'hai_rate', title: 'Λοιμώξεις νοσηλείας ανά 1.000 ημέρες νοσηλείας', titleEn: 'Healthcare-associated infections per 1,000 patient-days', aggregation: 'rate', filters: [{ field: 'hai', op: 'yes' }], denominatorFilters: [{ field: 'discharge_date', op: 'filled' }], denominatorField: 'length_of_stay', multiplier: 1000, dateField: 'discharge_date', unit: '/1.000 ημέρες νοσηλείας', unitEn: '/1,000 patient-days', direction: 'lower', note: 'Μόνο όσα παιδιά βγήκαν, στον μήνα εξόδου.', noteEn: 'Discharged children only, in the month of discharge.' },
+    { id: 'falls_rate', title: 'Πτώσεις ανά 1.000 ημέρες νοσηλείας', titleEn: 'Falls per 1,000 patient-days', aggregation: 'rate', filters: [{ field: 'fall', op: 'yes' }], denominatorFilters: [{ field: 'discharge_date', op: 'filled' }], denominatorField: 'length_of_stay', multiplier: 1000, dateField: 'discharge_date', unit: '/1.000 ημέρες νοσηλείας', unitEn: '/1,000 patient-days', direction: 'lower', note: 'Μόνο όσα παιδιά βγήκαν, στον μήνα εξόδου.', noteEn: 'Discharged children only, in the month of discharge.' },
+    { id: 'phlebitis_rate', title: 'Φλεβίτιδα ανά 1.000 ημέρες περιφερικού καθετήρα', titleEn: 'Phlebitis per 1,000 peripheral line days', aggregation: 'rate', filters: [{ field: 'phlebitis', op: 'yes' }], denominatorFilters: [{ field: 'peripheral_line_days', op: 'gt', value: 0 }], denominatorField: 'peripheral_line_days', multiplier: 1000, dateField: 'discharge_date', unit: '/1.000 ημέρες καθετήρα', unitEn: '/1,000 line days', direction: 'lower' },
+    share('isolation', '% παιδιών σε απομόνωση', '% children in isolation', [{ field: 'isolation', op: 'yes' }]),
+    share('from_ed', '% εισαγωγών από τα ΤΕΠ', '% admitted through the ED', [{ field: 'from_ed', op: 'yes' }]),
+  ],
+}
+
+export const HOSPITAL_TEMPLATES: AnyRecord[] = [PAEDIATRICS, ICU, OBSTETRICS, DELIVERY_ROOM, CATH_LAB, CHEMOTHERAPY, EMERGENCY, PHYSIOTHERAPY]
