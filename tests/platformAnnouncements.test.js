@@ -103,6 +103,8 @@ describe('platform announcements: hospitals and demos in one list (owner, 12/11/
     expect(page).not.toContain('Εμφάνιση και στο demo')
     expect(page).toContain("(org.is_demo || org.mode === 'demo') ? `${org.name} · Demo`")
     expect(page).toContain('ALL_HOSPITALS')
+    // every organization of the platform, not only the owner's own memberships
+    expect(page).toContain('loadAnnouncementTargets')
     expect(page).toContain('ALL_DEMOS')
   })
   it('the database lets a demo member read what names their demo (create policy only)', () => {

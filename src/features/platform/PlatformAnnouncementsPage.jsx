@@ -27,6 +27,7 @@ import {
   deletePlatformAnnouncement,
   uploadAnnouncementAttachment,
   uploadAnnouncementDocument,
+  loadAnnouncementTargets,
   loadPlatformAnnouncements,
   savePlatformAnnouncement,
   setPlatformAnnouncementStatus,
@@ -69,10 +70,17 @@ export function PlatformAnnouncementsPage() {
   const documentInput = useRef(null)
   const navigate = useNavigate()
   // Hospitals and demo hospitals together (owner, 12/11/2026): one list to choose from, a demo marked «Demo».
-  const organizations = useMemo(
-    () => memberships.map(item => item.organization).filter(org => org?.id),
-    [memberships],
-  )
+  const [targets, setTargets] = useState([])
+  useEffect(() => {
+    let alive = true
+    loadAnnouncementTargets().then(list => alive && setTargets(list)).catch(() => {})
+    return () => { alive = false }
+  }, [])
+  const organizations = useMemo(() => {
+    const own = memberships.map(item => item.organization).filter(org => org?.id)
+    const byId = new Map([...own, ...targets].map(org => [org.id, org]))
+    return [...byId.values()].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'el'))
+  }, [memberships, targets])
   const everyone = item => item.allHospitals && item.showInDemo && !item.audience.length
   const orgName = id => organizations.find(org => org.id === id)?.name || id
   const reload = useCallback(() => {

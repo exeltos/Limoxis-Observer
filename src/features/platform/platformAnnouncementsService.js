@@ -75,6 +75,14 @@ export function announcementPayload(draft) {
   }
 }
 
+// Every hospital and demo hospital the owner can address, not only the ones the owner is a member of (owner, 12/11/2026).
+export async function loadAnnouncementTargets() {
+  if (isOwnerPreview()) return []
+  const { data, error } = await supabase.from('organizations').select('id,name,code,status,is_demo').order('name')
+  if (error) throw error
+  return (data || []).filter(org => org.id && org.status !== 'archived' && org.status !== 'deleted')
+}
+
 // The owner's list, with how many administrators have seen each one.
 export async function loadPlatformAnnouncements() {
   if (isOwnerPreview()) return previewPlatformAnnouncements()
