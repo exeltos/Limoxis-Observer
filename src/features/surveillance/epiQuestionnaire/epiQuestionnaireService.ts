@@ -32,7 +32,7 @@ const stamp = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toI
 // Demo: a few episodes with answered and unanswered questionnaires (the others show «Ερωτηματολόγιο: εκκρεμεί»).
 function demoSeed() {
   if (isEmptyPreview()) return {}
-  const row = (caseId: string, answers, daysAgo, by) => ({ id: `EPQ-${caseId}`, caseId, definitionVersion: 1, answers, prefilled: {}, coreComplete: true, answeredBy: by, answeredAt: stamp(daysAgo), updatedBy: by, updatedAt: stamp(daysAgo) })
+  const row = (caseId: string, answers: AnyRecord, daysAgo: number, by: string) => ({ id: `EPQ-${caseId}`, caseId, definitionVersion: 1, answers, prefilled: {}, coreComplete: true, answeredBy: by, answeredAt: stamp(daysAgo), updatedBy: by, updatedAt: stamp(daysAgo) })
   return {
     // Hospital origin, three risk factors: the full questionnaire, with prefilled lines.
     'SUR-260041': row('SUR-260041', {
@@ -85,7 +85,7 @@ export async function loadEpiQuestionnaires(organizationId: string | null | unde
   if (isDemo) await seedDemoHistory()
   if (isDemo) return Object.fromEntries(ids.filter(id => demoRows.has(id)).map(id => [id, demoRows.get(id)]))
   if (!needsCloud(organizationId) || !ids.length) return {}
-  const out = {}
+  const out: Record<string, AnyRecord> = {}
   for (let index = 0; index < ids.length; index += 100) {
     const { data, error } = await supabase.from('surveillance_case_questionnaires').select(COLUMNS).eq('organization_id', organizationId as string).in('surveillance_case_id', ids.slice(index, index + 100))
     if (error) throw error
@@ -101,7 +101,7 @@ interface LoadAllEpiQuestionnairesOptions {
 export async function loadAllEpiQuestionnaires(organizationId: string | null | undefined, { isDemo = false }: LoadAllEpiQuestionnairesOptions = {}) {
   if (isDemo) { await seedDemoHistory(); return Object.fromEntries(demoRows) }
   if (!needsCloud(organizationId)) return {}
-  const out = {}
+  const out: Record<string, AnyRecord> = {}
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase.from('surveillance_case_questionnaires').select(COLUMNS).eq('organization_id', organizationId as string).order('id').range(from, from + 999)
     if (error) throw error
@@ -115,7 +115,7 @@ interface SaveEpiQuestionnaireOptions4 {
   isDemo?: boolean
 }
 interface SaveEpiQuestionnaireOptions3 {
-  answers?: AnyRecord[]
+  answers?: AnyRecord
   prefilled?: AnyRecord
   definitionVersion?: number
   actorName?: string
@@ -141,7 +141,7 @@ export async function saveEpiQuestionnaire(organizationId: string | null | undef
 }
 
 // The mini version (sample request): merges ONLY the three core answers into the stored questionnaire.
-export async function saveEpiCoreAnswers(organizationId: string | null | undefined, caseId: string, core, options: AnyRecord = {}) {
+export async function saveEpiCoreAnswers(organizationId: string | null | undefined, caseId: string, core: AnyRecord, options: AnyRecord = {}) {
   const existing = (await loadEpiQuestionnaires(organizationId, [caseId], options))[String(caseId)]
   const answers = { ...(existing?.answers || {}), ...coreOnly(core) }
   return saveEpiQuestionnaire(organizationId, caseId, { answers, prefilled: existing?.prefilled || {}, definitionVersion: existing?.definitionVersion || 1, actorName: options.actorName || '' }, options)
@@ -166,7 +166,7 @@ interface SaveEpiSettingOptions {
   isDemo?: boolean
 }
 // Saves one question's settings; every save raises that question's version (and so the questionnaire's).
-export async function saveEpiSetting(organizationId: string | null | undefined, questionKey, patch: AnyRecord, current: AnyRecord | null = null, { isDemo = false }: SaveEpiSettingOptions = {}) {
+export async function saveEpiSetting(organizationId: string | null | undefined, questionKey: string, patch: AnyRecord, current: AnyRecord | null = null, { isDemo = false }: SaveEpiSettingOptions = {}) {
   const version = (current?.version || 0) + 1
   const body = { labelEl: patch.labelEl ?? current?.labelEl ?? '', labelEn: patch.labelEn ?? current?.labelEn ?? '', helpEl: patch.helpEl ?? current?.helpEl ?? '', helpEn: patch.helpEn ?? current?.helpEn ?? '', windowDays: patch.windowDays === undefined ? current?.windowDays ?? null : patch.windowDays, isActive: patch.isActive ?? current?.isActive ?? true }
   if (isDemo) {

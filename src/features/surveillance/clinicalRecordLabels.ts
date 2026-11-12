@@ -55,7 +55,7 @@ export function administrationStatusLabel(status: string, language: string) {
     '—'
   )
 }
-function escapeReport(value) {
+function escapeReport(value: unknown) {
   return String(value ?? '—').replace(/[&<>"]/g, ch =>
     ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : '&quot;',
   )
@@ -65,7 +65,7 @@ export function printSurveillanceReport(
   { language = 'el', fmtDate, fmtDateTime, t = null, libraries = {} }: AnyRecord,
 ) {
   const esc = escapeReport
-  const L = (el: string, en: boolean) => (language === 'el' ? el : en)
+  const L = (el: string, en: string) => (language === 'el' ? el : en)
   const rows = (items: AnyRecord[], empty = '—') =>
     items?.length ? items.map(x => `<li>${esc(x)}</li>`).join('') : `<li>${empty}</li>`
   const samples = (record.samples || [])
@@ -88,7 +88,7 @@ export function printSurveillanceReport(
         `<tr><td>${esc(fmtDateTime(x.at || x.createdAt))}</td><td>${esc(x.label || x.type)}</td><td>${esc(clinicalTerm(x.value || x.detail || x.notes, language, t))}</td></tr>`,
     )
     .join('')
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${L('Αναφορά επιτήρησης', 'Surveillance report')}</title><style>@page{size:A4;margin:14mm}body{font:12px Arial,sans-serif;color:#17324a}h1{font-size:21px;margin:0 0 4px}h2{font-size:14px;border-bottom:1px solid #cbd8e3;padding-bottom:5px;margin:20px 0 8px}.muted{color:#687b8d}.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}.field{padding:6px 0;border-bottom:1px solid #edf1f4}.field b{display:block;font-size:10px;color:#687b8d;text-transform:uppercase;margin-bottom:2px}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px;border-bottom:1px solid #dfe7ed;vertical-align:top}th{font-size:10px;color:#607487;background:#f5f8fa}ul{margin:5px 0;padding-left:18px}.footer{margin-top:24px;padding-top:8px;border-top:1px solid #cbd8e3;color:#687b8d;font-size:10px}@media print{button{display:none}}</style></head><body><h1>${L('Αναλυτική αναφορά επιτήρησης', 'Detailed surveillance report')}</h1><div class="muted">${L('Limoxis Observer · Κλινική επιτήρηση', 'Limoxis Observer · Clinical surveillance')}</div><h2>${L('Στοιχεία επεισοδίου', 'Episode details')}</h2><div class="grid"><div class="field"><b>${L('Ασθενής', 'Patient')}</b>${esc(record.patient || record.patientName)}</div><div class="field"><b>${L('Κωδικός ασθενούς', 'Patient code')}</b>${esc(record.patientId)}</div><div class="field"><b>${L('Τμήμα', 'Department')}</b>${esc(record.department)}</div><div class="field"><b>${L('Έναρξη επιτήρησης', 'Surveillance start')}</b>${esc(fmtDate(record.startedAt))}</div><div class="field"><b>${L('Κατάσταση', 'Status')}</b>${esc(clinicalTerm(record.status, language, t))}</div><div class="field"><b>${L('Λόγος επιτήρησης', 'Surveillance reason')}</b>${esc(record.reason)}</div></div><h2>${L('Κλινική αξιολόγηση', 'Clinical assessment')}</h2><div class="grid"><div class="field"><b>${L('Ημερομηνία αξιολόγησης', 'Assessment date')}</b>${esc(fmtDate(record.assessment?.date))}</div><div class="field"><b>${L('Κλινική ταξινόμηση', 'Clinical classification')}</b>${esc(clinicalTerm(record.assessment?.classification, language, t))}</div></div><b>${L('Σημεία / συμπτώματα', 'Signs / symptoms')}</b><ul>${rows((record.assessment?.symptoms || []).map(x => libraryLabel(x, libraries.clinicalSymptoms || [], language, t)))}</ul><b>${L('Παράγοντες κινδύνου', 'Risk factors')}</b><ul>${rows((record.assessment?.riskFactors || []).map(x => libraryLabel(x, libraries.clinicalRiskFactors || [], language, t)))}</ul><h2>${L('Μικροβιολογικά δείγματα', 'Microbiology samples')}</h2><table><thead><tr><th>${L('Ημερομηνία', 'Date')}</th><th>${L('Τύπος', 'Type')}</th><th>${L('Κωδικός', 'Code')}</th><th>${L('Αποτέλεσμα', 'Result')}</th><th>${L('Μικροοργανισμός', 'Organism')}</th><th>AMR</th></tr></thead><tbody>${samples || `<tr><td colspan="6">${L('Δεν υπάρχουν καταχωρισμένα δείγματα.', 'No samples recorded.')}</td></tr>`}</tbody></table><h2>${L('Απομόνωση', 'Isolation')}</h2><div class="grid"><div class="field"><b>${L('Κατάσταση', 'Status')}</b>${esc(record.isolation ? clinicalTerm(record.isolation.status || 'yes', language, t) : L('Δεν απαιτείται / δεν έχει καταχωριστεί', 'Not required / not recorded'))}</div><div class="field"><b>${L('Έναρξη', 'Start')}</b>${esc(fmtDate(record.isolation?.startedAt))}</div></div><h2>${L('Αντιμικροβιακή αγωγή', 'Antimicrobial therapy')}</h2><table><thead><tr><th>${L('Φάρμακο', 'Drug')}</th><th>${L('Δόση', 'Dose')}</th><th>${L('Οδός', 'Route')}</th><th>${L('Έναρξη', 'Start')}</th><th>${L('Λήξη', 'End')}</th></tr></thead><tbody>${therapy || `<tr><td colspan="5">${L('Δεν έχει καταχωριστεί αγωγή.', 'No therapy recorded.')}</td></tr>`}</tbody></table><h2>${L('Χρονολογικό ιστορικό', 'Chronological history')}</h2><table><thead><tr><th>${L('Ημερομηνία / ώρα', 'Date / time')}</th><th>${L('Ενέργεια', 'Action')}</th><th>${L('Λεπτομέρειες', 'Details')}</th></tr></thead><tbody>${timeline || `<tr><td colspan="3">${L('Δεν υπάρχουν συμβάντα.', 'No events recorded.')}</td></tr>`}</tbody></table><div class="footer">${L('Η αναφορά δημιουργήθηκε από το Limoxis Observer.', 'Report generated by Limoxis Observer.')} · ${esc(new Date().toLocaleString(language === 'el' ? 'el-GR' : 'en-GB'))}${isDemoReport() ? ` · ${L(DEMO_REPORT_MARK_EL, DEMO_REPORT_MARK_EN)}` : ''}</div></body></html>`
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${L('Αναφορά επιτήρησης', 'Surveillance report')}</title><style>@page{size:A4;margin:14mm}body{font:12px Arial,sans-serif;color:#17324a}h1{font-size:21px;margin:0 0 4px}h2{font-size:14px;border-bottom:1px solid #cbd8e3;padding-bottom:5px;margin:20px 0 8px}.muted{color:#687b8d}.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}.field{padding:6px 0;border-bottom:1px solid #edf1f4}.field b{display:block;font-size:10px;color:#687b8d;text-transform:uppercase;margin-bottom:2px}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px;border-bottom:1px solid #dfe7ed;vertical-align:top}th{font-size:10px;color:#607487;background:#f5f8fa}ul{margin:5px 0;padding-left:18px}.footer{margin-top:24px;padding-top:8px;border-top:1px solid #cbd8e3;color:#687b8d;font-size:10px}@media print{button{display:none}}</style></head><body><h1>${L('Αναλυτική αναφορά επιτήρησης', 'Detailed surveillance report')}</h1><div class="muted">${L('Limoxis Observer · Κλινική επιτήρηση', 'Limoxis Observer · Clinical surveillance')}</div><h2>${L('Στοιχεία επεισοδίου', 'Episode details')}</h2><div class="grid"><div class="field"><b>${L('Ασθενής', 'Patient')}</b>${esc(record.patient || record.patientName)}</div><div class="field"><b>${L('Κωδικός ασθενούς', 'Patient code')}</b>${esc(record.patientId)}</div><div class="field"><b>${L('Τμήμα', 'Department')}</b>${esc(record.department)}</div><div class="field"><b>${L('Έναρξη επιτήρησης', 'Surveillance start')}</b>${esc(fmtDate(record.startedAt))}</div><div class="field"><b>${L('Κατάσταση', 'Status')}</b>${esc(clinicalTerm(record.status, language, t))}</div><div class="field"><b>${L('Λόγος επιτήρησης', 'Surveillance reason')}</b>${esc(record.reason)}</div></div><h2>${L('Κλινική αξιολόγηση', 'Clinical assessment')}</h2><div class="grid"><div class="field"><b>${L('Ημερομηνία αξιολόγησης', 'Assessment date')}</b>${esc(fmtDate(record.assessment?.date))}</div><div class="field"><b>${L('Κλινική ταξινόμηση', 'Clinical classification')}</b>${esc(clinicalTerm(record.assessment?.classification, language, t))}</div></div><b>${L('Σημεία / συμπτώματα', 'Signs / symptoms')}</b><ul>${rows((record.assessment?.symptoms || []).map((x: string) => libraryLabel(x, libraries.clinicalSymptoms || [], language, t)))}</ul><b>${L('Παράγοντες κινδύνου', 'Risk factors')}</b><ul>${rows((record.assessment?.riskFactors || []).map((x: string) => libraryLabel(x, libraries.clinicalRiskFactors || [], language, t)))}</ul><h2>${L('Μικροβιολογικά δείγματα', 'Microbiology samples')}</h2><table><thead><tr><th>${L('Ημερομηνία', 'Date')}</th><th>${L('Τύπος', 'Type')}</th><th>${L('Κωδικός', 'Code')}</th><th>${L('Αποτέλεσμα', 'Result')}</th><th>${L('Μικροοργανισμός', 'Organism')}</th><th>AMR</th></tr></thead><tbody>${samples || `<tr><td colspan="6">${L('Δεν υπάρχουν καταχωρισμένα δείγματα.', 'No samples recorded.')}</td></tr>`}</tbody></table><h2>${L('Απομόνωση', 'Isolation')}</h2><div class="grid"><div class="field"><b>${L('Κατάσταση', 'Status')}</b>${esc(record.isolation ? clinicalTerm(record.isolation.status || 'yes', language, t) : L('Δεν απαιτείται / δεν έχει καταχωριστεί', 'Not required / not recorded'))}</div><div class="field"><b>${L('Έναρξη', 'Start')}</b>${esc(fmtDate(record.isolation?.startedAt))}</div></div><h2>${L('Αντιμικροβιακή αγωγή', 'Antimicrobial therapy')}</h2><table><thead><tr><th>${L('Φάρμακο', 'Drug')}</th><th>${L('Δόση', 'Dose')}</th><th>${L('Οδός', 'Route')}</th><th>${L('Έναρξη', 'Start')}</th><th>${L('Λήξη', 'End')}</th></tr></thead><tbody>${therapy || `<tr><td colspan="5">${L('Δεν έχει καταχωριστεί αγωγή.', 'No therapy recorded.')}</td></tr>`}</tbody></table><h2>${L('Χρονολογικό ιστορικό', 'Chronological history')}</h2><table><thead><tr><th>${L('Ημερομηνία / ώρα', 'Date / time')}</th><th>${L('Ενέργεια', 'Action')}</th><th>${L('Λεπτομέρειες', 'Details')}</th></tr></thead><tbody>${timeline || `<tr><td colspan="3">${L('Δεν υπάρχουν συμβάντα.', 'No events recorded.')}</td></tr>`}</tbody></table><div class="footer">${L('Η αναφορά δημιουργήθηκε από το Limoxis Observer.', 'Report generated by Limoxis Observer.')} · ${esc(new Date().toLocaleString(language === 'el' ? 'el-GR' : 'en-GB'))}${isDemoReport() ? ` · ${L(DEMO_REPORT_MARK_EL, DEMO_REPORT_MARK_EN)}` : ''}</div></body></html>`
   const win = window.open('', '_blank')
   if (!win) return false
   win.document.open()
@@ -108,7 +108,7 @@ export function episodeTypeLabel(ep: AnyRecord, t: (key: string) => string) {
     if (typeof label === 'string' && label !== type) return label
     const nested = t(`clinicalRecords.${type}`)
     if (typeof nested === 'string' && nested !== `clinicalRecords.${type}`) return nested
-    return clinicalTerm(type, 'el', null)
+    return clinicalTerm(type, 'el')
   }
   if (ep?.suspectedSource) {
     const label = t(`clinicalRecords.${ep.suspectedSource}`)
@@ -126,10 +126,10 @@ const CLASSIFICATION_LABELS: Record<string, string[]> = {
   probable_infection: ['Πιθανή λοίμωξη', 'Probable infection'],
   confirmed_infection: ['Επιβεβαιωμένη λοίμωξη', 'Confirmed infection'],
 }
-export function clinicalTerm(value, language = 'el', t: (key: string) => string | null = null) {
+export function clinicalTerm(value: unknown, language = 'el', t: ((key: string) => string | null) | null = null) {
   if (value == null || value === '') return '—'
   const key = String(value).trim().toUpperCase()
-  const el = {
+  const el: Record<string, string> = {
     UNDETERMINED: 'Δεν έχει ακόμη καθοριστεί',
     PENDING: 'Εκκρεμεί',
     POSITIVE: 'Θετικό',
@@ -152,7 +152,7 @@ export function clinicalTerm(value, language = 'el', t: (key: string) => string 
     S: 'Ευαίσθητο',
     I: 'Ευαίσθητο με αυξημένη έκθεση',
   }
-  const en = {
+  const en: Record<string, string> = {
     UNDETERMINED: 'Not yet determined',
     PENDING: 'Pending',
     POSITIVE: 'Positive',
@@ -189,7 +189,7 @@ export function clinicalTerm(value, language = 'el', t: (key: string) => string 
 }
 // Assessment values are stored as library ids/codes; show the library label
 // (Greek or English) and fall back to the clinical dictionary for legacy text values.
-export function libraryLabel(value, rows: AnyRecord[] = [], language = 'el', t: (key: string) => string | null = null) {
+export function libraryLabel(value: unknown, rows: AnyRecord[] = [], language = 'el', t: ((key: string) => string | null) | null = null) {
   const key = String(value ?? '').trim()
   const row = rows.find(item =>
     [item?.[2]?.id, item?.[2]?.code, item?.[0], item?.[1]].some(
@@ -204,9 +204,9 @@ export function libraryLabel(value, rows: AnyRecord[] = [], language = 'el', t: 
     )
   return clinicalTerm(value, language, t)
 }
-export function clinicalValueLabel(value, language: string, t: (key: string) => string) {
+export function clinicalValueLabel(value: unknown, language: string, t: (key: string) => string) {
   if (value === null || value === undefined || value === '') return '—'
-  const labels = {
+  const labels: Record<string, string | string[]> = {
     FEVER: translate('copy.clinicalRecordCopy.fever', language === 'el' ? 'el' : 'en'),
     CHILLS: translate('copy.clinicalRecordCopy.chills', language === 'el' ? 'el' : 'en'),
     ICU_STAY: translate('copy.clinicalRecordCopy.icuStay', language === 'el' ? 'el' : 'en'),
@@ -223,7 +223,7 @@ export function clinicalValueLabel(value, language: string, t: (key: string) => 
   return translated === String(value) ? String(value).replaceAll('_', ' ') : translated
 }
 export function timelineLabel(type: string, language: string, t: (key: string) => string) {
-  const labels = {
+  const labels: Record<string, string[]> = {
     created: ['Δημιουργία επιτήρησης', 'Surveillance created'],
     surveillance_start: ['Έναρξη επιτήρησης', 'Surveillance started'],
     clinical_assessment: ['Κλινική αξιολόγηση', 'Clinical assessment'],
@@ -255,7 +255,7 @@ export const ISOLATION_STATUS: Record<string, string> = {
   ended: 'finalReport.isolationEnded',
   completed: 'finalReport.isolationEnded',
 }
-export function termLabel(value, t: (key: string) => string, language: string) {
+export function termLabel(value: string | null | undefined, t: (key: string) => string, language: string) {
   if (!value) return '—'
   if (typeof t === 'function') {
     const translated = t(value)
@@ -275,7 +275,7 @@ const isNeonatalCriteria = (row: AnyRecord) =>
 // the structured NHSN/ECDC checklist never opened for them. Link each library
 // row to its criteria set by its standard prefix, then offer the criteria sets
 // the library lacks (e.g. the infant CLABSI definition).
-const CRITERIA_PREFIXES = [
+const CRITERIA_PREFIXES: [string, RegExp][] = [
   ['clabsi', /^CLABSI\b/i],
   ['cauti', /^CAUTI\b/i],
   ['vap', /^VAP\b/i],
@@ -298,11 +298,11 @@ export function withCriteriaKeys(items: AnyRecord[] = [], criteriaRows: AnyRecor
   const covered = new Set(linked.map(criteriaKeyOf).filter(Boolean))
   return [...linked, ...criteriaRows.filter(row => !covered.has(criteriaKeyOf(row)))]
 }
-export function orderCriteriaForAge(options: AnyRecord[] = [], ageDays: AnyRecord | null = null) {
+export function orderCriteriaForAge(options: AnyRecord[] = [], ageDays: number | null = null) {
   if (ageDays == null || ageDays > 365) return options
   return [...options.filter(isNeonatalCriteria), ...options.filter(row => !isNeonatalCriteria(row))]
 }
-export function criteriaAgeWarning(criteriaKey, ageDays: AnyRecord | null = null) {
+export function criteriaAgeWarning(criteriaKey: string | null | undefined, ageDays: number | null = null) {
   if (ageDays == null || !criteriaKey) return null
   if (criteriaKey === 'clabsi' && ageDays <= 365) return 'useInfantDefinition'
   if (/neonatal/.test(criteriaKey) && ageDays > 365) return 'infantDefinitionOverOneYear'

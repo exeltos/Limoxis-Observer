@@ -25,7 +25,7 @@ import type { Handler } from './surveillanceTypes'
 
 interface CanSeeExposureOptions {
   isDemo: boolean
-  role: string
+  role: string | null
   has: Handler
 }
 // «Έκθεση προσωπικού» on the staff surveillance record: the occupational exposures recorded
@@ -42,7 +42,7 @@ export function exposureStatus(row: AnyRecord, today = athensToday()) {
 
 interface EpisodeOptionsOptions {
   isDemo: boolean
-  organizationId: string
+  organizationId: string | null | undefined
   language: string
 }
 async function episodeOptions({ isDemo, organizationId, language }: EpisodeOptionsOptions) {
@@ -69,15 +69,15 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const { tenant, isDemo, role, membership } = useTenant()
-  const has = useCallback(cap => can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? []), [role, membership])
-  const { data: employeeRows = [] } = useEmployeesData()
+  const has = useCallback((cap: string) => can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? []), [role, membership])
+  const { data: employeeRows = [] }: { data?: AnyRecord[] } = useEmployeesData()
   const [rows, setRows] = useState<AnyRecord[]>([])
   const [editor, setEditor] = useState<AnyRecord | null>(null)
   const [detail, setDetail] = useState<AnyRecord | null>(null)
-  const [caseOptions, setCaseOptions] = useState<AnyRecord[]>([])
+  const [caseOptions, setCaseOptions] = useState<{ value: string, label: string }[]>([])
   const recordKey = record.recordId || record.id
   const canLinkEpisode = has(CAPABILITIES.VIEW_SURVEILLANCE)
-  const fmt = value => (value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR') : '')
+  const fmt = (value: unknown) => (value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR') : '')
   const reload = useCallback(async () => {
     try {
       setRows(await loadExposureIncidentsForRecordAsync(tenant?.id, recordKey))
@@ -194,7 +194,7 @@ interface EmployeeExposureSectionProps {
 }
 export function EmployeeExposureSection({ record, department }: EmployeeExposureSectionProps) {
   const { isDemo, role, membership } = useTenant()
-  const has = cap => can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
+  const has = (cap: string) => can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   if (!canSeeExposure({ isDemo, role, has })) return null
   return (
     <FormsTabProvider>

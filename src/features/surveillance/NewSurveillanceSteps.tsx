@@ -10,20 +10,22 @@ import { ReadOnlyField } from '../../design-system/ReadOnlyField'
 import { departmentOptions, listTexts, suspectedSourceOptions } from './surveillanceOptions'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { StateSetter } from './surveillanceTypes'
+import type { ReactNode } from 'react'
+import type { Handler } from './surveillanceTypes'
 
 interface PatientSelectorProps {
-  chooseExistingPatient: AnyRecord
-  createdPatient: AnyRecord
+  chooseExistingPatient: Handler
+  createdPatient: AnyRecord | null
   departments: AnyRecord[]
   isDemo: boolean
   language: string
   patientDraft: AnyRecord
-  patientMode: boolean
+  patientMode: string
   patients: AnyRecord[]
   selectedPatientId: string
   setCreatedPatient: StateSetter
-  setPatientDepartment: StateSetter
-  setPatientField: StateSetter
+  setPatientDepartment: (value: string) => void
+  setPatientField: (key: string, value: unknown) => void
   setPatientMode: StateSetter
   setSelectedPatientId: StateSetter
   form: AnyRecord
@@ -130,9 +132,9 @@ export function PatientSelector({
 }
 
 interface StartStepProps {
-  contextDepartment: AnyRecord
+  contextDepartment: ReactNode
   language: string
-  setStart: StateSetter
+  setStart: (key: string, value: unknown) => void
   startDraft: AnyRecord
   form: AnyRecord
   t: (key: string) => string

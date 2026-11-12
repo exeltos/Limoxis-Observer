@@ -22,6 +22,7 @@ import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRi
 import { AdmissionDeleteDialog, PatientDetailsEditor, useAdmissionLifecycle } from './ClinicalAdmissionDialogs'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
+import type { ReactNode } from 'react'
 export { Detail, NewAdmissionDialog, AdmissionPicker } from './ClinicalAdmissionDialogs'
 
 interface PatientDetailsSectionProps {
@@ -34,7 +35,7 @@ interface PatientDetailsSectionProps {
   fmtDate: (value: unknown) => string
   onChanged: Handler
   onDeleted: Handler
-  stayFields?: AnyRecord[] | null
+  stayFields?: ReactNode[][] | null
   leadingActions?: AnyRecord[] | null
   extraMenuItems?: AnyRecord[]
   bare?: boolean
@@ -243,7 +244,7 @@ export function PatientDetailsSection({
   )
 }
 interface CanonicalSummaryProps {
-  onOpenStage: Handler
+  onOpenStage?: Handler
   onOpenHistory: Handler
   extraAttention?: AnyRecord[]
   epiItems?: AnyRecord[]
@@ -337,7 +338,7 @@ export function CanonicalSummary({
         ],
         [t('admissionDate'), fmtDate(admittedAt)],
       ]
-  const badge = (text: string, tone) =>
+  const badge = (text: string, tone?: string) =>
     text ? <StatusBadge tone={tone}>{text}</StatusBadge> : '—'
   const hai = record?.haiClassification
   const haiValue = hai ? (
@@ -455,7 +456,7 @@ export function CanonicalSummary({
     <div className="patient-summary-layout record-summary">
       <AttentionList
         title={t('clinicalRecords.attentionNeeded')}
-        items={attention.map(item => ({ id: item.id, text: item.text, tone: item.tone === 'warning' ? 'warning' : 'danger', action: onOpenStage && item.action ? item.action : null, onClick: onOpenStage && item.action ? () => onOpenStage(item.stage) : null }))}
+        items={attention.map(item => ({ id: item.id, text: item.text, tone: item.tone === 'warning' ? 'warning' : 'danger', action: onOpenStage && item.action ? item.action : null, onClick: onOpenStage && item.action ? () => onOpenStage(item.stage) : undefined }))}
       />
       <div className="record-summary-grid">
         {patient ? (

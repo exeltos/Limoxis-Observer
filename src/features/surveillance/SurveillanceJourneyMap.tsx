@@ -216,8 +216,8 @@ export function SurveillanceJourneyGuidance({
 // Stages that are steps of the Demo guide's CLABSI scenario (outlined while it runs).
 const DEMO_STEP_STAGES = new Set(['hai', 'reassessment'])
 interface EpisodeStepProps {
-  number: AnyRecord
-  stage: string
+  number: number
+  stage: AnyRecord
   active: boolean
   onSelect: Handler
 }

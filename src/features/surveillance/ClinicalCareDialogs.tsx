@@ -99,7 +99,7 @@ export function HaiDialog({
     : staticDefaults
   const options = orderCriteriaForAge(withCriteriaKeys(items, defaults), ageDays)
   const first = options[0]
-  const [d, setD] = useState({
+  const [d, setD] = useState<AnyRecord>({
     status: 'suspected',
     type: rowLabel(first, language),
     definitionSet: first?.[2]?.source || 'ECDC',
@@ -111,7 +111,7 @@ export function HaiDialog({
   const [adding, setAdding] = useState(false),
     [newName, setNewName] = useState(''),
     [customSource, setCustomSource] = useState('Hospital')
-  function select(value) {
+  function select(value: string) {
     if (!value) return
     if (value === NEW_ITEM) {
       setAdding(true)
@@ -131,7 +131,7 @@ export function HaiDialog({
       type: value,
       definitionSet: row?.[2]?.source || 'ECDC',
       definitionVersion: row?.[2]?.version || '',
-      criteriaKey: criteriaKeyOf(row),
+      criteriaKey: criteriaKeyOf(row as AnyRecord),
       criteriaEvidence: [],
     }))
   }
@@ -277,7 +277,7 @@ export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], o
     advancedAntibiotics.length ? advancedAntibiotics : demoLibrarySeed.advancedAntibiotics,
   )
   const [rows, setRows] = useState(() => [newTherapyRow()])
-  const update = (i: number, key: string, value) =>
+  const update = (i: number, key: string, value: unknown) =>
     setRows(list => list.map((x, n) => (n === i ? { ...x, [key]: value } : x)))
   const save = async () => {
     for (const therapy of therapiesToSave(rows, advancedNames)) await onSave(therapy)
@@ -370,7 +370,7 @@ interface IsolationDialogProps {
 export function IsolationDialog({ t, onClose, onSave }: IsolationDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
-  const [d, setD] = useState({
+  const [d, setD] = useState<AnyRecord>({
     precautions: ['contact'],
     room: '',
     reason: '',
@@ -448,7 +448,7 @@ interface ReassessmentDialogProps {
 export function ReassessmentDialog({ t, onClose, onSave }: ReassessmentDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
-  const [d, setD] = useState({
+  const [d, setD] = useState<AnyRecord>({
     date: hospitalToday(),
     status: 'stable',
     decision: 'continueTreatment',
@@ -493,7 +493,7 @@ interface OutcomeDialogProps {
 }
 export function OutcomeDialog({ t, onClose, onSave }: OutcomeDialogProps) {
   const { language } = useLanguage()
-  const [d, setD] = useState({
+  const [d, setD] = useState<AnyRecord>({
     status: 'resolved',
     date: hospitalToday(),
     notes: '',

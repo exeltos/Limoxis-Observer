@@ -31,14 +31,14 @@ export { hospitalNow }
 
 interface DischargeDateIssuesOptions {
   date: string
-  time: AnyRecord
+  time: string
   admissionDate: string
-  now?: AnyRecord
+  now?: { date: string, time: string }
 }
 // What keeps a discharge from being recorded: no date in the future (nor a time later
 // than now today), none before the admission. Returns { date?, time? } messages ('' when fine).
-export function dischargeDateIssues({ date, time, admissionDate, now = hospitalNow() }: DischargeDateIssuesOptions, text: string) {
-  const issues = {}
+export function dischargeDateIssues({ date, time, admissionDate, now = hospitalNow() }: DischargeDateIssuesOptions, text: Record<string, string>) {
+  const issues: { date?: string, time?: string } = {}
   const admitted = hospitalDay(admissionDate)
   if (date && date > now.date) issues.date = text.future
   else if (date && admitted && date < admitted) issues.date = text.beforeAdmission
@@ -48,7 +48,7 @@ export function dischargeDateIssues({ date, time, admissionDate, now = hospitalN
 
 interface DischargeReasonTextOptions {
   reason: string
-  time: AnyRecord
+  time?: string
   note: string
 }
 // The line kept in the admission notes (the stored reason): «Μεταφορά σε άλλο νοσοκομείο · 14:30 — σημείωση».
@@ -71,7 +71,7 @@ export function AdmissionDischargeDialog({ patient, admission, t, language, fmtD
   const now = useMemo(() => hospitalNow(), [])
   const [step, setStep] = useState('form')
   const [draft, setDraft] = useState({ date: now.date, time: now.time, reason: '', note: '' })
-  const set = (key: string, value) => setDraft(current => ({ ...current, [key]: value }))
+  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
   const text = {
     future: t('clinicalRecords.dischargeInFuture'),
     beforeAdmission: `${t('clinicalRecords.dischargeBeforeAdmission')} (${fmtDate(admission?.admissionDate)})`,
@@ -83,7 +83,7 @@ export function AdmissionDischargeDialog({ patient, admission, t, language, fmtD
     { key: 'time', label: t('clinicalRecords.dischargeTime'), valid: Boolean(draft.time) && !issues.time, message: issues.time },
     { key: 'reason', label: t('clinicalRecords.dischargeReason'), valid: Boolean(draft.reason) },
   ])
-  const reasonLabel = value => {
+  const reasonLabel = (value: string) => {
     const item = DISCHARGE_REASONS.find(row => row.value === value)
     return item ? t(`clinicalRecords.${item.key}`) : ''
   }

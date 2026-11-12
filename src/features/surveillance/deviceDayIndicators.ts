@@ -22,7 +22,7 @@ export const BIRTH_WEIGHT_BANDS = [
   { id: 'gt2500', labelEl: '>2500 g', labelEn: '>2500 g', min: 2501 },
 ]
 
-export function birthWeightBandId(grams) {
+export function birthWeightBandId(grams: unknown) {
   const value = Number(grams)
   if (!Number.isFinite(value) || value <= 0) return null
   return BIRTH_WEIGHT_BANDS.find(band => (band.min == null || value >= band.min) && (band.max == null || value <= band.max))?.id || null
@@ -34,14 +34,14 @@ function canonicalDeviceType(device: AnyRecord) {
   if (text.includes('urinary') || text.includes('foley')) return 'urinary catheter'
   if (text.includes('ventil') || text.includes('tracheal')) return 'ventilator'
   // Cloud rows carry only the (often Greek) device_type name in both name fields.
-  return { clabsi: 'central line', cauti: 'urinary catheter', vap: 'ventilator' }[deviceRuleKey(`${device?.name || ''} ${device?.nameEn || ''}`)] || null
+  return ({ clabsi: 'central line', cauti: 'urinary catheter', vap: 'ventilator' } as Record<string, string>)[deviceRuleKey(`${device?.name || ''} ${device?.nameEn || ''}`) as string] || null
 }
 
 // Device-day denominators cover every inpatient with a device, not only the
 // patients under surveillance. The demo therefore adds a ward census of
 // device episodes without infection (Aug–Sep 2026), so demo rates land in a
 // realistic range instead of being computed over a handful of device-days.
-function censusDevices(count: number, deviceType, department, days: number, bandId: AnyRecord | null = null) {
+function censusDevices(count: number, deviceType: string, department: string, days: number, bandId: string | null = null) {
   return Array.from({ length: count }, (_, index) => {
     const start = new Date(Date.UTC(2026, 7, 1 + (index % 40)))
     const end = new Date(start.getTime() + days * 86400000)
@@ -62,7 +62,7 @@ const DEMO_DEVICE_CENSUS = [
 // using the same NHSN-style logic LIRA already relies on internally.
 export function collectDeviceDaySources() {
   const cases = Object.values(clinicalCases)
-  const devices = cases.flatMap(item => (item.devices || []).map(device => ({
+  const devices = cases.flatMap(item => (item.devices || []).map((device: AnyRecord) => ({
     deviceType: canonicalDeviceType(device),
     insertedAt: device.insertedAt,
     removedAt: device.removedAt || null,
@@ -84,7 +84,7 @@ export function collectDeviceDaySources() {
 // rates in the NICU can be stratified the way NHSN requires instead of
 // being pooled with the rest of the hospital's device-day sources.
 export function collectNeonatalDeviceDaySourcesByBand() {
-  const byBand = Object.fromEntries(BIRTH_WEIGHT_BANDS.map(band => [band.id, { devices: [], haiClassifications: [] }]))
+  const byBand: Record<string, { devices: AnyRecord[], haiClassifications: AnyRecord[] }> = Object.fromEntries(BIRTH_WEIGHT_BANDS.map(band => [band.id, { devices: [], haiClassifications: [] }]))
   for (const item of Object.values(clinicalCases)) {
     if (!item.birthWeightGrams) continue
     const bandId = birthWeightBandId(item.birthWeightGrams)
@@ -115,7 +115,7 @@ export function countNeonatalCentralLineCasesMissingBirthWeight(cases = Object.v
     const start = new Date(`${String(item.startedAt || '').slice(0, 10)}T12:00:00`)
     const birth = new Date(`${item.dateOfBirth}T12:00:00`)
     if (Number.isNaN(start.getTime()) || Number.isNaN(birth.getTime())) return false
-    const ageDays = Math.floor((start - birth) / 86400000)
-    return ageDays >= 0 && ageDays <= 365 && (item.devices || []).some(device => canonicalDeviceType(device) === 'central line')
+    const ageDays = Math.floor((start.getTime() - birth.getTime()) / 86400000)
+    return ageDays >= 0 && ageDays <= 365 && (item.devices || []).some((device: AnyRecord) => canonicalDeviceType(device) === 'central line')
   }).length
 }

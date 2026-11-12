@@ -39,25 +39,25 @@ export const hasPositiveHistory = (samples: AnyRecord[]) =>
     (sample: AnyRecord) =>
       (sample.finalizedAt || sample.resultStatus === 'validated') && sample.result === 'positive',
   )
-export const compactCode = value => {
+export const compactCode = (value: unknown) => {
   const code = String(value || '')
   if (code.startsWith('LAB-EMP-') && code.length > 18) return `LE-${code.slice(-6).toUpperCase()}`
   if (code.startsWith('ESUR-')) {
     const parts = code.split('-')
-    if (parts.length >= 3) return `ES-${parts[1]}-${parts.at(-1).slice(-4)}`
+    if (parts.length >= 3) return `ES-${parts[1]}-${parts.at(-1)!.slice(-4)}`
   }
   return code
 }
 
 // Requested materials are stored as comma-separated codes (e.g. "nasalSwab, handSwab").
 export const REQUEST_MATERIALS = EMPLOYEE_SCREENING_TYPES
-export function splitMaterials(value) {
+export function splitMaterials(value: unknown) {
   return String(value || '')
     .split(',')
     .map(part => part.trim())
     .filter(Boolean)
 }
-export function materialLabels(value, en: boolean) {
+export function materialLabels(value: unknown, en: boolean) {
   return splitMaterials(value)
     .map(code => {
       const item = REQUEST_MATERIALS.find(row => row.id === code)
@@ -65,7 +65,7 @@ export function materialLabels(value, en: boolean) {
     })
     .join(', ')
 }
-export function toggleMaterial(value, code: string) {
+export function toggleMaterial(value: unknown, code: string) {
   const current = splitMaterials(value)
   return (current.includes(code) ? current.filter(item => item !== code) : [...current, code]).join(
     ', ',
@@ -577,7 +577,7 @@ export function EmployeeSurveillanceRecordDialog({
                 <label className="field entry-span-2">
                   <span className="lo-field-label">{en ? 'Correction reason' : 'Αιτιολογία διόρθωσης'}</span>
                   <textarea
-                    rows="2"
+                    rows={2}
                     value={correctionReason}
                     onChange={e => setCorrectionReason(e.target.value)}
                     placeholder={
@@ -641,7 +641,7 @@ export function EmployeeSurveillanceRecordDialog({
                 }))}
                 selected={splitMaterials(requestEditor.source)}
                 onToggle={id =>
-                  setRequestEditor(v => ({ ...v, source: toggleMaterial(v.source, id) }))
+                  setRequestEditor(v => ({ ...v, source: toggleMaterial(v!.source, id) }))
                 }
               />
               {splitMaterials(requestEditor.source)

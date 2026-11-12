@@ -84,7 +84,8 @@ interface FormSectionProps {
   summary?: ReactNode
   defaultOpen?: boolean
   needsAttention?: boolean
-  actions?: (AnyRecord | false | null | undefined)[]
+  // A list becomes the section's «⋯» menu; anything else is shown as it is (a button).
+  actions?: (AnyRecord | false | null | undefined)[] | ReactNode
   children: ReactNode
 }
 export function FormSection({ id, title, icon: Icon, summary, defaultOpen = false, needsAttention = false, actions, children }: FormSectionProps) {

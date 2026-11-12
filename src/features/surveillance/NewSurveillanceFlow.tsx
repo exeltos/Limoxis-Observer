@@ -79,8 +79,8 @@ export function NewSurveillanceFlow({
     department: firstDepartment[0] || '',
     departmentEn: firstDepartment[1] || '',
   })
-  const setStart = (k, v) => setStartDraft(d => ({ ...d, [k]: v }))
-  const setPatientField = (k, v) => setPatientDraft(d => ({ ...d, [k]: v }))
+  const setStart = (k: string, v: unknown) => setStartDraft(d => ({ ...d, [k]: v }))
+  const setPatientField = (k: string, v: unknown) => setPatientDraft(d => ({ ...d, [k]: v }))
 
   function chooseExistingPatient(id: string) {
     setSelectedPatientId(id)
@@ -94,7 +94,7 @@ export function NewSurveillanceFlow({
         departmentEn: next.departmentEn || '',
       }))
   }
-  function setPatientDepartment(value) {
+  function setPatientDepartment(value: string) {
     const department = departments.find(item => item.id === value)
     setPatientDraft(d => ({
       ...d,
@@ -290,7 +290,6 @@ export function NewSurveillanceFlow({
       {!sample && (
         <SearchableSelect
           label={t('svSampleField')}
-          required
           hint={t('svSampleHint')}
           value={sampleChoice}
           options={[

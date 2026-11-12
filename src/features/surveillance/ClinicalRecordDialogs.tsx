@@ -39,7 +39,7 @@ interface AdministrationDialogProps {
 
 export function AdministrationDialog({ t, language, onClose, onSave }: AdministrationDialogProps) {
   const tr = copy(language)
-  const [d, setD] = useState({
+  const [d, setD] = useState<AnyRecord>({
     administeredAt: hospitalToday(),
     dose: '',
     route: '',
@@ -139,7 +139,7 @@ export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], o
     ['immunosuppression', tr('immunosuppression')],
     ['recentProcedure', tr('recentInvasiveProcedure')],
   ]
-  const [d, setD] = useState({
+  const [d, setD] = useState<AnyRecord>({
     date: String(a.date || new Date().toISOString()).slice(0, 10),
     classification: a.classification || 'undetermined',
     summary: a.summary || '',
@@ -278,7 +278,7 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
   })
   const [rows, setRows] = useState([blank()])
   // The row whose type is being added to the library (an index), or null.
-  const [adding, setAdding] = useState<AnyRecord | null>(null),
+  const [adding, setAdding] = useState<number | null>(null),
     [newName, setNewName] = useState('')
   async function add() {
     const name = newName.trim()
@@ -291,7 +291,7 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
     setNewName('')
     setAdding(null)
   }
-  const update = (i: number, key: string, value) =>
+  const update = (i: number, key: string, value: unknown) =>
     setRows(list => list.map((x, n) => (n === i ? { ...x, [key]: value } : x)))
   const save = async () => {
     for (const row of rows.filter(x => x.type)) await onSave(row)
@@ -383,7 +383,7 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
   const { libraries } = useLibraries()
   const [d, setD] = useState(() => emptySampleRequest({ type: initialType }))
   const answer = (key: string) => d.requestQuestions?.[key] ?? ''
-  const setAnswer = (key: string, value) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
+  const setAnswer = (key: string, value: unknown) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
   // The mini version (3 core questions) of the epidemiological questionnaire: for cultures only, and
   // written to the episode's one questionnaire (or to the sample when there is no episode).
   const role = useContext(TenantContext)?.role
@@ -445,7 +445,7 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
             {...form.field(`question:${question.key}`)}
             value={answer(question.key)}
             onChange={v => setAnswer(question.key, v)}
-            options={question.options.map(option => ({ value: option.value, label: option.label[en ? 'en' : 'el'] }))}
+            options={question.options!.map(option => ({ value: option.value, label: option.label[en ? 'en' : 'el'] }))}
           />
         ) : (
           <Field key={question.key} label={question.label[en ? 'en' : 'el']} {...form.field(`question:${question.key}`)}>

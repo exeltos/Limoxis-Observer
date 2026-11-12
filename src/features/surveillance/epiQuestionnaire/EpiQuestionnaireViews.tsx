@@ -30,6 +30,7 @@ import { athensToday } from '../forms/formStatus'
 import './epiQuestionnaire.css'
 import type { AnyRecord } from '../../../types/featureTypes'
 import type { Handler } from '../surveillanceTypes'
+import type { EpiAnswers } from './epiQuestionnaireModel'
 
 const OPTIONS = (t: (key: string) => string) => [
   { value: EPI_ANSWER.YES, label: t('epiQuestionnaire.yes') },
@@ -89,13 +90,13 @@ function QuestionRow({ question, entry, suggestion, onChange, form, withDetail =
 const stepOf = (question: AnyRecord, step: AnyRecord) => question.step === step.id
 
 // The hospital's settings applied (wording, help, on / off) once per mount.
-const useEffectiveQuestions = (settings: AnyRecord) => useMemo(() => applyEpiSettings(settings || []), [settings])
+const useEffectiveQuestions = (settings: AnyRecord[]) => useMemo(() => applyEpiSettings(settings || []), [settings])
 
 interface EpiQuestionnaireDialogProps {
   ctx: AnyRecord
   episode: AnyRecord
   row: AnyRecord
-  settings: AnyRecord
+  settings: AnyRecord[]
   canEdit: boolean
   inSheet?: boolean
   onClose: Handler
@@ -123,7 +124,7 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
     EPI_CORE_KEYS.map(key => ({ key: `question:${key}`, // The question's own «;» or «?» stays out of the «Συμπληρώστε: …» line.
  label: String(epiText(questions.find(question => question.key === key)?.label, language) || '').replace(/\s*[;?]+\s*$/, ''), valid: Boolean(answerOf(answers, key)) })),
   )
-  const patch = (key: string, change) => setAnswers(current => setEpiAnswer(current, key, change, suggestions[key]))
+  const patch = (key: string, change: AnyRecord) => setAnswers(current => setEpiAnswer(current, key, change, suggestions[key]))
   async function save() {
     setBusy(true)
     try {
@@ -167,7 +168,7 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
       <div className="epi-q-body" ref={form.scopeRef}>
         {!canEdit && <p className="field-hint">{t('epiQuestionnaire.readOnly')}</p>}
         {EPI_STEPS.map(step => {
-          const list = shown.filter(question => stepOf(question, step))
+          const list = shown.filter((question: AnyRecord) => stepOf(question, step))
           if (!list.length) return null
           return (
             <section className="epi-q-section" key={step.id}>
@@ -210,7 +211,7 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
   const [settings, setSettings] = useState<AnyRecord[]>([])
   const questions = useEffectiveQuestions(settings)
   const core = useMemo(() => questions.filter(question => question.core), [questions])
-  const [state, setState] = useState({ answers: {}, suggestions: {}, loaded: !episode })
+  const [state, setState] = useState<{ answers: EpiAnswers, suggestions: EpiAnswers, loaded: boolean }>({ answers: {}, suggestions: {}, loaded: !episode })
   const caseKey = episode ? (isDemo ? episode.id : episode.recordId || episode.id) : ''
   useEffect(() => {
     if (!enabled) return undefined
@@ -223,7 +224,7 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
       if (!alive) return
       setSettings(loadedSettings)
       if (!episode) return
-      const row = rows[caseKey] || null
+      const row = (rows as Record<string, AnyRecord>)[caseKey] || null
       const prefill = buildEpiPrefill({ record: episode, admission, samples, today: athensToday() })
       const suggestions = { ...prefill, ...(row?.prefilled || {}) }
       setState({ answers: coreOnly(startingAnswers(row, prefill)), suggestions, loaded: true })
@@ -245,7 +246,7 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
     rules,
     optional,
     complete: isCoreComplete(state.answers),
-    patch: (key: string, change) => setState(current => ({ ...current, answers: setEpiAnswer(current.answers, key, change, current.suggestions[key]) })),
+    patch: (key: string, change: AnyRecord) => setState(current => ({ ...current, answers: setEpiAnswer(current.answers, key, change, current.suggestions[key]) })),
     // Writes the three answers to the episode's questionnaire (the same stored data as the full dialog).
     save: () => (episode ? saveEpiCoreAnswers(tenant?.id, caseKey, cleanAnswers(state.answers), { isDemo, actorName: '' }) : Promise.resolve(null)),
     // The sample's own copy (no episode yet).
