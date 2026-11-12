@@ -8,6 +8,10 @@
   "include": [
     "src/types/**/*.d.ts",
     "src/design-system/**/*",
-    "src/core/**/*"
+    "src/core/**/*",
+    "src/features/about/**/*",
+    "src/features/account/**/*",
+    "src/features/legal/**/*",
+    "src/features/sections/**/*"
   ]
 }
