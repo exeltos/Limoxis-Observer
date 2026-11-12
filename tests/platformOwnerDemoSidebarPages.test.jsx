@@ -43,6 +43,10 @@ const pages = [
   ['Management', () => import('../src/features/management/ManagementPage').then(m => m.ManagementPage)],
 ]
 
+// Each page is imported from cold (with the TypeScript transform), the first one also the shared shell:
+// over the default 5 s on a busy machine.
+vi.setConfig({ testTimeout: 20000 })
+
 describe.each(pages)('Platform Owner "Enter Demo" mode: %s page', (name, loadPage) => {
   it(`renders ${name} without throwing`, async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
