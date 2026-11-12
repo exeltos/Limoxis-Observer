@@ -1,4 +1,11 @@
-export const CLINICAL_SCALE_FIELDS={
+import type { AnyRecord } from '../../types/featureTypes'
+
+// [key, Greek label, English label]
+export type ClinicalScaleField=[string,string,string]
+type Localized={el:string,en:string}
+// [min, max, label, tone]
+export type ClinicalScaleBand=[number,number,Localized,string]
+export const CLINICAL_SCALE_FIELDS: Record<string, ClinicalScaleField[]>={
  sofa:[['pao2Fio2','PaO₂/FiO₂ (mmHg)','PaO₂/FiO₂ (mmHg)'],['platelets','Αιμοπετάλια (×10³/μL)','Platelets (×10³/μL)'],['bilirubin','Χολερυθρίνη (mg/dL)','Bilirubin (mg/dL)'],['map','Μέση αρτηριακή πίεση (MAP, mmHg)','Mean arterial pressure (MAP, mmHg)'],['dopamine','Ντοπαμίνη (μg/kg/min)','Dopamine (μg/kg/min)'],['epinephrine','Επινεφρίνη (μg/kg/min)','Epinephrine (μg/kg/min)'],['norepinephrine','Νορεπινεφρίνη (μg/kg/min)','Norepinephrine (μg/kg/min)'],['gcs','Κλίμακα Γλασκώβης (GCS, 3–15)','Glasgow Coma Scale (GCS, 3–15)'],['creatinine','Κρεατινίνη (mg/dL)','Creatinine (mg/dL)'],['urineOutput24h','Διούρηση 24ώρου (mL)','24-hour urine output (mL)']],
  'apache-ii':[['temperature','Θερμοκρασία (°C)','Temperature (°C)'],['map','Μέση αρτηριακή πίεση (MAP, mmHg)','Mean arterial pressure (MAP, mmHg)'],['heartRate','Καρδιακή συχνότητα (/λεπτό)','Heart rate (/min)'],['respiratoryRate','Αναπνευστική συχνότητα (/λεπτό)','Respiratory rate (/min)'],['fio2','FiO₂','FiO₂'],['pao2','PaO₂ (mmHg)','PaO₂ (mmHg)'],['aado2','A–aDO₂ (mmHg)','A–aDO₂ (mmHg)'],['ph','Αρτηριακό pH','Arterial pH'],['sodium','Νάτριο (mmol/L)','Sodium (mmol/L)'],['potassium','Κάλιο (mmol/L)','Potassium (mmol/L)'],['creatinine','Κρεατινίνη (mg/dL)','Creatinine (mg/dL)'],['hematocrit','Αιματοκρίτης (%)','Hematocrit (%)'],['wbc','Λευκά αιμοσφαίρια (×10³/μL)','White blood cells (×10³/μL)'],['gcs','Κλίμακα Γλασκώβης (GCS, 3–15)','Glasgow Coma Scale (GCS, 3–15)']],
  news2:[['respiratoryRate','Αναπνευστική συχνότητα (/λεπτό)','Respiratory rate (/min)'],['spo2','SpO₂ (%)','SpO₂ (%)'],['systolicBp','Συστολική αρτηριακή πίεση (mmHg)','Systolic blood pressure (mmHg)'],['pulse','Σφύξεις (/λεπτό)','Pulse (/min)'],['temperature','Θερμοκρασία (°C)','Temperature (°C)']],
@@ -9,14 +16,14 @@ export const CLINICAL_SCALE_FIELDS={
  braden:[['sensoryPerception','Αισθητηριακή αντίληψη','Sensory perception'],['moisture','Υγρασία','Moisture'],['activity','Δραστηριότητα','Activity'],['mobility','Κινητικότητα','Mobility'],['nutrition','Θρέψη','Nutrition'],['frictionShear','Τριβή και διάτμηση','Friction and shear']],
  'humpty-dumpty':[['age','Ηλικία','Age'],['diagnosis','Διάγνωση','Diagnosis'],['cognitiveImpairment','Γνωστική κατάσταση','Cognitive impairment'],['environmentalFactors','Περιβαλλοντικοί παράγοντες','Environmental factors'],['surgerySedationAnesthesia','Χειρουργείο / καταστολή / αναισθησία','Surgery / sedation / anaesthesia']]
 }
-export const clinicalScaleFields=key=>CLINICAL_SCALE_FIELDS[key]||[]
-export const clinicalScaleReady=row=>row?.status==='approved'&&row?.definition?.scoringStatus==='ready'&&clinicalScaleFields(row.scale_key).length>0
+export const clinicalScaleFields=(key: string)=>CLINICAL_SCALE_FIELDS[key]||[]
+export const clinicalScaleReady=(row: AnyRecord|null|undefined)=>row?.status==='approved'&&row?.definition?.scoringStatus==='ready'&&clinicalScaleFields(row.scale_key).length>0
 
 // Reference values shown next to each parameter (adult normal range or the
 // item's best/worst anchor) and the published score bands of each scale.
 // Text only: the scoring rules themselves live in clinicalScaleEngine.js.
-const R=(el,en=el)=>({el,en})
-export const CLINICAL_SCALE_REFERENCE={
+const R=(el: string,en=el): Localized=>({el,en})
+export const CLINICAL_SCALE_REFERENCE: Record<string, {fields:Record<string, Localized>,bands:ClinicalScaleBand[]}>={
  news2:{
   fields:{respiratoryRate:R('12–20 /λεπτό','12–20 /min'),spo2:R('≥ 96% (κλίμακα 1)','≥ 96% (scale 1)'),systolicBp:R('111–219 mmHg'),pulse:R('51–90 /λεπτό','51–90 /min'),temperature:R('36,1–38,0 °C','36.1–38.0 °C'),supplementalOxygen:R('Ατμοσφαιρικός αέρας','Room air'),newConfusion:R('Χωρίς νέα σύγχυση (Alert)','No new confusion (Alert)')},
   bands:[[0,0,R('0 · Βασική παρακολούθηση','0 · Baseline monitoring'),'good'],[1,4,R('1–4 · Χαμηλός κίνδυνος','1–4 · Low risk'),'low'],[5,6,R('5–6 · Μέτριος κίνδυνος — επείγουσα εκτίμηση','5–6 · Medium risk — urgent review'),'warning'],[7,20,R('≥ 7 · Υψηλός κίνδυνος — επείγουσα απάντηση','≥ 7 · High risk — emergency response'),'danger']],
@@ -31,53 +38,54 @@ export const CLINICAL_SCALE_REFERENCE={
  'apache-ii':{fields:{temperature:R('36,0–38,4 °C','36.0–38.4 °C'),map:R('70–109 mmHg'),heartRate:R('70–109 /λεπτό','70–109 /min'),respiratoryRate:R('12–24 /λεπτό','12–24 /min'),fio2:R('0,21 (αέρας)','0.21 (room air)'),pao2:R('> 70 mmHg'),aado2:R('< 200 mmHg'),ph:R('7,33–7,49','7.33–7.49'),sodium:R('130–149 mmol/L'),potassium:R('3,5–5,4 mmol/L','3.5–5.4 mmol/L'),creatinine:R('0,6–1,4 mg/dL','0.6–1.4 mg/dL'),hematocrit:R('30–45,9%','30–45.9%'),wbc:R('3–14,9 ×10³/μL','3–14.9 ×10³/μL'),gcs:R('15')},bands:[[0,9,R('0–9 · Χαμηλή βαρύτητα','0–9 · Low severity'),'good'],[10,19,R('10–19 · Μέτρια βαρύτητα','10–19 · Moderate severity'),'warning'],[20,71,R('≥ 20 · Υψηλή βαρύτητα','≥ 20 · High severity'),'danger']]},
 }
 // NEWS2 stores component points under names that differ from the input keys.
-const SCALE_PART_TO_FIELD={qsofa:{respiratory:'respiratoryRate',systolicBp:'systolicBp',mentation:'gcs'},news2:{respiratory:'respiratoryRate',oxygenSaturation:'spo2',supplementalOxygen:'supplementalOxygen',systolicBp:'systolicBp',pulse:'pulse',consciousness:'newConfusion',temperature:'temperature'}}
-export const scaleReference=key=>CLINICAL_SCALE_REFERENCE[key]||{fields:{},bands:[]}
-export const scoreBand=(key,score)=>{if(score==null||score==='')return null;const n=Number(score);if(!Number.isFinite(n))return null;return scaleReference(key).bands.find(([min,max])=>n>=min&&n<=max)||null}
+const SCALE_PART_TO_FIELD: Record<string, Record<string, string>>={qsofa:{respiratory:'respiratoryRate',systolicBp:'systolicBp',mentation:'gcs'},news2:{respiratory:'respiratoryRate',oxygenSaturation:'spo2',supplementalOxygen:'supplementalOxygen',systolicBp:'systolicBp',pulse:'pulse',consciousness:'newConfusion',temperature:'temperature'}}
+export const scaleReference=(key: string)=>CLINICAL_SCALE_REFERENCE[key]||{fields:{},bands:[]}
+export const scoreBand=(key: string,score: unknown)=>{if(score==null||score==='')return null;const n=Number(score);if(!Number.isFinite(n))return null;return scaleReference(key).bands.find(([min,max])=>n>=min&&n<=max)||null}
 
 // Answer options of the choice-based scales (value = points of the item).
-const O=(v,el,en)=>[v,el,en]
-const yesNo=yes=>[O(0,'Όχι','No'),O(yes,'Ναι','Yes')]
+type Option=[number,string,string]
+const O=(v: number,el: string,en: string): Option=>[v,el,en]
+const yesNo=(yes: number)=>[O(0,'Όχι','No'),O(yes,'Ναι','Yes')]
 const GCS_EYE=[O(4,'Αυθόρμητα','Spontaneous'),O(3,'Στη φωνή','To sound'),O(2,'Στην πίεση','To pressure'),O(1,'Καμία','None')]
-const CLINICAL_SCALE_OPTIONS={
+const CLINICAL_SCALE_OPTIONS: Record<string, Record<string, Option[]>>={
  morse:{fallHistory:yesNo(25),secondaryDiagnosis:yesNo(15),ivTherapy:yesNo(20),ambulatoryAid:[O(0,'Κανένα / κατάκλιση / βοήθεια νοσηλευτή','None / bed rest / nurse assist'),O(15,'Βακτηρίες / μπαστούνι / περιπατητήρας','Crutches / cane / walker'),O(30,'Στήριξη σε έπιπλα','Furniture')],gait:[O(0,'Φυσιολογική / κατάκλιση / αμαξίδιο','Normal / bed rest / wheelchair'),O(10,'Αδύναμη','Weak'),O(20,'Διαταραγμένη','Impaired')],mentalStatus:[O(0,'Γνωρίζει τις δυνατότητές του','Oriented to own ability'),O(15,'Υπερεκτιμά ή ξεχνά περιορισμούς','Overestimates / forgets limitations')]},
  braden:{sensoryPerception:[O(1,'Πλήρως περιορισμένη','Completely limited'),O(2,'Πολύ περιορισμένη','Very limited'),O(3,'Ελαφρώς περιορισμένη','Slightly limited'),O(4,'Χωρίς διαταραχή','No impairment')],moisture:[O(1,'Συνεχώς υγρό','Constantly moist'),O(2,'Πολύ υγρό','Very moist'),O(3,'Περιστασιακά υγρό','Occasionally moist'),O(4,'Σπάνια υγρό','Rarely moist')],activity:[O(1,'Κατάκλιση','Bedfast'),O(2,'Σε καρέκλα','Chairfast'),O(3,'Περιστασιακή βάδιση','Walks occasionally'),O(4,'Συχνή βάδιση','Walks frequently')],mobility:[O(1,'Πλήρως ακίνητος','Completely immobile'),O(2,'Πολύ περιορισμένη','Very limited'),O(3,'Ελαφρώς περιορισμένη','Slightly limited'),O(4,'Χωρίς περιορισμό','No limitation')],nutrition:[O(1,'Πολύ ανεπαρκής','Very poor'),O(2,'Πιθανώς ανεπαρκής','Probably inadequate'),O(3,'Επαρκής','Adequate'),O(4,'Εξαιρετική','Excellent')],frictionShear:[O(1,'Πρόβλημα','Problem'),O(2,'Δυνητικό πρόβλημα','Potential problem'),O(3,'Χωρίς εμφανές πρόβλημα','No apparent problem')]},
  gcs:{eye:GCS_EYE,verbal:[O(5,'Προσανατολισμένος','Oriented'),O(4,'Συγχυσμένος','Confused'),O(3,'Άσχετες λέξεις','Words'),O(2,'Άναρθροι ήχοι','Sounds'),O(1,'Καμία','None')],motor:[O(6,'Εκτελεί εντολές','Obeys commands'),O(5,'Εντοπίζει τον πόνο','Localising'),O(4,'Φυσιολογική κάμψη','Normal flexion'),O(3,'Παθολογική κάμψη','Abnormal flexion'),O(2,'Έκταση','Extension'),O(1,'Καμία','None')]},
  'pediatric-gcs':{eye:GCS_EYE,verbal:[O(5,'Χαμογελά, παρακολουθεί, φυσιολογικό κλάμα','Smiles, follows, normal cry'),O(4,'Κλαίει, καθησυχάζεται','Cries, consolable'),O(3,'Επίμονο, ευερέθιστο κλάμα','Persistently irritable'),O(2,'Ανήσυχος, βογκητό','Restless, moaning'),O(1,'Καμία','None')],motor:[O(6,'Φυσιολογική αυθόρμητη κίνηση','Normal spontaneous movement'),O(5,'Αποσύρεται στο άγγιγμα','Withdraws to touch'),O(4,'Αποσύρεται στον πόνο','Withdraws to pain'),O(3,'Παθολογική κάμψη','Abnormal flexion'),O(2,'Έκταση','Extension'),O(1,'Καμία','None')]},
  'humpty-dumpty':{age:[O(4,'< 3 ετών','< 3 years'),O(3,'3–7 ετών','3–7 years'),O(2,'7–13 ετών','7–13 years'),O(1,'≥ 13 ετών','≥ 13 years')],diagnosis:[O(4,'Νευρολογική διάγνωση','Neurological diagnosis'),O(3,'Μεταβολή οξυγόνωσης (αναπνευστική, αφυδάτωση, αναιμία, συγκοπή)','Altered oxygenation (respiratory, dehydration, anaemia, syncope)'),O(2,'Ψυχιατρική διαταραχή / διαταραχή συμπεριφοράς','Psychiatric / behavioural disorder'),O(1,'Άλλη διάγνωση','Other diagnosis')],cognitiveImpairment:[O(3,'Δεν αντιλαμβάνεται τους περιορισμούς','Not aware of limitations'),O(2,'Ξεχνά τους περιορισμούς','Forgets limitations'),O(1,'Γνωρίζει τις δυνατότητές του','Oriented to own ability')],environmentalFactors:[O(4,'Ιστορικό πτώσεων ή βρέφος/νήπιο σε κρεβάτι','History of falls or infant/toddler in bed'),O(3,'Χρήση βοηθημάτων ή βρέφος/νήπιο σε κούνια','Uses assistive devices or infant/toddler in crib'),O(2,'Ασθενής σε κρεβάτι','Patient in bed'),O(1,'Εξωτερικός ασθενής','Outpatient area')],surgerySedationAnesthesia:[O(3,'Εντός 24 ωρών','Within 24 hours'),O(2,'Εντός 48 ωρών','Within 48 hours'),O(1,'> 48 ώρες ή καμία','> 48 hours or none')]},
 }
-export const clinicalScaleOptions=(scale,key,en)=>(CLINICAL_SCALE_OPTIONS[scale]?.[key]||[]).map(([value,el,enLabel])=>({value,label:en?enLabel:el}))
-export const isChoiceScale=scale=>Boolean(CLINICAL_SCALE_OPTIONS[scale])
+export const clinicalScaleOptions=(scale: string,key: string,en?: boolean)=>(CLINICAL_SCALE_OPTIONS[scale]?.[key]||[]).map(([value,el,enLabel])=>({value,label:en?enLabel:el}))
+export const isChoiceScale=(scale: string)=>Boolean(CLINICAL_SCALE_OPTIONS[scale])
 
 // Numeric adult normal ranges used to flag an entered value as out of range.
 const INF=Infinity
-const CLINICAL_SCALE_NORMAL={
+const CLINICAL_SCALE_NORMAL: Record<string, Record<string, [number, number]>>={
  news2:{respiratoryRate:[12,20],spo2:[96,100],systolicBp:[111,219],pulse:[51,90],temperature:[36.1,38]},
  qsofa:{respiratoryRate:[0,21.99],systolicBp:[100.01,INF],gcs:[15,15]},
  sofa:{pao2Fio2:[400,INF],platelets:[150,INF],bilirubin:[0,1.19],map:[70,INF],gcs:[15,15],creatinine:[0,1.19],urineOutput24h:[500,INF],dopamine:[0,0],epinephrine:[0,0],norepinephrine:[0,0]},
  'apache-ii':{temperature:[36,38.4],map:[70,109],heartRate:[70,109],respiratoryRate:[12,24],pao2:[71,INF],aado2:[0,199],ph:[7.33,7.49],sodium:[130,149],potassium:[3.5,5.4],creatinine:[0.6,1.4],hematocrit:[30,45.9],wbc:[3,14.9],gcs:[15,15]},
 }
-export function valueStatus(scale,key,value){const range=CLINICAL_SCALE_NORMAL[scale]?.[key];if(!range||value===''||value==null)return null;const n=Number(value);if(!Number.isFinite(n))return null;if(n<range[0])return 'low';if(n>range[1])return 'high';return 'normal'}
+export function valueStatus(scale: string,key: string,value: unknown){const range=CLINICAL_SCALE_NORMAL[scale]?.[key];if(!range||value===''||value==null)return null;const n=Number(value);if(!Number.isFinite(n))return null;if(n<range[0])return 'low';if(n>range[1])return 'high';return 'normal'}
 
 // Answers recorded outside the field list (checkboxes, patient factors).
-const EXTRA_ANSWERS={
+const EXTRA_ANSWERS: Record<string, ClinicalScaleField[]>={
  news2:[['supplementalOxygen','Συμπληρωματικό οξυγόνο','Supplemental oxygen'],['spo2Scale2','SpO₂ κλίμακα 2 (υπερκαπνία)','SpO₂ scale 2 (hypercapnia)'],['newConfusion','Νέα σύγχυση (ACVPU)','New confusion (ACVPU)']],
  qsofa:[['alteredMentation','Μεταβολή επιπέδου συνείδησης','Altered mentation']],
  sofa:[['respiratorySupport','Αναπνευστική υποστήριξη','Respiratory support']],
  'apache-ii':[['age','Ηλικία (έτη)','Age (years)'],['chronicHealthPoints','Βαθμοί χρόνιας κατάστασης υγείας','Chronic health points'],['acuteRenalFailure','Οξεία νεφρική ανεπάρκεια','Acute renal failure']],
 }
 // Component scores that do not map to a single parameter.
-export const clinicalScaleExtraFields=key=>(EXTRA_ANSWERS[key]||[]).filter(([k])=>k!=='age')
-const PART_LABELS={mentation:['Επίπεδο συνείδησης','Mentation'],respiratory:['Αναπνευστικό','Respiratory'],coagulation:['Πηκτικότητα','Coagulation'],liver:['Ήπαρ','Liver'],cardiovascular:['Καρδιαγγειακό','Cardiovascular'],cns:['Κεντρικό νευρικό σύστημα','Central nervous system'],renal:['Νεφρικό','Renal'],oxygenation:['Οξυγόνωση (PaO₂ ή A–aDO₂)','Oxygenation (PaO₂ or A–aDO₂)']}
+export const clinicalScaleExtraFields=(key: string)=>(EXTRA_ANSWERS[key]||[]).filter(([k])=>k!=='age')
+const PART_LABELS: Record<string, [string, string]>={mentation:['Επίπεδο συνείδησης','Mentation'],respiratory:['Αναπνευστικό','Respiratory'],coagulation:['Πηκτικότητα','Coagulation'],liver:['Ήπαρ','Liver'],cardiovascular:['Καρδιαγγειακό','Cardiovascular'],cns:['Κεντρικό νευρικό σύστημα','Central nervous system'],renal:['Νεφρικό','Renal'],oxygenation:['Οξυγόνωση (PaO₂ ή A–aDO₂)','Oxygenation (PaO₂ or A–aDO₂)']}
 const PART_TO_FIELD={...SCALE_PART_TO_FIELD}
-const displayValue=(scale,key,value,en)=>{if(value==null||value==='')return '—';if(typeof value==='boolean')return value?(en?'Yes':'Ναι'):(en?'No':'Όχι');const option=clinicalScaleOptions(scale,key,en).find(o=>String(o.value)===String(value));return option?option.label:String(value).replace('.',en?'.':',')}
-export const fieldReference=(scale,key,en)=>{const ref=scaleReference(scale).fields[key];return ref?(en?ref.en:ref.el):''}
+const displayValue=(scale: string,key: string,value: unknown,en?: boolean)=>{if(value==null||value==='')return '—';if(typeof value==='boolean')return value?(en?'Yes':'Ναι'):(en?'No':'Όχι');const option=clinicalScaleOptions(scale,key,en).find(o=>String(o.value)===String(value));return option?option.label:String(value).replace('.',en?'.':',')}
+export const fieldReference=(scale: string,key: string,en?: boolean)=>{const ref=scaleReference(scale).fields[key];return ref?(en?ref.en:ref.el):''}
 
 // One row per recorded parameter (label, value, points, reference, status),
 // followed by component scores that are not tied to one parameter.
-export function buildScaleReportRows(scale,answers={},parts={},en=false){
+export function buildScaleReportRows(scale: string,answers: AnyRecord={},parts: AnyRecord={},en=false){
  const toField=PART_TO_FIELD[scale]||{}
- const pointsByField={};const used=new Set()
+ const pointsByField: AnyRecord={};const used=new Set<string>()
  for(const [part,points] of Object.entries(parts||{})){const field=toField[part]||part;pointsByField[field]=points}
  const defs=[...clinicalScaleFields(scale),...(EXTRA_ANSWERS[scale]||[])]
  const rows=defs.filter(([key])=>answers?.[key]!==undefined||pointsByField[key]!==undefined).map(([key,el,enLabel])=>{if(pointsByField[key]!==undefined)used.add(key);return {key,label:en?enLabel:el,value:displayValue(scale,key,answers?.[key],en),points:pointsByField[key]??null,reference:fieldReference(scale,key,en),status:valueStatus(scale,key,answers?.[key])}})
