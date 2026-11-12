@@ -50,7 +50,7 @@ describe('the antiseptic methods module (formerly the misnamed AntisepticEntryMo
 // titles through Field / lo-field-label, one department field for all editors.
 describe('prevention screens use the shared form controls', () => {
   const dir = 'src/features/prevention'
-  const sources = fs.readdirSync(dir).filter(name => name.endsWith('.jsx')).map(name => [name, readSource(`${dir}/${name}`)])
+  const sources = fs.readdirSync(dir).filter(name => /\.(jsx|tsx)$/.test(name)).map(name => [name, readSource(`${dir}/${name}`)])
   it('has no raw select and no local DepartmentField copy', () => {
     for (const [name, text] of sources) {
       expect(text, name).not.toMatch(/<select\b/)

@@ -4,7 +4,7 @@ import { readSource, resolveSource } from './readSource.mjs'
 
 const root=path.resolve('src')
 const files=[]
-function walk(dir){for(const name of fs.readdirSync(dir)){const p=path.join(dir,name);const stat=fs.statSync(p);if(stat.isDirectory())walk(p);else if(/\.jsx?$/.test(name))files.push(p)}}
+function walk(dir){for(const name of fs.readdirSync(dir)){const p=path.join(dir,name);const stat=fs.statSync(p);if(stat.isDirectory())walk(p);else if(/\.(jsx?|tsx?)$/.test(name))files.push(p)}}
 walk(root)
 const violations=[]
 for(const file of files){

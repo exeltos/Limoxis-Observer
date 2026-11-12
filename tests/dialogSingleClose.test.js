@@ -5,7 +5,7 @@ import { readSource } from './helpers/readSource'
 
 // A window closes from its ✕ only: never ✕ and a «Κλείσιμο / Close» button together.
 const files = []
-const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else if (/\.jsx$/.test(entry.name)) files.push(full) } }
+const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else if (/\.(jsx|tsx)$/.test(entry.name)) files.push(full) } }
 walk('src')
 
 describe('dialogs close from the ✕ only', () => {
