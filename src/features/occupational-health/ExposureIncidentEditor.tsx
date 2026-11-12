@@ -3,29 +3,47 @@ import { Field } from '../../design-system/Field'
 import { FormSubmit,useFormValidation } from '../../design-system/FormValidation'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
-import { PrefilledList } from '../surveillance/forms/PrefilledList'
+import { PrefilledList as PrefilledListJs } from '../surveillance/forms/PrefilledList'
+import type { ComponentType, FormEvent } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
 import '../occupational-health/OccupationalHealthPage.css'
 
-export const EMPTY_EXPOSURE_INCIDENT={employeeId:'',incidentDate:'',exposureType:'',deviceOrSource:'',bodySite:'',sourcePatientStatus:'',pepAdministered:null,pepDetails:'',followUpStatus:'pending',followUpDueAt:'',notes:''}
+export const EMPTY_EXPOSURE_INCIDENT: AnyRecord={employeeId:'',incidentDate:'',exposureType:'',deviceOrSource:'',bodySite:'',sourcePatientStatus:'',pepAdministered:null,pepDetails:'',followUpStatus:'pending',followUpDueAt:'',notes:''}
 
-const EXPOSURE_TYPES=[['needlestick','Τρύπημα βελόνας','Needlestick'],['sharps_object','Άλλο αιχμηρό αντικείμενο','Other sharps object'],['mucocutaneous','Έκθεση βλεννογόνου','Mucocutaneous exposure'],['non_intact_skin','Έκθεση μη ακέραιου δέρματος','Non-intact skin exposure'],['other','Άλλο','Other']]
-const SOURCE_STATUSES=[['unknown','Άγνωστη','Unknown'],['negative','Αρνητική','Negative'],['hbv_positive','Θετική HBV','HBV positive'],['hcv_positive','Θετική HCV','HCV positive'],['hiv_positive','Θετική HIV','HIV positive'],['other','Άλλο','Other']]
-const FOLLOW_UP_STATUSES=[['pending','Εκκρεμεί','Pending'],['scheduled','Προγραμματισμένη','Scheduled'],['completed','Ολοκληρώθηκε','Completed'],['closed','Έκλεισε','Closed']]
+// surveillance is still JavaScript: its default (items=[]) would type the items as never[].
+const PrefilledList=PrefilledListJs as ComponentType<{ items: AnyRecord[] }>
 
-const labelOf=(list,value,en)=>{const row=list.find(item=>item[0]===value);return row?(en?row[2]:row[1]):(value||'')}
-export const exposureTypeLabel=(value,en)=>labelOf(EXPOSURE_TYPES,value,en)
-export const sourceStatusLabel=(value,en)=>labelOf(SOURCE_STATUSES,value,en)
-export const followUpLabel=(value,en)=>labelOf(FOLLOW_UP_STATUSES,value,en)
+// [value, Greek, English]
+type Choice=[string, string, string]
+const EXPOSURE_TYPES: Choice[]=[['needlestick','Τρύπημα βελόνας','Needlestick'],['sharps_object','Άλλο αιχμηρό αντικείμενο','Other sharps object'],['mucocutaneous','Έκθεση βλεννογόνου','Mucocutaneous exposure'],['non_intact_skin','Έκθεση μη ακέραιου δέρματος','Non-intact skin exposure'],['other','Άλλο','Other']]
+const SOURCE_STATUSES: Choice[]=[['unknown','Άγνωστη','Unknown'],['negative','Αρνητική','Negative'],['hbv_positive','Θετική HBV','HBV positive'],['hcv_positive','Θετική HCV','HCV positive'],['hiv_positive','Θετική HIV','HIV positive'],['other','Άλλο','Other']]
+const FOLLOW_UP_STATUSES: Choice[]=[['pending','Εκκρεμεί','Pending'],['scheduled','Προγραμματισμένη','Scheduled'],['completed','Ολοκληρώθηκε','Completed'],['closed','Έκλεισε','Closed']]
+
+const labelOf=(list: Choice[],value: string | null | undefined,en: boolean)=>{const row=list.find(item=>item[0]===value);return row?(en?row[2]:row[1]):(value||'')}
+export const exposureTypeLabel=(value: string | null | undefined,en: boolean)=>labelOf(EXPOSURE_TYPES,value,en)
+export const sourceStatusLabel=(value: string | null | undefined,en: boolean)=>labelOf(SOURCE_STATUSES,value,en)
+export const followUpLabel=(value: string | null | undefined,en: boolean)=>labelOf(FOLLOW_UP_STATUSES,value,en)
 
 // Opened from a staff surveillance record: `prefillItems` (employee, record) replace the employee
 // picker, and `sourceCaseOptions` (for roles that may read surveillance) let the source patient's
 // episode be linked; otherwise the source stays the free-text fields below.
-const optionsOf=(list,en)=>list.map(([value,el,enLabel])=>({value,label:en?enLabel:el}))
-const growNotes=event=>{event.target.style.height='auto';event.target.style.height=`${event.target.scrollHeight}px`}
+const optionsOf=(list: Choice[],en: boolean)=>list.map(([value,el,enLabel])=>({value,label:en?enLabel:el}))
+const growNotes=(event: FormEvent<HTMLTextAreaElement>)=>{const target=event.currentTarget;target.style.height='auto';target.style.height=`${target.scrollHeight}px`}
 
-export function ExposureIncidentEditor({language,employees,draft,onChange,onClose,onSave,prefillItems=null,sourceCaseOptions=[]}){
+interface ExposureIncidentEditorProps {
+ language: string
+ employees: AnyRecord[]
+ draft: AnyRecord
+ onChange: (draft: AnyRecord) => void
+ onClose: () => void
+ onSave: (draft: AnyRecord) => void
+ prefillItems?: AnyRecord[] | null
+ sourceCaseOptions?: Array<{ value: string, label: string }>
+}
+
+export function ExposureIncidentEditor({language,employees,draft,onChange,onClose,onSave,prefillItems=null,sourceCaseOptions=[]}: ExposureIncidentEditorProps){
  const en=language==='en'
- const patch=next=>onChange({...draft,...next})
+ const patch=(next: AnyRecord)=>onChange({...draft,...next})
  // Employee, incident date and exposure type are required (draft.employeeId&&draft.incidentDate&&draft.exposureType).
  const form=useFormValidation([
   !prefillItems&&{key:'employeeId',label:en?'Employee':'Εργαζόμενος',valid:Boolean(draft.employeeId)},
@@ -33,7 +51,7 @@ export function ExposureIncidentEditor({language,employees,draft,onChange,onClos
   {key:'exposureType',label:en?'Exposure type':'Τύπος έκθεσης',valid:Boolean(draft.exposureType)},
  ])
  const followUpOpen=!['completed','closed'].includes(draft.followUpStatus)
- const employeeOptions=employees.map(e=>({value:e.id,label:`${en?`${e.firstNameEn||e.firstName} ${e.lastNameEn||e.lastName}`:`${e.lastName} ${e.firstName}`} · ${en?e.departmentEn:e.department}`}))
+ const employeeOptions=employees.map((e: AnyRecord)=>({value:e.id,label:`${en?`${e.firstNameEn||e.firstName} ${e.lastNameEn||e.lastName}`:`${e.lastName} ${e.firstName}`} · ${en?e.departmentEn:e.department}`}))
  return <ObserverDialog width="workspace" title={en?'Report an exposure incident':'Καταγραφή περιστατικού έκθεσης'} subtitle={en?'Record a needlestick, sharps or mucocutaneous exposure and its follow-up.':'Καταγράψτε τρύπημα βελόνας, αιχμηρό αντικείμενο ή έκθεση βλεννογόνου και την παρακολούθησή της.'} onClose={onClose} footer={<FormSubmit form={form} onSubmit={()=>onSave(draft)}>{en?'Save':'Αποθήκευση'}</FormSubmit>}>
   <div className="vaccination-editor" ref={form.scopeRef}>
    {prefillItems?<PrefilledList items={prefillItems}/>:<section className="vaccination-editor-card vaccination-employee-picker"><h4>{en?'Employee':'Εργαζόμενος'}</h4><SearchableSelect label={en?'Employee':'Εργαζόμενος'} {...form.field('employeeId')} value={draft.employeeId} options={employeeOptions} placeholder={en?'Select employee':'Επιλέξτε εργαζόμενο'} clearLabel="" onChange={employeeId=>patch({employeeId:employeeId||''})}/></section>}

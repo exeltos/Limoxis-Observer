@@ -1,19 +1,25 @@
 import { supabase } from '../../core/supabase/client'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { Tables } from '../../core/supabase/database.types'
+import type { AnyRecord } from '../../types/featureTypes'
 import { selectAllPages } from '../../core/data/inChunks'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadExposureIncidents,saveExposureIncidents } from '../employees/employeeRecordsService'
 
 const COLUMNS='id,employee_id,incident_date,exposure_type,device_or_source,body_site,source_patient_status,reported_at,pep_administered,pep_details,follow_up_status,follow_up_due_at,notes,status,created_at,updated_at,employee_surveillance_record_id,source_case_id'
+type ExposureRow=Pick<Tables<'occupational_exposure_incidents'>,'id'|'employee_id'|'incident_date'|'exposure_type'|'device_or_source'|'body_site'|'source_patient_status'|'reported_at'|'pep_administered'|'pep_details'|'follow_up_status'|'follow_up_due_at'|'notes'|'status'|'created_at'|'updated_at'|'employee_surveillance_record_id'|'source_case_id'>
+// An exposure incident of the register (demo rows have the same shape).
+export interface ExposureIncident { id: string, employeeId: string, incidentDate: string, exposureType: string, deviceOrSource: string, bodySite: string, sourcePatientStatus: string, reportedAt: string | null, pepAdministered: boolean | null, pepDetails: string, followUpStatus: string, followUpDueAt: string, notes: string, status: string, createdAt?: string | null, updatedAt?: string | null, employeeSurveillanceRecordId: string, sourceCaseId: string }
 
-function ensureCloud(organizationId,operation){
+function ensureCloud(organizationId: string | null | undefined,operation: string){
   if(isDemoDataEnvironment())return false
   if(!hasSupabaseConfig||!supabase)throw new Error(`PRODUCTION_CLOUD_REQUIRED:${operation}`)
   if(!organizationId)throw new Error(`PRODUCTION_ORGANIZATION_REQUIRED:${operation}`)
   return true
 }
 
-function fromRow(row){
+function fromRow(row: ExposureRow): ExposureIncident{
   return {
     id:row.id,
     employeeId:row.employee_id,
@@ -36,26 +42,27 @@ function fromRow(row){
   }
 }
 
-export async function loadAllExposureIncidentsAsync(organizationId){
+export async function loadAllExposureIncidentsAsync(organizationId: string | null | undefined): Promise<ExposureIncident[]>{
   if(isDemoDataEnvironment())return loadExposureIncidents()
   ensureCloud(organizationId,'occupational_exposure_incidents.load_all')
+  const supabase=cloudClient()
   const data=await selectAllPages(()=>supabase
     .from('occupational_exposure_incidents')
     .select(COLUMNS)
-    .eq('organization_id',organizationId)
+    .eq('organization_id',organizationId as string)
     .order('incident_date',{ascending:false})
     .order('id'))
   return data.map(fromRow)
 }
 
-export async function createExposureIncidentAsync(organizationId,employee,draft){
+export async function createExposureIncidentAsync(organizationId: string | null | undefined,employee: AnyRecord | null | undefined,draft: AnyRecord): Promise<ExposureIncident>{
   if(!employee)throw new Error('EXPOSURE_INCIDENT_EMPLOYEE_REQUIRED')
   if(!draft?.incidentDate)throw new Error('EXPOSURE_INCIDENT_DATE_REQUIRED')
   if(!draft?.exposureType)throw new Error('EXPOSURE_INCIDENT_TYPE_REQUIRED')
 
   if(isDemoDataEnvironment()){
     const existing=loadExposureIncidents()
-    const added={
+    const added: ExposureIncident={
       id:`EXP-${Date.now()}`,
       employeeId:employee.id,
       incidentDate:draft.incidentDate,
@@ -78,11 +85,12 @@ export async function createExposureIncidentAsync(organizationId,employee,draft)
   }
 
   ensureCloud(organizationId,'occupational_exposure_incidents.create')
+  const supabase=cloudClient()
   if(!employee.dbId)throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:occupational_exposure_incidents.create')
   const {data,error}=await supabase
     .from('occupational_exposure_incidents')
     .insert({
-      organization_id:organizationId,
+      organization_id:organizationId as string,
       employee_id:employee.dbId,
       incident_date:draft.incidentDate,
       exposure_type:draft.exposureType,
@@ -105,14 +113,15 @@ export async function createExposureIncidentAsync(organizationId,employee,draft)
 }
 
 // The exposures recorded from one staff surveillance record (the «Έκθεση προσωπικού» section).
-export async function loadExposureIncidentsForRecordAsync(organizationId,recordId){
+export async function loadExposureIncidentsForRecordAsync(organizationId: string | null | undefined,recordId: string | null | undefined): Promise<ExposureIncident[]>{
   if(!recordId)return []
-  if(isDemoDataEnvironment())return loadExposureIncidents().filter(row=>String(row.employeeSurveillanceRecordId||'')===String(recordId))
+  if(isDemoDataEnvironment())return loadExposureIncidents().filter((row: AnyRecord)=>String(row.employeeSurveillanceRecordId||'')===String(recordId))
   ensureCloud(organizationId,'occupational_exposure_incidents.load_for_record')
+  const supabase=cloudClient()
   const {data,error}=await supabase
     .from('occupational_exposure_incidents')
     .select(COLUMNS)
-    .eq('organization_id',organizationId)
+    .eq('organization_id',organizationId as string)
     .eq('employee_surveillance_record_id',recordId)
     .order('incident_date',{ascending:false})
   if(error)throw error
@@ -122,9 +131,9 @@ export async function loadExposureIncidentsForRecordAsync(organizationId,recordI
 // How many employees were exposed to the source patient of a surveillance episode: a number only,
 // never names. Production asks the database (surveillance_case_exposure_count checks that the
 // caller may see the episode); the demo counts its own sample exposures.
-export async function countSourceExposuresAsync(organizationId,caseRef){
+export async function countSourceExposuresAsync(organizationId: string | null | undefined,caseRef: string | null | undefined): Promise<number>{
   if(!caseRef)return 0
-  if(isDemoDataEnvironment())return new Set(loadExposureIncidents().filter(row=>String(row.sourceCaseId||'')===String(caseRef)).map(row=>row.employeeId)).size
+  if(isDemoDataEnvironment())return new Set(loadExposureIncidents().filter((row: AnyRecord)=>String(row.sourceCaseId||'')===String(caseRef)).map((row: AnyRecord)=>row.employeeId)).size
   if(!hasSupabaseConfig||!supabase||!organizationId)return 0
   const {data,error}=await supabase.rpc('surveillance_case_exposure_count',{p_case_id:caseRef})
   if(error)throw error
