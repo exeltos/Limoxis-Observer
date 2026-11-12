@@ -1,7 +1,9 @@
-const SAMPLE_SUBJECT_TYPES = new Set(['patient', 'employee', 'environment'])
-const SAMPLE_STATUSES = new Set(['requested', 'collected', 'received', 'processing', 'completed', 'rejected', 'cancelled'])
+import type { AnyRecord } from '../../../types/featureTypes'
 
-export function normalizeLaboratorySample(row = {}) {
+const SAMPLE_SUBJECT_TYPES = new Set<unknown>(['patient', 'employee', 'environment'])
+const SAMPLE_STATUSES = new Set<unknown>(['requested', 'collected', 'received', 'processing', 'completed', 'rejected', 'cancelled'])
+
+export function normalizeLaboratorySample(row: AnyRecord = {}) {
   const recordId = row.recordId ?? row.record_id ?? row.uuid ?? row.id ?? null
   const code = String(row.code ?? row.sampleCode ?? row.sample_code ?? row.id ?? '').trim()
   const subjectType = SAMPLE_SUBJECT_TYPES.has(row.subjectType ?? row.subject_type) ? (row.subjectType ?? row.subject_type) : 'patient'
@@ -80,12 +82,12 @@ export function normalizeLaboratorySample(row = {}) {
   }
 }
 
-export function normalizeLaboratorySamples(rows) {
+export function normalizeLaboratorySamples(rows: unknown) {
   if (!Array.isArray(rows)) throw new Error('INVALID_LABORATORY_SAMPLE_COLLECTION')
   return rows.map(normalizeLaboratorySample)
 }
 
-export function computeTurnaroundHours(sample) {
+export function computeTurnaroundHours(sample: AnyRecord | null | undefined) {
   const start = sample?.requestedAt ?? sample?.collectedAt ?? null
   const end = sample?.resultedAt ?? null
   if (!start || !end) return null
@@ -96,13 +98,13 @@ export function computeTurnaroundHours(sample) {
 }
 
 // Hours a sample without an outcome has been waiting since collection (null when unknown).
-export function waitingHours(sample, now = Date.now()) {
+export function waitingHours(sample: AnyRecord | null | undefined, now = Date.now()) {
   const start = new Date(sample?.collectedAt ?? sample?.requestedAt ?? '').getTime()
   if (!Number.isFinite(start) || start > now) return null
   return (now - start) / 3600000
 }
 
-export function formatTurnaround(hours, language = 'el') {
+export function formatTurnaround(hours: number | null | undefined, language = 'el') {
   if (hours == null) return '—'
   if (hours < 24) return `${Math.round(hours)}${language === 'en' ? 'h' : 'ω'}`
   const days = Math.floor(hours / 24)
@@ -110,8 +112,8 @@ export function formatTurnaround(hours, language = 'el') {
   return language === 'en' ? `${days}d ${remainingHours}h` : `${days}η ${remainingHours}ω`
 }
 
-export function validateLaboratorySample(sample) {
-  const errors = []
+export function validateLaboratorySample(sample: AnyRecord | null | undefined) {
+  const errors: string[] = []
   if (!sample?.code) errors.push('code')
   if (!SAMPLE_SUBJECT_TYPES.has(sample?.subjectType)) errors.push('subjectType')
   if (!SAMPLE_STATUSES.has(sample?.status)) errors.push('status')

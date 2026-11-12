@@ -4,32 +4,35 @@
 // patient with no episode and no decision yet shows in the worklist; negatives never do
 // (they stay in the list as the denominators of the indicators).
 import { ROLES } from '../../core/permissions/roles'
+import type { AnyRecord } from '../../types/featureTypes'
+
+type Sample = AnyRecord | null | undefined
 
 export const REVIEW_STATUS = Object.freeze({ EPISODE_OPENED: 'episode_opened', NO_SURVEILLANCE: 'no_surveillance_needed' })
 
 // The roles that decide on a sample (the same four the review_laboratory_sample RPC accepts).
-export const SAMPLE_REVIEW_ROLES = Object.freeze([ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.DOCTOR_REVIEWER, ROLES.HOSPITAL_ADMIN])
-export const canReviewSamples = role => SAMPLE_REVIEW_ROLES.includes(role)
+export const SAMPLE_REVIEW_ROLES: readonly string[] = Object.freeze([ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.DOCTOR_REVIEWER, ROLES.HOSPITAL_ADMIN])
+export const canReviewSamples = (role: string | null | undefined) => SAMPLE_REVIEW_ROLES.includes(role as string)
 
 // Reason codes of «Δεν χρειάζεται επιτήρηση» (stored as code, shown in plain words).
 export const NO_SURVEILLANCE_REASONS = Object.freeze(['contamination', 'colonization', 'known_case', 'other'])
-export const NO_SURVEILLANCE_REASON_LABELS = Object.freeze({
+export const NO_SURVEILLANCE_REASON_LABELS: Readonly<Record<'el' | 'en', Record<string, string>>> = Object.freeze({
   el: { contamination: 'Επιμόλυνση', colonization: 'Αποικισμός', known_case: 'Γνωστό περιστατικό', other: 'Άλλο' },
   en: { contamination: 'Contamination', colonization: 'Colonisation', known_case: 'Known case', other: 'Other' },
 })
 
-const clean = value => String(value ?? '').trim()
+const clean = (value: unknown) => String(value ?? '').trim()
 
 // Positive with an identified organism, or with a resistance flag (MDR/XDR/PDR/MRSA/…),
 // or a positive blood culture, or a critical result. Reuses the laboratory's own fields:
 // result, organism, resistance, critical, type.
-export function isAlertSample(sample) {
+export function isAlertSample(sample: Sample) {
   if (!sample || clean(sample.result).toLowerCase() !== 'positive') return false
   return Boolean(clean(sample.organism) || clean(sample.resistance) || sample.critical || (sample.type || sample.sampleType) === 'bloodCulture')
 }
 
 // A patient sample with no episode and no decision.
-export function needsSurveillanceReview(sample) {
+export function needsSurveillanceReview(sample: Sample) {
   if (!sample || (sample.subjectType && sample.subjectType !== 'patient')) return false
   if (['rejected', 'cancelled'].includes(sample.status)) return false
   if (sample.surveillanceCase || sample.surveillanceCaseId) return false
@@ -39,27 +42,27 @@ export function needsSurveillanceReview(sample) {
   return isAlertSample(sample)
 }
 
-export const samplesAwaitingReview = (samples = []) => samples.filter(needsSurveillanceReview)
+export const samplesAwaitingReview = (samples: AnyRecord[] = []) => samples.filter(needsSurveillanceReview)
 
 // The plain-word tag after a decision; '' while the sample is undecided or has no decision.
-export function reviewTag(sample, language = 'el') {
+export function reviewTag(sample: Sample, language = 'el') {
   const en = language === 'en'
   if (sample?.surveillanceReviewStatus === REVIEW_STATUS.EPISODE_OPENED) return en ? 'Episode opened' : 'Επεισόδιο ανοίχτηκε'
   if (sample?.surveillanceReviewStatus === REVIEW_STATUS.NO_SURVEILLANCE) return en ? 'Reviewed, no surveillance' : 'Αξιολογήθηκε, χωρίς επιτήρηση'
   return ''
 }
 
-export const reasonLabel = (code, language = 'el') => NO_SURVEILLANCE_REASON_LABELS[language === 'en' ? 'en' : 'el'][code] || ''
+export const reasonLabel = (code: string, language = 'el') => NO_SURVEILLANCE_REASON_LABELS[language === 'en' ? 'en' : 'el'][code] || ''
 
 // Laboratory list filter: «Μόνο θετικά» keeps positive results; negatives are never
 // removed from the data, only hidden from this view.
 export const LAB_RESULT_SCOPES = Object.freeze({ ALL: 'all', POSITIVE: 'positive' })
-export const defaultLabScope = role => canReviewSamples(role) ? LAB_RESULT_SCOPES.POSITIVE : LAB_RESULT_SCOPES.ALL
-export const matchesLabScope = (sample, scope) => scope !== LAB_RESULT_SCOPES.POSITIVE || clean(sample?.result).toLowerCase() === 'positive'
+export const defaultLabScope = (role: string | null | undefined) => canReviewSamples(role) ? LAB_RESULT_SCOPES.POSITIVE : LAB_RESULT_SCOPES.ALL
+export const matchesLabScope = (sample: Sample, scope: string) => scope !== LAB_RESULT_SCOPES.POSITIVE || clean(sample?.result).toLowerCase() === 'positive'
 
 // «Άνοιγμα επεισοδίου»: the patient record opens on its surveillance tab with the new-episode
 // flow already started for this sample (the page links the sample once the episode exists).
-export function sampleEpisodeTarget(sample) {
+export function sampleEpisodeTarget(sample: AnyRecord) {
   return {
     path: `/patients/${encodeURIComponent(sample.patientId || sample.subjectCode || '')}`,
     state: {
@@ -74,10 +77,10 @@ export function sampleEpisodeTarget(sample) {
 
 // The names of staff-check samples (employees) are shown only to the hospital administrator and the head of infection control;
 // everyone else sees a blurred placeholder and the employee code (the code is not a name).
-export const STAFF_NAME_ROLES = Object.freeze([ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD])
-export const canSeeStaffNames = role => STAFF_NAME_ROLES.includes(role) || role === ROLES.PLATFORM_OWNER
+export const STAFF_NAME_ROLES: readonly string[] = Object.freeze([ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD])
+export const canSeeStaffNames = (role: string | null | undefined) => STAFF_NAME_ROLES.includes(role as string) || role === ROLES.PLATFORM_OWNER
 export const STAFF_NAME_MASK = '●●●●●●● ●●●●●●●'
-export const maskStaffSample = sample => (sample?.subjectType === 'employee'
-  ? { ...sample, patient: STAFF_NAME_MASK, patientEn: STAFF_NAME_MASK, subjectName: STAFF_NAME_MASK, subjectNameEn: STAFF_NAME_MASK, staffMasked: true }
+export const maskStaffSample = <T extends AnyRecord | null | undefined>(sample: T): T => (sample?.subjectType === 'employee'
+  ? { ...sample, patient: STAFF_NAME_MASK, patientEn: STAFF_NAME_MASK, subjectName: STAFF_NAME_MASK, subjectNameEn: STAFF_NAME_MASK, staffMasked: true } as T
   : sample)
-export const maskStaffSamples = (rows, role) => (canSeeStaffNames(role) || !rows.some(row => row?.subjectType === 'employee') ? rows : rows.map(maskStaffSample))
+export const maskStaffSamples = <T extends AnyRecord | null | undefined>(rows: T[], role: string | null | undefined): T[] => (canSeeStaffNames(role) || !rows.some(row => row?.subjectType === 'employee') ? rows : rows.map(maskStaffSample))

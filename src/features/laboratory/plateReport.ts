@@ -4,12 +4,13 @@ import { resolveEnvironmentalStandard } from './laboratoryCloudService'
 import { labSampleStatus } from './LaboratoryStatus'
 import { platePointText } from './laboratoryPlates'
 import { sirWord } from '../../design-system/recordReport'
+import type { AnyRecord, Translate } from '../../types/featureTypes'
 
 // The printed document of a whole culture plate, on one page: a row per position (point, result, organism, CFU, limit,
 // assessment, status) and, only when a position has one, its antibiogram below. Shared report style.
-export function buildPlateReport({ samples, standards = [], language = 'el', t, fmt, withNames = true }) {
+export function buildPlateReport({ samples, standards = [], language = 'el', t, fmt, withNames = true }: { samples: AnyRecord[], standards?: AnyRecord[], language?: string, t: (key: string) => string, fmt: (value: string) => string, withNames?: boolean }) {
   const en = language === 'en'
-  const L = (el, enText) => (en ? enText : el)
+  const L: Translate = (el, enText) => (en ? enText : el)
   const first = samples[0]
   const rows = samples.map(item => {
     const progress = sampleProgress(item)
@@ -31,9 +32,9 @@ export function buildPlateReport({ samples, standards = [], language = 'el', t, 
     }
   })
   const antibiograms = rows.flatMap(({ item, progress }) => progress.organisms
-    .map(name => ({ name, tagged: progress.ast.filter(row => row.organism === name), item }))
+    .map(name => ({ name, tagged: progress.ast.filter((row: AnyRecord) => row.organism === name), item }))
     .filter(entry => entry.tagged.length))
-  const sections = [{
+  const sections: AnyRecord[] = [{
     id: 'positions',
     title: L('Αποτελέσματα ανά θέση', 'Results by position'),
     table: {
@@ -48,7 +49,7 @@ export function buildPlateReport({ samples, standards = [], language = 'el', t, 
     tables: antibiograms.map(entry => ({
       title: `${L('Θέση', 'Position')} ${entry.item.environmentalPosition || '—'} · ${entry.name}`,
       columns: [L('Αντιβιοτικό', 'Antibiotic'), L('Ευαισθησία', 'Susceptibility')],
-      rows: entry.tagged.map(row => [`${row.drug}${row.mic != null && row.mic !== '' ? ` (MIC ${row.operator || ''}${row.mic})` : row.zone != null ? ` (${row.zone} mm)` : ''}`, sirWord(row.sir, en)]),
+      rows: entry.tagged.map((row: AnyRecord) => [`${row.drug}${row.mic != null && row.mic !== '' ? ` (MIC ${row.operator || ''}${row.mic})` : row.zone != null ? ` (${row.zone} mm)` : ''}`, sirWord(row.sir, en)]),
     })),
   })
   return {

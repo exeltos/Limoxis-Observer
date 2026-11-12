@@ -2,14 +2,16 @@
 // susceptibility testing → critical-result communication → documents →
 // finalized), and the checks on a microbiology result before it is saved.
 
-export const organismsOf = result => String(result?.organism || '').split(',').map(name => name.trim()).filter(Boolean)
+import type { AnyRecord } from '../../types/featureTypes'
 
-export function sampleProgress(sample) {
-  const result = sample?.microbiologyResults?.[0] || null
-  const ast = result?.ast || []
-  const communications = result?.communications || []
+export const organismsOf = (result: AnyRecord | null | undefined) => String(result?.organism || '').split(',').map(name => name.trim()).filter(Boolean)
+
+export function sampleProgress(sample: AnyRecord | null | undefined) {
+  const result: AnyRecord | null = sample?.microbiologyResults?.[0] || null
+  const ast: AnyRecord[] = result?.ast || []
+  const communications: AnyRecord[] = result?.communications || []
   const organisms = organismsOf(result)
-  const hasAst = name => ast.some(row => row.organism === name)
+  const hasAst = (name: string) => ast.some(row => row.organism === name)
 
   const finalized = Boolean(sample?.finalizedAt)
   const rejected = sample?.status === 'rejected'
@@ -47,7 +49,7 @@ export function sampleProgress(sample) {
 
 // Each workflow step is 'na' (not required), 'done', 'next' (the first one
 // still open) or 'todo'.
-export function workflowStates(steps) {
+export function workflowStates<T extends AnyRecord>(steps: T[]): (T & { state: string })[] {
   let nextAssigned = false
   return steps.map(step => {
     if (step.na) return { ...step, state: 'na' }
@@ -61,7 +63,7 @@ export function workflowStates(steps) {
 // A result can be saved once it has an outcome (and, for an environmental
 // positive, a CFU count); every positive result (clinical or from a culture plate)
 // needs at least one organism before it can be validated.
-export function resultDraftChecks(draft, isEnvironmental) {
+export function resultDraftChecks(draft: AnyRecord, isEnvironmental: boolean) {
   return {
     complete: Boolean(draft.result) && (!isEnvironmental || draft.result === 'negative' || draft.cfuCount !== ''),
     needsOrganism: draft.result === 'positive' && !draft.organisms.length,
@@ -70,10 +72,10 @@ export function resultDraftChecks(draft, isEnvironmental) {
 
 // The result as saved. For an environmental sample, a negative counts 0 CFU
 // and the count is compared with the standard's limit (within when ≤ limit).
-export function resultToSave(draft, validationStatus, { isEnvironmental = false, standard = null } = {}) {
+export function resultToSave(draft: AnyRecord, validationStatus: string, { isEnvironmental = false, standard = null }: { isEnvironmental?: boolean, standard?: AnyRecord | null } = {}) {
   const hasLimit = standard?.limitCfu != null && standard?.limitCfu !== ''
   const cfu = isEnvironmental ? (draft.result === 'negative' ? 0 : draft.cfuCount === '' ? null : Number(draft.cfuCount)) : null
-  const limit = isEnvironmental && hasLimit ? Number(standard.limitCfu) : null
+  const limit = isEnvironmental && hasLimit ? Number(standard?.limitCfu) : null
   const within = isEnvironmental && limit != null && cfu != null ? cfu <= limit : null
   return { ...draft, validationStatus, organism: draft.organisms.join(', '), cfuCount: cfu, cfuLimit: limit, withinLimit: within, pendingAmr: {} }
 }

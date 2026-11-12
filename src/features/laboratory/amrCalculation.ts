@@ -5,10 +5,12 @@
 export const AMR_CATEGORY_SELECT =
   'categories:amr_classification_categories(susceptible,position,category)'
 
-const byPosition = (a, b) => (a.position || 0) - (b.position || 0)
+import type { AnyRecord } from '../../types/featureTypes'
 
-export function amrCalculationSnapshot(row = {}) {
-  const categories = [...(row.categories || [])].sort(byPosition)
+const byPosition = (a: AnyRecord, b: AnyRecord) => (a.position || 0) - (b.position || 0)
+
+export function amrCalculationSnapshot(row: AnyRecord = {}): AnyRecord {
+  const categories: AnyRecord[] = [...(row.categories || [])].sort(byPosition)
   const susceptible = categories.filter(item => item.susceptible).map(item => item.category)
   const nonSusceptible = categories.filter(item => !item.susceptible).map(item => item.category)
   if (!row.mechanism && row.categories_tested == null && !categories.length) return {}
@@ -21,7 +23,7 @@ export function amrCalculationSnapshot(row = {}) {
 }
 
 // The columns and category rows of a calculation snapshot draft.
-export function amrCalculationColumns(snapshot = {}) {
+export function amrCalculationColumns(snapshot: AnyRecord | null | undefined = {}) {
   const tested = Number(snapshot?.categoriesTested)
   return {
     mechanism: String(snapshot?.mechanism || '').trim() || null,
@@ -29,12 +31,12 @@ export function amrCalculationColumns(snapshot = {}) {
   }
 }
 
-export function amrCategoryRows(snapshot = {}) {
-  const rows = []
+export function amrCategoryRows(snapshot: AnyRecord | null | undefined = {}) {
+  const rows: { susceptible: boolean, position: number, category: string }[] = []
   for (const [list, susceptible] of [
     [snapshot?.susceptibleCategories, true],
     [snapshot?.nonSusceptibleCategories, false],
-  ]) {
+  ] as [unknown, boolean][]) {
     ;(Array.isArray(list) ? list : [])
       .map(item => String(item || '').trim())
       .filter(Boolean)

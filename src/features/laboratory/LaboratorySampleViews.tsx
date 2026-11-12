@@ -5,6 +5,11 @@ import { AlertTriangle } from 'lucide-react'
 import { DetailList } from '../../design-system/DetailList'
 import { methodLabel } from './laboratorySampleFormat'
 import { LaboratoryStatus } from './LaboratoryStatus'
+import type { ReactNode } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// A label lookup of the record: t (shared keys) and tx (the record's own copy).
+export type LabelLookup = (key: string) => string
 
 // Read-only views of the laboratory sample record: the result card and the history.
 
@@ -18,6 +23,16 @@ export function ResultCard({
   standard,
   menu,
   emptyState = null,
+}: {
+  t: LabelLookup
+  tx: LabelLookup
+  language: string
+  result: AnyRecord | null | undefined
+  organisms: string[]
+  isEnvironmental: boolean
+  standard?: AnyRecord | null
+  menu?: ReactNode
+  emptyState?: ReactNode
 }) {
   // The limit the result was assessed with, or the protocol's: a result without either has no assessment.
   const limit = resultLimit(result, standard)
@@ -43,7 +58,7 @@ export function ResultCard({
         </div>
       )}
       {emptyState && !(result?.result || organisms.length) ? emptyState : result ? (
-        <DetailList className="lab-result-details" sections={[{ items: [
+        <DetailList className="lab-result-details" sections={[{ items: ([
             {
               id: 'result',
               label: t('result'),
@@ -78,7 +93,7 @@ export function ResultCard({
               value:
                 result.result === 'negative' && result.cfuCount == null ? '0' : result.cfuCount,
             },
-          ].filter(field => field && !field.hidden).map(field => ({ label: field.label, value: field.meta ? <>{field.value}{' '}{field.meta}</> : field.value })) }]}
+          ] as (AnyRecord | false)[]).filter((field): field is AnyRecord => Boolean(field && !field.hidden)).map(field => ({ label: field.label, value: field.meta ? <>{field.value}{' '}{field.meta}</> : field.value })) }]}
         />
       ) : (
         <div className="lab-table-empty lab-result-empty">{tx('noResult')}</div>
@@ -88,18 +103,18 @@ export function ResultCard({
 }
 
 // The sample's events, newest first (the History tab and the printed report).
-export function labHistoryEvents(sample, t, tx) {
+export function labHistoryEvents(sample: AnyRecord, t: LabelLookup, tx: LabelLookup): { at: string, title: string, by?: string }[] {
   return [
     sample.requestedAt && { at: sample.requestedAt, title: t('requested') },
     sample.collectedAt && { at: sample.collectedAt, title: t('collectedLabel') },
     sample.receivedAt && { at: sample.receivedAt, title: t('received') },
-    ...(sample.microbiologyResults || []).flatMap(item => [
+    ...(sample.microbiologyResults || []).flatMap((item: AnyRecord) => [
       item.resultedAt && {
         at: item.resultedAt,
         title: `${t('laboratoryRecords.microbiologyResult')} · ${tx(item.resultStatus)}`,
       },
       ...(item.communications || []).map(
-        row =>
+        (row: AnyRecord) =>
           row.at && {
             at: row.at,
             title: tx('communicationTitle'),
@@ -115,10 +130,10 @@ export function labHistoryEvents(sample, t, tx) {
     sample.finalizedAt && { at: sample.finalizedAt, title: tx('finalized') },
   ]
     .filter(Boolean)
-    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 }
 // The sample's history in the shared timeline (same look as the patient record).
-export function LabHistory({ sample, t, tx, fmt }) {
+export function LabHistory({ sample, t, tx, fmt }: { sample: AnyRecord, t: LabelLookup, tx: LabelLookup, fmt: (value: string | undefined) => string }) {
   const events = labHistoryEvents(sample, t, tx)
   return (
     <HistoryTimeline

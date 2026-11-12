@@ -15,6 +15,10 @@ import { findLibraryItem, libraryOptions } from '../management/useLibraries'
 import { organismsOf, resultDraftChecks, resultToSave } from './laboratorySampleProgress'
 import { AMR_CLASSES, COMMUNICATION_CHANNELS, METHODS, RESULT_VALUES } from './laboratorySampleFormat'
 import { referenceOptions } from './laboratoryReferenceData'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { LabelLookup } from './LaboratorySampleViews'
+
+type Save = (draft: AnyRecord) => unknown
 
 // Dialogs of the laboratory sample record: result, AST, AMR classification and
 // critical-result communication.
@@ -22,7 +26,7 @@ import { referenceOptions } from './laboratoryReferenceData'
 // A titled choice of two to four exclusive answers (result, S/I/R, AMR class,
 // priority): the shared mode switch with the field title, as tall as the
 // other controls of the row (the yes/no field's geometry).
-function makeDraft(result) {
+function makeDraft(result: AnyRecord | null | undefined) {
   return {
     id: result?.id || null,
     result: result?.result || '',
@@ -46,23 +50,34 @@ export function ResultDialog({
   canValidate,
   onClose,
   onSave,
+}: {
+  t: LabelLookup
+  tx: LabelLookup
+  language: string
+  result?: AnyRecord | null
+  isEnvironmental: boolean
+  standard?: AnyRecord | null
+  libraries?: AnyRecord | null
+  canValidate: boolean
+  onClose: () => void
+  onSave: Save
 }) {
-  const [draft, setDraft] = useState(() => makeDraft(result))
+  const [draft, setDraft] = useState<AnyRecord>(() => makeDraft(result))
   const library = libraryOptions(libraries?.microorganisms, language)
   // Organisms recorded earlier that the library no longer lists stay choosable.
   const options = [
     ...library,
     ...draft.organisms
-      .filter(name => !library.some(x => x.value === name))
-      .map(name => ({ value: name, label: name })),
+      .filter((name: string) => !library.some(x => x.value === name))
+      .map((name: string) => ({ value: name, label: name })),
   ]
-  const set = (key, value) => setDraft(d => ({ ...d, [key]: value }))
-  const remove = name =>
+  const set = (key: string, value: unknown) => setDraft(d => ({ ...d, [key]: value }))
+  const remove = (name: string) =>
     set(
       'organisms',
-      draft.organisms.filter(x => x !== name),
+      draft.organisms.filter((x: string) => x !== name),
     )
-  const save = status => onSave(resultToSave(draft, status, { isEnvironmental, standard }))
+  const save = (status: string) => onSave(resultToSave(draft, status, { isEnvironmental, standard }))
   const { complete, needsOrganism } = resultDraftChecks(draft, isEnvironmental)
   const en = language === 'en'
   // One rule for the form: «*» on the required fields, a line saying what keeps «Επικύρωση» blocked,
@@ -139,7 +154,7 @@ export function ResultDialog({
             />
             {draft.organisms.length > 0 && (
               <div className="lab-organism-chips">
-                {draft.organisms.map(name => (
+                {draft.organisms.map((name: string) => (
                   <span className="lab-organism-chip" key={name}>
                     {name}
                     <button type="button" onClick={() => remove(name)} aria-label={t('delete')}>
@@ -180,9 +195,18 @@ export function AstDialog({
   defaultVersion = '',
   onClose,
   onSave,
+}: {
+  tx: LabelLookup
+  language: string
+  libraries?: AnyRecord | null
+  organisms: string[]
+  initialOrganism?: string | null
+  defaultVersion?: string
+  onClose: () => void
+  onSave: Save
 }) {
   const antibiotics = libraries?.antibiotics || [],
-    [draft, setDraft] = useState({
+    [draft, setDraft] = useState<AnyRecord>({
       organism: initialOrganism || organisms[0] || '',
       drug: '',
       code: '',
@@ -193,8 +217,8 @@ export function AstDialog({
       mic: '',
       notes: '',
     })
-  const set = (key, value) => setDraft(d => ({ ...d, [key]: value }))
-  const choose = value => {
+  const set = (key: string, value: unknown) => setDraft(d => ({ ...d, [key]: value }))
+  const choose = (value: string) => {
     const item = findLibraryItem(antibiotics, value)
     setDraft(d => ({ ...d, drug: value, code: (value && item?.code) || '' }))
   }
@@ -271,14 +295,14 @@ export function AstDialog({
   )
 }
 
-export function AmrDialog({ tx, language, organism, initialClassification = '', onClose, onSave }) {
-  const [draft, setDraft] = useState({
+export function AmrDialog({ tx, language, organism, initialClassification = '', onClose, onSave }: { tx: LabelLookup, language: string, organism?: string | null, initialClassification?: string, onClose: () => void, onSave: Save }) {
+  const [draft, setDraft] = useState<AnyRecord>({
     classification: initialClassification,
     definitionSource: 'Magiorakos et al.',
     definitionVersion: '2012',
     rationale: '',
   })
-  const set = (key, value) => setDraft(d => ({ ...d, [key]: value }))
+  const set = (key: string, value: unknown) => setDraft(d => ({ ...d, [key]: value }))
   const form = useFormValidation([
     { key: 'classification', label: tx('classification'), valid: Boolean(draft.classification) },
     { key: 'definitionSource', label: tx('definitionSource'), valid: Boolean(draft.definitionSource.trim()) },
@@ -336,11 +360,11 @@ export function AmrDialog({ tx, language, organism, initialClassification = '', 
   )
 }
 
-export function CommunicationDialog({ tx, onClose, onSave }) {
+export function CommunicationDialog({ tx, onClose, onSave }: { tx: LabelLookup, onClose: () => void, onSave: Save }) {
   const { language } = useLanguage()
   const now = new Date(),
     localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const [draft, setDraft] = useState({
+  const [draft, setDraft] = useState<AnyRecord>({
     recipientName: '',
     recipientRole: '',
     recipientDepartment: '',
@@ -350,7 +374,7 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
     communicatedTime: now.toTimeString().slice(0, 5),
     notes: '',
   })
-  const set = (key, value) => setDraft(d => ({ ...d, [key]: value }))
+  const set = (key: string, value: unknown) => setDraft(d => ({ ...d, [key]: value }))
   const form = useFormValidation([
     { key: 'recipientName', label: tx('recipient'), valid: Boolean(draft.recipientName.trim()) },
     { key: 'recipientRole', label: tx('role'), valid: Boolean(draft.recipientRole.trim()) },

@@ -4,17 +4,21 @@
 // Pure: the plates tab and the tests read it.
 import { sampleProgress } from './laboratorySampleProgress'
 import { isOutsideLimit } from './environmentalLimit'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { LaboratoryRepository } from './repositories/laboratoryRepository'
 
-const CLOSED_STATUSES = ['cancelled', 'rejected', 'voided']
-const clean = value => String(value ?? '').trim()
-const day = value => String(value || '').slice(0, 10)
+type Sample = AnyRecord | null | undefined
 
-export const isStaffSample = sample => sample?.subjectType === 'employee'
-export const isPlateSample = sample => Boolean(clean(sample?.environmentalPlate))
+const CLOSED_STATUSES: unknown[] = ['cancelled', 'rejected', 'voided']
+const clean = (value: unknown) => String(value ?? '').trim()
+const day = (value: unknown) => String(value || '').slice(0, 10)
+
+export const isStaffSample = (sample: Sample) => sample?.subjectType === 'employee'
+export const isPlateSample = (sample: Sample) => Boolean(clean(sample?.environmentalPlate))
 
 // One plate of one sampling: the batch (or, without one, the sampling day), the department and the letter.
-export function plateKey(sample) {
-  if (!isPlateSample(sample)) return null
+export function plateKey(sample: Sample) {
+  if (!sample || !isPlateSample(sample)) return null
   const where = clean(sample.environmentalBatchId) || day(sample.collectedAt || sample.requestedAt)
   // A plate of the staff check (hands, nose) carries employees of several departments: it is one plate per day, kind of swab and letter.
   if (isStaffSample(sample)) return [where, 'staff', clean(sample.source), clean(sample.environmentalPlate).toLowerCase()].join('|')
@@ -22,25 +26,26 @@ export function plateKey(sample) {
 }
 
 // Waiting for the laboratory to receive it: not received yet and not rejected or cancelled.
-export const needsReceipt = sample => Boolean(sample) && !CLOSED_STATUSES.includes(sample.status) && !sampleProgress(sample).received
+export const needsReceipt = (sample: Sample) => Boolean(sample) && !CLOSED_STATUSES.includes(sample?.status) && !sampleProgress(sample).received
 
-const byPosition = (a, b) => {
+const byPosition = (a: AnyRecord, b: AnyRecord) => {
   const x = Number(a.environmentalPosition)
   const y = Number(b.environmentalPosition)
   if (Number.isFinite(x) && Number.isFinite(y) && x !== y) return x - y
   return clean(a.environmentalPosition).localeCompare(clean(b.environmentalPosition), 'el', { numeric: true })
 }
 
-export const isOutsideLimits = sample => (sample?.microbiologyResults || []).some(result => isOutsideLimit(result))
+export const isOutsideLimits = (sample: Sample) => (sample?.microbiologyResults || []).some((result: AnyRecord) => isOutsideLimit(result))
 
 // status: 'awaiting' (something still to receive) · 'processing' · 'completed' (every open position done) · 'rejected'.
-export function groupPlates(samples = []) {
-  const groups = new Map()
+export interface CulturePlate { key: string, plate: string, batchId: string, department: string, departmentEn: string, collectedAt: string | null, samples: AnyRecord[], awaiting: AnyRecord[], outside: AnyRecord[], status: string, counts: { total: number, awaiting: number, outside: number, done: number } }
+export function groupPlates(samples: AnyRecord[] = []): CulturePlate[] {
+  const groups = new Map<string, AnyRecord[]>()
   for (const sample of samples) {
     const key = plateKey(sample)
     if (!key) continue
     if (!groups.has(key)) groups.set(key, [])
-    groups.get(key).push(sample)
+    groups.get(key)?.push(sample)
   }
   return [...groups.entries()]
     .map(([key, items]) => {
@@ -70,7 +75,7 @@ export function groupPlates(samples = []) {
 
 // «Παραλαβή τρυβλίου»: every position still waiting is received like a single sample is (it starts processing).
 // Returns how many positions were received; stops at the first failure and says how far it got.
-export async function receivePlate(repository, plate, now = new Date()) {
+export async function receivePlate(repository: Pick<LaboratoryRepository, 'updateStatus'>, plate: { awaiting: AnyRecord[] }, now = new Date()) {
   let received = 0
   try {
     for (const sample of plate.awaiting) {
@@ -78,15 +83,15 @@ export async function receivePlate(repository, plate, now = new Date()) {
       received += 1
     }
   } catch (error) {
-    error.received = received
+    (error as AnyRecord).received = received
     throw error
   }
   return received
 }
 
 // What a plate position is «about»: the sampled point of a department plate, or, on a staff-check plate, the employee and the swab.
-const SWAB = { handSwab: { el: 'Επίχρισμα χεριών', en: 'Hand swab' }, nasalSwab: { el: 'Ρινικό επίχρισμα', en: 'Nasal swab' } }
-export function platePointLabel(sample, language = 'el') {
+const SWAB: Record<string, { el: string, en: string }> = { handSwab: { el: 'Επίχρισμα χεριών', en: 'Hand swab' }, nasalSwab: { el: 'Ρινικό επίχρισμα', en: 'Nasal swab' } }
+export function platePointLabel(sample: AnyRecord, language = 'el'): { title: string, detail: string, masked?: boolean } {
   if (isStaffSample(sample)) {
     const swab = SWAB[sample.source]?.[language === 'en' ? 'en' : 'el'] || ''
     return { title: clean(sample.subjectName) || '—', detail: [swab, clean(sample.subjectCode) && `${language === 'en' ? 'Employee' : 'Κωδ. εργαζομένου'} ${clean(sample.subjectCode)}`].filter(Boolean).join(' · '), masked: Boolean(sample.staffMasked) }
@@ -96,7 +101,7 @@ export function platePointLabel(sample, language = 'el') {
 
 // The point of a position as text for a print or an export: a staff-check position shows the employee's name only to those who may see it
 // (and only when the print asks for names); otherwise the swab and the employee code.
-export function platePointText(sample, language = 'el', withNames = true) {
+export function platePointText(sample: AnyRecord, language = 'el', withNames = true) {
   const point = platePointLabel(sample, language)
   if (isStaffSample(sample) && (point.masked || !withNames)) return point.detail || '—'
   return [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · ') || '—'

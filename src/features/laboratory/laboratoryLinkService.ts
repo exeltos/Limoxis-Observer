@@ -1,6 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 
-export async function linkLaboratorySampleToSurveillance(organizationId,sampleRecordId,surveillanceCaseId){
+export async function linkLaboratorySampleToSurveillance(organizationId: string|null|undefined,sampleRecordId: string|null|undefined,surveillanceCaseId: string|null|undefined){
   if(!supabase)throw new Error('Supabase is not configured.')
   if(!organizationId||!sampleRecordId||!surveillanceCaseId)return
   const {data,error}=await supabase.auth.getUser()

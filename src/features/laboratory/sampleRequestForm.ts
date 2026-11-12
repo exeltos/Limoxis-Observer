@@ -7,12 +7,15 @@
 //   { key, label: { el, en }, kind: 'choice' | 'text', required, options: [{ value, label: { el, en } }] }
 // The dialog renders them, validates the required ones with the shared form rule and hands
 // the answers to onSave as `requestQuestions: { [key]: value }`.
-export const SAMPLE_REQUEST_QUESTIONS = Object.freeze([])
+import type { AnyRecord } from '../../types/featureTypes'
+
+export interface SampleRequestQuestion { key: string, label: { el: string, en: string }, kind: 'choice' | 'text', required?: boolean, options?: { value: string, label: { el: string, en: string } }[] }
+export const SAMPLE_REQUEST_QUESTIONS: readonly SampleRequestQuestion[] = Object.freeze([])
 
 export const SAMPLE_REQUEST_PRIORITIES = Object.freeze(['routine', 'urgent', 'critical'])
 
 // The draft a request starts from (the dialog adds an empty answer per question).
-export function emptySampleRequest({ type = '', questions = SAMPLE_REQUEST_QUESTIONS } = {}) {
+export function emptySampleRequest({ type = '', questions = SAMPLE_REQUEST_QUESTIONS }: { type?: string, questions?: readonly SampleRequestQuestion[] } = {}) {
   return {
     type: type || 'bloodCulture',
     source: '',
@@ -22,8 +25,8 @@ export function emptySampleRequest({ type = '', questions = SAMPLE_REQUEST_QUEST
 }
 
 // The keys of the required fields still empty, in form order (type and site first).
-export function missingRequestFields(draft, questions = SAMPLE_REQUEST_QUESTIONS) {
-  const missing = []
+export function missingRequestFields(draft: AnyRecord | null | undefined, questions: readonly SampleRequestQuestion[] = SAMPLE_REQUEST_QUESTIONS) {
+  const missing: string[] = []
   if (!draft?.type) missing.push('type')
   if (!String(draft?.source || '').trim()) missing.push('source')
   for (const question of questions) {
@@ -34,7 +37,7 @@ export function missingRequestFields(draft, questions = SAMPLE_REQUEST_QUESTIONS
 
 // What is saved: a request has no collection time (the laboratory records the collection),
 // so the sample is stored in the «requested» state.
-export function sampleRequestPayload(draft) {
+export function sampleRequestPayload(draft: AnyRecord) {
   const { type, source, priority, requestQuestions } = draft
   return { type, source: String(source || '').trim(), priority: priority || 'routine', requestQuestions }
 }

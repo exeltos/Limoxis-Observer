@@ -181,7 +181,7 @@ export const METHODS = [
   { id: 'microscopy', el: 'Μικροσκόπηση', en: 'Microscopy' },
   { id: 'other', el: 'Άλλη μέθοδος', en: 'Other method' },
 ]
-export const methodLabel = (value, language) => {
+export const methodLabel = (value: string | null | undefined, language: string) => {
   const row = METHODS.find(x => x.id === value)
   return row ? row[language === 'el' ? 'el' : 'en'] : value || '—'
 }

@@ -44,14 +44,17 @@ import { ResultDialog, AstDialog, AmrDialog, CommunicationDialog } from './Labor
 import { buildLaboratorySampleReport } from './laboratorySampleReport'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { canReviewSamples, maskStaffSamples, reviewTag, sampleEpisodeTarget } from './sampleReviewModel'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { RecordNavigation } from '../../design-system/EntityRecordShell'
 
 export function LaboratorySampleRecordFunctionalView() {
   const { sampleId } = useParams()
   const { t, language } = useLanguage()
-  const tx = key => copy[language]?.[key] || copy.en[key] || key
+  const tx = (key: string): string => (copy as Record<string, Record<string, string>>)[language]?.[key] || (copy.en as Record<string, string>)[key] || key
   const { notify } = useFeedback()
   const { role, membership, tenant, canAccessRecord, isDemo } = useTenant()
-  const { libraries } = useLibraries()
+  // useLibraries is still JavaScript: its lists are typed from the empty defaults.
+  const { libraries } = useLibraries() as { libraries: AnyRecord }
   const repository = useLaboratoryRepository()
   // An environmental sample opened from the Surveillance Center stays there:
   // its own address, back and previous/next follow the surveillance list.
@@ -64,28 +67,28 @@ export function LaboratorySampleRecordFunctionalView() {
     currentId: sampleId,
     pathForId: id => (inSurveillance ? `/surveillance/environment/${id}` : `/laboratory/${id}`),
   })
-  const [rawSample, setSample] = useState(null),
+  const [rawSample, setSample] = useState<AnyRecord | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [tab, setTab] = useState('sample'),
-    [dialog, setDialog] = useState(null),
-    [standards, setStandards] = useState([])
+    [dialog, setDialog] = useState<string | null>(null),
+    [standards, setStandards] = useState<AnyRecord[]>([])
   // The names of staff-check samples follow the role in use now (also when it is switched with «Προβολή ως ρόλος»).
   const sample = useMemo(() => (rawSample ? maskStaffSamples([rawSample], role)[0] : null), [rawSample, role])
-  const has = cap =>
+  const has = (cap: string) =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const canManage = has(CAPABILITIES.MANAGE_LAB_SAMPLES),
     canValidate = has(CAPABILITIES.VALIDATE_LAB_RESULTS),
     canCommunicate = has(CAPABILITIES.COMMUNICATE_CRITICAL_RESULTS),
     canReopen = has(CAPABILITIES.REOPEN_LAB_RECORD)
-  const fmt = value => formatDateTime(value, language)
+  const fmt = (value: string | null | undefined) => formatDateTime(value, language)
   async function reload() {
     setLoading(true)
     setError('')
     try {
-      setSample(await repository.get(sampleId))
+      setSample(await repository.get(sampleId as string))
     } catch (err) {
-      setError(err?.message || t('actionFailed'))
+      setError((err as AnyRecord)?.message || t('actionFailed'))
     } finally {
       setLoading(false)
     }
@@ -94,8 +97,8 @@ export function LaboratorySampleRecordFunctionalView() {
     reload()
   }, [sampleId, repository]) // eslint-disable-line react-hooks/exhaustive-deps
   // Samples that belong together, the admission the sample falls in, and who entered it (read-only extras of the card).
-  const [related, setRelated] = useState({ visit: [], plate: [] })
-  const [extras, setExtras] = useState({})
+  const [related, setRelated] = useState<{ visit: AnyRecord[], plate: AnyRecord[] }>({ visit: [], plate: [] })
+  const [extras, setExtras] = useState<AnyRecord>({})
   useEffect(() => {
     if (!sample) return undefined
     let alive = true
@@ -113,7 +116,7 @@ export function LaboratorySampleRecordFunctionalView() {
     if (!isDemo) {
       loadSampleRequesterName(sample.requestedBy).then(name => { if (alive) setExtras(current => ({ ...current, requesterName: name })) }).catch(() => {})
       if (isPatient && sample.patientRecordId)
-        loadAdmissions(sample.patientRecordId).then(admissions => {
+        loadAdmissions(sample.patientRecordId).then((admissions: AnyRecord[]) => {
           const day = String(sample.collectedAt || '').slice(0, 10)
           const own = [...admissions].filter(item => item.admissionDate && String(item.admissionDate).slice(0, 10) <= day).sort((a, b) => String(b.admissionDate).localeCompare(String(a.admissionDate)))[0]
           if (alive) setExtras(current => ({ ...current, mdrOnAdmission: Boolean(own?.mdrOnAdmission), mdrOnAdmissionDate: own?.mdrOnAdmissionDate || null }))
@@ -122,10 +125,10 @@ export function LaboratorySampleRecordFunctionalView() {
     return () => { alive = false }
   }, [sample, repository, isDemo])
   const isEnvironmental =
-    sample?.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample?.type)
+    sample?.subjectType === 'environment' || (ENVIRONMENTAL_CATEGORIES as readonly string[]).includes(sample?.type)
   // Same rule as the environmental surveillance list (environmentalNeedsAction): a result outside its limits on a sample that is not closed.
   const environmentNeedsAction =
-    isEnvironmental && !['cancelled', 'rejected', 'voided'].includes(sample?.status) && (sample?.microbiologyResults || []).some(item => isOutsideLimit(item))
+    isEnvironmental && !['cancelled', 'rejected', 'voided'].includes(sample?.status) && (sample?.microbiologyResults || []).some((item: AnyRecord) => isOutsideLimit(item))
   useEffect(() => {
     if (isEnvironmental)
       repository
@@ -168,24 +171,24 @@ export function LaboratorySampleRecordFunctionalView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [language],
   )
-  async function run(work, message) {
+  async function run(work: () => Promise<unknown>, message: string) {
     try {
       await work()
       setDialog(null)
       await reload()
       notify(message, 'success')
     } catch (err) {
-      notify(err?.message || t('actionFailed'), 'error')
+      notify((err as AnyRecord)?.message || t('actionFailed'), 'error')
     }
   }
   // A requested sample has no collection time yet; the laboratory receives it, so it was collected by then (8/11/2026).
   const startProcessing = () => {
-    const receivedAt = sample.receivedAt || new Date()
+    const receivedAt = sample?.receivedAt || new Date()
     return run(
       () =>
-        repository.updateStatus(sample.id, 'processing', {
+        repository.updateStatus(sample?.id, 'processing', {
           receivedAt,
-          collectedAt: sample.collectedAt || receivedAt,
+          collectedAt: sample?.collectedAt || receivedAt,
         }),
       tx('processing'),
     )
@@ -194,7 +197,7 @@ export function LaboratorySampleRecordFunctionalView() {
     setTab('result')
     setDialog('result')
   }
-  const openAst = organism => {
+  const openAst = (organism?: string) => {
     setTab('result')
     setDialog(`ast:${organism || organisms[0] || ''}`)
   }
@@ -202,10 +205,10 @@ export function LaboratorySampleRecordFunctionalView() {
     setTab('result')
     setDialog('communication')
   }
-  async function reject(reason) {
-    if (finalized && canReopen) await repository.reopen(sample.id, `${tx('reject')}: ${reason}`)
+  async function reject(reason: string) {
+    if (finalized && canReopen) await repository.reopen(sample?.id, `${tx('reject')}: ${reason}`)
     await run(
-      () => repository.updateStatus(sample.id, 'rejected', { rejectionReason: reason }),
+      () => repository.updateStatus(sample?.id, 'rejected', { rejectionReason: reason }),
       tx('rejected'),
     )
   }
@@ -376,7 +379,7 @@ export function LaboratorySampleRecordFunctionalView() {
 
   // One tab of the sample: on screen the active one; when the record is printed
   // (EntityRecordShell renderTab) every tab, one after the other.
-  const renderTab = tabId => (
+  const renderTab = (tabId: string) => (
     <>
       {tabId === 'sample' && (
         <div className="lab-record-stack">
@@ -448,7 +451,7 @@ export function LaboratorySampleRecordFunctionalView() {
               <SectionHeader title={language === 'el' ? 'Αντιβιόγραμμα και AMR' : 'AST and AMR'} />
               {organisms.map(name => {
                 const tagged = ast.filter(row => row.organism === name)
-                const current = amr.filter(row => row.organism === name).slice(-1)[0] || null
+                const current = amr.filter((row: AnyRecord) => row.organism === name).slice(-1)[0] || null
                 return (
                   <article className="lab-isolate-card" key={name} data-demo-step="microbiology_mdro:amr">
                     <div className="lab-isolate-summary">
@@ -614,8 +617,6 @@ export function LaboratorySampleRecordFunctionalView() {
               entityRecordId={sample.recordId}
               category="laboratory_evidence"
               canManage={canManage && !locked}
-              t={t}
-              notify={notify}
             />
           </div>
         </div>
@@ -627,7 +628,7 @@ export function LaboratorySampleRecordFunctionalView() {
   // every other position of the plate, one section per position, in the same document style.
   const plateSamples = sample?.environmentalPlate ? [sample, ...maskStaffSamples(related.plate || [], role)].sort((a, b) => String(a.environmentalPosition || '').localeCompare(String(b.environmentalPosition || ''), undefined, { numeric: true })) : []
   // A sample from a culture plate prints in the same short document as the plate: this point only, or every position.
-  const printPlateDocument = (samples, pdf = false) => () => {
+  const printPlateDocument = (samples: AnyRecord[], pdf = false) => () => {
     if (!printReportDocument(buildPlateReport({ samples, standards, language, t, fmt }), { pdf })) notify(language === 'en' ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
   // The printed report (EntityRecordShell printReport): a document, not the screen.
@@ -660,7 +661,7 @@ export function LaboratorySampleRecordFunctionalView() {
       <EntityRecordShell
         printReport={printReport}
         className="laboratory-record-shell workspace-fill"
-        recordNavigation={recordNavigation}
+        recordNavigation={recordNavigation as RecordNavigation}
         avatar={<FlaskConical size={20} />}
         eyebrow={sample.id}
         title={sampleTypeLabel(sample.type, t)}
@@ -721,11 +722,11 @@ export function LaboratorySampleRecordFunctionalView() {
           libraries={libraries}
           organisms={organisms}
           initialOrganism={String(dialog).slice(4)}
-          defaultVersion={result?.interpretationVersion || (result?.ast || []).map(row => row.version).find(Boolean) || ''}
+          defaultVersion={result?.interpretationVersion || (result?.ast || []).map((row: AnyRecord) => row.version).find(Boolean) || ''}
           onClose={() => setDialog(null)}
           onSave={draft =>
             run(async () => {
-              await repository.addAst(sample.id, result.id, draft)
+              await repository.addAst(sample.id, (result as AnyRecord).id, draft)
               signalDemoStep('microbiology_mdro', 'ast')
             }, t('saved'))
           }
@@ -737,13 +738,13 @@ export function LaboratorySampleRecordFunctionalView() {
           language={language}
           organism={String(dialog).slice(4)}
           initialClassification={
-            amr.filter(row => row.organism === String(dialog).slice(4)).slice(-1)[0]
+            amr.filter((row: AnyRecord) => row.organism === String(dialog).slice(4)).slice(-1)[0]
               ?.classification || ''
           }
           onClose={() => setDialog(null)}
           onSave={draft =>
             run(async () => {
-              await repository.saveAmr(sample.id, result.id, draft)
+              await repository.saveAmr(sample.id, (result as AnyRecord).id, draft)
               signalDemoStep('microbiology_mdro', 'amr')
             }, t('saved'))
           }
@@ -755,7 +756,7 @@ export function LaboratorySampleRecordFunctionalView() {
           onClose={() => setDialog(null)}
           onSave={draft =>
             run(async () => {
-              await repository.communicate(sample.id, result.id, draft)
+              await repository.communicate(sample.id, (result as AnyRecord).id, draft)
               signalDemoStep('microbiology_mdro', 'communication')
             }, t('saved'))
           }
