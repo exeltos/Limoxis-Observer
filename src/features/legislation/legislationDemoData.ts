@@ -1,11 +1,14 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { LegislationVersion } from './legislationModel'
 // The demo's legislation: a few texts every hospital knows, with requirements
 // written as a hospital would check them (a summary, not the text of the law),
 // one of them updated after the hospital reviewed it. The candidates are marked
 // as examples: the real ones come from the automatic check of the sources.
 
-const day = (offset, from = hospitalToday()) => { const date = new Date(`${from}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10) }
-const req = (id, text) => ({ id, text })
+const day = (offset: number, from = hospitalToday()) => { const date = new Date(`${from}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10) }
+interface Requirement { id: string, text: string }
+const req = (id: string, text: string): Requirement => ({ id, text })
 
 const WASTE_V1 = [
   req('w1', 'Εσωτερικό σχέδιο διαχείρισης αποβλήτων της μονάδας, εγκεκριμένο και επικαιροποιημένο.'),
@@ -16,7 +19,7 @@ const WASTE_V1 = [
 ]
 const WASTE_V2 = WASTE_V1.map(item => (item.id === 'w4' ? req('w4', 'Μητρώο αποβλήτων, καταχωρίσεις στο Ηλεκτρονικό Μητρώο Αποβλήτων (ΗΜΑ) και παραστατικά μεταφοράς και επεξεργασίας για κάθε παραλαβή.') : item))
 
-const TEXTS = [
+const TEXTS: AnyRecord[] = [
   { id: 'leg-demo-1', code: 'LEG-001', title: 'Μέτρα και όροι για τη διαχείριση αποβλήτων υγειονομικών μονάδων', kind: 'ministerial_decision', reference: 'ΚΥΑ 146163/2012 · ΦΕΚ Β΄ 1537/08.05.2012', issuer: 'Συναρμόδια Υπουργεία', issuedOn: '2012-05-08', topics: ['waste'], summary: 'Διαλογή, συσκευασία, αποθήκευση, μεταφορά και επεξεργασία των αποβλήτων υγειονομικών μονάδων, με εσωτερικό σχέδιο διαχείρισης και μητρώο.', url: '', status: 'in_force' },
   { id: 'leg-demo-2', code: 'LEG-002', title: 'Ποιότητα του νερού ανθρώπινης κατανάλωσης σε συμμόρφωση με την Οδηγία (ΕΕ) 2020/2184', kind: 'ministerial_decision', reference: 'ΚΥΑ Δ1(δ)/ΓΠ οικ. 27829/2023 · ΦΕΚ Β΄ 3525/2023', issuer: 'Συναρμόδια Υπουργεία', issuedOn: '', topics: ['water'], summary: 'Τα νοσοκομεία είναι κτίρια προτεραιότητας για την εκτίμηση κινδύνου των εσωτερικών δικτύων και την παρακολούθηση της Legionella.', url: '', status: 'in_force',
     requirements: [req('n1', 'Εκτίμηση και διαχείριση κινδύνου του εσωτερικού δικτύου ύδρευσης, ιδίως για τη Legionella.'), req('n2', 'Παρακολούθηση της Legionella στα σημεία κινδύνου του δικτύου, με αρχείο αποτελεσμάτων.'), req('n3', 'Συντήρηση δεξαμενών, θερμαντήρων και δικτύου, με αρχείο εργασιών.')] },
@@ -28,15 +31,16 @@ const TEXTS = [
     requirements: [req('d1', 'Ορισμός Υπεύθυνου Προστασίας Δεδομένων.'), req('d2', 'Αρχείο δραστηριοτήτων επεξεργασίας.'), req('d3', 'Διαδικασία για την παραβίαση δεδομένων και την ενημέρωση της Αρχής.')] },
 ]
 
-export function demoLegislation() {
-  const snapshot = (text, requirements) => ({ code: text.code, title: text.title, titleEn: '', kind: text.kind, reference: text.reference, issuer: text.issuer, issuedOn: text.issuedOn, topics: text.topics, summary: text.summary, url: text.url, status: text.status, requirements })
-  const versions = [
+export interface LegislationState { library: AnyRecord[], versions: LegislationVersion[], rows: AnyRecord[], candidates: AnyRecord[], sources: AnyRecord[] }
+export function demoLegislation(): LegislationState {
+  const snapshot = (text: AnyRecord, requirements: Requirement[]) => ({ code: text.code, title: text.title, titleEn: '', kind: text.kind, reference: text.reference, issuer: text.issuer, issuedOn: text.issuedOn, topics: text.topics, summary: text.summary, url: text.url, status: text.status, requirements })
+  const versions: LegislationVersion[] = [
     { textId: 'leg-demo-1', version: 1, snapshot: snapshot(TEXTS[0], WASTE_V1), changeNote: '', changedRequirements: WASTE_V1.map(item => item.id), publishedAt: `${day(-320)}T09:00:00Z` },
     { textId: 'leg-demo-1', version: 2, snapshot: snapshot(TEXTS[0], WASTE_V2), changeNote: 'Η απαίτηση για το μητρώο περιλαμβάνει πλέον τις καταχωρίσεις στο Ηλεκτρονικό Μητρώο Αποβλήτων (ΗΜΑ).', changedRequirements: ['w4'], publishedAt: `${day(-6)}T09:00:00Z` },
-    ...TEXTS.slice(1).map((text, index) => ({ textId: text.id, version: 1, snapshot: snapshot(text, text.requirements), changeNote: '', changedRequirements: text.requirements.map(item => item.id), publishedAt: `${day(index === 0 ? -3 : -300 + index * 10)}T09:00:00Z` })),
+    ...TEXTS.slice(1).map((text, index) => ({ textId: text.id, version: 1, snapshot: snapshot(text, text.requirements), changeNote: '', changedRequirements: text.requirements.map((item: Requirement) => item.id), publishedAt: `${day(index === 0 ? -3 : -300 + index * 10)}T09:00:00Z` })),
   ]
-  const library = TEXTS.map((text, index) => ({ ...text, titleEn: '', requirements: index === 0 ? WASTE_V2 : text.requirements, version: index === 0 ? 2 : 1, publishedAt: versions.filter(item => item.textId === text.id).at(-1).publishedAt }))
-  const mark = (status, extra = {}) => ({ status, evidence: '', note: '', checkedOn: day(-40), ...extra })
+  const library = TEXTS.map((text, index) => ({ ...text, titleEn: '', requirements: index === 0 ? WASTE_V2 : text.requirements, version: index === 0 ? 2 : 1, publishedAt: versions.filter(item => item.textId === text.id).at(-1)?.publishedAt }))
+  const mark = (status: string, extra: AnyRecord = {}) => ({ status, evidence: '', note: '', checkedOn: day(-40), ...extra })
   const rows = [
     { id: 'ol-demo-1', textId: 'leg-demo-1', applicable: true, acceptedVersion: 1, responsible: 'Υπεύθυνη Ποιότητας', nextReviewOn: day(200), notes: '', compliance: { w1: mark('compliant', { evidence: 'Σχέδιο διαχείρισης αποβλήτων, έκδοση 3' }), w2: mark('compliant'), w3: mark('partial', { note: 'Ο χώρος δεν έχει ψύξη για αποθήκευση πέραν των 5 ημερών.' }), w4: mark('compliant', { evidence: 'Μητρώο αποβλήτων, παραστατικά αναδόχου' }), w5: mark('compliant') } },
     { id: 'ol-demo-3', textId: 'leg-demo-3', applicable: true, acceptedVersion: 1, responsible: 'Προϊστάμενος Διατροφής', nextReviewOn: day(120), notes: '', compliance: { f1: mark('compliant', { evidence: 'Εγχειρίδιο HACCP' }), f2: mark('compliant'), f3: mark('compliant') } },

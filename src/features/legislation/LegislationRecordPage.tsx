@@ -26,8 +26,13 @@ import { ComplianceBar } from './LegislationPage'
 import './legislation.css'
 import { LinkedActions } from '../quality/LinkedActions'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { LegislationVersion } from './legislationModel'
 
-const plusYear = day => { const date = new Date(`${day}T12:00:00Z`); date.setUTCFullYear(date.getUTCFullYear() + 1); return date.toISOString().slice(0, 10) }
+// LinkedActions is still JS: its `returnTab = null` default would type the prop as null.
+const LinkedActionsView = LinkedActions as (props: { sourceId: string, prefix?: boolean, organizationId?: string | null, returnTab?: string | null, className?: string }) => ReturnType<typeof LinkedActions>
+
+const plusYear = (day: string) => { const date = new Date(`${day}T12:00:00Z`); date.setUTCFullYear(date.getUTCFullYear() + 1); return date.toISOString().slice(0, 10) }
 
 export function LegislationRecordPage() {
   const { textId } = useParams()
@@ -38,8 +43,8 @@ export function LegislationRecordPage() {
   const { notify } = useFeedback()
   const { tenant } = useTenant()
   const access = useLegislationAccess()
-  const [data, setData] = useState(null)
-  const [draft, setDraft] = useState(null)
+  const [data, setData] = useState<{ versions: LegislationVersion[], rows: AnyRecord[] } | null>(null)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [tab, setTab] = useState('requirements')
   const [saving, setSaving] = useState(false)
 
@@ -55,26 +60,27 @@ export function LegislationRecordPage() {
 
   if (!data || (entry && !draft)) return <Page fill><TableSkeleton/></Page>
   if (!entry) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Text not found' : 'Το κείμενο δεν βρέθηκε'}</strong></div></Page>
+  if (!draft) return <Page fill><TableSkeleton/></Page>
 
   const { text, history } = entry
   const latest = history[history.length - 1]
   const accepted = history.find(item => item.version === (entry.row?.acceptedVersion || 0))
-  const previousWording = new Map((accepted?.snapshot?.requirements || []).map(item => [item.id, item.text]))
+  const previousWording = new Map<string, string>((accepted?.snapshot?.requirements || []).map((item: AnyRecord) => [item.id, item.text]))
   const locked = !access.canManage
-  const set = next => setDraft(current => ({ ...current, ...next }))
-  const setRequirement = (id, next) => setDraft(current => ({ ...current, compliance: { ...current.compliance, [id]: { ...(current.compliance?.[id] || {}), ...next, checkedOn: todayIso() } } }))
+  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
+  const setRequirement = (id: string, next: AnyRecord) => setDraft(current => ({ ...current, compliance: { ...current?.compliance, [id]: { ...(current?.compliance?.[id] || {}), ...next, checkedOn: todayIso() } } }))
 
-  async function persist(next, message, options) {
+  async function persist(next: AnyRecord, message?: string, options?: { reviewed?: boolean }) {
     setSaving(true)
     try {
-      await saveRegisterRow(tenant?.id, next, options)
+      await saveRegisterRow(tenant?.id as string, next, options)
       notify(message || (en ? 'Saved.' : 'Αποθηκεύτηκε.'), 'success')
       await reload()
     } catch (error) { console.error(error); notify(en ? 'Could not save.' : 'Δεν ήταν δυνατή η αποθήκευση.', 'error') } finally { setSaving(false) }
   }
-  const markApplies = applies => persist({ ...draft, applicable: applies, acceptedVersion: applies ? Math.max(draft.acceptedVersion || 0, entry.row ? draft.acceptedVersion || 0 : latest.version) : draft.acceptedVersion || latest.version, nextReviewOn: applies ? draft.nextReviewOn || plusYear(todayIso()) : draft.nextReviewOn }, applies ? (en ? 'Added to the register: assess each requirement.' : 'Προστέθηκε στο μητρώο: αξιολογήστε κάθε απαίτηση.') : (en ? 'Marked as not applying to the hospital.' : 'Σημειώθηκε ότι δεν αφορά το νοσοκομείο.'))
+  const markApplies = (applies: boolean) => persist({ ...draft, applicable: applies, acceptedVersion: applies ? Math.max(draft.acceptedVersion || 0, entry.row ? draft.acceptedVersion || 0 : latest.version) : draft.acceptedVersion || latest.version, nextReviewOn: applies ? draft.nextReviewOn || plusYear(todayIso()) : draft.nextReviewOn }, applies ? (en ? 'Added to the register: assess each requirement.' : 'Προστέθηκε στο μητρώο: αξιολογήστε κάθε απαίτηση.') : (en ? 'Marked as not applying to the hospital.' : 'Σημειώθηκε ότι δεν αφορά το νοσοκομείο.'))
   const finishReview = () => persist({ ...draft, acceptedVersion: latest.version, nextReviewOn: draft.nextReviewOn && draft.nextReviewOn > todayIso() ? draft.nextReviewOn : plusYear(todayIso()) }, en ? `Version ${latest.version} reviewed.` : `Η έκδοση ${latest.version} επανεξετάστηκε.`, { reviewed: true })
-  const openCapa = requirement => navigate('/quality/capas/new', { state: { qualitySource: legislationCapaSource(text, requirement, draft.compliance?.[requirement.id], language) } })
+  const openCapa = (requirement: AnyRecord) => navigate('/quality/capas/new', { state: { qualitySource: legislationCapaSource(text, requirement, draft.compliance?.[requirement.id], language) } })
 
   const tabs = [
     { id: 'requirements', label: en ? `Requirements ${text.requirements.length}` : `Απαιτήσεις ${text.requirements.length}`, icon: ListChecks },
@@ -82,7 +88,7 @@ export function LegislationRecordPage() {
     { id: 'versions', label: en ? `Versions ${history.length}` : `Εκδόσεις ${history.length}`, icon: History },
     { id: 'details', label: en ? 'Register' : 'Μητρώο', icon: ClipboardList },
   ]
-  const exportRequirements = () => exportRegistry({ name: `${text.code}-${en ? 'compliance' : 'symmorfosi'}`, headers: en ? ['#', 'Requirement', 'Compliance', 'Evidence', 'Note', 'Checked on'] : ['#', 'Απαίτηση', 'Συμμόρφωση', 'Τεκμήριο', 'Σημείωση', 'Έλεγχος'], rows: text.requirements.map((item, index) => { const record = draft.compliance?.[item.id] || {}; return [index + 1, item.text, complianceLabel(record.status, language), record.evidence || '', record.note || '', record.checkedOn || ''] }) })
+  const exportRequirements = () => exportRegistry({ name: `${text.code}-${en ? 'compliance' : 'symmorfosi'}`, headers: en ? ['#', 'Requirement', 'Compliance', 'Evidence', 'Note', 'Checked on'] : ['#', 'Απαίτηση', 'Συμμόρφωση', 'Τεκμήριο', 'Σημείωση', 'Έλεγχος'], rows: text.requirements.map((item: AnyRecord, index: number) => { const record = draft.compliance?.[item.id] || {}; return [index + 1, item.text, complianceLabel(record.status, language), record.evidence || '', record.note || '', record.checkedOn || ''] }) })
   const headerActions = <div className="row-actions">
     <ExportMenu onExcel={exportRequirements} />
   </div>
@@ -99,7 +105,7 @@ export function LegislationRecordPage() {
         {entry.state === 'not_applicable' && <div className="leg-decision"><div><strong>{en ? 'Marked as not applying to the hospital' : 'Σημειώθηκε ότι δεν αφορά το νοσοκομείο'}</strong><span>{en ? 'No e-mails are sent for its updates.' : 'Δεν στέλνονται email για τις ενημερώσεις του.'}</span></div>{!locked && <Button variant="secondary" disabled={saving} onClick={() => markApplies(true)}><PlusCircle size={15} />{en ? 'It applies after all' : 'Τελικά αφορά'}</Button>}</div>}
         {entry.hasUpdate && <div className="leg-update leg-decision"><div><strong>{en ? `What changed in version ${latest.version}` : `Τι άλλαξε στην έκδοση ${latest.version}`}</strong><span>{latest.changeNote || (en ? `${entry.changed.size} requirements are new or changed (marked below).` : `${entry.changed.size} απαιτήσεις είναι νέες ή άλλαξαν (σημειώνονται παρακάτω).`)}</span></div>{!locked && <Button disabled={saving} onClick={finishReview}><CheckCircle2 size={15} />{en ? 'Review done' : 'Ολοκλήρωση επανεξέτασης'}</Button>}</div>}
         <ol className="leg-requirements">
-          {text.requirements.map(item => { const record = draft.compliance?.[item.id] || {}; const changed = entry.changed.has(item.id); const before = previousWording.get(item.id); return <li key={item.id} className={changed ? 'is-changed' : ''}>
+          {text.requirements.map((item: AnyRecord) => { const record = draft.compliance?.[item.id] || {}; const changed = entry.changed.has(item.id); const before = previousWording.get(item.id); return <li key={item.id} className={changed ? 'is-changed' : ''}>
             <div className="leg-requirement-head">
               <p>{item.text}</p>
               <span className="leg-requirement-badges">{changed && <StatusBadge tone="warning">{before ? (en ? 'Changed' : 'Άλλαξε') : (en ? 'New' : 'Νέα')}</StatusBadge>}<StatusBadge tone={complianceTone(record.status)}>{complianceLabel(record.status, language)}</StatusBadge></span>
@@ -117,7 +123,7 @@ export function LegislationRecordPage() {
           </li> })}
         </ol>
       </div>
-      {text.code && <LinkedActions sourceId={`LEG:${text.code}`} organizationId={tenant?.id} returnTab="requirements" />}
+      {text.code && <LinkedActionsView sourceId={`LEG:${text.code}`} organizationId={tenant?.id} returnTab="requirements" />}
     </RecordTabPanel>}
     {tab === 'text' && <RecordTabPanel title={en ? 'The text' : 'Το κείμενο'} subtitle={en ? 'As published by the platform.' : 'Όπως το δημοσίευσε η πλατφόρμα.'}>
       <div className="leg-pad">
@@ -127,7 +133,7 @@ export function LegislationRecordPage() {
           { label: en ? 'Issued by' : 'Φορέας', value: text.issuer },
           { label: en ? 'Date' : 'Ημερομηνία', value: formatDay(text.issuedOn, language) },
           { label: en ? 'Status' : 'Κατάσταση', value: textStatusLabel(text.status, language) },
-          { label: en ? 'Topics' : 'Θέματα', value: (text.topics || []).map(topic => topicLabel(topic, language)).join(', ') },
+          { label: en ? 'Topics' : 'Θέματα', value: (text.topics || []).map((topic: string) => topicLabel(topic, language)).join(', ') },
         ]} />
         {text.summary && <p className="leg-text-summary">{text.summary}</p>}
         {text.url && <a className="leg-link" href={text.url} target="_blank" rel="noreferrer"><ExternalLink size={14} />{en ? 'Open the official text' : 'Άνοιγμα του επίσημου κειμένου'}</a>}
