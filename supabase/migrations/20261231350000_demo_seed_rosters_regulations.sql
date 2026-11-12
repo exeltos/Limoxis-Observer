@@ -4,8 +4,8 @@
 -- protocols and the 48–72 h antimicrobial reviews of the episodes (protocolDemoData.js), the epidemiological
 -- questionnaires of the episodes (epiQuestionnaireDemoHistory.js) and the protocol update suggestions of the
 -- controlled documents (protocolReviewDemoData.js). Everything is built from the Demo's own departments,
--- employees, episodes, therapies and documents (seeded before this), with dates relative to today.
--- Names are made up. Safe on a freshly wiped Demo; a second run adds nothing that already exists.
+-- employees, episodes, therapies and documents (seeded before this), with dates relative to today; the
+-- rotas get six ward staff per department. Names are made up. Safe on a freshly wiped Demo; a second run adds nothing that already exists.
 
 -- The approved content of a regulation from its template (as contentFromTemplate in regulationModel.js):
 -- {hospital} filled in, each section keeps its origin; an approved text loses the «fill in» hints.
@@ -30,8 +30,90 @@ as $function$
 $function$;
 revoke all on function private.demo_regulation_content(text, text, text, boolean) from public, anon, authenticated;
 
--- Requests of the people of the three largest rotas: leave approved, a wish and a swap waiting, one refused,
--- a sick day of the running period, one cancelled by the employee.
+-- The ward staff of the rotas: six nurses and nursing assistants in each of the eight Demo departments
+-- (EMP-101 on) and a head nurse where the department has none, with the same columns as the other Demo
+-- employees (demo_seed_hand_hygiene_employees). Their vaccinations follow demo_seed_occupational_health;
+-- their job description acceptances, certificates and evaluations come from demo_seed_people_employees,
+-- which adds only what is missing.
+create or replace function private.demo_seed_roster_staff(v_org uuid, p_actor uuid)
+returns void language plpgsql set search_path = ''
+as $function$
+declare
+  d0 date := current_date;
+  ff text[] := array['Αικατερίνη','Ζωή','Ειρήνη','Θεοδώρα','Παρασκευή','Φωτεινή','Ευτυχία','Σταυρούλα','Αθηνά','Χρυσούλα','Ολυμπία','Δέσποινα'];
+  fm text[] := array['Ηλίας','Στέλιος','Θοδωρής','Λευτέρης','Μάνος','Αλέξανδρος','Στάθης','Πέτρος','Φώτης','Άρης','Τάσος','Ορέστης'];
+  lf text[] := array['Τσιρίγου','Λαζαρίδου','Καραλή','Μπακάλη','Ζαχαρίου','Χατζή','Ρήγα','Σαββίδου','Πετράκη','Αλεξίου','Μιχαηλίδου','Ξυδάκη'];
+  lm text[] := array['Τσίριγος','Λαζαρίδης','Καραλής','Μπακάλης','Ζαχαρίου','Χατζής','Ρήγας','Σαββίδης','Πετράκης','Αλεξίου','Μιχαηλίδης','Ξυδάκης'];
+begin
+  insert into public.employees(organization_id, employee_code, first_name, last_name, first_name_en, last_name_en, department_id, department_name,
+    profession_name, position_name, employment_status, hire_date, email, created_by, updated_by)
+  select v_org, 'EMP-' || s.g::text,
+    case when s.g % 3 = 0 then fm[1 + (s.g * 5) % 12] else ff[1 + (s.g * 5) % 12] end,
+    case when s.g % 3 = 0 then lm[1 + (s.g * 7 + s.ord) % 12] else lf[1 + (s.g * 7 + s.ord) % 12] end,
+    null, null, s.dep_id, s.dep_name,
+    case when s.k in (5, 6) then 'Βοηθός Νοσηλευτή' else 'Νοσηλευτής / Νοσηλεύτρια' end,
+    case when s.k = 7 then 'Προϊστάμενος Τμήματος' when s.k in (5, 6) then 'Βοηθός Νοσηλευτή' else 'Νοσηλευτής Τμήματος' end,
+    -- One of the new people is on leave in the register (and comes in out of the roster).
+    case when s.g = 112 then 'leave' else 'active' end,
+    d0 - (150 + (s.g * 67) % 3200), 'emp' || s.g::text || '@demo.invalid', p_actor, p_actor
+  from (
+    select dep.id as dep_id, dep.name as dep_name, o.ord, k, 100 + (o.ord - 1) * 7 + k as g
+    from (values ('ΜΕΘ', 1), ('ΠΑΘ', 2), ('ΧΕΙΡ', 3), ('ΚΑΡΔ', 4), ('ΟΡΘ', 5), ('ΝΕΦ', 6), ('ΠΑΙΔ', 7), ('ΜΕΝΝ', 8)) o(code, ord)
+    join public.departments dep on dep.organization_id = v_org and dep.code = o.code
+    cross join generate_series(1, 7) k
+    where k < 7 or not exists (select 1 from public.employees e where e.organization_id = v_org and e.department_id = dep.id
+      and e.staff_category <> 'physician' and coalesce(e.position_name, '') ~* 'προϊστάμεν')
+  ) s
+  on conflict (organization_id, employee_code) do nothing;
+
+  insert into public.employee_vaccinations(organization_id, employee_id, vaccine_item_id, vaccine_label_snapshot, dose, vaccination_date, valid_until, status, clinical_notes, created_by, updated_by)
+  select v_org, e.id, mli.id, v.label, v.dose, v.vdate, v.valid, v.status, v.notes, p_actor, p_actor
+  from public.employees e
+  cross join lateral (select substring(e.employee_code from 5)::int g) n
+  cross join lateral (values
+    ('VAC-INFLUENZA', 'Γρίπη εποχική', 'Εποχική δόση',
+      case when n.g % 5 = 3 then d0 - 380 else d0 - (n.g % 40) * 2 end,
+      case when n.g % 5 = 3 then d0 - 15 when n.g % 5 = 0 then null else d0 - (n.g % 40) * 2 + 365 end,
+      case when n.g % 5 = 0 then 'declined' when n.g % 5 = 3 then 'overdue' else 'complete' end,
+      case when n.g % 5 = 0 then 'Άρνηση εμβολιασμού – ενημερώθηκε για τους κινδύνους.' end),
+    ('VAC-HBV', 'Ηπατίτιδα Β', 'Πλήρης σειρά (3 δόσεις)', d0 - 900 - (n.g % 40) * 20, null::date,
+      case when n.g % 11 = 0 then 'renew_soon' else 'complete' end, case when n.g % 11 = 0 then 'Anti-HBs < 10 mIU/mL – προγραμματισμός αναμνηστικής δόσης.' end),
+    ('VAC-MMR', 'Ιλαρά-παρωτίτιδα-ερυθρά (MMR)', '2 δόσεις', d0 - 2000 - (n.g % 40) * 30, null::date, 'complete', null)
+  ) v(code, label, dose, vdate, valid, status, notes)
+  left join public.master_library_items mli on mli.organization_id = v_org and mli.library_key = 'vaccines' and mli.code = v.code
+  where e.organization_id = v_org and e.employee_code ~ '^EMP-1[0-9][0-9]$' and (v.code <> 'VAC-MMR' or n.g % 3 <> 0)
+    and not exists (select 1 from public.employee_vaccinations x where x.organization_id = v_org and x.employee_id = e.id and x.vaccine_label_snapshot = v.label);
+
+  perform private.demo_seed_people_employees(v_org, p_actor);
+end;
+$function$;
+revoke all on function private.demo_seed_roster_staff(uuid, uuid) from public, anon, authenticated;
+
+-- The people of a department's ward rota (physicians have their own rota), the head first. off: where each
+-- regular member stands in the rota's cycle.
+create or replace function private.demo_roster_staff(v_org uuid, p_department uuid, p_cycle integer)
+returns table (id uuid, name text, profession text, is_head boolean, active boolean, user_id uuid, ord integer, off integer)
+language sql stable set search_path = ''
+as $function$
+  with s as (
+    select e.id, btrim(e.last_name || ' ' || e.first_name) as name, coalesce(e.profession_name, '') as profession,
+      coalesce(e.position_name, '') ~* 'προϊστάμεν|head of department' as is_head,
+      e.employment_status = 'active' as active, e.user_id, e.last_name, e.first_name
+    from public.employees e
+    where e.organization_id = v_org and e.department_id = p_department
+      and e.staff_category <> 'physician' and coalesce(e.profession_name, '') !~* 'ιατρ|physician|doctor'),
+  o as (
+    select s.*, (row_number() over (partition by (s.active and not s.is_head) order by s.last_name, s.first_name))::integer - 1 as ord,
+      (count(*) filter (where s.active and not s.is_head) over ())::integer as regular
+    from s)
+  select o.id, o.name, o.profession, o.is_head, o.active, o.user_id, o.ord,
+    case when o.active and not o.is_head and o.regular > 0 then (o.ord * p_cycle) / o.regular else 0 end
+  from o;
+$function$;
+revoke all on function private.demo_roster_staff(uuid, uuid, integer) from public, anon, authenticated;
+
+-- Requests of the people of every rota: leave approved, a wish and a swap waiting, one refused, a sick day of
+-- the running period, one cancelled by the employee.
 create or replace function private.demo_seed_roster_requests(v_org uuid, p_actor uuid, v_cur date, v_run date)
 returns void language plpgsql set search_path = ''
 as $function$
@@ -42,47 +124,42 @@ declare
 begin
   if exists (select 1 from public.roster_requests x where x.organization_id = v_org) then return; end if;
   for r in
-    select d.id, (row_number() over (order by count(e.id) desc, d.name)) - 1 as idx
+    select d.id, ((row_number() over (order by d.name)) - 1)::integer as idx
     from public.departments d
-    join public.employees e on e.organization_id = v_org and e.department_id = d.id and e.employment_status = 'active'
-      and e.staff_category <> 'physician' and coalesce(e.profession_name, '') !~* 'ιατρ|physician|doctor'
-      and coalesce(e.position_name, '') !~* 'προϊστάμεν|head of department'
     where d.organization_id = v_org and d.is_active is not false
-    group by d.id, d.name having count(e.id) >= 2
-    order by count(e.id) desc, d.name limit 3
   loop
-    select array_agg(e.id order by e.last_name, e.first_name) into v_people
-    from public.employees e
-    where e.organization_id = v_org and e.department_id = r.id and e.employment_status = 'active'
-      and e.staff_category <> 'physician' and coalesce(e.profession_name, '') !~* 'ιατρ|physician|doctor'
-      and coalesce(e.position_name, '') !~* 'προϊστάμεν|head of department';
-    n := cardinality(v_people);
+    select array_agg(s.id order by s.ord) into v_people
+    from private.demo_roster_staff(v_org, r.id, 1) s where s.active and not s.is_head;
+    n := coalesce(cardinality(v_people), 0);
+    continue when n < 2;
     insert into public.roster_requests (organization_id, department_id, employee_id, requested_by, kind, date_from, date_to,
       swap_employee_id, swap_date, note, status, decided_by, decided_at, created_at)
-    select v_org, r.id, v_people[(q.p % n) + 1], null, q.kind, q.f, q.t,
-      case when q.kind = 'swap' then v_people[(3 % n) + 1] end, case when q.kind = 'swap' then v_cur + 18 end,
+    select v_org, r.id, v_people[((q.p + r.idx) % n) + 1], null, q.kind, q.f, q.t,
+      case when q.kind = 'swap' then v_people[((q.p + r.idx + 1) % n) + 1] end, case when q.kind = 'swap' then v_cur + 18 end,
       q.note, q.status, case when q.status in ('approved', 'rejected') then p_actor end,
       case when q.status in ('approved', 'rejected') then now() - make_interval(days => q.decided_ago, hours => 2) end,
-      now() - make_interval(days => q.created_ago, hours => r.idx::integer)
+      now() - make_interval(days => q.created_ago, hours => r.idx)
     from (values
-      (0, 'leave', v_cur + 6 + r.idx::integer, v_cur + 8 + r.idx::integer, 'approved', 'Οικογενειακός λόγος.', 9, 3),
+      (0, 'leave', v_cur + 6 + r.idx % 4, v_cur + 8 + r.idx % 4, 'approved', 'Οικογενειακός λόγος.', 9, 3),
       (1, 'wish', v_cur + 12, v_cur + 12, 'pending', 'Γάμος στην οικογένεια.', 4, 0),
       (2, 'swap', v_cur + 17, v_cur + 17, 'pending', 'Ανταλλαγή απογευματινής με πρωινή.', 2, 0),
       (1, 'unavailable', v_cur + 22, v_cur + 22, 'approved', null, 7, 2),
-      (2, 'leave', v_cur - 20, v_cur - 18, 'rejected', 'Ήδη δύο άτομα σε άδεια τις ίδιες ημέρες.', 28, 25),
-      (0, 'sick', v_run + 3, v_run + 4, 'approved', 'Με ιατρική βεβαίωση.', 18, 17),
-      (1, 'leave', v_cur + 25, v_cur + 27, 'cancelled', 'Αλλαγή οικογενειακού προγραμματισμού.', 6, 0)
+      (3, 'leave', v_cur - 20, v_cur - 18, 'rejected', 'Ήδη δύο άτομα σε άδεια τις ίδιες ημέρες.', 28, 25),
+      (4, 'sick', v_run + 3, v_run + 4, 'approved', 'Με ιατρική βεβαίωση.', 18, 17),
+      (5, 'leave', v_cur + 25, v_cur + 27, 'cancelled', 'Αλλαγή οικογενειακού προγραμματισμού.', 6, 0)
     ) q(p, kind, f, t, status, note, created_ago, decided_ago)
-    where q.kind <> 'swap' or n >= 2;
+    -- Every department has the leave, the wish and the swap; the others alternate between departments.
+    where q.p <= 2 or (q.p + r.idx) % 2 = 0;
   end loop;
 end;
 $function$;
 revoke all on function private.demo_seed_roster_requests(uuid, uuid, date, date) from public, anon, authenticated;
 
 -- One roster of a department for one period. The ward rota turns over a fixed cycle that runs on across
--- periods (so a period starts where the previous ended): mornings only with two people, mornings and
--- afternoons with three, nights too from four. The head works weekday mornings. Approved requests (leave,
--- sick, a day they cannot work, a wish) are on the roster; p_leave_emp is on leave on days 10–12.
+-- periods (so a period starts where the previous ended): with four people or more two mornings, two
+-- afternoons, a night and three days off in eight days; mornings and afternoons with three; mornings only
+-- with two. The head works weekday mornings. Approved requests (leave, sick, a day they cannot work, a wish)
+-- are on the roster; p_leave_emp is on leave on days 10–12.
 create or replace function private.demo_seed_roster_period(v_org uuid, p_actor uuid, p_department uuid, p_start date,
   p_status text, p_leave_emp uuid)
 returns jsonb language plpgsql set search_path = ''
@@ -94,35 +171,20 @@ declare
   v_members jsonb;
   v_assignments jsonb;
   v_demand jsonb;
+  v_need jsonb;
   v_id uuid;
 begin
-  create temporary table if not exists pg_temp.demo_roster_staff (id uuid, name text, profession text, is_head boolean, active boolean,
-    user_id uuid, ord integer, off integer) on commit drop;
-  truncate pg_temp.demo_roster_staff;
-  insert into pg_temp.demo_roster_staff
-  select s.id, s.name, s.profession, s.is_head, s.active, s.user_id, s.ord, 0
-  from (
-    select e.id, btrim(e.last_name || ' ' || e.first_name) as name, coalesce(e.profession_name, '') as profession,
-      coalesce(e.position_name, '') ~* 'προϊστάμεν|head of department' as is_head,
-      e.employment_status = 'active' as active, e.user_id,
-      (row_number() over (partition by (e.employment_status = 'active' and coalesce(e.position_name, '') !~* 'προϊστάμεν|head of department')
-        order by e.last_name, e.first_name))::integer - 1 as ord
-    from public.employees e
-    where e.organization_id = v_org and e.department_id = p_department
-      and e.staff_category <> 'physician' and coalesce(e.profession_name, '') !~* 'ιατρ|physician|doctor'
-  ) s;
-  select count(*) into v_regular from pg_temp.demo_roster_staff where active and not is_head;
+  select count(*) into v_regular from private.demo_roster_staff(v_org, p_department, 1) s where s.active and not s.is_head;
   if v_regular < 2 then return null; end if;
-  v_cycle := case when v_regular >= 4 then array['M','A','A','N','N','R','R']
+  v_cycle := case when v_regular >= 4 then array['M','M','A','A','N','R','R','R']
                   when v_regular = 3 then array['M','M','A','A','R','R']
                   else array['M','M','R','R'] end;
-  update pg_temp.demo_roster_staff set off = (ord * cardinality(v_cycle)) / v_regular where active and not is_head;
-  v_demand := jsonb_build_object(
-    'weekday', jsonb_build_object('M', 1, 'I', 0, 'A', case when v_regular >= 3 then 1 else 0 end, 'N', case when v_regular >= 4 then 1 else 0 end),
-    'weekend', jsonb_build_object('M', 1, 'I', 0, 'A', case when v_regular >= 3 then 1 else 0 end, 'N', case when v_regular >= 4 then 1 else 0 end),
-    'overrides', '{}'::jsonb);
+  v_need := jsonb_build_object('M', case when v_regular >= 7 then 2 else 1 end, 'I', 0,
+    'A', case when v_regular >= 7 then 2 when v_regular >= 3 then 1 else 0 end, 'N', case when v_regular >= 4 then 1 else 0 end);
+  v_demand := jsonb_build_object('weekday', v_need, 'weekend', v_need, 'overrides', '{}'::jsonb);
 
   with days as (select g::date as d from generate_series(p_start, v_end, interval '1 day') g),
+  staff as (select * from private.demo_roster_staff(v_org, p_department, cardinality(v_cycle))),
   req as (
     select r.employee_id, r.kind, r.date_from, coalesce(r.date_to, r.date_from) as date_to
     from public.roster_requests r
@@ -131,16 +193,16 @@ begin
     select s.id, d.d,
       (select case q.kind when 'leave' then 'L' when 'sick' then 'S' when 'unpaid' then 'U' else 'R' end
          from req q where q.employee_id = s.id and d.d between q.date_from and q.date_to limit 1) as req_code,
-      (select q.kind from req q where q.employee_id = s.id and d.d between q.date_from and q.date_to limit 1) as req_kind,
       case when s.id = p_leave_emp and d.d between p_start + 9 and p_start + 11 then 'L' end as leave_code,
       case when s.is_head then case when extract(isodow from d.d) < 6 then 'M' else 'R' end
            else v_cycle[((d.d - date '2000-01-03' + s.off) % cardinality(v_cycle)) + 1] end as pattern
-    from pg_temp.demo_roster_staff s cross join days d
+    from staff s cross join days d
     where s.active)
   select coalesce(jsonb_object_agg(x.id, x.row), '{}'::jsonb) into v_assignments
   from (select c.id, jsonb_object_agg(c.d::text, coalesce(c.req_code, c.leave_code, c.pattern)) as row from cells c group by c.id) x;
 
   with days as (select g::date as d from generate_series(p_start, v_end, interval '1 day') g),
+  staff as (select * from private.demo_roster_staff(v_org, p_department, cardinality(v_cycle))),
   req as (
     select r.employee_id, r.kind, r.date_from, coalesce(r.date_to, r.date_from) as date_to
     from public.roster_requests r
@@ -156,7 +218,7 @@ begin
       'wishes', coalesce((select jsonb_object_agg(d.d::text, 'R') from days d
                           where exists (select 1 from req q where q.employee_id = s.id and q.kind = 'wish' and d.d between q.date_from and q.date_to)), '{}'::jsonb))
     order by s.is_head desc, s.active desc, s.ord) into v_members
-  from pg_temp.demo_roster_staff s;
+  from staff s;
 
   insert into public.department_rosters (organization_id, department_id, period_start, period_end, demand, rules, members, assignments,
     status, published_at, change_log, created_by, updated_by, created_at, updated_at)
@@ -167,8 +229,8 @@ begin
   returning id into v_id;
   if v_id is null then return null; end if;
   return jsonb_build_object('id', v_id, 'assignments', v_assignments,
-    'head', (select s.name from pg_temp.demo_roster_staff s order by s.is_head desc, s.active desc, s.ord limit 1),
-    'first', (select s.id from pg_temp.demo_roster_staff s where s.active and not s.is_head order by s.ord limit 1));
+    'head', v_members->0->>'name',
+    'first', (select s.id from private.demo_roster_staff(v_org, p_department, 1) s where s.active and not s.is_head order by s.ord limit 1));
 end;
 $function$;
 revoke all on function private.demo_seed_roster_period(uuid, uuid, uuid, date, text, uuid) from public, anon, authenticated;
@@ -192,20 +254,15 @@ declare
   v_date date;
   v_to text;
 begin
+  perform private.demo_seed_roster_staff(v_org, p_actor);
   perform private.demo_seed_roster_requests(v_org, p_actor, v_cur, v_run);
   for r in select d.id from public.departments d where d.organization_id = v_org and d.is_active is not false order by d.name loop
     -- The last of the department's active ward staff takes three days of leave in the running period.
-    select e.id into v_last from public.employees e
-    where e.organization_id = v_org and e.department_id = r.id and e.employment_status = 'active'
-      and e.staff_category <> 'physician' and coalesce(e.profession_name, '') !~* 'ιατρ|physician|doctor'
-      and coalesce(e.position_name, '') !~* 'προϊστάμεν|head of department'
-    order by e.last_name desc, e.first_name desc limit 1;
+    select s.id into v_last from private.demo_roster_staff(v_org, r.id, 1) s where s.active and not s.is_head order by s.ord desc limit 1;
     for k in -2..1 loop
       v_start := (v_run + make_interval(months => k))::date;
       v_made := private.demo_seed_roster_period(v_org, p_actor, r.id, v_start, case when k = 1 then 'draft' else 'published' end,
         case when k = 0 then v_last end);
-      -- A department without a ward rota (fewer than two people) gets none; a rerun stops at the first existing one.
-      exit when v_made is null and k = -2;
       if k = 0 and v_made is not null and v_made->>'first' is not null then
         -- One shift changed by the head after publishing (kept in the change log).
         v_date := v_start + 14;

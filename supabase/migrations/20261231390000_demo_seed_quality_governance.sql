@@ -520,7 +520,7 @@ end;
 $function$;
 revoke all on function private.demo_seed_kitchen_recall_drills(uuid) from public, anon, authenticated;
 
--- The whole of it for one Demo organization (a refill starts from these tables empty).
+-- The whole of it for one Demo organization, once: after a reset (private.demo_wipe_data) or on a Demo that has none of it yet.
 create or replace function private.demo_seed_quality_governance(p_organization_id uuid, p_actor uuid)
 returns void language plpgsql security definer set search_path = ''
 as $function$
@@ -533,13 +533,12 @@ begin
   if not exists (select 1 from public.organizations o where o.id = v_org and o.is_demo) then
     raise exception 'Only Demo organizations get the Demo quality governance' using errcode = '42501';
   end if;
-  delete from public.quality_department_meetings where organization_id = v_org;
-  delete from public.quality_department_meeting_groups where organization_id = v_org;
-  delete from public.quality_management_reviews where organization_id = v_org;
-  delete from public.quality_objectives where organization_id = v_org;
-  delete from public.quality_self_assessments where organization_id = v_org;
-  delete from public.quality_survey_responses where organization_id = v_org;
-  delete from public.kitchen_recall_drills where organization_id = v_org;
+  -- A Demo reset empties these tables first (private.demo_wipe_data); a Demo that already has them is left as it is.
+  if exists (select 1 from public.quality_department_meetings x where x.organization_id = v_org)
+    or exists (select 1 from public.quality_objectives x where x.organization_id = v_org)
+    or exists (select 1 from public.quality_management_reviews x where x.organization_id = v_org) then
+    return;
+  end if;
   perform private.demo_seed_quality_meetings(v_org);
   perform private.demo_seed_quality_reviews(v_org);
   perform private.demo_seed_quality_objectives(v_org);
