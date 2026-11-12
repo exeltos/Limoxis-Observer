@@ -1,8 +1,12 @@
 import { ENVIRONMENTAL_SAMPLE_TYPES } from '../surveillance/environmentalSurveillanceData'
 import { EMPLOYEE_SCREENING_TYPES as SURVEILLANCE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING,SAMPLE_PRIORITIES } from '../surveillance/surveillanceOptions'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// A reference item: {id, el, en} and what a list needs.
+type ReferenceItem = AnyRecord
 // Laboratory reference lists, one item shape everywhere: {id, el, en} (plus
 // what a list needs, e.g. the i18n label key or the sources of a sample type).
-export const sampleSourceCatalog={
+export const sampleSourceCatalog: Record<string, {label: string, el: string, en: string}>={
   peripheral:{label:'peripheralBlood',el:'Περιφερική αιμοληψία',en:'Peripheral draw'},
   centralLine:{label:'centralLine',el:'Κεντρική φλεβική γραμμή',en:'Central line'},
   arterialLine:{label:'arterialLine',el:'Αρτηριακή γραμμή',en:'Arterial line'},
@@ -22,22 +26,22 @@ export const sampleSourceCatalog={
 // `sample_type` remains the stable technical category used by indicators and
 // analysis. `specimen_type_id` is the clinical specimen selected from the
 // central Sample types library and is the value shown to users.
-export const PATIENT_SAMPLE_TYPES=[
+export const PATIENT_SAMPLE_TYPES: {id: string, sources: string[], library: Record<string, string>}[]=[
   {id:'bloodCulture',sources:['peripheral','centralLine','arterialLine','other'],library:{'Αίμα':'',Blood:''}},
   {id:'urineCulture',sources:['midstream','urinaryCatheter','nephrostomy','suprapubicCatheter','other'],library:{'Ούρα':'',Urine:''}},
   {id:'respiratorySample',sources:['sputum','trachealAspirate','bal','other'],library:{'Πτύελα':'sputum',Sputum:'sputum','Τραχειακό αναρρόφημα':'trachealAspirate','Tracheal aspirate':'trachealAspirate',BAL:'bal'}},
   {id:'woundCulture',sources:['woundSwab','deepTissue','drainage','other'],library:{'Τραύμα / επίχρισμα':'woundSwab','Wound / swab':'woundSwab','Βαθύς ιστός':'deepTissue','Deep tissue':'deepTissue'}},
   {id:'specimen',sources:[],library:{}},
 ]
-export const patientSampleSources=type=>PATIENT_SAMPLE_TYPES.find(item=>item.id===type)?.sources||[]
+export const patientSampleSources=(type: string|null|undefined)=>PATIENT_SAMPLE_TYPES.find(item=>item.id===type)?.sources||[]
 
 const ENVIRONMENTAL_LIBRARY_CODES=new Set(['SAMPLE-SURFACE','SAMPLE-WATER'])
 const RESPIRATORY_LIBRARY_CODES=new Set(['SAMPLE-SPUTUM','SAMPLE-BAL','SAMPLE-BRONCHIAL-SECRETIONS','SAMPLE-NASAL-SWAB','SAMPLE-THROAT-SWAB','SAMPLE-NASOPHARYNGEAL','SAMPLE-RESPIRATORY'])
 const WOUND_LIBRARY_CODES=new Set(['SAMPLE-WOUND','SAMPLE-WOUND-MATERIAL','SAMPLE-PUS','SAMPLE-DRAINAGE','SAMPLE-SUTURE'])
-const itemText=item=>`${item?.code||''} ${item?.el||''} ${item?.en||''} ${item?.value||''}`.toLocaleLowerCase('el')
-const environmentalLibraryItem=item=>ENVIRONMENTAL_LIBRARY_CODES.has(String(item?.code||'').toUpperCase())||/(επιφάν|surface|νερό|water)/i.test(itemText(item))
+const itemText=(item: ReferenceItem|null|undefined)=>`${item?.code||''} ${item?.el||''} ${item?.en||''} ${item?.value||''}`.toLocaleLowerCase('el')
+const environmentalLibraryItem=(item: ReferenceItem|null|undefined)=>ENVIRONMENTAL_LIBRARY_CODES.has(String(item?.code||'').toUpperCase())||/(επιφάν|surface|νερό|water)/i.test(itemText(item))
 
-export function technicalPatientSampleType(item={}){
+export function technicalPatientSampleType(item: ReferenceItem={}){
   const code=String(item.code||'').toUpperCase()
   const text=itemText(item)
   if(code==='SAMPLE-BLOOD'||/(^|\s)(αίμα|αιμα|blood)(\s|$)/i.test(text))return 'bloodCulture'
@@ -47,7 +51,7 @@ export function technicalPatientSampleType(item={}){
   return 'specimen'
 }
 
-function defaultSourceForSpecimen(item,type){
+function defaultSourceForSpecimen(item: ReferenceItem,type: string){
   const code=String(item.code||'').toUpperCase()
   const text=itemText(item)
   if(code==='SAMPLE-SPUTUM'||/πτύελ|πτυελ|sputum/i.test(text))return 'sputum'
@@ -62,7 +66,7 @@ function defaultSourceForSpecimen(item,type){
 // Surface/water stay in environmental surveillance; no synthetic «Other» item
 // is offered for patient samples. The technical type remains separate so
 // existing indicators continue to work.
-export function patientSampleTypeOptions(items=[],language='el',t=key=>key){
+export function patientSampleTypeOptions(items: ReferenceItem[]=[],language='el',t: (key: string)=>string=key=>key){
   const clinical=items.filter(item=>!environmentalLibraryItem(item))
   const mapped=clinical.map(item=>{
     const type=technicalPatientSampleType(item)
@@ -87,8 +91,8 @@ export const EMPLOYEE_SCREENING_TYPES=[...SURVEILLANCE_SCREENING_TYPES,OTHER_EMP
 export { ENVIRONMENTAL_SAMPLE_TYPES }
 export const LAB_PRIORITIES=SAMPLE_PRIORITIES.map(item=>item.value)
 
-const sampleSourceAliases=Object.fromEntries([...EMPLOYEE_SCREENING_TYPES,...ENVIRONMENTAL_SAMPLE_TYPES].filter(item=>!(item.id in sampleSourceCatalog)).map(item=>[item.id,item]))
-export function sampleSourceLabel(value,language='el'){const lang=language==='en'?'en':'el';const parts=String(value||'').split(',').map(item=>item.trim()).filter(Boolean);return parts.length?parts.map(item=>{const row=sampleSourceAliases[item]||sampleSourceCatalog[item];return row?.[lang]||row?.el||item}).join(', '):''}
+const sampleSourceAliases: Record<string, ReferenceItem>=Object.fromEntries(([...EMPLOYEE_SCREENING_TYPES,...ENVIRONMENTAL_SAMPLE_TYPES] as ReferenceItem[]).filter(item=>!(item.id in sampleSourceCatalog)).map((item: ReferenceItem)=>[item.id,item]))
+export function sampleSourceLabel(value: unknown,language='el'){const lang=language==='en'?'en':'el';const parts=String(value||'').split(',').map(item=>item.trim()).filter(Boolean);return parts.length?parts.map(item=>{const row=sampleSourceAliases[item]||sampleSourceCatalog[item];return row?.[lang]||row?.el||item}).join(', '):''}
 
-export const referenceOptions=(items,language='el')=>items.map(item=>({value:item.id,label:language==='en'?item.en:item.el,keywords:`${item.el} ${item.en}`}))
-export const referenceLabel=(items,id,language='el')=>{const item=items.find(row=>row.id===id);return item?(language==='en'?item.en:item.el):id||'—'}
+export const referenceOptions=(items: ReferenceItem[],language='el')=>items.map(item=>({value:item.id,label:language==='en'?item.en:item.el,keywords:`${item.el} ${item.en}`}))
+export const referenceLabel=(items: ReferenceItem[],id: string|null|undefined,language='el')=>{const item=items.find(row=>row.id===id);return item?(language==='en'?item.en:item.el):id||'—'}

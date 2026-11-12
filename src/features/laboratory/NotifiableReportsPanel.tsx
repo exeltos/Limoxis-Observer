@@ -18,9 +18,17 @@ import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { DuplicatePatientDialog } from '../patients/DuplicatePatientDialog'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { ComponentType, MutableRefObject } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { LabelLookup } from './LaboratorySampleViews'
+
+// The notification and patient dialogs are still JavaScript: their props are typed from the defaults.
+const NewNotificationPicker = NewNotificationDialog as ComponentType<AnyRecord>
+const DuplicatePatientWindow = DuplicatePatientDialog as ComponentType<AnyRecord>
+const NotificationWindow = NotifiableDialog as ComponentType<AnyRecord>
 
 // A patient's name; one just registered here may carry only its last and first name.
-const nameOf = (patient, language) => (language === 'en' ? patient?.nameEn : '') || patient?.name || [patient?.lastName, patient?.firstName].filter(Boolean).join(' ')
+const nameOf = (patient: AnyRecord | null | undefined, language: string) => (language === 'en' ? patient?.nameEn : '') || patient?.name || [patient?.lastName, patient?.firstName].filter(Boolean).join(' ')
 
 // «Δηλωτέα νοσήματα» of the laboratory: every notification of the hospital in one list, the
 // notifiable laboratory findings (with or without a report yet) and the clinical notifications.
@@ -28,33 +36,36 @@ const nameOf = (patient, language) => (language === 'en' ? patient?.nameEn : '')
 // disease, then an existing patient or a new one.
 // The deadline as a date and time when the rule sets one (24 hours, a week), the rule itself
 // («immediately»), or «no deadline · national plan» for findings reported through the national plan.
-function NotificationDeadline({ row, language, t }) {
+function NotificationDeadline({ row, language, t }: { row: AnyRecord, language: string, t: LabelLookup }) {
   const due = row.status === 'pending' && row.entry ? deadlineDueAt(row.entry.deadline, row.start) : null
   const when = due ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Athens' }).format(due) : ''
   const text = due ? `${language === 'en' ? 'by' : 'έως'} ${when}` : row.entry ? deadlineWords(row.entry.deadline, language) : row.finding?.rule.nationalPlan ? t('labNotifiable.noDeadlineNationalPlan') : '—'
   return <>{text}{row.waitingText && <small>{row.waitingText}</small>}</>
 }
 
-export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], canCreate = false, creating = false, onCreatingChange, exportRef }) {
+// «Νέα δήλωση»: the disease and an existing patient or a new one.
+interface ReportRequest { entry: AnyRecord, patient?: AnyRecord | null, newPatient?: AnyRecord | null }
+interface NotifiableReportsPanelProps { organizationId?: string | null, isDemo?: boolean, samples?: AnyRecord[], canCreate?: boolean, creating?: boolean, onCreatingChange?: (creating: boolean) => void, exportRef?: MutableRefObject<AnyRecord | null> }
+export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], canCreate = false, creating = false, onCreatingChange, exportRef }: NotifiableReportsPanelProps) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const deleteItem = useRecordDelete()
-  const fmtDate = value => formatDay(value, language)
-  const [reports, setReports] = useState([])
-  const [patients, setPatients] = useState([])
+  const fmtDate = (value: unknown) => formatDay(value, language)
+  const [reports, setReports] = useState<AnyRecord[]>([])
+  const [patients, setPatients] = useState<AnyRecord[]>([])
   const [loaded, setLoaded] = useState(false)
   const [query, setQuery] = useState('')
   const [quick, setQuick] = useState('all')
   const [disease, setDisease] = useState('all')
   const [status, setStatus] = useState('all')
   const [period, setPeriod] = useState('all')
-  const [openRow, setOpenRow] = useState(null)
+  const [openRow, setOpenRow] = useState<AnyRecord | null>(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [busy, setBusy] = useState(false)
   // Patients registered here stay known even when a reload does not return them (the demo keeps none).
-  const [added, setAdded] = useState([])
-  const [duplicate, setDuplicate] = useState(null)
+  const [added, setAdded] = useState<AnyRecord[]>([])
+  const [duplicate, setDuplicate] = useState<(ReportRequest & { matches: AnyRecord[] }) | null>(null)
 
   const reload = useCallback(() => {
     let alive = true
@@ -68,10 +79,10 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
 
   // Clinical reports carry the patient's record id (the code in the demo); findings their sample's patient.
   const known = useMemo(() => [...patients, ...added.filter(item => !patients.some(patient => patient.id === item.id))], [patients, added])
-  const patientOf = useCallback(report => known.find(item => item.recordId === report?.patientRecordId || item.id === report?.patientRecordId) || null, [known])
+  const patientOf = useCallback((report: AnyRecord | null | undefined) => known.find(item => item.recordId === report?.patientRecordId || item.id === report?.patientRecordId) || null, [known])
   const rows = useMemo(() => {
     const ctx = { language, t, samples }
-    return notifiableRows(ctx, reports).map(row => {
+    return (notifiableRows(ctx, reports) as AnyRecord[]).map((row): AnyRecord => {
       const patient = row.finding ? null : patientOf(row.report)
       const sample = row.finding?.sample
       const name = sample ? (language === 'en' ? sample.patientEn || sample.patient : sample.patient) : nameOf(patient, language)
@@ -89,7 +100,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
     .filter(row => inPeriod(row.start || row.date, period))
     .filter(row => `${row.title} ${row.patientName} ${row.patientCode} ${row.report?.reference || ''}`.toLowerCase().includes(query.toLowerCase()))
   // The arrows in the headers sort the whole filtered list (newest first); then the page is cut.
-  const dueTime = row => { const due = row.status === 'pending' && row.entry ? deadlineDueAt(row.entry.deadline, row.start) : null; return due ? new Date(due).getTime() : null }
+  const dueTime = (row: AnyRecord) => { const due = row.status === 'pending' && row.entry ? deadlineDueAt(row.entry.deadline, row.start) : null; return due ? new Date(due).getTime() : null }
   const { sorted: sortedRows, sort, onSort } = useTableSort(shown, {
     disease: row => row.title,
     patient: row => row.patientName,
@@ -102,7 +113,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   const totalPages = Math.max(1, Math.ceil(shown.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const pagedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const toggle = key => setQuick(current => (current === key ? 'all' : key))
+  const toggle = (key: string) => setQuick(current => (current === key ? 'all' : key))
   const exportRows = () => ({
     name: language === 'en' ? 'notifiable-diseases' : 'dilotea-nosimata',
     headers: language === 'en' ? ['Disease', 'Patient', 'Patient code', 'Source', 'Date', 'Deadline', 'Status', 'Reference'] : ['Νόσημα', 'Ασθενής', 'Κωδικός ασθενούς', 'Προέλευση', 'Ημερομηνία', 'Προθεσμία', 'Κατάσταση', 'Αρ. αναφοράς'],
@@ -112,24 +123,24 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   const diseases = [...new Set(rows.map(row => row.title).filter(Boolean))].sort((a, b) => a.localeCompare(b, language))
   const statusOptions = [['pending', t('labNotifiable.pending')], ['overdue', t('labNotifiable.overdue')], ['notified', t('labNotifiable.notified')], ['not_required', t('episodeForms.notifiable.notRequired')]]
   const clearAll = () => { setQuery(''); setQuick('all'); setDisease('all'); setStatus('all'); setPeriod('all') }
-  const statusLabel = row => (row.status === 'notified' ? t('episodeForms.notifiable.notified') : row.status === 'not_required' ? t('episodeForms.notifiable.notRequired') : t('episodeForms.notifiable.pending'))
+  const statusLabel = (row: AnyRecord) => (row.status === 'notified' ? t('episodeForms.notifiable.notified') : row.status === 'not_required' ? t('episodeForms.notifiable.notRequired') : t('episodeForms.notifiable.pending'))
 
   // The notification window needs the patient (for its prefilled lines); a finding brings its sample's.
-  const dialogCtx = row => {
+  const dialogCtx = (row: AnyRecord) => {
     const sample = row.finding?.sample
     const patient = row.patient || (sample ? known.find(item => item.id === sample.patientId) || { id: sample.patientId, name: sample.patient, nameEn: sample.patientEn, recordId: sample.patientRecordId || null } : null)
     return { organizationId, isDemo, language, t, fmtDate, patient, admission: null, record: null, samples, deleteItem }
   }
 
   // «Δημιουργία δήλωσης»: a new patient is registered first, then the pending report is made and opened.
-  async function createReport({ entry, patient, newPatient }, confirmed = false) {
+  async function createReport({ entry, patient, newPatient }: ReportRequest, confirmed = false) {
     // A «new» patient who is already registered: the notification goes to the existing one (or continue as new).
     const found = newPatient && !confirmed ? findPatientMatches(known, newPatient) : []
     if (found.length) return setDuplicate({ entry, newPatient, matches: found })
     setDuplicate(null)
     setBusy(true)
     try {
-      let target = patient
+      let target = patient as AnyRecord
       if (newPatient) {
         const created = await createPatient(organizationId, known, { ...newPatient, admissionDate: hospitalToday(), status: 'active' }, { isDemo })
         target = { ...created.record, name: created.record.name || [newPatient.lastName, newPatient.firstName].join(' ') }
@@ -141,7 +152,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
       reload()
       setOpenRow({ key: report.id, finding: null, report, title: report.disease || entry.el, sample: '', organism: '', date: String(report.createdAt || '').slice(0, 10), start: report.createdAt, entry, status: 'pending', patient: target })
     } catch (error) {
-      notify(error?.duplicateCode ? t('patientCodeDuplicate') : error?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
+      notify((error as AnyRecord)?.duplicateCode ? t('patientCodeDuplicate') : (error as AnyRecord)?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
     } finally {
       setBusy(false)
     }
@@ -154,7 +165,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
         { key: 'pending', icon: Clock3, label: t('labNotifiable.pending'), value: counts.pending, active: quick === 'pending', onToggle: () => toggle('pending') },
         { key: 'overdue', icon: AlertTriangle, label: t('labNotifiable.overdue'), value: counts.overdue, tone: counts.overdue > 0 ? 'danger' : '', active: quick === 'overdue', onToggle: () => toggle('overdue') },
         { key: 'notified', icon: Megaphone, label: t('labNotifiable.notified'), value: counts.notified, active: quick === 'notified', onToggle: () => toggle('notified') },
-      ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone === 'danger' || item.tone === 'warning' ? item.tone : null, active: item.active, onClick: item.onToggle }))} />} query={query} onQueryChange={setQuery} placeholder={t('labNotifiable.search')} onClear={clearAll} activeAdvancedCount={(disease !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
+      ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone === 'danger' || item.tone === 'warning' ? item.tone : undefined, active: item.active, onClick: item.onToggle }))} />} query={query} onQueryChange={setQuery} placeholder={t('labNotifiable.search')} onClear={clearAll} activeAdvancedCount={(disease !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
           disease !== 'all' && { key: 'disease', label: `${t('labNotifiable.colDisease')}: ${disease}`, onRemove: () => setDisease('all') },
           status !== 'all' && { key: 'status', label: `${t('status')}: ${statusOptions.find(([value]) => value === status)?.[1] || status}`, onRemove: () => setStatus('all') },
           period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') },
@@ -185,11 +196,11 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
         </div>
         {shown.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
       </section>
-      {creating && canCreate && <NewNotificationDialog patients={known} busy={busy} onSave={createReport} onClose={() => onCreatingChange?.(false)} />}
-      {duplicate && <DuplicatePatientDialog matches={duplicate.matches} onClose={() => setDuplicate(null)} onContinue={() => createReport(duplicate, true)} actions={[
-        { key: 'use', label: t('patientDuplicate.useExisting'), onClick: patient => createReport({ entry: duplicate.entry, patient }, true) },
+      {creating && canCreate && <NewNotificationPicker patients={known} busy={busy} onSave={createReport} onClose={() => onCreatingChange?.(false)} />}
+      {duplicate && <DuplicatePatientWindow matches={duplicate.matches} onClose={() => setDuplicate(null)} onContinue={() => createReport(duplicate, true)} actions={[
+        { key: 'use', label: t('patientDuplicate.useExisting'), onClick: (patient: AnyRecord) => createReport({ entry: duplicate.entry, patient }, true) },
       ]} />}
-      {openRow && <NotifiableDialog ctx={dialogCtx(openRow)} row={openRow} onClose={() => setOpenRow(null)} onSaved={() => { setOpenRow(null); reload() }} />}
+      {openRow && <NotificationWindow ctx={dialogCtx(openRow)} row={openRow} onClose={() => setOpenRow(null)} onSaved={() => { setOpenRow(null); reload() }} />}
     </>
   )
 }

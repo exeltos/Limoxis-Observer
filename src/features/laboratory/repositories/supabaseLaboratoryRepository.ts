@@ -5,7 +5,9 @@ import { samplesAwaitingReview } from '../sampleReviewModel'
 import { normalizeLaboratorySample, normalizeLaboratorySamples } from '../model/laboratoryModel'
 import { defineLaboratoryRepository } from './laboratoryRepository'
 
-export function createSupabaseLaboratoryRepository({ organizationId } = {}) {
+export function createSupabaseLaboratoryRepository(options: { organizationId?: string | null } = {}) {
+  // The production repository is used only with a selected hospital (the cloud calls check it).
+  const organizationId = options.organizationId as string
   return defineLaboratoryRepository({
     environment: 'production',
     // `scope` ({ patientRecordId, caseIds }) reads one patient's samples only.

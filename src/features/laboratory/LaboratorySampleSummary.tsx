@@ -8,8 +8,18 @@ import { ENVIRONMENTAL_CATEGORIES, environmentalMethodLabel, sampleTypeLabel } f
 import { computeTurnaroundHours, formatTurnaround } from './model/laboratoryModel'
 import { sampleSourceLabel } from './laboratoryReferenceData'
 import { Link } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import type { IconType } from '../../design-system/types'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { LabelLookup } from './LaboratorySampleViews'
 
-function subjectLabel(subjectType, language) {
+type DateFormat = (value: string | null | undefined) => string
+// A summary field: label and value (with a note under it), hidden when it does not apply.
+export interface SampleSummaryField { id: string, label: string, value?: ReactNode, meta?: ReactNode, hidden?: boolean }
+// A step of the sample's progress (workflowStates adds `state`).
+export interface WorkflowStep { id: string, label: string, state: string, meta?: string, hint?: string, action?: { label: string, onClick: () => void, icon?: IconType } | null }
+
+function subjectLabel(subjectType: string, language: string) {
   if (subjectType === 'employee') return language === 'en' ? 'Employee' : 'Εργαζόμενος'
   if (subjectType === 'environment') return language === 'en' ? 'Sampling point / location' : 'Σημείο / χώρος δειγματοληψίας'
   return language === 'en' ? 'Patient' : 'Ασθενής'
@@ -19,7 +29,7 @@ function subjectLabel(subjectType, language) {
 // organisms and AMR live exclusively on the Result tab so the two never
 // duplicate each other. Actions sit behind the card's ⋯ menu, matching the
 // record cards in Prevention, Quality and Controls.
-export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banners, extras }) {
+export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banners, extras }: { sample: AnyRecord, t: LabelLookup, language: string, fmt: DateFormat, menu?: ReactNode, banners?: ReactNode, extras?: AnyRecord }) {
   const en = language === 'en'
   const fields = sampleSummaryFields({ sample, t, language, fmt, extras })
   return <section className="lab-record-card lab-summary-card">
@@ -31,9 +41,9 @@ export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banner
 }
 
 // The outcome at a glance (full detail stays on the Result tab): outcome, organism, count, critical communication.
-export function resultSummarySections(sample, t, language = 'el') {
+export function resultSummarySections(sample: AnyRecord, t: LabelLookup, language = 'el') {
   if (!OUTCOME_RESULTS.includes(sample.result)) return []
-  const communicated = (sample.microbiologyResults || []).some(result => (result.communications || []).length > 0)
+  const communicated = (sample.microbiologyResults || []).some((result: AnyRecord) => (result.communications || []).length > 0)
   const items = [
     { key: 'outcome', label: t('result'), value: (sample.subjectType && sample.subjectType !== 'patient' && environmentalResultWord(sample.microbiologyResults?.[0], language)) || t(sample.result) },
     (sample.organism || sample.result === 'positive') && { key: 'organism', label: t('organism'), value: sample.organism || t('laboratoryRecords.organismNotRecorded') },
@@ -44,9 +54,9 @@ export function resultSummarySections(sample, t, language = 'el') {
 }
 
 // The summary fields in two groups (Sampling · Receipt) for the shared DetailList.
-export function sampleSummarySections(fields, language) {
+export function sampleSummarySections(fields: SampleSummaryField[], language: string) {
   const en = language === 'en'
-  const item = field => ({ key: field.id, label: field.label, value: field.meta ? <>{field.value || '—'}<small>{field.meta}</small></> : field.value })
+  const item = (field: SampleSummaryField) => ({ key: field.id, label: field.label, value: field.meta ? <>{field.value || '—'}<small>{field.meta}</small></> : field.value })
   const receipt = ['requestedBy', 'received', 'turnaround', 'surveillance']
   const visible = fields.filter(field => !field.hidden)
   return [
@@ -56,9 +66,9 @@ export function sampleSummarySections(fields, language) {
 }
 
 // The sample's own identity and logistics as label/value fields (the card and the printed report).
-export function sampleSummaryFields({ sample, t, language, fmt, extras = {} }) {
+export function sampleSummaryFields({ sample, t, language, fmt, extras = {} }: { sample: AnyRecord, t: LabelLookup, language: string, fmt: DateFormat, extras?: AnyRecord }): SampleSummaryField[] {
   const en = language === 'en'
-  const isEnvironmental = sample.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample.type)
+  const isEnvironmental = sample.subjectType === 'environment' || (ENVIRONMENTAL_CATEGORIES as readonly string[]).includes(sample.type)
   const rawSurveillance = sample.surveillanceCase || sample.employeeSurveillanceId || sample.environmentalBatchId || ''
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(rawSurveillance))
   const surveillance = !rawSurveillance ? '' : isUuid ? (en ? 'Linked record' : 'Συνδεδεμένη εγγραφή') : rawSurveillance
@@ -90,12 +100,12 @@ export function sampleSummaryFields({ sample, t, language, fmt, extras = {} }) {
 // single next action surfaced as a primary button so the user never has to
 // hunt through tabs to find what is left to do.
 // Only the steps that apply are numbered and counted: «not required» steps show a dash.
-export function workflowProgress(steps) {
+export function workflowProgress(steps: WorkflowStep[]) {
   const applicable = steps.filter(step => step.state !== 'na')
-  return { applicable, total: applicable.length, done: applicable.filter(step => step.state === 'done').length, numberOf: step => applicable.indexOf(step) + 1 }
+  return { applicable, total: applicable.length, done: applicable.filter(step => step.state === 'done').length, numberOf: (step: WorkflowStep) => applicable.indexOf(step) + 1 }
 }
 
-export function LaboratoryWorkflow({ steps, language, closedNote }) {
+export function LaboratoryWorkflow({ steps, language, closedNote }: { steps: WorkflowStep[], language: string, closedNote?: ReactNode }) {
   const en = language === 'en'
   const { total, done, numberOf } = workflowProgress(steps)
   const next = steps.find(step => step.state === 'next')
@@ -114,7 +124,7 @@ export function LaboratoryWorkflow({ steps, language, closedNote }) {
 }
 
 // The samples that belong together: taken at the same time from the same patient, or the other points of the same plate.
-export function LaboratoryRelatedSamples({ related, hrefFor, t, language, sample }) {
+export function LaboratoryRelatedSamples({ related, hrefFor, t, language, sample }: { related: { visit: AnyRecord[], plate: AnyRecord[] }, hrefFor: (sample: AnyRecord) => string, t: LabelLookup, language: string, sample: AnyRecord }) {
   const groups = [
     related.visit.length > 0 && { key: 'visit', title: t('labSampleFlow.sameVisit'), hint: t('labSampleFlow.sameVisitHint'), items: related.visit },
     related.plate.length > 0 && { key: 'plate', title: t('labSampleFlow.samePlate').replace('{plate}', sample.environmentalPlate), hint: t('labSampleFlow.samePlateHint'), items: related.plate },
