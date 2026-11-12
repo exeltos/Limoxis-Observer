@@ -1,0 +1,315 @@
+import { useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
+import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { useDepartments } from '../management/useLibraries'
+import { createPatient } from '../patients/patientsService'
+import { PatientSelector, StartStep } from './NewSurveillanceSteps'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { listTexts } from './surveillanceOptions'
+import './surveillanceEntryCard.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
+
+interface NewSurveillanceFlowProps {
+  patient?: AnyRecord | null
+  patients?: AnyRecord[]
+  onClose: Handler
+  onCreate: Handler
+  onPatientsChange: Handler
+  sample?: AnyRecord | null
+  sampleOptions?: AnyRecord[]
+}
+export function NewSurveillanceFlow({
+  patient = null,
+  patients = [],
+  onClose,
+  onCreate,
+  onPatientsChange,
+  sample = null,
+  // The patient's samples that no surveillance holds yet: a surveillance starts from one of them or from a new
+  // request (owner, 8/11/2026). Without the list (the surveillance list page) only a new request is offered.
+  sampleOptions = [],
+}: NewSurveillanceFlowProps) {
+  const { t, language } = useLanguage()
+  const { notify } = useFeedback()
+  const { tenant, isDemo } = useTenant()
+  const [patientMode, setPatientMode] = useState(patient ? 'fixed' : 'existing')
+  const [selectedPatientId, setSelectedPatientId] = useState(patient?.id || '')
+  const [createdPatient, setCreatedPatient] = useState<AnyRecord | null>(null)
+  const selectedPatient =
+    patient || createdPatient || patients.find(x => x.id === selectedPatientId) || null
+  // The organization's departments (Management > Libraries); the inline patient
+  // keeps the department's id and its Greek / English names, as before.
+  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const firstDepartment = [selectedPatient?.department, selectedPatient?.departmentEn]
+  const today = hospitalToday()
+  const [patientDraft, setPatientDraft] = useState({
+    patientCode: '',
+    firstName: '',
+    lastName: '',
+    patronymic: '',
+    firstNameEn: '',
+    lastNameEn: '',
+    patronymicEn: '',
+    departmentId: '',
+    department: '',
+    departmentEn: '',
+    admissionDate: today,
+    dateOfBirth: '',
+  })
+  const [busy, setBusy] = useState(false)
+  const [sampleChoice, setSampleChoice] = useState('')
+  // Opened from a positive sample («Προς έλεγχο»): the start date and the reason come from it.
+  const sampleFinding = sample
+    ? [t(sample.type || 'other'), sample.organism, sample.resistance].filter(Boolean).join(' · ')
+    : ''
+  const [startDraft, setStartDraft] = useState({
+    startedAt: String(sample?.collectedAt || '').slice(0, 10) || today,
+    reviewDue: '',
+    room: '',
+    reason: sample ? `Θετική καλλιέργεια: ${sampleFinding}` : '',
+    reasonEn: sample ? `Positive culture: ${sampleFinding}` : '',
+    suspectedSource: '',
+    departmentId: selectedPatient?.departmentId || '',
+    department: firstDepartment[0] || '',
+    departmentEn: firstDepartment[1] || '',
+  })
+  const setStart = (k: string, v: unknown) => setStartDraft(d => ({ ...d, [k]: v }))
+  const setPatientField = (k: string, v: unknown) => setPatientDraft(d => ({ ...d, [k]: v }))
+
+  function chooseExistingPatient(id: string) {
+    setSelectedPatientId(id)
+    setCreatedPatient(null)
+    const next = patients.find(x => x.id === id)
+    if (next)
+      setStartDraft(d => ({
+        ...d,
+        departmentId: next.departmentId || '',
+        department: next.department || '',
+        departmentEn: next.departmentEn || '',
+      }))
+  }
+  function setPatientDepartment(value: string) {
+    const department = departments.find(item => item.id === value)
+    setPatientDraft(d => ({
+      ...d,
+      departmentId: department?.id || '',
+      department: department?.name || '',
+      departmentEn: department?.nameEn || department?.name || '',
+    }))
+  }
+  async function buildInlinePatient() {
+    if (
+      (!isDemo && !patientDraft.patientCode.trim()) ||
+      !(patientDraft.firstName || patientDraft.firstNameEn) ||
+      !(patientDraft.lastName || patientDraft.lastNameEn) ||
+      !patientDraft.department ||
+      !patientDraft.admissionDate
+    )
+      return null
+    const firstName = patientDraft.firstName || patientDraft.firstNameEn,
+      lastName = patientDraft.lastName || patientDraft.lastNameEn
+    const firstNameEn = patientDraft.firstNameEn || patientDraft.firstName,
+      lastNameEn = patientDraft.lastNameEn || patientDraft.lastName
+    const { record: created, list } = await createPatient(
+      tenant?.id,
+      patients,
+      {
+        patientCode: patientDraft.patientCode.trim() || undefined,
+        firstName,
+        lastName,
+        patronymic: patientDraft.patronymic || '',
+        firstNameEn,
+        lastNameEn,
+        patronymicEn: patientDraft.patronymicEn || patientDraft.patronymic || '',
+        name: `${firstName} ${lastName}`.trim(),
+        nameEn: `${firstNameEn} ${lastNameEn}`.trim(),
+        departmentId: patientDraft.departmentId || null,
+        department: patientDraft.department,
+        departmentEn: patientDraft.departmentEn || patientDraft.department,
+        admissionDate: patientDraft.admissionDate,
+        dateOfBirth: patientDraft.dateOfBirth || null,
+      },
+      { isDemo },
+    )
+    onPatientsChange?.(list)
+    setCreatedPatient(created)
+    setSelectedPatientId(created.id)
+    setStartDraft(d => ({
+      ...d,
+      departmentId: created.departmentId || '',
+      department: created.department,
+      departmentEn: created.departmentEn,
+    }))
+    notify(t('clinicalRecords.patientCreatedForSurveillance'), 'success')
+    return created
+  }
+
+  const contextDepartment = patient?.department || startDraft.department || ''
+  async function saveStart() {
+    if (busy) return
+    setBusy(true)
+    try {
+      let targetPatient = selectedPatient
+      if (!targetPatient && patientMode === 'new') targetPatient = await buildInlinePatient()
+      if (!targetPatient || !startDraft.startedAt || !(startDraft.reason || startDraft.reasonEn)) {
+        notify(
+          language === 'el'
+            ? 'Συμπληρώστε τα υποχρεωτικά πεδία της έναρξης.'
+            : 'Complete the required start fields.',
+          'warning',
+        )
+        return
+      }
+      const chosenSample = sampleChoice === 'new' ? 'new' : sampleOptions.find(item => String(item.recordId || item.id) === sampleChoice) || null
+      const created = await onCreate(
+        {
+          ...startDraft,
+          departmentId: startDraft.departmentId || targetPatient.departmentId || null,
+          ...(sample ? {} : { sampleChoice: chosenSample }),
+        },
+        targetPatient,
+      )
+      if (!created)
+        throw new Error(
+          language === 'el'
+            ? 'Δεν δημιουργήθηκε το επεισόδιο επιτήρησης.'
+            : 'The surveillance episode was not created.',
+        )
+      onClose()
+    } catch (error) {
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // What keeps «Έναρξη επιτήρησης» from starting, said beside it (never a silent disabled button).
+  const newPatient = !patient && patientMode === 'new' && !createdPatient
+  const form = useFormValidation([
+    !patient &&
+      patientMode === 'existing' && {
+        key: 'patient',
+        label: t('patient'),
+        valid: Boolean(selectedPatient),
+      },
+    newPatient &&
+      !isDemo && {
+        key: 'patientCode',
+        label: t('patientId'),
+        valid: Boolean(patientDraft.patientCode.trim()),
+      },
+    newPatient && {
+      key: 'firstName',
+      label: t('firstName'),
+      valid: Boolean((patientDraft.firstName || patientDraft.firstNameEn).trim()),
+    },
+    newPatient && {
+      key: 'lastName',
+      label: t('lastName'),
+      valid: Boolean((patientDraft.lastName || patientDraft.lastNameEn).trim()),
+    },
+    newPatient && {
+      key: 'patientDepartment',
+      label: t('department'),
+      valid: Boolean(patientDraft.department),
+    },
+    newPatient && {
+      key: 'admissionDate',
+      label: t('admissionDate'),
+      valid: Boolean(patientDraft.admissionDate),
+    },
+    { key: 'startedAt', label: t('surveillanceStartDate'), valid: Boolean(startDraft.startedAt) },
+    {
+      key: 'reason',
+      label: t('surveillanceReason'),
+      valid: Boolean((startDraft.reason || startDraft.reasonEn).trim()),
+    },
+    !sample && { key: 'sample', label: t('svSampleField'), valid: Boolean(sampleChoice) },
+  ])
+  const sampleLabel = (item: AnyRecord) => [t(item.type || item.sampleType || 'other'), String(item.collectedAt || item.requestedAt || '').slice(0, 10).split('-').reverse().join('/'), item.id, item.organism || (item.result ? t(item.result) : t('pending'))].filter(Boolean).join(' · ')
+  return (
+    <ObserverDialog
+      width="standard"
+      fixedHeight
+      className="surveillance-entry patient-surveillance-entry"
+      eyebrow={t('newSurveillance')}
+      title={t('svPatientSurveillance')}
+      subtitle={
+        selectedPatient
+          ? `${language === 'el' ? selectedPatient.name : selectedPatient.nameEn || selectedPatient.name} · ${selectedPatient.id}`
+          : t('clinicalRecords.selectPatient')
+      }
+      onClose={onClose}
+      footer={
+        <FormSubmit form={form} icon={false} disabled={busy} onSubmit={saveStart}>
+          {busy
+            ? language === 'el'
+              ? 'Αποθήκευση…'
+              : 'Saving…'
+            : language === 'el'
+              ? 'Έναρξη επιτήρησης'
+              : 'Start surveillance'}
+        </FormSubmit>
+      }
+    >
+      {!patient && (
+        <PatientSelector
+          chooseExistingPatient={chooseExistingPatient}
+          createdPatient={createdPatient}
+          departments={departments}
+          isDemo={isDemo}
+          language={language}
+          patientDraft={patientDraft}
+          patientMode={patientMode}
+          patients={patients}
+          selectedPatientId={selectedPatientId}
+          setCreatedPatient={setCreatedPatient}
+          setPatientDepartment={setPatientDepartment}
+          setPatientField={setPatientField}
+          setPatientMode={setPatientMode}
+          setSelectedPatientId={setSelectedPatientId}
+          form={form}
+          t={t}
+        />
+      )}
+      {sample && (
+        <div className="progressive-guidance sample-prefill-note">
+          <AlertTriangle size={16} />
+          <div>
+            <strong>{language === 'el' ? 'Από δείγμα' : 'From a sample'}</strong>
+            <span>{[sample.id, sampleFinding].filter(Boolean).join(' · ')}{language === 'el' ? ' — θα συνδεθεί με το επεισόδιο.' : ' — it will be linked to the episode.'}</span>
+          </div>
+        </div>
+      )}
+      {!sample && (
+        <SearchableSelect
+          label={t('svSampleField')}
+          hint={t('svSampleHint')}
+          value={sampleChoice}
+          options={[
+            ...sampleOptions.map(item => ({ value: String(item.recordId || item.id), label: sampleLabel(item) })),
+            { value: 'new', label: t('svSampleNew') },
+          ]}
+          emptyLabel={listTexts(language).emptyLabel}
+          clearLabel={listTexts(language).clearLabel}
+          onChange={value => setSampleChoice(value || '')}
+          {...form.field('sample')}
+        />
+      )}
+      <StartStep
+        contextDepartment={contextDepartment}
+        language={language}
+        setStart={setStart}
+        startDraft={startDraft}
+        form={form}
+        t={t}
+      />
+    </ObserverDialog>
+  )
+}

@@ -4,6 +4,7 @@ import { demoClinicalScaleDefinitions } from '../src/features/clinical-scales/cl
 import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
 import { episodeBelongsToPatient } from '../src/features/surveillance/patientRecordScope'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 const i18n=readSource('src/core/i18n/stringsEl.js')
 
 // User-reported review of the Patients category.
@@ -55,7 +56,7 @@ describe('surveillance review', () => {
   })
   it('«Create» of the Surveillance Center creates what the open tab lists, and the new laboratory sample keeps compact icon cards', () => {
     const flow = readSource('src/features/surveillance/EmployeeSurveillanceFlow.jsx')
-    const page = readSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
+    const page = readSplitSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
     const lab = readSource('src/features/laboratory/LaboratoryWorkspace.jsx')
     expect(flow).not.toContain('SurveillanceSubjectChooser')
     expect(page).not.toContain("'chooser'")

@@ -1,0 +1,506 @@
+import { RecordTabPanel } from '../../design-system/RecordTabPanel'
+import { useEffect, useState } from 'react'
+import { Activity, CalendarClock, ChevronRight, Microscope, Pencil, PlayCircle } from 'lucide-react'
+import { ProtocolBadge } from './protocols/ProtocolViews'
+import { loadOpenProtocolRuns } from './protocols/protocolService'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
+import { EpiReminder } from './epiQuestionnaire/EpiQuestionnaireViews'
+import { epiPending, useEpiIndex } from './epiQuestionnaire/useEpiIndex'
+import { canWriteEpi, rowLine } from './epiQuestionnaire/epiQuestionnaireText'
+import { epiSummary } from './epiQuestionnaire/epiQuestionnaireModel'
+import { Button } from '../../design-system/Button'
+import { DueDate } from '../../design-system/DueDate'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { translate } from '../../core/i18n/LanguageContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { RESISTANCE_ALERT, episodeTypeLabel } from './clinicalRecordLabels'
+import { SampleRequestDialog } from './ClinicalRecordDialogs'
+import { statusTone } from './surveillanceOptions'
+import { SurveillanceEpisodeSheet, type EpisodeEditDraft, type SheetAction } from './SurveillanceEpisodeSheet'
+import { SampleTree } from './SurveillanceSampleTree'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
+
+interface SurveillanceWorkspaceProps {
+  initialStage?: string | null
+  samples?: AnyRecord[]
+  episodes: AnyRecord[]
+  selectedId: string
+  onSelect: Handler
+  onCreate: Handler
+  onCreateFromSample: Handler
+  onCreateSample?: Handler | null
+  canCreate: boolean
+  canCreateSample: boolean
+  onOpenSample?: Handler | null
+  onRemoveSample?: Handler
+  askSampleFor?: string | null
+  onSampleAsked: Handler
+  repository: AnyRecord
+  onReload: Handler
+  onEpisodeDeleted: Handler
+  t: (key: string) => string
+  language: string
+  fmtDate: (value: unknown) => string
+  fmtDateTime: (value: unknown) => string
+  libraries?: AnyRecord
+  organizationId: string | null | undefined
+  isDemo: boolean
+  onLibraryAdded: Handler
+  permissions: AnyRecord
+  protocolRequest?: AnyRecord | null
+  deviceBundles?: AnyRecord | null
+}
+// Surveillance workspace of the clinical record: the episode tree and its samples.
+export function SurveillanceWorkspace({
+  initialStage = null,
+  samples = [],
+  episodes,
+  selectedId,
+  onSelect,
+  onCreate,
+  onCreateFromSample,
+  onCreateSample,
+  canCreate,
+  canCreateSample,
+  onOpenSample,
+  onRemoveSample,
+  askSampleFor = null,
+  onSampleAsked,
+  repository,
+  onReload,
+  // The episode went to the recycle bin (the page may leave it, e.g. when it was opened from the list).
+  onEpisodeDeleted,
+  t,
+  language,
+  fmtDate,
+  fmtDateTime,
+  libraries = {},
+  organizationId,
+  isDemo,
+  onLibraryAdded,
+  permissions,
+  protocolRequest = null,
+  deviceBundles = null,
+}: SurveillanceWorkspaceProps) {
+  const { notify } = useFeedback()
+  // N3: "Start protocol" (header or a qSOFA / SOFA prompt) and the open protocols for the badges.
+  const [startRequest, setStartRequest] = useState<AnyRecord | null>(null),
+    [openRuns, setOpenRuns] = useState<AnyRecord[]>([])
+  const [sampleOpen, setSampleOpen] = useState(false),
+    [samplePrompt, setSamplePrompt] = useState<AnyRecord | null>(null),
+    [followUpParent, setFollowUpParent] = useState<AnyRecord | null>(null),
+    [detailId, setDetailId] = useState('')
+  const [deleteOpen, setDeleteOpen] = useState(false),
+    [deleteReason, setDeleteReason] = useState('')
+  const [editOpen, setEditOpen] = useState(false),
+    [editBusy, setEditBusy] = useState(false),
+    [editDraft, setEditDraft] = useState<EpisodeEditDraft>({
+      startedAt: '',
+      reviewDue: '',
+      room: '',
+      reason: '',
+      suspectedSource: '',
+    })
+  const deleteItem = useRecordDelete()
+  const sampleMenu = (sample: AnyRecord) =>
+    [
+      onOpenSample && {
+        id: 'edit',
+        label: translate('copy.clinicalRecordCopy.editSample', language === 'el' ? 'el' : 'en'),
+        icon: Pencil,
+        onClick: () => onOpenSample(sample),
+      },
+      deleteItem({
+        createdBy: sample.createdBy,
+        table: 'laboratory_samples',
+        id: sample.recordId,
+        label: sample.id,
+        demo: () => onRemoveSample?.(sample),
+        onDone: () => onReload?.(),
+      }),
+    ].filter(Boolean)
+  const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
+  // The sheet reads until «Edit sheet»; every action of it is in the «⋯» (owner, 8/11/2026).
+  const [sheetEditing, setSheetEditing] = useState(false),
+    [sheetAction, setSheetAction] = useState<SheetAction | null>(null)
+  useEffect(() => setSheetEditing(false), [detailId])
+  const sheetActive = detailRecord?.status === 'active'
+  const canEditSheet = sheetActive && ['canAssess', 'canLab', 'canIsolation', 'canTherapy', 'canReassess', 'canOutcome'].some(key => permissions?.[key])
+  const askSheet = (stage: string, dialog: string) => {
+    setSheetEditing(true)
+    setSheetAction({ stage, dialog, nonce: Date.now() })
+  }
+  const copyText = (key: string) => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
+  // A surveillance started with «new sample request» opens with its sample dialog (owner, 8/11/2026).
+  useEffect(() => {
+    if (askSampleFor && episodes.some(ep => String(ep.id) === String(askSampleFor))) setDetailId(askSampleFor)
+  }, [askSampleFor, episodes])
+  const episodeKey = episodes.map(ep => ep.id).join(',')
+  // The epidemiological questionnaire: a grey reminder, or the origin and risk factors in words, on each episode row.
+  const epiIndex = useEpiIndex({ organizationId, isDemo, enabled: canWriteEpi(useTenant().role), refreshKey: episodeKey })
+  useEffect(() => {
+    let alive = true
+    loadOpenProtocolRuns(organizationId, { isDemo })
+      .then(rows => {
+        if (alive) setOpenRuns(rows)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [organizationId, isDemo, episodeKey, detailId])
+  useEffect(() => {
+    if (!protocolRequest?.episodeId) return
+    setDetailId(protocolRequest.episodeId)
+    setStartRequest(protocolRequest)
+  }, [protocolRequest])
+  const openRunFor = (ep: AnyRecord) =>
+    openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id) || String(run.caseId) === String(ep.id))
+  async function saveSample(draft: AnyRecord) {
+    if (!onCreateSample) return
+    const parent = followUpParent
+    const siblings = parent
+      ? samples.filter(x => String(x.id || '').startsWith(`${parent.id}-R`)).length
+      : 0
+    const payload = parent
+      ? {
+          ...draft,
+          type: draft.type || parent.type,
+          sampleCode: `${parent.id}-R${siblings + 1}`,
+          surveillanceCaseId: parent.surveillanceCase || null,
+        }
+      : draft
+    let created = null
+    try {
+      created = await onCreateSample(payload)
+    } catch (error) {
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
+      return
+    }
+    setSampleOpen(false)
+    setFollowUpParent(null)
+    if (created && !parent) setSamplePrompt(created)
+  }
+  function openEpisode(id: string) {
+    onSelect?.(id)
+    setDetailId(id)
+  }
+  function openEditEpisode() {
+    if (!detailRecord) return
+    setEditDraft({
+      startedAt: String(detailRecord.startedAt || '').slice(0, 10),
+      reviewDue: String(detailRecord.reviewDue || '').slice(0, 10),
+      room: detailRecord.room || '',
+      reason: detailRecord.reason || '',
+      suspectedSource: detailRecord.suspectedSource || '',
+    })
+    setEditOpen(true)
+  }
+  async function saveEpisodeEdit() {
+    if (!detailRecord || !editDraft.startedAt || !editDraft.reason.trim()) return
+    setEditBusy(true)
+    try {
+      const updated = await repository.updateCase(detailRecord, editDraft)
+      setEditOpen(false)
+      await onReload(updated?.id || detailRecord.id)
+      notify(
+        translate('copy.clinicalRecordCopy.surveillanceUpdated', language === 'el' ? 'el' : 'en'),
+        'success',
+      )
+    } catch (error) {
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
+    } finally {
+      setEditBusy(false)
+    }
+  }
+  async function removeEpisode() {
+    if (!detailRecord || !deleteReason.trim()) return
+    try {
+      await repository.deleteCase(detailRecord, deleteReason.trim())
+      setDeleteOpen(false)
+      setDeleteReason('')
+      setDetailId('')
+      notify(t('clinicalRecords.surveillanceDeleted'), 'success')
+      if (onEpisodeDeleted?.(detailRecord)) return
+      await onReload()
+    } catch (error) {
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
+    }
+  }
+  if (detailRecord)
+    return (
+      <SurveillanceEpisodeSheet j={{ askSampleFor, askSheet, canEditSheet, copyText, deleteItem, deleteOpen, deleteReason, detailRecord, deviceBundles, editBusy, editDraft, editOpen, fmtDate, fmtDateTime, initialStage, isDemo, language, libraries, onLibraryAdded, onReload, onSampleAsked, openEditEpisode, organizationId, permissions, removeEpisode, repository, saveEpisodeEdit, setDeleteOpen, setDeleteReason, setDetailId, setEditDraft, setEditOpen, setSheetAction, setSheetEditing, setStartRequest, sheetAction, sheetActive, sheetEditing, startRequest, t }} />
+    )
+  return (
+    <RecordTabPanel
+      className="patient-surveillance-clean unified-surveillance-workspace surveillance-tree-section"
+      actions={
+        <>
+          {/* A sample of the patient on its own, without a surveillance (owner, 8/11/2026). */}
+          {canCreateSample && onCreateSample && (
+            <Button variant="secondary" onClick={() => { setFollowUpParent(null); setSampleOpen(true) }}>
+              <Microscope size={15} />{' '}
+              {translate('copy.clinicalRecordCopy.newSample', language === 'el' ? 'el' : 'en')}
+            </Button>
+          )}
+          {canCreate && (
+            <Button className="clinical-primary-action" onClick={onCreate}>
+              <PlayCircle size={15} />{' '}
+              {translate(
+                'copy.clinicalRecordCopy.startNewSurveillance',
+                language === 'el' ? 'el' : 'en',
+              )}
+            </Button>
+          )}
+        </>
+      }
+    >
+      <div className="sv-tree">
+        {episodes.map(ep => {
+          const listed = samples.filter(
+            sample =>
+              String(
+                sample.surveillanceCase ||
+                  sample.surveillanceCaseId ||
+                  sample.surveillance_case_id ||
+                  '',
+              ) === String(ep.id) ||
+              (Boolean(sample.surveillanceCase) &&
+                String(sample.surveillanceCase) === String(ep.recordId || '')),
+          )
+          const listedIds = new Set(listed.map(x => String(x.id || '')))
+          const linked = [
+            ...listed,
+            ...(ep.samples || []).filter((x: AnyRecord) => !listedIds.has(String(x.id || ''))),
+          ]
+          const organism =
+            ep.samples?.find((x: AnyRecord) => x.organism)?.organism ||
+            linked.find(x => x.organism)?.organism ||
+            ''
+          const resistance = ep.resistance || linked.find(x => x.resistance)?.resistance || ''
+          return (
+            <div
+              className={`sv-episode sv-status-${ep.status || 'active'} ${String(selectedId) === String(ep.id) ? 'is-selected' : ''}`}
+              key={ep.id}
+            >
+              <button type="button" className="sv-episode-head" onClick={() => openEpisode(ep.id)}>
+                <span className="sv-episode-icon" aria-hidden="true">
+                  <Activity size={17} />
+                </span>
+                <span className="sv-episode-main">
+                  <span className="sv-episode-title">
+                    <strong>
+                      {episodeTypeLabel(ep, t) ||
+                        translate(
+                          'copy.clinicalRecordCopy.surveillance',
+                          language === 'el' ? 'el' : 'en',
+                        )}
+                    </strong>
+                    <StatusBadge tone={statusTone(ep.status)}>{t(ep.status)}</StatusBadge>
+                    <ProtocolBadge entry={openRunFor(ep)} t={t} language={language} />
+                  </span>
+                  <small>
+                    {translate(
+                      'copy.clinicalRecordCopy.surveillance',
+                      language === 'el' ? 'el' : 'en',
+                    )}{' '}
+                    ·{' '}
+                    {translate('copy.clinicalRecordCopy.started', language === 'el' ? 'el' : 'en')}{' '}
+                    {fmtDate(ep.startedAt)}
+                    {ep.reviewDue ? (
+                      <>
+                        {' '}
+                        · <CalendarClock size={12} />{' '}
+                        {translate(
+                          'copy.clinicalRecordCopy.review',
+                          language === 'el' ? 'el' : 'en',
+                        )}{' '}
+                        {ep.status === 'active' ? (
+                          <DueDate value={ep.reviewDue} format={fmtDate} />
+                        ) : (
+                          fmtDate(ep.reviewDue)
+                        )}
+                      </>
+                    ) : null}
+                  </small>
+                  {epiPending(epiIndex, ep) ? (
+                    <small className="epi-row-line">
+                      <EpiReminder />
+                    </small>
+                  ) : (
+                    epiIndex.ready &&
+                    epiIndex.rows[ep.recordId || ep.id] && (
+                      <small className="epi-row-line">
+                        {rowLine(epiSummary({ row: epiIndex.rows[ep.recordId || ep.id], record: ep, admissionDate: ep.admissionDate, samples: linked }), t)}
+                      </small>
+                    )
+                  )}
+                </span>
+                <span className="sv-episode-findings">
+                  {organism ? (
+                    <em className="sv-chip sv-chip-organism">{organism}</em>
+                  ) : (
+                    <em className="sv-chip sv-chip-muted">
+                      {translate(
+                        'copy.clinicalRecordCopy.noFinding',
+                        language === 'el' ? 'el' : 'en',
+                      )}
+                    </em>
+                  )}
+                  {resistance && (
+                    <em
+                      className={`sv-chip ${RESISTANCE_ALERT.has(String(resistance).toUpperCase()) ? 'sv-chip-danger' : 'sv-chip-muted'}`}
+                    >
+                      {resistance}
+                    </em>
+                  )}
+                  <span className="sv-sample-count">
+                    <Microscope size={13} />
+                    {linked.length}
+                  </span>
+                </span>
+                <ChevronRight className="sv-episode-open" size={18} />
+              </button>
+              {linked.length > 0 && (
+                <div className="sv-samples">
+                  <SampleTree
+                    samples={linked}
+                    linked
+                    onFollowUp={sample => {
+                      setFollowUpParent(sample)
+                      setSampleOpen(true)
+                    }}
+                    onCreateFromSample={onCreateFromSample}
+                    canCreate={canCreate}
+                    canCreateSample={canCreateSample}
+                    sampleMenu={sampleMenu}
+                    t={t}
+                    language={language}
+                    fmtDate={fmtDate}
+                  />
+                </div>
+              )}
+            </div>
+          )
+        })}
+        {(() => {
+          const unlinked = samples.filter(
+            sample =>
+              !episodes.some(
+                ep =>
+                  String(
+                    sample.surveillanceCase ||
+                      sample.surveillanceCaseId ||
+                      sample.surveillance_case_id ||
+                      '',
+                  ) === String(ep.id) ||
+                  (Boolean(sample.surveillanceCase) &&
+                    String(sample.surveillanceCase) === String(ep.recordId || '')) ||
+                  (ep.samples || []).some((x: AnyRecord) => x.id && String(x.id) === String(sample.id)),
+              ),
+          )
+          return unlinked.length ? (
+            <div className="sv-unlinked">
+              <div className="sv-unlinked-heading">
+                <Microscope size={15} />
+                <strong>
+                  {translate(
+                    'copy.clinicalRecordCopy.samplesWithoutSurveillance',
+                    language === 'el' ? 'el' : 'en',
+                  )}
+                </strong>
+                <span>{unlinked.length}</span>
+              </div>
+              <div className="sv-samples sv-samples-flat">
+                <SampleTree
+                  samples={unlinked}
+                  linked={false}
+                  onFollowUp={sample => {
+                    setFollowUpParent(sample)
+                    setSampleOpen(true)
+                  }}
+                  onCreateFromSample={onCreateFromSample}
+                  canCreate={canCreate}
+                  canCreateSample={canCreateSample}
+                  sampleMenu={sampleMenu}
+                  t={t}
+                  language={language}
+                  fmtDate={fmtDate}
+                />
+              </div>
+            </div>
+          ) : null
+        })()}
+        {!episodes.length && !samples.length && (
+          <div className="inline-empty">
+            {translate(
+              'copy.clinicalRecordCopy.noSurveillanceEpisodesOrSamplesFor',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </div>
+        )}
+      </div>
+      {sampleOpen && (
+        <SampleRequestDialog
+          t={t}
+          context={{
+            patient: language === 'el' ? followUpParent?.patient : followUpParent?.patientEn || followUpParent?.patient,
+            department: language === 'el' ? followUpParent?.department : followUpParent?.departmentEn || followUpParent?.department,
+          }}
+          title={
+            followUpParent
+              ? translate('copy.clinicalRecordCopy.sampleRequestFollowUp', language === 'el' ? 'el' : 'en')
+              : null
+          }
+          initialType={followUpParent?.type || followUpParent?.sampleType || ''}
+          epi={(() => {
+            const parentCase = String(followUpParent?.surveillanceCase || followUpParent?.surveillanceCaseId || '')
+            const episode = parentCase ? episodes.find(ep => parentCase === String(ep.id) || parentCase === String(ep.recordId || '')) : null
+            return episode ? { episode, admission: null, samples: episode.samples || [] } : null
+          })()}
+          onClose={() => {
+            setSampleOpen(false)
+            setFollowUpParent(null)
+          }}
+          onSave={saveSample}
+        />
+      )}
+      {samplePrompt && (
+        <ObserverDialog
+          title={translate(
+            'copy.clinicalRecordCopy.sampleRecorded2',
+            language === 'el' ? 'el' : 'en',
+          )}
+          width="compact"
+          onClose={() => setSamplePrompt(null)}
+          footer={
+            canCreate ? (
+              <Button
+                onClick={() => {
+                  const sample = samplePrompt
+                  setSamplePrompt(null)
+                  onCreateFromSample?.(sample)
+                }}
+              >
+                {translate(
+                  'copy.clinicalRecordCopy.startSurveillance',
+                  language === 'el' ? 'el' : 'en',
+                )}
+              </Button>
+            ) : null
+          }
+        >
+          <p>
+            {translate(
+              'copy.clinicalRecordCopy.startSurveillanceFromThisSample',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </p>
+        </ObserverDialog>
+      )}
+    </RecordTabPanel>
+  )
+}

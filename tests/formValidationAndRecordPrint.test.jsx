@@ -9,6 +9,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 vi.mock('../src/features/management/useLibraries', async original => ({ ...(await original()), useLibraries: () => ({ libraries: { sampleTypes: [] } }) }))
 
@@ -92,7 +93,7 @@ describe('forms never save empty', () => {
 
   it('wires the rule into every surveillance creation form', () => {
     for (const file of ['NewSurveillanceFlow.jsx', 'EmployeeSurveillanceCanonicalFlow.jsx', 'EnvironmentalSurveillanceFlow.jsx', 'ClinicalRecordDialogs.jsx']) {
-      const source = read(`src/features/surveillance/${file}`)
+      const source = readSplitSource(`src/features/surveillance/${file}`)
       expect(source, file).toContain('useFormValidation(')
       expect(source, file).toContain('<FormSubmit')
     }
@@ -147,7 +148,7 @@ describe('printing a record page', () => {
     expect(css).toContain('.record-print-section{break-before:page}')
     expect(css).toContain('.record-print-header,.record-print-footer{display:none}')
     // The surveillance episode and the laboratory sample print all their tabs.
-    expect(read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('renderTab={renderTab}')
+    expect(readSplitSource('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('renderTab={renderTab}')
     expect(read('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx')).toContain('renderTab={renderTab}')
   })
 })

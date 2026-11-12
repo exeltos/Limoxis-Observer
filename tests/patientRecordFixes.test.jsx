@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 vi.mock('../src/features/management/useLibraries', async original => ({ ...(await original()), useLibraries: () => ({ libraries: {} }) }))
 
@@ -57,7 +58,7 @@ describe('DetailList', () => {
   })
 
   it('replaces the grid in the patient record summary and the episode summary', () => {
-    const source = read('src/features/surveillance/ClinicalAdmissions.jsx')
+    const source = readSplitSource('src/features/surveillance/ClinicalAdmissions.jsx')
     expect(source).toContain('<DetailList')
     expect(source).not.toContain('detail-grid patient-detail-grid')
   })
@@ -123,7 +124,7 @@ describe('patient discharge', () => {
   })
 
   it('records the discharge only from the confirmation step, with the reason in the admission notes', () => {
-    const source = read('src/features/surveillance/ClinicalAdmissions.jsx')
+    const source = readSplitSource('src/features/surveillance/ClinicalAdmissions.jsx')
     expect(source).toContain('onConfirm={confirmDischarge}')
     expect(source).toContain('await dischargeAdmission(tenantId, patient, admission, result, { isDemo })')
     expect(read('supabase/migrations/20260918104000_patient_admission_lifecycle.sql')).toContain("'Discharge: '||trim(p_reason)")
@@ -160,7 +161,7 @@ describe('patient forms use the shared validation', () => {
 
   it('wires the create page and the in-place edit to FormSubmit', () => {
     expect(read('src/features/patients/PatientCreatePage.jsx')).toContain('<FormSubmit form={form.validation}')
-    expect(read('src/features/surveillance/ClinicalAdmissions.jsx')).toContain('form={form.validation}')
+    expect(readSplitSource('src/features/surveillance/ClinicalAdmissions.jsx')).toContain('form={form.validation}')
   })
 })
 

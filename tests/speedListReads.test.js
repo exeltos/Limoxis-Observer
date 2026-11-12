@@ -2,6 +2,7 @@
 // each (20261201110000); the patient record reads its own patient and samples.
 import { describe, expect, it } from 'vitest'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = path => readSource(path)
 const migration = read('supabase/migrations/20261201110000_surveillance_laboratory_list_reads.sql')
@@ -18,7 +19,7 @@ describe('list reads', () => {
   })
 
   it('keeps the full reads for a database without the functions', () => {
-    const clinical = read('src/features/surveillance/clinicalCloudService.js')
+    const clinical = readSplitSource('src/features/surveillance/clinicalCloudService.js')
     const laboratory = read('src/features/laboratory/laboratoryCloudService.js')
     const surveys = read('src/features/quality/surveys/surveyService.js')
     expect(clinical).toContain("supabase.rpc('surveillance_case_summaries'")
@@ -29,8 +30,8 @@ describe('list reads', () => {
   })
 
   it('reads the patient record without the roster or the whole laboratory', () => {
-    const record = read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
-    expect(record).toContain('loadPatientsByKeys(tenant.id, UUID_PATTERN.test(patientId) ? { recordIds: [patientId] } : { codes: [patientId] })')
+    const record = readSplitSource('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
+    expect(record).toContain('loadPatientsByKeys(tenant!.id, UUID_PATTERN.test(patientId) ? { recordIds: [patientId] } : { codes: [patientId] })')
     // The link from a surveillance row carries the record id: it opens the same patient.
     expect(record).toContain('isPatientKey(row, patientId)')
     expect(record).toContain('useLaboratoryRegistry({ enabled: isDemo || !tenant?.id || Boolean(labScope), scope: labScope })')

@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 vi.mock('../src/core/auth/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'owner-1' }, profile: { id: 'owner-1', isPlatformOwner: true, fullName: 'Platform Owner', isDemo: false }, isAuthenticated: true, isDemoSession: false, loading: false }),
@@ -88,7 +89,7 @@ describe('staff surveillance record page', () => {
 
   it('is routed, and the list opens it instead of a window', () => {
     expect(read('src/app/App.jsx')).toContain('path="surveillance/staff/:recordId"')
-    const page = read('src/features/surveillance/SurveillanceCanonicalPage.jsx')
+    const page = readSplitSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
     expect(page).toContain('/surveillance/staff/')
     expect(page).not.toContain('EmployeeSurveillanceRecordDialog')
   })
