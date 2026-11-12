@@ -125,7 +125,7 @@ export function ReportingPanel({ tenant, isDemo, year, tx, en, parts = ['quality
         loadPatients(tenant?.id, { isDemo, includeArchived: true }).catch(() => []),
         loadNotificationReports(tenant?.id, { isDemo }).then((rows): { rows: NotificationReport[], unavailable?: boolean } => ({ rows }), () => ({ rows: [], unavailable: true })),
       ])
-      const samples = Array.isArray(listed) ? listed : (listed?.data || listed?.rows || [])
+      const samples = Array.isArray(listed) ? listed : (listed?.data || (listed as AnyRecord)?.rows || [])
       setState({ loading: false, error: '', samples, patients, reports: reports.rows, reportsUnavailable: Boolean(reports.unavailable) })
     } catch (error) {
       setState(value => ({ ...value, loading: false, error: (error as Error | null)?.message || 'LOAD_FAILED' }))

@@ -109,7 +109,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   // The administrator's home: suppliers, kitchen (last 30 days) and interviews.
   const monthAgo = hospitalDate(new Date(now.getTime() - 30 * 86400000))
   const food = collectDemoDomainMetrics({ from: monthAgo, to: today }, false, 0).qualityFood || {}
-  const candidates = interviewsDemoState().candidates || []
+  const candidates: AnyRecord[] = interviewsDemoState().candidates || []
   const nowIso = now.toISOString()
   Object.assign(metrics, {
     expiredCertificates: food.certificatesExpired ?? 0,
