@@ -250,7 +250,7 @@ export function EmployeeSurveillanceRecordDialog({
     if (!requestEditor || requestSaving) return
     setRequestSaving(true)
     try {
-      await updateLaboratoryRequest(organizationId, requestEditor.sample.recordId, {
+      await updateLaboratoryRequest(organizationId as string, requestEditor.sample.recordId, {
         source: requestEditor.source,
         priority: requestEditor.priority,
         sampleType: requestEditor.sampleType,
@@ -274,7 +274,7 @@ export function EmployeeSurveillanceRecordDialog({
     })
     if (!ok) return
     try {
-      await cancelLaboratoryRequest(organizationId, sample.recordId)
+      await cancelLaboratoryRequest(organizationId as string, sample.recordId)
       await reloadSamples()
       notify(en ? 'Laboratory request cancelled.' : 'Το αίτημα εργαστηρίου ακυρώθηκε.', 'success')
     } catch (error) {
@@ -293,7 +293,7 @@ export function EmployeeSurveillanceRecordDialog({
     })
     if (!ok) return
     try {
-      await deleteLaboratoryRequest(organizationId, sample.recordId)
+      await deleteLaboratoryRequest(organizationId as string, sample.recordId)
       await reloadSamples()
       notify(en ? 'Laboratory request deleted.' : 'Το αίτημα εργαστηρίου διαγράφηκε.', 'success')
     } catch (error) {

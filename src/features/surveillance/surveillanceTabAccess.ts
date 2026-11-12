@@ -1,8 +1,8 @@
 import { ROLES } from '../../core/permissions/roles'
 
 interface SurveillanceTabAccessOptions {
-  role: string
-  actualRole: string
+  role: string | null
+  actualRole: string | null
   canSeeSensitiveEmployeeHealth: boolean
 }
 // Which surveillance lists a role opens besides the patient episodes: the staff

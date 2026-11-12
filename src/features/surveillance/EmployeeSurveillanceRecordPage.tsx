@@ -59,7 +59,8 @@ import { surveillanceTabAccess } from './surveillanceTabAccess'
 import { EmployeeExposureSection } from './EmployeeExposureSection'
 import './employeeLabRequest.css'
 import type { AnyRecord } from '../../types/featureTypes'
-import type { Handler } from './surveillanceTypes'
+import type { Handler, Setter } from './surveillanceTypes'
+import type { RecordNavigation } from '../../design-system/EntityRecordShell'
 
 // A staff screening opened from the «Εργαζόμενοι» list of the Surveillance
 // Center: a record page like the episode's (shared EntityRecordShell, DetailList,
@@ -79,7 +80,7 @@ export function EmployeeSurveillanceRecordPage() {
     currentId: recordId,
     pathForId: id => `/surveillance/staff/${id}`,
   })
-  const fmt = value => formatDay(value, language)
+  const fmt = (value: unknown) => formatDay(value, language)
   const [record, setRecord] = useState<AnyRecord | null>(null)
   const [samples, setSamples] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -87,18 +88,18 @@ export function EmployeeSurveillanceRecordPage() {
   const [followupOpen, setFollowupOpen] = useState(false)
   const [requestEditor, setRequestEditor] = useState<AnyRecord | null>(null)
   const [requestSaving, setRequestSaving] = useState(false)
-  const recordRef = useRef(null)
+  const recordRef = useRef<AnyRecord | null>(null)
   recordRef.current = record
   const organizationId = tenant?.id
   const { employees: allowed } = surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth })
-  const has = capability => can(role, capability, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
+  const has = (capability: string) => can(role, capability, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const canManageFollowup = isDemo || has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
   const canManageLab = !isDemo && has(CAPABILITIES.MANAGE_LAB_SAMPLES)
   const canOpenSample = has(CAPABILITIES.VIEW_LAB)
   const navigate = useNavigate()
 
   const loadSamples = useCallback(
-    async (row: AnyRecord) => {
+    async (row: AnyRecord | null) => {
       if (!row) return setSamples([])
       if (isDemo) return setSamples(demoLaboratorySamples.filter(sample => sample.employeeSurveillanceCase === row.id))
       if (!organizationId || !row.recordId) return setSamples([])
@@ -159,6 +160,7 @@ export function EmployeeSurveillanceRecordPage() {
   )
 
   async function saveFollowup(patch: AnyRecord) {
+    if (!record) return
     const stamped = { ...patch, updatedAt: new Date().toISOString() }
     const updated = isDemo
       ? await Promise.resolve(updateEmployeeSurveillanceRecord(record.id, stamped))
@@ -171,7 +173,7 @@ export function EmployeeSurveillanceRecordPage() {
     if (!requestEditor || requestSaving) return
     setRequestSaving(true)
     try {
-      await updateLaboratoryRequest(organizationId, requestEditor.sample.recordId, {
+      await updateLaboratoryRequest(organizationId as string, requestEditor.sample.recordId, {
         source: requestEditor.source,
         priority: requestEditor.priority,
         sampleType: requestEditor.sampleType,
@@ -194,7 +196,7 @@ export function EmployeeSurveillanceRecordPage() {
     })
     if (!ok) return
     try {
-      await cancelLaboratoryRequest(organizationId, sample.recordId)
+      await cancelLaboratoryRequest(organizationId as string, sample.recordId)
       await loadSamples(recordRef.current)
       notify(L('Το αίτημα εργαστηρίου ακυρώθηκε.', 'Laboratory request cancelled.'), 'success')
     } catch (error) {
@@ -213,7 +215,7 @@ export function EmployeeSurveillanceRecordPage() {
     })
     if (!ok) return
     try {
-      await deleteLaboratoryRequest(organizationId, sample.recordId)
+      await deleteLaboratoryRequest(organizationId as string, sample.recordId)
       await loadSamples(recordRef.current)
       notify(L('Το αίτημα εργαστηρίου διαγράφηκε.', 'Laboratory request deleted.'), 'success')
     } catch (error) {
@@ -465,7 +467,7 @@ export function EmployeeSurveillanceRecordPage() {
       <EntityRecordShell
         className="workspace-fill"
         printReport={printReport}
-        recordNavigation={recordNavigation}
+        recordNavigation={recordNavigation as RecordNavigation}
         avatar={<UserRound size={20} />}
         eyebrow={compactCode(record.id)}
         title={name}
@@ -477,7 +479,8 @@ export function EmployeeSurveillanceRecordPage() {
         onTabChange={setTab}
         headerActions={
           <>
-            {screeningDelete && <Button tone="danger" label={t('clinicalRecords.deleteEmployeeScreening')} onClick={screeningDelete.onClick} />}
+            {/* `label` is read by EntityRecordShell, which moves the command into the record's «⋯» menu. */}
+            {screeningDelete && <Button tone="danger" {...{ label: t('clinicalRecords.deleteEmployeeScreening') }} onClick={screeningDelete.onClick} />}
             {canManageFollowup && followupEligible && (
               <ActionButton tone={hasFollowup(record) ? 'edit' : 'primary'} label={followupLabel} onClick={() => setFollowupOpen(true)}>
                 {hasFollowup(record) ? <Pencil size={15} /> : <CheckCircle2 size={15} />}
@@ -513,7 +516,7 @@ export function EmployeeSurveillanceRecordPage() {
 interface FollowupDialogProps {
   record: AnyRecord
   language: string
-  fmtLabel: (value: unknown) => string
+  fmtLabel: string
   onClose: Handler
   onSave: Handler
 }
@@ -625,7 +628,7 @@ function FollowupDialog({ record, language, fmtLabel, onClose, onSave }: Followu
         {changed && (
           <div className="entry-span-2">
             <Field label={L('Αιτιολογία διόρθωσης', 'Correction reason')} {...form.field('correctionReason')}>
-              <textarea rows="2" value={correctionReason} onChange={e => setCorrectionReason(e.target.value)} />
+              <textarea rows={2} value={correctionReason} onChange={e => setCorrectionReason(e.target.value)} />
             </Field>
           </div>
         )}
@@ -638,7 +641,7 @@ interface RequestDialogProps {
   editor: AnyRecord
   saving: boolean
   language: string
-  onChange: Handler
+  onChange: Setter<AnyRecord | null>
   onClose: Handler
   onSave: Handler
 }

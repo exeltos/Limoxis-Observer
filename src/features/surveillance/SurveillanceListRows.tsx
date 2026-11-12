@@ -15,6 +15,8 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
+import type { SortState } from '../../design-system/useTableSort'
+import type { EpiIndex } from './epiQuestionnaire/useEpiIndex'
 
 export const HIDDEN_CASE_STATUSES = new Set(['cancelled', 'voided', 'void'])
 export function groupByPatient(list: AnyRecord[]) {
@@ -60,14 +62,14 @@ export function groupByPatient(list: AnyRecord[]) {
     )
 }
 interface PatientRowsProps {
-  sort: AnyRecord
+  sort: SortState | null
   onSort: Handler
   loading?: boolean
   rows: AnyRecord[]
   showDepartment?: boolean
   openRuns?: AnyRecord[]
-  epiIndex?: number | null
-  empty: boolean
+  epiIndex?: EpiIndex | null
+  empty?: AnyRecord | null
   registry: AnyRecord
   t: (key: string) => string
   language: string
@@ -121,7 +123,7 @@ export function PatientRows({ sort, onSort, loading = false, rows, showDepartmen
             </td>
             <td>
               <StatusBadge tone={statusTone(x.status)}>{t(x.status)}</StatusBadge>
-              {(x.episodes || [x]).some(ep => epiPending(epiIndex, ep)) && (
+              {(x.episodes || [x]).some((ep: AnyRecord) => epiPending(epiIndex, ep)) && (
                 <small className="epi-row-line"><EpiReminder /></small>
               )}
             </td>
@@ -133,11 +135,11 @@ export function PatientRows({ sort, onSort, loading = false, rows, showDepartmen
   )
 }
 interface EmployeeRowsProps {
-  sort: AnyRecord
+  sort: SortState | null
   onSort: Handler
   loading?: boolean
   rows: AnyRecord[]
-  empty: boolean
+  empty?: AnyRecord | null
   registry: AnyRecord
   language: string
   fmt: (value: unknown) => string
@@ -219,7 +221,7 @@ export function EmployeeStatusBadge({ row, t }: EmployeeStatusBadgeProps) {
 }
 // One count of the row of cards above the list; with a quick key it filters the list, pressing it again shows everything.
 export const SAMPLE_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
-export function matchesEmployeeQuick(row: AnyRecord, quick) {
+export function matchesEmployeeQuick(row: AnyRecord, quick: string) {
   const today = hospitalToday()
   if (quick === 'active') return row.status === 'active'
   if (quick === 'positive') return row.resultStatus === 'positive'
@@ -227,14 +229,14 @@ export function matchesEmployeeQuick(row: AnyRecord, quick) {
   if (quick === 'recheck') return Boolean(row.recheckDue) && row.recheckDue <= today && row.status === 'active'
   return true
 }
-export function matchesEnvironmentQuick(row: AnyRecord, quick) {
+export function matchesEnvironmentQuick(row: AnyRecord, quick: string) {
   if (quick === 'active') return SAMPLE_PENDING_STATUSES.includes(row.status)
   if (quick === 'pending') return SAMPLE_PENDING_STATUSES.includes(row.status) && !row.result
   if (quick === 'outside') return environmentalNeedsAction(row)
   if (quick === 'critical') return Boolean(row.critical)
   return true
 }
-export function matchesQuick(x: AnyRecord, quick) {
+export function matchesQuick(x: AnyRecord, quick: string) {
   const active = x.status === 'active'
   if (quick === 'active') return active
   if (quick === 'due') return active && reviewState(x) === 'overdue'

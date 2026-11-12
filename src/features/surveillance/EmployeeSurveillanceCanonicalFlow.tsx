@@ -37,11 +37,11 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     { tenant, isDemo } = useTenant(),
     { language, t } = useLanguage(),
     { notify, notifyError } = useFeedback(),
-    { data: employeeRows = [] } = useEmployeesData()
+    { data: employeeRows = [] }: { data?: AnyRecord[] } = useEmployeesData()
   const [department, setDepartment] = useState('all'),
-    [selectedIds, setSelectedIds] = useState([]),
+    [selectedIds, setSelectedIds] = useState<string[]>([]),
     [date, setDate] = useState(hospitalToday()),
-    [types, setTypes] = useState(['nasalSwab']),
+    [types, setTypes] = useState<string[]>(['nasalSwab']),
     [notes, setNotes] = useState(''),
     [saving, setSaving] = useState(false)
   const activeEmployees = useMemo(
@@ -234,8 +234,9 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
             value={notes}
             onChange={event => setNotes(event.target.value)}
             onInput={event => {
-              event.target.style.height = 'auto'
-              event.target.style.height = `${event.target.scrollHeight}px`
+              const target = event.target as HTMLTextAreaElement
+              target.style.height = 'auto'
+              target.style.height = `${target.scrollHeight}px`
             }}
           />
         </label>
@@ -244,10 +245,10 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
   )
 }
 interface ScreeningTypesProps {
-  types: AnyRecord[]
+  types: string[]
   toggle: Handler
-  en: AnyRecord
-  fieldProps: AnyRecord[]
+  en: boolean
+  fieldProps: AnyRecord
 }
 function ScreeningTypes({ types, toggle, en, fieldProps }: ScreeningTypesProps) {
   return (
