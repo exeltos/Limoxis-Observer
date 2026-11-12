@@ -1,8 +1,9 @@
 import {describe,expect,it} from 'vitest'
 import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
-const service=readSource('src/features/surveillance/clinicalCloudService.js')
+const service=readSplitSource('src/features/surveillance/clinicalCloudService.js')
 const page=readPatientClinicalRecordSource()
 const repository=readSource('src/features/surveillance/clinicalRepository.js')
 

@@ -6,6 +6,7 @@ import { createClinicalRepository } from '../src/features/surveillance/clinicalR
 import { clinicalCases } from '../src/features/surveillance/clinicalDemoData'
 import { laboratorySamples } from '../src/features/laboratory/laboratoryDemoData'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = file => readSource(file)
 const positive = (extra = {}) => ({ id: 'LAB-1', subjectType: 'patient', status: 'completed', result: 'positive', organism: 'Klebsiella pneumoniae', type: 'urineCulture', ...extra })
@@ -120,7 +121,7 @@ describe('«Αίτημα δείγματος»', () => {
     expect(workspace).toContain('SampleRequestDialog')
     expect(read('src/features/surveillance/ClinicalRecordDialogs.jsx')).toContain('useFormValidation(')
     // Results are entered only in the Laboratory: the request never writes one.
-    expect(read('src/features/surveillance/clinicalCloudService.js')).toMatch(/status: 'requested',\n\s+requested_at/)
+    expect(readSplitSource('src/features/surveillance/clinicalCloudService.js')).toMatch(/status: 'requested',\n\s+requested_at/)
   })
 })
 

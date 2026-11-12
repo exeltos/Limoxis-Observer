@@ -1,6 +1,7 @@
 import { describe,expect,it } from 'vitest'
 import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const registry=readSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
 const record=readPatientClinicalRecordSource()
@@ -20,7 +21,7 @@ describe('new surveillance Demo/Production parity',()=>{
     expect(record).toContain('repository.requestSample')
     expect(repository).toContain('createClinicalCase(organizationId,patient.recordId,draft)')
     // The admission link is written with the case, in one transaction (create_surveillance_case).
-    expect(readSource('src/features/surveillance/clinicalCloudService.js')).toContain("p_admission_id: draft.admissionId || null")
+    expect(readSplitSource('src/features/surveillance/clinicalCloudService.js')).toContain("p_admission_id: draft.admissionId || null")
     expect(admissionService).toContain("update({admission_id:admissionId})")
   })
 })

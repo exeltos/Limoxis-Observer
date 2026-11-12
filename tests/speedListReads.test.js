@@ -2,6 +2,7 @@
 // each (20261201110000); the patient record reads its own patient and samples.
 import { describe, expect, it } from 'vitest'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = path => readSource(path)
 const migration = read('supabase/migrations/20261201110000_surveillance_laboratory_list_reads.sql')
@@ -18,7 +19,7 @@ describe('list reads', () => {
   })
 
   it('keeps the full reads for a database without the functions', () => {
-    const clinical = read('src/features/surveillance/clinicalCloudService.js')
+    const clinical = readSplitSource('src/features/surveillance/clinicalCloudService.js')
     const laboratory = read('src/features/laboratory/laboratoryCloudService.js')
     const surveys = read('src/features/quality/surveys/surveyService.js')
     expect(clinical).toContain("supabase.rpc('surveillance_case_summaries'")
