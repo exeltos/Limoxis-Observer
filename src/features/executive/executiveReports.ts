@@ -3,20 +3,23 @@
 // departments at a glance, in 1–2 pages; «Αναφορά τμήματος» — one department against the departments' average
 // and against the comparison, one page to hand to the department.
 import { measuresByArea } from './executiveModel'
-import { assessmentOf, changeText, notStartedReason } from './executiveInsights'
+import { assessmentOf, changeText, notStartedReason, type DepartmentGrid, type Highlight, departmentProfile } from './executiveInsights'
+import type { ExecKpi } from './executiveModel'
+import type { ReportCell, ReportDoc, ReportSection } from '../../core/export/reportDocument'
 
-const fmt = (value, unit, en) => (value == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)}${unit || ''}`)
-const toneClass = { good: 'rd-good', warning: 'rd-warn', danger: 'rd-bad' }
+const fmt = (value: number | null | undefined, unit: string | null | undefined, en: boolean) => (value == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)}${unit || ''}`)
+const toneClass: Record<string, string> = { good: 'rd-good', warning: 'rd-warn', danger: 'rd-bad' }
 
 // «Αναφορά Δ.Σ.» (owner, 8/11/2026): the same as the summary — what needs attention and what got better, the table of
 // the measures, the comparison of the departments and, last, the measures whose calculation has not started yet.
-export function boardReportDocument({ kpis, highlights = { attention: [], improved: [] }, compared = true, grid, hospital, periodLine, compareLabel, versus = String(compareLabel).toLowerCase(), currentLabel, language }) {
+interface BoardReportOptions { kpis: ExecKpi[], highlights?: { attention: Highlight[], improved: Highlight[] }, compared?: boolean, grid: DepartmentGrid, hospital: string, periodLine: string, compareLabel: string, versus?: string, currentLabel?: string, language: string }
+export function boardReportDocument({ kpis, highlights = { attention: [], improved: [] }, compared = true, grid, hospital, periodLine, compareLabel, versus = String(compareLabel).toLowerCase(), currentLabel, language }: BoardReportOptions): ReportDoc {
   const en = language === 'en'
-  const tx = (el, english) => (en ? english : el)
+  const tx = (el: string, english: string) => (en ? english : el)
   const withData = kpis.filter((item) => item.value != null)
   const empty = kpis.filter((item) => item.value == null)
   const span = compared ? 6 : 4
-  const rows = measuresByArea(withData).flatMap((area) => [
+  const rows: ReportCell[][] = measuresByArea(withData).flatMap((area): ReportCell[][] => [
     [{ html: `<strong>${tx(...area.label)}</strong>`, colSpan: span, className: 'rd-muted' }],
     ...area.rows.map((item) => {
       const change = changeText(item, en), assessment = assessmentOf(item, en)
@@ -24,7 +27,7 @@ export function boardReportDocument({ kpis, highlights = { attention: [], improv
       return [tx(...item.label), { text: fmt(item.value, item.unit, en), className: 'rd-num' }, ...(compared ? [{ text: fmt(item.delta?.previous, item.unit, en), className: 'rd-num' }, changeCell] : []), item.target || '—', { text: assessment.text, className: toneClass[assessment.tone] || '' }]
     }),
   ])
-  const sections = []
+  const sections: ReportSection[] = []
   if (highlights.attention.length) sections.push({ title: tx('Χρειάζονται προσοχή', 'Need attention'), list: highlights.attention.map((item) => `${item.up == null ? '●' : item.up ? '▲' : '▼'} ${item.text}`) })
   if (highlights.improved.length) sections.push({ title: tx('Βελτιώθηκαν', 'Improved'), list: highlights.improved.map((item) => `${item.up ? '▲' : '▼'} ${item.text}`) })
   sections.push({ title: tx('Δείκτες', 'Measures'), table: { columns: [tx('Δείκτης', 'Measure'), currentLabel || tx('Περίοδος', 'Period'), ...(compared ? [compareLabel, tx('Μεταβολή', 'Change')] : []), tx('Στόχος', 'Target'), tx('Αξιολόγηση', 'Assessment')], rows, empty: tx('Ο υπολογισμός των δεικτών δεν έχει ξεκινήσει ακόμη.', 'The measures are not calculated yet.') } })
@@ -41,10 +44,11 @@ export function boardReportDocument({ kpis, highlights = { attention: [], improv
   }
 }
 
-export function departmentReportDocument({ department, profile, hospital, periodLine, compareLabel, language }) {
+interface DepartmentReportOptions { department: string, profile: ReturnType<typeof departmentProfile>, hospital: string, periodLine: string, compareLabel: string, language: string }
+export function departmentReportDocument({ department, profile, hospital, periodLine, compareLabel, language }: DepartmentReportOptions): ReportDoc {
   const en = language === 'en'
-  const tx = (el, english) => (en ? english : el)
-  const rows = profile.map((row) => [
+  const tx = (el: string, english: string) => (en ? english : el)
+  const rows = profile.map((row): ReportCell[] => [
     tx(...row.label),
     { text: fmt(row.value, row.unit, en), className: `rd-num ${toneClass[row.tone] || ''}` },
     { text: fmt(row.average, row.unit, en), className: 'rd-num' },
