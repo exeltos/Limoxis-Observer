@@ -14,6 +14,26 @@
     "src/features/account/**/*",
     "src/features/legal/**/*",
     "src/features/sections/**/*",
-    "src/features/recycle-bin/**/*"
+    "src/features/recycle-bin/**/*",
+    "src/features/analysis/**/*",
+    "src/features/auth/**/*",
+    "src/features/calendar/**/*",
+    "src/features/clinical-scales/**/*",
+    "src/features/dashboard/**/*",
+    "src/features/demo/**/*",
+    "src/features/division/**/*",
+    "src/features/documents/**/*",
+    "src/features/interviews/**/*",
+    "src/features/laboratory/**/*",
+    "src/features/legislation/**/*",
+    "src/features/library/**/*",
+    "src/features/lira/**/*",
+    "src/features/occupational-health/**/*",
+    "src/features/patients/**/*",
+    "src/features/pharmacy/**/*",
+    "src/features/registers/**/*",
+    "src/features/regulations/**/*",
+    "src/features/reporting/**/*",
+    "src/features/workspaces/**/*"
   ]
 }
