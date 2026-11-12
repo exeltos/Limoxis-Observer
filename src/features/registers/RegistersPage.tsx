@@ -49,7 +49,7 @@ export function RegistersPage() {
     </FigureCards>}
     <section className="surface registry-workspace workspace-column workspace-fill registers-workspace">
       {view === 'registers' && <RegistersPanel list={list} only={staleOnly ? isQuiet : null} filterEnd={viewSwitch} />}
-      {view === 'equipment' && <EquipmentList list={equipment} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={viewSwitch as unknown as null} onOpen={(row: AnyRecord) => goTo(`/quality/equipment/${row.id}`)} />}
+      {view === 'equipment' && <EquipmentList list={equipment} filters={equipmentFilters} setFilters={setEquipmentFilters as unknown as (update: (current: AnyRecord) => AnyRecord) => void} filterEnd={viewSwitch as unknown as null} onOpen={(row: AnyRecord) => goTo(`/quality/equipment/${row.id}`)} />}
     </section>
   </Page>
 }

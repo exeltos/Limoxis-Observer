@@ -19,7 +19,7 @@ const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν β�
 // A record points at its department by id in the cloud and by name in the demo.
 export const departmentRef = (record: AnyRecord) => record?.departmentId || record?.department || ''
 
-export function QualityDepartmentField({ value, onChange, label, required = false }: { value: string, onChange: (department: AnyRecord) => void, label?: string, required?: boolean }) {
+export function QualityDepartmentField({ value, onChange, label, required = false }: { value: string, onChange: (department: { departmentId: string, department: string, departmentEn: string }) => void, label?: string, required?: boolean }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { departments, loading }: { departments: AnyRecord[], loading: boolean } = useDepartments()
