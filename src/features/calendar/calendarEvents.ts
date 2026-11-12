@@ -3,27 +3,61 @@
 // detail, department, path, state }. state is 'overdue', 'due' or 'planned'.
 import { calculateNextDue } from '../controls/controlScheduling'
 import { controlTypeCode } from '../controls/controlVocabulary'
-import { suggestionCalendarItems } from '../documents/protocolReview/protocolReviewModel'
+import { suggestionCalendarItems as suggestionCalendarItemsJs } from '../documents/protocolReview/protocolReviewModel'
 import { standardShort } from '../quality/audits/auditStandards'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// One event of the calendar (the modules' items keep their own extra fields).
+export interface CalendarEvent {
+ id: string
+ date: string
+ time?: string
+ kind: string
+ title: string
+ detail?: string
+ department?: string
+ path?: string
+ state: string
+ expiry?: boolean
+ criticality?: string
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extra fields of each module's items
+ [key: string]: any
+}
+type Range={ from: string, to: string }
+// documents is still JavaScript: its options ({ownerId} without a default) would leave ownerId out of the type.
+const suggestionCalendarItems=suggestionCalendarItemsJs as (list: AnyRecord[], documents: AnyRecord[], options: { today?: string, language?: string, ownerId?: string | null }) => CalendarEvent[]
+// The sources the calendar reads (useCalendarSources).
+export interface CalendarSources {
+ controls?: AnyRecord[]
+ capas?: AnyRecord[]
+ audits?: AnyRecord[]
+ training?: AnyRecord | null
+ documentFamilies?: AnyRecord[]
+ committees?: AnyRecord[]
+ meetingGroups?: AnyRecord[]
+ protocolSuggestions?: AnyRecord[]
+ suppliers?: AnyRecord[]
+ kitchen?: CalendarEvent[]
+}
 
 export const CALENDAR_KINDS=['controls','cultures','capa','audits','training','documents','committees','suppliers','kitchen']
 
-const KIND_LABELS={
+const KIND_LABELS: Record<'el' | 'en', Record<string, string>>={
  el:{controls:'Έλεγχοι',cultures:'Καλλιέργειες',capa:'Διορθωτικές ενέργειες',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές',suppliers:'Προμηθευτές',kitchen:'Κουζίνα'},
  en:{controls:'Controls',cultures:'Cultures',capa:'CAPA',audits:'Audits',training:'Training',documents:'Documents',committees:'Committees',suppliers:'Suppliers',kitchen:'Kitchen'},
 }
-export const calendarKindLabel=(kind,language='el')=>KIND_LABELS[language==='en'?'en':'el'][kind]||kind
+export const calendarKindLabel=(kind: string,language='el')=>KIND_LABELS[language==='en'?'en':'el'][kind]||kind
 
 // The calendar's filter chips: controls, trainings, meetings and expiries
 // (certificates, licences, kitchen batches); everything else is «Other».
 // ?filter=controls (or controls,training) opens the calendar with only those on.
 export const CALENDAR_FILTERS=['controls','cultures','training','meetings','expiries','other']
-const FILTER_LABELS={
+const FILTER_LABELS: Record<'el' | 'en', Record<string, string>>={
  el:{controls:'Έλεγχοι',cultures:'Καλλιέργειες',training:'Εκπαιδεύσεις',meetings:'Συνεδριάσεις',expiries:'Λήξεις',other:'Λοιπά'},
  en:{controls:'Controls',cultures:'Cultures',training:'Trainings',meetings:'Meetings',expiries:'Expiries',other:'Other'},
 }
-export const calendarFilterLabel=(filter,language='el')=>FILTER_LABELS[language==='en'?'en':'el'][filter]||filter
-export function calendarFilterOf(event){
+export const calendarFilterLabel=(filter: string,language='el')=>FILTER_LABELS[language==='en'?'en':'el'][filter]||filter
+export function calendarFilterOf(event: CalendarEvent){
  if(event.expiry||/^(cert|kit-exp):/.test(String(event.id||'')))return 'expiries'
  if(event.kind==='controls')return 'controls'
  if(event.kind==='cultures')return 'cultures'
@@ -32,12 +66,12 @@ export function calendarFilterOf(event){
  return 'other'
 }
 // The chips a calendar can offer from the modules the user may see.
-export function calendarFiltersFor(kinds=[]){
- const has=kind=>kinds.includes(kind)
+export function calendarFiltersFor(kinds: readonly string[]=[]){
+ const has=(kind: string)=>kinds.includes(kind)
  return CALENDAR_FILTERS.filter(filter=>filter==='controls'?has('controls'):filter==='cultures'?has('cultures'):filter==='training'?has('training'):filter==='meetings'?has('committees'):filter==='expiries'?has('training')||has('documents')||has('kitchen'):kinds.some(kind=>['capa','audits','documents','suppliers','kitchen'].includes(kind)))
 }
 // ?filter= as the set of chips that are on; null when the address names none (all on).
-export function parseCalendarFilter(value){
+export function parseCalendarFilter(value: string | null | undefined){
  if(value==='none')return new Set()
  const picked=String(value||'').split(',').map(item=>item.trim()).filter(item=>CALENDAR_FILTERS.includes(item))
  return picked.length?new Set(picked):null
@@ -49,46 +83,46 @@ export function parseCalendarFilter(value){
 const EXECUTION_DETAIL={el:{done:'Έγινε',late:'Έγινε με καθυστέρηση',missed:'Χάθηκε'},en:{done:'Done',late:'Done late',missed:'Missed'}}
 // The culture sampling is done by the infection control team in the department: the department sees it as a notice, not as its own task.
 const CULTURE_DETAIL={el:{done:'Λήφθηκαν δείγματα',late:'Λήφθηκαν δείγματα με καθυστέρηση',missed:'Δεν λήφθηκαν δείγματα',planned:'Έλεγχος Λοιμώξεων'},en:{done:'Samples taken',late:'Samples taken late',missed:'Samples not taken',planned:'Infection Control'}}
-const controlKind=control=>(controlTypeCode(control.category)==='CTRL-ENV'?'cultures':'controls')
-export function controlExecutionEvents(lines=[],{year,month,today=dayKey(new Date()),language='el'}={}){
+const controlKind=(control: AnyRecord)=>(controlTypeCode(control.category)==='CTRL-ENV'?'cultures':'controls')
+export function controlExecutionEvents(lines: AnyRecord[]=[],{year,month,today=dayKey(new Date()),language='el'}: { year: number, month: number, today?: string, language?: string }){
  const en=language==='en'
- const list=[]
- const day=n=>`${year}-${pad(month+1)}-${pad(n)}`
+ const list: CalendarEvent[]=[]
+ const day=(n: number)=>`${year}-${pad(month+1)}-${pad(n)}`
  for(const {item,department,months} of lines){
   const cell=months?.[month]
   if(!cell||cell.inactive)continue
   const kind=controlKind(item)
   const words=kind==='cultures'?CULTURE_DETAIL[en?'en':'el']:EXECUTION_DETAIL[en?'en':'el']
   const base={kind,title:en?item.titleEn||item.title:item.title,department,path:`/controls/${item.id}`,criticality:item.responseConfig?.criticality||'medium'}
-  ;(cell.marks||[]).forEach((mark,index)=>{const date=day(mark.day);list.push({...base,id:`ctrl-done:${item.id}:${department}:${date}:${index}`,date,state:mark.late?'late':'done',detail:mark.late?words.late:words.done})})
+  ;(cell.marks||[]).forEach((mark: AnyRecord,index: number)=>{const date=day(mark.day);list.push({...base,id:`ctrl-done:${item.id}:${department}:${date}:${index}`,date,state:mark.late?'late':'done',detail:mark.late?words.late:words.done})})
   if(!cell.frequent)for(const missed of cell.missed||[]){const date=day(missed);if(date<today)list.push({...base,id:`ctrl-missed:${item.id}:${department}:${date}`,date,state:'missed',detail:words.missed})}
  }
  return list
 }
 
-const pad=n=>String(n).padStart(2,'0')
-export const dayKey=date=>`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`
-const toDay=value=>{
+const pad=(n: number)=>String(n).padStart(2,'0')
+export const dayKey=(date: Date)=>`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`
+const toDay=(value: unknown)=>{
  if(!value)return ''
  const text=String(value)
  if(/^\d{4}-\d{2}-\d{2}$/.test(text))return text
  const date=new Date(text)
  return Number.isNaN(date.getTime())?'':dayKey(date)
 }
-const toTime=value=>{
+const toTime=(value: unknown)=>{
  const text=String(value||'')
  if(text.length<=10)return ''
  const date=new Date(text)
  return Number.isNaN(date.getTime())?'':`${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-function stateOf(date,today,done=false){
+function stateOf(date: string,today: string,done=false){
  if(done)return 'done'
  if(date<today)return 'overdue'
  return 'due'
 }
 
-function push(list,event,range){
+function push(list: CalendarEvent[],event: CalendarEvent,range: Range | null){
  if(!event.date)return
  if(range&&(event.date<range.from||event.date>range.to)&&event.state!=='overdue')return
  list.push(event)
@@ -96,9 +130,9 @@ function push(list,event,range){
 
 // Daily controls are listed once, at their next due time; weekly and longer
 // ones are projected across the range so the month shows every occurrence.
-function controlEvents(controls,range,today,list,en){
+function controlEvents(controls: AnyRecord[],range: Range | null,today: string,list: CalendarEvent[],en: boolean){
  for(const control of controls){
-  for(const [department,assignment] of Object.entries(control.assignments||{})){
+  for(const [department,assignment] of Object.entries<AnyRecord>(control.assignments||{})){
    if(!assignment?.nextDueAt||assignment.status==='paused')continue
    const frequency=assignment.frequency||control.frequency||{}
    const daily=frequency.kind==='daily'
@@ -120,7 +154,7 @@ function controlEvents(controls,range,today,list,en){
  }
 }
 
-function capaEvents(capas,range,today,list,en){
+function capaEvents(capas: AnyRecord[],range: Range | null,today: string,list: CalendarEvent[],en: boolean){
  for(const capa of capas){
   if(capa.lifecycleStatus==='voided')continue
   const title=en?capa.titleEn||capa.title:capa.title
@@ -140,7 +174,7 @@ function capaEvents(capas,range,today,list,en){
  }
 }
 
-function auditEvents(audits,range,today,list,en){
+function auditEvents(audits: AnyRecord[],range: Range | null,today: string,list: CalendarEvent[],en: boolean){
  for(const audit of audits){
   if(audit.lifecycleStatus==='voided'||['completed','cancelled'].includes(audit.status))continue
   // A planned audit of the programme: its standard and lead auditor, its department.
@@ -148,9 +182,9 @@ function auditEvents(audits,range,today,list,en){
  }
 }
 
-function trainingEvents(training,range,today,list,en){
- const programs=training?.programs||[]
- const assignments=training?.assignments||[]
+function trainingEvents(training: AnyRecord | null,range: Range | null,today: string,list: CalendarEvent[],en: boolean){
+ const programs: AnyRecord[]=training?.programs||[]
+ const assignments: AnyRecord[]=training?.assignments||[]
  for(const program of programs){
   const path=`/training/${program.id}`
   // Effectiveness is evaluated months after the programme, so completed ones count.
@@ -168,7 +202,7 @@ function trainingEvents(training,range,today,list,en){
  }
 }
 
-function documentEvents(families,range,today,list,en){
+function documentEvents(families: AnyRecord[],range: Range | null,today: string,list: CalendarEvent[],en: boolean){
  for(const family of families){
   const live=family.activePublished
   if(!live?.reviewDate)continue
@@ -177,7 +211,7 @@ function documentEvents(families,range,today,list,en){
  }
 }
 
-function committeeEvents(committees,range,today,list,en){
+function committeeEvents(committees: AnyRecord[],range: Range | null,today: string,list: CalendarEvent[],en: boolean){
  for(const committee of committees){
   const name=committee.shortName||committee.name
   const path=`/committees/${committee.id}`
@@ -196,7 +230,7 @@ function committeeEvents(committees,range,today,list,en){
 
 // A department's meeting group: its next regular meeting (the last one plus the frequency), and the meetings already set.
 // meetingGroups: [{ group, nextDue, upcoming: [meeting] }].
-function departmentMeetingEvents(meetingGroups,range,today,list,en){
+function departmentMeetingEvents(meetingGroups: AnyRecord[],range: Range | null,today: string,list: CalendarEvent[],en: boolean){
  for(const {group,nextDue,upcoming=[]} of meetingGroups){
   if(group.active===false)continue
   const path=`/meetings/groups/${group.id}`
@@ -208,7 +242,7 @@ function departmentMeetingEvents(meetingGroups,range,today,list,en){
 
 // A supplier's next evaluation (its latest evaluation plus the frequency): «Αξιολόγηση προμηθευτή».
 // suppliers: [{ id, code, name, nextEvaluation, evaluationDue }] as supplierStatus gives them.
-function supplierEvents(suppliers,range,today,list,en){
+function supplierEvents(suppliers: AnyRecord[],range: Range | null,today: string,list: CalendarEvent[],en: boolean){
  for(const supplier of suppliers){
   if(supplier.status==='inactive')continue
   const day=toDay(supplier.nextEvaluation)
@@ -216,10 +250,10 @@ function supplierEvents(suppliers,range,today,list,en){
  }
 }
 
-export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],meetingGroups=[],protocolSuggestions=[],suppliers=[],kitchen=[]}={},{from,to,today=dayKey(new Date()),language='el',ownerId}={}){
+export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],meetingGroups=[],protocolSuggestions=[],suppliers=[],kitchen=[]}: CalendarSources={},{from,to,today=dayKey(new Date()),language='el',ownerId}: { from?: string, to?: string, today?: string, language?: string, ownerId?: string | null }={}): CalendarEvent[]{
  const en=language==='en'
  const range=from&&to?{from,to}:null
- const list=[]
+ const list: CalendarEvent[]=[]
  controlEvents(controls,range,today,list,en)
  capaEvents(capas,range,today,list,en)
  auditEvents(audits,range,today,list,en)
@@ -232,18 +266,18 @@ export function buildCalendarEvents({controls=[],capas=[],audits=[],training=nul
  supplierEvents(suppliers,range,today,list,en)
  // The kitchen's items are built by its model (kitchenModel.kitchenCalendarItems).
  for(const event of kitchen)push(list,event,range)
- const seen=new Set()
+ const seen=new Set<string>()
  return list.filter(event=>{if(seen.has(event.id))return false;seen.add(event.id);return true}).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'99').localeCompare(b.time||'99')||a.title.localeCompare(b.title))
 }
 
 // Monday-first weeks covering the month, as arrays of YYYY-MM-DD.
-export function monthGrid(year,month){
+export function monthGrid(year: number,month: number){
  const first=new Date(year,month,1)
  const offset=(first.getDay()+6)%7
  const start=new Date(year,month,1-offset)
- const weeks=[]
+ const weeks: string[][]=[]
  for(let w=0;w<6;w+=1){
-  const week=[]
+  const week: string[]=[]
   for(let d=0;d<7;d+=1)week.push(dayKey(new Date(start.getFullYear(),start.getMonth(),start.getDate()+w*7+d)))
   weeks.push(week)
   const next=new Date(start.getFullYear(),start.getMonth(),start.getDate()+(w+1)*7)
