@@ -21,6 +21,10 @@ describe('platform owner screens', () => {
     expect(view).toContain('<HospitalsTable')
     expect(view).toContain('platform-overview-attention')
     expect(view).not.toContain('QuickActions')
+    // what waits for the owner: locked accounts, temporary passwords not changed, legislation to review
+    expect(view).toContain('loadOwnerWaitingCounts')
+    expect(view).toContain("key:'legislation-review'")
+    expect(view).toContain("key:'accounts-locked'")
     expect(view).toContain('{liveSessions}')
     expect(view).not.toContain('<MetricCard')
     expect(view).not.toContain('<DonutChart')

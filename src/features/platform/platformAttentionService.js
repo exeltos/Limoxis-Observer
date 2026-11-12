@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
+import { isOwnerPreview } from '../../core/preview/ownerPreview'
 
 const DAY=86400000
 const daysUntil=value=>Math.ceil((new Date(`${String(value).slice(0,10)}T00:00:00`).getTime()-new Date(new Date().toDateString()).getTime())/DAY)
@@ -58,4 +59,18 @@ export async function loadDemoActivityItems(en=false){
       title:en?`${nameOf(row.user_id)} completed the evaluation (${row.rating}/5)`:`${nameOf(row.user_id)}: ολοκλήρωσε την αξιολόγηση (${row.rating}/5)`,
       message:en?`Demo ${row.organization?.name||''}`:`Demo ${row.organization?.name||''}`})),
   ].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))
+}
+
+// What waits for the owner on the Overview besides the demos and deletions (owner, 12/11/2026): legislation proposals to
+// review, accounts that have not yet changed their temporary password, and accounts locked because it expired.
+export async function loadOwnerWaitingCounts(){
+  if(isOwnerPreview())return {legislation:22,waiting:3,locked:1}
+  if(!hasSupabaseConfig||!supabase)return {legislation:0,waiting:0,locked:0}
+  const count=query=>query.then(({count:total,error})=>error?0:(total||0))
+  const [legislation,waiting,locked]=await Promise.all([
+    count(supabase.from('legislation_candidates').select('id',{count:'exact',head:true}).eq('status','pending')),
+    count(supabase.from('profiles').select('id',{count:'exact',head:true}).eq('must_change_password',true).is('temporary_password_locked_at',null)),
+    count(supabase.from('profiles').select('id',{count:'exact',head:true}).not('temporary_password_locked_at','is',null)),
+  ])
+  return {legislation,waiting,locked}
 }

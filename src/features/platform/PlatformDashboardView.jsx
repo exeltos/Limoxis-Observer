@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Building2, CalendarClock, Plus, Trash2 } from 'lucide-react'
+import { ArrowRight, Building2, CalendarClock, Inbox, KeyRound, Lock, Plus, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ACTIVITY_DAYS, loadHospitalHealth } from './platformHealthService'
+import { loadOwnerWaitingCounts } from './platformAttentionService'
 import { initialsOf, sinceText, statusOf } from './platformOverviewShared'
 import './platformDashboard.css'
 
@@ -14,18 +15,22 @@ const HOSPITAL_ROWS=8
 
 // What the Owner must act on this week: Demos that end and hospitals whose
 // deletion date is near or has passed (the same events the reminder e-mails cover).
-function ActionList({tx,demos,organizations,demoProgress,onOpenDemo,onNavigate}){
+function ActionList({tx,demos,organizations,demoProgress,onOpenDemo,onNavigate,waiting}){
+  const counts=waiting||{}
   const items=[
+    counts.locked>0&&{key:'accounts-locked',order:-1,tone:'danger',icon:<Lock size={16}/>,title:tx('Κλειδωμένοι λογαριασμοί','Locked accounts'),go:tx('Νέος κωδικός','New password'),text:tx(`${counts.locked} ${counts.locked===1?'λογαριασμός κλειδώθηκε':'λογαριασμοί κλειδώθηκαν'} επειδή έληξε ο προσωρινός κωδικός`,`${counts.locked} ${counts.locked===1?'account was':'accounts were'} locked because the temporary password expired`),action:()=>onNavigate('/platform#users')},
+    counts.waiting>0&&{key:'accounts-waiting',order:40,tone:'warning',icon:<KeyRound size={16}/>,title:tx('Δεν έχουν αλλάξει τον προσωρινό κωδικό','Temporary password not changed yet'),go:tx('Προβολή','View'),text:tx(`${counts.waiting} ${counts.waiting===1?'χρήστης':'χρήστες'}`,`${counts.waiting} ${counts.waiting===1?'user':'users'}`),action:()=>onNavigate('/platform#users')},
+    counts.legislation>0&&{key:'legislation-review',order:50,tone:'warning',icon:<Inbox size={16}/>,title:tx('Νομοθεσία προς έλεγχο','Legislation to review'),go:tx('Έλεγχος','Review'),text:tx(`${counts.legislation} ${counts.legislation===1?'πρόταση περιμένει':'προτάσεις περιμένουν'} έλεγχο`,`${counts.legislation} ${counts.legislation===1?'proposal is':'proposals are'} waiting for review`),action:()=>onNavigate('/platform/legislation?view=review')},
     ...organizations.filter(o=>o.deletion_scheduled_at&&daysUntil(o.deletion_scheduled_at)<=7).map(o=>{const days=daysUntil(o.deletion_scheduled_at);return {key:`org-${o.id}`,order:days,tone:'danger',icon:<Trash2 size={16}/>,title:o.name,go:tx('Προβολή','View'),
       text:days<=0?tx('Έφτασε η ημερομηνία οριστικής διαγραφής','The deletion date has been reached'):days===1?tx(`Οριστική διαγραφή αύριο (${shortDate(o.deletion_scheduled_at)})`,`Permanent deletion tomorrow (${shortDate(o.deletion_scheduled_at)})`):tx(`Οριστική διαγραφή σε ${days} ημέρες (${shortDate(o.deletion_scheduled_at)})`,`Permanent deletion in ${days} days (${shortDate(o.deletion_scheduled_at)})`),
       action:()=>onNavigate(`/platform#organizations?organization=${o.id}&tab=offboarding`,{state:{returnTo:'/platform'}})}}),
     ...demos.filter(d=>(demoProgress?demoProgress(d).remaining:daysUntil(d.valid_until))<=7).map(d=>{const days=daysUntil(d.valid_until);return {key:`demo-${d.id}`,order:days+0.5,tone:'warning',icon:<CalendarClock size={16}/>,title:d.label||d.organization?.name||'Demo',go:tx('Παράταση','Extend'),
       text:days<=0?tx('Το Demo λήγει σήμερα','The Demo ends today'):days===1?tx(`Το Demo λήγει αύριο (${shortDate(d.valid_until)})`,`The Demo ends tomorrow (${shortDate(d.valid_until)})`):tx(`Το Demo λήγει σε ${days} ημέρες (${shortDate(d.valid_until)})`,`The Demo ends in ${days} days (${shortDate(d.valid_until)})`),
       action:()=>onOpenDemo?onOpenDemo(d):onNavigate(`/platform#demo?demo=${d.id}`,{state:{returnTo:'/platform'}})}}),
-  ].sort((a,b)=>a.order-b.order)
+  ].filter(Boolean).sort((a,b)=>a.order-b.order)
   return <section className="platform-dashboard-panel platform-dashboard-actions"><header><h3>{tx('Χρειάζονται ενέργεια','Needs action')}</h3>{items.length>0&&<span className="platform-overview-count">{items.length}</span>}</header>
     {items.length?<div className="platform-action-list">{items.map(i=><button type="button" key={i.key} className={`platform-action-item tone-${i.tone}`} onClick={i.action}><span className="platform-action-icon">{i.icon}</span><span className="platform-action-copy"><strong>{i.title}</strong><small>{i.text}</small></span><span className="platform-action-go">{i.go}<ArrowRight size={14} aria-hidden="true"/></span></button>)}</div>
-      :<p className="platform-overview-empty">{tx('Καμία λήξη Demo ή διαγραφή οργανισμού τις επόμενες 7 ημέρες.','No Demo endings or organization deletions in the next 7 days.')}</p>}
+      :<p className="platform-overview-empty">{tx('Τίποτα δεν περιμένει ενέργεια αυτή τη στιγμή.','Nothing is waiting for action right now.')}</p>}
   </section>
 }
 
@@ -58,7 +63,8 @@ function HospitalsTable({tx,hospitals,members,health,onNavigate,onCreateOrganiza
 }
 
 export function PlatformDashboardView({tx,organizations,members=[],users=[],activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate,onCreateOrganization,onCreateDemo,liveSessions=null}) {
-  const [health,setHealth]=useState(null)
+  const [health,setHealth]=useState(null),[waiting,setWaiting]=useState(null)
+  useEffect(()=>{let active=true;loadOwnerWaitingCounts().then(data=>{if(active)setWaiting(data)}).catch(()=>{});return()=>{active=false}},[])
   useEffect(()=>{let active=true;loadHospitalHealth().then(data=>{if(active)setHealth(data||{})}).catch(()=>{if(active)setHealth({})});return()=>{active=false}},[])
   const hospitals=(organizations||[]).filter(o=>!o.is_demo&&o.status!=='archived')
   const activeCount=hospitals.filter(o=>o.status==='active'&&!o.paused_at).length,pausedCount=hospitals.filter(o=>o.status==='suspended'||o.paused_at).length
@@ -82,7 +88,7 @@ export function PlatformDashboardView({tx,organizations,members=[],users=[],acti
           <div className="platform-overview-attention">
             {/* Slot: «Συνδεδεμένοι τώρα» (connected now), supplied by the caller. */}
             {liveSessions}
-            <ActionList tx={tx} demos={expiringDemos} organizations={organizations} demoProgress={demoProgress} onOpenDemo={onOpenDemo} onNavigate={onNavigate}/>
+            <ActionList tx={tx} waiting={waiting} demos={expiringDemos} organizations={organizations} demoProgress={demoProgress} onOpenDemo={onOpenDemo} onNavigate={onNavigate}/>
           </div>
         </div>
       </div>
