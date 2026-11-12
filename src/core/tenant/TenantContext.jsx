@@ -10,7 +10,7 @@ import { isOwnerPreview } from '../preview/ownerPreview'
 import { configureDataEnvironment } from '../data/dataEnvironment'
 import { readSessionJson, removeSessionValue, writeSessionJson } from '../storage/browserStorage'
 
-import { SAMPLE_DEFAULT_DEPARTMENT } from './sampleDepartments'
+import { SAMPLE_DEFAULT_DEPARTMENT, SAMPLE_DEFAULT_DIVISION, SAMPLE_DIVISION_DEPARTMENTS } from './sampleDepartments'
 
 export const TenantContext = createContext(null)
 const DEMO_TENANT = Object.freeze({ id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', type: 'hospital', mode: 'demo' })
@@ -26,6 +26,9 @@ function savedSelection(userId){
   const saved=readSessionJson(SELECTION_KEY)
   return saved&&saved.userId===userId?saved:null
 }
+
+// A saved role preview: the department (department roles) or the division and its departments (Division Director).
+const restoredPreview=saved=>({role:saved.role,department:saved.department||'',departmentName:saved.departmentName||'',division:saved.division||'',divisionName:saved.divisionName||'',departmentIds:Array.isArray(saved.departmentIds)?saved.departmentIds:[]})
 
 function withTimeout(promise,ms=HYDRATION_TIMEOUT_MS){
   let timer
@@ -51,11 +54,13 @@ export function TenantProvider({ children }) {
   // Key of the last hydration that succeeded; the selection is saved only then,
   // so a failed or timed-out request never overwrites the saved place.
   const [persistableKey, setPersistableKey] = useState(null)
+  // A real Division Director with more than one division: the one the home shows (null: the first).
+  const [selectedDivision, setSelectedDivision] = useState(null)
   const [rolePreview, setRolePreview] = useState(()=>{
     if(typeof window==='undefined')return null
     const params=new URLSearchParams(window.location.search)
     const requested=params.get('helpRole')
-    return params.get('helpPreview')==='1'&&isPreviewableRole(requested)?{role:requested,department:params.get('helpDept')||''}:null
+    return params.get('helpPreview')==='1'&&isPreviewableRole(requested)?{role:requested,department:params.get('helpDept')||'',division:params.get('helpDivision')||''}:null
   })
 
   const membershipContextKey = authLoading
@@ -83,7 +88,7 @@ export function TenantProvider({ children }) {
         if(request!==hydrationRef.current)return [DEMO_MEMBERSHIP]
         const saved=restoredKeyRef.current===membershipContextKey?null:savedSelection(user?.id)
         restoredKeyRef.current=membershipContextKey
-        if(saved?.rolePreview?.role&&isPreviewableRole(saved.rolePreview.role))setRolePreview({role:saved.rolePreview.role,department:saved.rolePreview.department||''})
+        if(saved?.rolePreview?.role&&isPreviewableRole(saved.rolePreview.role))setRolePreview(restoredPreview(saved.rolePreview))
         setMemberships([DEMO_MEMBERSHIP])
         setActiveMembershipId(DEMO_MEMBERSHIP.id)
         setHydratedKey(membershipContextKey)
@@ -116,7 +121,7 @@ export function TenantProvider({ children }) {
       // Evaluators may preview roles inside their Demo organization, so theirs is restored too.
       const restoredMembership=reachable.find((item)=>item.id===saved?.membershipId)
       const previewAllowed=profile?.isPlatformOwner||Boolean(restoredMembership?.organization?.is_demo)
-      if(saved?.rolePreview?.role&&previewAllowed&&previewTenantRestored&&isPreviewableRole(saved.rolePreview.role))setRolePreview({role:saved.rolePreview.role,department:saved.rolePreview.department||'',departmentName:saved.rolePreview.departmentName||''})
+      if(saved?.rolePreview?.role&&previewAllowed&&previewTenantRestored&&isPreviewableRole(saved.rolePreview.role))setRolePreview(restoredPreview(saved.rolePreview))
       setHydratedKey(membershipContextKey)
       setPersistableKey(membershipContextKey)
       return next
@@ -177,6 +182,14 @@ export function TenantProvider({ children }) {
   function previewMembership() {
     if (!(rolePreview?.role && canRolePreview)) return baseMembership
     const preview = {...baseMembership, role: rolePreview.role, capabilities: [], customCapabilities: [], assignments: []}
+    // A Division Director oversees the departments of the chosen division: in a hospital by id, in the
+    // sample data by the names its records carry (the first sample division when none is chosen).
+    if (rolePreview.role === ROLES.DIVISION_DIRECTOR) {
+      const sampleData = tenant?.mode === 'demo' || platformDemoMode
+      const division = rolePreview.division || (sampleData ? SAMPLE_DEFAULT_DIVISION : '')
+      const departmentIds = rolePreview.departmentIds?.length ? [...rolePreview.departmentIds] : sampleData ? [...(SAMPLE_DIVISION_DEPARTMENTS[division] || [])] : []
+      return {...preview, departmentIds, divisionId: division || null, divisionName: rolePreview.divisionName || '', previewDepartment: null, previewDepartments: sampleData ? departmentIds : null}
+    }
     // In a real organization the previewed department is a real department:
     // scope by its id (as a member of that department) and show its name.
     if (tenant?.mode !== 'demo' && !platformDemoMode && rolePreview.department) return {...preview, departmentIds: [rolePreview.department], departmentId: rolePreview.department, departmentName: rolePreview.departmentName || '', previewDepartment: null}
@@ -250,15 +263,20 @@ export function TenantProvider({ children }) {
     isRolePreview: Boolean(canRolePreview && rolePreview?.role),
     startRolePreview: (previewRole, department='', departmentName='') => {
       if (!canRolePreview || !isPreviewableRole(previewRole)) return false
-      setRolePreview({role:previewRole,department,departmentName})
+      setRolePreview({role:previewRole,department,departmentName,division:'',divisionName:'',departmentIds:[]})
       return true
     },
+    // The Division Director's preview: the division and the departments it covers.
+    updateRolePreviewDivision: (division='', divisionName='', departmentIds=[]) => canRolePreview && setRolePreview(current=>current?{...current,division,divisionName,departmentIds:[...departmentIds]}:current),
+    // The division a Division Director looks at (home «Διεύθυνση ▾»); in a preview, the previewed one.
+    divisionId: canRolePreview && rolePreview?.role === ROLES.DIVISION_DIRECTOR ? (membership?.divisionId || null) : selectedDivision,
+    selectDivision: setSelectedDivision,
     updateRolePreviewDepartment: (department='', departmentName='') => canRolePreview && setRolePreview(current=>current?{...current,department,departmentName}:current),
     stopRolePreview: () => setRolePreview(null),
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, enterSampleDemo, enterDemoOrganization, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
+  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, selectedDivision, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, enterSampleDemo, enterDemoOrganization, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }

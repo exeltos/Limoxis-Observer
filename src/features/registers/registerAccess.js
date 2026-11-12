@@ -13,7 +13,9 @@ export function useRegisterAccess() {
   const custom = membership?.customCapabilities ?? []
   const ownerFullAccess = !isRolePreview && actualRole === ROLES.PLATFORM_OWNER
   const canDefine = ownerFullAccess || can(role, CAPABILITIES.MANAGE_QUALITY, addOns, custom)
-  const seesAll = ownerFullAccess || can(role, CAPABILITIES.VIEW_QUALITY, addOns, custom)
+  // The Division Director reads the registers of the division's departments only: no names, no entries.
+  const overseer = role === ROLES.DIVISION_DIRECTOR
+  const seesAll = ownerFullAccess || (!overseer && can(role, CAPABILITIES.VIEW_QUALITY, addOns, custom))
   // The demo user (every role at once) works as a member of every department.
   const everyDepartment = ownerFullAccess || (isDemo && role === ROLES.DEMO)
   const departmentKey = [...(membership?.departmentIds || []), membership?.previewDepartment].filter(Boolean).join('|')
@@ -27,10 +29,10 @@ export function useRegisterAccess() {
       seesAll,
       isMember,
       canSee: register => seesAll || isMember(register),
-      canRecord: register => Boolean(register) && register.status === 'active' && (isMember(register) || role === ROLES.HOSPITAL_ADMIN),
-      canSeeIdentity: register => isMember(register),
+      canRecord: register => !overseer && Boolean(register) && register.status === 'active' && (isMember(register) || role === ROLES.HOSPITAL_ADMIN),
+      canSeeIdentity: register => !overseer && isMember(register),
       // Reopening a closed period: Quality or the department's manager.
       canReopen: register => canDefine || (isMember(register) && [ROLES.DEPARTMENT_MANAGER, ROLES.HOSPITAL_ADMIN, ROLES.DEMO].includes(role)),
     }
-  }, [canDefine, seesAll, everyDepartment, departmentKey, role])
+  }, [canDefine, seesAll, everyDepartment, departmentKey, role, overseer])
 }

@@ -68,6 +68,8 @@ export function RostersPage() {
   const tx = (elText, enText) => (en ? enText : elText)
   const canEdit = WRITERS.has(role)
   const staffMode = !canEdit && STAFF.has(role)
+  // The Division Director reads the rosters and requests of the division's departments: nothing to approve, edit or publish.
+  const overseer = role === ROLES.DIVISION_DIRECTOR
   const [roster, setRoster] = useState(null)
   // The codes on the sheet: letters, or the hospital's own payroll numbers (ΙΑΣΩ: 4, 12, 19, 20, R, Α, Γ, Κ, B, as in
   // its Excel); chosen per department in the rules, by default the numbers in ΙΑΣΩ (owner, 8/11/2026).
@@ -156,8 +158,15 @@ export function RostersPage() {
           const own = isDemo ? [membership?.previewDepartment].filter(Boolean) : membership?.departmentIds || []
           visible = list.filter(d => own.includes(d.id) || own.includes(d.name))
         }
+        // The Division Director: the departments of the division (in the sample data by name).
+        if (role === ROLES.DIVISION_DIRECTOR) {
+          const own = membership?.departmentIds || []
+          visible = list.filter(d => own.includes(d.id) || own.includes(d.name))
+        }
         setDepartments(visible)
-        setDepartmentId(current => (visible.some(d => d.id === current) ? current : visible[0]?.id || ''))
+        // ?department=<id>: the department opened from the Division Director's home.
+        const asked = new URLSearchParams(window.location.search).get('department')
+        setDepartmentId(current => (visible.some(d => d.id === current) ? current : visible.find(d => d.id === asked)?.id || visible[0]?.id || ''))
         if (!visible.length) setLoading(false)
       })
       .catch(error => notifyError(error, 'load', { operation: 'roster_departments_load' }))
@@ -547,6 +556,13 @@ export function RostersPage() {
                 )}
               </>
             )}
+            {overseer && (
+              <button type="button" className={`roster-tool${panel === 'requests' ? ' is-on' : ''}`} aria-pressed={panel === 'requests'} onClick={() => toggle('requests')}>
+                <Inbox size={15} aria-hidden="true" />
+                {tx('Αιτήματα', 'Requests')}
+                {pending.length > 0 && <span className="roster-count">{pending.length}</span>}
+              </button>
+            )}
             {staffMode && (
               <button type="button" className={`roster-tool${panel === 'mine' ? ' is-on' : ''}`} aria-pressed={panel === 'mine'} onClick={() => toggle('mine')}>
                 <Inbox size={15} aria-hidden="true" />
@@ -557,7 +573,7 @@ export function RostersPage() {
         )}
       </div>
 
-      {roster && canEdit && panel === 'requests' && (
+      {roster && (canEdit || overseer) && panel === 'requests' && (
         <section className="roster-panel roster-requests" aria-label={tx('Αιτήματα', 'Requests')}>
           {requests.length === 0 && <p className="roster-muted">{tx('Δεν υπάρχουν αιτήματα από το τμήμα.', 'No requests from the department.')}</p>}
           {[...pending, ...requests.filter(r => r.status !== 'pending').slice(0, 10)].map(r => (
@@ -566,7 +582,7 @@ export function RostersPage() {
               <span>{REQUEST_KINDS[r.kind]}</span>
               <span>{r.kind === 'swap' ? `${fmtDay(r.from)} ${tx('με', 'with')} ${nameOf(r.swapEmployeeId)}` : r.to && r.to !== r.from ? `${fmtDay(r.from)} – ${fmtDay(r.to)}` : fmtDay(r.from)}</span>
               {r.note && <small>«{r.note}»</small>}
-              {r.status === 'pending' ? (
+              {r.status === 'pending' && canEdit ? (
                 <span className="roster-request-actions">
                   <Button variant="secondary" onClick={() => decide(r, 'rejected')}><X size={14} aria-hidden="true" />{tx('Απόρριψη', 'Reject')}</Button>
                   <Button onClick={() => decide(r, 'approved')}><Check size={14} aria-hidden="true" />{tx('Έγκριση', 'Approve')}</Button>

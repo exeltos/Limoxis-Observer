@@ -19,6 +19,8 @@ const ROLE_UX_POLICY = Object.freeze({
   [ROLES.OCCUPATIONAL_PHYSICIAN]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Occupational Physician' },
   [ROLES.DOCTOR_REVIEWER]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Doctor Reviewer' },
   [ROLES.QUALITY_MANAGER]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Quality Manager' },
+  // The departments of the divisions they direct (organization_member_scopes, kept in step with hr_division_departments).
+  [ROLES.DIVISION_DIRECTOR]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Division Director' },
   [ROLES.DEMO]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Demo' },
 })
 
@@ -39,6 +41,9 @@ export function recordWithinRoleScope({role, membership, userId, record}={}){
     const previewDepartment=membership?.previewDepartment ?? null
     // The sample data names its departments (record.department), as the preview does.
     if(previewDepartment) return [recordDepartment, record.department].includes(previewDepartment)
+    // A previewed Division Director in the sample data: the departments of the division, by name.
+    const previewDepartments=membership?.previewDepartments ?? null
+    if(Array.isArray(previewDepartments)) return [recordDepartment, record.department].some(value=>Boolean(value)&&previewDepartments.includes(value))
     // Department-scoped roles must never gain access merely because a record is
     // missing its department key. RLS follows the same fail-closed principle.
     return Boolean(recordDepartment) && allowed.includes(recordDepartment)

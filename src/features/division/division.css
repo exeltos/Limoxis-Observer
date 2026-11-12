@@ -1,0 +1,30 @@
+/* The Division Director's home: the key figures, the departments table and, beside it, what needs attention, the interviews and the week. */
+.division-kpis.lo-kpi-strip{--kpi-columns-md:4}
+/* The hint is read whole: on a narrow card it goes to a second line instead of «…». */
+.division-kpis .lo-kpi-label{white-space:normal}
+.division-page.page-fill>.division-home{flex:1 1 0;min-height:260px}
+.division-home{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:14px;align-items:stretch;min-height:0}
+.division-home>.dashboard-card,.division-side>.dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.division-side{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:14px;min-height:0}
+/* «Χρειάζονται προσοχή» and the interviews show their few rows whole (SIDE_SHOWN); the week takes the rest and scrolls. */
+.division-side>.dashboard-card:not(:last-child) .task-list,.division-side>.dashboard-card:not(:last-child) .dashboard-week-list{flex:none;overflow:visible}
+.division-side .task-list,.division-side .dashboard-week-list{flex:1 1 auto;min-height:0;overflow:auto}
+.division-side .inline-empty{flex:1 1 auto;min-height:0;overflow:auto}
+.division-side .lo-card-heading small{display:none}
+.division-departments .scroll-table{flex:1 1 auto;min-height:0;overflow:auto}
+.division-table td,.division-table th{white-space:nowrap}
+.division-table .division-number{text-align:right;font-variant-numeric:tabular-nums}
+.division-table td.is-danger{color:#a32121;font-weight:700}
+.division-table td.is-warning{color:#8a5a00;font-weight:700}
+.division-late{color:#8a5a00;font-weight:700;font-size:11px}
+.division-requests{display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.2;white-space:nowrap}
+.division-switch{min-width:220px}
+.division-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:0}
+.division-facts>div{display:flex;flex-direction:column;gap:3px;padding:8px 0;border-bottom:1px solid var(--lo-color-border)}
+.division-facts dt{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--lo-color-muted)}
+.division-facts dd{margin:0;font-size:14px;font-weight:700;color:var(--lo-color-text)}
+.division-links .dashboard-week-day{display:flex;align-items:center;color:var(--lo-color-primary,#1f5f93)}
+.division-links>button{grid-template-columns:32px minmax(0,1fr)}
+/* A tablet (the home without page-fill): the table, then the side cards in one row; a phone: one column (dashboard.css). */
+@media(max-width:1180px){.division-home{grid-template-columns:1fr}.division-side{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));grid-template-rows:none}.division-page:not(.page-fill) .division-side .task-list,.division-page:not(.page-fill) .division-side .dashboard-week-list{max-height:240px}.division-table td,.division-table th{padding-left:6px;padding-right:6px}}
+@media(max-width:900px){.division-page.page-fill>.division-home{flex:none}}
