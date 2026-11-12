@@ -14,12 +14,13 @@ describe('platform owner screens', () => {
     }
   })
 
-  it('the platform overview has one strip of totals, the hospitals, what needs action and the quick actions: no number cards, no charts', () => {
+  it('the platform overview has one strip of totals, the hospitals and one box for what needs attention (no quick actions): no number cards, no charts', () => {
     const view = read('src/features/platform/PlatformDashboardView.jsx')
     expect(view).toContain('platform-overview-totals')
     expect(view).toContain('<ActionList')
     expect(view).toContain('<HospitalsTable')
-    expect(view).toContain('<QuickActions')
+    expect(view).toContain('platform-overview-attention')
+    expect(view).not.toContain('QuickActions')
     expect(view).toContain('{liveSessions}')
     expect(view).not.toContain('<MetricCard')
     expect(view).not.toContain('<DonutChart')
