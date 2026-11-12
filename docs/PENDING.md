@@ -13,6 +13,20 @@
 - [ ] Ο πίνακας `register_nicu_6c8688ab` (χειροκίνητο μητρώο στο «Γενικό Νοσοκομείο Demo») έμεινε ορφανός μετά την επαναφορά 12/11: ο ιδιοκτήτης τρέχει το `docs/sql/drop_orphan_register_demo.sql`.
 - [ ] Ένα demo «μία πηγή»: τα τοπικά `*DemoData.js` (μόνο για την προεπισκόπηση βοήθειας) να ευθυγραμμιστούν ή να αφαιρεθούν.
 
+## Β. Καθαρός κώδικας (12/11/2026)
+- [x] Ημερομηνίες: `src/core/dates/hospitalDate.js` (`hospitalDate`, `hospitalToday`, `hospitalMonth`, Ευρώπη/Αθήνα)· 141 «σήμερα» + 18 σημεία από το ρολόι. Τα υπόλοιπα `toISOString().slice(0,10)` είναι αριθμητική ημερομηνιών σε UTC πάνω σε 'YYYY-MM-DD' (σωστά). Το `tests/hospitalDate.test.js` απαγορεύει νέο `new Date().toISOString().slice(0,10)`. Διπλοί βοηθοί Αθήνας μένουν σε `formStatus.js` (`athensToday`), `patientRecordScope.js`, `platformHealthService.js`, `AdmissionDischargeDialog.jsx`: να ενωθούν στο TypeScript.
+- [x] Πρώτη φόρτωση: χωρίς τον καθολικό κάδο `vendor` (μετέφερε pako/canvg/core-js/fflate/dompurify του PDF σε κάθε σελίδα)· 387 → 297 kB gzip.
+- [x] Αγγλικοί όροι στο ελληνικό UI: tenant, password, Supabase, stewardship, Owner, backend/RLS, UI. Μένουν σκόπιμα: Demo, email, Excel, tablet, Link Nurse, LIRA, AWaRe Access/Watch/Reserve (όρος ΠΟΥ).
+- [ ] Σπάσιμο μεγάλων αρχείων (ClinicalJourney, EmployeeRecordPage, clinicalCloudService, RostersPage, PreventionRecordPage): μαζί με τη μετατροπή του φακέλου σε TypeScript, γιατί 141 τεστ διαβάζουν 267 αρχεία με το όνομά τους.
+
+## Γ. TypeScript — σχέδιο (νέα συνεδρία)
+Μέτρηση 12/11: 0 `.ts` στο `src` (~119.000 γραμμές JS/JSX)· `checkJs` σε όλο το `src`: 3.853 σφάλματα (χαλαρό), 7.293 (strict). ~2.500 από τα χαλαρά είναι props του `design-system` (π.χ. `fieldKey` 388, `disabled` 347).
+1. Προετοιμασία: `database.types.ts` από το Supabase (`generate_typescript_types`)· βοηθός στα τεστ `readSource('src/…')` που βρίσκει `.js/.jsx/.ts/.tsx` (141 τεστ)· `vitest`/`eslint` για `.ts/.tsx`.
+2. `src/design-system` → `.tsx` με τύπους props (πέφτουν τα μισά σφάλματα).
+3. `src/core` (dates, permissions, i18n, supabase, tenant, auth, data, feedback).
+4. Ενότητες από τη μικρότερη στη μεγαλύτερη, Ποιότητα και Επιτήρηση τελευταίες· σπάσιμο μεγάλων αρχείων μαζί.
+5. Κάθε φάκελος που τελειώνει μπαίνει στο `tsconfig.strict.json` (το `typecheck:strict` τρέχει ήδη στο `check`).
+
 ## Έλεγχοι ΙΑΣΩ — τήρηση προγράμματος (7/11/2026, σε αναμονή: «θα επανέλθω μετά τη συνάντηση των τμημάτων»)
 - Ο ιδιοκτήτης θα κάνει συναντήσεις με τα τμήματα με το αρχείο «Τήρηση ελέγχων ανά τμήμα» (PDF + Excel, περίοδος 7/10–5/11/2026, τήρηση νοσοκομείου 70%). Μετά θα πει ανά τμήμα: παύση, αλλαγή συχνότητας (π.χ. 1 φορά/ημέρα αντί 2–3) ή «μόνο εργάσιμες»· αυτά περνούν στην πλατφόρμα.
 - Ο υπολογισμός είναι σωστός· τα χαμηλά ποσοστά: 14 έλεγχοι χωρίς καταχώριση, 15 με λιγότερες φορές/ημέρα, 15 κυρίως εργάσιμες, 23 χάνουν μέρες, 32 χαμένες εβδομαδιαίες/μηνιαίες. Μονάδα Τεχνητού Νεφρού 6%: να ρωτηθεί πώς λειτουργεί.
