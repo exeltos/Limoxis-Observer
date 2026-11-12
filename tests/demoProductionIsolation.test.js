@@ -55,6 +55,6 @@ describe('demo / production isolation',()=>{
   })
 
   it('returns empty-shaped fallbacks outside the demo environment',()=>{
-    expect(environment).toContain('environmentFallback=fallback=>isDemoDataEnvironment()?structuredClone(fallback):emptyShape(fallback)')
+    expect(environment).toMatch(/environmentFallback=(<T,>)?\(?fallback(: T)?\)?(: any)?=>isDemoDataEnvironment\(\)\?structuredClone\(fallback\):emptyShape\(fallback\)/)
   })
 })

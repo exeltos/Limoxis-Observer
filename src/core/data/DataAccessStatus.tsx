@@ -1,13 +1,19 @@
 import { useEffect,useState } from 'react'
 import { Button } from '../../design-system/Button'
 
+// Ένα γεγονός limoxis:data-operation του repository.
+interface DataOperation {
+  status?: 'loading' | 'saving' | 'success' | 'error'
+  retry?: () => unknown
+}
+
 export function DataAccessStatus(){
-  const [state,setState]=useState(null)
+  const [state,setState]=useState<DataOperation | null>(null)
   useEffect(()=>{
-    let timer
-    const onOperation=(event)=>{
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const onOperation=(event: Event)=>{
       clearTimeout(timer)
-      const next=event.detail
+      const next=(event as CustomEvent<DataOperation | null>).detail
       if(next?.status==='success'){timer=setTimeout(()=>setState(null),900);return}
       setState(next)
     }
@@ -20,7 +26,7 @@ export function DataAccessStatus(){
   if(state.status==='saving')return <div className="data-access-state saving" role="status">{greek?'Αποθήκευση…':'Saving…'}</div>
   if(state.status==='error')return <div className="data-access-state error" role="alert">
     <span>{greek?'Η αποθήκευση/φόρτωση απέτυχε. Τα δεδομένα δεν θεωρούνται αποθηκευμένα.':'Load/save failed. Data is not considered saved.'}</span>
-    {state.retry&&<Button variant="secondary" onClick={()=>state.retry()}>{greek?'Επανάληψη':'Retry'}</Button>}
+    {state.retry&&<Button variant="secondary" onClick={()=>state.retry?.()}>{greek?'Επανάληψη':'Retry'}</Button>}
   </div>
   return null
 }

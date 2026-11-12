@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { appConfig, hasSupabaseConfig } from '../config/env'
 import { supabase } from '../supabase/client'
 import { signInWithPassword, signOut as remoteSignOut, touchLoginSession } from './authService'
@@ -6,9 +6,10 @@ import { invalidateEmployeesCache } from '../../features/employees/employeesCach
 import { loadCurrentDemoAccess } from '../tenant/tenantService'
 import { ROLES } from '../permissions/roles'
 import { OWNER_PREVIEW_USER,isOwnerPreview } from '../preview/ownerPreview'
+import type { AuthContextValue, AuthSession, AuthUser, DemoAccess, Profile } from './authTypes'
 
-const AuthContext = createContext(null)
-const DEMO_USER = Object.freeze({
+const AuthContext = createContext<AuthContextValue | null>(null)
+const DEMO_USER: Readonly<Profile> = Object.freeze({
   id: 'demo-user',
   email: 'demo@limoxis-observer.local',
   fullName: 'Demo Administrator',
@@ -16,20 +17,27 @@ const DEMO_USER = Object.freeze({
   isDemo: true,
 })
 
-export function AuthProvider({ children }) {
+interface AuthState {
+  session: AuthSession | null
+  profile: Profile | null
+  loading: boolean
+}
+
+export function AuthProvider({ children }: { children?: ReactNode }) {
   const helpPreviewMode=typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('helpPreview')==='1'&&window.self!==window.top
-  const initial=helpPreviewMode
+  const initial: AuthState=helpPreviewMode
     ? (isOwnerPreview()?{session:{access_token:'help-preview',user:OWNER_PREVIEW_USER},profile:OWNER_PREVIEW_USER,loading:false}:{session:{access_token:'help-preview',user:DEMO_USER},profile:DEMO_USER,loading:false})
     : {session:null,profile:null,loading:hasSupabaseConfig}
-  const [authState,setAuthState]=useState(initial)
+  const [authState,setAuthState]=useState<AuthState>(initial)
   const stateRef=useRef(initial)
   const transitionRef=useRef(0)
-  const listenerTimerRef=useRef(null)
+  const listenerTimerRef=useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(()=>{stateRef.current=authState},[authState])
 
-  const loadProfile = useCallback(async (user) => {
-    if (!supabase || !user) return null
+  const loadProfile = useCallback(async (user: AuthUser | null | undefined): Promise<Profile | null> => {
+    const client = supabase
+    if (!client || !user) return null
     // A Demo evaluator works in their real Demo organization (isDemo is only the
     // browser-only sample login). Their Demo's dates and state come from
     // current_demo_access, for the Demo bar and the "Demo ended" screen. It is
@@ -38,16 +46,16 @@ export function AuthProvider({ children }) {
     // An account created active with a temporary password (platform-create-active-users)
     // must set its own password first. Read on its own so that a database without the
     // column (migration not yet applied) still signs everyone in.
-    const mustChangeRead=Promise.resolve().then(()=>supabase.from('profiles').select('must_change_password').eq('id',user.id).maybeSingle()).then(result=>Boolean(result?.data?.must_change_password),()=>false)
-    const { data, error } = await supabase
+    const mustChangeRead=Promise.resolve().then(()=>client.from('profiles').select('must_change_password').eq('id',user.id).maybeSingle()).then(result=>Boolean(result?.data?.must_change_password),()=>false)
+    const { data, error } = await client
       .from('profiles')
       .select('id, full_name, username, contact_email, phone, job_title, is_platform_owner, is_demo, demo_entitlement_id')
       .eq('id', user.id)
       .maybeSingle()
     if (error) throw error
-    let demoAccess=[]
+    let demoAccess: DemoAccess[]=[]
     if(data&&!data.is_platform_owner){
-      demoAccess=await demoAccessRead
+      demoAccess=await demoAccessRead as DemoAccess[]
     }
     const mustChangePassword=await mustChangeRead
     return data
@@ -55,7 +63,7 @@ export function AuthProvider({ children }) {
       : { id: user.id, email: user.email, fullName: user.email, isPlatformOwner: false, isDemo:false }
   }, [])
 
-  const hydrateSession=useCallback(async(nextSession,{force=false}={})=>{
+  const hydrateSession=useCallback(async(nextSession: AuthSession | null | undefined,{force=false}:{force?:boolean}={}): Promise<Profile | null>=>{
     const transition=++transitionRef.current
     if(!nextSession?.user){
       if(transition===transitionRef.current)setAuthState({session:null,profile:null,loading:false})
@@ -110,9 +118,9 @@ export function AuthProvider({ children }) {
     }
   }, [hydrateSession, helpPreviewMode])
 
-  const login = useCallback(async (identifier, password) => {
+  const login = useCallback(async (identifier: string, password: string) => {
     const data = await signInWithPassword(identifier, password)
-    const nextSession = data?.session ?? data ?? null
+    const nextSession = (data?.session ?? data ?? null) as AuthSession | null
     if(nextSession?.user)await hydrateSession(nextSession,{force:true})
     return data
   }, [hydrateSession])
@@ -159,7 +167,7 @@ export function AuthProvider({ children }) {
     setAuthState(current=>current.profile?{...current,profile:{...current.profile,mustChangePassword:false}}:current)
   }, [])
 
-  const value = useMemo(() => ({
+  const value = useMemo<AuthContextValue>(() => ({
     session:authState.session,
     user: authState.session?.user ?? null,
     profile:authState.profile,

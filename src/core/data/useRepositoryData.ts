@@ -2,13 +2,14 @@ import { useCallback,useEffect,useState } from 'react'
 import { load,save } from './repository'
 import { useTenant } from '../tenant/TenantContext'
 
-export function useRepositoryData(table,{fallback=null}={}){
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- rows or a document, as the table keeps it
+export function useRepositoryData<T = any>(table: string,{fallback=null}:{fallback?:T|null}={}){
   const {tenant}=useTenant()
   const organizationId=tenant?.id??null
-  const [data,setData]=useState(fallback)
+  const [data,setData]=useState<T|null>(fallback)
   const [loading,setLoading]=useState(true)
   const [saving,setSaving]=useState(false)
-  const [error,setError]=useState(null)
+  const [error,setError]=useState<unknown>(null)
 
   const reload=useCallback(async()=>{
     setLoading(true);setError(null)
@@ -26,7 +27,7 @@ export function useRepositoryData(table,{fallback=null}={}){
 
   useEffect(()=>{void reload().catch(()=>{})},[reload])
 
-  const saveData=useCallback(async next=>{
+  const saveData=useCallback(async (next: T)=>{
     const previous=data
     setData(next)
     setSaving(true)

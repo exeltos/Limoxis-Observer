@@ -18,6 +18,9 @@
     "src/core/actions/**/*",
     "src/core/i18n/**/*",
     "src/core/organization/**/*",
-    "src/core/supabase/**/*"
+    "src/core/supabase/**/*",
+    "src/core/tenant/**/*",
+    "src/core/auth/**/*",
+    "src/core/data/**/*"
   ]
 }
