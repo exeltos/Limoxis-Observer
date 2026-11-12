@@ -4,13 +4,13 @@ import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { supabase } from '../../core/supabase/client'
+import { cloudClient } from '../../core/supabase/cloudContext'
 
 export function AccountPage(){
  const {profile}=useAuth(),{tenant,role}=useTenant(),[password,setPassword]=useState(''),[show,setShow]=useState(false),[message,setMessage]=useState('')
- const email=profile?.contactEmail||profile?.email||(String(profile?.username||'').includes('@')?profile.username:'')
- const name=profile?.fullName||profile?.name||profile?.username||'—'
- async function changePassword(){if(password.length<12)return setMessage('Ο κωδικός πρέπει να έχει τουλάχιστον 12 χαρακτήρες.');const {error}=await supabase.auth.updateUser({password});setMessage(error?error.message:'Ο κωδικός ενημερώθηκε.');if(!error)setPassword('')}
+ const email=profile?.contactEmail||profile?.email||(String(profile?.username||'').includes('@')?profile?.username:'')
+ const name=profile?.fullName||profile?.username||'—'
+ async function changePassword(){if(password.length<12)return setMessage('Ο κωδικός πρέπει να έχει τουλάχιστον 12 χαρακτήρες.');const {error}=await cloudClient().auth.updateUser({password});setMessage(error?error.message:'Ο κωδικός ενημερώθηκε.');if(!error)setPassword('')}
  return <Page title="Ο λογαριασμός μου" subtitle="Ταυτότητα και ασφάλεια λογαριασμού."><div className="account-shell">
   <section className="account-identity"><div className="account-avatar"><UserRound size={22}/></div><div className="account-identity-main"><span>Λογαριασμός</span><h2>{name}</h2><p>{email||'Δεν έχει δηλωθεί email'}</p></div><span className="status-badge active">Ενεργός</span></section>
   <div className="account-info-grid"><section><Mail size={17}/><div><span>Username</span><strong>{profile?.username||'—'}</strong></div></section><section><ShieldCheck size={17}/><div><span>Πρόσβαση</span><strong>{tenant?.name||'Platform'} · {role?.replaceAll('_',' ')||'—'}</strong></div></section></div>

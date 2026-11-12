@@ -68,6 +68,7 @@ const eventTypeLabel=(t,en)=>({status:en?'Status':'Κατάσταση',note:en?'
 function eventText(e,en){const p=e.payload||{};if(p.text)return en&&p.textEn||p.text;if(p.action==='created')return en?'Investigation created':'Δημιουργία διερεύνησης';if(p.action==='capa_created')return `${en?'CAPA created':'Δημιουργία διορθωτικής ενέργειας'}${p.title?`: ${p.title}`:''}`;if(p.action==='capa_status')return `${en?'CAPA status':'Κατάσταση διορθωτικής ενέργειας'} → ${actionStatusLabel(p.status,en)}`;if(p.action==='lira_signal_handoff')return en?'Started from a LIRA signal':'Έναρξη από σήμα της LIRA';if(e.event_type==='status'&&p.to)return `${statusLabel(p.from,en)} → ${statusLabel(p.to,en)}`;if(e.event_type==='case_review')return `${p.recordKey||''} · ${classificationLabel(p.classification,en)}`;return '—'}
 // `shell` lays the panel out as a screen like the other Surveillance tabs: the new-investigation
 // button in the page header and a row of counts above the list ({actions,summary,children}) => page.
+/** @param {{ shell?: ((parts: { actions: import('react').ReactNode, summary: import('react').ReactNode, children: import('react').ReactNode }) => import('react').ReactNode) | null }} [props] */
 export function LiraOutbreakInvestigationsPanel({shell=null}={}){
  const reportRef=useRef(null)
  const {language}=useLanguage(),en=language==='en';const {tenant,isDemo,role}=useTenant();const {notify}=useFeedback()

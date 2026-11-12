@@ -6,20 +6,20 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
-import { supabase } from '../../core/supabase/client'
+import { cloudClient } from '../../core/supabase/cloudContext'
 
-export function AccountDrawer({open,onClose}){
+export function AccountDrawer({open,onClose}:{open:boolean,onClose?:()=>void}){
  const {profile}=useAuth(); const {tenant,role,isRolePreview,actualRole}=useTenant(); const {language}=useLanguage()
  const [password,setPassword]=useState(''); const [show,setShow]=useState(false); const [message,setMessage]=useState('')
  useEffect(()=>{if(!open){setPassword('');setShow(false);setMessage('')}},[open])
  if(!open)return null
- const email=profile?.contactEmail||profile?.email||(String(profile?.username||'').includes('@')?profile.username:'')
- const name=profile?.fullName||profile?.name||profile?.username||'—'
+ const email=profile?.contactEmail||profile?.email||(String(profile?.username||'').includes('@')?profile?.username:'')
+ const name=profile?.fullName||profile?.username||'—'
  const previewLabel=roleLabel(role,language)
  const actualLabel=roleLabel(actualRole,language)
  const closeLabel=language==='en'?'Close':'Κλείσιμο'
  const passwordVisibilityLabel=show?(language==='en'?'Hide password':'Απόκρυψη κωδικού'):(language==='en'?'Show password':'Εμφάνιση κωδικού')
- async function changePassword(){if(password.length<12)return setMessage('Ο κωδικός πρέπει να έχει τουλάχιστον 12 χαρακτήρες.');const {error}=await supabase.auth.updateUser({password});setMessage(error?error.message:'Ο κωδικός ενημερώθηκε.');if(!error)setPassword('')}
+ async function changePassword(){if(password.length<12)return setMessage('Ο κωδικός πρέπει να έχει τουλάχιστον 12 χαρακτήρες.');const {error}=await cloudClient().auth.updateUser({password});setMessage(error?error.message:'Ο κωδικός ενημερώθηκε.');if(!error)setPassword('')}
  return <div className="account-drawer-layer" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose?.()}}>
   <aside className="account-drawer" role="dialog" aria-modal="true" aria-label={language==='en'?'My account':'Ο λογαριασμός μου'}>
    <header className="account-drawer-header"><div><span>{isRolePreview?(language==='en'?'ROLE PREVIEW':'ΠΡΟΕΠΙΣΚΟΠΗΣΗ ΡΟΛΟΥ'):(language==='en'?'Account':'Λογαριασμός')}</span><h2>{isRolePreview?previewLabel:(language==='en'?'My account':'Ο λογαριασμός μου')}</h2></div><IconButton label={closeLabel} className="platform-icon-action" onClick={onClose}><X size={18}/></IconButton></header>

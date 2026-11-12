@@ -5,7 +5,7 @@ import { BrandMark } from '../../design-system/BrandMark'
 import { LEGAL_UPDATED, legalContent } from './legalContent'
 import './legal.css'
 
-export function LegalPage({kind}){
+export function LegalPage({kind}:{kind:keyof typeof legalContent}){
   const {language,setLanguage}=useLanguage()
   const en=language==='en'
   const doc=legalContent[kind][en?'en':'el']

@@ -1,8 +1,8 @@
-import { Activity, Bell, BookOpenCheck, Database, HeartPulse, Layers3, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import { Activity, Bell, BookOpenCheck, Database, HeartPulse, Layers3, ShieldCheck, Sparkles, Users, type LucideIcon } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { APP_VERSION, BUILD_ID } from '../../core/version'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-const features={
+const features: Record<'el'|'en', [LucideIcon, string, string][]>={
  el:[
   [Activity,'Επιτήρηση','Κλινική ροή επιτήρησης, MDR/XDR, απομόνωση, επανεκτίμηση και έκβαση.'],
   [Database,'Εργαστήριο','Δείγματα, αποτελέσματα, αντοχή και κρίσιμη επικοινωνία με traceability.'],

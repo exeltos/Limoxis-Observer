@@ -2,7 +2,7 @@
 // and the platform provider must review them with their DPO before go-live.
 export const LEGAL_UPDATED='2026-09-25'
 
-export const legalContent={
+export const legalContent: Record<'privacy'|'terms', Record<'el'|'en', { title: string, intro: string, sections: [string, string][] }>>={
  privacy:{
   el:{title:'Πολιτική απορρήτου',intro:'Η παρούσα πολιτική περιγράφει πώς επεξεργάζονται τα προσωπικά δεδομένα στο Limoxis Observer, σύμφωνα με τον Γενικό Κανονισμό Προστασίας Δεδομένων (ΕΕ) 2016/679 και τον ν. 4624/2019.',sections:[
    ['Υπεύθυνος επεξεργασίας','Υπεύθυνος επεξεργασίας είναι ο οργανισμός υγείας (νοσοκομείο ή κλινική) που χρησιμοποιεί την πλατφόρμα. Ο πάροχος του Limoxis Observer ενεργεί ως εκτελών την επεξεργασία, βάσει σύμβασης σύμφωνα με το άρθρο 28 ΓΚΠΔ.'],
