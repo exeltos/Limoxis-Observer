@@ -5,7 +5,7 @@ import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pick, seededRandom }
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import type { AnyRecord } from '../../types/featureTypes'
 
-export const employeeSurveillanceRecords=[
+export const employeeSurveillanceRecords: AnyRecord[]=[
   {
     id:'ESUR-260801',
     subjectType:'employee',
@@ -29,24 +29,24 @@ export const employeeSurveillanceRecords=[
   {id:'ESUR-260521',subjectType:'employee',employeeId:'EMP-007',employeeName:'Βασιλείου Χρήστος',employeeNameEn:'Christos Vasileiou',department:'Αποστείρωση',departmentEn:'CSSD',startedAt:'2026-05-21',screeningTypes:['handSwab'],batchId:null,status:'completed',sampleIds:['LAB-EMP-007'],timeline:[]},
 ]
 
-export const employeeSurveillanceBatches=[]
+export const employeeSurveillanceBatches: AnyRecord[]=[]
 
 // The screenings of the earlier months (authored from the first history month, so the Demo shows the whole of
 // 2025): one a month, seeded by month, and two department batches — the ICU after its MRSA cases (one nurse a
 // carrier: decolonisation and a negative recheck) and the Surgery department. Their samples go to the Laboratory.
-const DEMO_STAFF=[
+const DEMO_STAFF: string[][]=[
   ['EMP-001','Παπαδοπούλου Μαρία','Maria Papadopoulou','ΜΕΘ','ICU'],['EMP-002','Δημητρίου Νικόλαος','Nikolaos Dimitriou','Παθολογική','Internal Medicine'],
   ['EMP-003','Κωνσταντίνου Ελένη','Eleni Konstantinou','Χειρουργική','Surgery'],['EMP-004','Αντωνίου Γεώργιος','Georgios Antoniou','Εργαστήριο','Laboratory'],
   ['EMP-005','Μάρκου Ανδρέας','Andreas Markou','ΤΕΠ','ED'],['EMP-006','Οικονόμου Σοφία','Sofia Oikonomou','Καρδιολογική','Cardiology'],
   ['EMP-007','Βασιλείου Χρήστος','Christos Vasileiou','Αποστείρωση','CSSD'],['EMP-008','Σταθάτου Δήμητρα','Dimitra Stathatou','Ποιότητα','Quality'],
 ]
-const historyScreeningSamples=[]
-function historyScreeningSample(id: string,[employeeId,name,nameEn,department,departmentEn]: AnyRecord,typeId: string,date: string,caseId: string,extra: AnyRecord={}){
+const historyScreeningSamples: AnyRecord[]=[]
+function historyScreeningSample(id: string,[employeeId,name,nameEn,department,departmentEn]: string[],typeId: string,date: string,caseId: string,extra: AnyRecord={}){
   const type=EMPLOYEE_SCREENING_TYPES.find(item=>item.id===typeId),positive=Boolean(extra.organism),resultDay=positive?addDays(date,2):date
-  historyScreeningSamples.push({id,subjectType:'employee',patient:name,patientEn:nameEn,patientId:employeeId,department,departmentEn,type:'employeeScreening',source:type.el,sourceEn:type.en,collectedAt:`${date}T08:45:00+03:00`,receivedAt:`${date}T09:30:00+03:00`,status:'completed',priority:'routine',organism:null,result:positive?'positive':'negative',resultStatus:'validated',resultedAt:`${resultDay}T15:00:00+03:00`,validatedAt:`${resultDay}T15:20:00+03:00`,validatedBy:'Demo Microbiology',resistance:null,critical:false,employeeSurveillanceCase:caseId,ast:[],communications:[],attachments:[],timeline:[{at:`${date}T09:30:00+03:00`,type:'sampleReceived',actor:'Εργαστήριο'},{at:`${resultDay}T15:20:00+03:00`,type:'resultValidated',actor:'Demo Microbiology'}],...extra})
+  historyScreeningSamples.push({id,subjectType:'employee',patient:name,patientEn:nameEn,patientId:employeeId,department,departmentEn,type:'employeeScreening',source:type!.el,sourceEn:type!.en,collectedAt:`${date}T08:45:00+03:00`,receivedAt:`${date}T09:30:00+03:00`,status:'completed',priority:'routine',organism:null,result:positive?'positive':'negative',resultStatus:'validated',resultedAt:`${resultDay}T15:00:00+03:00`,validatedAt:`${resultDay}T15:20:00+03:00`,validatedBy:'Demo Microbiology',resistance:null,critical:false,employeeSurveillanceCase:caseId,ast:[],communications:[],attachments:[],timeline:[{at:`${date}T09:30:00+03:00`,type:'sampleReceived',actor:'Εργαστήριο'},{at:`${resultDay}T15:20:00+03:00`,type:'resultValidated',actor:'Demo Microbiology'}],...extra})
   return id
 }
-function historyScreening(id: string,staff,typeIds: AnyRecord[],date: string,batchId: AnyRecord | null=null,extra: AnyRecord={}){
+function historyScreening(id: string,staff: string[],typeIds: string[],date: string,batchId: string | null=null,extra: AnyRecord={}){
   const [employeeId,employeeName,employeeNameEn,department,departmentEn]=staff
   const sampleIds=typeIds.map((typeId: string,index: number)=>historyScreeningSample(`LAB-EMP-${id.slice(5)}-${index+1}`,staff,typeId,date,id))
   const record={id,subjectType:'employee',employeeId,employeeName,employeeNameEn,department,departmentEn,startedAt:date,screeningTypes:[...typeIds],batchId,status:'completed',sampleIds,timeline:[],...extra}
@@ -57,17 +57,17 @@ DEMO_HISTORY_MONTHS.filter(month=>month<'2026-04').forEach(month=>{
   const rand=seededRandom(`employee-screening|${month}`),staff=pick(rand,DEMO_STAFF),date=dayInMonth(month,between(rand,3,26))
   historyScreening(`ESUR-${date.slice(2).replaceAll('-','')}`,staff,pick(rand,[['nasalSwab'],['nasalSwab','throatSwab'],['handSwab']]),date)
 })
-const DEMO_BATCHES=[
+const DEMO_BATCHES: [string,string,string,string,string[],string[]][]=[
   ['EBAT-250318','2025-03-18','ΜΕΘ','ICU',['EMP-001','EMP-002','EMP-008'],['nasalSwab']],
   ['EBAT-251014','2025-10-14','Χειρουργική','Surgery',['EMP-003','EMP-005','EMP-006'],['nasalSwab','throatSwab']],
 ]
 for(const [batchId,date,department,departmentEn,employeeIds,typeIds] of DEMO_BATCHES){
-  const records=employeeIds.map((employeeId: string,index: number)=>historyScreening(`ESUR-${date.slice(2).replaceAll('-','')}-${index+1}`,DEMO_STAFF.find(staff=>staff[0]===employeeId),typeIds,date,batchId))
+  const records=employeeIds.map((employeeId: string,index: number)=>historyScreening(`ESUR-${date.slice(2).replaceAll('-','')}-${index+1}`,DEMO_STAFF.find(staff=>staff[0]===employeeId)!,typeIds,date,batchId))
   employeeSurveillanceBatches.push({id:batchId,subjectType:'employee_batch',department,departmentEn,startedAt:date,screeningTypes:[...typeIds],employeeIds:[...employeeIds],surveillanceIds:records.map((record: AnyRecord)=>record.id),status:'completed',createdBy:'Ομάδα ελέγχου λοιμώξεων',createdById:'demo',createdAt:`${date}T08:30:00+03:00`,updatedBy:'Ομάδα ελέγχου λοιμώξεων',updatedById:'demo',updatedAt:`${addDays(date,14)}T12:00:00+03:00`})
 }
 // The ICU nurse carrying MRSA: nasal mupirocin and chlorhexidine for five days, negative recheck a week later.
 {
-  const carrier=employeeSurveillanceRecords.find(record=>record.id==='ESUR-250318-1'),sample=historyScreeningSamples.find(item=>item.id===carrier.sampleIds[0])
+  const carrier=employeeSurveillanceRecords.find(record=>record.id==='ESUR-250318-1')!,sample=historyScreeningSamples.find(item=>item.id===carrier.sampleIds[0])
   const intervention={interventionType:'Αποαποικισμός MRSA',interventionDetails:'Ρινική αλοιφή μουπιροσίνης 2%, 3 φορές την ημέρα, και λουτρό χλωρεξιδίνης για 5 ημέρες.',interventionStart:'2025-03-21',interventionEnd:'2025-03-25'}
   Object.assign(sample,{result:'positive',resultedAt:'2025-03-20T15:00:00+03:00',validatedAt:'2025-03-20T15:20:00+03:00',timeline:[sample.timeline[0],{at:'2025-03-20T15:20:00+03:00',type:'resultValidated',actor:'Demo Microbiology'}],organism:'Staphylococcus aureus',resistance:'MRSA',ast:[{drug:'Oxacillin',sir:'R',mic:'>2',method:'MIC',standard:'EUCAST',version:'16.0'},{drug:'Mupirocin',sir:'S',mic:'≤1',method:'MIC',standard:'EUCAST',version:'16.0'}],...intervention})
   const recheckId=historyScreeningSample('LAB-EMP-250318-1R',DEMO_STAFF[0],'nasalSwab','2025-04-01',carrier.id,{isRecheck:true})
@@ -99,7 +99,7 @@ export function getEmployeeSurveillanceForEmployee(employeeId: string){
 }
 interface CreateEmployeeSurveillanceOptions {
   employee: AnyRecord
-  screeningTypes: AnyRecord[]
+  screeningTypes: string[]
   startedAt: string
   notes?: string
   batchId?: string | null
@@ -108,9 +108,9 @@ interface CreateEmployeeSurveillanceOptions {
 }
 export function createEmployeeSurveillance({employee,screeningTypes,startedAt,notes='',batchId=null,createdBy='Unknown actor',createdById='unknown'}: CreateEmployeeSurveillanceOptions){
   const id=nextSurveillanceId()
-  const sampleIds=[]
+  const sampleIds: string[]=[]
   screeningTypes.forEach(typeId=>{
-    const cfg=employeeScreeningCatalog.find(x=>x.id===typeId)||employeeScreeningCatalog.at(-1)
+    const cfg=(employeeScreeningCatalog.find(x=>x.id===typeId)||employeeScreeningCatalog.at(-1))!
     const sampleId=nextLabId()
     createDemoLabSample({
       id:sampleId,

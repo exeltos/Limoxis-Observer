@@ -1,5 +1,6 @@
 import { groupByColumn, selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 import {
   AMR_SELECT,
@@ -43,8 +44,12 @@ export async function loadActorNames(organizationId: string | null | undefined, 
 
 // Rows of `table` whose `column` is one of `ids`, newest first by `orderColumn`.
 // Many ids are read as the organization's whole list (see selectInChunks).
-function relatedRows(organizationId: string | null | undefined, table: string, select, column: string, ids: string[], orderColumn, orderOptions) {
-  const ordered = (query: string) => query.order(orderColumn, orderOptions).order('id', { ascending: true })
+type OrderOptions = { ascending: boolean, nullsFirst?: boolean }
+function relatedRows(organizationId: string | null | undefined, table: string, select: string, column: string, ids: unknown[], orderColumn: string, orderOptions: OrderOptions) {
+  // The table and its columns are chosen at run time (no row types for them).
+  const supabase = configuredClient as unknown as SupabaseClient
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a query of a table chosen at run time
+  const ordered = (query: any) => query.order(orderColumn, orderOptions).order('id', { ascending: true })
   return selectInChunks(ids, chunk => ordered(supabase.from(table).select(select).in(column, chunk)), {
     order: [[orderColumn, orderOptions]],
     column,
@@ -54,6 +59,7 @@ function relatedRows(organizationId: string | null | undefined, table: string, s
   })
 }
 
+type Related = (table: string, select: string, ids: unknown[], orderColumn: string, orderOptions: OrderOptions, column?: string) => ReturnType<typeof relatedRows>
 const NEWEST = { ascending: false }
 const NEWEST_NULLS_LAST = { ascending: false, nullsFirst: false }
 
@@ -63,7 +69,7 @@ async function hydrateCases(caseRows: AnyRecord[]) {
   const caseIds = caseRows.map((row: AnyRecord) => row.id)
   const patientIds = [...new Set(caseRows.map((row: AnyRecord) => row.patient_id))]
   const departmentIds = [...new Set(caseRows.map((row: AnyRecord) => row.department_id).filter(Boolean))]
-  const related = (table: string, select, ids: string[], orderColumn, orderOptions, column = 'surveillance_case_id') =>
+  const related: Related = (table, select, ids, orderColumn, orderOptions, column = 'surveillance_case_id') =>
     relatedRows(organizationId, table, select, column, ids, orderColumn, orderOptions)
   const [
     patientsResult,
@@ -125,8 +131,8 @@ async function hydrateCases(caseRows: AnyRecord[]) {
   const administrationsByTherapy = groupByColumn(administrationsResult.data, 'therapy_id')
   const patients = new Map((patientsResult.data || []).map(row => [row.id, row]))
   const departments = new Map((departmentsResult.data || []).map(row => [row.id, row]))
-  const byCase = (rows: AnyRecord[]) => groupByColumn(rows, 'surveillance_case_id')
-  const grouped = {
+  const byCase = (rows: AnyRecord[] | null) => groupByColumn(rows, 'surveillance_case_id')
+  const grouped: Record<string, Map<unknown, AnyRecord[]>> = {
     events: byCase(eventsResult.data),
     assessments: byCase(assessmentsResult.data),
     hai: byCase(haiResult.data),
@@ -169,8 +175,8 @@ async function hydrateCases(caseRows: AnyRecord[]) {
   })
 }
 
-async function loadRelatedLab(related, sampleIds) {
-  const empty = { results: [], amrRows: [], astRows: [], communications: [] }
+async function loadRelatedLab(related: Related, sampleIds: unknown[]) {
+  const empty: Record<string, AnyRecord[]> = { results: [], amrRows: [], astRows: [], communications: [] }
   if (!sampleIds.length) return empty
   const microbiologyResult = await related('microbiology_results', '*', sampleIds, 'resulted_at', NEWEST, 'sample_id')
   if (microbiologyResult.error) throw microbiologyResult.error
@@ -225,7 +231,7 @@ export async function loadClinicalCases(organizationId: string | null | undefine
   if (!organizationId) return []
   if (summary && typeof supabase.rpc === 'function') {
     const listed = await supabase.rpc('surveillance_case_summaries', { p_organization_id: organizationId as string })
-    if (!listed?.error && Array.isArray(listed?.data)) return listed.data.map(mapCaseSummary)
+    if (!listed?.error && Array.isArray(listed?.data)) return listed.data.map(row => mapCaseSummary(row as AnyRecord))
   }
   const rows = await selectAllPages(() =>
     supabase
@@ -271,8 +277,8 @@ export async function createClinicalCase(organizationId: string | null | undefin
     p_organization_id: organizationId as string,
     p_patient_id: patientRecordId,
     p_department_id: draft.departmentId || null,
-    p_started_at: iso(draft.startedAt || new Date()),
-    p_review_due: dateOnly(draft.reviewDue),
+    p_started_at: iso(draft.startedAt || new Date())!,
+    p_review_due: dateOnly(draft.reviewDue) as string,
     p_room: draft.room || null,
     p_reason: draft.reason || draft.reasonEn || null,
     p_reason_en: draft.reasonEn || draft.reason || null,
@@ -285,11 +291,11 @@ export async function createClinicalCase(organizationId: string | null | undefin
 }
 
 interface StartColumnsOptions {
-  reviewDue: AnyRecord
-  room: AnyRecord
-  reason: string
-  reasonEn: AnyRecord
-  suspectedSource: AnyRecord
+  reviewDue?: string | null
+  room?: string | null
+  reason?: string | null
+  reasonEn?: string | null
+  suspectedSource?: string | null
 }
 // What a surveillance start records (or its later edit), as case columns.
 function startColumns({ reviewDue, room, reason, reasonEn, suspectedSource }: StartColumnsOptions) {
@@ -310,7 +316,7 @@ interface SaveClinicalEventOptions {
 export async function saveClinicalEvent(
   organizationId: string | null | undefined,
   caseId: string,
-  eventType,
+  eventType: string,
   detail: string,
   { status = 'completed', occurredAt = null }: SaveClinicalEventOptions = {},
 ) {
@@ -323,7 +329,7 @@ export async function saveClinicalEvent(
       surveillance_case_id: caseId,
       event_type: eventType,
       event_status: status,
-      occurred_at: iso(occurredAt || new Date()),
+      occurred_at: iso(occurredAt || new Date())!,
       detail: detail || null,
       created_by: actorId,
     })
@@ -357,6 +363,8 @@ export async function markIsolationNotRequired(organizationId: string | null | u
 // Rows of a list in their order, for a parent record.
 async function insertListRows(table: string, rows: AnyRecord[]) {
   if (!rows.length) return []
+  // The list table is chosen by the caller (no row types for it).
+  const supabase = configuredClient as unknown as SupabaseClient
   const { data, error } = await supabase.from(table).insert(rows).select('*')
   if (error) throw error
   return data || []
@@ -375,7 +383,7 @@ export async function saveClinicalAssessment(organizationId: string | null | und
       assessment_type: draft.assessmentType || 'suspected',
       classification: draft.classification || 'undetermined',
       summary: draft.summary || draft.notes || null,
-      assessed_at: iso(draft.date || new Date()),
+      assessed_at: iso(draft.date || new Date())!,
       created_by: actorId,
     })
     .select('*')
@@ -411,7 +419,7 @@ export async function saveHaiClassification(organizationId: string | null | unde
       definition_version: draft.definitionVersion || null,
       criteria_met: draft.criteriaMet ?? null,
       rationale: draft.rationale || null,
-      classified_at: iso(draft.classifiedAt || new Date()),
+      classified_at: iso(draft.classifiedAt || new Date())!,
       classified_by: actorId,
     })
     .select('*')
@@ -475,7 +483,7 @@ export async function startIsolation(organizationId: string | null | undefined, 
       department_id: record.departmentId || null,
       room: draft.room || null,
       reason: draft.reason,
-      started_at: iso(draft.startedAt || new Date()),
+      started_at: iso(draft.startedAt || new Date())!,
       review_due_at: iso(draft.reviewDue),
       status: 'active',
       created_by: actorId,
@@ -503,7 +511,7 @@ export async function endIsolation(organizationId: string | null | undefined, is
     .from('isolation_episodes')
     .update({
       status: draft.status || 'ended',
-      ended_at: iso(draft.endedAt || new Date()),
+      ended_at: iso(draft.endedAt || new Date())!,
       end_reason: draft.reason || null,
       ended_by: actorId,
       updated_by: actorId,
@@ -533,7 +541,7 @@ export async function addAntimicrobialTherapy(organizationId: string | null | un
       dose: draft.dose || null,
       route: draft.route || null,
       indication: draft.indication || null,
-      started_at: iso(draft.startedAt || new Date()),
+      started_at: iso(draft.startedAt || new Date())!,
       planned_end_at: iso(draft.plannedEndAt),
       approval_status: approvalStatus,
       status: 'active',
@@ -553,7 +561,7 @@ export async function endAntimicrobialTherapy(organizationId: string | null | un
     .from('antimicrobial_therapies')
     .update({
       status: draft.status || 'completed',
-      ended_at: iso(draft.endedAt || new Date()),
+      ended_at: iso(draft.endedAt || new Date())!,
       updated_by: actorId,
       updated_at: iso(new Date()),
     })
@@ -565,7 +573,7 @@ export async function endAntimicrobialTherapy(organizationId: string | null | un
   return mapTherapy(data)
 }
 
-export async function setTherapyApproval(organizationId: string | null | undefined, therapyId: string, approvalStatus) {
+export async function setTherapyApproval(organizationId: string | null | undefined, therapyId: string, approvalStatus: string) {
   assertCloud()
   const actorId = await currentUserId()
   const { data, error } = await supabase
@@ -587,7 +595,7 @@ export async function recordTherapyAdministration(organizationId: string | null 
     .insert({
       organization_id: organizationId as string,
       therapy_id: therapyId,
-      administered_at: iso(draft.administeredAt || new Date()),
+      administered_at: iso(draft.administeredAt || new Date())!,
       dose: draft.dose || null,
       route: draft.route || null,
       status: draft.status || 'administered',
@@ -615,7 +623,7 @@ export async function addSurveillanceDevice(organizationId: string | null | unde
       device_type: draft.type,
       site: draft.site || null,
       indication: draft.indication || null,
-      inserted_at: iso(draft.insertedAt || new Date()),
+      inserted_at: iso(draft.insertedAt || new Date())!,
       review_due_at: iso(draft.reviewDue),
       status: 'active',
       created_by: actorId,
@@ -633,7 +641,7 @@ export async function removeSurveillanceDevice(organizationId: string | null | u
     .from('surveillance_devices')
     .update({
       status: 'removed',
-      removed_at: iso(draft.removedAt || new Date()),
+      removed_at: iso(draft.removedAt || new Date())!,
       updated_by: actorId,
       updated_at: iso(new Date()),
     })
@@ -668,7 +676,7 @@ export async function addClinicalReassessment(
       ]),
       therapy_decision: reassessmentDecisionDbValue(draft.therapyDecision || draft.decision),
       notes: draft.notes || null,
-      reassessed_at: iso(draft.date || new Date()),
+      reassessed_at: iso(draft.date || new Date())!,
       next_review_due_at: iso(draft.nextReviewDue),
       created_by: actorId,
     })
@@ -681,7 +689,7 @@ export async function addClinicalReassessment(
 export async function completeClinicalCase(organizationId: string | null | undefined, caseRecordId: string, patientRecordId: string, draft: AnyRecord) {
   assertCloud()
   const actorId = await currentUserId()
-  const occurredAt = iso(draft.date || new Date())
+  const occurredAt = iso(draft.date || new Date())!
   const { data: outcome, error: outcomeError } = await supabase
     .from('surveillance_outcomes')
     .insert({
@@ -712,7 +720,7 @@ export async function completeClinicalCase(organizationId: string | null | undef
 
 export async function updateClinicalCaseBasics(organizationId: string | null | undefined, record: AnyRecord, draft: AnyRecord) {
   assertCloud()
-  const startedAt = iso(draft.startedAt || record.startedAt || new Date())
+  const startedAt = iso(draft.startedAt || record.startedAt || new Date())!
   const { data: caseRow, error } = await supabase
     .from('surveillance_cases')
     .update({

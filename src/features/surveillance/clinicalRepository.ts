@@ -36,11 +36,13 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
 
 const now=()=>new Date().toISOString()
-const clone=value=>JSON.parse(JSON.stringify(value))
+const clone=(value: unknown)=>JSON.parse(JSON.stringify(value))
 const id=(prefix: string)=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`
-const event=(type: string,actor: AnyRecord,detail: string)=>({at:now(),type,actor:actor?.name||'Demo user',actorId:actor?.id||'demo',detail:detail||''})
+const event=(type: string,actor: AnyRecord|null,detail: string)=>({at:now(),type,actor:actor?.name||'Demo user',actorId:actor?.id||'demo',detail:detail||''})
 
-function demoRecord(record: AnyRecord){
+// Demo writes always name a case of the store (the record on screen).
+function demoRecord(record: AnyRecord): AnyRecord
+function demoRecord(record: AnyRecord): AnyRecord|null{
   if(!record)return null
   record.samples=record.samples||[]
   record.therapy=record.therapy||[]
@@ -49,7 +51,7 @@ function demoRecord(record: AnyRecord){
   record.timeline=record.timeline||[]
   return record
 }
-function touch(record: AnyRecord,actor: AnyRecord,type: string,detail: string){
+function touch(record: AnyRecord,actor: AnyRecord|null,type: string,detail: string){
   record.updatedAt=now();record.updatedBy=actor?.name||'Demo user';record.updatedById=actor?.id||'demo'
   record.timeline=[event(type,actor,detail),...(record.timeline||[])]
   return clone(record)
@@ -58,7 +60,7 @@ function touch(record: AnyRecord,actor: AnyRecord,type: string,detail: string){
 interface CreateClinicalRepositoryOptions {
   isDemo: boolean
   organizationId: string
-  actor: string
+  actor: AnyRecord|null
 }
 export function createClinicalRepository({isDemo,organizationId,actor}: CreateClinicalRepositoryOptions){
   async function withAdmissionLinks(rows: AnyRecord[]){
@@ -137,7 +139,7 @@ export function createClinicalRepository({isDemo,organizationId,actor}: CreateCl
   }
   async function addTherapy(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return addAntimicrobialTherapy(organizationId,record,draft)
-    const target=demoRecord(clinicalCases[record.id]);const therapy={id:id('TX'),status:'active',...draft,approvalStatus:draft.isAdvancedAntibiotic?'pending':(draft.approvalStatus||'not_required'),startedAt:draft.startedAt||hospitalToday(),plannedEnd:draft.plannedEndAt||draft.plannedEnd||null,administrations:[]}
+    const target=demoRecord(clinicalCases[record.id]);const therapy: AnyRecord={id:id('TX'),status:'active',...draft,approvalStatus:draft.isAdvancedAntibiotic?'pending':(draft.approvalStatus||'not_required'),startedAt:draft.startedAt||hospitalToday(),plannedEnd:draft.plannedEndAt||draft.plannedEnd||null,administrations:[]}
     target.therapy.unshift(therapy);return touch(target,actor,'therapy',therapy.antimicrobial)
   }
   async function finishTherapy(record: AnyRecord,therapyId: string,draft: AnyRecord){
@@ -145,7 +147,7 @@ export function createClinicalRepository({isDemo,organizationId,actor}: CreateCl
     const target=demoRecord(clinicalCases[record.id]);target.therapy=target.therapy.map((item: AnyRecord)=>item.id===therapyId?{...item,status:'completed',endedAt:draft.endedAt||now()}:item)
     return touch(target,actor,'therapyEnded',therapyId)
   }
-  async function updateTherapyApproval(record: AnyRecord,therapyId: string,approvalStatus){
+  async function updateTherapyApproval(record: AnyRecord,therapyId: string,approvalStatus: string){
     if(!isDemo)return setTherapyApproval(organizationId,therapyId,approvalStatus)
     const target=demoRecord(clinicalCases[record.id]);target.therapy=target.therapy.map((item: AnyRecord)=>item.id===therapyId?{...item,approvalStatus}:item)
     return touch(target,actor,'therapyApproval',approvalStatus)
@@ -199,7 +201,7 @@ export function createClinicalRepository({isDemo,organizationId,actor}: CreateCl
     return true
   }
   // «Delete» of one entry of the episode (assessment, HAI, isolation, therapy, reassessment, device, outcome): it goes to the deleter's recycle bin.
-  const ENTRY_KINDS={
+  const ENTRY_KINDS: Record<string, AnyRecord>={
     assessment:{table:'clinical_assessments',field:'assessment',label:'Κλινική εκτίμηση'},
     hai:{table:'hai_classifications',field:'haiClassification',label:'Ταξινόμηση ΛΑΝ'},
     isolation:{table:'isolation_episodes',field:'isolation',label:'Απομόνωση'},

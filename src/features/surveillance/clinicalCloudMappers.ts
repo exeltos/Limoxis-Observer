@@ -3,8 +3,17 @@ import type { AnyRecord } from '../../types/featureTypes'
 
 // Rows of the surveillance tables as the records the screens read (clinicalCloudService.ts reads and writes them).
 
-export const iso = value => (value ? new Date(value).toISOString() : null)
-export const dateOnly = value => (value ? String(value).slice(0, 10) : null)
+// A timestamp (or a date) for a column; an empty value stays empty.
+export function iso(value: string | number | Date): string
+export function iso(value: unknown): string | null
+export function iso(value: unknown) {
+  return value ? new Date(value as string | number | Date).toISOString() : null
+}
+export function dateOnly(value: string | Date): string
+export function dateOnly(value: unknown): string | null
+export function dateOnly(value: unknown) {
+  return value ? String(value).slice(0, 10) : null
+}
 const latest = (rows: AnyRecord[] = []) => rows[0] || null
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const byPosition = (a: AnyRecord, b: AnyRecord) => (a.position || 0) - (b.position || 0)
@@ -243,13 +252,13 @@ const reassessmentDecisionToDb: Record<string, string> = {
   discontinueIsolation: 'discontinue',
 }
 const reassessmentStatuses = ['improved', 'stable', 'deteriorated', 'resolved', 'undetermined']
-export const reassessmentStatusDbValue = value => {
+export const reassessmentStatusDbValue = (value: string) => {
   const v = reassessmentStatusToDb[value] || value
   return reassessmentStatuses.includes(v) ? v : 'undetermined'
 }
-export const reassessmentStatusUiValue = value => reassessmentStatusFromDb[value] || value
+export const reassessmentStatusUiValue = (value: string) => reassessmentStatusFromDb[value] || value
 export const reassessmentDecisionDbValue = (
-  value,
+  value: string | null | undefined,
   allowed = ['continue', 'modify', 'stop', 'not_applicable'],
 ) => {
   if (!value) return null
