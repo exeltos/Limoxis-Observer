@@ -1,5 +1,5 @@
 import { SECTION_TABS,sectionTabsFor } from '../../core/navigation/sectionTabs'
-import { useEffect,useMemo,useState } from 'react'
+import { Suspense,useEffect,useMemo,useState } from 'react'
 import { Activity, ArrowRight, Award, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
@@ -22,7 +22,11 @@ import { buildCalendarEvents, calendarKindLabel, dayKey } from '../calendar/cale
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples } from '../laboratory/sampleReviewModel'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import { loadDepartments } from '../management/departmentsService'
+import { lazyPage } from '../../core/errors/chunkRecovery'
+import { RouteLoading } from '../../design-system/RouteLoading'
+
+// The Division Director's home (its departments, rosters and interviews): its own chunk.
+const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome')
 
 
 const n=v=>Number.isFinite(Number(v))?Number(v):'—'
@@ -96,15 +100,8 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
   const role=actualRole===ROLES.DEMO||(actualRole===ROLES.PLATFORM_OWNER&&tenant)?ROLES.HOSPITAL_ADMIN:actualRole
-  // A Division Director: the departments of the divisions they direct (the database keeps their department scopes in step with the divisions).
-  const overseenIds=membership?.departmentIds
-  const [overseen,setOverseen]=useState(null)
-  useEffect(()=>{
-    if(role!==ROLES.DIVISION_DIRECTOR||!tenant?.id){setOverseen(null);return undefined}
-    let active=true
-    loadDepartments(tenant.id).then(rows=>{if(active)setOverseen(rows.filter(row=>(overseenIds||[]).includes(row.id)).map(row=>row.name))}).catch(()=>{if(active)setOverseen([])})
-    return()=>{active=false}
-  },[role,tenant?.id,overseenIds])
+  // A Division Director has a home of their own (DivisionHome): the departments of the divisions they direct.
+  const divisionHome=role===ROLES.DIVISION_DIRECTOR&&showKpis&&!department
   const {language}=useLanguage()
   const english=language==='en'
   const tr=(el,en)=>english?en:el
@@ -116,11 +113,11 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const [metricsState,setMetricsState]=useState('loading')
   useEffect(()=>{
     let active=true
-    if(isDemo||!tenant?.id){setMetrics({});setMetricsState('ready');return()=>{active=false}}
+    if(isDemo||!tenant?.id||divisionHome){setMetrics({});setMetricsState('ready');return()=>{active=false}}
     setMetricsState('loading')
     loadDashboardMetrics(tenant.id,{departmentIds:DEPARTMENT_ROLES.has(role)?membership?.departmentIds:null}).then(data=>{if(active){setMetrics(data);setMetricsState('ready')}}).catch(()=>{if(active){setMetrics({});setMetricsState('error')}})
     return()=>{active=false}
-  },[tenant?.id,isDemo,role,membership?.departmentIds])
+  },[tenant?.id,isDemo,role,membership?.departmentIds,divisionHome])
   const demo=useMemo(()=>isDemo?collectDemoDashboardMetrics({department}):null,[isDemo,department])
   const values=demo?demo.metrics:metrics
   const roleRows=useMemo(()=>roleKpis(role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
@@ -170,6 +167,13 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const openTodo=item=>{if(!item.to)return;if(item.task)nctx.markRead(item.task.id);navigate(item.to)}
   const dayLabel=date=>{const today=dayKey(new Date()),tomorrow=dayKey(new Date(Date.now()+24*60*60*1000));if(date===today)return tr('Σήμερα','Today');if(date===tomorrow)return tr('Αύριο','Tomorrow');return new Intl.DateTimeFormat(english?'en-GB':'el-GR',{weekday:'short',day:'numeric',month:'numeric'}).format(new Date(`${date}T12:00:00`))}
 
+  // «Επόμενες 7 ημέρες»: the calendar's coming week, on the home of every role.
+  const weekCard=calendarOn&&<Card className="dashboard-card dashboard-week">
+    <CardHeader icon={CalendarDays} title={tr('Επόμενες 7 ημέρες','Next 7 days')} subtitle={tr('Συνεδριάσεις, επιθεωρήσεις και προθεσμίες.','Meetings, audits and deadlines.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/calendar')}>{tr('Ημερολόγιο','Calendar')}<ArrowRight size={14}/></button>}/>
+    {week===null?<TableSkeleton/>:week.length?<div className="dashboard-week-list">{week.slice(0,WEEK_SHOWN).map(event=><button type="button" key={event.id} disabled={!event.path} onClick={()=>event.path&&navigate(event.path)}><span className="dashboard-week-day">{dayLabel(event.date)}</span><span className="dashboard-week-copy"><strong>{event.title}</strong><small>{calendarKindLabel(event.kind,language)}{event.department?` · ${event.department}`:''}</small></span></button>)}</div>:<div className="inline-empty">{tr('Τίποτα προγραμματισμένο για τις επόμενες 7 ημέρες.','Nothing planned for the next 7 days.')}</div>}
+  </Card>
+  if(divisionHome)return <Suspense fallback={<RouteLoading/>}><DivisionHome weekCard={weekCard||null}/></Suspense>
+
   return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
     <div className="dashboard-home">
@@ -180,18 +184,11 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
         {todo.length>TODO_FOLDED&&<button type="button" className="text-button dashboard-more" onClick={()=>setAllTodo(value=>!value)}>{allTodo?tr('Λιγότερα','Fewer'):tr(`Όλα (${todo.length})`,`All (${todo.length})`)}</button>}
       </Card>
       <div className="dashboard-side">
-        {role===ROLES.DIVISION_DIRECTOR&&<Card className="dashboard-card" id="dashboard-my-departments" tabIndex={-1}>
-          <CardHeader icon={Building2} title={tr('Τμήματα που εποπτεύω','Departments I oversee')}/>
-          {overseen===null?<TableSkeleton/>:overseen.length?<ul className="dashboard-departments">{overseen.map(name=><li key={name}>{name}</li>)}</ul>:<div className="inline-empty">{tr('Δεν σας έχει ανατεθεί ακόμα διεύθυνση με τμήματα.','No division with departments has been assigned to you yet.')}</div>}
-        </Card>}
         <Card className="dashboard-card" id="dashboard-announcements" tabIndex={-1}>
           <CardHeader icon={Megaphone} title={tr('Ενημερώσεις & ανακοινώσεις','Updates & announcements')} subtitle={nctx.unreadCount?`${nctx.unreadCount} ${tr('μη αναγνωσμένες ειδοποιήσεις','unread notifications')}`:tr('Όλα διαβασμένα','All caught up')} actions={nctx.unreadCount>0&&<button type="button" className="text-button" onClick={nctx.markAllRead}><Bell size={14}/>{tr('Σήμανση όλων','Mark all read')}</button>}/>
           {announcements.length?<div className="dashboard-announcements">{announcements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{roleTitleText(a.createdBy,language)}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}
         </Card>
-        {calendarOn&&<Card className="dashboard-card dashboard-week">
-          <CardHeader icon={CalendarDays} title={tr('Επόμενες 7 ημέρες','Next 7 days')} subtitle={tr('Συνεδριάσεις, επιθεωρήσεις και προθεσμίες.','Meetings, audits and deadlines.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/calendar')}>{tr('Ημερολόγιο','Calendar')}<ArrowRight size={14}/></button>}/>
-          {week===null?<TableSkeleton/>:week.length?<div className="dashboard-week-list">{week.slice(0,WEEK_SHOWN).map(event=><button type="button" key={event.id} disabled={!event.path} onClick={()=>event.path&&navigate(event.path)}><span className="dashboard-week-day">{dayLabel(event.date)}</span><span className="dashboard-week-copy"><strong>{event.title}</strong><small>{calendarKindLabel(event.kind,language)}{event.department?` · ${event.department}`:''}</small></span></button>)}</div>:<div className="inline-empty">{tr('Τίποτα προγραμματισμένο για τις επόμενες 7 ημέρες.','Nothing planned for the next 7 days.')}</div>}
-        </Card>}
+        {weekCard}
       </div>
     </div>
   </Page>

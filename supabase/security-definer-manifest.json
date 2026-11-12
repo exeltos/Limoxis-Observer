@@ -634,6 +634,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Platform Owner only (current_user_is_platform_owner()): releases a login lock (account or IP) before it expires and writes system_audit_log."
+    },
+    "division_overview": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Home of the Division Director: per-department counts and percentages for one division (staff of the division's professional categories, next roster period status and uncovered nights, pending roster requests, training, influenza vaccination percentage only, hand hygiene, falls / pressure ulcers / open incidents); no employee rows. Callers: a Division Director for their own divisions only, or the organisation's Hospital Admin / the Platform Owner (role preview)."
     }
   }
 }

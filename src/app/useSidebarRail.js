@@ -5,7 +5,7 @@ const PIN_KEY = 'limoxis.sidebar.pinned'
 const OPEN_DELAY_MS = 160
 const CLOSE_DELAY_MS = 320
 
-function useMedia(query) {
+export function useMedia(query) {
   const [matches, setMatches] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia) && window.matchMedia(query).matches)
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined

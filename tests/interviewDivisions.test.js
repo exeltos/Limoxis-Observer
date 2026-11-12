@@ -75,6 +75,7 @@ describe('divisions with departments (phase 1, 11/11/2026)', () => {
     expect(screen).toContain("'Τμήματα της διεύθυνσης'")
     const home = read('src/features/dashboard/DashboardPage.jsx')
     expect(home).toContain('ROLES.DIVISION_DIRECTOR')
-    expect(home).toContain('dashboard-my-departments')
+    expect(home).toContain("import('../division/DivisionHome')")
+    expect(read('src/features/division/DivisionHome.jsx')).toContain("'Τμήματα που εποπτεύω'")
   })
 })
