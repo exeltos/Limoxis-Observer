@@ -1,11 +1,22 @@
 const technicalTerms=/\b(supabase|postgres|postgresql|rls|row level security|rpc|storage bucket|service[_ -]?role|anon key|jwt|edge function|database|sql)\b/gi
 
-function text(error){return String(error?.message||error?.error_description||error?.details||error||'').trim()}
+// Ό,τι φτάνει ως σφάλμα: Error, απάντηση της βάσης ({message, details, hint, code}) ή κείμενο.
+export interface ErrorLike {
+  message?: string
+  error_description?: string
+  details?: string
+  hint?: string
+  code?: string
+}
+
+const asErrorLike=(error:unknown):ErrorLike|null=>(error&&typeof error==='object'?error as ErrorLike:null)
+
+function text(error:unknown){const e=asErrorLike(error);return String(e?.message||e?.error_description||e?.details||error||'').trim()}
 
 // Field names as the user sees them in the forms, for messages that name the
 // field a save failed on. Columns not listed fall back to a readable form of
 // the column name.
-const FIELD_LABELS={
+const FIELD_LABELS:Record<string,[string,string]>={
  country:['Χώρα','Country'],name:['Επωνυμία / Όνομα','Name'],label:['Επωνυμία','Name'],code:['Κωδικός','Code'],title:['Τίτλος','Title'],
  type:['Τύπος','Type'],status:['Κατάσταση','Status'],city:['Πόλη','City'],region:['Περιφέρεια','Region'],health_region:['Υγειονομική Περιφέρεια','Health region'],
  contact_email:['Email','Email'],email:['Email','Email'],contact_phone:['Τηλέφωνο','Phone'],phone:['Τηλέφωνο','Phone'],username:['Όνομα χρήστη','Username'],
@@ -15,7 +26,7 @@ const FIELD_LABELS={
  patient_code:['Κωδικός ασθενούς','Patient code'],employee_code:['Κωδικός εργαζομένου','Employee code'],version:['Έκδοση','Version'],
  bed_capacity:['Δυναμικότητα κλινών','Bed capacity'],message:['Μήνυμα','Message'],description:['Περιγραφή','Description'],
 }
-function fieldLabel(column,en){
+function fieldLabel(column:string,en:boolean){
  const known=FIELD_LABELS[column]
  if(known)return known[en?1:0]
  return String(column||'').replace(/_id$/,'').replaceAll('_',' ')
@@ -23,7 +34,7 @@ function fieldLabel(column,en){
 
 // Database rejections that say exactly what is wrong: name the field or the
 // rule instead of a generic "could not be saved".
-function describeRejection(raw,error,en){
+function describeRejection(raw:string,error:ErrorLike|null,en:boolean){
  const lower=raw.toLowerCase()
  const all=`${raw} ${error?.details||''} ${error?.hint||''}`
  const notNull=raw.match(/null value in column "([^"]+)"/i)
@@ -75,18 +86,18 @@ function describeRejection(raw,error,en){
  }
  const syntax=raw.match(/invalid input syntax for type (\w+)/i)
  if(syntax){
-  const kind={date:en?'a date':'μια ημερομηνία',integer:en?'a number':'ένας αριθμός',numeric:en?'a number':'ένας αριθμός',uuid:en?'a selection':'μια επιλογή',timestamp:en?'a date':'μια ημερομηνία'}[syntax[1].toLowerCase()]||(en?'a field':'ένα πεδίο')
+  const kind=({date:en?'a date':'μια ημερομηνία',integer:en?'a number':'ένας αριθμός',numeric:en?'a number':'ένας αριθμός',uuid:en?'a selection':'μια επιλογή',timestamp:en?'a date':'μια ημερομηνία'} as Record<string,string>)[syntax[1].toLowerCase()]||(en?'a field':'ένα πεδίο')
   return en?`The form contains an invalid value (${kind}). Check the fields and try again.`:`Η φόρμα έχει μη έγκυρη τιμή (${kind}). Ελέγξτε τα πεδία και δοκιμάστε ξανά.`
  }
  return null
 }
 
-export function userFacingError(error,{language='el',context='generic'}={}){
+export function userFacingError(error:unknown,{language='el',context='generic'}:{language?:string,context?:string}={}):string{
   const raw=text(error)
   const lower=raw.toLowerCase()
   const en=language==='en'
 
-  if(error?.code==='CONFLICT'){
+  if(asErrorLike(error)?.code==='CONFLICT'){
     return en?'Someone else already changed this data. Reload the page and re-apply your changes.':'Κάποιος άλλος έχει ήδη αλλάξει αυτά τα δεδομένα. Ανανεώστε τη σελίδα και επαναλάβετε τις αλλαγές σας.'
   }
   // The Platform Owner's password check before a deletion (platform-delete-organizations).
@@ -141,7 +152,7 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   if(lower.includes('committee_membership_approval_status_invalid')||lower.includes('invalid_committee_membership_approval_status')){
     return en?'The participation approval status is not valid.':'Η κατάσταση έγκρισης συμμετοχής δεν είναι έγκυρη.'
   }
-  const rejection=describeRejection(raw,error,en)
+  const rejection=describeRejection(raw,asErrorLike(error),en)
   if(rejection)return rejection
   if(lower.includes('permission')||lower.includes('not authorized')||lower.includes('row-level security')||lower.includes('rls')){
     return en?'You do not have permission to complete this action.':'Δεν έχετε δικαίωμα να ολοκληρώσετε αυτή την ενέργεια.'
@@ -165,7 +176,7 @@ export function userFacingError(error,{language='el',context='generic'}={}){
     return en?'Sign in failed. Check your username and password. A temporary password stops working after 7 days: ask your administrator for a new one.':'Η σύνδεση απέτυχε. Ελέγξτε το όνομα χρήστη και τον κωδικό πρόσβασης. Ο προσωρινός κωδικός ισχύει 7 ημέρες: αν έχει περάσει διάστημα, ζητήστε νέο από τον διαχειριστή σας.'
   }
 
-  const generic={
+  const generic:Record<string,string>={
     save:en?'The information could not be saved. Please try again.':'Δεν ήταν δυνατή η αποθήκευση των στοιχείων. Δοκιμάστε ξανά.',
     delete:en?'The record could not be deleted. Please try again.':'Δεν ήταν δυνατή η διαγραφή της εγγραφής. Δοκιμάστε ξανά.',
     load:en?'The information could not be loaded. Please try again.':'Δεν ήταν δυνατή η φόρτωση των στοιχείων. Δοκιμάστε ξανά.',
@@ -176,7 +187,7 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   return generic[context]||generic.generic
 }
 
-export function sanitizeUserMessage(message,{language='el'}={}){
+export function sanitizeUserMessage(message:unknown,{language='el'}:{language?:string}={}):string{
   const value=String(message||'').trim()
   if(!value)return userFacingError(null,{language})
   // A refused save (record changed by someone else, src/core/data/recordVersion.js) reaches here as error.message.

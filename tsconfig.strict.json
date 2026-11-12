@@ -9,6 +9,11 @@
     "src/types/**/*.d.ts",
     "src/core/permissions/**/*.js",
     "src/core/dates/**/*.ts",
-    "src/design-system/**/*"
+    "src/design-system/**/*",
+    "src/core/config/**/*",
+    "src/core/storage/**/*",
+    "src/core/version.ts",
+    "src/core/errors/**/*",
+    "src/core/feedback/**/*"
   ]
 }

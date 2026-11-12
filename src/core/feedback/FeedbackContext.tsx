@@ -1,30 +1,51 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { CheckCircle2, Info, TriangleAlert, X, XCircle } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { sanitizeUserMessage, userFacingError } from './userFacingError'
 import { diagnosticCodeFromError } from '../diagnostics/runtimeDiagnosticsService'
+import type { ConfirmOptions, FeedbackContextValue, FeedbackMeta, FeedbackTone } from './feedbackTypes'
 
-const FeedbackContext = createContext(/** @type {import('./feedbackTypes').FeedbackContextValue | null} */ (null))
+const FeedbackContext = createContext<FeedbackContextValue | null>(null)
 let nextId = 1
 
-function emitDiagnostic(detail){
+interface ToastItem {
+  id: number
+  message: string
+  tone: FeedbackTone
+  actionLabel?: string
+  onAction?: () => void
+}
+
+interface ConfirmState extends ConfirmOptions {
+  resolve: (answer: boolean | string) => void
+}
+
+interface FeedbackDiagnostic {
+  message: string
+  severity: string
+  operation: string | null
+  eventType: string
+  diagnosticCode: string | null
+}
+
+function emitDiagnostic(detail: FeedbackDiagnostic){
   if(typeof window==='undefined')return
   window.dispatchEvent(new CustomEvent('limoxis:feedback',{detail}))
 }
 
-export function FeedbackProvider({ children }) {
-  const [items, setItems] = useState([])
-  const [confirmState, setConfirmState] = useState(null)
+export function FeedbackProvider({ children }: { children?: ReactNode }) {
+  const [items, setItems] = useState<ToastItem[]>([])
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
   const [confirmInput,setConfirmInput]=useState('')
   const { t, language } = useLanguage()
   // The timers that remove a message: cleared with the provider, so none fires after it is gone.
-  const timers = useRef(new Set())
+  const timers = useRef(new Set<number>())
   useEffect(() => { const pending = timers.current; return () => { pending.forEach(timer => window.clearTimeout(timer)); pending.clear() } }, [])
-  const dismissLater = useCallback((id, delay) => {
+  const dismissLater = useCallback((id: number, delay: number) => {
     const timer = window.setTimeout(() => { timers.current.delete(timer); setItems((current) => current.filter((item) => item.id !== id)) }, delay)
     timers.current.add(timer)
   }, [])
-  const notify = useCallback((message, tone = 'info', meta={}) => {
+  const notify = useCallback((message: string, tone: FeedbackTone = 'info', meta: FeedbackMeta = {}) => {
     const id = nextId++
     const safeMessage=sanitizeUserMessage(message,{language})
     setItems((current) => [...current, { id, message:safeMessage, tone }])
@@ -33,32 +54,32 @@ export function FeedbackProvider({ children }) {
     emitDiagnostic({message:safeMessage,severity:tone==='danger'?'error':tone,operation:meta?.operation||null,eventType:meta?.eventType||'ui_feedback',diagnosticCode:meta?.diagnosticCode||null})
     dismissLater(id, 4200)
   }, [language, dismissLater])
-  const notifyError = useCallback((error, context='generic', meta={}) => {
+  const notifyError = useCallback((error: unknown, context='generic', meta: FeedbackMeta = {}) => {
     const id = nextId++
     const message=userFacingError(error,{language,context})
     setItems((current) => [...current, { id, message, tone:'danger' }])
     emitDiagnostic({message,severity:meta?.severity||'error',operation:meta?.operation||context,eventType:meta?.eventType||'operation_error',diagnosticCode:diagnosticCodeFromError(error)})
     dismissLater(id, 5200)
   }, [language, dismissLater])
-  const notifyUndo = useCallback((message, onUndo, timeout = 7000) => {
+  const notifyUndo = useCallback((message: string, onUndo?: () => void, timeout = 7000) => {
     const id = nextId++
     const safeMessage=sanitizeUserMessage(message,{language})
     setItems((current) => [...current, { id, message:safeMessage, tone:'success', actionLabel:t('undo'), onAction:()=>{onUndo?.();setItems(rows=>rows.filter(x=>x.id!==id))} }])
     emitDiagnostic({message:safeMessage,severity:'success',operation:'undoable_action',eventType:'ui_feedback',diagnosticCode:null})
     dismissLater(id, timeout)
   }, [t,language,dismissLater])
-  const confirm = useCallback((options) => new Promise((resolve) => {
+  const confirm = useCallback((options: ConfirmOptions) => new Promise<boolean | string>((resolve) => {
     setConfirmInput(options?.inputDefault||'')
     setConfirmState({ ...options, resolve })
   }), [])
-  const finishConfirm = (answer) => {
+  const finishConfirm = (answer: boolean) => {
     if(!confirmState)return
     confirmState.resolve(answer?(confirmState.input?confirmInput.trim():true):false)
     setConfirmState(null)
     setConfirmInput('')
   }
-  const value = useMemo(() => ({ notify, notifyError, notifyUndo, confirm }), [notify, notifyError, notifyUndo, confirm])
-  const icons = { success: CheckCircle2, warning: TriangleAlert, danger: XCircle, info: Info }
+  const value = useMemo<FeedbackContextValue>(() => ({ notify, notifyError, notifyUndo, confirm }), [notify, notifyError, notifyUndo, confirm])
+  const icons: Partial<Record<FeedbackTone, typeof Info>> = { success: CheckCircle2, warning: TriangleAlert, danger: XCircle, info: Info }
   const inputRequired=Boolean(confirmState?.input?.required)
   const inputInvalid=inputRequired&&!confirmInput.trim()
   return <FeedbackContext.Provider value={value}>

@@ -1,4 +1,4 @@
-import { lazy } from 'react'
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 import { readSessionValue, writeSessionValue } from '../storage/browserStorage'
 
 // After a new version is published, a tab that is still open asks for page files
@@ -7,10 +7,10 @@ import { readSessionValue, writeSessionValue } from '../storage/browserStorage'
 const RELOAD_KEY = 'limoxis-chunk-reload'
 const RELOAD_GUARD_MS = 30_000
 
-export const isChunkLoadError = error =>
-  /dynamically imported module|Importing a module script failed|error loading dynamically|Failed to fetch|ChunkLoadError|text\/html/i.test(String(error?.message || error))
+export const isChunkLoadError = (error: unknown): boolean =>
+  /dynamically imported module|Importing a module script failed|error loading dynamically|Failed to fetch|ChunkLoadError|text\/html/i.test(String((error as { message?: unknown } | null)?.message || error))
 
-export function reloadForNewVersion() {
+export function reloadForNewVersion(): boolean {
   const last = Number(readSessionValue(RELOAD_KEY) || 0)
   if (Date.now() - last < RELOAD_GUARD_MS) return false
   // Without a stored guard a reload could repeat forever: show the error instead.
@@ -19,8 +19,8 @@ export function reloadForNewVersion() {
   return true
 }
 
-export function installChunkRecovery() {
-  globalThis.addEventListener?.('vite:preloadError', event => {
+export function installChunkRecovery(): void {
+  globalThis.addEventListener?.('vite:preloadError', (event: Event) => {
     if (reloadForNewVersion()) event.preventDefault()
   })
 }
@@ -28,21 +28,30 @@ export function installChunkRecovery() {
 // React.lazy for a named export, reloading once when the file is gone after a release.
 // `preload()` fetches the page file ahead of time (sidebar hover, idle time); once it
 // is in, the page renders in the same frame instead of suspending on a resolved promise.
-export function lazyPage(loader, name = 'default') {
-  let loaded = null
-  let pending = null
-  const load = () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- a page takes any props
+type PageModule = Record<string, ComponentType<any>>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- a page takes any props
+export type LazyPage = LazyExoticComponent<ComponentType<any>> & { preload: () => Promise<boolean> }
+
+export function lazyPage(loader: () => Promise<PageModule>, name = 'default'): LazyPage {
+  let loaded: PageModule | null = null
+  let pending: Promise<PageModule> | null = null
+  const load = (): Promise<PageModule> => {
     if (!pending) pending = loader().then(module => { loaded = module; return module }, error => { pending = null; throw error })
     return pending
   }
   const Page = lazy(() => {
     // An already loaded file resolves synchronously, so React never shows the fallback for it.
-    if (loaded) return { then: resolve => resolve({ default: loaded[name] }) }
+    if (loaded) {
+      const page = loaded[name]
+      return { then: (resolve: (value: { default: PageModule[string] }) => void) => resolve({ default: page }) } as Promise<{ default: PageModule[string] }>
+    }
     return load().then(module => ({ default: module[name] })).catch(error => {
-      if (isChunkLoadError(error) && reloadForNewVersion()) return new Promise(() => {})
+      if (isChunkLoadError(error) && reloadForNewVersion()) return new Promise<never>(() => {})
       throw error
     })
   })
-  Page.preload = () => load().then(() => true, () => false)
-  return Page
+  const page = Page as LazyPage
+  page.preload = () => load().then(() => true, () => false)
+  return page
 }

@@ -1,27 +1,12 @@
 // Which surveillance episodes and laboratory samples belong to a patient, to
 // one admission of that patient, or to one surveillance episode.
+import { hospitalDay } from '../../core/dates/hospitalDate'
 
 const sameId = (a, b) => String(a) === String(b)
 
-// The hospital's calendar day of a date or timestamp. Timestamps come from the
-// database in UTC (a sample taken at 00:00 in Greece reads 21:00 or 22:00 of the
-// day before), so a value with an offset is read in the hospital's time zone.
-const HOSPITAL_TIME_ZONE = 'Europe/Athens'
-const hospitalDayFormat = new Intl.DateTimeFormat('en-GB', {
-  timeZone: HOSPITAL_TIME_ZONE,
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-})
-export function hospitalDay(value) {
-  const text = String(value || '')
-  if (text.length <= 10 || !/(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(text)) return text.slice(0, 10)
-  const date = new Date(text)
-  if (Number.isNaN(date.getTime())) return text.slice(0, 10)
-  const parts = hospitalDayFormat.formatToParts(date)
-  const part = type => parts.find(item => item.type === type)?.value
-  return `${part('year')}-${part('month')}-${part('day')}`
-}
+// The hospital's calendar day of a date or timestamp (src/core/dates/hospitalDate.ts):
+// a database timestamp in UTC is read in the hospital's time zone.
+export { hospitalDay }
 const day = hospitalDay
 
 function dayBefore(date) {

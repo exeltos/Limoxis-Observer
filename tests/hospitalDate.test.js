@@ -23,3 +23,20 @@ describe('The hospital counts days on the Europe/Athens clock', () => {
     expect(offenders).toEqual([])
   })
 })
+
+describe('One set of Athens clock helpers (src/core/dates/hospitalDate.ts)', () => {
+  it('gives the hour, the time and the day of a database timestamp on the Athens clock', async () => {
+    const { hospitalDay, hospitalHour, hospitalNow } = await import('../src/core/dates/hospitalDate')
+    expect(hospitalNow(new Date('2026-10-20T22:30:00Z'))).toEqual({ date: '2026-10-21', time: '01:30' })
+    expect(hospitalHour(new Date('2026-10-20T21:05:00Z'))).toBe(0)
+    expect(hospitalDay('2026-03-14T22:30:00+00:00')).toBe('2026-03-15')
+    expect(hospitalDay('2026-03-14')).toBe('2026-03-14')
+  })
+  it('the screens use it instead of their own Intl.DateTimeFormat for Athens', () => {
+    for (const file of ['src/features/surveillance/forms/formStatus.js', 'src/features/surveillance/patientRecordScope.js', 'src/features/platform/platformHealthService.js', 'src/features/surveillance/AdmissionDischargeDialog.jsx']) {
+      expect(readSource(file)).not.toContain("timeZone: 'Europe/Athens'")
+      expect(readSource(file)).not.toContain('HOSPITAL_TIME_ZONE')
+      expect(readSource(file)).toContain('core/dates/hospitalDate')
+    }
+  })
+})
