@@ -1,8 +1,11 @@
+import type { ReactNode } from 'react'
 
 // The heading of a section inside a record tab: title, optional subtitle,
 // actions on the right. One look for every tab (summary, admissions,
 // surveillance, assessments, documents, history).
-export function SectionHeader({title,subtitle,actions,className=''}){
+interface SectionHeaderProps { title?: ReactNode; subtitle?: ReactNode; actions?: ReactNode; className?: string }
+
+export function SectionHeader({title,subtitle,actions,className=''}: SectionHeaderProps){
   // Without a title the header is only its actions, pushed to the right.
   const bare=!title&&!subtitle
   return <div className={`record-section-header lo-section-header${bare?' lo-section-header-bare':''} ${className}`.trim()}>

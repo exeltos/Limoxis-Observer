@@ -4,7 +4,7 @@ import './InactiveEmployeeBadge.css'
 
 // An employee who has left stays in the history (trainings, committees, records): the red «Inactive» label
 // next to the name says so, and the row is dimmed with `inactive-employee-row`.
-export function InactiveEmployeeBadge({ inactive = true }) {
+export function InactiveEmployeeBadge({ inactive = true }: { inactive?: boolean }) {
   const language = useOptionalLanguage()?.language
   if (!inactive) return null
   return (
@@ -15,9 +15,11 @@ export function InactiveEmployeeBadge({ inactive = true }) {
 }
 
 // The employment status of an employee: anything but active (and on leave) is inactive.
-export const isInactiveEmployee = employee => String(employee?.employmentStatus || '').toLowerCase() === 'inactive'
+interface EmployeeLike { id?: string | number | null; employeeCode?: string | null; employmentStatus?: string | null }
+
+export const isInactiveEmployee = (employee?: EmployeeLike | null) => String(employee?.employmentStatus || '').toLowerCase() === 'inactive'
 
 // The codes of the inactive employees, to mark them in lists that only carry the employee code.
 // Only people who are employees get the label: an outside member or a name typed by hand has no code and never matches.
-export const inactiveEmployeeCodes = (employees = []) =>
+export const inactiveEmployeeCodes = (employees: EmployeeLike[] = []) =>
   new Set(employees.filter(isInactiveEmployee).map(employee => String(employee.id || employee.employeeCode || '')).filter(Boolean))

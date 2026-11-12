@@ -1,3 +1,4 @@
+// @ts-check
 /** @type {Record<string, [string, string]>} */
 export const capabilityLabels = {
   view_kitchen:['Προβολή κουζίνας (HACCP)','View kitchen (HACCP)'], record_kitchen:['Καταχωρίσεις κουζίνας (παραλαβές, θερμοκρασίες, αποψύξεις)','Record kitchen entries (receipts, temperatures, defrosting)'], manage_kitchen:['Διαχείριση κουζίνας (όρια, σχέδιο HACCP, επαλήθευση)','Manage kitchen (limits, HACCP plan, verification)'],

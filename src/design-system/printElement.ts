@@ -1,13 +1,14 @@
 import { DEMO_REPORT_MARK_EL, DEMO_REPORT_MARK_EN, getReportBranding } from '../core/organization/branding'
 import { formatDateTime } from '../core/i18n/formatDay'
+import type { ReportBranding } from './types'
 // Prints one part of the screen (a report inside a dialog) on its own: the
 // element is copied, with the app's stylesheets, into a new window that prints
 // itself. Printing the app page would carry the page behind the dialog along.
-const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c])
 
 // The hospital band of the printed documents (reportDocument): logo, hospital, report header line, the date printed and,
 // in a Demo, the demo mark — so a printed screen carries the same identity as every other report (owner, 2/11/2026).
-export function brandBandHtml(branding = getReportBranding(), { language = 'el', now = new Date() } = {}) {
+export function brandBandHtml(branding: ReportBranding | null = getReportBranding(), { language = 'el', now = new Date() }: { language?: string; now?: Date } = {}) {
   if (!branding || !(branding.name || branding.logo || branding.reportHeader)) return ''
   const en = language === 'en'
   const printed = `${en ? 'Printed' : 'Εκτύπωση'} ${formatDateTime(now.toISOString(), language)}`
@@ -19,7 +20,14 @@ export function brandBandHtml(branding = getReportBranding(), { language = 'el',
 }
 
 // `heading` lines go above the copy: what the printed page is and whom it concerns.
-export function printElement(element, { title = document.title, heading = [], branding = getReportBranding() } = {}) {
+interface PrintElementOptions {
+  title?: string
+  // The lines above the copy: what the page is, then whom it concerns.
+  heading?: Array<string | null | false | undefined>
+  branding?: ReportBranding | null
+}
+
+export function printElement(element: Element | null | undefined, { title = document.title, heading = [], branding = getReportBranding() }: PrintElementOptions = {}) {
   if (!element) return false
   const win = window.open('', '_blank')
   if (!win) return false

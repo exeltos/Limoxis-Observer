@@ -1,4 +1,4 @@
-import { Children, Fragment, cloneElement, isValidElement, useEffect, useState } from 'react'
+import { Children, Fragment, cloneElement, isValidElement, useEffect, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import { ChevronLeft,ChevronRight } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
@@ -14,13 +14,34 @@ import { IconButton } from './IconButton'
 import { OverflowMenu } from './OverflowMenu'
 import { ExportMenu } from './ExportMenu'
 import { RecordReportPrint } from './RecordReportPrint'
+import type { OverflowItem } from './OverflowMenu'
+import type { RecordReport } from './recordReport'
+import type { IconType } from './types'
+
+// What the shell reads from a header action (a Button, an IconButton, an ExportMenu…).
+interface ActionProps {
+  children?: ReactNode
+  onClick?: () => void
+  disabled?: boolean
+  label?: ReactNode
+  title?: string
+  'aria-label'?: string
+  className?: string
+  tone?: string
+  recordMenu?: boolean
+  utility?: boolean
+  onPrint?: () => void
+  ownPrint?: boolean
+}
+type ActionElement = ReactElement<ActionProps>
+type ActionKind = 'menu' | 'edit' | 'delete'
 
 // Header actions come in three kinds: edit and delete go to the record's «…»
 // menu; the record's own commands (e.g. «Καταγραφή ελέγχου») and the export
 // control (ExportMenu «Εξαγωγή ▾», always last) stay visible next to the status.
-function flattenActions(node,result=[],utilities=[]){
+function flattenActions(node: ReactNode,result: ActionElement[]=[],utilities: ActionElement[]=[]){
   Children.forEach(node,child=>{
-    if(!isValidElement(child))return
+    if(!isValidElement<ActionProps>(child))return
     if(child.type===Fragment){flattenActions(child.props.children,result,utilities);return}
     if(isUtilityAction(child)){utilities.push(child);return}
     if(recordActionKind(child)){result.push(child);return}
@@ -31,16 +52,16 @@ function flattenActions(node,result=[],utilities=[]){
 }
 
 const UTILITY_PREFIXES=['print','εκτύπ','export','εξαγωγ','download','λήψη','word','pdf']
-function isUtilityAction(action){
-  if(!isValidElement(action))return false
+function isUtilityAction(action: ReactNode){
+  if(!isValidElement<ActionProps>(action))return false
   if(action.type===ExportMenu||action.props.utility)return true
   if(typeof action.type==='string')return false
   const semantic=String(action.props.label||action.props['aria-label']||action.props.title||'').toLowerCase().trim()
   return UTILITY_PREFIXES.some(prefix=>semantic.startsWith(prefix))
 }
 
-function recordActionKind(action){
-  if(!isValidElement(action))return null
+function recordActionKind(action: ReactNode): ActionKind|null{
+  if(!isValidElement<ActionProps>(action))return null
   // A record command that belongs in the «…» too (e.g. «Κλείσιμο ερωτηματολογίου»): <Button recordMenu …>.
   if(action.props.recordMenu)return 'menu'
   const className=String(action.props.className||'').toLowerCase()
@@ -56,18 +77,18 @@ function recordActionKind(action){
   return edit?'edit':null
 }
 
-function actionLabel(action,kind,en){
+function actionLabel(action: ActionElement,kind: ActionKind,en: boolean): ReactNode{
   if(kind==='menu'&&!action.props.label&&!action.props['aria-label']&&!action.props.title)return Children.toArray(action.props.children).filter(child=>typeof child==='string').join('').trim()
   return action.props.label||action.props['aria-label']||action.props.title||(kind==='delete'?(en?'Delete':'Διαγραφή'):(en?'Edit':'Επεξεργασία'))
 }
 
-function actionIcon(action){
+function actionIcon(action: ActionElement){
   const children=Children.toArray(action.props.children)
-  const icon=children.find(child=>isValidElement(child)&&typeof child.type!=='string')
-  return icon?.type||null
+  const icon=children.find((child): child is ReactElement=>isValidElement(child)&&typeof child.type!=='string')
+  return (icon?.type as IconType|undefined)||null
 }
 
-function toOverflowItem(action,index,en){
+function toOverflowItem(action: ActionElement,index: number,en: boolean): OverflowItem|null{
   const kind=recordActionKind(action)
   if(!kind)return null
   const label=actionLabel(action,kind,en)
@@ -80,6 +101,41 @@ function toOverflowItem(action,index,en){
     disabled:action.props.disabled,
     onClick:action.props.onClick,
   }
+}
+
+// One tab of the record; `sheet` reads as a details sheet, like the first tab.
+export interface RecordTab { id: string; label: ReactNode; icon?: IconType; disabled?: boolean; lockedLabel?: string; sheet?: boolean }
+
+// «‹ 3/12 ›» between the records of the list the record was opened from.
+export interface RecordNavigation {
+  position?: number
+  total?: number
+  hasPrevious?: boolean
+  hasNext?: boolean
+  previous?: () => void
+  next?: () => void
+}
+
+interface EntityRecordShellProps {
+  avatar?: ReactNode
+  eyebrow?: ReactNode
+  recordId?: string | number | null
+  title?: ReactNode
+  subtitle?: ReactNode
+  context?: ReactNode
+  headerNote?: ReactNode
+  status?: ReactNode
+  headerActions?: ReactNode
+  recordNavigation?: RecordNavigation | null
+  tabs?: RecordTab[]
+  activeTab?: string
+  onTabChange?: (id: string) => void
+  onBack?: () => void
+  backLabel?: string
+  renderTab?: (id: string) => ReactNode
+  printReport?: RecordReport | (() => RecordReport) | null
+  children?: ReactNode
+  className?: string
 }
 
 export function EntityRecordShell({
@@ -109,12 +165,12 @@ export function EntityRecordShell({
   printReport,
   children,
   className='',
-}) {
+}: EntityRecordShellProps) {
   const { t,language }=useLanguage();const en=language==='en'
   // Print mode: a clean printed record — hospital header, record title and code,
   // print date, every tab's content, and on each page «Εκτυπώθηκε από …» with the
   // page number; the on-screen controls are hidden by print.css.
-  const [printedAt,setPrintedAt]=useState(null)
+  const [printedAt,setPrintedAt]=useState<Date|null>(null)
   const printing=Boolean(printedAt)
   useEffect(()=>{
     const before=()=>flushSync(()=>setPrintedAt(current=>current||new Date()))
@@ -147,7 +203,7 @@ export function EntityRecordShell({
   const fallbackIds=sourceRegistry?readSessionJson(registryStorageKey(sourceRegistry,'sequence'),[]):[]
   const fallbackSequence=Array.isArray(fallbackIds)?fallbackIds.map(String):[]
   const fallbackIndex=currentRecordId?fallbackSequence.indexOf(currentRecordId):-1
-  function moveFallback(nextIndex){
+  function moveFallback(nextIndex: number){
     const id=fallbackSequence[nextIndex]
     if(!sourceRegistry||!id)return
     writeSessionValue(registryStorageKey(sourceRegistry,'selected'),id)
@@ -166,10 +222,10 @@ export function EntityRecordShell({
   }:null
   const effectiveRecordNavigation=recordNavigation||fallbackNavigation
 
-  const utilityActions=[]
+  const utilityActions: ActionElement[]=[]
   const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions,[],utilityActions)
   // «Εξαγωγή» after the other utilities, and the page's main action (tone primary) last at the right, as on the Quality Center page.
-  const utilityRank=action=>action.props?.tone==='primary'?2:action.type===ExportMenu?1:0
+  const utilityRank=(action: ActionElement)=>action.props?.tone==='primary'?2:action.type===ExportMenu?1:0
   utilityActions.sort((a,b)=>utilityRank(a)-utilityRank(b))
   const printAllTabs=hasTabs&&typeof renderTab==='function'
   // The record's «Εκτύπωση» prints the whole record (every tab), not the screen as it is.
@@ -177,16 +233,16 @@ export function EntityRecordShell({
   const shownUtilities=utilityActions.map(action=>(printAllTabs||printReport)&&action.type===ExportMenu&&action.props.onPrint&&!action.props.ownPrint?cloneElement(action,{onPrint:printRecord}):action)
   const branding=getReportBranding()
   const printedLine=printedAt?[`${en?'Printed by':'Εκτυπώθηκε από'} ${branding?.printedBy||'—'}`,formatDateTime(printedAt,language)].join(' · '):''
-  const cssText=value=>JSON.stringify(String(value||'')).replace(/</g,'\\3c ')
+  const cssText=(value: unknown)=>JSON.stringify(String(value||'')).replace(/</g,'\\3c ')
   const printedTabs=printing&&printAllTabs?tabs.filter(tab=>!tab.disabled):null
   const reportDescription=printing&&printReport?(typeof printReport==='function'?printReport():printReport):null
   // Record commands first, then edit, then delete (with its separator) last.
-  const menuRank=action=>{const kind=recordActionKind(action);return kind==='menu'?0:kind==='edit'?1:2}
+  const menuRank=(action: ActionElement)=>{const kind=recordActionKind(action);return kind==='menu'?0:kind==='edit'?1:2}
   rawGeneralActions.sort((a,b)=>menuRank(a)-menuRank(b))
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
-  const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
+  const secondaryBodyStyle: CSSProperties|undefined=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
   if(reportDescription)return <div className={`entity-record-shell record-printing record-report-mode ${className}`.trim()}>
     <RecordReportPrint report={reportDescription} branding={branding} printedAt={printedAt} printedBy={branding?.printedBy} language={language} fmtDateTime={value=>formatDateTime(value,language)}/>
@@ -216,7 +272,7 @@ export function EntityRecordShell({
         {shownUtilities.length>0&&<div className="record-utility-actions entity-record-utilities">{shownUtilities.map((action,index)=><Fragment key={action.key||index}>{action}</Fragment>)}</div>}
         {effectiveRecordNavigation&&<div className="entity-record-sequence" aria-label={en?'Record navigation':'Πλοήγηση εγγραφών'}>
           <IconButton size="sm" disabled={!effectiveRecordNavigation.hasPrevious} onClick={effectiveRecordNavigation.previous} label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></IconButton>
-          {effectiveRecordNavigation.position&&effectiveRecordNavigation.total>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}
+          {effectiveRecordNavigation.position&&(effectiveRecordNavigation.total??0)>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}
           <IconButton size="sm" disabled={!effectiveRecordNavigation.hasNext} onClick={effectiveRecordNavigation.next} label={en?'Next record':'Επόμενη εγγραφή'}><ChevronRight size={16}/></IconButton>
         </div>}
         {ownerHeaderActions}
@@ -231,7 +287,7 @@ export function EntityRecordShell({
       {generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
       {printedTabs?printedTabs.map(tab=><section key={tab.id} className="record-print-section" data-print-tab={tab.id}>
         <h3 className="record-print-section-title">{tab.label}</h3>
-        {renderTab(tab.id)}
+        {renderTab?.(tab.id)}
       </section>):children}
     </section>
     {printing&&<p className="record-print-footer">{printedLine}</p>}

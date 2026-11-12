@@ -1,12 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "checkJs": true,
+    "checkJs": false,
     "strict": true,
     "noImplicitAny": true
   },
   "include": [
+    "src/types/**/*.d.ts",
     "src/core/permissions/**/*.js",
-    "src/core/dates/**/*.ts"
+    "src/core/dates/**/*.ts",
+    "src/design-system/**/*"
   ]
 }

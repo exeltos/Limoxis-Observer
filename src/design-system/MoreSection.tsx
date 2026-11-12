@@ -1,11 +1,13 @@
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useOptionalLanguage } from '../core/i18n/LanguageContext'
 
 // Secondary content of a summary, folded behind «Περισσότερα» so a record's
 // first screen stays short (no long scrolling). It is always in the page (only
 // `hidden`), so printing shows it unfolded.
-export function MoreSection({ children, moreLabel, lessLabel, className = '', defaultOpen = false }) {
+interface MoreSectionProps { children?: ReactNode; moreLabel?: ReactNode; lessLabel?: ReactNode; className?: string; defaultOpen?: boolean }
+
+export function MoreSection({ children, moreLabel, lessLabel, className = '', defaultOpen = false }: MoreSectionProps) {
   const en = useOptionalLanguage()?.language === 'en'
   const [open, setOpen] = useState(defaultOpen)
   const id = useId()

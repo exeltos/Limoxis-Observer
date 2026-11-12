@@ -1,7 +1,11 @@
 // A value the form shows but does not edit (the department of the admission,
 // the patient's bed): label above, a box exactly as tall as an input, and the
 // helper text below — so it lines up with the inputs of the same row.
-export function ReadOnlyField({ label, value, hint, className = '' }) {
+import type { ReactNode } from 'react'
+
+interface ReadOnlyFieldProps { label?: ReactNode; value?: ReactNode; hint?: ReactNode; className?: string }
+
+export function ReadOnlyField({ label, value, hint, className = '' }: ReadOnlyFieldProps) {
   return (
     <div className={`lo-readonly-field ${className}`.trim()}>
       <span className="lo-field-label">{label}</span>

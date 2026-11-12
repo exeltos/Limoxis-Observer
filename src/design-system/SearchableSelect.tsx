@@ -1,9 +1,10 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 import { FieldLabelText, FieldMessage } from './FormValidation'
+import type { ValidatedFieldProps } from './types'
 import './SearchableSelect.css'
 
-const normalize = value =>
+const normalize = (value: unknown) =>
   String(value || '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -14,7 +15,36 @@ const normalize = value =>
 // WAI-ARIA combobox pattern: Arrow keys move through the list, Enter picks,
 // Escape closes and restores the current choice.
 // options: [{ value, label, description?, keywords? }]
-export function SearchableSelect({
+export interface SearchableOption<V extends string | number = string> {
+  value: V
+  label: string
+  description?: ReactNode
+  keywords?: string
+}
+
+// An option as the list shows it: a recent one under its heading, the typed text as a new value.
+type ListedOption<V extends string | number> = Omit<SearchableOption<V>, 'value'> & { value: V | string; group?: string; divider?: boolean; custom?: boolean }
+
+export interface SearchableSelectProps<V extends string | number = string> extends ValidatedFieldProps {
+  label?: string
+  value?: V | string | null
+  options?: Array<SearchableOption<V>>
+  // the chosen value; '' when cleared, or the typed text where custom values are allowed
+  onChange?: (value: V | string) => void
+  placeholder?: string
+  emptyLabel?: string
+  clearLabel?: string
+  className?: string
+  recentValues?: Array<V | string>
+  recentLabel?: string
+  allowCustom?: boolean
+  customLabel?: (text: string) => string
+  hideLabel?: boolean
+  disabled?: boolean
+  limit?: number
+}
+
+export function SearchableSelect<V extends string | number = string>({
   label,
   value,
   options = [],
@@ -34,26 +64,26 @@ export function SearchableSelect({
   hint = '',
   fieldKey,
   limit = 0,
-}) {
+}: SearchableSelectProps<V>) {
   const baseId = useId().replace(/:/g, '')
   const inputId = `${baseId}-input`,
     listId = `${baseId}-list`
-  const selected =
+  const selected: ListedOption<V> | null =
     options.find(option => String(option.value) === String(value)) ||
-    (allowCustom && String(value ?? '').trim() ? { value, label: String(value) } : null)
+    (allowCustom && String(value ?? '').trim() ? { value: value as V | string, label: String(value) } : null)
   const [open, setOpen] = useState(false),
-    [query, setQuery] = useState(null),
+    [query, setQuery] = useState<string | null>(null),
     [activeIndex, setActiveIndex] = useState(-1)
-  const listRef = useRef(null),
-    controlRef = useRef(null),
+  const listRef = useRef<HTMLUListElement>(null),
+    controlRef = useRef<HTMLDivElement>(null),
     openOnPress = useRef(false)
-  const [place, setPlace] = useState(null)
+  const [place, setPlace] = useState<CSSProperties | null>(null)
   const text = query ?? selected?.label ?? ''
   // limit: a long list (hundreds of employees) shows the first matches only; typing narrows it.
   const matches = useMemo(() => {
     const all = findMatches()
     return limit > 0 && all.length > limit ? all.slice(0, limit) : all
-    function findMatches() {
+    function findMatches(): Array<ListedOption<V>> {
     const needle = normalize(query)
     if (!needle) {
       const recent = recentValues
@@ -81,7 +111,7 @@ export function SearchableSelect({
     return found
     }
   }, [options, query, recentValues, recentLabel, allowCustom, customLabel, limit])
-  const optionId = index => `${baseId}-option-${index}`
+  const optionId = (index: number) => `${baseId}-option-${index}`
 
   // The list floats over the page (fixed) like MultiSelect's, so a scrolling
   // table or dialog never clips it; it opens upwards when there is no room
@@ -116,18 +146,18 @@ export function SearchableSelect({
     setQuery(null)
     setActiveIndex(-1)
   }
-  function choose(option) {
+  function choose(option: ListedOption<V>) {
     onChange?.(option.value)
     close()
   }
-  function move(step) {
+  function move(step: number) {
     if (!matches.length) return
     const next = open ? (activeIndex + step + matches.length) % matches.length : 0
     setOpen(true)
     setActiveIndex(next)
     listRef.current?.querySelector(`#${optionId(next)}`)?.scrollIntoView?.({ block: 'nearest' })
   }
-  function onKeyDown(event) {
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
       move(1)

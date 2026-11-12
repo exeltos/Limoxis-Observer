@@ -1,9 +1,15 @@
+import type { ReactNode } from 'react'
 import { MetricCard } from './MetricCard'
+import type { IconType } from './types'
 
 // The counts above a registry, as one row of cards: pressing a card filters the list by it, pressing it
 // again shows everything. items: [{ key, icon, label, value, active, onToggle, tone? }]. A card without
 // onToggle is only a count.
-export function StatusCards({ items = [], label, loading = false }) {
+export interface StatusCardItem { key: string; icon?: IconType; label?: ReactNode; value?: ReactNode; active?: boolean; onToggle?: () => void; tone?: string }
+
+interface StatusCardsProps { items?: StatusCardItem[]; label?: string; loading?: boolean }
+
+export function StatusCards({ items = [], label, loading = false }: StatusCardsProps) {
   return (
     <div className="workspace-summary status-cards" role="group" aria-label={label}>
       <div className="module-summary-strip">

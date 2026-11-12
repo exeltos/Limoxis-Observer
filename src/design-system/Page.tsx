@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 import { SectionTabStrip, SectionTabsProvider, useSectionTabs } from './SectionTabs'
 
 // A screen shown as a tab of another page (e.g. the indicators list in the
@@ -6,13 +6,24 @@ import { SectionTabStrip, SectionTabsProvider, useSectionTabs } from './SectionT
 const PageEmbedContext = createContext(false)
 // Whether the screen is shown inside another page (it then leaves out its own heading).
 export const usePageEmbedded = () => useContext(PageEmbedContext)
-export function PageEmbedProvider({ children }) {
+export function PageEmbedProvider({ children }: { children?: ReactNode }) {
   return <PageEmbedContext.Provider value={true}>{children}</PageEmbedContext.Provider>
 }
 
 // `icon` gives the page the record header: a white card with the icon (as on a supplier's
 // page), for screens opened from a record list (e.g. a list's renewals or templates).
-export function Page({navigation,title,subtitle,actions,children,fill=false,className='',icon=null}) {
+interface PageProps {
+  navigation?: ReactNode
+  title?: ReactNode
+  subtitle?: ReactNode
+  actions?: ReactNode
+  children?: ReactNode
+  fill?: boolean
+  className?: string
+  icon?: ReactNode
+}
+
+export function Page({navigation,title,subtitle,actions,children,fill=false,className='',icon=null}: PageProps) {
   // Inside a merged section the page carries the section's name and tabs; pages nested in it do not repeat them.
   const section=useSectionTabs()
   const embedded=useContext(PageEmbedContext)

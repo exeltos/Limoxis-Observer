@@ -4,7 +4,7 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { sanitizeUserMessage, userFacingError } from './userFacingError'
 import { diagnosticCodeFromError } from '../diagnostics/runtimeDiagnosticsService'
 
-const FeedbackContext = createContext(null)
+const FeedbackContext = createContext(/** @type {import('./feedbackTypes').FeedbackContextValue | null} */ (null))
 let nextId = 1
 
 function emitDiagnostic(detail){

@@ -1,3 +1,4 @@
+// @ts-check
 import { CAPABILITIES } from './capabilityCatalogue.js'
 import { DATA_SCOPES } from './scopeTypes.js'
 export const ROLES = Object.freeze({

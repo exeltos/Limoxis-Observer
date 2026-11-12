@@ -1,9 +1,14 @@
+import type { ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
 import './Breadcrumbs.css'
 
 // Where a nested view sits inside its record: earlier steps are links back,
 // the last one is the current view. Used instead of a second Back button.
-export function Breadcrumbs({items=[],ariaLabel,className=''}){
+export interface Breadcrumb { label: ReactNode; onClick?: () => void }
+
+interface BreadcrumbsProps { items?: Breadcrumb[]; ariaLabel?: string; className?: string }
+
+export function Breadcrumbs({items=[],ariaLabel,className=''}: BreadcrumbsProps){
   return <nav className={`lo-breadcrumbs ${className}`.trim()} aria-label={ariaLabel}>
     <ol>
       {items.map((item,index)=>{

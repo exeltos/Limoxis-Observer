@@ -1,19 +1,47 @@
-import { useCallback,useEffect,useLayoutEffect,useRef,useState } from 'react'
+import { useCallback,useEffect,useLayoutEffect,useRef,useState,type Key,type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown,MoreHorizontal } from 'lucide-react'
 import { IconButton } from './IconButton'
 import { useLanguage } from '../core/i18n/LanguageContext'
+import type { IconType } from './types'
+
+export interface OverflowItem {
+  id?: Key
+  label?: ReactNode
+  description?: ReactNode
+  icon?: IconType | null
+  // 'danger' for a destructive item
+  tone?: string
+  separatorBefore?: boolean
+  disabled?: boolean
+  current?: boolean
+  hidden?: boolean
+  onClick?: () => void
+}
+
+interface OverflowMenuProps {
+  items?: Array<OverflowItem | null | false | undefined>
+  label?: string
+  className?: string
+  align?: 'start' | 'end'
+  size?: 'sm' | 'md'
+  trigger?: ReactNode
+  triggerTone?: string
+  width?: number
+  // In a record's header: EntityRecordShell keeps the menu visible.
+  utility?: boolean
+}
 
 // trigger: optional visible content (icon + text) instead of the "…" icon button;
 // triggerTone 'primary' makes it the page's main action.
-export function OverflowMenu({items=[],label,className='',align='end',size='sm',trigger=null,triggerTone='secondary',width=260}){
+export function OverflowMenu({items=[],label,className='',align='end',size='sm',trigger=null,triggerTone='secondary',width=260}: OverflowMenuProps){
   const {language}=useLanguage();const en=language==='en'
   const [open,setOpen]=useState(false)
-  const [position,setPosition]=useState(null)
-  const rootRef=useRef(null)
-  const triggerRef=useRef(null)
-  const popoverRef=useRef(null)
-  const visibleItems=items.filter(item=>item&&item.hidden!==true)
+  const [position,setPosition]=useState<{top:number,left:number,width:number}|null>(null)
+  const rootRef=useRef<HTMLDivElement>(null)
+  const triggerRef=useRef<HTMLSpanElement>(null)
+  const popoverRef=useRef<HTMLDivElement>(null)
+  const visibleItems=items.filter((item): item is OverflowItem=>!!item&&item.hidden!==true)
   const visibleCount=visibleItems.length
   // Wide enough for the longest item, so no label is cut short with «…» (at most 440px, never past the screen).
   const longestLabel=visibleItems.reduce((max,item)=>Math.max(max,String(item.label??'').length),0)
@@ -41,22 +69,22 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
   useLayoutEffect(()=>{if(open&&drawn)updatePosition()},[open,drawn,updatePosition])
   // The first item takes the focus when the menu opens, so the keyboard continues inside it.
   const positioned=Boolean(position)
-  useEffect(()=>{if(open&&positioned)popoverRef.current?.querySelector('button:not([disabled])')?.focus()},[open,positioned])
+  useEffect(()=>{if(open&&positioned)popoverRef.current?.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus()},[open,positioned])
 
   useEffect(()=>{
     if(!open)return
-    function onPointer(event){
-      if(rootRef.current?.contains(event.target)||popoverRef.current?.contains(event.target))return
+    function onPointer(event: MouseEvent){
+      if(rootRef.current?.contains(event.target as Node)||popoverRef.current?.contains(event.target as Node))return
       setOpen(false)
     }
-    function onKey(event){
+    function onKey(event: KeyboardEvent){
       if(event.key==='Escape'){setOpen(false);triggerRef.current?.querySelector('button')?.focus();return}
       // Arrow keys, Home and End move through the items (the menu sits at the end of the page, so Tab would not reach it).
       if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key)||!popoverRef.current)return
-      const buttons=[...popoverRef.current.querySelectorAll('button:not([disabled])')]
+      const buttons=[...popoverRef.current.querySelectorAll<HTMLButtonElement>('button:not([disabled])')]
       if(!buttons.length)return
       event.preventDefault()
-      const at=buttons.indexOf(document.activeElement)
+      const at=buttons.indexOf(document.activeElement as HTMLButtonElement)
       const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:event.key==='ArrowDown'?(at+1)%buttons.length:(at<=0?buttons.length-1:at-1)
       buttons[next].focus()
     }
@@ -78,7 +106,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
   const popover=open&&position?<div ref={popoverRef} className="lo-overflow-popover lo-overflow-popover-portal" style={{position:'fixed',top:position.top,left:position.left,width:position.width,zIndex:2400}} role="menu" aria-label={resolvedLabel} onClick={event=>event.stopPropagation()}>
     {visibleItems.map((item,index)=>{
       const Icon=item.icon
-      return <div key={item.id||item.label||index} className={item.separatorBefore&&index>0?'lo-overflow-separated':''}>
+      return <div key={(item.id||item.label||index) as Key} className={item.separatorBefore&&index>0?'lo-overflow-separated':''}>
         <button type="button" role="menuitem" aria-current={item.current||undefined} className={`lo-overflow-item ${item.tone==='danger'?'lo-overflow-item-danger':''} ${item.current?'lo-overflow-item-current':''}`.trim()} disabled={item.disabled} onClick={()=>{if(item.disabled)return;setOpen(false);item.onClick?.()}}>
           {Icon&&<Icon size={15}/>}<span>{item.label}{item.description&&<small>{item.description}</small>}</span>
         </button>

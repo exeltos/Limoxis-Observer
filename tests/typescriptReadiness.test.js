@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { readSource, resolveSource, sourceExists } from './helpers/readSource'
 
@@ -12,6 +13,17 @@ describe('TypeScript, step 1: the tests and the tools follow a file that changes
     const eslint = readSource('eslint.config.js')
     expect(eslint).toContain("files: ['src/**/*.{ts,tsx}']")
     expect(eslint).toContain("'src/core/supabase/database.types.ts'")
+  })
+  it('step 2: the design system is TypeScript and in the strict compiler run', () => {
+    const files = fs.readdirSync(new URL('../src/design-system/', import.meta.url)).filter(name => /\.(js|jsx|ts|tsx)$/.test(name))
+    expect(files.length).toBeGreaterThan(70)
+    expect(files.filter(name => /\.jsx?$/.test(name))).toEqual([])
+    const strict = readSource('tsconfig.strict.json')
+    expect(strict).toContain('src/design-system/**/*')
+    expect(strict).toContain('src/types/**/*.d.ts')
+    // The language and feedback contexts declare their value for the typed callers.
+    expect(readSource('src/core/i18n/LanguageContext.jsx')).toContain("import('./languageTypes').LanguageContextValue")
+    expect(readSource('src/core/feedback/FeedbackContext.jsx')).toContain("import('./feedbackTypes').FeedbackContextValue")
   })
   it('the database types exist without the per-register dynamic tables', () => {
     const types = readSource('src/core/supabase/database.types.ts')

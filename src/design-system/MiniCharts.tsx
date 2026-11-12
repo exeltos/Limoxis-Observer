@@ -7,28 +7,32 @@ const MAGNITUDE='#2a78d6'
 
 // A share of a whole (0–100): progress of steps, compliance of an audit,
 // how close a value is to its target. `tone` colours the fill by state.
-export function Meter({value,tone='neutral',label,className=''}){
+interface MeterProps { value?: number | string | null; tone?: string; label?: string; className?: string }
+
+export function Meter({value,tone='neutral',label,className=''}: MeterProps){
   if(value==null||Number.isNaN(Number(value)))return null
   const width=Math.max(0,Math.min(100,Number(value)))
   return <span className={`lo-meter is-${tone} ${className}`.trim()} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(width)} aria-label={label} title={label}><i style={{width:`${width}%`}}/></span>
 }
 
 // The tone of a percentage against a pass mark (e.g. compliance ≥ 90 %).
-export const meterTone=(value,{good=90,fair=75}={})=>value==null?'neutral':value>=good?'success':value>=fair?'warning':'danger'
+export const meterTone=(value: number | null | undefined,{good=90,fair=75}: { good?: number; fair?: number }={})=>value==null?'neutral':value>=good?'success':value>=fair?'warning':'danger'
 
 // A trend in a few months: a 2px line, the last point marked, an optional
 // dashed target. Points are numbers or null (no data that month).
-export function Sparkline({points=[],target=null,label,width=132,height=34}){
+interface SparklineProps { points?: Array<number | string | null | undefined>; target?: number | null; label?: string; width?: number; height?: number }
+
+export function Sparkline({points=[],target=null,label,width=132,height=34}: SparklineProps){
   const gradient=useId().replace(/:/g,'')
   const known=points.map((value,index)=>({value,index})).filter(point=>point.value!=null&&Number.isFinite(Number(point.value)))
   if(known.length<2)return null
   const values=[...known.map(point=>Number(point.value)),...(target==null?[]:[Number(target)])]
   const min=Math.min(...values),max=Math.max(...values),span=max-min||1
   const pad=4
-  const x=index=>pad+index*(width-pad*2)/Math.max(1,points.length-1)
-  const y=value=>pad+(1-(Number(value)-min)/span)*(height-pad*2)
+  const x=(index: number)=>pad+index*(width-pad*2)/Math.max(1,points.length-1)
+  const y=(value: unknown)=>pad+(1-(Number(value)-min)/span)*(height-pad*2)
   const line=known.map((point,i)=>`${i?'L':'M'}${x(point.index).toFixed(1)},${y(point.value).toFixed(1)}`).join(' ')
-  const last=known.at(-1)
+  const last=known[known.length-1]
   const area=`${line} L${x(last.index).toFixed(1)},${height} L${x(known[0].index).toFixed(1)},${height} Z`
   return <svg className="lo-sparkline" viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={label}>
     <title>{label}</title>

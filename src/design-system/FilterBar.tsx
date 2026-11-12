@@ -1,7 +1,7 @@
 import { ManualDateField } from './ManualDateField'
 import { ActionButton } from './ActionButton'
 import { Button } from './Button'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Filter, Search, X } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
@@ -11,12 +11,29 @@ const VIEWPORT_MARGIN = 12
 
 // end: optional content at the right of the row (e.g. a view switch).
 // activeFilters: [{ key, label, onRemove }] — the filters in force, as removable chips under the search row.
-export function FilterBar({query='',onQueryChange,placeholder,children,advanced,activeAdvancedCount=0,onClear,compact=false,end=null,activeFilters=[]}){
+// A filter in force, as a removable chip under the search row.
+export interface ActiveFilter { key: string; label: ReactNode; onRemove: () => void }
+
+interface FilterBarProps {
+  query?: string
+  onQueryChange?: (query: string) => void
+  placeholder?: string
+  // the fields of the filters window
+  children?: ReactNode
+  advanced?: ReactNode
+  activeAdvancedCount?: number
+  onClear?: () => void
+  compact?: boolean
+  end?: ReactNode
+  activeFilters?: ActiveFilter[]
+}
+
+export function FilterBar({query='',onQueryChange,placeholder,children,advanced,activeAdvancedCount=0,onClear,compact=false,end=null,activeFilters=[]}: FilterBarProps){
   const {t}=useLanguage()
   const [open,setOpen]=useState(false)
-  const [placement,setPlacement]=useState(null)
-  const triggerRef=useRef(null)
-  const popoverRef=useRef(null)
+  const [placement,setPlacement]=useState<{top:number,left:number,side:'above'|'below'}|null>(null)
+  const triggerRef=useRef<HTMLButtonElement>(null)
+  const popoverRef=useRef<HTMLDivElement>(null)
 
   const positionPopover=()=>{
     const trigger=triggerRef.current
@@ -38,11 +55,11 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
 
   useEffect(()=>{
     if(!open)return undefined
-    const onPointerDown=(event)=>{
-      if(triggerRef.current?.contains(event.target)||popoverRef.current?.contains(event.target))return
+    const onPointerDown=(event: PointerEvent)=>{
+      if(triggerRef.current?.contains(event.target as Node)||popoverRef.current?.contains(event.target as Node))return
       setOpen(false)
     }
-    const onKeyDown=(event)=>{if(event.key==='Escape')setOpen(false)}
+    const onKeyDown=(event: KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)}
     const onViewportChange=()=>positionPopover()
     document.addEventListener('pointerdown',onPointerDown)
     document.addEventListener('keydown',onKeyDown)
@@ -90,5 +107,7 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
   </div>
 }
 
-export function FilterSelect({label,value,onChange,children,className=''}){return <label className={`filter-field ${className}`.trim()}><span className="lo-field-label">{label}</span><select value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>}
-export function FilterDate({label,value,onChange}){return <ManualDateField className="filter-field" label={label} value={value} onChange={onChange}/>}
+interface FilterSelectProps { label?: ReactNode; value?: string; onChange: (value: string) => void; children?: ReactNode; className?: string }
+
+export function FilterSelect({label,value,onChange,children,className=''}: FilterSelectProps){return <label className={`filter-field ${className}`.trim()}><span className="lo-field-label">{label}</span><select value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>}
+export function FilterDate({label,value,onChange}: { label?: ReactNode; value?: string | null; onChange: (value: string) => void }){return <ManualDateField className="filter-field" label={label} value={value} onChange={onChange}/>}

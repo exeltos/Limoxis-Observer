@@ -1,3 +1,4 @@
+// @ts-check
 export const DATA_SCOPES=Object.freeze({PLATFORM:'platform',ORGANIZATION:'organization',DEPARTMENT:'department',SELF:'self'})
 export const CUSTOM_ROLE_CLASSES=Object.freeze({STANDARD:'standard',RESTRICTED:'restricted',SYSTEM_ONLY:'system_only'})
 export const SENSITIVITY=Object.freeze({STANDARD:'standard',SENSITIVE:'sensitive',SECURITY:'security'})

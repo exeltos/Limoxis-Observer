@@ -3,7 +3,7 @@ import { readLocalValue, writeLocalValue } from '../storage/browserStorage'
 import { productStringsEl, stringsEl } from './stringsEl.js'
 import { roleLabelForKey } from '../permissions/roleLabels.js'
 
-const LanguageContext = createContext(null)
+const LanguageContext = createContext(/** @type {import('./languageTypes').LanguageContextValue | null} */ (null))
 
 // Greek is bundled with the app; English is attached by loadLanguage('en').
 export const strings = { el: stringsEl }
@@ -29,6 +29,7 @@ export const translate = (key, language) => lookupTranslation(key, language === 
 
 const LANGUAGE_STORAGE_KEY = 'limoxis.language'
 
+/** @returns {'el' | 'en'} */
 function initialLanguage() {
   const previewLanguage = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('helpLang') : null
   const requested = previewLanguage || readLocalValue(LANGUAGE_STORAGE_KEY)

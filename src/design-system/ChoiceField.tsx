@@ -1,8 +1,13 @@
-import { SearchableSelect } from './SearchableSelect'
+import { SearchableSelect, type SearchableSelectProps } from './SearchableSelect'
 
 // A field with a choice of values (priority, status, type…): one house select,
 // never a row of buttons. A yes / no flag is a CheckboxField instead.
-export function ChoiceField({
+type ChoiceFieldProps<V extends string | number> = Omit<SearchableSelectProps<V>, 'options' | 'onChange'> & {
+  options?: Array<{ value: V; label: string }>
+  onChange?: (value: V | string) => void
+}
+
+export function ChoiceField<V extends string | number = string>({
   label,
   value,
   options = [],
@@ -11,7 +16,7 @@ export function ChoiceField({
   className = '',
   placeholder = '',
   ...fieldProps
-}) {
+}: ChoiceFieldProps<V>) {
   return (
     <SearchableSelect
       {...fieldProps}

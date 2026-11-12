@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode, type RefObject } from 'react'
 import { useOptionalLanguage } from '../core/i18n/LanguageContext'
 import { Button } from './Button'
 import { SaveButton } from './SaveButton'
@@ -17,27 +17,47 @@ import { SaveButton } from './SaveButton'
 //   footer={<FormSubmit form={form} onSubmit={save}>Αποθήκευση</FormSubmit>}
 //
 // A rule may be left out (null / false) when it does not apply in the current mode.
-export function useFormValidation(rules = []) {
+export interface ValidationRule {
+  key: string
+  label?: string
+  valid: boolean
+  // the message under the field (default «Υποχρεωτικό πεδίο»)
+  message?: string
+}
+
+export interface FormValidation {
+  valid: boolean
+  missing: ValidationRule[]
+  missingLabels: string[]
+  attempted: boolean
+  errorFor: (key: string) => string
+  field: (key: string) => { required: boolean; fieldKey: string; error: string }
+  submit: <A extends unknown[], R>(handler?: (...args: A) => R) => (...args: A) => R | false | undefined
+  scopeRef: RefObject<HTMLDivElement>
+  reset: () => void
+}
+
+export function useFormValidation(rules: Array<ValidationRule | null | false | undefined> = []): FormValidation {
   const language = useOptionalLanguage()?.language
   const en = language === 'en'
   const [attempted, setAttempted] = useState(false)
-  const scopeRef = useRef(null)
+  const scopeRef = useRef<HTMLDivElement>(null)
   const active = rules.filter(Boolean)
   const missing = active.filter(rule => !rule.valid)
-  const isMissing = key => missing.some(rule => rule.key === key)
-  const message = rule => rule?.message || (en ? 'Required field' : 'Υποχρεωτικό πεδίο')
-  const errorFor = key => (attempted && isMissing(key) ? message(missing.find(rule => rule.key === key)) : '')
-  const field = key => ({ required: true, fieldKey: key, error: errorFor(key) })
+  const isMissing = (key: string) => missing.some(rule => rule.key === key)
+  const message = (rule: ValidationRule | undefined) => rule?.message || (en ? 'Required field' : 'Υποχρεωτικό πεδίο')
+  const errorFor = (key: string) => (attempted && isMissing(key) ? message(missing.find(rule => rule.key === key)) : '')
+  const field = (key: string) => ({ required: true, fieldKey: key, error: errorFor(key) })
   function focusFirst() {
     const first = missing[0]
     if (!first || typeof document === 'undefined') return
     const scope = scopeRef.current || document
-    const holders = scope.querySelectorAll(`[data-field-key="${first.key}"]`)
+    const holders = scope.querySelectorAll<HTMLElement>(`[data-field-key="${first.key}"]`)
     const holder = holders[holders.length - 1]
     if (!holder) return
     const target = holder.matches('input,select,textarea,button')
       ? holder
-      : holder.querySelector('input:not([type="hidden"]):not([tabindex="-1"]),textarea,select,button')
+      : holder.querySelector<HTMLElement>('input:not([type="hidden"]):not([tabindex="-1"]),textarea,select,button')
     if (!target) return
     // Quiet focus: a searchable select does not open its list for it.
     target.dataset.quietFocus = '1'
@@ -46,7 +66,7 @@ export function useFormValidation(rules = []) {
     target.scrollIntoView?.({ block: 'nearest' })
   }
   // Wraps the save handler: with something missing it only shows what.
-  const submit = handler => (...args) => {
+  const submit = <A extends unknown[], R>(handler?: (...args: A) => R) => (...args: A) => {
     if (missing.length) {
       setAttempted(true)
       setTimeout(focusFirst, 0)
@@ -69,7 +89,7 @@ export function useFormValidation(rules = []) {
 }
 
 // «Συμπληρώστε: Τμήμα, Ημερομηνία λήψης» — what still keeps the form from saving.
-export function MissingFieldsSummary({ labels = [], className = '', attempted = false }) {
+export function MissingFieldsSummary({ labels = [], className = '', attempted = false }: { labels?: string[]; className?: string; attempted?: boolean }) {
   const language = useOptionalLanguage()?.language
   if (!labels.length) return null
   return (
@@ -83,6 +103,17 @@ export function MissingFieldsSummary({ labels = [], className = '', attempted = 
 // pressable while fields are missing (aria-disabled), so a press shows the
 // messages and focuses the first missing field instead of doing nothing.
 // `disabled` is for real busy states (saving). `icon={false}` drops the save icon.
+interface FormSubmitProps {
+  form: Pick<FormValidation, 'valid' | 'missingLabels' | 'attempted' | 'submit'>
+  onSubmit?: () => unknown
+  children?: ReactNode
+  disabled?: boolean
+  loading?: boolean
+  savingLabel?: ReactNode
+  icon?: boolean
+  className?: string
+}
+
 export function FormSubmit({
   form,
   onSubmit,
@@ -92,7 +123,7 @@ export function FormSubmit({
   savingLabel,
   icon = true,
   className = '',
-}) {
+}: FormSubmitProps) {
   const blocked = !form.valid
   const language = useOptionalLanguage()?.language
   const props = {
@@ -121,7 +152,7 @@ export function FormSubmit({
 // A field label with the «*» of a required field or the «· Προαιρετικό» of an optional one.
 // The «*» is drawn by CSS: the label's text (its accessible name) stays the field's name,
 // and the input itself says it is required (aria-required).
-export function FieldLabelText({ label, required = false, optional = false, optionalLabel }) {
+export function FieldLabelText({ label, required = false, optional = false, optionalLabel }: { label?: ReactNode; required?: boolean; optional?: boolean; optionalLabel?: ReactNode }) {
   return (
     <>
       {label}
@@ -132,7 +163,7 @@ export function FieldLabelText({ label, required = false, optional = false, opti
 }
 
 // What goes under a field: the error once the form was submitted, else the helper text.
-export function FieldMessage({ error, hint }) {
+export function FieldMessage({ error, hint }: { error?: ReactNode; hint?: ReactNode }) {
   if (error) return <span className="field-error">{error}</span>
   if (hint) return <span className="field-hint">{hint}</span>
   return null

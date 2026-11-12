@@ -1,6 +1,16 @@
 const PAGE_SIZE_OPTIONS=[15,25,50]
 
-export function RegistryPagination({language='el',page,totalPages,totalItems,pageSize,onPageChange,onPageSizeChange}){
+interface RegistryPaginationProps {
+  language?: string
+  page: number
+  totalPages: number
+  totalItems: number
+  pageSize: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
+}
+
+export function RegistryPagination({language='el',page,totalPages,totalItems,pageSize,onPageChange,onPageSizeChange}: RegistryPaginationProps){
   const en=language==='en'
   // No rows, no pager: the empty state says what to do instead.
   if(!totalItems)return null

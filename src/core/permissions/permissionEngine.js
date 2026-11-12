@@ -1,3 +1,4 @@
+// @ts-check
 import { capabilityDefinition } from './capabilityCatalogue.js'
 import { addonCapabilityMap,roleCapabilities,roleCapabilityRule } from './systemRoleMatrix.js'
 import { DATA_SCOPES,scopeWithin } from './scopeTypes.js'

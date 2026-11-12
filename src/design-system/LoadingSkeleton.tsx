@@ -9,7 +9,7 @@ import { useLoadingMark } from './loadingActivity'
 // it. A screen never shows its empty state («Δεν υπάρχουν…») or 0 figures before its first load has finished.
 
 // A whole page that is still loading (header, figures, list).
-export function PageSkeleton({ metrics = 4, rows = 7, className = '' }){
+export function PageSkeleton({ metrics = 4, rows = 7, className = '' }: { metrics?: number; rows?: number; className?: string }){
   const { t } = useLanguage()
   useLoadingMark()
   return <div className={`page-loading-skeleton ${className}`.trim()} role="status" aria-busy="true" aria-live="polite">
@@ -22,7 +22,7 @@ export function PageSkeleton({ metrics = 4, rows = 7, className = '' }){
 }
 
 // The lines of a list whose rows are still loading (inside a registry or a panel).
-export function TableSkeleton({ rows = 6, className = '' }){
+export function TableSkeleton({ rows = 6, className = '' }: { rows?: number; className?: string }){
   const { t } = useLanguage()
   useLoadingMark()
   return <div className={`table-loading-skeleton ${className}`.trim()} role="status" aria-busy="true" aria-live="polite">
@@ -31,7 +31,7 @@ export function TableSkeleton({ rows = 6, className = '' }){
   </div>
 }
 
-function TableSkeletonLines({ rows }){
+function TableSkeletonLines({ rows }: { rows: number }){
   return <div className="loading-skeleton-lines" aria-hidden="true">{Array.from({ length: rows }, (_, index) => <i key={index}/>)}</div>
 }
 
