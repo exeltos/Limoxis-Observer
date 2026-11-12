@@ -40,7 +40,7 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
 import type { LucideIcon } from 'lucide-react'
-import type { RefObject } from 'react'
+import type { MutableRefObject, RefObject } from 'react'
 import type { SortState } from '../../design-system/useTableSort'
 import type { SearchableOption } from '../../design-system/SearchableSelect'
 
@@ -508,13 +508,15 @@ export function EnvironmentalSurveillanceFlow({
 interface EnvironmentalRegistryProps {
   loading?: boolean
   rows: AnyRecord[]
+  // Passed by the Surveillance page, not read here.
+  summaryRows?: AnyRecord[]
   empty?: AnyRecord | null
   t: (key: string) => string
   language: string
   fmt: (value: unknown) => string
   onOpenSample: Handler
   highlightId?: string
-  scrollRef: RefObject<HTMLDivElement>
+  scrollRef: MutableRefObject<HTMLElement | null>
   sort: SortState | null
   onSort: Handler
 }
@@ -545,7 +547,7 @@ export function EnvironmentalRegistry({
   const departmentName = (row: AnyRecord) => (language === 'el' ? row.department : row.departmentEn)
   return (
     <section className="environmental-registry workspace-fill">
-      <div className="scroll-table" ref={scrollRef}>
+      <div className="scroll-table" ref={scrollRef as RefObject<HTMLDivElement>}>
       <RegistryTable
         loading={loading}
         bare

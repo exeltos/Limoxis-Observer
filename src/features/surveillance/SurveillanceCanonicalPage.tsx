@@ -67,7 +67,9 @@ import type { AnyRecord } from '../../types/featureTypes'
 
 const isEnvironmental = isEnvironmentalSample
 const SECTION_MODES: Record<string, string> = { episodes: 'patients', employees: 'employees', environmental: 'environmental' }
-const unique = (values: AnyRecord) => [...new Set(values.filter(Boolean))]
+const unique = <T,>(values: T[]) => [...new Set(values.filter(Boolean))]
+// The three lists of the Surveillance page.
+type ListMode = 'patients' | 'employees' | 'environmental'
 
 export function SurveillanceCanonicalPage() {
   const actor = useAuditActor(),
@@ -94,23 +96,23 @@ export function SurveillanceCanonicalPage() {
   const section = useSectionTabs()
   const sectionMode = section ? SECTION_MODES[section.value] || null : null
   const [patients, setPatients] = useState<AnyRecord[]>([]),
-    [cases, setCases] = useState([]),
-    [employeeRows, setEmployeeRows] = useState([]),
-    [environmentRows, setEnvironmentRows] = useState([]),
+    [cases, setCases] = useState<AnyRecord[]>([]),
+    [employeeRows, setEmployeeRows] = useState<AnyRecord[]>([]),
+    [environmentRows, setEnvironmentRows] = useState<AnyRecord[]>([]),
     [loading, setLoading] = useState(true)
   const { departments }: { departments: AnyRecord[] } = useDepartments()
-  const [quick, setQuick] = useState(() =>
+  const [quick, setQuick] = useState<string | null>(() =>
     new URLSearchParams(location.search).get('review') === '1' ? 'review' : null,
   )
-  const [mode, setMode] = useState(sectionMode || restoredMode || 'patients'),
+  const [mode, setMode] = useState<ListMode>((sectionMode || restoredMode || 'patients') as ListMode),
     [query, setQuery] = useState(restored.query || ''),
     [department, setDepartment] = useState(restored.department || 'all'),
     [status, setStatus] = useState(restored.status || 'all'),
     [period, setPeriod] = useState(restored.period || 'all'),
     [page, setPage] = useState(restored.page || 1),
     [pageSize, setPageSize] = useState(restored.pageSize || 15),
-    [creation, setCreation] = useState(null),
-    [resample, setResample] = useState(null)
+    [creation, setCreation] = useState<string | null>(null),
+    [resample, setResample] = useState<AnyRecord | null>(null)
   const [openRuns, setOpenRuns] = useState<AnyRecord[]>([])
   const epiIndex = useEpiIndex({ organizationId: tenant?.id, isDemo, enabled: canWriteEpi(role) })
   useEffect(() => {
@@ -125,7 +127,7 @@ export function SurveillanceCanonicalPage() {
     }
   }, [tenant?.id, isDemo])
   useEffect(() => {
-    if (sectionMode) setMode(sectionMode)
+    if (sectionMode) setMode(sectionMode as ListMode)
   }, [sectionMode])
   const registry = useRegistryMemory(`surveillance-${mode}`),
     laboratoryRegistry = useLaboratoryRegistry({ enabled: isDemo })
@@ -167,10 +169,10 @@ export function SurveillanceCanonicalPage() {
         setEmployeeRows(employeeSurveillanceRecords.map(x => ({ ...x })))
         setEnvironmentRows(laboratoryRegistry.rows.filter(isEnvironmental))
       } else if (tenant?.id) {
-        const results = await rest
+        const results = (await rest)!
         // A surveillance without a sample is not listed (owner, 8/11/2026): every surveillance starts from a sample.
         const withSample = (row: AnyRecord) => (row.caseSampleCount ?? (row.samples || []).length) > 0
-        setCases(results[0].status === 'fulfilled' ? results[0].value.filter(withSample) : [])
+        setCases(results[0].status === 'fulfilled' ? (results[0].value as AnyRecord[]).filter(withSample) : [])
         setEmployeeRows(results[1].status === 'fulfilled' ? results[1].value : [])
         setEnvironmentRows(
           results[2].status === 'fulfilled' ? results[2].value.filter(isEnvironmental) : [],
@@ -209,7 +211,7 @@ export function SurveillanceCanonicalPage() {
     setQuick(current => (current === 'review' && mode === 'patients' ? current : null))
   }, [mode])
 
-  const fmt = value => formatDay(value, language)
+  const fmt = (value: unknown) => formatDay(value, language)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (mode === 'patients')
@@ -276,12 +278,13 @@ export function SurveillanceCanonicalPage() {
     name: x => (language === 'en' ? x.employeeNameEn : x.employeeName),
     department: x => (language === 'el' ? x.department : x.departmentEn),
     started: x => x.startedAt,
-    date: x => (mode === 'environment' ? x.collectedAt || x.requestedAt : x.startedAt),
+    // The list mode is 'environmental': these two never take the environment branch (kept as found; reported).
+    date: x => ((mode as string) === 'environment' ? x.collectedAt || x.requestedAt : x.startedAt),
     micro: x => (x.episodes || [x]).map(latestOrganism).find(Boolean),
     status: x => x.status,
     review: x => (x.status === 'active' ? x.groupReviewDue ?? x.reviewDue : null),
     screening: x => (x.screeningTypes || []).map((id: string) => employeeScreeningLabel(id, language)).join(', '),
-    result: x => (mode === 'environment' ? x.result : x.resultStatus),
+    result: x => ((mode as string) === 'environment' ? x.result : x.resultStatus),
     surveillance: x => x.code || x.id,
     point: x => [x.location, x.point].filter(Boolean).join(' · '),
     batch: x => x.environmentalBatchId,
@@ -402,7 +405,7 @@ export function SurveillanceCanonicalPage() {
       : []),
   ]
 
-  async function createPatient(draft: AnyRecord, patient) {
+  async function createPatient(draft: AnyRecord, patient: AnyRecord) {
     // Here the patient's samples are not on hand: the surveillance opens and asks its sample right away (owner, 8/11/2026).
     const { sampleChoice = null, ...caseDraft } = draft
     const created = await clinical.createCase(patient, caseDraft)
@@ -417,13 +420,13 @@ export function SurveillanceCanonicalPage() {
   }
   async function createEnvironment({ patientRecordId, draft }: CreateEnvironmentOptions) {
     if (isDemo) return laboratoryRegistry.createSample({ patientRecordId, draft })
-    return createLaboratorySample(tenant?.id, patientRecordId, draft)
+    return createLaboratorySample(tenant?.id as string, patientRecordId, draft)
   }
 
   // The totals beside the search (owner, 8/11/2026: no cards): each one filters the list, a second click clears it.
   // Short words in the line, the full name in the tooltip, so the totals stay on the search's line.
   const SHORT: Record<string, string> = { review: t('svShortReview'), active: t('svShortActive'), due: t('svShortDue'), isolation: t('svShortIsolation'), resistant: 'MDR / XDR' }
-  const total = (key: string, label: string, value, show = true) => (show ? { key, value, label: mode === 'patients' || !mode ? SHORT[key] || label : label, title: label, active: quick === key, onClick: () => setQuick(quick === key ? null : key) } : null)
+  const total = (key: string, label: string, value: number, show = true) => (show ? { key, value, label: mode === 'patients' || !mode ? SHORT[key] || label : label, title: label, active: quick === key, onClick: () => setQuick(quick === key ? null : key) } : null)
   const totals = <RegistryTotals label={t('svTotals')} items={(mode === 'employees' ? [
     total('active', t('clinicalRecords.activeEmployeeScreenings'), employeeKpis.active),
     total('positive', t('clinicalRecords.positiveEmployeeScreenings'), employeeKpis.positive),
@@ -482,9 +485,9 @@ export function SurveillanceCanonicalPage() {
                 className="surveillance-org-card"
                 onClick={() => setTenantByMembership(item.id)}
               >
-                <strong>{item.organization.name}</strong>
+                <strong>{item.organization!.name}</strong>
                 <span>
-                  {item.organization.code || '—'} · {item.organization.type || '—'}
+                  {item.organization!.code || '—'} · {item.organization!.type || '—'}
                 </span>
                 <small>
                   {translate(
@@ -526,7 +529,7 @@ export function SurveillanceCanonicalPage() {
       }
     >
       {!section && (
-        <CanonicalTabs items={tabItems} value={mode} onChange={setMode} ariaLabel={t('surveillanceCategoriesAria')} />
+        <CanonicalTabs items={tabItems} value={mode} onChange={value => setMode(value as ListMode)} ariaLabel={t('surveillanceCategoriesAria')} />
       )}
       <div className="surface registry-workspace workspace-fill">
         <FilterBar
