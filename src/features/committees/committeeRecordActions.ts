@@ -187,7 +187,7 @@ export function committeeRecordActions(ctx: CommitteeRecordContext) {
     try {
       if (isDemo) n.addAnnouncement(payload)
       else {
-        await createAnnouncement(organizationId, payload)
+        await createAnnouncement(organizationId as string, payload)
         await n.reloadAnnouncements()
       }
     } catch {
@@ -374,7 +374,7 @@ export function committeeRecordActions(ctx: CommitteeRecordContext) {
     try {
       if (isDemo) n.addAnnouncement(payload)
       else {
-        await createAnnouncement(organizationId, payload)
+        await createAnnouncement(organizationId as string, payload)
         await n.reloadAnnouncements()
       }
     } catch {
