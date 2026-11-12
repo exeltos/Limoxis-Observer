@@ -1,11 +1,12 @@
 import { Fragment } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { departmentProfile } from './executiveInsights'
+import { departmentProfile, type DepartmentGrid } from './executiveInsights'
+import type { Translate } from '../../types/featureTypes'
 
-const fmt = (value, unit, en) => (value == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)}${unit || ''}`)
+const fmt = (value: number | null | undefined, unit: string | null | undefined, en: boolean) => (value == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)}${unit || ''}`)
 
 // One department's measures against the average of the departments and against the comparison.
-function DepartmentDetail({ grid, name, compareLabel, tx, en }) {
+function DepartmentDetail({ grid, name, compareLabel, tx, en }: { grid: DepartmentGrid, name: string, compareLabel: string, tx: Translate, en: boolean }) {
   const profile = departmentProfile(grid, name)
   return <table className="exec-dept-detail-table">
     <thead><tr><th>{tx('Δείκτης', 'Measure')}</th><th>{name}</th><th>{tx('Μέσος όρος τμημάτων', "Departments' average")}</th><th>{compareLabel}</th><th>{tx('Σύγκριση', 'Comparison')}</th></tr></thead>
@@ -21,9 +22,10 @@ function DepartmentDetail({ grid, name, compareLabel, tx, en }) {
 
 // «Τμήματα» (owner, 7–8/11/2026): «Σύγκριση τμημάτων», the wards side by side; a click on a department opens its measures
 // right under it (the others move down), a second click closes them.
-export function ExecutiveDepartments({ grid, department, onDepartment, compareLabel, versus = compareLabel.toLowerCase(), language }) {
+interface ExecutiveDepartmentsProps { grid: DepartmentGrid, department: string, onDepartment: (name: string) => void, compareLabel: string, versus?: string, language: string }
+export function ExecutiveDepartments({ grid, department, onDepartment, compareLabel, versus = compareLabel.toLowerCase(), language }: ExecutiveDepartmentsProps) {
   const en = language === 'en'
-  const tx = (el, english) => (en ? english : el)
+  const tx = (el: string, english: string) => (en ? english : el)
   if (grid.rows.length < 2) return <div className="exec-empty-measures"><h4>{tx('Η σύγκριση τμημάτων δεν έχει ξεκινήσει ακόμη', 'The comparison of departments has not started yet')}</h4><p>{tx('Ξεκινά μόλις υπάρξουν καταγραφές σε δύο τουλάχιστον τμήματα.', 'It starts once at least two departments have records.')}</p></div>
   const open = grid.rows.some((row) => row.name === department) ? department : ''
   const span = grid.columns.length + 1

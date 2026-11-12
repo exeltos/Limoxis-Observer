@@ -7,35 +7,38 @@ import { loadRiskAssessments } from '../quality/risk/riskService'
 import { levelLabel,scored } from '../quality/risk/riskModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadIndicatorSnapshots,loadOperationalIndicatorDefinitions } from './indicatorCloudService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { IndicatorMetrics } from './indicatorCloudService'
 
 const monthStart=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
 const today=()=>hospitalToday()
-const fmtDay=value=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:'—'}
-const fmtNumber=(value,el)=>value==null||value===''||!Number.isFinite(Number(value))?'—':new Intl.NumberFormat(el?'el-GR':'en-GB',{maximumFractionDigits:2}).format(Number(value))
-const STATUS={onTarget:['Εντός στόχου','On target','active'],attention:['Χρειάζεται προσοχή','Needs attention','danger'],context:['Παρακολούθηση','Monitoring','']}
+const fmtDay=(value: unknown)=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:'—'}
+const fmtNumber=(value: unknown,el: boolean)=>value==null||value===''||!Number.isFinite(Number(value))?'—':new Intl.NumberFormat(el?'el-GR':'en-GB',{maximumFractionDigits:2}).format(Number(value))
+const STATUS: Record<string,[string,string,string]>={onTarget:['Εντός στόχου','On target','active'],attention:['Χρειάζεται προσοχή','Needs attention','danger'],context:['Παρακολούθηση','Monitoring','']}
 // Calendar days of a period, the equal period before it, the same period a year earlier, the last twelve months.
-const parseDay=value=>new Date(`${String(value).slice(0,10)}T00:00:00Z`)
-const isoDay=date=>date.toISOString().slice(0,10)
-const addDays=(value,days)=>{const date=parseDay(value);date.setUTCDate(date.getUTCDate()+days);return isoDay(date)}
-const shiftYear=(value,years)=>{const date=parseDay(value);date.setUTCFullYear(date.getUTCFullYear()+years);return isoDay(date)}
-const previousPeriod=(from,to)=>{const length=Math.round((parseDay(to)-parseDay(from))/86400000)+1;return {from:addDays(from,-length),to:addDays(from,-1)}}
-function lastMonths(to,count=12){const end=parseDay(to),list=[];for(let back=count-1;back>=0;back-=1){const first=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth()-back,1)),last=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth()-back+1,0));list.push({from:isoDay(first),to:isoDay(back===0&&parseDay(to)<last?parseDay(to):last)})}return list}
-const SNAPSHOT_STATUS={approved:['Εγκρίθηκε','Approved'],reviewed:['Ελέγχθηκε','Reviewed'],calculated:['Υπολογίστηκε','Calculated'],draft:['Πρόχειρο','Draft'],retired:['Αποσύρθηκε','Retired']}
+const parseDay=(value: unknown)=>new Date(`${String(value).slice(0,10)}T00:00:00Z`)
+const isoDay=(date: Date)=>date.toISOString().slice(0,10)
+const addDays=(value: string,days: number)=>{const date=parseDay(value);date.setUTCDate(date.getUTCDate()+days);return isoDay(date)}
+const shiftYear=(value: string,years: number)=>{const date=parseDay(value);date.setUTCFullYear(date.getUTCFullYear()+years);return isoDay(date)}
+const previousPeriod=(from: string,to: string)=>{const length=Math.round((Number(parseDay(to))-Number(parseDay(from)))/86400000)+1;return {from:addDays(from,-length),to:addDays(from,-1)}}
+function lastMonths(to: string,count=12){const end=parseDay(to),list: {from: string,to: string}[]=[];for(let back=count-1;back>=0;back-=1){const first=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth()-back,1)),last=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth()-back+1,0));list.push({from:isoDay(first),to:isoDay(back===0&&parseDay(to)<last?parseDay(to):last)})}return list}
+const SNAPSHOT_STATUS: Record<string,[string,string]>={approved:['Εγκρίθηκε','Approved'],reviewed:['Ελέγχθηκε','Reviewed'],calculated:['Υπολογίστηκε','Calculated'],draft:['Πρόχειρο','Draft'],retired:['Αποσύρθηκε','Retired']}
 
 // The indicator's result for the period the user came from (the registry's
 // period, or this month so far), with its target, and the approved results kept
 // over time. Opening an indicator shows what it measures before how it is defined.
-export function IndicatorResultPanel({organizationId,record,period,language}){
+interface IndicatorResultState {loading: boolean,result: AnyRecord|null,previous?: number|null,lastYear?: number|null,series: (number|null)[],definition?: AnyRecord|null,history: AnyRecord[],error: boolean}
+export function IndicatorResultPanel({organizationId,record,period,language}:{organizationId: string|null|undefined,record: AnyRecord|null,period?: {from?: string,to?: string,departmentId?: string|null}|null,language: string}){
  const el=language!=='en'
  const from=period?.from||monthStart(),to=period?.to||today(),departmentId=period?.departmentId||null
  const navigate=useNavigate()
- const [state,setState]=useState({loading:true,result:null,previous:null,lastYear:null,series:[],definition:null,history:[],error:false})
+ const [state,setState]=useState<IndicatorResultState>({loading:true,result:null,previous:null,lastYear:null,series:[],definition:null,history:[],error:false})
  // The risks of the latest assessment that name this indicator as their measure.
- const [risks,setRisks]=useState({assessment:null,list:[]})
+ const [risks,setRisks]=useState<{assessment: AnyRecord|null,list: AnyRecord[]}>({assessment:null,list:[]})
  useEffect(()=>{
   let active=true
   if(!organizationId||!record?.id)return()=>{active=false}
-  loadRiskAssessments(organizationId).then(all=>{if(!active)return;const latest=(all||[]).find(a=>a.status!=='archived')||(all||[])[0];setRisks({assessment:latest||null,list:(latest?.risks||[]).filter(r=>(r.indicatorKeys||[]).includes(record.id))})}).catch(()=>{if(active)setRisks({assessment:null,list:[]})})
+  loadRiskAssessments(organizationId).then(all=>{if(!active)return;const latest=(all||[]).find(a=>a.status!=='archived')||(all||[])[0];setRisks({assessment:latest||null,list:(latest?.risks||[]).filter((r: AnyRecord)=>(r.indicatorKeys||[]).includes(record.id))})}).catch(()=>{if(active)setRisks({assessment:null,list:[]})})
   return()=>{active=false}
  },[organizationId,record?.id])
  useEffect(()=>{
@@ -43,7 +46,7 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
   if(!organizationId||!record)return()=>{active=false}
   setState(current=>({...current,loading:true}))
   const before=previousPeriod(from,to),yearAgo={from:shiftYear(from,-1),to:shiftYear(to,-1)},months=lastMonths(to)
-  const metricsFor=range=>collectCloudIndicatorMetrics(organizationId,{from:range.from,to:range.to,departmentId}).catch(()=>null)
+  const metricsFor=(range: {from: string,to: string})=>collectCloudIndicatorMetrics(organizationId,{from:range.from,to:range.to,departmentId}).catch(()=>null)
   Promise.all([
    collectCloudIndicatorMetrics(organizationId,{from,to,departmentId}),
    loadOperationalIndicatorDefinitions(organizationId,{from,to}),
@@ -52,9 +55,9 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
   ]).then(([metrics,definitions,snapshots,beforeMetrics,yearAgoMetrics,monthMetrics])=>{
    if(!active)return
    const definition=definitions.find(d=>d.definitionId===record.id)||definitions.find(d=>d.id===record.key)
-   const valueOf=data=>(definition&&data?calculateCloudDefinition(definition,data).value:null)
+   const valueOf=(data: IndicatorMetrics|null)=>(definition&&data?calculateCloudDefinition(definition,data).value:null)
    setState({loading:false,error:false,definition,result:definition?calculateCloudDefinition(definition,metrics||{}):null,previous:valueOf(beforeMetrics),lastYear:valueOf(yearAgoMetrics),series:monthMetrics.map(valueOf),history:(snapshots||[]).filter(s=>s.indicator_key===record.key).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))})
-  }).catch(()=>{if(active)setState({loading:false,error:true,result:null,history:[]})})
+  }).catch(()=>{if(active)setState({loading:false,error:true,result:null,history:[]} as unknown as IndicatorResultState)})
   return()=>{active=false}
  },[organizationId,record,from,to,departmentId])
  const result=state.result,unit=result?(el?result.unit:result.unitEn):''
@@ -84,7 +87,7 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
   {risks.list.length>0&&<section className="record-section">
    <div className="record-section-header"><div><h3>{el?'Κίνδυνοι που παρακολουθεί ο δείκτης':'Risks this indicator monitors'}</h3><p>{risks.assessment?.periodLabel||''}</p></div></div>
    <div className="scroll-table"><table className="data-table"><thead><tr><th>{el?'Κίνδυνος':'Risk'}</th><th>{el?'Υπολειπόμενος':'Residual'}</th></tr></thead><tbody>
-    {risks.list.map(r=><tr key={r.lineageKey} className="is-clickable" tabIndex={0} onClick={()=>navigate(`/quality/risks/${risks.assessment.code}/${r.lineageKey}`)} onKeyDown={e=>{if(e.key==='Enter')navigate(`/quality/risks/${risks.assessment.code}/${r.lineageKey}`)}}><td><strong>{r.hazard}</strong><small>{[r.process,r.scope].filter(Boolean).join(' · ')}</small></td><td>{levelLabel(scored(r).residual.level,!el)}</td></tr>)}
+    {risks.list.map(r=><tr key={r.lineageKey} className="is-clickable" tabIndex={0} onClick={()=>navigate(`/quality/risks/${risks.assessment?.code}/${r.lineageKey}`)} onKeyDown={e=>{if(e.key==='Enter')navigate(`/quality/risks/${risks.assessment?.code}/${r.lineageKey}`)}}><td><strong>{r.hazard}</strong><small>{[r.process,r.scope].filter(Boolean).join(' · ')}</small></td><td>{levelLabel(scored(r).residual.level,!el)}</td></tr>)}
    </tbody></table></div>
   </section>}
   <section className="record-section">
@@ -97,7 +100,7 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
 }
 
 // «+1,2» or «−0,4» against an earlier period, green when it is better for the indicator, red when worse.
-function Change({now,then,direction,el}){
+function Change({now,then,direction,el}:{now: unknown,then: unknown,direction?: string,el: boolean}){
  if(now==null||then==null)return <b>—</b>
  const delta=Number((Number(now)-Number(then)).toFixed(2))
  if(delta===0)return <b className="indicator-change"><Minus size={13}/>0</b>
@@ -106,7 +109,7 @@ function Change({now,then,direction,el}){
  return <b className={`indicator-change${better===true?' is-better':better===false?' is-worse':''}`}><Icon size={13}/>{delta>0?'+':'−'}{fmtNumber(Math.abs(delta),el)}</b>
 }
 // «84 patients with an infection ÷ 1,245 study patients × 100 = 6,7 %»: the calculation in words, then with the numbers.
-function formulaText(definition,el){
+function formulaText(definition: AnyRecord|null|undefined,el: boolean){
  if(!definition)return ''
  if(definition.calculation==='manual')return el?'Η τιμή καταχωρίζεται χειροκίνητα από τον υπεύθυνο.':'The value is entered by hand by the person responsible.'
  return [indicatorMetricLabel(definition.numerator,el?'el':'en'),definition.denominator?`÷ ${indicatorMetricLabel(definition.denominator,el?'el':'en')}`:'',definition.denominator&&Number(definition.multiplier||1)!==1?`× ${fmtNumber(definition.multiplier,el)}`:''].filter(Boolean).join(' ')
