@@ -371,13 +371,15 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     }
     case 'quality': return {
       kpis: [
-        [tx('Συμβάντα', 'Incidents'), q.incidents ?? 0, tx(`${q.openIncidents ?? 0} ανοιχτά`, `${q.openIncidents ?? 0} open`)],
-        [tx('Με βλάβη', 'With harm'), q.harm ?? 0, tx('συμβάντα με βλάβη ασθενούς', 'incidents with patient harm'), q.harm ? 'danger' : ''],
-        [tx('Ανοιχτές διορθωτικές ενέργειες', 'Open CAPA'), q.capaOpen ?? 0, tx('διορθωτικές / προληπτικές ενέργειες', 'corrective / preventive actions')],
-        [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : ''],
+        ...((q.incidents ?? 0) || (q.capaOpen ?? 0) || (q.capaOverdue ?? 0) ? [
+          [tx('Συμβάντα', 'Incidents'), q.incidents ?? 0, tx(`${q.openIncidents ?? 0} ανοιχτά`, `${q.openIncidents ?? 0} open`)],
+          [tx('Με βλάβη', 'With harm'), q.harm ?? 0, tx('συμβάντα με βλάβη ασθενούς', 'incidents with patient harm'), q.harm ? 'danger' : ''],
+          [tx('Ανοιχτές διορθωτικές ενέργειες', 'Open CAPA'), q.capaOpen ?? 0, tx('διορθωτικές / προληπτικές ενέργειες', 'corrective / preventive actions')],
+          [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : ''],
+        ] : []),
       ],
       charts: [
-        { type: 'trend', wide: true, title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
+        { type: 'trend', wide: true, emptyText: tx('δεν έχουν καταγραφεί συμβάντα στην περίοδο.', 'no incidents have been recorded in the period.'), title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
         // The categories of the incidents (owner, 8/11/2026): which, and where by group of the ΟΔΙΠΥ form.
         { type: 'bars', title: tx('Κατηγορίες συμβάντων', 'Incident categories'), subtitle: tx('Τι είδους συμβάντα αναφέρθηκαν.', 'What kind of incidents were reported.'), rows: incidentCategoryRows(q.byCategory, en) },
         { type: 'matrix', wide: true, title: tx('Κατηγορίες ανά τμήμα', 'Categories by department'), subtitle: tx('Ομάδες κατηγοριών του εντύπου ΟΔΙΠΥ σε κάθε τμήμα.', 'Groups of the ΟΔΙΠΥ form in each department.'), rowLabel: tx('Τμήμα', 'Department'), cells: q.categoryByDepartment?.map(([row, column, n]) => [row, incidentGroupLabel(column, en), n]) },
@@ -403,25 +405,29 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     } }
     case 'training': { const tr = d.training || {}; const rate = pct(tr.completed, tr.assignments); return {
       kpis: [
-        [tx('Ολοκλήρωση εκπαιδεύσεων', 'Training completion'), fmtPct(rate), tx(`${tr.completed ?? 0} από ${tr.assignments ?? 0} αναθέσεις`, `${tr.completed ?? 0} of ${tr.assignments ?? 0} assignments`), rate != null && rate < 80 ? 'warning' : 'good'],
-        [tx('Εκπρόθεσμες', 'Overdue'), tr.overdue ?? 0, tx('πέρασε η προθεσμία ολοκλήρωσης', 'past the completion due date'), tr.overdue ? 'danger' : ''],
-        [tx('Μέση βαθμολογία', 'Average score'), tr.averageScore == null ? '—' : fmtPct(tr.averageScore), tx('στις αξιολογήσεις', 'in assessments')],
+        ...((tr.assignments ?? 0) > 0 ? [
+          [tx('Ολοκλήρωση εκπαιδεύσεων', 'Training completion'), fmtPct(rate), tx(`${tr.completed ?? 0} από ${tr.assignments ?? 0} αναθέσεις`, `${tr.completed ?? 0} of ${tr.assignments ?? 0} assignments`), rate != null && rate < 80 ? 'warning' : 'good'],
+          [tx('Εκπρόθεσμες', 'Overdue'), tr.overdue ?? 0, tx('πέρασε η προθεσμία ολοκλήρωσης', 'past the completion due date'), tr.overdue ? 'danger' : ''],
+          [tx('Μέση βαθμολογία', 'Average score'), tr.averageScore == null ? '—' : fmtPct(tr.averageScore), tx('στις αξιολογήσεις', 'in assessments')],
+        ] : []),
       ],
       charts: [
         // One card: the share completed and «how many of how many» (the assignments), as in hand hygiene.
-        { type: 'rate', wide: true, title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ολοκληρωμένες αναθέσεις προς τις αναθέσεις της περιόδου.', 'Completed assignments over the assignments of the period.'), rows: (tr.byDepartment || []).map(([key, total, done]) => [label(key), pct(done, total) ?? 0, `${done ?? 0}/${total ?? 0}`]) },
+        { type: 'rate', wide: true, emptyText: tx('δεν υπάρχουν αναθέσεις εκπαίδευσης στην περίοδο.', 'there are no training assignments in the period.'), title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ολοκληρωμένες αναθέσεις προς τις αναθέσεις της περιόδου.', 'Completed assignments over the assignments of the period.'), rows: (tr.byDepartment || []).map(([key, total, done]) => [label(key), pct(done, total) ?? 0, `${done ?? 0}/${total ?? 0}`]) },
       ],
     } }
     case 'governance': { const g = d.governance || {}; return {
       kpis: [
-        [tx('Ελεγχόμενα έγγραφα', 'Controlled documents'), g.documents ?? 0, tx(`${g.published ?? 0} σε ισχύ`, `${g.published ?? 0} in force`)],
-        [tx('Προς αναθεώρηση', 'Review overdue'), g.reviewOverdue ?? 0, tx('πέρασε η ημερομηνία επανεξέτασης', 'past the review date'), g.reviewOverdue ? 'warning' : ''],
-        [tx('Συνεδριάσεις επιτροπών', 'Committee meetings'), g.meetings ?? 0, tx(`${g.committees ?? '—'} ενεργές επιτροπές`, `${g.committees ?? '—'} active committees`)],
-        [tx('Εκκρεμή πρακτικά', 'Pending minutes'), g.minutesPending ?? 0, tx(`${g.minutesFinalized ?? 0} οριστικοποιημένα`, `${g.minutesFinalized ?? 0} finalized`), g.minutesPending ? 'warning' : ''],
+        ...((g.documents ?? 0) || (g.meetings ?? 0) || (g.minutesPending ?? 0) ? [
+          [tx('Ελεγχόμενα έγγραφα', 'Controlled documents'), g.documents ?? 0, tx(`${g.published ?? 0} σε ισχύ`, `${g.published ?? 0} in force`)],
+          [tx('Προς αναθεώρηση', 'Review overdue'), g.reviewOverdue ?? 0, tx('πέρασε η ημερομηνία επανεξέτασης', 'past the review date'), g.reviewOverdue ? 'warning' : ''],
+          [tx('Συνεδριάσεις επιτροπών', 'Committee meetings'), g.meetings ?? 0, tx(`${g.committees ?? '—'} ενεργές επιτροπές`, `${g.committees ?? '—'} active committees`)],
+          [tx('Εκκρεμή πρακτικά', 'Pending minutes'), g.minutesPending ?? 0, tx(`${g.minutesFinalized ?? 0} οριστικοποιημένα`, `${g.minutesFinalized ?? 0} finalized`), g.minutesPending ? 'warning' : ''],
+        ] : []),
       ],
       charts: [
-        { type: 'donut', title: tx('Έγγραφα ανά τύπο', 'Documents by type'), subtitle: tx('Ελεγχόμενα έγγραφα σε χρήση.', 'Controlled documents in use.'), rows: named(g.byType), center: tx('έγγραφα', 'documents') },
-        { type: 'bars', title: tx('Κατάσταση εγγράφων', 'Document status'), subtitle: tx('Κύκλος ζωής ελεγχόμενων εγγράφων.', 'Controlled document lifecycle.'), rows: named(g.byStatus) },
+        { type: 'donut', emptyText: tx('δεν υπάρχουν ελεγχόμενα έγγραφα ούτε συνεδριάσεις επιτροπών στην περίοδο.', 'there are no controlled documents or committee meetings in the period.'), title: tx('Έγγραφα ανά τύπο', 'Documents by type'), subtitle: tx('Ελεγχόμενα έγγραφα σε χρήση.', 'Controlled documents in use.'), rows: named(g.byType), center: tx('έγγραφα', 'documents') },
+        { type: 'bars', emptyText: tx('δεν υπάρχουν ελεγχόμενα έγγραφα ούτε συνεδριάσεις επιτροπών στην περίοδο.', 'there are no controlled documents or committee meetings in the period.'), title: tx('Κατάσταση εγγράφων', 'Document status'), subtitle: tx('Κύκλος ζωής ελεγχόμενων εγγράφων.', 'Controlled document lifecycle.'), rows: named(g.byStatus) },
       ],
     } }
     case 'pps': { const p = d.pps || {}; const months = p.byMonth || []; const last = months[months.length - 1], prev = months[months.length - 2]
