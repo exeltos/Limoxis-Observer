@@ -7,26 +7,38 @@ import { isOwnerPreview,previewRuntimeEvents } from '../preview/ownerPreview'
 const MAX_MESSAGE=500
 const MAX_CODE=120
 
-function cleanText(value,max=120){
+function cleanText(value: unknown,max=120): string | null{
   const text=String(value??'').replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim()
   return text?text.slice(0,max):null
 }
 
-function moduleFromRoute(route=''){
+function moduleFromRoute(route: string | null=''){
   const first=String(route).split('?')[0].split('#')[0].split('/').filter(Boolean)[0]||'dashboard'
   const known=new Set(['platform','surveillance','laboratory','prevention','controls','quality','indicators','training','committees','documents','patients','employees','pharmacy','occupational-health','lira','management','analysis','account','my-department','my-profile'])
   return known.has(first)?first:'dashboard'
 }
 
-export function diagnosticCodeFromError(error){
-  const explicit=cleanText(error?.code||'',MAX_CODE)
+export function diagnosticCodeFromError(error: unknown): string | null{
+  const known=error as { code?: unknown, message?: unknown } | null | undefined
+  const explicit=cleanText(known?.code||'',MAX_CODE)
   if(explicit)return explicit
-  const message=String(error?.message||'')
+  const message=String(known?.message||'')
   const internal=message.match(/\b(?:PRODUCTION|AUTH|ORG|DUPLICATE|PERMISSION|ACCESS|NETWORK|SERVICE)[A-Z0-9_:.-]*/i)?.[0]
   return cleanText(internal||'',MAX_CODE)
 }
 
-export async function recordRuntimeEvent({organizationId,severity='info',eventType='ui_feedback',module=null,route=null,operation=null,userMessage,diagnosticCode=null}={}){
+export interface RuntimeEventInput {
+  organizationId?: string | null
+  severity?: string
+  eventType?: string
+  module?: string | null
+  route?: string | null
+  operation?: string | null
+  userMessage?: string | null
+  diagnosticCode?: string | null
+}
+
+export async function recordRuntimeEvent({organizationId,severity='info',eventType='ui_feedback',module=null,route=null,operation=null,userMessage,diagnosticCode=null}: RuntimeEventInput={}){
   if(isDemoDataEnvironment())return null
   if(!hasSupabaseConfig||!supabase||!organizationId||!userMessage)return null
   const safeRoute=cleanText(route||globalThis?.location?.pathname,240)
@@ -35,17 +47,17 @@ export async function recordRuntimeEvent({organizationId,severity='info',eventTy
     event_severity:['info','success','warning','error','blocked'].includes(severity)?severity:'info',
     event_type:cleanText(eventType,80)||'ui_feedback',
     event_module:cleanText(module,80)||moduleFromRoute(safeRoute),
-    event_route:safeRoute,
-    event_operation:cleanText(operation,80),
-    event_user_message:cleanText(userMessage,MAX_MESSAGE),
-    event_diagnostic_code:cleanText(diagnosticCode,MAX_CODE),
+    event_route:safeRoute as string,
+    event_operation:cleanText(operation,80) as string,
+    event_user_message:cleanText(userMessage,MAX_MESSAGE) as string,
+    event_diagnostic_code:cleanText(diagnosticCode,MAX_CODE) as string,
     event_app_version:APP_VERSION,
   })
   if(error)throw error
   return data
 }
 
-export async function listRuntimeEvents(organizationId,{limit=300,severity='all'}={}){
+export async function listRuntimeEvents(organizationId: string | null | undefined,{limit=300,severity='all'}:{limit?:number,severity?:string}={}){
   if(isOwnerPreview())return previewRuntimeEvents(organizationId).filter(row=>severity==='all'||row.severity===severity)
   if(!hasSupabaseConfig||!supabase||!organizationId)return []
   let query=supabase.from('platform_runtime_events')
@@ -58,7 +70,7 @@ export async function listRuntimeEvents(organizationId,{limit=300,severity='all'
   if(error)throw error
   const rows=data||[]
   const actorIds=[...new Set(rows.map(x=>x.actor_id).filter(Boolean))]
-  let actors={}
+  let actors: Record<string, { full_name: string | null, username: string | null, job_title: string | null }>={}
   if(actorIds.length){
     const {data:profiles}=await supabase.from('profiles').select('id,full_name,username,job_title').in('id',actorIds)
     actors=Object.fromEntries((profiles||[]).map(p=>[p.id,p]))
@@ -67,8 +79,8 @@ export async function listRuntimeEvents(organizationId,{limit=300,severity='all'
     id:row.id,
     organizationId:row.organization_id,
     actorId:row.actor_id,
-    actorName:actors[row.actor_id]?.full_name||actors[row.actor_id]?.username||'—',
-    actorJobTitle:actors[row.actor_id]?.job_title||'',
+    actorName:actors[String(row.actor_id)]?.full_name||actors[String(row.actor_id)]?.username||'—',
+    actorJobTitle:actors[String(row.actor_id)]?.job_title||'',
     role:row.role||'',
     severity:row.severity,
     eventType:row.event_type,

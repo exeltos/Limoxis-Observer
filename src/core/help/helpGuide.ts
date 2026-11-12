@@ -1,7 +1,12 @@
 // Setup and user guide: ONE source for the in-app "Getting started" help and the PDF manual
 // (tools/build-manual-pdf.mjs). Every text is a {el,en} pair so the two languages cannot drift.
 // Module and add-on names/contents come from core/organization/operatingProfile.js at render time.
-const l = (el, en) => ({ el, en })
+// Ένα κείμενο στις δύο γλώσσες.
+export interface Bilingual {
+  el: string
+  en: string
+}
+const l = (el: string, en: string): Bilingual => ({ el, en })
 
 export const guideContent = {
   title: l('Limoxis Observer — Οδηγός εγκατάστασης και χρήσης', 'Limoxis Observer — Setup and user guide'),
@@ -461,8 +466,24 @@ export const guideContent = {
   ],
 }
 
+// Ο οδηγός σε μία γλώσσα (pickGuide(guideContent, γλώσσα)), όπως τον διαβάζουν η οθόνη και το PDF.
+export interface GuideText {
+  title: string
+  subtitle: string
+  intro: { purpose: string; audience: string; howToRead: string }
+  whereAmI: Array<[string, string]>
+  journey: Array<{ id: string; title: string; who: string; where: string; steps: string[]; done: string }>
+  packages: Array<{ id: string; forWhom: string; goal: string; steps: Array<{ title: string; who: string; text: string }>; firstWeek: string[]; success: string }>
+  recipes: Array<{ id: string; title: string; when: string; steps: string[] }>
+  modules: Record<string, { what: string; users: string; needs?: string[]; analysis: string; start: string }>
+  roles: Array<[string, string]>
+  rolesNote: string
+  faq: Array<{ q: string; a: string[] }>
+}
+
 // {el,en} pairs -> one language, recursively.
-export function pickGuide(value, language = 'el') {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the guide tree, picked into one language
+export function pickGuide(value: any, language = 'el'): any {
   const lang = language === 'en' ? 'en' : 'el'
   if (Array.isArray(value)) return value.map(item => pickGuide(item, lang))
   if (value && typeof value === 'object') {

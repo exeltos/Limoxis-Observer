@@ -10,7 +10,7 @@ function storageFor(kind: StorageKind): Storage | null {
   }
 }
 
-export function readSessionValue(key: string, fallback: string | null = null): string | null {
+export function readSessionValue<F extends string | number | null = null>(key: string, fallback: F = null as F): string | F {
   try {
     return storageFor('sessionStorage')?.getItem(key) ?? fallback
   } catch {
@@ -58,7 +58,7 @@ export function writeSessionJson(key: string, value: unknown): boolean {
   }
 }
 
-export function readLocalValue(key: string, fallback: string | null = null): string | null {
+export function readLocalValue<F extends string | number | null = null>(key: string, fallback: F = null as F): string | F {
   try {
     return storageFor('localStorage')?.getItem(key) ?? fallback
   } catch {

@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type SyntheticEvent } from 'react'
+import { useLocation, type NavigateFunction, type NavigateOptions } from 'react-router-dom'
 import { readSessionJson, readSessionValue, removeSessionValue, writeSessionJson, writeSessionValue } from '../storage/browserStorage'
 
-export const registryStorageKey=(registry,part)=>`limoxis.registry.${registry}.${part}`
+export const registryStorageKey=(registry: string,part: string): string=>`limoxis.registry.${registry}.${part}`
 
-export function useRegistryMemory(registry){
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the filters and searches of any registry
+type ViewState = Record<string, any>
+
+export function useRegistryMemory(registry: string){
   const location=useLocation()
-  const scrollRef=useRef(null)
+  const scrollRef=useRef<HTMLElement | null>(null)
   const [highlightId,setHighlightId]=useState(()=>readSessionValue(registryStorageKey(registry,'selected'),'')||'')
 
   useEffect(()=>{
@@ -23,7 +26,7 @@ export function useRegistryMemory(registry){
     return ()=>cancelAnimationFrame(frame)
   },[registry])
 
-  const openRecord=useCallback((navigate,path,id,orderedIds=[],options={})=>{
+  const openRecord=useCallback((navigate: NavigateFunction,path: string,id: string,orderedIds: string[]=[],options: NavigateOptions & { returnState?: object | null }={})=>{
     const {returnState,...navigateOptions}=options
     writeSessionValue(registryStorageKey(registry,'selected'),id)
     writeSessionValue(registryStorageKey(registry,'scroll'),scrollRef.current?.scrollTop||0)
@@ -32,7 +35,7 @@ export function useRegistryMemory(registry){
     navigate(path,{
       ...navigateOptions,
       state:{
-        ...(navigateOptions.state||{}),
+        ...((navigateOptions.state as object)||{}),
         limoxisFrom:{
           pathname:location.pathname,
           search:location.search,
@@ -44,31 +47,31 @@ export function useRegistryMemory(registry){
     })
   },[registry,location.pathname,location.search,location.hash,location.state])
 
-  const rowProps=useCallback((id,onOpen)=>({
+  const rowProps=useCallback((id: string,onOpen?: (event: SyntheticEvent) => void)=>({
     'data-record-id':id,
     className:`registry-row-clickable ${highlightId===id?'registry-row-returned':''}`.trim(),
     tabIndex:0,
     ...(onOpen?{
       onClick:onOpen,
-      onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen(e)}},
+      onKeyDown:(e: KeyboardEvent)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen(e)}},
     }:null),
   }),[highlightId])
 
-  const saveViewState=useCallback(state=>{
+  const saveViewState=useCallback((state: ViewState | null | undefined)=>{
     writeSessionJson(registryStorageKey(registry,'view'),state||{})
   },[registry])
-  const loadViewState=useCallback((fallback={})=>{
+  const loadViewState=useCallback((fallback: ViewState={}): ViewState=>{
     const stored=readSessionJson(registryStorageKey(registry,'view'),{})
     return stored&&typeof stored==='object'&&!Array.isArray(stored)?{...fallback,...stored}:fallback
   },[registry])
   return useMemo(()=>({scrollRef,highlightId,openRecord,rowProps,saveViewState,loadViewState}),[highlightId,openRecord,rowProps,saveViewState,loadViewState])
 }
 
-export function readRegistryViewState(registry){
+export function readRegistryViewState(registry: string): ViewState | null{
   return readSessionJson(registryStorageKey(registry,'view'),null)
 }
 
-export function writeRegistryViewState(registry,state){
+export function writeRegistryViewState(registry: string,state: ViewState | null | undefined){
   writeSessionJson(registryStorageKey(registry,'view'),state||{})
 }
 
@@ -76,8 +79,8 @@ export function writeRegistryViewState(registry,state){
 // for the way back from a record are forgotten (storage may be unavailable).
 export function forgetRegistryViewStates(){
   try{
-    const keys=[]
+    const keys: string[]=[]
     for(let index=0;index<window.sessionStorage.length;index+=1){const key=window.sessionStorage.key(index);if(key?.startsWith('limoxis.registry.')&&key.endsWith('.view'))keys.push(key)}
-    keys.forEach(removeSessionValue)
+    keys.forEach(key=>removeSessionValue(key))
   }catch{/* nothing was kept */}
 }

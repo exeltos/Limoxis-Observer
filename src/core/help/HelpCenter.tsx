@@ -14,10 +14,11 @@ import { platformHelp, platformHelpNavigation } from './helpPlatform'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useTenant } from '../tenant/TenantContext'
 import { navigationFor } from '../../app/navigation'
+import type { HelpBook, HelpNavigationItem } from './helpTypes'
 
 const APP_ORIGIN='https://www.limoxis.com'
 const APP_HOSTS=['www.limoxis.com','limoxis-observer.netlify.app']
-const netlifyPreviewUrl=(path,role,language)=>{
+const netlifyPreviewUrl=(path: string,role: string | null,language: string)=>{
  const base=typeof window!=='undefined'&&APP_HOSTS.includes(window.location.hostname)?window.location.origin:APP_ORIGIN
  const url=new URL(path||'/',base)
  url.searchParams.set('helpPreview','1')
@@ -25,7 +26,7 @@ const netlifyPreviewUrl=(path,role,language)=>{
  if(language)url.searchParams.set('helpLang',language)
  return url.toString()
 }
-const resolveManual=(path,book)=>book[path]||book[Object.keys(book).find(k=>k!=='/'&&path.startsWith(k))]||book['/']||Object.values(book)[0]
+const resolveManual=(path: string,book: HelpBook)=>book[path]||book[Object.keys(book).find(k=>k!=='/'&&path.startsWith(k)) as string]||book['/']||Object.values(book)[0]
 
 const uiText={
  el:{
@@ -68,13 +69,19 @@ const uiText={
  }
 }
 
-export function HelpCenter({open,onClose,onResetScreenGuides=null}){
+interface HelpCenterProps {
+  open: boolean
+  onClose: () => void
+  onResetScreenGuides?: (() => Promise<unknown>) | null
+}
+
+export function HelpCenter({open,onClose,onResetScreenGuides=null}: HelpCenterProps){
  const {pathname,hash}=useLocation()
  const {language}=useLanguage()
  const {role,membership,actualRole,tenant,moduleEnabled,operatingProfile}=useTenant()
  const platformMode=actualRole==='platform_owner'&&!tenant
  const isOwner=actualRole==='platform_owner'
- const searchRef=useRef(null)
+ const searchRef=useRef<HTMLInputElement | null>(null)
  const [query,setQuery]=useState('')
  const [selected,setSelected]=useState(pathname)
  const [chapter,setChapter]=useState(0)
@@ -82,10 +89,10 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
  const [mode,setMode]=useState('manual')
  const [guidesReset,setGuidesReset]=useState(false)
 
- const book=platformMode?platformHelp[language==='en'?'en':'el']:(language==='en'?helpManualEn:helpManual)
+ const book: HelpBook=platformMode?platformHelp[language==='en'?'en':'el']:(language==='en'?helpManualEn:helpManual)
  const tx=uiText[language==='en'?'en':'el']
  const nav=navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
- const visible=(platformMode?platformHelpNavigation:nav).map(x=>({...x,manual:book[x.to]})).filter(x=>x.manual)
+ const visible=((platformMode?platformHelpNavigation:nav) as HelpNavigationItem[]).map(x=>({...x,manual:book[x.to]})).filter(x=>x.manual)
  const normalizedQuery=query.trim().toLowerCase()
  const filtered=visible.filter(x=>`${x.manual.title} ${x.manual.summary} ${x.manual.chapters.flat().join(' ')}`.toLowerCase().includes(normalizedQuery))
  const current=resolveManual(selected,book)
@@ -98,7 +105,7 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
  const checks=extras?.checks?.[language==='en'?'en':'el']||[]
  const tip=extras?.tip?.[language==='en'?'en':'el']||''
  const related=(extras?.related||[]).map(path=>visible.find(x=>x.to===path)).filter(Boolean).slice(0,3)
- const platformTerms=useMemo(()=>pickGuide(guideContent.terms,language==='en'?'en':'el').map(x=>({term:x.term,el:x.def,en:x.def})),[language])
+ const platformTerms=useMemo(()=>(pickGuide(guideContent.terms,language==='en'?'en':'el') as Array<{ term: string, def: string }>).map(x=>({term:x.term,el:x.def,en:x.def})),[language])
  const terms=useMemo(()=>[...platformTerms,...glossary].filter(g=>`${g.term} ${g.el} ${g.en}`.toLowerCase().includes(normalizedQuery)),[normalizedQuery,platformTerms])
  const currentChapter=current.chapters[Math.min(chapter,current.chapters.length-1)]||current.chapters[0]
  const isCurrent=selected===currentSection
@@ -115,7 +122,7 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
 
  useEffect(()=>{
    if(!open)return undefined
-   const onKeyDown=(event)=>{
+   const onKeyDown=(event: KeyboardEvent)=>{
      if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){
        event.preventDefault()
        searchRef.current?.focus()
@@ -129,7 +136,7 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
    return()=>window.removeEventListener('keydown',onKeyDown)
  },[open,imageOpen,onClose])
 
- const selectModule=(path)=>{setMode('manual');setSelected(path);setChapter(0);setQuery('')}
+ const selectModule=(path: string)=>{setMode('manual');setSelected(path);setChapter(0);setQuery('')}
  const prevChapter=()=>setChapter(i=>Math.max(0,i-1))
  const nextChapter=()=>setChapter(i=>Math.min(current.chapters.length-1,i+1))
 
@@ -197,14 +204,14 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
 
     {mode==='manual'&&<aside className="manual-preview-pane real-screen-pane">
       <header><span>{platformMode?tx.previewLabel:tx.liveScreen}</span><b>{current.title}</b></header>
-      {platformMode?<div className="manual-preview-unavailable"><ShieldCheck size={20}/><strong>{tx.platformPreviewTitle}</strong><span>{tx.platformPreviewBody}</span></div>:<button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title={tx.zoom} aria-label={`${tx.zoom}: ${current.title}`}><iframe src={netlifyPreviewUrl(selected,role,language)} title={`${tx.previewFrameTitle} ${current.title}`} tabIndex="-1"/></button>}
+      {platformMode?<div className="manual-preview-unavailable"><ShieldCheck size={20}/><strong>{tx.platformPreviewTitle}</strong><span>{tx.platformPreviewBody}</span></div>:<button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title={tx.zoom} aria-label={`${tx.zoom}: ${current.title}`}><iframe src={netlifyPreviewUrl(selected,role,language)} title={`${tx.previewFrameTitle} ${current.title}`} tabIndex={-1}/></button>}
       {!platformMode&&<section className="manual-explain"><h3>{tx.realScreen}</h3><div><b>1</b><p><strong>{tx.liveTitle}</strong><span>{tx.liveBody}</span></p></div><div><b>2</b><p><strong>{tx.updatedTitle}</strong><span>{tx.updatedBody}</span></p></div></section>}
       {related.length>0&&<section className="manual-related"><h3>{tx.related}</h3>{related.map(item=>{const Icon=item.icon||BookOpen;return <button key={item.to} onClick={()=>selectModule(item.to)}><Icon size={14}/><span>{item.manual.title}</span><ChevronRight size={13}/></button>})}</section>}
     </aside>}
 
     {imageOpen&&!platformMode&&<div className="manual-image-lightbox manual-image-lightbox-floating" onMouseDown={e=>e.target===e.currentTarget&&setImageOpen(false)}>
       <div className="manual-preview-floating-card" onMouseDown={e=>e.stopPropagation()}>
-        <div className="manual-live-floating"><iframe src={netlifyPreviewUrl(selected,role,language)} title={`${tx.previewFrameTitle} ${current.title}`} tabIndex="-1"/></div>
+        <div className="manual-live-floating"><iframe src={netlifyPreviewUrl(selected,role,language)} title={`${tx.previewFrameTitle} ${current.title}`} tabIndex={-1}/></div>
         <button className="manual-lightbox-close" aria-label={tx.closeZoom} title={tx.closeZoom} onClick={()=>setImageOpen(false)}><X size={21}/></button>
       </div>
     </div>}

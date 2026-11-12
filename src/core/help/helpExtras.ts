@@ -1,4 +1,6 @@
-export const helpExtras={
+import type { HelpExtra } from './helpTypes'
+
+export const helpExtras: Record<string, HelpExtra>={
  '/':{
   checks:{el:['Ελέγξτε αν οι επείγουσες εκκρεμότητες έχουν ανοίξει.','Επιβεβαιώστε ότι οι ειδοποιήσεις που διαβάσατε έχουν μειωθεί από το badge.'],en:['Confirm that urgent pending items have been opened.','Check that notifications you read are removed from the unread badge.']},
   tip:{el:'Χρησιμοποιήστε την Αρχική ως σημείο εκκίνησης, όχι ως δεύτερο μητρώο. Η πραγματική εργασία ολοκληρώνεται στις αντίστοιχες ενότητες.',en:'Use Home as a starting point, not as a second registry. Complete the actual work in the underlying modules.'},

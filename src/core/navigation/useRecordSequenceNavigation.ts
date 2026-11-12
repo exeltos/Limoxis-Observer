@@ -3,18 +3,18 @@ import { useLocation,useNavigate } from 'react-router-dom'
 import { readSessionJson, writeSessionValue } from '../storage/browserStorage'
 import { registryStorageKey } from './useRegistryMemory'
 
-export function useRecordSequenceNavigation({registry,currentId,pathForId}){
+export function useRecordSequenceNavigation({registry,currentId,pathForId}:{registry:string,currentId:string|null|undefined,pathForId:(id:string)=>string}){
  const navigate=useNavigate()
  const location=useLocation()
  const ids=useMemo(()=>{
   const parsed=readSessionJson(registryStorageKey(registry,'sequence'),[])
-  return Array.isArray(parsed)?parsed:[]
+  return (Array.isArray(parsed)?parsed:[]) as string[]
  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'currentId' forces re-read from sessionStorage when navigating to a different record (the stored sequence may have changed since this component last read it); not used directly in the body.
  },[registry,currentId])
- const index=ids.indexOf(currentId)
+ const index=ids.indexOf(currentId as string)
  const previousId=index>0?ids[index-1]:null
  const nextId=index>=0&&index<ids.length-1?ids[index+1]:null
- function move(id){
+ function move(id: string|null){
   if(!id)return
   writeSessionValue(registryStorageKey(registry,'selected'),id)
   navigate(pathForId(id),{replace:true,state:location.state})

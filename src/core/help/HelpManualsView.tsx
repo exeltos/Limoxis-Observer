@@ -12,16 +12,16 @@ const MANUALS=[
  {id:'el',file:'Limoxis-Observer-Odigos-EL.pdf',el:'Εγχειρίδιο (Ελληνικά)',en:'Manual (Greek)'},
  {id:'en',file:'Limoxis-Observer-Guide-EN.pdf',el:'Εγχειρίδιο (Αγγλικά)',en:'Manual (English)'},
 ]
-const text={
+const text: Record<'el' | 'en', Record<string, string>>={
  el:{eyebrow:'ΜΟΝΟ ΓΙΑ PLATFORM OWNER',title:'Εγχειρίδια',body:'Τα εικονογραφημένα εγχειρίδια της εφαρμογής σε PDF, με μία εικόνα ανά ενότητα από δεδομένα demo. Κατεβάστε τα ή στείλτε τον σύνδεσμο σε νοσοκομεία και συνεργάτες: ο σύνδεσμος ανοίγει χωρίς σύνδεση στην εφαρμογή.',version:'Έκδοση εφαρμογής',open:'Άνοιγμα',download:'Λήψη',copy:'Αντιγραφή συνδέσμου',copied:'Ο σύνδεσμος αντιγράφηκε.',copyFailed:'Δεν ήταν δυνατή η αντιγραφή. Επιλέξτε τον σύνδεσμο και αντιγράψτε τον.',email:'Αποστολή με email',share:'Κοινοποίηση',subject:'Εγχειρίδιο Limoxis Observer',mailBody:'Καλησπέρα,\n\nΣας στέλνω το εγχειρίδιο του Limoxis Observer:\n',note:'Ο σύνδεσμος είναι δημόσιος για όποιον τον έχει, αλλά δεν εμφανίζεται σε μηχανές αναζήτησης. Τα εγχειρίδια περιέχουν μόνο δεδομένα demo.'},
  en:{eyebrow:'PLATFORM OWNER ONLY',title:'Manuals',body:'The illustrated PDF manuals of the application, with one screenshot per module from demo data. Download them, or send the link to hospitals and partners: it opens without signing in.',version:'Application version',open:'Open',download:'Download',copy:'Copy link',copied:'Link copied.',copyFailed:'Could not copy. Select the link and copy it.',email:'Send by email',share:'Share',subject:'Limoxis Observer manual',mailBody:'Hello,\n\nHere is the Limoxis Observer manual:\n',note:'Anyone with the link can open it, but it is not listed by search engines. The manuals contain demo data only.'},
 }
-export const manualUrl=(file,host=typeof window!=='undefined'?window.location:null)=>`${host&&APP_HOSTS.includes(host.hostname)?host.origin:APP_ORIGIN}/manual/${file}`
+export const manualUrl=(file: string,host: { hostname: string, origin: string } | null=typeof window!=='undefined'?window.location:null)=>`${host&&APP_HOSTS.includes(host.hostname)?host.origin:APP_ORIGIN}/manual/${file}`
 
-export function HelpManualsView({language}){
+export function HelpManualsView({language}:{language?:string}){
  const t=text[language==='en'?'en':'el'];const feedback=useOptionalFeedback();const [copied,setCopied]=useState('')
  const canShare=typeof navigator!=='undefined'&&typeof navigator.share==='function'
- async function copy(item,url){
+ async function copy(item: typeof MANUALS[number],url: string){
   try{await navigator.clipboard.writeText(url);setCopied(item.id);feedback?.notify(t.copied,'info')}
   catch{feedback?.notify(t.copyFailed,'error')}
  }
