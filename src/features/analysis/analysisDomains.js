@@ -294,10 +294,10 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Ενεργές επεμβατικές συσκευές', 'Active invasive devices'), s.devicesActive ?? 0, tx('σε ενεργές επιτηρήσεις', 'in surveillance episodes')],
       ],
       charts: [
-        { type: 'trend', wide: true, title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
+        { type: 'trend', title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
+        { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
         ...(classified ? [] : [{ type: 'note', text: tx('Δεν γίνεται ταξινόμηση ΛΣΦΥ: τα γραφήματα των λοιμώξεων εμφανίζονται όταν ταξινομηθούν επεισόδια.', 'No HAI is classified: the infection charts appear once episodes are classified.') }]),
         classified && { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
-        { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
         classified && { type: 'matrix', wide: true, organisms: 'rows', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
       ].filter(Boolean),
     } }
@@ -337,44 +337,49 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     case 'prevention': {
       // Nothing recorded (no bundle assessed, no waste weighed): one line, and no «0 kg» / «—» figure.
       const hasBundles = (b.assessments ?? 0) > 0, hasWaste = Number(w.totalKg) > 0
+      const hasHandHygiene = (hh.observations ?? 0) > 0, nothingRecorded = !hasHandHygiene && !hasBundles && !hasWaste
       return {
       kpis: [
         ...(hasBundles ? [[tx('Συμμόρφωση δεσμών μέτρων', 'Bundle compliance'), fmtPct(b.averageScore), tx(`${b.assessments ?? 0} αξιολογήσεις`, `${b.assessments ?? 0} assessments`), b.averageScore != null && b.averageScore < 90 ? 'warning' : 'good']] : []),
-        [tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`στόχος ≥ 80% · ${hh.sessions ?? 0} συνεδρίες`, `target ≥ 80% · ${hh.sessions ?? 0} sessions`), hhRate != null && hhRate < 80 ? 'warning' : 'good'],
-        [tx('Ευκαιρίες υγιεινής χεριών', 'Hand hygiene opportunities'), hh.observations ?? 0, tx(`${hh.compliant ?? 0} με σωστή υγιεινή`, `${hh.compliant ?? 0} compliant`)],
+        ...(hasHandHygiene ? [[tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`στόχος ≥ 80% · ${hh.sessions ?? 0} συνεδρίες`, `target ≥ 80% · ${hh.sessions ?? 0} sessions`), hhRate != null && hhRate < 80 ? 'warning' : 'good']] : []),
+        ...(hasHandHygiene ? [[tx('Ευκαιρίες υγιεινής χεριών', 'Hand hygiene opportunities'), hh.observations ?? 0, tx(`${hh.compliant ?? 0} με σωστή υγιεινή`, `${hh.compliant ?? 0} compliant`)]] : []),
         ...(hasWaste ? [[tx('Ιατρικά απόβλητα', 'Healthcare waste'), `${Number(w.totalKg ?? 0).toLocaleString(en ? 'en-US' : 'el-GR', { maximumFractionDigits: 1 })} kg`, w.patientDays ? tx(`${(w.totalKg / w.patientDays * 1000).toFixed(1).replace('.', ',')} kg / 1.000 ημέρες νοσηλείας`, `${(w.totalKg / w.patientDays * 1000).toFixed(1)} kg / 1,000 patient-days`) : tx(`${w.records ?? 0} καταγραφές`, `${w.records ?? 0} records`)]] : []),
       ],
       charts: [
-        { type: 'trend', wide: true, sparse: true, title: tx('Υγιεινή χεριών ανά μήνα (%)', 'Hand hygiene by month (%)'), subtitle: tx('Ποσοστό ευκαιριών με σωστή υγιεινή χεριών.', 'Share of opportunities with correct hand hygiene.'), points: (hh.monthly || []).map(([key, total, part]) => [key, pct(part, total) ?? 0]), few: (hh.monthly || []).filter(([, total]) => Number(total) < FEW_HH_OPPORTUNITIES).map(([key]) => key) },
+        { type: 'trend', wide: true, sparse: true, emptyText: nothingRecorded ? tx('δεν υπάρχουν καταγραφές υγιεινής χεριών, δεσμών μέτρων και ιατρικών αποβλήτων στην περίοδο.', 'there are no hand-hygiene, care-bundle or healthcare-waste records in the period.') : undefined, title: tx('Υγιεινή χεριών ανά μήνα (%)', 'Hand hygiene by month (%)'), subtitle: tx('Ποσοστό ευκαιριών με σωστή υγιεινή χεριών.', 'Share of opportunities with correct hand hygiene.'), points: (hh.monthly || []).map(([key, total, part]) => [key, pct(part, total) ?? 0]), few: (hh.monthly || []).filter(([, total]) => Number(total) < FEW_HH_OPPORTUNITIES).map(([key]) => key) },
         { type: 'rate', title: tx('Υγιεινή χεριών ανά τμήμα', 'Hand hygiene by department'), subtitle: tx('Ποσοστό συμμόρφωσης · δίπλα οι ευκαιρίες.', 'Compliance rate · beside it the opportunities.'), rows: rateRowsWithTotal(hh.byDepartment) },
         { type: 'rate', title: tx('Υγιεινή χεριών ανά επαγγελματική κατηγορία', 'Hand hygiene by professional category'), subtitle: tx('Ποσοστό συμμόρφωσης · δίπλα οι ευκαιρίες.', 'Compliance rate · beside it the opportunities.'), rows: rateRowsWithTotal(hh.byCategory) },
         hasBundles && { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]) => score != null).map(([key, , score]) => [BUNDLE_LABELS[key] ? BUNDLE_LABELS[key][en ? 1 : 0] : label(key), score]) },
         hasBundles && { type: 'rate', title: tx('Συμμόρφωση δεσμών ανά τμήμα', 'Bundle compliance by department'), subtitle: tx('Μέσο ποσοστό ανά τμήμα.', 'Average per department.'), rows: (b.byDepartment || []).filter(([, , score]) => score != null).map(([key, , score]) => [key, score]) },
-        ...(hasBundles ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται αξιολογήσεις δεσμών μέτρων στην περίοδο.', 'No care-bundle assessments are recorded in the period.') }]),
-        ...(hasWaste ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται μετρήσεις ιατρικών αποβλήτων στην περίοδο.', 'No healthcare-waste measurements are recorded in the period.') }]),
+        ...(hasBundles || nothingRecorded ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται αξιολογήσεις δεσμών μέτρων στην περίοδο.', 'No care-bundle assessments are recorded in the period.') }]),
+        ...(hasWaste || nothingRecorded ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται μετρήσεις ιατρικών αποβλήτων στην περίοδο.', 'No healthcare-waste measurements are recorded in the period.') }]),
       ].filter(Boolean),
     } }
     case 'controls': return {
       kpis: [
-        [tx('Εκτελέσεις ελέγχων', 'Control executions'), c.executions ?? 0, tx(`${pct(c.completed, c.executions) ?? 0}% ολοκληρωμένες`, `${pct(c.completed, c.executions) ?? 0}% completed`)],
-        [tx('Με εύρημα', 'With findings'), c.withFinding ?? 0, tx(`${pct(c.withFinding, c.executions) ?? 0}% των εκτελέσεων`, `${pct(c.withFinding, c.executions) ?? 0}% of executions`), c.withFinding ? 'warning' : ''],
-        [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : ''],
+        ...((c.executions ?? 0) || (c.overdueAssignments ?? 0) ? [
+          [tx('Εκτελέσεις ελέγχων', 'Control executions'), c.executions ?? 0, tx(`${pct(c.completed, c.executions) ?? 0}% ολοκληρωμένες`, `${pct(c.completed, c.executions) ?? 0}% completed`)],
+          [tx('Με εύρημα', 'With findings'), c.withFinding ?? 0, tx(`${pct(c.withFinding, c.executions) ?? 0}% των εκτελέσεων`, `${pct(c.withFinding, c.executions) ?? 0}% of executions`), c.withFinding ? 'warning' : ''],
+          [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : ''],
+        ] : []),
       ],
       charts: [
-        { type: 'matrix', wide: true, title: tx('Ευρήματα ανά έλεγχο και τμήμα', 'Findings by control and department'), subtitle: tx('Σε ποιον έλεγχο και ποιο τμήμα εντοπίζονται ευρήματα.', 'Which control and which department the findings come from.'), rowLabel: tx('Έλεγχος', 'Control'), cells: c.findingsByControl },
+        { type: 'matrix', wide: true, emptyText: tx('δεν έχουν καταγραφεί εκτελέσεις ελέγχων στην περίοδο.', 'no control executions have been recorded in the period.'), title: tx('Ευρήματα ανά έλεγχο και τμήμα', 'Findings by control and department'), subtitle: tx('Σε ποιον έλεγχο και ποιο τμήμα εντοπίζονται ευρήματα.', 'Which control and which department the findings come from.'), rowLabel: tx('Έλεγχος', 'Control'), cells: c.findingsByControl },
         { type: 'bars', title: tx('Εκτελέσεις ανά τμήμα', 'Executions by department'), subtitle: tx('Ολοκληρωμένοι έλεγχοι στην περίοδο.', 'Controls performed in the period.'), rows: (c.byDepartment || []).map(([key, n]) => [key, n]) },
         { type: 'rate', relative: true, title: tx('Ποσοστό ευρημάτων ανά τμήμα', 'Finding rate by department'), subtitle: tx('Εκτελέσεις με εύρημα προς το σύνολο των εκτελέσεων.', 'Executions with a finding over all executions.'), rows: (c.byDepartment || []).map(([key, total, findings]) => [key, pct(findings, total) ?? 0, `${findings ?? 0}/${total ?? 0}`]) },
       ],
     }
     case 'quality': return {
       kpis: [
-        [tx('Συμβάντα', 'Incidents'), q.incidents ?? 0, tx(`${q.openIncidents ?? 0} ανοιχτά`, `${q.openIncidents ?? 0} open`)],
-        [tx('Με βλάβη', 'With harm'), q.harm ?? 0, tx('συμβάντα με βλάβη ασθενούς', 'incidents with patient harm'), q.harm ? 'danger' : ''],
-        [tx('Ανοιχτές διορθωτικές ενέργειες', 'Open CAPA'), q.capaOpen ?? 0, tx('διορθωτικές / προληπτικές ενέργειες', 'corrective / preventive actions')],
-        [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : ''],
+        ...((q.incidents ?? 0) || (q.capaOpen ?? 0) || (q.capaOverdue ?? 0) ? [
+          [tx('Συμβάντα', 'Incidents'), q.incidents ?? 0, tx(`${q.openIncidents ?? 0} ανοιχτά`, `${q.openIncidents ?? 0} open`)],
+          [tx('Με βλάβη', 'With harm'), q.harm ?? 0, tx('συμβάντα με βλάβη ασθενούς', 'incidents with patient harm'), q.harm ? 'danger' : ''],
+          [tx('Ανοιχτές διορθωτικές ενέργειες', 'Open CAPA'), q.capaOpen ?? 0, tx('διορθωτικές / προληπτικές ενέργειες', 'corrective / preventive actions')],
+          [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : ''],
+        ] : []),
       ],
       charts: [
-        { type: 'trend', wide: true, title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
+        { type: 'trend', wide: true, emptyText: tx('δεν έχουν καταγραφεί συμβάντα στην περίοδο.', 'no incidents have been recorded in the period.'), title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
         // The categories of the incidents (owner, 8/11/2026): which, and where by group of the ΟΔΙΠΥ form.
         { type: 'bars', title: tx('Κατηγορίες συμβάντων', 'Incident categories'), subtitle: tx('Τι είδους συμβάντα αναφέρθηκαν.', 'What kind of incidents were reported.'), rows: incidentCategoryRows(q.byCategory, en) },
         { type: 'matrix', wide: true, title: tx('Κατηγορίες ανά τμήμα', 'Categories by department'), subtitle: tx('Ομάδες κατηγοριών του εντύπου ΟΔΙΠΥ σε κάθε τμήμα.', 'Groups of the ΟΔΙΠΥ form in each department.'), rowLabel: tx('Τμήμα', 'Department'), cells: q.categoryByDepartment?.map(([row, column, n]) => [row, incidentGroupLabel(column, en), n]) },
@@ -400,25 +405,29 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     } }
     case 'training': { const tr = d.training || {}; const rate = pct(tr.completed, tr.assignments); return {
       kpis: [
-        [tx('Ολοκλήρωση εκπαιδεύσεων', 'Training completion'), fmtPct(rate), tx(`${tr.completed ?? 0} από ${tr.assignments ?? 0} αναθέσεις`, `${tr.completed ?? 0} of ${tr.assignments ?? 0} assignments`), rate != null && rate < 80 ? 'warning' : 'good'],
-        [tx('Εκπρόθεσμες', 'Overdue'), tr.overdue ?? 0, tx('πέρασε η προθεσμία ολοκλήρωσης', 'past the completion due date'), tr.overdue ? 'danger' : ''],
-        [tx('Μέση βαθμολογία', 'Average score'), tr.averageScore == null ? '—' : fmtPct(tr.averageScore), tx('στις αξιολογήσεις', 'in assessments')],
+        ...((tr.assignments ?? 0) > 0 ? [
+          [tx('Ολοκλήρωση εκπαιδεύσεων', 'Training completion'), fmtPct(rate), tx(`${tr.completed ?? 0} από ${tr.assignments ?? 0} αναθέσεις`, `${tr.completed ?? 0} of ${tr.assignments ?? 0} assignments`), rate != null && rate < 80 ? 'warning' : 'good'],
+          [tx('Εκπρόθεσμες', 'Overdue'), tr.overdue ?? 0, tx('πέρασε η προθεσμία ολοκλήρωσης', 'past the completion due date'), tr.overdue ? 'danger' : ''],
+          [tx('Μέση βαθμολογία', 'Average score'), tr.averageScore == null ? '—' : fmtPct(tr.averageScore), tx('στις αξιολογήσεις', 'in assessments')],
+        ] : []),
       ],
       charts: [
         // One card: the share completed and «how many of how many» (the assignments), as in hand hygiene.
-        { type: 'rate', wide: true, title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ολοκληρωμένες αναθέσεις προς τις αναθέσεις της περιόδου.', 'Completed assignments over the assignments of the period.'), rows: (tr.byDepartment || []).map(([key, total, done]) => [label(key), pct(done, total) ?? 0, `${done ?? 0}/${total ?? 0}`]) },
+        { type: 'rate', wide: true, emptyText: tx('δεν υπάρχουν αναθέσεις εκπαίδευσης στην περίοδο.', 'there are no training assignments in the period.'), title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ολοκληρωμένες αναθέσεις προς τις αναθέσεις της περιόδου.', 'Completed assignments over the assignments of the period.'), rows: (tr.byDepartment || []).map(([key, total, done]) => [label(key), pct(done, total) ?? 0, `${done ?? 0}/${total ?? 0}`]) },
       ],
     } }
     case 'governance': { const g = d.governance || {}; return {
       kpis: [
-        [tx('Ελεγχόμενα έγγραφα', 'Controlled documents'), g.documents ?? 0, tx(`${g.published ?? 0} σε ισχύ`, `${g.published ?? 0} in force`)],
-        [tx('Προς αναθεώρηση', 'Review overdue'), g.reviewOverdue ?? 0, tx('πέρασε η ημερομηνία επανεξέτασης', 'past the review date'), g.reviewOverdue ? 'warning' : ''],
-        [tx('Συνεδριάσεις επιτροπών', 'Committee meetings'), g.meetings ?? 0, tx(`${g.committees ?? '—'} ενεργές επιτροπές`, `${g.committees ?? '—'} active committees`)],
-        [tx('Εκκρεμή πρακτικά', 'Pending minutes'), g.minutesPending ?? 0, tx(`${g.minutesFinalized ?? 0} οριστικοποιημένα`, `${g.minutesFinalized ?? 0} finalized`), g.minutesPending ? 'warning' : ''],
+        ...((g.documents ?? 0) || (g.meetings ?? 0) || (g.minutesPending ?? 0) ? [
+          [tx('Ελεγχόμενα έγγραφα', 'Controlled documents'), g.documents ?? 0, tx(`${g.published ?? 0} σε ισχύ`, `${g.published ?? 0} in force`)],
+          [tx('Προς αναθεώρηση', 'Review overdue'), g.reviewOverdue ?? 0, tx('πέρασε η ημερομηνία επανεξέτασης', 'past the review date'), g.reviewOverdue ? 'warning' : ''],
+          [tx('Συνεδριάσεις επιτροπών', 'Committee meetings'), g.meetings ?? 0, tx(`${g.committees ?? '—'} ενεργές επιτροπές`, `${g.committees ?? '—'} active committees`)],
+          [tx('Εκκρεμή πρακτικά', 'Pending minutes'), g.minutesPending ?? 0, tx(`${g.minutesFinalized ?? 0} οριστικοποιημένα`, `${g.minutesFinalized ?? 0} finalized`), g.minutesPending ? 'warning' : ''],
+        ] : []),
       ],
       charts: [
-        { type: 'donut', title: tx('Έγγραφα ανά τύπο', 'Documents by type'), subtitle: tx('Ελεγχόμενα έγγραφα σε χρήση.', 'Controlled documents in use.'), rows: named(g.byType), center: tx('έγγραφα', 'documents') },
-        { type: 'bars', title: tx('Κατάσταση εγγράφων', 'Document status'), subtitle: tx('Κύκλος ζωής ελεγχόμενων εγγράφων.', 'Controlled document lifecycle.'), rows: named(g.byStatus) },
+        { type: 'donut', emptyText: tx('δεν υπάρχουν ελεγχόμενα έγγραφα ούτε συνεδριάσεις επιτροπών στην περίοδο.', 'there are no controlled documents or committee meetings in the period.'), title: tx('Έγγραφα ανά τύπο', 'Documents by type'), subtitle: tx('Ελεγχόμενα έγγραφα σε χρήση.', 'Controlled documents in use.'), rows: named(g.byType), center: tx('έγγραφα', 'documents') },
+        { type: 'bars', emptyText: tx('δεν υπάρχουν ελεγχόμενα έγγραφα ούτε συνεδριάσεις επιτροπών στην περίοδο.', 'there are no controlled documents or committee meetings in the period.'), title: tx('Κατάσταση εγγράφων', 'Document status'), subtitle: tx('Κύκλος ζωής ελεγχόμενων εγγράφων.', 'Controlled document lifecycle.'), rows: named(g.byStatus) },
       ],
     } }
     case 'pps': { const p = d.pps || {}; const months = p.byMonth || []; const last = months[months.length - 1], prev = months[months.length - 2]
@@ -430,11 +439,13 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       kpis: [
         [tx('Επιπολασμός ΛΣΦΥ', 'HAI prevalence'), fmtPct(haiNow), delta(haiNow, haiBefore), haiNow != null && haiBefore != null && haiNow > haiBefore ? 'warning' : ''],
         [tx('Χρήση αντιβιοτικών', 'Antibiotic use'), fmtPct(abxNow), delta(abxNow, abxBefore), abxNow != null && abxBefore != null && abxNow > abxBefore ? 'warning' : ''],
-        [tx('Μελέτες στην περίοδο', 'Surveys in the period'), p.surveys ?? 0, tx(`${p.patients ?? 0} ασθενείς συνολικά`, `${p.patients ?? 0} patients in total`)],
-        [tx('Ασθενείς με ΛΣΦΥ', 'Patients with HAI'), p.withHai ?? 0, tx(`${fmtPct(pct(p.withHai, p.patients))} του συνόλου`, `${fmtPct(pct(p.withHai, p.patients))} of the total`)],
+        ...((p.surveys ?? 0) || (p.withHai ?? 0) ? [
+          [tx('Μελέτες στην περίοδο', 'Surveys in the period'), p.surveys ?? 0, tx(`${p.patients ?? 0} ασθενείς συνολικά`, `${p.patients ?? 0} patients in total`)],
+          [tx('Ασθενείς με ΛΣΦΥ', 'Patients with HAI'), p.withHai ?? 0, tx(`${fmtPct(pct(p.withHai, p.patients))} του συνόλου`, `${fmtPct(pct(p.withHai, p.patients))} of the total`)],
+        ] : []),
       ],
       charts: [
-        { type: 'trend', wide: true, sparse: true, title: tx('Επιπολασμός ΛΣΦΥ ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με ΛΣΦΥ προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
+        { type: 'trend', wide: true, sparse: true, emptyText: tx('δεν έχει καταγραφεί ακόμη μέτρηση επιπολασμού στην περίοδο.', 'no prevalence survey has been recorded in the period yet.'), title: tx('Επιπολασμός ΛΣΦΥ ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με ΛΣΦΥ προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
         { type: 'trend', wide: true, sparse: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]) => [key, pct(abx, total) ?? 0]) },
         // One row per survey, in time order: the month, the patients and the two rates (not bars of «2026-07» sorted by size).
         { type: 'scoreboard', wide: true, title: tx('Οι μετρήσεις', 'The surveys'), subtitle: tx('Μία γραμμή ανά μέτρηση επιπολασμού.', 'One row per prevalence survey.'), rowLabel: tx('Μέτρηση', 'Survey'),
