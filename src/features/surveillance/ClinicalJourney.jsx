@@ -29,6 +29,7 @@ import { TherapyReviewCard } from './protocols/TherapyReviewCard'
 import { protocolCues, protocolStages, useEpisodeProtocols } from './protocols/useEpisodeProtocols'
 import { reviewWindow, showsReviewCard } from './protocols/therapyReview'
 import { changeRecognitionTime, createTherapyReview, finishProtocolRun, recordProtocolStep, removeDemoProtocolRun, setProtocolWeight, startProtocolRun } from './protocols/protocolService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
@@ -1123,7 +1124,7 @@ export function CanonicalJourney({
                   run(
                     () =>
                       repository.finishTherapy(record, row.id, {
-                        endedAt: new Date().toISOString().slice(0, 10),
+                        endedAt: hospitalToday(),
                       }),
                     t('actionCompleted'),
                   )

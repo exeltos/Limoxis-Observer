@@ -17,6 +17,7 @@ import { PERIODS, breakdown, isActiveCensus, sheetBreakdowns, sheetCoverage, fil
 import { dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey } from './registerThemes'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
+import { hospitalDate, hospitalToday } from '../../core/dates/hospitalDate'
 
 const PERIOD_MONTHS = { month: 1, quarter: 3, half: 6, year: 12 }
 // Worst first when sorting by status.
@@ -27,7 +28,7 @@ const basisOf = (register, indicator, language) => {
   const field = (register.fields || []).find(item => item.key === (indicator.dateField || register.settings?.entryDateField))
   return field ? `${language === 'en' ? 'by' : 'ανά'} ${textOf(field, language).toLowerCase()}` : ''
 }
-const lastMonth = () => { const date = new Date(); date.setUTCDate(1); date.setUTCMonth(date.getUTCMonth() - 1); return date.toISOString().slice(0, 7) }
+const lastMonth = () => { const date = new Date(`${hospitalDate().slice(0, 7)}-01T12:00:00Z`); date.setUTCMonth(date.getUTCMonth() - 1); return date.toISOString().slice(0, 7) }
 
 // The report of a register: every indicator for a period, compared with the
 // previous period and the same period last year, its trend month by month
@@ -49,7 +50,7 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   useEffect(() => {
     if (settled.current || !allEntries.length) return
     settled.current = true
-    const today = new Date().toISOString().slice(0, 10)
+    const today = hospitalToday()
     const days = allEntries.map(entry => String(entry.periodStart || entry.entryDate || '').slice(0, 10)).filter(day => day && day <= today).sort()
     const latest = days[days.length - 1]
     if (!latest) return
@@ -112,7 +113,7 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   return <RecordTabPanel className="register-indicators" title={en ? 'Indicators' : 'Δείκτες'} subtitle={register.kind === 'sheet' ? (en ? 'Computed from the totals of the sheet.' : 'Υπολογίζονται από τα σύνολα του φύλλου.') : (en ? 'Computed from the entries; names never leave the department.' : 'Υπολογίζονται από τις καταχωρίσεις· τα ονόματα δεν φεύγουν από το τμήμα.')}
     actions={<div className="register-indicator-actions">
       <SearchableSelect hideLabel className="register-period-select" label={en ? 'Period' : 'Περίοδος'} value={kind} onChange={next=>next&&(setKind)(next)} options={optionsOf(PERIODS, language)}/>
-      <PeriodStepper label={periodLabel(period, language)} onPrevious={() => step(-1)} onNext={() => step(1)} nextDisabled={shiftPeriod(period, PERIOD_MONTHS[kind]).from > new Date().toISOString().slice(0, 10)} />
+      <PeriodStepper label={periodLabel(period, language)} onPrevious={() => step(-1)} onNext={() => step(1)} nextDisabled={shiftPeriod(period, PERIOD_MONTHS[kind]).from > hospitalToday()} />
       {!onExportApi && <ExportMenu disabled={!report.length} onExcel={exportCsv} onPdf={exportPdf} pdfBusy={exporting} />}
     </div>}>
     <div ref={reportRef} className="register-indicator-report">
@@ -230,7 +231,7 @@ function IndicatorDetail({ basis, register, entries, onPickMonth, row, period, l
 // How much of the period the sheet has: a value over few days is read with that in mind.
 function SheetCoverage({ entries, period, dailyFrom, language }) {
   const en = language === 'en'
-  const coverage = sheetCoverage(entries, period, new Date().toISOString().slice(0, 10), dailyFrom)
+  const coverage = sheetCoverage(entries, period, hospitalToday(), dailyFrom)
   if (!coverage) return null
   const missing = coverage.expected - coverage.recorded
   const unit = coverage.unit === 'day' ? (en ? 'days' : 'ημέρες') : (en ? 'months' : 'μήνες')

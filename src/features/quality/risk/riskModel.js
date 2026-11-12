@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 // Risk assessment (Ε.Δ.ΔΙΑΧ.090 / NHS National Patient Safety Agency 5×5 matrix).
 // Score = likelihood (L) × consequence (C); the level follows the NHS bands
 // 1–3 / 4–6 / 8–12 / 15–25. Every risk is scored three times: inherent (no
@@ -259,7 +260,7 @@ export function visibleAssessments(list=[]){
 // What happened in practice in the last twelve months for a risk: the incidents
 // of the departments its scope names and the audit findings of its JCI chapter.
 const plain=value=>String(value||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()
-export function riskEvidenceRows(risk,{incidents=[],findings=[]}={},on=new Date().toISOString().slice(0,10)){
+export function riskEvidenceRows(risk,{incidents=[],findings=[]}={},on=hospitalToday()){
  const since=`${Number(on.slice(0,4))-1}${on.slice(4,10)}`
  const scope=plain(`${risk.scope||''} ${risk.process||''}`)
  const parts=scope.split(/[,;/]| και /).map(part=>part.trim()).filter(part=>part.length>=3)
@@ -273,7 +274,7 @@ export function riskEvidenceRows(risk,{incidents=[],findings=[]}={},on=new Date(
   findings:chapter?findings.filter(row=>live(row)&&inYear(row.date)&&row.standard==='jci'&&String(row.clauseRef||'').toUpperCase().startsWith(chapter.toUpperCase())).sort(byDate):[],
  }
 }
-export function riskEvidence(risk,practice={},on=new Date().toISOString().slice(0,10)){
+export function riskEvidence(risk,practice={},on=hospitalToday()){
  const rows=riskEvidenceRows(risk,practice,on)
  return {incidents:rows.incidents.length,findings:rows.findings.length}
 }

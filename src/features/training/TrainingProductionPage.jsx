@@ -48,6 +48,7 @@ import { TrainingAnnualPlanPanel,planStateText } from './TrainingAnnualPlanPanel
 import { MONTHS,annualPlanExport,annualTrainingPlan } from './trainingAnnualPlan'
 import { isStaffEmployee } from '../employees/staffCategory'
 import { LinkedActions } from '../quality/LinkedActions'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const fmt=v=>formatDay(v)
 // «31/7 – 29/8/2026» on one line (the year once when both dates fall in it).
@@ -226,7 +227,7 @@ function Assignments({inactiveCodes,rows,state,en,employeeView=false}){
  return <div className="scroll-table"><table className="data-table sticky-table"><thead><tr>{!employeeView&&<><th>{en?'Employee':'Εργαζόμενος'}</th><th>{en?'Department':'Τμήμα'}</th></>}<th>{en?'Training':'Εκπαίδευση'}</th><th>{en?'Due':'Προθεσμία'}</th><th>{en?'Result':'Αποτέλεσμα'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Certificate':'Πιστοποιητικό'}</th></tr></thead><tbody>{rows.map(x=>{const p=state.programs.find(v=>v.id===x.programId),certificate=x.certificateId?(state.certificates||[]).find(c=>c.id===x.certificateId):null;const inactive=inactiveCodes?.has(String(x.employeeId||''));return <tr key={x.id} className={inactive?'inactive-employee-row':undefined}>{!employeeView&&<><td><strong>{x.employeeName||'—'}</strong><InactiveEmployeeBadge inactive={inactive}/></td><td>{x.department||'—'}</td></>}<td><strong>{p?.title||x.programId}</strong></td><td>{fmt(x.dueDate)}</td><td>{x.assessmentReviewStatus==='pending'?(en?'Review pending':'Αναμονή ελέγχου'):x.score!=null?`${x.score}%`:x.status==='completed'?(en?'Completed':'Ολοκληρώθηκε'):'—'}</td><td><Badge status={x.computedStatus}/></td><td className="open-record-cell">{certificate&&<ExportMenu compact disabled={Boolean(certBusyId)} onPrint={()=>downloadCertificate(x,p)} onPdf={()=>downloadCertificate(x,p,true)}/>}</td></tr>})}</tbody></table></div>
 }
 // An active programme past its deadline with people still to finish shows as overdue.
-const shownStatus=(program,count,today=new Date().toISOString().slice(0,10))=>program.status==='active'&&program.dueDate&&String(program.dueDate).slice(0,10)<today&&(count?.done||0)<(count?.total||0)?'overdue':program.status
+const shownStatus=(program,count,today=hospitalToday())=>program.status==='active'&&program.dueDate&&String(program.dueDate).slice(0,10)<today&&(count?.done||0)<(count?.total||0)?'overdue':program.status
 function Badge({status}){const {language}=useLanguage(),en=language==='en';return <span className={`status-badge ${status==='active'||status==='completed'?'active':''} ${status==='overdue'||status==='cancelled'?'danger':''}`.trim()}>{labels[status]?.[en?1:0]||status||'—'}</span>}
 // The key figures of the open tab, with targets (a completion or a coverage below 90% asks for attention).
 

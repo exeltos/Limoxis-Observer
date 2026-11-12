@@ -32,6 +32,7 @@ import '../quality.css'
 import './surveys.css'
 import { LinkedActions } from '../LinkedActions'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 const NO_FILTERS = { query: '', department: 'all', channel: 'all', from: '', to: '' }
 
@@ -96,10 +97,10 @@ export function SurveyRecordPage() {
   }
   function openSurvey() {
     if (problems.length) { setTab('questionnaire'); notify(`${en ? 'Before opening:' : 'Πριν ανοίξει:'} ${problems.join(' · ')}`, 'error'); return }
-    void persist({ ...survey, status: 'open', opensOn: survey.opensOn || new Date().toISOString().slice(0, 10) }, en ? 'The survey is open: share its link or print its posters.' : 'Το ερωτηματολόγιο άνοιξε: μοιραστείτε τον σύνδεσμο ή τυπώστε τις αφίσες.')
+    void persist({ ...survey, status: 'open', opensOn: survey.opensOn || hospitalToday() }, en ? 'The survey is open: share its link or print its posters.' : 'Το ερωτηματολόγιο άνοιξε: μοιραστείτε τον σύνδεσμο ή τυπώστε τις αφίσες.')
   }
   const closeSurvey = () => persist({ ...survey, status: 'closed' }, en ? 'The questionnaire is closed.' : 'Το ερωτηματολόγιο έκλεισε.')
-  const reopen = () => persist({ ...survey, status: 'open', closesOn: survey.closesOn && survey.closesOn < new Date().toISOString().slice(0, 10) ? '' : survey.closesOn }, en ? 'The survey is open again.' : 'Το ερωτηματολόγιο άνοιξε ξανά.')
+  const reopen = () => persist({ ...survey, status: 'open', closesOn: survey.closesOn && survey.closesOn < hospitalToday() ? '' : survey.closesOn }, en ? 'The survey is open again.' : 'Το ερωτηματολόγιο άνοιξε ξανά.')
   async function remove() {
     const ok = await confirm({ title: en ? 'Delete questionnaire' : 'Διαγραφή ερωτηματολογίου', message: en ? `The questionnaire and its ${responses.length} responses are deleted.` : `Διαγράφονται το ερωτηματολόγιο και οι ${responses.length} απαντήσεις του.`, confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
     if (!ok) return

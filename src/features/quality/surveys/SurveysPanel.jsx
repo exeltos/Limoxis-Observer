@@ -10,6 +10,7 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { loadResponses, loadSurveys } from './surveyService'
 import { SURVEY_AUDIENCES, SURVEY_STATUSES, audienceLabel, isSurveyOpen, satisfactionCounts, surveyStatusLabel, surveyStatusTone } from './surveyModel'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // The surveys the user may see (the database returns a department only the
 // surveys that cover it).
@@ -43,7 +44,7 @@ function useSatisfaction(surveys) {
   return byId
 }
 const percentText = (value, en) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)
-const daysUntil = day => (day ? Math.round((Date.parse(`${day}T00:00:00Z`) - Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`)) / 86400000) : null)
+const daysUntil = day => (day ? Math.round((Date.parse(`${day}T00:00:00Z`) - Date.parse(`${hospitalToday()}T00:00:00Z`)) / 86400000) : null)
 export const surveyClosingSoon = survey => { const days = daysUntil(survey.closesOn); return isSurveyOpen(survey) && days != null && days >= 0 && days <= SOON_DAYS }
 
 // The figures of the Surveys view.

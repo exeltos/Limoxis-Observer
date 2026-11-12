@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 // Το επιδημιολογικό ερωτηματολόγιο επιτήρησης: ορισμός ερωτήσεων, κανόνες και υπολογισμοί.
 // ΕΝΑ ερωτηματολόγιο ανά επεισόδιο· η προέλευση και οι παράγοντες κινδύνου ΔΕΝ αποθηκεύονται,
 // υπολογίζονται εδώ από τις απαντήσεις και τις ημερομηνίες. Σχεδιασμός: docs/design/epi-questionnaire/.
@@ -138,7 +139,7 @@ const isIcu = (record, admission) =>
   ICU_TYPES.includes(String(admission?.department_type || admission?.departmentType || record?.departmentType || '').toLowerCase()) ||
   /(^|\s)(ΜΕΘ|ΜΕΝΝ|ICU|NICU|PICU)(\s|$)/i.test(`${record?.department || ''} ${record?.departmentEn || ''} ${admission?.department || ''}`)
 
-export function buildEpiPrefill({ record, admission, samples = [], today = new Date().toISOString().slice(0, 10), fmtDate = value => value } = {}) {
+export function buildEpiPrefill({ record, admission, samples = [], today = hospitalToday(), fmtDate = value => value } = {}) {
   const out = {}
   const base = Date.parse(`${day(today)}T12:00:00Z`)
   const within = (value, days) => {

@@ -24,7 +24,7 @@ describe('reports inbox', () => {
     expect(view).toContain('<FilterSelect label={en?\'Period\':\'Περίοδος\'}')
     expect(view).toContain("const popover=inbox?inboxSelects:<>")
     const bell = fs.readFileSync('src/core/notifications/NotificationContext.jsx', 'utf8')
-    expect(bell).toContain('`reports-waiting:${new Date(clock).toISOString().slice(0,10)}:${staleReportCount}`')
+    expect(bell).toContain('`reports-waiting:${hospitalDate(new Date(clock))}:${staleReportCount}`')
     expect(bell).toContain("const REPORT_REMINDER_ROLES=['hospital_admin','quality_manager']")
   })
 })

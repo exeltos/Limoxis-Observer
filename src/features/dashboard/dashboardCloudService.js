@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
+import { hospitalDate, hospitalToday } from '../../core/dates/hospitalDate'
 
 const countOf=async query=>{
   const {count,error}=await query
@@ -7,9 +8,9 @@ const countOf=async query=>{
   return Number(count||0)
 }
 
-const startOfToday=()=>`${new Date().toISOString().slice(0,10)}T00:00:00.000Z`
-const endOfToday=()=>`${new Date().toISOString().slice(0,10)}T23:59:59.999Z`
-const addDays=(days)=>{const d=new Date();d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)}
+const startOfToday=()=>`${hospitalToday()}T00:00:00.000Z`
+const endOfToday=()=>`${hospitalToday()}T23:59:59.999Z`
+const addDays=(days)=>{const d=new Date(`${hospitalDate()}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)}
 
 // The home page and the bell ask for the same counts when the home page
 // opens: one read serves both for a short while.
@@ -55,7 +56,7 @@ async function countControlsDueToday(organizationId,departmentIds){
 }
 
 async function readDashboardCounts(organizationId,departmentIds){
-  const now=new Date().toISOString(),today=new Date().toISOString().slice(0,10),monthAgo=addDays(-30),soon=addDays(30)
+  const now=new Date().toISOString(),today=hospitalToday(),monthAgo=addDays(-30),soon=addDays(30)
   const q=(table)=>supabase.from(table).select('id',{count:'exact',head:true}).eq('organization_id',organizationId)
   const departmental=departmentIds?.length?(table)=>q(table).in('department_id',departmentIds):q
   const pending=[

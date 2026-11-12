@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { READINESS } from '../../../core/data/repositoryResult'
 import { useLaboratoryRepository } from './useLaboratoryRepository'
+import { hospitalDate } from '../../../core/dates/hospitalDate'
 
 const initialState = { rows: [], loading: true, error: null, readiness: READINESS.READY, missingConfiguration: [] }
 
@@ -9,7 +10,7 @@ const initialState = { rows: [], loading: true, error: null, readiness: READINES
 // kept stable by the caller) narrows the production read to one patient.
 // `recent`: the laboratory's own list reads the last 12 months (and what is still open); showOlder() reads every sample.
 export const RECENT_MONTHS = 12
-const sinceDate = () => { const day = new Date(); day.setMonth(day.getMonth() - RECENT_MONTHS); return day.toISOString().slice(0, 10) }
+const sinceDate = () => { const day = new Date(); day.setMonth(day.getMonth() - RECENT_MONTHS); return hospitalDate(day) }
 export function useLaboratoryRegistry({ enabled = true, scope = null, recent = false } = {}) {
   const repository = useLaboratoryRepository()
   const [state, setState] = useState(enabled ? initialState : { ...initialState, loading: false })

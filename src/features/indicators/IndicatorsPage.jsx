@@ -31,8 +31,9 @@ import { rememberQualitySection } from '../quality/qualityReturnSection'
 import { loadEntries,loadRegisters } from '../registers/registerService'
 import { computeIndicator,textOf as registerText } from '../registers/registerEngine'
 import { approveIndicatorSnapshot,collectCloudIndicatorMetrics,calculateCloudDefinition,loadOperationalIndicatorDefinitions,loadIndicatorSnapshots,visibleForDepartment } from './indicatorCloudService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
-const today=()=>new Date().toISOString().slice(0,10)
+const today=()=>hospitalToday()
 const monthStart=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
 const yearStart=()=>`${new Date().getFullYear()}-01-01`
 const categoryLabel=(category,t)=>({surveillance:t('surveillance'),prevention:t('prevention'),workforce:t('workforce'),laboratory:t('laboratory'),pharmacy:t('pharmacy'),quality:t('indicatorsRecords.qualityCategory'),register:t('indicatorsRecords.registerCategory')}[category]||category)

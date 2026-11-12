@@ -21,8 +21,9 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { useRegisterAccess } from './registerAccess'
 import { DAILY_SHEETS_FROM, dailyStart, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { registerThemeKey } from './registerThemes'
+import { hospitalMonth, hospitalToday } from '../../core/dates/hospitalDate'
 
-const thisMonth = () => new Date().toISOString().slice(0, 7)
+const thisMonth = () => hospitalMonth()
 const blank = value => value === undefined || value === null || value === ''
 const monthShift = (month, by) => shiftPeriod(periodOf('month', `${month}-01`), by).from.slice(0, 7)
 // The sum of a row's measures in one month's values (null: nothing recorded).
@@ -42,7 +43,7 @@ export function rowContext(row, measures, valuesOf, month, current) {
 // A sheet register, recorded day by day: a day as one card per row (whole numbers; an empty cell is
 // «not recorded», not zero), the month as the sum of its days, or the whole year as a table. Months
 // recorded before the daily sheets (one total for the month, on its first day) stay as they were.
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => hospitalToday()
 // The day the entry opens on: today, or the last working day before it (a Saturday opens on the Friday).
 const lastWorkingDay = day => { let current = day; for (let step = 0; step < 3; step += 1) { const weekday = new Date(`${current}T00:00:00Z`).getUTCDay(); if (weekday !== 0 && weekday !== 6) return current; current = dayShift(current, -1) } return day }
 const dayShift = (day, by) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + by); return date.toISOString().slice(0, 10) }

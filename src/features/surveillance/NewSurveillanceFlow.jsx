@@ -11,6 +11,7 @@ import { PatientSelector, StartStep } from './NewSurveillanceSteps'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 export function NewSurveillanceFlow({
   patient = null,
@@ -35,7 +36,7 @@ export function NewSurveillanceFlow({
   // keeps the department's id and its Greek / English names, as before.
   const { departments } = useDepartments()
   const firstDepartment = [selectedPatient?.department, selectedPatient?.departmentEn]
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   const [patientDraft, setPatientDraft] = useState({
     patientCode: '',
     firstName: '',

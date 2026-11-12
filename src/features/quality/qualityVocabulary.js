@@ -1,6 +1,7 @@
 import { findLibraryItem, libraryLabel } from '../management/useLibraries'
 import { demoLibrarySeed } from '../management/managementData'
 import { isOdipyCategory, odipyGroupOf, odipyLabel } from './odipyCategories'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // The closed vocabularies of the Quality Center, written once: the create
 // form, the report form, the record sheet, the registry and the exports read
@@ -45,7 +46,7 @@ export const harmLevel = value => LEGACY_IMPACT[value] || value || 'none'
 export const SENTINEL_RCA_DAYS = 45
 export const isSentinelHarm = impact => ['severe', 'death'].includes(harmLevel(impact))
 export function rcaDueDate(date) {
-  const day = new Date(`${String(date || '').slice(0, 10) || new Date().toISOString().slice(0, 10)}T12:00:00Z`)
+  const day = new Date(`${String(date || '').slice(0, 10) || hospitalToday()}T12:00:00Z`)
   day.setUTCDate(day.getUTCDate() + SENTINEL_RCA_DAYS)
   return day.toISOString().slice(0, 10)
 }

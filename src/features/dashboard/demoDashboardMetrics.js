@@ -18,6 +18,7 @@ import { isCommunicated } from '../surveillance/recordAttention'
 import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { interviewsDemoState } from '../interviews/interviewsDemoData'
 import { OPEN_STATUSES as OPEN_CANDIDATE_STATUSES } from '../interviews/interviewsModel'
+import { hospitalDate } from '../../core/dates/hospitalDate'
 
 const CLOSED = ['completed', 'closed', 'cancelled']
 const isOpen = status => !CLOSED.includes(status)
@@ -28,7 +29,7 @@ const departmentOf = row =>
 
 // `department` (a Demo department name) narrows the department-level counts to it.
 export function collectDemoDashboardMetrics({ department = null, now = new Date() } = {}) {
-  const today = now.toISOString().slice(0, 10)
+  const today = hospitalDate(now)
   const inDepartment = row => !department || departmentOf(row) === department
   const snapshot = collectAnalysisDemoSnapshot()
   const s = snapshot.summary
@@ -105,7 +106,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     administrations: s.antimicrobial?.administrations,
   }
   // The administrator's home: suppliers, kitchen (last 30 days) and interviews.
-  const monthAgo = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10)
+  const monthAgo = hospitalDate(new Date(now.getTime() - 30 * 86400000))
   const food = collectDemoDomainMetrics({ from: monthAgo, to: today }, false, 0).qualityFood || {}
   const candidates = interviewsDemoState().candidates || []
   const nowIso = now.toISOString()

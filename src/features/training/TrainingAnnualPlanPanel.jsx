@@ -4,6 +4,7 @@ import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { MONTHS } from './trainingAnnualPlan'
 import './trainingAnnualPlan.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 export const planStateText=(state,en)=>({done:en?'Completed':'Ολοκληρώθηκε',running:en?'In progress':'Σε εξέλιξη',planned:en?'Planned':'Προγραμματισμένο',overdue:en?'Overdue':'Εκπρόθεσμο'})[state]||state
 
@@ -19,7 +20,7 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
  const en=language==='en'
  const navigate=useNavigate()
  const months=MONTHS[en?'en':'el']
- const today=new Date().toISOString().slice(0,10)
+ const today=hospitalToday()
  const currentMonth=today.slice(0,4)===String(year)?Number(today.slice(5,7))-1:-1
  const {rows,needs}=plan
 

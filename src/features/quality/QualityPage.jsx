@@ -54,6 +54,7 @@ import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { groupedListDoc } from './listReports'
 import { supplierEvaluationsSheet } from './resources/supplierEvaluationReport'
 import './quality.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // Intake and governance are deliberately separate:
 // Report (staff) → Quality assessment/classification → Incident and/or
@@ -192,7 +193,7 @@ export function QualityPage({section=''}={}){
  const objectivesLoaded=!objectives.loading
  const objectiveBase=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return [...objectives.objectives,...planRows].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>!q||`${item.code||''} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''} ${item.committeeName||''}`.toLowerCase().includes(q))},[objectives.objectives,planRows,objectiveFilters,objectiveYear])
  const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();const plans=objectiveFilters.state==='all'?planRows:[];return [...objectives.objectives,...plans].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>!q||`${item.code||''} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''} ${item.committeeName||''}`.toLowerCase().includes(q)).filter(item=>item.kind==='plan'||objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,planRows,objectiveFilters,objectiveYear])
- const todayIso=new Date().toISOString().slice(0,10)
+ const todayIso=hospitalToday()
 
  const overdueActions=actions.filter(isOverdueAction).length
  const missedObjectives=objectives.objectives.filter(isMissed).length

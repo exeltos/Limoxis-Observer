@@ -9,6 +9,7 @@ import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { historyCases } from '../surveillance/demoInfectionHistory'
 import { notifiableFindings } from './notifiableFindings'
 import { eodyEntry } from './eodyCatalogue'
+import { hospitalDate } from '../../core/dates/hospitalDate'
 
 // [date, patient, disease, status]
 const CLINICAL = [
@@ -41,7 +42,7 @@ export function demoNotificationReports(today = new Date()) {
   ]
   shiftDemoDatesInPlace(authored, demoOffsetDays(today))
   // The laboratory findings (already in today's frame): reported two days after the sample, except those of the last week.
-  const lastWeek = addDays(today.toISOString().slice(0, 10), -7)
+  const lastWeek = addDays(hospitalDate(today), -7)
   const laboratory = findings.map((finding, index) => {
     const notified = finding.date <= lastWeek
     return report(finding.findingKey, finding.date, finding.sample.patientId || '', finding.rule.id, notified ? 'notified' : 'pending', 300 + index, { sampleId: finding.sample.id, disease: finding.rule.el })

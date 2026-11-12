@@ -28,6 +28,7 @@ import {
 } from './employeeRecordShared'
 import { trainingAnswerText } from './EmployeeTrainingTab'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // Performance evaluations tab of the employee record, with its HR approval workflow.
 
@@ -83,7 +84,7 @@ export function EmployeeEvaluationsTab({
       : null) || PERFORMANCE_EVALUATION_QUESTIONNAIRE
   const [draft, setDraft] = useState({
     period: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: hospitalToday(),
     notes: '',
     criteria: performanceTemplate.questions.map((q, index) => ({
       id: q.id || String(index + 1),

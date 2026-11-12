@@ -1,8 +1,9 @@
+import { hospitalDate } from '../../core/dates/hospitalDate'
 // The antimicrobial therapy dialog: empty rows, and which antibiotics are
 // restricted (advanced) and must go to stewardship approval.
 
 export function newTherapyRow(today = new Date()) {
-  return { antimicrobial: '', dose: '', route: 'IV', indication: '', startedAt: today.toISOString().slice(0, 10), plannedEndAt: '', approvalStatus: 'not_required' }
+  return { antimicrobial: '', dose: '', route: 'IV', indication: '', startedAt: hospitalDate(today), plannedEndAt: '', approvalStatus: 'not_required' }
 }
 
 // Library rows are [greekName, englishName, meta]; a restricted antibiotic is

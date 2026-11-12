@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/ς/g,'σ')
 const dayMs=86400000
 const utcDay=value=>{const date=new Date(value);return Number.isFinite(date.getTime())?new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate())):null}
@@ -17,7 +18,7 @@ const matchesDevice=(value,type)=>HAI_DEVICE_RULES[type]?.device.some(term=>norm
 export function deviceRuleKey(value){for(const type of ['clabsi','cauti','vap'])if(matchesDevice(value,type))return type;return null}
 const inWindow=(value,window)=>{if(!window)return true;const date=utcDay(value);return date&&date>=rangeDay(window.start)&&date<=rangeDay(window.end)}
 
-export function calculateDeviceDays(devices,type,{window=null,department='all',today=new Date().toISOString().slice(0,10)}={}){
+export function calculateDeviceDays(devices,type,{window=null,department='all',today=hospitalToday()}={}){
  const rule=HAI_DEVICE_RULES[type];if(!rule)return 0
  const windowStart=window?rangeDay(window.start):null;const windowEnd=window?rangeDay(window.end):rangeDay(today);let total=0
  for(const row of devices||[]){if(department!=='all'&&row.department!==department)continue;if(!matchesDevice(row.deviceType,type))continue
@@ -27,14 +28,14 @@ export function calculateDeviceDays(devices,type,{window=null,department='all',t
  return total
 }
 
-export function calculateHaiRate(data,type,{window=null,department='all',today=new Date().toISOString().slice(0,10)}={}){
+export function calculateHaiRate(data,type,{window=null,department='all',today=hospitalToday()}={}){
  const rule=HAI_DEVICE_RULES[type];if(!rule)return null
  const events=(data?.haiClassifications||[]).filter(row=>(department==='all'||row.department===department)&&matchesHai(row.haiType,type)&&row.criteriaMet!==false&&inWindow(row.classifiedAt,window))
  const deviceDays=calculateDeviceDays(data?.devices,type,{window,department,today});const rate=deviceDays>0?Math.round(events.length/deviceDays*1000*100)/100:null
  return {type,events:events.length,deviceDays,rate,unit:` / 1,000 ${rule.denominator}`,denominatorLabel:rule.denominator,normalized:deviceDays>0}
 }
 
-export function compareHaiRates(data,type,current,reference,{department='all',today=new Date().toISOString().slice(0,10),language='el'}={}){
+export function compareHaiRates(data,type,current,reference,{department='all',today=hospitalToday(),language='el'}={}){
  const en=language==='en';const a=calculateHaiRate(data,type,{window:current,department,today});const b=calculateHaiRate(data,type,{window:reference,department,today});const points=[]
  points.push(`${current.label}: ${a.rate??'—'}${a.unit} (${a.events}/${a.deviceDays}) · ${reference.label}: ${b.rate??'—'}${b.unit} (${b.events}/${b.deviceDays}).`)
  if(a.rate!=null&&b.rate!=null){const delta=Math.round((a.rate-b.rate)*100)/100;points.push(en?`Rate difference: ${delta>0?'+':''}${delta} per 1,000 ${a.denominatorLabel}.`:`Διαφορά δείκτη: ${delta>0?'+':''}${delta} ανά 1.000 ${a.denominatorLabel}.`)}

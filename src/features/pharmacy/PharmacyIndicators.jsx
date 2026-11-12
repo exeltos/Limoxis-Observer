@@ -9,9 +9,10 @@ import { useTableSort } from '../../design-system/useTableSort'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadIndicatorSnapshots, loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const yearStart = () => `${new Date().getFullYear()}-01-01`
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => hospitalToday()
 const fmtDay = value => { const [y, m, d] = String(value || '').slice(0, 10).split('-'); return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : '—' }
 const fmtNumber = (value, en) => (value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(Number(value)))
 const STATUS = { onTarget: ['Εντός στόχου', 'On target', 'success'], attention: ['Χρειάζεται προσοχή', 'Needs attention', 'danger'], context: ['Παρακολούθηση', 'Monitoring', 'neutral'] }

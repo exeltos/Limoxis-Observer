@@ -1,5 +1,6 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 export function latestCaseReviews(reviews=[]){const map=new Map();for(const review of reviews){const prev=map.get(review.record_key);if(!prev||String(review.reviewed_at||'')>=String(prev.reviewed_at||''))map.set(review.record_key,review)}return [...map.values()]}
-export function buildOutbreakClosureReadiness({lineList,caseReviews=[],actions=[],events=[],today=new Date().toISOString().slice(0,10)}={}){
+export function buildOutbreakClosureReadiness({lineList,caseReviews=[],actions=[],events=[],today=hospitalToday()}={}){
  const rows=lineList?.rows||[],latest=latestCaseReviews(caseReviews),reviewed=new Set(latest.map(x=>x.record_key)),unreviewed=rows.filter(x=>!reviewed.has(x.recordKey)).length
  const openActions=actions.filter(x=>x.status!=='closed'),overdueActions=openActions.filter(x=>x.due_date&&x.due_date<today)
  const hypotheses=events.filter(x=>x.event_type==='hypothesis'),decisions=events.filter(x=>x.event_type==='decision')

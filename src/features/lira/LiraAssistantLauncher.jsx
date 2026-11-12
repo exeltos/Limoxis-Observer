@@ -19,6 +19,7 @@ import { buildHaiAmrCorrelations } from './liraHaiAmrCorrelation'
 import { buildOutbreakLineList,buildOutbreakEvidenceTrail } from './liraOutbreakInvestigation'
 import { answerOutbreakWorkspaceQuestion,isOutbreakWorkspaceQuestion } from './liraOutbreakReasoning'
 import { createOutbreakInvestigation,appendOutbreakInvestigationEvent,listOutbreakInvestigations } from './liraOutbreakWorkspace'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const SOURCE_LABELS={
  'authorized cross-domain records':['Εγκεκριμένες εγγραφές όλων των ενοτήτων','Authorized records across modules'],
@@ -83,7 +84,7 @@ export function LiraAssistantLauncher(){
 
 export function answerCompact(question,data,language,previousContext={}) {
  const en=language==='en'
- const today=data.generatedAt?.slice(0,10)||new Date().toISOString().slice(0,10)
+ const today=data.generatedAt?.slice(0,10)||hospitalToday()
  const inferred=inferLiraQuestionScope(question,data,language)
  const plan=interpretLiraQuestion(question,{scope:inferred,previousPlan:previousContext?.plan||null})
  const resolved=resolveLiraTimeScope(question,{data,plan,language,today,previousTimeWindow:previousContext?.timeWindow||null})

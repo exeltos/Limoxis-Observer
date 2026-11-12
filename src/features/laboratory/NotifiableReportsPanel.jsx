@@ -17,6 +17,7 @@ import { createPatient, findPatientMatches, loadPatients } from '../patients/pat
 import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { DuplicatePatientDialog } from '../patients/DuplicatePatientDialog'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // A patient's name; one just registered here may carry only its last and first name.
 const nameOf = (patient, language) => (language === 'en' ? patient?.nameEn : '') || patient?.name || [patient?.lastName, patient?.firstName].filter(Boolean).join(' ')
@@ -130,7 +131,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
     try {
       let target = patient
       if (newPatient) {
-        const created = await createPatient(organizationId, known, { ...newPatient, admissionDate: new Date().toISOString().slice(0, 10), status: 'active' }, { isDemo })
+        const created = await createPatient(organizationId, known, { ...newPatient, admissionDate: hospitalToday(), status: 'active' }, { isDemo })
         target = { ...created.record, name: created.record.name || [newPatient.lastName, newPatient.firstName].join(' ') }
         setAdded(current => [...current, target])
       }

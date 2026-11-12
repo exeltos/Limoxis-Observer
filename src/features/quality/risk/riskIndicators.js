@@ -2,6 +2,7 @@
 // Indicators module (indicator_definitions.indicator_key); their current value
 // and trend come from the same calculation the Indicators page uses.
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadOperationalIndicatorDefinitions } from '../../indicators/indicatorCloudService'
+import { hospitalDate } from '../../../core/dates/hospitalDate'
 
 const fold = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
@@ -39,7 +40,7 @@ export function suggestIndicators(risk, available = [], limit = 3) {
   return out.slice(0, limit)
 }
 
-const iso = (date) => date.toISOString().slice(0, 10)
+const iso = (date) => hospitalDate(date)
 
 // Current value (last 90 days) and the 90 days before, per indicator key.
 export async function loadIndicatorValues(organizationId, now = new Date()) {

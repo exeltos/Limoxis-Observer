@@ -1,5 +1,6 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 // Labels and small helpers shared by the committee record page, its tab sections and dialogs.
-export const todayIso = () => new Date().toISOString().slice(0, 10)
+export const todayIso = () => hospitalToday()
 export const fmtDate = value =>
   value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('el-GR') : '—'
 // A term without an end reads «from 28/3/2022», never «28/3/2022 – —».

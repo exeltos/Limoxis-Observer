@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { normalizeMemberRoles,rolesFromTitle,storedMemberRoles } from './committeeMemberRoles'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 function requireProduction(organizationId,committee,operation){
   if(isDemoDataEnvironment())throw new Error(`DEMO_COMMITTEE_WORKFLOW_LOCAL_ONLY:${operation}`)
@@ -9,7 +10,7 @@ function requireProduction(organizationId,committee,operation){
   if(!organizationId)throw new Error(`PRODUCTION_COMMITTEES_ORGANIZATION_REQUIRED:${operation}`)
   if(!committee?.dbId)throw new Error(`PRODUCTION_COMMITTEE_DB_ID_REQUIRED:${operation}`)
 }
-function scheduledAt(meeting){if(meeting?.scheduledAt)return meeting.scheduledAt;const date=meeting?.date||new Date().toISOString().slice(0,10);const time=meeting?.time||'09:00';return `${date}T${time}:00`}
+function scheduledAt(meeting){if(meeting?.scheduledAt)return meeting.scheduledAt;const date=meeting?.date||hospitalToday();const time=meeting?.time||'09:00';return `${date}T${time}:00`}
 function normalizePriority(value){return ['low','medium','high','critical'].includes(value)?value:'medium'}
 function normalizeWorkflowStatus(value){return ['open','in_progress','completed','cancelled'].includes(value)?value:'open'}
 function normalizeAttendance(value){return ['not_recorded','present','absent','excused'].includes(value)?value:'not_recorded'}
@@ -28,7 +29,7 @@ export async function updateCommitteeMemberAsync(organizationId,committee,member
   await appendHistory(organizationId,committee,'Επεξεργασία στοιχείων μέλους',`${data.member_name} — ${data.title}`,{member_id:data.id});return {...next,dbId:data.id,userId:data.user_id||null,committeeTitle:data.title,roles:storedMemberRoles(data.member_roles),specialty:data.specialty||'',responsibilities:data.responsibilities||'',memberType:data.member_type,voting:data.has_vote,approvalStatus:data.approval_status}
 }
 export async function endCommitteeMemberAsync(organizationId,committee,member,reason){
-  requireProduction(organizationId,committee,'member.end');if(!member?.dbId)throw new Error('PRODUCTION_COMMITTEE_MEMBER_DB_ID_REQUIRED');const endedAt=new Date().toISOString().slice(0,10)
+  requireProduction(organizationId,committee,'member.end');if(!member?.dbId)throw new Error('PRODUCTION_COMMITTEE_MEMBER_DB_ID_REQUIRED');const endedAt=hospitalToday()
   const {data,error}=await supabase.from('committee_members').update({ended_at:endedAt}).eq('organization_id',organizationId).eq('committee_id',committee.dbId).eq('id',member.dbId).select('id,ended_at').single();if(error)throw error
   await appendHistory(organizationId,committee,'Λήξη συμμετοχής μέλους',`${member.name} — ${reason||''}`,{member_id:data.id,reason:reason||null});return {...member,active:false,endedAt:data.ended_at,endReason:reason||''}
 }

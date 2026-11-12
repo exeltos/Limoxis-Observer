@@ -5,6 +5,7 @@ import { loadCommittees } from '../../committees/committeeData'
 import { loadDepartments } from '../../management/departmentsService'
 import { demoLibrarySeed } from '../../management/managementData'
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadOperationalIndicatorDefinitions } from '../../indicators/indicatorCloudService'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // Where the value of an objective comes from, and the hospital's other objectives: those of the committees'
 // annual plans. An objective is measured by a department register's indicator, by an indicator of the platform
@@ -13,7 +14,7 @@ import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadOperational
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const pad = n => String(n).padStart(2, '0')
 const lastDay = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate()
-const todayIso = () => new Date().toISOString().slice(0, 10)
+const todayIso = () => hospitalToday()
 
 export const OBJECTIVE_LEVELS = ['hospital', 'department', 'committee']
 export const objectiveLevel = objective => objective.level || (objective.departmentId || objective.registerId ? 'department' : objective.committeeId ? 'committee' : 'hospital')

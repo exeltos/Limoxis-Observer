@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 // Supplier evaluation templates (20261122100000_quality_supplier_eval_templates.sql):
 // each supplier category has its own weighted criteria, approval thresholds and
 // evaluation frequency. An evaluation keeps a snapshot of its template (name,
@@ -96,7 +97,7 @@ export function resultFor(score, pass = DEFAULT_PASS, conditional = DEFAULT_COND
 }
 
 // A new evaluation on a template: the template's snapshot and one empty score per criterion.
-export function evaluationFromTemplate(template, today = new Date().toISOString().slice(0, 10)) {
+export function evaluationFromTemplate(template, today = hospitalToday()) {
   const evaluation = { id: itemId('ev'), evaluatedOn: today, evaluator: '', notes: '', source: 'app' }
   return template ? applyTemplate(evaluation, template) : { ...evaluation, scores: {}, criteria: [] }
 }

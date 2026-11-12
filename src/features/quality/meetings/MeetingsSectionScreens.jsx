@@ -17,12 +17,13 @@ import { saveMeetingGroup } from './meetingService'
 import { useDepartments } from '../../management/useLibraries'
 import { ReviewsTable, reviewsExport, useReviews } from '../review/QualityObjectives'
 import '../quality.css'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // The department meetings and the management review, tabs of «Meetings &
 // decisions» beside the committees (they were the Quality Center's «Meetings» tab).
 // A review's decisions still open, and those past their due date.
 const openDecisions = review => (review.actions || []).filter(action => action.status === 'open')
-const lateDecisions = review => openDecisions(review).filter(action => action.dueDate && action.dueDate < new Date().toISOString().slice(0, 10))
+const lateDecisions = review => openDecisions(review).filter(action => action.dueDate && action.dueDate < hospitalToday())
 
 
 // The department meeting groups (one per department, defined by Quality): how often each meets,

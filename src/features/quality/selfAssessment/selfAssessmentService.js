@@ -4,6 +4,7 @@ import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { isEmptyPreview } from '../../../core/preview/emptyPreview'
 import { seededRandom } from '../../../core/data/demoSeed'
 import { selfChecklist, selfFigures } from './selfAssessmentModel'
+import { hospitalDate } from '../../../core/dates/hospitalDate'
 
 // The self-assessments of departments (20261214100000_quality_self_assessments.sql). The
 // Quality team creates and releases them; a department answers through
@@ -93,7 +94,7 @@ export async function saveSelfAnswers(organizationId, item, answers, { submit = 
 // so the scores are the same every time; they improve from round to round.
 const DEMO_SELF_DEPARTMENTS = ['ΜΕΘ', 'Παθολογική', 'Χειρουργική', 'Καρδιολογική', 'Ορθοπαιδική', 'Νεογνολογική / ΜΕΝΝ']
 const DEMO_SELF_NOTES = { partial: ['Λείπει η υπογραφή σε δύο ημέρες.', 'Εφαρμόζεται, αλλά δεν καταγράφεται πάντα.', 'Μερική ενημέρωση του νέου προσωπικού.'], no: ['Δεν βρέθηκε καταγραφή τον τελευταίο μήνα.', 'Το έντυπο δεν είναι διαθέσιμο στο τμήμα.'] }
-const isoDay = days => { const date = new Date(); date.setUTCHours(12, 0, 0, 0); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
+const isoDay = days => { const date = new Date(`${hospitalDate()}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
 const plusDays = (day, days) => new Date(Date.parse(`${day}T12:00:00Z`) + days * 86400000).toISOString().slice(0, 10)
 
 async function demoSelfAssessments(organizationId) {

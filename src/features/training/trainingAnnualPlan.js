@@ -4,6 +4,7 @@
 // people due and no programme of its own scheduled from today on shows as
 // "not scheduled", so the plan says what still has to be organised.
 import { competenceMatrix } from './trainingCompetence'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 export const MONTHS={
  el:['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'],
@@ -33,7 +34,7 @@ function programPlanState(program,openCount,today){
  return 'running'
 }
 
-export function annualTrainingPlan({programs=[],assignments=[],certificates=[],requirements=[],employees=[],year,today=new Date().toISOString().slice(0,10)}={}){
+export function annualTrainingPlan({programs=[],assignments=[],certificates=[],requirements=[],employees=[],year,today=hospitalToday()}={}){
  const y=Number(year)
  const rows=programs
   .filter(p=>p.status!=='cancelled')

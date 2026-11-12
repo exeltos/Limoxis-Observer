@@ -1,6 +1,7 @@
 import {latestCaseReviews} from './liraOutbreakClosure'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 export function buildInvestigationCopilot({investigation,lineList,caseReviews=[],actions=[],events=[],closure,language='el'}={}){
- const en=language==='en',latest=latestCaseReviews(caseReviews),reviewed=new Set(latest.map(x=>x.record_key)),pending=(lineList?.rows||[]).filter(x=>!reviewed.has(x.recordKey)),openActions=actions.filter(x=>x.status!=='closed'),overdue=openActions.filter(x=>x.due_date&&x.due_date<new Date().toISOString().slice(0,10))
+ const en=language==='en',latest=latestCaseReviews(caseReviews),reviewed=new Set(latest.map(x=>x.record_key)),pending=(lineList?.rows||[]).filter(x=>!reviewed.has(x.recordKey)),openActions=actions.filter(x=>x.status!=='closed'),overdue=openActions.filter(x=>x.due_date&&x.due_date<hospitalToday())
  const suggestions=[]
  if(pending.length)suggestions.push({id:'review_cases',label:en?'Review '+pending.length+' candidate case(s)':'Αξιολόγηση '+pending.length+(pending.length===1?' υποψήφιου περιστατικού':' υποψήφιων περιστατικών'),target:'line-list'})
  if(overdue.length)suggestions.push({id:'overdue_capa',label:en?overdue.length+' overdue CAPA require follow-up':overdue.length+' εκπρόθεσμες διορθωτικές ενέργειες χρειάζονται παρακολούθηση',target:'capa'})

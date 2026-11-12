@@ -5,6 +5,7 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { demoRegisterEntries, demoRegisters } from './registerDemoData'
 import { computeValues } from './registerEngine'
 import { definitionRows, entryFromRow, registerFromRows, registerRow, rowFromEntry } from './registerCloud'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // Department registers. In the cloud a register is defined row by row
 // (department_register_* tables) and its data is its own table, one column per
@@ -65,7 +66,7 @@ function saveLocal(state) {
 // recorded (an active patient imported without dates), else today.
 export function entryDateOf(register, values = {}, recorded = '') {
   const day = register.kind === 'sheet' ? null : values[register.settings?.entryDateField]
-  return String(day || recorded || new Date().toISOString().slice(0, 10)).slice(0, 10)
+  return String(day || recorded || hospitalToday()).slice(0, 10)
 }
 
 // --- Registers -----------------------------------------------------------------

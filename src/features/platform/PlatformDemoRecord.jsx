@@ -14,6 +14,7 @@ import { DemoEvaluatorsPanel } from './DemoEvaluatorsPanel'
 import { ConvertDemoDialog, DemoExtendControls } from './DemoLifecycleControls'
 import { convertPlatformDemo, extendPlatformDemo } from './platformLifecycleService'
 import { demoDatesValid,loadPlatformDemoRecord,savePlatformDemoRecord } from './platformDemoService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
 const HEALTH_REGIONS=['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
 function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000))}
@@ -46,7 +47,7 @@ export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenD
   },[demo])
 
   if(!record||!draft)return null
-  const today=new Date().toISOString().slice(0,10)
+  const today=hospitalToday()
   const remaining=daysBetween(today,record.valid_until)
   const active=record.status==='active'&&remaining>0
   const status=active?'active':record.status==='paused'?'paused':'expired'

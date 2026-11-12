@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 // Satisfaction surveys (ISO 9001 §9.1.2): the questionnaires, the templates a
 // hospital starts from, and what the answers say. A survey's answers never
 // carry who gave them.
@@ -240,7 +241,7 @@ export function nextSurveyCode(codes = [], year = new Date().getFullYear()) {
 }
 
 // Whether a survey takes answers on a given day.
-export function isSurveyOpen(survey, today = new Date().toISOString().slice(0, 10)) {
+export function isSurveyOpen(survey, today = hospitalToday()) {
   return survey?.status === 'open' && (!survey.opensOn || survey.opensOn <= today) && (!survey.closesOn || survey.closesOn >= today)
 }
 

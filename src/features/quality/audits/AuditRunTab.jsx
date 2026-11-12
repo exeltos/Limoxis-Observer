@@ -21,6 +21,7 @@ import { adHocRow, auditScore, awaitingFinding, capaDraftFromFinding, chapterKey
 import { useAuditTemplates } from './useAuditTemplates'
 import { AuditFindingDialog } from './AuditFindingDialog'
 import './audits.css'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 const L = (en, el, english) => (en ? english : el)
 const pick = (pair, en) => pair[en ? 1 : 0]
@@ -120,7 +121,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
     { id: 'finish', label: L(en, 'Ολοκλήρωση επιθεώρησης', 'Complete audit'), icon: CheckCircle2, disabled: !complete || saving, onClick: () => finish() },
   ] : []
   const save = () => persist(withMeetings({ ...record, checklist: rows, status: record.status === 'planned' && (rows.some(row => row.answer) || meetings.opening.date) ? 'inProgress' : record.status, history: history('recordUpdated') }), L(en, 'Η επιθεώρηση αποθηκεύτηκε.', 'Audit saved.'))
-  const finish = () => persist(withMeetings({ ...record, checklist: rows, status: 'completed', completedDate: meetings.closing.date || record.completedDate || new Date().toISOString().slice(0, 10), history: history('auditCompleted') }), L(en, 'Η επιθεώρηση ολοκληρώθηκε.', 'Audit completed.'))
+  const finish = () => persist(withMeetings({ ...record, checklist: rows, status: 'completed', completedDate: meetings.closing.date || record.completedDate || hospitalToday(), history: history('auditCompleted') }), L(en, 'Η επιθεώρηση ολοκληρώθηκε.', 'Audit completed.'))
   const addQuestion = () => {
     const text = adHoc.trim()
     if (!text) return

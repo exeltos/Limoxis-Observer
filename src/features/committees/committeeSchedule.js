@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 // When a committee should meet next (owner, 6/11/2026): its last meeting held plus its frequency, or the meeting
 // already planned; overdue when that date has passed, soon within 30 days. Pure functions.
 export const FREQUENCY_MONTHS = { monthly: 1, bimonthly: 2, quarterly: 3, semiannual: 6, annual: 12 }
@@ -13,7 +14,7 @@ const addMonths = (iso, months) => {
 const daysBetween = (from, to) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000)
 
 // { last, planned, due, days, state: 'overdue' | 'soon' | 'ok' | 'none' }
-export function committeeSchedule(committee, today = new Date().toISOString().slice(0, 10)) {
+export function committeeSchedule(committee, today = hospitalToday()) {
   const meetings = (committee?.meetings || []).filter(item => item.status !== 'cancelled').map(item => day(item.scheduledAt || item.date)).filter(Boolean)
   const held = [committee?.overview?.lastMeetingOn, ...meetings.filter(date => date <= today)].filter(Boolean).sort()
   const last = held.at(-1) || ''

@@ -23,6 +23,7 @@ import { demoLibrarySeed } from '../management/managementData'
 import { competenceMatrix,newRequirement,retrainingPlan } from './trainingCompetence'
 import './trainingCompetence.css'
 import { isStaffEmployee } from '../employees/staffCategory'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const STATE_ICON={valid:CheckCircle2,expiring:Clock3,expired:AlertTriangle,missing:XCircle}
 // How often a requirement repeats, in words: «Κάθε χρόνο», «Κάθε 2 χρόνια», «Κάθε 6 μήνες», «Μία φορά».
@@ -57,7 +58,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  const [department,setDepartment]=useState('all')
  const [query,setQuery]=useState(''),[stateFilter,setStateFilter]=useState(''),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(PAGE)
  const [editing,setEditing]=useState(null)
- const today=new Date().toISOString().slice(0,10)
+ const today=hospitalToday()
  const activeEmployees=useMemo(()=>employees.filter(e=>isStaffEmployee(e)&&(!e.employmentStatus||String(e.employmentStatus).toLowerCase()==='active')),[employees])
  const scoped=useMemo(()=>activeEmployees.filter(e=>department==='all'||e.department===department),[activeEmployees,department])
  const matrix=useMemo(()=>competenceMatrix({requirements:state.requirements||[],employees:scoped,assignments:state.assignments||[],certificates:state.certificates||[],today}),[state,scoped,today])

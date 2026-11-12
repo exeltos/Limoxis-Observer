@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 const iso = date => date.toISOString().slice(0, 10)
 const parseIso = value => {
@@ -35,7 +36,7 @@ const monthWindow = (year, month) => ({
   label: `${String(month).padStart(2, '0')}/${year}`,
 })
 
-export function inferLiraTimeWindow(question, { today = new Date().toISOString().slice(0, 10) } = {}) {
+export function inferLiraTimeWindow(question, { today = hospitalToday() } = {}) {
   const text = normalize(question)
   const now = parseIso(today)
   if (!now) return null

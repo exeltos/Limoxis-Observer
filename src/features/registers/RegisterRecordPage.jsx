@@ -27,6 +27,7 @@ import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
 import { RegisterIndicators } from './RegisterIndicators'
 import { RegisterBuilder } from './RegisterBuilder'
 import './registers.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // One department register: its entries (cases, or the monthly sheet), its
 // indicators with the report, its definition and its history.
@@ -81,7 +82,7 @@ export function RegisterRecordPage() {
   const liveExport = tab === 'indicators' ? indicatorExport : sheet ? sheetExport : null
   const exportMenu = tab === 'indicators' || sheet ? <ExportMenu disabled={!liveExport || liveExport.disabled} onExcel={liveExport?.excel} onPdf={liveExport?.pdf} pdfBusy={Boolean(liveExport?.busy)} /> : casesMenu && <ExportMenu {...casesMenu} />
   const importButton = tab === 'entries' && !sheet && access.canRecord(register) && withIdentity && <ActionButton label={en ? 'Import from file' : 'Εισαγωγή από αρχείο'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>
-  const beforeDaily = new Date().toISOString().slice(0, 10) < dailyFromOf(register)
+  const beforeDaily = hospitalToday() < dailyFromOf(register)
   // «New day» opens today's sheet (from the first day of the daily sheets), also from the indicators tab.
   const primaryAction = access.canRecord(register) && (sheet
     ? <ActionButton tone="primary" label={en ? 'New day' : 'Νέα ημέρα'} title={beforeDaily ? (en ? `The sheet takes one total a month until ${formatDay(dailyFromOf(register), language)}, then one a day` : `Το φύλλο παίρνει ένα σύνολο τον μήνα μέχρι ${formatDay(dailyFromOf(register), language)}, και μετά ένα την ημέρα`) : undefined} onClick={() => { setTab('entries'); setNewDayTick(tick => tick + 1) }}><Plus size={17} /><span>{en ? 'New day' : 'Νέα ημέρα'}</span></ActionButton>

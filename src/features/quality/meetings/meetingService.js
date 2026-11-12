@@ -4,6 +4,7 @@ import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { addDays, nextMeetingCode, previousMonth } from './meetingModel'
 import { seededRandom } from '../../../core/data/demoSeed'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // Department meetings (20261107100000_quality_department_meetings.sql): one row
 // per meeting, per decision and per participant. The database lets a
@@ -19,7 +20,7 @@ const LOCAL_GROUPS_KEY = 'quality_local_department_meeting_groups'
 // --- Demo -------------------------------------------------------------------------
 
 function demoMeetings() {
-  const day = new Date().toISOString().slice(0, 10)
+  const day = hospitalToday()
   const nicu = { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU', groupId: 'dmg-nicu' }
   const icu = { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU', groupId: 'dmg-icu' }
   const team = [{ name: 'Διευθυντής ΜΕΝΝ', role: 'Διευθυντής', attended: true }, { name: 'Προϊσταμένη ΜΕΝΝ', role: 'Προϊσταμένη', attended: true }, { name: 'Υπεύθυνος Ποιότητας', role: 'Ποιότητα', attended: true }]

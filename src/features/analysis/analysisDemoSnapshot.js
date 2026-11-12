@@ -20,6 +20,7 @@ import { loadTrainingState } from '../training/trainingData'
 import { CLUSTER_THRESHOLD, CLUSTER_WINDOW_DAYS, demoClusterRecords } from '../surveillance/outbreakClusterService'
 import { detectOrganismClusters } from '../surveillance/clusterDetection'
 import { keepPerCategory } from './microbiologyLabels'
+import { hospitalDate } from '../../core/dates/hospitalDate'
 
 // Same eight ΕΟΔΥ reference pathogens and reference antibiotics as
 // indicatorEngine.js's REFERENCE_PATHOGEN_PATTERNS/AMR_REFERENCE_ANTIBIOTIC.
@@ -166,7 +167,7 @@ function collectAntimicrobialSummary() {
 // The dashboard tiles counted the same way as dashboardCloudService.js does for a
 // real hospital: today, the last 30 days and the next 30 days.
 function collectDashboardCounts(now = new Date()) {
-  const day = offset => { const d = new Date(now); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10) }
+  const day = offset => { const d = new Date(now); d.setDate(d.getDate() + offset); return hospitalDate(d) }
   const today = day(0), monthAgo = day(-30), soon = day(30)
   const openStatus = status => !['closed', 'completed', 'cancelled'].includes(status)
   return {

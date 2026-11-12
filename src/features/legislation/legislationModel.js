@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 // Legislation (ISO 9001 §4.2, §6.1, §9.1.3; ISO 15189 §4.1): the platform's
 // library of texts that apply to hospitals and each hospital's register of how
 // it complies, requirement by requirement. A hospital reads only published
@@ -6,7 +7,7 @@
 
 const pick = (list, value, language) => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
 const toneOf = (list, value) => list.find(item => item.value === value)?.tone || 'neutral'
-export const todayIso = () => new Date().toISOString().slice(0, 10)
+export const todayIso = () => hospitalToday()
 
 export const KINDS = [
   { value: 'law', label: ['Νόμος', 'Law'] },

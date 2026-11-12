@@ -27,8 +27,9 @@ import { severityOptions } from './qualityVocabulary'
 import { QualityDepartmentField, QualityOwnerField, QualityVisiblePersonField, departmentRef } from './QualityFields'
 import { PrefilledList } from '../surveillance/forms/PrefilledList'
 import './quality.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => hospitalToday()
 const MAX_FILES = 10
 const MAX_FILE_MB = 15
 const MAX_FILE_BYTES = MAX_FILE_MB * 1048576

@@ -4,6 +4,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { YesNoField } from '../../design-system/YesNoField'
 import { INDICATOR_METRICS,allowedIndicatorDenominators,indicatorMetricCombinationIsValid,indicatorMetricRule } from './indicatorDefinitionService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const organismLabels={ecoli:['E. coli','E. coli'],proteus:['Proteus spp.','Proteus spp.'],acinetobacter:['Acinetobacter spp.','Acinetobacter spp.'],klebsiella:['Klebsiella spp.','Klebsiella spp.'],enterobacter:['Enterobacter spp.','Enterobacter spp.'],pseudomonas:['Pseudomonas spp.','Pseudomonas spp.'],saureus:['S. aureus','S. aureus'],enterococcus:['Enterococcus spp.','Enterococcus spp.']}
 const bacteremiaLabels=Object.fromEntries(Object.entries(organismLabels).map(([key,[el,en]])=>[`bacteremia_${key}`,[`Βακτηριαιμίες από ${el}`,`${en} bacteremia`]]))
@@ -25,7 +26,7 @@ export const indicatorMetricLabel=(key,language='el')=>metricLabels[key]?.[langu
 // What a metric counts, in words: shown where the definition has no text of its own.
 export const metricWords=(key,language='el',part='numerator')=>key?(language==='en'?`${part==='numerator'?'Counted':'Taken as the base'}: ${indicatorMetricLabel(key,'en').toLowerCase()} in the period.`:`${part==='numerator'?'Μετριέται':'Βάση υπολογισμού'}: ${indicatorMetricLabel(key,'el').toLowerCase()} στην περίοδο.`):''
 
-export const createEmptyIndicatorDefinition=()=>({id:null,system:false,key:'',version:'1.0',titleEl:'',category:'surveillance',calculationType:'auto',numeratorMetric:'',denominatorMetric:'',numeratorDefinition:{description:''},denominatorDefinition:{description:''},multiplier:1,unit:'',targetValue:'',direction:'context',sourceAuthority:'',effectiveFrom:new Date().toISOString().slice(0,10),effectiveTo:'',status:'draft',visibleDepartmentIds:[]})
+export const createEmptyIndicatorDefinition=()=>({id:null,system:false,key:'',version:'1.0',titleEl:'',category:'surveillance',calculationType:'auto',numeratorMetric:'',denominatorMetric:'',numeratorDefinition:{description:''},denominatorDefinition:{description:''},multiplier:1,unit:'',targetValue:'',direction:'context',sourceAuthority:'',effectiveFrom:hospitalToday(),effectiveTo:'',status:'draft',visibleDepartmentIds:[]})
 
 export function indicatorDefinitionIsValid(v){return Boolean(v?.key?.trim()&&v?.titleEl?.trim()&&v?.version?.trim()&&(v.calculationType!=='auto'||(v?.numeratorMetric?.trim()&&indicatorMetricCombinationIsValid(v.numeratorMetric,v.denominatorMetric||'')))&&(!v?.effectiveFrom||!v?.effectiveTo||v.effectiveTo>=v.effectiveFrom))}
 

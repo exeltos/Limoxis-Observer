@@ -41,6 +41,7 @@ import { ISOLATION_STATUS, clinicalTerm, clinicalValueLabel, timelineLabel } fro
 import { departmentOptions, listTexts } from './surveillanceOptions'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
 import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // Admissions of the clinical record: patient admissions home, admission summary
 // and lifecycle actions (admit, transfer, discharge).
@@ -614,12 +615,12 @@ function useAdmissionLifecycle({
   const [kind, setKind] = useState(null),
     [busy, setBusy] = useState(false),
     [draft, setDraft] = useState({
-      date: new Date().toISOString().slice(0, 10),
+      date: hospitalToday(),
       departmentId: '',
       reason: '',
     })
   const open = next => {
-    setDraft({ date: new Date().toISOString().slice(0, 10), departmentId: '', reason: '' })
+    setDraft({ date: hospitalToday(), departmentId: '', reason: '' })
     setKind(next)
   }
   // The discharge is recorded only from the confirmation step of its dialog.
@@ -808,7 +809,7 @@ export function NewAdmissionDialog({
 }) {
   const { notify } = useFeedback()
   const { language } = useLanguage()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState({
     admissionDate: today,

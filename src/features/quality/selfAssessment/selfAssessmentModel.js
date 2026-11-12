@@ -1,4 +1,5 @@
 import { auditScore, needsClass, questionsForAudit } from '../audits/auditModel'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // The self-assessment of a department against an audit questionnaire, in pure
 // functions: the checklist it opens with, its progress and score (the audit scale)
@@ -39,7 +40,7 @@ export function selfChapters(checklist = []) {
   return [...chapters.values()]
 }
 
-export const isOverdue = (item, today = new Date().toISOString().slice(0, 10)) => Boolean(item.dueOn) && item.dueOn < today && item.status === 'released'
+export const isOverdue = (item, today = hospitalToday()) => Boolean(item.dueOn) && item.dueOn < today && item.status === 'released'
 
 export function selfCounts(items = []) {
   return {

@@ -19,6 +19,7 @@ import { LimitBadge, LiveLimit, useKitchenActor } from './KitchenShared'
 import { defrostStatus, fryingStatus, itemStatus, limitText, needsCorrectiveAction, pureeingStatus, receiptStatus, thermalStatuses } from './kitchenLimits'
 import { receiptTitle, DEFROST_METHODS, DIETS, MEALS, PRODUCT_CATEGORIES, PUREE_METHODS, RECEIPT_CHECK_FIELDS, CHECK_RESULTS, STORAGES, TEMPERATURE_CLASSES, UNITS, WEEKDAYS, WRITEOFF_REASONS, availableBatches, batchProblem, fifoAdvice, fmtQty, menuForDay, newReceiptItem, options, receiptProblems, receiptResultLabel, receiptResultTone, unitLabel } from './kitchenModel'
 import { defrostEntry, kitchenErrorMessage, saveEntry, saveProduction, saveReceipt, saveSimple, saveWriteoff, saveLimits } from './kitchenService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 const day = value => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
@@ -255,7 +256,7 @@ export function WriteoffDialog({ organizationId, batch, onClose, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useKitchenActor()
-  const [draft, setDraft] = useState(() => ({ receiptItemId: batch.receiptItemId, writtenOffOn: new Date().toISOString().slice(0, 10), quantity: batch.remaining > 0 ? String(batch.remaining) : '', reason: batch.expired ? 'expired' : 'spoiled', notes: '', recordedByName: actor.name }))
+  const [draft, setDraft] = useState(() => ({ receiptItemId: batch.receiptItemId, writtenOffOn: hospitalToday(), quantity: batch.remaining > 0 ? String(batch.remaining) : '', reason: batch.expired ? 'expired' : 'spoiled', notes: '', recordedByName: actor.name }))
   const [saving, run] = useSave(onSaved)
   const set = next => setDraft(current => ({ ...current, ...next }))
   const missing = !(Number(draft.quantity) > 0) || !draft.reason

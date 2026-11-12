@@ -33,6 +33,7 @@ import { RegulationEditor } from './RegulationEditor'
 import { RegulationFill } from './RegulationFill'
 import { RegulationSignatures } from './RegulationSignatures'
 import './regulations.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 export function RegulationPage() {
   const { regulationId } = useParams()
@@ -208,7 +209,7 @@ export function RegulationPage() {
       footer={draft && <div className="inline-edit-footer">
         {hasApproved && <Button variant="secondary" onClick={discard}>{en ? 'Leave the revision' : 'Εγκατάλειψη αναθεώρησης'}</Button>}
         <SaveButton variant="secondary" loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save the draft' : 'Αποθήκευση προσχεδίου'}</SaveButton>
-        <Button disabled={saving || dirty || problems.length > 0 || signed.length < SIGNING_ROLES.length} title={signed.length < SIGNING_ROLES.length ? (en ? 'Needs both signatures' : 'Χρειάζονται και οι δύο υπογραφές') : undefined} onClick={() => setApproving({ changeNote: draft.changeNote || '', issuedOn: new Date().toISOString().slice(0, 10), approvedByName: auth?.profile?.fullName || auth?.profile?.full_name || '' })}><CheckCircle2 size={15} />{en ? 'Approve the edition' : 'Έγκριση έκδοσης'}</Button>
+        <Button disabled={saving || dirty || problems.length > 0 || signed.length < SIGNING_ROLES.length} title={signed.length < SIGNING_ROLES.length ? (en ? 'Needs both signatures' : 'Χρειάζονται και οι δύο υπογραφές') : undefined} onClick={() => setApproving({ changeNote: draft.changeNote || '', issuedOn: hospitalToday(), approvedByName: auth?.profile?.fullName || auth?.profile?.full_name || '' })}><CheckCircle2 size={15} />{en ? 'Approve the edition' : 'Έγκριση έκδοσης'}</Button>
       </div>}>
       {draft ? <>
         {mode === 'write' && <label className="reg-change-note"><span>{en ? 'What this edition changes' : 'Τι αλλάζει σε αυτή την έκδοση'}</span><input value={draft.changeNote || ''} onChange={event => { setDraft(current => ({ ...current, changeNote: event.target.value })); setDirty(true) }} placeholder={en ? 'e.g. New hand hygiene targets; isolation rooms updated' : 'π.χ. Νέοι στόχοι υγιεινής χεριών· ενημέρωση θαλάμων απομόνωσης'} /></label>}
