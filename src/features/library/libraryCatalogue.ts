@@ -46,7 +46,8 @@ export const LIBRARY_TOPICS = Object.freeze([
 ])
 
 // [abbreviation, name, url, group, description EL, description EN, tags, extra]
-const LINK_ROWS = [
+type LinkRow = [string, string, string, string, string, string, string[], { proposed?: boolean, noteEl?: string, noteEn?: string }?]
+const LINK_ROWS: LinkRow[] = [
   ['ΕΟΔΥ', 'Εθνικός Οργανισμός Δημόσιας Υγείας', 'https://eody.gov.gr', 'greek', 'Επιδημιολογική επιτήρηση, οδηγίες για νοσοκομειακές λοιμώξεις και αντιμικροβιακή αντοχή, δήλωση νοσημάτων.', 'Epidemiological surveillance, guidance on healthcare-associated infections and antimicrobial resistance, disease notification.', ['surveillance', 'guidelines']],
   ['ΕΕΕΛ', 'Ελληνική Εταιρεία Ελέγχου Λοιμώξεων', 'https://www.eeel.gr', 'greek', 'Κατευθυντήριες οδηγίες, συνέδρια και εκπαίδευση για τον έλεγχο λοιμώξεων στα νοσοκομεία.', 'Guidelines, congresses and education on infection control in hospitals.', ['guidelines', 'education']],
   ['ΕΕΛ', 'Ελληνική Εταιρεία Λοιμώξεων', 'https://www.loimoxeis.gr', 'greek', 'Επιστημονική εταιρεία για τις λοιμώξεις: εκδηλώσεις, ενημέρωση και επιστημονικό έργο.', 'Scientific society for infectious diseases: events, news and scientific work.', ['treatment', 'education']],
@@ -80,7 +81,8 @@ const LINK_ROWS = [
 // Well-known guidelines whose title, organisation and year are certain. Each
 // links to the publisher's own page; nothing is copied.
 // [abbreviation, title, organisation, year, url, language, tags, extra]
-const GUIDELINE_ROWS = [
+type GuidelineRow = [string, string, string, number | null, string, string, string[], { descriptionEl?: string, descriptionEn?: string, summaryEl?: string, summaryEn?: string, limoxisEl?: string, limoxisEn?: string }?]
+const GUIDELINE_ROWS: GuidelineRow[] = [
   ['SSC', 'Surviving Sepsis Campaign: International Guidelines for Management of Sepsis and Septic Shock 2021', 'SCCM / ESICM', 2021, 'https://www.sccm.org/survivingsepsiscampaign', 'en', ['sepsis', 'icu', 'stewardship'], {
     descriptionEl: 'Society of Critical Care Medicine και European Society of Intensive Care Medicine· Crit Care Med 49(11) και Intensive Care Med 47, Οκτ. 2021.',
     descriptionEn: 'Society of Critical Care Medicine and European Society of Intensive Care Medicine; Crit Care Med 49(11) and Intensive Care Med 47, Oct 2021.',
@@ -108,7 +110,8 @@ const GUIDELINE_ROWS = [
 // build environment, so all start unverified (N2-sources.md): the first
 // successful check marks them as answering.
 // [abbreviation of the link it belongs to, name, url, kind, every N hours, keywords]
-export const NEWS_SOURCES = Object.freeze([
+export interface NewsSourceSeed { abbreviation: string, name: string, url: string, kind: string, intervalHours: number, keywords: string[] }
+export const NEWS_SOURCES: readonly Readonly<NewsSourceSeed>[] = Object.freeze(([
   ['ECDC', 'ECDC · news', 'https://www.ecdc.europa.eu/en/taxonomy/term/1307/feed', 'rss', 2, []],
   ['ECDC', 'ECDC · Communicable disease threats report', 'https://www.ecdc.europa.eu/en/taxonomy/term/1505/feed', 'rss', 2, []],
   ['ECDC', 'ECDC · Public health guidance', 'https://www.ecdc.europa.eu/en/taxonomy/term/1301/feed', 'rss', 2, []],
@@ -118,9 +121,9 @@ export const NEWS_SOURCES = Object.freeze([
   ['ΕΟΔΥ', 'ΕΟΔΥ · ανακοινώσεις', 'https://eody.gov.gr/feed/', 'rss', 6, []],
   ['ΕΕΕΛ', 'ΕΕΕΛ · οδηγίες', 'https://www.eeel.gr/1/katefthyntiries-odigies-c4.html', 'page', 24, []],
   ['ΕΝΕ', 'ΕΝΕ · ανακοινώσεις', 'https://www.enne.gr', 'page', 24, []],
-].map(([abbreviation, name, url, kind, intervalHours, keywords]) => Object.freeze({ abbreviation, name, url, kind, intervalHours, keywords })))
+] as [string, string, string, string, number, string[]][]).map(([abbreviation, name, url, kind, intervalHours, keywords]) => Object.freeze({ abbreviation, name, url, kind, intervalHours, keywords })))
 
-const seedId = (prefix, index) => `${prefix}-${String(index + 1).padStart(2, '0')}`
+const seedId = (prefix: string, index: number) => `${prefix}-${String(index + 1).padStart(2, '0')}`
 
 export const PLATFORM_LINKS = Object.freeze(LINK_ROWS.map(([abbreviation, name, url, group, descriptionEl, descriptionEn, tags, extra = {}], index) => Object.freeze({
   id: seedId('lib-link', index), organizationId: null, kind: 'link', group, abbreviation, name, organisation: '', url,

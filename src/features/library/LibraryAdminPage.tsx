@@ -13,6 +13,7 @@ import { groupLabel, intervalLabel, kindLabel, matchesQuery, sourceState, source
 import { loadLibrary, loadSources } from './libraryService'
 import { LibraryItemDialog } from './LibraryItemDialog'
 import './library.css'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const FILTERS = ['all', 'link', 'guideline', 'clinical_guide', 'news_source', 'archived']
 
@@ -21,11 +22,11 @@ const FILTERS = ['all', 'link', 'guideline', 'clinical_guide', 'news_source', 'a
 export function LibraryAdminPage() {
   const { language } = useLanguage()
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
-  const [state, setState] = useState({ loading: true, items: [], sources: [] })
+  const L = (el: string, english: string) => (en ? english : el)
+  const [state, setState] = useState<{ loading: boolean, items: AnyRecord[], sources: AnyRecord[] }>({ loading: true, items: [], sources: [] })
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
-  const [editing, setEditing] = useState(null)
+  const [editing, setEditing] = useState<{ item: AnyRecord | null, kind?: string, source?: AnyRecord | null } | null>(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
 
@@ -36,16 +37,16 @@ export function LibraryAdminPage() {
   }, [])
   useEffect(() => { reload() }, [reload])
 
-  const sourceRows = useMemo(() => state.sources.map(source => ({ ...source, kind: 'news_source', sourceKind: source.kind, rowId: `source:${source.id}` })), [state.sources])
-  const all = useMemo(() => [...state.items.map(item => ({ ...item, rowId: item.id })), ...sourceRows], [state.items, sourceRows])
+  const sourceRows = useMemo((): AnyRecord[] => state.sources.map(source => ({ ...source, kind: 'news_source', sourceKind: source.kind, rowId: `source:${source.id}` })), [state.sources])
+  const all = useMemo((): AnyRecord[] => [...state.items.map(item => ({ ...item, rowId: item.id })), ...sourceRows], [state.items, sourceRows])
   const counts = Object.fromEntries(FILTERS.map(value => [value, all.filter(row => matchesFilter(row, value)).length]))
   const rows = all.filter(row => matchesFilter(row, filter) && matchesQuery(row, query, language))
   useEffect(() => { setPage(1) }, [filter, query, pageSize])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
   const visible = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const labels = { all: L('Όλα', 'All'), link: L('Σύνδεσμοι', 'Links'), guideline: L('Οδηγίες', 'Guidelines'), clinical_guide: L('Κλινικοί οδηγοί', 'Clinical guides'), news_source: L('Πηγές νέων', 'News sources'), archived: L('Αποσυρμένα', 'Withdrawn') }
-  const sourceFor = item => state.sources.find(source => source.itemId === item.id) || null
-  const open = row => setEditing(row.kind === 'news_source' ? { item: row } : { item: row, source: sourceFor(row) })
+  const labels: Record<string, string> = { all: L('Όλα', 'All'), link: L('Σύνδεσμοι', 'Links'), guideline: L('Οδηγίες', 'Guidelines'), clinical_guide: L('Κλινικοί οδηγοί', 'Clinical guides'), news_source: L('Πηγές νέων', 'News sources'), archived: L('Αποσυρμένα', 'Withdrawn') }
+  const sourceFor = (item: AnyRecord) => state.sources.find(source => source.itemId === item.id) || null
+  const open = (row: AnyRecord) => setEditing(row.kind === 'news_source' ? { item: row } : { item: row, source: sourceFor(row) })
 
   // The form of an entry is a page of its own: it takes the place of the list.
   if (editing) return <LibraryItemDialog scope="platform" item={editing.item} kind={editing.kind} source={editing.source} language={language} onClose={() => setEditing(null)} onSaved={reload} />
@@ -74,15 +75,15 @@ export function LibraryAdminPage() {
   </Page>
 }
 
-function matchesFilter(row, filter) {
+function matchesFilter(row: AnyRecord, filter: string) {
   if (filter === 'archived') return row.status === 'archived'
   if (row.status === 'archived') return false
   return filter === 'all' || row.kind === filter
 }
 
-function RowState({ row, language }) {
+function RowState({ row, language }: { row: AnyRecord, language: string }) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   if (row.kind === 'news_source') {
     const state = sourceState(row)
     const tone = state === 'ok' ? 'success' : state === 'failing' ? 'warning' : 'neutral'

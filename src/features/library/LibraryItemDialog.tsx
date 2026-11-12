@@ -14,6 +14,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LIBRARY_TOPICS, LINK_GROUPS } from './libraryCatalogue'
 import { DESCRIPTION_LIMIT, EXCERPT_LIMIT, HOSPITAL_KINDS, INTERVALS, PLATFORM_KINDS, blankDraft, errorText, initials, intervalLabel, kindLabel, logoTone, validateDraft } from './libraryModel'
 import { saveAnnouncement, saveItem, saveSource, setItemStatus } from './libraryService'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
 const MAX_FILE = 10 * 1024 * 1024
@@ -22,26 +23,28 @@ const MAX_FILE = 10 * 1024 * 1024
 // Owner: what every hospital sees) or 'hospital' (Hospital Admin / Quality
 // Manager: only their hospital). `item` is an existing entry (a library item,
 // a news source or an announcement), or null for a new one of `kind`.
-export function LibraryItemDialog({ scope, organizationId = null, item = null, kind = 'link', source = null, language, onClose, onSaved }) {
+interface LibraryItemDialogProps { scope: string, organizationId?: string | null, item?: AnyRecord | null, kind?: string, source?: AnyRecord | null, language: string, onClose?: () => void, onSaved?: () => void }
+
+export function LibraryItemDialog({ scope, organizationId = null, item = null, kind = 'link', source = null, language, onClose, onSaved }: LibraryItemDialogProps) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const { notify, notifyError, confirm } = useFeedback()
   const platform = scope === 'platform'
-  const [draft, setDraft] = useState(() => {
+  const [draft, setDraft] = useState<AnyRecord>(() => {
     const base = blankDraft(item?.kind || kind, scope)
     if (!item) return base
     // A news source arrives as { ...source, kind: 'news_source', sourceKind: source.kind }.
     if (item.kind === 'news_source') return { ...base, ...item, news: { ...base.news, keywords: (item.keywords || []).join(', ') }, sourceKind: item.sourceKind || 'rss' }
     return { ...base, ...item, year: item.year ? String(item.year) : '', publishedAt: item.publishedAt ? String(item.publishedAt).slice(0, 10) : '', news: source ? { enabled: source.active !== false, id: source.id, url: source.url, kind: source.kind, intervalHours: source.intervalHours, keywords: (source.keywords || []).join(', ') } : base.news }
   })
-  const [errors, setErrors] = useState({})
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
-  const set = (key, value) => setDraft(current => ({ ...current, [key]: value }))
-  const setNews = (key, value) => setDraft(current => ({ ...current, news: { ...current.news, [key]: value } }))
+  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
+  const setNews = (key: string, value: unknown) => setDraft(current => ({ ...current, news: { ...current.news, [key]: value } }))
   const kinds = platform ? PLATFORM_KINDS : HOSPITAL_KINDS
   const k = draft.kind
   const isNew = !item?.id
-  const err = key => (errors[key] ? errorText(errors[key], language) : '')
+  const err = (key: string) => (errors[key] ? errorText(errors[key], language) : '')
 
   async function save() {
     const found = validateDraft(draft)
@@ -66,7 +69,7 @@ export function LibraryItemDialog({ scope, organizationId = null, item = null, k
     if (archiving && !await confirm({ title: L('Απόσυρση εγγραφής;', 'Withdraw the entry?'), message: platform ? L('Δεν θα εμφανίζεται πλέον στη «Βιβλιοθήκη» κανενός νοσοκομείου. Μένει εδώ και μπορεί να δημοσιευτεί ξανά.', 'It will no longer show in any hospital\'s Library. It stays here and can be published again.') : L('Δεν θα εμφανίζεται πλέον στη «Βιβλιοθήκη» του νοσοκομείου. Μπορεί να δημοσιευτεί ξανά.', 'It will no longer show in the hospital\'s Library. It can be published again.'), confirmLabel: L('Απόσυρση', 'Withdraw'), danger: true })) return
     setBusy(true)
     try {
-      await setItemStatus(item, archiving ? 'archived' : 'published')
+      await setItemStatus(item || {}, archiving ? 'archived' : 'published')
       notify(archiving ? L('Η εγγραφή αποσύρθηκε.', 'The entry was withdrawn.') : L('Η εγγραφή δημοσιεύτηκε ξανά.', 'The entry was published again.'), 'success')
       onSaved?.()
       onClose?.()
@@ -114,7 +117,7 @@ export function LibraryItemDialog({ scope, organizationId = null, item = null, k
       {k === 'link' && platform && draft.group === 'archive' && <>
         <Field label={L('Σημείωση (ελληνικά)', 'Note (Greek)')}><input value={draft.noteEl} onChange={e => set('noteEl', e.target.value)} placeholder={L('π.χ. συγχωνεύθηκε στην …', 'e.g. merged into …')} /></Field>
       </>}
-      {k !== 'news_source' && k !== 'announcement' && <div className="lib-span"><ChoiceChips label={L('Θέματα', 'Topics')} options={LIBRARY_TOPICS.map(topic => ({ value: topic.value, label: topic[en ? 'en' : 'el'] }))} selected={draft.tags} onToggle={value => set('tags', draft.tags.includes(value) ? draft.tags.filter(tag => tag !== value) : [...draft.tags, value])} /></div>}
+      {k !== 'news_source' && k !== 'announcement' && <div className="lib-span"><ChoiceChips label={L('Θέματα', 'Topics')} options={LIBRARY_TOPICS.map(topic => ({ value: topic.value, label: topic[en ? 'en' : 'el'] }))} selected={draft.tags} onToggle={value => set('tags', draft.tags.includes(value) ? draft.tags.filter((tag: string) => tag !== value) : [...draft.tags, value])} /></div>}
       {platform && k !== 'news_source' && <Field label={L('Σήμανση', 'Mark')}><CheckboxField label={L('«Προτεινόμενο» από την πλατφόρμα', '«Suggested» by the platform')} checked={draft.proposed} onChange={value => set('proposed', value)} /></Field>}
       {platform && k === 'link' && <div className="lib-span lib-form-box">
         <CheckboxField label={L('Αυτόματη λήψη νέων από αυτή την πηγή (καρτέλα «Νέα»)', 'Fetch news from this source automatically («News» tab)')} checked={draft.news.enabled} onChange={value => setNews('enabled', value)} />

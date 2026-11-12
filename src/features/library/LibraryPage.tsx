@@ -18,16 +18,17 @@ import { ROLES } from '../../core/permissions/roles'
 import { formatDay } from '../../core/i18n/formatDay'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { LINK_GROUPS } from './libraryCatalogue'
-import { LIBRARY_TABS, NEWS_FILTERS, NO_GUIDELINE_FILTERS, bulletLines, canManageHospitalLibrary, clinicalGuides, domainOf, filterGuidelines, filterNews, guidelineOptions, initials, isRecentNews, linkGroups, logoTone, newsBucket, newsCounts, newsDate, sourceState, sourceStateLabel, topicLabel } from './libraryModel'
+import { LIBRARY_TABS, NEWS_FILTERS, NO_GUIDELINE_FILTERS, type GuidelineFilters, bulletLines, canManageHospitalLibrary, clinicalGuides, domainOf, filterGuidelines, filterNews, guidelineOptions, initials, isRecentNews, linkGroups, logoTone, newsBucket, newsCounts, newsDate, sourceState, sourceStateLabel, topicLabel } from './libraryModel'
 import { fileUrl, loadLibrary, loadNews, loadSources } from './libraryService'
 import { DEMO_LIBRARY_ORG } from './libraryDemoData'
 import { LibraryItemDialog } from './LibraryItemDialog'
 import './library.css'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const READ_KEY = 'limoxis.library.read'
 // Which news the viewer has opened: a per-browser convenience, never shared.
-function readSet() { try { return new Set(JSON.parse(window.localStorage.getItem(READ_KEY) || '[]')) } catch { return new Set() } }
-function rememberRead(set) { try { window.localStorage.setItem(READ_KEY, JSON.stringify([...set].slice(-500))) } catch { /* storage unavailable: nothing to remember */ } }
+function readSet(): Set<string> { try { return new Set(JSON.parse(window.localStorage.getItem(READ_KEY) || '[]')) } catch { return new Set() } }
+function rememberRead(set: Set<string>) { try { window.localStorage.setItem(READ_KEY, JSON.stringify([...set].slice(-500))) } catch { /* storage unavailable: nothing to remember */ } }
 
 const external = { target: '_blank', rel: 'noopener noreferrer' }
 
@@ -35,20 +36,20 @@ const external = { target: '_blank', rel: 'noopener noreferrer' }
 // guidelines, one-page clinical guides and news from the sources. The platform's
 // content is the same in every hospital; the hospital adds its own.
 // The English texts of the page that the system translated (only asked for in English, outside the demo).
-const AutoTranslatedContext = createContext(new Set())
+const AutoTranslatedContext = createContext<Set<string>>(new Set())
 
 export function LibraryPage() {
   const { language } = useLanguage()
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const location = useLocation()
   const { tenant, role, actualRole, isRolePreview } = useTenant()
   const organizationId = tenant?.id || (isDemoDataEnvironment() ? DEMO_LIBRARY_ORG : null)
   const canManage = canManageHospitalLibrary(isRolePreview ? role : (actualRole === ROLES.PLATFORM_OWNER ? ROLES.PLATFORM_OWNER : role))
   const requested = new URLSearchParams(location.search).get('tab')
-  const [tab, setTab] = useState(LIBRARY_TABS.includes(requested) ? requested : 'links')
-  const [state, setState] = useState({ loading: true, items: [], news: [], sources: [] })
-  const [editing, setEditing] = useState(null)
+  const [tab, setTab] = useState<string>(requested && LIBRARY_TABS.includes(requested) ? requested : 'links')
+  const [state, setState] = useState<{ loading: boolean, items: AnyRecord[], news: AnyRecord[], sources: AnyRecord[] }>({ loading: true, items: [], news: [], sources: [] })
+  const [editing, setEditing] = useState<{ item: AnyRecord | null, kind?: string } | null>(null)
   const autoTranslated = useAutoTranslated('library_items', state.items.filter(item => item.organizationId).map(item => item.id), { enabled: en && !isDemoDataEnvironment() })
 
   const reload = useCallback(() => {
@@ -61,7 +62,7 @@ export function LibraryPage() {
   // Which news the viewer has opened (this browser): the «Νέα» tab counts the unread ones (as the
   // «Μη αναγνωσμένα» filter does), the other tabs no count (a count on a tab means something needs attention).
   const [read, setRead] = useState(readSet)
-  const markRead = item => setRead(current => { const next = new Set(current); next.add(item.id); rememberRead(next); return next })
+  const markRead = (item: AnyRecord) => setRead(current => { const next = new Set(current); next.add(item.id); rememberRead(next); return next })
   const unread = newsCounts(state.news, read).unread
   // The sources' check (when each was last read) is the platform owner's concern.
   const showSources = !isRolePreview && actualRole === ROLES.PLATFORM_OWNER
@@ -73,7 +74,7 @@ export function LibraryPage() {
   ]
   const addKind = tab === 'guidelines' ? 'guideline' : tab === 'clinical' ? 'clinical_guide' : tab === 'news' ? 'announcement' : 'link'
   const add = () => setEditing({ item: null, kind: addKind })
-  const edit = item => setEditing({ item })
+  const edit = (item: AnyRecord) => setEditing({ item })
   const actions = canManage ? <Button onClick={add}><Plus size={16} />{L('Προσθήκη', 'Add')}</Button> : null
 
   // The form of an entry is a page of its own: it takes the place of the lists.
@@ -90,19 +91,22 @@ export function LibraryPage() {
   </Page></AutoTranslatedContext.Provider>
 }
 
-function Logo({ item }) {
+function Logo({ item }: { item: AnyRecord }) {
   const text = initials(item)
   return <span className={`lib-logo tone-${logoTone(item)}${text.length > 4 ? ' is-long' : ''}`} aria-hidden="true">{text}</span>
 }
 
-function Chips({ options, value, onChange, label }) {
+interface ChipOption { value: string, label: string, count?: number }
+function Chips({ options, value, onChange, label }: { options: ChipOption[], value: string, onChange: (value: string) => void, label: string }) {
   return <div className="lib-chips" role="group" aria-label={label}>{options.map(option => <button key={option.value} type="button" className={`lib-chip${value === option.value ? ' is-active' : ''}`} aria-pressed={value === option.value} onClick={() => onChange(option.value)}>{option.label}<b>{option.count}</b></button>)}</div>
 }
 
 // The links as one list (a line per organisation), under the group headings.
-function LinksTab({ items, sources, loading, language, canManage, onEdit }) {
+interface TabProps { items: AnyRecord[], loading: boolean, language: string, canManage: boolean, onAdd?: () => void, onEdit: (item: AnyRecord) => void }
+
+function LinksTab({ items, sources, loading, language, canManage, onEdit }: TabProps & { sources: AnyRecord[] }) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const [query, setQuery] = useState('')
   const [group, setGroup] = useState('all')
   const { groups, counts, total } = useMemo(() => linkGroups(items, { query, group, language }), [items, query, group, language])
@@ -122,18 +126,18 @@ function LinksTab({ items, sources, loading, language, canManage, onEdit }) {
   </>
 }
 
-function LinkRow({ item, language, news, onEdit }) {
+function LinkRow({ item, language, news, onEdit }: { item: AnyRecord, language: string, news: boolean, onEdit: (() => void) | null }) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const description = (en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl || item.descriptionEn
   const note = (en ? item.noteEn : item.noteEl) || item.noteEl
   const auto = useContext(AutoTranslatedContext)
   const open = () => window.open(item.url, '_blank', 'noopener,noreferrer')
-  return <tr className={`registry-row-clickable${item.proposed ? ' is-proposed' : ''}${item.group === 'archive' ? ' is-archived' : ''}`} tabIndex={0} onClick={event => { if (!event.target.closest('a,button')) open() }} onKeyDown={event => { if (event.key === 'Enter' && event.target === event.currentTarget) open() }}>
+  return <tr className={`registry-row-clickable${item.proposed ? ' is-proposed' : ''}${item.group === 'archive' ? ' is-archived' : ''}`} tabIndex={0} onClick={event => { if (!(event.target as Element).closest('a,button')) open() }} onKeyDown={event => { if (event.key === 'Enter' && event.target === event.currentTarget) open() }}>
     <td><div className="lib-link-name"><Logo item={item} /><div><a className="lib-card-title" href={item.url} {...external}>{item.name}</a><span className="lib-domain">{domainOf(item.url)}</span></div></div></td>
     <td className="lib-link-about">{description}{en && auto.has(`${item.id}:description_el`) && item.descriptionEn && <AutoTranslatedMark />}{note && <small>{note}</small>}</td>
     <td><div className="lib-tags">
-      {(item.tags || []).map(tag => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}
+      {(item.tags || []).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}
       {news && <span className="lib-tag is-rss"><Rss size={11} aria-hidden="true" />{L('Νέα', 'News')}</span>}
       {item.proposed && <span className="lib-tag is-proposed">{L('Προτεινόμενο', 'Suggested')}</span>}
       {item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}
@@ -142,20 +146,20 @@ function LinkRow({ item, language, news, onEdit }) {
   </tr>
 }
 
-function GuidelinesTab({ items, loading, language, canManage, onAdd, onEdit }) {
+function GuidelinesTab({ items, loading, language, canManage, onAdd, onEdit }: TabProps) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
-  const [filters, setFilters] = useState(NO_GUIDELINE_FILTERS)
+  const L = (el: string, english: string) => (en ? english : el)
+  const [filters, setFilters] = useState<Readonly<GuidelineFilters>>(NO_GUIDELINE_FILTERS)
   const [selectedId, setSelectedId] = useState('')
   const options = useMemo(() => guidelineOptions(items), [items])
   const rows = useMemo(() => filterGuidelines(items, filters, language), [items, filters, language])
   const selected = rows.find(item => item.id === selectedId) || null
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
+  const set = (key: string, value: string) => setFilters(current => ({ ...current, [key]: value }))
   const filtered = filters !== NO_GUIDELINE_FILTERS && JSON.stringify(filters) !== JSON.stringify(NO_GUIDELINE_FILTERS)
   const all = L('Όλα', 'All')
   return <div className={`lib-guides${selected ? '' : ' no-drawer'}`}>
     <div className="lib-guides-main">
-      <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={L('Αναζήτηση τίτλου ή λέξης-κλειδιού…', 'Search title or keyword…')} onClear={filtered ? () => setFilters(NO_GUIDELINE_FILTERS) : undefined} activeAdvancedCount={['organisation', 'topic', 'year'].filter(key => String(filters[key]) !== 'all').length}>
+      <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={L('Αναζήτηση τίτλου ή λέξης-κλειδιού…', 'Search title or keyword…')} onClear={filtered ? () => setFilters(NO_GUIDELINE_FILTERS) : undefined} activeAdvancedCount={(['organisation', 'topic', 'year'] as const).filter(key => String(filters[key]) !== 'all').length}>
           <FilterSelect label={L('Φορέας', 'Organisation')} value={filters.organisation} onChange={value => set('organisation', value)}><option value="all">{L('Όλοι', 'All')}</option>{options.organisations.map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect>
           <FilterSelect label={L('Θέμα', 'Topic')} value={filters.topic} onChange={value => set('topic', value)}><option value="all">{all}</option>{options.topics.map(value => <option key={value} value={value}>{topicLabel(value, language)}</option>)}</FilterSelect>
           <FilterSelect label={L('Έτος', 'Year')} value={String(filters.year)} onChange={value => set('year', value)}><option value="all">{all}</option>{options.years.map(value => <option key={value} value={String(value)}>{value}</option>)}</FilterSelect>
@@ -166,7 +170,7 @@ function GuidelinesTab({ items, loading, language, canManage, onAdd, onEdit }) {
           <tbody>{rows.map(item => <tr key={item.id} tabIndex={0} className={`registry-row-clickable lib-guide-row${item.id === selectedId ? ' is-selected' : ''}`} aria-selected={item.id === selectedId} onClick={() => setSelectedId(item.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(item.id) } }}>
             <td><strong>{item.name}</strong><small>{item.language === 'el' ? L('Ελληνικά', 'Greek') : item.language === 'en' ? L('Αγγλικά', 'English') : L('Άλλη γλώσσα', 'Other language')} · {item.filePath ? L('αρχείο + σελίδα', 'file + page') : L('σελίδα φορέα', "publisher's page")}{item.organizationId ? ` · ${L('Του νοσοκομείου', "Hospital's own")}` : ''}</small></td>
             <td>{item.organisation || '—'}</td>
-            <td>{(item.tags || []).slice(0, 1).map(tag => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}</td>
+            <td>{(item.tags || []).slice(0, 1).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}</td>
             <td>{item.year || '—'}</td>
           </tr>)}</tbody>
         </table></div>}
@@ -175,9 +179,9 @@ function GuidelinesTab({ items, loading, language, canManage, onAdd, onEdit }) {
   </div>
 }
 
-function GuidelineDrawer({ item, language, onClose, onEdit }) {
+function GuidelineDrawer({ item, language, onClose, onEdit }: { item: AnyRecord, language: string, onClose: () => void, onEdit: (() => void) | null }) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const { notifyError } = useFeedback()
   const points = bulletLines((en ? item.summaryEn : item.summaryEl) || item.summaryEl)
   const link = (en ? item.limoxisEn : item.limoxisEl) || item.limoxisEl
@@ -192,7 +196,7 @@ function GuidelineDrawer({ item, language, onClose, onEdit }) {
       <div><span className="lib-eyebrow">{[L('Κατευθυντήρια οδηγία', 'Guideline'), item.organisation, item.year].filter(Boolean).join(' · ')}</span><h2>{item.name}</h2></div>
       <IconButton label={L('Κλείσιμο', 'Close')} onClick={onClose}><X size={17} /></IconButton>
     </div>
-    <div className="lib-row">{item.status === 'published' && <StatusBadge tone="success">{L('Ισχύει', 'Current')}</StatusBadge>}{(item.tags || []).map(tag => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}</div>
+    <div className="lib-row">{item.status === 'published' && <StatusBadge tone="success">{L('Ισχύει', 'Current')}</StatusBadge>}{(item.tags || []).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}</div>
     <dl>
       <dt>{L('Φορέας', 'Organisation')}</dt><dd>{item.organisation || '—'}</dd>
       {item.year && <><dt>{L('Έτος', 'Year')}</dt><dd>{item.year}</dd></>}
@@ -213,26 +217,26 @@ function GuidelineDrawer({ item, language, onClose, onEdit }) {
 
 // «Αποθήκευση» in the drawer: the viewer's own bookmarks, kept in this browser.
 const SAVED_KEY = 'limoxis.library.saved'
-function readSaved() { try { return new Set(JSON.parse(window.localStorage.getItem(SAVED_KEY) || '[]')) } catch { return new Set() } }
-function writeSaved(set) { try { window.localStorage.setItem(SAVED_KEY, JSON.stringify([...set].slice(-300))) } catch { /* storage unavailable */ } }
+function readSaved(): Set<string> { try { return new Set(JSON.parse(window.localStorage.getItem(SAVED_KEY) || '[]')) } catch { return new Set() } }
+function writeSaved(set: Set<string>) { try { window.localStorage.setItem(SAVED_KEY, JSON.stringify([...set].slice(-300))) } catch { /* storage unavailable */ } }
 
-function ClinicalTab({ items, loading, language, canManage, onAdd, onEdit }) {
+function ClinicalTab({ items, loading, language, canManage, onAdd, onEdit }: TabProps) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const { notifyError } = useFeedback()
   const [query, setQuery] = useState('')
   const rows = useMemo(() => clinicalGuides(items, query, language), [items, query, language])
-  const open = async item => { try { const url = await fileUrl(item); if (url) window.open(url, '_blank', 'noopener,noreferrer') } catch (error) { notifyError(error, 'load', { operation: 'library_file' }) } }
+  const open = async (item: AnyRecord) => { try { const url = await fileUrl(item); if (url) window.open(url, '_blank', 'noopener,noreferrer') } catch (error) { notifyError(error, 'load', { operation: 'library_file' }) } }
   return <>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση οδηγού…', 'Search guides…')} onClear={query ? () => setQuery('') : undefined} />
     <div className="scroll-table">
       {!loading && !rows.length && <RegistryEmptyState filtered={Boolean(query)} onClearFilters={() => setQuery('')} icon={Stethoscope} title={query ? undefined : L('Δεν υπάρχουν ακόμη κλινικοί οδηγοί', 'No clinical guides yet')} text={query ? undefined : L('Οδηγοί μίας σελίδας (π.χ. infographic για τη σήψη) ως εικόνα, PDF ή σύνδεσμος, με την πηγή και την ημερομηνία τους.', 'One-page guides (e.g. a sepsis infographic) as an image, PDF or link, with their source and date.')} action={canManage ? { label: L('Προσθήκη οδηγού', 'Add a guide'), icon: Plus, onClick: onAdd } : null} />}
       {rows.length > 0 && <table className="data-table sticky-table lib-clinical-table">
         <thead><tr><th>{L('Οδηγός', 'Guide')}</th><th>{L('Φορέας', 'Organisation')}</th><th>{L('Θέμα', 'Topic')}</th><th>{L('Ημερομηνία', 'Date')}</th><th aria-label={L('Ενέργειες', 'Actions')} /></tr></thead>
-        <tbody>{rows.map(item => <tr key={item.id} className="registry-row-clickable" tabIndex={0} onClick={event => { if (!event.target.closest('button')) open(item) }} onKeyDown={event => { if (event.key === 'Enter' && event.target === event.currentTarget) open(item) }}>
+        <tbody>{rows.map(item => <tr key={item.id} className="registry-row-clickable" tabIndex={0} onClick={event => { if (!(event.target as Element).closest('button')) open(item) }} onKeyDown={event => { if (event.key === 'Enter' && event.target === event.currentTarget) open(item) }}>
           <td><div className="lib-link-name"><span className="lib-logo" aria-hidden="true">{/^image\//.test(item.fileType || '') ? <ImageIcon size={16} /> : <FileText size={16} />}</span><div><strong>{item.name}</strong>{((en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl) && <small>{(en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl}</small>}</div></div></td>
           <td>{item.organisation || '—'}</td>
-          <td><div className="lib-tags">{(item.tags || []).map(tag => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}</div></td>
+          <td><div className="lib-tags">{(item.tags || []).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}</div></td>
           <td className="nowrap-cell">{[item.year, item.updatedAt ? formatDay(item.updatedAt, language) : ''].filter(Boolean).join(' · ') || '—'}</td>
           <td className="lib-row-menu"><OverflowMenu label={L('Ενέργειες', 'Actions')} items={[{ id: 'open', label: L('Άνοιγμα', 'Open'), icon: ExternalLink, onClick: () => open(item) }, ...(canManage && item.organizationId ? [{ id: 'edit', label: L('Επεξεργασία', 'Edit'), icon: Pencil, onClick: () => onEdit(item) }] : [])]} /></td>
         </tr>)}</tbody>
@@ -241,13 +245,15 @@ function ClinicalTab({ items, loading, language, canManage, onAdd, onEdit }) {
   </>
 }
 
-function NewsTab({ news, sources, showSources, read, onRead, loading, language, canManage, onAdd, onEdit }) {
+interface NewsTabProps { news: AnyRecord[], sources: AnyRecord[], showSources: boolean, read: Set<string>, onRead: (item: AnyRecord) => void, loading: boolean, language: string, canManage: boolean, onAdd: () => void, onEdit: (item: AnyRecord) => void }
+
+function NewsTab({ news, sources, showSources, read, onRead, loading, language, canManage, onAdd, onEdit }: NewsTabProps) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const [filter, setFilter] = useState('all')
   const counts = newsCounts(news, read)
   const rows = filterNews(news, filter, read)
-  const labels = { all: L('Όλα', 'All'), greek: L('Ελληνικοί φορείς', 'Greek bodies'), international: 'WHO / ECDC / CDC', hospital: L('Του νοσοκομείου', "Hospital's own"), unread: L('Μη αναγνωσμένα', 'Unread') }
+  const labels: Record<string, string> = { all: L('Όλα', 'All'), greek: L('Ελληνικοί φορείς', 'Greek bodies'), international: 'WHO / ECDC / CDC', hospital: L('Του νοσοκομείου', "Hospital's own"), unread: L('Μη αναγνωσμένα', 'Unread') }
   const options = NEWS_FILTERS.filter(value => value === 'all' || counts[value]).map(value => ({ value, label: labels[value], count: counts[value] }))
   const markRead = onRead
   const activeSources = sources.filter(source => source.active)

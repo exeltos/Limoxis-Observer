@@ -1,5 +1,6 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
-import { NEWS_SOURCES, PLATFORM_GUIDELINES, PLATFORM_LINKS } from './libraryCatalogue'
+import { NEWS_SOURCES, PLATFORM_GUIDELINES, PLATFORM_LINKS, type NewsSourceSeed } from './libraryCatalogue'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The Library in the preview and the Demo: the platform's real starting content
 // (libraryCatalogue.js), plus sample hospital additions and sample news, dated
@@ -8,7 +9,7 @@ import { NEWS_SOURCES, PLATFORM_GUIDELINES, PLATFORM_LINKS } from './libraryCata
 // and starts without the hospital's own items and without news.
 
 const DEMO_ORG = 'demo-hospital'
-const ago = (days, hours = 0) => new Date(Date.now() - days * 86400000 - hours * 3600000).toISOString()
+const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86400000 - hours * 3600000).toISOString()
 
 // The hospital's own additions (sample data).
 const hospitalItems = [
@@ -29,7 +30,7 @@ const sourceNews = [
   ['CDC · EID ahead of print', 'Emerging Infectious Diseases · ahead of print', 'Άρθρα πριν την έντυπη έκδοση του περιοδικού του CDC.', 'https://wwwnc.cdc.gov/eid', ago(7)],
 ].map(([sourceName, title, excerpt, url, publishedAt], index) => {
   const source = NEWS_SOURCES.find(item => item.name === sourceName)
-  return { id: `news-demo-0${index + 1}`, sourceId: `src-${NEWS_SOURCES.indexOf(source) + 1}`, sourceName, sourceAbbreviation: source?.abbreviation || '', organizationId: null, title, url, excerpt, publishedAt, detectedAt: publishedAt }
+  return { id: `news-demo-0${index + 1}`, sourceId: `src-${NEWS_SOURCES.indexOf(source as NewsSourceSeed) + 1}`, sourceName, sourceAbbreviation: source?.abbreviation || '', organizationId: null, title, url, excerpt, publishedAt, detectedAt: publishedAt }
 })
 
 // The sources, as the automatic check last left them (sample states).
@@ -43,6 +44,6 @@ emptyInPreview(hospitalItems)
 emptyInPreview(hospitalNews)
 emptyInPreview(sourceNews)
 
-export const demoLibraryItems = () => [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES, ...hospitalItems].map(item => ({ ...item, tags: [...item.tags], updatedAt: item.updatedAt || ago(12) }))
-export const demoLibraryNews = () => [...sourceNews, ...hospitalNews].map(item => ({ ...item }))
+export const demoLibraryItems = (): AnyRecord[] => [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES, ...hospitalItems].map((item: AnyRecord) => ({ ...item, tags: [...item.tags], updatedAt: item.updatedAt || ago(12) }))
+export const demoLibraryNews = (): AnyRecord[] => [...sourceNews, ...hospitalNews].map(item => ({ ...item }))
 export const DEMO_LIBRARY_ORG = DEMO_ORG
