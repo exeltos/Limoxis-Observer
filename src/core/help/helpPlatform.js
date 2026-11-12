@@ -41,6 +41,7 @@ export const platformHelp={
   '/platform#demo':{title:'Demo',summary:'Χρονικά περιορισμένες προσβάσεις με αποκλειστικά συνθετικά δεδομένα.',audience:audienceEl,chapters:[
    ['Απομόνωση','Τα Demo είναι πλήρως απομονωμένα από τα πραγματικά δεδομένα. Κανένα στοιχείο ασθενούς ή εργαζομένου δεν εμφανίζεται σε αυτά.'],
    ['Νέο Demo','Ορίζετε υποψήφιο οργανισμό, υπεύθυνο επικοινωνίας, email πρόσκλησης και διάρκεια. Η προτεινόμενη διάρκεια και οι χρήστες ανά Demo ορίζονται από το γρανάζι «Ρυθμίσεις Demo» δίπλα στην «Εξαγωγή».'],
+   ['Επαναφορά δεδομένων','Κάθε Demo είναι ξεχωριστό νοσοκομείο με δικά του δεδομένα. Ο αξιολογητής πατά «Επαναφορά δεδομένων» στη γραμμή Demo για να σβήσει τις αλλαγές του και να ξαναγραφτούν τα αρχικά δεδομένα· τα άλλα Demo δεν επηρεάζονται.'],
    ['Μετατροπή','Όταν ο υποψήφιος γίνει πελάτης, το Demo μετατρέπεται σε πραγματικό οργανισμό από την καρτέλα του.']
   ],steps:['Δημιουργήστε το Demo.','Παρακολουθήστε τη λήξη του.','Μετατρέψτε ή διαγράψτε το όταν ολοκληρωθεί.']},
   '/platform#reports':{title:'Αναφορές πλατφόρμας',summary:'Συγκεντρωτικοί δείκτες σε επίπεδο πλατφόρμας.',audience:audienceEl,chapters:[
@@ -93,6 +94,7 @@ export const platformHelp={
   '/platform#demo':{title:'Demo',summary:'Time-limited access with synthetic data only.',audience:audienceEn,chapters:[
    ['Isolation','Demos are fully isolated from production data. No patient or employee record is ever shown in them.'],
    ['New demo','Set the prospect, contact person, invitation email and duration. The suggested duration and the users per Demo are set from the “Demo settings” gear beside “Export”.'],
+   ['Reset data','Each Demo is a separate hospital with its own data. The evaluator clicks “Reset data” on the Demo line to clear their changes and write the starting data again; other Demos are not affected.'],
    ['Conversion','When the prospect becomes a customer, convert the demo into a real organization from its record.']
   ],steps:['Create the demo.','Track its expiry.','Convert or delete it when done.']},
   '/platform#reports':{title:'Platform reports',summary:'Aggregated indicators at platform level.',audience:audienceEn,chapters:[

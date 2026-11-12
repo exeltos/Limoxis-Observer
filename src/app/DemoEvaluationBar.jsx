@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { ChevronDown, Eye, FlaskConical, ListChecks, LogOut, Send } from 'lucide-react'
+import { ChevronDown, Eye, FlaskConical, ListChecks, LogOut, RotateCcw, Send } from 'lucide-react'
 import { DEMO_SCENARIOS } from '../features/demo/demoScenarios'
 import { BrandMark } from '../design-system/BrandMark'
 import './demoEvaluationBar.css'
@@ -11,7 +11,7 @@ const formatDate=(value,language)=>{if(!value)return '';const date=new Date(`${v
 // long the Demo stays open, the evaluation guide, the role and the request.
 // The organization's name is already in the topbar, so the line stays short and
 // the page under it keeps its place.
-export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previewOpen=false,previewLabel='',rolePicker=null,onPreviewRoles,onExit,guideDone=0,guideTotal=DEMO_SCENARIOS.length,onOpenGuide,canRequestApplication=false,applicationRequested=false,onRequestApplication}){
+export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previewOpen=false,previewLabel='',rolePicker=null,onPreviewRoles,onExit,guideDone=0,guideTotal=DEMO_SCENARIOS.length,onOpenGuide,canRequestApplication=false,applicationRequested=false,onRequestApplication,onResetData,resetting=false}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const days=Number.isFinite(Number(access?.daysLeft))?Number(access.daysLeft):null
   const remaining=days===null?'':days<=0?tx('Λήγει σήμερα','Ends today'):days===1?tx('Απομένει 1 ημέρα','1 day left'):tx(`Απομένουν ${days} ημέρες`,`${days} days left`)
@@ -31,6 +31,7 @@ export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previe
       <button type="button" className={previewLabel?'active':''} aria-expanded={previewOpen} onClick={onPreviewRoles}><Eye size={14}/>{previewLabel||tx('Δείτε ως άλλος ρόλος','View as another role')}<ChevronDown size={13}/></button>
       {rolePicker}
     </span>
+    {onResetData&&<button type="button" onClick={onResetData} disabled={resetting} title={tx('Σβήνει τις αλλαγές σας και φέρνει ξανά τα αρχικά δεδομένα του Demo','Clears your changes and brings back the Demo\'s starting data')}><RotateCcw size={14}/>{resetting?tx('Επαναφορά…','Resetting…'):tx('Επαναφορά δεδομένων','Reset data')}</button>}
     {canRequestApplication&&<button type="button" className="demo-evaluation-cta" onClick={onRequestApplication}><Send size={14}/>{applicationRequested?tx('Το αίτημα στάλθηκε','Request sent'):tx('Θέλω την εφαρμογή','I want the application')}</button>}
     {isPlatformOwner&&<button type="button" onClick={onExit}><LogOut size={14}/>{tx('Έξοδος από Demo','Exit Demo')}</button>}
   </div>

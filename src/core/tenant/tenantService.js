@@ -90,6 +90,16 @@ export async function switchDemoRole(organizationId, role, departmentId = null) 
   return data
 }
 
+// The evaluator brings their own Demo back to the starting data (the database
+// refuses any organization that is not a Demo or that the caller is not in).
+export async function resetMyDemoData(organizationId) {
+  if (!organizationId) throw new Error('DEMO_ORGANIZATION_REQUIRED')
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.rpc('demo_reset_my_organization', { p_organization_id: organizationId })
+  if (error) throw error
+  return data
+}
+
 // What the signed-in evaluator may know about their own Demos (dates, state, open).
 export async function loadCurrentDemoAccess() {
   if (!supabase) return []
