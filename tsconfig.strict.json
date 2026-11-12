@@ -13,6 +13,7 @@
     "src/features/about/**/*",
     "src/features/account/**/*",
     "src/features/legal/**/*",
-    "src/features/sections/**/*"
+    "src/features/sections/**/*",
+    "src/features/recycle-bin/**/*"
   ]
 }
