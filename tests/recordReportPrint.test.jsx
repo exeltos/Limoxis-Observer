@@ -7,6 +7,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const { LanguageProvider, translate } = await import('../src/core/i18n/LanguageContext')
 const { normalizeReport, parseSusceptibility, sirWord, eventLine } = await import('../src/design-system/recordReport')
@@ -155,7 +156,7 @@ describe('the shell prints the report instead of the screen', () => {
   })
 
   it('is wired into the surveillance episode and the laboratory sample', () => {
-    expect(read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('printReport={printReport}')
+    expect(readSplitSource('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('printReport={printReport}')
     expect(read('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx')).toContain('printReport={printReport}')
   })
 })

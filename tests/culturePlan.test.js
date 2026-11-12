@@ -47,7 +47,7 @@ describe('the culture programme', () => {
     expect(readSource('src/core/navigation/sectionTabs.js')).not.toContain("id: 'cultures'")
     expect(readSource('src/app/navigation.js')).toContain("{to:'/controls/cultures',key:'cultureProgramme'")
     expect(readSource('src/app/App.jsx')).toContain('<Route path="controls/cultures"')
-    expect(readSource('src/features/surveillance/surveillanceTabAccess.js')).toContain('[ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD].includes(role)')
+    expect(readSource('src/features/surveillance/surveillanceTabAccess.js')).toContain('([ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD] as (string | null)[]).includes(role)')
   })
 })
 

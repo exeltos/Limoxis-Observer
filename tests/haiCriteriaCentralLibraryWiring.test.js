@@ -6,8 +6,8 @@ const read = path => readSource(new URL(`../${path}`, import.meta.url))
 describe('HAI criteria central library wiring (platform review roadmap, P3)', () => {
   it('makes evaluateHaiCriteria/haiCriteriaSetForType accept an override sets object, defaulting to the static baseline', () => {
     const definitions = read('src/features/surveillance/haiCriteriaDefinitions.js')
-    expect(definitions).toContain('export function haiCriteriaSetForType(typeKey, sets = HAI_CRITERIA_SETS)')
-    expect(definitions).toContain('export function evaluateHaiCriteria(typeKey, selectedIds = [], sets = HAI_CRITERIA_SETS)')
+    expect(definitions).toContain('export function haiCriteriaSetForType(typeKey: string, sets: HaiCriteriaSets = HAI_CRITERIA_SETS)')
+    expect(definitions).toContain('export function evaluateHaiCriteria(typeKey: string, selectedIds: string[] = [], sets: HaiCriteriaSets = HAI_CRITERIA_SETS)')
   })
 
   it('exposes a Platform-Owner-governed HAI criteria library panel wired into Management', () => {

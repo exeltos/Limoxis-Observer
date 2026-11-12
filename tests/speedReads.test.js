@@ -2,12 +2,13 @@
 // Screens slow to show data: fewer and narrower reads (20261128500000).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = path => readSource(path)
 const migration = read('supabase/migrations/20261128500000_speed_reads.sql')
 const flagsFix = read('supabase/migrations/20261128500100_patient_infection_flags_single_pass.sql')
 const notifications = read('src/core/notifications/NotificationContext.jsx')
-const surveillance = read('src/features/surveillance/SurveillanceCanonicalPage.jsx')
+const surveillance = readSplitSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
 const auth = read('src/core/auth/AuthContext.jsx')
 
 describe('database reads', () => {

@@ -14,6 +14,7 @@ import { lazyPage } from '../src/core/errors/chunkRecovery'
 import { preloadRoute, registerRoutePreload } from '../src/app/routePreload'
 import { useEmployeeSubRecords } from '../src/features/employees/useEmployeeSubRecords'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = file => readSource(file)
 const inLanguage = ui => render(<LanguageProvider>{ui}</LanguageProvider>)
@@ -90,7 +91,7 @@ describe('first load and record changes', () => {
   })
 
   it('record pages never render the previous record while the next one loads', () => {
-    expect(read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('if (stale || (loading && !(patient || record))) return <RouteLoading />')
+    expect(readSplitSource('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('if (stale || (loading && !(patient || record))) return <RouteLoading />')
     expect(read('src/features/quality/QualityRecordPage.jsx')).toContain('if(loading||loadedFor!==recordKey)return <RouteLoading/>')
     expect(read('src/features/employees/useEmployeeRecordData.js')).toContain('loading: loading || (!selfMode && loadedCode !== code)')
   })
