@@ -370,7 +370,7 @@ export function auditDashboard(audits = [], findings = [], { year = new Date().g
 
 // What the Management Review reads for a period: per standard the audits and
 // their average compliance, the findings by class and those still open.
-export function auditReviewSummary(audits = [], findings = [], inPeriod = () => true) {
+export function auditReviewSummary(audits: AnyRecord[] = [], findings: AnyRecord[] = [], inPeriod: (day: string) => boolean = () => true) {
   const live = audits.filter(audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled' && inPeriod(audit.completedDate || audit.plannedDate))
   const byStandard = new Map()
   for (const audit of live) {

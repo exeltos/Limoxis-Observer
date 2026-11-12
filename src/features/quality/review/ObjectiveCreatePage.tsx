@@ -31,7 +31,7 @@ export function ObjectiveCreatePage() {
   const existing = objectiveId ? objectives.find(item => item.id === objectiveId) : null
   const [objective, setObjective] = useState(() => ({ ...newObjective(), ...(prefill || {}) }))
   // Editing: the form starts from the saved objective, without the values computed for display.
-  useEffect(() => { if (existing) { const { register: _r, indicator: _i, current: _c, platformIndicator: _p, months: _m, department: _d, committee: _k, targetFromIndicator, ...clean } = existing; setObjective(targetFromIndicator ? { ...clean, target: '' } : clean) } }, [existing]) // eslint-disable-line no-unused-vars
+  useEffect(() => { if (existing) { const { register: _r, indicator: _i, current: _c, platformIndicator: _p, months: _m, department: _d, committee: _k, targetFromIndicator, ...clean } = existing; setObjective(targetFromIndicator ? { ...clean, target: '' } : clean) } }, [existing]) // eslint-disable-line @typescript-eslint/no-unused-vars
   const [saving, setSaving] = useState(false)
   const set = next => setObjective(current => ({ ...current, ...next }))
   const valid = Boolean(objective.title?.trim()) && ((objective.target !== '' && objective.target != null) || linkedTarget(registers, objective, definitions) != null)

@@ -3,11 +3,12 @@ import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadIndicatorSn
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, textOf as registerText } from '../../registers/registerEngine'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // The indicators of the year's file: each with how it was computed (numerator / denominator, or the value entered by hand)
 // and, where it has no value, why: the data the platform does not record. The same reasons make the file's last page.
 
-const yearEnd = year => { const end = `${year}-12-31`, today = hospitalToday(); return end < today ? end : today }
+const yearEnd = (year: string) => { const end = `${year}-12-31`, today = hospitalToday(); return end < today ? end : today }
 
 // What is missing, by the metric that is empty. Each reason is one line of the «missing data» page.
 const MISSING = {
@@ -32,7 +33,7 @@ const MISSING = {
   source: ['Η πηγή του δείκτη δεν καταγράφεται ακόμα', 'The indicator’s source is not recorded yet'],
   zero: ['Ο παρονομαστής είναι μηδέν', 'The denominator is zero'],
 }
-const missingKey = metric => {
+const missingKey = (metric: string) => {
   if (!metric) return 'zero'
   if (metric.startsWith('amr_tested')) return 'amr_tested'
   if (metric.startsWith('central_line_days')) return 'central_line_days'
@@ -43,10 +44,10 @@ const missingKey = metric => {
 // Metrics that read 0 when their source is not recorded at all: a value of 0 from them is no value.
 const SOURCE_METRICS = new Set(['antibiotic_ddd_total', 'aware_access_ddd_total'])
 
-export const missingText = (key, en) => (MISSING[key] || MISSING.zero)[en ? 1 : 0]
+export const missingText = (key: string, en: boolean) => (MISSING[key] || MISSING.zero)[en ? 1 : 0]
 
 // One platform indicator for the year: its value, the numerator and denominator it came from, and the reason when it has no value.
-export function dossierIndicatorResult(def, metrics, manual = null) {
+export function dossierIndicatorResult(def: AnyRecord, metrics: AnyRecord, manual = null) {
   if (def.calculation === 'manual') {
     const value = manual && Number.isFinite(Number(manual.value)) ? Number(manual.value) : null
     return { value, manual, evidence: null, missing: value == null ? 'manual' : null }
@@ -63,16 +64,16 @@ export function dossierIndicatorResult(def, metrics, manual = null) {
 }
 
 // The value entered by hand for a manual indicator in the year: the whole year if entered so, else the latest period of the year.
-export function manualForYear(snapshots, key, year) {
-  const inYear = (snapshots || []).filter(row => row.indicator_key === key && row.calculation_type === 'manual' && !row.department_id && String(row.period_start || '').startsWith(String(year)) && row.value != null)
+export function manualForYear(snapshots, key: string, year: string) {
+  const inYear = (snapshots || []).filter((row: AnyRecord) => row.indicator_key === key && row.calculation_type === 'manual' && !row.department_id && String(row.period_start || '').startsWith(String(year)) && row.value != null)
   if (!inYear.length) return null
-  const whole = inYear.find(row => row.period_start === `${year}-01-01` && String(row.period_end) >= `${year}-12-31`)
+  const whole = inYear.find((row: AnyRecord) => row.period_start === `${year}-01-01` && String(row.period_end) >= `${year}-12-31`)
   const row = whole || [...inYear].sort((a, b) => String(b.period_end).localeCompare(String(a.period_end)))[0]
   return { value: Number(row.value), from: row.period_start, to: row.period_end }
 }
 
 // The platform's indicators of the year, computed once from the year's data, with the values entered by hand.
-export async function loadDossierIndicators(organizationId, year, definitions = []) {
+export async function loadDossierIndicators(organizationId: string | null | undefined, year: string, definitions = []) {
   if (year > new Date().getFullYear()) return definitions.map(def => ({ def, value: null, missing: null }))
   const [metrics, snapshots] = await Promise.all([
     collectCloudIndicatorMetrics(organizationId, { from: `${year}-01-01`, to: yearEnd(year) }).catch(() => null),
@@ -82,7 +83,7 @@ export async function loadDossierIndicators(organizationId, year, definitions = 
 }
 
 // Every indicator of the active registers for the year, computed from their entries.
-export async function loadRegisterIndicators(organizationId, year) {
+export async function loadRegisterIndicators(organizationId: string | null | undefined, year: number) {
   const registers = (await loadRegisters(organizationId).catch(() => [])).filter(register => register.status === 'active' && (register.indicators || []).some(indicator => !indicator.archived))
   const lists = await Promise.all(registers.map(register => loadEntries(organizationId, register.id, { register }).catch(() => [])))
   const period = { from: `${year}-01-01`, to: yearEnd(year), key: `range:${year}-01-01:${yearEnd(year)}` }
@@ -99,33 +100,33 @@ export async function loadRegisterIndicators(organizationId, year) {
   }))
 }
 
-const decimal = (value, en) => String(value).replace('.', en ? '.' : ',')
-const thousands = (value, en) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(Number(value))
-export const evidenceText = (row, language) => {
+const decimal = (value, en: boolean) => String(value).replace('.', en ? '.' : ',')
+const thousands = (value, en: boolean) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(Number(value))
+export const evidenceText = (row: AnyRecord, language: string) => {
   const en = language === 'en'
   if (row.manual) return en ? `Entered by hand (${row.manual.from} – ${row.manual.to})` : `Καταχώριση (${row.manual.from.split('-').reverse().join('/')} – ${row.manual.to.split('-').reverse().join('/')})`
   if (row.ssi != null) return en ? `${row.ssi} infections` : `${row.ssi} λοιμώξεις`
   return row.evidence ? `${thousands(row.evidence[0], en)} / ${thousands(row.evidence[1], en)}` : '—'
 }
-export const valueText = (value, unit, language) => {
+export const valueText = (value, unit: string, language: string) => {
   const en = language === 'en'
   if (value == null) return '—'
   return `${decimal(value, en)}${unit && unit !== '%' ? `${unit.startsWith('/') ? '' : ' '}${unit}` : unit || ''}`
 }
-const targetText = (target, direction, unit) => (target == null ? '—' : `${direction === 'lower' ? '≤' : '≥'} ${target}${unit === '%' ? '%' : ''}`)
+const targetText = (target, direction, unit: string) => (target == null ? '—' : `${direction === 'lower' ? '≤' : '≥'} ${target}${unit === '%' ? '%' : ''}`)
 const judged = (value, target, direction) => (value == null || target == null || !['higher', 'lower'].includes(direction) ? null : direction === 'lower' ? value <= target : value >= target)
-const stateCell = (row, met, en) => (row.value == null
+const stateCell = (row: AnyRecord, met, en: boolean) => (row.value == null
   ? { text: row.missing ? missingText(row.missing, en) : en ? 'Not started yet' : 'Δεν έχει ξεκινήσει ο υπολογισμός', className: 'rd-muted' }
   : met == null ? { text: en ? 'No target' : 'Χωρίς στόχο', className: '' } : { text: met ? (en ? 'On target' : 'Εντός στόχου') : (en ? 'Off target' : 'Εκτός στόχου'), className: met ? 'rd-good' : 'rd-bad' })
 
 // The table of the platform's indicators: the hospital's objective, where it has one, is the target.
-export function platformIndicatorsTable(indicatorRows, objectives, language) {
+export function platformIndicatorsTable(indicatorRows: AnyRecord[], objectives, language: string) {
   const en = language === 'en'
   return {
     columns: [en ? 'Indicator' : 'Δείκτης', en ? 'Value' : 'Τιμή', en ? 'Computed from' : 'Υπολογισμός', en ? 'Target' : 'Στόχος', en ? 'Status' : 'Κατάσταση'],
-    rows: indicatorRows.map(row => {
+    rows: indicatorRows.map((row: AnyRecord) => {
       const base = row.def
-      const own = (objectives || []).find(objective => objective.platformIndicatorKey === base.id && objective.target !== '' && objective.target != null)
+      const own = (objectives || []).find((objective: AnyRecord) => objective.platformIndicatorKey === base.id && objective.target !== '' && objective.target != null)
       const def = own ? { ...base, target: Number(own.target), direction: own.direction } : base
       const unit = en ? def.unitEn || def.unit : def.unit
       return [en ? def.titleEn || def.titleEl : def.titleEl, valueText(row.value, unit, language), evidenceText(row, language), targetText(def.target, def.direction, def.unit), stateCell(row, judged(row.value, def.target, def.direction), en)]
@@ -135,11 +136,11 @@ export function platformIndicatorsTable(indicatorRows, objectives, language) {
 
 // The registers' indicators with a target, one table per register (the same four columns as the indicators' print);
 // the ones without a target only inform and stay in their register.
-export function registerIndicatorSections(registerRows, language) {
+export function registerIndicatorSections(registerRows: AnyRecord[], language: string) {
   const en = language === 'en'
   const columns = [{ text: en ? 'Indicator' : 'Δείκτης', width: '52%' }, { text: en ? 'Value' : 'Τιμή', align: 'right', width: '18%' }, { text: en ? 'Target' : 'Στόχος', width: '9%' }, { text: en ? 'Status' : 'Κατάσταση', width: '21%' }]
   const groups = []
-  for (const row of registerRows.filter(item => item.target != null && item.target !== '')) {
+  for (const row of registerRows.filter((item: AnyRecord) => item.target != null && item.target !== '')) {
     const name = (en ? row.register.nameEn : row.register.name) || row.register.name
     const group = groups.find(item => item.name === name)
     if (group) group.rows.push(row); else groups.push({ name, rows: [row] })
@@ -151,10 +152,10 @@ export function registerIndicatorSections(registerRows, language) {
 }
 
 // The file's last page: what is missing, grouped by reason, with the indicators and objectives it leaves without a value.
-export function missingDataTable({ indicatorRows = [], registerRows = [], objectives = [] }, language) {
+export function missingDataTable({ indicatorRows = [], registerRows = [], objectives = [] }: { indicatorRows?: AnyRecord[], registerRows?: AnyRecord[], objectives?: AnyRecord[] }, language: string) {
   const en = language === 'en'
   const groups = new Map()
-  const add = (key, name) => { const list = groups.get(key) || []; if (!list.includes(name)) list.push(name); groups.set(key, list) }
+  const add = (key: string, name: string) => { const list = groups.get(key) || []; if (!list.includes(name)) list.push(name); groups.set(key, list) }
   for (const row of indicatorRows) if (row.value == null && row.missing) add(row.missing, en ? row.def.titleEn || row.def.titleEl : row.def.titleEl)
   for (const row of registerRows) if (row.value == null) add(row.missing || 'register', `${en ? row.titleEn || row.titleEl : row.titleEl} (${en ? row.register.nameEn : row.register.name})`)
   const noValue = (objectives || []).filter(objective => objective.current?.value == null)

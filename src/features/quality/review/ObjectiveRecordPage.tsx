@@ -27,6 +27,7 @@ import { objectiveLevelText,objectiveMeasureSource,objectiveMeasureText,objectiv
 import { rememberQualitySection } from '../qualityReturnSection'
 import '../quality.css'
 import { LinkedActions } from '../LinkedActions'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 const tone=state=>({met:'success',missed:'danger'})[state]||'info'
 
@@ -41,7 +42,7 @@ export function ObjectiveRecordPage(){
  useEffect(()=>{if(target_&&target_.id!==objectiveId)navigate(`/quality/objectives/${target_.id}`,{replace:true})},[target_,objectiveId,navigate])
  // The value month by month for the objective's year, up to the current month, only the months with a value:
  // from the register, from the platform's indicator or the values entered by the owner.
- const [history,setHistory]=useState([])
+ const [history,setHistory]=useState<AnyRecord[]>([])
  useEffect(()=>{
   if(!tenant?.id||!target_){setHistory([]);return undefined}
   let live=true
@@ -49,7 +50,7 @@ export function ObjectiveRecordPage(){
   return ()=>{live=false}
  },[tenant?.id,target_,definitions])
  const [drafts,setDrafts]=useState({})
- async function saveMonth(month){
+ async function saveMonth(month: string){
   const key=monthStart(target_.year,month),value=drafts[month]
   if(value===undefined)return
   try{await saveObjectiveValue(tenant?.id,target_.id,key,value);setDrafts(current=>{const next={...current};delete next[month];return next});await reload();notify(en?'The value was saved.':'Η τιμή αποθηκεύτηκε.','success')}
@@ -100,7 +101,7 @@ export function ObjectiveRecordPage(){
    <Meter className="objective-record-meter" value={reach} tone={tone(state)} label={`${objectiveTitle(objective,language)}: ${value}`}/>
    <DetailList sections={detail}/>
    {monthly&&canManage&&monthsSoFar(objective.year)>0&&<div className="objective-month-entry"><small>{en?'Value of each month':'Τιμή κάθε μήνα'}</small>
-    <div className="objective-month-grid">{Array.from({length:monthsSoFar(objective.year)},(_,index)=>index+1).map(month=>{const saved=objective.months?.find(row=>Number(row.month.slice(5,7))===month);const label=new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'short'}).format(new Date(objective.year,month-1,1));return <label key={month} className="objective-month-cell"><span>{label}</span><input inputMode="decimal" aria-label={`${label} ${objective.year}`} value={drafts[month]??(saved?String(saved.value):'')} onChange={event=>setDrafts(current=>({...current,[month]:event.target.value}))} onBlur={()=>void saveMonth(month)}/></label>})}</div>
+    <div className="objective-month-grid">{Array.from({length:monthsSoFar(objective.year)},(_,index)=>index+1).map(month=>{const saved=objective.months?.find((row: AnyRecord)=>Number(row.month.slice(5,7))===month);const label=new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'short'}).format(new Date(objective.year,month-1,1));return <label key={month} className="objective-month-cell"><span>{label}</span><input inputMode="decimal" aria-label={`${label} ${objective.year}`} value={drafts[month]??(saved?String(saved.value):'')} onChange={event=>setDrafts(current=>({...current,[month]:event.target.value}))} onBlur={()=>void saveMonth(month)}/></label>})}</div>
    </div>}
    {history.length>0&&<>
     {history.length>1&&<div className="indicator-result-trend"><small>{en?'Value by month':'Τιμή ανά μήνα'}</small><Sparkline width={560} height={92} points={history.map(row=>row.value)} target={Number.isFinite(Number(objective.target))&&objective.target!==''?Number(objective.target):null} label={en?'Value by month':'Τιμή ανά μήνα'}/></div>}
