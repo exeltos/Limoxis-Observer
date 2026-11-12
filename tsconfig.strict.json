@@ -7,6 +7,7 @@
   },
   "include": [
     "src/types/**/*.d.ts",
+    "src/types/featureTypes.ts",
     "src/design-system/**/*",
     "src/core/**/*",
     "src/features/about/**/*",
