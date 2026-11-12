@@ -22,12 +22,13 @@ import { PharmacyApprovals } from './PharmacyApprovals'
 import { therapyAccess } from './pharmacyAccess'
 import { PharmacyIndicators } from './PharmacyIndicators'
 import { ACCESS_TARGET, pharmacyConsumptionKpis } from './pharmacyKpis'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // '2026-09' → 'Σεπτέμβριος 2026' / 'September 2026'
-const formatPeriod = (period, en, month = 'long') => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month, year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
+const formatPeriod = (period: string | null | undefined, en: boolean, month: 'long' | 'short' = 'long') => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month, year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
 
-const monthOf = row => String(row.periodStart || row.period || '').slice(0, 7)
-const noFilters = () => ({ query: '', from: '', to: '', department: '' })
+const monthOf = (row: AnyRecord) => String(row.periodStart || row.period || '').slice(0, 7)
+const noFilters = (): Record<'query' | 'from' | 'to' | 'department', string> => ({ query: '', from: '', to: '', department: '' })
 
 // Φαρμακείο: three tabs. «Κατανάλωση» (dispensing periods, filtered by period and department),
 // «Εγκρίσεις αντιβιοτικών» (stewardship approvals of restricted antibiotics) and «Δείκτες» (the pharmacy indicators).
@@ -53,16 +54,16 @@ export function PharmacyPage() {
   ].filter(Boolean)
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const tab = tabs.some(item => item.value === params.get('tab')) ? params.get('tab') : 'consumption'
-  const setTab = next => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); return copy }, { replace: true })
-  const [rows, setRows] = useState([])
-  const [ddd, setDdd] = useState({})
+  const tab = tabs.some(item => item.value === params.get('tab')) ? params.get('tab') || 'consumption' : 'consumption'
+  const setTab = (next: string) => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); return copy }, { replace: true })
+  const [rows, setRows] = useState<AnyRecord[]>([])
+  const [ddd, setDdd] = useState<Record<string, number>>({})
   // True until the first read ends: placeholders, not «no periods» and 0 figures.
   const [loading, setLoading] = useState(true)
   const [showNote, setShowNote] = useState(false)
   const [approvalCounts, setApprovalCounts] = useState({ loading: true, pending: 0, approved: 0, rejected: 0 })
   const [approvalStatus, setApprovalStatus] = useState('pending')
-  const [indicatorFigures, setIndicatorFigures] = useState({ loading: true, rows: [], from: '', to: '' })
+  const [indicatorFigures, setIndicatorFigures] = useState<{ loading: boolean, rows: AnyRecord[], from: string, to: string }>({ loading: true, rows: [], from: '', to: '' })
   const [filters, setFilters] = useState(noFilters)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
@@ -105,7 +106,7 @@ export function PharmacyPage() {
   useEffect(() => setPage(1), [filters, pageSize, sort])
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)), safePage = Math.min(page, totalPages)
   const paged = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const setFilter = key => value => setFilters(current => ({ ...current, [key]: value }))
+  const setFilter = (key: string) => (value: string) => setFilters(current => ({ ...current, [key]: value }))
   const clearFilters = () => setFilters(noFilters())
   const activeFilters = (filters.from ? 1 : 0) + (filters.to ? 1 : 0) + (filters.department ? 1 : 0)
   const consumption = tab === 'consumption'
@@ -113,14 +114,14 @@ export function PharmacyPage() {
   const kpis = useMemo(() => pharmacyConsumptionKpis(filtered, { ddd }), [filtered, ddd])
   const byDdd = kpis.current?.basis === 'ddd'
   const kpiPeriod = kpis.month ? formatPeriod(kpis.month, en, 'short') : null
-  const number = value => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)
-  const grams = value => number(value >= 1000 ? value / 1000 : value)
-  const gramUnit = value => (value >= 1000 ? 'kg' : 'g')
+  const number = (value: number) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)
+  const grams = (value: number) => number(value >= 1000 ? value / 1000 : value)
+  const gramUnit = (value: number) => (value >= 1000 ? 'kg' : 'g')
 
   // The consumption figures as one line beside the search (owner, 8/11/2026: no cards); period and target in the tooltip.
-  const accessTone = kpis.current?.access == null || !byDdd ? null : kpis.current.access >= ACCESS_TARGET ? 'good' : kpis.current.access >= ACCESS_TARGET - 10 ? 'warning' : 'danger'
+  const accessTone = kpis.current?.access == null || !byDdd ? undefined : kpis.current.access >= ACCESS_TARGET ? 'good' : kpis.current.access >= ACCESS_TARGET - 10 ? 'warning' : 'danger'
   const consumptionTotals = <RegistryTotals label={en ? 'Consumption figures' : 'Δείκτες κατανάλωσης'} items={[
-    kpis.current && { key: 'grams', always: true, value: 0, display: `${grams(kpis.current.grams)} ${gramUnit(kpis.current.grams)}`, label: en ? 'consumption' : 'κατανάλωση', title: kpiPeriod },
+    kpis.current && { key: 'grams', always: true, value: 0, display: `${grams(kpis.current.grams)} ${gramUnit(kpis.current.grams)}`, label: en ? 'consumption' : 'κατανάλωση', title: kpiPeriod || undefined },
     kpis.current?.access != null && { key: 'access', always: true, value: 0, display: `${number(kpis.current.access)}%`, label: en ? 'Access' : 'Πρόσβασης', tone: accessTone, title: [kpiPeriod, en ? `WHO target ≥ ${ACCESS_TARGET}%` : `στόχος ΠΟΥ ≥ ${ACCESS_TARGET}%`, !byDdd && (en ? 'of grams (no DDD)' : 'επί g (χωρίς DDD)')].filter(Boolean).join(' · ') },
     kpis.current?.reserve != null && { key: 'reserve', always: true, value: 0, display: `${number(kpis.current.reserve)}%`, label: en ? 'Reserve' : 'Εφεδρικά', title: [kpiPeriod, byDdd ? (en ? 'share (DDD)' : 'μερίδιο (DDD)') : (en ? 'share (g)' : 'μερίδιο (g)')].join(' · ') },
     kpis.current && { key: 'departments', always: true, value: 0, display: `${kpis.current.departments}/${kpis.allDepartments}`, label: en ? 'departments' : 'τμήματα', tone: kpis.current.departments >= kpis.allDepartments ? 'good' : 'warning', title: [kpiPeriod, en ? 'every department, every month' : 'όλα τα τμήματα, κάθε μήνα'].join(' · ') },
@@ -134,13 +135,13 @@ export function PharmacyPage() {
           { key: 'pending', icon: Clock3, label: en ? 'Pending' : 'Σε αναμονή', value: approvalCounts.pending, tone: approvalCounts.pending > 0 ? 'warning' : '', active: approvalStatus === 'pending', onToggle: () => setApprovalStatus(approvalStatus === 'pending' ? 'all' : 'pending') },
           { key: 'approved', icon: CheckCircle2, label: en ? 'Approved' : 'Εγκρίθηκαν', value: approvalCounts.approved, active: approvalStatus === 'approved', onToggle: () => setApprovalStatus(approvalStatus === 'approved' ? 'all' : 'approved') },
           { key: 'rejected', icon: XCircle, label: en ? 'Rejected' : 'Απορρίφθηκαν', value: approvalCounts.rejected, active: approvalStatus === 'rejected', onToggle: () => setApprovalStatus(approvalStatus === 'rejected' ? 'all' : 'rejected') },
-        ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone || null, active: item.active, onClick: item.onToggle }))} />} />}
+        ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone || undefined, active: item.active, onClick: item.onToggle }))} />} />}
         {tab === 'indicators' && <PharmacyIndicators organizationId={tenant?.id} en={en} onRows={setIndicatorFigures} totals={indicatorFigures.rows.length > 0 ? <RegistryTotals label={en ? 'Pharmacy indicators' : 'Δείκτες φαρμακείου'} items={indicatorFigures.rows.slice(0, 3).map(row => {
           const key = String(row.id || '')
           const short = key.includes('aware-access') ? (en ? 'Access antibiotics' : 'Αντιβιοτικά Πρόσβασης') : key.includes('ddd-per-100') ? (en ? 'DDD / 100 patient-days' : 'DDD / 100 ασθενοημέρες') : (en ? row.titleEn || row.titleEl : row.titleEl)
           const target = row.target == null ? null : `${en ? 'target' : 'στόχος'} ${row.direction === 'lower' ? '≤' : row.direction === 'higher' ? '≥' : ''} ${number(row.target)}`
           const unit = (en ? row.unitEn : row.unit) === 'DDD/100 ασθενοημέρες' ? '' : (en ? row.unitEn : row.unit) || ''
-          return row.value == null ? null : { key, always: true, value: 0, display: `${number(row.value)}${unit === '%' ? '%' : ''}`, label: short, tone: row.status === 'onTarget' ? 'good' : row.status === 'attention' ? 'danger' : null, title: [short, en ? 'year to date' : 'από αρχή έτους', target].filter(Boolean).join(' · ') }
+          return row.value == null ? null : { key, always: true, value: 0, display: `${number(row.value)}${unit === '%' ? '%' : ''}`, label: short, tone: row.status === 'onTarget' ? 'good' : row.status === 'attention' ? 'danger' : undefined, title: [short, en ? 'year to date' : 'από αρχή έτους', target].filter(Boolean).join(' · ') }
         }).filter(Boolean)} /> : null} />}
         {consumption && !canRecord && <div className="inline-empty">{en ? 'You do not have access to record antibiotic consumption.' : 'Δεν έχετε πρόσβαση καταχώρισης κατανάλωσης αντιβιοτικών.'}</div>}
         {consumption && canRecord && <>

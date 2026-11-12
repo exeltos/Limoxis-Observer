@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Activity } from 'lucide-react'
 import { FilterBar, FilterDate } from '../../design-system/FilterBar'
@@ -10,30 +10,34 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadIndicatorSnapshots, loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const yearStart = () => `${new Date().getFullYear()}-01-01`
 const today = () => hospitalToday()
-const fmtDay = value => { const [y, m, d] = String(value || '').slice(0, 10).split('-'); return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : '—' }
-const fmtNumber = (value, en) => (value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(Number(value)))
-const STATUS = { onTarget: ['Εντός στόχου', 'On target', 'success'], attention: ['Χρειάζεται προσοχή', 'Needs attention', 'danger'], context: ['Παρακολούθηση', 'Monitoring', 'neutral'] }
+const fmtDay = (value: unknown) => { const [y, m, d] = String(value || '').slice(0, 10).split('-'); return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : '—' }
+const fmtNumber = (value: unknown, en: boolean) => (value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(Number(value)))
+const STATUS: Record<string, [string, string, string]> = { onTarget: ['Εντός στόχου', 'On target', 'success'], attention: ['Χρειάζεται προσοχή', 'Needs attention', 'danger'], context: ['Παρακολούθηση', 'Monitoring', 'neutral'] }
 
 // «Δείκτες»: the pharmacy indicators of the Indicators module (DDD per 100 patient-days, WHO AWaRe Access share…),
 // calculated by the same engine for the chosen period, with their approved results over time.
-export function PharmacyIndicators({ organizationId, en, onRows, totals = null }) {
+export interface PharmacyIndicatorRows { loading: boolean, rows: AnyRecord[], from: string, to: string }
+interface PharmacyIndicatorsProps { organizationId: string | null | undefined, en: boolean, onRows?: (value: PharmacyIndicatorRows) => void, totals?: ReactNode }
+
+export function PharmacyIndicators({ organizationId, en, onRows, totals = null }: PharmacyIndicatorsProps) {
   const navigate = useNavigate()
   const { notifyError } = useFeedback()
   const [from, setFrom] = useState(yearStart)
   const [to, setTo] = useState(today)
-  const [state, setState] = useState({ loading: true, rows: [], history: [] })
+  const [state, setState] = useState<{ loading: boolean, rows: AnyRecord[], history: AnyRecord[] }>({ loading: true, rows: [], history: [] })
 
   const calculate = useCallback(async () => {
     if (!organizationId || !from || !to || to < from) { setState(current => ({ ...current, loading: false })); return }
     setState(current => ({ ...current, loading: true }))
     try {
-      const [metrics, definitions, snapshots] = await Promise.all([collectCloudIndicatorMetrics(organizationId, { from, to }), loadOperationalIndicatorDefinitions(organizationId, { from, to }), loadIndicatorSnapshots(organizationId, {})])
-      const rows = definitions.filter(def => def.category === 'pharmacy').map(def => calculateCloudDefinition(def, metrics || {}))
-      const keys = new Set(rows.map(row => row.id))
-      setState({ loading: false, rows, history: (snapshots || []).filter(s => keys.has(s.indicator_key) && s.status === 'approved').sort((a, b) => String(b.period_start).localeCompare(String(a.period_start))) })
+      const [metrics, definitions, snapshots] = await Promise.all([collectCloudIndicatorMetrics(organizationId, { from, to } as AnyRecord), loadOperationalIndicatorDefinitions(organizationId, { from, to }), loadIndicatorSnapshots(organizationId, {})])
+      const rows = definitions.filter((def: AnyRecord) => def.category === 'pharmacy').map((def: AnyRecord) => calculateCloudDefinition(def, metrics || {}))
+      const keys = new Set(rows.map((row: AnyRecord) => row.id))
+      setState({ loading: false, rows, history: (snapshots || []).filter((s: AnyRecord) => keys.has(s.indicator_key) && s.status === 'approved').sort((a: AnyRecord, b: AnyRecord) => String(b.period_start).localeCompare(String(a.period_start))) })
     } catch (error) {
       setState({ loading: false, rows: [], history: [] })
       notifyError(error, 'load', { operation: 'pharmacy_indicators_load' })
@@ -48,8 +52,8 @@ export function PharmacyIndicators({ organizationId, en, onRows, totals = null }
     target: row => (row.target == null ? null : Number(row.target)),
     status: row => row.status,
   })
-  const title = row => (en ? row.titleEn || row.titleEl : row.titleEl)
-  const titleOf = key => { const row = state.rows.find(item => item.id === key); return row ? title(row) : key }
+  const title = (row: AnyRecord) => (en ? row.titleEn || row.titleEl : row.titleEl)
+  const titleOf = (key: string) => { const row = state.rows.find(item => item.id === key); return row ? title(row) : key }
   return <>
     <FilterBar end={totals} onClear={() => { setFrom(yearStart()); setTo(today()) }} activeAdvancedCount={(from !== yearStart() ? 1 : 0) + (to !== today() ? 1 : 0)}>
       <FilterDate label={en ? 'From' : 'Από'} value={from} onChange={setFrom} />

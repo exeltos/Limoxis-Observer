@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check, ShieldCheck, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -12,21 +12,25 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { decideTherapyApproval, loadTherapyApprovals } from './pharmacyCloudService'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const STATUS = { pending: ['Σε αναμονή', 'Pending', 'warning'], approved: ['Εγκρίθηκε', 'Approved', 'success'], rejected: ['Απορρίφθηκε', 'Rejected', 'danger'] }
-const fmtDay = value => { const [y, m, d] = String(value || '').slice(0, 10).split('-'); return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : '—' }
+const STATUS: Record<string, [string, string, string]> = { pending: ['Σε αναμονή', 'Pending', 'warning'], approved: ['Εγκρίθηκε', 'Approved', 'success'], rejected: ['Απορρίφθηκε', 'Rejected', 'danger'] }
+const fmtDay = (value: unknown) => { const [y, m, d] = String(value || '').slice(0, 10).split('-'); return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : '—' }
 
 // «Εγκρίσεις αντιβιοτικών»: the restricted antimicrobial therapies waiting for (or given) stewardship approval,
 // the same approvals the surveillance record decides. Approve / reject only with the therapy capability.
-export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord, onCounts, status = 'pending', onStatusChange, totals = null }) {
+export interface ApprovalCounts { loading: boolean, pending: number, approved: number, rejected: number }
+interface PharmacyApprovalsProps { organizationId: string | null | undefined, en: boolean, canDecide: boolean, canOpenRecord: boolean, onCounts?: (counts: ApprovalCounts) => void, status?: string, onStatusChange?: (value: string) => void, totals?: ReactNode }
+
+export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord, onCounts, status = 'pending', onStatusChange, totals = null }: PharmacyApprovalsProps) {
   const navigate = useNavigate()
   const actor = useAuditActor()
   const { notify, notifyError } = useFeedback()
-  const [rows, setRows] = useState([])
+  const [rows, setRows] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState('')
   const [query, setQuery] = useState('')
-  const setStatus = value => onStatusChange?.(value)
+  const setStatus = (value: string) => onStatusChange?.(value)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
 
@@ -37,7 +41,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
   }, [organizationId, notifyError])
   useEffect(() => { void reload() }, [reload])
 
-  async function decide(row, next) {
+  async function decide(row: AnyRecord, next: string) {
     setBusyId(row.id)
     try {
       await decideTherapyApproval(organizationId, row, next, actor)
@@ -62,7 +66,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
   useEffect(() => setPage(1), [query, status, pageSize, sort])
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)), safePage = Math.min(page, totalPages)
   const paged = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const counts = rows.reduce((acc, row) => ({ ...acc, [row.approvalStatus]: (acc[row.approvalStatus] || 0) + 1 }), {})
+  const counts = rows.reduce<Record<string, number>>((acc, row) => ({ ...acc, [row.approvalStatus]: (acc[row.approvalStatus] || 0) + 1 }), {})
   useEffect(() => { onCounts?.({ loading: loading && !rows.length, pending: counts.pending || 0, approved: counts.approved || 0, rejected: counts.rejected || 0 }) }, [onCounts, loading, rows.length, counts.pending, counts.approved, counts.rejected])
   const clear = () => { setQuery(''); setStatus('pending') }
 

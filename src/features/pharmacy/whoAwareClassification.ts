@@ -5,7 +5,7 @@
 // (src/features/pharmacy/pharmacyDemoData.js `antibioticLibrary`).
 // Source: WHO 2021 AWaRe classification database.
 
-const CATEGORY_BY_ANTIBIOTIC = {
+const CATEGORY_BY_ANTIBIOTIC: Record<string, string> = {
   amoxicillin: 'access',
   'amoxicillin/clavulanic acid': 'access',
   ampicillin: 'access',
@@ -35,23 +35,23 @@ const CATEGORY_BY_ANTIBIOTIC = {
   'ceftolozane/tazobactam': 'reserve',
 }
 
-function normalize(name) {
+function normalize(name: unknown) {
   return String(name || '').trim().toLowerCase()
 }
 
-export function awareCategoryFor(antibioticName) {
+export function awareCategoryFor(antibioticName: unknown): string | null {
   return CATEGORY_BY_ANTIBIOTIC[normalize(antibioticName)] || null
 }
 
-const CATEGORY_LABELS = {
+const CATEGORY_LABELS: Record<string, [string, string]> = {
   access: ['Πρόσβαση', 'Access'],
   watch: ['Επιτήρηση', 'Watch'],
   reserve: ['Εφεδρικά', 'Reserve'],
 }
 
 // The WHO's own (English) name of the category, for the tooltip of the Greek label.
-export const awareCategoryWhoName = category => CATEGORY_LABELS[category]?.[1] || ''
+export const awareCategoryWhoName = (category: string | null | undefined) => CATEGORY_LABELS[category || '']?.[1] || ''
 
-export function awareCategoryLabel(category, language = 'el') {
-  return CATEGORY_LABELS[category]?.[language === 'en' ? 1 : 0] || '—'
+export function awareCategoryLabel(category: string | null | undefined, language = 'el') {
+  return CATEGORY_LABELS[category || '']?.[language === 'en' ? 1 : 0] || '—'
 }

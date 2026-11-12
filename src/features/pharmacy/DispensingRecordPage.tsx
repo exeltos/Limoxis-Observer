@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Pill } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -15,13 +15,14 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
-import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
+import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord, type PharmacySupport } from './pharmacyCloudService'
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
 import { hospitalMonth } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const BACK = '/pharmacy?tab=consumption'
 const monthNow = () => hospitalMonth()
-const formatPeriod = (period, en) => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
+const formatPeriod = (period: string | null | undefined, en: boolean) => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
 
 // A dispensing period (or a new one) is a page of its own, like the other records: Back returns to the list,
 // saving or deleting does too.
@@ -35,16 +36,16 @@ export function DispensingRecordPage() {
   const { role, membership, tenant } = useTenant()
   const canRecord = can(role, CAPABILITIES.RECORD_PHARMACY_CONSUMPTION, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const deleteItem = useRecordDelete()
-  const [support, setSupport] = useState(null)
-  const [initial, setInitial] = useState(null)
+  const [support, setSupport] = useState<PharmacySupport | null>(null)
+  const [initial, setInitial] = useState<AnyRecord | null>(null)
   const [missing, setMissing] = useState(false)
-  const [draft, setDraft] = useState(null)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (!tenant?.id) return undefined
     let alive = true
-    Promise.all([loadPharmacySupportData(tenant.id), isNew ? Promise.resolve([]) : loadAntibioticDispensingRecords(tenant.id)]).then(([supportData, rows]) => {
+    Promise.all([loadPharmacySupportData(tenant.id), isNew ? Promise.resolve([] as AnyRecord[]) : loadAntibioticDispensingRecords(tenant.id)]).then(([supportData, rows]) => {
       if (!alive) return
       setSupport(supportData)
       if (isNew) {
@@ -59,14 +60,14 @@ export function DispensingRecordPage() {
     return () => { alive = false }
   }, [recordId, isNew, tenant?.id, notifyError])
 
-  const chooseProduct = id => { const item = support.products.find(x => x.id === id); setDraft(d => ({ ...d, antibioticItemId: id, product: item?.el || '' })) }
-  const chooseDepartment = value => { if (value === '') { setDraft(d => ({ ...d, departmentScope: 'hospital', departmentEl: '' })); return } setDraft(d => ({ ...d, departmentScope: 'department', departmentEl: value })) }
-  const set = key => event => setDraft(d => ({ ...d, [key]: event.target.value }))
+  const chooseProduct = (id: string) => { const item = support?.products.find(x => x.id === id); setDraft(d => ({ ...d, antibioticItemId: id, product: item?.el || '' })) }
+  const chooseDepartment = (value: string) => { if (value === '') { setDraft(d => ({ ...d, departmentScope: 'hospital', departmentEl: '' })); return } setDraft(d => ({ ...d, departmentScope: 'department', departmentEl: value })) }
+  const set = (key: string) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(d => ({ ...d, [key]: event.target.value }))
 
   async function save() {
     setBusy(true)
     try {
-      await saveAntibioticDispensingRecord(tenant.id, draft, { existingId: initial?.id || null })
+      await saveAntibioticDispensingRecord(tenant?.id, draft || {}, { existingId: initial?.id || null })
       signalDemoStep('antimicrobial_consumption', 'save')
       notify(en ? 'Dispensing period saved.' : 'Η περίοδος χορήγησης αποθηκεύτηκε.', 'success')
       navigate(BACK)
