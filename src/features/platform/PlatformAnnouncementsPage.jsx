@@ -79,7 +79,9 @@ export function PlatformAnnouncementsPage() {
   const organizations = useMemo(() => {
     const own = memberships.map(item => item.organization).filter(org => org?.id)
     const byId = new Map([...own, ...targets].map(org => [org.id, org]))
-    return [...byId.values()].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'el'))
+    // Hospitals first, then the demos; each group by name.
+    const isDemo = org => Boolean(org.is_demo || org.mode === 'demo')
+    return [...byId.values()].sort((a, b) => Number(isDemo(a)) - Number(isDemo(b)) || String(a.name || '').localeCompare(String(b.name || ''), 'el'))
   }, [memberships, targets])
   const everyone = item => item.allHospitals && item.showInDemo && !item.audience.length
   const orgName = id => organizations.find(org => org.id === id)?.name || id

@@ -78,9 +78,14 @@ export function announcementPayload(draft) {
 // Every hospital and demo hospital the owner can address, not only the ones the owner is a member of (owner, 12/11/2026).
 export async function loadAnnouncementTargets() {
   if (isOwnerPreview()) return []
-  const { data, error } = await supabase.from('organizations').select('id,name,code,status,is_demo').order('name')
-  if (error) throw error
-  return (data || []).filter(org => org.id && org.status !== 'archived' && org.status !== 'deleted')
+  const [orgs, entitlements] = await Promise.all([
+    supabase.from('organizations').select('id,name,code,status,is_demo').order('name'),
+    supabase.from('platform_demo_entitlements').select('organization_id'),
+  ])
+  if (orgs.error) throw orgs.error
+  // A demo is one made in the Demo screen (it has an entitlement); the built-in «Enter Demo» space is not a target.
+  const demoIds = new Set((entitlements.data || []).map(row => row.organization_id))
+  return (orgs.data || []).filter(org => org.id && org.status !== 'archived' && org.status !== 'deleted' && (!org.is_demo || demoIds.has(org.id)))
 }
 
 // The owner's list, with how many administrators have seen each one.
