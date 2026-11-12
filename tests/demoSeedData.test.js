@@ -56,6 +56,6 @@ describe('Demo record', () => {
     expect(demoRecord).toContain('resetPlatformDemoData(record.organization_id)')
     expect(tenantService).toContain("supabase.rpc('platform_reset_demo_organization'")
     expect(center).toContain('onOpenDemo={()=>openDemoOrganization(selectedDemo)}')
-    expect(center).toContain('function openDemoOrganization(demo)')
+    expect(center).toContain('function openDemoOrganization(demo: AnyRecord)')
   })
 })

@@ -1,0 +1,267 @@
+import { useEffect, useMemo, useState } from 'react'
+import { environmentalResultWord, resultLimit } from './environmentalLimit'
+import { AlertTriangle, Clock3, FlaskConical, PackageCheck } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '../../design-system/Button'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { registryMenu } from '../../core/export/registryExports'
+import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
+import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { useTableSort } from '../../design-system/useTableSort'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDay, formatDateTime } from '../../core/i18n/formatDay'
+import { printReport } from '../../core/export/reportDocument'
+import { buildPlateReport } from './plateReport'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { LaboratoryStatus, labSampleStatus } from './LaboratoryStatus'
+import { groupPlates, isStaffSample, platePointLabel, platePointText, receivePlate } from './laboratoryPlates'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
+import type { MutableRefObject } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { CulturePlate } from './laboratoryPlates'
+import type { LaboratoryRepository } from './repositories/laboratoryRepository'
+import type { LabelLookup } from './LaboratorySampleViews'
+
+type DepartmentOf = (plate: CulturePlate) => string
+
+// «Τρυβλία» of the laboratory: the environmental samples grouped by culture plate. A plate is read
+// and received as one thing (every position at once), while each position keeps its own sample,
+// result and CFU count; a row opens the plate with all its positions side by side.
+const STATUS_TONE: Record<string, string> = { awaiting: 'warning', processing: 'info', completed: 'success', rejected: 'neutral' }
+
+// A plate's results at a glance, in the three words of the laboratory: how many positions are Θετικό, otherwise «Εντός αποδεκτών
+// ορίων» when some grew within the acceptable limits, otherwise «Αρνητικό» once the plate is done.
+function PlateResults({ plate, language }: { plate: CulturePlate, language: string }) {
+  const results: AnyRecord[] = plate.samples.flatMap(sample => sample.microbiologyResults || [])
+  const positive = results.filter(result => environmentalResultWord(result, 'el') === 'Θετικό').length
+  const within = results.filter(result => environmentalResultWord(result, 'el') === 'Εντός αποδεκτών ορίων').length
+  if (positive) return <StatusBadge tone="danger">{language === 'en' ? `${positive} positive` : `${positive} θετικά`}</StatusBadge>
+  if (plate.status !== 'completed') return '—'
+  if (within) return <StatusBadge tone="success">{language === 'en' ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων'}</StatusBadge>
+  return results.length ? <StatusBadge tone="neutral">{language === 'en' ? 'Negative' : 'Αρνητικό'}</StatusBadge> : '—'
+}
+
+const plateExportHeaders = (en: boolean) => en
+  ? ['Department', 'Plate', 'Position', 'Point', 'Sampled', 'Status', 'Result', 'CFU', 'CFU limit', 'Organism']
+  : ['Τμήμα', 'Τρυβλίο', 'Θέση', 'Σημείο', 'Δειγματοληψία', 'Κατάσταση', 'Αποτέλεσμα', 'CFU', 'Όριο CFU', 'Μικροοργανισμός']
+
+// One row per plate position: what was sampled, the colony count (CFU), its limit and the assessment.
+function plateExportRows(plates: CulturePlate[], departmentOf: DepartmentOf, t: LabelLookup, language: string, withNames = true) {
+  return plates.flatMap(plate => plate.samples.map(sample => {
+    const result = sample.microbiologyResults?.[0]
+    return [
+      departmentOf(plate),
+      `${t('clinicalRecords.envPlate')} ${plate.plate}`,
+      sample.environmentalPosition || '',
+      platePointText(sample, language, withNames),
+      plate.collectedAt ? formatDay(plate.collectedAt, language) : '',
+      labSampleStatus(sample, language).text || '',
+      result ? environmentalResultWord(result, language) || t(result.result) : '',
+      result?.cfuCount ?? '',
+      result?.cfuLimit ?? '',
+      result?.organism || '',
+    ]
+  }))
+}
+
+interface PlatesPanelProps { samples?: AnyRecord[], loading?: boolean, canManage?: boolean, repository?: LaboratoryRepository, reload?: () => unknown, exportRef?: MutableRefObject<AnyRecord | null> }
+export function PlatesPanel({ samples = [], loading = false, canManage = false, repository, reload, exportRef }: PlatesPanelProps) {
+  const { t, language } = useLanguage()
+  const en = language === 'en'
+  const [query, setQuery] = useState('')
+  const [quick, setQuick] = useState('all')
+  const [department, setDepartment] = useState('all')
+  const [status, setStatus] = useState('all')
+  const [period, setPeriod] = useState('all')
+  const [openKey, setOpenKey] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
+  const plates = useMemo(() => groupPlates(samples), [samples])
+  const open = plates.find(plate => plate.key === openKey) || null
+  const departmentOf = (plate: CulturePlate) => (en ? plate.departmentEn : plate.department) || '—'
+  const departments = useMemo(() => [...new Set(plates.map(plate => departmentOf(plate)).filter(name => name && name !== '—'))].sort((a, b) => a.localeCompare(b, language)), [plates]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Open work (waiting, in progress) counts every plate; «outside limits» counts the last 30 days, so old results do not weigh on today.
+  const counts = {
+    awaiting: plates.filter(plate => plate.status === 'awaiting').length,
+    processing: plates.filter(plate => plate.status === 'processing').length,
+    outside: plates.filter(plate => plate.counts.outside > 0 && inPeriod(plate.collectedAt, '30')).length,
+  }
+  const shown = plates
+    .filter(plate => quick === 'all' || (quick === 'outside' ? plate.counts.outside > 0 : plate.status === quick))
+    .filter(plate => department === 'all' || departmentOf(plate) === department)
+    .filter(plate => status === 'all' || plate.status === status)
+    .filter(plate => inPeriod(plate.collectedAt, period))
+    .filter(plate =>
+      [plate.plate, plate.batchId, departmentOf(plate), ...plate.samples.map(sample => `${sample.id} ${sample.location} ${sample.point}`)]
+        .join(' ')
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+    )
+  // The arrows in the headers sort the whole filtered list (newest sampling first); then the page is cut.
+  const { sorted: sortedPlates, sort, onSort } = useTableSort(shown, {
+    department: plate => departmentOf(plate),
+    plate: plate => plate.plate,
+    positions: plate => plate.samples.length,
+    sampled: plate => plate.collectedAt,
+    status: plate => plate.status,
+    results: plate => plate.counts.outside,
+  }, { key: 'sampled', dir: 'desc' })
+  useEffect(() => { setPage(1) }, [sort, query, quick, department, status, period, pageSize])
+  const totalPages = Math.max(1, Math.ceil(shown.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const pagedPlates = sortedPlates.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const plateExport = () => ({ name: en ? 'culture-plates' : 'trivlia', headers: plateExportHeaders(en), rows: plateExportRows(sortedPlates, departmentOf, t, language) })
+  if (exportRef) exportRef.current = { build: plateExport, kind: en ? 'Laboratory' : 'Εργαστήριο', title: en ? 'Culture plates' : 'Τρυβλία' }
+  const toggle = (key: string) => setQuick(current => (current === key ? 'all' : key))
+  const positionsText = (plate: CulturePlate) => `${plate.counts.total} ${t(plate.counts.total === 1 ? 'labPlates.positionOne' : 'labPlates.positionMany')}`
+  const clear = () => {
+    setQuery('')
+    setQuick('all')
+    setDepartment('all')
+    setStatus('all')
+    setPeriod('all')
+  }
+  const statusName = (value: string) => t(`labPlates.status${value[0].toUpperCase()}${value.slice(1)}`)
+  const toggleOutside = () => {
+    const on = !(quick === 'outside' && period === '30')
+    setQuick(on ? 'outside' : 'all')
+    setPeriod(on ? '30' : 'all')
+  }
+
+  return (
+    <>
+      <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
+        <FilterBar end={<RegistryTotals label={t('labPlates.tab')} items={[
+        { key: 'awaiting', icon: Clock3, label: t('labPlates.awaiting'), value: counts.awaiting, active: quick === 'awaiting', onToggle: () => toggle('awaiting') },
+        { key: 'processing', icon: FlaskConical, label: t('labPlates.processing'), value: counts.processing, active: quick === 'processing', onToggle: () => toggle('processing') },
+        { key: 'outside', icon: AlertTriangle, label: t('labPlatesExtra.outside30'), value: counts.outside, tone: counts.outside > 0 ? 'danger' : '', active: quick === 'outside' && period === '30', onToggle: toggleOutside },
+      ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone === 'danger' || item.tone === 'warning' ? item.tone : undefined, active: item.active, onClick: item.onToggle }))} />} query={query} onQueryChange={setQuery} placeholder={t('labPlates.search')} onClear={clear} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
+          department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') },
+          status !== 'all' && { key: 'status', label: `${t('status')}: ${statusName(status)}`, onRemove: () => setStatus('all') },
+          period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') },
+        ].filter(Boolean)} advanced={<>
+          <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(name => <option key={name} value={name}>{name}</option>)}</FilterSelect>
+          <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{['awaiting', 'processing', 'completed', 'rejected'].map(value => <option key={value} value={value}>{statusName(value)}</option>)}</FilterSelect>
+          <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days => <option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
+        </>} />
+        <div className="scroll-table">
+          <RegistryTable bare className="lab-table lab-plates-table" sort={sort} onSort={onSort} columns={[
+            { key: 'department', label: t('labPlates.colDepartment'), sortable: true },
+            { key: 'plate', label: t('labPlates.colPlate'), sortable: true },
+            { key: 'positions', label: t('labPlates.colPositions'), sortable: true },
+            { key: 'sampled', label: t('labPlates.colSampled'), sortable: true },
+            { key: 'status', label: t('labPlates.colStatus'), sortable: true },
+            { key: 'results', label: t('labPlates.colResults'), sortable: true },
+          ]} rows={pagedPlates} loading={loading} rowKey={plate => plate.key}
+          rowProps={plate => ({ className: 'clickable-row', tabIndex: 0, onClick: () => setOpenKey(plate.key), onKeyDown: event => { if (event.key === 'Enter') setOpenKey(plate.key) } })}
+          emptyTitle={plates.length ? t('svEmptyFiltered') : t('labPlates.empty')} emptyText={plates.length ? t('svEmptyFilteredHint') : t('labPlates.emptyText')} emptyFiltered={plates.length > 0} onClearFilters={clear} emptyIcon={PackageCheck}
+          renderRow={plate => <>
+            <td><strong>{departmentOf(plate)}</strong></td>
+            <td>{`${t('clinicalRecords.envPlate')} ${plate.plate}`}{plate.batchId && <small>{`${t('labPlates.batch')} ${plate.batchId}`}</small>}</td>
+            <td>{positionsText(plate)}<small>{plate.samples.map(sample => sample.environmentalPosition).filter(Boolean).join(', ')}</small></td>
+            <td>{plate.collectedAt ? formatDay(plate.collectedAt, language) : '—'}</td>
+            <td><StatusBadge tone={STATUS_TONE[plate.status]}>{t(`labPlates.status${plate.status[0].toUpperCase()}${plate.status.slice(1)}`)}</StatusBadge>{plate.status === 'awaiting' && <small>{`${plate.counts.awaiting}/${plate.counts.total}`}</small>}</td>
+            <td><PlateResults plate={plate} language={language} /></td>
+          </>} />
+        </div>
+        {shown.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
+      </section>
+      {open && <PlateDialog plate={open} departmentOf={departmentOf} canManage={canManage} repository={repository} reload={reload} onClose={() => setOpenKey(null)} />}
+    </>
+  )
+}
+
+// One plate with every position side by side: the point, the sample, its state and result with the CFU count.
+function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClose }: { plate: CulturePlate, departmentOf: DepartmentOf, canManage: boolean, repository?: LaboratoryRepository, reload?: () => unknown, onClose: () => void }) {
+  const { t, language } = useLanguage()
+  const en = language === 'en'
+  const { notify } = useFeedback()
+  const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
+  const [standards, setStandards] = useState<AnyRecord[]>([])
+  useEffect(() => {
+    let alive = true
+    repository?.loadStandards?.().then(rows => { if (alive) setStandards(rows || []) }).catch(() => {})
+    return () => { alive = false }
+  }, [repository])
+  // Print and PDF are the detailed document of the plate (every position with its organism, CFU, limit and assessment, as the
+  // sample's own report); Excel keeps the table of positions.
+  const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  const detailed = (pdf: boolean, withNames = true) => () => { if (!printReport(buildPlateReport({ samples: plate.samples, standards, language, t, fmt: (value: string) => formatDateTime(value, language), withNames }), { pdf })) blocked() }
+  // A staff-check plate prints with the employees' names only for those who may see them, and they may leave the names out.
+  const canChooseNames = plate.samples.some(isStaffSample) && !plate.samples.some(sample => sample.staffMasked)
+  const plateMenu = {
+    ...registryMenu(() => ({ name: `${en ? 'plate' : 'trivlio'}-${plate.plate}`, headers: plateExportHeaders(en).slice(2), rows: plateExportRows([plate], departmentOf, t, language).map((row: unknown[]) => row.slice(2)) }), { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: `${t('clinicalRecords.envPlate')} ${plate.plate}`, onBlocked: blocked }),
+    onPrint: detailed(false),
+    onPdf: detailed(true),
+    items: canChooseNames ? [{ id: 'print-no-names', kind: 'print', label: en ? 'Print without staff names' : 'Εκτύπωση χωρίς ονόματα προσωπικού', onClick: detailed(false, false) }] : undefined,
+  }
+  async function receive() {
+    setBusy(true)
+    try {
+      const received = await receivePlate(repository as LaboratoryRepository, plate)
+      notify(t('labPlates.receivedN').replace('{n}', String(received)).replace('{plate}', plate.plate), 'success')
+    } catch (error) {
+      notify(t('labPlates.receivePartial').replace('{n}', String((error as AnyRecord).received || 0)).replace('{total}', String(plate.awaiting.length)).replace('{error}', (error as AnyRecord)?.message || t('actionFailed')), 'danger')
+    } finally {
+      await reload?.()
+      setBusy(false)
+    }
+  }
+  const subtitle = [departmentOf(plate), plate.collectedAt && formatDay(plate.collectedAt, language), plate.batchId && `${t('labPlates.batch')} ${plate.batchId}`].filter(Boolean).join(' · ')
+  return (
+    <ObserverDialog
+      width="standard"
+      title={`${t('clinicalRecords.envPlate')} ${plate.plate}`}
+      subtitle={subtitle}
+      onClose={onClose}
+      headerActions={<ExportMenu {...plateMenu} />}
+      footer={
+        canManage ? (
+        <Button disabled={busy || !plate.awaiting.length} loading={busy} onClick={receive} title={plate.awaiting.length ? undefined : t('labPlates.receiveNone')}>
+            <PackageCheck size={15} aria-hidden="true" />
+            {t('labPlates.receive')}
+            {plate.awaiting.length > 0 && ` (${plate.awaiting.length})`}
+          </Button>
+        ) : null
+      }
+    >
+      <table className="plate-positions">
+        <thead>
+          <tr>
+            <th>{t('labPlates.colPosition')}</th>
+            <th>{t('labPlates.colPoint')}</th>
+            <th>{t('labPlates.colStatus')}</th>
+            <th>{t('labPlates.colResult')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {plate.samples.map(sample => {
+            const result = sample.microbiologyResults?.[0]
+            return (
+              <tr key={sample.id} tabIndex={0} aria-label={`${t('labPlates.openSample')} ${sample.id}`} onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id)}`)} onKeyDown={event => { if (event.key === 'Enter') navigate(`/laboratory/${encodeURIComponent(sample.id)}`) }}>
+                <td><strong>{sample.environmentalPosition || '—'}</strong></td>
+                <td><span className={platePointLabel(sample, language).masked ? 'lab-staff-masked' : undefined}>{platePointLabel(sample, language).title}</span><small>{[platePointLabel(sample, language).detail, sample.id].filter(Boolean).join(' · ')}</small></td>
+                <td><LaboratoryStatus {...labSampleStatus(sample, language)} /></td>
+                <td>
+                  {result ? (
+                    <>
+                      <strong>{environmentalResultWord(result, language) || t(result.result)}</strong>
+                      <small>{[result.organism || (result.result === 'positive' ? (en ? 'Organism not recorded' : 'Δεν έχει καταχωριστεί μικροοργανισμός') : ''), result.cfuCount != null && `${result.cfuCount} CFU`, resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
+                    </>
+                  ) : (
+                    <span className="plate-no-result">{t('labPlates.noResult')}</span>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </ObserverDialog>
+  )
+}
