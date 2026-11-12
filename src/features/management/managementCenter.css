@@ -176,3 +176,4 @@
 /* The lists tab and the page reach the bottom edge like every other list (no padding under the pager). */
 .page-fill:has(>.management-shell){padding-bottom:0}
 .management-scroll-section:has(>.library-layout){padding-bottom:0}
+.management-scroll-section:has(>.registry-pagination){padding-bottom:0}
