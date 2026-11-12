@@ -38,6 +38,7 @@
     "src/features/occupational-health/**/*",
     "src/features/patients/**/*",
     "src/features/pharmacy/**/*",
+    "src/features/platform/**/*",
     "src/features/prevention/**/*",
     "src/features/recycle-bin/**/*",
     "src/features/registers/**/*",
