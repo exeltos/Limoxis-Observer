@@ -81,8 +81,8 @@ export function createClinicalRepository({isDemo,organizationId,actor}: CreateCl
     if(!organizationId||!patient?.recordId)return []
     return withActorNames(await withAdmissionLinks(await loadClinicalCasesForPatient(organizationId,patient.recordId)))
   }
-  async function loadCase(caseId: string){
-    if(isDemo)return clone(getClinicalCase(caseId))
+  async function loadCase(caseId: string | undefined){
+    if(isDemo)return clone(getClinicalCase(caseId as string))
     if(!organizationId||!caseId)return null
     const row=await loadClinicalCase(organizationId,caseId)
     return row?(await withActorNames(await withAdmissionLinks([row])))[0]:null
