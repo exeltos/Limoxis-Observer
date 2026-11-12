@@ -4,7 +4,7 @@ import { sampleTone } from './patientRecordScope'
 import type { AnyRecord } from '../../types/featureTypes'
 
 // A sample still waiting for its laboratory result.
-export const isAwaitingResult = sample => sampleTone(sample || {}) === 'pending'
+export const isAwaitingResult = (sample: AnyRecord | null | undefined) => sampleTone(sample || {}) === 'pending'
 
 // A critical result counts as communicated once the laboratory logged the call.
 export const isCommunicated = (sample: AnyRecord) =>

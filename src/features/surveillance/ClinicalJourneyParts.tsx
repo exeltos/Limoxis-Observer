@@ -10,6 +10,7 @@ import { AdministrationDialog } from './ClinicalRecordDialogs'
 import { statusTone } from './surveillanceOptions'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
+import type { ReactNode } from 'react'
 
 interface ClinicalEntryDetailProps {
   entry: AnyRecord
@@ -19,12 +20,12 @@ interface ClinicalEntryDetailProps {
   fmtDateTime: (value: unknown) => string
   canManage: boolean
   onClose: Handler
-  onDelete: Handler
+  onDelete?: { onClick: () => void, label: ReactNode } | null
   onEdit: Handler
   onFinishTherapy: Handler
   onApproveTherapy: Handler
   onRejectTherapy: Handler
-  onRecordAdministration: Handler
+  onRecordAdministration?: Handler
 }
 // The detail window of a clinical entry of an episode, and the table and badge the stages share
 // (split from ClinicalJourney.jsx; the episode journey itself stays there).
@@ -266,7 +267,7 @@ interface StageTableProps {
   columns: AnyRecord[]
   rows: AnyRecord[]
   renderRow: Handler
-  onOpen: Handler
+  onOpen?: Handler
 }
 // Lists inside an episode use the same table as the registries; rows that open
 // a detail window are clickable and keyboard-reachable.

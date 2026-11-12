@@ -12,10 +12,10 @@ interface SurveillanceTabAccessOptions {
 export function surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth }: SurveillanceTabAccessOptions) {
   const employees =
     actualRole === ROLES.PLATFORM_OWNER ||
-    [ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.OCCUPATIONAL_PHYSICIAN].includes(role) ||
+    ([ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.OCCUPATIONAL_PHYSICIAN] as string[]).includes(role) ||
     Boolean(canSeeSensitiveEmployeeHealth)
-  const environment = ![ROLES.DEPARTMENT_MANAGER, ROLES.DEPARTMENT_USER, ROLES.DOCTOR_REVIEWER].includes(role)
+  const environment = !([ROLES.DEPARTMENT_MANAGER, ROLES.DEPARTMENT_USER, ROLES.DOCTOR_REVIEWER] as string[]).includes(role)
   // The culture programme: the infection control lead and the hospital administrator (and the platform owner).
-  const cultures = actualRole === ROLES.PLATFORM_OWNER || [ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD].includes(role)
+  const cultures = actualRole === ROLES.PLATFORM_OWNER || ([ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD] as string[]).includes(role)
   return { employees, environment, cultures }
 }

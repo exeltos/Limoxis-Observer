@@ -274,7 +274,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
       let roster = !cloud
         ? await loadPatients(tenant?.id, { isDemo })
         : patientMode
-          ? await loadPatientsByKeys(tenant.id, UUID_PATTERN.test(patientId) ? { recordIds: [patientId] } : { codes: [patientId] })
+          ? await loadPatientsByKeys(tenant!.id, UUID_PATTERN.test(patientId) ? { recordIds: [patientId] } : { codes: [patientId] })
           : []
       const selectedPatient = patientMode
         ? roster.find(row => isPatientKey(row, patientId))
@@ -286,7 +286,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
         rows = one ? [one] : []
       }
       if (cloud && !patientMode)
-        roster = await loadPatientsByKeys(tenant.id, { recordIds: rows.map((row: AnyRecord) => row.patientRecordId) })
+        roster = await loadPatientsByKeys(tenant!.id, { recordIds: rows.map((row: AnyRecord) => row.patientRecordId) })
       setPatients(roster)
       // Surveillance switched off by the operating profile: its episodes are hidden, not deleted.
       if (isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE)) rows = []
@@ -315,7 +315,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
       setAdmissions(admissionRows)
       if (libraries) setClinicalLibraries(libraries)
     } catch (err) {
-      setError(err?.message || t('actionFailed'))
+      setError((err as Error)?.message || t('actionFailed'))
     } finally {
       setLoadedFor(recordKey)
       setLoading(false)
@@ -502,7 +502,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
         await laboratory.reload()
       } catch (linkError) {
         notify(
-          linkError?.message ||
+          (linkError as Error)?.message ||
             translate(
               'copy.clinicalRecordCopy.surveillanceWasCreatedButTheSample',
               language === 'el' ? 'el' : 'en',

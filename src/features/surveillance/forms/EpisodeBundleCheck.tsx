@@ -52,7 +52,7 @@ export function EpisodeBundleCheck({ deviceBundles, device, episode, onClose, on
               await deviceBundles.reload?.()
               onSaved?.()
             } catch (error) {
-              notify?.(error?.message || t('actionFailed'), 'danger')
+              notify?.((error as Error)?.message || t('actionFailed'), 'danger')
             }
           }}
         />

@@ -132,7 +132,7 @@ export function useAdmissionLifecycle({
       await onChanged?.()
       notify(t('saved'), 'success')
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
     } finally {
       setBusy(false)
     }
@@ -157,7 +157,7 @@ export function useAdmissionLifecycle({
       await onChanged?.()
       notify(t('saved'), 'success')
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
     } finally {
       setBusy(false)
     }
@@ -279,7 +279,7 @@ export function AdmissionDeleteDialog({
           ? t('clinicalRecords.lastAdmissionCannotBeDeleted')
           : error?.code === 'has_surveillance'
             ? t('clinicalRecords.admissionHasSurveillance')
-            : error?.message || t('actionFailed'),
+            : (error as Error)?.message || t('actionFailed'),
         'danger',
       )
     }
@@ -369,7 +369,7 @@ export function NewAdmissionDialog({
       await onAdmitted?.(row, discharged)
       notify(t('saved'), 'success')
     } catch (error) {
-      notify(error?.duplicateRecordNumber ? t('recordNumberTaken') : error?.message || t('actionFailed'), 'danger')
+      notify(error?.duplicateRecordNumber ? t('recordNumberTaken') : (error as Error)?.message || t('actionFailed'), 'danger')
     } finally {
       setBusy(false)
     }

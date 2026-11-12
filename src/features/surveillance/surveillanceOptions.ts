@@ -31,7 +31,7 @@ export const priorityOptions=(language='el')=>SAMPLE_PRIORITIES.map(item=>({valu
 // specimens to the matching code, so typing «BAL» or «Πτύελα» finds
 // «Respiratory sample»; with an empty library the five codes are offered alone.
 export const PATIENT_SAMPLE_TYPES=['bloodCulture','urineCulture','respiratorySample','woundCulture','other']
-const SPECIMEN_CODES=[
+const SPECIMEN_CODES: [string, RegExp][]=[
   ['bloodCulture',/(^|\s)(αίμα|αιμα|blood)|αιμοκαλλ/i],
   ['urineCulture',/ούρ|ουρ|urine/i],
   ['respiratorySample',/πτύελ|πτυελ|sputum|τραχει|trache|bal\b|βρογχ|bronch|αναπνευ|respir/i],
@@ -84,7 +84,7 @@ export function listTexts(language='el'){
 
 // The period filter of the lists: the record started within the last N days («all» keeps everything).
 export const PERIOD_DAYS = [7, 30, 90, 365]
-export function inPeriod(value, period) {
+export function inPeriod(value: string | null | undefined, period: string | number | null | undefined) {
   if (!period || period === 'all') return true
   const time = value ? new Date(String(value).length <= 10 ? `${value}T12:00:00` : value).getTime() : NaN
   return !Number.isNaN(time) && Date.now() - time <= Number(period) * 86400000

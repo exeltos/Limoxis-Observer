@@ -30,7 +30,7 @@ function sampleItem(sample: AnyRecord, { L, en, t, fmtDate, fmtDateTime, sampleL
 interface EpisodeBlocksOptions {
   libraries?: AnyRecord
 }
-function episodeBlocks(record: AnyRecord, ctx, { libraries = {} }: EpisodeBlocksOptions = {}) {
+function episodeBlocks(record: AnyRecord, ctx: AnyRecord, { libraries = {} }: EpisodeBlocksOptions = {}) {
   const { L, en, t, fmtDate, language } = ctx
   const items = []
   const hai = record.haiClassification
@@ -50,8 +50,8 @@ function episodeBlocks(record: AnyRecord, ctx, { libraries = {} }: EpisodeBlocks
       [L('Αξιολογήθηκε από', 'Assessed by'), assessment.assessedBy],
       [L('Ταξινόμηση', 'Classification'), assessment.classification && clinicalTerm(assessment.classification, language, t)],
       [L('Περιγραφή', 'Summary'), en ? assessment.summaryEn || assessment.summary : assessment.summary],
-      [L('Σημεία / συμπτώματα', 'Signs / symptoms'), (assessment.symptoms || []).map(x => libraryLabel(x, libraries.clinicalSymptoms || [], language, t)).join(', ')],
-      [L('Παράγοντες κινδύνου', 'Risk factors'), (assessment.riskFactors || []).map(x => libraryLabel(x, libraries.clinicalRiskFactors || [], language, t)).join(', ')],
+      [L('Σημεία / συμπτώματα', 'Signs / symptoms'), (assessment.symptoms || []).map((x: string) => libraryLabel(x, libraries.clinicalSymptoms || [], language, t)).join(', ')],
+      [L('Παράγοντες κινδύνου', 'Risk factors'), (assessment.riskFactors || []).map((x: string) => libraryLabel(x, libraries.clinicalRiskFactors || [], language, t)).join(', ')],
     ],
   })
   if (record.devices?.length) items.push({

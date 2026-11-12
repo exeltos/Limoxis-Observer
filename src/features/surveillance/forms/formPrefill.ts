@@ -5,7 +5,7 @@ import type { AnyRecord } from '../../../types/featureTypes'
 // What every form opened from an episode already knows: patient, admission, episode. Built
 // once here, so the bundle, the incident report, the notifiable report and the exposure
 // record start from the same values (the PrefilledList shows them locked).
-export function patientDisplayName(ctx) {
+export function patientDisplayName(ctx: AnyRecord) {
   const { patient, record, language } = ctx
   return language === 'en'
     ? patient?.nameEn || record?.patientEn || patient?.name || record?.patient || ''
@@ -48,7 +48,7 @@ interface BuildBundlePrefillOptions {
   device: AnyRecord
   episode: AnyRecord
   info: AnyRecord
-  now?: AnyRecord
+  now?: Date
 }
 export function buildBundlePrefill({ ctx, device, episode, info, now = new Date() }: BuildBundlePrefillOptions) {
   const base = episodeContext(ctx, episode)

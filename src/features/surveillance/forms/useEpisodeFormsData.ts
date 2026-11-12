@@ -7,14 +7,14 @@ import type { AnyRecord } from '../../../types/featureTypes'
 // of the surveillance stage and the printed report read the same rows. Each section is
 // { loading, value, error }; a failing section never blocks the others.
 export function useEpisodeFormsData(ctx: AnyRecord) {
-  const [state, setState] = useState({})
+  const [state, setState] = useState<Record<string, AnyRecord>>({})
   const ctxRef = useRef(ctx)
   ctxRef.current = ctx
   const generation = useRef(0)
   const enabled = Boolean(ctx?.enabled)
   const scopeKey = ctx?.scopeKey || ''
 
-  const runOne = useCallback((section: string, token: string) => {
+  const runOne = useCallback((section: AnyRecord, token: number) => {
     setState(current => ({ ...current, [section.id]: { ...current[section.id], loading: true } }))
     return Promise.resolve()
       .then(() => section.load(ctxRef.current))

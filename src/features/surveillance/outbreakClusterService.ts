@@ -10,7 +10,7 @@ const supabase = configuredClient as Cloud
 export const CLUSTER_WINDOW_DAYS = 14
 export const CLUSTER_THRESHOLD = 3
 
-export function demoClusterRecords(laboratorySamples) {
+export function demoClusterRecords(laboratorySamples: AnyRecord[]) {
   return laboratorySamples
     // Patients only, as in the database: no environmental sample, no sample without a patient.
     .filter((x: AnyRecord) => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus) && x.organism && x.patientId && !ENVIRONMENTAL_SAMPLE_TYPES.includes(x.sampleType))
@@ -20,7 +20,7 @@ export function demoClusterRecords(laboratorySamples) {
 
 interface CollectDemoOrganismClustersOptions {
   windowDays?: number
-  threshold?: AnyRecord
+  threshold?: number
 }
 // The demo laboratory samples load only in the demo workspace.
 export async function collectDemoOrganismClusters({ windowDays = CLUSTER_WINDOW_DAYS, threshold = CLUSTER_THRESHOLD }: CollectDemoOrganismClustersOptions = {}) {
@@ -44,7 +44,7 @@ function mapCloudCluster(row: AnyRecord) {
 
 interface LoadActiveClustersAsyncOptions {
   windowDays?: number
-  threshold?: AnyRecord
+  threshold?: number
 }
 export async function loadActiveClustersAsync(organizationId: string | null | undefined, { windowDays = CLUSTER_WINDOW_DAYS, threshold = CLUSTER_THRESHOLD }: LoadActiveClustersAsyncOptions = {}) {
   if (isDemoDataEnvironment()) return collectDemoOrganismClusters({ windowDays, threshold })

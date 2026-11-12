@@ -7,7 +7,7 @@ export const CULTURE_CATEGORY = 'Περιβαλλοντικός μικροβιο
 
 // Cultures that belong to no one department (owner, 2/11/2026): staff, air, network water. Each is one row of the programme,
 // done when a sample of its kind is taken in any department (the staff cultures are the employees' screening samples).
-export const CULTURE_GROUPS = Object.freeze({
+export const CULTURE_GROUPS: Readonly<Record<string, { types: string[], label: string[] }>> = Object.freeze({
   staff: { types: ['staff'], label: ['Προσωπικό', 'Staff'] },
   air: { types: ['air'], label: ['Αέρας', 'Air'] },
   network_water: { types: ['water'], label: ['Νερό δικτύου', 'Network water'] },
@@ -21,7 +21,7 @@ export function everyMonths(frequency: AnyRecord = {}) {
   return 1
 }
 
-const dayOf = value => String(value || '').slice(0, 10)
+const dayOf = (value: unknown) => String(value || '').slice(0, 10)
 const monthIndex = (day: string, year: number) => (Number(day.slice(0, 4)) - year) * 12 + Number(day.slice(5, 7)) - 1
 
 // The sampling rounds: the environmental samples of one department on one day.
@@ -51,7 +51,7 @@ export const roundMatches = (item: AnyRecord, round: AnyRecord) => item.group
 // The twelve months of a year for one culture: done (with its rounds), missed (due and past without a round), due (this
 // month, not yet done), planned (ahead) or empty. A culture is due «every n months» after the last time it was done; with no
 // round before the year, from January. Before the laboratory's first environmental sample (`start`) nothing is judged.
-export function cultureYear(item: AnyRecord, rounds: AnyRecord[], year, today = new Date(), start = '') {
+export function cultureYear(item: AnyRecord, rounds: AnyRecord[], year: number, today = new Date(), start = '') {
   const own = rounds.filter(round => roundMatches(item, round))
   const thisMonth = monthIndex(hospitalDate(today), year)
   const before = own.filter((round: AnyRecord) => monthIndex(round.day, year) < 0)
@@ -69,7 +69,7 @@ export function cultureYear(item: AnyRecord, rounds: AnyRecord[], year, today = 
 }
 
 // The rounds of a year that belong to no culture of the programme («out of programme»).
-export const offProgramme = (items: AnyRecord[], rounds: AnyRecord[], year) => rounds.filter((round: AnyRecord) => round.day.startsWith(String(year)) && !items.some((item: AnyRecord) => roundMatches(item, round)))
+export const offProgramme = (items: AnyRecord[], rounds: AnyRecord[], year: number) => rounds.filter((round: AnyRecord) => round.day.startsWith(String(year)) && !items.some((item: AnyRecord) => roundMatches(item, round)))
 
 // The programme's cultures from the controls: their department (the one sampled, else the assignment's) and kinds of sample.
 // The cultures of a group come after the departments' ones.
@@ -78,7 +78,7 @@ export function cultureItems(definitions: AnyRecord[] = []) {
   const own = active.filter(row => !CULTURE_GROUPS[row.cultureGroup])
     .flatMap(row => {
       const departments = row.cultureDepartment ? [row.cultureDepartment] : (row.departments || [])
-      return departments.map(department => ({ id: `${row.code}|${department}`, code: row.code, title: row.title, department, sampleTypes: row.cultureSampleTypes || [], every: everyMonths(row.frequency) }))
+      return departments.map((department: string) => ({ id: `${row.code}|${department}`, code: row.code, title: row.title, department, sampleTypes: row.cultureSampleTypes || [], every: everyMonths(row.frequency) }))
     })
     .sort((a, b) => a.department.localeCompare(b.department, 'el') || a.title.localeCompare(b.title, 'el'))
   const claimed = own.flatMap(item => item.sampleTypes.map((type: string) => `${item.department}|${type}`))

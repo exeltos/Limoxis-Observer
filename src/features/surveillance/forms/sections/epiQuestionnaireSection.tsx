@@ -24,7 +24,7 @@ const samplesOf = (ctx: AnyRecord, episode: AnyRecord) =>
 // One entry per episode: the stored questionnaire (or none), and what is worked out from it.
 export function epiRows(ctx: AnyRecord, value: AnyRecord) {
   const stored = value?.rows || {}
-  return (ctx.episodes || []).map(episode => {
+  return (ctx.episodes || []).map((episode: AnyRecord) => {
     const row = stored[epiCaseKey(ctx, episode)] || null
     return { key: epiCaseKey(ctx, episode), episode, row, summary: epiSummary({ row, record: episode, admissionDate: ctx.admission?.admissionDate || ctx.patient?.admissionDate, samples: samplesOf(ctx, episode) }) }
   })
@@ -32,7 +32,7 @@ export function epiRows(ctx: AnyRecord, value: AnyRecord) {
 
 interface EpiQuestionnaireSectionProps {
   ctx: AnyRecord
-  section: string
+  section: AnyRecord
   reload: Handler
 }
 function EpiQuestionnaireSection({ ctx, section, reload }: EpiQuestionnaireSectionProps) {
@@ -61,7 +61,7 @@ function EpiQuestionnaireSection({ ctx, section, reload }: EpiQuestionnaireSecti
             const rowCounts = item.row ? epiCounts(item.row.answers, questions) : null
             const detail = [
               rows.length > 1 && item.episode.id,
-              done ? fill(t('epiQuestionnaire.rowDetail'), { answered: rowCounts.answered, total: rowCounts.total, unknown: rowCounts.unknown }) : t('epiQuestionnaire.rowPendingDetail'),
+              done ? fill(t('epiQuestionnaire.rowDetail'), { answered: rowCounts!.answered, total: rowCounts!.total, unknown: rowCounts!.unknown }) : t('epiQuestionnaire.rowPendingDetail'),
             ]
               .filter(Boolean)
               .join(' · ')
@@ -118,13 +118,13 @@ export const epiQuestionnaireSection = {
   order: 50,
   canSee: (ctx: AnyRecord) => ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) && (ctx.episodes || []).length > 0,
   load: async (ctx: AnyRecord) => {
-    const ids = (ctx.episodes || []).map(episode => epiCaseKey(ctx, episode))
+    const ids = (ctx.episodes || []).map((episode: AnyRecord) => epiCaseKey(ctx, episode))
     const [rows, settings] = await Promise.all([loadEpiQuestionnaires(ctx.organizationId, ids, { isDemo: ctx.isDemo }), loadEpiSettings(ctx.organizationId, { isDemo: ctx.isDemo }).catch(() => [])])
     return { rows, settings }
   },
   Component: EpiQuestionnaireSection,
   // The printed report: origin, risk factors and every answer in words (one block per episode).
-  buildReport(ctx: AnyRecord, section: string) {
+  buildReport(ctx: AnyRecord, section: AnyRecord) {
     const rows = epiRows(ctx, section.value)
     if (!rows.length || !section.value) return null
     const questions = activeEpiQuestions(applyEpiSettings(section.value.settings || []))

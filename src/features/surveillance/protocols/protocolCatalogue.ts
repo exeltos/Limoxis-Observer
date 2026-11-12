@@ -16,12 +16,34 @@ export const HOUR_ONE_MINUTES = 60
 // canSkip: the step may be recorded as «not indicated» with a reason.
 // beforeStep: the step should be done before that one (cultures before the antibiotic).
 // followUp: shown only when `when(run)` holds, with its own window in minutes.
-const LACTATE = { key: 'lactate', icon: 'lactate', kind: 'number', unit: 'mmol/L', canSkip: false }
-const CULTURES = { key: 'blood_cultures', icon: 'cultures', kind: 'text', canSkip: false, beforeStep: 'antibiotic' }
-const ANTIBIOTIC = { key: 'antibiotic', icon: 'antibiotic', kind: 'text', canSkip: false, linksTherapy: true }
-const FLUIDS = { key: 'fluids', icon: 'fluids', kind: 'text', canSkip: true, mlPerKg: 30 }
-const VASOPRESSOR = { key: 'vasopressor', icon: 'vasopressor', kind: 'text', canSkip: true }
-const REPEAT_LACTATE = {
+// One step of a protocol (see the notes above).
+export interface ProtocolStep {
+  key: string
+  icon: string
+  kind: string
+  canSkip: boolean
+  unit?: string
+  beforeStep?: string
+  linksTherapy?: boolean
+  mlPerKg?: number
+  followUp?: boolean
+  windowMinutes?: number[]
+  when?: (run: AnyRecord) => boolean
+  emphasis?: boolean
+}
+export interface ClinicalProtocol {
+  key: string
+  family: string
+  version: string
+  emphasis?: string[]
+  steps: ProtocolStep[]
+}
+const LACTATE: ProtocolStep = { key: 'lactate', icon: 'lactate', kind: 'number', unit: 'mmol/L', canSkip: false }
+const CULTURES: ProtocolStep = { key: 'blood_cultures', icon: 'cultures', kind: 'text', canSkip: false, beforeStep: 'antibiotic' }
+const ANTIBIOTIC: ProtocolStep = { key: 'antibiotic', icon: 'antibiotic', kind: 'text', canSkip: false, linksTherapy: true }
+const FLUIDS: ProtocolStep = { key: 'fluids', icon: 'fluids', kind: 'text', canSkip: true, mlPerKg: 30 }
+const VASOPRESSOR: ProtocolStep = { key: 'vasopressor', icon: 'vasopressor', kind: 'text', canSkip: true }
+const REPEAT_LACTATE: ProtocolStep = {
   key: 'lactate_repeat',
   icon: 'lactate',
   kind: 'number',
@@ -29,10 +51,10 @@ const REPEAT_LACTATE = {
   canSkip: true,
   followUp: true,
   windowMinutes: [120, 240],
-  when: run => Number(String(stepOf(run, 'lactate')?.value || '').replace(',', '.')) > 2,
+  when: (run: AnyRecord) => Number(String(stepOf(run, 'lactate')?.value || '').replace(',', '.')) > 2,
 }
 
-export const CLINICAL_PROTOCOLS = Object.freeze([
+export const CLINICAL_PROTOCOLS: readonly ClinicalProtocol[] = Object.freeze([
   {
     key: 'sepsis_hour1',
     family: 'sepsis',
@@ -53,7 +75,7 @@ export const CLINICAL_PROTOCOLS = Object.freeze([
 export const protocolByKey = (key: string) => CLINICAL_PROTOCOLS.find(item => item.key === key) || null
 
 export function stepOf(run: AnyRecord, key: string) {
-  return (run?.steps || []).find((step: number) => step.key === key) || null
+  return (run?.steps || []).find((step: AnyRecord) => step.key === key) || null
 }
 
 // The steps a run shows now: the protocol's steps, without the follow-ups whose
@@ -66,6 +88,6 @@ export function visibleSteps(run: AnyRecord) {
 
 // The steps that count for completion: every visible main step done or
 // recorded «not indicated».
-export function pendingSteps(run) {
+export function pendingSteps(run: AnyRecord) {
   return visibleSteps(run).filter(step => !step.followUp && !['done', 'not_indicated'].includes(stepOf(run, step.key)?.status))
 }

@@ -9,22 +9,29 @@ import type { LucideIcon } from 'lucide-react'
 // Open / closed state of the sections lives in the tab, so a deep link or a header chip can
 // open one (e.g. the NEWS2 chip opens «Κλίμακες»). A section is a heading line, a one-line
 // summary while it is closed and its content while it is open.
-export const FormsTabContext = createContext({ isOpen: () => true, toggle: () => {}, offer: () => {} })
+export interface FormsTabValue {
+  isOpen: (id: string) => boolean
+  toggle: (id: string) => void
+  offer: (id: string, wantOpen: boolean) => void
+  // The forms tab itself: every section open, the row's action in its «⋯».
+  flat?: boolean
+}
+export const FormsTabContext = createContext<FormsTabValue>({ isOpen: () => true, toggle: () => {}, offer: () => {} })
 export const useFormsTab = () => useContext(FormsTabContext)
 
 // Which sections are open: the tab and any page that shows a few sections on their own
 // (the staff record) keep it with this hook. A section that needs action opens itself unless
 // the user already chose; openSection opens one from outside (a deep link, a header chip).
 export function useFormsTabState() {
-  const [open, setOpen] = useState({})
-  const touched = useRef(new Set())
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+  const touched = useRef(new Set<string>())
   const toggle = useCallback((id: string) => {
     touched.current.add(id)
     setOpen(current => ({ ...current, [id]: !current[id] }))
   }, [])
   // A section says how it would like to be: the first time sets its default; later it only ever
   // asks to open (its data arrived, or it needs action), and only if the user has not chosen.
-  const offer = useCallback((id: string, wantOpen) => {
+  const offer = useCallback((id: string, wantOpen: boolean) => {
     setOpen(current => {
       if (!(id in current)) return { ...current, [id]: wantOpen }
       if (wantOpen && !touched.current.has(id) && !current[id]) return { ...current, [id]: true }
@@ -51,8 +58,8 @@ interface FormLineProps {
   id: string
   title: string
   icon: LucideIcon
-  summary: boolean
-  action: AnyRecord
+  summary?: ReactNode
+  action?: ReactNode
 }
 // A section that is a single line, without a body: icon, title, what it says and its link.
 export function FormLine({ id, title, icon: Icon, summary, action }: FormLineProps) {
@@ -74,10 +81,10 @@ interface FormSectionProps {
   id: string
   title: string
   icon: LucideIcon
-  summary: boolean
+  summary?: ReactNode
   defaultOpen?: boolean
   needsAttention?: boolean
-  actions: AnyRecord[]
+  actions?: (AnyRecord | false | null | undefined)[]
   children: ReactNode
 }
 export function FormSection({ id, title, icon: Icon, summary, defaultOpen = false, needsAttention = false, actions, children }: FormSectionProps) {

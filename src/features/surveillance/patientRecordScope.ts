@@ -3,7 +3,7 @@
 import { hospitalDay } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
 
-const sameId = (a, b) => String(a) === String(b)
+const sameId = (a: unknown, b: unknown) => String(a) === String(b)
 
 // The hospital's calendar day of a date or timestamp (src/core/dates/hospitalDate.ts):
 // a database timestamp in UTC is read in the hospital's time zone.
@@ -34,7 +34,7 @@ export function admissionWindowEnd(admission: AnyRecord, admissions: AnyRecord[]
 
 // Inside the admission's dates: from the admission day up to its last day
 // (inclusive), or open-ended.
-function withinAdmission(date: string, admission: AnyRecord, admissions) {
+function withinAdmission(date: string, admission: AnyRecord, admissions: AnyRecord[]) {
   const end = admissionWindowEnd(admission, admissions)
   return date >= day(admission.admissionDate) && (!end || date <= end)
 }
@@ -91,14 +91,14 @@ const SAMPLE_SOURCE: Record<string, string> = {
   respiratorySample: 'respiratory',
   woundCulture: 'surgicalSite',
 }
-const SOURCE_PATTERNS = [
+const SOURCE_PATTERNS: [string, RegExp][] = [
   ['bloodstream', /αιμοκαλλ|αίμα|αιμα|blood|bloodstream/i],
   ['urinary', /ούρ|ουρ|urine|urinary/i],
   ['respiratory', /πτύελ|πτυελ|sputum|τραχει|trache|bal\b|βρογχ|bronch|αναπνευ|respir/i],
   ['surgicalSite', /τραύμ|τραυμ|wound|χειρουργ|surg|τομή|τομη|incision|πύον|pus/i],
 ]
 
-function sourceFromText(value) {
+function sourceFromText(value: string) {
   const text = String(value || '')
   return SOURCE_PATTERNS.find(([, pattern]) => pattern.test(text))?.[0] || ''
 }
@@ -113,7 +113,7 @@ function episodeSource(episode: AnyRecord) {
   return sourceFromText(`${episode?.reason || ''} ${episode?.reasonEn || ''}`)
 }
 
-function daysApart(a, b) {
+function daysApart(a: string | null | undefined, b: string | null | undefined) {
   if (!a || !b) return Number.POSITIVE_INFINITY
   const left = new Date(`${a}T12:00:00Z`).getTime()
   const right = new Date(`${b}T12:00:00Z`).getTime()
@@ -213,7 +213,7 @@ interface SamplesForAdmissionOptions {
 // stay without a discharge date), in its department. A sample without a
 // collection or request date is kept. Missing legacy/LIS case links are enriched
 // in-memory so the patient folder can display them under the matching surveillance.
-export function samplesForAdmission(samples: AnyRecord[] = [], patient, admission: AnyRecord, { admissions = [], episodes = [] }: SamplesForAdmissionOptions = {}) {
+export function samplesForAdmission(samples: AnyRecord[] = [], patient: AnyRecord | null, admission: AnyRecord, { admissions = [], episodes = [] }: SamplesForAdmissionOptions = {}) {
   if (!patient || !admission) return []
   const scopedEpisodes = episodesForAdmission(episodes, admission, { admissions })
   return samples
@@ -232,7 +232,7 @@ interface SamplesOutsideAdmissionsOptions {
 }
 // The patient's samples that belong to none of their admissions, so the record
 // never hides them.
-export function samplesOutsideAdmissions(samples: AnyRecord[] = [], patient, admissions: AnyRecord[] = [], { episodes = [] }: SamplesOutsideAdmissionsOptions = {}) {
+export function samplesOutsideAdmissions(samples: AnyRecord[] = [], patient: AnyRecord | null, admissions: AnyRecord[] = [], { episodes = [] }: SamplesOutsideAdmissionsOptions = {}) {
   if (!patient) return []
   return samples.filter(
     sample =>
@@ -265,7 +265,7 @@ export function stayDays(from: string, to: string, today = new Date()) {
   if (!from) return null
   const start = new Date(`${day(from)}T12:00:00`)
   const end = to ? new Date(`${day(to)}T12:00:00`) : today
-  const days = Math.round((end - start) / 86400000)
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000)
   return Number.isFinite(days) && days >= 0 ? days + 1 : null
 }
 

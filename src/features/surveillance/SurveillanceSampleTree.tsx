@@ -103,7 +103,7 @@ export function SampleTreeRow({
 }: SampleTreeRowProps) {
   const type = t(sample.sampleType || sample.type) || sample.sampleType || sample.type || '—'
   const status = t(sample.result || sample.status || 'pending')
-  const clean = value => {
+  const clean = (value: unknown) => {
     const text = String(value ?? '').trim()
     return text && text !== '—' ? text : ''
   }

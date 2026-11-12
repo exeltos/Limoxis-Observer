@@ -103,7 +103,7 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
       setEditor(null)
       await reload()
     } catch (error) {
-      notify(error?.message || t('episodeForms.exposure.saveFailed'), 'error')
+      notify((error as Error)?.message || t('episodeForms.exposure.saveFailed'), 'error')
     }
   }
   const overdue = rows.filter(row => exposureStatus(row) === FORM_STATUS.OVERDUE).length

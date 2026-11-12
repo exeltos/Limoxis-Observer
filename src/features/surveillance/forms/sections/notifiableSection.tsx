@@ -22,6 +22,8 @@ import { FORM_STATUS } from '../formStatus'
 import { episodeContext } from '../formPrefill'
 import type { AnyRecord } from '../../../../types/featureTypes'
 import type { Handler } from '../../surveillanceTypes'
+import type { AttachmentFile } from '../../../../design-system/AttachmentField'
+import type { EodyEntry } from '../../../reporting/eodyCatalogue'
 
 // The roles the database lets read and write notifiable disease reports (RLS of
 // notifiable_disease_reports). Everyone else does not even learn that a report exists.
@@ -37,7 +39,7 @@ export function notifiableRows(ctx: AnyRecord, reports: AnyRecord[] = []) {
   const en = ctx.language === 'en'
   const findings = notifiableFindings(ctx.samples || [], reports)
   const seen = new Set(findings.map(finding => finding.findingKey))
-  const rows = findings.map(finding => ({
+  const rows: AnyRecord[] = findings.map(finding => ({
     key: finding.findingKey,
     finding,
     report: finding.report,
@@ -85,7 +87,7 @@ export function NotifiableDialog({ ctx, row, onClose, onSaved }: NotifiableDialo
   const { notify } = useFeedback()
   const [draft, setDraft] = useState({ status: row.status, notifiedAt: row.report?.notifiedAt || '', reference: row.report?.reference || '' })
   const [busy, setBusy] = useState(false)
-  const [demoForms, setDemoForms] = useState<AnyRecord[]>([])
+  const [demoForms, setDemoForms] = useState<AttachmentFile[]>([])
   const base = episodeContext(ctx)
   const removeItem = notifiableDeleteItem(ctx, row, t, onSaved)
   // The completed form hangs on the saved report (its id); the demo keeps it on the screen only.
@@ -99,7 +101,7 @@ export function NotifiableDialog({ ctx, row, onClose, onSaved }: NotifiableDialo
       notify(t('episodeForms.notifiable.saved'), 'success')
       onSaved()
     } catch (error) {
-      notify(error?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
+      notify((error as Error)?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
     } finally {
       setBusy(false)
     }
@@ -169,7 +171,7 @@ export function NotifiableDialog({ ctx, row, onClose, onSaved }: NotifiableDialo
 
 interface NotifiableSectionProps {
   ctx: AnyRecord
-  section: string
+  section: AnyRecord
   reload: Handler
 }
 function NotifiableSection({ ctx, section, reload }: NotifiableSectionProps) {
@@ -180,7 +182,7 @@ function NotifiableSection({ ctx, section, reload }: NotifiableSectionProps) {
   const [picking, setPicking] = useState(false)
   const [creating, setCreating] = useState(false)
   const base = episodeContext(ctx)
-  async function createReport(entry: AnyRecord) {
+  async function createReport(entry: EodyEntry) {
     setCreating(true)
     try {
       await createClinicalNotificationReport(ctx.organizationId, { patientRecordId: base.patientRecordId || (ctx.isDemo ? ctx.patient?.id : ''), departmentId: base.departmentId, entry }, { isDemo: ctx.isDemo })
@@ -188,7 +190,7 @@ function NotifiableSection({ ctx, section, reload }: NotifiableSectionProps) {
       setPicking(false)
       reload()
     } catch (error) {
-      notify(error?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
+      notify((error as Error)?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
     } finally {
       setCreating(false)
     }
@@ -262,7 +264,7 @@ export const notifiableSection = {
       { isDemo: ctx.isDemo },
     ),
   Component: NotifiableSection,
-  buildReport(ctx: AnyRecord, section: string) {
+  buildReport(ctx: AnyRecord, section: AnyRecord) {
     const rows = notifiableRows(ctx, section.value || [])
     if (!rows.length) return null
     return {

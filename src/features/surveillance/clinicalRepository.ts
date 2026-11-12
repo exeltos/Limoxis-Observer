@@ -59,7 +59,7 @@ function touch(record: AnyRecord,actor: AnyRecord|null,type: string,detail: stri
 
 interface CreateClinicalRepositoryOptions {
   isDemo: boolean
-  organizationId: string
+  organizationId: string | null | undefined
   actor: AnyRecord|null
 }
 export function createClinicalRepository({isDemo,organizationId,actor}: CreateClinicalRepositoryOptions){

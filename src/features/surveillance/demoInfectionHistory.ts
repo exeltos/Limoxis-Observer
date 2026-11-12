@@ -5,7 +5,7 @@
 import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pick, seededRandom } from '../../core/data/demoSeed'
 import type { AnyRecord } from '../../types/featureTypes'
 
-export const WARD_EN = {
+export const WARD_EN: Record<string, string> = {
   ΜΕΘ: 'ICU',
   Παθολογική: 'Internal Medicine',
   Χειρουργική: 'Surgery',
@@ -14,7 +14,7 @@ export const WARD_EN = {
   'Νεογνολογική / ΜΕΝΝ': 'Neonatal / NICU',
   Ορθοπαιδική: 'Orthopedics',
 }
-const ROOM_PREFIX = {
+const ROOM_PREFIX: Record<string, string> = {
   ΜΕΘ: 'ICU',
   Παθολογική: 'IM',
   Χειρουργική: 'SU',
@@ -26,7 +26,7 @@ const ROOM_PREFIX = {
 
 // Where each culture comes from: sample type, the laboratory source and the
 // clinical site shown on the surveillance episode.
-export const SAMPLE_SITES = {
+export const SAMPLE_SITES: Record<string, string[]> = {
   centralLine: ['bloodCulture', 'Κεντρική φλεβική γραμμή', 'Central line', 'Αίμα', 'Blood'],
   peripheral: ['bloodCulture', 'Περιφερική αιμοληψία', 'Peripheral draw', 'Αίμα', 'Blood'],
   urinaryCatheter: ['urineCulture', 'Ουροκαθετήρας', 'Urinary catheter', 'Ούρα', 'Urine'],
@@ -66,7 +66,7 @@ export const SAMPLE_SITES = {
 
 // EUCAST-style susceptibility of each organism/resistance profile; the first
 // row is the reference agent the AMR indicators read.
-const AST_PROFILES = {
+const AST_PROFILES: Record<string, (string | number)[][]> = {
   'Klebsiella pneumoniae|MDR': [
     ['Meropenem', 'R', '≥16'],
     ['Ceftazidime/avibactam', 'S', '2'],
@@ -127,9 +127,9 @@ const AST_PROFILES = {
     ['Amoxicillin/clavulanic acid', 'S', '4'],
   ],
 }
-export function astFor(organism, resistance) {
+export function astFor(organism: string, resistance: string | null | undefined) {
   const rows = AST_PROFILES[`${organism}|${resistance || ''}`] || []
-  return rows.map(([drug, sir, mic]: AnyRecord) => ({
+  return rows.map(([drug, sir, mic]) => ({
     drug,
     sir,
     mic,
@@ -138,12 +138,12 @@ export function astFor(organism, resistance) {
     version: '16.0',
   }))
 }
-export const susceptibilitySummary = (organism, resistance) =>
+export const susceptibilitySummary = (organism: string, resistance: string | null | undefined) =>
   astFor(organism, resistance)
     .map((row: AnyRecord) => `${row.drug} ${row.sir}`)
     .join(' · ') || null
 
-const DEVICES = {
+const DEVICES: Record<string, (string | null)[]> = {
   cvc: ['Κεντρικός φλεβικός καθετήρας', 'Central venous catheter', 'clabsi'],
   umbilical: [
     'Κεντρικός φλεβικός καθετήρας (ομφαλικός)',
@@ -192,7 +192,8 @@ const HAI_TEXT: Record<string, (string | string[])[]> = {
 //  before start), started, organism, resistance, site, hai [status, type] or null,
 //  device, therapy [agent, dose, route, days, approval], outcome, critical]
 // prettier-ignore
-const CASES = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- a row of mixed columns, named by the destructuring of historyCases
+const CASES: any[][] = [
   ['SUR-250121', 'LAB-250908-021', 'PT-252001', 'Γεώργιος Μπέλλος', 'Georgios Bellos', '1951-03-14', 'ΜΕΘ', 4, 6, '2025-09-08', 'Klebsiella pneumoniae', 'MDR', 'centralLine', ['confirmed', 'bloodstreamInfection'], 'cvc', ['Ceftazidime/avibactam', '2.5 g', 'IV', 10, 'approved'], 'resolved', true],
   ['SUR-250124', 'LAB-250922-007', 'PT-252002', 'Σταυρούλα Καρρά', 'Stavroula Karra', '1962-07-30', 'Χειρουργική', 12, 5, '2025-09-22', 'Escherichia coli', 'ESBL', 'woundSwab', ['confirmed', 'surgicalSiteInfection'], null, ['Ertapenem', '1 g', 'IV', 7, 'not_required'], 'resolved', false],
   ['SUR-250127', 'LAB-251006-014', 'PT-252003', 'Χαράλαμπος Βλάχος', 'Charalampos Vlachos', '1947-11-02', 'ΜΕΘ', 2, 9, '2025-10-06', 'Acinetobacter baumannii', 'XDR', 'trachealAspirate', ['confirmed', 'ventilatorAssociatedPneumonia'], 'ett', ['Colistin', '9 MU', 'IV', 9, 'approved'], 'deceased', false],
@@ -346,5 +347,5 @@ export const needsIsolation = (item: AnyRecord) =>
   /difficile/.test(item.organism)
 
 export const deviceFor = (key: string) => DEVICES[key] || null
-export const haiTextFor = (hai, organism) =>
+export const haiTextFor = (hai: string[] | null | undefined, organism: string) =>
   HAI_TEXT[hai?.[1] || (/difficile/.test(organism) ? 'cdi' : 'bloodstreamInfection')]

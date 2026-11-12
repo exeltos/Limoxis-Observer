@@ -30,7 +30,7 @@ export function useEpisodeProtocols(record: AnyRecord, { organizationId, isDemo 
   return { runs, reviews, reload }
 }
 
-const dayMonth = value => {
+const dayMonth = (value: string | number | Date) => {
   const date = new Date(value)
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`
 }
@@ -53,11 +53,11 @@ export function protocolStages(runs: AnyRecord[], t: (key: string) => string, la
 interface ProtocolCuesOptions {
   canProtocol?: boolean
   canTherapy?: boolean
-  now?: AnyRecord
+  now?: Date
 }
 // «Χρειάζεται προσοχή» cues: an open protocol with a pending step, and therapies
 // in (or past) their 48–72 h review window.
-export function protocolCues(runs: AnyRecord[], record: AnyRecord, reviews, t: (key: string) => string, { canProtocol, canTherapy, now = new Date() }: ProtocolCuesOptions = {}) {
+export function protocolCues(runs: AnyRecord[], record: AnyRecord, reviews: AnyRecord[], t: (key: string) => string, { canProtocol, canTherapy, now = new Date() }: ProtocolCuesOptions = {}) {
   const cues = []
   if (canProtocol)
     for (const run of runs.filter((item: AnyRecord) => item.status === 'open' && protocolByKey(item.protocolKey))) {

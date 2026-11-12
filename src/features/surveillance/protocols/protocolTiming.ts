@@ -4,16 +4,17 @@
 //   a  amber  not done yet, still within the hour
 //   r  red    not done after the hour, done late, or cultures after the antibiotic
 //   n  grey   not indicated (with a reason), or a follow-up not due yet
-import { HOUR_ONE_MINUTES, stepOf, visibleSteps } from './protocolCatalogue'
+import { HOUR_ONE_MINUTES, stepOf, visibleSteps, type ProtocolStep } from './protocolCatalogue'
+import type { DateValue } from '../surveillanceTypes'
 import type { AnyRecord } from '../../../types/featureTypes'
 
-const ms = value => {
+const ms = (value: DateValue) => {
   if (!value) return NaN
   return new Date(value).getTime()
 }
-export const minutesBetween = (from: string, to: string) => (Number.isFinite(ms(from)) && Number.isFinite(ms(to)) ? Math.round((ms(to) - ms(from)) / 60000) : null)
+export const minutesBetween = (from: DateValue, to: DateValue) => (Number.isFinite(ms(from)) && Number.isFinite(ms(to)) ? Math.round((ms(to) - ms(from)) / 60000) : null)
 
-export function stepState(run: AnyRecord, step: number, now = new Date()) {
+export function stepState(run: AnyRecord, step: ProtocolStep, now: DateValue = new Date()) {
   const recorded = stepOf(run, step.key)
   const zero = run?.recognizedAt
   const elapsed = minutesBetween(zero, now)
@@ -42,7 +43,7 @@ export function stepState(run: AnyRecord, step: number, now = new Date()) {
   return { tone: 'r', code: 'overdue', minutes: null }
 }
 
-export function runSummary(run: AnyRecord, now = new Date()) {
+export function runSummary(run: AnyRecord, now: DateValue = new Date()) {
   const steps = visibleSteps(run).map(step => ({ step, recorded: stepOf(run, step.key), state: stepState(run, step, now) }))
   const main = steps.filter(item => !item.step.followUp)
   const elapsed = minutesBetween(run?.recognizedAt, run?.status === 'open' ? now : run?.completedAt || now)
@@ -53,7 +54,7 @@ export function runSummary(run: AnyRecord, now = new Date()) {
 }
 
 // "1 ώρα 12΄" / "1 h 12′"
-export function formatElapsed(minutes: number, language = 'el') {
+export function formatElapsed(minutes: number | null | undefined, language = 'el') {
   if (minutes == null || !Number.isFinite(minutes)) return '—'
   const sign = minutes < 0 ? '−' : ''
   const value = Math.abs(minutes)

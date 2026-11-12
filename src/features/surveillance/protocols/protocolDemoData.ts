@@ -8,11 +8,11 @@ import { historyCases } from '../demoInfectionHistory'
 import type { AnyRecord } from '../../../types/featureTypes'
 
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60000).toISOString()
-const atMinute = (zero, minute: number) => new Date(new Date(zero).getTime() + minute * 60000).toISOString()
+const atMinute = (zero: string, minute: number) => new Date(new Date(zero).getTime() + minute * 60000).toISOString()
 
 function hourOneRun() {
   const zero = minutesAgo(72)
-  const step = (key: string, minute, value, by = 'Μ. Κωνσταντίνου') => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
+  const step = (key: string, minute: number, value: string, by = 'Μ. Κωνσταντίνου') => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
   return {
     id: 'PRT-260041-1',
     caseId: 'SUR-260041',
@@ -51,7 +51,7 @@ function historyRun(item: AnyRecord, index: number) {
   const zero = `${item.startedAt}T05:${String(10 + (index % 5) * 8).padStart(2, '0')}:00.000Z`
   const [doctor, nurse] = RUN_STAFF[index % RUN_STAFF.length]
   const lactate = shock ? '5.1' : index % 2 ? '1.6' : '2.8'
-  const done = (key: string, minute, value, by = nurse) => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
+  const done = (key: string, minute: number, value: string, by = nurse) => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
   const steps = [
     done('lactate', 12 + (index % 3), lactate),
     done('blood_cultures', 18 + (index % 4), `${item.sampleId} · 2 σετ`),
@@ -86,10 +86,10 @@ function historyRun(item: AnyRecord, index: number) {
 }
 const historyRuns = shiftDemoDatesInPlace(historyCases.filter(item => item.hai?.[1] === 'bloodstreamInfection' && !item.birthWeightGrams).map(historyRun))
 
-export const demoProtocolRuns = emptyInPreview([hourOneRun(), ...historyRuns])
+export const demoProtocolRuns: AnyRecord[] = emptyInPreview([hourOneRun(), ...historyRuns])
 
 // A review already recorded for the colistin of SUR-260036 (60 hours after its start).
-export const demoTherapyReviews = emptyInPreview([
+export const demoTherapyReviews: AnyRecord[] = emptyInPreview([
   {
     id: 'REVW-260172-1',
     therapyId: 'TX-260172',

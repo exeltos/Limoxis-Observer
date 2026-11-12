@@ -2,6 +2,7 @@
 // (approved design n3-3): window, microbiology of the episode, decision, reasons,
 // reviewer and time. Records the physician's decision; it suggests no drug.
 import { useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import { Check, CirclePlay, CircleStop, Microscope, Pill, RefreshCw, TrendingDown } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { ChoiceChips } from '../../../design-system/ChoiceChips'
@@ -11,7 +12,7 @@ import { dayTime, fill } from './ProtocolViews'
 import type { AnyRecord } from '../../../types/featureTypes'
 import type { Handler } from '../surveillanceTypes'
 
-const DECISION_ICONS = { continue: CirclePlay, deescalate: TrendingDown, iv_to_oral: Pill, stop: CircleStop }
+const DECISION_ICONS: Record<string, LucideIcon> = { continue: CirclePlay, deescalate: TrendingDown, iv_to_oral: Pill, stop: CircleStop }
 const r = (key: string) => `sepsis.review.${key}`
 
 interface TherapyReviewCardProps {
@@ -27,7 +28,7 @@ interface TherapyReviewCardProps {
 export function TherapyReviewCard({ record, therapy, window, t, actorName, canReview, onSave, quiet = false }: TherapyReviewCardProps) {
   const [editing, setEditing] = useState(false)
   const [decision, setDecision] = useState('')
-  const [reasons, setReasons] = useState<AnyRecord[]>([])
+  const [reasons, setReasons] = useState<string[]>([])
   const [newRegimen, setNewRegimen] = useState('')
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
@@ -36,7 +37,7 @@ export function TherapyReviewCard({ record, therapy, window, t, actorName, canRe
   const formOpen = canReview && (editing || ['due', 'overdue'].includes(window.state))
   const stateLabel = fill(t(r(`state_${window.state}`)), { hours: window.reviewedHours ?? window.hours })
   const organisms = (record?.samples || []).filter((sample: AnyRecord) => sample.organism)
-  const toggle = value => setReasons(current => (current.includes(value) ? current.filter(item => item !== value) : [...current, value]))
+  const toggle = (value: string) => setReasons(current => (current.includes(value) ? current.filter(item => item !== value) : [...current, value]))
   async function save() {
     if (!decision || !reasons.length) {
       setError(t(r('required')))

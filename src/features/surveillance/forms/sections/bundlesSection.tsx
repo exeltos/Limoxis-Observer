@@ -15,10 +15,10 @@ import type { Handler } from '../../surveillanceTypes'
 // device type that has one (central line, urinary catheter, ventilator).
 export function bundleDevices(ctx: AnyRecord) {
   return (ctx.episodes || []).flatMap((episode: AnyRecord) =>
-    (episode.devices || []).filter(isActiveDevice).map(device => ({ device, episode })),
+    (episode.devices || []).filter(isActiveDevice).map((device: AnyRecord) => ({ device, episode })),
   )
 }
-export function bundleRowsFor(ctx, assessments, today = athensToday()) {
+export function bundleRowsFor(ctx: AnyRecord, assessments: AnyRecord[] | null | undefined, today = athensToday()) {
   return bundleDevices(ctx)
     .map(({ device, episode }: AnyRecord) => ({ device, episode, info: bundleStatusForDevice({ device, assessments: assessments || [], today }) }))
     .filter((row: AnyRecord) => row.info.bundleKeys.length > 0)
@@ -89,7 +89,7 @@ function BundleHistory({ row, ctx, onClose, reload }: BundleHistoryProps) {
 
 interface BundlesSectionProps {
   ctx: AnyRecord
-  section: string
+  section: AnyRecord
   reload: Handler
 }
 function BundlesSection({ ctx, section, reload }: BundlesSectionProps) {
@@ -155,7 +155,7 @@ export const bundlesSection = {
     (ctx.episodes || []).length > 0,
   load: (ctx: AnyRecord) => loadEpisodeBundleAssessments(ctx.organizationId, (ctx.episodes || []).map((episode: AnyRecord) => episode.recordId || episode.id)),
   Component: BundlesSection,
-  buildReport(ctx, section: string) {
+  buildReport(ctx: AnyRecord, section: AnyRecord) {
     const rows = bundleRowsFor(ctx, section.value)
     if (!rows.length) return null
     const { language, t, fmtDate } = ctx

@@ -29,7 +29,7 @@ export function NewNotificationDialog({ patients = null, busy = false, onSave, o
   const [mode, setMode] = useState('')
   const [patientId, setPatientId] = useState('')
   const [draft, setDraft] = useState({ lastName: '', firstName: '', patientCode: '' })
-  const set = (key: string, value) => setDraft(current => ({ ...current, [key]: value }))
+  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
   const askPatient = Array.isArray(patients)
   const entry = diseaseId ? eodyEntry(diseaseId) : null
   const diseaseOptions = useMemo(
@@ -45,7 +45,7 @@ export function NewNotificationDialog({ patients = null, busy = false, onSave, o
     askPatient && mode === 'new' && { key: 'firstName', label: t('labNotifiable.firstName'), valid: Boolean(draft.firstName.trim()) },
     askPatient && mode === 'new' && { key: 'patientCode', label: t('labNotifiable.patientCode'), valid: Boolean(draft.patientCode.trim()) },
   ])
-  function chooseMode(value) {
+  function chooseMode(value: string) {
     setMode(value)
     if (value === 'new' && !draft.patientCode) set('patientCode', suggestPatientCode(patients || []))
   }
@@ -60,7 +60,7 @@ export function NewNotificationDialog({ patients = null, busy = false, onSave, o
       <div className="episode-form-fields notifiable-new" ref={form.scopeRef}>
         <SearchableSelect label={t('labNotifiable.colDisease')} {...form.field('disease')} value={diseaseId} onChange={value => setDiseaseId(value || '')} options={diseaseOptions}
           placeholder={t('episodeForms.notifiable.pickerSearch')} emptyLabel={t('episodeForms.notifiable.pickerNone')} clearLabel="" />
-        {entry?.notes.length > 0 && <p className="field-hint">{entry.notes.map(note => EODY_FOOTNOTES[note][en ? 'en' : 'el']).join(' ')}</p>}
+        {entry && entry.notes.length > 0 && <p className="field-hint">{entry.notes.map(note => EODY_FOOTNOTES[note][en ? 'en' : 'el']).join(' ')}</p>}
         {askPatient && (
           <div className="field notifiable-new-mode" data-field-key="mode">
             <span className="field-label lo-field-label"><FieldLabelText label={t('patient')} required /></span>

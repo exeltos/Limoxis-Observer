@@ -7,19 +7,19 @@ import type { AnyRecord } from '../../../types/featureTypes'
 // What the device row of the surveillance stage needs: the bundle of the device, its day and
 // status, and the one place a new bundle check starts («Έλεγχος δέσμης»). Null when the user
 // or the hospital has no bundles (the row then shows no bundle column).
-export function makeDeviceBundles(ctx: AnyRecord, assessments, reload: AnyRecord | null = null) {
+export function makeDeviceBundles(ctx: AnyRecord, assessments: AnyRecord[] | null | undefined, reload: ((id: string) => unknown) | null = null) {
   if (!ctx || !bundlesSection.canSee(ctx)) return null
   return {
     canCheck: ctx.has(CAPABILITIES.RECORD_PREVENTION_BUNDLE),
-    info: device => bundleStatusForDevice({ device, assessments: assessments || [] }),
+    info: (device: AnyRecord) => bundleStatusForDevice({ device, assessments: assessments || [] }),
     // The bundle check opened on the surveillance sheet itself (owner, 8/11/2026): its locked context.
-    prefill(device, episode) {
+    prefill(device: AnyRecord, episode: AnyRecord) {
       const info = bundleStatusForDevice({ device, assessments: assessments || [] })
       return buildBundlePrefill({ ctx, device, episode, info })
     },
     organizationId: ctx.organizationId || null,
     reload: () => reload?.('bundles'),
-    check(device, episode) {
+    check(device: AnyRecord, episode: AnyRecord) {
       const info = bundleStatusForDevice({ device, assessments: assessments || [] })
       ctx.goTo('/prevention/bundles/new', {
         returnTab: 'surveillanceJourney',

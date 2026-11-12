@@ -21,7 +21,7 @@ import type { AnyRecord } from '../../../types/featureTypes'
 //
 // A later builder (questionnaires) adds its object with registerEpisodeFormSection() or to the
 // array below; nothing else in the tab changes. See docs/EPISODE_FORMS_TAB.md.
-const REGISTERED = [bundlesSection, scalesSection, notifiableSection, incidentsSection, epiQuestionnaireSection, outbreakSection, exposureSourceSection]
+const REGISTERED: AnyRecord[] = [bundlesSection, scalesSection, notifiableSection, incidentsSection, epiQuestionnaireSection, outbreakSection, exposureSourceSection]
 
 export function registerEpisodeFormSection(definition: AnyRecord) {
   if (!definition?.id || !definition.Component) throw new Error('A form section needs an id and a Component.')
@@ -31,4 +31,4 @@ export function registerEpisodeFormSection(definition: AnyRecord) {
 }
 
 export const episodeFormSections = () => [...REGISTERED].sort((a, b) => (a.order ?? 100) - (b.order ?? 100))
-export const visibleEpisodeFormSections = ctx => episodeFormSections().filter(section => !section.canSee || section.canSee(ctx))
+export const visibleEpisodeFormSections = (ctx: AnyRecord) => episodeFormSections().filter(section => !section.canSee || section.canSee(ctx))

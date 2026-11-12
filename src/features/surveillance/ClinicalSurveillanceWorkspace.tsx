@@ -177,7 +177,7 @@ export function SurveillanceWorkspace({
     try {
       created = await onCreateSample(payload)
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
       return
     }
     setSampleOpen(false)
@@ -211,7 +211,7 @@ export function SurveillanceWorkspace({
         'success',
       )
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
     } finally {
       setEditBusy(false)
     }
@@ -227,7 +227,7 @@ export function SurveillanceWorkspace({
       if (onEpisodeDeleted?.(detailRecord)) return
       await onReload()
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
     }
   }
   if (detailRecord)

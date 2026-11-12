@@ -187,7 +187,7 @@ export function CanonicalJourney({
       notify(message || t('actionCompleted'), 'success')
       return result ?? true
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
       return false
     }
   }
@@ -262,7 +262,7 @@ export function CanonicalJourney({
       await onReload()
       notify(message || t('actionCompleted'), 'success')
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
     }
   }
   if (!active)
@@ -403,7 +403,7 @@ export function CanonicalJourney({
                         await saveEpiCoreAnswers(organizationId, epiKey, { [question.key]: { a: answer, src: EPI_SOURCE.MANUAL } }, { isDemo })
                         setEpi(current => ({ ...current, nonce: current.nonce + 1 }))
                       } catch (error) {
-                        notify(error?.message || t('epiQuestionnaire.saveFailed'), 'danger')
+                        notify((error as Error)?.message || t('epiQuestionnaire.saveFailed'), 'danger')
                       }
                     }}
                   />

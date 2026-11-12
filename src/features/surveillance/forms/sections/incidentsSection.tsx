@@ -26,7 +26,7 @@ export function incidentRows(ctx: AnyRecord, rows: AnyRecord[] = []) {
 
 interface IncidentsSectionProps {
   ctx: AnyRecord
-  section: string
+  section: AnyRecord
 }
 function IncidentsSection({ ctx, section }: IncidentsSectionProps) {
   const { t } = useLanguage()
@@ -78,7 +78,7 @@ export const incidentsSection = {
       patientCode: ctx.patient?.id || '',
     }),
   Component: IncidentsSection,
-  buildReport(ctx: AnyRecord, section: string) {
+  buildReport(ctx: AnyRecord, section: AnyRecord) {
     const rows = incidentRows(ctx, section.value || [])
     if (!rows.length) return null
     return {

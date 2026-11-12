@@ -18,7 +18,7 @@ const SHEET_SECTIONS = new Set(['bundles', 'epiQuestionnaire'])
 interface EpisodeFormsTabProps {
   ctx: AnyRecord
   forms: AnyRecord
-  openRequest?: Handler | null
+  openRequest?: { id: string, nonce: unknown } | null
   withoutAdmission?: boolean
 }
 export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmission = false }: EpisodeFormsTabProps) {
@@ -35,7 +35,7 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
   const { value, openSection } = useFormsTabState()
   // The tab shows every section open, its actions in a «⋯» (owner, 8/11/2026).
   const flatValue = useMemo(() => ({ ...value, flat: true }), [value])
-  const handled = useRef(null)
+  const handled = useRef<unknown>(null)
   useEffect(() => {
     if (!openRequest?.id || handled.current === openRequest.nonce) return
     handled.current = openRequest.nonce

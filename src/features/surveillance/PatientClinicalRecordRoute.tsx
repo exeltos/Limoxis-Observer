@@ -35,7 +35,7 @@ export function PatientClinicalRecordRoute({ patientMode = false }: PatientClini
     })
 
     repository
-      .loadCase(caseId)
+      .loadCase(caseId as string)
       .then(record => {
         if (!alive) return
         setTarget(

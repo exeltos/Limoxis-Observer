@@ -225,7 +225,7 @@ export function PatientDetailsSection({
               await onChanged?.()
               notify(t('saved'), 'success')
             } catch (error) {
-              notify(error?.message || t('actionFailed'), 'danger')
+              notify((error as Error)?.message || t('actionFailed'), 'danger')
             } finally {
               setSavingPatient(false)
             }

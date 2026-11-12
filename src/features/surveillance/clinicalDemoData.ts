@@ -19,7 +19,7 @@ export { clinicalCases }
 // HAI classification, device, culture, treatment with its administrations,
 // precautions, reassessment and outcome.
 const ASSESSORS = ['Α. Νικολάου', 'Δ. Παπαδάκη', 'Ε. Παπαδοπούλου']
-const OUTCOME_NOTES = {
+const OUTCOME_NOTES: Record<string, string[]> = {
   resolved: ['Ολοκλήρωση αγωγής με κλινική ίαση.', 'Treatment completed, clinically cured.'],
   discharged: ['Έξοδος με από του στόματος αγωγή.', 'Discharged on oral treatment.'],
   transferred: [
@@ -43,7 +43,7 @@ for (const item of historyCases) {
   const therapyId = `TX-${number}H`
   const administrations = []
   for (let day = resultDay; day <= lastDose; day = addDays(day, 1)) {
-    const withheld = administrations.length === 2 && Number(number) % 4 === 0
+    const withheld: boolean = administrations.length === 2 && Number(number) % 4 === 0
     administrations.unshift({
       id: `ADM-${number}H-${administrations.length + 1}`,
       therapyId,
@@ -271,7 +271,7 @@ export function demoSurveillanceList() {
       startedAt: item.startedAt,
       reviewDue: item.reviewDue,
       status: item.status,
-      organism: item.organism || item.samples?.find(sample => sample.organism)?.organism || null,
+      organism: item.organism || item.samples?.find((sample: AnyRecord) => sample.organism)?.organism || null,
       resistance: item.resistance || null,
       isolation: item.isolation ? { ...item.isolation } : null,
       samples: item.samples || [],

@@ -183,7 +183,7 @@ export function NewSurveillanceFlow({
         )
       onClose()
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
     } finally {
       setBusy(false)
     }

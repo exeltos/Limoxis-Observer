@@ -35,14 +35,14 @@ interface ScalesSectionProps {
 }
 function ScalesSection({ ctx }: ScalesSectionProps) {
   const { t } = useLanguage()
-  const [data, setData] = useState({ scaleContext: [], rows: [] })
-  const [request, setRequest] = useState<AnyRecord | null>(null)
+  const [data, setData] = useState<AnyRecord>({ scaleContext: [], rows: [] })
+  const [request, setRequest] = useState<{ nonce: unknown, definitionId?: string | null } | null>(null)
   const [showAll, setShowAll] = useState(false)
-  const [removeRequest, setRemoveRequest] = useState<AnyRecord | null>(null)
+  const [removeRequest, setRemoveRequest] = useState<{ nonce: unknown, row?: AnyRecord | null } | null>(null)
   // The scales (NEWS2, Braden, Morse…) are recorded by the clinical team and the ward nurses (owner, 8/11/2026), as the
   // RLS policy patient_scale_insert allows; the other roles see them only.
   const canRecord = ctx.has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT) || ctx.has(CAPABILITIES.MANAGE_ISOLATION) || ctx.has(CAPABILITIES.REQUEST_LAB_SAMPLES)
-  const onContext = useCallback(value => setData(value), [])
+  const onContext = useCallback((value: AnyRecord) => setData(value), [])
   const lines = useMemo(() => scaleLines({ scaleContext: data.scaleContext, ctx }), [data.scaleContext, ctx])
   const base = episodeContext(ctx)
   const prefillItems = [
@@ -50,7 +50,7 @@ function ScalesSection({ ctx }: ScalesSectionProps) {
     { label: t('episodeForms.prefill.admission'), value: base.admissionLabel },
     { label: t('episodeForms.prefill.episode'), value: base.episodeLabel },
   ]
-  const ask = (definitionId: string) => setRequest({ nonce: Date.now(), definitionId })
+  const ask = (definitionId: string | null) => setRequest({ nonce: Date.now(), definitionId })
   const flagged = lines.filter(line => line.item.latest).slice(0, 4)
   const summary = flagged.length ? flagged.map(line => `${scaleShortName(line.item.scale_key)} ${line.item.latest.score}`).join(' · ') : t('episodeForms.scales.none')
   const overdue = lines.some(line => line.status === FORM_STATUS.OVERDUE)

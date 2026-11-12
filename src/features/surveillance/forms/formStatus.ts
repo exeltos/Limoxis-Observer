@@ -21,13 +21,13 @@ export function daysBetween(from: string, to: string) {
   return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / 86400000) : null
 }
 // Day 1 is the day the device was inserted.
-export function deviceDayNumber(insertedAt, today = athensToday()) {
+export function deviceDayNumber(insertedAt: string | null | undefined, today = athensToday()) {
   const inserted = hospitalDay(insertedAt)
   const diff = inserted ? daysBetween(inserted, today) : null
   return diff == null ? null : Math.max(1, diff + 1)
 }
 // The shift a check made now belongs to (the editor's own shift names).
-export function shiftForHour(hour) {
+export function shiftForHour(hour: number) {
   return hour >= 7 && hour < 15 ? 'Πρωινή' : hour >= 15 && hour < 23 ? 'Απογευματινή' : 'Νυχτερινή'
 }
 

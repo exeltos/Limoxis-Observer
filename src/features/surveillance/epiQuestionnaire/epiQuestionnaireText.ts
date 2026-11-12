@@ -14,7 +14,7 @@ export const EPI_WRITE_ROLES = Object.freeze([
   ROLES.DEPARTMENT_MANAGER,
   ROLES.LINK_NURSE,
 ])
-export const canWriteEpi = (role: string) => EPI_WRITE_ROLES.includes(role)
+export const canWriteEpi = (role: string | null | undefined) => (EPI_WRITE_ROLES as readonly (string | null | undefined)[]).includes(role)
 
 export const fill = (text: string, values: AnyRecord = {}) => Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), String(text || ''))
 

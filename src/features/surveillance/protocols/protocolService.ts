@@ -13,7 +13,7 @@ const supabase = configuredClient as Cloud
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const nowIso = () => new Date().toISOString()
-const clone = value => JSON.parse(JSON.stringify(value))
+const clone = (value: unknown) => JSON.parse(JSON.stringify(value))
 const demoId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
 
 function mapStep(row: AnyRecord) {
@@ -112,7 +112,7 @@ export async function loadOpenProtocolRuns(organizationId: string | null | undef
   return (data || []).map(row => ({ caseId: row.surveillance_case_id, protocolKey: row.protocol_key, recognizedAt: row.recognized_at }))
 }
 
-async function appendEvent(organizationId: string | null | undefined, runId: string, actor: AnyRecord, event) {
+async function appendEvent(organizationId: string | null | undefined, runId: string, actor: AnyRecord | null, event: AnyRecord) {
   const actorId = await currentUserId()
   const { error } = await supabase.from('clinical_protocol_events').insert({
     organization_id: organizationId as string,
@@ -126,10 +126,11 @@ async function appendEvent(organizationId: string | null | undefined, runId: str
   })
   if (error) throw error
 }
-function demoEvent(run: AnyRecord, actor: AnyRecord, event) {
+function demoEvent(run: AnyRecord, actor: AnyRecord | null, event: AnyRecord) {
   run.events = [{ id: demoId('EV'), ...event, detail: event.detail || {}, reason: event.reason || '', actorName: actor?.name || 'Demo user', at: nowIso() }, ...(run.events || [])]
 }
-const demoRun = (runId: string) => demoProtocolRuns.find(run => run.id === runId)
+// Demo: the run on screen is always in the session list.
+const demoRun = (runId: string) => demoProtocolRuns.find(run => run.id === runId)!
 // Demo: the bin takes a protocol run out of the session list and puts it back on restore.
 export function removeDemoProtocolRun(runId: string) {
   const index = demoProtocolRuns.findIndex(run => run.id === runId)
@@ -141,7 +142,7 @@ export function restoreDemoProtocolRun(row: AnyRecord) {
 
 interface StartProtocolRunOptions {
   isDemo?: boolean
-  actor?: string | null
+  actor?: AnyRecord | null
 }
 export async function startProtocolRun(organizationId: string | null | undefined, record: AnyRecord, draft: AnyRecord, { isDemo = false, actor = null }: StartProtocolRunOptions = {}) {
   if (!protocolByKey(draft.protocolKey)) throw new Error('Unknown protocol')
@@ -162,7 +163,7 @@ export async function startProtocolRun(organizationId: string | null | undefined
       admission_id: UUID.test(String(record.admissionId || '')) ? record.admissionId : null,
       department_id: record.departmentId || null,
       protocol_key: draft.protocolKey,
-      protocol_version: protocolByKey(draft.protocolKey).version,
+      protocol_version: protocolByKey(draft.protocolKey)!.version,
       recognized_at: new Date(draft.recognizedAt).toISOString(),
       recognition_source: draft.recognitionSource || 'clinical',
       trigger_assessment_id: UUID.test(String(draft.triggerAssessmentId || '')) ? draft.triggerAssessmentId : null,
@@ -180,7 +181,7 @@ export async function startProtocolRun(organizationId: string | null | undefined
 
 interface RecordProtocolStepOptions {
   isDemo?: boolean
-  actor?: string | null
+  actor?: AnyRecord | null
 }
 // Records a step as done (time, value) or «not indicated» (reason); status
 // 'pending' clears it again. Each change is also an event of the run.
@@ -198,7 +199,7 @@ export async function recordProtocolStep(organizationId: string | null | undefin
     const target = demoRun(run.id)
     if (!target) throw new Error('Protocol not found')
     const step = { key: draft.key, status, doneAt: row.done_at, value: row.value_text || '', notIndicatedReason: row.not_indicated_reason || '', therapyId: draft.therapyId || null, recordedByName: actor?.name || 'Demo user', recordedAt: nowIso() }
-    target.steps = [...(target.steps || []).filter(item => item.key !== draft.key), step]
+    target.steps = [...(target.steps || []).filter((item: AnyRecord) => item.key !== draft.key), step]
     demoEvent(target, actor, { type: eventType, stepKey: draft.key, detail: { status } })
     return clone(target)
   }
@@ -215,7 +216,7 @@ export async function recordProtocolStep(organizationId: string | null | undefin
 
 interface ChangeRecognitionTimeOptions {
   isDemo?: boolean
-  actor?: string | null
+  actor?: AnyRecord | null
 }
 // The recognition time changes only with a reason, which stays in the history.
 export async function changeRecognitionTime(organizationId: string | null | undefined, run: AnyRecord, draft: AnyRecord, { isDemo = false, actor = null }: ChangeRecognitionTimeOptions = {}) {
@@ -242,9 +243,9 @@ export async function changeRecognitionTime(organizationId: string | null | unde
 
 interface SetProtocolWeightOptions {
   isDemo?: boolean
-  actor?: string | null
+  actor?: AnyRecord | null
 }
-export async function setProtocolWeight(organizationId: string | null | undefined, run: AnyRecord, weightKg, { isDemo = false, actor = null }: SetProtocolWeightOptions = {}) {
+export async function setProtocolWeight(organizationId: string | null | undefined, run: AnyRecord, weightKg: number | null, { isDemo = false, actor = null }: SetProtocolWeightOptions = {}) {
   if (isDemo) {
     const target = demoRun(run.id)
     target.weightKg = weightKg
@@ -261,7 +262,7 @@ export async function setProtocolWeight(organizationId: string | null | undefine
 
 interface FinishProtocolRunOptions {
   isDemo?: boolean
-  actor?: string | null
+  actor?: AnyRecord | null
 }
 // completed: every step recorded; closed: ended early, with a reason.
 export async function finishProtocolRun(organizationId: string | null | undefined, run: AnyRecord, { status, reason = '' }: AnyRecord, { isDemo = false, actor = null }: FinishProtocolRunOptions = {}) {
@@ -295,7 +296,7 @@ export async function loadTherapyReviews(organizationId: string | null | undefin
     const starts = new Map(therapies.map(therapy => [String(therapy.id), therapyStart(therapy)]))
     return demoTherapyReviews
       .filter(row => starts.has(String(row.therapyId)))
-      .map(row => ({ ...row, reviewedAt: row.reviewedAt || (starts.get(String(row.therapyId)) ? new Date(starts.get(String(row.therapyId)).getTime() + (row.hoursAfterStart || 0) * 3600000).toISOString() : nowIso()) }))
+      .map(row => ({ ...row, reviewedAt: row.reviewedAt || (starts.get(String(row.therapyId)) ? new Date(starts.get(String(row.therapyId))!.getTime() + (row.hoursAfterStart || 0) * 3600000).toISOString() : nowIso()) }))
       .sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime())
   }
   assertCloud()
@@ -313,7 +314,7 @@ export async function loadTherapyReviews(organizationId: string | null | undefin
 
 interface CreateTherapyReviewOptions {
   isDemo?: boolean
-  actor?: string | null
+  actor?: AnyRecord | null
 }
 export async function createTherapyReview(organizationId: string | null | undefined, record: AnyRecord, therapy: AnyRecord, draft: AnyRecord, { isDemo = false, actor = null }: CreateTherapyReviewOptions = {}) {
   if (!draft.decision || !draft.reasons?.length) throw new Error('Decision and reason are required')

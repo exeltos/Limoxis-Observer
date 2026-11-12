@@ -14,7 +14,7 @@ import type { Handler, StateSetter } from './surveillanceTypes'
 
 // What the screen hands to this part (one object, so the part reads like the code it came from).
 export interface JourneyCareStagesScope {
-  actor: string
+  actor: AnyRecord | null
   deleteItem: Handler
   deviceBundles: AnyRecord
   editing: boolean

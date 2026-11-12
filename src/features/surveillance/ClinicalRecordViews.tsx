@@ -39,7 +39,7 @@ export const SheetEditingContext = createContext(true)
 interface StagePanelProps {
   icon: LucideIcon
   title: string
-  action: boolean
+  action?: ReactNode
   menu?: AnyRecord[]
   children: ReactNode
 }
@@ -70,7 +70,7 @@ export function StagePanel({ icon: Icon, title, action: shownAction, menu: shown
 }
 interface TagListProps {
   title: string
-  items?: AnyRecord[]
+  items?: string[]
   rows?: AnyRecord[]
   t: (key: string) => string
   language: string

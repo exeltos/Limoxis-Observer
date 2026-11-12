@@ -20,7 +20,7 @@ export function outbreakText(ctx: AnyRecord, link: AnyRecord) {
 
 interface OutbreakLineProps {
   ctx: AnyRecord
-  section: string
+  section: AnyRecord
 }
 function OutbreakLine({ ctx, section }: OutbreakLineProps) {
   const { t } = useLanguage()
@@ -51,9 +51,9 @@ export const outbreakSection = {
   canSee: (ctx: AnyRecord) => OUTBREAK_ROLES.includes(ctx.role) && !isProfileDisabled(CAPABILITIES.VIEW_LIRA) && Boolean(ctx.patient),
   load: (ctx: AnyRecord) => loadPatientOutbreakLinks(ctx.organizationId, { patientRecordId: ctx.patient?.recordId || null, patientCode: ctx.patient?.id || '' }, { isDemo: ctx.isDemo }),
   Component: OutbreakLine,
-  buildReport(ctx: AnyRecord, section: string) {
+  buildReport(ctx: AnyRecord, section: AnyRecord) {
     const links = section.value || []
     if (!links.length) return null
-    return { id: 'outbreak', title: ctx.t('episodeForms.outbreak.label'), list: links.map(link => outbreakText(ctx, link)) }
+    return { id: 'outbreak', title: ctx.t('episodeForms.outbreak.label'), list: links.map((link: AnyRecord) => outbreakText(ctx, link)) }
   },
 }

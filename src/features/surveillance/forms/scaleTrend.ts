@@ -3,7 +3,7 @@ import type { AnyRecord } from '../../../types/featureTypes'
 // «Ανεβαίνει κατά 3 από 17/10 · χειρότερα». Which way is worse depends on the scale (a higher
 // NEWS2 is worse, a lower Braden or GCS is worse); an unknown scale counts a higher score as worse.
 const LOWER_IS_WORSE = new Set(['braden', 'gcs', 'pediatric-gcs'])
-export const higherIsWorse = scaleKey => !LOWER_IS_WORSE.has(scaleKey)
+export const higherIsWorse = (scaleKey: string) => !LOWER_IS_WORSE.has(scaleKey)
 
 interface ScaleTrendOptions {
   item: AnyRecord

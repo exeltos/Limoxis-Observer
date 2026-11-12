@@ -14,29 +14,32 @@ import { CLINICAL_PROTOCOLS, HOUR_ONE_MINUTES, pendingSteps, protocolByKey, step
 import { formatElapsed, minutesBetween, runSummary, timelineScale } from './protocolTiming'
 import './protocols.css'
 import type { AnyRecord } from '../../../types/featureTypes'
-import type { Handler } from '../surveillanceTypes'
+import type { DateValue, Handler } from '../surveillanceTypes'
+import type { LucideIcon } from 'lucide-react'
 
 export const fill = (text: string, vars: AnyRecord = {}) => String(text || '').replace(/\{(\w+)\}/g, (_, key) => (vars[key] ?? ''))
-const STEP_ICONS = { lactate: FlaskConical, cultures: Droplets, antibiotic: Pill, fluids: Droplet, vasopressor: Syringe }
+const STEP_ICONS: Record<string, LucideIcon> = { lactate: FlaskConical, cultures: Droplets, antibiotic: Pill, fluids: Droplet, vasopressor: Syringe }
 const pad = (n: number) => String(n).padStart(2, '0')
-export const clockTime = value => {
-  const date = new Date(value)
+export const clockTime = (value: DateValue) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- an empty value gives an invalid date, shown as «—»
+  const date = new Date(value as any)
   return Number.isNaN(date.getTime()) ? '—' : `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
-export const dayTime = value => {
-  const date = new Date(value)
+export const dayTime = (value: DateValue) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- an empty value gives an invalid date, shown as «—»
+  const date = new Date(value as any)
   return Number.isNaN(date.getTime()) ? '—' : `${pad(date.getDate())}/${pad(date.getMonth() + 1)} · ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
-const localDate = value => {
+const localDate = (value: DateValue) => {
   const date = value ? new Date(value) : new Date()
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
-const combine = (date: string, time) => {
+const combine = (date: string, time: string) => {
   if (!date || !/^\d{2}:\d{2}$/.test(time || '')) return null
   const value = new Date(`${date}T${time}:00`)
   return Number.isNaN(value.getTime()) ? null : value.toISOString()
 }
-const numberValue = value => {
+const numberValue = (value: unknown) => {
   const n = Number(String(value ?? '').replace(',', '.'))
   return Number.isFinite(n) ? n : null
 }
@@ -145,7 +148,7 @@ function Disclaimer({ t }: DisclaimerProps) {
 const STATE_KEY = (code: string) => `sepsis.state_${code}`
 
 interface ProtocolPanelProps {
-  run: Handler
+  run: AnyRecord
   record: AnyRecord
   t: (key: string) => string
   language: string
@@ -225,7 +228,7 @@ export function ProtocolPanel({ run, record, t, language, canRecord, onRecordSte
             {t('sepsis.history')} · {t('sepsis.auditNote')}
           </summary>
           <ul className="sp-history">
-            {(run.events || []).map((event, index: number) => (
+            {(run.events || []).map((event: AnyRecord, index: number) => (
               <li key={event.id || index}>
                 <span>{dayTime(event.at)}</span>
                 <strong>{t(`sepsis.event_${event.type}`)}</strong>
@@ -291,10 +294,10 @@ export function ProtocolPanel({ run, record, t, language, canRecord, onRecordSte
 interface ProtocolTimelineProps {
   t: (key: string) => string
   language: string
-  run: Handler
+  run: AnyRecord
   items: AnyRecord[]
-  scale: AnyRecord
-  now: AnyRecord
+  scale: number
+  now: Date
 }
 function ProtocolTimeline({ t, language, run, items, scale, now }: ProtocolTimelineProps) {
   const hour = (HOUR_ONE_MINUTES / scale) * 100
@@ -343,10 +346,10 @@ function ProtocolTimeline({ t, language, run, items, scale, now }: ProtocolTimel
 
 interface BundleStepProps {
   item: AnyRecord
-  run: Handler
+  run: AnyRecord
   t: (key: string) => string
   language: string
-  editable: AnyRecord
+  editable: boolean
   onOpen: Handler
 }
 function BundleStep({ item, run, t, language, editable, onOpen }: BundleStepProps) {
@@ -450,7 +453,7 @@ function BundleStep({ item, run, t, language, editable, onOpen }: BundleStepProp
 
 interface StepDialogProps {
   t: (key: string) => string
-  run: Handler
+  run: AnyRecord
   record: AnyRecord
   initialKey: string
   choose: AnyRecord
@@ -544,7 +547,7 @@ function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }: Ste
 
 interface ChangeTimeDialogProps {
   t: (key: string) => string
-  run: Handler
+  run: AnyRecord
   onClose: Handler
   onSave: Handler
 }
@@ -586,6 +589,8 @@ interface ReasonOnlyDialogProps {
   title: string
   label: string
   hint: string
+  // Passed by the panel, not read: the texts come translated.
+  t?: (key: string) => string
   onClose: Handler
   onSave: Handler
 }
@@ -605,7 +610,7 @@ interface ProtocolBadgeProps {
   entry: AnyRecord
   t: (key: string) => string
   language: string
-  now?: AnyRecord
+  now?: Date
 }
 // «Σήψη · Hour-1 72΄» while a protocol is open (surveillance list, episode tree).
 export function ProtocolBadge({ entry, t, language, now = new Date() }: ProtocolBadgeProps) {

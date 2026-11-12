@@ -5,21 +5,21 @@ import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FORM_STATUS } from './formStatus'
 import { useFormsTab } from './FormSection'
 import type { AnyRecord } from '../../../types/featureTypes'
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 
 interface FormRowProps {
   title: string
-  detail: AnyRecord
-  status: string
-  statusLabel: string
-  statusDetail: AnyRecord
+  detail?: ReactNode
+  status?: string
+  statusLabel?: string
+  statusDetail?: ReactNode
   signal?: string
   badge?: AnyRecord | null
-  date: string
-  dateLabel: string
+  date?: string
+  dateLabel?: string
   action?: AnyRecord | null
   menu?: AnyRecord[]
-  children: ReactNode
+  children?: ReactNode
 }
 // The one row of every form connected to an episode (bundles, scales, notifiable report,
 // incidents, questionnaires …): title with a detail line, the status in plain words, the
@@ -41,8 +41,8 @@ export function FormRow({ title, detail, status, statusLabel, statusDetail, sign
       ? {
           className: `episode-form-row is-clickable${danger ? ' is-signal' : ''}`,
           tabIndex: 0,
-          onClick: event => !event.target.closest?.('button,a,[role="menu"]') && action.onClick(),
-          onKeyDown: event => {
+          onClick: (event: MouseEvent<HTMLElement>) => !(event.target as HTMLElement).closest?.('button,a,[role="menu"]') && action.onClick(),
+          onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
             if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
               event.preventDefault()
               action.onClick()

@@ -105,7 +105,7 @@ async function loadEmployeeSurveillanceBatches(organizationId: string | null | u
 // employee_surveillance_records.intervention_status check: none|required|in_progress|completed.
 // "No intervention needed" is stored as no_intervention=true with intervention_status 'none'.
 const interventionStatuses=['none','required','in_progress','completed']
-export const interventionStatusDbValue=value=>interventionStatuses.includes(value)?value:value==='recorded'?'in_progress':'none'
+export const interventionStatusDbValue=(value: string)=>interventionStatuses.includes(value)?value:value==='recorded'?'in_progress':'none'
 export const followupInterventionStatus=(patch: AnyRecord)=>patch?.noIntervention?'none':((patch?.intervention?.trim()||patch?.interventionType)?'in_progress':'none')
 
 export async function createEmployeeSurveillanceRecord(organizationId: string | null | undefined,employeeDbId: string,draft: AnyRecord){
@@ -113,7 +113,7 @@ export async function createEmployeeSurveillanceRecord(organizationId: string | 
   const actorId=await currentUserId()
   const code=draft.code||`ESUR-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
   const {data,error}=await supabase.from('employee_surveillance_records').insert({
-    organization_id:organizationId,
+    organization_id:organizationId as string,
     surveillance_code:code,
     employee_id:employeeDbId,
     batch_id:draft.batchId||null,
@@ -136,7 +136,7 @@ export async function createEmployeeSurveillanceBatch(organizationId: string | n
   const actorId=await currentUserId()
   const batchCode=draft.code||`EBAT-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
   const {data:batch,error:batchError}=await supabase.from('employee_surveillance_batches').insert({
-    organization_id:organizationId,
+    organization_id:organizationId as string,
     batch_code:batchCode,
     department_id:draft.departmentId||null,
     started_at:draft.startedAt,
@@ -146,7 +146,7 @@ export async function createEmployeeSurveillanceBatch(organizationId: string | n
   }).select('*').single()
   if(batchError)throw batchError
   const payload=employees.map((employee: AnyRecord,index: number)=>({
-    organization_id:organizationId,
+    organization_id:organizationId as string,
     surveillance_code:`ESUR-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()+index).slice(-5)}`,
     employee_id:employee.dbId,
     batch_id:batch.id,
@@ -177,7 +177,7 @@ export async function updateEmployeeSurveillanceFollowup(organizationId: string 
     correction_reason:patch.correctionReason?.trim()||record.correctionReason||null,
     timeline:[timelineEntry,...(record.timeline||[])],
     updated_by:actorId,
-  }).eq('organization_id',organizationId).eq('id',record.recordId).select('*').single()
+  }).eq('organization_id',organizationId as string).eq('id',record.recordId).select('*').single()
   if(error)throw error
   return (await hydrateRecords([data]))[0]
 }

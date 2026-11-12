@@ -13,6 +13,7 @@ import { NO_SURVEILLANCE_REASONS, reasonLabel } from '../laboratory/sampleReview
 import './surveillanceRegistry.css'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
+import type { LucideIcon } from 'lucide-react'
 
 export const worklistTexts = (language: string) => language === 'en'
   ? { title: 'To review', emptyTitle: 'No samples to review', emptyText: 'New positive samples without an episode appear here until a decision is made.', saved: 'Decision saved.' }
@@ -20,7 +21,7 @@ export const worklistTexts = (language: string) => language === 'en'
 
 interface SampleReviewWorklistProps {
   rows: AnyRecord[]
-  empty: boolean
+  empty?: { title?: string, text?: string, icon?: LucideIcon } | null
   language: string
   t: (key: string) => string
   canOpenEpisode: boolean

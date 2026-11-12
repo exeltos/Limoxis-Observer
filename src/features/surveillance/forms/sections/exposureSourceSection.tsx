@@ -14,7 +14,7 @@ const caseRef = (ctx: AnyRecord, episode: AnyRecord) => (ctx.isDemo ? episode.id
 
 interface ExposureSourceLineProps {
   ctx: AnyRecord
-  section: string
+  section: AnyRecord
 }
 function ExposureSourceLine({ ctx, section }: ExposureSourceLineProps) {
   const { t } = useLanguage()
@@ -42,11 +42,11 @@ export const exposureSourceSection = {
   order: 95,
   canSee: (ctx: AnyRecord) => ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) && !isProfileDisabled(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH) && (ctx.episodes || []).length > 0,
   load: async (ctx: AnyRecord) => {
-    const counts = await Promise.all((ctx.episodes || []).map(episode => countSourceExposuresAsync(ctx.organizationId, caseRef(ctx, episode))))
+    const counts = await Promise.all((ctx.episodes || []).map((episode: AnyRecord) => countSourceExposuresAsync(ctx.organizationId, caseRef(ctx, episode))))
     return counts.reduce((sum, value) => sum + value, 0)
   },
   Component: ExposureSourceLine,
-  buildReport(ctx: AnyRecord, section: string) {
+  buildReport(ctx: AnyRecord, section: AnyRecord) {
     const count = Number(section.value) || 0
     if (!count) return null
     return {

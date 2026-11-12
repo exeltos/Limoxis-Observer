@@ -67,7 +67,7 @@ for(const [batchId,date,department,departmentEn,employeeIds,typeIds] of DEMO_BAT
 }
 // The ICU nurse carrying MRSA: nasal mupirocin and chlorhexidine for five days, negative recheck a week later.
 {
-  const carrier=employeeSurveillanceRecords.find(record=>record.id==='ESUR-250318-1')!,sample=historyScreeningSamples.find(item=>item.id===carrier.sampleIds[0])
+  const carrier=employeeSurveillanceRecords.find(record=>record.id==='ESUR-250318-1')!,sample=historyScreeningSamples.find(item=>item.id===carrier.sampleIds[0])!
   const intervention={interventionType:'Αποαποικισμός MRSA',interventionDetails:'Ρινική αλοιφή μουπιροσίνης 2%, 3 φορές την ημέρα, και λουτρό χλωρεξιδίνης για 5 ημέρες.',interventionStart:'2025-03-21',interventionEnd:'2025-03-25'}
   Object.assign(sample,{result:'positive',resultedAt:'2025-03-20T15:00:00+03:00',validatedAt:'2025-03-20T15:20:00+03:00',timeline:[sample.timeline[0],{at:'2025-03-20T15:20:00+03:00',type:'resultValidated',actor:'Demo Microbiology'}],organism:'Staphylococcus aureus',resistance:'MRSA',ast:[{drug:'Oxacillin',sir:'R',mic:'>2',method:'MIC',standard:'EUCAST',version:'16.0'},{drug:'Mupirocin',sir:'S',mic:'≤1',method:'MIC',standard:'EUCAST',version:'16.0'}],...intervention})
   const recheckId=historyScreeningSample('LAB-EMP-250318-1R',DEMO_STAFF[0],'nasalSwab','2025-04-01',carrier.id,{isRecheck:true})
@@ -185,7 +185,7 @@ export function createEmployeeSurveillance({employee,screeningTypes,startedAt,no
 }
 interface CreateEmployeeSurveillanceBatchOptions {
   employees: AnyRecord[]
-  screeningTypes: AnyRecord[]
+  screeningTypes: string[]
   startedAt: string
   department: AnyRecord
   departmentEn: AnyRecord

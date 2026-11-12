@@ -250,7 +250,7 @@ export function timelineLabel(type: string, language: string, t: (key: string) =
 }
 
 // Final report of a completed episode: full-width summary header and one card per clinical area.
-export const ISOLATION_STATUS = {
+export const ISOLATION_STATUS: Record<string, string> = {
   active: 'finalReport.isolationActive',
   ended: 'finalReport.isolationEnded',
   completed: 'finalReport.isolationEnded',

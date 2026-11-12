@@ -2,7 +2,7 @@
 import { Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
-import { FormSubmit } from '../../design-system/FormValidation'
+import { FormSubmit, type FormValidation } from '../../design-system/FormValidation'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
@@ -18,7 +18,7 @@ interface SimpleDialogProps {
   saveLabel?: string
   width?: string
   className?: string
-  form?: AnyRecord | null
+  form?: FormValidation | null
   danger?: boolean
 }
 export function SimpleDialog({

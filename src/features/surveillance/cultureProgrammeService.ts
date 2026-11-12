@@ -7,6 +7,7 @@ import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { isEnvironmentalSample } from './environmentalSurveillanceData'
 import { isOutsideLimit } from '../laboratory/environmentalLimit'
 import { CULTURE_CATEGORY } from './culturePlan'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
@@ -47,6 +48,6 @@ export async function loadCultureSamples(organizationId: string | null | undefin
   const [environmental, staff] = isLocal()
     ? [laboratorySamples.filter(isEnvironmentalSample), laboratorySamples.filter(row => row.employeeSurveillanceId)]
     : await Promise.all([loadLaboratorySamples(organizationId, { environmental: true, since }), loadStaffCultureSamples(organizationId, since)])
-  const rows = [...environmental, ...staff.map(row => ({ ...row, type: 'staff' }))]
-  return rows.filter(row => String(row.collectedAt || '') >= since).map(row => ({ ...row, outside: (row.microbiologyResults || []).some(result => isOutsideLimit(result)) }))
+  const rows: AnyRecord[] = [...environmental, ...staff.map((row: AnyRecord) => ({ ...row, type: 'staff' }))]
+  return rows.filter(row => String(row.collectedAt || '') >= since).map(row => ({ ...row, outside: (row.microbiologyResults || []).some((result: AnyRecord) => isOutsideLimit(result)) }))
 }

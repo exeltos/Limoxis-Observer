@@ -86,7 +86,7 @@ function QuestionRow({ question, entry, suggestion, onChange, form, withDetail =
   )
 }
 
-const stepOf = (question: AnyRecord, step: number) => question.step === step.id
+const stepOf = (question: AnyRecord, step: AnyRecord) => question.step === step.id
 
 // The hospital's settings applied (wording, help, on / off) once per mount.
 const useEffectiveQuestions = (settings: AnyRecord) => useMemo(() => applyEpiSettings(settings || []), [settings])
@@ -136,7 +136,7 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
       notify(t('epiQuestionnaire.saved'), 'success')
       onSaved(saved)
     } catch (error) {
-      notify(error?.message || t('epiQuestionnaire.saveFailed'), 'danger')
+      notify((error as Error)?.message || t('epiQuestionnaire.saveFailed'), 'danger')
     } finally {
       setBusy(false)
     }

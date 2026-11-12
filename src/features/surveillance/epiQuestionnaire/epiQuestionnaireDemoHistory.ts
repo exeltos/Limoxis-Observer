@@ -9,7 +9,7 @@ import { deviceFor, historyCases } from '../demoInfectionHistory'
 import { EPI_ANSWER, EPI_SOURCE } from './epiQuestionnaireModel'
 
 const ANSWERED_BY = ['Μαρία Κ.', 'Α. Νικολάου', 'Δ. Παπαδάκη']
-const answer = (yes, detail = '', src = EPI_SOURCE.PREFILL) => (yes ? { a: EPI_ANSWER.YES, detail, src } : { a: EPI_ANSWER.NO, detail: '', src: EPI_SOURCE.MANUAL })
+const answer = (yes: unknown, detail = '', src: string = EPI_SOURCE.PREFILL) => (yes ? { a: EPI_ANSWER.YES, detail, src } : { a: EPI_ANSWER.NO, detail: '', src: EPI_SOURCE.MANUAL })
 
 export function demoHistoryQuestionnaires() {
   if (isEmptyPreview()) return []

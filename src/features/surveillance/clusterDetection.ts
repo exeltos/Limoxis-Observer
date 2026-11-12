@@ -11,11 +11,11 @@ import type { AnyRecord } from '../../types/featureTypes'
 
 const DAY_MS = 86400000
 
-function normalizeOrganism(value) {
+function normalizeOrganism(value: unknown) {
   return String(value || '').trim().toLowerCase()
 }
 
-function addDays(isoDate, days: number) {
+function addDays(isoDate: string, days: number) {
   const date = new Date(`${isoDate}T00:00:00Z`)
   return new Date(date.getTime() + days * DAY_MS).toISOString().slice(0, 10)
 }
