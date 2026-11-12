@@ -9,13 +9,14 @@ import { YesNoField } from '../../../design-system/YesNoField'
 import { CONSEQUENCE,JCI_CHAPTERS,LIKELIHOOD,SECTIONS,joinMeasures,levelInfo,parseMeasures,riskWarnings,scored,warningLabel } from './riskModel'
 import { AxisSelect,L,LevelChip,recordActions,txt } from './riskUi'
 import { IndicatorPicker } from './RiskIndicatorsUi'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 const STAGES=[['inherent','Εγγενής κίνδυνος','Inherent risk','Χωρίς κανένα μέτρο','Before any control'],['residual','Υπολειπόμενος κίνδυνος','Residual risk','Με τα μέτρα που ήδη λαμβάνονται','With the controls already in place'],['target','Κίνδυνος-στόχος','Target risk','Μετά τα πρόσθετα μέτρα','After the additional measures']]
 
 // One risk of an assessment, on its own page. The score, level and warnings update as L and C change.
 export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,onDelete=null,onCreateCapa=null,saving=false,indicatorValues=null,assessmentLabel='',startEditing=false,onCancel=null}){
  const [draft,setDraft]=useState(()=>({section:'clinical',...risk,process:txt(risk,'process',en),scope:txt(risk,'scope',en),hazard:txt(risk,'hazard',en),existingControls:txt(risk,'existingControls',en),additionalMeasures:txt(risk,'additionalMeasures',en),owner:txt(risk,'owner',en),reviewFrequency:txt(risk,'reviewFrequency',en)}))
- const set=(key,value)=>setDraft(current=>({...current,[key]:value}))
+ const set=(key: string,value)=>setDraft(current=>({...current,[key]:value}))
  const isNew=!risk?.id
  const [editing,setEditing]=useState((isNew||startEditing)&&!readOnly)
  const locked=readOnly||!editing
@@ -27,8 +28,8 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
  const warnings=useMemo(()=>riskWarnings(draft),[draft])
  const residualLevel=levelInfo(s.residual.level)
  const valid=Boolean(String(draft.hazard||'').trim())&&s.inherent.score&&s.residual.score
- const field=(key,label,props={})=><label className="risk-field"><span>{label}</span><input value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)} {...props}/></label>
- const area=(key,label,rows=3,hint='')=><label className="risk-field risk-field-wide"><span>{label}{hint&&<small>{hint}</small>}</span><textarea rows={rows} value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)}/></label>
+ const field=(key: string,label: string,props: AnyRecord={})=><label className="risk-field"><span>{label}</span><input value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)} {...props}/></label>
+ const area=(key: string,label: string,rows=3,hint='')=><label className="risk-field risk-field-wide"><span>{label}{hint&&<small>{hint}</small>}</span><textarea rows={rows} value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)}/></label>
  const short=String(draft.hazard||'').trim()
  const title=short?(short.length>90?`${short.slice(0,88)}…`:short):L(en,'Νέος κίνδυνος','New risk')
  const sectionLabel=SECTIONS.find(x=>x.id===draft.section)
@@ -64,7 +65,7 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
     {alerts.length>0&&<ul className="risk-warnings">{alerts.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><AlertTriangle size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
    </Step>
    <Step n={3} title={L(en,'Παρακολούθηση','Monitoring')}>
-    <IndicatorPicker risk={draft} values={indicatorValues} en={en} disabled={locked} onChange={keys=>set('indicatorKeys',keys)}/>
+    <IndicatorPicker risk={draft} values={indicatorValues} en={en} disabled={locked} onChange={(keys: string[])=>set('indicatorKeys',keys)}/>
     <div className="risk-editor-grid risk-editor-grid-monitoring">
      <div className="risk-field-span2">{field('owner',L(en,'Υπεύθυνος υλοποίησης','Owner'))}</div>
      {field('reviewFrequency',L(en,'Συχνότητα ελέγχου','Review frequency'))}
@@ -104,11 +105,11 @@ export function MeasureList({title,hint,value,onChange,en,disabled}){
  // Each item is as tall as its text.
  useLayoutEffect(()=>{for(const el of refs.current){if(el){el.style.height='auto';el.style.height=`${el.scrollHeight+2}px`}}},[items])
  const commit=next=>{setItems(next);onChange(joinMeasures(next))}
- const focus=i=>setTimeout(()=>refs.current[i]?.focus(),0)
- const update=(i,text)=>commit(items.map((item,j)=>j===i?text:item))
+ const focus=(i: number)=>setTimeout(()=>refs.current[i]?.focus(),0)
+ const update=(i: number,text: string)=>commit(items.map((item,j)=>j===i?text:item))
  const add=(at=items.length)=>{const next=[...items.slice(0,at),'',...items.slice(at)];commit(next);focus(at)}
- const remove=i=>{const next=items.filter((_,j)=>j!==i);commit(next.length?next:['']);focus(Math.max(0,i-1))}
- const move=(i,d)=>{const j=i+d;if(j<0||j>=items.length)return;const next=[...items];[next[i],next[j]]=[next[j],next[i]];commit(next);focus(j)}
+ const remove=(i: number)=>{const next=items.filter((_,j)=>j!==i);commit(next.length?next:['']);focus(Math.max(0,i-1))}
+ const move=(i: number,d)=>{const j=i+d;if(j<0||j>=items.length)return;const next=[...items];[next[i],next[j]]=[next[j],next[i]];commit(next);focus(j)}
  const filled=items.filter(item=>item.trim()).length
  return <div className="risk-measures">
   <div className="risk-measures-head"><strong>{title}</strong><small>{hint}</small><span className="risk-measures-count">{filled}</span></div>

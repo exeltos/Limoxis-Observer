@@ -18,6 +18,7 @@ import { RiskRecordView } from './RiskRecordView'
 import { DeleteConfirm,L,txt } from './riskUi'
 import './riskAssessment.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 const EDITABLE=['draft','under_review']
 
@@ -32,7 +33,7 @@ export function RiskRecordPage(){
  const organizationId=tenant?.id
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
  const canManage=(!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER)||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
- const [assessment,setAssessment]=useState(null)
+ const [assessment,setAssessment]=useState<AnyRecord | null>(null)
  const [loading,setLoading]=useState(true)
  const [saving,setSaving]=useState(false)
  const [confirming,setConfirming]=useState(false)
@@ -40,13 +41,13 @@ export function RiskRecordPage(){
  const [unlocking,setUnlocking]=useState(false)
  const {user,profile}=useAuth()
  const {goTo}=useContextualNavigation('/quality')
- const [indicatorValues,setIndicatorValues]=useState(null)
- useEffect(()=>{let active=true;setLoading(true);loadRiskAssessment(organizationId,assessmentCode).then(a=>{if(active)setAssessment(a)}).catch(()=>{if(active)setAssessment(null)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[organizationId,assessmentCode])
+ const [indicatorValues,setIndicatorValues]=useState<Map<string,AnyRecord> | null>(null)
+ useEffect(()=>{let active=true;setLoading(true);loadRiskAssessment(organizationId,assessmentCode as string).then(a=>{if(active)setAssessment(a)}).catch(()=>{if(active)setAssessment(null)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[organizationId,assessmentCode])
  useEffect(()=>{let active=true;loadIndicatorValues(organizationId).then(v=>{if(active)setIndicatorValues(v)}).catch(()=>{if(active)setIndicatorValues(new Map())});return()=>{active=false}},[organizationId])
  const risks=useMemo(()=>assessment?.risks||[],[assessment])
- const processes=useMemo(()=>[...new Set(risks.map(r=>r.process).filter(Boolean))].sort(),[risks])
+ const processes=useMemo(()=>[...new Set<string>(risks.map((r: AnyRecord)=>r.process).filter(Boolean))].sort(),[risks])
  const isNew=riskKey==='new'
- const risk=isNew?{section:'clinical'}:risks.find(r=>r.lineageKey===riskKey)
+ const risk: AnyRecord|undefined=isNew?{section:'clinical'}:risks.find((r: AnyRecord)=>r.lineageKey===riskKey)
  // Back to the assessment, on the tab the risk was opened from.
  // Opened from the assessment, «Πίσω» steps back in the history (the assessment keeps its tab, filters and spot).
  // A replace would leave the assessment twice in the history, and its own back arrow would land on itself.
@@ -60,16 +61,18 @@ export function RiskRecordPage(){
  if(!assessment||!risk)return <Page title={L(en,'Κίνδυνος','Risk')}><div className="inline-empty">{L(en,'Ο κίνδυνος δεν βρέθηκε.','The risk was not found.')}</div></Page>
  const canEdit=canManage&&EDITABLE.includes(assessment.status)
 
- async function save(draft){
+ async function save(draft: AnyRecord){
+  if(!assessment)return
   setSaving(true)
   try{
    await saveRisk(organizationId,assessment.id,{...draft,lineageKey:draft.lineageKey||nextLineageKey(risks),position:draft.position??risks.length,jci:draft.jci||suggestJci(draft.hazard,draft.process)})
    notify(L(en,'Ο κίνδυνος αποθηκεύτηκε.','The risk was saved.'),'success')
-   if(isNew)back();else{setAssessment(await loadRiskAssessment(organizationId,assessmentCode));setEditing(false)}
+   if(isNew)back();else{setAssessment(await loadRiskAssessment(organizationId,assessmentCode as string));setEditing(false)}
   }catch{notify(L(en,'Δεν ήταν δυνατή η αποθήκευση του κινδύνου.','Could not save the risk.'),'error')}finally{setSaving(false)}
  }
  // A locked assessment reopens to draft (recorded in its history) before a risk can change.
  async function unlock(){
+  if(!assessment)return
   setSaving(true)
   try{
    const actor=auditActorFromAuth({profile,user})
@@ -80,16 +83,18 @@ export function RiskRecordPage(){
  }
  async function remove(){
   setConfirming(false)
+  if(!assessment||!risk)return
   try{await deleteRisk(organizationId,assessment.id,risk.id);notify(L(en,'Ο κίνδυνος διαγράφηκε.','The risk was deleted.'),'success');back()}
   catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}
  }
  // A corrective action from the risk, prefilled with its level and action plan.
- function createCapa(r){
+ function createCapa(r: AnyRecord){
+  if(!assessment)return
   const s=scored(r)
   goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:{source:'other',sourceId:`RISK:${assessment.code}:${r.lineageKey}`,title:L(en,`Μείωση κινδύνου: ${txt(r,'hazard',en)}`,`Risk reduction: ${txt(r,'hazard',en)}`),description:[`${assessment.periodLabel} · ${r.lineageKey} · ${txt(r,'process',en)}`,`${L(en,'Υπολειπόμενος κίνδυνος','Residual risk')}: ${s.residual.score??'—'} (${levelLabel(s.residual.level,en)})`,txt(r,'additionalMeasures',en)].filter(Boolean).join('\n'),priority:s.residual.level==='very_high'?'critical':s.residual.level==='high'?'high':'medium',dueDate:r.dueDate||undefined}}})
  }
  return <Page fill>
-  {!isNew&&!editing?<RiskRecordView key={riskKey} risk={risk} assessment={assessment} organizationId={organizationId} en={en} canEdit={canManage} indicatorValues={indicatorValues} onBack={back} onEdit={()=>canEdit?setEditing(true):setUnlocking(true)} onMove={key=>navigate(`/quality/risks/${assessmentCode}/${key}`,{replace:true,state:location.state})} onDelete={canEdit?()=>setConfirming(true):null} onCreateCapa={canManage?createCapa:null}/>
+  {!isNew&&!editing?<RiskRecordView key={riskKey} risk={risk} assessment={assessment} organizationId={organizationId} en={en} canEdit={canManage} indicatorValues={indicatorValues} onBack={back} onEdit={()=>canEdit?setEditing(true):setUnlocking(true)} onMove={(key: string)=>navigate(`/quality/risks/${assessmentCode}/${key}`,{replace:true,state:location.state})} onDelete={canEdit?()=>setConfirming(true):null} onCreateCapa={canManage?createCapa:null}/>
   :<RiskEditor key={riskKey} startEditing={editing} onCancel={()=>setEditing(false)} risk={risk} processes={processes} en={en} readOnly={!canEdit} saving={saving} indicatorValues={indicatorValues} assessmentLabel={assessment.periodLabel} onClose={back} onSave={save} onDelete={()=>setConfirming(true)} onCreateCapa={createCapa}/>}
   {unlocking&&<ObserverDialog width="compact" title={L(en,'Η εκτίμηση είναι κλειδωμένη','The assessment is locked')} onClose={()=>setUnlocking(false)} footer={<DialogActions onCancel={()=>setUnlocking(false)} onSave={unlock} saveLabel={L(en,'Επαναφορά σε πρόχειρο','Back to draft')} disabled={saving}/>}>
    <p>{L(en,`Η εκτίμηση ${assessment.periodLabel} είναι «${statusLabel(assessment.status,en)}». Για να αλλάξει ο κίνδυνος, η εκτίμηση επανέρχεται σε πρόχειρο και θα χρειαστεί νέα έγκριση.`,`The ${assessment.periodLabel} assessment is “${statusLabel(assessment.status,en)}”. To change the risk it goes back to draft and will need a new approval.`)}</p>

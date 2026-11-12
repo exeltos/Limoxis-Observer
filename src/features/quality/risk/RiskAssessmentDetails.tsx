@@ -1,24 +1,26 @@
-import { Archive,ArrowRight,CheckCircle2,Clock3,FilePlus2,FileUp,Pencil,RotateCcw,Send } from 'lucide-react'
+import { Archive,ArrowRight,CheckCircle2,Clock3,FilePlus2,FileUp,Pencil,RotateCcw,Send,type LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { ActionButton } from '../../../design-system/ActionButton'
-import { L,PERIOD_KINDS,defaultFrame,fmtDate,txt } from './riskUi'
+import { L,PERIOD_KINDS,defaultFrame,fmtDate,txt,type RiskFrame } from './riskUi'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const FLOW=[
+const FLOW: [string,string,string,string[]][]=[
  ['draft','Πρόχειρο','Draft',['riskAssessmentCreated','riskAssessmentImported','riskAssessmentReopened']],
  ['under_review','Σε έλεγχο','Under review',['riskAssessmentSubmitted']],
  ['approved','Εγκεκριμένη','Approved',['riskAssessmentApproved']],
  ['archived','Αρχειοθετημένη','Archived',['riskAssessmentArchived']],
 ]
-export const HISTORY={riskAssessmentCreated:['Δημιουργία εκτίμησης','Assessment created',FilePlus2],riskAssessmentImported:['Εισαγωγή από Excel','Imported from Excel',FileUp],riskAssessmentSubmitted:['Υποβολή για έλεγχο','Submitted for review',Send],riskAssessmentApproved:['Έγκριση','Approved',CheckCircle2],riskAssessmentReopened:['Επαναφορά σε πρόχειρο','Back to draft',RotateCcw],riskAssessmentArchived:['Αρχειοθέτηση','Archived',Archive],riskAssessmentUpdated:['Αλλαγή στοιχείων','Details changed',Pencil]}
+export const HISTORY: Record<string,[string,string,LucideIcon]>={riskAssessmentCreated:['Δημιουργία εκτίμησης','Assessment created',FilePlus2],riskAssessmentImported:['Εισαγωγή από Excel','Imported from Excel',FileUp],riskAssessmentSubmitted:['Υποβολή για έλεγχο','Submitted for review',Send],riskAssessmentApproved:['Έγκριση','Approved',CheckCircle2],riskAssessmentReopened:['Επαναφορά σε πρόχειρο','Back to draft',RotateCcw],riskAssessmentArchived:['Αρχειοθέτηση','Archived',Archive],riskAssessmentUpdated:['Αλλαγή στοιχείων','Details changed',Pencil]}
 const DAY=86400000
-const daysUntil=date=>date?Math.round((new Date(`${date}T00:00:00`)-new Date(new Date().toDateString()))/DAY):null
+const daysUntil=(date: string)=>date?Math.round((new Date(`${date}T00:00:00`).getTime()-new Date(new Date().toDateString()).getTime())/DAY):null
 
 // The «Στοιχεία» tab: who and what the assessment is, where it stands in its
 // approval, when it is due again, the periods before and after it, and its history.
-export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actions=null,nextStep=null,onOpenAssessment,onCreateNext,frame=defaultFrame}){
+export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actions=null,nextStep=null,onOpenAssessment,onCreateNext,frame=defaultFrame}: {assessment: AnyRecord,assessments?: AnyRecord[],en: boolean,locale: string,actions?: ReactNode,nextStep?: AnyRecord|null,onOpenAssessment?: (code: string)=>void,onCreateNext?: (()=>void)|null,frame?: RiskFrame}){
  const history=assessment.history||[]
- const lastOf=ids=>[...history].reverse().find(h=>ids.includes(h.action))
+ const lastOf=(ids: string[])=>[...history].reverse().find(h=>ids.includes(h.action))
  const at=FLOW.findIndex(([id])=>id===assessment.status)
- const days=daysUntil(assessment.nextReviewOn)
+ const days=daysUntil(assessment.nextReviewOn) as number
  const previous=assessments.find(a=>a.id===assessment.sourceAssessmentId)
  const following=assessments.filter(a=>a.sourceAssessmentId===assessment.id).sort((a,b)=>String(a.assessedOn).localeCompare(String(b.assessedOn)))
  // Three rows of two: form and period, the dates (the next one counting down), who and where.
@@ -30,7 +32,7 @@ export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actio
   [L(en,'Υπεύθυνος αξιολόγησης','Assessed by'),assessment.assessorLabel],
   [L(en,'Πεδίο εφαρμογής / σημειώσεις','Scope / notes'),assessment.scopeNote],
  ]
- const link=(a,label)=><button type="button" className="risk-lineage-link" onClick={()=>onOpenAssessment?.(a.code)}><small>{label}</small><strong>{txt(a,'title',en)}</strong><span>{a.periodLabel} · {fmtDate(a.assessedOn,locale)}</span><ArrowRight size={14}/></button>
+ const link=(a: AnyRecord,label: string)=><button type="button" className="risk-lineage-link" onClick={()=>onOpenAssessment?.(a.code)}><small>{label}</small><strong>{txt(a,'title',en)}</strong><span>{a.periodLabel} · {fmtDate(a.assessedOn,locale)}</span><ArrowRight size={14}/></button>
  return frame(null,<div className="risk-details">
   <div className="risk-details-columns">
    <section className="risk-panel"><header><h3>{L(en,'Ταυτότητα εκτίμησης','Assessment identity')}</h3><span className="risk-panel-actions">{actions}</span></header>

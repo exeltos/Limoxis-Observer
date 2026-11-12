@@ -1,22 +1,23 @@
-import { useState } from 'react'
-import { LEVELS,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
-import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,returnedClass,txt } from './riskUi'
+import { useState,type ReactNode } from 'react'
+import { LEVELS,jciLabel,levelForScore,scored,sectionLabel,type RiskSummary } from './riskModel'
+import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,returnedClass,txt,type RiskFrame } from './riskUi'
 import { RiskIndicatorTable } from './RiskIndicatorsUi'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const pct=(n,total)=>total?Math.round(n/total*100):0
+const pct=(n: number,total: number)=>total?Math.round(n/total*100):0
 // Greek decimals use a comma.
-export const num=(value,en)=>value==null||value===''?'—':en?String(value):String(value).replace('.',',')
+export const num=(value: unknown,en: boolean)=>value==null||value===''?'—':en?String(value):String(value).replace('.',',')
 
 // Bars of the four levels for inherent, residual and target, side by side.
-export function LevelDistribution({summary,en,kinds=['inherent','residual','target']}){
- const names={inherent:L(en,'Εγγενής','Inherent'),residual:L(en,'Υπολειπόμενος','Residual'),target:L(en,'Στόχος','Target')}
+export function LevelDistribution({summary,en,kinds=['inherent','residual','target']}: {summary: RiskSummary,en: boolean,kinds?: string[]}){
+ const names: Record<string,string>={inherent:L(en,'Εγγενής','Inherent'),residual:L(en,'Υπολειπόμενος','Residual'),target:L(en,'Στόχος','Target')}
  return <table className="risk-distribution"><thead><tr><th>{L(en,'Επίπεδο','Level')}</th>{kinds.map(k=><th key={k}>{names[k]}</th>)}</tr></thead><tbody>
   {[...LEVELS].reverse().map(level=><tr key={level.id}><th scope="row"><span className={`risk-swatch risk-cell-${level.id}`}/>{en?level.en:level.el}</th>{kinds.map(kind=>{const total=Object.values(summary.levels[kind]).reduce((a,b)=>a+b,0),n=summary.levels[kind][level.id]
    return <td key={kind}><div className="risk-bar"><i className={`risk-cell-${level.id}`} style={{width:`${pct(n,total)}%`}}/></div><span>{n}<small> · {pct(n,total)}%</small></span></td>})}</tr>)}
  </tbody></table>
 }
 
-export function RiskKpis({summary,en}){
+export function RiskKpis({summary,en}: {summary: RiskSummary,en: boolean}){
  const high=summary.levels.residual.high+summary.levels.residual.very_high
  const items=[
   [L(en,'Κίνδυνοι','Risks'),summary.total,''],
@@ -29,21 +30,21 @@ export function RiskKpis({summary,en}){
  return <div className="risk-kpis">{items.map(([label,value,tone])=><div key={label} className={`risk-kpi${tone?` risk-kpi-${tone}`:''}`}><strong>{value}</strong><span>{label}</span></div>)}<p className="risk-kpi-note">{L(en,`${high} από ${summary.total} κινδύνους παραμένουν υψηλοί ή πολύ υψηλοί με τα υφιστάμενα μέτρα.`,`${high} of ${summary.total} risks stay high or very high with the existing controls.`)}</p></div>
 }
 
-function GroupTable({rows,en,label,labelFor=x=>x}){
+function GroupTable({rows,en,label,labelFor=(x: string)=>x}: {rows: AnyRecord[],en: boolean,label: string,labelFor?: (key: string)=>string}){
  return <table className="data-table risk-group-table"><thead><tr><th>{label}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Μέσος εγγενής','Avg. inherent')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Μέγιστος υπολειπόμενος','Max. residual')}</th><th>{L(en,'Υψηλοί / πολύ υψηλοί','High / very high')}</th></tr></thead><tbody>
-  {rows.map(g=><tr key={g.key}><td>{labelFor(g.key)}</td><td>{g.count}</td><td>{num(g.inherentAvg,en)}</td><td>{num(g.residualAvg,en)}</td><td><LevelChip score={g.residualMax} en={en}/></td><td>{g.highOrAbove||'—'}</td></tr>)}
+  {rows.map((g: AnyRecord)=><tr key={g.key}><td>{labelFor(g.key)}</td><td>{g.count}</td><td>{num(g.inherentAvg,en)}</td><td>{num(g.residualAvg,en)}</td><td><LevelChip score={g.residualMax} en={en}/></td><td>{g.highOrAbove||'—'}</td></tr>)}
  </tbody></table>
 }
 
-export function RiskList({risks,en,empty,onOpen,returned=''}){
+export function RiskList({risks,en,empty,onOpen,returned=''}: {risks: AnyRecord[],en: boolean,empty: string,onOpen?: ((risk: AnyRecord)=>void)|null,returned?: string}){
  if(!risks.length)return <p className="risk-empty-note">{empty}</p>
- return <ol className="risk-list">{risks.map(risk=>{const s=scored(risk);return <li key={risk.id||risk.lineageKey}><button type="button" className={returnedClass(returned,risk.lineageKey).trim()||undefined} onClick={()=>onOpen?.(risk)} disabled={!onOpen}>
+ return <ol className="risk-list">{risks.map((risk: AnyRecord)=>{const s=scored(risk);return <li key={risk.id||risk.lineageKey}><button type="button" className={returnedClass(returned,risk.lineageKey).trim()||undefined} onClick={()=>onOpen?.(risk)} disabled={!onOpen}>
   <LevelChip score={s.residual.score} level={s.residual.level} en={en} compact/><span><strong>{risk.lineageKey} · {txt(risk,'hazard',en)}</strong><small>{[txt(risk,'process',en),txt(risk,'scope',en),txt(risk,'owner',en)].filter(Boolean).join(' · ')}</small></span>
  </button></li>})}</ol>
 }
 
 // Under each heat map: how many risks fall in each level.
-export function LevelCounts({counts,en}){
+export function LevelCounts({counts,en}: {counts?: Record<string,number>,en: boolean}){
  return <ul className="risk-level-counts">{[...LEVELS].reverse().map(level=><li key={level.id}><span className={`risk-swatch risk-cell-${level.id}`}/>{en?level.en:level.el}<strong>{counts?.[level.id]||0}</strong></li>)}</ul>
 }
 
@@ -51,12 +52,25 @@ const GROUPS=[['process','Ανά διεργασία','By process'],['jci','Αν�
 
 // Analysis of one assessment: what needs a decision first, then the maps,
 // the indicators and the breakdowns.
-export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null,returned='',mark='',frame=defaultFrame}){
+interface RiskAnalysisProps {
+ summary: RiskSummary
+ en: boolean
+ onCell: (cell: AnyRecord)=>void
+ onOpen: (risk: AnyRecord)=>void
+ risks?: AnyRecord[]
+ indicatorValues?: Map<string,AnyRecord>|null
+ actions?: ReactNode
+ returned?: string
+ mark?: string
+ frame?: RiskFrame
+}
+
+export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null,returned='',mark='',frame=defaultFrame}: RiskAnalysisProps){
  const [group,setGroup]=useState('process')
  // The heat-map cell the user came back from stays marked.
  const [mk,ml,mc]=String(mark).split(':'),marked=mk&&ml&&mc&&['inherent','residual','target'].includes(mk)?{kind:mk,l:Number(ml),c:Number(mc)}:null
- const map=(kind,title,caption,extra={})=><div className="risk-heatmap-cell">
-  <RiskHeatMap heat={summary.heat[kind]} en={en} title={title} caption={caption} onCell={c=>onCell({...c,kind})} active={marked?.kind===kind?marked:null} {...extra}/>
+ const map=(kind: string,title: string,caption: string,extra: AnyRecord={})=><div className="risk-heatmap-cell">
+  <RiskHeatMap heat={summary.heat[kind]} en={en} title={title} caption={caption} onCell={(c: {l: number,c: number})=>onCell({...c,kind})} active={marked?.kind===kind?marked:null} {...extra}/>
   <LevelCounts counts={summary.levels[kind]} en={en}/>
  </div>
  return frame(null,<div className="risk-analysis">

@@ -13,6 +13,7 @@ import { loadRiskAssessments } from './riskService'
 import { consequenceLabel,jciLabel,levelLabel,likelihoodLabel,parseMeasures,riskEvidenceRows,riskLineage,riskWarnings,scored,sectionLabel,warningLabel } from './riskModel'
 import { L,LevelChip,recordActions,txt } from './riskUi'
 import { IndicatorChip } from './RiskIndicatorsUi'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 const STAGES=[['inherent','Εγγενής','Inherent'],['residual','Υπολειπόμενος','Residual'],['target','Στόχος','Target']]
 
@@ -25,7 +26,7 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
  const {goTo}=useContextualNavigation('/quality')
  const [tab,setTab]=useState('details')
  const [practice,setPractice]=useState({incidents:[],findings:[],capas:[]})
- const [assessments,setAssessments]=useState([])
+ const [assessments,setAssessments]=useState<AnyRecord[]>([])
  useEffect(()=>{let active=true
   Promise.all(['incidents','findings','capas'].map(section=>loadQualityRecords(section,organizationId).catch(()=>[]))).then(([incidents,findings,capas])=>{if(active)setPractice({incidents,findings,capas})})
   loadRiskAssessments(organizationId).then(list=>{if(active)setAssessments(list)}).catch(()=>{if(active)setAssessments([])})
@@ -43,8 +44,8 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
  const index=keys.indexOf(risk.lineageKey)
  const recordNavigation=onMove&&index>=0&&keys.length>1?{position:index+1,total:keys.length,hasPrevious:index>0,hasNext:index<keys.length-1,previous:()=>index>0&&onMove(keys[index-1]),next:()=>index<keys.length-1&&onMove(keys[index+1])}:null
  const measures=value=>{const list=parseMeasures(value);return list.length?<ol className="risk-view-measures">{list.map((item,index)=><li key={index}>{item}</li>)}</ol>:''}
- const axes=kind=>s[kind].score?`${s[kind].l} × ${s[kind].c} · ${likelihoodLabel(s[kind].l,en)} / ${consequenceLabel(s[kind].c,en)}`:''
- const open=(type,row)=>goTo(`/quality/${type}/${row.id}`,{returnTo:`/quality/risks/${assessment.code}/${risk.lineageKey}`})
+ const axes=(kind: string)=>s[kind].score?`${s[kind].l} × ${s[kind].c} · ${likelihoodLabel(s[kind].l,en)} / ${consequenceLabel(s[kind].c,en)}`:''
+ const open=(type: string,row: AnyRecord)=>goTo(`/quality/${type}/${row.id}`,{returnTo:`/quality/risks/${assessment.code}/${risk.lineageKey}`})
  const tabs=[
   {id:'details',label:L(en,'Στοιχεία','Details'),icon:ShieldAlert},
   {id:'practice',label:L(en,`Στην πράξη (${evidence.incidents.length+evidence.findings.length})`,`In practice (${evidence.incidents.length+evidence.findings.length})`),icon:Activity},
@@ -76,13 +77,13 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
     {label:L(en,'Υπεύθυνος υλοποίησης','Owner'),value:txt(risk,'owner',en)},
     {label:L(en,'Προθεσμία','Due date'),value:risk.dueDate?formatDay(risk.dueDate,language):''},
     {label:L(en,'Συχνότητα ελέγχου','Review frequency'),value:txt(risk,'reviewFrequency',en)},
-    {label:L(en,'Δείκτες','Indicators'),value:indicators.length?<span className="risk-view-indicators">{indicators.map(key=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en}/>)}</span>:'',wide:true},
+    {label:L(en,'Δείκτες','Indicators'),value:indicators.length?<span className="risk-view-indicators">{indicators.map((key: string)=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en}/>)}</span>:'',wide:true},
     {label:L(en,'Προληπτική ανάλυση (FMEA)','Proactive analysis (FMEA)'),value:risk.prioritized?L(en,'Ναι','Yes'):''},
     {label:L(en,'Σημειώσεις','Notes'),value:txt(risk,'notes',en),wide:true},
    ].filter(item=>item.value)},
   ]}/>
  </div>
- const list=(rows,type,empty)=>rows.length?<ul className="risk-view-list">{rows.map(row=><li key={row.id}><button type="button" onClick={()=>open(type,row)}>
+ const list=(rows: AnyRecord[],type: string,empty)=>rows.length?<ul className="risk-view-list">{rows.map((row: AnyRecord)=><li key={row.id}><button type="button" onClick={()=>open(type,row)}>
   <span><strong>{row.displayId||row.id}</strong> · {(en?row.titleEn:row.title)||row.title}</span>
   <small>{[formatDay(row.date,language),(en?row.departmentEn:row.department)||row.department].filter(Boolean).join(' · ')}</small>
  </button></li>)}</ul>:<p className="risk-view-none">{empty}</p>
@@ -92,7 +93,7 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
   {list(evidence.incidents,'incidents',L(en,'Κανένα συμβάν στα τμήματα του κινδύνου.','No incident in the risk\'s departments.'))}
   <h4 className="risk-view-heading">{L(en,`Ευρήματα επιθεωρήσεων JCI ${String(risk.jci||'').split('.')[0]} (${evidence.findings.length})`,`JCI ${String(risk.jci||'').split('.')[0]} audit findings (${evidence.findings.length})`)}</h4>
   {list(evidence.findings,'findings',risk.jci?L(en,'Κανένα εύρημα στο κεφάλαιο.','No finding in the chapter.'):L(en,'Ο κίνδυνος δεν έχει κεφάλαιο JCI.','The risk has no JCI chapter.'))}
-  {indicators.length>0&&<><h4 className="risk-view-heading">{L(en,`Δείκτες (${indicators.length})`,`Indicators (${indicators.length})`)}</h4><div className="risk-view-indicators">{indicators.map(key=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en}/>)}</div></>}
+  {indicators.length>0&&<><h4 className="risk-view-heading">{L(en,`Δείκτες (${indicators.length})`,`Indicators (${indicators.length})`)}</h4><div className="risk-view-indicators">{indicators.map((key: string)=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en}/>)}</div></>}
  </div>
  const actionsTab=<div className="record-section risk-view">
   <div className="record-section-header"><h3>{L(en,'Διορθωτικές ενέργειες','Corrective actions')}</h3>{onCreateCapa&&<Button variant="secondary" onClick={()=>onCreateCapa(risk)}><Plus size={15}/>{L(en,'Νέα διορθωτική ενέργεια','New corrective action')}</Button>}</div>
