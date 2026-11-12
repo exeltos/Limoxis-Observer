@@ -31,10 +31,11 @@ $function$;
 revoke all on function private.demo_regulation_content(text, text, text, boolean) from public, anon, authenticated;
 
 -- The ward staff of the rotas: six nurses and nursing assistants in each of the eight Demo departments
--- (EMP-101 on) and a head nurse where the department has none, with the same columns as the other Demo
--- employees (demo_seed_hand_hygiene_employees). Their vaccinations follow demo_seed_occupational_health;
--- their job description acceptances, certificates and evaluations come from demo_seed_people_employees,
--- which adds only what is missing.
+-- (EMP-101 on), a head nurse where the department has none and one more nurse in the Internal Medicine
+-- ward (one of its people is on leave), with the same columns as the other Demo employees
+-- (demo_seed_hand_hygiene_employees). Their vaccinations follow demo_seed_occupational_health; their job
+-- description acceptances, certificates and evaluations come from demo_seed_people_employees and their
+-- trainings from demo_seed_training, which add what is missing and rewrite their own rows in place.
 create or replace function private.demo_seed_roster_staff(v_org uuid, p_actor uuid)
 returns void language plpgsql set search_path = ''
 as $function$
@@ -54,15 +55,15 @@ begin
     case when s.k in (5, 6) then 'Βοηθός Νοσηλευτή' else 'Νοσηλευτής / Νοσηλεύτρια' end,
     case when s.k = 7 then 'Προϊστάμενος Τμήματος' when s.k in (5, 6) then 'Βοηθός Νοσηλευτή' else 'Νοσηλευτής Τμήματος' end,
     -- One of the new people is on leave in the register (and comes in out of the roster).
-    case when s.g = 112 then 'leave' else 'active' end,
+    case when s.g = 113 then 'leave' else 'active' end,
     d0 - (150 + (s.g * 67) % 3200), 'emp' || s.g::text || '@demo.invalid', p_actor, p_actor
   from (
-    select dep.id as dep_id, dep.name as dep_name, o.ord, k, 100 + (o.ord - 1) * 7 + k as g
+    select dep.id as dep_id, dep.name as dep_name, o.ord, k, 100 + (o.ord - 1) * 8 + k as g
     from (values ('ΜΕΘ', 1), ('ΠΑΘ', 2), ('ΧΕΙΡ', 3), ('ΚΑΡΔ', 4), ('ΟΡΘ', 5), ('ΝΕΦ', 6), ('ΠΑΙΔ', 7), ('ΜΕΝΝ', 8)) o(code, ord)
     join public.departments dep on dep.organization_id = v_org and dep.code = o.code
-    cross join generate_series(1, 7) k
-    where k < 7 or not exists (select 1 from public.employees e where e.organization_id = v_org and e.department_id = dep.id
-      and e.staff_category <> 'physician' and coalesce(e.position_name, '') ~* 'προϊστάμεν')
+    cross join generate_series(1, 8) k
+    where k < 7 or (k = 8 and o.code = 'ΠΑΘ') or (k = 7 and not exists (select 1 from public.employees e where e.organization_id = v_org and e.department_id = dep.id
+      and e.staff_category <> 'physician' and coalesce(e.position_name, '') ~* 'προϊστάμεν'))
   ) s
   on conflict (organization_id, employee_code) do nothing;
 
@@ -85,6 +86,7 @@ begin
     and not exists (select 1 from public.employee_vaccinations x where x.organization_id = v_org and x.employee_id = e.id and x.vaccine_label_snapshot = v.label);
 
   perform private.demo_seed_people_employees(v_org, p_actor);
+  perform private.demo_seed_training(v_org, p_actor);
 end;
 $function$;
 revoke all on function private.demo_seed_roster_staff(uuid, uuid) from public, anon, authenticated;
