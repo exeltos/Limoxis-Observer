@@ -151,9 +151,22 @@ export function validateEntry(fields: AnyRecord[] = [], values: AnyRecord = {}, 
 }
 
 // How a value reads in a list or a report.
-export function formatValue(field: AnyRecord, value: unknown, language = 'el') {
+// Age in days from two dates is «0» or «1» for a newborn admitted the day it was born, which tells nothing: under 3 days
+// the age in hours of the entry (when it has one) is shown, and under one day without hours it reads «under 1 day».
+export function ageText(days: number, hours: unknown, language = 'el') {
+  const en = language === 'en'
+  const number = new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 })
+  const h = hours == null || hours === '' ? null : Number(hours)
+  if (days < 3 && h != null && Number.isFinite(h) && h >= 0) return `${number.format(h)} ${en ? (h === 1 ? 'hour' : 'hours') : (h === 1 ? 'ώρα' : 'ώρες')}`
+  if (days < 1) return en ? 'under 1 day' : 'κάτω από 1 ημέρα'
+  return `${number.format(days)} ${en ? (days === 1 ? 'day' : 'days') : (days === 1 ? 'ημέρα' : 'ημέρες')}`
+}
+
+// `entryValues` (optional): the other values of the entry, for fields shown together with another one (the age with its hours).
+export function formatValue(field: AnyRecord, value: unknown, language = 'el', entryValues: AnyRecord | null = null) {
   const en = language === 'en'
   if (isBlank(value)) return '—'
+  if (field.type === 'computed' && field.computed === 'ageDays' && field.to === 'admission_date' && Number.isFinite(Number(value))) return ageText(Number(value), entryValues?.admission_age_hours, language)
   if (field.type === 'yesNo') return value === true || value === 'yes' ? (en ? 'Yes' : 'Ναι') : value === false || value === 'no' ? (en ? 'No' : 'Όχι') : en ? 'Unknown' : 'Άγνωστο'
   if (field.type === 'choice') return textOf((field.options || []).find((option: AnyRecord) => option.value === value), language) || String(value)
   if (field.type === 'multiChoice') return (Array.isArray(value) ? value : [value]).map(item => textOf((field.options || []).find((option: AnyRecord) => option.value === item), language) || item).join(', ')
