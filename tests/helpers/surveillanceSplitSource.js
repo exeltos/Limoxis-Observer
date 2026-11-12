@@ -5,6 +5,7 @@ import { readSource } from './readSource'
 const S = 'src/features/surveillance/'
 export const SURVEILLANCE_SPLITS = {
   [`${S}clinicalCloudService`]: [`${S}clinicalCloudMappers.ts`],
+  [`${S}ClinicalJourney`]: [`${S}ClinicalJourneyCareStages.tsx`, `${S}ClinicalJourneyWindows.tsx`],
 }
 
 const stem = file => String(file).replace(/\.(js|jsx|ts|tsx)$/, '')

@@ -4,6 +4,7 @@ import { employeeScreeningCatalog } from '../src/features/surveillance/employeeS
 import { ENVIRONMENTAL_SAMPLE_TYPES, ENVIRONMENTAL_TYPES, isEnvironmentalSample } from '../src/features/surveillance/environmentalSurveillanceData'
 import { demoLibrarySeed } from '../src/features/management/managementData'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = file => readSource(file)
 const item = ([el, en, meta = {}]) => ({ value: el, el, en, code: meta.code || null, meta })
@@ -40,7 +41,7 @@ describe('shared surveillance option lists', () => {
     expect(statusTone('positive')).toBe('danger')
     expect(statusTone('pending')).toBe('warning')
     expect(statusTone('completed')).toBe('neutral')
-    expect(read('src/features/surveillance/ClinicalJourney.jsx')).not.toContain('const STATUS_TONES')
+    expect(readSplitSource('src/features/surveillance/ClinicalJourney.jsx')).not.toContain('const STATUS_TONES')
     expect(read('src/features/surveillance/SurveillanceCanonicalPage.jsx')).not.toContain('EMPLOYEE_STATE_TONES')
   })
 

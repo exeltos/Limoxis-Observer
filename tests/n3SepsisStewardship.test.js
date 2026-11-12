@@ -10,6 +10,7 @@ import { protocolCues, protocolStages } from '../src/features/surveillance/proto
 import { stringsEl } from '../src/core/i18n/stringsEl'
 import { stringsEn } from '../src/core/i18n/stringsEn'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = path => readSource(path)
 const migration = read('supabase/migrations/20261203300000_clinical_protocols_and_therapy_reviews.sql')
@@ -143,7 +144,7 @@ describe('database: new objects only, RLS like the episode and the therapy, modu
 
 describe('wiring', () => {
   it('the episode starts protocols from a picker and shows the review inside the therapy section', () => {
-    const journey = read('src/features/surveillance/ClinicalJourney.jsx')
+    const journey = readSplitSource('src/features/surveillance/ClinicalJourney.jsx')
     expect(journey).toContain("dialog === 'protocolPicker'")
     expect(journey).toContain('<TherapyReviewCard')
     expect(journey).toContain('extraStages={extraStages}')
