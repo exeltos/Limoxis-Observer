@@ -29,9 +29,9 @@ describe('Management Center announcement persistence',()=>{
 
  it('keeps demo announcement data isolated while production uses cloud CRUD',()=>{
   expect(panel).toContain('if(isDemo)')
-  expect(panel).toContain('createAnnouncement(tenant.id,payload)')
-  expect(panel).toContain('updateAnnouncement(tenant.id,payload)')
-  expect(panel).toContain('removeAnnouncement(tenant.id,a.id)')
+  expect(panel).toContain('createAnnouncement(tenant!.id,payload)')
+  expect(panel).toContain('updateAnnouncement(tenant!.id,payload)')
+  expect(panel).toContain('removeAnnouncement(tenant!.id,a.id)')
   expect(context).toContain("if(!isDemo)return")
   expect(context).toContain('loadAnnouncements(tenant.id)')
  })
