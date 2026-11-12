@@ -58,7 +58,7 @@ export function demoRegisters() {
   ophthalmology.sheet = { ...ophthalmology.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
   const deliveryRoom = { ...registerFromTemplate('deliveryRoom', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_DELIVERYROOM_ID, code: 'REG-DR' }
   deliveryRoom.sheet = { ...deliveryRoom.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
-  deliveryRoom.indicators = deliveryRoom.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 50, threshold: 60 }, vbac_rate: { target: 10 } }[indicator.id] || {}) }))
+  deliveryRoom.indicators = deliveryRoom.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65 } }[indicator.id] || {}) }))
   return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab, chemo, ophthalmology, deliveryRoom].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
