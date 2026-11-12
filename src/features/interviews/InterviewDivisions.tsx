@@ -21,35 +21,36 @@ import { CandidateStatusBadge } from './InterviewsShared'
 import { PROFESSIONAL_CATEGORIES, categoryLabel, employmentLabel, fmtDay, languageLabel, levelLabel } from './interviewsModel'
 import { interviewsErrorMessage, loadDivisionCandidates, loadDivisionDirectors, loadDivisions, removeDivision, saveDivision } from './interviewsService'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // --- For the HR Office / Hospital Admin: which professional category belongs to which division, and who directs it ---
 
-export function DivisionsPanel({ organizationId, onBack }) {
+export function DivisionsPanel({ organizationId, onBack }: { organizationId: string | null, onBack: () => void }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
-  const [divisions, setDivisions] = useState(null)
-  const [directors, setDirectors] = useState([])
-  const [departments, setDepartments] = useState([])
-  const [draft, setDraft] = useState(null)
+  const [divisions, setDivisions] = useState<AnyRecord[] | null>(null)
+  const [directors, setDirectors] = useState<{ userId: string, name: string }[]>([])
+  const [departments, setDepartments] = useState<AnyRecord[]>([])
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [saving, setSaving] = useState(false)
   const reload = () => loadDivisions(organizationId).then(data => setDivisions(data.divisions)).catch(error => { console.error(error); setDivisions([]) })
   useEffect(() => { void reload(); loadDivisionDirectors(organizationId).then(setDirectors).catch(() => setDirectors([])); loadDepartments(organizationId).then(setDepartments).catch(() => setDepartments([])) }, [organizationId]) // eslint-disable-line react-hooks/exhaustive-deps
-  const nameOf = userId => directors.find(item => item.userId === userId)?.name || '—'
-  const departmentName = departmentId => departments.find(item => item.id === departmentId)?.name || ''
+  const nameOf = (userId: string) => directors.find(item => item.userId === userId)?.name || '—'
+  const departmentName = (departmentId: string) => departments.find(item => item.id === departmentId)?.name || ''
   // «A, B, C +4»: the first three departments of a division, the rest counted.
-  const departmentsText = ids => { const names = (ids || []).map(departmentName).filter(Boolean); return names.length ? `${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}` : '—' }
+  const departmentsText = (ids: string[] | null | undefined) => { const names = (ids || []).map(departmentName).filter(Boolean); return names.length ? `${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}` : '—' }
   async function save() {
     setSaving(true)
-    try { await saveDivision(organizationId, draft); notify(en ? 'Saved.' : 'Αποθηκεύτηκε.', 'success'); setDraft(null); await reload() } catch (error) { console.error(error); notify(interviewsErrorMessage(error, language), 'error') } finally { setSaving(false) }
+    try { await saveDivision(organizationId, draft as AnyRecord); notify(en ? 'Saved.' : 'Αποθηκεύτηκε.', 'success'); setDraft(null); await reload() } catch (error) { console.error(error); notify(interviewsErrorMessage(error, language), 'error') } finally { setSaving(false) }
   }
-  async function remove(item) {
+  async function remove(item: AnyRecord) {
     if (!await confirm({ title: en ? 'Delete division' : 'Διαγραφή διεύθυνσης', message: en ? 'Its directors lose access to the candidates and to its departments; no application is deleted.' : 'Οι διευθυντές της χάνουν την πρόσβαση στους υποψηφίους και στα τμήματά της· καμία αίτηση δεν διαγράφεται.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
     try { await removeDivision(organizationId, item.id); await reload() } catch (error) { notify(interviewsErrorMessage(error, language), 'error') }
   }
   if (draft) {
     const options = Object.entries(PROFESSIONAL_CATEGORIES).map(([value, labels]) => ({ value, label: labels[en ? 1 : 0] }))
-    const toggle = (key, value) => setDraft(current => ({ ...current, [key]: current[key].includes(value) ? current[key].filter(item => item !== value) : [...current[key], value] }))
+    const toggle = (key: string, value: string) => setDraft(current => ({ ...current, [key]: current![key].includes(value) ? current![key].filter((item: string) => item !== value) : [...current![key], value] }))
     return <RecordTabPanel title={draft.id ? (en ? 'Edit division' : 'Επεξεργασία διεύθυνσης') : (en ? 'New division' : 'Νέα διεύθυνση')} subtitle={en ? 'The director of a division sees the candidates of the categories below and the departments below.' : 'Ο διευθυντής μιας διεύθυνσης βλέπει τους υποψηφίους των κατηγοριών και τα τμήματα που ορίζονται εδώ.'}
       footer={<div className="interviews-division-footer"><Button variant="secondary" onClick={() => setDraft(null)}>{en ? 'Cancel' : 'Ακύρωση'}</Button><Button disabled={saving || !draft.name.trim()} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</Button></div>}>
       <div className="interviews-division-form">
@@ -69,12 +70,12 @@ export function DivisionsPanel({ organizationId, onBack }) {
       emptyText={en ? 'Add the divisions, e.g. the Nursing Directorate, and the categories it covers.' : 'Προσθέστε τις διευθύνσεις, π.χ. Νοσηλευτική Υπηρεσία, και τις κατηγορίες που καλύπτουν.'}
       renderRow={item => <>
         <td><strong>{item.name}</strong></td>
-        <td>{item.categories.map(value => categoryLabel(value, language)).join(', ') || '—'}</td>
+        <td>{item.categories.map((value: string) => categoryLabel(value, language)).join(', ') || '—'}</td>
         <td title={(item.departments || []).map(departmentName).filter(Boolean).join(', ') || undefined}>{departmentsText(item.departments)}</td>
         <td>{item.members.map(nameOf).join(', ') || '—'}</td>
         <td className="nowrap-cell"><OverflowMenu label={en ? 'Actions' : 'Ενέργειες'} items={[
           { id: 'edit', label: en ? 'Edit' : 'Επεξεργασία', icon: Pencil, onClick: () => setDraft({ ...item }) },
-          { id: 'delete', label: en ? 'Delete' : 'Διαγραφή', icon: Trash2, danger: true, onClick: () => remove(item) },
+          { id: 'delete', label: en ? 'Delete' : 'Διαγραφή', icon: Trash2, onClick: () => remove(item) },
         ]} /></td>
       </>} />
   </RecordTabPanel>
@@ -87,7 +88,7 @@ export function DivisionInterviewsPage() {
   const en = language === 'en'
   const navigate = useNavigate()
   const { tenant } = useTenant()
-  const [rows, setRows] = useState(null)
+  const [rows, setRows] = useState<AnyRecord[] | null>(null)
   useEffect(() => { loadDivisionCandidates(tenant?.id).then(setRows).catch(error => { console.error(error); setRows([]) }) }, [tenant?.id])
   return <Page fill className="registry-fill-page interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'} subtitle={en ? 'The candidates for the positions of your division: give your opinion on each.' : 'Οι υποψήφιοι για τις θέσεις της διεύθυνσής σας: δώστε τη γνώμη σας για καθέναν.'}>
     <section className="surface registry-workspace workspace-column workspace-fill">
@@ -113,7 +114,7 @@ export function DivisionCandidatePage() {
   const { language } = useLanguage()
   const en = language === 'en'
   const { tenant } = useTenant()
-  const [rows, setRows] = useState(null)
+  const [rows, setRows] = useState<AnyRecord[] | null>(null)
   useEffect(() => { loadDivisionCandidates(tenant?.id).then(setRows).catch(error => { console.error(error); setRows([]) }) }, [tenant?.id])
   if (!rows) return <Page fill><TableSkeleton/></Page>
   const candidate = rows.find(item => item.id === candidateId)
@@ -126,13 +127,13 @@ export function DivisionCandidatePage() {
         <RecordDetailsGrid fields={[{ label: en ? 'Position applied for' : 'Αιτούμενη θέση', value: candidate.requestedPosition, hidden: !candidate.requestedPosition }, { label: en ? 'Area / category' : 'Χώρος / κατηγορία', value: categoryLabel(candidate.professionalCategory, language), hidden: !candidate.professionalCategory },
           { label: en ? 'Education level' : 'Βασική εκπαίδευση', value: candidate.educationLevel, hidden: !candidate.educationLevel }, { label: en ? 'IT skills' : 'Γνώσεις πληροφορικής', value: candidate.itSkills, hidden: !candidate.itSkills }, { label: en ? 'Why us' : 'Γιατί εμάς', value: candidate.whyUs, hidden: !candidate.whyUs, className: 'interviews-span-3' }]} />
         <SectionHeader title={en ? 'Education' : 'Εκπαίδευση'} />
-        <RegistryTable sortable={false} rows={(candidate.education || []).map((row, index) => ({ ...row, id: index }))} columns={[{ key: 'level', label: en ? 'Level' : 'Επίπεδο' }, { key: 'school', label: en ? 'School / department' : 'Σχολή / τμήμα' }, { key: 'title', label: en ? 'Degree' : 'Τίτλος' }, { key: 'year', label: en ? 'Year' : 'Έτος' }]}
+        <RegistryTable sortable={false} rows={(candidate.education || []).map((row: AnyRecord, index: number) => ({ ...row, id: index }))} columns={[{ key: 'level', label: en ? 'Level' : 'Επίπεδο' }, { key: 'school', label: en ? 'School / department' : 'Σχολή / τμήμα' }, { key: 'title', label: en ? 'Degree' : 'Τίτλος' }, { key: 'year', label: en ? 'Year' : 'Έτος' }]}
           emptyTitle={en ? 'No degrees recorded' : 'Δεν καταγράφηκαν πτυχία'} renderRow={row => <><td>{row.level || '—'}</td><td><strong>{row.school || '—'}</strong></td><td>{row.title || '—'}</td><td>{row.year || '—'}</td></>} />
         <SectionHeader title={en ? 'Languages' : 'Γλώσσες'} />
-        <RegistryTable sortable={false} rows={(candidate.languages || []).map((row, index) => ({ ...row, id: index }))} columns={[{ key: 'language', label: en ? 'Language' : 'Γλώσσα' }, { key: 'speaking', label: en ? 'Speaking' : 'Ομιλία' }, { key: 'reading', label: en ? 'Reading' : 'Ανάγνωση' }, { key: 'writing', label: en ? 'Writing' : 'Γραφή' }]}
+        <RegistryTable sortable={false} rows={(candidate.languages || []).map((row: AnyRecord, index: number) => ({ ...row, id: index }))} columns={[{ key: 'language', label: en ? 'Language' : 'Γλώσσα' }, { key: 'speaking', label: en ? 'Speaking' : 'Ομιλία' }, { key: 'reading', label: en ? 'Reading' : 'Ανάγνωση' }, { key: 'writing', label: en ? 'Writing' : 'Γραφή' }]}
           emptyTitle={en ? 'No languages recorded' : 'Δεν καταγράφηκαν γλώσσες'} renderRow={row => <><td><strong>{languageLabel(row.language, language)}</strong></td><td>{levelLabel(row.speaking, language) || '—'}</td><td>{levelLabel(row.reading, language) || '—'}</td><td>{levelLabel(row.writing, language) || '—'}</td></>} />
         <SectionHeader title={en ? 'Previous employers' : 'Προϋπηρεσία'} />
-        <RegistryTable sortable={false} rows={(candidate.employers || []).map((row, index) => ({ ...row, id: index }))} columns={[{ key: 'employer', label: en ? 'Employer' : 'Εργοδότης' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'job', label: en ? 'Position' : 'Θέση' }]}
+        <RegistryTable sortable={false} rows={(candidate.employers || []).map((row: AnyRecord, index: number) => ({ ...row, id: index }))} columns={[{ key: 'employer', label: en ? 'Employer' : 'Εργοδότης' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'job', label: en ? 'Position' : 'Θέση' }]}
           emptyTitle={en ? 'No previous employers' : 'Χωρίς προϋπηρεσία'} renderRow={row => <><td><strong>{row.employer}</strong></td><td className="nowrap-cell">{fmtDay(row.fromOn)} – {row.toOn ? fmtDay(row.toOn) : (en ? 'today' : 'σήμερα')}</td><td>{row.jobTitle || '—'}</td></>} />
       </div>
     </RecordTabPanel>

@@ -22,37 +22,47 @@ import { demoLibrarySeed } from '../management/managementData'
 import { useInterviewsActor } from './InterviewsShared'
 import { PROFESSIONAL_CATEGORIES, CRITERIA, DECISIONS, EMPLOYMENT_TYPES, GENDERS, INTERVIEWER_ROLES, LANGUAGES, LEVELS, MARITAL, MILITARY, OUTCOMES, SCORES, candidateProblems, decisionProblems, employeeDraftFor, fmtRating, interviewProblems, matchingEmployees, newEducation, newEmployer, newLanguage, options, overallRating, ratingTone, todayKey } from './interviewsModel'
 import { decide, interviewsErrorMessage, markHired, saveCandidate, saveInterview } from './interviewsService'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
-const triState = en => [{ value: '', label: '—' }, { value: 'yes', label: en ? 'Yes' : 'Ναι' }, { value: 'no', label: en ? 'No' : 'Όχι' }]
-const fromTri = value => (value === 'yes' ? true : value === 'no' ? false : null)
-const toTri = value => (value === true ? 'yes' : value === false ? 'no' : '')
-const withEmpty = list => [{ value: '', label: '—' }, ...list]
+// What the dialogs of an application take; onSaved gets what the save returned (the id of a new application, the hired employee).
+interface DialogProps {
+  candidate: AnyRecord
+  organizationId: string | null
+  employees?: AnyRecord[]
+  onClose: () => void
+  onSaved?: (result: unknown) => unknown
+}
+
+const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
+const triState = (en: boolean) => [{ value: '', label: '—' }, { value: 'yes', label: en ? 'Yes' : 'Ναι' }, { value: 'no', label: en ? 'No' : 'Όχι' }]
+const fromTri = (value: string) => (value === 'yes' ? true : value === 'no' ? false : null)
+const toTri = (value: unknown) => (value === true ? 'yes' : value === false ? 'no' : '')
+const withEmpty = (list: { value: string, label: string }[]) => [{ value: '', label: '—' }, ...list]
 
 // Saves with the house feedback; the dialog closes only when the save went through.
-function useSave(onSaved) {
+function useSave(onSaved?: (result: unknown) => unknown) {
   const { language } = useLanguage()
   const { notify } = useFeedback()
   const [saving, setSaving] = useState(false)
-  const run = async (work, message) => {
+  const run = async (work: () => Promise<unknown>, message?: string) => {
     setSaving(true)
     try { const result = await work(); notify(message || (language === 'en' ? 'Saved.' : 'Αποθηκεύτηκε.'), 'success'); await onSaved?.(result) } catch (error) { console.error(error); notify(interviewsErrorMessage(error, language), 'error') } finally { setSaving(false) }
   }
-  return [saving, run]
+  return [saving, run] as const
 }
-const Missing = ({ problems, en }) => (problems.length ? <span className="interviews-dialog-result"><small>{en ? 'Missing' : 'Λείπει'}: {problems.join(' · ')}</small></span> : null)
-const Text = ({ label, value, onChange, rows = 0, type = 'text' }) => <Field label={label}>{rows ? <textarea rows={rows} value={value ?? ''} onChange={e => onChange(e.target.value)} /> : <input type={type} value={value ?? ''} onChange={e => onChange(e.target.value)} />}</Field>
+const Missing = ({ problems, en }: { problems: string[], en: boolean }) => (problems.length ? <span className="interviews-dialog-result"><small>{en ? 'Missing' : 'Λείπει'}: {problems.join(' · ')}</small></span> : null)
+const Text = ({ label, value, onChange, rows = 0, type = 'text' }: { label: string, value: string | number | null | undefined, onChange: (value: string) => void, rows?: number, type?: string }) => <Field label={label}>{rows ? <textarea rows={rows} value={value ?? ''} onChange={e => onChange(e.target.value)} /> : <input type={type} value={value ?? ''} onChange={e => onChange(e.target.value)} />}</Field>
 
 // --- Application -------------------------------------------------------------------------------
 
 // The application form («ΑΙΤΗΣΗ ΕΡΓΑΣΙΑΣ»): position, personal details, contact, the
 // rest of the form and the consent to the processing of personal data.
-export function CandidateDialog({ initial, organizationId, positions = [], onClose, onSaved }) {
+export function CandidateDialog({ initial, organizationId, positions = [], onClose, onSaved }: { initial: AnyRecord, positions?: string[] } & Omit<DialogProps, 'candidate'>) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState(() => structuredClone(initial))
+  const [draft, setDraft] = useState<AnyRecord>(() => structuredClone(initial))
   const [saving, run] = useSave(onSaved)
-  const set = next => setDraft(current => ({ ...current, ...next }))
+  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
   const problems = candidateProblems(draft, language)
   const save = () => run(async () => { const id = await saveCandidate(organizationId, draft); onClose(); return id }, en ? 'Application saved.' : 'Η αίτηση αποθηκεύτηκε.')
   return <FormPage title={initial.id ? `${en ? 'Application' : 'Αίτηση'} ${initial.code || ''}`.trim() : (en ? 'New application' : 'Νέα αίτηση εργασίας')} subtitle={en ? 'Personal data of a candidate: kept only with their consent and seen only by HR.' : 'Προσωπικά δεδομένα υποψηφίου: τηρούνται μόνο με τη συναίνεσή του και τα βλέπει μόνο το Γραφείο Προσωπικού.'} onClose={onClose}
@@ -109,15 +119,15 @@ export function CandidateDialog({ initial, organizationId, positions = [], onClo
 }
 
 // Education, IT skills and languages of an application.
-export function EducationDialog({ candidate, organizationId, onClose, onSaved }) {
+export function EducationDialog({ candidate, organizationId, onClose, onSaved }: DialogProps) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState(() => ({ ...structuredClone(candidate), education: candidate.education?.length ? structuredClone(candidate.education) : [newEducation()], languages: candidate.languages?.length ? structuredClone(candidate.languages) : [newLanguage()] }))
+  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...structuredClone(candidate), education: candidate.education?.length ? structuredClone(candidate.education) : [newEducation()], languages: candidate.languages?.length ? structuredClone(candidate.languages) : [newLanguage()] }))
   const [saving, run] = useSave(onSaved)
-  const set = next => setDraft(current => ({ ...current, ...next }))
-  const setRow = (key, index, next) => setDraft(current => ({ ...current, [key]: current[key].map((row, at) => (at === index ? { ...row, ...next } : row)) }))
-  const addRow = (key, row) => setDraft(current => ({ ...current, [key]: [...current[key], row] }))
-  const removeRow = (key, index) => setDraft(current => ({ ...current, [key]: current[key].filter((_, at) => at !== index) }))
+  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
+  const setRow = (key: string, index: number, next: AnyRecord) => setDraft(current => ({ ...current, [key]: current[key].map((row: AnyRecord, at: number) => (at === index ? { ...row, ...next } : row)) }))
+  const addRow = (key: string, row: AnyRecord) => setDraft(current => ({ ...current, [key]: [...current[key], row] }))
+  const removeRow = (key: string, index: number) => setDraft(current => ({ ...current, [key]: current[key].filter((_: unknown, at: number) => at !== index) }))
   const levels = withEmpty(options(LEVELS, language))
   const save = () => run(async () => { await saveCandidate(organizationId, draft); onClose() })
   return <FormPage title={en ? 'Education and languages' : 'Εκπαίδευση και γλώσσες'} subtitle={candidate.fullName} onClose={onClose} footer={<DialogActions onSave={save} disabled={saving} />}>
@@ -127,7 +137,7 @@ export function EducationDialog({ candidate, organizationId, onClose, onSaved })
     </FormGrid>
     <SectionHeader title={en ? 'Degrees and schools' : 'Πτυχία και σχολές'} actions={<Button variant="secondary" onClick={() => addRow('education', newEducation())}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>} />
     <div className="interviews-row-list">
-      {draft.education.map((row, index) => <div className="interviews-row" key={index}>
+      {draft.education.map((row: AnyRecord, index: number) => <div className="interviews-row" key={index}>
         <FormGrid columns={4}>
           <Text label={en ? 'Level' : 'Επίπεδο'} value={row.level} onChange={value => setRow('education', index, { level: value })} />
           <Text label={en ? 'School / department' : 'Σχολή / τμήμα'} value={row.school} onChange={value => setRow('education', index, { school: value })} />
@@ -139,7 +149,7 @@ export function EducationDialog({ candidate, organizationId, onClose, onSaved })
     </div>
     <SectionHeader title={en ? 'Languages' : 'Ξένες γλώσσες'} actions={<Button variant="secondary" onClick={() => addRow('languages', newLanguage())}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>} />
     <div className="interviews-row-list">
-      {draft.languages.map((row, index) => <div className="interviews-row" key={row.id || index}>
+      {draft.languages.map((row: AnyRecord, index: number) => <div className="interviews-row" key={row.id || index}>
         <FormGrid columns={4}>
           <SearchableSelect label={en ? 'Language' : 'Γλώσσα'} value={row.language} allowCustom options={options(LANGUAGES, language)} onChange={value => setRow('languages', index, { language: value || '' })} {...selectText(en)} />
           <ChoiceField label={en ? 'Speaking' : 'Ομιλία'} value={row.speaking} options={levels} onChange={value => setRow('languages', index, { speaking: value })} />
@@ -153,12 +163,12 @@ export function EducationDialog({ candidate, organizationId, onClose, onSaved })
 }
 
 // Previous employers («ΠΡΟΫΠΗΡΕΣΙΑ»): employer, period, position, salary, reason for leaving.
-export function EmployersDialog({ candidate, organizationId, onClose, onSaved }) {
+export function EmployersDialog({ candidate, organizationId, onClose, onSaved }: DialogProps) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [rows, setRows] = useState(() => (candidate.employers?.length ? structuredClone(candidate.employers) : [newEmployer()]))
+  const [rows, setRows] = useState<AnyRecord[]>(() => (candidate.employers?.length ? structuredClone(candidate.employers) : [newEmployer()]))
   const [saving, run] = useSave(onSaved)
-  const setRow = (index, next) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next } : row)))
+  const setRow = (index: number, next: AnyRecord) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next } : row)))
   const problems = candidateProblems({ ...candidate, employers: rows }, language)
   const save = () => run(async () => { await saveCandidate(organizationId, { ...candidate, employers: rows }); onClose() })
   return <FormPage title={en ? 'Previous employers' : 'Προϋπηρεσία'} subtitle={candidate.fullName} onClose={onClose}
@@ -183,11 +193,11 @@ export function EmployersDialog({ candidate, organizationId, onClose, onSaved })
 // --- Interview -------------------------------------------------------------------------------
 
 // The panel: evaluators from the staff registry (or a name), and the HR office.
-function InterviewersEditor({ value, onChange, employees, language }) {
+function InterviewersEditor({ value, onChange, employees, language }: { value: AnyRecord[] | null | undefined, onChange: (value: AnyRecord[]) => void, employees: AnyRecord[], language: string }) {
   const en = language === 'en'
   const rows = value || []
   const employeeOptions = employees.map(item => ({ value: String(item.dbId || item.id), label: `${item.lastName} ${item.firstName}`.trim(), description: [item.position || item.profession, item.department].filter(Boolean).join(' · ') }))
-  const setRow = (index, next) => onChange(rows.map((row, at) => (at === index ? { ...row, ...next } : row)))
+  const setRow = (index: number, next: AnyRecord) => onChange(rows.map((row, at) => (at === index ? { ...row, ...next } : row)))
   return <>
     <SectionHeader title={en ? 'Interview panel' : 'Επιτροπή συνέντευξης'} subtitle={en ? 'Evaluator 1 / 2 and the HR office.' : 'Αξιολογητής 1 / 2 και Γραφείο Προσωπικού.'} actions={<Button variant="secondary" onClick={() => onChange([...rows, { employeeId: '', name: '', role: 'evaluator' }])}><Plus size={15} />{en ? 'Add member' : 'Προσθήκη μέλους'}</Button>} />
     <div className="interviews-row-list">
@@ -202,14 +212,14 @@ function InterviewersEditor({ value, onChange, employees, language }) {
   </>
 }
 
-const splitStamp = value => { if (!value) return ['', '']; const d = new Date(value); if (Number.isNaN(d.getTime())) return ['', '']; return [todayKey(d), `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`] }
-const joinStamp = (dayValue, time) => (dayValue ? new Date(`${dayValue}T${time || '09:00'}:00`).toISOString() : '')
+const splitStamp = (value: string | null | undefined) => { if (!value) return ['', '']; const d = new Date(value); if (Number.isNaN(d.getTime())) return ['', '']; return [todayKey(d), `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`] }
+const joinStamp = (dayValue: string, time: string) => (dayValue ? new Date(`${dayValue}T${time || '09:00'}:00`).toISOString() : '')
 
 // Schedule (or move) an interview: day, time, place and the panel.
-export function ScheduleDialog({ candidate, initial, organizationId, employees = [], onClose, onSaved }) {
+export function ScheduleDialog({ candidate, initial, organizationId, employees = [], onClose, onSaved }: DialogProps & { initial: AnyRecord }) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState(() => structuredClone(initial))
+  const [draft, setDraft] = useState<AnyRecord>(() => structuredClone(initial))
   const [[dayValue, time], setWhen] = useState(() => splitStamp(initial.scheduledAt))
   const [saving, run] = useSave(onSaved)
   const entry = { ...draft, scheduledAt: joinStamp(dayValue, time), status: draft.status === 'completed' ? 'completed' : draft.status || 'scheduled' }
@@ -229,13 +239,13 @@ export function ScheduleDialog({ candidate, initial, organizationId, employees =
 
 // The evaluation of an interview: the score per criterion (1–5), the overall rating, the
 // recommendation, salary and availability.
-export function EvaluationDialog({ candidate, initial, organizationId, employees = [], onClose, onSaved }) {
+export function EvaluationDialog({ candidate, initial, organizationId, employees = [], onClose, onSaved }: DialogProps & { initial: AnyRecord }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useInterviewsActor()
-  const [draft, setDraft] = useState(() => ({ ...structuredClone(initial), scheduledAt: initial.scheduledAt || new Date().toISOString(), interviewers: initial.interviewers?.length ? structuredClone(initial.interviewers) : [{ employeeId: '', name: actor.name, role: 'hr' }] }))
+  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...structuredClone(initial), scheduledAt: initial.scheduledAt || new Date().toISOString(), interviewers: initial.interviewers?.length ? structuredClone(initial.interviewers) : [{ employeeId: '', name: actor.name, role: 'hr' }] }))
   const [saving, run] = useSave(onSaved)
-  const set = next => setDraft(current => ({ ...current, ...next }))
+  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
   const rating = overallRating(draft.scores)
   const entry = { ...draft, status: 'completed', evaluatedByName: draft.evaluatedByName || actor.name }
   const problems = interviewProblems(entry, language, { evaluation: true })
@@ -270,13 +280,13 @@ export function EvaluationDialog({ candidate, initial, organizationId, employees
 
 // --- Decision and hiring ----------------------------------------------------------------------
 
-export function DecisionDialog({ candidate, organizationId, initialDecision = '', onClose, onSaved }) {
+export function DecisionDialog({ candidate, organizationId, initialDecision = '', onClose, onSaved }: DialogProps & { initialDecision?: string }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useInterviewsActor()
   const [draft, setDraft] = useState(() => ({ decision: candidate.decision || initialDecision || '', decisionOn: candidate.decisionOn || todayKey(), decisionByName: candidate.decisionByName || actor.name, decisionNotes: candidate.decisionNotes || '', withdrawn: candidate.status === 'withdrawn' }))
   const [saving, run] = useSave(onSaved)
-  const set = next => setDraft(current => ({ ...current, ...next }))
+  const set = (next: Partial<typeof draft>) => setDraft(current => ({ ...current, ...next }))
   const problems = draft.withdrawn ? [] : decisionProblems(draft, language)
   const save = () => run(async () => { await decide(organizationId, candidate, { ...draft, status: draft.withdrawn ? 'withdrawn' : undefined }); onClose() }, en ? 'Decision recorded.' : 'Η απόφαση καταχωρίστηκε.')
   return <ObserverDialog title={en ? 'Decision' : 'Απόφαση'} subtitle={candidate.fullName} onClose={onClose}
@@ -295,7 +305,7 @@ export function DecisionDialog({ candidate, organizationId, initialDecision = ''
 }
 
 // «Πρόσληψη»: create the employee from the application, or link one already in the registry.
-export function HireDialog({ candidate, organizationId, employees = [], onClose, onSaved }) {
+export function HireDialog({ candidate, organizationId, employees = [], onClose, onSaved }: DialogProps) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { isDemo } = useTenant()
@@ -303,9 +313,9 @@ export function HireDialog({ candidate, organizationId, employees = [], onClose,
   const [mode, setMode] = useState(matches.length ? 'link' : 'create')
   const [linked, setLinked] = useState(matches[0] ? String(matches[0].dbId || matches[0].id) : '')
   const [draft, setDraft] = useState(() => employeeDraftFor(candidate))
-  const [departments, setDepartments] = useState([])
+  const [departments, setDepartments] = useState<AnyRecord[]>([])
   const [saving, run] = useSave(onSaved)
-  const set = next => setDraft(current => ({ ...current, ...next }))
+  const set = (next: Partial<typeof draft>) => setDraft(current => ({ ...current, ...next }))
   useEffect(() => {
     let active = true
     if (isDemo) { setDepartments(demoLibrarySeed.departments.map(([name, nameEn]) => ({ id: name, name, nameEn }))); return () => { active = false } }
@@ -317,12 +327,12 @@ export function HireDialog({ candidate, organizationId, employees = [], onClose,
   const duplicate = Boolean(code && employees.some(item => String(item.id || '').trim().toLowerCase() === code))
   const problems = mode === 'link' ? (linked ? [] : [en ? 'the employee' : 'τον εργαζόμενο']) : [!draft.employeeCode.trim() && (en ? 'employee code' : 'κωδικό εργαζομένου'), duplicate && (en ? 'a code not in use' : 'κωδικό που δεν χρησιμοποιείται'), !draft.lastName.trim() && (en ? 'last name' : 'επώνυμο'), !draft.firstName.trim() && (en ? 'first name' : 'όνομα'), !draft.department && (en ? 'department' : 'τμήμα')].filter(Boolean)
   const save = () => run(async () => {
-    let employee = employees.find(item => String(item.dbId || item.id) === linked)
+    let employee: AnyRecord | undefined = employees.find(item => String(item.dbId || item.id) === linked)
     if (mode === 'create') {
       const department = departments.find(row => row.id === draft.department || row.name === draft.department)
       employee = await createEmployeeAsync(organizationId, { ...draft, id: draft.employeeCode.trim(), employeeCode: draft.employeeCode.trim(), department: department?.name || draft.department, departmentId: isDemo ? null : department?.id || null, departmentEn: department?.nameEn || department?.name || draft.department, firstNameEn: draft.firstName, lastNameEn: draft.lastName })
     }
-    await markHired(organizationId, candidate, employee)
+    await markHired(organizationId, candidate, employee as AnyRecord)
     onClose()
     return employee
   }, en ? 'The candidate was hired.' : 'Ο υποψήφιος προσλήφθηκε.')

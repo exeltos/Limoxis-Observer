@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Eraser } from 'lucide-react'
 
 // A signature drawn with the finger, a stylus or the mouse (pointer events). The image
 // is kept as a PNG data URL; a saved one (the autosave) is drawn back on mount.
-export function SignaturePad({ value, onChange, label, clearLabel, emptyText }) {
-  const canvas = useRef(null)
-  const drawing = useRef(null)
+export function SignaturePad({ value, onChange, label, clearLabel, emptyText }: { value: string, onChange: (value: string) => void, label: string, clearLabel: string, emptyText: string }) {
+  const canvas = useRef<HTMLCanvasElement | null>(null)
+  const drawing = useRef<{ ctx: CanvasRenderingContext2D, x: number, y: number } | null>(null)
   const [empty, setEmpty] = useState(!value)
   useEffect(() => {
     const el = canvas.current
     const ctx = el?.getContext?.('2d')
-    if (!ctx) return
+    if (!el || !ctx) return
     const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
     const { width, height } = el.getBoundingClientRect()
     el.width = Math.round((width || 640) * ratio)
@@ -24,18 +24,18 @@ export function SignaturePad({ value, onChange, label, clearLabel, emptyText }) 
     // Drawn once at mount: later values come from this pad itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const point = event => { const rect = canvas.current.getBoundingClientRect(); return [event.clientX - rect.left, event.clientY - rect.top] }
-  function start(event) {
+  const point = (event: PointerEvent<HTMLCanvasElement>) => { const rect = (canvas.current as HTMLCanvasElement).getBoundingClientRect(); return [event.clientX - rect.left, event.clientY - rect.top] }
+  function start(event: PointerEvent<HTMLCanvasElement>) {
     const ctx = canvas.current?.getContext?.('2d')
     if (!ctx) return
     event.preventDefault()
-    canvas.current.setPointerCapture?.(event.pointerId)
+    canvas.current?.setPointerCapture?.(event.pointerId)
     const [x, y] = point(event)
     drawing.current = { ctx, x, y }
     ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI * 2); ctx.fillStyle = '#0f2233'; ctx.fill()
     setEmpty(false)
   }
-  function move(event) {
+  function move(event: PointerEvent<HTMLCanvasElement>) {
     const current = drawing.current
     if (!current) return
     event.preventDefault()
@@ -48,11 +48,11 @@ export function SignaturePad({ value, onChange, label, clearLabel, emptyText }) 
   function end() {
     if (!drawing.current) return
     drawing.current = null
-    onChange(canvas.current.toDataURL('image/png'))
+    onChange((canvas.current as HTMLCanvasElement).toDataURL('image/png'))
   }
   function clear() {
     const el = canvas.current
-    el?.getContext?.('2d')?.clearRect(0, 0, el.width, el.height)
+    el?.getContext?.('2d')?.clearRect(0, 0, el?.width ?? 0, el?.height ?? 0)
     setEmpty(true)
     onChange('')
   }

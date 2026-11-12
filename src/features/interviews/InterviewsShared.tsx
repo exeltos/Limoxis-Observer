@@ -4,6 +4,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { loadInterviews } from './interviewsService'
+import type { AnyRecord } from '../../types/featureTypes'
 import { statusLabel, statusTone } from './interviewsModel'
 import './interviews.css'
 
@@ -24,7 +25,7 @@ export function useInterviewsAccess() {
 // Every application with its languages, employers and interviews.
 export function useInterviews() {
   const { tenant } = useTenant()
-  const [state, setState] = useState(null)
+  const [state, setState] = useState<{ candidates: AnyRecord[], divisions?: AnyRecord[] } | null>(null)
   const [loading, setLoading] = useState(true)
   const reload = useCallback(() => {
     setLoading(true)
@@ -36,9 +37,9 @@ export function useInterviews() {
 
 export function useInterviewsActor() {
   const actor = useAuditActor()
-  return useMemo(() => ({ id: actor?.id || null, name: actor?.name || actor?.fullName || '' }), [actor])
+  return useMemo(() => ({ id: actor?.id || null, name: actor?.name || (actor as { fullName?: string } | null)?.fullName || '' }), [actor])
 }
 
-export function CandidateStatusBadge({ status, language }) {
+export function CandidateStatusBadge({ status, language }: { status: string, language: string }) {
   return <StatusBadge tone={statusTone(status)}>{statusLabel(status, language)}</StatusBadge>
 }

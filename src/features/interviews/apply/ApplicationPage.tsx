@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type HTMLAttributes, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Briefcase, Check, CheckCircle2, Clock3, GraduationCap, KeyRound, Languages, Lock, Maximize2, Minimize2, PenLine, Plus, Send, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
@@ -7,12 +7,29 @@ import { EMPLOYMENT_TYPES, GENDERS, PROFESSIONAL_CATEGORIES, categoryLabel, LANG
 import { APPLICATION_STEPS, CONSENTS, LIMITS, applicationErrorText, applicationPath, cleanApplication, consentText, demoApplication, draftKey, firstStepWithProblems, formatCode, isDemoToken, maskDay, maskMonth, newApplication, newEducationRow, newEmployerRow, newLanguageRow, normalizeCode, parseMonth, stepKey, stepProblems, stepTitle, validCode } from '../applicationModel'
 import { loadApplicationLink, submitApplication } from '../applicationService'
 import { SignaturePad } from './SignaturePad'
+import type { LucideIcon } from 'lucide-react'
+import type { ServerConsentTexts } from '../applicationModel'
+import type { AnyRecord } from '../../../types/featureTypes'
 import './application.css'
 
+// What every step of the form gets.
+interface StepProps {
+  draft: AnyRecord
+  set: (change: AnyRecord) => void
+  setRow: (list: string, index: number, change: AnyRecord) => void
+  addRow: (list: string, row: AnyRecord) => void
+  removeRow: (list: string, index: number) => void
+  errorOf: (field: string) => string
+  en: boolean
+  language: string
+}
+// A chip: [value, text].
+type ChipOption = (string | boolean)[]
+
 const RESET_SECONDS = 20
-const L = (en, el, enText) => (en ? enText : el)
-const pairs = (map, en) => Object.entries(map).map(([value, labels]) => [value, labels[en ? 1 : 0]])
-const shortLevel = (value, language) => levelLabel(value, language).replace(/\s*\(.*\)$/, '')
+const L = (en: boolean, el: string, enText: string) => (en ? enText : el)
+const pairs = (map: Record<string, string[]>, en: boolean) => Object.entries(map).map(([value, labels]) => [value, labels[en ? 1 : 0]])
+const shortLevel = (value: string, language: string) => levelLabel(value, language).replace(/\s*\(.*\)$/, '')
 const TOP_LANGUAGES = ['el', 'en', 'fr', 'de', 'it', 'sq', 'ru']
 const SCHOOL_LEVELS = [['Γυμνάσιο', 'Lower secondary'], ['Γενικό Λύκειο', 'General upper secondary'], ['ΕΠΑΛ', 'Vocational upper secondary'], ['ΙΕΚ', 'Vocational training (IEK)'], ['ΑΕΙ', 'University']]
 const inPreview = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('helpPreview') === '1'
@@ -26,7 +43,7 @@ export function ApplicationPage() {
   return <ApplicationForm key={token} token={token} />
 }
 
-function ApplicationForm({ token }) {
+function ApplicationForm({ token }: { token: string }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { language, setLanguage } = useLanguage()
@@ -34,14 +51,14 @@ function ApplicationForm({ token }) {
   const demo = isDemoToken(token)
   const preview = demo && inPreview()
   const key = draftKey(token)
-  const [link, setLink] = useState({ loading: true, data: null, error: null })
+  const [link, setLink] = useState<{ loading: boolean, data: AnyRecord | null, error: unknown }>({ loading: true, data: null, error: null })
   const [step, setStep] = useState(() => (preview && Number(params.get('step')) >= 0 ? Math.min(Number(params.get('step')) || 0, APPLICATION_STEPS.length - 1) : readSessionJson(key)?.step || 0))
-  const [draft, setDraft] = useState(() => (preview ? demoApplication() : readSessionJson(key)?.draft || newApplication()))
+  const [draft, setDraft] = useState<AnyRecord>(() => (preview ? demoApplication() : readSessionJson(key)?.draft || newApplication()))
   const [tried, setTried] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState('')
   const [done, setDone] = useState(false)
-  const sheet = useRef(null)
+  const sheet = useRef<HTMLFormElement | null>(null)
 
   useEffect(() => {
     let live = true
@@ -58,13 +75,13 @@ function ApplicationForm({ token }) {
 
   const today = todayKey()
   const problems = useMemo(() => (tried ? stepProblems(stepKey(step), draft, language, today) : []), [tried, step, draft, language, today])
-  const errorOf = field => problems.find(([name]) => name === field)?.[1] || ''
-  const set = change => setDraft(current => ({ ...current, ...change }))
-  const setRow = (list, index, change) => setDraft(current => ({ ...current, [list]: current[list].map((row, i) => (i === index ? { ...row, ...change } : row)) }))
-  const addRow = (list, row) => setDraft(current => ({ ...current, [list]: [...current[list], row] }))
-  const removeRow = (list, index) => setDraft(current => ({ ...current, [list]: current[list].filter((_, i) => i !== index) }))
+  const errorOf = (field: string) => problems.find(([name]) => name === field)?.[1] || ''
+  const set = (change: AnyRecord) => setDraft(current => ({ ...current, ...change }))
+  const setRow = (list: string, index: number, change: AnyRecord) => setDraft(current => ({ ...current, [list]: current[list].map((row: AnyRecord, i: number) => (i === index ? { ...row, ...change } : row)) }))
+  const addRow = (list: string, row: AnyRecord) => setDraft(current => ({ ...current, [list]: [...current[list], row] }))
+  const removeRow = (list: string, index: number) => setDraft(current => ({ ...current, [list]: current[list].filter((_: unknown, i: number) => i !== index) }))
   const toTop = () => document.querySelector('.apply-progress')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
-  const goTo = index => { setTried(false); setFailed(''); setStep(index); toTop() }
+  const goTo = (index: number) => { setTried(false); setFailed(''); setStep(index); toTop() }
   function next() {
     const gaps = stepProblems(stepKey(step), draft, language, today)
     if (gaps.length) { setTried(true); setTimeout(() => sheet.current?.querySelector('.has-error')?.scrollIntoView?.({ block: 'center', behavior: 'smooth' }), 0); return }
@@ -78,7 +95,7 @@ function ApplicationForm({ token }) {
   }
 
   const info = link.data
-  const frame = children => <Frame info={info} en={en} onLanguage={() => setLanguage(en ? 'el' : 'en')}>{children}</Frame>
+  const frame = (children: ReactNode) => <Frame info={info} en={en} onLanguage={() => setLanguage(en ? 'el' : 'en')}>{children}</Frame>
   if (link.loading) return frame(<section className="apply-sheet apply-status"><Clock3 size={44} /><h1>{L(en, 'Φόρτωση…', 'Loading…')}</h1></section>)
   if (link.error || !info) return frame(<section className="apply-sheet apply-status"><Lock size={44} /><h1>{L(en, 'Η αίτηση δεν είναι διαθέσιμη', 'The application is not available')}</h1><p>{applicationErrorText(link.error, language)}</p>
     <button type="button" className="apply-button is-secondary" onClick={() => navigate('/apply', { replace: true })}><KeyRound size={20} />{L(en, 'Πληκτρολόγηση κωδικού', 'Type a code')}</button></section>)
@@ -118,7 +135,7 @@ function ApplicationForm({ token }) {
 
 // The page around the form: the hospital (logo, name) and the language; nothing leads
 // into the rest of the application.
-function Frame({ info, en, onLanguage, children }) {
+function Frame({ info, en, onLanguage, children }: { info: AnyRecord | null, en: boolean, onLanguage?: () => void, children: ReactNode }) {
   const [full, setFull] = useState(() => typeof document !== 'undefined' && Boolean(document.fullscreenElement))
   useEffect(() => {
     const sync = () => setFull(Boolean(document.fullscreenElement))
@@ -149,37 +166,37 @@ function Frame({ info, en, onLanguage, children }) {
 
 // --- Fields -------------------------------------------------------------------------------
 
-function Field({ label, error, hint, wide, required, children }) {
+function Field({ label, error, hint, wide, required, children }: { label: string, error?: string, hint?: string, wide?: boolean, required?: boolean, children: ReactNode }) {
   return <label className={`apply-field ${wide ? 'is-wide' : ''} ${error ? 'has-error' : ''}`.trim()}>
     <span className="apply-label">{label}{required && <b aria-hidden="true"> *</b>}</span>
     {children}
     {error ? <em>{error}</em> : hint ? <small>{hint}</small> : null}
   </label>
 }
-function Text({ value, onChange, multiline, max = LIMITS.short, mask, ...props }) {
-  const shared = { className: multiline ? 'apply-input apply-textarea' : 'apply-input', value: value ?? '', maxLength: max, autoComplete: 'off', autoCorrect: 'off', spellCheck: false, onChange: event => onChange(mask ? mask(event.target.value) : event.target.value), ...props }
+function Text({ value, onChange, multiline, max = LIMITS.short, mask, ...props }: { value: string | null | undefined, onChange: (value: string) => void, multiline?: boolean, max?: number, mask?: (raw: string) => string, placeholder?: string, type?: string, inputMode?: HTMLAttributes<HTMLInputElement>['inputMode'], autoCapitalize?: string }) {
+  const shared = { className: multiline ? 'apply-input apply-textarea' : 'apply-input', value: value ?? '', maxLength: max, autoComplete: 'off', autoCorrect: 'off', spellCheck: false, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(mask ? mask(event.target.value) : event.target.value), ...props }
   return multiline ? <textarea rows={4} {...shared} /> : <input type="text" {...shared} />
 }
 // A choice as large chips (one tap); tapping the chosen one again clears it.
-function Chips({ label, value, options, onChange, error, wide, required, compact }) {
+function Chips({ label, value, options, onChange, error, wide, required, compact }: { label?: string, value: unknown, options: ChipOption[], onChange: (value: unknown) => void, error?: string, wide?: boolean, required?: boolean, compact?: boolean }) {
   return <div className={`apply-field ${wide ? 'is-wide' : ''} ${error ? 'has-error' : ''}`.trim()} role="radiogroup" aria-label={label}>
     {label && <span className="apply-label">{label}{required && <b aria-hidden="true"> *</b>}</span>}
     <div className={`apply-chips ${compact ? 'is-compact' : ''}`.trim()}>{options.map(([option, text]) => <button type="button" key={String(option)} role="radio" aria-checked={value === option} className={value === option ? 'is-on' : ''} onClick={() => onChange(value === option ? (option === true || option === false ? null : '') : option)}>{value === option && <Check size={18} />}{text}</button>)}</div>
     {error && <em>{error}</em>}
   </div>
 }
-const yesNoOptions = en => [[true, L(en, 'Ναι', 'Yes')], [false, L(en, 'Όχι', 'No')]]
-function StepHead({ icon: Icon, title, text }) {
+const yesNoOptions = (en: boolean): ChipOption[] => [[true, L(en, 'Ναι', 'Yes')], [false, L(en, 'Όχι', 'No')]]
+function StepHead({ icon: Icon, title, text }: { icon?: LucideIcon, title: string, text?: string }) {
   return <header className="apply-step-head">{Icon && <span><Icon size={26} /></span>}<div><h1>{title}</h1>{text && <p>{text}</p>}</div></header>
 }
-function RowCard({ title, onRemove, removeLabel, children }) {
+function RowCard({ title, onRemove, removeLabel, children }: { title: string, onRemove?: () => void, removeLabel: string, children: ReactNode }) {
   return <section className="apply-row"><header><strong>{title}</strong>{onRemove && <button type="button" className="apply-link-button is-danger" onClick={onRemove}><Trash2 size={18} />{removeLabel}</button>}</header><div className="apply-grid">{children}</div></section>
 }
-function AddButton({ onClick, children, disabled }) { return <button type="button" className="apply-add" onClick={onClick} disabled={disabled}><Plus size={22} />{children}</button> }
+function AddButton({ onClick, children, disabled }: { onClick: () => void, children: ReactNode, disabled?: boolean }) { return <button type="button" className="apply-add" onClick={onClick} disabled={disabled}><Plus size={22} />{children}</button> }
 
 // --- Steps --------------------------------------------------------------------------------
 
-function WelcomeStep({ draft, set, en, info, position }) {
+function WelcomeStep({ draft, set, en, info, position }: StepProps & { info: AnyRecord, position: string }) {
   return <>
     <div className="apply-welcome">
       {info.logo ? <img className="apply-welcome-logo" src={info.logo} alt="" /> : <span className="apply-welcome-mark"><Briefcase size={40} /></span>}
@@ -200,7 +217,7 @@ function WelcomeStep({ draft, set, en, info, position }) {
   </>
 }
 
-function PersonalStep({ draft, set, errorOf, en }) {
+function PersonalStep({ draft, set, errorOf, en }: StepProps) {
   return <>
     <StepHead icon={UserRound} title={L(en, 'Προσωπικά στοιχεία', 'Personal details')} text={L(en, 'Όπως στην ταυτότητα. Με αστερίσκο τα υποχρεωτικά.', 'As on your ID. Required fields have an asterisk.')} />
     <div className="apply-grid">
@@ -221,7 +238,7 @@ function PersonalStep({ draft, set, errorOf, en }) {
   </>
 }
 
-function ContactStep({ draft, set, errorOf, en }) {
+function ContactStep({ draft, set, errorOf, en }: StepProps) {
   return <>
     <StepHead icon={UserRound} title={L(en, 'Επικοινωνία', 'Contact')} text={L(en, 'Πού θα σας βρούμε για τη συνέντευξη.', 'Where we can reach you for the interview.')} />
     <div className="apply-grid">
@@ -235,12 +252,12 @@ function ContactStep({ draft, set, errorOf, en }) {
   </>
 }
 
-function EducationStep({ draft, set, setRow, addRow, removeRow, errorOf, en }) {
+function EducationStep({ draft, set, setRow, addRow, removeRow, errorOf, en }: StepProps) {
   return <>
     <StepHead icon={GraduationCap} title={L(en, 'Εκπαίδευση', 'Education')} text={L(en, 'Η βασική εκπαίδευση και τα πτυχία, τα διπλώματα ή οι πιστοποιήσεις σας.', 'Your schooling and your degrees, diplomas or certifications.')} />
     <Chips wide label={L(en, 'Βασική εκπαίδευση', 'Schooling')} value={draft.educationLevel} options={SCHOOL_LEVELS.map(([el, enText]) => [el, en ? enText : el])} onChange={value => set({ educationLevel: value })} />
     <div className="apply-rows">
-      {draft.education.map((row, index) => <RowCard key={index} title={L(en, `Τίτλος σπουδών ${index + 1}`, `Qualification ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('education', index)}>
+      {draft.education.map((row: AnyRecord, index: number) => <RowCard key={index} title={L(en, `Τίτλος σπουδών ${index + 1}`, `Qualification ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('education', index)}>
         <Field wide label={L(en, 'Τίτλος (πτυχίο, δίπλωμα)', 'Title (degree, diploma)')} error={errorOf(`education.${index}.title`)}><Text value={row.title} onChange={value => setRow('education', index, { title: value })} max={160} /></Field>
         <Field label={L(en, 'Σχολή / ίδρυμα', 'School / institution')}><Text value={row.school} onChange={value => setRow('education', index, { school: value })} max={160} /></Field>
         <Field label={L(en, 'Έτος αποφοίτησης', 'Year of graduation')} error={errorOf(`education.${index}.year`)}><Text inputMode="numeric" value={row.year} onChange={value => setRow('education', index, { year: value.replace(/\D/g, '') })} max={4} placeholder={L(en, 'ΕΕΕΕ', 'YYYY')} /></Field>
@@ -250,12 +267,12 @@ function EducationStep({ draft, set, setRow, addRow, removeRow, errorOf, en }) {
   </>
 }
 
-function LanguagesStep({ draft, setRow, addRow, removeRow, errorOf, en, language }) {
-  const levels = Object.keys(LEVELS).map(value => [value, shortLevel(value, language)])
+function LanguagesStep({ draft, setRow, addRow, removeRow, errorOf, en, language }: StepProps) {
+  const levels: ChipOption[] = Object.keys(LEVELS).map(value => [value, shortLevel(value, language)])
   return <>
     <StepHead icon={Languages} title={L(en, 'Γλώσσες', 'Languages')} text={L(en, 'Για κάθε γλώσσα, πόσο καλά τη μιλάτε, τη διαβάζετε και τη γράφετε.', 'For each language, how well you speak, read and write it.')} />
     <div className="apply-rows">
-      {draft.languages.map((row, index) => {
+      {draft.languages.map((row: AnyRecord, index: number) => {
         const other = row.language && !TOP_LANGUAGES.includes(row.language)
         return <RowCard key={index} title={row.language && !other ? LANGUAGES[row.language][en ? 1 : 0] : L(en, `Γλώσσα ${index + 1}`, `Language ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('languages', index)}>
           <Chips wide label={L(en, 'Γλώσσα', 'Language')} error={errorOf(`languages.${index}.language`)} value={other ? '__other' : row.language}
@@ -274,12 +291,12 @@ function LanguagesStep({ draft, setRow, addRow, removeRow, errorOf, en, language
   </>
 }
 
-function ExperienceStep({ draft, setRow, addRow, removeRow, errorOf, en }) {
+function ExperienceStep({ draft, setRow, addRow, removeRow, errorOf, en }: StepProps) {
   return <>
     <StepHead icon={Briefcase} title={L(en, 'Προϋπηρεσία', 'Work experience')} text={L(en, 'Οι προηγούμενοι εργοδότες σας, από τον πιο πρόσφατο. Αν δεν έχετε, συνεχίστε.', 'Your previous employers, most recent first. If you have none, continue.')} />
     <div className="apply-rows">
       {!draft.employers.length && <p className="apply-empty">{L(en, 'Δεν έχετε προσθέσει εργοδότη.', 'No employer added.')}</p>}
-      {draft.employers.map((row, index) => <RowCard key={index} title={row.employer || L(en, `Εργοδότης ${index + 1}`, `Employer ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('employers', index)}>
+      {draft.employers.map((row: AnyRecord, index: number) => <RowCard key={index} title={row.employer || L(en, `Εργοδότης ${index + 1}`, `Employer ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('employers', index)}>
         <Field wide required label={L(en, 'Εργοδότης', 'Employer')} error={errorOf(`employers.${index}.employer`)}><Text value={row.employer} onChange={value => setRow('employers', index, { employer: value })} max={160} /></Field>
         <Field label={L(en, 'Από (μήνας/έτος)', 'From (month/year)')} error={errorOf(`employers.${index}.from`)}><Text inputMode="numeric" value={row.from} onChange={value => setRow('employers', index, { from: value })} mask={maskMonth} placeholder={L(en, 'ΜΜ/ΕΕΕΕ', 'MM/YYYY')} max={7} /></Field>
         {row.current ? <Field label={L(en, 'Έως', 'To')}><span className="apply-input is-static">{L(en, 'Σήμερα', 'Today')}</span></Field>
@@ -293,8 +310,8 @@ function ExperienceStep({ draft, setRow, addRow, removeRow, errorOf, en }) {
   </>
 }
 
-function AboutStep({ draft, set, en }) {
-  const count = value => `${String(value || '').length}/${LIMITS.long}`
+function AboutStep({ draft, set, en }: StepProps) {
+  const count = (value: unknown) => `${String(value || '').length}/${LIMITS.long}`
   return <>
     <StepHead icon={PenLine} title={L(en, 'Δεξιότητες & «Γιατί εμάς»', 'Skills & why us')} text={L(en, 'Λίγα λόγια για εσάς. Όλα προαιρετικά.', 'A few words about you. All optional.')} />
     <div className="apply-grid">
@@ -305,8 +322,8 @@ function AboutStep({ draft, set, en }) {
   </>
 }
 
-function ConsentsStep({ draft, set, errorOf, en, language, server, today }) {
-  const setConsent = (consentKey, value) => set({ consents: { ...draft.consents, [consentKey]: value } })
+function ConsentsStep({ draft, set, errorOf, en, language, server, today }: StepProps & { server: ServerConsentTexts, today: string }) {
+  const setConsent = (consentKey: string, value: boolean) => set({ consents: { ...draft.consents, [consentKey]: value } })
   const name = `${draft.lastName} ${draft.firstName}`.trim()
   return <>
     <StepHead icon={ShieldCheck} title={L(en, 'Συναινέσεις', 'Consents')} text={L(en, 'Διαβάστε κάθε κείμενο και πατήστε για να συμφωνήσετε. Τα υποχρεωτικά χρειάζονται για να εξεταστεί η αίτηση.', 'Read each text and tap to agree. The required ones are needed for the application to be considered.')} />
@@ -329,14 +346,14 @@ function ConsentsStep({ draft, set, errorOf, en, language, server, today }) {
   </>
 }
 
-function ReviewStep({ draft, info, en, language, position, onEdit, today }) {
+function ReviewStep({ draft, info, en, language, position, onEdit, today }: StepProps & { info: AnyRecord, position: string, onEdit: (index: number) => void, today: string }) {
   const pending = stepProblems('review', draft, language, today)
-  const join = (...values) => values.filter(value => String(value ?? '').trim()).join(' · ')
-  const section = (index, title, rows) => <section className="apply-review-block" key={index}>
+  const join = (...values: unknown[]) => values.filter(value => String(value ?? '').trim()).join(' · ')
+  const section = (index: number, title: string, rows: [string, ReactNode][]) => <section className="apply-review-block" key={index}>
     <header><strong>{title}</strong><button type="button" className="apply-link-button" onClick={() => onEdit(index)}><PenLine size={18} />{L(en, 'Αλλαγή', 'Change')}</button></header>
     <dl>{rows.filter(([, value]) => String(value ?? '').trim()).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
   </section>
-  const month = value => { const iso = parseMonth(value); return iso ? `${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '' }
+  const month = (value: unknown) => { const iso = parseMonth(value); return iso ? `${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '' }
   return <>
     <StepHead icon={CheckCircle2} title={L(en, 'Επισκόπηση & υποβολή', 'Review & submit')} text={L(en, 'Ελέγξτε τα στοιχεία σας. Με «Αλλαγή» επιστρέφετε στο βήμα.', 'Check your details. «Change» takes you back to the step.')} />
     {pending.length > 0 && <p className="apply-alert" role="alert">{L(en, 'Λείπουν ακόμη:', 'Still missing:')} {pending.map(([, message]) => message).join(' ')}</p>}
@@ -346,10 +363,10 @@ function ReviewStep({ draft, info, en, language, position, onEdit, today }) {
         [L(en, 'Φύλο', 'Gender'), genderLabel(draft.gender, language)], [L(en, 'Υπηκοότητα', 'Nationality'), draft.nationality], [L(en, 'Οικογένεια', 'Family'), join(maritalLabel(draft.maritalStatus, language), draft.children !== '' ? `${draft.children} ${L(en, 'παιδιά', 'children')}` : '')],
         [L(en, 'Στρατιωτικές υποχρεώσεις', 'Military service'), militaryLabel(draft.militaryService, language)], [L(en, 'Άδεια εργασίας', 'Work permit'), draft.workPermit == null ? '' : yesNo(draft.workPermit, language)], [L(en, 'Άδεια άσκησης', 'Licence to practise'), draft.practiceLicence == null ? '' : yesNo(draft.practiceLicence, language)]])}
       {section(2, L(en, 'Επικοινωνία', 'Contact'), [[L(en, 'Τηλέφωνα', 'Phones'), join(draft.phoneMobile, draft.phoneLandline)], ['Email', draft.email], [L(en, 'Διεύθυνση', 'Address'), join(draft.address, draft.area, draft.postcode)]])}
-      {section(3, L(en, 'Εκπαίδευση', 'Education'), [[L(en, 'Βασική', 'Schooling'), draft.educationLevel], ...draft.education.filter(row => row.title || row.school).map((row, index) => [`${L(en, 'Τίτλος', 'Title')} ${index + 1}`, join(row.title, row.school, row.year)])])}
-      {section(4, L(en, 'Γλώσσες', 'Languages'), draft.languages.filter(row => row.language.trim()).map(row => [LANGUAGES[row.language]?.[en ? 1 : 0] || row.language,
+      {section(3, L(en, 'Εκπαίδευση', 'Education'), [[L(en, 'Βασική', 'Schooling'), draft.educationLevel], ...draft.education.filter((row: AnyRecord) => row.title || row.school).map((row: AnyRecord, index: number): [string, ReactNode] => [`${L(en, 'Τίτλος', 'Title')} ${index + 1}`, join(row.title, row.school, row.year)])])}
+      {section(4, L(en, 'Γλώσσες', 'Languages'), draft.languages.filter((row: AnyRecord) => row.language.trim()).map((row: AnyRecord): [string, ReactNode] => [LANGUAGES[row.language]?.[en ? 1 : 0] || row.language,
         join(...LANGUAGE_SKILLS.filter(([skill]) => row[skill]).map(([skill, el, enText]) => `${en ? enText : el}: ${shortLevel(row[skill], language)}`), certificateLabel(row, language))]))}
-      {section(5, L(en, 'Προϋπηρεσία', 'Work experience'), draft.employers.filter(row => row.employer).map(row => [row.employer, join(`${month(row.from) || '…'} – ${row.current ? L(en, 'σήμερα', 'today') : month(row.to) || '…'}`, row.jobTitle, row.leavingReason)]))}
+      {section(5, L(en, 'Προϋπηρεσία', 'Work experience'), draft.employers.filter((row: AnyRecord) => row.employer).map((row: AnyRecord): [string, ReactNode] => [row.employer, join(`${month(row.from) || '…'} – ${row.current ? L(en, 'σήμερα', 'today') : month(row.to) || '…'}`, row.jobTitle, row.leavingReason)]))}
       {section(6, L(en, 'Δεξιότητες & «Γιατί εμάς»', 'Skills & why us'), [[L(en, 'Πληροφορική', 'Computer skills'), draft.itSkills], [L(en, 'Δραστηριότητες', 'Activities'), draft.activities], [L(en, 'Γιατί εμάς', 'Why us'), draft.whyUs]])}
       <section className="apply-review-block">
         <header><strong>{L(en, 'Συναινέσεις και υπογραφή', 'Consents and signature')}</strong><button type="button" className="apply-link-button" onClick={() => onEdit(7)}><PenLine size={18} />{L(en, 'Αλλαγή', 'Change')}</button></header>
@@ -361,7 +378,7 @@ function ReviewStep({ draft, info, en, language, position, onEdit, today }) {
 }
 
 // After sending: thank the candidate, then clear the tablet for the next person.
-function ThankYou({ en, name, onReset }) {
+function ThankYou({ en, name, onReset }: { en: boolean, name: string, onReset: () => void }) {
   const [left, setLeft] = useState(RESET_SECONDS)
   useEffect(() => {
     if (left <= 0) { onReset(); return undefined }
