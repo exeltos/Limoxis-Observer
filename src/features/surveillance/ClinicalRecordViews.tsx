@@ -99,8 +99,8 @@ interface TimelineProps {
   t: (key: string) => string
   language: string
   fmtDateTime: (value: unknown) => string
-  title: string
-  subtitle: string
+  title?: string
+  subtitle?: string
 }
 // `title`/`subtitle` replace the surveillance heading (an admission without surveillance).
 export function Timeline({ record, t, language, fmtDateTime, title, subtitle }: TimelineProps) {

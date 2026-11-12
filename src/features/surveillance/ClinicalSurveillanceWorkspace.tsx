@@ -31,10 +31,10 @@ interface SurveillanceWorkspaceProps {
   onSelect: Handler
   onCreate: Handler
   onCreateFromSample: Handler
-  onCreateSample?: Handler
+  onCreateSample?: Handler | null
   canCreate: boolean
   canCreateSample: boolean
-  onOpenSample?: Handler
+  onOpenSample?: Handler | null
   onRemoveSample?: Handler
   askSampleFor?: string | null
   onSampleAsked: Handler

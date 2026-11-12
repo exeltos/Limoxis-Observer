@@ -17,7 +17,7 @@ export const isCommunicated = (sample: AnyRecord) =>
 
 // What needs attention in the current surveillance, most urgent first; each item
 // opens the stage of the surveillance where it is done.
-export function summaryAttention(record: AnyRecord, { t, samples = record?.samples || [], extra = [] }: AnyRecord) {
+export function summaryAttention(record: AnyRecord | null, { t, samples = record?.samples || [], extra = [] }: AnyRecord) {
   if (!record || record.status !== 'active') return []
   const items = []
   const lateDays = daysOverdue(record.reviewDue)

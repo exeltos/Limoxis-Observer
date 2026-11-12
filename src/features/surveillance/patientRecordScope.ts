@@ -213,7 +213,7 @@ interface SamplesForAdmissionOptions {
 // stay without a discharge date), in its department. A sample without a
 // collection or request date is kept. Missing legacy/LIS case links are enriched
 // in-memory so the patient folder can display them under the matching surveillance.
-export function samplesForAdmission(samples: AnyRecord[] = [], patient: AnyRecord | null, admission: AnyRecord, { admissions = [], episodes = [] }: SamplesForAdmissionOptions = {}) {
+export function samplesForAdmission(samples: AnyRecord[] = [], patient: AnyRecord | null, admission: AnyRecord | null, { admissions = [], episodes = [] }: SamplesForAdmissionOptions = {}) {
   if (!patient || !admission) return []
   const scopedEpisodes = episodesForAdmission(episodes, admission, { admissions })
   return samples
@@ -243,7 +243,7 @@ export function samplesOutsideAdmissions(samples: AnyRecord[] = [], patient: Any
 
 // The episode's own samples, plus laboratory rows recorded for it afterwards:
 // rows linked to the episode, and follow-ups of its samples (code `<sample>-R<n>`).
-export function samplesForEpisode(episode: AnyRecord, laboratoryRows: AnyRecord[] = []) {
+export function samplesForEpisode(episode: AnyRecord | null, laboratoryRows: AnyRecord[] = []) {
   if (!episode) return []
   const base = episode.samples || []
   const ids = new Set(base.map((sample: AnyRecord) => String(sample.id || '')))

@@ -66,6 +66,9 @@ export {
 } from './clinicalRecordLabels'
 import { renderPatientRecordTab } from './PatientClinicalRecordTabs'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { RecordNavigation } from '../../design-system/EntityRecordShell'
+import type { DateValue } from './surveillanceTypes'
+import type { AttachmentFile } from '../../design-system/AttachmentField'
 
 // The former clinical assessments tab is now the scales section of the forms tab:
 // an old link or a stored tab name lands on the new tab.
@@ -75,14 +78,15 @@ const deepLinkTab = (location: AnyRecord) => new URLSearchParams(location.search
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 // /patients/:patientId carries the patient code, or the record id when the page is
 // reached from a surveillance row: both open the same patient.
-const isPatientKey = (row: AnyRecord, key: string) => String(row.id) === String(key) || String(row.recordId) === String(key)
+const isPatientKey = (row: AnyRecord, key: string | undefined) => String(row.id) === String(key) || String(row.recordId) === String(key)
 
 interface PatientClinicalCanonicalPageProps {
   patientMode?: boolean
 }
 export function PatientClinicalCanonicalPage({ patientMode = false }: PatientClinicalCanonicalPageProps) {
   const actor = useAuditActor()
-  const { caseId, patientId } = useParams()
+  // The patient route (patientMode) always carries patientId; the episode route carries caseId.
+  const { caseId, patientId } = useParams() as { caseId?: string, patientId: string }
   const location = useLocation()
   const navigate = useNavigate()
   const { t, language } = useLanguage()
@@ -96,12 +100,12 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
   // The organization's active departments, one shape for every dialog of the record.
   const { departments }: { departments: AnyRecord[] } = useDepartments()
   const [patients, setPatients] = useState<AnyRecord[]>([]),
-    [episodes, setEpisodes] = useState([]),
-    [admissions, setAdmissions] = useState([]),
-    [clinicalLibraries, setClinicalLibraries] = useState(demoLibrarySeed)
+    [episodes, setEpisodes] = useState<AnyRecord[]>([]),
+    [admissions, setAdmissions] = useState<AnyRecord[]>([]),
+    [clinicalLibraries, setClinicalLibraries] = useState<AnyRecord>(demoLibrarySeed)
   // Demo has no cloud attachment store; keep documents per episode in memory.
-  const [demoDocuments, setDemoDocuments] = useState({})
-  const [riskFlagRows, setRiskFlagRows] = useState({})
+  const [demoDocuments, setDemoDocuments] = useState<Record<string, AttachmentFile[]>>({})
+  const [riskFlagRows, setRiskFlagRows] = useState<Record<string, AnyRecord[]>>({})
   const [selectedAdmissionId, setSelectedAdmissionId] = useState(() =>
     patientMode ? location.state?.admissionId || '' : '',
   )
@@ -113,7 +117,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     [createOpen, setCreateOpen] = useState(false)
   const [sampleToLink, setSampleToLink] = useState<AnyRecord | null>(null)
   // A surveillance started with «new sample request»: its sample dialog opens as soon as it is created.
-  const [askSampleFor, setAskSampleFor] = useState(() => location.state?.askSampleFor || null)
+  const [askSampleFor, setAskSampleFor] = useState<string | null>(() => location.state?.askSampleFor || null)
   // "Open episode" from the worklist or the sample record: this page opens the
   // new-episode flow once, with the patient and the sample already chosen.
   const fromSample = location.state?.createFromSample || null
@@ -128,16 +132,16 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
   const [newAdmissionOpen, setNewAdmissionOpen] = useState(() => Boolean(location.state?.openNewAdmission))
   // The header's NEWS2 / Braden / GCS chips (and ?tab=clinicalScales) open the scales
   // section of the forms tab.
-  const [formsOpenRequest, setFormsOpenRequest] = useState(() =>
+  const [formsOpenRequest, setFormsOpenRequest] = useState<{ id: string, nonce: unknown } | null>(() =>
     deepLinkTab(location) === 'clinicalScales' ? { id: 'scales', nonce: 0 } : null,
   )
   const creatingAdmissionSampleRef = useMemo(() => ({ current: false }), [])
   const [tab, setTab] = useState(() => legacyTab(deepLinkTab(location) || location.state?.openTab || restored?.tab || 'summary'))
   // Stage the surveillance tab opens on, e.g. when the summary sends the user to an overdue reassessment.
-  const [journeyStage, setJourneyStage] = useState<AnyRecord | null>(null)
+  const [journeyStage, setJourneyStage] = useState<string | null>(null)
   // N3: a qSOFA / SOFA prompt asks the surveillance tab to open the protocol picker.
   const [protocolRequest, setProtocolRequest] = useState<AnyRecord | null>(null)
-  const has = cap =>
+  const has = (cap: string) =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const deleteItem = useRecordDelete()
   const patient = useMemo(
@@ -165,7 +169,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     () =>
       [...admissions].sort(
         (a, b) =>
-          (b.status === 'active') - (a.status === 'active') ||
+          Number(b.status === 'active') - Number(a.status === 'active') ||
           String(b.admissionDate || '').localeCompare(String(a.admissionDate || '')),
       ),
     [admissions],
@@ -211,7 +215,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     if (!selectedAdmission) return []
     const from = hospitalDay(selectedAdmission.admissionDate)
     const to = admissionWindowEnd(selectedAdmission, admissions) || '9999-12-31'
-    const within = value => {
+    const within = (value: unknown) => {
       const day = hospitalDay(value)
       return day && (!from || day >= from) && day <= to
     }
@@ -279,7 +283,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
       const selectedPatient = patientMode
         ? roster.find(row => isPatientKey(row, patientId))
         : null
-      let rows = []
+      let rows: AnyRecord[] = []
       if (patientMode && selectedPatient) rows = await repository.loadForPatient(selectedPatient)
       else if (caseId) {
         const one = await repository.loadCase(caseId)
@@ -369,7 +373,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     patientMode,
     // «Delete» of a record of a form section: the item for its «…» menu, or null when not allowed.
     deleteItem,
-    canDelete: createdBy => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy }),
+    canDelete: (createdBy: string) => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy }),
     scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
     returnPath: `${location.pathname}${location.search}`,
     // A scale saved or deleted in the forms tab refreshes the header chips at once.
@@ -378,8 +382,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
         .then(setRiskFlagRows)
         .catch(() => {}),
     goTo,
-    fmtDate: value => formatDay(value, language),
-    fmtDateTime: value => formatDateTime(value, language),
+    fmtDate: (value: unknown) => formatDay(value, language),
+    fmtDateTime: (value: unknown) => formatDateTime(value as DateValue, language),
     // A qSOFA / SOFA prompt of the scales section asks the surveillance tab for a protocol.
     startProtocol: (prompt: AnyRecord) => {
       const episode = admissionEpisodes.find(ep => ep.status === 'active') || formsEpisodes.find(ep => ep.status === 'active')
@@ -434,8 +438,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     (language === 'el'
       ? record?.department || patient?.department
       : record?.departmentEn || patient?.departmentEn || record?.department || patient?.department)
-  const fmtDate = value => formatDay(value, language)
-  const fmtDateTime = value => formatDateTime(value, language)
+  const fmtDate = (value: unknown) => formatDay(value, language)
+  const fmtDateTime = (value: unknown) => formatDateTime(value as DateValue, language)
   const canSurveillance = has(CAPABILITIES.VIEW_SURVEILLANCE)
   const canLab = has(CAPABILITIES.VIEW_LAB) || canSurveillance
   const canCreateLabSample = has(CAPABILITIES.MANAGE_LAB_SAMPLES)
@@ -476,7 +480,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     setTab('summary')
   }
 
-  async function createEpisode(draft: AnyRecord, targetPatient) {
+  async function createEpisode(draft: AnyRecord, targetPatient: AnyRecord) {
     const scopedDraft = selectedAdmission
       ? {
           ...draft,
@@ -636,7 +640,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
         className={`patient-record-shell${patientMode && !selectedAdmission ? '' : ' workspace-fill'}${activeTab === 'episodeForms' ? ' record-secondary-tab-active' : ''}`}
         avatar={name
           ?.split(' ')
-          .map(x => x?.[0])
+          .map((x: string) => x?.[0])
           .slice(0, 2)
           .join('')}
         eyebrow={code}
@@ -670,7 +674,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
             )}
           </>
         }
-        recordNavigation={recordNavigation}
+        recordNavigation={recordNavigation as RecordNavigation}
         headerActions={
           selectedAdmission || !patientMode ? (
             <>

@@ -1,8 +1,13 @@
 import { Plus } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import type { Handler } from './surveillanceTypes'
+import type { AnyRecord } from '../../types/featureTypes'
 
 interface PatientWithoutAdmissionProps {
+  // Passed by the record page, not read here.
+  patient?: AnyRecord | null
+  tenantId?: string | null
+  isDemo?: boolean
   canAdmit: boolean
   onNewAdmission: Handler
   episodesCount?: number

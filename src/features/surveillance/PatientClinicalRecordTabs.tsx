@@ -13,8 +13,68 @@ import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
 import { canDeleteRecord } from '../../core/recycleBin/recycleBinService'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { DateValue, Handler, Setter } from './surveillanceTypes'
+import type { AttachmentFile } from '../../design-system/AttachmentField'
+import type { AuditActor } from '../../core/audit/actor'
+import type { Tenant } from '../../core/tenant/tenantTypes'
+import type { NavigateFunction } from 'react-router-dom'
 
-export function renderPatientRecordTab(tabId: string, j: number) {
+// What the record page hands to its tabs (one object, so the tabs read like the code they came from).
+export interface PatientRecordTabScope {
+  actor: AuditActor
+  actualRole: string | null
+  admissionEpisodes: AnyRecord[]
+  admissions: AnyRecord[]
+  admissionSamples: AnyRecord[]
+  admissionTimeline: AnyRecord[]
+  askSampleFor: string | null
+  canCreateLabSample: boolean
+  canLab: boolean
+  canTherapy: boolean
+  caseId: string | undefined
+  clinicalLibraries: AnyRecord
+  createAdmissionSample: Handler
+  demoDocuments: Record<string, AttachmentFile[]>
+  departments: AnyRecord[]
+  deviceBundles: AnyRecord | null
+  documentsScope: AnyRecord | null
+  epiEntry: AnyRecord | null
+  fmtDate: (value: unknown) => string
+  fmtDateTime: (value: unknown) => string
+  forms: AnyRecord
+  formsCtx: AnyRecord
+  formsOpenRequest: { id: string, nonce: unknown } | null
+  goBack: Handler
+  has: (capability: string) => boolean
+  isDemo: boolean
+  journeyStage: string | null
+  laboratory: AnyRecord
+  language: string
+  load: Handler
+  navigate: NavigateFunction
+  outsideTimeline: AnyRecord[]
+  patient: AnyRecord | null
+  patientMode: boolean
+  protocolRequest: AnyRecord | null
+  record: AnyRecord | null
+  recordSamples: AnyRecord[]
+  repository: AnyRecord
+  riskFlagRows: Record<string, AnyRecord[]>
+  role: string | null
+  selectedAdmission: AnyRecord | null
+  setAskSampleFor: Setter<string | null>
+  setClinicalLibraries: Setter<AnyRecord>
+  setCreateOpen: Setter<boolean>
+  setDemoDocuments: Setter<Record<string, AttachmentFile[]>>
+  setJourneyStage: Setter<string | null>
+  setSampleToLink: Setter<AnyRecord | null>
+  setSelectedAdmissionId: Setter<string>
+  setSelectedEpisodeId: Setter<string>
+  setTab: Setter<string>
+  t: (key: string) => string
+  tenant: Tenant | null
+}
+export function renderPatientRecordTab(tabId: string, j: PatientRecordTabScope) {
   const { actor, actualRole, admissionEpisodes, admissions, admissionSamples, admissionTimeline, askSampleFor, canCreateLabSample, canLab, canTherapy, caseId, clinicalLibraries, createAdmissionSample, demoDocuments, departments, deviceBundles, documentsScope, epiEntry, fmtDate, fmtDateTime, forms, formsCtx, formsOpenRequest, goBack, has, isDemo, journeyStage, laboratory, language, load, navigate, outsideTimeline, patient, patientMode, protocolRequest, record, recordSamples, repository, riskFlagRows, role, selectedAdmission, setAskSampleFor, setClinicalLibraries, setCreateOpen, setDemoDocuments, setJourneyStage, setSampleToLink, setSelectedAdmissionId, setSelectedEpisodeId, setTab, t, tenant } = j
   return (
     <>
@@ -128,7 +188,7 @@ export function renderPatientRecordTab(tabId: string, j: number) {
               }))
               return item
             }
-            const created = await createManagementLibraryItem(tenant.id, key, {
+            const created = await createManagementLibraryItem(tenant!.id, key, {
               nameEl: item[0],
               nameEn: item[1] || item[0],
             })
@@ -196,7 +256,7 @@ export function renderPatientRecordTab(tabId: string, j: number) {
           t={t}
           language={language}
           fmtDateTime={value =>
-            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : formatDayTime(value, language)
+            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : formatDayTime(value as DateValue, language)
           }
         />
       )}
@@ -208,7 +268,7 @@ export function renderPatientRecordTab(tabId: string, j: number) {
           t={t}
           language={language}
           fmtDateTime={value =>
-            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : formatDayTime(value, language)
+            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : formatDayTime(value as DateValue, language)
           }
         />
       )}

@@ -24,7 +24,7 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import { copy, NEW_ITEM, rowLabel } from './clinicalDialogText'
 import { SimpleDialog } from './ClinicalSimpleDialog'
 import type { AnyRecord } from '../../types/featureTypes'
-import type { Handler, StateSetter } from './surveillanceTypes'
+import type { Handler, Setter } from './surveillanceTypes'
 
 interface HaiDialogProps {
   t: (key: string) => string
@@ -523,7 +523,7 @@ interface ReasonDialogProps {
   title: string
   t: (key: string) => string
   reason: string
-  setReason: StateSetter
+  setReason: Setter<string>
   onClose?: Handler | null
   onSave: Handler
   saveLabel?: string

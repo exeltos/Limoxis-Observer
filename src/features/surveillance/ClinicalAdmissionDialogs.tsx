@@ -89,9 +89,9 @@ export function PatientDetailsEditor({
   )
 }
 interface UseAdmissionLifecycleOptions {
-  patient: AnyRecord
-  admission: AnyRecord
-  tenantId: string
+  patient: AnyRecord | null
+  admission: AnyRecord | null
+  tenantId: string | null | undefined
   isDemo: boolean
   departments: AnyRecord[]
   canEdit: boolean
@@ -126,6 +126,7 @@ export function useAdmissionLifecycle({
   }
   // The discharge is recorded only from the confirmation step of its dialog.
   async function confirmDischarge(result: AnyRecord) {
+    if (!patient || !admission) return
     try {
       setBusy(true)
       await dischargeAdmission(tenantId, patient, admission, result, { isDemo })
@@ -143,13 +144,13 @@ export function useAdmissionLifecycle({
     try {
       setBusy(true)
       if (kind === 'discharge')
-        await dischargeAdmission(tenantId, patient, admission, draft, { isDemo })
+        await dischargeAdmission(tenantId, patient!, admission!, draft, { isDemo })
       else {
         const dept = departments.find(x => x.id === draft.departmentId)
         await transferAdmission(
           tenantId,
-          patient,
-          admission,
+          patient!,
+          admission!,
           { ...draft, department: dept?.name || '' },
           { isDemo },
         )
@@ -185,8 +186,8 @@ export function useAdmissionLifecycle({
       : []
   const dialog = kind === 'discharge' ? (
     <AdmissionDischargeDialog
-      patient={patient}
-      admission={admission}
+      patient={patient!}
+      admission={admission!}
       t={t}
       language={language}
       fmtDate={value => formatDay(value, language)}
@@ -224,7 +225,7 @@ export function useAdmissionLifecycle({
           label={translate('copy.clinicalRecordCopy.newDepartment', language === 'el' ? 'el' : 'en')}
           value={draft.departmentId}
           options={departmentOptions(
-            departments.filter(x => x.id !== admission.departmentId),
+            departments.filter(x => x.id !== admission!.departmentId),
             language,
           )}
           placeholder={t('select')}
@@ -247,9 +248,9 @@ export function useAdmissionLifecycle({
 }
 interface AdmissionDeleteDialogProps {
   open: boolean
-  patient: AnyRecord
+  patient: AnyRecord | null
   admission: AnyRecord
-  tenantId: string
+  tenantId: string | null | undefined
   isDemo: boolean
   t: (key: string) => string
   onClose: Handler
@@ -270,7 +271,7 @@ export function AdmissionDeleteDialog({
   const { notify } = useFeedback()
   async function remove(reason: string) {
     try {
-      await deleteAdmission(tenantId, patient, admission, reason, { isDemo })
+      await deleteAdmission(tenantId, patient!, admission, reason, { isDemo })
       onClose()
       notify(t('clinicalRecords.admissionDeleted'), 'success')
       await onDeleted?.(admission)
@@ -312,8 +313,8 @@ export function Detail({ label, value }: DetailProps) {
 
 interface NewAdmissionDialogProps {
   patient: AnyRecord
-  activeAdmission: AnyRecord
-  tenantId: string
+  activeAdmission: AnyRecord | null
+  tenantId: string | null | undefined
   isDemo: boolean
   departments: AnyRecord[]
   t: (key: string) => string
@@ -390,7 +391,7 @@ export function NewAdmissionDialog({
       t={t}
       onClose={onClose}
       onSave={save}
-      disabled={busy || invalid}
+      disabled={Boolean(busy || invalid)}
     >
       {activeAdmission && (
         <p className="field-hint entry-span-2">

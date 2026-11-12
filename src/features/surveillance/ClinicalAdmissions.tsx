@@ -27,7 +27,7 @@ export { Detail, NewAdmissionDialog, AdmissionPicker } from './ClinicalAdmission
 
 interface PatientDetailsSectionProps {
   patient: AnyRecord
-  tenantId: string
+  tenantId: string | null | undefined
   isDemo: boolean
   departments: AnyRecord[]
   t: (key: string) => string
@@ -250,10 +250,10 @@ interface CanonicalSummaryProps {
   epiItems?: AnyRecord[]
   samples: AnyRecord[]
   scaleRows?: AnyRecord[]
-  patient: AnyRecord
-  admission: AnyRecord
-  record: AnyRecord
-  tenantId: string
+  patient: AnyRecord | null
+  admission: AnyRecord | null
+  record: AnyRecord | null
+  tenantId: string | null | undefined
   isDemo: boolean
   departments: AnyRecord[]
   canEdit: boolean

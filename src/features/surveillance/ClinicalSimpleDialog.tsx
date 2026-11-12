@@ -4,7 +4,6 @@ import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { FormSubmit, type FormValidation } from '../../design-system/FormValidation'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
 import type { ReactNode } from 'react'
 

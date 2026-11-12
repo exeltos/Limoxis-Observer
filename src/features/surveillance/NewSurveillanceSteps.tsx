@@ -9,9 +9,8 @@ import { Field } from '../../design-system/Field'
 import { ReadOnlyField } from '../../design-system/ReadOnlyField'
 import { departmentOptions, listTexts, suspectedSourceOptions } from './surveillanceOptions'
 import type { AnyRecord } from '../../types/featureTypes'
-import type { StateSetter } from './surveillanceTypes'
+import type { Handler, Setter } from './surveillanceTypes'
 import type { ReactNode } from 'react'
-import type { Handler } from './surveillanceTypes'
 
 interface PatientSelectorProps {
   chooseExistingPatient: Handler
@@ -23,11 +22,11 @@ interface PatientSelectorProps {
   patientMode: string
   patients: AnyRecord[]
   selectedPatientId: string
-  setCreatedPatient: StateSetter
+  setCreatedPatient: Setter<AnyRecord | null>
   setPatientDepartment: (value: string) => void
   setPatientField: (key: string, value: unknown) => void
-  setPatientMode: StateSetter
-  setSelectedPatientId: StateSetter
+  setPatientMode: Setter<string>
+  setSelectedPatientId: Setter<string>
   form: AnyRecord
   t: (key: string) => string
 }

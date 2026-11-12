@@ -111,7 +111,7 @@ interface BuildSurveillanceReportOptions {
   admissionTimeline?: AnyRecord[]
   outsideTimeline?: AnyRecord[]
   libraries?: AnyRecord
-  documents?: AnyRecord[] | null
+  documents?: AnyRecord | null
   department?: string
   status?: string
   sampleLabel?: Handler
