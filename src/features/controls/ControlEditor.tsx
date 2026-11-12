@@ -189,7 +189,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
       </>}
      </div>
      {mode==='choice'&&<div className="control-editor-choices">
-      <MultiSelect label={en?'Available choices *':'Διαθέσιμες επιλογές *'} options={[...libraryOptions(lib('controlAnswers'),language),...options.filter(x=>!findLibraryItem(lib('controlAnswers'),x.value)).map(x=>({value:x.value,label:x.value}))]} selected={options.map(x=>x.value)} onChange={setOptions} placeholder={en?'Choose from the library':'Επιλέξτε από τη βιβλιοθήκη'} {...multiText} countLabel={n=>en?`${n} choices`:`${n} επιλογές`}/>
+      <MultiSelect label={en?'Available choices *':'Διαθέσιμες επιλογές *'} options={[...(libraryOptions(lib('controlAnswers'),language) as { value: string, label: string }[]),...options.filter(x=>!findLibraryItem(lib('controlAnswers'),x.value)).map(x=>({value:x.value,label:x.value}))]} selected={options.map(x=>x.value)} onChange={setOptions} placeholder={en?'Choose from the library':'Επιλέξτε από τη βιβλιοθήκη'} {...multiText} countLabel={n=>en?`${n} choices`:`${n} επιλογές`}/>
       <SearchableSelect label={en?'Add another choice':'Προσθήκη άλλης επιλογής'} value={newAnswer} options={[]} onChange={addAnswer} allowCustom placeholder={en?'Type and press Enter':'Γράψτε και πατήστε Enter'} {...selectText}/>
       <ChoiceChips className="control-editor-span" label={en?'Counts as a finding':'Θεωρείται εύρημα'} options={options.map(x=>({value:x.value,label:answerLabel(x.value,language,lib('controlAnswers'))}))} selected={options.filter(x=>x.finding).map(x=>x.value)} onToggle={toggleFinding}/>
      </div>}
