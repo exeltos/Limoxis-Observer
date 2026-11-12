@@ -1,0 +1,121 @@
+import type { AnyRecord } from '../../../types/featureTypes'
+
+const SAMPLE_SUBJECT_TYPES = new Set<unknown>(['patient', 'employee', 'environment'])
+const SAMPLE_STATUSES = new Set<unknown>(['requested', 'collected', 'received', 'processing', 'completed', 'rejected', 'cancelled'])
+
+export function normalizeLaboratorySample(row: AnyRecord = {}) {
+  const recordId = row.recordId ?? row.record_id ?? row.uuid ?? row.id ?? null
+  const code = String(row.code ?? row.sampleCode ?? row.sample_code ?? row.id ?? '').trim()
+  const subjectType = SAMPLE_SUBJECT_TYPES.has(row.subjectType ?? row.subject_type) ? (row.subjectType ?? row.subject_type) : 'patient'
+  const rawStatus = row.status ?? 'requested'
+  const microbiologyResults = row.microbiologyResults ?? (row.result || row.resultStatus ? [{
+    id: row.resultId ?? `${code}-result`,
+    result: row.result ?? null,
+    resultStatus: row.resultStatus ?? 'draft',
+    organism: row.organism ?? null,
+    resistance: row.resistance ?? null,
+    critical: Boolean(row.critical),
+    resultedAt: row.resultedAt ?? null,
+    method: row.method ?? '',
+    ast: row.ast ?? [],
+    amr: row.amr ?? [],
+    communications: row.communications ?? [],
+  }] : [])
+  const sampleType = row.sampleType ?? row.sample_type ?? row.type ?? 'other'
+  const subjectName = row.subjectName ?? row.subject_name ?? row.patient ?? ''
+  const subjectNameEn = row.subjectNameEn ?? row.subject_name_en ?? row.patientEn ?? row.patient ?? ''
+  // Demo rows carry the patient code as `patientId` (e.g. PT-260184); cloud
+  // rows use patient_code and a UUID patient_id. Without this fallback the
+  // code was lost, so demo samples never linked to their patient.
+  const legacyPatientCode = typeof row.patientId === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(row.patientId) ? row.patientId : ''
+  const subjectCode = row.subjectCode ?? row.subject_code ?? row.patientCode ?? row.patient_code ?? legacyPatientCode
+  return {
+    recordId,
+    id: code,
+    code,
+    organizationId: row.organizationId ?? row.organization_id ?? null,
+    subjectType,
+    subjectId: row.subjectId ?? row.subject_id ?? row.patientId ?? row.patient_id ?? null,
+    subjectName,
+    subjectNameEn,
+    subjectCode,
+    patient: subjectName,
+    patientEn: subjectNameEn,
+    patientId: subjectCode,
+    departmentId: row.departmentId ?? row.department_id ?? row.department ?? null,
+    department: row.department ?? row.departmentName ?? row.department_name ?? '',
+    departmentEn: row.departmentEn ?? row.departmentNameEn ?? row.department_name_en ?? row.department ?? row.departmentName ?? row.department_name ?? '',
+    sampleType,
+    type: sampleType,
+    source: row.source ?? row.collectionSource ?? row.collection_source ?? '',
+    sourceEn: row.sourceEn ?? row.collectionSourceEn ?? row.collection_source_en ?? row.source ?? '',
+    status: SAMPLE_STATUSES.has(rawStatus) ? rawStatus : 'requested',
+    result: row.result ?? row.resultStatus ?? row.result_status ?? null,
+    organism: row.organism ?? null,
+    resistance: row.resistance ?? row.resistanceClass ?? row.resistance_class ?? null,
+    critical: Boolean(row.critical ?? row.is_critical),
+    priority: row.priority ?? 'routine',
+    requestedAt: row.requestedAt ?? row.requested_at ?? null,
+    collectedAt: row.collectedAt ?? row.collected_at ?? null,
+    receivedAt: row.receivedAt ?? row.received_at ?? null,
+    rejectedAt: row.rejectedAt ?? row.rejected_at ?? null,
+    rejectionReason: row.rejectionReason ?? row.rejection_reason ?? '',
+    resultedAt: row.resultedAt ?? row.resulted_at ?? null,
+    surveillanceCase: row.surveillanceCase ?? row.surveillance_case ?? row.surveillanceCaseId ?? row.surveillance_case_id ?? null,
+    employeeSurveillanceId: row.employeeSurveillanceId ?? row.employee_surveillance_id ?? null,
+    employeeSurveillanceBatchId: row.employeeSurveillanceBatchId ?? row.employee_surveillance_batch_id ?? null,
+    environmentalMethod: row.environmentalMethod ?? row.environmental_method ?? '',
+    location: row.location ?? '',
+    point: row.point ?? '',
+    environmentalBatchId: row.environmentalBatchId ?? row.environmental_batch_id ?? null,
+    environmentalPlate: row.environmentalPlate ?? row.environmental_plate ?? '',
+    environmentalPosition: row.environmentalPosition ?? row.environmental_position ?? '',
+    microbiologyResults,
+    documentsReviewedAt: row.documentsReviewedAt ?? row.documents_reviewed_at ?? null,
+    finalizedAt: row.finalizedAt ?? row.finalized_at ?? null,
+    // «Προς έλεγχο»: the infection-control decision on a positive sample (null = none yet).
+    surveillanceReviewStatus: row.surveillanceReviewStatus ?? row.surveillance_review_status ?? null,
+    surveillanceReviewReason: row.surveillanceReviewReason ?? row.surveillance_review_reason ?? null,
+    surveillanceReviewNote: row.surveillanceReviewNote ?? row.surveillance_review_note ?? '',
+    surveillanceReviewedAt: row.surveillanceReviewedAt ?? row.surveillance_reviewed_at ?? null,
+    surveillanceReviewedBy: row.surveillanceReviewedBy ?? row.surveillance_reviewed_by ?? null,
+  }
+}
+
+export function normalizeLaboratorySamples(rows: unknown) {
+  if (!Array.isArray(rows)) throw new Error('INVALID_LABORATORY_SAMPLE_COLLECTION')
+  return rows.map(normalizeLaboratorySample)
+}
+
+export function computeTurnaroundHours(sample: AnyRecord | null | undefined) {
+  const start = sample?.requestedAt ?? sample?.collectedAt ?? null
+  const end = sample?.resultedAt ?? null
+  if (!start || !end) return null
+  const startMs = new Date(start).getTime()
+  const endMs = new Date(end).getTime()
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null
+  return (endMs - startMs) / 3600000
+}
+
+// Hours a sample without an outcome has been waiting since collection (null when unknown).
+export function waitingHours(sample: AnyRecord | null | undefined, now = Date.now()) {
+  const start = new Date(sample?.collectedAt ?? sample?.requestedAt ?? '').getTime()
+  if (!Number.isFinite(start) || start > now) return null
+  return (now - start) / 3600000
+}
+
+export function formatTurnaround(hours: number | null | undefined, language = 'el') {
+  if (hours == null) return '—'
+  if (hours < 24) return `${Math.round(hours)}${language === 'en' ? 'h' : 'ω'}`
+  const days = Math.floor(hours / 24)
+  const remainingHours = Math.round(hours % 24)
+  return language === 'en' ? `${days}d ${remainingHours}h` : `${days}η ${remainingHours}ω`
+}
+
+export function validateLaboratorySample(sample: AnyRecord | null | undefined) {
+  const errors: string[] = []
+  if (!sample?.code) errors.push('code')
+  if (!SAMPLE_SUBJECT_TYPES.has(sample?.subjectType)) errors.push('subjectType')
+  if (!SAMPLE_STATUSES.has(sample?.status)) errors.push('status')
+  return { valid: errors.length === 0, errors }
+}

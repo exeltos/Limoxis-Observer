@@ -1,0 +1,470 @@
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Archive, BookOpenCheck, CheckCircle2, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
+import './documentsList.css'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Page } from '../../design-system/Page'
+import { EntityRecordShell, type RecordNavigation } from '../../design-system/EntityRecordShell'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { printReport } from '../../core/export/reportDocument'
+import { formatDay } from '../../core/i18n/formatDay'
+import { Button } from '../../design-system/Button'
+import { ActionButton } from '../../design-system/ActionButton'
+import { IconButton } from '../../design-system/IconButton'
+import { SaveButton } from '../../design-system/SaveButton'
+import { AttachmentField } from '../../design-system/AttachmentField'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { can, CAPABILITIES } from '../../core/permissions/roles'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useAuditActor } from '../../core/audit/useAuditActor'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
+import { DocumentDistributionPanel } from './DocumentDistributionPanel'
+import { useDocumentsData } from './useDocumentsData'
+import {
+  updateDocumentAsync,
+  submitDocumentReviewAsync,
+  approveDocumentAsync,
+  returnDocumentToDraftAsync,
+  publishDocumentAsync,
+  archiveDocumentAsync,
+  createDocumentRevisionAsync,
+  deleteDocumentDraftAsync,
+  loadDocumentOwnerProfile,
+  getDocumentFamily,
+  groupDocumentFamilies,
+} from './documentService'
+import { DocumentDetails, DocumentForm, DOCUMENT_TYPES, documentDraftIsValid } from './DocumentForm'
+import { loadDepartments } from '../management/departmentsService'
+import { demoLibrarySeed } from '../management/managementData'
+import { RouteLoading } from '../../design-system/RouteLoading'
+import { ProtocolReviewPanel } from './protocolReview/ProtocolReviewPanel'
+import { useProtocolSuggestions } from './protocolReview/useProtocolSuggestions'
+import { existingSuggestedRevision, type ProtocolSuggestion } from './protocolReview/protocolReviewModel'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// A header command kept beside «Export» (not moved into the record's «…»).
+const HeaderAction = ({ children }: { children: ReactNode, utility?: boolean, tone?: string }) => children
+
+const labels: Record<string, { types: Record<string, string>, statuses: Record<string, string> }> = {
+  el: {
+    types: DOCUMENT_TYPES.el,
+    statuses: {
+      draft: 'Πρόχειρο',
+      review: 'Σε έλεγχο',
+      approved: 'Εγκεκριμένο',
+      published: 'Δημοσιευμένο',
+      superseded: 'Αντικαταστάθηκε',
+      archived: 'Αρχειοθετημένο',
+    },
+  },
+  en: {
+    types: DOCUMENT_TYPES.en,
+    statuses: {
+      draft: 'Draft',
+      review: 'In review',
+      approved: 'Approved',
+      published: 'Published',
+      superseded: 'Superseded',
+      archived: 'Archived',
+    },
+  },
+}
+
+const toDraft = (record: AnyRecord | null | undefined): AnyRecord => ({
+  title: record?.title || '',
+  type: record?.type || 'policy',
+  version: record?.version || '0.1',
+  departmentId: record?.departmentId || null,
+  department: record?.department || '',
+  audience: record?.audience || 'organization',
+  effectiveDate: record?.effectiveDate || '',
+  reviewDate: record?.reviewDate || '',
+  description: record?.description || '',
+  protocolKind: record?.protocolKind || '',
+  clinicalArea: record?.clinicalArea || '',
+  renewalMonths: record?.renewalMonths ?? '',
+  requiredBy: record?.requiredBy || [],
+})
+
+function formatHistoryAction(item: AnyRecord, en: boolean, statusLabels: Record<string, string>) {
+  if (item.action === 'created') return en ? 'Created' : 'Δημιουργία'
+  if (item.action === 'updated') return en ? 'Updated' : 'Ενημέρωση'
+  if (item.action === 'deleted') return en ? 'Deleted' : 'Διαγραφή'
+  if (item.action?.startsWith('status:')) {
+    const transition = item.action.slice(7)
+    if (transition.includes('->')) {
+      const [from, to] = transition.split('->')
+      return `${statusLabels[from] || from} → ${statusLabels[to] || to}`
+    }
+    return `${en ? 'Current state' : 'Τρέχουσα κατάσταση'}: ${statusLabels[transition] || transition}`
+  }
+  return item.action || '—'
+}
+
+function formatDateTime(value: string | null | undefined, en: boolean) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString(en ? 'en-GB' : 'el-GR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit', hourCycle: 'h23',
+  })
+}
+
+export function DocumentRecordPage() {
+  const { documentId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const actor = useAuditActor()
+  const { notify, confirm } = useFeedback()
+  const { role, actualRole, isRolePreview, membership, tenant, isDemo } = useTenant()
+  const { language } = useLanguage()
+  const en = language === 'en'
+  const typeLabels = labels[language].types
+  const statusLabels = labels[language].statuses
+
+  const { data: rows, loading, error, reload } = useDocumentsData()
+  const protocolSuggestions = useProtocolSuggestions(tenant?.id || null)
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'overview')
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [departments, setDepartments] = useState<AnyRecord[]>([])
+  const [ownerName, setOwnerName] = useState('')
+
+  const record = useMemo(() => rows.find((x) => x.id === documentId) || null, [rows, documentId])
+  const family = useMemo(() => getDocumentFamily(rows, record), [rows, record])
+  const families = useMemo(() => groupDocumentFamilies(rows), [rows])
+  const currentFamily = useMemo(
+    () => families.find((item) => (item.versions || []).some((version) => version.id === documentId)) || null,
+    [families, documentId],
+  )
+  const addOns = membership?.capabilities ?? []
+  const custom = membership?.customCapabilities ?? []
+  const permissionRole = isRolePreview ? role : (actualRole || role)
+  const recordNavigation = useRecordSequenceNavigation({
+    registry: 'documents',
+    currentId: currentFamily?.key || documentId,
+    pathForId: (key) => {
+      const target = families.find((item) => item.key === key)?.current
+      return target ? `/documents/${target.id}` : '/documents'
+    },
+  })
+
+  const canManage = can(permissionRole, CAPABILITIES.MANAGE_DOCUMENTS, addOns, custom)
+  const canSubmitReview = can(permissionRole, CAPABILITIES.SUBMIT_DOCUMENT_REVIEW, addOns, custom)
+  const canApprove = can(permissionRole, CAPABILITIES.APPROVE_DOCUMENT, addOns, custom)
+  const canPublish = can(permissionRole, CAPABILITIES.PUBLISH_DOCUMENT, addOns, custom)
+  const canSupersede = can(permissionRole, CAPABILITIES.SUPERSEDE_DOCUMENT, addOns, custom)
+  const canArchive = can(permissionRole, CAPABILITIES.ARCHIVE_DOCUMENT, addOns, custom)
+  const organizationId = tenant?.id || null
+
+  useEffect(() => {
+    let active = true
+    if (!organizationId) return undefined
+    // The Demo hospital has no cloud departments (see DocumentCreatePage).
+    const request: Promise<AnyRecord[]> = isDemo ? Promise.resolve(demoLibrarySeed.departments.map(([name, nameEn]) => ({ id: name, name, nameEn }))) : loadDepartments(organizationId)
+    request
+      .then((data) => { if (active) setDepartments((data || []).filter((x) => x.is_active !== false)) })
+      .catch(() => { if (active) setDepartments([]) })
+    return () => { active = false }
+  }, [organizationId, isDemo])
+
+  useEffect(() => {
+    if (record) {
+      setDraft(toDraft(record))
+      setEditing(false)
+    }
+  }, [record])
+
+  useEffect(() => {
+    let active = true
+    // Without a linked user the owner is the unit written on the document (as in the registry).
+    if (!record?.ownerId) {
+      setOwnerName(record?.owner || '')
+      return () => { active = false }
+    }
+    if (record.ownerId === actor?.id) {
+      setOwnerName(actor?.name || '')
+      return () => { active = false }
+    }
+    loadDocumentOwnerProfile(record.ownerId)
+      .then((profile) => { if (active) setOwnerName(profile?.full_name || profile?.username || '') })
+      .catch(() => { if (active) setOwnerName('') })
+    return () => { active = false }
+  }, [record?.ownerId, record?.owner, actor?.id, actor?.name])
+
+  if (loading) return <RouteLoading />
+  if (error) {
+    return <Page title={en ? 'Documents' : 'Έγγραφα'}><div className="data-access-state error" role="alert"><span>{en ? 'Could not load the document.' : 'Δεν ήταν δυνατή η φόρτωση του εγγράφου.'}</span><Button variant="secondary" onClick={() => reload().catch(() => {})}>{en ? 'Retry' : 'Επανάληψη'}</Button></div></Page>
+  }
+  if (!record || !draft) {
+    return <Page title={en ? 'Documents' : 'Έγγραφα'}><div className="inline-empty">{en ? 'Document not found.' : 'Το έγγραφο δεν βρέθηκε.'}</div></Page>
+  }
+
+  const approvalEvent = [...(record.history || [])].reverse().find((item) => item.action === 'status:review->approved')
+  const publishEvent = [...(record.history || [])].reverse().find((item) => item.action === 'status:approved->published')
+  const activePublishedId = currentFamily?.activePublished?.id || null
+  const versionState = record.status === 'published' && activePublishedId === record.id
+    ? (en ? 'Current active version' : 'Ισχύουσα έκδοση')
+    : record.status === 'superseded'
+      ? (en ? 'Non-current — superseded' : 'Μη ισχύουσα — έχει αντικατασταθεί')
+      : record.status === 'archived'
+        ? (en ? 'Non-current — archived' : 'Μη ισχύουσα — αρχειοθετημένη')
+        : (statusLabels[record.status] || record.status)
+
+  async function run<T>(operation: () => Promise<T>, successMessage?: string) {
+    if (busy) return null
+    setBusy(true)
+    try {
+      const result = await operation()
+      await reload()
+      if (successMessage) notify(successMessage, 'success')
+      return result
+    } catch (operationError) {
+      notify((operationError as Error | null)?.message || (en ? 'The action could not be completed.' : 'Η ενέργεια δεν ήταν δυνατό να ολοκληρωθεί.'), 'danger')
+      return null
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const saveEdit = async () => {
+    if (!documentDraftIsValid(draft) || busy) return
+    const result = await run(
+      () => updateDocumentAsync(organizationId, record, draft, actor),
+      en ? 'Document updated.' : 'Το έγγραφο ενημερώθηκε.',
+    )
+    if (result) setEditing(false)
+  }
+
+  const submitReview = async () => {
+    if (record.status !== 'draft' || !canSubmitReview) return
+    const ok = await confirm({
+      title: en ? 'Submit for review' : 'Υποβολή για έλεγχο',
+      message: en ? 'Editing will be locked while the document is reviewed. Continue?' : 'Η επεξεργασία θα κλειδώσει όσο το έγγραφο βρίσκεται σε έλεγχο. Θέλετε να συνεχίσετε;',
+      confirmLabel: en ? 'Submit' : 'Υποβολή',
+    })
+    if (ok) await run(() => submitDocumentReviewAsync(organizationId, record, actor), en ? 'Document submitted for review.' : 'Το έγγραφο υποβλήθηκε για έλεγχο.')
+  }
+
+  const approve = async () => {
+    if (record.status !== 'review' || !canApprove) return
+    const ok = await confirm({
+      title: en ? 'Approve document' : 'Έγκριση εγγράφου',
+      message: en ? 'The reviewed version will be approved for publication. Continue?' : 'Η ελεγμένη έκδοση θα εγκριθεί για δημοσίευση. Θέλετε να συνεχίσετε;',
+      confirmLabel: en ? 'Approve' : 'Έγκριση',
+    })
+    if (ok) await run(() => approveDocumentAsync(organizationId, record, actor), en ? 'Document approved.' : 'Το έγγραφο εγκρίθηκε.')
+  }
+
+  const returnToDraft = async () => {
+    if (!['review', 'approved'].includes(record.status) || !(canManage || canApprove)) return
+    const ok = await confirm({
+      title: en ? 'Return to draft' : 'Επιστροφή σε πρόχειρο',
+      message: en ? 'The current revision will become editable again. Its audit history will be preserved. Continue?' : 'Η τρέχουσα έκδοση θα γίνει ξανά επεξεργάσιμη. Το ιστορικό της θα διατηρηθεί. Θέλετε να συνεχίσετε;',
+      confirmLabel: en ? 'Return to draft' : 'Επιστροφή σε πρόχειρο',
+    })
+    if (ok) await run(() => returnDocumentToDraftAsync(organizationId, record, actor), en ? 'Document returned to draft.' : 'Το έγγραφο επέστρεψε σε πρόχειρο.')
+  }
+
+  const publish = async () => {
+    if (record.status !== 'approved' || !canPublish) return
+    const ok = await confirm({
+      title: en ? 'Publish document' : 'Δημοσίευση εγγράφου',
+      message: en ? 'The approved version will become active for use. Continue?' : 'Η εγκεκριμένη έκδοση θα γίνει ενεργή για χρήση. Θέλετε να συνεχίσετε;',
+      confirmLabel: en ? 'Publish' : 'Δημοσίευση',
+    })
+    if (ok) await run(() => publishDocumentAsync(organizationId, record, actor), en ? 'Document published.' : 'Το έγγραφο δημοσιεύτηκε.')
+  }
+
+  const archive = async () => {
+    if (record.status !== 'published' || !canArchive) return
+    const ok = await confirm({
+      title: en ? 'Archive document' : 'Αρχειοθέτηση εγγράφου',
+      message: en ? 'The document will no longer be active for current use. History will be preserved.' : 'Το έγγραφο θα πάψει να θεωρείται ενεργό για τρέχουσα χρήση. Το ιστορικό θα διατηρηθεί.',
+      confirmLabel: en ? 'Archive' : 'Αρχειοθέτηση',
+      danger: true,
+    })
+    if (ok) await run(() => archiveDocumentAsync(organizationId, record, actor), en ? 'Document archived.' : 'Το έγγραφο αρχειοθετήθηκε.')
+  }
+
+  const createRevision = async () => {
+    if (record.status !== 'published' || !canSupersede) return
+    const revisionReason = await confirm({
+      title: en ? 'Create new revision' : 'Νέα αναθεώρηση',
+      message: en ? 'A new draft version will be created. The published version stays active until the revision is published.' : 'Θα δημιουργηθεί νέα πρόχειρη έκδοση. Η δημοσιευμένη έκδοση παραμένει ενεργή μέχρι να δημοσιευτεί η αναθεώρηση.',
+      confirmLabel: en ? 'Create revision' : 'Δημιουργία αναθεώρησης',
+      input: {
+        label: en ? 'Revision reason' : 'Λόγος αναθεώρησης',
+        placeholder: en ? 'Summarize what changed and why.' : 'Συνοψίστε τι αλλάζει και γιατί.',
+        required: true,
+        maxLength: 500,
+      },
+    })
+    if (!revisionReason) return
+    const next = await run(
+      () => createDocumentRevisionAsync(organizationId, record, actor, rows, revisionReason),
+      en ? 'New draft revision created.' : 'Δημιουργήθηκε νέα πρόχειρη αναθεώρηση.',
+    )
+    if (next) navigate(`/documents/${next.id}`)
+  }
+
+  // «Αποδοχή» of a protocol update suggestion: the same revision flow, with the
+  // notes the suggestion dialog prepared as the revision reason.
+  // A draft already started for this suggestion (an earlier accept whose decision
+  // failed) is linked again rather than duplicated.
+  const startSuggestedRevision = async (notes: string, suggestion: ProtocolSuggestion) => {
+    if (record.status !== 'published' || !canSupersede) return null
+    const existing = existingSuggestedRevision(rows, record, suggestion)
+    if (existing) return existing
+    return run(() => createDocumentRevisionAsync(organizationId, record, actor, rows, notes))
+  }
+
+  const removeDraft = async () => {
+    if (record.status !== 'draft' || !canManage) return
+    const ok = await confirm({
+      title: en ? 'Delete draft' : 'Διαγραφή πρόχειρου',
+      message: en ? 'This draft document will be permanently deleted. Continue?' : 'Το πρόχειρο έγγραφο θα διαγραφεί οριστικά. Θέλετε να συνεχίσετε;',
+      confirmLabel: en ? 'Delete' : 'Διαγραφή',
+      danger: true,
+    })
+    if (!ok) return
+    setBusy(true)
+    try {
+      await deleteDocumentDraftAsync(organizationId, record)
+      notify(en ? 'Draft deleted.' : 'Το πρόχειρο διαγράφηκε.', 'success')
+      navigate('/documents', { replace: true })
+    } catch (operationError) {
+      notify((operationError as Error | null)?.message || (en ? 'Could not delete draft.' : 'Δεν ήταν δυνατή η διαγραφή του πρόχειρου.'), 'danger')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const attachments = async (next: AnyRecord[]) => {
+    if (!isDemo) return
+    await run(() => updateDocumentAsync(organizationId, record, { attachments: next }, actor), en ? 'Attachments updated.' : 'Τα συνημμένα ενημερώθηκαν.')
+  }
+
+  const cancelEdit = () => {
+    setDraft(toDraft(record))
+    setEditing(false)
+  }
+
+  // The document's record sheet on the shared document layout: details, controlled version, files and history.
+  const exportPdf = (pdf: boolean) => {
+    const department = record.department || departments.find((row) => row.id === record.departmentId)?.name || (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')
+    const ok = printReport({
+      language,
+      kind: typeLabels[record.type] || record.type,
+      code: `${record.id} · v${record.version || '—'}`,
+      title: record.title,
+      meta: [[en ? 'Code' : 'Κωδικός', record.id], [en ? 'Version' : 'Έκδοση', record.version], [en ? 'Type' : 'Τύπος', typeLabels[record.type] || record.type], [en ? 'Status' : 'Κατάσταση', statusLabels[record.status] || record.status], [en ? 'Department / scope' : 'Τμήμα / πεδίο εφαρμογής', department], [en ? 'Document owner' : 'Υπεύθυνος εγγράφου', ownerName], [en ? 'Effective date' : 'Ημερομηνία ισχύος', formatDay(record.effectiveDate, language)], [en ? 'Review date' : 'Ημερομηνία επανεξέτασης', formatDay(record.reviewDate, language)]],
+      sections: [
+        record.description && { title: en ? 'Description' : 'Περιγραφή', text: record.description },
+        { title: en ? 'Controlled version' : 'Ελεγχόμενη έκδοση', facts: [[en ? 'Version state' : 'Κατάσταση έκδοσης', versionState], [en ? 'Revision reason' : 'Λόγος αναθεώρησης', record.revisionReason], [en ? 'Approved' : 'Έγκριση', record.approvedAt ? `${formatDateTime(record.approvedAt, en)} · ${approvalEvent?.actor || '—'}` : ''], [en ? 'Published' : 'Δημοσίευση', record.publishedAt ? `${formatDateTime(record.publishedAt, en)} · ${publishEvent?.actor || '—'}` : '']] },
+        { title: en ? 'Files & attachments' : 'Αρχεία & συνημμένα', list: (record.attachments || []).map((file: AnyRecord) => file.name || file.fileName || file.id), note: (record.attachments || []).length ? '' : (en ? 'No attachments.' : 'Χωρίς συνημμένα.') },
+        { title: en ? 'Version & lifecycle history' : 'Ιστορικό εκδόσεων & κύκλου ζωής', table: { columns: [en ? 'Version' : 'Έκδοση', en ? 'Action' : 'Ενέργεια', en ? 'When' : 'Πότε', en ? 'By' : 'Από'], rows: family.flatMap((version) => (version.history || []).map((item: AnyRecord) => [`v${version.version || '—'} · ${statusLabels[version.status] || version.status}`, formatHistoryAction(item, en, statusLabels), formatDateTime(item.at, en), item.actor || '—'])) } },
+      ].filter(Boolean),
+      signatures: [en ? 'Prepared by' : 'Συντάχθηκε', en ? 'Reviewed by' : 'Ελέγχθηκε', en ? 'Approved by' : 'Εγκρίθηκε'],
+      filename: `${record.id}_${record.title}_v${record.version || '—'}`,
+    }, { pdf: pdf === true })
+    if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  }
+
+  const tabs = [
+    { id: 'overview', label: en ? 'Overview' : 'Σύνοψη', icon: BookOpenCheck },
+    { id: 'files', label: en ? 'Files' : 'Αρχεία', icon: Paperclip },
+    { id: 'distribution', label: en ? 'Distribution' : 'Κοινοποίηση', icon: Send },
+    { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: FileClock },
+  ]
+
+  const nextStep = record.status === 'draft' && canSubmitReview ? { label: en ? 'Submit for review' : 'Υποβολή για έλεγχο', run: submitReview, icon: <Send size={15} /> }
+    : record.status === 'review' && canApprove ? { label: en ? 'Approve' : 'Έγκριση', run: approve, icon: <CheckCircle2 size={15} /> }
+      : record.status === 'approved' && canPublish ? { label: en ? 'Publish' : 'Δημοσίευση', run: publish, icon: <Send size={15} /> }
+        : record.status === 'published' && canSupersede ? { label: en ? 'New revision' : 'Νέα αναθεώρηση', run: createRevision, icon: <Pencil size={15} /> }
+          : null
+  const headerActions = <>
+    {canManage && !editing && record.status === 'draft' && <>
+      <IconButton tone="edit" onClick={() => setEditing(true)} label={en ? 'Edit' : 'Επεξεργασία'}><Pencil size={16} /></IconButton>
+      <ActionButton tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={removeDraft} disabled={busy}><Trash2 size={16} /></ActionButton>
+    </>}
+    <ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} />
+    {/* The next step of the document's workflow, in the header; the way back and archiving in the «…». */}
+    {!editing && nextStep && <HeaderAction utility tone="primary"><ActionButton tone="primary" label={nextStep.label} onClick={nextStep.run} disabled={busy}>{nextStep.icon}{nextStep.label}</ActionButton></HeaderAction>}
+    {!editing && ['review', 'approved'].includes(record.status) && (canManage || canApprove) && <Button recordMenu variant="secondary" onClick={returnToDraft} disabled={busy}><RotateCcw size={15} />{en ? 'Return to draft' : 'Επιστροφή σε πρόχειρο'}</Button>}
+    {!editing && record.status === 'published' && canArchive && <ActionButton tone="danger" label={en ? 'Archive' : 'Αρχειοθέτηση'} onClick={archive} disabled={busy}><Archive size={16} /></ActionButton>}
+  </>
+
+  return <Page fill><EntityRecordShell
+    className="document-record-shell"
+    avatar={<BookOpenCheck size={19} />}
+    eyebrow={record.id}
+    title={record.title}
+    subtitle={`${typeLabels[record.type] || record.type} · ${en ? 'Version' : 'Έκδοση'} ${record.version || '—'}`}
+    status={<span className={`status-badge ${record.status === 'published' ? 'active' : record.status === 'draft' ? 'temporary' : ''}`}>{statusLabels[record.status] || record.status}</span>}
+    recordNavigation={recordNavigation as RecordNavigation}
+    onBack={location.state?.limoxisFrom ? undefined : () => navigate('/documents')}
+    headerActions={headerActions}
+    tabs={tabs}
+    activeTab={tab}
+    onTabChange={setTab}
+  >
+    {tab === 'overview' && <div className="document-record-workspace">
+      {!editing && <ProtocolReviewPanel record={record} suggestions={protocolSuggestions.data} organizationId={organizationId} actor={actor} canDecide={canManage || canSupersede} canRevise={record.status === 'published' && canSupersede} language={language} onStartRevision={startSuggestedRevision} onChanged={async (revision) => { await protocolSuggestions.reload(); if (revision) navigate(`/documents/${revision.id}`) }} />}
+      <section className="record-section">
+        <div className="record-section-header"><div>
+          <h3>{en ? 'Document details' : 'Στοιχεία εγγράφου'}</h3>
+        </div></div>
+        {editing ? <DocumentForm value={draft} onChange={setDraft} language={language} departments={departments} ownerName={ownerName} /> : <DocumentDetails value={record} language={language} departments={departments} ownerName={ownerName} />}
+        {!editing && (record.revisionReason || record.approvedAt || record.publishedAt) && <div className="document-version-history-events">
+          {record.revisionReason && <div className="timeline-line"><strong>{en ? 'Revision reason' : 'Λόγος αναθεώρησης'}</strong><span>{record.revisionReason}</span></div>}
+          {record.approvedAt && <div className="timeline-line"><strong>{en ? 'Approved' : 'Έγκριση'}</strong><span>{formatDateTime(record.approvedAt, en)} · {approvalEvent?.actor || '—'}</span></div>}
+          {record.publishedAt && <div className="timeline-line"><strong>{en ? 'Published' : 'Δημοσίευση'}</strong><span>{formatDateTime(record.publishedAt, en)} · {publishEvent?.actor || '—'}</span></div>}
+        </div>}
+        {editing && <div className="inline-edit-footer">
+          <Button variant="secondary" onClick={cancelEdit} disabled={busy}>{en ? 'Cancel' : 'Ακύρωση'}</Button>
+          <SaveButton loading={busy} disabled={!documentDraftIsValid(draft) || busy} onClick={saveEdit}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>
+        </div>}
+      </section>
+
+    </div>}
+
+    {tab === 'files' && <section className="record-section">
+      <div className="record-section-header"><div>
+        <span className="eyebrow">{en ? 'Documents' : 'Έγγραφα'}</span>
+        <h3>{en ? 'Files & attachments' : 'Αρχεία & συνημμένα'}</h3>
+        <p>{record.status === 'draft'
+          ? (en ? 'Draft attachments can be added, corrected or removed.' : 'Στο πρόχειρο μπορείτε να προσθέσετε, να διορθώσετε ή να αφαιρέσετε συνημμένα.')
+          : (en ? 'Attachments are locked for this lifecycle state. Return to draft or create a revision to change them.' : 'Τα συνημμένα είναι κλειδωμένα σε αυτή την κατάσταση. Επιστρέψτε σε πρόχειρο ή δημιουργήστε αναθεώρηση για αλλαγές.')}</p>
+      </div></div>
+      <AttachmentField disabled={!canManage || record.status !== 'draft'} value={record.attachments || []} onChange={attachments} organizationId={organizationId} entityType="controlled_document" entityId={record.dbId || record.id} />
+    </section>}
+
+    {tab === 'distribution' && <div><DocumentDistributionPanel record={record} organizationId={organizationId} isDemo={isDemo} departments={departments} canManage={canManage} canPublish={canPublish} en={en} /></div>}
+
+    {tab === 'history' && <section className="record-section">
+      <div className="record-section-header"><div>
+        <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
+        <h3>{en ? 'Version & lifecycle history' : 'Ιστορικό εκδόσεων & κύκλου ζωής'}</h3>
+        <p>{en ? 'Each revision keeps its own canonical audit trail.' : 'Κάθε έκδοση διατηρεί το δικό της ιστορικό ενεργειών από το κεντρικό αρχείο καταγραφής.'}</p>
+      </div></div>
+      {family.length === 0
+        ? <div className="inline-empty">{en ? 'No lifecycle audit events are available yet.' : 'Δεν υπάρχουν ακόμη καταγεγραμμένα audit events για τον κύκλο ζωής.'}</div>
+        : <div className="document-version-history">{family.map((version) => <details key={version.dbId || version.id} className="record-section" open={version.dbId === record.dbId}>
+          <summary><strong>{en ? 'Version' : 'Έκδοση'} {version.version || '—'}</strong> · {statusLabels[version.status] || version.status} · {version.id}</summary>
+          <div className="document-version-history-events">
+            {version.revisionReason && <div className="timeline-line"><strong>{en ? 'Revision reason' : 'Λόγος αναθεώρησης'}</strong><span>{version.revisionReason}</span></div>}
+            {(version.history || []).length === 0
+              ? <div className="inline-empty">{en ? 'No audit events for this revision.' : 'Δεν υπάρχουν audit events για αυτή την έκδοση.'}</div>
+              : (version.history || []).map((item: AnyRecord, index: number) => <div key={`${item.at}-${index}`} className="timeline-line"><strong>{formatHistoryAction(item, en, statusLabels)}</strong><span>{formatDateTime(item.at, en)} · {item.actor}</span></div>)}
+          </div>
+        </details>)}</div>}
+    </section>}
+  </EntityRecordShell></Page>
+}
