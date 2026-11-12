@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
 import { fitCount, minutesBySlot, proposeTimes, timeFitLines, typicalTime } from '../src/features/controls/controlTimeFit'
 import { zonedInstant } from '../src/features/controls/controlDueRules'
+import { readSource } from './helpers/readSource'
 
 const h = (hour, minute = 0) => hour * 60 + minute
 const at = (day, hour, minute = 0) => ({ at: zonedInstant(2026, 10, day, h(hour, minute)).toISOString() })
@@ -34,7 +34,7 @@ describe('control times against practice', () => {
     expect(timeFitLines([{ ...item([], []), item: { ...item([], []).item, frequency: { kind: 'weekly' } } }], null, range)).toEqual([])
   })
   it('is read by the database per slot, with the caller’s rights', () => {
-    const sql = readFileSync(new URL('../supabase/migrations/20261211110000_control_execution_times.sql', import.meta.url), 'utf8')
+    const sql = readSource(new URL('../supabase/migrations/20261211110000_control_execution_times.sql', import.meta.url))
     expect(sql).toContain('security invoker')
     expect(sql).toContain('not e.is_extra')
   })

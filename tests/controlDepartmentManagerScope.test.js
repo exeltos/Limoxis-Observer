@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const source=readFileSync(new URL('../src/features/controls/ControlsPage.jsx',import.meta.url),'utf8')
+const source=readSource(new URL('../src/features/controls/ControlsPage.jsx',import.meta.url))
 
 describe('department manager controls scope',()=>{
  it('allows department managers to create controls only for their own department',()=>{

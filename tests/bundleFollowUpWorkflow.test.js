@@ -1,10 +1,10 @@
 // The editors and services are exercised by behavior in preventionAntisepticWasteBehavior
 // and preventionVaccinationBundleBehavior; the layout (CSS) rules stay here.
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import { bundleFollowUpTone } from '../src/features/prevention/PreventionRecordPage'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 
 describe('bundle deviation follow-up workflow',()=>{
  const css=read('src/styles/workspaces.css')

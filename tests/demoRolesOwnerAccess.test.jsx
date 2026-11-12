@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { DemoClosedScreen, DemoEvaluationBar } from '../src/app/DemoEvaluationBar'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261012120000_demo_roles_owner_demo_access.sql')
 const tenantService = read('src/core/tenant/tenantService.js')
 const tenantContext = read('src/core/tenant/TenantContext.jsx')
@@ -56,7 +56,7 @@ describe('Demo access enforcement', () => {
     expect(migration).toContain("cron.schedule('limoxis-org-access', '7 * * * *', 'select private.apply_all_org_access()')")
   })
   it('closes a Demo when its last day ends in Athens, checked every minute', () => {
-    const expiry = fs.readFileSync('supabase/migrations/20261210110000_demo_expiry_athens_minute.sql', 'utf8')
+    const expiry = readSource('supabase/migrations/20261210110000_demo_expiry_athens_minute.sql')
     expect(expiry).toContain("(now() at time zone 'Europe/Athens')::date between e.valid_from and e.valid_until")
     expect(expiry).toContain("e.valid_until - (now() at time zone 'Europe/Athens')::date")
     expect(expiry).toContain("cron.schedule('limoxis-org-access', '* * * * *', 'select private.apply_all_org_access()')")

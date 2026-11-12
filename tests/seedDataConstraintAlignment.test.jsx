@@ -7,8 +7,9 @@ import { SURVEILLANCE_OUTCOMES, timelineLabel } from '../src/features/surveillan
 import { calculateDeviceDays, deviceRuleKey } from '../src/features/lira/liraHaiMetrics'
 import { buildOutbreakLineList } from '../src/features/lira/liraOutbreakInvestigation'
 import { sampleSourceLabel } from '../src/features/laboratory/laboratoryReferenceData'
+import { readSource } from './helpers/readSource'
 
-const migrations = fs.readdirSync('supabase/migrations').map(name => fs.readFileSync(`supabase/migrations/${name}`, 'utf8')).join('\n')
+const migrations = fs.readdirSync('supabase/migrations').map(name => readSource(`supabase/migrations/${name}`)).join('\n')
 const checkList = column => {
   const match = migrations.match(new RegExp(`${column} text not null(?: default '[a-z_]+')? check ?\\(${column} in \\(([^)]*)\\)`))
   return match[1].split(',').map(value => value.trim().replace(/'/g, ''))
@@ -79,7 +80,7 @@ describe('no raw ids on screen', () => {
     const list = buildOutbreakLineList({ laboratory: [{ id: 's1', patientId: uuid, patientCode: 'PT-0001', patient: 'Maria P.', collectedAt: '2026-08-01', department: 'ICU', organism: 'K. pneumoniae' }] })
     expect(list.rows[0].patientLabel).toBe('PT-0001')
     expect(list.rows[0].patientKey).toBe(uuid)
-    const panel = fs.readFileSync('src/features/management/LiraOutbreakInvestigationsPanel.jsx', 'utf8')
+    const panel = readSource('src/features/management/LiraOutbreakInvestigationsPanel.jsx')
     expect(panel).toContain("<td>{row.patientLabel||'—'}</td>")
     expect(panel).not.toContain("<td>{row.patientKey||'—'}</td>")
   })
@@ -88,6 +89,6 @@ describe('no raw ids on screen', () => {
     expect(sampleSourceLabel('nasalSwab, throatSwab', 'el')).toBe('Ρινικό επίχρισμα, Φαρυγγικό επίχρισμα')
     expect(sampleSourceLabel('urinaryCatheter', 'en')).toBe('Urinary catheter')
     expect(sampleSourceLabel('Free text', 'en')).toBe('Free text')
-    expect(fs.readFileSync('src/features/laboratory/LaboratorySampleSummary.jsx', 'utf8')).toContain('sampleSourceLabel(')
+    expect(readSource('src/features/laboratory/LaboratorySampleSummary.jsx')).toContain('sampleSourceLabel(')
   })
 })

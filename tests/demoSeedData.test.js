@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261010120000_demo_seed_data.sql')
 const moreAreas = read('supabase/migrations/20261011120000_demo_seed_more_areas.sql')
 const demoAccess = read('supabase/functions/create-demo-access/index.ts')

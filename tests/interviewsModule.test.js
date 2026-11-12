@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { CRITERIA, ageOn, candidateProblems, decisionProblems, employeeDraftFor, filterCandidates, interviewProblems, latestEvaluation, matchingEmployees, newCandidate, newInterview, nextInterview, overallRating, pipelineCounts, positionsOf, splitFullName, statusAfterDecision, statusAfterEvaluation, statusAfterSchedule, statusLabel, upcomingInterviews } from '../src/features/interviews/interviewsModel'
 import { interviewsDemoState } from '../src/features/interviews/interviewsDemoData'
@@ -6,6 +5,7 @@ import { evaluationDocument } from '../src/features/interviews/interviewsReports
 import { decide, fromRow, loadInterviews, markHired, saveCandidate, saveInterview, toRow } from '../src/features/interviews/interviewsService'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { CAPABILITIES, ROLES, can } from '../src/core/permissions/roles'
+import { readSource } from './helpers/readSource'
 
 describe('Interviews model', () => {
   it('counts the pipeline and filters the list by status, position and search', () => {
@@ -118,11 +118,11 @@ describe('Interviews access, database and help', () => {
   })
 
   it('keeps the personal data behind RLS by capability and imports FileMaker with links', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261128300000_hr_interviews.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261128300000_hr_interviews.sql')
     for (const table of ['hr_candidates', 'hr_candidate_languages', 'hr_candidate_employers', 'hr_interviews']) expect(sql).toContain(`'${table}'`)
     expect(sql).toContain("current_user_has_capability(organization_id, ''view_interviews'')")
     expect(sql).toContain("current_user_has_capability(organization_id, ''manage_interviews'')")
-    const importSql = fs.readFileSync('supabase/migrations/20261128300100_hr_interviews_filemaker_import.sql', 'utf8')
+    const importSql = readSource('supabase/migrations/20261128300100_hr_interviews_filemaker_import.sql')
     expect(importSql).toContain('fm_stage_links')
     expect(importSql).toContain("'HR Data ERGODOTES'")
     expect(importSql).toContain("'HR Language'")
@@ -130,9 +130,9 @@ describe('Interviews access, database and help', () => {
   })
 
   it('has a help section for /interviews in both languages', async () => {
-    const { helpManual } = await import('../src/core/help/helpManual.js')
-    const { helpManualEn } = await import('../src/core/help/helpManualEn.js')
-    const { helpExtras } = await import('../src/core/help/helpExtras.js')
+    const { helpManual } = await import('../src/core/help/helpManual')
+    const { helpManualEn } = await import('../src/core/help/helpManualEn')
+    const { helpExtras } = await import('../src/core/help/helpExtras')
     expect(helpManual['/interviews'].chapters.length).toBe(helpManualEn['/interviews'].chapters.length)
     expect(helpExtras['/interviews'].checks.el.length).toBeGreaterThan(0)
   })

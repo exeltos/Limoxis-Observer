@@ -3,13 +3,14 @@
 // the file matches the screen an inspector is looking at.
 import { downloadXlsx } from './xlsxExport'
 import { printReport } from './reportDocument'
+import { hospitalToday } from '../dates/hospitalDate'
 
 const day=(value,en)=>{
  if(!value)return ''
  const date=new Date(String(value).length===10?`${value}T12:00:00`:value)
  return Number.isNaN(date.getTime())?String(value):new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(date)
 }
-const stamp=()=>new Date().toISOString().slice(0,10)
+const stamp=()=>hospitalToday()
 
 // «Excel» of a list: a real .xlsx (column widths that fit the text, a header row, filters). `sheets` gives one sheet per group.
 export function exportRegistry({name,headers,rows,sheets}){

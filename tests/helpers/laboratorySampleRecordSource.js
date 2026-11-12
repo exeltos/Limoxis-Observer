@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readSource } from './readSource'
 
 // Resolved without the global URL, which is jsdom's in jsdom test files.
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -15,5 +15,5 @@ export const LABORATORY_SAMPLE_RECORD_FILES = [
   'src/features/laboratory/LaboratorySampleDialogs.jsx',
 ]
 export function readLaboratorySampleRecordSource() {
-  return LABORATORY_SAMPLE_RECORD_FILES.map(file => fs.readFileSync(path.join(root, file), 'utf8')).join('\n')
+  return LABORATORY_SAMPLE_RECORD_FILES.map(file => readSource(path.join(root, file))).join('\n')
 }

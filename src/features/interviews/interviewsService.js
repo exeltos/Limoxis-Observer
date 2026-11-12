@@ -10,6 +10,7 @@ import { isEmptyPreview } from '../../core/preview/emptyPreview'
 import { interviewsDemoState } from './interviewsDemoData'
 import { overallRating, statusAfterDecision, statusAfterEvaluation, statusAfterSchedule } from './interviewsModel'
 import { DIVISION_CANDIDATE_FIELDS } from './divisionsModel'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const LOCAL_KEY = 'interviews_local_state'
@@ -161,7 +162,7 @@ export async function decide(organizationId, candidate, { decision, decisionOn, 
 // «Πρόσληψη»: the candidate is linked to the employee (created or found) and marked hired.
 export async function markHired(organizationId, candidate, employee) {
   const employeeId = isLocal() ? employee.id : employee.dbId
-  const change = { status: 'hired', decision: 'hire', decisionOn: candidate.decisionOn || new Date().toISOString().slice(0, 10), employeeId }
+  const change = { status: 'hired', decision: 'hire', decisionOn: candidate.decisionOn || hospitalToday(), employeeId }
   if (isLocal()) { updateLocalCandidate(candidate.id, () => ({ ...change, employeeCode: employee.id })); return }
   must(await supabase.from('hr_candidates').update(toRow('hr_candidates', change)).eq('id', candidate.id).eq('organization_id', organizationId))
 }

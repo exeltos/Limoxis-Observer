@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 
 describe('indicator calculation integrity and governance links',()=>{
  const migration=read('supabase/migrations/202609130011_indicator_metric_integrity_committee_links.sql')

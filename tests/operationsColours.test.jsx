@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 // Operations (Controls, Kitchen): only a safety signal is a coloured chip.
-import { readFileSync, readdirSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { SignalBadge } from '../src/design-system/StatusBadge'
 import { LimitBadge } from '../src/features/kitchen/KitchenShared'
+import { readSource } from './helpers/readSource'
 
 afterEach(cleanup)
 
@@ -32,13 +33,13 @@ describe('Operations colours (finding Ο4)', () => {
     // coloured label for every state, so «On schedule» reads as plainly as «Overdue».
     for (const dir of ['src/features/controls', 'src/features/kitchen']) {
       for (const file of readdirSync(dir).filter(name => name.endsWith('.jsx'))) {
-        expect(readFileSync(`${dir}/${file}`, 'utf8').replaceAll('<StatusBadge className="control-state-badge"', ''), `${dir}/${file}`).not.toMatch(/<StatusBadge\b/)
+        expect(readSource(`${dir}/${file}`).replaceAll('<StatusBadge className="control-state-badge"', ''), `${dir}/${file}`).not.toMatch(/<StatusBadge\b/)
       }
     }
   })
 
   it('the controls list marks criticality and expiring as text, only expired as a chip', () => {
-    const css = readFileSync('src/features/controls/controlEvidence.css', 'utf8')
+    const css = readSource('src/features/controls/controlEvidence.css')
     expect(css).not.toMatch(/control-criticality-badge\.(high|medium)/)
     expect(css).toMatch(/control-criticality-badge\.signal/)
   })

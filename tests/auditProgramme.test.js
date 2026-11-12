@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
-import { QUESTIONNAIRE_SEEDS, SYSTEM_TEMPLATES } from '../src/features/quality/audits/seed/index.js'
+import { QUESTIONNAIRE_SEEDS, SYSTEM_TEMPLATES } from '../src/features/quality/audits/seed/index'
 import { adHocRow, auditDashboard, auditReviewSummary, auditScore, awaitingFinding, capaDraftFromFinding, classesFor, clauseCoverage, competenceWarnings, findingDraftFromAnswer, fmQuestionClause, fmQuestionText, fmResult, inScope, independenceBlocks, independenceIssues, nextAuditDate, questionsForAudit, unclassified } from '../src/features/quality/audits/auditModel'
 import { departmentArea } from '../src/features/quality/audits/auditStandards'
 import { auditAnswersExport, auditDetailedBatchDocument, auditReportDocument } from '../src/features/quality/audits/auditReport'
@@ -8,10 +7,11 @@ import { checklistFromRows, checklistRows, teamRows } from '../src/features/qual
 import { programmeAudits, programmeFindings } from '../src/features/quality/audits/auditDemoData'
 import { auditCompliance, pendingFindings } from '../src/features/quality/qualityAudit'
 import { sectionFacts } from '../src/features/quality/review/reviewTemplate'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20261124100000_quality_audit_programme.sql', 'utf8')
-const wardMigration = fs.readFileSync('supabase/migrations/20261214110000_quality_audit_ward_checklist_seed.sql', 'utf8') + fs.readFileSync('supabase/migrations/20261230100000_quality_audit_core_questionnaire_seed.sql', 'utf8')
-const demoMigration = fs.readFileSync('supabase/migrations/20261124100100_quality_audit_programme_demo.sql', 'utf8')
+const migration = readSource('supabase/migrations/20261124100000_quality_audit_programme.sql')
+const wardMigration = readSource('supabase/migrations/20261214110000_quality_audit_ward_checklist_seed.sql') + readSource('supabase/migrations/20261230100000_quality_audit_core_questionnaire_seed.sql')
+const demoMigration = readSource('supabase/migrations/20261124100100_quality_audit_programme_demo.sql')
 const template = key => SYSTEM_TEMPLATES.find(item => item.key === key)
 const row = (answer, extra = {}) => ({ id: `r-${Math.random()}`, item: 'Q', chapterRef: '7', clauseRef: '7.1', weight: 1, answer, ...extra })
 

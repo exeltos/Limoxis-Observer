@@ -21,6 +21,7 @@ import { dietLabel, fmtQty, mealLabel, options, stockRows, unitLabel, writeoffRe
 import { BALANCE_TOLERANCE, RECALL_RESULTS, RECALL_SCENARIOS, drillFindings, drillSubject, elapsedMinutes, fmtDuration, recallProblems, recallResultLabel, recallResultTone, recallScenarioLabel, recallSummary, recallTrace, suggestedResult, withinTarget } from './kitchenRecallModel'
 import { kitchenErrorMessage, loadKitchenDishNames, removeEntry, saveRecallDrill, saveWriteoff } from './kitchenService'
 import { recallDrillDocument } from './kitchenReports'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const fmtDay = value => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -120,7 +121,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
   async function realRecall(batch) {
     if (!await confirm({ title: en ? 'Real recall: withdraw stock' : 'Πραγματική ανάκληση: απόσυρση αποθέματος', message: en ? `This is NOT part of the drill: ${fmtQty(batch.remaining, language)} ${unitLabel(batch.unit, language)} of ${batch.productName} (${batch.batchCode || batch.receiptCode}) leave the stock with reason «Recall».` : `Αυτό ΔΕΝ είναι μέρος της άσκησης: ${fmtQty(batch.remaining, language)} ${unitLabel(batch.unit, language)} από «${batch.productName}» (${batch.batchCode || batch.receiptCode}) φεύγουν από το απόθεμα με αιτία «Ανάκληση».`, confirmLabel: en ? 'Withdraw' : 'Απόσυρση', danger: true })) return
     try {
-      await saveWriteoff(organizationId, { receiptItemId: batch.receiptItemId, writtenOffOn: new Date().toISOString().slice(0, 10), quantity: String(batch.remaining), reason: 'recall', notes: `${en ? 'Recall' : 'Ανάκληση'}${draft.code ? ` · ${draft.code}` : ''}${draft.triggerText ? ` · ${draft.triggerText}` : ''}`, recordedByName: actor.name })
+      await saveWriteoff(organizationId, { receiptItemId: batch.receiptItemId, writtenOffOn: hospitalToday(), quantity: String(batch.remaining), reason: 'recall', notes: `${en ? 'Recall' : 'Ανάκληση'}${draft.code ? ` · ${draft.code}` : ''}${draft.triggerText ? ` · ${draft.triggerText}` : ''}`, recordedByName: actor.name })
       notify(en ? 'Withdrawn from stock.' : 'Αποσύρθηκε από το απόθεμα.', 'success'); await onSaved?.()
     } catch (error) { console.error(error); notify(kitchenErrorMessage(error, language), 'error') }
   }

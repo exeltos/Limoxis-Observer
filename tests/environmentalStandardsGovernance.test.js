@@ -2,10 +2,10 @@
 // (ManagementPage global), which requires VIEW_PLATFORM (Platform Owner only).
 // Inside a hospital the Platform Owner has the Hospital Administrator's view.
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const migration=fs.readFileSync('supabase/migrations/20260902114129_environmental_standards_governance_hardening.sql','utf8')
-const panel=fs.readFileSync('src/features/management/EnvironmentalStandardsPanel.jsx','utf8')
+const migration=readSource('supabase/migrations/20260902114129_environmental_standards_governance_hardening.sql')
+const panel=readSource('src/features/management/EnvironmentalStandardsPanel.jsx')
 
 describe('environmental standards governance',()=>{
  it('removes anonymous access and separates hospital from system mutation',()=>{

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
 import { resolveSelfEmployee } from '../src/features/employees/employeeIdentity'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20260919260000_employee_self_profile_read_access.sql', 'utf8')
+const migration = readSource('supabase/migrations/20260919260000_employee_self_profile_read_access.sql')
 
 describe('Employee "My Profile" self read access', () => {
   it('grants employees SELECT to the row\'s own linked account, in addition to the existing role/department grants', () => {

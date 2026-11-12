@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { calculateClinicalScale } from '../src/features/clinical-scales/clinicalScaleEngine'
 import { clinicalScaleFields, clinicalScaleReady, scoreBand } from '../src/features/clinical-scales/clinicalScaleForms'
 import { demoClinicalScaleDefinitions } from '../src/features/clinical-scales/clinicalScaleDemoDefinitions'
@@ -10,8 +9,9 @@ import { reviewWindow, showsReviewCard } from '../src/features/surveillance/prot
 import { protocolCues, protocolStages } from '../src/features/surveillance/protocols/useEpisodeProtocols'
 import { stringsEl } from '../src/core/i18n/stringsEl'
 import { stringsEn } from '../src/core/i18n/stringsEn'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261203300000_clinical_protocols_and_therapy_reviews.sql')
 const qsofaMigration = read('supabase/migrations/20261203300100_qsofa_scale_definition.sql')
 const at = (zero, minutes) => new Date(new Date(zero).getTime() + minutes * 60000).toISOString()

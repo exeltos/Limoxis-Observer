@@ -1,7 +1,7 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { monthlyMean, objectiveLevel, objectiveSource } from '../src/features/quality/review/objectiveSources'
 import { TARGETS, executiveKpis, indicatorRates, targetsFromObjectives } from '../src/features/executive/executiveModel'
+import { readSource } from './helpers/readSource'
 
 describe('objectives on three levels, measured three ways', () => {
   it('reads the level from the objective, else from its department, register or committee', () => {
@@ -37,7 +37,7 @@ describe('objectives on three levels, measured three ways', () => {
     expect(kpis.find(item => item.id === 'bundles').value).toBe(90.2)
   })
   it('keeps the monthly values in their own table, closed with the Quality module', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261231220000_quality_objective_levels_values.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261231220000_quality_objective_levels_values.sql')
     expect(sql).toContain('create table if not exists public.quality_objective_values')
     expect(sql).toContain('quality_objective_values_module_gate')
     expect(sql).toContain("check (level is null or level in ('hospital','department','committee'))")

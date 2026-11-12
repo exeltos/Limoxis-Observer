@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { deadlineText } from '../src/features/controls/controlProgress'
 import { filterControlRows } from '../src/features/controls/controlFilters'
 import { dashboardTasks } from '../src/features/dashboard/dashboardTasks'
+import { readSource } from './helpers/readSource'
 
 const now = new Date('2026-10-27T08:00:00Z') // 10:00 in Athens
 
@@ -27,8 +27,8 @@ describe('a department records its controls of the day', () => {
   })
 
   it('records from the list and returns there after saving', () => {
-    const page = fs.readFileSync('src/features/controls/ControlsPage.jsx', 'utf8')
-    const record = fs.readFileSync('src/features/controls/ControlRecordPage.jsx', 'utf8')
+    const page = readSource('src/features/controls/ControlsPage.jsx')
+    const record = readSource('src/features/controls/ControlRecordPage.jsx')
     expect(page).toContain("{state:{returnTo:'/controls'}}")
     expect(record).toContain('navigate(returnTo||recordUrl,{replace:true})')
   })

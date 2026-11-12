@@ -1,7 +1,7 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 
 describe('committee member access synchronization',()=>{
   const sql=read('supabase/migrations/20260901204620_v0312_committee_member_addon_sync.sql')

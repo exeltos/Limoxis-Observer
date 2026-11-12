@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 // User-reported: reviewing LIRA alongside Quality/Employees/Prevention
 // before merge surfaced several outbreak-investigation strings that were
@@ -10,8 +10,8 @@ import fs from 'node:fs'
 // to the user as raw internal values (e.g. "medium", "suspected") instead
 // of a translated label.
 describe('the LIRA outbreak investigation panel and its printable report translate every label, not just some', () => {
-  const panel = fs.readFileSync('src/features/management/LiraOutbreakInvestigationsPanel.jsx', 'utf8')
-  const report = fs.readFileSync('src/features/lira/LiraOutbreakReport.jsx', 'utf8')
+  const panel = readSource('src/features/management/LiraOutbreakInvestigationsPanel.jsx')
+  const report = readSource('src/features/lira/LiraOutbreakReport.jsx')
 
   it('no longer has a bare, untranslated "Case definition" label', () => {
     expect(panel).not.toContain('<span>Case definition</span>')

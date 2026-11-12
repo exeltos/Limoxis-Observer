@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { readAnalysisPageSource } from './helpers/analysisPageSource'
+import { readSource } from './helpers/readSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
 const page = readAnalysisPageSource()
-const service = fs.readFileSync('src/features/platform/platformService.js', 'utf8')
-const demoSnapshot = fs.readFileSync('src/features/analysis/analysisDemoSnapshot.js', 'utf8')
-const filterCss = fs.readFileSync('src/styles/features.css', 'utf8')
-const tabsCss = fs.readFileSync('src/styles/responsive.css', 'utf8')
+const service = readSource('src/features/platform/platformService.js')
+const demoSnapshot = readSource('src/features/analysis/analysisDemoSnapshot.js')
+const filterCss = readSource('src/styles/features.css')
+const tabsCss = readSource('src/styles/responsive.css')
 
 // `sample_type` is intentionally retained as a broad technical category for
 // indicator compatibility and clinical/environment/staff filtering. The user-

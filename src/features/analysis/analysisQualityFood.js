@@ -8,6 +8,7 @@ import { evaluationPercent, evaluationApproval, EXPIRY_SOON_DAYS } from '../qual
 import { satisfactionCounts } from '../quality/surveys/surveyModel'
 import { normalizeOpportunity, scored } from '../quality/risk/riskModel'
 import { FINDING_CLASSES, standardShort } from '../quality/audits/auditStandards'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const day = value => String(value || '').slice(0, 10)
 const month = value => String(value || '').slice(0, 7)
@@ -33,7 +34,7 @@ export function assessmentInForce(assessments = [], to = '') {
 // thermal, defrosting, writeoffs } (with limitStatus), surveys, responses,
 // assessments } in the app's shape. today: the day the state counts from
 // (certificates, past production days).
-export function buildQualityFoodMetrics(sources = {}, range = {}, today = new Date().toISOString().slice(0, 10)) {
+export function buildQualityFoodMetrics(sources = {}, range = {}, today = hospitalToday()) {
   const { audits = [], findings = [], suppliers = [], kitchen = {}, surveys = [], responses = [], assessments = [] } = sources
 
   // Audits completed in the period and their answers per standard.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
 import { rosterPeriod } from '../src/features/rosters/rosterService'
+import { readSource } from './helpers/readSource'
 
 // The department's shift roster (owner, 8/11/2026): the IASO payroll period and who may write it.
 describe('roster period and access', () => {
@@ -11,7 +11,7 @@ describe('roster period and access', () => {
     expect(rosterPeriod(new Date(2026, 0, 5), -1)).toEqual({ start: '2025-11-21', end: '2025-12-20' })
   })
   it('is written by the department manager of the department, the administrator or the HR office; read by the department', () => {
-    const sql = readFileSync('supabase/migrations/20261231260100_department_rosters.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261231260100_department_rosters.sql')
     expect(sql).toContain("current_user_has_org_role(organization_id, array['department_manager']::public.app_role[])\n        and public.current_user_has_department_scope(organization_id, department_id)")
     expect(sql).toContain('public.current_user_has_department_scope(organization_id, department_id)\n  );')
     expect(sql).toContain('revoke all on public.department_rosters from anon')
@@ -30,9 +30,9 @@ describe('roster members (owner, 8/11/2026)', () => {
 
 describe('employee record: status and free job position (owner, 8/11/2026)', () => {
   it('names the «leave» status and lets status, category and position be edited', () => {
-    expect(readFileSync('src/core/i18n/stringsEl.js', 'utf8')).toContain("leave:'Σε άδεια'")
-    expect(readFileSync('src/core/i18n/stringsEn.js', 'utf8')).toContain("leave:'On leave'")
-    const page = readFileSync('src/features/employees/EmployeeRecordPage.jsx', 'utf8')
+    expect(readSource('src/core/i18n/stringsEl.js')).toContain("leave:'Σε άδεια'")
+    expect(readSource('src/core/i18n/stringsEn.js')).toContain("leave:'On leave'")
+    const page = readSource('src/features/employees/EmployeeRecordPage.jsx')
     expect(page).toContain("options={['active', 'leave', 'inactive'].map(value => ({ value, label: t(value) }))}")
     expect(page).not.toContain('<input value={t(employee.employmentStatus)} disabled readOnly />')
     expect(page.match(/allowCustom\n/g)?.length).toBe(2)
@@ -57,7 +57,7 @@ describe('the head of the department (owner, 8/11/2026)', () => {
 
 describe('shift codes (owner, 8/11/2026)', () => {
   it('shows the ΙΑΣΩ payroll numbers in ΙΑΣΩ and letters elsewhere, chosen per department', () => {
-    const page = readFileSync('src/features/rosters/RostersPage.jsx', 'utf8')
+    const page = readSource('src/features/rosters/RostersPage.jsx')
     expect(page).toContain("roster?.rules?.codes || (/ΙΑΣΩ|IASO/i.test(tenant?.name || '') ? 'iaso' : 'letters')")
     for (const code of ["'4'", "'12'", "'19'", "'20'", "'Α'", "'Γ'", "'Κ'", "'B'"]) expect(page).toContain(code)
   })

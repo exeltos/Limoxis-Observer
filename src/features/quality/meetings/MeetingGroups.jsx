@@ -26,6 +26,7 @@ import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, newMeet
 import { loadQualityRecords } from '../qualityService'
 import '../quality.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 const HeaderAction = ({ children }) => children
 const yesNo = (value, en) => (value ? (en ? 'Yes' : 'Ναι') : '—')
@@ -55,7 +56,7 @@ export function MeetingGroupDialog({ initial, departments, saving, onClose, onSa
 // The groups: one row per department, with how often it meets and when the next meeting is due.
 export function MeetingGroupsList({ data, onOpen, language }) {
   const en = language === 'en'
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   const rows = useMemo(() => data.groups.map(group => ({ group, status: groupStatus(group, data.meetings.meetings, today) })), [data.groups, data.meetings.meetings, today])
   return <>
     <RegistryTable className="quality-table" rows={rows} rowKey={row => row.group.id} error={data.error} onRetry={data.reload}
@@ -91,7 +92,7 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
   const [capas, setCapas] = useState([])
   useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter(row => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
   const group = data.groups.find(item => item.id === groupId) || null
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   if (data.loading && !group) return <Page fill><TableSkeleton/></Page>
   if (!group) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Meeting group not found' : 'Η ομάδα συναντήσεων δεν βρέθηκε'}</strong></div></Page>
   const status = groupStatus(group, data.meetings.meetings, today)

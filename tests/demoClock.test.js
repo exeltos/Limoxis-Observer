@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEMO_AUTHORED_ON, demoOffsetDays, shiftDemoDate, shiftDemoDatesInPlace, shiftDemoMonth } from '../src/core/data/demoClock.js'
+import { DEMO_AUTHORED_ON, demoOffsetDays, shiftDemoDate, shiftDemoDatesInPlace, shiftDemoMonth } from '../src/core/data/demoClock'
 
 describe('Demo dates follow today', () => {
   it('shifts dates and timestamps, keeping their form', () => {
@@ -34,7 +34,7 @@ describe('Demo dates follow today', () => {
 
 describe('Demo meetings', () => {
   it('move by whole months with the month in their title', async () => {
-    const { shiftDemoMonthsInPlace } = await import('../src/core/data/demoClock.js')
+    const { shiftDemoMonthsInPlace } = await import('../src/core/data/demoClock')
     const meetings = [[{ date: '2026-08-18', title: 'Τακτική συνεδρίαση Αυγούστου', finalizedAt: '2026-08-19T09:20:00Z', notes: 'Αυγούστου' }, { date: '2026-12-08', title: 'December review' }]]
     shiftDemoMonthsInPlace(meetings, 1)
     expect(meetings[0][0]).toEqual({ date: '2026-09-18', title: 'Τακτική συνεδρίαση Σεπτεμβρίου', finalizedAt: '2026-09-19T09:20:00Z', notes: 'Αυγούστου' })

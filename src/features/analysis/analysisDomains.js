@@ -21,6 +21,7 @@ import { withStatuses } from '../kitchen/kitchenModel'
 import { loadResourcesLocal } from '../quality/resources/resourceService'
 import { loadSurveysLocal } from '../quality/surveys/surveyService'
 import { loadRiskAssessmentsLocal } from '../quality/risk/riskService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const day = value => String(value || '').slice(0, 10)
 const month = value => String(value || '').slice(0, 7)
@@ -50,7 +51,7 @@ export function overdueFollowUps(visits, today) {
 }
 
 export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   const cases = Object.values(clinicalCases).filter(item => item.lifecycleStatus !== 'voided' && item.status !== 'cancelled' && inRange(item.startedAt, range))
   const dept = item => (en ? item.departmentEn : item.department) || item.department || '—'
   const hai = cases.filter(item => item.haiClassification)
@@ -188,7 +189,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
 }
 
 // The demo stores of audits, suppliers, kitchen, surveys and risks, as this browser keeps them.
-export function collectDemoQualityFood(range = {}, today = new Date().toISOString().slice(0, 10)) {
+export function collectDemoQualityFood(range = {}, today = hospitalToday()) {
   const surveyState = loadSurveysLocal()
   return buildQualityFoodMetrics({
     audits: loadQualityLocal('audits'),

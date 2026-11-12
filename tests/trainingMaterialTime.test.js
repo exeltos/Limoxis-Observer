@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { createActiveTimer, formatActiveTime, IDLE_AFTER_SECONDS } from '../src/features/training/trainingMaterialTime'
+import { readSource } from './helpers/readSource'
 
 describe('training material reading time', () => {
   it('counts a second only while the page is visible and in use', () => {
@@ -35,7 +35,7 @@ describe('training material reading time', () => {
   })
 
   it('records the time through a token function that limits what a call can add', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261231180000_training_material_time.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261231180000_training_material_time.sql')
     expect(sql).toContain('least(coalesce(p_seconds, 0), 30)')
     expect(sql).toContain('v_row.last_seen_at')
     expect(sql).toContain('a.access_token = p_token')
@@ -43,9 +43,9 @@ describe('training material reading time', () => {
   })
 
   it('serves the file only through the public token function, listed with verify_jwt = false', () => {
-    const config = fs.readFileSync('supabase/config.toml', 'utf8')
+    const config = readSource('supabase/config.toml')
     expect(config).toMatch(/\[functions\.training-material-url\]\s+verify_jwt = false/)
-    const code = fs.readFileSync('supabase/functions/training-material-url/index.ts', 'utf8')
+    const code = readSource('supabase/functions/training-material-url/index.ts')
     expect(code).toContain("rpc('training_access_files'")
     expect(code).toContain('createSignedUrl(attachment.storage_path, 300)')
   })

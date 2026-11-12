@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
 import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20260921130000_occupational_exposure_incidents.sql', 'utf8')
-const page = fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx', 'utf8')
-const editor = fs.readFileSync('src/features/occupational-health/ExposureIncidentEditor.jsx', 'utf8')
-const service = fs.readFileSync('src/features/occupational-health/exposureIncidentService.js', 'utf8')
+const migration = readSource('supabase/migrations/20260921130000_occupational_exposure_incidents.sql')
+const page = readSource('src/features/occupational-health/OccupationalHealthPage.jsx')
+const editor = readSource('src/features/occupational-health/ExposureIncidentEditor.jsx')
+const service = readSource('src/features/occupational-health/exposureIncidentService.js')
 const employeeTabs = readEmployeeRecordTabsSource()
 
 describe('occupational exposure / needlestick-injury tracking module', () => {

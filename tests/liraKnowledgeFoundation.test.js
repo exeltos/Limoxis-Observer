@@ -1,7 +1,7 @@
-import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const migration=fs.readFileSync('supabase/migrations/20260922190000_lira_knowledge_foundation.sql','utf8')
+const migration=readSource('supabase/migrations/20260922190000_lira_knowledge_foundation.sql')
 
 describe('LIRA governed knowledge foundation',()=>{
  it('enables pgvector and creates governed source/chunk tables',()=>{

@@ -41,6 +41,7 @@ import './resources.css'
 import { LinkedActions } from '../LinkedActions'
 import { printReport } from '../../../core/export/reportDocument'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // The record shell keeps only the export control and the edit / delete actions of the
 // header (these go to «…»); a primary domain action marked `utility` stays visible
@@ -372,7 +373,7 @@ function ItemDialog({ editing, setEditing, language, saving, templates, category
       <FormGrid columns={3}>
         <ManualDateField label={en ? 'Date *' : 'Ημερομηνία *'} value={item.date} onChange={value => set({ date: value })} />
         <ChoiceField label={en ? 'Severity' : 'Σοβαρότητα'} value={item.severity} options={NONCONFORMITY_SEVERITIES.map(entry => ({ value: entry.value, label: entry.label[en ? 1 : 0] }))} onChange={value => set({ severity: value })} />
-        <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={item.status} options={[{ value: 'open', label: en ? 'Open' : 'Ανοιχτή' }, { value: 'closed', label: en ? 'Closed' : 'Έκλεισε' }]} onChange={value => set({ status: value, closedOn: value === 'closed' ? item.closedOn || new Date().toISOString().slice(0, 10) : '' })} />
+        <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={item.status} options={[{ value: 'open', label: en ? 'Open' : 'Ανοιχτή' }, { value: 'closed', label: en ? 'Closed' : 'Έκλεισε' }]} onChange={value => set({ status: value, closedOn: value === 'closed' ? item.closedOn || hospitalToday() : '' })} />
       </FormGrid>
       <Field label={en ? 'What happened *' : 'Τι συνέβη *'}><textarea rows={3} value={item.description} onChange={e => set({ description: e.target.value })} /></Field>
       <FormGrid columns={3}>

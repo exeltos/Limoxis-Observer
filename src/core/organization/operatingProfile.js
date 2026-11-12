@@ -32,7 +32,7 @@ export const ADDON_LABELS = Object.freeze({
 export const MODULES = Object.freeze({
   patients: { el: 'Ασθενείς', en: 'Patients', from: 'basic', analysis: false },
   laboratory: { el: 'Εργαστήριο & μικροβιολογία/AMR', en: 'Laboratory & microbiology/AMR', from: 'surveillance', analysis: true },
-  national: { el: 'Αναφορές ΕΟΔΥ & EARS-Net', en: 'ΕΟΔΥ & EARS-Net reports', from: 'surveillance', analysis: true },
+  national: { el: 'Αναφορές ΕΟΔΥ & EARS-Net', en: 'Δηλώσεις ΕΟΔΥ & EARS-Net', from: 'surveillance', analysis: true },
   surveillance: { el: 'Επιτήρηση λοιμώξεων (ΛΣΦΥ, απομόνωση, αγωγή, έκβαση)', en: 'Infection surveillance (HAI, isolation, therapy, outcome)', from: 'surveillance', analysis: true },
   indicators: { el: 'Δείκτες', en: 'Indicators', from: 'surveillance', analysis: false },
   prevention: { el: 'Πρόληψη & υγιεινή χεριών', en: 'Prevention & hand hygiene', from: 'full', analysis: true },

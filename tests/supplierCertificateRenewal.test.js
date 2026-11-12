@@ -1,13 +1,13 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { accessComplete, filterRenewals, isSuperseded, latestItemByCertificate, linkState, noResponseDays, pendingItems, recipientsFor, renewalCounts, renewalGroups, renewalPermissions, renewalQueue, requestFromRow, sendGroups, sendItems, senderOnlyHint, submissionProblems, submissionProblemText, submitErrorMessage } from '../src/features/quality/resources/supplierRenewalModel'
 import { demoRequests, demoSupplierAccess, isDemoAccessToken } from '../src/features/quality/resources/supplierRenewalService'
 import { demoResources } from '../src/features/quality/resources/resourceDemoData'
 import { ADD_ON_CAPABILITIES, CAPABILITIES, ROLES, can, isCustomRoleEligible } from '../src/core/permissions/roles'
+import { readSource } from './helpers/readSource'
 
 const TODAY = '2026-10-19'
 const NOW = new Date('2026-10-19T12:00:00Z')
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const supplier = (id, extra = {}) => ({ id, code: id.toUpperCase(), name: `Supplier ${id}`, status: 'active', email: '', contacts: [], certifications: [], ...extra })
 const cert = (id, expiresOn, extra = {}) => ({ id, type: 'CE', title: '', number: `N-${id}`, issuer: 'Body', expiresOn, ...extra })
 const item = (id, certificationId, status, extra = {}) => ({ id, certificationId, status, submittedAt: '', ...extra })

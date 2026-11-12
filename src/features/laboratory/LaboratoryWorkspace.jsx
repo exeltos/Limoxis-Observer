@@ -51,6 +51,7 @@ import { environmentalPlateText } from '../surveillance/environmentalSamplingShe
 import { LAB_RESULT_SCOPES, defaultLabScope, matchesLabScope, maskStaffSamples, reviewTag } from './sampleReviewModel'
 import { SampleReviewTag } from '../surveillance/SampleReviewWorklist'
 import './LaboratoryWorkspace.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // Samples still on their way to a result (the «Pending» chip).
 const LAB_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
@@ -120,7 +121,7 @@ export function LaboratoryWorkspace() {
     .filter(sample => result === 'all' || (result === 'critical' ? sample.critical : sample.result === result))
     .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)
     .filter(sample => matchesLabScope(sample, scope))
-    .filter(sample => quick === 'all' || (quick === 'today' ? String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === new Date().toISOString().slice(0, 10) : LAB_PENDING_STATUSES.includes(sample.status)))
+    .filter(sample => quick === 'all' || (quick === 'today' ? String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === hospitalToday() : LAB_PENDING_STATUSES.includes(sample.status)))
     .filter(sample => inPeriod(sample.collectedAt || sample.requestedAt, period)),
   [query, status, result, department, period, scope, quick, language, repositoryRows, canAccessRecord])
 
@@ -167,7 +168,7 @@ export function LaboratoryWorkspace() {
             departmentId: draft.departmentId || null,
             department: draft.department,
             departmentEn: draft.departmentEn,
-            admissionDate: new Date().toISOString().slice(0, 10),
+            admissionDate: hospitalToday(),
             status: 'active',
           }, { isDemo: false })
           patient = created.record

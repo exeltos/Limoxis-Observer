@@ -1,11 +1,11 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 // Creating an organization from an Edge Function (new Demo, new hospital) has no
 // signed-in user. The library seed run by the organizations insert trigger must
 // not reach the "Authentication required" branch of the management audit.
 describe('organization create: library seed is not blocked by the management audit', () => {
-  const sql = fs.readFileSync('supabase/migrations/20261008150000_audit_skip_system_library_seed_updates.sql', 'utf8')
+  const sql = readSource('supabase/migrations/20261008150000_audit_skip_system_library_seed_updates.sql')
   it('skips both the inserted and the re-linked (ON CONFLICT DO UPDATE) system rows of a nested seed', () => {
     expect(sql).toContain("tg_op in ('INSERT','UPDATE')")
     expect(sql).toContain("coalesce(v_new->'metadata'->>'system','false') = 'true'")
@@ -35,7 +35,7 @@ describe('organization country', () => {
     expect(countryOrDefault('')).toBe('Ελλάδα')
     expect(countryOrDefault('  ')).toBe('Ελλάδα')
     expect(countryOrDefault('Κύπρος')).toBe('Κύπρος')
-    const edge = fs.readFileSync('supabase/functions/create-demo-access/index.ts', 'utf8')
+    const edge = readSource('supabase/functions/create-demo-access/index.ts')
     expect(edge).toContain("const country=String(body.country||'').trim()||'Ελλάδα'")
   })
 })

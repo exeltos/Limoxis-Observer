@@ -23,6 +23,7 @@ import { documentsExport,exportRegistry,printRegistry } from '../../core/export/
 import { documentTypeSummary } from './licenceFields'
 import { ProtocolSuggestionFilter,ProtocolSuggestionMarker,useOpenSuggestionKeys } from './protocolReview/ProtocolSuggestionFilter'
 import { familyHasOpenSuggestion } from './protocolReview/protocolReviewModel'
+import { hospitalDate } from '../../core/dates/hospitalDate'
 
 const labels={el:{types:{policy:'Πολιτική',procedure:'Διαδικασία',instruction:'Οδηγία',form:'Έντυπο',protocol:'Πρωτόκολλο',licence:'Άδεια / Πιστοποιητικό',other:'Άλλο'},statuses:{draft:'Πρόχειρο',review:'Σε έλεγχο',approved:'Εγκεκριμένο',published:'Δημοσιευμένο',superseded:'Αντικαταστάθηκε',archived:'Αρχειοθετημένο'}},en:{types:{policy:'Policy',procedure:'Procedure',instruction:'Instruction',form:'Form',protocol:'Protocol',licence:'Licence / certificate',other:'Other'},statuses:{draft:'Draft',review:'In review',approved:'Approved',published:'Published',superseded:'Superseded',archived:'Archived'}}}
 
@@ -32,7 +33,7 @@ export function DocumentsPage(){
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[],permissionRole=isRolePreview?role:(actualRole||role);const canManage=can(permissionRole,CAPABILITIES.MANAGE_DOCUMENTS,addOns,custom)
  const families=useMemo(()=>groupDocumentFamilies(rows),[rows])
  const [suggested,setSuggested]=useState('all'),suggestionKeys=useOpenSuggestionKeys()
- const reviewCutoff=useMemo(()=>new Date(Date.now()+30*86400000).toISOString().slice(0,10),[])
+ const reviewCutoff=useMemo(()=>hospitalDate(new Date(Date.now()+30*86400000)),[])
  const isReviewDue=useMemo(()=>family=>{const x=family.activePublished;return Boolean(x?.reviewDate&&x.reviewDate<=reviewCutoff)},[reviewCutoff])
  const filtered=useMemo(()=>families.filter(family=>{const x=family.current,searchText=`${family.root?.id||''} ${family.versions.map(v=>v.id).join(' ')} ${x?.title||''} ${x?.owner||''} ${x?.department||''} ${x?.clinicalArea||''}`.toLowerCase();return (status==='all'||(status==='current'?!['archived','superseded'].includes(x?.status):x?.status===status))&&(type==='all'||x?.type===type)&&(!reviewDueOnly||isReviewDue(family))&&(suggested==='all'||familyHasOpenSuggestion(family,suggestionKeys))&&searchText.includes(query.toLowerCase())}),[families,query,status,type,reviewDueOnly,isReviewDue,suggested,suggestionKeys])
  const sortAccessors=useMemo(()=>({code:family=>family.root?.id||family.current?.id||'',title:family=>family.current?.title||'',type:family=>typeLabels[family.current?.type]||family.current?.type||'',owner:family=>family.current?.owner||'',department:family=>family.current?.department||'',review:family=>(family.activePublished||family.current)?.reviewDate||'',status:family=>statusLabels[family.current?.status]||family.current?.status||'',updatedAt:family=>family.current?.updatedAt||''}),[typeLabels,statusLabels])

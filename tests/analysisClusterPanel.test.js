@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import fs from 'node:fs'
 import { collectAnalysisDemoSnapshot } from '../src/features/analysis/analysisDemoSnapshot'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { readAnalysisPageSource } from './helpers/analysisPageSource'
+import { readSource } from './helpers/readSource'
 
 function storage() {
   const values = new Map()
@@ -36,7 +36,7 @@ describe('Analysis page cluster panel', () => {
   })
 
   it('plumbs clusters through the production analysis snapshot service', () => {
-    const service = fs.readFileSync(new URL('../src/features/platform/platformService.js', import.meta.url), 'utf8')
+    const service = readSource(new URL('../src/features/platform/platformService.js', import.meta.url))
     expect(service).toContain('loadActiveClustersAsync')
     expect(service).toContain('clusters')
   })

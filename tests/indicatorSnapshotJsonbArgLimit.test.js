@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
+import { readSource } from './helpers/readSource'
 
 // Every prior indicator addition redefines the whole function via
 // `create or replace function private.indicator_metric_snapshot(...)`
@@ -12,10 +13,10 @@ import path from 'node:path'
 const migrationsDir = 'supabase/migrations'
 const definingMigrations = fs.readdirSync(migrationsDir)
   .filter(name => name.endsWith('.sql'))
-  .filter(name => fs.readFileSync(path.join(migrationsDir, name), 'utf8').includes('function private.indicator_metric_snapshot'))
+  .filter(name => readSource(path.join(migrationsDir, name)).includes('function private.indicator_metric_snapshot'))
   .sort()
 const latestMigrationFile = definingMigrations.at(-1)
-const migrationFull = fs.readFileSync(path.join(migrationsDir, latestMigrationFile), 'utf8')
+const migrationFull = readSource(path.join(migrationsDir, latestMigrationFile))
 // Only the function's own statement: a migration that re-creates it may hold
 // other SQL too (20261115100000 moves training to its own tables). Strip
 // comment lines so sample calls mentioned in comments aren't picked up.

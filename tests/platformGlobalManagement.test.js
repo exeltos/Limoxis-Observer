@@ -1,13 +1,13 @@
 import { describe,it,expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const migration=fs.readFileSync('supabase/migrations/20260921120000_platform_owner_global_library_propagation.sql','utf8')
-const center=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
-const shell=fs.readFileSync('src/app/AppShell.jsx','utf8')
-const demoRegistry=fs.readFileSync('src/features/platform/PlatformDemosRegistry.jsx','utf8')
-const globalManagement=fs.readFileSync('src/features/platform/PlatformGlobalManagement.jsx','utf8')
-const managementPage=fs.readFileSync('src/features/management/ManagementPage.jsx','utf8')
-const librariesPanel=fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')
+const migration=readSource('supabase/migrations/20260921120000_platform_owner_global_library_propagation.sql')
+const center=readSource('src/features/workspaces/PlatformCenterPage.jsx')
+const shell=readSource('src/app/AppShell.jsx')
+const demoRegistry=readSource('src/features/platform/PlatformDemosRegistry.jsx')
+const globalManagement=readSource('src/features/platform/PlatformGlobalManagement.jsx')
+const managementPage=readSource('src/features/management/ManagementPage.jsx')
+const librariesPanel=readSource('src/features/management/LibrariesPanel.jsx')
 
 describe('Platform Owner global (all-hospitals) Central Management',()=>{
   it('lets a global master_library_items row exist and fan out to every organization', () => {

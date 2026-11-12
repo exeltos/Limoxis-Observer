@@ -1,11 +1,11 @@
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
+import { readSource } from './helpers/readSource'
 
 const tabs=readEmployeeRecordTabsSource()
-const dialog=fs.readFileSync('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx','utf8')
-const service=fs.readFileSync('src/features/laboratory/laboratoryRequestManagementService.js','utf8')
-const documents=fs.readFileSync('src/design-system/DocumentsWorkspace.jsx','utf8')
+const dialog=readSource('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx')
+const service=readSource('src/features/laboratory/laboratoryRequestManagementService.js')
+const documents=readSource('src/design-system/DocumentsWorkspace.jsx')
 
 describe('employee record workflow refinement',()=>{
 

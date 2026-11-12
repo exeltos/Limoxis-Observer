@@ -1,5 +1,6 @@
 import { useLanguage } from '../core/i18n/LanguageContext'
 import './DueDate.css'
+import { hospitalDate } from '../core/dates/hospitalDate'
 
 const DAY = 86400000
 const dayOf = value => { const text = String(value || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(text) ? Date.parse(`${text}T00:00:00Z`) : NaN }
@@ -8,7 +9,7 @@ const dayOf = value => { const text = String(value || '').slice(0, 10); return /
 export function daysOverdue(value, today = new Date()) {
   const due = dayOf(value)
   if (!Number.isFinite(due)) return 0
-  const now = Date.parse(`${today.toISOString().slice(0, 10)}T00:00:00Z`)
+  const now = Date.parse(`${hospitalDate(today)}T00:00:00Z`)
   return Math.max(0, Math.round((now - due) / DAY))
 }
 

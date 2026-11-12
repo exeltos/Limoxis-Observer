@@ -2,11 +2,11 @@
 // The printed record is a report: sections built from a description, plain words for
 // statuses and results, empty sections left out or saying «Δεν υπάρχουν καταγραφές»,
 // and no colour classes, tables or controls in the printed output.
-import fs from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
+import { readSource } from './helpers/readSource'
 
 const { LanguageProvider, translate } = await import('../src/core/i18n/LanguageContext')
 const { normalizeReport, parseSusceptibility, sirWord, eventLine } = await import('../src/design-system/recordReport')
@@ -19,7 +19,7 @@ const { clinicalCases } = await import('../src/features/surveillance/clinicalDem
 const { formatDay, formatDateTime } = await import('../src/core/i18n/formatDay')
 
 afterEach(() => { cleanup(); vi.useRealTimers() })
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const branding = { name: 'Γενικό Νοσοκομείο Δοκιμής', reportHeader: '', logo: '', demo: false, printedBy: 'Α. Νικολάου' }
 const printedAt = new Date('2026-10-20T12:21:00')
 const renderReport = (report, language = 'el') => render(<RecordReportPrint report={report} branding={branding} printedAt={printedAt} printedBy="Α. Νικολάου" language={language} fmtDateTime={value => formatDateTime(value, language)} />)

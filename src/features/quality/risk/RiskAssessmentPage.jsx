@@ -36,6 +36,7 @@ import { loadIndicatorValues } from './riskIndicators'
 import { AssessmentStatusBadge,L,fmtDate,rememberRow,statusLabel,txt,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 const EDITABLE=['draft','under_review']
 
@@ -204,7 +205,7 @@ export function RiskAssessmentPage(){
    {tab==='details'&&<RiskAssessmentDetails frame={detailsFrame} assessment={assessment} assessments={all} en={en} locale={locale} nextStep={nextStep} onOpenAssessment={code=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>
   {linking&&<LinkIndicatorsDialog risks={risks} values={indicatorValues||new Map()} en={en} saving={saving} onClose={()=>setLinking(false)} onSave={linkIndicators}/>}
-  {creatingNext&&<AssessmentDetailsDialog en={en} assessments={[{...assessment,risks}]} initial={{title:assessment.title,formCode:assessment.formCode,periodKind:assessment.periodKind,assessorLabel:assessment.assessorLabel,scopeNote:assessment.scopeNote,periodLabel:suggestPeriodLabel(assessment.periodKind,new Date().toISOString().slice(0,10),en)}} onClose={()=>setCreatingNext(false)} onSave={createNext}/>}
+  {creatingNext&&<AssessmentDetailsDialog en={en} assessments={[{...assessment,risks}]} initial={{title:assessment.title,formCode:assessment.formCode,periodKind:assessment.periodKind,assessorLabel:assessment.assessorLabel,scopeNote:assessment.scopeNote,periodLabel:suggestPeriodLabel(assessment.periodKind,hospitalToday(),en)}} onClose={()=>setCreatingNext(false)} onSave={createNext}/>}
   {detailsOpen&&<AssessmentDetailsDialog initial={assessment} en={en} onClose={()=>setDetailsOpen(false)} onSave={async draft=>{if(await persistAssessment(draft,'riskAssessmentUpdated'))setDetailsOpen(false)}}/>}
   {approving&&<ApproveDialog en={en} onClose={()=>setApproving(false)} onSave={async ({by,on})=>{if(await persistAssessment({status:'approved',approvedByLabel:by,approvedOn:on},'riskAssessmentApproved'))setApproving(false)}}/>}
   {confirm&&<ObserverDialog width="compact" title={L(en,'Διαγραφή εκτίμησης','Delete assessment')} onClose={()=>setConfirm(null)} footer={<DialogActions onCancel={()=>setConfirm(null)} onSave={async()=>{setConfirm(null);await removeAssessment()}} saveLabel={L(en,'Διαγραφή','Delete')}/>}>
@@ -215,7 +216,7 @@ export function RiskAssessmentPage(){
 
 function ApproveDialog({en,onClose,onSave}){
  const [by,setBy]=useState('')
- const [on,setOn]=useState(new Date().toISOString().slice(0,10))
+ const [on,setOn]=useState(hospitalToday())
  return <ObserverDialog width="compact" title={L(en,'Έγκριση εκτίμησης','Approve assessment')} subtitle={L(en,'Μετά την έγκριση η εκτίμηση κλειδώνει.','After approval the assessment is locked.')} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave({by,on})} disabled={!by.trim()||!on} saveLabel={L(en,'Έγκριση','Approve')}/>}>
   <div className="risk-editor-grid risk-editor-grid-single"><label className="risk-field"><span>{L(en,'Εγκρίθηκε από','Approved by')}</span><input value={by} onChange={e=>setBy(e.target.value)} placeholder={L(en,'π.χ. Επιτροπή Ποιότητας','e.g. Quality Committee')}/></label><ManualDateField label={L(en,'Ημερομηνία έγκρισης','Approval date')} value={on} onChange={setOn}/></div>
  </ObserverDialog>

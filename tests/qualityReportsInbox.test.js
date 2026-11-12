@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { staleReports, filterRegister, registerRows } from '../src/features/quality/qualityRegister'
+import { readSource } from './helpers/readSource'
 
 const report = (id, date, extra = {}) => ({ id, title: id, date, status: 'reported', reportKind: 'report', category: 'other', department: 'ΤΕΠ', ...extra })
 const classified = (id, date) => ({ id, title: id, date, status: 'reported', reportKind: 'clinical', category: 'fall' })
@@ -20,11 +20,11 @@ describe('reports inbox', () => {
   })
 
   it('keeps the filters closed in the usual «Filters» popover, and sends the reminder to the bell once a day', () => {
-    const view = fs.readFileSync('src/features/quality/QualityReportRegister.jsx', 'utf8')
+    const view = readSource('src/features/quality/QualityReportRegister.jsx')
     expect(view).toContain('<FilterSelect label={en?\'Period\':\'Περίοδος\'}')
     expect(view).toContain("const popover=inbox?inboxSelects:<>")
-    const bell = fs.readFileSync('src/core/notifications/NotificationContext.jsx', 'utf8')
-    expect(bell).toContain('`reports-waiting:${new Date(clock).toISOString().slice(0,10)}:${staleReportCount}`')
+    const bell = readSource('src/core/notifications/NotificationContext.jsx')
+    expect(bell).toContain('`reports-waiting:${hospitalDate(new Date(clock))}:${staleReportCount}`')
     expect(bell).toContain("const REPORT_REMINDER_ROLES=['hospital_admin','quality_manager']")
   })
 })

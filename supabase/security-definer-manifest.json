@@ -248,6 +248,11 @@
       "authenticated": true,
       "reason": "Stores the signed-in Demo member's own questionnaire (usefulness, ease and clarity 1-5, time taken, comment) for an evaluation-guide scenario or the whole guide; refuses anyone who is not an active member of that Demo."
     },
+    "demo_reset_my_organization": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Lets an active member of a Demo organization (with an active, unexpired Demo) clear that Demo's data and write the Demo data pack again; refuses any organization that is not a Demo or that the caller is not a member of."
+    },
     "demo_switch_my_role": {
       "category": "rpc",
       "authenticated": true,

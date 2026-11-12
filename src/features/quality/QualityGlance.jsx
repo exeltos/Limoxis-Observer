@@ -5,13 +5,14 @@ import { EFFECTIVENESS,FINDING_SOURCES,IMPACTS,INCIDENT_CLASSES,harmLevel,report
 import { auditCompliance } from './qualityAudit'
 import { analysisProgress } from './rootCauseAnalysis'
 import { subActionProgress } from './qualityDeviations'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // A record «at a glance»: the three or four figures that say where it stands,
 // above its details. What is late or harmful is coloured; progress is a bar.
 
 const isClosed=record=>['closed','completed','cancelled'].includes(record?.status)||record?.lifecycleStatus==='voided'
 const dayMs=86400000
-const today=()=>new Date().toISOString().slice(0,10)
+const today=()=>hospitalToday()
 // Whole days from today to a date (negative: in the past).
 export function daysUntil(date,now=today()){
   if(!date)return null

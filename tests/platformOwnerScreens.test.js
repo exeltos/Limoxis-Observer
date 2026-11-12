@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { globSync } from 'node:fs'
 import { activityDays, hospitalHealthOf } from '../src/features/platform/platformHealthService'
+import { readSource } from './helpers/readSource'
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 const files = [...globSync('src/features/platform/*.jsx'), 'src/features/workspaces/PlatformCenterPage.jsx']
 
 describe('platform owner screens', () => {

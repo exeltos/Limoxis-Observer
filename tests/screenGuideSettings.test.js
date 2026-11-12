@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import { hospitalScreenGuidesOn, screenGuideChoice, screenGuideValue, screenGuidesOn } from '../src/features/demo/screenGuideSettings'
+import { readSource } from './helpers/readSource'
 
 const demo = { id: 'D', is_demo: true }
 const hospital = { id: 'H', is_demo: false }
@@ -35,9 +36,9 @@ describe('screen guides per hospital and per user', () => {
 })
 
 describe('screen guides are wired end to end', () => {
-  const shell = fs.readFileSync('src/app/AppShell.jsx', 'utf8')
-  const tenantService = fs.readFileSync('src/core/tenant/tenantService.js', 'utf8')
-  const migration = fs.readFileSync('supabase/migrations/20261026120000_screen_guides_settings.sql', 'utf8')
+  const shell = readSource('src/app/AppShell.jsx')
+  const tenantService = readSource('src/core/tenant/tenantService.js')
+  const migration = readSource('supabase/migrations/20261026120000_screen_guides_settings.sql')
 
   it('the shell shows guides wherever the settings allow, not only in Demo organizations', () => {
     expect(shell).toContain('const guidesOn=!platformMode&&!helpPreviewMode&&screenGuidesOn({organization:tenant,membership})')
@@ -65,7 +66,7 @@ describe('system_audit_log is written with event_type', () => {
   it('no function, in its latest definition, writes an "action" column', () => {
     const latest = new Map()
     for (const file of fs.readdirSync('supabase/migrations').filter(f => f.endsWith('.sql')).sort()) {
-      const sql = fs.readFileSync(`supabase/migrations/${file}`, 'utf8')
+      const sql = readSource(`supabase/migrations/${file}`)
       for (const match of sql.matchAll(/create\s+or\s+replace\s+function\s+(public\.\w+)\s*\(([\s\S]*?)\n\$(\w*)\$;/gi)) latest.set(match[1].toLowerCase(), { file, body: match[0] })
     }
     const offenders = [...latest].filter(([, { body }]) => /system_audit_log\s*\([^)]*\baction\b/i.test(body)).map(([name, { file }]) => `${name} (${file})`)

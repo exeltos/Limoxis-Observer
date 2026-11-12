@@ -1,6 +1,7 @@
 import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 
 function mapRecord(row,employee,department){
@@ -178,7 +179,7 @@ export async function updateEmployeeSurveillanceFollowup(organizationId,record,p
 }
 
 export function getEmployeeSurveillanceKpis(rows){
-  const today=new Date().toISOString().slice(0,10)
+  const today=hospitalToday()
   return {
     active:(rows||[]).filter(row=>row.status==='active').length,
     positive:(rows||[]).filter(row=>row.resultStatus==='positive').length,

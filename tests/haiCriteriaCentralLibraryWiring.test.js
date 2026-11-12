@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const read = path => readSource(new URL(`../${path}`, import.meta.url))
 
 describe('HAI criteria central library wiring (platform review roadmap, P3)', () => {
   it('makes evaluateHaiCriteria/haiCriteriaSetForType accept an override sets object, defaulting to the static baseline', () => {

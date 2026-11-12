@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { KITCHEN_PRIMARY_ACTION, KITCHEN_TABS, KITCHEN_VIEWS, resolveKitchenLocation, resolveKitchenTab } from '../src/features/kitchen/kitchenModel'
+import { readSource } from './helpers/readSource'
 
-const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const read = path => readSource(new URL(`../${path}`, import.meta.url))
 
 describe('kitchen: five tabs in one row', () => {
   it('has Today, Production days, Storage, Verification & recall and the HACCP plan', () => {

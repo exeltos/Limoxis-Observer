@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20260919310000_share_microbiology_finding_definition_with_analysis.sql', 'utf8')
+const migration = readSource('supabase/migrations/20260919310000_share_microbiology_finding_definition_with_analysis.sql')
 
 function storage() {
   const values = new Map()

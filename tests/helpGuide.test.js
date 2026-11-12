@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { guideContent, pickGuide } from '../src/core/help/helpGuide'
 import { ADDONS, MODULES, MODULE_DEPENDENCIES, OPERATING_PROFILES, PROFILE_LABELS, profileModules } from '../src/core/organization/operatingProfile'
 import { SYSTEM_ROLE_KEYS } from '../src/core/permissions/roleLabels'
+import { readSource } from './helpers/readSource'
 
 const greek = /[Α-Ωα-ωΆΈΉΊΌΎΏάέήίόύώϊϋΐΰ]/
 const strings = value => (typeof value === 'string' ? [value] : Array.isArray(value) ? value.flatMap(strings) : value && typeof value === 'object' ? Object.values(value).flatMap(strings) : [])
@@ -67,8 +68,8 @@ describe('setup and user guide (shared by the Help Center and the PDF manual)', 
 
   it('offers the PDF manuals only in the Platform Owner section, not in the hospital guide', () => {
     expect(fs.existsSync(new URL('../public/manual/Limoxis-Observer-Odigos-EL.pdf', import.meta.url))).toBe(true)
-    expect(fs.readFileSync(new URL('../src/core/help/HelpGuideView.jsx', import.meta.url), 'utf8')).not.toMatch(/\.pdf|\/manual\/|download/)
-    expect(fs.readFileSync(new URL('../src/core/help/HelpCenter.jsx', import.meta.url), 'utf8')).toContain("{mode==='manuals'&&isOwner&&<HelpManualsView")
+    expect(readSource(new URL('../src/core/help/HelpGuideView.jsx', import.meta.url))).not.toMatch(/\.pdf|\/manual\/|download/)
+    expect(readSource(new URL('../src/core/help/HelpCenter.jsx', import.meta.url))).toContain("{mode==='manuals'&&isOwner&&<HelpManualsView")
   })
 })
 

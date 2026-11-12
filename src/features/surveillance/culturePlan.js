@@ -1,3 +1,4 @@
+import { hospitalDate } from '../../core/dates/hospitalDate'
 // The culture programme (Surveillance › Culture programme): which environmental cultures are due when, per department, and
 // which were done — read from the laboratory's environmental samples (department + kind of sample), never entered twice.
 
@@ -51,7 +52,7 @@ export const roundMatches = (item, round) => item.group
 // round before the year, from January. Before the laboratory's first environmental sample (`start`) nothing is judged.
 export function cultureYear(item, rounds, year, today = new Date(), start = '') {
   const own = rounds.filter(round => roundMatches(item, round))
-  const thisMonth = monthIndex(today.toISOString().slice(0, 10), year)
+  const thisMonth = monthIndex(hospitalDate(today), year)
   const before = own.filter(round => monthIndex(round.day, year) < 0)
   let nextDue = before.length ? monthIndex(before[before.length - 1].day, year) + item.every : 0
   return Array.from({ length: 12 }, (_, month) => {

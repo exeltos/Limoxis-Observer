@@ -10,13 +10,14 @@ import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FILE_ACCEPT, FILE_TYPES, MAX_FILE_BYTES, SUBMISSION_PROBLEMS, accessComplete, pendingItems, submissionProblemText, submissionProblems, submitErrorMessage } from './supplierRenewalModel'
 import { loadSupplierCertificateAccess, submitSupplierCertificate } from './supplierRenewalService'
 import './resources.css'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 const asDate = value => new Date(String(value).length === 10 ? `${value}T12:00:00` : value)
 const day = (value, en) => (value ? asDate(value).toLocaleDateString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—')
 const dayTime = (value, en) => (value ? asDate(value).toLocaleString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '—')
 const size = bytes => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`)
 const certificateName = item => [item.type, item.title && item.title !== item.type ? item.title : ''].filter(Boolean).join(' · ') || '—'
-const isExpired = item => Boolean(item.expiresOn) && String(item.expiresOn).slice(0, 10) <= new Date().toISOString().slice(0, 10)
+const isExpired = item => Boolean(item.expiresOn) && String(item.expiresOn).slice(0, 10) <= hospitalToday()
 // The hospital's initials when it has no logo (as in the e-mail).
 export const hospitalInitials = name => (String(name || '').replace(/\([^)]*\)/g, ' ').normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^\p{L}\p{N}]+/u).filter(word => word && !['και', 'του', 'της', 'των', 'το', 'η', 'ο', 'of', 'the', 'and'].includes(word.toLowerCase())).slice(0, 3).map(word => word[0]).join('') || 'LO').toLocaleUpperCase('el')
 // A file the supplier picked or dropped: what is wrong with it, before the form is sent.

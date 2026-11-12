@@ -10,6 +10,7 @@ import { roleLabel } from '../../core/permissions/roleLabels'
 import { demoDatesValid } from './platformDemoService'
 import { AccessLinkDialog } from './DemoAccessLinkDialog'
 import './demoWizard.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 export const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
 export const HEALTH_REGIONS=['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
@@ -25,7 +26,7 @@ const addDays=(isoDate,days)=>{const date=new Date(`${isoDate}T00:00:00Z`);if(Nu
 const fmtDay=(value,en)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${value}T12:00:00`)):'—'
 
 export function emptyDemoWizardDraft(days=30){
-  const validFrom=new Date().toISOString().slice(0,10)
+  const validFrom=hospitalToday()
   return {label:'',type:'hospital',region:'',healthRegion:'',city:'',country:'Ελλάδα',contactPhone:'',bedCapacity:'',contactName:'',contactEmail:'',validFrom,validUntil:addDays(validFrom,days),adminName:'',adminEmail:'',access:'invite'}
 }
 

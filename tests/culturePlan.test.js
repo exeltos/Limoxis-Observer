@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { CULTURE_CATEGORY, cultureItems, cultureYear, everyMonths, offProgramme, roundMatches, samplingRounds } from '../src/features/surveillance/culturePlan'
+import { readSource } from './helpers/readSource'
 
 const sample = (department, day, type = 'surface', outside = false) => ({ department, collectedAt: `${day}T09:00:00Z`, type, outside })
 
@@ -44,10 +44,10 @@ describe('the culture programme', () => {
     expect(offProgramme(items, rounds, 2026).map(round => round.department)).toEqual(['Αποστείρωση', 'ΤΕΠ'])
   })
   it('is an entry of its own under Controls in the menu, for the infection control lead and the administrator only', () => {
-    expect(fs.readFileSync('src/core/navigation/sectionTabs.js', 'utf8')).not.toContain("id: 'cultures'")
-    expect(fs.readFileSync('src/app/navigation.js', 'utf8')).toContain("{to:'/controls/cultures',key:'cultureProgramme'")
-    expect(fs.readFileSync('src/app/App.jsx', 'utf8')).toContain('<Route path="controls/cultures"')
-    expect(fs.readFileSync('src/features/surveillance/surveillanceTabAccess.js', 'utf8')).toContain('[ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD].includes(role)')
+    expect(readSource('src/core/navigation/sectionTabs.js')).not.toContain("id: 'cultures'")
+    expect(readSource('src/app/navigation.js')).toContain("{to:'/controls/cultures',key:'cultureProgramme'")
+    expect(readSource('src/app/App.jsx')).toContain('<Route path="controls/cultures"')
+    expect(readSource('src/features/surveillance/surveillanceTabAccess.js')).toContain('[ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD].includes(role)')
   })
 })
 

@@ -1,3 +1,4 @@
+import { hospitalDate } from '../dates/hospitalDate'
 // Platform Owner preview: the help-preview frame opened with ?helpOwner=1
 // shows the Platform Owner screens with sample hospitals, users, demos and
 // events, so they can be documented and checked without a live owner
@@ -17,7 +18,7 @@ export function isOwnerPreview(){
 
 export const OWNER_PREVIEW_USER=Object.freeze({id:'owner-preview',email:'owner@limoxis-observer.local',fullName:'Άρης Ιωάννου',isPlatformOwner:true,isDemo:false})
 
-const day=offset=>{const d=new Date();d.setDate(d.getDate()+offset);return d.toISOString().slice(0,10)}
+const day=offset=>{const d=new Date();d.setDate(d.getDate()+offset);return hospitalDate(d)}
 const at=(offsetDays,hour=10)=>{const d=new Date();d.setDate(d.getDate()+offsetDays);d.setHours(hour,12,0,0);return d.toISOString()}
 
 const ORGANIZATIONS=[

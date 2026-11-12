@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { readAnalysisPageSource } from './helpers/analysisPageSource'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const read = path => readSource(new URL(`../${path}`, import.meta.url))
 
 // The P0 terminology PR deliberately standardized "scope" as "Εύρος"
 // (departmentScope: 'Εύρος τμήματος'). A later cleanup pass introduced a

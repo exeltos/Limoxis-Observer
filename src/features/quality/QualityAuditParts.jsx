@@ -13,6 +13,7 @@ import { loadControlProgramme } from '../controls/controlCloudService'
 import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditMatrix, checklistTemplates } from './qualityAudit'
 import { standardShort } from './audits/auditStandards'
 import { AuditRounds, roundOfHalf } from './audits/AuditRounds'
+import { hospitalDate } from '../../core/dates/hospitalDate'
 
 // The controls that are checklists, offered as audit checklists.
 function useChecklistTemplates(organizationId) {
@@ -58,7 +59,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
   const en = language === 'en'
   const { departments } = useDepartments()
   const now = new Date()
-  const todayIso = now.toISOString().slice(0, 10)
+  const todayIso = hospitalDate(now)
   const [year, setYear] = useState(() => String(now.getFullYear()))
   const [scope, setScope] = useState('audited')
   // The round picked above the table (spring / autumn): its months are marked and a department opens on that round's audit.

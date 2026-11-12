@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditProgramme, checklistTemplates, findingDraftFromRow, pendingFindings } from '../src/features/quality/qualityAudit'
 import { checklistScore as controlsScore } from '../src/features/controls/controlVocabulary'
 import { checklistScore } from '../src/core/checklist/checklistScore'
 import { qualityAudits } from '../src/features/quality/qualityDemoData'
 import { deviationQueue } from '../src/features/quality/qualityDeviations'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20261104100000_quality_audit_checklists.sql', 'utf8')
-const service = fs.readFileSync('src/features/quality/qualityService.js', 'utf8')
+const migration = readSource('supabase/migrations/20261104100000_quality_audit_checklists.sql')
+const service = readSource('src/features/quality/qualityService.js')
 
 describe('Quality audits (phase 3)', () => {
   it('uses a control that is a checklist as the audit template', () => {

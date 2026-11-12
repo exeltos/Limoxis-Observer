@@ -12,6 +12,7 @@ import { STALE_DAYS, isStaleRegister } from './registerFigures'
 import { useRegisterAccess } from './registerAccess'
 import { EquipmentList, useResources } from '../quality/resources/ResourcesPanel'
 import { NO_EQUIPMENT_FILTERS } from '../quality/resources/resourceModel'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // The department's registers (NICU neonates, monthly procedure sheets) and its
 // meetings and its equipment: what a department records, outside the Quality Center.
@@ -27,7 +28,7 @@ export function RegistersPage() {
   const [equipmentFilters, setEquipmentFilters] = useState(NO_EQUIPMENT_FILTERS)
   // The figures above the list; «no entry for 45+ days» narrows the list to those registers.
   const [staleOnly, setStaleOnly] = useState(false)
-  const todayIso = new Date().toISOString().slice(0, 10)
+  const todayIso = hospitalToday()
   const isQuiet = useCallback(register => isStaleRegister(register, todayIso), [todayIso])
   const active = list.registers.filter(register => register.status === 'active')
   const entries = list.registers.reduce((sum, register) => sum + (Number(register.entryCount) || 0), 0)

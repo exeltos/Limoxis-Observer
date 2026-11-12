@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const i18n = fs.readFileSync('src/core/i18n/stringsEl.js', 'utf8')
-const librariesPanel = fs.readFileSync('src/features/management/LibrariesPanel.jsx', 'utf8')
-const environmentalStandardsPanel = fs.readFileSync('src/features/management/EnvironmentalStandardsPanel.jsx', 'utf8')
+const i18n = readSource('src/core/i18n/stringsEl.js')
+const librariesPanel = readSource('src/features/management/LibrariesPanel.jsx')
+const environmentalStandardsPanel = readSource('src/features/management/EnvironmentalStandardsPanel.jsx')
 
 describe('platform terminology and language polish', () => {
   it('unifies "admission" as Νοσηλεία instead of the import-flavored Εισαγωγή', () => {

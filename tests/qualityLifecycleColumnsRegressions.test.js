@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 // Quality module review: create/save for all four quality record types wrote
 // owner_label, lifecycle_status, void_reason, voided_at/by, correction_
@@ -9,10 +9,10 @@ import fs from 'node:fs'
 // lead_auditor_id are real uuid FKs but the UI edits/shows them as free-text
 // names, which was unconditionally blanked for any real (uuid) value.
 describe('quality record create/save writes columns that actually exist, and reported-by / lead-auditor display correctly', () => {
-  const migration = fs.readFileSync('supabase/migrations/20260924143000_quality_lifecycle_and_label_columns.sql', 'utf8')
-  const service = fs.readFileSync('src/features/quality/qualityService.js', 'utf8')
-  const createPage = fs.readFileSync('src/features/quality/QualityCreatePage.jsx', 'utf8')
-  const recordPage = fs.readFileSync('src/features/quality/QualityRecordPage.jsx', 'utf8')
+  const migration = readSource('supabase/migrations/20260924143000_quality_lifecycle_and_label_columns.sql')
+  const service = readSource('src/features/quality/qualityService.js')
+  const createPage = readSource('src/features/quality/QualityCreatePage.jsx')
+  const recordPage = readSource('src/features/quality/QualityRecordPage.jsx')
 
   it('the migration adds the lifecycle/label columns to every quality table', () => {
     for (const table of ['quality_incidents', 'quality_findings', 'quality_capa_actions', 'quality_audits']) {

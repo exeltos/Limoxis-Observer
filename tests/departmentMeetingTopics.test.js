@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const read = path => readSource(new URL(`../${path}`, import.meta.url))
 
 describe('department meetings: topics and training', () => {
   it('keeps topics and training needs in tables of their own, closed like the meeting', () => {

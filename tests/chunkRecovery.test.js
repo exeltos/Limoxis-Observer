@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { isChunkLoadError, reloadForNewVersion } from '../src/core/errors/chunkRecovery.js'
+import { isChunkLoadError, reloadForNewVersion } from '../src/core/errors/chunkRecovery'
 
 describe('reload after a new version is published', () => {
   afterEach(() => { sessionStorage.clear(); vi.restoreAllMocks() })

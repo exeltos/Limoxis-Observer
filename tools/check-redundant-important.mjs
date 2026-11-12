@@ -19,6 +19,7 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 import postcss from 'postcss'
+import { readSource } from './readSource.mjs'
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, all) => (value.startsWith('--') ? [...pairs, [value.slice(2), all[index + 1]]] : pairs), []))
 const buildDir = path.resolve(args.build || 'dist')
@@ -208,7 +209,7 @@ function builtIndex(url) {
   if (builtByFile.has(file)) return builtByFile.get(file)
   let entry = null
   if (fs.existsSync(file)) {
-    const ast = postcss.parse(fs.readFileSync(file, 'utf8'))
+    const ast = postcss.parse(readSource(file))
     const byPosition = new Map()
     ast.walkRules(rule => {
       if (!rule.source?.start) return
@@ -250,7 +251,7 @@ const builtCounts = new Map()
 for (const entry of builtByFile.values()) entry?.ast.walkDecls(decl => { if (decl.important && decl.parent.type === 'rule') builtCounts.set(declKey(decl), (builtCounts.get(declKey(decl)) || 0) + 1) })
 
 function walk(dir, out = []) { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const f = path.join(dir, e.name); if (e.isDirectory()) walk(f, out); else if (f.endsWith('.css')) out.push(f) } return out }
-const sources = walk('src').map(file => ({ file, ast: postcss.parse(fs.readFileSync(file, 'utf8'), { from: file }) }))
+const sources = walk('src').map(file => ({ file, ast: postcss.parse(readSource(file), { from: file }) }))
 const sourceCounts = new Map()
 for (const { ast } of sources) ast.walkDecls(decl => { if (decl.important && decl.parent.type === 'rule') sourceCounts.set(declKey(decl), (sourceCounts.get(declKey(decl)) || 0) + 1) })
 

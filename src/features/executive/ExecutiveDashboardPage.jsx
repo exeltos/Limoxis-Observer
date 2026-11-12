@@ -36,6 +36,7 @@ import { ExecutiveSummary } from './ExecutiveSummary'
 import './executive.css'
 import { Building2,Database } from 'lucide-react'
 import { IndicatorDataPanel, useIndicatorDataItems } from '../indicators/IndicatorDataPanel'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const DATA_TAB=['data','Δεδομένα','Data',Database,[]]
 // «Τμήματα» (owner, 7/11/2026): one department against the departments' average and the comparison.
@@ -63,7 +64,7 @@ function snapshotOf(state){
 }
 function demoParts(range,en){
  const base=collectAnalysisDemoSnapshot({range}),domains=collectDemoDomainMetrics(range,en,base.clusters?.length||0)
- const today=new Date().toISOString().slice(0,10),decisions=loadCommittees().flatMap(item=>item.decisions||[]).filter(item=>!['completed','closed','cancelled'].includes(item.status))
+ const today=hospitalToday(),decisions=loadCommittees().flatMap(item=>item.decisions||[]).filter(item=>!['completed','closed','cancelled'].includes(item.status))
  const {training,workforce,governance,qualityFood,...rest}=domains
  return {domains:rest,people:{training,workforce,governance},qualityFood:{qualityFood},microbiology:base.microbiology,clusters:base.clusters||[],governance:{openDecisions:decisions.length,overdueDecisions:decisions.filter(item=>item.dueDate&&item.dueDate<today).length}}
 }

@@ -1,7 +1,7 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const sql = fs.readFileSync('supabase/migrations/20261125100100_analysis_control_reads_speed.sql', 'utf8')
+const sql = readSource('supabase/migrations/20261125100100_analysis_control_reads_speed.sql')
 
 describe('Analysis control executions read', () => {
   it('reads a covering index with only the columns the metrics use', () => {

@@ -9,8 +9,9 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { formatDay } from '../../core/i18n/formatDay'
 import { addCapaProgress, removeCapaProgress } from './qualityService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => hospitalToday()
 
 // CAPA tab «Progress»: dated notes on how the action is going (quality_capa_progress), newest first.
 export function QualityCapaProgress({ record, setRecord, canManage, finalized, organizationId, actor, notify, language }) {

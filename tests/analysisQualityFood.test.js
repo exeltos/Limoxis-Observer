@@ -9,6 +9,7 @@ import { indicatorDefinitionRows } from '../src/features/indicators/indicatorDem
 import { collectIndicatorMetrics } from '../src/features/indicators/indicatorEngine'
 import { satisfactionCounts, surveySummary } from '../src/features/quality/surveys/surveyModel'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
+import { readSource } from './helpers/readSource'
 
 function storage() {
   const values = new Map()
@@ -26,7 +27,7 @@ beforeEach(() => {
   configureDataEnvironment({ mode: 'demo', organizationId: 'demo-hospital', demoAccountId: 'demo-user-1' })
 })
 
-const read = file => fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+const read = file => readSource(new URL(`../${file}`, import.meta.url))
 const tx = el => el
 const range = { from: '2026-01-01', to: '2026-12-31' }
 const today = '2026-10-19'
@@ -217,8 +218,8 @@ describe('Quality & food safety server metrics', () => {
 
 describe('Quality & food safety indicators', () => {
   const dir = 'supabase/migrations'
-  const latest = fs.readdirSync(dir).filter(name => name.endsWith('.sql') && fs.readFileSync(path.join(dir, name), 'utf8').includes('function private.indicator_metric_snapshot')).sort().at(-1)
-  const sql = fs.readFileSync(path.join(dir, latest), 'utf8')
+  const latest = fs.readdirSync(dir).filter(name => name.endsWith('.sql') && readSource(path.join(dir, name)).includes('function private.indicator_metric_snapshot')).sort().at(-1)
+  const sql = readSource(path.join(dir, latest))
   const KEYS = ['audit-answers-compliance', 'kitchen-receipts-out-of-limits', 'kitchen-days-haccp-verified', 'supplier-evaluation-average', 'patient-satisfaction', 'quality-risks-high']
   // audit_major_findings came later, in a migration of its own (tested below).
   const METRICS = Object.keys(qualityFoodIndicatorMetrics({})).filter(metric => metric !== 'audit_major_findings')
@@ -258,7 +259,7 @@ describe('Quality & food safety indicators', () => {
 })
 
 describe('Major non-conformities indicator', () => {
-  const sql = fs.readFileSync('supabase/migrations/20261231220700_audit_major_findings_objectives.sql', 'utf8')
+  const sql = readSource('supabase/migrations/20261231220700_audit_major_findings_objectives.sql')
   it('counts the year\'s major audit findings and links the hospital objectives that already have a platform indicator', () => {
     expect(sql).toContain("f.finding_class=''major'' and f.voided_at is null")
     expect(sql).toContain("''audit_major_findings'',v_major)")

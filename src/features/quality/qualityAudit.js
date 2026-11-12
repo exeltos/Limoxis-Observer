@@ -1,5 +1,6 @@
 import { complianceOf } from './audits/auditModel'
 import { checklistRows } from '../controls/controlStructured'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // An audit (ISO 9001 §9.2, JCI QPS): a planned date, a scope, and a checklist
 // answered Yes / No / N/A. Its checklist comes from a control that is a
@@ -41,7 +42,7 @@ export function findingDraftFromRow(audit, row, language = 'el') {
     source: 'audit',
     sourceId: audit.id,
     description: [en ? `Audit ${audit.displayId || audit.id}: «${text}» not met.` : `Επιθεώρηση ${audit.displayId || audit.id}: δεν τηρείται «${text}».`, row.note].filter(Boolean).join('\n'),
-    date: audit.completedDate || audit.plannedDate || new Date().toISOString().slice(0, 10),
+    date: audit.completedDate || audit.plannedDate || hospitalToday(),
   }
 }
 
@@ -59,7 +60,7 @@ export function auditProgramme(audits = [], year = new Date().getFullYear()) {
 
 // Where an audit stands on the programme: done, under way, late (its planned
 // date has passed), planned, or cancelled.
-export function auditState(audit, today = new Date().toISOString().slice(0, 10)) {
+export function auditState(audit, today = hospitalToday()) {
   if (audit.status === 'cancelled' || audit.lifecycleStatus === 'voided') return 'cancelled'
   if (audit.status === 'completed') return 'done'
   if (audit.plannedDate && audit.plannedDate < today) return 'late'
@@ -71,7 +72,7 @@ export function auditState(audit, today = new Date().toISOString().slice(0, 10))
 // departments, then any other an audit names, then «whole organization» for
 // audits without one), twelve months each. `covered` says whether the
 // department has an audit that year; `totals` counts the audits by state.
-export function auditMatrix(audits = [], year = new Date().getFullYear(), departments = [], today = new Date().toISOString().slice(0, 10)) {
+export function auditMatrix(audits = [], year = new Date().getFullYear(), departments = [], today = hospitalToday()) {
   const inYear = audits.filter(audit => String(audit.plannedDate || audit.completedDate || '').startsWith(String(year)))
   const rows = new Map()
   const row = (key, name, nameEn, id = '') => {

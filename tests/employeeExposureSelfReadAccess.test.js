@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const migration=fs.readFileSync('supabase/migrations/20260923192500_employee_exposure_self_read_access.sql','utf8')
+const migration=readSource('supabase/migrations/20260923192500_employee_exposure_self_read_access.sql')
 
 describe('employee occupational exposure RLS',()=>{
   it('removes legacy public policies and scopes new policies to authenticated users',()=>{

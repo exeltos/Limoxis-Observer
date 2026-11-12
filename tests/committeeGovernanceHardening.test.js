@@ -1,9 +1,9 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import path from 'node:path'
+import { readSource } from './helpers/readSource'
 
-const finalizationSql=fs.readFileSync(path.resolve('supabase/migrations/20260901170447_v0300_committee_minutes_finalization_guard.sql'),'utf8')
-const visibilitySql=fs.readFileSync(path.resolve('supabase/migrations/20260901170717_v0301_committee_visibility_and_function_acl_hardening.sql'),'utf8')
+const finalizationSql=readSource(path.resolve('supabase/migrations/20260901170447_v0300_committee_minutes_finalization_guard.sql'))
+const visibilitySql=readSource(path.resolve('supabase/migrations/20260901170717_v0301_committee_visibility_and_function_acl_hardening.sql'))
 
 describe('committee governance hardening',()=>{
   it('requires the minutes approval workflow for present voting members',()=>{

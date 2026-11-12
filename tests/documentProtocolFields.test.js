@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PROTOCOL_KINDS, protocolFieldsFromRow, protocolFieldsToRow, protocolSummary } from '../src/features/documents/protocolFields'
 import { createEmptyDocumentDraft } from '../src/features/documents/DocumentForm'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 describe('protocol fields of controlled documents', () => {
   it('reads both columns into the record', () => {
@@ -27,7 +27,7 @@ describe('protocol fields of controlled documents', () => {
 
   it('starts empty drafts without protocol fields and seeds demo protocols with them', () => {
     expect(createEmptyDocumentDraft()).toMatchObject({ protocolKind: '', clinicalArea: '' })
-    const store = fs.readFileSync(new URL('../src/features/documents/documentStore.js', import.meta.url), 'utf8')
+    const store = readSource(new URL('../src/features/documents/documentStore.js', import.meta.url))
     const protocols = store.match(/type:'protocol',[^\n]*/g) || []
     expect(protocols.length).toBeGreaterThanOrEqual(2)
     expect(protocols.every(line => /protocolKind:'medical',clinicalArea:'[^']+'/.test(line))).toBe(true)
@@ -36,8 +36,8 @@ describe('protocol fields of controlled documents', () => {
 
 describe('protocol fields in the schema and the service', () => {
   it('adds both columns through an idempotent migration and reads/writes them in the service', () => {
-    const migration = fs.readFileSync(new URL('../supabase/migrations/20261121110000_controlled_document_protocol_fields.sql', import.meta.url), 'utf8')
-    const service = fs.readFileSync(new URL('../src/features/documents/documentService.js', import.meta.url), 'utf8')
+    const migration = readSource(new URL('../supabase/migrations/20261121110000_controlled_document_protocol_fields.sql', import.meta.url))
+    const service = readSource(new URL('../src/features/documents/documentService.js', import.meta.url))
     expect(migration).toMatch(/add column if not exists protocol_kind text/)
     expect(migration).toMatch(/add column if not exists clinical_area text/)
     expect(migration).toMatch(/'medical','nursing','administrative','manual'/)

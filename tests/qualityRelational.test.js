@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { BLUE_CODE_INTERVENTIONS, EVENT_TYPES, INJURY_SUBCATEGORIES, OBSTETRIC_SUBCATEGORIES, SHARP_TOOLS, TRANSFER_TARGETS, detailBlocks, incidentDetailFacts, incidentDetailRows, incidentDetailsFromRow, keptDetails } from '../src/features/quality/incidentDetails'
 import { analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, isUuid, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from '../src/features/quality/qualityRelations'
@@ -6,10 +5,11 @@ import { evaluationFromRow, nonconformityRows, scoreRows, supplierListsFromRow, 
 import { evaluationScore } from '../src/features/quality/resources/resourceModel'
 import { CAPA_TYPES } from '../src/features/quality/qualityVocabulary'
 import { qualityCapas, qualityIncidents } from '../src/features/quality/qualityDemoData'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20261116100000_quality_relational.sql', 'utf8')
-const service = fs.readFileSync('src/features/quality/qualityService.js', 'utf8')
-const resources = fs.readFileSync('src/features/quality/resources/resourceService.js', 'utf8')
+const migration = readSource('supabase/migrations/20261116100000_quality_relational.sql')
+const service = readSource('src/features/quality/qualityService.js')
+const resources = readSource('src/features/quality/resources/resourceService.js')
 const EMPLOYEE = '22222222-2222-4222-8222-222222222222'
 const values = list => list.map(item => item.value)
 const sqlList = pattern => [...migration.match(pattern)[1].matchAll(/'([a-z_]+)'/g)].map(match => match[1])

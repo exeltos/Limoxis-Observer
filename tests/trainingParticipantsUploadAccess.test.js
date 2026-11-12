@@ -1,10 +1,10 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 
 describe('training participants and public access refinements',()=>{
   it('removes the participant registry search bar visually and compacts empty state',()=>{

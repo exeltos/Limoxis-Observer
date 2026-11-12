@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { navigationFor } from '../src/app/navigation'
 import { can, CAPABILITIES, ROLES } from '../src/core/permissions/roles'
 import { demoLibrarySeed } from '../src/features/management/managementData'
 import { SYSTEM_BASELINE_LIBRARY_KEYS } from '../src/features/management/libraryGovernance'
 import { DEFAULT_INCIDENT_CATEGORIES, incidentCategoryLabel, incidentCategoryOptions, incidentCategoryValue, qualityStatusTone } from '../src/features/quality/qualityVocabulary'
 import { incidentPrefill } from '../src/features/quality/IncidentReportPage'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20261103100000_quality_foundations.sql', 'utf8')
-const previous = fs.readFileSync('supabase/migrations/20261102100000_controls_reference_libraries.sql', 'utf8')
-const service = fs.readFileSync('src/features/quality/qualityService.js', 'utf8')
+const migration = readSource('supabase/migrations/20261103100000_quality_foundations.sql')
+const previous = readSource('supabase/migrations/20261102100000_controls_reference_libraries.sql')
+const service = readSource('src/features/quality/qualityService.js')
 
 describe('Quality foundations', () => {
   it('lets every role report an incident', () => {
@@ -88,7 +88,7 @@ describe('anonymous and own incident reports', () => {
     expect(isOwnReport({ privacy: 'confidential', anonymous: false, reportedById: 'u1' }, 'u1')).toBe(true)
     expect(isOwnReport({ privacy: 'anonymous', anonymous: true, reportedById: null }, 'u1')).toBe(false)
     expect(service).toContain("privacy==='named') return {}")
-    const sql = fs.readFileSync('supabase/migrations/20261230110000_quality_report_privacy.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261230110000_quality_report_privacy.sql')
     expect(sql).toContain('as restrictive for select')
     expect(sql).not.toMatch(/\bdrop\b|\brevoke\b|alter policy/i)
   })
@@ -109,8 +109,8 @@ describe('review follow-ups', () => {
   })
 
   it('keeps typed names as responsible people and sends report-only users back to their list', () => {
-    const fields = fs.readFileSync('src/features/quality/QualityFields.jsx', 'utf8')
-    const report = fs.readFileSync('src/features/quality/IncidentReportPage.jsx', 'utf8')
+    const fields = readSource('src/features/quality/QualityFields.jsx')
+    const report = readSource('src/features/quality/IncidentReportPage.jsx')
     expect(fields).toContain('allowCustom')
     expect(report).toContain("useContextualNavigation(canViewQuality ? '/quality' : '/quality/my-reports')")
   })

@@ -1,10 +1,10 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const record=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordView.jsx','utf8')
-const registry=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx','utf8')
-const rejectionMigration=fs.readFileSync('supabase/migrations/20260902132937_laboratory_sample_rejection_state.sql','utf8')
-const indexMigration=fs.readFileSync('supabase/migrations/20260902132633_laboratory_operational_indexes.sql','utf8')
+const record=readSource('src/features/laboratory/LaboratorySampleRecordView.jsx')
+const registry=readSource('src/features/laboratory/LaboratoryWorkspace.jsx')
+const rejectionMigration=readSource('supabase/migrations/20260902132937_laboratory_sample_rejection_state.sql')
+const indexMigration=readSource('supabase/migrations/20260902132633_laboratory_operational_indexes.sql')
 
 describe('Laboratory strict production audit',()=>{
   it('models specimen rejection as a first-class state with mandatory reason',()=>{
@@ -14,7 +14,7 @@ describe('Laboratory strict production audit',()=>{
     expect(record).toContain("setDialog('reject')")
     expect(record).toContain("'rejected',{rejectionReason:reason}")
     expect(registry).toContain('LAB_STATUS_ORDER.map')
-    expect(fs.readFileSync('src/features/laboratory/LaboratoryStatus.jsx','utf8')).toContain('rejected:')
+    expect(readSource('src/features/laboratory/LaboratoryStatus.jsx')).toContain('rejected:')
   })
 
   it('does not offer AST mutation after microbiology finalization',()=>{

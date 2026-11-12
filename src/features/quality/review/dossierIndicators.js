@@ -2,11 +2,12 @@ import { escapeHtml } from '../../../core/export/reportDocument'
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadIndicatorSnapshots } from '../../indicators/indicatorCloudService'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, textOf as registerText } from '../../registers/registerEngine'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // The indicators of the year's file: each with how it was computed (numerator / denominator, or the value entered by hand)
 // and, where it has no value, why: the data the platform does not record. The same reasons make the file's last page.
 
-const yearEnd = year => { const end = `${year}-12-31`, today = new Date().toISOString().slice(0, 10); return end < today ? end : today }
+const yearEnd = year => { const end = `${year}-12-31`, today = hospitalToday(); return end < today ? end : today }
 
 // What is missing, by the metric that is empty. Each reason is one line of the «missing data» page.
 const MISSING = {

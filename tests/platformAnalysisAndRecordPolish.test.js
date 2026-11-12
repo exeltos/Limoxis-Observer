@@ -1,11 +1,11 @@
 import { describe,it,expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
-const analysisPrint=fs.readFileSync('src/styles/responsive.css','utf8')
-const ownerPolish=fs.readFileSync('src/styles/design-system.css','utf8')
+const analysisPrint=readSource('src/styles/responsive.css')
+const ownerPolish=readSource('src/styles/design-system.css')
 
 describe('Analysis workspace layout and organization summary strip polish',()=>{
   it('never clips the analytics sticky filter/tabs row behind a fixed height', () => {

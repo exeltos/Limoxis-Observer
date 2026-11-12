@@ -1,11 +1,12 @@
 import { FINDING_CLASSES, RESULT_VALUE, departmentArea, riskMonths, standardShort } from './auditStandards'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // The audit programme in pure functions: which questions an audit asks, how it
 // scores, which answers become findings, whether the team is independent and
 // competent, which clauses the year covered, and the dashboard figures. The
 // screens, the report and the tests use these; nothing here reads or writes.
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => hospitalToday()
 const round = value => Math.round(value)
 const text = value => String(value ?? '').trim()
 const addDays = (day, days) => { const date = new Date(`${String(day || today()).slice(0, 10)}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }

@@ -17,9 +17,10 @@ import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
+import { hospitalMonth } from '../../core/dates/hospitalDate'
 
 const BACK = '/pharmacy?tab=consumption'
-const monthNow = () => new Date().toISOString().slice(0, 7)
+const monthNow = () => hospitalMonth()
 const formatPeriod = (period, en) => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
 
 // A dispensing period (or a new one) is a page of its own, like the other records: Back returns to the list,

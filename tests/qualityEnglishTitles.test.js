@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
 import { qualityAudits, qualityCapas, qualityFindings, qualityIncidents } from '../src/features/quality/qualityDemoData'
 import { mapRow } from '../src/features/quality/qualityService'
 import { objectiveTitle } from '../src/features/quality/review/QualityObjectives'
+import { readSource } from './helpers/readSource'
 
 const greek = /[Ͱ-Ͽἀ-῿]/
-const source = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const source = path => readSource(new URL(`../${path}`, import.meta.url))
 
 describe('English titles of quality records', () => {
   it('reads title_en when present and falls back to the written title', () => {

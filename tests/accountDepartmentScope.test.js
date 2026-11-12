@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { DEPARTMENT_ROLES, resolveMemberDepartment, setMemberDepartment } from '../supabase/functions/_shared/organizationAccount.ts'
+import { readSource } from './helpers/readSource'
 
 // A department role sees only its department (organization_member_scopes): an account
 // created or changed without one saw nothing. The server settles it with the role.
@@ -61,8 +61,8 @@ describe('the department of an account', () => {
   })
 
   it('creating, changing the role and re-inviting all set the department', () => {
-    const create = fs.readFileSync('supabase/functions/create-organization-user/index.ts', 'utf8')
-    const manage = fs.readFileSync('supabase/functions/manage-organization-user/index.ts', 'utf8')
+    const create = readSource('supabase/functions/create-organization-user/index.ts')
+    const manage = readSource('supabase/functions/manage-organization-user/index.ts')
     expect(create.indexOf('resolveMemberDepartment(')).toBeLessThan(create.indexOf('inviteUserByEmail('))
     expect(create.match(/setMemberDepartment\(/g)).toHaveLength(2)
     expect(manage).toContain('resolveMemberDepartment(admin,{organizationId,role:nextRole')

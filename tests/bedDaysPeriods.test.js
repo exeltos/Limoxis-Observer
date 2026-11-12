@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupPeriods, periodKind, periodRange } from '../src/features/management/BedDaysPanel.jsx'
+import { groupPeriods, periodKind, periodRange } from '../src/features/management/BedDaysPanel'
 
 describe('patient days periods', () => {
   it('recognises a month, a quarter, a year and any other range', () => {

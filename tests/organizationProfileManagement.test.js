@@ -1,8 +1,8 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const migration=fs.readFileSync('supabase/migrations/20260902113718_organization_profile_management.sql','utf8')
-const privilegeMigration=fs.readFileSync('supabase/migrations/20260902114507_organization_profile_privilege_hardening.sql','utf8')
+const migration=readSource('supabase/migrations/20260902113718_organization_profile_management.sql')
+const privilegeMigration=readSource('supabase/migrations/20260902114507_organization_profile_privilege_hardening.sql')
 
 describe('organization profile management',()=>{
  it('uses a narrow governed RPC for organization profile changes',()=>{

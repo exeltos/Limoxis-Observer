@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import fs from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { navigationFor } from '../src/app/navigation'
@@ -7,8 +6,9 @@ import { ROLES, capabilitiesFor, CAPABILITIES } from '../src/core/permissions/ro
 import { INDICATOR_MORE_TABS, INDICATOR_TABS, indicatorTabOf } from '../src/features/analysis/analysisPageModel'
 import { therapyAccess } from '../src/features/pharmacy/pharmacyAccess'
 import { TopbarUserMenu } from '../src/app/TopbarUserMenu'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const t = key => key
 
 describe('integration: owner decisions', () => {

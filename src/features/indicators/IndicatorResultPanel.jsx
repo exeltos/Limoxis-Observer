@@ -6,9 +6,10 @@ import { indicatorMetricLabel } from './IndicatorDefinitionForm'
 import { loadRiskAssessments } from '../quality/risk/riskService'
 import { levelLabel,scored } from '../quality/risk/riskModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadIndicatorSnapshots,loadOperationalIndicatorDefinitions } from './indicatorCloudService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const monthStart=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
-const today=()=>new Date().toISOString().slice(0,10)
+const today=()=>hospitalToday()
 const fmtDay=value=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:'—'}
 const fmtNumber=(value,el)=>value==null||value===''||!Number.isFinite(Number(value))?'—':new Intl.NumberFormat(el?'el-GR':'en-GB',{maximumFractionDigits:2}).format(Number(value))
 const STATUS={onTarget:['Εντός στόχου','On target','active'],attention:['Χρειάζεται προσοχή','Needs attention','danger'],context:['Παρακολούθηση','Monitoring','']}

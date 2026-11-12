@@ -5,6 +5,7 @@ import { computeTurnaroundHours } from './model/laboratoryModel'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 import { ENVIRONMENTAL_TYPES } from '../surveillance/environmentalSurveillanceData'
 import { AMR_CATEGORY_SELECT, amrCalculationColumns, amrCalculationSnapshot, amrCategoryRows } from './amrCalculation'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const iso=value=>value?new Date(value).toISOString():null
 const environmentalTypes=['water','surface','environment','environmental','room','air','νερό','επιφάνεια','επιφανεια']
@@ -464,7 +465,7 @@ export function getEnvironmentalKpis(rows){
 }
 
 export function getLaboratoryKpis(rows){
-  const today=new Date().toISOString().slice(0,10)
+  const today=hospitalToday()
   const turnaroundHours=(rows||[]).map(computeTurnaroundHours).filter(hours=>hours!=null)
   return {
     today:(rows||[]).filter(row=>String(row.requestedAt||row.collectedAt||'').slice(0,10)===today).length,

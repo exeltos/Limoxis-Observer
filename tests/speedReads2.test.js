@@ -1,10 +1,10 @@
 // Screens slow to show data, second round: analysis per tab, the kitchen by date
 // window, lean training rows, one employee per record, control counts kept by a
 // trigger, and lists read page by page.
-import fs from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 
 function client(calls, rows = {}) {
   const builder = table => {

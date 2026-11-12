@@ -5,10 +5,11 @@
 // Rules left empty are removed. Nothing is reordered.
 import fs from 'node:fs'
 import postcss from 'postcss'
+import { readSource } from './readSource.mjs'
 
 const root = ''
 const write = process.argv.includes('--write')
-const main = fs.readFileSync(root + 'src/main.jsx', 'utf8')
+const main = readSource(root + 'src/main.jsx')
 const files = [...main.matchAll(/import '\.\/(styles\/[^']+\.css)'/g)].map(m => 'src/' + m[1])
 const asts = files.map(f => ({ f, ast: postcss.parse(fs.readFileSync(root + f, 'utf8'), { from: f }) }))
 

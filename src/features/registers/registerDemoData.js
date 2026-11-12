@@ -1,4 +1,5 @@
 import { registerFromTemplate } from './registerTemplates'
+import { hospitalMonth, hospitalToday } from '../../core/dates/hospitalDate'
 
 // Sample registers for the demo: the NICU (one card per neonate) and the
 // Endoscopy unit (a monthly sheet), fourteen months back from today so every
@@ -43,26 +44,26 @@ export function demoRegisters() {
   nicu.indicators = nicu.indicators.map(indicator => ({ ...indicator, ...(targets[indicator.id] || {}) }))
   const endoscopy = { ...registerFromTemplate('endoscopy', { departmentId: 'Παθολογική', department: 'Παθολογική', departmentEn: 'Internal Medicine' }), id: DEMO_ENDOSCOPY_ID, code: 'REG-ENDO', name: 'Πράξεις Ενδοσκοπικού', nameEn: 'Endoscopy procedures' }
   // The demo shows the daily sheets: the earlier months are monthly totals, from the current month on it is one sheet per day.
-  endoscopy.sheet = { ...endoscopy.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
+  endoscopy.sheet = { ...endoscopy.sheet, dailyFrom: `${hospitalMonth()}-01` }
   const icu = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
   icu.indicators = icu.indicators.map(indicator => ({ ...indicator, ...({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } }[indicator.id] || {}) }))
   const paediatrics = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
   const obstetrics = { ...registerFromTemplate('obstetrics', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_OBSTETRICS_ID, code: 'REG-OBS' }
   obstetrics.indicators = obstetrics.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } }[indicator.id] || {}) }))
   const emergency = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
-  emergency.sheet = { ...emergency.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
+  emergency.sheet = { ...emergency.sheet, dailyFrom: `${hospitalMonth()}-01` }
   const cathLab = { ...registerFromTemplate('cathLab', { departmentId: 'Αιμοδυναμικό', department: 'Αιμοδυναμικό', departmentEn: 'Cath lab' }), id: DEMO_CATHLAB_ID, code: 'REG-CATH' }
   const chemo = { ...registerFromTemplate('chemotherapy', { departmentId: 'Χημειοθεραπεία', department: 'Χημειοθεραπεία', departmentEn: 'Chemotherapy' }), id: DEMO_CHEMO_ID, code: 'REG-CHEMO' }
   chemo.fields = chemo.fields.map(field => (field.key === 'physician' ? { ...field, options: [{ value: 'dr_a', label: 'Παπαδόπουλος Γ.', labelEn: 'Papadopoulos G.' }, { value: 'dr_b', label: 'Νικολάου Μ.', labelEn: 'Nikolaou M.' }, { value: 'dr_c', label: 'Καραγιάννη Ε.', labelEn: 'Karagianni E.' }] } : field))
   const ophthalmology = { ...registerFromTemplate('ophthalmology', { departmentId: 'Οφθαλμολογική', department: 'Οφθαλμολογική', departmentEn: 'Ophthalmology' }), id: DEMO_OPHTHALMOLOGY_ID, code: 'REG-OPH' }
-  ophthalmology.sheet = { ...ophthalmology.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
+  ophthalmology.sheet = { ...ophthalmology.sheet, dailyFrom: `${hospitalMonth()}-01` }
   const deliveryRoom = { ...registerFromTemplate('deliveryRoom', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_DELIVERYROOM_ID, code: 'REG-DR' }
-  deliveryRoom.sheet = { ...deliveryRoom.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
-  deliveryRoom.indicators = deliveryRoom.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 50, threshold: 60 }, vbac_rate: { target: 10 } }[indicator.id] || {}) }))
+  deliveryRoom.sheet = { ...deliveryRoom.sheet, dailyFrom: `${hospitalMonth()}-01` }
+  deliveryRoom.indicators = deliveryRoom.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65 } }[indicator.id] || {}) }))
   return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab, chemo, ophthalmology, deliveryRoom].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
-export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10)) {
+export function demoRegisterEntries(today = hospitalToday()) {
   const random = seeded(20261105)
   const entries = []
   const identities = {}

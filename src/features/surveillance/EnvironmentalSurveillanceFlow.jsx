@@ -36,6 +36,7 @@ import { environmentalSubjectCatalog } from './environmentalSurveillanceData'
 import { listTexts } from './surveillanceOptions'
 import './surveillanceRegistry.css'
 import './surveillanceEntryCard.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const icons = { surface: Layers3, room: Building2, air: Wind, water: Droplets }
 const sourceByType = {
@@ -99,7 +100,7 @@ export function EnvironmentalSurveillanceFlow({
     [location, setLocation] = useState(initial?.location || ''),
     [point, setPoint] = useState(initial?.point || ''),
     [sourceCode, setSourceCode] = useState(initial?.sourceCode || 'surfaceSwab'),
-    [date, setDate] = useState(new Date().toISOString().slice(0, 10)),
+    [date, setDate] = useState(hospitalToday()),
     [notes, setNotes] = useState(
       initial?.resampleOf ? `${t('surveillanceList.resampleOf')} ${initial.resampleOf}` : '',
     ),

@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 const severityRank={critical:4,high:3,medium:2,low:1}
 
 const dateOf=(row)=>row?.signalDate||row?.resultedAt||row?.collectedAt||row?.date||row?.startedAt||row?.dueDate||null
@@ -12,7 +13,7 @@ const inPeriod=(value,days,today)=>{
 const departmentOf=(row,language)=>language==='en'?(row.departmentEn||row.departmentEl||row.department):(row.departmentEl||row.departmentEn||row.department)
 const normalize=(value)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('el-GR')
 
-export function filterLiraData(data,{department='all',periodDays=0,language='el',today=new Date().toISOString().slice(0,10)}={}){
+export function filterLiraData(data,{department='all',periodDays=0,language='el',today=hospitalToday()}={}){
   if(!data)return data
   const filterRows=(rows=[])=>rows.filter(row=>(department==='all'||departmentOf(row,language)===department)&&inPeriod(dateOf(row),periodDays,today))
   return {...data,surveillance:filterRows(data.surveillance),laboratory:filterRows(data.laboratory),handHygiene:filterRows(data.handHygiene),bundles:filterRows(data.bundles),qualityIncidents:filterRows(data.qualityIncidents),qualityCapas:filterRows(data.qualityCapas)}
@@ -40,7 +41,7 @@ export function inferLiraQuestionScope(question,data,language='el'){
   return {department,periodDays}
 }
 
-export function buildLiraAnalysis(data,language='el',{today=new Date().toISOString().slice(0,10)}={}){
+export function buildLiraAnalysis(data,language='el',{today=hospitalToday()}={}){
  const en=language==='en'
  const {surveillance=[],laboratory=[],handHygiene=[],bundles=[],qualityIncidents=[],qualityCapas=[]}=data||{}
  const active=surveillance.filter(x=>x.state==='active')

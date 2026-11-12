@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { resultDraftChecks } from '../src/features/laboratory/laboratorySampleProgress'
 import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleRecordSource'
+import { readSource } from './helpers/readSource'
 
 // User-reported: the Laboratory record did not follow the rest of the app.
 // Prevention, Quality and Controls put each card's actions behind a ⋯ menu
@@ -14,8 +14,8 @@ import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleReco
 // fields, yes/no answers as the shared switch, and cards that size to
 // their content.
 const jsx = readLaboratorySampleRecordSource()
-const summary = fs.readFileSync('src/features/laboratory/LaboratorySampleSummary.jsx', 'utf8')
-const css = fs.readFileSync('src/features/laboratory/LaboratorySampleRecord.css', 'utf8')
+const summary = readSource('src/features/laboratory/LaboratorySampleSummary.jsx')
+const css = readSource('src/features/laboratory/LaboratorySampleRecord.css')
 
 describe('laboratory record follows the app-wide card + ⋯ menu pattern', () => {
   it('shows a guided workflow with the next step as the primary action', () => {
@@ -30,7 +30,7 @@ describe('laboratory record follows the app-wide card + ⋯ menu pattern', () =>
   })
 
   it('answers yes/no questions (critical result, read-back) with the shared switch, not checkboxes', () => {
-    const dialogs = fs.readFileSync('src/features/laboratory/LaboratorySampleDialogs.jsx', 'utf8')
+    const dialogs = readSource('src/features/laboratory/LaboratorySampleDialogs.jsx')
     expect(dialogs).toContain('<YesNoField')
     expect(dialogs).not.toContain('type="checkbox"')
     expect(css).not.toContain('lab-dialog-check')

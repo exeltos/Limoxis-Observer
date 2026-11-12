@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { countNeonatalCentralLineCasesMissingBirthWeight } from '../src/features/surveillance/deviceDayIndicators'
 import { collectIndicatorMetrics } from '../src/features/indicators/indicatorEngine'
+import { readSource } from './helpers/readSource'
 
 const centralLine = { name: 'Central venous catheter', nameEn: 'Central venous catheter', insertedAt: '2026-08-20' }
 
@@ -22,7 +22,7 @@ describe('neonates missing a birth weight are surfaced, not silently dropped', (
     const metrics = collectIndicatorMetrics()
     expect(Number.isInteger(metrics.neonatal_central_line_cases_missing_birth_weight)).toBe(true)
     expect(metrics.neonatal_central_line_cases_missing_birth_weight).toBe(countNeonatalCentralLineCasesMissingBirthWeight())
-    const engine = readFileSync('src/features/indicators/indicatorEngine.js', 'utf8')
+    const engine = readSource('src/features/indicators/indicatorEngine.js')
     expect(engine).toContain('neonatal_central_line_cases_missing_birth_weight:countNeonatalCentralLineCasesMissingBirthWeight()')
   })
 })

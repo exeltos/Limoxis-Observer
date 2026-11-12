@@ -4,6 +4,7 @@ import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { REGULATION_TEMPLATES } from './regulationTemplates'
 import { SIGNING_ROLES, contentFromTemplate, newId, nextRegulationCode, validSignatures } from './regulationModel'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // Regulations in the cloud: regulation_templates (the platform's), regulations
 // (each hospital's, with its approved edition), regulation_drafts (the edition
@@ -15,7 +16,7 @@ import { SIGNING_ROLES, contentFromTemplate, newId, nextRegulationCode, validSig
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const must = ({ data, error }) => { if (error) throw error; return data }
 const KEY = 'regulations_local'
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => hospitalToday()
 
 const toSignature = row => ({ id: row.id, role: row.role, name: row.signer_name ?? row.name, title: row.signer_title ?? row.title ?? '', image: row.image || '', signedAt: row.signed_at ?? row.signedAt, revision: row.draft_revision ?? row.revision ?? null })
 const toTemplate = row => ({ key: row.key, title: row.title, titleEn: row.title_en || '', category: row.category, description: row.description || '', sources: row.sources || '', version: row.version, content: row.content || { chapters: [] }, changeNote: row.change_note || '', publishedAt: row.published_at })

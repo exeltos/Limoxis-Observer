@@ -6,7 +6,7 @@ const TRAINING_UPDATES_CHANNEL='limoxis-training-updates'
 const TRAINING_TAB_KEY='limoxis.training.activeTabText'
 
 function cloudRequired(operation){if(isDemoDataEnvironment())return false;if(!hasSupabaseConfig||!supabase)throw new Error(`PRODUCTION_CLOUD_REQUIRED:${operation}`);return true}
-function trainingEmailError(data){const code=data?.code||'TRAINING_EMAIL_SEND_FAILED';const messages={EMAIL_SERVICE_NOT_CONFIGURED:'Η υπηρεσία email δεν είναι ρυθμισμένη στο Supabase. Απαιτούνται SMTP_USER και SMTP_PASS στο Edge Function.',EMAIL_BACKEND_CONFIG_MISSING:'Η υπηρεσία email του Supabase δεν έχει ολοκληρωμένη ρύθμιση.',EMAIL_AUTH_REQUIRED:'Απαιτείται ενεργή σύνδεση για αποστολή email.',EMAIL_INVALID_SESSION:'Η συνεδρία έληξε. Συνδεθείτε ξανά.',EMAIL_NOT_AUTHORIZED:'Δεν έχετε δικαίωμα αποστολής αυτής της φόρμας.'};const err=new Error(messages[code]||data?.error||'Δεν ήταν δυνατή η αποστολή του email.');err.code=code;err.details=data;return err}
+function trainingEmailError(data){const code=data?.code||'TRAINING_EMAIL_SEND_FAILED';const messages={EMAIL_SERVICE_NOT_CONFIGURED:'Η υπηρεσία email δεν είναι ρυθμισμένη στο Supabase. Απαιτούνται SMTP_USER και SMTP_PASS στο Edge Function.',EMAIL_BACKEND_CONFIG_MISSING:'Η υπηρεσία αποστολής email δεν έχει ολοκληρωμένη ρύθμιση.',EMAIL_AUTH_REQUIRED:'Απαιτείται ενεργή σύνδεση για αποστολή email.',EMAIL_INVALID_SESSION:'Η συνεδρία έληξε. Συνδεθείτε ξανά.',EMAIL_NOT_AUTHORIZED:'Δεν έχετε δικαίωμα αποστολής αυτής της φόρμας.'};const err=new Error(messages[code]||data?.error||'Δεν ήταν δυνατή η αποστολή του email.');err.code=code;err.details=data;return err}
 
 function announceTrainingUpdate(payload={}){
  if(typeof window==='undefined'||typeof BroadcastChannel==='undefined')return

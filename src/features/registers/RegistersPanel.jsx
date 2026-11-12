@@ -13,6 +13,7 @@ import { indicatorReport, periodLabel, periodOf } from './registerEngine'
 import { useRegisterAccess } from './registerAccess'
 import { registerKindLabel, registerStatusLabel } from './registerText'
 import './registers.css'
+import { hospitalDate } from '../../core/dates/hospitalDate'
 
 // The registers a user may open: every register for Quality, the registers of
 // their own department for a department. Used by the Quality Center tab and by
@@ -35,7 +36,7 @@ export function useRegisterList() {
 // How each register's indicators stand for the last full month: read one register after the other,
 // kept for the session, so the list shows «2 past the limit» without opening the register.
 const healthCache = new Map()
-const lastFullMonth = () => { const date = new Date(); date.setUTCDate(1); date.setUTCMonth(date.getUTCMonth() - 1); return date.toISOString().slice(0, 7) }
+const lastFullMonth = () => { const date = new Date(`${hospitalDate().slice(0, 7)}-01T12:00:00Z`); date.setUTCMonth(date.getUTCMonth() - 1); return date.toISOString().slice(0, 7) }
 function useRegisterHealth(registers) {
   const { tenant } = useTenant()
   const [health, setHealth] = useState(() => new Map())

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
 import { sampleTone } from '../src/features/surveillance/patientRecordScope'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20260919280000_block_surveillance_link_from_negative_sample.sql', 'utf8')
-const linkService = fs.readFileSync('src/features/laboratory/laboratoryLinkService.js', 'utf8')
+const migration = readSource('supabase/migrations/20260919280000_block_surveillance_link_from_negative_sample.sql')
+const linkService = readSource('src/features/laboratory/laboratoryLinkService.js')
 
 describe('Technical guard: a negative laboratory result can never start or continue a surveillance case', () => {
   it('adds a BEFORE UPDATE trigger on laboratory_samples.surveillance_case_id, not just an insert-time check', () => {
@@ -35,6 +35,6 @@ describe('Technical guard: a negative laboratory result can never start or conti
 
   it('the Surveillance & Samples UI hides the "Start surveillance" action for a negative-result sample', () => {
     expect(sampleTone({ result: 'NEGATIVE' })).toBe('negative')
-    expect(fs.readFileSync('src/core/i18n/stringsEn.js','utf8')).toContain("aNegativeResultCannotStartA:'A negative result cannot start a surveillance case.'")
+    expect(readSource('src/core/i18n/stringsEn.js')).toContain("aNegativeResultCannotStartA:'A negative result cannot start a surveillance case.'")
   })
 })

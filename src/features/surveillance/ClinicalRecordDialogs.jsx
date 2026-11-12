@@ -33,6 +33,7 @@ import {
   criteriaAgeWarning,
   SURVEILLANCE_OUTCOMES,
 } from './clinicalRecordLabels'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // Dialogs of the clinical record: assessment, devices, samples, HAI criteria,
 // therapy, isolation, reassessment, outcome and reasons. Every field is a shared
@@ -46,7 +47,7 @@ const NEW_ITEM = '__new__'
 export function AdministrationDialog({ t, language, onClose, onSave }) {
   const tr = copy(language)
   const [d, setD] = useState({
-    administeredAt: new Date().toISOString().slice(0, 10),
+    administeredAt: hospitalToday(),
     dose: '',
     route: '',
     status: 'administered',
@@ -298,7 +299,7 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
   const options = items.length ? items : defaults
   const blank = () => ({
     type: rowLabel(options[0], language),
-    insertedAt: new Date().toISOString().slice(0, 10),
+    insertedAt: hospitalToday(),
     site: '',
     notes: '',
   })
@@ -804,7 +805,7 @@ export function IsolationDialog({ t, onClose, onSave }) {
     precautions: ['contact'],
     room: '',
     reason: '',
-    startedAt: new Date().toISOString().slice(0, 10),
+    startedAt: hospitalToday(),
     reviewDue: '',
   })
   return (
@@ -849,7 +850,7 @@ export function IsolationDialog({ t, onClose, onSave }) {
   )
 }
 export function EndDialog({ title, t, onClose, onSave }) {
-  const [d, setD] = useState({ endedAt: new Date().toISOString().slice(0, 10), reason: '' })
+  const [d, setD] = useState({ endedAt: hospitalToday(), reason: '' })
   return (
     <SimpleDialog title={title} t={t} onClose={onClose} onSave={() => onSave(d)}>
       <ManualDateField
@@ -868,7 +869,7 @@ export function ReassessmentDialog({ t, onClose, onSave }) {
   const { language } = useLanguage(),
     tr = copy(language)
   const [d, setD] = useState({
-    date: new Date().toISOString().slice(0, 10),
+    date: hospitalToday(),
     status: 'stable',
     decision: 'continueTreatment',
     notes: '',
@@ -909,7 +910,7 @@ export function OutcomeDialog({ t, onClose, onSave }) {
   const { language } = useLanguage()
   const [d, setD] = useState({
     status: 'resolved',
-    date: new Date().toISOString().slice(0, 10),
+    date: hospitalToday(),
     notes: '',
   })
   return (

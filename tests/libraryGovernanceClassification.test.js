@@ -1,10 +1,10 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import { HOSPITAL_MANAGED_LIBRARY_KEYS,SYSTEM_BASELINE_LIBRARY_KEYS } from '../src/features/management/libraryGovernance'
+import { readSource } from './helpers/readSource'
 
-const libraries=fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')
-const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
-const rls=fs.readFileSync('supabase/migrations/20260902101828_platform_owner_system_library_governance.sql','utf8')
+const libraries=readSource('src/features/management/LibrariesPanel.jsx')
+const service=readSource('src/features/management/managementCloudService.js')
+const rls=readSource('supabase/migrations/20260902101828_platform_owner_system_library_governance.sql')
 
 describe('canonical library governance classification',()=>{
  it('keeps hospital departments hospital-managed',()=>{

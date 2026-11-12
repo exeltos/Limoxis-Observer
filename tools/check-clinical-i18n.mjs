@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { readSource } from './readSource.mjs'
 
 // The patient clinical record page is split across the first seven files.
 const files = [
@@ -39,7 +40,7 @@ const regressions = []
 let letters = 0
 
 for (const file of files) {
-  const source = fs.readFileSync(path.resolve(file), 'utf8')
+  const source = readSource(file)
   const count = (source.match(greekLetters) || []).length
   const matches = []
   source.split('\n').forEach((line, index) => {

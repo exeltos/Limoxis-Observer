@@ -3,6 +3,7 @@ import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { cleanAnswers, isSurveyOpen, nextSurveyCode, surveyFromTemplate } from './surveyModel'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // Satisfaction surveys (20261108100000_quality_satisfaction_surveys.sql): the
 // survey row holds its questions, each response its answers. Respondents
@@ -54,7 +55,7 @@ function demoAnswers(questions, random, mood) {
 }
 
 function demoState() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   const year = today.slice(0, 4)
   // Open since the start of the year (owner, 9/11/2026: the Demo shows the whole of 2025 and this year).
   const opensOn = `${year}-01-08`, openDays = Math.max(30, Math.round((Date.parse(today) - Date.parse(opensOn)) / 86400000))

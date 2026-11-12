@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs'
 import { URL } from 'node:url'
 import { describe,expect,it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const inventory=readFileSync(new URL('../supabase/maintenance/00_preflight_inventory.sql',import.meta.url),'utf8')
-const compact=readFileSync(new URL('../supabase/maintenance/01_preflight_compact_manifest.sql',import.meta.url),'utf8')
+const inventory=readSource(new URL('../supabase/maintenance/00_preflight_inventory.sql',import.meta.url))
+const compact=readSource(new URL('../supabase/maintenance/01_preflight_compact_manifest.sql',import.meta.url))
 
 describe('Supabase cleanup preflight',()=>{
   it('is read-only and inventories every destructive dependency category',()=>{

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 
 describe('Management Center review', () => {
   it('outbreak investigations and LIRA knowledge use the shared registry pattern', () => {

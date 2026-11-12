@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import fs from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
@@ -26,6 +25,7 @@ import {
 import { canWriteEpi, rowLine } from '../src/features/surveillance/epiQuestionnaire/epiQuestionnaireText'
 import { epiQuestionnaireSection, epiRows } from '../src/features/surveillance/forms/sections/epiQuestionnaireSection'
 import { loadEpiQuestionnaires, saveEpiCoreAnswers, saveEpiQuestionnaire } from '../src/features/surveillance/epiQuestionnaire/epiQuestionnaireService'
+import { readSource } from './helpers/readSource'
 
 const t = key => translate(key, 'el')
 const yes = (detail = '') => ({ a: 'yes', detail })
@@ -160,7 +160,7 @@ describe('epidemiological questionnaire section', () => {
 })
 
 describe('epidemiological questionnaire migration', () => {
-  const sql = fs.readFileSync('supabase/migrations/20261206100000_epi_questionnaire.sql', 'utf8').replace(/--[^\n]*/g, '')
+  const sql = readSource('supabase/migrations/20261206100000_epi_questionnaire.sql').replace(/--[^\n]*/g, '')
   it('is additive and has organization_id, composite FK, RLS and the restrictive module gates', () => {
     expect(sql).not.toMatch(/\bdrop\b|\brevoke\b|\balter\s+policy\b|\bdelete\s+from\b/i)
     expect(sql).toMatch(/foreign key \(surveillance_case_id, organization_id\)\s+references public\.surveillance_cases \(id, organization_id\)/)

@@ -1,9 +1,10 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 // The demo's legislation: a few texts every hospital knows, with requirements
 // written as a hospital would check them (a summary, not the text of the law),
 // one of them updated after the hospital reviewed it. The candidates are marked
 // as examples: the real ones come from the automatic check of the sources.
 
-const day = (offset, from = new Date().toISOString().slice(0, 10)) => { const date = new Date(`${from}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10) }
+const day = (offset, from = hospitalToday()) => { const date = new Date(`${from}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10) }
 const req = (id, text) => ({ id, text })
 
 const WASTE_V1 = [

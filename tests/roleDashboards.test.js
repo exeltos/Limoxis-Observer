@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 
 describe('role dashboards', () => {
   it('awaits each dashboard count instead of Promise.all over [key, promise] pairs', () => {

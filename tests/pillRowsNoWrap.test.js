@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 // Owner's rule: pill / chip / totals groups never break onto a second line (docs/CSS_ARCHITECTURE.md).
 const rule = (file, selector) => {
-  const css = readFileSync(file, 'utf8')
+  const css = readSource(file)
   const at = css.indexOf(`${selector}{`)
   expect(at, `${selector} in ${file}`).toBeGreaterThan(-1)
   return css.slice(at, css.indexOf('}', at))

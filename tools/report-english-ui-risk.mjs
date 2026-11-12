@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { SOURCE_FILE } from './readSource.mjs'
 
 const roots=['src']
 const migrated=new Set([
@@ -15,7 +16,7 @@ function walk(dir){
  for(const name of fs.readdirSync(dir)){
   const full=path.join(dir,name),stat=fs.statSync(full)
   if(stat.isDirectory())walk(full)
-  else if(/\.(jsx|js)$/.test(name)){
+  else if(SOURCE_FILE.test(name)){
    const rel=full.replaceAll('\\','/')
    if(migrated.has(rel)||exclude.some(x=>rel.toLowerCase().includes(x)))continue
    const lines=fs.readFileSync(full,'utf8').split(/\r?\n/)

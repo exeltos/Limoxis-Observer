@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
 const departmentOf=row=>row?.department||row?.departmentEl||row?.departmentEn||'—'
 const rowDate=row=>row?.signalDate||row?.resultedAt||row?.collectedAt||row?.date||row?.startedAt||row?.dueDate||null
@@ -15,7 +16,7 @@ function operationalMetrics(data,{department='all',window=null,today}){
  return {active:surveillance.filter(row=>row.state==='active').length,overdueReviews:surveillance.filter(row=>row.reviewDue&&overdue(row.reviewDue,today)).length,criticalUncommunicated:laboratory.filter(row=>row.critical&&!(row.communications||[]).length).length,amr:laboratory.filter(row=>Boolean(row.resistance)).length,handHygiene:weightedHand(handRows),bundleCompliance:bundleRate(bundleRows),seriousIncidents:incidents.filter(row=>openStatus(row.status)&&['high','critical','major','severe'].includes(normalize(row.severity))).length,overdueCapas:capas.filter(row=>openStatus(row.status)&&overdue(row.dueDate,today)).length}
 }
 
-export function buildOperationalOverview(data,{department='all',today=new Date().toISOString().slice(0,10),language='el'}={}){
+export function buildOperationalOverview(data,{department='all',today=hospitalToday(),language='el'}={}){
  const en=language==='en';const metrics=operationalMetrics(data,{department,today});const {active,overdueReviews,criticalUncommunicated,amr,handHygiene:hand,bundleCompliance:bundles,seriousIncidents,overdueCapas}=metrics
  const signals=[];const add=(priority,domain,title,detail)=>signals.push({priority,domain,title,detail})
  if(criticalUncommunicated)add(100,'laboratory',en?'Critical laboratory communication':'Γνωστοποίηση κρίσιμων εργαστηριακών',en?`${criticalUncommunicated} critical result(s) have no documented communication.`:`${criticalUncommunicated} κρίσιμα αποτελέσματα δεν έχουν τεκμηριωμένη γνωστοποίηση.`)
@@ -32,7 +33,7 @@ export function buildOperationalOverview(data,{department='all',today=new Date()
  return {title:en?'What needs attention?':'Τι χρειάζεται προσοχή;',subtitle:en?`Cross-domain operational view ${scope}.`:`Διατομεακή λειτουργική εικόνα ${scope}.`,points,signals,metrics}
 }
 
-export function compareOperationalOverview(data,spec,{department='all',today=new Date().toISOString().slice(0,10),language='el'}={}){
+export function compareOperationalOverview(data,spec,{department='all',today=hospitalToday(),language='el'}={}){
  const en=language==='en';const current=operationalMetrics(data,{department,window:spec.current,today});const reference=operationalMetrics(data,{department,window:spec.reference,today})
  const definitions=[['criticalUncommunicated',en?'critical results without documented communication':'κρίσιμα αποτελέσματα χωρίς τεκμηριωμένη γνωστοποίηση','higher'],['overdueReviews',en?'overdue surveillance reviews':'εκπρόθεσμες επανεκτιμήσεις επιτήρησης','higher'],['seriousIncidents',en?'serious open quality incidents':'σοβαρά ανοικτά συμβάντα ποιότητας','higher'],['overdueCapas',en?'overdue CAPA':'εκπρόθεσμες διορθωτικές ενέργειες','higher'],['amr','AMR / MDR-XDR','higher'],['handHygiene',en?'hand-hygiene compliance':'συμμόρφωση υγιεινής χεριών','lower'],['bundleCompliance',en?'bundle all-or-none compliance':'bundle all-or-none συμμόρφωση','lower']]
  const changes=[]
@@ -43,7 +44,7 @@ export function compareOperationalOverview(data,spec,{department='all',today=new
  return {title:en?'What changed?':'Τι άλλαξε;',subtitle:en?`${spec.current.label} versus ${spec.reference.label} across infection prevention and quality signals.`:`${spec.current.label} έναντι ${spec.reference.label} σε σήματα λοιμώξεων, πρόληψης και ποιότητας.`,points,changes,current,reference}
 }
 
-export function explainOperationalChange(data,spec,{department='all',today=new Date().toISOString().slice(0,10),language='el'}={}){
+export function explainOperationalChange(data,spec,{department='all',today=hospitalToday(),language='el'}={}){
  const en=language==='en';const comparison=compareOperationalOverview(data,spec,{department,today,language});const worse=comparison.changes.filter(change=>change.worsened).slice(0,4);const better=comparison.changes.filter(change=>!change.worsened).slice(0,2);const points=[]
  if(worse.length){points.push(en?'The strongest concurrent deterioration signals are:':'Τα ισχυρότερα παράλληλα σήματα επιδείνωσης είναι:');for(const change of worse){const unit=['handHygiene','bundleCompliance'].includes(change.key)?'%':'';points.push(`${change.label}: ${fmt(change.reference)}${unit} → ${fmt(change.current)}${unit}.`)}}
  else points.push(en?'The available matched-period records do not show a clear cross-domain deterioration signal.':'Οι διαθέσιμες εγγραφές των αντίστοιχων περιόδων δεν δείχνουν σαφές διατομεακό σήμα επιδείνωσης.')

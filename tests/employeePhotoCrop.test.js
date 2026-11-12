@@ -2,8 +2,8 @@
 // Employee photo framing: an upload is cut to a square that keeps the face of a
 // head-and-shoulders portrait (upper centre), the same framing the avatars use.
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { PHOTO_FOCUS_Y, squareCrop } from '../src/features/employees/employeePhotoService'
+import { readSource } from './helpers/readSource'
 
 describe('employee photo square crop', () => {
   it('keeps the upper part of a portrait, a quarter of the spare height from the top', () => {
@@ -22,7 +22,7 @@ describe('employee photo square crop', () => {
   })
 
   it('frames avatars on the same upper centre', () => {
-    const css = fs.readFileSync('src/features/employees/employeePhoto.css', 'utf8')
+    const css = readSource('src/features/employees/employeePhoto.css')
     expect(css).toMatch(/\.employee-avatar img\{[^}]*object-fit:cover[^}]*object-position:50% 25%/)
   })
 })

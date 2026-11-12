@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
 import { demoLibrarySeed } from '../src/features/management/managementData'
+import { readSource } from './helpers/readSource'
 
 // Live production bug found via Supabase edge_logs while the user was
 // populating demo data for a presentation: demo mode's tenant.id is the
@@ -27,7 +27,7 @@ describe('every loadDepartments/loadManagementLibraries call site checks isDemo 
 
   for (const [path, demoSnippet] of Object.entries(files)) {
     it(`${path} imports demoLibrarySeed and branches on isDemo before loading departments`, () => {
-      const source = fs.readFileSync(path, 'utf8')
+      const source = readSource(path)
       expect(source).toContain("import { demoLibrarySeed } from '../management/managementData'")
       expect(source).toContain(demoSnippet)
       expect(source).toMatch(/isDemo/)
@@ -36,7 +36,7 @@ describe('every loadDepartments/loadManagementLibraries call site checks isDemo 
 
   it('EmployeeCreatePage and EmployeeRecordPage also cover the professionalCategories side of loadManagementLibraries', () => {
     for (const path of ['src/features/employees/EmployeeCreatePage.jsx', 'src/features/employees/EmployeeRecordPage.jsx']) {
-      const source = fs.readFileSync(path, 'utf8')
+      const source = readSource(path)
       expect(source).toContain('demoLibrarySeed.professionalCategories')
     }
   })

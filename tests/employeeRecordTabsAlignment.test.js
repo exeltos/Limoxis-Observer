@@ -1,8 +1,8 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
 import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 const tabs=readEmployeeRecordTabsSource()
 const service=read('src/features/employees/employeeSubRecordsService.js')
 const documents=read('src/design-system/DocumentsWorkspace.jsx')

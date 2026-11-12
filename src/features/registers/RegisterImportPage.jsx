@@ -24,6 +24,7 @@ import { IGNORED_COLUMN, isAmka, planImport, suggestMapping, toIsoDate, valueMap
 import { formatDay } from '../../core/i18n/formatDay'
 import './registers.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const NEW = '__new__'
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -72,7 +73,7 @@ export function RegisterImportPage() {
         // The template's FileMaker names and newer options come along (withTemplateHints).
         const hinted = withTemplateHints(next)
         setRegister(hinted)
-        if (hinted.undatedImport) setFallbackDate(new Date().toISOString().slice(0, 10))
+        if (hinted.undatedImport) setFallbackDate(hospitalToday())
         setExisting(await loadEntries(tenant?.id, next.id, { withIdentity: access.canSeeIdentity(next), register: next }))
       } catch (error) { console.error(error) } finally { if (active) setLoading(false) }
     })()

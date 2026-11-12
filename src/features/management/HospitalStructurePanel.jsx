@@ -11,8 +11,9 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { ROLES } from '../../core/permissions/roles'
 import { deleteHospitalStructureSnapshot, loadHospitalStructureHistory, saveHospitalStructureSnapshot } from './hospitalStructureCloudService'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
-const todayIso = () => new Date().toISOString().slice(0, 10)
+const todayIso = () => hospitalToday()
 const emptyDraft = { effectiveDate: todayIso(), totalBeds: '', icuBeds: '', singleRooms: '', infectionControlNurses: '', infectiousDiseasePhysicians: '', microbiologists: '', notes: '' }
 
 export function HospitalStructurePanel() {

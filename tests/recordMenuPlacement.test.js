@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 // The «…» menu of a record (edit, archive, delete, reject…) is the law of every record:
 // the top right corner of the record card, never the header.
-const shell = readFileSync('src/design-system/EntityRecordShell.jsx', 'utf8')
+const shell = readSource('src/design-system/EntityRecordShell.jsx')
 
 describe('record «…» menu placement', () => {
   it('renders the general record menu inside the record body, not the header', () => {
@@ -14,7 +14,7 @@ describe('record «…» menu placement', () => {
   })
 
   it('anchors the menu to the top right corner of the card', () => {
-    const css = readFileSync('src/styles/design-system.css', 'utf8')
+    const css = readSource('src/styles/design-system.css')
     expect(css).toMatch(/\.entity-record-body>\.entity-record-general-actions\{position:absolute;top:\d+px;right:\d+px/)
   })
 })

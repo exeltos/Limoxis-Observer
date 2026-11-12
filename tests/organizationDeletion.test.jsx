@@ -3,8 +3,9 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import '@testing-library/jest-dom/vitest'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261009120000_safe_organization_deletion.sql')
 const edge = read('supabase/functions/platform-delete-organizations/index.ts')
 const tenantService = read('src/core/tenant/tenantService.js')
@@ -53,7 +54,7 @@ describe('organization deletion: Edge Function', () => {
     expect(edge).toContain('signInWithPassword')
     expect(edge).toContain("from('platform_reauth_failures')")
     // The ticketed purge, storage and account cleanup live in one shared module.
-    const shared = fs.readFileSync('supabase/functions/_shared/organizationPurge.ts', 'utf8')
+    const shared = readSource('supabase/functions/_shared/organizationPurge.ts')
     expect(edge).toContain("import { purgeOrganization } from '../_shared/organizationPurge.ts'")
     expect(shared).toContain("caller.rpc('platform_purge_organization_tx'")
     expect(shared).toContain('admin.storage.from(bucket).remove(chunk)')

@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 // Quality resources (ISO 9001 §7.1.5 and §8.4): the medical equipment and its
 // maintenance and calibration programme, and the external providers with their
 // certifications, yearly evaluations and nonconformities. Everything here is
@@ -8,7 +9,7 @@ import { evaluationMonths, evaluationResult, evaluationTotal } from './supplierT
 
 const pick = (list, value, language) => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
 const toneOf = (list, value) => list.find(item => item.value === value)?.tone || 'neutral'
-export const todayIso = () => new Date().toISOString().slice(0, 10)
+export const todayIso = () => hospitalToday()
 export const DUE_SOON_DAYS = 30
 export const EXPIRY_SOON_DAYS = 60
 

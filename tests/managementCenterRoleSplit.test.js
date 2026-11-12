@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { can, CAPABILITIES, ROLES } from '../src/core/permissions/roles'
 import { SECTION_TABS, sectionTabsFor } from '../src/core/navigation/sectionTabs'
+import { readSource } from './helpers/readSource'
 
 // User-requested: the hospital Management Center must not mix in the
 // platform's tools. Platform-wide items (LIRA Knowledge, external
@@ -9,7 +9,7 @@ import { SECTION_TABS, sectionTabsFor } from '../src/core/navigation/sectionTabs
 // screen; inside a hospital the Platform Owner sees what the Hospital
 // Administrator sees. The Infection Control Lead also gets outbreak
 // investigations (VIEW_LIRA) instead of them being tied to user management.
-const page = fs.readFileSync('src/features/management/ManagementPage.jsx', 'utf8')
+const page = readSource('src/features/management/ManagementPage.jsx')
 const hospitalTabs = page.slice(page.indexOf('const ok=cap=>'), page.indexOf(']},[global,role'))
 const globalTabs = page.slice(page.indexOf('if(global)return ['), page.indexOf('const ok=cap=>'))
 
@@ -47,9 +47,9 @@ describe('Management Center: hospital vs platform', () => {
 })
 
 describe('Indicators › Data: structural indicators and PPS (bed days: own Management tab)', () => {
-  const data = fs.readFileSync('src/features/indicators/IndicatorDataPanel.jsx', 'utf8')
-  const executive = fs.readFileSync('src/features/executive/ExecutiveDashboardPage.jsx', 'utf8')
-  const route = fs.readFileSync('src/features/indicators/IndicatorsRoute.jsx', 'utf8')
+  const data = readSource('src/features/indicators/IndicatorDataPanel.jsx')
+  const executive = readSource('src/features/executive/ExecutiveDashboardPage.jsx')
+  const route = readSource('src/features/indicators/IndicatorsRoute.jsx')
   it('lists the three hand-entered data screens, each behind its own capability', () => {
     expect(data).not.toContain("id: 'patientDays'")
     for (const [id, capability] of [['hospitalStructure', 'MANAGE_HOSPITAL_STRUCTURE'], ['prevalenceSurvey', 'RECORD_PREVALENCE_SURVEY']]) {

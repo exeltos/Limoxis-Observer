@@ -1,5 +1,5 @@
-import fs from 'node:fs'
-const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),'utf8')
+import { readSource } from './readSource.mjs'
+const read=p=>readSource(p)
 // Whitespace-insensitive, so the check survives reformatting of the file.
 const compact=text=>text.replace(/\s+/g,'')
 const employeeList=read('src/features/employees/EmployeesPage.jsx')

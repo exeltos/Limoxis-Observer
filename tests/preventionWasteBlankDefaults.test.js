@@ -1,8 +1,8 @@
 // The editors and services are exercised by behavior in preventionAntisepticWasteBehavior
 // and preventionVaccinationBundleBehavior; the layout (CSS) rules stay here.
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
-const css=fs.readFileSync('src/styles/workspaces.css','utf8')
+import { readSource } from './helpers/readSource'
+const css=readSource('src/styles/workspaces.css')
 
 describe('prevention new-record defaults and visible refinements',()=>{
   it('targets the actual ActionButton and editor classes for visible styling',()=>{

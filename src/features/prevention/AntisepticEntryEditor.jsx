@@ -10,6 +10,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ANTISEPTIC_METHODS, antisepticPeriodBounds, antisepticPeriodKind, antisepticPeriodLabel, isAbhrProduct } from './antisepticMethods'
 import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 export const HOSPITAL_SCOPE = '__hospital__'
 
@@ -31,7 +32,7 @@ export function AntisepticEntryEditor({
   const { language, locale } = useLanguage()
   const en = language === 'en'
   const actor = useMemo(() => controlActorFromAuth({ profile, user }), [profile, user])
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   const currentMonth = today.slice(0, 7)
   const initialDepartment =
     initialRecord?.departmentScope === 'hospital'

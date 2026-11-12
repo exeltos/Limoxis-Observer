@@ -1,7 +1,7 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 const migration=read('supabase/migrations/20261115100000_training_relational.sql')
 const manifest=JSON.parse(read('supabase/security-definer-manifest.json')).functions
 const fn=name=>{const start=migration.indexOf(`create or replace function ${name}(`);expect(start,name).toBeGreaterThan(-1);return migration.slice(start,migration.indexOf('$function$;',start))}

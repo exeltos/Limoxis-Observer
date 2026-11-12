@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 // The evaluation's windows and tours load on demand (dynamic imports): give them time in a test run.
 configure({ asyncUtilTimeout: 8000 })
@@ -70,11 +70,11 @@ describe('questionnaire storage', () => {
   })
 
   it('widens the scenario keys and keeps the RPC for active Demo members only', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261028120000_demo_role_guidance.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261028120000_demo_role_guidance.sql')
     expect(sql).toContain('drop constraint if exists demo_evaluation_progress_step_key_check')
     expect(sql).toContain("om.status = 'active' and o.is_demo")
     expect(sql).toContain('from public, anon')
-    const manifest = JSON.parse(fs.readFileSync('supabase/security-definer-manifest.json', 'utf8'))
+    const manifest = JSON.parse(readSource('supabase/security-definer-manifest.json'))
     expect(JSON.stringify(manifest)).toContain('demo_submit_scenario_feedback')
   })
 })

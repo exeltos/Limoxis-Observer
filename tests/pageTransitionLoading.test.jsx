@@ -3,7 +3,6 @@
 // a page file already fetched renders at once, a screen whose first load has not
 // ended shows placeholders (never its empty state or 0 figures), and a record
 // page never shows the previous record. See tools/capture-page-transitions.mjs.
-import fs from 'node:fs'
 import { Suspense } from 'react'
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -14,8 +13,9 @@ import { MetricCard } from '../src/design-system/MetricCard'
 import { lazyPage } from '../src/core/errors/chunkRecovery'
 import { preloadRoute, registerRoutePreload } from '../src/app/routePreload'
 import { useEmployeeSubRecords } from '../src/features/employees/useEmployeeSubRecords'
+import { readSource } from './helpers/readSource'
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 const inLanguage = ui => render(<LanguageProvider>{ui}</LanguageProvider>)
 
 afterEach(() => cleanup())

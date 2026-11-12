@@ -1,12 +1,12 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const app=fs.readFileSync(new URL('../src/app/App.jsx',import.meta.url),'utf8')
-const qualityCreate=fs.readFileSync(new URL('../src/features/quality/QualityCreatePage.jsx',import.meta.url),'utf8')
-const committeeRoute=fs.readFileSync(new URL('../src/features/committees/CommitteeRecordPageRoute.jsx',import.meta.url),'utf8')
-const tenantContext=fs.readFileSync(new URL('../src/core/tenant/TenantContext.jsx',import.meta.url),'utf8')
-const capabilityGuard=fs.readFileSync(new URL('../src/core/permissions/RequireCapability.jsx',import.meta.url),'utf8')
-const protectedRoute=fs.readFileSync(new URL('../src/core/auth/ProtectedRoute.jsx',import.meta.url),'utf8')
+const app=readSource(new URL('../src/app/App.jsx',import.meta.url))
+const qualityCreate=readSource(new URL('../src/features/quality/QualityCreatePage.jsx',import.meta.url))
+const committeeRoute=readSource(new URL('../src/features/committees/CommitteeRecordPageRoute.jsx',import.meta.url))
+const tenantContext=readSource(new URL('../src/core/tenant/TenantContext.jsx',import.meta.url))
+const capabilityGuard=readSource(new URL('../src/core/permissions/RequireCapability.jsx',import.meta.url))
+const protectedRoute=readSource(new URL('../src/core/auth/ProtectedRoute.jsx',import.meta.url))
 
 describe('route authorization alignment',()=>{
  it('protects Platform Center with VIEW_PLATFORM',()=>{

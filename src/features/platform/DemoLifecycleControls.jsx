@@ -4,9 +4,10 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import './platformLifecycle.css'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const addDays=(isoDate,days)=>{const date=new Date(`${isoDate}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)}
-const todayIso=()=>new Date().toISOString().slice(0,10)
+const todayIso=()=>hospitalToday()
 const fmtDay=(value,en)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${value}T12:00:00`)):'—'
 
 // Demo record: extend by 7/14/30 days or to a date. The days are added to the

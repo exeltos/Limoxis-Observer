@@ -1,10 +1,10 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { APPLICATION_STEPS, CONSENTS, LIMITS, applicationErrorText, applicationPath, applicationProblems, cleanApplication, demoApplication, firstStepWithProblems, formatCode, isDemoToken, maskDay, maskMonth, newApplication, normalizeCode, parseDay, parseMonth, stepProblems, validCode } from '../src/features/interviews/applicationModel'
 import { LEVELS, certificateLabel, languageSkillsText, levelLabel } from '../src/features/interviews/interviewsModel'
+import { readSource } from './helpers/readSource'
 
 const fields = problems => problems.map(([field]) => field)
-const sql = fs.readFileSync('supabase/migrations/20261129300000_hr_application_tablet.sql', 'utf8')
+const sql = readSource('supabase/migrations/20261129300000_hr_application_tablet.sql')
 
 describe('Tablet application: steps and validation', () => {
   it('has the nine steps in order', () => {
@@ -85,7 +85,7 @@ describe('Language levels and the three skills', () => {
     expect(languageSkillsText({ language: 'en', speaking: 'fluent', reading: 'good', writing: 'fair', certificate: true, certificateName: 'B2' })).toBe('Αγγλικά — Ομιλία: Άριστα (ευχερώς) · Ανάγνωση: Καλά · Γραφή: Μέτρια · Πιστοποιητικό: B2')
     expect(languageSkillsText({ language: 'el', speaking: 'very_good' }, 'en')).toBe('Greek — Speaking: Very good')
     expect(certificateLabel({ certificate: false }, 'en')).toBe('No certificate')
-    const sources = ['src/features/interviews/InterviewRecordPage.jsx', 'src/features/interviews/interviewsReports.js', 'src/features/interviews/apply/ApplicationPage.jsx'].map(file => fs.readFileSync(file, 'utf8')).join('\n')
+    const sources = ['src/features/interviews/InterviewRecordPage.jsx', 'src/features/interviews/interviewsReports.js', 'src/features/interviews/apply/ApplicationPage.jsx'].map(file => readSource(file)).join('\n')
     expect(sources).not.toMatch(/Copy2|ΕΥΧ|ΜΕΤΡ/)
   })
 })
@@ -120,7 +120,7 @@ describe('Tablet application: database', () => {
     expect(sql).toMatch(/where n <= 15/)
     const publicBody = sql.slice(sql.indexOf('create or replace function public.hr_application_public'), sql.indexOf('revoke all on function public.hr_application_public'))
     expect(publicBody).not.toMatch(/hr_candidates/)
-    const manifest = JSON.parse(fs.readFileSync('supabase/security-definer-manifest.json', 'utf8')).functions
+    const manifest = JSON.parse(readSource('supabase/security-definer-manifest.json')).functions
     expect(manifest.hr_application_submit).toMatchObject({ category: 'public-token', anon: true })
     expect(manifest.hr_application_link_create).toMatchObject({ category: 'rpc', authenticated: true })
     expect(manifest.hr_application_link_create.anon).toBeUndefined()

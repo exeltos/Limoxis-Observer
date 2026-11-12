@@ -3,6 +3,7 @@ import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { REVIEW_SECTIONS, addDays, nextCode, toNumber } from './reviewTemplate'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // Quality objectives and management reviews
 // (20261106100000_quality_objectives_management_review.sql): one row per
@@ -16,7 +17,7 @@ const must = ({ data, error }) => { if (error) throw error; return data }
 // --- Demo -------------------------------------------------------------------------
 
 function demoReviews() {
-  const reviewDate = addDays(new Date().toISOString().slice(0, 10), -50)
+  const reviewDate = addDays(hospitalToday(), -50)
   const text = {
     previous_actions: 'Ολοκληρώθηκαν οι ενέργειες της προηγούμενης συνεδρίασης.',
     objectives: 'Παρουσιάστηκαν οι στόχοι του έτους και τα αποτελέσματα των δεικτών.',

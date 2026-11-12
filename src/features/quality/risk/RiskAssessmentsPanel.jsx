@@ -15,6 +15,7 @@ import { importPlan,importRiskWorkbook } from './riskImport'
 import { summarizeRisks,levelLabel,suggestPeriodLabel } from './riskModel'
 import { AssessmentStatusBadge,L,PERIOD_KINDS,fmtDate,returnedClass,txt,usePaged,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 const FIELD_LABELS={inherentScore:['Εγγενής βαθμός','Inherent score'],residualScore:['Υπολειπόμενος βαθμός','Residual score'],inherentLevel:['Εγγενής κατηγορία','Inherent level'],residualLevel:['Υπολειπόμενη κατηγορία','Residual level'],process:['Διεργασία','Process'],wording:['Λεκτικό','Wording']}
 
@@ -85,7 +86,7 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
 // Header of an assessment (new, imported or edited). A new one may carry the
 // risks of an earlier assessment forward, to be reassessed for the new period.
 export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSave,saveLabel,intro=null,children}){
- const today=new Date().toISOString().slice(0,10)
+ const today=hospitalToday()
  const [draft,setDraft]=useState(()=>({title:L(en,'Εκτίμηση επικινδυνότητας','Risk assessment'),periodLabel:String(new Date().getFullYear()),periodKind:'annual',assessedOn:today,nextReviewOn:'',assessorLabel:'',formCode:'Ε.Δ.QUAL.050-02',scopeNote:'',...initial}))
  const [carryId,setCarryId]=useState(assessments[0]?.id||'')
  const isNew=!initial?.id
@@ -116,7 +117,7 @@ export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSav
 
 function ImportPreviewDialog({preview,en,onClose,onConfirm}){
  const year=(preview.meta.assessedOn||'').slice(0,4)||String(new Date().getFullYear())
- const initial={title:preview.meta.title||L(en,'Εκτίμηση επικινδυνότητας','Risk assessment'),formCode:preview.meta.formCode||'',periodLabel:year,assessedOn:preview.meta.assessedOn||new Date().toISOString().slice(0,10),nextReviewOn:preview.meta.nextReviewOn||'',assessorLabel:preview.meta.assessor||''}
+ const initial={title:preview.meta.title||L(en,'Εκτίμηση επικινδυνότητας','Risk assessment'),formCode:preview.meta.formCode||'',periodLabel:year,assessedOn:preview.meta.assessedOn||hospitalToday(),nextReviewOn:preview.meta.nextReviewOn||'',assessorLabel:preview.meta.assessor||''}
  // A file with a reassessment also creates the initial assessment, dated by its own period.
  const earlier=(preview.periods||[]).length>1?preview.periods[0]:null
  const [first,setFirst]=useState(()=>({initialLabel:String(earlier?.year||''),initialOn:earlier?.year?`${earlier.year}${initial.assessedOn.slice(4)}`:''}))

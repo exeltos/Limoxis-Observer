@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import fs from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 const calls = []
 const visitRows = [
@@ -74,7 +74,7 @@ describe('Occupational Health registry visits', () => {
   })
 
   it('the page loads its visits through the cloud-aware loader', () => {
-    const page = fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx', 'utf8')
+    const page = readSource('src/features/occupational-health/OccupationalHealthPage.jsx')
     expect(page).toContain('loadAllOccupationalVisitsAsync(tenant?.id)')
     expect(page).not.toContain('useMemo(loadOccupationalVisits')
   })

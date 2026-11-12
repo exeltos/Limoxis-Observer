@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { labelTableCells } from '../src/app/phoneTableCards.js'
+import { labelTableCells } from '../src/app/phoneTableCards'
 
 describe('phone table cards', () => {
   it('gives every registry cell its column name, honouring colspan', () => {

@@ -5,6 +5,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 const MIGRATIONS = 'supabase/migrations'
 const files = fs.readdirSync(MIGRATIONS).filter(name => name.endsWith('.sql')).sort()
@@ -12,7 +13,7 @@ const files = fs.readdirSync(MIGRATIONS).filter(name => name.endsWith('.sql')).s
 function latestFunction(name) {
   let found = null
   for (const file of files) {
-    const sql = fs.readFileSync(path.join(MIGRATIONS, file), 'utf8')
+    const sql = readSource(path.join(MIGRATIONS, file))
     const match = sql.match(new RegExp(`create or replace function ${name.replace('.', '\\.')}\\([\\s\\S]*?\\$function\\$([\\s\\S]*?)\\$function\\$`, 'i'))
     if (match) found = { file, body: match[1] }
   }
@@ -48,7 +49,7 @@ describe('module lock in SECURITY DEFINER aggregates', () => {
     })
     it(`${name} stays SECURITY DEFINER with a fixed search_path`, () => {
       const { file } = latestFunction(name)
-      const sql = fs.readFileSync(path.join(MIGRATIONS, file), 'utf8')
+      const sql = readSource(path.join(MIGRATIONS, file))
       const header = sql.match(new RegExp(`create or replace function ${name.replace('.', '\\.')}\\([\\s\\S]*?as \\$function\\$`, 'i'))[0]
       expect(header).toMatch(/security definer/i)
       expect(header).toMatch(/set search_path/i)
@@ -56,7 +57,7 @@ describe('module lock in SECURITY DEFINER aggregates', () => {
   }
 
   it('the migration revokes and drops nothing', () => {
-    const sql = fs.readFileSync(path.join(MIGRATIONS, '20261207200000_module_gate_aggregates.sql'), 'utf8')
+    const sql = readSource(path.join(MIGRATIONS, '20261207200000_module_gate_aggregates.sql'))
     expect(sql).not.toMatch(/\b(drop|revoke|delete|alter policy)\b/i)
   })
 })

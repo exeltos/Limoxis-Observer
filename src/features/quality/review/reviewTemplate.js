@@ -8,6 +8,7 @@ import { certificationState, evaluationApproval } from '../resources/resourceMod
 import { normalizeOpportunity, summarizeRisks } from '../risk/riskModel'
 import { satisfactionCounts } from '../surveys/surveyModel'
 import { groupStatus } from '../meetings/meetingModel'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 export const REVIEW_SECTIONS = [
   { key: 'previous_actions', short: 'Προηγούμενες ενέργειες', shortEn: 'Previous actions', title: 'Ανασκόπηση Ενεργειών Προηγούμενων Συνεδριάσεων', titleEn: 'Actions from previous reviews', source: 'previousActions' },
@@ -47,7 +48,7 @@ const count = (rows, test) => rows.filter(test).length
 
 // A new review from the previous one: the same participants and frequency,
 // the period from the last review to today, the actions still open.
-export function newReviewFrom(previous, today = new Date().toISOString().slice(0, 10)) {
+export function newReviewFrom(previous, today = hospitalToday()) {
   const frequency = previous?.frequencyDays || 90
   const reviewDate = today
   return {

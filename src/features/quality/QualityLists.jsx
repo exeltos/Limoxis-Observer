@@ -21,13 +21,14 @@ import { SelfAssessmentPanel } from './selfAssessment/SelfAssessmentPanel'
 import { AUDIT_KINDS,AUDIT_STANDARDS,standardShort } from './audits/auditStandards'
 import { auditCoverage } from './audits/auditModel'
 import { roleTitleText } from '../../core/i18n/roleTitles'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // The two record lists of the Quality Center that are not the reports register:
 // the corrective actions (with the findings still waiting for one), and the audits.
 
 // Closed, completed, cancelled and voided records need nothing more.
 export const isOpenRecord=row=>!['closed','completed','cancelled'].includes(row.status)&&row.lifecycleStatus!=='voided'
-const today=()=>new Date().toISOString().slice(0,10)
+const today=()=>hospitalToday()
 export const isOverdueAction=row=>row.kind==='capa'&&isOpenRecord(row)&&Boolean(row.dueDate)&&row.dueDate<today()
 
 // Filters that survive opening a record and coming back (one set per list).

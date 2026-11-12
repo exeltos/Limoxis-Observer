@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
-import { expectVersion, guardedSingle } from '../src/core/data/recordVersion.js'
-import { sanitizeUserMessage, userFacingError } from '../src/core/feedback/userFacingError.js'
+import { expectVersion, guardedSingle } from '../src/core/data/recordVersion'
+import { sanitizeUserMessage, userFacingError } from '../src/core/feedback/userFacingError'
+import { readSource } from './helpers/readSource'
 
 const fakeQuery = result => { const calls = []; const q = { calls, eq: (c, v) => { calls.push([c, v]); return q }, then: (ok, no) => Promise.resolve(result).then(ok, no) }; return q }
 
@@ -24,8 +24,8 @@ describe('record versions (concurrent editing)', () => {
   })
 
   it('guards the editable records and the database moves their version on every update', () => {
-    for (const file of ['src/features/patients/patientsService.js', 'src/features/quality/qualityService.js', 'src/features/employees/employeeService.js', 'src/features/documents/documentService.js']) expect(fs.readFileSync(file, 'utf8'), file).toMatch(/guardedSingle\(expectVersion\(/)
-    const sql = fs.readFileSync('supabase/migrations/20261023120000_record_version_touch.sql', 'utf8')
+    for (const file of ['src/features/patients/patientsService.js', 'src/features/quality/qualityService.js', 'src/features/employees/employeeService.js', 'src/features/documents/documentService.js']) expect(readSource(file), file).toMatch(/guardedSingle\(expectVersion\(/)
+    const sql = readSource('supabase/migrations/20261023120000_record_version_touch.sql')
     for (const table of ['patients', 'employees', 'quality_incidents', 'quality_findings', 'quality_capa_actions', 'quality_audits']) expect(sql).toContain(`'${table}'`)
   })
 })

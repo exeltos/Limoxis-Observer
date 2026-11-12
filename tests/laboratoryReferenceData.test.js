@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { demoLibrarySeed } from '../src/features/management/managementData'
 import { EMPLOYEE_SCREENING_TYPES, ENVIRONMENTAL_SAMPLE_TYPES, PATIENT_SAMPLE_TYPES, patientSampleSources, patientSampleTypeOptions, sampleSourceLabel } from '../src/features/laboratory/laboratoryReferenceData'
 import { laboratoryStatusTone } from '../src/features/laboratory/LaboratoryStatus'
+import { readSource } from './helpers/readSource'
 
 const sampleTypes = demoLibrarySeed.sampleTypes.map(([el, en, meta]) => ({ id: meta?.id || null, value: el, code: meta?.code || null, el, en, meta: meta || {} }))
 const t = key => `t:${key}`
@@ -47,7 +47,7 @@ describe('laboratory reference lists', () => {
     expect(laboratoryStatusTone('positive')).toBe('danger')
     expect(laboratoryStatusTone('rejected')).toBe('danger')
     expect(laboratoryStatusTone('cancelled')).toBe('neutral')
-    const sources = ['LaboratoryWorkspace.jsx', 'LaboratorySampleRecordFunctionalView.jsx', 'LaboratorySampleViews.jsx', 'LaboratorySampleDialogs.jsx'].map(file => fs.readFileSync(`src/features/laboratory/${file}`, 'utf8')).join('\n')
+    const sources = ['LaboratoryWorkspace.jsx', 'LaboratorySampleRecordFunctionalView.jsx', 'LaboratorySampleViews.jsx', 'LaboratorySampleDialogs.jsx'].map(file => readSource(`src/features/laboratory/${file}`)).join('\n')
     expect(sources).not.toMatch(/className=\{?[`'"]status-badge/)
     expect(sources).not.toContain('<select')
     expect(sources).not.toContain('record-table')

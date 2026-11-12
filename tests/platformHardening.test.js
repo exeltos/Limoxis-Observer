@@ -2,10 +2,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { allowedOrigin, PRIMARY_ORIGIN } from '../supabase/functions/_shared/cors.ts'
-import { APP_VERSION } from '../src/core/version.js'
+import { APP_VERSION } from '../src/core/version'
+import { readSource } from './helpers/readSource'
 
 const root = path.resolve(__dirname, '..')
-const read = file => fs.readFileSync(path.join(root, file), 'utf8')
+const read = file => readSource(path.join(root, file))
 const functionsDir = path.join(root, 'supabase/functions')
 const functionNames = fs.readdirSync(functionsDir).filter(name => !name.startsWith('_') && fs.existsSync(path.join(functionsDir, name, 'index.ts')))
 // Called only by the scheduler with a service key, never from a browser.
@@ -43,14 +44,14 @@ describe('hosting security headers', () => {
   })
 
   it('opens printable documents without inline scripts, which the CSP blocks', () => {
-    const offenders = sourceFiles(path.join(root, 'src')).filter(file => /<script[\s>]/.test(fs.readFileSync(file, 'utf8')))
+    const offenders = sourceFiles(path.join(root, 'src')).filter(file => /<script[\s>]/.test(readSource(file)))
     expect(offenders.map(file => path.relative(root, file))).toEqual([])
   })
 })
 
 describe('dialogs', () => {
   it('uses the application dialog instead of the browser alert/confirm/prompt', () => {
-    const offenders = sourceFiles(path.join(root, 'src')).filter(file => /\bwindow\.(alert|confirm|prompt)\s*\(/.test(fs.readFileSync(file, 'utf8')))
+    const offenders = sourceFiles(path.join(root, 'src')).filter(file => /\bwindow\.(alert|confirm|prompt)\s*\(/.test(readSource(file)))
     expect(offenders.map(file => path.relative(root, file))).toEqual([])
   })
 })

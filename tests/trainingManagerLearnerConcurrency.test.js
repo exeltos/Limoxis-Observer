@@ -1,9 +1,9 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import { assignmentToRpc,learnerOwnedAssignmentFields,programToRpc } from '../src/features/training/trainingMappers'
+import { readSource } from './helpers/readSource'
 
-const service=fs.readFileSync(new URL('../src/features/training/trainingService.js',import.meta.url),'utf8')
-const migration=fs.readFileSync(new URL('../supabase/migrations/20261115100000_training_relational.sql',import.meta.url),'utf8')
+const service=readSource(new URL('../src/features/training/trainingService.js',import.meta.url))
+const migration=readSource(new URL('../supabase/migrations/20261115100000_training_relational.sql',import.meta.url))
 const fn=name=>{const start=migration.indexOf(`create or replace function ${name}(`);return migration.slice(start,migration.indexOf('$function$;',start))}
 
 describe('training manager and learner concurrency',()=>{

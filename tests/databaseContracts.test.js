@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs'
 import { URL } from 'node:url'
 import { describe,expect,it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const migration=readFileSync(new URL('../supabase/migrations/202608310028_v0287_patient_admission_integrity.sql',import.meta.url),'utf8')
-const verification=readFileSync(new URL('../supabase/maintenance/06_verify_v0287_deployment.sql',import.meta.url),'utf8')
+const migration=readSource(new URL('../supabase/migrations/202608310028_v0287_patient_admission_integrity.sql',import.meta.url))
+const verification=readSource(new URL('../supabase/maintenance/06_verify_v0287_deployment.sql',import.meta.url))
 
 describe('patient admission database contracts',()=>{
   it('enforces status and date invariants at the table boundary',()=>{

@@ -1,10 +1,10 @@
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 import {withPassages} from '../src/features/lira/LiraAssistantLauncher'
+import { readSource } from './helpers/readSource'
 
 describe('LIRA keyless hybrid retrieval',()=>{
- const sql=fs.readFileSync('supabase/migrations/20261012192152_lira_hybrid_retrieval.sql','utf8')
- const edge=fs.readFileSync('supabase/functions/lira-ai-gateway/index.ts','utf8')
+ const sql=readSource('supabase/migrations/20261012192152_lira_hybrid_retrieval.sql')
+ const edge=readSource('supabase/functions/lira-ai-gateway/index.ts')
  it('searches approved knowledge under the caller RLS, by words and by meaning',()=>{
   expect(sql).toContain('function public.search_lira_knowledge_hybrid')
   expect(sql).toContain('security invoker')
@@ -20,7 +20,7 @@ describe('LIRA keyless hybrid retrieval',()=>{
  })
  it('compares embeddings in the queue trigger without the pgvector = operator',()=>{
   // Under an empty search_path the operator is not found and every text edit failed.
-  const fix=fs.readFileSync('supabase/migrations/20261012193538_fix_lira_chunk_embedding_queue_compare.sql','utf8')
+  const fix=readSource('supabase/migrations/20261012193538_fix_lira_chunk_embedding_queue_compare.sql')
   expect(fix).toContain('new.embedding::text is not distinct from old.embedding::text')
   expect(fix).toContain("set search_path = ''")
  })

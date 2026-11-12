@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { formatDayTime } from '../src/core/i18n/formatDay'
-import { readFileSync } from 'node:fs'
 import { translate } from '../src/core/i18n/LanguageContext'
 import { timelineLabel } from '../src/features/surveillance/clinicalRecordLabels'
+import { readSource } from './helpers/readSource'
 
 // The page's t is scoped to the clinical record strings.
 const scoped = language => key => {
@@ -10,7 +10,7 @@ const scoped = language => key => {
   return text && text !== `clinicalRecords.${key}` ? text : key
 }
 const t = scoped('el')
-const english = readFileSync('src/core/i18n/stringsEn.js', 'utf8')
+const english = readSource('src/core/i18n/stringsEn.js')
 
 describe('episode history labels', () => {
   it('names the events a production case stores in words, not as codes', () => {

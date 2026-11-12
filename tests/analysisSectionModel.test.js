@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { buildSectionModel } from '../src/features/analysis/analysisDomains'
 import { mergeDomainMetrics } from '../src/features/analysis/analysisDomainMerge'
+import { readSource } from './helpers/readSource'
 
 const tx = (el) => el
-const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const read = path => readSource(new URL(`../${path}`, import.meta.url))
 const snapshot = {
   microbiology: { totalPositive: 10, totalCritical: 2, resistance: [['MDR', 3], ['XDR', 1]], monthly: [['2026-01', 1], ['2026-03', 2]], byDepartment: [['ΜΕΘ', 4]], departmentCount: 6 },
   domains: {

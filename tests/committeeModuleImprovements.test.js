@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
-const read = (path) => fs.readFileSync(path, 'utf8')
+const read = (path) => readSource(path)
 
 const workflowService = read('src/features/committees/committeeWorkflowService.js')
 const listPage = read('src/features/committees/CommitteesPage.jsx')

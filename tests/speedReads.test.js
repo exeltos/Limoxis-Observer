@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 // Screens slow to show data: fewer and narrower reads (20261128500000).
-import fs from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261128500000_speed_reads.sql')
 const flagsFix = read('supabase/migrations/20261128500100_patient_infection_flags_single_pass.sql')
 const notifications = read('src/core/notifications/NotificationContext.jsx')

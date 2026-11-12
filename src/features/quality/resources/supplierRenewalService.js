@@ -6,6 +6,7 @@ import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { processNotificationOutboxAsync } from '../../../core/notifications/notificationEmailService'
 import { loadResourcesLocal, replaceCertificationLocal } from './resourceService'
 import { requestFromRow } from './supplierRenewalModel'
+import { hospitalDate } from '../../../core/dates/hospitalDate'
 
 // Renewal requests for expired supplier certificates
 // (20261129100000_quality_supplier_certificate_request_items.sql): one request per
@@ -19,7 +20,7 @@ const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const must = ({ data, error }) => { if (error) throw error; return data }
 const localId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 const SELECT = '*,items:quality_supplier_certificate_request_items(*,attachment:attachments(id,file_name,storage_path,mime_type,size_bytes))'
-const day = offset => { const date = new Date(); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10) }
+const day = offset => { const date = new Date(`${hospitalDate()}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10) }
 const at = offset => new Date(Date.now() + offset * 86400000).toISOString()
 const deliver = organizationId => { void processNotificationOutboxAsync(organizationId).catch(() => {}) }
 const EMPTY = { type: '', number: '', issuer: '', issuedOn: '', expiresOn: '', note: '' }

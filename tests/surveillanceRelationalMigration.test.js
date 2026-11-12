@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const read = path => readSource(new URL(`../${path}`, import.meta.url))
 const additive = read('supabase/migrations/20261120100000_surveillance_relational.sql')
 const seeds = read('supabase/migrations/20261120100050_surveillance_relational_demo_seeds.sql')
 const retire = read('supabase/migrations/20261120100100_surveillance_relational_json_retired.sql')

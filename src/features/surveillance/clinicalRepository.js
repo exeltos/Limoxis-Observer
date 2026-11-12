@@ -32,6 +32,7 @@ import {
   voidClinicalCase,
 } from './clinicalCloudService'
 import { loadSurveillanceAdmissionLinks } from './clinicalAdmissionService'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const now=()=>new Date().toISOString()
 const clone=value=>JSON.parse(JSON.stringify(value))
@@ -130,7 +131,7 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
   }
   async function addTherapy(record,draft){
     if(!isDemo)return addAntimicrobialTherapy(organizationId,record,draft)
-    const target=demoRecord(clinicalCases[record.id]);const therapy={id:id('TX'),status:'active',...draft,approvalStatus:draft.isAdvancedAntibiotic?'pending':(draft.approvalStatus||'not_required'),startedAt:draft.startedAt||new Date().toISOString().slice(0,10),plannedEnd:draft.plannedEndAt||draft.plannedEnd||null,administrations:[]}
+    const target=demoRecord(clinicalCases[record.id]);const therapy={id:id('TX'),status:'active',...draft,approvalStatus:draft.isAdvancedAntibiotic?'pending':(draft.approvalStatus||'not_required'),startedAt:draft.startedAt||hospitalToday(),plannedEnd:draft.plannedEndAt||draft.plannedEnd||null,administrations:[]}
     target.therapy.unshift(therapy);return touch(target,actor,'therapy',therapy.antimicrobial)
   }
   async function finishTherapy(record,therapyId,draft){

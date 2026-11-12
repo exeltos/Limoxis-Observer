@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
 import { demoLibrarySeed } from '../src/features/management/managementData'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20261024120000_restricted_antimicrobial_approval_guard.sql', 'utf8')
+const migration = readSource('supabase/migrations/20261024120000_restricted_antimicrobial_approval_guard.sql')
 const functionBody = migration.slice(migration.indexOf('create or replace function public.enforce_restricted_antimicrobial_approval'))
 const defaultList = [...functionBody.slice(functionBody.indexOf('array['), functionBody.indexOf(']);')).matchAll(/'([^']+)'/g)].map(m => m[1])
 

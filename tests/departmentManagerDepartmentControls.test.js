@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const migration = fs.readFileSync('supabase/migrations/20261025120000_department_manager_department_controls.sql', 'utf8')
-const controlsPage = fs.readFileSync('src/features/controls/ControlsPage.jsx', 'utf8')
+const migration = readSource('supabase/migrations/20261025120000_department_manager_department_controls.sql')
+const controlsPage = readSource('src/features/controls/ControlsPage.jsx')
 const policy = name => migration.slice(migration.indexOf(`alter policy ${name} `), migration.indexOf(');\n', migration.indexOf(`alter policy ${name} `)))
 
 describe('department managers maintain their own department\'s controls in the database', () => {
@@ -33,7 +33,7 @@ describe('department managers maintain their own department\'s controls in the d
   })
 
   it('the helper sees every assignment (SECURITY DEFINER) and is declared', () => {
-    const manifest = JSON.parse(fs.readFileSync('supabase/security-definer-manifest.json', 'utf8'))
+    const manifest = JSON.parse(readSource('supabase/security-definer-manifest.json'))
     expect(migration).toMatch(/current_user_manages_department_control\(target_org uuid, target_control uuid\)\s+returns boolean\s+language sql\s+stable\s+security definer/)
     expect(manifest.functions.current_user_manages_department_control).toMatchObject({ category: 'rls-helper', authenticated: true })
   })

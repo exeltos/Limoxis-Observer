@@ -2,9 +2,10 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useOptionalFeedback: () => null }))
-const { HelpManualsView, manualUrl } = await import('../src/core/help/HelpManualsView.jsx')
+const { HelpManualsView, manualUrl } = await import('../src/core/help/HelpManualsView')
 
 describe('Help Center › Manuals', () => {
   afterEach(cleanup)
@@ -26,7 +27,7 @@ describe('Help Center › Manuals', () => {
   })
 
   it('is shown in the Help Center to the Platform Owner only', () => {
-    const center = fs.readFileSync('src/core/help/HelpCenter.jsx', 'utf8')
+    const center = readSource('src/core/help/HelpCenter.jsx')
     expect(center).toContain("const isOwner=actualRole==='platform_owner'")
     expect(center).toContain("{isOwner&&<button className={mode==='manuals'")
     expect(center).toContain("{mode==='manuals'&&isOwner&&<HelpManualsView")

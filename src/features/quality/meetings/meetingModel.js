@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 // Department meetings (Quality Center, phase 5): one meeting of a department,
 // the month whose indicators it reviews, its minutes, its decisions and who
 // took part. A new meeting carries the open decisions of the department's
@@ -15,7 +16,7 @@ export const DECISION_STATUSES = [
 export const meetingStatusLabel = (status, language = 'el') => (language === 'en' ? { draft: 'Draft', final: 'Final' } : { draft: 'Πρόχειρο', final: 'Οριστικό' })[status] || status
 export const decisionStatusLabel = (status, language = 'el') => DECISION_STATUSES.find(item => item.value === status)?.label[language === 'en' ? 1 : 0] || status
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => hospitalToday()
 export const addDays = (day, days) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
 // The month before a date, as its first day: a meeting in October reviews September.
 export const previousMonth = day => { const date = new Date(`${String(day || today()).slice(0, 7)}-01T00:00:00Z`); date.setUTCMonth(date.getUTCMonth() - 1); return date.toISOString().slice(0, 10) }

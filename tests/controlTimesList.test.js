@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { MAX_TIMES, nextTime } from '../src/features/controls/ControlTimesList'
+import { readSource } from './helpers/readSource'
 
-const editor = readFileSync('src/features/controls/ControlEditor.jsx', 'utf8')
-const schedules = readFileSync('src/features/controls/ControlDepartmentSchedules.jsx', 'utf8')
+const editor = readSource('src/features/controls/ControlEditor.jsx')
+const schedules = readSource('src/features/controls/ControlDepartmentSchedules.jsx')
 
 describe('control times list', () => {
   it('offers the next time 4 hours after the last, up to 23:00', () => {

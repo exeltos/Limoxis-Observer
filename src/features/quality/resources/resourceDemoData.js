@@ -1,10 +1,11 @@
 import { applyTemplate, presetTemplates } from './supplierTemplates'
+import { hospitalToday } from '../../../core/dates/hospitalDate'
 
 // The demo's suppliers and equipment: dates are set from today, so the figures
 // always show something overdue, something due soon and a device out of service.
 // Names are made up.
 
-const day = (offset, from = new Date().toISOString().slice(0, 10)) => { const date = new Date(`${from}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10) }
+const day = (offset, from = hospitalToday()) => { const date = new Date(`${from}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + offset); return date.toISOString().slice(0, 10) }
 
 const scores = (quality, delivery, specs, documents, support, price) => ({ quality, delivery, specs, documents, support, price })
 

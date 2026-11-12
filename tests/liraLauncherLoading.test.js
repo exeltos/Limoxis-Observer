@@ -1,9 +1,9 @@
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
+import { readSource } from './helpers/readSource'
 
 describe('LIRA launcher loading lifecycle',()=>{
  it('does not make loading state an effect dependency that cancels its own request',()=>{
-  const source=fs.readFileSync('src/features/lira/LiraAssistantLauncher.jsx','utf8')
+  const source=readSource('src/features/lira/LiraAssistantLauncher.jsx')
   const effect=source.match(/useEffect\(\(\)=>\{if\(!open\|\|data[\s\S]*?\},\[open,data,[^\]]+\]\)/)?.[0]||''
   expect(effect).not.toContain('||loading||')
   expect(effect).not.toContain('[open,data,loading,')

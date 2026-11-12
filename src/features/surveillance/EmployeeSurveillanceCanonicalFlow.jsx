@@ -21,6 +21,7 @@ import {
 import { employeeScreeningOptions, listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
 import { isStaffEmployee } from '../employees/staffCategory'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // One multi-select: pick one employee or as many as needed. A single pick creates an
 // individual record, more than one a batch.
@@ -32,7 +33,7 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     { data: employeeRows = [] } = useEmployeesData()
   const [department, setDepartment] = useState('all'),
     [selectedIds, setSelectedIds] = useState([]),
-    [date, setDate] = useState(new Date().toISOString().slice(0, 10)),
+    [date, setDate] = useState(hospitalToday()),
     [types, setTypes] = useState(['nasalSwab']),
     [notes, setNotes] = useState(''),
     [saving, setSaving] = useState(false)

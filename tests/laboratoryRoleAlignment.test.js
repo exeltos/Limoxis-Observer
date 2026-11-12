@@ -1,10 +1,10 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
-import {ADD_ON_CAPABILITIES,ROLES,roleCapabilities,addonCapabilityMap} from '../src/core/permissions/systemRoleMatrix.js'
-import {CAPABILITIES} from '../src/core/permissions/capabilityCatalogue.js'
+import {ADD_ON_CAPABILITIES,ROLES,roleCapabilities,addonCapabilityMap} from '../src/core/permissions/systemRoleMatrix'
+import {CAPABILITIES} from '../src/core/permissions/capabilityCatalogue'
+import { readSource } from './helpers/readSource'
 
-const roleMigration=fs.readFileSync('supabase/migrations/20260902132048_laboratory_role_alignment_and_attachment_scope.sql','utf8')
-const finalizationMigration=fs.readFileSync('supabase/migrations/20260902132420_laboratory_capability_scope_and_ast_finalization.sql','utf8')
+const roleMigration=readSource('supabase/migrations/20260902132048_laboratory_role_alignment_and_attachment_scope.sql')
+const finalizationMigration=readSource('supabase/migrations/20260902132420_laboratory_capability_scope_and_ast_finalization.sql')
 
 describe('Laboratory authorization alignment',()=>{
   it('lets Hospital Admin operate Laboratory without role switching',()=>{

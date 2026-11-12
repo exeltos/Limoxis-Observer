@@ -68,6 +68,7 @@ import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleReviewModel'
 import { SampleReviewWorklist, worklistTexts } from './SampleReviewWorklist'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const latestOrganism = row => row.samples?.find(x => x.organism)?.organism || row.organism || null
 const latestResistance = row =>
@@ -807,7 +808,7 @@ const POSITIVE_EMPLOYEE_RESULTS = ['positive', 'positive_recheck']
 const CLOSED_EMPLOYEE_STATUSES = ['cancelled', 'voided', 'void']
 function employeeFollowupState(row) {
   if (CLOSED_EMPLOYEE_STATUSES.includes(row.status)) return 'cancelled'
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   const positive = POSITIVE_EMPLOYEE_RESULTS.includes(row.resultStatus)
   const interventionOpen = ['required', 'in_progress'].includes(row.interventionStatus)
   const interventionMissing =
@@ -826,7 +827,7 @@ function EmployeeStatusBadge({ row, t }) {
 // One count of the row of cards above the list; with a quick key it filters the list, pressing it again shows everything.
 const SAMPLE_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
 function matchesEmployeeQuick(row, quick) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   if (quick === 'active') return row.status === 'active'
   if (quick === 'positive') return row.resultStatus === 'positive'
   if (quick === 'intervention') return ['required', 'in_progress'].includes(row.interventionStatus)

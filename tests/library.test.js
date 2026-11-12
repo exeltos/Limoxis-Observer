@@ -1,11 +1,11 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { NEWS_SOURCES, PLATFORM_GUIDELINES, PLATFORM_LINKS } from '../src/features/library/libraryCatalogue'
 import { blankDraft, canManageHospitalLibrary, filterGuidelines, filterNews, guidelineOptions, initials, isHttpUrl, linkGroups, newsCounts, sourceState, validateDraft } from '../src/features/library/libraryModel'
 import { dueSources, EXCERPT_LIMIT, MAX_ITEMS_PER_CHECK, newsRows } from '../supabase/functions/_shared/libraryNews.ts'
 import { parseFeed } from '../supabase/functions/_shared/legislationWatch.ts'
+import { readSource } from './helpers/readSource'
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 const migration = read('supabase/migrations/20261203200000_library.sql')
 const seed = read('supabase/migrations/20261203200100_library_seed.sql')
 const ingest = read('supabase/functions/library-news-ingest/index.ts')

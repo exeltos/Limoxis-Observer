@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 // Required training per professional category and department, and each
 // employee's standing against it. A requirement is met by completing any of
 // its programmes; it stays valid for renewalMonths (or until the certificate's
@@ -35,7 +36,7 @@ function addMonths(day,months){
 const completedOn=assignment=>String(assignment.completedDate||assignment.completionConfirmedAt||'').slice(0,10)
 
 // Latest completion of any of the requirement's programmes by this employee.
-export function requirementStatus(requirement,employee,{assignments=[],certificates=[],today=new Date().toISOString().slice(0,10)}={}){
+export function requirementStatus(requirement,employee,{assignments=[],certificates=[],today=hospitalToday()}={}){
  const programIds=new Set(requirement.programIds||[])
  const code=String(employee.employeeCode||employee.id||'')
  const done=assignments
@@ -67,7 +68,7 @@ export function competenceMatrix({requirements=[],employees=[],assignments=[],ce
 
 // Who has to be trained, and by when: missing now, expired, or expiring
 // (on its validUntil date). Feeds the "Plan" list and the calendar.
-export function retrainingPlan(matrix,{today=new Date().toISOString().slice(0,10)}={}){
+export function retrainingPlan(matrix,{today=hospitalToday()}={}){
  const items=[]
  for(const row of matrix.rows){
   row.cells.forEach((cell,index)=>{

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import {
   addDaysKey, decisionProblem, documentsWithOpenSuggestions, effectiveStatus, existingSuggestedRevision, familyHasOpenSuggestion, revisionNoteFor, suggestionCalendarItems,
   suggestionFromRow, suggestionReasonLabel, suggestionSectionLabel, suggestionsForDocument, MAX_REVISION_NOTE,
@@ -8,6 +7,7 @@ import { decideProtocolSuggestionAsync, loadProtocolSuggestionsAsync } from '../
 import { DEMO_PROTOCOL_SUGGESTIONS } from '../src/features/documents/protocolReview/protocolReviewDemoData'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { buildCalendarEvents } from '../src/features/calendar/calendarEvents'
+import { readSource } from './helpers/readSource'
 
 const row = (over = {}) => ({ id: 's1', organization_id: 'o1', document_id: 'd1', reason: 'source_changed', source_ref: 'clinical:x', source_label: 'NEWS2 · RCP', what_changed: 'Η πηγή άλλαξε.', affected_sections: ['instructions', 'references', 'bogus'], draft_text: 'Νέα διατύπωση.', draft_citation: 'NEWS2 · RCP', status: 'open', created_at: '2026-10-18T03:13:00Z', ...over })
 
@@ -82,7 +82,7 @@ describe('protocol update suggestions: demo service', () => {
   beforeEach(() => configureDataEnvironment({ mode: 'demo', demoAccountId: `t-${Math.random()}` }))
 
   it('ships two demo suggestions on demo protocols', async () => {
-    const store = fs.readFileSync(new URL('../src/features/documents/documentStore.js', import.meta.url), 'utf8')
+    const store = readSource(new URL('../src/features/documents/documentStore.js', import.meta.url))
     for (const s of DEMO_PROTOCOL_SUGGESTIONS) {
       expect(store).toMatch(new RegExp(`id:'${s.document_id}',[^\\n]*type:'protocol'`))
     }
@@ -126,7 +126,7 @@ describe('accepting a suggestion twice', () => {
 })
 
 describe('protocol currency review: database and wiring', () => {
-  const sql = fs.readFileSync(new URL('../supabase/migrations/20261121120000_protocol_currency_review.sql', import.meta.url), 'utf8')
+  const sql = readSource(new URL('../supabase/migrations/20261121120000_protocol_currency_review.sql', import.meta.url))
 
   it('keeps one open suggestion per protocol, reason and source, and never touches the outbox', () => {
     expect(sql).toMatch(/create unique index if not exists protocol_update_suggestions_one_open[\s\S]*\(document_id, reason, source_ref\) where status in \('open','snoozed'\)/)
@@ -143,15 +143,15 @@ describe('protocol currency review: database and wiring', () => {
   })
 
   it('sends the model only protocol text and the source excerpt', () => {
-    const fn = fs.readFileSync(new URL('../supabase/functions/protocol-review/index.ts', import.meta.url), 'utf8')
+    const fn = readSource(new URL('../supabase/functions/protocol-review/index.ts', import.meta.url))
     expect(fn).not.toMatch(/from\('(patients|patient_[a-z_]+|admissions|surveillance_[a-z_]+)'\)/)
     expect(fn).not.toMatch(/from\('notification_outbox'\)/)
     expect(fn).toMatch(/draftPrompt\(\{ sections: text\.sections/)
   })
 
   it('reads every protocol page by page and retries a failed reading a few times, never one that stopped the worker', () => {
-    const fn = fs.readFileSync(new URL('../supabase/functions/protocol-review/index.ts', import.meta.url), 'utf8')
-    const sql = fs.readFileSync(new URL('../supabase/migrations/20261121140400_protocol_text_versions_attempts.sql', import.meta.url), 'utf8')
+    const fn = readSource(new URL('../supabase/functions/protocol-review/index.ts', import.meta.url))
+    const sql = readSource(new URL('../supabase/migrations/20261121140400_protocol_text_versions_attempts.sql', import.meta.url))
     expect(fn).not.toMatch(/\.limit\(2000\)/)
     expect(fn).toMatch(/\.range\(from, from \+ DOC_PAGE - 1\)/)
     expect(fn).toMatch(/text\.error !== 'INTERRUPTED' && Number\(text\.attempts \|\| 0\) < MAX_ATTEMPTS/)

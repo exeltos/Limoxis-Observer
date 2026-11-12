@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const panel = fs.readFileSync(new URL('../src/features/management/QuestionnairesPanel.jsx', import.meta.url), 'utf8')
+const panel = readSource(new URL('../src/features/management/QuestionnairesPanel.jsx', import.meta.url))
 
 describe('questionnaires demo data (platform review roadmap, P3)', () => {
   it('seeds more than the single trainer-evaluation questionnaire', () => {

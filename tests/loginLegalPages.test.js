@@ -1,10 +1,10 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { legalContent } from '../src/features/legal/legalContent'
+import { readSource } from './helpers/readSource'
 
-const login = fs.readFileSync('src/features/auth/LoginPage.jsx', 'utf8')
-const app = fs.readFileSync('src/app/App.jsx', 'utf8')
-const migration = fs.readFileSync('supabase/migrations/20260925180000_public_login_notice.sql', 'utf8')
+const login = readSource('src/features/auth/LoginPage.jsx')
+const app = readSource('src/app/App.jsx')
+const migration = readSource('supabase/migrations/20260925180000_public_login_notice.sql')
 
 describe('login page and public legal pages', () => {
   it('uses the brand mark and links privacy, terms and support', () => {
@@ -22,7 +22,7 @@ describe('login page and public legal pages', () => {
     expect(login).toContain('to="/forgot-access"')
     expect(login).toContain('id="login-error" className="login-error" role="alert"')
     expect(login).toContain('disabled={submitting||!hasSupabaseConfig}')
-    const css = fs.readFileSync('src/styles/features.css', 'utf8')
+    const css = readSource('src/styles/features.css')
     const loginCss = css.slice(css.indexOf('.auth-layout.login-layout{'), css.indexOf('.training-material-list{'))
     expect(loginCss).toContain('@media (prefers-reduced-motion:reduce)')
     expect(loginCss).not.toContain('!important')

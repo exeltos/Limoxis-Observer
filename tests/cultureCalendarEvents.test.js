@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { CALENDAR_KINDS, buildCalendarEvents, calendarFilterOf, calendarKindLabel, controlExecutionEvents } from '../src/features/calendar/calendarEvents'
+import { readSource } from './helpers/readSource'
 
 const control = (category, extra = {}) => ({ id: 'c1', title: 'Καλλιέργειες επιφανειών ΜΕΘ', titleEn: 'Surface cultures ICU', category, frequency: { kind: 'monthly', interval: 1 }, responseConfig: {}, assignments: { ΜΕΘ: { dbId: 'a1', nextDueAt: '2026-11-10T08:00:00Z', frequency: { kind: 'monthly', interval: 1 } } }, ...extra })
 const range = { from: '2026-11-01', to: '2026-12-31', today: '2026-11-05' }
@@ -31,7 +31,7 @@ describe('culture sampling in the calendar', () => {
 
 describe('the department calendar', () => {
   it('has a menu entry and a page of its own for the department roles, the culture sampling first', () => {
-    const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+    const read = path => readSource(new URL(`../${path}`, import.meta.url))
     expect(read('src/app/navigation.js')).toContain("key:'departmentCalendar'")
     expect(read('src/app/App.jsx')).toContain('path="my-department/calendar"')
     expect(read('src/features/workspaces/DepartmentCalendarPage.jsx')).toContain('<CalendarPage departmentOnly />')

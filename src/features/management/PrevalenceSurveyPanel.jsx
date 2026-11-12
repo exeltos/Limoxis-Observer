@@ -14,8 +14,9 @@ import { loadDepartments } from './departmentsService'
 import { demoLibrarySeed } from './managementData'
 import { ShareOf } from './HospitalStructurePanel'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
-const todayIso = () => new Date().toISOString().slice(0, 10)
+const todayIso = () => hospitalToday()
 const emptyDraft = { surveyDate: todayIso(), departmentId: '', departmentEl: '', patientsTotal: '', patientsWithHai: '', patientsOnAntibiotics: '', responsibleName: '', notes: '' }
 
 export function PrevalenceSurveyPanel() {

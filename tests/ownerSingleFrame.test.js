@@ -1,10 +1,10 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 // Owner's rule: one frame per content block and one line per separator in the owner console.
 // A record tab panel (or the list shell) is the frame; the list inside it has no card of its own,
 // and a tab row and the panel under it share the tab underline as their only line.
-const css = file => readFileSync(file, 'utf8')
+const css = file => readSource(file)
 const rule = (file, selector) => {
   const text = css(file)
   const at = text.indexOf(`${selector}{`)

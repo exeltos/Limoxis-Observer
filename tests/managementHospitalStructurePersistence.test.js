@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const panel = fs.readFileSync('src/features/management/HospitalStructurePanel.jsx', 'utf8')
-const service = fs.readFileSync('src/features/management/hospitalStructureCloudService.js', 'utf8')
-const migration = fs.readFileSync('supabase/migrations/20260919220000_add_hospital_structure_indicator.sql', 'utf8')
+const panel = readSource('src/features/management/HospitalStructurePanel.jsx')
+const service = readSource('src/features/management/hospitalStructureCloudService.js')
+const migration = readSource('supabase/migrations/20260919220000_add_hospital_structure_indicator.sql')
 
 describe('Management Center hospital structure indicator (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014 §2.8)', () => {
   it('keeps demo/production loading isolated and gates the create action', () => {

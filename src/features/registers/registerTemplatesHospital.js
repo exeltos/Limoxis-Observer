@@ -127,11 +127,15 @@ const DELIVERY_ROOM = {
   indicators: [
     { id: 'deliveries', title: 'Σύνολο τοκετών', titleEn: 'Total deliveries', aggregation: 'sum', rows: ['vaginal', 'cs'], direction: 'context' },
     { id: 'cs_rate', title: '% καισαρικών τομών', titleEn: '% caesarean sections', aggregation: 'percent', rows: ['cs'], denominatorRows: ['vaginal', 'cs'], unit: '%', direction: 'lower' },
-    { id: 'vbac_rate', title: '% φυσιολογικών τοκετών μετά από προηγούμενη καισαρική', titleEn: '% vaginal births after a previous caesarean', aggregation: 'percent', rows: ['vbac'], denominatorRows: ['vaginal'], unit: '%', direction: 'context' },
-    { id: 'multiple_cs_rate', title: '% πολύδυμων που γεννήθηκαν με καισαρική', titleEn: '% multiple pregnancies born by caesarean', aggregation: 'percent', rows: ['multiple_cs'], denominatorRows: ['vaginal', 'cs'], unit: '%', direction: 'context' },
+    // Δεν καταγράφονται οι γυναίκες με προηγούμενη καισαρική: πλήθος, όχι ποσοστό (ιδιοκτήτης, 2/11/2026).
+    { id: 'vbac_rate', title: 'Φυσιολογικοί τοκετοί μετά από καισαρική', titleEn: 'Vaginal births after caesarean', aggregation: 'sum', rows: ['vbac'], direction: 'context' },
+    // Παρονομαστής οι πολύδυμοι τοκετοί, όχι όλοι (ιδιοκτήτης, 2/11/2026).
+    { id: 'multiple_cs_rate', title: '% πολύδυμων που γεννήθηκαν με καισαρική', titleEn: '% multiple pregnancies born by caesarean', aggregation: 'percent', rows: ['multiple_cs'], denominatorRows: ['multiple_cs', 'multiple_vaginal'], unit: '%', direction: 'context' },
     { id: 'hysteroscopies', title: 'Υστεροσκοπήσεις', titleEn: 'Hysteroscopies', aggregation: 'sum', rows: ['hysteroscopy'], direction: 'context' },
     { id: 'septic', title: 'Σηπτικά', titleEn: 'Septic procedures', aggregation: 'sum', rows: ['septic'], direction: 'context' },
     { id: 'born_before_arrival', title: 'Τοκετοί πριν την άφιξη στο νοσοκομείο', titleEn: 'Births before arrival at the hospital', aggregation: 'sum', rows: ['born_before_arrival'], direction: 'context', note: 'Δεν περιλαμβάνονται στο σύνολο των τοκετών.', noteEn: 'Not included in the total deliveries.' },
+    { id: 'cerclages', title: 'Περιδέσεις τραχήλου', titleEn: 'Cervical cerclages', aggregation: 'sum', rows: ['cerclage'], direction: 'context' },
+    { id: 'pregnancy_monitoring', title: 'Παρακολουθήσεις κύησης', titleEn: 'Pregnancy monitoring', aggregation: 'sum', rows: ['pregnancy_monitoring'], direction: 'context' },
     { id: 'daily_deliveries', title: 'Μέσος αριθμός τοκετών ανά ημέρα', titleEn: 'Mean deliveries per day', aggregation: 'mean', rows: ['vaginal', 'cs'], dailyOnly: true, direction: 'context', note: 'Από τα ημερήσια φύλλα· οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.', noteEn: 'From the daily sheets; months recorded as one total do not count.' },
   ],
 }

@@ -1,3 +1,4 @@
+import { hospitalToday } from '../../core/dates/hospitalDate'
 // Deviations recorded elsewhere (control executions with a finding, bundle
 // assessments with a failed criterion, trainings evaluated as not or partly
 // effective) that no CAPA points to yet. Recording
@@ -112,7 +113,7 @@ export function subActionProgress(subActions=[]){
  return {total,done,open:total-done}
 }
 
-export function overdueSubActions(subActions=[],today=new Date().toISOString().slice(0,10)){
+export function overdueSubActions(subActions=[],today=hospitalToday()){
  return subActions.filter(item=>!item.done&&item.dueDate&&item.dueDate<today)
 }
 

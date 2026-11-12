@@ -6,6 +6,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ADDONS, CORE_MODULES, MODULES, OPTIONAL_MODULES, disabledCapabilitiesFor, normalizeProfile } from '../src/core/organization/operatingProfile'
+import { readSource } from './helpers/readSource'
 
 const MIGRATIONS = 'supabase/migrations'
 const files = fs.readdirSync(MIGRATIONS).filter(name => name.endsWith('.sql')).sort()
@@ -14,7 +15,7 @@ const files = fs.readdirSync(MIGRATIONS).filter(name => name.endsWith('.sql')).s
 function latestFunction(name) {
   let found = null
   for (const file of files) {
-    const sql = fs.readFileSync(path.join(MIGRATIONS, file), 'utf8')
+    const sql = readSource(path.join(MIGRATIONS, file))
     const match = sql.match(new RegExp(`create or replace function ${name.replace('.', '\\.')}\\([\\s\\S]*?\\$function\\$([\\s\\S]*?)\\$function\\$`, 'i'))
     if (match) found = { file, body: match[1] }
   }
@@ -123,7 +124,7 @@ describe('module enforcement keeps the Platform Owner exception', () => {
   })
 
   it('each gate is restrictive and short-circuits while nothing is locked', () => {
-    const sql = fs.readFileSync(path.join(MIGRATIONS, latestFunction('private.module_gated_tables').file), 'utf8')
+    const sql = readSource(path.join(MIGRATIONS, latestFunction('private.module_gated_tables').file))
     expect(sql).toContain("'create policy %I on public.%I as restrictive for all to authenticated using (%s) with check (%s)'")
     expect(sql).toContain("'(select not private.current_user_has_locked_modules()) or organization_id is null or not (%s)'")
     expect(sql).toContain("'organization_id = any ((select private.current_user_locked_module_orgs(%L::text[]))::uuid[])'")

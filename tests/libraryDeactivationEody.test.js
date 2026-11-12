@@ -1,5 +1,5 @@
 import { describe,it,expect,vi,beforeEach } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 const calls=[]
 vi.mock('../src/core/supabase/client',()=>{
@@ -33,10 +33,10 @@ describe('library rows can be deactivated by the platform owner',()=>{
   })
 
   it('the global loader reads inactive rows too, and the panel offers one toggle in the row menu',()=>{
-    const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
+    const service=readSource('src/features/management/managementCloudService.js')
     const global=service.slice(service.indexOf('export async function loadGlobalLibraryItems'),service.indexOf('export async function createGlobalLibraryItem'))
     expect(global).not.toContain(".eq('is_active',true)")
-    const panel=fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')
+    const panel=readSource('src/features/management/LibrariesPanel.jsx')
     expect(panel).toContain("id:'toggle'")
     expect(panel).toContain('hidden:!isPlatformOwner')
     expect(panel.match(/librariesPanel\.deactivateItem/g)).toHaveLength(1)
@@ -60,9 +60,9 @@ describe('ΕΟΔΥ library layout',()=>{
     expect(EODY_CATALOGUE).toHaveLength(57)
   })
   it('keeps rows to one line: footnote in a tooltip, legacy rows in a collapsed block, no category subtitles',()=>{
-    const table=fs.readFileSync('src/features/management/NotifiableDiseasesTable.jsx','utf8')
+    const table=readSource('src/features/management/NotifiableDiseasesTable.jsx')
     expect(table).toContain('eody-note-mark')
     expect(table).toContain('<details className="eody-legacy">')
-    expect(fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')).not.toContain('centralLibraryHint')
+    expect(readSource('src/features/management/LibrariesPanel.jsx')).not.toContain('centralLibraryHint')
   })
 })

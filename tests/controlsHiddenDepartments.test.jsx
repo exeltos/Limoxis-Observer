@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
-import { readFileSync } from 'node:fs'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { ControlDepartmentCards } from '../src/features/controls/ControlDepartmentCards'
+import { readSource } from './helpers/readSource'
 
 const card = (department) => ({ department, controls: 2, overdue: 0, todayDone: 0, todayRequired: 0, rate: 90, lastAt: null })
 
@@ -26,10 +26,10 @@ describe('Controls: departments I see', () => {
   })
 
   it('keeps the choice on the user account and applies it to every tab', () => {
-    const page = readFileSync('src/features/controls/ControlsPage.jsx', 'utf8')
+    const page = readSource('src/features/controls/ControlsPage.jsx')
     expect(page).toContain("useViewPreference(tenant?.id,user?.id,'controls.hiddenDepartments',NO_HIDDEN)")
     expect(page).toContain('const scopedControls=useMemo(()=>hidden.size||closedToday.size?accessibleControls.map(')
-    const sql = readFileSync('supabase/migrations/20261231242000_user_view_preferences.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261231242000_user_view_preferences.sql')
     expect(sql).toContain('user_id = (select auth.uid()) and public.is_org_member(organization_id)')
   })
 })

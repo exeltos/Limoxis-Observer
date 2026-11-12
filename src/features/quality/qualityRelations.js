@@ -1,4 +1,5 @@
 import { ISHIKAWA_CATEGORIES, WHY_COUNT, analysisProgress, normalizeAnalysis } from './rootCauseAnalysis'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 
 // The rows a CAPA and an audit keep in tables of their own
 // (20261116100000_quality_relational.sql), and the shapes the screens use:
@@ -100,7 +101,7 @@ export const progressFromRows = rows => [...(rows || [])].map(progressFromRow).s
 export function progressRow(entry = {}) {
   const note = String(entry.note || '').trim()
   if (!note) return null
-  return { id: rowId(entry.id), entry_date: entry.date || new Date().toISOString().slice(0, 10), note, author_label: text(entry.author) }
+  return { id: rowId(entry.id), entry_date: entry.date || hospitalToday(), note, author_label: text(entry.author) }
 }
 
 // --- Audit checklist ---------------------------------------------------------------------------

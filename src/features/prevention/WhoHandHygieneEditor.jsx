@@ -14,6 +14,7 @@ import { Field } from '../../design-system/Field'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { PreventionDepartmentField, selectTexts } from './PreventionFields'
 import { normalizeWhoMoments, whoStatsFromObservations } from './whoHandHygieneStats'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 export const WHO_MOMENTS = [
   {
     id: 'moment1',
@@ -99,7 +100,7 @@ export function WhoHandHygieneEditor({
   const en = language === 'en'
   const actor = useMemo(() => controlActorFromAuth({ profile, user }), [profile, user])
   const { confirm, notify, notifyError } = useFeedback()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hospitalToday()
   const firstDepartment = fixedDepartment || initialRecord?.departmentEl || departments[0]?.el || ''
   const [session, setSession] = useState(() =>
     initialRecord?.session
