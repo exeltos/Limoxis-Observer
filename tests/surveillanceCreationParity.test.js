@@ -1,12 +1,12 @@
-import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
 import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
+import { readSource } from './helpers/readSource'
 
-const registry=fs.readFileSync('src/features/surveillance/SurveillanceCanonicalPage.jsx','utf8')
+const registry=readSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
 const record=readPatientClinicalRecordSource()
-const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
-const admissionService=fs.readFileSync('src/features/surveillance/clinicalAdmissionService.js','utf8')
-const sharedFlow=fs.readFileSync('src/features/surveillance/NewSurveillanceFlow.jsx','utf8')
+const repository=readSource('src/features/surveillance/clinicalRepository.js')
+const admissionService=readSource('src/features/surveillance/clinicalAdmissionService.js')
+const sharedFlow=readSource('src/features/surveillance/NewSurveillanceFlow.jsx')
 
 describe('new surveillance Demo/Production parity',()=>{
   // The new-surveillance flow creates the episode; assessment, samples and
@@ -20,7 +20,7 @@ describe('new surveillance Demo/Production parity',()=>{
     expect(record).toContain('repository.requestSample')
     expect(repository).toContain('createClinicalCase(organizationId,patient.recordId,draft)')
     // The admission link is written with the case, in one transaction (create_surveillance_case).
-    expect(fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')).toContain("p_admission_id: draft.admissionId || null")
+    expect(readSource('src/features/surveillance/clinicalCloudService.js')).toContain("p_admission_id: draft.admissionId || null")
     expect(admissionService).toContain("update({admission_id:admissionId})")
   })
 })

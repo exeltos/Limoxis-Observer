@@ -1,6 +1,5 @@
 // «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο» (Platform Owner): accounts
 // created active with a temporary password, changed at the first sign-in.
-import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
@@ -20,11 +19,12 @@ import {
 } from '../supabase/functions/_shared/activeUsers.ts'
 import { strongPassword } from '../supabase/functions/_shared/bulkAccounts.ts'
 import { accountReadyEmail } from '../supabase/functions/_shared/accountCreatedEmail.ts'
-import { isValidMobile as clientIsValidMobile, normalizeMobile as clientNormalizeMobile, splitNames } from '../src/features/platform/activeUsersModel.js'
-import { checkPerson, errorText, mapHeaders, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel.js'
+import { isValidMobile as clientIsValidMobile, normalizeMobile as clientNormalizeMobile, splitNames } from '../src/features/platform/activeUsersModel'
+import { checkPerson, errorText, mapHeaders, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel'
+import { readSource } from './helpers/readSource'
 
 const root = path.resolve(__dirname, '..')
-const read = file => fs.readFileSync(path.join(root, file), 'utf8')
+const read = file => readSource(path.join(root, file))
 const ORG = '11111111-0000-4000-8000-000000000001'
 const DEP = '22222222-0000-4000-8000-000000000002'
 const departments = [{ id: DEP, name: 'ΜΕΘ', name_en: 'ICU', is_active: true }, { id: '33333333-0000-4000-8000-000000000003', name: 'Παλιό', is_active: false }]
@@ -282,7 +282,7 @@ describe('division director', () => {
 })
 
 describe('Νέος προσωρινός κωδικός (reissue) και φραγή μέχρι την πρώτη αλλαγή', () => {
-  const read = file => fs.readFileSync(path.resolve(__dirname, '..', file), 'utf8')
+  const read = file => readSource(path.resolve(__dirname, '..', file))
   it('η συνάρτηση: μόνο ο owner, ban_duration none, νέα λήξη, ξεκλείδωμα, audit, κωδικός μία φορά', () => {
     const src = read('supabase/functions/platform-create-active-users/index.ts')
     expect(src).toContain("body?.action==='reissue'")

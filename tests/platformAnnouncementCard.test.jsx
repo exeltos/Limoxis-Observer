@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PlatformAnnouncementDialog } from '../src/features/platform/PlatformAnnouncementGate.jsx'
-import { LanguageProvider } from '../src/core/i18n/LanguageContext.jsx'
+import { PlatformAnnouncementDialog } from '../src/features/platform/PlatformAnnouncementGate'
+import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 
 // The announcement card appears once, whole (owner, 11/11/2026): with an image it waits for the picture, it does not show
 // the green band first, then the image, then change size.

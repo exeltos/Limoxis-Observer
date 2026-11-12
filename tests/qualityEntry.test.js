@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { qualityTabOf } from '../src/features/quality/qualityReturnSection'
 import { actionRows, filterActions, isOpenRecord, isOverdueAction } from '../src/features/quality/QualityLists'
+import { readSource } from './helpers/readSource'
 
-const page = fs.readFileSync('src/features/quality/QualityPage.jsx', 'utf8')
+const page = readSource('src/features/quality/QualityPage.jsx')
 
 describe('Quality center entry and tabs', () => {
   it('starts on Reports and restores a tab only when returning from a record', () => {
     // The key is shared with the risk assessment page, which returns to its tab.
-    const returnSection = fs.readFileSync('src/features/quality/qualityReturnSection.js', 'utf8')
+    const returnSection = readSource('src/features/quality/qualityReturnSection.js')
     expect(returnSection).toContain("QUALITY_RETURN_KEY = 'limoxis.quality.returnSection'")
     expect(page).toContain("import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'")
     // The remembered section is cleared once read; a return to «Indicators & objectives» goes on to its own page.

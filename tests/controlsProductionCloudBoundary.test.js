@@ -1,7 +1,7 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(path,'utf8')
+const read=path=>readSource(path)
 
 describe('controls production cloud boundary',()=>{
  it('keeps active control screens off demo/local stores',()=>{

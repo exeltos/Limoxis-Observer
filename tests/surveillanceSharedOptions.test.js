@@ -1,11 +1,11 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { EMPLOYEE_SCREENING_TYPES, PATIENT_SAMPLE_TYPES, SAMPLE_PRIORITIES, employeeScreeningLabel, patientSampleTypeOptions, specimenCode, statusTone } from '../src/features/surveillance/surveillanceOptions'
 import { employeeScreeningCatalog } from '../src/features/surveillance/employeeSurveillanceData'
 import { ENVIRONMENTAL_SAMPLE_TYPES, ENVIRONMENTAL_TYPES, isEnvironmentalSample } from '../src/features/surveillance/environmentalSurveillanceData'
 import { demoLibrarySeed } from '../src/features/management/managementData'
+import { readSource } from './helpers/readSource'
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 const item = ([el, en, meta = {}]) => ({ value: el, el, en, code: meta.code || null, meta })
 
 // Surveillance and patient screens read their option lists from one module and

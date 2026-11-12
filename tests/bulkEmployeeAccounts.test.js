@@ -1,7 +1,6 @@
 // N1 · Bulk creation of accounts from the employee roster (Platform Owner or the hospital's admin):
 // the server rules, the e-mails, the screen's model and the wiring of the Edge
 // Functions, the migration and both outbox drainers.
-import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
@@ -35,11 +34,12 @@ import {
   rowSelectable,
   selectionSummary,
   setRowRole,
-} from '../src/features/platform/bulkAccountsModel.js'
-import { passwordStrength } from '../src/features/auth/passwordStrength.js'
+} from '../src/features/platform/bulkAccountsModel'
+import { passwordStrength } from '../src/features/auth/passwordStrength'
+import { readSource } from './helpers/readSource'
 
 const root = path.resolve(__dirname, '..')
-const read = file => fs.readFileSync(path.join(root, file), 'utf8')
+const read = file => readSource(path.join(root, file))
 const ORG = '02b241c0-a049-4e1f-a72c-67f6699f2d04'
 const E1 = '11111111-1111-4111-8111-111111111111'
 const E2 = '22222222-2222-4222-8222-222222222222'

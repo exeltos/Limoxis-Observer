@@ -1,10 +1,10 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 // «New patient» is its own page, which loads the departments.
-const page=fs.readFileSync('src/features/patients/PatientCreatePage.jsx','utf8')
-const service=fs.readFileSync('src/features/patients/patientsService.js','utf8')
-const migration=fs.readFileSync('supabase/migrations/20260902115625_clinical_core_rls_authenticated_scope.sql','utf8')
+const page=readSource('src/features/patients/PatientCreatePage.jsx')
+const service=readSource('src/features/patients/patientsService.js')
+const migration=readSource('supabase/migrations/20260902115625_clinical_core_rls_authenticated_scope.sql')
 
 describe('patient registry governance',()=>{
   it('loads production department options from the hospital library',()=>{

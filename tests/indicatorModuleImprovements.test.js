@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
-import { INDICATOR_METRICS } from '../src/features/indicators/indicatorDefinitionService.js'
-import { indicatorMetricLabel, metricLabels } from '../src/features/indicators/IndicatorDefinitionForm.jsx'
-import { visibleForDepartment } from '../src/features/indicators/indicatorCloudService.js'
+import { INDICATOR_METRICS } from '../src/features/indicators/indicatorDefinitionService'
+import { indicatorMetricLabel, metricLabels } from '../src/features/indicators/IndicatorDefinitionForm'
+import { visibleForDepartment } from '../src/features/indicators/indicatorCloudService'
+import { readSource } from './helpers/readSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
-const coreCss = fs.readFileSync('src/styles/foundation.css', 'utf8')
-const definitionForm = fs.readFileSync('src/features/indicators/IndicatorDefinitionForm.jsx', 'utf8')
-const createPage = fs.readFileSync('src/features/indicators/IndicatorCreatePage.jsx', 'utf8')
-const recordPage = fs.readFileSync('src/features/indicators/IndicatorRecordPage.jsx', 'utf8')
-const definitionService = fs.readFileSync('src/features/indicators/indicatorDefinitionService.js', 'utf8')
-const indicatorsPage = fs.readFileSync('src/features/indicators/IndicatorsPage.jsx', 'utf8')
-const migration = fs.readFileSync('supabase/migrations/20260922140000_indicator_visible_departments.sql', 'utf8')
+const coreCss = readSource('src/styles/foundation.css')
+const definitionForm = readSource('src/features/indicators/IndicatorDefinitionForm.jsx')
+const createPage = readSource('src/features/indicators/IndicatorCreatePage.jsx')
+const recordPage = readSource('src/features/indicators/IndicatorRecordPage.jsx')
+const definitionService = readSource('src/features/indicators/indicatorDefinitionService.js')
+const indicatorsPage = readSource('src/features/indicators/IndicatorsPage.jsx')
+const migration = readSource('supabase/migrations/20260922140000_indicator_visible_departments.sql')
 
 describe('indicator metric labels: every metric has a real bilingual label', () => {
   it('covers all INDICATOR_METRICS with a distinct Greek and English label (not the raw key)', () => {

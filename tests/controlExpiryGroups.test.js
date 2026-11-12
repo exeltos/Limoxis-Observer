@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const panel = readFileSync('src/features/controls/ControlExpiryPanel.jsx', 'utf8')
-const form = readFileSync('src/features/controls/ControlExecutionForm.jsx', 'utf8')
+const panel = readSource('src/features/controls/ControlExpiryPanel.jsx')
+const form = readSource('src/features/controls/ControlExecutionForm.jsx')
 
 describe('expiry: groups and «All in order»', () => {
   it('shows the list of items straight away, as a table with one line per item and lot, and printable', () => {
@@ -25,7 +25,7 @@ describe('expiry: groups and «All in order»', () => {
 })
 
 describe('the page of a control: rates, missed executions and the time of each entry', () => {
-  const record = readFileSync('src/features/controls/ControlRecordPage.jsx', 'utf8')
+  const record = readSource('src/features/controls/ControlRecordPage.jsx')
   it('shows the responsible, the adherence of the period and the missed executions per department', () => {
     expect(record).toContain("{key:'responsible'")
     expect(record).toContain('useAdherenceLines(')
@@ -43,7 +43,7 @@ describe('the page of a control: rates, missed executions and the time of each e
 
 describe('expiry: one line per item and lot', () => {
   it('joins the same item, lot and date of one control across departments', async () => {
-    const { expiryEntries } = await import('../src/features/controls/ControlExpiryPanel.jsx')
+    const { expiryEntries } = await import('../src/features/controls/ControlExpiryPanel')
     const record = { id: 'c1' }
     const item = (department, lot) => ({ key: `${department}|${lot}`, department, state: 'expired', record, row: { item: 'Adrenaline 1mg/ml', lot, expiry: '2026-10-26' } })
     const entries = expiryEntries([item('ΤΕΠ', 'AD2291'), item('ΜΕΘ', 'AD2291'), item('ΜΕΘ', 'AD9999')])

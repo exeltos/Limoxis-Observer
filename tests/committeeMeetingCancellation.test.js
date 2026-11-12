@@ -1,11 +1,11 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import path from 'node:path'
+import { readSource } from './helpers/readSource'
 
-const governanceSql=fs.readFileSync(path.resolve('supabase/migrations/20260901200112_v0304_committee_meeting_cancellation_governance.sql'),'utf8')
-const rpcSql=fs.readFileSync(path.resolve('supabase/migrations/20260901200154_v0305_committee_meeting_cancel_rpc.sql'),'utf8')
-const service=fs.readFileSync(path.resolve('src/features/committees/committeeMeetingLifecycleService.js'),'utf8')
-const feedback=fs.readFileSync(path.resolve('src/core/feedback/userFacingError.js'),'utf8')
+const governanceSql=readSource(path.resolve('supabase/migrations/20260901200112_v0304_committee_meeting_cancellation_governance.sql'))
+const rpcSql=readSource(path.resolve('supabase/migrations/20260901200154_v0305_committee_meeting_cancel_rpc.sql'))
+const service=readSource(path.resolve('src/features/committees/committeeMeetingLifecycleService.js'))
+const feedback=readSource(path.resolve('src/core/feedback/userFacingError.js'))
 
 describe('committee meeting cancellation governance',()=>{
   it('requires a reason and prevents reopening a cancelled meeting',()=>{

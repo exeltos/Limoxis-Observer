@@ -1,10 +1,10 @@
 // The Committees list reads counts (committee_overview_counts, 20261201120000)
 // and only the open decisions; a committee's record reads its own rows.
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { committeeMeetingCount } from '../src/features/committees/committeeService'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261201120000_committee_overview_counts.sql')
 const sql = migration.split('\n').filter(line => !line.trim().startsWith('--')).join('\n')
 const service = read('src/features/committees/committeeService.js')

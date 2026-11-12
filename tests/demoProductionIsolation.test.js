@@ -1,17 +1,17 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import { readAnalysisPageSource } from './helpers/analysisPageSource'
 import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
+import { readSource } from './helpers/readSource'
 
-const app=fs.readFileSync(new URL('../src/app/App.jsx',import.meta.url),'utf8')
-const route=fs.readFileSync(new URL('../src/features/surveillance/SurveillanceRoutePage.jsx',import.meta.url),'utf8')
-const canonicalSurveillance=fs.readFileSync(new URL('../src/features/surveillance/SurveillanceCanonicalPage.jsx',import.meta.url),'utf8')
-const patientRoute=fs.readFileSync(new URL('../src/features/surveillance/PatientClinicalRecordRoute.jsx',import.meta.url),'utf8')
+const app=readSource(new URL('../src/app/App.jsx',import.meta.url))
+const route=readSource(new URL('../src/features/surveillance/SurveillanceRoutePage.jsx',import.meta.url))
+const canonicalSurveillance=readSource(new URL('../src/features/surveillance/SurveillanceCanonicalPage.jsx',import.meta.url))
+const patientRoute=readSource(new URL('../src/features/surveillance/PatientClinicalRecordRoute.jsx',import.meta.url))
 const canonicalPatientRecord=readPatientClinicalRecordSource()
-const clinicalRepository=fs.readFileSync(new URL('../src/features/surveillance/clinicalRepository.js',import.meta.url),'utf8')
+const clinicalRepository=readSource(new URL('../src/features/surveillance/clinicalRepository.js',import.meta.url))
 const analysis=readAnalysisPageSource()
-const platformService=fs.readFileSync(new URL('../src/features/platform/platformService.js',import.meta.url),'utf8')
-const environment=fs.readFileSync(new URL('../src/core/data/dataEnvironment.js',import.meta.url),'utf8')
+const platformService=readSource(new URL('../src/features/platform/platformService.js',import.meta.url))
+const environment=readSource(new URL('../src/core/data/dataEnvironment.js',import.meta.url))
 
 describe('demo / production isolation',()=>{
   it('routes surveillance through one canonical frontend',()=>{

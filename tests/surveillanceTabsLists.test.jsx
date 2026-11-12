@@ -3,12 +3,12 @@
 // clusters that pre-fill a new investigation, the new button), the sample record's
 // progress numbering and grouped details, and the shared list pattern (period filter,
 // shared status component, plain patient registry columns).
-import fs from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
+import { readSource } from './helpers/readSource'
 
 let profile
 vi.mock('../src/core/auth/AuthContext', () => ({
@@ -23,7 +23,7 @@ const { LiraOutbreakInvestigationsPanel, investigationFormFromCluster, clusterWi
 const { workflowProgress, sampleSummarySections, sampleSummaryFields, LaboratoryWorkflow } = await import('../src/features/laboratory/LaboratorySampleSummary')
 const { inPeriod, PERIOD_DAYS } = await import('../src/features/surveillance/surveillanceOptions')
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = () => {}

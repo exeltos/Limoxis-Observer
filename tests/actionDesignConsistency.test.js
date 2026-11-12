@@ -1,14 +1,14 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import { readAnalysisPageSource } from './helpers/analysisPageSource'
+import { readSource } from './helpers/readSource'
 
-const actionButton=fs.readFileSync(new URL('../src/design-system/ActionButton.jsx',import.meta.url),'utf8')
-const recordActions=fs.readFileSync(new URL('../src/design-system/RecordActions.jsx',import.meta.url),'utf8')
-const saveButton=fs.readFileSync(new URL('../src/design-system/SaveButton.jsx',import.meta.url),'utf8')
-const backButton=fs.readFileSync(new URL('../src/design-system/BackButton.jsx',import.meta.url),'utf8')
-const observerDialog=fs.readFileSync(new URL('../src/design-system/ObserverDialog.jsx',import.meta.url),'utf8')
+const actionButton=readSource(new URL('../src/design-system/ActionButton.jsx',import.meta.url))
+const recordActions=readSource(new URL('../src/design-system/RecordActions.jsx',import.meta.url))
+const saveButton=readSource(new URL('../src/design-system/SaveButton.jsx',import.meta.url))
+const backButton=readSource(new URL('../src/design-system/BackButton.jsx',import.meta.url))
+const observerDialog=readSource(new URL('../src/design-system/ObserverDialog.jsx',import.meta.url))
 const analysis=readAnalysisPageSource()
-const css=fs.readFileSync(new URL('../src/styles/design-system.css',import.meta.url),'utf8')
+const css=readSource(new URL('../src/styles/design-system.css',import.meta.url))
 
 describe('shared semantic action design',()=>{
   it('provides one semantic wrapper for labelled and icon-only actions',()=>{

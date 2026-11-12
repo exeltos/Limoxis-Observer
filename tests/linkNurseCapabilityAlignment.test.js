@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { can, ROLES } from '../src/core/permissions/roles.js'
+import { can, ROLES } from '../src/core/permissions/roles'
+import { readSource } from './helpers/readSource'
 
-const migration = readFileSync(new URL('../supabase/migrations/20260925200000_link_nurse_capability_alignment.sql', import.meta.url), 'utf8')
+const migration = readSource(new URL('../supabase/migrations/20260925200000_link_nurse_capability_alignment.sql', import.meta.url))
 
 function rolesFor(capability) {
   const line = migration.split('\n').find(row => row.includes(`when '${capability}' then`))

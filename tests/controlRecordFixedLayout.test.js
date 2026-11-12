@@ -1,9 +1,9 @@
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const css=fs.readFileSync('src/styles/design-system.css','utf8')
-const form=fs.readFileSync('src/features/controls/ControlExecutionForm.jsx','utf8')
-const record=fs.readFileSync('src/features/controls/ControlRecordPage.jsx','utf8')
+const css=readSource('src/styles/design-system.css')
+const form=readSource('src/features/controls/ControlExecutionForm.jsx')
+const record=readSource('src/features/controls/ControlRecordPage.jsx')
 
 describe('control record fixed workspace',()=>{
   it('shows details and guidance first, then the departments with their entry',()=>{

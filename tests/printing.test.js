@@ -1,7 +1,7 @@
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const read=p=>fs.readFileSync(p,'utf8')
+const read=p=>readSource(p)
 const printBlocks=css=>css.match(/@media print\{[\s\S]*?\n\}/g)||[]
 
 describe('Printing',()=>{
@@ -33,7 +33,7 @@ describe('printElement',()=>{
   const win={document:{open(){},write:html=>written.push(html),close(){}},focus(){},print:()=>{printed=true}}
   globalThis.window={open:()=>win}
   globalThis.document={title:'App',baseURI:'https://example.test/',documentElement:{lang:'el'},querySelectorAll:()=>[{outerHTML:'<link rel="stylesheet" href="/assets/app.css">'}]}
-  const {printElement}=await import('../src/design-system/printElement.js')
+  const {printElement}=await import('../src/design-system/printElement')
   const ok=printElement({outerHTML:'<div class="report">12</div>'},{title:'GCS <b>',heading:['Αναφορά','Ιωαννίδη · PT-1']})
   expect(ok).toBe(true)
   expect(written[0]).toContain('<link rel="stylesheet" href="/assets/app.css">')

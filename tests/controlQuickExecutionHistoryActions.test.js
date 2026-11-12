@@ -1,9 +1,9 @@
 import { describe,it,expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const registry=readFileSync(new URL('../src/features/controls/ControlsPage.jsx',import.meta.url),'utf8')
-const record=readFileSync(new URL('../src/features/controls/ControlRecordPage.jsx',import.meta.url),'utf8')
-const cancellation=readFileSync(new URL('../src/features/controls/ControlCancellationModal.jsx',import.meta.url),'utf8')
+const registry=readSource(new URL('../src/features/controls/ControlsPage.jsx',import.meta.url))
+const record=readSource(new URL('../src/features/controls/ControlRecordPage.jsx',import.meta.url))
+const cancellation=readSource(new URL('../src/features/controls/ControlCancellationModal.jsx',import.meta.url))
 
 describe('control quick execution and history actions',()=>{
  it('opens the control on a row click, with no execute button in the row (the execution is entered from the control)',()=>{

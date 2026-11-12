@@ -1,7 +1,7 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 
 describe('training learner governance',()=>{
   const learner=read('supabase/migrations/20260901212538_v0318_training_authenticated_learner_actions.sql')

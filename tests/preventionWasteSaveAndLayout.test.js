@@ -1,9 +1,9 @@
 // The editors and services are exercised by behavior in preventionAntisepticWasteBehavior
 // and preventionVaccinationBundleBehavior; the layout (CSS) rules stay here.
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
-const css=fs.readFileSync('src/styles/workspaces.css','utf8')
-const occupational=fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx','utf8')
+import { readSource } from './helpers/readSource'
+const css=readSource('src/styles/workspaces.css')
+const occupational=readSource('src/features/occupational-health/OccupationalHealthPage.jsx')
 
 describe('prevention waste editor refinements',()=>{
   it('keeps waste dates compact but wide enough for the full date and leaves Department largest',()=>{

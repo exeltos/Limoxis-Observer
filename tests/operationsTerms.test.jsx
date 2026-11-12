@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 // Operations (Controls, Kitchen): codes and jargon are not the first thing in the Greek UI.
-import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import { receiptTitle, shortDay } from '../src/features/kitchen/kitchenModel'
+import { readSource } from './helpers/readSource'
 
 vi.mock('../src/core/supabase/client', () => ({ supabase: { rpc: vi.fn(), from: vi.fn() } }))
 vi.mock('../src/core/tenant/TenantContext', () => ({ useTenant: () => ({ tenant: { id: 'org-1' }, membership: { employeeId: '' }, role: 'hospital_admin' }) }))
@@ -20,7 +20,7 @@ const state = kitchenDemoState()
 const access = { canView: true, canRecord: true, canManage: true }
 const wrap = node => render(<MemoryRouter><LanguageProvider>{node}</LanguageProvider></MemoryRouter>)
 afterEach(cleanup)
-const read = path => readFileSync(path, 'utf8')
+const read = path => readSource(path)
 
 describe('Operations terms (finding Ο9)', () => {
   it('names a receipt by its date and supplier', () => {

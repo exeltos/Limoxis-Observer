@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { hospitalInitials, supplierCertificateRenewalEmail } from '../supabase/functions/_shared/supplierCertificateEmail.ts'
+import { readSource } from './helpers/readSource'
 
 const NOW = new Date('2026-10-20T09:00:00Z')
 const base = {
@@ -80,10 +80,10 @@ describe('supplier certificate renewal e-mail', () => {
   })
 
   it('the database sets the same subject and passes the hospital contact and the first e-mail date', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261130100000_quality_supplier_certificate_email_identity.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261130100000_quality_supplier_certificate_email_identity.sql')
     expect(sql).toContain("|| coalesce(nullif(v_org_name, ''), 'Limoxis Observer') || ' · Ανανέωση πιστοποιητικών προμηθευτή (' || v_count || ')';")
     expect(sql).toContain("'firstSentAt', v_row.first_sent_at);")
     expect(sql).toContain("'organizationLogo', (select case when coalesce(o.branding ->> 'logo', '') like 'data:image/%'")
-    for (const fn of ['process-notification-outbox', 'platform-scheduled-tasks']) expect(fs.readFileSync(`supabase/functions/${fn}/index.ts`, 'utf8')).toContain("...('replyTo' in message&&message.replyTo?{replyTo:message.replyTo}:{})")
+    for (const fn of ['process-notification-outbox', 'platform-scheduled-tasks']) expect(readSource(`supabase/functions/${fn}/index.ts`)).toContain("...('replyTo' in message&&message.replyTo?{replyTo:message.replyTo}:{})")
   })
 })

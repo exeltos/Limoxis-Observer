@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { controlAssignmentRows, controlExecutionRows } from '../src/features/controls/controlDemoData.js'
+import { controlAssignmentRows, controlExecutionRows } from '../src/features/controls/controlDemoData'
 
 // The control Demo data is written relative to now: nothing done may lie in the future.
 describe('Control Demo dates', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const wiring = read('supabase/migrations/20261231410000_demo_seed_complete_modules.sql')
 const seeds = {
   demo_seed_rosters_regulations: 'supabase/migrations/20261231350000_demo_seed_rosters_regulations.sql',

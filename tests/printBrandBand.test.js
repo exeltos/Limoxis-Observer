@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
-import { brandBandHtml } from '../src/design-system/printElement.js'
+import { brandBandHtml } from '../src/design-system/printElement'
+import { readSource } from './helpers/readSource'
 
 // A printed screen carries the hospital band of the printed reports (owner, 2/11/2026).
 describe('brand band of printed screens', () => {
@@ -18,15 +18,15 @@ describe('brand band of printed screens', () => {
     expect(brandBandHtml({ name: '', logo: '', reportHeader: '' }, { now })).toBe('')
   })
   it('is on the Analysis print and the hospital overview print', () => {
-    expect(fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')).toContain("brandBandHtml(undefined,{language:print.en?'en':'el'})+report.outerHTML")
-    expect(fs.readFileSync('src/features/executive/ExecutiveDashboardPage.jsx', 'utf8')).toContain('heading:[`${title} · ${tabTitle}`,periodLine]')
+    expect(readSource('src/features/analysis/AnalysisPage.jsx')).toContain("brandBandHtml(undefined,{language:print.en?'en':'el'})+report.outerHTML")
+    expect(readSource('src/features/executive/ExecutiveDashboardPage.jsx')).toContain('heading:[`${title} · ${tabTitle}`,periodLine]')
   })
 })
 
 // A list with many columns (the legislation) is dense, so it fits the page (owner, 2/11/2026).
 describe('wide tables of the printed documents', () => {
   it('make a table of 11 columns or more dense, a narrower one not', async () => {
-    const { reportTableHtml } = await import('../src/core/export/reportDocument.js')
+    const { reportTableHtml } = await import('../src/core/export/reportDocument')
     const row = n => Array.from({ length: n }, (_, i) => `c${i}`)
     expect(reportTableHtml({ columns: row(17), rows: [row(17)] })).toContain('class="rd-table rd-dense"')
     expect(reportTableHtml({ columns: row(10), rows: [row(10)] })).toContain('class="rd-table"')

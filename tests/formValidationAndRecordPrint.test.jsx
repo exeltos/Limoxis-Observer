@@ -3,12 +3,12 @@
 // forms never save empty (required «*», messages under the fields, the first
 // missing field focused, «Συμπληρώστε: …» beside the primary button), dialogs
 // sized to their content, and a record page that prints every tab cleanly.
-import fs from 'node:fs'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
+import { readSource } from './helpers/readSource'
 
 vi.mock('../src/features/management/useLibraries', async original => ({ ...(await original()), useLibraries: () => ({ libraries: { sampleTypes: [] } }) }))
 
@@ -21,7 +21,7 @@ const { EntityRecordShell } = await import('../src/design-system/EntityRecordShe
 const { ExportMenu } = await import('../src/design-system/ExportMenu')
 const { SampleRequestDialog } = await import('../src/features/surveillance/ClinicalRecordDialogs')
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
 function DepartmentForm({ onSave }) {

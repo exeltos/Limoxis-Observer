@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import { controlRanking, delta, executiveKpis, filtersToQuery, parseFilters, periodRange, previousRange, redFlags, shiftMonths, visibleFor, withDeltas } from '../src/features/executive/executiveModel'
+import { readSource } from './helpers/readSource'
 
 vi.mock('../src/core/supabase/client', () => ({ supabase: null }))
 vi.mock('../src/features/platform/platformService', () => ({ loadAnalysisSections: () => { throw new Error('not in tests') } }))
@@ -130,9 +130,9 @@ describe('executive dashboard reads', () => {
     expect(failing).toHaveBeenCalledTimes(2)
   })
   it('lets the Director into Analysis, and grants the analysis RPCs to the director role', () => {
-    const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+    const page = readSource('src/features/analysis/AnalysisPage.jsx')
     expect(page).toContain('ROLES.HOSPITAL_DIRECTOR,ROLES.DEMO].includes(role)')
-    const sql = fs.readFileSync('supabase/migrations/20261128400000_executive_director_analysis_access.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261128400000_executive_director_analysis_access.sql')
     for (const fn of ['analysis_domain_metrics', 'analysis_people_metrics', 'analysis_quality_food_metrics', 'analysis_crosstab_metrics', 'platform_report_summary', 'detect_organism_clusters']) expect(sql).toContain(fn)
     expect(sql).toContain("raise exception '%: role array not found exactly once (%)'")
     expect((sql.match(/'doctor_reviewer','hospital_director'\]::public\.app_role\[\]/g) || []).length).toBe(2)

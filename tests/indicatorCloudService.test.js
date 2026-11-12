@@ -1,6 +1,6 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import { calculateCloudDefinition } from '../src/features/indicators/indicatorCloudService'
+import { readSource } from './helpers/readSource'
 
 describe('production indicator calculation',()=>{
  it('calculates governed rates with canonical metric keys and patient-day denominators',()=>{
@@ -16,7 +16,7 @@ describe('production indicator calculation',()=>{
   expect(row.value).toBe(7);expect(row.numerator).toBe(7)
  })
  it('keeps a single canonical indicators page with department scoping and history, not a demo/production split',()=>{
-  const page=fs.readFileSync('src/features/indicators/IndicatorsPage.jsx','utf8')
+  const page=readSource('src/features/indicators/IndicatorsPage.jsx')
   expect(page).not.toContain('IndicatorsDemoPage')
   expect(page).not.toContain('IndicatorsCloudPage')
   expect(page).toContain('departmentScoped')
@@ -25,7 +25,7 @@ describe('production indicator calculation',()=>{
   expect(page).toContain('CAPABILITIES.MANAGE_INDICATORS')
  })
  it('mirrors department-scoped snapshot RLS in migrations',()=>{
-  const migration=fs.readFileSync('supabase/migrations/20260902142308_indicator_snapshot_department_scope.sql','utf8')
+  const migration=readSource('supabase/migrations/20260902142308_indicator_snapshot_department_scope.sql')
   expect(migration).toContain('current_user_has_department_scope')
   expect(migration).toContain("current_user_has_capability(organization_id, 'view_indicators')")
   expect(migration).toContain("current_user_has_capability(organization_id, 'manage_indicators')")

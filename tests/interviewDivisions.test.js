@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { DIVISION_CANDIDATE_FIELDS } from '../src/features/interviews/divisionsModel'
 import { PROFESSIONAL_CATEGORIES, categoryLabel } from '../src/features/interviews/interviewsModel'
 import { cleanApplication, newApplication } from '../src/features/interviews/applicationModel'
 import { CAPABILITIES, ROLES, can } from '../src/core/permissions/roles'
 import { roleLabel } from '../src/core/permissions/roleLabels'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 
 describe('interviews: fixed list of categories on the tablet', () => {
   it('offers one fixed list and keeps only a value from it', () => {

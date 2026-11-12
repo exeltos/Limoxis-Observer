@@ -1,11 +1,11 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
-const main = fs.readFileSync('src/main.jsx', 'utf8')
-const css = fs.readFileSync('src/styles/responsive.css', 'utf8')
+const main = readSource('src/main.jsx')
+const css = readSource('src/styles/responsive.css')
 
 describe('short screens (13" notebooks) scroll instead of clipping', () => {
   it('loads the short-viewport, rail and row-return rules last', () => {
@@ -27,8 +27,8 @@ describe('short screens (13" notebooks) scroll instead of clipping', () => {
 })
 
 describe('tablets and phones', () => {
-  const rail = fs.readFileSync('src/styles/responsive.css', 'utf8')
-  const shell = fs.readFileSync('src/app/AppShell.jsx', 'utf8')
+  const rail = readSource('src/styles/responsive.css')
+  const shell = readSource('src/app/AppShell.jsx')
   it('drops the 1080px desktop minimum width below 1100px', () => {
     expect(withoutImportant(rail)).toContain('@media (max-width:1100px){body{min-width:0}}')
   })
@@ -47,8 +47,8 @@ describe('tablets and phones', () => {
 })
 
 describe('returned-row highlight', () => {
-  const css = fs.readFileSync('src/styles/responsive.css', 'utf8')
-  const read = p => fs.readFileSync(p, 'utf8')
+  const css = readSource('src/styles/responsive.css')
+  const read = p => readSource(p)
   it('colours the cells, not only the row, so the highlight is visible', () => {
     expect(css).toContain('tr.registry-row-returned>td{background:#e3f0fa!important')
   })

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261013120000_demo_permissions.sql')
 const shell = read('src/app/AppShell.jsx')
 const tenantContext = read('src/core/tenant/TenantContext.jsx')

@@ -1,16 +1,16 @@
-import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
 import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleRecordSource'
-const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
+import { readSource } from './helpers/readSource'
+const i18n=readSource('src/core/i18n/stringsEl.js')+readSource('src/core/i18n/stringsEn.js')
 
-const patients=fs.readFileSync('src/features/patients/patientsService.js','utf8')
-const patientForm=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')
-const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
-const cloud=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
+const patients=readSource('src/features/patients/patientsService.js')
+const patientForm=readSource('src/features/patients/PatientsPage.jsx')
+const repository=readSource('src/features/surveillance/clinicalRepository.js')
+const cloud=readSource('src/features/surveillance/clinicalCloudService.js')
 const labRecord=readLaboratorySampleRecordSource()
-const labCloud=fs.readFileSync('src/features/laboratory/laboratoryCloudService.js','utf8')
-const archive=fs.readFileSync('supabase/migrations/20260918103000_patient_governed_archival.sql','utf8')
-const admissions=fs.readFileSync('supabase/migrations/20260918104000_patient_admission_lifecycle.sql','utf8')
+const labCloud=readSource('src/features/laboratory/laboratoryCloudService.js')
+const archive=readSource('supabase/migrations/20260918103000_patient_governed_archival.sql')
+const admissions=readSource('supabase/migrations/20260918104000_patient_admission_lifecycle.sql')
 
 describe('patient clinical core hardening',()=>{
   it('archives instead of deleting the clinical record',()=>{

@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 // Employee photo: the rules of the photo service, the database policy that keeps
 // the folder for staff editors, and the header photo control on the demo hospital.
-import fs from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { readSource } from './helpers/readSource'
 
 let profile
 vi.mock('../src/core/auth/AuthContext', () => ({
@@ -59,7 +59,7 @@ describe('employee photo service', () => {
 })
 
 describe('employee photo policy', () => {
-  const sql = fs.readFileSync('supabase/migrations/20261121100000_employee_photo.sql', 'utf8')
+  const sql = readSource('supabase/migrations/20261121100000_employee_photo.sql')
   it('adds the photo column with a path bound to the employee and organisation', () => {
     expect(sql).toMatch(/add column if not exists photo_path text/)
     expect(sql).toMatch(/organization_id::text \|\| '\/employee_photo\/' \|\| id::text/)

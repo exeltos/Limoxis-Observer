@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { readSource } from './readSource.mjs'
 
 // The `!important` count of every stylesheet is a ceiling, not a target: new CSS must not add to it.
 // Lower a file's number in tools/important-baseline.json when its rules are cleaned (run with --write
@@ -16,7 +17,7 @@ const walk = dir => {
   }
 }
 walk(root)
-const counts = Object.fromEntries(files.sort().map(file => [file, (fs.readFileSync(file, 'utf8').match(/!important/g) || []).length]).filter(([, n]) => n > 0))
+const counts = Object.fromEntries(files.sort().map(file => [file, (readSource(file).match(/!important/g) || []).length]).filter(([, n]) => n > 0))
 
 if (process.argv.includes('--write')) {
   fs.writeFileSync(baselineFile, `${JSON.stringify(counts, null, 2)}\n`)

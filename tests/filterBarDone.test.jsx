@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { FilterBar, FilterSelect } from '../src/design-system/FilterBar.jsx'
-import { LanguageProvider } from '../src/core/i18n/LanguageContext.jsx'
+import { FilterBar, FilterSelect } from '../src/design-system/FilterBar'
+import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 
 // The filter window closes with its own «OK», and «Clear filters» sits beside it while a filter is set (owner, 11/11/2026):
 // nobody has to click somewhere else on the screen to make it go away.

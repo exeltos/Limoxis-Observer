@@ -1,9 +1,9 @@
 import { describe,it,expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const service=fs.readFileSync('src/features/management/bundleLibraryCloudService.js','utf8')
-const panel=fs.readFileSync('src/features/management/BundleLibraryPanel.jsx','utf8')
-const migration=fs.readFileSync('supabase/migrations/20260902105001_prevention_bundle_template_governance.sql','utf8')
+const service=readSource('src/features/management/bundleLibraryCloudService.js')
+const panel=readSource('src/features/management/BundleLibraryPanel.jsx')
+const migration=readSource('supabase/migrations/20260902105001_prevention_bundle_template_governance.sql')
 
 describe('Management Center bundle template persistence',()=>{
  it('persists bundle templates in the governed cloud table',()=>{

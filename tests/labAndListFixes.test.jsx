@@ -2,11 +2,11 @@
 // Surveillance «Create» menu, staff record page, tablet environment list,
 // and the Laboratory list / dialogs on the shared patterns.
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
 import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { readSource } from './helpers/readSource'
 
 vi.mock('../src/core/auth/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'owner-1' }, profile: { id: 'owner-1', isPlatformOwner: true, fullName: 'Platform Owner', isDemo: false }, isAuthenticated: true, isDemoSession: false, loading: false }),
@@ -22,7 +22,7 @@ const { EmployeeSurveillanceRecordPage } = await import('../src/features/surveil
 const { buildLaboratorySampleReport } = await import('../src/features/laboratory/laboratorySampleReport')
 const { labStatusLabel, labResultLabel, LAB_STATUS_ORDER } = await import('../src/features/laboratory/LaboratoryStatus')
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 afterEach(cleanup)
 
 describe('shared dropdown menu (the «Create» entries)', () => {

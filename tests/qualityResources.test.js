@@ -1,9 +1,9 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { addMonths, approvalFor, equipmentCapaSource, equipmentCounts, equipmentExport, equipmentProblems, equipmentStatus, eventProblems, evaluationScore, filterEquipment, filterSuppliers, newEquipment, nextEquipmentCode, nextSupplierCode, supplierCapaSource, supplierCounts, supplierStatus, withEquipmentStatus, withSupplierStatus, NO_EQUIPMENT_FILTERS, NO_SUPPLIER_FILTERS } from '../src/features/quality/resources/resourceModel'
 import { demoResources } from '../src/features/quality/resources/resourceDemoData'
 import { qualityTabOf } from '../src/features/quality/qualityReturnSection'
 import { capaSourceInfo } from '../src/features/quality/capaSources'
+import { readSource } from './helpers/readSource'
 
 const TODAY = '2026-10-18'
 const device = (extra = {}) => ({ ...newEquipment(), id: 'eq1', code: 'EQ-0001', name: 'Απινιδωτής', maintenanceMonths: 6, calibrationMonths: '', safetyMonths: 12, installedOn: '2024-01-10', ...extra })
@@ -116,7 +116,7 @@ describe('Corrective actions and the Center', () => {
   })
 
   it('the database keeps suppliers to Quality and lets a department record events on its own devices', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261111100000_quality_suppliers_equipment.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261111100000_quality_suppliers_equipment.sql')
     expect(sql).toMatch(/create policy quality_suppliers_read[^;]*current_user_quality_read_orgs[^;]*;/)
     expect(sql).not.toMatch(/create policy quality_suppliers_read[^;]*department_scopes/)
     expect(sql).toMatch(/create policy quality_equipment_events_insert[^;]*current_user_department_scopes/)

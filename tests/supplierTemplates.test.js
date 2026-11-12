@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { applyTemplate, evaluationFromTemplate, evaluationTemplates, evaluationMonths, evaluationResult, evaluationSheetRows, evaluationTotal, everyCriterionScored, formatPercent, moveCriterion, newTemplate, presetTemplates, resultFor, templateFor, templateProblems, templatesFor, weightTotal, weightedScore } from '../src/features/quality/resources/supplierTemplates'
 import { evaluationApproval, evaluationPercent, supplierCategoryLabel, supplierStatus, withSupplierStatus } from '../src/features/quality/resources/resourceModel'
@@ -6,6 +5,7 @@ import { criterionRows, evaluationFromRow, evaluationRows, scoreRows, templateCh
 import { supplierEvaluationDocument } from '../src/features/quality/resources/supplierEvaluationReport'
 import { demoResources } from '../src/features/quality/resources/resourceDemoData'
 import { buildCalendarEvents } from '../src/features/calendar/calendarEvents'
+import { readSource } from './helpers/readSource'
 
 const TODAY = '2026-10-18'
 const KITCHEN = presetTemplates('t').find(item => item.id === 't-kitchen')
@@ -160,7 +160,7 @@ describe('Suppliers on templates', () => {
   })
 
   it('the database keeps templates to Quality and lets only Quality managers edit them', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261122100000_quality_supplier_eval_templates.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261122100000_quality_supplier_eval_templates.sql')
     expect(sql).toContain("'quality_supplier_eval_templates', 'quality_supplier_eval_template_criteria', 'quality_supplier_evaluation_scores', 'quality_supplier_contacts'")
     expect(sql).toMatch(/for select to authenticated using \(\s*\(select public\.current_user_is_platform_owner\(\)\)\s*or organization_id = any \(\(select private\.current_user_quality_read_orgs\(\)\)/)
     expect(sql).toMatch(/for insert to authenticated\s*with check \(\(select public\.current_user_is_platform_owner\(\)\) or organization_id = any \(\(select private\.current_user_quality_manage_orgs\(\)\)/)
@@ -172,8 +172,8 @@ describe('Suppliers on templates', () => {
 
 describe('Supplier record header', () => {
   it('keeps «Νέα αξιολόγηση» visible as the main action, last: the shell keeps a `utility` action beside the status', () => {
-    const page = fs.readFileSync('src/features/quality/resources/SupplierRecordPage.jsx', 'utf8')
-    const shell = fs.readFileSync('src/design-system/EntityRecordShell.jsx', 'utf8')
+    const page = readSource('src/features/quality/resources/SupplierRecordPage.jsx')
+    const shell = readSource('src/design-system/EntityRecordShell.jsx')
     expect(shell).toContain('action.props.utility')
     expect(page.match(/<HeaderAction utility tone="primary"><Button/g)).toHaveLength(1)
     expect(page).toContain("'Νέα αξιολόγηση'")

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const read = path => readSource(new URL(`../${path}`, import.meta.url))
 
 describe('pediatric/neonatal support UI wiring', () => {
 

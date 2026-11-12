@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { REQUIRED_BY, licenceFieldsFromRow, licenceFieldsToRow, licenceSummary, renewalLabel, toggleRequiredBy, documentTypeSummary } from '../src/features/documents/licenceFields'
 import { createEmptyDocumentDraft, DOCUMENT_TYPES } from '../src/features/documents/DocumentForm'
 import { buildCalendarEvents } from '../src/features/calendar/calendarEvents'
+import { readSource } from './helpers/readSource'
 
 describe('licence fields of controlled documents', () => {
   it('reads renewal and required-by into the record, known keys only, in a fixed order', () => {
@@ -62,8 +62,8 @@ describe('licence fields of controlled documents', () => {
 
 describe('licence fields in the schema, the service and the demo', () => {
   it('adds both columns through an idempotent migration and reads/writes them in the service', () => {
-    const migration = fs.readFileSync(new URL('../supabase/migrations/20261121130000_controlled_document_licence_fields.sql', import.meta.url), 'utf8')
-    const service = fs.readFileSync(new URL('../src/features/documents/documentService.js', import.meta.url), 'utf8')
+    const migration = readSource(new URL('../supabase/migrations/20261121130000_controlled_document_licence_fields.sql', import.meta.url))
+    const service = readSource(new URL('../src/features/documents/documentService.js', import.meta.url))
     expect(migration).toMatch(/add column if not exists renewal_months integer/)
     expect(migration).toMatch(/add column if not exists required_by text\[\]/)
     expect(migration).toMatch(/'legislation','iso9001','iso15189','accreditation','contract','other'/)
@@ -73,7 +73,7 @@ describe('licence fields in the schema, the service and the demo', () => {
   })
 
   it('seeds demo forms and licences, every licence with an issue date, an expiry and a renewal', () => {
-    const store = fs.readFileSync(new URL('../src/features/documents/documentStore.js', import.meta.url), 'utf8')
+    const store = readSource(new URL('../src/features/documents/documentStore.js', import.meta.url))
     expect((store.match(/type:'form',/g) || []).length).toBeGreaterThanOrEqual(2)
     const licences = store.split(/\n {2}\{\n/).filter(block => block.includes("type:'licence'"))
     expect(licences.length).toBeGreaterThanOrEqual(2)

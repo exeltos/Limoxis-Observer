@@ -21,7 +21,8 @@
 
 ## Γ. TypeScript — σχέδιο (νέα συνεδρία)
 Μέτρηση 12/11: 0 `.ts` στο `src` (~119.000 γραμμές JS/JSX)· `checkJs` σε όλο το `src`: 3.853 σφάλματα (χαλαρό), 7.293 (strict). ~2.500 από τα χαλαρά είναι props του `design-system` (π.χ. `fieldKey` 388, `disabled` 347).
-1. Προετοιμασία: `database.types.ts` από το Supabase (`generate_typescript_types`)· βοηθός στα τεστ `readSource('src/…')` που βρίσκει `.js/.jsx/.ts/.tsx` (141 τεστ)· `vitest`/`eslint` για `.ts/.tsx`.
+1. [x] Προετοιμασία (12/11): `src/core/supabase/database.types.ts` (256 πίνακες/όψεις, χωρίς τους δυναμικούς `register_*`, `bk_*`, `fm_stage_*`, `rebuild_*`· ξαναπαράγεται μετά από αλλαγές σχήματος)· `tests/helpers/readSource.js` σε 304 τεστ και `tools/readSource.mjs` στους ελέγχους (βρίσκουν `.js↔.ts`, `.jsx↔.tsx`)· typescript-eslint, `@types/react`· πιλότος `src/core/dates/hospitalDate.ts` στο `tsconfig.strict.json`.
+   - Προσοχή: τα εργαλεία `tools/*.mjs` εισάγουν με σκέτο Node τα `core/permissions`, `core/help`, `core/actions/actionPolicy`, `core/organization/operatingProfile`, `core/version` (με ρητό `.js`). Πριν γίνουν `.ts`, τα εργαλεία να τρέχουν με `node --experimental-strip-types` ή `tsx`.
 2. `src/design-system` → `.tsx` με τύπους props (πέφτουν τα μισά σφάλματα).
 3. `src/core` (dates, permissions, i18n, supabase, tenant, auth, data, feedback).
 4. Ενότητες από τη μικρότερη στη μεγαλύτερη, Ποιότητα και Επιτήρηση τελευταίες· σπάσιμο μεγάλων αρχείων μαζί.

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 const confirm = vi.fn()
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useOptionalFeedback: () => ({ confirm }) }))
 vi.mock('../src/core/i18n/LanguageContext', () => ({ useLanguage: () => ({ language: 'el' }) }))
-const { ObserverDialog } = await import('../src/design-system/ObserverDialog.jsx')
+const { ObserverDialog } = await import('../src/design-system/ObserverDialog')
 
 function renderDialog(onClose) {
   return render(<ObserverDialog title="Νέα εγγραφή" onClose={onClose}>

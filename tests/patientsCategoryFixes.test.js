@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { normalizeLaboratorySample } from '../src/features/laboratory/model/laboratoryModel'
 import { demoClinicalScaleDefinitions } from '../src/features/clinical-scales/clinicalScaleDemoDefinitions'
 import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
 import { episodeBelongsToPatient } from '../src/features/surveillance/patientRecordScope'
-const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')
+import { readSource } from './helpers/readSource'
+const i18n=readSource('src/core/i18n/stringsEl.js')
 
 // User-reported review of the Patients category.
-const scales = fs.readFileSync('src/features/clinical-scales/PatientClinicalScalesPanel.jsx', 'utf8')
+const scales = readSource('src/features/clinical-scales/PatientClinicalScalesPanel.jsx')
 
 describe('Patients category fixes', () => {
   it('demo offers clinical assessment tools, so "New assessment" is available', () => {
@@ -32,7 +32,7 @@ describe('Patients category fixes', () => {
   })
 
   it('new surveillance form uses the shared dialog, with no leftover rail or duplicate close button', () => {
-    const flow = fs.readFileSync('src/features/surveillance/NewSurveillanceFlow.jsx', 'utf8')
+    const flow = readSource('src/features/surveillance/NewSurveillanceFlow.jsx')
     expect(flow).not.toContain('progressive-journey-rail')
     expect(flow).not.toContain('flow-cancel-link')
     expect(flow).not.toContain('flow-close-button')
@@ -40,7 +40,7 @@ describe('Patients category fixes', () => {
   })
 
   it('patient list status chips use plural labels, the fourth counts isolations in place', () => {
-    const page = fs.readFileSync('src/features/patients/PatientsPage.jsx', 'utf8')
+    const page = readSource('src/features/patients/PatientsPage.jsx')
     expect(page).toContain("'patientsCountDischarged'")
     // A transfer between departments keeps the patient active, so «Transferred» stayed 0 in production.
     expect(page).toContain("'patientsCountIsolation'")
@@ -54,17 +54,17 @@ describe('surveillance review', () => {
     expect(episodeBelongsToPatient({}, {})).toBe(false)
   })
   it('«Create» of the Surveillance Center creates what the open tab lists, and the new laboratory sample keeps compact icon cards', () => {
-    const flow = fs.readFileSync('src/features/surveillance/EmployeeSurveillanceFlow.jsx', 'utf8')
-    const page = fs.readFileSync('src/features/surveillance/SurveillanceCanonicalPage.jsx', 'utf8')
-    const lab = fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx', 'utf8')
+    const flow = readSource('src/features/surveillance/EmployeeSurveillanceFlow.jsx')
+    const page = readSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
+    const lab = readSource('src/features/laboratory/LaboratoryWorkspace.jsx')
     expect(flow).not.toContain('SurveillanceSubjectChooser')
     expect(page).not.toContain("'chooser'")
     expect(page).toContain("startCreation(mode)")
     expect(lab).toContain('<SubjectChoiceStep compact')
   })
   it('documents tabs open the same way: one note + shared attachment box, no second card', () => {
-    const workspace = fs.readFileSync('src/design-system/DocumentsWorkspace.jsx', 'utf8')
-    const panel = fs.readFileSync('src/design-system/EntityAttachmentsPanel.jsx', 'utf8')
+    const workspace = readSource('src/design-system/DocumentsWorkspace.jsx')
+    const panel = readSource('src/design-system/EntityAttachmentsPanel.jsx')
     expect(workspace).toContain('className="documents-workspace"')
     expect(workspace).not.toContain('record-section documents-workspace')
     expect(panel).not.toContain('LIMOXIS OBSERVER')

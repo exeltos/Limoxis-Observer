@@ -1,9 +1,9 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
-import { roleLabel,SYSTEM_ROLE_KEYS } from '../src/core/permissions/roleLabels.js'
+import { roleLabel,SYSTEM_ROLE_KEYS } from '../src/core/permissions/roleLabels'
 import { readAnalysisPageSource } from './helpers/analysisPageSource'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(path,'utf8')
+const read=path=>readSource(path)
 
 describe('Platform Owner UI audit',()=>{
   it('uses bilingual presentation labels instead of raw database role keys',()=>{

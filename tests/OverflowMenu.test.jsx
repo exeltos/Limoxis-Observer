@@ -2,11 +2,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import { OverflowMenu } from '../src/design-system/OverflowMenu'
+import { readSource } from './helpers/readSource'
 
-const coreCss = fs.readFileSync('src/styles/foundation.css', 'utf8')
+const coreCss = readSource('src/styles/foundation.css')
 
 function renderMenu(props={}){
   return render(<LanguageProvider><OverflowMenu label="Actions" items={[{id:'edit',label:'Edit',onClick:vi.fn()}]} {...props}/></LanguageProvider>)

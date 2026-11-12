@@ -1,11 +1,11 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
-import {CAPABILITIES,MANAGEMENT_CAPABILITIES,ROLES,can} from '../src/core/permissions/roles.js'
+import {CAPABILITIES,MANAGEMENT_CAPABILITIES,ROLES,can} from '../src/core/permissions/roles'
+import { readSource } from './helpers/readSource'
 
-const migration=fs.readFileSync('supabase/migrations/20260902114838_indicator_definitions_management_governance.sql','utf8')
-const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
-const panel=fs.readFileSync('src/features/management/IndicatorsPanel.jsx','utf8')
-const page=fs.readFileSync('src/features/management/ManagementPage.jsx','utf8')
+const migration=readSource('supabase/migrations/20260902114838_indicator_definitions_management_governance.sql')
+const service=readSource('src/features/management/managementCloudService.js')
+const panel=readSource('src/features/management/IndicatorsPanel.jsx')
+const page=readSource('src/features/management/ManagementPage.jsx')
 
 describe('management indicator definitions',()=>{
  it('separates system definitions from hospital-managed definitions',()=>{
@@ -28,7 +28,7 @@ describe('management indicator definitions',()=>{
   expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_INDICATORS)).toBe(true)
   expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_LIBRARIES)).toBe(false)
   expect(page).not.toContain("okCap(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators'")
-  expect(fs.readFileSync('src/features/quality/QualityPage.jsx','utf8')).toContain("goTo('/indicators/new')")
+  expect(readSource('src/features/quality/QualityPage.jsx')).toContain("goTo('/indicators/new')")
  })
  it('exposes a governed management UI',()=>{
   expect(page).toContain("id:'indicators'")

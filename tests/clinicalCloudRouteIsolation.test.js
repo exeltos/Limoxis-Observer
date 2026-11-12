@@ -1,11 +1,11 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
 import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
+import { readSource } from './helpers/readSource'
 
-const route=fs.readFileSync('src/features/surveillance/PatientClinicalRecordRoute.jsx','utf8')
+const route=readSource('src/features/surveillance/PatientClinicalRecordRoute.jsx')
 const canonical=readPatientClinicalRecordSource()
-const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
-const app=fs.readFileSync('src/app/App.jsx','utf8')
+const repository=readSource('src/features/surveillance/clinicalRepository.js')
+const app=readSource('src/app/App.jsx')
 
 describe('clinical route isolation',()=>{
   it('routes Demo and Production through one canonical clinical record',()=>{

@@ -1,14 +1,14 @@
-import { readFileSync } from 'node:fs'
 import { URL } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const identityTenants = readFileSync(new URL('../supabase/migrations/202608270001_v020_identity_tenants.sql', import.meta.url), 'utf8')
-const clinicalCore = readFileSync(new URL('../supabase/migrations/202608270005_v050_clinical_surveillance_core.sql', import.meta.url), 'utf8')
-const parallelSurveillance = readFileSync(new URL('../supabase/migrations/202608270006_v051_parallel_surveillance.sql', import.meta.url), 'utf8')
-const labMicrobiology = readFileSync(new URL('../supabase/migrations/202608270007_v060_laboratory_microbiology.sql', import.meta.url), 'utf8')
-const governanceCoverage = readFileSync(new URL('../supabase/migrations/202608300015_v0272_governance_schema_coverage.sql', import.meta.url), 'utf8')
-const clinicalGapFix = readFileSync(new URL('../supabase/migrations/202608300016_v0273_clinical_rls_gap_fix.sql', import.meta.url), 'utf8')
-const ownerFullControl = readFileSync(new URL('../supabase/migrations/202608300019_v0279_platform_owner_full_control.sql', import.meta.url), 'utf8')
+const identityTenants = readSource(new URL('../supabase/migrations/202608270001_v020_identity_tenants.sql', import.meta.url))
+const clinicalCore = readSource(new URL('../supabase/migrations/202608270005_v050_clinical_surveillance_core.sql', import.meta.url))
+const parallelSurveillance = readSource(new URL('../supabase/migrations/202608270006_v051_parallel_surveillance.sql', import.meta.url))
+const labMicrobiology = readSource(new URL('../supabase/migrations/202608270007_v060_laboratory_microbiology.sql', import.meta.url))
+const governanceCoverage = readSource(new URL('../supabase/migrations/202608300015_v0272_governance_schema_coverage.sql', import.meta.url))
+const clinicalGapFix = readSource(new URL('../supabase/migrations/202608300016_v0273_clinical_rls_gap_fix.sql', import.meta.url))
+const ownerFullControl = readSource(new URL('../supabase/migrations/202608300019_v0279_platform_owner_full_control.sql', import.meta.url))
 
 // These tests document a gap between the documented authorization model
 // (docs/AUTHORIZATION_MODEL.md) and the SQL RLS layer that

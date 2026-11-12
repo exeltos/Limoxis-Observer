@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { PlatformDashboardView } from '../src/features/platform/PlatformDashboardView'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const tx = (el) => el
 const iso = days => { const d = new Date(); d.setDate(d.getDate() + days); return d.toISOString() }
 

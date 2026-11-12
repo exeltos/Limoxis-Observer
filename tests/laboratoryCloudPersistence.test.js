@@ -1,13 +1,13 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const service=fs.readFileSync('src/features/laboratory/laboratoryCloudService.js','utf8')
-const page=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx','utf8')
-const record=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordView.jsx','utf8')
-const route=fs.readFileSync('src/features/laboratory/LaboratoryPage.jsx','utf8')
-const recordRoute=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordPage.jsx','utf8')
-const migration=fs.readFileSync('supabase/migrations/20260902125721_laboratory_critical_result_workflow_fix.sql','utf8')
-const immutabilityMigration=fs.readFileSync('supabase/migrations/20260902131016_laboratory_validated_result_immutability.sql','utf8')
+const service=readSource('src/features/laboratory/laboratoryCloudService.js')
+const page=readSource('src/features/laboratory/LaboratoryWorkspace.jsx')
+const record=readSource('src/features/laboratory/LaboratorySampleRecordView.jsx')
+const route=readSource('src/features/laboratory/LaboratoryPage.jsx')
+const recordRoute=readSource('src/features/laboratory/LaboratorySampleRecordPage.jsx')
+const migration=readSource('supabase/migrations/20260902125721_laboratory_critical_result_workflow_fix.sql')
+const immutabilityMigration=readSource('supabase/migrations/20260902131016_laboratory_validated_result_immutability.sql')
 
 describe('laboratory production persistence',()=>{
   it('loads canonical laboratory domains from Supabase',()=>{

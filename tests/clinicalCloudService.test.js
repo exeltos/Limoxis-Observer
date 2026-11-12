@@ -1,10 +1,10 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
 import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
+import { readSource } from './helpers/readSource'
 
-const service=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
+const service=readSource('src/features/surveillance/clinicalCloudService.js')
 const page=readPatientClinicalRecordSource()
-const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
+const repository=readSource('src/features/surveillance/clinicalRepository.js')
 
 // What each operation writes is exercised in clinicalCloudServiceBehavior.test.js.
 describe('clinical cloud service',()=>{

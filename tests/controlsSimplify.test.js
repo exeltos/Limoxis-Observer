@@ -1,11 +1,11 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { filterControlRows } from '../src/features/controls/controlFilters'
+import { readSource } from './helpers/readSource'
 
-const page = fs.readFileSync('src/features/controls/ControlsPage.jsx', 'utf8')
-const record = fs.readFileSync('src/features/controls/ControlRecordPage.jsx', 'utf8')
-const editor = fs.readFileSync('src/features/controls/ControlEditor.jsx', 'utf8')
-const expiry = fs.readFileSync('src/features/controls/ControlExpiryPanel.jsx', 'utf8')
+const page = readSource('src/features/controls/ControlsPage.jsx')
+const record = readSource('src/features/controls/ControlRecordPage.jsx')
+const editor = readSource('src/features/controls/ControlEditor.jsx')
+const expiry = readSource('src/features/controls/ControlExpiryPanel.jsx')
 
 const row = (id, extra = {}) => ({
   item: { id, title: id, category: 'Θερμοκρασίες', frequency: { kind: 'weekly', interval: 1 }, responseConfig: { criticality: 'high' }, ...extra },

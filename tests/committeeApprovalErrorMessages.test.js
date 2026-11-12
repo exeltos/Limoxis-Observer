@@ -1,5 +1,5 @@
 import { describe,expect,it } from 'vitest'
-import { userFacingError } from '../src/core/feedback/userFacingError.js'
+import { userFacingError } from '../src/core/feedback/userFacingError'
 
 describe('committee approval user-facing errors',()=>{
   it('maps missing correction comments without technical wording',()=>{

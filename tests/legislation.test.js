@@ -1,10 +1,10 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildRegister, changedSince, complianceSummary, filterRegister, hasUnpublished, legislationCapaSource, nextLegislationCode, registerCounts, registerExport, sourceHealth, textFromCandidate, textProblems, unpublishedChanges, NO_FILTERS } from '../src/features/legislation/legislationModel'
 import { demoLegislation } from '../src/features/legislation/legislationDemoData'
 import { capaSourceInfo } from '../src/features/quality/capaSources'
 import { matchedKeywords, newCandidates, normalize, parseFeed, parsePage } from '../supabase/functions/_shared/legislationWatch.ts'
 import { legislationDigestEmail, legislationUpdateEmail } from '../supabase/functions/_shared/legislationEmail.ts'
+import { readSource } from './helpers/readSource'
 
 const TODAY = '2026-10-18'
 const requirement = (id, text) => ({ id, text })
@@ -104,13 +104,13 @@ describe('Legislation: the automatic check', () => {
   })
 
   it('the database keeps the working copies to the Platform Owner and publishes only through legislation_publish', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261112100000_legislation.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261112100000_legislation.sql')
     expect(sql).toMatch(/create policy legislation_texts_owner[^;]*current_user_is_platform_owner/)
     expect(sql).toContain('grant select on public.legislation_text_versions to authenticated')
     expect(sql).not.toMatch(/grant [^;]*insert[^;]*legislation_text_versions/)
     expect(sql).toMatch(/legislation_publish[\s\S]*current_user_is_platform_owner[\s\S]*notification_outbox/)
     expect(sql).toContain("cron.schedule('limoxis-legislation-digest'")
-    const manifest = JSON.parse(fs.readFileSync('supabase/security-definer-manifest.json', 'utf8'))
+    const manifest = JSON.parse(readSource('supabase/security-definer-manifest.json'))
     expect(JSON.stringify(manifest)).toContain('legislation_publish')
   })
 })

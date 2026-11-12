@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = (name) => readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8')
+const read = (name) => readSource(new URL(`../supabase/migrations/${name}`, import.meta.url))
 const controls = read('20261211130000_filemaker_hourly_sync.sql')
 const areas = read('20261211140000_filemaker_hourly_sync_areas.sql')
 const daily = read('20261211150000_filemaker_daily_sync_indicators.sql')

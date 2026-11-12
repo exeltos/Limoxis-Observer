@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
 import { announcementPayload, audienceSummary, mapAnnouncement, meantForDemo, pendingFor } from '../src/features/platform/platformAnnouncementsService'
+import { readSource } from './helpers/readSource'
 
 // The platform owner's announcements to the hospital administrators (owner, 8/11/2026).
 const base = { id: 'a1', status: 'active', startsAt: '2026-11-01T00:00:00Z', endsAt: '2026-11-30T00:00:00Z', audience: [], frequency: 'once' }
@@ -24,7 +24,7 @@ describe('platform announcements', () => {
     expect(row).toMatchObject({ title_el: 'Νέο', body_el: 'Κείμενο', cta_url: null, kind: 'promotion', audience_org_ids: ['org-1'], frequency: 'once', status: 'active' })
   })
   it('is written only by the owner and read only by the hospital administrators it is meant for (RLS)', () => {
-    const sql = readFileSync('supabase/migrations/20261231260000_platform_announcements.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261231260000_platform_announcements.sql')
     expect(sql).toContain('using (public.current_user_is_platform_owner()) with check (public.current_user_is_platform_owner())')
     expect(sql).toContain("om.role = 'hospital_admin'")
     expect(sql).toContain('cardinality(audience_org_ids) = 0 or om.organization_id = any(audience_org_ids)')
@@ -40,7 +40,7 @@ describe('platform announcements: file and demo (owner, 8/11/2026)', () => {
   })
 
   it('opens the form as a record screen with Back (not a window), rows only open it, and shows the demo ones in a demo hospital', () => {
-    const page = readFileSync('src/features/platform/PlatformAnnouncementsPage.jsx', 'utf8')
+    const page = readSource('src/features/platform/PlatformAnnouncementsPage.jsx')
     expect(page).toContain('<EntityRecordShell')
     expect(page).toContain('onBack={() => setDraft(null)}')
     expect(page).not.toContain('<ObserverDialog')
@@ -50,7 +50,7 @@ describe('platform announcements: file and demo (owner, 8/11/2026)', () => {
     // The maintenance message is the pinned first item and has its own editor.
     expect(page).toContain('platform-maintenance-item')
     expect(page).toContain('function MaintenanceEditor(')
-    const gate = readFileSync('src/features/platform/PlatformAnnouncementGate.jsx', 'utf8')
+    const gate = readSource('src/features/platform/PlatformAnnouncementGate.jsx')
     expect(gate).toContain('loadDemoAnnouncements(tenant?.id)')
   })
 })
@@ -77,7 +77,7 @@ describe('platform announcements: image position and attached file (owner, 10/11
 })
 
 describe('platform announcements: the card is read at leisure (owner, 11/11/2026)', () => {
-  const read = file => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+  const read = file => readSource(new URL(`../${file}`, import.meta.url))
   it('keeps the × and does not close on a click outside; only the announcement\'s own button is in the footer', () => {
     const gate = read('src/features/platform/PlatformAnnouncementGate.jsx')
     expect(gate).toContain('closeOnBackdrop={false}')
@@ -99,7 +99,7 @@ describe('platform announcements: hospitals and demos in one list (owner, 12/11/
     expect(meantForDemo(base, 'demo-1')).toBe(false)
   })
   it('the page offers hospitals and demos together; the old checkbox is gone', () => {
-    const page = readFileSync('src/features/platform/PlatformAnnouncementsPage.jsx', 'utf8')
+    const page = readSource('src/features/platform/PlatformAnnouncementsPage.jsx')
     expect(page).not.toContain('Εμφάνιση και στο demo')
     expect(page).toContain("(org.is_demo || org.mode === 'demo') ? `${org.name} · Demo`")
     expect(page).toContain('ALL_HOSPITALS')
@@ -108,7 +108,7 @@ describe('platform announcements: hospitals and demos in one list (owner, 12/11/
     expect(page).toContain('ALL_DEMOS')
   })
   it('the database lets a demo member read what names their demo (create policy only)', () => {
-    const sql = readFileSync('supabase/migrations/20261231330000_announcement_demo_targets.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261231330000_announcement_demo_targets.sql')
     expect(sql).toContain('create policy platform_announcements_demo_target_read')
     expect(sql).toContain('is_demo')
     expect(sql).not.toMatch(/\b(drop |delete from|alter policy|revoke)/i)

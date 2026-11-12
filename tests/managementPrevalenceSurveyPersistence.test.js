@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const panel = fs.readFileSync('src/features/management/PrevalenceSurveyPanel.jsx', 'utf8')
-const service = fs.readFileSync('src/features/management/prevalenceSurveyCloudService.js', 'utf8')
-const migration = fs.readFileSync('supabase/migrations/20260919230000_add_point_prevalence_survey_module.sql', 'utf8')
+const panel = readSource('src/features/management/PrevalenceSurveyPanel.jsx')
+const service = readSource('src/features/management/prevalenceSurveyCloudService.js')
+const migration = readSource('supabase/migrations/20260919230000_add_point_prevalence_survey_module.sql')
 
 describe('Management Center point prevalence survey module (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014 §2.2)', () => {
   it('keeps demo/production loading isolated and gates the create action', () => {

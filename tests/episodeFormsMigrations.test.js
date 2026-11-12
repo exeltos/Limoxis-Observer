@@ -1,10 +1,10 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 // The database side of «Φόρμες & ερωτηματολόγια»: additive only. New nullable columns with
 // composite (id, organization_id) foreign keys, new indexes, one new restrictive policy and one
 // new counting function. Nothing existing is dropped, revoked or has its policy altered.
-const read = name => fs.readFileSync(`supabase/migrations/${name}`, 'utf8')
+const read = name => readSource(`supabase/migrations/${name}`)
 const FILES = [
   '20261204100000_bundle_assessment_episode_links.sql',
   '20261204110000_scale_assessment_episode_link.sql',

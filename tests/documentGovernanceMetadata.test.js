@@ -1,10 +1,10 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const service=fs.readFileSync(new URL('../src/features/documents/documentService.js',import.meta.url),'utf8')
-const migration=fs.readFileSync(new URL('../supabase/migrations/202609130001_documents_revision_governance.sql',import.meta.url),'utf8')
-const feedback=fs.readFileSync(new URL('../src/core/feedback/FeedbackContext.jsx',import.meta.url),'utf8')
-const recordPage=fs.readFileSync(new URL('../src/features/documents/DocumentRecordPage.jsx',import.meta.url),'utf8')
+const service=readSource(new URL('../src/features/documents/documentService.js',import.meta.url))
+const migration=readSource(new URL('../supabase/migrations/202609130001_documents_revision_governance.sql',import.meta.url))
+const feedback=readSource(new URL('../src/core/feedback/FeedbackContext.jsx',import.meta.url))
+const recordPage=readSource(new URL('../src/features/documents/DocumentRecordPage.jsx',import.meta.url))
 
 describe('controlled document governance metadata',()=>{
   it('persists approval identity and timestamp',()=>{

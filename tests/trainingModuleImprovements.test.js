@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read = (path) => fs.readFileSync(path, 'utf8')
+const read = (path) => readSource(path)
 
 const productionPage = read('src/features/training/TrainingProductionPage.jsx')
 const resultsReview = read('src/features/training/TrainingResultsReview.jsx')

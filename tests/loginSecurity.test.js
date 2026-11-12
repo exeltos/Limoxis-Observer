@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { clientIp, decodeSessionId, failureWindowStart, MAX_ACCOUNT_FAILURES, MAX_IP_FAILURES, normalizeIdentifier } from '../supabase/functions/_shared/loginSecurity.ts'
+import { readSource } from './helpers/readSource'
 
 const b64 = value => Buffer.from(JSON.stringify(value)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 
@@ -27,9 +27,9 @@ describe('login security · helpers', () => {
 })
 
 describe('login security · wiring', () => {
-  const fn = fs.readFileSync('supabase/functions/username-login/index.ts', 'utf8')
-  const sql = fs.readFileSync('supabase/migrations/20261231260500_platform_login_security.sql', 'utf8')
-  const client = fs.readFileSync('src/core/auth/authService.js', 'utf8')
+  const fn = readSource('supabase/functions/username-login/index.ts')
+  const sql = readSource('supabase/migrations/20261231260500_platform_login_security.sql')
+  const client = readSource('src/core/auth/authService.js')
   it('every sign-in goes through the function, which checks locks first and records each attempt', () => {
     expect(client).not.toMatch(/auth\.signInWithPassword/)
     expect(client).toMatch(/LOGIN_LOCKED/)

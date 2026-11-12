@@ -1,7 +1,7 @@
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const css=fs.readFileSync('src/styles/workspaces.css','utf8')
+const css=readSource('src/styles/workspaces.css')
 
 describe('prevention record scrolling',()=>{
   it('uses one canonical scroll viewport for the record body',()=>{

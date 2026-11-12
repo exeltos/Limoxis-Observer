@@ -1,10 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 const dir = 'supabase/migrations'
-const latest = fs.readdirSync(dir).filter(name => name.endsWith('.sql') && fs.readFileSync(path.join(dir, name), 'utf8').includes('function private.indicator_metric_snapshot')).sort().at(-1)
-const sql = fs.readFileSync(path.join(dir, latest), 'utf8')
+const latest = fs.readdirSync(dir).filter(name => name.endsWith('.sql') && readSource(path.join(dir, name)).includes('function private.indicator_metric_snapshot')).sort().at(-1)
+const sql = readSource(path.join(dir, latest))
 
 describe('Staff influenza vaccination indicator', () => {
   it('counts a vaccination without a «valid until» date only for the 12 months after it', () => {

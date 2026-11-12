@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const migration=fs.readFileSync('supabase/migrations/20260902154615_system_master_library_baseline_seed_v2.sql','utf8')
+const migration=readSource('supabase/migrations/20260902154615_system_master_library_baseline_seed_v2.sql')
 
 describe('system master library baseline seed',()=>{
  it('seeds every canonical protected library class',()=>{

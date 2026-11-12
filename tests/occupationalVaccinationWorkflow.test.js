@@ -1,9 +1,9 @@
 // The editors and services are exercised by behavior in preventionAntisepticWasteBehavior
 // and preventionVaccinationBundleBehavior; the layout (CSS) rules stay here.
 import {describe,it,expect} from 'vitest'
-import fs from 'node:fs'
-const service=fs.readFileSync('src/features/occupational-health/vaccinationService.js','utf8')
-const css=fs.readFileSync('src/styles/workspaces.css','utf8')
+import { readSource } from './helpers/readSource'
+const service=readSource('src/features/occupational-health/vaccinationService.js')
+const css=readSource('src/styles/workspaces.css')
 
 describe('staff vaccination workflow',()=>{
  it('uses the production employee_vaccinations table',()=>{

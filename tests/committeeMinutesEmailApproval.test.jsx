@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
+import { readSource } from './helpers/readSource'
 
 const calls = []
 let access = null
@@ -22,7 +22,7 @@ const { membersWithoutAccount } = await import('../src/features/committees/commi
 const { ExternalApproversDialog } = await import('../src/features/committees/ExternalApproversDialog')
 const { MinutesApprovalPage } = await import('../src/features/committees/MinutesApprovalPage')
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const pending = { status: 'pending', memberName: 'Κώστας Σταθόπουλος', organizationName: 'Γενικό Νοσοκομείο', committeeName: 'ΕΝΛ', meetingTitle: 'Μηνιαία συνεδρίαση', scheduledAt: '2026-10-14T12:00:00Z', minutesNumber: '11/2026', topics: [{ subject: 'Συρροή KPC', decision: 'Συνεχίζεται το screening.' }], attendees: ['Α', 'Β'], expiresAt: '2026-10-16T09:00:00Z' }
 const openPage = (path) => render(<LanguageProvider><MemoryRouter initialEntries={[path]}><Routes><Route path="/minutes-approval/:token" element={<MinutesApprovalPage/>}/></Routes></MemoryRouter></LanguageProvider>)
 

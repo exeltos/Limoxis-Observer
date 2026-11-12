@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { sampleParentCode } from '../src/features/surveillance/patientRecordScope'
-const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
+import { readSource } from './helpers/readSource'
+const i18n=readSource('src/core/i18n/stringsEl.js')+readSource('src/core/i18n/stringsEn.js')
 
 
 describe('patient sample follow-up hierarchy', () => {

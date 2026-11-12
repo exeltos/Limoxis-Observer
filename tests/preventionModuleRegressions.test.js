@@ -4,12 +4,13 @@ import { antisepticRows, handHygieneRows } from '../src/features/prevention/prev
 import { WHO_MOMENTS, WHO_PROFESSIONS } from '../src/features/prevention/WhoHandHygieneEditor'
 import * as antisepticMethods from '../src/features/prevention/antisepticMethods'
 import { ANTISEPTIC_METHODS } from '../src/features/prevention/antisepticMethods'
+import { readSource } from './helpers/readSource'
 
 // Prevention module review, following the pattern of past module reviews.
 describe('the bulk vaccination "saved" toast interpolates the count in Greek too', () => {
   it('no longer calls t() with a second (unsupported) interpolation argument', () => {
     // The toast itself is checked by behavior in preventionVaccinationBundleBehavior.
-    expect(fs.readFileSync('src/core/i18n/stringsEl.js','utf8')).toContain("vaccinationSavedMany:'Αποθηκεύτηκαν {count} εμβολιασμοί.'")
+    expect(readSource('src/core/i18n/stringsEl.js')).toContain("vaccinationSavedMany:'Αποθηκεύτηκαν {count} εμβολιασμοί.'")
   })
 })
 
@@ -49,7 +50,7 @@ describe('the antiseptic methods module (formerly the misnamed AntisepticEntryMo
 // titles through Field / lo-field-label, one department field for all editors.
 describe('prevention screens use the shared form controls', () => {
   const dir = 'src/features/prevention'
-  const sources = fs.readdirSync(dir).filter(name => name.endsWith('.jsx')).map(name => [name, fs.readFileSync(`${dir}/${name}`, 'utf8')])
+  const sources = fs.readdirSync(dir).filter(name => name.endsWith('.jsx')).map(name => [name, readSource(`${dir}/${name}`)])
   it('has no raw select and no local DepartmentField copy', () => {
     for (const [name, text] of sources) {
       expect(text, name).not.toMatch(/<select\b/)

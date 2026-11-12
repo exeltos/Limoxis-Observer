@@ -10,7 +10,7 @@ vi.mock('../src/features/indicators/indicatorCloudService', () => ({
   calculateCloudDefinition: vi.fn((def) => ({ ...def, value: 2.8, evidence: '3 / 1067', status: 'attention' })),
 }))
 vi.mock('../src/features/quality/risk/riskService', () => ({ loadRiskAssessments: vi.fn(async () => []) }))
-const { IndicatorResultPanel } = await import('../src/features/indicators/IndicatorResultPanel.jsx')
+const { IndicatorResultPanel } = await import('../src/features/indicators/IndicatorResultPanel')
 
 describe('IndicatorResultPanel', () => {
   afterEach(cleanup)

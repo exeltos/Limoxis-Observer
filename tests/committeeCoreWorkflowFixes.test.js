@@ -1,7 +1,7 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 
 const migration=read('supabase/migrations/202609130002_committees_core_workflow_fixes.sql')
 

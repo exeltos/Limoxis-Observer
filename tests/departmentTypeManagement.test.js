@@ -1,11 +1,11 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { DEPARTMENT_TYPES, departmentTypeValue } from '../src/features/management/managementCloudService.js'
-import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext.js'
+import { DEPARTMENT_TYPES, departmentTypeValue } from '../src/features/management/managementCloudService'
+import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
+import { readSource } from './helpers/readSource'
 
-const migration = readFileSync(new URL('../supabase/migrations/20260921150000_pediatric_neonatal_support.sql', import.meta.url), 'utf8')
-const panel = readFileSync(new URL('../src/features/management/LibrariesPanel.jsx', import.meta.url), 'utf8')
-const patients = readFileSync(new URL('../src/features/patients/patientsService.js', import.meta.url), 'utf8')
+const migration = readSource(new URL('../supabase/migrations/20260921150000_pediatric_neonatal_support.sql', import.meta.url))
+const panel = readSource(new URL('../src/features/management/LibrariesPanel.jsx', import.meta.url))
+const patients = readSource(new URL('../src/features/patients/patientsService.js', import.meta.url))
 
 describe('department type (general / ICU / NICU / PICU)', () => {
   it('matches the database check constraint and falls back to general', () => {

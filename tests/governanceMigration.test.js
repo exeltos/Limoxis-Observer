@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs'
 import { URL } from 'node:url'
 import { describe,expect,it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const migration=readFileSync(new URL('../supabase/migrations/202608300015_v0272_governance_schema_coverage.sql',import.meta.url),'utf8')
+const migration=readSource(new URL('../supabase/migrations/202608300015_v0272_governance_schema_coverage.sql',import.meta.url))
 
 describe('governance migration authorization contract',()=>{
   it('binds committee secretariat authority to an active record assignment',()=>{

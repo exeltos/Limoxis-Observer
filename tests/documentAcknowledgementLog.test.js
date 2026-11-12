@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { acknowledgementLogRows, acknowledgementSummary, demoAcknowledgementMembers, demoDistributions, inAudience, professionsOf, summarizeDistributions, usersWithProfessions } from '../src/features/documents/acknowledgementLog'
+import { readSource } from './helpers/readSource'
 
 const members = [
   { userId: 'u1', name: 'Άννα', role: 'department_user', departmentIds: ['icu'], profession: 'Νοσηλευτικό προσωπικό' },
@@ -66,7 +66,7 @@ describe('document read-acknowledgement log', () => {
   })
 
   it('lets only distribution managers read the whole audience', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261008090000_document_acknowledgement_audience.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261008090000_document_acknowledgement_audience.sql')
     expect(sql).toContain('security definer')
     expect(sql).toContain("public.is_org_admin(p_organization_id)")
     expect(sql).toContain("'infection_control_lead'::public.app_role, 'quality_manager'::public.app_role")

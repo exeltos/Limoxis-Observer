@@ -1,9 +1,9 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { newSupplier } from '../src/features/quality/resources/resourceModel'
+import { readSource } from './helpers/readSource'
 
-const SQL = fs.readFileSync('supabase/migrations/20261212100000_quality_supplier_departments.sql', 'utf8')
-const read = file => fs.readFileSync(file, 'utf8')
+const SQL = readSource('supabase/migrations/20261212100000_quality_supplier_departments.sql')
+const read = file => readSource(file)
 
 describe('Suppliers by department', () => {
   it('keeps the departments on the supplier and saves only real department ids', () => {

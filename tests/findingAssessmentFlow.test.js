@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { findingFlow, findingNeedsAction } from '../src/features/quality/qualityRecordRules'
-import { readFileSync } from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 const status = (record, capas = []) => Object.fromEntries(findingFlow(record, capas).map(step => [step.id, step.status]))
 
@@ -35,9 +35,9 @@ describe('the flow of a deviation', () => {
 })
 
 describe('the assessment of a deviation on its record page', () => {
-  const page = readFileSync('src/features/quality/QualityRecordPage.jsx', 'utf8')
-  const register = readFileSync('src/features/quality/QualityReportRegister.jsx', 'utf8')
-  const migration = readFileSync('supabase/migrations/20261231300000_finding_assessment.sql', 'utf8')
+  const page = readSource('src/features/quality/QualityRecordPage.jsx')
+  const register = readSource('src/features/quality/QualityReportRegister.jsx')
+  const migration = readSource('supabase/migrations/20261231300000_finding_assessment.sql')
 
   it('has the «Αξιολόγηση» tab and the flow panel beside the details, like an incident', () => {
     expect(page).toContain("...(incident||recordType==='findings'?[{id:'assessment'")
@@ -54,7 +54,7 @@ describe('the assessment of a deviation on its record page', () => {
   })
 
   it('does not warn about a missing action when the assessment says none is needed', () => {
-    expect(readFileSync('src/features/quality/QualityGlance.jsx', 'utf8')).toContain("record.correctiveActionNeeded===false?{text:en?'no corrective action needed'")
+    expect(readSource('src/features/quality/QualityGlance.jsx')).toContain("record.correctiveActionNeeded===false?{text:en?'no corrective action needed'")
   })
 
   it('adds the assessment columns without touching what is recorded', () => {

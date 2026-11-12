@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_LIMITS, checkLimit, defrostStatus, fryingStatus, limitText, needsCorrectiveAction, parseChill, parseTemperature, pureeingStatus, receiptStatus, resolveLimits, statusLabel, thermalStatuses } from '../src/features/kitchen/kitchenLimits'
 import { addDays, availableBatches, batchProblem, dayRecords, fifoAdvice, kitchenCalendarItems, overview, receiptProblems, stockRows, todayKey, traceBatch, traceDish, verificationQueue, withStatuses } from '../src/features/kitchen/kitchenModel'
@@ -9,6 +8,7 @@ import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { CAPABILITIES, ROLES, can } from '../src/core/permissions/roles'
 import { navigationFor } from '../src/app/navigation'
 import { buildCalendarEvents } from '../src/features/calendar/calendarEvents'
+import { readSource } from './helpers/readSource'
 
 const limits = resolveLimits()
 
@@ -77,7 +77,7 @@ describe('Kitchen critical limits', () => {
   })
 
   it('keeps the same defaults as the database', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261123110000_kitchen_module.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261123110000_kitchen_module.sql')
     for (const item of DEFAULT_LIMITS) {
       const row = sql.match(new RegExp(`\\('${item.limitKey}', '[^']+', ([^,]+), ([^,]+), ([^)]+)\\)`))
       expect(row, item.limitKey).not.toBeNull()
@@ -170,7 +170,7 @@ describe('Kitchen access', () => {
   })
 
   it('has the same role lists in the database helper', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261123110000_kitchen_module.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261123110000_kitchen_module.sql')
     for (const [key, roles] of [['view_kitchen', ['hospital_admin', 'infection_control_lead', 'quality_manager']], ['record_kitchen', ['hospital_admin', 'quality_manager']], ['manage_kitchen', ['hospital_admin', 'quality_manager']]]) {
       const listed = sql.match(new RegExp(`when '${key}' then om\\.role in \\(([^)]*)\\)`))[1].match(/'[a-z_]+'/g).map(item => item.slice(1, -1))
       expect(listed.sort()).toEqual(roles.sort())

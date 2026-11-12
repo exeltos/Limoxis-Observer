@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const actions=fs.readFileSync('src/styles/design-system.css','utf8')
+const actions=readSource('src/styles/design-system.css')
 
 describe('Platform Owner canonical action language',()=>{
  it('reserves solid destructive styling for confirmation buttons',()=>{

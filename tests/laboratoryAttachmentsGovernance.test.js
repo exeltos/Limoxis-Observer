@@ -1,15 +1,15 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const panel=fs.readFileSync('src/design-system/EntityAttachmentsPanel.jsx','utf8')
-const field=fs.readFileSync('src/design-system/AttachmentField.jsx','utf8')
-const record=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordView.jsx','utf8')
-const registry=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx','utf8')
+const panel=readSource('src/design-system/EntityAttachmentsPanel.jsx')
+const field=readSource('src/design-system/AttachmentField.jsx')
+const record=readSource('src/features/laboratory/LaboratorySampleRecordView.jsx')
+const registry=readSource('src/features/laboratory/LaboratoryWorkspace.jsx')
 
 describe('laboratory attachment governance',()=>{
   it('uses the unified shared private attachment field for entity evidence',()=>{
     expect(panel).toContain("import { DocumentsWorkspace } from './DocumentsWorkspace'")
-    expect(fs.readFileSync('src/design-system/DocumentsWorkspace.jsx','utf8')).toContain('entityId={entityId}')
+    expect(readSource('src/design-system/DocumentsWorkspace.jsx')).toContain('entityId={entityId}')
     expect(panel).toContain('organizationId={organizationId}')
     expect(panel).toContain('entityType={entityType}')
     expect(panel).toContain('entityId={entityRecordId}')
@@ -31,6 +31,6 @@ describe('laboratory attachment governance',()=>{
     // One status component for the registry and the record, on the shared StatusBadge.
     expect(registry).toContain("LaboratoryStatus, labResultLabel, labSampleStatus, labStatusLabel } from './LaboratoryStatus'")
     expect(registry).not.toContain('export function Status')
-    expect(fs.readFileSync('src/features/laboratory/LaboratoryStatus.jsx','utf8')).toContain('<StatusBadge')
+    expect(readSource('src/features/laboratory/LaboratoryStatus.jsx')).toContain('<StatusBadge')
   })
 })

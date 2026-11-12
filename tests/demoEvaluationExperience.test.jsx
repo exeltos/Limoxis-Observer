@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
@@ -8,8 +7,9 @@ import { DemoGuideDialog } from '../src/features/demo/DemoGuideDialog'
 import { DemoApplicationDialog } from '../src/features/demo/DemoApplicationDialog'
 import { DEMO_SCENARIOS } from '../src/features/demo/demoScenarios'
 import { DEMO_REPORT_MARK_EL, isDemoReport, setReportBranding } from '../src/core/organization/branding'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261014120000_demo_evaluation_experience.sql')
 const outbox = read('supabase/functions/process-notification-outbox/index.ts')
 const pdf = read('src/core/export/pdfReportExport.js')

@@ -1,11 +1,11 @@
-import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
+import { readSource } from './helpers/readSource'
 
 const tabs=readEmployeeRecordTabsSource()
-const attachments=fs.readFileSync('src/design-system/AttachmentField.jsx','utf8')
-const workspace=fs.readFileSync('src/design-system/DocumentsWorkspace.jsx','utf8')
-const navigation=fs.readFileSync('src/core/navigation/useContextualNavigation.js','utf8')
+const attachments=readSource('src/design-system/AttachmentField.jsx')
+const workspace=readSource('src/design-system/DocumentsWorkspace.jsx')
+const navigation=readSource('src/core/navigation/useContextualNavigation.js')
 
 describe('employee documents and contextual return',()=>{
   it('renders the shared governed documents workspace',()=>{

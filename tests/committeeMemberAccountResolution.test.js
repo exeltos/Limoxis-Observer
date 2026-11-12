@@ -1,8 +1,8 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
-import { userFacingError } from '../src/core/feedback/userFacingError.js'
+import { userFacingError } from '../src/core/feedback/userFacingError'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 
 describe('committee member account resolution',()=>{
   const sql=read('supabase/migrations/20260901210722_v0315_committee_member_account_resolution.sql')

@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs'
 import { URL } from 'node:url'
 import { describe,expect,it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const migration=readFileSync(new URL('../supabase/migrations/20261231270000_legacy_person_links.sql',import.meta.url),'utf8')
-const manifest=JSON.parse(readFileSync(new URL('../supabase/security-definer-manifest.json',import.meta.url),'utf8'))
+const migration=readSource(new URL('../supabase/migrations/20261231270000_legacy_person_links.sql',import.meta.url))
+const manifest=JSON.parse(readSource(new URL('../supabase/security-definer-manifest.json',import.meta.url)))
 
 describe('legacy person links migration',()=>{
   it('only adds nullable link columns and never rewrites a text column',()=>{

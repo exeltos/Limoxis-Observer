@@ -1,9 +1,9 @@
 import { describe,it,expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const panel=fs.readFileSync('src/features/management/BedDaysPanel.jsx','utf8')
-const service=fs.readFileSync('src/features/management/patientDayPeriodsCloudService.js','utf8')
-const migration=fs.readFileSync('supabase/migrations/20260902101057_patient_day_periods_governance.sql','utf8')
+const panel=readSource('src/features/management/BedDaysPanel.jsx')
+const service=readSource('src/features/management/patientDayPeriodsCloudService.js')
+const migration=readSource('supabase/migrations/20260902101057_patient_day_periods_governance.sql')
 
 describe('Management Center patient days persistence',()=>{
   it('keeps demo patient-day data isolated from production loading',()=>{

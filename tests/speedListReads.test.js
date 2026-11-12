@@ -1,9 +1,9 @@
 // Surveillance, Laboratory and the Surveys list read their lists in one call
 // each (20261201110000); the patient record reads its own patient and samples.
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261201110000_surveillance_laboratory_list_reads.sql')
 const sql = migration.split('\n').filter(line => !line.trim().startsWith('--')).join('\n')
 

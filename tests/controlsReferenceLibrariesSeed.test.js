@@ -1,11 +1,11 @@
 import {describe,expect,it} from 'vitest'
-import fs from 'node:fs'
 import {demoLibrarySeed} from '../src/features/management/managementData'
 import {SYSTEM_BASELINE_LIBRARY_KEYS} from '../src/features/management/libraryGovernance'
+import { readSource } from './helpers/readSource'
 
-const migration=fs.readFileSync('supabase/migrations/20261102100000_controls_reference_libraries.sql','utf8')
-const previous=fs.readFileSync('supabase/migrations/20260919170000_add_oxacillin_amr_reference_antibiotic.sql','utf8')
-const libraries=fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')
+const migration=readSource('supabase/migrations/20261102100000_controls_reference_libraries.sql')
+const previous=readSource('supabase/migrations/20260919170000_add_oxacillin_amr_reference_antibiotic.sql')
+const libraries=readSource('src/features/management/LibrariesPanel.jsx')
 const NEW_KEYS=['measurementUnits','controlAnswers','itemForms','medicinesSupplies','equipment','environmentalLocations','surfacePoints']
 const rowsOf=sql=>[...sql.matchAll(/^ {4}\('([A-Za-z]+)','([A-Z0-9-]+)',/gm)].map(([line,key,code])=>({line,key,code}))
 

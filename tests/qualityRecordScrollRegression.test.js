@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 // User-reported: on a fully-populated Quality incident (root cause,
 // contributing factors, the "create linked CAPA" action), that content
@@ -20,12 +20,12 @@ import fs from 'node:fs'
 // other record page in the app already relies on.
 describe('the Quality incident/finding/CAPA/audit record body scrolls internally at ordinary desktop sizes', () => {
   it('no longer forces .entity-record-body/.record-section to overflow:hidden at desktop widths and heights', () => {
-    const css = fs.readFileSync('src/styles/features.css', 'utf8')
+    const css = readSource('src/styles/features.css')
     expect(css).not.toMatch(/@media\s*\(min-width:981px\)\s*and\s*\(min-height:760px\)\{\s*\.quality-record-shell\.workspace-fill>\.entity-record-body\{\s*overflow:hidden/)
   })
 
   it('does not force .entity-record-body back to overflow:visible/hidden for the quality record shell', () => {
-    const css = fs.readFileSync('src/styles/features.css', 'utf8')
+    const css = readSource('src/styles/features.css')
     expect(css).not.toContain('.quality-record-shell.workspace-fill>.entity-record-body{\n  overflow:visible!important;\n}')
   })
 })

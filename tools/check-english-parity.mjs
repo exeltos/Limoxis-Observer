@@ -1,8 +1,9 @@
 import fs from 'node:fs'
 import vm from 'node:vm'
+import { readSource } from './readSource.mjs'
 
 // Greek lives in stringsEl.js; English in its lazily-loaded chunk.
-const source=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+'\n'+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
+const source=readSource('src/core/i18n/stringsEl.js')+'\n'+readSource('src/core/i18n/stringsEn.js')
 
 function extractObject(name){
   const marker=`export const ${name} =`

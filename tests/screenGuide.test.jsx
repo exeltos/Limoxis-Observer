@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
+import { readSource } from './helpers/readSource'
 
 const seen = new Set()
 const marked = []
@@ -49,9 +49,9 @@ describe('Screen guide', () => {
     await waitFor(() => expect(marked).toEqual(['/patients', ALL_SCREEN_GUIDES]))
   })
   it('is stored per user with row-level security, shown where the hospital and user settings allow', () => {
-    const migration = fs.readFileSync('supabase/migrations/20261017120000_screen_guides.sql', 'utf8')
+    const migration = readSource('supabase/migrations/20261017120000_screen_guides.sql')
     expect(migration).toContain('using (user_id = (select auth.uid()))')
-    const shell = fs.readFileSync('src/app/AppShell.jsx', 'utf8')
+    const shell = readSource('src/app/AppShell.jsx')
     expect(shell).toContain('<ScreenGuide enabled={guidesOn}')
     expect(shell).toContain('const guidesOn=!platformMode&&!helpPreviewMode&&screenGuidesOn({organization:tenant,membership})')
     expect(shell).toContain('hold={briefingOpen||birthdayOpen||helpOpen||demoEvaluation.busy}')

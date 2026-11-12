@@ -1,8 +1,8 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import path from 'node:path'
+import { readSource } from './helpers/readSource'
 
-const source=fs.readFileSync(path.resolve('src/features/committees/committeeWorkflowService.js'),'utf8')
+const source=readSource(path.resolve('src/features/committees/committeeWorkflowService.js'))
 
 describe('committee membership approval service',()=>{
   it('uses the server-governed membership approval RPC',()=>{

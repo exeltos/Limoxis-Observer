@@ -1,12 +1,12 @@
-import { readFileSync } from 'node:fs'
 import { URL } from 'node:url'
 import { describe,expect,it,vi } from 'vitest'
 import { isLegacyRecordNumber,visibleSourceId } from '../src/features/quality/qualityVocabulary'
 import { actionRows } from '../src/features/quality/QualityLists'
+import { readSource } from './helpers/readSource'
 
 vi.mock('../src/features/management/useLibraries',async importOriginal=>({...await importOriginal(),useLibraries:()=>({libraries:{}})}))
 
-const read=name=>readFileSync(new URL(`../src/features/quality/${name}`,import.meta.url),'utf8')
+const read=name=>readSource(new URL(`../src/features/quality/${name}`,import.meta.url))
 
 describe('FileMaker record number is not shown',()=>{
   it('recognises a bare number and keeps real references',()=>{

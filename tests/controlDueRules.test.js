@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
 import {
   dueState, executionMarks, firstDue, nextDeadlineAfter, nextDueAfterExecution, periodBounds, periodProgress, requiredPerPeriod, slotMargin, slotStarts, zonedInstant, zonedParts,
 } from '../src/features/controls/controlDueRules'
@@ -9,6 +8,7 @@ import { programmeAdherence } from '../src/features/controls/controlAdherence'
 import { programmeCalendar } from '../src/features/controls/controlCalendar'
 import { progressCompleteMessage, progressText } from '../src/features/controls/controlProgress'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
+import { readSource } from './helpers/readSource'
 
 const iso = (value) => new Date(value).toISOString()
 const daily1 = { kind: 'daily', timesPerDay: 1, times: ['09:00'] }
@@ -201,7 +201,7 @@ describe('over-entry guard', () => {
   })
 
   it('is enforced by the database too, for new entries of the current period only', () => {
-    const sql = readFileSync(new URL('../supabase/migrations/20261121140000_control_due_rules.sql', import.meta.url), 'utf8')
+    const sql = readSource(new URL('../supabase/migrations/20261121140000_control_due_rules.sql', import.meta.url))
     expect(sql).toContain('create or replace trigger control_executions_period_guard before insert on public.control_executions')
     expect(sql).toContain("raise exception 'control_period_complete'")
     expect(sql).toContain("raise exception 'control_extra_reason_required'")
@@ -223,7 +223,7 @@ describe('working days only (Monday–Friday)', () => {
     expect(programmeAdherence([{ item: { id: 'W', frequency: f, assignments: { Ενδοσκοπικό: { history: [] } } }, departments: ['Ενδοσκοπικό'] }], { from: new Date('2026-10-11T21:00:00Z'), to: new Date('2026-10-18T21:00:00Z'), now: new Date('2026-10-18T21:00:00Z') }).totals.expected).toBe(5)
   })
   it('is mirrored by the database', () => {
-    const sql = readFileSync(new URL('../supabase/migrations/20261211120000_control_weekdays_only.sql', import.meta.url), 'utf8')
+    const sql = readSource(new URL('../supabase/migrations/20261211120000_control_weekdays_only.sql', import.meta.url))
     expect(sql).toContain("p_frequency ->> 'weekdaysOnly'")
     expect(sql).toContain('private.control_working_day(p_frequency, v_local::date + 1)')
   })
@@ -257,8 +257,7 @@ describe('who records outside the window', () => {
     expect(canRecordAnytime(ROLES.DEPARTMENT_MANAGER)).toBe(false)
   })
   it('the database holds the same rule for a signed-in department user', async () => {
-    const { readFileSync } = await import('node:fs')
-    const sql = readFileSync('supabase/migrations/20261211200000_control_entry_window_guard.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261211200000_control_entry_window_guard.sql')
     expect(sql).toContain("array['hospital_admin']::public.app_role[]")
     expect(sql).toContain('public.current_user_is_platform_owner()')
     expect(sql).toContain("raise exception 'control_outside_window'")

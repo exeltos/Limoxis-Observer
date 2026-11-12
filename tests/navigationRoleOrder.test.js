@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { navigationFor, sidebarLayout } from '../src/app/navigation'
 import { ROLES } from '../src/core/permissions/roles'
+import { readSource } from './helpers/readSource'
 
 // The sidebar order is part of each role's workspace: daily work first, the
 // calendar closing the main list, then "More" and the Management Center.
@@ -119,10 +120,9 @@ describe('shift roster in the menu (owner, 8/11/2026)', () => {
 
 describe('shift roster closed to the HR office (owner, 8/11/2026)', () => {
   it('keeps the HR office out of the route and the editors', async () => {
-    const { readFileSync } = await import('node:fs')
-    expect(readFileSync('src/app/App.jsx', 'utf8')).toContain('excludeRoles={[ROLES.HR_OFFICE]}><RostersPage/>')
-    expect(readFileSync('src/features/rosters/RostersPage.jsx', 'utf8')).not.toMatch(/WRITERS = new Set\(\[[^\]]*HR_OFFICE/)
-    const sql = readFileSync('supabase/manual/20261108_department_rosters_without_hr.sql', 'utf8')
+    expect(readSource('src/app/App.jsx')).toContain('excludeRoles={[ROLES.HR_OFFICE]}><RostersPage/>')
+    expect(readSource('src/features/rosters/RostersPage.jsx')).not.toMatch(/WRITERS = new Set\(\[[^\]]*HR_OFFICE/)
+    const sql = readSource('supabase/manual/20261108_department_rosters_without_hr.sql')
     expect(sql.split('commit;')[0]).not.toContain('hr_office')
   })
 })

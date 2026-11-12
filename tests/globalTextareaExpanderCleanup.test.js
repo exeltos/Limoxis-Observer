@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 // User-reported: a small "⛶ expand field" button (injected sitewide by
 // GlobalTextareaExpander next to every <textarea>) showed up floating in
@@ -19,7 +19,7 @@ import fs from 'node:fs'
 // whose textarea is no longer in the document.
 describe('GlobalTextareaExpander removes its injected button once the textarea it belongs to is gone', () => {
   it('prunes orphaned buttons on every scan, not just adds new ones', () => {
-    const source = fs.readFileSync('src/design-system/GlobalTextareaExpander.jsx', 'utf8')
+    const source = readSource('src/design-system/GlobalTextareaExpander.jsx')
     expect(source).toContain('const prune=()=>{')
     expect(source).toContain('if(document.body.contains(textarea))return')
     expect(source).toContain('button.remove()')

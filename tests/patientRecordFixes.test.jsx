@@ -2,11 +2,11 @@
 // The patient record fixes approved by the owner: the shared DetailList (no boxed grid),
 // the discharge that asks and confirms before saving, the patient forms on the shared
 // validation rule, the 24-hour clinical assessments and the patient with no admission.
-import fs from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
+import { readSource } from './helpers/readSource'
 
 vi.mock('../src/features/management/useLibraries', async original => ({ ...(await original()), useLibraries: () => ({ libraries: {} }) }))
 
@@ -18,7 +18,7 @@ const { PatientWithoutAdmission } = await import('../src/features/surveillance/P
 const { formatDateTime } = await import('../src/core/i18n/formatDay')
 const { SECTION_TABS } = await import('../src/core/navigation/sectionTabs')
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 afterEach(() => cleanup())
 
 describe('surveillance tab order', () => {

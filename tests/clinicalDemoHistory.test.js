@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { demoSurveillanceList, getClinicalCase } from '../src/features/surveillance/clinicalDemoData.js'
+import { demoSurveillanceList, getClinicalCase } from '../src/features/surveillance/clinicalDemoData'
 
 describe('Demo surveillance history', () => {
   it('gives every Demo record a history tab with events', () => {

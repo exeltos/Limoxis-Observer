@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import { DemoCreateWizard, emptyDemoWizardDraft, wizardAdmin } from '../src/features/platform/DemoCreateWizard'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261016120000_demo_creation_wizard.sql')
 const createDemo = read('supabase/functions/create-demo-access/index.ts')
 const createUser = read('supabase/functions/create-organization-user/index.ts')

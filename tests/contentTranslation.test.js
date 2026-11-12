@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { readFileSync } from 'node:fs'
 import { GLOSSARY, TRANSLATABLE, runTranslations } from '../supabase/functions/_shared/translateContent.ts'
+import { readSource } from './helpers/readSource'
 
-const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const read = path => readSource(new URL(`../${path}`, import.meta.url))
 
 // A small in-memory stand-in for the Supabase client: the tables the translation job reads and writes.
 function fakeAdmin(db, runtime = { provider: 'openai', model: 'm', api_key: 'k' }) {

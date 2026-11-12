@@ -1,8 +1,8 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
 import path from 'node:path'
+import { readSource } from './helpers/readSource'
 
-const historySql=fs.readFileSync(path.resolve('supabase/migrations/20260901200512_v0306_committee_history_meeting_lifecycle.sql'),'utf8')
+const historySql=readSource(path.resolve('supabase/migrations/20260901200512_v0306_committee_history_meeting_lifecycle.sql'))
 
 describe('committee record lifecycle UI',()=>{
 

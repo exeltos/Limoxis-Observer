@@ -2,9 +2,9 @@
 // (ManagementPage global), which requires VIEW_PLATFORM (Platform Owner only).
 // Inside a hospital the Platform Owner has the Hospital Administrator's view.
 import { describe,it,expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const bundles=fs.readFileSync('src/features/management/BundleLibraryPanel.jsx','utf8')
+const bundles=readSource('src/features/management/BundleLibraryPanel.jsx')
 
 describe('system-managed library governance',()=>{
   it('restricts system Bundle management to Platform Owner',()=>{

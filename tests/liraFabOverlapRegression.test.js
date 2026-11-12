@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
 // User-reported: after expanding the LIRA assistant panel, a round button
 // appeared floating outside the panel's bottom-right corner. Root cause:
@@ -13,7 +13,7 @@ import fs from 'node:fs'
 // while LIRA is already open.
 describe('the LIRA launcher FAB is hidden while the assistant panel is open', () => {
   it('only renders the FAB button when the panel is closed', () => {
-    const launcher = fs.readFileSync('src/features/lira/LiraAssistantLauncher.jsx', 'utf8')
+    const launcher = readSource('src/features/lira/LiraAssistantLauncher.jsx')
     expect(launcher).toContain('{!open&&<button type="button" className="lira-assistant-fab"')
   })
 })

@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { filterSelf, isOverdue, selfChapters, selfCounts, selfFigures, selfGaps, selfStatusLabel } from '../src/features/quality/selfAssessment/selfAssessmentModel'
+import { readSource } from './helpers/readSource'
 
 const rows = [
   { id: 'a', position: 1, chapterRef: '1', chapterTitle: 'Α', item: 'Q1', weight: 1, answer: 'yes' },
@@ -32,7 +32,7 @@ describe('Self-assessment model', () => {
 })
 
 describe('Self-assessment database', () => {
-  const sql = fs.readFileSync('supabase/migrations/20261214100000_quality_self_assessments.sql', 'utf8')
+  const sql = readSource('supabase/migrations/20261214100000_quality_self_assessments.sql')
   it('the department sees only released ones of its own departments and writes only through the function', () => {
     expect(sql).toContain("status in ('released', 'submitted', 'closed')")
     expect(sql).toContain('private.current_user_department_scopes()')
@@ -42,9 +42,9 @@ describe('Self-assessment database', () => {
     expect(sql).toContain("v_row.status = 'released' and")
   })
   it('is reachable from the audits tab, the department menu and the routes', () => {
-    expect(fs.readFileSync('src/features/quality/QualityLists.jsx', 'utf8')).toContain("<SelfAssessmentPanel query={filters.query} canManage={canManageSelf} toolbarSlot={toolbarSlot}/>")
-    expect(fs.readFileSync('src/app/navigation.js', 'utf8')).toContain("key:'departmentSelfAssessment'")
-    const app = fs.readFileSync('src/app/App.jsx', 'utf8')
+    expect(readSource('src/features/quality/QualityLists.jsx')).toContain("<SelfAssessmentPanel query={filters.query} canManage={canManageSelf} toolbarSlot={toolbarSlot}/>")
+    expect(readSource('src/app/navigation.js')).toContain("key:'departmentSelfAssessment'")
+    const app = readSource('src/app/App.jsx')
     for (const route of ['my-department/self-assessment"', 'my-department/self-assessment/:id', 'quality/self-assessments/:id', 'quality/self-assessments/new']) expect(app).toContain(route)
   })
 })

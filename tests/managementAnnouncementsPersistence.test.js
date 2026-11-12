@@ -1,11 +1,11 @@
 import { describe,it,expect } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const service=fs.readFileSync('src/features/management/announcementCloudService.js','utf8')
-const panel=fs.readFileSync('src/features/management/AnnouncementsPanel.jsx','utf8')
-const context=fs.readFileSync('src/core/notifications/NotificationContext.jsx','utf8')
-const center=fs.readFileSync('src/core/notifications/NotificationCenter.jsx','utf8')
-const migration=fs.readFileSync('supabase/migrations/20260902111423_management_announcements_governance.sql','utf8')
+const service=readSource('src/features/management/announcementCloudService.js')
+const panel=readSource('src/features/management/AnnouncementsPanel.jsx')
+const context=readSource('src/core/notifications/NotificationContext.jsx')
+const center=readSource('src/core/notifications/NotificationCenter.jsx')
+const migration=readSource('supabase/migrations/20260902111423_management_announcements_governance.sql')
 
 describe('Management Center announcement persistence',()=>{
  it('persists announcements and acknowledgements in governed cloud tables',()=>{

@@ -1,7 +1,7 @@
 import { describe,expect,it } from 'vitest'
-import fs from 'node:fs'
+import { readSource } from './helpers/readSource'
 
-const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
+const read=path=>readSource(new URL(`../${path}`,import.meta.url))
 
 describe('committee approval notification lifecycle',()=>{
   const sql=read('supabase/migrations/20260901204457_v0311_committee_approval_outbox_lifecycle.sql')

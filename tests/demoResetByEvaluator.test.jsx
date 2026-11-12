@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { DemoEvaluationBar } from '../src/app/DemoEvaluationBar'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const migration = read('supabase/migrations/20261231400000_demo_reset_by_evaluator.sql')
 const tenantService = read('src/core/tenant/tenantService.js')
 const shell = read('src/app/AppShell.jsx')

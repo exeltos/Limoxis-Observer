@@ -1,6 +1,7 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { URL } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { readSource } from './helpers/readSource'
 
 const migrationsUrl=new URL('../supabase/migrations/',import.meta.url)
 const migrations=readdirSync(migrationsUrl).filter(name=>name.endsWith('.sql')).sort()
@@ -20,7 +21,7 @@ describe('migration integrity',()=>{
     const match=latest.match(/_v0(\d{2})(\d+)_[^.]+\.sql$/)
     expect(match).not.toBeNull()
     const expected=`0.${Number(match[1])}.${Number(match[2])}`
-    const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'))
+    const pkg=JSON.parse(readSource(new URL('../package.json',import.meta.url)))
     const parts=v=>v.split('.').map(Number)
     const [a,b]=[parts(pkg.version),parts(expected)]
     expect(a[0]*1e6+a[1]*1e3+a[2]).toBeGreaterThanOrEqual(b[0]*1e6+b[1]*1e3+b[2])

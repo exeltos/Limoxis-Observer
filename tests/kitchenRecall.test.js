@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { addDays, todayKey } from '../src/features/kitchen/kitchenModel'
 import { kitchenDemoState } from '../src/features/kitchen/kitchenDemoData'
@@ -6,6 +5,7 @@ import { drillFindings, elapsedMinutes, newRecallDrill, recallProblems, recallSu
 import { recallDrillDocument } from '../src/features/kitchen/kitchenReports'
 import { fromRow, loadKitchen, saveRecallDrill, toRow } from '../src/features/kitchen/kitchenService'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
+import { readSource } from './helpers/readSource'
 
 const state = kitchenDemoState()
 
@@ -114,7 +114,7 @@ describe('Kitchen recall drill storage', () => {
   })
 
   it('keeps RLS on the drills table as on the other kitchen records', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261128100000_kitchen_recall_drills.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261128100000_kitchen_recall_drills.sql')
     expect(sql).toContain('alter table public.kitchen_recall_drills enable row level security')
     expect(sql).toContain("private.current_user_kitchen_orgs('view')")
     expect(sql).toContain("private.current_user_kitchen_orgs('record')")

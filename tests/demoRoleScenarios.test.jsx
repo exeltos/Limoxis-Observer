@@ -7,11 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
-import fs from 'node:fs'
 import { DEMO_ALL_SCENARIOS, DEMO_ROLE_SCENARIOS, DEMO_SCENARIOS, demoScenariosForEvaluator, demoScenariosForRole } from '../src/features/demo/demoScenarios'
 import { DEMO_STEP_EVENT, signalDemoStep } from '../src/features/demo/demoScenarioSignals'
 import { useDemoEvaluation } from '../src/features/demo/useDemoEvaluation'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
+import { readSource } from './helpers/readSource'
 
 let extended = true
 vi.mock('../src/features/demo/demoEvaluationService', () => ({
@@ -45,7 +45,7 @@ describe('scenarios of every role', () => {
   })
 
   it('uses exactly the scenario keys the migration accepts', () => {
-    const sql = fs.readFileSync('supabase/migrations/20261028120000_demo_role_guidance.sql', 'utf8')
+    const sql = readSource('supabase/migrations/20261028120000_demo_role_guidance.sql')
     const list = sql.match(/check \(step_key in \(([\s\S]*?)\)\);/)[1]
     const accepted = [...list.matchAll(/'([a-z_]+)'/g)].map(match => match[1])
     expect(accepted.filter(key => key !== 'guide_opened').sort()).toEqual(keys(DEMO_ALL_SCENARIOS).sort())

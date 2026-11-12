@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { readSource } from './readSource.mjs'
 
 const files=[
   'src/app/AppShell.jsx','src/features/management/ManagementPage.jsx','src/features/management/LibrariesPanel.jsx','src/features/management/BedDaysPanel.jsx','src/features/indicators/IndicatorsPage.jsx',
@@ -30,7 +31,7 @@ const greek=/[Α-Ωα-ωΆ-ώ]/gu
 const regressions=[]
 let total=0
 for(const file of files){
-  const source=fs.readFileSync(file,'utf8')
+  const source=readSource(file)
   const count=(source.match(greek)||[]).length
   total+=count
   const allowed=baseline[file]??0

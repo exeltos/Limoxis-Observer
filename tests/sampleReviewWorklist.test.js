@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { LAB_RESULT_SCOPES, canReviewSamples, defaultLabScope, isAlertSample, matchesLabScope, needsSurveillanceReview, reviewTag, sampleEpisodeTarget, samplesAwaitingReview } from '../src/features/laboratory/sampleReviewModel'
 import { emptySampleRequest, missingRequestFields, sampleRequestPayload } from '../src/features/laboratory/sampleRequestForm'
@@ -6,8 +5,9 @@ import { createDemoLaboratoryRepository } from '../src/features/laboratory/repos
 import { createClinicalRepository } from '../src/features/surveillance/clinicalRepository'
 import { clinicalCases } from '../src/features/surveillance/clinicalDemoData'
 import { laboratorySamples } from '../src/features/laboratory/laboratoryDemoData'
+import { readSource } from './helpers/readSource'
 
-const read = file => fs.readFileSync(file, 'utf8')
+const read = file => readSource(file)
 const positive = (extra = {}) => ({ id: 'LAB-1', subjectType: 'patient', status: 'completed', result: 'positive', organism: 'Klebsiella pneumoniae', type: 'urineCulture', ...extra })
 
 describe('«Προς έλεγχο» selection', () => {

@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import fs from 'node:fs'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { CAPABILITIES, ROLES } from '../src/core/permissions/roles'
@@ -8,8 +7,9 @@ import { SECTION_TABS, resolveSectionTab, sectionCapabilities, sectionTabPath, s
 import { navigationFor } from '../src/app/navigation'
 import { SidebarNavigation } from '../src/app/SidebarNavigation'
 import { calendarFilterOf, calendarFiltersFor, controlExecutionEvents, parseCalendarFilter } from '../src/features/calendar/calendarEvents'
+import { readSource } from './helpers/readSource'
 
-const read = path => fs.readFileSync(path, 'utf8')
+const read = path => readSource(path)
 const ids = (section, role) => sectionTabsFor(section, { role }).map(tab => tab.id)
 
 describe('merged sections: one menu entry, the tabs the role may open', () => {
