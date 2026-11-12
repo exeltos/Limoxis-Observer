@@ -19,23 +19,24 @@ import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { interviewsDemoState } from '../interviews/interviewsDemoData'
 import { OPEN_STATUSES as OPEN_CANDIDATE_STATUSES } from '../interviews/interviewsModel'
 import { hospitalDate } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const CLOSED = ['completed', 'closed', 'cancelled']
-const isOpen = status => !CLOSED.includes(status)
-const departmentOf = row =>
+const isOpen = (status: string) => !CLOSED.includes(status)
+const departmentOf = (row: AnyRecord) =>
   (typeof row?.department === 'object' ? row.department?.name : row?.department) ||
   row?.department_id ||
   ''
 
 // `department` (a Demo department name) narrows the department-level counts to it.
-export function collectDemoDashboardMetrics({ department = null, now = new Date() } = {}) {
+export function collectDemoDashboardMetrics({ department = null, now = new Date() }: { department?: string | null, now?: Date } = {}) {
   const today = hospitalDate(now)
-  const inDepartment = row => !department || departmentOf(row) === department
+  const inDepartment = (row: AnyRecord) => !department || departmentOf(row) === department
   const snapshot = collectAnalysisDemoSnapshot()
   const s = snapshot.summary
   const m = snapshot.microbiology
   const cases = Object.values(clinicalCases).filter(inDepartment)
-  const isolations = cases.map(item => item.isolation).filter(item => item && !Array.isArray(item))
+  const isolations: AnyRecord[] = cases.map((item: AnyRecord) => item.isolation).filter(item => item && !Array.isArray(item))
   const overdueControls = loadControlAssignmentsLocal().filter(
     row =>
       inDepartment(row) && isOpen(row.status) && row.next_due_at && new Date(row.next_due_at) < now,
@@ -58,11 +59,11 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   const mdro = (m.resistance || [])
     .filter(([key]) => ['MDR', 'XDR', 'PDR'].includes(key))
     .reduce((sum, [, value]) => sum + (Number(value) || 0), 0)
-  const metrics = {
+  const metrics: Record<string, number | undefined> = {
     activeUsers: 3,
     activeDepartments: m.departmentCount,
     selfAssessmentsOpen: (loadSnapshot('quality_local_self_assessments', []) || []).filter(
-      item => item.status === 'released' && (!department || item.departmentName === department),
+      (item: AnyRecord) => item.status === 'released' && (!department || item.departmentName === department),
     ).length,
     patientDayPeriods: demoPatientDayPeriods.length,
     inpatients: cases.length,
@@ -88,12 +89,12 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     ).length,
     ohVisitsToday: s.dashboard?.ohVisitsToday ?? 0,
     ohFollowupsDue: visits.filter(
-      visit => visit.followUpDate && visit.followUpDate <= today && isOpen(visit.status),
+      (visit: AnyRecord) => visit.followUpDate && visit.followUpDate <= today && isOpen(visit.status),
     ).length,
     vaccinationsDue: s.dashboard?.vaccinationsDue ?? 0,
-    openIncidents: incidents.filter(row => isOpen(row.status)).length,
+    openIncidents: incidents.filter((row: AnyRecord) => isOpen(row.status)).length,
     severeOpenIncidents: s.dashboard?.severeOpenIncidents ?? 0,
-    overdueCapa: capas.filter(row => isOpen(row.status) && row.dueDate && row.dueDate < today)
+    overdueCapa: capas.filter((row: AnyRecord) => isOpen(row.status) && row.dueDate && row.dueDate < today)
       .length,
     upcomingMeetings: meetings.filter(row => row.date >= today && row.status !== 'cancelled')
       .length,

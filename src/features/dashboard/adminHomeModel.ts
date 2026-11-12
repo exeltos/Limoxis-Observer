@@ -5,7 +5,14 @@
 // menu, is left out. Pure.
 
 // [metric key, Greek, English, screen, module] — only what is pending appears.
-export const DECISION_ITEMS = Object.freeze([
+// [metric key, Greek, English, screen, module]
+type DecisionItem = readonly [string, string, string, string, string]
+// [module, Greek, English, screen, [[metric key, Greek, English, tone when > 0]]]
+type ModuleRow = readonly [string, string, string, string, ReadonlyArray<readonly [string, string, string, string?]>]
+type Metrics = Record<string, unknown>
+interface HomeOptions { moduleEnabled?: (module: string) => boolean, canOpen?: (to: string) => boolean, language?: string }
+
+export const DECISION_ITEMS: readonly DecisionItem[] = Object.freeze([
   ['supplierRenewalsToApprove', 'Ανανεώσεις πιστοποιητικών προς έγκριση αποστολής', 'Certificate renewals awaiting approval to send', '/quality', 'suppliers'],
   ['supplierRenewalsToReview', 'Πιστοποιητικά προμηθευτών προς έλεγχο', 'Supplier certificates to review', '/quality', 'suppliers'],
   ['expiredCertificates', 'Ληγμένα πιστοποιητικά προμηθευτών', 'Expired supplier certificates', '/quality', 'suppliers'],
@@ -18,9 +25,9 @@ export const DECISION_ITEMS = Object.freeze([
 // Severe items first: expired, critical and overdue before the rest.
 const URGENT = new Set(['expiredCertificates', 'criticalUncommunicated', 'overdueCapa', 'overdueControls'])
 
-const count = value => (Number.isFinite(Number(value)) ? Number(value) : 0)
+const count = (value: unknown) => (Number.isFinite(Number(value)) ? Number(value) : 0)
 
-export function decisionItems(metrics = {}, { moduleEnabled = () => true, canOpen = () => true, language = 'el' } = {}) {
+export function decisionItems(metrics: Metrics = {}, { moduleEnabled = () => true, canOpen = () => true, language = 'el' }: HomeOptions = {}) {
   const en = language === 'en'
   return DECISION_ITEMS
     .filter(([key, , , to, module]) => count(metrics[key]) > 0 && moduleEnabled(module) && canOpen(to))
@@ -29,7 +36,7 @@ export function decisionItems(metrics = {}, { moduleEnabled = () => true, canOpe
 }
 
 // [module, Greek, English, screen, [[metric key, Greek, English, tone when > 0]]]
-export const MODULE_ROWS = Object.freeze([
+export const MODULE_ROWS: readonly ModuleRow[] = Object.freeze([
   ['surveillance', 'Επιτήρηση', 'Surveillance', '/surveillance', [['activeSurveillance', 'ενεργές επιτηρήσεις', 'active cases'], ['isolationReviewsDue', 'επανεκτιμήσεις απομόνωσης', 'isolation reviews due', 'warning']]],
   ['laboratory', 'Εργαστήριο', 'Laboratory', '/laboratory', [['pendingSamples', 'εκκρεμή δείγματα', 'pending samples'], ['criticalUncommunicated', 'κρίσιμα χωρίς ενημέρωση', 'critical not communicated', 'danger']]],
   ['controls', 'Έλεγχοι', 'Controls', '/controls', [['overdueControls', 'εκπρόθεσμοι', 'overdue', 'danger']]],
@@ -41,7 +48,7 @@ export const MODULE_ROWS = Object.freeze([
   ['governance', 'Επιτροπές', 'Committees', '/meetings', [['pendingMinutes', 'πρακτικά σε εκκρεμότητα', 'minutes pending', 'warning'], ['openDecisions', 'ανοιχτές αποφάσεις', 'open decisions']]],
 ])
 
-export function moduleStatusRows(metrics = {}, { moduleEnabled = () => true, canOpen = () => true, language = 'el' } = {}) {
+export function moduleStatusRows(metrics: Metrics = {}, { moduleEnabled = () => true, canOpen = () => true, language = 'el' }: HomeOptions = {}) {
   const en = language === 'en'
   return MODULE_ROWS
     .filter(([module, , , to]) => moduleEnabled(module) && canOpen(to))

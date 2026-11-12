@@ -8,22 +8,24 @@ const text = {
     departments: 'Δημιουργήστε τα τμήματα', departmentsHint: 'Κέντρο Διαχείρισης › Λίστες & ρυθμίσεις › Τμήματα',
     users: 'Προσθέστε χρήστες και ρόλους', usersHint: 'Κέντρο Διαχείρισης › Χρήστες & Ρόλοι',
     patientDays: 'Καταχωρίστε κλινοημέρες', patientDaysHint: 'Ο παρονομαστής των δεικτών · Κέντρο Διαχείρισης › Κλινοημέρες',
-    done: 'Ολοκληρώθηκε', open: 'Άνοιγμα', progress: (n, total) => `${n} από ${total}`, guide: 'Όλα τα βήματα: Βοήθεια › Οδηγός έναρξης',
+    done: 'Ολοκληρώθηκε', open: 'Άνοιγμα', progress: (n: number, total: number) => `${n} από ${total}`, guide: 'Όλα τα βήματα: Βοήθεια › Οδηγός έναρξης',
   },
   en: {
     title: 'First steps', subtitle: 'The card disappears once all are done.', show: 'Show the steps', hide: 'Hide the steps', close: 'Close the card',
     departments: 'Create the departments', departmentsHint: 'Management Center › Lists & settings › Departments',
     users: 'Add users and roles', usersHint: 'Management Center › Users & Roles',
     patientDays: 'Enter patient-days', patientDaysHint: 'The indicators’ denominator · Management Center › Patient-days',
-    done: 'Done', open: 'Open', progress: (n, total) => `${n} of ${total}`, guide: 'All the steps: Help › Getting started',
+    done: 'Done', open: 'Open', progress: (n: number, total: number) => `${n} of ${total}`, guide: 'All the steps: Help › Getting started',
   },
 }
 
+export interface FirstStep { id: 'departments' | 'users' | 'patientDays', done: boolean, to: string }
+
 // Hospital Admin home: the setup steps of the Getting-started guide that can be checked
 // from the data. Returns the step list, or null while counts are unknown.
-export function firstSteps(values, { needsPatientDays = false } = {}) {
+export function firstSteps(values: Record<string, unknown> | null | undefined, { needsPatientDays = false } = {}): FirstStep[] | null {
   if (values?.activeUsers == null || values?.activeDepartments == null) return null
-  const steps = [
+  const steps: FirstStep[] = [
     { id: 'departments', done: Number(values.activeDepartments) > 0, to: '/management?tab=departments' },
     { id: 'users', done: Number(values.activeUsers) > 1, to: '/management?tab=users' },
   ]
@@ -34,9 +36,9 @@ export function firstSteps(values, { needsPatientDays = false } = {}) {
 // A small card in the bottom right corner: collapsed to its title and progress, it opens to the
 // steps still to do. It leaves the home page to the work of the day.
 // `storageKey`: where the choice to close it is kept for this hospital (this browser).
-export function FirstStepsCard({ steps, language = 'el', onOpen, storageKey = null }) {
+export function FirstStepsCard({ steps, language = 'el', onOpen, storageKey = null }: { steps: FirstStep[] | null | undefined, language?: string, onOpen?: (to: string) => void, storageKey?: string | null }) {
   const [open, setOpen] = useState(false)
-  const [closed, setClosed] = useState(() => Boolean(storageKey) && readLocalValue(storageKey) === '1')
+  const [closed, setClosed] = useState(() => !!storageKey && readLocalValue(storageKey) === '1')
   if (!steps || steps.every(step => step.done) || closed) return null
   const t = text[language === 'en' ? 'en' : 'el']
   const done = steps.filter(step => step.done).length

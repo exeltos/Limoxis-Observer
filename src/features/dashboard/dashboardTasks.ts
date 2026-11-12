@@ -8,7 +8,7 @@ export const DEPARTMENT_ROLES = new Set(['department_manager', 'department_user'
 
 // The capability each task screen asks for (the route gates of App.jsx): a task
 // whose screen the user cannot open is left out, so it never leads to «no access».
-const SCREEN_CAPABILITY = {
+const SCREEN_CAPABILITY: Record<string, string> = {
   '/controls': 'view_controls',
   '/laboratory': 'view_lab',
   '/quality': 'view_quality',
@@ -25,11 +25,12 @@ export const PENDING_ACTION_KEYS = [
   'openIncidents',
   'overdueCapa',
 ]
-export const pendingActionsOf = metrics =>
+export const pendingActionsOf = (metrics: Record<string, unknown> | null | undefined) =>
   PENDING_ACTION_KEYS.reduce((sum, key) => sum + (Number(metrics?.[key]) || 0), 0)
 
 // [metric key, Greek title, English title, screen]
-const TASKS = {
+type Task = [string, string, string, string]
+const TASKS: Record<string, Task[]> = {
   hospital_admin: [
     ['overdueControls', 'Εκπρόθεσμοι έλεγχοι', 'Overdue controls', '/controls'],
     ['pendingSamples', 'Εκκρεμή δείγματα', 'Pending samples', '/laboratory'],
@@ -118,20 +119,21 @@ TASKS.link_nurse = [
 ]
 
 // `canUse(capability)`: whether the user holds a capability (role, add-ons, custom).
-export function dashboardTasks(role, metrics = {}, language = 'el', { canUse = null } = {}) {
+export interface DashboardTask { id: string, title: string, count: number, to: string, type: 'task', source: 'dashboard' }
+export function dashboardTasks(role: string | null | undefined, metrics: Record<string, unknown> = {}, language = 'el', { canUse = null }: { canUse?: ((capability: string) => boolean) | null } = {}): DashboardTask[] {
   const en = language === 'en'
-  const opens = to => {
+  const opens = (to: string) => {
     const capability = SCREEN_CAPABILITY[String(to).split('?')[0]]
     return !canUse || !capability || canUse(capability)
   }
-  return (TASKS[role] || [])
+  return (TASKS[role || ''] || [])
     .filter(([key, , , to]) => Number(metrics[key]) > 0 && opens(to))
     .map(([key, el, enText, to]) => ({
       id: `LIVE-${role}-${key}`,
       title: en ? enText : el,
       count: Number(metrics[key]),
       to,
-      type: 'task',
-      source: 'dashboard',
+      type: 'task' as const,
+      source: 'dashboard' as const,
     }))
 }

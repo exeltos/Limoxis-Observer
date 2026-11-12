@@ -1,6 +1,6 @@
 import { SECTION_TABS,sectionTabsFor } from '../../core/navigation/sectionTabs'
 import { Suspense,useEffect,useMemo,useState } from 'react'
-import { Activity, ArrowRight, Award, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
+import { type LucideIcon, Activity, ArrowRight, Award, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
 import { navigationFor } from '../../app/navigation'
@@ -9,7 +9,7 @@ import { useNotifications } from '../../core/notifications/NotificationContext'
 import { CAPABILITIES, ROLES, can, isProfileDisabled } from '../../core/permissions/roles'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { loadDashboardMetrics } from './dashboardCloudService'
+import { loadDashboardMetrics, type DashboardMetrics } from './dashboardCloudService'
 import { FirstStepsCard, firstSteps } from './FirstStepsCard'
 import { collectDemoDashboardMetrics } from './demoDashboardMetrics'
 import { DEPARTMENT_ROLES, pendingActionsOf } from './dashboardTasks'
@@ -24,18 +24,25 @@ import { canReviewSamples } from '../laboratory/sampleReviewModel'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { lazyPage } from '../../core/errors/chunkRecovery'
 import { RouteLoading } from '../../design-system/RouteLoading'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The Division Director's home (its departments, rosters and interviews): its own chunk.
-const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome')
+const DivisionHome=lazyPage(()=>import('../division/DivisionHome').then(module=>({DivisionHome:module.DivisionHome})),'DivisionHome')
 
 
-const n=v=>Number.isFinite(Number(v))?Number(v):'—'
-function roleKpis(role,m,english,unread){
+type Metrics=Record<string, number | undefined>
+// [label, value, capability, metric key]
+type KpiRow=[string, number | string, string | undefined, string]
+type Tone='danger' | 'warning' | 'info'
+interface TodoItem { key: string, title: string, count: number | null, to: string | null, tone: Tone, task?: AnyRecord }
+
+const n=(v: unknown)=>Number.isFinite(Number(v))?Number(v):'—'
+function roleKpis(role: string | null,m: Metrics,english: boolean,unread: number): KpiRow[]{
   return roleKpiRows(role,m,english,unread).filter(([, , capability])=>!capability||!isProfileDisabled(capability))
 }
 // [label, value, capability the tile belongs to, metric key] — a tile of a module the operating profile switches off is hidden.
-function roleKpiRows(role,m,english,unread){
-  const tr=(el,en)=>english?en:el
+function roleKpiRows(role: string | null,m: Metrics,english: boolean,unread: number): KpiRow[]{
+  const tr=(el: string,en: string)=>english?en:el
   switch(role){
     case ROLES.HOSPITAL_ADMIN:{
       const pending=m.pendingActions??pendingActionsOf(m)
@@ -70,7 +77,7 @@ function roleKpiRows(role,m,english,unread){
 
 // Icon and destination of each dashboard tile, by metric key. A tile opens its
 // screen only when that screen is in the user's menu.
-const TILES={
+const TILES: Record<string, [LucideIcon, string?]>={
   activeUsers:[Users,'/management'],activeDepartments:[Building2,'/management'],pendingActions:[ListChecks],unread:[Bell],
   activeSurveillance:[Activity,'/surveillance'],recentMdro:[ShieldAlert,'/surveillance'],isolationReviewsDue:[Clock,'/surveillance'],
   overdueControls:[ClipboardCheck,'/controls'],positiveLab:[FlaskConical,'/laboratory'],pendingSamples:[Beaker,'/laboratory'],
@@ -82,11 +89,11 @@ const TILES={
   severeOpenIncidents:[TriangleAlert,'/quality'],overdueCapa:[Clock,'/quality'],controlsDueToday:[CalendarDays,'/controls?due=today'],
 }
 // A role that reaches the same records from another screen: the Doctor Reviewer approves therapies in the patient's surveillance.
-const ROLE_TILE_SCREENS={[ROLES.DOCTOR_REVIEWER]:{pendingApprovals:'/surveillance',antimicrobialTherapies:'/surveillance'}}
+const ROLE_TILE_SCREENS: Record<string, Record<string, string>>={[ROLES.DOCTOR_REVIEWER]:{pendingApprovals:'/surveillance',antimicrobialTherapies:'/surveillance'}}
 
 // How a tile's count reads against its target: work that should be at zero
 // (danger: off target while above it; warning: needs attention), and the period it counts.
-const TILE_TARGETS={overdueControls:'danger',criticalUncommunicated:'danger',overdueCapa:'danger',severeOpenIncidents:'danger',isolationReviewsDue:'warning',employeesWithoutDepartment:'warning',pendingApprovals:'warning',pendingMinutes:'warning',ohFollowupsDue:'warning',vaccinationsDue:'warning',pendingActions:'warning'}
+const TILE_TARGETS: Record<string, Tone>={overdueControls:'danger',criticalUncommunicated:'danger',overdueCapa:'danger',severeOpenIncidents:'danger',isolationReviewsDue:'warning',employeesWithoutDepartment:'warning',pendingApprovals:'warning',pendingMinutes:'warning',ohFollowupsDue:'warning',vaccinationsDue:'warning',pendingActions:'warning'}
 
 
 
@@ -95,7 +102,7 @@ const TODO_FOLDED=8,WEEK_SHOWN=6
 
 // title/subtitle/showKpis let the department home reuse this layout: its
 // counts are organization-wide, so the department view hides them.
-export function DashboardPage({title,subtitle,showKpis=true,department=null}={}) {
+export function DashboardPage({title,subtitle,showKpis=true,department=null}: { title?: string, subtitle?: string, showKpis?: boolean, department?: string | null }={}) {
   const { role: actualRole, actualRole: signedInRole, tenant, isDemo, moduleEnabled, membership, canAccessRecord } = useTenant()
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
@@ -104,22 +111,22 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const divisionHome=role===ROLES.DIVISION_DIRECTOR&&showKpis&&!department
   const {language}=useLanguage()
   const english=language==='en'
-  const tr=(el,en)=>english?en:el
+  const tr=(el: string,en: string)=>english?en:el
   const nctx=useNotifications()
   const navigate=useNavigate()
   const menuPaths=useMemo(()=>new Set(navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)}).map(item=>item.to)),[role,membership])
-  const [metrics,setMetrics]=useState({})
+  const [metrics,setMetrics]=useState<DashboardMetrics>({})
   // 'loading' until the first read ends; 'error' when it failed, so a failed read never shows as «—».
   const [metricsState,setMetricsState]=useState('loading')
   useEffect(()=>{
     let active=true
     if(isDemo||!tenant?.id||divisionHome){setMetrics({});setMetricsState('ready');return()=>{active=false}}
     setMetricsState('loading')
-    loadDashboardMetrics(tenant.id,{departmentIds:DEPARTMENT_ROLES.has(role)?membership?.departmentIds:null}).then(data=>{if(active){setMetrics(data);setMetricsState('ready')}}).catch(()=>{if(active){setMetrics({});setMetricsState('error')}})
+    loadDashboardMetrics(tenant.id,{departmentIds:DEPARTMENT_ROLES.has(String(role))?membership?.departmentIds:null}).then(data=>{if(active){setMetrics(data);setMetricsState('ready')}}).catch(()=>{if(active){setMetrics({});setMetricsState('error')}})
     return()=>{active=false}
   },[tenant?.id,isDemo,role,membership?.departmentIds,divisionHome])
   const demo=useMemo(()=>isDemo?collectDemoDashboardMetrics({department}):null,[isDemo,department])
-  const values=demo?demo.metrics:metrics
+  const values: Metrics=demo?demo.metrics:metrics
   const roleRows=useMemo(()=>roleKpis(role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
   // «Προς έλεγχο (N)»: new positive samples with no episode and no decision, for the infection-control roles.
   const reviewCard=showKpis&&!department&&canReviewSamples(role)&&menuPaths.has('/surveillance')
@@ -127,7 +134,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const tasks=nctx.operational
   const adminHome=role===ROLES.HOSPITAL_ADMIN&&showKpis
   // A tile opens a screen of the menu; a tab of a merged section (?tab=) only when the role may open that tab.
-  const canOpen=to=>{const [path,search='']=String(to||'').split('?');if(!menuPaths.has(path))return false;const tab=new URLSearchParams(search).get('tab');const section=Object.keys(SECTION_TABS).find(id=>SECTION_TABS[id].path===path);return !tab||!section||sectionTabsFor(section,{role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[]}).some(item=>item.id===tab)}
+  const canOpen=(to: string | null | undefined)=>{const [path,search='']=String(to||'').split('?');if(!menuPaths.has(path))return false;const tab=new URLSearchParams(search).get('tab');const section=Object.keys(SECTION_TABS).find(id=>SECTION_TABS[id].path===path);return !tab||!section||sectionTabsFor(section,{role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[]}).some(item=>item.id===tab)}
   const decisions=adminHome?decisionItems(values,{moduleEnabled,canOpen,language}):[]
   // Tiles without a screen of their own lead to the card listing what they count.
   const announcements=nctx.visibleAnnouncements.slice(0,4)
@@ -138,9 +145,9 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   // The objectives off course, for whoever has «Indicators & objectives» in the menu.
   const objectivesOn=showKpis&&!department&&menuPaths.has('/quality/measures')
   const objectiveList=useObjectives(tenant?.id,{enabled:objectivesOn})
-  const missedObjectives=objectivesOn?objectiveList.objectives.filter(item=>Number(item.year)===new Date().getFullYear()&&(item.status||'active')==='active'&&item.current.status==='missed').length:0
+  const missedObjectives=objectivesOn?objectiveList.objectives.filter((item: AnyRecord)=>Number(item.year)===new Date().getFullYear()&&(item.status||'active')==='active'&&item.current.status==='missed').length:0
   // «Επόμενες 7 ημέρες»: the calendar's events of the coming week the user may see.
-  const mayDo=capability=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
+  const mayDo=(capability: string)=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
   const calendarKinds=calendarKindsFor(mayDo)
   const calendarKey=calendarKinds.join(',')
   const allowedKinds=useMemo(()=>calendarKey?calendarKey.split(','):[],[calendarKey])
@@ -150,22 +157,22 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   // «Για μένα σήμερα»: everything that waits for this user in one list, the most urgent first: the administrator's decisions
   // (or the role's own work), new positive samples to review, objectives off course and what the notifications assign.
   const todo=(()=>{
-   const items=[]
-   const add=item=>{if(item&&item.count!==0&&!items.some(other=>other.key===item.key||other.title===item.title))items.push(item)}
+   const items: TodoItem[]=[]
+   const add=(item: TodoItem)=>{if(item&&item.count!==0&&!items.some(other=>other.key===item.key||other.title===item.title))items.push(item)}
    if(reviewCard&&!awaitingReview.loading&&awaitingReview.rows.length)add({key:'review',title:tr('Θετικά δείγματα προς έλεγχο','Positive samples to review'),count:awaitingReview.rows.length,to:'/surveillance?tab=episodes&review=1',tone:'danger'})
    for(const item of decisions)add({key:item.key,title:item.title,count:item.count,to:item.to,tone:item.urgent?'danger':'warning'})
    // The role's tasks (dashboardTasks: «LIVE-<role>-<metric>») first, with their fuller titles; a tile counting the same metric adds nothing.
-   const metricOf=task=>String(task.id||'').startsWith('LIVE-')?String(task.id).split('-').slice(2).join('-'):task.id
+   const metricOf=(task: AnyRecord)=>String(task.id||'').startsWith('LIVE-')?String(task.id).split('-').slice(2).join('-'):task.id
    if(!adminHome)for(const task of tasks){const key=metricOf(task);add({key,title:task.title,count:task.count??null,to:task.to||null,tone:TILE_TARGETS[key]||'info',task})}
-   if(!adminHome&&showKpis)for(const [label,value,,key] of roleRows){const tone=TILE_TARGETS[key];const to=ROLE_TILE_SCREENS[role]?.[key]??TILES[key]?.[1];if(tone&&Number(value)>0)add({key,title:label,count:Number(value),to:to&&canOpen(to)?to:null,tone})}
+   if(!adminHome&&showKpis)for(const [label,value,,key] of roleRows){const tone=TILE_TARGETS[key];const to=ROLE_TILE_SCREENS[String(role)]?.[key]??TILES[key]?.[1];if(tone&&Number(value)>0)add({key,title:label,count:Number(value),to:to&&canOpen(to)?to:null,tone})}
    if(missedObjectives>0)add({key:'objectives',title:tr('Στόχοι που δεν επιτυγχάνονται','Objectives not met'),count:missedObjectives,to:'/quality/measures',tone:'warning'})
-   const rank={danger:0,warning:1,info:2}
+   const rank: Record<Tone, number>={danger:0,warning:1,info:2}
    return items.sort((a,b)=>rank[a.tone]-rank[b.tone])
   })()
   const [allTodo,setAllTodo]=useState(false)
   const shownTodo=allTodo?todo:todo.slice(0,TODO_FOLDED)
-  const openTodo=item=>{if(!item.to)return;if(item.task)nctx.markRead(item.task.id);navigate(item.to)}
-  const dayLabel=date=>{const today=dayKey(new Date()),tomorrow=dayKey(new Date(Date.now()+24*60*60*1000));if(date===today)return tr('Σήμερα','Today');if(date===tomorrow)return tr('Αύριο','Tomorrow');return new Intl.DateTimeFormat(english?'en-GB':'el-GR',{weekday:'short',day:'numeric',month:'numeric'}).format(new Date(`${date}T12:00:00`))}
+  const openTodo=(item: TodoItem)=>{if(!item.to)return;if(item.task)nctx.markRead(item.task.id);navigate(item.to)}
+  const dayLabel=(date: string)=>{const today=dayKey(new Date()),tomorrow=dayKey(new Date(Date.now()+24*60*60*1000));if(date===today)return tr('Σήμερα','Today');if(date===tomorrow)return tr('Αύριο','Tomorrow');return new Intl.DateTimeFormat(english?'en-GB':'el-GR',{weekday:'short',day:'numeric',month:'numeric'}).format(new Date(`${date}T12:00:00`))}
 
   // «Επόμενες 7 ημέρες»: the calendar's coming week, on the home of every role.
   const weekCard=calendarOn&&<Card className="dashboard-card dashboard-week">
@@ -186,7 +193,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
       <div className="dashboard-side">
         <Card className="dashboard-card" id="dashboard-announcements" tabIndex={-1}>
           <CardHeader icon={Megaphone} title={tr('Ενημερώσεις & ανακοινώσεις','Updates & announcements')} subtitle={nctx.unreadCount?`${nctx.unreadCount} ${tr('μη αναγνωσμένες ειδοποιήσεις','unread notifications')}`:tr('Όλα διαβασμένα','All caught up')} actions={nctx.unreadCount>0&&<button type="button" className="text-button" onClick={nctx.markAllRead}><Bell size={14}/>{tr('Σήμανση όλων','Mark all read')}</button>}/>
-          {announcements.length?<div className="dashboard-announcements">{announcements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{roleTitleText(a.createdBy,language)}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}
+          {announcements.length?<div className="dashboard-announcements">{announcements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{roleTitleText(a.createdBy,language) as string}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}
         </Card>
         {weekCard}
       </div>
