@@ -30,7 +30,14 @@
    - Στο `core` μόνο τύποι, χωρίς αλλαγή κώδικα: `i18n/languageTypes.ts` και `feedback/feedbackTypes.ts` (τιμή των contexts, δηλωμένη με JSDoc στο `createContext`), JSDoc στα `readSessionJson`, `canPerform`, `initialLanguage`. Το `TenantContext` δεν έχει τύπο ακόμα: το `RecordActions`/`ExportMenu` δηλώνουν τοπικά μόνο ό,τι διαβάζουν.
    - Το `RegistryTable` είναι γενικό ως προς τον τύπο γραμμής (`Row`)· η προεπιλογή του μένει ανοιχτή (`any`) όσο οι καλούντες είναι JS, γιατί αλλιώς οι γραμμές τους γίνονται `unknown`.
    - Ευρήματα για τα επόμενα βήματα (props που δίνουν οι ενότητες αλλά κανείς δεν διαβάζει): `resultCount` στο `FilterBar` (Εργαζόμενοι), `open` στο `ObserverDialog` (Χρήστες), `t`/`notify` στο `EntityAttachmentsPanel` (Εργαστήριο), `size` στο `Button` (Εκπαίδευση), `icon` στις επιλογές του `SearchableSelect`/`ChoiceField` (Έλεγχοι). Δεν αλλάχτηκαν εδώ (καμία αλλαγή στις ενότητες).
-3. `src/core` (dates, permissions, i18n, supabase, tenant, auth, data, feedback).
+3. [x] `src/core` σε TypeScript (12/11, κλάδος `claude/typescript-core`, χωρίς merge): 92 αρχεία με `git mv` σε χωριστά commits από τους τύπους· όλο το `src/core/**/*` στο `tsconfig.strict.json` (το design-system συνεχίζει να περνά).
+   - Εργαλεία: `tools/ts/register.mjs` (βρίσκει το `./x.ts` όταν η εισαγωγή γράφει `./x.js`)· το Node 22 αφαιρεί μόνο του τους τύπους. Το χρησιμοποιούν `audit:product-permissions`, `audit:db-roles`, `audit:help-coverage`, `manual:pdf`. Σε αρχεία που διαβάζουν τα tools να μπαίνει `import type` και όχι enum/namespace.
+   - Κοινοί τύποι: `tenant/tenantTypes.ts` (Tenant, Membership, RolePreview, TenantContextValue), `auth/authTypes.ts`, `permissions/types.ts`, `help/helpTypes.ts`, `notifications/notificationTypes.ts`. Όλα τα contexts με `createContext<…Value | null>`.
+   - `supabase/client.ts`: `createClient<Database>` (τύπος `Cloud`)· `cloudClient()` επιστρέφει client χωρίς null. Πίνακες εκτός `database.types.ts` (repository record_key/payload, κάδος ανακύκλωσης) περνούν από client χωρίς τύπους.
+   - Ώρα Αθήνας: `hospitalNow`, `hospitalHour`, `hospitalDay` στο `dates/hospitalDate.ts`· οι 4 διπλοί βοηθοί αφαιρέθηκαν.
+   - Μέτρηση `checkJs` σε όλο το `src`: **1.520 → 1.518**· στο `core` 71 → 0. Το σύνολο μένει περίπου ίδιο γιατί οι JS καλούντες βλέπουν τώρα πραγματικούς τύπους (π.χ. ονόματα πινάκων και τιμές enum στο Supabase, `useTenant()`), που θα λυθούν στο βήμα 4.
+   - Συγκρούσεις: ο κλάδος `claude/division-director-home` αλλάζει `permissions`, `TenantContext`, `i18n`, `help`. Μπαίνει πρώτα εκείνος στο `main` και μετά γίνεται rebase αυτού.
+   - Για το βήμα 4: αρκετά JS αρχεία δίνουν τύπο στις επιλογές τους από τις προεπιλογές (`{ canUse = null }`, `{ today, days = 7 } = {}`), οπότε οι TS καλούντες χρειάζονται JSDoc ή μετατροπή· `restoreFromBin` καλεί τον client χωρίς έλεγχο (δουλεύει γιατί χωρίς client όλα μένουν τοπικά).
 4. Ενότητες από τη μικρότερη στη μεγαλύτερη, Ποιότητα και Επιτήρηση τελευταίες· σπάσιμο μεγάλων αρχείων μαζί.
 5. Κάθε φάκελος που τελειώνει μπαίνει στο `tsconfig.strict.json` (το `typecheck:strict` τρέχει ήδη στο `check`).
 
