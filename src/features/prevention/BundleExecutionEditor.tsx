@@ -10,8 +10,10 @@ import { PreventionDepartmentField, selectTexts, usePreventionDepartments } from
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadBundleClinicalOptions } from './bundleCloudService'
 import { PrefilledList } from '../surveillance/forms/PrefilledList'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment } from './preventionCloud'
 
-function scoreFor(answers = {}) {
+function scoreFor(answers: Record<string, string> = {}) {
   const applicable = Object.values(answers).filter(x => x === 'yes' || x === 'no')
   if (!applicable.length) return null
   return Math.round((applicable.filter(x => x === 'yes').length / applicable.length) * 100)
@@ -22,7 +24,7 @@ const SHIFTS = [
   ['Νυχτερινή', 'Night'],
   ['Άλλο', 'Other'],
 ]
-function allOrNoneFor(answers = {}) {
+function allOrNoneFor(answers: Record<string, string> = {}) {
   const applicable = Object.values(answers).filter(x => x === 'yes' || x === 'no')
   return applicable.length > 0 && applicable.every(x => x === 'yes')
 }
@@ -34,7 +36,7 @@ export function BundleExecutionEditor({
   departments = [],
   templates = [],
   prefill = null,
-}) {
+}: { onSave?: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[]; templates?: AnyRecord[]; prefill?: AnyRecord | null }) {
   const { profile, user } = useAuth()
   const { tenant } = useTenant()
   const { language } = useLanguage()
@@ -42,31 +44,31 @@ export function BundleExecutionEditor({
   const actor = useMemo(() => controlActorFromAuth({ profile, user }), [profile, user])
   const [saving, setSaving] = useState(false)
   const [clinicalLoading, setClinicalLoading] = useState(false)
-  const [clinicalOptions, setClinicalOptions] = useState({ patients: [], devices: [] })
+  const [clinicalOptions, setClinicalOptions] = useState<{ patients: AnyRecord[]; devices: AnyRecord[] }>({ patients: [], devices: [] })
   // Opened from a device of an episode: the patient, episode, device, department and day
   // come from there (locked); the user chooses only date, shift and the bundle elements.
   const locked = Boolean(prefill?.surveillanceDeviceId) && !initialRecord
-  const [draft, setDraft] = useState(() =>
+  const [draft, setDraft] = useState<AnyRecord>(() =>
     initialRecord
       ? JSON.parse(JSON.stringify(initialRecord))
       : {
           ...(locked
             ? {
-                surveillanceCaseId: prefill.surveillanceCaseId,
-                surveillanceDeviceId: prefill.surveillanceDeviceId,
-                patientRecordId: prefill.patientRecordId || '',
-                deviceDay: prefill.deviceDay || null,
+                surveillanceCaseId: prefill!.surveillanceCaseId,
+                surveillanceDeviceId: prefill!.surveillanceDeviceId,
+                patientRecordId: prefill!.patientRecordId || '',
+                deviceDay: prefill!.deviceDay || null,
               }
             : {}),
           templateId: '',
-          departmentEl: (locked && prefill.departmentName) || fixedDepartment || '',
-          date: (locked && prefill.date) || '',
-          shift: (locked && prefill.shift) || '',
+          departmentEl: (locked && prefill!.departmentName) || fixedDepartment || '',
+          date: (locked && prefill!.date) || '',
+          shift: (locked && prefill!.shift) || '',
           context: '',
-          patientId: (locked && prefill.patientRecordId) || '',
-          patientRef: (locked && prefill.patientLabel) || '',
-          deviceId: (locked && prefill.surveillanceDeviceId) || '',
-          deviceRef: (locked && prefill.deviceLabel) || '',
+          patientId: (locked && prefill!.patientRecordId) || '',
+          patientRef: (locked && prefill!.patientLabel) || '',
+          deviceId: (locked && prefill!.surveillanceDeviceId) || '',
+          deviceRef: (locked && prefill!.deviceLabel) || '',
           answers: {},
           answerNotes: {},
           generalNotes: '',
@@ -82,15 +84,15 @@ export function BundleExecutionEditor({
   useEffect(() => {
     if (!locked || !departments.length) return
     const match =
-      departments.find(item => prefill.departmentId && String(item.id) === String(prefill.departmentId)) ||
-      departments.find(item => [item.el, item.en].includes(prefill.departmentName))
+      departments.find(item => prefill!.departmentId && String(item.id) === String(prefill!.departmentId)) ||
+      departments.find(item => [item.el, item.en].includes(prefill!.departmentName))
     if (match && match.el !== draft.departmentEl) setDraft(current => ({ ...current, departmentEl: match.el }))
   }, [locked, prefill, departments, draft.departmentEl])
   // The bundle of the device type, chosen as soon as the library is read.
   useEffect(() => {
     if (!locked || draft.templateId || !templates.length) return
-    const match = (prefill.bundleKeys || [])
-      .map(key => templates.find(item => item.bundleKey === key || item.id === key))
+    const match = (prefill!.bundleKeys || [])
+      .map((key: string) => templates.find(item => item.bundleKey === key || item.id === key))
       .find(Boolean)
     if (match) setDraft(current => (current.templateId ? current : { ...current, templateId: match.id }))
   }, [locked, prefill, templates, draft.templateId])
@@ -115,7 +117,7 @@ export function BundleExecutionEditor({
 
   const template =
     templates.find(x => x.id === draft.templateId || x.bundleKey === draft.templateId) || null
-  const elements = template?.elements || []
+  const elements: [string, string][] = template?.elements || []
   const score = scoreFor(draft.answers)
   const allOrNone = allOrNoneFor(draft.answers)
   const answered = elements.filter(([id]) => ['yes', 'no', 'na'].includes(draft.answers[id])).length
@@ -123,13 +125,13 @@ export function BundleExecutionEditor({
   const failures = elements.filter(([id]) => draft.answers[id] === 'no')
   const complete = elements.length > 0 && answered === elements.length
   const canSave = Boolean(template && draft.templateId && draft.departmentEl && draft.date)
-  const set = (key, value) => setDraft(current => ({ ...current, [key]: value }))
-  const answer = (id, value) =>
+  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
+  const answer = (id: string, value: string) =>
     setDraft(current => ({ ...current, answers: { ...current.answers, [id]: value } }))
-  const note = (id, value) =>
+  const note = (id: string, value: string) =>
     setDraft(current => ({ ...current, answerNotes: { ...current.answerNotes, [id]: value } }))
-  const elementLabel = (id, fallback) => {
-    const raw = (template?.rawElements || []).find(item => item.id === id)
+  const elementLabel = (id: string, fallback: string) => {
+    const raw = (template?.rawElements || []).find((item: AnyRecord) => item.id === id)
     if (!raw) return fallback
     return en
       ? raw.labelEn || raw.label_en || raw.labelEl || raw.label_el || fallback
@@ -153,7 +155,7 @@ export function BundleExecutionEditor({
     item => !draft.patientId || item.patientId === draft.patientId,
   )
   const selectedDevice = devices.find(item => item.id === draft.deviceId) || null
-  const chooseDepartment = value => {
+  const chooseDepartment = (value: string) => {
     const department =
       departments.find(item => item.el === value) ||
       departmentRows.find(item => item.el === value) ||
@@ -169,7 +171,7 @@ export function BundleExecutionEditor({
       }
     })
   }
-  const choosePatient = value => {
+  const choosePatient = (value: string) => {
     const patient = patients.find(item => item.id === value) || null
     const patientDepartment = patient?.departmentId
       ? departmentById.get(patient.departmentId)
@@ -183,7 +185,7 @@ export function BundleExecutionEditor({
       deviceRef: '',
     }))
   }
-  const chooseDevice = value => {
+  const chooseDevice = (value: string) => {
     const device = devices.find(item => item.id === value)
     setDraft(current => ({ ...current, deviceId: value, deviceRef: device?.label || '' }))
   }
@@ -193,11 +195,11 @@ export function BundleExecutionEditor({
     const dep = departments.find(x => x.el === draft.departmentEl)
     const payload = {
       ...draft,
-      bundle: template.id,
-      templateName: template.name,
-      templateTitle: en ? template.titleEn || template.title : template.title,
-      templateVersion: template.version,
-      templateSource: template.source,
+      bundle: template!.id,
+      templateName: template!.name,
+      templateTitle: en ? template!.titleEn || template!.title : template!.title,
+      templateVersion: template!.version,
+      templateSource: template!.source,
       templateSnapshot: JSON.parse(JSON.stringify(template)),
       departmentEn: dep?.en || draft.departmentEl,
       score,
@@ -234,14 +236,15 @@ export function BundleExecutionEditor({
         {locked && (
           <PrefilledList
             items={[
-              { label: en ? 'Patient' : 'Ασθενής', value: prefill.patientLabel },
-              { label: en ? 'Admission' : 'Νοσηλεία', value: prefill.admissionLabel },
-              { label: en ? 'Surveillance episode' : 'Επεισόδιο επιτήρησης', value: prefill.episodeLabel },
-              { label: en ? 'Device' : 'Συσκευή', value: prefill.deviceLabel },
-              { label: en ? 'Device day' : 'Ημέρα συσκευής', value: prefill.deviceDay ? String(prefill.deviceDay) : '' },
-              { label: en ? 'Department' : 'Τμήμα', value: prefill.departmentName },
+              { label: en ? 'Patient' : 'Ασθενής', value: prefill!.patientLabel },
+              { label: en ? 'Admission' : 'Νοσηλεία', value: prefill!.admissionLabel },
+              { label: en ? 'Surveillance episode' : 'Επεισόδιο επιτήρησης', value: prefill!.episodeLabel },
+              { label: en ? 'Device' : 'Συσκευή', value: prefill!.deviceLabel },
+              { label: en ? 'Device day' : 'Ημέρα συσκευής', value: prefill!.deviceDay ? String(prefill!.deviceDay) : '' },
+              { label: en ? 'Department' : 'Τμήμα', value: prefill!.departmentName },
               { label: en ? 'Bundle' : 'Δέσμη μέτρων', value: template ? `${template.name} — ${en ? template.titleEn || template.title : template.title}` : '' },
-            ]}
+              // PrefilledList (surveillance, JavaScript) types its items from the default `[]`.
+            ] as never[]}
           />
         )}
         <div className="bundle-page-grid">
@@ -444,7 +447,7 @@ export function BundleExecutionEditor({
       <label className="field bundle-page-notes">
         <span className="lo-field-label">{en ? 'General notes' : 'Γενικές σημειώσεις'}</span>
         <textarea
-          rows="3"
+          rows={3}
           value={draft.generalNotes || ''}
           onChange={e => set('generalNotes', e.target.value)}
           placeholder={

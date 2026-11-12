@@ -1,11 +1,11 @@
-import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { wasteTypeLibrary } from './preventionDemoData'
 import { loadWasteLocal, saveWasteLocal } from './preventionStore'
-import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
-import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments } from './preventionCloud'
+import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
+import type { AnyRecord } from '../../types/featureTypes'
+import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments, type PreventionOrgId } from './preventionCloud'
 
-function mapRow(row) {
+function mapRow(row: AnyRecord) {
   const typeEl = row.waste_type?.name_el || ''
   const typeEn = row.waste_type?.name_en || typeEl
   const patientDays = Number(row.patient_days) || 0
@@ -42,16 +42,16 @@ function mapRow(row) {
   }
 }
 
-export async function loadWasteSupportData(organizationId) {
+export async function loadWasteSupportData(organizationId: PreventionOrgId) {
   if (isDemoDataEnvironment())
     return { departments: await loadPreventionDepartments(organizationId), wasteTypes: wasteTypeLibrary }
   assertCloud(organizationId)
   const [departments, typesResult] = await Promise.all([
     loadPreventionDepartments(organizationId),
-    supabase
+    cloudClient()
       .from('master_library_items')
       .select('id,code,name_el,name_en')
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .eq('library_key', 'wasteTypes')
       .eq('is_active', true)
       .order('name_el'),
@@ -69,10 +69,10 @@ export async function loadWasteSupportData(organizationId) {
 }
 
 export async function findWastePatientDays(
-  organizationId,
-  departmentId,
-  periodStartOrRange,
-  periodEndArg,
+  organizationId: PreventionOrgId,
+  departmentId: string | null | undefined,
+  periodStartOrRange: string | { periodStart?: string; periodEnd?: string } | null | undefined,
+  periodEndArg?: string | null,
 ) {
   const periodStart =
     typeof periodStartOrRange === 'object' ? periodStartOrRange?.periodStart : periodStartOrRange
@@ -90,22 +90,22 @@ export async function findWastePatientDays(
     : null
 }
 
-export async function loadWasteMeasurements(organizationId) {
+export async function loadWasteMeasurements(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
   if (isDemoDataEnvironment()) return loadWasteLocal()
   assertCloud(organizationId)
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('waste_measurements')
     .select(
       '*,department:departments(id,name),waste_type:master_library_items(id,code,name_el,name_en)',
     )
-    .eq('organization_id', organizationId)
+    .eq('organization_id', organizationId as string)
     .order('period_end', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data || []).map(mapRow)
 }
 
-export async function saveWasteMeasurement(organizationId, record, { existingId = null } = {}) {
+export async function saveWasteMeasurement(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadWasteLocal()
     const id = existingId || `WST-${Date.now()}`
@@ -130,7 +130,7 @@ export async function saveWasteMeasurement(organizationId, record, { existingId 
   if (!periodStart || !periodEnd || periodEnd < periodStart)
     throw new Error('A valid reporting period is required.')
   const payload = {
-    organization_id: organizationId,
+    organization_id: organizationId as string,
     department_id: department.id,
     record_date: periodEnd,
     period_start: periodStart,
@@ -152,17 +152,17 @@ export async function saveWasteMeasurement(organizationId, record, { existingId 
   }
   let saved
   if (existingId) {
-    const { data, error } = await supabase
+    const { data, error } = await cloudClient()
       .from('waste_measurements')
       .update(payload)
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId as string)
       .eq('id', existingId)
       .select('*')
       .single()
     if (error) throw error
     saved = data
   } else {
-    const { data, error } = await supabase
+    const { data, error } = await cloudClient()
       .from('waste_measurements')
       .insert({ ...payload, created_by: userId })
       .select('*')
@@ -174,6 +174,6 @@ export async function saveWasteMeasurement(organizationId, record, { existingId 
   return rows.find(x => x.id === saved.id) || null
 }
 
-export function deleteWasteMeasurement(organizationId, id) {
+export function deleteWasteMeasurement(organizationId: PreventionOrgId, id: string | null | undefined) {
   return deletePreventionRecord(organizationId, id, { table: 'waste_measurements', localTable: 'prevention_waste', label: 'Απόβλητα', loadLocal: loadWasteLocal, saveLocal: saveWasteLocal })
 }

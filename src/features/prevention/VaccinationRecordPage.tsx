@@ -18,7 +18,8 @@ import {
   loadAllVaccinationsAsync,
   updateVaccinationAsync,
 } from '../occupational-health/vaccinationService'
-import { EMPTY_VACCINATION, StaffVaccinationEditor } from './StaffVaccinationEditor'
+import { EMPTY_VACCINATION, StaffVaccinationEditor, type VaccinationEditorValue } from './StaffVaccinationEditor'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const BACK = '/prevention?tab=vaccinations'
 
@@ -32,16 +33,16 @@ export function VaccinationRecordPage() {
   const navigate = useNavigate()
   const { notify, notifyError, confirm } = useFeedback()
   const { role, membership, canAccessRecord, tenant } = useTenant()
-  const { data: employeeRows } = useEmployeesData()
+  const employeeRows: AnyRecord[] | null | undefined = useEmployeesData().data
   const canManage = can(role, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
-  const [value, setValue] = useState(isNew ? { mode: 'individual', draft: { ...EMPTY_VACCINATION }, selectedEmployeeIds: [] } : null)
+  const [value, setValue] = useState<VaccinationEditorValue | null>(isNew ? { mode: 'individual', draft: { ...EMPTY_VACCINATION }, selectedEmployeeIds: [] } : null)
   const [missing, setMissing] = useState(false)
   const employeeMap = useMemo(() => Object.fromEntries((employeeRows || []).map(item => [item.id, item])), [employeeRows])
 
   useEffect(() => {
     if (isNew || !tenant?.id) return undefined
     let alive = true
-    loadAllVaccinationsAsync(tenant.id).then(rows => {
+    loadAllVaccinationsAsync(tenant.id).then((rows: AnyRecord[]) => {
       if (!alive) return
       const row = (rows || []).find(item => String(item.id) === String(recordId))
       if (!row) return setMissing(true)
@@ -52,22 +53,22 @@ export function VaccinationRecordPage() {
 
   const employees = (employeeRows || []).filter(item => item.employmentStatus === 'active' && canAccessRecord(item))
 
-  async function save(payload) {
+  async function save(payload: VaccinationEditorValue) {
     try {
       if (payload.mode === 'edit') {
-        await updateVaccinationAsync(tenant.id, payload.draft.id, payload.draft)
+        await updateVaccinationAsync(tenant!.id, payload.draft.id, payload.draft)
         notify(en ? 'Vaccination updated.' : t('vaccinationUpdated'), 'success')
       } else {
         const selected = (employeeRows || []).filter(item => payload.selectedEmployeeIds.includes(item.id))
-        await createVaccinationsBulkAsync(tenant.id, selected, payload.draft)
-        notify(t(selected.length === 1 ? 'copy.preventionCopy.vaccinationSavedOne' : 'copy.preventionCopy.vaccinationSavedMany').replace('{count}', selected.length), 'success')
+        await createVaccinationsBulkAsync(tenant!.id, selected, payload.draft)
+        notify(t(selected.length === 1 ? 'copy.preventionCopy.vaccinationSavedOne' : 'copy.preventionCopy.vaccinationSavedMany').replace('{count}', String(selected.length)), 'success')
       }
       navigate(BACK)
     } catch (error) {
       notifyError(error, 'save', { operation: payload.mode === 'edit' ? 'staff_vaccinations_update' : 'staff_vaccinations_create' })
     }
   }
-  async function remove(payload) {
+  async function remove(payload: VaccinationEditorValue) {
     const ok = await confirm({
       title: en ? 'Delete vaccination' : t('delete'),
       message: en ? 'Delete this vaccination record? This action cannot be undone.' : t('vaccinationDeleteConfirm'),
@@ -76,7 +77,7 @@ export function VaccinationRecordPage() {
     })
     if (!ok) return
     try {
-      await deleteVaccinationAsync(tenant.id, payload.draft.id)
+      await deleteVaccinationAsync(tenant!.id, payload.draft.id)
       notify(en ? 'Vaccination deleted.' : t('vaccinationDeleted'), 'success')
       navigate(BACK)
     } catch (error) {

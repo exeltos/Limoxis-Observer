@@ -12,208 +12,12 @@ import {
   seededRandom,
 } from '../../core/data/demoSeed'
 import { whoStatsFromObservations } from './whoHandHygieneStats'
-export const preventionDepartments = [
-  { id: 'dep-icu', el: 'ΜΕΘ', en: 'ICU' },
-  { id: 'dep-internal', el: 'Παθολογική', en: 'Internal Medicine' },
-  { id: 'dep-surgery', el: 'Χειρουργική', en: 'Surgery' },
-  { id: 'dep-ed', el: 'ΤΕΠ', en: 'ED' },
-  { id: 'dep-cardio', el: 'Καρδιολογική', en: 'Cardiology' },
-  { id: 'dep-nicu', el: 'Νεογνολογική / ΜΕΝΝ', en: 'Neonatal / NICU' },
-  { id: 'dep-ortho', el: 'Ορθοπαιδική', en: 'Orthopedics' },
-]
+import type { AnyRecord } from '../../types/featureTypes'
+import { antisepticLibrary, bundleTemplateLibrary, preventionDepartments, wasteTypeLibrary } from './preventionDemoLibraries'
 
-export const wasteTypeLibrary = [
-  { id: 'wt-infectious', code: 'WASTE-INF', el: 'Μολυσματικά απόβλητα', en: 'Infectious waste' },
-  { id: 'wt-sharps', code: 'WASTE-SHARP', el: 'Αιχμηρά αντικείμενα', en: 'Sharps' },
-  {
-    id: 'wt-pharma',
-    code: 'WASTE-PHARMA',
-    el: 'Φαρμακευτικά απόβλητα',
-    en: 'Pharmaceutical waste',
-  },
-]
+export { antisepticLibrary, bundleTemplateLibrary, preventionDepartments, wasteTypeLibrary } from './preventionDemoLibraries'
 
-export const antisepticLibrary = [
-  {
-    id: 'ant-abhr',
-    code: 'ANT-ABHR',
-    el: 'Αλκοολούχο αντισηπτικό χεριών (ABHR)',
-    en: 'Alcohol-based handrub (ABHR)',
-    metadata: { is_abhr: true },
-  },
-  {
-    id: 'ant-surgical',
-    code: 'ANT-SURG',
-    el: 'Χειρουργικό αντισηπτικό διάλυμα',
-    en: 'Surgical antiseptic solution',
-    metadata: { is_abhr: false },
-  },
-]
-
-export const bundleTemplateLibrary = [
-  {
-    dbId: 'tmpl-clabsi',
-    id: 'CLABSI',
-    bundleKey: 'CLABSI',
-    name: 'CLABSI Bundle',
-    title: 'Δέσμη πρόληψης CLABSI',
-    titleEl: 'Δέσμη πρόληψης CLABSI',
-    titleEn: 'CLABSI Prevention Bundle',
-    version: '1.0',
-    status: 'published',
-    scope: 'icu',
-    source: 'WHO',
-    sourceVersion: '2024',
-    system: true,
-    departments: [],
-    rawElements: [
-      {
-        id: 'hand_hygiene',
-        labelEl: 'Υγιεινή χεριών πριν την εισαγωγή',
-        labelEn: 'Hand hygiene before insertion',
-      },
-      {
-        id: 'barrier',
-        labelEl: 'Μέγιστες προφυλάξεις φραγμού',
-        labelEn: 'Maximal barrier precautions',
-      },
-      {
-        id: 'skin_prep',
-        labelEl: 'Αντισηψία δέρματος με χλωρεξιδίνη',
-        labelEn: 'Chlorhexidine skin antisepsis',
-      },
-      {
-        id: 'site_review',
-        labelEl: 'Καθημερινή επανεκτίμηση σημείου εισόδου',
-        labelEn: 'Daily insertion site review',
-      },
-    ],
-  },
-  {
-    dbId: 'tmpl-vae',
-    id: 'VAE',
-    bundleKey: 'VAE',
-    name: 'VAE Bundle',
-    title: 'Δέσμη πρόληψης VAE',
-    titleEl: 'Δέσμη πρόληψης VAE',
-    titleEn: 'VAE Prevention Bundle',
-    version: '1.0',
-    status: 'published',
-    scope: 'icu',
-    source: 'WHO',
-    sourceVersion: '2024',
-    system: true,
-    departments: [],
-    rawElements: [
-      {
-        id: 'head_elevation',
-        labelEl: 'Ανύψωση κεφαλής 30-45°',
-        labelEn: 'Head-of-bed elevation 30–45°',
-      },
-      {
-        id: 'oral_care',
-        labelEl: 'Στοματική φροντίδα με χλωρεξιδίνη',
-        labelEn: 'Chlorhexidine oral care',
-      },
-      {
-        id: 'sedation_break',
-        labelEl: 'Ημερήσια διακοπή καταστολής',
-        labelEn: 'Daily sedation interruption',
-      },
-    ],
-  },
-  {
-    dbId: 'tmpl-cauti',
-    id: 'CAUTI',
-    bundleKey: 'CAUTI',
-    name: 'CAUTI Bundle',
-    title: 'Δέσμη πρόληψης CAUTI',
-    titleEl: 'Δέσμη πρόληψης CAUTI',
-    titleEn: 'CAUTI Prevention Bundle',
-    version: '1.0',
-    status: 'published',
-    scope: 'ward',
-    source: 'WHO',
-    sourceVersion: '2024',
-    system: true,
-    departments: [],
-    rawElements: [
-      {
-        id: 'indication',
-        labelEl: 'Τεκμηριωμένη ένδειξη ουροκαθετήρα',
-        labelEn: 'Documented catheter indication',
-      },
-      {
-        id: 'aseptic_insertion',
-        labelEl: 'Άσηπτη τεχνική τοποθέτησης',
-        labelEn: 'Aseptic insertion technique',
-      },
-      {
-        id: 'closed_drainage',
-        labelEl: 'Κλειστό σύστημα παροχέτευσης',
-        labelEn: 'Closed drainage system',
-      },
-      {
-        id: 'bag_below_bladder',
-        labelEl: 'Ουροσυλλέκτης κάτω από το επίπεδο της κύστης',
-        labelEn: 'Drainage bag below bladder level',
-      },
-      {
-        id: 'daily_review',
-        labelEl: 'Καθημερινή επανεκτίμηση ανάγκης',
-        labelEn: 'Daily review of need',
-      },
-    ],
-  },
-  {
-    dbId: 'tmpl-ssi',
-    id: 'SSI',
-    bundleKey: 'SSI',
-    name: 'SSI Bundle',
-    title: 'Δέσμη πρόληψης SSI',
-    titleEl: 'Δέσμη πρόληψης SSI',
-    titleEn: 'SSI Prevention Bundle',
-    version: '1.0',
-    status: 'published',
-    scope: 'surgery',
-    source: 'WHO',
-    sourceVersion: '2024',
-    system: true,
-    departments: [],
-    rawElements: [
-      {
-        id: 'preop_shower',
-        labelEl: 'Προεγχειρητικό λουτρό',
-        labelEn: 'Preoperative shower',
-      },
-      {
-        id: 'hair_clipping',
-        labelEl: 'Αποτρίχωση μόνο με κουρευτική μηχανή',
-        labelEn: 'Hair removal by clipping only',
-      },
-      {
-        id: 'prophylaxis_timing',
-        labelEl: 'Προφύλαξη εντός 60 λεπτών πριν την τομή',
-        labelEn: 'Prophylaxis within 60 minutes before incision',
-      },
-      {
-        id: 'skin_antisepsis',
-        labelEl: 'Αντισηψία δέρματος με αλκοολούχο χλωρεξιδίνη',
-        labelEn: 'Alcohol-based chlorhexidine skin antisepsis',
-      },
-      {
-        id: 'normothermia',
-        labelEl: 'Διατήρηση νορμοθερμίας',
-        labelEn: 'Perioperative normothermia',
-      },
-    ],
-  },
-].map(template => ({
-  ...template,
-  elements: template.rawElements.map(item => [item.id, item.labelEl]),
-}))
-
-function handHygieneRow({ id, date, department, profession, observer, startTime, endTime, items }) {
+function handHygieneRow({ id, date, department, profession, observer, startTime, endTime, items }: AnyRecord) {
   const stats = whoStatsFromObservations(items)
   return {
     id,
@@ -470,7 +274,7 @@ function wasteRow({
   responsible,
   documentNumber,
   collectionCompany,
-}) {
+}: AnyRecord) {
   return {
     id,
     date: periodEnd,
@@ -554,7 +358,7 @@ function antisepticRow({
   method,
   referenceNumber,
   responsible,
-}) {
+}: AnyRecord) {
   const eligible = Boolean(product.metadata?.is_abhr)
   return {
     id,
@@ -623,8 +427,8 @@ export const antisepticRows = [
   }),
 ]
 
-function bundleAssessmentRow({ id, template, department, date, answers, shift, context, owner, links = {} }) {
-  const elementIds = template.rawElements.map(item => item.id)
+function bundleAssessmentRow({ id, template, department, date, answers, shift, context, owner, links = {} }: AnyRecord) {
+  const elementIds: string[] = template.rawElements.map((item: AnyRecord) => item.id)
   const applicable = elementIds
     .map(itemId => answers[itemId])
     .filter(x => x === 'yes' || x === 'no')
@@ -632,8 +436,8 @@ function bundleAssessmentRow({ id, template, department, date, answers, shift, c
   const score = applicable.length ? Math.round((yes / applicable.length) * 100) : null
   const failedCount = applicable.length - yes
   const findings = template.rawElements
-    .filter(item => answers[item.id] === 'no')
-    .map(item => ({ id: item.id, label: item.labelEl, note: '' }))
+    .filter((item: AnyRecord) => answers[item.id] === 'no')
+    .map((item: AnyRecord) => ({ id: item.id, label: item.labelEl, note: '' }))
   return {
     id,
     bundle: template.bundleKey,
@@ -804,8 +608,8 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
   }
 })
 
-const monthPeriod = month => [`${month}-01`, `${month}-${pad2(lastDayOfMonth(month))}`]
-const hasMonthlyRow = (rows, department, key, value, month) =>
+const monthPeriod = (month: string) => [`${month}-01`, `${month}-${pad2(lastDayOfMonth(month))}`]
+const hasMonthlyRow = (rows: AnyRecord[], department: AnyRecord, key: string, value: string, month: string) =>
   rows.some(
     row =>
       row.departmentEl === department.el && row[key] === value && row.periodStart.startsWith(month),
@@ -825,7 +629,7 @@ DEMO_HISTORY_MONTHS.forEach(month => {
         type.id === 'wt-sharps'
           ? 30 + rand() * 18
           : (department.id === 'dep-icu' ? 290 : 190) + rand() * 60
-      const weight = Number(((perThousand * patientDays) / 1000).toFixed(1))
+      const weight = Number(((perThousand * patientDays!) / 1000).toFixed(1))
       wasteDocument += 1
       wasteRows.push(
         wasteRow({
@@ -868,7 +672,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
           periodEnd,
           department,
           product,
-          litres: Number(((perThousand * patientDays) / 1000).toFixed(1)),
+          litres: Number(((perThousand * patientDays!) / 1000).toFixed(1)),
           patientDays,
           method: 'direct_measurement',
           referenceNumber: `ΔΤ-${antisepticReference}`,
@@ -880,15 +684,15 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
 })
 
 const [clabsi, vae, cauti, ssi] = bundleTemplateLibrary
-const ward = id => preventionDepartments.find(department => department.id === id)
-const BUNDLE_PLAN = [
+const ward = (id: string) => preventionDepartments.find(department => department.id === id)
+const BUNDLE_PLAN: [AnyRecord, string, string, number][] = [
   [clabsi, 'dep-icu', 'Κεντρικός φλεβικός καθετήρας', 6],
   [vae, 'dep-icu', 'Μηχανικός αερισμός', 12],
   [cauti, 'dep-icu', 'Ουροκαθετήρας', 17],
   [cauti, 'dep-internal', 'Ουροκαθετήρας', 20],
   [ssi, 'dep-surgery', 'Χειρουργική επέμβαση', 9],
 ]
-const BUNDLE_EXTRA = [
+const BUNDLE_EXTRA: [AnyRecord, string, string, number][] = [
   [clabsi, 'dep-surgery', 'Κεντρικός φλεβικός καθετήρας', 23],
   [ssi, 'dep-ortho', 'Χειρουργική επέμβαση', 14],
   [clabsi, 'dep-nicu', 'Κεντρικός φλεβικός καθετήρας', 25],
@@ -900,7 +704,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
     const rand = seededRandom(`bundle|${month}|${index}`)
     const reliability = 0.84 + (monthIndex - DEMO_HISTORY_LEAD) * 0.009
     const answers = Object.fromEntries(
-      template.rawElements.map(item => [
+      template.rawElements.map((item: AnyRecord) => [
         item.id,
         rand() < 0.05 ? 'na' : rand() < reliability ? 'yes' : 'no',
       ]),

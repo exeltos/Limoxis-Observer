@@ -1,76 +1,51 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ClipboardCheck, Droplets, Plus, Recycle, ShieldCheck } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTableSort } from '../../design-system/useTableSort'
-import { RegistryTotals } from '../../design-system/RegistryTotals'
-import { ABHR_TARGET, HAND_HYGIENE_TARGET, antisepticKpis, bundleKpis, handHygieneKpis, wasteKpis } from './preventionKpis'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
-import { RegistryTable } from '../../design-system/RegistryTable'
-import { StatusBadge } from '../../design-system/StatusBadge'
-import { formatDay } from '../../core/i18n/formatDay'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { translate, useLanguage } from '../../core/i18n/LanguageContext'
+import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { loadAllVaccinationsAsync } from '../occupational-health/vaccinationService'
-import { antisepticMethodLabel, antisepticPeriodLabel } from './antisepticMethods'
+import { antisepticMethodLabel } from './antisepticMethods'
 import { loadHandHygieneDepartments, loadHandHygieneSessions } from './handHygieneCloudService'
 import { loadAntisepticRecords, loadAntisepticSupportData } from './antisepticCloudService'
 import { loadBundleAssessments, loadBundleSupportData } from './bundleCloudService'
 import { loadWasteMeasurements, loadWasteSupportData } from './wasteCloudService'
 import { readRegistryViewState, useRegistryMemory } from '../../core/navigation/useRegistryMemory'
-import { wasteCategoryTone, wastePeriodLabel } from './wasteVisuals'
+import { AntisepticTable, BundleTable, HandTable, PreventionEmpty, PreventionKpis, VaccinationTable, WasteTable, dayLabel, fmtMonth, tabIcons } from './PreventionTables'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment } from './preventionCloud'
 
-const tabs = [
+const tabs: [string, string][] = [
   ['handHygiene', 'handHygiene'],
   ['waste', 'wasteManagement'],
   ['antiseptics', 'antisepticConsumption'],
   ['bundles', 'preventionBundles'],
   ['vaccinations', 'vaccinations'],
 ]
-// Numbers in the user's language (79,1% in Greek) and the antiseptic month
-// as MM/YYYY instead of the stored YYYY-MM.
-const fmtNumber = (value, language) =>
-  new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(
-    Number(value),
-  )
-// Every prevention date as dd/mm/yyyy (two-digit day and month), like the other registries.
-const dayLabel = (value, language) => {
-  const text = String(value || '').slice(0, 10)
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return formatDay(value, language)
-  return new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${text}T12:00:00`))
-}
-const fmtMonth = value => antisepticPeriodLabel(value)
-const tabIcons = {
-  handHygiene: ClipboardCheck,
-  waste: Recycle,
-  antiseptics: Droplets,
-  bundles: ShieldCheck,
-  vaccinations: ShieldCheck,
-}
-const tabCapabilities = {
+const tabCapabilities: Record<string, string> = {
   handHygiene: CAPABILITIES.RECORD_HAND_HYGIENE,
   waste: CAPABILITIES.RECORD_WASTE,
   antiseptics: CAPABILITIES.RECORD_ANTISEPTIC,
   bundles: CAPABILITIES.RECORD_PREVENTION_BUNDLE,
   vaccinations: CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,
 }
-const createCapabilities = {
+const createCapabilities: Record<string, string> = {
   handHygiene: CAPABILITIES.RECORD_HAND_HYGIENE,
   waste: CAPABILITIES.RECORD_WASTE,
   antiseptics: CAPABILITIES.RECORD_ANTISEPTIC,
   bundles: CAPABILITIES.RECORD_PREVENTION_BUNDLE,
   vaccinations: CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
 }
-const createLabelKeys = {
+const createLabelKeys: Record<string, string> = {
   handHygiene: 'preventionNewHandHygieneLabel',
   waste: 'preventionNewWasteLabel',
   antiseptics: 'preventionNewAntisepticsLabel',
@@ -79,15 +54,15 @@ const createLabelKeys = {
 
 // The department filter keeps the Greek name (what records store); a view saved
 // with the English name still matches.
-const departmentOption = (el, en, language) => ({ value: el, label: language === 'el' ? el : en || el })
-const inDepartment = (department, el, en) => department === 'all' || department === el || department === en
+const departmentOption = (el: string, en: string | undefined, language: string) => ({ value: el, label: language === 'el' ? el : en || el })
+const inDepartment = (department: string, el: string | undefined, en: string | undefined) => department === 'all' || department === el || department === en
 export function PreventionPage() {
   const { t, language } = useLanguage()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { notifyError } = useFeedback()
   const { role, membership, canAccessRecord, tenant } = useTenant()
-  const { data: employeeRows } = useEmployeesData()
+  const employeeRows: AnyRecord[] = useEmployeesData().data
   const addOns = useMemo(() => membership?.capabilities ?? [], [membership?.capabilities])
   const custom = useMemo(
     () => membership?.customCapabilities ?? [],
@@ -107,7 +82,7 @@ export function PreventionPage() {
     [role, broadPreventionView, addOns, custom],
   )
   const visibleTabs = useMemo(() => tabs.filter(([id]) => tabAccess[id]), [tabAccess])
-  const [tab, setTab] = useState(() => searchParams.get('tab') || 'handHygiene')
+  const [tab, setTab] = useState<string>(() => searchParams.get('tab') || 'handHygiene')
   const registry = useRegistryMemory(`prevention-${tab}`)
   const savedView = registry.loadViewState({
     query: '',
@@ -125,22 +100,22 @@ export function PreventionPage() {
   const [status, setStatus] = useState(savedView.status)
   const [page, setPage] = useState(1),
     [pageSize, setPageSize] = useState(15)
-  const [handRows, setHandRows] = useState([]),
-    [handDepartments, setHandDepartments] = useState([]),
+  const [handRows, setHandRows] = useState<AnyRecord[]>([]),
+    [handDepartments, setHandDepartments] = useState<PreventionDepartment[]>([]),
     [handLoading, setHandLoading] = useState(true)
-  const [wasteRows, setWasteRows] = useState([]),
-    [wasteSupport, setWasteSupport] = useState({ departments: [], wasteTypes: [] }),
+  const [wasteRows, setWasteRows] = useState<AnyRecord[]>([]),
+    [wasteSupport, setWasteSupport] = useState<{ departments: PreventionDepartment[]; wasteTypes: AnyRecord[] }>({ departments: [], wasteTypes: [] }),
     [wasteLoading, setWasteLoading] = useState(true)
-  const [antisepticRows, setAntisepticRows] = useState([]),
-    [antisepticSupport, setAntisepticSupport] = useState({ departments: [], products: [] }),
+  const [antisepticRows, setAntisepticRows] = useState<AnyRecord[]>([]),
+    [antisepticSupport, setAntisepticSupport] = useState<{ departments: PreventionDepartment[]; products: AnyRecord[] }>({ departments: [], products: [] }),
     [antisepticLoading, setAntisepticLoading] = useState(true)
-  const [bundleRows, setBundleRows] = useState([]),
-    [bundleSupport, setBundleSupport] = useState({ departments: [], templates: [] }),
+  const [bundleRows, setBundleRows] = useState<AnyRecord[]>([]),
+    [bundleSupport, setBundleSupport] = useState<{ departments: PreventionDepartment[]; templates: AnyRecord[] }>({ departments: [], templates: [] }),
     [bundleLoading, setBundleLoading] = useState(true)
-  const [vaccinationRows, setVaccinationRows] = useState([]),
+  const [vaccinationRows, setVaccinationRows] = useState<AnyRecord[]>([]),
     [vaccinationLoading, setVaccinationLoading] = useState(true)
   const employeeMap = useMemo(() => {
-    const out = {}
+    const out: Record<string, AnyRecord> = {}
     for (const x of employeeRows) {
       out[x.id] = x
       if (x.dbId) out[x.dbId] = x
@@ -387,8 +362,8 @@ export function PreventionPage() {
     reloadVaccinations,
   ])
   // The arrows in the headers sort the whole filtered list of the tab; the page is cut afterwards.
-  const departmentOf = x => (language === 'el' ? x.departmentEl : x.departmentEn)
-  const sortAccessors = {
+  const departmentOf = (x: AnyRecord) => (language === 'el' ? x.departmentEl : x.departmentEn)
+  const sortAccessors: Record<string, (x: AnyRecord) => unknown> = {
     date: x => x.date || x.period,
     department: departmentOf,
     profession: x => (x.profession ? t(x.profession) : ''),
@@ -422,12 +397,12 @@ export function PreventionPage() {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)),
     safePage = Math.min(page, totalPages),
     pagedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const fmtDate = v => dayLabel(v, language)
+  const fmtDate = (v: string) => dayLabel(v, language)
   const createLabel =
     tab === 'vaccinations'
       ? t('newVaccinationRecord')
       : (createLabelKeys[tab] && t(createLabelKeys[tab])) || t('preventionNewRecordFallback')
-  function changeTab(id) {
+  function changeTab(id: string) {
     if (!tabAccess[id]) return
     registry.saveViewState({ tab, query, department, period, product, method, status })
     const next = readRegistryViewState(`prevention-${id}`)
@@ -440,7 +415,7 @@ export function PreventionPage() {
     setStatus(next?.status || 'all')
     setSearchParams({ tab: id }, { replace: true })
   }
-  function openPreventionRecord(id, type) {
+  function openPreventionRecord(id: string, type: string) {
     if (!tabAccess[type]) return
     registry.saveViewState({ tab: type, query, department, period, product, method, status })
     registry.openRecord(
@@ -451,7 +426,7 @@ export function PreventionPage() {
       { returnState: { tab: type } },
     )
   }
-  function openVaccinationRecord(row) {
+  function openVaccinationRecord(row: AnyRecord) {
     registry.saveViewState({ tab: 'vaccinations', query, department, period, product, method, status })
     registry.openRecord(navigate, `/prevention/vaccinations/${row.id}?fromTab=vaccinations`, row.id, rows.map(x => x.id), { returnState: { tab: 'vaccinations' } })
   }
@@ -471,7 +446,7 @@ export function PreventionPage() {
     }
     navigate(`/prevention/${tab}/new?fromTab=${tab}`)
   }
-  function pageAction(action) {
+  function pageAction(action: string) {
     if (action === UI_ACTIONS.CREATE) createRecord()
   }
   // Placeholders only until the tab's first read ends: a reload after a save keeps the rows.
@@ -586,7 +561,7 @@ export function PreventionPage() {
             ))}
           </FilterSelect>
         </FilterBar>
-        <div className="scroll-table" ref={registry.scrollRef}>
+        <div className="scroll-table" ref={registry.scrollRef as RefObject<HTMLDivElement>}>
           {loading && <TableSkeleton />}
           {tab === 'handHygiene' && !loading && (
             <HandTable
@@ -672,332 +647,4 @@ export function PreventionPage() {
       </div>
     </Page>
   )
-}
-// The key figures of the open tab, with their period and target (preventionKpis.js): one line of totals beside the
-// search (owner, 8/11/2026: no cards); the period and the target are in the tooltip.
-function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }) {
-  const en = language === 'en'
-  const tr = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value), translate(`preventionKpis.${key}`, language))
-  const fmt = value => (value == null ? null : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value))
-  const days30 = tr('days30')
-  const item = (key, label, value, { unit = '', tone, title } = {}) => (value == null || value === '' ? null : { key, always: true, value: 0, display: `${value}${unit}`, label, tone, title: [label, title].filter(Boolean).join(' · ') })
-  const strip = (label, items) => <RegistryTotals label={label} items={items.filter(Boolean)} />
-  if (tab === 'handHygiene') {
-    const k = handHygieneKpis(hand.rows)
-    return strip(tr('handHygiene'), [
-      item('rate', tr('whoCompliance'), fmt(k.rate), { unit: '%', tone: k.rate == null ? null : k.rate >= HAND_HYGIENE_TARGET ? 'good' : 'danger', title: `${days30} · ${tr('handTarget', { value: HAND_HYGIENE_TARGET })}` }),
-      item('opportunities', tr('opportunities'), k.opportunities, { title: days30 }),
-      item('below', tr('belowTarget'), k.departments ? `${k.below}/${k.departments}` : null, { tone: k.departments ? (k.below ? 'warning' : 'good') : null, title: days30 }),
-    ])
-  }
-  if (tab === 'waste') {
-    const k = wasteKpis(waste.rows)
-    const period = k.month ? fmtMonth(k.month) : ''
-    return strip(tr('waste'), [
-      item('total', tr('shortMonth'), fmt(k.current?.total), { unit: ' kg', title: `${tr('wasteMonth')} · ${period}` }),
-      item('perThousand', tr('shortPerThousand'), fmt(k.current?.perThousand), { unit: ' kg', title: `${tr('perThousand')} · ${period}` }),
-      item('departments', tr('shortDepartments'), k.current ? `${k.current.departments}/${k.allDepartments}` : null, { tone: k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null, title: `${tr('departmentsRecorded')} · ${period}` }),
-    ])
-  }
-  if (tab === 'antiseptics') {
-    const k = antisepticKpis(antiseptic.rows)
-    const period = k.month ? fmtMonth(k.month) : ''
-    const value = k.current?.perThousand
-    return strip(tr('antiseptics'), [
-      item('abhr', tr('shortAbhr'), fmt(value), { unit: ` ${tr('abhrUnit')}`, tone: value == null ? null : value >= ABHR_TARGET ? 'good' : 'danger', title: `${tr('abhr')} · ${period} · ${tr('abhrTarget', { value: ABHR_TARGET })}` }),
-      item('use', tr('shortMonth'), fmt(k.current?.total), { unit: ' L', title: `${tr('useMonth')} · ${period}` }),
-      item('departments', tr('shortDepartments'), k.current ? `${k.current.departments}/${k.allDepartments}` : null, { tone: k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null, title: `${tr('departmentsRecorded')} · ${period}` }),
-    ])
-  }
-  if (tab === 'bundles') {
-    const k = bundleKpis(bundle.rows)
-    return strip(tr('bundles'), [
-      item('rate', tr('fullCompliance'), fmt(k.rate), { unit: '%', tone: k.rate == null ? null : k.rate >= 95 ? 'good' : k.rate >= 80 ? 'warning' : 'danger', title: `${days30} · ${tr('allOrNone')}` }),
-      item('assessments', tr('assessments'), k.assessments, { title: days30 }),
-      item('deviations', tr('deviations'), k.deviations, { tone: k.assessments ? (k.deviations ? 'danger' : 'good') : null, title: days30 }),
-    ])
-  }
-  return null
-}
-const preventionEmptyTitleKeys = {
-  handHygiene: 'preventionEmptyHandHygieneTitle',
-  waste: 'preventionEmptyWasteTitle',
-  antiseptics: 'preventionEmptyAntisepticsTitle',
-  bundles: 'preventionEmptyBundlesTitle',
-}
-// The empty list says what to do next: the filters when they hide everything,
-// else the button that adds the first record.
-function PreventionEmpty({ t, tab, filtered, createLabel, onCreate, onClearFilters }) {
-  const text = filtered
-    ? undefined
-    : createLabel
-      ? t('preventionEmptyCreateText').replace('{action}', createLabel)
-      : t('preventionEmptyGenericText')
-  return (
-    <RegistryEmptyState
-      filtered={filtered}
-      onClearFilters={onClearFilters}
-      title={tab === 'vaccinations' ? t('noVaccinationRecords') : t(preventionEmptyTitleKeys[tab])}
-      text={text}
-      icon={tabIcons[tab]}
-      action={createLabel ? { label: createLabel, onClick: onCreate, icon: Plus } : undefined}
-    />
-  )
-}
-function rowPropsWithOpen(registry, id, onOpen) {
-  const rp = registry.rowProps(id)
-  return { ...rp, className: `${rp.className} clickable-row`, onClick: () => onOpen(id) }
-}
-function HandTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }) {
-  return (
-    <RegistryTable
-      bare
-      sort={sort}
-      onSort={onSort}
-      columns={[
-        { key: 'date', label: t('date'), sortable: true },
-        { key: 'department', label: t('department'), sortable: true },
-        { key: 'profession', label: t('professionalCategory'), sortable: true },
-        { key: 'observations', label: t('observations'), sortable: true },
-        { key: 'compliant', label: t('compliant'), sortable: true },
-        { key: 'compliance', label: t('compliance'), sortable: true },
-        { key: 'observer', label: t('observer'), sortable: true },
-      ]}
-      rows={rows}
-      rowKey={x => x.id}
-      rowProps={x => rowPropsWithOpen(registry, x.id, onOpen)}
-      renderRow={x => (
-        <>
-          <td>{fmtDate(x.date)}</td>
-          <td>{language === 'el' ? x.departmentEl : x.departmentEn}</td>
-          <td>{t(x.profession)}</td>
-          <td>{x.observations}</td>
-          <td>{x.compliant}</td>
-          <td>
-            <StatusBadge
-              tone={Number(x.rate) < 80 ? 'danger' : 'success'}
-              title={Number(x.rate) < 80 ? t('belowWhoHandHygieneTarget') : undefined}
-            >
-              {fmtNumber(x.rate, language)}%
-            </StatusBadge>
-          </td>
-          <td>{x.observer}</td>
-        </>
-      )}
-    />
-  )
-}
-function WasteTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }) {
-  return (
-    <RegistryTable
-      bare
-      sort={sort}
-      onSort={onSort}
-      columns={[
-        { key: 'period', label: t('period'), sortable: true },
-        { key: 'department', label: t('department'), sortable: true },
-        { key: 'category', label: t('exportCategory'), sortable: true },
-        { key: 'weight', label: t('weight'), sortable: true },
-        { key: 'containers', label: t('containers'), sortable: true },
-        { key: 'indicator', label: t('preventionIndexWaste'), sortable: true },
-        { key: 'document', label: t('documentNumber'), sortable: true },
-      ]}
-      rows={rows}
-      rowKey={x => x.id}
-      rowProps={x => rowPropsWithOpen(registry, x.id, onOpen)}
-      renderRow={x => {
-        const category = x.wasteType || x.type
-        return (
-          <>
-            <td>{wastePeriodLabel(x, fmtDate)}</td>
-            <td>{language === 'el' ? x.departmentEl : x.departmentEn}</td>
-            <td>
-              <span className={`waste-category-badge ${wasteCategoryTone(category)}`}>
-                {language === 'el' ? category : x.typeEn || category}
-              </span>
-            </td>
-            <td>{Number(x.weight).toLocaleString(localeFromLanguage(language))} kg</td>
-            <td>{x.containers}</td>
-            <td>
-              {x.indicator != null ? (
-                <>
-                  <strong>
-                    {Number(x.indicator).toLocaleString(localeFromLanguage(language))}
-                  </strong>
-                </>
-              ) : (
-                '—'
-              )}
-            </td>
-            <td>{x.documentNumber || '—'}</td>
-          </>
-        )
-      }}
-    />
-  )
-}
-// The usual source (direct measurement) is not repeated on every row: the column appears only
-// when some record has another one.
-const DEFAULT_SOURCE = 'direct_measurement'
-function AntisepticTable({ sort, onSort, rows, t, language, onOpen, registry }) {
-  const showSource = rows.some(x => x.method !== DEFAULT_SOURCE)
-  return (
-    <RegistryTable
-      bare
-      sort={sort}
-      onSort={onSort}
-      columns={[
-        { key: 'period', label: t('period'), sortable: true },
-        { key: 'department', label: t('department'), sortable: true },
-        { key: 'product', label: t('product'), sortable: true },
-        { key: 'litres', label: t('consumptionLitres'), sortable: true },
-        { key: 'patientDays', label: t('patientDays'), sortable: true },
-        { key: 'indicator', label: t('preventionIndexAbhr'), sortable: true },
-        ...(showSource ? [{ key: 'source', label: t('dataSourceShort'), sortable: true }] : []),
-      ]}
-      rows={rows}
-      rowKey={x => x.id}
-      rowProps={x => rowPropsWithOpen(registry, x.id, onOpen)}
-      renderRow={x => (
-        <>
-          <td>{fmtMonth(x.period)}</td>
-          <td>{language === 'el' ? x.departmentEl : x.departmentEn}</td>
-          <td>
-            <strong>{language === 'el' ? x.product : x.productEn || x.product}</strong>
-            {x.indicatorEligible === false && (
-              <small className="table-cell-unit">{t('notApplicable')} ABHR</small>
-            )}
-          </td>
-          <td>
-            <strong>{Number(x.litres).toLocaleString(localeFromLanguage(language))} L</strong>
-          </td>
-          <td>{x.patientDays || '—'}</td>
-          <td>
-            {x.indicator != null ? (
-              <>
-                <strong>{Number(x.indicator).toLocaleString(localeFromLanguage(language))}</strong>
-              </>
-            ) : (
-              '—'
-            )}
-          </td>
-          {showSource && (
-            <td>
-              {x.method === DEFAULT_SOURCE ? (
-                '—'
-              ) : (
-                <span className={`antiseptic-method-badge ${x.method || 'other'}`}>
-                  {antisepticMethodLabel(x.method, language)}
-                </span>
-              )}
-            </td>
-          )}
-        </>
-      )}
-    />
-  )
-}
-function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }) {
-  return (
-    <RegistryTable
-      bare
-      sort={sort}
-      onSort={onSort}
-      columns={[
-        { key: 'date', label: t('date'), sortable: true },
-        { key: 'bundle', label: t('bundle'), sortable: true },
-        { key: 'department', label: t('department'), sortable: true },
-        { key: 'context', label: t('context'), sortable: true },
-        { key: 'score', label: t('score'), sortable: true },
-        { key: 'allOrNone', label: t('allOrNone'), sortable: true },
-        { key: 'deviations', label: t('deviations'), sortable: true },
-      ]}
-      rows={rows}
-      rowKey={x => x.id}
-      rowProps={x => rowPropsWithOpen(registry, x.id, onOpen)}
-      renderRow={x => (
-        <>
-          <td>{dayLabel(x.date || x.period, language)}</td>
-          <td>
-            <strong>
-              {language === 'el'
-                ? x.templateTitle || x.templateName || x.bundle
-                : x.templateName || x.bundle}
-            </strong>
-          </td>
-          <td>{language === 'el' ? x.departmentEl : x.departmentEn}</td>
-          <td>
-            {t(`shift_${x.shift}`) !== `shift_${x.shift}` ? t(`shift_${x.shift}`) : x.shift || '—'}
-          </td>
-          <td>
-            <strong>{x.score == null ? '—' : `${x.score}%`}</strong>
-          </td>
-          <td>
-            <span className={`bundle-answer ${x.allOrNone ? 'is-yes' : 'is-no'}`}>
-              {x.allOrNone ? t('yes') : t('no')}
-            </span>
-          </td>
-          <td>
-            {(x.failedCount ?? x.findings?.length ?? 0) > 0 ? (
-              <span className="bundle-finding-count">{x.failedCount ?? x.findings?.length}</span>
-            ) : (
-              '—'
-            )}
-          </td>
-        </>
-      )}
-    />
-  )
-}
-function VaccinationTable({ sort, onSort, rows, t, language, fmtDate, employeeMap, onOpen, registry }) {
-  const name = e =>
-    !e
-      ? '—'
-      : language === 'el'
-        ? `${e.lastName} ${e.firstName}`
-        : `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}`
-  return (
-    <RegistryTable
-      bare
-      sort={sort}
-      onSort={onSort}
-      columns={[
-        { key: 'employee', label: t('employee'), sortable: true },
-        { key: 'vaccine', label: t('vaccine'), sortable: true },
-        { key: 'dose', label: t('dose'), sortable: true },
-        { key: 'date', label: t('date'), sortable: true },
-        { key: 'validUntil', label: t('validUntil'), sortable: true },
-        { key: 'status', label: t('status'), sortable: true },
-      ]}
-      rows={rows}
-      rowKey={x => x.id}
-      rowProps={x => {
-        const rp = registry.rowProps(x.id)
-        return { ...rp, className: `${rp.className} clickable-row`, onClick: () => onOpen(x) }
-      }}
-      renderRow={x => {
-        const e = employeeMap[x.employeeId]
-        return (
-          <>
-            <td>
-              <strong>{name(e)}</strong>
-              <small>{e?.id || '—'}</small>
-            </td>
-            <td>{x.vaccine || '—'}</td>
-            <td>{x.dose || '—'}</td>
-            <td>{fmtDate(x.date)}</td>
-            <td>{fmtDate(x.validUntil)}</td>
-            <td>
-              <StatusBadge tone={x.status === 'complete' ? 'success' : 'neutral'}>
-                {t(x.status)}
-              </StatusBadge>
-            </td>
-          </>
-        )
-      }}
-    />
-  )
-}
-function localeFromLanguage(language) {
-  return language === 'en' ? 'en-GB' : 'el-GR'
 }

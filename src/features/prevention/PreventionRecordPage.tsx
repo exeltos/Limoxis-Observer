@@ -1,8 +1,3 @@
-import { SectionHeader } from '../../design-system/SectionHeader'
-import { ABHR_TARGET, HAND_HYGIENE_TARGET } from './preventionKpis'
-import { DetailFields } from '../../design-system/DetailList'
-import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
-import { RegistryTable } from '../../design-system/RegistryTable'
 import { useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, ClipboardCheck, ClipboardList, Droplets, FileClock, FolderOpen, Pencil, Recycle, ShieldCheck, Trash2 } from 'lucide-react'
 import './preventionRecordMenu.css'
@@ -14,10 +9,9 @@ import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { formatDayTime } from '../../core/i18n/formatDay'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
-import { Button } from '../../design-system/Button'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { WHO_MOMENTS, WHO_PROFESSIONS, WhoHandHygieneEditor } from './WhoHandHygieneEditor'
+import { WhoHandHygieneEditor } from './WhoHandHygieneEditor'
 import { WasteEntryEditor } from './WasteEntryEditor'
 import { AntisepticEntryEditor } from './AntisepticEntryEditor'
 import { BundleExecutionEditor } from './BundleExecutionEditor'
@@ -54,32 +48,36 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { wasteCategoryTone, wastePeriodLabel } from './wasteVisuals'
 import { ActionButton } from '../../design-system/ActionButton'
-import { antisepticMethodLabel, antisepticPeriodLabel, isAbhrProduct } from './antisepticMethods'
+import { isAbhrProduct } from './antisepticMethods'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
-import { normalizeWhoMoments, sessionHandHygieneStats } from './whoHandHygieneStats'
-import { RegistryTotals } from '../../design-system/RegistryTotals'
+import { AntisepticDetails, BundleDetails, HandHygieneDetails, formatMonth } from './PreventionRecordDetails'
+import type { RecordNavigation } from '../../design-system/EntityRecordShell'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment, PreventionOrgId } from './preventionCloud'
 
-const icons = {
+export { bundleFollowUpTone } from './PreventionRecordDetails'
+
+const icons: Record<string, typeof ShieldCheck> = {
   handHygiene: ShieldCheck,
   waste: Recycle,
   antiseptics: Droplets,
   bundles: ClipboardCheck,
 }
-const loaders = {
+const loaders: Record<string, (organizationId: PreventionOrgId) => Promise<AnyRecord[]>> = {
   handHygiene: loadHandHygieneSessions,
   waste: loadWasteMeasurements,
   antiseptics: loadAntisepticRecords,
   bundles: loadBundleAssessments,
 }
-const deleters = {
+const deleters: Record<string, (organizationId: PreventionOrgId, id: string) => Promise<unknown>> = {
   handHygiene: deleteHandHygieneSession,
   waste: deleteWasteMeasurement,
   antiseptics: deleteAntisepticRecord,
   bundles: deleteBundleAssessment,
 }
-const editCapabilities = {
+const editCapabilities: Record<string, string> = {
   handHygiene: CAPABILITIES.RECORD_HAND_HYGIENE,
   waste: CAPABILITIES.RECORD_WASTE,
   antiseptics: CAPABILITIES.RECORD_ANTISEPTIC,
@@ -87,7 +85,8 @@ const editCapabilities = {
 }
 
 export function PreventionRecordPage() {
-  const { recordType, recordId } = useParams()
+  // The route always names both (/prevention/:recordType/:recordId).
+  const { recordType, recordId } = useParams() as { recordType: string; recordId: string }
   const navigate = useNavigate()
   const location = useLocation()
   // A check opened from a device of an episode (Φόρμες & ερωτηματολόγια): it returns there.
@@ -102,27 +101,27 @@ export function PreventionRecordPage() {
   const supportsPageEditor = ['handHygiene', 'waste', 'antiseptics', 'bundles'].includes(recordType)
   const creating = supportsPageEditor && recordId === 'new'
   const editing = supportsPageEditor && !creating && searchParams.get('edit') === '1'
-  const [record, setRecord] = useState(null)
+  const [record, setRecord] = useState<AnyRecord | null>(null)
   const [loading, setLoading] = useState(!creating)
-  const [handDepartments, setHandDepartments] = useState([])
-  const [wasteSupport, setWasteSupport] = useState({ departments: [], wasteTypes: [] })
-  const [antisepticSupport, setAntisepticSupport] = useState({ departments: [], products: [] })
-  const [bundleSupport, setBundleSupport] = useState({ departments: [], templates: [] })
-  const [bundleFollowUpItem, setBundleFollowUpItem] = useState(null)
+  const [handDepartments, setHandDepartments] = useState<PreventionDepartment[]>([])
+  const [wasteSupport, setWasteSupport] = useState<{ departments: PreventionDepartment[]; wasteTypes: AnyRecord[] }>({ departments: [], wasteTypes: [] })
+  const [antisepticSupport, setAntisepticSupport] = useState<{ departments: PreventionDepartment[]; products: AnyRecord[] }>({ departments: [], products: [] })
+  const [bundleSupport, setBundleSupport] = useState<{ departments: PreventionDepartment[]; templates: AnyRecord[] }>({ departments: [], templates: [] })
+  const [bundleFollowUpItem, setBundleFollowUpItem] = useState<AnyRecord | null>(null)
   const recordNavigation = useRecordSequenceNavigation({
     registry: `prevention-${recordType}`,
     currentId: recordId,
-    pathForId: id => `/prevention/${recordType}/${id}?fromTab=${recordType}`,
+    pathForId: (id: string) => `/prevention/${recordType}/${id}?fromTab=${recordType}`,
   })
   const addOns = membership?.capabilities ?? []
   const custom = membership?.customCapabilities ?? []
   const ownDepartment =
-    membership?.previewDepartment || membership?.departmentName || membership?.department || ''
-  const departmentScoped = [
+    membership?.previewDepartment || membership?.departmentName || (membership as AnyRecord | null)?.department || ''
+  const departmentScoped = ([
     ROLES.DEPARTMENT_MANAGER,
     ROLES.DEPARTMENT_USER,
     ROLES.LINK_NURSE,
-  ].includes(role)
+  ] as (string | null)[]).includes(role)
   const recordCapability = editCapabilities[recordType]
   const broadPreventionView = can(role, CAPABILITIES.VIEW_PREVENTION, [], custom)
   const recordTypeAccess =
@@ -149,11 +148,11 @@ export function PreventionRecordPage() {
     }
     let active = true
     setLoading(true)
-    loader(tenant.id)
+    loader(tenant?.id)
       .then(rows => {
         if (active) setRecord(rows.find(row => row.id === recordId) || null)
       })
-      .catch(error => {
+      .catch((error: unknown) => {
         if (active) {
           setRecord(null)
           notifyError(error, 'load', { operation: `${recordType}_record_load` })
@@ -171,25 +170,25 @@ export function PreventionRecordPage() {
     if (!tenant?.id || !recordTypeAccess) return
     let active = true
     if (recordType === 'handHygiene')
-      loadHandHygieneDepartments(tenant.id)
+      loadHandHygieneDepartments(tenant?.id)
         .then(rows => {
           if (active) setHandDepartments(rows)
         })
         .catch(error => notifyError(error, 'load', { operation: 'hand_hygiene_departments_load' }))
     if (recordType === 'waste')
-      loadWasteSupportData(tenant.id)
+      loadWasteSupportData(tenant?.id)
         .then(data => {
           if (active) setWasteSupport(data)
         })
         .catch(error => notifyError(error, 'load', { operation: 'waste_support_load' }))
     if (recordType === 'antiseptics')
-      loadAntisepticSupportData(tenant.id)
+      loadAntisepticSupportData(tenant?.id)
         .then(data => {
           if (active) setAntisepticSupport(data)
         })
         .catch(error => notifyError(error, 'load', { operation: 'antiseptic_support_load' }))
     if (recordType === 'bundles')
-      loadBundleSupportData(tenant.id)
+      loadBundleSupportData(tenant?.id)
         .then(data => {
           if (active) setBundleSupport(data)
         })
@@ -247,7 +246,7 @@ export function PreventionRecordPage() {
     )
 
   const Icon = icons[recordType] || ShieldCheck
-  const fmtDate = value => formatDay(value, language)
+  const fmtDate = (value: string) => formatDay(value, language)
   const wasteCategory = record?.wasteType || record?.type
   const recordTitle = creating
     ? recordType === 'waste'
@@ -328,11 +327,11 @@ export function PreventionRecordPage() {
     </StatusBadge>
   ) : null
 
-  async function saveHandHygiene(updated) {
+  async function saveHandHygiene(updated: AnyRecord) {
     if (!canEditRecord) return
     try {
-      const saved = await saveHandHygieneSession(tenant.id, updated, {
-        existingId: creating ? null : record.id,
+      const saved = await saveHandHygieneSession(tenant!.id, updated, {
+        existingId: creating ? null : record!.id,
       })
       if (saved) setRecord(saved)
       if (creating) signalDemoScenario('hand_hygiene')
@@ -359,11 +358,11 @@ export function PreventionRecordPage() {
       throw error
     }
   }
-  async function saveWaste(updated) {
+  async function saveWaste(updated: AnyRecord) {
     if (!canEditRecord) return
     try {
-      const saved = await saveWasteMeasurement(tenant.id, updated, {
-        existingId: creating ? null : record.id,
+      const saved = await saveWasteMeasurement(tenant!.id, updated, {
+        existingId: creating ? null : record!.id,
       })
       if (saved) setRecord(saved)
       notify(
@@ -385,11 +384,11 @@ export function PreventionRecordPage() {
       throw error
     }
   }
-  async function saveAntiseptic(updated) {
+  async function saveAntiseptic(updated: AnyRecord) {
     if (!canEditRecord) return
     try {
-      const saved = await saveAntisepticRecord(tenant.id, updated, {
-        existingId: creating ? null : record.id,
+      const saved = await saveAntisepticRecord(tenant!.id, updated, {
+        existingId: creating ? null : record!.id,
       })
       if (saved) setRecord(saved)
       notify(
@@ -415,11 +414,11 @@ export function PreventionRecordPage() {
       throw error
     }
   }
-  async function saveBundle(updated) {
+  async function saveBundle(updated: AnyRecord) {
     if (!canEditRecord) return
     try {
-      const saved = await saveBundleAssessment(tenant.id, updated, {
-        existingId: creating ? null : record.id,
+      const saved = await saveBundleAssessment(tenant!.id, updated, {
+        existingId: creating ? null : record!.id,
       })
       if (saved) setRecord(saved)
       notify(
@@ -445,10 +444,10 @@ export function PreventionRecordPage() {
       throw error
     }
   }
-  async function saveBundleFollowUpRecord(followUp) {
+  async function saveBundleFollowUpRecord(followUp: AnyRecord) {
     if (!canEditRecord || !bundleFollowUpItem) return
     try {
-      const saved = await saveBundleFollowUp(tenant.id, record.id, bundleFollowUpItem.id, followUp)
+      const saved = await saveBundleFollowUp(tenant!.id, record!.id, bundleFollowUpItem!.id, followUp)
       if (saved) setRecord(saved)
       setBundleFollowUpItem(null)
       notify(en ? 'Follow-up saved.' : 'Ο επανέλεγχος αποθηκεύτηκε.', 'success')
@@ -470,7 +469,7 @@ export function PreventionRecordPage() {
     })
     if (!ok) return
     try {
-      await deleters[recordType]?.(tenant.id, record.id)
+      await deleters[recordType]?.(tenant!.id, record!.id)
       notify(en ? 'Record deleted.' : 'Η εγγραφή διαγράφηκε.', 'success')
       navigate(`/prevention?tab=${recordType}`, { replace: true })
     } catch (error) {
@@ -486,7 +485,7 @@ export function PreventionRecordPage() {
               label={en ? 'Edit' : 'Επεξεργασία'}
               tone="edit"
               onClick={() =>
-                navigate(`/prevention/${recordType}/${record.id}?edit=1`, { replace: true })
+                navigate(`/prevention/${recordType}/${record!.id}?edit=1`, { replace: true })
               }
             >
               <Pencil size={16} />
@@ -509,7 +508,7 @@ export function PreventionRecordPage() {
   const backToList = () =>
     creating && episodeBundle?.returnTo ? backToEpisode() : navigate(`/prevention?tab=${recordType}`, { replace: true })
   const backToRecord = () =>
-    navigate(`/prevention/${recordType}/${record.id}?fromTab=${recordType}`, { replace: true })
+    navigate(`/prevention/${recordType}/${record!.id}?fromTab=${recordType}`, { replace: true })
   let editor = null
   if (recordType === 'handHygiene')
     editor = (
@@ -528,7 +527,7 @@ export function PreventionRecordPage() {
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
         findPatientDays={(departmentId, from, to) =>
-          findWastePatientDays(tenant.id, departmentId, from, to)
+          findWastePatientDays(tenant!.id, departmentId, from, to)
         }
         onSave={saveWaste}
       />
@@ -541,7 +540,7 @@ export function PreventionRecordPage() {
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
         findPatientDays={(departmentId, from, to) =>
-          findPatientDaysForPeriod(tenant.id, departmentId, from, to)
+          findPatientDaysForPeriod(tenant!.id, departmentId, from, to)
         }
         onSave={saveAntiseptic}
       />
@@ -566,8 +565,8 @@ export function PreventionRecordPage() {
   const recordHistory = [
     record?.createdAt && { at: record.createdAt, title: en ? 'Recorded' : 'Καταγραφή', detail: record.createdByName || record.responsible || record.observer || '' },
     record?.updatedAt && record.updatedAt !== record.createdAt && { at: record.updatedAt, title: en ? 'Last change' : 'Τελευταία αλλαγή', detail: record.updatedByName || '' },
-    ...Object.values(record?.followUps || {}).map(item => item?.at && { at: item.at, title: en ? 'Re-check recorded' : 'Καταγραφή επανελέγχου', detail: item.note || '' }),
-  ].filter(Boolean).sort((a, b) => new Date(b.at) - new Date(a.at))
+    ...Object.values((record?.followUps || {}) as Record<string, AnyRecord>).map((item: AnyRecord) => item?.at && { at: item.at, title: en ? 'Re-check recorded' : 'Καταγραφή επανελέγχου', detail: item.note || '' }),
+  ].filter(Boolean).sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 
   return (
     <Page fill>
@@ -577,7 +576,7 @@ export function PreventionRecordPage() {
         title={recordTitle}
         subtitle={subtitle}
         status={recordStatus}
-        recordNavigation={creating || editing ? null : recordNavigation}
+        recordNavigation={creating || editing ? null : recordNavigation as RecordNavigation}
         headerActions={recordActions}
         tabs={creating || editing ? [] : recordTabs}
         activeTab={recordTab}
@@ -608,7 +607,7 @@ export function PreventionRecordPage() {
         ) : (
           <div className="record-section prevention-record-card">
             {recordType === 'handHygiene' ? (
-              <HandHygieneDetails record={record} language={language} />
+              <HandHygieneDetails record={record!} language={language} />
             ) : recordType === 'waste' ? (
               <WasteEntryEditor
                 readOnly
@@ -617,10 +616,10 @@ export function PreventionRecordPage() {
                 initialRecord={record}
               />
             ) : recordType === 'antiseptics' ? (
-              <AntisepticDetails record={record} language={language} locale={locale} />
+              <AntisepticDetails record={record!} language={language} locale={locale} />
             ) : (
               <BundleDetails
-                record={record}
+                record={record!}
                 language={language}
                 canEdit={canEditRecord}
                 onFollowUp={setBundleFollowUpItem}
@@ -632,391 +631,11 @@ export function PreventionRecordPage() {
       {bundleFollowUpItem && (
         <BundleFollowUpDialog
           item={bundleFollowUpItem}
-          value={record?.followUps?.[bundleFollowUpItem.id]}
+          value={record?.followUps?.[bundleFollowUpItem!.id]}
           onClose={() => setBundleFollowUpItem(null)}
           onSave={saveBundleFollowUpRecord}
         />
       )}
     </Page>
-  )
-}
-
-const formatMonth = value => (value ? antisepticPeriodLabel(value) : '')
-
-// Prevention records share one layout: the context as a details sheet, the key
-// figures as a metric strip, then the record's own list under a section header.
-function HandHygieneDetails({ record, language }) {
-  const en = language === 'en'
-  const items = record.whoObservations || []
-  const stats = sessionHandHygieneStats(record)
-  const session = record.session || {}
-  const actionLabel = item =>
-    item.action === 'HR'
-      ? en
-        ? 'Alcohol-based hand rub'
-        : 'Αλκοολούχο αντισηπτικό'
-      : item.action === 'HW'
-        ? en
-          ? 'Hand wash with soap & water'
-          : 'Πλύσιμο με σαπούνι & νερό'
-        : en
-          ? 'Not performed'
-          : 'Δεν πραγματοποιήθηκε'
-  const profession = item => {
-    const p = WHO_PROFESSIONS.find(([el]) => el === item.professionalCategory)
-    return p ? (en ? p[1] : p[0]) : item.professionalCategory || '—'
-  }
-  return (
-    <div className="record-view-stack">
-      <section>
-        <SectionHeader title={en ? 'Observation session' : 'Στοιχεία παρατήρησης'} />
-        <DetailFields
-          fields={[
-            {
-              id: 'date',
-              label: en ? 'Date' : 'Ημερομηνία',
-              value: formatDay(record.date || session.date, language),
-            },
-            {
-              id: 'department',
-              label: en ? 'Department' : 'Τμήμα',
-              value: record.departmentEl || session.department,
-            },
-            {
-              id: 'observer',
-              label: en ? 'Observer' : 'Παρατηρητής',
-              value: record.observer || session.observer,
-            },
-            {
-              id: 'time',
-              label: en ? 'Time' : 'Ώρα',
-              value: `${session.startTime || '—'} – ${session.endTime || '—'}`,
-            },
-          ]}
-        />
-      </section>
-      {/* The figures of the observation in one line (owner, 8/11/2026: not six boxes). */}
-      <div className="who-record-totals"><RegistryTotals label={en ? 'Observation figures' : 'Αριθμοί παρατήρησης'} items={[
-        { key: 'compliance', always: true, value: 0, display: `${stats.compliance}%`, label: en ? 'WHO compliance' : 'συμμόρφωση WHO', tone: stats.opportunities ? (Number(stats.compliance) >= HAND_HYGIENE_TARGET ? 'good' : 'danger') : null, title: `${stats.compliant || 0} / ${stats.opportunities || 0} ${en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'} · ${en ? 'target' : 'στόχος'} ≥ ${HAND_HYGIENE_TARGET}%` },
-        { key: 'opportunities', always: true, value: stats.opportunities || 0, label: en ? 'opportunities' : 'ευκαιρίες' },
-        { key: 'professionals', always: true, value: stats.professionals || 0, label: en ? 'professionals' : 'επαγγελματίες' },
-        { key: 'hw', always: true, value: stats.handWash || 0, label: en ? 'hand wash' : 'πλύσιμο' },
-        { key: 'hr', always: true, value: stats.handRub || 0, label: en ? 'hand rub' : 'αντισηπτικό' },
-        { key: 'missed', always: true, value: stats.missed || 0, label: en ? 'not performed' : 'μη συμμορφούμενες', tone: stats.missed ? 'danger' : null },
-      ]} /></div>
-      <section>
-        <SectionHeader
-          title={en ? 'Recorded opportunities' : 'Καταγεγραμμένες ευκαιρίες'}
-          subtitle={en ? 'WHO 5 Moments' : '5 Στιγμές του ΠΟΥ'}
-          actions={<StatusBadge>{items.length}</StatusBadge>}
-        />
-        <RegistryTable
-          className="who-record-table"
-          columns={[
-            { key: 'index', label: '#' },
-            { key: 'professional', label: en ? 'Professional' : 'Επαγγελματίας' },
-            { key: 'moments', label: en ? 'WHO indication' : 'Ένδειξη WHO' },
-            { key: 'action', label: en ? 'Action' : 'Ενέργεια' },
-            { key: 'gloves', label: en ? 'Gloves' : 'Γάντια' },
-            { key: 'note', label: en ? 'Note' : 'Σημείωση' },
-          ]}
-          rows={items}
-          rowKey={(item, index) => item.id || index}
-          emptyTitle={en ? 'No opportunities recorded' : 'Δεν καταγράφηκαν ευκαιρίες'}
-          renderRow={(item, index) => (
-            <>
-              <td>{index + 1}</td>
-              <td>
-                <strong>
-                  {item.professionalsCount || 1} × {profession(item)}
-                </strong>
-              </td>
-              <td>
-                <div className="who-record-moments-cell">
-                  {normalizeWhoMoments(item).map(id => {
-                    const m = WHO_MOMENTS.find(x => x.id === id)
-                    return (
-                      <StatusBadge key={id}>
-                        {id.replace('moment', '')} ·{' '}
-                        {m
-                          ? en
-                            ? m.labelEn.replace(/^\d+\.\s*/, '')
-                            : m.label.replace(/^\d+\.\s*/, '')
-                          : id}
-                      </StatusBadge>
-                    )
-                  })}
-                </div>
-              </td>
-              <td>
-                <StatusBadge tone={item.action === 'MISSED' ? 'danger' : 'success'}>
-                  {actionLabel(item)}
-                </StatusBadge>
-              </td>
-              <td>{item.gloves ? (en ? 'Yes' : 'Ναι') : en ? 'No' : 'Όχι'}</td>
-              <td>{item.notes || '—'}</td>
-            </>
-          )}
-        />
-      </section>
-    </div>
-  )
-}
-
-function AntisepticDetails({ record, language, locale }) {
-  const en = language === 'en'
-  return (
-    <div className="record-view-stack">
-      <section>
-        <SectionHeader
-          title={en ? 'Consumption' : 'Κατανάλωση'}
-        />
-        <DetailFields
-          fields={[
-            { id: 'period', label: en ? 'Period' : 'Περίοδος', value: formatMonth(record.period) },
-            { id: 'department', label: en ? 'Department' : 'Τμήμα', value: record.departmentEl },
-            {
-              id: 'product',
-              label: en ? 'Product' : 'Προϊόν',
-              value: en ? record.productEn || record.product : record.product,
-            },
-            {
-              id: 'method',
-              label: en ? 'Source / method' : 'Πηγή / μέθοδος',
-              value: antisepticMethodLabel(record.method, language),
-            },
-            {
-              id: 'reference',
-              label: en ? 'Reference / document' : 'Αναφορά / παραστατικό',
-              value: record.referenceNumber,
-            },
-            {
-              id: 'responsible',
-              label: en ? 'Responsible' : 'Υπεύθυνος',
-              value: record.responsible,
-            },
-            {
-              id: 'notes',
-              className: 'is-wide',
-              label: en ? 'Notes' : 'Σημειώσεις',
-              value: record.notes,
-              hidden: !record.notes,
-            },
-          ]}
-        />
-      </section>
-      <RecordMetricStrip
-        items={[
-          {
-            id: 'litres',
-            label: en ? 'Consumption' : 'Κατανάλωση',
-            value: Number(record.litres).toLocaleString(locale),
-            unit: 'L',
-          },
-          {
-            id: 'days',
-            label: en ? 'Patient-days' : 'Νοσηλευτικές ημέρες',
-            value: record.patientDays || '—',
-          },
-          {
-            id: 'indicator',
-            primary: true,
-            label: en ? 'ABHR indicator' : 'Δείκτης ABHR',
-            value: record.indicator != null ? Number(record.indicator).toLocaleString(locale) : '—',
-            tone: record.indicator == null ? undefined : Number(record.indicator) >= ABHR_TARGET ? 'success' : 'danger',
-            note: `${en ? 'L / 1,000 patient-days' : 'L / 1.000 νοσηλευτικές ημέρες'} · ${en ? 'target' : 'στόχος'} ≥ ${ABHR_TARGET}`,
-          },
-        ]}
-      />
-    </div>
-  )
-}
-
-const SHIFT_LABELS = {
-  morning: ['Πρωινή', 'Morning'],
-  afternoon: ['Απογευματινή', 'Afternoon'],
-  evening: ['Απογευματινή', 'Evening'],
-  night: ['Νυχτερινή', 'Night'],
-}
-function shiftLabel(value, en) {
-  const pair = SHIFT_LABELS[value]
-  return pair ? (en ? pair[1] : pair[0]) : value || '—'
-}
-// Corrected, still open, no longer applicable, or not reviewed yet.
-const FOLLOW_UP_TONES = { resolved: 'success', open: 'danger', not_applicable: 'neutral' }
-export const bundleFollowUpTone = status => FOLLOW_UP_TONES[status] || 'warning'
-function BundleDetails({ record, language, canEdit, onFollowUp }) {
-  const en = language === 'en'
-  const template = record.templateSnapshot || {}
-  const elements = template.elements || []
-  const findings =
-    record.findings ||
-    elements
-      .filter(([id]) => record.answers?.[id] === 'no')
-      .map(([id, label]) => ({ id, label, note: record.answerNotes?.[id] || '' }))
-  const followUpLabel = status =>
-    status === 'resolved'
-      ? en
-        ? 'Corrected'
-        : 'Διορθώθηκε'
-      : status === 'open'
-        ? en
-          ? 'Still pending'
-          : 'Παραμένει'
-        : status === 'not_applicable'
-          ? en
-            ? 'No longer applicable'
-            : 'Δεν εφαρμόζεται πλέον'
-          : en
-            ? 'Pending review'
-            : 'Προς επανέλεγχο'
-  return (
-    <div className="record-view-stack bundle-record-view">
-      <section>
-        <SectionHeader
-          title={en ? record.templateName || template.name || record.bundle : record.templateTitle || template.title || record.templateName || template.name || record.bundle}
-          subtitle={`${record.templateSource || template.source || ''} · v${record.templateVersion || template.version || '1.0'}`}
-        />
-        <DetailFields
-          className="record-details-cols-6"
-          fields={[
-            {
-              id: 'date',
-              label: en ? 'Date' : 'Ημερομηνία',
-              value: formatDay(record.date || record.period, language),
-            },
-            { id: 'department', label: en ? 'Department' : 'Τμήμα', value: record.departmentEl },
-            { id: 'shift', label: en ? 'Shift' : 'Βάρδια', value: shiftLabel(record.shift, en) },
-            { id: 'owner', label: en ? 'Responsible' : 'Υπεύθυνος', value: record.owner },
-            { id: 'patient', label: en ? 'Patient' : 'Ασθενής', value: record.patientRef },
-            { id: 'device', label: en ? 'Device' : 'Συσκευή', value: record.deviceRef },
-            {
-              id: 'notes',
-              className: 'is-wide',
-              label: en ? 'Notes' : 'Σημειώσεις',
-              value: record.generalNotes,
-              hidden: !record.generalNotes,
-            },
-          ]}
-        />
-      </section>
-      <RecordMetricStrip
-        items={[
-          {
-            id: 'score',
-            primary: true,
-            label: en ? 'Score' : 'Βαθμολογία',
-            value: record.score == null ? '—' : `${record.score}%`,
-            // All or none: anything short of every applicable element is not compliant.
-            tone: record.score == null ? undefined : record.allOrNone ? 'success' : 'danger',
-            note: en ? 'all or none' : 'όλα ή τίποτα',
-          },
-          {
-            id: 'applicable',
-            label: en ? 'Applicable' : 'Εφαρμόσιμα',
-            value: record.applicableCount ?? '—',
-          },
-          {
-            id: 'deviations',
-            tone: (record.failedCount ?? findings.length) ? 'danger' : undefined,
-            label: en ? 'Deviations' : 'Αποκλίσεις',
-            value: record.failedCount ?? findings.length,
-          },
-        ]}
-      />
-      <section className="bundle-record-elements">
-        <SectionHeader title={en ? 'Bundle results' : 'Αποτελέσματα δέσμης μέτρων'} />
-        <div className="bundle-detail-list">
-          {elements.map(([id, label], index) => {
-            const value = record.answers?.[id]
-            return (
-              <div
-                className={`bundle-detail-row ${value === 'no' ? 'failed' : value === 'yes' ? 'passed' : 'na'}`}
-                key={id}
-              >
-                <span className="bundle-detail-index">{index + 1}</span>
-                <strong>{label}</strong>
-                <span className="bundle-detail-answer">
-                  {value === 'yes'
-                    ? en
-                      ? 'Yes'
-                      : 'Ναι'
-                    : value === 'no'
-                      ? en
-                        ? 'No'
-                        : 'Όχι'
-                      : value === 'na'
-                        ? en
-                          ? 'N/A'
-                          : 'Μ/Ε'
-                        : '—'}
-                </span>
-                {value === 'no' && record.answerNotes?.[id] && (
-                  <small>{record.answerNotes[id]}</small>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </section>
-      {findings.length > 0 && (
-        <section className="bundle-record-findings">
-          <SectionHeader
-            title={en ? 'Items for follow-up' : 'Σημεία για επανέλεγχο'}
-            subtitle={
-              en
-                ? 'Review each deviation and record whether it was corrected, remains open or no longer applies.'
-                : 'Επανελέγξτε κάθε απόκλιση και καταγράψτε αν διορθώθηκε, παραμένει ή δεν εφαρμόζεται πλέον.'
-            }
-          />
-          {findings.map(item => {
-            const followUp = record.followUps?.[item.id]
-            return (
-              <div
-                className={`bundle-record-finding bundle-followup-${followUp?.status || 'pending'}`}
-                key={item.id}
-              >
-                <div className="bundle-followup-copy">
-                  <strong>{item.label}</strong>
-                  <span>
-                    {item.note ||
-                      (en
-                        ? 'Investigation / corrective action required.'
-                        : 'Απαιτείται διερεύνηση / διορθωτική ενέργεια.')}
-                  </span>
-                  {followUp?.comment && <small>{followUp.comment}</small>}
-                </div>
-                <div className="bundle-followup-meta">
-                  <StatusBadge tone={bundleFollowUpTone(followUp?.status)}>
-                    {followUpLabel(followUp?.status)}
-                  </StatusBadge>
-                  {followUp?.date && (
-                    <small>
-                      {en ? 'Review date' : 'Ημ. επανελέγχου'}: {formatDay(followUp.date, language)}
-                    </small>
-                  )}
-                  {followUp?.reviewedBy && (
-                    <small>
-                      {en ? 'Reviewed by' : 'Επανέλεγχος από'}: {followUp.reviewedBy}
-                    </small>
-                  )}
-                  {canEdit && (
-                    <Button variant="secondary" onClick={() => onFollowUp?.(item)}>
-                      {followUp
-                        ? en
-                          ? 'Edit follow-up'
-                          : 'Επεξεργασία επανελέγχου'
-                        : en
-                          ? 'Follow-up'
-                          : 'Επανέλεγχος'}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </section>
-      )}
-    </div>
   )
 }

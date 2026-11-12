@@ -11,12 +11,14 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ANTISEPTIC_METHODS, antisepticPeriodBounds, antisepticPeriodKind, antisepticPeriodLabel, isAbhrProduct } from './antisepticMethods'
 import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment } from './preventionCloud'
 
 export const HOSPITAL_SCOPE = '__hospital__'
 
 // A whole year is kept as «YYYY-01 – YYYY-12»; a month as «YYYY-MM».
-const yearPeriod = year => `${year}-01 – ${year}-12`
-const yearOf = period => String(period || '').slice(0, 4)
+const yearPeriod = (year: string) => `${year}-01 – ${year}-12`
+const yearOf = (period: unknown) => String(period || '').slice(0, 4)
 
 export function AntisepticEntryEditor({
   onSave,
@@ -25,7 +27,7 @@ export function AntisepticEntryEditor({
   departments = [],
   products: loadedProducts = [],
   findPatientDays,
-}) {
+}: { onSave: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[]; products?: AnyRecord[]; findPatientDays?: (departmentId: string | null, from: string, to: string) => Promise<number | null> }) {
   // Products from the central antiseptics library (the screen's list until it loads).
   const products = usePreventionLibrary('antiseptics', loadedProducts)
   const { profile, user } = useAuth()
@@ -39,7 +41,7 @@ export function AntisepticEntryEditor({
       ? HOSPITAL_SCOPE
       : initialRecord?.departmentEl || fixedDepartment || ''
   const initialProduct = initialRecord?.product || products[0]?.el || ''
-  const [draft, setDraft] = useState(() =>
+  const [draft, setDraft] = useState<AnyRecord>(() =>
     initialRecord
       ? JSON.parse(
           JSON.stringify({
@@ -64,9 +66,9 @@ export function AntisepticEntryEditor({
           status: 'completed',
         },
   )
-  const [suggestedPatientDays, setSuggestedPatientDays] = useState('')
+  const [suggestedPatientDays, setSuggestedPatientDays] = useState<number | string>('')
   const [saving, setSaving] = useState(false)
-  const set = (key, value) => setDraft(state => ({ ...state, [key]: value }))
+  const set = (key: string, value: unknown) => setDraft(state => ({ ...state, [key]: value }))
   const hospitalScope = draft.departmentEl === HOSPITAL_SCOPE
   const departmentRows = usePreventionDepartments(departments)
   const departmentInfo = hospitalScope
@@ -101,7 +103,7 @@ export function AntisepticEntryEditor({
       }
       try {
         const value = await findPatientDays(
-          hospitalScope ? null : departmentInfo.id,
+          hospitalScope ? null : (departmentInfo?.id as string),
           range.from,
           range.to,
         )
@@ -139,7 +141,7 @@ export function AntisepticEntryEditor({
   const yearOptions = Array.from({ length: 8 }, (_, index) => String(thisYear - index))
   const startYear = yearOf(draft.period)
   if (startYear && !yearOptions.includes(startYear)) yearOptions.push(startYear)
-  function changePeriodKind(kind) {
+  function changePeriodKind(kind: string) {
     setDraft(state => {
       const year = yearOf(state.period) || String(thisYear)
       return {
@@ -151,7 +153,7 @@ export function AntisepticEntryEditor({
       }
     })
   }
-  function changeProduct(value) {
+  function changeProduct(value: string) {
     const selected = products.find(item => item.id === value)
     if (!selected) return
     setDraft(state => ({
@@ -338,7 +340,7 @@ export function AntisepticEntryEditor({
               <label className="field entry-span-2">
                 <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
                 <textarea
-                  rows="2"
+                  rows={2}
                   value={draft.notes || ''}
                   onChange={event => set('notes', event.target.value)}
                   placeholder={
