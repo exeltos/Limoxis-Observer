@@ -7,12 +7,14 @@ import { SaveButton } from '../../design-system/SaveButton'
 import { IconButton } from '../../design-system/IconButton'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const emptyManual={name:'',department:'',email:''}
 const makeManualId=()=>`MAN-${Date.now()}-${Math.random().toString(36).slice(2,7)}`
 
-export function TrainingParticipantsDialog({employees=[],alreadyAssignedIds=[],departments=[],onClose,onSave,busy=false,en=false}){
- const [mode,setMode]=useState(employees.length?'registry':'manual'),[ids,setIds]=useState([]),[query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[manualDraft,setManualDraft]=useState(emptyManual),[manualEntries,setManualEntries]=useState([])
+interface TrainingParticipantsDialogProps { employees?: AnyRecord[], alreadyAssignedIds?: unknown[], departments?: AnyRecord[], onClose: ()=>void, onSave: (selection: {selected: AnyRecord[], manualEntries: AnyRecord[]})=>unknown, busy?: boolean, en?: boolean }
+export function TrainingParticipantsDialog({employees=[],alreadyAssignedIds=[],departments=[],onClose,onSave,busy=false,en=false}: TrainingParticipantsDialogProps){
+ const [mode,setMode]=useState(employees.length?'registry':'manual'),[ids,setIds]=useState<unknown[]>([]),[query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[manualDraft,setManualDraft]=useState(emptyManual),[manualEntries,setManualEntries]=useState<AnyRecord[]>([])
  const assignedSet=useMemo(()=>new Set((alreadyAssignedIds||[]).map(String)),[alreadyAssignedIds])
  const departmentNames=useMemo(()=>[...new Set(employees.map(x=>x.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el')),[employees])
  const visible=useMemo(()=>employees.filter(x=>(department==='all'||x.department===department)&&`${x.firstName||''} ${x.lastName||''} ${x.id||''} ${x.employeeCode||''} ${x.email||''} ${x.department||''}`.toLowerCase().includes(query.toLowerCase())),[employees,department,query])

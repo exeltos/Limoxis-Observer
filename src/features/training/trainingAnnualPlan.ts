@@ -5,28 +5,29 @@
 // "not scheduled", so the plan says what still has to be organised.
 import { competenceMatrix } from './trainingCompetence'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
-export const MONTHS={
+export const MONTHS: Record<'el'|'en', string[]>={
  el:['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'],
  en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
 }
 
-const day=value=>String(value||'').slice(0,10)
-const monthOf=value=>Number(day(value).slice(5,7))-1
+const day=(value: unknown)=>String(value||'').slice(0,10)
+const monthOf=(value: unknown)=>Number(day(value).slice(5,7))-1
 
 // Months (0-11) of `year` a programme runs in: start month to due month.
-export function programMonths(program,year){
+export function programMonths(program: AnyRecord,year: number|string){
  const end=day(program.dueDate)
  const start=day(program.startDate)||end
  if(!end)return []
  const from=start.slice(0,4)<String(year)?0:start.slice(0,4)>String(year)?12:monthOf(start)
  const to=end.slice(0,4)>String(year)?11:end.slice(0,4)<String(year)?-1:monthOf(end)
- const months=[]
+ const months: number[]=[]
  for(let m=from;m<=to;m+=1)months.push(m)
  return months
 }
 
-function programPlanState(program,openCount,today){
+function programPlanState(program: AnyRecord,openCount: number,today: string){
  if(program.status==='cancelled')return 'cancelled'
  if(program.status==='completed'||(!openCount&&program.status!=='planned'&&day(program.dueDate)<today))return 'done'
  if(day(program.dueDate)<today)return 'overdue'
@@ -34,7 +35,7 @@ function programPlanState(program,openCount,today){
  return 'running'
 }
 
-export function annualTrainingPlan({programs=[],assignments=[],certificates=[],requirements=[],employees=[],year,today=hospitalToday()}={}){
+export function annualTrainingPlan({programs=[],assignments=[],certificates=[],requirements=[],employees=[],year,today=hospitalToday()}: { programs?: AnyRecord[], assignments?: AnyRecord[], certificates?: AnyRecord[], requirements?: AnyRecord[], employees?: AnyRecord[], year?: number|string, today?: string }={}){
  const y=Number(year)
  const rows=programs
   .filter(p=>p.status!=='cancelled')
@@ -52,7 +53,7 @@ export function annualTrainingPlan({programs=[],assignments=[],certificates=[],r
  const matrix=competenceMatrix({requirements,employees,assignments,certificates,today})
  const currentMonth=today.slice(0,4)===String(y)?monthOf(today):today.slice(0,4)<String(y)?0:null
  const needs=matrix.requirements.map((requirement,index)=>{
-  const months=Array(12).fill(0)
+  const months: number[]=Array(12).fill(0)
   for(const row of matrix.rows){
    const cell=row.cells[index]
    if(!cell||cell.state==='valid'&&!cell.validUntil)continue
@@ -72,7 +73,7 @@ export function annualTrainingPlan({programs=[],assignments=[],certificates=[],r
  }
 }
 
-export function annualPlanExport(plan,{en,stateLabel=value=>value}={}){
+export function annualPlanExport(plan: ReturnType<typeof annualTrainingPlan>,{en,stateLabel=value=>value}: { en?: boolean, stateLabel?: (value: string) => string }={}){
  const months=MONTHS[en?'en':'el']
  return {
   name:`${en?'annual-training-plan':'etisio-plano-ekpaideusis'}-${plan.year}`,
