@@ -626,7 +626,6 @@ declare
   v_month date;
   v_vag integer;
   v_cs integer;
-  v_scale integer;
   i integer := 0;
   r double precision[];
 begin
@@ -642,7 +641,6 @@ begin
     select coalesce(sum((e.value ->> 'v')::integer), 0), coalesce(sum((e.value ->> 'c')::integer), 0) into v_vag, v_cs
     from jsonb_each(v_counts) e where e.key::date >= v_month and e.key::date < (v_month + interval '1 month')::date;
     if v_vag + v_cs = 0 then v_vag := 16 + floor(r[9] * 8)::integer; v_cs := 20 + floor(r[10] * 8)::integer; end if;
-    v_scale := 30;
     v_rows := v_rows || jsonb_build_object('period_start', v_month, 'status', 'complete',
       'vaginal__count', v_vag, 'cs__count', v_cs,
       'vbac__count', least(v_vag, floor(r[1] * 3)::integer), 'multiple_vaginal__count', floor(r[2] * 1.5)::integer,
