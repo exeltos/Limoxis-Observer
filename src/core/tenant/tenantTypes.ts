@@ -31,6 +31,10 @@ export interface Membership {
   departmentName?: string
   // Το τμήμα (όνομα) της προεπισκόπησης στο νοσοκομείο-δείγμα.
   previewDepartment?: string | null
+  // Διευθυντής Διεύθυνσης: η Διεύθυνση (hr_divisions) και, στο δείγμα, τα τμήματά της με το όνομά τους.
+  divisionId?: string | null
+  divisionName?: string
+  previewDepartments?: string[] | null
   // Πρόσθετα (organization_member_capabilities) και δικαιώματα προσαρμοσμένου ρόλου.
   capabilities: string[]
   customCapabilities: string[]
@@ -44,6 +48,10 @@ export interface RolePreview {
   role: string
   department: string
   departmentName?: string
+  // Διευθυντής Διεύθυνσης: η Διεύθυνση και τα τμήματα που καλύπτει.
+  division?: string
+  divisionName?: string
+  departmentIds?: string[]
 }
 
 // Η τιμή του TenantContext (TenantProvider).
@@ -69,6 +77,10 @@ export interface TenantContextValue {
   isRolePreview: boolean
   startRolePreview: (role: string, department?: string, departmentName?: string) => boolean
   updateRolePreviewDepartment: (department?: string, departmentName?: string) => void
+  updateRolePreviewDivision: (division?: string, divisionName?: string, departmentIds?: string[]) => void
+  // Η Διεύθυνση που βλέπει ο Διευθυντής Διεύθυνσης (στην προεπισκόπηση, αυτή της προεπισκόπησης).
+  divisionId: string | null
+  selectDivision: (divisionId: string | null) => void
   stopRolePreview: () => void
   uxPolicy: RoleUxPolicy
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- εγγραφή οποιασδήποτε ενότητας

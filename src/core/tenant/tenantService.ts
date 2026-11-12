@@ -1,11 +1,17 @@
 import { supabase, invokeAuthenticatedFunction } from '../supabase/client'
+import type { Database } from '../supabase/database.types'
+import type { Membership, Tenant } from './tenantTypes'
+
+type Tables = Database['public']['Tables']
+type OrganizationType = Database['public']['Enums']['organization_type']
+type OrganizationStatus = Database['public']['Enums']['organization_status']
 
 // organizations.country is required by the database; an empty field means Greece.
 export const DEFAULT_COUNTRY = 'Ελλάδα'
-export const countryOrDefault = (value) => String(value || '').trim() || DEFAULT_COUNTRY
+export const countryOrDefault = (value: unknown): string => String(value || '').trim() || DEFAULT_COUNTRY
 import { isOwnerPreview,previewDeletionImpact,previewDemoSeedResult,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers,previewPlatformUsers } from '../preview/ownerPreview'
 
-export async function listMemberships(userId) {
+export async function listMemberships(userId: string | null | undefined): Promise<Membership[]> {
   if (!supabase || !userId) return []
   const { data, error } = await supabase
     .from('organization_members')
@@ -33,7 +39,7 @@ export async function listMemberships(userId) {
 }
 
 const OWNER_ORGANIZATION_COLUMNS = 'id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding, screen_guides_enabled, lira_launcher_enabled, deletion_scheduled_at'
-const platformOwnerMembership = (organization) => ({
+const platformOwnerMembership = (organization: Tenant): Membership => ({
   id: `platform-owner:${organization.id}`,
   role: 'platform_owner',
   status: 'active',
@@ -45,8 +51,8 @@ const platformOwnerMembership = (organization) => ({
   platformSynthetic: true,
 })
 
-export async function listPlatformOwnerOrganizations() {
-  if (isOwnerPreview()) return previewMemberships()
+export async function listPlatformOwnerOrganizations(): Promise<Membership[]> {
+  if (isOwnerPreview()) return previewMemberships() as Membership[]
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organizations')
@@ -60,7 +66,7 @@ export async function listPlatformOwnerOrganizations() {
 // The Platform Owner enters a Demo organization (theirs or an evaluator's) the
 // same way as a hospital: a synthetic membership. Demos stay out of the
 // organization list above.
-export async function getPlatformOwnerDemoMembership(organizationId) {
+export async function getPlatformOwnerDemoMembership(organizationId: string | null | undefined): Promise<Membership | null> {
   if (!supabase || !organizationId) return null
   const { data, error } = await supabase
     .from('organizations')
@@ -74,7 +80,7 @@ export async function getPlatformOwnerDemoMembership(organizationId) {
 
 // The Platform Owner's own Demo: a real Demo organization with the same data
 // pack as the evaluators' Demos (created and filled the first time).
-export async function openPlatformOwnerDemo() {
+export async function openPlatformOwnerDemo(): Promise<string | null> {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase.rpc('platform_open_owner_demo')
   if (error) throw error
@@ -83,16 +89,16 @@ export async function openPlatformOwnerDemo() {
 
 // Inside a Demo organization a member switches their own role for real, so the
 // database returns exactly what that role sees (department roles get one department).
-export async function switchDemoRole(organizationId, role, departmentId = null) {
+export async function switchDemoRole(organizationId: string, role: string, departmentId: string | null = null) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
-  const { data, error } = await supabase.rpc('demo_switch_my_role', { p_organization_id: organizationId, p_role: role, p_department_id: departmentId || null })
+  const { data, error } = await supabase.rpc('demo_switch_my_role', { p_organization_id: organizationId, p_role: role, p_department_id: (departmentId || null) as string | undefined })
   if (error) throw error
   return data
 }
 
 // The evaluator brings their own Demo back to the starting data (the database
 // refuses any organization that is not a Demo or that the caller is not in).
-export async function resetMyDemoData(organizationId) {
+export async function resetMyDemoData(organizationId: string | null | undefined) {
   if (!organizationId) throw new Error('DEMO_ORGANIZATION_REQUIRED')
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase.rpc('demo_reset_my_organization', { p_organization_id: organizationId })
@@ -108,7 +114,21 @@ export async function loadCurrentDemoAccess() {
   return Array.isArray(data) ? data : []
 }
 
-export async function createPlatformOrganization({ name, code, type = 'hospital', status = 'active', region = null, healthRegion = null, city = null, country = '', contactEmail = null, contactPhone = null, bedCapacity = null }) {
+export interface NewOrganization {
+  name: string
+  code: string
+  type?: OrganizationType
+  status?: OrganizationStatus
+  region?: string | null
+  healthRegion?: string | null
+  city?: string | null
+  country?: string
+  contactEmail?: string | null
+  contactPhone?: string | null
+  bedCapacity?: string | number | null
+}
+
+export async function createPlatformOrganization({ name, code, type = 'hospital', status = 'active', region = null, healthRegion = null, city = null, country = '', contactEmail = null, contactPhone = null, bedCapacity = null }: NewOrganization) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase
     .from('organizations')
@@ -119,7 +139,7 @@ export async function createPlatformOrganization({ name, code, type = 'hospital'
   return data
 }
 
-export async function createOrganizationUser({ organizationId, fullName, role, email = null }) {
+export async function createOrganizationUser({ organizationId, fullName, role, email = null }: { organizationId: string; fullName: string; role: string; email?: string | null }) {
   return invokeAuthenticatedFunction('create-organization-user', { organizationId, fullName: fullName.trim(), role, email })
 }
 
@@ -135,13 +155,32 @@ export async function listPlatformOrganizationMembers() {
 
 // The latest invitation of each user, per organization: accepted, pending,
 // expired or revoked (null when there was none).
-export const invitationState = invite => !invite ? null : invite.accepted_at ? 'accepted' : invite.revoked_at ? 'revoked' : new Date(invite.expires_at) < new Date() ? 'expired' : 'pending'
+type InvitationRow = Pick<Tables['account_invitations']['Row'], 'expires_at' | 'accepted_at' | 'revoked_at'>
+export type InvitationState = 'accepted' | 'revoked' | 'expired' | 'pending' | null
+
+export const invitationState = (invite: InvitationRow | null | undefined): InvitationState => !invite ? null : invite.accepted_at ? 'accepted' : invite.revoked_at ? 'revoked' : new Date(invite.expires_at) < new Date() ? 'expired' : 'pending'
 
 // Everyone on the platform, for the Platform Owner's "Users": one row per
 // membership (hospital or Demo) with the person, the role, the organization,
 // the membership status and the latest invitation; people with no
 // organization (the Platform Owner, an account left without one) on their own.
-export async function listPlatformUsers() {
+// Μια γραμμή της λίστας «Χρήστες» του Ιδιοκτήτη πλατφόρμας.
+export interface PlatformUser {
+  id: string
+  userId: string
+  name: string
+  email: string
+  username: string
+  role: string | null
+  status: string
+  invitation: InvitationState
+  organization: { id: string; name: string; code: string; is_demo: boolean } | null
+  demoId: string | null
+  kind: 'demo' | 'hospital' | 'platform' | 'none'
+  createdAt: string
+}
+
+export async function listPlatformUsers(): Promise<PlatformUser[]> {
   if (isOwnerPreview()) return previewPlatformUsers()
   if (!supabase) return []
   const [members, profiles, invitations, demos] = await Promise.all([
@@ -152,13 +191,13 @@ export async function listPlatformUsers() {
   ])
   for (const result of [members, profiles]) if (result.error) throw result.error
   const profileById = new Map((profiles.data || []).map(row => [row.id, row]))
-  const latestInvite = new Map()
+  const latestInvite = new Map<string, NonNullable<typeof invitations.data>[number]>()
   for (const invite of invitations.data || []) { const key = `${invite.organization_id}:${invite.user_id}`; if (!latestInvite.has(key)) latestInvite.set(key, invite) }
   const demoByOrg = new Map((demos.data || []).map(row => [row.organization_id, row.id]))
-  const withOrganization = new Set()
-  const rows = (members.data || []).map(row => {
+  const withOrganization = new Set<string>()
+  const rows: PlatformUser[] = (members.data || []).map(row => {
     withOrganization.add(row.user_id)
-    const profile = profileById.get(row.user_id) || {}
+    const profile: Partial<NonNullable<typeof profiles.data>[number]> = profileById.get(row.user_id) || {}
     const invite = latestInvite.get(`${row.organization_id}:${row.user_id}`)
     return {
       id: row.id, userId: row.user_id, name: profile.full_name || '—', email: profile.contact_email || invite?.delivery_email || '', username: profile.username || '',
@@ -187,9 +226,23 @@ export async function listPlatformDemos() {
   return data ?? []
 }
 
-async function updatePlatformDemoEntitlement(demoId, patch) {
+// Οι αλλαγές ενός Demo, με τα ονόματα της φόρμας ή της βάσης.
+export interface DemoEntitlementPatch {
+  label?: string | null
+  contactName?: string | null
+  contact_name?: string | null
+  contactEmail?: string | null
+  contact_email?: string | null
+  validFrom?: string
+  valid_from?: string
+  validUntil?: string
+  valid_until?: string
+  status?: string
+}
+
+async function updatePlatformDemoEntitlement(demoId: string | null | undefined, patch: DemoEntitlementPatch) {
   if (!supabase || !demoId) throw new Error('SUPABASE_NOT_CONFIGURED')
-  const payload = {}
+  const payload: Tables['platform_demo_entitlements']['Update'] = {}
   if (patch.label !== undefined) payload.label = String(patch.label || '').trim()
   if (patch.contactName !== undefined || patch.contact_name !== undefined) payload.contact_name = patch.contactName ?? patch.contact_name ?? null
   if (patch.contactEmail !== undefined || patch.contact_email !== undefined) payload.contact_email = String(patch.contactEmail ?? patch.contact_email ?? '').trim().toLowerCase() || null
@@ -202,17 +255,17 @@ async function updatePlatformDemoEntitlement(demoId, patch) {
   return data
 }
 
-export async function setPlatformDemoStatus(demoId, status) {
+export async function setPlatformDemoStatus(demoId: string | null | undefined, status: string) {
   if (!['active', 'paused', 'expired', 'revoked'].includes(status)) throw new Error('INVALID_DEMO_STATUS')
   return updatePlatformDemoEntitlement(demoId, { status })
 }
 
-export async function resetPlatformDemoPassword(demo) {
+export async function resetPlatformDemoPassword(demo: { organization_id?: string | null; demo_user_id?: string | null } | null | undefined) {
   if (!demo?.organization_id || !demo?.demo_user_id) throw new Error('DEMO_ACCOUNT_NOT_LINKED')
   return manageOrganizationUser({ organizationId: demo.organization_id, userId: demo.demo_user_id, action: 'reset_password' })
 }
 
-export async function setPlatformOrganizationStatus(organizationId, status) {
+export async function setPlatformOrganizationStatus(organizationId: string | null | undefined, status: OrganizationStatus) {
   if (!supabase || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')
   const patch = { status, paused_at: status === 'suspended' ? new Date().toISOString() : null }
   const { data, error } = await supabase.from('organizations').update(patch).eq('id', organizationId).select().single()
@@ -220,9 +273,31 @@ export async function setPlatformOrganizationStatus(organizationId, status) {
   return data
 }
 
-export async function updatePlatformOrganization(organizationId, patch) {
+// Τα στοιχεία ενός οργανισμού από τη φόρμα του Ιδιοκτήτη (ονόματα της φόρμας ή της βάσης).
+export interface OrganizationPatch {
+  name?: string
+  code?: string
+  type?: OrganizationType
+  status?: OrganizationStatus
+  region?: string | null
+  healthRegion?: string | null
+  health_region?: string | null
+  city?: string | null
+  country?: string | null
+  contactEmail?: string | null
+  contact_email?: string | null
+  contactPhone?: string | null
+  contact_phone?: string | null
+  bedCapacity?: string | number | null
+  bed_capacity?: string | number | null
+  operatingProfile?: string
+  enabledAddons?: string[]
+  enabledModules?: string[] | null
+}
+
+export async function updatePlatformOrganization(organizationId: string | null | undefined, patch: OrganizationPatch) {
   if (!supabase || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')
-  const payload = {
+  const payload: Tables['organizations']['Update'] = {
     name: patch.name?.trim(), code: patch.code?.trim().toUpperCase(), type: patch.type, status: patch.status,
     region: patch.region || null, health_region: patch.healthRegion || patch.health_region || null, city: patch.city || null,
     country: countryOrDefault(patch.country), contact_email: patch.contactEmail ?? patch.contact_email ?? null,
@@ -237,7 +312,7 @@ export async function updatePlatformOrganization(organizationId, patch) {
   return data
 }
 
-export async function listOrganizationMembersDetailed(organizationId) {
+export async function listOrganizationMembersDetailed(organizationId: string | null | undefined) {
   if (isOwnerPreview()) return previewOrganizationMembers(organizationId)
   if (!supabase || !organizationId) return []
   const { data: memberRows, error: memberError } = await supabase.from('organization_members')
@@ -245,8 +320,8 @@ export async function listOrganizationMembersDetailed(organizationId) {
     .eq('organization_id', organizationId).order('created_at', { ascending: true })
   if (memberError) throw memberError
   const userIds = [...new Set((memberRows || []).map(row => row.user_id).filter(Boolean))]
-  let profiles = []
-  let invitations = []
+  let profiles: Array<Pick<Tables['profiles']['Row'], 'id' | 'full_name' | 'username' | 'contact_email' | 'phone' | 'job_title'>> = []
+  let invitations: Array<Pick<Tables['account_invitations']['Row'], 'id' | 'user_id' | 'expires_at' | 'accepted_at' | 'revoked_at' | 'created_at' | 'delivery_email'>> = []
   if (userIds.length) {
     const [{ data: profileRows, error: profileError }, { data: inviteRows, error: inviteError }] = await Promise.all([
       supabase.from('profiles').select('id,full_name,username,contact_email,phone,job_title').in('id', userIds),
@@ -257,24 +332,24 @@ export async function listOrganizationMembersDetailed(organizationId) {
     if (!inviteError) invitations = inviteRows || []
   }
   const profileById = new Map(profiles.map(row => [row.id, row]))
-  const latestInviteByUser = new Map()
+  const latestInviteByUser = new Map<string, (typeof invitations)[number]>()
   for (const invite of invitations) if (!latestInviteByUser.has(invite.user_id)) latestInviteByUser.set(invite.user_id, invite)
   return (memberRows || []).map(row => {
-    const profile = profileById.get(row.user_id) || {}
+    const profile: Partial<(typeof profiles)[number]> = profileById.get(row.user_id) || {}
     const invite = latestInviteByUser.get(row.user_id)
     const invitationStatus = invitationState(invite)
     return { id: row.id, userId: row.user_id, role: row.role, status: row.status, username: profile.username || '—', name: profile.full_name || '—', email: profile.contact_email || invite?.delivery_email || '', phone: profile.phone || '', jobTitle: profile.job_title || '', invitationStatus, invitationCreatedAt: invite?.created_at || null, invitationExpiresAt: invite?.expires_at || null, createdAt: row.created_at || null }
   })
 }
 
-export async function manageOrganizationUser(payload) {
+export async function manageOrganizationUser(payload: Record<string, unknown>) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   return invokeAuthenticatedFunction('manage-organization-user', payload)
 }
 
 // What deleting these organizations would remove (rows, files, accounts) and
 // what blocks it (a real organization that is not suspended, child organizations).
-export async function getOrganizationDeletionImpact(organizationIds) {
+export async function getOrganizationDeletionImpact(organizationIds: ReadonlyArray<string | null | undefined> | null | undefined) {
   const ids = [...new Set((organizationIds || []).filter(Boolean))]
   if (!ids.length) return []
   if (isOwnerPreview()) return previewDeletionImpact(ids)
@@ -286,7 +361,7 @@ export async function getOrganizationDeletionImpact(organizationIds) {
 
 // Clears a Demo organization's data and writes the Demo data pack again
 // (Platform Owner; the database refuses any organization that is not a Demo).
-export async function resetPlatformDemoData(organizationId) {
+export async function resetPlatformDemoData(organizationId: string | null | undefined) {
   if (!organizationId) throw new Error('DEMO_ORGANIZATION_REQUIRED')
   if (isOwnerPreview()) return previewDemoSeedResult()
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
@@ -297,7 +372,7 @@ export async function resetPlatformDemoData(organizationId) {
 
 // The only delete path: the Edge Function re-checks the owner's password and
 // removes data, files and accounts. Several organizations = Demo only.
-export async function deletePlatformOrganizations({ organizationIds, password, confirmation }) {
+export async function deletePlatformOrganizations({ organizationIds, password, confirmation }: { organizationIds: string[]; password: string; confirmation: string }) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   return invokeAuthenticatedFunction('platform-delete-organizations', { organizationIds, password, confirmation })
 }
@@ -305,14 +380,14 @@ export async function deletePlatformOrganizations({ organizationIds, password, c
 // New Demo from the wizard: organization, data scenario and evaluators in
 // one call. Returns the entitlement, the organization, the seed counts and
 // each evaluator (username, and a temporary password shown only once).
-export async function createPlatformDemoAccess(payload) {
+export async function createPlatformDemoAccess(payload: { contactEmail?: string | null; country?: string | null } & Record<string, unknown>) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   if (!payload.contactEmail) throw new Error('DEMO_EMAIL_REQUIRED')
   return invokeAuthenticatedFunction('create-demo-access', { ...payload, country: countryOrDefault(payload.country) })
 }
 
 // Platform Owner only (RLS): which modules the organization uses.
-export async function setOrganizationOperatingProfile(organizationId, { profile, addons, modules }) {
+export async function setOrganizationOperatingProfile(organizationId: string | null | undefined, { profile, addons, modules }: { profile: string; addons: string[]; modules: string[] | null }) {
   if (!supabase || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase.from('organizations')
     .update({ operating_profile: profile, enabled_addons: addons, enabled_modules: modules, updated_at: new Date().toISOString() })

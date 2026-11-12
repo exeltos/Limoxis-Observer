@@ -1,11 +1,25 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '../supabase/client'
 import { hasSupabaseConfig } from '../config/env'
 import { dataPartitionKey,environmentFallback,isDemoDataEnvironment } from './dataEnvironment'
 import { isEmptyPreview } from '../preview/emptyPreview'
 const backend=(import.meta.env.VITE_DATA_BACKEND||'local').trim().toLowerCase()
-const memory=new Map()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- rows or a document, as each table keeps it
+type Stored = any
+const memory=new Map<string, Stored>()
 
-const TABLES=Object.freeze({
+// Οι πίνακες του repository (record_key, payload) δεν είναι στους τύπους της βάσης.
+const records=()=>supabase as unknown as SupabaseClient
+
+interface TableConfig {
+  storageKey: string
+  kind: 'rows' | 'document'
+  cloud?: boolean
+  legacyKeys?: string[]
+  legacyPrefix?: string
+}
+
+const TABLES: Readonly<Record<string, TableConfig>>=Object.freeze({
   employee_health_visits:{storageKey:'limoxis.employeeHealthVisits.v1',kind:'rows',cloud:false},
   employee_vaccine_records:{storageKey:'limoxis.employeeVaccineRecords.v1',kind:'rows',cloud:false},
   employee_training_summary:{storageKey:'limoxis.employeeTrainingSummary.v1',kind:'rows',cloud:false},
@@ -82,42 +96,51 @@ const TABLES=Object.freeze({
 // The hospital's own records (not the product's libraries, templates or the
 // hospital structure): the empty-hospital preview (?helpEmpty=1) starts them empty.
 const SAMPLE_RECORD_TABLES=new Set(['employee_health_visits','employee_vaccine_records','employee_training_summary','employee_evaluations','employee_certificates','occupational_exposure_incidents','training_local_state','management_prevalence_survey','pharmacy_antibiotic_dispensing','documents','protocol_update_suggestions','employees','employee_position_acknowledgements','indicator_local_snapshots','committees','announcements','prevention_hand_hygiene','prevention_waste','prevention_antiseptic','prevention_bundles','control_local_definitions','control_local_assignments','control_local_executions','control_local_drafts','quality_local_incidents','quality_local_findings','quality_local_capas','quality_local_audits','quality_local_risk_assessments','quality_local_reviews','quality_local_department_meetings','quality_local_surveys','quality_local_survey_responses','quality_local_suppliers','quality_local_supplier_certificate_requests','quality_local_equipment','quality_local_equipment_events','quality_local_objectives','quality_department_registers','quality_department_register_entries','quality_department_register_identities'])
-function emptyRecords(value){
+function emptyRecords(value: Stored): Stored{
   if(Array.isArray(value))return []
   if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,Array.isArray(item)?[]:item]))
   return value
 }
-function demoFallback(table,cfg,fallback){
+function demoFallback(table: string,cfg: TableConfig,fallback: Stored){
   if(!isEmptyPreview()||!SAMPLE_RECORD_TABLES.has(table))return clone(fallback)
   return cfg.kind==='rows'?[]:emptyRecords(clone(fallback))
 }
 
 export class DataAccessError extends Error{
-  constructor(message,{table,operation,cause,code}={}){
-    super(message); this.name='DataAccessError'; this.table=table; this.operation=operation; this.cause=cause; this.code=code||cause?.code||null
+  table?: string
+  operation?: string
+  code: string | null
+  constructor(message: string,{table,operation,cause,code}:{table?:string,operation?:string,cause?:unknown,code?:string}={}){
+    super(message); this.name='DataAccessError'; this.table=table; this.operation=operation; this.cause=cause; this.code=code||(cause as {code?:string}|undefined)?.code||null
   }
 }
 
-function config(table){
+function config(table: string): TableConfig{
   const value=TABLES[table]
   if(!value)throw new DataAccessError(`Unknown repository table: ${table}`,{table,operation:'config'})
   return value
 }
-function emit(detail){
+function emit(detail: Record<string, unknown>){
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:data-operation',{detail}))
 }
-function clone(v){return v==null?v:structuredClone(v)}
-function memoryKey(table){return `${dataPartitionKey()}:${table}`}
-function localKey(cfg){return `${dataPartitionKey()}:${cfg.storageKey}`}
+function clone<T>(v: T): T{return v==null?v:structuredClone(v)}
+function memoryKey(table: string){return `${dataPartitionKey()}:${table}`}
+function localKey(cfg: TableConfig){return `${dataPartitionKey()}:${cfg.storageKey}`}
 
-function toRecords(cfg,rows,organizationId){
+interface CloudRecord {
+  organization_id?: string
+  record_key: string
+  payload: Stored
+}
+
+function toRecords(cfg: TableConfig,rows: Stored[] | null | undefined,organizationId: string): CloudRecord[]{
   return (rows||[]).map((row,index)=>({organization_id:organizationId,record_key:String(row.id??row.recordKey??index),payload:row}))
 }
-function recordSetFingerprint(records){
+function recordSetFingerprint(records: CloudRecord[]){
   return records.map(r=>`${r.record_key}:${JSON.stringify(r.payload)}`).sort().join('\n')
 }
 
-function readLocal(table,fallback){
+function readLocal(table: string,fallback: Stored): Stored{
   const cfg=config(table)
   try{
     // Demo is ephemeral by design: refresh restores the canonical seed.
@@ -133,7 +156,7 @@ function readLocal(table,fallback){
       return parsed
     }
     if(isDemoDataEnvironment()&&cfg.legacyPrefix){
-      const migrated=[]
+      const migrated: Stored[]=[]
       for(let i=0;i<localStorage.length;i++){
         const key=localStorage.key(i)
         if(!key?.startsWith(cfg.legacyPrefix))continue
@@ -147,7 +170,7 @@ function readLocal(table,fallback){
     throw new DataAccessError('Local data could not be read.',{table,operation:'load',cause})
   }
 }
-function writeLocal(table,rows){
+function writeLocal(table: string,rows: Stored): Stored{
   const cfg=config(table)
   try{
     if(!isDemoDataEnvironment())localStorage.setItem(localKey(cfg),JSON.stringify(rows))
@@ -158,7 +181,7 @@ function writeLocal(table,rows){
   }
 }
 
-export function loadSnapshot(table,fallback=null){
+export function loadSnapshot(table: string,fallback: Stored=null): Stored{
   const key=memoryKey(table)
   if(memory.has(key))return clone(memory.get(key))
   try{
@@ -171,7 +194,7 @@ export function loadSnapshot(table,fallback=null){
   }
 }
 
-export function saveSnapshot(table,rows,{organizationId=null}={}){
+export function saveSnapshot(table: string,rows: Stored,{organizationId=null}:{organizationId?:string|null}={}): Stored{
   if(backend==='supabase'&&hasSupabaseConfig&&supabase&&config(table).cloud!==false&&!isDemoDataEnvironment()){
     memory.set(memoryKey(table),clone(rows))
     void save(table,rows,{organizationId}).catch(()=>{})
@@ -189,7 +212,7 @@ export function saveSnapshot(table,rows,{organizationId=null}={}){
   }
 }
 
-export async function load(table,{fallback=null,organizationId=null}={}){
+export async function load(table: string,{fallback=null,organizationId=null}:{fallback?:Stored,organizationId?:string|null}={}): Promise<Stored>{
   emit({table,operation:'load',status:'loading'})
   try{
     if(backend!=='supabase'||!hasSupabaseConfig||!supabase||config(table).cloud===false||isDemoDataEnvironment()){
@@ -197,9 +220,9 @@ export async function load(table,{fallback=null,organizationId=null}={}){
       emit({table,operation:'load',status:'success'}); return clone(value)
     }
     if(!organizationId)throw new DataAccessError('Organization is required for cloud data.',{table,operation:'load'})
-    const {data,error}=await supabase.from(table).select('record_key,payload').eq('organization_id',organizationId).order('record_key')
+    const {data,error}=await records().from(table).select('record_key,payload').eq('organization_id',organizationId).order('record_key')
     if(error)throw error
-    const value=(data??[]).map(row=>row.payload)
+    const value=(data??[]).map((row: CloudRecord)=>row.payload)
     memory.set(memoryKey(table),clone(value))
     emit({table,operation:'load',status:'success'}); return clone(value)
   }catch(cause){
@@ -209,8 +232,8 @@ export async function load(table,{fallback=null,organizationId=null}={}){
   }
 }
 
-export async function save(table,rows,{organizationId=null}={}){
-  const retry=()=>save(table,rows,{organizationId})
+export async function save(table: string,rows: Stored,{organizationId=null}:{organizationId?:string|null}={}): Promise<Stored>{
+  const retry=():Promise<Stored>=>save(table,rows,{organizationId})
   emit({table,operation:'save',status:'saving',retry})
   try{
     if(backend!=='supabase'||!hasSupabaseConfig||!supabase||config(table).cloud===false||isDemoDataEnvironment()){
@@ -218,25 +241,25 @@ export async function save(table,rows,{organizationId=null}={}){
     }
     if(!organizationId)throw new DataAccessError('Organization is required for cloud data.',{table,operation:'save'})
     const cfg=config(table)
-    const records=toRecords(cfg,rows,organizationId)
-    const {data:existing,error:listError}=await supabase.from(table).select('record_key,payload').eq('organization_id',organizationId)
+    const rowsToSave=toRecords(cfg,rows,organizationId)
+    const {data:existing,error:listError}=await records().from(table).select('record_key,payload').eq('organization_id',organizationId)
     if(listError)throw listError
     const basis=memory.get(memoryKey(table))
     if(basis!==undefined){
       const expected=recordSetFingerprint(toRecords(cfg,basis,organizationId))
-      const actual=recordSetFingerprint((existing??[]).map(row=>({record_key:row.record_key,payload:row.payload})))
+      const actual=recordSetFingerprint((existing??[]).map((row: CloudRecord)=>({record_key:row.record_key,payload:row.payload})))
       if(expected!==actual){
         throw new DataAccessError('Someone else already changed this data. Reload before saving again.',{table,operation:'save',code:'CONFLICT'})
       }
     }
-    if(records.length){
-      const {error}=await supabase.from(table).upsert(records,{onConflict:'organization_id,record_key'})
+    if(rowsToSave.length){
+      const {error}=await records().from(table).upsert(rowsToSave,{onConflict:'organization_id,record_key'})
       if(error)throw error
     }
-    const keep=new Set(records.map(row=>row.record_key))
-    for(const row of existing??[]){
+    const keep=new Set(rowsToSave.map(row=>row.record_key))
+    for(const row of (existing??[]) as CloudRecord[]){
       if(keep.has(row.record_key))continue
-      const {error:deleteError}=await supabase.from(table).delete().eq('organization_id',organizationId).eq('record_key',row.record_key)
+      const {error:deleteError}=await records().from(table).delete().eq('organization_id',organizationId).eq('record_key',row.record_key)
       if(deleteError)throw deleteError
     }
     memory.set(memoryKey(table),clone(rows)); emit({table,operation:'save',status:'success'}); return clone(rows)
