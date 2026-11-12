@@ -152,7 +152,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
         return <>
           <td>{withIdentity ? <><strong>{entry.identity?.patientName || '—'}</strong><small>{entry.identity?.caseNumber || ''}</small></> : <strong>{String(entry.id).slice(-6).toUpperCase()}</strong>}</td>
           {treatment && <td><StatusBadge tone={entry.values?.end_date ? 'neutral' : 'success'}>{entry.values?.end_date ? (en ? 'Completed' : 'Ολοκλήρωσε') : (en ? 'Active' : 'Ενεργός')}</StatusBadge></td>}
-          {columns.map(field => { const marker = field.key === 'category' ? caseMarker(register, values, language) : null; return <td key={field.key}>{marker ? <StatusBadge tone={marker.tone} icon={marker.Icon}>{marker.label}</StatusBadge> : field.key === 'discharge_date' && !values[field.key] ? <StatusBadge tone="info">{en ? 'Still in' : 'Νοσηλεύεται'}</StatusBadge> : formatValue(field, values[field.key], language)}</td> })}
+          {columns.map(field => { const marker = field.key === 'category' ? caseMarker(register, values, language) : null; return <td key={field.key}>{marker ? <StatusBadge tone={marker.tone} icon={marker.Icon}>{marker.label}</StatusBadge> : field.key === 'discharge_date' && !values[field.key] ? <StatusBadge tone="info">{en ? 'Still in' : 'Νοσηλεύεται'}</StatusBadge> : formatValue(field, values[field.key], language, values)}</td> })}
         </>
       }}
       emptyTitle={!loading && !rows.length ? (en ? 'No cases' : 'Δεν υπάρχουν περιστατικά') : ''} emptyText={canRecord ? (en ? 'Record the first case with «New case».' : 'Καταχωρίστε το πρώτο με «Νέο περιστατικό».') : ''} />
