@@ -10,9 +10,10 @@ import { applicationPath, formatCode } from './applicationModel'
 import { cancelApplicationLink, createApplicationLink, interviewsErrorMessage } from './interviewsService'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { EMPLOYMENT_TYPES, PROFESSIONAL_CATEGORIES, categoryLabel, employmentLabel, fmtStamp } from './interviewsModel'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The QR code is drawn in the browser: the link is never sent elsewhere to draw it.
-function LinkQr({ text, label }) {
+function LinkQr({ text, label }: { text: string, label: string }) {
   const path = useMemo(() => {
     const qr = qrcode(0, 'M')
     qr.addData(text, 'Byte')
@@ -28,14 +29,14 @@ function LinkQr({ text, label }) {
 // «Αίτηση από tablet»: HR picks the position (optional) and gets a single-use link for one
 // candidate, valid 24 hours, as a QR code to scan with the tablet, a short code to type at
 // /apply, or opened full screen on this device.
-export function ApplicationLinkDialog({ organizationId, positions = [], onClose }) {
+export function ApplicationLinkDialog({ organizationId, positions = [], onClose }: { organizationId: string | null, positions?: string[], onClose: () => void }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
   const [position, setPosition] = useState('')
   const [category, setCategory] = useState('')
   const [employment, setEmployment] = useState('')
-  const [link, setLink] = useState(null)
+  const [link, setLink] = useState<AnyRecord | null>(null)
   const [busy, setBusy] = useState(false)
   const url = link ? `${window.location.origin}${applicationPath(link.token)}` : ''
   async function create() {
@@ -43,7 +44,7 @@ export function ApplicationLinkDialog({ organizationId, positions = [], onClose 
     try { setLink(await createApplicationLink(organizationId, position, { category, employment })) } catch (error) { notify(interviewsErrorMessage(error, language), 'error') } finally { setBusy(false) }
   }
   async function cancel() {
-    try { await cancelApplicationLink(link.id); notify(en ? 'The link no longer works.' : 'Ο σύνδεσμος δεν λειτουργεί πια.', 'success'); setLink(null) } catch (error) { notify(interviewsErrorMessage(error, language), 'error') }
+    try { await cancelApplicationLink(link?.id); notify(en ? 'The link no longer works.' : 'Ο σύνδεσμος δεν λειτουργεί πια.', 'success'); setLink(null) } catch (error) { notify(interviewsErrorMessage(error, language), 'error') }
   }
   const copy = async () => { try { await navigator.clipboard.writeText(url); notify(en ? 'Link copied.' : 'Ο σύνδεσμος αντιγράφηκε.', 'success') } catch { notify(url, 'info') } }
   return <ObserverDialog width="wide" title={en ? 'Application from a tablet' : 'Αίτηση από tablet'} subtitle={en ? 'The candidate fills in the application, gives the consents and signs on the tablet; it appears here as a new application.' : 'Ο υποψήφιος συμπληρώνει την αίτηση, δίνει τις συναινέσεις και υπογράφει στο tablet· εμφανίζεται εδώ ως νέα αίτηση.'} onClose={onClose}>

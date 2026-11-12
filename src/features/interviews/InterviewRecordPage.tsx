@@ -4,7 +4,7 @@ import { Pencil, Trash2, UserPlus, UserSearch, Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
-import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { RecordDetailsGrid, type RecordDetailField } from '../../design-system/RecordDetailsGrid'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Button } from '../../design-system/Button'
@@ -22,6 +22,7 @@ import { exportCandidates } from './interviewsReports'
 import { CONSENTS } from './applicationModel'
 import { decide, interviewsErrorMessage, loadCandidateSignature, removeCandidate, saveCandidateNotes } from './interviewsService'
 import { DivisionCandidatePage } from './InterviewDivisions'
+import type { AnyRecord } from '../../types/featureTypes'
 
 
 
@@ -42,9 +43,9 @@ function InterviewRecordFull() {
   const access = useInterviewsAccess()
   const actor = useInterviewsActor()
   const { state, loading, reload, organizationId } = useInterviews()
-  const { data: employees } = useEmployeesData()
-  const [dialog, setDialog] = useState(null)
-  const [notes, setNotes] = useState(null)
+  const { data: employees } = useEmployeesData() as { data: AnyRecord[] }
+  const [dialog, setDialog] = useState<{ type: string, decision?: string } | null>(null)
+  const [notes, setNotes] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const candidate = state?.candidates.find(item => item.id === candidateId) || null
 
@@ -56,16 +57,16 @@ function InterviewRecordFull() {
   const common = { candidate, organizationId, onClose: close, onSaved: reload }
   async function remove() {
     if (!await confirm({ title: en ? 'Delete application' : 'Διαγραφή αίτησης', message: en ? 'The application, its languages and employers are deleted.' : 'Διαγράφονται η αίτηση, οι γλώσσες και η προϋπηρεσία της.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
-    try { await removeCandidate(organizationId, candidate.id); notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success'); goBack() } catch (error) { notify(interviewsErrorMessage(error, language), 'error') }
+    try { await removeCandidate(organizationId, candidate?.id); notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success'); goBack() } catch (error) { notify(interviewsErrorMessage(error, language), 'error') }
   }
-  async function run(work) {
+  async function run(work: () => Promise<unknown>) {
     setBusy(true)
     try { await work() } catch (error) { console.error(error); notify(interviewsErrorMessage(error, language), 'error') } finally { setBusy(false) }
   }
   const notesText = notes ?? candidate.notes ?? ''
   const saveNotes = () => run(async () => { await saveCandidateNotes(organizationId, candidate, notesText); setNotes(null); notify(en ? 'Notes saved.' : 'Οι σημειώσεις αποθηκεύτηκαν.', 'success'); await reload() })
   // Three answers: hire (then the employee is created), reserve list, reject (with a reason).
-  const decideNow = decision => run(async () => {
+  const decideNow = (decision: string) => run(async () => {
     await decide(organizationId, candidate, { decision, decisionOn: todayKey(), decisionByName: actor.name, decisionNotes: notesText })
     await reload()
     if (decision === 'hire' && access.canHire) setDialog({ type: 'hire' })
@@ -80,7 +81,7 @@ function InterviewRecordFull() {
     {access.canManage && <Button recordMenu variant="secondary" onClick={remove}><Trash2 size={15} />{en ? 'Delete application' : 'Διαγραφή αίτησης'}</Button>}
   </div>
   // The big forms open as a page in place of the record, not as a window over it.
-  if (['candidate', 'education', 'employers', 'hire'].includes(dialog?.type)) return <>
+  if (dialog && ['candidate', 'education', 'employers', 'hire'].includes(dialog.type)) return <>
     {dialog.type === 'candidate' && <CandidateDialog initial={candidate} organizationId={organizationId} onClose={close} onSaved={reload} />}
     {dialog.type === 'education' && <EducationDialog {...common} />}
     {dialog.type === 'employers' && <EmployersDialog {...common} />}
@@ -88,7 +89,7 @@ function InterviewRecordFull() {
   </>
   const age = ageOn(candidate.birthDate)
   // Only the details that have a value; the rest are added with «Add details».
-  const filled = fields => fields.map(field => ({ ...field, hidden: field.hidden || !field.value || field.value === '—' }))
+  const filled = (fields: RecordDetailField[]) => fields.map(field => ({ ...field, hidden: field.hidden || !field.value || field.value === '—' }))
   const decisionBar = <div className="interviews-decision-bar">
     {candidate.decision && <span className="interviews-decision-now">{en ? 'Decision' : 'Απόφαση'}: <CandidateStatusBadge status={candidate.status} language={language} /></span>}
     {employee && <Button variant="secondary" onClick={() => navigate(`/employees/${encodeURIComponent(employee.id)}`)}><Users size={15} />{en ? 'Employee record' : 'Καρτέλα εργαζομένου'}</Button>}
@@ -116,7 +117,7 @@ function InterviewRecordFull() {
         {(candidate.source === 'tablet' || candidate.consentVersion) && <CandidateConsents candidate={candidate} organizationId={organizationId} en={en} language={language} />}
         <SectionHeader title={en ? 'Education & languages' : 'Εκπαίδευση & γλώσσες'} />
         <RecordDetailsGrid fields={filled([{ label: en ? 'Secondary education' : 'Βασική εκπαίδευση', value: candidate.educationLevel }, { label: en ? 'IT skills' : 'Γνώσεις πληροφορικής', value: candidate.itSkills, className: 'interviews-span-2' }])} />
-        <RegistryTable bare sortable={false} rows={candidate.education.map((row, index) => ({ ...row, id: index }))} columns={[{ key: 'level', label: en ? 'Level' : 'Επίπεδο' }, { key: 'school', label: en ? 'School / department' : 'Σχολή / τμήμα' }, { key: 'title', label: en ? 'Degree' : 'Πτυχίο' }, { key: 'year', label: en ? 'Year' : 'Έτος' }]}
+        <RegistryTable bare sortable={false} rows={candidate.education.map((row: AnyRecord, index: number) => ({ ...row, id: index }))} columns={[{ key: 'level', label: en ? 'Level' : 'Επίπεδο' }, { key: 'school', label: en ? 'School / department' : 'Σχολή / τμήμα' }, { key: 'title', label: en ? 'Degree' : 'Πτυχίο' }, { key: 'year', label: en ? 'Year' : 'Έτος' }]}
           emptyTitle={en ? 'No degrees recorded' : 'Δεν καταγράφηκαν πτυχία'} renderRow={row => <><td>{row.level || '—'}</td><td><strong>{row.school || '—'}</strong></td><td>{row.title || '—'}{row.completed === false && <small>{en ? 'In progress' : 'Σε εξέλιξη'}</small>}</td><td className="nowrap-cell">{row.year || '—'}</td></>} />
         <RegistryTable bare sortable={false} rows={candidate.languages} rowKey={row => row.id || row.language} columns={[{ key: 'language', label: en ? 'Language' : 'Γλώσσα' }, { key: 'speaking', label: en ? 'Speaking' : 'Ομιλία' }, { key: 'reading', label: en ? 'Reading' : 'Ανάγνωση' }, { key: 'writing', label: en ? 'Writing' : 'Γραφή' }, { key: 'certificate', label: en ? 'Certificate' : 'Πιστοποιητικό' }]}
           emptyTitle={en ? 'No languages recorded' : 'Δεν καταγράφηκαν γλώσσες'} renderRow={row => <><td><strong>{languageLabel(row.language, language)}</strong></td><td>{levelLabel(row.speaking, language) || '—'}</td><td>{levelLabel(row.reading, language) || '—'}</td><td>{levelLabel(row.writing, language) || '—'}</td><td>{certificateLabel(row, language) || '—'}</td></>} />
@@ -134,14 +135,14 @@ function InterviewRecordFull() {
 
 // The consents given on the tablet, each with the text the candidate read, and the
 // signature under them (loaded only here, not with the list).
-function CandidateConsents({ candidate, organizationId, en, language }) {
+function CandidateConsents({ candidate, organizationId, en, language }: { candidate: AnyRecord, organizationId: string | null, en: boolean, language: string }) {
   const [signature, setSignature] = useState('')
   useEffect(() => {
     let live = true
     loadCandidateSignature(organizationId, candidate).then(image => { if (live) setSignature(image) }).catch(() => {})
     return () => { live = false }
   }, [organizationId, candidate])
-  const given = { gdpr: candidate.consentGiven, future: candidate.consentFuture, references: candidate.consentReferences, truth: candidate.declarationTruth }
+  const given: Record<string, unknown> = { gdpr: candidate.consentGiven, future: candidate.consentFuture, references: candidate.consentReferences, truth: candidate.declarationTruth }
   const texts = candidate.consentTexts || {}
   return <>
     <SectionHeader title={en ? 'Consents and signature' : 'Συναινέσεις και υπογραφή'} subtitle={[candidate.consentVersion && `${en ? 'Text version' : 'Έκδοση κειμένων'} ${candidate.consentVersion}`, fmtStamp(candidate.signedAt || candidate.consentAt, language)].filter(Boolean).join(' · ')} />

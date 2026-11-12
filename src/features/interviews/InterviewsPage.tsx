@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type RefObject } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Building2, FilePlus2, Inbox, Plus, Tablet } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -18,6 +18,7 @@ import { employmentLabel, filterCandidates, fmtDay, newCandidate, pipelineCounts
 import { candidatesExport } from './interviewsReports'
 import { registryMenu } from '../../core/export/registryExports'
 import { DivisionInterviewsPage, DivisionsPanel } from './InterviewDivisions'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // Συνεντεύξεις: the applications, the pipeline at the top, the interviews to come.
 export function InterviewsPage() {
@@ -39,7 +40,7 @@ function InterviewsListPage() {
   const [position, setPosition] = useState(saved.position)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
-  const [dialog, setDialog] = useState(null)
+  const [dialog, setDialog] = useState<AnyRecord | null>(null)
   const [tablet, setTablet] = useState(false)
   const [divisionsView, setDivisionsView] = useState(false)
   const candidates = useMemo(() => state?.candidates || [], [state])
@@ -51,9 +52,9 @@ function InterviewsListPage() {
   if (!state) return <Page fill title={en ? 'Interviews' : 'Συνεντεύξεις'}><div className="inline-empty">{loading ? (en ? 'Loading…' : 'Φόρτωση…') : (en ? 'The applications could not be loaded.' : 'Δεν ήταν δυνατή η φόρτωση των αιτήσεων.')}</div></Page>
 
   if (divisionsView) return <Page fill className="interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'}><section className="surface registry-workspace workspace-column workspace-fill"><DivisionsPanel organizationId={organizationId} onBack={() => setDivisionsView(false)} /></section></Page>
-  if (dialog) return <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id)}`) }} />
+  if (dialog) return <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id as string)}`) }} />
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
-  const open = item => { registry.saveViewState({ query, status, position }); registry.openRecord(navigate, `/interviews/${encodeURIComponent(item.id)}`, item.id, rows.map(row => row.id)) }
+  const open = (item: AnyRecord) => { registry.saveViewState({ query, status, position }); registry.openRecord(navigate, `/interviews/${encodeURIComponent(item.id)}`, item.id, rows.map(row => row.id)) }
   const clear = () => { setQuery(''); setStatus('all'); setPosition('all') }
   const actions = <div className="row-actions">
     <ExportMenu {...registryMenu(() => candidatesExport(rows, language), { language, kind: en ? 'Interviews · candidates' : 'Συνεντεύξεις · υποψήφιοι', onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} disabled={!rows.length} />
@@ -70,7 +71,7 @@ function InterviewsListPage() {
         <FilterSelect label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus}><option value="all">{en ? 'All' : 'Όλες'}</option><option value="open">{en ? 'Open (in progress)' : 'Ανοιχτές (σε εξέλιξη)'}</option>{statusOptions(language).map(item => <option key={item.value} value={item.value}>{item.label}{['new', 'interview_scheduled', 'offer', 'hired'].includes(item.value) ? ` (${counts[item.value] || 0})` : ''}</option>)}</FilterSelect>
         <FilterSelect label={en ? 'Position' : 'Θέση'} value={position} onChange={setPosition}><option value="all">{en ? 'All positions' : 'Όλες οι θέσεις'}</option>{positions.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
       </FilterBar>
-      <div className="scroll-table" ref={registry.scrollRef}>
+      <div className="scroll-table" ref={registry.scrollRef as RefObject<HTMLDivElement>}>
         <RegistryTable sortable={false} bare rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={item => item.id}
           columns={[{ key: 'name', label: en ? 'Candidate' : 'Υποψήφιος' }, { key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'position', label: en ? 'Position' : 'Θέση' }, { key: 'applied', label: en ? 'Applied' : 'Αίτηση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
           rowProps={item => ({ ...registry.rowProps(item.id), onClick: () => open(item), onKeyDown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(item) } } })}
