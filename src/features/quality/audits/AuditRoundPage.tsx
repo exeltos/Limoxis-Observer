@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type DragEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { CalendarRange } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
@@ -18,9 +18,10 @@ import { useDepartments } from '../../management/useLibraries'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { useAuditTemplates } from './useAuditTemplates'
 import { roundPlan, workingDays } from './auditModel'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const L = (en, el, english) => (en ? english : el)
-const evenly = (keys, days) => Object.fromEntries(keys.map((key, index) => [key, Math.min(days - 1, Math.floor(index * days / keys.length))]))
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
+const evenly = (keys: string[], days: number) => Object.fromEntries(keys.map((key: string, index: number) => [key, Math.min(days - 1, Math.floor(index * days / keys.length))]))
 
 // The audit round, on a page of its own: a few working days (three by default) and the departments that go on each, as chips
 // to drag into the day boxes (or to pick and then click a box). Every department starts in the round,
@@ -35,14 +36,14 @@ export function AuditRoundPage() {
   const { tenant, role, membership, actualRole, isRolePreview } = useTenant()
   const addOns = membership?.capabilities ?? [], custom = membership?.customCapabilities ?? []
   const canManage = (!isRolePreview && actualRole === ROLES.PLATFORM_OWNER) || can(role, CAPABILITIES.MANAGE_QUALITY, addOns, custom)
-  const [audits, setAudits] = useState(null)
+  const [audits, setAudits] = useState<AnyRecord[] | null>(null)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     let active = true
     loadQualityRecords('audits', tenant?.id).then(rows => { if (active) setAudits(rows) }).catch(() => { if (active) setAudits([]) })
     return () => { active = false }
   }, [tenant?.id])
-  const onApply = async (items, template, days) => {
+  const onApply = async (items: AnyRecord[], template: AnyRecord | null, days: number) => {
     setSaving(true)
     try {
       const count = await applyAuditRound(tenant?.id, items, { template, userId: user?.id || null, days })
@@ -59,19 +60,19 @@ export function AuditRoundPage() {
   </EntityRecordShell></Page>
 }
 
-function AuditRoundForm({ audits, language, saving, onCancel, onApply }) {
+function AuditRoundForm({ audits, language, saving, onCancel, onApply }: { audits: AnyRecord[], language: string, saving: boolean, onCancel: () => void, onApply: (items: AnyRecord[], template: AnyRecord | null, days: number) => void }) {
   const en = language === 'en'
   const { tenant } = useTenant()
-  const { departments } = useDepartments()
+  const { departments }: { departments: AnyRecord[] } = useDepartments()
   const { templates } = useAuditTemplates(tenant?.id)
-  const firstOpen = useMemo(() => audits.filter(audit => audit.status === 'planned' && audit.lifecycleStatus !== 'voided' && audit.department && audit.plannedDate).map(audit => String(audit.plannedDate)).sort()[0] || '', [audits])
+  const firstOpen = useMemo(() => audits.filter((audit: AnyRecord) => audit.status === 'planned' && audit.lifecycleStatus !== 'voided' && audit.department && audit.plannedDate).map((audit: AnyRecord) => String(audit.plannedDate)).sort()[0] || '', [audits])
   const [start, setStart] = useState(() => (firstOpen ? workingDays(`${firstOpen.slice(0, 7)}-10`, 1)[0] : ''))
   const [count, setCount] = useState('3')
   const base = useMemo(() => (start ? roundPlan(audits, departments, start, Number(count)) : { days: [], items: [] }), [audits, departments, start, count])
-  const [moves, setMoves] = useState({})
-  const [dragging, setDragging] = useState(null)
-  const [picked, setPicked] = useState(null)
-  const [over, setOver] = useState(null)
+  const [moves, setMoves] = useState<Record<string, number | null>>({})
+  const [dragging, setDragging] = useState<string | null>(null)
+  const [picked, setPicked] = useState<string | null>(null)
+  const [over, setOver] = useState<number | 'out' | null>(null)
   // The round starts with every department in it, spread evenly over the days.
   const everyone = () => evenly(base.items.map(item => item.key), base.days.length)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,20 +82,20 @@ function AuditRoundForm({ audits, language, saving, onCancel, onApply }) {
   const outside = items.filter(item => item.day == null)
   const fresh = inRound.filter(item => !item.auditId).length
   const spreadAgain = () => setMoves(everyone())
-  const dayName = iso => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T12:00:00Z`))
+  const dayName = (iso: string) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T12:00:00Z`))
   const template = templates.find(item => item.key === 'core' && item.active !== false) || null
-  const drop = target => {
+  const drop = (target: number | 'out') => {
     const key = dragging || picked
     if (key) setMoves(current => ({ ...current, [key]: target === 'out' ? null : target }))
     setDragging(null); setPicked(null); setOver(null)
   }
-  const zone = target => ({
-    onDragOver: event => { event.preventDefault(); if (over !== target) setOver(target) },
+  const zone = (target: number | 'out') => ({
+    onDragOver: (event: DragEvent) => { event.preventDefault(); if (over !== target) setOver(target) },
     onDragLeave: () => setOver(current => (current === target ? null : current)),
-    onDrop: event => { event.preventDefault(); drop(target) },
+    onDrop: (event: DragEvent) => { event.preventDefault(); drop(target) },
     onClick: () => { if (picked) drop(target) },
   })
-  const chip = item => <button type="button" key={item.key} draggable className={`audit-dept-chip${picked === item.key ? ' is-picked' : ''}${item.auditId ? '' : ' is-new'}`} aria-pressed={picked === item.key}
+  const chip = (item: AnyRecord) => <button type="button" key={item.key} draggable className={`audit-dept-chip${picked === item.key ? ' is-picked' : ''}${item.auditId ? '' : ' is-new'}`} aria-pressed={picked === item.key}
     title={item.auditId ? item.department : `${item.department} · ${L(en, 'νέα επιθεώρηση', 'new audit')}`}
     onDragStart={event => { setDragging(item.key); event.dataTransfer.setData('text/plain', item.key); event.dataTransfer.effectAllowed = 'move' }}
     onDragEnd={() => { setDragging(null); setOver(null) }}
@@ -120,7 +121,7 @@ function AuditRoundForm({ audits, language, saving, onCancel, onApply }) {
     <div className="inline-edit-footer">
       <span className="audit-round-summary">{inRound.length} {L(en, 'τμήματα', 'departments')}{fresh > 0 ? ` · ${fresh} ${L(en, 'νέες επιθεωρήσεις', 'new audits')}` : ''}</span>
       <Button variant="secondary" onClick={onCancel}>{L(en, 'Ακύρωση', 'Cancel')}</Button>
-      <SaveButton loading={saving} disabled={saving || !inRound.length} onClick={() => onApply(inRound.map(item => ({ auditId: item.auditId, department: item.department, departmentEn: item.departmentEn, departmentId: item.departmentId, plannedDate: base.days[item.day] })), template, base.days.length)}>{L(en, 'Αποθήκευση κύκλου', 'Save the round')}</SaveButton>
+      <SaveButton loading={saving} disabled={saving || !inRound.length} onClick={() => onApply(inRound.map(item => ({ auditId: item.auditId, department: item.department, departmentEn: item.departmentEn, departmentId: item.departmentId, plannedDate: base.days[item.day as number] })), template, base.days.length)}>{L(en, 'Αποθήκευση κύκλου', 'Save the round')}</SaveButton>
     </div>
   </div>
 }

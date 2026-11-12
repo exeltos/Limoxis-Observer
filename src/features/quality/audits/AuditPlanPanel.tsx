@@ -11,22 +11,23 @@ import { competenceWarnings, independenceIssues, followingAuditDate } from './au
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { useAuditorCompetence } from './useAuditTemplates'
 import './audits.css'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const L = (en, el, english) => (en ? english : el)
-const label = (list, value, en) => list.find(item => item.value === value)?.label[en ? 1 : 0] || ''
-const monthText = (value, language) => (value ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(value).slice(0, 7)}-15T12:00:00Z`)) : '')
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
+const label = (list: AnyRecord[], value: string, en: boolean) => list.find((item: AnyRecord) => item.value === value)?.label[en ? 1 : 0] || ''
+const monthText = (value: unknown, language: string) => (value ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(value).slice(0, 7)}-15T12:00:00Z`)) : '')
 
 // The department's next audit for the same standard: the earliest one still open after this audit.
-function useNextAudit(record, organizationId) {
-  const [next, setNext] = useState(null)
+function useNextAudit(record: AnyRecord, organizationId: string | null | undefined) {
+  const [next, setNext] = useState<AnyRecord | null>(null)
   useEffect(() => {
     let active = true
     loadQualityRecords('audits', organizationId).then(list => {
       if (!active) return
       const after = String(record.completedDate || record.plannedDate || '')
       const found = list
-        .filter(item => item.id !== record.id && item.department === record.department && (item.standard || '') === (record.standard || '') && ['planned', 'inProgress', 'in_progress'].includes(item.status) && item.lifecycleStatus !== 'voided' && String(item.plannedDate || '') >= after)
-        .sort((a, b) => String(a.plannedDate).localeCompare(String(b.plannedDate)))[0]
+        .filter((item: AnyRecord) => item.id !== record.id && item.department === record.department && (item.standard || '') === (record.standard || '') && ['planned', 'inProgress', 'in_progress'].includes(item.status) && item.lifecycleStatus !== 'voided' && String(item.plannedDate || '') >= after)
+        .sort((a: AnyRecord, b: AnyRecord) => String(a.plannedDate).localeCompare(String(b.plannedDate)))[0]
       setNext(found || null)
     }).catch(() => { if (active) setNext(null) })
     return () => { active = false }
@@ -39,7 +40,7 @@ function useNextAudit(record, organizationId) {
 // independence and competence checks, and the audit it follows up. «Planning»
 // opens it on a page of its own; an audit whose lead auditor audits their own department
 // is not saved.
-export function AuditPlanPanel({ record, organizationId, canManage, finalized, language }) {
+export function AuditPlanPanel({ record, organizationId, canManage, finalized, language }: { record: AnyRecord, organizationId: string, canManage: boolean, finalized: boolean, language: string }) {
   const en = language === 'en'
   const { goTo } = useContextualNavigation('/quality')
   const competence = useAuditorCompetence(organizationId)
@@ -53,7 +54,7 @@ export function AuditPlanPanel({ record, organizationId, canManage, finalized, l
     ? <button type="button" className="quality-audit-finding-link" onClick={() => goTo(`/quality/audits/${nextAudit.id}`, { tab: 'details' })}>{nextAudit.plannedMonthOnly ? monthText(nextAudit.plannedDate, language) : formatDay(nextAudit.plannedDate, language)} · {nextAudit.displayId || nextAudit.id}<ChevronRight size={13} /></button>
     : (next ? formatDay(next, language) : '')
   const items = [
-    { label: (record.standards || []).length ? L(en, 'Πρότυπα', 'Standards') : L(en, 'Πρότυπο', 'Standard'), value: [record.standard, ...(record.standards || []).filter(value => value !== record.standard)].map(value => standardLabel(value, language)).filter(Boolean).join(' + ') },
+    { label: (record.standards || []).length ? L(en, 'Πρότυπα', 'Standards') : L(en, 'Πρότυπο', 'Standard'), value: [record.standard, ...(record.standards || []).filter((value: string) => value !== record.standard)].map((value: string) => standardLabel(value, language)).filter(Boolean).join(' + ') },
     { label: L(en, 'Ερωτηματολόγιο', 'Questionnaire'), value: record.templateTitle ? `${record.templateTitle}${record.templateVersion ? ` · ${L(en, 'έκδοση', 'version')} ${record.templateVersion}` : ''}` : '' },
     { label: L(en, 'Κεφάλαια στο πεδίο', 'Chapters in scope'), value: record.clausesScope?.length ? record.clausesScope.join(', ') : L(en, 'Όλο το ερωτηματολόγιο', 'The whole questionnaire') },
     { label: L(en, 'Είδος', 'Kind'), value: label(AUDIT_KINDS, record.auditType || 'internal', en) },
@@ -72,13 +73,13 @@ export function AuditPlanPanel({ record, organizationId, canManage, finalized, l
     <DetailList sections={[{ title: L(en, 'Σχεδιασμός επιθεώρησης', 'Audit planning'), items }, executionItems.length ? { title: L(en, 'Εκτέλεση και αναφορά', 'Execution and report'), items: executionItems } : null]} />
     <div className="audit-plan-team">
       <span className="lo-field-label">{L(en, 'Ομάδα επιθεώρησης', 'Audit team')}</span>
-      {team.length ? <ul className="audit-team-list is-read">{team.map(member => <li key={member.id || member.name}>
+      {team.length ? <ul className="audit-team-list is-read">{team.map((member: AnyRecord) => <li key={member.id || member.name}>
         <span className="audit-team-name"><strong>{member.name}</strong><small>{[label(TEAM_ROLES, member.role, en), member.external ? [L(en, 'Εξωτερικός', 'External'), member.affiliation].filter(Boolean).join(' · ') : member.department].filter(Boolean).join(' · ')}</small></span>
         <span className="audit-team-flags">
-          {issues.find(issue => issue.member === member) && <StatusBadge tone={issues.find(issue => issue.member === member).level === 'block' ? 'danger' : 'warning'}>{L(en, 'Ίδιο τμήμα', 'Own department')}</StatusBadge>}
+          {issues.find(issue => issue.member === member) && <StatusBadge tone={issues.find(issue => issue.member === member)?.level === 'block' ? 'danger' : 'warning'}>{L(en, 'Ίδιο τμήμα', 'Own department')}</StatusBadge>}
           {untrained.includes(member) && <StatusBadge tone="warning">{L(en, 'Χωρίς πιστοποίηση επιθεωρητή', 'No auditor certificate')}</StatusBadge>}
         </span>
-      </li>)}</ul> : <strong>{roleTitleText(record.leadAuditor, language) || '—'}</strong>}
+      </li>)}</ul> : <strong>{String(roleTitleText(record.leadAuditor, language) || '—')}</strong>}
     </div>
     {canManage && !finalized && <div className="audit-plan-actions"><Button variant="secondary" onClick={() => goTo(`/quality/audits/${record.id}/plan`)}><CalendarDays size={15} /> {L(en, 'Σχεδιασμός', 'Planning')}</Button></div>}
     {record.followUpOf && <button type="button" className="quality-audit-finding-link" onClick={() => goTo(`/quality/audits/${record.followUpOf}`, { tab: 'details' })}>{L(en, 'Επαναληπτική της', 'Follow-up of')} {record.followUpOf}<ChevronRight size={13} /></button>}

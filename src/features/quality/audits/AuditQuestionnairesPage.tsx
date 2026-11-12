@@ -29,8 +29,9 @@ import { copyOfTemplate, newAuditTemplate, newQuestion, removeAuditTemplate, sav
 import { useAuditTemplates } from './useAuditTemplates'
 import '../quality.css'
 import './audits.css'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const L = (en, el, english) => (en ? english : el)
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
 
 function useAccess() {
   const { role, membership, actualRole, isRolePreview } = useTenant()
@@ -39,10 +40,10 @@ function useAccess() {
   return { canManage: owner || can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? []), platformOwner: owner }
 }
 
-const questionsExport = (templates, en) => ({
+const questionsExport = (templates: AnyRecord[], en: boolean) => ({
   name: en ? 'audit-questionnaires' : 'erotimatologia-epitheorisis',
   headers: en ? ['Questionnaire', 'Standard', 'Version', 'Library', '#', 'Chapter', 'Clause', 'Question', 'Guidance', 'Evidence', 'Weight', 'Critical', 'Areas'] : ['Ερωτηματολόγιο', 'Πρότυπο', 'Έκδοση', 'Προέλευση', '#', 'Κεφάλαιο', 'Άρθρο', 'Ερώτηση', 'Οδηγία', 'Τεκμήρια', 'Βάρος', 'Κρίσιμη', 'Περιοχές'],
-  rows: templates.flatMap(template => template.questions.map((item, index) => [template.title, standardShort(template.standard), template.version, template.isSystem ? (en ? 'Platform library' : 'Βιβλιοθήκη πλατφόρμας') : (en ? 'Hospital' : 'Νοσοκομείο'), index + 1, [item.chapterRef, item.chapterTitle].filter(Boolean).join(' · '), item.clauseRef, item.question, item.guidance, item.evidence, item.weight, item.critical ? (en ? 'Yes' : 'Ναι') : '', (item.areas || []).map(area => areaLabel(area, en ? 'en' : 'el')).join(', ')])),
+  rows: templates.flatMap((template: AnyRecord) => template.questions.map((item: AnyRecord, index: number) => [template.title, standardShort(template.standard), template.version, template.isSystem ? (en ? 'Platform library' : 'Βιβλιοθήκη πλατφόρμας') : (en ? 'Hospital' : 'Νοσοκομείο'), index + 1, [item.chapterRef, item.chapterTitle].filter(Boolean).join(' · '), item.clauseRef, item.question, item.guidance, item.evidence, item.weight, item.critical ? (en ? 'Yes' : 'Ναι') : '', (item.areas || []).map((area: string) => areaLabel(area, en ? 'en' : 'el')).join(', ')])),
 })
 
 // Quality → Audits → «Ερωτηματολόγια επιθεώρησης»: the platform library (one
@@ -80,8 +81,8 @@ function QuestionnaireLibrary() {
           renderRow={row => <>
             <td><strong>{row.title}</strong><small>{L(en, 'έκδοση', 'version')} {row.version}{row.standardVersion ? ` · ${standardShort(row.standard)} ${row.standardVersion}` : ''}</small></td>
             <td className="nowrap-cell">{standardShort(row.standard)}</td>
-            <td>{row.departmentTypes?.length ? <span className="resource-notes">{row.departmentTypes.map(area => <StatusBadge key={area} tone="neutral">{areaLabel(area, language)}</StatusBadge>)}</span> : L(en, 'Όλα τα τμήματα', 'Every department')}</td>
-            <td className="nowrap-cell">{row.questions.length}<small>{templateChapters(row).length} {L(en, 'κεφάλαια', 'chapters')} · {row.questions.filter(item => item.critical).length} {L(en, 'κρίσιμες', 'critical')}</small></td>
+            <td>{row.departmentTypes?.length ? <span className="resource-notes">{row.departmentTypes.map((area: string) => <StatusBadge key={area} tone="neutral">{areaLabel(area, language)}</StatusBadge>)}</span> : L(en, 'Όλα τα τμήματα', 'Every department')}</td>
+            <td className="nowrap-cell">{row.questions.length}<small>{templateChapters(row).length} {L(en, 'κεφάλαια', 'chapters')} · {row.questions.filter((item: AnyRecord) => item.critical).length} {L(en, 'κρίσιμες', 'critical')}</small></td>
             <td>{row.isSystem ? L(en, 'Βιβλιοθήκη πλατφόρμας', 'Platform library') : L(en, 'Του νοσοκομείου', 'Hospital')}{!row.isSystem && row.basedOn && <small>{L(en, 'αντίγραφο της βιβλιοθήκης', 'copy of the library')}</small>}</td>
             <td><StatusBadge tone={row.active !== false ? 'success' : 'neutral'}>{row.active !== false ? L(en, 'Ενεργό', 'Active') : L(en, 'Ανενεργό', 'Inactive')}</StatusBadge></td>
           </>} />
@@ -90,7 +91,7 @@ function QuestionnaireLibrary() {
   </Page>
 }
 
-function QuestionnaireEditor({ templateId }) {
+function QuestionnaireEditor({ templateId }: { templateId: string }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { tenant } = useTenant()
@@ -99,18 +100,19 @@ function QuestionnaireEditor({ templateId }) {
   const access = useAccess()
   const { templates, loading, reload } = useAuditTemplates(tenant?.id)
   const stored = templateId === 'new' ? newAuditTemplate() : templates.find(item => String(item.id) === String(templateId))
-  const [draft, setDraft] = useState(null)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [chapter, setChapter] = useState('all')
-  const [editing, setEditing] = useState(null)
+  const [editing, setEditing] = useState<AnyRecord | null>(null)
   const [saving, setSaving] = useState(false)
-  const current = draft || stored
+  const current: AnyRecord | undefined = draft || stored
   const locked = !current || !access.canManage || (current.isSystem && !access.platformOwner)
   const chapters = useMemo(() => templateChapters(current), [current])
   if (!current) return <Page title={L(en, 'Ερωτηματολόγιο', 'Questionnaire')}><div className="inline-empty">{loading ? L(en, 'Φόρτωση…', 'Loading…') : L(en, 'Δεν βρέθηκε.', 'Not found.')}</div></Page>
-  const set = next => setDraft({ ...current, ...next })
+  const set = (next: AnyRecord) => setDraft({ ...current, ...next })
   const dirty = Boolean(draft) && JSON.stringify(draft) !== JSON.stringify(stored)
-  const questions = current.questions.map((item, index) => ({ ...item, index })).filter(item => chapter === 'all' || item.chapterRef === chapter)
+  const questions = current.questions.map((item: AnyRecord, index: number) => ({ ...item, index })).filter((item: AnyRecord) => chapter === 'all' || item.chapterRef === chapter)
   async function save() {
+    if (!current) return
     if (!String(current.title || '').trim()) { notify(L(en, 'Συμπληρώστε τον τίτλο.', 'Fill in the title.'), 'error'); return }
     setSaving(true)
     try {
@@ -122,6 +124,7 @@ function QuestionnaireEditor({ templateId }) {
     } catch (error) { console.error(error); notify(L(en, 'Δεν ήταν δυνατή η αποθήκευση.', 'The questionnaire could not be saved.'), 'error') } finally { setSaving(false) }
   }
   async function copy() {
+    if (!current) return
     setSaving(true)
     try {
       const saved = await saveAuditTemplate(tenant?.id, copyOfTemplate(current, language))
@@ -133,14 +136,15 @@ function QuestionnaireEditor({ templateId }) {
   }
   async function remove() {
     const ok = await confirm({ title: L(en, 'Διαγραφή ερωτηματολογίου', 'Delete questionnaire'), message: L(en, 'Οι επιθεωρήσεις που έγιναν με αυτό κρατούν τις ερωτήσεις και τις απαντήσεις τους. Για ερωτηματολόγιο που δεν χρησιμοποιείται πια, προτιμήστε να το κάνετε ανενεργό.', 'Audits made with it keep their questions and answers. For one no longer used, prefer to make it inactive.'), confirmLabel: L(en, 'Διαγραφή', 'Delete'), danger: true })
-    if (!ok) return
+    if (!ok || !current) return
     try { await removeAuditTemplate(tenant?.id, current.id); navigate('/quality/audit-questionnaires', { replace: true }) } catch (error) { console.error(error); notify(L(en, 'Δεν ήταν δυνατή η διαγραφή.', 'The questionnaire could not be deleted.'), 'error') }
   }
   const saveQuestion = () => {
+    if (!editing) return
     const list = [...current.questions]
     const item = { ...editing.item, weight: Number(editing.item.weight) > 0 ? Number(editing.item.weight) : 1 }
     if (editing.index == null) list.push(item); else list[editing.index] = item
-    set({ questions: list.map((entry, index) => ({ ...entry, position: index + 1 })) })
+    set({ questions: list.map((entry: AnyRecord, index: number) => ({ ...entry, position: index + 1 })) })
     setEditing(null)
   }
   return <Page fill className="audit-questionnaires-page" navigation={<BackButton onClick={() => navigate('/quality/audit-questionnaires')} label={L(en, 'Πίσω στα ερωτηματολόγια', 'Back to questionnaires')} />}
@@ -179,17 +183,17 @@ function QuestionnaireEditor({ templateId }) {
           <td>{row.question}{row.critical && <> <StatusBadge tone="danger">{L(en, 'Κρίσιμη', 'Critical')}</StatusBadge></>}{row.guidance && <small>{row.guidance}</small>}</td>
           <td><small className="audit-question-evidence">{row.evidence || '—'}</small></td>
           <td className="nowrap-cell">{row.weight}</td>
-          <td>{row.areas?.length ? row.areas.map(area => areaLabel(area, language)).join(', ') : L(en, 'Όλες', 'All')}</td>
+          <td>{row.areas?.length ? row.areas.map((area: string) => areaLabel(area, language)).join(', ') : L(en, 'Όλες', 'All')}</td>
         </>} />
     </div>
     {editing && <ObserverDialog width="wide" title={editing.index == null ? L(en, 'Νέα ερώτηση', 'New question') : `${L(en, 'Ερώτηση', 'Question')} ${editing.index + 1}`} onClose={() => setEditing(null)}
-      footer={!locked && <DialogActions onSave={saveQuestion} disabled={!String(editing.item.question || '').trim()}>{editing.index != null && <Button variant="secondary" onClick={() => { set({ questions: current.questions.filter((_, at) => at !== editing.index).map((entry, index) => ({ ...entry, position: index + 1 })) }); setEditing(null) }}><Trash2 size={15} />{L(en, 'Αφαίρεση ερώτησης', 'Remove question')}</Button>}</DialogActions>}>
-      <QuestionFields item={editing.item} locked={locked} language={language} onChange={next => setEditing(currentEdit => ({ ...currentEdit, item: { ...currentEdit.item, ...next } }))} />
+      footer={!locked && <DialogActions onSave={saveQuestion} disabled={!String(editing.item.question || '').trim()}>{editing.index != null && <Button variant="secondary" onClick={() => { set({ questions: current.questions.filter((_: AnyRecord, at: number) => at !== editing.index).map((entry: AnyRecord, index: number) => ({ ...entry, position: index + 1 })) }); setEditing(null) }}><Trash2 size={15} />{L(en, 'Αφαίρεση ερώτησης', 'Remove question')}</Button>}</DialogActions>}>
+      <QuestionFields item={editing.item} locked={locked} language={language} onChange={next => setEditing(currentEdit => ({ ...currentEdit, item: { ...currentEdit?.item, ...next } }))} />
     </ObserverDialog>}
   </Page>
 }
 
-function QuestionFields({ item, locked, language, onChange }) {
+function QuestionFields({ item, locked, language, onChange }: { item: AnyRecord, locked: boolean, language: string, onChange: (next: AnyRecord) => void }) {
   const en = language === 'en'
   return <FormGrid columns={3}>
     <Field label={L(en, 'Κεφάλαιο', 'Chapter')}><input value={item.chapterRef || ''} disabled={locked} onChange={event => onChange({ chapterRef: event.target.value })} /></Field>

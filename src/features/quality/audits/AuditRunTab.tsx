@@ -1,3 +1,6 @@
+import type { AuditActor } from '../../../core/audit/actor'
+import type { FeedbackContextValue } from '../../../core/feedback/feedbackTypes'
+import type { Dispatch, SetStateAction } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Bug, CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, FileText, Globe, Info, LayoutGrid, MessageSquare, Paperclip, Pencil, Plus, SearchCheck, ShieldCheck, Users, Wrench } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
@@ -22,18 +25,21 @@ import { useAuditTemplates } from './useAuditTemplates'
 import { AuditFindingDialog } from './AuditFindingDialog'
 import './audits.css'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { ReactNode } from 'react'
+import type { IconType } from '../../../design-system/types'
 
-const L = (en, el, english) => (en ? english : el)
-const pick = (pair, en) => pair[en ? 1 : 0]
-const RESULT_SHORT = { yes: ['Ναι', 'Yes'], partial: ['Μερική', 'Partial'], no: ['Όχι', 'No'], na: ['Δ.Ε.', 'N/A'] }
-const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
+const pick = (pair: string[], en: boolean) => pair[en ? 1 : 0]
+const RESULT_SHORT: Record<string, string[]> = { yes: ['Ναι', 'Yes'], partial: ['Μερική', 'Partial'], no: ['Όχι', 'No'], na: ['Δ.Ε.', 'N/A'] }
+const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
 
 // Running an audit: the opening meeting, the questionnaire by chapter (one
 // select per question, a comment, the evidence seen and attachments, a class for
 // every «Μερική» / «Μη συμμόρφωση»), the score per chapter and overall, the
 // findings (and CAPA) the answers become, and the closing meeting. Laid out for
 // a tablet: one question per card, large controls, the save bar in view.
-export function AuditRunTab({ record, setRecord, organizationId, canManage, finalized, language, actor, notify, userId }) {
+export function AuditRunTab({ record, setRecord, organizationId, canManage, finalized, language, actor, notify, userId }: { record: AnyRecord, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, organizationId: string, canManage: boolean, finalized: boolean, language: string, actor: AuditActor, notify: FeedbackContextValue['notify'], userId: string }) {
   const en = language === 'en'
   const { goTo } = useContextualNavigation('/quality')
   const { templates } = useAuditTemplates(organizationId)
@@ -41,35 +47,35 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   // The other standards of the same audit: each one's questionnaire (the hospital's copy, else the library's).
   // Other questionnaires combined into the audit: the ones picked by name, then (older audits) one per extra standard.
   const others = useMemo(() => {
-    const picked = (record.extraTemplateIds || []).map(id => templates.find(item => item.id === id)).filter(Boolean)
-    const byStandard = (record.standards || []).filter(value => value !== record.standard && !picked.some(item => item.standard === value)).map(standard => templates.find(item => item.standard === standard && !item.isSystem && item.active !== false) || templates.find(item => item.standard === standard)).filter(Boolean)
+    const picked = (record.extraTemplateIds || []).map((id: string) => templates.find(item => item.id === id)).filter(Boolean)
+    const byStandard = (record.standards || []).filter((value: string) => value !== record.standard && !picked.some((item: AnyRecord) => item.standard === value)).map((standard: string) => templates.find(item => item.standard === standard && !item.isSystem && item.active !== false) || templates.find(item => item.standard === standard)).filter(Boolean)
     return [...picked, ...byStandard].filter(item => item.id !== record.templateId)
   }, [record.extraTemplateIds, record.standards, record.standard, record.templateId, templates])
   const [allAreas, setAllAreas] = useState(false)
   const stored = useMemo(() => record.checklist || [], [record.checklist])
   // A planned audit opens with its questionnaire for the department and the chapters in scope.
   const initial = useMemo(() => (stored.length || (!template && !others.length) ? stored : questionsForStandards([template, ...others], { department: record.department, scope: record.clausesScope, allAreas })), [stored, template, others, record.department, record.clausesScope, allAreas])
-  const [rows, setRows] = useState(initial)
+  const [rows, setRows] = useState<AnyRecord[]>(initial)
   const [meetings, setMeetings] = useState(() => meetingState(record))
   // A questionnaire of several chapters opens on the first chapter still to answer, one chapter at a time.
   const [standardView, setStandardView] = useState(() => firstOpenView(initial).standard)
   const [chapter, setChapter] = useState(() => firstOpenView(initial).chapter)
   const [openOnly, setOpenOnly] = useState(false)
-  const [attachmentsOf, setAttachmentsOf] = useState(null)
+  const [attachmentsOf, setAttachmentsOf] = useState<AnyRecord | null>(null)
   const [notesOpen, setNotesOpen] = useState(() => new Set())
   const [guideOpen, setGuideOpen] = useState(() => new Set())
   const [adHoc, setAdHoc] = useState('')
   const [saving, setSaving] = useState(false)
-  const [findingFor, setFindingFor] = useState(null)
+  const [findingFor, setFindingFor] = useState<AnyRecord | null>(null)
   // A file or a finding asked for on a row that is not saved yet: the audit saves first, then it opens on the saved row.
-  const [pendingOpen, setPendingOpen] = useState(null)
+  const [pendingOpen, setPendingOpen] = useState<AnyRecord | null>(null)
   useEffect(() => { setRows(initial) }, [initial])
   useEffect(() => { setMeetings(meetingState(record)) }, [record])
   const open = canManage && !finalized && record.status !== 'cancelled'
   // A questionnaire that is fully answered and saved is locked until Edit is pressed.
   const [unlocked, setUnlocked] = useState(false)
   // Like every record: once answers are saved the questionnaire is locked; «⋯ → Edit» opens it.
-  const lockedDone = open && !unlocked && stored.some(row => row.answer)
+  const lockedDone = open && !unlocked && stored.some((row: AnyRecord) => row.answer)
   const editable = open && !lockedDone
   const dirty = JSON.stringify(rows) !== JSON.stringify(stored) || JSON.stringify(meetings) !== JSON.stringify(meetingState(record))
   const score = auditScore(rows)
@@ -77,21 +83,21 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const toRaise = awaitingFinding(rows)
   const chapters = score.chapters
   const shownChapters = standardView === 'all' && score.standards.length > 1 ? [] : chapters.filter(item => standardView === 'all' || item.standard === standardView)
-  const visible = rows.map((row, index) => ({ row, index })).filter(({ row }) => (standardView === 'all' || (row.standard || '') === standardView) && (chapter === 'all' || chapterKey(row) === chapter) && (!openOnly || !row.answer || (needsClass(row) && (!row.findingClass || !row.findingId))))
+  const visible = rows.map((row: AnyRecord, index: number) => ({ row, index })).filter(({ row }: AnyRecord) => (standardView === 'all' || (row.standard || '') === standardView) && (chapter === 'all' || chapterKey(row) === chapter) && (!openOnly || !row.answer || (needsClass(row) && (!row.findingClass || !row.findingId))))
   const chapterAt = shownChapters.findIndex(item => item.key === chapter)
   const nextChapter = chapter !== 'all' && chapterAt >= 0 ? shownChapters[chapterAt + 1] : null
-  const setRow = (index, next) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next, ...(next.answer !== undefined && !classesFor(next.answer).includes(row.findingClass) ? { findingClass: '' } : {}) } : row)))
-  const rowKey = row => `${row.standard || ''}|${row.templateQuestionId || ''}|${row.position}`
+  const setRow = (index: number, next: AnyRecord) => setRows((current: AnyRecord[]) => current.map((row: AnyRecord, at) => (at === index ? { ...row, ...next, ...(next.answer !== undefined && !classesFor(next.answer).includes(row.findingClass) ? { findingClass: '' } : {}) } : row)))
+  const rowKey = (row: AnyRecord) => `${row.standard || ''}|${row.templateQuestionId || ''}|${row.position}`
   useEffect(() => {
     if (!pendingOpen) return
-    const hit = rows.find(row => isSavedRow(row, organizationId) && rowKey(row) === pendingOpen.key)
+    const hit = rows.find((row: AnyRecord) => isSavedRow(row, organizationId) && rowKey(row) === pendingOpen.key)
     if (!hit) return
     if (pendingOpen.kind === 'files') setAttachmentsOf(hit.id); else setFindingFor(hit)
     setPendingOpen(null)
   }, [rows, pendingOpen, organizationId])
   const complete = rows.length > 0 && score.overall.unanswered === 0 && toClassify.length === 0
 
-  async function persist(next, message) {
+  async function persist(next: AnyRecord, message: string) {
     setSaving(true)
     try {
       const saved = await saveQualityRecord('audits', organizationId, next)
@@ -105,7 +111,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       return null
     } finally { setSaving(false) }
   }
-  const openOnRow = async (row, kind) => {
+  const openOnRow = async (row: AnyRecord, kind: string) => {
     if (kind === 'files' && attachmentsOf === row.id) { setAttachmentsOf(null); return }
     if (isSavedRow(row, organizationId) && !dirty) { if (kind === 'files') setAttachmentsOf(row.id); else setFindingFor(row); return }
     // Unsaved: save the audit (the answers so far), then open on the saved row.
@@ -113,14 +119,14 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
     const saved = await save()
     if (saved) setPendingOpen({ kind, key })
   }
-  const history = (action, extra = {}) => [{ at: new Date().toISOString(), action, actor: actor?.name || '', ...extra }, ...(record.history || [])]
-  const withMeetings = base => ({ ...base, openingMeeting: meetings.opening, closingMeeting: meetings.closing, conclusion: meetings.conclusion, auditeeRepresentative: meetings.representative })
+  const history = (action: string, extra: AnyRecord = {}) => [{ at: new Date().toISOString(), action, actor: actor?.name || '', ...extra }, ...(record.history || [])]
+  const withMeetings = (base: AnyRecord) => ({ ...base, openingMeeting: meetings.opening, closingMeeting: meetings.closing, conclusion: meetings.conclusion, auditeeRepresentative: meetings.representative })
   // «⋯» on the questionnaire card: edit, and complete once every answer is in (as on every record).
   const menuItems = lockedDone ? [
     { id: 'edit', label: L(en, 'Επεξεργασία', 'Edit'), icon: Pencil, onClick: () => setUnlocked(true) },
     { id: 'finish', label: L(en, 'Ολοκλήρωση επιθεώρησης', 'Complete audit'), icon: CheckCircle2, disabled: !complete || saving, onClick: () => finish() },
   ] : []
-  const save = () => persist(withMeetings({ ...record, checklist: rows, status: record.status === 'planned' && (rows.some(row => row.answer) || meetings.opening.date) ? 'inProgress' : record.status, history: history('recordUpdated') }), L(en, 'Η επιθεώρηση αποθηκεύτηκε.', 'Audit saved.'))
+  const save = () => persist(withMeetings({ ...record, checklist: rows, status: record.status === 'planned' && (rows.some((row: AnyRecord) => row.answer) || meetings.opening.date) ? 'inProgress' : record.status, history: history('recordUpdated') }), L(en, 'Η επιθεώρηση αποθηκεύτηκε.', 'Audit saved.'))
   const finish = () => persist(withMeetings({ ...record, checklist: rows, status: 'completed', completedDate: meetings.closing.date || record.completedDate || hospitalToday(), history: history('auditCompleted') }), L(en, 'Η επιθεώρηση ολοκληρώθηκε.', 'Audit completed.'))
   const addQuestion = () => {
     const text = adHoc.trim()
@@ -132,14 +138,14 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   }
 
   // One answer becomes a finding (and, when asked, its CAPA); the answer keeps the finding's code.
-  async function raise(row, { owner, dueDate, findingClass, withCapa, capaOwner, capaDueDate }) {
+  async function raise(row: AnyRecord, { owner, dueDate, findingClass, withCapa, capaOwner, capaDueDate }: AnyRecord) {
     setSaving(true)
     try {
       const draft = findingDraftFromAnswer(record, { ...row, findingClass }, { language, owner, dueDate })
       const finding = await createQualityRecord('findings', organizationId, { ...draft, reportedByLabel: actor?.name || '', history: [{ at: new Date().toISOString(), action: 'findingCreated', actor: actor?.name || '' }] }, userId)
       let capa = null
       if (withCapa) capa = await createQualityRecord('capas', organizationId, { ...capaDraftFromFinding(finding, { owner: capaOwner || owner, dueDate: capaDueDate || dueDate, language }), history: [{ at: new Date().toISOString(), action: 'capaAssigned', actor: actor?.name || '' }] }, userId)
-      const next = rows.map(item => (item.id === row.id ? { ...item, findingClass, findingId: finding.id } : item))
+      const next = rows.map((item: AnyRecord) => (item.id === row.id ? { ...item, findingClass, findingId: finding.id } : item))
       setRows(next)
       await persist(withMeetings({ ...record, checklist: next, history: history('findingCreated') }), capa ? L(en, `Δημιουργήθηκαν το εύρημα ${finding.id} και η διορθωτική ενέργεια ${capa.id}.`, `Finding ${finding.id} and corrective action ${capa.id} created.`) : L(en, `Δημιουργήθηκε το εύρημα ${finding.id}.`, `Finding ${finding.id} created.`))
       setFindingFor(null)
@@ -158,7 +164,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
         const finding = await createQualityRecord('findings', organizationId, { ...findingDraftFromAnswer(record, row, { language }), reportedByLabel: actor?.name || '', history: [{ at: new Date().toISOString(), action: 'findingCreated', actor: actor?.name || '' }] }, userId)
         codes.set(row.id, finding.id)
       }
-      const next = rows.map(item => (codes.has(item.id) ? { ...item, findingId: codes.get(item.id) } : item))
+      const next = rows.map((item: AnyRecord) => (codes.has(item.id) ? { ...item, findingId: codes.get(item.id) } : item))
       setRows(next)
       await persist(withMeetings({ ...record, checklist: next, history: history('findingCreated') }), L(en, `Δημιουργήθηκαν ${codes.size} ευρήματα.`, `${codes.size} findings created.`))
     } catch (error) {
@@ -204,7 +210,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       </div>} />
     {!rows.length && <div className="inline-empty">{template ? L(en, 'Καμία ερώτηση για αυτό το πεδίο.', 'No question for this scope.') : L(en, 'Η επιθεώρηση δεν έχει ερωτηματολόγιο· ορίστε το στον «Σχεδιασμό» ή προσθέστε ερωτήσεις εδώ.', 'This audit has no questionnaire; set one in «Planning» or add questions here.')}</div>}
     <ol className="audit-questions">
-      {visible.map(({ row, index }) => {
+      {visible.map(({ row, index }: AnyRecord) => {
         const classes = classesFor(row.answer)
         const first = index === 0 || chapterKey(rows[index - 1]) !== chapterKey(row)
         return <li key={row.id || index} className={`audit-question is-${row.answer || 'open'}`}>
@@ -253,7 +259,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       <button type="button" className="audit-answer-link" disabled={!adHoc.trim()} onClick={addQuestion}><Plus size={15} /> {L(en, 'Προσθήκη', 'Add')}</button>
     </div>}
 
-    {(toClassify.length > 0 || toRaise.length > 0 || rows.some(row => row.findingId)) && <div className={`governance-banner ${toClassify.length || toRaise.length ? 'warning' : 'success'} quality-audit-findings`}><ClipboardCheck size={17} aria-hidden="true" /><span>{toClassify.length
+    {(toClassify.length > 0 || toRaise.length > 0 || rows.some((row: AnyRecord) => row.findingId)) && <div className={`governance-banner ${toClassify.length || toRaise.length ? 'warning' : 'success'} quality-audit-findings`}><ClipboardCheck size={17} aria-hidden="true" /><span>{toClassify.length
       ? L(en, `${toClassify.length} απαντήσεις «Μερική» ή «Μη συμμόρφωση» χωρίς κατάταξη (Μείζον, Έλασσον, Παρατήρηση, Ευκαιρία βελτίωσης).`, `${toClassify.length} «Partial» or «Nonconformity» answers without a class.`)
       : toRaise.length ? L(en, `${toRaise.length} κατατεταγμένες απαντήσεις χωρίς εύρημα: ${[...new Set(toRaise.map(row => findingClassLabel(row.findingClass, language)))].join(', ')}.`, `${toRaise.length} classified answers without a finding.`)
       : L(en, 'Κάθε κατατεταγμένη απάντηση έχει το εύρημά της.', 'Every classified answer has its finding.')}</span>{canManage && !finalized && toRaise.length > 0 && !dirty && <Button disabled={saving} onClick={raiseAll}><FilePlus2 size={15} /> {L(en, 'Δημιουργία ευρημάτων', 'Create findings')}</Button>}</div>}
@@ -267,23 +273,23 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
     </MeetingLine>
 
     {editable && <div className="inline-edit-footer">
-      {stored.some(row => row.answer) && <Button variant="secondary" disabled={saving} onClick={() => { setRows(stored); setMeetings(meetingState(record)); setUnlocked(false) }}>{L(en, 'Ακύρωση', 'Cancel')}</Button>}
+      {stored.some((row: AnyRecord) => row.answer) && <Button variant="secondary" disabled={saving} onClick={() => { setRows(stored); setMeetings(meetingState(record)); setUnlocked(false) }}>{L(en, 'Ακύρωση', 'Cancel')}</Button>}
       <SaveButton loading={saving} disabled={!dirty || saving} onClick={save}>{L(en, 'Αποθήκευση', 'Save')}</SaveButton>
     </div>}
-    {findingFor && <AuditFindingDialog row={findingFor} audit={record} language={language} saving={saving} onClose={() => setFindingFor(null)} onCreate={values => raise(findingFor, values)} />}
+    {findingFor && <AuditFindingDialog row={findingFor} audit={record} language={language} saving={saving} onClose={() => setFindingFor(null)} onCreate={(values: AnyRecord) => raise(findingFor, values)} />}
   </div>
 }
 
 // A small symbol for the chapters of the basic questionnaire (any other chapter gets the list symbol).
-const CHAPTER_ICONS = { ΑΣΦ: ShieldCheck, ΛΟΙ: Bug, ΕΞΟ: Wrench, ΤΕΚ: FileText, ΠΡΟ: Users, ΣΥΜ: AlertTriangle, ΠΑΡ: MessageSquare, ΔΙΕ: Globe }
-const chapterIcon = ref => {
+const CHAPTER_ICONS: Record<string, IconType> = { ΑΣΦ: ShieldCheck, ΛΟΙ: Bug, ΕΞΟ: Wrench, ΤΕΚ: FileText, ΠΡΟ: Users, ΣΥΜ: AlertTriangle, ΠΑΡ: MessageSquare, ΔΙΕ: Globe }
+const chapterIcon = (ref: string) => {
   const Icon = CHAPTER_ICONS[String(ref || '').trim().toUpperCase()]
   return Icon ? <Icon size={16} aria-hidden="true" /> : null
 }
 
 // What to open on: the first standard still to answer and its first chapter with an answer missing
 // (one standard and one chapter at a time), or everything when nothing is open or there is one chapter.
-const firstOpenView = rows => {
+const firstOpenView = (rows: AnyRecord[]) => {
   const score = auditScore(rows)
   const standard = score.standards.length > 1 ? (score.standards.find(item => item.unanswered > 0)?.standard ?? 'all') : 'all'
   const chapters = score.chapters.filter(item => standard === 'all' || item.standard === standard)
@@ -292,10 +298,10 @@ const firstOpenView = rows => {
 }
 
 // A meeting on one line: its title and what was recorded, opening the fields on a click.
-function MeetingLine({ title, summary, language, defaultOpen = false, children }) {
+function MeetingLine({ title, summary, language, defaultOpen = false, children }: { title: string, summary: string, language: string, defaultOpen?: boolean, children: ReactNode }) {
   const en = language === 'en'
   const [open, setOpen] = useState(defaultOpen)
-  const box = useRef(null)
+  const box = useRef<HTMLDivElement>(null)
   // The fields open under the line, often below the edge of the screen: bring them into view.
   useEffect(() => { if (open && !defaultOpen) box.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }, [open, defaultOpen])
   return <div className="audit-meeting" ref={box}>
@@ -304,11 +310,11 @@ function MeetingLine({ title, summary, language, defaultOpen = false, children }
   </div>
 }
 
-const meetingState = record => ({
+const meetingState = (record: AnyRecord) => ({
   opening: { date: record.openingMeeting?.date || '', attendees: record.openingMeeting?.attendees || '' },
   closing: { date: record.closingMeeting?.date || '', attendees: record.closingMeeting?.attendees || '' },
   conclusion: record.conclusion || '',
   representative: record.auditeeRepresentative || '',
 })
 // In the cloud an answer can carry a finding or a file once it is saved (its id is the row's).
-const isSavedRow = (row, organizationId) => !organizationId || isDemoDataEnvironment() || isUuid(row.id)
+const isSavedRow = (row: AnyRecord, organizationId: string | null | undefined) => !organizationId || isDemoDataEnvironment() || isUuid(row.id)

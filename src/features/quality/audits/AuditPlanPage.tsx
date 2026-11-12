@@ -17,8 +17,9 @@ import { independenceBlocks } from './auditModel'
 import { AuditPlanFields } from './AuditPlanFields'
 import { useAuditTemplates, useAuditorCompetence } from './useAuditTemplates'
 import './audits.css'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const L = (en, el, english) => (en ? english : el)
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
 
 // An audit's planning, on a page of its own (not a pop-up): questionnaire, date, team and the rest.
 // An audit whose lead auditor audits their own department is not saved.
@@ -35,15 +36,15 @@ export function AuditPlanPage() {
   const actor = useMemo(() => auditActorFromAuth({ profile, user }), [profile, user])
   const { templates } = useAuditTemplates(tenant?.id)
   const competence = useAuditorCompetence(tenant?.id)
-  const [record, setRecord] = useState(null)
-  const [draft, setDraft] = useState(null)
+  const [record, setRecord] = useState<AnyRecord | null>(null)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [missing, setMissing] = useState(false)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     let active = true
     loadQualityRecords('audits', tenant?.id).then(rows => {
       if (!active) return
-      const found = rows.find(row => String(row.id) === String(recordId))
+      const found = rows.find((row: AnyRecord) => String(row.id) === String(recordId))
       if (found) { setRecord(found); setDraft(structuredClone(found)) } else setMissing(true)
     }).catch(() => { if (active) setMissing(true) })
     return () => { active = false }
@@ -53,7 +54,7 @@ export function AuditPlanPage() {
     if (blocked) { notify(L(en, 'Ο επικεφαλής επιθεωρητής δεν μπορεί να επιθεωρήσει το δικό του τμήμα.', 'The lead auditor cannot audit their own department.'), 'error'); return }
     setSaving(true)
     try {
-      await saveQualityRecord('audits', tenant?.id, { ...draft, history: [{ at: new Date().toISOString(), action: 'recordUpdated', actor: actor?.name || '' }, ...(record.history || [])] })
+      await saveQualityRecord('audits', tenant?.id, { ...draft, history: [{ at: new Date().toISOString(), action: 'recordUpdated', actor: actor?.name || '' }, ...(record?.history || [])] })
       notify(L(en, 'Ο σχεδιασμός αποθηκεύτηκε.', 'Planning saved.'), 'success')
       goBack()
     } catch (error) {

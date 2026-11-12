@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadAuditTemplates } from './auditTemplateService'
 import { loadAuditorCompetence } from './auditCompetenceService'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // The questionnaires the hospital can use: its own copies and the platform library.
 // `false` for the organization loads nothing (a form that does not need them).
-export function useAuditTemplates(organizationId) {
-  const [templates, setTemplates] = useState([])
+export function useAuditTemplates(organizationId: string | null | undefined | false) {
+  const [templates, setTemplates] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(organizationId !== false)
   const reload = useCallback(() => {
     if (organizationId === false) return Promise.resolve()
@@ -17,8 +18,8 @@ export function useAuditTemplates(organizationId) {
 }
 
 // The auditor certificates and trainings, for the competence check of a team.
-export function useAuditorCompetence(organizationId) {
-  const [competence, setCompetence] = useState({ certificates: [], assignments: [], programs: [] })
+export function useAuditorCompetence(organizationId: string | null | undefined | false) {
+  const [competence, setCompetence] = useState<{ certificates: AnyRecord[], assignments: AnyRecord[], programs: AnyRecord[] }>({ certificates: [], assignments: [], programs: [] })
   useEffect(() => {
     let active = true
     if (organizationId === false) return () => { active = false }

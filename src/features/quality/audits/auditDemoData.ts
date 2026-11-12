@@ -1,23 +1,24 @@
 import { SYSTEM_TEMPLATES } from './seed/index.js'
 import { questionsForAudit } from './auditModel'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // The demo's audit programme for the year: audits on the six standards across
 // the wards, done, under way and planned, with their teams, meetings, answers,
 // the findings their answers became and a CAPA. The database demo has the same
 // story (20261124100100_quality_audit_programme_demo.sql).
 
-const template = key => SYSTEM_TEMPLATES.find(item => item.key === key)
-const DEPT_EN = { ΜΕΘ: 'ICU', Παθολογική: 'Internal Medicine', Χειρουργική: 'Surgery', ΤΕΠ: 'ED', Καρδιολογική: 'Cardiology', Εργαστήριο: 'Laboratory', '': '' }
+const template = (key: string) => SYSTEM_TEMPLATES.find(item => item.key === key)
+const DEPT_EN: Record<string, string> = { ΜΕΘ: 'ICU', Παθολογική: 'Internal Medicine', Χειρουργική: 'Surgery', ΤΕΠ: 'ED', Καρδιολογική: 'Cardiology', Εργαστήριο: 'Laboratory', '': '' }
 const lead = { id: 'tm-lead', role: 'lead', employeeId: 'EMP-008', name: 'Σταθάτου Δήμητρα', external: false, department: 'Ποιότητα' }
-const member = (id, employeeId, name, department) => ({ id, role: 'member', employeeId, name, external: false, department })
-const external = (id, name, affiliation, role = 'member') => ({ id, role, employeeId: null, name, external: true, affiliation })
+const member = (id: string, employeeId: string, name: string, department: string) => ({ id, role: 'member', employeeId, name, external: false, department })
+const external = (id: string, name: string, affiliation: string, role = 'member') => ({ id, role, employeeId: null, name, external: true, affiliation })
 
 // Every answer is «Συμμορφώνεται» except the few the story is about (by clause),
 // and one in every fifteen is «Δεν εφαρμόζεται».
 // An override names a clause («7.5.3») or its n-th question («IPSG.3#2»).
-function answered(rows, overrides = {}, { unanswered = 0 } = {}) {
-  const seen = {}
-  return rows.map((row, index) => {
+function answered(rows: AnyRecord[], overrides: AnyRecord = {}, { unanswered = 0 }: { unanswered?: number } = {}) {
+  const seen: Record<string, number> = {}
+  return rows.map((row: AnyRecord, index: number) => {
     seen[row.clauseRef] = (seen[row.clauseRef] || 0) + 1
     const key = [`${row.clauseRef}#${seen[row.clauseRef]}`, seen[row.clauseRef] === 1 ? row.clauseRef : null].find(ref => ref && overrides[ref])
     if (key) return { ...row, ...overrides[key] }
@@ -26,24 +27,24 @@ function answered(rows, overrides = {}, { unanswered = 0 } = {}) {
   })
 }
 
-function audit(code, { key, department = '', title, titleEn, type = 'internal', planned, completed = null, status, scope = [], team = [], risk = 'medium', monthOnly = false, overrides = {}, unanswered = 0, opening = null, closing = null, conclusion = '', representative = '', followUpOf = '' }) {
-  const questionnaire = template(key)
+function audit(code: string, { key, department = '', title, titleEn, type = 'internal', planned, completed = null, status, scope = [], team = [], risk = 'medium', monthOnly = false, overrides = {}, unanswered = 0, opening = null, closing = null, conclusion = '', representative = '', followUpOf = '' }: AnyRecord) {
+  const questionnaire = template(key) as AnyRecord
   const rows = status === 'planned' ? [] : answered(questionsForAudit(questionnaire, { department, scope }), overrides, { unanswered })
-  const leadMember = team.find(item => item.role === 'lead')
+  const leadMember = team.find((item: AnyRecord) => item.role === 'lead')
   return {
     id: code, title, titleEn, department, departmentEn: DEPT_EN[department] ?? department, departmentId: '', auditType: type,
     plannedDate: planned, completedDate: completed, status, leadAuditor: leadMember?.name || '', leadAuditorId: null,
-    scope: questionnaire.scope, scopeEn: questionnaire.scope, findingIds: [], attachments: [],
+    scope: questionnaire.scope, scopeEn: questionnaire.scope, findingIds: [] as string[], attachments: [],
     history: [{ at: `${planned}T09:00:00+03:00`, action: 'recordCreated', actor: 'Υπεύθυνος Ποιότητας' }, ...(completed ? [{ at: `${completed}T15:00:00+03:00`, action: 'auditCompleted', actor: leadMember?.name || '' }] : [])],
     checklist: rows, checklistSource: `template:${questionnaire.id}`,
     templateId: questionnaire.id, templateTitle: questionnaire.title, templateVersion: questionnaire.version, standard: questionnaire.standard,
-    clausesScope: scope, plannedMonthOnly: monthOnly, riskLevel: risk, frequencyMonths: { high: 6, medium: 12, low: 24 }[risk],
+    clausesScope: scope, plannedMonthOnly: monthOnly, riskLevel: risk, frequencyMonths: ({ high: 6, medium: 12, low: 24 } as Record<string, number>)[risk],
     openingMeeting: opening || { date: '', attendees: '' }, closingMeeting: closing || { date: '', attendees: '' },
     auditeeRepresentative: representative, conclusion, followUpOf, origin: 'seed', team,
   }
 }
 
-const nc = (answer, findingClass, note, evidence, findingId) => ({ answer, findingClass, note, evidence, ...(findingId ? { findingId } : {}) })
+const nc = (answer: string, findingClass: string, note: string, evidence: string, findingId?: string) => ({ answer, findingClass, note, evidence, ...(findingId ? { findingId } : {}) })
 
 export const programmeAudits = [
   // The programme of 2025 (owner, 9/11/2026: the Demo shows the whole of 2025).
@@ -98,7 +99,7 @@ export const programmeAudits = [
 ]
 
 // The English title and description of each audit finding.
-const FINDING_EN = {
+const FINDING_EN: Record<string, string[]> = {
   'FND-2502-111': ['ISO 9001 7.5.3 · Old protocol version at the station', 'Audit AUD-2502-111, ISO 9001 7.5.3: an old version of the preoperative preparation protocol was found at the station.'],
   'FND-2505-112': ['ISO 15224 8.5.1 · ICU transfer handover form', 'The handover of patients from the ICU to the wards does not follow a single form.'],
   'FND-2603-101': ['ISO 9001 7.5.3 · Two versions of a form at the station', 'Audit AUD-2603-101, ISO 9001 7.5.3: two versions of the nursing accountability form were found at the station.'],
@@ -111,10 +112,10 @@ const FINDING_EN = {
   'FND-2609-108': ['JCI PCI.8 · Contact isolation signage', 'Incomplete contact isolation signage in one room.'],
   'FND-2609-109': ['JCI MMU.6 · Barcode scanning at administration', 'Barcode scanning at medication administration is proposed.'],
 }
-const finding = (id, auditId, itemRef, findingClass, severity, status, title, description, owner, dueDate, extra = {}) => {
-  const source = programmeAudits.find(item => item.id === auditId)
+const finding = (id: string, auditId: string, itemRef: string, findingClass: string, severity: string, status: string, title: string, description: string, owner: string, dueDate: string, extra: AnyRecord = {}) => {
+  const source = programmeAudits.find(item => item.id === auditId) as AnyRecord
   const [itemClause, nth = 1] = itemRef.split('#')
-  const row = source.checklist.filter(item => item.clauseRef === itemClause)[Number(nth) - 1]
+  const row = source.checklist.filter((item: AnyRecord) => item.clauseRef === itemClause)[Number(nth) - 1]
   return { id, title, titleEn: FINDING_EN[id]?.[0] || title, source: 'audit', sourceId: auditId, department: source.department, departmentEn: source.departmentEn, departmentId: '', date: source.completedDate, severity, status, owner, owners: [owner], description, descriptionEn: FINDING_EN[id]?.[1] || description, attachments: [], history: [{ at: `${source.completedDate}T15:30:00+03:00`, action: 'findingCreated', actor: 'Σταθάτου Δήμητρα' }],
     findingClass, auditItemId: row?.id || null, clauseRef: itemClause, standard: source.standard, dueDate, verificationStatus: 'pending', verifiedOn: '', verifiedBy: '', verificationNote: '', followUpAuditId: '', ...extra }
 }
@@ -142,6 +143,6 @@ export const programmeCapas = [
 
 // The answers that became findings point at them (the demo keeps codes).
 for (const item of programmeFindings) {
-  const source = programmeAudits.find(entry => entry.id === item.sourceId)
+  const source = programmeAudits.find(entry => entry.id === item.sourceId) as AnyRecord
   source.findingIds.push(item.id)
 }
