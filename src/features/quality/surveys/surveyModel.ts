@@ -1,4 +1,12 @@
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
+
+// A survey, one of its questions and one response (answers by question id), as the screens use them.
+export type Survey = AnyRecord
+export type SurveyQuestion = AnyRecord
+export type SurveyResponse = AnyRecord
+export type SurveyAnswers = AnyRecord
+type Labelled = { value: unknown, label: string[] }
 // Satisfaction surveys (ISO 9001 §9.1.2): the questionnaires, the templates a
 // hospital starts from, and what the answers say. A survey's answers never
 // carry who gave them.
@@ -31,13 +39,13 @@ export const RESPONSE_CHANNELS = [
   { value: 'paper', label: ['Έντυπο', 'Paper form'] },
 ]
 
-const pick = (list, value, language) => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
-export const audienceLabel = (value, language) => pick(SURVEY_AUDIENCES, value, language)
-export const surveyStatusLabel = (value, language) => pick(SURVEY_STATUSES, value, language)
-export const surveyStatusTone = value => SURVEY_STATUSES.find(item => item.value === value)?.tone || 'neutral'
-export const questionTypeLabel = (value, language) => pick(QUESTION_TYPES, value, language)
-export const channelLabel = (value, language) => pick(RESPONSE_CHANNELS, value, language)
-export const textOf = (item, language) => (language === 'en' ? item?.labelEn || item?.titleEn || item?.label || item?.title : item?.label || item?.title) || ''
+const pick = (list: readonly Labelled[], value: unknown, language: string) => (list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || '') as string
+export const audienceLabel = (value: unknown, language: string) => pick(SURVEY_AUDIENCES, value, language)
+export const surveyStatusLabel = (value: unknown, language: string) => pick(SURVEY_STATUSES, value, language)
+export const surveyStatusTone = (value: unknown) => SURVEY_STATUSES.find(item => item.value === value)?.tone || 'neutral'
+export const questionTypeLabel = (value: unknown, language: string) => pick(QUESTION_TYPES, value, language)
+export const channelLabel = (value: unknown, language: string) => pick(RESPONSE_CHANNELS, value, language)
+export const textOf = (item: AnyRecord | null | undefined, language: string): string => (language === 'en' ? item?.labelEn || item?.titleEn || item?.label || item?.title : item?.label || item?.title) || ''
 
 // The words of a 1–5 scale, lowest first. 4 and 5 count as satisfied.
 export const SCALES = [
@@ -46,11 +54,11 @@ export const SCALES = [
   { value: 'agree', label: ['Διαφωνώ απόλυτα → Συμφωνώ απόλυτα', 'Strongly disagree → Strongly agree'], steps: [['Διαφωνώ απόλυτα', 'Strongly disagree'], ['Διαφωνώ', 'Disagree'], ['Ούτε συμφωνώ ούτε διαφωνώ', 'Neither'], ['Συμφωνώ', 'Agree'], ['Συμφωνώ απόλυτα', 'Strongly agree']] },
   { value: 'speed', label: ['Αργή → Άμεση', 'Slow → Immediate'], steps: [['Αργή', 'Slow'], ['Μέτρια', 'Fair'], ['Ικανοποιητική', 'Satisfactory'], ['Αρκετά καλή', 'Quite good'], ['Άμεση', 'Immediate']] },
 ]
-export const scaleOf = question => (SCALES.find(item => item.value === question?.scale) || SCALES[0]).steps
+export const scaleOf = (question: SurveyQuestion | null | undefined) => (SCALES.find(item => item.value === question?.scale) || SCALES[0]).steps
 export const RATING_LABELS = SCALES[0].steps
 
 // A question shown only after another's answer («If yes, the repair was…»).
-export function isQuestionShown(question, answers = {}) {
+export function isQuestionShown(question: SurveyQuestion | null | undefined, answers: SurveyAnswers = {}) {
   const rule = question?.showWhen
   if (!rule?.question) return true
   const value = answers[rule.question]
@@ -59,8 +67,8 @@ export function isQuestionShown(question, answers = {}) {
 
 // --- Templates ----------------------------------------------------------------------
 
-const q = (id, section, type, label, labelEn, extra = {}) => ({ id, section, type, label, labelEn, required: type !== 'text', options: [], ...(type === 'rating' ? { scale: 'quality' } : {}), ...extra })
-const opt = (value, label, labelEn) => ({ value, label, labelEn })
+const q = (id: string, section: string, type: string, label: string, labelEn: string, extra: AnyRecord = {}): SurveyQuestion => ({ id, section, type, label, labelEn, required: type !== 'text', options: [], ...(type === 'rating' ? { scale: 'quality' } : {}), ...extra })
+const opt = (value: string, label: string, labelEn: string) => ({ value, label, labelEn })
 
 const INPATIENT = [
   q('admission_welcome', 'admission', 'rating', 'Υποδοχή και εξυπηρέτηση κατά την εισαγωγή', 'Welcome and service on admission'),
@@ -109,7 +117,7 @@ const STAFF = [
   q('comments', 'comments', 'text', 'Προτάσεις', 'Suggestions'),
 ]
 
-const SECTIONS = {
+const SECTIONS: Record<string, string[]> = {
   admission: ['Εισαγωγή', 'Admission'], nursing: ['Νοσηλευτική φροντίδα', 'Nursing care'], medical: ['Ιατρική φροντίδα', 'Medical care'],
   environment: ['Περιβάλλον', 'Environment'], discharge: ['Έξοδος', 'Discharge'], safety: ['Ασφάλεια', 'Safety'], overall: ['Συνολικά', 'Overall'],
   comments: ['Σχόλια', 'Comments'], access: ['Πρόσβαση και αναμονή', 'Access and waiting'], care: ['Εξυπηρέτηση', 'Care'], work: ['Εργασία', 'Work'], team: ['Ομάδα', 'Team'],
@@ -117,14 +125,14 @@ const SECTIONS = {
   reception: ['Υποδοχή', 'Reception'], food: ['Διατροφή', 'Food'], meals: ['Τα γεύματα', 'The meals'], floor: ['Φροντίδα στον όροφο', 'Care on the floor'], service: ['Σερβίρισμα', 'Service'], room: ['Δωμάτιο και επισκεπτήριο', 'Room and visits'], services: ['Υπηρεσίες', 'Services'], information: ['Ενημέρωση', 'Information'],
 }
 // A survey's sections: its own, then any its questions name (with their usual titles).
-export function sectionsOf(survey) {
-  const own = (survey?.sections || []).filter(item => item?.key)
+export function sectionsOf(survey: Survey | null | undefined): AnyRecord[] {
+  const own: AnyRecord[] = (survey?.sections || []).filter((item: AnyRecord) => item?.key)
   const named = own.map(item => item.key)
-  const keys = [...new Set((survey?.questions || []).map(question => question.section || '').filter(key => key && !named.includes(key)))]
+  const keys: string[] = [...new Set<string>((survey?.questions || []).map((question: SurveyQuestion) => question.section || '').filter((key: string) => key && !named.includes(key)))]
   return [...own, ...keys.map(key => ({ key, label: SECTIONS[key]?.[0] || key, labelEn: SECTIONS[key]?.[1] || key }))]
 }
-export const sectionLabel = (key, language, sections = []) => { const own = sections.find(item => item.key === key); return own ? textOf(own, language) : SECTIONS[key]?.[language === 'en' ? 1 : 0] || key || '' }
-const sectionList = keys => keys.map(key => ({ key, label: SECTIONS[key][0], labelEn: SECTIONS[key][1] }))
+export const sectionLabel = (key: string, language: string, sections: AnyRecord[] = []) => { const own = sections.find(item => item.key === key); return own ? textOf(own, language) : SECTIONS[key]?.[language === 'en' ? 1 : 0] || key || '' }
+const sectionList = (keys: string[]) => keys.map(key => ({ key, label: SECTIONS[key][0], labelEn: SECTIONS[key][1] }))
 
 // The questionnaires hospitals already hand out on discharge: one for the
 // maternity floor and one for the medical and surgical floors. «{hospital}»
@@ -211,7 +219,7 @@ const KITCHEN = [
   q('improve', 'comments', 'text', 'Τι θα βελτιώνατε στο φαγητό;', 'What would you improve in the food?'),
 ]
 
-export const SURVEY_TEMPLATES = [
+export const SURVEY_TEMPLATES: Survey[] = [
   { key: 'maternity', audience: 'patients', title: 'Ερωτηματολόγιο Μαιευτικού ορόφου', titleEn: 'Maternity floor questionnaire', description: 'Η γνώμη σας μάς βοηθά να βελτιώνουμε τις υπηρεσίες μας. Λίγα λεπτά, ανώνυμα.', descriptionEn: 'Your opinion helps us improve our services. A few minutes, anonymous.', sections: sectionList(['about', 'choice', 'classes', 'reception', 'floor', 'food', 'room', 'services', 'overall', 'information', 'comments']), questions: MATERNITY },
   { key: 'wards', audience: 'patients', title: 'Ερωτηματολόγιο Νοσηλευτικού ορόφου', titleEn: 'Ward questionnaire', description: 'Η γνώμη σας μάς βοηθά να βελτιώνουμε τις υπηρεσίες μας. Λίγα λεπτά, ανώνυμα.', descriptionEn: 'Your opinion helps us improve our services. A few minutes, anonymous.', sections: sectionList(STAY_SECTIONS), questions: WARDS },
   { key: 'kitchen', audience: 'patients', title: 'Ερωτηματολόγιο Κουζίνας', titleEn: 'Kitchen questionnaire', description: 'Πείτε μας πώς ήταν τα γεύματά σας. Λίγα λεπτά, ανώνυμα.', descriptionEn: 'Tell us how your meals were. A few minutes, anonymous.', sections: sectionList(['meals', 'service', 'overall', 'comments']), questions: KITCHEN },
@@ -222,32 +230,32 @@ export const SURVEY_TEMPLATES = [
 ]
 
 // hospital: the name that takes the place of «{hospital}» in the questions.
-export function surveyFromTemplate(key, { hospital = '' } = {}) {
+export function surveyFromTemplate(key: string, { hospital = '' } = {}): Survey {
   const template = SURVEY_TEMPLATES.find(item => item.key === key) || SURVEY_TEMPLATES[0]
-  const named = text => String(text || '').replaceAll('{hospital}', hospital || 'νοσοκομείο')
-  const namedEn = text => String(text || '').replaceAll('{hospital}', hospital || 'the hospital')
+  const named = (text: unknown) => String(text || '').replaceAll('{hospital}', hospital || 'νοσοκομείο')
+  const namedEn = (text: unknown) => String(text || '').replaceAll('{hospital}', hospital || 'the hospital')
   return {
     id: '', code: '', templateKey: template.key, audience: template.audience, title: template.title, titleEn: template.titleEn,
     description: template.description, descriptionEn: template.descriptionEn, departmentIds: [], sections: structuredClone(template.sections || []),
-    questions: structuredClone(template.questions).map(question => ({ ...question, label: named(question.label), labelEn: namedEn(question.labelEn) })),
+    questions: structuredClone(template.questions).map((question: SurveyQuestion) => ({ ...question, label: named(question.label), labelEn: namedEn(question.labelEn) })),
     status: 'draft', opensOn: '', closesOn: '', targetResponses: '', satisfiedTarget: 80, publicToken: '',
   }
 }
 
 // SRV-2026-01, SRV-2026-02… numbered within the year.
-export function nextSurveyCode(codes = [], year = new Date().getFullYear()) {
+export function nextSurveyCode(codes: unknown[] = [], year = new Date().getFullYear()) {
   const numbers = codes.map(code => Number(String(code || '').match(new RegExp(`^SRV-${year}-(\\d+)$`))?.[1] || 0))
   return `SRV-${year}-${String(Math.max(0, ...numbers) + 1).padStart(2, '0')}`
 }
 
 // Whether a survey takes answers on a given day.
-export function isSurveyOpen(survey, today = hospitalToday()) {
+export function isSurveyOpen(survey: Survey | null | undefined, today = hospitalToday()) {
   return survey?.status === 'open' && (!survey.opensOn || survey.opensOn <= today) && (!survey.closesOn || survey.closesOn >= today)
 }
 
 // What a survey needs before it opens.
-export function surveyProblems(survey, language = 'el') {
-  const en = language === 'en', problems = []
+export function surveyProblems(survey: Survey, language = 'el') {
+  const en = language === 'en', problems: string[] = []
   if (!String(survey.title || '').trim()) problems.push(en ? 'A title' : 'Τίτλος')
   if (!survey.departmentIds?.length) problems.push(en ? 'The department it is about' : 'Το τμήμα που αφορά')
   if (!survey.questions?.length) problems.push(en ? 'At least one question' : 'Τουλάχιστον μία ερώτηση')
@@ -255,7 +263,7 @@ export function surveyProblems(survey, language = 'el') {
     if (!String(question.label || '').trim()) { problems.push(en ? 'Every question needs its text' : 'Κάθε ερώτηση θέλει κείμενο'); break }
   }
   for (const question of survey.questions || []) {
-    if (['single', 'multiple'].includes(question.type) && (question.options || []).filter(item => String(item.label || '').trim()).length < 2) { problems.push(en ? 'Choice questions need at least two options' : 'Οι ερωτήσεις επιλογής θέλουν τουλάχιστον δύο επιλογές'); break }
+    if (['single', 'multiple'].includes(question.type) && (question.options || []).filter((item: AnyRecord) => String(item.label || '').trim()).length < 2) { problems.push(en ? 'Choice questions need at least two options' : 'Οι ερωτήσεις επιλογής θέλουν τουλάχιστον δύο επιλογές'); break }
   }
   if (survey.opensOn && survey.closesOn && survey.closesOn < survey.opensOn) problems.push(en ? 'The end comes before the start' : 'Η λήξη είναι πριν από την έναρξη')
   return problems
@@ -263,15 +271,15 @@ export function surveyProblems(survey, language = 'el') {
 
 // The answers a respondent gave, kept as the database keeps them: only the
 // survey's questions, each value of its kind. Null when a required one is missing.
-export function cleanAnswers(questions = [], answers = {}) {
-  const kept = {}
+export function cleanAnswers(questions: SurveyQuestion[] = [], answers: SurveyAnswers = {}) {
+  const kept: SurveyAnswers = {}
   for (const question of questions) {
     // An answer to a question the respondent no longer sees is not kept.
     if (!isQuestionShown(question, answers)) continue
     const value = answers[question.id]
     const empty = value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)
     if (empty) { if (question.required) return null; continue }
-    const allowed = (question.options || []).map(item => item.value)
+    const allowed = (question.options || []).map((item: AnyRecord) => item.value)
     if (question.type === 'rating' && [1, 2, 3, 4, 5].includes(value)) kept[question.id] = value
     else if (question.type === 'nps' && Number.isInteger(value) && value >= 0 && value <= 10) kept[question.id] = value
     else if (question.type === 'yesno' && typeof value === 'boolean') kept[question.id] = value
@@ -285,16 +293,16 @@ export function cleanAnswers(questions = [], answers = {}) {
 
 // --- Analysis -----------------------------------------------------------------------
 
-const round = value => (value == null || !Number.isFinite(value) ? null : Math.round(value * 10) / 10)
-const share = (part, whole) => (whole ? round((part / whole) * 100) : null)
-const monthOf = value => String(value || '').slice(0, 7)
+const round = (value: number | null | undefined) => (value == null || !Number.isFinite(value) ? null : Math.round(value * 10) / 10)
+const share = (part: number, whole: number) => (whole ? round((part / whole) * 100) : null)
+const monthOf = (value: unknown) => String(value || '').slice(0, 7)
 
 // One question's answers: how many, the mean and the share satisfied (4–5) of a
 // scale, the score of a recommendation question (promoters 9–10 minus detractors
 // 0–6), the share of Yes, the count of each option, the texts.
-export function questionResult(question, responses = []) {
+export function questionResult(question: SurveyQuestion, responses: SurveyResponse[] = []) {
   const values = responses.map(response => response.answers?.[question.id]).filter(value => value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && !value.length))
-  const result = { question, count: values.length }
+  const result: AnyRecord = { question, count: values.length }
   if (question.type === 'rating') {
     const numbers = values.map(Number).filter(Number.isFinite)
     result.mean = numbers.length ? round(numbers.reduce((sum, value) => sum + value, 0) / numbers.length) : null
@@ -310,7 +318,7 @@ export function questionResult(question, responses = []) {
   } else if (question.type === 'yesno') {
     result.yes = share(values.filter(value => value === true).length, values.length)
   } else if (['single', 'multiple'].includes(question.type)) {
-    result.options = (question.options || []).map(item => {
+    result.options = (question.options || []).map((item: AnyRecord) => {
       const count = values.filter(value => (Array.isArray(value) ? value.includes(item.value) : value === item.value)).length
       return { ...item, count, share: share(count, values.length) }
     })
@@ -324,21 +332,21 @@ export function questionResult(question, responses = []) {
 // the satisfaction score is satisfied over answered. Kept as two counts so
 // surveys, departments and hospitals add up (analysis_quality_food_metrics
 // counts the same way on the server).
-export function satisfactionCounts(survey, responses = [], results = null) {
-  const ratings = (results || (survey?.questions || []).filter(question => question.type === 'rating').map(question => questionResult(question, responses))).filter(result => result.question.type === 'rating')
+export function satisfactionCounts(survey: Survey, responses: SurveyResponse[] = [], results: AnyRecord[] | null = null) {
+  const ratings = (results || (survey?.questions || []).filter((question: AnyRecord) => question.type === 'rating').map((question: SurveyQuestion) => questionResult(question, responses))).filter((result: AnyRecord) => result.question.type === 'rating')
   return {
-    answered: ratings.reduce((sum, result) => sum + result.count, 0),
-    satisfied: ratings.reduce((sum, result) => sum + (result.distribution?.[3] || 0) + (result.distribution?.[4] || 0), 0),
+    answered: ratings.reduce((sum: number, result: AnyRecord) => sum + result.count, 0),
+    satisfied: ratings.reduce((sum: number, result: AnyRecord) => sum + (result.distribution?.[3] || 0) + (result.distribution?.[4] || 0), 0),
   }
 }
 
 // The survey's headline figures: responses, the share of satisfied answers over
 // every 1–5 question, the recommendation score, and the questions below target.
-export function surveySummary(survey, responses = []) {
-  const results = (survey.questions || []).map(question => questionResult(question, responses))
-  const ratings = results.filter(result => result.question.type === 'rating')
+export function surveySummary(survey: Survey, responses: SurveyResponse[] = []) {
+  const results = (survey.questions || []).map((question: SurveyQuestion) => questionResult(question, responses))
+  const ratings = results.filter((result: AnyRecord) => result.question.type === 'rating')
   const { answered, satisfied: satisfiedAnswers } = satisfactionCounts(survey, responses, results)
-  const recommend = results.find(result => result.question.type === 'nps')
+  const recommend = results.find((result: AnyRecord) => result.question.type === 'nps')
   const target = Number(survey.satisfiedTarget) || 80
   return {
     responses: responses.length,
@@ -347,14 +355,14 @@ export function surveySummary(survey, responses = []) {
     target,
     progress: survey.targetResponses ? Math.min(100, Math.round((responses.length / Number(survey.targetResponses)) * 100)) : null,
     // Few answers make a share unreliable: below 10 a question is not flagged.
-    below: ratings.filter(result => result.count >= 10 && result.satisfied != null && result.satisfied < target).sort((a, b) => a.satisfied - b.satisfied),
-    comments: results.filter(result => result.question.type === 'text').reduce((sum, result) => sum + result.texts.length, 0),
+    below: ratings.filter((result: AnyRecord) => result.count >= 10 && result.satisfied != null && result.satisfied < target).sort((a: AnyRecord, b: AnyRecord) => a.satisfied - b.satisfied),
+    comments: results.filter((result: AnyRecord) => result.question.type === 'text').reduce((sum: number, result: AnyRecord) => sum + result.texts.length, 0),
     results,
   }
 }
 
 // The same figures for each department the responses are about.
-export function departmentBreakdown(survey, responses = [], language = 'el') {
+export function departmentBreakdown(survey: Survey, responses: SurveyResponse[] = [], language = 'el') {
   const en = language === 'en'
   const groups = new Map()
   for (const response of responses) {
@@ -367,7 +375,7 @@ export function departmentBreakdown(survey, responses = [], language = 'el') {
 }
 
 // Satisfied share and responses month by month, the oldest first.
-export function monthlyTrend(survey, responses = []) {
+export function monthlyTrend(survey: Survey, responses: SurveyResponse[] = []) {
   const months = [...new Set(responses.map(response => monthOf(response.submittedAt)).filter(Boolean))].sort()
   return months.map(month => {
     const own = responses.filter(response => monthOf(response.submittedAt) === month)
@@ -377,7 +385,7 @@ export function monthlyTrend(survey, responses = []) {
 }
 
 // The responses that match the filters of the results screen.
-export function filterResponses(responses = [], { query = '', department = 'all', channel = 'all', from = '', to = '' } = {}) {
+export function filterResponses(responses: SurveyResponse[] = [], { query = '', department = 'all', channel = 'all', from = '', to = '' } = {}) {
   const q = String(query || '').trim().toLowerCase()
   return responses
     .filter(response => !q || Object.values(response.answers || {}).some(value => typeof value === 'string' && value.toLowerCase().includes(q)))
@@ -388,28 +396,28 @@ export function filterResponses(responses = [], { query = '', department = 'all'
 }
 
 // CSV for Excel: one row per response, one column per question.
-export function responsesExport(survey, responses = [], language = 'el') {
+export function responsesExport(survey: Survey, responses: SurveyResponse[] = [], language = 'el') {
   const en = language === 'en'
-  const value = (question, answer) => {
+  const value = (question: AnyRecord, answer: AnyRecord) => {
     if (answer === undefined || answer === null) return ''
     if (question.type === 'yesno') return answer ? (en ? 'Yes' : 'Ναι') : (en ? 'No' : 'Όχι')
-    if (question.type === 'single') return textOf((question.options || []).find(item => item.value === answer), language) || answer
-    if (question.type === 'multiple') return (Array.isArray(answer) ? answer : [answer]).map(item => textOf((question.options || []).find(option => option.value === item), language) || item).join(', ')
+    if (question.type === 'single') return textOf((question.options || []).find((item: AnyRecord) => item.value === answer), language) || answer
+    if (question.type === 'multiple') return (Array.isArray(answer) ? answer : [answer]).map(item => textOf((question.options || []).find((option: AnyRecord) => option.value === item), language) || item).join(', ')
     return answer
   }
   return {
     name: `${survey.code || 'survey'}_${en ? 'responses' : 'apantiseis'}`,
-    headers: [en ? 'Date' : 'Ημερομηνία', en ? 'Department' : 'Τμήμα', en ? 'Channel' : 'Τρόπος', ...(survey.questions || []).map(question => textOf(question, language))],
-    rows: responses.map(response => [String(response.submittedAt || '').slice(0, 10), (en ? response.departmentEn : response.department) || response.department || '', channelLabel(response.channel, language), ...(survey.questions || []).map(question => value(question, response.answers?.[question.id]))]),
+    headers: [en ? 'Date' : 'Ημερομηνία', en ? 'Department' : 'Τμήμα', en ? 'Channel' : 'Τρόπος', ...(survey.questions || []).map((question: SurveyQuestion) => textOf(question, language))],
+    rows: responses.map(response => [String(response.submittedAt || '').slice(0, 10), (en ? response.departmentEn : response.department) || response.department || '', channelLabel(response.channel, language), ...(survey.questions || []).map((question: AnyRecord) => value(question, response.answers?.[question.id]))]),
   }
 }
 
 // One answer as text (the response's page and the Excel file write it the same way).
-export function answerText(question, answer, language = 'el') {
+export function answerText(question: SurveyQuestion, answer: unknown, language = 'el'): string {
   const en = language === 'en'
   if (answer === undefined || answer === null || answer === '') return ''
   if (question.type === 'yesno') return answer ? (en ? 'Yes' : 'Ναι') : (en ? 'No' : 'Όχι')
-  if (question.type === 'single') return textOf((question.options || []).find(item => item.value === answer), language) || String(answer)
-  if (question.type === 'multiple') return (Array.isArray(answer) ? answer : [answer]).map(item => textOf((question.options || []).find(option => option.value === item), language) || item).join(', ')
+  if (question.type === 'single') return textOf((question.options || []).find((item: AnyRecord) => item.value === answer), language) || String(answer)
+  if (question.type === 'multiple') return (Array.isArray(answer) ? answer : [answer]).map(item => textOf((question.options || []).find((option: AnyRecord) => option.value === item), language) || item).join(', ')
   return String(answer)
 }

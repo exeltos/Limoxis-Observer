@@ -11,7 +11,7 @@ import './quality.css'
 
 // «Ενέργειες»: the corrective actions opened from this record (their source is `sourceId`, or starts with it when
 // `prefix`), each with its status and due date, opening the action. Nothing is shown while there is none.
-export function LinkedActions({ sourceId, prefix = false, organizationId, returnTab = null, className = '' }) {
+export function LinkedActions({ sourceId, prefix = false, organizationId, returnTab = null, className = '' }: { sourceId: string, prefix?: boolean, organizationId: string | null | undefined, returnTab?: string | null, className?: string }) {
   const { language, t } = useLanguage()
   const en = language === 'en'
   const { goTo } = useContextualNavigation('/quality')

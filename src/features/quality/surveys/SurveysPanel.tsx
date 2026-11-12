@@ -11,12 +11,15 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { loadResponses, loadSurveys } from './surveyService'
 import { SURVEY_AUDIENCES, SURVEY_STATUSES, audienceLabel, isSurveyOpen, satisfactionCounts, surveyStatusLabel, surveyStatusTone } from './surveyModel'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { Survey } from './surveyModel'
+import type { ReactNode } from 'react'
 
 // The surveys the user may see (the database returns a department only the
 // surveys that cover it).
 export function useSurveys(enabled = true) {
   const { tenant } = useTenant()
-  const [surveys, setSurveys] = useState([])
+  const [surveys, setSurveys] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState(false)
   const reload = useCallback(() => {
@@ -30,25 +33,25 @@ export function useSurveys(enabled = true) {
 
 const SOON_DAYS = 14
 // The share of satisfied answers (4 or 5) of each questionnaire in the list, read once the list is on screen.
-function useSatisfaction(surveys) {
+function useSatisfaction(surveys: AnyRecord) {
   const { tenant } = useTenant()
   const [byId, setById] = useState(() => new Map())
-  const key = surveys.map(survey => `${survey.id}:${survey.responseCount || 0}`).join(',')
+  const key = surveys.map((survey: AnyRecord) => `${survey.id}:${survey.responseCount || 0}`).join(',')
   useEffect(() => {
     if (!key) return undefined
     let live = true
-    Promise.all(surveys.filter(survey => survey.responseCount).map(survey => loadResponses(tenant?.id, survey.id).then(responses => [survey.id, satisfactionCounts(survey, responses)]).catch(() => [survey.id, null])))
+    Promise.all(surveys.filter((survey: AnyRecord) => survey.responseCount).map((survey: AnyRecord) => loadResponses(tenant?.id, survey.id).then(responses => [survey.id, satisfactionCounts(survey, responses)]).catch(() => [survey.id, null])))
       .then(rows => { if (live) setById(new Map(rows)) })
     return () => { live = false }
   }, [key, tenant?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   return byId
 }
-const percentText = (value, en) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)
-const daysUntil = day => (day ? Math.round((Date.parse(`${day}T00:00:00Z`) - Date.parse(`${hospitalToday()}T00:00:00Z`)) / 86400000) : null)
-export const surveyClosingSoon = survey => { const days = daysUntil(survey.closesOn); return isSurveyOpen(survey) && days != null && days >= 0 && days <= SOON_DAYS }
+const percentText = (value: number, en: boolean) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)
+const daysUntil = (day: string) => (day ? Math.round((Date.parse(`${day}T00:00:00Z`) - Date.parse(`${hospitalToday()}T00:00:00Z`)) / 86400000) : null)
+export const surveyClosingSoon = (survey: AnyRecord) => { const days = daysUntil(survey.closesOn); return isSurveyOpen(survey) && days != null && days >= 0 && days <= SOON_DAYS }
 
 // The figures of the Surveys view.
-export function surveyCounts(surveys = []) {
+export function surveyCounts(surveys: AnyRecord[] = []) {
   return {
     open: surveys.filter(survey => isSurveyOpen(survey)).length,
     recent: surveys.reduce((sum, survey) => sum + (survey.recentCount || 0), 0),
@@ -58,37 +61,37 @@ export function surveyCounts(surveys = []) {
   }
 }
 
-export function filterSurveys(surveys, filters) {
+export function filterSurveys(surveys: AnyRecord[], filters: AnyRecord) {
   const q = String(filters.query || '').trim().toLowerCase()
   return surveys
-    .filter(survey => !q || `${survey.code} ${survey.title} ${survey.titleEn || ''}`.toLowerCase().includes(q))
-    .filter(survey => filters.audience === 'all' || survey.audience === filters.audience)
-    .filter(survey => filters.status === 'all' || survey.status === filters.status)
-    .filter(survey => !filters.quick || (filters.quick === 'open' ? isSurveyOpen(survey) : filters.quick === 'closing' ? surveyClosingSoon(survey) : filters.quick === 'draft' ? survey.status === 'draft' : true))
+    .filter((survey: AnyRecord) => !q || `${survey.code} ${survey.title} ${survey.titleEn || ''}`.toLowerCase().includes(q))
+    .filter((survey: AnyRecord) => filters.audience === 'all' || survey.audience === filters.audience)
+    .filter((survey: AnyRecord) => filters.status === 'all' || survey.status === filters.status)
+    .filter((survey: AnyRecord) => !filters.quick || (filters.quick === 'open' ? isSurveyOpen(survey) : filters.quick === 'closing' ? surveyClosingSoon(survey) : filters.quick === 'draft' ? survey.status === 'draft' : true))
     // Open surveys first, then the most recent.
-    .sort((a, b) => Number(isSurveyOpen(b)) - Number(isSurveyOpen(a)) || String(b.opensOn || b.createdAt || '').localeCompare(String(a.opensOn || a.createdAt || '')))
+    .sort((a: AnyRecord, b: AnyRecord) => Number(isSurveyOpen(b)) - Number(isSurveyOpen(a)) || String(b.opensOn || b.createdAt || '').localeCompare(String(a.opensOn || a.createdAt || '')))
 }
 
-export function surveysExport(surveys, language) {
+export function surveysExport(surveys: AnyRecord[], language: string) {
   const en = language === 'en'
   return {
     name: en ? 'satisfaction-surveys' : 'erevnes-ikanopoiisis',
     headers: en ? ['Code', 'Questionnaire', 'Asks', 'From', 'To', 'Responses', 'Last 30 days', 'Target', 'Status'] : ['Κωδικός', 'Ερωτηματολόγιο', 'Απευθύνεται σε', 'Από', 'Έως', 'Απαντήσεις', 'Τελευταίες 30 ημέρες', 'Στόχος απαντήσεων', 'Κατάσταση'],
-    rows: surveys.map(survey => [survey.code, en ? survey.titleEn || survey.title : survey.title, audienceLabel(survey.audience, language), formatDay(survey.opensOn, language), formatDay(survey.closesOn, language), survey.responseCount || 0, survey.recentCount || 0, survey.targetResponses || '', surveyStatusLabel(survey.status, language)]),
+    rows: surveys.map((survey: AnyRecord) => [survey.code, en ? survey.titleEn || survey.title : survey.title, audienceLabel(survey.audience, language), formatDay(survey.opensOn, language), formatDay(survey.closesOn, language), survey.responseCount || 0, survey.recentCount || 0, survey.targetResponses || '', surveyStatusLabel(survey.status, language)]),
   }
 }
 
-export function SurveysList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
+export function SurveysList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }: { list: ReturnType<typeof useSurveys>, registry?: AnyRecord | null, filters: AnyRecord, setFilters: (update: (current: AnyRecord) => AnyRecord) => void, onOpen: (survey: Survey) => void, filterEnd?: ReactNode }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
-  const { departments } = useDepartments()
+  const { departments }: { departments: AnyRecord[] } = useDepartments()
   // The departments a questionnaire is about, by name (up to three; otherwise how many).
-  const departmentsOf = survey => { const names = (survey.departmentIds || []).map(id => departments.find(item => (item.id || item.name) === id)).filter(Boolean).map(item => (en ? item.nameEn || item.name : item.name)); return names.length > 3 ? `${names.length} ${en ? 'departments' : 'τμήματα'}` : names.join(', ') }
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
+  const departmentsOf = (survey: AnyRecord) => { const names = (survey.departmentIds || []).map((id: string) => departments.find(item => (item.id || item.name) === id)).filter(Boolean).map((item: AnyRecord) => (en ? item.nameEn || item.name : item.name)); return names.length > 3 ? `${names.length} ${en ? 'departments' : 'τμήματα'}` : names.join(', ') }
+  const set = (key: string, value: unknown) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSurveys(list.surveys, filters), [list.surveys, filters])
-  const sortBy = { code: survey => survey.code, survey: survey => (en ? survey.titleEn || survey.title : survey.title), period: survey => survey.opensOn, responses: survey => survey.responseCount || 0, status: survey => survey.status }
+  const sortBy: Record<string, (survey: AnyRecord) => unknown> = { code: (survey: AnyRecord) => survey.code, survey: (survey: AnyRecord) => (en ? survey.titleEn || survey.title : survey.title), period: (survey: AnyRecord) => survey.opensOn, responses: (survey: AnyRecord) => survey.responseCount || 0, status: (survey: AnyRecord) => survey.status }
   const satisfaction = useSatisfaction(list.surveys)
-  const satisfiedOf = survey => { const counts = satisfaction.get(survey.id); return counts?.answered ? Math.round((counts.satisfied / counts.answered) * 1000) / 10 : null }
+  const satisfiedOf = (survey: AnyRecord) => { const counts = satisfaction.get(survey.id); return counts?.answered ? Math.round((counts.satisfied / counts.answered) * 1000) / 10 : null }
   sortBy.satisfaction = satisfiedOf
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const advanced = ['audience', 'status'].filter(key => filters[key] !== 'all').length

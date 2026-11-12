@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useTableSort } from '../../design-system/useTableSort'
+import { useTableSort, type SortState } from '../../design-system/useTableSort'
 
 // A list the page cuts itself: the arrows in the headers sort the whole filtered list (accessors: column key → value),
 // then the page is cut. `sorted` is the whole list in the shown order (the next / previous of an opened record follows it).
-export function useSortedPaging(items, resetKey, accessors = {}, initial = { key: null, dir: 'asc' }) {
+export function useSortedPaging<T>(items: T[], resetKey: unknown, accessors: Record<string, (row: T) => unknown> = {}, initial: SortState = { key: null, dir: 'asc' }) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const { sorted, sort, onSort } = useTableSort(items, accessors, initial)
@@ -13,4 +13,4 @@ export function useSortedPaging(items, resetKey, accessors = {}, initial = { key
 }
 
 // The columns with a reader get the arrows.
-export const withSort = (columns, accessors) => columns.map(column => (column.label && accessors[column.key] ? { ...column, sortable: true } : column))
+export const withSort = <C extends { key: string, label?: unknown }>(columns: C[], accessors: Record<string, unknown>) => columns.map(column => (column.label && accessors[column.key] ? { ...column, sortable: true } : column))
