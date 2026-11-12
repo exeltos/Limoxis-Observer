@@ -28,14 +28,14 @@ function Chip({value,unit,tone='neutral',title}: { value?: string, unit?: AnyRec
  return <span className={`quality-chip is-${tone}`} title={title}><strong>{value}</strong>{unit&&<small>{unit}</small>}</span>
 }
 
-function AttentionList({items,empty,onOpen}: { items: AnyRecord[], empty: string, onOpen: (...args: never[]) => unknown }){
+function AttentionList({items,empty,onOpen}: { items: AnyRecord[], empty: string, onOpen: (item: AnyRecord) => void }){
  if(!items.length)return <p className="risk-empty-note">{empty}</p>
  return <ol className="risk-list quality-attention-list">{items.map((item: AnyRecord)=><li key={item.key}><button type="button" onClick={()=>onOpen(item)}>
   <Chip {...item.chip}/><span><strong>{item.code} · {item.title}</strong><small>{item.meta.filter(Boolean).join(' · ')}</small></span>
  </button></li>)}</ol>
 }
 
-function Panel({title,caption,count,onAll,allLabel,children}: { title: string, caption: string, count: number, onAll?: (...args: never[]) => unknown, allLabel?: string, children: ReactNode }){
+function Panel({title,caption,count,onAll,allLabel,children}: { title: string, caption: string, count: number, onAll?: () => void, allLabel?: string, children: ReactNode }){
  return <section className="risk-panel quality-panel">
   <header><h3>{title}{count>0&&<span className="quality-panel-count">{count}</span>}</h3>{caption&&<small>{caption}</small>}</header>
   {children}
@@ -93,7 +93,7 @@ function grouped(rows: AnyRecord[],keyOf,labelOf,limit=6,prevRows){
 const shiftMonth=(key: string,by)=>{const [y,m]=key.split('-').map(Number);return new Date(Date.UTC(y,m-1+by,1)).toISOString().slice(0,7)}
 const PERIODS=[3,6,12]
 
-export function QualityOverview({reports,capas,audits,findings=[],language,categories,onOpen,onGo,onMeetings}: { reports: AnyRecord, capas: AnyRecord[], audits: AnyRecord[], findings?: AnyRecord[], language: string, categories: AnyRecord, onOpen: (type: string, id: string) => void, onGo: (...args: never[]) => unknown, onMeetings: (...args: never[]) => unknown }){
+export function QualityOverview({reports,capas,audits,findings=[],language,categories,onOpen,onGo,onMeetings}: { reports: AnyRecord, capas: AnyRecord[], audits: AnyRecord[], findings?: AnyRecord[], language: string, categories: AnyRecord, onOpen: (type: string, id: string) => void, onGo: (target: string) => void, onMeetings: () => void }){
  const en=language==='en'
  const locale=en?'en-GB':'el-GR'
  const data=useMemo(()=>{

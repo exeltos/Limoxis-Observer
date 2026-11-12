@@ -215,7 +215,7 @@ export const AUDIT_VIEWS=[
  {id:'readiness',icon:BarChart3,label:['Ετοιμότητα','Readiness']},
  {id:'self',icon:ClipboardCheck,label:['Αυτοαξιολόγηση','Self-assessment']},
 ]
-export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,onRound=null,findings=[],onOpenFinding=null,canManageSelf=false,onPrintSummary=null}: { rows: AnyRecord[], view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord | null, onOpen: (row: AnyRecord, same: AnyRecord[]) => void, onPlan?: ((...args: never[]) => unknown) | null, onRound?: ((() => void)) | null, findings?: AnyRecord[], onOpenFinding?: (finding: AnyRecord) => void, canManageSelf?: boolean, onPrintSummary?: (list: AnyRecord[]) => void }){
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,onRound=null,findings=[],onOpenFinding=null,canManageSelf=false,onPrintSummary=null}: { rows: AnyRecord[], view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord | null, onOpen: (row: AnyRecord, same: AnyRecord[]) => void, onPlan?: ((source: AnyRecord) => void) | null, onRound?: ((() => void)) | null, findings?: AnyRecord[], onOpenFinding?: (finding: AnyRecord) => void, canManageSelf?: boolean, onPrintSummary?: (list: AnyRecord[]) => void }){
  const en=language==='en'
  const {filters,set,clear}=view
  const [toolbarSlot,setToolbarSlot]=useState<AnyRecord | null>(null)

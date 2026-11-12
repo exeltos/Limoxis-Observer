@@ -85,7 +85,7 @@ export function glanceItems(recordType,record: AnyRecord,{language,t,linked=[]}:
     const until=daysUntil(record.plannedDate)
     return [
       {id:'compliance',label:en?'Compliance':'Συμμόρφωση',value:score.rate==null?'—':`${score.rate}%`,meter:score.rate,tone:score.rate==null?undefined:meterTone(score.rate),primary:true,note:total?`${score.yes} ${en?'yes':'ναι'} · ${score.no} ${en?'no':'όχι'}${score.unanswered?` · ${score.unanswered} ${en?'unanswered':'αναπάντητα'}`:''}`:(en?'No checklist yet':'Χωρίς λίστα ελέγχου')},
-      {id:'findings',label:en?'Findings':'Ευρήματα',value:linked.length,tone:linked.some(row=>!isClosed(row))?'warning':undefined,note:linked.length?`${linked.filter(row=>!isClosed(row)).length} ${en?'open':'ανοιχτά'}`:(score.no?(en?'Create them from the checklist':'Δημιουργούνται από τη λίστα ελέγχου'):undefined)},
+      {id:'findings',label:en?'Findings':'Ευρήματα',value:linked.length,tone:linked.some((row: AnyRecord)=>!isClosed(row))?'warning':undefined,note:linked.length?`${linked.filter((row: AnyRecord)=>!isClosed(row)).length} ${en?'open':'ανοιχτά'}`:(score.no?(en?'Create them from the checklist':'Δημιουργούνται από τη λίστα ελέγχου'):undefined)},
       {id:'date',label:record.completedDate?(en?'Completed':'Ολοκληρώθηκε'):(en?'Planned':'Προγραμματισμένη'),value:formatDay(date,language)||'—',note:!record.completedDate&&until!=null?(until<0?(en?`${-until} days ago`:`πριν από ${-until} ημέρες`):until===0?(en?'Today':'Σήμερα'):(en?`in ${until} days`:`σε ${until} ημέρες`)):undefined,tone:!record.completedDate&&open&&until!=null&&until<0?'danger':undefined},
     ]
   }
@@ -151,7 +151,7 @@ export function auditSummary(record: AnyRecord,{language,linked=[]}: AnyRecord){
   const items=[]
   if(score.rate!=null)items.push({text:en?`compliance ${score.rate}% (${score.yes} yes · ${score.no} no)`:`συμμόρφωση ${score.rate}% (${score.yes} ναι · ${score.no} όχι)`,tone:score.rate<70?'danger':undefined})
   else items.push({text:total?(en?`${total} questions, none answered`:`${total} ερωτήσεις, καμία δεν απαντήθηκε`):(en?'no questionnaire answers yet':'χωρίς απαντήσεις ερωτηματολογίου')})
-  const open=linked.filter(row=>!isClosed(row)).length
+  const open=linked.filter((row: AnyRecord)=>!isClosed(row)).length
   items.push(linked.length?{text:en?`${linked.length} ${plural(linked.length,en,'εύρημα','ευρήματα','finding','findings')} (${open} open)`:`${linked.length} ${plural(linked.length,en,'εύρημα','ευρήματα','finding','findings')} (${open} ανοιχτά)`,tone:open?'danger':undefined}:{text:en?'no findings':'χωρίς ευρήματα'})
   if(record.completedDate)items.push({text:en?`completed ${formatDay(record.completedDate,language)}`:`ολοκληρώθηκε ${formatDay(record.completedDate,language)}`})
   else{

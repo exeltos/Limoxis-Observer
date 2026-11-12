@@ -298,7 +298,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  </>
 }
 
-export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}: { view: AnyRecord | null, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord | null, onOpenRow: (row: AnyRecord, rows: AnyRecord[]) => void, onCreateCapa: (...args: never[]) => unknown, onCreateFindingCapa: (...args: never[]) => unknown }){
+export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}: { view: AnyRecord | null, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord | null, onOpenRow: (row: AnyRecord, rows: AnyRecord[]) => void, onCreateCapa: (prefill: AnyRecord) => void, onCreateFindingCapa: (finding: AnyRecord) => void }){
  const en=language==='en'
  const {filters,set}=view
  const items=useMemo(()=>[...view.filtered].sort(deviationOrder),[view.filtered])

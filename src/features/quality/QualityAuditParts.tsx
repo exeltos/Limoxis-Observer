@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { ListChecks, Plus } from 'lucide-react'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -28,7 +29,7 @@ function useChecklistTemplates(organizationId: string | null | undefined) {
 }
 
 // New audit: the checklist from a control that is a checklist, or typed here.
-export function AuditChecklistSource({ draft, setDraft, organizationId, language }: { draft: AnyRecord | null, setDraft: ((...args: never[]) => unknown) | null, organizationId: string, language: string }) {
+export function AuditChecklistSource({ draft, setDraft, organizationId, language }: { draft: AnyRecord | null, setDraft: Dispatch<SetStateAction<AnyRecord | null>>, organizationId: string, language: string }) {
   const en = language === 'en'
   const templates = useChecklistTemplates(organizationId)
   const [mode, setMode] = useState(draft.checklistSource === 'manual' ? 'manual' : 'template')
@@ -56,7 +57,7 @@ const STATE_ORDER = ['done', 'running', 'late', 'planned', 'cancelled']
 // audit is a chip coloured by where it stands (done with its compliance, late,
 // planned); a department without an audit this year is flagged; an empty cell
 // plans a new audit for that department and month.
-export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, onRound = null, onPrint = null }: { audits?: AnyRecord[], language: string, onOpen: (...args: never[]) => unknown, onPlan?: ((...args: never[]) => unknown) | null, onRound?: ((...args: never[]) => unknown) | null, onPrint?: ((...args: never[]) => unknown) | null }) {
+export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, onRound = null, onPrint = null }: { audits?: AnyRecord[], language: string, onOpen: (audit: AnyRecord) => void, onPlan?: ((source: AnyRecord) => void) | null, onRound?: (() => void) | null, onPrint?: ((list: AnyRecord[]) => void) | null }) {
   const en = language === 'en'
   const { departments }: { departments: AnyRecord[] } = useDepartments()
   const now = new Date()
