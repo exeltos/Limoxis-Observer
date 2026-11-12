@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarPlus, Check, ChevronLeft, ChevronRight, Eraser, GripVertical, History, Inbox, Megaphone, RotateCcw, SlidersHorizontal, Trash2, Wand2, X } from 'lucide-react'
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, Eraser, History, Inbox, Megaphone, RotateCcw, SlidersHorizontal, Trash2, Wand2, X } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -13,14 +13,11 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { Field } from '../../design-system/Field'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { TimeField } from '../../design-system/TimeField'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { downloadXlsx } from '../../core/export/xlsxExport'
 import { printReport } from '../../core/export/reportDocument'
 import { rosterDocument, rosterSheet } from './rosterExport'
 import { DEFAULT_RULES, checkRoster, customShifts, datesBetween, demandFor, generateRoster, isLeave, isShift, kindFromStart, kindOf, periodDays, shiftTargets } from './rosterEngine'
-import { IASO_SHIFT_CODES } from './iasoShiftCodes'
 import {
   createRosterRequest,
   deleteRoster,
@@ -37,6 +34,9 @@ import {
   saveRoster,
   setRosterRequestStatus,
 } from './rosterService'
+import { DEMAND, HOURS, LEAVES, REQUEST_CODE, SHIFTS, isExtra } from './rosterPageModel'
+import { RosterSheet } from './RosterSheet'
+import { RosterMyRequests, RosterPopovers, RosterRulesDialog } from './RosterPanels'
 import './rosters.css'
 
 // The department's monthly shift roster (owner, 8/11/2026). It opens as an empty sheet with every name, so leave and
@@ -46,18 +46,8 @@ import './rosters.css'
 // on a name sets the shifts that person may take. The new roster starts from the end of the previous one.
 // The department's people send requests (leave, a day off, a day they cannot work, a swap) and see the roster once it
 // is published; every change after publishing is logged.
-// At least two people on every shift by default (owner, 8/11/2026); more on a shift is fine.
-const DEMAND = { weekday: { M: 2, I: 0, A: 2, N: 2 }, weekend: { M: 2, I: 0, A: 2, N: 2 }, overrides: {} }
-const SHIFTS = ['M', 'I', 'A', 'N']
-const LEAVES = ['L', 'S', 'H', 'U']
-const HOURS = 8
 const WRITERS = new Set([ROLES.HOSPITAL_ADMIN, ROLES.DEPARTMENT_MANAGER, ROLES.DEMO, ROLES.PLATFORM_OWNER])
 const STAFF = new Set([ROLES.DEPARTMENT_USER, ROLES.LINK_NURSE])
-const RULE_FIELDS = ['maxConsecutive', 'maxConsecutiveNights', 'restAfterNight', 'restAfterTwoNights', 'weeklyRestDays', 'minWeekendOff']
-// A request turns into: a leave code, a wished day off, a day off that is fixed («cannot work»), or a swap.
-const REQUEST_CODE = { leave: 'L', sick: 'S', unpaid: 'U', unavailable: 'R' }
-// The head is supernumerary unless set otherwise: not counted in the shifts, there only where the others are short.
-const isExtra = m => (typeof m.extra === 'boolean' ? m.extra : Boolean(m.isHead))
 
 export function RostersPage() {
   const { user, profile } = useAuth()
@@ -486,6 +476,8 @@ export function RostersPage() {
     downloadXlsx(`Programma_${(department?.name || '').replace(/\s+/g, '_')}_${period.start}.xlsx`, [rosterSheet(exportInput())])
   }
 
+  // What the parts of the page (RosterSheet, RosterPanels) read.
+  const view = { tx, canEdit, roster, codeStyle, CODES, REQUEST_KINDS, REQUEST_STATUS, RULE_TEXT, RULE_LABELS, days, history, dirty, saving, cell, setCell, need, setNeed, limits, setLimits, setPanel, ask, setAsk, dragId, setDragId, newShift, setNewShift, dropId, setDropId, rules, violations, targets, me, update, setMember, setDemand, setRule, addOther, setOther, removeOther, setDayNeed, setCode, dropOn, save, sendRequest, withdraw, active, inactive, nameOf, codeAt, countOf, shown, others, shortOf, labelOf, cellClass, fmtDay, weekdays, hasShifts, historyDays, myRequests, limitTag }
   return (
     <Page
       fill
@@ -596,45 +588,7 @@ export function RostersPage() {
       )}
 
       {roster && staffMode && panel === 'mine' && (
-        <section className="roster-panel roster-requests" aria-label={tx('Τα αιτήματά μου', 'My requests')}>
-          {!me ? (
-            <p className="roster-muted">{tx('Ο λογαριασμός σας δεν έχει συνδεθεί με εργαζόμενο του τμήματος· ζητήστε το από τον διαχειριστή.', 'Your account is not linked to an employee of the department; ask the administrator.')}</p>
-          ) : (
-            <>
-              <div className="roster-ask">
-                <Field label={tx('Αίτημα', 'Request')}>
-                  <select value={ask.kind} onChange={event => setAsk(current => ({ ...current, kind: event.target.value }))}>
-                    {Object.entries(REQUEST_KINDS).map(([kind, label]) => <option key={kind} value={kind}>{label}</option>)}
-                  </select>
-                </Field>
-                <ManualDateField label={ask.kind === 'swap' ? tx('Ημέρα', 'Day') : tx('Από', 'From')} value={ask.from} onChange={value => setAsk(current => ({ ...current, from: value }))} />
-                {ask.kind === 'swap' ? (
-                  <Field label={tx('Με συνάδελφο', 'With colleague')}>
-                    <select value={ask.swapEmployeeId} onChange={event => setAsk(current => ({ ...current, swapEmployeeId: event.target.value }))}>
-                      <option value="">{tx('Επιλογή…', 'Choose…')}</option>
-                      {active.filter(m => m.employeeId !== me.employeeId).map(m => <option key={m.employeeId} value={m.employeeId}>{m.name}</option>)}
-                    </select>
-                  </Field>
-                ) : (
-                  <ManualDateField label={tx('Έως', 'Until')} value={ask.to} onChange={value => setAsk(current => ({ ...current, to: value }))} optional />
-                )}
-                <Field label={tx('Σημείωση', 'Note')}>
-                  <input value={ask.note} maxLength={500} onChange={event => setAsk(current => ({ ...current, note: event.target.value }))} />
-                </Field>
-                <Button onClick={sendRequest} disabled={!ask.from || (ask.kind === 'swap' && !ask.swapEmployeeId)}>{tx('Αποστολή', 'Send')}</Button>
-              </div>
-              {myRequests.map(r => (
-                <div key={r.id} className="roster-request">
-                  <strong>{REQUEST_KINDS[r.kind]}</strong>
-                  <span>{r.kind === 'swap' ? `${fmtDay(r.from)} · ${r.employeeId === me.employeeId ? `${tx('με', 'with')} ${nameOf(r.swapEmployeeId)}` : `${tx('από', 'from')} ${nameOf(r.employeeId)}`}` : r.to && r.to !== r.from ? `${fmtDay(r.from)} – ${fmtDay(r.to)}` : fmtDay(r.from)}</span>
-                  {r.note && <small>«{r.note}»</small>}
-                  <StatusBadge tone={REQUEST_STATUS[r.status][1]}>{REQUEST_STATUS[r.status][0]}</StatusBadge>
-                  {r.status === 'pending' && r.employeeId === me.employeeId && <Button variant="secondary" onClick={() => withdraw(r)}>{tx('Ανάκληση', 'Withdraw')}</Button>}
-                </div>
-              ))}
-            </>
-          )}
-        </section>
+        <RosterMyRequests view={view} />
       )}
 
       {roster && canEdit && panel === 'leave' && (
@@ -659,93 +613,7 @@ export function RostersPage() {
       )}
 
       {roster && canEdit && panel === 'rules' && (
-        <ObserverDialog
-          title={tx('Άτομα ανά βάρδια & κανόνες', 'People per shift & rules')}
-          width="wide"
-          className="roster-rules-dialog"
-          onClose={() => setPanel('')}
-          footer={<SaveButton onClick={async () => { if (await save()) setPanel('') }} loading={saving} disabled={!dirty}>{tx('Αποθήκευση', 'Save')}</SaveButton>}
-        >
-        <section className="roster-panel roster-panel-rules" aria-label={tx('Άτομα ανά βάρδια & κανόνες', 'People per shift & rules')}>
-          <div className="roster-col">
-          <b className="roster-col-title">{tx('Άτομα ανά βάρδια', 'People per shift')}</b>
-          <div className="roster-demand">
-            <span />
-            <b>{tx('Καθημ.', 'Weekday')}</b>
-            <b>{tx('Σ/Κ', 'Weekend')}</b>
-            {SHIFTS.map(s => (
-              <div key={s} className="roster-demand-row">
-                <span>{CODES[s].label}</span>
-                {['weekday', 'weekend'].map(kind => (
-                  <input key={kind} type="number" min="0" max="20" aria-label={`${CODES[s].label} ${kind === 'weekday' ? tx('καθημερινή', 'weekday') : tx('Σαββατοκύριακο', 'weekend')}`} value={roster.demand?.[kind]?.[s] ?? 0} onChange={event => setDemand(kind, s, event.target.value)} />
-                ))}
-              </div>
-            ))}
-          </div>
-          </div>
-          <div className="roster-others">
-            <b>{tx('Άλλες βάρδιες του τμήματος', 'Other shifts of the department')}</b>
-            {customShifts(roster.demand).length > 0 && (
-              <div className="roster-other roster-other-head" aria-hidden="true">
-                <span />
-                <span />
-                <b>{tx('Καθημ.', 'Weekday')}</b>
-                <b>{tx('Σ/Κ', 'Weekend')}</b>
-                <span />
-              </div>
-            )}
-            {customShifts(roster.demand).map(o => (
-              <div key={o.code} className="roster-other">
-                <i className={`code-${kindOf(o.code)}`}>{o.code.split(':')[1]}</i>
-                <span>{o.label} · {CODES[kindOf(o.code)]?.name}</span>
-                {['weekday', 'weekend'].map(kind => (
-                  <input key={kind} type="number" min="0" max="20" aria-label={`${o.code.split(':')[1]} ${kind === 'weekday' ? tx('καθημερινή', 'weekday') : tx('Σαββατοκύριακο', 'weekend')}`} value={o[kind] ?? 0} onChange={event => setOther(o.code, { [kind]: Math.max(0, Math.min(20, Number(event.target.value) || 0)) })} />
-                ))}
-                <button type="button" className="roster-other-remove" aria-label={tx(`Αφαίρεση βάρδιας ${o.code.split(':')[1]}`, `Remove shift ${o.code.split(':')[1]}`)} onClick={() => removeOther(o.code)}>×</button>
-              </div>
-            ))}
-            {codeStyle === 'iaso' ? (
-              <SearchableSelect
-                label={tx('Προσθήκη από τους κωδικούς του νοσοκομείου', 'Add from the hospital’s codes')}
-                placeholder={tx('Επιλέξτε κωδικό…', 'Choose a code…')}
-                value=""
-                onChange={value => {
-                  const row = IASO_SHIFT_CODES.find(([code]) => code === value)
-                  if (row) addOther(row[0], row[1], row[2])
-                }}
-                options={IASO_SHIFT_CODES.filter(([code]) => !['4', '12', '19', '20'].includes(code)).map(([code, from, to]) => ({ value: code, label: `${code} · ${from}–${to}` }))}
-              />
-            ) : (
-              <div className="roster-other-new">
-                <Field label={tx('Κωδικός', 'Code')}>
-                  <input value={newShift.code} maxLength={6} onChange={event => setNewShift(current => ({ ...current, code: event.target.value }))} />
-                </Field>
-                <TimeField label={tx('Από', 'From')} value={newShift.from} onChange={value => setNewShift(current => ({ ...current, from: value }))} />
-                <TimeField label={tx('Έως', 'Until')} value={newShift.to} onChange={value => setNewShift(current => ({ ...current, to: value }))} />
-                <Button variant="secondary" onClick={() => addOther(newShift.code, newShift.from, newShift.to)} disabled={!newShift.code || !newShift.from || !newShift.to}>{tx('Προσθήκη', 'Add')}</Button>
-              </div>
-            )}
-            <p className="roster-muted">{tx('Μετράει στην κατηγορία της (από την ώρα έναρξης)· με αριθμό ατόμων τη βάζει και η αυτόματη δημιουργία, με 0 μόνο με το χέρι.', 'Counts in its kind (by its start); with a number of people the automatic roster places it too, with 0 only by hand.')}</p>
-          </div>
-          <div className="roster-rule-list">
-            <b className="roster-col-title">{tx('Κανόνες', 'Rules')}</b>
-            <div className="roster-rule">
-              <span>{tx('Κωδικοί βαρδιών', 'Shift codes')}</span>
-              <select aria-label={tx('Κωδικοί βαρδιών', 'Shift codes')} value={codeStyle} onChange={event => update({ ...roster, rules: { ...roster.rules, codes: event.target.value } })}>
-                <option value="letters">{tx('Γράμματα (Π, Α, Ν, Ρ)', 'Letters (M, A, N, R)')}</option>
-                <option value="iaso">{tx('Αριθμοί μισθοδοσίας (4, 19, 20, R)', 'Payroll numbers (4, 19, 20, R)')}</option>
-              </select>
-            </div>
-            {RULE_FIELDS.map(key => (
-              <div key={key} className="roster-rule">
-                <span>{RULE_LABELS[key]}</span>
-                <input type="number" min="0" max="14" aria-label={RULE_LABELS[key]} value={rules[key]} onChange={event => setRule(key, event.target.value)} />
-              </div>
-            ))}
-            <p className="roster-muted">{tx('Πάντα: όχι απόγευμα → πρωί (11 ώρες ανάπαυση), όχι πρωί/ενδιάμεση → νύχτα· ίσες βάρδιες, νύχτες και Σ/Κ· ρεπό κατά προτίμηση ανά δύο. Με κλικ σε όνομα: ποιες βάρδιες κάνει το άτομο.', 'Always: no afternoon → morning (11 hours of rest), no morning/intermediate → night; even shifts, nights and weekends; days off preferably in pairs. Click a name: the shifts that person works.')}</p>
-          </div>
-        </section>
-        </ObserverDialog>
+        <RosterRulesDialog view={view} />
       )}
 
       {roster && canEdit && panel === 'log' && (
@@ -770,305 +638,10 @@ export function RostersPage() {
       ) : !visible ? (
         <div className="inline-empty">{tx('Το πρόγραμμα της περιόδου δεν έχει δημοσιευτεί ακόμη. Μπορείτε να στείλετε αιτήματα από τα «Αιτήματά μου».', 'The roster of the period is not published yet. You can send requests from «My requests».')}</div>
       ) : (
-        <section className="roster-sheet">
-          <div className="roster-grid-wrap">
-            <table className="roster-grid">
-              <thead>
-                <tr>
-                  <th className="roster-name-col">{tx('Εργαζόμενος', 'Employee')}</th>
-                  {historyDays.map(d => (
-                    <th key={d.date} className="roster-history" title={tx('Τέλος προηγούμενης περιόδου', 'End of the previous period')}>
-                      {weekdays[d.weekday]}
-                      <br />
-                      {d.date.slice(8, 10)}
-                    </th>
-                  ))}
-                  {days.map(d => (
-                    <th key={d.date} className={d.weekend ? 'is-weekend' : ''}>
-                      {weekdays[d.weekday]}
-                      <br />
-                      {d.date.slice(8, 10)}
-                    </th>
-                  ))}
-                  {shown.map(s => <th key={s} className="roster-sum">{CODES[s].short}</th>)}
-                  <th className="roster-sum">{CODES.R.short}</th>
-                  <th className="roster-sum roster-total-col">{tx('Βάρδιες / στόχος', 'Shifts / target')}</th>
-                  <th className="roster-sum roster-total-col">{tx('Ώρες', 'Hours')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {active.length === 0 && (
-                  <tr>
-                    <td className="roster-empty" colSpan={days.length + historyDays.length + shown.length + 4}>{tx('Το τμήμα δεν έχει εργαζόμενους στο μητρώο.', 'The department has no employees in the register.')}</td>
-                  </tr>
-                )}
-                {active.map(m => {
-                  const shifts = countOf(m.employeeId, isShift)
-                  const target = targets[m.employeeId] ?? 0
-                  const tag = limitTag(m)
-                  return (
-                    <tr
-                      key={m.employeeId}
-                      className={`${dragId === m.employeeId ? 'is-dragging' : ''}${dropId === m.employeeId && dragId && dragId !== m.employeeId ? ' is-drop-target' : ''}${m.isHead ? ' is-head' : ''}${me?.employeeId === m.employeeId ? ' is-me' : ''}`}
-                      onDragOver={event => {
-                        if (!dragId || m.isHead) return
-                        event.preventDefault()
-                        if (dropId !== m.employeeId) setDropId(m.employeeId)
-                      }}
-                      onDrop={() => dropOn(m.employeeId)}
-                    >
-                      <td className="roster-name-col">
-                        <span className="roster-name">
-                          {canEdit && !m.isHead ? (
-                            <span className="roster-grip" draggable onDragStart={() => setDragId(m.employeeId)} onDragEnd={() => { setDragId(null); setDropId(null) }} title={tx('Σύρετε για αλλαγή σειράς', 'Drag to reorder')} aria-hidden="true">
-                              <GripVertical size={14} />
-                            </span>
-                          ) : (
-                            <span className="roster-grip is-fixed" aria-hidden="true" />
-                          )}
-                          {canEdit && <input type="checkbox" checked aria-label={tx(`${m.name}: ενεργός στο πρόγραμμα`, `${m.name}: in the roster`)} onChange={() => setMember(m.employeeId, { active: false })} />}
-                          {canEdit ? (
-                            <button
-                              type="button"
-                              className="roster-name-text"
-                              title={tx('Ποιες βάρδιες κάνει', 'Which shifts this person works')}
-                              onClick={event => {
-                                const rect = event.currentTarget.getBoundingClientRect()
-                                setCell(null)
-                                setNeed(null)
-                                setLimits({ employeeId: m.employeeId, top: Math.min(rect.bottom + 4, window.innerHeight - 220), left: rect.left })
-                              }}
-                            >
-                              {m.name}
-                            </button>
-                          ) : (
-                            <span className="roster-name-text">{m.name}</span>
-                          )}
-                          {m.isHead && <small className="roster-head-tag">{tx('Προϊστ.', 'Head')}</small>}
-                          {tag && <small className="roster-limit-tag">{tag}</small>}
-                        </span>
-                      </td>
-                      {historyDays.map(d => {
-                        const code = history.history[m.employeeId]?.[history.dates.indexOf(d.date)] || ''
-                        return <td key={d.date} className="roster-history"><span className={`roster-cell is-past code-${cellClass(code)}`}>{shortOf(code)}</span></td>
-                      })}
-                      {days.map(d => {
-                        const code = codeAt(m.employeeId, d.date)
-                        const wish = m.wishes?.[d.date]
-                        const manual = Boolean(m.fixed?.[d.date]) && isShift(code)
-                        const bad = canEdit && violations.some(v => v.employeeId === m.employeeId && v.date === d.date)
-                        return (
-                          <td key={d.date} className={d.weekend ? 'is-weekend' : ''}>
-                            <button
-                              type="button"
-                              className={`roster-cell code-${cellClass(code)}${wish ? ' has-wish' : ''}${bad ? ' is-bad' : ''}${manual && canEdit ? ' is-manual' : ''}`}
-                              disabled={!canEdit}
-                              aria-label={`${m.name} ${fmtDay(d.date)}: ${[labelOf(code) || tx('κενό', 'empty'), wish && tx('επιθυμία ρεπό', 'wishes a day off')].filter(Boolean).join(' · ')}`}
-                              title={[labelOf(code), wish && tx('επιθυμία ρεπό', 'wishes a day off'), manual && tx('ορίστηκε με το χέρι', 'set by hand')].filter(Boolean).join(' · ')}
-                              onClick={event => {
-                                const rect = event.currentTarget.getBoundingClientRect()
-                                setNeed(null)
-                                setLimits(null)
-                                setCell({ employeeId: m.employeeId, date: d.date, top: Math.min(rect.bottom + 4, window.innerHeight - 380), left: Math.min(rect.left, window.innerWidth - 230) })
-                              }}
-                            >
-                              {code ? shortOf(code) : wish ? '★' : ''}
-                            </button>
-                          </td>
-                        )
-                      })}
-                      {shown.map(s => <td key={s} className="roster-sum">{countOf(m.employeeId, c => kindOf(c) === s)}</td>)}
-                      <td className="roster-sum">{countOf(m.employeeId, c => c === 'R')}</td>
-                      <td className={`roster-sum roster-total-col${hasShifts && Math.abs(shifts - target) > rules.balanceTolerance ? ' is-off-target' : ''}`}>
-                        {shifts} / {target}
-                      </td>
-                      <td className="roster-sum roster-total-col">{shifts * HOURS} / {target * HOURS}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-              <tfoot>
-                {shown.map(s => (
-                  <tr key={s} className="roster-coverage">
-                    <th className="roster-name-col" scope="row">{CODES[s].name}</th>
-                    {historyDays.map(d => <td key={d.date} className="roster-history" />)}
-                    {days.map(d => {
-                      const have = active.filter(m => !isExtra(m) && kindOf(codeAt(m.employeeId, d.date)) === s).length
-                      const extra = active.filter(m => isExtra(m) && kindOf(codeAt(m.employeeId, d.date)) === s).length
-                      const needed = demandFor(roster.demand, d)[s]
-                      const own = roster.demand.overrides?.[d.date]?.[s] !== undefined
-                      return (
-                        <td key={d.date} className={d.weekend ? 'is-weekend' : ''}>
-                          <button
-                            type="button"
-                            className={`roster-need${hasShifts && s !== 'I' && have + extra < needed ? ' is-short' : ''}${own ? ' is-own' : ''}`}
-                            title={extra ? tx('Μαζί με τον προϊστάμενο', 'Head of the department included') : undefined}
-                            disabled={!canEdit}
-                            aria-label={`${CODES[s].name} ${fmtDay(d.date)}: ${have} ${tx('από', 'of')} ${needed}`}
-                            onClick={event => {
-                              const rect = event.currentTarget.getBoundingClientRect()
-                              setCell(null)
-                              setLimits(null)
-                              setNeed({ date: d.date, shift: s, value: String(needed), top: Math.max(8, rect.top - 124), left: Math.min(rect.left, window.innerWidth - 230) })
-                            }}
-                          >
-                            {/* The head counts on the shift like everyone else (owner, 9/11/2026). */}
-                            {have + extra}/{needed}
-                          </button>
-                        </td>
-                      )
-                    })}
-                    <td className="roster-sum" colSpan={shown.length + 3} />
-                  </tr>
-                ))}
-              </tfoot>
-            </table>
-          </div>
-          {canEdit && inactive.length > 0 && (
-            <p className="roster-inactive">
-              {tx('Εκτός προγράμματος:', 'Out of the roster:')}{' '}
-              {inactive.map(m => (
-                <label key={m.employeeId}>
-                  <input type="checkbox" checked={false} onChange={() => setMember(m.employeeId, { active: true })} />
-                  {m.name}
-                </label>
-              ))}
-            </p>
-          )}
-          <div className="roster-legend">
-            {shown.map(c => <span key={c}><i className={`code-${c}`}>{CODES[c].short}</i>{CODES[c].label}</span>)}
-            {others.map(o => <span key={o.code}><i className={`code-${kindOf(o.code)}`}>{shortOf(o.code)}</i>{o.label}</span>)}
-            <span><i className="code-R">{CODES.R.short}</i>{CODES.R.label}</span>
-            <span><i className="code-leave">{CODES.L.short}</i>{tx('Άδεια / αργία', 'Leave / holiday')}</span>
-            <span><i className="code-wish">★</i>{tx('Επιθυμία ρεπό', 'Wishes a day off')}</span>
-            {canEdit && <span><i className="code-none is-manual-key" />{tx('Ορίστηκε με το χέρι', 'Set by hand')}</span>}
-          </div>
-          {canEdit &&
-            hasShifts &&
-            (violations.length === 0 ? (
-              <p className="roster-ok">✓ {tx('Όλοι οι κανόνες τηρούνται.', 'Every rule is kept.')}</p>
-            ) : (
-              <ul className="roster-violations">
-                {/* One line per rule: the first days and the people (their cells are framed red). */}
-                {Object.entries(violations.reduce((acc, v) => ({ ...acc, [v.rule]: [...(acc[v.rule] || []), v] }), {})).map(([rule, list]) => {
-                  const dates = [...new Set(list.map(v => v.date).filter(Boolean))]
-                  const people = [...new Set(list.map(v => nameOf(v.employeeId)).filter(name => name !== '—'))]
-                  return (
-                    <li key={rule}>
-                      <strong>{RULE_TEXT[rule] || rule}</strong>
-                      {dates.length > 0 && ` · ${dates.slice(0, 6).map(fmtDay).join(', ')}${dates.length > 6 ? tx(` και ${dates.length - 6} ακόμη`, ` and ${dates.length - 6} more`) : ''}`}
-                      {people.length > 0 && ` · ${people.slice(0, 3).join(', ')}${people.length > 3 ? '…' : ''}`}
-                    </li>
-                  )
-                })}
-              </ul>
-            ))}
-        </section>
+        <RosterSheet view={view} />
       )}
 
-      {cell && (
-        <>
-          <div className="roster-cell-backdrop" onClick={() => setCell(null)} aria-hidden="true" />
-          <div className="roster-cell-menu" role="menu" style={{ top: cell.top, left: cell.left }}>
-            {[...SHIFTS, 'R', ...LEAVES].map(code => (
-              <button key={code} type="button" role="menuitem" onClick={() => setCode(cell.employeeId, cell.date, code)}>
-                <i className={`code-${LEAVES.includes(code) ? 'leave' : code}`}>{CODES[code].short}</i>
-                {CODES[code].label}
-              </button>
-            ))}
-            {others.map(o => (
-              <button key={o.code} type="button" role="menuitem" onClick={() => setCode(cell.employeeId, cell.date, o.code)}>
-                <i className={`code-${kindOf(o.code)}`}>{shortOf(o.code)}</i>
-                {o.label} · {CODES[kindOf(o.code)]?.name}
-              </button>
-            ))}
-            <button type="button" role="menuitem" onClick={() => setCode(cell.employeeId, cell.date, 'wish')}>
-              <i className="code-wish">★</i>
-              {tx('Επιθυμία ρεπό', 'Wishes a day off')}
-            </button>
-            <button type="button" role="menuitem" onClick={() => setCode(cell.employeeId, cell.date, '')}>
-              <i className="code-none">–</i>
-              {tx('Καθαρισμός', 'Clear')}
-            </button>
-          </div>
-        </>
-      )}
-      {need && (
-        <>
-          <div className="roster-cell-backdrop" onClick={() => setNeed(null)} aria-hidden="true" />
-          <div className="roster-cell-menu roster-need-menu" role="dialog" aria-label={`${CODES[need.shift].name} ${fmtDay(need.date)}`} style={{ top: need.top, left: need.left }}>
-            <label>
-              <span>{CODES[need.shift].name} {fmtDay(need.date)} · {tx('χρειάζονται', 'needed')}</span>
-              <input type="number" min="0" max="20" value={need.value} onChange={event => setNeed(current => ({ ...current, value: event.target.value }))} />
-            </label>
-            <div className="roster-need-actions">
-              <button type="button" onClick={() => { setDayNeed(need.date, need.shift, null); setNeed(null) }}>{tx('Όπως οι άλλες μέρες', 'Like the other days')}</button>
-              <button type="button" className="is-primary" onClick={() => { setDayNeed(need.date, need.shift, need.value); setNeed(null) }}>{tx('Ορισμός', 'Set')}</button>
-            </div>
-          </div>
-        </>
-      )}
-      {limits && (
-        <>
-          <div className="roster-cell-backdrop" onClick={() => setLimits(null)} aria-hidden="true" />
-          <div className="roster-cell-menu roster-limits-menu" role="dialog" aria-label={tx('Βάρδιες που κάνει', 'Shifts this person works')} style={{ top: limits.top, left: limits.left }}>
-            <p>{nameOf(limits.employeeId)}</p>
-            <label className="roster-limit roster-head-choice">
-              <input
-                type="checkbox"
-                checked={Boolean(roster.members.find(m => m.employeeId === limits.employeeId)?.isHead)}
-                onChange={event => update({ ...roster, members: headsFirst(roster.members.map(m => (m.employeeId === limits.employeeId ? { ...m, headSet: event.target.checked, isHead: event.target.checked } : m))) })}
-              />
-              {tx('Προϊστάμενος/η τμήματος (πρώτος στη λίστα)', 'Head of the department (first in the list)')}
-            </label>
-            {(() => {
-              const member = roster.members.find(m => m.employeeId === limits.employeeId)
-              if (!member) return null
-              return (
-                <>
-                  <label className="roster-limit">
-                    <input type="checkbox" checked={isExtra(member)} onChange={event => setMember(member.employeeId, { extra: event.target.checked })} />
-                    {tx('Υπεράριθμος: δεν μετράει στις βάρδιες (μόνο αν δεν βγαίνει το πρόγραμμα)', 'Supernumerary: not counted in the shifts (only if the roster cannot be made otherwise)')}
-                  </label>
-                  <label className="roster-limit">
-                    <input type="checkbox" checked={Boolean(member.noWeekends)} onChange={event => setMember(member.employeeId, { noWeekends: event.target.checked })} />
-                    {tx('Χωρίς Σαββατοκύριακα', 'No weekends')}
-                  </label>
-                  <label className="roster-limit roster-limit-number">
-                    <span>{tx('Νύχτες την περίοδο, έως', 'Nights in the period, at most')}</span>
-                    <input type="number" min="0" max="31" placeholder="—" value={member.maxNights ?? ''} onChange={event => setMember(member.employeeId, { maxNights: event.target.value === '' ? undefined : Math.max(0, Math.min(31, Number(event.target.value) || 0)) })} />
-                  </label>
-                  <label className="roster-limit roster-limit-number">
-                    <span>{tx('Απασχόληση %', 'Working time %')}</span>
-                    <input type="number" min="10" max="100" step="5" placeholder="100" value={member.percent ?? ''} onChange={event => setMember(member.employeeId, { percent: event.target.value === '' ? undefined : Math.max(10, Math.min(100, Number(event.target.value) || 100)) })} />
-                  </label>
-                </>
-              )
-            })()}
-            <p className="roster-limits-title">{tx('Βάρδιες που κάνει', 'Shifts worked')}</p>
-            {SHIFTS.map(code => {
-              const member = roster.members.find(m => m.employeeId === limits.employeeId)
-              const allowed = Array.isArray(member?.allowed) && member.allowed.length ? member.allowed : SHIFTS
-              const on = allowed.includes(code)
-              return (
-                <label key={code} className="roster-limit">
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    onChange={() => {
-                      const next = on ? allowed.filter(c => c !== code) : [...allowed, code]
-                      if (!next.length) return
-                      setMember(limits.employeeId, { allowed: next.length === SHIFTS.length ? undefined : SHIFTS.filter(c => next.includes(c)) })
-                    }}
-                  />
-                  <i className={`code-${code}`}>{CODES[code].short}</i>
-                  {CODES[code].label}
-                </label>
-              )
-            })}
-          </div>
-        </>
-      )}
+      <RosterPopovers view={view} />
     </Page>
   )
 }
