@@ -1,9 +1,13 @@
 /* The Division Director's home: the key figures, the departments table and, beside it, what needs attention, the interviews and the week. */
 .division-kpis.lo-kpi-strip{--kpi-columns-md:4}
+/* The hint is read whole: on a narrow card it goes to a second line instead of «…». */
+.division-kpis .lo-kpi-label{white-space:normal}
 .division-page.page-fill>.division-home{flex:1 1 0;min-height:260px}
 .division-home{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:14px;align-items:stretch;min-height:0}
 .division-home>.dashboard-card,.division-side>.dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
-.division-side{display:grid;grid-template-rows:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:14px;min-height:0}
+.division-side{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:14px;min-height:0}
+/* «Χρειάζονται προσοχή» and the interviews show their few rows whole (SIDE_SHOWN); the week takes the rest and scrolls. */
+.division-side>.dashboard-card:not(:last-child) .task-list,.division-side>.dashboard-card:not(:last-child) .dashboard-week-list{flex:none;overflow:visible}
 .division-side .task-list,.division-side .dashboard-week-list{flex:1 1 auto;min-height:0;overflow:auto}
 .division-side .inline-empty{flex:1 1 auto;min-height:0;overflow:auto}
 .division-side .lo-card-heading small{display:none}

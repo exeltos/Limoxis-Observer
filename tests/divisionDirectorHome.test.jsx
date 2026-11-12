@@ -4,7 +4,7 @@
 // and English, read only; the role preview picks a division and oversees its departments.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
 
@@ -74,6 +74,9 @@ describe('Division Director home', () => {
     // what needs attention: the missing roster first
     expect(screen.getByText('Ορθοπαιδική: λείπει το πρόγραμμα Δεκεμβρίου')).toBeTruthy()
     expect(screen.getByText('Παθολογική: αιτήματα περιμένουν πάνω από 3 ημέρες')).toBeTruthy()
+    // the first three show; «Όλα (N)» opens the rest
+    expect(screen.queryByText('Ορθοπαιδική: εκπαιδεύσεις λήγουν σε 30 ημέρες')).toBeNull()
+    fireEvent.click(screen.getByText(/^Όλα \(\d+\)$/))
     expect(screen.getByText('Ορθοπαιδική: εκπαιδεύσεις λήγουν σε 30 ημέρες')).toBeTruthy()
   })
 
