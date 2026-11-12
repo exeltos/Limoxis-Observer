@@ -30,10 +30,10 @@ interface HaiDialogProps {
   t: (key: string) => string
   items?: AnyRecord[]
   patientAgeDays?: number | null
-  organizationId: string
+  organizationId: string | null | undefined
   isDemo: boolean
   onAddLibraryItem: Handler
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 export function HaiDialog({
@@ -158,7 +158,7 @@ export function HaiDialog({
     setD(x => ({
       ...x,
       criteriaEvidence: x.criteriaEvidence.includes(itemId)
-        ? x.criteriaEvidence.filter(id => id !== itemId)
+        ? x.criteriaEvidence.filter((id: string) => id !== itemId)
         : [...x.criteriaEvidence, itemId],
     }))
   }
@@ -266,7 +266,7 @@ interface TherapyDialogProps {
   t: (key: string) => string
   antibiotics?: AnyRecord[]
   advancedAntibiotics?: AnyRecord[]
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], onClose, onSave }: TherapyDialogProps) {
@@ -364,7 +364,7 @@ export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], o
 }
 interface IsolationDialogProps {
   t: (key: string) => string
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 export function IsolationDialog({ t, onClose, onSave }: IsolationDialogProps) {
@@ -421,7 +421,7 @@ export function IsolationDialog({ t, onClose, onSave }: IsolationDialogProps) {
 interface EndDialogProps {
   title: string
   t: (key: string) => string
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 export function EndDialog({ title, t, onClose, onSave }: EndDialogProps) {
@@ -442,7 +442,7 @@ export function EndDialog({ title, t, onClose, onSave }: EndDialogProps) {
 }
 interface ReassessmentDialogProps {
   t: (key: string) => string
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 export function ReassessmentDialog({ t, onClose, onSave }: ReassessmentDialogProps) {
@@ -488,7 +488,7 @@ export function ReassessmentDialog({ t, onClose, onSave }: ReassessmentDialogPro
 }
 interface OutcomeDialogProps {
   t: (key: string) => string
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 export function OutcomeDialog({ t, onClose, onSave }: OutcomeDialogProps) {
@@ -524,7 +524,7 @@ interface ReasonDialogProps {
   t: (key: string) => string
   reason: string
   setReason: StateSetter
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
   saveLabel?: string
   note?: string

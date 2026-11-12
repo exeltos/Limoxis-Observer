@@ -18,7 +18,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { RESISTANCE_ALERT, episodeTypeLabel } from './clinicalRecordLabels'
 import { SampleRequestDialog } from './ClinicalRecordDialogs'
 import { statusTone } from './surveillanceOptions'
-import { SurveillanceEpisodeSheet } from './SurveillanceEpisodeSheet'
+import { SurveillanceEpisodeSheet, type EpisodeEditDraft, type SheetAction } from './SurveillanceEpisodeSheet'
 import { SampleTree } from './SurveillanceSampleTree'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
@@ -31,12 +31,12 @@ interface SurveillanceWorkspaceProps {
   onSelect: Handler
   onCreate: Handler
   onCreateFromSample: Handler
-  onCreateSample: Handler
+  onCreateSample?: Handler
   canCreate: boolean
   canCreateSample: boolean
-  onOpenSample: Handler
-  onRemoveSample: Handler
-  askSampleFor?: Handler | null
+  onOpenSample?: Handler
+  onRemoveSample?: Handler
+  askSampleFor?: string | null
   onSampleAsked: Handler
   repository: AnyRecord
   onReload: Handler
@@ -46,7 +46,7 @@ interface SurveillanceWorkspaceProps {
   fmtDate: (value: unknown) => string
   fmtDateTime: (value: unknown) => string
   libraries?: AnyRecord
-  organizationId: string
+  organizationId: string | null | undefined
   isDemo: boolean
   onLibraryAdded: Handler
   permissions: AnyRecord
@@ -88,16 +88,16 @@ export function SurveillanceWorkspace({
   const { notify } = useFeedback()
   // N3: "Start protocol" (header or a qSOFA / SOFA prompt) and the open protocols for the badges.
   const [startRequest, setStartRequest] = useState<AnyRecord | null>(null),
-    [openRuns, setOpenRuns] = useState([])
+    [openRuns, setOpenRuns] = useState<AnyRecord[]>([])
   const [sampleOpen, setSampleOpen] = useState(false),
-    [samplePrompt, setSamplePrompt] = useState(null),
-    [followUpParent, setFollowUpParent] = useState(null),
+    [samplePrompt, setSamplePrompt] = useState<AnyRecord | null>(null),
+    [followUpParent, setFollowUpParent] = useState<AnyRecord | null>(null),
     [detailId, setDetailId] = useState('')
   const [deleteOpen, setDeleteOpen] = useState(false),
     [deleteReason, setDeleteReason] = useState('')
   const [editOpen, setEditOpen] = useState(false),
     [editBusy, setEditBusy] = useState(false),
-    [editDraft, setEditDraft] = useState({
+    [editDraft, setEditDraft] = useState<EpisodeEditDraft>({
       startedAt: '',
       reviewDue: '',
       room: '',
@@ -125,11 +125,11 @@ export function SurveillanceWorkspace({
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
   // The sheet reads until «Edit sheet»; every action of it is in the «⋯» (owner, 8/11/2026).
   const [sheetEditing, setSheetEditing] = useState(false),
-    [sheetAction, setSheetAction] = useState(null)
+    [sheetAction, setSheetAction] = useState<SheetAction | null>(null)
   useEffect(() => setSheetEditing(false), [detailId])
   const sheetActive = detailRecord?.status === 'active'
   const canEditSheet = sheetActive && ['canAssess', 'canLab', 'canIsolation', 'canTherapy', 'canReassess', 'canOutcome'].some(key => permissions?.[key])
-  const askSheet = (stage, dialog) => {
+  const askSheet = (stage: string, dialog: string) => {
     setSheetEditing(true)
     setSheetAction({ stage, dialog, nonce: Date.now() })
   }

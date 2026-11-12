@@ -41,4 +41,4 @@ export function reviewWindow(therapy: AnyRecord, reviews: AnyRecord[] = [], now 
 export const reviewTone = (state: string) => ({ reviewed: 'success', reviewedLate: 'warning', due: 'warning', overdue: 'danger' } as Record<string, string>)[state] || 'neutral'
 
 // Which therapies show a review card: in the window, overdue, or already reviewed.
-export const showsReviewCard = (window: AnyRecord) => Boolean(window && ['due', 'overdue', 'reviewed', 'reviewedLate'].includes(window.state))
+export const showsReviewCard = (window: AnyRecord | null | undefined) => Boolean(window && ['due', 'overdue', 'reviewed', 'reviewedLate'].includes(window.state))

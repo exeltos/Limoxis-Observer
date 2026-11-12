@@ -95,11 +95,11 @@ const useEffectiveQuestions = (settings: AnyRecord[]) => useMemo(() => applyEpiS
 interface EpiQuestionnaireDialogProps {
   ctx: AnyRecord
   episode: AnyRecord
-  row: AnyRecord
+  row: AnyRecord | null
   settings: AnyRecord[]
   canEdit: boolean
   inSheet?: boolean
-  onClose: Handler
+  onClose?: Handler | null
   onSaved: Handler
 }
 // The full questionnaire of an episode: one dialog to fill in and to correct later.
@@ -151,7 +151,7 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
       eyebrow={t('epiQuestionnaire.dialogEyebrow')}
       title={t('epiQuestionnaire.dialogTitle')}
       subtitle={subtitle}
-      onClose={onClose}
+      onClose={onClose ?? undefined}
       footer={
         <>
           <p className="epi-q-summary" role="status">

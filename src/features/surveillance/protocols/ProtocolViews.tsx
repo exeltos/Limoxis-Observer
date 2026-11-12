@@ -62,7 +62,7 @@ interface ProtocolPickerDialogProps {
   t: (key: string) => string
   runs?: AnyRecord[]
   preset?: AnyRecord | null
-  onClose: Handler
+  onClose?: Handler | null
   onStart: Handler
 }
 // Picker: which protocol, time zero, trigger and weight.
@@ -79,7 +79,7 @@ export function ProtocolPickerDialog({ t, runs = [], preset = null, onClose, onS
     <ObserverDialog
       title={t('sepsis.startProtocol')}
       subtitle={t('sepsis.pickerSubtitle')}
-      onClose={onClose}
+      onClose={onClose ?? undefined}
       footer={
         <DialogActions
           disabled={Boolean(open) || !recognizedAt}
@@ -457,7 +457,7 @@ interface StepDialogProps {
   record: AnyRecord
   initialKey: string
   choose: AnyRecord
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }: StepDialogProps) {
@@ -503,7 +503,7 @@ function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }: Ste
     <ObserverDialog
       title={t('sepsis.recordStep')}
       subtitle={stepText(t, step.key, 'title')}
-      onClose={onClose}
+      onClose={onClose ?? undefined}
       footer={<DialogActions disabled={!valid || busy} onSave={save} />}
     >
       <div className="sp-stack">
@@ -548,7 +548,7 @@ function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }: Ste
 interface ChangeTimeDialogProps {
   t: (key: string) => string
   run: AnyRecord
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 function ChangeTimeDialog({ t, run, onClose, onSave }: ChangeTimeDialogProps) {
@@ -565,7 +565,7 @@ function ChangeTimeDialog({ t, run, onClose, onSave }: ChangeTimeDialogProps) {
     <ObserverDialog
       title={t('sepsis.changeTimeTitle')}
       subtitle={t('sepsis.changeReasonHint')}
-      onClose={onClose}
+      onClose={onClose ?? undefined}
       footer={<DialogActions disabled={!valid} onSave={() => onSave({ recognizedAt: changedTime ? recognizedAt : null, reason: reason.trim(), weightKg: changedWeight ? nextWeight : undefined })} />}
     >
       <div className="sp-form-grid">
@@ -591,13 +591,13 @@ interface ReasonOnlyDialogProps {
   hint: string
   // Passed by the panel, not read: the texts come translated.
   t?: (key: string) => string
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 function ReasonOnlyDialog({ title, label, hint, onClose, onSave }: ReasonOnlyDialogProps) {
   const [reason, setReason] = useState('')
   return (
-    <ObserverDialog title={title} subtitle={hint} onClose={onClose} footer={<DialogActions disabled={!reason.trim()} saveLabel={title} onSave={() => onSave(reason.trim())} />}>
+    <ObserverDialog title={title} subtitle={hint} onClose={onClose ?? undefined} footer={<DialogActions disabled={!reason.trim()} saveLabel={title} onSave={() => onSave(reason.trim())} />}>
       <label className="field">
         <span className="field-label lo-field-label">{label} *</span>
         <textarea rows={3} value={reason} onChange={event => setReason(event.target.value)} />
@@ -607,7 +607,7 @@ function ReasonOnlyDialog({ title, label, hint, onClose, onSave }: ReasonOnlyDia
 }
 
 interface ProtocolBadgeProps {
-  entry: AnyRecord
+  entry?: AnyRecord | null
   t: (key: string) => string
   language: string
   now?: Date

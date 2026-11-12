@@ -27,6 +27,7 @@ import { JourneyWindows } from './ClinicalJourneyWindows'
 import { JourneyCareStages } from './ClinicalJourneyCareStages'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
+import type { ReactNode } from 'react'
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
@@ -44,7 +45,7 @@ interface CanonicalJourneyProps {
   record: AnyRecord
   repository: AnyRecord
   libraries?: AnyRecord
-  organizationId: string
+  organizationId: string | null | undefined
   isDemo: boolean
   onLibraryAdded: Handler
   onReload: Handler
@@ -65,6 +66,13 @@ interface CanonicalJourneyProps {
   editing?: boolean
   actionRequest?: AnyRecord | null
   onActionHandled: Handler
+}
+// The epidemiological questionnaire of the episode, as the sheet holds it.
+export interface EpiState {
+  row: AnyRecord | null
+  settings: AnyRecord[]
+  ready: boolean
+  nonce: number
 }
 export function CanonicalJourney({
   record,
@@ -97,7 +105,7 @@ export function CanonicalJourney({
   const copyText = (key: string) => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
   interface SheetDetailProps {
     label: string
-    value: AnyRecord
+    value: ReactNode
   }
   // Read-only value of the sheet, laid out like the form's field; an empty one says so (owner, 8/11/2026).
   const SheetDetail = ({ label, value }: SheetDetailProps) => (
@@ -126,7 +134,7 @@ export function CanonicalJourney({
   }, [askSample, onSampleAsked])
   // The epidemiological questionnaire of the episode, a step of its own (owner, 8/11/2026).
   const epiKey = isDemo ? record.id : record.recordId || record.id
-  const [epi, setEpi] = useState({ row: null, settings: [], ready: false, nonce: 0 })
+  const [epi, setEpi] = useState<EpiState>({ row: null, settings: [], ready: false, nonce: 0 })
   useEffect(() => {
     let alive = true
     Promise.all([
@@ -146,12 +154,12 @@ export function CanonicalJourney({
   }, [stage])
   const [bundleDevice, setBundleDevice] = useState<AnyRecord | null>(null),
     [formNonce, setFormNonce] = useState(0)
-  const [dialog, setDialog] = useState<AnyRecord | null>(null),
+  const [dialog, setDialog] = useState<string | null>(null),
     [reason, setReason] = useState(''),
-    [entryDetail, setEntryDetail] = useState(null)
+    [entryDetail, setEntryDetail] = useState<AnyRecord | null>(null)
   const active = record.status === 'active'
   // «Delete» of an entry of the episode, for a «…» menu (null when the person may not delete it).
-  const ENTRY_TABLES = {
+  const ENTRY_TABLES: Record<string, [string, (row: AnyRecord) => unknown]> = {
     assessment: ['clinical_assessments', (row: AnyRecord) => row.byId],
     hai: ['hai_classifications', (row: AnyRecord) => row.classifiedBy],
     isolation: ['isolation_episodes', (row: AnyRecord) => row.createdBy],
@@ -179,7 +187,7 @@ export function CanonicalJourney({
     setDialog('protocolPicker')
     onProtocolRequestHandled?.()
   }, [startProtocolRequest, active, onProtocolRequestHandled])
-  async function runProtocol(work, message: string) {
+  async function runProtocol(work: () => Promise<unknown>, message?: string) {
     try {
       const result = await work()
       setDialog(null)
@@ -213,12 +221,12 @@ export function CanonicalJourney({
   }
   // «Next» saves the form of the step when it was changed (owner, 8/11/2026): the inline form on show registers
   // itself here (InlineDialogContext), and moving to another step saves it first.
-  const pendingForm = useRef(null)
+  const pendingForm = useRef<AnyRecord | null>(null)
   const inlineForms = { register: (entry: AnyRecord) => (pendingForm.current = entry), unregister: (entry: AnyRecord) => pendingForm.current === entry && (pendingForm.current = null) }
-  const sheetForm = node => <InlineDialogContext.Provider key={formNonce} value={inlineForms}>{node}</InlineDialogContext.Provider>
+  const sheetForm = (node: ReactNode) => <InlineDialogContext.Provider key={formNonce} value={inlineForms}>{node}</InlineDialogContext.Provider>
   // In «Edit sheet» every step opens with its form, no button to press first (owner, 8/11/2026): a new sample, HAI
   // assessment, device or therapy; the full questionnaire; the end of an active isolation.
-  const stageForms =
+  const stageForms: Record<string, string | null> =
     editing && active
       ? {
           samples: permissions.canLab ? 'sample' : null,
@@ -252,7 +260,7 @@ export function CanonicalJourney({
     goToStage(id === 'therapyReview' ? 'therapy' : id)
     if (cueDialogs[id] && !editing) setDialog(cueDialogs[id])
   }
-  async function run(work, message: string) {
+  async function run(work: () => Promise<unknown>, message?: string) {
     try {
       await work()
       setDialog(null)

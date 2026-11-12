@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
 interface SimpleDialogProps {
   title: string
   t: (key: string) => string
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
   children: ReactNode
   disabled?: boolean
@@ -41,7 +41,7 @@ export function SimpleDialog({
       title={title}
       width={width}
       className={`patient-simple-dialog ${className}`.trim()}
-      onClose={onClose}
+      onClose={onClose ?? undefined}
       footer={
         form ? (
           <FormSubmit form={form} disabled={disabled} onSubmit={onSave}>

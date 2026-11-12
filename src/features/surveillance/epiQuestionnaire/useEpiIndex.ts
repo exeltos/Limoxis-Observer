@@ -9,7 +9,7 @@ export interface EpiIndex {
   ready: boolean
 }
 interface UseEpiIndexOptions {
-  organizationId?: string
+  organizationId?: string | null
   isDemo?: boolean
   enabled?: boolean
   refreshKey?: string

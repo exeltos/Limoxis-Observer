@@ -10,19 +10,20 @@ import { TherapyReviewCard } from './protocols/TherapyReviewCard'
 import { reviewWindow, showsReviewCard } from './protocols/therapyReview'
 import { createTherapyReview } from './protocols/protocolService'
 import type { AnyRecord } from '../../types/featureTypes'
-import type { Handler, StateSetter } from './surveillanceTypes'
+import type { Handler, Setter } from './surveillanceTypes'
+import type { ComponentType, ReactNode } from 'react'
 
 // What the screen hands to this part (one object, so the part reads like the code it came from).
 export interface JourneyCareStagesScope {
   actor: AnyRecord | null
-  deleteItem: Handler
-  deviceBundles: AnyRecord
+  deleteItem: Handler | null
+  deviceBundles: AnyRecord | null
   editing: boolean
   entryDelete: Handler
   fmtDate: (value: unknown) => string
   language: string
-  now: AnyRecord
-  organizationId: string
+  now: Date
+  organizationId: string | null | undefined
   permissions: AnyRecord
   protocolOptions: AnyRecord
   protocols: AnyRecord
@@ -30,14 +31,14 @@ export interface JourneyCareStagesScope {
   repository: AnyRecord
   run: Handler
   runProtocol: Handler
-  setBundleDevice: StateSetter
-  setDialog: StateSetter
-  setEntryDetail: StateSetter
-  SheetDetail: AnyRecord
+  setBundleDevice: Setter<AnyRecord | null>
+  setDialog: Setter<string | null>
+  setEntryDetail: Setter<AnyRecord | null>
+  SheetDetail: ComponentType<{ label: string, value: ReactNode }>
   sheetEdit: AnyRecord
-  sheetForm: AnyRecord
+  sheetForm: (node: ReactNode) => ReactNode
   stage: string
-  stageForms: AnyRecord
+  stageForms: Record<string, string | null>
   t: (key: string) => string
 }
 export function JourneyCareStages({ j }: { j: JourneyCareStagesScope }) {
@@ -296,7 +297,7 @@ export function JourneyCareStages({ j }: { j: JourneyCareStagesScope }) {
                   key={`review-${therapy.id}`}
                   record={record}
                   therapy={therapy}
-                  window={window}
+                  window={window!}
                   t={t}
                   actorName={actor?.name}
                   canReview={editing && permissions.canTherapy}

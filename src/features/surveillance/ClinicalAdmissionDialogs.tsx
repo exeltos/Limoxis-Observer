@@ -32,6 +32,7 @@ import { departmentOptions, listTexts } from './surveillanceOptions'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
+import type { ReactNode } from 'react'
 
 interface PatientDetailsEditorProps {
   title: string
@@ -112,19 +113,19 @@ export function useAdmissionLifecycle({
   language,
 }: UseAdmissionLifecycleOptions) {
   const { notify } = useFeedback()
-  const [kind, setKind] = useState<AnyRecord | null>(null),
+  const [kind, setKind] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
     [draft, setDraft] = useState({
       date: hospitalToday(),
       departmentId: '',
       reason: '',
     })
-  const open = next => {
+  const open = (next: string) => {
     setDraft({ date: hospitalToday(), departmentId: '', reason: '' })
     setKind(next)
   }
   // The discharge is recorded only from the confirmation step of its dialog.
-  async function confirmDischarge(result) {
+  async function confirmDischarge(result: AnyRecord) {
     try {
       setBusy(true)
       await dischargeAdmission(tenantId, patient, admission, result, { isDemo })
@@ -275,9 +276,9 @@ export function AdmissionDeleteDialog({
       await onDeleted?.(admission)
     } catch (error) {
       notify(
-        error?.code === 'last_admission'
+        (error as AnyRecord)?.code === 'last_admission'
           ? t('clinicalRecords.lastAdmissionCannotBeDeleted')
-          : error?.code === 'has_surveillance'
+          : (error as AnyRecord)?.code === 'has_surveillance'
             ? t('clinicalRecords.admissionHasSurveillance')
             : (error as Error)?.message || t('actionFailed'),
         'danger',
@@ -297,8 +298,8 @@ export function AdmissionDeleteDialog({
   )
 }
 interface DetailProps {
-  label: string
-  value: AnyRecord
+  label: ReactNode
+  value: ReactNode
 }
 export function Detail({ label, value }: DetailProps) {
   return (
@@ -369,7 +370,7 @@ export function NewAdmissionDialog({
       await onAdmitted?.(row, discharged)
       notify(t('saved'), 'success')
     } catch (error) {
-      notify(error?.duplicateRecordNumber ? t('recordNumberTaken') : (error as Error)?.message || t('actionFailed'), 'danger')
+      notify((error as AnyRecord)?.duplicateRecordNumber ? t('recordNumberTaken') : (error as Error)?.message || t('actionFailed'), 'danger')
     } finally {
       setBusy(false)
     }
@@ -429,16 +430,16 @@ export function NewAdmissionDialog({
 
 interface AdmissionPickerProps {
   admissions: AnyRecord[]
-  selected: boolean
+  selected: AnyRecord | null
   onSelect: Handler
-  onNew: Handler
+  onNew?: Handler | null
   t: (key: string) => string
   fmtDate: (value: unknown) => string
 }
 // The patient's admissions, always in view under the name: pick the one the
 // record shows, or start a new one.
 export function AdmissionPicker({ admissions, selected, onSelect, onNew, t, fmtDate }: AdmissionPickerProps) {
-  const items = admissions.map(row => {
+  const items: AnyRecord[] = admissions.map(row => {
     const days = stayDays(row.admissionDate, row.dischargeDate)
     return {
       id: row.id,

@@ -14,25 +14,39 @@ import { CanonicalJourney } from './ClinicalJourney'
 import { SimpleDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { listTexts, statusTone, suspectedSourceOptions } from './surveillanceOptions'
 import type { AnyRecord } from '../../types/featureTypes'
-import type { Handler, StateSetter } from './surveillanceTypes'
+import type { Handler, Setter } from './surveillanceTypes'
 
 // What the screen hands to this part (one object, so the part reads like the code it came from).
+// The start fields of an episode being corrected.
+export interface EpisodeEditDraft {
+  startedAt: string
+  reviewDue: string
+  room: string
+  reason: string
+  suspectedSource: string
+}
+// An action of the sheet's «⋯»: its step and its window.
+export interface SheetAction {
+  stage: string
+  dialog: string
+  nonce: number
+}
 export interface SurveillanceEpisodeSheetScope {
-  askSampleFor: Handler
-  askSheet: Handler
+  askSampleFor: string | null
+  askSheet: (stage: string, dialog: string) => void
   canEditSheet: boolean
   copyText: (key: string) => string
   deleteItem: Handler
-  deleteOpen: AnyRecord
+  deleteOpen: boolean
   deleteReason: string
   detailRecord: AnyRecord
-  deviceBundles: AnyRecord
-  editBusy: AnyRecord
-  editDraft: AnyRecord
-  editOpen: AnyRecord
+  deviceBundles: AnyRecord | null
+  editBusy: boolean
+  editDraft: EpisodeEditDraft
+  editOpen: boolean
   fmtDate: (value: unknown) => string
   fmtDateTime: (value: unknown) => string
-  initialStage: string
+  initialStage: string | null
   isDemo: boolean
   language: string
   libraries: AnyRecord
@@ -40,23 +54,23 @@ export interface SurveillanceEpisodeSheetScope {
   onReload: Handler
   onSampleAsked: Handler
   openEditEpisode: Handler
-  organizationId: string
+  organizationId: string | null | undefined
   permissions: AnyRecord
   removeEpisode: Handler
   repository: AnyRecord
   saveEpisodeEdit: Handler
-  setDeleteOpen: StateSetter
-  setDeleteReason: StateSetter
-  setDetailId: StateSetter
-  setEditDraft: StateSetter
-  setEditOpen: StateSetter
-  setSheetAction: StateSetter
-  setSheetEditing: StateSetter
-  setStartRequest: StateSetter
-  sheetAction: AnyRecord
-  sheetActive: AnyRecord
-  sheetEditing: AnyRecord
-  startRequest: AnyRecord
+  setDeleteOpen: Setter<boolean>
+  setDeleteReason: Setter<string>
+  setDetailId: Setter<string>
+  setEditDraft: Setter<EpisodeEditDraft>
+  setEditOpen: Setter<boolean>
+  setSheetAction: Setter<SheetAction | null>
+  setSheetEditing: Setter<boolean>
+  setStartRequest: Setter<AnyRecord | null>
+  sheetAction: SheetAction | null
+  sheetActive: boolean
+  sheetEditing: boolean
+  startRequest: AnyRecord | null
   t: (key: string) => string
 }
 export function SurveillanceEpisodeSheet({ j }: { j: SurveillanceEpisodeSheetScope }) {

@@ -11,43 +11,44 @@ import { ProtocolPickerDialog } from './protocols/ProtocolViews'
 import { startProtocolRun } from './protocols/protocolService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
-import type { Handler, StateSetter } from './surveillanceTypes'
+import type { Handler, Setter } from './surveillanceTypes'
+import type { EpiState } from './ClinicalJourney'
 
 // What the screen hands to this part (one object, so the part reads like the code it came from).
 export interface JourneyWindowsScope {
   active: boolean
-  admission: AnyRecord
-  bundleDevice: AnyRecord
-  closeDialog: AnyRecord
-  deviceBundles: AnyRecord
-  dialog: AnyRecord
+  admission: AnyRecord | null
+  bundleDevice: AnyRecord | null
+  closeDialog: (() => void) | null
+  deviceBundles: AnyRecord | null
+  dialog: string | null
   entryDelete: Handler
-  entryDetail: AnyRecord
-  epi: AnyRecord
+  entryDetail: AnyRecord | null
+  epi: EpiState
   fmtDate: (value: unknown) => string
   fmtDateTime: (value: unknown) => string
   isDemo: boolean
   language: string
   libraries: AnyRecord
   onLibraryAdded: Handler
-  organizationId: string
-  patient: AnyRecord
+  organizationId: string | null | undefined
+  patient: AnyRecord | null
   permissions: AnyRecord
   protocolOptions: AnyRecord
-  protocolPreset: AnyRecord
+  protocolPreset: AnyRecord | null
   protocols: AnyRecord
   record: AnyRecord
   repository: AnyRecord
-  role: string
+  role: string | null
   run: Handler
   runProtocol: Handler
-  setBundleDevice: StateSetter
-  setDialog: StateSetter
-  setEntryDetail: StateSetter
-  setEpi: StateSetter
-  setFormNonce: StateSetter
-  setStage: StateSetter
-  shownDialog: boolean
+  setBundleDevice: Setter<AnyRecord | null>
+  setDialog: Setter<string | null>
+  setEntryDetail: Setter<AnyRecord | null>
+  setEpi: Setter<EpiState>
+  setFormNonce: Setter<number>
+  setStage: Setter<string>
+  shownDialog: string | null
   t: (key: string) => string
 }
 export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
@@ -81,7 +82,7 @@ export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
           onSaved={() => {
             setDialog(null)
             setFormNonce(value => value + 1)
-            setEpi((current: AnyRecord) => ({ ...current, nonce: current.nonce + 1 }))
+            setEpi((current: EpiState) => ({ ...current, nonce: current.nonce + 1 }))
           }}
         />
       )}

@@ -196,7 +196,7 @@ export function buildEpiPrefill({ record, admission, samples = [], today = hospi
 }
 
 // The answers a questionnaire starts from: the stored ones, with the prefill for the rest.
-export function startingAnswers(row: AnyRecord, prefill: AnyRecord = {}) {
+export function startingAnswers(row: AnyRecord | null, prefill: AnyRecord = {}) {
   const answers: EpiAnswers = {}
   for (const question of EPI_QUESTIONS) {
     const stored = row?.answers?.[question.key]

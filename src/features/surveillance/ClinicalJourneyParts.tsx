@@ -22,10 +22,10 @@ interface ClinicalEntryDetailProps {
   onClose: Handler
   onDelete?: { onClick: () => void, label: ReactNode } | null
   onEdit: Handler
-  onFinishTherapy: Handler
-  onApproveTherapy: Handler
-  onRejectTherapy: Handler
-  onRecordAdministration?: Handler
+  onFinishTherapy?: Handler | null
+  onApproveTherapy?: Handler | null
+  onRejectTherapy?: Handler | null
+  onRecordAdministration?: Handler | null
 }
 // The detail window of a clinical entry of an episode, and the table and badge the stages share
 // (split from ClinicalJourney.jsx; the episode journey itself stays there).

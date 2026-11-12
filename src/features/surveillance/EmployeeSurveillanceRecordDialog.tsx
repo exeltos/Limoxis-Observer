@@ -72,7 +72,7 @@ export function toggleMaterial(value: unknown, code: string) {
   )
 }
 interface EmployeeSurveillanceRecordDialogProps {
-  organizationId: string
+  organizationId: string | null | undefined
   record: AnyRecord
   samples?: AnyRecord[]
   canManage: boolean

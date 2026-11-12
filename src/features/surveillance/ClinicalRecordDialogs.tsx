@@ -30,7 +30,7 @@ export { HaiDialog, TherapyDialog, IsolationDialog, EndDialog, ReassessmentDialo
 interface AdministrationDialogProps {
   t: (key: string) => string
   language: string
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 // Dialogs of the clinical record: assessment, devices, samples, HAI criteria,
@@ -105,7 +105,7 @@ interface AssessmentDialogProps {
   record: AnyRecord
   symptomRows?: AnyRecord[]
   riskRows?: AnyRecord[]
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], onClose, onSave }: AssessmentDialogProps) {
@@ -257,7 +257,7 @@ interface DeviceDialogProps {
   t: (key: string) => string
   items?: AnyRecord[]
   onAddLibraryItem: Handler
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave }: DeviceDialogProps) {
@@ -361,12 +361,12 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
 }
 interface SampleRequestDialogProps {
   t: (key: string) => string
-  title: string
+  title?: string | null
   initialType?: string
   context?: AnyRecord | null
   epi?: AnyRecord | null
   inSheet?: boolean
-  onClose: Handler
+  onClose?: Handler | null
   onSave: Handler
 }
 // Sample request: a request to the laboratory, not a sample entry. It names the
@@ -381,7 +381,7 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
     tr = copy(language)
   const en = language === 'en'
   const { libraries } = useLibraries()
-  const [d, setD] = useState(() => emptySampleRequest({ type: initialType }))
+  const [d, setD] = useState<AnyRecord>(() => emptySampleRequest({ type: initialType }))
   const answer = (key: string) => d.requestQuestions?.[key] ?? ''
   const setAnswer = (key: string, value: unknown) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
   // The mini version (3 core questions) of the epidemiological questionnaire: for cultures only, and
