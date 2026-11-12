@@ -45,7 +45,7 @@ export const platformHelp={
   ],steps:['Δημιουργήστε το Demo.','Παρακολουθήστε τη λήξη του.','Μετατρέψτε ή διαγράψτε το όταν ολοκληρωθεί.']},
   '/platform#reports':{title:'Αναφορές πλατφόρμας',summary:'Συγκεντρωτικοί δείκτες σε επίπεδο πλατφόρμας.',audience:audienceEl,chapters:[
    ['Συγκεντρωτικά δεδομένα','Η ανάλυση δείχνει μόνο συγκεντρωτικούς αριθμούς ανά οργανισμό και περίοδο, χωρίς ατομικά κλινικά στοιχεία.'],
-   ['Φίλτρα','Επιλέξτε οργανισμό, περίοδο και ενότητα για να συγκρίνετε δραστηριότητα και τάσεις.']
+   ['Φίλτρα','Από το κουμπί «Φίλτρα», πάνω δεξιά, επιλέγετε έτος, ανάλυση (έτος, μήνας, τρίμηνο, εξάμηνο), περιφέρεια και νοσοκομείο. Το «Εντάξει» κλείνει το παράθυρο και ο «Καθαρισμός φίλτρων» τα επαναφέρει. Στήλες και ετικέτες που δεν έχουν καμία τιμή κρύβονται μέχρι να υπάρξουν δεδομένα.']
   ],steps:['Επιλέξτε περίοδο και οργανισμούς.','Ελέγξτε τα γραφήματα.','Εκτυπώστε ή εξαγάγετε την αναφορά.']},
   '/platform/announcements':{title:'Ανακοινώσεις',summary:'Ανακοινώσεις και προωθήσεις προς τους διαχειριστές των νοσοκομείων.',audience:audienceEl,chapters:[
    ['Λίστα','Κάθε γραμμή δείχνει τίτλο, είδος, περίοδο, σε ποια νοσοκομεία απευθύνεται, πόσοι την είδαν και αν είναι ενεργή. Με κλικ ανοίγει η καρτέλα της: «Προεπισκόπηση» και «Δημοσίευση» στην κορυφή, και στο «⋯» η διακοπή, η επανενεργοποίηση και η διαγραφή. «Πίσω» επιστρέφει στη λίστα.'],
@@ -97,7 +97,7 @@ export const platformHelp={
   ],steps:['Create the demo.','Track its expiry.','Convert or delete it when done.']},
   '/platform#reports':{title:'Platform reports',summary:'Aggregated indicators at platform level.',audience:audienceEn,chapters:[
    ['Aggregated data','Analysis shows only aggregated counts per organization and period, never individual clinical records.'],
-   ['Filters','Choose organization, period and module to compare activity and trends.']
+   ['Filters','Use the Filters button at the top right to choose the year, breakdown (year, month, quarter, half-year), region and hospital. “OK” closes the window and “Clear filters” resets them. Columns and chips with no value at all stay hidden until data exists.']
   ],steps:['Choose period and organizations.','Review the charts.','Print or export the report.']},
   '/platform/announcements':{title:'Announcements',summary:'Announcements and promotions to the hospital administrators.',audience:audienceEn,chapters:[
    ['List','Each row shows the title, type, period, which hospitals it is for, how many saw it and whether it is active. A click opens its record: “Preview” and “Publish” at the top, and in the «⋯» stop, resume and delete. “Back” returns to the list.'],
