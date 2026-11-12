@@ -1,0 +1,55 @@
+import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { detectOrganismClusters } from './clusterDetection'
+import { ENVIRONMENTAL_SAMPLE_TYPES, isSkinFloraOrganism } from './skinFloraOrganisms'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// The calls below run with a configured client: the demo and an unconfigured build return before them.
+const supabase = configuredClient as Cloud
+
+export const CLUSTER_WINDOW_DAYS = 14
+export const CLUSTER_THRESHOLD = 3
+
+export function demoClusterRecords(laboratorySamples: AnyRecord[]) {
+  return laboratorySamples
+    // Patients only, as in the database: no environmental sample, no sample without a patient.
+    .filter((x: AnyRecord) => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus) && x.organism && x.patientId && !ENVIRONMENTAL_SAMPLE_TYPES.includes(x.sampleType))
+    .map((x: AnyRecord) => ({ organism: x.organism.trim(), department: x.department, resistance: x.resistance || null, date: String(x.resultedAt || '').slice(0, 10), patientId: x.patientId || null, sampleId: x.id || null }))
+    .filter((x: AnyRecord) => x.date)
+}
+
+interface CollectDemoOrganismClustersOptions {
+  windowDays?: number
+  threshold?: number
+}
+// The demo laboratory samples load only in the demo workspace.
+export async function collectDemoOrganismClusters({ windowDays = CLUSTER_WINDOW_DAYS, threshold = CLUSTER_THRESHOLD }: CollectDemoOrganismClustersOptions = {}) {
+  const { laboratorySamples } = await import('../laboratory/laboratoryDemoData')
+  return detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays, threshold })
+}
+
+function mapCloudCluster(row: AnyRecord) {
+  return {
+    department: row.department_name,
+    organism: row.organism,
+    count: Number(row.case_count),
+    windowDays: CLUSTER_WINDOW_DAYS,
+    firstDate: row.first_event,
+    lastDate: row.last_event,
+    resistanceLabels: row.resistance_class ? [row.resistance_class] : [],
+    lastEventDate: row.last_event,
+    skinFloraRule: isSkinFloraOrganism(row.organism),
+  }
+}
+
+interface LoadActiveClustersAsyncOptions {
+  windowDays?: number
+  threshold?: number
+}
+export async function loadActiveClustersAsync(organizationId: string | null | undefined, { windowDays = CLUSTER_WINDOW_DAYS, threshold = CLUSTER_THRESHOLD }: LoadActiveClustersAsyncOptions = {}) {
+  if (isDemoDataEnvironment()) return collectDemoOrganismClusters({ windowDays, threshold })
+  if (!supabase || !organizationId) return []
+  const { data, error } = await supabase.rpc('get_organism_clusters', { p_organization_id: organizationId as string, p_window_days: windowDays, p_threshold: threshold })
+  if (error) throw error
+  return (data || []).map(mapCloudCluster)
+}

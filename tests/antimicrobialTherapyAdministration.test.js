@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const migration = readSource('supabase/migrations/20260919290000_add_antimicrobial_therapy_administrations.sql')
-const service = readSource('src/features/surveillance/clinicalCloudService.js')
+const service = readSplitSource('src/features/surveillance/clinicalCloudService.js')
 const repository = readSource('src/features/surveillance/clinicalRepository.js')
 const page = readPatientClinicalRecordSource()
 

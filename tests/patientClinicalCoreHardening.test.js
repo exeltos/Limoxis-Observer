@@ -1,12 +1,13 @@
 import { describe,expect,it } from 'vitest'
 import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleRecordSource'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 const i18n=readSource('src/core/i18n/stringsEl.js')+readSource('src/core/i18n/stringsEn.js')
 
 const patients=readSource('src/features/patients/patientsService.js')
 const patientForm=readSource('src/features/patients/PatientsPage.jsx')
 const repository=readSource('src/features/surveillance/clinicalRepository.js')
-const cloud=readSource('src/features/surveillance/clinicalCloudService.js')
+const cloud=readSplitSource('src/features/surveillance/clinicalCloudService.js')
 const labRecord=readLaboratorySampleRecordSource()
 const labCloud=readSource('src/features/laboratory/laboratoryCloudService.js')
 const archive=readSource('supabase/migrations/20260918103000_patient_governed_archival.sql')

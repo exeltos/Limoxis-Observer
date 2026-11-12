@@ -47,6 +47,7 @@
     "src/features/reporting/**/*",
     "src/features/rosters/**/*",
     "src/features/sections/**/*",
+    "src/features/surveillance/**/*",
     "src/features/training/**/*",
     "src/features/workspaces/**/*"
   ]

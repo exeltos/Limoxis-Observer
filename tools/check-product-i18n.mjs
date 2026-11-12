@@ -3,7 +3,7 @@ import { readSource } from './readSource.mjs'
 
 const files=[
   'src/app/AppShell.jsx','src/features/management/ManagementPage.jsx','src/features/management/LibrariesPanel.jsx','src/features/management/BedDaysPanel.jsx','src/features/indicators/IndicatorsPage.jsx',
-  'src/features/patients/PatientsPage.jsx','src/features/surveillance/SurveillanceCanonicalPage.jsx','src/design-system/RecordActions.jsx','src/design-system/AttachmentField.jsx','src/core/feedback/FeedbackContext.jsx','src/design-system/FilterBar.jsx','src/features/prevention/PreventionPage.tsx','src/features/prevention/PreventionTables.tsx','src/features/employees/EmployeesPage.jsx','src/features/occupational-health/OccupationalHealthPage.jsx'
+  'src/features/patients/PatientsPage.jsx','src/features/surveillance/SurveillanceCanonicalPage.jsx','src/features/surveillance/SurveillanceListRows.tsx','src/features/surveillance/surveillanceListModel.ts','src/design-system/RecordActions.jsx','src/design-system/AttachmentField.jsx','src/core/feedback/FeedbackContext.jsx','src/design-system/FilterBar.jsx','src/features/prevention/PreventionPage.tsx','src/features/prevention/PreventionTables.tsx','src/features/employees/EmployeesPage.jsx','src/features/occupational-health/OccupationalHealthPage.jsx'
 ]
 
 // Existing product i18n debt is a regression baseline, not an exemption for new debt.
@@ -18,6 +18,8 @@ const baseline={
   'src/features/indicators/IndicatorsPage.jsx':0,
   'src/features/patients/PatientsPage.jsx':0,
   'src/features/surveillance/SurveillanceCanonicalPage.jsx':0,
+  'src/features/surveillance/SurveillanceListRows.tsx':0,
+  'src/features/surveillance/surveillanceListModel.ts':0,
   'src/design-system/RecordActions.jsx':0,
   'src/design-system/AttachmentField.jsx':138,
   'src/core/feedback/FeedbackContext.jsx':0,
