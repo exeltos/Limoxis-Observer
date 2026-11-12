@@ -148,7 +148,7 @@ describe('wiring', () => {
     expect(journey).toContain("dialog === 'protocolPicker'")
     expect(journey).toContain('<TherapyReviewCard')
     expect(journey).toContain('extraStages={extraStages}')
-    const workspace = read('src/features/surveillance/ClinicalSurveillanceWorkspace.jsx')
+    const workspace = readSplitSource('src/features/surveillance/ClinicalSurveillanceWorkspace.jsx')
     // «Start protocol» is in the sheet's «⋯», with every other action of the sheet (owner, 8/11/2026).
     expect(workspace).toContain("t('sepsis.startProtocol')")
     expect(workspace).toContain("askSheet('therapy', 'protocolPicker')")

@@ -116,7 +116,7 @@ describe('«Αίτημα δείγματος»', () => {
   })
 
   it('keeps the follow-up code and the shared form validation in source', () => {
-    const workspace = read('src/features/surveillance/ClinicalSurveillanceWorkspace.jsx')
+    const workspace = readSplitSource('src/features/surveillance/ClinicalSurveillanceWorkspace.jsx')
     expect(workspace).toContain('sampleCode: `${parent.id}-R${siblings + 1}`')
     expect(workspace).toContain('SampleRequestDialog')
     expect(readSplitSource('src/features/surveillance/ClinicalRecordDialogs.jsx')).toContain('useFormValidation(')

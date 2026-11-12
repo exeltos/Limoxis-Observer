@@ -13,6 +13,8 @@ export const PATIENT_CLINICAL_RECORD_FILES = [
   'src/features/surveillance/ClinicalAdmissions.jsx',
   'src/features/surveillance/ClinicalAdmissionDialogs.tsx',
   'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx',
+  'src/features/surveillance/SurveillanceSampleTree.tsx',
+  'src/features/surveillance/SurveillanceEpisodeSheet.tsx',
   'src/features/surveillance/ClinicalJourney.jsx',
   'src/features/surveillance/ClinicalJourneyCareStages.tsx',
   'src/features/surveillance/ClinicalJourneyWindows.tsx',
