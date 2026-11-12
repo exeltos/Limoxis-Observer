@@ -10,7 +10,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { createClinicalNotificationReport, loadNotificationReports } from '../reporting/notificationReportsService'
-import { deadlineDueAt, deadlineStatusText, deadlineWords } from '../reporting/eodyCatalogue'
+import { deadlineDueAt, deadlineStatusText, deadlineWords, type EodyEntry } from '../reporting/eodyCatalogue'
 import { NotifiableDialog, notifiableRows } from '../surveillance/forms/sections/notifiableSection'
 import { NewNotificationDialog } from '../surveillance/forms/sections/notifiablePicker'
 import { createPatient, findPatientMatches, loadPatients } from '../patients/patientsService'
@@ -146,7 +146,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
         target = { ...created.record, name: created.record.name || [newPatient.lastName, newPatient.firstName].join(' ') }
         setAdded(current => [...current, target])
       }
-      const report = await createClinicalNotificationReport(organizationId, { patientRecordId: isDemo ? target.id : target.recordId, departmentId: target.departmentId || null, entry }, { isDemo })
+      const report = await createClinicalNotificationReport(organizationId, { patientRecordId: isDemo ? target.id : target.recordId, departmentId: target.departmentId || null, entry: entry as EodyEntry }, { isDemo })
       notify(t('episodeForms.notifiable.saved'), 'success')
       onCreatingChange?.(false)
       reload()

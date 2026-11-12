@@ -1,0 +1,225 @@
+import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import type { AnyRecord } from '../../types/featureTypes'
+
+const seed: AnyRecord[]=[
+  {
+    id:'DOC-001',title:'Πολιτική Υγιεινής Χεριών',type:'policy',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
+    effectiveDate:'2026-01-15',reviewDate:'2027-01-15',description:'Βασική πολιτική εφαρμογής υγιεινής χεριών.',
+    attachments:[],createdAt:'2026-01-10T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-01-15T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[{at:'2026-01-15T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημοσίευση εγγράφου',reason:'Έκδοση 1.0'}]
+  },
+  {
+    id:'DOC-002',title:'Οδηγία Διαχείρισης Αποβλήτων',type:'instruction',department:'Νοσηλευτική Υπηρεσία',
+    audience:'department',status:'draft',version:'0.1',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
+    effectiveDate:'',reviewDate:'',description:'Πρόχειρη έκδοση οδηγίας για εσωτερική επεξεργασία.',
+    attachments:[],createdAt:'2026-08-10T10:30:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-08-10T10:30:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[{at:'2026-08-10T10:30:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'}]
+  },
+  {
+    id:'DOC-003',title:'Πρωτόκολλο Απομόνωσης Πολυανθεκτικών Παθογόνων',type:'protocol',protocolKind:'medical',clinicalArea:'Λοιμώξεις',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'review',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
+    effectiveDate:'',reviewDate:'',description:'Κριτήρια και μέτρα προφύλαξης για ασθενείς με MDR/XDR παθογόνα.',
+    attachments:[],createdAt:'2026-08-20T08:15:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-08-28T11:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-08-20T08:15:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-08-28T11:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:draft->review',reason:'DOC-003 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-004',title:'Οδηγία Φροντίδας Κεντρικού Φλεβικού Καθετήρα',type:'instruction',department:'ΜΕΘ',
+    audience:'department',status:'approved',version:'1.0',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
+    effectiveDate:'2026-09-15',reviewDate:'2027-09-15',description:'Δέσμη μέτρων εισαγωγής και συντήρησης για πρόληψη CLABSI.',
+    attachments:[],approvedAt:'2026-09-05T13:45:00.000Z',approvedBy:'Διαχειριστής Demo',
+    createdAt:'2026-08-25T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-09-05T13:45:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-08-25T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-08-29T10:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:draft->review',reason:'DOC-004 · 1.0'},
+      {at:'2026-09-05T13:45:00.000Z',actor:'Διαχειριστής Demo',action:'status:review->approved',reason:'DOC-004 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-005',title:'Πολιτική Διαχείρισης Βιολογικών Αποβλήτων',type:'policy',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'superseded',version:'1.0',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
+    effectiveDate:'2025-03-01',reviewDate:'2026-03-01',description:'Αρχική πολιτική διαχείρισης βιολογικών/μολυσματικών αποβλήτων.',
+    attachments:[],publishedAt:'2025-03-01T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',supersededById:'DOC-006',
+    createdAt:'2025-02-10T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-03-10T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-02-10T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-03-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-005 · 1.0'},
+      {at:'2026-03-10T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:published->superseded',reason:'Αντικαταστάθηκε από DOC-006 · 1.1'}
+    ]
+  },
+  {
+    id:'DOC-006',title:'Πολιτική Διαχείρισης Βιολογικών Αποβλήτων',type:'policy',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.1',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
+    effectiveDate:'2026-03-10',reviewDate:'2027-03-10',description:'Ενημερωμένη πολιτική με νέες κατηγορίες διαχωρισμού αποβλήτων.',
+    attachments:[],revisionOfId:'DOC-005',supersedesId:'DOC-005',revisionReason:'Ευθυγράμμιση με νέο ΕΟΔΥ πρωτόκολλο διαχωρισμού αποβλήτων.',
+    approvedAt:'2026-03-08T10:00:00.000Z',approvedBy:'Διαχειριστής Demo',publishedAt:'2026-03-10T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-02-20T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-03-10T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-02-20T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία νέας έκδοσης',reason:'Από DOC-005 · 1.0 → 1.1'},
+      {at:'2026-03-08T10:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:review->approved',reason:'DOC-006 · 1.1'},
+      {at:'2026-03-10T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-006 · 1.1'}
+    ]
+  },
+  {
+    id:'DOC-007',title:'Οδηγία Χρήσης Προσωπικού Προστατευτικού Εξοπλισμού (παλαιά έκδοση)',type:'instruction',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'archived',version:'1.0',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
+    effectiveDate:'2024-05-01',reviewDate:'2025-05-01',description:'Αποσυρμένη οδηγία ΜΑΠ, διατηρείται για ιστορικούς/ελεγκτικούς λόγους.',
+    attachments:[],publishedAt:'2024-05-01T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2024-04-10T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-05-01T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2024-05-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-007 · 1.0'},
+      {at:'2026-05-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:published->archived',reason:'Αντικαταστάθηκε από νεότερες οδηγίες ΕΟΔΥ'}
+    ]
+  },
+  {
+    id:'DOC-008',title:'Πρόληψη και αντιμετώπιση αιμορραγίας μετά τον τοκετό',type:'protocol',protocolKind:'medical',clinicalArea:'Μαιευτική',department:'Μαιευτική',
+    audience:'department',status:'published',version:'1.0',owner:'Διευθυντής Μαιευτικής Κλινικής',
+    effectiveDate:'2026-02-01',reviewDate:'2028-02-01',description:'Ιατρικό πρωτόκολλο: εκτίμηση κινδύνου, ενεργητική διαχείριση τρίτου σταδίου και κλιμάκωση θεραπείας.',
+    attachments:[],publishedAt:'2026-02-01T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-01-20T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-02-01T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-01-20T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-02-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-008 · 1.0'}
+    ]
+  }
+,
+  {
+    id:'DOC-009',title:'Καθημερινός έλεγχος απινιδωτή και τροχήλατου ΚΑΡΠΑ',type:'form',department:'ΜΕΘ',
+    audience:'department',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2026-03-02',reviewDate:'',description:'Έντυπο ημερήσιου ελέγχου εξοπλισμού ανάνηψης.',
+    attachments:[],publishedAt:'2026-03-02T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-03-02T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-03-02T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-03-02T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-03-02T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-009 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-010',title:'Λίστα ελέγχου ασφαλούς χειρουργικής',type:'form',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2026-01-12',reviewDate:'2027-01-12',description:'Έντυπο τριών φάσεων (πριν την αναισθησία, πριν την τομή, πριν την έξοδο).',
+    attachments:[],publishedAt:'2026-01-12T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-01-12T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-01-12T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-01-12T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-01-12T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-010 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-011',title:'Άδεια λειτουργίας',type:'licence',renewalMonths:48,requiredBy:['legislation','iso9001'],department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2023-07-19',reviewDate:'2027-07-19',description:'Άδεια λειτουργίας ιδιωτικής κλινικής.',
+    attachments:[],publishedAt:'2023-07-19T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2023-07-19T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2023-07-19T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2023-07-19T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2023-07-19T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-011 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-012',title:'Πιστοποιητικό πυρασφάλειας',type:'licence',renewalMonths:60,requiredBy:['legislation'],department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2021-11-05',reviewDate:'2026-11-05',description:'Πιστοποιητικό ενεργητικής πυροπροστασίας της πυροσβεστικής υπηρεσίας.',
+    attachments:[],publishedAt:'2021-11-05T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2021-11-05T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2021-11-05T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2021-11-05T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2021-11-05T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-012 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-013',title:'Πιστοποιητικό ανελκυστήρων',type:'licence',renewalMonths:12,requiredBy:['legislation','iso9001'],department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2025-09-30',reviewDate:'2026-09-30',description:'Ετήσια επιθεώρηση ανελκυστήρων από φορέα ελέγχου.',
+    attachments:[],publishedAt:'2025-09-30T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-09-30T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-09-30T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-09-30T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-09-30T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-013 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-014',title:'Πρωτόκολλο πρόληψης πνευμονίας σχετιζόμενης με αναπνευστήρα',type:'protocol',protocolKind:'medical',clinicalArea:'Λοιμώξεις',department:'ΜΕΘ',
+    audience:'department',status:'published',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
+    effectiveDate:'2025-02-03',reviewDate:'2027-02-03',description:'Δέσμη μέτρων VAP: ανύψωση κεφαλής, καθημερινή διακοπή καταστολής, στοματική υγιεινή.',
+    attachments:[],publishedAt:'2025-02-03T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-01-20T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-02-03T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-01-20T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-02-03T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-014 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-015',title:'Οδηγία αναφοράς ανεπιθύμητων συμβάντων',type:'instruction',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2025-04-07',reviewDate:'2026-04-07',description:'Πώς και πότε αναφέρεται ένα συμβάν, ένα παρ’ ολίγον συμβάν ή ένα παράπονο.',
+    attachments:[],publishedAt:'2025-04-07T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-03-24T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-04-07T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-03-24T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-04-07T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-015 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-016',title:'Πολιτική ποιότητας του νοσοκομείου',type:'policy',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'2.0',owner:'Διοίκηση',
+    effectiveDate:'2025-06-02',reviewDate:'2027-06-02',description:'Δέσμευση της Διοίκησης για ασφαλή, αποτελεσματική και ανθρωποκεντρική φροντίδα (ISO 9001 §5.2).',
+    attachments:[],publishedAt:'2025-06-02T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-05-12T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-06-02T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-05-12T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-06-02T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-016 · 2.0'}
+    ]
+  },
+  {
+    id:'DOC-017',title:'Έντυπο αξιολόγησης κινδύνου πτώσης (κλίμακα Morse)',type:'form',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Νοσηλευτική Υπηρεσία',
+    effectiveDate:'2025-10-06',reviewDate:'2027-10-06',description:'Αξιολόγηση κατά την εισαγωγή και σε κάθε αλλαγή της κατάστασης του ασθενούς.',
+    attachments:[],publishedAt:'2025-10-06T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-09-22T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-10-06T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-09-22T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-10-06T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-017 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-018',title:'Πρωτόκολλο διαχείρισης σήψης στο ΤΕΠ',type:'protocol',protocolKind:'medical',clinicalArea:'Επείγουσα Ιατρική',department:'ΤΕΠ',
+    audience:'department',status:'published',version:'1.0',owner:'Διευθυντής ΤΕΠ',
+    effectiveDate:'2026-01-19',reviewDate:'2028-01-19',description:'Αναγνώριση με NEWS2 και δέσμη της πρώτης ώρας: καλλιέργειες, γαλακτικό, αντιβιοτικό, υγρά.',
+    attachments:[],publishedAt:'2026-01-19T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-01-05T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-01-19T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-01-05T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-01-19T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-018 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-019',title:'Οδηγία καθαρισμού και απολύμανσης θαλάμων απομόνωσης',type:'instruction',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
+    effectiveDate:'2026-05-11',reviewDate:'2027-05-11',description:'Σειρά καθαρισμού, απολυμαντικά και έλεγχος με φθορίζουσα σήμανση.',
+    attachments:[],publishedAt:'2026-05-11T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-04-27T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-05-11T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-04-27T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-05-11T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-019 · 1.0'}
+    ]
+  }
+]
+
+export function loadDocuments(): AnyRecord[]{const rows=loadSnapshot('documents',structuredClone(seed));return Array.isArray(rows)?rows:structuredClone(seed)}
+export function saveDocuments(rows: AnyRecord[]){return saveSnapshot('documents',rows)}
+export function nextDocumentId(rows: AnyRecord[]){
+  const max=rows.reduce((m,x)=>Math.max(m,Number(String(x.id||'').match(/DOC-(\d+)/)?.[1]||0)),0)
+  return `DOC-${String(max+1).padStart(3,'0')}`
+}
+
+export function nextRevisionVersion(version='1.0'){
+ const parts=String(version||'1.0').split('.')
+ const major=Number(parts[0])||1
+ const minor=Number(parts[1])||0
+ return `${major}.${minor+1}`
+}
+

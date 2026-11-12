@@ -35,6 +35,9 @@
 .register-entry-grid .register-computed output{box-sizing:border-box;min-height:40px}
 .register-entry-grid .manual-date-control{margin-top:-1px}
 .register-field-wide{grid-column:1/-1}
+/* Πολλαπλή επιλογή (π.χ. «Αιτίες εισαγωγής»): δύο στήλες, ώστε να φαίνονται οι επιλογές. */
+.register-field-double{grid-column:span 2}
+@media(max-width:560px){.register-field-double{grid-column:1/-1}}
 .register-field.has-error input,.register-field.has-error .manual-date-field input{border-color:var(--lo-status-danger-border)}
 .register-field.has-warning .field-hint{color:var(--lo-status-warning-fg)}
 .register-number{position:relative;display:flex;align-items:center}

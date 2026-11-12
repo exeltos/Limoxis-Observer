@@ -12,7 +12,7 @@ export function passwordRules(password = '', confirm = '') {
   }
 }
 
-const HINTS = {
+const HINTS: Record<string, [string, string]> = {
   length: ['χρησιμοποιήστε τουλάχιστον 12 χαρακτήρες', 'use at least 12 characters'],
   case: ['προσθέστε κεφαλαίο και πεζό γράμμα', 'add an uppercase and a lowercase letter'],
   number: ['προσθέστε έναν αριθμό', 'add a number'],
@@ -28,7 +28,7 @@ const LEVELS = [
 
 export function passwordStrength(password = '', language = 'el') {
   const rules = passwordRules(password)
-  const checks = [['length', rules.length], ['case', rules.upper && rules.lower], ['number', rules.number], ['symbol', rules.symbol]]
+  const checks: Array<[string, boolean]> = [['length', rules.length], ['case', rules.upper && rules.lower], ['number', rules.number], ['symbol', rules.symbol]]
   const score = password ? checks.filter(([, ok]) => ok).length : 0
   const index = language === 'en' ? 1 : 0
   const missing = checks.find(([, ok]) => !ok)?.[0]

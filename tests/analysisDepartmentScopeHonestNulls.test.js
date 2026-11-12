@@ -41,7 +41,7 @@ describe('Analysis KPI rows show "—", not a fabricated 0, for department-scope
 describe('Chart and comparison views never coerce the "—" sentinel back into a numeric 0', () => {
   it('MetricBars excludes a "—" row before any numeric conversion (via the shared chart helper)', () => {
     const charts = readSource('src/features/analysis/AnalysisCharts.jsx')
-    expect(page).toContain('function MetricBars({rows,tx}){return <BarList rows={rows}')
+    expect(page).toContain('function MetricBars({rows,tx}: {rows: MetricRow[]; tx: Translate}){return <BarList rows={rows}')
     expect(charts).toContain(".filter(([,value])=>value!=='—'&&value!=null).map(([label,value])=>[String(label),toNumber(value)])")
   })
 

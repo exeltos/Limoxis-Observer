@@ -1,0 +1,139 @@
+// The priority work of each role, counted from the same dashboard metrics as
+// its tiles (a real hospital's from dashboardCloudService.js, the Demo's from
+// demoDashboardMetrics.js), so a tile and the task under it never disagree.
+// Work with nothing pending is left out.
+
+// Roles whose home counts only their own department.
+export const DEPARTMENT_ROLES = new Set(['department_manager', 'department_user', 'link_nurse'])
+
+// The capability each task screen asks for (the route gates of App.jsx): a task
+// whose screen the user cannot open is left out, so it never leads to «no access».
+const SCREEN_CAPABILITY: Record<string, string> = {
+  '/controls': 'view_controls',
+  '/laboratory': 'view_lab',
+  '/quality': 'view_quality',
+  '/pharmacy': 'view_pharmacy',
+  '/occupational-health': 'view_occupational_health',
+  '/employees': 'view_staff',
+  '/my-department/self-assessment': 'view_my_department',
+}
+
+// The hospital administrator's "Pending actions" tile is the sum of these.
+export const PENDING_ACTION_KEYS = [
+  'overdueControls',
+  'pendingSamples',
+  'openIncidents',
+  'overdueCapa',
+]
+export const pendingActionsOf = (metrics: Record<string, unknown> | null | undefined) =>
+  PENDING_ACTION_KEYS.reduce((sum, key) => sum + (Number(metrics?.[key]) || 0), 0)
+
+// [metric key, Greek title, English title, screen]
+type Task = [string, string, string, string]
+const TASKS: Record<string, Task[]> = {
+  hospital_admin: [
+    ['overdueControls', 'Εκπρόθεσμοι έλεγχοι', 'Overdue controls', '/controls'],
+    ['pendingSamples', 'Εκκρεμή δείγματα', 'Pending samples', '/laboratory'],
+    ['openIncidents', 'Ανοιχτά συμβάντα', 'Open incidents', '/quality'],
+    ['overdueCapa', 'Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue CAPA', '/quality'],
+  ],
+  infection_control_lead: [
+    [
+      'isolationReviewsDue',
+      'Επανεκτιμήσεις απομόνωσης',
+      'Isolation reassessments',
+      '/surveillance',
+    ],
+    ['overdueControls', 'Εκπρόθεσμοι έλεγχοι', 'Overdue controls', '/controls'],
+    [
+      'criticalUncommunicated',
+      'Κρίσιμα εργαστηριακά αποτελέσματα',
+      'Critical laboratory results',
+      '/laboratory',
+    ],
+  ],
+  laboratory: [
+    ['pendingSamples', 'Εκκρεμή δείγματα', 'Pending samples', '/laboratory'],
+    [
+      'criticalUncommunicated',
+      'Κρίσιμα αποτελέσματα χωρίς επικοινωνία',
+      'Critical results not communicated',
+      '/laboratory',
+    ],
+  ],
+  department_manager: [
+    ['controlsDueToday', 'Έλεγχοι για σήμερα', 'Controls due today', '/controls?due=today'],
+    ['overdueControls', 'Εκπρόθεσμοι έλεγχοι τμήματος', 'Overdue department controls', '/controls'],
+    ['pendingSamples', 'Εκκρεμή δείγματα τμήματος', 'Pending department samples', '/laboratory'],
+    ['selfAssessmentsOpen', 'Αυτοαξιολογήσεις προς συμπλήρωση', 'Self-assessments to complete', '/my-department/self-assessment'],
+  ],
+  occupational_physician: [
+    ['ohFollowupsDue', 'Επανέλεγχοι εργαζομένων', 'Employee follow-ups', '/occupational-health'],
+    ['vaccinationsDue', 'Εμβολιασμοί προς ανανέωση', 'Vaccinations due', '/occupational-health'],
+  ],
+  quality_manager: [
+    ['overdueCapa', 'Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue CAPA', '/quality'],
+    ['severeOpenIncidents', 'Σοβαρά ανοικτά συμβάντα', 'Severe open incidents', '/quality'],
+  ],
+  committee_secretariat: [
+    [
+      'pendingMinutes',
+      'Πρακτικά προς οριστικοποίηση',
+      'Minutes awaiting finalization',
+      '/meetings',
+    ],
+    ['openDecisions', 'Ανοικτές αποφάσεις', 'Open decisions', '/meetings'],
+  ],
+  pharmacy: [
+    [
+      'pendingApprovals',
+      'Εγκρίσεις αντιβιοτικών σε αναμονή',
+      'Antimicrobial approvals pending',
+      '/pharmacy',
+    ],
+  ],
+  doctor_reviewer: [
+    [
+      'pendingApprovals',
+      'Ιατρικές εγκρίσεις σε αναμονή',
+      'Clinical approvals pending',
+      '/surveillance',
+    ],
+  ],
+  hr_office: [
+    [
+      'employeesWithoutDepartment',
+      'Εργαζόμενοι χωρίς τμήμα',
+      'Employees without a department',
+      '/employees',
+    ],
+  ],
+}
+TASKS.infection_control_member = TASKS.infection_control_lead
+TASKS.department_user = TASKS.department_manager
+TASKS.link_nurse = [
+  ['controlsDueToday', 'Έλεγχοι για σήμερα', 'Controls due today', '/controls?due=today'],
+  ['overdueControls', 'Εκπρόθεσμοι έλεγχοι τμήματος', 'Overdue department controls', '/controls'],
+  ['isolationReviewsDue', 'Επανεκτιμήσεις απομόνωσης', 'Isolation reassessments', '/surveillance'],
+  ['selfAssessmentsOpen', 'Αυτοαξιολογήσεις προς συμπλήρωση', 'Self-assessments to complete', '/my-department/self-assessment'],
+]
+
+// `canUse(capability)`: whether the user holds a capability (role, add-ons, custom).
+export interface DashboardTask { id: string, title: string, count: number, to: string, type: 'task', source: 'dashboard' }
+export function dashboardTasks(role: string | null | undefined, metrics: Record<string, unknown> = {}, language = 'el', { canUse = null }: { canUse?: ((capability: string) => boolean) | null } = {}): DashboardTask[] {
+  const en = language === 'en'
+  const opens = (to: string) => {
+    const capability = SCREEN_CAPABILITY[String(to).split('?')[0]]
+    return !canUse || !capability || canUse(capability)
+  }
+  return (TASKS[role || ''] || [])
+    .filter(([key, , , to]) => Number(metrics[key]) > 0 && opens(to))
+    .map(([key, el, enText, to]) => ({
+      id: `LIVE-${role}-${key}`,
+      title: en ? enText : el,
+      count: Number(metrics[key]),
+      to,
+      type: 'task' as const,
+      source: 'dashboard' as const,
+    }))
+}
