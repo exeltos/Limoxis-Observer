@@ -9,6 +9,7 @@ import { Field } from '../../design-system/Field'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { TimeField } from '../../design-system/TimeField'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { IconButton } from '../../design-system/IconButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -22,7 +23,7 @@ import { findApacheScore } from './registerScaleLookup'
 import { ApacheCalculatorDialog } from './ApacheCalculatorDialog'
 import { useRegisterAccess } from './registerAccess'
 import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
-import { computeValues, fieldVisible, formatValue, gestationText, isRequired, parseGestation, textOf, validateEntry } from './registerEngine'
+import { computeValues, derivedHours, fieldVisible, formatValue, gestationText, hoursField, isRequired, parseGestation, textOf, validateEntry } from './registerEngine'
 import './registers.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import type { ReactNode } from 'react'
@@ -124,10 +125,12 @@ export function RegisterEntryPage() {
     if (!check.valid || saving || !editable) return
     setSaving(true)
     try {
-      await saveEntry(tenant?.id, register!, { ...(entry || {}), values }, { identity: showIdentity ? identity : null, actorLabel: auditActorFromAuth({ profile, user }).name })
+      // Hours calculated from the times are saved with the entry (the field stays a plain number).
+      const saved = { ...values, ...derivedHours(register!.fields, values) }
+      await saveEntry(tenant?.id, register!, { ...(entry || {}), values: saved }, { identity: showIdentity ? identity : null, actorLabel: auditActorFromAuth({ profile, user }).name })
       notify(en ? 'Case saved.' : 'Το περιστατικό αποθηκεύτηκε.', 'success')
       if (isNew) back()
-      else { setEntry(current => ({ ...current, values, identity: showIdentity ? identity : current!.identity })); setEditing(false); setTried(false) }
+      else { setEntry(current => ({ ...current, values: saved, identity: showIdentity ? identity : current!.identity })); setEditing(false); setTried(false) }
     } catch (error) {
       console.error(error)
       notify(en ? 'The case could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση του περιστατικού.', 'error')
@@ -185,7 +188,7 @@ export function RegisterEntryPage() {
             const info = sectionIndex[position]
             return <section key={section.key || 'main'} id={`register-section-${info.id}`} data-register-section={info.id} className="register-entry-section">
               <header><span className="register-entry-badge">{info.no}</span><h3>{info.label}</h3>{info.wrong > 0 ? <small className="is-wrong">{en ? `to correct ${info.wrong}` : `προς διόρθωση ${info.wrong}`}</small> : <small>{info.filled}/{info.total}</small>}</header>
-              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} entryValues={full} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={(value: unknown) => set(field.key, value)} entryValues={full} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
+              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} entryValues={full} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={(value: unknown) => set(field.key, value)} entryValues={full} fields={register.fields} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
             </section>
           })}
         </div>
@@ -209,8 +212,8 @@ const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν β�
 // One field of a register, drawn with the shared controls.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a field's value: text, number, yes/no or a list
 type FieldValue = any
-interface RegisterFieldProps { field: AnyRecord, value: FieldValue, onChange: (value: unknown) => void, disabled?: boolean, error?: string, warning?: string, required?: boolean, language: string, cards?: boolean, action?: ReactNode, entryValues?: AnyRecord | null }
-export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language, cards = false, action = null, entryValues = null }: RegisterFieldProps) {
+interface RegisterFieldProps { field: AnyRecord, value: FieldValue, onChange: (value: unknown) => void, disabled?: boolean, error?: string, warning?: string, required?: boolean, language: string, cards?: boolean, action?: ReactNode, entryValues?: AnyRecord | null, fields?: AnyRecord[] }
+export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language, cards = false, action = null, entryValues = null, fields = [] }: RegisterFieldProps) {
   const en = language === 'en'
   const label = `${textOf(field, language)}${required ? ' *' : ''}`
   const help = formHelp(en ? field.helpEn || field.help : field.help)
@@ -218,6 +221,7 @@ export function RegisterField({ field, value, onChange, disabled, error, warning
   const unit = en ? field.unitEn || field.unit : field.unit
   const options: { value: string, label: string }[] = (field.options || []).map((option: AnyRecord) => ({ value: option.value, label: textOf(option, language) }))
   if (field.type === 'computed') return <div className="field register-computed"><span className="lo-field-label">{textOf(field, language)}</span>{value == null ? <output className="is-pending">{en ? 'Calculated automatically' : 'Υπολογίζεται αυτόματα'}</output> : <output><Calculator size={14} />{formatValue(field, value, language, entryValues)}</output>}{help && <span className="field-hint">{help}</span>}</div>
+  if (field.type === 'time') return <div className={`register-field ${error ? 'has-error' : ''}`}><TimeField label={label} value={value || ''} disabled={disabled} onChange={next => onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'date') return <div className={`register-field ${error ? 'has-error' : ''}`}><ManualDateField label={label} value={value || ''} disabled={disabled} onChange={next => onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'yesNo') return <div className={`register-field ${error ? 'has-error' : ''}`}><ChoiceField label={label} value={value === true ? 'yes' : value === false ? 'no' : ''} options={[{ value: 'no', label: en ? 'No' : 'Όχι' }, { value: 'yes', label: en ? 'Yes' : 'Ναι' }]} onChange={next => !disabled && onChange(next === 'yes')} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'choice' && options.length <= 3) return <div className={`register-field ${error ? 'has-error' : ''}`}><ChoiceField label={label} value={value || ''} options={options} onChange={next => !disabled && onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
@@ -229,7 +233,10 @@ export function RegisterField({ field, value, onChange, disabled, error, warning
   }
   if (field.type === 'gestation') return <GestationField label={label} value={value} onChange={onChange} disabled={disabled} error={error} hint={hint} />
   if (field.type === 'text') return <div className="register-field register-field-wide"><Field label={label} error={error} hint={hint}><textarea rows={2} value={value || ''} disabled={disabled} onChange={event => onChange(event.target.value)} /></Field></div>
-  return <div className={`register-field ${warning ? 'has-warning' : ''}`}><Field label={label} error={error} hint={hint}><span className="register-number"><input inputMode="decimal" value={value ?? ''} disabled={disabled} onChange={event => { const text = event.target.value.replace(',', '.'); onChange(text === '' ? '' : Number.isFinite(Number(text)) ? Number(text) : text) }} />{unit && <em>{unit}</em>}</span></Field>{action}</div>
+  // Hours with both times typed are calculated: the field shows them and is not typed over.
+  const rule = field.type === 'number' ? hoursField(fields, field.key) : null
+  const calculated = Boolean(rule && entryValues?.[rule.fromTime] && entryValues?.[rule.toTime])
+  return <div className={`register-field ${warning ? 'has-warning' : ''}`}><Field label={label} error={error} hint={calculated ? (en ? 'Calculated from the birth and admission times.' : 'Υπολογίζεται από τις ώρες γέννησης και εισαγωγής.') : hint}><span className="register-number"><input inputMode="decimal" value={value ?? ''} disabled={disabled || calculated} onChange={event => { const text = event.target.value.replace(',', '.'); onChange(text === '' ? '' : Number.isFinite(Number(text)) ? Number(text) : text) }} />{unit && <em>{unit}</em>}</span></Field>{action}</div>
 }
 
 // Weeks + days typed as «37+4», stored as days.

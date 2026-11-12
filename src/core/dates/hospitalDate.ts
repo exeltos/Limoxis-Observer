@@ -58,3 +58,19 @@ export function hospitalDay(value: unknown): IsoDay {
   if (Number.isNaN(date.getTime())) return text.slice(0, 10)
   return hospitalDate(date)
 }
+
+// Η στιγμή (ms) μιας ημερομηνίας 'YYYY-MM-DD' και ώρας 'HH:MM' όπως τις γράφει το
+// νοσοκομείο (ρολόι Αθήνας, με τη θερινή ώρα)· null αν κάποια λείπει ή δεν ισχύει.
+export function hospitalInstant(date: unknown, time: unknown): number | null {
+  const d = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(date || '')), t = /^([01]\d|2[0-3]):([0-5]\d)/.exec(String(time || ''))
+  if (!d || !t) return null
+  const wall = Date.UTC(Number(d[1]), Number(d[2]) - 1, Number(d[3]), Number(t[1]), Number(t[2]))
+  // Η διαφορά του ρολογιού της Αθήνας από το UTC εκείνη τη στιγμή (2 ή 3 ώρες).
+  const offsetAt = (instant: number) => {
+    const c = clockParts(instant)
+    const [y, m, day] = c.date.split('-').map(Number), [h, min] = c.time.split(':').map(Number)
+    return Date.UTC(y, m - 1, day, h, min) - instant
+  }
+  const guess = wall - offsetAt(wall)
+  return wall - offsetAt(guess)
+}

@@ -10,7 +10,8 @@ export const helpManualEn: HelpBook={
  ],steps:['Review today’s pending work.','Open the task that requires action.','Return to the Dashboard and continue with the next priority.'],preview:'dashboard'},
  '/my-department':{title:'My department',summary:'Department-level work, obligations and visibility within your own scope.',audience:'Department managers and department users',chapters:[
   ['Department view','Department managers receive a broader operational view. Standard department users see only the information required for their assigned daily work.'],
-  ['My pending work','Controls, training, follow-up and other assignments are gathered here so users do not need to search across the whole application.']
+  ['My pending work','Controls, training, follow-up and other assignments are gathered here so users do not need to search across the whole application.'],
+  ['NICU register: age in hours','The «Admission» section has «Time of admission» and «Time of birth» (24-hour, hh:mm). With both times filled in, «Age on admission in hours» is calculated on Greek time and cannot be typed over; the admission time cannot come before the birth. Without the times, the age in hours is typed by hand, as in FileMaker. For neonates under 3 days old the age is shown in hours.']
  ],steps:['Review personal and department pending work.','Open the assigned task from the list.','Complete or document only the work assigned to your scope.'],preview:'department'},
  '/my-profile':{title:'My record',summary:'Your personal employee record and the information you are allowed to access.',audience:'Employees',chapters:[
   ['Personal details','The record displays work identity, department, position and employment status. Administrative data cannot be freely changed by the employee.'],

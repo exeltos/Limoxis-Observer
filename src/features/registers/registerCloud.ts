@@ -192,7 +192,7 @@ export function entryFromRow(register: AnyRecord, row: AnyRecord, identity: AnyR
     for (const field of register.fields || []) {
       const cell = row[field.key]
       if (cell === null || cell === undefined) continue
-      values[field.key] = ['number', 'computed', 'gestation'].includes(field.type) ? Number(cell) : cell
+      values[field.key] = ['number', 'computed', 'gestation'].includes(field.type) ? Number(cell) : field.type === 'time' ? String(cell).slice(0, 5) : cell
     }
   }
   return { id: row.id, registerId: register.id, entryDate: row.entry_date, periodStart: row.period_start, periodEnd: row.period_end || null, version: row.definition_version, values, status: row.status, locked: row.locked, createdBy: row.created_by, createdAt: row.created_at, updatedAt: row.updated_at, identity }
