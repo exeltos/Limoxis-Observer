@@ -192,33 +192,33 @@ declare
     '', '', '', '', '', '', ''];
   v_people text[] := array[array['Διοικητής', 'Διοίκηση'], array['Διευθυντής Ιατρικής Υπηρεσίας', 'Ιατρική Υπηρεσία'], array['Διευθύντρια Νοσηλευτικής Υπηρεσίας', 'Νοσηλευτική Υπηρεσία'],
     array['Υπεύθυνος Ποιότητας', 'Ποιότητα'], array['Πρόεδρος Επιτροπής Λοιμώξεων', 'Επιτροπή Λοιμώξεων']];
-  v_review uuid; v_approved timestamptz := (v_last + 5 + time '12:00') at time zone 'Europe/Athens'; k integer;
+  v_review uuid; v_approved timestamptz := (v_last + 5 + time '12:00') at time zone 'Europe/Athens';
 begin
   insert into public.quality_management_reviews (organization_id, code, title, review_date, period_from, period_to, frequency_days, next_review_date, status, summary, approved_at, approved_by_label)
   values (v_org, 'MR-' || (v_year - 1) || '-01', 'Ανασκόπηση Διοίκησης ' || (v_year - 1), v_last, make_date(v_year - 1, 1, 1), v_last, 365, v_last + 365, 'approved',
     'Το σύστημα λειτουργεί αποτελεσματικά· προτεραιότητες η πρόληψη πτώσεων και η ικανοποίηση από τη διατροφή.', v_approved, 'Διοικητής')
   returning id into v_review;
   insert into public.quality_management_review_sections (organization_id, review_id, key, position, title, body)
-  select v_org, v_review, v_keys[k], k - 1, v_titles[k], v_before[k] from generate_series(1, 16) k;
+  select v_org, v_review, v_keys[s.k], s.k - 1, v_titles[s.k], v_before[s.k] from generate_series(1, 16) s(k);
   insert into public.quality_management_review_actions (organization_id, review_id, position, section_key, title, owner_label, due_date, status)
   values (v_org, v_review, 0, 'improvements', 'Μετάβαση των ελέγχων των τμημάτων στην πλατφόρμα', 'Ομάδα Ποιότητας', v_last + 60, 'done'),
     (v_org, v_review, 1, 'resources', 'Ενίσχυση του νοσηλευτικού προσωπικού της ΜΕΘ με δύο νοσηλευτές', 'Διεύθυνση Νοσηλευτικής Υπηρεσίας', v_last + 120, 'open'),
     (v_org, v_review, 2, 'satisfaction', 'Βελτίωση της θερμοκρασίας του φαγητού κατά το σερβίρισμα', 'Υπεύθυνη Κουζίνας', v_last + 90, 'done'),
     (v_org, v_review, 3, 'objectives', 'Πρόγραμμα πρόληψης πτώσεων στην Παθολογική', 'Προϊστάμενος Παθολογικής', v_last + 90, 'done');
   insert into public.quality_management_review_participants (organization_id, review_id, position, name, role, attended, signed_at)
-  select v_org, v_review, k - 1, v_people[k][1], v_people[k][2], k <> 5, case when k <> 5 then v_approved end from generate_series(1, 5) k;
+  select v_org, v_review, s.k - 1, v_people[s.k][1], v_people[s.k][2], s.k <> 5, case when s.k <> 5 then v_approved end from generate_series(1, 5) s(k);
 
   insert into public.quality_management_reviews (organization_id, code, title, review_date, period_from, period_to, frequency_days, next_review_date, status)
   values (v_org, 'MR-' || v_year || '-01', 'Ανασκόπηση Διοίκησης ' || v_year, d0 - 4, v_last + 1, d0 - 4, 365, d0 - 4 + 365, 'draft')
   returning id into v_review;
   insert into public.quality_management_review_sections (organization_id, review_id, key, position, title, body)
-  select v_org, v_review, v_keys[k], k - 1, v_titles[k], nullif(v_now[k], '') from generate_series(1, 16) k;
+  select v_org, v_review, v_keys[s.k], s.k - 1, v_titles[s.k], nullif(v_now[s.k], '') from generate_series(1, 16) s(k);
   insert into public.quality_management_review_actions (organization_id, review_id, position, section_key, title, owner_label, due_date, status)
   values (v_org, v_review, 0, 'resources', 'Ενίσχυση του νοσηλευτικού προσωπικού της ΜΕΘ με δύο νοσηλευτές', 'Διεύθυνση Νοσηλευτικής Υπηρεσίας', v_last + 120, 'open'),
     (v_org, v_review, 1, 'providers', 'Επαναξιολόγηση του προμηθευτή τροφίμων που ήταν σε επιτήρηση', 'Υπεύθυνος Ποιότητας', d0 + 45, 'open'),
     (v_org, v_review, 2, 'nonconformities', 'Κλείσιμο των διορθωτικών ενεργειών εντός προθεσμίας: εβδομαδιαία παρακολούθηση', 'Ομάδα Ποιότητας', d0 + 60, 'open');
   insert into public.quality_management_review_participants (organization_id, review_id, position, name, role, attended)
-  select v_org, v_review, k - 1, v_people[k][1], v_people[k][2], true from generate_series(1, 5) k;
+  select v_org, v_review, s.k - 1, v_people[s.k][1], v_people[s.k][2], true from generate_series(1, 5) s(k);
 end;
 $function$;
 revoke all on function private.demo_seed_quality_reviews(uuid) from public, anon, authenticated;
@@ -242,7 +242,7 @@ begin
       (4, 'hospital', null, null, 'bundle-compliance', 'Συμμόρφωση στις δέσμες μέτρων ≥ 95%', 'Bundle compliance ≥ 95%', 95, 'higher', '%', 'Επιτροπή Λοιμώξεων', null, 0),
       (5, 'hospital', null, null, 'training-completion', 'Ολοκλήρωση της υποχρεωτικής εκπαίδευσης ≥ 90%', 'Mandatory training completion ≥ 90%', 90, 'higher', '%', 'Υπεύθυνος Εκπαίδευσης', null, 0),
       (6, 'department', 'ΜΕΘ', null, null, 'Αφαίρεση περιττού κεντρικού φλεβικού καθετήρα εντός 24 ωρών ≥ 95%', 'Unneeded central line removed within 24 hours ≥ 95%', 95, 'higher', '%', 'Διευθυντής ΜΕΘ',
-        array[96, 94, 97, 95, 93, 96, 97, 95, 96, 98, 97, 96]::numeric[], 1),
+        array[96, 94, 97, 95, 93, 96, 97, 95, 96, 98, 97, 96]::numeric[], 0.5),
       (7, 'department', 'ΠΑΘ', null, null, 'Πτώσεις ασθενών ≤ 1,5 ανά 1.000 ημέρες νοσηλείας', 'Patient falls ≤ 1.5 per 1,000 patient days', 1.5, 'lower', 'ανά 1.000 ημέρες νοσηλείας', 'Προϊστάμενος Παθολογικής',
         array[1.8, 1.4, 2.1, 1.6, 1.9, 1.2, 1.7, 2.0, 1.5, 1.8, 1.6, 1.5]::numeric[], 0.3),
       (8, 'department', 'ΧΕΙΡ', null, null, 'Χρήση της λίστας ασφαλούς χειρουργείου ≥ 98%', 'Surgical safety checklist used ≥ 98%', 98, 'higher', '%', 'Διευθυντής Χειρουργικής',
@@ -366,7 +366,7 @@ begin
       if coalesce((q ->> 'required')::boolean, false) = false and q ->> 'type' <> 'text' and private.demo_unit_random(v_key || '|skip|' || (q ->> 'id')) < 0.2 then continue; end if;
       v_value := null;
       if q ->> 'type' = 'rating' then
-        v_sat := case when v_mood < 0.08 then 0.35 when q ->> 'section' = 'food' then 0.72 else 0.88 end;
+        v_sat := case when v_mood < 0.08 then 0.35 when q ->> 'section' = 'food' then 0.76 else 0.92 end;
         v_value := to_jsonb(case when r < v_sat * 0.55 then 5 when r < v_sat then 4 when r < v_sat + (1 - v_sat) * 0.6 then 3 when r < v_sat + (1 - v_sat) * 0.9 then 2 else 1 end);
       elsif q ->> 'type' = 'nps' then
         v_value := to_jsonb(case when v_mood < 0.08 then 2 + floor(r * 5)::integer else least(10, 6 + floor(r * 5)::integer) end);

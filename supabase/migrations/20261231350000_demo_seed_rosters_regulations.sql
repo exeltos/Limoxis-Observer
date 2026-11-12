@@ -156,9 +156,9 @@ $function$;
 revoke all on function private.demo_seed_roster_requests(uuid, uuid, date, date) from public, anon, authenticated;
 
 -- One roster of a department for one period. The ward rota turns over a fixed cycle that runs on across
--- periods (so a period starts where the previous ended): with four people or more two mornings, two
--- afternoons, a night and three days off in eight days; mornings and afternoons with three; mornings only
--- with two. The head works weekday mornings. Approved requests (leave, sick, a day they cannot work, a wish)
+-- periods (so a period starts where the previous ended): from seven people two mornings, two afternoons, a
+-- night and three days off in eight days; with four to six a morning, two afternoons, a night and two days
+-- off in six; mornings and afternoons with three; mornings only with two. The head works weekday mornings. Approved requests (leave, sick, a day they cannot work, a wish)
 -- are on the roster; p_leave_emp is on leave on days 10–12.
 create or replace function private.demo_seed_roster_period(v_org uuid, p_actor uuid, p_department uuid, p_start date,
   p_status text, p_leave_emp uuid)
@@ -176,7 +176,8 @@ declare
 begin
   select count(*) into v_regular from private.demo_roster_staff(v_org, p_department, 1) s where s.active and not s.is_head;
   if v_regular < 2 then return null; end if;
-  v_cycle := case when v_regular >= 4 then array['M','M','A','A','N','R','R','R']
+  v_cycle := case when v_regular >= 7 then array['M','M','A','A','N','R','R','R']
+                  when v_regular >= 4 then array['M','A','A','N','R','R']
                   when v_regular = 3 then array['M','M','A','A','R','R']
                   else array['M','M','R','R'] end;
   v_need := jsonb_build_object('M', case when v_regular >= 7 then 2 else 1 end, 'I', 0,
@@ -468,9 +469,9 @@ begin
       when 'iv_to_oral' then 'Απύρετος 48 ώρες, σιτίζεται: μετάβαση σε από του στόματος αγωγή.'
       else 'Συνέχιση ' || x.antimicrobial || ' κατά το αντιβιόγραμμα· καλή κλινική πορεία.' end,
     case when x.decision = 'deescalate' then x.next_drug end,
-    least(now() - interval '1 hour', x.started_at + make_interval(hours => 50 + (x.n % 5) * 4)), p_actor,
+    least(now() - interval '1 hour', x.started_at + make_interval(hours => (50 + (x.n % 5) * 4)::integer)), p_actor,
     case when x.n % 2 = 0 then 'Δρ. Ε. Λαμπράκη' else 'Δρ. Σ. Καλλέργης' end, 'Λοιμωξιολόγος',
-    least(now() - interval '1 hour', x.started_at + make_interval(hours => 50 + (x.n % 5) * 4))
+    least(now() - interval '1 hour', x.started_at + make_interval(hours => (50 + (x.n % 5) * 4)::integer))
   from (
     select t.*, row_number() over (order by t.started_at) as n,
       case when t.status = 'stopped' and nx.antimicrobial is not null then 'deescalate'
