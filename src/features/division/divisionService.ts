@@ -1,7 +1,9 @@
 // «Αρχική» of the Division Director: the departments of a division in one read (division_overview,
 // the only call to the database for this screen). The browser-only sample hospital and the help
 // preview show sample figures; the empty preview (?helpEmpty=1) a division without departments.
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '../../core/supabase/client'
+import type { AnyRecord } from '../../types/featureTypes'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { isEmptyPreview } from '../../core/preview/emptyPreview'
@@ -10,11 +12,19 @@ import { SAMPLE_DEFAULT_DIVISION, SAMPLE_DIVISION_DEPARTMENTS } from '../../core
 import { loadDivisionCandidates, loadDivisions } from '../interviews/interviewsService'
 
 const isSample = () => isDemoDataEnvironment() || isOwnerPreview()
-const must = ({ data, error }) => { if (error) throw error; return data }
+// division_overview is not in database.types yet: a client without the database types.
+const untyped = () => supabase as unknown as SupabaseClient
+const must = ({ data, error }: { data: unknown, error: unknown }) => { if (error) throw error; return data }
 
 // The numbers of a department row; the percentages are 0–100 or null (no data: «—»).
 export const COUNT_KEYS = ['staff', 'staffOnLeave', 'staffNew30', 'uncoveredNights', 'pendingRequests', 'pendingRequestsOver3Days', 'trainingExpiring30', 'falls30', 'pressureUlcers30', 'incidentsOpen']
 export const PERCENT_KEYS = ['trainingPct', 'fluPct', 'handHygienePct']
+
+// A department row of division_overview (the keys above, its id, name and next month's roster state).
+export type DivisionDepartment = AnyRecord
+export type DivisionTotals = Record<string, number | null>
+// The Division Director's screen: the divisions to pick from, the division, its departments and totals.
+export interface DivisionOverview { divisions: Array<{ id: string, name: string }>, division: AnyRecord | null, nextMonth: string, departments: DivisionDepartment[], totals: DivisionTotals }
 
 // The month after today's (Europe/Athens): the roster the departments prepare now.
 export function nextMonthOf(today = hospitalToday()) {
@@ -23,8 +33,8 @@ export function nextMonthOf(today = hospitalToday()) {
 }
 
 // The division's totals: counts added up, percentages weighted by each department's staff.
-export function totalsOf(departments = []) {
-  const totals = Object.fromEntries(COUNT_KEYS.map(key => [key, departments.reduce((sum, row) => sum + (Number(row[key]) || 0), 0)]))
+export function totalsOf(departments: DivisionDepartment[] = []): DivisionTotals {
+  const totals: DivisionTotals = Object.fromEntries(COUNT_KEYS.map(key => [key, departments.reduce((sum, row) => sum + (Number(row[key]) || 0), 0)]))
   for (const key of PERCENT_KEYS) {
     const known = departments.filter(row => row[key] != null && Number.isFinite(Number(row[key])))
     const weight = known.reduce((sum, row) => sum + (Number(row.staff) || 1), 0)
@@ -35,7 +45,8 @@ export function totalsOf(departments = []) {
 }
 
 // [name, staff, on leave, new 30d, roster, uncovered nights, requests, waiting > 3 days, training %, expiring 30d, flu %, hand hygiene %, falls, pressure ulcers, open incidents]
-const SAMPLE_ROWS = {
+type SampleRow = [string, number, number, number, string, number, number, number, number, number, number, number | null, number, number, number]
+const SAMPLE_ROWS: Record<string, SampleRow[]> = {
   'demo-div-1': [
     ['ΜΕΘ', 38, 3, 2, 'published', 0, 2, 0, 94, 2, 71, 88, 0, 2, 1],
     ['Παθολογική', 42, 4, 1, 'draft', 3, 5, 2, 86, 4, 58, 79, 3, 1, 2],
@@ -52,15 +63,15 @@ const SAMPLE_ROWS = {
     ['Τεχνική Υπηρεσία', 14, 1, 0, 'missing', 0, 0, 0, 74, 3, 38, null, 0, 0, 1],
   ],
 }
-const SAMPLE_DIVISIONS = [
+const SAMPLE_DIVISIONS: Array<{ id: string, name: string, categories: string[] }> = [
   { id: 'demo-div-1', name: 'Νοσηλευτική Υπηρεσία', categories: ['nursing'] },
   { id: 'demo-div-2', name: 'Διεύθυνση Λειτουργιών', categories: ['technical', 'support', 'administrative'] },
 ]
-const sampleRow = ([name, staff, staffOnLeave, staffNew30, rosterNextMonth, uncoveredNights, pendingRequests, pendingRequestsOver3Days, trainingPct, trainingExpiring30, fluPct, handHygienePct, falls30, pressureUlcers30, incidentsOpen]) =>
+const sampleRow = ([name, staff, staffOnLeave, staffNew30, rosterNextMonth, uncoveredNights, pendingRequests, pendingRequestsOver3Days, trainingPct, trainingExpiring30, fluPct, handHygienePct, falls30, pressureUlcers30, incidentsOpen]: SampleRow): DivisionDepartment =>
   ({ id: name, name, staff, staffOnLeave, staffNew30, rosterNextMonth, uncoveredNights, pendingRequests, pendingRequestsOver3Days, trainingPct, trainingExpiring30, fluPct, handHygienePct, falls30, pressureUlcers30, incidentsOpen })
 
-function sampleOverview(divisionId) {
-  const division = SAMPLE_DIVISIONS.find(item => item.id === divisionId) || SAMPLE_DIVISIONS.find(item => item.id === SAMPLE_DEFAULT_DIVISION)
+function sampleOverview(divisionId: string | null): DivisionOverview {
+  const division = (SAMPLE_DIVISIONS.find(item => item.id === divisionId) || SAMPLE_DIVISIONS.find(item => item.id === SAMPLE_DEFAULT_DIVISION)) as typeof SAMPLE_DIVISIONS[number]
   const empty = isEmptyPreview()
   const departments = empty ? [] : SAMPLE_ROWS[division.id].map(sampleRow)
   return { divisions: SAMPLE_DIVISIONS.map(({ id, name }) => ({ id, name })), division: empty ? { ...division, categories: [] } : division, nextMonth: nextMonthOf(), departments, totals: totalsOf(departments) }
@@ -68,28 +79,28 @@ function sampleOverview(divisionId) {
 
 // The division's figures: { divisions, division, nextMonth, departments, totals }. Without a division id
 // the database answers for the director's first division.
-export async function loadDivisionOverview(organizationId, divisionId = null) {
+export async function loadDivisionOverview(organizationId: string | null | undefined, divisionId: string | null = null): Promise<DivisionOverview> {
   if (isSample()) return sampleOverview(divisionId)
   if (!organizationId) return { divisions: [], division: null, nextMonth: nextMonthOf(), departments: [], totals: totalsOf([]) }
-  const data = must(await supabase.rpc('division_overview', { p_organization_id: organizationId, p_division_id: divisionId || null })) || {}
+  const data = (must(await untyped().rpc('division_overview', { p_organization_id: organizationId, p_division_id: divisionId || null })) || {}) as AnyRecord
   const departments = Array.isArray(data.departments) ? data.departments : []
   return { divisions: Array.isArray(data.divisions) ? data.divisions : [], division: data.division || null, nextMonth: data.nextMonth || nextMonthOf(), departments, totals: data.totals || totalsOf(departments) }
 }
 
 // The hospital's divisions with the departments each covers, for «Προβολή ως ρόλος»: in a hospital
 // the departments' ids (hr_division_departments), in the sample hospital their names.
-export async function loadDivisionChoices(organizationId) {
+export async function loadDivisionChoices(organizationId: string | null | undefined) {
   const { divisions } = await loadDivisions(organizationId)
-  return (divisions || []).map(item => ({ id: item.id, name: item.name, departmentIds: isSample() ? [...(SAMPLE_DIVISION_DEPARTMENTS[item.id] || [])] : item.departments || [] }))
+  return (divisions || []).map((item: AnyRecord) => ({ id: item.id, name: item.name, departmentIds: isSample() ? [...(SAMPLE_DIVISION_DEPARTMENTS[item.id] || [])] : item.departments || [] }))
 }
 
 // «Επόμενες συνεντεύξεις»: the scheduled interviews of the division's candidates, the nearest first.
-export async function loadDivisionInterviews(organizationId, categories = []) {
+export async function loadDivisionInterviews(organizationId: string | null | undefined, categories: string[] = []) {
   if (isEmptyPreview()) return []
   const candidates = await loadDivisionCandidates(organizationId)
   const today = hospitalToday()
   return (candidates || [])
-    .filter(candidate => !categories.length || categories.includes(candidate.professionalCategory))
-    .flatMap(candidate => (candidate.interviews || []).filter(item => item.status === 'scheduled' && item.scheduledAt && hospitalDate(item.scheduledAt) >= today).map(item => ({ id: item.id, candidateId: candidate.id, name: candidate.fullName, position: candidate.requestedPosition, scheduledAt: item.scheduledAt })))
-    .sort((a, b) => String(a.scheduledAt).localeCompare(String(b.scheduledAt)))
+    .filter((candidate: AnyRecord) => !categories.length || categories.includes(candidate.professionalCategory))
+    .flatMap((candidate: AnyRecord) => (candidate.interviews || []).filter((item: AnyRecord) => item.status === 'scheduled' && item.scheduledAt && hospitalDate(item.scheduledAt) >= today).map((item: AnyRecord) => ({ id: item.id, candidateId: candidate.id, name: candidate.fullName, position: candidate.requestedPosition, scheduledAt: item.scheduledAt })))
+    .sort((a: AnyRecord, b: AnyRecord) => String(a.scheduledAt).localeCompare(String(b.scheduledAt)))
 }

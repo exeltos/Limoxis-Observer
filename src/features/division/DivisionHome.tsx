@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Building2, CalendarClock, ClipboardList, GraduationCap, HandHeart, ListChecks, ShieldAlert, Syringe, UserSearch, Users } from 'lucide-react'
+import { type LucideIcon, ArrowLeft, ArrowRight, Building2, CalendarClock, ClipboardList, GraduationCap, HandHeart, ListChecks, ShieldAlert, Syringe, UserSearch, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
 import { KpiCard, KpiStrip } from '../../design-system/KpiCard'
@@ -12,8 +12,9 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { loadDivisionInterviews, loadDivisionOverview } from './divisionService'
-import { attentionItems, categoryName, monthGenitive, monthTitle, percentStatus, percentText, rosterPill } from './divisionModel'
+import { loadDivisionInterviews, loadDivisionOverview, type DivisionDepartment, type DivisionOverview } from './divisionService'
+import type { AnyRecord } from '../../types/featureTypes'
+import { type AttentionItem, attentionItems, categoryName, monthGenitive, monthTitle, percentStatus, percentText, rosterPill } from './divisionModel'
 import { useMedia } from '../../app/useSidebarRail'
 import './division.css'
 
@@ -24,7 +25,7 @@ const SIDE_SHOWN = 3
 // One read of the division (division_overview) for the home, «Τμήματα Διεύθυνσης» and a department's page.
 export function useDivisionOverview() {
   const { tenant, divisionId } = useTenant()
-  const [state, setState] = useState({ status: 'loading', data: null })
+  const [state, setState] = useState<{ status: 'loading' | 'ready' | 'error', data: DivisionOverview | null }>({ status: 'loading', data: null })
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let active = true
@@ -35,17 +36,17 @@ export function useDivisionOverview() {
   return { ...state, retry: () => setAttempt(value => value + 1) }
 }
 
-const departmentPath = id => `/my-department?department=${encodeURIComponent(id)}`
-const rosterPath = id => `/rosters?department=${encodeURIComponent(id)}`
+const departmentPath = (id: string) => `/my-department?department=${encodeURIComponent(id)}`
+const rosterPath = (id: string) => `/rosters?department=${encodeURIComponent(id)}`
 
 function useText() {
   const { language } = useLanguage()
   const english = language === 'en'
-  return { language, english, tr: (el, en) => (english ? en : el) }
+  return { language, english, tr: (el: string, en: string) => (english ? en : el) }
 }
 
 // The four key figures of the division (or of one department).
-export function DivisionKpis({ totals = {}, nextMonth, departmentCount, loading = false, error = false }) {
+export function DivisionKpis({ totals = {}, nextMonth, departmentCount, loading = false, error = false }: { totals?: AnyRecord, nextMonth?: string, departmentCount?: number, loading?: boolean, error?: boolean }) {
   const { language, tr } = useText()
   const month = monthGenitive(nextMonth, language)
   const published = Number(totals.rosterPublished) || 0
@@ -61,7 +62,7 @@ export function DivisionKpis({ totals = {}, nextMonth, departmentCount, loading 
 }
 
 // «Τμήματα που εποπτεύω»: one row per department; a row opens the department (read only).
-export function DivisionDepartmentsTable({ departments = [], nextMonth, loading = false, error = false, onRetry }) {
+export function DivisionDepartmentsTable({ departments = [], nextMonth, loading = false, error = false, onRetry }: { departments?: DivisionDepartment[], nextMonth?: string, loading?: boolean, error?: boolean, onRetry?: () => void }) {
   const { language, tr } = useText()
   const navigate = useNavigate()
   const month = monthGenitive(nextMonth, language)
@@ -73,7 +74,7 @@ export function DivisionDepartmentsTable({ departments = [], nextMonth, loading 
     { key: 'trainingPct', label: tr('Εκπαίδευση', 'Training'), className: 'division-number' },
     { key: 'fluPct', label: tr('Γρίπη', 'Flu'), className: 'division-number' },
     { key: 'handHygienePct', label: tr('Υγιεινή χεριών', 'Hand hygiene'), className: 'division-number' },
-    { key: 'falls30', label: <>{tr('Πτώσεις / Κατακλίσεις', 'Falls / Pressure ulcers')}<br />{tr('30 ημ.', '30 days')}</>, ariaLabel: tr('Πτώσεις / Κατακλίσεις 30 ημ.', 'Falls / Pressure ulcers 30 days'), className: 'division-number', sortValue: row => (Number(row.falls30) || 0) + (Number(row.pressureUlcers30) || 0) },
+    { key: 'falls30', label: <>{tr('Πτώσεις / Κατακλίσεις', 'Falls / Pressure ulcers')}<br />{tr('30 ημ.', '30 days')}</>, ariaLabel: tr('Πτώσεις / Κατακλίσεις 30 ημ.', 'Falls / Pressure ulcers 30 days'), className: 'division-number', sortValue: (row: DivisionDepartment) => (Number(row.falls30) || 0) + (Number(row.pressureUlcers30) || 0) },
   ]
   return <RegistryTable className="division-table" columns={columns} rows={departments} rowKey={row => row.id} loading={loading} error={error} onRetry={onRetry}
     emptyTitle={tr('Δεν υπάρχουν ακόμα τμήματα στη διεύθυνση', 'The division has no departments yet')}
@@ -96,10 +97,10 @@ export function DivisionDepartmentsTable({ departments = [], nextMonth, loading 
 }
 
 // The division's title and subtitle: «8 τμήματα · Νοσηλευτικό, Ιατρικό · Νοέμβριος 2026».
-function divisionHeading(data, language) {
+function divisionHeading(data: DivisionOverview | null, language: string) {
   const english = language === 'en'
   const count = data?.departments?.length || 0
-  const categories = (data?.division?.categories || []).map(key => categoryName(key, language)).filter(Boolean)
+  const categories = (data?.division?.categories || []).map((key: string) => categoryName(key, language)).filter(Boolean)
   return {
     title: data?.division?.name || (english ? 'My division' : 'Η διεύθυνσή μου'),
     subtitle: [english ? `${count} ${count === 1 ? 'department' : 'departments'}` : `${count} ${count === 1 ? 'τμήμα' : 'τμήματα'}`, categories.join(', '), monthTitle(undefined, language)].filter(Boolean).join(' · '),
@@ -107,7 +108,7 @@ function divisionHeading(data, language) {
 }
 
 // «Διεύθυνση ▾»: a director of more than one division chooses which one (in a preview the role picker does).
-function DivisionSwitch({ divisions = [] }) {
+function DivisionSwitch({ divisions = [] }: { divisions?: Array<{ id: string, name: string }> }) {
   const { tr } = useText()
   const { divisionId, selectDivision, isRolePreview } = useTenant()
   if (isRolePreview || divisions.length < 2 || !selectDivision) return null
@@ -115,7 +116,7 @@ function DivisionSwitch({ divisions = [] }) {
 }
 
 // The Division Director's home. weekCard: the calendar's «Επόμενες 7 ημέρες» of the home page.
-export function DivisionHome({ weekCard = null }) {
+export function DivisionHome({ weekCard = null }: { weekCard?: ReactNode }) {
   const { language, english, tr } = useText()
   const navigate = useNavigate()
   const { tenant } = useTenant()
@@ -126,15 +127,15 @@ export function DivisionHome({ weekCard = null }) {
   const attention = attentionItems(departments, data?.nextMonth, language)
   const [allAttention, setAllAttention] = useState(false)
   const categoryKey = (data?.division?.categories || []).join(',')
-  const [interviews, setInterviews] = useState(null)
+  const [interviews, setInterviews] = useState<AnyRecord[] | null>(null)
   useEffect(() => {
     let active = true
     if (!data?.division) { setInterviews([]); return () => { active = false } }
     loadDivisionInterviews(tenant?.id, categoryKey ? categoryKey.split(',') : []).then(rows => { if (active) setInterviews(rows) }).catch(() => { if (active) setInterviews([]) })
     return () => { active = false }
   }, [tenant?.id, data?.division, categoryKey])
-  const openAttention = item => navigate(item.to === 'training' ? '/training' : rosterPath(item.departmentId))
-  const when = value => new Intl.DateTimeFormat(english ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Europe/Athens' }).format(new Date(value))
+  const openAttention = (item: AttentionItem) => navigate(item.to === 'training' ? '/training' : rosterPath(item.departmentId))
+  const when = (value: string) => new Intl.DateTimeFormat(english ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Europe/Athens' }).format(new Date(value))
   const shownAttention = allAttention ? attention : attention.slice(0, SIDE_SHOWN)
   // A wide screen keeps the home in one view; a tablet lays the side cards in a row under the table and scrolls.
   const wide = useMedia('(min-width:1181px)')
@@ -179,7 +180,7 @@ export function DivisionDepartmentsPage() {
 }
 
 // A department of the division, read only (from «Τμήματα που εποπτεύω»): its figures and where to read more.
-export function DivisionDepartmentView({ departmentId }) {
+export function DivisionDepartmentView({ departmentId }: { departmentId: string }) {
   const { language, tr } = useText()
   const navigate = useNavigate()
   const { status, data, retry } = useDivisionOverview()
@@ -191,7 +192,7 @@ export function DivisionDepartmentView({ departmentId }) {
   </Page>
   const [pill, tone] = rosterPill(row, language)
   const month = monthGenitive(data?.nextMonth, language)
-  const links = [
+  const links: Array<[LucideIcon, string, string]> = [
     [CalendarClock, tr('Πρόγραμμα βαρδιών', 'Shift roster'), rosterPath(departmentId)],
     [Users, tr('Προσωπικό', 'Staff'), '/employees'],
     [GraduationCap, tr('Εκπαίδευση', 'Training'), '/training'],

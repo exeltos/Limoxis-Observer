@@ -2,18 +2,19 @@
 // the roster pill and what needs attention. Greek and English side by side; no raw key reaches the screen.
 import { PROFESSIONAL_CATEGORIES } from '../interviews/interviewsModel'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const pick = (language, el, en) => (language === 'en' ? en : el)
+const pick = (language: string, el: string, en: string) => (language === 'en' ? en : el)
 
 // A professional category by its label, without the explanation in brackets («Υποστηρικτικό»).
-export function categoryName(key, language = 'el') {
-  const labels = PROFESSIONAL_CATEGORIES[key]
+export function categoryName(key: string, language = 'el') {
+  const labels = (PROFESSIONAL_CATEGORIES as Record<string, string[]>)[key]
   if (!labels) return ''
   return labels[language === 'en' ? 1 : 0].replace(/\s*\(.*\)\s*$/, '')
 }
 
 // «Δεκεμβρίου» / «December» (the month of a roster), «Νοέμβριος 2026» / «November 2026» (the month shown).
-export function monthGenitive(month, language = 'el') {
+export function monthGenitive(month: string | null | undefined, language = 'el') {
   if (!month) return ''
   return new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { month: 'long', timeZone: 'UTC' }).format(new Date(`${month}-15T12:00:00Z`))
 }
@@ -22,7 +23,7 @@ export function monthTitle(month = hospitalToday().slice(0, 7), language = 'el')
 }
 
 // The roster of next month: [text, tone] for its pill.
-export function rosterPill(row, language = 'el') {
+export function rosterPill(row: AnyRecord | null | undefined, language = 'el'): [string, string] {
   const nights = Number(row?.uncoveredNights) || 0
   if (row?.rosterNextMonth === 'published') return [pick(language, 'Δημοσιευμένο', 'Published'), 'success']
   if (row?.rosterNextMonth === 'draft') return nights ? [pick(language, `Προσχέδιο · ${nights} ${nights === 1 ? 'νύχτα' : 'νύχτες'}`, `Draft · ${nights} ${nights === 1 ? 'night' : 'nights'}`), 'warning'] : [pick(language, 'Προσχέδιο', 'Draft'), 'info']
@@ -30,9 +31,9 @@ export function rosterPill(row, language = 'el') {
 }
 
 // A percentage, or «—» when there is no data.
-export const percentText = value => (value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : `${Math.round(Number(value))}%`)
+export const percentText = (value: unknown) => (value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : `${Math.round(Number(value))}%`)
 // Against a target: at or above it good, within 15 points watch, else off target.
-export function percentStatus(value, target) {
+export function percentStatus(value: unknown, target: number) {
   if (value == null || !Number.isFinite(Number(value))) return null
   const number = Number(value)
   return number >= target ? 'good' : number >= target - 15 ? 'warning' : 'danger'
@@ -40,9 +41,10 @@ export function percentStatus(value, target) {
 
 // «Χρειάζονται προσοχή»: a missing roster first, then requests waiting over 3 days, a draft with
 // uncovered nights and training that expires within 30 days.
-export function attentionItems(departments = [], nextMonth = '', language = 'el') {
+export interface AttentionItem { key: string, departmentId: string, tone: 'danger' | 'warning' | 'info', to: string, count?: number, title: string }
+export function attentionItems(departments: AnyRecord[] = [], nextMonth = '', language = 'el') {
   const month = monthGenitive(nextMonth, language)
-  const items = []
+  const items: AttentionItem[] = []
   for (const row of departments) {
     if (row.rosterNextMonth === 'missing' || !row.rosterNextMonth) items.push({ key: `roster-${row.id}`, departmentId: row.id, tone: 'danger', to: 'rosters', title: `${row.name}: ${pick(language, `λείπει το πρόγραμμα ${month}`, `no ${month} roster yet`)}` })
   }
