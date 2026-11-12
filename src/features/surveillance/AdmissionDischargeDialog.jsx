@@ -10,6 +10,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { translate } from '../../core/i18n/LanguageContext'
 import { hospitalDay } from './patientRecordScope'
+import { hospitalNow } from '../../core/dates/hospitalDate'
 
 // «Εξιτήριο ασθενούς»: never saved by one click. Step 1 asks when and why,
 // step 2 shows the summary and waits for the explicit «Επιβεβαίωση εξιτηρίου».
@@ -23,14 +24,8 @@ export const DISCHARGE_REASONS = Object.freeze([
   { value: 'other', key: 'dischargeReasonOther', el: 'Άλλο' },
 ])
 
-const HOSPITAL_TIME_ZONE = 'Europe/Athens'
-
 // «Now» on the hospital's clock (Europe/Athens), as { date: 'YYYY-MM-DD', time: 'HH:MM' }.
-export function hospitalNow(now = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: HOSPITAL_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now)
-  const part = type => parts.find(item => item.type === type)?.value
-  return { date: `${part('year')}-${part('month')}-${part('day')}`, time: `${part('hour')}:${part('minute')}` }
-}
+export { hospitalNow }
 
 // What keeps a discharge from being recorded: no date in the future (nor a time later
 // than now today), none before the admission. Returns { date?, time? } messages ('' when fine).

@@ -7,11 +7,12 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isOwnerPreview, previewHospitalHealth } from '../../core/preview/ownerPreview'
+import { hospitalDate } from '../../core/dates/hospitalDate'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 export const ACTIVITY_DAYS = 14
 const later = (a, b) => (!a ? b : !b ? a : a > b ? a : b)
-const athensDay = value => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Athens', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value))
+const athensDay = value => hospitalDate(value)
 
 // The last ACTIVITY_DAYS calendar days (Athens), oldest first.
 export function activityDays(now = Date.now()) {

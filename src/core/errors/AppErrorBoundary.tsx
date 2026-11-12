@@ -1,4 +1,4 @@
-import { Component } from 'react'
+import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { TriangleAlert } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 
@@ -6,20 +6,24 @@ import { Button } from '../../design-system/Button'
 // embedded third-party frames) makes every localStorage access throw. That is
 // not an application fault, so tell the user how to fix it instead of showing
 // the generic crash card.
-function isBrowserStorageBlocked(error) {
-  const cause = error?.cause ?? error
+function isBrowserStorageBlocked(error: unknown): boolean {
+  const cause = ((error as { cause?: unknown } | null)?.cause ?? error) as { name?: string; message?: string } | null
   if (cause?.name === 'SecurityError') return true
   return /localStorage|sessionStorage|access is denied for this document/i.test(String(cause?.message || ''))
 }
 
-export class AppErrorBoundary extends Component {
-  state = { error: null }
+interface BoundaryState {
+  error: unknown
+}
 
-  static getDerivedStateFromError(error) {
+export class AppErrorBoundary extends Component<{ children?: ReactNode }, BoundaryState> {
+  state: BoundaryState = { error: null }
+
+  static getDerivedStateFromError(error: unknown): BoundaryState {
     return { error }
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: unknown, info: ErrorInfo) {
     globalThis.console?.error?.('Limoxis Observer render failure', error, info)
   }
 
@@ -59,18 +63,28 @@ export class AppErrorBoundary extends Component {
 
 // One screen failing must not take the whole application down: the menu stays usable,
 // "Try again" re-renders the screen, and moving to another screen clears the error.
-export class ScreenErrorBoundary extends Component {
-  state = { error: null, resetKey: this.props.resetKey }
+interface ScreenBoundaryProps {
+  children?: ReactNode
+  // Μια νέα τιμή (π.χ. άλλη διαδρομή) καθαρίζει το σφάλμα.
+  resetKey?: unknown
+}
 
-  static getDerivedStateFromError(error) {
+interface ScreenBoundaryState extends BoundaryState {
+  resetKey?: unknown
+}
+
+export class ScreenErrorBoundary extends Component<ScreenBoundaryProps, ScreenBoundaryState> {
+  state: ScreenBoundaryState = { error: null, resetKey: this.props.resetKey }
+
+  static getDerivedStateFromError(error: unknown): Partial<ScreenBoundaryState> {
     return { error }
   }
 
-  static getDerivedStateFromProps(props, state) {
+  static getDerivedStateFromProps(props: ScreenBoundaryProps, state: ScreenBoundaryState): ScreenBoundaryState | null {
     return props.resetKey === state.resetKey ? null : { error: null, resetKey: props.resetKey }
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: unknown, info: ErrorInfo) {
     globalThis.console?.error?.('Limoxis Observer screen failure', error, info)
   }
 

@@ -1,4 +1,6 @@
-function storageFor(kind) {
+type StorageKind = 'sessionStorage' | 'localStorage'
+
+function storageFor(kind: StorageKind): Storage | null {
   if (typeof window === 'undefined') return null
 
   try {
@@ -8,7 +10,7 @@ function storageFor(kind) {
   }
 }
 
-export function readSessionValue(key, fallback = null) {
+export function readSessionValue(key: string, fallback: string | null = null): string | null {
   try {
     return storageFor('sessionStorage')?.getItem(key) ?? fallback
   } catch {
@@ -16,7 +18,7 @@ export function readSessionValue(key, fallback = null) {
   }
 }
 
-export function writeSessionValue(key, value) {
+export function writeSessionValue(key: string, value: unknown): boolean {
   try {
     const storage = storageFor('sessionStorage')
     if (!storage) return false
@@ -27,7 +29,7 @@ export function writeSessionValue(key, value) {
   }
 }
 
-export function removeSessionValue(key) {
+export function removeSessionValue(key: string): boolean {
   try {
     storageFor('sessionStorage')?.removeItem(key)
     return true
@@ -36,11 +38,8 @@ export function removeSessionValue(key) {
   }
 }
 
-/**
- * @param {string} key
- * @param {unknown} [fallback]
- */
-export function readSessionJson(key, fallback = null) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- stored JSON: the caller knows its shape
+export function readSessionJson(key: string, fallback: unknown = null): any {
   const raw = readSessionValue(key)
   if (raw == null) return fallback
 
@@ -51,7 +50,7 @@ export function readSessionJson(key, fallback = null) {
   }
 }
 
-export function writeSessionJson(key, value) {
+export function writeSessionJson(key: string, value: unknown): boolean {
   try {
     return writeSessionValue(key, JSON.stringify(value))
   } catch {
@@ -59,7 +58,7 @@ export function writeSessionJson(key, value) {
   }
 }
 
-export function readLocalValue(key, fallback = null) {
+export function readLocalValue(key: string, fallback: string | null = null): string | null {
   try {
     return storageFor('localStorage')?.getItem(key) ?? fallback
   } catch {
@@ -67,7 +66,7 @@ export function readLocalValue(key, fallback = null) {
   }
 }
 
-export function writeLocalValue(key, value) {
+export function writeLocalValue(key: string, value: unknown): boolean {
   try {
     const storage = storageFor('localStorage')
     if (!storage) return false

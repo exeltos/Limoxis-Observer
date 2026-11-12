@@ -1,25 +1,13 @@
 import { deviceRuleKey } from '../../lira/liraHaiMetrics'
 import { hospitalDay } from '../patientRecordScope'
+import { hospitalDate, hospitalHour } from '../../../core/dates/hospitalDate'
 
 // One vocabulary for every connected form of an episode: three plain words, never codes.
 export const FORM_STATUS = Object.freeze({ PENDING: 'pending', DONE: 'done', OVERDUE: 'overdue' })
 
-const athensFormat = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Athens',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  hour12: false,
-})
-function athensParts(date) {
-  const parts = athensFormat.formatToParts(date)
-  const part = type => parts.find(item => item.type === type)?.value
-  return { day: `${part('year')}-${part('month')}-${part('day')}`, hour: Number(part('hour')) % 24 }
-}
 // Today in Europe/Athens (the repo rule for sample and admission dates), YYYY-MM-DD.
-export const athensToday = (now = new Date()) => athensParts(now).day
-export const athensHour = (now = new Date()) => athensParts(now).hour
+export const athensToday = (now = new Date()) => hospitalDate(now)
+export const athensHour = (now = new Date()) => hospitalHour(now)
 
 export function addDays(day, count) {
   const value = new Date(`${String(day).slice(0, 10)}T12:00:00Z`)

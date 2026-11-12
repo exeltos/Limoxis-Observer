@@ -23,7 +23,7 @@ describe('TypeScript, step 1: the tests and the tools follow a file that changes
     expect(strict).toContain('src/types/**/*.d.ts')
     // The language and feedback contexts declare their value for the typed callers.
     expect(readSource('src/core/i18n/LanguageContext.jsx')).toContain("import('./languageTypes').LanguageContextValue")
-    expect(readSource('src/core/feedback/FeedbackContext.jsx')).toContain("import('./feedbackTypes').FeedbackContextValue")
+    expect(readSource('src/core/feedback/FeedbackContext.tsx')).toContain('createContext<FeedbackContextValue | null>(null)')
   })
   it('the database types exist without the per-register dynamic tables', () => {
     const types = readSource('src/core/supabase/database.types.ts')
