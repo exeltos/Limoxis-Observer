@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type HTMLAttributes, type ReactNode } from 'react'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -10,6 +10,11 @@ import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { kitchenSince, loadKitchen, loadKitchenDay, loadKitchenReceipt, loadKitchenTrace, mergeKitchenState } from './kitchenService'
 import { limitFor, limitText, statusLabel, statusTone } from './kitchenLimits'
 import './kitchen.css'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { RegistryColumn } from '../../design-system/RegistryTable'
+import type { EmptyStateAction } from '../../design-system/RegistryEmptyState'
+import type { IconType } from '../../design-system/types'
+import type { KitchenLimits } from './kitchenLimits'
 
 // Who may do what in the kitchen: read (view), record the day's entries (record),
 // manage limits, plan, catalogue, sign-off and deletions (manage).
@@ -23,12 +28,21 @@ export function useKitchenAccess() {
   return { canView, canRecord, canManage }
 }
 
+export type KitchenAccess = ReturnType<typeof useKitchenAccess>
+
+// What the kitchen page gives its panels (KitchenPage: props and filtersFor).
+export interface KitchenPanelProps {
+  state: AnyRecord; access: KitchenAccess; reload: () => Promise<unknown>; organizationId: string | null; stock: AnyRecord[]
+  onDialog: (dialog: AnyRecord | null) => void; onOpenDay: (id: string) => void; onTrace: (receiptItemId: string | null) => void; onRecall: (drill: AnyRecord | null) => void
+}
+export interface KitchenFilterProps { filters: AnyRecord; setFilters: (next: AnyRecord | ((current: AnyRecord) => AnyRecord)) => void; switcher?: ReactNode }
+
 // The kitchen, with each entry's in / out of limits: the register from `since` on
 // (showSince(day) reads further back, showSince(null) the whole history), or one
 // receipt (receiptId) or production day (productionId) with what its page needs.
-export function useKitchen({ receiptId = null, productionId = null } = {}) {
+export function useKitchen({ receiptId = null, productionId = null }: { receiptId?: string | null, productionId?: string | null } = {}) {
   const { tenant } = useTenant()
-  const [state, setState] = useState(null)
+  const [state, setState] = useState<AnyRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const [since, setSince] = useState(() => kitchenSince())
@@ -38,15 +52,15 @@ export function useKitchen({ receiptId = null, productionId = null } = {}) {
     return read.then(next => { setState(next); setFailed(false) }).catch(error => { console.error(error); setFailed(true) }).finally(() => setLoading(false))
   }, [tenant?.id, receiptId, productionId, since])
   useEffect(() => { void reload() }, [reload])
-  const showSince = useCallback(day => setSince(current => (current && (day === null || (day && day < current)) ? day : current)), [])
+  const showSince = useCallback((day: string) => setSince(current => (current && (day === null || (day && day < current)) ? day : current)), [])
   return { state, loading, failed, reload, organizationId: tenant?.id || null, since, showSince }
 }
 
 // The state with what a trace needs beyond it (every use of the subject's batches),
 // read from the database; `ready` once it is there. The demo has it all already.
-export function useKitchenTrace(state, organizationId, subject) {
+export function useKitchenTrace(state: AnyRecord, organizationId: string | null | undefined, subject: AnyRecord | null | undefined) {
   const key = subject ? JSON.stringify(subject) : ''
-  const [extra, setExtra] = useState(null)
+  const [extra, setExtra] = useState<AnyRecord | null>(null)
   useEffect(() => {
     if (!key) return undefined
     let active = true
@@ -62,17 +76,18 @@ export function useKitchenTrace(state, organizationId, subject) {
 export function useKitchenActor() {
   const actor = useAuditActor()
   const { membership } = useTenant()
-  return useMemo(() => ({ id: actor?.id || null, name: actor?.name || actor?.fullName || '', employeeId: membership?.employeeId || '' }), [actor, membership?.employeeId])
+  const employeeId = (membership as { employeeId?: string } | null)?.employeeId
+  return useMemo(() => ({ id: actor?.id || null, name: actor?.name || (actor as { fullName?: string } | null)?.fullName || '', employeeId: employeeId || '' }), [actor, employeeId])
 }
 
 // Out of limits is the only chip; within limits shows nothing in a list (live: plain text while typing).
-export function LimitBadge({ status, language, live = false }) {
+export function LimitBadge({ status, language, live = false }: { status?: string | null, language: string, live?: boolean }) {
   if (status === 'in' && !live) return null
   return <SignalBadge tone={statusTone(status)}>{statusLabel(status, language)}</SignalBadge>
 }
 
 // The live check under a measurement while it is typed: the result and the limit.
-export function LiveLimit({ status, limits, limitKey, language, text = '' }) {
+export function LiveLimit({ status, limits, limitKey, language, text = '' }: { status?: string | null, limits?: KitchenLimits, limitKey?: string, language: string, text?: string }) {
   const en = language === 'en'
   const limit = limitKey ? limitFor(limits, limitKey) : null
   return <div className={`kitchen-live-check is-${status || 'none'}`} role="status" aria-live="polite">
@@ -81,8 +96,14 @@ export function LiveLimit({ status, limits, limitKey, language, text = '' }) {
   </div>
 }
 
+interface KitchenListProps {
+  rows: AnyRecord[]; query: string; onQueryChange: (query: string) => void; placeholder?: string; filters?: ReactNode; activeFilters?: number; onClear?: () => void
+  columns: RegistryColumn<AnyRecord>[]; renderRow: (row: AnyRecord) => ReactNode; rowProps?: (row: AnyRecord) => HTMLAttributes<HTMLTableRowElement> | null | undefined
+  empty?: boolean; emptyTitle?: ReactNode; emptyText?: ReactNode; emptyIcon?: IconType; emptyAction?: EmptyStateAction | null; end?: ReactNode; className?: string
+}
+
 // A kitchen list: search, filters, the table and pagination, as the registries.
-export function KitchenList({ rows, query, onQueryChange, placeholder, filters = null, activeFilters = 0, onClear, columns, renderRow, rowProps, empty, emptyTitle, emptyText, emptyIcon, emptyAction, end = null, className = '' }) {
+export function KitchenList({ rows, query, onQueryChange, placeholder, filters = null, activeFilters = 0, onClear, columns, renderRow, rowProps, empty, emptyTitle, emptyText, emptyIcon, emptyAction, end = null, className = '' }: KitchenListProps) {
   const { language } = useLanguage()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
@@ -98,7 +119,7 @@ export function KitchenList({ rows, query, onQueryChange, placeholder, filters =
   </>
 }
 
-export const matches = (query, ...values) => {
+export const matches = (query: string, ...values: unknown[]) => {
   const needle = String(query || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
   if (!needle) return true
   return values.join(' ').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(needle)

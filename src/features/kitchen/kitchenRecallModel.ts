@@ -4,10 +4,11 @@
 // (received = used + in stock + written off) and the time it took against the target.
 // Pure functions; the trace is plain data so it can be kept with the drill.
 import { addDays, dayOf, normalize, stockRows, todayKey, traceBatch, traceDish } from './kitchenModel'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const L = (el, en) => [el, en]
-const pick = (list, value, language) => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || '—'
-const round = (n, digits = 3) => { const f = 10 ** digits; return Math.round(n * f) / f }
+const L = (el: string, en: string) => [el, en]
+const pick = (list: readonly AnyRecord[], value: unknown, language: string) => list.find((item: AnyRecord) => item.value === value)?.label[language === 'en' ? 1 : 0] || value || '—'
+const round = (n: number, digits = 3) => { const f = 10 ** digits; return Math.round(n * f) / f }
 
 export const RECALL_SCENARIOS = Object.freeze([
   { value: 'supplier_lot', label: L('Παρτίδα προμηθευτή', 'Supplier lot') },
@@ -15,9 +16,9 @@ export const RECALL_SCENARIOS = Object.freeze([
   { value: 'dish', label: L('Πιάτο', 'Dish') },
 ])
 export const RECALL_RESULTS = Object.freeze([{ value: 'pass', label: L('Επιτυχής', 'Pass'), tone: 'success' }, { value: 'fail', label: L('Ανεπιτυχής', 'Fail'), tone: 'danger' }])
-export const recallScenarioLabel = (value, language) => pick(RECALL_SCENARIOS, value, language)
-export const recallResultLabel = (value, language) => pick(RECALL_RESULTS, value, language)
-export const recallResultTone = value => RECALL_RESULTS.find(item => item.value === value)?.tone || 'neutral'
+export const recallScenarioLabel = (value: unknown, language: string) => pick(RECALL_SCENARIOS, value, language)
+export const recallResultLabel = (value: unknown, language: string) => pick(RECALL_RESULTS, value, language)
+export const recallResultTone = (value: unknown) => RECALL_RESULTS.find(item => item.value === value)?.tone || 'neutral'
 // The usual target: the whole trace in 4 hours. A balance within ±5 % counts as accounted for.
 export const RECALL_TARGET_MINUTES = 240
 export const BALANCE_TOLERANCE = 5
@@ -26,12 +27,12 @@ export const newRecallDrill = (now = new Date()) => ({ id: '', code: '', drillDa
   targetMinutes: String(RECALL_TARGET_MINUTES), stockCounts: {}, notified: '', actions: '', result: '', lessons: '', conductedByName: '', conductedByEmployeeId: '', status: 'draft', notes: '' })
 
 // Minutes from the start of the drill to its end (or to now while it runs).
-export function elapsedMinutes(startedAt, finishedAt = '', now = new Date()) {
+export function elapsedMinutes(startedAt: string | null | undefined, finishedAt: string | null | undefined = '', now = new Date()) {
   const start = new Date(startedAt || ''), end = finishedAt ? new Date(finishedAt) : now
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
-  return Math.max(0, Math.floor((end - start) / 60000))
+  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000))
 }
-export const fmtDuration = (minutes, language = 'el') => {
+export const fmtDuration = (minutes: number | null | undefined, language = 'el') => {
   if (minutes == null) return '—'
   const h = Math.floor(minutes / 60), m = minutes % 60
   return language === 'en' ? `${h} h ${String(m).padStart(2, '0')} min` : `${h} ώρ. ${String(m).padStart(2, '0')} λεπ.`
@@ -39,32 +40,32 @@ export const fmtDuration = (minutes, language = 'el') => {
 
 // The batches a scenario starts from: one lot, every batch of a product, or (backward)
 // every batch that went into the dish.
-function startBatches(state, stock, drill) {
-  if (drill.scenario === 'supplier_lot') return stock.filter(row => row.receiptItemId === drill.receiptItemId)
+function startBatches(state: AnyRecord, stock: AnyRecord[], drill: AnyRecord) {
+  if (drill.scenario === 'supplier_lot') return stock.filter((row: AnyRecord) => row.receiptItemId === drill.receiptItemId)
   if (drill.scenario === 'product') {
     const name = normalize(drill.productName)
-    return stock.filter(row => (drill.productId ? row.productId === drill.productId : name && normalize(row.productName) === name))
+    return stock.filter((row: AnyRecord) => (drill.productId ? row.productId === drill.productId : name && normalize(row.productName) === name))
   }
-  const ids = new Set(traceDish(state, drill.dishName).map(row => row.receiptItemId).filter(Boolean))
-  return stock.filter(row => ids.has(row.receiptItemId))
+  const ids = new Set(traceDish(state, drill.dishName).map((row: AnyRecord) => row.receiptItemId).filter(Boolean))
+  return stock.filter((row: AnyRecord) => ids.has(row.receiptItemId))
 }
 
 // The meals of a production day that served a dish (the meal plan names the dish, often
 // with its diet: «Κοτόπουλο λεμονάτο με πατάτες (πολτός)»).
-function mealsFor(production, dishName) {
+function mealsFor(production: AnyRecord | null, dishName: string) {
   const needle = normalize(dishName)
   if (!production || !needle) return []
-  return (production.meals || []).filter(meal => { const dish = normalize(meal.dish); return dish && (dish.includes(needle) || needle.includes(dish)) })
+  return (production.meals || []).filter((meal: AnyRecord) => { const dish = normalize(meal.dish); return dish && (dish.includes(needle) || needle.includes(dish)) })
 }
 
 // The whole trace of a drill. `stockCounts` (receiptItemId → quantity) is the stock the
 // team counted on the shelf; where nothing was counted the system's remaining is taken.
-export function recallTrace(state, drill) {
+export function recallTrace(state: AnyRecord, drill: AnyRecord) {
   const stock = stockRows(state)
-  const productions = new Map((state.productions || []).map(item => [item.id, item]))
+  const productions = new Map<string, AnyRecord>((state.productions || []).map((item: AnyRecord) => [item.id, item]))
   const counts = drill.stockCounts || {}
   const selected = startBatches(state, stock, drill)
-  const batches = selected.map(row => {
+  const batches = selected.map((row: AnyRecord) => {
     const counted = counts[row.receiptItemId]
     const hasCount = counted !== '' && counted != null && Number.isFinite(Number(counted))
     const inStock = hasCount ? Number(counted) : Math.max(0, row.remaining)
@@ -80,7 +81,7 @@ export function recallTrace(state, drill) {
       const production = productions.get(use.productionId) || null
       const meals = mealsFor(production, use.dishName)
       uses.push({ id: use.id, receiptItemId: batch.receiptItemId, productName: batch.productName, batchCode: batch.batchCode, usedOn: use.usedOn || production?.productionDate || '', productionId: use.productionId || '', dishName: use.dishName || '', quantity: Number(use.quantity) || 0, unit: use.unit || batch.unit,
-        meals: meals.map(meal => ({ id: meal.id, meal: meal.meal, diet: meal.diet, dish: meal.dish, portions: Number(meal.portions) || 0 })) })
+        meals: meals.map((meal: AnyRecord) => ({ id: meal.id, meal: meal.meal, diet: meal.diet, dish: meal.dish, portions: Number(meal.portions) || 0 })) })
     }
     for (const row of forward.writeoffs) writeoffs.push({ id: row.id, receiptItemId: batch.receiptItemId, productName: batch.productName, writtenOffOn: row.writtenOffOn, quantity: Number(row.quantity) || 0, reason: row.reason, notes: row.notes || '' })
   }
@@ -88,7 +89,7 @@ export function recallTrace(state, drill) {
   // Backward: the other raw materials of the same dishes on the same days (or, for a
   // dish, every batch it was made from), so the recall can widen if needed.
   const dishDays = drill.scenario === 'dish' ? [[drill.dishName, '']] : [...new Map(uses.filter(use => use.dishName).map(use => [`${normalize(use.dishName)}|${use.usedOn}`, [use.dishName, use.usedOn]])).values()]
-  const selectedIds = new Set(batches.map(batch => batch.receiptItemId))
+  const selectedIds = new Set(batches.map((batch: AnyRecord) => batch.receiptItemId))
   const backward = []
   for (const [dish, day] of dishDays) {
     for (const row of traceDish(state, dish, day)) {
@@ -97,20 +98,20 @@ export function recallTrace(state, drill) {
     }
   }
   // Uses of the product recorded without a batch: they cannot be traced to a receipt.
-  const untraced = drill.scenario === 'product' ? (state.usage || []).filter(row => !row.receiptItemId && (drill.productId ? row.productId === drill.productId : normalize(row.productName) === normalize(drill.productName))).length : 0
+  const untraced = drill.scenario === 'product' ? (state.usage || []).filter((row: AnyRecord) => !row.receiptItemId && (drill.productId ? row.productId === drill.productId : normalize(row.productName) === normalize(drill.productName))).length : 0
   return { batches, uses, writeoffs, backward, untraced, ...recallTotals(batches, uses) }
 }
 
 // The mass balance and what was affected (days, meals, portions).
-export function recallTotals(batches, uses) {
-  const units = [...new Set(batches.map(batch => batch.unit))]
-  const sum = key => round(batches.reduce((n, batch) => n + (Number(batch[key]) || 0), 0))
+export function recallTotals(batches: AnyRecord[], uses: AnyRecord[]) {
+  const units = [...new Set(batches.map((batch: AnyRecord) => batch.unit))]
+  const sum = (key: string) => round(batches.reduce((n: number, batch) => n + (Number(batch[key]) || 0), 0))
   const received = sum('received'), used = sum('used'), inStock = sum('inStock'), writtenOff = sum('writtenOff')
   const accounted = round(used + inStock + writtenOff)
   // One unit: the plain balance. Mixed units (a dish): the mean of the batches' balances.
-  const withPercent = batches.filter(batch => batch.percent != null)
-  const percent = units.length === 1 ? (received > 0 ? round((accounted / received) * 100, 1) : null) : withPercent.length ? round(withPercent.reduce((n, batch) => n + batch.percent, 0) / withPercent.length, 1) : null
-  const days = new Set(uses.map(use => use.productionId || use.usedOn).filter(Boolean))
+  const withPercent = batches.filter((batch: AnyRecord) => batch.percent != null)
+  const percent = units.length === 1 ? (received > 0 ? round((accounted / received) * 100, 1) : null) : withPercent.length ? round(withPercent.reduce((n: number, batch: AnyRecord) => n + batch.percent, 0) / withPercent.length, 1) : null
+  const days = new Set(uses.map((use: AnyRecord) => use.productionId || use.usedOn).filter(Boolean))
   const meals = new Map()
   for (const use of uses) for (const meal of use.meals || []) meals.set(meal.id || `${use.productionId}-${meal.meal}-${meal.diet}-${meal.dish}`, meal)
   return {
@@ -122,12 +123,12 @@ export function recallTotals(batches, uses) {
 }
 
 // Within the target time? null while the drill has no start.
-export const withinTarget = (minutes, target = RECALL_TARGET_MINUTES) => (minutes == null ? null : minutes <= (Number(target) || RECALL_TARGET_MINUTES))
+export const withinTarget = (minutes: number | null, target: unknown = RECALL_TARGET_MINUTES) => (minutes == null ? null : minutes <= (Number(target) || RECALL_TARGET_MINUTES))
 // The result the trace suggests: traced within the target and the balance accounted for.
-export const suggestedResult = (trace, minutes, target) => (trace.batches.length && trace.balanced && withinTarget(minutes, target) ? 'pass' : 'fail')
+export const suggestedResult = (trace: AnyRecord, minutes: number | null, target: unknown) => (trace.batches.length && trace.balanced && withinTarget(minutes, target) ? 'pass' : 'fail')
 
 // What a drill keeps when saved: the found quantities as columns, the trace as a snapshot.
-export function drillFindings(drill, trace, now = new Date()) {
+export function drillFindings(drill: AnyRecord, trace: AnyRecord, now = new Date()) {
   const minutes = elapsedMinutes(drill.startedAt, drill.finishedAt, now)
   return {
     elapsedMinutes: minutes, receivedQuantity: trace.received, usedQuantity: trace.used, stockQuantity: trace.inStock, writtenOffQuantity: trace.writtenOff, quantityUnit: trace.unit || '', accountedPercent: trace.percent ?? '',
@@ -137,7 +138,7 @@ export function drillFindings(drill, trace, now = new Date()) {
 }
 
 // What a drill needs: a subject; to complete, also whom it notified, what was done and a result.
-export function recallProblems(drill, language = 'el', { completing = false } = {}) {
+export function recallProblems(drill: AnyRecord, language = 'el', { completing = false } = {}) {
   const en = language === 'en'
   const problems = []
   if (drill.scenario === 'supplier_lot' && !drill.receiptItemId) problems.push(en ? 'the lot' : 'η παρτίδα')
@@ -153,20 +154,20 @@ export function recallProblems(drill, language = 'el', { completing = false } = 
 }
 
 // The subject of a drill in a line: the lot, the product or the dish.
-export function drillSubject(drill, state, language = 'el') {
+export function drillSubject(drill: AnyRecord, state: AnyRecord | null, language = 'el') {
   if (drill.scenario === 'dish') return drill.dishName || '—'
-  if (drill.scenario === 'product') return drill.productName || (state?.products || []).find(item => item.id === drill.productId)?.name || '—'
+  if (drill.scenario === 'product') return drill.productName || (state?.products || []).find((item: AnyRecord) => item.id === drill.productId)?.name || '—'
   const batch = drill.traceSnapshot?.batches?.[0] || (state ? stockRows(state).find(row => row.receiptItemId === drill.receiptItemId) : null)
   return batch ? `${batch.productName}${batch.batchCode || batch.lotLabel ? ` · ${batch.batchCode || batch.lotLabel}` : ''}` : (drill.productName || (language === 'en' ? 'Batch' : 'Παρτίδα'))
 }
 
 // The overview: the last completed drill, when the next is due, and a warning when no
 // drill was done within the interval (12 months unless the settings say otherwise).
-export function recallSummary(state, today = todayKey()) {
+export function recallSummary(state: AnyRecord, today = todayKey()) {
   const months = Number(state.settings?.recallDrillMonths) || 12
-  const done = (state.recallDrills || []).filter(row => row.status === 'completed').sort((a, b) => String(b.drillDate).localeCompare(String(a.drillDate)))
+  const done = (state.recallDrills || []).filter((row: AnyRecord) => row.status === 'completed').sort((a: AnyRecord, b: AnyRecord) => String(b.drillDate).localeCompare(String(a.drillDate)))
   const last = done[0] || null
   let due = ''
   if (last) { const d = new Date(`${dayOf(last.drillDate)}T12:00:00`); d.setMonth(d.getMonth() + months); due = todayKey(d) }
-  return { last, due, months, overdue: !last || due < today, dueSoon: Boolean(last) && due >= today && due <= addDays(today, 30), drafts: (state.recallDrills || []).filter(row => row.status !== 'completed').length }
+  return { last, due, months, overdue: !last || due < today, dueSoon: Boolean(last) && due >= today && due <= addDays(today, 30), drafts: (state.recallDrills || []).filter((row: AnyRecord) => row.status !== 'completed').length }
 }
