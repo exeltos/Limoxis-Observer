@@ -12,8 +12,8 @@
 .division-table .division-number{text-align:right;font-variant-numeric:tabular-nums}
 .division-table td.is-danger{color:#a32121;font-weight:700}
 .division-table td.is-warning{color:#8a5a00;font-weight:700}
-.division-late{color:#8a5a00;font-weight:700}
-.division-requests{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap}
+.division-late{color:#8a5a00;font-weight:700;font-size:11px}
+.division-requests{display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.2;white-space:nowrap}
 .division-switch{min-width:220px}
 .division-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:0}
 .division-facts>div{display:flex;flex-direction:column;gap:3px;padding:8px 0;border-bottom:1px solid var(--lo-color-border)}

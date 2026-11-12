@@ -53,7 +53,7 @@ const SAMPLE_ROWS = {
   ],
 }
 const SAMPLE_DIVISIONS = [
-  { id: 'demo-div-1', name: 'Νοσηλευτική Υπηρεσία', categories: ['nursing', 'medical', 'paramedical'] },
+  { id: 'demo-div-1', name: 'Νοσηλευτική Υπηρεσία', categories: ['nursing'] },
   { id: 'demo-div-2', name: 'Διεύθυνση Λειτουργιών', categories: ['technical', 'support', 'administrative'] },
 ]
 const sampleRow = ([name, staff, staffOnLeave, staffNew30, rosterNextMonth, uncoveredNights, pendingRequests, pendingRequestsOver3Days, trainingPct, trainingExpiring30, fluPct, handHygienePct, falls30, pressureUlcers30, incidentsOpen]) =>
