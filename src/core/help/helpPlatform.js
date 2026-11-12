@@ -21,7 +21,7 @@ const audienceEn='Platform Owner'
 export const platformHelp={
  el:{
   '/platform':{title:'Κέντρο Πλατφόρμας',summary:'Η συνολική εικόνα της εγκατάστασης χωρίς είσοδο σε κάποιον οργανισμό.',audience:audienceEl,chapters:[
-   ['Επισκόπηση','Οι δείκτες στην κορυφή δείχνουν οργανισμούς, ανενεργούς οργανισμούς, ενεργά Demo και Demo που λήγουν σύντομα.'],
+   ['Επισκόπηση','Η γραμμή στην κορυφή δείχνει οργανισμούς, χρήστες, ενεργά Demo και σφάλματα του τελευταίου 24ώρου· πατώντας έναν αριθμό ανοίγει η αντίστοιχη οθόνη. Αριστερά είναι τα νοσοκομεία με τη δραστηριότητά τους και δεξιά ένα κουτί με όσα θέλουν προσοχή: ποιος είναι συνδεδεμένος τώρα, αποτυχίες σύνδεσης και Demo που λήγουν σύντομα. Τα «Νέο Demo» και «Νέος οργανισμός» είναι πάνω δεξιά.'],
    ['Χώροι εργασίας','Από τις κάρτες Διαχείρισης και Διακυβέρνησης μεταβαίνετε σε Οργανισμούς, Demo, Ανάλυση, Κεντρική Διαχείριση, Υγεία, Ιστορικό και Ρυθμίσεις.'],
    ['Επιστροφή','Σε κάθε οθόνη πλατφόρμας η διαδρομή στην πάνω μπάρα («Κέντρο Πλατφόρμας › …») σας επιστρέφει εδώ με ένα κλικ.']
   ],steps:['Ελέγξτε τους δείκτες και τα Demo που λήγουν.','Ανοίξτε τον χώρο εργασίας που χρειάζεστε.','Επιστρέψτε από τη διαδρομή στην πάνω μπάρα.']},
@@ -73,7 +73,7 @@ export const platformHelp={
  },
  en:{
   '/platform':{title:'Platform Center',summary:'The overall picture of the installation without entering an organization.',audience:audienceEn,chapters:[
-   ['Overview','The top indicators show organizations, inactive organizations, active demos and demos expiring soon.'],
+   ['Overview','The strip at the top shows organizations, users, active demos and the errors of the last 24 hours; click a number to open its screen. On the left are the hospitals with their activity and on the right one box for what needs attention: who is connected now, failed sign-ins and demos expiring soon. “New Demo” and “New organization” are at the top right.'],
    ['Workspaces','From the Management and Governance cards you open Organizations, Demo, Analysis, Central Management, Health, Audit and Settings.'],
    ['Going back','On every platform screen the topbar breadcrumb ("Platform Center › …") brings you back here in one click.']
   ],steps:['Review the indicators and expiring demos.','Open the workspace you need.','Return from the topbar breadcrumb.']},
