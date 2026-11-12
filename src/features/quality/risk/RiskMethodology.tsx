@@ -1,6 +1,8 @@
 import { ArrowRight } from 'lucide-react'
 import { CONSEQUENCE,JCI_CHAPTERS,LEVELS,LIKELIHOOD,levelForScore,scored } from './riskModel'
-import { L,defaultFrame } from './riskUi'
+import { L,defaultFrame,type RiskFrame } from './riskUi'
+import type { ReactNode } from 'react'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 const FLOW=[
  ['inherent','Εγγενής','Inherent','Ο κίνδυνος όπως είναι, αν δεν υπήρχε κανένα μέτρο.','The risk as it is, with no control at all.'],
@@ -13,7 +15,7 @@ const FLOW=[
 // The method behind the scores (NHS National Patient Safety Agency, 2008),
 // tied to this assessment: how many of its risks sit at each level and in each
 // JCI chapter, and whether the year's proactive analysis has been chosen.
-export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea,returned='',frame=defaultFrame}){
+export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea,returned='',frame=defaultFrame}: {en: boolean,risks?: AnyRecord[],actions?: ReactNode,onJci?: ((jci: string)=>void)|null,onPickFmea?: (()=>void)|null,returned?: string,frame?: RiskFrame}){
  const residual=risks.map(r=>scored(r).residual.level)
  const perLevel=Object.fromEntries(LEVELS.map(x=>[x.id,residual.filter(l=>l===x.id).length]))
  const perJci=Object.fromEntries(JCI_CHAPTERS.map(x=>[x.id,risks.filter(r=>r.jci===x.id).length]))

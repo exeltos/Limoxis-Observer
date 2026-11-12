@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type Dispatch, type KeyboardEvent, type ReactNode, type SetStateAction } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, CheckSquare2, ClipboardList, Eye, FilePlus2, FolderOpen, Paperclip, Pencil, Plus, Send, Stethoscope, Star, Trash2, Truck, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
@@ -39,17 +39,18 @@ import { attachSupplierFile, certificationFromFile, openSupplierFile, removeSupp
 import '../quality.css'
 import './resources.css'
 import { LinkedActions } from '../LinkedActions'
-import { printReport } from '../../../core/export/reportDocument'
+import { printReport, type ReportDoc } from '../../../core/export/reportDocument'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // The record shell keeps only the export control and the edit / delete actions of the
 // header (these go to «…»); a primary domain action marked `utility` stays visible
 // beside the status, as a standard text button.
-const HeaderAction = ({ children }) => children
+const HeaderAction = ({ children }: { children: ReactNode, utility?: boolean, tone?: string }) => children
 
-const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
-const byNewest = field => (a, b) => String(b[field] || '').localeCompare(String(a[field] || ''))
+const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
+const byNewest = (field: string) => (a: AnyRecord, b: AnyRecord) => String(b[field] || '').localeCompare(String(a[field] || ''))
 
 // /quality/suppliers/templates is the templates page, /quality/suppliers/renewals the
 // certificates to renew; any other id is a supplier. Nothing here when the hospital
@@ -62,7 +63,7 @@ export function SupplierRecordPage() {
   return supplierId === 'templates' ? <SupplierTemplatesPage /> : supplierId === 'renewals' ? <SupplierRenewalsPage /> : <SupplierRecord supplierId={supplierId} />
 }
 
-function SupplierRecord({ supplierId }) {
+function SupplierRecord({ supplierId }: { supplierId?: string }) {
   const isNew = supplierId === 'new'
   const navigate = useNavigate()
   const { goBack } = useContextualNavigation('/quality')
@@ -72,15 +73,15 @@ function SupplierRecord({ supplierId }) {
   const { tenant } = useTenant()
   const access = useResourceAccess()
   const list = useResources()
-  const [draft, setDraft] = useState(null)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [tab, setTab] = useState(isNew ? 'details' : 'evaluations')
   const [saving, setSaving] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [renewing, setRenewing] = useState(null)
+  const [editing, setEditing] = useState<AnyRecord | null>(null)
+  const [renewing, setRenewing] = useState<AnyRecord[] | null>(null)
   // The details of a saved supplier open read-only; «Edit» (in the card's ⋯) opens them.
   const [editingDetails, setEditingDetails] = useState(false)
   const renewals = useCertificateRequests(!isNew && access.canViewAll)
-  const supplierFiles = useSupplierFiles(tenant?.id, isNew ? null : supplierId)
+  const supplierFiles = useSupplierFiles(tenant?.id, (isNew ? null : supplierId) as string)
 
   const row = useMemo(() => (isNew ? null : list.suppliers.find(item => item.id === supplierId || item.code === supplierId) || null), [isNew, list.suppliers, supplierId])
   // Opened by its code (from a corrective action): continue at its own address.
@@ -97,10 +98,11 @@ function SupplierRecord({ supplierId }) {
 
   const locked = !access.canManage
   const detailsLocked = locked || (!isNew && !editingDetails)
-  const set = next => setDraft(current => ({ ...current, ...next }))
+  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
 
   // Saves the supplier as it is, or with one list changed (an evaluation, a certificate, a contact, a nonconformity).
-  async function persist(next = draft, message) {
+  async function persist(next: AnyRecord | null = draft, message?: string) {
+    if (!next) return false
     const problems = supplierProblems(next, language)
     if (problems.length) { notify(`${en ? 'Fill in:' : 'Συμπληρώστε:'} ${problems.join(' · ')}`, 'error'); setTab('details'); return false }
     setSaving(true)
@@ -113,23 +115,24 @@ function SupplierRecord({ supplierId }) {
       return true
     } catch (error) { console.error(error); notify(en ? 'The supplier could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση.', 'error'); return false } finally { setSaving(false) }
   }
-  const saveItem = (field, item, message) => persist({ ...draft, [field]: (draft[field] || []).some(entry => entry.id === item.id) ? draft[field].map(entry => (entry.id === item.id ? item : entry)) : [...(draft[field] || []), item] }, message)
-  async function dropItem(field, item) {
+  const saveItem = (field: string, item: AnyRecord, message?: string) => persist({ ...draft, [field]: (draft[field] || []).some((entry: AnyRecord) => entry.id === item.id) ? draft[field].map((entry: AnyRecord) => (entry.id === item.id ? item : entry)) : [...(draft[field] || []), item] }, message)
+  async function dropItem(field: string, item: AnyRecord) {
     const ok = await confirm({ title: en ? 'Delete' : 'Διαγραφή', message: en ? 'The entry is deleted.' : 'Η εγγραφή διαγράφεται.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
-    if (!ok) return false
-    await persist({ ...draft, [field]: draft[field].filter(entry => entry.id !== item.id) }, en ? 'Deleted.' : 'Διαγράφηκε.')
+    if (!ok || !draft) return false
+    await persist({ ...draft, [field]: draft[field].filter((entry: AnyRecord) => entry.id !== item.id) }, en ? 'Deleted.' : 'Διαγράφηκε.')
     return true
   }
   async function remove() {
     const ok = await confirm({ title: en ? 'Delete supplier' : 'Διαγραφή προμηθευτή', message: en ? `The supplier with its evaluations is deleted; ${devices.length} devices keep no supplier. A supplier no longer used is better marked inactive.` : `Διαγράφεται ο προμηθευτής με τις αξιολογήσεις του· ${devices.length} εξοπλισμοί μένουν χωρίς προμηθευτή. Για προμηθευτή που δεν χρησιμοποιείται πια, προτιμήστε «Ανενεργός».`, confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
-    if (!ok) return
+    if (!ok || !row) return
     try { await removeSupplier(tenant?.id, row.id); notify(en ? 'Supplier deleted.' : 'Ο προμηθευτής διαγράφηκε.', 'success'); goBack() } catch (error) { console.error(error); notify(en ? 'The supplier could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή.', 'error') }
   }
   // A document is saved with its file: a new file is uploaded first, and the one it replaces is removed after.
-  async function saveDocument(item) {
+  async function saveDocument(item: AnyRecord) {
+    if (!draft) return false
     const { pendingFile, ...cert } = item
-    const previous = supplierFiles.files.find(file => file.id === (draft.certifications || []).find(entry => entry.id === cert.id)?.attachmentId) || null
-    let uploaded = null
+    const previous = supplierFiles.files.find(file => file.id === (draft.certifications || []).find((entry: AnyRecord) => entry.id === cert.id)?.attachmentId) || null
+    let uploaded: AnyRecord | null = null
     if (pendingFile) {
       try { uploaded = await attachSupplierFile(supplierFiles.cloud, tenant?.id, draft.id, pendingFile, cert.kind) } catch (error) { console.error(error); notify(en ? 'The file could not be uploaded.' : 'Δεν ήταν δυνατή η αποστολή του αρχείου.', 'error'); return false }
       cert.attachmentId = uploaded.id
@@ -142,18 +145,18 @@ function SupplierRecord({ supplierId }) {
     return ok
   }
   // Deleting a document deletes its file too (a file without details: only the file).
-  async function removeDocument(doc) {
+  async function removeDocument(doc: AnyRecord) {
     const ok = await confirm({ title: en ? 'Delete document' : 'Διαγραφή εγγράφου', message: doc.file ? (en ? 'The document and its file are deleted.' : 'Διαγράφονται το έγγραφο και το αρχείο του.') : (en ? 'The document is deleted.' : 'Το έγγραφο διαγράφεται.'), confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
-    if (!ok) return
-    if (doc.cert && !(await persist({ ...draft, certifications: draft.certifications.filter(entry => entry.id !== doc.cert.id) }, en ? 'Deleted.' : 'Διαγράφηκε.'))) return
+    if (!ok || !draft) return
+    if (doc.cert && !(await persist({ ...draft, certifications: draft.certifications.filter((entry: AnyRecord) => entry.id !== doc.cert.id) }, en ? 'Deleted.' : 'Διαγράφηκε.'))) return
     if (doc.file) {
       try { await removeSupplierFile(supplierFiles.cloud, doc.file); supplierFiles.setFiles(current => current.filter(file => file.id !== doc.file.id)); if (!doc.cert) notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success') } catch (error) { console.error(error); notify(en ? 'The file could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή του αρχείου.', 'error') }
     }
   }
-  const viewFile = file => openSupplierFile(supplierFiles.cloud, file).catch(() => notify(en ? 'The file could not be opened.' : 'Δεν ήταν δυνατό το άνοιγμα του αρχείου.', 'error'))
-  const editDocument = doc => setEditing({ field: 'certifications', item: doc.cert ? structuredClone(doc.cert) : certificationFromFile(newCertification(), doc.file) })
-  const openRow = (field, item) => (locked ? {} : { className: 'registry-row-clickable', tabIndex: 0, onClick: () => setEditing({ field, item: structuredClone(item) }), onKeyDown: event => { if (event.key === 'Enter') setEditing({ field, item: structuredClone(item) }) } })
-  const openCapa = item => navigate('/quality/capas/new', { state: { qualitySource: supplierCapaSource(row, item, language) } })
+  const viewFile = (file: AnyRecord) => openSupplierFile(supplierFiles.cloud, file).catch(() => notify(en ? 'The file could not be opened.' : 'Δεν ήταν δυνατό το άνοιγμα του αρχείου.', 'error'))
+  const editDocument = (doc: AnyRecord) => setEditing({ field: 'certifications', item: doc.cert ? structuredClone(doc.cert) : certificationFromFile(newCertification(), doc.file) })
+  const openRow = (field: string, item: AnyRecord) => (locked ? {} : { className: 'registry-row-clickable', tabIndex: 0, onClick: () => setEditing({ field, item: structuredClone(item) }), onKeyDown: (event: KeyboardEvent) => { if (event.key === 'Enter') setEditing({ field, item: structuredClone(item) }) } })
+  const openCapa = (item: AnyRecord) => row && navigate('/quality/capas/new', { state: { qualitySource: supplierCapaSource(row, item, language) } })
   // A new evaluation starts on the template of the supplier's category (else the earlier six criteria).
   const startEvaluation = () => { const template = evaluationTemplates(templates, supplierCategoryOf(draft.category))[0] || templateFor(templates, supplierCategoryOf(draft.category)); return template ? evaluationFromTemplate(template) : newEvaluation() }
 
@@ -177,14 +180,14 @@ function SupplierRecord({ supplierId }) {
   const latest = row?.latestEvaluation || null
   // The supplier's file: every evaluation and nonconformity, for the yearly review.
   const exportFile = () => exportRegistry({
-    name: `${row.code}-${en ? 'supplier-file' : 'fakelos-promithefti'}`,
+    name: `${row?.code}-${en ? 'supplier-file' : 'fakelos-promithefti'}`,
     headers: en ? ['Kind', 'Date', 'Details', 'Score % / severity', 'Result / status'] : ['Είδος', 'Ημερομηνία', 'Στοιχεία', 'Βαθμολογία % / σοβαρότητα', 'Αποτέλεσμα / κατάσταση'],
-    rows: [...evaluations.map(item => [en ? 'Evaluation' : 'Αξιολόγηση', item.evaluatedOn, isTemplateEvaluation(item) ? [item.templateName, ...(item.criteria || []).map(criterion => `${criterion.label}: ${criterion.score === '' || criterion.score == null ? '—' : criterion.score}`)].filter(Boolean).join('; ') : CRITERIA.map(criterion => `${criterion.label[en ? 1 : 0]}: ${item.scores?.[criterion.key] || '—'}`).join('; '), evaluationPercent(item) ?? '', approvalLabel(evaluationApproval(item), language)]),
+    rows: [...evaluations.map(item => [en ? 'Evaluation' : 'Αξιολόγηση', item.evaluatedOn, isTemplateEvaluation(item) ? [item.templateName, ...(item.criteria || []).map((criterion: AnyRecord) => `${criterion.label}: ${criterion.score === '' || criterion.score == null ? '—' : criterion.score}`)].filter(Boolean).join('; ') : CRITERIA.map(criterion => `${criterion.label[en ? 1 : 0]}: ${item.scores?.[criterion.key] || '—'}`).join('; '), evaluationPercent(item) ?? '', approvalLabel(evaluationApproval(item), language)]),
       ...nonconformities.map(item => [en ? 'Nonconformity' : 'Μη συμμόρφωση', item.date, item.description, severityLabel(item.severity, language), item.status === 'closed' ? (en ? 'Closed' : 'Έκλεισε') : (en ? 'Open' : 'Ανοιχτή')]),
-      ...certifications.map(item => [en ? 'Certificate' : 'Πιστοποιητικό', item.expiresOn, [item.type, item.title, item.number, item.issuer].filter(Boolean).join(' · '), '', certificationStateLabel(certificationState(item), language)])],
+      ...certifications.map((item: AnyRecord) => [en ? 'Certificate' : 'Πιστοποιητικό', item.expiresOn, [item.type, item.title, item.number, item.issuer].filter(Boolean).join(' · '), '', certificationStateLabel(certificationState(item), language)])],
   })
   // One export control: the evaluation sheet of the latest evaluation (print / PDF) and the supplier's file (Excel).
-  const sheet = () => supplierEvaluationDocument(row, latest, { language, nextEvaluation: row.nextEvaluation, months: row.evaluationMonths, templates })
+  const sheet = () => supplierEvaluationDocument(row as AnyRecord, latest, { language, nextEvaluation: row?.nextEvaluation, months: row?.evaluationMonths, templates }) as ReportDoc
   const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   const headerActions = !isNew && <div className="row-actions">
     <ExportMenu {...(latest ? reportExports(sheet, { onBlocked: blocked }) : {})} onExcel={exportFile} />
@@ -193,7 +196,7 @@ function SupplierRecord({ supplierId }) {
     {access.canManage && tab === 'details' && <IconButton tone="danger" label={en ? 'Delete supplier' : 'Διαγραφή προμηθευτή'} onClick={remove}><Trash2 size={16} /></IconButton>}
     {access.canManage && <HeaderAction utility tone="primary"><Button onClick={() => { setTab('evaluations'); setEditing({ field: 'evaluations', item: startEvaluation() }) }}><Plus size={15} />{en ? 'New evaluation' : 'Νέα αξιολόγηση'}</Button></HeaderAction>}
   </div>
-  const add = (field, item) => !locked && <Button onClick={() => setEditing({ field, item: typeof item === 'function' ? item() : item })}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>
+  const add = (field: string, item: AnyRecord) => !locked && <Button onClick={() => setEditing({ field, item: typeof item === 'function' ? item() : item })}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>
   const nextText = row?.nextEvaluation ? `${en ? 'Next evaluation' : 'Επόμενη αξιολόγηση'}: ${formatDay(row.nextEvaluation, language)}` : (en ? 'Not evaluated yet' : 'Δεν έχει αξιολογηθεί')
   const own = templateFor(templates, supplierCategoryOf(draft.category))
 
@@ -239,7 +242,7 @@ function SupplierRecord({ supplierId }) {
           <div className="attachment-actions"><OverflowMenu label={en ? 'Document actions' : 'Ενέργειες εγγράφου'} items={[
             doc.file && { id: 'view', label: en ? 'View the file' : 'Προβολή αρχείου', icon: Eye, onClick: () => viewFile(doc.file) },
             !locked && { id: 'edit', label: en ? 'Edit' : 'Επεξεργασία', icon: Pencil, onClick: () => editDocument(doc) },
-            !locked && cert && canRequestRenewal(renewal) && { id: 'renew', label: en ? 'Request renewal' : 'Αίτημα ανανέωσης', icon: Send, onClick: () => setRenewing([renewal]) },
+            !locked && cert && canRequestRenewal(renewal as AnyRecord) && { id: 'renew', label: en ? 'Request renewal' : 'Αίτημα ανανέωσης', icon: Send, onClick: () => setRenewing([renewal as AnyRecord]) },
             !locked && { id: 'delete', label: en ? 'Delete' : 'Διαγραφή', icon: Trash2, tone: 'danger', separatorBefore: true, onClick: () => removeDocument(doc) },
           ].filter(Boolean)} /></div>
         </div> })}</div>}
@@ -271,7 +274,7 @@ function SupplierRecord({ supplierId }) {
           <td><StatusBadge tone={equipmentStateTone(item.state)}>{equipmentStateLabel(item.state, language)}</StatusBadge></td>
         </>} />
     </RecordTabPanel>}
-    {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} footer={!detailsLocked && <div className="inline-edit-footer">{!isNew && <Button variant="secondary" onClick={() => { setDraft(structuredClone(row)); setEditingDetails(false) }}>{en ? 'Cancel' : 'Ακύρωση'}</Button>}<SaveButton loading={saving} disabled={saving} onClick={() => persist()}>{isNew ? (en ? 'Register supplier' : 'Καταχώριση προμηθευτή') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
+    {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} footer={!detailsLocked && <div className="inline-edit-footer">{!isNew && <Button variant="secondary" onClick={() => { setDraft(structuredClone(row as AnyRecord)); setEditingDetails(false) }}>{en ? 'Cancel' : 'Ακύρωση'}</Button>}<SaveButton loading={saving} disabled={saving} onClick={() => persist()}>{isNew ? (en ? 'Register supplier' : 'Καταχώριση προμηθευτή') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Supplier' : 'Προμηθευτής'}>
           <FormGrid columns={3}>
@@ -305,13 +308,13 @@ function SupplierRecord({ supplierId }) {
       </div>
     </RecordTabPanel>}
     {renewing && <RenewalSendDialog rows={renewing} canSend={access.canSend} onClose={() => setRenewing(null)} onDone={async () => { setRenewing(null); await renewals.reload() }} />}
-    {editing && <ItemDialog editing={editing} setEditing={setEditing} language={language} saving={saving} templates={templates} category={supplierCategoryOf(draft.category)} files={supplierFiles.files} onViewFile={viewFile} onSave={async () => { if (await (editing.field === 'certifications' ? saveDocument(editing.item) : saveItem(editing.field, editing.item))) setEditing(null) }}  exists={(draft[editing.field] || []).some(entry => entry.id === editing.item.id)} onRemove={access.canManage ? async () => { if (await dropItem(editing.field, editing.item)) setEditing(null) } : null}
+    {editing && <ItemDialog editing={editing} setEditing={setEditing} language={language} saving={saving} templates={templates} category={supplierCategoryOf(draft.category)} files={supplierFiles.files} onViewFile={viewFile} onSave={async () => { if (await (editing.field === 'certifications' ? saveDocument(editing.item) : saveItem(editing.field, editing.item))) setEditing(null) }}  exists={(draft[editing.field] || []).some((entry: AnyRecord) => entry.id === editing.item.id)} onRemove={access.canManage ? async () => { if (await dropItem(editing.field, editing.item)) setEditing(null) } : null}
       onCapa={editing.field === 'nonconformities' && editing.item.status !== 'closed' ? () => openCapa(editing.item) : null}
-      onPrint={editing.field === 'evaluations' ? () => { if (!printReport(supplierEvaluationDocument(row, editing.item, { language, nextEvaluation: row?.nextEvaluation, months: row?.evaluationMonths, templates }))) blocked() } : null} />}
+      onPrint={editing.field === 'evaluations' ? () => { if (!printReport(supplierEvaluationDocument(row as AnyRecord, editing.item, { language, nextEvaluation: row?.nextEvaluation, months: row?.evaluationMonths, templates }) as ReportDoc)) blocked() } : null} />}
   </EntityRecordShell></Page>
 }
 
-function criteriaSummary(item, en) {
+function criteriaSummary(item: AnyRecord, en: boolean) {
   if (!isTemplateEvaluation(item)) { const given = CRITERIA.filter(criterion => Number(item.scores?.[criterion.key]) >= 1).length; return `${given} / ${CRITERIA.length}` }
   const given = (item.criteria || []).length
   if (item.criteriaScores === 'partial' || item.criteriaScores === 'not_recorded') return en ? 'Total only' : 'Μόνο σύνολο'
@@ -320,9 +323,9 @@ function criteriaSummary(item, en) {
 
 
 // The document's file: the one attached (opens on click) and «Choose a file» to add or replace it.
-function DocumentFileField({ item, set, files, onView, en }) {
-  const current = files.find(file => file.id === item.attachmentId) || null
-  const picker = useRef(null)
+function DocumentFileField({ item, set, files, onView, en }: { item: AnyRecord, set: (next: AnyRecord) => void, files: AnyRecord[], onView?: (file: AnyRecord) => void, en: boolean }) {
+  const current = files.find((file: AnyRecord) => file.id === item.attachmentId) || null
+  const picker = useRef<HTMLInputElement | null>(null)
   return <div className="resource-document-file"><span className="resource-document-file-label">{en ? 'File' : 'Αρχείο'}</span><div className="resource-document-file-row">
     {item.pendingFile ? <strong>{item.pendingFile.name}</strong> : current ? <button type="button" className="resource-file-link" onClick={() => onView?.(current)}>{current.name}</button> : <small>{en ? 'No file yet' : 'Χωρίς αρχείο'}</small>}
     <Button variant="secondary" onClick={() => picker.current?.click()}><FilePlus2 size={15} aria-hidden="true" />{current || item.pendingFile ? (en ? 'Replace the file' : 'Αλλαγή αρχείου') : (en ? 'Choose a file' : 'Επιλογή αρχείου')}</Button>
@@ -333,12 +336,28 @@ function DocumentFileField({ item, set, files, onView, en }) {
 // The supplier's equipment is not shown for now (equipment is hidden in the Quality Center); kept in the code.
 const SHOW_EQUIPMENT = false
 
-const TITLES = { evaluations: ['Αξιολόγηση προμηθευτή', 'Supplier evaluation'], certifications: ['Έγγραφο', 'Document'], nonconformities: ['Μη συμμόρφωση', 'Nonconformity'], contacts: ['Πρόσωπο επικοινωνίας', 'Contact person'] }
+const TITLES: Record<string, string[]> = { evaluations: ['Αξιολόγηση προμηθευτή', 'Supplier evaluation'], certifications: ['Έγγραφο', 'Document'], nonconformities: ['Μη συμμόρφωση', 'Nonconformity'], contacts: ['Πρόσωπο επικοινωνίας', 'Contact person'] }
 
-function ItemDialog({ editing, setEditing, language, saving, templates, category, files = [], onViewFile, onSave, exists = false, onRemove = null, onCapa = null, onPrint = null }) {
+interface ItemDialogProps {
+  editing: AnyRecord
+  setEditing: Dispatch<SetStateAction<AnyRecord | null>>
+  language: string
+  saving: boolean
+  templates: AnyRecord[]
+  category: string | null | undefined
+  files?: AnyRecord[]
+  onViewFile: (file: AnyRecord) => void
+  onSave: () => void | Promise<void>
+  exists?: boolean
+  onRemove?: (() => void | Promise<void>) | null
+  onCapa?: (() => void) | null
+  onPrint?: (() => void) | null
+}
+
+function ItemDialog({ editing, setEditing, language, saving, templates, category, files = [], onViewFile, onSave, exists = false, onRemove = null, onCapa = null, onPrint = null }: ItemDialogProps) {
   const en = language === 'en'
   const { field, item } = editing
-  const set = next => setEditing(current => ({ ...current, item: { ...current.item, ...next } }))
+  const set = (next: AnyRecord) => setEditing(current => ({ ...current, item: { ...current?.item, ...next } }))
   const ready = field === 'evaluations' ? Boolean(item.evaluatedOn) && (isTemplateEvaluation(item) ? (item.criteriaScores && item.criteriaScores !== 'complete') || everyCriterionScored(item) : CRITERIA.every(criterion => Number(item.scores?.[criterion.key]) >= 1))
     : field === 'certifications' ? Boolean(String(item.type || '').trim())
     : field === 'contacts' ? Boolean(String(item.fullName || '').trim())
@@ -384,13 +403,13 @@ function ItemDialog({ editing, setEditing, language, saving, templates, category
   </ObserverDialog>
 }
 
-const scoreOptions = (scale, en) => (Number(scale) === 10
+const scoreOptions = (scale: unknown, en: boolean) => (Number(scale) === 10
   ? Array.from({ length: 11 }, (_, value) => ({ value, label: String(value) }))
   : SCORE_STEPS.map(step => ({ value: step.value, label: `${step.value} · ${step.label[en ? 1 : 0]}` })))
 
 // An evaluation on a template: the template (one select when several apply), the
 // criteria scored with the house select, the weighted result as it is worked out.
-function TemplateEvaluationForm({ item, set, templates, category, language }) {
+function TemplateEvaluationForm({ item, set, templates, category, language }: { item: AnyRecord, set: (next: AnyRecord) => void, templates: AnyRecord[], category: string | null | undefined, language: string }) {
   const en = language === 'en'
   const recorded = !item.criteriaScores || item.criteriaScores === 'complete'
   // Kitchen: its own template, chosen for the supplier. Others: the evaluator picks among the non-kitchen templates.
@@ -399,20 +418,20 @@ function TemplateEvaluationForm({ item, set, templates, category, language }) {
   const known = options.some(template => template.id === item.templateId)
   const score = recorded ? weightedScore(item.criteria, item.scoreScale) : item.totalScore
   const result = resultFor(score, item.passThreshold, item.conditionalThreshold)
-  const scored = (item.criteria || []).filter(criterion => criterion.score !== '' && criterion.score != null).length
+  const scored = (item.criteria || []).filter((criterion: AnyRecord) => criterion.score !== '' && criterion.score != null).length
   return <div className="resource-evaluation">
     <FormGrid columns={3}>
       {recorded && !kitchen && options.length > 0
-        ? <ChoiceField label={en ? 'Evaluation template' : 'Πρότυπο αξιολόγησης'} value={known ? item.templateId : ''} placeholder={item.templateName} options={options.map(template => ({ value: template.id, label: template.name }))} onChange={value => { const template = templates.find(entry => entry.id === value); if (template) set(applyTemplate(item, template)) }} />
+        ? <ChoiceField label={en ? 'Evaluation template' : 'Πρότυπο αξιολόγησης'} value={known ? item.templateId : ''} placeholder={item.templateName} options={options.map(template => ({ value: template.id, label: template.name }))} onChange={value => { const template = templates.find((entry: AnyRecord) => entry.id === value); if (template) set(applyTemplate(item, template)) }} />
         : <Field label={kitchen ? (en ? 'Template (automatic for the kitchen)' : 'Πρότυπο (αυτόματα για την κουζίνα)') : (en ? 'Template' : 'Πρότυπο')}><input value={`${item.templateName || ''}${item.templateVersion ? ` · v${item.templateVersion}` : ''}`} disabled /></Field>}
       <ManualDateField label={en ? 'Date *' : 'Ημερομηνία *'} value={item.evaluatedOn} onChange={value => set({ evaluatedOn: value })} />
       <Field label={en ? 'Evaluated by' : 'Αξιολογητής'}><input value={item.evaluator || ''} onChange={e => set({ evaluator: e.target.value })} /></Field>
     </FormGrid>
     {!recorded && <p className="resource-import-note">{en ? 'Total score only.' : 'Μόνο συνολική βαθμολογία.'}</p>}
     {/* Each criterion with its question (the template's guidance) under it; an optional one counts only when scored. */}
-    <div className="resource-criteria">{(item.criteria || []).map((criterion, index) => <div key={criterion.criterionId || criterion.id || index} className="resource-criterion-item"><ChoiceField className="resource-criterion" disabled={!recorded}
+    <div className="resource-criteria">{(item.criteria || []).map((criterion: AnyRecord, index: number) => <div key={criterion.criterionId || criterion.id || index} className="resource-criterion-item"><ChoiceField className="resource-criterion" disabled={!recorded}
       label={`${index + 1}. ${criterion.label}${criterion.optional ? (en ? ' (optional)' : ' (προαιρετικό)') : ''} · ${en ? 'weight' : 'βάρος'} ${String(criterion.weight).replace('.', en ? '.' : ',')}`} value={criterion.score === '' || criterion.score == null ? '' : Number(criterion.score)} options={scoreOptions(item.scoreScale, en)}
-      onChange={value => set({ criteria: item.criteria.map((entry, at) => (at === index ? { ...entry, score: value } : entry)) })} />{criterion.description && <small className="resource-criterion-question">{criterion.description}</small>}</div>)}</div>
+      onChange={value => set({ criteria: item.criteria.map((entry: AnyRecord, at: number) => (at === index ? { ...entry, score: value } : entry)) })} />{criterion.description && <small className="resource-criterion-question">{criterion.description}</small>}</div>)}</div>
     <div className="resource-evaluation-score">
       <span>{en ? 'Weighted score' : 'Σταθμισμένη βαθμολογία'}</span><strong>{formatPercent(score, language)}</strong><StatusBadge tone={approvalTone(result)}>{approvalLabel(result, language)}</StatusBadge>
       <small>{recorded ? `${scored} / ${(item.criteria || []).length} ${en ? 'scored' : 'βαθμολογήθηκαν'} · ` : ''}{Number(item.conditionalThreshold) < Number(item.passThreshold) ? (en ? `approved ≥ ${item.passThreshold}%, conditional ≥ ${item.conditionalThreshold}%` : `εγκεκριμένος ≥ ${item.passThreshold}%, υπό όρους ≥ ${item.conditionalThreshold}%`) : (en ? `approved ≥ ${item.passThreshold}% (${Number(item.passThreshold) * Number(item.scoreScale || 5) / 100} / ${item.scoreScale || 5})` : `εγκεκριμένος ≥ ${item.passThreshold}% (${String(Number(item.passThreshold) * Number(item.scoreScale || 5) / 100).replace('.', ',')} / ${item.scoreScale || 5})`)}</small>
@@ -422,7 +441,7 @@ function TemplateEvaluationForm({ item, set, templates, category, language }) {
 }
 
 // An earlier evaluation on the six fixed criteria: it stays as it was made.
-function LegacyEvaluationForm({ item, set, language }) {
+function LegacyEvaluationForm({ item, set, language }: { item: AnyRecord, set: (next: AnyRecord) => void, language: string }) {
   const en = language === 'en'
   const score = evaluationPercent(item)
   const result = evaluationApproval(item)

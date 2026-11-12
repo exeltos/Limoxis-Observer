@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useEffect,useMemo,useState,type ReactNode } from 'react'
 import { Activity,CheckSquare2,ClipboardList,History,Plus,ShieldAlert } from 'lucide-react'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { DetailList } from '../../../design-system/DetailList'
@@ -13,19 +13,34 @@ import { loadRiskAssessments } from './riskService'
 import { consequenceLabel,jciLabel,levelLabel,likelihoodLabel,parseMeasures,riskEvidenceRows,riskLineage,riskWarnings,scored,sectionLabel,warningLabel } from './riskModel'
 import { L,LevelChip,recordActions,txt } from './riskUi'
 import { IndicatorChip } from './RiskIndicatorsUi'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const STAGES=[['inherent','Εγγενής','Inherent'],['residual','Υπολειπόμενος','Residual'],['target','Στόχος','Target']]
+const STAGES: string[][]=[['inherent','Εγγενής','Inherent'],['residual','Υπολειπόμενος','Residual'],['target','Στόχος','Target']]
 
 // One risk as a record: a summary line and its values (no form), what happened
 // in practice, the corrective actions opened from it and its course over the
 // periods. Editing opens the form from the record's «⋯».
-export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indicatorValues=null,onBack,onEdit,onDelete,onCreateCapa,onMove=null}){
+interface RiskRecordViewProps {
+ risk: AnyRecord
+ assessment: AnyRecord
+ organizationId: string|null|undefined
+ en: boolean
+ canEdit: boolean
+ indicatorValues?: Map<string,AnyRecord>|null
+ onBack: ()=>void
+ onEdit: ()=>void
+ onDelete?: (()=>void)|null
+ onCreateCapa?: ((risk: AnyRecord)=>void)|null
+ onMove?: ((key: string)=>void|Promise<void>)|null
+}
+
+export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indicatorValues=null,onBack,onEdit,onDelete,onCreateCapa,onMove=null}: RiskRecordViewProps){
  const language=en?'en':'el'
  const {t}=useLanguage()
  const {goTo}=useContextualNavigation('/quality')
  const [tab,setTab]=useState('details')
- const [practice,setPractice]=useState({incidents:[],findings:[],capas:[]})
- const [assessments,setAssessments]=useState([])
+ const [practice,setPractice]=useState<{incidents: AnyRecord[],findings: AnyRecord[],capas: AnyRecord[]}>({incidents:[],findings:[],capas:[]})
+ const [assessments,setAssessments]=useState<AnyRecord[]>([])
  useEffect(()=>{let active=true
   Promise.all(['incidents','findings','capas'].map(section=>loadQualityRecords(section,organizationId).catch(()=>[]))).then(([incidents,findings,capas])=>{if(active)setPractice({incidents,findings,capas})})
   loadRiskAssessments(organizationId).then(list=>{if(active)setAssessments(list)}).catch(()=>{if(active)setAssessments([])})
@@ -42,9 +57,9 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
  const keys=useMemo(()=>[...(assessment.risks||[])].sort((a,b)=>(a.position??0)-(b.position??0)).map(item=>item.lineageKey),[assessment.risks])
  const index=keys.indexOf(risk.lineageKey)
  const recordNavigation=onMove&&index>=0&&keys.length>1?{position:index+1,total:keys.length,hasPrevious:index>0,hasNext:index<keys.length-1,previous:()=>index>0&&onMove(keys[index-1]),next:()=>index<keys.length-1&&onMove(keys[index+1])}:null
- const measures=value=>{const list=parseMeasures(value);return list.length?<ol className="risk-view-measures">{list.map((item,index)=><li key={index}>{item}</li>)}</ol>:''}
- const axes=kind=>s[kind].score?`${s[kind].l} × ${s[kind].c} · ${likelihoodLabel(s[kind].l,en)} / ${consequenceLabel(s[kind].c,en)}`:''
- const open=(type,row)=>goTo(`/quality/${type}/${row.id}`,{returnTo:`/quality/risks/${assessment.code}/${risk.lineageKey}`})
+ const measures=(value: string)=>{const list=parseMeasures(value);return list.length?<ol className="risk-view-measures">{list.map((item,index)=><li key={index}>{item}</li>)}</ol>:''}
+ const axes=(kind: string)=>s[kind].score?`${s[kind].l} × ${s[kind].c} · ${likelihoodLabel(s[kind].l,en)} / ${consequenceLabel(s[kind].c,en)}`:''
+ const open=(type: string,row: AnyRecord)=>goTo(`/quality/${type}/${row.id}`,{returnTo:`/quality/risks/${assessment.code}/${risk.lineageKey}`})
  const tabs=[
   {id:'details',label:L(en,'Στοιχεία','Details'),icon:ShieldAlert},
   {id:'practice',label:L(en,`Στην πράξη (${evidence.incidents.length+evidence.findings.length})`,`In practice (${evidence.incidents.length+evidence.findings.length})`),icon:Activity},
@@ -52,7 +67,7 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
   {id:'history',label:L(en,'Ιστορικό','History'),icon:History},
  ]
  const line=<p className="quality-summary-line quality-record-line">
-  <span className={['high','very_high'].includes(s.residual.level)?'is-late':undefined}>{L(en,'Εγγενής','Inherent')} {s.inherent.score??'—'} → {L(en,'Υπολειπόμενος','Residual')} {s.residual.score??'—'}{s.target.score?` → ${L(en,'Στόχος','Target')} ${s.target.score}`:''}{s.residual.level?` · ${levelLabel(s.residual.level,en).toLowerCase()}`:''}</span>
+  <span className={['high','very_high'].includes(s.residual.level as string)?'is-late':undefined}>{L(en,'Εγγενής','Inherent')} {s.inherent.score??'—'} → {L(en,'Υπολειπόμενος','Residual')} {s.residual.score??'—'}{s.target.score?` → ${L(en,'Στόχος','Target')} ${s.target.score}`:''}{s.residual.level?` · ${levelLabel(s.residual.level,en).toLowerCase()}`:''}</span>
   {(evidence.incidents.length+evidence.findings.length)>0&&<span>{L(en,'12μ','12m')}: {[evidence.incidents.length&&L(en,`${evidence.incidents.length} συμβάντα`,`${evidence.incidents.length} incidents`),evidence.findings.length&&L(en,`${evidence.findings.length} ευρήματα`,`${evidence.findings.length} findings`)].filter(Boolean).join(' · ')}</span>}
   <span>{indicators.length?L(en,`δείκτες: ${indicators.length}`,`indicators: ${indicators.length}`):L(en,'χωρίς δείκτη','no indicator')}</span>
   {capas.length>0&&<span>{L(en,`${capas.length} διορθωτικές ενέργειες`,`${capas.length} corrective actions`)}</span>}
@@ -76,13 +91,13 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
     {label:L(en,'Υπεύθυνος υλοποίησης','Owner'),value:txt(risk,'owner',en)},
     {label:L(en,'Προθεσμία','Due date'),value:risk.dueDate?formatDay(risk.dueDate,language):''},
     {label:L(en,'Συχνότητα ελέγχου','Review frequency'),value:txt(risk,'reviewFrequency',en)},
-    {label:L(en,'Δείκτες','Indicators'),value:indicators.length?<span className="risk-view-indicators">{indicators.map(key=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en}/>)}</span>:'',wide:true},
+    {label:L(en,'Δείκτες','Indicators'),value:indicators.length?<span className="risk-view-indicators">{indicators.map((key: string)=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en}/>)}</span>:'',wide:true},
     {label:L(en,'Προληπτική ανάλυση (FMEA)','Proactive analysis (FMEA)'),value:risk.prioritized?L(en,'Ναι','Yes'):''},
     {label:L(en,'Σημειώσεις','Notes'),value:txt(risk,'notes',en),wide:true},
    ].filter(item=>item.value)},
   ]}/>
  </div>
- const list=(rows,type,empty)=>rows.length?<ul className="risk-view-list">{rows.map(row=><li key={row.id}><button type="button" onClick={()=>open(type,row)}>
+ const list=(rows: AnyRecord[],type: string,empty: string)=>rows.length?<ul className="risk-view-list">{rows.map((row: AnyRecord)=><li key={row.id}><button type="button" onClick={()=>open(type,row)}>
   <span><strong>{row.displayId||row.id}</strong> · {(en?row.titleEn:row.title)||row.title}</span>
   <small>{[formatDay(row.date,language),(en?row.departmentEn:row.department)||row.department].filter(Boolean).join(' · ')}</small>
  </button></li>)}</ul>:<p className="risk-view-none">{empty}</p>
@@ -92,7 +107,7 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
   {list(evidence.incidents,'incidents',L(en,'Κανένα συμβάν στα τμήματα του κινδύνου.','No incident in the risk\'s departments.'))}
   <h4 className="risk-view-heading">{L(en,`Ευρήματα επιθεωρήσεων JCI ${String(risk.jci||'').split('.')[0]} (${evidence.findings.length})`,`JCI ${String(risk.jci||'').split('.')[0]} audit findings (${evidence.findings.length})`)}</h4>
   {list(evidence.findings,'findings',risk.jci?L(en,'Κανένα εύρημα στο κεφάλαιο.','No finding in the chapter.'):L(en,'Ο κίνδυνος δεν έχει κεφάλαιο JCI.','The risk has no JCI chapter.'))}
-  {indicators.length>0&&<><h4 className="risk-view-heading">{L(en,`Δείκτες (${indicators.length})`,`Indicators (${indicators.length})`)}</h4><div className="risk-view-indicators">{indicators.map(key=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en}/>)}</div></>}
+  {indicators.length>0&&<><h4 className="risk-view-heading">{L(en,`Δείκτες (${indicators.length})`,`Indicators (${indicators.length})`)}</h4><div className="risk-view-indicators">{indicators.map((key: string)=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en}/>)}</div></>}
  </div>
  const actionsTab=<div className="record-section risk-view">
   <div className="record-section-header"><h3>{L(en,'Διορθωτικές ενέργειες','Corrective actions')}</h3>{onCreateCapa&&<Button variant="secondary" onClick={()=>onCreateCapa(risk)}><Plus size={15}/>{L(en,'Νέα διορθωτική ενέργεια','New corrective action')}</Button>}</div>
@@ -108,7 +123,7 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
    <tbody>{lineage.map(row=><tr key={row.code} className={row.code===assessment.code?'is-current':undefined}><th scope="row">{row.period}<small>{formatDay(row.assessedOn,language)}</small></th>{STAGES.map(([kind])=><td key={kind}><LevelChip score={row[kind].score} level={row[kind].level} en={en} compact/></td>)}</tr>)}</tbody></table>
    :<p className="risk-view-none">{L(en,'Ο κίνδυνος υπάρχει μόνο σε αυτή την περίοδο.','The risk exists in this period only.')}</p>}
  </div>
- const content={details,practice:practiceTab,actions:actionsTab,history:historyTab}
+ const content: Record<string,ReactNode>={details,practice:practiceTab,actions:actionsTab,history:historyTab}
  return <EntityRecordShell className="quality-record-shell risk-editor-shell workspace-fill" avatar={<ClipboardList size={19}/>}
   eyebrow={[risk.lineageKey,sectionLabel(risk.section||'clinical',en),assessment.periodLabel].filter(Boolean).join(' · ')}
   title={txt(risk,'hazard',en)} subtitle={[txt(risk,'process',en),txt(risk,'scope',en)].filter(Boolean).join(' · ')||undefined}

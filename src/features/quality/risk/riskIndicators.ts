@@ -3,15 +3,16 @@
 // and trend come from the same calculation the Indicators page uses.
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadOperationalIndicatorDefinitions } from '../../indicators/indicatorCloudService'
 import { hospitalDate } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const fold = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+const fold = (value: unknown) => String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 // Risk 2025 is a risk register, not an indicator generator. Only risks with a
 // meaningful, repeatable measure get suggestions here. In particular, the
 // generic source value "Δείκτης Συμβάντος" must NOT turn every incident risk
 // into a KPI; incident-specific indicators are added only when a reliable
 // numerator/denominator exists in the Indicators module.
-const RULES = [
+const RULES: [RegExp, string[]][] = [
   [/κεντρικ\S* (φλεβικ\S* )?(καθετηρ|γραμμ)|clabsi/, ['clabsi-per-1000-cvc-days', 'bundle-compliance', 'hh-compliance']],
   [/αναπνευστηρ|μηχανικ\S* αερισμ|(^|\W)vap(\W|$)/, ['vap-per-1000-ventilator-days', 'bundle-compliance', 'hh-compliance']],
   [/πολυανθεκτ|mdr|xdr|pdr|(^|\W)pam(\W|$)|kpc|(^|\W)cre(\W|$)/, ['mdro-bsi-rate', 'mdr-active-share', 'hh-compliance']],
@@ -28,11 +29,11 @@ const RULES = [
 
 // Indicators to propose for a risk, among those the organization has; the
 // ones already linked are left out.
-export function suggestIndicators(risk, available = [], limit = 3) {
+export function suggestIndicators(risk: AnyRecord, available: string[] = [], limit = 3) {
   const have = new Set(available)
   const linked = new Set(risk.indicatorKeys || [])
   const text = fold([risk.hazard, risk.process, risk.scope, risk.indicator].join(' '))
-  const out = []
+  const out: string[] = []
   for (const [pattern, keys] of RULES) {
     if (!pattern.test(text)) continue
     for (const key of keys) if (have.has(key) && !linked.has(key) && !out.includes(key)) out.push(key)
@@ -40,18 +41,18 @@ export function suggestIndicators(risk, available = [], limit = 3) {
   return out.slice(0, limit)
 }
 
-const iso = (date) => hospitalDate(date)
+const iso = (date: Date) => hospitalDate(date)
 
 // Current value (last 90 days) and the 90 days before, per indicator key.
-export async function loadIndicatorValues(organizationId, now = new Date()) {
+export async function loadIndicatorValues(organizationId: string | null | undefined, now = new Date()) {
   const day = 86400000
-  const to = iso(now), from = iso(new Date(now - 90 * day)), prevTo = iso(new Date(now - 91 * day)), prevFrom = iso(new Date(now - 181 * day))
+  const to = iso(now), from = iso(new Date(now.getTime() - 90 * day)), prevTo = iso(new Date(now.getTime() - 91 * day)), prevFrom = iso(new Date(now.getTime() - 181 * day))
   const [definitions, current, previous] = await Promise.all([
     loadOperationalIndicatorDefinitions(organizationId, { from, to }),
     collectCloudIndicatorMetrics(organizationId, { from, to }),
     collectCloudIndicatorMetrics(organizationId, { from: prevFrom, to: prevTo }),
   ])
-  const values = new Map()
+  const values = new Map<string, AnyRecord>()
   for (const def of definitions) {
     const now90 = calculateCloudDefinition(def, current), before = calculateCloudDefinition(def, previous)
     values.set(def.id, { key: def.id, titleEl: def.titleEl, titleEn: def.titleEn || def.titleEl, category: def.category, unit: def.unit, unitEn: def.unitEn, target: def.target, direction: def.direction, value: now90.value, previous: before.value, status: now90.status, trend: indicatorTrend(now90.value, before.value, def.direction) })
@@ -60,7 +61,7 @@ export async function loadIndicatorValues(organizationId, now = new Date()) {
 }
 
 // better / worse / steady, read with the indicator's direction.
-export function indicatorTrend(value, previous, direction) {
+export function indicatorTrend(value: number | null | undefined, previous: number | null | undefined, direction: string | null | undefined) {
   if (value == null || previous == null || value === previous) return 'steady'
   if (direction !== 'higher' && direction !== 'lower') return 'steady'
   const up = value > previous

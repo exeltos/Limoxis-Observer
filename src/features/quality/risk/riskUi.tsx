@@ -1,6 +1,6 @@
 // Shared pieces of the risk assessment screens: level chips, the 5×5 heat map,
 // the L/C pickers and the legend. Colours are the NHS bands (see riskAssessment.css).
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTableSort } from '../../../design-system/useTableSort'
 import { Pencil,Trash2 } from 'lucide-react'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
@@ -11,18 +11,19 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { readSessionValue,writeSessionValue } from '../../../core/storage/browserStorage'
 import { CONSEQUENCE,LEVELS,LIKELIHOOD,levelForScore,levelLabel } from './riskModel'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // The row last opened in a list, kept for the session, so it is highlighted
 // on the way back (the registries' registry-row-returned).
-export const rememberRow=(key,id)=>writeSessionValue(key,String(id))
-export function useReturnedRow(key){
+export const rememberRow=(key: string,id: string)=>writeSessionValue(key,String(id))
+export function useReturnedRow(key: string){
  const [returned,setReturned]=useState(()=>readSessionValue(key,'')||'')
- return {returned,remember:id=>{rememberRow(key,id);setReturned(String(id))}}
+ return {returned,remember:(id: string)=>{rememberRow(key,id);setReturned(String(id))}}
 }
 // Pages of a table with the registries' pager. A new filter (resetOn) goes back
 // to page 1; on the way back from a record the page holding it is shown.
 // sortBy (column key → value reader) gives the table's arrows: the whole list is sorted, then the page is cut.
-export function usePaged(list,{en=false,resetOn='',startIndex=-1,sortBy=null}={}){
+export function usePaged(list: AnyRecord[],{en=false,resetOn='',startIndex=-1,sortBy=null}: {en?: boolean,resetOn?: string,startIndex?: number,sortBy?: Record<string,(row: AnyRecord)=>unknown>|null}={}){
  const {sorted,sort,onSort}=useTableSort(list,sortBy||{})
  const [pageSize,setPageSize]=useState(15)
  const [page,setPage]=useState(()=>startIndex>=0?Math.floor(startIndex/15)+1:1)
@@ -36,15 +37,16 @@ export function usePaged(list,{en=false,resetOn='',startIndex=-1,sortBy=null}={}
 }
 // A tab outside the assessment page (tests, a standalone use) renders its KPIs
 // and content one after the other.
-export const defaultFrame=(kpis,content,{name=''}={})=><>{kpis}{name?<div className={name}>{content}</div>:content}</>
+export type RiskFrame=(kpis: ReactNode,content: ReactNode,options?: {registry?: boolean,name?: string})=>ReactNode
+export const defaultFrame=(kpis: ReactNode,content: ReactNode,{name=''}: {name?: string}={})=><>{kpis}{name?<div className={name}>{content}</div>:content}</>
 // The class that marks the row last opened.
-export const returnedClass=(returned,id)=>returned&&String(id)===returned?' registry-row-returned':''
+export const returnedClass=(returned: string,id: string)=>returned&&String(id)===returned?' registry-row-returned':''
 
 // Demo records carry English wording in `<field>En`; user records have one language.
-export const txt=(item,field,en)=>(en&&item?.[`${field}En`])||item?.[field]||''
-export const L=(en,el,enText)=>en?enText:el
+export const txt=(item: AnyRecord,field: string,en: boolean)=>(en&&item?.[`${field}En`])||item?.[field]||''
+export const L=(en: boolean,el: string,enText: string)=>en?enText:el
 
-export function LevelChip({score,level,en,compact=false,title}){
+export function LevelChip({score,level,en,compact=false,title}: {score?: number|null,level?: string|null,en: boolean,compact?: boolean,title?: string}){
  const id=level||levelForScore(score)
  if(!score||!id)return <span className="risk-level risk-level-none">—</span>
  return <span className={`risk-level risk-level-${id}`} title={title||`${score} · ${levelLabel(id,en)}`}><strong>{score}</strong>{!compact&&<span>{levelLabel(id,en)}</span>}</span>
@@ -52,8 +54,8 @@ export function LevelChip({score,level,en,compact=false,title}){
 
 // Rows: consequence 5 (top) to 1; columns: likelihood 1 to 5. A cell shows how
 // many risks sit there; its colour is the band of L×C.
-export function RiskHeatMap({heat,en,title,caption,onCell,active,emptyNote=''}){
- const empty=!(heat||[]).some(row=>row.some(Boolean))
+export function RiskHeatMap({heat,en,title,caption,onCell,active,emptyNote=''}: {heat?: number[][],en: boolean,title?: string,caption?: string,onCell?: ((cell: {l: number,c: number})=>void)|null,active?: {l: number,c: number}|null,emptyNote?: string}){
+ const empty=!(heat||[]).some((row: AnyRecord)=>row.some(Boolean))
  return <figure className={`risk-heatmap${empty&&emptyNote?' is-empty':''}`}>
   {title&&<figcaption><strong>{title}</strong>{caption&&<span>{caption}</span>}</figcaption>}
   <div className="risk-heatmap-body">
@@ -69,25 +71,25 @@ export function RiskHeatMap({heat,en,title,caption,onCell,active,emptyNote=''}){
  </figure>
 }
 
-export function LevelLegend({en,showResponse=false}){
+export function LevelLegend({en,showResponse=false}: {en: boolean,showResponse?: boolean}){
  return <ul className={`risk-legend${showResponse?' risk-legend-full':''}`}>{LEVELS.map(x=><li key={x.id}><span className={`risk-swatch risk-cell-${x.id}`}/><strong>{en?x.en:x.el}</strong><small>{x.range}</small>{showResponse&&<em>{en?x.responseEn:x.responseEl}</em>}</li>)}</ul>
 }
 
 // L or C of a stage: one value of the 1–5 scale, typed or picked; «×» clears it.
-export function AxisSelect({label,value,onChange,scale,en,disabled=false}){
- return <SearchableSelect className="risk-axis-select" label={label} value={value??''} disabled={disabled} placeholder="—" clearLabel={disabled?'':L(en,'Καθαρισμός','Clear')} emptyLabel={L(en,'Καμία τιμή','No value')} onChange={v=>onChange(v===''||v==null?null:Number(v))} options={scale.map(x=>({value:x.value,label:`${x.value} · ${en?x.en:x.el}`}))}/>
+export function AxisSelect({label,value,onChange,scale,en,disabled=false}: {label: string,value: number|null|undefined,onChange: (value: number|null)=>void,scale: AnyRecord[],en: boolean,disabled?: boolean}){
+ return <SearchableSelect className="risk-axis-select" label={label} value={value??''} disabled={disabled} placeholder="—" clearLabel={disabled?'':L(en,'Καθαρισμός','Clear')} emptyLabel={L(en,'Καμία τιμή','No value')} onChange={v=>onChange(v===''||v==null?null:Number(v))} options={scale.map((x: AnyRecord)=>({value:x.value,label:`${x.value} · ${en?x.en:x.el}`}))}/>
 }
 
-export const STATUS_LABELS={draft:['Πρόχειρο','Draft'],under_review:['Σε έλεγχο','Under review'],approved:['Εγκεκριμένη','Approved'],archived:['Αρχειοθετημένη','Archived']}
-export const statusLabel=(id,en)=>STATUS_LABELS[id]?.[en?1:0]||id
-export const statusTone=id=>id==='approved'?'success':id==='under_review'?'warning':'neutral'
-export function AssessmentStatusBadge({status,en}){return <StatusBadge tone={statusTone(status)}>{statusLabel(status,en)}</StatusBadge>}
-export const PERIOD_KINDS={annual:['Ετήσια','Annual'],semester:['Εξαμηνιαία','Six-monthly'],quarter:['Τριμηνιαία','Quarterly'],other:['Άλλη','Other']}
-export const fmtDate=(value,locale)=>formatDay(value,String(locale||'').startsWith('en')?'en':'el')
+export const STATUS_LABELS: Record<string,string[]>={draft:['Πρόχειρο','Draft'],under_review:['Σε έλεγχο','Under review'],approved:['Εγκεκριμένη','Approved'],archived:['Αρχειοθετημένη','Archived']}
+export const statusLabel=(id: string,en: boolean)=>STATUS_LABELS[id]?.[en?1:0]||id
+export const statusTone=(id: string)=>id==='approved'?'success':id==='under_review'?'warning':'neutral'
+export function AssessmentStatusBadge({status,en}: {status: string,en: boolean}){return <StatusBadge tone={statusTone(status)}>{statusLabel(status,en)}</StatusBadge>}
+export const PERIOD_KINDS: Record<string,string[]>={annual:['Ετήσια','Annual'],semester:['Εξαμηνιαία','Six-monthly'],quarter:['Τριμηνιαία','Quarterly'],other:['Άλλη','Other']}
+export const fmtDate=(value: unknown,locale: string)=>formatDay(value,String(locale||'').startsWith('en')?'en':'el')
 
 // Edit and delete of a risk or an opportunity: the record shell lists them in
 // its "…" menu. The page opens read-only; «Επεξεργασία» unlocks the fields.
-export function recordActions({en,canEdit,editing,isNew,onEdit,onDelete}){
+export function recordActions({en,canEdit,editing,isNew,onEdit,onDelete}: AnyRecord){
  if(!canEdit||editing||isNew)return null
  return <>
   <ActionButton label={L(en,'Επεξεργασία','Edit')} tone="edit" onClick={onEdit}><Pencil size={16}/><span>{L(en,'Επεξεργασία','Edit')}</span></ActionButton>
@@ -95,6 +97,6 @@ export function recordActions({en,canEdit,editing,isNew,onEdit,onDelete}){
  </>
 }
 
-export function DeleteConfirm({en,title,text,onClose,onConfirm}){
+export function DeleteConfirm({en,title,text,onClose,onConfirm}: {en: boolean,title: string,text: ReactNode,onClose: ()=>void,onConfirm: ()=>void|Promise<void>}){
  return <ObserverDialog width="compact" title={title} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={onConfirm} saveLabel={L(en,'Διαγραφή','Delete')}/>}><p>{text}</p></ObserverDialog>
 }

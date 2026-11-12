@@ -7,9 +7,10 @@ import { EFFECTIVENESS,OPPORTUNITY_RATINGS,normalizeOpportunity,ratingLabel } fr
 import { L,recordActions } from './riskUi'
 import { MeasureList,Step } from './RiskEditor'
 import { RatingBadge } from './RiskOpportunities'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // One opportunity of an assessment, on its own page.
-export function OpportunityEditor({item,code,en,readOnly=false,saving=false,assessmentLabel='',onClose,onSave,onDelete=null}){
+export function OpportunityEditor({item,code,en,readOnly=false,saving=false,assessmentLabel='',onClose,onSave,onDelete=null}: {item: AnyRecord,code: string,en: boolean,readOnly?: boolean,saving?: boolean,assessmentLabel?: string,onClose: ()=>void,onSave: (draft: AnyRecord)=>void|Promise<void>,onDelete?: (()=>void)|null}){
  const [draft,setDraft]=useState(()=>normalizeOpportunity(item))
  const isNew=!item?.id
  const [editing,setEditing]=useState(isNew&&!readOnly)
@@ -17,13 +18,13 @@ export function OpportunityEditor({item,code,en,readOnly=false,saving=false,asse
  // Cancel remounts the fields, so lists with their own state (the measures) drop the edits too.
  const [version,setVersion]=useState(0)
  const cancel=()=>{if(isNew){onClose();return};setDraft(normalizeOpportunity(item));setEditing(false);setVersion(v=>v+1)}
- const set=(key,value)=>setDraft(current=>({...current,[key]:value}))
- const field=(key,label,props={})=><label className="risk-field"><span>{label}</span><input value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)} {...props}/></label>
- const area=(key,label,rows=2,hint='')=><label className="risk-field risk-field-wide"><span>{label}{hint&&<small>{hint}</small>}</span><textarea rows={rows} value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)}/></label>
+ const set=(key: string,value: unknown)=>setDraft(current=>({...current,[key]:value}))
+ const field=(key: string,label: string,props: AnyRecord={})=><label className="risk-field"><span>{label}</span><input value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)} {...props}/></label>
+ const area=(key: string,label: string,rows=2,hint='')=><label className="risk-field risk-field-wide"><span>{label}{hint&&<small>{hint}</small>}</span><textarea rows={rows} value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)}/></label>
  const short=String(draft.activity||'').trim()
  const title=short?(short.length>90?`${short.slice(0,88)}…`:short):L(en,'Νέα ευκαιρία','New opportunity')
  // A fixed choice; a second click on the chosen answer clears it.
- const choice=(list,key,label)=><fieldset className="risk-fieldset risk-field-wide" disabled={locked}><ChoiceField label={label} value={draft[key]||''} onChange={v=>set(key,draft[key]===v?'':v)} options={list.map(x=>({value:x.id,label:en?x.en:x.el}))}/></fieldset>
+ const choice=(list: AnyRecord[],key: string,label: string)=><fieldset className="risk-fieldset risk-field-wide" disabled={locked}><ChoiceField label={label} value={draft[key]||''} onChange={v=>set(key,draft[key]===v?'':v)} options={list.map((x: AnyRecord)=>({value:x.id,label:en?x.en:x.el}))}/></fieldset>
  return <EntityRecordShell className="quality-record-shell risk-editor-shell workspace-fill" avatar={<Lightbulb size={19}/>}
   eyebrow={[code||L(en,'Νέα ευκαιρία','New opportunity'),L(en,'Ευκαιρία','Opportunity'),assessmentLabel].filter(Boolean).join(' · ')}
   title={title} subtitle={draft.opportunity?String(draft.opportunity).slice(0,140):undefined}
@@ -37,7 +38,7 @@ export function OpportunityEditor({item,code,en,readOnly=false,saving=false,asse
     {choice(OPPORTUNITY_RATINGS,'ratingId',L(en,'Απόδοση','Yield'))}
    </Step>
    <Step n={2} title={L(en,'Σχέδιο δράσης','Action plan')}>
-    <MeasureList title={L(en,'Πρόσθετα μέτρα αξιοποίησης','Measures to seize it')} hint={L(en,'ένα μέτρο ανά γραμμή','one measure per line')} value={draft.actionPlan} onChange={v=>set('actionPlan',v)} en={en} disabled={locked}/>
+    <MeasureList title={L(en,'Πρόσθετα μέτρα αξιοποίησης','Measures to seize it')} hint={L(en,'ένα μέτρο ανά γραμμή','one measure per line')} value={draft.actionPlan} onChange={(v: string)=>set('actionPlan',v)} en={en} disabled={locked}/>
     <div className="risk-editor-grid risk-editor-grid-description">
      <div className="risk-span-3">{field('owner',L(en,'Υπεύθυνος υλοποίησης','Owner'))}</div>
      <div className="risk-span-3">{field('timeframe',L(en,'Χρόνος υλοποίησης','Timeframe'),{placeholder:L(en,'π.χ. Ετησίως, 30/11/2026','e.g. Yearly, 30/11/2026')})}</div>

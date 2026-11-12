@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AlertOctagon, CalendarClock, CheckSquare2, ClipboardList, History, Plus, Stethoscope, Trash2, Wrench } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
@@ -32,8 +32,9 @@ import '../quality.css'
 import './resources.css'
 import { LinkedActions } from '../LinkedActions'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
+const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
 export function EquipmentRecordPage() {
   const { equipmentId } = useParams()
@@ -47,10 +48,10 @@ export function EquipmentRecordPage() {
   const access = useResourceAccess()
   const list = useResources()
   const { libraries } = useLibraries()
-  const [draft, setDraft] = useState(null)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [tab, setTab] = useState(isNew ? 'details' : 'programme')
   const [saving, setSaving] = useState(false)
-  const [event, setEvent] = useState(null)
+  const [event, setEvent] = useState<AnyRecord | null>(null)
 
   const row = useMemo(() => (isNew ? null : list.equipment.find(item => item.id === equipmentId || item.code === equipmentId) || null), [isNew, list.equipment, equipmentId])
   // Opened by its code (from a corrective action): continue at its own address.
@@ -64,11 +65,12 @@ export function EquipmentRecordPage() {
 
   const locked = !access.canManage
   const canRecord = access.canManage || (row?.departmentId && access.ownDepartments.includes(row.departmentId))
-  const set = next => setDraft(current => ({ ...current, ...next }))
+  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
   const typeOptions = libraryOptions(libraries.equipment || [], language)
   const supplierOptions = list.suppliers.filter(item => item.status !== 'inactive' || item.id === draft.supplierId).map(item => ({ value: item.id, label: item.name, description: item.code, keywords: `${item.code} ${item.name}` }))
 
   async function save() {
+    if (!draft) return
     const problems = equipmentProblems(draft, language)
     if (problems.length) { notify(`${en ? 'Fill in:' : 'Συμπληρώστε:'} ${problems.join(' · ')}`, 'error'); return }
     setSaving(true)
@@ -82,15 +84,15 @@ export function EquipmentRecordPage() {
   }
   async function remove() {
     const ok = await confirm({ title: en ? 'Delete device' : 'Διαγραφή εξοπλισμού', message: en ? `The device and its ${events.length} events are deleted. A device no longer used is better marked «Retired».` : `Διαγράφονται ο εξοπλισμός και τα ${events.length} συμβάντα του. Για εξοπλισμό που δεν χρησιμοποιείται πια, προτιμήστε «Αποσύρθηκε».`, confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
-    if (!ok) return
+    if (!ok || !row) return
     try { await removeEquipment(tenant?.id, row.id); notify(en ? 'Device deleted.' : 'Ο εξοπλισμός διαγράφηκε.', 'success'); goBack() } catch (error) { console.error(error); notify(en ? 'The device could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή.', 'error') }
   }
-  async function dropEvent(item) {
+  async function dropEvent(item: AnyRecord) {
     const ok = await confirm({ title: en ? 'Delete event' : 'Διαγραφή συμβάντος', message: en ? 'Only for an event recorded by mistake.' : 'Μόνο για συμβάν που καταχωρίστηκε κατά λάθος.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
     if (!ok) return
     try { await removeEvent(tenant?.id, item.id); await list.reload() } catch (error) { console.error(error); notify(en ? 'The event could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή.', 'error') }
   }
-  const openCapa = item => navigate('/quality/capas/new', { state: { qualitySource: { ...equipmentCapaSource(row, item, language), department: row.department, departmentEn: row.departmentEn } } })
+  const openCapa = (item: AnyRecord) => row && navigate('/quality/capas/new', { state: { qualitySource: { ...equipmentCapaSource(row, item, language), department: row.department, departmentEn: row.departmentEn } } })
 
   const tabs = isNew ? [{ id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: ClipboardList }] : [
     { id: 'programme', label: en ? 'Programme' : 'Πρόγραμμα', icon: CalendarClock },
@@ -99,15 +101,15 @@ export function EquipmentRecordPage() {
   ]
   const headerActions = !isNew && <div className="row-actions">
     {/* One «Record» menu (check, failure or repair); the corrective action sits in the out-of-service notice below. */}
-    {canRecord && row.state !== 'retired' && <OverflowMenu utility label={en ? 'Record' : 'Καταγραφή'} width={240} triggerTone="primary" trigger={<><Plus size={16} aria-hidden="true" />{en ? 'Record' : 'Καταγραφή'}</>} items={[
+    {canRecord && row?.state !== 'retired' && <OverflowMenu utility label={en ? 'Record' : 'Καταγραφή'} width={240} triggerTone="primary" trigger={<><Plus size={16} aria-hidden="true" />{en ? 'Record' : 'Καταγραφή'}</>} items={[
       { id: 'maintenance', label: en ? 'Record a check' : 'Καταγραφή ελέγχου', icon: Wrench, onClick: () => setEvent(newEvent('maintenance')) },
-      row.state === 'in_service' && { id: 'failure', label: en ? 'Report a failure' : 'Δήλωση βλάβης', icon: AlertOctagon, onClick: () => setEvent(newEvent('failure')) },
-      row.state === 'out_of_service' && { id: 'repair', label: en ? 'Record the repair' : 'Καταγραφή επισκευής', icon: Wrench, onClick: () => setEvent(newEvent('repair')) },
+      row?.state === 'in_service' && { id: 'failure', label: en ? 'Report a failure' : 'Δήλωση βλάβης', icon: AlertOctagon, onClick: () => setEvent(newEvent('failure')) },
+      row?.state === 'out_of_service' && { id: 'repair', label: en ? 'Record the repair' : 'Καταγραφή επισκευής', icon: Wrench, onClick: () => setEvent(newEvent('repair')) },
     ].filter(Boolean)} />}
     {access.canManage && <IconButton tone="danger" label={en ? 'Delete device' : 'Διαγραφή εξοπλισμού'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
   const footer = !locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Register device' : 'Καταχώριση εξοπλισμού') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>
-  const exportHistory = () => exportRegistry({ name: `${row.code}-${en ? 'history' : 'istoriko'}`, headers: en ? ['Date', 'Event', 'Result', 'By', 'Description', 'Certificate'] : ['Ημερομηνία', 'Συμβάν', 'Αποτέλεσμα', 'Από', 'Περιγραφή', 'Πιστοποιητικό'], rows: events.map(item => [item.happenedOn, eventKindLabel(item.kind, language), eventResultLabel(item, language), item.performedBy, item.description, item.certificate]) })
+  const exportHistory = () => exportRegistry({ name: `${row?.code}-${en ? 'history' : 'istoriko'}`, headers: en ? ['Date', 'Event', 'Result', 'By', 'Description', 'Certificate'] : ['Ημερομηνία', 'Συμβάν', 'Αποτέλεσμα', 'Από', 'Περιγραφή', 'Πιστοποιητικό'], rows: events.map(item => [item.happenedOn, eventKindLabel(item.kind, language), eventResultLabel(item, language), item.performedBy, item.description, item.certificate]) })
 
   return <Page fill><EntityRecordShell className="quality-record-shell resource-record-shell workspace-fill" avatar={<Stethoscope size={19} />} eyebrow={row?.code || (en ? 'New device' : 'Νέος εξοπλισμός')} title={draft.name || (en ? 'New device' : 'Νέος εξοπλισμός')}
     subtitle={row ? [(en ? row.departmentEn : row.department), row.location, [row.manufacturer, row.model].filter(Boolean).join(' '), row.serialNumber && `S/N ${row.serialNumber}`].filter(Boolean).join(' · ') : ''}
@@ -117,8 +119,8 @@ export function EquipmentRecordPage() {
       <div className="resource-pad">
       {row.state === 'out_of_service' && <div className="resource-alert"><AlertOctagon size={16} /><span><strong>{en ? 'Out of service' : 'Εκτός λειτουργίας'} {en ? 'since' : 'από'} {formatDay(row.downSince, language)}</strong>{row.downEvent?.description && ` · ${row.downEvent.description}`}</span><span className="resource-alert-actions">{canRecord && <Button onClick={() => setEvent(newEvent('repair'))}><Wrench size={15} />{en ? 'Record the repair' : 'Καταγραφή επισκευής'}</Button>}{access.canManage && <Button variant="secondary" onClick={() => openCapa(row.downEvent)}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}</span></div>}
       <div className="resource-programme">
-        {row.programme.map(item => { const step = PROGRAMME.find(entry => entry.kind === item.kind); return <section key={item.kind} className={`resource-programme-card is-${item.state}`}>
-          <header><strong>{step.label[en ? 1 : 0]}</strong><StatusBadge tone={dueStateTone(item.state)}>{dueStateLabel(item.state, language)}</StatusBadge></header>
+        {row.programme.map((item: AnyRecord) => { const step = PROGRAMME.find(entry => entry.kind === item.kind); return <section key={item.kind} className={`resource-programme-card is-${item.state}`}>
+          <header><strong>{step?.label[en ? 1 : 0]}</strong><StatusBadge tone={dueStateTone(item.state)}>{dueStateLabel(item.state, language)}</StatusBadge></header>
           {item.state === 'none' ? <p>{en ? 'Not part of this device’s programme.' : 'Δεν προβλέπεται για αυτόν τον εξοπλισμό.'}</p> : <dl>
             <div><dt>{en ? 'Every' : 'Κάθε'}</dt><dd>{item.months} {en ? 'months' : 'μήνες'}</dd></div>
             <div><dt>{en ? 'Last' : 'Τελευταία'}</dt><dd>{item.last ? formatDay(item.last.happenedOn, language) : en ? 'never recorded' : 'δεν έχει καταγραφεί'}</dd></div>
@@ -154,7 +156,7 @@ export function EquipmentRecordPage() {
           <FormGrid columns={3}>
             <Field label={en ? 'Name *' : 'Ονομασία *'}><input value={draft.name} disabled={locked} onChange={e => set({ name: e.target.value })} placeholder={en ? 'e.g. Defibrillator' : 'π.χ. Απινιδωτής'} /></Field>
             <SearchableSelect label={en ? 'Type' : 'Τύπος'} value={draft.equipmentType} options={typeOptions} disabled={locked} allowCustom onChange={value => set({ equipmentType: value || '', name: draft.name || value || '' })} placeholder={en ? 'From the equipment library' : 'Από τη βιβλιοθήκη εξοπλισμού'} {...selectText(en)} />
-            {locked ? <Field label={en ? 'Department' : 'Τμήμα'}><input value={(en ? row?.departmentEn : row?.department) || ''} disabled /></Field> : <QualityDepartmentField value={draft.departmentId} onChange={next => set({ departmentId: next.departmentId })} />}
+            {locked ? <Field label={en ? 'Department' : 'Τμήμα'}><input value={(en ? row?.departmentEn : row?.department) || ''} disabled /></Field> : <QualityDepartmentField label={undefined} value={draft.departmentId} onChange={(next: AnyRecord) => set({ departmentId: next.departmentId })} />}
             <Field label={en ? 'Location' : 'Θέση'}><input value={draft.location} disabled={locked} onChange={e => set({ location: e.target.value })} placeholder={en ? 'e.g. Nurses station' : 'π.χ. Σταθμός νοσηλευτών'} /></Field>
             <Field label={en ? 'Manufacturer' : 'Κατασκευαστής'}><input value={draft.manufacturer} disabled={locked} onChange={e => set({ manufacturer: e.target.value })} /></Field>
             <Field label={en ? 'Model' : 'Μοντέλο'}><input value={draft.model} disabled={locked} onChange={e => set({ model: e.target.value })} /></Field>
@@ -179,7 +181,7 @@ export function EquipmentRecordPage() {
         </FormCard>
       </div>
     </RecordTabPanel>}
-    {event && <EventDialog event={event} setEvent={setEvent} device={row} language={language} onSave={async () => {
+    {event && row && <EventDialog event={event} setEvent={setEvent} device={row} language={language} onSave={async () => {
       const problems = eventProblems(event, language)
       if (problems.length) { notify(`${en ? 'Fill in:' : 'Συμπληρώστε:'} ${problems.join(' · ')}`, 'error'); return }
       try {
@@ -193,10 +195,10 @@ export function EquipmentRecordPage() {
 }
 
 // One event of a device: a check of its programme, a failure, a repair.
-function EventDialog({ event, setEvent, device, language, onSave }) {
+function EventDialog({ event, setEvent, device, language, onSave }: { event: AnyRecord, setEvent: Dispatch<SetStateAction<AnyRecord | null>>, device: AnyRecord, language: string, onSave: () => Promise<void> }) {
   const en = language === 'en'
   const [busy, setBusy] = useState(false)
-  const set = next => setEvent(current => ({ ...current, ...next }))
+  const set = (next: AnyRecord) => setEvent(current => ({ ...current, ...next }))
   const kinds = EVENT_KINDS.filter(item => item.value !== 'repair' || device.state === 'out_of_service' || event.kind === 'repair')
   return <ObserverDialog title={en ? 'Record an event' : 'Καταγραφή συμβάντος'} subtitle={`${device.code} · ${device.name}`} onClose={() => setEvent(null)}
     footer={<DialogActions onCancel={() => setEvent(null)} onSave={async () => { setBusy(true); try { await onSave() } finally { setBusy(false) } }} saveLabel={en ? 'Record' : 'Καταγραφή'} disabled={busy} />}>

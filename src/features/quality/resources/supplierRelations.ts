@@ -1,6 +1,7 @@
 import { CRITERIA } from './resourceModel'
 import { isTemplateEvaluation, weightedScore, resultFor } from './supplierTemplates'
 import { rowId } from '../qualityRelations'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // A supplier's certifications, evaluations (one score row per criterion), contact
 // persons and nonconformities are rows of their own (20261116100000_quality_relational.sql,
@@ -16,24 +17,24 @@ export const NONCONFORMITY_FIELDS = ['occurred_on', 'description', 'severity', '
 export const CONTACT_FIELDS = ['position', 'full_name', 'job_title', 'phone', 'email', 'notes']
 export const CRITERION_FIELDS = ['position', 'label', 'description', 'weight', 'optional']
 
-const text = value => { const kept = String(value ?? '').trim(); return kept || null }
-const byText = field => (a, b) => String(a[field] || '').localeCompare(String(b[field] || ''))
-const byPosition = (a, b) => (Number(a.position) || 0) - (Number(b.position) || 0)
-const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
-const numberOrNull = value => (value === '' || value == null || Number.isNaN(Number(value)) ? null : Number(value))
+const text = (value: unknown) => { const kept = String(value ?? '').trim(); return kept || null }
+const byText = (field: string) => (a: AnyRecord, b: AnyRecord) => String(a[field] || '').localeCompare(String(b[field] || ''))
+const byPosition = (a: AnyRecord, b: AnyRecord) => (Number(a.position) || 0) - (Number(b.position) || 0)
+const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
+const numberOrNull = (value: unknown) => (value === '' || value == null || Number.isNaN(Number(value)) ? null : Number(value))
 
-export const certificationFromRow = row => ({ id: row.id, type: row.certificate_type || '', title: row.title || '', kind: row.document_kind || 'certificate', number: row.certificate_number || '', issuer: row.issuer || '', expiresOn: row.expires_on || '', attachmentId: row.attachment_id || '' })
-export const nonconformityFromRow = row => ({ id: row.id, date: row.occurred_on || '', description: row.description || '', severity: row.severity || 'minor', status: row.status || 'open', capaCode: row.capa_code || '', closedOn: row.closed_on || '' })
-export const contactFromRow = row => ({ id: row.id, fullName: row.full_name || '', jobTitle: row.job_title || '', phone: row.phone || '', email: row.email || '', notes: row.notes || '' })
+export const certificationFromRow = (row: AnyRecord) => ({ id: row.id, type: row.certificate_type || '', title: row.title || '', kind: row.document_kind || 'certificate', number: row.certificate_number || '', issuer: row.issuer || '', expiresOn: row.expires_on || '', attachmentId: row.attachment_id || '' })
+export const nonconformityFromRow = (row: AnyRecord) => ({ id: row.id, date: row.occurred_on || '', description: row.description || '', severity: row.severity || 'minor', status: row.status || 'open', capaCode: row.capa_code || '', closedOn: row.closed_on || '' })
+export const contactFromRow = (row: AnyRecord) => ({ id: row.id, fullName: row.full_name || '', jobTitle: row.job_title || '', phone: row.phone || '', email: row.email || '', notes: row.notes || '' })
 
 // An evaluation as the screens use it. On a template (or with template scores):
 // its snapshot and one entry per criterion scored, by position. An earlier one:
 // its scores by the six fixed criteria (a criterion left blank has no row), and
 // each criterion's weight when it is not the usual 1.
-export function evaluationFromRow(row) {
+export function evaluationFromRow(row: AnyRecord) {
   const base = { id: row.id, evaluatedOn: row.evaluated_on || '', evaluator: row.evaluator || '', notes: row.notes || '' }
   const rows = row.scores || []
-  const templated = row.template_id || row.template_name || rows.some(score => !score.criterion)
+  const templated = row.template_id || row.template_name || rows.some((score: AnyRecord) => !score.criterion)
   if (templated) {
     return {
       ...base,
@@ -43,8 +44,8 @@ export function evaluationFromRow(row) {
       criteria: [...rows].sort(byPosition).map(score => ({ id: score.id, criterionId: score.criterion_id || '', label: score.criterion_label || score.criterion || '', weight: Number(score.weight) || 1, position: Number(score.position) || 0, score: Number(score.score) })),
     }
   }
-  const scores = Object.fromEntries(CRITERIA.map(item => [item.key, '']))
-  const weights = {}
+  const scores: Record<string, string | number> = Object.fromEntries(CRITERIA.map(item => [item.key, '']))
+  const weights: Record<string, number> = {}
   for (const score of rows) {
     scores[score.criterion] = Number(score.score)
     if (Number(score.weight) !== 1) weights[score.criterion] = Number(score.weight)
@@ -52,7 +53,7 @@ export function evaluationFromRow(row) {
   return { ...base, scores, ...(Object.keys(weights).length ? { weights } : {}) }
 }
 
-export function supplierListsFromRow(row = {}) {
+export function supplierListsFromRow(row: AnyRecord = {}) {
   return {
     certifications: [...(row.certifications || [])].sort(byText('created_at')).map(certificationFromRow),
     evaluations: [...(row.evaluations || [])].sort(byText('evaluated_on')).map(evaluationFromRow),
@@ -61,16 +62,16 @@ export function supplierListsFromRow(row = {}) {
   }
 }
 
-export const certificationRows = (list = []) => list.filter(item => String(item?.type || '').trim()).map(item => ({ id: rowId(item.id), certificate_type: String(item.type).trim(), title: text(item.title), document_kind: item.kind || 'certificate', certificate_number: text(item.number), issuer: text(item.issuer), expires_on: item.expiresOn || null, attachment_id: isUuid(item.attachmentId) ? item.attachmentId : null }))
-export const nonconformityRows = (list = []) => list.filter(item => item?.date && String(item.description || '').trim()).map(item => {
+export const certificationRows = (list: AnyRecord[] = []) => list.filter(item => String(item?.type || '').trim()).map(item => ({ id: rowId(item.id), certificate_type: String(item.type).trim(), title: text(item.title), document_kind: item.kind || 'certificate', certificate_number: text(item.number), issuer: text(item.issuer), expires_on: item.expiresOn || null, attachment_id: isUuid(item.attachmentId) ? item.attachmentId : null }))
+export const nonconformityRows = (list: AnyRecord[] = []) => list.filter(item => item?.date && String(item.description || '').trim()).map(item => {
   const status = item.status === 'closed' ? 'closed' : 'open'
   return { id: rowId(item.id), occurred_on: item.date, description: String(item.description).trim(), severity: item.severity === 'major' ? 'major' : 'minor', status, capa_code: text(item.capaCode), closed_on: status === 'closed' ? item.closedOn || null : null }
 })
-export const contactRows = (list = []) => list.filter(item => String(item?.fullName || '').trim()).map((item, index) => ({ id: rowId(item.id), position: index, full_name: String(item.fullName).trim(), job_title: text(item.jobTitle), phone: text(item.phone), email: text(item.email), notes: text(item.notes) }))
+export const contactRows = (list: AnyRecord[] = []) => list.filter(item => String(item?.fullName || '').trim()).map((item, index) => ({ id: rowId(item.id), position: index, full_name: String(item.fullName).trim(), job_title: text(item.jobTitle), phone: text(item.phone), email: text(item.email), notes: text(item.notes) }))
 
 // The evaluations keep their ids (each score row points at its evaluation). One on a
 // template stores its snapshot and its result; an imported one keeps the stored total.
-export function evaluationRows(list = []) {
+export function evaluationRows(list: AnyRecord[] = []) {
   return list.filter(item => item?.evaluatedOn).map(item => {
     const base = { id: rowId(item.id), evaluated_on: item.evaluatedOn, evaluator: text(item.evaluator), notes: text(item.notes) }
     if (!isTemplateEvaluation(item)) return { ...base, template_id: null, template_name: null, template_version: null, pass_threshold: null, conditional_threshold: null, score_scale: 5, total_score: null, result: null, criteria_scores: 'complete' }
@@ -89,41 +90,41 @@ export function evaluationRows(list = []) {
 // The score rows of one evaluation. On a template: one per criterion scored, with
 // the criterion's label and weight as scored. An earlier one: one per fixed
 // criterion scored 1–5. A stored row of the same criterion keeps its id.
-export function scoreRows(evaluation = {}, stored = []) {
+export function scoreRows(evaluation: AnyRecord = {}, stored: AnyRecord[] = []) {
   if (isTemplateEvaluation(evaluation)) {
     const scale = Number(evaluation.scoreScale) === 10 ? 10 : 5
     const idOf = new Map(stored.map(row => [row.criterion_id || `label:${row.criterion_label}`, row.id]))
     return (evaluation.criteria || [])
-      .map((item, index) => ({ item, index, score: Number(item.score) }))
-      .filter(({ item, score }) => item.score !== '' && item.score != null && score >= (scale === 10 ? 0 : 1) && score <= scale)
-      .map(({ item, index, score }) => {
+      .map((item: AnyRecord, index: number) => ({ item, index, score: Number(item.score) }))
+      .filter(({ item, score }: AnyRecord) => item.score !== '' && item.score != null && score >= (scale === 10 ? 0 : 1) && score <= scale)
+      .map(({ item, index, score }: AnyRecord) => {
         const criterionId = isUuid(item.criterionId) ? item.criterionId : null
-        return { id: (isUuid(item.id) && item.id) || idOf.get(criterionId || `label:${item.label}`) || rowId(), criterion: null, criterion_id: criterionId, criterion_label: String(item.label || '').trim() || null, position: index, weight: Number(item.weight) > 0 ? Number(item.weight) : 1, score_scale: scale, score: Math.round(score) }
+        return { id: (isUuid(item.id) && item.id) || idOf.get(criterionId || `label:${item.label}`) || rowId(undefined), criterion: null, criterion_id: criterionId, criterion_label: String(item.label || '').trim() || null, position: index, weight: Number(item.weight) > 0 ? Number(item.weight) : 1, score_scale: scale, score: Math.round(score) }
       })
   }
   const idOf = new Map(stored.map(row => [row.criterion, row.id]))
   return CRITERIA.map(item => ({ criterion: item.key, score: Number(evaluation.scores?.[item.key]), weight: Number(evaluation.weights?.[item.key]) > 0 ? Number(evaluation.weights[item.key]) : 1 }))
     .filter(row => row.score >= 1 && row.score <= 5)
-    .map(row => ({ id: idOf.get(row.criterion) || rowId(), ...row, score: Math.round(row.score) }))
+    .map(row => ({ id: idOf.get(row.criterion) || rowId(undefined), ...row, score: Math.round(row.score) }))
 }
 
 // Templates and their criteria.
-export const templateFromRow = row => ({
+export const templateFromRow = (row: AnyRecord) => ({
   id: row.id, name: row.name || '', description: row.description || '', categories: row.categories || [],
   passThreshold: Number(row.pass_threshold ?? 80), conditionalThreshold: Number(row.conditional_threshold ?? 60), frequencyMonths: Number(row.frequency_months) || 12, scoreScale: Number(row.score_scale) || 5,
   active: row.active !== false, version: Number(row.version) || 1, source: row.source || 'app', updatedAt: row.updated_at || '',
   criteria: [...(row.criteria || [])].sort(byPosition).map(item => ({ id: item.id, label: item.label || '', description: item.description || '', weight: Number(item.weight) || 1, optional: item.optional === true })),
 })
-export const templateRow = (organizationId, template) => ({
-  organization_id: organizationId, name: String(template.name || '').trim(), description: text(template.description), categories: [...new Set(template.categories || [])],
+export const templateRow = (organizationId: string | null | undefined, template: AnyRecord) => ({
+  organization_id: organizationId as string, name: String(template.name || '').trim(), description: text(template.description), categories: [...new Set<string>(template.categories || [])],
   pass_threshold: Number(template.passThreshold), conditional_threshold: Number(template.conditionalThreshold), frequency_months: Math.round(Number(template.frequencyMonths)), score_scale: Number(template.scoreScale) === 10 ? 10 : 5,
   active: template.active !== false,
 })
-export const criterionRows = (criteria = []) => criteria.filter(item => String(item?.label || '').trim()).map((item, index) => ({ id: rowId(item.id), position: index, label: String(item.label).trim(), description: text(item.description), weight: Number(item.weight) > 0 ? Number(item.weight) : 1, optional: Boolean(item.optional) }))
+export const criterionRows = (criteria: AnyRecord[] = []) => criteria.filter(item => String(item?.label || '').trim()).map((item, index) => ({ id: rowId(item.id), position: index, label: String(item.label).trim(), description: text(item.description), weight: Number(item.weight) > 0 ? Number(item.weight) : 1, optional: Boolean(item.optional) }))
 
 // Whether saving the template changes what an evaluation would snapshot (its version goes up).
-export function templateChanged(before, after) {
+export function templateChanged(before: AnyRecord | null | undefined, after: AnyRecord) {
   if (!before) return false
-  const shape = template => JSON.stringify([template.name, template.passThreshold, template.conditionalThreshold, template.scoreScale, (template.criteria || []).map(item => [String(item.label).trim(), Number(item.weight), Boolean(item.optional)])])
+  const shape = (template: AnyRecord) => JSON.stringify([template.name, template.passThreshold, template.conditionalThreshold, template.scoreScale, (template.criteria || []).map((item: AnyRecord) => [String(item.label).trim(), Number(item.weight), Boolean(item.optional)])])
   return shape(before) !== shape(after)
 }
