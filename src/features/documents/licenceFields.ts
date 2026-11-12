@@ -5,44 +5,45 @@
 // the document's effective date and its expiry is the review date, so the
 // expiry shows wherever review dates already appear (calendar, «review due»).
 import { protocolSummary } from './protocolFields'
+import type { AnyRecord } from '../../types/featureTypes'
 
 export const LICENCE_TYPE='licence'
 
-export const REQUIRED_BY={
+export const REQUIRED_BY: Record<string, Record<string, string>>={
  el:{legislation:'Νομοθεσία',iso9001:'ISO 9001',iso15189:'ISO 15189',accreditation:'Διαπίστευση',contract:'Σύμβαση',other:'Άλλο'},
  en:{legislation:'Legislation',iso9001:'ISO 9001',iso15189:'ISO 15189',accreditation:'Accreditation',contract:'Contract',other:'Other'},
 }
 const REQUIRED_KEYS=Object.keys(REQUIRED_BY.el)
 export const MAX_RENEWAL_MONTHS=240
 
-export const isLicence=value=>value?.type===LICENCE_TYPE
+export const isLicence=(value: AnyRecord|null|undefined): value is AnyRecord=>value?.type===LICENCE_TYPE
 
-const months=value=>{
+const months=(value: unknown)=>{
  if(value===''||value==null)return null
  const n=Number(value)
  return Number.isInteger(n)&&n>=1&&n<=MAX_RENEWAL_MONTHS?n:null
 }
-const requiredList=value=>[...new Set((Array.isArray(value)?value:[]).map(item=>String(item||'').trim()).filter(item=>REQUIRED_KEYS.includes(item)))]
+const requiredList=(value: unknown)=>[...new Set((Array.isArray(value)?value:[]).map(item=>String(item||'').trim()).filter(item=>REQUIRED_KEYS.includes(item)))]
  .sort((a,b)=>REQUIRED_KEYS.indexOf(a)-REQUIRED_KEYS.indexOf(b))
 
-export function licenceFieldsFromRow(row){
+export function licenceFieldsFromRow(row: AnyRecord|null|undefined){
  return {renewalMonths:row?.renewal_months??'',requiredBy:requiredList(row?.required_by)}
 }
 
 // Columns written for a draft or patch. Another type clears both fields; a value
 // outside the database checks is dropped rather than rejected.
-export function licenceFieldsToRow(draft){
+export function licenceFieldsToRow(draft: AnyRecord|null|undefined){
  if(!isLicence(draft))return {renewal_months:null,required_by:null}
  const required=requiredList(draft.requiredBy)
  return {renewal_months:months(draft.renewalMonths),required_by:required.length?required:null}
 }
 
-export function toggleRequiredBy(list,key){
+export function toggleRequiredBy(list: unknown,key: string){
  const current=requiredList(list)
  return current.includes(key)?current.filter(item=>item!==key):requiredList([...current,key])
 }
 
-export function renewalLabel(value,language='el'){
+export function renewalLabel(value: unknown,language='el'){
  const n=months(value)
  if(!n)return ''
  const en=language==='en'
@@ -50,7 +51,7 @@ export function renewalLabel(value,language='el'){
  return en?`Renewal every ${n} month${n===1?'':'s'}`:`Ανανέωση κάθε ${n} ${n===1?'μήνα':'μήνες'}`
 }
 
-export function licenceSummary(value,language='el'){
+export function licenceSummary(value: AnyRecord|null|undefined,language='el'){
  if(!isLicence(value))return ''
  const labels=REQUIRED_BY[language]||REQUIRED_BY.el
  const required=requiredList(value.requiredBy).map(key=>labels[key]).join(', ')
@@ -58,4 +59,4 @@ export function licenceSummary(value,language='el'){
 }
 
 // The line under the type in the documents list: protocol kind/area or licence renewal.
-export const documentTypeSummary=(value,language='el')=>protocolSummary(value,language)||licenceSummary(value,language)
+export const documentTypeSummary=(value: AnyRecord|null|undefined,language='el')=>protocolSummary(value,language)||licenceSummary(value,language)

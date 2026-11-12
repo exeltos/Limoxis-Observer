@@ -20,19 +20,22 @@ import {
   DOCUMENT_LINK_PREFIX, acknowledgementLogRows, demoAcknowledgementMembers, demoDistributions,
   loadOrganizationAcknowledgementLog, memberDepartment, memberPosition, summarizeDistributions,
 } from './acknowledgementLog'
+import type { AnyRecord } from '../../types/featureTypes'
 import './documentAcknowledgements.css'
 
-const fmtDay = (value, en) => {
+type Entry = ReturnType<typeof summarizeDistributions>[number]
+
+const fmtDay = (value: unknown, en: boolean) => {
   if (!value) return '—'
-  const date = new Date(value)
+  const date = new Date(value as string)
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString(en ? 'en-GB' : 'el-GR')
 }
-const fmtDateTime = (value, en) => {
+const fmtDateTime = (value: unknown, en: boolean) => {
   if (!value) return ''
-  const date = new Date(value)
+  const date = new Date(value as string)
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString(en ? 'en-GB' : 'el-GR', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
 }
-const tone = (rate) => (rate >= 90 ? 'good' : rate >= 60 ? 'fair' : 'low')
+const tone = (rate: number) => (rate >= 90 ? 'good' : rate >= 60 ? 'fair' : 'low')
 
 // Organization-wide read-acknowledgement log: proof for an inspection of which
 // staff have read which controlled document, and who is still pending.
@@ -51,8 +54,8 @@ export function DocumentAcknowledgementsPage() {
   const organizationId = tenant?.id || null
   const { data: documents, loading: loadingDocuments } = useDocumentsData()
   const [view, setView] = useState('documents')
-  const [log, setLog] = useState(null)
-  const [departments, setDepartments] = useState([])
+  const [log, setLog] = useState<AnyRecord | null>(null)
+  const [departments, setDepartments] = useState<AnyRecord[]>([])
 
   useEffect(() => {
     if (isDemo || !organizationId) return undefined
@@ -64,9 +67,9 @@ export function DocumentAcknowledgementsPage() {
   useEffect(() => {
     if (!canSeeAll) return undefined
     if (isDemo) {
-      const members = demoAcknowledgementMembers(employeeRows)
+      const members = demoAcknowledgementMembers(employeeRows as AnyRecord[])
       const seed = demoDistributions(documents || [], members)
-      const sentInDemo = n.announcements.filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX) && !seed.announcements.some((s) => s.linkPath === a.linkPath))
+      const sentInDemo = (n.announcements as AnyRecord[]).filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX) && !seed.announcements.some((s) => s.linkPath === a.linkPath))
       setLog({ announcements: [...sentInDemo, ...seed.announcements], acks: seed.acks, members, complete: true })
       return undefined
     }
@@ -74,13 +77,13 @@ export function DocumentAcknowledgementsPage() {
     let active = true
     loadOrganizationAcknowledgementLog(organizationId)
       .then((value) => { if (active) setLog(value) })
-      .catch((error) => { if (active) { setLog({ announcements: [], acks: [], members: [], complete: false }); notify(error?.message || (en ? 'Could not load the acknowledgement log.' : 'Δεν ήταν δυνατή η φόρτωση των επιβεβαιώσεων.'), 'danger') } })
+      .catch((error) => { if (active) { setLog({ announcements: [], acks: [], members: [], complete: false }); notify((error as Error | null)?.message || (en ? 'Could not load the acknowledgement log.' : 'Δεν ήταν δυνατή η φόρτωση των επιβεβαιώσεων.'), 'danger') } })
     return () => { active = false }
   }, [canSeeAll, isDemo, organizationId, documents, n.announcements, en, notify])
 
   const entries = useMemo(() => (log ? summarizeDistributions(log.announcements, log.complete ? log.members : [], log.acks, documents || []) : []), [log, documents])
   const people = useMemo(() => {
-    const byUser = new Map()
+    const byUser = new Map<unknown, { member: AnyRecord, read: Entry[], pending: Entry[] }>()
     for (const entry of entries) {
       for (const member of entry.summary.acknowledged) {
         const row = byUser.get(member.userId) || { member, read: [], pending: [] }
@@ -100,7 +103,7 @@ export function DocumentAcknowledgementsPage() {
     return { distributions: entries.length, rate: all ? Math.round((read / all) * 100) : 0, pending: all - read, complete: entries.filter((entry) => entry.summary.total && !entry.summary.pending.length).length }
   }, [entries])
 
-  const personName = (member) => (en ? member.nameEn : '') || member.name || '—'
+  const personName = (member: AnyRecord) => (en ? member.nameEn : '') || member.name || '—'
 
   function exportCsv() {
     const rows = acknowledgementLogRows(entries, { departments, en })
@@ -109,7 +112,7 @@ export function DocumentAcknowledgementsPage() {
       rows.map((row) => [row.documentCode, row.documentTitle, row.version, fmtDay(row.sentAt, en), row.name, row.position, row.department, row.status === 'acknowledged' ? (en ? 'Read' : 'Διαβάστηκε') : (en ? 'Pending' : 'Εκκρεμεί'), fmtDateTime(row.acknowledgedAt, en)]))
   }
   // The log on the shared document layout: by document, by person and every acknowledgement, as real tables.
-  function exportPdf(pdf) {
+  function exportPdf(pdf: boolean) {
     const rows = acknowledgementLogRows(entries, { departments, en })
     const ok = printReport({
       language, orientation: 'landscape',
@@ -133,7 +136,7 @@ export function DocumentAcknowledgementsPage() {
   const title = en ? 'Read acknowledgements' : 'Επιβεβαιώσεις ανάγνωσης'
 
   if (!canSeeAll) {
-    const mine = n.visibleAnnouncements.filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX))
+    const mine = (n.visibleAnnouncements as AnyRecord[]).filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX))
     return <Page title={en ? 'My protocols to read' : 'Πρωτόκολλα προς ανάγνωση'} subtitle={en ? 'Documents sent to you for read acknowledgement.' : 'Έγγραφα που σας στάλθηκαν για επιβεβαίωση ανάγνωσης.'}>
       <section className="surface record-section"><table className="record-table"><thead><tr><th>{en ? 'Document' : 'Έγγραφο'}</th><th>{en ? 'Sent' : 'Απεστάλη'}</th><th>{en ? 'Status' : 'Κατάσταση'}</th></tr></thead>
         <tbody>{mine.map((a) => <tr key={a.id} className="clickable-row" onClick={() => navigate(a.linkPath)}><td>{a.title}</td><td>{fmtDay(a.createdAt, en)}</td><td><span className={`document-ack-status ${a.acknowledged ? 'acknowledged' : 'pending'}`}>{a.acknowledged ? (en ? 'Read' : 'Διαβάστηκε') : (en ? 'Pending' : 'Εκκρεμεί')}</span></td></tr>)}</tbody></table>

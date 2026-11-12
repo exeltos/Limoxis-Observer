@@ -2,37 +2,43 @@
 // The nightly protocol-review job writes them (protocol_update_suggestions);
 // a person accepts (a new revision), rejects (with a reason) or postpones them.
 
+import type { AnyRecord } from '../../../types/featureTypes'
+
+// A suggestion as the screens use it (camelCase; see suggestionFromRow).
+export type ProtocolSuggestion = AnyRecord
+
 export const SUGGESTION_REASONS=['review_due','source_changed','stale']
 export const SUGGESTION_SECTIONS=['purpose','definitions','instructions','dosages','references']
 export const MAX_REVISION_NOTE=2000
 
-const REASON_LABELS={
+type Labels = Record<'el'|'en', Record<string, string>>
+const REASON_LABELS: Labels={
  el:{review_due:'Λήγει η αναθεώρηση',source_changed:'Άλλαξε πηγή που αναφέρει',stale:'Παλαιό χωρίς αναθεώρηση'},
  en:{review_due:'Review due',source_changed:'A cited source changed',stale:'Old, no review date'},
 }
-const SECTION_LABELS={
+const SECTION_LABELS: Labels={
  el:{purpose:'Σκοπός',definitions:'Ορισμοί',instructions:'Οδηγίες',dosages:'Δοσολογίες',references:'Βιβλιογραφία'},
  en:{purpose:'Purpose',definitions:'Definitions',instructions:'Instructions',dosages:'Dosages',references:'References'},
 }
-const STATUS_LABELS={
+const STATUS_LABELS: Labels={
  el:{open:'Ανοιχτή',snoozed:'Σε αναμονή',accepted:'Αποδεκτή',rejected:'Απορρίφθηκε'},
  en:{open:'Open',snoozed:'Postponed',accepted:'Accepted',rejected:'Rejected'},
 }
-const lang=language=>language==='en'?'en':'el'
-export const suggestionReasonLabel=(reason,language='el')=>REASON_LABELS[lang(language)][reason]||reason
-export const suggestionSectionLabel=(section,language='el')=>SECTION_LABELS[lang(language)][section]||section
-export const suggestionStatusLabel=(status,language='el')=>STATUS_LABELS[lang(language)][status]||status
-export const suggestionReasonTone=reason=>reason==='review_due'?'danger':reason==='source_changed'?'warning':'info'
+const lang=(language: unknown)=>language==='en'?'en':'el'
+export const suggestionReasonLabel=(reason: string,language='el')=>REASON_LABELS[lang(language)][reason]||reason
+export const suggestionSectionLabel=(section: string,language='el')=>SECTION_LABELS[lang(language)][section]||section
+export const suggestionStatusLabel=(status: string,language='el')=>STATUS_LABELS[lang(language)][status]||status
+export const suggestionReasonTone=(reason: string)=>reason==='review_due'?'danger':reason==='source_changed'?'warning':'info'
 
-const pad=n=>String(n).padStart(2,'0')
+const pad=(n: number)=>String(n).padStart(2,'0')
 export const todayKey=(date=new Date())=>`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`
 
-export function suggestionFromRow(row){
+export function suggestionFromRow(row: AnyRecord|null|undefined): ProtocolSuggestion|null{
  if(!row)return null
  return {
   id:row.id,organizationId:row.organization_id||null,documentId:row.document_id,reason:row.reason,
   sourceKind:row.source_kind||null,sourceRef:row.source_ref||'',sourceLabel:row.source_label||'',sourceUrl:row.source_url||'',
-  whatChanged:row.what_changed||'',affectedSections:(row.affected_sections||[]).filter(s=>SUGGESTION_SECTIONS.includes(s)),details:row.details||{},
+  whatChanged:row.what_changed||'',affectedSections:(row.affected_sections||[]).filter((s: string)=>SUGGESTION_SECTIONS.includes(s)),details:row.details||{},
   draftText:row.draft_text||'',draftCitation:row.draft_citation||'',status:row.status||'open',
   decidedAt:row.decided_at||null,rejectionReason:row.rejection_reason||'',snoozedUntil:row.snoozed_until||'',
   revisionDocumentId:row.revision_document_id||null,createdAt:row.created_at||null,
@@ -40,20 +46,20 @@ export function suggestionFromRow(row){
 }
 
 // A postponed suggestion is open again from its date on (the nightly job also reopens it).
-export function effectiveStatus(suggestion,today=todayKey()){
+export function effectiveStatus(suggestion: ProtocolSuggestion|null|undefined,today=todayKey()){
  if(suggestion?.status==='snoozed'&&suggestion.snoozedUntil&&String(suggestion.snoozedUntil).slice(0,10)<=today)return 'open'
  return suggestion?.status||'open'
 }
-export const isOpenSuggestion=(suggestion,today)=>effectiveStatus(suggestion,today)==='open'
+export const isOpenSuggestion=(suggestion: ProtocolSuggestion|null|undefined,today?: string)=>effectiveStatus(suggestion,today)==='open'
 
-export const documentKey=record=>record?.dbId||record?.id||null
+export const documentKey=(record: AnyRecord|null|undefined)=>record?.dbId||record?.id||null
 
 // The suggestions of one document version, open first, newest first.
-export function suggestionsForDocument(list,record,today=todayKey()){
+export function suggestionsForDocument(list: ProtocolSuggestion[]|null|undefined,record: AnyRecord|null|undefined,today=todayKey()){
  const key=documentKey(record)
  if(!key)return {open:[],snoozed:[]}
  const mine=(list||[]).filter(s=>s.documentId===key)
- const byDate=(a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))
+ const byDate=(a: ProtocolSuggestion,b: ProtocolSuggestion)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))
  return {
   open:mine.filter(s=>effectiveStatus(s,today)==='open').sort(byDate),
   snoozed:mine.filter(s=>effectiveStatus(s,today)==='snoozed').sort((a,b)=>String(a.snoozedUntil).localeCompare(String(b.snoozedUntil))),
@@ -64,7 +70,7 @@ export function suggestionsForDocument(list,record,today=todayKey()){
 // A draft revision of this protocol already started for the suggestion (created
 // after it was found): accepting again links that draft instead of making
 // another, so a failed decision never leaves duplicate drafts behind.
-export function existingSuggestedRevision(documents,record,suggestion){
+export function existingSuggestedRevision(documents: AnyRecord[]|null|undefined,record: AnyRecord|null|undefined,suggestion: ProtocolSuggestion|null|undefined){
  const ids=new Set([record?.dbId,record?.id].filter(Boolean))
  if(!ids.size||!suggestion)return null
  const since=String(suggestion.createdAt||'')
@@ -73,20 +79,20 @@ export function existingSuggestedRevision(documents,record,suggestion){
   .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0]||null
 }
 
-export function documentsWithOpenSuggestions(list,today=todayKey()){
+export function documentsWithOpenSuggestions(list: ProtocolSuggestion[]|null|undefined,today=todayKey()): Set<unknown>{
  return new Set((list||[]).filter(s=>isOpenSuggestion(s,today)).map(s=>s.documentId))
 }
-export const familyHasOpenSuggestion=(family,keys)=>Boolean(keys?.size)&&(family?.versions||[]).some(version=>keys.has(documentKey(version)))
+export const familyHasOpenSuggestion=(family: AnyRecord|null|undefined,keys: Set<unknown>|null|undefined)=>Boolean(keys?.size)&&(family?.versions||[]).some((version: AnyRecord)=>(keys as Set<unknown>).has(documentKey(version)))
 
 // The revision notes a new revision starts with: the reason, what changed, the
 // affected sections and, when asked, the drafted paragraph with its citation.
-export function revisionNoteFor(suggestion,{language='el',includeDraft=true}={}){
+export function revisionNoteFor(suggestion: ProtocolSuggestion|null|undefined,{language='el',includeDraft=true}={}){
  if(!suggestion)return ''
  const en=lang(language)==='en'
  const lines=[`${en?'Update suggestion':'Πρόταση ανανέωσης'}: ${suggestionReasonLabel(suggestion.reason,language)}.`]
  if(suggestion.whatChanged)lines.push(suggestion.whatChanged)
  if(suggestion.sourceLabel)lines.push(`${en?'Source':'Πηγή'}: ${suggestion.sourceLabel}`)
- if(suggestion.affectedSections?.length)lines.push(`${en?'Affected sections':'Ενότητες που επηρεάζονται'}: ${suggestion.affectedSections.map(s=>suggestionSectionLabel(s,language)).join(', ')}`)
+ if(suggestion.affectedSections?.length)lines.push(`${en?'Affected sections':'Ενότητες που επηρεάζονται'}: ${suggestion.affectedSections.map((s: string)=>suggestionSectionLabel(s,language)).join(', ')}`)
  if(includeDraft&&suggestion.draftText){
   lines.push(`${en?'Proposed wording':'Προτεινόμενη διατύπωση'}: ${suggestion.draftText}`)
   if(suggestion.draftCitation)lines.push(`[${suggestion.draftCitation}]`)
@@ -95,7 +101,7 @@ export function revisionNoteFor(suggestion,{language='el',includeDraft=true}={})
 }
 
 // The reason a decision cannot be saved yet, or null.
-export function decisionProblem({decision,reason='',snoozeUntil='',notes='',today=todayKey(),canRevise=true}={}){
+export function decisionProblem({decision,reason='',snoozeUntil='',notes='',today=todayKey(),canRevise=true}: {decision?: string|null,reason?: string,snoozeUntil?: string,notes?: string,today?: string,canRevise?: boolean}={}){
  if(decision==='accepted'){
   if(!canRevise)return 'revision_unavailable'
   if(!String(notes).trim())return 'notes_required'
@@ -110,7 +116,7 @@ export function decisionProblem({decision,reason='',snoozeUntil='',notes='',toda
  return 'decision_required'
 }
 
-export function addDaysKey(day,days){
+export function addDaysKey(day: string,days: number){
  const [y,m,d]=String(day).split('-').map(Number)
  return todayKey(new Date(y,m-1,d+days))
 }
@@ -119,10 +125,10 @@ export function addDaysKey(day,days){
 // user owns, on today (or on the date it comes back, for a postponed one).
 // ownerId undefined lists every protocol (the Demo, whose documents have no
 // linked owner).
-export function suggestionCalendarItems(list,documents,{today=todayKey(),language='el',ownerId}={}){
+export function suggestionCalendarItems(list: ProtocolSuggestion[]|null|undefined,documents: AnyRecord[]|null|undefined,{today=todayKey(),language='el',ownerId}: {today?: string,language?: string,ownerId?: string|null}={}){
  const en=lang(language)==='en'
  const byKey=new Map((documents||[]).map(doc=>[documentKey(doc),doc]))
- const out=[]
+ const out: AnyRecord[]=[]
  for(const s of list||[]){
   const doc=byKey.get(s.documentId)
   if(!doc)continue

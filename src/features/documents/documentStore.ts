@@ -1,6 +1,7 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const seed=[
+const seed: AnyRecord[]=[
   {
     id:'DOC-001',title:'Πολιτική Υγιεινής Χεριών',type:'policy',department:'Όλο το νοσοκομείο',
     audience:'all',status:'published',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
@@ -208,9 +209,9 @@ const seed=[
   }
 ]
 
-export function loadDocuments(){const rows=loadSnapshot('documents',structuredClone(seed));return Array.isArray(rows)?rows:structuredClone(seed)}
-export function saveDocuments(rows){return saveSnapshot('documents',rows)}
-export function nextDocumentId(rows){
+export function loadDocuments(): AnyRecord[]{const rows=loadSnapshot('documents',structuredClone(seed));return Array.isArray(rows)?rows:structuredClone(seed)}
+export function saveDocuments(rows: AnyRecord[]){return saveSnapshot('documents',rows)}
+export function nextDocumentId(rows: AnyRecord[]){
   const max=rows.reduce((m,x)=>Math.max(m,Number(String(x.id||'').match(/DOC-(\d+)/)?.[1]||0)),0)
   return `DOC-${String(max+1).padStart(3,'0')}`
 }

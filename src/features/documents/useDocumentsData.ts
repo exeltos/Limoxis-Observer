@@ -1,13 +1,13 @@
 import { useCallback,useEffect,useState } from 'react'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadDocumentsAsync } from './documentService'
+import { loadDocumentsAsync, type DocumentRecord } from './documentService'
 
 export function useDocumentsData(){
   const {tenant}=useTenant()
   const organizationId=tenant?.id??null
-  const [data,setData]=useState([])
+  const [data,setData]=useState<DocumentRecord[]>([])
   const [loading,setLoading]=useState(true)
-  const [error,setError]=useState(null)
+  const [error,setError]=useState<unknown>(null)
   const reload=useCallback(async()=>{
     setLoading(true);setError(null)
     try{const rows=await loadDocumentsAsync(organizationId);setData(rows);return rows}

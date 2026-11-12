@@ -12,7 +12,7 @@ export function useOpenSuggestionKeys(){
  return useMemo(()=>documentsWithOpenSuggestions(data),[data])
 }
 
-export function ProtocolSuggestionFilter({value,onChange,language='el'}){
+export function ProtocolSuggestionFilter({value,onChange,language='el'}: {value?: string,onChange: (value: string)=>void,language?: string}){
  const en=language==='en'
  return <FilterSelect label={en?'Update suggestions':'Προτάσεις ανανέωσης'} value={value} onChange={onChange}>
   <option value="all">{en?'All':'Όλα'}</option>
@@ -20,6 +20,6 @@ export function ProtocolSuggestionFilter({value,onChange,language='el'}){
  </FilterSelect>
 }
 
-export function ProtocolSuggestionMarker({language='el'}){
+export function ProtocolSuggestionMarker({language='el'}: {language?: string}){
  return <StatusBadge tone="warning" className="protocol-suggestion-marker">{language==='en'?'Update suggested':'Προτείνεται ανανέωση'}</StatusBadge>
 }

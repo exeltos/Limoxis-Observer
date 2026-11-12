@@ -8,22 +8,36 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { decideProtocolSuggestionAsync } from './protocolReviewService'
 import { suggestionReasonLabel,suggestionReasonTone,suggestionSectionLabel,suggestionsForDocument } from './protocolReviewModel'
 import { ProtocolSuggestionDialog } from './ProtocolSuggestionDialog'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { ProtocolSuggestion } from './protocolReviewModel'
 import './protocolReview.css'
+
+interface ProtocolReviewPanelProps {
+ record?: AnyRecord|null
+ suggestions?: ProtocolSuggestion[]|null
+ organizationId?: string|null
+ actor?: {id?: string|null}|null
+ canDecide?: boolean
+ canRevise?: boolean
+ language?: string
+ onStartRevision?: (notes: string, suggestion: ProtocolSuggestion)=>Promise<AnyRecord|null|undefined>|AnyRecord|null|undefined
+ onChanged?: (revision: AnyRecord|null)=>unknown
+}
 
 // «Προτείνεται ανανέωση»: the open suggestions of this protocol version, from
 // the nightly currency review. Accepting starts a revision through the
 // record page's usual flow (onStartRevision); nothing changes by itself.
-export function ProtocolReviewPanel({record,suggestions,organizationId,actor,canDecide,canRevise,language='el',onStartRevision,onChanged}){
+export function ProtocolReviewPanel({record,suggestions,organizationId,actor,canDecide,canRevise,language='el',onStartRevision,onChanged}: ProtocolReviewPanelProps){
  const en=language==='en'
  const {notify}=useFeedback()
- const [dialog,setDialog]=useState(null)
+ const [dialog,setDialog]=useState<{suggestion: ProtocolSuggestion, decision: string}|null>(null)
  const [busy,setBusy]=useState(false)
  // The revision made for a suggestion whose decision then failed: a retry links it, never a second draft.
- const started=useRef(new Map())
+ const started=useRef(new Map<unknown, AnyRecord>())
  const {open,snoozed}=useMemo(()=>suggestionsForDocument(suggestions,record),[suggestions,record])
  if(record?.type!=='protocol'||(!open.length&&!snoozed.length))return null
 
- async function submit({decision,notes,reason,snoozeUntil}){
+ async function submit({decision,notes,reason,snoozeUntil}: {decision: string, notes: string, reason: string, snoozeUntil: string}){
   const suggestion=dialog?.suggestion
   if(!suggestion||busy)return
   setBusy(true)
@@ -44,7 +58,7 @@ export function ProtocolReviewPanel({record,suggestions,organizationId,actor,can
    setDialog(null)
    await onChanged?.(null)
   }catch(error){
-   notify(error?.message||(en?'The decision could not be saved.':'Η απόφαση δεν αποθηκεύτηκε.'),'danger')
+   notify((error as Error|null)?.message||(en?'The decision could not be saved.':'Η απόφαση δεν αποθηκεύτηκε.'),'danger')
   }finally{setBusy(false)}
  }
 
@@ -63,7 +77,7 @@ export function ProtocolReviewPanel({record,suggestions,organizationId,actor,can
     </div>
     <p className="protocol-review-change">{suggestion.whatChanged}</p>
     {suggestion.sourceLabel&&<p className="protocol-review-source"><strong>{en?'Source':'Πηγή'}:</strong> {suggestion.sourceUrl?<a href={suggestion.sourceUrl} target="_blank" rel="noreferrer">{suggestion.sourceLabel}<ExternalLink size={12} aria-hidden="true"/></a>:suggestion.sourceLabel}</p>}
-    {suggestion.affectedSections.length>0&&<div className="protocol-review-sections"><span className="lo-field-label">{en?'Affected sections':'Ενότητες που επηρεάζονται'}</span>{suggestion.affectedSections.map(section=><StatusBadge key={section} tone="neutral">{suggestionSectionLabel(section,language)}</StatusBadge>)}</div>}
+    {suggestion.affectedSections.length>0&&<div className="protocol-review-sections"><span className="lo-field-label">{en?'Affected sections':'Ενότητες που επηρεάζονται'}</span>{suggestion.affectedSections.map((section: string)=><StatusBadge key={section} tone="neutral">{suggestionSectionLabel(section,language)}</StatusBadge>)}</div>}
     {suggestion.draftText&&<blockquote className="protocol-review-draft">
      <span className="lo-field-label">{en?'Proposed wording':'Προτεινόμενη διατύπωση'}</span>
      <p>{suggestion.draftText}</p>

@@ -4,9 +4,11 @@ import { ManualDateField } from '../../../design-system/ManualDateField'
 import { CheckboxField } from '../../../design-system/CheckboxField'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { StatusBadge } from '../../../design-system/StatusBadge'
-import { MAX_REVISION_NOTE,addDaysKey,decisionProblem,revisionNoteFor,suggestionReasonLabel,suggestionReasonTone,todayKey } from './protocolReviewModel'
+import { MAX_REVISION_NOTE,addDaysKey,decisionProblem,revisionNoteFor,suggestionReasonLabel,suggestionReasonTone,todayKey,type ProtocolSuggestion } from './protocolReviewModel'
 
-const PROBLEM_TEXT={
+type Texts=Record<'el'|'en', Record<string, string>>
+
+const PROBLEM_TEXT: Texts={
  el:{revision_unavailable:'Η αποδοχή ξεκινά νέα αναθεώρηση: χρειάζεται δημοσιευμένη έκδοση και δικαίωμα αναθεώρησης.',notes_required:'Γράψτε τις σημειώσεις της αναθεώρησης.',reason_required:'Ο λόγος απόρριψης είναι υποχρεωτικός.',date_required:'Επιλέξτε ημερομηνία.',date_in_past:'Η ημερομηνία πρέπει να είναι μετά από σήμερα.'},
  en:{revision_unavailable:'Accepting starts a new revision: it needs a published version and the right to revise.',notes_required:'Write the revision notes.',reason_required:'A rejection reason is required.',date_required:'Pick a date.',date_in_past:'The date must be after today.'},
 }
@@ -15,11 +17,12 @@ const PROBLEM_TEXT={
 // revision, notes prefilled), reject (reason required) or later (a date). The
 // dialog opens in that mode only, with a matching title and primary button.
 // Closed only by ×.
-const TITLES={
+const TITLES: Texts={
  el:{accepted:'Αποδοχή πρότασης ανανέωσης',rejected:'Απόρριψη πρότασης ανανέωσης',snoozed:'Αναβολή πρότασης ανανέωσης'},
  en:{accepted:'Accept update suggestion',rejected:'Reject update suggestion',snoozed:'Postpone update suggestion'},
 }
-export function ProtocolSuggestionDialog({suggestion,initialDecision='accepted',canRevise,busy=false,language='el',onClose,onSubmit}){
+export interface ProtocolSuggestionDecision { decision: string, notes: string, reason: string, snoozeUntil: string }
+export function ProtocolSuggestionDialog({suggestion,initialDecision='accepted',canRevise,busy=false,language='el',onClose,onSubmit}: {suggestion?: ProtocolSuggestion|null,initialDecision?: string,canRevise?: boolean,busy?: boolean,language?: string,onClose?: ()=>void,onSubmit?: (decision: ProtocolSuggestionDecision)=>void}){
  const en=language==='en'
  const today=todayKey()
  const decision=initialDecision
@@ -32,7 +35,7 @@ export function ProtocolSuggestionDialog({suggestion,initialDecision='accepted',
  // field was left empty, never on open; a blocked revision is said at once.
  const [shown,setShown]=useState(false),reveal=()=>setShown(true)
  const problemText=problem&&(shown||problem==='revision_unavailable')?(PROBLEM_TEXT[en?'en':'el'][problem]||''):''
- function toggleDraft(next){setIncludeDraft(next);setNotes(revisionNoteFor(suggestion,{language,includeDraft:next}))}
+ function toggleDraft(next: boolean){setIncludeDraft(next);setNotes(revisionNoteFor(suggestion,{language,includeDraft:next}))}
  const submitLabel=decision==='accepted'?(en?'Accept and start revision':'Αποδοχή και νέα αναθεώρηση'):decision==='rejected'?(en?'Reject suggestion':'Απόρριψη πρότασης'):(en?'Postpone':'Αναβολή')
  const submit=()=>{if(busy)return;if(problem){reveal();return}onSubmit?.({decision,notes:notes.trim(),reason:reason.trim(),snoozeUntil})}
  return <ObserverDialog
