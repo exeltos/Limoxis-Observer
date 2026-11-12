@@ -1,6 +1,8 @@
 import { DEMO_REPORT_MARK_EL, getReportBranding } from '../organization/branding'
+import type { ReportBranding } from '../organization/branding'
+import type { jsPDF as JsPdf } from 'jspdf'
 
-function safeName(value='report'){
+function safeName(value: unknown='report'){
   return String(value||'report').trim().replace(/[^\p{L}\p{N}._-]+/gu,'_').replace(/^_+|_+$/g,'')||'report'
 }
 
@@ -13,10 +15,12 @@ function safeName(value='report'){
 // Height of the hospital header band on each page, in mm.
 const HEADER_MM=16
 
-function imageSize(dataUrl){return new Promise(resolve=>{const img=new Image();img.onload=()=>resolve({width:img.width,height:img.height});img.onerror=()=>resolve(null);img.src=dataUrl})}
+interface Logo { data: string; width: number; height: number }
+
+function imageSize(dataUrl: string){return new Promise<{width:number,height:number}|null>(resolve=>{const img=new Image();img.onload=()=>resolve({width:img.width,height:img.height});img.onerror=()=>resolve(null);img.src=dataUrl})}
 
 // SVG logos are drawn to a PNG first: jsPDF embeds raster images only.
-async function rasterLogo(logo){
+async function rasterLogo(logo: string|null|undefined): Promise<Logo|null>{
   if(!logo)return null
   const size=await imageSize(logo)
   if(!size?.width||!size?.height)return null
@@ -30,7 +34,7 @@ async function rasterLogo(logo){
 }
 
 // Hospital name, report header line and logo across the top of a page.
-async function drawHeader(pdf,branding,logo,pageWidth){
+async function drawHeader(pdf: JsPdf,branding: ReportBranding,logo: Logo|null,pageWidth: number){
   const margin=8
   let textX=margin
   if(logo){
@@ -56,7 +60,7 @@ async function drawHeader(pdf,branding,logo,pageWidth){
 // A Demo organization's pages: one quiet grey line at the bottom saying the
 // data is synthetic, so the report itself stays as it is (drawn as an image:
 // Greek is not in jsPDF's standard fonts).
-function drawDemoMark(pdf,pageWidth,pageHeight){
+function drawDemoMark(pdf: JsPdf,pageWidth: number,pageHeight: number){
   const canvas=document.createElement('canvas');const ctx=canvas.getContext?.('2d')
   if(!ctx)return
   const widthMm=pageWidth-16,heightMm=4,scale=4*3.78
@@ -67,7 +71,7 @@ function drawDemoMark(pdf,pageWidth,pageHeight){
   pdf.addImage(canvas.toDataURL('image/png'),'PNG',8,pageHeight-heightMm-2,widthMm,heightMm,'demo-mark','FAST')
 }
 
-export async function exportElementAsPdf({element,filename,orientation='landscape',branding=getReportBranding(),header=true}={}){
+export async function exportElementAsPdf({element,filename,orientation='landscape',branding=getReportBranding(),header=true}:{element?: HTMLElement|null,filename?: string,orientation?: 'landscape'|'portrait',branding?: ReportBranding|null,header?: boolean}={}){
   const demo=Boolean(branding?.demo)
   if(demo&&!String(filename||'').startsWith('DEMO_'))filename=`DEMO_${filename||'report'}`
   if(!element)throw new Error('PDF_EXPORT_NO_ELEMENT')
@@ -79,7 +83,7 @@ export async function exportElementAsPdf({element,filename,orientation='landscap
   const pageHeight=pdf.internal.pageSize.getHeight()
   const withHeader=Boolean(header&&branding&&(branding.name||branding.logo||branding.reportHeader))
   const top=withHeader?HEADER_MM:0
-  const logo=withHeader?await rasterLogo(branding.logo):null
+  const logo=withHeader?await rasterLogo(branding!.logo):null
   // Each page gets its own slice of the snapshot below the header band, so
   // nothing is hidden behind it.
   const pxPerMm=canvas.width/pageWidth
@@ -96,10 +100,10 @@ export async function exportElementAsPdf({element,filename,orientation='landscap
     if(page)pdf.addPage()
     const height=Math.min(sliceHeight,canvas.height-y)
     const slice=document.createElement('canvas');slice.width=canvas.width;slice.height=height
-    slice.getContext('2d').drawImage(canvas,0,y,canvas.width,height,0,0,canvas.width,height)
+    slice.getContext('2d')!.drawImage(canvas,0,y,canvas.width,height,0,0,canvas.width,height)
     // JPEG keeps a page of tables at a few hundred KB instead of megabytes.
     pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',0,top,pageWidth,height/pxPerMm)
-    if(withHeader)await drawHeader(pdf,branding,logo,pageWidth)
+    if(withHeader)await drawHeader(pdf,branding!,logo,pageWidth)
     if(demo)drawDemoMark(pdf,pageWidth,pageHeight)
   }
   pdf.save(`${safeName(filename)}.pdf`)

@@ -7,20 +7,7 @@
   },
   "include": [
     "src/types/**/*.d.ts",
-    "src/core/dates/**/*.ts",
     "src/design-system/**/*",
-    "src/core/config/**/*",
-    "src/core/storage/**/*",
-    "src/core/version.ts",
-    "src/core/errors/**/*",
-    "src/core/feedback/**/*",
-    "src/core/permissions/**/*",
-    "src/core/actions/**/*",
-    "src/core/i18n/**/*",
-    "src/core/organization/**/*",
-    "src/core/supabase/**/*",
-    "src/core/tenant/**/*",
-    "src/core/auth/**/*",
-    "src/core/data/**/*"
+    "src/core/**/*"
   ]
 }

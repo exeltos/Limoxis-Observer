@@ -1,7 +1,7 @@
-function safeName(value='record'){
+function safeName(value: unknown='record'){
   return String(value||'record').trim().replace(/[^\p{L}\p{N}._-]+/gu,'_').replace(/^_+|_+$/g,'')||'record'
 }
-export function downloadRecordJson(record,{filename}={}){
+export function downloadRecordJson(record: Record<string, unknown>|null|undefined,{filename}:{filename?: unknown}={}){
   if(!record)return
   const blob=new Blob([JSON.stringify(record,null,2)],{type:'application/json;charset=utf-8'})
   const url=URL.createObjectURL(blob)

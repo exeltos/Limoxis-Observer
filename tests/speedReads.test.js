@@ -38,7 +38,7 @@ describe('database reads', () => {
 
 describe('app shell reads', () => {
   it('runs the bell and the e-mail outbox after first paint, on the visible-page tick', () => {
-    expect(notifications).toContain('export function whenIdle(task)')
+    expect(notifications).toMatch(/export function whenIdle\(task(: [^)]*)?\)/)
     expect(notifications).toContain('return whenIdle(()=>void processNotificationOutboxAsync(tenant.id).catch(()=>{}))},[isDemo,tenant?.id,dataTick])')
     expect(notifications).not.toContain('[isDemo,tenant?.id,clock])')
     expect(notifications).toContain('loadExpiryProgramme(tenant.id)')

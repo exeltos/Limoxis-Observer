@@ -2,17 +2,20 @@
 // λογαριασμό»: sample employees of the first sample hospital, and a simulated run
 // (nothing leaves the browser), so the screens can be documented and checked.
 const ORG = '11111111-0000-4000-8000-000000000001'
-const at = (offsetDays, hour = 10) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- sample rows, shaped like the RPC's
+type Row = Record<string, any>
+type Person = [name: string, profession: string, department: string, email: string]
+const at = (offsetDays: number, hour = 10) => {
   const d = new Date()
   d.setDate(d.getDate() + offsetDays)
   d.setHours(hour, 30, 0, 0)
   return d.toISOString()
 }
 const DEPARTMENTS = ['ΜΕΘ', 'ΤΕΠ', 'Β΄ Χειρουργική', 'Καρδιολογική', 'Α΄ Παθολογική', 'Μαιευτική', 'Μικροβιολογικό Εργαστήριο', 'Φαρμακείο', 'Γραφείο Λοιμώξεων', 'Ορθοπαιδική', 'Υγιεινή & Ασφάλεια', 'Νεφρολογική', 'Γραφείο Προσωπικού', 'Αναισθησιολογικό', 'Ουρολογική'].map((name, index) => ({ id: `dep-${String(index + 1).padStart(2, '0')}`, name }))
-const dep = name => DEPARTMENTS.find(d => d.name === name)?.id || null
+const dep = (name: string) => DEPARTMENTS.find(d => d.name === name)?.id || null
 
 // name, profession, department, e-mail
-const PEOPLE = [
+const PEOPLE: Person[] = [
   ['Ιωάννα Παππά', 'Νοσηλευτής/τρια ΤΕ', 'ΜΕΘ', 'i.pappa@papanikolaou.example.org'],
   ['Μιχάλης Τσιρίγος', 'Νοσηλευτής ΤΕ', 'ΤΕΠ', 'm.tsirigos@papanikolaou.example.org'],
   ['Βασίλειος Ζερβός', 'Τραυματιοφορέας', 'ΤΕΠ', ''],
@@ -30,7 +33,7 @@ const PEOPLE = [
   ['Στέφανος Αλεξανδρόπουλος', 'Επιμελητής Α΄ Αναισθησιολογίας', 'Αναισθησιολογικό', 's.alexandropoulos@papanikolaou.example.org'],
 ]
 
-const base = (index, [name, profession, department, email]) => ({
+const base = (index: number, [name, profession, department, email]: Person): Row => ({
   employee_id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
   full_name: name,
   profession_name: profession,
@@ -46,26 +49,26 @@ const base = (index, [name, profession, department, email]) => ({
   send_count: 0,
 })
 
-let rows = null
-function initial() {
+let rows: Row[] | null = null
+function initial(): Row[] {
   const list = PEOPLE.map((person, index) => base(index, person))
   const stamati = list.find(row => row.full_name === 'Ευδοκία Σταμάτη')
-  Object.assign(stamati, { existing_user_id: 'u-2-9', existing_name: 'Ευδοκία Σταμάτη', existing_is_demo: false, existing_organizations: ['Γ.Ν. Κομοτηνής «Σισμανόγλειο»'] })
+  Object.assign(stamati as Row, { existing_user_id: 'u-2-9', existing_name: 'Ευδοκία Σταμάτη', existing_is_demo: false, existing_organizations: ['Γ.Ν. Κομοτηνής «Σισμανόγλειο»'] })
   // One person invited earlier (single «Νέος χρήστης»), whose link expired.
   list.push({ ...base(PEOPLE.length, ['Στέλλα Καραμανλή', 'Νοσηλευτής/τρια ΤΕ', 'Ουρολογική', 's.karamanli@papanikolaou.example.org']), user_id: 'u-1-90', username: 'SK29007', member_role: 'department_user', account_state: 'invited', blocked_reason: null, invitation_created_at: at(-18), invitation_expires_at: at(-11), item_status: null })
   return list
 }
 const state = () => (rows ||= initial())
 
-export function previewEmployeeAccounts(organizationId, { anyOrganization = false } = {}) {
+export function previewEmployeeAccounts(organizationId?: string | null, { anyOrganization = false }: { anyOrganization?: boolean } = {}) {
   if (!anyOrganization && organizationId !== ORG) return { employees: [], departments: [] }
   return { employees: state().map(row => ({ ...row })), departments: DEPARTMENTS }
 }
 
-const usernameOf = name => {
+const usernameOf = (name: string) => {
   const parts = name.split(/\s+/)
-  const latin = { Α: 'A', Β: 'V', Γ: 'G', Δ: 'D', Ε: 'E', Ζ: 'Z', Η: 'I', Θ: 'T', Ι: 'I', Κ: 'K', Λ: 'L', Μ: 'M', Ν: 'N', Ξ: 'X', Ο: 'O', Π: 'P', Ρ: 'R', Σ: 'S', Τ: 'T', Υ: 'Y', Φ: 'F', Χ: 'C', Ψ: 'P', Ω: 'O' }
-  const initial = word => latin[word?.[0]?.normalize('NFD')[0]] || 'X'
+  const latin: Record<string, string> = { Α: 'A', Β: 'V', Γ: 'G', Δ: 'D', Ε: 'E', Ζ: 'Z', Η: 'I', Θ: 'T', Ι: 'I', Κ: 'K', Λ: 'L', Μ: 'M', Ν: 'N', Ξ: 'X', Ο: 'O', Π: 'P', Ρ: 'R', Σ: 'S', Τ: 'T', Υ: 'Y', Φ: 'F', Χ: 'C', Ψ: 'P', Ω: 'O' }
+  const initial = (word?: string) => latin[word?.[0]?.normalize('NFD')[0] as string] || 'X'
   let hash = 0
   for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) % 90000
   return `${initial(parts[0])}${initial(parts[parts.length - 1])}${10000 + hash}`
@@ -74,9 +77,9 @@ const usernameOf = name => {
 // A simulated run: everyone becomes «Δημιουργήθηκε · στάλθηκε», the confirmed
 // existing account «Συνδέθηκε», one address is rejected by the mail server, and a
 // few have already activated, so that every state of the result view shows.
-export function previewCreateAccounts(items, confirmExisting = []) {
+export function previewCreateAccounts(items: Row[], confirmExisting: string[] = []) {
   const batchId = 'preview-batch-1'
-  const results = []
+  const results: Row[] = []
   for (const [index, item] of items.entries()) {
     const row = state().find(r => r.employee_id === item.employeeId)
     if (!row) continue
@@ -98,7 +101,7 @@ export function previewCreateAccounts(items, confirmExisting = []) {
   return { batchId, results }
 }
 
-export function previewResend(employeeIds) {
+export function previewResend(employeeIds: string[]) {
   for (const id of employeeIds) {
     const row = state().find(r => r.employee_id === id)
     if (row) Object.assign(row, { invitation_created_at: at(0), invitation_expires_at: at(7, 23), invitation_revoked_at: null, email_status: 'pending', send_count: (row.send_count || 0) + 1 })
@@ -107,7 +110,7 @@ export function previewResend(employeeIds) {
 }
 
 // The confirmation's e-mail for the first recipient (subject, sender, reply-to).
-export function previewEmail(name, organization) {
+export function previewEmail(name: string, organization: { name?: string; contact_email?: string | null }) {
   return {
     to: '',
     name,
