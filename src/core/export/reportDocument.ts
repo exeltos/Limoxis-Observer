@@ -28,18 +28,29 @@ import {
   getReportBranding,
 } from '../organization/branding'
 import { formatDateTime } from '../i18n/formatDay'
+import type { ReportBranding } from '../organization/branding'
 
-export const escapeHtml = value =>
+// Οι τύποι της περιγραφής του εγγράφου (βλ. το σχόλιο πιο πάνω).
+export interface ReportCellObject { text?: unknown; html?: string | null; className?: string; colSpan?: number; align?: string; width?: string | number }
+export type ReportCell = string | number | boolean | null | undefined | ReportCellObject
+export interface ReportTable { title?: string; columns?: ReportCell[]; rows?: ReportCell[][]; foot?: ReportCell[] | null; empty?: string }
+export type ReportFact = [label: unknown, value?: unknown]
+export interface ReportSignature { role?: string; name?: string; date?: string; signed?: string }
+export interface ReportSection { title?: string; text?: unknown; html?: string; facts?: ReportFact[]; factColumns?: number; list?: unknown[]; table?: ReportTable; tables?: ReportTable[]; note?: unknown; keepTogether?: boolean; pageBreak?: boolean }
+export interface ReportDoc { language?: string; kind?: string; title?: string; code?: string; subtitle?: string; orientation?: string; meta?: ReportFact[]; metaColumns?: number; sections?: ReportSection[]; signatures?: (string | ReportSignature)[]; body?: string | null; filename?: string; footer?: string; band?: boolean; numbered?: boolean }
+export interface ReportOptions { branding?: ReportBranding | null; word?: boolean; now?: Date; pdf?: boolean; language?: string; onError?: (error: unknown) => void }
+
+export const escapeHtml = (value: unknown) =>
   String(value ?? '').replace(
     /[&<>"']/g,
-    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c],
   )
-const text = (value, fallback = '—') => {
+const text = (value: unknown, fallback = '—') => {
   const v = value == null ? '' : String(value)
   return v.trim() ? escapeHtml(v).replace(/\n/g, '<br>') : fallback
 }
 
-export function reportFileName(doc, branding = getReportBranding()) {
+export function reportFileName(doc: ReportDoc | null | undefined, branding: ReportBranding | null = getReportBranding()) {
   const base =
     String(doc?.filename || [doc?.code, doc?.title].filter(Boolean).join('_') || 'report')
       .trim()
@@ -48,11 +59,11 @@ export function reportFileName(doc, branding = getReportBranding()) {
   return branding?.demo && !base.startsWith('DEMO_') ? `DEMO_${base}` : base
 }
 
-function cell(value, tag = 'td') {
+function cell(value: ReportCell, tag = 'td') {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const attrs = [
       value.className && `class="${escapeHtml(value.className)}"`,
-      value.colSpan > 1 && `colspan="${Number(value.colSpan)}"`,
+      (value.colSpan ?? 0) > 1 && `colspan="${Number(value.colSpan)}"`,
       value.align &&
         `style="text-align:${value.align === 'right' ? 'right' : value.align === 'center' ? 'center' : 'left'}"`,
     ]
@@ -64,7 +75,7 @@ function cell(value, tag = 'td') {
 }
 
 const DENSE_COLUMNS = 11
-export function reportTableHtml({ columns = [], rows = [], foot = null, empty } = {}, en = false) {
+export function reportTableHtml({ columns = [], rows = [], foot = null, empty }: ReportTable = {}, en = false) {
   if (!rows.length)
     return `<p class="rd-empty">${escapeHtml(empty || (en ? 'No entries.' : 'Δεν υπάρχουν εγγραφές.'))}</p>`
   const head = columns.length
@@ -83,7 +94,7 @@ export function reportTableHtml({ columns = [], rows = [], foot = null, empty } 
   return `<table class="rd-table${dense}${fixed ? ' rd-fixed' : ''}" border="1" cellspacing="0" cellpadding="4">${colgroup}${head}<tbody>${body}</tbody>${footer}</table>`
 }
 
-export function factsHtml(facts = [], columns = 2) {
+export function factsHtml(facts: ReportFact[] = [], columns = 2) {
   const items = facts.filter(Boolean).filter(([label]) => label)
   if (!items.length) return ''
   const rows = []
@@ -91,18 +102,18 @@ export function factsHtml(facts = [], columns = 2) {
   return `<table class="rd-facts" cellspacing="0" cellpadding="0">${rows.map(row => `<tr>${row.map(([label, value], i) => `<th>${escapeHtml(label)}</th><td${i === row.length - 1 && row.length < columns ? ` colspan="${(columns - row.length) * 2 + 1}"` : ''}>${text(value)}</td>`).join('')}</tr>`).join('')}</table>`
 }
 
-function signaturesHtml(signatures = [], en) {
+function signaturesHtml(signatures: (string | ReportSignature)[] = [], en?: boolean) {
   if (!signatures.length) return ''
-  const list = signatures.map(item => (typeof item === 'string' ? { role: item } : item))
+  const list: ReportSignature[] = signatures.map(item => (typeof item === 'string' ? { role: item } : item))
   const per = Math.min(3, list.length)
   const rows = []
   for (let i = 0; i < list.length; i += per) rows.push(list.slice(i, i + per))
-  const L = (el, enText) => (en ? enText : el)
+  const L = (el: string, enText: string) => (en ? enText : el)
   return `<table class="rd-signatures" cellspacing="0" cellpadding="0">${rows.map(row => `<tr>${row.map(item => `<td><strong>${escapeHtml(item.role || '')}</strong><span>${L('Ονοματεπώνυμο', 'Name')}: ${item.name ? escapeHtml(item.name) : ''}</span><span>${L('Ημερομηνία', 'Date')}: ${item.date ? escapeHtml(item.date) : ''}</span><span>${L('Υπογραφή', 'Signature')}: ${item.signed ? escapeHtml(item.signed) : ''}</span></td>`).join('')}${'<td></td>'.repeat(per - row.length)}</tr>`).join('')}</table>`
 }
 
-function sectionHtml(section, number, en) {
-  const parts = []
+function sectionHtml(section: ReportSection, number: number, en?: boolean) {
+  const parts: string[] = []
   if (section.text)
     parts.push(
       String(section.text)
@@ -223,7 +234,7 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-certificate .rd-cert-number{margin:4mm 0 0;font-size:9pt;color:#5d7083}
 `
 
-function pageCss(doc) {
+function pageCss(doc: ReportDoc) {
   const size = doc.orientation === 'landscape' ? 'A4 landscape' : 'A4'
   // The page margin is 0 so Chrome/Edge add no date, title, address or page number of their own; the document keeps
   // its margins itself (.rd-page side padding, the .rd-sheet gaps above and below on every page) and its own footer line.
@@ -231,8 +242,8 @@ function pageCss(doc) {
 }
 
 export function buildReportHtml(
-  doc = {},
-  { branding = getReportBranding(), word = false, now = new Date(), pdf = false } = {},
+  doc: ReportDoc = {},
+  { branding = getReportBranding(), word = false, now = new Date(), pdf = false }: ReportOptions = {},
 ) {
   const en = doc.language === 'en'
   const printedOn = formatDateTime(now.toISOString(), doc.language || 'el')
@@ -245,7 +256,7 @@ export function buildReportHtml(
   const demo = branding?.demo ? `<p class="rd-demo">${escapeHtml(demoMark)}</p>` : ''
   // «PDF» opens the same print view with a line (screen only) on saving it as a PDF file.
   const pdfHint = pdf && !word ? `<p class="rd-pdf-hint">${en ? 'To save a PDF file, choose «Save as PDF» as the printer.' : 'Για αρχείο PDF, επιλέξτε «Αποθήκευση ως PDF» στον εκτυπωτή.'}</p>` : ''
-  let main
+  let main: string
   if (doc.body != null) main = `${doc.body}${signaturesHtml(doc.signatures || [], en)}`
   else {
     let n = 0
@@ -279,7 +290,7 @@ export function buildReportHtml(
 // Opens the built page in a new window and prints it (the browser's «Save as
 // PDF» keeps the text). Must run inside the click handler: popup blockers allow
 // a window only there. Returns false when the window was blocked.
-export function printReport(doc, options = {}) {
+export function printReport(doc: ReportDoc, options: ReportOptions = {}) {
   const win = window.open('', '_blank')
   if (!win) return false
   win.document.open()
@@ -302,7 +313,7 @@ export function printReport(doc, options = {}) {
 // A document whose data must be read first (e.g. every execution of a period): the window opens at once, inside the
 // click (popup blockers allow it only there), shows «Προετοιμασία…», and prints once the document is built.
 // build: async () => doc. Returns false when the window was blocked.
-export function printReportLater(build, options = {}) {
+export function printReportLater(build: () => ReportDoc | Promise<ReportDoc>, options: ReportOptions = {}) {
   const win = window.open('', '_blank')
   if (!win) return false
   win.document.write(`<!doctype html><meta charset="utf-8"><p style="font:14px Arial,sans-serif;color:#5d7083;padding:24px">${options.language === 'en' ? 'Preparing the document…' : 'Προετοιμασία του εντύπου…'}</p>`)
@@ -330,15 +341,15 @@ export function printReportLater(build, options = {}) {
 // print view, with the «Save as PDF» hint), and Word when asked.
 // build: () => doc (called on click, so the document is current);
 // onBlocked: called when the browser blocked the window.
-export function reportExports(build, { word = false, onBlocked } = {}) {
-  const open = pdf => () => {
+export function reportExports(build: () => ReportDoc, { word = false, onBlocked }: { word?: boolean; onBlocked?: () => void } = {}) {
+  const open = (pdf: boolean) => () => {
     if (!printReport(build(), { pdf })) onBlocked?.()
   }
   return { onPrint: open(false), onPdf: open(true), ...(word ? { onWord: () => downloadReportWord(build()) } : {}) }
 }
 
 // The same document as a .doc file (HTML that Word opens).
-export function downloadReportWord(doc, options = {}) {
+export function downloadReportWord(doc: ReportDoc, options: ReportOptions = {}) {
   const html = buildReportHtml(doc, { ...options, word: true })
   const url = URL.createObjectURL(new Blob(['\ufeff', html], { type: 'application/msword' }))
   const link = document.createElement('a')

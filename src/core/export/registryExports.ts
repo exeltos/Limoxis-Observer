@@ -4,8 +4,15 @@
 import { downloadXlsx } from './xlsxExport'
 import { printReport } from './reportDocument'
 import { hospitalToday } from '../dates/hospitalDate'
+import type { XlsxSheet } from './xlsxExport'
 
-const day=(value,en)=>{
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- εγγραφές διαφόρων πινάκων, όπως τις δίνουν οι λίστες
+type Row = Record<string, any>
+type Label = (value: string) => string
+// A list as a builder returns it: its name, the column headers and the rows.
+export interface RegistryExport { name: string; headers: string[]; rows: unknown[][] }
+
+const day=(value: string|number|Date|null|undefined,en?: boolean)=>{
  if(!value)return ''
  const date=new Date(String(value).length===10?`${value}T12:00:00`:value)
  return Number.isNaN(date.getTime())?String(value):new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(date)
@@ -13,11 +20,11 @@ const day=(value,en)=>{
 const stamp=()=>hospitalToday()
 
 // «Excel» of a list: a real .xlsx (column widths that fit the text, a header row, filters). `sheets` gives one sheet per group.
-export function exportRegistry({name,headers,rows,sheets}){
+export function exportRegistry({name,headers,rows,sheets}: Partial<RegistryExport> & { sheets?: XlsxSheet[] }){
  downloadXlsx(`${name}_${stamp()}.xlsx`,sheets||[{name:String(name||'Sheet').slice(0,31),headers,rows}])
 }
 
-export function documentsExport(families,{en,typeLabels={},statusLabels={}}){
+export function documentsExport(families: Row[],{en,typeLabels={},statusLabels={}}: {en?: boolean,typeLabels?: Record<string,string>,statusLabels?: Record<string,string>}){
  return {
   name:en?'documents':'eggrafa',
   headers:en?['Code','Title','Type','Current version','Versions','Owner','Department / audience','Effective','Review','Status']:['Κωδικός','Τίτλος','Τύπος','Τρέχουσα έκδοση','Εκδόσεις','Υπεύθυνος','Τμήμα / κοινό','Ισχύς από','Αναθεώρηση','Κατάσταση'],
@@ -25,8 +32,8 @@ export function documentsExport(families,{en,typeLabels={},statusLabels={}}){
  }
 }
 
-export function trainingProgramsExport(programs,assignments,{en,statusLabel=value=>value,categoryLabel=value=>value}){
- const byProgram=new Map()
+export function trainingProgramsExport(programs: Row[],assignments: Row[],{en,statusLabel=value=>value,categoryLabel=value=>value}: {en?: boolean,statusLabel?: Label,categoryLabel?: Label}){
+ const byProgram=new Map<unknown,Row[]>()
  for(const a of assignments){const list=byProgram.get(a.programId)||[];list.push(a);byProgram.set(a.programId,list)}
  return {
   name:en?'training-programmes':'programmata-ekpaideusis',
@@ -35,9 +42,9 @@ export function trainingProgramsExport(programs,assignments,{en,statusLabel=valu
  }
 }
 
-export function trainingParticipationExport(assignments,programs,certificates,{en,statusLabel=value=>value}){
- const programById=new Map(programs.map(p=>[p.id,p]))
- const certificateByAssignment=new Map(certificates.map(c=>[c.assignmentId,c]))
+export function trainingParticipationExport(assignments: Row[],programs: Row[],certificates: Row[],{en,statusLabel=value=>value}: {en?: boolean,statusLabel?: Label}){
+ const programById=new Map<unknown,Row>(programs.map(p=>[p.id,p]))
+ const certificateByAssignment=new Map<unknown,Row>(certificates.map(c=>[c.assignmentId,c]))
  return {
   name:en?'training-participation':'symmetoxes-ekpaideusis',
   headers:en?['Programme code','Programme','Person','Department','Email','Assigned','Due','Attendance','Completed','Score %','Status','Certificate','Valid until']:['Κωδικός προγράμματος','Πρόγραμμα','Άτομο','Τμήμα','Email','Ανάθεση','Προθεσμία','Παρουσία','Ολοκλήρωση','Βαθμός %','Κατάσταση','Πιστοποιητικό','Ισχύει έως'],
@@ -45,8 +52,8 @@ export function trainingParticipationExport(assignments,programs,certificates,{e
  }
 }
 
-export function controlsExport(rows,{en,frequencyLabel=()=>'' ,stateLabel=value=>value,criticality=()=>'',criticalityLabel=value=>value}){
- const lines=[]
+export function controlsExport(rows: {item: Row,departments: string[]}[],{en,frequencyLabel=()=>'' ,stateLabel=value=>value,criticality=()=>'',criticalityLabel=value=>value}: {en?: boolean,frequencyLabel?: Label,stateLabel?: (assignment: Row)=>unknown,criticality?: (item: Row)=>string,criticalityLabel?: Label}){
+ const lines: unknown[][]=[]
  for(const {item,departments} of rows){
   for(const department of departments){
    const assignment=item.assignments?.[department]||{}
@@ -62,16 +69,16 @@ export function controlsExport(rows,{en,frequencyLabel=()=>'' ,stateLabel=value=
  }
 }
 
-export function qualityExport(section,rows,{en,t=value=>value}){
- const owner=r=>(r.owners?.length?r.owners:[r.owner].filter(Boolean)).join(', ')
+export function qualityExport(section: string,rows: Row[],{en,t=value=>value}: {en?: boolean,t?: Label}){
+ const owner=(r: Row)=>(r.owners?.length?r.owners:[r.owner].filter(Boolean)).join(', ')
  // A bare number is the FileMaker record number of an imported record: kept in the data, not printed.
- const shownSource=id=>/^\d+$/.test(String(id??'').trim())?'':(id||'')
- const title=r=>(en?r.titleEn:r.title)||r.title
- const department=r=>(en?r.departmentEn:r.department)||r.department
+ const shownSource=(id: unknown)=>/^\d+$/.test(String(id??'').trim())?'':(id||'')
+ const title=(r: Row)=>(en?r.titleEn:r.title)||r.title
+ const department=(r: Row)=>(en?r.departmentEn:r.department)||r.department
  const common=[en?'Code':'Κωδικός',en?'Title':'Τίτλος',en?'Department':'Τμήμα']
  if(section==='capas'){
   return {name:en?'capa':'capa',headers:[...common,en?'Type':'Τύπος',en?'Priority':'Προτεραιότητα',en?'Owner':'Υπεύθυνος',en?'Due':'Προθεσμία',en?'Steps done':'Βήματα',en?'Source':'Πηγή',en?'Effectiveness review':'Έλεγχος αποτελεσματικότητας',en?'Effectiveness':'Αποτελεσματικότητα',en?'Status':'Κατάσταση'],
-   rows:rows.map(r=>{const steps=r.subActions||[];return [r.displayId||r.id,title(r),department(r),t(r.actionType),t(r.priority),owner(r),day(r.dueDate,en),steps.length?`${steps.filter(s=>s.done).length}/${steps.length}`:'',shownSource(r.sourceId),day(r.effectivenessDue,en),t(r.effectivenessStatus),t(r.status)]})}
+   rows:rows.map(r=>{const steps=r.subActions||[];return [r.displayId||r.id,title(r),department(r),t(r.actionType),t(r.priority),owner(r),day(r.dueDate,en),steps.length?`${steps.filter((s: Row)=>s.done).length}/${steps.length}`:'',shownSource(r.sourceId),day(r.effectivenessDue,en),t(r.effectivenessStatus),t(r.status)]})}
  }
  if(section==='incidents'){
   return {name:en?'incidents':'symvanta',headers:[...common,en?'Date':'Ημερομηνία',en?'Type':'Τύπος',en?'Severity':'Σοβαρότητα',en?'Reached patient':'Έφτασε στον ασθενή',en?'Harm':'Βλάβη',en?'Owner':'Υπεύθυνος',en?'Status':'Κατάσταση'],
@@ -86,9 +93,9 @@ export function qualityExport(section,rows,{en,t=value=>value}){
 }
 
 // The Excel (.csv) file of what the open tab lists, after its search and filters.
-export function surveillanceListExport(mode, rows, { language, t, fmt, organism, resistance, screening }) {
+export function surveillanceListExport(mode: string, rows: Row[], { language, t, fmt, organism, resistance, screening }: { language?: string, t: Label, fmt: (value: unknown) => string, organism: (row: Row) => unknown, resistance: (row: Row) => unknown, screening: Label }) {
   const en = language === 'en'
-  const pick = (el, enValue) => (en ? enValue || el : el)
+  const pick = (el: unknown, enValue: unknown) => (en ? enValue || el : el)
   if (mode === 'employees')
     return {
       name: en ? 'employee-screenings' : 'elegxoi-ergazomenon',
@@ -109,7 +116,7 @@ export function surveillanceListExport(mode, rows, { language, t, fmt, organism,
 }
 
 // The Excel (.csv) file of the registry as filtered on screen.
-export function patientsListExport(rows,{language,t,fmt}){
+export function patientsListExport(rows: Row[],{language,t,fmt}: {language?: string,t: Label,fmt: (value: unknown)=>string}){
   const en=language==='en'
   return {
     name:en?'patients':'asthenis',
@@ -121,20 +128,20 @@ export function patientsListExport(rows,{language,t,fmt}){
 // The same list as the spreadsheet, on the shared document layout (landscape), to
 // print or keep as PDF: so «Export» offers print and Excel on every list.
 // Returns false when the browser blocked the window.
-export function printRegistry({name,headers,rows},{language='el',kind='',title='',pdf=false}={}){
+export function printRegistry({name,headers,rows}: RegistryExport,{language='el',kind='',title='',pdf=false}={}){
  return printReport({language,orientation:'landscape',kind,title,metaColumns:1,meta:[[language==='en'?'Records':'Εγγραφές',String(rows.length)]],sections:[{title,table:{columns:headers,rows:rows.map(row=>row.map(cell=>cell==null?'':String(cell))),empty:language==='en'?'No records.':'Δεν υπάρχουν εγγραφές.'}}],filename:name},{pdf})
 }
 
 // «Export» of a list (owner, 2/11/2026): print and PDF on the shared landscape document and Excel, all from the one
 // description the list builds on click (what it shows now, after its filters). Spread it into an ExportMenu:
 // <ExportMenu {...registryMenu(() => patientsListExport(...), { language, kind, title, onBlocked })} />
-export function registryMenu(build,{language='el',kind='',title='',onBlocked}={}){
- const print=pdf=>()=>{if(!printRegistry(build(),{language,kind,title:title||kind,pdf}))onBlocked?.()}
+export function registryMenu(build: () => RegistryExport,{language='el',kind='',title='',onBlocked}: {language?: string,kind?: string,title?: string,onBlocked?: () => void}={}){
+ const print=(pdf: boolean)=>()=>{if(!printRegistry(build(),{language,kind,title:title||kind,pdf}))onBlocked?.()}
  return {onPrint:print(false),onPdf:print(true),onExcel:()=>exportRegistry(build())}
 }
 
 // The same for a menu of several lists: the print and Excel items of one list, to spread into ExportMenu `items`.
-export function registryItems(id,label,build,{language='el',kind='',title='',onBlocked,disabled=false}={}){
+export function registryItems(id: string,label: string,build: () => RegistryExport,{language='el',kind='',title='',onBlocked,disabled=false}: {language?: string,kind?: string,title?: string,onBlocked?: () => void,disabled?: boolean}={}){
  const en=language==='en',menu=registryMenu(build,{language,kind,title:title||label,onBlocked})
  return [
   {id:`${id}-print`,kind:'print',label:`${en?'Print':'Εκτύπωση'}: ${label}`,disabled,onClick:menu.onPrint},

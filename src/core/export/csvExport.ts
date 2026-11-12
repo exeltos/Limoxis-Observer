@@ -1,10 +1,10 @@
 import { DEMO_REPORT_MARK_EL, isDemoReport } from '../organization/branding'
 
-function csvCell(value){
+function csvCell(value: unknown){
  const text=String(value??'')
  return `"${text.replaceAll('"','""')}"`
 }
-export function downloadCsv(filename,headers,rows){
+export function downloadCsv(filename: string,headers: unknown[],rows: unknown[][]){
  // A Demo organization's files start with the DEMO mark and are named DEMO_….
  const demo=isDemoReport()
  if(demo&&!String(filename).startsWith('DEMO_'))filename=`DEMO_${filename}`

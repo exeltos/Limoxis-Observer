@@ -7,8 +7,8 @@
 
 // Decided once, from the address the app was opened with: navigating inside
 // the preview drops the query string.
-let emptyPreview
-export function isEmptyPreview(){
+let emptyPreview: boolean | undefined
+export function isEmptyPreview(): boolean {
  if(emptyPreview===undefined){
   if(typeof window==='undefined'||window.self===window.top)emptyPreview=false
   else{const params=new URLSearchParams(window.location.search);emptyPreview=params.get('helpPreview')==='1'&&params.get('helpEmpty')==='1'}
@@ -18,7 +18,7 @@ export function isEmptyPreview(){
 
 // Empties a sample-data list (or keyed map) in place in the empty preview, so
 // every screen and summary that reads it starts with no records.
-export function emptyInPreview(collection){
+export function emptyInPreview<T extends unknown[] | Record<string, unknown> | null | undefined>(collection: T): T {
  if(!collection||!isEmptyPreview())return collection
  if(Array.isArray(collection))collection.splice(0)
  else for(const key of Object.keys(collection))delete collection[key]

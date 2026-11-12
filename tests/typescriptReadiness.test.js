@@ -9,7 +9,7 @@ describe('TypeScript, step 1: the tests and the tools follow a file that changes
     expect(sourceExists('src/core/dates/hospitalDate.ts')).toBe(true)
   })
   it('the TypeScript files are checked by the strict compiler run and by ESLint', () => {
-    expect(readSource('tsconfig.strict.json')).toContain('src/core/dates/**/*.ts')
+    expect(readSource('tsconfig.strict.json')).toContain('src/core/**/*')
     const eslint = readSource('eslint.config.js')
     expect(eslint).toContain("files: ['src/**/*.{ts,tsx}']")
     expect(eslint).toContain("'src/core/supabase/database.types.ts'")
@@ -24,6 +24,14 @@ describe('TypeScript, step 1: the tests and the tools follow a file that changes
     // The language and feedback contexts declare their value for the typed callers.
     expect(readSource('src/core/i18n/LanguageContext.tsx')).toContain('createContext<LanguageContextValue | null>(null)')
     expect(readSource('src/core/feedback/FeedbackContext.tsx')).toContain('createContext<FeedbackContextValue | null>(null)')
+  })
+  it('step 3: the core is TypeScript and the tools load it with plain Node', () => {
+    const files = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(`${dir}/${entry.name}`) : [entry.name])
+    const core = files(new URL('../src/core', import.meta.url).pathname).filter(name => /\.(js|jsx|ts|tsx)$/.test(name))
+    expect(core.length).toBeGreaterThan(80)
+    expect(core.filter(name => /\.jsx?$/.test(name))).toEqual([])
+    expect(readSource('package.json')).toContain('node --import ./tools/ts/register.mjs tools/check-product-permissions.mjs')
+    expect(readSource('src/core/supabase/client.ts')).toContain('createClient<Database>(')
   })
   it('the database types exist without the per-register dynamic tables', () => {
     const types = readSource('src/core/supabase/database.types.ts')

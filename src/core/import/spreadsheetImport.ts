@@ -4,11 +4,11 @@
 
 // CSV as Excel writes it: optional BOM, ';' or ',' (whichever the header row
 // uses more), quoted cells with "" escapes and line breaks inside quotes.
-export function parseCsv(text){
+export function parseCsv(text: unknown){
  const source=String(text||'').replace(/^\ufeff/,'')
  const firstLine=source.split(/\r?\n/,1)[0]||''
  const delimiter=(firstLine.match(/;/g)||[]).length>=(firstLine.match(/,/g)||[]).length?';':','
- const rows=[];let row=[];let cell='';let quoted=false
+ const rows: string[][]=[];let row: string[]=[];let cell='';let quoted=false
  for(let i=0;i<source.length;i+=1){
   const ch=source[i]
   if(quoted){
@@ -27,14 +27,14 @@ export function parseCsv(text){
 }
 
 // Zip entries by name (only the central directory is trusted for sizes).
-async function unzip(buffer){
+async function unzip(buffer: ArrayBuffer){
  const view=new DataView(buffer)
  let end=buffer.byteLength-22
  while(end>=0&&view.getUint32(end,true)!==0x06054b50)end-=1
  if(end<0)throw new Error('SPREADSHEET_NOT_XLSX')
  const count=view.getUint16(end+10,true)
  let offset=view.getUint32(end+16,true)
- const entries=new Map()
+ const entries=new Map<string,{method:number,size:number,local:number}>()
  const decoder=new TextDecoder()
  for(let n=0;n<count;n+=1){
   if(view.getUint32(offset,true)!==0x02014b50)throw new Error('SPREADSHEET_NOT_XLSX')
@@ -46,7 +46,7 @@ async function unzip(buffer){
   entries.set(name,{method,size,local})
   offset+=46+nameLength+extraLength+commentLength
  }
- return async name=>{
+ return async (name: string): Promise<string|null>=>{
   const entry=entries.get(name)
   if(!entry)return null
   const start=entry.local+30+view.getUint16(entry.local+26,true)+view.getUint16(entry.local+28,true)
@@ -58,13 +58,13 @@ async function unzip(buffer){
  }
 }
 
-const columnIndex=ref=>{let n=0;for(const ch of String(ref).replace(/\d+$/,''))n=n*26+(ch.charCodeAt(0)-64);return n-1}
-const xml=text=>new DOMParser().parseFromString(text,'application/xml')
-const byTag=(node,tag)=>[...node.getElementsByTagName(tag)]
+const columnIndex=(ref: unknown)=>{let n=0;for(const ch of String(ref).replace(/\d+$/,''))n=n*26+(ch.charCodeAt(0)-64);return n-1}
+const xml=(text: string)=>new DOMParser().parseFromString(text,'application/xml')
+const byTag=(node: Document|Element,tag: string)=>[...node.getElementsByTagName(tag)]
 
-export async function parseXlsx(buffer){
+export async function parseXlsx(buffer: ArrayBuffer){
  const read=await unzip(buffer)
- const shared=[]
+ const shared: string[]=[]
  const sharedXml=await read('xl/sharedStrings.xml')
  if(sharedXml)for(const si of byTag(xml(sharedXml),'si'))shared.push(byTag(si,'t').map(t=>t.textContent).join(''))
  // The first sheet in workbook order, through its relationship id.
@@ -78,9 +78,9 @@ export async function parseXlsx(buffer){
  }
  const sheet=await read(sheetPath)
  if(!sheet)throw new Error('SPREADSHEET_EMPTY')
- const rows=[]
+ const rows: string[][]=[]
  for(const rowNode of byTag(xml(sheet),'row')){
-  const row=[]
+  const row: string[]=[]
   for(const c of byTag(rowNode,'c')){
    const type=c.getAttribute('t')
    const value=byTag(c,'v')[0]?.textContent??''
@@ -96,28 +96,31 @@ export async function parseXlsx(buffer){
 // their position (row n of the sheet is rows[n-1]) and numbers stay numbers,
 // for layouts read by position (e.g. the risk assessment form). Parsed with
 // regular expressions rather than DOMParser so it also runs outside a browser.
-const XML_ENTITIES={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"}
-const decodeXml=text=>String(text).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,(m,e)=>e[0]==='#'?String.fromCodePoint(e[1].toLowerCase()==='x'?parseInt(e.slice(2),16):parseInt(e.slice(1),10)):XML_ENTITIES[e]??m)
-const xmlAttr=(tag,name)=>{const m=tag.match(new RegExp(`\\s${name}="([^"]*)"`));return m?decodeXml(m[1]):null}
-const xmlTexts=part=>[...String(part).matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>decodeXml(m[1])).join('')
+const XML_ENTITIES: Record<string,string>={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"}
+const decodeXml=(text: unknown)=>String(text).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,(m,e)=>e[0]==='#'?String.fromCodePoint(e[1].toLowerCase()==='x'?parseInt(e.slice(2),16):parseInt(e.slice(1),10)):XML_ENTITIES[e]??m)
+const xmlAttr=(tag: string,name: string)=>{const m=tag.match(new RegExp(`\\s${name}="([^"]*)"`));return m?decodeXml(m[1]):null}
+const xmlTexts=(part: unknown)=>[...String(part).matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>decodeXml(m[1])).join('')
 
 // skipEmpty: leave out formatted but empty rows (an export can carry a million);
 // otherwise rows are kept in place (row n is rows[n-1]).
-export async function readWorkbookSheets(buffer,{skipEmpty=false}={}){
+// A cell of readWorkbookSheets: text, a number or a boolean.
+export type SheetCell = string|number|boolean
+
+export async function readWorkbookSheets(buffer: ArrayBuffer,{skipEmpty=false}={}){
  const read=await unzip(buffer)
  const workbook=await read('xl/workbook.xml')
  if(!workbook)throw new Error('SPREADSHEET_NOT_XLSX')
  const rels=await read('xl/_rels/workbook.xml.rels')||''
  const targets=Object.fromEntries([...rels.matchAll(/<Relationship\b[^>]*>/g)].map(([tag])=>[xmlAttr(tag,'Id'),xmlAttr(tag,'Target')]))
  const shared=[...(await read('xl/sharedStrings.xml')||'').matchAll(/<si>([\s\S]*?)<\/si>/g)].map(m=>xmlTexts(m[1]))
- const sheets=[]
+ const sheets: {name: string,rows: SheetCell[][]}[]=[]
  for(const [tag] of workbook.matchAll(/<sheet\b[^>]*>/g)){
-  const target=targets[xmlAttr(tag,'r:id')]||''
+  const target=targets[xmlAttr(tag,'r:id') as string]||''
   const sheet=await read(target.startsWith('/')?target.slice(1):`xl/${target.replace(/^\.\//,'')}`)
   if(!sheet)continue
-  const rows=[]
+  const rows: SheetCell[][]=[]
   for(const [,rowAttrs,body] of sheet.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)){
-   const cells=[]
+   const cells: SheetCell[]=[]
    for(const [,cellAttrs,inner] of body.matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)){
     const type=xmlAttr(cellAttrs,'t'),v=(inner||'').match(/<v>([\s\S]*?)<\/v>/)?.[1]
     const value=type==='s'?shared[Number(v)]??'':type==='inlineStr'?xmlTexts(inner||''):type==='str'||type==='e'?decodeXml(v??''):type==='b'?v==='1':v==null?null:Number(v)
@@ -131,7 +134,7 @@ export async function readWorkbookSheets(buffer,{skipEmpty=false}={}){
  return sheets
 }
 
-export async function readSpreadsheet(file){
+export async function readSpreadsheet(file: File){
  const name=String(file?.name||'').toLowerCase()
  if(name.endsWith('.csv')||name.endsWith('.txt'))return parseCsv(await file.text())
  if(name.endsWith('.xlsx'))return parseXlsx(await file.arrayBuffer())
