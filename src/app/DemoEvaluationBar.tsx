@@ -3,17 +3,38 @@ import { ChevronDown, Eye, FlaskConical, ListChecks, LogOut, RotateCcw, Send } f
 import { DEMO_SCENARIOS } from '../features/demo/demoScenarios'
 import { BrandMark } from '../design-system/BrandMark'
 import './demoEvaluationBar.css'
+import type { ReactNode } from 'react'
+import type { AnyRecord, Translate } from '../types/featureTypes'
 
 const DEMO_BODY_CLASS='lo-demo-organization'
-const formatDate=(value,language)=>{if(!value)return '';const date=new Date(`${value}T00:00:00`);return Number.isNaN(date.getTime())?value:date.toLocaleDateString(language==='en'?'en-GB':'el-GR')}
+const formatDate=(value: string|null|undefined,language: string)=>{if(!value)return '';const date=new Date(`${value}T00:00:00`);return Number.isNaN(date.getTime())?value:date.toLocaleDateString(language==='en'?'en-GB':'el-GR')}
 
 // A slim line above the content of a Demo organization (as in SurgiTrack): how
 // long the Demo stays open, the evaluation guide, the role and the request.
 // The organization's name is already in the topbar, so the line stays short and
 // the page under it keeps its place.
-export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previewOpen=false,previewLabel='',rolePicker=null,onPreviewRoles,onExit,guideDone=0,guideTotal=DEMO_SCENARIOS.length,onOpenGuide,canRequestApplication=false,applicationRequested=false,onRequestApplication,onResetData,resetting=false}){
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
-  const days=Number.isFinite(Number(access?.daysLeft))?Number(access.daysLeft):null
+interface DemoEvaluationBarProps {
+  tenant?: { name?: string | null } | null
+  access?: AnyRecord | null
+  isPlatformOwner?: boolean
+  language: string
+  previewOpen?: boolean
+  previewLabel?: string
+  rolePicker?: ReactNode
+  onPreviewRoles?: () => void
+  onExit?: () => void
+  guideDone?: number
+  guideTotal?: number
+  onOpenGuide?: (() => void) | null
+  canRequestApplication?: boolean
+  applicationRequested?: boolean
+  onRequestApplication?: () => void
+  onResetData?: (() => void) | null
+  resetting?: boolean
+}
+export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previewOpen=false,previewLabel='',rolePicker=null,onPreviewRoles,onExit,guideDone=0,guideTotal=DEMO_SCENARIOS.length,onOpenGuide,canRequestApplication=false,applicationRequested=false,onRequestApplication,onResetData,resetting=false}: DemoEvaluationBarProps){
+  const en=language==='en';const tx: Translate=(el,enText)=>en?enText:el
+  const days=Number.isFinite(Number(access?.daysLeft))?Number(access?.daysLeft):null
   const remaining=days===null?'':days<=0?tx('Λήγει σήμερα','Ends today'):days===1?tx('Απομένει 1 ημέρα','1 day left'):tx(`Απομένουν ${days} ημέρες`,`${days} days left`)
   const until=access?.validUntil?`(${tx('έως','until')} ${formatDate(access.validUntil,language)})`:''
   const sample=tx('δοκιμαστικά δεδομένα','sample data')
@@ -38,8 +59,8 @@ export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previe
 }
 
 // Shown to an evaluator whose Demo expired or was paused: the data is closed.
-export function DemoClosedScreen({access,language,onLogout}){
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
+export function DemoClosedScreen({access,language,onLogout}: { access: AnyRecord | null | undefined, language: string, onLogout: () => void }){
+  const en=language==='en';const tx: Translate=(el,enText)=>en?enText:el
   const paused=access?.status==='paused'||(access?.organizationStatus&&access.organizationStatus!=='active')
   return <div className="demo-closed-screen">
     <div className="demo-closed-card">

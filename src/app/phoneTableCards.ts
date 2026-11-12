@@ -5,7 +5,7 @@ const TABLES = '.content table.data-table'
 // Sort arrows belong to the header button, not to the column's name.
 const SORT_MARKS = /[▲▼↑↓⇅]/g
 
-export function labelTableCells(root) {
+export function labelTableCells(root: ParentNode) {
   for (const table of root.querySelectorAll(TABLES)) {
     const labels = [...table.querySelectorAll(':scope>thead>tr>th')].map(th => th.textContent.replace(SORT_MARKS, '').trim())
     for (const tr of table.querySelectorAll(':scope>tbody>tr')) {

@@ -22,7 +22,7 @@ import './styles/responsive.css'
 const LiraAssistantLauncher = lazyPage(() => import('./features/lira/LiraAssistantLauncher'), 'LiraAssistantLauncher')
 installChunkRecovery()
 // A returning English user gets the English chunk before the first paint.
-preloadInitialLanguage().then(() => ReactDOM.createRoot(document.getElementById('root')).render(
+preloadInitialLanguage().then(() => ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
       <LanguageProvider>

@@ -27,7 +27,7 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import type { AnyRecord } from '../../types/featureTypes'
 
 // The Division Director's home (its departments, rosters and interviews): its own chunk.
-const DivisionHome=lazyPage(()=>import('../division/DivisionHome').then(module=>({DivisionHome:module.DivisionHome})),'DivisionHome')
+const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome')
 
 
 type Metrics=Record<string, number | undefined>

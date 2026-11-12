@@ -12,11 +12,11 @@
 const SLACK = 24 // px of vertical scroll that only come from a horizontal scrollbar
 const DIALOG = '[role="dialog"],dialog,.observer-dialog'
 
-const overflowOf = (el, axis) => getComputedStyle(el)[axis === 'y' ? 'overflowY' : 'overflowX']
-const scrolls = (el, axis) => /(auto|scroll)/.test(overflowOf(el, axis))
+const overflowOf = (el: Element, axis: 'x' | 'y') => getComputedStyle(el)[axis === 'y' ? 'overflowY' : 'overflowX']
+const scrolls = (el: Element, axis: 'x' | 'y') => /(auto|scroll)/.test(overflowOf(el, axis))
 
 // Room left to scroll `el` by `deltaY` (sign gives the direction).
-export function roomToScroll(el, deltaY) {
+export function roomToScroll(el: Element, deltaY: number) {
   const max = el.scrollHeight - el.clientHeight
   if (max <= 0) return false
   // A box that scrolls sideways, with at most a scrollbar's worth of height to
@@ -25,11 +25,11 @@ export function roomToScroll(el, deltaY) {
   return deltaY > 0 ? el.scrollTop < max - 1 : el.scrollTop > 0
 }
 
-function lineHeight(event, el) {
+function lineHeight(event: WheelEvent, el: Element) {
   return event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? el.clientHeight : 1
 }
 
-export function handleWheel(event) {
+export function handleWheel(event: WheelEvent) {
   if (event.defaultPrevented || event.ctrlKey || !event.deltaY || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
   const root = document.scrollingElement || document.documentElement
   // True once the wheel has passed a scroll box that cannot move this way: the

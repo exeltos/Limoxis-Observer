@@ -6,7 +6,7 @@ import { Suspense } from 'react'
 import { lazyPage } from '../../core/errors/chunkRecovery'
 import { RouteLoading } from '../../design-system/RouteLoading'
 
-const DivisionDepartmentView=lazyPage(()=>import('../division/DivisionHome').then(module=>({DivisionDepartmentView:module.DivisionDepartmentView})),'DivisionDepartmentView')
+const DivisionDepartmentView=lazyPage(()=>import('../division/DivisionHome'),'DivisionDepartmentView')
 
 // Department home: same layout as the role dashboards (priority work and
 // announcements); the manager's tiles count the department, never the whole organization.

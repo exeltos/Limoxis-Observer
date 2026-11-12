@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type FocusEvent } from 'react'
 import { readLocalValue, writeLocalValue } from '../core/storage/browserStorage'
 
 const PIN_KEY = 'limoxis.sidebar.pinned'
 const OPEN_DELAY_MS = 160
 const CLOSE_DELAY_MS = 320
 
-export function useMedia(query) {
+export function useMedia(query: string) {
   const [matches, setMatches] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia) && window.matchMedia(query).matches)
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined
@@ -26,15 +26,15 @@ export function useSidebarRail() {
   const wide = useMedia('(min-width:1101px)')
   const [pinned, setPinned] = useState(() => readLocalValue(PIN_KEY) === '1')
   const [open, setOpen] = useState(false)
-  const timer = useRef(null)
-  const later = (value, delay) => { window.clearTimeout(timer.current); timer.current = window.setTimeout(() => setOpen(value), delay) }
+  const timer = useRef<number | undefined>(undefined)
+  const later = (value: boolean, delay: number) => { window.clearTimeout(timer.current); timer.current = window.setTimeout(() => setOpen(value), delay) }
   useEffect(() => () => window.clearTimeout(timer.current), [])
   const togglePin = useCallback(() => setPinned(current => { const next = !current; writeLocalValue(PIN_KEY, next ? '1' : '0'); return next }), [])
   const handlers = {
     onMouseEnter: () => later(true, OPEN_DELAY_MS),
     onMouseLeave: () => later(false, CLOSE_DELAY_MS),
     onFocus: () => { window.clearTimeout(timer.current); setOpen(true) },
-    onBlur: event => { if (!event.currentTarget.contains(event.relatedTarget)) later(false, CLOSE_DELAY_MS) },
+    onBlur: (event: FocusEvent<HTMLElement>) => { if (!event.currentTarget.contains(event.relatedTarget)) later(false, CLOSE_DELAY_MS) },
   }
   return { rail: tablet || (wide && !pinned && !open), wide, pinned, togglePin, handlers }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useFeedback } from '../core/feedback/FeedbackContext'
+import type { AnyRecord } from '../types/featureTypes'
 
 // Typing into a screen's fields marks it as having unsaved changes until the next
 // successful save (any "success" notification) or the next screen. While it does,
@@ -8,9 +9,9 @@ import { useFeedback } from '../core/feedback/FeedbackContext'
 // Search boxes, filters, pagination and dialogs (which guard themselves) do not count.
 const SAVED_EVENT = 'limoxis:saved'
 const IGNORED = '.filter-primary-row, .filter-popover, .filter-search, .registry-pagination, [role=search], .observer-dialog, .confirm-dialog'
-const isSearchField = el => el?.type === 'search' || /search|αναζήτ/i.test(`${el?.className || ''} ${el?.placeholder || ''}`)
+const isSearchField = (el: AnyRecord | null | undefined) => el?.type === 'search' || /search|αναζήτ/i.test(`${el?.className || ''} ${el?.placeholder || ''}`)
 
-export function UnsavedChangesGuard({ language }) {
+export function UnsavedChangesGuard({ language }: { language: string }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { confirm } = useFeedback()
@@ -20,16 +21,16 @@ export function UnsavedChangesGuard({ language }) {
 
   useEffect(() => {
     const en = language === 'en'
-    const markDirty = event => {
-      const el = event.target
+    const markDirty = (event: Event) => {
+      const el = event.target as AnyRecord | null
       if (!el?.closest?.('.content') || el.closest(IGNORED) || isSearchField(el)) return
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable) dirty.current = true
     }
     const clear = () => { dirty.current = false }
-    const warnUnload = event => { if (dirty.current) { event.preventDefault(); event.returnValue = '' } }
-    const guardLinks = async event => {
+    const warnUnload = (event: BeforeUnloadEvent) => { if (dirty.current) { event.preventDefault(); event.returnValue = '' } }
+    const guardLinks = async (event: MouseEvent) => {
       if (!dirty.current || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-      const link = event.target?.closest?.('a[href]')
+      const link = (event.target as Element | null)?.closest?.<HTMLAnchorElement>('a[href]')
       if (!link || link.target === '_blank' || link.hasAttribute('download')) return
       const url = new URL(link.href, window.location.href)
       if (url.origin !== window.location.origin || url.pathname + url.search === window.location.pathname + window.location.search) return

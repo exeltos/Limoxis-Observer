@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, type ReactNode } from 'react'
 import { lazyPage } from '../core/errors/chunkRecovery'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
@@ -14,7 +14,7 @@ import { sectionCapabilities } from '../core/navigation/sectionTabs'
 import { GlobalTextareaExpander } from '../design-system/GlobalTextareaExpander'
 import { PlatformMaintenanceBanner } from '../features/platform/PlatformMaintenanceBanner'
 
-const lazyNamed = (loader, name) => lazyPage(loader, name)
+const lazyNamed = (loader: () => Promise<object>, name: string) => lazyPage(loader, name)
 const LoginPage = lazyNamed(() => import('../features/auth/LoginPage'), 'LoginPage')
 // Sign-in side pages other than the login screen load on demand.
 const ResetPasswordPage = lazyNamed(() => import('../features/auth/ResetPasswordPage'), 'ResetPasswordPage')
@@ -158,8 +158,8 @@ registerRoutePreload('/library', LibraryPage)
 registerRoutePreload('/management', ManagementPage)
 registerRoutePreload('/platform', PlatformCenterPage)
 const KITCHEN_CAPABILITIES = [CAPABILITIES.VIEW_KITCHEN, CAPABILITIES.RECORD_KITCHEN, CAPABILITIES.MANAGE_KITCHEN]
-const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
-const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
+const gate = (capability: string, element: ReactNode) => <RequireCapability capability={capability}>{element}</RequireCapability>
+const gateAny = (capabilities: readonly string[], element: ReactNode) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
 // The Director's home is the Executive dashboard (overview + analysis), not the generic overview.
 function HomeRoute(){const {profile}=useAuth();const {activeMembershipId,isDemo,loading,role}=useTenant();if(loading)return <RouteLoading/>;if(profile?.isPlatformOwner&&!activeMembershipId&&!isDemo)return <Navigate to="/platform" replace/>;if(role===ROLES.HOSPITAL_DIRECTOR)return <Navigate to="/executive" replace/>;return gate(CAPABILITIES.VIEW_DASHBOARD,<DashboardPage/>)}
 export function App(){return <><GlobalTextareaExpander/><PlatformMaintenanceBanner/><Routes>
