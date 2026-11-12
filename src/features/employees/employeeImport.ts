@@ -1,10 +1,11 @@
+import type { AnyRecord } from '../../types/featureTypes'
 // Staff import from a spreadsheet: one row per employee, matched to the
 // hospital's departments, professional categories and job positions. Rows
 // whose code already exists update that employee (when asked); everything is
 // checked before anything is saved.
 
 // [key, Greek header, English header, other accepted headers]
-const IMPORT_COLUMNS=[
+const IMPORT_COLUMNS: [string, string, string, string[]][]=[
  ['code','Κωδικός','Code',['κωδικός εργαζομένου','κωδικός φακέλου','employee code','id']],
  ['lastName','Επώνυμο','Last name',['surname']],
  ['firstName','Όνομα','First name',['name']],
@@ -20,7 +21,7 @@ const IMPORT_COLUMNS=[
 ]
 const REQUIRED=['code','lastName','firstName','department','profession']
 
-const norm=value=>String(value??'').trim().toLocaleLowerCase('el').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ')
+const norm=(value: unknown)=>String(value??'').trim().toLocaleLowerCase('el').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ')
 
 export function templateRows(en=false){
  return {
@@ -30,8 +31,8 @@ export function templateRows(en=false){
 }
 
 // Column index per key, from the header row (Greek or English, any case or accents).
-export function mapHeaders(header=[]){
- const map={}
+export function mapHeaders(header: unknown[]=[]){
+ const map: Record<string, number>={}
  header.forEach((cell,index)=>{
   const value=norm(cell)
   if(!value)return
@@ -42,7 +43,7 @@ export function mapHeaders(header=[]){
 }
 
 // YYYY-MM-DD from ISO, DD/MM/YYYY (or - .), or an Excel day number.
-export function normalizeDate(value){
+export function normalizeDate(value: unknown){
  const text=String(value??'').trim()
  if(!text)return ''
  if(/^\d{4}-\d{2}-\d{2}/.test(text))return text.slice(0,10)
@@ -52,7 +53,7 @@ export function normalizeDate(value){
  return null
 }
 
-function normalizeStatus(value){
+function normalizeStatus(value: unknown){
  const text=norm(value)
  if(!text||['ενεργος','ενεργη','active','ναι','yes'].includes(text))return 'active'
  if(['ανενεργος','ανενεργη','inactive','οχι','no'].includes(text))return 'inactive'
@@ -60,22 +61,22 @@ function normalizeStatus(value){
 }
 
 // departments: [{id,name,nameEn}]; professions/positions: library rows [el,en,...].
-export function planEmployeeImport(rows,{existing=[],departments=[],professions=[],positions=[],updateExisting=false,en=false}={}){
+export function planEmployeeImport(rows: unknown[][],{existing=[],departments=[],professions=[],positions=[],updateExisting=false,en=false}: {existing?: AnyRecord[],departments?: AnyRecord[],professions?: AnyRecord[],positions?: AnyRecord[],updateExisting?: boolean,en?: boolean}={}){
  const [header=[],...body]=rows
  const columns=mapHeaders(header)
- const missingColumns=REQUIRED.filter(key=>columns[key]==null).map(key=>IMPORT_COLUMNS.find(c=>c[0]===key)[en?2:1])
+ const missingColumns=REQUIRED.filter(key=>columns[key]==null).map(key=>IMPORT_COLUMNS.find(c=>c[0]===key)![en?2:1])
  if(missingColumns.length)return {missingColumns,items:[],counts:{create:0,update:0,skip:0,error:0}}
  const byCode=new Map(existing.map(employee=>[norm(employee.id||employee.employeeCode),employee]))
- const departmentBy=new Map();for(const d of departments){departmentBy.set(norm(d.name),d);if(d.nameEn)departmentBy.set(norm(d.nameEn),d)}
- const libraryBy=list=>{const map=new Map();for(const row of list){if(row?.[0])map.set(norm(row[0]),row);if(row?.[1])map.set(norm(row[1]),row)}return map}
+ const departmentBy=new Map<string, AnyRecord>();for(const d of departments){departmentBy.set(norm(d.name),d);if(d.nameEn)departmentBy.set(norm(d.nameEn),d)}
+ const libraryBy=(list: AnyRecord[])=>{const map=new Map();for(const row of list){if(row?.[0])map.set(norm(row[0]),row);if(row?.[1])map.set(norm(row[1]),row)}return map}
  const professionBy=libraryBy(professions),positionBy=libraryBy(positions)
  const seen=new Set()
- const cell=(row,key)=>columns[key]==null?'':String(row[columns[key]]??'').trim()
- const items=body.map((row,index)=>{
-  const line=index+2,errors=[],warnings=[]
+ const cell=(row: unknown[],key: string)=>columns[key]==null?'':String(row[columns[key]]??'').trim()
+ const items=body.map((row: unknown[],index: number)=>{
+  const line=index+2,errors: string[]=[],warnings: string[]=[]
   const code=cell(row,'code')
-  const value={id:code,employeeCode:code,firstName:cell(row,'firstName'),lastName:cell(row,'lastName'),fatherName:cell(row,'fatherName'),email:cell(row,'email'),phone:cell(row,'phone')}
-  for(const key of REQUIRED)if(!cell(row,key))errors.push(en?`${IMPORT_COLUMNS.find(c=>c[0]===key)[2]} is empty`:`Κενό: ${IMPORT_COLUMNS.find(c=>c[0]===key)[1]}`)
+  const value: AnyRecord={id:code,employeeCode:code,firstName:cell(row,'firstName'),lastName:cell(row,'lastName'),fatherName:cell(row,'fatherName'),email:cell(row,'email'),phone:cell(row,'phone')}
+  for(const key of REQUIRED)if(!cell(row,key))errors.push(en?`${IMPORT_COLUMNS.find(c=>c[0]===key)![2]} is empty`:`Κενό: ${IMPORT_COLUMNS.find(c=>c[0]===key)![1]}`)
   if(code&&seen.has(norm(code)))errors.push(en?'Code repeated in the file':'Ο κωδικός επαναλαμβάνεται στο αρχείο')
   if(code)seen.add(norm(code))
   const departmentText=cell(row,'department'),department=departmentBy.get(norm(departmentText))
@@ -102,7 +103,7 @@ export function planEmployeeImport(rows,{existing=[],departments=[],professions=
   if(errors.length)action='error'
   return {line,code,name:[value.lastName,value.firstName].filter(Boolean).join(' '),value,current:current||null,action,errors,warnings}
  })
- const counts={create:0,update:0,skip:0,error:0}
+ const counts: Record<string, number>={create:0,update:0,skip:0,error:0}
  for(const item of items)counts[item.action]+=1
  return {missingColumns:[],items,counts}
 }

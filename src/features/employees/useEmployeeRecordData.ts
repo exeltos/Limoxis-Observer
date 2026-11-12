@@ -3,24 +3,25 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { cloudEnabled, loadEmployeeRecordAsync, loadSelfEmployeeCandidatesAsync } from './employeeService'
 import { useEmployeesData } from './useEmployeesData'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The employee record reads its own employee, not the whole register: by code
 // (/employees/:code) or, for "My profile", the few rows that can be the
 // signed-in user's. Same shape as useEmployeesData (rows, loading, error,
 // reload, setData), so the page finds the employee the same way. The demo and
 // the owner preview keep the register (useEmployeesData).
-export function useEmployeeRecordData({ code = null, selfMode = false, self = {} } = {}) {
+export function useEmployeeRecordData({ code = null, selfMode = false, self = {} }: { code?: string | null, selfMode?: boolean, self?: { employeeCode?: string | null, userId?: string | null, email?: string | null } } = {}) {
   const { tenant } = useTenant()
   const organizationId = tenant?.id ?? null
   const single = cloudEnabled() && Boolean(organizationId) && !isOwnerPreview()
   const roster = useEmployeesData({ enabled: !single })
-  const [data, setData] = useState([])
+  const [data, setData] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(single)
-  const [error, setError] = useState(null)
-  const loaded = useRef(null)
+  const [error, setError] = useState<unknown>(null)
+  const loaded = useRef<{ code: string | null, dbId: string | null } | null>(null)
   // The code the rows on hand were read for: moving to another employee shows the
   // placeholder, not one frame of the previous employee (or «not found»).
-  const [loadedCode, setLoadedCode] = useState(undefined)
+  const [loadedCode, setLoadedCode] = useState<string | null | undefined>(undefined)
   const { employeeCode = null, userId = null, email = null } = self
 
   const read = useCallback(async ({ keep = false } = {}) => {

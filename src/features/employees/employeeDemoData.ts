@@ -1,7 +1,8 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, dayInMonth } from '../../core/data/demoSeed'
-export const employeeRows = [
+import type { AnyRecord } from '../../types/featureTypes'
+export const employeeRows: AnyRecord[] = [
   {id:'EMP-001',hrDepartment:'4260 Μ.Ε.Θ.',directorate:'10 ΝΟΣΗΛΕΥΤΙΚΗ ΔΙΕΥΘΥΝΣΗ',position:'Νοσηλευτής/τρια ΜΕΘ',positionEn:'ICU Nurse',firstName:'Μαρία',firstNameEn:'Maria',lastName:'Παπαδοπούλου',lastNameEn:'Papadopoulou',fatherName:'Ιωάννης',fatherNameEn:'Ioannis',department:'ΜΕΘ',departmentEn:'ICU',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'m.papadopoulou@example.org',phone:'210 555 0101',hireDate:'2019-03-18',birthDate:'1990-08-29'},
   {id:'EMP-002',position:'Επιμελητής Ιατρός',positionEn:'Consultant Physician',firstName:'Νικόλαος',firstNameEn:'Nikolaos',lastName:'Δημητρίου',lastNameEn:'Dimitriou',fatherName:'Αλέξανδρος',fatherNameEn:'Alexandros',department:'Παθολογική',departmentEn:'Internal Medicine',profession:'Ιατρικό προσωπικό',professionEn:'Medical staff',employmentStatus:'active',email:'n.dimitriou@example.org',phone:'210 555 0102',hireDate:'2021-09-01'},
   {id:'EMP-003',position:'Προϊστάμενος/η Τμήματος',positionEn:'Head of Department (Nursing)',firstName:'Ελένη',firstNameEn:'Eleni',lastName:'Κωνσταντίνου',lastNameEn:'Konstantinou',fatherName:'Δημήτριος',fatherNameEn:'Dimitrios',department:'Χειρουργική',departmentEn:'Surgery',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'e.konstantinou@example.org',phone:'210 555 0103',hireDate:'2017-01-12'},
@@ -60,7 +61,7 @@ export const employeeTraining = [
 
 // Performance evaluations: one completed cycle for everyone, current cycle in progress.
 const CRITERIA=[['professional-competence','Επαγγελματική επάρκεια'],['quality-accuracy','Ποιότητα & ακρίβεια εργασίας'],['procedures-protocols','Τήρηση διαδικασιών / πρωτοκόλλων'],['patient-safety-ipc','Ασφάλεια ασθενών & πρόληψη λοιμώξεων'],['teamwork','Συνεργασία / ομαδικότητα'],['communication','Επικοινωνία'],['responsibility','Υπευθυνότητα / συνέπεια'],['professional-development','Επαγγελματική ανάπτυξη']]
-function evaluation(id,employeeId,period,date,evaluatorName,scores,status,notes){
+function evaluation(id: string,employeeId: string,period: string,date: string,evaluatorName: string,scores: number[],status: string,notes: string){
   const criteria=CRITERIA.map(([cid,name],i)=>({id:cid,name,score:scores[i],weight:1}))
   const overallScore=Number((scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(2))
   const done=['employee_acknowledged','hr_approved','finalized'].includes(status)
@@ -125,8 +126,8 @@ employeeRows.push(
 // with a year of occupational-health history: a visit, vaccinations, an exposure
 // report, an evaluation and an administrative trail.
 const NURSE=['Νοσηλευτικό προσωπικό','Nursing staff'],DOCTOR=['Ιατρικό προσωπικό','Medical staff'],LAB=['Εργαστηριακό προσωπικό','Laboratory staff']
-const POSITION={head:['Προϊστάμενος/η Τμήματος','Head of Department (Nursing)',NURSE],icuNurse:['Νοσηλευτής/τρια ΜΕΘ','ICU Nurse',NURSE],nurse:['Νοσηλευτής/τρια Θαλάμου','Ward Nurse',NURSE],assistant:['Βοηθός Θαλάμου','Ward Assistant',NURSE],consultant:['Επιμελητής Ιατρός','Consultant Physician',DOCTOR],resident:['Ειδικευόμενος Ιατρός','Resident Physician',DOCTOR],lab:['Τεχνολόγος Εργαστηρίου','Laboratory Technologist',LAB]}
-const WARD_EN={ΜΕΘ:'ICU',Παθολογική:'Internal Medicine',Χειρουργική:'Surgery',ΤΕΠ:'ED',Καρδιολογική:'Cardiology','Νεογνολογική / ΜΕΝΝ':'Neonatal / NICU',Ορθοπαιδική:'Orthopedics',Εργαστήριο:'Laboratory'}
+const POSITION: Record<string, [string, string, string[]]>={head:['Προϊστάμενος/η Τμήματος','Head of Department (Nursing)',NURSE],icuNurse:['Νοσηλευτής/τρια ΜΕΘ','ICU Nurse',NURSE],nurse:['Νοσηλευτής/τρια Θαλάμου','Ward Nurse',NURSE],assistant:['Βοηθός Θαλάμου','Ward Assistant',NURSE],consultant:['Επιμελητής Ιατρός','Consultant Physician',DOCTOR],resident:['Ειδικευόμενος Ιατρός','Resident Physician',DOCTOR],lab:['Τεχνολόγος Εργαστηρίου','Laboratory Technologist',LAB]}
+const WARD_EN: Record<string, string>={ΜΕΘ:'ICU',Παθολογική:'Internal Medicine',Χειρουργική:'Surgery',ΤΕΠ:'ED',Καρδιολογική:'Cardiology','Νεογνολογική / ΜΕΝΝ':'Neonatal / NICU',Ορθοπαιδική:'Orthopedics',Εργαστήριο:'Laboratory'}
 const STAFF=[
  ['Αικατερίνη','Aikaterini','Λάμπρου','Lamprou','ΜΕΘ','head','2012-05-02'],
  ['Γεώργιος','Georgios','Παππάς','Pappas','ΜΕΘ','consultant','2014-09-15'],
@@ -171,7 +172,7 @@ const VISIT_NOTES=['Περιοδική εξέταση χωρίς ευρήματ�
 STAFF.forEach(([firstName,firstNameEn,lastName,lastNameEn,department,role,hireDate],index)=>{
  const id=`EMP-${String(index+9).padStart(3,'0')}`,n=index+1,[position,positionEn,[profession,professionEn]]=POSITION[role]
  // Nothing happens before the employee joined (a recent hire has an onboarding visit).
- const afterHire=(date,days)=>(date>addDays(hireDate,days)?date:addDays(hireDate,days)),recentHire=hireDate>='2026-01-01'
+ const afterHire=(date: string,days: number)=>(date>addDays(hireDate,days)?date:addDays(hireDate,days)),recentHire=hireDate>='2026-01-01'
  const visitDate=afterHire(dayInMonth(DEMO_HISTORY_MONTHS[index%12],4+(index*7)%22),5)
  employeeRows.push({id,position,positionEn,firstName,firstNameEn,lastName,lastNameEn,department,departmentEn:WARD_EN[department],profession,professionEn,employmentStatus:'active',email:`${firstNameEn[0].toLowerCase()}.${lastNameEn.toLowerCase()}@example.org`,phone:`210 555 0${String(110+index)}`,hireDate})
  occupationalVisits.push({id:`OHV-${String(index+9).padStart(3,'0')}`,employeeId:id,date:visitDate,type:recentHire?'vaccinationReview':'periodic',status:'completed',followUpDate:addDays(visitDate,365),fitStatus:index%9===4?'fit_with_restrictions':'fit',clinicalNotes:VISIT_NOTES[index%3]})
@@ -215,8 +216,8 @@ employeeRows.forEach((employee,index)=>{
 })
 
 // More certificates for the ward staff, issued over 2025 and 2026.
-const STAFF_CERTIFICATES=[['BLS','BLS','ERC',24,'BLS'],['ALS','ALS','ERC',24,'ALS'],['Link nurse πρόληψης λοιμώξεων','Infection prevention link nurse','Demo Hospital',24,'IPC-LN'],['Ακτινοπροστασία','Radiation protection','ΕΕΑΕ',60,'RP'],['Διαχείριση πολυανθεκτικών μικροοργανισμών','Management of multidrug-resistant organisms','ΕΟΔΥ',36,'MDRO']]
-const NLS_CERTIFICATE=['Νεογνική ανάνηψη (NLS)','Newborn life support (NLS)','ERC',48,'NLS']
+const STAFF_CERTIFICATES: [string, string, string, number, string][]=[['BLS','BLS','ERC',24,'BLS'],['ALS','ALS','ERC',24,'ALS'],['Link nurse πρόληψης λοιμώξεων','Infection prevention link nurse','Demo Hospital',24,'IPC-LN'],['Ακτινοπροστασία','Radiation protection','ΕΕΑΕ',60,'RP'],['Διαχείριση πολυανθεκτικών μικροοργανισμών','Management of multidrug-resistant organisms','ΕΟΔΥ',36,'MDRO']]
+const NLS_CERTIFICATE: [string, string, string, number, string]=['Νεογνική ανάνηψη (NLS)','Newborn life support (NLS)','ERC',48,'NLS']
 employeeRows.filter(e=>e.employmentStatus==='active'&&Number(e.id.slice(4))>8).forEach((employee,index)=>{
  if(index%2)return
  const [titleEl,titleEn,issuer,months,prefix]=employee.department==='Νεογνολογική / ΜΕΝΝ'?NLS_CERTIFICATE:STAFF_CERTIFICATES[(index/2)%STAFF_CERTIFICATES.length]
@@ -236,9 +237,9 @@ employeeRows.filter(e=>Number(e.id.slice(4))>8).forEach((employee,index)=>{
 })
 
 // Documents tab (demo): certifications, licences and training certificates.
-const LICENCE={'Νοσηλευτικό προσωπικό':['Άδεια άσκησης νοσηλευτικού επαγγέλματος','Nursing practice licence'],'Ιατρικό προσωπικό':['Άδεια άσκησης ιατρικού επαγγέλματος','Medical practice licence'],'Εργαστηριακό προσωπικό':['Άδεια άσκησης επαγγέλματος τεχνολόγου εργαστηρίων','Laboratory technologist licence'],'Διοικητικό προσωπικό':['Βεβαίωση προϋπηρεσίας','Employment certificate']}
-const fmtDay=value=>value?value.split('-').reverse().join('/'):''
-export function demoEmployeeDocuments(employee,trainingCertificates=[],en=false){
+const LICENCE: Record<string, string[]>={'Νοσηλευτικό προσωπικό':['Άδεια άσκησης νοσηλευτικού επαγγέλματος','Nursing practice licence'],'Ιατρικό προσωπικό':['Άδεια άσκησης ιατρικού επαγγέλματος','Medical practice licence'],'Εργαστηριακό προσωπικό':['Άδεια άσκησης επαγγέλματος τεχνολόγου εργαστηρίων','Laboratory technologist licence'],'Διοικητικό προσωπικό':['Βεβαίωση προϋπηρεσίας','Employment certificate']}
+const fmtDay=(value: string|null|undefined)=>value?value.split('-').reverse().join('/'):''
+export function demoEmployeeDocuments(employee: AnyRecord,trainingCertificates: AnyRecord[]=[],en=false){
   if(!employee)return []
   const certs=employeeCertificates.filter(x=>x.employeeId===employee.id).map(c=>({id:`DOC-${c.id}`,name:`${en?c.titleEn:c.titleEl} — ${c.certificateNumber}.pdf`,category:'certification',description:`${c.issuer} · ${en?'valid until':'ισχύει έως'} ${fmtDay(c.validUntil)}`}))
   const training=trainingCertificates.filter(x=>x.employeeId===employee.id).map(c=>({id:`DOC-${c.id}`,name:`${c.title} — ${c.id}.pdf`,category:'trainingCertificate',description:`${en?'Issued':'Έκδοση'} ${fmtDay(c.issuedDate)} · ${en?'valid until':'ισχύει έως'} ${fmtDay(c.validUntil)}`}))

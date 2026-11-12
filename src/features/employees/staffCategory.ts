@@ -7,9 +7,9 @@ export const STAFF_CATEGORIES = [
   { value: 'external', el: 'Εξωτερικός συνεργάτης', en: 'External collaborator' },
 ]
 
-export const staffCategoryOf = person => (STAFF_CATEGORIES.some(item => item.value === person?.staffCategory) ? person.staffCategory : 'employee')
-export const isStaffEmployee = person => staffCategoryOf(person) === 'employee'
-export const staffCategoryLabel = (value, language = 'el') => {
+export const staffCategoryOf = (person: { staffCategory?: string } | null | undefined): string => (STAFF_CATEGORIES.some(item => item.value === person?.staffCategory) ? person?.staffCategory as string : 'employee')
+export const isStaffEmployee = (person: { staffCategory?: string } | null | undefined) => staffCategoryOf(person) === 'employee'
+export const staffCategoryLabel = (value: string | null | undefined, language = 'el') => {
   const item = STAFF_CATEGORIES.find(entry => entry.value === value) || STAFF_CATEGORIES[0]
   return language === 'en' ? item.en : item.el
 }

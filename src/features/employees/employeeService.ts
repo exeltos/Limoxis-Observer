@@ -6,6 +6,9 @@ import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 import { invalidateEmployeesCache } from './employeesCache'
 import { selectAllPages } from '../../core/data/inChunks'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { TablesInsert } from '../../core/supabase/database.types'
 // The demo store (and its seed data) loads only in the demo workspace.
 const localStore = () => import('./employeeStore')
 
@@ -16,14 +19,16 @@ const localStore = () => import('./employeeStore')
 // `employee_code`, not to the uuid, so every existing consumer keeps working.
 const EMPLOYEE_COLUMNS = 'id,user_id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,position_name,position_name_en,hr_department_name,directorate_name,employment_status,email,phone,hire_date,birth_date,photo_path,staff_category,created_at,updated_at'
 
-function productionContext(organizationId,operation){
-  if(isDemoDataEnvironment())return false
+type OrgId=string|null|undefined
+
+// After it (outside the demo) Supabase is configured and an organization is chosen.
+function productionContext(organizationId: OrgId,operation: string): asserts organizationId is string{
+  if(isDemoDataEnvironment())return
   if(!hasSupabaseConfig||!supabase)throw new Error(`PRODUCTION_CLOUD_REQUIRED:${operation}`)
   if(!organizationId)throw new Error(`PRODUCTION_ORGANIZATION_REQUIRED:${operation}`)
-  return true
 }
 
-function fromRow(row) {
+function fromRow(row: AnyRecord): AnyRecord {
   return {
     id: row.employee_code,
     dbId: row.id,
@@ -57,7 +62,7 @@ function fromRow(row) {
   }
 }
 
-function toWriteRow(organizationId, v) {
+function toWriteRow(organizationId: OrgId, v: AnyRecord): AnyRecord {
   return {
     organization_id: organizationId,
     employee_code: String(v.id||v.employeeCode||'').trim(),
@@ -89,18 +94,18 @@ export function cloudEnabled() {
 }
 
 // The HR department and directorate values this hospital already uses (a hospital without them has no such fields).
-export async function loadEmployeeHrOptionsAsync(organizationId) {
+export async function loadEmployeeHrOptionsAsync(organizationId: OrgId) {
   const rows = await loadEmployeesAsync(organizationId)
-  const unique = key => [...new Set(rows.map(row => String(row[key] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
+  const unique = (key: string) => [...new Set(rows.map(row => String(row[key] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
   return { hrDepartments: unique('hrDepartment'), directorates: unique('directorate') }
 }
 
-export async function loadEmployeesAsync(organizationId) {
+export async function loadEmployeesAsync(organizationId: OrgId): Promise<AnyRecord[]> {
   if(isDemoDataEnvironment())return (await localStore()).loadEmployees()
   if(isOwnerPreview())return []
   productionContext(organizationId,'employees.load')
   // Page by page: past 1,000 employees the API cut the list silently.
-  const data = await selectAllPages(() => supabase
+  const data = await selectAllPages(() => cloudClient()
     .from('employees')
     .select(`${EMPLOYEE_COLUMNS},organization_id`)
     .eq('organization_id', organizationId)
@@ -111,11 +116,11 @@ export async function loadEmployeesAsync(organizationId) {
 
 // One employee record (the record page), not the register: by employee code,
 // or by database id once the record is open (a code change keeps finding it).
-export async function loadEmployeeRecordAsync(organizationId, { code = null, dbId = null } = {}) {
+export async function loadEmployeeRecordAsync(organizationId: OrgId, { code = null, dbId = null }: { code?: string | null, dbId?: string | null } = {}): Promise<AnyRecord[]> {
   productionContext(organizationId,'employees.load_one')
   if (!code && !dbId) return []
-  let query = supabase.from('employees').select(`${EMPLOYEE_COLUMNS},organization_id`).eq('organization_id', organizationId)
-  query = dbId ? query.eq('id', dbId) : query.eq('employee_code', code)
+  let query = cloudClient().from('employees').select(`${EMPLOYEE_COLUMNS},organization_id`).eq('organization_id', organizationId)
+  query = dbId ? query.eq('id', dbId) : query.eq('employee_code', code as string)
   const { data, error } = await query.limit(1)
   if (error) throw error
   return (data || []).map(fromRow)
@@ -124,12 +129,12 @@ export async function loadEmployeeRecordAsync(organizationId, { code = null, dbI
 // The candidates for "My profile" (employee code, linked account or sign-in
 // e-mail, case-insensitive: a stray % or _ only widens the candidates);
 // resolveSelfEmployee picks among them in its own order.
-export async function loadSelfEmployeeCandidatesAsync(organizationId, { employeeCode = null, userId = null, email = null } = {}) {
+export async function loadSelfEmployeeCandidatesAsync(organizationId: OrgId, { employeeCode = null, userId = null, email = null }: { employeeCode?: string | null, userId?: string | null, email?: string | null } = {}): Promise<AnyRecord[]> {
   productionContext(organizationId,'employees.load_self')
-  const quoted = value => `"${String(value).replace(/["\\]/g, '')}"`
+  const quoted = (value: unknown) => `"${String(value).replace(/["\\]/g, '')}"`
   const matches = [employeeCode && `employee_code.eq.${quoted(employeeCode)}`, userId && `user_id.eq.${userId}`, email && String(email).trim() && `email.ilike.${quoted(String(email).trim())}`].filter(Boolean)
   if (!matches.length) return []
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('employees')
     .select(`${EMPLOYEE_COLUMNS},organization_id`)
     .eq('organization_id', organizationId)
@@ -142,11 +147,11 @@ export async function loadSelfEmployeeCandidatesAsync(organizationId, { employee
 // The birthday greeting needs names and birth dates of active employees only,
 // not the register (the bell used to read the whole employees table for it).
 const BIRTHDAY_COLUMNS = 'id,employee_code,first_name,first_name_en,last_name,last_name_en,employment_status,birth_date'
-export async function loadBirthdayEmployeesAsync(organizationId) {
+export async function loadBirthdayEmployeesAsync(organizationId: OrgId): Promise<AnyRecord[]> {
   if(isDemoDataEnvironment())return (await localStore()).loadEmployees().filter(row=>row.employmentStatus==='active'&&row.birthDate)
   if(isOwnerPreview())return []
   productionContext(organizationId,'employees.birthdays')
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('employees')
     .select(BIRTHDAY_COLUMNS)
     .eq('organization_id', organizationId)
@@ -156,7 +161,7 @@ export async function loadBirthdayEmployeesAsync(organizationId) {
   return (data || []).map(fromRow)
 }
 
-export async function createEmployeeAsync(organizationId, v) {
+export async function createEmployeeAsync(organizationId: OrgId, v: AnyRecord): Promise<AnyRecord> {
   if(isDemoDataEnvironment()){
     const code=String(v.id||v.employeeCode||'').trim()
     const { loadEmployees: loadEmployeesLocal, saveEmployees: saveEmployeesLocal } = await localStore()
@@ -167,9 +172,9 @@ export async function createEmployeeAsync(organizationId, v) {
     return next[0]
   }
   productionContext(organizationId,'employees.create')
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('employees')
-    .insert(toWriteRow(organizationId, v))
+    .insert(toWriteRow(organizationId, v) as TablesInsert<'employees'>)
     .select(`${EMPLOYEE_COLUMNS},organization_id`)
     .single()
   if (error) {
@@ -180,7 +185,7 @@ export async function createEmployeeAsync(organizationId, v) {
   return fromRow(data)
 }
 
-export async function updateEmployeeAsync(organizationId, employeeDbId, v, previousEmployeeCode=null) {
+export async function updateEmployeeAsync(organizationId: OrgId, employeeDbId: string | null | undefined, v: AnyRecord, previousEmployeeCode: string | null=null): Promise<AnyRecord> {
   const nextCode=String(v.id||v.employeeCode||'').trim()
   if(!nextCode)throw new Error('EMPLOYEE_CODE_REQUIRED')
   if(isDemoDataEnvironment()){
@@ -199,7 +204,7 @@ export async function updateEmployeeAsync(organizationId, employeeDbId, v, previ
   // Refused when someone else saved the employee after it was loaded (src/core/data/recordVersion.js).
   const loadedVersion=v.updatedAt||null
   try{
-    const data=await guardedSingle(expectVersion(supabase
+    const data=await guardedSingle(expectVersion(cloudClient()
       .from('employees')
       .update({...payload,updated_at:new Date().toISOString()})
       .eq('organization_id',organizationId)
@@ -207,14 +212,14 @@ export async function updateEmployeeAsync(organizationId, employeeDbId, v, previ
       .select(`${EMPLOYEE_COLUMNS},organization_id`)
       .single(),{table:'employees',updatedAt:loadedVersion})
     invalidateEmployeesCache(organizationId)
-    return fromRow(data)
+    return fromRow(data as AnyRecord)
   }catch(error){
-    if(error?.code==='23505')throw new Error('DUPLICATE_EMPLOYEE_CODE')
+    if((error as { code?: string } | null)?.code==='23505')throw new Error('DUPLICATE_EMPLOYEE_CODE')
     throw error
   }
 }
 
-export async function createEmployeeAccountAsync(organizationId,employee,{role,departmentId=null,email,phone,jobTitle}={}){
+export async function createEmployeeAccountAsync(organizationId: OrgId,employee: AnyRecord,{role,departmentId=null,email,phone,jobTitle}: {role?: string,departmentId?: string|null,email?: string,phone?: string,jobTitle?: string}={}){
   if(isDemoDataEnvironment())throw new Error('DEMO_EMPLOYEE_ACCOUNT_NOT_AVAILABLE')
   productionContext(organizationId,'employees.account.create')
   if(!employee?.dbId)throw new Error('EMPLOYEE_DB_ID_REQUIRED')
@@ -237,7 +242,7 @@ export async function createEmployeeAccountAsync(organizationId,employee,{role,d
   return result
 }
 
-export async function deleteEmployeeAsync(organizationId, employeeDbId, employeeId) {
+export async function deleteEmployeeAsync(organizationId: OrgId, employeeDbId: string | null | undefined, employeeId: string) {
   if(isDemoDataEnvironment()){
     const { loadEmployees: loadEmployeesLocal, saveEmployees: saveEmployeesLocal } = await localStore()
     const all=loadEmployeesLocal(),row=all.find(item=>item.id===employeeId)
@@ -247,9 +252,9 @@ export async function deleteEmployeeAsync(organizationId, employeeDbId, employee
   }
   productionContext(organizationId,'employees.delete')
   if(!employeeDbId)throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employees.delete')
-  const {data:deleted}=await supabase.from('employees').select('*').eq('organization_id',organizationId).eq('id',employeeDbId).maybeSingle()
+  const {data:deleted}=await cloudClient().from('employees').select('*').eq('organization_id',organizationId).eq('id',employeeDbId).maybeSingle()
   await binCloudRows(organizationId,{module:'administration',kind:'employees',...describeDeleted('Εργαζόμενος',{name:[deleted?.last_name,deleted?.first_name].filter(Boolean).join(' ')}),parts:[{table:'employees',match:{id:employeeDbId}}]})
-  const {error}=await supabase.from('employees').delete().eq('organization_id',organizationId).eq('id',employeeDbId)
+  const {error}=await cloudClient().from('employees').delete().eq('organization_id',organizationId).eq('id',employeeDbId)
   invalidateEmployeesCache(organizationId)
   if(error)throw error
   return true

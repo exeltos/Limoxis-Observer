@@ -3,15 +3,16 @@ import { ExcelFieldsDialog, pickColumns, tableFields } from '../../design-system
 import { printReport } from '../../core/export/reportDocument'
 import { exportRegistry } from '../../core/export/registryExports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const employeeName = (employee, en) =>
+const employeeName = (employee: AnyRecord, en: boolean) =>
   (en
     ? [employee.firstNameEn || employee.firstName, employee.lastNameEn || employee.lastName]
     : [employee.lastName, employee.firstName]
   ).filter(Boolean).join(' ') || employee.id
 
 // The heading of every printout of the record: who, code, department, profession.
-export function employeeReportHead(employee, language) {
+export function employeeReportHead(employee: AnyRecord, language: string) {
   const en = language === 'en'
   return {
     language,
@@ -26,10 +27,17 @@ export function employeeReportHead(employee, language) {
   }
 }
 
+// What every tab of the employee record gets: the employee, the language and where its export items go.
+export interface RecordTabProps {
+  employee: AnyRecord
+  language: string
+  onExportItems?: (items: AnyRecord[]) => void
+}
+
 // A tab's print and Excel, handed to the record's single «Εξαγωγή» (header) instead of a second menu in the tab.
 // table(): { headers, rows } of what the tab lists; doc() (optional) a printout of its own instead of that table.
 // Returns the Excel field dialog to render in the tab.
-export function useRecordTabExport({ onExportItems, id, label, employee, language, table, doc, count = 0, excel = true }) {
+export function useRecordTabExport({ onExportItems, id, label, employee, language, table, doc, count = 0, excel = true }: AnyRecord) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const [excelOpen, setExcelOpen] = useState(false)

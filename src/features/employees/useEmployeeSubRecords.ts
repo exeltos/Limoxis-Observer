@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
 
-export function useEmployeeSubRecords(loader, organizationId, employeeDbId, employeeId) {
-  const [data, setData] = useState([])
+export function useEmployeeSubRecords(loader: (organizationId: string | null | undefined, employeeDbId: string, employeeId: string) => Promise<AnyRecord[]>, organizationId: string | null | undefined, employeeDbId: string, employeeId: string) {
+  const [data, setData] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<unknown>(null)
   // Whose rows are on hand: after a move to another employee the previous
   // employee's rows are never shown, not even for the frame before the read starts.
   const key = `${organizationId}|${employeeDbId}|${employeeId}`
-  const [loadedKey, setLoadedKey] = useState(null)
+  const [loadedKey, setLoadedKey] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -30,8 +31,8 @@ export function useEmployeeSubRecords(loader, organizationId, employeeDbId, empl
     setLoading(true)
     setError(null)
     loader(organizationId, employeeDbId, employeeId)
-      .then(rows => { if (!cancelled) { setData(rows || []); setLoadedKey(key) } })
-      .catch(err => { if (!cancelled) setError(err) })
+      .then((rows: AnyRecord[]) => { if (!cancelled) { setData(rows || []); setLoadedKey(key) } })
+      .catch((err: unknown) => { if (!cancelled) setError(err) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
     // employeeId (the frontend id) is included so a switch between two

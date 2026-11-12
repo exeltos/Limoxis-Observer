@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { Camera, ImagePlus, Trash2, UserRound } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -14,13 +14,14 @@ import {
   validatePhotoFile,
 } from './employeePhotoService'
 import './employeePhoto.css'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // Signed URLs for the photos of the given employees (one request per batch).
 // Signed URLs expire after an hour: a page left open signs them again on a timer
 // and when it comes back into view, so its photos never turn into broken images.
-export function useEmployeePhotoUrls(rows) {
+export function useEmployeePhotoUrls(rows: (AnyRecord | null | undefined)[]) {
   const key = useMemo(() => [...new Set((rows || []).map(row => row?.photoPath).filter(Boolean))].sort().join('|'), [rows])
-  const [urls, setUrls] = useState({})
+  const [urls, setUrls] = useState<Record<string, string>>({})
   useEffect(() => {
     if (!key) return undefined
     let active = true
@@ -37,7 +38,7 @@ export function useEmployeePhotoUrls(rows) {
 }
 
 // The employee's photo, or their initials when there is none (or it cannot load).
-export function EmployeeAvatar({ employee, url, size = 'sm', className = '' }) {
+export function EmployeeAvatar({ employee, url, size = 'sm', className = '' }: { employee: AnyRecord | null | undefined, url?: string, size?: string, className?: string }) {
   const { t, language } = useLanguage()
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [url])
@@ -54,7 +55,7 @@ export function EmployeeAvatar({ employee, url, size = 'sm', className = '' }) {
 }
 
 // Record header avatar. Whoever may edit the employee opens the photo window from it.
-export function EmployeeHeaderPhoto({ employee, organizationId, canEdit = false, onChange }) {
+export function EmployeeHeaderPhoto({ employee, organizationId, canEdit = false, onChange }: { employee: AnyRecord, organizationId: string | null | undefined, canEdit?: boolean, onChange?: (employee: AnyRecord) => void }) {
   const { t } = useLanguage()
   const urls = useEmployeePhotoUrls(useMemo(() => [employee], [employee]))
   const url = employee?.photoPath ? urls[employee.photoPath] : ''
@@ -70,21 +71,21 @@ export function EmployeeHeaderPhoto({ employee, organizationId, canEdit = false,
   </>
 }
 
-export function EmployeePhotoDialog({ employee, url, organizationId, onClose, onChange }) {
+export function EmployeePhotoDialog({ employee, url, organizationId, onClose, onChange }: { employee: AnyRecord, url?: string, organizationId: string | null | undefined, onClose?: () => void, onChange?: (employee: AnyRecord) => void }) {
   const { t } = useLanguage()
   const { notify, confirm } = useFeedback()
-  const fileRef = useRef(null)
+  const fileRef = useRef<HTMLInputElement | null>(null)
   const [busy, setBusy] = useState('')
   const hasPhoto = Boolean(employee?.photoPath)
 
-  function errorText(error) {
-    const code = String(error?.message || '')
+  function errorText(error: unknown) {
+    const code = String((error as { message?: string } | null)?.message || '')
     if (code === 'PHOTO_TYPE') return t('employeePhoto.typeError')
     if (code === 'PHOTO_TOO_LARGE') return t('employeePhoto.sizeError')
     return t('employeePhoto.saveFailed')
   }
 
-  async function pick(event) {
+  async function pick(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return

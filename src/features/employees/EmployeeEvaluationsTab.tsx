@@ -10,7 +10,7 @@ import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
-import { useRecordTabExport } from './employeeTabExport'
+import { useRecordTabExport, type RecordTabProps } from './employeeTabExport'
 import {
   loadEvaluationsAsync,
   createEmployeeEvaluationAsync,
@@ -29,6 +29,7 @@ import {
 import { trainingAnswerText } from './EmployeeTrainingTab'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // Performance evaluations tab of the employee record, with its HR approval workflow.
 
@@ -38,7 +39,7 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 // stand out. This built-in template's ids are stable, so translate by id;
 // an org-customized questionnaire (different ids) falls back to whatever
 // label the admin typed, same as before.
-const PERFORMANCE_CRITERIA_LABELS_EN = {
+const PERFORMANCE_CRITERIA_LABELS_EN: Record<string, string> = {
   'professional-competence': 'Professional competence',
   'quality-accuracy': 'Quality & accuracy of work',
   'procedures-protocols': 'Adherence to procedures / protocols',
@@ -48,7 +49,7 @@ const PERFORMANCE_CRITERIA_LABELS_EN = {
   responsibility: 'Responsibility / reliability',
   'professional-development': 'Professional development',
 }
-const criterionName = (item, en) => (en && PERFORMANCE_CRITERIA_LABELS_EN[item.id]) || item.name
+const criterionName = (item: AnyRecord, en: boolean) => (en && PERFORMANCE_CRITERIA_LABELS_EN[item.id]) || item.name
 
 export function EmployeeEvaluationsTab({
   employee,
@@ -60,6 +61,15 @@ export function EmployeeEvaluationsTab({
   canAdminApprove = false,
   selfReadOnly = false,
   onExportItems,
+}: RecordTabProps & {
+  fmt: (value: unknown) => string
+  organizationId: string | null | undefined
+  canCreate?: boolean
+  canHrApprove?: boolean
+  canAdminApprove?: boolean
+  selfReadOnly?: boolean
+  // Passed by the record page; the tab words its own labels.
+  t?: (key: string) => string
 }) {
   const state = useEmployeeSubRecords(
     loadEvaluationsAsync,
@@ -68,7 +78,7 @@ export function EmployeeEvaluationsTab({
     employee.id,
   )
   const { notify, notifyError } = useFeedback()
-  const [selected, setSelected] = useState(null),
+  const [selected, setSelected] = useState<AnyRecord | null>(null),
     [creating, setCreating] = useState(false),
     [saving, setSaving] = useState(false),
     [ackOpen, setAckOpen] = useState(false),
@@ -82,11 +92,11 @@ export function EmployeeEvaluationsTab({
     (Array.isArray(managedQuestionnaires)
       ? managedQuestionnaires.find(x => x.id === 'employee-performance-evaluation')
       : null) || PERFORMANCE_EVALUATION_QUESTIONNAIRE
-  const [draft, setDraft] = useState({
+  const [draft, setDraft] = useState<AnyRecord>({
     period: '',
     date: hospitalToday(),
     notes: '',
-    criteria: performanceTemplate.questions.map((q, index) => ({
+    criteria: performanceTemplate.questions.map((q: AnyRecord, index: number) => ({
       id: q.id || String(index + 1),
       name: q.label || q.labelEl || q.labelEn,
       score: 3,
@@ -99,7 +109,7 @@ export function EmployeeEvaluationsTab({
     canAdminApprove,
     selfReadOnly,
   })
-  const statusLabel = v =>
+  const statusLabel = (v: string) =>
     ({
       draft: en ? 'Draft' : 'Πρόχειρη',
       submitted: en ? 'Submitted' : 'Υποβλήθηκε',
@@ -110,7 +120,7 @@ export function EmployeeEvaluationsTab({
       failed: en ? 'Retraining required' : 'Απαιτείται επανεκπαίδευση',
       reviewed: en ? 'Reviewed' : 'Ελέγχθηκε',
       pending_review: en ? 'To be reviewed' : 'Προς έλεγχο',
-    })[v] ||
+    } as Record<string, string>)[v] ||
     v ||
     '—'
   async function create() {
@@ -130,7 +140,8 @@ export function EmployeeEvaluationsTab({
       setSaving(false)
     }
   }
-  async function action(name, comment, agreement = '') {
+  async function action(name: string, comment = '', agreement = '') {
+    if (!selected) return
     setSaving(true)
     try {
       await updateEmployeeEvaluationWorkflowAsync(organizationId, employee.dbId, selected.id, {
@@ -139,15 +150,15 @@ export function EmployeeEvaluationsTab({
         agreement,
       })
       const rows = await state.reload()
-      setSelected(rows.find(row => row.id === selected.id) || null)
+      setSelected(rows.find((row: AnyRecord) => row.id === selected.id) || null)
     } finally {
       setSaving(false)
     }
   }
-  const scoreText = row => (row.overallScore != null ? `${row.overallScore.toFixed(2)} / 5` : row.score != null ? `${row.score}%` : row.source === 'training' ? '' : (en ? row.resultEn : row.resultEl) || '')
+  const scoreText = (row: AnyRecord) => (row.overallScore != null ? `${row.overallScore.toFixed(2)} / 5` : row.score != null ? `${row.score}%` : row.source === 'training' ? '' : (en ? row.resultEn : row.resultEl) || '')
   const exportDialog = useRecordTabExport({
     onExportItems, id: 'evaluations', label: { el: 'Αξιολογήσεις', en: 'Evaluations' }, employee, language, count: registry.filtered.length,
-    table: () => ({ headers: en ? ['Evaluation', 'Period', 'Evaluator', 'Date', 'Score', 'Status'] : ['Αξιολόγηση', 'Περίοδος', 'Αξιολογητής', 'Ημερομηνία', 'Βαθμολογία', 'Κατάσταση'], rows: registry.filtered.map(row => [en ? row.titleEn : row.titleEl, row.period || '', row.source === 'training' ? (en ? 'Training' : 'Εκπαίδευση') : row.evaluatorName || '', fmt(row.date), scoreText(row), statusLabel(row.status)]) }),
+    table: () => ({ headers: en ? ['Evaluation', 'Period', 'Evaluator', 'Date', 'Score', 'Status'] : ['Αξιολόγηση', 'Περίοδος', 'Αξιολογητής', 'Ημερομηνία', 'Βαθμολογία', 'Κατάσταση'], rows: registry.filtered.map((row: AnyRecord) => [en ? row.titleEn : row.titleEl, row.period || '', row.source === 'training' ? (en ? 'Training' : 'Εκπαίδευση') : row.evaluatorName || '', fmt(row.date), scoreText(row), statusLabel(row.status)]) }),
   })
   return (
     <section className="record-section record-secondary-registry">
@@ -198,7 +209,7 @@ export function EmployeeEvaluationsTab({
                   </tr>
                 </thead>
                 <tbody>
-                  {paging.paged.map(row => (
+                  {paging.paged.map((row: AnyRecord) => (
                     <tr key={row.id} tabIndex={0} onClick={() => setSelected(row)}>
                       <td>
                         <strong title={en ? row.titleEn : row.titleEl}>
@@ -280,7 +291,7 @@ export function EmployeeEvaluationsTab({
             ))}
           </div>
           <div className="evaluation-criteria evaluation-criteria-edit">
-            {draft.criteria.map((item, index) => (
+            {draft.criteria.map((item: AnyRecord, index: number) => (
               <div className="evaluation-criterion" key={item.id}>
                 <strong>{criterionName(item, en)}</strong>
                 <div className="evaluation-rating">
@@ -293,7 +304,7 @@ export function EmployeeEvaluationsTab({
                       onClick={() =>
                         setDraft(v => ({
                           ...v,
-                          criteria: v.criteria.map((x, i) =>
+                          criteria: v.criteria.map((x: AnyRecord, i: number) =>
                             i === index ? { ...x, score: n } : x,
                           ),
                         }))
@@ -353,7 +364,7 @@ export function EmployeeEvaluationsTab({
                   </div>
                 </div>
                 <div className="training-answer-list">
-                  {(selected.assessmentQuestions || []).map((question, index) => (
+                  {(selected.assessmentQuestions || []).map((question: AnyRecord, index: number) => (
                     <article className="training-answer-card" key={question.id || index}>
                       <div className="training-answer-question">
                         <span className="training-answer-index">{index + 1}</span>
@@ -442,7 +453,7 @@ export function EmployeeEvaluationsTab({
                   </div>
                 </div>
                 <div className="performance-criteria-grid">
-                  {(selected.criteria || []).map(item => (
+                  {(selected.criteria || []).map((item: AnyRecord) => (
                     <div className="performance-criterion" key={item.id || item.name}>
                       <div>
                         <strong>{criterionName(item, en)}</strong>

@@ -4,19 +4,19 @@
 // every save of an employee (employeeService, the photo) clears it, and a
 // screen's explicit reload() always reads again.
 export const EMPLOYEES_CACHE_MS = 5 * 60 * 1000
-const cache = new Map()
+const cache = new Map<string, { promise: Promise<unknown>, expires: number }>()
 
-export function cachedEmployees(organizationId, load, { fresh = false, now = Date.now() } = {}) {
+export function cachedEmployees<T>(organizationId: string | null | undefined, load: () => T | PromiseLike<T>, { fresh = false, now = Date.now() } = {}): Promise<T> {
   const key = organizationId || ''
   const hit = cache.get(key)
-  if (!fresh && hit && hit.expires > now) return hit.promise
+  if (!fresh && hit && hit.expires > now) return hit.promise as Promise<T>
   const promise = Promise.resolve().then(load)
   cache.set(key, { promise, expires: now + EMPLOYEES_CACHE_MS })
   promise.catch(() => { if (cache.get(key)?.promise === promise) cache.delete(key) })
   return promise
 }
 
-export function invalidateEmployeesCache(organizationId) {
+export function invalidateEmployeesCache(organizationId?: string | null) {
   if (organizationId === undefined) cache.clear()
   else cache.delete(organizationId || '')
 }

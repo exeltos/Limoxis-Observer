@@ -1,4 +1,3 @@
-import { STAFF_CATEGORIES, staffCategoryLabel, staffCategoryOf } from './staffCategory'
 import { EmployeePositionTab } from './JobDescriptionViews'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -15,14 +14,10 @@ import {
   UserRound,
 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
-import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { EntityRecordShell, type RecordNavigation } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { printReport } from '../../core/export/reportDocument'
 import { Button } from '../../design-system/Button'
-import { SaveButton } from '../../design-system/SaveButton'
-import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
-import { ManualDateField } from '../../design-system/ManualDateField'
-import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -31,19 +26,14 @@ import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { useAuth } from '../../core/auth/AuthContext'
-import { roleLabel } from '../../core/permissions/roleLabels'
 import {
   createEmployeeAccountAsync,
   deleteEmployeeAsync,
-  loadEmployeeHrOptionsAsync,
-  updateEmployeeAsync,
 } from './employeeService'
 import { useEmployeeRecordData } from './useEmployeeRecordData'
 import { loadDepartments } from '../management/departmentsService'
-import { creatableManagementRoles } from '../management/managementRoles'
-import { needsDepartment } from '../platform/bulkAccountsModel'
 import { loadManagementLibraries } from '../management/managementCloudService'
-import { demoLibrarySeed } from '../management/managementData'
+import { demoLibrarySeed as managementSeed } from '../management/managementData'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
 import { EmployeeProtocolsTab } from '../documents/EmployeeProtocolsTab'
 import { isOwnEmployeeRecord, resolveSelfEmployee } from './employeeIdentity'
@@ -57,6 +47,12 @@ import {
 } from './EmployeeRecordTabs'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { EmployeeHeaderPhoto } from './EmployeePhoto'
+import { Details, withEmployeeValues } from './EmployeeDetails'
+import { EmployeeAccountDialog, SelfAccountSummary, UnlinkedProfileTab } from './EmployeeAccountViews'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// The Demo libraries as this page reads them (departments, categories, positions).
+const demoLibrarySeed = managementSeed as AnyRecord
 
 export function EmployeeRecordPage({ selfMode = false }) {
   const { employeeId } = useParams()
@@ -78,11 +74,11 @@ export function EmployeeRecordPage({ selfMode = false }) {
     selfMode,
     self: {
       employeeCode:
-        membership?.employeeId ||
-        membership?.employee_id ||
-        membership?.profile?.employeeId ||
-        profile?.employeeId ||
-        profile?.employee_id ||
+        (membership as AnyRecord | null)?.employeeId ||
+        (membership as AnyRecord | null)?.employee_id ||
+        (membership as AnyRecord | null)?.profile?.employeeId ||
+        (profile as AnyRecord | null)?.employeeId ||
+        (profile as AnyRecord | null)?.employee_id ||
         null,
       userId: profile?.id || user?.id || null,
       email: profile?.email || user?.email || null,
@@ -90,11 +86,11 @@ export function EmployeeRecordPage({ selfMode = false }) {
   })
   const [accountOpen, setAccountOpen] = useState(false)
   // A tab can add its own items to the one «Εξαγωγή» of the page (e.g. the training history).
-  const [tabExports, setTabExports] = useState([])
+  const [tabExports, setTabExports] = useState<AnyRecord[]>([])
   const [accountSaving, setAccountSaving] = useState(false)
-  const [departments, setDepartments] = useState([])
-  const [professionalCategories, setProfessionalCategories] = useState([])
-  const [positionOptions, setPositionOptions] = useState([])
+  const [departments, setDepartments] = useState<AnyRecord[]>([])
+  const [professionalCategories, setProfessionalCategories] = useState<AnyRecord[]>([])
+  const [positionOptions, setPositionOptions] = useState<AnyRecord[]>([])
   const [surveillanceOpen, setSurveillanceOpen] = useState(false)
   const [surveillanceVersion, setSurveillanceVersion] = useState(0)
 
@@ -107,7 +103,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
     // already use for demo departments/libraries instead.
     if (isDemo) {
       setDepartments(
-        demoLibrarySeed.departments.map(([elName, enName]) => ({
+        demoLibrarySeed.departments.map(([elName, enName]: string[]) => ({
           id: elName,
           name: elName,
           nameEn: enName,
@@ -127,7 +123,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
       }
     }
     Promise.all([loadDepartments(tenant.id), loadManagementLibraries(tenant.id)])
-      .then(([departmentRows, libraries]) => {
+      .then(([departmentRows, libraries]: [AnyRecord[], AnyRecord]) => {
         if (!active) return
         setDepartments((departmentRows || []).filter(row => row.is_active !== false))
         setProfessionalCategories(libraries?.professionalCategories || [])
@@ -250,7 +246,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
   )
   const [editingDetails, setEditingDetails] = useState(false)
   const [tab, setTab] = useState(() =>
-    ['vaccinations', 'exposureIncidents'].includes(restored?.tab)
+    ['vaccinations', 'exposureIncidents'].includes(restored?.tab ?? '')
       ? 'occupational'
       : restored?.tab === 'protocols' ? 'certificates' : restored?.tab || 'details',
   )
@@ -294,11 +290,11 @@ export function EmployeeRecordPage({ selfMode = false }) {
       </Page>
     )
   if (!employee) {
-    const platformOwner = Boolean(profile?.isPlatformOwner || profile?.is_platform_owner)
+    const platformOwner = Boolean(profile?.isPlatformOwner || (profile as AnyRecord | null)?.is_platform_owner)
     const fullName =
       profile?.fullName ||
-      profile?.full_name ||
-      user?.user_metadata?.full_name ||
+      (profile as AnyRecord | null)?.full_name ||
+      (user as AnyRecord | null)?.user_metadata?.full_name ||
       user?.email ||
       '—'
     const email = profile?.contactEmail || profile?.email || user?.email || '—'
@@ -384,12 +380,12 @@ export function EmployeeRecordPage({ selfMode = false }) {
     language === 'el'
       ? `${employee.lastName} ${employee.firstName}`
       : `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`
-  const fmt = value =>
+  const fmt = (value: unknown) =>
     value
       ? new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0, 10)}T12:00:00`))
       : '—'
   async function deleteEmployee() {
-    if (selfReadOnly || !canAdmin) return
+    if (selfReadOnly || !canAdmin || !employee) return
     const ok = await confirm({
       title: t('employeesRecords.deleteEmployee'),
       message: t('employeesRecords.confirmEmployeeDelete'),
@@ -403,7 +399,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
       navigate('/employees', { replace: true })
     } catch (error) {
       notify(
-        error?.message ||
+        (error as Error | null)?.message ||
           (language === 'en'
             ? 'Could not delete the employee.'
             : 'Δεν ήταν δυνατή η διαγραφή του εργαζομένου.'),
@@ -411,8 +407,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
       )
     }
   }
-  async function createAccount(values) {
-    if (selfReadOnly) return
+  async function createAccount(values: AnyRecord) {
+    if (selfReadOnly || !employee) return
     setAccountSaving(true)
     try {
       await createEmployeeAccountAsync(tenant?.id, employee, values)
@@ -426,7 +422,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
       await reloadEmployees()
     } catch (error) {
       notify(
-        error?.message ||
+        (error as Error | null)?.message ||
           (language === 'en'
             ? 'Could not create the account.'
             : 'Δεν ήταν δυνατή η δημιουργία του λογαριασμού.'),
@@ -439,9 +435,10 @@ export function EmployeeRecordPage({ selfMode = false }) {
   const departmentOptions = departments.map(row => [row.name, row.nameEn || row.name])
   // The employee's details as a printed sheet (the full employee file comes
   // with the shared document layout's next exports).
-  function printEmployee(pdf) {
+  function printEmployee(pdf?: boolean) {
+    if (!employee) return
     const en = language === 'en'
-    const pick = (el, enValue) => (en ? enValue || el : el) || ''
+    const pick = (el: string, enValue: string) => (en ? enValue || el : el) || ''
     const ok = printReport({
       language,
       kind: en ? 'Employee details' : 'Στοιχεία εργαζομένου',
@@ -526,8 +523,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
             employee={employee}
             organizationId={tenant?.id}
             canEdit={canAdmin}
-            onChange={next =>
-              setEmployeeRows(rows => rows.map(row => (row.id === next.id ? { ...row, ...next } : row)))
+            onChange={(next: AnyRecord) =>
+              setEmployeeRows((rows: AnyRecord[]) => rows.map((row: AnyRecord) => (row.id === next.id ? { ...row, ...next } : row)))
             }
           />
         }
@@ -541,7 +538,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
             {t(employee.employmentStatus)}
           </span>
         }
-        recordNavigation={selfMode ? null : recordNavigation}
+        recordNavigation={selfMode ? null : recordNavigation as RecordNavigation}
         headerActions={headerActions}
         tabs={tabs}
         activeTab={tab}
@@ -693,483 +690,4 @@ export function EmployeeRecordPage({ selfMode = false }) {
       )}
     </Page>
   )
-}
-
-function UnlinkedProfileTab({ tab, platformOwner, language }) {
-  const en = language === 'en'
-  const labels = {
-    occupational: en ? 'Occupational Health' : 'Ιατρός Εργασίας',
-    vaccinations: en ? 'Vaccinations' : 'Εμβολιασμοί',
-    surveillance: en ? 'Surveillance' : 'Επιτήρηση',
-    training: en ? 'Training' : 'Εκπαίδευση',
-    evaluations: en ? 'Evaluations' : 'Αξιολογήσεις',
-    certificates: en ? 'Certificates & documents' : 'Πιστοποιήσεις / Έγγραφα',
-    details: en ? 'Employee record' : 'Καρτέλα εργαζομένου',
-  }
-  const title = labels[tab] || labels.details
-  const message = platformOwner
-    ? en
-      ? 'This Platform Owner account is not a hospital employee identity. This tab remains visible for a consistent profile structure, but employee data does not apply to this account.'
-      : 'Ο λογαριασμός Ιδιοκτήτη πλατφόρμας δεν αποτελεί ταυτότητα εργαζομένου νοσοκομείου. Η καρτέλα παραμένει ορατή για σταθερή δομή του προφίλ, αλλά τα δεδομένα εργαζομένου δεν εφαρμόζονται σε αυτόν τον λογαριασμό.'
-    : en
-      ? 'No employee record is linked to this account yet. Link the user from Organization → Users to load the real personal data in this tab.'
-      : 'Δεν έχει συνδεθεί ακόμη καρτέλα εργαζομένου με αυτόν τον λογαριασμό. Συνδέστε τον χρήστη από Οργανισμός → Χρήστες για να φορτωθούν εδώ τα πραγματικά προσωπικά δεδομένα.'
-  return (
-    <section className="my-profile-tab-state">
-      <div className="my-profile-unlinked-icon">—</div>
-      <div>
-        <strong>{title}</strong>
-        <span>{message}</span>
-      </div>
-    </section>
-  )
-}
-
-function SelfAccountSummary({ profile, user, role, membership, tenant, language }) {
-  const en = language === 'en'
-  const fullName =
-    profile?.fullName || profile?.full_name || user?.user_metadata?.full_name || user?.email || '—'
-  const email = profile?.contactEmail || profile?.email || user?.email || '—'
-  const username = profile?.username || user?.user_metadata?.username || '—'
-  const isPlatformOwner = Boolean(profile?.isPlatformOwner || profile?.is_platform_owner)
-  const organization = isPlatformOwner
-    ? en
-      ? 'Platform account'
-      : 'Λογαριασμός πλατφόρμας'
-    : tenant?.name || tenant?.organization_name || '—'
-  const membershipStatus = membership?.status || 'active'
-  const active = membershipStatus !== 'disabled' && membershipStatus !== 'suspended'
-  const initials =
-    String(fullName || '')
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map(part => part[0])
-      .join('')
-      .toUpperCase() || 'L'
-  return (
-    <section
-      className="surface my-profile-hero"
-      aria-label={en ? 'Account details' : 'Στοιχεία λογαριασμού'}
-    >
-      <div className="my-profile-avatar">{initials}</div>
-      <div className="my-profile-identity">
-        <span>
-          {isPlatformOwner
-            ? en
-              ? 'PLATFORM ACCOUNT'
-              : 'ΛΟΓΑΡΙΑΣΜΟΣ ΠΛΑΤΦΟΡΜΑΣ'
-            : en
-              ? 'ACCOUNT'
-              : 'ΛΟΓΑΡΙΑΣΜΟΣ'}
-        </span>
-        <h2>{fullName}</h2>
-        <p>{email}</p>
-      </div>
-      <span className={`status-badge ${active ? 'active' : 'danger'}`}>
-        {active ? (en ? 'Active' : 'Ενεργός') : en ? 'Suspended' : 'Σε παύση'}
-      </span>
-      <div className="my-profile-grid my-profile-account-grid">
-        <div className="my-profile-value">
-          <span className="my-profile-value-label">Username</span>
-          <strong>{username}</strong>
-        </div>
-        <div className="my-profile-value">
-          <span className="my-profile-value-label">{en ? 'Role' : 'Ρόλος'}</span>
-          <strong>{roleLabel(role, language)}</strong>
-        </div>
-        <div className="my-profile-value">
-          <span className="my-profile-value-label">{en ? 'Organization' : 'Οργανισμός'}</span>
-          <strong>{organization}</strong>
-        </div>
-        <div className="my-profile-value">
-          <span className="my-profile-value-label">Email</span>
-          <strong>{email}</strong>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function Details({
-  employee,
-  t,
-  language,
-  fmt,
-  editing,
-  setEditing,
-  notify,
-  organizationId,
-  departmentOptions,
-  professionOptions,
-  positionOptions = [],
-  reloadEmployees,
-  onCodeChanged,
-}) {
-  const [hrOptions, setHrOptions] = useState({ hrDepartments: [], directorates: [] })
-  useEffect(() => {
-    let active = true
-    loadEmployeeHrOptionsAsync(organizationId)
-      .then(options => active && setHrOptions(options))
-      .catch(() => {})
-    return () => {
-      active = false
-    }
-  }, [organizationId])
-  const [saving, setSaving] = useState(false),
-    [record, setRecord] = useState({ ...employee })
-  useEffect(() => setRecord({ ...employee }), [employee])
-  const set = (key, value) => setRecord(current => ({ ...current, [key]: value }))
-  const cancel = () => {
-    setRecord({ ...employee })
-    setEditing(false)
-  }
-  async function save() {
-    if (saving) return
-    const nextCode = String(record.id || '').trim()
-    if (!nextCode) {
-      notify(
-        language === 'en'
-          ? 'Employee / folder code is required.'
-          : 'Ο κωδικός εργαζομένου / φακέλου είναι υποχρεωτικός.',
-        'danger',
-      )
-      return
-    }
-    setSaving(true)
-    try {
-      const updated = await updateEmployeeAsync(
-        organizationId,
-        employee.dbId,
-        { ...record, id: nextCode },
-        employee.id,
-      )
-      await reloadEmployees?.()
-      setEditing(false)
-      notify(t('employeesRecords.employeeUpdated'), 'success')
-      if (updated.id !== employee.id) onCodeChanged?.(updated.id)
-    } catch (error) {
-      if (error?.message === 'DUPLICATE_EMPLOYEE_CODE')
-        notify(
-          language === 'en'
-            ? 'This employee / folder code is already in use.'
-            : 'Ο κωδικός εργαζομένου / φακέλου χρησιμοποιείται ήδη.',
-          'danger',
-        )
-      else
-        notify(
-          error?.message ||
-            (language === 'en'
-              ? 'Could not update the employee.'
-              : 'Δεν ήταν δυνατή η ενημέρωση του εργαζομένου.'),
-          'error',
-        )
-    } finally {
-      setSaving(false)
-    }
-  }
-  return (
-    <section className="record-section committee-overview employee-details-overview">
-      <div className="record-section-header">
-        <div>
-          <h3>{t('employeesRecords.basicDetails')}</h3>
-        </div>
-      </div>
-      <div
-        className={`committee-detail-grid employee-full-grid ${editing ? 'employee-inline-edit' : ''}`}
-      >
-        <InlineDetail
-          editing={editing}
-          label={t('lastName')}
-          value={record.lastName}
-          onChange={value => set('lastName', value)}
-        />
-        <InlineDetail
-          editing={editing}
-          label={t('firstName')}
-          value={record.firstName}
-          onChange={value => set('firstName', value)}
-        />
-        <InlineDetail
-          editing={editing}
-          label={t('fatherName')}
-          value={language === 'el' ? record.fatherName : record.fatherNameEn}
-          onChange={value => set(language === 'el' ? 'fatherName' : 'fatherNameEn', value)}
-        />
-        <InlineDetail
-          editing={editing}
-          label={language === 'en' ? 'Employee / folder code' : 'Κωδικός εργαζομένου / φακέλου'}
-          value={record.id}
-          onChange={value => set('id', value)}
-        />
-        <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
-          <span>{t('employeesRecords.staffCategory')}</span>
-          {editing ? (
-            <SearchableSelect
-              hideLabel
-              label={t('employeesRecords.staffCategory')}
-              value={staffCategoryOf(record)}
-              onChange={next => set('staffCategory', next || 'employee')}
-              options={STAFF_CATEGORIES.map(item => ({ value: item.value, label: staffCategoryLabel(item.value, language) }))}
-            />
-          ) : (
-            <strong>{staffCategoryLabel(staffCategoryOf(record), language)}</strong>
-          )}
-        </div>
-        <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
-          <span>{language === 'en' ? 'Status' : 'Κατάσταση'}</span>
-          {editing ? (
-            <SearchableSelect
-              hideLabel
-              label={language === 'en' ? 'Status' : 'Κατάσταση'}
-              value={record.employmentStatus || 'active'}
-              onChange={next => set('employmentStatus', next || 'active')}
-              options={['active', 'leave', 'inactive'].map(value => ({ value, label: t(value) }))}
-            />
-          ) : (
-            <strong>{t(employee.employmentStatus)}</strong>
-          )}
-        </div>
-        <InlineDateDetail
-          editing={editing}
-          label={t('employeesRecords.hireDate')}
-          value={record.hireDate}
-          display={fmt(record.hireDate)}
-          onChange={value => set('hireDate', value)}
-        />
-        <InlineSelect
-          editing={editing}
-          label={t('department')}
-          value={record.department}
-          display={language === 'el' ? record.department : record.departmentEn}
-          options={departmentOptions}
-          language={language}
-          onChange={value => set('department', value)}
-        />
-        {(hrOptions.hrDepartments.length > 0 || record.hrDepartment) && (
-          <InlineSelect
-            editing={editing}
-            label={language === 'en' ? 'HR department' : 'Τμήμα HR'}
-            value={record.hrDepartment}
-            display={record.hrDepartment}
-            options={hrOptions.hrDepartments.map(name => [name, name])}
-            language={language}
-            onChange={value => set('hrDepartment', value)}
-          />
-        )}
-        <InlineSelect
-          editing={editing}
-          label={t('professionalCategory')}
-          value={record.profession}
-          display={language === 'el' ? record.profession : record.professionEn}
-          options={professionOptions}
-          language={language}
-          allowCustom
-          onChange={value =>
-            setRecord(current => ({
-              ...current,
-              profession: value,
-              professionEn: professionOptions.find(row => (row?.[0] ?? row?.name) === value)?.[1] || value,
-            }))
-          }
-        />
-        {(editing || record.position) && (
-          <InlineSelect
-            editing={editing}
-            label={language === 'en' ? 'Job position' : 'Θέση εργασίας'}
-            value={record.position}
-            display={(language === 'el' ? record.position : record.positionEn) || '—'}
-            options={positionOptions}
-            language={language}
-            allowCustom
-            onChange={value =>
-              setRecord(current => ({
-                ...current,
-                position: value,
-                positionEn: positionOptions.find(row => row?.[0] === value)?.[1] || value,
-              }))
-            }
-          />
-        )}
-        <InlineDetail
-          editing={editing}
-          label={t('employeesRecords.email')}
-          value={record.email}
-          onChange={value => set('email', value)}
-        />
-        <InlineDetail
-          editing={editing}
-          label={t('phone')}
-          value={record.phone}
-          onChange={value => set('phone', value)}
-        />
-        {(hrOptions.directorates.length > 0 || record.directorate) && (
-          <InlineSelect
-            editing={editing}
-            label={language === 'en' ? 'Directorate' : 'Διεύθυνση'}
-            value={record.directorate}
-            display={record.directorate}
-            options={hrOptions.directorates.map(name => [name, name])}
-            language={language}
-            onChange={value => set('directorate', value)}
-          />
-        )}
-      </div>
-      {editing && (
-        <div className="inline-edit-footer">
-          <Button variant="secondary" disabled={saving} onClick={cancel}>
-            {t('cancel')}
-          </Button>
-          <SaveButton loading={saving} disabled={saving} onClick={save}>
-            {t('save')}
-          </SaveButton>
-        </div>
-      )}
-    </section>
-  )
-}
-
-// The role is always chosen (no default); a department role also needs the department
-// it sees, which starts from the employee's own.
-function EmployeeAccountDialog({ employee, departments = [], language, saving, onClose, onCreate }) {
-  const en = language === 'en'
-  const [email, setEmail] = useState(employee.email || ''),
-    [phone, setPhone] = useState(employee.phone || ''),
-    [jobTitle, setJobTitle] = useState(employee.profession || ''),
-    [role, setRole] = useState(''),
-    [departmentId, setDepartmentId] = useState(employee.departmentId || '')
-  const scoped = needsDepartment(role)
-  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && Boolean(role) && (!scoped || Boolean(departmentId))
-  return (
-    <ObserverDialog
-      width="wide"
-      eyebrow={en ? 'Employee account' : 'Λογαριασμός εργαζομένου'}
-      title={en ? 'Create and link account' : 'Δημιουργία και σύνδεση λογαριασμού'}
-      subtitle={
-        en
-          ? `${employee.firstName} ${employee.lastName} will be linked directly to this account.`
-          : `Ο λογαριασμός θα συνδεθεί απευθείας με τον εργαζόμενο ${employee.firstName} ${employee.lastName}.`
-      }
-      onClose={onClose}
-      footer={
-        <DialogActions
-          onCancel={onClose}
-          onSave={() =>
-            onCreate({
-              email: email.trim(),
-              phone: phone.trim(),
-              jobTitle: jobTitle.trim(),
-              role,
-              departmentId: scoped ? departmentId : null,
-            })
-          }
-          disabled={!valid || saving}
-        />
-      }
-    >
-      <div className="entry-grid">
-        <label>
-          <span>Email *</span>
-          <input type="email" value={email} onChange={event => setEmail(event.target.value)} />
-        </label>
-        <label>
-          <span>{en ? 'Phone' : 'Τηλέφωνο'}</span>
-          <input value={phone} onChange={event => setPhone(event.target.value)} />
-        </label>
-        <label>
-          <span>{en ? 'Job title' : 'Ιδιότητα'}</span>
-          <input value={jobTitle} onChange={event => setJobTitle(event.target.value)} />
-        </label>
-        <SearchableSelect
-          label={en ? 'Account role *' : 'Ρόλος λογαριασμού *'}
-          value={role}
-          onChange={next => setRole(next || '')}
-          placeholder={en ? 'Choose a role…' : 'Επιλέξτε ρόλο…'}
-          options={creatableManagementRoles.map(value => ({ value, label: roleLabel(value, language) }))}
-        />
-        {scoped && (
-          <SearchableSelect
-            label={en ? 'Department *' : 'Τμήμα *'}
-            value={departmentId}
-            onChange={next => setDepartmentId(next || '')}
-            placeholder={en ? 'Choose a department…' : 'Επιλέξτε τμήμα…'}
-            options={departments.map(department => ({
-              value: department.id,
-              label: en ? department.nameEn || department.name : department.name,
-            }))}
-          />
-        )}
-      </div>
-    </ObserverDialog>
-  )
-}
-
-function InlineDetail({ editing, label, value, display, onChange, type = 'text' }) {
-  if (editing && type === 'date')
-    return (
-      <ManualDateField
-        className="detail-item detail-field editable"
-        label={label}
-        value={value || ''}
-        onChange={onChange}
-      />
-    )
-  return (
-    <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
-      <span>{label}</span>
-      {editing ? (
-        <input type={type} value={value || ''} onChange={event => onChange?.(event.target.value)} />
-      ) : (
-        <strong>{display ?? value ?? '—'}</strong>
-      )}
-    </div>
-  )
-}
-// The hospital's list plus the values its employees already have (owner, 8/11/2026): a hospital whose list of job
-// positions is empty still offers the positions in use, and a new one can be typed.
-function withEmployeeValues(options = [], rows = [], key, keyEn) {
-  const list = Array.isArray(options) ? [...options] : []
-  const known = new Set(list.map(row => row?.[0] ?? row?.name))
-  for (const row of rows || []) {
-    const value = String(row?.[key] || '').trim()
-    if (value && !known.has(value)) {
-      known.add(value)
-      list.push([value, row?.[keyEn] || value])
-    }
-  }
-  return list.sort((a, b) => String(a[0] ?? a.name).localeCompare(String(b[0] ?? b.name), 'el'))
-}
-
-// allowCustom: a value that is not in the list (yet) is typed in, e.g. a job position the hospital's list does not have.
-function InlineSelect({ editing, label, value, display, options = [], language, onChange, allowCustom = false }) {
-  const rows = Array.isArray(options) ? options : [],
-    hasCurrent = rows.some(row => (row?.[0] ?? row?.name ?? '') === value)
-  return (
-    <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
-      <span>{label}</span>
-      {editing ? (
-        <SearchableSelect
-          hideLabel
-          label={label}
-          value={value || ''}
-          onChange={next => onChange(next || '')}
-          allowCustom={allowCustom}
-          placeholder={allowCustom ? (language === 'en' ? 'Type or choose…' : 'Γράψτε ή επιλέξτε…') : ''}
-          options={[
-            ...(value && !hasCurrent ? [{ value, label: (typeof display === 'string' && display) || value }] : []),
-            ...rows.map(row => {
-              const el = row?.[0] ?? row?.name ?? String(row || ''),
-                en = row?.[1] ?? row?.nameEn ?? el
-              return { value: el, label: language === 'el' ? el : en }
-            }),
-          ]}
-        />
-      ) : (
-        <strong>{display || '—'}</strong>
-      )}
-    </div>
-  )
-}
-function InlineDateDetail(props) {
-  return <InlineDetail {...props} type="date" />
 }

@@ -3,13 +3,14 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { cloudEnabled, loadEmployeesAsync } from './employeeService'
 import { cachedEmployees } from './employeesCache'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
+import type { AnyRecord } from '../../types/featureTypes'
 
-export function useEmployeesData({ enabled = true } = {}) {
+export function useEmployeesData({ enabled = true }: { enabled?: boolean } = {}) {
   const { tenant } = useTenant()
   const organizationId = tenant?.id ?? null
-  const [data, setData] = useState([])
+  const [data, setData] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(enabled)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<unknown>(null)
 
   // The first read may come from the shared list (employeesCache.js); reload() reads again.
   const read = useCallback(async ({ fresh = true } = {}) => {

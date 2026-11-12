@@ -2,12 +2,12 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { occupationalVisits, employeeVaccinations, employeeTraining, employeeEvaluations, employeeCertificates, employeeExposureIncidents } from './employeeDemoData'
 
 export const loadOccupationalVisits=()=>loadSnapshot('employee_health_visits',occupationalVisits)
-export const saveOccupationalVisits=rows=>saveSnapshot('employee_health_visits',rows)
+export const saveOccupationalVisits=(rows: unknown)=>saveSnapshot('employee_health_visits',rows)
 export const loadVaccinations=()=>loadSnapshot('employee_vaccine_records',employeeVaccinations)
-export const saveVaccinations=rows=>saveSnapshot('employee_vaccine_records',rows)
+export const saveVaccinations=(rows: unknown)=>saveSnapshot('employee_vaccine_records',rows)
 export const loadEmployeeTraining=()=>loadSnapshot('employee_training_summary',employeeTraining)
 export const loadEvaluations=()=>loadSnapshot('employee_evaluations',employeeEvaluations)
-export const saveEvaluations=rows=>saveSnapshot('employee_evaluations',rows)
+export const saveEvaluations=(rows: unknown)=>saveSnapshot('employee_evaluations',rows)
 export const loadCertificates=()=>loadSnapshot('employee_certificates',employeeCertificates)
 export const loadExposureIncidents=()=>loadSnapshot('occupational_exposure_incidents',employeeExposureIncidents)
-export const saveExposureIncidents=rows=>saveSnapshot('occupational_exposure_incidents',rows)
+export const saveExposureIncidents=(rows: unknown)=>saveSnapshot('occupational_exposure_incidents',rows)

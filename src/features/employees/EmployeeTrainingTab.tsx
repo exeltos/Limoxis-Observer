@@ -4,7 +4,7 @@ import { formatActiveTime, loadProgramMaterialTimes } from '../training/training
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { ExcelFieldsDialog, pickColumns, tableFields } from '../../design-system/ExcelFieldsDialog'
-import { printReport } from '../../core/export/reportDocument'
+import { printReport, type ReportDoc } from '../../core/export/reportDocument'
 import { exportRegistry } from '../../core/export/registryExports'
 import { employeeTrainingDoc } from '../training/trainingReports'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
@@ -21,6 +21,11 @@ import {
   statusClass,
   label,
 } from './employeeRecordShared'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { RecordTabProps } from './employeeTabExport'
+
+// The training history printout (Training module, still JS) as a document of the shared layout.
+const trainingDoc = employeeTrainingDoc as (input: AnyRecord) => ReportDoc
 
 // Training tab of the employee record: programmes, attendance and questionnaire answers.
 
@@ -32,7 +37,7 @@ export function EmployeeTrainingTab({
   organizationId,
   canOpenProgram = false,
   onExportItems,
-}) {
+}: RecordTabProps & { t: (key: string) => string, fmt: (value: unknown) => string, organizationId: string | null | undefined, canOpenProgram?: boolean }) {
   const { goTo } = useContextualNavigation('/training')
   const state = useEmployeeSubRecords(
     loadEmployeeTrainingAsync,
@@ -40,10 +45,10 @@ export function EmployeeTrainingTab({
     employee.dbId,
     employee.id,
   )
-  const [selected, setSelected] = useState(null)
+  const [selected, setSelected] = useState<AnyRecord | null>(null)
   // The active time the employee spent on the programme's files (only the personal link records it; imported
   // attendance has none, so «—»).
-  const [watched, setWatched] = useState(null)
+  const [watched, setWatched] = useState<number | null>(null)
   useEffect(() => {
     setWatched(null)
     if (!selected?.programDbId || !selected?.assignmentDbId) return undefined
@@ -58,13 +63,13 @@ export function EmployeeTrainingTab({
   const registry = useRegistryRows(rows)
   const [excelOpen, setExcelOpen] = useState(false)
   const en = language === 'en'
-  const titleOf = row => (en ? row.titleEn || row.titleEl : row.titleEl || row.titleEn)
-  const hoursText = value => (value ? String(Math.round(Number(value) * 10) / 10).replace('.', ',') : '')
-  const historyRows = () => registry.filtered.map(row => ({ title: titleOf(row), organiser: row.organiser, date: row.date, hours: row.hours, done: row.status === 'completed', statusLabel: label(row.status, t), score: row.score != null ? `${row.score}%` : '' }))
+  const titleOf = (row: AnyRecord) => (en ? row.titleEn || row.titleEl : row.titleEl || row.titleEn)
+  const hoursText = (value: number) => (value ? String(Math.round(Number(value) * 10) / 10).replace('.', ',') : '')
+  const historyRows = () => registry.filtered.map((row: AnyRecord) => ({ title: titleOf(row), organiser: row.organiser, date: row.date, hours: row.hours, done: row.status === 'completed', statusLabel: label(row.status, t), score: row.score != null ? `${row.score}%` : '' }))
   const employeeName = en ? `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}` : `${employee.lastName} ${employee.firstName}`
-  const historyTable = () => ({ name: `${en ? 'training' : 'ekpaideusi'}-${employee.id}`, headers: en ? ['Training', 'Organiser', 'Date', 'Hours', 'Status', 'Score'] : ['Εκπαίδευση', 'Διοργανωτής', 'Ημερομηνία', 'Ώρες', 'Κατάσταση', 'Βαθμολογία'], rows: historyRows().map(r => [r.title, r.organiser || '', fmt(r.date), hoursText(r.hours), r.statusLabel, r.score]) })
+  const historyTable = () => ({ name: `${en ? 'training' : 'ekpaideusi'}-${employee.id}`, headers: en ? ['Training', 'Organiser', 'Date', 'Hours', 'Status', 'Score'] : ['Εκπαίδευση', 'Διοργανωτής', 'Ημερομηνία', 'Ώρες', 'Κατάσταση', 'Βαθμολογία'], rows: historyRows().map((r: AnyRecord) => [r.title, r.organiser || '', fmt(r.date), hoursText(r.hours), r.statusLabel, r.score]) })
   const exportItems = [
-    { id: 'training-history-print', kind: 'print', disabled: !registry.filtered.length, label: en ? 'Print: training' : 'Εκτύπωση: εκπαιδεύσεις', onClick: () => printReport(employeeTrainingDoc({ employeeName, employeeCode: employee.id, department: en ? employee.departmentEn || employee.department : employee.department, rows: historyRows(), language })) },
+    { id: 'training-history-print', kind: 'print', disabled: !registry.filtered.length, label: en ? 'Print: training' : 'Εκτύπωση: εκπαιδεύσεις', onClick: () => printReport(trainingDoc({ employeeName, employeeCode: employee.id, department: en ? employee.departmentEn || employee.department : employee.department, rows: historyRows(), language })) },
     { id: 'training-history-excel', kind: 'excel', disabled: !registry.filtered.length, label: en ? 'Excel: training' : 'Excel: εκπαιδεύσεις', onClick: () => setExcelOpen(true) },
   ]
   // The items go to the page's single «Εξαγωγή» (header), not to a second menu here.
@@ -99,8 +104,8 @@ export function EmployeeTrainingTab({
           count={registry.filtered.length}
           end={<><RegistryTotals label={en ? 'Totals' : 'Σύνολα'} items={[
             { key: 'all', always: true, value: registry.filtered.length, label: en ? 'trainings' : 'εκπαιδεύσεις' },
-            { key: 'done', value: registry.filtered.filter(row => row.status === 'completed').length, label: en ? 'completed' : 'ολοκληρωμένες' },
-            { key: 'hours', value: Math.round(registry.filtered.filter(row => row.status === 'completed').reduce((sum, row) => sum + (Number(row.hours) || 0), 0)), label: en ? 'hours' : 'ώρες' },
+            { key: 'done', value: registry.filtered.filter((row: AnyRecord) => row.status === 'completed').length, label: en ? 'completed' : 'ολοκληρωμένες' },
+            { key: 'hours', value: Math.round(registry.filtered.filter((row: AnyRecord) => row.status === 'completed').reduce((sum: number, row: AnyRecord) => sum + (Number(row.hours) || 0), 0)), label: en ? 'hours' : 'ώρες' },
           ]} /></>}
         />
       )}
@@ -121,7 +126,7 @@ export function EmployeeTrainingTab({
                   </tr>
                 </thead>
                 <tbody>
-                  {paging.paged.map(row => (
+                  {paging.paged.map((row: AnyRecord) => (
                     <tr
                       key={row.id}
                       tabIndex={0}
@@ -197,7 +202,7 @@ export function EmployeeTrainingTab({
             <div><dt>{language === 'en' ? 'Completed' : 'Ολοκλήρωση'}</dt><dd>{fmt(selected.completedDate)}</dd></div>
             {selected.dueDate && <div><dt>{language === 'en' ? 'Due' : 'Προθεσμία'}</dt><dd>{fmt(selected.dueDate)}</dd></div>}
             {selected.score != null && <div><dt>{language === 'en' ? 'Knowledge assessment' : 'Αξιολόγηση γνώσεων'}</dt><dd>{selected.score}% · {selected.score >= 80 ? (language === 'en' ? 'Successful' : 'Επιτυχής') : (language === 'en' ? 'Review required' : 'Απαιτείται επανέλεγχος')}</dd></div>}
-            {watched > 0 && <div><dt>{language === 'en' ? 'Time on the material' : 'Χρόνος παρακολούθησης'}</dt><dd>{formatActiveTime(watched, language === 'en')}</dd></div>}
+            {(watched ?? 0) > 0 && <div><dt>{language === 'en' ? 'Time on the material' : 'Χρόνος παρακολούθησης'}</dt><dd>{formatActiveTime(watched as number, language === 'en')}</dd></div>}
             {selected.materialCount > 0 && <div><dt>{language === 'en' ? 'Material' : 'Υλικό'}</dt><dd>{selected.materialCount} {language === 'en' ? (selected.materialCount === 1 ? 'file' : 'files') : (selected.materialCount === 1 ? 'αρχείο' : 'αρχεία')}</dd></div>}
           </dl>
         </ObserverDialog>
@@ -206,15 +211,15 @@ export function EmployeeTrainingTab({
   )
 }
 
-export function trainingAnswerText(question, answer, en) {
-  const q = normalizeTrainingQuestion(question)
+export function trainingAnswerText(question: AnyRecord, answer: unknown, en: boolean) {
+  const q: AnyRecord = normalizeTrainingQuestion(question)
   if (answer === undefined || answer === null || answer === '') return '—'
   if (q.type === 'single_choice')
-    return q.options.find(option => option.id === answer)?.text || String(answer)
+    return q.options.find((option: AnyRecord) => option.id === answer)?.text || String(answer)
   if (q.type === 'multiple_choice')
     return (
       (Array.isArray(answer) ? answer : [])
-        .map(value => q.options.find(option => option.id === value)?.text || String(value))
+        .map(value => q.options.find((option: AnyRecord) => option.id === value)?.text || String(value))
         .join(', ') || '—'
     )
   if (q.type === 'true_false') {

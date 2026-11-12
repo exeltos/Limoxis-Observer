@@ -2,16 +2,24 @@ import { supabase } from '../../core/supabase/client'
 import { selectAllPages } from '../../core/data/inChunks'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { TablesUpdate } from '../../core/supabase/database.types'
 import { loadTrainingState } from '../training/trainingData'
 import { ASSIGNMENT_DETAIL_SELECT,CERTIFICATE_SELECT,PROGRAM_DETAIL_SELECT,trainingStateFromRows } from '../training/trainingMappers'
 import { loadOccupationalVisits as loadVisitsLocal, saveOccupationalVisits as saveVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal } from './employeeRecordsService'
 
-function ensureProductionContext(organizationId,employeeDbId,operation){
-  if(isDemoDataEnvironment())return false
+type OrgId=string|null|undefined
+// The Training module's state (programmes, assignments, certificates) as this file reads it.
+interface TrainingState { programs: AnyRecord[], assignments: AnyRecord[], certificates: AnyRecord[] }
+const trainingFromRows=trainingStateFromRows as unknown as (rows: TrainingState) => TrainingState
+
+// After it (outside the demo) Supabase is configured, an organization is chosen and the employee has a database id.
+function ensureProductionContext(organizationId: OrgId,employeeDbId: unknown,operation: string): asserts organizationId is string{
+  if(isDemoDataEnvironment())return
   if(!hasSupabaseConfig||!supabase)throw new Error(`PRODUCTION_CLOUD_REQUIRED:${operation}`)
   if(!organizationId)throw new Error(`PRODUCTION_ORGANIZATION_REQUIRED:${operation}`)
   if(!employeeDbId)throw new Error(`PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:${operation}`)
-  return true
 }
 
 function cloudEnabled() {
@@ -21,9 +29,9 @@ function cloudEnabled() {
 // Production training: the employee's assignments (training_assignments,
 // matched by employee row, account or employee code) with their answers,
 // trainer evaluation and certificate, and the programmes they belong to.
-async function loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId){
+async function loadCanonicalTrainingContext(organizationId: OrgId,employeeDbId: string,employeeId: string){
   ensureProductionContext(organizationId,employeeDbId,'training_assignments.employee_context')
-  const {data:employee,error:employeeError}=await supabase
+  const {data:employee,error:employeeError}=await cloudClient()
     .from('employees')
     .select('id,employee_code,user_id')
     .eq('organization_id',organizationId)
@@ -33,9 +41,9 @@ async function loadCanonicalTrainingContext(organizationId,employeeDbId,employee
 
   const employeeCode=String(employee?.employee_code||employeeId||'').trim()
   const userId=employee?.user_id||null
-  const quoted=value=>`"${String(value).replace(/["\\]/g,'')}"`
+  const quoted=(value: unknown)=>`"${String(value).replace(/["\\]/g,'')}"`
   const matches=[`employee_id.eq.${employeeDbId}`,userId&&`employee_user_id.eq.${userId}`,employeeCode&&`employee_code.eq.${quoted(employeeCode)}`,employeeId&&String(employeeId)!==employeeCode&&`employee_code.eq.${quoted(employeeId)}`].filter(Boolean)
-  const assignmentRows=await selectAllPages(()=>supabase
+  const assignmentRows=await selectAllPages(()=>cloudClient()
     .from('training_assignments')
     .select(ASSIGNMENT_DETAIL_SELECT)
     .eq('organization_id',organizationId)
@@ -44,41 +52,41 @@ async function loadCanonicalTrainingContext(organizationId,employeeDbId,employee
     .order('id'))
 
   const programIds=[...new Set((assignmentRows||[]).map(row=>row.program_id).filter(Boolean))]
-  let programRows=[]
+  let programRows: AnyRecord[]=[]
   if(programIds.length){
-    const {data,error:programError}=await supabase.from('training_programs').select(PROGRAM_DETAIL_SELECT).eq('organization_id',organizationId).in('id',programIds)
+    const {data,error:programError}=await cloudClient().from('training_programs').select(PROGRAM_DETAIL_SELECT).eq('organization_id',organizationId).in('id',programIds)
     if(programError)throw programError
     programRows=data||[]
   }
-  let certificateRows=[]
+  let certificateRows: AnyRecord[]=[]
   const assignmentIds=(assignmentRows||[]).map(row=>row.id)
   if(assignmentIds.length){
-    const {data,error:certificateError}=await supabase.from('training_certificates').select(CERTIFICATE_SELECT).eq('organization_id',organizationId).in('assignment_id',assignmentIds)
+    const {data,error:certificateError}=await cloudClient().from('training_certificates').select(CERTIFICATE_SELECT).eq('organization_id',organizationId).in('assignment_id',assignmentIds)
     if(certificateError)throw certificateError
     certificateRows=data||[]
   }
-  const state=trainingStateFromRows({programs:programRows,assignments:assignmentRows||[],certificates:certificateRows})
-  return {assignments:state.assignments,programMap:new Map(state.programs.map(p=>[p.id,p])),certificateMap:new Map(state.certificates.map(c=>[c.id,c]))}
+  const state=trainingFromRows({programs:programRows,assignments:assignmentRows||[],certificates:certificateRows})
+  return {assignments:state.assignments as AnyRecord[],programMap:new Map<unknown,AnyRecord>(state.programs.map(p=>[p.id,p])),certificateMap:new Map(state.certificates.map(c=>[c.id,c]))}
 }
 
 
 // Demo: the same Training programmes/assignments the Training module shows.
-function demoTrainingContext(employeeId){
-  const state=loadTrainingState()
+function demoTrainingContext(employeeId: string){
+  const state: TrainingState=loadTrainingState()
   const programs=new Map(state.programs.map(p=>[p.id,p]))
   const certificates=new Map(state.certificates.map(c=>[c.id,c]))
   return state.assignments.filter(a=>a.employeeId===employeeId).map(a=>({a,program:programs.get(a.programId)||{},certificate:certificates.get(a.certificateId)||null}))
 }
-function demoTrainingRows(employeeId){
+function demoTrainingRows(employeeId: string){
   const current=demoTrainingContext(employeeId).map(({a,program})=>({id:a.id,employeeId,titleEl:program.title||a.programId,titleEn:program.titleEn||program.title||a.programId,date:a.completedDate||a.assignedDate||program.startDate||'',assignedDate:a.assignedDate||'',completedDate:a.completedDate||'',dueDate:program.dueDate||a.dueDate||'',status:a.status||'assigned',programId:a.programId,score:a.score??null,competent:a.competent??null,source:'training_records'}))
-  return [...current,...loadTrainingLocal().filter(x=>x.employeeId===employeeId)].sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')))
+  return [...current,...loadTrainingLocal().filter((x: AnyRecord)=>x.employeeId===employeeId)].sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')))
 }
-function demoTrainingEvaluations(employeeId){
+function demoTrainingEvaluations(employeeId: string){
   return demoTrainingContext(employeeId).filter(({a})=>a.score!=null||a.assessmentSubmittedAt).map(({a,program,certificate})=>{const title=program.title||a.programId;const score=a.score!=null?Number(a.score):null;const competent=a.competent===true;return {id:`training-${a.id}`,employeeId,titleEl:`Αξιολόγηση γνώσεων · ${title}`,titleEn:`Knowledge assessment · ${program.titleEn||title}`,date:a.completedDate||String(a.assessmentSubmittedAt||'').slice(0,10),period:String(a.completedDate||a.assignedDate||'').slice(0,4),status:'finalized',resultEl:score!=null?`Βαθμολογία ${score}%${a.competent!=null?` · ${competent?'Επιτυχής':'Μη επιτυχής'}`:''}`:'Υποβλήθηκε',resultEn:score!=null?`Score ${score}%${a.competent!=null?` · ${competent?'Passed':'Not passed'}`:''}`:'Submitted',score,competent:a.competent??null,programId:a.programId,assessmentAnswers:a.assessmentAnswers||{},assessmentQuestions:Array.isArray(program.assessmentQuestions)?program.assessmentQuestions:[],certificateId:a.certificateId||null,certificate,program:{title,titleEn:program.titleEn||title},source:'training'}})
 }
 
 // --- Occupational health visits ---
-function visitFromRow(row) {
+function visitFromRow(row: AnyRecord) {
   return {
     id:row.id,
     employeeId:row.employee_id,
@@ -92,10 +100,10 @@ function visitFromRow(row) {
     updatedAt:row.updated_at||null,
   }
 }
-export async function loadOccupationalVisitsAsync(organizationId, employeeDbId, employeeId) {
-  if(isDemoDataEnvironment())return loadVisitsLocal().filter(x => x.employeeId === employeeId)
+export async function loadOccupationalVisitsAsync(organizationId: OrgId, employeeDbId: string, employeeId: string) {
+  if(isDemoDataEnvironment())return loadVisitsLocal().filter((x: AnyRecord) => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'occupational_health_visits.load')
-  const data = await selectAllPages(() => supabase
+  const data = await selectAllPages(() => cloudClient()
     .from('occupational_health_visits')
     .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
@@ -108,10 +116,10 @@ export async function loadOccupationalVisitsAsync(organizationId, employeeDbId, 
 // Every employee's visits, for the Occupational Health registry. Rows keep the
 // employee's database id (employeeId), which the page maps back to the employee.
 // Browser storage is used only for the sample demo or without Supabase.
-export async function loadAllOccupationalVisitsAsync(organizationId) {
+export async function loadAllOccupationalVisitsAsync(organizationId: OrgId) {
   if(!cloudEnabled())return loadVisitsLocal()
   if(!organizationId)return []
-  const data = await selectAllPages(() => supabase
+  const data = await selectAllPages(() => cloudClient()
     .from('occupational_health_visits')
     .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
@@ -123,7 +131,7 @@ export async function loadAllOccupationalVisitsAsync(organizationId) {
 // Records a visit of the occupational physician (scheduled, or done with its
 // fitness outcome). Demo: browser storage; cloud: RLS allows the occupational
 // physician and holders of manage_occupational_health.
-export async function createOccupationalVisitAsync(organizationId, employee, draft) {
+export async function createOccupationalVisitAsync(organizationId: OrgId, employee: AnyRecord | null | undefined, draft: AnyRecord) {
   if (!employee) throw new Error('OCCUPATIONAL_VISIT_EMPLOYEE_REQUIRED')
   if (!draft?.date || !draft?.type) throw new Error('OCCUPATIONAL_VISIT_FIELDS_REQUIRED')
   const done = draft.status === 'completed'
@@ -134,7 +142,7 @@ export async function createOccupationalVisitAsync(organizationId, employee, dra
     return added
   }
   ensureProductionContext(organizationId, employee.dbId, 'occupational_health_visits.create')
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('occupational_health_visits')
     .insert({ organization_id: organizationId, employee_id: employee.dbId, visit_date: draft.date, visit_type: draft.type, status: draft.status || 'scheduled', fitness_status: fitStatus, follow_up_date: done ? draft.followUpDate || null : null, clinical_notes: String(draft.clinicalNotes || '').trim() || null })
     .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
@@ -145,34 +153,34 @@ export async function createOccupationalVisitAsync(organizationId, employee, dra
 
 // The visit of the Occupational Health registry changed or removed (RLS: the occupational physician and the
 // holders of manage_occupational_health). `employee` is the one the visit belongs to.
-export async function updateOccupationalVisitAsync(organizationId, visit, draft) {
+export async function updateOccupationalVisitAsync(organizationId: OrgId, visit: AnyRecord | null, draft: AnyRecord): Promise<AnyRecord> {
   if (!draft?.date || !draft?.type) throw new Error('OCCUPATIONAL_VISIT_FIELDS_REQUIRED')
   const done = draft.status === 'completed'
   const fitStatus = done ? (draft.fitStatus || 'pending') : 'pending'
   const notes = String(draft.clinicalNotes || '').trim()
   if (isDemoDataEnvironment()) {
     const next = { ...visit, date: draft.date, type: draft.type, status: draft.status || 'scheduled', followUpDate: done ? draft.followUpDate || null : null, fitStatus, clinicalNotes: notes }
-    saveVisitsLocal(loadVisitsLocal().map(item => (item.id === visit.id ? next : item)))
+    saveVisitsLocal(loadVisitsLocal().map((item: AnyRecord) => (item.id === visit?.id ? next : item)))
     return next
   }
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('occupational_health_visits')
     .update({ visit_date: draft.date, visit_type: draft.type, status: draft.status || 'scheduled', fitness_status: fitStatus, follow_up_date: done ? draft.followUpDate || null : null, clinical_notes: notes || null })
-    .eq('organization_id', organizationId)
-    .eq('id', visit.id)
+    .eq('organization_id', organizationId as string)
+    .eq('id', visit?.id)
     .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
     .single()
   if (error) throw error
   return visitFromRow(data)
 }
-export async function deleteOccupationalVisitAsync(organizationId, visitId) {
-  if (isDemoDataEnvironment()) { saveVisitsLocal(loadVisitsLocal().filter(item => item.id !== visitId)); return }
-  const { error } = await supabase.from('occupational_health_visits').delete().eq('organization_id', organizationId).eq('id', visitId)
+export async function deleteOccupationalVisitAsync(organizationId: OrgId, visitId: string) {
+  if (isDemoDataEnvironment()) { saveVisitsLocal(loadVisitsLocal().filter((item: AnyRecord) => item.id !== visitId)); return }
+  const { error } = await cloudClient().from('occupational_health_visits').delete().eq('organization_id', organizationId as string).eq('id', visitId)
   if (error) throw error
 }
 
 // --- Vaccinations ---
-function vaccinationFromRow(row) {
+function vaccinationFromRow(row: AnyRecord) {
   return {
     id:row.id,
     employeeId:row.employee_id,
@@ -187,10 +195,10 @@ function vaccinationFromRow(row) {
     updatedAt:row.updated_at||null,
   }
 }
-export async function loadVaccinationsAsync(organizationId, employeeDbId, employeeId) {
-  if(isDemoDataEnvironment())return loadVaccinationsLocal().filter(x => x.employeeId === employeeId)
+export async function loadVaccinationsAsync(organizationId: OrgId, employeeDbId: string, employeeId: string) {
+  if(isDemoDataEnvironment())return loadVaccinationsLocal().filter((x: AnyRecord) => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'employee_vaccinations.load')
-  const data = await selectAllPages(() => supabase
+  const data = await selectAllPages(() => cloudClient()
     .from('employee_vaccinations')
     .select('id,employee_id,vaccine_label_snapshot,dose,vaccination_date,lot_number,valid_until,status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
@@ -204,11 +212,11 @@ export async function loadVaccinationsAsync(organizationId, employeeDbId, employ
 // Production training has one source of truth: the training_* tables (the
 // former training_records). The employee tab derives its rows from the
 // employee's assignments and joins the programme.
-export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, employeeId) {
+export async function loadEmployeeTrainingAsync(organizationId: OrgId, employeeDbId: string, employeeId: string) {
   if(isDemoDataEnvironment())return demoTrainingRows(employeeId)
   const {assignments,programMap}=await loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId)
   return assignments.map(assignment=>{
-    const program=programMap.get(assignment.programId)||{}
+    const program: AnyRecord=programMap.get(assignment.programId)||{}
     const title=program.title||assignment.programTitle||assignment.title||assignment.programId||'Training'
     return {
       id:assignment.id,
@@ -236,30 +244,30 @@ export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, em
 // --- Evaluations ---
 const EVALUATION_COLUMNS='id,employee_id,title,title_en,evaluation_date,result,result_en,notes,evaluation_period,status,evaluator_user_id,criteria,overall_score,employee_comment,employee_agreement,employee_acknowledged_at,employee_acknowledged_by,hr_approved_at,hr_approved_by,admin_approved_at,admin_approved_by,finalized_at'
 
-function evaluationFromRow(row) {
+function evaluationFromRow(row: AnyRecord) {
   return { id:row.id,employeeId:row.employee_id,titleEl:row.title,titleEn:row.title_en||row.title,date:row.evaluation_date,resultEl:row.result||'',resultEn:row.result_en||row.result||'',period:row.evaluation_period||'',status:row.status||'draft',evaluatorUserId:row.evaluator_user_id||null,evaluatorName:row.evaluator_name||'',criteria:Array.isArray(row.criteria)?row.criteria:[],overallScore:row.overall_score==null?null:Number(row.overall_score),notes:row.notes||'',employeeComment:row.employee_comment||'',employeeAgreement:row.employee_agreement||'',employeeAcknowledgedAt:row.employee_acknowledged_at||null,hrApprovedAt:row.hr_approved_at||null,adminApprovedAt:row.admin_approved_at||null,finalizedAt:row.finalized_at||null,source:'employee_evaluations' }
 }
 
-function evaluationScore(criteria=[]){const valid=criteria.filter(x=>Number(x.score)>=1&&Number(x.score)<=5);if(!valid.length)return null;const totalWeight=valid.reduce((n,x)=>n+(Number(x.weight)||1),0);return Number((valid.reduce((n,x)=>n+Number(x.score)*(Number(x.weight)||1),0)/totalWeight).toFixed(2))}
+function evaluationScore(criteria: AnyRecord[]=[]){const valid=criteria.filter(x=>Number(x.score)>=1&&Number(x.score)<=5);if(!valid.length)return null;const totalWeight=valid.reduce((n,x)=>n+(Number(x.weight)||1),0);return Number((valid.reduce((n,x)=>n+Number(x.score)*(Number(x.weight)||1),0)/totalWeight).toFixed(2))}
 
 // Demo mirrors of createEmployeeEvaluationAsync/updateEmployeeEvaluationWorkflowAsync,
 // matching the shape evaluationFromRow produces so the workflow (submit ->
 // employee acknowledgement -> HR approval -> final approval) is exercisable
 // in demo the same way it is in production.
-function createEvaluationLocal(employeeDbId,draft){
+function createEvaluationLocal(employeeDbId: string,draft: AnyRecord){
   const rows=loadEvaluationsLocal()
   const score=evaluationScore(draft.criteria)
   const row={id:`EV-${Date.now()}`,employeeId:employeeDbId,titleEl:'Αξιολόγηση απόδοσης',titleEn:'Performance evaluation',date:draft.date,period:draft.period,status:'draft',evaluatorUserId:null,evaluatorName:'Demo user',criteria:draft.criteria||[],overallScore:score,notes:draft.notes||'',resultEl:score==null?'':`${score} / 5`,resultEn:score==null?'':`${score} / 5`,employeeComment:'',employeeAgreement:'',employeeAcknowledgedAt:null,hrApprovedAt:null,adminApprovedAt:null,finalizedAt:null,source:'employee_evaluations'}
   saveEvaluationsLocal([row,...rows])
   return row
 }
-function updateEvaluationWorkflowLocal(evaluationId,{action,comment='',agreement=''}){
+function updateEvaluationWorkflowLocal(evaluationId: string,{action,comment='',agreement=''}: WorkflowStep){
   const rows=loadEvaluationsLocal()
   const now=new Date().toISOString()
-  let updatedRow=null
-  const next=rows.map(row=>{
+  let updatedRow: AnyRecord|null=null
+  const next=rows.map((row: AnyRecord)=>{
     if(row.id!==evaluationId)return row
-    let patch={}
+    let patch: AnyRecord={}
     if(action==='submit')patch={status:'submitted'}
     else if(action==='acknowledge')patch={status:'employee_acknowledged',employeeComment:comment||'',employeeAgreement:agreement||'',employeeAcknowledgedAt:now}
     else if(action==='hrApprove')patch={status:'hr_approved',hrApprovedAt:now}
@@ -272,33 +280,35 @@ function updateEvaluationWorkflowLocal(evaluationId,{action,comment='',agreement
   return updatedRow
 }
 
-export async function createEmployeeEvaluationAsync(organizationId,employeeDbId,draft){
+// A step of the evaluation workflow (submit, acknowledge, hrApprove, finalize).
+export interface WorkflowStep { action: string, comment?: string, agreement?: string }
+export async function createEmployeeEvaluationAsync(organizationId: OrgId,employeeDbId: string,draft: AnyRecord){
   if(isDemoDataEnvironment())return createEvaluationLocal(employeeDbId,draft)
   ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.create')
-  const {data:userData}=await supabase.auth.getUser();const userId=userData?.user?.id||null
+  const {data:userData}=await cloudClient().auth.getUser();const userId=userData?.user?.id||null
   const score=evaluationScore(draft.criteria)
-  const {data,error}=await supabase.from('employee_evaluations').insert({organization_id:organizationId,employee_id:employeeDbId,title:'Αξιολόγηση απόδοσης',title_en:'Performance evaluation',evaluation_date:draft.date,evaluation_period:draft.period,status:'draft',evaluator_user_id:userId,created_by:userId,criteria:draft.criteria||[],overall_score:score,notes:draft.notes||'',result:score==null?'':`${score} / 5`,result_en:score==null?'':`${score} / 5`}).select(EVALUATION_COLUMNS).single()
+  const {data,error}=await cloudClient().from('employee_evaluations').insert({organization_id:organizationId,employee_id:employeeDbId,title:'Αξιολόγηση απόδοσης',title_en:'Performance evaluation',evaluation_date:draft.date,evaluation_period:draft.period,status:'draft',evaluator_user_id:userId,created_by:userId,criteria:draft.criteria||[],overall_score:score,notes:draft.notes||'',result:score==null?'':`${score} / 5`,result_en:score==null?'':`${score} / 5`}).select(EVALUATION_COLUMNS).single()
   if(error)throw error;return evaluationFromRow(data)
 }
 
-export async function updateEmployeeEvaluationWorkflowAsync(organizationId,employeeDbId,evaluationId,{action,comment='',agreement=''}){
+export async function updateEmployeeEvaluationWorkflowAsync(organizationId: OrgId,employeeDbId: string,evaluationId: string,{action,comment='',agreement=''}: WorkflowStep){
   if(isDemoDataEnvironment())return updateEvaluationWorkflowLocal(evaluationId,{action,comment,agreement})
   ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.workflow')
-  const {data:userData,error:userError}=await supabase.auth.getUser();if(userError)throw userError;const userId=userData?.user?.id;if(!userId)throw new Error('Authentication required')
-  const now=new Date().toISOString();let patch
+  const {data:userData,error:userError}=await cloudClient().auth.getUser();if(userError)throw userError;const userId=userData?.user?.id;if(!userId)throw new Error('Authentication required')
+  const now=new Date().toISOString();let patch: TablesUpdate<'employee_evaluations'>
   if(action==='submit')patch={status:'submitted'}
   else if(action==='acknowledge')patch={status:'employee_acknowledged',employee_comment:comment||null,employee_agreement:agreement||null,employee_acknowledged_at:now,employee_acknowledged_by:userId}
   else if(action==='hrApprove')patch={status:'hr_approved',hr_approved_at:now,hr_approved_by:userId}
   else if(action==='finalize')patch={status:'finalized',admin_approved_at:now,admin_approved_by:userId,finalized_at:now}
   else throw new Error('Unsupported evaluation workflow action')
-  const {data,error}=await supabase.from('employee_evaluations').update(patch).eq('organization_id',organizationId).eq('employee_id',employeeDbId).eq('id',evaluationId).select(EVALUATION_COLUMNS).single();if(error)throw error;return evaluationFromRow(data)
+  const {data,error}=await cloudClient().from('employee_evaluations').update(patch).eq('organization_id',organizationId).eq('employee_id',employeeDbId).eq('id',evaluationId).select(EVALUATION_COLUMNS).single();if(error)throw error;return evaluationFromRow(data)
 }
-export async function loadEvaluationsAsync(organizationId, employeeDbId, employeeId) {
-  if(isDemoDataEnvironment())return [...loadEvaluationsLocal().filter(x => x.employeeId === employeeId),...demoTrainingEvaluations(employeeId)].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))
+export async function loadEvaluationsAsync(organizationId: OrgId, employeeDbId: string, employeeId: string) {
+  if(isDemoDataEnvironment())return [...loadEvaluationsLocal().filter((x: AnyRecord) => x.employeeId === employeeId),...demoTrainingEvaluations(employeeId)].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))
   ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.load')
 
   const [{data:formalRows,error:formalError},trainingContext]=await Promise.all([
-    supabase
+    cloudClient()
       .from('employee_evaluations')
       .select(EVALUATION_COLUMNS)
       .eq('organization_id', organizationId)
@@ -308,20 +318,20 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
   ])
   if(formalError)throw formalError
   const evaluatorIds=[...new Set((formalRows||[]).map(row=>row.evaluator_user_id).filter(Boolean))]
-  let evaluatorNames=new Map()
-  if(evaluatorIds.length){const {data:profiles}=await supabase.from('profiles').select('id,full_name,username').in('id',evaluatorIds);evaluatorNames=new Map((profiles||[]).map(p=>[p.id,p.full_name||p.username||'']))}
+  let evaluatorNames=new Map<unknown,string>()
+  if(evaluatorIds.length){const {data:profiles}=await cloudClient().from('profiles').select('id,full_name,username').in('id',evaluatorIds);evaluatorNames=new Map((profiles||[]).map(p=>[p.id,p.full_name||p.username||'']))}
   const formalWithEvaluator=(formalRows||[]).map(row=>({...row,evaluator_name:evaluatorNames.get(row.evaluator_user_id)||''}))
 
   const trainingEvaluations=trainingContext.assignments
     .filter(a=>a.score!=null||Boolean(a.assessmentSubmittedAt)||Boolean(a.assessmentReviewStatus))
     .map(a=>{
-      const program=trainingContext.programMap.get(a.programId)||{}
+      const program: AnyRecord=trainingContext.programMap.get(a.programId)||{}
       const title=program.title||a.programTitle||a.programId||'Training'
       const score=a.score!=null?Number(a.score):null
       const competent=a.competent===true
       // Words, never the stored codes (an imported assessment has only «reviewed»).
-      const reviewEl={pending:'Προς έλεγχο',reviewed:'Ελέγχθηκε',not_required:'Υποβλήθηκε'}[a.assessmentReviewStatus]||'Υποβλήθηκε'
-      const reviewEn={pending:'To be reviewed',reviewed:'Reviewed',not_required:'Submitted'}[a.assessmentReviewStatus]||'Submitted'
+      const reviewEl=({pending:'Προς έλεγχο',reviewed:'Ελέγχθηκε',not_required:'Υποβλήθηκε'} as Record<string,string>)[a.assessmentReviewStatus]||'Υποβλήθηκε'
+      const reviewEn=({pending:'To be reviewed',reviewed:'Reviewed',not_required:'Submitted'} as Record<string,string>)[a.assessmentReviewStatus]||'Submitted'
       const verdictEl=a.competent!=null?(competent?'Επιτυχής':'Μη επιτυχής'):'',verdictEn=a.competent!=null?(competent?'Passed':'Not passed'):''
       const resultEl=score!=null?`Βαθμολογία ${score}%${verdictEl?` · ${verdictEl}`:''}`:(verdictEl||reviewEl)
       const resultEn=score!=null?`Score ${score}%${verdictEn?` · ${verdictEn}`:''}`:(verdictEn||reviewEn)
@@ -352,15 +362,15 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
 }
 
 // --- Certificates ---
-function certificateFromRow(row) {
+function certificateFromRow(row: AnyRecord) {
   return { id: row.id, employeeId: row.employee_id, titleEl: row.title, titleEn: row.title_en || row.title, issuer: row.issuer || '', issueDate: row.issue_date || '', validUntil: row.valid_until || '', certificateNumber: row.certificate_number || '', attachments: [] }
 }
 const CERTIFICATE_COLUMNS = 'id,employee_id,title,title_en,issuer,issue_date,valid_until,certificate_number'
 
-export async function loadCertificatesAsync(organizationId, employeeDbId, employeeId) {
-  if(isDemoDataEnvironment())return loadCertificatesLocal().filter(x => x.employeeId === employeeId)
+export async function loadCertificatesAsync(organizationId: OrgId, employeeDbId: string, employeeId: string) {
+  if(isDemoDataEnvironment())return loadCertificatesLocal().filter((x: AnyRecord) => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'employee_certificates.load')
-  const data = await selectAllPages(() => supabase
+  const data = await selectAllPages(() => cloudClient()
     .from('employee_certificates')
     .select(CERTIFICATE_COLUMNS)
     .eq('organization_id', organizationId)
@@ -370,9 +380,9 @@ export async function loadCertificatesAsync(organizationId, employeeDbId, employ
   return data.map(certificateFromRow)
 }
 
-export async function createCertificateAsync(organizationId, employeeDbId, draft) {
+export async function createCertificateAsync(organizationId: OrgId, employeeDbId: string, draft: AnyRecord) {
   ensureProductionContext(organizationId,employeeDbId,'employee_certificates.create')
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('employee_certificates')
     .insert({
       organization_id: organizationId,
@@ -391,7 +401,7 @@ export async function createCertificateAsync(organizationId, employeeDbId, draft
 }
 
 // --- Occupational exposure incidents (needlestick/sharps/mucocutaneous) ---
-function exposureIncidentFromRow(row) {
+function exposureIncidentFromRow(row: AnyRecord) {
   return {
     id: row.id, employeeId: row.employee_id, incidentDate: row.incident_date, exposureType: row.exposure_type,
     deviceOrSource: row.device_or_source || '', bodySite: row.body_site || '', sourcePatientStatus: row.source_patient_status || '',
@@ -401,10 +411,10 @@ function exposureIncidentFromRow(row) {
 }
 const EXPOSURE_INCIDENT_COLUMNS = 'id,employee_id,incident_date,exposure_type,device_or_source,body_site,source_patient_status,reported_at,pep_administered,pep_details,follow_up_status,follow_up_due_at,notes,status'
 
-export async function loadExposureIncidentsAsync(organizationId, employeeDbId, employeeId) {
-  if(isDemoDataEnvironment())return loadExposureIncidentsLocal().filter(x => x.employeeId === employeeId)
+export async function loadExposureIncidentsAsync(organizationId: OrgId, employeeDbId: string, employeeId: string) {
+  if(isDemoDataEnvironment())return loadExposureIncidentsLocal().filter((x: AnyRecord) => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'occupational_exposure_incidents.load')
-  const data = await selectAllPages(() => supabase
+  const data = await selectAllPages(() => cloudClient()
     .from('occupational_exposure_incidents')
     .select(EXPOSURE_INCIDENT_COLUMNS)
     .eq('organization_id', organizationId)
@@ -414,9 +424,9 @@ export async function loadExposureIncidentsAsync(organizationId, employeeDbId, e
   return data.map(exposureIncidentFromRow)
 }
 
-export async function createExposureIncidentAsync(organizationId, employeeDbId, draft) {
+export async function createExposureIncidentAsync(organizationId: OrgId, employeeDbId: string, draft: AnyRecord) {
   ensureProductionContext(organizationId,employeeDbId,'occupational_exposure_incidents.create')
-  const { data, error } = await supabase
+  const { data, error } = await cloudClient()
     .from('occupational_exposure_incidents')
     .insert({
       organization_id: organizationId,

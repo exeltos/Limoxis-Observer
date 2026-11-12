@@ -10,19 +10,20 @@ import {
   loadCertificatesAsync,
 } from './employeeSubRecordsService'
 import { loadEmployeeSurveillanceRecords } from '../surveillance/employeeSurveillanceCloudService'
+import type { AnyRecord } from '../../types/featureTypes'
 
-function asDateTime(value){
+function asDateTime(value: unknown){
   if(!value)return null
   const text=String(value)
   return /^\d{4}-\d{2}-\d{2}$/.test(text)?`${text}T12:00:00`:text
 }
 
-function detailKey(kind,detail){
+function detailKey(kind: string,detail: unknown){
   const value=String(detail||'').trim()
   return value?`history_${kind}:${value}`:`history_${kind}`
 }
 
-export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,employeeId){
+export async function loadEmployeeHistoryAsync(organizationId: string|null|undefined,employeeDbId: string|null|undefined,employeeId: string){
   if(isDemoDataEnvironment())return employeeHistoryDemo.filter(row=>row.employeeId===employeeId)
   if(!employeeDbId)return []
   if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_CLOUD_REQUIRED:employees.history')
@@ -40,7 +41,7 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
 
   if(auditResult.error)throw auditResult.error
 
-  const admin=(auditResult.data||[]).map(row=>({
+  const admin=(auditResult.data||[]).map((row: AnyRecord)=>({
     id:`audit-${row.audit_id}`,
     action:row.action,
     at:row.occurred_at,
@@ -50,7 +51,7 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
     historyKind:'administrative',
   }))
 
-  const occupational=(visits||[]).map(row=>({
+  const occupational=(visits||[]).map((row: AnyRecord)=>({
     id:`occupational-${row.id}`,
     action:'update',
     at:asDateTime(row.createdAt||row.date),
@@ -59,7 +60,7 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
     historyKind:'occupational',
   }))
 
-  const vaccinationRows=(vaccinations||[]).map(row=>({
+  const vaccinationRows=(vaccinations||[]).map((row: AnyRecord)=>({
     id:`vaccination-${row.id}`,
     action:'update',
     at:asDateTime(row.createdAt||row.date),
@@ -68,7 +69,7 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
     historyKind:'vaccination',
   }))
 
-  const trainingRows=(training||[]).map(row=>({
+  const trainingRows=(training||[]).map((row: AnyRecord)=>({
     id:`training-${row.id}`,
     action:'update',
     at:asDateTime(row.completedDate||row.assignedDate||row.date),
@@ -78,7 +79,7 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
   }))
 
   // A training's knowledge test is already the training's own line: only formal evaluations are listed here.
-  const evaluationRows=(evaluations||[]).filter(row=>row.source!=='training').map(row=>({
+  const evaluationRows=(evaluations||[]).filter((row: AnyRecord)=>row.source!=='training').map((row: AnyRecord)=>({
     id:`evaluation-${row.id}`,
     action:'update',
     at:asDateTime(row.date),
@@ -87,7 +88,7 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
     historyKind:'evaluation',
   }))
 
-  const certificateRows=(certificates||[]).map(row=>({
+  const certificateRows=(certificates||[]).map((row: AnyRecord)=>({
     id:`certificate-${row.id}`,
     action:'update',
     at:asDateTime(row.issueDate),
@@ -97,8 +98,8 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
   }))
 
   const surveillance=(surveillanceRows||[])
-    .filter(row=>row.employeeDbId===employeeDbId)
-    .map(row=>({
+    .filter((row: AnyRecord)=>row.employeeDbId===employeeDbId)
+    .map((row: AnyRecord)=>({
       id:`surveillance-${row.recordId||row.id}`,
       action:'update',
       at:asDateTime(row.createdAt||row.startedAt),
@@ -108,7 +109,7 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
     }))
 
   const rows=[...admin,...occupational,...vaccinationRows,...trainingRows,...evaluationRows,...certificateRows,...surveillance]
-  const unique=new Map()
+  const unique=new Map<string,AnyRecord>()
   for(const row of rows){if(row.at&&!unique.has(row.id))unique.set(row.id,row)}
-  return [...unique.values()].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
+  return [...unique.values()].sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime())
 }

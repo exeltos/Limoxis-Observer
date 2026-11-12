@@ -19,13 +19,14 @@ import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
 import { STAFF_CATEGORIES, staffCategoryLabel } from './staffCategory'
+import type { AnyRecord } from '../../types/featureTypes'
 
 export function EmployeeCreatePage(){
  const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership,isDemo}=useTenant();const actor=useAuditActor();const {data:employeeRows}=useEmployeesData()
- const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([]);const [professionalCategories,setProfessionalCategories]=useState([]);const [positions,setPositions]=useState([])
+ const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState<AnyRecord[]>([]);const [professionalCategories,setProfessionalCategories]=useState<AnyRecord[]>([]);const [positions,setPositions]=useState<AnyRecord[]>([])
  const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',position:'',employmentStatus:'active',staffCategory:'employee',email:'',phone:'',hireDate:''})
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[];const canCreate=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom)
- const set=(k,x)=>setV(s=>({...s,[k]:x}))
+ const set=(k: string,x: string)=>setV(s=>({...s,[k]:x}))
  const normalizedCode=v.employeeCode.trim().toLowerCase()
  const duplicateCode=Boolean(normalizedCode&&employeeRows.some(row=>String(row.id||row.employeeCode||'').trim().toLowerCase()===normalizedCode))
  // A collaborating physician or an external collaborator needs no department or professional category.
@@ -45,7 +46,7 @@ export function EmployeeCreatePage(){
    return()=>{active=false}
   }
   if(!tenant?.id){setDepartments([]);setProfessionalCategories([]);return()=>{active=false}}
-  Promise.all([loadDepartments(tenant.id),loadManagementLibraries(tenant.id)]).then(([departmentRows,libraries])=>{
+  Promise.all([loadDepartments(tenant.id),loadManagementLibraries(tenant.id)]).then(([departmentRows,libraries]: [AnyRecord[],AnyRecord])=>{
    if(!active)return
    setDepartments((departmentRows||[]).filter(row=>row.is_active!==false))
    setProfessionalCategories(libraries?.professionalCategories||[]);setPositions(libraries?.positions||[])
@@ -66,7 +67,7 @@ export function EmployeeCreatePage(){
    notify(t('employeeCreated'),'success')
    navigate(`/employees/${encodeURIComponent(created.id)}`,{replace:true})
   }catch(err){
-   if(err?.message==='DUPLICATE_EMPLOYEE_CODE')notify(en?'This employee / folder code is already in use.':'Ο κωδικός εργαζομένου / φακέλου χρησιμοποιείται ήδη.','danger')
+   if((err as Error|null)?.message==='DUPLICATE_EMPLOYEE_CODE')notify(en?'This employee / folder code is already in use.':'Ο κωδικός εργαζομένου / φακέλου χρησιμοποιείται ήδη.','danger')
    else notify(en?'Could not save the employee.':'Δεν ήταν δυνατή η αποθήκευση του εργαζομένου.','danger')
   }finally{setSaving(false)}
  }
