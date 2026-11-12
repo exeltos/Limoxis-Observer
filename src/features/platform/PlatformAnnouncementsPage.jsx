@@ -11,7 +11,6 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { CheckboxField } from '../../design-system/CheckboxField'
 import { FieldLabelText } from '../../design-system/FormValidation'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -42,6 +41,8 @@ import './platformSettings.css'
 // first, pinned item of the list and opens its own small editor.
 const day = value => (value ? String(value).slice(0, 10) : '')
 const fmt = value => (value ? new Date(value).toLocaleDateString('el-GR') : '—')
+// A value of the «Where it shows» list that stands for the old «show in every demo» setting (kept for the announcements made with it).
+const ALL_DEMOS = '__all_demos__'
 const EMPTY = { kind: 'announcement', titleEl: '', titleEn: '', bodyEl: '', bodyEn: '', ctaLabelEl: '', ctaUrl: '', imageUrl: '', attachmentPath: '', attachmentName: '', attachmentType: '', imagePosition: 'top', documentPath: '', documentName: '', documentType: '', showInDemo: false, startsAt: '', endsAt: '', audience: [], frequency: 'once', status: 'active' }
 const SORT = { title: row => row.titleEl, kind: row => row.kind, period: row => day(row.startsAt), seen: row => row.seenCount, status: row => row.status }
 
@@ -65,8 +66,9 @@ export function PlatformAnnouncementsPage() {
   const imageInput = useRef(null)
   const documentInput = useRef(null)
   const navigate = useNavigate()
+  // Hospitals and demo hospitals together (owner, 12/11/2026): one list to choose from, a demo marked «Demo».
   const organizations = useMemo(
-    () => memberships.map(item => item.organization).filter(org => org?.id && org.mode !== 'demo'),
+    () => memberships.map(item => item.organization).filter(org => org?.id),
     [memberships],
   )
   const orgName = id => organizations.find(org => org.id === id)?.name || id
@@ -223,11 +225,17 @@ export function PlatformAnnouncementsPage() {
               <ManualDateField label={tx('Έως', 'Until')} value={draft.endsAt} onChange={value => set('endsAt', value)} optional error={draft.endsAt && draft.startsAt && draft.endsAt < draft.startsAt ? tx('Η λήξη είναι πριν την έναρξη.', 'The end is before the start.') : ''} />
               <div className="platform-announcement-wide">
                 <MultiSelect
-                  label={tx('Νοσοκομεία (κενό = όλα)', 'Hospitals (empty = all)')}
+                  label={tx('Πού εμφανίζεται (νοσοκομεία και demo· κενό = όλα τα νοσοκομεία)', 'Where it shows (hospitals and demos; empty = every hospital)')}
                   tags
-                  options={organizations.map(org => ({ value: org.id, label: org.name }))}
-                  selected={draft.audience}
-                  onChange={value => set('audience', value)}
+                  options={[
+                    ...(draft.showInDemo ? [{ value: ALL_DEMOS, label: tx('Όλα τα demo', 'Every demo') }] : []),
+                    ...organizations.map(org => ({ value: org.id, label: org.mode === 'demo' ? `${org.name} · Demo` : org.name })),
+                  ]}
+                  selected={[...(draft.showInDemo ? [ALL_DEMOS] : []), ...draft.audience]}
+                  onChange={value => {
+                    set('showInDemo', value.includes(ALL_DEMOS))
+                    set('audience', value.filter(id => id !== ALL_DEMOS))
+                  }}
                   placeholder={tx('Όλα τα νοσοκομεία', 'Every hospital')}
                 />
               </div>
@@ -295,12 +303,6 @@ export function PlatformAnnouncementsPage() {
                   <small>{tx('Στην ανακοίνωση εμφανίζεται ως σύνδεσμος που ανοίγει σε νέα καρτέλα.', 'It shows in the announcement as a link that opens in a new tab.')}</small>
                 </div>
               </div>
-              <CheckboxField
-                className="platform-announcement-wide"
-                label={tx('Εμφάνιση και στο demo (σε όποιον μπαίνει στα demo νοσοκομεία)', 'Show in the demo too (to whoever opens the demo hospitals)')}
-                checked={draft.showInDemo}
-                onChange={value => set('showInDemo', value)}
-              />
             </div>
           </div>
         </EntityRecordShell>

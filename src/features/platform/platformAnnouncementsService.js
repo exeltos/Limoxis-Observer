@@ -116,13 +116,19 @@ export async function loadPendingAnnouncements(organizationId, userId) {
   return pendingFor((data || []).map(mapAnnouncement), organizationId, seen)
 }
 
-// In a demo hospital (owner, 8/11/2026): the active ones marked «show in the demo too», for whoever is in the demo;
-// the gate shows each once per browser session, nothing is recorded.
-export async function loadDemoAnnouncements() {
-  const { data, error } = await supabase.from('platform_announcements').select(COLUMNS).eq('status', 'active').eq('show_in_demo', true).order('starts_at', { ascending: true })
+// In a demo hospital (owner, 8/11/2026, 12/11/2026): the active ones marked «show in every demo» (the old setting) and the
+// ones that name this demo hospital in «where it shows»; for whoever is in the demo. The gate shows each once per browser
+// session, nothing is recorded.
+export async function loadDemoAnnouncements(organizationId) {
+  const { data, error } = await supabase.from('platform_announcements').select(COLUMNS).eq('status', 'active').order('starts_at', { ascending: true })
   if (error) throw error
-  return (data || []).map(mapAnnouncement).filter(item => pendingFor([{ ...item, audience: [] }], '', new Set()).length)
+  return (data || [])
+    .map(mapAnnouncement)
+    .filter(item => meantForDemo(item, organizationId))
+    .filter(item => pendingFor([{ ...item, audience: [] }], '', new Set()).length)
 }
+// Pure: an announcement is for a demo hospital when it is for every demo (the old setting) or names this one.
+export const meantForDemo = (item, organizationId) => Boolean(item.showInDemo || (organizationId && item.audience.includes(organizationId)))
 
 // The uploaded image or file: a private bucket, read through a short signed link.
 const BUCKET = 'platform-announcements'

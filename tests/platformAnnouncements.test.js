@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { announcementPayload, mapAnnouncement, pendingFor } from '../src/features/platform/platformAnnouncementsService'
+import { announcementPayload, mapAnnouncement, meantForDemo, pendingFor } from '../src/features/platform/platformAnnouncementsService'
 
 // The platform owner's announcements to the hospital administrators (owner, 8/11/2026).
 const base = { id: 'a1', status: 'active', startsAt: '2026-11-01T00:00:00Z', endsAt: '2026-11-30T00:00:00Z', audience: [], frequency: 'once' }
@@ -51,7 +51,7 @@ describe('platform announcements: file and demo (owner, 8/11/2026)', () => {
     expect(page).toContain('platform-maintenance-item')
     expect(page).toContain('function MaintenanceEditor(')
     const gate = readFileSync('src/features/platform/PlatformAnnouncementGate.jsx', 'utf8')
-    expect(gate).toContain('loadDemoAnnouncements()')
+    expect(gate).toContain('loadDemoAnnouncements(tenant?.id)')
   })
 })
 
@@ -86,5 +86,28 @@ describe('platform announcements: the card is read at leisure (owner, 11/11/2026
     const dialog = read('src/design-system/ObserverDialog.jsx')
     expect(dialog).toContain('closeOnBackdrop=true')
     expect(dialog).toContain('closeOnBackdrop&&e.target===e.currentTarget')
+  })
+})
+
+describe('platform announcements: hospitals and demos in one list (owner, 12/11/2026)', () => {
+  const base = { showInDemo: false, audience: [] }
+  it('a demo sees what names it, or what is for every demo', () => {
+    expect(meantForDemo({ ...base, audience: ['demo-1', 'org-1'] }, 'demo-1')).toBe(true)
+    expect(meantForDemo({ ...base, audience: ['demo-2'] }, 'demo-1')).toBe(false)
+    expect(meantForDemo({ ...base, audience: ['org-1'] }, 'demo-1')).toBe(false)
+    expect(meantForDemo({ ...base, showInDemo: true }, 'demo-1')).toBe(true)
+    expect(meantForDemo(base, 'demo-1')).toBe(false)
+  })
+  it('the page offers hospitals and demos together; the old checkbox is gone', () => {
+    const page = readFileSync('src/features/platform/PlatformAnnouncementsPage.jsx', 'utf8')
+    expect(page).not.toContain('Εμφάνιση και στο demo')
+    expect(page).toContain("org.mode === 'demo' ? `${org.name} · Demo`")
+    expect(page).toContain('ALL_DEMOS')
+  })
+  it('the database lets a demo member read what names their demo (create policy only)', () => {
+    const sql = readFileSync('supabase/migrations/20261231330000_announcement_demo_targets.sql', 'utf8')
+    expect(sql).toContain('create policy platform_announcements_demo_target_read')
+    expect(sql).toContain('is_demo')
+    expect(sql).not.toMatch(/\b(drop |delete from|alter policy|revoke)/i)
   })
 })
