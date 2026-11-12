@@ -14,7 +14,7 @@ import type { AnyRecord } from '../../types/featureTypes'
 
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 const yesNoOptions = (en: boolean) => [{ value: 'yes', label: en ? 'Yes' : 'Ναι' }, { value: 'no', label: en ? 'No' : 'Όχι' }]
-const toYesNo = value => (value === true ? 'yes' : value === false ? 'no' : '')
+const toYesNo = (value: unknown) => (value === true ? 'yes' : value === false ? 'no' : '')
 
 export function IncidentEventTypeField({ value, onChange, language }: { value: string, onChange: (value: string) => void, language: string }) {
   const en = language === 'en'
@@ -24,7 +24,7 @@ export function IncidentEventTypeField({ value, onChange, language }: { value: s
 // The fields of the blocks the record's event type records; `onChange` gets the changed record.
 export function IncidentEventFields({ record, onChange, language }: { record: AnyRecord, onChange: (record: AnyRecord) => void, language: string }) {
   const en = language === 'en'
-  const { data: employeeRows } = useEmployeesData()
+  const { data: employeeRows }: { data?: AnyRecord[] | null } = useEmployeesData()
   const employees = useMemo(() => (employeeRows || []).filter(item => item.employmentStatus !== 'inactive').map(item => ({ value: item.id, label: employeeName(item, language) })).filter(item => item.label), [employeeRows, language])
   const blocks = detailBlocks(record)
   if (!blocks.length) return null

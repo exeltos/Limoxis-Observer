@@ -1,3 +1,4 @@
+import type { ReportDoc } from '../../../core/export/reportDocument'
 // The audit report on the shared layout (core/export/reportDocument.js): scope,
 // team, meetings, the result per chapter, the answers that were not
 // «Συμμορφώνεται», the findings, the conclusion and the signatures of the lead
@@ -29,7 +30,7 @@ const resultBar = (o: AnyRecord, en: boolean) => {
 const rateBar = (rate: number | null) => (rate == null ? '' : `<span style="display:inline-block;width:90px;height:8px;border-radius:4px;background:#eef1f4;vertical-align:middle"><span style="display:block;height:8px;border-radius:4px;width:${Math.max(0, Math.min(100, rate))}%;background:${rate >= 90 ? '#18794e' : rate >= 75 ? '#b5720b' : '#b42318'}"></span></span>`)
 const resultCell = (answer: string, language: string) => ({ html: `<b style="color:${RESULT_COLOR[answer] || '#667085'}">${esc(resultLabel(answer, language) || '—')}</b>` })
 
-export function auditReportDocument(audit: AnyRecord, findings: AnyRecord[] = [], { language = 'el' } = {}) {
+export function auditReportDocument(audit: AnyRecord, findings: AnyRecord[] = [], { language = 'el' } = {}): ReportDoc {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const rows = audit.checklist || []
@@ -143,7 +144,7 @@ const weaknesses = (score: AnyRecord, en: boolean) => score.chapters.filter((cha
 // The reports of many audits in one short document: an overview table, then only the
 // departments with a deviation (the chapters that fell short and the deviations), and a
 // line with the departments without any. Each audit's own report is the long one.
-export function auditDetailedBatchDocument(audits: AnyRecord[] = [], findings: AnyRecord[] = [], { language = 'el' } = {}) {
+export function auditDetailedBatchDocument(audits: AnyRecord[] = [], findings: AnyRecord[] = [], { language = 'el' } = {}): ReportDoc {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const list = audits.filter(audit => audit.status === 'completed' && (audit.checklist || []).length)

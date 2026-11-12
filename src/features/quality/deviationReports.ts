@@ -1,3 +1,4 @@
+import type { ReportDoc, ReportFact } from '../../core/export/reportDocument'
 // The printout of the deviations (printReport): one table, or one per department, kind or month; the figures of
 // the period on top (how many, open, without action, recurring, the commonest causes).
 import { CAUSE_CATEGORIES, DEVIATION_KINDS, causeCategoriesText, vocabularyLabel } from './qualityVocabulary'
@@ -6,7 +7,7 @@ import type { AnyRecord } from '../../types/featureTypes'
 const dmy = (value: unknown) => (value ? String(value).slice(0, 10).split('-').reverse().join('/') : '')
 const mid = (text: string) => ({ text, align: 'center' })
 
-export function deviationsReportDoc({ rows, groupBy = 'none', language = 'el', t = (value: string) => value, period = '' }: AnyRecord) {
+export function deviationsReportDoc({ rows, groupBy = 'none', language = 'el', t = (value: string) => value, period = '' }: AnyRecord): ReportDoc {
   const en = language === 'en'
   const title = (row: AnyRecord) => (en ? row.titleEn : row.title) || row.title || ''
   const department = (row: AnyRecord) => (en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα')
@@ -45,12 +46,12 @@ export function deviationsReportDoc({ rows, groupBy = 'none', language = 'el', t
     title: en ? 'Deviations' : 'Αποκλίσεις',
     filename: en ? 'deviations' : 'apokliseis',
     meta: [
-      ...(period ? [[en ? 'Period' : 'Περίοδος', period]] : []),
+      ...(period ? [[en ? 'Period' : 'Περίοδος', period] as ReportFact] : []),
       [en ? 'Deviations' : 'Αποκλίσεις', String(rows.length)],
       [en ? 'Open / in progress' : 'Ανοιχτές / σε εξέλιξη', `${rows.filter((row: AnyRecord) => row.status === 'open').length} / ${rows.filter((row: AnyRecord) => row.status === 'inProgress').length}`],
       [en ? 'Without action' : 'Χωρίς ενέργεια', String(rows.filter((row: AnyRecord) => row.status !== 'closed' && !row.hasCapa).length)],
       [en ? 'Recurring' : 'Επαναλαμβανόμενες', String(rows.filter((row: AnyRecord) => row.recurring).length)],
-      ...(causes ? [[en ? 'Commonest causes' : 'Συχνότερες αιτίες', causes]] : []),
+      ...(causes ? [[en ? 'Commonest causes' : 'Συχνότερες αιτίες', causes] as ReportFact] : []),
     ],
     sections: keys.map(key => ({ title: groupBy === 'none' ? '' : `${groupBy === 'month' ? monthName(key) : key} · ${groups.get(key).length}`, table: { columns, rows: groups.get(key).map(line) } })),
   }

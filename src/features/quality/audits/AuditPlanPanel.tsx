@@ -40,7 +40,7 @@ function useNextAudit(record: AnyRecord, organizationId: string | null | undefin
 // independence and competence checks, and the audit it follows up. «Planning»
 // opens it on a page of its own; an audit whose lead auditor audits their own department
 // is not saved.
-export function AuditPlanPanel({ record, organizationId, canManage, finalized, language }: { record: AnyRecord, organizationId: string, canManage: boolean, finalized: boolean, language: string }) {
+export function AuditPlanPanel({ record, organizationId, canManage, finalized, language }: { record: AnyRecord, setRecord?: unknown, notify?: unknown, actor?: unknown, organizationId: string | null | undefined, canManage: boolean, finalized: boolean, language: string }) {
   const en = language === 'en'
   const { goTo } = useContextualNavigation('/quality')
   const competence = useAuditorCompetence(organizationId)

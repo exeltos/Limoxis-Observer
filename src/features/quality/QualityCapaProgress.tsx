@@ -18,7 +18,7 @@ import type { AnyRecord } from '../../types/featureTypes'
 const today = () => hospitalToday()
 
 // CAPA tab «Progress»: dated notes on how the action is going (quality_capa_progress), newest first.
-export function QualityCapaProgress({ record, setRecord, canManage, finalized, organizationId, actor, notify, language }: { record: AnyRecord, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }) {
+export function QualityCapaProgress({ record, setRecord, canManage, finalized, organizationId, actor, notify, language }: { record: AnyRecord, locale?: string, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string | null | undefined, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }) {
   const en = language === 'en'
   const entries = record.progress || []
   // The note is written in a dialog, like every other record tab.
@@ -26,7 +26,7 @@ export function QualityCapaProgress({ record, setRecord, canManage, finalized, o
   const [saving, setSaving] = useState(false)
   const editable = canManage && !finalized
 
-  async function run(action, message: string) {
+  async function run(action: () => Promise<AnyRecord>, message: string) {
     setSaving(true)
     try {
       setRecord({ ...(await action()) })

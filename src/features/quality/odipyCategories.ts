@@ -97,7 +97,7 @@ export const odipyLabel = (key: string, language = 'el', withGroup = true) => {
   return withGroup ? `${en ? found.group.en : found.group.el} · ${name}` : name
 }
 export const odipyGroupOptions = (language: string) => ODIPY_GROUPS.map(group => ({ value: group.key, label: language === 'en' ? group.en : group.el }))
-export const odipyItemOptions = (groupKey: string, language: string) => (ODIPY_GROUPS.find(group => group.key === groupKey)?.items || []).map(entry => ({ value: entry.key, label: language === 'en' ? entry.en : entry.el }))
+export const odipyItemOptions = (groupKey: string | undefined, language: string) => (ODIPY_GROUPS.find(group => group.key === groupKey)?.items || []).map(entry => ({ value: entry.key, label: language === 'en' ? entry.en : entry.el }))
 
 // «Αφορά σε» of the form.
 export const AFFECTS = [

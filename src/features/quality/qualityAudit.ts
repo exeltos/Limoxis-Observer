@@ -81,7 +81,7 @@ export function auditMatrix(audits: AnyRecord[] = [], year = new Date().getFullY
     return rows.get(key)
   }
   for (const department of departments) row(department.name, department.name, department.nameEn, department.id || '')
-  const totals = { done: 0, running: 0, late: 0, planned: 0, cancelled: 0 }
+  const totals: Record<string, number> = { done: 0, running: 0, late: 0, planned: 0, cancelled: 0 }
   for (const audit of inYear) {
     const name = String(audit.department || '').trim()
     const target = name ? row(name, name, audit.departmentEn) : row('', '', '')

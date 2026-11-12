@@ -14,7 +14,7 @@ export const RESOURCE_VIEWS = ['equipment', 'suppliers']
 // A remembered section as { tab, view }. Sections remembered before the tabs
 // were split (incidents, findings, capas, management, measure:…) still land on the right one.
 // The meetings and the management review are in «Meetings & decisions» (/meetings) now: none.
-export function qualityTabOf(section = '') {
+export function qualityTabOf(section: string | null | undefined = '') {
   const [name, view] = String(section || '').split(':')
   if (name === 'indicators') return { tab: 'indicators', view: INDICATOR_VIEWS.includes(view) ? view : null }
   if (name === 'resources') return { tab: 'resources', view: RESOURCE_VIEWS.includes(view) ? view : null }

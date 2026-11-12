@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, ClipboardList, FileText, Paperclip, Plus, ShieldCheck, X } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -17,7 +17,7 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
-import { auditActorFromAuth, auditEvent } from '../../core/audit/actor'
+import { auditActorFromAuth, auditEvent, type AuditActor } from '../../core/audit/actor'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { resolveSelfEmployee } from '../employees/employeeIdentity'
 import { useLibraries } from '../management/useLibraries'
@@ -93,13 +93,13 @@ export function IncidentReportPage() {
   const canViewQuality = ownerFullAccess || can(role, CAPABILITIES.VIEW_QUALITY, addOns, custom)
   const { goBack } = useContextualNavigation(canViewQuality ? '/quality' : '/quality/my-reports')
   const fromEpisode = location.state?.episodeSource || null
-  const [files, setFiles] = useState<AnyRecord[]>([])
-  const fileInput = useRef(null)
-  const [draft, setDraft] = useState(() => ({ ...emptyIncidentReport(), ...(incidentPrefill(location.state, language) || {}) }))
+  const [files, setFiles] = useState<File[]>([])
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...emptyIncidentReport(), ...(incidentPrefill(location.state, language) || {}) }))
   const [saving, setSaving] = useState(false)
   const [sent, setSent] = useState<AnyRecord | null>(null)
-  const set = (key: string, value) => setDraft(current => ({ ...current, [key]: value }))
-  const patch = next => setDraft(current => ({ ...current, ...next }))
+  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
+  const patch = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
 
   const self = useMemo(() => resolveSelfEmployee({ employeeRows, membership, profile, user, isDemo }), [employeeRows, membership, profile, user, isDemo])
   useEffect(() => {
@@ -121,7 +121,7 @@ export function IncidentReportPage() {
   const valid = Boolean(departmentRef(draft) && draft.date && draft[titleKey].trim() && draft[descriptionKey].trim() && (!isPrivate || draft.visibility !== 'person' || draft.visibleTo))
   const attachmentsOn = cloudAttachmentsEnabled()
   const privacy = draft.privacy
-  const addFiles = (list: AnyRecord[]) => {
+  const addFiles = (list: FileList | File[]) => {
     const picked = [...list]
     const tooBig = picked.filter(file => file.size > MAX_FILE_BYTES)
     if (tooBig.length) notify(en ? `Files over ${MAX_FILE_MB} MB were not added.` : `Δεν προστέθηκαν αρχεία πάνω από ${MAX_FILE_MB} MB.`, 'error')
@@ -151,7 +151,8 @@ export function IncidentReportPage() {
         descriptionEn: draft.descriptionEn || draft.description,
         immediateActions: draft.immediateActions || draft.immediateActionsEn,
         reportedByLabel: privacy !== 'named' ? '' : [actor.name, self?.position].filter(Boolean).join(' · '),
-        history: [auditEvent('recordCreated', { actor })],
+        // An anonymous report has no actor id (null), which the actor type does not know.
+        history: [auditEvent('recordCreated', { actor: actor as unknown as AuditActor })],
       }, profile?.id || user?.id)
       const recordId = created?.dbId
       let failed = 0
@@ -174,7 +175,7 @@ export function IncidentReportPage() {
     }
   }
 
-  const shell = children => <Page fill><EntityRecordShell
+  const shell = (children: ReactNode) => <Page fill><EntityRecordShell
     className="quality-record-shell workspace-fill"
     avatar={<AlertTriangle size={19} />}
     eyebrow={t('quality')}
@@ -196,7 +197,7 @@ export function IncidentReportPage() {
   const fileSize = (bytes: number) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`)
   return shell(<div className="record-section quality-report-form">
     <div className="lo-form-cards quality-report-body">
-      {draft.episodeSource && <PrefilledList items={[{ label: t('episodeForms.prefill.patient'), value: draft.episodeSource.patientLabel }, { label: t('episodeForms.prefill.admission'), value: draft.episodeSource.admissionLabel }, { label: t('episodeForms.prefill.episode'), value: draft.episodeSource.episodeLabel }].filter(item => item.value)} />}
+      {draft.episodeSource && <PrefilledList items={[{ label: t('episodeForms.prefill.patient'), value: draft.episodeSource.patientLabel }, { label: t('episodeForms.prefill.admission'), value: draft.episodeSource.admissionLabel }, { label: t('episodeForms.prefill.episode'), value: draft.episodeSource.episodeLabel }].filter(item => item.value) as never[]} />}
       <FormCard title={en ? 'Where and when' : 'Πού και πότε'} icon={ClipboardList} wide>
         <FormGrid columns={3}>
           <QualityDepartmentField required value={departmentRef(draft)} onChange={patch} />
@@ -211,7 +212,7 @@ export function IncidentReportPage() {
       </FormCard>
       <FormCard title={en ? 'Attachments' : 'Επισυνάψεις'} icon={Paperclip} wide hint={!cloudAttachmentsEnabled() ? (en ? 'Files are not stored in the demo.' : 'Στο demo δεν αποθηκεύονται αρχεία.') : (en ? `Optional. Photos or documents, up to ${MAX_FILES} files of ${MAX_FILE_MB} MB.` : `Προαιρετικά. Φωτογραφίες ή έγγραφα, έως ${MAX_FILES} αρχεία των ${MAX_FILE_MB} MB.`) + (isPrivate ? (en ? ' Do not include details that identify you, in the file or its name.' : ' Μην περιλαμβάνετε στοιχεία που σας αναγνωρίζουν, ούτε στο αρχείο ούτε στο όνομά του.') : '')}>
         <input ref={fileInput} type="file" multiple hidden accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => { addFiles(event.target.files || []); event.target.value = '' }} />
-        {files.length > 0 && <ul className="quality-report-files">{files.map((file, index) => <li key={`${file.name}-${index}`}><Paperclip size={14} aria-hidden="true" /><span>{file.name}</span><small>{fileSize(file.size)}</small><button type="button" aria-label={en ? `Remove ${file.name}` : `Αφαίρεση ${file.name}`} onClick={() => setFiles(current => current.filter((_, at) => at !== index))}><X size={14} /></button></li>)}</ul>}
+        {files.length > 0 && <ul className="quality-report-files">{files.map((file: File, index: number) => <li key={`${file.name}-${index}`}><Paperclip size={14} aria-hidden="true" /><span>{file.name}</span><small>{fileSize(file.size)}</small><button type="button" aria-label={en ? `Remove ${file.name}` : `Αφαίρεση ${file.name}`} onClick={() => setFiles(current => current.filter((_, at) => at !== index))}><X size={14} /></button></li>)}</ul>}
         <div><Button variant="secondary" disabled={!attachmentsOn || files.length >= MAX_FILES || saving} onClick={() => fileInput.current?.click()}><Plus size={15} />{en ? 'Add files' : 'Προσθήκη αρχείων'}</Button></div>
       </FormCard>
       <FormCard title={en ? 'Who sees the report' : 'Ποιος βλέπει την αναφορά'} icon={ShieldCheck} wide hint={privacy === 'named' ? (en ? `The report is recorded with your details: ${reporterLine}. You can follow it in «My reports».` : `Η αναφορά καταγράφεται με τα στοιχεία σας: ${reporterLine}. Την παρακολουθείτε στις «Αναφορές μου».`) : privacy === 'confidential' ? (en ? 'Your name is kept privately and is not shown to those who handle the report. You follow it in «My reports».' : 'Το όνομά σας φυλάσσεται ιδιωτικά και δεν εμφανίζεται σε όσους χειρίζονται την αναφορά. Την παρακολουθείτε στις «Αναφορές μου».') : (en ? 'No name is stored. Keep the code you get after sending: it is the only way to refer to the report. Quality cannot ask you for details.' : 'Δεν καταγράφεται κανένα όνομα. Κρατήστε τον κωδικό που θα πάρετε μετά την αποστολή: είναι ο μόνος τρόπος να αναφερθείτε στην αναφορά. Η Ποιότητα δεν θα μπορεί να σας ζητήσει διευκρινίσεις.')}>

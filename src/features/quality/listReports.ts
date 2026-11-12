@@ -1,3 +1,4 @@
+import type { ReportDoc } from '../../core/export/reportDocument'
 import type { AnyRecord } from '../../types/featureTypes'
 // A list printed from its Excel table (headers + rows): the columns that fit a page, in one table or one per value
 // of a column (department, category, criticality…). Used by the lists that print what their Excel holds.
@@ -5,7 +6,7 @@ import type { AnyRecord } from '../../types/featureTypes'
 // ISO dates printed as dd/mm/yyyy.
 const cell = (value: unknown) => (/^\d{4}-\d{2}-\d{2}$/.test(String(value ?? '')) ? String(value).split('-').reverse().join('/') : value ?? '')
 
-export function groupedListDoc({ title, filename, table, columns, groupBy = null, language = 'el', meta = [] }: AnyRecord) {
+export function groupedListDoc({ title, filename, table, columns, groupBy = null, language = 'el', meta = [] }: AnyRecord): ReportDoc {
   const en = language === 'en'
   const keep = (columns || table.headers.map((_: unknown, index: number) => index)).filter((index: number) => index !== groupBy)
   const none = en ? 'Not set' : 'Χωρίς τιμή'

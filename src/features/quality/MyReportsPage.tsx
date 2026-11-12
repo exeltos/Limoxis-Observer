@@ -18,7 +18,7 @@ import type { AnyRecord } from '../../types/featureTypes'
 
 // The reports the signed-in user sent, and where each one stands. Anonymous
 // reports carry no name, so they never appear here; a confidential one does.
-export function isOwnReport(record: AnyRecord, userId: string) {
+export function isOwnReport(record: AnyRecord, userId: string | null | undefined) {
   return Boolean(userId && record && !record.anonymous && record.reportedById === userId)
 }
 

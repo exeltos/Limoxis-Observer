@@ -19,7 +19,7 @@ export function daysUntil(date: string,now=today()){
   if(!date)return null
   return Math.round((Date.parse(`${String(date).slice(0,10)}T12:00:00Z`)-Date.parse(`${now}T12:00:00Z`))/dayMs)
 }
-const plural=(count: number,en: boolean,one: string,many: string,oneEn,manyEn)=>en?(count===1?oneEn:manyEn):(count===1?one:many)
+const plural=(count: number,en: boolean,one: string,many: string,oneEn: string,manyEn: string)=>en?(count===1?oneEn:manyEn):(count===1?one:many)
 
 // A deadline: how many days are left, or how late it is.
 function deadline(label: string,date: string,{en,language,done=false,doneText}: AnyRecord){
@@ -44,7 +44,7 @@ function age(label: string,date: string,{en,language,open}: AnyRecord){
   return {id:label,label,value:Math.max(0,since),unit:plural(since,en,'ημέρα','ημέρες','day','days'),note:`${open?(en?'Open · since':'Ανοιχτό · από'):(en?'Since':'Από')} ${formatDay(date,language)}`}
 }
 
-export function glanceItems(recordType,record: AnyRecord,{language,t,linked=[]}: AnyRecord){
+export function glanceItems(recordType: string,record: AnyRecord,{language,t,linked=[]}: AnyRecord){
   const en=language==='en'
   const open=!isClosed(record)
   const severityTone=['high','critical'].includes(record.severity)?'danger':undefined
@@ -97,17 +97,17 @@ export function incidentSummary(record: AnyRecord,{language,t}: AnyRecord){
   const en=language==='en'
   const kind=reportKindOf(record)
   const open=!isClosed(record)
-  const items=[]
+  const items: {text: string, tone?: string}[]=[]
   if(['clinical','nonClinical'].includes(kind)&&record.incidentClass){
     const harmful=record.incidentClass==='harmful'
     items.push({text:harmful?`${vocabularyLabel(IMPACTS,harmLevel(record.impact),language)} (WHO)`:vocabularyLabel(INCIDENT_CLASSES,record.incidentClass||'nearMiss',language),tone:harmful?'danger':undefined})
   }
   items.push({text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined})
   if(record.sentinel)items.push({text:'Sentinel',tone:'danger'})
-  const since=-daysUntil(record.date)
+  const since=-Number(daysUntil(record.date))
   if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτό ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστό')})
   if(record.sentinel&&open&&record.rcaDueDate){
-    const left=daysUntil(record.rcaDueDate)
+    const left=daysUntil(record.rcaDueDate) as number
     items.push(left<0
       ?{text:en?`root cause analysis ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')} late`:`ανάλυση αιτίας: εκπρόθεσμη ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')}`,tone:'danger'}
       :{text:en?`root cause analysis by ${formatDay(record.rcaDueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`:`ανάλυση αιτίας έως ${formatDay(record.rcaDueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`,tone:left<=7?'danger':undefined})
@@ -119,8 +119,8 @@ export function incidentSummary(record: AnyRecord,{language,t}: AnyRecord){
 export function findingSummary(record: AnyRecord,{language,t,linked=[]}: AnyRecord){
   const en=language==='en'
   const open=!isClosed(record)
-  const items=[{text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined}]
-  const since=-daysUntil(record.date)
+  const items: {text: string, tone?: string}[]=[{text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined}]
+  const since=-Number(daysUntil(record.date))
   if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτή ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστή')})
   const done=linked.filter(isClosed).length
   items.push(linked.length?{text:en?`${done}/${linked.length} corrective actions done`:`${done}/${linked.length} διορθωτικές ενέργειες ολοκληρώθηκαν`}:record.correctiveActionNeeded===false?{text:en?'no corrective action needed':'δεν απαιτείται διορθωτική ενέργεια'}:{text:en?'no corrective action yet':'χωρίς διορθωτική ενέργεια',tone:open?'danger':undefined})
@@ -134,7 +134,7 @@ export function capaSummary(record: AnyRecord,{language}: AnyRecord){
   const open=!isClosed(record)
   const steps=subActionProgress(record.subActions||[])
   const causes=analysisProgress(record.rootCauseAnalysis)
-  const items=[{text:steps.total?(en?`${steps.done}/${steps.total} steps`:`${steps.done}/${steps.total} βήματα`):(en?'no steps':'χωρίς βήματα')}]
+  const items: {text: string, tone?: string}[]=[{text:steps.total?(en?`${steps.done}/${steps.total} steps`:`${steps.done}/${steps.total} βήματα`):(en?'no steps':'χωρίς βήματα')}]
   const left=daysUntil(record.dueDate)
   if(!open)items.push({text:en?'done':'ολοκληρώθηκε'})
   else if(left!=null)items.push(left<0?{text:en?`${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')} overdue`:`εκπρόθεσμη ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')}`,tone:'danger'}:{text:en?`due ${formatDay(record.dueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`:`προθεσμία ${formatDay(record.dueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`,tone:left<=7?'danger':undefined})

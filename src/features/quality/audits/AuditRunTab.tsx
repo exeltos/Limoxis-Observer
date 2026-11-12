@@ -39,7 +39,7 @@ const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[8
 // every «Μερική» / «Μη συμμόρφωση»), the score per chapter and overall, the
 // findings (and CAPA) the answers become, and the closing meeting. Laid out for
 // a tablet: one question per card, large controls, the save bar in view.
-export function AuditRunTab({ record, setRecord, organizationId, canManage, finalized, language, actor, notify, userId }: { record: AnyRecord, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, organizationId: string, canManage: boolean, finalized: boolean, language: string, actor: AuditActor, notify: FeedbackContextValue['notify'], userId: string }) {
+export function AuditRunTab({ record, setRecord, organizationId, canManage, finalized, language, actor, notify, userId }: { record: AnyRecord, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, organizationId: string | null | undefined, canManage: boolean, finalized: boolean, language: string, actor: AuditActor, notify: FeedbackContextValue['notify'], userId?: string }) {
   const en = language === 'en'
   const { goTo } = useContextualNavigation('/quality')
   const { templates } = useAuditTemplates(organizationId)

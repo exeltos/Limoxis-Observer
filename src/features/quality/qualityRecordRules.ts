@@ -17,7 +17,7 @@ export function statusOptions(recordType: string) {
 
 // A closed, completed or cancelled record is only changed through a governed
 // correction with a reason.
-export function isFinalizedQualityRecord(record: AnyRecord) {
+export function isFinalizedQualityRecord(record: AnyRecord | null) {
   return Boolean(record && ['closed', 'completed', 'cancelled'].includes(record.status))
 }
 

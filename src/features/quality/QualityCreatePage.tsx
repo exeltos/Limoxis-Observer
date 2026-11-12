@@ -33,17 +33,17 @@ import { capaSourceInfo,sourceKindLabel } from './capaSources'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
 
-const config={findings:{icon:ShieldCheck,title:['Νέα απόκλιση','New deviation']},capas:{icon:CheckSquare2,title:'newCapa'},audits:{icon:ClipboardCheck,title:'newAudit'}}
+const config: Record<string, AnyRecord>={findings:{icon:ShieldCheck,title:['Νέα απόκλιση','New deviation']},capas:{icon:CheckSquare2,title:'newCapa'},audits:{icon:ClipboardCheck,title:'newAudit'}}
 
 // A new incident route is the neutral staff report form. Deviations, CAPA and
 // audits are governed records created by the Quality team.
 export function QualityCreatePage(){
-  const {recordType}=useParams()
+  const {recordType}=useParams() as {recordType: string}
   if(recordType==='incidents')return <IncidentReportPage/>
   return <QualityRecordCreate recordType={config[recordType]?recordType:'findings'}/>
 }
 
-const initialStatus={findings:'open',capas:'open',audits:'planned'}
+const initialStatus: Record<string, string>={findings:'open',capas:'open',audits:'planned'}
 
 // What another screen (a pending deviation, risk, calendar or incident) hands to the form.
 function prefillFrom(source: AnyRecord){
@@ -76,10 +76,10 @@ function QualityRecordCreate({recordType}: { recordType: string }){
    const info=capaSourceInfo(givenSource)
    return [{value:givenSource,label:[sourceKindLabel(info.kind,language),info.code].filter(Boolean).join(' · ')},...options]
   },[origins,en,language,givenSource])
-  const originKind=value=>origins.find(({row})=>row.id===value)?.kind||'other'
-  const [draft,setDraft]=useState(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:hospitalToday(),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,checklist:[],checklistSource:'',standard:'',templateId:null,clausesScope:[],team:[],riskLevel:'medium',frequencyMonths:12,plannedMonthOnly:false,...prefillFrom(location.state?.qualitySource)}))
+  const originKind=(value: string)=>origins.find(({row})=>row.id===value)?.kind||'other'
+  const [draft,setDraft]=useState<AnyRecord>(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:hospitalToday(),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,checklist:[],checklistSource:'',standard:'',templateId:null,clausesScope:[],team:[],riskLevel:'medium',frequencyMonths:12,plannedMonthOnly:false,...prefillFrom(location.state?.qualitySource)}))
   const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[];const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER;const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
-  const set=(k,v)=>setDraft(x=>({...x,[k]:v}));const patch=next=>setDraft(x=>({...x,...next}))
+  const set=(k: string,v: unknown)=>setDraft(x=>({...x,[k]:v}));const patch=(next: AnyRecord)=>setDraft(x=>({...x,...next}))
   const titleKey=en?'titleEn':'title';const textKey=recordType==='audits'?(en?'scopeEn':'scope'):(en?'descriptionEn':'description')
   const {templates}=useAuditTemplates(recordType==='audits'?tenant?.id:false)
   const competence=useAuditorCompetence(recordType==='audits'?tenant?.id:false)
@@ -95,7 +95,7 @@ function QualityRecordCreate({recordType}: { recordType: string }){
   if(recordType==='capas'&&created?.id)navigate(`/quality/capas/${created.id}`,{replace:true,state:{limoxisRestore:{tab:'steps'}}});else goBack()}catch(error){console.error(error);notify(en?'The quality record could not be saved.':'Δεν ήταν δυνατή η αποθήκευση της εγγραφής ποιότητας.','error')}finally{setSaving(false)}}
   if(!canManage)return <Navigate to="/quality" replace/>
   const sourceText={emptyLabel:en?'No match':'Δεν βρέθηκε',clearLabel:en?'Clear':'Καθαρισμός'}
-  const steps=draft.subActions?.length>0&&recordType==='capas'&&<FormCard wide icon={ListChecks} title={String(draft.sourceId||'').startsWith('TRAINING:')?(en?'Suggested steps':'Προτεινόμενα βήματα'):en?'Steps from the control’s actions on deviation':'Βήματα από τις ενέργειες σε απόκλιση του ελέγχου'} hint={en?'Assign owners and due dates in the Steps tab after saving.':'Υπεύθυνους και προθεσμίες ορίζετε στην καρτέλα «Βήματα» μετά την αποθήκευση.'}><ol className="quality-prefill-steps">{draft.subActions.map((step: number)=><li key={step.id}>{step.title}</li>)}</ol></FormCard>
+  const steps=draft.subActions?.length>0&&recordType==='capas'&&<FormCard wide icon={ListChecks} title={String(draft.sourceId||'').startsWith('TRAINING:')?(en?'Suggested steps':'Προτεινόμενα βήματα'):en?'Steps from the control’s actions on deviation':'Βήματα από τις ενέργειες σε απόκλιση του ελέγχου'} hint={en?'Assign owners and due dates in the Steps tab after saving.':'Υπεύθυνους και προθεσμίες ορίζετε στην καρτέλα «Βήματα» μετά την αποθήκευση.'}><ol className="quality-prefill-steps">{draft.subActions.map((step: AnyRecord)=><li key={step.id}>{step.title}</li>)}</ol></FormCard>
   return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={t('quality')} title={pageTitle} subtitle={t('qualityRecords.newQualityRecord')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
     <div className="record-section quality-create-form">{recordType==='audits'?<div className="lo-form-cards audit-plan-form">
       <AuditPlanFields draft={draft} setDraft={setDraft} templates={templates} competence={competence} language={language}/>

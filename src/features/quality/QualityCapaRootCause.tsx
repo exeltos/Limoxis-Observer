@@ -14,27 +14,27 @@ import type { AnyRecord } from '../../types/featureTypes'
 
 // CAPA tab "Root causes": the problem, 5 Whys, and an Ishikawa diagram whose
 // head is the problem and whose bones are the healthcare cause categories.
-export function QualityCapaRootCause({record,setRecord,canManage,finalized,organizationId,actor,notify,language}: { record: AnyRecord, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }){
+export function QualityCapaRootCause({record,setRecord,canManage,finalized,organizationId,actor,notify,language}: { record: AnyRecord, locale?: string, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string | null | undefined, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }){
  const en=language==='en'
  const saved=useMemo(()=>normalizeAnalysis(record.rootCauseAnalysis),[record.rootCauseAnalysis])
  const [draft,setDraft]=useState(saved)
  const [editing,setEditing]=useState(false)
  const [saving,setSaving]=useState(false)
- const [newCause,setNewCause]=useState({})
+ const [newCause,setNewCause]=useState<Record<string, string>>({})
  useEffect(()=>{if(!editing)setDraft(saved)},[saved,editing])
  const editable=canManage&&!finalized
  const progress=analysisProgress(saved)
  const view=editing?draft:saved
- const label=(row: AnyRecord)=>en?row[2]:row[1]
+ const label=(row: string[])=>en?row[2]:row[1]
 
- const setWhy=(index: number,value)=>setDraft((current: AnyRecord)=>({...current,whys:current.whys.map((w,i: number)=>i===index?value:w)}))
+ const setWhy=(index: number,value: string)=>setDraft(current=>({...current,whys:current.whys.map((w,i: number)=>i===index?value:w)}))
  function addCause(key: string){
   const text=String(newCause[key]||'').trim()
   if(!text)return
-  setDraft((current: AnyRecord)=>({...current,causes:{...current.causes,[key]:[...current.causes[key],text]}}))
+  setDraft(current=>({...current,causes:{...current.causes,[key]:[...current.causes[key],text]}}))
   setNewCause(current=>({...current,[key]:''}))
  }
- const removeCause=(key: string,index: number)=>setDraft((current: AnyRecord)=>({...current,causes:{...current.causes,[key]:current.causes[key].filter((_,i: number)=>i!==index)}}))
+ const removeCause=(key: string,index: number)=>setDraft(current=>({...current,causes:{...current.causes,[key]:current.causes[key].filter((_,i: number)=>i!==index)}}))
 
  async function save(){
   setSaving(true)
@@ -51,7 +51,7 @@ export function QualityCapaRootCause({record,setRecord,canManage,finalized,organ
   }finally{setSaving(false)}
  }
 
- const bone=(row: AnyRecord)=>{
+ const bone=(row: [string, string, string])=>{
   const [key]=row
   const causes=view.causes[key]
   return <div key={key} className="rca-bone">

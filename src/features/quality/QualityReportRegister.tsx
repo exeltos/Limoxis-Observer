@@ -20,6 +20,7 @@ import { daysUntil } from './QualityGlance'
 import { CAUSE_CATEGORIES,DEVIATION_KINDS,FINDING_SOURCES,REPORT_KINDS,causeCategoriesText,incidentCategoryLabel,vocabularyLabel } from './qualityVocabulary'
 import { roleTitleText } from '../../core/i18n/roleTitles'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { IconType } from '../../design-system/types'
 
 // The Quality Center separates three concepts:
 // - Reports: neutral staff submissions waiting for Quality to classify.
@@ -29,11 +30,11 @@ import type { AnyRecord } from '../../types/featureTypes'
 //   automatic signals from controls/bundles/training waiting for review.
 
 const PERIODS=[30,90,365]
-const KIND_ICON={report:FileWarning,clinical:Stethoscope,nonClinical:Wrench,complaint:MessageSquareWarning,suggestion:Lightbulb}
-const SOURCE_ICON={manual:FileWarning,audit:ClipboardCheck,incident:AlertOctagon,control:ClipboardCheck,bundle:ShieldCheck,training:GraduationCap,other:FileWarning}
+const KIND_ICON: Record<string, IconType>={report:FileWarning,clinical:Stethoscope,nonClinical:Wrench,complaint:MessageSquareWarning,suggestion:Lightbulb}
+const SOURCE_ICON: Record<string, IconType>={manual:FileWarning,audit:ClipboardCheck,incident:AlertOctagon,control:ClipboardCheck,bundle:ShieldCheck,training:GraduationCap,other:FileWarning}
 const DEVIATION_SOURCES=[...FINDING_SOURCES,...REGISTER_SOURCES.filter(item=>['bundle','training'].includes(item.value))]
 
-export const STAGE_LABELS={
+export const STAGE_LABELS: Record<string, string[]>={
  toAssess:['Προς αξιολόγηση','To assess'],
  investigating:['Σε διερεύνηση','Investigating'],
  action:['Ενέργεια σε εξέλιξη','Action in progress'],
@@ -42,10 +43,10 @@ export const STAGE_LABELS={
  closed:['Κλειστή','Closed'],
  voided:['Ακυρωμένη','Voided'],
 }
-export const stageLabel=(stage,language: string)=>STAGE_LABELS[stage]?.[language==='en'?1:0]||stage
-const STAGE_TONE={toAssess:'warning',investigating:'info',action:'info',effectiveness:'info',toClose:'success',closed:'neutral',voided:'neutral'}
+export const stageLabel=(stage: string,language: string)=>STAGE_LABELS[stage]?.[language==='en'?1:0]||stage
+const STAGE_TONE: Record<string, string>={toAssess:'warning',investigating:'info',action:'info',effectiveness:'info',toClose:'success',closed:'neutral',voided:'neutral'}
 
-export function StageTrack({stage,language}: { stage: AnyRecord, language: string }){
+export function StageTrack({stage,language}: { stage: string, language: string }){
  const reached=stage==='closed'?5:INCIDENT_STAGES.indexOf(stage)+1
  return <span className="quality-stage">
   {stage!=='closed'&&stage!=='voided'&&<span className="quality-stage-track" aria-hidden="true">{[1,2,3,4,5].map(step=><i key={step} className={step<reached?'is-done':step===reached?'is-current':''}/>)}</span>}
@@ -63,7 +64,7 @@ export function useDeviationQueue(organizationId: string | null | undefined,enab
   let active=true
   setLoading(true)
   const safe=(promise: AnyRecord)=>promise.catch(()=>[])
-  Promise.all([safe(loadControlProgramme(organizationId,{summary:false,findingsSince:Date.now()-365*24*60*60*1000})),safe(loadBundleAssessments(organizationId)),safe(loadTrainingProgramsAsync(organizationId)),safe(loadQualityRecords('capas',organizationId))])
+  Promise.all([safe(loadControlProgramme(organizationId,{summary:false,findingsSince:Date.now()-365*24*60*60*1000})),safe(loadBundleAssessments(organizationId)),safe(loadTrainingProgramsAsync(organizationId as string)),safe(loadQualityRecords('capas',organizationId))])
    .then(([controls,bundles,trainings,capas])=>{if(active)setSources({controls,bundles,trainings,capas})})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
@@ -75,9 +76,9 @@ const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category
 const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all',deviationKind:'all',cause:'all',recurring:'all',dateFrom:'',dateTo:'',quick:null}
 const departmentsOf=(rows: AnyRecord[],language: string)=>[...new Set(rows.map((row: AnyRecord)=>language==='en'?row.departmentEn:row.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
 
-function useClassifiedRegister(incidents,capas,language: string,mode: string){
- const [filters,setFilters]=useState(REPORT_DEFAULTS)
- const set=(key: string,value)=>setFilters(current=>({...current,[key]:value}))
+function useClassifiedRegister(incidents: AnyRecord[],capas: AnyRecord[],language: string,mode: string){
+ const [filters,setFilters]=useState<AnyRecord>(REPORT_DEFAULTS)
+ const set=(key: string,value: unknown)=>setFilters((current: AnyRecord)=>({...current,[key]:value}))
  const rows=useMemo(()=>registerRows(incidents,[],capas).filter(row=>mode==='reports'?row.kind==='report':row.kind!=='report'),[incidents,capas,mode])
  // «Από / Έως» on the incident date; `base` is the list without the quick figure, for the totals beside the search.
  const inRange=(row: AnyRecord)=>{const day=String(row.date||'').slice(0,10);return (!filters.dateFrom||day>=filters.dateFrom)&&(!filters.dateTo||day<=filters.dateTo)}
@@ -90,16 +91,16 @@ function useClassifiedRegister(incidents,capas,language: string,mode: string){
 }
 
 // Inbox: only neutral submissions that Quality has not classified yet.
-export function useReportRegister(incidents,capas,language: string){
+export function useReportRegister(incidents: AnyRecord[],capas: AnyRecord[],language: string){
  return useClassifiedRegister(incidents,capas,language,'reports')
 }
 
 // Classified quality incidents/complaints/suggestions live here after assessment.
-export function useIncidentRegister(incidents,capas,language: string){
+export function useIncidentRegister(incidents: AnyRecord[],capas: AnyRecord[],language: string){
  return useClassifiedRegister(incidents,capas,language,'incidents')
 }
 
-function findingRows(findings,capas){
+function findingRows(findings: AnyRecord[],capas: AnyRecord[]){
  const handled=new Set((capas||[]).filter((item: AnyRecord)=>item.sourceId).map((item: AnyRecord)=>item.sourceId))
  return (findings||[]).map((record: AnyRecord)=>({
   key:`finding:${record.id}`,
@@ -148,10 +149,10 @@ export function filterDeviations(rows: AnyRecord[],filters: AnyRecord,language='
 export function useDeviations(sources: AnyRecord,language: string){
  const {tenant}=useTenant()
  const [days,setDays]=useState(90)
- const [filters,setFilters]=useState(DEVIATION_DEFAULTS)
+ const [filters,setFilters]=useState<AnyRecord>(DEVIATION_DEFAULTS)
  const [findings,setFindings]=useState<AnyRecord[]>([])
  const [loading,setLoading]=useState(true)
- const set=(key: string,value)=>setFilters(current=>({...current,[key]:value}))
+ const set=(key: string,value: unknown)=>setFilters((current: AnyRecord)=>({...current,[key]:value}))
  useEffect(()=>{
   let active=true
   if(!tenant?.id){setFindings([]);setLoading(false);return()=>{active=false}}
@@ -180,7 +181,7 @@ export function useDeviations(sources: AnyRecord,language: string){
 }
 
 const kindText=(kind: string,language: string)=>vocabularyLabel(REPORT_KINDS,kind,language)
-const findingSourceText=(source,language: string)=>vocabularyLabel(DEVIATION_SOURCES,source,language)||source
+const findingSourceText=(source: string,language: string)=>vocabularyLabel(DEVIATION_SOURCES,source,language)||source
 
 export function reportRegisterExport(rows: AnyRecord[],{language,t,categories}: AnyRecord){
  const en=language==='en'
@@ -202,15 +203,15 @@ export function deviationsExport(rows: AnyRecord[],{language,t}: AnyRecord){
 
 
 function ageText(row: AnyRecord,language: string){
- const days=-daysUntil(row.date)
+ const days=-Number(daysUntil(row.date))
  if(row.stage==='closed'||!Number.isFinite(days)||days<0)return ''
  return language==='en'?`${days} ${days===1?'day':'days'} open`:`${days} ${days===1?'ημέρα':'ημέρες'} ανοιχτή`
 }
 
 const WAITING_DAYS=7
-const waitingDays=(row: AnyRecord)=>{const days=-daysUntil(row.date);return row.stage==='closed'||row.stage==='voided'||!Number.isFinite(days)?null:Math.max(0,days)}
-const PERIOD_DAYS={today:0,'7d':7,'30d':30}
-const SEVERITY_RANK={critical:4,high:3,medium:2,low:1}
+const waitingDays=(row: AnyRecord)=>{const days=-Number(daysUntil(row.date));return row.stage==='closed'||row.stage==='voided'||!Number.isFinite(days)?null:Math.max(0,days)}
+const PERIOD_DAYS: Record<string, number>={today:0,'7d':7,'30d':30}
+const SEVERITY_RANK: Record<string, number>={critical:4,high:3,medium:2,low:1}
 // Open records first (sentinel events, then the more severe, then the newest), closed ones after.
 // Deviations: those still without a corrective action first, then the open ones by priority, closed ones last.
 const deviationOrder=(a: AnyRecord,b: AnyRecord)=>{
@@ -224,19 +225,19 @@ const openFirst=(a: AnyRecord,b: AnyRecord)=>{
 
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
 // summary line and the usual filter popover instead of boxes and extra columns.
-export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false,totals=false}: { view: AnyRecord | null, loading: boolean, language: string, t: (key: string) => string, categories: AnyRecord, registry: AnyRecord | null, onOpenReport: (row: AnyRecord, items: AnyRecord[]) => void, inbox?: boolean, compact?: boolean, totals?: boolean }){
+export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false,totals=false}: { view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, categories: AnyRecord[], registry: AnyRecord, onOpenReport: (row: AnyRecord, items: AnyRecord[]) => void, inbox?: boolean, compact?: boolean, totals?: boolean }){
  const en=language==='en'
  const {filters,set}=view
  const quick=inbox?filters.quick:null
  const items=useMemo(()=>inbox?view.filtered.filter((row: AnyRecord)=>{
-  const age=-daysUntil(row.date),days=waitingDays(row)
+  const age=-Number(daysUntil(row.date)),days=waitingDays(row)
   return (!quick||(days!=null&&(quick==='waiting'?days>=WAITING_DAYS:quick==='new'?days<WAITING_DAYS:true)))
    &&(filters.period==='all'||(Number.isFinite(age)&&age<=PERIOD_DAYS[filters.period]))
    &&(filters.origin==='all'||(filters.origin==='anonymous')===Boolean(row.anonymous))
  }):compact?[...view.filtered].sort(openFirst):view.filtered,[view.filtered,inbox,compact,quick,filters.period,filters.origin])
  const sortBy={code:(row: AnyRecord)=>row.code,title:(row: AnyRecord)=>(en?row.titleEn:row.title),kind:(row: AnyRecord)=>row.kind,department:(row: AnyRecord)=>(en?row.departmentEn:row.department),date:(row: AnyRecord)=>row.date,stage:(row: AnyRecord)=>row.stage,owner:(row: AnyRecord)=>row.owner,reporter:(row: AnyRecord)=>(row.anonymous?'':row.reporter)}
  const paging=useSortedPaging(items,JSON.stringify(filters),sortBy)
- const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+(filters.period!=='all')+(filters.origin!=='all')+(filters.department!=='all')
+ const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+Number(filters.period!=='all')+Number(filters.origin!=='all')+Number(filters.department!=='all')
  const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length+(filters.dateFrom?1:0)+(filters.dateTo?1:0)
  const columns=inbox
   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'reporter',label:en?'Reported by':'Αναφέρων'}]
@@ -244,18 +245,18 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
    ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Kind':'Είδος'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'owner',label:t('owner')}]
    :null
  const inboxSelects=<>
-   <FilterSelect label={en?'Period':'Περίοδος'} value={filters.period} onChange={value=>set('period',value)}><option value="all">{en?'All':'Όλες'}</option><option value="today">{en?'Today':'Σήμερα'}</option><option value="7d">{en?'Last 7 days':'Τελευταίες 7 ημέρες'}</option><option value="30d">{en?'Last 30 days':'Τελευταίες 30 ημέρες'}</option></FilterSelect>
-   <FilterSelect label={en?'Wait':'Αναμονή'} value={quick==='waiting'||quick==='new'?quick:'all'} onChange={value=>set('quick',value==='all'?null:value)}><option value="all">{en?'All':'Όλες'}</option><option value="waiting">{en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`}</option><option value="new">{en?'New':'Νέες'}</option></FilterSelect>
-   <FilterSelect label={en?'Reported by':'Αναφέρων'} value={filters.origin} onChange={value=>set('origin',value)}><option value="all">{en?'All':'Όλοι'}</option><option value="named">{en?'Named':'Ονομαστικές'}</option><option value="anonymous">{en?'Anonymous':'Ανώνυμες'}</option></FilterSelect>
-   <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Period':'Περίοδος'} value={filters.period} onChange={(value: string)=>set('period',value)}><option value="all">{en?'All':'Όλες'}</option><option value="today">{en?'Today':'Σήμερα'}</option><option value="7d">{en?'Last 7 days':'Τελευταίες 7 ημέρες'}</option><option value="30d">{en?'Last 30 days':'Τελευταίες 30 ημέρες'}</option></FilterSelect>
+   <FilterSelect label={en?'Wait':'Αναμονή'} value={quick==='waiting'||quick==='new'?quick:'all'} onChange={(value: string)=>set('quick',value==='all'?null:value)}><option value="all">{en?'All':'Όλες'}</option><option value="waiting">{en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`}</option><option value="new">{en?'New':'Νέες'}</option></FilterSelect>
+   <FilterSelect label={en?'Reported by':'Αναφέρων'} value={filters.origin} onChange={(value: string)=>set('origin',value)}><option value="all">{en?'All':'Όλοι'}</option><option value="named">{en?'Named':'Ονομαστικές'}</option><option value="anonymous">{en?'Anonymous':'Ανώνυμες'}</option></FilterSelect>
+   <FilterSelect label={t('department')} value={filters.department} onChange={(value: string)=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map((value: string)=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </>
  const popover=inbox?inboxSelects:<>
-   <FilterSelect label={en?'Classification':'Ταξινόμηση'} value={filters.kind} onChange={value=>set('kind',value)}><option value="all">{en?'All':'Όλες'}</option>{REPORT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
-   <FilterSelect label={en?'Stage':'Στάδιο'} value={filters.stage} onChange={value=>set('stage',value)}><option value="all">{en?'All':'Όλα'}</option>{INCIDENT_STAGES.map(id=><option key={id} value={id}>{stageLabel(id,language)}</option>)}</FilterSelect>
-   <FilterSelect label={en?'Category':'Κατηγορία'} value={filters.category} onChange={value=>set('category',value)}><option value="all">{en?'All':'Όλες'}</option>{view.categories.map(value=><option key={value} value={value}>{incidentCategoryLabel(value,categories,language)}</option>)}</FilterSelect>
-   <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
-   <FilterDate label={en?'From':'Από'} value={filters.dateFrom} onChange={value=>set('dateFrom',value)}/>
-   <FilterDate label={en?'To':'Έως'} value={filters.dateTo} onChange={value=>set('dateTo',value)}/>
+   <FilterSelect label={en?'Classification':'Ταξινόμηση'} value={filters.kind} onChange={(value: string)=>set('kind',value)}><option value="all">{en?'All':'Όλες'}</option>{REPORT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Stage':'Στάδιο'} value={filters.stage} onChange={(value: string)=>set('stage',value)}><option value="all">{en?'All':'Όλα'}</option>{INCIDENT_STAGES.map(id=><option key={id} value={id}>{stageLabel(id,language)}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Category':'Κατηγορία'} value={filters.category} onChange={(value: string)=>set('category',value)}><option value="all">{en?'All':'Όλες'}</option>{view.categories.map((value: string)=><option key={value} value={value}>{incidentCategoryLabel(value,categories,language)}</option>)}</FilterSelect>
+   <FilterSelect label={t('department')} value={filters.department} onChange={(value: string)=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map((value: string)=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+   <FilterDate label={en?'From':'Από'} value={filters.dateFrom} onChange={(value: string)=>set('dateFrom',value)}/>
+   <FilterDate label={en?'To':'Έως'} value={filters.dateTo} onChange={(value: string)=>set('dateTo',value)}/>
   </>
  // The incident register's totals beside the search: all it shows, the open and the closed ones, the sentinel events.
  const base=view.base||view.filtered
@@ -298,11 +299,11 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  </>
 }
 
-export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}: { view: AnyRecord | null, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord | null, onOpenRow: (row: AnyRecord, rows: AnyRecord[]) => void, onCreateCapa: (prefill: AnyRecord) => void, onCreateFindingCapa: (finding: AnyRecord) => void }){
+export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}: { view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord, onOpenRow: (row: AnyRecord, rows: AnyRecord[]) => void, onCreateCapa: (prefill: AnyRecord) => void, onCreateFindingCapa: (finding: AnyRecord) => void }){
  const en=language==='en'
  const {filters,set}=view
  const items=useMemo(()=>[...view.filtered].sort(deviationOrder),[view.filtered])
- const severityRank={critical:4,high:3,medium:2,low:1}
+ const severityRank: Record<string, number>={critical:4,high:3,medium:2,low:1}
  const sortBy={code:(row: AnyRecord)=>row.code,title:(row: AnyRecord)=>(en?row.titleEn:row.title),source:(row: AnyRecord)=>row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):findingSourceText(row.source,language),department:(row: AnyRecord)=>(en?row.departmentEn:row.department),date:(row: AnyRecord)=>row.date,status:(row: AnyRecord)=>row.status,priority:(row: AnyRecord)=>severityRank[row.severity]||0}
  const paging=useSortedPaging(items,`${JSON.stringify(filters)}:${view.days}`,sortBy)
  const pendingView=filters.scope==='pending'
@@ -323,16 +324,16 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
  const showActions=pendingView||items.some(needsAction)
  return <>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search deviations…':'Αναζήτηση αποκλίσεων…'} activeAdvancedCount={advanced} onClear={view.clear} end={totals}>
-   <FilterSelect label={en?'Kind of deviation':'Είδος απόκλισης'} value={filters.deviationKind} onChange={value=>set('deviationKind',value)}><option value="all">{en?'All':'Όλα'}</option>{DEVIATION_KINDS.filter(item=>view.rows.some((row: AnyRecord)=>row.deviationKind===item.value)).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
-   <FilterSelect label={en?'Cause':'Αιτία'} value={filters.cause} onChange={value=>set('cause',value)}><option value="all">{en?'All':'Όλες'}</option>{CAUSE_CATEGORIES.filter(item=>view.rows.some((row: AnyRecord)=>(row.causeCategories||[]).includes(item.value))).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
-   <FilterSelect label={en?'Recurring':'Επαναλαμβανόμενη'} value={filters.recurring} onChange={value=>set('recurring',value)}><option value="all">{en?'All':'Όλες'}</option><option value="yes">{en?'Yes':'Ναι'}</option><option value="no">{en?'No':'Όχι'}</option></FilterSelect>
-   <FilterSelect label={en?'Source':'Πηγή'} value={filters.source} onChange={value=>set('source',value)}><option value="all">{en?'All':'Όλες'}</option>{DEVIATION_SOURCES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
-   <FilterSelect label={en?'Status':'Κατάσταση'} value={filters.status} onChange={value=>set('status',value)}><option value="all">{en?'All':'Όλες'}</option><option value="open">{en?'Open':'Ανοιχτή'}</option><option value="inProgress">{en?'In progress':'Σε εξέλιξη'}</option><option value="closed">{en?'Closed':'Κλειστή'}</option></FilterSelect>
-   <FilterSelect label={t('priority')} value={filters.priority} onChange={value=>set('priority',value)}><option value="all">{t('all')}</option>{['critical','high','medium','low'].map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
-   <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
-   <FilterDate label={en?'From':'Από'} value={filters.dateFrom||''} onChange={value=>set('dateFrom',value)}/>
-   <FilterDate label={en?'To':'Έως'} value={filters.dateTo||''} onChange={value=>set('dateTo',value)}/>
-   {pendingView&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
+   <FilterSelect label={en?'Kind of deviation':'Είδος απόκλισης'} value={filters.deviationKind} onChange={(value: string)=>set('deviationKind',value)}><option value="all">{en?'All':'Όλα'}</option>{DEVIATION_KINDS.filter(item=>view.rows.some((row: AnyRecord)=>row.deviationKind===item.value)).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Cause':'Αιτία'} value={filters.cause} onChange={(value: string)=>set('cause',value)}><option value="all">{en?'All':'Όλες'}</option>{CAUSE_CATEGORIES.filter(item=>view.rows.some((row: AnyRecord)=>(row.causeCategories||[]).includes(item.value))).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Recurring':'Επαναλαμβανόμενη'} value={filters.recurring} onChange={(value: string)=>set('recurring',value)}><option value="all">{en?'All':'Όλες'}</option><option value="yes">{en?'Yes':'Ναι'}</option><option value="no">{en?'No':'Όχι'}</option></FilterSelect>
+   <FilterSelect label={en?'Source':'Πηγή'} value={filters.source} onChange={(value: string)=>set('source',value)}><option value="all">{en?'All':'Όλες'}</option>{DEVIATION_SOURCES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Status':'Κατάσταση'} value={filters.status} onChange={(value: string)=>set('status',value)}><option value="all">{en?'All':'Όλες'}</option><option value="open">{en?'Open':'Ανοιχτή'}</option><option value="inProgress">{en?'In progress':'Σε εξέλιξη'}</option><option value="closed">{en?'Closed':'Κλειστή'}</option></FilterSelect>
+   <FilterSelect label={t('priority')} value={filters.priority} onChange={(value: string)=>set('priority',value)}><option value="all">{t('all')}</option>{['critical','high','medium','low'].map((value: string)=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
+   <FilterSelect label={t('department')} value={filters.department} onChange={(value: string)=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map((value: string)=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+   <FilterDate label={en?'From':'Από'} value={filters.dateFrom||''} onChange={(value: string)=>set('dateFrom',value)}/>
+   <FilterDate label={en?'To':'Έως'} value={filters.dateTo||''} onChange={(value: string)=>set('dateTo',value)}/>
+   {pendingView&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map((value: number)=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef}>
    <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}

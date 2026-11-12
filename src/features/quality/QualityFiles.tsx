@@ -5,6 +5,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { FormCard } from '../../design-system/FormCard'
 import { cloudAttachmentsEnabled,getAttachmentUrl,loadAttachments,uploadAttachment } from '../../core/attachments/attachmentService'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { FeedbackContextValue } from '../../core/feedback/feedbackTypes'
 
 // Files of a quality record: the line on its first tab, and the picker of the create form.
 
@@ -14,7 +15,7 @@ const fileSize=(bytes: number)=>bytes>=1048576?`${(bytes/1048576).toFixed(1)} MB
 
 // «Files (N)»: each name opens the file in a new tab; the button goes to the Documents tab, where they are added.
 const SHOWN_FILES=4
-export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,en}: { record: AnyRecord, recordType: string, organizationId: string, canAdd: boolean, onOpen: () => void, en: boolean }){
+export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,en}: { record: AnyRecord, recordType: string, organizationId: string | null | undefined, canAdd: boolean, onOpen: () => void, en: boolean }){
  const {notify}=useFeedback()
  const [loaded,setLoaded]=useState<AnyRecord | null>(null)
  const entityId=record.dbId||record.id
@@ -53,16 +54,16 @@ export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,
 }
 
 // Files picked before the record exists; they upload once it is saved.
-export function usePendingFiles(notify,en: boolean){
- const [files,setFiles]=useState<AnyRecord[]>([])
- const add=picked=>{
+export function usePendingFiles(notify: FeedbackContextValue['notify'],en: boolean){
+ const [files,setFiles]=useState<File[]>([])
+ const add=(picked: FileList | File[])=>{
   const list=[...picked]
   if(list.some(file=>file.size>MAX_FILE_MB*1048576))notify(en?`Files over ${MAX_FILE_MB} MB were left out.`:`Αρχεία πάνω από ${MAX_FILE_MB} MB δεν προστέθηκαν.`,'warning')
   setFiles(current=>[...current,...list.filter(file=>file.size<=MAX_FILE_MB*1048576)].slice(0,MAX_FILES))
  }
  const remove=(index: number)=>setFiles(current=>current.filter((_,at)=>at!==index))
  // Returns how many could not be attached.
- async function upload(organizationId: string | null | undefined,recordType,recordId: string){
+ async function upload(organizationId: string | null | undefined,recordType: string,recordId: string){
   let failed=0
   if(!files.length||!recordId||!cloudAttachmentsEnabled())return 0
   for(const file of files){
@@ -73,12 +74,12 @@ export function usePendingFiles(notify,en: boolean){
  return {files,add,remove,upload}
 }
 
-export function PendingFilesCard({pending,saving,en}: { pending: AnyRecord | null, saving: boolean, en: boolean }){
- const input=useRef(null)
+export function PendingFilesCard({pending,saving,en}: { pending: ReturnType<typeof usePendingFiles>, saving: boolean, en: boolean }){
+ const input=useRef<HTMLInputElement>(null)
  const on=cloudAttachmentsEnabled()
  return <FormCard wide title={en?'Attachments':'Επισυνάψεις'} icon={Paperclip} hint={on?(en?`Optional. Up to ${MAX_FILES} files of ${MAX_FILE_MB} MB.`:`Προαιρετικά. Έως ${MAX_FILES} αρχεία των ${MAX_FILE_MB} MB.`):(en?'Files are not stored in the demo.':'Στο demo δεν αποθηκεύονται αρχεία.')}>
   <input ref={input} type="file" multiple hidden accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event=>{pending.add(event.target.files||[]);event.target.value=''}}/>
-  {pending.files.length>0&&<ul className="quality-report-files">{pending.files.map((file: AnyRecord,index: number)=><li key={`${file.name}-${index}`}><Paperclip size={14} aria-hidden="true"/><span>{file.name}</span><small>{fileSize(file.size)}</small><button type="button" aria-label={en?`Remove ${file.name}`:`Αφαίρεση ${file.name}`} onClick={()=>pending.remove(index)}><X size={14}/></button></li>)}</ul>}
+  {pending.files.length>0&&<ul className="quality-report-files">{pending.files.map((file: File,index: number)=><li key={`${file.name}-${index}`}><Paperclip size={14} aria-hidden="true"/><span>{file.name}</span><small>{fileSize(file.size)}</small><button type="button" aria-label={en?`Remove ${file.name}`:`Αφαίρεση ${file.name}`} onClick={()=>pending.remove(index)}><X size={14}/></button></li>)}</ul>}
   <div><Button variant="secondary" disabled={!on||pending.files.length>=MAX_FILES||saving} onClick={()=>input.current?.click()}><Plus size={15}/>{en?'Add files':'Προσθήκη αρχείων'}</Button></div>
  </FormCard>
 }

@@ -27,7 +27,7 @@ export const AUDIT_RESULTS = [
   { value: 'na', label: ['Δεν εφαρμόζεται', 'Not applicable'], tone: 'neutral' },
 ]
 export const RESULT_VALUE: Record<string, number> = { yes: 1, partial: 0.5, no: 0 }
-export const resultLabel = (value: string, language = 'el') => { const item = AUDIT_RESULTS.find(entry => entry.value === value); return item ? pick(item.label, language) : '' }
+export const resultLabel = (value: string | undefined, language = 'el') => { const item = AUDIT_RESULTS.find(entry => entry.value === value); return item ? pick(item.label, language) : '' }
 
 // What a «Μερική» or «Μη συμμόρφωση» is. A conforming answer may still carry an
 // observation or an opportunity for improvement.

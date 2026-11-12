@@ -1,3 +1,4 @@
+import type { ReportDoc, ReportFact } from '../../core/export/reportDocument'
 // The printout of the corrective actions (printReport): one table, or one per status, department, owner or source.
 import { qualityCode } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
@@ -7,7 +8,7 @@ import type { AnyRecord } from '../../types/featureTypes'
 const dmy = (value: unknown) => (value ? String(value).slice(0, 10).split('-').reverse().join('/') : '')
 const mid = (text: string) => ({ text, align: 'center' })
 
-export function actionsReportDoc({ rows, groupBy = 'none', language = 'el', t = (value: string) => value, sourceLabel = (value: string) => value, period = '' }: AnyRecord) {
+export function actionsReportDoc({ rows, groupBy = 'none', language = 'el', t = (value: string) => value, sourceLabel = (value: string) => value, period = '' }: AnyRecord): ReportDoc {
   const en = language === 'en'
   const title = (row: AnyRecord) => (en ? row.titleEn : row.title) || row.title || ''
   const department = (row: AnyRecord) => (en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα')
@@ -40,7 +41,7 @@ export function actionsReportDoc({ rows, groupBy = 'none', language = 'el', t = 
     title: en ? 'Corrective actions' : 'Διορθωτικές ενέργειες',
     filename: en ? 'corrective-actions' : 'diorthotikes-energeies',
     meta: [
-      ...(period ? [[en ? 'Due' : 'Προθεσμία', period]] : []),
+      ...(period ? [[en ? 'Due' : 'Προθεσμία', period] as ReportFact] : []),
       [en ? 'Actions' : 'Ενέργειες', String(rows.length)],
       [en ? 'Open / overdue' : 'Ανοιχτές / εκπρόθεσμες', `${rows.filter(isOpenRecord).length} / ${rows.filter(isOverdueAction).length}`],
       [en ? 'Due in 14 days' : 'Λήγουν σε 14 ημέρες', String(rows.filter(isDueSoonAction).length)],

@@ -17,7 +17,7 @@ import { QualityDepartmentField, departmentRef } from '../QualityFields'
 import { AUDIT_BODIES, AUDIT_KINDS, AUDIT_STANDARDS, RISK_LEVELS, TEAM_ROLES, areaLabel, departmentArea, riskMonths, standardShort } from './auditStandards'
 import { competenceWarnings, independenceIssues, templateChapters } from './auditModel'
 import type { AnyRecord } from '../../../types/featureTypes'
-import type { Dispatch, ReactNode, SetStateAction } from 'react'
+import type { ReactNode } from 'react'
 import type { IconType } from '../../../design-system/types'
 
 // The same titled group without the card: a heading over its fields, for fields inside a dialog.
@@ -36,7 +36,7 @@ const select = (en: boolean) => ({ emptyLabel: L(en, 'Δεν βρέθηκε', 'N
 // questionnaire, chapters in scope), when (a day, or a month still to fix),
 // how often (by risk) and by whom (the team, with the independence and
 // competence checks). The new-audit form and the planning dialog share it.
-export function AuditPlanFields({ draft, setDraft, templates = [], competence, language, titleField = true, flat = false }: { draft: AnyRecord, setDraft: Dispatch<SetStateAction<AnyRecord | null>>, templates?: AnyRecord[], competence: AnyRecord, language: string, titleField?: boolean, flat?: boolean }) {
+export function AuditPlanFields({ draft, setDraft, templates = [], competence, language, titleField = true, flat = false }: { draft: AnyRecord, setDraft: (update: (current: AnyRecord | null) => AnyRecord) => void, templates?: AnyRecord[], competence: AnyRecord, language: string, titleField?: boolean, flat?: boolean }) {
   const Card = flat ? FlatSection : FormCard
   const en = language === 'en'
   const patch = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))

@@ -1,5 +1,5 @@
 import { formatDay } from '../../../core/i18n/formatDay'
-import { escapeHtml } from '../../../core/export/reportDocument'
+import { escapeHtml, type ReportDoc } from '../../../core/export/reportDocument'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { loadEntries } from '../../registers/registerService'
 import { monthlySeries } from '../../registers/registerEngine'
@@ -109,7 +109,7 @@ export function objectivesByPlace(list: AnyRecord[], language: string) {
 }
 
 // The objectives list as printed from Indicators & objectives › Objectives: what the list shows, grouped by place.
-export function objectivesListDoc({ rows, year, language }: AnyRecord) {
+export function objectivesListDoc({ rows, year, language }: AnyRecord): ReportDoc {
   const en = language === 'en'
   const own = rows.filter((objective: AnyRecord) => objective.kind !== 'plan')
   const count = (status: string) => own.filter((objective: AnyRecord) => objective.current?.status === status).length
@@ -130,7 +130,7 @@ const percent = (value: number) => (value == null ? '—' : `${Math.round(value)
 // The whole file of one year, everything in it: the summary by level, the objectives of the hospital, the departments and
 // the committees (with the committees' annual plans), each objective with its months, the department registers' indicators for the year,
 // the satisfaction surveys and what the last management review decided.
-export function objectivesDossier({ objectives, committeeTargets = [], reviews, extras = null, year, language }: AnyRecord) {
+export function objectivesDossier({ objectives, committeeTargets = [], reviews, extras = null, year, language }: AnyRecord): ReportDoc {
   const en = language === 'en'
   const rows = (objectives || []).filter((objective: AnyRecord) => Number(objective.year) === Number(year))
   const plans = (committeeTargets || []).filter((item: AnyRecord) => Number(item.year) === Number(year))

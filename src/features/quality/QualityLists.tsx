@@ -23,6 +23,7 @@ import { auditCoverage } from './audits/auditModel'
 import { roleTitleText } from '../../core/i18n/roleTitles'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { IconType } from '../../design-system/types'
 
 // The two record lists of the Quality Center that are not the reports register:
 // the corrective actions (with the findings still waiting for one), and the audits.
@@ -33,10 +34,10 @@ const today=()=>hospitalToday()
 export const isOverdueAction=(row: AnyRecord)=>row.kind==='capa'&&isOpenRecord(row)&&Boolean(row.dueDate)&&row.dueDate<today()
 
 // Filters that survive opening a record and coming back (one set per list).
-export function useListFilters(key: string,defaults){
+export function useListFilters(key: string,defaults: AnyRecord){
  const [filters,setFilters]=useState(()=>({...defaults,...(readRegistryViewState(key)||{})}))
  useEffect(()=>{writeRegistryViewState(key,filters)},[key,filters])
- const set=(name: string,value)=>setFilters(current=>({...current,[name]:value}))
+ const set=(name: string,value: unknown)=>setFilters((current: AnyRecord)=>({...current,[name]:value}))
  const clear=()=>setFilters(defaults)
  return {filters,set,clear,setFilters}
 }
@@ -88,7 +89,7 @@ export function actionCounts(rows: AnyRecord[]){
  return {open:rows.filter((row: AnyRecord)=>row.kind==='capa'&&isOpenRecord(row)).length,overdue:rows.filter(isOverdueAction).length,dueSoon:rows.filter(isDueSoonAction).length,verification:rows.filter(isVerificationAction).length,orphans:rows.filter(isOrphanFinding).length}
 }
 
-const SOURCE_ICON={finding:SearchCheck,audit:ClipboardCheck,incident:AlertTriangle,control:ClipboardCheck,bundle:ShieldCheck,training:GraduationCap,risk:ShieldAlert,review:ClipboardSignature,meeting:Users,committee:Landmark,objective:Target,survey:Smile,equipment:Stethoscope,supplier:Truck,legislation:Scale,manual:CheckSquare2}
+const SOURCE_ICON: Record<string, IconType>={finding:SearchCheck,audit:ClipboardCheck,incident:AlertTriangle,control:ClipboardCheck,bundle:ShieldCheck,training:GraduationCap,risk:ShieldAlert,review:ClipboardSignature,meeting:Users,committee:Landmark,objective:Target,survey:Smile,equipment:Stethoscope,supplier:Truck,legislation:Scale,manual:CheckSquare2}
 
 // The due date in days: left, today, or late.
 function dueText(row: AnyRecord,en: boolean){
@@ -100,7 +101,7 @@ function dueText(row: AnyRecord,en: boolean){
 }
 
 
-export function ActionsList({rows,view,loading,language,t,registry,onOpen,onOpenSource=null}: { rows: AnyRecord[] | null, view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord | null, onOpen: (row: AnyRecord, same: AnyRecord[]) => void, onOpenSource?: (row: AnyRecord) => void }){
+export function ActionsList({rows,view,loading,language,t,registry,onOpen,onOpenSource=null}: { rows: AnyRecord[], view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord, onOpen: (row: AnyRecord, same: AnyRecord[]) => void, onOpenSource?: ((row: AnyRecord) => void) | null, onCreateCapa?: ((finding: AnyRecord) => void) | null }){
  const en=language==='en'
  const {filters,set,clear}=view
  // Findings that still wait for an action are listed under Deviations.
@@ -157,7 +158,7 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen,onOpen
 }
 
 const isPendingAudit=(row: AnyRecord)=>!['completed','cancelled'].includes(row.status)&&row.lifecycleStatus!=='voided'
-const AUDIT_QUICK={
+const AUDIT_QUICK: Record<string, (row: AnyRecord) => boolean>={
  planned:(row: AnyRecord)=>isPendingAudit(row)&&String(row.plannedDate||'').slice(0,4)===today().slice(0,4),
  month:(row: AnyRecord)=>isPendingAudit(row)&&String(row.plannedDate||'').slice(0,7)===today().slice(0,7),
  overdue:(row: AnyRecord)=>isPendingAudit(row)&&Boolean(row.plannedDate)&&row.plannedDate<today(),
@@ -184,16 +185,16 @@ export function filterAudits(rows: AnyRecord[],filters: AnyRecord,en: boolean){
 
 // The audit figures: this year's still to do, this month's, the late ones,
 // those with open findings, and the average compliance of this year's completed ones.
-export function auditCounts(rows: AnyRecord[]){
- const done=rows.filter(AUDIT_QUICK.completed).map(auditCompliance).filter((score: number)=>score.rate!=null)
- return {...Object.fromEntries(Object.entries(AUDIT_QUICK).map(([id,test])=>[id,rows.filter(test).length])),compliance:done.length?Math.round(done.reduce((sum: number,score: number)=>sum+score.rate,0)/done.length):null}
+export function auditCounts(rows: AnyRecord[]): Record<string, number | null>{
+ const done=rows.filter(AUDIT_QUICK.completed).map(auditCompliance).filter((score: AnyRecord)=>score.rate!=null)
+ return {...Object.fromEntries(Object.entries(AUDIT_QUICK).map(([id,test])=>[id,rows.filter(test).length])),compliance:done.length?Math.round(done.reduce((sum: number,score: AnyRecord)=>sum+score.rate,0)/done.length):null}
 }
 
 // The audit figures in one line (as the other lists): what is left this year,
 // the late ones, those with open deviations, the compliance, how many departments
 // have their two audits of the year, and the departments with no next audit,
 // with the button that plans them.
-export function AuditsSummary({rows,counts,view,loading,language,onFill=null,filling=false}: { rows: AnyRecord[], counts: AnyRecord | null, view: AnyRecord, loading: boolean, language: string, onFill?: ((() => Promise<void>)) | null, filling?: boolean }){
+export function AuditsSummary({rows,counts,view,loading,language,onFill=null,filling=false}: { rows: AnyRecord[], counts: AnyRecord, view: AnyRecord, loading: boolean, language: string, onFill?: ((() => Promise<void>)) | null, filling?: boolean }){
  const en=language==='en'
  const {filters,set}=view
  const coverage=useMemo(()=>auditCoverage(rows),[rows])
@@ -201,9 +202,9 @@ export function AuditsSummary({rows,counts,view,loading,language,onFill=null,fil
  const departments=coverage.full+coverage.half+coverage.none
  return <KpiFigures className="quality-kpis" label={en?'Audits':'Επιθεωρήσεις'} loading={loading} figures={[
   {key:'overdue',icon:AlertOctagon,value:counts.overdue,label:en?'Overdue':'Εκπρόθεσμες',status:counts.overdue?'danger':'good',target:en?'target: 0':'στόχος: 0',active:filters.quick==='overdue',go:toggle('overdue')},
-  {key:'planned',icon:CalendarDays,value:counts.planned,label:en?'Left this year':'Μένουν φέτος',hint:counts.withFindings?(en?`${counts.withFindings} with open deviations`:`${counts.withFindings} με ανοιχτές αποκλίσεις`):null,active:filters.quick==='planned',go:toggle('planned')},
+  {key:'planned',icon:CalendarDays,value:counts.planned,label:en?'Left this year':'Μένουν φέτος',hint:counts.withFindings?(en?`${counts.withFindings} with open deviations`:`${counts.withFindings} με ανοιχτές αποκλίσεις`):undefined,active:filters.quick==='planned',go:toggle('planned')},
   {key:'compliance',icon:ShieldCheck,value:counts.compliance,unit:'%',label:en?'Compliance':'Συμμόρφωση',status:counts.compliance==null?null:counts.compliance>=90?'good':counts.compliance>=75?'warning':'danger',target:en?'target ≥ 90%':'στόχος ≥ 90%'},
-  {key:'coverage',icon:Building2,value:departments?`${coverage.full}/${departments}`:null,label:en?'Departments with 2/2 this year':'Τμήματα με 2/2 φέτος',status:departments?(coverage.full>=departments?'good':'warning'):null,hint:coverage.noNext?(en?`${coverage.noNext} without a next audit`:`${coverage.noNext} χωρίς επόμενη επιθεώρηση`):null,go:coverage.noNext&&onFill&&!filling?onFill:undefined},
+  {key:'coverage',icon:Building2,value:departments?`${coverage.full}/${departments}`:null,label:en?'Departments with 2/2 this year':'Τμήματα με 2/2 φέτος',status:departments?(coverage.full>=departments?'good':'warning'):null,hint:coverage.noNext?(en?`${coverage.noNext} without a next audit`:`${coverage.noNext} χωρίς επόμενη επιθεώρηση`):undefined,go:coverage.noNext&&onFill&&!filling?onFill:undefined},
  ]}/>
 }
 
@@ -215,10 +216,10 @@ export const AUDIT_VIEWS=[
  {id:'readiness',icon:BarChart3,label:['Ετοιμότητα','Readiness']},
  {id:'self',icon:ClipboardCheck,label:['Αυτοαξιολόγηση','Self-assessment']},
 ]
-export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,onRound=null,findings=[],onOpenFinding=null,canManageSelf=false,onPrintSummary=null}: { rows: AnyRecord[], view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord | null, onOpen: (row: AnyRecord, same: AnyRecord[]) => void, onPlan?: ((source: AnyRecord) => void) | null, onRound?: ((() => void)) | null, findings?: AnyRecord[], onOpenFinding?: (finding: AnyRecord) => void, canManageSelf?: boolean, onPrintSummary?: (list: AnyRecord[]) => void }){
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,onRound=null,findings=[],onOpenFinding=null,canManageSelf=false,onPrintSummary=null}: { rows: AnyRecord[], view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord, onOpen: (row: AnyRecord, same: AnyRecord[]) => void, onPlan?: ((source: AnyRecord) => void) | null, onRound?: ((() => void)) | null, findings?: AnyRecord[], onOpenFinding?: ((finding: AnyRecord) => void) | null, canManageSelf?: boolean, onPrintSummary?: ((list: AnyRecord[]) => void) | null }){
  const en=language==='en'
  const {filters,set,clear}=view
- const [toolbarSlot,setToolbarSlot]=useState<AnyRecord | null>(null)
+ const [toolbarSlot,setToolbarSlot]=useState<HTMLSpanElement | null>(null)
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
  const sortBy={code:(row: AnyRecord)=>row.code,title:(row: AnyRecord)=>titleOf(row,en),standard:(row: AnyRecord)=>row.standard,type:(row: AnyRecord)=>row.auditType,date:(row: AnyRecord)=>row.plannedDate,compliance:(row: AnyRecord)=>auditCompliance(row).rate,owner:(row: AnyRecord)=>row.leadAuditor,status:(row: AnyRecord)=>row.status}
  const paging=useSortedPaging(filtered,JSON.stringify(filters),sortBy)
@@ -251,7 +252,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
       <td>{vocabularyLabel(AUDIT_KINDS,row.auditType||'internal',language)}</td>
       <td className={`nowrap-cell${AUDIT_QUICK.overdue(row)?' quality-overdue':''}`}>{row.plannedMonthOnly?new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'short',year:'numeric'}).format(new Date(`${String(row.plannedDate).slice(0,7)}-15T12:00:00Z`)):formatDay(row.plannedDate,language)||'—'}{AUDIT_QUICK.overdue(row)&&<small>{en?'Overdue':'Εκπρόθεσμη'}</small>}</td>
       <td className="quality-compliance-cell">{score.rate==null?'—':<><strong>{score.rate}%</strong><Meter value={score.rate} tone={meterTone(score.rate)} label={`${en?'Compliance':'Συμμόρφωση'} ${score.rate}%`}/></>}{row.openFindings>0&&<small className="quality-overdue-text">{en?`${row.openFindings} open ${row.openFindings===1?'finding':'findings'}`:`${row.openFindings} ${row.openFindings===1?'ανοιχτό εύρημα':'ανοιχτά ευρήματα'}`}</small>}</td>
-      <td>{roleTitleText(row.leadAuditor,language)||'—'}</td>
+      <td>{String(roleTitleText(row.leadAuditor,language)||'—')}</td>
       <td><StatusBadge tone={qualityStatusTone(row.status)}>{t(row.status)}</StatusBadge></td>
      </>}}/>
    </div>

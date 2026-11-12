@@ -1,3 +1,4 @@
+import type { ReportDoc, ReportFact } from '../../core/export/reportDocument'
 // The printouts of the incident register (printReport): the register itself, grouped as asked, and its statistics.
 import { REPORT_KINDS, incidentCategoryLabel, vocabularyLabel } from './qualityVocabulary'
 import { stageLabel } from './QualityReportRegister'
@@ -23,9 +24,9 @@ function labels(language: string, categories: AnyRecord[]) {
   }
 }
 
-function totalsMeta(rows: AnyRecord[], period: string, en: boolean) {
+function totalsMeta(rows: AnyRecord[], period: string, en: boolean): ReportFact[] {
   return [
-    ...(period ? [[en ? 'Period' : 'Περίοδος', period]] : []),
+    ...(period ? [[en ? 'Period' : 'Περίοδος', period] as ReportFact] : []),
     [en ? 'Incidents' : 'Συμβάντα', String(rows.length)],
     [en ? 'Open / closed' : 'Ανοιχτά / κλειστά', `${rows.filter(isOpen).length} / ${rows.filter((row: AnyRecord) => row.stage === 'closed').length}`],
     [en ? 'Sentinel events' : 'Συμβάντα-φρουροί', String(rows.filter((row: AnyRecord) => row.sentinel).length)],
@@ -33,7 +34,7 @@ function totalsMeta(rows: AnyRecord[], period: string, en: boolean) {
 }
 
 // «Μητρώο συμβάντων»: one table, or one per department, kind or month.
-export function incidentRegisterDoc({ rows, groupBy = 'none', language = 'el', categories = [], period = '' }: AnyRecord) {
+export function incidentRegisterDoc({ rows, groupBy = 'none', language = 'el', categories = [], period = '' }: AnyRecord): ReportDoc {
   const L = labels(language, categories), en = L.en
   const columns = [
     { text: en ? 'Code' : 'Κωδικός', width: '13%' },
@@ -65,7 +66,7 @@ export function incidentRegisterDoc({ rows, groupBy = 'none', language = 'el', c
 }
 
 // «Στατιστικά συμβάντων»: how many per kind and month, per department and per category.
-export function incidentStatisticsDoc({ rows, language = 'el', categories = [], period = '' }: AnyRecord) {
+export function incidentStatisticsDoc({ rows, language = 'el', categories = [], period = '' }: AnyRecord): ReportDoc {
   const L = labels(language, categories), en = L.en
   const count = (list: AnyRecord[], of: (row: AnyRecord) => string) => { const map = new Map<string, number>(); for (const row of list) { const key = of(row) || '—'; map.set(key, (map.get(key) || 0) + 1) } return [...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'el')) }
   const months = [...new Set(rows.map((row: AnyRecord) => String(row.date || '').slice(0, 7)).filter(Boolean))].sort()

@@ -21,9 +21,9 @@ import './rootCause.css'
 import type { AnyRecord } from '../../types/featureTypes'
 
 // Steps of a CAPA: each with its own owner, due date and completion.
-export function QualityCapaSteps({record,setRecord,canManage,finalized,organizationId,actor,notify,language}: { record: AnyRecord, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }){
+export function QualityCapaSteps({record,setRecord,canManage,finalized,organizationId,actor,notify,language}: { record: AnyRecord, locale?: string, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string | null | undefined, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }){
  const en=language==='en'
- const {data:employeeRows}=useEmployeesData()
+ const {data:employeeRows}:{data?:AnyRecord[]|null}=useEmployeesData()
  const ownerOptions=[...new Set((employeeRows||[]).filter(x=>x.employmentStatus!=='inactive').map(x=>en?[x.firstNameEn||x.firstName,x.lastNameEn||x.lastName].filter(Boolean).join(' '):[x.lastName,x.firstName].filter(Boolean).join(' ')).filter(Boolean))].map(name=>({value:name,label:name}))
  const steps=Array.isArray(record.subActions)?record.subActions:[]
  // One dialog adds a step or edits one, as every other record tab does.
@@ -33,9 +33,9 @@ export function QualityCapaSteps({record,setRecord,canManage,finalized,organizat
  const {done,total}=subActionProgress(steps)
  const overdue=new Set(overdueSubActions(steps).map(step=>step.id))
 // The owner: a person from the staff list, or a name typed in.
- const ownerField=(value,onChange,props: AnyRecord={})=><SearchableSelect className="quality-step-owner" label={t2(en,'Owner','Υπεύθυνος')} hideLabel value={value||''} options={ownerOptions} allowCustom onChange={onChange} {...props}/>
+ const ownerField=(value: string,onChange: (value: string) => void,props: AnyRecord={})=><SearchableSelect className="quality-step-owner" label={t2(en,'Owner','Υπεύθυνος')} hideLabel value={value||''} options={ownerOptions} allowCustom onChange={onChange} {...props}/>
 
- async function persist(nextSteps,message: string){
+ async function persist(nextSteps: AnyRecord[],message?: string){
   setSaving(true)
   try{
    const event=auditEvent('recordUpdated',{actor})
@@ -52,15 +52,15 @@ export function QualityCapaSteps({record,setRecord,canManage,finalized,organizat
  async function save(){
   const step=dialog
   if(!step?.title?.trim())return
-  const clean={...step,title:step.title.trim()}
+  const clean: AnyRecord={...step,title:step.title.trim()}
   const exists=steps.some((item: AnyRecord)=>item.id===clean.id)
   if(await persist(exists?steps.map((item: AnyRecord)=>item.id===clean.id?clean:item):[...steps,clean],exists?(en?'Step updated.':'Το βήμα ενημερώθηκε.'):(en?'Step added.':'Το βήμα προστέθηκε.')))setDialog(null)
  }
- function toggle(step: number){
+ function toggle(step: AnyRecord){
   const next=steps.map((item: AnyRecord)=>item.id===step.id?(item.done?{...item,done:false,doneAt:null,doneBy:''}:{...item,done:true,doneAt:new Date().toISOString(),doneBy:actor.name}):item)
   void persist(next)
  }
- function remove(step: number){void persist(steps.filter((item: AnyRecord)=>item.id!==step.id),en?'Step removed.':'Το βήμα αφαιρέθηκε.')}
+ function remove(step: AnyRecord){void persist(steps.filter((item: AnyRecord)=>item.id!==step.id),en?'Step removed.':'Το βήμα αφαιρέθηκε.')}
 
  return <RecordTabPanel className="quality-capa-panel" title={en?'Steps':'Βήματα'} subtitle={total?(en?`${done} of ${total} done`:`${done} από ${total} ολοκληρώθηκαν`):(en?'Break the action into steps with an owner and a due date.':'Χωρίστε την ενέργεια σε βήματα με υπεύθυνο και προθεσμία.')}
   actions={<>{total>0&&<span className="quality-steps-progress" aria-hidden="true"><span style={{width:`${Math.round(done/total*100)}%`}}/></span>}{editable&&<Button onClick={()=>setDialog(newSubAction())}><Plus size={15}/>{t2(en,'Add step','Προσθήκη βήματος')}</Button>}</>}>
@@ -79,11 +79,11 @@ export function QualityCapaSteps({record,setRecord,canManage,finalized,organizat
   {dialog&&<ObserverDialog title={steps.some((item: AnyRecord)=>item.id===dialog.id)?t2(en,'Step','Βήμα'):t2(en,'New step','Νέο βήμα')} onClose={()=>setDialog(null)} footer={<DialogActions onCancel={()=>setDialog(null)} onSave={save} disabled={saving||!dialog.title?.trim()} saveLabel={t2(en,'Save','Αποθήκευση')}/>}>
    <Field label={`${t2(en,'Step','Βήμα')} *`}><input autoFocus value={dialog.title} onChange={e=>setDialog(d=>({...d,title:e.target.value}))} placeholder={t2(en,'e.g. Retrain night shift on fridge checks','π.χ. Επανεκπαίδευση νυχτερινής βάρδιας στον έλεγχο ψυγείου')}/></Field>
    <FormGrid columns={2}>
-    {ownerField(dialog.owner,v=>setDialog(d=>({...d,owner:v})),{hideLabel:false})}
+    {ownerField(dialog.owner,(v: string)=>setDialog(d=>({...d,owner:v})),{hideLabel:false})}
     <ManualDateField label={t2(en,'Due date','Προθεσμία')} value={dialog.dueDate||''} onChange={v=>setDialog(d=>({...d,dueDate:v}))}/>
    </FormGrid>
   </ObserverDialog>}
  </RecordTabPanel>
 }
 
-function t2(en: boolean,english: string,greek){return en?english:greek}
+function t2(en: boolean,english: string,greek: string){return en?english:greek}
