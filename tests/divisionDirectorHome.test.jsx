@@ -226,7 +226,7 @@ describe('Division Director: menu and read-only access', () => {
     const rosters = readSource('src/features/rosters/RostersPage.jsx')
     expect(rosters).toContain("const overseer = role === ROLES.DIVISION_DIRECTOR")
     expect(rosters).toContain("r.status === 'pending' && canEdit ? (")
-    expect(rosters).not.toMatch(/WRITERS = new Set\([^)]*DIVISION_DIRECTOR/)
+    expect(rosters).not.toMatch(/WRITERS(?::[^=]*)? = new Set\([^)]*DIVISION_DIRECTOR/)
     const registers = readSource('src/features/registers/registerAccess.js')
     expect(registers).toContain('canRecord: register => !overseer &&')
   })

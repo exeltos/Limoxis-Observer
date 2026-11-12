@@ -9,10 +9,10 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { customShifts, kindOf } from './rosterEngine'
 import { IASO_SHIFT_CODES } from './iasoShiftCodes'
 import { headsFirst } from './rosterService'
-import { LEAVES, RULE_FIELDS, SHIFTS, isExtra } from './rosterPageModel'
+import { LEAVES, RULE_FIELDS, SHIFTS, isExtra, type NeedMenu, type RosterView } from './rosterPageModel'
 
 // A member of the department’s staff: their requests and a new one (the «Τα αιτήματά μου» panel).
-export function RosterMyRequests({ view }) {
+export function RosterMyRequests({ view }: { view: RosterView }) {
   const { tx, REQUEST_KINDS, REQUEST_STATUS, ask, setAsk, me, sendRequest, withdraw, active, nameOf, fmtDay, myRequests } = view
   return (
         <section className="roster-panel roster-requests" aria-label={tx('Τα αιτήματά μου', 'My requests')}>
@@ -58,7 +58,7 @@ export function RosterMyRequests({ view }) {
 }
 
 // People per shift, the department’s other shifts and the rules («Άτομα ανά βάρδια & κανόνες»).
-export function RosterRulesDialog({ view }) {
+export function RosterRulesDialog({ view }: { view: RosterView }) {
   const { tx, roster, codeStyle, CODES, RULE_LABELS, dirty, saving, setPanel, newShift, setNewShift, rules, update, setDemand, setRule, addOther, setOther, removeOther, save } = view
   return (
         <ObserverDialog
@@ -141,7 +141,7 @@ export function RosterRulesDialog({ view }) {
             {RULE_FIELDS.map(key => (
               <div key={key} className="roster-rule">
                 <span>{RULE_LABELS[key]}</span>
-                <input type="number" min="0" max="14" aria-label={RULE_LABELS[key]} value={rules[key]} onChange={event => setRule(key, event.target.value)} />
+                <input type="number" min="0" max="14" aria-label={RULE_LABELS[key]} value={rules[key] as number} onChange={event => setRule(key, event.target.value)} />
               </div>
             ))}
             <p className="roster-muted">{tx('Πάντα: όχι απόγευμα → πρωί (11 ώρες ανάπαυση), όχι πρωί/ενδιάμεση → νύχτα· ίσες βάρδιες, νύχτες και Σ/Κ· ρεπό κατά προτίμηση ανά δύο. Με κλικ σε όνομα: ποιες βάρδιες κάνει το άτομο.', 'Always: no afternoon → morning (11 hours of rest), no morning/intermediate → night; even shifts, nights and weekends; days off preferably in pairs. Click a name: the shifts that person works.')}</p>
@@ -152,7 +152,7 @@ export function RosterRulesDialog({ view }) {
 }
 
 // The small menus over the sheet: a cell’s code, a day’s number of people and a person’s limits.
-export function RosterPopovers({ view }) {
+export function RosterPopovers({ view }: { view: RosterView }) {
   const { tx, roster, CODES, cell, setCell, need, setNeed, limits, setLimits, update, setMember, setDayNeed, setCode, nameOf, others, shortOf, fmtDay } = view
   return (
     <>
@@ -189,7 +189,7 @@ export function RosterPopovers({ view }) {
           <div className="roster-cell-menu roster-need-menu" role="dialog" aria-label={`${CODES[need.shift].name} ${fmtDay(need.date)}`} style={{ top: need.top, left: need.left }}>
             <label>
               <span>{CODES[need.shift].name} {fmtDay(need.date)} · {tx('χρειάζονται', 'needed')}</span>
-              <input type="number" min="0" max="20" value={need.value} onChange={event => setNeed(current => ({ ...current, value: event.target.value }))} />
+              <input type="number" min="0" max="20" value={need.value} onChange={event => setNeed(current => ({ ...(current as NeedMenu), value: event.target.value }))} />
             </label>
             <div className="roster-need-actions">
               <button type="button" onClick={() => { setDayNeed(need.date, need.shift, null); setNeed(null) }}>{tx('Όπως οι άλλες μέρες', 'Like the other days')}</button>

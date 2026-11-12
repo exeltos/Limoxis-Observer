@@ -37,6 +37,10 @@ import {
 import { DEMAND, HOURS, LEAVES, REQUEST_CODE, SHIFTS, isExtra } from './rosterPageModel'
 import { RosterSheet } from './RosterSheet'
 import { RosterMyRequests, RosterPopovers, RosterRulesDialog } from './RosterPanels'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Assignments, RosterDay, RosterHistory } from './rosterRules'
+import type { Roster, RosterMember, RosterRequest } from './rosterService'
+import type { RosterCodes, RosterView } from './rosterPageModel'
 import './rosters.css'
 
 // The department's monthly shift roster (owner, 8/11/2026). It opens as an empty sheet with every name, so leave and
@@ -46,8 +50,8 @@ import './rosters.css'
 // on a name sets the shifts that person may take. The new roster starts from the end of the previous one.
 // The department's people send requests (leave, a day off, a day they cannot work, a swap) and see the roster once it
 // is published; every change after publishing is logged.
-const WRITERS = new Set([ROLES.HOSPITAL_ADMIN, ROLES.DEPARTMENT_MANAGER, ROLES.DEMO, ROLES.PLATFORM_OWNER])
-const STAFF = new Set([ROLES.DEPARTMENT_USER, ROLES.LINK_NURSE])
+const WRITERS: Set<unknown> = new Set([ROLES.HOSPITAL_ADMIN, ROLES.DEPARTMENT_MANAGER, ROLES.DEMO, ROLES.PLATFORM_OWNER])
+const STAFF: Set<unknown> = new Set([ROLES.DEPARTMENT_USER, ROLES.LINK_NURSE])
 
 export function RostersPage() {
   const { user, profile } = useAuth()
@@ -55,18 +59,18 @@ export function RostersPage() {
   const { language } = useLanguage()
   const { notify, notifyError, confirm } = useFeedback()
   const en = language === 'en'
-  const tx = (elText, enText) => (en ? enText : elText)
+  const tx = (elText: string, enText: string) => (en ? enText : elText)
   const canEdit = WRITERS.has(role)
   const staffMode = !canEdit && STAFF.has(role)
   // The Division Director reads the rosters and requests of the division's departments: nothing to approve, edit or publish.
   const overseer = role === ROLES.DIVISION_DIRECTOR
-  const [roster, setRoster] = useState(null)
+  const [roster, setRoster] = useState<Roster | null>(null)
   // The codes on the sheet: letters, or the hospital's own payroll numbers (ΙΑΣΩ: 4, 12, 19, 20, R, Α, Γ, Κ, B, as in
   // its Excel); chosen per department in the rules, by default the numbers in ΙΑΣΩ (owner, 8/11/2026).
   const codeStyle = roster?.rules?.codes || (/ΙΑΣΩ|IASO/i.test(tenant?.name || '') ? 'iaso' : 'letters')
-  const CODES = useMemo(() => {
+  const CODES = useMemo((): RosterCodes => {
     const iaso = codeStyle === 'iaso'
-    const short = (letters, number) => (iaso ? number : letters)
+    const short = (letters: string, number: string) => (iaso ? number : letters)
     return {
       M: { short: short(tx('Π', 'M'), '4'), label: tx('Πρωί 07–15', 'Morning 07–15'), name: tx('Πρωί', 'Morning') },
       I: { short: short(tx('Ε', 'I'), '12'), label: tx('Ενδιάμεση 11–19', 'Intermediate 11–19'), name: tx('Ενδιάμεση', 'Intermediate') },
@@ -79,7 +83,7 @@ export function RostersPage() {
       U: { short: short(tx('ΑΑ', 'UL'), 'B'), label: tx('Άδεια άνευ αποδοχών', 'Unpaid leave') },
     }
   }, [en, codeStyle]) // eslint-disable-line react-hooks/exhaustive-deps
-  const REQUEST_KINDS = {
+  const REQUEST_KINDS: Record<string, string> = {
     leave: tx('Κανονική άδεια', 'Annual leave'),
     sick: tx('Ασθένεια', 'Sick leave'),
     unpaid: tx('Άδεια άνευ αποδοχών', 'Unpaid leave'),
@@ -87,13 +91,13 @@ export function RostersPage() {
     unavailable: tx('Δεν μπορώ να εργαστώ', 'Cannot work'),
     swap: tx('Ανταλλαγή βάρδιας', 'Shift swap'),
   }
-  const REQUEST_STATUS = {
+  const REQUEST_STATUS: Record<string, [string, string]> = {
     pending: [tx('Σε αναμονή', 'Pending'), 'warning'],
     approved: [tx('Εγκρίθηκε', 'Approved'), 'success'],
     rejected: [tx('Απορρίφθηκε', 'Rejected'), 'danger'],
     cancelled: [tx('Ακυρώθηκε', 'Withdrawn'), 'neutral'],
   }
-  const RULE_TEXT = {
+  const RULE_TEXT: Record<string, string> = {
     coverage: tx('Λείπουν άτομα από βάρδια', 'A shift is short of people'),
     maxConsecutive: tx('Πάρα πολλές συνεχόμενες βάρδιες', 'Too many shifts in a row'),
     nightsInRow: tx('Πάνω από τις επιτρεπόμενες συνεχόμενες νύχτες', 'More nights in a row than allowed'),
@@ -106,7 +110,7 @@ export function RostersPage() {
     personal: tx('Βάρδια που το άτομο δεν κάνει', 'A shift the person does not work'),
     maxNights: tx('Πάνω από τις νύχτες που ορίστηκαν για το άτομο', 'More nights than set for the person'),
   }
-  const RULE_LABELS = {
+  const RULE_LABELS: Record<string, string> = {
     maxConsecutive: tx('Συνεχόμενες βάρδιες, έως (μία φορά +1)', 'Shifts in a row, at most (once +1)'),
     maxConsecutiveNights: tx('Συνεχόμενες νύχτες, έως', 'Nights in a row, at most'),
     restAfterNight: tx('Ρεπό μετά από μία νύχτα', 'Days off after one night'),
@@ -114,28 +118,28 @@ export function RostersPage() {
     weeklyRestDays: tx('Ρεπό ανά εβδομάδα (μία φορά 3 και 1)', 'Days off a week (once 3 and 1)'),
     minWeekendOff: tx('Ολόκληρα Σ/Κ ρεπό, τουλάχιστον', 'Whole weekends off, at least'),
   }
-  const [departments, setDepartments] = useState([])
+  const [departments, setDepartments] = useState<AnyRecord[]>([])
   const [departmentId, setDepartmentId] = useState('')
   const [offset, setOffset] = useState(1)
   const period = useMemo(() => rosterPeriod(new Date(), offset), [offset])
   const previous = useMemo(() => rosterPeriod(new Date(), offset - 1), [offset])
   const days = useMemo(() => periodDays(period.start, period.end), [period])
-  const [savedAssignments, setSavedAssignments] = useState({})
-  const [history, setHistory] = useState({ history: {}, dates: [] })
-  const [requests, setRequests] = useState([])
+  const [savedAssignments, setSavedAssignments] = useState<Assignments>({})
+  const [history, setHistory] = useState<{ history: RosterHistory, dates: string[] }>({ history: {}, dates: [] })
+  const [requests, setRequests] = useState<RosterRequest[]>([])
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [cell, setCell] = useState(null)
-  const [need, setNeed] = useState(null)
-  const [limits, setLimits] = useState(null)
+  const [cell, setCell] = useState<{ employeeId: string, date: string, top: number, left: number } | null>(null)
+  const [need, setNeed] = useState<{ date: string, shift: string, value: string, top: number, left: number } | null>(null)
+  const [limits, setLimits] = useState<{ employeeId: string, top: number, left: number } | null>(null)
   const [panel, setPanel] = useState('')
   const [leave, setLeave] = useState({ employeeId: '', code: 'L', from: '', to: '' })
   const [ask, setAsk] = useState({ kind: 'leave', from: '', to: '', swapEmployeeId: '', swapDate: '', note: '' })
-  const [dragId, setDragId] = useState(null)
+  const [dragId, setDragId] = useState<string | null>(null)
   const [newShift, setNewShift] = useState({ code: '', from: '', to: '' })
-  const [dropId, setDropId] = useState(null)
+  const [dropId, setDropId] = useState<string | null>(null)
   const department = departments.find(d => d.id === departmentId) || null
 
   useEffect(() => {
@@ -245,34 +249,36 @@ export function RostersPage() {
     if (isDemo) return roster.members.find(m => !m.isHead) || null
     return roster.members.find(m => m.userId && m.userId === user?.id) || null
   }, [staffMode, roster, isDemo, user?.id])
-  const update = next => {
+  // The actions below run once the roster has loaded (the sheet and its menus show only then).
+  const loaded = roster as Roster
+  const update = (next: Roster) => {
     setRoster(next)
     setDirty(true)
   }
-  const setMember = (employeeId, patch) => update({ ...roster, members: roster.members.map(m => (m.employeeId === employeeId ? { ...m, ...patch } : m)) })
-  const setDemand = (kind, shift, value) => update({ ...roster, demand: { ...roster.demand, [kind]: { ...roster.demand[kind], [shift]: Math.max(0, Math.min(20, Number(value) || 0)) } } })
-  const setRule = (key, value) => update({ ...roster, rules: { ...roster.rules, [key]: Math.max(0, Math.min(14, Number(value) || 0)) } })
+  const setMember = (employeeId: string, patch: AnyRecord) => update({ ...loaded, members: loaded.members.map(m => (m.employeeId === employeeId ? { ...m, ...patch } : m)) })
+  const setDemand = (kind: string, shift: string, value: unknown) => update({ ...loaded, demand: { ...loaded.demand, [kind]: { ...loaded.demand[kind], [shift]: Math.max(0, Math.min(20, Number(value) || 0)) } } })
+  const setRule = (key: string, value: unknown) => update({ ...loaded, rules: { ...loaded.rules, [key]: Math.max(0, Math.min(14, Number(value) || 0)) } })
   // The department's other shifts (owner, 9/11/2026): added from the hospital's codes or typed in, with their own
   // people per weekday and weekend day (0 = only by hand).
-  function addOther(code, from, to) {
+  function addOther(code: unknown, from: string, to: string) {
     const clean = String(code || '').trim()
     if (!clean || !from || !to) return
     const key = `${kindFromStart(from)}:${clean}`
-    const custom = Array.isArray(roster.demand.custom) ? roster.demand.custom : []
+    const custom = Array.isArray(loaded.demand.custom) ? loaded.demand.custom : []
     if (custom.some(o => o.code === key) || ['M', 'I', 'A', 'N'].includes(clean)) return
-    update({ ...roster, demand: { ...roster.demand, custom: [...custom, { code: key, label: `${from}–${to}`, weekday: 0, weekend: 0 }] } })
+    update({ ...loaded, demand: { ...loaded.demand, custom: [...custom, { code: key, label: `${from}–${to}`, weekday: 0, weekend: 0 }] } })
     setNewShift({ code: '', from: '', to: '' })
   }
-  const setOther = (code, patch) => update({ ...roster, demand: { ...roster.demand, custom: (roster.demand.custom || []).map(o => (o.code === code ? { ...o, ...patch } : o)) } })
-  const removeOther = code => update({ ...roster, demand: { ...roster.demand, custom: (roster.demand.custom || []).filter(o => o.code !== code) } })
-  function setDayNeed(date, shift, value) {
-    const overrides = { ...(roster.demand.overrides || {}) }
+  const setOther = (code: string, patch: AnyRecord) => update({ ...loaded, demand: { ...loaded.demand, custom: (loaded.demand.custom || []).map((o: AnyRecord) => (o.code === code ? { ...o, ...patch } : o)) } })
+  const removeOther = (code: string) => update({ ...loaded, demand: { ...loaded.demand, custom: (loaded.demand.custom || []).filter((o: AnyRecord) => o.code !== code) } })
+  function setDayNeed(date: string, shift: string, value: string | null) {
+    const overrides = { ...(loaded.demand.overrides || {}) }
     const own = { ...(overrides[date] || {}) }
     if (value === '' || value === null) delete own[shift]
     else own[shift] = Math.max(0, Math.min(20, Number(value) || 0))
     if (Object.keys(own).length) overrides[date] = own
     else delete overrides[date]
-    update({ ...roster, demand: { ...roster.demand, overrides } })
+    update({ ...loaded, demand: { ...loaded.demand, overrides } })
   }
 
   // «Automatic»: fills the cells nobody set by hand; leave, wishes and hand-set shifts stay.
@@ -280,8 +286,8 @@ export function RostersPage() {
     setBusy(true)
     window.setTimeout(() => {
       try {
-        const result = generateRoster({ days, employees: engineEmployees, demand: roster.demand, rules, history: history.history, seed: Date.now() % 100000 })
-        update({ ...roster, assignments: result.assignments })
+        const result = generateRoster({ days, employees: engineEmployees, demand: loaded.demand, rules, history: history.history, seed: Date.now() % 100000 })
+        update({ ...loaded, assignments: result.assignments })
         notify(result.violations.length ? tx(`Δημιουργήθηκε με ${result.violations.length} θέματα που χρειάζονται προσοχή.`, `Made with ${result.violations.length} issues to look at.`) : tx('Το πρόγραμμα δημιουργήθηκε· όλοι οι κανόνες τηρούνται.', 'The roster was made; every rule is kept.'), result.violations.length ? 'warning' : 'success')
       } finally {
         setBusy(false)
@@ -289,12 +295,12 @@ export function RostersPage() {
     }, 30)
   }
   function clearAutomatic() {
-    const assignments = {}
-    for (const m of roster.members) assignments[m.employeeId] = { ...(m.fixed || {}) }
-    update({ ...roster, assignments })
+    const assignments: Assignments = {}
+    for (const m of loaded.members) assignments[m.employeeId] = { ...(m.fixed || {}) }
+    update({ ...loaded, assignments })
   }
   // The roster with one person's cells changed: `codes` maps dates to a code ('' clears, 'wish' toggles a wish).
-  function withCodes(current, employeeId, codes) {
+  function withCodes(current: Roster, employeeId: string, codes: Record<string, string>): Roster {
     const member = current.members.find(m => m.employeeId === employeeId)
     if (!member) return current
     const fixed = { ...(member.fixed || {}) }
@@ -314,35 +320,35 @@ export function RostersPage() {
     }
     return { ...current, assignments: { ...current.assignments, [employeeId]: row }, members: current.members.map(m => (m.employeeId === employeeId ? { ...m, fixed, wishes } : m)) }
   }
-  function setCode(employeeId, date, code) {
-    update(withCodes(roster, employeeId, { [date]: code }))
+  function setCode(employeeId: string, date: string, code: string) {
+    update(withCodes(loaded, employeeId, { [date]: code }))
     setCell(null)
   }
   function addLeave() {
     const dates = datesBetween(leave.from, leave.to, days)
     if (!leave.employeeId || !dates.length) return
-    const member = roster.members.find(m => m.employeeId === leave.employeeId)
-    const codes = Object.fromEntries(dates.map(date => [date, leave.code === 'wish' ? (member.wishes?.[date] ? null : 'wish') : leave.code]).filter(([, code]) => code))
-    update(withCodes(roster, leave.employeeId, codes))
+    const member = loaded.members.find(m => m.employeeId === leave.employeeId)
+    const codes = Object.fromEntries(dates.map(date => [date, leave.code === 'wish' ? ((member as RosterMember).wishes?.[date] ? null : 'wish') : leave.code]).filter(([, code]) => code))
+    update(withCodes(loaded, leave.employeeId, codes))
     setLeave(current => ({ ...current, from: '', to: '' }))
     notify(tx(`Καταχωρίστηκαν ${dates.length} ημέρες.`, `${dates.length} days entered.`), 'success')
   }
-  function dropOn(targetId) {
+  function dropOn(targetId: string) {
     if (!dragId || dragId === targetId) return
-    const list = roster.members.filter(m => m.employeeId !== dragId)
-    const moved = roster.members.find(m => m.employeeId === dragId)
+    const list = loaded.members.filter(m => m.employeeId !== dragId)
+    const moved = loaded.members.find(m => m.employeeId === dragId)
     const at = list.findIndex(m => m.employeeId === targetId)
-    list.splice(at < 0 ? list.length : at, 0, moved)
-    update({ ...roster, members: headsFirst(list) })
+    list.splice(at < 0 ? list.length : at, 0, moved as RosterMember)
+    update({ ...loaded, members: headsFirst(list) })
     setDragId(null)
     setDropId(null)
   }
   // Saves; a published roster also logs every cell that changed since it was last saved.
-  async function save(next = roster, message = tx('Το πρόγραμμα αποθηκεύτηκε.', 'The roster was saved.')) {
+  async function save(next: Roster = roster as Roster, message = tx('Το πρόγραμμα αποθηκεύτηκε.', 'The roster was saved.')) {
     setSaving(true)
     try {
       const logged = next.status === 'published' && next.publishedAt ? [...(next.changeLog || []), ...rosterChanges(savedAssignments, next.assignments, profile?.fullName || user?.email || '')] : next.changeLog || []
-      const stored = await saveRoster(tenant.id, { ...next, changeLog: logged.slice(-500) }, user?.id)
+      const stored = await saveRoster((tenant?.id as string), { ...next, changeLog: logged.slice(-500) }, user?.id)
       setRoster({ ...next, ...stored, members: next.members })
       setSavedAssignments(stored.assignments || {})
       setDirty(false)
@@ -360,34 +366,34 @@ export function RostersPage() {
       const ok = await confirm({ title: tx('Δημοσίευση προγράμματος', 'Publish roster'), message: tx(`Το πρόγραμμα έχει ${violations.length} θέματα. Δημοσίευση παρ' όλα αυτά;`, `The roster has ${violations.length} issues. Publish anyway?`), confirmLabel: tx('Δημοσίευση', 'Publish') })
       if (!ok) return
     }
-    await save({ ...roster, status: 'published', publishedAt: new Date().toISOString() }, tx('Το πρόγραμμα δημοσιεύτηκε· το βλέπει όλο το τμήμα.', 'The roster was published; the whole department sees it.'))
+    await save({ ...loaded, status: 'published', publishedAt: new Date().toISOString() }, tx('Το πρόγραμμα δημοσιεύτηκε· το βλέπει όλο το τμήμα.', 'The roster was published; the whole department sees it.'))
   }
-  const unpublish = () => save({ ...roster, status: 'draft' }, tx('Το πρόγραμμα έγινε ξανά πρόχειρο.', 'The roster is a draft again.'))
+  const unpublish = () => save({ ...loaded, status: 'draft' }, tx('Το πρόγραμμα έγινε ξανά πρόχειρο.', 'The roster is a draft again.'))
   async function remove() {
     if (!roster?.id) return
     const ok = await confirm({ title: tx('Διαγραφή προγράμματος', 'Delete roster'), message: tx('Το πρόγραμμα της περιόδου διαγράφεται οριστικά.', 'The roster of the period is deleted for good.'), confirmLabel: tx('Διαγραφή', 'Delete'), danger: true })
     if (!ok) return
     try {
-      await deleteRoster(tenant.id, roster)
+      await deleteRoster((tenant?.id as string), roster)
       await load()
     } catch (error) {
       notifyError(error, 'delete', { operation: 'roster_delete' })
     }
   }
   // The manager decides a request; an approved one goes on the sheet and the roster is saved.
-  async function decide(request, status) {
+  async function decide(request: RosterRequest, status: string) {
     try {
-      await setRosterRequestStatus(tenant.id, request.id, status, user?.id)
-      let next = roster
+      await setRosterRequestStatus((tenant?.id as string), request.id, status, user?.id)
+      let next: Roster = loaded
       if (status === 'approved') {
         const dates = datesBetween(request.from, request.to, days)
         if (request.kind === 'swap') {
           const date = request.from
-          const a = roster.assignments[request.employeeId]?.[date] || ''
-          const b = roster.assignments[request.swapEmployeeId]?.[date] || ''
-          next = withCodes(withCodes(roster, request.employeeId, { [date]: b }), request.swapEmployeeId, { [date]: a })
+          const a = loaded.assignments[request.employeeId]?.[date] || ''
+          const b = loaded.assignments[request.swapEmployeeId]?.[date] || ''
+          next = withCodes(withCodes(loaded, request.employeeId, { [date]: b }), request.swapEmployeeId, { [date]: a })
         } else if (dates.length) {
-          next = withCodes(roster, request.employeeId, Object.fromEntries(dates.map(date => [date, request.kind === 'wish' ? 'wish' : REQUEST_CODE[request.kind]])))
+          next = withCodes(loaded, request.employeeId, Object.fromEntries(dates.map(date => [date, request.kind === 'wish' ? 'wish' : REQUEST_CODE[request.kind]])))
         }
       }
       setRequests(list => list.map(r => (r.id === request.id ? { ...r, status } : r)))
@@ -400,7 +406,7 @@ export function RostersPage() {
   async function sendRequest() {
     if (!me || !ask.from || (ask.kind === 'swap' && !ask.swapEmployeeId)) return
     try {
-      const created = await createRosterRequest(tenant.id, { departmentId: department.id, employeeId: me.employeeId, ...ask, to: ask.kind === 'swap' ? ask.from : ask.to || ask.from })
+      const created = await createRosterRequest((tenant?.id as string), { departmentId: (department as AnyRecord).id, employeeId: me.employeeId, ...ask, to: ask.kind === 'swap' ? ask.from : ask.to || ask.from })
       setRequests(list => [created, ...list])
       setAsk({ kind: 'leave', from: '', to: '', swapEmployeeId: '', swapDate: '', note: '' })
       notify(tx('Το αίτημα στάλθηκε στον προϊστάμενο.', 'The request was sent to the head of the department.'), 'success')
@@ -408,9 +414,9 @@ export function RostersPage() {
       notifyError(error, 'save', { operation: 'roster_request_create' })
     }
   }
-  async function withdraw(request) {
+  async function withdraw(request: RosterRequest) {
     try {
-      await setRosterRequestStatus(tenant.id, request.id, 'cancelled', user?.id)
+      await setRosterRequestStatus((tenant?.id as string), request.id, 'cancelled', user?.id)
       setRequests(list => list.map(r => (r.id === request.id ? { ...r, status: 'cancelled' } : r)))
     } catch (error) {
       notifyError(error, 'save', { operation: 'roster_request_cancel' })
@@ -419,17 +425,17 @@ export function RostersPage() {
 
   const active = (roster?.members || []).filter(m => m.active !== false)
   const inactive = (roster?.members || []).filter(m => m.active === false)
-  const nameOf = id => roster?.members.find(m => m.employeeId === id)?.name || '—'
-  const codeAt = (id, date) => roster.assignments[id]?.[date] || ''
-  const countOf = (id, test) => days.filter(d => test(codeAt(id, d.date))).length
-  const usesI = Boolean(roster && (Number(roster.demand?.weekday?.I) || Number(roster.demand?.weekend?.I) || Object.values(roster.demand?.overrides || {}).some(o => Number(o.I)) || Object.values(roster.assignments || {}).some(row => Object.values(row || {}).includes('I'))))
+  const nameOf = (id: string) => roster?.members.find(m => m.employeeId === id)?.name || '—'
+  const codeAt = (id: string, date: string) => loaded.assignments[id]?.[date] || ''
+  const countOf = (id: string, test: (code: string) => boolean) => days.filter(d => test(codeAt(id, d.date))).length
+  const usesI = Boolean(roster && (Number(roster.demand?.weekday?.I) || Number(roster.demand?.weekend?.I) || Object.values((roster.demand?.overrides || {}) as Record<string, AnyRecord>).some(o => Number(o.I)) || Object.values(roster.assignments || {}).some(row => Object.values(row || {}).includes('I'))))
   const shown = usesI ? SHIFTS : ['M', 'A', 'N']
   // The department's other shifts (owner, 9/11/2026): stored as kind:code («M:1»), shown by their own code.
   const others = customShifts(roster?.demand)
-  const shortOf = code => (!code ? '' : String(code).includes(':') ? String(code).split(':')[1] : CODES[code]?.short || code)
-  const labelOf = code => (String(code || '').includes(':') ? `${shortOf(code)} · ${others.find(o => o.code === code)?.label || ''} (${CODES[kindOf(code)]?.name || ''})` : CODES[code]?.label || '')
-  const cellClass = code => (isLeave(code) ? 'leave' : kindOf(code) || 'none')
-  const fmtDay = iso => (iso ? iso.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '')
+  const shortOf = (code: string) => (!code ? '' : String(code).includes(':') ? String(code).split(':')[1] : CODES[code]?.short || code)
+  const labelOf = (code: string) => (String(code || '').includes(':') ? `${shortOf(code)} · ${others.find(o => o.code === code)?.label || ''} (${CODES[kindOf(code)]?.name || ''})` : CODES[code]?.label || '')
+  const cellClass = (code: string) => (isLeave(code) ? 'leave' : kindOf(code) || 'none')
+  const fmtDay = (iso: string | null | undefined) => (iso ? iso.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '')
   const weekdays = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['Κ', 'Δ', 'Τ', 'Τ', 'Π', 'Π', 'Σ']
   const hasShifts = Boolean(roster && Object.values(roster.assignments || {}).some(row => Object.values(row || {}).some(isShift)))
   const historyDays = history.dates.slice(-3).map(date => periodDays(date, date)[0])
@@ -437,7 +443,7 @@ export function RostersPage() {
   const visible = !staffMode || published
   const pending = requests.filter(r => r.status === 'pending')
   const myRequests = staffMode && me ? requests.filter(r => r.employeeId === me.employeeId || r.swapEmployeeId === me.employeeId) : []
-  const limitTag = m =>
+  const limitTag = (m: RosterMember) =>
     [
       Array.isArray(m.allowed) && m.allowed.length && m.allowed.length < SHIFTS.length ? `${tx('μόνο', 'only')} ${m.allowed.map(c => CODES[c].short).join('/')}` : '',
       isExtra(m) ? tx('υπεράριθμος', 'extra') : '',
@@ -445,7 +451,7 @@ export function RostersPage() {
       m.maxNights !== undefined && m.maxNights !== null && m.maxNights !== '' ? `${tx('έως', 'max')} ${m.maxNights} ${CODES.N.short}` : '',
       Number(m.percent) > 0 && Number(m.percent) < 100 ? `${m.percent}%` : '',
     ].filter(Boolean).join(' · ')
-  const toggle = name => setPanel(p => (p === name ? '' : name))
+  const toggle = (name: string) => setPanel(p => (p === name ? '' : name))
 
   // The roster as the hospital prints it (owner, 9/11/2026): one A4 landscape sheet, and the same as Excel.
   const exportInput = () => ({
@@ -458,18 +464,18 @@ export function RostersPage() {
     codeAt,
     shortOf,
     kinds: shown,
-    kindLabel: kind => CODES[kind].name,
-    need: (day, kind) => demandFor(roster.demand, day)[kind] || 0,
+    kindLabel: (kind: string) => CODES[kind].name as string,
+    need: (day: RosterDay, kind: string) => demandFor(loaded.demand, day)[kind] || 0,
     targets,
     hours: HOURS,
     legend: [
       ...shown.map(c => [CODES[c].short, CODES[c].label, { A: 'a', N: 'n', I: 'i' }[c] || '']),
-      ...others.map(o => [shortOf(o.code), o.label, { A: 'a', N: 'n', I: 'i' }[kindOf(o.code)] || '']),
+      ...others.map(o => [shortOf(o.code), o.label, ({ A: 'a', N: 'n', I: 'i' } as Record<string, string>)[kindOf(o.code)] || '']),
       [CODES.R.short, CODES.R.label, 'r'],
       [CODES.L.short, tx('Άδεια / αργία', 'Leave / holiday'), 'lv'],
     ],
   })
-  const printRoster = pdf => {
+  const printRoster = (pdf: boolean) => {
     if (!printReport(rosterDocument(exportInput()), { pdf })) notify(tx('Ο φυλλομετρητής μπλόκαρε το νέο παράθυρο.', 'The browser blocked the new window.'), 'warning')
   }
   function exportExcel() {
@@ -477,7 +483,7 @@ export function RostersPage() {
   }
 
   // What the parts of the page (RosterSheet, RosterPanels) read.
-  const view = { tx, canEdit, roster, codeStyle, CODES, REQUEST_KINDS, REQUEST_STATUS, RULE_TEXT, RULE_LABELS, days, history, dirty, saving, cell, setCell, need, setNeed, limits, setLimits, setPanel, ask, setAsk, dragId, setDragId, newShift, setNewShift, dropId, setDropId, rules, violations, targets, me, update, setMember, setDemand, setRule, addOther, setOther, removeOther, setDayNeed, setCode, dropOn, save, sendRequest, withdraw, active, inactive, nameOf, codeAt, countOf, shown, others, shortOf, labelOf, cellClass, fmtDay, weekdays, hasShifts, historyDays, myRequests, limitTag }
+  const view: RosterView = { tx, canEdit, roster: loaded, codeStyle, CODES, REQUEST_KINDS, REQUEST_STATUS, RULE_TEXT, RULE_LABELS, days, history, dirty, saving, cell, setCell, need, setNeed, limits, setLimits, setPanel, ask, setAsk, dragId, setDragId, newShift, setNewShift, dropId, setDropId, rules, violations, targets, me, update, setMember, setDemand, setRule, addOther, setOther, removeOther, setDayNeed, setCode, dropOn, save, sendRequest, withdraw, active, inactive, nameOf, codeAt, countOf, shown, others, shortOf, labelOf, cellClass, fmtDay, weekdays, hasShifts, historyDays, myRequests, limitTag }
   return (
     <Page
       fill

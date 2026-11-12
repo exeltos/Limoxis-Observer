@@ -1,9 +1,10 @@
 import { GripVertical } from 'lucide-react'
 import { demandFor, isShift, kindOf } from './rosterEngine'
-import { HOURS, isExtra } from './rosterPageModel'
+import { HOURS, isExtra, type RosterView } from './rosterPageModel'
+import type { RosterViolation } from './rosterRules'
 
 // The roster sheet: a row per person with their totals, the people on each shift under each day, the legend and the rules not kept.
-export function RosterSheet({ view }) {
+export function RosterSheet({ view }: { view: RosterView }) {
   const { tx, canEdit, roster, CODES, RULE_TEXT, days, history, setCell, setNeed, setLimits, dragId, setDragId, dropId, setDropId, rules, violations, targets, me, setMember, dropOn, active, inactive, nameOf, codeAt, countOf, shown, others, shortOf, labelOf, cellClass, fmtDay, weekdays, hasShifts, historyDays, limitTag } = view
   return (
         <section className="roster-sheet">
@@ -186,9 +187,9 @@ export function RosterSheet({ view }) {
             ) : (
               <ul className="roster-violations">
                 {/* One line per rule: the first days and the people (their cells are framed red). */}
-                {Object.entries(violations.reduce((acc, v) => ({ ...acc, [v.rule]: [...(acc[v.rule] || []), v] }), {})).map(([rule, list]) => {
-                  const dates = [...new Set(list.map(v => v.date).filter(Boolean))]
-                  const people = [...new Set(list.map(v => nameOf(v.employeeId)).filter(name => name !== '—'))]
+                {Object.entries(violations.reduce((acc: Record<string, RosterViolation[]>, v) => ({ ...acc, [v.rule]: [...(acc[v.rule] || []), v] }), {})).map(([rule, list]) => {
+                  const dates = [...new Set(list.map(v => v.date).filter(Boolean))] as string[]
+                  const people = [...new Set(list.map(v => nameOf(v.employeeId as string)).filter(name => name !== '—'))]
                   return (
                     <li key={rule}>
                       <strong>{RULE_TEXT[rule] || rule}</strong>

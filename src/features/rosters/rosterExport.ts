@@ -3,15 +3,36 @@
 // totals, the people on each shift per day, the legend and the signatures), and the same sheet as an Excel file.
 import { escapeHtml } from '../../core/export/reportDocument'
 import { XLSX_STYLE } from '../../core/export/xlsxExport'
-import { isShift, kindOf } from './rosterEngine'
+import { isShift, kindOf, type RosterDay } from './rosterEngine'
+import type { ReportDoc } from '../../core/export/reportDocument'
+import type { XlsxSheet } from '../../core/export/xlsxExport'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// What the page hands to the export (see the comment below).
+export interface RosterExportInput {
+  en: boolean
+  department?: AnyRecord | null
+  period: { start: string, end: string }
+  status?: string
+  days: RosterDay[]
+  members: { employeeId: string, name: string, head?: boolean, extra?: boolean }[]
+  codeAt: (id: string, date: string) => string
+  shortOf: (code: string) => string
+  kinds: string[]
+  kindLabel: (kind: string) => string
+  need: (day: RosterDay, kind: string) => number
+  targets?: Record<string, number> | null
+  hours: number
+  legend?: string[][]
+}
 
 const LEAVE = new Set(['L', 'S', 'H', 'U'])
-const kindClass = code => (!code ? '' : LEAVE.has(code) ? 'lv' : code === 'R' ? 'r' : { M: 'm', I: 'i', A: 'a', N: 'n' }[kindOf(code)] || '')
+const kindClass = (code: string) => (!code ? '' : LEAVE.has(code) ? 'lv' : code === 'R' ? 'r' : ({ M: 'm', I: 'i', A: 'a', N: 'n' } as Record<string, string>)[kindOf(code)] || '')
 
 // input: { en, department, period: { start, end }, status, days, members: [{ employeeId, name, head, extra }],
 //          codeAt(id, date), shortOf(code), kinds: ['M', 'A', 'N'], kindLabel(kind), need(day, kind), targets, hours,
 //          legend: [[short, label]] }
-export function rosterSummary({ days, members, codeAt, kinds, targets, hours }) {
+export function rosterSummary({ days, members, codeAt, kinds, targets, hours }: Pick<RosterExportInput, 'days' | 'members' | 'codeAt' | 'kinds' | 'targets' | 'hours'>) {
   return members.map(m => {
     const codes = days.map(d => codeAt(m.employeeId, d.date))
     const shifts = codes.filter(isShift).length
@@ -27,14 +48,14 @@ export function rosterSummary({ days, members, codeAt, kinds, targets, hours }) 
   })
 }
 
-const fmt = iso => iso.slice(0, 10).split('-').reverse().join('/')
+const fmt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/')
 
-export function rosterDocument(input) {
+export function rosterDocument(input: RosterExportInput): ReportDoc {
   const { en, department, period, status, days, kinds, kindLabel, need, shortOf, legend = [] } = input
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const weekdays = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['Κ', 'Δ', 'Τ', 'Τ', 'Π', 'Π', 'Σ']
   const rows = rosterSummary(input)
-  const we = d => (d.weekend ? ' we' : '')
+  const we = (d: RosterDay) => (d.weekend ? ' we' : '')
   const head = `<tr><th class="nm" rowspan="2">${L('Ονοματεπώνυμο', 'Name')}</th>${days.map(d => `<th class="dw${we(d)}">${weekdays[d.weekday]}</th>`).join('')}${kinds.map(k => `<th class="tt" rowspan="2">${escapeHtml(shortOf(k))}</th>`).join('')}<th class="tt" rowspan="2">${escapeHtml(shortOf('R'))}</th><th class="tw" rowspan="2">${L('Βάρδιες', 'Shifts')}</th><th class="tw" rowspan="2">${L('Ώρες', 'Hours')}</th></tr><tr>${days.map(d => `<th class="dn${we(d)}">${d.date.slice(8, 10)}</th>`).join('')}</tr>`
   const body = rows.map(({ member, codes, perKind, rests, shifts, target, hours }) => {
     const tag = member.head ? ` <em>${L('Προϊστ.', 'Head')}</em>` : ''
@@ -86,13 +107,13 @@ export function rosterDocument(input) {
 }
 
 // The same sheet for Excel: title lines, the two header rows (weekday, day), coloured shifts, totals and coverage.
-export function rosterSheet(input) {
+export function rosterSheet(input: RosterExportInput): XlsxSheet {
   const { en, department, period, status, days, kinds, kindLabel, need, shortOf } = input
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const S = XLSX_STYLE
   const weekdays = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['Κ', 'Δ', 'Τ', 'Τ', 'Π', 'Π', 'Σ']
   const rows = rosterSummary(input)
-  const styleOf = (code, day) => {
+  const styleOf = (code: string, day: RosterDay) => {
     if (!code) return day.weekend ? S.weekend : S.center
     if (LEAVE.has(code)) return S.leave
     if (code === 'R') return S.rest
