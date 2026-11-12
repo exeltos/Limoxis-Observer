@@ -1,8 +1,9 @@
 import { Activity, Baby, ClipboardList, Flower2, Heart, HeartPulse, Eye, Microscope, Pill, Siren, Zap } from 'lucide-react'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The look of a register's pages: the NICU and the ICU have their own (colour and icon), the rest the standard one.
 // A register is recognised by its template, or by its name («ΜΕΝΝ», «ΜΕΘ») for the hospitals' own copies.
-export function registerThemeKey(register) {
+export function registerThemeKey(register: AnyRecord | null | undefined) {
   if (!register) return ''
   if (['nicu', 'icu', 'obstetrics', 'endoscopy'].includes(register.templateKey)) return register.templateKey
   if (register.templateKey === 'cathLab') return 'cathlab'
@@ -21,15 +22,15 @@ export function registerThemeKey(register) {
   return ''
 }
 
-export const themeIcon = key => ({ nicu: Baby, icu: HeartPulse, obstetrics: Flower2, endoscopy: Microscope, cathlab: Zap, chemo: Pill, ophthalmology: Eye, emergency: Siren, deliveryroom: Flower2 })[key] || ClipboardList
+export const themeIcon = (key: string) => ({ nicu: Baby, icu: HeartPulse, obstetrics: Flower2, endoscopy: Microscope, cathlab: Zap, chemo: Pill, ophthalmology: Eye, emergency: Siren, deliveryroom: Flower2 } as Record<string, typeof ClipboardList>)[key] || ClipboardList
 
 // The ICU keeps General and Cardiac surgery patients in one register: each case wears its own colour and symbol.
-const ICU_CATEGORIES = { cardiac: { Icon: Heart, tone: 'danger' }, general: { Icon: Activity, tone: 'info' } }
-export function caseMarker(register, values, language = 'el') {
+const ICU_CATEGORIES: Record<string, { Icon: typeof Heart, tone: string }> = { cardiac: { Icon: Heart, tone: 'danger' }, general: { Icon: Activity, tone: 'info' } }
+export function caseMarker(register: AnyRecord, values: AnyRecord | null | undefined, language = 'el') {
   if (registerThemeKey(register) !== 'icu') return null
-  const field = (register.fields || []).find(item => item.key === 'category')
+  const field = (register.fields || []).find((item: AnyRecord) => item.key === 'category')
   const marker = ICU_CATEGORIES[values?.category]
-  const option = field?.options?.find(item => item.value === values?.category)
+  const option = field?.options?.find((item: AnyRecord) => item.value === values?.category)
   if (!marker || !option) return null
-  return { value: values.category, label: language === 'en' ? option.labelEn || option.label : option.label, ...marker }
+  return { value: values!.category, label: language === 'en' ? option.labelEn || option.label : option.label, ...marker }
 }

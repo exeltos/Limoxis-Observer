@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
-import { ClipboardList, Plus, Stethoscope } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -13,6 +13,7 @@ import { useRegisterAccess } from './registerAccess'
 import { EquipmentList, useResources } from '../quality/resources/ResourcesPanel'
 import { NO_EQUIPMENT_FILTERS } from '../quality/resources/resourceModel'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The department's registers (NICU neonates, monthly procedure sheets) and its
 // meetings and its equipment: what a department records, outside the Quality Center.
@@ -29,12 +30,13 @@ export function RegistersPage() {
   // The figures above the list; «no entry for 45+ days» narrows the list to those registers.
   const [staleOnly, setStaleOnly] = useState(false)
   const todayIso = hospitalToday()
-  const isQuiet = useCallback(register => isStaleRegister(register, todayIso), [todayIso])
+  const isQuiet = useCallback((register: AnyRecord) => isStaleRegister(register, todayIso), [todayIso])
   const active = list.registers.filter(register => register.status === 'active')
   const entries = list.registers.reduce((sum, register) => sum + (Number(register.entryCount) || 0), 0)
   const indicators = list.registers.reduce((sum, register) => sum + (register.indicators?.length || 0), 0)
   const stale = list.registers.filter(isQuiet)
-  const viewSwitch = <SearchableSelect hideLabel className="registers-view-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next=>next&&(setView)(next)} options={[{ value: 'registers', icon: ClipboardList, label: en ? 'Registers' : 'Μητρώα' }, { value: 'equipment', icon: Stethoscope, label: en ? 'Equipment' : 'Εξοπλισμός' }]}/>
+  // EquipmentList (Quality, still JavaScript) reads its filterEnd default (null) as the prop's type.
+  const viewSwitch = <SearchableSelect hideLabel className="registers-view-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next=>next&&(setView)(next)} options={[{ value: 'registers', label: en ? 'Registers' : 'Μητρώα' }, { value: 'equipment', label: en ? 'Equipment' : 'Εξοπλισμός' }]}/>
   // The department's meetings have their own menu entry («Meetings»).
   const action = view === 'equipment' ? null
     : access.canDefine && <ActionButton tone="primary" label={en ? 'New register' : 'Νέο μητρώο'} onClick={() => navigate('/registers/new')}><Plus size={18} /><span>{en ? 'New register' : 'Νέο μητρώο'}</span></ActionButton>
@@ -47,7 +49,7 @@ export function RegistersPage() {
     </FigureCards>}
     <section className="surface registry-workspace workspace-column workspace-fill registers-workspace">
       {view === 'registers' && <RegistersPanel list={list} only={staleOnly ? isQuiet : null} filterEnd={viewSwitch} />}
-      {view === 'equipment' && <EquipmentList list={equipment} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={viewSwitch} onOpen={row => goTo(`/quality/equipment/${row.id}`)} />}
+      {view === 'equipment' && <EquipmentList list={equipment} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={viewSwitch as unknown as null} onOpen={(row: AnyRecord) => goTo(`/quality/equipment/${row.id}`)} />}
     </section>
   </Page>
 }

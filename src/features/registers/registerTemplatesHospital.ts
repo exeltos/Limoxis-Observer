@@ -5,15 +5,17 @@
 // FileMaker column names and `match` the beginnings of the FileMaker values,
 // so an export is imported without retyping. AMKA is never imported or kept.
 
-const o = (value, label, labelEn, match) => (match ? { value, label, labelEn, match } : { value, label, labelEn })
-const row = (key, label, labelEn, aliases, group) => ({ key, label, labelEn, ...(aliases ? { aliases } : {}), ...(group ? { group } : {}) })
+import type { AnyRecord } from '../../types/featureTypes'
+
+const o = (value: string, label: string, labelEn: string, match?: string[]) => (match ? { value, label, labelEn, match } : { value, label, labelEn })
+const row = (key: string, label: string, labelEn: string, aliases?: string[], group?: string) => ({ key, label, labelEn, ...(aliases ? { aliases } : {}), ...(group ? { group } : {}) })
 const sex = (key = 'sex', extra = {}) => ({ key, type: 'choice', label: 'Φύλο', labelEn: 'Sex', aliases: ['ΦΥΛΟ', 'Φύλο'], options: [o('male', 'Άνδρας', 'Male', ['ΑΝΔΡ', 'ΑΡΡΕΝ']), o('female', 'Γυναίκα', 'Female', ['ΓΥΝΑΙΚ', 'ΘΗΛΥ'])], ...extra })
-const yes = (key, label, labelEn, extra = {}) => ({ key, type: 'yesNo', label, labelEn, ...extra })
-const days = (key, label, labelEn, extra = {}) => ({ key, type: 'number', unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label, labelEn, ...extra })
-const stay = (from, to) => ({ key: 'length_of_stay', type: 'computed', computed: 'days', from, to, unit: 'ημέρες', unitEn: 'days', label: 'Διάρκεια νοσηλείας', labelEn: 'Length of stay' })
-const count = (id, title, titleEn, extra = {}) => ({ id, title, titleEn, aggregation: 'count', filters: [], direction: 'context', ...extra })
-const share = (id, title, titleEn, filters, extra = {}) => ({ id, title, titleEn, aggregation: 'percent', filters, denominatorFilters: [], unit: '%', direction: 'context', ...extra })
-const average = (id, title, titleEn, field, extra = {}) => ({ id, title, titleEn, aggregation: 'mean', field, filters: [], direction: 'context', ...extra })
+const yes = (key: string, label: string, labelEn: string, extra = {}) => ({ key, type: 'yesNo', label, labelEn, ...extra })
+const days = (key: string, label: string, labelEn: string, extra = {}) => ({ key, type: 'number', unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label, labelEn, ...extra })
+const stay = (from: string, to: string) => ({ key: 'length_of_stay', type: 'computed', computed: 'days', from, to, unit: 'ημέρες', unitEn: 'days', label: 'Διάρκεια νοσηλείας', labelEn: 'Length of stay' })
+const count = (id: string, title: string, titleEn: string, extra = {}) => ({ id, title, titleEn, aggregation: 'count', filters: [], direction: 'context', ...extra })
+const share = (id: string, title: string, titleEn: string, filters: AnyRecord[], extra = {}) => ({ id, title, titleEn, aggregation: 'percent', filters, denominatorFilters: [], unit: '%', direction: 'context', ...extra })
+const average = (id: string, title: string, titleEn: string, field: string, extra = {}) => ({ id, title, titleEn, aggregation: 'mean', field, filters: [], direction: 'context', ...extra })
 
 const ICU = {
   key: 'icu',
@@ -341,4 +343,4 @@ const PAEDIATRICS = {
   ],
 }
 
-export const HOSPITAL_TEMPLATES = [PAEDIATRICS, ICU, OBSTETRICS, DELIVERY_ROOM, CATH_LAB, CHEMOTHERAPY, EMERGENCY, PHYSIOTHERAPY]
+export const HOSPITAL_TEMPLATES: AnyRecord[] = [PAEDIATRICS, ICU, OBSTETRICS, DELIVERY_ROOM, CATH_LAB, CHEMOTHERAPY, EMERGENCY, PHYSIOTHERAPY]

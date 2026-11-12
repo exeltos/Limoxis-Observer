@@ -1,25 +1,27 @@
 import { registerFromTemplate } from './registerTemplates'
 import { hospitalMonth, hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Register } from './registerTypes'
 
 // Sample registers for the demo: the NICU (one card per neonate) and the
 // Endoscopy unit (a monthly sheet), fourteen months back from today so every
 // indicator has a trend and a same-month-last-year value. Generated with a
 // fixed seed, so the numbers are the same on every visit.
 
-function seeded(seed) {
+function seeded(seed: number) {
   let state = seed
   return () => {
     state = (state * 1664525 + 1013904223) % 4294967296
     return state / 4294967296
   }
 }
-const pad = n => String(n).padStart(2, '0')
-const addDays = (day, days) => {
+const pad = (n: number) => String(n).padStart(2, '0')
+const addDays = (day: string, days: number) => {
   const date = new Date(`${day}T00:00:00Z`)
   date.setUTCDate(date.getUTCDate() + days)
   return date.toISOString().slice(0, 10)
 }
-const pick = (random, weighted) => {
+const pick = <T,>(random: () => number, weighted: [T, number][]) => {
   const total = weighted.reduce((sum, [, weight]) => sum + weight, 0)
   let roll = random() * total
   for (const [value, weight] of weighted) { roll -= weight; if (roll <= 0) return value }
@@ -38,35 +40,35 @@ export const DEMO_OPHTHALMOLOGY_ID = 'reg-demo-ophthalmology'
 export const DEMO_DELIVERYROOM_ID = 'reg-demo-deliveryroom'
 
 export function demoRegisters() {
-  const nicu = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
+  const nicu: Register = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
   // Targets the Quality team set with the department, so the demo shows statuses.
-  const targets = { mean_ventilator: { target: 5 }, mean_cpap: { target: 7 }, mortality: { target: 2, threshold: 4 }, readmissions: { target: 5, threshold: 8 }, late_infection_rate: { target: 5, threshold: 8 }, breast_milk: { target: 50, threshold: 35 } }
-  nicu.indicators = nicu.indicators.map(indicator => ({ ...indicator, ...(targets[indicator.id] || {}) }))
-  const endoscopy = { ...registerFromTemplate('endoscopy', { departmentId: 'Παθολογική', department: 'Παθολογική', departmentEn: 'Internal Medicine' }), id: DEMO_ENDOSCOPY_ID, code: 'REG-ENDO', name: 'Πράξεις Ενδοσκοπικού', nameEn: 'Endoscopy procedures' }
+  const targets: Record<string, AnyRecord> = { mean_ventilator: { target: 5 }, mean_cpap: { target: 7 }, mortality: { target: 2, threshold: 4 }, readmissions: { target: 5, threshold: 8 }, late_infection_rate: { target: 5, threshold: 8 }, breast_milk: { target: 50, threshold: 35 } }
+  nicu.indicators = nicu.indicators.map((indicator: AnyRecord) => ({ ...indicator, ...(targets[indicator.id] || {}) }))
+  const endoscopy: Register = { ...registerFromTemplate('endoscopy', { departmentId: 'Παθολογική', department: 'Παθολογική', departmentEn: 'Internal Medicine' }), id: DEMO_ENDOSCOPY_ID, code: 'REG-ENDO', name: 'Πράξεις Ενδοσκοπικού', nameEn: 'Endoscopy procedures' }
   // The demo shows the daily sheets: the earlier months are monthly totals, from the current month on it is one sheet per day.
   endoscopy.sheet = { ...endoscopy.sheet, dailyFrom: `${hospitalMonth()}-01` }
-  const icu = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
-  icu.indicators = icu.indicators.map(indicator => ({ ...indicator, ...({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } }[indicator.id] || {}) }))
-  const paediatrics = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
-  const obstetrics = { ...registerFromTemplate('obstetrics', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_OBSTETRICS_ID, code: 'REG-OBS' }
-  obstetrics.indicators = obstetrics.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } }[indicator.id] || {}) }))
-  const emergency = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
+  const icu: Register = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
+  icu.indicators = icu.indicators.map((indicator: AnyRecord) => ({ ...indicator, ...(({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } } as Record<string, AnyRecord>)[indicator.id] || {}) }))
+  const paediatrics: Register = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
+  const obstetrics: Register = { ...registerFromTemplate('obstetrics', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_OBSTETRICS_ID, code: 'REG-OBS' }
+  obstetrics.indicators = obstetrics.indicators.map((indicator: AnyRecord) => ({ ...indicator, ...(({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } } as Record<string, AnyRecord>)[indicator.id] || {}) }))
+  const emergency: Register = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
   emergency.sheet = { ...emergency.sheet, dailyFrom: `${hospitalMonth()}-01` }
-  const cathLab = { ...registerFromTemplate('cathLab', { departmentId: 'Αιμοδυναμικό', department: 'Αιμοδυναμικό', departmentEn: 'Cath lab' }), id: DEMO_CATHLAB_ID, code: 'REG-CATH' }
-  const chemo = { ...registerFromTemplate('chemotherapy', { departmentId: 'Χημειοθεραπεία', department: 'Χημειοθεραπεία', departmentEn: 'Chemotherapy' }), id: DEMO_CHEMO_ID, code: 'REG-CHEMO' }
-  chemo.fields = chemo.fields.map(field => (field.key === 'physician' ? { ...field, options: [{ value: 'dr_a', label: 'Παπαδόπουλος Γ.', labelEn: 'Papadopoulos G.' }, { value: 'dr_b', label: 'Νικολάου Μ.', labelEn: 'Nikolaou M.' }, { value: 'dr_c', label: 'Καραγιάννη Ε.', labelEn: 'Karagianni E.' }] } : field))
-  const ophthalmology = { ...registerFromTemplate('ophthalmology', { departmentId: 'Οφθαλμολογική', department: 'Οφθαλμολογική', departmentEn: 'Ophthalmology' }), id: DEMO_OPHTHALMOLOGY_ID, code: 'REG-OPH' }
+  const cathLab: Register = { ...registerFromTemplate('cathLab', { departmentId: 'Αιμοδυναμικό', department: 'Αιμοδυναμικό', departmentEn: 'Cath lab' }), id: DEMO_CATHLAB_ID, code: 'REG-CATH' }
+  const chemo: Register = { ...registerFromTemplate('chemotherapy', { departmentId: 'Χημειοθεραπεία', department: 'Χημειοθεραπεία', departmentEn: 'Chemotherapy' }), id: DEMO_CHEMO_ID, code: 'REG-CHEMO' }
+  chemo.fields = chemo.fields.map((field: AnyRecord) => (field.key === 'physician' ? { ...field, options: [{ value: 'dr_a', label: 'Παπαδόπουλος Γ.', labelEn: 'Papadopoulos G.' }, { value: 'dr_b', label: 'Νικολάου Μ.', labelEn: 'Nikolaou M.' }, { value: 'dr_c', label: 'Καραγιάννη Ε.', labelEn: 'Karagianni E.' }] } : field))
+  const ophthalmology: Register = { ...registerFromTemplate('ophthalmology', { departmentId: 'Οφθαλμολογική', department: 'Οφθαλμολογική', departmentEn: 'Ophthalmology' }), id: DEMO_OPHTHALMOLOGY_ID, code: 'REG-OPH' }
   ophthalmology.sheet = { ...ophthalmology.sheet, dailyFrom: `${hospitalMonth()}-01` }
-  const deliveryRoom = { ...registerFromTemplate('deliveryRoom', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_DELIVERYROOM_ID, code: 'REG-DR' }
+  const deliveryRoom: Register = { ...registerFromTemplate('deliveryRoom', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_DELIVERYROOM_ID, code: 'REG-DR' }
   deliveryRoom.sheet = { ...deliveryRoom.sheet, dailyFrom: `${hospitalMonth()}-01` }
-  deliveryRoom.indicators = deliveryRoom.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65 } }[indicator.id] || {}) }))
+  deliveryRoom.indicators = deliveryRoom.indicators.map((indicator: AnyRecord) => ({ ...indicator, ...(({ cs_rate: { target: 55, threshold: 65 } } as Record<string, AnyRecord>)[indicator.id] || {}) }))
   return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab, chemo, ophthalmology, deliveryRoom].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = hospitalToday()) {
   const random = seeded(20261105)
-  const entries = []
-  const identities = {}
+  const entries: AnyRecord[] = []
+  const identities: Record<string, AnyRecord> = {}
   const [year, month] = today.split('-').map(Number)
   // From January 2025 on (owner, 9/11/2026: the Demo shows the whole of 2025), at least fourteen months.
   const historyBack = Math.max(13, (year - 2025) * 12 + month - 1)
@@ -167,7 +169,7 @@ export function demoRegisterEntries(today = hospitalToday()) {
       const discharge = addDays(admission, stay)
       const out = discharge <= today
       const death = out && icuRandom() < (cardiac ? 0.04 : 0.17) + apache / 400
-      const values = {
+      const values: AnyRecord = {
         admission_date: admission,
         category: cardiac ? 'cardiac' : 'general',
         age,
@@ -199,7 +201,7 @@ export function demoRegisterEntries(today = hospitalToday()) {
   const edRandom = seeded(20261115)
   const edMeans = { surgical: [9, 7, 3], urgent: [5, 4, 2], admissions: [3, 3, 2], dressings: [4, 3, 0.6], septic: [1.5, 1, 0.4], assessments: [0.3, 0.2, 0.1], checkup: [0.6, 0.3, 0.05], preop: [2.5, 0.3, 0], left_without_seen: [0.2, 0.2, 0.2], revisit_72h: [0.3, 0.2, 0.1], transfers: [0.2, 0.2, 0.1] }
   const shifts = ['morning', 'afternoon', 'night']
-  const edValues = factor => Object.fromEntries(Object.entries(edMeans).map(([row, means]) => [row, Object.fromEntries(shifts.map((shift, index) => [shift, Math.max(0, Math.round(means[index] * factor * (0.5 + edRandom())))]))]))
+  const edValues = (factor: number) => Object.fromEntries(Object.entries(edMeans).map(([row, means]) => [row, Object.fromEntries(shifts.map((shift, index) => [shift, Math.max(0, Math.round(means[index] * factor * (0.5 + edRandom())))]))]))
   for (let back = historyBack; back >= 0; back -= 1) {
     const date = new Date(Date.UTC(year, month - 1 - back, 1))
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
@@ -292,7 +294,7 @@ export function demoRegisterEntries(today = hospitalToday()) {
       const date = new Date(Date.UTC(year, month - 1 - back, 1))
       const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
       const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
-      const cell = (mean, factor) => ({ count: Math.max(0, Math.round(mean * factor * (0.6 + sheetRandom() * 0.8))) })
+      const cell = (mean: number, factor: number) => ({ count: Math.max(0, Math.round(mean * factor * (0.6 + sheetRandom() * 0.8))) })
       if (back > 0) entries.push({ id: `reg-entry-${registerId}-${y}-${pad(m)}`, registerId, entryDate: `${y}-${pad(m)}-01`, periodStart: `${y}-${pad(m)}-01`, values: Object.fromEntries(Object.entries(means).map(([key, mean]) => [key, cell(mean, registerId === DEMO_OPHTHALMOLOGY_ID ? 21 : 30)])), status: 'complete', locked: back > 1, createdAt: `${y}-${pad(m)}-${pad(days)}T14:00:00Z`, createdByLabel: label })
       else {
         for (let day = 1; day <= days; day += 1) {

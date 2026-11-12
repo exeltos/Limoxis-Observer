@@ -18,12 +18,20 @@ import { dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey } from './registerThemes'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
 import { hospitalDate, hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { ExportApi, Register } from './registerTypes'
+import type { IndicatorResult, Period } from './registerEngine'
 
-const PERIOD_MONTHS = { month: 1, quarter: 3, half: 6, year: 12 }
+// A row of the report: the indicator this period, the previous one and the same period last year.
+type ReportRow = ReturnType<typeof indicatorReport>[number]
+// A breakdown of the period: by a list field (case) or by the sheet's rows and measures.
+type Split = { key: string, label: string, rows: AnyRecord[] }
+
+const PERIOD_MONTHS: Record<string, number> = { month: 1, quarter: 3, half: 6, year: 12 }
 // Worst first when sorting by status.
-const STATUS_RANK = { breach: 0, attention: 1, onTarget: 2, context: 3 }
+const STATUS_RANK: Record<string, number> = { breach: 0, attention: 1, onTarget: 2, context: 3 }
 // The date an indicator counts on, in words («ανά ημερομηνία εξόδου»): shown when a register's indicators do not all count on the same one.
-const basisOf = (register, indicator, language) => {
+const basisOf = (register: Register, indicator: AnyRecord, language: string) => {
   if (isActiveCensus(register, indicator)) return language === 'en' ? 'on the last day' : 'την τελευταία ημέρα'
   const field = (register.fields || []).find(item => item.key === (indicator.dateField || register.settings?.entryDateField))
   return field ? `${language === 'en' ? 'by' : 'ανά'} ${textOf(field, language).toLowerCase()}` : ''
@@ -34,11 +42,12 @@ const lastMonth = () => { const date = new Date(`${hospitalDate().slice(0, 7)}-0
 // previous period and the same period last year, its trend month by month
 // (with the target line) and its split by the register's list fields.
 // onDefineTarget(indicatorId): opens the indicator in «Definition» (for those who may define the register).
-export function RegisterIndicators({ register, entries: allEntries, onDefineTarget = null, onExportApi = null }) {
+interface RegisterIndicatorsProps { register: Register, entries: AnyRecord[], onDefineTarget?: ((indicatorId: string) => void) | null, onExportApi?: ((api: ExportApi | null) => void) | null }
+export function RegisterIndicators({ register, entries: allEntries, onDefineTarget = null, onExportApi = null }: RegisterIndicatorsProps) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notifyError } = useFeedback()
-  const reportRef = useRef(null)
+  const reportRef = useRef<HTMLDivElement>(null)
   // The NICU, the ICU and any register with rates per 1,000 days have few events a month: they open on the quarter. The ICU can be read for one kind of patient.
   const [kind, setKind] = useState(() => (registerThemeKey(register) || register.indicators.some(item => ['rate', 'smr'].includes(item.aggregation)) ? 'quarter' : 'month'))
   const [category, setCategory] = useState('all')
@@ -57,29 +66,29 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
     const shown = periodOf(kind, `${lastMonth()}-01`)
     if (!days.some(day => day >= shown.from && day <= shown.to)) setMonth(latest.slice(0, 7))
   }, [allEntries]) // eslint-disable-line react-hooks/exhaustive-deps
-  const [openId, setOpenId] = useState(null)
+  const [openId, setOpenId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   // The cards above the table filter it by status; the search and the sort work on the shown rows.
-  const [statusFilter, setStatusFilter] = useState(null)
-  const [sort, setSort] = useState({ key: null, dir: 'asc' })
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  const [sort, setSort] = useState<{ key: string | null, dir: string }>({ key: null, dir: 'asc' })
   const period = periodOf(kind, `${month}-01`)
   const report = useMemo(() => indicatorReport(register, entries, period), [register, entries, period.key]) // eslint-disable-line react-hooks/exhaustive-deps
   const open = report.find(row => row.indicator.id === openId) || null
   // First the indicators that are judged (better higher or lower), then the ones shown for context.
-  const count = status => report.filter(row => row.current.status === status).length
+  const count = (status: string) => report.filter(row => row.current.status === status).length
   const shown = report
     .filter(row => !statusFilter || row.current.status === statusFilter)
-  const sortValue = { name: row => textOf(row.indicator, language).toLowerCase(), value: row => row.current.value, status: row => STATUS_RANK[row.current.status] ?? 9 }[sort.key]
+  const sortValue = ({ name: (row: ReportRow) => textOf(row.indicator, language).toLowerCase(), value: (row: ReportRow) => row.current.value, status: (row: ReportRow) => STATUS_RANK[row.current.status ?? ''] ?? 9 } as Record<string, (row: ReportRow) => string | number | null>)[sort.key ?? '']
   const sorted = !sortValue ? shown : [...shown].sort((a, b) => {
     const x = sortValue(a), y = sortValue(b)
     if (x == null && y == null) return 0
     if (x == null) return 1
     if (y == null) return -1
-    return (typeof x === 'string' ? x.localeCompare(y, language) : x - y) * (sort.dir === 'asc' ? 1 : -1)
+    return (typeof x === 'string' ? x.localeCompare(String(y), language) : x - Number(y)) * (sort.dir === 'asc' ? 1 : -1)
   })
-  const toggleSort = key => setSort(current => current.key !== key ? { key, dir: 'asc' } : current.dir === 'asc' ? { key, dir: 'desc' } : { key: null, dir: 'asc' })
-  const sortHead = (key, label, className) => <th className={className} aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}><button type="button" className={`register-sort ${sort.key === key ? 'is-sorted' : ''}`} onClick={() => toggleSort(key)}>{label}<ArrowUpDown size={12} aria-hidden="true" /></button></th>
-  const figure = (key, icon, status, label, tone) => ({ key, icon, value: count(status), label, status: tone && count(status) > 0 ? tone : null, active: statusFilter === status, go: () => setStatusFilter(current => current === status ? null : status) })
+  const toggleSort = (key: string) => setSort(current => current.key !== key ? { key, dir: 'asc' } : current.dir === 'asc' ? { key, dir: 'desc' } : { key: null, dir: 'asc' })
+  const sortHead = (key: string, label: string, className?: string) => <th className={className} aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}><button type="button" className={`register-sort ${sort.key === key ? 'is-sorted' : ''}`} onClick={() => toggleSort(key)}>{label}<ArrowUpDown size={12} aria-hidden="true" /></button></th>
+  const figure = (key: string, icon: typeof CheckCircle2, status: string, label: string, tone: string | null) => ({ key, icon, value: count(status), label, status: tone && count(status) > 0 ? tone : null, active: statusFilter === status, go: () => setStatusFilter(current => current === status ? null : status) })
   const figures = [
     figure('onTarget', CheckCircle2, 'onTarget', en ? 'On target' : 'Εντός στόχου', 'good'),
     figure('attention', AlertTriangle, 'attention', en ? 'Below target' : 'Εκτός στόχου', 'warning'),
@@ -97,7 +106,7 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   // The detail steps through the indicators in the table's order.
   const ordered = grouped.flatMap(group => group.rows)
   // A step moves by the period shown: a month, a quarter, a half-year or a year.
-  const step = direction => setMonth(shiftPeriod(period, direction * PERIOD_MONTHS[kind]).from.slice(0, 7))
+  const step = (direction: number) => setMonth(shiftPeriod(period, direction * PERIOD_MONTHS[kind]).from.slice(0, 7))
   function exportCsv() {
     exportRegistry({ name: `${register.code}_${period.from}_${period.to}`, headers: en ? ['Indicator', 'Value', 'Numerator', 'Denominator', 'Previous period', 'Same period last year', 'Target', 'Limit', 'Status'] : ['Δείκτης', 'Τιμή', 'Αριθμητής', 'Παρονομαστής', 'Προηγούμενη περίοδος', 'Ίδια περίοδος πέρσι', 'Στόχος', 'Όριο', 'Κατάσταση'], rows: report.map(({ indicator, current, previous, lastYear }) => [textOf(indicator, language), current.value ?? '', current.numerator ?? '', current.denominator ?? '', previous.value ?? '', lastYear.value ?? '', indicator.target ?? '', indicator.threshold ?? '', indicatorStatusLabel(current.status, language)]) })
   }
@@ -119,7 +128,7 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
     <div ref={reportRef} className="register-indicator-report">
       {exporting && <h3 className="register-report-title">{title}</h3>}
       {!open && categories.length > 0 && <div className="register-category-filter" role="group" aria-label={en ? 'Kind of patient' : 'Είδος ασθενούς'}>
-        {[{ value: 'all', label: en ? 'All' : 'Όλοι' }, ...categories.map(option => { const marker = caseMarker(register, { category: option.value }, language); return { value: option.value, label: marker?.label || textOf(option, language), Icon: marker?.Icon } })].map(({ value, label, Icon }) => <button key={value} type="button" className={`is-${value}${category === value ? ' is-selected' : ''}`} aria-pressed={category === value} onClick={() => setCategory(value)}>{Icon && <Icon size={15} aria-hidden="true" />}{label}</button>)}
+        {[{ value: 'all', label: en ? 'All' : 'Όλοι' }, ...categories.map((option: AnyRecord) => { const marker = caseMarker(register, { category: option.value }, language); return { value: option.value, label: marker?.label || textOf(option, language), Icon: marker?.Icon } })].map(({ value, label, Icon }) => <button key={value} type="button" className={`is-${value}${category === value ? ' is-selected' : ''}`} aria-pressed={category === value} onClick={() => setCategory(value)}>{Icon && <Icon size={15} aria-hidden="true" />}{label}</button>)}
       </div>}
       {!open && report.length > 0 && <KpiFigures label={en ? 'Indicators by status' : 'Δείκτες ανά κατάσταση'} figures={figures} />}
       {open && <IndicatorDetail basis={mixedBasis ? basisOf(register, open.indicator, language) : ''} register={register} entries={entries} onPickMonth={value => { setKind('month'); setMonth(value) }} row={open} period={period} language={language} order={ordered} onOpen={setOpenId} onClose={() => setOpenId(null)} onDefineTarget={onDefineTarget} />}
@@ -137,9 +146,10 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
 }
 
 // A unit short enough to sit beside the value («/1.000 ημ. καθετήρα»).
-const shortUnit = unit => String(unit || '').replace(/ημέρες/g, 'ημ.').replace(/ημέρα/g, 'ημ.').replace(/\bdays\b/g, 'd')
+const shortUnit = (unit: unknown) => String(unit || '').replace(/ημέρες/g, 'ημ.').replace(/ημέρα/g, 'ημ.').replace(/\bdays\b/g, 'd')
 
-function Change({ now, before, indicator, language }) {
+interface ChangeProps { now: number | null, before: number | null, indicator: AnyRecord, language: string }
+function Change({ now, before, indicator, language }: ChangeProps) {
   const en = language === 'en'
   if (now == null || before == null) return <span className="register-change">—</span>
   const diff = Number((now - before).toFixed(2))
@@ -149,13 +159,14 @@ function Change({ now, before, indicator, language }) {
 }
 
 // The twelve months up to the end of the period, for the card's sparkline.
-function lastTwelveMonths(register, indicator, entries, period) {
+function lastTwelveMonths(register: Register, indicator: AnyRecord, entries: AnyRecord[], period: Period) {
   const year = Number(period.to.slice(0, 4)), month = Number(period.to.slice(5, 7))
   const months = [...monthlySeries(register, indicator, entries, year - 1), ...monthlySeries(register, indicator, entries, year)]
   return months.slice(month, month + 12).map(point => point.value)
 }
 
-function IndicatorRow({ basis, row, register, entries, period, language, active, onOpen, onDefineTarget }) {
+interface IndicatorRowProps { basis: string, row: ReportRow, register: Register, entries: AnyRecord[], period: Period, language: string, active: boolean, onOpen: () => void, onDefineTarget?: ((indicatorId: string) => void) | null }
+function IndicatorRow({ basis, row, register, entries, period, language, active, onOpen, onDefineTarget }: IndicatorRowProps) {
   const en = language === 'en'
   const { indicator, current, previous } = row
   const target = indicator.target === '' || indicator.target == null ? null : Number(indicator.target)
@@ -164,31 +175,32 @@ function IndicatorRow({ basis, row, register, entries, period, language, active,
   const previousLabel = periodLabel(shiftPeriod(period, -periodLength(period)), language)
   const trend = useMemo(() => lastTwelveMonths(register, indicator, entries, period), [register, indicator, entries, period.key]) // eslint-disable-line react-hooks/exhaustive-deps
   // How the indicator is counted reads on hover, so the row stays short.
-  const rule = register.kind === 'case' && indicator.filters?.length > 0 ? indicator.filters.map(filter => filterText(register, filter, language)).join(' · ') : ''
+  const rule = register.kind === 'case' && indicator.filters?.length > 0 ? indicator.filters.map((filter: AnyRecord) => filterText(register, filter, language)).join(' · ') : ''
   const ratio = (indicator.aggregation === 'percent' || indicator.aggregation === 'rate' || indicator.aggregation === 'smr') && current.numerator != null && current.denominator != null ? `${current.numerator} / ${current.denominator}${indicator.aggregation === 'rate' ? (en ? ' days' : ' ημ.') : ''}` : ''
   return <tr className={`registry-row-clickable register-indicator-row is-${current.status} ${active ? 'active' : ''}`} onClick={onOpen} tabIndex={0} aria-expanded={active} title={rule || undefined} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen() } }}>
     <td><strong>{textOf(indicator, language)}</strong>{basis && <small className="register-indicator-basis">{basis}</small>}{current.small && <small className="register-indicator-small"><AlertTriangle size={12} />{en ? 'Few cases: read with caution' : 'Λίγα περιστατικά: με επιφύλαξη'}</small>}</td>
     <td className="register-num register-indicator-value"><strong>{current.notRecorded ? <span className="register-not-recorded" title={en ? 'The register has no entry that records this.' : 'Το μητρώο δεν έχει καμία εγγραφή που να το καταγράφει.'}>{en ? 'Not recorded' : 'Δεν καταγράφεται'}</span> : formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <small> {shortUnit(unit)}</small>}</strong>{ratio && <small>{ratio}</small>}</td>
     <td>{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}{target != null && <small>{indicator.direction === 'higher' ? '≥' : '≤'} {formatIndicatorValue(target, { ...indicator, unit: shortUnit(indicator.unit) }, language)}</small>}{target == null && (onDefineTarget ? <button type="button" className="register-define-target" onClick={event => { event.stopPropagation(); onDefineTarget(indicator.id) }}><Target size={12} />{en ? 'Set a target' : 'Ορισμός στόχου'}</button> : current.status === 'context' && <span className="register-muted">—</span>)}</td>
     <td><Sparkline width={110} height={28} points={trend} target={target} label={en ? `${textOf(indicator, language)}: the last 12 months` : `${textOf(indicator, language)}: οι τελευταίοι 12 μήνες`} /></td>
-    <td className="register-change-cell">{[[previousLabel, previous]].map(([label, other]) => <span key={label}><small>{label}:</small><b>{formatIndicatorValue(other.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}</b><Change now={current.value} before={other.value} indicator={indicator} language={language} /></span>)}</td>
+    <td className="register-change-cell">{([[previousLabel, previous]] as [string, IndicatorResult][]).map(([label, other]) => <span key={label}><small>{label}:</small><b>{formatIndicatorValue(other.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}</b><Change now={current.value} before={other.value} indicator={indicator} language={language} /></span>)}</td>
   </tr>
 }
 
-function IndicatorDetail({ basis, register, entries, onPickMonth, row, period, language, order, onOpen, onClose, onDefineTarget }) {
+interface IndicatorDetailProps { basis: string, register: Register, entries: AnyRecord[], onPickMonth: (month: string) => void, row: ReportRow, period: Period, language: string, order: ReportRow[], onOpen: (id: string) => void, onClose: () => void, onDefineTarget?: ((indicatorId: string) => void) | null }
+function IndicatorDetail({ basis, register, entries, onPickMonth, row, period, language, order, onOpen, onClose, onDefineTarget }: IndicatorDetailProps) {
   const en = language === 'en'
   const { indicator, current, previous, lastYear } = row
   const year = period.from.slice(0, 4)
   const series = monthlySeries(register, indicator, entries, year)
-  const values = series.map(point => point.value).filter(value => value != null)
+  const values = series.map(point => point.value).filter((value): value is number => value != null)
   const target = indicator.target === '' || indicator.target == null ? null : Number(indicator.target)
   const top = Math.max(1, ...values, target ?? 0)
-  const short = month => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(Number(year), month - 1, 1)))
+  const short = (month: number) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(Number(year), month - 1, 1)))
   // The breakdowns: a case register's list fields; a sheet's rows and measures (per procedure, per shift).
-  const splits = register.kind === 'case'
-    ? (register.settings?.breakdowns || []).map(key => { const field = register.fields.find(item => item.key === key); return field && { key, label: `${en ? 'By' : 'Ανά'} ${textOf(field, language).toLowerCase()}`, rows: breakdown(register, indicator, entries, period, key) } }).filter(split => split && split.rows.length)
+  const splits: Split[] = register.kind === 'case'
+    ? (register.settings?.breakdowns || []).map((key: string) => { const field = register.fields.find(item => item.key === key); return field && { key, label: `${en ? 'By' : 'Ανά'} ${textOf(field, language).toLowerCase()}`, rows: breakdown(register, indicator, entries, period, key) } }).filter(Boolean).filter(split => split.rows.length)
     : indicator.aggregation === 'count' ? [] : sheetBreakdowns(register, indicator, entries, period).map(split => ({ ...split, label: en ? split.labelEn : split.label }))
-  const [splitKey, setSplitKey] = useState(null)
+  const [splitKey, setSplitKey] = useState<string | null>(null)
   const split = splits.find(item => item.key === splitKey) || splits[0] || null
   const index = order.findIndex(item => item.indicator.id === indicator.id)
   const unit = en ? indicator.unitEn || indicator.unit : indicator.unit
@@ -229,7 +241,8 @@ function IndicatorDetail({ basis, register, entries, onPickMonth, row, period, l
 }
 
 // How much of the period the sheet has: a value over few days is read with that in mind.
-function SheetCoverage({ entries, period, dailyFrom, language }) {
+interface SheetCoverageProps { entries: AnyRecord[], period: Period, dailyFrom: string, language: string }
+function SheetCoverage({ entries, period, dailyFrom, language }: SheetCoverageProps) {
   const en = language === 'en'
   const coverage = sheetCoverage(entries, period, hospitalToday(), dailyFrom)
   if (!coverage) return null

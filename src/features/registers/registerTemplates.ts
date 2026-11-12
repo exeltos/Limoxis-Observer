@@ -1,4 +1,6 @@
 import { HOSPITAL_TEMPLATES } from './registerTemplatesHospital'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Register } from './registerTypes'
 
 // Ready-made registers from the FileMaker review (docs/quality/
 // DEPARTMENT_REGISTERS_FILEMAKER.md), with its corrections: weight in grams,
@@ -8,7 +10,7 @@ import { HOSPITAL_TEMPLATES } from './registerTemplatesHospital'
 
 // An option of a list; `match` are the beginnings of the FileMaker values it
 // takes on import (ΔΙΑΚΟΜΙΔΗ ΣΤΟ ΠΓΝΛ → transfer to another hospital).
-const o = (value, label, labelEn, match) => (match ? { value, label, labelEn, match } : { value, label, labelEn })
+const o = (value: string, label: string, labelEn: string, match?: string[]) => (match ? { value, label, labelEn, match } : { value, label, labelEn })
 
 const NICU_FIELDS = [
   // Admission
@@ -78,9 +80,9 @@ const NICU_INDICATORS = [
   { id: 'no_breast_milk', title: '% χωρίς μητρικό γάλα', titleEn: '% without breast milk', aggregation: 'percent', filters: [{ field: 'breast_milk', op: 'eq', value: 'none' }], denominatorFilters: [{ field: 'breast_milk', op: 'filled' }], dateField: 'discharge_date', unit: '%', direction: 'lower' },
 ]
 
-const row = (key, label, labelEn, help = '', helpEn = '', aliases) => ({ key, label, labelEn, ...(help ? { help, helpEn } : {}), ...(aliases ? { aliases } : {}) })
+const row = (key: string, label: string, labelEn: string, help = '', helpEn = '', aliases?: string[]) => ({ key, label, labelEn, ...(help ? { help, helpEn } : {}), ...(aliases ? { aliases } : {}) })
 
-export const REGISTER_TEMPLATES = [
+export const REGISTER_TEMPLATES: AnyRecord[] = [
   {
     key: 'nicu',
     kind: 'case',
@@ -183,11 +185,11 @@ export const REGISTER_TEMPLATES = [
   },
 ]
 
-export const templateByKey = key => REGISTER_TEMPLATES.find(template => template.key === key)
+export const templateByKey = (key: string) => REGISTER_TEMPLATES.find(template => template.key === key)
 
 // A new register from a template: a deep copy so editing it never touches the template.
-export function registerFromTemplate(key, { department = '', departmentId = '', departmentEn = '' } = {}) {
-  const template = templateByKey(key) || templateByKey('blankCase')
+export function registerFromTemplate(key: string, { department = '', departmentId = '', departmentEn = '' }: { department?: string, departmentId?: string, departmentEn?: string } = {}): Register {
+  const template = templateByKey(key) || templateByKey('blankCase')!
   const copy = structuredClone(template)
   return {
     code: '',
