@@ -4,23 +4,26 @@ import { createPortal } from 'react-dom'
 import { Button } from './Button'
 import { useLanguage } from '../core/i18n/LanguageContext'
 
-function fieldLabel(textarea,en=false){
+function fieldLabel(textarea: HTMLTextAreaElement,en=false){
   const parent=textarea.closest('label')
   const label=parent?.querySelector(':scope > span')?.textContent?.trim()
   return label?.replace(/\s*\*\s*$/,'') || textarea.getAttribute('aria-label') || textarea.getAttribute('placeholder') || (en?'Large text field':'Μεγάλο πεδίο κειμένου')
 }
 
+// The textarea being edited in the large editor.
+interface ActiveField { textarea: HTMLTextAreaElement; label: string; readOnly: boolean }
+
 export function GlobalTextareaExpander(){
   const {language}=useLanguage();const en=language==='en'
-  const [active,setActive]=useState(null)
+  const [active,setActive]=useState<ActiveField|null>(null)
   const [value,setValue]=useState('')
-  const activeRef=useRef(null)
+  const activeRef=useRef<ActiveField|null>(null)
 
   useEffect(()=>{ activeRef.current=active },[active])
 
   useEffect(()=>{
-    const listeners=new Map()
-    const positionButton=(textarea,button)=>{
+    const listeners=new Map<HTMLTextAreaElement,{button: HTMLButtonElement, open: (event: Event)=>void}>()
+    const positionButton=(textarea: HTMLTextAreaElement,button: HTMLButtonElement)=>{
       const parent=textarea.parentElement
       if(!parent)return
       const parentRect=parent.getBoundingClientRect()
@@ -28,7 +31,7 @@ export function GlobalTextareaExpander(){
       button.style.top=`${Math.max(3,rect.top-parentRect.top+6)}px`
       button.style.right=`${Math.max(5,parentRect.right-rect.right+6)}px`
     }
-    const enhance=(textarea)=>{
+    const enhance=(textarea: Element)=>{
       if(!(textarea instanceof HTMLTextAreaElement)||textarea.dataset.limoxisExpandable==='true'||textarea.dataset.limoxisNoExpand==='true'||textarea.closest('.global-textarea-editor'))return
       const parent=textarea.parentElement
       if(!parent)return
@@ -41,7 +44,7 @@ export function GlobalTextareaExpander(){
       button.title=en?'Expand field':'Μεγέθυνση πεδίου'
       button.setAttribute('aria-label',en?`Expand: ${fieldLabel(textarea,true)}`:`Μεγέθυνση: ${fieldLabel(textarea,false)}`)
       button.innerHTML='<span aria-hidden="true">⛶</span>'
-      const open=(event)=>{
+      const open=(event: Event)=>{
         event.preventDefault();event.stopPropagation()
         setActive({textarea,label:fieldLabel(textarea,en),readOnly:textarea.readOnly||textarea.disabled})
         setValue(textarea.value||'')
@@ -72,7 +75,7 @@ export function GlobalTextareaExpander(){
 
   useEffect(()=>{
     if(!active)return
-    const onKey=(e)=>{if(e.key==='Escape')setActive(null)}
+    const onKey=(e: KeyboardEvent)=>{if(e.key==='Escape')setActive(null)}
     window.addEventListener('keydown',onKey)
     return ()=>window.removeEventListener('keydown',onKey)
   },[active])

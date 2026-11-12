@@ -1,4 +1,10 @@
+import type { ReactNode } from 'react'
 import { useTabStrip } from './useTabStrip'
+import type { IconType } from './types'
+
+export interface ModuleTab { id: string; label: ReactNode; icon?: IconType; disabled?: boolean; count?: number | null }
+
+interface ModuleTabsProps { tabs?: ModuleTab[]; activeId?: string; onChange?: (id: string) => void; className?: string; ariaLabel?: string }
 
 export function ModuleTabs({
   tabs=[],
@@ -6,7 +12,7 @@ export function ModuleTabs({
   onChange,
   className='',
   ariaLabel,
-}){
+}: ModuleTabsProps){
   const stripRef=useTabStrip(activeId)
   return <nav ref={stripRef} className={`tabs canonical-module-tabs ${className}`.trim()} role="tablist" aria-label={ariaLabel}>
     {tabs.map(tab=>{

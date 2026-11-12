@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Field } from './Field'
 import { FormSubmit, useFormValidation } from './FormValidation'
 import { ObserverDialog } from './ObserverDialog'
@@ -6,6 +6,17 @@ import { useLanguage } from '../core/i18n/LanguageContext'
 
 // A change that needs a written reason (archive, void…): the shared dialog,
 // closed only by its ×, with the confirm action in the footer.
+interface GovernedReasonDialogProps {
+  open?: boolean
+  title?: string
+  description?: ReactNode
+  label?: string
+  confirmLabel?: ReactNode
+  danger?: boolean
+  onCancel?: () => void
+  onConfirm?: (reason: string) => void
+}
+
 export function GovernedReasonDialog({
   open,
   title,
@@ -15,7 +26,7 @@ export function GovernedReasonDialog({
   danger=false,
   onCancel,
   onConfirm,
-}){
+}: GovernedReasonDialogProps){
   const {language}=useLanguage();const en=language==='en'
   const resolvedTitle=title||(en?'Reason for change':'Αιτιολόγηση αλλαγής')
   const resolvedDescription=description||(en?'The change will be recorded in the record history.':'Η αλλαγή θα καταγραφεί στο ιστορικό της εγγραφής.')

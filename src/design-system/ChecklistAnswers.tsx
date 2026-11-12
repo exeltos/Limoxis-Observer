@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { CheckCheck } from 'lucide-react'
 import { Button } from './Button'
 import { ModeSwitch } from './ModeSwitch'
@@ -9,7 +10,28 @@ import './ChecklistAnswers.css'
 // touch targets, a note on a No, «Rest: Yes» and the compliance bar. Used by a
 // control entry and by an audit. rows: [{id,item,itemEn,required,answer,note}].
 // rowExtra(row): optional content under an item (e.g. the audit finding a «No» became).
-export function ChecklistAnswers({ rows = [], onRowChange, onRowsChange, language = 'el', title, disabled = false, noteLabel, rowExtra }) {
+export interface ChecklistRow {
+  id?: string | number
+  item: string
+  itemEn?: string
+  required?: boolean
+  // 'yes' | 'no' | 'na', or empty while unanswered
+  answer?: string | null
+  note?: string | null
+}
+
+interface ChecklistAnswersProps {
+  rows?: ChecklistRow[]
+  onRowChange?: (index: number, field: 'note' | 'answer', value: string) => void
+  onRowsChange?: (rows: ChecklistRow[]) => void
+  language?: string
+  title?: ReactNode
+  disabled?: boolean
+  noteLabel?: string
+  rowExtra?: (row: ChecklistRow) => ReactNode
+}
+
+export function ChecklistAnswers({ rows = [], onRowChange, onRowsChange, language = 'el', title, disabled = false, noteLabel, rowExtra }: ChecklistAnswersProps) {
   const en = language === 'en'
   const score = checklistScore(rows)
   return (

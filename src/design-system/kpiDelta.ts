@@ -1,7 +1,17 @@
 // The change of a key figure against the previous period, for KpiCard's `delta`:
 // rates in percentage points (`points`), totals by their relative change (`percent`),
 // better or worse by the direction that is good for it (`lowerIsBetter`).
-export function kpiDelta(now, before, { lowerIsBetter = false, points = false, percent = false, language = 'el', title } = {}) {
+export interface KpiDelta {
+  text: string
+  trend: 'up' | 'down' | 'flat'
+  // true better, false worse, null unchanged
+  good: boolean | null
+  title?: string
+}
+
+interface KpiDeltaOptions { lowerIsBetter?: boolean; points?: boolean; percent?: boolean; language?: string; title?: string }
+
+export function kpiDelta(now: number | null | undefined, before: number | null | undefined, { lowerIsBetter = false, points = false, percent = false, language = 'el', title }: KpiDeltaOptions = {}): KpiDelta | null {
   if (now == null || before == null) return null
   const en = language === 'en'
   const diff = Math.round((now - before) * 10) / 10

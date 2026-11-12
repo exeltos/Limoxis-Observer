@@ -1,4 +1,4 @@
-import { createContext,useContext,useEffect,useRef } from 'react'
+import { createContext,useContext,useEffect,useRef,type KeyboardEvent,type ReactNode,type SyntheticEvent } from 'react'
 import { ArrowLeft,X } from 'lucide-react'
 import { IconButton } from './IconButton'
 import { SaveButton } from './SaveButton'
@@ -8,10 +8,34 @@ import { useOptionalFeedback } from '../core/feedback/FeedbackContext'
 
 // A form shown on the page instead of over it (the surveillance sheet, owner 8/11/2026): inside this provider an
 // ObserverDialog renders its title, fields and Save in place, without the backdrop or the close button.
-export const InlineDialogContext=createContext(false)
+export interface InlineDialogEntry {
+  // true once the user has changed something in the form
+  dirty: () => boolean
+  // saves the form; false when a required field is missing
+  save: () => boolean
+}
+export interface InlineDialogHolder { register?: (entry: InlineDialogEntry) => void; unregister?: (entry: InlineDialogEntry) => void }
+export const InlineDialogContext=createContext<boolean | InlineDialogHolder>(false)
 
 // Search and filter boxes inside a dialog are not data the user would lose.
-const isSearchField=el=>el?.type==='search'||/search|αναζήτ/i.test(`${el?.className||''} ${el?.placeholder||''}`)
+const isSearchField=(el: HTMLInputElement | null)=>el?.type==='search'||/search|αναζήτ/i.test(`${el?.className||''} ${el?.placeholder||''}`)
+
+interface ObserverDialogProps {
+  eyebrow?: ReactNode
+  title?: string
+  subtitle?: ReactNode
+  onClose?: () => void
+  children?: ReactNode
+  footer?: ReactNode
+  headerActions?: ReactNode
+  // small / medium / large (= compact / standard / wide), or workspace
+  width?: string
+  // 'modal' or 'workspace'
+  presentation?: string
+  fixedHeight?: boolean
+  className?: string
+  closeOnBackdrop?: boolean
+}
 
 export function ObserverDialog({
   eyebrow,
@@ -30,17 +54,17 @@ export function ObserverDialog({
   className='',
   // A click outside the window closes it, unless the card is to be read at leisure (the announcement): then only × or Escape.
   closeOnBackdrop=true,
-}){
+}: ObserverDialogProps){
   const {language}=useLanguage();const en=language==='en'
   const inline=useContext(InlineDialogContext)
   // Sizes: small / medium / large (= compact / standard / wide), or workspace.
   // A dialog is as tall as its content up to the screen; the header and the
   // footer with its buttons stay in view and only the body scrolls.
-  const widthAliases={small:'compact',medium:'standard',large:'wide'}
+  const widthAliases: Record<string, string>={small:'compact',medium:'standard',large:'wide'}
   const allowedWidths=new Set(['compact','standard','wide','workspace'])
   const allowedPresentations=new Set(['modal','workspace'])
   const dialogWidth=allowedWidths.has(widthAliases[width]||width)?(widthAliases[width]||width):'standard'
-  const sectionRef=useRef(null)
+  const sectionRef=useRef<HTMLElement>(null)
   useEffect(()=>{
     const node=sectionRef.current
     if(!fixedHeight||!node||typeof ResizeObserver==='undefined')return undefined
@@ -56,19 +80,19 @@ export function ObserverDialog({
   // Save buttons call onClose themselves and are not affected.
   const confirm=useOptionalFeedback()?.confirm
   const dirty=useRef(false)
-  const markDirty=event=>{if(!isSearchField(event.target))dirty.current=true}
+  const markDirty=(event: SyntheticEvent)=>{if(!isSearchField(event.target as HTMLInputElement))dirty.current=true}
   // A pick in a list, a Yes/No switch or a chip changes the form without an input event.
-  const markPicked=event=>{if(event.target?.closest?.('[role="option"],[role="radio"],[role="checkbox"],[aria-pressed]'))dirty.current=true}
+  const markPicked=(event: SyntheticEvent)=>{if((event.target as Element | null)?.closest?.('[role="option"],[role="radio"],[role="checkbox"],[aria-pressed]'))dirty.current=true}
   // On the page (inline) the form registers with its holder, which saves it when the user moves on.
-  const footerRef=useRef(null)
+  const footerRef=useRef<HTMLElement>(null)
   useEffect(()=>{
     if(!inline||typeof inline!=='object')return undefined
-    const entry={
+    const entry: InlineDialogEntry={
       dirty:()=>dirty.current,
       // False when a required field is missing: Save then shows what is missing and the user stays.
       save:()=>{
         const footerNode=footerRef.current
-        const button=footerNode?.querySelector('button.button-primary,button.button-danger')||[...(footerNode?.querySelectorAll('button')||[])].pop()
+        const button=footerNode?.querySelector<HTMLButtonElement>('button.button-primary,button.button-danger')||[...(footerNode?.querySelectorAll('button')||[])].pop()
         const blocked=Boolean(footerNode?.querySelector('.form-missing-summary'))||Boolean(button?.disabled)
         button?.click()
         if(blocked)return false
@@ -80,7 +104,7 @@ export function ObserverDialog({
     return()=>inline.unregister?.(entry)
   },[inline])
   useEffect(()=>{
-    const warn=event=>{if(dirty.current){event.preventDefault();event.returnValue=''}}
+    const warn=(event: BeforeUnloadEvent)=>{if(dirty.current){event.preventDefault();event.returnValue=''}}
     window.addEventListener('beforeunload',warn)
     return()=>window.removeEventListener('beforeunload',warn)
   },[])
@@ -90,7 +114,7 @@ export function ObserverDialog({
   }
   // Escape closes the window like ×, with the same «discard changes?» question. A list or menu open inside
   // it closes first (they stop the key), and only the window that holds the focus answers.
-  const closeOnEscape=event=>{
+  const closeOnEscape=(event: KeyboardEvent)=>{
     if(event.key!=='Escape'||event.defaultPrevented)return
     event.preventDefault()
     event.stopPropagation()
@@ -104,7 +128,7 @@ export function ObserverDialog({
   if(inline)return <section ref={sectionRef} role="region" className={`observer-dialog-inline ${className}`.trim()} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty} onClickCapture={markPicked}>
     <header><div>{eyebrow&&<span className="eyebrow">{eyebrow}</span>}<h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{headerActions&&<div className="observer-dialog-header-actions">{headerActions}</div>}</header>
     <div className="observer-dialog-body">{children}</div>
-    {(footer||onClose)&&<footer ref={footerRef} onClickCapture={event=>{if(event.target?.closest?.('button')&&!event.target.closest('.observer-dialog-inline-cancel')&&!footerRef.current?.querySelector('.form-missing-summary'))dirty.current=false}}>
+    {(footer||onClose)&&<footer ref={footerRef} onClickCapture={event=>{const target=event.target as Element;if(target?.closest?.('button')&&!target.closest('.observer-dialog-inline-cancel')&&!footerRef.current?.querySelector('.form-missing-summary'))dirty.current=false}}>
       {onClose&&<Button variant="secondary" className="observer-dialog-inline-cancel" onClick={requestClose}>{en?'Close':'Κλείσιμο'}</Button>}
       {footer}
     </footer>}
@@ -131,7 +155,18 @@ export function ObserverDialog({
 // A dialog closes one way: the header × (or Back in a workspace). The footer
 // carries only what does something; `onCancel` / `showCancel` are accepted for
 // older callers and render nothing.
-export function DialogActions({onSave,saveLabel,disabled=false,children}){
+interface DialogActionsProps {
+  onSave?: () => void
+  saveLabel?: ReactNode
+  disabled?: boolean
+  children?: ReactNode
+  // Accepted for older callers; nothing is drawn for them (the dialog closes from its ×).
+  onCancel?: () => void
+  showCancel?: boolean
+  cancelLabel?: ReactNode
+}
+
+export function DialogActions({onSave,saveLabel,disabled=false,children}: DialogActionsProps){
   const {language}=useLanguage();const en=language==='en';const resolvedSaveLabel=saveLabel||(en?'Save':'Αποθήκευση')
   return <>
     {children}

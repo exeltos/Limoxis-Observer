@@ -36,6 +36,10 @@ export function removeSessionValue(key) {
   }
 }
 
+/**
+ * @param {string} key
+ * @param {unknown} [fallback]
+ */
 export function readSessionJson(key, fallback = null) {
   const raw = readSessionValue(key)
   if (raw == null) return fallback

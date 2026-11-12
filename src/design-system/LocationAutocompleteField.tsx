@@ -1,6 +1,16 @@
-import { useId } from 'react'
+import { useId, type ReactNode } from 'react'
 
-export function LocationAutocompleteField({label,value,onChange,options=[],disabled=false,required=false,className=''}){
+interface LocationAutocompleteFieldProps {
+  label?: ReactNode
+  value?: string | null
+  onChange: (value: string) => void
+  options?: string[]
+  disabled?: boolean
+  required?: boolean
+  className?: string
+}
+
+export function LocationAutocompleteField({label,value,onChange,options=[],disabled=false,required=false,className=''}: LocationAutocompleteFieldProps){
   const id=useId().replace(/:/g,'')
   return <label className={`field ${className}`.trim()}>
     <span>{label}{required?' *':''}</span>

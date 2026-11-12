@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 
 const MONTHS={
@@ -7,13 +8,24 @@ const MONTHS={
 
 // A reporting month (value "YYYY-MM") as month + year selects in the user's
 // language, instead of the browser's month input (English on most systems).
-export function MonthField({label,value,onChange,required=false,disabled=false,years=6,className=''}){
+interface MonthFieldProps {
+  label?: ReactNode
+  // "YYYY-MM", or '' when no month is chosen.
+  value?: string | null
+  onChange?: (value: string) => void
+  required?: boolean
+  disabled?: boolean
+  years?: number
+  className?: string
+}
+
+export function MonthField({label,value,onChange,required=false,disabled=false,years=6,className=''}: MonthFieldProps){
   const {language}=useLanguage();const en=language==='en'
   const [year,month]=String(value||'').slice(0,7).split('-')
   const thisYear=new Date().getFullYear()
   const yearOptions=Array.from({length:years},(_,i)=>String(thisYear-i))
   if(year&&!yearOptions.includes(year))yearOptions.push(year)
-  const emit=(nextYear,nextMonth)=>onChange?.(nextYear&&nextMonth?`${nextYear}-${nextMonth}`:'')
+  const emit=(nextYear: string,nextMonth: string)=>onChange?.(nextYear&&nextMonth?`${nextYear}-${nextMonth}`:'')
   return <div className={`month-field field ${className}`.trim()}>
     {label&&<span className="field-label lo-field-label">{label}{required?' *':''}</span>}
     <div className="month-field-controls">

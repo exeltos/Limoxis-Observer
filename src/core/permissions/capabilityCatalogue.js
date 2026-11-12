@@ -1,3 +1,4 @@
+// @ts-check
 export const CAPABILITIES = Object.freeze({
   VIEW_PLATFORM: 'view_platform', VIEW_DASHBOARD: 'view_dashboard', VIEW_MY_DEPARTMENT: 'view_my_department', VIEW_MY_PROFILE: 'view_my_profile',
   VIEW_SURVEILLANCE: 'view_surveillance', VIEW_LAB: 'view_lab', VIEW_PREVENTION: 'view_prevention', VIEW_RECORDS: 'view_records', VIEW_QUALITY: 'view_quality', VIEW_CONTROLS: 'view_controls', VIEW_TRAINING: 'view_training', VIEW_COMMITTEES: 'view_committees', VIEW_DOCUMENTS: 'view_documents', VIEW_PATIENTS: 'view_patients', VIEW_STAFF: 'view_staff', VIEW_LIRA: 'view_lira', VIEW_PHARMACY: 'view_pharmacy', VIEW_OCCUPATIONAL_HEALTH: 'view_occupational_health', VIEW_INDICATORS: 'view_indicators', VIEW_ANALYSIS: 'view_analysis',

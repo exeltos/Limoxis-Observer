@@ -1,12 +1,13 @@
+import type { ReactNode } from 'react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import './DueDate.css'
 import { hospitalDate } from '../core/dates/hospitalDate'
 
 const DAY = 86400000
-const dayOf = value => { const text = String(value || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(text) ? Date.parse(`${text}T00:00:00Z`) : NaN }
+const dayOf = (value: unknown) => { const text = String(value || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(text) ? Date.parse(`${text}T00:00:00Z`) : NaN }
 
 // Days a due date is past (0 when not overdue or unknown). Compared by calendar day.
-export function daysOverdue(value, today = new Date()) {
+export function daysOverdue(value: unknown, today: Date | string | number = new Date()) {
   const due = dayOf(value)
   if (!Number.isFinite(due)) return 0
   const now = Date.parse(`${hospitalDate(today)}T00:00:00Z`)
@@ -14,7 +15,9 @@ export function daysOverdue(value, today = new Date()) {
 }
 
 // A due date that turns red, with "N days overdue", once it has passed.
-export function DueDate({ value, format, today }) {
+interface DueDateProps { value?: string | null; format?: (value: string) => ReactNode; today?: Date }
+
+export function DueDate({ value, format, today }: DueDateProps) {
   const { language } = useLanguage()
   if (!value) return '—'
   const text = format ? format(value) : value

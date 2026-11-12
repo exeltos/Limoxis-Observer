@@ -1,10 +1,11 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'
 import { FieldLabelText, FieldMessage } from './FormValidation'
+import type { SelectOption, ValidatedFieldProps } from './types'
 import './SearchableSelect.css'
 import './MultiSelect.css'
 
-const normalize = value =>
+const normalize = (value: unknown) =>
   String(value || '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -17,7 +18,24 @@ const normalize = value =>
 // tags: the closed field shows each chosen value as a compact tag instead of a
 // comma list / count. search={false} drops the search box for short lists.
 // options: [{ value, label }]
-export function MultiSelect({
+interface MultiSelectProps<V extends string | number> extends ValidatedFieldProps {
+  label?: string
+  options?: Array<SelectOption<V>>
+  selected?: V[]
+  onChange?: (values: V[]) => void
+  placeholder?: string
+  searchPlaceholder?: string
+  emptyLabel?: string
+  selectAllLabel?: string
+  clearAllLabel?: string
+  countLabel?: (count: number) => string
+  disabled?: boolean
+  className?: string
+  tags?: boolean
+  search?: boolean
+}
+
+export function MultiSelect<V extends string | number = string>({
   label,
   options = [],
   selected = [],
@@ -36,15 +54,15 @@ export function MultiSelect({
   error = '',
   hint = '',
   fieldKey,
-}) {
+}: MultiSelectProps<V>) {
   const baseId = useId().replace(/:/g, '')
   const buttonId = `${baseId}-button`,
     listId = `${baseId}-list`
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState(''),
-    [place, setPlace] = useState(null)
-  const rootRef = useRef(null),
-    buttonRef = useRef(null)
+    [place, setPlace] = useState<CSSProperties | null>(null)
+  const rootRef = useRef<HTMLDivElement>(null),
+    buttonRef = useRef<HTMLButtonElement>(null)
   const chosen = useMemo(() => new Set(selected.map(String)), [selected])
   const matches = useMemo(() => {
     const needle = normalize(query)
@@ -84,11 +102,11 @@ export function MultiSelect({
 
   useEffect(() => {
     if (!open) return undefined
-    const onPointer = event => {
-      if (!rootRef.current?.contains(event.target)) setOpen(false)
+    const onPointer = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
     }
-    const onMove = event => {
-      if (!rootRef.current?.contains(event.target)) measure()
+    const onMove = (event: Event) => {
+      if (!rootRef.current?.contains(event.target as Node)) measure()
     }
     document.addEventListener('mousedown', onPointer)
     window.addEventListener('scroll', onMove, true)
@@ -100,7 +118,7 @@ export function MultiSelect({
     }
   }, [open])
 
-  function toggle(value) {
+  function toggle(value: V) {
     const key = String(value)
     onChange?.(
       chosen.has(key) ? selected.filter(item => String(item) !== key) : [...selected, value],

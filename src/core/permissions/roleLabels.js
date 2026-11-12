@@ -1,3 +1,4 @@
+// @ts-check
 export const SYSTEM_ROLE_KEYS=Object.freeze([
   'hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','laboratory','committee_secretariat','hr_office','pharmacy','occupational_physician','doctor_reviewer','quality_manager','hospital_director','division_director','link_nurse','staff_user',
 ])

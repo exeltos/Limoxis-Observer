@@ -1,3 +1,4 @@
+// @ts-check
 // Shared JSDoc types for the permission model (checked by `npm run typecheck:strict`).
 // The capability and role ids are the values of CAPABILITIES and ROLES.
 

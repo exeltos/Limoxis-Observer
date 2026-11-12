@@ -1,10 +1,20 @@
 import { Check } from 'lucide-react'
 import { FieldLabelText, FieldMessage } from './FormValidation'
+import type { ReactNode } from 'react'
+import type { ValidatedFieldProps } from './types'
 import './ChoiceChips.css'
 
 // Several options that can be switched on together (screening types, requested
 // materials): toggle chips with a tick, instead of checkboxes in pills.
-export function ChoiceChips({label,options=[],selected=[],onToggle,className='',required=false,error='',hint='',fieldKey}){
+interface ChoiceChipsProps extends ValidatedFieldProps {
+  label?: string
+  options?: Array<{ value: string; label: ReactNode }>
+  selected?: string[]
+  onToggle?: (value: string) => void
+  className?: string
+}
+
+export function ChoiceChips({label,options=[],selected=[],onToggle,className='',required=false,error='',hint='',fieldKey}: ChoiceChipsProps){
   return <div className={`lo-choice-chips ${className}`.trim()} role="group" aria-label={label} data-field-key={fieldKey} data-invalid={error?'true':undefined}>
     {label&&<span className="lo-field-label"><FieldLabelText label={label} required={required}/></span>}
     <div className="lo-choice-chips-list">

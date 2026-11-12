@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { CalendarDays } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { FieldLabelText, FieldMessage } from './FormValidation'
+import type { ValidatedFieldProps } from './types'
 
-function isoToDisplay(value){
+function isoToDisplay(value: unknown){
   if(!value)return ''
   const m=String(value).slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/)
   return m?`${m[3]}/${m[2]}/${m[1]}`:String(value)
 }
-function displayToIso(value){
+function displayToIso(value: unknown){
   const text=String(value||'').trim()
   if(!text)return ''
   let m=text.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/)
@@ -21,10 +22,20 @@ function displayToIso(value){
   return m?text:''
 }
 
-export function ManualDateField({label,value,onChange,optional=false,required=false,error='',hint='',fieldKey,disabled=false,className=''}){
+interface ManualDateFieldProps extends ValidatedFieldProps {
+  label?: ReactNode
+  // 'YYYY-MM-DD', or ''.
+  value?: string | null
+  onChange: (value: string) => void
+  optional?: boolean
+  disabled?: boolean
+  className?: string
+}
+
+export function ManualDateField({label,value,onChange,optional=false,required=false,error='',hint='',fieldKey,disabled=false,className=''}: ManualDateFieldProps){
   const {t,language}=useLanguage();const en=language==='en'
   const [text,setText]=useState(()=>isoToDisplay(value))
-  const pickerRef=useRef(null)
+  const pickerRef=useRef<HTMLInputElement>(null)
   useEffect(()=>setText(isoToDisplay(value)),[value])
   function commit(next=text){
     if(!next.trim()){onChange('');return}

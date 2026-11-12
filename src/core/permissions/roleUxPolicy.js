@@ -1,3 +1,4 @@
+// @ts-check
 import { CAPABILITIES,ROLES,can } from './roles'
 import { SCOPES } from './accessModel'
 

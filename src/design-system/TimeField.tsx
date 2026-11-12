@@ -1,21 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Clock3 } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { FieldLabelText, FieldMessage } from './FormValidation'
+import type { ValidatedFieldProps } from './types'
 
 // Always 24-hour HH:MM, whatever the browser's locale: the native time input
 // shows AM/PM on some systems. Digits are typed, the colon is added.
-const formatTyped = raw => {
+const formatTyped = (raw: unknown) => {
   const digits = String(raw || '').replace(/\D/g, '').slice(0, 4)
   return digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits
 }
-const validTime = text => /^([01]\d|2[0-3]):[0-5]\d$/.test(text)
+const validTime = (text: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(text)
 
-export function TimeField({label,value,onChange,disabled=false,required=false,error='',hint='',fieldKey,className=''}){
+interface TimeFieldProps extends ValidatedFieldProps {
+  label?: ReactNode
+  // "HH:MM" (24 hours), or ''.
+  value?: string | null
+  onChange?: (value: string) => void
+  disabled?: boolean
+  className?: string
+}
+
+export function TimeField({label,value,onChange,disabled=false,required=false,error='',hint='',fieldKey,className=''}: TimeFieldProps){
   const {language}=useLanguage()
   const [text,setText]=useState(value||'')
   useEffect(()=>{setText(value||'')},[value])
-  const change=raw=>{
+  const change=(raw: string)=>{
     const next=formatTyped(raw)
     setText(next)
     if(!next)onChange?.('')

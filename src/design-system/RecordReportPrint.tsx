@@ -2,22 +2,25 @@ import { useEffect, useState } from 'react'
 import { DEMO_REPORT_MARK_EL, DEMO_REPORT_MARK_EN } from '../core/organization/branding'
 import { cloudAttachmentsEnabled, loadAttachments } from '../core/attachments/attachmentService'
 import { CONFIDENTIAL_LINE, eventLine, normalizeReport, pageLabel } from './recordReport'
+import type { AttachmentFile } from './AttachmentField'
+import type { RecordReport, ReportDocuments, ReportPair } from './recordReport'
+import type { ReportBranding } from './types'
 import '../styles/record-report.css'
 
 // The printed record as a report with the look of the shared documents (reportDocument, owner 2/11/2026): letterhead,
 // title, summary and numbered sections, the facts in a two-column table, signatures, no controls. The record page supplies the
 // description (see recordReport.js); this component only lays it out.
-const cssString = value => JSON.stringify(String(value || '')).replace(/</g, '\\3c ')
+const cssString = (value: unknown) => JSON.stringify(String(value || '')).replace(/</g, '\\3c ')
 
-function Pairs({ pairs }) {
+function Pairs({ pairs }: { pairs: ReportPair[] }) {
   if (!pairs.length) return null
   return <dl className="record-report-pairs">{pairs.map(([label, value], index) => <div key={`${label}-${index}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
 }
 
 // The documents of a record as a plain list of file names (their descriptions beside them).
-function Documents({ source, empty }) {
+function Documents({ source, empty }: { source: ReportDocuments; empty: string }) {
   const cloud = cloudAttachmentsEnabled() && source.organizationId && source.entityType && source.entityId
-  const [loaded, setLoaded] = useState([])
+  const [loaded, setLoaded] = useState<AttachmentFile[]>([])
   useEffect(() => {
     if (!cloud) return undefined
     let alive = true
@@ -29,10 +32,19 @@ function Documents({ source, empty }) {
   return <ul className="record-report-list">{files.map((file, index) => <li key={file.id || index}>{[file.name, file.description].filter(Boolean).join(' · ')}</li>)}</ul>
 }
 
-export function RecordReportPrint({ report, branding, printedAt, printedBy, language = 'el', fmtDateTime }) {
+interface RecordReportPrintProps {
+  report: RecordReport
+  branding?: ReportBranding | null
+  printedAt?: Date | string | null
+  printedBy?: string
+  language?: string
+  fmtDateTime: (value: Date | string) => string
+}
+
+export function RecordReportPrint({ report, branding, printedAt, printedBy, language = 'el', fmtDateTime }: RecordReportPrintProps) {
   const en = language === 'en'
   const doc = normalizeReport(report, { en })
-  const L = (el, enText) => (en ? enText : el)
+  const L = (el: string, enText: string) => (en ? enText : el)
   const printedOn = printedAt ? fmtDateTime(printedAt) : ''
   const printedLine = `${L('Εκτυπώθηκε από', 'Printed by')} ${printedBy || '—'} · ${printedOn}`
   const headerLine = [branding?.name, [doc.kind, doc.code].filter(Boolean).join(' ')].filter(Boolean).join(' · ')

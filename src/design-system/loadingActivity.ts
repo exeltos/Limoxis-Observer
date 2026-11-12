@@ -4,9 +4,9 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 // is, frozen and faded, with one round spinner over it; when the last part has loaded everything shows at once, never
 // piece by piece. Each loading placeholder (LoadingSkeleton.jsx) marks itself here while it is on the screen.
 let count = 0
-const listeners = new Set()
+const listeners = new Set<() => void>()
 const emit = () => { for (const listener of listeners) listener() }
-const subscribe = (listener) => { listeners.add(listener); return () => listeners.delete(listener) }
+const subscribe = (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener) }
 
 export function useLoadingMark(active = true) {
   useEffect(() => {

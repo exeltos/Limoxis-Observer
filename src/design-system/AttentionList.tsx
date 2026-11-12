@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import './AttentionList.css'
 
@@ -6,7 +6,17 @@ import './AttentionList.css'
 // everywhere. items: [{ id, text, tone: 'danger'|'warning'|'info', action?, onClick? }]
 // — with `action` the row ends in a link («Μετάβαση …»), without it the whole row opens.
 // limit: how many rows show before «και N ακόμη».
-export function AttentionList({ title, items = [], limit = null, moreLabel = count => `+${count}`, className = '' }) {
+export interface AttentionItem { id?: string | number; text: ReactNode; tone?: string; action?: ReactNode; onClick?: () => void }
+
+interface AttentionListProps {
+  title?: ReactNode
+  items?: AttentionItem[]
+  limit?: number | null
+  moreLabel?: (count: number) => ReactNode
+  className?: string
+}
+
+export function AttentionList({ title, items = [], limit = null, moreLabel = count => `+${count}`, className = '' }: AttentionListProps) {
   const [all, setAll] = useState(false)
   if (!items.length) return null
   const shown = all || !limit ? items : items.slice(0, limit)

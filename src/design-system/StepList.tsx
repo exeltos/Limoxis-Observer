@@ -3,7 +3,17 @@ import './StepList.css'
 
 // The numbered steps of a short wizard (New Demo, New incident report). A step
 // opens only once the steps before it are valid; done steps show a tick.
-export function StepList({ steps = [], current = 0, valid = [], onSelect, disabled = false, ariaLabel, className = '' }) {
+interface StepListProps {
+  steps?: string[]
+  current?: number
+  valid?: boolean[]
+  onSelect?: (index: number) => void
+  disabled?: boolean
+  ariaLabel?: string
+  className?: string
+}
+
+export function StepList({ steps = [], current = 0, valid = [], onSelect, disabled = false, ariaLabel, className = '' }: StepListProps) {
   return (
     <ol className={`lo-step-list ${className}`.trim()} style={{ '--lo-step-count': steps.length }} aria-label={ariaLabel}>
       {steps.map((label, index) => (

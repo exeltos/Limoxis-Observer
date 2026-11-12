@@ -1,6 +1,9 @@
+import type { ReactNode } from 'react'
 import { AlertOctagon, AlertTriangle, ArrowDownRight, ArrowUpRight, CheckCircle2, Minus } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { Meter, Sparkline } from './MiniCharts'
+import type { KpiDelta } from './kpiDelta'
+import type { IconType } from './types'
 import './KpiCard.css'
 
 // The one key-figure card of every screen (role homes, Indicators, Pharmacy,
@@ -12,16 +15,38 @@ import './KpiCard.css'
 // delta: { text, trend: 'up'|'down'|'flat', good: true|false|null, title }
 // meter: 0–100 (a thin bar, `meterTarget` marks the target) · trend: numbers for a sparkline
 // loading: the value is not known yet · error: it could not be read (never shown as «—»)
-const STATUS={good:[CheckCircle2,'Εντός στόχου','On target','success'],warning:[AlertTriangle,'Προσοχή','Watch','warning'],danger:[AlertOctagon,'Εκτός στόχου','Off target','danger']}
-const TRENDS={up:ArrowUpRight,down:ArrowDownRight,flat:Minus}
+const STATUS: Record<string, [IconType, string, string, string]>={good:[CheckCircle2,'Εντός στόχου','On target','success'],warning:[AlertTriangle,'Προσοχή','Watch','warning'],danger:[AlertOctagon,'Εκτός στόχου','Off target','danger']}
+const TRENDS: Record<string, IconType>={up:ArrowUpRight,down:ArrowDownRight,flat:Minus}
 
-export function KpiCard({icon:Icon,value,unit='',label,period,status,statusLabel,target,delta,hint,meter,meterTarget,trend,loading=false,error=false,onOpen,className=''}){
+interface KpiCardProps {
+  icon?: IconType
+  value?: ReactNode
+  unit?: ReactNode
+  label?: string
+  period?: ReactNode
+  // 'good' | 'warning' | 'danger' against the target
+  status?: string | null
+  statusLabel?: string
+  target?: string
+  delta?: KpiDelta | null
+  hint?: string
+  meter?: number | null
+  meterTarget?: number | null
+  trend?: Array<number | null | undefined>
+  loading?: boolean
+  // true, or the text that says what went wrong
+  error?: boolean | string
+  onOpen?: () => void
+  className?: string
+}
+
+export function KpiCard({icon:Icon,value,unit='',label,period,status,statusLabel,target,delta,hint,meter,meterTarget,trend,loading=false,error=false,onOpen,className=''}: KpiCardProps){
   const {language}=useLanguage()
   const en=language==='en'
-  const [StatusIcon,el,enLabel,meterTone]=STATUS[status]||[]
+  const [StatusIcon,el,enLabel,meterTone]=(status&&STATUS[status])||[]
   const tone=loading||error?'neutral':status||'neutral'
   const shown=value==null||value===''?'—':value
-  const DeltaIcon=TRENDS[delta?.trend]||Minus
+  const DeltaIcon=(delta&&TRENDS[delta.trend])||Minus
   const statusText=statusLabel||(en?enLabel:el)
   // One size on every screen (as «Surveillance»): the icon, the value with its mark against the
   // target, and the label under it. The note and the full target are in the tooltip as well.
@@ -50,7 +75,9 @@ export function KpiCard({icon:Icon,value,unit='',label,period,status,statusLabel
 
 // A row of key-figure cards: `columns` (default 4) across on a wide screen, at most 3 on a small
 // laptop, 2 on a tablet, 1 on a phone.
-export function KpiStrip({children,label,className='',columns}){
+interface KpiStripProps { children?: ReactNode; label?: string; className?: string; columns?: number }
+
+export function KpiStrip({children,label,className='',columns}: KpiStripProps){
   return <div className={`lo-kpi-strip ${className}`.trim()} role="group" aria-label={label} style={columns?{'--kpi-columns':columns,'--kpi-columns-md':Math.min(columns,3)}:undefined}>{children}</div>
 }
 
@@ -58,7 +85,28 @@ export function KpiStrip({children,label,className='',columns}){
 // button that filters (`active` while its filter is on). A count that needs attention
 // takes its tone (`tone`: 'danger' | 'warning') once it is above 0.
 // figure: { key, icon, value, unit, label, tone, status, statusLabel, target, hint, period, active, go }
-export function KpiFigures({figures,label,loading=false,error=false,className=''}){
+export interface KpiFigure {
+  key: string
+  icon?: IconType
+  value?: ReactNode
+  unit?: ReactNode
+  label?: string
+  // the tone of a count that needs attention, once it is above 0
+  tone?: string
+  status?: string | null
+  statusLabel?: string
+  target?: string
+  hint?: string
+  period?: ReactNode
+  active?: boolean
+  go?: () => void
+  loading?: boolean
+  error?: boolean | string
+}
+
+interface KpiFiguresProps { figures: Array<KpiFigure | null | false | undefined>; label?: string; loading?: boolean; error?: boolean | string; className?: string }
+
+export function KpiFigures({figures,label,loading=false,error=false,className=''}: KpiFiguresProps){
   const shown=figures.filter(Boolean).slice(0,4)
   if(!shown.length)return null
   return <KpiStrip label={label} columns={shown.length} className={`lo-kpi-figures ${className}`.trim()}>

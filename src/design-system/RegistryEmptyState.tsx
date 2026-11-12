@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
 import { AlertTriangle, Inbox, RefreshCw, SearchX, X } from 'lucide-react'
 import { useOptionalLanguage } from '../core/i18n/LanguageContext'
 import { Button } from './Button'
+import type { IconType } from './types'
 import './RegistryEmptyState.css'
 
 // The two empty lists look different on purpose:
@@ -10,7 +12,24 @@ import './RegistryEmptyState.css'
 //   offer «Try again» (`error`, `onRetry`);
 // - none: nothing has been created yet → an icon, what the list will hold and
 //   the primary action that creates the first record.
-export function RegistryEmptyState({ filtered = false, error = false, onRetry, onClearFilters, title, text, icon: Icon, action, language, className = '' }) {
+// The primary action of an empty registry: the button that creates the first record.
+export interface EmptyStateAction { label?: ReactNode; onClick?: () => void; icon?: IconType }
+
+export interface RegistryEmptyStateProps {
+  filtered?: boolean
+  // true, or the text that says what went wrong
+  error?: boolean | string | null
+  onRetry?: () => void
+  onClearFilters?: () => void
+  title?: ReactNode
+  text?: ReactNode
+  icon?: IconType
+  action?: EmptyStateAction | null
+  language?: string
+  className?: string
+}
+
+export function RegistryEmptyState({ filtered = false, error = false, onRetry, onClearFilters, title, text, icon: Icon, action, language, className = '' }: RegistryEmptyStateProps) {
   const context = useOptionalLanguage()
   const en = (language || context?.language) === 'en'
   if (error) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { Eye, FilePlus2, LoaderCircle, Paperclip, Pencil, Trash2 } from 'lucide-react'
 import { useLanguage,translate} from '../core/i18n/LanguageContext'
 import { useFeedback } from '../core/feedback/FeedbackContext'
@@ -8,7 +8,36 @@ import { OverflowMenu } from './OverflowMenu'
 import { ObserverDialog, DialogActions } from './ObserverDialog'
 import './AttachmentField.css'
 
-const defaultCategories=[
+// A file of a record: in the cloud (storagePath) or held in the page (objectUrl / dataUrl).
+export interface AttachmentFile {
+  id: string
+  name?: string
+  size?: number
+  type?: string
+  objectUrl?: string
+  dataUrl?: string
+  url?: string
+  storagePath?: string
+  category?: string
+  description?: string
+}
+
+// [code, label] — the label is a translation key, or the text itself for employee documents.
+export type CategoryList = Array<[code: string, label: string]>
+
+// The file being added or edited in the dialog.
+interface AttachmentEditor {
+  mode: 'add' | 'edit'
+  id: string | null
+  file: File | null
+  name: string
+  category: string
+  description: string
+  stagedAttachment: AttachmentFile | null
+  dataUrl?: string
+}
+
+const defaultCategories: CategoryList=[
   ['generalDocument','generalDocument'],
   ['medicalReport','medicalReport'],
   ['laboratoryDocument','laboratoryDocument'],
@@ -17,7 +46,7 @@ const defaultCategories=[
   ['other','other'],
 ]
 
-export const employeeDocumentCategories={
+export const employeeDocumentCategories: Record<'el' | 'en', CategoryList>={
   el:[
     ['certification','Πιστοποίηση'],
     ['employmentCertificate','Βεβαίωση εργασίας'],
@@ -40,6 +69,17 @@ export const employeeDocumentCategories={
   ],
 }
 
+interface AttachmentFieldProps {
+  disabled?: boolean
+  value?: AttachmentFile[]
+  onChange?: (files: AttachmentFile[]) => void
+  accept?: string
+  categories?: CategoryList
+  organizationId?: string | null
+  entityType?: string | null
+  entityId?: string | null
+}
+
 export function AttachmentField({
   disabled=false,
   value=[],
@@ -49,17 +89,17 @@ export function AttachmentField({
   organizationId=null,
   entityType=null,
   entityId=null,
-}){
+}: AttachmentFieldProps){
   const {t,language}=useLanguage()
   const {confirm,notify}=useFeedback()
   const employeeDocumentMode=entityType==='employee-certificate'
   const effectiveCategories=employeeDocumentMode?employeeDocumentCategories[language==='en'?'en':'el']:categories
   const employeeDocumentTypeLabel=translate('copy.attachmentCopy.documentType',language==='en'?'en':'el')
   const cloudMode = cloudAttachmentsEnabled() && Boolean(organizationId) && Boolean(entityType) && Boolean(entityId)
-  const [files,setFiles]=useState(value)
+  const [files,setFiles]=useState<AttachmentFile[]>(value)
   const [cloudLoading,setCloudLoading]=useState(cloudMode)
-  const [cloudError,setCloudError]=useState(null)
-  const [editor,setEditor]=useState(null)
+  const [cloudError,setCloudError]=useState<Error|null>(null)
+  const [editor,setEditor]=useState<AttachmentEditor|null>(null)
   const [busy,setBusy]=useState(false)
 
   useEffect(()=>{ if(!cloudMode) setFiles(value) },[value,cloudMode])
@@ -78,7 +118,7 @@ export function AttachmentField({
   function beginAdd(){
     setEditor({mode:'add',id:null,file:null,name:'',category:effectiveCategories[0]?.[0]||'other',description:'',stagedAttachment:null,dataUrl:''})
   }
-  function beginEdit(file){
+  function beginEdit(file: AttachmentFile){
     setEditor({
       mode:'edit',
       id:file.id,
@@ -89,7 +129,7 @@ export function AttachmentField({
       stagedAttachment:null,
     })
   }
-  async function chooseFile(event){
+  async function chooseFile(event: ChangeEvent<HTMLInputElement>){
     const file=event.target.files?.[0]||null
     event.target.value=''
     if(!file||busy)return
@@ -133,7 +173,7 @@ export function AttachmentField({
       setBusy(true)
       try{
         if(editor.mode==='add'){
-          const updated=await updateAttachmentMetadata(editor.stagedAttachment.id,{category:editor.category,description:editor.description.trim()})
+          const updated=await updateAttachmentMetadata(editor.stagedAttachment!.id,{category:editor.category,description:editor.description.trim()})
           const next=[...files,updated]
           setFiles(next); onChange(next)
         }else{
@@ -149,9 +189,9 @@ export function AttachmentField({
       }
       return
     }
-    let next
+    let next: AttachmentFile[]
     if(editor.mode==='add'){
-      const file=editor.file
+      const file=editor.file as File
       const added={
         id:`${file.name}-${file.lastModified}-${file.size}-${Date.now()}`,
         name:file.name,
@@ -174,7 +214,7 @@ export function AttachmentField({
     onChange(next)
     setEditor(null)
   }
-  async function remove(id){
+  async function remove(id: string){
     const ok=await confirm({title:t('delete'),message:t('deleteConfirm'),confirmLabel:t('delete'),danger:true})
     if(!ok)return
     if(cloudMode){
@@ -198,7 +238,7 @@ export function AttachmentField({
     onChange(next)
     notify(t('actionCompleted'),'success')
   }
-  async function view(file){
+  async function view(file: AttachmentFile){
     if(cloudMode&&file.storagePath){
       const previewWindow=window.open('about:blank','_blank')
       try{
@@ -218,12 +258,12 @@ export function AttachmentField({
     }
     if(file.dataUrl||file.objectUrl||file.url)window.open(file.dataUrl||file.objectUrl||file.url,'_blank','noopener,noreferrer')
   }
-  const categoryLabel=code=>{
+  const categoryLabel=(code?: string)=>{
     const row=effectiveCategories.find(([value])=>value===code)
     if(employeeDocumentMode)return row?.[1]||code||'—'
     return t(row?.[1]||code||'other')
   }
-  const canView=file=>cloudMode?Boolean(file.storagePath):Boolean(file.dataUrl||file.objectUrl||file.url)
+  const canView=(file: AttachmentFile)=>cloudMode?Boolean(file.storagePath):Boolean(file.dataUrl||file.objectUrl||file.url)
   const addReady=editor?.mode==='add'?(cloudMode?Boolean(editor.stagedAttachment):Boolean(editor.file)):true
 
   return <div className="attachment-field attachment-field-v2">
@@ -267,8 +307,8 @@ export function AttachmentField({
           <div className={(editor.file||editor.stagedAttachment)?'has-file':''}>{busy?<LoaderCircle className="lo-inline-spinner" size={16}/>:<FilePlus2 size={16}/>}<strong>{editor.name||t('selectFile')}</strong></div>
         </label>}
         {editor.mode==='edit'&&<div className="attachment-current-file"><span>{t('file')}</span><strong>{editor.name}</strong></div>}
-        <label className="field"><span>{employeeDocumentMode?employeeDocumentTypeLabel:t('documentCategory')}</span><select disabled={busy} value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{effectiveCategories.map(([value,label])=><option key={value} value={value}>{employeeDocumentMode?label:t(label)}</option>)}</select></label>
-        <label className="attachment-editor-description field"><span>{t('description')}</span><textarea disabled={busy} rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={employeeDocumentMode?(translate('copy.attachmentCopy.optionalTitleIssuerOrNote',language==='en'?'en':'el')):t('attachmentDescriptionPlaceholder')}/></label>
+        <label className="field"><span>{employeeDocumentMode?employeeDocumentTypeLabel:t('documentCategory')}</span><select disabled={busy} value={editor.category} onChange={e=>setEditor(x=>x&&({...x,category:e.target.value}))}>{effectiveCategories.map(([value,label])=><option key={value} value={value}>{employeeDocumentMode?label:t(label)}</option>)}</select></label>
+        <label className="attachment-editor-description field"><span>{t('description')}</span><textarea disabled={busy} rows={3} value={editor.description} onChange={e=>setEditor(x=>x&&({...x,description:e.target.value}))} placeholder={employeeDocumentMode?(translate('copy.attachmentCopy.optionalTitleIssuerOrNote',language==='en'?'en':'el')):t('attachmentDescriptionPlaceholder')}/></label>
         {busy&&<div className="attachment-upload-progress" role="status" aria-live="polite"><LoaderCircle size={22}/><span>{editor.mode==='add'?t('uploading'):t('saving')}</span></div>}
       </div>
     </ObserverDialog>}

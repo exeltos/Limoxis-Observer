@@ -16,7 +16,7 @@ describe('training participants and public access refinements',()=>{
 
   it('uploads shared attachments as soon as a cloud file is selected',()=>{
     const source=read('src/design-system/AttachmentField.jsx')
-    expect(source).toContain('async function chooseFile(event)')
+    expect(source).toContain('async function chooseFile(event: ChangeEvent<HTMLInputElement>)')
     expect(source).toContain('await uploadAttachment(organizationId,entityType,entityId,file')
     expect(source).toContain('stagedAttachment:added')
     expect(source).toContain('attachment-upload-progress')

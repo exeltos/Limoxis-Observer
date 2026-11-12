@@ -18,6 +18,9 @@ const ACTION_CAPABILITY = Object.freeze({
   [UI_ACTIONS.MANAGE]: CAPABILITIES.MANAGE_ORGANIZATION,
 })
 
+/**
+ * @param {{ role?: string | null, addOns?: string[], customCapabilities?: string[], action?: string, resourceCapability?: string, locked?: boolean }} [request]
+ */
 export function canPerform({ role, addOns = [], customCapabilities = [], action, resourceCapability, locked = false } = {}) {
   if (!role || !action) return false
   if (locked && [UI_ACTIONS.EDIT, UI_ACTIONS.DELETE].includes(action)) return false
