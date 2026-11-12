@@ -42,8 +42,6 @@ export function suggestIndicators(risk: AnyRecord, available: string[] = [], lim
 }
 
 const iso = (date: Date) => hospitalDate(date)
-// The indicators service is still JavaScript: its range parameter reads as { departmentId?: null }.
-const collectMetrics = collectCloudIndicatorMetrics as (organizationId: string | null | undefined, range: { from: string, to: string }) => ReturnType<typeof collectCloudIndicatorMetrics>
 
 // Current value (last 90 days) and the 90 days before, per indicator key.
 export async function loadIndicatorValues(organizationId: string | null | undefined, now = new Date()) {
@@ -51,8 +49,8 @@ export async function loadIndicatorValues(organizationId: string | null | undefi
   const to = iso(now), from = iso(new Date(now.getTime() - 90 * day)), prevTo = iso(new Date(now.getTime() - 91 * day)), prevFrom = iso(new Date(now.getTime() - 181 * day))
   const [definitions, current, previous] = await Promise.all([
     loadOperationalIndicatorDefinitions(organizationId, { from, to }),
-    collectMetrics(organizationId, { from, to }),
-    collectMetrics(organizationId, { from: prevFrom, to: prevTo }),
+    collectCloudIndicatorMetrics(organizationId, { from, to }),
+    collectCloudIndicatorMetrics(organizationId, { from: prevFrom, to: prevTo }),
   ])
   const values = new Map<string, AnyRecord>()
   for (const def of definitions) {

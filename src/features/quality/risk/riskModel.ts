@@ -180,7 +180,7 @@ export function parseMeasures(text: string){
   .map(item=>item.replace(/^\s*(\d{1,2}\s?[.)]|[-•·*])\s*/,'').trim())
   .filter(Boolean)
 }
-export const joinMeasures=(items: AnyRecord[])=>items.map((item: AnyRecord)=>String(item||'').trim()).filter(Boolean).join('\n')
+export const joinMeasures=(items: string[])=>items.map((item: string)=>String(item||'').trim()).filter(Boolean).join('\n')
 
 // Periods: an assessment is annual, six-monthly or quarterly. Which year and
 // which semester or quarter it covers is read from its label («Γ' τρίμηνο
@@ -284,7 +284,7 @@ export function riskEvidence(risk: AnyRecord,practice: AnyRecord={},on=hospitalT
 }
 
 // The same risk (its lineage key) in every assessment, oldest first: its three scores per period.
-export function riskLineage(assessments: AnyRecord[]=[],lineageKey: string){
+export function riskLineage(assessments: AnyRecord[]=[],lineageKey: string): AnyRecord[]{
  return assessments.map(assessment=>({assessment,risk:(assessment.risks||[]).find((item: AnyRecord)=>item.lineageKey===lineageKey)})).filter(entry=>entry.risk)
   .sort((a,b)=>String(a.assessment.assessedOn||'').localeCompare(String(b.assessment.assessedOn||'')))
   .map(({assessment,risk})=>({code:assessment.code,period:assessment.periodLabel,assessedOn:assessment.assessedOn,status:assessment.status,...scored(risk)}))

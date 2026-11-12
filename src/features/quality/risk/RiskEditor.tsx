@@ -1,4 +1,4 @@
-import { useLayoutEffect,useMemo,useRef,useState } from 'react'
+import { useLayoutEffect,useMemo,useRef,useState,type ReactNode } from 'react'
 import { AlertTriangle,ArrowDown,ArrowUp,CheckSquare2,Info,Plus,Save,ShieldAlert,X } from 'lucide-react'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { Button } from '../../../design-system/Button'
@@ -6,17 +6,33 @@ import { ManualDateField } from '../../../design-system/ManualDateField'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { YesNoField } from '../../../design-system/YesNoField'
-import { CONSEQUENCE,JCI_CHAPTERS,LIKELIHOOD,SECTIONS,joinMeasures,levelInfo,parseMeasures,riskWarnings,scored,warningLabel } from './riskModel'
+import { CONSEQUENCE,JCI_CHAPTERS,LIKELIHOOD,SECTIONS,joinMeasures,levelInfo,parseMeasures,riskWarnings,scored,warningLabel,type RiskScore } from './riskModel'
 import { AxisSelect,L,LevelChip,recordActions,txt } from './riskUi'
 import { IndicatorPicker } from './RiskIndicatorsUi'
 import type { AnyRecord } from '../../../types/featureTypes'
 
-const STAGES=[['inherent','Εγγενής κίνδυνος','Inherent risk','Χωρίς κανένα μέτρο','Before any control'],['residual','Υπολειπόμενος κίνδυνος','Residual risk','Με τα μέτρα που ήδη λαμβάνονται','With the controls already in place'],['target','Κίνδυνος-στόχος','Target risk','Μετά τα πρόσθετα μέτρα','After the additional measures']]
+const STAGES: string[][]=[['inherent','Εγγενής κίνδυνος','Inherent risk','Χωρίς κανένα μέτρο','Before any control'],['residual','Υπολειπόμενος κίνδυνος','Residual risk','Με τα μέτρα που ήδη λαμβάνονται','With the controls already in place'],['target','Κίνδυνος-στόχος','Target risk','Μετά τα πρόσθετα μέτρα','After the additional measures']]
 
 // One risk of an assessment, on its own page. The score, level and warnings update as L and C change.
-export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,onDelete=null,onCreateCapa=null,saving=false,indicatorValues=null,assessmentLabel='',startEditing=false,onCancel=null}){
- const [draft,setDraft]=useState(()=>({section:'clinical',...risk,process:txt(risk,'process',en),scope:txt(risk,'scope',en),hazard:txt(risk,'hazard',en),existingControls:txt(risk,'existingControls',en),additionalMeasures:txt(risk,'additionalMeasures',en),owner:txt(risk,'owner',en),reviewFrequency:txt(risk,'reviewFrequency',en)}))
- const set=(key: string,value)=>setDraft(current=>({...current,[key]:value}))
+interface RiskEditorProps {
+ risk: AnyRecord
+ processes?: string[]
+ en: boolean
+ readOnly?: boolean
+ onClose: ()=>void
+ onSave: (draft: AnyRecord)=>void|Promise<void>
+ onDelete?: (()=>void)|null
+ onCreateCapa?: ((risk: AnyRecord)=>void)|null
+ saving?: boolean
+ indicatorValues?: Map<string,AnyRecord>|null
+ assessmentLabel?: string
+ startEditing?: boolean
+ onCancel?: (()=>void)|null
+}
+
+export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,onDelete=null,onCreateCapa=null,saving=false,indicatorValues=null,assessmentLabel='',startEditing=false,onCancel=null}: RiskEditorProps){
+ const [draft,setDraft]=useState<AnyRecord>(()=>({section:'clinical',...risk,process:txt(risk,'process',en),scope:txt(risk,'scope',en),hazard:txt(risk,'hazard',en),existingControls:txt(risk,'existingControls',en),additionalMeasures:txt(risk,'additionalMeasures',en),owner:txt(risk,'owner',en),reviewFrequency:txt(risk,'reviewFrequency',en)}))
+ const set=(key: string,value: unknown)=>setDraft(current=>({...current,[key]:value}))
  const isNew=!risk?.id
  const [editing,setEditing]=useState((isNew||startEditing)&&!readOnly)
  const locked=readOnly||!editing
@@ -37,7 +53,7 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
  return <EntityRecordShell className="quality-record-shell risk-editor-shell workspace-fill" avatar={<ShieldAlert size={19}/>}
   eyebrow={[draft.lineageKey||L(en,'Νέος κίνδυνος','New risk'),sectionLabel&&(en?sectionLabel.en:sectionLabel.el),assessmentLabel].filter(Boolean).join(' · ')}
   title={title} subtitle={[draft.process,draft.scope].filter(Boolean).join(' · ')||undefined}
-  status={<span className="risk-editor-path" aria-label={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{STAGES.map(([kind],i)=><span key={kind} className="risk-editor-path-step">{i>0&&<span className="risk-editor-path-arrow" aria-hidden="true">→</span>}<small>{{inherent:L(en,'Εγγενής','Inherent'),residual:L(en,'Υπολειπόμενος','Residual'),target:L(en,'Στόχος','Target')}[kind]}</small><LevelChip score={s[kind].score} level={s[kind].level} en={en} compact/></span>)}</span>}
+  status={<span className="risk-editor-path" aria-label={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{STAGES.map(([kind],i)=><span key={kind} className="risk-editor-path-step">{i>0&&<span className="risk-editor-path-arrow" aria-hidden="true">→</span>}<small>{({inherent:L(en,'Εγγενής','Inherent'),residual:L(en,'Υπολειπόμενος','Residual'),target:L(en,'Στόχος','Target')} as Record<string,string>)[kind]}</small><LevelChip score={s[kind].score} level={s[kind].level} en={en} compact/></span>)}</span>}
   headerActions={recordActions({en,canEdit:!readOnly,editing,isNew,onEdit:()=>setEditing(true),onDelete})}
   onBack={onClose} backLabel={L(en,'Πίσω στην εκτίμηση','Back to the assessment')}>
   <div className="risk-editor" key={version}>
@@ -55,11 +71,11 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
    <Step n={2} title={L(en,'Αξιολόγηση και μέτρα','Assessment and measures')}>
     <div className="risk-editor-flow">
      <ScoreRow kind="inherent" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
-     <MeasureList title={L(en,'Προληπτικά μέτρα που ήδη λαμβάνονται','Controls already in place')} hint={L(en,'μειώνουν τον εγγενή στον υπολειπόμενο κίνδυνο','they bring the inherent risk down to the residual')} value={draft.existingControls} onChange={v=>set('existingControls',v)} en={en} disabled={locked}/>
+     <MeasureList title={L(en,'Προληπτικά μέτρα που ήδη λαμβάνονται','Controls already in place')} hint={L(en,'μειώνουν τον εγγενή στον υπολειπόμενο κίνδυνο','they bring the inherent risk down to the residual')} value={draft.existingControls} onChange={(v: string)=>set('existingControls',v)} en={en} disabled={locked}/>
      <ScoreRow kind="residual" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
      {residualLevel&&<p className={`risk-response risk-response-${residualLevel.id}`}><strong>{L(en,'Απαιτούμενη ενέργεια','Required response')}:</strong> {en?residualLevel.responseEn:residualLevel.responseEl}</p>}
      {s.inherent.c&&s.residual.c&&s.inherent.c!==s.residual.c&&area('consequenceRationale',L(en,'Γιατί άλλαξε η συνέπεια (C) με τα μέτρα;','Why did the consequence (C) change with the controls?'),2)}
-     <MeasureList title={L(en,'Απαιτούμενα πρόσθετα μέτρα (σχέδιο δράσης)','Additional measures required (action plan)')} hint={L(en,'οδηγούν στον κίνδυνο-στόχο','they lead to the target risk')} value={draft.additionalMeasures} onChange={v=>set('additionalMeasures',v)} en={en} disabled={locked}/>
+     <MeasureList title={L(en,'Απαιτούμενα πρόσθετα μέτρα (σχέδιο δράσης)','Additional measures required (action plan)')} hint={L(en,'οδηγούν στον κίνδυνο-στόχο','they lead to the target risk')} value={draft.additionalMeasures} onChange={(v: string)=>set('additionalMeasures',v)} en={en} disabled={locked}/>
      <ScoreRow kind="target" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
     </div>
     {alerts.length>0&&<ul className="risk-warnings">{alerts.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><AlertTriangle size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
@@ -88,7 +104,7 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
 const STAGE_LABELS=Object.fromEntries(STAGES.map(([kind,...rest])=>[kind,rest]))
 
 // One stage of the assessment: L and C on one line, with the resulting level.
-function ScoreRow({kind,draft,s,en,readOnly,set}){
+function ScoreRow({kind,draft,s,en,readOnly,set}: {kind: string,draft: AnyRecord,s: Record<string,RiskScore>,en: boolean,readOnly: boolean,set: (key: string,value: unknown)=>void}){
  const [el,enLabel,hintEl,hintEn]=STAGE_LABELS[kind]
  return <div className={`risk-stage risk-stage-${kind}`}>
   <header><strong>{en?enLabel:el}</strong><small>{en?hintEn:hintEl}</small></header>
@@ -99,17 +115,17 @@ function ScoreRow({kind,draft,s,en,readOnly,set}){
 }
 
 // Measures as a numbered list, kept as one line each. Enter adds the next one.
-export function MeasureList({title,hint,value,onChange,en,disabled}){
+export function MeasureList({title,hint,value,onChange,en,disabled}: {title: string,hint?: string,value: string,onChange: (value: string)=>void,en: boolean,disabled?: boolean}){
  const [items,setItems]=useState(()=>{const list=parseMeasures(value);return list.length?list:['']})
- const refs=useRef([])
+ const refs=useRef<(HTMLTextAreaElement|null)[]>([])
  // Each item is as tall as its text.
  useLayoutEffect(()=>{for(const el of refs.current){if(el){el.style.height='auto';el.style.height=`${el.scrollHeight+2}px`}}},[items])
- const commit=next=>{setItems(next);onChange(joinMeasures(next))}
+ const commit=(next: string[])=>{setItems(next);onChange(joinMeasures(next))}
  const focus=(i: number)=>setTimeout(()=>refs.current[i]?.focus(),0)
  const update=(i: number,text: string)=>commit(items.map((item,j)=>j===i?text:item))
  const add=(at=items.length)=>{const next=[...items.slice(0,at),'',...items.slice(at)];commit(next);focus(at)}
  const remove=(i: number)=>{const next=items.filter((_,j)=>j!==i);commit(next.length?next:['']);focus(Math.max(0,i-1))}
- const move=(i: number,d)=>{const j=i+d;if(j<0||j>=items.length)return;const next=[...items];[next[i],next[j]]=[next[j],next[i]];commit(next);focus(j)}
+ const move=(i: number,d: number)=>{const j=i+d;if(j<0||j>=items.length)return;const next=[...items];[next[i],next[j]]=[next[j],next[i]];commit(next);focus(j)}
  const filled=items.filter(item=>item.trim()).length
  return <div className="risk-measures">
   <div className="risk-measures-head"><strong>{title}</strong><small>{hint}</small><span className="risk-measures-count">{filled}</span></div>
@@ -127,7 +143,7 @@ export function MeasureList({title,hint,value,onChange,en,disabled}){
 }
 
 // A numbered part of the editor; the order follows the assessment itself.
-export function Step({n,title,aside=null,children}){
+export function Step({n,title,aside=null,children}: {n: number,title: string,aside?: ReactNode,children?: ReactNode}){
  return <section className="risk-editor-step">
   <header><span className="risk-editor-step-number">{n}</span><h4>{title}</h4>{aside}</header>
   {children}

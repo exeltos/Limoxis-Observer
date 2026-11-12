@@ -66,7 +66,7 @@ export function EquipmentRecordPage() {
   const locked = !access.canManage
   const canRecord = access.canManage || (row?.departmentId && access.ownDepartments.includes(row.departmentId))
   const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
-  const typeOptions = libraryOptions((libraries as AnyRecord).equipment || [], language)
+  const typeOptions = libraryOptions(libraries.equipment || [], language)
   const supplierOptions = list.suppliers.filter(item => item.status !== 'inactive' || item.id === draft.supplierId).map(item => ({ value: item.id, label: item.name, description: item.code, keywords: `${item.code} ${item.name}` }))
 
   async function save() {
