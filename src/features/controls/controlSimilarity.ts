@@ -3,7 +3,9 @@
 // with such a name is usually a department that should be added to the existing control instead.
 const STOP=new Set(['και','του','της','των','το','η','ο','τα','στο','στη','στα','σε','για','απο','με','the','of','and','for'])
 
-export function nameTokens(title){
+import type { AnyRecord } from '../../types/featureTypes'
+
+export function nameTokens(title:unknown){
  return String(title||'')
   .toLocaleLowerCase('el')
   .normalize('NFD').replace(/[̀-ͯ]/g,'')
@@ -13,7 +15,7 @@ export function nameTokens(title){
   .filter(word=>word&&!STOP.has(word))
 }
 
-function overlap(a,b){
+function overlap(a:string[],b:string[]){
  if(!a.length||!b.length)return 0
  const set=new Set(b)
  const shared=a.filter(word=>set.has(word)).length
@@ -22,7 +24,7 @@ function overlap(a,b){
 
 // The existing controls whose name is the same or alike, the same ones first. Needs two words
 // (or the whole name) in common so that «Θερμοκρασία» alone does not flag every temperature control.
-export function similarControls(title,controls=[],{selfId=''}={}){
+export function similarControls(title:unknown,controls:AnyRecord[]=[],{selfId=''}:{selfId?:string}={}){
  const tokens=nameTokens(title)
  if(tokens.join('').length<5)return []
  const key=tokens.slice().sort().join(' ')

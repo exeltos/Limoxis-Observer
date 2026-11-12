@@ -11,24 +11,26 @@ import { useLibraries } from '../management/useLibraries'
 import { ExpiryBadge,formOptions,useItemOptions } from './ControlExpiryEntry'
 import { CARPA_TEMPLATES } from './carpaTemplate'
 import { ITEM_CATEGORIES,catalogueItem,formKey,noteText,parseCatalogueLines } from './controlExpiry'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The medicines and supplies an expiry check goes through, one row each: name,
 // quantity, form (tablet, vial, …), expiry date, note and the departments that
 // keep it (none chosen = all). Rows can also be pasted from a spreadsheet.
 // defaultDepartments: what a new row starts with (a department's own control: that department).
-export function ControlExpiryCatalogueDialog({items,departments,defaultDepartments=[],window,onClose,onSave,language}){
+interface ControlExpiryCatalogueDialogProps { items: AnyRecord[], departments: string[], defaultDepartments?: string[], window: { before: number, after: number }, onClose: () => void, onSave: (items: AnyRecord[]) => void, language: string }
+export function ControlExpiryCatalogueDialog({items,departments,defaultDepartments=[],window,onClose,onSave,language}:ControlExpiryCatalogueDialogProps){
  const en=language==='en'
  const {libraries}=useLibraries()
  const itemOptions=useItemOptions(libraries,[],language)
  const forms=formOptions(libraries,language)
- const fresh=(row={})=>catalogueItem({...row,departments:row.departments?.length?row.departments:defaultDepartments})
- const [rows,setRows]=useState(()=>items.length?items.map(item=>({...item,departments:item.departments?.length?item.departments:[...defaultDepartments]})):[fresh()])
+ const fresh=(row:AnyRecord={})=>catalogueItem({...row,departments:row.departments?.length?row.departments:defaultDepartments})
+ const [rows,setRows]=useState<AnyRecord[]>(()=>items.length?items.map(item=>({...item,departments:item.departments?.length?item.departments:[...defaultDepartments]})):[fresh()])
  const [pasteOpen,setPasteOpen]=useState(false),[pasted,setPasted]=useState('')
- const update=(id,patch)=>setRows(current=>current.map(row=>row.id===id?{...row,...patch}:row))
+ const update=(id:string,patch:AnyRecord)=>setRows(current=>current.map(row=>row.id===id?{...row,...patch}:row))
  const addRow=()=>setRows(current=>[...current,fresh()])
  const pastedRows=parseCatalogueLines(pasted)
  const addPasted=()=>{if(!pastedRows.length)return;setRows(current=>[...current.filter(row=>row.item.trim()),...pastedRows.map(row=>fresh(row))]);setPasted('');setPasteOpen(false)}
- const addTemplate=key=>{const template=CARPA_TEMPLATES.find(entry=>entry.key===key);if(!template)return;setRows(current=>[...current.filter(row=>row.item.trim()),...template.items.filter(entry=>!current.some(row=>row.item.trim().toLocaleLowerCase('el')===entry.item.toLocaleLowerCase('el'))).map(entry=>fresh(entry))])}
+ const addTemplate=(key:string)=>{const template=CARPA_TEMPLATES.find(entry=>entry.key===key);if(!template)return;setRows(current=>[...current.filter(row=>row.item.trim()),...template.items.filter(entry=>!current.some(row=>row.item.trim().toLocaleLowerCase('el')===entry.item.toLocaleLowerCase('el'))).map(entry=>fresh(entry))])}
  const departmentOptions=departments.map(dep=>({value:dep,label:dep}))
  const filled=rows.filter(row=>String(row.item||'').trim())
  return <ObserverDialog

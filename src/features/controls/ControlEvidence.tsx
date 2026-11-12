@@ -5,18 +5,20 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import './controlEvidence.css'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const ACCEPT='image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt'
 const MAX_BYTES=15*1024*1024
-const fmtSize=bytes=>bytes>=1024*1024?`${(bytes/1024/1024).toFixed(1)} MB`:`${Math.max(1,Math.round((bytes||0)/1024))} KB`
+const fmtSize=(bytes:number)=>bytes>=1024*1024?`${(bytes/1024/1024).toFixed(1)} MB`:`${Math.max(1,Math.round((bytes||0)/1024))} KB`
 
 // Files chosen while recording a control. They are uploaded only when the
 // entry is saved, so a cancelled entry leaves nothing behind.
-export function ControlEvidencePicker({files,onChange,required=false,language='el'}){
+interface ControlEvidencePickerProps { files:File[], onChange:(files:File[])=>void, required?:boolean, language?:string }
+export function ControlEvidencePicker({files,onChange,required=false,language='el'}:ControlEvidencePickerProps){
  const en=language==='en'
- const inputRef=useRef(null)
+ const inputRef=useRef<HTMLInputElement>(null)
  const {notify}=useFeedback()
- function add(list){
+ function add(list:FileList|File[]|null){
   const chosen=[...(list||[])]
   const tooBig=chosen.filter(file=>file.size>MAX_BYTES)
   if(tooBig.length)notify(en?`Files over 15 MB were skipped: ${tooBig.map(f=>f.name).join(', ')}`:`Παραλείφθηκαν αρχεία άνω των 15 MB: ${tooBig.map(f=>f.name).join(', ')}`,'error')
@@ -35,18 +37,18 @@ export function ControlEvidencePicker({files,onChange,required=false,language='e
 }
 
 // What to do when the result deviates, as set on the control definition.
-export function ControlDeviationActions({text,language='el'}){
+export function ControlDeviationActions({text,language='el'}:{text:string,language?:string}){
  if(!text)return null
  const en=language==='en'
  return <div className="governance-banner danger control-deviation-actions" role="note"><ListChecks size={17} aria-hidden="true"/><div><strong>{en?'Actions on deviation':'Ενέργειες σε απόκλιση'}</strong><p>{text}</p></div></div>
 }
 
 // Evidence saved with an execution: opens a fresh signed link on click.
-export function ControlEvidenceLinks({evidence=[],language='el'}){
+export function ControlEvidenceLinks({evidence=[],language='el'}:{evidence?:AnyRecord[],language?:string}){
  const {notify}=useFeedback()
  if(!evidence.length)return null
  const en=language==='en'
- async function open(item){
+ async function open(item:AnyRecord){
   if(!item.storagePath)return
   try{const url=await getAttachmentUrl(item.storagePath);if(url)window.open(url,'_blank','noopener,noreferrer')}
   catch{notify(en?'The file could not be opened.':'Δεν ήταν δυνατό το άνοιγμα του αρχείου.','error')}

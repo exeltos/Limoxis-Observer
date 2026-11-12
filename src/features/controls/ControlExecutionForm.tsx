@@ -8,7 +8,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { formatDateTime } from '../../core/i18n/formatDay'
 
 import { Button } from '../../design-system/Button'
-import { ChecklistAnswers } from '../../design-system/ChecklistAnswers'
+import { ChecklistAnswers, type ChecklistRow } from '../../design-system/ChecklistAnswers'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { Field } from '../../design-system/Field'
 import { IconButton } from '../../design-system/IconButton'
@@ -33,14 +33,17 @@ import { ControlExpiryEntry } from './ControlExpiryEntry'
 import { ControlDeviationActions,ControlEvidenceLinks,ControlEvidencePicker } from './ControlEvidence'
 import { ownerText,personLabel } from '../employees/peopleOptions'
 import './controlExecution.css'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // One way to record a control, as a page (a new entry) or a dialog (correcting
 // an entry): the same fields, findings and checks either way.
-function useControlExecution({organizationId,record,department,initialExecution,onDraftSaved}){
+interface ControlExecutionOptions { organizationId:string|null|undefined, record:AnyRecord, department:string, initialExecution?:AnyRecord|null, onDraftSaved?:(draft:AnyRecord)=>void }
+function useControlExecution({organizationId,record,department,initialExecution,onDraftSaved}:ControlExecutionOptions){
  const {profile,user}=useAuth()
  const {language}=useLanguage();const en=language==='en'
  const {confirm,notify}=useFeedback()
- const {libraries}=useLibraries()
+ // useLibraries (Management) is still JavaScript: its libraries are read by name here.
+ const {libraries}=useLibraries() as unknown as {libraries:Record<string,AnyRecord[]>}
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const assignment=getAssignment(record,department)
  const response=assignmentResponse(record,department)||{mode:'text',label:'Αποτέλεσμα'}
@@ -53,7 +56,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const [notes,setNotes]=useState(initialExecution?.notes||savedDraft?.notes||'')
  const [resultText,setResultText]=useState(initialExecution?.resultText||savedDraft?.resultText||'')
  const [checkedPoints,setCheckedPoints]=useState(initialExecution?.checkedPoints||savedDraft?.checkedPoints||'')
- const [rows,setRows]=useState(()=>{
+ const [rows,setRows]=useState<AnyRecord[]>(()=>{
   // A saved entry keeps its own rows, even none: only a new entry starts from the list.
   if(Array.isArray(initialExecution?.structuredData?.rows))return initialExecution.structuredData.rows
   const stored=savedDraft?.rows
@@ -66,7 +69,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const [allOk,setAllOk]=useState(()=>expiryControl&&(initialExecution?.structuredData?.allOk===true||savedDraft?.allOk===true))
  const [draftSaved,setDraftSaved]=useState(Boolean(savedDraft))
  const [draftSaving,setDraftSaving]=useState(false)
- const [evidence,setEvidence]=useState([])
+ const [evidence,setEvidence]=useState<File[]>([])
  const evidenceRequired=!isEditing&&requiresEvidence(record)
  const numeric=Number(String(value).replace(',','.'))
  const outOfRange=mode==='numeric'&&String(value).trim()!==''&&Number.isFinite(numeric)&&((response.min!==''&&response.min!=null&&numeric<Number(response.min))||(response.max!==''&&response.max!=null&&numeric>Number(response.max)))
@@ -78,10 +81,10 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const checklistValid=mode!=='checklist'||rows.every(row=>row.required===false||row.answer)
  const valid=(structured?true:String(value).trim().length>0)&&expiryRowsValid&&checklistValid&&(!evidenceRequired||evidence.length>0)
  // Earlier entries of this department, latest first: what was recorded last.
- const history=(assignment?.history||[]).filter(h=>h.status!=='cancelled'&&h.id!==initialExecution?.id)
- const setRow=(index,key,next)=>setRows(current=>current.map((r,i)=>i===index?{...r,[key]:next}:r))
+ const history:AnyRecord[]=(assignment?.history||[]).filter((h:AnyRecord)=>h.status!=='cancelled'&&h.id!==initialExecution?.id)
+ const setRow=(index:number,key:string,next:unknown)=>setRows(current=>current.map((r,i)=>i===index?{...r,[key]:next}:r))
  const addRow=()=>setRows(current=>[...current,emptyStructuredRow(response.template)])
- async function removeRow(index){
+ async function removeRow(index:number){
   const ok=await confirm({title:en?'Remove row':'Αφαίρεση γραμμής',message:en?'The row will be removed from this entry. Continue?':'Η γραμμή θα αφαιρεθεί από την καταχώρηση. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true})
   if(!ok)return
   setRows(current=>current.length===1?[emptyStructuredRow(response.template)]:current.filter((_,i)=>i!==index))
@@ -105,16 +108,18 @@ function useControlExecution({organizationId,record,department,initialExecution,
  return {en,language,actor,assignment,response,mode,answers,libraries,expiryControl,allOk,setAllOk,structured,isEditing,value,setValue,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,rows,setRows,setRow,addRow,removeRow,evidence,setEvidence,evidenceRequired,outOfRange,hasFinding,valid,history,draftSaved,draftSaving,persistDraft,payload,printDraft}
 }
 
-function LastEntry({state,record}){
+type ExecutionState = ReturnType<typeof useControlExecution>
+
+function LastEntry({state,record}:{state:ExecutionState,record:AnyRecord}){
  const {en,language,history,mode,response}=state
  const last=history[0]
  if(!last||mode==='list')return null
  const shown=mode==='choice'?answerLabel(last.value,language,state.answers):mode==='checklist'?(last.structuredData?.rows?checklistSummary(last.structuredData.rows,language):last.value):`${last.value}${mode==='numeric'&&response.unit?` ${response.unit}`:''}`
- const recent=mode==='numeric'?history.slice(0,5).map(h=>h.value).filter(v=>String(v).trim()):[]
+ const recent=mode==='numeric'?history.slice(0,5).map(h=>h.value).filter((v:unknown)=>String(v).trim()):[]
  return <div className="control-exec-last"><History size={15}/><span>{en?'Last entry':'Τελευταία καταχώρηση'}</span><strong>{shown||'—'}</strong>{last.hasFinding&&<SignalBadge tone="danger">{en?'Finding':'Εύρημα'}</SignalBadge>}<small>{formatDateTime(last.at,language)}{last.by?` · ${last.by}`:''}</small>{recent.length>1&&<small className="control-exec-trend">{en?'Recent':'Πρόσφατες'}: {recent.join(' · ')}{response.unit?` ${response.unit}`:''}</small>}{record.equipment&&<small>{record.equipment}</small>}</div>
 }
 
-function ResultField({state}){
+function ResultField({state}:{state:ExecutionState}){
  const {en,language,mode,response,value,setValue,outOfRange,answers,history}=state
  const label=(en&&response.label==='Αποτέλεσμα'?'Result':response.label)||(en?'Result':'Αποτέλεσμα')
  if(mode==='choice'){
@@ -126,19 +131,19 @@ function ResultField({state}){
   {(response.min!==''&&response.min!=null||response.max!==''&&response.max!=null)&&<div className={`control-exec-range${outOfRange?' danger':''}`}><span>{en?'Acceptable range':'Αποδεκτά όρια'}</span><strong>{response.min??'—'} – {response.max??'—'} {response.unit||''}</strong>{outOfRange&&<SignalBadge tone="danger">{en?'Out of range':'Εκτός ορίων'}</SignalBadge>}</div>}
  </div>
  // Free text: what earlier entries recorded is one click away.
- const recent=[...new Set(history.map(h=>String(h.value||'').trim()).filter(Boolean))].slice(0,8)
+ const recent=[...new Set<string>(history.map(h=>String(h.value||'').trim()).filter(Boolean))].slice(0,8)
  return <SearchableSelect className="control-exec-result" label={`${label} *`} value={value} options={recent.map(v=>({value:v,label:v}))} recentValues={recent} recentLabel={en?'Recorded before':'Έχουν καταχωρηθεί'} onChange={setValue} allowCustom placeholder={en?'Enter result':'Καταχωρήστε αποτέλεσμα'} customLabel={text=>text} emptyLabel=""/>
 }
 
-function ChecklistEntry({state}){
+function ChecklistEntry({state}:{state:ExecutionState}){
  const {language,rows,setRow,setRows}=state
- return <ChecklistAnswers rows={rows} language={language} onRowChange={setRow} onRowsChange={next=>setRows(()=>next)}/>
+ return <ChecklistAnswers rows={rows as ChecklistRow[]} language={language} onRowChange={setRow} onRowsChange={next=>setRows(()=>next)}/>
 }
 
-function FindingsList({state}){
+function FindingsList({state}:{state:ExecutionState}){
  const {en,rows,setRow,addRow,removeRow,history}=state
  // Items recorded before in this department are suggested first.
- const known=[...new Set(history.flatMap(h=>(h.structuredData?.rows||[]).map(r=>String(r.item||'').trim())).filter(Boolean))]
+ const known=[...new Set<string>(history.flatMap(h=>(h.structuredData?.rows||[]).map((r:AnyRecord)=>String(r.item||'').trim())).filter(Boolean))]
  return <section className="control-exec-findings">
   <SectionHeader title={en?'Findings list':'Λίστα ευρημάτων'} subtitle={en?'Add a row only when there is something to record.':'Προσθέστε γραμμή μόνο όταν υπάρχει κάτι προς καταγραφή.'} actions={<Button variant="secondary" onClick={addRow}><Plus size={15}/> {en?'Add row':'Προσθήκη γραμμής'}</Button>}/>
   <RegistryTable className="control-exec-table" wrapperClassName="control-exec-table-wrap" columns={[{key:'item',label:en?'Item':'Στοιχείο'},{key:'finding',label:en?'Finding':'Εύρημα'},{key:'action',label:en?'Action':'Ενέργεια'},{key:'remove',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'}]} rows={rows} rowKey={(_,i)=>i} renderRow={(r,i)=><>
@@ -151,7 +156,7 @@ function FindingsList({state}){
  </section>
 }
 
-function ExecutionFields({state,record,department}){
+function ExecutionFields({state,record,department}:{state:ExecutionState,record:AnyRecord,department:string}){
  const {en,language,mode,expiryControl,allOk,setAllOk,rows,setRow,addRow,removeRow,setRows,libraries,history,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,hasFinding,isEditing,evidence,setEvidence,evidenceRequired}=state
  const guidance=[[en?'Goal':'Στόχος',record.goal],[en?'Acceptance criteria':'Κριτήρια αποδοχής',record.acceptanceCriteria],[en?'Instructions':'Οδηγίες',record.description],[en?'Guidance notes':'Σημειώσεις καθοδήγησης',record.guideNotes]].filter(([,text])=>text)
  return <>
@@ -167,9 +172,9 @@ function ExecutionFields({state,record,department}){
    :<ResultField state={state}/>}
   <div className="control-exec-bottom">
    {/* A medicines/supplies check records each item in its table: no result or points boxes. */}
-   {!expiryControl&&<Field label={en?'Result details':'Αναλυτικό αποτέλεσμα'}><textarea value={resultText} onChange={e=>setResultText(e.target.value)} rows="2" placeholder={en?'Optional, the result in words…':'Προαιρετικό, το αποτέλεσμα αναλυτικά…'}/></Field>}
-   {!expiryControl&&<Field label={en?'Points checked':'Σημεία ελέγχου'}><textarea value={checkedPoints} onChange={e=>setCheckedPoints(e.target.value)} rows="2" placeholder={en?'Optional, which points were checked…':'Προαιρετικό, ποια σημεία ελέγχθηκαν…'}/></Field>}
-   <Field label={expiryControl?(en?'Notes on the check':'Σημειώσεις ελέγχου'):(en?'Notes':'Σημειώσεις')}><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="2" placeholder={en?'Optional notes…':'Προαιρετικές παρατηρήσεις…'}/></Field>
+   {!expiryControl&&<Field label={en?'Result details':'Αναλυτικό αποτέλεσμα'}><textarea value={resultText} onChange={e=>setResultText(e.target.value)} rows={2} placeholder={en?'Optional, the result in words…':'Προαιρετικό, το αποτέλεσμα αναλυτικά…'}/></Field>}
+   {!expiryControl&&<Field label={en?'Points checked':'Σημεία ελέγχου'}><textarea value={checkedPoints} onChange={e=>setCheckedPoints(e.target.value)} rows={2} placeholder={en?'Optional, which points were checked…':'Προαιρετικό, ποια σημεία ελέγχθηκαν…'}/></Field>}
+   <Field label={expiryControl?(en?'Notes on the check':'Σημειώσεις ελέγχου'):(en?'Notes':'Σημειώσεις')}><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={2} placeholder={en?'Optional notes…':'Προαιρετικές παρατηρήσεις…'}/></Field>
    {!isEditing&&<ControlEvidencePicker files={evidence} onChange={setEvidence} required={evidenceRequired} language={language}/>}
   </div>
   {hasFinding&&<ControlDeviationActions text={deviationActions(record,department)} language={language}/>}
@@ -178,16 +183,17 @@ function ExecutionFields({state,record,department}){
 
 // An extra entry («Έκτακτη καταχώρηση») once the period's required entries
 // are done: only with its reason, recorded as such and not counted.
-export function ControlExtraEntryDialog({language,progress,onClose,onConfirm}){
+export function ControlExtraEntryDialog({language,progress,onClose,onConfirm}:{language:string,progress:AnyRecord|null,onClose:()=>void,onConfirm:(reason:string)=>void}){
  const en=language==='en'
  const [reason,setReason]=useState('')
  return <ObserverDialog width="compact" className="control-extra-card" eyebrow={en?'Extra entry':'Έκτακτη καταχώρηση'} title={en?'Record an extra entry':'Καταχώρηση πέρα από τις απαιτούμενες'} subtitle={progressCompleteMessage(progress,language)} onClose={onClose} footer={<DialogActions onSave={()=>{if(reason.trim())onConfirm(reason.trim())}} disabled={!reason.trim()} saveLabel={en?'Continue':'Συνέχεια'}/>}>
   <div className="governance-banner warning"><FileWarning size={17}/><span>{en?'An extra entry is kept with its reason and shown as extra. It does not count towards the required entries or the adherence.':'Η έκτακτη καταχώρηση φυλάσσεται με την αιτιολογία της και εμφανίζεται ως έκτακτη. Δεν μετρά στις απαιτούμενες καταχωρήσεις ούτε στην τήρηση.'}</span></div>
-  <label className="field"><span>{en?'Reason *':'Αιτιολογία *'}</span><textarea autoFocus rows="3" value={reason} onChange={e=>setReason(e.target.value)} placeholder={en?'e.g. repeat measurement after a deviation':'π.χ. επαναληπτική μέτρηση μετά από απόκλιση'}/></label>
+  <label className="field"><span>{en?'Reason *':'Αιτιολογία *'}</span><textarea autoFocus rows={3} value={reason} onChange={e=>setReason(e.target.value)} placeholder={en?'e.g. repeat measurement after a deviation':'π.χ. επαναληπτική μέτρηση μετά από απόκλιση'}/></label>
  </ObserverDialog>
 }
 
-export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved,onExportChange}){
+interface ControlExecutionEditorProps { organizationId:string|null|undefined, record:AnyRecord, department:string, onSave?:(payload:AnyRecord)=>unknown, onDraftSaved?:(draft:AnyRecord)=>void, onExportChange?:((items:AnyRecord[]|null)=>void)|null }
+export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved,onExportChange}:ControlExecutionEditorProps){
  const state=useControlExecution({organizationId,record,department,onDraftSaved})
  const {en,language,actor,assignment,structured,expiryControl,hasFinding,valid,draftSaved,draftSaving,persistDraft,payload,printDraft,value,notes,rows}=state
  const navigate=useNavigate()
@@ -233,7 +239,8 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
 }
 
 // Correcting a saved entry: the same fields in a dialog, with a confirmation.
-export function ControlExecutionModal({organizationId,record,department,onClose,onSave,initialExecution}){
+interface ControlExecutionModalProps { organizationId:string|null|undefined, record:AnyRecord, department:string, onClose:()=>void, onSave:(payload:AnyRecord)=>unknown, initialExecution:AnyRecord }
+export function ControlExecutionModal({organizationId,record,department,onClose,onSave,initialExecution}:ControlExecutionModalProps){
  const state=useControlExecution({organizationId,record,department,initialExecution})
  const {en,language,actor,structured,valid,payload,printDraft}=state
  const [confirmed,setConfirmed]=useState(false)

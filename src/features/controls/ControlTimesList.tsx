@@ -5,16 +5,17 @@ import { IconButton } from '../../design-system/IconButton'
 export const MAX_TIMES = 12
 
 // The next time offered by «+ Time»: 4 hours after the last one, at most 23:00.
-export function nextTime(times) {
+export function nextTime(times: string[]) {
   const last = String(times[times.length - 1] || '04:00')
   const hour = Math.min(23, (Number(last.slice(0, 2)) || 0) + 4)
   return `${String(hour).padStart(2, '0')}:${last.slice(3, 5) || '00'}`
 }
 
 // The times of a daily control: only the list of times, the number per day follows from it.
-export function ControlTimesList({ times, onChange, language, className = 'control-editor-times' }) {
+interface ControlTimesListProps { times: string[], onChange: (times: string[]) => void, language: string, className?: string }
+export function ControlTimesList({ times, onChange, language, className = 'control-editor-times' }: ControlTimesListProps) {
   const en = language === 'en'
-  const replace = (index, value) => onChange(times.map((time, i) => (i === index ? value : time)))
+  const replace = (index: number, value: string) => onChange(times.map((time, i) => (i === index ? value : time)))
   return <div className={className}>
     <span className="lo-field-label"><CalendarClock size={13} /> {en ? 'Execution times *' : 'Ώρες εκτέλεσης *'}</span>
     <div className="control-time-grid">

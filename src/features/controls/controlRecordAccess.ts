@@ -2,17 +2,18 @@
 // on, and the record's overall status across the user's departments.
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { assignmentProgress, assignmentStatus, getAssignment, isControlDue } from './controlScheduling'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The department the record opens on: the one asked for in the link, else the
 // user's own, else the first one the user can see. Only visible ones qualify.
-export function pickControlDepartment(visibleDepartments = [], requested = '', own = '') {
+export function pickControlDepartment(visibleDepartments: string[] = [], requested = '', own = '') {
   if (requested && visibleDepartments.includes(requested)) return requested
   if (own && visibleDepartments.includes(own)) return own
   return visibleDepartments[0] || ''
 }
 
 // Overdue in any department wins, then due soon, otherwise scheduled.
-export function controlOverallStatus(record, departments = []) {
+export function controlOverallStatus(record: AnyRecord, departments: string[] = []) {
   const states = departments.map(department => assignmentStatus(record, department))
   if (states.includes('overdue')) return 'overdue'
   if (states.includes('dueSoon')) return 'dueSoon'
@@ -21,10 +22,11 @@ export function controlOverallStatus(record, departments = []) {
 
 // allDepartmentsVisible: every department the control is assigned to is one
 // the user can access (a department manager's own departments).
-export function controlRecordPermissions({ role, membership, record, actorId, allDepartmentsVisible = false }) {
+interface ControlRecordPermissionsOptions { role: string | null | undefined, membership?: AnyRecord | null, record: AnyRecord, actorId?: string | null, allDepartmentsVisible?: boolean }
+export function controlRecordPermissions({ role, membership, record, actorId, allDepartmentsVisible = false }: ControlRecordPermissionsOptions) {
   const addOns = membership?.capabilities ?? []
   const custom = membership?.customCapabilities ?? []
-  const has = capability => can(role, capability, addOns, custom)
+  const has = (capability: string) => can(role, capability, addOns, custom)
 
   const canManageControls = has(CAPABILITIES.MANAGE_CONTROLS)
   const hasExecuteCapability = has(CAPABILITIES.EXECUTE_CONTROL)
@@ -44,15 +46,15 @@ export function controlRecordPermissions({ role, membership, record, actorId, al
   // or when a draft execution is waiting; control managers may execute any time.
   // Once the period's entries are complete the entry screen opens to say so and
   // to offer an extra entry, with its reason.
-  const canExecuteDepartment = department => {
+  const canExecuteDepartment = (department: string) => {
     const assignment = getAssignment(record, department)
-    return Boolean(assignment) && hasExecuteCapability && (Boolean(assignment.hasDraft) || canManageControls || isControlDue(record, department) || Boolean(assignmentProgress(record, department)?.complete))
+    return Boolean(assignment) && hasExecuteCapability && (Boolean(assignment!.hasDraft) || canManageControls || isControlDue(record, department) || Boolean(assignmentProgress(record, department)?.complete))
   }
 
   // Only completed executions can be voided or corrected. A correction is open
   // to control managers, or to the person who carried the execution out.
-  const canVoidHistory = entry => entry.status === 'completed' && canVoidExecution
-  const canEditHistory = entry => entry.status === 'completed' && canEditExecution && (canManageControls || entry.actorId === actorId)
+  const canVoidHistory = (entry: AnyRecord) => entry.status === 'completed' && canVoidExecution
+  const canEditHistory = (entry: AnyRecord) => entry.status === 'completed' && canEditExecution && (canManageControls || entry.actorId === actorId)
 
   return {
     canManageControls,

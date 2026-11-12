@@ -3,6 +3,7 @@ import { Field } from '../../design-system/Field'
 import { YesNoField } from '../../design-system/YesNoField'
 import { frequencyLabel, scheduleSummary } from './controlScheduling'
 import { ControlTimesList } from './ControlTimesList'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const KINDS = ['daily', 'weekly', 'monthly', 'yearly', 'custom']
 
@@ -11,16 +12,17 @@ const KINDS = ['daily', 'weekly', 'monthly', 'yearly', 'custom']
 // compact: one department in the editor's «Departments» table, in two parts:
 // part 'summary' is the cell («Same for all» + «Change», or its own schedule + «Same for all»),
 // part 'fields' the schedule's fields, shown full width under the department's row.
-export function ControlDepartmentSchedules({ departments = [], base, value = {}, onChange, en, kindLabels, selectText, compact = false, part = 'summary' }) {
+interface ControlDepartmentSchedulesProps { departments?: string[], base: AnyRecord, value?: Record<string, AnyRecord>, onChange: (value: Record<string, AnyRecord>) => void, en: boolean, kindLabels: Record<string, string>, selectText: AnyRecord, compact?: boolean, part?: string }
+export function ControlDepartmentSchedules({ departments = [], base, value = {}, onChange, en, kindLabels, selectText, compact = false, part = 'summary' }: ControlDepartmentSchedulesProps) {
   if (departments.length < 2 && !compact) return null
-  const own = department => value[department] || null
-  const startOwn = department => onChange({ ...value, [department]: { ...base, times: [...(base.times || [])] } })
-  const stopOwn = department => {
+  const own = (department: string) => value[department] || null
+  const startOwn = (department: string) => onChange({ ...value, [department]: { ...base, times: [...(base.times || [])] } })
+  const stopOwn = (department: string) => {
     const next = { ...value }
     delete next[department]
     onChange(next)
   }
-  const patch = (department, changes) => onChange({ ...value, [department]: { ...own(department), ...changes } })
+  const patch = (department: string, changes: AnyRecord) => onChange({ ...value, [department]: { ...own(department), ...changes } })
   if (compact && part === 'summary') {
     const department = departments[0]
     const frequency = own(department)

@@ -1,15 +1,17 @@
 // A department's own limits and deviation text. A control that several departments share keeps one
 // response_config; an assignment may carry what differs for its department (response_override):
 // min and max (an empty one means no limit there) and deviationActions.
-const numberText=value=>value===''||value==null?'':String(value).trim()
+import type { AnyRecord } from '../../types/featureTypes'
+
+const numberText=(value:unknown)=>value===''||value==null?'':String(value).trim()
 const KEYS=['min','max','deviationActions']
 
-export function assignmentOverride(record,department){
+export function assignmentOverride(record:AnyRecord|null|undefined,department:string){
  return record?.assignments?.[department]?.responseOverride||null
 }
 
 // The response settings that apply in a department: the control's, with the department's own on top.
-export function assignmentResponse(record,department){
+export function assignmentResponse(record:AnyRecord|null|undefined,department:string):AnyRecord{
  const base=record?.responseConfig||{}
  const own=assignmentOverride(record,department)
  if(!own)return base
@@ -19,9 +21,9 @@ export function assignmentResponse(record,department){
 }
 
 // What is saved for a department: only the keys that differ from the control's; null = the control's.
-export function cleanDepartmentResponse(own,base){
+export function cleanDepartmentResponse(own:AnyRecord|null|undefined,base:AnyRecord|null|undefined){
  if(!own||typeof own!=='object')return null
- const cleaned={}
+ const cleaned:AnyRecord={}
  for(const key of ['min','max']){
   if(own[key]===undefined)continue
   const value=numberText(own[key])
@@ -35,7 +37,7 @@ export function cleanDepartmentResponse(own,base){
 }
 
 // «0–25 °C», «≥ 18 °C», «≤ 25 °C» or an empty text when the department has no limit.
-export function limitsText(response){
+export function limitsText(response:AnyRecord|null|undefined){
  const min=numberText(response?.min),max=numberText(response?.max)
  const unit=response?.unit?` ${response.unit}`:''
  if(min!==''&&max!=='')return `${min} – ${max}${unit}`
@@ -45,9 +47,9 @@ export function limitsText(response){
 }
 
 // How many different limit/deviation settings the departments of a control have.
-export function responseVariants(record,departments){
+export function responseVariants(record:AnyRecord|null|undefined,departments?:string[]|null){
  const list=departments?.length?departments:Object.keys(record?.assignments||{})
- return new Set(list.map(department=>{
+ return new Set(list.map((department:string)=>{
   const response=assignmentResponse(record,department)
   return JSON.stringify([numberText(response.min),numberText(response.max),String(response.deviationActions||'').trim()])
  })).size

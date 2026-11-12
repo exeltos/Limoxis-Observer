@@ -4,23 +4,29 @@
 // removed or replaced. The control definition sets how many days before expiry
 // an item starts to alert, and for how many days after expiry it keeps alerting.
 
+import type { AnyRecord } from '../../types/featureTypes'
+
+type Rec = AnyRecord | null | undefined
+// An item on a department's expiry list (expiryItems).
+export type ExpiryItem = AnyRecord
+
 export const DEFAULT_EXPIRY_BEFORE_DAYS=30
 export const DEFAULT_EXPIRY_AFTER_DAYS=7
 const DAY=86_400_000
 
-export function isExpiryControl(record){
+export function isExpiryControl(record:Rec){
  const response=record?.responseConfig||{}
  return response.mode==='list'&&response.template==='medication_expiry'
 }
 
-export function expiryWindow(record){
+export function expiryWindow(record:Rec){
  const response=record?.responseConfig||{}
- const days=(value,fallback)=>{const n=Number(value);return value!==''&&value!=null&&Number.isFinite(n)&&n>=0?Math.round(n):fallback}
+ const days=(value:unknown,fallback:number)=>{const n=Number(value);return value!==''&&value!=null&&Number.isFinite(n)&&n>=0?Math.round(n):fallback}
  return {before:days(response.expiryBeforeDays,DEFAULT_EXPIRY_BEFORE_DAYS),after:days(response.expiryAfterDays,DEFAULT_EXPIRY_AFTER_DAYS)}
 }
 
-function startOfDay(value){const d=new Date(value);d.setHours(0,0,0,0);return d}
-function parseDay(value){
+function startOfDay(value:Date|string|number){const d=new Date(value);d.setHours(0,0,0,0);return d}
+function parseDay(value:unknown){
  const text=String(value||'').trim()
  const iso=text.match(/^(\d{4})-(\d{2})-(\d{2})/)
  if(iso)return new Date(Number(iso[1]),Number(iso[2])-1,Number(iso[3]))
@@ -30,13 +36,13 @@ function parseDay(value){
 }
 
 // Days from today to the expiry date: negative once the item has expired.
-export function daysToExpiry(expiry,now=new Date()){
+export function daysToExpiry(expiry:unknown,now:Date|string|number=new Date()){
  const day=parseDay(expiry)
- return day?Math.round((day-startOfDay(now))/DAY):null
+ return day?Math.round((day.getTime()-startOfDay(now).getTime())/DAY):null
 }
 
 // 'expired' | 'expiring' | 'ok' | 'unknown', plus whether it alerts today.
-export function expiryState(expiry,{before,after},now=new Date()){
+export function expiryState(expiry:unknown,{before,after}:{before:number,after:number},now:Date|string|number=new Date()){
  const days=daysToExpiry(expiry,now)
  if(days==null)return {state:'unknown',days:null,alert:false}
  if(days<0)return {state:'expired',days,alert:-days<=after}
@@ -44,8 +50,8 @@ export function expiryState(expiry,{before,after},now=new Date()){
  return {state:'ok',days,alert:false}
 }
 
-const hasItem=row=>String(row?.item||'').trim()&&String(row?.expiry||'').trim()
-const itemKey=row=>String(row?.item||'').trim().toLocaleLowerCase('el')
+const hasItem=(row:Rec)=>String(row?.item||'').trim()&&String(row?.expiry||'').trim()
+const itemKey=(row:Rec)=>String(row?.item||'').trim().toLocaleLowerCase('el')
 
 // What a listed item is: tablet, ampoule, vial, … (stored as the key).
 export const ITEM_FORMS=[
@@ -53,8 +59,8 @@ export const ITEM_FORMS=[
  ['flacon','Φλακόν','Flacon'],['bottle','Φιάλη','Bottle'],['bag','Ασκός','Bag'],['tube','Σωληνάριο','Tube'],['piece','Τεμάχιο','Piece'],['pack','Συσκευασία','Pack'],['other','Άλλο','Other'],
 ]
 // A form stored as a key (tablet) or as an itemForms library code (FORM-TABLET).
-export const formKey=value=>String(value||'').replace(/^FORM-/,'').toLowerCase()
-export function formLabel(form,language='el'){
+export const formKey=(value:unknown)=>String(value||'').replace(/^FORM-/,'').toLowerCase()
+export function formLabel(form:unknown,language='el'){
  const match=ITEM_FORMS.find(([key])=>key===formKey(form))
  return match?(language==='en'?match[2]:match[1]):String(form||'')
 }
@@ -67,25 +73,25 @@ export function formLabel(form,language='el'){
 // short-dated items): those rows are findings of that day, listed check by check
 // (state 'finding'). They are not stock on a list: they never count as expired or
 // expiring, never alert, and the next check does not start from them.
-export function expiryItems(record,departments,now=new Date()){
+export function expiryItems(record:Rec,departments:string[]|null|undefined,now:Date|string|number=new Date()){
  const window=expiryWindow(record)
- const items=[]
+ const items:ExpiryItem[]=[]
  for(const department of departments||[]){
-  const history=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
+  const history:AnyRecord[]=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime())
   if(recordsFindingsOnly(record,department)){
    for(const execution of history){
     if(execution.status==='cancelled')continue
-    ;(execution.structuredData?.rows||[]).forEach((row,index)=>{
+    ;(execution.structuredData?.rows||[]).forEach((row:AnyRecord,index:number)=>{
      if(!String(row?.item||'').trim())return
      items.push({key:`${department}|${execution.id}|${index}`,department,execution,index,row,source:'finding',state:'finding',days:daysToExpiry(row.expiry,now),alert:false})
     })
    }
    continue
   }
-  const recorded=new Set()
+  const recorded=new Set<string>()
   for(const execution of history){
    if(execution.status==='cancelled')continue
-   const rows=execution.structuredData?.rows||[]
+   const rows:AnyRecord[]=execution.structuredData?.rows||[]
    rows.forEach((row,index)=>{
     if(!hasItem(row)||row.removedAt||recorded.has(itemKey(row)))return
     items.push({key:`${department}|${execution.id}|${index}`,department,execution,index,row,source:'entry',...expiryState(row.expiry,window,now)})
@@ -101,9 +107,9 @@ export function expiryItems(record,departments,now=new Date()){
 }
 
 // Items on lists first, soonest expiry first; then the findings, latest check first.
-export function compareExpiryItems(a,b){
- const finding=x=>x.state==='finding'?1:0
- return finding(a)-finding(b)||(finding(a)?new Date(b.execution?.at||0)-new Date(a.execution?.at||0):(a.days??Infinity)-(b.days??Infinity))
+export function compareExpiryItems(a:ExpiryItem,b:ExpiryItem){
+ const finding=(x:ExpiryItem)=>x.state==='finding'?1:0
+ return finding(a)-finding(b)||(finding(a)?new Date(b.execution?.at||0).getTime()-new Date(a.execution?.at||0).getTime():(a.days??Infinity)-(b.days??Infinity))
 }
 
 // The control's list of medicines and supplies:
@@ -111,31 +117,31 @@ export function compareExpiryItems(a,b){
 // empty departments list means every department of the control, quantity is the
 // expected quantity, category is 'medicine' | 'supply' and ingredient the active substance.
 export const ITEM_CATEGORIES=[['medicine','Φάρμακα','Medicines'],['supply','Υλικά','Supplies']]
-export function catalogueItem({item='',quantity='',form='',expiry='',note='',noteEn='',departments=[],category='',ingredient=''}={}){
+export function catalogueItem({item='',quantity='',form='',expiry='',note='',noteEn='',departments=[],category='',ingredient=''}:{item?:string,quantity?:string,form?:string,expiry?:string,note?:string,noteEn?:string,departments?:string[],category?:string,ingredient?:string}={}){
  return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),quantity:String(quantity??'').trim(),form:String(form||''),expiry:String(expiry||''),note:String(note||''),noteEn:String(noteEn||''),departments:[...departments],category:String(category||''),ingredient:String(ingredient||'').trim()}
 }
 // Fewer than expected were found: both numbers are known and the count is short.
-export function quantityShort(row){
+export function quantityShort(row:Rec){
  const expected=Number(String(row?.expected??'').replace(',','.')),found=Number(String(row?.quantity??'').replace(',','.'))
  return String(row?.expected??'').trim()!==''&&String(row?.quantity??'').trim()!==''&&Number.isFinite(expected)&&Number.isFinite(found)&&found<expected
 }
-export function expiryCatalogue(record){
+export function expiryCatalogue(record:Rec):AnyRecord[]{
  const list=record?.responseConfig?.expiryCatalogue
- return Array.isArray(list)?list.filter(entry=>String(entry?.item||'').trim()).map(entry=>({...entry,form:entry.form||entry.unit||''})):[]
+ return Array.isArray(list)?list.filter((entry:AnyRecord)=>String(entry?.item||'').trim()).map((entry:AnyRecord)=>({...entry,form:entry.form||entry.unit||''})):[]
 }
-export function catalogueForDepartment(record,department){
+export function catalogueForDepartment(record:Rec,department:string){
  return expiryCatalogue(record).filter(entry=>!entry.departments?.length||entry.departments.includes(department))
 }
 // No list for this department: its checks record findings only (see expiryItems).
-export const recordsFindingsOnly=(record,department)=>catalogueForDepartment(record,department).length===0
+export const recordsFindingsOnly=(record:Rec,department:string)=>catalogueForDepartment(record,department).length===0
 
 // Lines pasted from a spreadsheet: name, quantity, form, expiry (dd/mm/yyyy or
 // yyyy-mm-dd), note, category (medicine / supply) and active substance,
 // separated by tabs or semicolons; only the name is needed.
-export function parseCatalogueLines(text){
- const toIso=value=>{const v=String(value||'').trim();const local=v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);if(local)return `${local[3]}-${local[2].padStart(2,'0')}-${local[1].padStart(2,'0')}`;return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
- const toForm=value=>{const v=String(value||'').trim().toLocaleLowerCase('el');if(!v)return '';const match=ITEM_FORMS.find(([key,el,en])=>[key,el.toLocaleLowerCase('el'),en.toLowerCase()].includes(v));return match?match[0]:'other'}
- const toCategory=value=>{const v=String(value||'').trim().toLocaleLowerCase('el');if(!v)return '';if(/^(φάρμακ|medicine|drug)/.test(v))return 'medicine';if(/^(υλικ|supply|supplies)/.test(v))return 'supply';return ''}
+export function parseCatalogueLines(text:unknown){
+ const toIso=(value:unknown)=>{const v=String(value||'').trim();const local=v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);if(local)return `${local[3]}-${local[2].padStart(2,'0')}-${local[1].padStart(2,'0')}`;return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
+ const toForm=(value:unknown)=>{const v=String(value||'').trim().toLocaleLowerCase('el');if(!v)return '';const match=ITEM_FORMS.find(([key,el,en])=>[key,el.toLocaleLowerCase('el'),en.toLowerCase()].includes(v));return match?match[0]:'other'}
+ const toCategory=(value:unknown)=>{const v=String(value||'').trim().toLocaleLowerCase('el');if(!v)return '';if(/^(φάρμακ|medicine|drug)/.test(v))return 'medicine';if(/^(υλικ|supply|supplies)/.test(v))return 'supply';return ''}
  return String(text||'').split(/\r?\n/).map(line=>line.split(/\t|;/).map(cell=>cell.trim())).filter(cells=>cells[0]).map(([item,quantity='',form='',expiry='',note='',category='',ingredient=''])=>({item,quantity,form:toForm(form),expiry:toIso(expiry),note,category:toCategory(category),ingredient}))
 }
 
@@ -143,11 +149,11 @@ export function parseCatalogueLines(text){
 // listed item plus the items earlier entries added and nobody removed, with what
 // their latest entry recorded (or, before any entry, what the list gives).
 // Each check therefore updates the list the next check opens with.
-export function prefilledExpiryRows(record,department){
+export function prefilledExpiryRows(record:Rec,department:string){
  // Without a list each check starts empty: the last check's findings are not carried over.
  if(recordsFindingsOnly(record,department))return []
- const latest=new Map()
- const history=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
+ const latest=new Map<string,AnyRecord>()
+ const history:AnyRecord[]=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime())
  for(const execution of history){
   if(execution.status==='cancelled')continue
   for(const row of execution.structuredData?.rows||[]){const key=itemKey(row);if(key&&!latest.has(key))latest.set(key,row)}
@@ -155,7 +161,7 @@ export function prefilledExpiryRows(record,department){
  const listed=catalogueForDepartment(record,department)
  const listedKeys=new Set(listed.map(itemKey))
  const added=[...latest.values()].filter(row=>!row.removedAt&&!listedKeys.has(itemKey(row)))
- const toRow=(base,last,expected)=>{
+ const toRow=(base:AnyRecord,last:AnyRecord|undefined,expected:unknown)=>{
   const from=last?(last.removedAt?{}:last):base
   const values={quantity:String(from.quantity||''),lot:String(from.lot||''),expiry:String(from.expiry||'')}
   // previous: what the row held when the entry opened, for the change form.
@@ -165,7 +171,7 @@ export function prefilledExpiryRows(record,department){
  return [...listed.map(entry=>toRow(entry,latest.get(itemKey(entry)),entry.quantity)),...added.map(row=>toRow(row,row,row.expected))]
 }
 
-export function expiryCounts(items){
+export function expiryCounts(items:ExpiryItem[]){
  return {
   expired:items.filter(item=>item.state==='expired').length,
   expiring:items.filter(item=>item.state==='expiring').length,
@@ -175,7 +181,7 @@ export function expiryCounts(items){
 
 // The finding an item's expiry date implies, for rows left without one: a code
 // ('expired' | 'expiring'), shown in the screen's language (controlVocabulary).
-export function impliedFinding(row,window,now=new Date()){
+export function impliedFinding(row:Rec,window:{before:number,after:number},now:Date|string|number=new Date()){
  const {state}=expiryState(row?.expiry,window,now)
  if(state==='expired')return state
  if(quantityShort(row))return 'shortage'
@@ -184,18 +190,18 @@ export function impliedFinding(row,window,now=new Date()){
 }
 
 // The entry's structured data with one row marked as removed or replaced.
-export function markRowRemoved(execution,index,{actorName='',at=new Date().toISOString()}={}){
+export function markRowRemoved(execution:AnyRecord,index:number,{actorName='',at=new Date().toISOString()}:{actorName?:string,at?:string}={}){
  const structured=execution.structuredData||{rows:[]}
- return {...structured,rows:(structured.rows||[]).map((row,i)=>i===index?{...row,removedAt:at,removedBy:actorName}:row)}
+ return {...structured,rows:(structured.rows||[]).map((row:AnyRecord,i:number)=>i===index?{...row,removedAt:at,removedBy:actorName}:row)}
 }
 
 // One bell item per control and department with items that alert today.
-export function expiryAlerts(programme,{canSee=()=>true,language='el',now=new Date()}={}){
+export function expiryAlerts(programme:AnyRecord[]|null|undefined,{canSee=()=>true,language='el',now=new Date()}:{canSee?:(record:AnyRecord,department:string)=>boolean,language?:string,now?:Date}={}){
  const en=language==='en'
- const alerts=[]
+ const alerts:AnyRecord[]=[]
  for(const record of programme||[]){
   if(!isExpiryControl(record))continue
-  const visible=(record.departments||[]).filter(dep=>canSee(record,dep))
+  const visible:string[]=(record.departments||[]).filter((dep:string)=>canSee(record,dep))
   for(const department of visible){
    const items=expiryItems(record,[department],now).filter(item=>item.alert)
    if(!items.length)continue
@@ -216,4 +222,4 @@ export function expiryAlerts(programme,{canSee=()=>true,language='el',now=new Da
 
 // A note in the screen's language: the standard template notes also carry an English text,
 // which stays until someone edits the note.
-export const noteText=(row,language)=>language==='en'&&row?.noteEn?row.noteEn:String(row?.note||'')
+export const noteText=(row:Rec,language:string)=>language==='en'&&row?.noteEn?row.noteEn:String(row?.note||'')

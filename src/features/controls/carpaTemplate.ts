@@ -4,8 +4,8 @@
 // (neonate tray of the maternity ward). A control's list starts from one of them
 // with one click; the quantities are the expected ones and each department's head
 // fills in the expiry dates. A note comes in both languages (noteEn).
-const med=(item,ingredient,quantity,form='ampoule',note=['',''])=>({item,ingredient,quantity:String(quantity),form,note:note[0],noteEn:note[1],category:'medicine'})
-const sup=(item,quantity,note=['',''])=>({item,ingredient:'',quantity:String(quantity),form:'piece',note:note[0],noteEn:note[1],category:'supply'})
+const med=(item:string,ingredient:string,quantity:number,form='ampoule',note=['',''])=>({item,ingredient,quantity:String(quantity),form,note:note[0],noteEn:note[1],category:'medicine'})
+const sup=(item:string,quantity:number,note=['',''])=>({item,ingredient:'',quantity:String(quantity),form:'piece',note:note[0],noteEn:note[1],category:'supply'})
 
 const PER_TYPE=['2 ανά είδος','2 per type']
 

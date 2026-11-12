@@ -1,5 +1,6 @@
 import { cleanDepartmentResponse } from './controlResponse'
-import { supabase } from '../../core/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { supabase as cloudSupabase } from '../../core/supabase/client'
 import { firstDue,nextDueAfterExecution,periodBounds,periodProgress } from './controlDueRules'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { deleteAttachment,uploadAttachment } from '../../core/attachments/attachmentService'
@@ -7,18 +8,29 @@ import { evidenceSummary } from './controlCriticality'
 import { loadControlDefinitionsLocal,saveControlDefinitionsLocal,loadControlAssignmentsLocal,saveControlAssignmentsLocal,loadControlExecutionsLocal,saveControlExecutionsLocal,loadControlDraftsLocal,saveControlDraftsLocal } from './controlStore'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 import { selectAllPages } from '../../core/data/inChunks'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlRecord } from './controlTypes'
 
-const demoId=prefix=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`
-const demoResolveDepartments=(names=[])=>(names||[]).filter(Boolean).map(name=>({id:name,name}))
+// The same mappers read the database rows and the demo's local rows, and the
+// payloads are built from the screens' records: the service talks to the client
+// without the generated types. assertCloud checks it before every read or write.
+const supabase = cloudSupabase as unknown as SupabaseClient
+type OrgId = string | null | undefined
+type Instant = Date | string | number
+// What an entry form saves: the value, the texts, the structured rows, the evidence and who.
+export type ExecutionPayload = AnyRecord
 
-const cleanResponseConfig=value=>{
+const demoId=(prefix:string)=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`
+const demoResolveDepartments=(names:string[]=[])=>(names||[]).filter(Boolean).map(name=>({id:name,name}))
+
+const cleanResponseConfig=(value:AnyRecord|null|undefined)=>{
  const next={...(value||{})}
  const meta=next.__meta||{}
  delete next.__meta
  return {config:next,meta}
 }
 
-function mapExecution(row){
+function mapExecution(row:AnyRecord):AnyRecord{
  const response=row.response_data||{}
  return {
   id:row.id,
@@ -57,7 +69,7 @@ const startOfToday=()=>{const d=new Date();d.setHours(0,0,0,0);return d}
 // how many there are, how many today, findings and the latest one. In the cloud
 // the database counts them (control_assignment_summary); the demo counts its
 // local rows the same way.
-export function summarizeHistory(history=[],todayFrom=startOfToday()){
+export function summarizeHistory(history:AnyRecord[]=[],todayFrom=startOfToday()){
  const valid=history.filter(h=>h.status!=='cancelled')
  return {
   executions:valid.length,
@@ -69,20 +81,20 @@ export function summarizeHistory(history=[],todayFrom=startOfToday()){
 const EMPTY_SUMMARY={executions:0,today:0,findings:0,lastPerformedAt:null}
 
 // A department's own schedule as saved: only what differs from the control's, with its filled times; null = the control's.
-function cleanDepartmentFrequency(own,fallback){
+function cleanDepartmentFrequency(own:AnyRecord|null|undefined,fallback:AnyRecord|null|undefined){
  if(!own||typeof own!=='object')return null
  const cleaned={...own,times:(own.times||[]).filter(Boolean)}
  return JSON.stringify(cleaned)===JSON.stringify({...(fallback||{}),times:(fallback?.times||[]).filter(Boolean)})?null:cleaned
 }
 
-function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null,progress=null){
+function mapDefinition(row:AnyRecord,assignments:AnyRecord[]=[],executions:AnyRecord[]=[],drafts:AnyRecord[]=[],summaries:Map<string,AnyRecord>|null=null,progress:Map<string,AnyRecord>|null=null):ControlRecord{
  const {config:responseConfig,meta}=cleanResponseConfig(row.response_config)
  const frequency=row.frequency_config||{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}
  const activeAssignments=assignments.filter(a=>a.control_id===row.id&&a.status!=='paused')
- const assignmentMap={}
+ const assignmentMap:ControlRecord['assignments']={}
  for(const assignment of activeAssignments){
   const department=assignment.department?.name||''
-  const history=executions.filter(x=>x.assignment_id===assignment.id).map(mapExecution).sort((a,b)=>new Date(b.at)-new Date(a.at))
+  const history=executions.filter(x=>x.assignment_id===assignment.id).map(mapExecution).sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime())
   const draft=drafts.find(x=>x.department_id===assignment.department_id&&x.control_id===row.code)
   assignmentMap[department]={
    dbId:assignment.id,
@@ -145,8 +157,9 @@ const ROW_PAGE=1000
 // A filtered read of executions, page by page, so it never stops at the API's
 // row cap. Callers always narrow it (an assignment, a period, findings, the
 // expiry lists); nothing reads an organisation's whole history.
-async function readExecutionPages(build){
- const rows=[]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- a query builder of control_executions
+async function readExecutionPages(build:()=>any):Promise<AnyRecord[]>{
+ const rows:AnyRecord[]=[]
  for(let from=0;;from+=ROW_PAGE){
   const {data,error}=await build().order('performed_at',{ascending:false}).order('id',{ascending:false}).range(from,from+ROW_PAGE-1)
   if(error)throw error
@@ -156,15 +169,16 @@ async function readExecutionPages(build){
 }
 const RECENT_PER_ASSIGNMENT=50
 // Definitions and assignments read page by page as well (past 1,000 the API cut them silently).
-const readPages=build=>selectAllPages(build).then(data=>({data,error:null}),error=>({data:null,error}))
-const isExpiryDefinition=row=>row?.response_config?.mode==='list'&&row?.response_config?.template==='medication_expiry'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- a query builder of any control table
+const readPages=(build:()=>any):Promise<{data:AnyRecord[]|null,error:unknown}>=>selectAllPages(build).then(data=>({data,error:null}),error=>({data:null,error}))
+const isExpiryDefinition=(row:AnyRecord|null|undefined)=>row?.response_config?.mode==='list'&&row?.response_config?.template==='medication_expiry'
 
 // The programme: definitions, assignments, drafts and per-assignment counts.
 // Options: code (one control, with its recent executions for the entry form),
 // findingsSince (executions with a finding since that date, for the CAPA queue),
 // summary:false (definitions only). Expiry controls always bring the entries
 // that carry their item lists.
-export async function loadControlProgramme(organizationId,{code=null,findingsSince=null,summary=true}={}){
+export async function loadControlProgramme(organizationId:OrgId,{code=null,findingsSince=null,summary=true}:{code?:string|null,findingsSince?:Instant|null,summary?:boolean}={}):Promise<ControlRecord[]>{
  if(isDemoDataEnvironment()){
   const definitions=loadControlDefinitionsLocal().filter(row=>!code||row.code===code)
   const assignments=loadControlAssignmentsLocal()
@@ -195,7 +209,7 @@ export async function loadControlProgramme(organizationId,{code=null,findingsSin
  for(const result of [definitionsResult,draftsResult,summaryResult,progressResult,allAssignmentsResult])if(result.error)throw result.error
  const definitions=definitionsResult.data||[]
  if(!definitions.length)return []
- const reads=[findingsRead]
+ const reads:PromiseLike<AnyRecord[]>[]=[findingsRead]
  // Expiry controls bring the entries that carry their item lists (has_item_list,
  // a stored flag the database indexes; see 20261123100100).
  const expiryIds=definitions.filter(isExpiryDefinition).map(row=>row.id)
@@ -209,9 +223,9 @@ export async function loadControlProgramme(organizationId,{code=null,findingsSin
   const activeIds=(assignments||[]).filter(a=>a.status!=='paused').map(a=>a.id)
   if(activeIds.length)reads.push(supabase.rpc('control_recent_executions',{p_organization_id:organizationId,p_assignment_ids:activeIds,p_limit:RECENT_PER_ASSIGNMENT}).then(({data,error})=>{if(error)throw error;return data||[]}))
  }
- const summaries=summary?new Map((summaryResult.data||[]).map(row=>[row.assignment_id,{executions:Number(row.executions)||0,today:Number(row.today)||0,findings:Number(row.findings)||0,lastPerformedAt:row.last_performed_at||null}])):null
+ const summaries=summary?new Map<string,AnyRecord>((summaryResult.data||[]).map((row:AnyRecord)=>[row.assignment_id,{executions:Number(row.executions)||0,today:Number(row.today)||0,findings:Number(row.findings)||0,lastPerformedAt:row.last_performed_at||null}])):null
  const executions=[...new Map((await Promise.all(reads)).flat().map(row=>[row.id,row])).values()]
- const progress=new Map((progressResult.data||[]).map(row=>[row.assignment_id,{start:row.period_start,end:row.period_end,required:Number(row.required)||1,done:Number(row.done)||0,extra:Number(row.extra)||0}]))
+ const progress=new Map<string,AnyRecord>((progressResult.data||[]).map((row:AnyRecord)=>[row.assignment_id,{start:row.period_start,end:row.period_end,required:Number(row.required)||1,done:Number(row.done)||0,extra:Number(row.extra)||0}]))
  return definitions.map(row=>mapDefinition(row,assignments||[],executions,draftsResult.data||[],summaries,progress))
 }
 
@@ -219,7 +233,7 @@ export async function loadControlProgramme(organizationId,{code=null,findingsSin
 // assignments and the entries that carry an item list (no drafts, no counts,
 // no other control). The demo reads its local programme.
 const EXPIRY_EXECUTION_COLUMNS='id,assignment_id,control_id,performed_at,status,response_data'
-export async function loadExpiryProgramme(organizationId){
+export async function loadExpiryProgramme(organizationId:OrgId):Promise<ControlRecord[]>{
  if(isDemoDataEnvironment())return (await loadControlProgramme(organizationId,{summary:false})).filter(row=>row.responseConfig?.mode==='list'&&row.responseConfig?.template==='medication_expiry')
  assertCloud(organizationId)
  const {data:rows,error}=await readPages(()=>supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').eq('response_config->>template','medication_expiry').order('created_at',{ascending:false}).order('id'))
@@ -236,7 +250,7 @@ export async function loadExpiryProgramme(organizationId){
 }
 
 // The categories the programme already uses (the new-control form's suggestions).
-export async function loadControlCategories(organizationId){
+export async function loadControlCategories(organizationId:OrgId):Promise<string[]>{
  const rows=isDemoDataEnvironment()?loadControlDefinitionsLocal():await (async()=>{
   assertCloud(organizationId)
   const {data,error}=await readPages(()=>supabase.from('control_definitions').select('category').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false}).order('id'))
@@ -246,19 +260,19 @@ export async function loadControlCategories(organizationId){
  return [...new Set(rows.map(row=>row.category).filter(Boolean))]
 }
 
-export async function loadControlByCode(organizationId,code){
+export async function loadControlByCode(organizationId:OrgId,code:string){
  const rows=await loadControlProgramme(organizationId,{code})
  return rows.find(row=>row.id===code)||null
 }
 
 // One page of a control's executions (its departments' assignments), latest
 // first, with the total, optionally within [from, to).
-export async function loadControlHistoryPage(organizationId,assignmentIds=[],{page=1,pageSize=15,from=null,to=null,order='desc'}={}){
- const ids=[...new Set(assignmentIds.filter(Boolean))]
+export async function loadControlHistoryPage(organizationId:OrgId,assignmentIds:(string|null|undefined)[]=[],{page=1,pageSize=15,from=null,to=null,order='desc'}:{page?:number,pageSize?:number,from?:Instant|null,to?:Instant|null,order?:string}={}):Promise<{rows:AnyRecord[],total:number}>{
+ const ids:string[]=[...new Set(assignmentIds.filter(Boolean))]
  if(!ids.length)return {rows:[],total:0}
  const start=(Math.max(1,page)-1)*pageSize
  if(isDemoDataEnvironment()){
-  const rows=loadControlExecutionsLocal().filter(row=>ids.includes(row.assignment_id)&&(!from||new Date(row.performed_at)>=new Date(from))&&(!to||new Date(row.performed_at)<new Date(to))).map(mapExecution).sort((a,b)=>(order==='asc'?-1:1)*(new Date(b.at)-new Date(a.at)))
+  const rows=loadControlExecutionsLocal().filter(row=>ids.includes(row.assignment_id)&&(!from||new Date(row.performed_at)>=new Date(from))&&(!to||new Date(row.performed_at)<new Date(to))).map(mapExecution).sort((a,b)=>(order==='asc'?-1:1)*(new Date(b.at).getTime()-new Date(a.at).getTime()))
   return {rows:rows.slice(start,start+pageSize),total:rows.length}
  }
  assertCloud(organizationId)
@@ -273,12 +287,12 @@ export async function loadControlHistoryPage(organizationId,assignmentIds=[],{pa
 // Executions done and on time per assignment in a period, counted by the
 // database (control_adherence_counts). The demo returns null: its local
 // history is complete, so controlAdherence counts it directly.
-export async function loadControlAdherenceCounts(organizationId,{from,to}){
+export async function loadControlAdherenceCounts(organizationId:OrgId,{from,to}:{from:Instant,to:Instant}){
  if(isDemoDataEnvironment())return null
  assertCloud(organizationId)
  const {data,error}=await supabase.rpc('control_adherence_counts',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()})
  if(error)throw error
- return new Map((data||[]).map(row=>[row.assignment_id,{performed:Number(row.performed)||0,onTime:Number(row.on_time)||0}]))
+ return new Map<string,{performed:number,onTime:number}>((data||[]).map((row:AnyRecord)=>[row.assignment_id,{performed:Number(row.performed)||0,onTime:Number(row.on_time)||0}]))
 }
 
 // The regular entries of each assignment per local day of a period, as
@@ -286,19 +300,19 @@ export async function loadControlAdherenceCounts(organizationId,{from,to}){
 // in pages), to name the date and time of each missed execution:
 // Map(assignment id → Map('YYYY-MM-DD' → minutes[])). The demo returns null:
 // its local history is read directly.
-export async function loadControlEntryTimes(organizationId,{from,to}){
+export async function loadControlEntryTimes(organizationId:OrgId,{from,to}:{from:Instant,to:Instant}){
  if(isDemoDataEnvironment())return null
  assertCloud(organizationId)
  const {data,error}=await readPages(()=>supabase.rpc('control_entry_day_times',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()}).order('assignment_id'))
  if(error)throw error
- return new Map((data||[]).map(row=>[row.assignment_id,new Map(Object.entries(row.days||{}).map(([day,minutes])=>[day,(minutes||[]).map(Number)]))]))
+ return new Map<string,Map<string,number[]>>((data||[]).map(row=>[row.assignment_id,new Map(Object.entries(row.days||{}).map(([day,minutes])=>[day,((minutes||[]) as unknown[]).map(Number)]))]))
 }
 
 // The latest regular entry of the hospital's controls: the reports end on its
 // day while the entries are still recorded elsewhere (controlAdherence.reportEnd).
 // The demo returns null: its history runs up to today.
 // The day from which the time of the entries is judged (organizations.controls_on_time_from): earlier entries count as on time.
-export async function loadControlsOnTimeFrom(organizationId){
+export async function loadControlsOnTimeFrom(organizationId:OrgId){
  if(isDemoDataEnvironment()||!organizationId)return null
  assertCloud(organizationId)
  const {data,error}=await supabase.from('organizations').select('controls_on_time_from').eq('id',organizationId).maybeSingle()
@@ -306,7 +320,7 @@ export async function loadControlsOnTimeFrom(organizationId){
  return data?.controls_on_time_from||null
 }
 
-export async function loadControlLastEntryAt(organizationId){
+export async function loadControlLastEntryAt(organizationId:OrgId){
  if(isDemoDataEnvironment())return null
  assertCloud(organizationId)
  const {data,error}=await supabase.from('control_executions').select('performed_at').eq('organization_id',organizationId).neq('status','cancelled').is('cancelled_at',null).order('performed_at',{ascending:false}).limit(1)
@@ -318,15 +332,15 @@ export async function loadControlLastEntryAt(organizationId){
 // minutes after midnight (Athens) of the entries of a period, one list per
 // slot (the k-th entry of a day is slot k), read by control_execution_times.
 // The demo returns null: its local history is read directly.
-export async function loadControlExecutionTimes(organizationId,{from,to}){
+export async function loadControlExecutionTimes(organizationId:OrgId,{from,to}:{from:Instant,to:Instant}){
  if(isDemoDataEnvironment())return null
  assertCloud(organizationId)
  const {data,error}=await supabase.rpc('control_execution_times',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()})
  if(error)throw error
- const byAssignment=new Map()
+ const byAssignment=new Map<string,number[][]>()
  for(const row of data||[]){
   if(!byAssignment.has(row.assignment_id))byAssignment.set(row.assignment_id,[])
-  byAssignment.get(row.assignment_id)[Math.max(0,Number(row.slot)-1)]=(row.minutes||[]).map(Number)
+  byAssignment.get(row.assignment_id)![Math.max(0,Number(row.slot)-1)]=(row.minutes||[]).map(Number)
  }
  return byAssignment
 }
@@ -334,7 +348,7 @@ export async function loadControlExecutionTimes(organizationId,{from,to}){
 // New execution times for one department of a control (the «Times» report):
 // its own schedule, or the control's when they are the same; next_due_at
 // follows the new times from today's progress.
-export async function saveDepartmentTimes(organizationId,item,department,times){
+export async function saveDepartmentTimes(organizationId:OrgId,item:AnyRecord,department:string,times:string[]){
  const assignment=item.assignments?.[department]
  if(!assignment)throw new Error('Assignment not found.')
  const frequency={...(assignment.frequency||item.frequency||{}),times:[...times].filter(Boolean).sort()}
@@ -356,21 +370,21 @@ export async function saveDepartmentTimes(organizationId,item,department,times){
 
 // Per assignment, the twelve months of a year: done, late, and the days for
 // infrequent controls (control_calendar_months, in the viewer's time zone).
-export async function loadControlCalendarMonths(organizationId,year){
+export async function loadControlCalendarMonths(organizationId:OrgId,year:number){
  if(isDemoDataEnvironment())return null
  assertCloud(organizationId)
  const timeZone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'
  const {data,error}=await supabase.rpc('control_calendar_months',{p_organization_id:organizationId,p_year:year,p_time_zone:timeZone})
  if(error)throw error
- const byAssignment=new Map()
+ const byAssignment=new Map<string,AnyRecord[]>()
  for(const row of data||[]){
   if(!byAssignment.has(row.assignment_id))byAssignment.set(row.assignment_id,Array.from({length:12},()=>({done:0,late:0,marks:[]})))
-  byAssignment.get(row.assignment_id)[row.month]={done:Number(row.done)||0,late:Number(row.late)||0,marks:Array.isArray(row.marks)?row.marks:[]}
+  byAssignment.get(row.assignment_id)![row.month]={done:Number(row.done)||0,late:Number(row.late)||0,marks:Array.isArray(row.marks)?row.marks:[]}
  }
  return byAssignment
 }
 
-async function resolveDepartments(organizationId,names=[]){
+async function resolveDepartments(organizationId:OrgId,names:string[]=[]):Promise<AnyRecord[]>{
  if(!names.length)return []
  const {data,error}=await supabase.from('departments').select('id,name').eq('organization_id',organizationId).in('name',names).eq('is_active',true)
  if(error)throw error
@@ -386,9 +400,9 @@ function controlCode(){
 }
 
 // The control's texts, each in its own column.
-const definitionTexts=draft=>({goal:draft.goal?.trim()||null,acceptance_criteria:draft.acceptanceCriteria?.trim()||null,guide_notes:draft.guideNotes?.trim()||null})
+const definitionTexts=(draft:AnyRecord)=>({goal:draft.goal?.trim()||null,acceptance_criteria:draft.acceptanceCriteria?.trim()||null,guide_notes:draft.guideNotes?.trim()||null})
 
-function responsePayload(draft,meta={}){
+function responsePayload(draft:AnyRecord,meta:{actorName?:string,createdByScope?:string,createdForDepartment?:string|null}={}){
  return {
   ...(draft.responseConfig||{}),
   __meta:{
@@ -406,7 +420,7 @@ function responsePayload(draft,meta={}){
  }
 }
 
-export async function saveControlDefinition(organizationId,draft,{actorName='',createdByScope,createdForDepartment}={}){
+export async function saveControlDefinition(organizationId:OrgId,draft:AnyRecord,{actorName='',createdByScope,createdForDepartment}:{actorName?:string,createdByScope?:string,createdForDepartment?:string|null}={}){
  if(isDemoDataEnvironment()){
   const userId=''
   const departments=demoResolveDepartments(draft.departments||[])
@@ -414,7 +428,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
   const definitions=loadControlDefinitionsLocal()
   const assignments=loadControlAssignmentsLocal()
   const now=new Date()
-  let definition
+  let definition:AnyRecord|undefined
   if(draft.dbId){
    definition=definitions.find(x=>x.id===draft.dbId)
    if(!definition)throw new Error('Control not found.')
@@ -518,7 +532,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
 
 // The names of the controls that already exist (code, title, status), for the warning about a new
 // control whose name is the same in essence as one of them.
-export async function loadControlNames(organizationId){
+export async function loadControlNames(organizationId:OrgId):Promise<AnyRecord[]>{
  if(isDemoDataEnvironment())return (await loadControlProgramme(organizationId,{summary:false})).map(({id,title,status})=>({id,title,status}))
  assertCloud(organizationId)
  const {data,error}=await readPages(()=>supabase.from('control_definitions').select('code,title,status').eq('organization_id',organizationId).neq('status','archived').order('code'))
@@ -526,7 +540,7 @@ export async function loadControlNames(organizationId){
  return (data||[]).map(row=>({id:row.code,title:row.title,status:row.status}))
 }
 
-export async function deleteControlDefinition(organizationId,record){
+export async function deleteControlDefinition(organizationId:OrgId,record:AnyRecord){
  if(isDemoDataEnvironment()){
   saveControlDefinitionsLocal(loadControlDefinitionsLocal().filter(x=>x.id!==record.dbId))
   saveControlAssignmentsLocal(loadControlAssignmentsLocal().filter(x=>x.control_id!==record.dbId))
@@ -541,8 +555,8 @@ export async function deleteControlDefinition(organizationId,record){
 
 // Evidence goes to the shared attachments store under the execution id, which
 // is generated before the insert so the files and the entry point at each other.
-async function uploadExecutionEvidence(organizationId,executionId,files=[]){
- const uploaded=[]
+async function uploadExecutionEvidence(organizationId:OrgId,executionId:string,files:File[]|null|undefined=[]){
+ const uploaded:AnyRecord[]=[]
  try{
   for(const file of files||[]){
    const saved=await uploadAttachment(organizationId,'control_execution',executionId,file,{category:String(file.type||'').startsWith('image/')?'photo':'other'})
@@ -551,7 +565,7 @@ async function uploadExecutionEvidence(organizationId,executionId,files=[]){
  }catch(error){await removeExecutionEvidence(uploaded);throw error}
  return uploaded
 }
-async function removeExecutionEvidence(items=[]){
+async function removeExecutionEvidence(items:AnyRecord[]=[]){
  for(const item of items)await deleteAttachment(item.attachmentId).catch(()=>{})
 }
 
@@ -559,22 +573,24 @@ async function removeExecutionEvidence(items=[]){
 // unless it is an extra entry with its reason. The database enforces the same
 // (control_executions_period_guard); this check gives the message first.
 export class ControlPeriodCompleteError extends Error{
- constructor(progress){super('control_period_complete');this.name='ControlPeriodCompleteError';this.code='control_period_complete';this.progress=progress}
+ code:string
+ progress:AnyRecord|null
+ constructor(progress:AnyRecord|null){super('control_period_complete');this.name='ControlPeriodCompleteError';this.code='control_period_complete';this.progress=progress}
 }
-const extraFields=payload=>{
+const extraFields=(payload:ExecutionPayload)=>{
  if(!payload.extra)return {is_extra:false,extra_reason:null}
  const reason=String(payload.extra.reason||'').trim()
  if(!reason)throw new Error('control_extra_reason_required')
  return {is_extra:true,extra_reason:reason}
 }
-const isPeriodCompleteError=error=>/control_period_complete/.test(String(error?.message||''))
+const isPeriodCompleteError=(error:AnyRecord|null|undefined)=>/control_period_complete/.test(String(error?.message||''))
 
 // Demo: next_due_at from the assignment's entries, as the database trigger does.
-function refreshDemoAssignment(assignmentId,frequency){
+function refreshDemoAssignment(assignmentId:string,frequency:AnyRecord){
  const assignments=loadControlAssignmentsLocal()
  const stored=assignments.find(x=>x.id===assignmentId)
  if(!stored)return
- const history=loadControlExecutionsLocal().filter(x=>x.assignment_id===assignmentId).map(mapExecution).filter(h=>h.status!=='cancelled'&&!h.isExtra&&h.at).sort((a,b)=>new Date(b.at)-new Date(a.at))
+ const history=loadControlExecutionsLocal().filter(x=>x.assignment_id===assignmentId).map(mapExecution).filter(h=>h.status!=='cancelled'&&!h.isExtra&&h.at).sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime())
  const last=history[0]
  if(last){
   const {start,end}=periodBounds(frequency,new Date(last.at))
@@ -585,7 +601,7 @@ function refreshDemoAssignment(assignmentId,frequency){
  saveControlAssignmentsLocal(assignments)
 }
 
-export async function completeControlExecution(organizationId,record,department,payload={}){
+export async function completeControlExecution(organizationId:OrgId,record:AnyRecord,department:string,payload:ExecutionPayload={}){
  const assignment=record.assignments?.[department]
  if(!assignment?.dbId||!assignment?.departmentId)throw new Error('Control assignment is required.')
  const extra=extraFields(payload)
@@ -619,12 +635,12 @@ export async function completeControlExecution(organizationId,record,department,
 
 // A correction sets the result text and points checked only when it carries them
 // (removing an expiry item, for one, does not), so they are never wiped by accident.
-const executionTexts=payload=>({
+const executionTexts=(payload:ExecutionPayload)=>({
  ...('resultText' in payload?{result_text:payload.resultText?.trim()||null}:{}),
  ...('checkedPoints' in payload?{checked_points:payload.checkedPoints?.trim()||null}:{}),
 })
 
-export async function updateControlExecution(organizationId,record,department,execution,payload={}){
+export async function updateControlExecution(organizationId:OrgId,record:AnyRecord,department:string,execution:AnyRecord,payload:ExecutionPayload={}){
  const assignment=record.assignments?.[department]
  if(!assignment?.dbId)throw new Error('Control assignment is required.')
  if(isDemoDataEnvironment()){
@@ -665,7 +681,7 @@ export async function updateControlExecution(organizationId,record,department,ex
  return mapExecution(data)
 }
 
-export async function voidControlExecution(organizationId,record,department,execution,{reason='',actor}={}){
+export async function voidControlExecution(organizationId:OrgId,record:AnyRecord,department:string,execution:AnyRecord,{reason='',actor}:{reason?:string,actor?:AnyRecord|null}={}){
  if(!reason.trim())throw new Error('A cancellation reason is required.')
  if(isDemoDataEnvironment()){
   const userId=actor?.id||''
@@ -699,7 +715,7 @@ export async function voidControlExecution(organizationId,record,department,exec
  return mapExecution(data)
 }
 
-export async function saveControlDraft(organizationId,record,department,payload){
+export async function saveControlDraft(organizationId:OrgId,record:AnyRecord,department:string,payload:AnyRecord){
  const assignment=record.assignments?.[department]
  if(!assignment?.departmentId)throw new Error('Control assignment is required.')
  if(isDemoDataEnvironment()){
@@ -728,7 +744,7 @@ export async function saveControlDraft(organizationId,record,department,payload)
  return {...payload,id:data.id,savedAt:data.saved_at,recordKey:data.record_key}
 }
 
-async function removeControlDraft(organizationId,record,department){
+async function removeControlDraft(organizationId:OrgId,record:AnyRecord,department:string){
  const assignment=record.assignments?.[department]
  if(!assignment?.departmentId)return
  if(isDemoDataEnvironment()){

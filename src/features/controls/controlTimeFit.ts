@@ -4,22 +4,24 @@
 // hour that catches the most entries in its window; it is offered only when
 // it catches clearly more than the time set now.
 import { CONTROL_TIME_ZONE, isDailyFrequency, slotMargin, slotStarts, slotWindowMinutes, zonedParts } from './controlDueRules'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlRow } from './controlTypes'
 
 const DAY_MINUTES = 1440
 export const TIME_FIT_DAYS = 30
 
-export const hhmm = (minutes) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+export const hhmm = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
 
-const hasSetTimes = (frequency = {}) => (frequency.times || []).some((t) => /^\d{1,2}:\d{2}$/.test(String(t || '').trim()))
+const hasSetTimes = (frequency: AnyRecord = {}) => (frequency.times || []).some((t: unknown) => /^\d{1,2}:\d{2}$/.test(String(t || '').trim()))
 
-const regular = (row) => row && row.at && row.status !== 'cancelled' && !row.cancelledAt && !row.isExtra && !row.responseData?.isExtra
+const regular = (row: AnyRecord) => row && row.at && row.status !== 'cancelled' && !row.cancelledAt && !row.isExtra && !row.responseData?.isExtra
 
 // The entries of a history in [from, to], as minutes after midnight per slot
 // (the k-th entry of a day is slot k), as control_execution_times does.
-export function minutesBySlot(history = [], from, to, timeZone = CONTROL_TIME_ZONE) {
+export function minutesBySlot(history: AnyRecord[] = [], from: Date | string, to: Date | string, timeZone = CONTROL_TIME_ZONE) {
   const start = new Date(from).getTime(), end = new Date(to).getTime()
-  const rows = history.filter(regular).filter((row) => { const t = new Date(row.at).getTime(); return t >= start && t <= end }).sort((a, b) => new Date(a.at) - new Date(b.at))
-  const slots = []
+  const rows = history.filter(regular).filter((row) => { const t = new Date(row.at).getTime(); return t >= start && t <= end }).sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+  const slots: number[][] = []
   let dayKey = '', rank = 0
   for (const row of rows) {
     const p = zonedParts(row.at, timeZone)
@@ -31,15 +33,15 @@ export function minutesBySlot(history = [], from, to, timeZone = CONTROL_TIME_ZO
   return slots
 }
 
-const inWindow = (minutes, { open, close }) => minutes >= open && minutes <= Math.min(close, DAY_MINUTES)
+const inWindow = (minutes: number, { open, close }: { open: number, close: number }) => minutes >= open && minutes <= Math.min(close, DAY_MINUTES)
 
 // Entries of the required slots that fall in their windows.
-export function fitCount(frequency, slots = []) {
+export function fitCount(frequency: AnyRecord, slots: number[][] = []) {
   return slotStarts(frequency).reduce((sum, _, i) => sum + (slots[i] || []).filter((m) => inWindow(m, slotWindowMinutes(frequency, i))).length, 0)
 }
 
 // The middle time of a slot's entries, to the nearest 5 minutes.
-export function typicalTime(minutes = []) {
+export function typicalTime(minutes: number[] = []) {
   if (!minutes.length) return null
   const sorted = [...minutes].sort((a, b) => a - b)
   const middle = sorted[Math.floor((sorted.length - 1) / 2)]
@@ -47,13 +49,13 @@ export function typicalTime(minutes = []) {
 }
 
 // The set times that fit the entries best, or the current ones.
-export function proposeTimes(frequency = {}, slots = []) {
+export function proposeTimes(frequency: AnyRecord = {}, slots: number[][] = []) {
   const current = slotStarts(frequency)
   const margin = slotMargin(frequency)
   const proposed = current.map((start, i) => {
     const entries = slots[i] || []
     if (!entries.length) return start
-    const score = (time) => entries.filter((m) => m >= time - 60 && m <= time + margin).length
+    const score = (time: number) => entries.filter((m) => m >= time - 60 && m <= time + margin).length
     let best = start, bestScore = score(start)
     for (let hour = 0; hour < 24; hour += 1) {
       const time = hour * 60, value = score(time)
@@ -68,15 +70,16 @@ export function proposeTimes(frequency = {}, slots = []) {
 // One line per department of a daily control with set times.
 // rows: [{ item, departments }]; timesByAssignment: Map(assignment id → slots)
 // from the database, or null to read each assignment's history.
-export function timeFitLines(rows = [], timesByAssignment = null, { from, to } = {}) {
-  const lines = []
+export type TimeFitLine = AnyRecord
+export function timeFitLines(rows: ControlRow[] = [], timesByAssignment: Map<string, number[][]> | null = null, { from, to }: { from?: Date | string, to?: Date | string } = {}) {
+  const lines: TimeFitLine[] = []
   for (const { item, departments } of rows) {
     for (const department of departments) {
       const assignment = item.assignments?.[department]
       const frequency = assignment?.frequency || item.frequency || {}
       if (!assignment || !isDailyFrequency(frequency) || !hasSetTimes(frequency)) continue
       const required = slotStarts(frequency).length
-      const slots = (timesByAssignment ? timesByAssignment.get(assignment.dbId) || [] : minutesBySlot(assignment.history, from, to)).slice(0, required)
+      const slots = (timesByAssignment ? timesByAssignment.get(assignment.dbId) || [] : minutesBySlot(assignment.history, from!, to!)).slice(0, required)
       const entries = slots.reduce((sum, list) => sum + (list?.length || 0), 0)
       const current = slotStarts(frequency)
       const best = proposeTimes(frequency, slots)

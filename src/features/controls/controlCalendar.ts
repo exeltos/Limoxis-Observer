@@ -6,23 +6,29 @@
 import { calculateNextDue } from './controlScheduling'
 import { expectedOccurrences } from './controlAdherence'
 import { executionMarks } from './controlDueRules'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlRow } from './controlTypes'
+
+// A month of a calendar row (counted, or dated events) and a row of the calendar.
+export type CalendarCell = AnyRecord
+export type CalendarLine = { item: AnyRecord, department: string, frequency: AnyRecord, months: CalendarCell[] }
 
 const MAX_STEPS = 400
 
-export function isFrequentControl(frequency = {}) {
+export function isFrequentControl(frequency: AnyRecord = {}) {
   if (frequency.kind === 'daily' || frequency.kind === 'weekly') return true
   if (frequency.kind === 'monthly' || frequency.kind === 'yearly') return false
   return (Number(frequency.interval) || 1) < 28
 }
 
-export function monthRange(year, month) {
+export function monthRange(year: number, month: number) {
   return { from: new Date(year, month, 1), to: new Date(year, month + 1, 1) }
 }
 
 
 // Due dates from `start` onwards, stepped by the frequency, while before `until`.
-function stepDates(frequency, start, until) {
-  const dates = []
+function stepDates(frequency: AnyRecord, start: Date | string, until: Date) {
+  const dates: Date[] = []
   let at = new Date(start)
   for (let i = 0; i < MAX_STEPS && at < until; i += 1) {
     dates.push(at)
@@ -35,7 +41,7 @@ function stepDates(frequency, start, until) {
 
 // Missed due dates (an overdue schedule repeats each interval until today) and
 // the planned dates from today to the end of the year.
-function infrequentSchedule({ frequency, nextDueAt, paused }, yearEnd, now) {
+function infrequentSchedule({ frequency, nextDueAt, paused }: { frequency: AnyRecord, nextDueAt?: string | null, paused?: boolean }, yearEnd: Date, now: Date) {
   if (!nextDueAt || paused) return { missed: [], planned: [] }
   const due = new Date(nextDueAt)
   if (due >= now) return { missed: [], planned: stepDates(frequency, due, yearEnd) }
@@ -46,7 +52,8 @@ function infrequentSchedule({ frequency, nextDueAt, paused }, yearEnd, now) {
 
 // monthCounts: twelve { done, late, marks } from the database
 // (control_calendar_months); without it the history is counted.
-export function assignmentCalendar({ frequency = {}, history = [], startedAt = null, nextDueAt = null, paused = false, monthCounts = null }, year, now = new Date()) {
+interface AssignmentCalendarInput { frequency?: AnyRecord, history?: AnyRecord[], startedAt?: string | null, nextDueAt?: string | null, paused?: boolean, monthCounts?: AnyRecord[] | null }
+export function assignmentCalendar({ frequency = {}, history = [], startedAt = null, nextDueAt = null, paused = false, monthCounts = null }: AssignmentCalendarInput, year: number, now = new Date()): CalendarCell[] {
   const frequent = isFrequentControl(frequency)
   const started = startedAt ? new Date(startedAt) : null
   const yearEnd = new Date(year + 1, 0, 1)
@@ -57,12 +64,12 @@ export function assignmentCalendar({ frequency = {}, history = [], startedAt = n
   return Array.from({ length: 12 }, (_, month) => {
     const { from, to } = monthRange(year, month)
     const when = to <= now ? 'past' : from > now ? 'future' : 'current'
-    const inMonth = (date) => new Date(date) >= from && new Date(date) < to
+    const inMonth = (date: Date | string) => new Date(date) >= from && new Date(date) < to
     const counted = monthCounts ? monthCounts[month] || { done: 0, late: 0, marks: [] } : null
     const executions = counted ? [] : done.filter((row) => inMonth(row.at))
     const doneCount = counted ? counted.done : executions.length
     const late = counted ? counted.late : executions.filter((mark) => !mark.onTime).length
-    const marks = counted ? [...counted.marks] : executions.map((mark) => ({ day: new Date(mark.at).getDate(), late: !mark.onTime }))
+    const marks: { day: number, late: boolean }[] = counted ? [...counted.marks] : executions.map((mark) => ({ day: new Date(mark.at).getDate(), late: !mark.onTime }))
     const cell = { month, when, done: doneCount, late, marks: marks.sort((a, b) => a.day - b.day) }
 
     if (frequent) {
@@ -75,8 +82,8 @@ export function assignmentCalendar({ frequency = {}, history = [], startedAt = n
       return { ...cell, frequent: true, expected, planned, rate, inactive: Boolean(started && started >= to) }
     }
 
-    const missed = schedule.missed.filter(inMonth).map((date) => date.getDate())
-    const planned = schedule.planned.filter(inMonth).map((date) => date.getDate())
+    const missed = schedule!.missed.filter(inMonth).map((date) => date.getDate())
+    const planned = schedule!.planned.filter(inMonth).map((date) => date.getDate())
     return { ...cell, frequent: false, missed, planned, inactive: Boolean(started && started >= to) && !doneCount }
   })
 }
@@ -84,8 +91,8 @@ export function assignmentCalendar({ frequency = {}, history = [], startedAt = n
 // Rows of the calendar for the visible controls (same input as the adherence view).
 // monthsByAssignment: Map(assignment id → twelve month counts) from the
 // database; null counts each assignment's loaded history (the demo).
-export function programmeCalendar(rows, year, now = new Date(), monthsByAssignment = null) {
-  const lines = []
+export function programmeCalendar(rows: ControlRow[] | null | undefined, year: number, now = new Date(), monthsByAssignment: Map<string, AnyRecord[]> | null = null) {
+  const lines: CalendarLine[] = []
   for (const { item, departments } of rows || []) {
     for (const department of departments) {
       const assignment = item.assignments?.[department]
@@ -105,7 +112,7 @@ export function programmeCalendar(rows, year, now = new Date(), monthsByAssignme
   return lines
 }
 
-export function calendarTone(cell) {
+export function calendarTone(cell: CalendarCell) {
   if (cell.frequent) {
     if (cell.rate == null) return cell.planned ? 'planned' : 'empty'
     return cell.rate >= 90 ? 'good' : cell.rate >= 75 ? 'fair' : 'low'
@@ -119,7 +126,7 @@ export function calendarTone(cell) {
 
 // The year so far for one row: frequent controls as done / due, infrequent
 // ones as done against done + missed; `planned` counts what is still ahead.
-export function calendarYearSummary(months = []) {
+export function calendarYearSummary(months: CalendarCell[] = []) {
   const active = months.filter((cell) => !cell.inactive)
   if (active.some((cell) => cell.frequent)) {
     const done = active.reduce((sum, cell) => sum + (cell.when === 'future' ? 0 : cell.done), 0)
@@ -134,8 +141,8 @@ export function calendarYearSummary(months = []) {
 }
 
 // Consecutive rows of the same control, so the calendar names it once.
-export function groupCalendarLines(lines = []) {
-  const groups = []
+export function groupCalendarLines(lines: CalendarLine[] = []) {
+  const groups: { item: AnyRecord, lines: CalendarLine[] }[] = []
   for (const line of lines) {
     const last = groups[groups.length - 1]
     if (last && last.item.id === line.item.id) last.lines.push(line)

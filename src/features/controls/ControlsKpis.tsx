@@ -1,5 +1,6 @@
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { doneOf } from './ControlAdherencePanel'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The programme counts as kept from 90% (the green of adherenceTone).
 export const ADHERENCE_TARGET = 90
@@ -8,11 +9,12 @@ export const ADHERENCE_TARGET = 90
 // The key figures of the open tab of «Controls», as totals beside the search and the period (owner, 7/11/2026: no cards
 // above the list). A count that filters the list (overdue, due soon) is a button.
 // expiry: { expired, expiring, departments, withExpired } · timeFit: { changes, rateNow, rateProposed, lines }
-export function ControlsKpis({ view, language, loading, overdue, dueSoon, adherence, expiry, timeFit, status, onStatus, expiryState = null, onExpiryState }) {
+interface ControlsKpisProps { view: string, language: string, loading: boolean, overdue: number, dueSoon: number, adherence: AnyRecord, expiry: AnyRecord, timeFit: AnyRecord, status: string, onStatus: (status: string) => void, expiryState?: string | null, onExpiryState: (state: string | null) => void }
+export function ControlsKpis({ view, language, loading, overdue, dueSoon, adherence, expiry, timeFit, status, onStatus, expiryState = null, onExpiryState }: ControlsKpisProps) {
   const en = language === 'en'
-  const tr = (el, english) => (en ? english : el)
-  const percent = (value) => (value == null ? null : `${value}%`)
-  const dash = (value) => (loading ? '—' : value)
+  const tr = (el: string, english: string) => (en ? english : el)
+  const percent = (value: number | null | undefined) => (value == null ? null : `${value}%`)
+  const dash = <T,>(value: T) => (loading ? '—' : value)
   const rate = { key: 'rate', always: true, value: adherence.rate ?? 0, display: dash(percent(adherence.rate) ?? '—'), label: tr('τήρηση', 'adherence') }
   let items
   if (view === 'adherence') {
@@ -26,7 +28,7 @@ export function ControlsKpis({ view, language, loading, overdue, dueSoon, adhere
       { key: 'expiring', value: expiry.expiring || 0, label: tr('λήγουν σύντομα', 'expiring soon'), active: expiryState === 'expiring', onClick: onExpiryState && (() => onExpiryState('expiring')) },
       { key: 'departments', value: expiry.withExpired || 0, display: expiry.departments ? `${expiry.withExpired}/${expiry.departments}` : undefined, label: tr('τμήματα με ληγμένα', 'departments with expired') }]
   } else if (view === 'times') {
-    const busy = (value) => (timeFit.loading ? '—' : value)
+    const busy = <T,>(value: T) => (timeFit.loading ? '—' : value)
     items = [
       { key: 'changes', always: true, value: timeFit.changes || 0, display: busy(`${timeFit.changes ?? 0}/${timeFit.lines ?? 0}`), label: tr('με πρόταση ώρας', 'with a time proposal') },
       { key: 'now', value: timeFit.rateNow ?? 0, display: busy(percent(timeFit.rateNow)), label: tr('στην ώρα τώρα', 'on time now') },
@@ -42,8 +44,8 @@ export function ControlsKpis({ view, language, loading, overdue, dueSoon, adhere
 }
 
 // «Times»: the proposals and the on-time rate now and with them, weighted by entries.
-export function timeFitSummary(lines = []) {
+export function timeFitSummary(lines: AnyRecord[] = []) {
   const entries = lines.reduce((sum, line) => sum + line.entries, 0)
-  const rate = (key) => (entries ? Math.round(lines.reduce((sum, line) => sum + ((line[key] ?? 0) * line.entries) / 100, 0) / entries * 100) : null)
+  const rate = (key: string) => (entries ? Math.round(lines.reduce((sum, line) => sum + ((line[key] ?? 0) * line.entries) / 100, 0) / entries * 100) : null)
   return { lines: lines.length, changes: lines.filter((line) => line.changed).length, rateNow: rate('rateNow'), rateProposed: rate('rateProposed') }
 }

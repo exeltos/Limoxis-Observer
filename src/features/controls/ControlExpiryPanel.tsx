@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
-import { ExportMenu } from '../../design-system/ExportMenu'
+import { ExportMenu, type ExportItem } from '../../design-system/ExportMenu'
 import { ChevronDown,ChevronRight,PackageX } from 'lucide-react'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useTableSort } from '../../design-system/useTableSort'
@@ -13,27 +13,36 @@ import { ExpiryBadge } from './ControlExpiryEntry'
 import { compareExpiryItems,expiryCounts,expiryItems,expiryWindow,formLabel } from './controlExpiry'
 import { expiryReturnFormHtml,printHtml } from './controlExpiryPrint'
 import { rowFindingText } from './controlVocabulary'
+import type { Dispatch, SetStateAction } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const normalize=value=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
-const day=value=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:(value||'—')}
-const controlTitle=(record,language)=>language==='el'?record.title:record.titleEn||record.title
+// An item of the expiry list with its control and window (ControlExpiryPanel).
+type Item = AnyRecord
+type ItemGroup = { key: string, head: AnyRecord, items: Item[] }
+type ItemEntry = { key: string, item: Item, members: Item[] }
+// The items the panel reports to the page's «Export» menu.
+export type ExpiryExport = ExportItem[]
+
+const normalize=(value:unknown)=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+const day=(value:unknown):string=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:((value||'—') as string)}
+const controlTitle=(record:AnyRecord,language:string)=>language==='el'?record.title:record.titleEn||record.title
 
 // The items in groups: expired, expiring soon, the findings check by check,
 // and the items in date (closed until opened).
-export function expiryGroups(items){
- const out=new Map()
- const put=(key,head,item)=>{if(!out.has(key))out.set(key,{key,head,items:[]});out.get(key).items.push(item)}
+export function expiryGroups(items:Item[]){
+ const out=new Map<string,ItemGroup>()
+ const put=(key:string,head:AnyRecord,item:Item)=>{if(!out.has(key))out.set(key,{key,head,items:[]});out.get(key)!.items.push(item)}
  for(const item of items){
   if(item.state==='finding')put(`finding|${item.department}|${item.execution?.id||''}`,{kind:'finding',execution:item.execution,department:item.department},item)
   else if(item.state==='expired')put('expired',{kind:'expired'},item)
   else if(item.state==='expiring')put('expiring',{kind:'expiring'},item)
   else put('ok',{kind:'ok'},item)
  }
- const order={expired:0,expiring:1,ok:3}
+ const order:Record<string,number>={expired:0,expiring:1,ok:3}
  return [...out.values()].sort((a,b)=>(order[a.head.kind]??2)-(order[b.head.kind]??2))
 }
 
-const statusText=(item,language)=>{
+const statusText=(item:Item,language:string)=>{
  const en=language==='en'
  if(item.state==='finding')return rowFindingText(item.row,language)||(en?'Finding':'Εύρημα')
  if(item.state==='expired')return en?`Expired ${-item.days} days ago`:`Έληξε πριν ${-item.days} ημ.`
@@ -45,37 +54,38 @@ const statusText=(item,language)=>{
 // opens to its departments, each with its own «Removed». Columns with titles sort the list; by default the expired
 // first, then those expiring soon, the findings and those in date.
 const STATE_ORDER={expired:0,expiring:1,finding:2,ok:3}
-export function expiryEntries(items){
- const out=new Map()
+export function expiryEntries(items:Item[]){
+ const out=new Map<string,ItemEntry>()
  for(const item of items){
   const key=[item.record.id,item.state,normalize(item.row.item),item.row.lot||'',item.row.expiry||'',item.state==='finding'?item.key:''].join('|')
   if(!out.has(key))out.set(key,{key,item,members:[]})
-  out.get(key).members.push(item)
+  out.get(key)!.members.push(item)
  }
  return [...out.values()].map(entry=>({...entry,departments:[...new Set(entry.members.map(member=>member.department))]}))
 }
-function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,language,locale,picked,onPick}){
+interface ExpiryTableProps { items:Item[], canRemove?:(record:AnyRecord,department:string)=>boolean, onRemove?:(item:Item)=>void, showControl:boolean, showDepartment:boolean, language:string, locale:string, picked:Set<string>, onPick:(key:string)=>void }
+function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,language,locale,picked,onPick}:ExpiryTableProps){
  const en=language==='en'
- const [opened,setOpened]=useState(()=>new Set())
+ const [opened,setOpened]=useState(()=>new Set<string>())
  // The groups as before (owner, 7/11/2026): expired, expiring soon, the findings check by check (date · who ·
  // department) and those in date; a group opens and closes on its title.
- const [flipped,setFlipped]=useState(()=>new Set())
- const toggleIn=setter=>key=>setter(current=>{const next=new Set(current);if(next.has(key))next.delete(key);else next.add(key);return next})
+ const [flipped,setFlipped]=useState(()=>new Set<string>())
+ const toggleIn=(setter:Dispatch<SetStateAction<Set<string>>>)=>(key:string)=>setter(current=>{const next=new Set(current);if(next.has(key))next.delete(key);else next.add(key);return next})
  const toggle=toggleIn(setOpened),flip=toggleIn(setFlipped)
- const at=value=>value?new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(value)):'—'
+ const at=(value:string|null|undefined)=>value?new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(value)):'—'
  const groups=useMemo(()=>expiryGroups(items),[items])
  const entries=useMemo(()=>groups.flatMap(group=>expiryEntries(group.items).map(entry=>({...entry,group:group.key}))),[groups])
  const {sorted,sort,onSort}=useTableSort(entries,{
   item:entry=>entry.item.row.item,
   departments:entry=>entry.departments.length===1?entry.departments[0]:entry.departments.length,
   expiry:entry=>entry.item.row.expiry||null,
-  state:entry=>(STATE_ORDER[entry.item.state]??4)*100000+(entry.item.days??0),
+  state:entry=>((STATE_ORDER as Record<string,number>)[entry.item.state]??4)*100000+(entry.item.days??0),
  })
- const title=head=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Check of':'Έλεγχος'} ${at(head.execution?.at)}${head.execution?.by?` · ${head.execution.by}`:''}${showDepartment?` · ${head.department}`:''}`
- const details=(item,single)=>[showControl&&controlTitle(item.record,language),item.row.lot&&`${en?'Lot':'Παρτίδα'} ${item.row.lot}`,formLabel(item.row.form,language),single&&item.row.quantity&&`${en?'Qty':'Ποσ.'} ${item.row.quantity}`,single&&item.row.note,item.state!=='finding'&&rowFindingText(item.row,language)].filter(Boolean).join(' · ')
- const status=item=>item.state==='finding'?<span className="control-expiry-finding">{statusText(item,language)}</span>:<ExpiryBadge row={item.row} window={item.window} language={language}/>
- const action=item=>item.execution&&item.state!=='finding'&&canRemove?.(item.record,item.department)?<Button variant="secondary" className="control-expiry-remove" title={en?'Removed / replaced: takes the item off the list':'Αφαιρέθηκε / αντικαταστάθηκε: βγαίνει από τη λίστα'} onClick={event=>{event.stopPropagation();onRemove(item)}}><PackageX size={14} aria-hidden="true"/>{en?'Removed':'Αφαιρέθηκε'}</Button>:item.execution?<small>{at(item.execution.at)}</small>:<small className="control-expiry-from-list">{en?'From the list':'Από τη λίστα'}</small>
- const rows=groups.flatMap((group,index)=>{
+ const title=(head:AnyRecord)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Check of':'Έλεγχος'} ${at(head.execution?.at)}${head.execution?.by?` · ${head.execution.by}`:''}${showDepartment?` · ${head.department}`:''}`
+ const details=(item:Item,single:boolean)=>[showControl&&controlTitle(item.record,language),item.row.lot&&`${en?'Lot':'Παρτίδα'} ${item.row.lot}`,formLabel(item.row.form,language),single&&item.row.quantity&&`${en?'Qty':'Ποσ.'} ${item.row.quantity}`,single&&item.row.note,item.state!=='finding'&&rowFindingText(item.row,language)].filter(Boolean).join(' · ')
+ const status=(item:Item)=>item.state==='finding'?<span className="control-expiry-finding">{statusText(item,language)}</span>:<ExpiryBadge row={item.row} window={item.window} language={language}/>
+ const action=(item:Item)=>item.execution&&item.state!=='finding'&&canRemove?.(item.record,item.department)?<Button variant="secondary" className="control-expiry-remove" title={en?'Removed / replaced: takes the item off the list':'Αφαιρέθηκε / αντικαταστάθηκε: βγαίνει από τη λίστα'} onClick={event=>{event.stopPropagation();onRemove!(item)}}><PackageX size={14} aria-hidden="true"/>{en?'Removed':'Αφαιρέθηκε'}</Button>:item.execution?<small>{at(item.execution.at)}</small>:<small className="control-expiry-from-list">{en?'From the list':'Από τη λίστα'}</small>
+ const rows=groups.flatMap((group,index):AnyRecord[]=>{
   const closed=group.head.kind==='ok'||(group.head.kind==='finding'&&index>2)
   const open=closed?flipped.has(group.key):!flipped.has(group.key)
   const own=sorted.filter(entry=>entry.group===group.key)
@@ -104,11 +114,12 @@ function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,langua
 // (expired, expiring soon, findings, in date) and printable. One department:
 // its grouped list straight away. «Removed» takes an item off the list.
 // sources: [{record,departments}]
-export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFilter=null,actorName='',language,locale,onExportChange}){
+interface ControlExpiryPanelProps { sources:{record:AnyRecord,departments:string[]}[], canRemove?:(record:AnyRecord,department:string)=>boolean, onRemove?:(item:Item)=>void, query?:string, stateFilter?:string|null, actorName?:string, language:string, locale:string, onExportChange?:((api:ExpiryExport|null)=>void)|null }
+export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFilter=null,actorName='',language,locale,onExportChange}:ControlExpiryPanelProps){
  const en=language==='en'
  const {notify}=useFeedback()
- const items=useMemo(()=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort(compareExpiryItems),[sources])
- const departmentOptions=[...new Set(items.map(item=>item.department))].sort((a,b)=>a.localeCompare(b,'el'))
+ const items=useMemo(():Item[]=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort(compareExpiryItems),[sources])
+ const departmentOptions:string[]=[...new Set<string>(items.map(item=>item.department))].sort((a,b)=>a.localeCompare(b,'el'))
  const needle=normalize(query)
  const matched=needle?items.filter(item=>normalize(`${item.row.item} ${item.department} ${item.record.title} ${item.row.lot||''}`).includes(needle)):items
  // «11 expired» / «19 expiring» in the page's totals narrow the list to them.
@@ -117,10 +128,10 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFil
  const several=departmentOptions.length>1
  const manyControls=new Set(sources.map(source=>source.record.id)).size>1
  // The return form lists what has expired or expires soon (of the open department, or all).
- const returnOf=list=>list.filter(item=>item.state==='expired'||item.state==='expiring').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0))
+ const returnOf=(list:Item[])=>list.filter(item=>item.state==='expired'||item.state==='expiring').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0))
  // The groups ticked (owner, 7/11/2026): the return form and the list print only them; none ticked, everything.
- const [picked,setPicked]=useState(()=>new Set())
- const pick=key=>setPicked(current=>{const next=new Set(current);if(next.has(key))next.delete(key);else next.add(key);return next})
+ const [picked,setPicked]=useState(()=>new Set<string>())
+ const pick=(key:string)=>setPicked(current=>{const next=new Set(current);if(next.has(key))next.delete(key);else next.add(key);return next})
  const pickedItems=useMemo(()=>{const keys=new Set(expiryGroups(searched).map(group=>group.key).filter(key=>picked.has(key)));return keys.size?expiryGroups(searched).filter(group=>keys.has(group.key)).flatMap(group=>group.items):null},[searched,picked])
  // A ticked check's findings go on the form too (its expired / short-dated items as recorded).
  const returnItems=pickedItems?pickedItems.filter(item=>item.state!=='ok').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0)):returnOf(searched)
@@ -130,9 +141,9 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFil
  // One «Export» per tab: the page's own menu (top bar or record header) offers the
  // return form; this panel only reports it, and draws its own menu when nobody takes it.
  // It reports two prints: the whole list (to sign) and the return form.
- const printRef=useRef(null);printRef.current={list:(pdf=false)=>printList(several?'all':departmentOptions[0]||'all',listItems,'',pdf),returnForm:(pdf=false)=>printReturnForm(returnItems,pdf),excel:()=>exportList(searched)}
+ const printRef=useRef<AnyRecord>({});printRef.current={list:(pdf=false)=>printList(several?'all':departmentOptions[0]||'all',listItems,'',pdf),returnForm:(pdf=false)=>printReturnForm(returnItems,pdf),excel:()=>exportList(searched)}
  // The same list as the print (department and search as chosen), as a sheet.
- function exportList(list){
+ function exportList(list:Item[]){
   exportRegistry({name:en?'expiry-list':'lixeis',headers:[en?'Item / Medicine':'Υλικό / Φάρμακο',en?'Department':'Τμήμα',en?'Control':'Έλεγχος',en?'Quantity':'Ποσότητα',en?'Lot':'Παρτίδα',en?'Expiry date':'Ημερομηνία λήξης',en?'Status':'Κατάσταση'],rows:list.map(item=>[item.row.item,item.department,controlTitle(item.record,language),item.row.quantity||'',item.row.lot||'',day(item.row.expiry),statusText(item,language)])})
  }
  const returnCount=returnItems.length,listCount=listItems.length,pickedCount=pickedItems?expiryGroups(searched).filter(group=>picked.has(group.key)).length:0
@@ -148,10 +159,10 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFil
   ])
   return()=>onExportChange(null)
  },[onExportChange,returnCount,listCount,pickedCount,en])
- const placeName=place=>place==='all'?(en?'All departments':'Όλα τα τμήματα'):place
- const groupName=(head,place)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Findings of the check of':'Ευρήματα ελέγχου'} ${day(String(head.execution?.at||'').slice(0,10))}${head.execution?.by?` · ${head.execution.by}`:''}${place==='all'?` · ${head.department}`:''}`
+ const placeName=(place:string)=>place==='all'?(en?'All departments':'Όλα τα τμήματα'):place
+ const groupName=(head:AnyRecord,place:string)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Findings of the check of':'Ευρήματα ελέγχου'} ${day(String(head.execution?.at||'').slice(0,10))}${head.execution?.by?` · ${head.execution.by}`:''}${place==='all'?` · ${head.department}`:''}`
  // The list of a department (all its groups, or one) on the shared document layout, to sign.
- function printList(place,list,part='',pdf=false){
+ function printList(place:string,list:Item[],part='',pdf=false){
   const columns=[en?'Item / Medicine':'Υλικό / Φάρμακο',...(place==='all'?[en?'Department':'Τμήμα']:[]),...(manyControls?[en?'Control':'Έλεγχος']:[]),en?'Quantity':'Ποσότητα',en?'Lot':'Παρτίδα',en?'Expiry date':'Ημερομηνία λήξης',en?'Status':'Κατάσταση']
   const c=expiryCounts(list)
   const ok=printReport({

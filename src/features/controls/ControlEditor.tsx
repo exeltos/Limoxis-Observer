@@ -1,5 +1,5 @@
 import { Fragment,useEffect,useMemo,useState } from 'react'
-import { Building2,ClipboardCheck,FileText,Hash,ListChecks,ListTodo,LockKeyhole,PauseCircle,Pencil,Plus,ToggleLeft,Trash2,Type } from 'lucide-react'
+import { Building2,ClipboardCheck,FileText,ListChecks,LockKeyhole,PauseCircle,Pencil,Plus,Trash2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { Page } from '../../design-system/Page'
@@ -30,18 +30,24 @@ import { answerLabel,categoryPreset,choiceOptions } from './controlVocabulary'
 import { employeeOptions,personFromEmployee } from '../employees/peopleOptions'
 import { slotMargin } from './controlDueRules'
 import './controlEditor.css'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const pickPolicy=config=>Object.fromEntries(['criticality','requiresEvidence','deviationActions'].filter(key=>config?.[key]!==undefined).map(key=>[key,config[key]]))
+// The libraries and departments (Management, still JavaScript): what this form reads of them.
+type Libraries = { libraries: Record<string, AnyRecord[]>, departments: AnyRecord[], loading: boolean, error: string }
+// The form's draft: the control's fields, its departments by name.
+interface ControlDraft extends AnyRecord { departments: string[] }
+
+const pickPolicy=(config:AnyRecord|null|undefined)=>Object.fromEntries(['criticality','requiresEvidence','deviationActions'].filter(key=>config?.[key]!==undefined).map(key=>[key,config![key]]))
 const newItemId=()=>`chk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`
 const FREQUENCIES=['daily','weekly','monthly','yearly','custom']
 
 // Bundle templates, whose elements a checklist can start from.
 function useBundleTemplates(){
  const {tenant}=useTenant()
- const [templates,setTemplates]=useState([])
+ const [templates,setTemplates]=useState<AnyRecord[]>([])
  useEffect(()=>{
   let active=true
-  if(isDemoDataEnvironment()){setTemplates(loadBundleLibrary().filter(x=>x.status!=='retired'));return()=>{active=false}}
+  if(isDemoDataEnvironment()){setTemplates(loadBundleLibrary().filter((x:AnyRecord)=>x.status!=='retired'));return()=>{active=false}}
   if(!tenant?.id)return()=>{active=false}
   loadBundleTemplates(tenant.id).then(rows=>{if(active)setTemplates(rows.filter(x=>x.status!=='retired'))}).catch(()=>{if(active)setTemplates([])})
   return()=>{active=false}
@@ -53,28 +59,29 @@ function useBundleTemplates(){
 // from the libraries (Management > Libraries): control types, units, status
 // answers, positions, people, locations and equipment; a value the library does
 // not have yet can still be typed.
-export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment='',usedCategories=[],existingControls=[]}){
+interface ControlEditorProps { initial?:AnyRecord|null, onCancel:()=>void, onSave:(draft:AnyRecord)=>void, departmentOnly?:boolean, fixedDepartment?:string, usedCategories?:string[], existingControls?:AnyRecord[] }
+export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment='',usedCategories=[],existingControls=[]}:ControlEditorProps){
  const {language}=useLanguage();const en=language==='en'
- const {libraries,departments:departmentRows,loading:departmentsLoading,error:departmentsError}=useLibraries()
- const {data:employees}=useEmployeesData()
+ const {libraries,departments:departmentRows,loading:departmentsLoading,error:departmentsError}=useLibraries() as unknown as Libraries
+ const {data:employees}=useEmployeesData() as unknown as {data:AnyRecord[]}
  const bundleTemplates=useBundleTemplates()
- const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency])),departmentResponses:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.responseOverride).map(([department,a])=>[department,a.responseOverride]))})):{departmentFrequencies:{},departmentResponses:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
+ const [draft,setDraft]=useState<ControlDraft>(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries<AnyRecord>(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency])),departmentResponses:Object.fromEntries(Object.entries<AnyRecord>(initial.assignments||{}).filter(([,a])=>a?.responseOverride).map(([department,a])=>[department,a.responseOverride]))})):{departmentFrequencies:{},departmentResponses:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
  const [tab,setTab]=useState('details')
  // The margin after a time is rarely changed: its field opens from a link.
  const [showMargin,setShowMargin]=useState(false)
- const [editingPerson,setEditingPerson]=useState(null)
+ const [editingPerson,setEditingPerson]=useState<string|null>(null)
  const [newAnswer,setNewAnswer]=useState('')
- const lib=key=>libraries[key]||[]
+ const lib=(key:string)=>libraries[key]||[]
 // Departments where the control is paused: those saved so, and those paused now (their history stays).
  const pausedDepartments=useMemo(()=>[...new Set([...(initial?.pausedDepartments||[]),...(initial?.departments||[])])].filter(dep=>!draft.departments.includes(dep)),[initial,draft.departments])
  const departments=useMemo(()=>departmentOnly&&fixedDepartment?[fixedDepartment]:departmentRows.map(x=>x.name).filter(Boolean),[departmentRows,departmentOnly,fixedDepartment])
- const set=(k,v)=>setDraft(d=>({...d,[k]:v})),setF=(k,v)=>setDraft(d=>({...d,frequency:{...d.frequency,[k]:v}})),setR=(k,v)=>setDraft(d=>({...d,responseConfig:{...(d.responseConfig||{mode:'text',label:'Αποτέλεσμα'}),[k]:v}}))
+ const set=(k:string,v:unknown)=>setDraft(d=>({...d,[k]:v})),setF=(k:string,v:unknown)=>setDraft(d=>({...d,frequency:{...d.frequency,[k]:v}})),setR=(k:string,v:unknown)=>setDraft(d=>({...d,responseConfig:{...(d.responseConfig||{mode:'text',label:'Αποτέλεσμα'}),[k]:v}}))
  const response=draft.responseConfig||{mode:'text'}
  const mode=response.mode||'text'
  const count=Math.max(1,Number(draft.frequency.timesPerDay)||1)
  const times=Array.from({length:count},(_,i)=>draft.frequency.times?.[i]||`${String(Math.min(23,8+i*4)).padStart(2,'0')}:00`)
- const checklist=response.checklist||[]
+ const checklist:AnyRecord[]=response.checklist||[]
  const options=choiceOptions(response,lib('controlAnswers'))
  // A new control needs a responsible position or person. Controls brought in
  // without one (the FileMaker import) can still be edited and saved as they are.
@@ -103,23 +110,23 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
   return [...base,...usedCategories.filter(x=>x&&!known.has(x)).map(x=>({value:x,label:x,description:en?'In use':'Σε χρήση'}))]
  },[libraries,usedCategories,language])// eslint-disable-line react-hooks/exhaustive-deps
  const people=useMemo(()=>employeeOptions(employees,language,draft.departments),[employees,language,draft.departments])
- const employeeById=id=>employees.find(x=>String(x.dbId||x.id)===String(id))
+ const employeeById=(id:unknown)=>employees.find(x=>String(x.dbId||x.id)===String(id))
  const equipmentOptions=useMemo(()=>[...libraryOptions(lib('equipment'),language),...libraryOptions(lib('surfacePoints'),language)],[libraries,language])// eslint-disable-line react-hooks/exhaustive-deps
 
- function changeCategory(value){setDraft(d=>{const keep=pickPolicy(d.responseConfig);const preset=categoryPreset(value,lib('controlTypes'));return {...d,category:value,responseConfig:{...(preset||(d.category===value?d.responseConfig:{mode:d.responseConfig?.mode||'text',label:d.responseConfig?.label||'Αποτέλεσμα'})),...keep}}})}
- function changeMode(next){setDraft(d=>{const keep=pickPolicy(d.responseConfig);const base={mode:next,label:d.responseConfig?.label||'Αποτέλεσμα'};return {...d,responseConfig:{...base,...(next==='list'?{template:d.responseConfig?.template||'generic_findings'}:{}),...(next==='checklist'?{checklist:d.responseConfig?.checklist||[]}:{}),...(next==='choice'?{options:d.responseConfig?.options,reportOn:d.responseConfig?.reportOn}:{}),...(next==='numeric'?{unit:d.responseConfig?.unit||'',min:d.responseConfig?.min??'',max:d.responseConfig?.max??''}:{}),...keep}}})}
- function setOptions(values){const current=new Set(options.filter(x=>x.finding).map(x=>x.value));setDraft(d=>({...d,responseConfig:{...d.responseConfig,options:values,reportOn:values.filter(v=>current.has(v))}}))}
- function toggleFinding(value){const current=options.filter(x=>x.finding).map(x=>x.value);setR('reportOn',current.includes(value)?current.filter(x=>x!==value):[...current,value])}
- function addAnswer(value){const text=String(value||'').trim();if(!text||options.some(x=>x.value===text))return;setOptions([...options.map(x=>x.value),text]);setNewAnswer('')}
- const setChecklist=next=>setR('checklist',next)
- function importBundle(id){const template=bundleTemplates.find(x=>String(x.id)===String(id));if(!template)return;const existing=new Set(checklist.map(x=>x.el));setChecklist([...checklist.filter(x=>String(x.el||'').trim()),...(template.elements||[]).filter(el=>!existing.has(el.labelEl)).map(el=>({id:newItemId(),el:el.labelEl,en:el.labelEn||el.labelEl,required:el.required!==false}))])}
+ function changeCategory(value:string){setDraft(d=>{const keep=pickPolicy(d.responseConfig);const preset=categoryPreset(value,lib('controlTypes'));return {...d,category:value,responseConfig:{...(preset||(d.category===value?d.responseConfig:{mode:d.responseConfig?.mode||'text',label:d.responseConfig?.label||'Αποτέλεσμα'})),...keep}}})}
+ function changeMode(next:string){setDraft(d=>{const keep=pickPolicy(d.responseConfig);const base={mode:next,label:d.responseConfig?.label||'Αποτέλεσμα'};return {...d,responseConfig:{...base,...(next==='list'?{template:d.responseConfig?.template||'generic_findings'}:{}),...(next==='checklist'?{checklist:d.responseConfig?.checklist||[]}:{}),...(next==='choice'?{options:d.responseConfig?.options,reportOn:d.responseConfig?.reportOn}:{}),...(next==='numeric'?{unit:d.responseConfig?.unit||'',min:d.responseConfig?.min??'',max:d.responseConfig?.max??''}:{}),...keep}}})}
+ function setOptions(values:string[]){const current=new Set(options.filter(x=>x.finding).map(x=>x.value));setDraft(d=>({...d,responseConfig:{...d.responseConfig,options:values,reportOn:values.filter(v=>current.has(v))}}))}
+ function toggleFinding(value:string){const current=options.filter(x=>x.finding).map(x=>x.value);setR('reportOn',current.includes(value)?current.filter(x=>x!==value):[...current,value])}
+ function addAnswer(value:unknown){const text=String(value||'').trim();if(!text||options.some(x=>x.value===text))return;setOptions([...options.map(x=>x.value),text]);setNewAnswer('')}
+ const setChecklist=(next:AnyRecord[])=>setR('checklist',next)
+ function importBundle(id:string){const template=bundleTemplates.find(x=>String(x.id)===String(id));if(!template)return;const existing=new Set(checklist.map(x=>x.el));setChecklist([...checklist.filter(x=>String(x.el||'').trim()),...(template.elements||[]).filter((el:AnyRecord)=>!existing.has(el.labelEl)).map((el:AnyRecord)=>({id:newItemId(),el:el.labelEl,en:el.labelEn||el.labelEl,required:el.required!==false}))])}
  function submit(){if(!valid)return;onSave({...draft,titleEn:draft.titleEn||draft.title,responseConfig:mode==='checklist'?{...response,checklist:checklist.filter(x=>String(x.el||'').trim())}:response,frequency:{...draft.frequency,timesPerDay:count,times:draft.frequency.kind==='daily'?times:[]}})}
 
  const title=initial?(en?'Edit control':'Επεξεργασία ελέγχου'):(en?'New control':'Νέος έλεγχος')
- const freqLabel={daily:en?'Daily':'Ημερήσια',weekly:en?'Weekly':'Εβδομαδιαία',monthly:en?'Monthly / every N months':'Μηνιαία / ανά Χ μήνες',yearly:en?'Yearly':'Ετήσια',custom:en?'Every N days':'Κάθε Χ ημέρες'}
- const intervalUnit={weekly:en?'weeks':'εβδομάδες',monthly:en?'months':'μήνες',yearly:en?'years':'έτη',custom:en?'days':'ημέρες'}[draft.frequency.kind]
+ const freqLabel:Record<string,string>={daily:en?'Daily':'Ημερήσια',weekly:en?'Weekly':'Εβδομαδιαία',monthly:en?'Monthly / every N months':'Μηνιαία / ανά Χ μήνες',yearly:en?'Yearly':'Ετήσια',custom:en?'Every N days':'Κάθε Χ ημέρες'}
+ const intervalUnit=({weekly:en?'weeks':'εβδομάδες',monthly:en?'months':'μήνες',yearly:en?'years':'έτη',custom:en?'days':'ημέρες'} as Record<string,string>)[draft.frequency.kind]
  const multiText={searchPlaceholder:en?'Search…':'Αναζήτηση…',emptyLabel:en?'No match':'Καμία αντιστοιχία',selectAllLabel:en?'Select all':'Επιλογή όλων',clearAllLabel:en?'Clear all':'Αποεπιλογή όλων'}
- const selectText={emptyLabel:en?'No match':'Καμία αντιστοιχία',clearLabel:en?'Clear':'Καθαρισμός',customLabel:text=>en?`Use «${text}»`:`Χρήση «${text}»`}
+ const selectText={emptyLabel:en?'No match':'Καμία αντιστοιχία',clearLabel:en?'Clear':'Καθαρισμός',customLabel:(text:string)=>en?`Use «${text}»`:`Χρήση «${text}»`}
 
  // «Head of Department» and «Shift manager» are always offered; the library's positions and any typed text follow.
  const positionOptions=useMemo(()=>{const base=[{value:en?'Head of Department':'Προϊστάμενος/η Τμήματος',label:en?'Head of Department':'Προϊστάμενος/η Τμήματος'},{value:en?'Shift manager':'Υπεύθυνος/η βάρδιας',label:en?'Shift manager':'Υπεύθυνος/η βάρδιας'}];const extra=libraryOptions(libraries.positions||[],language).filter(option=>!base.some(item=>item.label===option.label));return [...base,...extra]},[en,language,libraries.positions])
@@ -161,11 +168,11 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'How it is recorded':'Τρόπος καταχώρησης'}</strong><span>{en?'What the person recording fills in':'Τι συμπληρώνει όποιος καταχωρεί'}</span></header>
      <SearchableSelect className="control-editor-modes" label={en?'Result format':'Μορφή αποτελέσματος'} value={mode} onChange={next=>next&&(changeMode)(next)} options={[
-      {value:'numeric',label:en?'Measurement':'Μέτρηση',icon:Hash},
-      {value:'choice',label:en?'Status':'Κατάσταση',icon:ToggleLeft},
-      {value:'checklist',label:en?'Checklist':'Λίστα ελέγχου',icon:ListTodo},
-      {value:'list',label:en?'Items / findings list':'Λίστα υλικών / ευρημάτων',icon:ListChecks},
-      {value:'text',label:en?'Free text':'Ελεύθερο κείμενο',icon:Type},
+      {value:'numeric',label:en?'Measurement':'Μέτρηση'},
+      {value:'choice',label:en?'Status':'Κατάσταση'},
+      {value:'checklist',label:en?'Checklist':'Λίστα ελέγχου'},
+      {value:'list',label:en?'Items / findings list':'Λίστα υλικών / ευρημάτων'},
+      {value:'text',label:en?'Free text':'Ελεύθερο κείμενο'},
      ]}/>
      <div className="control-editor-grid">
       {mode!=='list'&&mode!=='checklist'&&<Field label={en?'Field label':'Ετικέτα πεδίου'}><input value={response.label||''} onChange={e=>setR('label',e.target.value)} placeholder={en?'e.g. Temperature':'π.χ. Θερμοκρασία'}/></Field>}
@@ -192,11 +199,11 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
        <Button variant="secondary" onClick={()=>setChecklist([...checklist,{id:newItemId(),el:'',en:'',required:true}])}><Plus size={15}/> {en?'Add item':'Προσθήκη σημείου'}</Button>
       </div>
       {checklist.length===0&&<div className="inline-empty"><strong>{en?'No items yet':'Δεν υπάρχουν σημεία'}</strong><span>{en?'Add the items to check one by one, or start from a bundle template.':'Προσθέστε τα σημεία ελέγχου ένα-ένα ή ξεκινήστε από πρότυπο δέσμης μέτρων.'}</span></div>}
-      <ol className="control-editor-checklist-items">{checklist.map((item,index)=><li key={item.id||index}>
+      <ol className="control-editor-checklist-items">{checklist.map((item:AnyRecord,index:number)=><li key={item.id||index}>
        <span className="control-editor-checklist-number">{index+1}</span>
-       <input aria-label={`${en?'Item':'Σημείο'} ${index+1}`} value={en?item.en||item.el:item.el} onChange={e=>setChecklist(checklist.map(x=>x===item?{...x,[en?'en':'el']:e.target.value,...(!en||!x.el?{el:x.el||e.target.value}:{})}:x))} placeholder={en?'e.g. Hand rub available at the point of care':'π.χ. Διαθέσιμο αντισηπτικό στο σημείο φροντίδας'}/>
+       <input aria-label={`${en?'Item':'Σημείο'} ${index+1}`} value={en?item.en||item.el:item.el} onChange={e=>setChecklist(checklist.map((x:AnyRecord)=>x===item?{...x,[en?'en':'el']:e.target.value,...(!en||!x.el?{el:x.el||e.target.value}:{})}:x))} placeholder={en?'e.g. Hand rub available at the point of care':'π.χ. Διαθέσιμο αντισηπτικό στο σημείο φροντίδας'}/>
        <ChoiceChips className="control-editor-required" options={[{value:'required',label:en?'Required':'Υποχρεωτικό'}]} selected={item.required!==false?['required']:[]} onToggle={()=>setChecklist(checklist.map(x=>x===item?{...x,required:x.required===false}:x))}/>
-       <IconButton size="sm" tone="danger" label={en?'Remove item':'Αφαίρεση σημείου'} onClick={()=>setChecklist(checklist.filter(x=>x!==item))}><Trash2 size={14}/></IconButton>
+       <IconButton size="sm" tone="danger" label={en?'Remove item':'Αφαίρεση σημείου'} onClick={()=>setChecklist(checklist.filter((x:AnyRecord)=>x!==item))}><Trash2 size={14}/></IconButton>
       </li>)}</ol>
      </div>}
     </section>
@@ -216,7 +223,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <MultiSelect className="control-departments-select" label={en?'Departments':'Τμήματα εφαρμογής'} {...form.field('departments')} options={departments.map(d=>({value:d,label:d}))} selected={draft.departments} onChange={next=>set('departments',next)} disabled={departmentOnly||departmentsLoading||Boolean(departmentsError)} placeholder={departmentsLoading?(en?'Loading departments…':'Φόρτωση τμημάτων…'):departmentsError||(departments.length?(en?'Select departments':'Επιλέξτε τμήματα'):(en?'No active departments':'Δεν υπάρχουν ενεργά τμήματα'))} {...multiText} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/>
      {draft.departments.length>0&&<table className="data-table control-editor-department-table">
       <thead><tr><th>{en?'Department':'Τμήμα'}</th><th>{en?'Responsible person':'Υπεύθυνος'}</th><th>{en?'Schedule':'Πρόγραμμα'}</th><th>{mode==='numeric'?(en?'Limits / actions':'Όρια / ενέργειες'):(en?'Actions on deviation':'Ενέργειες σε απόκλιση')}</th>{!departmentOnly&&<th aria-label={en?'Actions':'Ενέργειες'}/>}</tr></thead>
-      <tbody>{draft.departments.map(dep=>{const {options:depOptions,near}=employeeOptions(employees,language,[dep]);const person=draft.assignees?.[dep];const setPerson=next=>set('assignees',{...(draft.assignees||{}),[dep]:next});const ownFields=Boolean(draft.departmentFrequencies?.[dep]||draft.departmentResponses?.[dep]);return <Fragment key={dep}><tr className={ownFields?'has-own-fields':''}>
+      <tbody>{draft.departments.map(dep=>{const {options:depOptions,near}=employeeOptions(employees,language,[dep]);const person=draft.assignees?.[dep];const setPerson=(next:unknown)=>set('assignees',{...(draft.assignees||{}),[dep]:next});const ownFields=Boolean(draft.departmentFrequencies?.[dep]||draft.departmentResponses?.[dep]);return <Fragment key={dep}><tr className={ownFields?'has-own-fields':''}>
        <td><strong>{dep}</strong></td>
        <td>{person?.employeeId||editingPerson===dep?<div className="control-department-cell is-own"><SearchableSelect hideLabel label={`${en?'Person for':'Υπεύθυνος για'} ${dep}`} value={person?.employeeId||''} options={depOptions} recentValues={near} recentLabel={dep} onChange={id=>{setPerson(personFromEmployee(employeeById(id)));setEditingPerson(null)}} placeholder={en?'Search staff…':'Αναζήτηση προσωπικού…'} {...selectText}/><button type="button" className="control-department-cell-action" onClick={()=>{setPerson(null);setEditingPerson(null)}}>{en?'Same for all':'Όπως όλα'}</button></div>
         :<div className="control-department-cell"><span>{en?'Same for all':'Όπως όλα'}</span><button type="button" className="control-department-cell-action" onClick={()=>setEditingPerson(dep)}>{en?'Change':'Αλλαγή'}</button></div>}</td>
@@ -236,11 +243,11 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     {tab==='instructions'&&<>
     <section className="control-editor-card control-editor-wide">
      <header><strong><FileText size={14}/> {en?'Goal & instructions':'Στόχος & οδηγίες'}</strong><span>{en?'Shown to whoever records':'Εμφανίζονται σε όποιον καταχωρεί'}</span></header>
-     <Field label={en?'Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea rows="3" value={response.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'Shown to the person recording when the result deviates, e.g. move vaccines to the backup fridge, inform the pharmacy.':'Εμφανίζεται σε όποιον καταχωρεί όταν το αποτέλεσμα αποκλίνει, π.χ. μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου.'}/></Field>
-     <Field label={en?'Goal':'Στόχος'}><textarea rows="3" value={draft.goal||''} onChange={e=>set('goal',e.target.value)} placeholder={en?'What the control is for…':'Τι εξασφαλίζει ο έλεγχος…'}/></Field>
-     <Field label={en?'Acceptance criteria':'Κριτήρια αποδοχής'}><textarea rows="3" value={draft.acceptanceCriteria||''} onChange={e=>set('acceptanceCriteria',e.target.value)} placeholder={en?'When the result is acceptable…':'Πότε το αποτέλεσμα είναι αποδεκτό…'}/></Field>
-     <Field label={en?'Instructions':'Οδηγίες'}><textarea rows="4" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></Field>
-     <Field label={en?'Guidance notes':'Σημειώσεις καθοδήγησης'}><textarea rows="3" value={draft.guideNotes||''} onChange={e=>set('guideNotes',e.target.value)} placeholder={en?'Optional notes for whoever records…':'Προαιρετικές σημειώσεις για όποιον καταχωρεί…'}/></Field>
+     <Field label={en?'Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea rows={3} value={response.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'Shown to the person recording when the result deviates, e.g. move vaccines to the backup fridge, inform the pharmacy.':'Εμφανίζεται σε όποιον καταχωρεί όταν το αποτέλεσμα αποκλίνει, π.χ. μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου.'}/></Field>
+     <Field label={en?'Goal':'Στόχος'}><textarea rows={3} value={draft.goal||''} onChange={e=>set('goal',e.target.value)} placeholder={en?'What the control is for…':'Τι εξασφαλίζει ο έλεγχος…'}/></Field>
+     <Field label={en?'Acceptance criteria':'Κριτήρια αποδοχής'}><textarea rows={3} value={draft.acceptanceCriteria||''} onChange={e=>set('acceptanceCriteria',e.target.value)} placeholder={en?'When the result is acceptable…':'Πότε το αποτέλεσμα είναι αποδεκτό…'}/></Field>
+     <Field label={en?'Instructions':'Οδηγίες'}><textarea rows={4} value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></Field>
+     <Field label={en?'Guidance notes':'Σημειώσεις καθοδήγησης'}><textarea rows={3} value={draft.guideNotes||''} onChange={e=>set('guideNotes',e.target.value)} placeholder={en?'Optional notes for whoever records…':'Προαιρετικές σημειώσεις για όποιον καταχωρεί…'}/></Field>
     </section>
 
     </>}

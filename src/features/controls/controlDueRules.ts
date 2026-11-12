@@ -28,6 +28,14 @@
 // day for daily and every-N-days controls, the week, the month or the year.
 // Extra entries («Έκτακτη καταχώρηση», is_extra) never count.
 
+import type { AnyRecord } from '../../types/featureTypes'
+
+// A control's schedule (frequency_config): kind, times, interval and the rest.
+type Frequency = AnyRecord
+// A local calendar day.
+type Day = { year: number, month: number, day: number }
+type Instant = Date | string | number
+
 export const CONTROL_TIME_ZONE = 'Europe/Athens'
 const MINUTE = 60000
 const DAY_MINUTES = 1440
@@ -37,26 +45,26 @@ export const SLOT_EARLY_MINUTES = 60
 export const SLOT_MARGIN_ONCE = 120
 export const SLOT_MARGIN_SEVERAL = 60
 
-const formatters = new Map()
-function formatter(timeZone) {
+const formatters = new Map<string, Intl.DateTimeFormat>()
+function formatter(timeZone: string) {
   if (!formatters.has(timeZone)) formatters.set(timeZone, new Intl.DateTimeFormat('en-GB', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }))
-  return formatters.get(timeZone)
+  return formatters.get(timeZone)!
 }
 
 // The wall-clock date and time of an instant in the time zone.
-export function zonedParts(date, timeZone = CONTROL_TIME_ZONE) {
+export function zonedParts(date: Instant, timeZone = CONTROL_TIME_ZONE) {
   const parts = Object.fromEntries(formatter(timeZone).formatToParts(new Date(date)).filter((p) => p.type !== 'literal').map((p) => [p.type, Number(p.value)]))
   return { year: parts.year, month: parts.month, day: parts.day, hour: parts.hour % 24, minute: parts.minute, second: parts.second }
 }
 
-const offsetAt = (ms, timeZone) => {
+const offsetAt = (ms: number, timeZone: string) => {
   const p = zonedParts(ms, timeZone)
   return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(ms / 1000) * 1000
 }
 
 // The instant of a wall-clock time in the time zone (a time skipped by the
 // spring change moves forward an hour, as in PostgreSQL).
-export function zonedInstant(year, month, day, minutes = 0, timeZone = CONTROL_TIME_ZONE) {
+export function zonedInstant(year: number, month: number, day: number, minutes = 0, timeZone = CONTROL_TIME_ZONE) {
   const wall = Date.UTC(year, month - 1, day, 0, minutes)
   let guess = wall - offsetAt(wall, timeZone)
   const second = wall - offsetAt(guess, timeZone)
@@ -65,57 +73,57 @@ export function zonedInstant(year, month, day, minutes = 0, timeZone = CONTROL_T
 }
 
 // A local calendar day, shifted by whole days.
-const civilDay = (year, month, day) => { const d = new Date(Date.UTC(year, month - 1, day)); return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() } }
-const localDay = (date, timeZone) => { const p = zonedParts(date, timeZone); return { year: p.year, month: p.month, day: p.day } }
-const addDays = (d, n) => civilDay(d.year, d.month, d.day + n)
+const civilDay = (year: number, month: number, day: number): Day => { const d = new Date(Date.UTC(year, month - 1, day)); return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() } }
+const localDay = (date: Instant, timeZone: string): Day => { const p = zonedParts(date, timeZone); return { year: p.year, month: p.month, day: p.day } }
+const addDays = (d: Day, n: number) => civilDay(d.year, d.month, d.day + n)
 
-const positive = (value, fallback = 1) => { const n = Math.floor(Number(value)); return Number.isFinite(n) && n >= 1 ? n : fallback }
+const positive = (value: unknown, fallback = 1) => { const n = Math.floor(Number(value)); return Number.isFinite(n) && n >= 1 ? n : fallback }
 
 // The execution times of a daily control, minutes after midnight, in order.
-const setTimes = (frequency = {}) => [...new Set((frequency.times || []).map((t) => /^(\d{1,2}):(\d{2})$/.exec(String(t || '').trim())).filter(Boolean).map((m) => Number(m[1]) * 60 + Number(m[2])).filter((m) => m >= 0 && m < DAY_MINUTES))].sort((a, b) => a - b)
+const setTimes = (frequency: Frequency = {}): number[] => [...new Set<number>((frequency.times || []).map((t: unknown) => /^(\d{1,2}):(\d{2})$/.exec(String(t || '').trim())).filter(Boolean).map((m: RegExpExecArray) => Number(m[1]) * 60 + Number(m[2])).filter((m: number) => m >= 0 && m < DAY_MINUTES))].sort((a, b) => a - b)
 
 // Slot start times of a daily control, minutes after midnight, in order.
-export function slotStarts(frequency = {}) {
+export function slotStarts(frequency: Frequency = {}) {
   const times = setTimes(frequency)
   if (times.length) return times
   const n = positive(frequency.timesPerDay)
   return Array.from({ length: n }, (_, i) => Math.floor((i * DAY_MINUTES) / n))
 }
 
-export const isDailyFrequency = (frequency = {}) => frequency.kind === 'daily'
+export const isDailyFrequency = (frequency: Frequency = {}) => frequency.kind === 'daily'
 
 // A daily control of the working days only (Monday to Friday).
-export const isWeekdaysOnly = (frequency = {}) => isDailyFrequency(frequency) && frequency.weekdaysOnly === true
-const isWeekend = (d) => { const weekday = new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay(); return weekday === 0 || weekday === 6 }
+export const isWeekdaysOnly = (frequency: Frequency = {}) => isDailyFrequency(frequency) && frequency.weekdaysOnly === true
+const isWeekend = (d: Day) => { const weekday = new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay(); return weekday === 0 || weekday === 6 }
 // The first day from `d` on that holds slots.
-const workingDay = (frequency, d) => { let day = d; while (isWeekdaysOnly(frequency) && isWeekend(day)) day = addDays(day, 1); return day }
+const workingDay = (frequency: Frequency, d: Day) => { let day = d; while (isWeekdaysOnly(frequency) && isWeekend(day)) day = addDays(day, 1); return day }
 
 // Entries a period requires: the slots of a day, otherwise one.
-export function requiredPerPeriod(frequency = {}) {
+export function requiredPerPeriod(frequency: Frequency = {}) {
   return isDailyFrequency(frequency) ? slotStarts(frequency).length : 1
 }
 
-export function periodUnit(frequency = {}) {
+export function periodUnit(frequency: Frequency = {}) {
   if (frequency.kind === 'weekly') return 'week'
   if (frequency.kind === 'monthly') return 'month'
   if (frequency.kind === 'yearly') return 'year'
   return 'day'
 }
 
-function unitStart(unit, d) {
+function unitStart(unit: string, d: Day): Day {
   if (unit === 'month') return { year: d.year, month: d.month, day: 1 }
   if (unit === 'year') return { year: d.year, month: 1, day: 1 }
   if (unit === 'week') { const weekday = (new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay() + 6) % 7; return addDays(d, -weekday) }
   return d
 }
-function unitNext(unit, s) {
+function unitNext(unit: string, s: Day): Day {
   if (unit === 'month') return civilDay(s.year, s.month + 1, 1)
   if (unit === 'year') return { year: s.year + 1, month: 1, day: 1 }
   return addDays(s, unit === 'week' ? 7 : 1)
 }
 
 // [start, end) of the period (day, week, month or year) holding `at`.
-export function periodBounds(frequency, at = new Date(), timeZone = CONTROL_TIME_ZONE) {
+export function periodBounds(frequency: Frequency, at: Instant = new Date(), timeZone = CONTROL_TIME_ZONE) {
   const unit = periodUnit(frequency)
   const s = unitStart(unit, localDay(at, timeZone))
   const e = unitNext(unit, s)
@@ -123,10 +131,10 @@ export function periodBounds(frequency, at = new Date(), timeZone = CONTROL_TIME
 }
 
 // The last second of a local day.
-const endOfDay = (d, timeZone) => { const n = addDays(d, 1); return new Date(zonedInstant(n.year, n.month, n.day, 0, timeZone).getTime() - 1000) }
+const endOfDay = (d: Day, timeZone: string) => { const n = addDays(d, 1); return new Date(zonedInstant(n.year, n.month, n.day, 0, timeZone).getTime() - 1000) }
 
 // Deadline of slot `index` (0-based) on local day `d`.
-export function slotDeadline(frequency, d, index, timeZone = CONTROL_TIME_ZONE) {
+export function slotDeadline(frequency: Frequency, d: Day, index: number, timeZone = CONTROL_TIME_ZONE) {
   const starts = slotStarts(frequency)
   const i = Math.min(Math.max(0, index), starts.length - 1)
   const boundary = i < starts.length - 1 ? starts[i + 1] : DAY_MINUTES
@@ -138,7 +146,7 @@ export function slotDeadline(frequency, d, index, timeZone = CONTROL_TIME_ZONE) 
 // Minutes after a set time that still count as on time: the control's own
 // margin, otherwise 2 hours once a day and 1 hour more often; 0 (by the next
 // slot) when the day is split evenly without times.
-export function slotMargin(frequency = {}) {
+export function slotMargin(frequency: Frequency = {}) {
   const tolerance = Number(frequency.toleranceMinutes)
   if (tolerance > 0) return tolerance
   const times = setTimes(frequency)
@@ -148,7 +156,7 @@ export function slotMargin(frequency = {}) {
 
 // The earliest on-time moment of slot `index` on local day `d`: 1 hour before
 // its time (with execution times), otherwise the start of the day.
-export function slotOpens(frequency, d, index, timeZone = CONTROL_TIME_ZONE) {
+export function slotOpens(frequency: Frequency, d: Day, index: number, timeZone = CONTROL_TIME_ZONE) {
   const starts = slotStarts(frequency)
   const i = Math.min(Math.max(0, index), starts.length - 1)
   const minutes = setTimes(frequency).length ? Math.max(0, starts[i] - SLOT_EARLY_MINUTES) : 0
@@ -157,7 +165,7 @@ export function slotOpens(frequency, d, index, timeZone = CONTROL_TIME_ZONE) {
 
 // The on-time window of slot `index` in minutes after midnight: [open, close]
 // (close 1440 is the end of the day), as slotOpens and slotDeadline.
-export function slotWindowMinutes(frequency = {}, index = 0) {
+export function slotWindowMinutes(frequency: Frequency = {}, index = 0) {
   const starts = slotStarts(frequency)
   const i = Math.min(Math.max(0, index), starts.length - 1)
   const boundary = i < starts.length - 1 ? starts[i + 1] : DAY_MINUTES
@@ -166,7 +174,7 @@ export function slotWindowMinutes(frequency = {}, index = 0) {
 }
 
 // End (last second) of the period `interval` units after the one holding `at`.
-function periodDeadlineAfter(frequency, at, timeZone) {
+function periodDeadlineAfter(frequency: Frequency, at: Instant, timeZone: string) {
   const k = positive(frequency.interval)
   const unit = periodUnit(frequency)
   const d = localDay(at, timeZone)
@@ -177,7 +185,7 @@ function periodDeadlineAfter(frequency, at, timeZone) {
 
 // next_due_at after an entry at `at`, when `doneInPeriod` regular entries
 // (this one included) fall in its period.
-export function nextDueAfterExecution(frequency = {}, at = new Date(), doneInPeriod = 1, timeZone = CONTROL_TIME_ZONE) {
+export function nextDueAfterExecution(frequency: Frequency = {}, at: Instant = new Date(), doneInPeriod: unknown = 1, timeZone = CONTROL_TIME_ZONE) {
   if (!isDailyFrequency(frequency)) return periodDeadlineAfter(frequency, at, timeZone).toISOString()
   const d = localDay(at, timeZone)
   const done = Math.max(0, Math.floor(Number(doneInPeriod) || 0))
@@ -187,7 +195,7 @@ export function nextDueAfterExecution(frequency = {}, at = new Date(), doneInPer
 }
 
 // The next deadline strictly after `from` (stepping a schedule forward).
-export function nextDeadlineAfter(frequency = {}, from = new Date(), timeZone = CONTROL_TIME_ZONE) {
+export function nextDeadlineAfter(frequency: Frequency = {}, from: Instant = new Date(), timeZone = CONTROL_TIME_ZONE) {
   if (!isDailyFrequency(frequency)) return periodDeadlineAfter(frequency, from, timeZone).toISOString()
   const t = new Date(from).getTime()
   const today = localDay(from, timeZone)
@@ -203,17 +211,17 @@ export function nextDeadlineAfter(frequency = {}, from = new Date(), timeZone = 
 
 // The first deadline of a new assignment: the open slot of today, or the end of
 // the current week, month or year (every N days: today).
-export function firstDue(frequency = {}, now = new Date(), timeZone = CONTROL_TIME_ZONE) {
+export function firstDue(frequency: Frequency = {}, now: Instant = new Date(), timeZone = CONTROL_TIME_ZONE) {
   if (isDailyFrequency(frequency)) return nextDeadlineAfter(frequency, now, timeZone)
   return new Date(periodBounds(frequency, now, timeZone).end.getTime() - 1000).toISOString()
 }
 
-const regular = (row) => row && row.status !== 'cancelled' && !row.cancelledAt && !row.isExtra && !row.responseData?.isExtra && row.at
+const regular = (row: AnyRecord | null | undefined) => row && row.status !== 'cancelled' && !row.cancelledAt && !row.isExtra && !row.responseData?.isExtra && row.at
 
 // How far the current period is: required, regular entries done, extra entries.
-export function periodProgress(frequency = {}, history = [], now = new Date(), timeZone = CONTROL_TIME_ZONE) {
+export function periodProgress(frequency: Frequency = {}, history: AnyRecord[] = [], now: Instant = new Date(), timeZone = CONTROL_TIME_ZONE) {
   const { unit, start, end } = periodBounds(frequency, now, timeZone)
-  const inPeriod = (row) => row.at && new Date(row.at) >= start && new Date(row.at) < end && row.status !== 'cancelled' && !row.cancelledAt
+  const inPeriod = (row: AnyRecord) => row.at && new Date(row.at) >= start && new Date(row.at) < end && row.status !== 'cancelled' && !row.cancelledAt
   const rows = history.filter(inPeriod)
   const done = rows.filter(regular).length
   const required = requiredPerPeriod(frequency)
@@ -223,8 +231,8 @@ export function periodProgress(frequency = {}, history = [], now = new Date(), t
 // Each entry of an assignment's history marked as counted (one of the
 // period's required entries) and on time (by its deadline), as the database
 // does in private.control_execution_marks.
-export function executionMarks(history = [], frequency = {}, timeZone = CONTROL_TIME_ZONE) {
-  const rows = history.filter(regular).slice().sort((a, b) => new Date(a.at) - new Date(b.at))
+export function executionMarks(history: AnyRecord[] = [], frequency: Frequency = {}, timeZone = CONTROL_TIME_ZONE) {
+  const rows = history.filter(regular).slice().sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
   const daily = isDailyFrequency(frequency)
   const required = requiredPerPeriod(frequency)
   let dayKey = '', rank = 0
@@ -245,9 +253,9 @@ export function executionMarks(history = [], frequency = {}, timeZone = CONTROL_
 
 // Status of a due date: overdue once passed; due soon within two hours for
 // daily controls, a day for the rest.
-export function dueState(nextDueAt, frequency = {}, now = new Date()) {
+export function dueState(nextDueAt: Instant | null | undefined, frequency: Frequency = {}, now: Instant = new Date()) {
   if (!nextDueAt) return 'scheduled'
-  const diff = new Date(nextDueAt) - new Date(now)
+  const diff = new Date(nextDueAt).getTime() - new Date(now).getTime()
   if (diff < 0) return 'overdue'
   if (diff <= (isDailyFrequency(frequency) ? 120 : 1440) * MINUTE) return 'dueSoon'
   return 'scheduled'
