@@ -54,7 +54,9 @@ export function DivisionKpis({ totals = {}, nextMonth, departmentCount, loading 
     <KpiCard icon={Users} label={tr('Προσωπικό', 'Staff')} value={totals.staff ?? 0} hint={tr(`${totals.staffOnLeave ?? 0} σε άδεια`, `${totals.staffOnLeave ?? 0} on leave`)} loading={loading} error={error} />
     <KpiCard icon={CalendarClock} label={tr(`Βάρδιες ${month}`, `${month} rosters`)} value={`${published}/${departmentCount ?? 0}`} status={departmentCount ? (published === departmentCount ? 'good' : 'warning') : null} statusLabel={published === departmentCount ? tr('Όλα δημοσιευμένα', 'All published') : tr('Δεν έχουν δημοσιευτεί όλα', 'Not all published')} hint={tr(`${nights} κενές νύχτες`, `${nights} open nights`)} loading={loading} error={error} />
     <KpiCard icon={GraduationCap} label={tr('Εκπαίδευση', 'Training')} value={percentText(totals.trainingPct).replace('%', '')} unit="%" target={tr(`στόχος ≥ ${TRAINING_TARGET}%`, `target ≥ ${TRAINING_TARGET}%`)} status={percentStatus(totals.trainingPct, TRAINING_TARGET)} meter={totals.trainingPct ?? null} meterTarget={TRAINING_TARGET} loading={loading} error={error} />
-    <KpiCard icon={Syringe} label={tr('Εμβολιασμός γρίπης', 'Flu vaccination')} value={percentText(totals.fluPct).replace('%', '')} unit="%" meter={totals.fluPct ?? null} loading={loading} error={error} />
+    {totals.fluPct == null
+      ? <KpiCard icon={Syringe} label={tr('Εμβολιασμός γρίπης', 'Flu vaccination')} value="—" hint={tr('Δεν υπάρχουν καταγραφές', 'No records')} loading={loading} error={error} />
+      : <KpiCard icon={Syringe} label={tr('Εμβολιασμός γρίπης', 'Flu vaccination')} value={percentText(totals.fluPct).replace('%', '')} unit="%" meter={totals.fluPct} loading={loading} error={error} />}
   </KpiStrip>
 }
 
@@ -86,7 +88,7 @@ export function DivisionDepartmentsTable({ departments = [], nextMonth, loading 
         <td><StatusBadge tone={tone}>{pill}</StatusBadge></td>
         <td className="division-number"><span className="division-requests">{row.pendingRequests ?? 0}{waiting > 0 && <small className="division-late" title={tr('Περιμένουν πάνω από 3 ημέρες', 'Waiting over 3 days')}>{tr(`${waiting} καθυστερούν`, `${waiting} late`)}</small>}</span></td>
         <td className={`division-number is-${percentStatus(row.trainingPct, TRAINING_TARGET) || 'none'}`}>{percentText(row.trainingPct)}</td>
-        <td className="division-number">{percentText(row.fluPct)}</td>
+        <td className="division-number" title={row.fluPct == null ? tr('Δεν υπάρχουν καταγραφές', 'No records') : undefined}>{percentText(row.fluPct)}</td>
         <td className="division-number">{percentText(row.handHygienePct)}</td>
         <td className="division-number">{row.falls30 ?? 0} / {row.pressureUlcers30 ?? 0}</td>
       </>
