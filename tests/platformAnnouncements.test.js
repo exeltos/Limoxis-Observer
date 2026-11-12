@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { announcementPayload, mapAnnouncement, meantForDemo, pendingFor } from '../src/features/platform/platformAnnouncementsService'
+import { announcementPayload, audienceSummary, mapAnnouncement, meantForDemo, pendingFor } from '../src/features/platform/platformAnnouncementsService'
 
 // The platform owner's announcements to the hospital administrators (owner, 8/11/2026).
 const base = { id: 'a1', status: 'active', startsAt: '2026-11-01T00:00:00Z', endsAt: '2026-11-30T00:00:00Z', audience: [], frequency: 'once' }
@@ -36,7 +36,7 @@ describe('platform announcements: file and demo (owner, 8/11/2026)', () => {
   it('keeps the uploaded file and the demo flag', () => {
     const row = announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο', attachmentPath: '1-a.pdf', attachmentName: 'a.pdf', attachmentType: 'application/pdf', showInDemo: true })
     expect(row).toMatchObject({ attachment_path: '1-a.pdf', attachment_name: 'a.pdf', attachment_type: 'application/pdf', show_in_demo: true })
-    expect(announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο' })).toMatchObject({ attachment_path: null, show_in_demo: false })
+    expect(announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο', audience: ['org-1'] })).toMatchObject({ attachment_path: null, show_in_demo: false })
   })
 
   it('opens the form as a record screen with Back (not a window), rows only open it, and shows the demo ones in a demo hospital', () => {
@@ -101,7 +101,8 @@ describe('platform announcements: hospitals and demos in one list (owner, 12/11/
   it('the page offers hospitals and demos together; the old checkbox is gone', () => {
     const page = readFileSync('src/features/platform/PlatformAnnouncementsPage.jsx', 'utf8')
     expect(page).not.toContain('Εμφάνιση και στο demo')
-    expect(page).toContain("org.mode === 'demo' ? `${org.name} · Demo`")
+    expect(page).toContain("(org.is_demo || org.mode === 'demo') ? `${org.name} · Demo`")
+    expect(page).toContain('ALL_HOSPITALS')
     expect(page).toContain('ALL_DEMOS')
   })
   it('the database lets a demo member read what names their demo (create policy only)', () => {
@@ -109,5 +110,41 @@ describe('platform announcements: hospitals and demos in one list (owner, 12/11/
     expect(sql).toContain('create policy platform_announcements_demo_target_read')
     expect(sql).toContain('is_demo')
     expect(sql).not.toMatch(/\b(drop |delete from|alter policy|revoke)/i)
+  })
+})
+
+describe('platform announcements: where it shows (owner, 12/11/2026)', () => {
+  const base = { id: 'a1', status: 'active', startsAt: '2026-11-01T00:00:00Z', endsAt: '2026-11-30T00:00:00Z', frequency: 'once', showInDemo: false, audience: [], allHospitals: false }
+  const now = new Date('2026-11-12T00:00:00Z')
+  const hospital = item => pendingFor([item], 'org-1', new Set(), now).length === 1
+  it('every registered hospital: reaches hospitals, not demos', () => {
+    const item = { ...base, allHospitals: true }
+    expect(hospital(item)).toBe(true)
+    expect(meantForDemo(item, 'demo-1')).toBe(false)
+  })
+  it('every demo only: not a hospital, a demo yes', () => {
+    const item = { ...base, showInDemo: true }
+    expect(hospital(item)).toBe(false)
+    expect(meantForDemo(item, 'demo-1')).toBe(true)
+  })
+  it('nothing chosen is saved as every hospital and every demo', () => {
+    const row = announcementPayload({ titleEl: 'Τ', bodyEl: 'Κ', audience: [] })
+    expect(row.audience_all_hospitals).toBe(true)
+    expect(row.show_in_demo).toBe(true)
+  })
+  it('a single hospital or demo keeps both flags off', () => {
+    const row = announcementPayload({ titleEl: 'Τ', bodyEl: 'Κ', audience: ['demo-1'] })
+    expect(row.audience_all_hospitals).toBe(false)
+    expect(row.show_in_demo).toBe(false)
+    expect(row.audience_org_ids).toEqual(['demo-1'])
+  })
+  it('older rows keep working: an empty list is every hospital', () => {
+    expect(hospital({ ...base, allHospitals: undefined })).toBe(true)
+  })
+  it('the summary says who it is for', () => {
+    const tx = el => el
+    expect(audienceSummary({ audience: [], allHospitals: true, showInDemo: true }, String, tx)).toBe('Όλα τα νοσοκομεία και τα demo')
+    expect(audienceSummary({ audience: [], allHospitals: true, showInDemo: false }, String, tx)).toBe('Όλα τα νοσοκομεία')
+    expect(audienceSummary({ audience: ['X'], allHospitals: false, showInDemo: true }, String, tx)).toBe('Όλα τα demo, X')
   })
 })

@@ -4,7 +4,7 @@ import { isOwnerPreview, previewPlatformAnnouncements } from '../../core/preview
 // Announcements of the platform owner to the hospital administrators (owner, 8/11/2026). The table and its RLS:
 // supabase/migrations/20261231260000_platform_announcements.sql — the owner writes them, a hospital administrator reads
 // the active ones meant for their hospital and records that they saw them.
-const COLUMNS = 'id,kind,title_el,title_en,body_el,body_en,cta_label_el,cta_label_en,cta_url,image_url,attachment_path,attachment_name,attachment_type,image_position,document_path,document_name,document_type,show_in_demo,starts_at,ends_at,audience_org_ids,frequency,status,created_at,updated_at'
+const COLUMNS = 'id,kind,title_el,title_en,body_el,body_en,cta_label_el,cta_label_en,cta_url,image_url,attachment_path,attachment_name,attachment_type,image_position,document_path,document_name,document_type,show_in_demo,starts_at,ends_at,audience_org_ids,audience_all_hospitals,frequency,status,created_at,updated_at'
 
 // Where the image sits next to the text.
 export const IMAGE_POSITIONS = ['top', 'left', 'right', 'bottom']
@@ -36,12 +36,16 @@ export function mapAnnouncement(row) {
     startsAt: row.starts_at || null,
     endsAt: row.ends_at || null,
     audience: row.audience_org_ids || [],
+    // Every registered (non-demo) hospital. Older rows have no value: an empty list meant every hospital.
+    allHospitals: row.audience_all_hospitals ?? !(row.audience_org_ids || []).length,
     frequency: row.frequency || 'once',
     status: row.status || 'active',
     createdAt: row.created_at || null,
   }
 }
 
+// Nothing chosen in «Where it shows» means every hospital and every demo.
+const nobodyChosen = draft => !draft.allHospitals && !draft.showInDemo && !(Array.isArray(draft.audience) && draft.audience.length)
 const blank = value => (String(value ?? '').trim() ? String(value).trim() : null)
 export function announcementPayload(draft) {
   return {
@@ -61,10 +65,11 @@ export function announcementPayload(draft) {
     document_path: blank(draft.documentPath),
     document_name: blank(draft.documentName),
     document_type: blank(draft.documentType),
-    show_in_demo: Boolean(draft.showInDemo),
+    show_in_demo: nobodyChosen(draft) ? true : Boolean(draft.showInDemo),
     starts_at: draft.startsAt ? new Date(`${draft.startsAt}T00:00:00`).toISOString() : new Date().toISOString(),
     ends_at: draft.endsAt ? new Date(`${draft.endsAt}T23:59:59`).toISOString() : null,
     audience_org_ids: Array.isArray(draft.audience) ? draft.audience : [],
+    audience_all_hospitals: nobodyChosen(draft) ? true : Boolean(draft.allHospitals),
     frequency: draft.frequency === 'every_visit' ? 'every_visit' : 'once',
     status: draft.status === 'stopped' ? 'stopped' : 'active',
   }
@@ -125,7 +130,14 @@ export async function loadDemoAnnouncements(organizationId) {
   return (data || [])
     .map(mapAnnouncement)
     .filter(item => meantForDemo(item, organizationId))
-    .filter(item => pendingFor([{ ...item, audience: [] }], '', new Set()).length)
+    .filter(item => pendingFor([{ ...item, allHospitals: true }], '', new Set()).length)
+}
+// Who an announcement is for, in words (the list column): «all hospitals and demos», «all hospitals», «all demos», or the names.
+export function audienceSummary(item, nameOf, tx) {
+  const names = (item.audience || []).map(nameOf)
+  const hospitals = item.allHospitals ?? !names.length
+  if (hospitals && item.showInDemo && !names.length) return tx('Όλα τα νοσοκομεία και τα demo', 'Every hospital and demo')
+  return [hospitals ? tx('Όλα τα νοσοκομεία', 'Every hospital') : '', item.showInDemo ? tx('Όλα τα demo', 'Every demo') : '', ...names].filter(Boolean).join(', ')
 }
 // Pure: an announcement is for a demo hospital when it is for every demo (the old setting) or names this one.
 export const meantForDemo = (item, organizationId) => Boolean(item.showInDemo || (organizationId && item.audience.includes(organizationId)))
@@ -163,7 +175,7 @@ export function pendingFor(list, organizationId, seenIds = new Set(), now = new 
     if (item.status !== 'active') return false
     if (item.startsAt && new Date(item.startsAt) > now) return false
     if (item.endsAt && new Date(item.endsAt) <= now) return false
-    if (item.audience.length && !item.audience.includes(organizationId)) return false
+    if (!(item.allHospitals ?? !item.audience.length) && !item.audience.includes(organizationId)) return false
     return item.frequency === 'every_visit' || !seenIds.has(item.id)
   })
 }
