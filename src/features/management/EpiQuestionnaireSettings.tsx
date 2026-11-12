@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { CheckboxField } from '../../design-system/CheckboxField'
@@ -10,18 +10,24 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { ROLES } from '../../core/permissions/systemRoleMatrix'
 import { EPI_QUESTION_COUNT, EPI_CORE_KEYS, applyEpiSettings, epiDefinitionVersion, epiText } from '../surveillance/epiQuestionnaire/epiQuestionnaireModel'
 import { fill } from '../surveillance/epiQuestionnaire/epiQuestionnaireText'
-import { loadEpiSettings, saveEpiSetting } from '../surveillance/epiQuestionnaire/epiQuestionnaireService'
+import { loadEpiSettings, saveEpiSetting as saveEpiSettingJs } from '../surveillance/epiQuestionnaire/epiQuestionnaireService'
 import '../surveillance/epiQuestionnaire/epiQuestionnaire.css'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// Το JS της Επιτήρησης δίνει στο `current` τύπο null (από την προεπιλογή του)· εδώ η πραγματική υπογραφή.
+const saveEpiSetting = saveEpiSettingJs as (organizationId: string | undefined, questionKey: string, patch: AnyRecord, current: AnyRecord | null, options: { isDemo?: boolean }) => Promise<AnyRecord>
+type EpiRow = ReturnType<typeof applyEpiSettings>[number] & { index: number }
+type WordingDraft = { labelEl: string, labelEn: string, helpEl: string, helpEn: string, windowDays: number | null }
 
 // «Λίστες & ρυθμίσεις › Ερωτηματολόγια»: the system questionnaire of the surveillance. The wording,
 // help text, time window and on / off are the hospital's; only the hospital administrator (and the
 // Platform Owner) changes them (the database enforces it). A change raises the version and applies
 // to new answers only; the three core questions are never switched off.
-const PREFILL_SOURCES = { therapy: 'therapy', icu: 'icu', admission: 'admission', devices: 'devices' }
-const canEditSettings = role => role === ROLES.PLATFORM_OWNER || role === ROLES.HOSPITAL_ADMIN
+const PREFILL_SOURCES: Record<string, string> = { therapy: 'therapy', icu: 'icu', admission: 'admission', devices: 'devices' }
+const canEditSettings = (role: string | null | undefined) => role === ROLES.PLATFORM_OWNER || role === ROLES.HOSPITAL_ADMIN
 
 // The row of the questionnaires registry (the panel adds it above the hospital's own).
-export function EpiQuestionnaireRegistryCells({ version }) {
+export function EpiQuestionnaireRegistryCells({ version }: { version: number }) {
   const { t } = useLanguage()
   return (
     <>
@@ -37,7 +43,7 @@ export function EpiQuestionnaireRegistryCells({ version }) {
 
 export function useEpiSettings() {
   const { tenant, isDemo } = useTenant()
-  const [settings, setSettings] = useState([])
+  const [settings, setSettings] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     let alive = true
@@ -56,7 +62,7 @@ export function useEpiSettings() {
   return { settings, setSettings, loading, version: epiDefinitionVersion(settings) }
 }
 
-function WordingDialog({ question, setting, nextVersion, onClose, onSave }) {
+function WordingDialog({ question, setting, nextVersion, onClose, onSave }: { question: EpiRow, setting: AnyRecord | null, nextVersion: number, onClose: () => void, onSave: (patch: WordingDraft) => void }) {
   const { t } = useLanguage()
   const [draft, setDraft] = useState({
     labelEl: setting?.labelEl || question.label.el,
@@ -65,7 +71,7 @@ function WordingDialog({ question, setting, nextVersion, onClose, onSave }) {
     helpEn: setting?.helpEn || '',
     windowDays: question.windowDays == null ? '' : String(question.windowDays),
   })
-  const set = key => event => setDraft(current => ({ ...current, [key]: event.target.value }))
+  const set = (key: string) => (event: ChangeEvent<HTMLInputElement>) => setDraft(current => ({ ...current, [key]: event.target.value }))
   const days = draft.windowDays === '' ? null : Number(draft.windowDays)
   const valid = draft.labelEl.trim() && (days === null || (Number.isInteger(days) && days > 0))
   const number = question.index + 1
@@ -97,16 +103,16 @@ function WordingDialog({ question, setting, nextVersion, onClose, onSave }) {
   )
 }
 
-export function EpiQuestionnaireSettings({ onBack }) {
+export function EpiQuestionnaireSettings({ onBack }: { onBack?: () => void }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { tenant, isDemo, role } = useTenant()
   const { settings, setSettings, version } = useEpiSettings()
-  const [editing, setEditing] = useState(null)
+  const [editing, setEditing] = useState<EpiRow | null>(null)
   const canEdit = canEditSettings(role)
   const rows = useMemo(() => applyEpiSettings(settings).map((question, index) => ({ ...question, index })), [settings])
-  const windowWords = days => (days == null ? t('epiQuestionnaire.settings.anytime') : days === 2 ? fill(t('epiQuestionnaire.settings.hours'), { n: 48 }) : fill(t('epiQuestionnaire.settings.days'), { n: days }))
-  async function persist(question, patch) {
+  const windowWords = (days: number | null | undefined) => (days == null ? t('epiQuestionnaire.settings.anytime') : days === 2 ? fill(t('epiQuestionnaire.settings.hours'), { n: 48 }) : fill(t('epiQuestionnaire.settings.days'), { n: days }))
+  async function persist(question: EpiRow, patch: AnyRecord) {
     const current = settings.find(row => row.questionKey === question.key) || null
     try {
       const saved = await saveEpiSetting(tenant?.id, question.key, patch, current, { isDemo })
@@ -114,7 +120,7 @@ export function EpiQuestionnaireSettings({ onBack }) {
       notify(t('epiQuestionnaire.settings.saved'), 'success')
       return true
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify((error as Error)?.message || t('actionFailed'), 'danger')
       return false
     }
   }
@@ -131,7 +137,7 @@ export function EpiQuestionnaireSettings({ onBack }) {
           {!canEdit && <p className="field-hint">{t('epiQuestionnaire.settings.readOnly')}</p>}
         </div>
       </div>
-      <RegistryTable
+      <RegistryTable<EpiRow>
         wrapperClassName="table-wrap scroll-table questionnaires-registry"
         className="epi-settings-table"
         columns={[

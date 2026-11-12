@@ -1,5 +1,6 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // Quarterly point-prevalence surveys, dated in the Demo's authored frame and
 // moved forward to today like the other Demo fixtures (src/core/data/demoClock.js).
@@ -15,4 +16,4 @@ const seed = [
 shiftDemoDatesInPlace([seed])
 
 export function loadPrevalenceSurveyLocal() { const rows = loadSnapshot('management_prevalence_survey', structuredClone(seed)); return Array.isArray(rows) ? rows : structuredClone(seed) }
-export function savePrevalenceSurveyLocal(rows) { return saveSnapshot('management_prevalence_survey', rows) }
+export function savePrevalenceSurveyLocal(rows: AnyRecord[]) { return saveSnapshot('management_prevalence_survey', rows) }

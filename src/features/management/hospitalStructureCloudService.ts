@@ -1,21 +1,24 @@
 import { supabase } from '../../core/supabase/client'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { Tables } from '../../core/supabase/database.types'
+import type { AnyRecord } from '../../types/featureTypes'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadHospitalStructureLocal, saveHospitalStructureLocal } from './hospitalStructureStore'
 
-const assertCloud = organizationId => {
+function assertCloud(organizationId: string | null | undefined): asserts organizationId is string {
   if (!supabase) throw new Error('Supabase is not configured.')
   if (!organizationId) throw new Error('Organization is required.')
 }
 
 async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser()
+  const { data, error } = await cloudClient().auth.getUser()
   if (error) throw error
   const id = data?.user?.id
   if (!id) throw new Error('Authenticated user is required.')
   return id
 }
 
-function mapRow(row) {
+function mapRow(row: Tables<'hospital_structure_snapshots'>) {
   return {
     id: row.id,
     effectiveDate: row.effective_date,
@@ -31,15 +34,16 @@ function mapRow(row) {
   }
 }
 
-export async function loadHospitalStructureHistory(organizationId) {
+export async function loadHospitalStructureHistory(organizationId: string | undefined) {
   if (isDemoDataEnvironment()) return loadHospitalStructureLocal()
   assertCloud(organizationId)
+  const supabase = cloudClient()
   const { data, error } = await supabase.from('hospital_structure_snapshots').select('*').eq('organization_id', organizationId).order('effective_date', { ascending: false })
   if (error) throw error
   return (data || []).map(mapRow)
 }
 
-export async function saveHospitalStructureSnapshot(organizationId, record) {
+export async function saveHospitalStructureSnapshot(organizationId: string | undefined, record: AnyRecord) {
   if (isDemoDataEnvironment()) {
     const rows = loadHospitalStructureLocal()
     const saved = { id: `HSS-${Date.now()}`, ...record, createdAt: new Date().toISOString(), createdById: 'demo-user' }
@@ -47,6 +51,7 @@ export async function saveHospitalStructureSnapshot(organizationId, record) {
     return saved
   }
   assertCloud(organizationId)
+  const supabase = cloudClient()
   const userId = await currentUserId()
   const payload = {
     organization_id: organizationId,
@@ -65,12 +70,13 @@ export async function saveHospitalStructureSnapshot(organizationId, record) {
   return mapRow(data)
 }
 
-export async function deleteHospitalStructureSnapshot(organizationId, id) {
+export async function deleteHospitalStructureSnapshot(organizationId: string | undefined, id: string|null|undefined) {
   if (isDemoDataEnvironment()) {
     saveHospitalStructureLocal(loadHospitalStructureLocal().filter(row => row.id !== id))
     return
   }
   assertCloud(organizationId)
+  const supabase = cloudClient()
   if (!id) return
   const { error } = await supabase.from('hospital_structure_snapshots').delete().eq('organization_id', organizationId).eq('id', id)
   if (error) throw error

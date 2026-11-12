@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -14,19 +15,20 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const todayIso = () => hospitalToday()
-const emptyDraft = { effectiveDate: todayIso(), totalBeds: '', icuBeds: '', singleRooms: '', infectionControlNurses: '', infectiousDiseasePhysicians: '', microbiologists: '', notes: '' }
+type StructureDraft = Record<string, string>
+const emptyDraft: StructureDraft = { effectiveDate: todayIso(), totalBeds: '', icuBeds: '', singleRooms: '', infectionControlNurses: '', infectiousDiseasePhysicians: '', microbiologists: '', notes: '' }
 
 export function HospitalStructurePanel() {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, notifyError, confirm } = useFeedback()
   const { role, tenant } = useTenant()
-  const fmt = value => value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(`${value}T12:00:00`)) : '—'
+  const fmt = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(`${value}T12:00:00`)) : '—'
   const isPlatformOwner = role === ROLES.PLATFORM_OWNER
-  const [rows, setRows] = useState([])
+  const [rows, setRows] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [editor, setEditor] = useState(false)
-  const [draft, setDraft] = useState(emptyDraft)
+  const [draft, setDraft] = useState<StructureDraft>(emptyDraft)
 
   useEffect(() => {
     if (!tenant?.id) return
@@ -39,7 +41,7 @@ export function HospitalStructurePanel() {
   async function save() {
     if (!draft.effectiveDate) { notify(en ? 'A date is required.' : 'Απαιτείται ημερομηνία.', 'danger'); return }
     try {
-      const saved = await saveHospitalStructureSnapshot(tenant.id, draft)
+      const saved = await saveHospitalStructureSnapshot(tenant?.id, draft)
       setRows(current => [saved, ...current])
       setEditor(false)
       setDraft(emptyDraft)
@@ -49,11 +51,11 @@ export function HospitalStructurePanel() {
     }
   }
 
-  async function remove(id) {
+  async function remove(id: string) {
     const ok = await confirm({ message: en ? 'Delete this entry? This removes it from the structural change history.' : 'Διαγραφή αυτής της καταχώρισης; Θα αφαιρεθεί από το ιστορικό μεταβολών δομής.', danger: true, confirmLabel: en ? 'Delete' : 'Διαγραφή' })
     if (!ok) return
     try {
-      await deleteHospitalStructureSnapshot(tenant.id, id)
+      await deleteHospitalStructureSnapshot(tenant?.id, id)
       setRows(current => current.filter(row => row.id !== id))
       notify(en ? 'Entry deleted.' : 'Η καταχώριση διαγράφηκε.', 'success')
     } catch (error) {
@@ -90,13 +92,13 @@ export function HospitalStructurePanel() {
 // What the figures say: the share of the beds, and the beds per infection-control nurse against the WHO minimum
 // (at least one full-time IPC nurse per 250 beds, WHO core components of IPC programmes).
 export const WHO_BEDS_PER_IPC_NURSE = 250
-const number = value => (value === '' || value == null || !Number.isFinite(Number(value)) ? null : Number(value))
-export function ShareOf({ part, whole, en }) {
+const number = (value: unknown) => (value === '' || value == null || !Number.isFinite(Number(value)) ? null : Number(value))
+export function ShareOf({ part, whole, en }: { part: unknown, whole: unknown, en: boolean }) {
   const a = number(part), b = number(whole)
   if (a == null || !b) return null
   return <small className="structure-derived">{`${String(Math.round((a / b) * 1000) / 10).replace('.', en ? '.' : ',')}%`}</small>
 }
-export function BedsPerNurse({ beds, nurses, en }) {
+export function BedsPerNurse({ beds, nurses, en }: { beds: unknown, nurses: unknown, en: boolean }) {
   const b = number(beds), n = number(nurses)
   if (!b || n == null) return null
   if (n === 0) return <small className="structure-derived is-bad">{en ? 'no IPC nurse' : 'χωρίς ΝΕΛ'}</small>
@@ -104,8 +106,8 @@ export function BedsPerNurse({ beds, nurses, en }) {
   return <small className={`structure-derived${per > WHO_BEDS_PER_IPC_NURSE ? ' is-bad' : ''}`} title={en ? 'WHO minimum: 1 IPC nurse per 250 beds' : 'Ελάχιστο ΠΟΥ: 1 ΝΕΛ ανά 250 κλίνες'}>{en ? `1 per ${per} beds` : `1 ανά ${per} κλίνες`}</small>
 }
 
-function StructureDialog({ en, draft, setDraft, onClose, onSave }) {
-  const field = (key, label) => (
+function StructureDialog({ en, draft, setDraft, onClose, onSave }: { en: boolean, draft: StructureDraft, setDraft: Dispatch<SetStateAction<StructureDraft>>, onClose: () => void, onSave: () => void }) {
+  const field = (key: string, label: string) => (
     <label><span>{label}</span><input type="number" min="0" value={draft[key]} onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))} /></label>
   )
   return (

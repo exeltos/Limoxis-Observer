@@ -1,42 +1,43 @@
-import { useEffect,useRef,useState } from 'react'
+import { useEffect,useRef,useState,type ChangeEvent } from 'react'
 import { Building2,ImagePlus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { supabase } from '../../core/supabase/client'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { Tenant } from '../../core/tenant/tenantTypes'
 import { announceBranding,readLogoFile,useOrganizationBranding } from '../../core/organization/branding'
 
 // Hospital identity: the logo and report header line printed at the top of
 // every PDF and on training certificates, and the logo in the top bar. One column (owner, 8/11/2026): the header line,
 // the logo, the preview of the PDF header, then Save.
-export function IdentityPanel({tenant,isDemo=false}){
+export function IdentityPanel({tenant,isDemo=false}:{tenant: Tenant|null,isDemo?: boolean}){
  const {language}=useLanguage()
  const el=language!=='en'
  const {notify}=useFeedback()
  const saved=useOrganizationBranding(tenant,isDemo)
  const [draft,setDraft]=useState(saved)
  const [saving,setSaving]=useState(false)
- const fileRef=useRef(null)
+ const fileRef=useRef<HTMLInputElement>(null)
  useEffect(()=>setDraft(saved),[saved])
  const dirty=draft.logo!==saved.logo||draft.reportHeader!==saved.reportHeader
 
- async function pick(event){
+ async function pick(event: ChangeEvent<HTMLInputElement>){
   const file=event.target.files?.[0]
   event.target.value=''
   if(!file)return
   try{const logo=await readLogoFile(file);setDraft(current=>({...current,logo}))}
-  catch(error){notify(error?.message==='LOGO_TYPE'?(el?'Επιλέξτε εικόνα PNG, JPG, WebP ή SVG.':'Choose a PNG, JPG, WebP or SVG image.'):error?.message==='LOGO_SIZE'?(el?'Το λογότυπο είναι πολύ μεγάλο (έως 300 KB).':'The logo is too large (up to 300 KB).'):(el?'Δεν ήταν δυνατή η ανάγνωση της εικόνας.':'The image could not be read.'),'error')}
+  catch(error){const message=(error as Error)?.message;notify(message==='LOGO_TYPE'?(el?'Επιλέξτε εικόνα PNG, JPG, WebP ή SVG.':'Choose a PNG, JPG, WebP or SVG image.'):message==='LOGO_SIZE'?(el?'Το λογότυπο είναι πολύ μεγάλο (έως 300 KB).':'The logo is too large (up to 300 KB).'):(el?'Δεν ήταν δυνατή η ανάγνωση της εικόνας.':'The image could not be read.'),'error')}
  }
 
  async function save(){
   setSaving(true)
   try{
    const value={logo:draft.logo,reportHeader:draft.reportHeader.trim()}
-   if(!isDemo){const {error}=await supabase.rpc('set_organization_branding',{p_organization_id:tenant.id,p_branding:value});if(error)throw error}
+   if(!isDemo){const {error}=await cloudClient().rpc('set_organization_branding',{p_organization_id:tenant!.id,p_branding:value});if(error)throw error}
    announceBranding(value,{isDemo})
    notify(el?'Η ταυτότητα του νοσοκομείου αποθηκεύτηκε.':'Hospital identity saved.','success')
-  }catch(error){notify(error?.message||(el?'Αποτυχία αποθήκευσης.':'Save failed.'),'error')}
+  }catch(error){notify((error as Error)?.message||(el?'Αποτυχία αποθήκευσης.':'Save failed.'),'error')}
   finally{setSaving(false)}
  }
 

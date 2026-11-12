@@ -11,11 +11,16 @@ import { loadBundleLibrary,saveBundleLibrary } from './bundleLibraryData'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { createBundleTemplate,loadBundleTemplates,publishBundleTemplate,removeBundleTemplate,retireBundleTemplate,updateBundleTemplate } from './bundleLibraryCloudService'
-const STATUS_LABELS={el:{draft:'Πρόχειρο',published:'Δημοσιευμένο',retired:'Αποσυρμένο'},en:{draft:'Draft',published:'Published',retired:'Retired'}}
-const clone=value=>JSON.parse(JSON.stringify(value))
-const normalize=item=>({...item,bundleKey:item.bundleKey||item.id})
+import type { ReactNode } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const BUNDLE_TEXT_EL={
+type BundleElement = AnyRecord & { id?: string, labelEl: string }
+type BundleDraft = AnyRecord & { elements: BundleElement[] }
+const STATUS_LABELS: Record<string,Record<string,string>>={el:{draft:'Πρόχειρο',published:'Δημοσιευμένο',retired:'Αποσυρμένο'},en:{draft:'Draft',published:'Published',retired:'Retired'}}
+const clone=(value: unknown)=>JSON.parse(JSON.stringify(value))
+const normalize=(item: AnyRecord)=>({...item,bundleKey:item.bundleKey||item.id})
+
+const BUNDLE_TEXT_EL: Record<string,string>={
   'CVC insertion / maintenance':'Εισαγωγή / φροντίδα ΚΦΚ',
   'Urinary catheter insertion / maintenance':'Εισαγωγή / φροντίδα ουροκαθετήρα',
   'Ventilated patient prevention':'Πρόληψη σε μηχανικά αεριζόμενους ασθενείς',
@@ -27,73 +32,73 @@ const BUNDLE_TEXT_EL={
   'Dialysis infection prevention reviewed 2026':'Πρόληψη λοιμώξεων αιμοκάθαρσης, αναθεώρηση 2026',
   'Peripheral catheter guideline 2024':'Οδηγία περιφερικών καθετήρων 2024',
 }
-const bundleText=(value,en)=>en?value:(BUNDLE_TEXT_EL[value]||value)
+const bundleText=(value: string,en: boolean)=>en?value:(BUNDLE_TEXT_EL[value]||value)
 
-export function BundleLibraryPanel({global=false}={}){
+export function BundleLibraryPanel({global=false}: {global?: boolean}={}){
  const {notify,confirm}=useFeedback()
  const {tenant,isDemo:tenantIsDemo}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global // system (platform-wide) entries are edited only on the platform screen
  const {language}=useLanguage();const en=language==='en';const statusLabels=STATUS_LABELS[language]||STATUS_LABELS.en
- const [rows,setRows]=useState(()=>isDemo?loadBundleLibrary().map(normalize):[])
+ const [rows,setRows]=useState<AnyRecord[]>(()=>isDemo?loadBundleLibrary().map(normalize):[])
  const [loading,setLoading]=useState(!isDemo)
  const [query,setQuery]=useState('')
  const [status,setStatus]=useState('all')
- const [selected,setSelected]=useState(null)
+ const [selected,setSelected]=useState<AnyRecord|null>(null)
  const filtered=useMemo(()=>rows.filter(x=>!x.hidden).filter(x=>status==='all'||x.status===status).filter(x=>`${x.bundleKey||''} ${x.name||''} ${x.titleEl||''} ${x.titleEn||''} ${x.source||''} ${x.scope||''}`.toLowerCase().includes(query.toLowerCase())),[rows,query,status])
 
  useEffect(()=>{
   if(isDemo){setRows(loadBundleLibrary().map(normalize));setLoading(false);return}
   if(!global&&!tenant?.id)return
   let active=true;setLoading(true)
-  loadBundleTemplates(global?null:tenant.id).then(data=>{if(active)setRows(data)}).catch(error=>{if(active)notify(error?.message||(en?'Could not load Bundle Library.':'Δεν ήταν δυνατή η φόρτωση της Βιβλιοθήκης δεσμών μέτρων.'),'error')}).finally(()=>{if(active)setLoading(false)})
+  loadBundleTemplates(global?null:tenant?.id).then(data=>{if(active)setRows(data)}).catch(error=>{if(active)notify(error?.message||(en?'Could not load Bundle Library.':'Δεν ήταν δυνατή η φόρτωση της Βιβλιοθήκης δεσμών μέτρων.'),'error')}).finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
  },[global,isDemo,tenant?.id,en,notify])
 
  function newBundle(){setSelected({bundleKey:`CUSTOM-${Date.now()}`,name:en?'New Bundle':'Νέα δέσμη μέτρων',titleEl:'',titleEn:'',version:'0.1',status:'draft',scope:'',source:en?'Local protocol':'Τοπικό πρωτόκολλο',sourceVersion:'',system:global,departments:[],elements:[{id:'item_1',labelEl:'',labelEn:'',required:true}],isNew:true})}
- function duplicate(item){setSelected({...clone(item),id:undefined,bundleKey:item.bundleKey||item.name,name:`${item.name} Copy`,version:nextBundleVersion(item.version),status:'draft',system:false,source:`${item.source||'Core'} · hospital copy`,basedOn:isDemo?null:item.id,publishedAt:null,retiredAt:null,isNew:true})}
+ function duplicate(item: AnyRecord){setSelected({...clone(item),id:undefined,bundleKey:item.bundleKey||item.name,name:`${item.name} Copy`,version:nextBundleVersion(item.version),status:'draft',system:false,source:`${item.source||'Core'} · hospital copy`,basedOn:isDemo?null:item.id,publishedAt:null,retiredAt:null,isNew:true})}
  // The row opens the Bundle (owner, 9/11/2026: a row is clicked, not given «⋯» as well); its other actions sit in the
  // Bundle's «⋯» at the top right.
- const bundleMenu=item=>{const systemLocked=item.system&&!isPlatformOwner;const close=action=>()=>{setSelected(null);action()};return <OverflowMenu items={[
+ const bundleMenu=(item: AnyRecord)=>{const systemLocked=item.system&&!isPlatformOwner;const close=(action: ()=>void)=>()=>{setSelected(null);action()};return <OverflowMenu items={[
       {id:'duplicate',label:en?'Create new draft version':'Δημιουργία νέας draft έκδοσης',icon:Copy,onClick:close(()=>duplicate(item)),hidden:systemLocked},
       {id:'publish',label:en?'Publish':'Δημοσίευση',icon:Check,onClick:close(()=>publish(item)),hidden:systemLocked||item.status!=='draft'},
       {id:'retire',label:en?'Retire':'Απόσυρση',icon:RotateCcw,onClick:close(()=>retire(item)),hidden:systemLocked||item.status!=='published'},
       {id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,onClick:close(()=>removeBundle(item)),hidden:systemLocked},
  ]}/>}
- function openBundle(item){const immutable=!item.system&&(item.status==='published'||item.status==='retired');const readOnly=(item.system&&!isPlatformOwner)||immutable;setSelected({...clone(item),readOnly})}
+ function openBundle(item: AnyRecord){const immutable=!item.system&&(item.status==='published'||item.status==='retired');const readOnly=(item.system&&!isPlatformOwner)||immutable;setSelected({...clone(item),readOnly})}
 
- async function removeBundle(item){
+ async function removeBundle(item: AnyRecord){
   if(item.system&&!isPlatformOwner){notify(en?'System-managed Bundles can only be changed by the Platform Owner.':'Τα system-managed Bundles μπορούν να αλλάξουν μόνο από τον Platform Owner.','warning');return}
   const ok=await confirm({title:en?'Delete Bundle':'Διαγραφή δέσμης μέτρων',message:item.system?(en?`System Bundle “${item.name}” will be permanently removed. Continue?`:`Η δέσμη μέτρων του συστήματος «${item.name}» θα διαγραφεί οριστικά. Θέλετε να συνεχίσετε;`):(en?`Bundle “${item.name}” will be removed. Existing clinical assessments remain unchanged.`:`Η δέσμη μέτρων «${item.name}» θα αφαιρεθεί. Οι υπάρχουσες κλινικές αξιολογήσεις δεν επηρεάζονται.`),confirmLabel:en?'Delete':'Διαγραφή',danger:true})
   if(!ok)return
   try{
-   if(isDemo){const next=rows.filter(x=>x.id!==item.id);setRows(next);saveBundleLibrary(next)}else{await removeBundleTemplate(global?null:tenant.id,item);setRows(current=>current.filter(x=>x.id!==item.id))}
+   if(isDemo){const next=rows.filter(x=>x.id!==item.id);setRows(next);saveBundleLibrary(next)}else{await removeBundleTemplate(global?null:tenant!.id,item);setRows(current=>current.filter(x=>x.id!==item.id))}
    notify(en?'Bundle removed.':'Η δέσμη μέτρων αφαιρέθηκε.','success')
-  }catch(error){notify(error?.message||(en?'Bundle could not be removed.':'Δεν ήταν δυνατή η διαγραφή της δέσμης μέτρων.'),'error')}
+  }catch(error){notify((error as Error)?.message||(en?'Bundle could not be removed.':'Δεν ήταν δυνατή η διαγραφή της δέσμης μέτρων.'),'error')}
  }
 
- async function save(item){
+ async function save(item: AnyRecord){
   if(item.system&&!isPlatformOwner){notify(en?'Only the Platform Owner can modify this system item.':'Μόνο ο Ιδιοκτήτης πλατφόρμας μπορεί να τροποποιήσει αυτό το στοιχείο συστήματος.','warning');return}
-  const cleaned={...item,titleEn:item.titleEl,elements:(item.elements||[]).map(element=>({...element,labelEn:element.labelEl}))};delete cleaned.readOnly;delete cleaned.isNew
+  const cleaned: AnyRecord={...item,titleEn:item.titleEl,elements:(item.elements||[]).map((element: AnyRecord)=>({...element,labelEn:element.labelEl}))};delete cleaned.readOnly;delete cleaned.isNew
   try{
    if(isDemo){
     const demoItem={...cleaned,id:cleaned.id||cleaned.bundleKey};const exists=rows.some(x=>x.id===demoItem.id);const next=exists?rows.map(x=>x.id===demoItem.id?demoItem:x):[demoItem,...rows];setRows(next);saveBundleLibrary(next)
    }else{
-    const saved=item.isNew||!item.id?await createBundleTemplate(global?null:tenant.id,cleaned):await updateBundleTemplate(global?null:tenant.id,cleaned)
+    const saved=item.isNew||!item.id?await createBundleTemplate(global?null:tenant!.id,cleaned):await updateBundleTemplate(global?null:tenant!.id,cleaned)
     setRows(current=>item.isNew||!item.id?[saved,...current]:current.map(x=>x.id===saved.id?saved:x))
    }
    setSelected(null);notify(en?'Bundle saved to the Library.':'Η δέσμη μέτρων αποθηκεύτηκε στη Βιβλιοθήκη.','success')
-  }catch(error){notify(error?.message||(en?'Bundle could not be saved.':'Δεν ήταν δυνατή η αποθήκευση της δέσμης μέτρων.'),'error')}
+  }catch(error){notify((error as Error)?.message||(en?'Bundle could not be saved.':'Δεν ήταν δυνατή η αποθήκευση της δέσμης μέτρων.'),'error')}
  }
 
- async function publish(item){
+ async function publish(item: AnyRecord){
   if(item.system&&!isPlatformOwner){notify(en?'Only the Platform Owner can publish system Bundles.':'Μόνο ο Platform Owner μπορεί να δημοσιεύει System Bundles.','warning');return}
   const ok=await confirm({title:en?'Publish Bundle':'Δημοσίευση δέσμης μέτρων',message:en?'This version will become available for new executions. Historical executions remain linked to their original version.':'Η έκδοση θα είναι διαθέσιμη για νέες εκτελέσεις. Οι ιστορικές εκτελέσεις παραμένουν συνδεδεμένες με την αρχική τους έκδοση.',confirmLabel:en?'Publish':'Δημοσίευση'});if(!ok)return
-  try{if(isDemo){const next=rows.map(x=>x.id===item.id?{...x,status:'published',publishedAt:new Date().toISOString()}:x);setRows(next);saveBundleLibrary(next)}else{const saved=await publishBundleTemplate(global?null:tenant.id,item);setRows(current=>current.map(x=>x.id===saved.id?saved:x))}notify(en?'Version published.':'Η έκδοση δημοσιεύτηκε.','success')}catch(error){notify(error?.message||(en?'Version could not be published.':'Δεν ήταν δυνατή η δημοσίευση της έκδοσης.'),'error')}
+  try{if(isDemo){const next=rows.map(x=>x.id===item.id?{...x,status:'published',publishedAt:new Date().toISOString()}:x);setRows(next);saveBundleLibrary(next)}else{const saved=await publishBundleTemplate(global?null:tenant!.id,item);setRows(current=>current.map(x=>x.id===saved.id?saved:x))}notify(en?'Version published.':'Η έκδοση δημοσιεύτηκε.','success')}catch(error){notify((error as Error)?.message||(en?'Version could not be published.':'Δεν ήταν δυνατή η δημοσίευση της έκδοσης.'),'error')}
  }
 
- async function retire(item){
+ async function retire(item: AnyRecord){
   if(item.system&&!isPlatformOwner){notify(en?'Only the Platform Owner can retire system Bundles.':'Μόνο ο Platform Owner μπορεί να αποσύρει System Bundles.','warning');return}
   const ok=await confirm({title:en?'Retire Bundle':'Απόσυρση δέσμης μέτρων',message:en?'It will no longer be offered for new executions. History remains available.':'Δεν θα προσφέρεται για νέες εκτελέσεις. Το ιστορικό παραμένει διαθέσιμο.',confirmLabel:en?'Retire':'Απόσυρση'});if(!ok)return
-  try{if(isDemo){const next=rows.map(x=>x.id===item.id?{...x,status:'retired',retiredAt:new Date().toISOString()}:x);setRows(next);saveBundleLibrary(next)}else{const saved=await retireBundleTemplate(global?null:tenant.id,item);setRows(current=>current.map(x=>x.id===saved.id?saved:x))}notify(en?'Bundle retired.':'Η δέσμη μέτρων αποσύρθηκε.','success')}catch(error){notify(error?.message||(en?'Bundle could not be retired.':'Δεν ήταν δυνατή η απόσυρση της δέσμης μέτρων.'),'error')}
+  try{if(isDemo){const next=rows.map(x=>x.id===item.id?{...x,status:'retired',retiredAt:new Date().toISOString()}:x);setRows(next);saveBundleLibrary(next)}else{const saved=await retireBundleTemplate(global?null:tenant!.id,item);setRows(current=>current.map(x=>x.id===saved.id?saved:x))}notify(en?'Bundle retired.':'Η δέσμη μέτρων αποσύρθηκε.','success')}catch(error){notify((error as Error)?.message||(en?'Bundle could not be retired.':'Δεν ήταν δυνατή η απόσυρση της δέσμης μέτρων.'),'error')}
  }
 
  return <div className="bundle-library-panel">
@@ -113,12 +118,12 @@ export function BundleLibraryPanel({global=false}={}){
  </div>
 }
 
-function nextBundleVersion(version){const p=String(version||'1.0').split('.').map(Number);return p.length>=2&&p.every(Number.isFinite)?`${p[0]}.${p[1]+1}`:'1.1'}
-function BundleEditor({draft,onClose,onSave,language,isPlatformOwner,menu=null}){
- const {notify,confirm}=useFeedback();const en=language==='en';const [value,setValue]=useState({...draft,titleEl:draft.titleEl||draft.titleEn||'',elements:(draft.elements||[]).map(element=>({...element,labelEl:element.labelEl||element.labelEn||''}))});const set=(k,v)=>setValue(x=>({...x,[k]:v}))
- function elementChange(index,key,v){setValue(x=>({...x,elements:x.elements.map((e,i)=>i===index?{...e,[key]:v}:e)}))}
+function nextBundleVersion(version: unknown){const p=String(version||'1.0').split('.').map(Number);return p.length>=2&&p.every(Number.isFinite)?`${p[0]}.${p[1]+1}`:'1.1'}
+function BundleEditor({draft,onClose,onSave,language,isPlatformOwner,menu=null}: {draft: AnyRecord,onClose: ()=>void,onSave: (value: AnyRecord)=>void,language: string,isPlatformOwner: boolean,menu?: ReactNode}){
+ const {notify,confirm}=useFeedback();const en=language==='en';const [value,setValue]=useState<BundleDraft>({...draft,titleEl:draft.titleEl||draft.titleEn||'',elements:(draft.elements||[]).map((element: AnyRecord)=>({...element,labelEl:element.labelEl||element.labelEn||''}))});const set=(k: string,v: unknown)=>setValue(x=>({...x,[k]:v}))
+ function elementChange(index: number,key: string,v: unknown){setValue(x=>({...x,elements:x.elements.map((e,i)=>i===index?{...e,[key]:v}:e)}))}
  function addElement(){setValue(x=>({...x,elements:[...(x.elements||[]),{id:`item_${Date.now()}`,labelEl:'',labelEn:'',required:true}]}))}
- async function removeElement(index){const ok=await confirm({title:en?'Remove element':'Αφαίρεση στοιχείου',message:en?'The element will be removed from this Bundle draft. Continue?':'Το στοιχείο θα αφαιρεθεί από αυτή την πρόχειρη δέσμη μέτρων. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true});if(!ok)return;setValue(x=>({...x,elements:x.elements.filter((_,i)=>i!==index)}));notify(en?'Element removed.':'Το στοιχείο αφαιρέθηκε.','success')}
+ async function removeElement(index: number){const ok=await confirm({title:en?'Remove element':'Αφαίρεση στοιχείου',message:en?'The element will be removed from this Bundle draft. Continue?':'Το στοιχείο θα αφαιρεθεί από αυτή την πρόχειρη δέσμη μέτρων. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true});if(!ok)return;setValue(x=>({...x,elements:x.elements.filter((_,i)=>i!==index)}));notify(en?'Element removed.':'Το στοιχείο αφαιρέθηκε.','success')}
  const locked=Boolean(value.readOnly)||(value.system&&!isPlatformOwner)||(!value.system&&(value.status==='published'||value.status==='retired'))
  function submit(){if(!value.bundleKey?.trim()||!value.name?.trim()||!value.titleEl?.trim()){notify(en?'Complete all required fields.':'Συμπληρώστε όλα τα υποχρεωτικά πεδία.','danger');return}onSave(value)}
  return <div className="modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><div className="entry-card bundle-library-editor" role="dialog" aria-modal="true"><header><div><span className="eyebrow">BUNDLE LIBRARY</span><h3>{locked?(en?'Read-only Bundle':'Προβολή δέσμης μέτρων'):(en?'Edit Bundle':'Επεξεργασία δέσμης μέτρων')}</h3><p>{value.system&&!isPlatformOwner?(en?'Limoxis system item. Only the Platform Owner can modify or delete it.':'Στοιχείο συστήματος Limoxis. Μόνο ο Ιδιοκτήτης πλατφόρμας μπορεί να το τροποποιήσει ή να το διαγράψει.'):(locked?(en?'Published and retired versions are immutable. Create a new draft version to make changes.':'Οι δημοσιευμένες και αποσυρμένες εκδόσεις είναι αμετάβλητες. Δημιουργήστε νέα πρόχειρη έκδοση για αλλαγές.'):(en?'Changes become operational only after publishing.':'Οι αλλαγές γίνονται λειτουργικές μόνο μετά τη δημοσίευση.'))}</p></div>{menu}<button className="icon-close" onClick={onClose}><X size={16}/></button></header><div className="bundle-library-editor-body"><section className="bundle-editor-meta"><div className="entry-grid"><label><span>{en?'Code *':'Κωδικός *'}</span><input disabled={locked||value.system||!value.isNew} value={value.bundleKey||''} onChange={e=>set('bundleKey',e.target.value)}/></label><label><span>{en?'Name *':'Όνομα *'}</span><input disabled={locked} value={value.name||''} onChange={e=>set('name',e.target.value)}/></label><label><span>{en?'Title *':'Τίτλος *'}</span><input disabled={locked} value={value.titleEl||''} onChange={e=>set('titleEl',e.target.value)}/></label><label><span>{en?'Version':'Έκδοση'}</span><input disabled={locked} value={value.version||''} onChange={e=>set('version',e.target.value)}/></label><label><span>{en?'Scope':'Εύρος'}</span><input disabled={locked} value={value.scope||''} onChange={e=>set('scope',e.target.value)}/></label><label><span>{en?'Source':'Πηγή'}</span><input disabled={locked} value={value.source||''} onChange={e=>set('source',e.target.value)}/></label><label><span>{en?'Source version':'Έκδοση πηγής'}</span><input disabled={locked} value={value.sourceVersion||''} onChange={e=>set('sourceVersion',e.target.value)}/></label></div></section><section className="bundle-editor-elements"><div className="section-toolbar compact"><div><h4>{en?'Bundle elements':'Στοιχεία δέσμης μέτρων'}</h4><p>{en?'Required and optional controls stored with this exact version.':'Υποχρεωτικοί και προαιρετικοί έλεγχοι που αποθηκεύονται με αυτή την ακριβή έκδοση.'}</p></div>{!locked&&<Button variant="secondary" onClick={addElement}><Plus size={14}/>{en?'Add element':'Νέο στοιχείο'}</Button>}</div><div className="bundle-elements-list">{(value.elements||[]).map((element,index)=><div className="bundle-element-row" key={element.id||index}><input disabled={locked} value={element.labelEl||''} placeholder={en?'Bundle element':'Στοιχείο δέσμης μέτρων'} onChange={e=>elementChange(index,'labelEl',e.target.value)}/><label className="bundle-element-required"><input disabled={locked} type="checkbox" checked={Boolean(element.required)} onChange={e=>elementChange(index,'required',e.target.checked)}/><span>{en?'Required':'Υποχρεωτικό'}</span></label>{!locked&&<IconButton tone="danger" size="sm" onClick={()=>removeElement(index)} label={en?'Remove':'Αφαίρεση'}><Trash2 size={14}/></IconButton>}</div>)}</div></section></div><footer>{!locked&&<SaveButton onClick={submit}>{en?'Save draft':'Αποθήκευση'}</SaveButton>}</footer></div></div>

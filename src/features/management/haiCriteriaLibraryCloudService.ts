@@ -1,8 +1,9 @@
 import { supabase } from '../../core/supabase/client'
+import type { AnyRecord } from '../../types/featureTypes'
 
-function requireCloud() { if (!supabase) throw new Error('Supabase is not configured.') }
+function requireCloud() { if (!supabase) throw new Error('Supabase is not configured.'); return supabase }
 
-function mapRow(row) {
+function mapRow(row: AnyRecord) {
   return {
     id: row.id,
     criteriaKey: row.code,
@@ -20,8 +21,8 @@ const COLUMNS = 'id,organization_id,code,name_el,name_en,source_authority,metada
 // Hospital view: the per-organization copies fanned out from the global rows by the
 // master_library_items_propagate trigger. Read-only here — hospitals never edit a
 // system-governed criteria set, mirroring antibiotics/microorganisms.
-export async function loadHaiCriteriaLibraryItems(organizationId) {
-  requireCloud()
+export async function loadHaiCriteriaLibraryItems(organizationId: string|null|undefined) {
+  const supabase = requireCloud()
   if (!organizationId) throw new Error('Organization is required.')
   const { data, error } = await supabase.from('master_library_items').select(COLUMNS).eq('library_key', 'hai_criteria').eq('organization_id', organizationId).eq('is_active', true).order('name_el')
   if (error) throw error
@@ -32,14 +33,14 @@ export async function loadHaiCriteriaLibraryItems(organizationId) {
 // organization's linked copy via the master_library_items_propagate trigger, exactly
 // like the antibiotics/microorganisms libraries.
 export async function loadGlobalHaiCriteriaLibraryItems() {
-  requireCloud()
+  const supabase = requireCloud()
   const { data, error } = await supabase.from('master_library_items').select(COLUMNS).eq('library_key', 'hai_criteria').is('organization_id', null).eq('is_active', true).order('name_el')
   if (error) throw error
   return (data || []).map(mapRow)
 }
 
-export async function updateGlobalHaiCriteriaLibraryItem(item) {
-  requireCloud()
+export async function updateGlobalHaiCriteriaLibraryItem(item: AnyRecord) {
+  const supabase = requireCloud()
   if (!item?.id) throw new Error('Library item id is required.')
   const payload = {
     name_el: item.labelEl,

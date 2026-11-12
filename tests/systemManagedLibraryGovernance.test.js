@@ -35,7 +35,7 @@ describe('Platform Owner-only system library governance',()=>{
 
   it('distinguishes global references and uses strict UUID detection',()=>{
     expect(service).toContain('isGlobal:row.organization_id==null')
-    expect(service).toContain('const isUuid=value=>')
+    expect(service).toContain('const isUuid=(value: unknown)=>')
     expect(service).toContain("item.isGlobal?query.is('organization_id',null)")
   })
 

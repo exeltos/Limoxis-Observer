@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState,type ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
+
+export interface RailItem { id: string, label: string, icon: LucideIcon, tone?: string, render: () => ReactNode }
 
 // A group of settings screens as one list on the left and the chosen screen on the right (the same look as the
 // reference lists). items: [{ id, label, icon, tone, render }].
-export function ManagementRail({ items = [], initial = null, ariaLabel = '' }) {
+export function ManagementRail({ items = [], initial = null, ariaLabel = '' }: { items?: RailItem[], initial?: string | null, ariaLabel?: string }) {
   const [active, setActive] = useState(() => (items.some(item => item.id === initial) ? initial : items[0]?.id))
   const current = items.find(item => item.id === active) || items[0]
   if (!current) return null

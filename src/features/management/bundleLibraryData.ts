@@ -1,4 +1,5 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import type { AnyRecord } from '../../types/featureTypes'
 const SYSTEM_BUNDLE_LIBRARY=[
  {id:'CLABSI',name:'CLABSI',titleEl:'Κεντρικός φλεβικός καθετήρας',titleEn:'Central venous catheter',version:'1.0',status:'published',scope:'CVC insertion / maintenance',source:'WHO · CDC',sourceVersion:'reviewed 2026',system:true,departments:['ΜΕΘ'],elements:[
   {id:'necessity',labelEl:'Τεκμηριωμένη ένδειξη / καθημερινή ανάγκη για CVC',labelEn:'Documented indication / daily CVC necessity review',required:true},
@@ -68,7 +69,7 @@ export function loadBundleLibrary(){
  const rows=loadSnapshot('bundle_library',cloneBundleLibrary())
  return Array.isArray(rows)&&rows.length?rows:cloneBundleLibrary()
 }
-export function saveBundleLibrary(library){
+export function saveBundleLibrary(library: AnyRecord[]){
  if(typeof window==='undefined')return library
  saveSnapshot('bundle_library',library)
  window.dispatchEvent(new CustomEvent('limoxis:bundle-library-changed',{detail:library}))

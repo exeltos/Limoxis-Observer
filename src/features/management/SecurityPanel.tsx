@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { GraduationCap } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { supabase } from '../../core/supabase/client'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { Tenant } from '../../core/tenant/tenantTypes'
 import { IDLE_LOCK_OPTIONS,announceIdleLockMinutes,useIdleLockMinutes } from '../../app/IdleLock'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { hospitalScreenGuidesOn,screenGuideChoice,screenGuideValue } from '../demo/screenGuideSettings'
@@ -10,7 +11,7 @@ import { hospitalScreenGuidesOn,screenGuideChoice,screenGuideValue } from '../de
 // Organization security settings. Screen lock after inactivity for shared
 // ward computers and tablets: saved on change, and the open app picks the new
 // value up at once.
-export function SecurityPanel({tenant,isDemo=false}){
+export function SecurityPanel({tenant,isDemo=false}:{tenant: Tenant|null,isDemo?: boolean}){
  const {language}=useLanguage()
  const el=language!=='en'
  const {notify}=useFeedback()
@@ -18,23 +19,23 @@ export function SecurityPanel({tenant,isDemo=false}){
  const [saving,setSaving]=useState(false)
  const {reloadMemberships}=useTenant()
  const [guides,setGuides]=useState(()=>screenGuideChoice(tenant?.screen_guides_enabled))
- async function changeGuides(next){
+ async function changeGuides(next: string){
   setSaving(true)
   try{
-   if(!isDemo){const {error}=await supabase.rpc('set_organization_screen_guides',{p_organization_id:tenant.id,p_enabled:screenGuideValue(next)});if(error)throw error}
+   if(!isDemo){const {error}=await cloudClient().rpc('set_organization_screen_guides',{p_organization_id:tenant!.id,p_enabled:screenGuideValue(next) as boolean});if(error)throw error}
    setGuides(next)
    if(!isDemo)await reloadMemberships?.()
    notify(el?'Η ρύθμιση των οδηγών οθονών αποθηκεύτηκε.':'Screen guides setting saved.','success')
-  }catch(error){notify(error?.message||(el?'Αποτυχία αποθήκευσης.':'Save failed.'),'error')}
+  }catch(error){notify((error as Error)?.message||(el?'Αποτυχία αποθήκευσης.':'Save failed.'),'error')}
   finally{setSaving(false)}
  }
- async function change(next){
+ async function change(next: number){
   setSaving(true)
   try{
-   if(!isDemo){const {error}=await supabase.rpc('set_organization_idle_lock',{p_organization_id:tenant.id,p_minutes:next});if(error)throw error}
+   if(!isDemo){const {error}=await cloudClient().rpc('set_organization_idle_lock',{p_organization_id:tenant!.id,p_minutes:next});if(error)throw error}
    announceIdleLockMinutes(next,{isDemo})
    notify(el?'Το κλείδωμα οθόνης αποθηκεύτηκε.':'Screen lock saved.','success')
-  }catch(error){notify(error?.message||(el?'Αποτυχία αποθήκευσης.':'Save failed.'),'error')}
+  }catch(error){notify((error as Error)?.message||(el?'Αποτυχία αποθήκευσης.':'Save failed.'),'error')}
   finally{setSaving(false)}
  }
  return <section className="management-section">

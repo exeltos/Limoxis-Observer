@@ -16,32 +16,40 @@ import { managementRoleNames } from './managementRoles'
 import { createCustomRole,deactivateCustomRole,loadCustomRoles,updateCustomRole } from './managementCloudService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-const domainLabels={
+import type { Dispatch,SetStateAction } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { CapabilityDefinition } from '../../core/permissions/types'
+
+type Pair = string[]
+type RoleRow = AnyRecord & { id: string, name: string, capabilities: string[] }
+type RoleDraft = { mode: string, id: string|null, name: string, capabilities: string[] }
+type Permission = CapabilityDefinition & { id: string }
+const domainLabels: Record<string,Pair>={
  administration:['Διαχείριση','Administration'],platform:['Πλατφόρμα','Platform'],clinical:['Κλινική φροντίδα','Clinical'],laboratory:['Εργαστήριο','Laboratory'],quality:['Ποιότητα','Quality'],committees:['Επιτροπές','Committees'],documents:['Έγγραφα','Documents'],controls:['Έλεγχοι','Controls'],training:['Εκπαίδευση','Training'],workforce:['Προσωπικό','Workforce'],occupational_health:['Ιατρός Εργασίας','Occupational health'],general:['Γενικά','General'],kitchen:['Κουζίνα','Kitchen'],
 }
-const scopeLabels={self:['Μόνο ο ίδιος','Self'],department:['Τμήμα','Department'],organization:['Οργανισμός','Organization'],platform:['Πλατφόρμα','Platform']}
-const actionLabels={view:['Προβολή','View'],finalize:['Οριστικοποίηση','Finalize'],review:['Ανασκόπηση','Review'],request:['Αίτημα','Request'],reassess:['Επανεκτίμηση','Reassess'],send:['Αποστολή','Send'],create:['Δημιουργία','Create'],edit:['Επεξεργασία','Edit'],delete:['Διαγραφή','Delete'],manage:['Διαχείριση','Manage'],record:['Καταχώριση','Record'],execute:['Εκτέλεση','Execute'],approve:['Έγκριση','Approve'],publish:['Δημοσίευση','Publish'],archive:['Αρχειοθέτηση','Archive'],close:['Κλείσιμο','Close'],reopen:['Επαναφορά','Reopen'],validate:['Επικύρωση','Validate'],communicate:['Επικοινωνία','Communicate'],classify:['Ταξινόμηση','Classify'],submit:['Υποβολή','Submit'],supersede:['Αντικατάσταση','Supersede'],attach:['Επισύναψη','Attach'],print:['Εκτύπωση','Print'],export:['Εξαγωγή','Export'],assign:['Ανάθεση','Assign'],complete:['Ολοκλήρωση','Complete'],report:['Αναφορά','Report'],void:['Ακύρωση','Void']}
-const groupLabel=(value,en)=>domainLabels[value]?.[en?1:0]||value
-const scopeLabel=(value,en)=>scopeLabels[value]?.[en?1:0]||value||'—'
-const actionLabel=(item,en)=>actionLabels[item?.actionType]?.[en?1:0]||(en?'Other':'Άλλο')
+const scopeLabels: Record<string,Pair>={self:['Μόνο ο ίδιος','Self'],department:['Τμήμα','Department'],organization:['Οργανισμός','Organization'],platform:['Πλατφόρμα','Platform']}
+const actionLabels: Record<string,Pair>={view:['Προβολή','View'],finalize:['Οριστικοποίηση','Finalize'],review:['Ανασκόπηση','Review'],request:['Αίτημα','Request'],reassess:['Επανεκτίμηση','Reassess'],send:['Αποστολή','Send'],create:['Δημιουργία','Create'],edit:['Επεξεργασία','Edit'],delete:['Διαγραφή','Delete'],manage:['Διαχείριση','Manage'],record:['Καταχώριση','Record'],execute:['Εκτέλεση','Execute'],approve:['Έγκριση','Approve'],publish:['Δημοσίευση','Publish'],archive:['Αρχειοθέτηση','Archive'],close:['Κλείσιμο','Close'],reopen:['Επαναφορά','Reopen'],validate:['Επικύρωση','Validate'],communicate:['Επικοινωνία','Communicate'],classify:['Ταξινόμηση','Classify'],submit:['Υποβολή','Submit'],supersede:['Αντικατάσταση','Supersede'],attach:['Επισύναψη','Attach'],print:['Εκτύπωση','Print'],export:['Εξαγωγή','Export'],assign:['Ανάθεση','Assign'],complete:['Ολοκλήρωση','Complete'],report:['Αναφορά','Report'],void:['Ακύρωση','Void']}
+const groupLabel=(value: string,en: boolean)=>domainLabels[value]?.[en?1:0]||value
+const scopeLabel=(value: string,en: boolean)=>scopeLabels[value]?.[en?1:0]||value||'—'
+const actionLabel=(item: AnyRecord|null|undefined,en: boolean)=>actionLabels[item?.actionType]?.[en?1:0]||(en?'Other':'Άλλο')
 // The Demo's own custom roles (owner, 9/11/2026: every screen of the Demo has data), in the shape loadCustomRoles returns.
-const demoCustomRoles=en=>[
+const demoCustomRoles=(en: boolean): RoleRow[]=>[
  {id:'custom-demo-kitchen',name:en?'Kitchen manager':'Υπεύθυνος/η κουζίνας',description:'',is_active:true,capabilities:['view_kitchen','record_kitchen','manage_kitchen','view_documents','report_incident']},
  {id:'custom-demo-training',name:en?'Training coordinator':'Συντονιστής/τρια εκπαίδευσης',description:'',is_active:true,capabilities:['view_training','manage_training','view_staff','view_documents','report_incident']},
 ]
 
 export function ManagementRolesPanel(){
  const {language,t}=useLanguage();const en=language==='en';const {tenant,isDemo}=useTenant();const {notify,confirm}=useFeedback()
- const [customRoles,setCustomRoles]=useState([]);const [roleQuery,setRoleQuery]=useState('');const [loading,setLoading]=useState(false);const [selected,setSelected]=useState(null);const [editor,setEditor]=useState(null)
+ const [customRoles,setCustomRoles]=useState<RoleRow[]>([]);const [roleQuery,setRoleQuery]=useState('');const [loading,setLoading]=useState(false);const [selected,setSelected]=useState<{id: string,system: boolean}|null>(null);const [editor,setEditor]=useState<RoleDraft|null>(null)
  const customPermissions=useMemo(()=>Object.values(capabilityCatalogue).filter(item=>item.customRoleClass!=='system_only'),[])
  const systemRoles=useMemo(()=>Object.entries(managementRoleNames).filter(([key])=>key!=='demo'&&key!=='platform_owner').map(([key,labelKey])=>({id:key,name:t(labelKey),system:true,capabilities:roleCapabilities[key]||[]})),[t])
  useEffect(()=>{if(isDemo){setCustomRoles(demoCustomRoles(en).filter(role=>role.capabilities.every(isCustomRoleEligible)));return}if(!tenant?.id)return;let active=true;setLoading(true);loadCustomRoles(tenant.id).then(rows=>active&&setCustomRoles(rows)).catch(error=>active&&notify(error?.message||(en?'Failed to load roles.':'Αποτυχία φόρτωσης ρόλων.'),'error')).finally(()=>active&&setLoading(false));return()=>{active=false}},[isDemo,tenant?.id,notify,en])
  const selectedRole=useMemo(()=>selected?.system?systemRoles.find(x=>x.id===selected.id)||null:customRoles.find(x=>x.id===selected?.id)||null,[selected,systemRoles,customRoles])
  function openNew(){setSelected(null);setEditor({mode:'new',id:null,name:'',capabilities:[]})}
- function openEdit(role){if(role?.system)return;setEditor({mode:'edit',id:role.id,name:role.name||'',capabilities:[...(role.capabilities||[])]})}
+ function openEdit(role: RoleRow){if(role?.system)return;setEditor({mode:'edit',id:role.id,name:role.name||'',capabilities:[...(role.capabilities||[])]})}
  function closeEditor(){setEditor(null)}
- async function save(){if(!editor?.name.trim()||!editor.capabilities.length)return;try{const payload={name:editor.name.trim(),capabilities:editor.capabilities.filter(isCustomRoleEligible)};const saved=isDemo?{id:editor.id||`custom-${Date.now()}`,...payload}:editor.mode==='edit'?await updateCustomRole(tenant.id,editor.id,payload):await createCustomRole(tenant.id,payload);setCustomRoles(rows=>editor.mode==='edit'?rows.map(r=>r.id===saved.id?saved:r):[...rows,saved]);setSelected({id:saved.id,system:false});setEditor(null);signalDemoStep('custom_roles','save');notify(en?'Role saved.':'Ο ρόλος αποθηκεύτηκε.','success')}catch(error){notify(error?.message||(en?'Save failed.':'Αποτυχία αποθήκευσης.'),'error')}}
- async function remove(role){if(!role||role.system)return;const ok=await confirm({title:en?'Delete role':'Διαγραφή ρόλου',message:en?`Delete “${role.name}”?`:`Να διαγραφεί ο ρόλος «${role.name}»;`,confirmLabel:en?'Delete':'Διαγραφή',danger:true});if(!ok)return;try{if(!isDemo)await deactivateCustomRole(tenant.id,role.id);setCustomRoles(rows=>rows.filter(r=>r.id!==role.id));setSelected(null);notify(en?'Role deleted.':'Ο ρόλος διαγράφηκε.','success')}catch(error){notify(error?.message||(en?'Delete failed.':'Αποτυχία διαγραφής.'),'error')}}
+ async function save(){if(!editor?.name.trim()||!editor.capabilities.length)return;try{const payload={name:editor.name.trim(),capabilities:editor.capabilities.filter(isCustomRoleEligible)};const saved=(isDemo?{id:editor.id||`custom-${Date.now()}`,...payload}:editor.mode==='edit'?await updateCustomRole(tenant!.id,editor.id as string,payload):await createCustomRole(tenant!.id,payload)) as RoleRow;setCustomRoles(rows=>editor.mode==='edit'?rows.map(r=>r.id===saved.id?saved:r):[...rows,saved]);setSelected({id:saved.id,system:false});setEditor(null);signalDemoStep('custom_roles','save');notify(en?'Role saved.':'Ο ρόλος αποθηκεύτηκε.','success')}catch(error){notify((error as Error)?.message||(en?'Save failed.':'Αποτυχία αποθήκευσης.'),'error')}}
+ async function remove(role: RoleRow|null|undefined){if(!role||role.system)return;const ok=await confirm({title:en?'Delete role':'Διαγραφή ρόλου',message:en?`Delete “${role.name}”?`:`Να διαγραφεί ο ρόλος «${role.name}»;`,confirmLabel:en?'Delete':'Διαγραφή',danger:true});if(!ok)return;try{if(!isDemo)await deactivateCustomRole(tenant!.id,role.id);setCustomRoles(rows=>rows.filter(r=>r.id!==role.id));setSelected(null);notify(en?'Role deleted.':'Ο ρόλος διαγράφηκε.','success')}catch(error){notify((error as Error)?.message||(en?'Delete failed.':'Αποτυχία διαγραφής.'),'error')}}
 
  if(editor)return <RoleEditor en={en} value={editor} permissions={customPermissions} onChange={setEditor} onClose={closeEditor} onSave={save}/>
 
@@ -58,18 +66,18 @@ export function ManagementRolesPanel(){
 }
 
 // «Τι κάνει» (owner, 8/11/2026): the areas a role works in, the ones with the most permissions first, at most three.
-function roleAreas(capabilities=[],en){
- const counts=new Map()
+function roleAreas(capabilities: string[]=[],en: boolean){
+ const counts=new Map<string,number>()
  for(const id of capabilities||[]){const domain=capabilityCatalogue[id]?.domain||'general';if(domain!=='general')counts.set(domain,(counts.get(domain)||0)+1)}
  const areas=[...counts].sort((a,b)=>b[1]-a[1]).map(([domain])=>groupLabel(domain,en))
  return areas.length?`${areas.slice(0,3).join(' · ')}${areas.length>3?` ${en?`+${areas.length-3} more`:`+${areas.length-3} ακόμα`}`:''}`:'—'
 }
 
 const ACTION_ORDER=['view','record','create','edit','execute','approve','publish','delete','archive','manage']
-const actionOrder=action=>{const at=ACTION_ORDER.indexOf(action);return at<0?ACTION_ORDER.length:at}
+const actionOrder=(action: string)=>{const at=ACTION_ORDER.indexOf(action);return at<0?ACTION_ORDER.length:at}
 // A role read per area: the actions it may take there, and only what is unusual (a narrower scope, sensitive data).
-function RolePermissionSummary({role,en}){
- const rows=useMemo(()=>{const byDomain=new Map();for(const id of role.capabilities||[]){const def=capabilityCatalogue[id]||{};const rule=role.system?roleCapabilityRule(role.id,id):null;const domain=def.domain||'general';const entry=byDomain.get(domain)||{domain,actions:new Set(),scopes:new Set(),sensitive:false,items:[]};entry.actions.add(def.actionType||'other');const scope=rule?.defaultScope||def.defaultScope||'organization';if(scope!=='organization')entry.scopes.add(scope);if(def.sensitivity&&def.sensitivity!=='standard')entry.sensitive=true;entry.items.push(capabilityLabel(id,en?'en':'el'));byDomain.set(domain,entry)}return [...byDomain.values()].sort((a,b)=>groupLabel(a.domain,en).localeCompare(groupLabel(b.domain,en),'el'))},[role,en])
+function RolePermissionSummary({role,en}: {role: RoleRow,en: boolean}){
+ const rows=useMemo(()=>{const byDomain=new Map<string,{domain: string,actions: Set<string>,scopes: Set<string>,sensitive: boolean,items: string[]}>();for(const id of role.capabilities||[]){const def: Partial<CapabilityDefinition>=capabilityCatalogue[id]||{};const rule=role.system?roleCapabilityRule(role.id,id):null;const domain=def.domain||'general';const entry=byDomain.get(domain)||{domain,actions:new Set(),scopes:new Set(),sensitive:false,items:[]};entry.actions.add(def.actionType||'other');const scope=rule?.defaultScope||def.defaultScope||'organization';if(scope!=='organization')entry.scopes.add(scope);if(def.sensitivity&&def.sensitivity!=='standard')entry.sensitive=true;entry.items.push(capabilityLabel(id,en?'en':'el'));byDomain.set(domain,entry)}return [...byDomain.values()].sort((a,b)=>groupLabel(a.domain,en).localeCompare(groupLabel(b.domain,en),'el'))},[role,en])
  return <div className="management-user-body"><RegistryTable bare sortable={false} rows={rows} rowKey={row=>row.domain}
   columns={[{key:'area',label:en?'Area':'Ενότητα'},{key:'actions',label:en?'Allowed':'Επιτρέπεται'},{key:'notes',label:en?'Notes':'Σημειώσεις'}]}
   empty={!rows.length} emptyTitle={en?'No permissions.':'Δεν υπάρχουν δικαιώματα.'}
@@ -79,17 +87,17 @@ function RolePermissionSummary({role,en}){
 }
 
 // New / edit a custom role: the name, then the permissions per area with one checkbox each; Save at the bottom.
-function RoleEditor({en,value,permissions,onChange,onClose,onSave}){
+function RoleEditor({en,value,permissions,onChange,onClose,onSave}: {en: boolean,value: RoleDraft,permissions: Permission[],onChange: Dispatch<SetStateAction<RoleDraft|null>>,onClose: ()=>void,onSave: ()=>void}){
  const [query,setQuery]=useState('');const [mode,setMode]=useState('all')
  const selected=useMemo(()=>new Set(value.capabilities||[]),[value.capabilities])
  const filtered=useMemo(()=>{const q=query.trim().toLowerCase();return permissions.filter(item=>{if(mode==='selected'&&!selected.has(item.id))return false;const text=`${capabilityLabel(item.id,en?'en':'el')} ${groupLabel(item.domain,en)} ${actionLabel(item,en)}`.toLowerCase();return !q||text.includes(q)})},[permissions,query,mode,en,selected])
- const grouped=useMemo(()=>filtered.reduce((acc,item)=>{(acc[item.domain]??=[]).push(item);return acc},{}),[filtered])
- const toggle=id=>{if(!isCustomRoleEligible(id))return;onChange(v=>({...v,capabilities:selected.has(id)?v.capabilities.filter(x=>x!==id):[...v.capabilities,id]}))}
+ const grouped=useMemo(()=>filtered.reduce((acc: Record<string,Permission[]>,item)=>{(acc[item.domain]??=[]).push(item);return acc},{}),[filtered])
+ const toggle=(id: string)=>{if(!isCustomRoleEligible(id))return;onChange(v=>({...v!,capabilities:selected.has(id)?v!.capabilities.filter(x=>x!==id):[...v!.capabilities,id]}))}
  const title=value.mode==='edit'?(en?'Edit role':'Επεξεργασία ρόλου'):(en?'New role':'Νέος ρόλος')
  return <EntityRecordShell className="management-user-shell" avatar={<ShieldCheck size={19}/>} title={title} subtitle={en?'Define exactly what this role can do.':'Ορίστε ακριβώς τι μπορεί να κάνει ο ρόλος.'} onBack={onClose}>
   <RecordTabPanel title={en?'Role':'Ρόλος'} footer={<div className="inline-edit-footer"><span className="management-role-editor-count-text">{selected.size} {en?'selected':'επιλεγμένα'}</span><Button variant="secondary" onClick={onClose}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton onClick={onSave} disabled={!value.name.trim()||!value.capabilities.length}>{en?'Save':'Αποθήκευση'}</SaveButton></div>}>
    <div className="management-user-body">
-    <label className="field"><span>{en?'Role name':'Όνομα ρόλου'}</span><input value={value.name} placeholder={en?'e.g. Clinic infection link':'π.χ. Σύνδεσμος Λοιμώξεων Κλινικής'} onChange={e=>onChange(v=>({...v,name:e.target.value}))}/></label>
+    <label className="field"><span>{en?'Role name':'Όνομα ρόλου'}</span><input value={value.name} placeholder={en?'e.g. Clinic infection link':'π.χ. Σύνδεσμος Λοιμώξεων Κλινικής'} onChange={e=>onChange(v=>({...v!,name:e.target.value}))}/></label>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search by permission, area or action…':'Αναζήτηση με δικαίωμα, ενότητα ή ενέργεια…'} activeAdvancedCount={mode==='selected'?1:0} onClear={()=>{setQuery('');setMode('all')}}>
      <FilterSelect label={en?'Show':'Εμφάνιση'} value={mode} onChange={setMode}><option value="all">{en?'All':'Όλα'}</option><option value="selected">{en?'Only selected':'Μόνο επιλεγμένα'}</option></FilterSelect>
     </FilterBar>

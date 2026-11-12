@@ -1,9 +1,13 @@
 import { supabase } from '../../core/supabase/client'
+import type { Tables } from '../../core/supabase/database.types'
+import type { AnyRecord } from '../../types/featureTypes'
 
-function requireCloud(){if(!supabase) throw new Error('Supabase is not configured')}
-function requireOrganization(organizationId,{system=false}={}){if(!organizationId&&!system) throw new Error('Organization is required')}
+function requireCloud(){if(!supabase) throw new Error('Supabase is not configured');return supabase}
+// Για τον τύπο: μια δέσμη του συστήματος (system) δεν έχει νοσοκομείο, και τότε τα ερωτήματα πάνε από το
+// is('organization_id',null)· σε κάθε άλλη περίπτωση το νοσοκομείο υπάρχει (αλλιώς σφάλμα εδώ).
+function requireOrganization(organizationId: string|null|undefined,{system=false}: {system?: boolean}={}): asserts organizationId is string{if(!organizationId&&!system) throw new Error('Organization is required')}
 
-const mapRow=row=>({
+const mapRow=(row: Tables<'prevention_bundle_templates'>)=>({
  id:row.id,
  bundleKey:row.bundle_key,
  name:row.name,
@@ -26,14 +30,14 @@ const mapRow=row=>({
 })
 
 async function actorId(){
- requireCloud()
+ const supabase=requireCloud()
  const {data,error}=await supabase.auth.getUser()
  if(error) throw error
  return data?.user?.id||null
 }
 
-export async function loadBundleTemplates(organizationId){
- requireCloud();requireOrganization(organizationId,{system:!organizationId})
+export async function loadBundleTemplates(organizationId: string|null|undefined){
+ const supabase=requireCloud();requireOrganization(organizationId,{system:!organizationId})
  let query=supabase.from('prevention_bundle_templates').select('*').eq('hidden',false)
  query=organizationId?query.or(`organization_id.eq.${organizationId},organization_id.is.null`):query.is('organization_id',null)
  const {data,error}=await query
@@ -44,7 +48,7 @@ export async function loadBundleTemplates(organizationId){
  return (data||[]).map(mapRow)
 }
 
-function payload(item,organizationId,userId){return {
+function payload(item: AnyRecord,organizationId: string|null,userId: string|null){return {
  organization_id:item.system?null:organizationId,
  bundle_key:item.bundleKey||item.name,
  name:item.name,
@@ -64,8 +68,8 @@ function payload(item,organizationId,userId){return {
  updated_at:new Date().toISOString(),
 }}
 
-export async function createBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId,{system:item.system})
+export async function createBundleTemplate(organizationId: string|null,item: AnyRecord){
+ const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
  const row={...payload(item,organizationId,userId),created_by:userId}
  const {data,error}=await supabase.from('prevention_bundle_templates').insert(row).select('*').single()
@@ -73,8 +77,8 @@ export async function createBundleTemplate(organizationId,item){
  return mapRow(data)
 }
 
-export async function updateBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId,{system:item.system})
+export async function updateBundleTemplate(organizationId: string|null,item: AnyRecord){
+ const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  if(!item?.id) throw new Error('Bundle template id is required')
  const userId=await actorId()
  let query=supabase.from('prevention_bundle_templates').update(payload(item,organizationId,userId)).eq('id',item.id)
@@ -84,8 +88,8 @@ export async function updateBundleTemplate(organizationId,item){
  return mapRow(data)
 }
 
-export async function publishBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId,{system:item.system})
+export async function publishBundleTemplate(organizationId: string|null,item: AnyRecord){
+ const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
  let query=supabase.from('prevention_bundle_templates').update({status:'published',published_by:userId,published_at:new Date().toISOString(),updated_by:userId,updated_at:new Date().toISOString()}).eq('id',item.id)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
@@ -94,8 +98,8 @@ export async function publishBundleTemplate(organizationId,item){
  return mapRow(data)
 }
 
-export async function retireBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId,{system:item.system})
+export async function retireBundleTemplate(organizationId: string|null,item: AnyRecord){
+ const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
  let query=supabase.from('prevention_bundle_templates').update({status:'retired',retired_by:userId,retired_at:new Date().toISOString(),updated_by:userId,updated_at:new Date().toISOString()}).eq('id',item.id)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
@@ -104,8 +108,8 @@ export async function retireBundleTemplate(organizationId,item){
  return mapRow(data)
 }
 
-export async function removeBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId,{system:item.system})
+export async function removeBundleTemplate(organizationId: string|null,item: AnyRecord){
+ const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  let query=supabase.from('prevention_bundle_templates').delete().eq('id',item.id)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
  const {error}=await query

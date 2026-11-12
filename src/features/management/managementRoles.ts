@@ -1,4 +1,4 @@
-export const managementRoleNames={
+export const managementRoleNames: Record<string,string>={
   platform_owner:'platformOwnerRole',
   hospital_admin:'hospitalAdminRole',
   infection_control_lead:'infectionControlLeadRole',
@@ -25,7 +25,7 @@ export const creatableManagementRoles=[
   'occupational_physician','doctor_reviewer','quality_manager','hospital_director','division_director','link_nurse','staff_user',
 ]
 
-export function managementMemberStatusLabel(status,language){
+export function managementMemberStatusLabel(status: string|null|undefined,language: string){
   if(status==='active')return language==='en'?'Active':'Ενεργός'
   if(status==='disabled')return language==='en'?'Access paused':'Πρόσβαση σε παύση'
   if(status==='invited')return language==='en'?'Invited':'Προσκλήθηκε'

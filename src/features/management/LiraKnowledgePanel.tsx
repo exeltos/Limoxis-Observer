@@ -10,30 +10,32 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase } from '../../core/supabase/client'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { AnyRecord } from '../../types/featureTypes'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useSortedPaging } from '../quality/useSortedPaging'
 
-const statusLabel=(value,en)=>({review:en?'In review':'Προς έλεγχο',approved:en?'Approved':'Εγκεκριμένη',retired:en?'Retired':'Αποσυρμένη'}[value]||value)
-const ingestionLabel=(value,en)=>({ingested:en?'Ready':'Έτοιμη',pending:en?'Pending':'Εκκρεμεί',failed:en?'Failed':'Αποτυχία'}[value]||value)
-const badgeClass=value=>value==='approved'||value==='ingested'?'active':value==='retired'||value==='failed'?'danger':'temporary'
+const statusLabel=(value: string,en: boolean)=>({review:en?'In review':'Προς έλεγχο',approved:en?'Approved':'Εγκεκριμένη',retired:en?'Retired':'Αποσυρμένη'} as Record<string,string>)[value]||value
+const ingestionLabel=(value: string,en: boolean)=>({ingested:en?'Ready':'Έτοιμη',pending:en?'Pending':'Εκκρεμεί',failed:en?'Failed':'Αποτυχία'} as Record<string,string>)[value]||value
+const badgeClass=(value: string)=>value==='approved'||value==='ingested'?'active':value==='retired'||value==='failed'?'danger':'temporary'
 
 export function LiraKnowledgePanel(){
  const {language}=useLanguage();const en=language==='en';const navigate=useNavigate();const platformScreen=useLocation().pathname.startsWith('/platform');const {tenant}=useTenant();const {notify}=useFeedback()
- const [rows,setRows]=useState([]);const [loading,setLoading]=useState(true);const [selected,setSelected]=useState(null);const [chunks,setChunks]=useState([]);const [edit,setEdit]=useState(null);const [version,setVersion]=useState('');const [query,setQuery]=useState('');const [authority,setAuthority]=useState('all');const [status,setStatus]=useState('all')
+ const [rows,setRows]=useState<AnyRecord[]>([]);const [loading,setLoading]=useState(true);const [selected,setSelected]=useState<AnyRecord|null>(null);const [chunks,setChunks]=useState<AnyRecord[]>([]);const [edit,setEdit]=useState<AnyRecord|null>(null);const [version,setVersion]=useState('');const [query,setQuery]=useState('');const [authority,setAuthority]=useState('all');const [status,setStatus]=useState('all')
  const load=useCallback(async()=>{if(!supabase||isOwnerPreview()){setRows([]);setLoading(false);return}setLoading(true);const {data,error}=await supabase.from('lira_knowledge_sources').select('id,title,authority,source_version,source_url,status,ingestion_status,effective_from,effective_to,approved_at,review_notes').order('authority').order('title');if(error)notify(error.message,'error');else setRows(data||[]);setLoading(false)},[notify])
  // Reload when the organization changes (RLS decides which sources it sees).
  useEffect(()=>{load()},[load,tenant?.id])
  const authorities=useMemo(()=>[...new Set(rows.map(x=>x.authority).filter(Boolean))].sort(),[rows])
  const filtered=useMemo(()=>{const q=query.trim().toLocaleLowerCase();return rows.filter(x=>(authority==='all'||x.authority===authority)&&(status==='all'||x.status===status)&&(!q||[x.authority,x.title,x.source_version].some(v=>String(v||'').toLocaleLowerCase().includes(q))))},[rows,query,authority,status])
  // Pages of 15 with the registries' pager (owner, 10/11/2026: every owner list pages, the page itself does not scroll).
- const paging=useSortedPaging(filtered,`${query}|${authority}|${status}`,{authority:x=>x.authority,source:x=>x.title,version:x=>x.source_version,status:x=>x.status,knowledge:x=>x.ingestion_status})
- async function open(row){setSelected(row);setVersion('');const {data,error}=await supabase.from('lira_knowledge_chunks').select('id,chunk_index,heading,content,citation_label,page_start,page_end').eq('source_id',row.id).order('chunk_index');if(error)notify(error.message,'error');setChunks(data||[])}
- async function approve(){const {error}=await supabase.rpc('approve_lira_knowledge_source',{p_source_id:selected.id,p_review_notes:'Approved from LIRA Knowledge Center'});if(error)return notify(error.message,'error');notify(en?'Knowledge source approved.':'Η πηγή γνώσης εγκρίθηκε.','success');setSelected(null);load()}
- async function retire(){const {error}=await supabase.rpc('retire_lira_knowledge_source',{p_source_id:selected.id,p_review_notes:'Retired from LIRA Knowledge Center'});if(error)return notify(error.message,'error');notify(en?'Source retired.':'Η πηγή αποσύρθηκε.','success');setSelected(null);load()}
- async function saveEdit(){const {error}=await supabase.rpc('revise_lira_knowledge_source',{p_source_id:selected.id,p_title:edit.title,p_source_version:edit.source_version,p_source_url:edit.source_url||'',p_review_notes:edit.review_notes||''});if(error)return notify(error.message,'error');notify(en?'Source updated.':'Η πηγή ενημερώθηκε.','success');setEdit(null);setSelected(null);load()}
- async function newVersion(){if(!version.trim())return;const {error}=await supabase.rpc('create_lira_knowledge_source_version',{p_source_id:selected.id,p_source_version:version.trim(),p_review_notes:'New version created from approved source'});if(error)return notify(error.message,'error');notify(en?'New review version created.':'Δημιουργήθηκε νέα έκδοση προς έλεγχο.','success');setSelected(null);load()}
+ const paging=useSortedPaging(filtered,`${query}|${authority}|${status}`,{authority:(x: AnyRecord)=>x.authority,source:(x: AnyRecord)=>x.title,version:(x: AnyRecord)=>x.source_version,status:(x: AnyRecord)=>x.status,knowledge:(x: AnyRecord)=>x.ingestion_status})
+ async function open(row: AnyRecord){setSelected(row);setVersion('');const {data,error}=await cloudClient().from('lira_knowledge_chunks').select('id,chunk_index,heading,content,citation_label,page_start,page_end').eq('source_id',row.id).order('chunk_index');if(error)notify(error.message,'error');setChunks(data||[])}
+ async function approve(){const {error}=await cloudClient().rpc('approve_lira_knowledge_source',{p_source_id:selected!.id,p_review_notes:'Approved from LIRA Knowledge Center'});if(error)return notify(error.message,'error');notify(en?'Knowledge source approved.':'Η πηγή γνώσης εγκρίθηκε.','success');setSelected(null);load()}
+ async function retire(){const {error}=await cloudClient().rpc('retire_lira_knowledge_source',{p_source_id:selected!.id,p_review_notes:'Retired from LIRA Knowledge Center'});if(error)return notify(error.message,'error');notify(en?'Source retired.':'Η πηγή αποσύρθηκε.','success');setSelected(null);load()}
+ async function saveEdit(){if(!edit)return;const {error}=await cloudClient().rpc('revise_lira_knowledge_source',{p_source_id:selected!.id,p_title:edit.title,p_source_version:edit.source_version,p_source_url:edit.source_url||'',p_review_notes:edit.review_notes||''});if(error)return notify(error.message,'error');notify(en?'Source updated.':'Η πηγή ενημερώθηκε.','success');setEdit(null);setSelected(null);load()}
+ async function newVersion(){if(!version.trim())return;const {error}=await cloudClient().rpc('create_lira_knowledge_source_version',{p_source_id:selected!.id,p_source_version:version.trim(),p_review_notes:'New version created from approved source'});if(error)return notify(error.message,'error');notify(en?'New review version created.':'Δημιουργήθηκε νέα έκδοση προς έλεγχο.','success');setSelected(null);load()}
  return <section className="management-section management-scroll-section">
   {/* On the platform the page title («LIRA & AI») names it: no second heading. */}
   {!platformScreen&&<div className="section-toolbar"><div><h2>{en?'LIRA Knowledge':'Γνώση LIRA'}</h2><p>{en?'Governed clinical knowledge used by LIRA. Open a source to review its evidence and lifecycle.':'Ελεγχόμενη κλινική γνώση που χρησιμοποιεί η LIRA. Ανοίξτε μια πηγή για έλεγχο τεκμηρίωσης και διαχείριση έκδοσης.'}</p></div></div>}

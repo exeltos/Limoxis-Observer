@@ -1,4 +1,5 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const seed = [
   { id: 'HSS-2401', effectiveDate: '2024-01-01', totalBeds: 310, icuBeds: 20, singleRooms: 40, infectionControlNurses: 2, infectiousDiseasePhysicians: 1, microbiologists: 1, notes: 'Αρχική καταγραφή δομικών δεικτών.', createdAt: '2024-01-01T09:00:00', createdById: 'demo-user' },
@@ -7,4 +8,4 @@ const seed = [
 ]
 
 export function loadHospitalStructureLocal() { const rows = loadSnapshot('management_hospital_structure', structuredClone(seed)); return Array.isArray(rows) ? rows : structuredClone(seed) }
-export function saveHospitalStructureLocal(rows) { return saveSnapshot('management_hospital_structure', rows) }
+export function saveHospitalStructureLocal(rows: AnyRecord[]) { return saveSnapshot('management_hospital_structure', rows) }

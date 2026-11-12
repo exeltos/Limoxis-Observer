@@ -1,21 +1,24 @@
 import { supabase } from '../../core/supabase/client'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { Tables } from '../../core/supabase/database.types'
+import type { AnyRecord } from '../../types/featureTypes'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadPrevalenceSurveyLocal, savePrevalenceSurveyLocal } from './prevalenceSurveyStore'
 
-const assertCloud = organizationId => {
+function assertCloud(organizationId: string | null | undefined): asserts organizationId is string {
   if (!supabase) throw new Error('Supabase is not configured.')
   if (!organizationId) throw new Error('Organization is required.')
 }
 
 async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser()
+  const { data, error } = await cloudClient().auth.getUser()
   if (error) throw error
   const id = data?.user?.id
   if (!id) throw new Error('Authenticated user is required.')
   return id
 }
 
-function mapRow(row, departmentName) {
+function mapRow(row: Tables<'point_prevalence_surveys'>, departmentName: string|undefined) {
   return {
     id: row.id,
     surveyDate: row.survey_date,
@@ -31,20 +34,21 @@ function mapRow(row, departmentName) {
   }
 }
 
-export async function loadPrevalenceSurveyHistory(organizationId) {
+export async function loadPrevalenceSurveyHistory(organizationId: string | undefined) {
   if (isDemoDataEnvironment()) return loadPrevalenceSurveyLocal()
   assertCloud(organizationId)
+  const supabase = cloudClient()
   const [{ data, error }, { data: departments, error: departmentsError }] = await Promise.all([
     supabase.from('point_prevalence_surveys').select('*').eq('organization_id', organizationId).order('survey_date', { ascending: false }),
     supabase.from('departments').select('id,name').eq('organization_id', organizationId),
   ])
   if (error) throw error
   if (departmentsError) throw departmentsError
-  const byId = new Map((departments || []).map(d => [d.id, d.name]))
+  const byId = new Map<string | null, string>((departments || []).map(d => [d.id, d.name]))
   return (data || []).map(row => mapRow(row, byId.get(row.department_id)))
 }
 
-export async function savePrevalenceSurvey(organizationId, record) {
+export async function savePrevalenceSurvey(organizationId: string | undefined, record: AnyRecord) {
   if (isDemoDataEnvironment()) {
     const rows = loadPrevalenceSurveyLocal()
     const saved = { id: `PPS-${Date.now()}`, ...record, createdAt: new Date().toISOString(), createdById: 'demo-user' }
@@ -52,6 +56,7 @@ export async function savePrevalenceSurvey(organizationId, record) {
     return saved
   }
   assertCloud(organizationId)
+  const supabase = cloudClient()
   const userId = await currentUserId()
   const payload = {
     organization_id: organizationId,
@@ -70,12 +75,13 @@ export async function savePrevalenceSurvey(organizationId, record) {
   return mapRow(data, record.departmentEl)
 }
 
-export async function deletePrevalenceSurvey(organizationId, id) {
+export async function deletePrevalenceSurvey(organizationId: string | undefined, id: string|null|undefined) {
   if (isDemoDataEnvironment()) {
     savePrevalenceSurveyLocal(loadPrevalenceSurveyLocal().filter(row => row.id !== id))
     return
   }
   assertCloud(organizationId)
+  const supabase = cloudClient()
   if (!id) return
   const { error } = await supabase.from('point_prevalence_surveys').delete().eq('organization_id', organizationId).eq('id', id)
   if (error) throw error

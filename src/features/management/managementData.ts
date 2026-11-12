@@ -2,7 +2,13 @@ import { demoOffsetDays, shiftDemoMonth } from '../../core/data/demoClock'
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { DEMO_WARDS, demoMonthlyPatientDays, lastDayOfMonth, pad2 } from '../../core/data/demoSeed'
 import { EODY_CATALOGUE, EODY_SOURCE, EODY_SOURCE_VERSION } from '../reporting/eodyCatalogue'
-const SYS=(source,version='current')=>({system:true,locked:true,source,version})
+import type { AnyRecord } from '../../types/featureTypes'
+
+// Εγγραφή βιβλιοθήκης όπως τη δείχνουν οι οθόνες: [ελληνικά, αγγλικά, στοιχεία].
+export type LibraryTuple = [string, string, AnyRecord]
+// Οι βιβλιοθήκες του Demo: όλες λίστες εγγραφών, εκτός από τα πρωτόκολλα περιβάλλοντος (αντικείμενα).
+export type LibrarySeed = Record<'departments'|'positions'|'professionalCategories'|'microorganisms'|'antibiotics'|'deviceTypes'|'surveillanceDefinitions'|'advancedAntibiotics'|'notifiableDiseases'|'sampleTypes'|'controlTypes'|'measurementUnits'|'incidentCategories'|'controlAnswers'|'itemForms'|'medicinesSupplies'|'equipment'|'environmentalLocations'|'surfacePoints'|'documentTypes', LibraryTuple[]> & { environmentalStandards: AnyRecord[] }
+const SYS=(source: string,version='current')=>({system:true,locked:true,source,version})
 const LOCAL=()=>({system:false,locked:false,source:'Hospital',version:'local'})
 
 export const demoUsers = [
@@ -15,7 +21,7 @@ export const demoOrganizations = [
   { id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', type: 'hospital', status: 'active', members: 3 },
 ]
 
-export const demoLibrarySeed = {
+export const demoLibrarySeed: LibrarySeed = {
   departments:[
     ['ΜΕΘ','ICU',SYS('Limoxis core hospital structure')],
     ['Χειρουργική','Surgery',SYS('Limoxis core hospital structure')],
@@ -292,15 +298,15 @@ export const demoLibrarySeed = {
   ],
 }
 
-export function newLocalLibraryItem(el,en=el){return [el,en,LOCAL()]}
+export function newLocalLibraryItem(el: string,en=el): LibraryTuple{return [el,en,LOCAL()]}
 
-const WARD_EN={ΜΕΘ:'ICU',Παθολογική:'Internal Medicine',Χειρουργική:'Surgery',ΤΕΠ:'Emergency Department',Καρδιολογική:'Cardiology','Νεογνολογική / ΜΕΝΝ':'Neonatal / NICU',Ορθοπαιδική:'Orthopedics'}
+const WARD_EN: Record<string,string>={ΜΕΘ:'ICU',Παθολογική:'Internal Medicine',Χειρουργική:'Surgery',ΤΕΠ:'Emergency Department',Καρδιολογική:'Cardiology','Νεογνολογική / ΜΕΝΝ':'Neonatal / NICU',Ορθοπαιδική:'Orthopedics'}
 // Monthly patient-days of every Demo ward for the last twelve months and the
 // current month (to date), plus the hospital total, so per-1,000-patient-day
 // rates exist for every month. Values come from the same table Prevention uses.
 export const demoPatientDayPeriods = (() => {
   const shift = Math.round(demoOffsetDays() / 30.4375)
-  const today = new Date(), rows = []
+  const today = new Date(), rows: AnyRecord[] = []
   // From January 2025 on (owner, 9/11/2026), at least thirteen months.
   const since2025 = Math.max(12, (today.getFullYear() - 2025) * 12 + today.getMonth())
   for (let back = since2025; back >= 0; back--) {
@@ -311,7 +317,7 @@ export const demoPatientDayPeriods = (() => {
     const share = current ? Number(to.slice(8)) / last : 1
     let hospital = 0
     DEMO_WARDS.forEach((ward, index) => {
-      const value = Math.round(demoMonthlyPatientDays(ward, authored) * share)
+      const value = Math.round((demoMonthlyPatientDays(ward, authored) ?? 0) * share)
       hospital += value
       rows.push({ id: `pd-${month}-${index + 1}`, from: `${month}-01`, to, scope: 'department', departmentEl: ward, departmentEn: WARD_EN[ward], value, source: 'manual' })
     })

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -17,7 +18,8 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const todayIso = () => hospitalToday()
-const emptyDraft = { surveyDate: todayIso(), departmentId: '', departmentEl: '', patientsTotal: '', patientsWithHai: '', patientsOnAntibiotics: '', responsibleName: '', notes: '' }
+type SurveyDraft = Record<string, string>
+const emptyDraft: SurveyDraft = { surveyDate: todayIso(), departmentId: '', departmentEl: '', patientsTotal: '', patientsWithHai: '', patientsOnAntibiotics: '', responsibleName: '', notes: '' }
 
 export function PrevalenceSurveyPanel() {
   const { language } = useLanguage()
@@ -25,14 +27,14 @@ export function PrevalenceSurveyPanel() {
   const { notify, notifyError, confirm } = useFeedback()
   const { role, tenant, isDemo } = useTenant()
   const isPlatformOwner = role === ROLES.PLATFORM_OWNER
-  const fmt = value => value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(`${value}T12:00:00`)) : '—'
-  const [rows, setRows] = useState([])
+  const fmt = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(`${value}T12:00:00`)) : '—'
+  const [rows, setRows] = useState<AnyRecord[]>([])
   // The responsible column only when it says something (not the same name on every row).
   const showResponsible = new Set(rows.map(row => row.responsibleName || '')).size > 1
-  const [departments, setDepartments] = useState([])
+  const [departments, setDepartments] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [editor, setEditor] = useState(false)
-  const [draft, setDraft] = useState(emptyDraft)
+  const [draft, setDraft] = useState<SurveyDraft>(emptyDraft)
 
   useEffect(() => {
     if (isDemo) { setDepartments(demoLibrarySeed.departments.map(([el, enName]) => ({ id: el, name: el, nameEn: enName }))); return }
@@ -73,12 +75,12 @@ export function PrevalenceSurveyPanel() {
     }
   }
 
-  function departmentName(row) {
+  function departmentName(row: AnyRecord) {
     const match = departments.find(item => item.id === row.departmentId)
     return en ? (match?.nameEn || row.departmentEl) : (row.departmentEl || match?.name)
   }
 
-  async function remove(id) {
+  async function remove(id: string) {
     const ok = await confirm({ message: en ? 'Delete this survey entry?' : 'Διαγραφή αυτής της καταγραφής επιπολασμού;', danger: true, confirmLabel: en ? 'Delete' : 'Διαγραφή' })
     if (!ok) return
     try {
@@ -116,8 +118,8 @@ export function PrevalenceSurveyPanel() {
   )
 }
 
-function SurveyDialog({ en, draft, setDraft, departments, language, onClose, onSave }) {
-  const countField = (key, label) => (
+function SurveyDialog({ en, draft, setDraft, departments, language, onClose, onSave }: { en: boolean, draft: SurveyDraft, setDraft: Dispatch<SetStateAction<SurveyDraft>>, departments: AnyRecord[], language: string, onClose: () => void, onSave: () => void }) {
+  const countField = (key: string, label: string) => (
     <label><span>{label}</span><input type="number" min="0" value={draft[key]} onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))} /></label>
   )
   return (

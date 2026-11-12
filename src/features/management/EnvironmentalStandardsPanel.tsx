@@ -9,10 +9,11 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { demoLibrarySeed } from './managementData'
 import { useRepositoryData } from '../../core/data/useRepositoryData'
+import type { AnyRecord } from '../../types/featureTypes'
 const empty={protocolCode:'',subjectType:'surface',sourceCode:'surfaceSwab',unit:'CFU',limitCfu:'',active:true,system:false,locked:false,source:'Hospital',version:'local'}
-const normalizeSystemStandards=rows=>(rows||[]).map(row=>row?.system===undefined?{...row,system:true,locked:true,source:'Limoxis System',version:'core'}:row)
-function mergeCoreWithLocal(core,stored){
-  const byId=new Map()
+const normalizeSystemStandards=(rows: AnyRecord[]|null|undefined)=>(rows||[]).map(row=>row?.system===undefined?{...row,system:true,locked:true,source:'Limoxis System',version:'core'}:row)
+function mergeCoreWithLocal(core: AnyRecord[],stored: AnyRecord[]){
+  const byId=new Map<string,AnyRecord>()
   for(const row of core||[])byId.set(row.id,row)
   for(const row of stored||[])byId.set(row.id,row)
   return [...byId.values()]
@@ -26,11 +27,12 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
   const {data:repositoryRows,loading,saving,error,reload,saveData}=useRepositoryData('environmental_standards',{fallback})
   const rows=useMemo(()=>mergeCoreWithLocal(fallback,Array.isArray(repositoryRows)?repositoryRows:[]),[fallback,repositoryRows])
   const [query,setQuery]=useState('')
-  const [draft,setDraft]=useState(null)
+  const [draft,setDraft]=useState<AnyRecord|null>(null)
   const readOnlySystem=Boolean(draft?.system&&!isPlatformOwner)
   const filtered=useMemo(()=>rows.filter(x=>`${x.protocolCode} ${x.subjectType} ${x.sourceCode} ${x.unit} ${x.source||''}`.toLowerCase().includes(query.toLowerCase())),[rows,query])
-  async function persist(next){await saveData(next);window.dispatchEvent(new CustomEvent('limoxis:environmental-standards-updated'))}
+  async function persist(next: AnyRecord[]){await saveData(next);window.dispatchEvent(new CustomEvent('limoxis:environmental-standards-updated'))}
   async function save(){
+    if(!draft)return
     if(readOnlySystem){notify(language==='en'?'System protocols can only be changed by the Platform Owner.':'Τα πρωτόκολλα συστήματος μπορούν να αλλάξουν μόνο από τον Ιδιοκτήτη πλατφόρμας.','warning');return}
     if(!draft.protocolCode.trim()||!draft.subjectType||!draft.unit.trim()){notify(t('completeRequiredFields'),'error');return}
     const limit=draft.limitCfu===''?null:Number(draft.limitCfu)
@@ -38,7 +40,7 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
     const item={...draft,protocolCode:draft.protocolCode.trim(),unit:draft.unit.trim(),limitCfu:limit,id:draft.id||`ENV-${Date.now()}`,system:Boolean(draft.system),locked:Boolean(draft.system),source:draft.system?(draft.source||'Limoxis System'):'Hospital',version:draft.system?(draft.version||'core'):'local'}
     try{await persist(draft.id?rows.map(x=>x.id===draft.id?item:x):[...rows,item]);setDraft(null);notify(t('environmentalStandards.environmentalProtocolSaved'),'success')}catch{return}
   }
-  async function remove(item){
+  async function remove(item: AnyRecord){
     if(item.system&&!isPlatformOwner){notify(language==='en'?'System protocols can only be deleted by the Platform Owner.':'Τα πρωτόκολλα συστήματος μπορούν να διαγραφούν μόνο από τον Ιδιοκτήτη πλατφόρμας.','warning');return}
     const ok=await confirm({title:t('delete'),message:t('environmentalStandards.confirmEnvironmentalProtocolDelete'),confirmLabel:t('delete'),danger:true})
     if(!ok)return
@@ -49,7 +51,7 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
     <div className="governance-banner"><ShieldCheck size={16}/><span>{language==='en'?'Limoxis system protocols are centrally governed and read-only for hospital users. Hospitals may add their own local protocols.':'Τα πρωτόκολλα συστήματος Limoxis διαχειρίζονται κεντρικά και είναι μόνο για προβολή στους χρήστες νοσοκομείου. Το νοσοκομείο μπορεί να προσθέτει δικά του τοπικά πρωτόκολλα.'}</span></div>
     <FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('environmentalStandards.searchEnvironmentalProtocols')} onClear={()=>setQuery('')}/>
     {loading&&<div className="inline-data-state">{language==='en'?'Loading data…':'Φόρτωση δεδομένων…'}</div>}
-    {error&&<div className="inline-data-state error"><span>{language==='en'?'Unable to load data.':'Η φόρτωση δεδομένων απέτυχε.'}</span><Button variant="secondary" onClick={()=>reload().catch(()=>{})}>{language==='en'?'Retry':'Επανάληψη'}</Button></div>}
+    {Boolean(error)&&<div className="inline-data-state error"><span>{language==='en'?'Unable to load data.':'Η φόρτωση δεδομένων απέτυχε.'}</span><Button variant="secondary" onClick={()=>reload().catch(()=>{})}>{language==='en'?'Retry':'Επανάληψη'}</Button></div>}
     <RegistryTable
       wrapperClassName="table-wrap scroll-table"
       columns={[{key:'code',label:t('environmentalStandards.protocolCode')},{key:'category',label:t('environmentalStandards.samplingCategory')},{key:'method',label:t('samplingMethod')},{key:'unit',label:t('environmentalStandards.measurementUnit')},{key:'limit',label:t('environmentalStandards.acceptableLimit')},{key:'status',label:t('status')},{key:'actions',label:t('actions')}]}
