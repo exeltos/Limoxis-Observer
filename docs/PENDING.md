@@ -14,7 +14,7 @@
 - [ ] Ένα demo «μία πηγή»: τα τοπικά `*DemoData.js` (μόνο για την προεπισκόπηση βοήθειας) να ευθυγραμμιστούν ή να αφαιρεθούν.
 
 ## Β. Καθαρός κώδικας (12/11/2026)
-- [x] Ημερομηνίες: `src/core/dates/hospitalDate.js` (`hospitalDate`, `hospitalToday`, `hospitalMonth`, Ευρώπη/Αθήνα)· 141 «σήμερα» + 18 σημεία από το ρολόι. Τα υπόλοιπα `toISOString().slice(0,10)` είναι αριθμητική ημερομηνιών σε UTC πάνω σε 'YYYY-MM-DD' (σωστά). Το `tests/hospitalDate.test.js` απαγορεύει νέο `new Date().toISOString().slice(0,10)`. Διπλοί βοηθοί Αθήνας μένουν σε `formStatus.js` (`athensToday`), `patientRecordScope.js`, `platformHealthService.js`, `AdmissionDischargeDialog.jsx`: να ενωθούν στο TypeScript.
+- [x] Ημερομηνίες: `src/core/dates/hospitalDate.js` (`hospitalDate`, `hospitalToday`, `hospitalMonth`, Ευρώπη/Αθήνα)· 141 «σήμερα» + 18 σημεία από το ρολόι. Τα υπόλοιπα `toISOString().slice(0,10)` είναι αριθμητική ημερομηνιών σε UTC πάνω σε 'YYYY-MM-DD' (σωστά). Το `tests/hospitalDate.test.js` απαγορεύει νέο `new Date().toISOString().slice(0,10)`. Οι διπλοί βοηθοί Αθήνας (`formStatus.js`, `patientRecordScope.js`, `platformHealthService.js`, `AdmissionDischargeDialog.jsx`) ενώθηκαν στο `src/core/dates/hospitalDate.ts` (`hospitalNow`, `hospitalHour`, `hospitalDay`) στο βήμα 3 του TypeScript.
 - [x] Πρώτη φόρτωση: χωρίς τον καθολικό κάδο `vendor` (μετέφερε pako/canvg/core-js/fflate/dompurify του PDF σε κάθε σελίδα)· 387 → 297 kB gzip.
 - [x] Αγγλικοί όροι στο ελληνικό UI: tenant, password, Supabase, stewardship, Owner, backend/RLS, UI. Μένουν σκόπιμα: Demo, email, Excel, tablet, Link Nurse, LIRA, AWaRe Access/Watch/Reserve (όρος ΠΟΥ).
 - [ ] Σπάσιμο μεγάλων αρχείων (ClinicalJourney, EmployeeRecordPage, clinicalCloudService, RostersPage, PreventionRecordPage): μαζί με τη μετατροπή του φακέλου σε TypeScript, γιατί 141 τεστ διαβάζουν 267 αρχεία με το όνομά τους.
@@ -33,6 +33,9 @@
 3. `src/core` (dates, permissions, i18n, supabase, tenant, auth, data, feedback).
 4. Ενότητες από τη μικρότερη στη μεγαλύτερη, Ποιότητα και Επιτήρηση τελευταίες· σπάσιμο μεγάλων αρχείων μαζί.
 5. Κάθε φάκελος που τελειώνει μπαίνει στο `tsconfig.strict.json` (το `typecheck:strict` τρέχει ήδη στο `check`).
+
+## Οθόνη Διευθυντή Διεύθυνσης (ιδιοκτήτης, 12/11/2026 — σε υλοποίηση, κλάδος `claude/division-director-home`)
+- [ ] Οθόνη Διευθυντή Διεύθυνσης (π.χ. Νοσηλευτική Διεύθυνση): στην «Προβολή ως ρόλος» → «Διευθυντής Διεύθυνσης» ο ιδιοκτήτης να μπορεί να διαλέξει ποια Διεύθυνση (`hr_divisions`) βλέπει. Η αρχική του ρόλου να δείχνει τι χρειάζεται η Διεύθυνση: «Τμήματα που εποπτεύω» είναι σήμερα άδειο στην προεπισκόπηση. Επίσης το παράθυρο «Προβολή ως ρόλος» έχει αγγλικούς όρους στο ελληνικό κείμενο («UI», «backend», «Demo/Development»). Σχέδιο πρώτα, έγκριση από τον ιδιοκτήτη, μετά υλοποίηση.
 
 ## Έλεγχοι ΙΑΣΩ — τήρηση προγράμματος (7/11/2026, σε αναμονή: «θα επανέλθω μετά τη συνάντηση των τμημάτων»)
 - Ο ιδιοκτήτης θα κάνει συναντήσεις με τα τμήματα με το αρχείο «Τήρηση ελέγχων ανά τμήμα» (PDF + Excel, περίοδος 7/10–5/11/2026, τήρηση νοσοκομείου 70%). Μετά θα πει ανά τμήμα: παύση, αλλαγή συχνότητας (π.χ. 1 φορά/ημέρα αντί 2–3) ή «μόνο εργάσιμες»· αυτά περνούν στην πλατφόρμα.
