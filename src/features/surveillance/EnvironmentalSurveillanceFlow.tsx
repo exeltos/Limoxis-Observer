@@ -39,8 +39,12 @@ import './surveillanceEntryCard.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
+import type { LucideIcon } from 'lucide-react'
+import type { RefObject } from 'react'
+import type { SortState } from '../../design-system/useTableSort'
+import type { SearchableOption } from '../../design-system/SearchableSelect'
 
-const icons = { surface: Layers3, room: Building2, air: Wind, water: Droplets }
+const icons: Record<string, LucideIcon> = { surface: Layers3, room: Building2, air: Wind, water: Droplets }
 const sourceByType: Record<string, string[]> = {
   surface: ['surfaceSwab', 'contactPlate', 'other'],
   room: ['roomSampling', 'surfaceSwab', 'contactPlate', 'other'],
@@ -54,7 +58,7 @@ const closedStatuses = ['cancelled', 'rejected', 'voided']
 // (remediation and a new sampling), whatever the laboratory status says.
 export const environmentalNeedsAction = (row: AnyRecord) =>
   !closedStatuses.includes(row?.status) &&
-  (row?.microbiologyResults || []).some(result => isOutsideLimit(result))
+  (row?.microbiologyResults || []).some((result: AnyRecord) => isOutsideLimit(result))
 
 // The registry status shown for an environmental sample, with its badge tone.
 export function environmentalStatusDisplay(row: AnyRecord, t: (key: string) => string) {
@@ -116,16 +120,17 @@ export function EnvironmentalSurveillanceFlow({
     ),
     [plate, setPlate] = useState(''),
     [position, setPosition] = useState(''),
-    [batchRows, setBatchRows] = useState([{ id: 1, location: '', point: '', plate: '', position: '' }]),
-    [created, setCreated] = useState(null),
+    [batchRows, setBatchRows] = useState<AnyRecord[]>([{ id: 1, location: '', point: '', plate: '', position: '' }]),
+    [created, setCreated] = useState<AnyRecord | null>(null),
     [saving, setSaving] = useState(false)
   // Surfaces, rooms and air are sampled on culture plates: the plate and the spot on it are required (water goes in a bottle).
   const needsPlate = subjectType !== 'water'
   // Locations and points come from the central libraries; a new one can be typed.
   const { libraries } = useLibraries()
   const texts = listTexts(language)
-  const locationOptions = libraryOptions(libraries.environmentalLocations || [], language),
-    pointOptions = libraryOptions(libraries.surfacePoints || [], language)
+  // The library rows always carry a value (the item's own code).
+  const locationOptions = libraryOptions(libraries.environmentalLocations || [], language) as SearchableOption[],
+    pointOptions = libraryOptions(libraries.surfacePoints || [], language) as SearchableOption[]
   function chooseType(type: string) {
     setSubjectType(type)
     setSourceCode(environmentalSubjectCatalog.find(x => x.id === type)?.defaultSource || 'other')
@@ -137,7 +142,7 @@ export function EnvironmentalSurveillanceFlow({
       ? { department: dep.label, departmentEn: dep.labelEn || dep.label }
       : { departmentId: dep.value }
   }
-  function buildDraft(entryLocation, entryPoint, batchId: string, entryPlate = '', entryPosition = '') {
+  function buildDraft(entryLocation: string, entryPoint: string, batchId: string | null, entryPlate = '', entryPosition = '') {
     const subjectName = [entryLocation, entryPoint].filter(Boolean).join(' · ')
     return {
       subjectType: 'environment',
@@ -195,9 +200,9 @@ export function EnvironmentalSurveillanceFlow({
       setSaving(false)
     }
   }
-  const updateRow = (id: string, key: string, value) =>
+  const updateRow = (id: number, key: string, value: unknown) =>
     setBatchRows(rows => rows.map(row => (row.id === id ? { ...row, [key]: value } : row)))
-  const removeRow = async (id: string) => {
+  const removeRow = async (id: number) => {
     const ok = await confirm({
       title: language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point',
       message:
@@ -243,9 +248,9 @@ export function EnvironmentalSurveillanceFlow({
     ? [{ location: location.trim(), point: point.trim(), plate: plate.trim(), position: position.trim() }].filter(item => item.location || item.point)
     : batchRows.filter(row => row.location.trim() || row.point.trim()).map(row => ({ location: row.location.trim(), point: row.point.trim(), plate: row.plate.trim(), position: row.position.trim() }))
   // The recording sheet is exported like every other document (Εξαγωγή: print, PDF, Word).
-  const sheetExports = (points, code = '') =>
+  const sheetExports = (points: AnyRecord[], code = '') =>
     reportExports(() => sheetFor(points, code), { word: true, onBlocked: () => notify(t('clinicalRecords.envPopupBlocked'), 'error') })
-  function sheetFor(points, code = '') {
+  function sheetFor(points: AnyRecord[], code = '') {
     const dep = departmentOptions.find(item => item.value === departmentValue)
     return environmentalSheetDocument({
       language,
@@ -503,14 +508,14 @@ export function EnvironmentalSurveillanceFlow({
 interface EnvironmentalRegistryProps {
   loading?: boolean
   rows: AnyRecord[]
-  empty: boolean
+  empty?: AnyRecord | null
   t: (key: string) => string
   language: string
   fmt: (value: unknown) => string
   onOpenSample: Handler
   highlightId?: string
-  scrollRef: AnyRecord
-  sort: AnyRecord
+  scrollRef: RefObject<HTMLDivElement>
+  sort: SortState | null
   onSort: Handler
 }
 export function EnvironmentalRegistry({

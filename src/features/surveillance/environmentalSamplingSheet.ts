@@ -1,4 +1,5 @@
 import type { AnyRecord } from '../../types/featureTypes'
+import type { ReportDoc, ReportFact, ReportSection } from '../../core/export/reportDocument'
 // «Φύλλο καταγραφής σημείων δειγματοληψίας»: the sheet a sampler fills in the field and hands
 // to the laboratory with the plates. One row per point, with the plate («τρυβλίο») and the spot on
 // it («θέση»). Pure: the dialog prints it (reportDocument.printReport) and the test reads it.
@@ -25,7 +26,7 @@ interface EnvironmentalSheetDocumentOptions {
   code?: string
 }
 // points: [{ location, point, plate, position, code? }]; the sample codes are known once the points are saved.
-export function environmentalSheetDocument({ language = 'el', t, department = '', date = '', typeLabel = '', methodLabel = '', points = [], notes = '', code = '' }: EnvironmentalSheetDocumentOptions) {
+export function environmentalSheetDocument({ language = 'el', t, department = '', date = '', typeLabel = '', methodLabel = '', points = [], notes = '', code = '' }: EnvironmentalSheetDocumentOptions): ReportDoc {
   const withCodes = points.some(point => point.code)
   const columns = [
     '#',
@@ -51,16 +52,16 @@ export function environmentalSheetDocument({ language = 'el', t, department = ''
     title: t('clinicalRecords.envSheetTitle'),
     code,
     orientation: 'landscape',
-    meta: [
+    meta: ([
       [t('department'), department],
       [t('samplingDate'), date],
       [t('sampleType'), typeLabel],
       [t('samplingMethod'), methodLabel],
-    ].filter(([, value]) => value),
-    sections: [
+    ] as ReportFact[]).filter(([, value]) => value),
+    sections: ([
       { title: t('clinicalRecords.envSheetPoints'), table: { columns, rows } },
       notes ? { title: t('notes'), text: notes } : null,
-    ].filter(Boolean),
+    ] as (ReportSection | null)[]).filter(Boolean),
     signatures: [t('clinicalRecords.envSheetSampler'), t('clinicalRecords.envSheetLab')],
     filename: `${code || 'sampling-sheet'}`,
   }

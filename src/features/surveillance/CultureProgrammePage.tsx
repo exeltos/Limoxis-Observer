@@ -32,7 +32,7 @@ const STATE_LABEL: Record<string, string[]> = {
 const fmtDay = (day: string, en: boolean) => new Date(`${day}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR', { day: 'numeric', month: 'numeric' })
 // The name of a culture's row: its department, or its group (staff, air, network water).
 const rowName = (item: AnyRecord, en: boolean) => (item.group ? CULTURE_GROUPS[item.group].label[en ? 1 : 0] : item.department)
-const everyText = (every, en: boolean) => (every === 1 ? (en ? 'monthly' : 'κάθε μήνα') : every === 12 ? (en ? 'yearly' : 'κάθε χρόνο') : en ? `every ${every} months` : `κάθε ${every} μήνες`)
+const everyText = (every: number, en: boolean) => (every === 1 ? (en ? 'monthly' : 'κάθε μήνα') : every === 12 ? (en ? 'yearly' : 'κάθε χρόνο') : en ? `every ${every} months` : `κάθε ${every} μήνες`)
 
 export function CultureProgrammePage() {
   const { language, t } = useLanguage()
@@ -59,7 +59,7 @@ export function CultureProgrammePage() {
   const lines = useMemo(() => (data ? data.items.map((item: AnyRecord) => ({ item, months: cultureYear(item, data.rounds, year, today, data.rounds[0]?.day) })) : []), [data, year, today])
   const extra = useMemo(() => (data ? offProgramme(data.items, data.rounds, year) : []), [data, year])
   const counts = useMemo(() => {
-    const cells = lines.flatMap((line: string) => line.months.filter((cell: AnyRecord) => cell.month <= today.getMonth() || year < today.getFullYear()))
+    const cells = lines.flatMap((line: AnyRecord) => line.months.filter((cell: AnyRecord) => cell.month <= today.getMonth() || year < today.getFullYear()))
     return { done: cells.filter((cell: AnyRecord) => cell.state === 'done').length, missed: cells.filter((cell: AnyRecord) => cell.state === 'missed').length, due: cells.filter((cell: AnyRecord) => cell.state === 'due').length }
   }, [lines, today, year])
 
@@ -98,11 +98,11 @@ export function CultureProgrammePage() {
 
 interface CultureProgrammeExportOptions {
   lines: AnyRecord[]
-  extra: AnyRecord
-  view: AnyRecord
-  year: string
-  month: string
-  en: AnyRecord
+  extra: AnyRecord[]
+  view: string
+  year: number
+  month: number
+  en: boolean
 }
 // «5/3» for a done culture (its department too for a category), ✗ missed, ! due, ◦ planned: the same marks as the table, in words for the month list.
 function cultureProgrammeExport({ lines, extra, view, year, month, en }: CultureProgrammeExportOptions) {
@@ -130,9 +130,9 @@ function cultureProgrammeExport({ lines, extra, view, year, month, en }: Culture
 
 interface YearTableProps {
   lines: AnyRecord[]
-  extra: AnyRecord
-  year: string
-  en: AnyRecord
+  extra: AnyRecord[]
+  year: number
+  en: boolean
   onOpen: Handler
 }
 function YearTable({ lines, extra, year, en, onOpen }: YearTableProps) {
@@ -160,21 +160,21 @@ function YearTable({ lines, extra, year, en, onOpen }: YearTableProps) {
   </div>
 }
 
-const groupByDepartment = (rounds: AnyRecord[]) => [...rounds.reduce((map: AnyRecord, round: AnyRecord) => map.set(round.department, [...(map.get(round.department) || []), round]), new Map())]
+const groupByDepartment = (rounds: AnyRecord[]): [string, AnyRecord[]][] => [...rounds.reduce((map: Map<string, AnyRecord[]>, round: AnyRecord) => map.set(round.department, [...(map.get(round.department) || []), round]), new Map())]
 
 interface MonthCalendarProps {
   lines: AnyRecord[]
-  extra: AnyRecord
-  year: string
-  month: string
-  en: AnyRecord
+  extra: AnyRecord[]
+  year: number
+  month: number
+  en: boolean
   onOpen: Handler
 }
 function MonthCalendar({ lines, extra, year, month, en, onOpen }: MonthCalendarProps) {
   const first = new Date(year, month, 1), days = new Date(year, month + 1, 0).getDate()
   const offset = (first.getDay() + 6) % 7
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}`
-  const rounds = [...lines.flatMap(line => line.months[month].rounds.map(round => ({ round, item: line.item }))), ...extra.filter((round: AnyRecord) => round.day.startsWith(prefix)).map(round => ({ round, item: null }))]
+  const rounds = [...lines.flatMap(line => line.months[month].rounds.map((round: AnyRecord) => ({ round, item: line.item }))), ...extra.filter((round: AnyRecord) => round.day.startsWith(prefix)).map((round: AnyRecord) => ({ round, item: null }))]
   const pending = lines.filter(line => ['due', 'planned', 'missed'].includes(line.months[month].state))
   const weekdays = en ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ', 'Κυρ']
   return <div className="culture-month-view">
@@ -197,8 +197,8 @@ function MonthCalendar({ lines, extra, year, month, en, onOpen }: MonthCalendarP
 // (the one the result was assessed with, else the protocol's). Positive results first, then by plate and position.
 const isGrowth = (result: AnyRecord) => Boolean(result && (result.result === 'positive' || result.organism || Number(result.cfuCount) > 0))
 interface ResultsDialogProps {
-  open: boolean
-  en: AnyRecord
+  open: AnyRecord
+  en: boolean
   t: (key: string) => string
   onClose: Handler
 }
@@ -211,7 +211,7 @@ function ResultsDialog({ open, en, t, onClose }: ResultsDialogProps) {
   const rows = round.samples.flatMap((sample: AnyRecord) => {
     const results = sample.microbiologyResults?.length ? sample.microbiologyResults : [null]
     const standard = resolveEnvironmentalStandard(standards, sample.type, sample.environmentalMethod)
-    return results.map((result, index: number) => ({ key: `${sample.id}-${index}`, sample, result, limit: result ? resultLimit(result, standard) : null }))
+    return results.map((result: AnyRecord | null, index: number) => ({ key: `${sample.id}-${index}`, sample, result, limit: result ? resultLimit(result, standard) : null }))
   }).sort((a: AnyRecord, b: AnyRecord) => Number(isGrowth(b.result)) - Number(isGrowth(a.result)) || String(a.sample.environmentalPlate || '').localeCompare(String(b.sample.environmentalPlate || '')) || Number(a.sample.environmentalPosition || 0) - Number(b.sample.environmentalPosition || 0))
   const positives = rows.filter((row: AnyRecord) => isGrowth(row.result)).length
   return <ObserverDialog width="wide" eyebrow={en ? 'Culture results' : 'Αποτελέσματα καλλιέργειας'} title={`${round.department} · ${new Date(`${round.day}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR')}`} subtitle={`${item ? item.title : (en ? 'Out of programme' : 'Εκτός προγράμματος')} · ${rows.length} ${en ? 'points' : 'σημεία'} · ${positives} ${en ? 'positive' : 'θετικά'}`} onClose={onClose}>
