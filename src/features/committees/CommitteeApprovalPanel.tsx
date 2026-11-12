@@ -3,17 +3,18 @@ import { CheckCircle2,Clock3,FileSignature,Mail,MessageSquareWarning,Send,UserCh
 import { Button } from '../../design-system/Button'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const statusText=(status,en)=>({pending:en?'Pending':'Εκκρεμεί',approved:en?'Approved':'Εγκρίθηκε',rejected:en?'Changes requested':'Ζητήθηκαν διορθώσεις',cancelled:en?'Superseded':'Αντικαταστάθηκε'}[status]||status)
-const fmt=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR'):'—'
+const statusText=(status: string,en: boolean)=>({pending:en?'Pending':'Εκκρεμεί',approved:en?'Approved':'Εγκρίθηκε',rejected:en?'Changes requested':'Ζητήθηκαν διορθώσεις',cancelled:en?'Superseded':'Αντικαταστάθηκε'} as Record<string,string>)[status]||status
+const fmt=(value: string|null|undefined,en: boolean)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR'):'—'
 // How the member approves: inside the platform, by e-mail link, or on paper.
-function Method({item,en}){
+function Method({item,en}: {item: AnyRecord,en: boolean}){
   if(item.method==='paper')return <span className="committee-approval-method"><span><FileSignature size={13}/>{en?'On paper':'Σε χαρτί'}</span></span>
   if(item.method==='email')return <span className="committee-approval-method"><span><Mail size={13}/>{en?'E-mail link':'Email'}</span><small>{item.email}</small></span>
   return <span className="committee-approval-method"><span><UserCheck size={13}/>{en?'Account':'Λογαριασμός'}</span></span>
 }
 
-export function CommitteeApprovalPanel({approvals=[],actorId,busy=false,canManage=false,onApprove,onRequestChanges,onExternalAction,en=false}){
+export function CommitteeApprovalPanel({approvals=[],actorId,busy=false,canManage=false,onApprove,onRequestChanges,onExternalAction,en=false}: {approvals?: AnyRecord[],actorId?: string|null,busy?: boolean,canManage?: boolean,onApprove: (id: string)=>unknown,onRequestChanges: (id: string,comment: string)=>unknown,onExternalAction?: (id: string,action: string)=>unknown,en?: boolean}){
   const [changesOpen,setChangesOpen]=useState(false)
   const [comment,setComment]=useState('')
   const mine=useMemo(()=>approvals.find(x=>x.approverId===actorId&&x.status==='pending')||null,[approvals,actorId])
@@ -31,4 +32,4 @@ export function CommitteeApprovalPanel({approvals=[],actorId,busy=false,canManag
   </div>
 }
 
-function RequestChangesDialog({busy,en,onClose,comment,onComment,onSave}){return <ObserverDialog width="standard" eyebrow={en?'Minutes approval':'Έγκριση πρακτικών'} title={en?'Request changes':'Αίτημα διορθώσεων'} subtitle={en?'Describe clearly what must be corrected before the minutes are submitted again.':'Περιγράψτε με σαφήνεια τι πρέπει να διορθωθεί πριν τα πρακτικά υποβληθούν ξανά.'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={busy||!comment.trim()} onSave={onSave} saveLabel={busy?(en?'Saving…':'Αποθήκευση…'):(en?'Send request':'Αποστολή αιτήματος')}/>}><label className="field"><span>{en?'Required changes':'Απαιτούμενες διορθώσεις'} *</span><textarea autoFocus rows="5" value={comment} onChange={e=>onComment(e.target.value)} placeholder={en?'Explain the required corrections…':'Περιγράψτε τις απαιτούμενες διορθώσεις…'}/></label></ObserverDialog>}
+function RequestChangesDialog({busy,en,onClose,comment,onComment,onSave}: {busy: boolean,en: boolean,onClose: ()=>void,comment: string,onComment: (value: string)=>void,onSave: ()=>void}){return <ObserverDialog width="standard" eyebrow={en?'Minutes approval':'Έγκριση πρακτικών'} title={en?'Request changes':'Αίτημα διορθώσεων'} subtitle={en?'Describe clearly what must be corrected before the minutes are submitted again.':'Περιγράψτε με σαφήνεια τι πρέπει να διορθωθεί πριν τα πρακτικά υποβληθούν ξανά.'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={busy||!comment.trim()} onSave={onSave} saveLabel={busy?(en?'Saving…':'Αποθήκευση…'):(en?'Send request':'Αποστολή αιτήματος')}/>}><label className="field"><span>{en?'Required changes':'Απαιτούμενες διορθώσεις'} *</span><textarea autoFocus rows={5} value={comment} onChange={e=>onComment(e.target.value)} placeholder={en?'Explain the required corrections…':'Περιγράψτε τις απαιτούμενες διορθώσεις…'}/></label></ObserverDialog>}

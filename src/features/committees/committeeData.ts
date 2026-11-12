@@ -1,7 +1,10 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { shiftDemoDatesInPlace, shiftDemoMonthsInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays } from '../../core/data/demoSeed'
-const seed=[
+import type { AnyRecord } from '../../types/featureTypes'
+// [agenda, notes of the meeting, decision, owner]
+type EarlyTopic = [string[], string, string, string]
+const seed: AnyRecord[]=[
  {id:'COM-001',decisionNumber:'Απόφαση Δ.Σ. 31/18.12.2024',meetingFrequency:'monthly',quorumRule:'simple_majority',templateId:'enl',name:'Επιτροπή Νοσοκομειακών Λοιμώξεων',shortName:'ΕΝΛ',nameEn:'Hospital Infection Control Committee',shortNameEn:'HICC',type:'infection_control',status:'active',chair:'Δρ. Ελένη Παπαδοπούλου',secretary:'Μαρία Κωνσταντίνου',termStart:'2025-01-01',termEnd:'2026-12-31',committeeRole:'Κεντρικό θεσμικό όργανο του νοσοκομείου για την επιτήρηση, πρόληψη και τον έλεγχο των λοιμώξεων που συνδέονται με τη φροντίδα υγείας.',legalBasis:'ΥΑ Υ1.Γ.Π.114971/2014 · ισχύουσα πράξη συγκρότησης φορέα · WHO IPC Core Components',mandate:'Επιτήρηση, πρόληψη και έλεγχος λοιμώξεων, εφαρμογή μέτρων IPC και παρακολούθηση σχετικών δεικτών.',members:['Δρ. Ελένη Παπαδοπούλου','Μαρία Κωνσταντίνου','Γ. Νικολάου','Α. Δημητρίου'],memberRefs:[
   {id:'CM-SEED-1',inControlTeam:true,employeeId:'',name:'Δρ. Ελένη Παπαδοπούλου',department:'Ιατρική Υπηρεσία',profession:'Ιατρός',committeeTitle:'Πρόεδρος',responsibilities:'Συντονισμός της ΕΝΛ, έγκριση ημερήσιας διάταξης και εποπτεία εφαρμογής αποφάσεων.',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2025-01-01T00:00:00Z'},
   {id:'CM-SEED-2',inControlTeam:true,employeeId:'',name:'Μαρία Κωνσταντίνου',department:'Επιτήρηση Λοιμώξεων',profession:'Νοσηλευτής/τρια',committeeTitle:'ΝΕΛ / Γραμματέας',responsibilities:'Επιτήρηση ΛΣΦΥ, συλλογή και ανατροφοδότηση δεικτών, πρακτικά και παρακολούθηση ενεργειών.',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2025-01-01T00:00:00Z'},
@@ -36,8 +39,8 @@ const seed=[
 // The year behind the latest meetings (authored 2025-09 … 2026-07): monthly ΕΝΛ
 // and bimonthly ΕΑΕ meetings with finalized minutes and the decisions they took.
 const MONTH_GENITIVE=['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου']
-const pastMeeting=(prefix,minutesPrefix,month,day,attendance,agenda,notes)=>{const [year,value]=month.split('-');return {id:`MTG-${month}${prefix}`,date:`${month}-${day}`,title:`Τακτική συνεδρίαση ${MONTH_GENITIVE[Number(value)-1]}`,status:'finalized',attendance,quorum:true,minutesNo:`${minutesPrefix}-${value}/${year}`,agenda,notes,finalizedAt:`${month}-${String(Number(day)+1).padStart(2,'0')}T09:00:00Z`}}
-const ENL_HISTORY=[
+const pastMeeting=(prefix: string,minutesPrefix: string,month: string,day: string,attendance: number,agenda: string[],notes: string)=>{const [year,value]=month.split('-');return {id:`MTG-${month}${prefix}`,date:`${month}-${day}`,title:`Τακτική συνεδρίαση ${MONTH_GENITIVE[Number(value)-1]}`,status:'finalized',attendance,quorum:true,minutesNo:`${minutesPrefix}-${value}/${year}`,agenda,notes,finalizedAt:`${month}-${String(Number(day)+1).padStart(2,'0')}T09:00:00Z`}}
+const ENL_HISTORY: [string, string, string[], string][]=[
  ['2025-09','16',['Ετήσια ανασκόπηση δεικτών ΛΣΦΥ 2024–25','Πρόγραμμα παρατηρήσεων υγιεινής χεριών'],'Εγκρίθηκε το ετήσιο πρόγραμμα παρατηρήσεων.'],
  ['2025-10','21',['Αποτελέσματα επιθεώρησης δέσμης CLABSI','Εποχική γρίπη: εμβολιασμός προσωπικού'],'Ανατέθηκε διορθωτική ενέργεια για την τεκμηρίωση CVC.'],
  ['2025-11','18',['Μελέτη επιπολασμού Νοεμβρίου','Κρούσματα KPC στη ΜΕΘ'],'Εντατικοποίηση ενεργητικής επιτήρησης KPC.'],
@@ -50,7 +53,7 @@ const ENL_HISTORY=[
  ['2026-06','16',['Ουρολοιμώξεις στη Χειρουργική','Ανασκόπηση δεσμών μέτρων ΜΕΘ'],'Πρωτόκολλο αφαίρεσης ουροκαθετήρα από νοσηλευτή.'],
  ['2026-07','21',['Θερινή κάλυψη προσωπικού IPC','Επιτήρηση MDRO Α΄ εξαμήνου'],'Εγκρίθηκε η έκθεση εξαμήνου.'],
 ]
-const AMS_HISTORY=[
+const AMS_HISTORY: [string, string, string[], string][]=[
  ['2025-09','23',['Κατανάλωση αντιμικροβιακών 2024–25','Δείκτες AWaRe'],'Στόχος Access ≥ 60% για το 2026.'],
  ['2025-11','25',['Γνωμάτευση λοιμωξιολόγου για καρβαπενέμες','Τάσεις KPC'],'Πιλοτική εφαρμογή στη ΜΕΘ.'],
  ['2026-01','27',['Ετήσιος απολογισμός ΕΑΕ 2025','Περιεγχειρητική προφύλαξη'],'Ενιαίο πρωτόκολλο προφύλαξης με κεφαζολίνη.'],
@@ -74,7 +77,7 @@ seed[1].decisions.push(
 )
 // The months before (owner, 9/11/2026: the Demo shows the whole of 2025): the ΕΝΛ every month and the ΕΑΕ every
 // other month from January 2025 as shown (DEMO_HISTORY_MONTHS), with a decision at every other meeting.
-const ENL_EARLY_TOPICS=[
+const ENL_EARLY_TOPICS: EarlyTopic[]=[
  [['Ετήσιος απολογισμός ΕΝΛ','Πρόγραμμα δράσης του έτους'],'Εγκρίθηκε το πρόγραμμα δράσης του έτους.','Ενημέρωση των τμημάτων για το πρόγραμμα δράσης','Υπεύθυνος Λοιμώξεων'],
  [['Επιτήρηση MDRO στη ΜΕΘ','Δείκτες υγιεινής χεριών'],'Ενεργητική επιτήρηση στις εισαγωγές της ΜΕΘ.','Επιχρίσματα επιτήρησης σε κάθε εισαγωγή ΜΕΘ','Προϊσταμένη ΜΕΘ'],
  [['Κατανάλωση αλκοολούχου αντισηπτικού','Εκπαίδευση νέου προσωπικού'],'Εισαγωγική εκπαίδευση IPC για κάθε νέο συνάδελφο.','Εισαγωγική εκπαίδευση IPC νέου προσωπικού','Ομάδα Εκπαίδευσης IPC'],
@@ -82,7 +85,7 @@ const ENL_EARLY_TOPICS=[
  [['Δέσμη CAUTI','Επιτήρηση Legionella στο δίκτυο νερού'],'Καθημερινή αξιολόγηση της ανάγκης ουροκαθετήρα.','Λίστα ελέγχου ανάγκης ουροκαθετήρα','Νοσηλευτική Διεύθυνση'],
  [['Θερινή κάλυψη προσωπικού IPC','Δείκτες Α΄ εξαμήνου'],'Εγκρίθηκε η έκθεση του εξαμήνου.','Έκθεση εξαμήνου προς τη Διοίκηση','Υπεύθυνος Λοιμώξεων'],
 ]
-const AMS_EARLY_TOPICS=[
+const AMS_EARLY_TOPICS: EarlyTopic[]=[
  [['Κατανάλωση αντιμικροβιακών (DDD/100 ημέρες νοσηλείας)','Τάσεις αντοχής'],'Μηνιαία αναφορά κατανάλωσης στα τμήματα.','Μηνιαία αναφορά DDD ανά τμήμα','Ι. Σταύρου'],
  [['Αποκλιμάκωση αγωγής','Δεδομένα ευαισθησίας Klebsiella'],'Υπενθύμιση επανεκτίμησης αγωγής στις 72 ώρες.','Επανεκτίμηση αντιβιοτικής αγωγής στις 72 ώρες','Δρ. Ν. Γεωργίου'],
  [['Περιεγχειρητική προφύλαξη','Κατηγοριοποίηση WHO AWaRe'],'Έλεγχος διάρκειας προφύλαξης στα χειρουργεία.','Προφύλαξη έως 24 ώρες μετά την επέμβαση','Ι. Σταύρου'],
@@ -99,8 +102,11 @@ earlyMonths.filter(month=>Number(month.slice(5,7))%2===1).forEach((month,i)=>{
  if(i%2===0)seed[1].decisions.push({id:`DEC-AMS-${month}-H`,meetingId:`MTG-${month}-AMS`,title:decision,owner,dueDate:addDays(`${month}-23`,40),priority:'medium',status:'completed',action:notes})
 })
 // Three more committees with their meetings over the whole history, a planned next meeting and their annual plan.
-const member=(id,name,department,profession,committeeTitle,responsibilities)=>({id,employeeId:'',name,department,profession,committeeTitle,responsibilities,voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2025-01-01T00:00:00Z'})
-const MORE_COMMITTEES=[
+const member=(id: string,name: string,department: string,profession: string,committeeTitle: string,responsibilities: string)=>({id,employeeId:'',name,department,profession,committeeTitle,responsibilities,voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2025-01-01T00:00:00Z'})
+// A committee with its people [id, name, department, profession, title, responsibilities], how often it meets
+// (every … months, from month offset, on day), the topics of its meetings and its plan [title, indicator, baseline, target].
+type MoreCommittee = AnyRecord & { people: [string, string, string, string, string, string][], every: number, offset: number, day: string, topics: EarlyTopic[], plan: [string, string, string, string][] }
+const MORE_COMMITTEES: MoreCommittee[]=[
  {id:'COM-003',decisionNumber:'Απόφαση Δ.Σ. 33/18.12.2024',meetingFrequency:'bimonthly',quorumRule:'simple_majority',templateId:'custom',name:'Επιτροπή Ποιότητας και Ασφάλειας Ασθενών',shortName:'ΕΠΑΑ',nameEn:'Quality and Patient Safety Committee',shortNameEn:'QPS',type:'custom',status:'active',chair:'Δρ. Κ. Αναστασίου',secretary:'Α. Δημητρίου',termStart:'2025-01-01',termEnd:'2026-12-31',
   committeeRole:'Εποπτεύει το σύστημα διαχείρισης ποιότητας, τα ανεπιθύμητα συμβάντα και την ασφάλεια των ασθενών.',legalBasis:'Ν. 4600/2019 · ISO 9001:2015 · ISO 15224:2016',mandate:'Ανασκόπηση συμβάντων, επιθεωρήσεων και δεικτών ποιότητας· έγκριση διορθωτικών ενεργειών.',
   people:[['CM-SEED-8','Δρ. Κ. Αναστασίου','Ιατρική Υπηρεσία','Ιατρός','Πρόεδρος','Συντονισμός της επιτροπής και εισήγηση προς τη Διοίκηση.'],['CM-SEED-9','Α. Δημητρίου','Ποιότητα','Στέλεχος Ποιότητας','Γραμματέας','Ημερήσια διάταξη, πρακτικά και παρακολούθηση ενεργειών.'],['CM-SEED-10','Ε. Μιχαηλίδου','Νοσηλευτική Υπηρεσία','Νοσηλευτής/τρια','Μέλος','Εκπροσώπηση της Νοσηλευτικής Υπηρεσίας.'],['CM-SEED-11','Π. Ραφαηλίδης','Διοικητική Υπηρεσία','Διοικητικός','Μέλος','Πόροι και προμήθειες.']],
@@ -123,7 +129,7 @@ const MORE_COMMITTEES=[
 for(const {people,every,offset,day,topics,plan,...committee} of MORE_COMMITTEES){
  const short=committee.shortName
  const months=DEMO_HISTORY_MONTHS.filter(month=>(Number(month.slice(5,7))-1-offset+12)%every===0)
- const meetings=months.map((month,i)=>{const [agenda,notes]=topics[i%topics.length];return pastMeeting(`-${committee.id}`,`ΠΡ-${short}`,month,day,people.length-(i%4===1?1:0),agenda,notes)})
+ const meetings: AnyRecord[]=months.map((month,i)=>{const [agenda,notes]=topics[i%topics.length];return pastMeeting(`-${committee.id}`,`ΠΡ-${short}`,month,day,people.length-(i%4===1?1:0),agenda,notes)})
  const decisions=months.map((month,i)=>{const [,notes,title,owner]=topics[i%topics.length],recent=i>=months.length-2;return {id:`DEC-${committee.id}-${month}`,meetingId:`MTG-${month}-${committee.id}`,title,owner,dueDate:addDays(`${month}-${day}`,45),priority:i%3===0?'high':'medium',status:recent?(i===months.length-1?'open':'in_progress'):'completed',action:notes}})
  const last=months[months.length-1],[year,month]=last.split('-').map(Number),next=new Date(Date.UTC(year,month-1+every,1)).toISOString().slice(0,7)
  meetings.push({id:`MTG-${next}-${committee.id}`,date:`${next}-${day}`,title:`Τακτική συνεδρίαση ${MONTH_GENITIVE[Number(next.slice(5,7))-1]}`,status:'planned',attendance:0,quorum:null,minutesNo:'',agenda:topics[months.length%topics.length][0],notes:''})
@@ -135,15 +141,15 @@ for(const {people,every,offset,day,topics,plan,...committee} of MORE_COMMITTEES)
 // decision deadlines by days.
 shiftDemoMonthsInPlace(seed.map(committee=>committee.meetings))
 shiftDemoDatesInPlace(seed.map(committee=>committee.decisions))
-export function inferTemplate(r){if(r.templateId)return r.templateId;const n=`${r.shortName||''} ${r.name||''}`.toLowerCase();if(n.includes('ενλ')||n.includes('νοσοκομειακών λοιμ'))return'enl';if(n.includes('αντιμικροβ')||n.includes('αντιβιο'))return'oekocha';return'custom'}
-function normalizeMeeting(meeting){
- const topics=Array.isArray(meeting.topics)&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject,i)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0?(meeting.notes||''):'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))
+export function inferTemplate(r: AnyRecord){if(r.templateId)return r.templateId;const n=`${r.shortName||''} ${r.name||''}`.toLowerCase();if(n.includes('ενλ')||n.includes('νοσοκομειακών λοιμ'))return'enl';if(n.includes('αντιμικροβ')||n.includes('αντιβιο'))return'oekocha';return'custom'}
+function normalizeMeeting(meeting: AnyRecord){
+ const topics=Array.isArray(meeting.topics)&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject: string,i: number)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0?(meeting.notes||''):'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))
  return {...meeting,topics,attendanceRecords:Array.isArray(meeting.attendanceRecords)?meeting.attendanceRecords:[],generalNotes:meeting.generalNotes??'',approvalState:meeting.approvalState??(meeting.status==='finalized'?'completed':'not_started')}
 }
-function normalizeRecord(r){
- const memberRefs=Array.isArray(r.memberRefs)&&r.memberRefs.length?r.memberRefs:(r.members||[]).map((name,i)=>({id:`LEGACY-${r.id}-${i}`,employeeId:'',name,department:'',profession:'',committeeTitle:name===r.chair?'Πρόεδρος':name===r.secretary?'Γραμματέας':'Μέλος',responsibilities:'',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:r.termStart?`${r.termStart}T00:00:00Z`:null}))
+function normalizeRecord(r: AnyRecord){
+ const memberRefs=Array.isArray(r.memberRefs)&&r.memberRefs.length?r.memberRefs:(r.members||[]).map((name: string,i: number)=>({id:`LEGACY-${r.id}-${i}`,employeeId:'',name,department:'',profession:'',committeeTitle:name===r.chair?'Πρόεδρος':name===r.secretary?'Γραμματέας':'Μέλος',responsibilities:'',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:r.termStart?`${r.termStart}T00:00:00Z`:null}))
  return {...r,templateId:inferTemplate(r),memberRefs,meetings:(Array.isArray(r.meetings)?r.meetings:[]).map(normalizeMeeting),decisions:Array.isArray(r.decisions)?r.decisions:[],annualPlan:Array.isArray(r.annualPlan)?r.annualPlan:[],history:Array.isArray(r.history)?r.history:[]}
 }
-export function loadCommittees(){const v=loadSnapshot('committees',structuredClone(seed));return (Array.isArray(v)?v:structuredClone(seed)).map(normalizeRecord)}
-export function saveCommittees(rows){return saveSnapshot('committees',rows)}
-export function nextCommitteeId(rows){return `COM-${String(rows.length+1).padStart(3,'0')}`}
+export function loadCommittees(): AnyRecord[]{const v=loadSnapshot('committees',structuredClone(seed));return (Array.isArray(v)?v:structuredClone(seed)).map(normalizeRecord)}
+export function saveCommittees(rows: AnyRecord[]){return saveSnapshot('committees',rows)}
+export function nextCommitteeId(rows: unknown[]){return `COM-${String(rows.length+1).padStart(3,'0')}`}

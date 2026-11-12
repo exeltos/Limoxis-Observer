@@ -29,4 +29,4 @@ export const IPC_COMMITTEE_CATALOG=[
   requiredFunctions:['Συντονιστής Εκπαίδευσης','Εκπαιδευτές / μέλη'],roleGuidance:[{level:'recommended',label:'Προτεινόμενοι ρόλοι',roles:['Συντονιστής','Εκπαιδευτές με τεκμηριωμένη αρμοδιότητα IPC']},{level:'local',label:'Τοπική προσαρμογή',roles:['Συμμετοχή κλινικών συνδέσμων ή άλλων εκπαιδευτών ανά δράση']}],source:'WHO IPC Core Components — education & training · τοπικό πρόγραμμα IPC',relation:'Υποστηρίζει το ετήσιο πρόγραμμα IPC και μπορεί να οργανωθεί τοπικά ανάλογα με τις ανάγκες του φορέα.'},
  {id:'custom',code:'',name:'Άλλη επιτροπή / ομάδα',kind:'custom',core:false,role:'',duties:[],requiredFunctions:[],roleGuidance:[],source:'',relation:''}
 ]
-export const ipcCommitteeById=id=>IPC_COMMITTEE_CATALOG.find(x=>x.id===id)||IPC_COMMITTEE_CATALOG.at(-1)
+export const ipcCommitteeById=(id: string)=>IPC_COMMITTEE_CATALOG.find(x=>x.id===id)||IPC_COMMITTEE_CATALOG.at(-1)!

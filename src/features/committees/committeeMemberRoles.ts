@@ -2,6 +2,7 @@
 // The Greek title as written in the official roster stays in `title`
 // (committeeTitle); the roles drive the badges, the ordering of the members
 // list and who is shown as chair.
+import type { AnyRecord } from '../../types/featureTypes'
 export const MEMBER_ROLES = [
   'chair',
   'vice_chair',
@@ -11,7 +12,7 @@ export const MEMBER_ROLES = [
   'member',
 ]
 
-const ROLE_LABELS = {
+const ROLE_LABELS: Record<string, string[]> = {
   chair: ['Πρόεδρος', 'Chair'],
   vice_chair: ['Αντιπρόεδρος', 'Vice chair'],
   deputy_chair: ['Αναπληρωτής Προέδρου', 'Deputy chair'],
@@ -23,9 +24,9 @@ const ROLE_LABELS = {
 // Roles that get a badge in the members list (plain membership does not).
 export const BADGE_ROLES = ['chair', 'vice_chair', 'deputy_chair', 'coordinator', 'secretary']
 
-export const memberRoleLabel = (role, en) => ROLE_LABELS[role]?.[en ? 1 : 0] || role
+export const memberRoleLabel = (role: string, en: boolean) => ROLE_LABELS[role]?.[en ? 1 : 0] || role
 
-export function normalizeMemberRoles(value) {
+export function normalizeMemberRoles(value: unknown) {
   const list = Array.isArray(value) ? value : []
   const roles = MEMBER_ROLES.filter(role => list.includes(role))
   return roles.length ? roles : ['member']
@@ -33,12 +34,12 @@ export function normalizeMemberRoles(value) {
 
 // Roles as stored, for mapping a database row: an empty (or unknown-only) list
 // stays empty, so effectiveMemberRoles still falls back to the title.
-export function storedMemberRoles(value) {
+export function storedMemberRoles(value: unknown) {
   const list = Array.isArray(value) ? value : []
   return MEMBER_ROLES.filter(role => list.includes(role))
 }
 
-const fold = value =>
+const fold = (value: unknown) =>
   String(value || '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -46,9 +47,9 @@ const fold = value =>
 
 // Roles implied by a free Greek title, e.g. "Πρόεδρος & Συντονιστής" →
 // chair + coordinator, "Μέλος – Αναπληρωτής Προέδρου" → deputy_chair.
-export function rolesFromTitle(title) {
+export function rolesFromTitle(title: unknown) {
   const text = fold(title)
-  const roles = new Set()
+  const roles = new Set<string>()
   const deputy = /ΑΝΑΠΛΗΡΩΤ\S*\s+ΠΡΟΕΔΡ/.test(text)
   if (deputy) roles.add('deputy_chair')
   if (/ΑΝΤΙΠΡΟΕΔΡ/.test(text)) roles.add('vice_chair')
@@ -59,20 +60,20 @@ export function rolesFromTitle(title) {
 }
 
 // Stored roles, or for members saved before roles existed the ones their title implies.
-export const effectiveMemberRoles = member =>
+export const effectiveMemberRoles = (member: AnyRecord | null | undefined) =>
   Array.isArray(member?.roles) && member.roles.length
     ? normalizeMemberRoles(member.roles)
     : rolesFromTitle(member?.committeeTitle)
 
-export const memberBadgeRoles = member =>
+export const memberBadgeRoles = (member: AnyRecord | null | undefined) =>
   effectiveMemberRoles(member).filter(role => BADGE_ROLES.includes(role))
 
-const rank = member =>
+const rank = (member: AnyRecord) =>
   Math.min(...effectiveMemberRoles(member).map(role => MEMBER_ROLES.indexOf(role)))
 
 // Chair first, then vice/deputy chair, coordinators, secretary, members;
 // active members before former ones; the original order otherwise.
-export function sortMembersByRole(rows = []) {
+export function sortMembersByRole(rows: AnyRecord[] = []) {
   return rows
     .map((member, index) => ({ member, index }))
     .sort(
@@ -86,7 +87,7 @@ export function sortMembersByRole(rows = []) {
 
 // Name of the active member holding a role; falls back to the title text
 // for members saved before roles existed.
-export function officerName(rows = [], role, titlePattern) {
+export function officerName(rows: AnyRecord[] = [], role: string, titlePattern?: RegExp | null) {
   const active = rows.filter(x => x.active !== false)
   const byRole = active.find(x => Array.isArray(x.roles) && x.roles.includes(role))
   if (byRole) return byRole.name || ''

@@ -1,4 +1,5 @@
-import { useCallback,useEffect,useState } from 'react'
+import { useCallback,useEffect,useState,type ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import { useParams,useSearchParams } from 'react-router-dom'
 import { CheckCircle2,Clock3,FileText,MessageSquareWarning,ShieldCheck,Users } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -6,18 +7,19 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { decideExternalMinutesAsync,loadExternalMinutesAsync } from './committeeExternalApprovalService'
+import type { AnyRecord } from '../../types/featureTypes'
 import './minutesApproval.css'
 
-const day=(value,en)=>value?new Date(value).toLocaleDateString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—'
+const day=(value: string|null|undefined,en: boolean)=>value?new Date(value).toLocaleDateString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—'
 
 // Public page of the e-mailed link: a committee member without an account
 // reads the minutes and approves them or asks for changes, once.
 export function MinutesApprovalPage(){
   const {token}=useParams(),[params]=useSearchParams(),{language}=useLanguage(),{notifyError}=useFeedback(),en=language==='en'
-  const [state,setState]=useState({loading:true,data:null,error:null})
+  const [state,setState]=useState<{loading: boolean,data: AnyRecord|null,error: unknown}>({loading:true,data:null,error:null})
   const [mode,setMode]=useState(params.get('decision')==='changes'?'changes':'review')
-  const [comment,setComment]=useState(''),[busy,setBusy]=useState(false),[done,setDone]=useState(null)
-  const load=useCallback(async()=>{setState(s=>({...s,loading:true}));try{setState({loading:false,data:await loadExternalMinutesAsync(token),error:null})}catch(error){setState({loading:false,data:null,error})}},[token])
+  const [comment,setComment]=useState(''),[busy,setBusy]=useState(false),[done,setDone]=useState<string|null>(null)
+  const load=useCallback(async()=>{setState(s=>({...s,loading:true}));try{setState({loading:false,data:await loadExternalMinutesAsync(token as string) as AnyRecord|null,error:null})}catch(error){setState({loading:false,data:null,error})}},[token])
   useEffect(()=>{void load()},[load])
 
   if(state.loading)return <Frame><RouteLoading/></Frame>
@@ -29,10 +31,10 @@ export function MinutesApprovalPage(){
   if(m.status==='expired')return <Frame><Status icon={Clock3} title={en?'The link has expired':'Ο σύνδεσμος έληξε'} text={en?'Ask the committee secretariat to send it again.':'Ζητήστε από τη Γραμματεία της επιτροπής να τον στείλει ξανά.'}/></Frame>
   if(m.status!=='pending')return <Frame><Status icon={ShieldCheck} title={en?'This link is no longer valid':'Ο σύνδεσμος δεν ισχύει πια'} text={en?'The minutes were submitted again or withdrawn.':'Τα πρακτικά υποβλήθηκαν ξανά ή αποσύρθηκαν.'}/></Frame>
 
-  async function decide(decision){
+  async function decide(decision: string){
     if(busy||(decision==='rejected'&&!comment.trim()))return
     setBusy(true)
-    try{await decideExternalMinutesAsync(token,decision,decision==='rejected'?comment.trim():'');setDone(decision)}
+    try{await decideExternalMinutesAsync(token as string,decision,decision==='rejected'?comment.trim():'');setDone(decision)}
     catch(error){notifyError(error,'save',{operation:'committee_minutes_external_decide'});await load()}
     finally{setBusy(false)}
   }
@@ -47,17 +49,17 @@ export function MinutesApprovalPage(){
       {m.quorumMet!=null&&<div><span>{en?'Quorum':'Απαρτία'}</span><strong>{m.quorumMet?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</strong></div>}
     </section>
     <section className="public-flow-section"><h2><FileText size={17}/>{en?'Topics and decisions':'Θέματα και αποφάσεις'}</h2>
-      {(m.topics||[]).length?<ol className="minutes-approval-topics">{m.topics.map((t,i)=><li key={i}><strong>{t.subject}</strong>{t.decision&&<p>{t.decision}</p>}{t.action&&<small>{en?'Action':'Ενέργεια'}: {t.action}{t.owner?` · ${t.owner}`:''}{t.dueDate?` · ${day(t.dueDate,en)}`:''}</small>}</li>)}</ol>:<p>{en?'No topics recorded.':'Δεν καταγράφηκαν θέματα.'}</p>}
+      {(m.topics||[]).length?<ol className="minutes-approval-topics">{m.topics.map((t: AnyRecord,i: number)=><li key={i}><strong>{t.subject}</strong>{t.decision&&<p>{t.decision}</p>}{t.action&&<small>{en?'Action':'Ενέργεια'}: {t.action}{t.owner?` · ${t.owner}`:''}{t.dueDate?` · ${day(t.dueDate,en)}`:''}</small>}</li>)}</ol>:<p>{en?'No topics recorded.':'Δεν καταγράφηκαν θέματα.'}</p>}
       {m.notes&&<div className="minutes-approval-notes"><span>{en?'General notes':'Γενικές σημειώσεις'}</span><p>{m.notes}</p></div>}
     </section>
     {(m.attendees||[]).length>0&&<section className="public-flow-section"><h2><Users size={17}/>{en?'Present':'Παρόντες'}</h2><p className="minutes-approval-attendees">{m.attendees.join(' · ')}</p></section>}
     {mode==='changes'
-      ?<section className="public-flow-section minutes-approval-changes"><h2><MessageSquareWarning size={17}/>{en?'Request changes':'Αίτημα διορθώσεων'}</h2><label className="field"><span>{en?'What must be corrected?':'Τι πρέπει να διορθωθεί;'} *</span><textarea className="input" rows="4" autoFocus value={comment} onChange={e=>setComment(e.target.value)} placeholder={en?'e.g. topic 2: the deadline is the end of the month':'π.χ. θέμα 2: η προθεσμία είναι το τέλος του μήνα'}/></label>
+      ?<section className="public-flow-section minutes-approval-changes"><h2><MessageSquareWarning size={17}/>{en?'Request changes':'Αίτημα διορθώσεων'}</h2><label className="field"><span>{en?'What must be corrected?':'Τι πρέπει να διορθωθεί;'} *</span><textarea className="input" rows={4} autoFocus value={comment} onChange={e=>setComment(e.target.value)} placeholder={en?'e.g. topic 2: the deadline is the end of the month':'π.χ. θέμα 2: η προθεσμία είναι το τέλος του μήνα'}/></label>
         <div className="minutes-approval-actions"><Button variant="secondary" disabled={busy} onClick={()=>setMode('review')}>{en?'Back':'Πίσω'}</Button><Button disabled={busy||!comment.trim()} onClick={()=>decide('rejected')}>{busy?(en?'Sending…':'Αποστολή…'):(en?'Send request':'Αποστολή αιτήματος')}</Button></div></section>
       :<div className="minutes-approval-actions"><Button variant="secondary" disabled={busy} onClick={()=>setMode('changes')}><MessageSquareWarning size={15}/>{en?' Request changes':' Ζητώ διορθώσεις'}</Button><Button disabled={busy} onClick={()=>decide('approved')}><CheckCircle2 size={15}/>{busy?(en?' Saving…':' Καταχώρηση…'):(en?' I approve the minutes':' Εγκρίνω τα πρακτικά')}</Button></div>}
     <div className="source-truth-note"><ShieldCheck size={16}/><span>{en?`Personal single-use link, no account needed${m.expiresAt?`, valid until ${day(m.expiresAt,en)}`:''}. Your answer is recorded with the date and time in the committee history.`:`Προσωπικός σύνδεσμος μίας χρήσης, χωρίς λογαριασμό${m.expiresAt?` (ισχύει έως ${day(m.expiresAt,en)})`:''}. Η απάντησή σας καταγράφεται με ημερομηνία και ώρα στο ιστορικό της επιτροπής.`}</span></div>
   </div></Frame>
 }
 
-function Frame({children}){return <main className="public-flow-page"><div className="public-flow-shell">{children}</div></main>}
-function Status({title,text,icon:Icon}){return <div className="public-flow-card public-flow-status"><Icon size={34}/><h1>{title}</h1>{text&&<p>{text}</p>}</div>}
+function Frame({children}: {children: ReactNode}){return <main className="public-flow-page"><div className="public-flow-shell">{children}</div></main>}
+function Status({title,text,icon:Icon}: {title: string,text?: string,icon: LucideIcon}){return <div className="public-flow-card public-flow-status"><Icon size={34}/><h1>{title}</h1>{text&&<p>{text}</p>}</div>}

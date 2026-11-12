@@ -14,10 +14,21 @@ import {
   rolesFromTitle,
 } from './committeeMemberRoles'
 import { MultiSelect } from '../../design-system/MultiSelect'
+import type { ReactNode } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// What every dialog of the record gets.
+interface DialogProps {
+  busy: boolean
+  onClose: () => void
+  onSave: (draft: AnyRecord) => unknown
+  en: boolean
+}
+type SetField = (key: string, value: unknown) => void
 
 // Dialogs opened from the committee record page (CommitteeRecordPage.jsx).
-export function CommitteeDetailsDialog({ record, busy, onClose, onSave, en }) {
-  const [v, setV] = useState({
+export function CommitteeDetailsDialog({ record, busy, onClose, onSave, en }: DialogProps & { record: AnyRecord }) {
+  const [v, setV] = useState<AnyRecord>({
     name: record.name || '',
     shortName: record.shortName || '',
     status: record.status || 'active',
@@ -28,7 +39,7 @@ export function CommitteeDetailsDialog({ record, busy, onClose, onSave, en }) {
     quorumRule: record.quorumRule || 'simple_majority',
     notes: record.notes || '',
   })
-  const set = (k, x) => setV(s => ({ ...s, [k]: x }))
+  const set: SetField = (k, x) => setV(s => ({ ...s, [k]: x }))
   const datesValid = !v.termStart || !v.termEnd || new Date(v.termEnd) >= new Date(v.termStart)
   return (
     <ObserverDialog
@@ -108,7 +119,7 @@ export function CommitteeDetailsDialog({ record, busy, onClose, onSave, en }) {
         </label>
         <label className="entry-span-2">
           <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
-          <textarea rows="3" value={v.notes} onChange={e => set('notes', e.target.value)} />
+          <textarea rows={3} value={v.notes} onChange={e => set('notes', e.target.value)} />
         </label>
       </div>
       {!datesValid && (
@@ -128,11 +139,10 @@ export function ReasonDialog({
   description,
   label,
   confirmLabel,
-  danger = false,
   onClose,
   onSave,
   en,
-}) {
+}: Omit<DialogProps, 'onSave'> & { title: string, description: string, label: ReactNode, confirmLabel: ReactNode, onSave: (reason: string) => unknown, danger?: boolean }) {
   const [reason, setReason] = useState('')
   return (
     <ObserverDialog
@@ -147,7 +157,6 @@ export function ReasonDialog({
           disabled={busy || !reason.trim()}
           onSave={() => onSave(reason.trim())}
           saveLabel={busy ? (en ? 'Saving…' : 'Αποθήκευση…') : confirmLabel}
-          danger={danger}
         />
       }
     >
@@ -155,7 +164,7 @@ export function ReasonDialog({
         <span>{label} *</span>
         <textarea
           autoFocus
-          rows="4"
+          rows={4}
           value={reason}
           onChange={e => setReason(e.target.value)}
           placeholder={en ? 'Enter a clear reason…' : 'Συμπληρώστε σαφή αιτιολογία…'}
@@ -165,8 +174,8 @@ export function ReasonDialog({
   )
 }
 
-export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamName = '' }) {
-  const seed = initial
+export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamName = '' }: DialogProps & { staff: AnyRecord[], initial?: AnyRecord, teamName?: string }) {
+  const seed: AnyRecord = initial
     ? {
         ...initial,
         memberName: initial.name || '',
@@ -190,13 +199,13 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamNa
         inControlTeam: false,
         approvalRequired: false,
       }
-  const [v, setV] = useState(seed)
-  const set = (k, x) => setV(s => ({ ...s, [k]: x }))
-  const normalize = x =>
+  const [v, setV] = useState<AnyRecord>(seed)
+  const set: SetField = (k, x) => setV(s => ({ ...s, [k]: x }))
+  const normalize = (x: unknown) =>
     String(x || '')
       .trim()
       .toLocaleLowerCase(en ? 'en' : 'el-GR')
-  const writePerson = x =>
+  const writePerson = (x: string) =>
     setV(s => {
       const person = staff.find(item => normalize(item.name) === normalize(x))
       return {
@@ -211,7 +220,7 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamNa
   const hasPerson = Boolean(v.memberName?.trim())
   const presetRole = COMMITTEE_ROLE_OPTIONS.some(([value]) => value === v.committeeTitle)
   const roleValue = presetRole ? v.committeeTitle : '__other'
-  const selectRole = value => {
+  const selectRole = (value: string) => {
     if (value === '__other') {
       if (presetRole) set('committeeTitle', '')
       return
@@ -306,7 +315,7 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamNa
           search={false}
           label={en ? 'Roles in the committee' : 'Ρόλοι στην επιτροπή'}
           options={BADGE_ROLES.map(role => ({ value: role, label: memberRoleLabel(role, en) }))}
-          selected={(v.roles || []).filter(role => role !== 'member')}
+          selected={(v.roles || []).filter((role: string) => role !== 'member')}
           onChange={next =>
             setV(s => ({ ...s, roles: normalizeMemberRoles(BADGE_ROLES.filter(role => next.includes(role))) }))
           }
@@ -319,7 +328,7 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamNa
         <label className="entry-span-2">
           <span>{en ? 'Responsibilities' : 'Αρμοδιότητες'}</span>
           <textarea
-            rows="4"
+            rows={4}
             value={v.responsibilities}
             onChange={e => set('responsibilities', e.target.value)}
           />
@@ -354,8 +363,8 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamNa
 
 // The date first; the title, when left empty, is made from the type and the month («Τακτική συνεδρίαση Νοεμβρίου 2026»).
 // A committee with a working team (ΟΕΕ) also chooses who meets.
-export function NewMeetingDialog({ busy, onClose, onSave, en, teamName = '', hasTeam = false }) {
-  const [v, setV] = useState({
+export function NewMeetingDialog({ busy, onClose, onSave, en, teamName = '', hasTeam = false }: DialogProps & { teamName?: string, hasTeam?: boolean }) {
+  const [v, setV] = useState<AnyRecord>({
     title: '',
     meetingType: 'regular',
     composition: 'plenary',
@@ -364,7 +373,7 @@ export function NewMeetingDialog({ busy, onClose, onSave, en, teamName = '', has
     location: '',
     topics: [createTopic()],
   })
-  const set = (k, x) => setV(s => ({ ...s, [k]: x }))
+  const set: SetField = (k, x) => setV(s => ({ ...s, [k]: x }))
   const autoTitle = () => {
     if (!v.date) return ''
     const month = new Date(`${v.date}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric' })
@@ -435,11 +444,11 @@ export function NewMeetingDialog({ busy, onClose, onSave, en, teamName = '', has
   )
 }
 
-const GENITIVE_MONTHS = { ιανουάριος: 'Ιανουαρίου', φεβρουάριος: 'Φεβρουαρίου', μάρτιος: 'Μαρτίου', απρίλιος: 'Απριλίου', μάιος: 'Μαΐου', ιούνιος: 'Ιουνίου', ιούλιος: 'Ιουλίου', αύγουστος: 'Αυγούστου', σεπτέμβριος: 'Σεπτεμβρίου', οκτώβριος: 'Οκτωβρίου', νοέμβριος: 'Νοεμβρίου', δεκέμβριος: 'Δεκεμβρίου' }
+const GENITIVE_MONTHS: Record<string, string> = { ιανουάριος: 'Ιανουαρίου', φεβρουάριος: 'Φεβρουαρίου', μάρτιος: 'Μαρτίου', απρίλιος: 'Απριλίου', μάιος: 'Μαΐου', ιούνιος: 'Ιουνίου', ιούλιος: 'Ιουλίου', αύγουστος: 'Αυγούστου', σεπτέμβριος: 'Σεπτεμβρίου', οκτώβριος: 'Οκτωβρίου', νοέμβριος: 'Νοεμβρίου', δεκέμβριος: 'Δεκεμβρίου' }
 
-export function DecisionDialog({ initial, meetings, members = [], busy, onClose, onSave, en }) {
+export function DecisionDialog({ initial, meetings, members = [], busy, onClose, onSave, en }: DialogProps & { initial?: AnyRecord, meetings: AnyRecord[], members?: AnyRecord[] }) {
   const matchedMember = initial?.ownerId ? members.find(m => m.userId === initial.ownerId) : null
-  const [v, setV] = useState(() => ({
+  const [v, setV] = useState<AnyRecord>(() => ({
     title: '',
     action: '',
     owner: '',
@@ -453,8 +462,8 @@ export function DecisionDialog({ initial, meetings, members = [], busy, onClose,
     matchedMember ? 'member' : initial?.owner ? 'manual' : 'member',
   )
   const [ownerMemberId, setOwnerMemberId] = useState(matchedMember?.id || '')
-  const set = (k, x) => setV(s => ({ ...s, [k]: x }))
-  function chooseOwnerMember(memberId) {
+  const set: SetField = (k, x) => setV(s => ({ ...s, [k]: x }))
+  function chooseOwnerMember(memberId: string) {
     setOwnerMemberId(memberId)
     const member = members.find(m => m.id === memberId)
     setV(s => ({ ...s, ownerId: member?.userId || null, owner: member?.name || '' }))
@@ -487,7 +496,7 @@ export function DecisionDialog({ initial, meetings, members = [], busy, onClose,
         </label>
         <label className="entry-span-2">
           <span>{en ? 'Action' : 'Ενέργεια'}</span>
-          <textarea rows="3" value={v.action || ''} onChange={e => set('action', e.target.value)} />
+          <textarea rows={3} value={v.action || ''} onChange={e => set('action', e.target.value)} />
         </label>
         <label>
           <span>{en ? 'Owner' : 'Υπεύθυνος'}</span>
@@ -561,9 +570,9 @@ export function DecisionDialog({ initial, meetings, members = [], busy, onClose,
   )
 }
 
-export function PlanDialog({ initial, busy, onClose, onSave, en }) {
+export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps & { initial?: AnyRecord }) {
   const { tenant } = useTenant()
-  const [v, setV] = useState(
+  const [v, setV] = useState<AnyRecord>(
     initial
       ? { ...initial, status: initial.status || 'open' }
       : {
@@ -576,8 +585,8 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }) {
           status: 'open',
         },
   )
-  const [indicatorOptions, setIndicatorOptions] = useState([])
-  const set = (k, x) => setV(s => ({ ...s, [k]: x }))
+  const [indicatorOptions, setIndicatorOptions] = useState<AnyRecord[]>([])
+  const set: SetField = (k, x) => setV(s => ({ ...s, [k]: x }))
   useEffect(() => {
     let active = true
     if (!tenant?.id) {
@@ -601,7 +610,7 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }) {
     indicatorOptions.find(x =>
       [x.titleEl, x.titleEn, x.key].filter(Boolean).includes(v.indicator),
     ) || null
-  const selectIndicator = id => {
+  const selectIndicator = (id: string) => {
     const item = indicatorOptions.find(x => x.id === id)
     set('indicator', item ? (en ? item.titleEn || item.titleEl : item.titleEl) : '')
   }
@@ -683,13 +692,13 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }) {
   )
 }
 
-export function FrameworkDialog({ record, busy, onClose, onSave, en }) {
-  const [v, setV] = useState({
+export function FrameworkDialog({ record, busy, onClose, onSave, en }: DialogProps & { record: AnyRecord }) {
+  const [v, setV] = useState<AnyRecord>({
     legalBasis: record.legalBasis || '',
     committeeRole: record.committeeRole || '',
     decisionNumber: record.decisionNumber || '',
   })
-  const set = (k, x) => setV(s => ({ ...s, [k]: x }))
+  const set: SetField = (k, x) => setV(s => ({ ...s, [k]: x }))
   return (
     <ObserverDialog
       width="wide"
@@ -705,7 +714,7 @@ export function FrameworkDialog({ record, busy, onClose, onSave, en }) {
         <label className="entry-span-2">
           <span>{en ? 'Committee role' : 'Ρόλος επιτροπής'}</span>
           <textarea
-            rows="4"
+            rows={4}
             value={v.committeeRole}
             onChange={e => set('committeeRole', e.target.value)}
           />
@@ -713,7 +722,7 @@ export function FrameworkDialog({ record, busy, onClose, onSave, en }) {
         <label className="entry-span-2">
           <span>{en ? 'Legal basis' : 'Νομική / θεσμική βάση'}</span>
           <textarea
-            rows="4"
+            rows={4}
             value={v.legalBasis}
             onChange={e => set('legalBasis', e.target.value)}
           />
