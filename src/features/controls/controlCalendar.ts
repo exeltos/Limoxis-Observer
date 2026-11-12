@@ -7,7 +7,6 @@ import { calculateNextDue } from './controlScheduling'
 import { expectedOccurrences } from './controlAdherence'
 import { executionMarks } from './controlDueRules'
 import type { AnyRecord } from '../../types/featureTypes'
-import type { ControlRow } from './controlTypes'
 
 // A month of a calendar row (counted, or dated events) and a row of the calendar.
 export type CalendarCell = AnyRecord
@@ -91,7 +90,7 @@ export function assignmentCalendar({ frequency = {}, history = [], startedAt = n
 // Rows of the calendar for the visible controls (same input as the adherence view).
 // monthsByAssignment: Map(assignment id → twelve month counts) from the
 // database; null counts each assignment's loaded history (the demo).
-export function programmeCalendar(rows: ControlRow[] | null | undefined, year: number, now = new Date(), monthsByAssignment: Map<string, AnyRecord[]> | null = null) {
+export function programmeCalendar(rows: { item: AnyRecord, departments: string[] }[] | null | undefined, year: number, now = new Date(), monthsByAssignment: Map<string, AnyRecord[]> | null = null) {
   const lines: CalendarLine[] = []
   for (const { item, departments } of rows || []) {
     for (const department of departments) {
