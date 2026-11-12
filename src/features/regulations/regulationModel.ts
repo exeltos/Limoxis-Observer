@@ -4,6 +4,14 @@
 // title, html }] }] }; `origin` names the template section a section came from,
 // so a new template version can be compared section by section.
 
+import type { AnyRecord } from '../../types/featureTypes'
+
+export interface RegulationSection { id: string, origin?: string | null, title: string, html: string, [key: string]: unknown }
+export interface RegulationChapter { id: string, title: string, sections: RegulationSection[], [key: string]: unknown }
+export interface RegulationContent { chapters: RegulationChapter[], [key: string]: unknown }
+// Content as it arrives (database JSON, a template, a draft being edited).
+type ContentLike = AnyRecord | null | undefined
+
 export const REGULATION_CATEGORIES = [
   { value: 'infection', label: ['Πρόληψη λοιμώξεων', 'Infection prevention'] },
   { value: 'waste', label: ['Διαχείριση αποβλήτων', 'Waste management'] },
@@ -11,7 +19,7 @@ export const REGULATION_CATEGORIES = [
   { value: 'food', label: ['Υγιεινή τροφίμων', 'Food hygiene'] },
   { value: 'other', label: ['Άλλο', 'Other'] },
 ]
-export const categoryLabel = (value, language) => (REGULATION_CATEGORIES.find(item => item.value === value) || REGULATION_CATEGORIES.at(-1)).label[language === 'en' ? 1 : 0]
+export const categoryLabel = (value: unknown, language?: string) => (REGULATION_CATEGORIES.find(item => item.value === value) || (REGULATION_CATEGORIES.at(-1) as (typeof REGULATION_CATEGORIES)[number])).label[language === 'en' ? 1 : 0]
 
 export const REGULATION_STATUSES = [
   { value: 'draft', label: ['Σε σύνταξη', 'Being written'], tone: 'neutral' },
@@ -19,25 +27,25 @@ export const REGULATION_STATUSES = [
   { value: 'revision', label: ['Σε ισχύ · αναθεώρηση', 'In force · revising'], tone: 'info' },
   { value: 'archived', label: ['Αρχειοθετημένος', 'Archived'], tone: 'neutral' },
 ]
-export const statusLabel = (value, language) => REGULATION_STATUSES.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || ''
-export const statusTone = value => REGULATION_STATUSES.find(item => item.value === value)?.tone || 'neutral'
+export const statusLabel = (value: unknown, language?: string) => REGULATION_STATUSES.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || ''
+export const statusTone = (value: unknown) => REGULATION_STATUSES.find(item => item.value === value)?.tone || 'neutral'
 
 // Where a regulation stands: never approved, in force, in force with a revision being written, or archived.
-export function regulationStatus(regulation) {
+export function regulationStatus(regulation: AnyRecord | null | undefined) {
   if (regulation?.archived) return 'archived'
   if (!regulation?.edition) return 'draft'
   return regulation.hasDraft ? 'revision' : 'approved'
 }
 
-export const newId = prefix => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
-const escapeText = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
+export const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+const escapeText = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[char])
 
-export const emptyContent = () => ({ chapters: [] })
-export const chaptersOf = content => (Array.isArray(content?.chapters) ? content.chapters : [])
+export const emptyContent = (): RegulationContent => ({ chapters: [] })
+export const chaptersOf = (content: ContentLike): RegulationChapter[] => (Array.isArray(content?.chapters) ? content.chapters : [])
 
 // A hospital's own copy of a template: {hospital} becomes its name, and every
 // section keeps the template section it came from.
-export function contentFromTemplate(template, { hospital = '' } = {}) {
+export function contentFromTemplate(template: AnyRecord | null | undefined, { hospital = '' }: { hospital?: string | null } = {}): RegulationContent {
   const name = escapeText(hospital || 'το νοσοκομείο')
   return {
     chapters: chaptersOf(template?.content).map(chapter => ({
@@ -48,15 +56,15 @@ export function contentFromTemplate(template, { hospital = '' } = {}) {
 }
 
 // REG-01, REG-02… within the hospital.
-export function nextRegulationCode(codes = []) {
+export function nextRegulationCode(codes: unknown[] = []) {
   const numbers = codes.map(code => Number(String(code || '').match(/^REG-(\d+)$/)?.[1] || 0))
   return `REG-${String(Math.max(0, ...numbers) + 1).padStart(2, '0')}`
 }
 
 // The text of formatted content, for search and counting.
-export const plainText = html => String(html || '').replace(/<(br|\/p|\/li|\/h\d|\/tr)\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim()
+export const plainText = (html: unknown) => String(html || '').replace(/<(br|\/p|\/li|\/h\d|\/tr)\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim()
 
-export function contentStats(content) {
+export function contentStats(content: ContentLike) {
   const chapters = chaptersOf(content)
   const sections = chapters.flatMap(chapter => chapter.sections || [])
   const words = sections.reduce((sum, section) => sum + plainText(section.html).split(' ').filter(Boolean).length, 0)
@@ -64,11 +72,11 @@ export function contentStats(content) {
 }
 
 // Sections whose title or text holds every word of the query, with a short excerpt around the first.
-export function searchContent(content, query) {
+export function searchContent(content: ContentLike, query: unknown) {
   const words = String(query || '').toLocaleLowerCase('el').normalize('NFD').replace(/\p{M}/gu, '').split(/\s+/).filter(word => word.length > 1)
   if (!words.length) return []
-  const fold = text => text.toLocaleLowerCase('el').normalize('NFD').replace(/\p{M}/gu, '')
-  const hits = []
+  const fold = (text: string) => text.toLocaleLowerCase('el').normalize('NFD').replace(/\p{M}/gu, '')
+  const hits: AnyRecord[] = []
   chaptersOf(content).forEach((chapter, chapterIndex) => (chapter.sections || []).forEach((section, sectionIndex) => {
     const text = plainText(section.html)
     const haystack = fold(`${section.title} ${text}`)
@@ -80,27 +88,28 @@ export function searchContent(content, query) {
   return hits
 }
 
-const sectionsByOrigin = content => {
-  const map = new Map()
-  chaptersOf(content).forEach(chapter => (chapter.sections || []).forEach(section => map.set(section.origin || section.id, { ...section, chapterId: chapter.id, chapterTitle: chapter.title })))
+type OriginSection = RegulationSection & { chapterId: string, chapterTitle: string }
+const sectionsByOrigin = (content: ContentLike) => {
+  const map = new Map<string, OriginSection>()
+  chaptersOf(content).forEach(chapter => (chapter.sections || []).forEach(section => map.set((section.origin || section.id) as string, { ...section, chapterId: chapter.id, chapterTitle: chapter.title })))
   return map
 }
-const sameText = (a, b) => plainText(a) === plainText(b)
+const sameText = (a: unknown, b: unknown) => plainText(a) === plainText(b)
 
 // What a new template version changed since the version the regulation follows:
 // new sections, sections whose text changed and sections the template removed,
 // each with the hospital's own section beside it. Without the earlier version
 // the template is compared with the regulation itself.
-export function templateChanges({ base, latest, current }) {
+export function templateChanges({ base, latest, current }: { base?: ContentLike, latest: ContentLike, current: ContentLike }) {
   const before = base ? sectionsByOrigin(base) : null
   const after = sectionsByOrigin(latest)
   const own = sectionsByOrigin(current)
-  const changes = []
+  const changes: AnyRecord[] = []
   for (const [origin, section] of after) {
     const old = before?.get(origin)
     const mine = own.get(origin)
     if (before ? !old : !mine) changes.push({ origin, kind: 'new', title: section.title, chapterId: section.chapterId, chapterTitle: section.chapterTitle, templateHtml: section.html, currentHtml: mine?.html || '' })
-    else if (before ? !sameText(old.html, section.html) || old.title !== section.title : !sameText(mine.html, section.html)) changes.push({ origin, kind: 'changed', title: section.title, chapterId: section.chapterId, chapterTitle: section.chapterTitle, templateHtml: section.html, previousHtml: old?.html || '', currentHtml: mine?.html || '' })
+    else if (before ? !sameText(old?.html, section.html) || old?.title !== section.title : !sameText(mine?.html, section.html)) changes.push({ origin, kind: 'changed', title: section.title, chapterId: section.chapterId, chapterTitle: section.chapterTitle, templateHtml: section.html, previousHtml: old?.html || '', currentHtml: mine?.html || '' })
   }
   if (before) for (const [origin, section] of before) if (!after.has(origin)) changes.push({ origin, kind: 'removed', title: section.title, chapterId: section.chapterId, chapterTitle: section.chapterTitle, templateHtml: '', previousHtml: section.html, currentHtml: own.get(origin)?.html || '' })
   return changes
@@ -108,7 +117,7 @@ export function templateChanges({ base, latest, current }) {
 
 // Takes one template section into a draft: replaces the hospital's section that
 // came from it, or adds it to its chapter (making the chapter if needed).
-export function takeTemplateSection(draft, latest, origin, { hospital = '' } = {}) {
+export function takeTemplateSection(draft: AnyRecord, latest: ContentLike, origin: string, { hospital = '' }: { hospital?: string | null } = {}) {
   const source = sectionsByOrigin(contentFromTemplate({ content: latest }, { hospital })).get(origin)
   if (!source) return draft
   const chapters = structuredClone(chaptersOf(draft))
@@ -116,7 +125,7 @@ export function takeTemplateSection(draft, latest, origin, { hospital = '' } = {
     const index = chapter.sections.findIndex(section => (section.origin || section.id) === origin)
     if (index >= 0) { chapter.sections[index] = { ...chapter.sections[index], title: source.title, html: source.html }; return { ...draft, chapters } }
   }
-  let target = chapters.find(chapter => chapter.id === source.chapterId)
+  let target: RegulationChapter | undefined = chapters.find(chapter => chapter.id === source.chapterId)
   if (!target) {
     const templateOrder = chaptersOf(latest).map(chapter => chapter.id)
     target = { id: source.chapterId, title: source.chapterTitle, sections: [] }
@@ -129,8 +138,8 @@ export function takeTemplateSection(draft, latest, origin, { hospital = '' } = {
 }
 
 // What a regulation needs before it can be approved.
-export function regulationProblems(regulation, content, language = 'el') {
-  const en = language === 'en', problems = []
+export function regulationProblems(regulation: AnyRecord | null | undefined, content: ContentLike, language = 'el') {
+  const en = language === 'en', problems: string[] = []
   if (!String(regulation?.title || '').trim()) problems.push(en ? 'A title' : 'Τίτλος')
   const chapters = chaptersOf(content)
   if (!chapters.some(chapter => chapter.sections?.length)) problems.push(en ? 'At least one section' : 'Τουλάχιστον μία ενότητα')
@@ -142,12 +151,12 @@ export function regulationProblems(regulation, content, language = 'el') {
 
 // The regulation of the earlier tool: chapters of sections of paragraphs and
 // list items, made into formatted text (consecutive items form one list).
-export function contentFromBlocks(chapters = []) {
+export function contentFromBlocks(chapters: AnyRecord[] = []): RegulationContent {
   return {
     chapters: chapters.map((chapter, chapterIndex) => ({
       id: `ch-${chapterIndex + 1}`, title: String(chapter.title || '').trim(),
-      sections: (chapter.sections || []).map((section, sectionIndex) => {
-        let html = '', list = []
+      sections: (chapter.sections || []).map((section: AnyRecord, sectionIndex: number) => {
+        let html = '', list: string[] = []
         const flush = () => { if (list.length) { html += `<ul>${list.map(item => `<li>${escapeText(item)}</li>`).join('')}</ul>`; list = [] } }
         for (const block of section.blocks || []) {
           const text = String(block.text || '').trim()
@@ -166,8 +175,9 @@ export function contentFromBlocks(chapters = []) {
 
 // Every «Fill in» note of a draft, in reading order: what it asks, where it is.
 const FILL = /<p class="reg-fill">([\s\S]*?)<\/p>/g
-export function fillItems(content) {
-  const items = []
+export interface FillItem { key: string, sectionId: string, nth: number, chapterIndex: number, sectionIndex: number, chapter: string, section: string, prompt: string }
+export function fillItems(content: ContentLike) {
+  const items: FillItem[] = []
   chaptersOf(content).forEach((chapter, chapterIndex) => (chapter.sections || []).forEach((section, sectionIndex) => {
     let nth = 0
     for (const match of String(section.html || '').matchAll(FILL)) {
@@ -180,7 +190,7 @@ export function fillItems(content) {
 
 // Plain text as regulation text: blank lines part paragraphs, lines starting
 // with «-» or «•» make a list.
-export function textToHtml(text) {
+export function textToHtml(text: unknown) {
   return String(text || '').trim().split(/\n\s*\n/).map(part => {
     const lines = part.split('\n').map(line => line.trim()).filter(Boolean)
     if (lines.length && lines.every(line => /^[-•*]\s*/.test(line))) return `<ul>${lines.map(line => `<li>${escapeText(line.replace(/^[-•*]\s*/, ''))}</li>`).join('')}</ul>`
@@ -189,7 +199,7 @@ export function textToHtml(text) {
 }
 
 // Puts the hospital's text in place of one «Fill in» note.
-export function applyFill(content, item, text) {
+export function applyFill(content: RegulationContent, item: { sectionId: string, nth: number }, text: unknown): RegulationContent {
   const html = textToHtml(text)
   if (!html) return content
   return {
@@ -212,15 +222,15 @@ export const SIGNING_ROLES = [
   { value: 'administrator', label: ['Διαχειριστής Νοσοκομείου', 'Hospital administrator'], appRole: 'hospital_admin' },
   { value: 'infection_lead', label: ['Υπεύθυνος Ελέγχου Λοιμώξεων', 'Infection control lead'], appRole: 'infection_control_lead' },
 ]
-export const signingRoleLabel = (value, language) => SIGNING_ROLES.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || ''
+export const signingRoleLabel = (value: unknown, language?: string) => SIGNING_ROLES.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || ''
 
 // The latest signature of each role given for this revision of the draft.
-export function validSignatures(signatures = [], revision) {
+export function validSignatures(signatures: AnyRecord[] = [], revision?: number | null) {
   return SIGNING_ROLES.map(role => [...signatures].filter(item => item.role === role.value && (revision == null || item.revision === revision)).sort((a, b) => String(b.signedAt).localeCompare(String(a.signedAt)))[0]).filter(Boolean)
 }
 
 // Signatures given for an earlier text: the role needs to sign again.
-export function staleSignatures(signatures = [], revision) {
+export function staleSignatures(signatures: AnyRecord[] = [], revision?: number | null) {
   const valid = new Set(validSignatures(signatures, revision).map(item => item.role))
   return SIGNING_ROLES.map(role => role.value).filter(role => !valid.has(role) && signatures.some(item => item.role === role))
 }

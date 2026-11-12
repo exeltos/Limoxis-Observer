@@ -4,17 +4,18 @@
 // keep only http(s) and mailto addresses.
 
 const ALLOWED = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'h3', 'h4', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'blockquote', 'hr', 'sub', 'sup'])
-const RENAME = { b: 'strong', i: 'em', h1: 'h3', h2: 'h3', h5: 'h4', h6: 'h4', div: 'p' }
+const RENAME: Record<string, string> = { b: 'strong', i: 'em', h1: 'h3', h2: 'h3', h5: 'h4', h6: 'h4', div: 'p' }
 const DROP_WITH_CONTENT = new Set(['script', 'style', 'iframe', 'object', 'embed', 'noscript', 'template', 'head', 'title', 'meta', 'link', 'svg', 'math', 'img', 'video', 'audio', 'form', 'input', 'button', 'select', 'textarea'])
 const CLASSES = new Set(['reg-fill', 'reg-note'])
 
-function cleanNode(node, doc) {
-  if (node.nodeType === 3) return doc.createTextNode(node.nodeValue)
-  if (node.nodeType !== 1) return null
+function cleanNode(child: Node, doc: Document): Node | null {
+  if (child.nodeType === 3) return doc.createTextNode(child.nodeValue as string)
+  if (child.nodeType !== 1) return null
+  const node = child as Element
   const tag = node.tagName.toLowerCase()
   if (DROP_WITH_CONTENT.has(tag)) return null
   const name = RENAME[tag] || tag
-  const children = [...node.childNodes].map(child => cleanNode(child, doc)).filter(Boolean)
+  const children = [...node.childNodes].map(child => cleanNode(child, doc)).filter(Boolean) as Node[]
   if (!ALLOWED.has(name)) { const fragment = doc.createDocumentFragment(); children.forEach(child => fragment.append(child)); return fragment }
   const element = doc.createElement(name)
   if (name === 'a') {
@@ -27,20 +28,20 @@ function cleanNode(node, doc) {
   return element
 }
 
-export function sanitizeHtml(html) {
+export function sanitizeHtml(html: unknown) {
   if (typeof DOMParser === 'undefined') return String(html || '').replace(/<[^>]+>/g, '')
   const doc = new DOMParser().parseFromString(`<body>${String(html || '')}</body>`, 'text/html')
   const out = doc.createElement('div')
-  ;[...doc.body.childNodes].map(child => cleanNode(child, doc)).filter(Boolean).forEach(child => out.append(child))
+  ;([...doc.body.childNodes].map(child => cleanNode(child, doc)).filter(Boolean) as Node[]).forEach(child => out.append(child))
   // Loose text and inline runs at the top level go into paragraphs.
   const blocks = new Set(['P', 'H3', 'H4', 'UL', 'OL', 'TABLE', 'BLOCKQUOTE', 'HR'])
-  let paragraph = null
+  let paragraph: HTMLElement | null = null
   for (const child of [...out.childNodes]) {
-    if (child.nodeType === 1 && blocks.has(child.tagName)) { paragraph = null; continue }
-    if (child.nodeType === 3 && !child.nodeValue.trim() && !paragraph) { child.remove(); continue }
+    if (child.nodeType === 1 && blocks.has((child as Element).tagName)) { paragraph = null; continue }
+    if (child.nodeType === 3 && !child.nodeValue?.trim() && !paragraph) { child.remove(); continue }
     if (!paragraph) { paragraph = doc.createElement('p'); out.insertBefore(paragraph, child) }
     paragraph.append(child)
   }
-  for (const element of [...out.querySelectorAll('p,h3,h4,li')]) if (!element.textContent.trim() && !element.querySelector('br')) element.remove()
+  for (const element of [...out.querySelectorAll('p,h3,h4,li')]) if (!element.textContent?.trim() && !element.querySelector('br')) element.remove()
   return out.innerHTML
 }

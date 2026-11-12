@@ -17,7 +17,10 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { REGULATION_CATEGORIES, categoryLabel, regulationStatus, statusLabel, statusTone } from './regulationModel'
 import { createRegulation, loadRegulations, loadTemplate, loadTemplates } from './regulationService'
 import { useRegulationAccess } from './regulationAccess'
+import type { AnyRecord } from '../../types/featureTypes'
 import './regulations.css'
+
+interface ShelfState { loading: boolean, regulations: AnyRecord[], templates: AnyRecord[], error: unknown }
 
 // The hospital's regulations as a shelf of books: each with its cover, edition
 // and state; the template it follows says when a newer version is out. Those
@@ -33,26 +36,26 @@ export function RegulationsPage() {
   // Inside «Έγγραφα & Κανονισμοί» the legislation is a tab beside this one.
   const inSection = Boolean(useSectionTabs())
   const canSeeLegislation = isPlatformOwner || can(role, CAPABILITIES.VIEW_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
-  const [state, setState] = useState({ loading: true, regulations: [], templates: [], error: null })
-  const [creating, setCreating] = useState(null)
+  const [state, setState] = useState<ShelfState>({ loading: true, regulations: [], templates: [], error: null })
+  const [creating, setCreating] = useState<AnyRecord | null>(null)
 
   const reload = useCallback(async () => {
     try {
-      const [regulations, templates] = await Promise.all([loadRegulations(tenant?.id), loadTemplates({ withContent: false })])
+      const [regulations, templates] = await Promise.all([loadRegulations(tenant?.id as string), loadTemplates({ withContent: false })])
       setState({ loading: false, regulations, templates, error: null })
     } catch (error) { setState(current => ({ ...current, loading: false, error })) }
   }, [tenant?.id])
   useEffect(() => { void reload() }, [reload])
 
-  const templates = useMemo(() => new Map(state.templates.map(item => [item.key, item])), [state.templates])
+  const templates = useMemo(() => new Map<unknown, AnyRecord>(state.templates.map(item => [item.key, item])), [state.templates])
   const shelf = state.regulations.filter(item => !item.archived && (canManage || item.edition > 0))
   const archived = state.regulations.filter(item => item.archived)
 
   async function create() {
-    if (!String(creating.title || '').trim()) return
+    if (!creating || !String(creating.title || '').trim()) return
     try {
       const template = creating.templateKey ? await loadTemplate(creating.templateKey) : null
-      const id = await createRegulation(tenant?.id, { title: creating.title.trim(), category: creating.category, template, hospital: tenant?.name || '', codes: state.regulations.map(item => item.code) })
+      const id = await createRegulation(tenant?.id as string, { title: creating.title.trim(), category: creating.category, template, hospital: tenant?.name || '', codes: state.regulations.map(item => item.code) })
       setCreating(null)
       notify(en ? 'The regulation was created as a draft.' : 'Ο κανονισμός δημιουργήθηκε ως προσχέδιο.', 'success')
       navigate(`/regulations/${id}`, { state: { tab: 'edit' } })
@@ -62,7 +65,7 @@ export function RegulationsPage() {
   if (state.loading) return <RouteLoading />
   return <Page title={en ? 'Regulations' : 'Κανονισμοί'} subtitle={en ? 'The hospital’s regulations, read as books. Every edition approved and kept.' : 'Οι κανονισμοί του νοσοκομείου, σαν βιβλία. Κάθε έκδοση εγκρίνεται και φυλάσσεται.'}
     actions={<div className="row-actions">{canSeeLegislation && !inSection && <Button variant="secondary" onClick={() => navigate('/documents?tab=legislation')}><Scale size={15} />{en ? 'Legislation' : 'Νομοθεσία'}</Button>}{canManage && <Button onClick={() => setCreating({ templateKey: state.templates[0]?.key || '', title: state.templates[0]?.title || '', category: state.templates[0]?.category || 'infection' })}><Plus size={15} />{en ? 'Create' : 'Δημιουργία'}</Button>}</div>}>
-    {state.error && <div className="data-access-state error" role="alert"><span>{en ? 'Could not load the regulations.' : 'Δεν ήταν δυνατή η φόρτωση των κανονισμών.'}</span><Button variant="secondary" onClick={reload}>{en ? 'Retry' : 'Επανάληψη'}</Button></div>}
+    {Boolean(state.error) && <div className="data-access-state error" role="alert"><span>{en ? 'Could not load the regulations.' : 'Δεν ήταν δυνατή η φόρτωση των κανονισμών.'}</span><Button variant="secondary" onClick={reload}>{en ? 'Retry' : 'Επανάληψη'}</Button></div>}
     <section className="surface reg-library">
       {shelf.length ? <div className="reg-shelf">{shelf.map(item => {
         const status = regulationStatus(item)
@@ -101,7 +104,7 @@ export function RegulationsPage() {
       footer={<DialogActions onCancel={() => setCreating(null)} onSave={create} saveLabel={en ? 'Create the draft' : 'Δημιουργία προσχεδίου'} disabled={!String(creating.title || '').trim()} />}>
       <div className="reg-create">
         <div className="reg-create-templates" role="radiogroup" aria-label={en ? 'Template' : 'Πρότυπο'}>
-          {[...state.templates, { key: '', title: en ? 'Blank regulation' : 'Κενός κανονισμός', description: en ? 'Chapters and sections of your own.' : 'Δικά σας κεφάλαια και ενότητες.', category: 'other' }].map(item => <button type="button" key={item.key || 'blank'} role="radio" aria-checked={creating.templateKey === item.key} className={creating.templateKey === item.key ? 'active' : ''}
+          {[...state.templates, { key: '', title: en ? 'Blank regulation' : 'Κενός κανονισμός', description: en ? 'Chapters and sections of your own.' : 'Δικά σας κεφάλαια και ενότητες.', category: 'other' } as AnyRecord].map(item => <button type="button" key={item.key || 'blank'} role="radio" aria-checked={creating.templateKey === item.key} className={creating.templateKey === item.key ? 'active' : ''}
             onClick={() => setCreating(current => ({ ...current, templateKey: item.key, title: item.key ? item.title : '', category: item.category }))}>
             {item.key ? <BookOpen size={16} /> : <FilePlus2 size={16} />}
             <strong>{item.title}</strong>

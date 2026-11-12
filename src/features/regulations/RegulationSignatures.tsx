@@ -6,15 +6,18 @@ import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialo
 import { formatDay } from '../../core/i18n/formatDay'
 import { SIGNING_ROLES, staleSignatures, validSignatures } from './regulationModel'
 import { SignaturePad } from './SignaturePad'
+import type { AnyRecord } from '../../types/featureTypes'
+
+interface Signing { role: string, name: string, title: string, image: string | null }
 
 // The two signatures an edition needs: the hospital administrator's and the
 // infection control lead's. Each is given for the draft as it is saved; a
 // change to the text afterwards asks for it again.
-export function RegulationSignatures({ signatures = [], revision, signRoles = [], language = 'el', blocked = [], dirty = false, onSign, profileName = '' }) {
+export function RegulationSignatures({ signatures = [], revision, signRoles = [], language = 'el', blocked = [], dirty = false, onSign, profileName = '' }: { signatures?: AnyRecord[], revision?: number | null, signRoles?: string[], language?: string, blocked?: string[], dirty?: boolean, onSign: (signing: Signing | null) => Promise<unknown> | unknown, profileName?: string }) {
   const en = language === 'en'
   const valid = validSignatures(signatures, revision)
   const stale = staleSignatures(signatures, revision)
-  const [signing, setSigning] = useState(null)
+  const [signing, setSigning] = useState<Signing | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function submit() {
@@ -42,10 +45,10 @@ export function RegulationSignatures({ signatures = [], revision, signRoles = []
       footer={<DialogActions onCancel={() => setSigning(null)} onSave={submit} saveLabel={dirty ? (en ? 'Save and sign' : 'Αποθήκευση και υπογραφή') : (en ? 'Sign' : 'Υπογραφή')} disabled={busy || String(signing.name || '').trim().length < 2 || !signing.image} />}>
       <div className="reg-sign-form">
         <div className="reg-sign-fields">
-          <Field label={en ? 'Full name *' : 'Ονοματεπώνυμο *'}><input value={signing.name} onChange={event => setSigning(current => ({ ...current, name: event.target.value }))} /></Field>
-          <Field label={en ? 'Position' : 'Θέση / ιδιότητα'}><input value={signing.title} onChange={event => setSigning(current => ({ ...current, title: event.target.value }))} placeholder={en ? 'e.g. Director of Nursing' : 'π.χ. Διευθύντρια Νοσηλευτικής Υπηρεσίας'} /></Field>
+          <Field label={en ? 'Full name *' : 'Ονοματεπώνυμο *'}><input value={signing.name} onChange={event => setSigning(current => ({ ...(current as Signing), name: event.target.value }))} /></Field>
+          <Field label={en ? 'Position' : 'Θέση / ιδιότητα'}><input value={signing.title} onChange={event => setSigning(current => ({ ...(current as Signing), title: event.target.value }))} placeholder={en ? 'e.g. Director of Nursing' : 'π.χ. Διευθύντρια Νοσηλευτικής Υπηρεσίας'} /></Field>
         </div>
-        <SignaturePad language={language} onChange={image => setSigning(current => ({ ...current, image }))} />
+        <SignaturePad language={language} onChange={image => setSigning(current => ({ ...(current as Signing), image }))} />
         <p className="reg-sign-note">{dirty ? (en ? 'The draft has unsaved changes: it is saved first, and you sign the saved text.' : 'Το προσχέδιο έχει μη αποθηκευμένες αλλαγές: αποθηκεύεται πρώτα και υπογράφετε το αποθηκευμένο κείμενο.') : (en ? 'You sign the draft as it is saved now.' : 'Υπογράφετε το προσχέδιο όπως είναι αποθηκευμένο τώρα.')}</p>
       </div>
     </ObserverDialog>}

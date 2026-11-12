@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, Maximize2, Search, X } from 'lucide-react'
-import { chaptersOf, searchContent } from './regulationModel'
+import { chaptersOf, searchContent, type RegulationChapter } from './regulationModel'
 import { sanitizeHtml } from './regulationHtml'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // A regulation read as a book: a cover, the page of the controlled document,
 // the contents with page numbers, then the chapters laid out on real pages. The
@@ -13,11 +14,17 @@ import { sanitizeHtml } from './regulationHtml'
 // A printed page (560 × 792, shown scaled) on a computer or a tablet; on a
 // phone the page takes the screen's width and the text keeps a reading size.
 const BOOK = { pageW: 560, pageH: 792, padX: 52, top: 64, bottom: 58, phone: false }
+type Geometry = typeof BOOK
+// A measured block of a chapter (or a list item / table row) and where it sits.
+interface Block { node: Element, start: number, top: number, bottom: number }
+interface BookPage { chapterIndex: number, html: string }
+interface Layout { pages: BookPage[], sectionPage: Map<string, number> }
+interface Turn { dir: number, from: number, to: number, target: number }
 const TURN_MS = 720
-const PAGE_CACHE = new WeakMap()
+const PAGE_CACHE = new WeakMap<object, Map<string, Layout>>()
 
-const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
-const keyOf = (chapterIndex, sectionIndex) => `${chapterIndex}:${sectionIndex}`
+const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[char])
+const keyOf = (chapterIndex: number, sectionIndex: number) => `${chapterIndex}:${sectionIndex}`
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 // Splits the chapters into pages. Each chapter is laid out once in a column as
@@ -25,10 +32,10 @@ const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.
 // blocks are then packed into pages by those positions. Each chapter starts a
 // page; a heading never ends one; a list or a table that does not fit goes on
 // item by item; a single block taller than a page keeps its own.
-function paginate(measure, chapters, labels, geo) {
+function paginate(measure: HTMLElement, chapters: RegulationChapter[], labels: { chapter: string }, geo: Geometry): Layout {
   const BODY_H = geo.pageH - geo.top - geo.bottom - 2
-  const pages = []
-  const isHeading = node => /^H[1-4]$/.test(node.tagName) || node.classList?.contains('reg-chapter-kicker')
+  const pages: BookPage[] = []
+  const isHeading = (node: Element) => /^H[1-4]$/.test(node.tagName) || node.classList?.contains('reg-chapter-kicker')
   chapters.forEach((chapter, chapterIndex) => {
     measure.innerHTML = ''
     const kicker = document.createElement('div'); kicker.className = 'reg-chapter-kicker'; kicker.textContent = `${labels.chapter} ${chapterIndex + 1}`
@@ -42,23 +49,23 @@ function paginate(measure, chapters, labels, geo) {
     })
     // One layout: where every block (and every list item or table row) starts and ends.
     const origin = measure.getBoundingClientRect().top
-    const box = node => { const rect = node.getBoundingClientRect(); const style = getComputedStyle(node); return { start: rect.top - origin - (parseFloat(style.marginTop) || 0), top: rect.top - origin, bottom: rect.bottom - origin } }
+    const box = (node: Element) => { const rect = node.getBoundingClientRect(); const style = getComputedStyle(node); return { start: rect.top - origin - (parseFloat(style.marginTop) || 0), top: rect.top - origin, bottom: rect.bottom - origin } }
     const blocks = [...measure.children].map(node => ({ node, ...box(node) }))
 
-    let html = [], items = [], startY = null
+    let html: string[] = [], items: Block[] = [], startY: number | null = null
     const flush = () => { if (html.length) pages.push({ chapterIndex, html: html.join('') }); html = []; items = []; startY = null }
-    const put = (block, markup = block.node.outerHTML) => { if (startY === null) startY = block.start; html.push(markup); items.push(block) }
+    const put = (block: Block, markup = block.node.outerHTML) => { if (startY === null) startY = block.start; html.push(markup); items.push(block) }
     // A new page, taking along the headings the old one ended with.
     const newPage = () => {
-      const carried = []
-      while (items.length && isHeading(items.at(-1).node)) { carried.unshift(items.pop()); html.pop() }
+      const carried: Block[] = []
+      while (items.length && isHeading((items.at(-1) as Block).node)) { carried.unshift(items.pop() as Block); html.pop() }
       flush()
       carried.forEach(block => put(block))
     }
     // A list or table split item by item; each part keeps the list's spacing (and the table's head).
-    const split = (block, rows, shellOf) => {
+    const split = (block: Block, rows: Block[], shellOf: (offset: number, part: Block[]) => string) => {
       const lead = rows[0].top - block.start
-      let part = [], offset = 0
+      let part: Block[] = [], offset = 0
       const emit = () => { if (part.length) { html.push(shellOf(offset, part)); items.push(block); offset += part.length; part = [] } }
       for (const row of rows) {
         if (startY === null) startY = row.top - lead
@@ -75,7 +82,7 @@ function paginate(measure, chapters, labels, geo) {
       const { node } = block
       if (/^(UL|OL)$/.test(node.tagName) && node.children.length > 1) {
         const rows = [...node.children].map(child => ({ node: child, ...box(child) }))
-        split(block, rows, (offset, part) => { const shell = node.cloneNode(false); if (node.tagName === 'OL' && offset) shell.setAttribute('start', String(Number(node.getAttribute('start') || 1) + offset)); shell.innerHTML = part.map(row => row.node.outerHTML).join(''); return shell.outerHTML })
+        split(block, rows, (offset, part) => { const shell = node.cloneNode(false) as Element; if (node.tagName === 'OL' && offset) shell.setAttribute('start', String(Number(node.getAttribute('start') || 1) + offset)); shell.innerHTML = part.map(row => row.node.outerHTML).join(''); return shell.outerHTML })
         continue
       }
       if (node.tagName === 'TABLE' && node.querySelectorAll('tr').length > 2) {
@@ -83,7 +90,7 @@ function paginate(measure, chapters, labels, geo) {
         const headHeight = head ? head.getBoundingClientRect().height : 0
         const rows = [...node.querySelectorAll(':scope > tbody > tr, :scope > tr')].map(row => ({ node: row, ...box(row) }))
         rows.forEach(row => { row.top -= headHeight })
-        split(block, rows, (_offset, part) => { const shell = node.cloneNode(false); shell.innerHTML = `${head ? head.outerHTML : ''}<tbody>${part.map(row => row.node.outerHTML).join('')}</tbody>`; return shell.outerHTML })
+        split(block, rows, (_offset, part) => { const shell = node.cloneNode(false) as Element; shell.innerHTML = `${head ? head.outerHTML : ''}<tbody>${part.map(row => row.node.outerHTML).join('')}</tbody>`; return shell.outerHTML })
         continue
       }
       if (items.length && !items.every(item => isHeading(item.node))) newPage()
@@ -93,26 +100,26 @@ function paginate(measure, chapters, labels, geo) {
   })
   measure.innerHTML = ''
   // Where each section begins: the page that holds its heading.
-  const sectionPage = new Map()
+  const sectionPage = new Map<string, number>()
   pages.forEach((page, index) => { for (const match of page.html.matchAll(/data-sec="(\d+:\d+)"/g)) if (!sectionPage.has(match[1])) sectionPage.set(match[1], index) })
   return { pages, sectionPage }
 }
 
-export function RegulationBook({ content, meta, language = 'el', initialSection = null }) {
+export function RegulationBook({ content, meta, language = 'el', initialSection = null }: { content: AnyRecord | null | undefined, meta: AnyRecord, language?: string, initialSection?: { chapterIndex: number, sectionIndex: number } | null }) {
   const en = language === 'en'
   const labels = useMemo(() => ({ chapter: en ? 'CHAPTER' : 'ΚΕΦΑΛΑΙΟ' }), [en])
   const chapters = useMemo(() => chaptersOf(content), [content])
-  const measure = useRef(null)
-  const stage = useRef(null)
-  const root = useRef(null)
-  const [layout, setLayout] = useState({ pages: [], sectionPage: new Map() })
-  const [geo, setGeo] = useState(BOOK)
+  const measure = useRef<HTMLDivElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
+  const root = useRef<HTMLDivElement>(null)
+  const [layout, setLayout] = useState<Layout>({ pages: [], sectionPage: new Map() })
+  const [geo, setGeo] = useState<Geometry>(BOOK)
   const [narrow, setNarrow] = useState(false)
   const [scale, setScale] = useState(1)
   const [docked, setDocked] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [at, setAt] = useState(0)
-  const [turn, setTurn] = useState(null)
+  const [turn, setTurn] = useState<Turn | null>(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(() => new Set([0]))
   const [tocOpen, setTocOpen] = useState(false)
@@ -130,7 +137,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
       if (cached) { setLayout(cached); return }
       const result = paginate(measure.current, chapters, labels, geo)
       if (!PAGE_CACHE.has(chapters)) PAGE_CACHE.set(chapters, new Map())
-      PAGE_CACHE.get(chapters).set(key, result)
+      ;(PAGE_CACHE.get(chapters) as Map<string, Layout>).set(key, result)
       setLayout(result)
     }
     if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { PAGE_CACHE.get(chapters)?.delete(key); run() })
@@ -140,11 +147,11 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
 
   // Front matter: cover, document page, contents (as many pages as it needs).
   const tocPerPage = geo.phone ? Math.max(10, Math.floor((geo.pageH - geo.top - geo.bottom - 60) / 30)) : 26
-  const tocEntries = useMemo(() => chapters.flatMap((chapter, chapterIndex) => [{ level: 1, chapterIndex, title: chapter.title }, ...(chapter.sections || []).map((section, sectionIndex) => ({ level: 2, chapterIndex, sectionIndex, title: section.title }))]), [chapters])
+  const tocEntries = useMemo(() => chapters.flatMap((chapter, chapterIndex): TocEntry[] => [{ level: 1, chapterIndex, title: chapter.title }, ...(chapter.sections || []).map((section, sectionIndex) => ({ level: 2, chapterIndex, sectionIndex, title: section.title }))]), [chapters])
   const tocPages = Math.max(1, Math.ceil(tocEntries.length / tocPerPage))
   const front = 2 + tocPages
   const total = front + layout.pages.length
-  const pageOfSection = useCallback((chapterIndex, sectionIndex) => front + (layout.sectionPage.get(keyOf(chapterIndex, sectionIndex)) ?? layout.pages.findIndex(page => page.chapterIndex === chapterIndex)), [front, layout])
+  const pageOfSection = useCallback((chapterIndex: number, sectionIndex: number) => front + (layout.sectionPage.get(keyOf(chapterIndex, sectionIndex)) ?? layout.pages.findIndex(page => page.chapterIndex === chapterIndex)), [front, layout])
 
   // Fits the book to the space it has: two pages when there is room, one page
   // (scaled) on a tablet, a screen-wide page on a phone. The contents dock
@@ -180,12 +187,12 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
   }, [expanded])
 
   // In a spread the cover stands alone on the right; then pages go in pairs.
-  const spreadOf = page => (page <= 0 ? 0 : Math.ceil(page / 2) * 2 - 1)
-  const view = narrow ? { left: null, right: at } : (() => { const start = spreadOf(at); return start === 0 ? { left: -1, right: 0 } : { left: start, right: start + 1 } })()
+  const spreadOf = (page: number) => (page <= 0 ? 0 : Math.ceil(page / 2) * 2 - 1)
+  const view: { left: number | null, right: number } = narrow ? { left: null, right: at } : (() => { const start = spreadOf(at); return start === 0 ? { left: -1, right: 0 } : { left: start, right: start + 1 } })()
   const step = narrow ? 1 : 2
 
   // A click while a page is still turning finishes that turn at once and goes on from there.
-  const go = useCallback((target, animate = true) => {
+  const go = useCallback((target: number, animate = true) => {
     const clamp = Math.max(0, Math.min(total - 1, target))
     if (turn) { setTurn(null); setAt(clamp); return }
     const from = narrow ? at : spreadOf(at)
@@ -204,8 +211,9 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
   const previous = useCallback(() => go(narrow ? base - 1 : spreadOf(base) - (spreadOf(base) <= 1 ? 1 : 2)), [go, narrow, base])
 
   useEffect(() => {
-    const onKey = event => {
-      if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName as string) || target?.isContentEditable) return
       if (event.key === 'ArrowRight' || event.key === 'PageDown') { event.preventDefault(); next() }
       if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); previous() }
       if (event.key === 'Escape' && expanded) { event.preventDefault(); setExpanded(false) }
@@ -229,9 +237,9 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
   }, [initialSection, layout, pageOfSection])
 
   // A swipe turns the page on a touch screen.
-  const touch = useRef(null)
-  const onPointerDown = event => { touch.current = { x: event.clientX, y: event.clientY } }
-  const onPointerUp = event => {
+  const touch = useRef<{ x: number, y: number } | null>(null)
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => { touch.current = { x: event.clientX, y: event.clientY } }
+  const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
     const start = touch.current; touch.current = null
     if (!start) return
     const dx = event.clientX - start.x, dy = event.clientY - start.y
@@ -242,10 +250,10 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
   const activeChapter = current >= front ? layout.pages[current - front]?.chapterIndex : null
   const results = useMemo(() => searchContent(content, query), [content, query])
 
-  const pageNode = (index, side) => <Page key={`${side}-${index}`} index={index} side={side} front={front} total={total} meta={meta} en={en} tocEntries={tocEntries} tocPerPage={tocPerPage} pageOfSection={pageOfSection} layout={layout} chapters={chapters} onJump={page => go(page, false)} />
+  const pageNode = (index: number, side: string) => <Page key={`${side}-${index}`} index={index} side={side} front={front} total={total} meta={meta} en={en} tocEntries={tocEntries} tocPerPage={tocPerPage} pageOfSection={pageOfSection} layout={layout} chapters={chapters} onJump={page => go(page, false)} />
 
   // During a turn the pages underneath are those of the next view; the leaf carries the turning page.
-  let leftIndex = view.left, rightIndex = view.right, leaf = null
+  let leftIndex = view.left, rightIndex = view.right, leaf: { side: string, front: number, back: number | null } | null = null
   if (turn) {
     if (narrow) {
       if (turn.dir > 0) { rightIndex = turn.to; leaf = { side: 'single next', front: turn.from, back: null } }
@@ -258,9 +266,9 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
     }
   }
 
-  const label = narrow ? (current === 0 ? (en ? 'Cover' : 'Εξώφυλλο') : `${current + 1} / ${total}`) : (view.right === 0 ? (en ? 'Cover' : 'Εξώφυλλο') : `${view.left + 1}–${Math.min(total, view.right + 1)} / ${total}`)
+  const label = narrow ? (current === 0 ? (en ? 'Cover' : 'Εξώφυλλο') : `${current + 1} / ${total}`) : (view.right === 0 ? (en ? 'Cover' : 'Εξώφυλλο') : `${(view.left as number) + 1}–${Math.min(total, view.right + 1)} / ${total}`)
 
-  const reader = <div ref={root} className={`reg-reader ${docked ? 'is-docked' : 'is-drawer'} ${tocOpen ? 'toc-open' : ''} ${geo.phone ? 'is-phone' : ''} ${expanded ? 'is-expanded' : ''}`} role={expanded ? 'dialog' : undefined} aria-modal={expanded || undefined} aria-label={expanded ? meta.title : undefined} style={{ '--reg-pad-x': `${geo.padX}px`, '--reg-pad-top': `${geo.top}px`, '--reg-pad-bottom': `${geo.bottom}px` }}>
+  const reader = <div ref={root} className={`reg-reader ${docked ? 'is-docked' : 'is-drawer'} ${tocOpen ? 'toc-open' : ''} ${geo.phone ? 'is-phone' : ''} ${expanded ? 'is-expanded' : ''}`} role={expanded ? 'dialog' : undefined} aria-modal={expanded || undefined} aria-label={expanded ? meta.title : undefined} style={{ '--reg-pad-x': `${geo.padX}px`, '--reg-pad-top': `${geo.top}px`, '--reg-pad-bottom': `${geo.bottom}px` } as CSSProperties}>
     {!docked && tocOpen && <button type="button" className="reg-toc-backdrop" aria-label={en ? 'Close the contents' : 'Κλείσιμο περιεχομένων'} onClick={() => setTocOpen(false)} />}
     <aside className="reg-toc" aria-label={en ? 'Contents' : 'Περιεχόμενα'}>
       <div className="reg-toc-search"><Search size={15} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={en ? 'Search the regulation…' : 'Αναζήτηση στον κανονισμό…'} aria-label={en ? 'Search' : 'Αναζήτηση'} />{query && <button type="button" onClick={() => setQuery('')} aria-label={en ? 'Clear' : 'Καθαρισμός'}><X size={14} /></button>}</div>
@@ -272,7 +280,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
       </div> : <nav className="reg-toc-list">
         <button type="button" className={`reg-toc-cover ${current < front ? 'active' : ''}`} onClick={() => { go(0, false); setTocOpen(false) }}><BookOpen size={14} />{en ? 'Cover and contents' : 'Εξώφυλλο και περιεχόμενα'}</button>
         {chapters.map((chapter, chapterIndex) => <div key={chapter.id || chapterIndex} className={`reg-toc-chapter ${activeChapter === chapterIndex ? 'active' : ''}`}>
-          <button type="button" className="reg-toc-chapter-title" aria-expanded={open.has(chapterIndex)} onClick={() => { setOpen(set => { const copy = new Set(set); copy.has(chapterIndex) ? copy.delete(chapterIndex) : copy.add(chapterIndex); return copy }); go(pageOfSection(chapterIndex, 0), false) }}>
+          <button type="button" className="reg-toc-chapter-title" aria-expanded={open.has(chapterIndex)} onClick={() => { setOpen(set => { const copy = new Set(set); if (copy.has(chapterIndex)) copy.delete(chapterIndex); else copy.add(chapterIndex); return copy }); go(pageOfSection(chapterIndex, 0), false) }}>
             <span>{String(chapterIndex + 1).padStart(2, '0')}</span><strong>{chapter.title}</strong><ChevronDown size={14} />
           </button>
           {open.has(chapterIndex) && <div className="reg-toc-sections">{(chapter.sections || []).map((section, sectionIndex) => <button type="button" key={section.id || sectionIndex} onClick={() => { go(pageOfSection(chapterIndex, sectionIndex), false); setTocOpen(false) }}><span>{section.title}</span><em>{pageOfSection(chapterIndex, sectionIndex) + 1}</em></button>)}</div>}
@@ -294,9 +302,9 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
       <div className="reg-book-frame" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
         <div className="reg-book-sizer" style={{ width: (narrow ? geo.pageW : geo.pageW * 2) * scale, height: geo.pageH * scale }}>
         <div className={`reg-book ${narrow ? 'is-single' : ''} ${turn ? 'is-turning' : ''}`} style={{ width: (narrow ? geo.pageW : geo.pageW * 2), height: geo.pageH, zoom: scale === 1 ? undefined : scale }}>
-          {!narrow && <div className="reg-slot reg-slot-left" onClick={previous}>{leftIndex >= 0 ? pageNode(leftIndex, 'left') : <div className="reg-page reg-page-empty" />}</div>}
+          {!narrow && <div className="reg-slot reg-slot-left" onClick={previous}>{(leftIndex as number) >= 0 ? pageNode(leftIndex as number, 'left') : <div className="reg-page reg-page-empty" />}</div>}
           <div className="reg-slot reg-slot-right" onClick={next}>{pageNode(rightIndex, narrow ? 'single' : 'right')}</div>
-          {leaf && <div className={`reg-leaf ${leaf.side}`} style={{ animationDuration: `${TURN_MS}ms` }}>
+          {leaf && turn && <div className={`reg-leaf ${leaf.side}`} style={{ animationDuration: `${TURN_MS}ms` }}>
             <div className="reg-leaf-face reg-leaf-front">{pageNode(leaf.front, narrow ? 'single' : (turn.dir > 0 ? 'right' : 'left'))}<i className="reg-leaf-shade" /></div>
             <div className="reg-leaf-face reg-leaf-back">{leaf.back != null && leaf.back >= 0 ? pageNode(leaf.back, turn.dir > 0 ? 'left' : 'right') : <div className="reg-page reg-page-paper" />}<i className="reg-leaf-shade" /></div>
           </div>}
@@ -311,7 +319,9 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
   return expanded ? <>{createPortal(reader, document.body)}<div className="reg-reader-placeholder" /></> : reader
 }
 
-function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pageOfSection, layout, chapters, onJump }) {
+interface TocEntry { level: number, chapterIndex: number, sectionIndex?: number, title: string }
+interface PageProps { index: number, side: string, front: number, total: number, meta: AnyRecord, en: boolean, tocEntries: TocEntry[], tocPerPage: number, pageOfSection: (chapterIndex: number, sectionIndex: number) => number, layout: Layout, chapters: RegulationChapter[], onJump: (page: number) => void }
+function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pageOfSection, layout, chapters, onJump }: PageProps) {
   if (index === 0) return <article className={`reg-page reg-cover ${side}`}>
     <div className="reg-cover-rule" />
     <div className="reg-cover-brand">{en ? 'CONTROLLED DOCUMENT' : 'ΕΛΕΓΧΟΜΕΝΟ ΕΓΓΡΑΦΟ'}{meta.code ? ` · ${meta.code}` : ''}</div>
@@ -339,7 +349,7 @@ function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pag
         <tr><td>{en ? 'Status' : 'Κατάσταση'}</td><td>{meta.status}</td></tr>
         {meta.template && <tr><td>{en ? 'Based on' : 'Πρότυπο'}</td><td>{meta.template}</td></tr>}
       </tbody></table>
-      {meta.signatures?.length > 0 && <div className="reg-signatures">{meta.signatures.map(slot => <div key={slot.role} className={slot.name ? '' : 'is-empty'}>
+      {meta.signatures?.length > 0 && <div className="reg-signatures">{meta.signatures.map((slot: AnyRecord) => <div key={slot.role} className={slot.name ? '' : 'is-empty'}>
         <small>{slot.label}</small>
         <span className="reg-signature-ink">{slot.image ? <img src={slot.image} alt="" /> : slot.name ? <em>{en ? 'Signed electronically' : 'Υπογράφηκε ηλεκτρονικά'}</em> : null}</span>
         <strong>{slot.name || (en ? 'Not signed' : 'Δεν έχει υπογραφεί')}</strong>
@@ -357,7 +367,7 @@ function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pag
       <Running meta={meta} title={en ? 'Contents' : 'Περιεχόμενα'} />
       <div className="reg-page-body">
         {part === 0 && <h1>{en ? 'Contents' : 'Περιεχόμενα'}</h1>}
-        <ol>{entries.map(entry => { const page = entry.level === 1 ? pageOfSection(entry.chapterIndex, 0) : pageOfSection(entry.chapterIndex, entry.sectionIndex); return <li key={`${entry.chapterIndex}-${entry.sectionIndex ?? 'c'}`} className={entry.level === 1 ? 'is-chapter' : ''}><button type="button" onClick={event => { event.stopPropagation(); onJump(page) }}><span>{entry.title}</span><i /><em>{page + 1}</em></button></li> })}</ol>
+        <ol>{entries.map(entry => { const page = entry.level === 1 ? pageOfSection(entry.chapterIndex, 0) : pageOfSection(entry.chapterIndex, entry.sectionIndex as number); return <li key={`${entry.chapterIndex}-${entry.sectionIndex ?? 'c'}`} className={entry.level === 1 ? 'is-chapter' : ''}><button type="button" onClick={event => { event.stopPropagation(); onJump(page) }}><span>{entry.title}</span><i /><em>{page + 1}</em></button></li> })}</ol>
       </div>
       <div className="reg-page-no">{index + 1}</div>
     </article>
@@ -371,7 +381,7 @@ function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pag
   </article>
 }
 
-function Running({ meta, title }) {
+function Running({ meta, title }: { meta: AnyRecord, title?: string }) {
   return <div className="reg-running"><span>{title}</span><span>{[meta.organization, meta.edition ? `${meta.editionLabel} ${meta.edition}` : meta.status].filter(Boolean).join(' · ')}</span></div>
 }
 

@@ -22,6 +22,8 @@ import { useRegulationAccess } from './regulationAccess'
 import { downloadRegulationWord } from './regulationDocument'
 import { RegulationBook } from './RegulationBook'
 import { RegulationEditor } from './RegulationEditor'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { RegulationContent } from './regulationModel'
 import './regulations.css'
 
 // A platform template, kept by the platform owner. Publishing makes it the next
@@ -34,10 +36,10 @@ export function RegulationTemplatePage() {
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
   const { isPlatformOwner } = useRegulationAccess()
-  const [template, setTemplate] = useState(null)
+  const [template, setTemplate] = useState<AnyRecord | null | false>(null)
   const [dirty, setDirty] = useState(false)
   const [tab, setTab] = useState('edit')
-  const [publishing, setPublishing] = useState(null)
+  const [publishing, setPublishing] = useState<{ changeNote: string } | null>(null)
   const [saving, setSaving] = useState(false)
 
   const reload = useCallback(async () => {
@@ -49,12 +51,14 @@ export function RegulationTemplatePage() {
   if (template === null) return <RouteLoading />
   if (template === false) return <Page title={en ? 'Template' : 'Πρότυπο'}><div className="data-access-state error" role="alert"><span>{en ? 'The template was not found.' : 'Το πρότυπο δεν βρέθηκε.'}</span><Button variant="secondary" onClick={goBack}>{en ? 'Back' : 'Πίσω'}</Button></div></Page>
 
-  const set = changes => { setTemplate(current => ({ ...current, ...changes })); setDirty(true) }
-  async function publish() {
+  const set = (changes: AnyRecord) => { setTemplate(current => ({ ...(current as AnyRecord), ...changes })); setDirty(true) }
+  const loaded = template
+  const publish = async () => {
+    if (!publishing) return
     setSaving(true)
     try {
-      const content = { chapters: template.content.chapters.map(chapter => ({ ...chapter, sections: chapter.sections.map(section => ({ ...section, html: sanitizeHtml(section.html) })) })) }
-      const version = await publishTemplate({ ...template, content }, publishing.changeNote)
+      const content = { chapters: (loaded.content as RegulationContent).chapters.map(chapter => ({ ...chapter, sections: chapter.sections.map(section => ({ ...section, html: sanitizeHtml(section.html) })) })) }
+      const version = await publishTemplate({ ...loaded, content }, publishing.changeNote)
       setPublishing(null)
       notify(en ? `Version ${version} is published to every hospital.` : `Η έκδοση ${version} δημοσιεύτηκε σε όλα τα νοσοκομεία.`, 'success')
       await reload()

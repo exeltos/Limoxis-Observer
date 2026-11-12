@@ -5,9 +5,11 @@
 // owner keeps them current; a hospital sees each new version and decides what
 // to take into its own regulation.
 
-const section = (id, title, html) => ({ id, title, html: html.trim() })
-const chapter = (id, title, sections) => ({ id, title, sections })
-const fill = text => `<p class="reg-fill">Συμπληρώστε: ${text}</p>`
+import type { RegulationChapter, RegulationSection } from './regulationModel'
+
+const section = (id: string, title: string, html: string): RegulationSection => ({ id, title, html: html.trim() })
+const chapter = (id: string, title: string, sections: RegulationSection[]): RegulationChapter => ({ id, title, sections })
+const fill = (text: string) => `<p class="reg-fill">Συμπληρώστε: ${text}</p>`
 
 const INFECTION = [
   chapter('intro', 'Εισαγωγή', [

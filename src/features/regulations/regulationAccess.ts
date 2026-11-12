@@ -5,7 +5,7 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { SIGNING_ROLES } from './regulationModel'
 
-const EDITORS = [ROLES.HOSPITAL_ADMIN, ROLES.QUALITY_MANAGER, ROLES.INFECTION_CONTROL_LEAD]
+const EDITORS: (string | null | undefined)[] = [ROLES.HOSPITAL_ADMIN, ROLES.QUALITY_MANAGER, ROLES.INFECTION_CONTROL_LEAD]
 
 // Who writes and approves regulations (as the database allows it: Quality,
 // infection control, the administration, or whoever manages documents) and who

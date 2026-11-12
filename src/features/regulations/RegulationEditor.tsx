@@ -2,44 +2,46 @@ import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, FilePlus2, FolderPlus, Trash2 } from 'lucide-react'
 import { IconButton } from '../../design-system/IconButton'
 import { RichTextEditor } from './RichTextEditor'
-import { chaptersOf, newId, plainText } from './regulationModel'
+import { chaptersOf, newId, plainText, type RegulationChapter, type RegulationContent, type RegulationSection } from './regulationModel'
+
+export interface EditorSelection { chapter: number, section: number }
 
 // Writing a regulation: its chapters and sections on the left, in order, with
 // the formatted text of the chosen one on the right. Chapters and sections move
 // up and down; a section that came from a template keeps its origin, so later
 // template versions can still be compared with it.
 
-const move = (list, index, by) => { const copy = [...list]; const [item] = copy.splice(index, 1); copy.splice(Math.max(0, Math.min(copy.length, index + by)), 0, item); return copy }
+const move = <T,>(list: T[], index: number, by: number) => { const copy = [...list]; const [item] = copy.splice(index, 1); copy.splice(Math.max(0, Math.min(copy.length, index + by)), 0, item); return copy }
 
-export function RegulationEditor({ content, onChange, language = 'el', disabled = false, onConfirm, initialSelection = null }) {
+export function RegulationEditor({ content, onChange, language = 'el', disabled = false, onConfirm, initialSelection = null }: { content: RegulationContent, onChange: (content: RegulationContent) => void, language?: string, disabled?: boolean, onConfirm?: (options: { title: string, message: string }) => Promise<unknown>, initialSelection?: EditorSelection | null }) {
   const en = language === 'en'
   const chapters = chaptersOf(content)
-  const [selected, setSelected] = useState(initialSelection || { chapter: 0, section: 0 })
+  const [selected, setSelected] = useState<EditorSelection>(initialSelection || { chapter: 0, section: 0 })
   const chapter = chapters[selected.chapter]
   const section = selected.section >= 0 ? chapter?.sections?.[selected.section] : null
   const words = useMemo(() => (section ? plainText(section.html).split(' ').filter(Boolean).length : 0), [section])
 
-  const setChapters = next => onChange({ ...content, chapters: next })
-  const updateChapter = (index, changes) => setChapters(chapters.map((item, at) => (at === index ? { ...item, ...changes } : item)))
-  const updateSection = changes => updateChapter(selected.chapter, { sections: chapter.sections.map((item, at) => (at === selected.section ? { ...item, ...changes } : item)) })
+  const setChapters = (next: RegulationChapter[]) => onChange({ ...content, chapters: next })
+  const updateChapter = (index: number, changes: Partial<RegulationChapter>) => setChapters(chapters.map((item, at) => (at === index ? { ...item, ...changes } : item)))
+  const updateSection = (changes: Partial<RegulationSection>) => updateChapter(selected.chapter, { sections: chapter.sections.map((item, at) => (at === selected.section ? { ...item, ...changes } : item)) })
 
   const addChapter = () => {
     const next = [...chapters, { id: newId('ch'), title: en ? 'New chapter' : 'Νέο κεφάλαιο', sections: [{ id: newId('sec'), origin: null, title: en ? 'General' : 'Γενικά', html: '' }] }]
     setChapters(next)
     setSelected({ chapter: next.length - 1, section: -1 })
   }
-  const addSection = chapterIndex => {
+  const addSection = (chapterIndex: number) => {
     const target = chapters[chapterIndex]
     const sections = [...(target.sections || []), { id: newId('sec'), origin: null, title: en ? 'New section' : 'Νέα ενότητα', html: '' }]
     updateChapter(chapterIndex, { sections })
     setSelected({ chapter: chapterIndex, section: sections.length - 1 })
   }
-  const removeChapter = async index => {
+  const removeChapter = async (index: number) => {
     if (!(await onConfirm?.({ title: en ? 'Remove the chapter?' : 'Αφαίρεση κεφαλαίου;', message: en ? 'The chapter and all its sections leave this draft.' : 'Το κεφάλαιο και όλες οι ενότητές του φεύγουν από το προσχέδιο.' }))) return
     setChapters(chapters.filter((_, at) => at !== index))
     setSelected({ chapter: Math.max(0, index - 1), section: 0 })
   }
-  const removeSection = async (chapterIndex, index) => {
+  const removeSection = async (chapterIndex: number, index: number) => {
     if (!(await onConfirm?.({ title: en ? 'Remove the section?' : 'Αφαίρεση ενότητας;', message: en ? 'Its text leaves this draft.' : 'Το κείμενό της φεύγει από το προσχέδιο.' }))) return
     updateChapter(chapterIndex, { sections: chapters[chapterIndex].sections.filter((_, at) => at !== index) })
     setSelected({ chapter: chapterIndex, section: Math.max(-1, index - 1) })

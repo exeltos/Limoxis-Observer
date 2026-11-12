@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLocation, useParams } from 'react-router-dom'
-import { Archive, ArchiveRestore, BookOpen, CheckCircle2, FilePenLine, History, ListChecks, PenLine, RefreshCcw, Sparkles } from 'lucide-react'
+import { Archive, ArchiveRestore, BookOpen, CheckCircle2, FilePenLine, History, ListChecks, PenLine, RefreshCcw, Sparkles, type LucideIcon } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
@@ -34,6 +34,11 @@ import { RegulationFill } from './RegulationFill'
 import { RegulationSignatures } from './RegulationSignatures'
 import './regulations.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { EditorSelection } from './RegulationEditor'
+import type { SearchableOption } from '../../design-system/SearchableSelect'
+
+interface Approving { changeNote: string, issuedOn: string, approvedByName: string }
 
 export function RegulationPage() {
   const { regulationId } = useParams()
@@ -45,22 +50,22 @@ export function RegulationPage() {
   const { tenant } = useTenant()
   const auth = useAuth()
   const { canManage, signRoles } = useRegulationAccess()
-  const [data, setData] = useState(null)
-  const [template, setTemplate] = useState(null)
-  const [baseTemplate, setBaseTemplate] = useState(null)
-  const [draft, setDraft] = useState(null)
+  const [data, setData] = useState<AnyRecord | null | false>(null)
+  const [template, setTemplate] = useState<AnyRecord | null>(null)
+  const [baseTemplate, setBaseTemplate] = useState<AnyRecord | null>(null)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState(location.state?.tab || 'read')
   const [readMode, setReadMode] = useState('current')
-  const [edition, setEdition] = useState(null)
-  const [approving, setApproving] = useState(null)
-  const [editMode, setEditMode] = useState(null)
-  const [editorAt, setEditorAt] = useState(null)
+  const [edition, setEdition] = useState<AnyRecord | null>(null)
+  const [approving, setApproving] = useState<Approving | null>(null)
+  const [editMode, setEditMode] = useState<string | null>(null)
+  const [editorAt, setEditorAt] = useState<(EditorSelection & { at: number }) | null>(null)
 
   const reload = useCallback(async () => {
     try {
-      const found = await loadRegulation(tenant?.id, regulationId)
+      const found = await loadRegulation(tenant?.id as string, regulationId as string)
       if (!found) { setData(false); return }
       setData(found)
       setDraft(found.draft ? structuredClone(found.draft) : null)
@@ -77,12 +82,13 @@ export function RegulationPage() {
   // Leaving with unsaved changes asks first.
   useEffect(() => {
     if (!dirty) return undefined
-    const warn = event => { event.preventDefault(); event.returnValue = '' }
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
 
-  const regulation = data?.regulation
+  // Read once the regulation has loaded (the checks below return before that).
+  const regulation = (data as AnyRecord | null)?.regulation as AnyRecord
   const status = regulation ? regulationStatus({ ...regulation, hasDraft: Boolean(draft) }) : 'draft'
   const hasApproved = Boolean(regulation?.edition)
   const reading = edition ? 'edition' : (!hasApproved || (readMode === 'draft' && draft)) ? 'draft' : 'current'
@@ -93,7 +99,7 @@ export function RegulationPage() {
   const problems = useMemo(() => (regulation ? regulationProblems(regulation, draft?.content, language) : []), [regulation, draft, language])
   const toFill = useMemo(() => fillItems(draft?.content).length, [draft])
   const templateFills = useMemo(() => (template ? fillItems(contentFromTemplate(template)).length : 0), [template])
-  const signed = useMemo(() => (draft?.revision ? validSignatures(data?.signatures || [], draft.revision) : []), [data, draft])
+  const signed = useMemo(() => (draft?.revision ? validSignatures((data || null)?.signatures || [], draft.revision) : []), [data, draft])
 
   const mode = editMode || (toFill ? 'fill' : 'write')
   if (data === null) return <RouteLoading />
@@ -101,15 +107,15 @@ export function RegulationPage() {
 
   const meta = {
     title: regulation.title, organization: tenant?.name || '', code: regulation.code, category: categoryLabel(regulation.category, language),
-    edition: reading === 'edition' ? edition.edition : reading === 'draft' ? (hasApproved ? `${regulation.edition + 1} (${en ? 'draft' : 'προσχέδιο'})` : '') : regulation.edition,
+    edition: reading === 'edition' ? edition?.edition : reading === 'draft' ? (hasApproved ? `${regulation.edition + 1} (${en ? 'draft' : 'προσχέδιο'})` : '') : regulation.edition,
     editionLabel: en ? 'Edition' : 'Έκδοση',
-    issued: reading === 'edition' ? formatDay(edition.issuedOn, language) : reading === 'draft' ? '' : formatDay(regulation.issuedOn, language),
-    approvedBy: reading === 'edition' ? edition.approvedByName : reading === 'draft' ? '' : regulation.approvedByName,
-    status: reading === 'draft' ? (en ? 'Draft' : 'Προσχέδιο') : reading === 'edition' && edition.edition !== regulation.edition ? (en ? 'Earlier edition' : 'Προηγούμενη έκδοση') : statusLabel('approved', language),
+    issued: reading === 'edition' ? formatDay(edition?.issuedOn, language) : reading === 'draft' ? '' : formatDay(regulation.issuedOn, language),
+    approvedBy: reading === 'edition' ? edition?.approvedByName : reading === 'draft' ? '' : regulation.approvedByName,
+    status: reading === 'draft' ? (en ? 'Draft' : 'Προσχέδιο') : reading === 'edition' && edition?.edition !== regulation.edition ? (en ? 'Earlier edition' : 'Προηγούμενη έκδοση') : statusLabel('approved', language),
     template: template ? `${template.title} · v${regulation.templateVersion || template.version}` : '',
     draft: reading === 'draft',
     signatures: SIGNING_ROLES.map(role => {
-      const found = (reading === 'edition' ? edition.signatures : reading === 'draft' ? signed : regulation.signatures)?.find(item => item.role === role.value)
+      const found = (reading === 'edition' ? edition?.signatures : reading === 'draft' ? signed : regulation.signatures)?.find((item: AnyRecord) => item.role === role.value)
       return { role: role.value, label: role.label[en ? 1 : 0], name: found?.name || '', title: found?.title || '', image: found?.image || '', date: found ? formatDay(found.signedAt, language) : '' }
     }),
   }
@@ -117,8 +123,9 @@ export function RegulationPage() {
   const startRevision = () => { setDraft({ content: structuredClone(regulation.content), changeNote: '' }); setDirty(true); setTab('edit') }
   // Saving reloads the draft: its revision tells which signatures still hold.
   const storeDraft = async () => {
-    const content = { ...draft.content, chapters: draft.content.chapters.map(chapter => ({ ...chapter, sections: chapter.sections.map(section => ({ ...section, html: sanitizeHtml(section.html) })) })) }
-    await saveDraft(tenant?.id, regulation.id, content, draft.changeNote)
+    if (!draft) return
+    const content = { ...draft.content, chapters: draft.content.chapters.map((chapter: AnyRecord) => ({ ...chapter, sections: chapter.sections.map((section: AnyRecord) => ({ ...section, html: sanitizeHtml(section.html) })) })) }
+    await saveDraft(tenant?.id as string, regulation.id, content, draft.changeNote)
     await reload()
   }
   async function save() {
@@ -129,10 +136,10 @@ export function RegulationPage() {
       notify(en ? 'The draft was saved.' : 'Το προσχέδιο αποθηκεύτηκε.', 'success')
     } catch { notify(en ? 'The draft could not be saved.' : 'Το προσχέδιο δεν αποθηκεύτηκε.', 'error') } finally { setSaving(false) }
   }
-  async function sign(signature) {
+  async function sign(signature: AnyRecord | null) {
     try {
       if (dirty) await storeDraft()
-      await signDraft(regulation.id, signature)
+      await signDraft(regulation.id, signature as { role: string, name: string, title?: string, image?: string })
       await reload()
       notify(en ? 'The draft was signed.' : 'Το προσχέδιο υπογράφηκε.', 'success')
       return true
@@ -140,41 +147,42 @@ export function RegulationPage() {
   }
   async function discard() {
     if (!(await confirm({ title: en ? 'Leave the revision?' : 'Εγκατάλειψη της αναθεώρησης;', message: en ? 'The changes of this draft are lost; the edition in force stays as it is.' : 'Οι αλλαγές του προσχεδίου χάνονται· η έκδοση σε ισχύ μένει ως έχει.', danger: true }))) return
-    try { await discardDraft(tenant?.id, regulation.id); await reload(); setTab('read') } catch { notify(en ? 'Could not leave the revision.' : 'Δεν ήταν δυνατή η εγκατάλειψη.', 'error') }
+    try { await discardDraft(tenant?.id as string, regulation.id); await reload(); setTab('read') } catch { notify(en ? 'Could not leave the revision.' : 'Δεν ήταν δυνατή η εγκατάλειψη.', 'error') }
   }
   async function approve() {
+    if (!approving || !draft) return
     setSaving(true)
     try {
-      if (approving.changeNote !== (draft.changeNote || '')) await saveDraft(tenant?.id, regulation.id, draft.content, approving.changeNote)
-      const number = await approveDraft(tenant?.id, regulation.id, approving)
+      if (approving.changeNote !== (draft.changeNote || '')) await saveDraft(tenant?.id as string, regulation.id, draft.content, approving.changeNote)
+      const number = await approveDraft(tenant?.id as string, regulation.id, approving)
       setApproving(null)
       notify(en ? `Edition ${number} is now in force.` : `Η έκδοση ${number} είναι πλέον σε ισχύ.`, 'success')
       setReadMode('current'); setEdition(null); setTab('read')
       await reload()
-    } catch (error) { notify(String(error?.message || '').includes('SIGNATURES') ? (en ? 'Both signatures are needed, for the text as it is now.' : 'Χρειάζονται και οι δύο υπογραφές, για το κείμενο όπως είναι τώρα.') : (en ? 'The edition could not be approved.' : 'Η έκδοση δεν εγκρίθηκε.'), 'error') } finally { setSaving(false) }
+    } catch (error) { notify(String((error as Error | null)?.message || '').includes('SIGNATURES') ? (en ? 'Both signatures are needed, for the text as it is now.' : 'Χρειάζονται και οι δύο υπογραφές, για το κείμενο όπως είναι τώρα.') : (en ? 'The edition could not be approved.' : 'Η έκδοση δεν εγκρίθηκε.'), 'error') } finally { setSaving(false) }
   }
-  async function takeSection(change) {
+  async function takeSection(change: AnyRecord) {
     const base = draft?.content || structuredClone(regulation.content)
-    setDraft(current => ({ changeNote: current?.changeNote || '', ...current, content: takeTemplateSection(base, template.content, change.origin, { hospital: tenant?.name || '' }) }))
+    setDraft(current => ({ changeNote: current?.changeNote || '', ...current, content: takeTemplateSection(base, (template as AnyRecord).content, change.origin, { hospital: tenant?.name || '' }) }))
     setDirty(true)
     notify(en ? 'Added to the draft. Review it and save.' : 'Προστέθηκε στο προσχέδιο. Ελέγξτε το και αποθηκεύστε.', 'success')
   }
   function takeAll() {
     let content = draft?.content || structuredClone(regulation.content)
-    for (const change of changes) if (change.kind !== 'removed') content = takeTemplateSection(content, template.content, change.origin, { hospital: tenant?.name || '' })
+    for (const change of changes) if (change.kind !== 'removed') content = takeTemplateSection(content, (template as AnyRecord).content, change.origin, { hospital: tenant?.name || '' })
     setDraft(current => ({ changeNote: current?.changeNote || '', ...current, content }))
     setDirty(true)
     notify(en ? 'Every change was added to the draft. Review it and save.' : 'Όλες οι αλλαγές προστέθηκαν στο προσχέδιο. Ελέγξτε το και αποθηκεύστε.', 'success')
   }
   async function markReviewed() {
-    try { await updateRegulation(tenant?.id, regulation.id, { templateVersion: template.version }); notify(en ? 'The template update was marked as reviewed.' : 'Η ενημέρωση του προτύπου σημειώθηκε ως ελεγμένη.', 'success'); await reload() } catch { notify(en ? 'Could not save.' : 'Δεν αποθηκεύτηκε.', 'error') }
+    try { await updateRegulation(tenant?.id as string, regulation.id, { templateVersion: (template as AnyRecord).version }); notify(en ? 'The template update was marked as reviewed.' : 'Η ενημέρωση του προτύπου σημειώθηκε ως ελεγμένη.', 'success'); await reload() } catch { notify(en ? 'Could not save.' : 'Δεν αποθηκεύτηκε.', 'error') }
   }
   async function toggleArchive() {
     const archived = !regulation.archived
     if (archived && !(await confirm({ title: en ? 'Archive the regulation?' : 'Αρχειοθέτηση του κανονισμού;', message: en ? 'It leaves the shelf; its editions are kept.' : 'Φεύγει από τη βιβλιοθήκη· οι εκδόσεις του φυλάσσονται.' }))) return
-    try { await updateRegulation(tenant?.id, regulation.id, { archived }); await reload() } catch { notify(en ? 'Could not save.' : 'Δεν αποθηκεύτηκε.', 'error') }
+    try { await updateRegulation(tenant?.id as string, regulation.id, { archived }); await reload() } catch { notify(en ? 'Could not save.' : 'Δεν αποθηκεύτηκε.', 'error') }
   }
-  async function openEdition(row) {
+  async function openEdition(row: AnyRecord) {
     try { const found = await loadEdition(regulation.id, row.edition); if (found) { setEdition(found); setTab('read') } } catch { notify(en ? 'The edition could not be opened.' : 'Η έκδοση δεν άνοιξε.', 'error') }
   }
   const print = () => { const node = document.createElement('div'); node.innerHTML = regulationDocumentHtml(readContent, meta); printElement(node.firstElementChild, { title: `${regulation.code} ${regulation.title}` }) }
@@ -205,18 +213,18 @@ export function RegulationPage() {
         { value: 'fill', icon: ListChecks, label: `${en ? 'Fill in' : 'Συμπλήρωση'}${toFill ? ` · ${toFill}` : ''}` },
         { value: 'write', icon: FilePenLine, label: en ? 'Free editing' : 'Ελεύθερη επεξεργασία' },
         { value: 'sign', icon: PenLine, label: `${en ? 'Signatures' : 'Υπογραφές'} · ${signed.length}/${SIGNING_ROLES.length}` },
-      ]}/>}
+      ] as (SearchableOption & { icon: LucideIcon })[]}/>}
       footer={draft && <div className="inline-edit-footer">
         {hasApproved && <Button variant="secondary" onClick={discard}>{en ? 'Leave the revision' : 'Εγκατάλειψη αναθεώρησης'}</Button>}
         <SaveButton variant="secondary" loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save the draft' : 'Αποθήκευση προσχεδίου'}</SaveButton>
-        <Button disabled={saving || dirty || problems.length > 0 || signed.length < SIGNING_ROLES.length} title={signed.length < SIGNING_ROLES.length ? (en ? 'Needs both signatures' : 'Χρειάζονται και οι δύο υπογραφές') : undefined} onClick={() => setApproving({ changeNote: draft.changeNote || '', issuedOn: hospitalToday(), approvedByName: auth?.profile?.fullName || auth?.profile?.full_name || '' })}><CheckCircle2 size={15} />{en ? 'Approve the edition' : 'Έγκριση έκδοσης'}</Button>
+        <Button disabled={saving || dirty || problems.length > 0 || signed.length < SIGNING_ROLES.length} title={signed.length < SIGNING_ROLES.length ? (en ? 'Needs both signatures' : 'Χρειάζονται και οι δύο υπογραφές') : undefined} onClick={() => setApproving({ changeNote: draft.changeNote || '', issuedOn: hospitalToday(), approvedByName: auth?.profile?.fullName || (auth?.profile as AnyRecord | null | undefined)?.full_name || '' })}><CheckCircle2 size={15} />{en ? 'Approve the edition' : 'Έγκριση έκδοσης'}</Button>
       </div>}>
       {draft ? <>
         {mode === 'write' && <label className="reg-change-note"><span>{en ? 'What this edition changes' : 'Τι αλλάζει σε αυτή την έκδοση'}</span><input value={draft.changeNote || ''} onChange={event => { setDraft(current => ({ ...current, changeNote: event.target.value })); setDirty(true) }} placeholder={en ? 'e.g. New hand hygiene targets; isolation rooms updated' : 'π.χ. Νέοι στόχοι υγιεινής χεριών· ενημέρωση θαλάμων απομόνωσης'} /></label>}
         {mode === 'fill' && <RegulationFill content={draft.content} total={templateFills} language={language} onChange={content => { setDraft(current => ({ ...current, content })); setDirty(true) }}
           onOpenSection={item => { setEditorAt({ chapter: item.chapterIndex, section: item.sectionIndex, at: Date.now() }); setEditMode('write') }} />}
         {mode === 'write' && <RegulationEditor key={editorAt?.at || 'editor'} initialSelection={editorAt} content={draft.content} onChange={content => { setDraft(current => ({ ...current, content })); setDirty(true) }} language={language} onConfirm={options => confirm({ ...options, danger: true })} />}
-        {mode === 'sign' && <RegulationSignatures signatures={data.signatures || []} revision={draft.revision} signRoles={signRoles} language={language} blocked={problems} dirty={dirty} onSign={sign} profileName={auth?.profile?.fullName || auth?.profile?.full_name || ''} />}
+        {mode === 'sign' && <RegulationSignatures signatures={data.signatures || []} revision={draft.revision} signRoles={signRoles} language={language} blocked={problems} dirty={dirty} onSign={sign} profileName={auth?.profile?.fullName || (auth?.profile as AnyRecord | null | undefined)?.full_name || ''} />}
       </> : <div className="reg-empty"><FilePenLine size={28} /><strong>{en ? 'No revision in progress' : 'Δεν γίνεται αναθεώρηση'}</strong><Button onClick={startRevision}>{en ? `Start edition ${regulation.edition + 1}` : `Έναρξη έκδοσης ${regulation.edition + 1}`}</Button></div>}
     </RecordTabPanel>}
     {tab === 'updates' && canManage && template && <RecordTabPanel title={template.title} subtitle={`${en ? 'Template' : 'Πρότυπο'} v${template.version} · ${en ? 'your regulation follows' : 'ο κανονισμός σας ακολουθεί την'} v${regulation.templateVersion || '—'}`}
@@ -253,9 +261,9 @@ export function RegulationPage() {
       footer={<DialogActions onCancel={() => setApproving(null)} onSave={approve} saveLabel={en ? 'Approve' : 'Έγκριση'} disabled={saving || !approving.issuedOn} />}>
       <div className="reg-approve">
         <div className="reg-approve-signed">{signed.map(item => <span key={item.role}><CheckCircle2 size={14} /><b>{SIGNING_ROLES.find(role => role.value === item.role)?.label[en ? 1 : 0]}</b> {item.name}</span>)}</div>
-        <Field label={en ? 'What this edition changes' : 'Τι αλλάζει σε αυτή την έκδοση'}><textarea rows={3} value={approving.changeNote} onChange={event => setApproving(current => ({ ...current, changeNote: event.target.value }))} /></Field>
-        <ManualDateField label={en ? 'In force from' : 'Ισχύς από'} value={approving.issuedOn} onChange={value => setApproving(current => ({ ...current, issuedOn: value }))} />
-        <Field label={en ? 'Approved by' : 'Εγκρίθηκε από'} hint={en ? 'As it appears on the document, e.g. “Board of Directors, decision 12/2026”.' : 'Όπως θα φαίνεται στο έγγραφο, π.χ. «Διοίκηση, απόφαση 12/2026».'}><input value={approving.approvedByName} onChange={event => setApproving(current => ({ ...current, approvedByName: event.target.value }))} /></Field>
+        <Field label={en ? 'What this edition changes' : 'Τι αλλάζει σε αυτή την έκδοση'}><textarea rows={3} value={approving.changeNote} onChange={event => setApproving(current => ({ ...(current as Approving), changeNote: event.target.value }))} /></Field>
+        <ManualDateField label={en ? 'In force from' : 'Ισχύς από'} value={approving.issuedOn} onChange={value => setApproving(current => ({ ...(current as Approving), issuedOn: value }))} />
+        <Field label={en ? 'Approved by' : 'Εγκρίθηκε από'} hint={en ? 'As it appears on the document, e.g. “Board of Directors, decision 12/2026”.' : 'Όπως θα φαίνεται στο έγγραφο, π.χ. «Διοίκηση, απόφαση 12/2026».'}><input value={approving.approvedByName} onChange={event => setApproving(current => ({ ...(current as Approving), approvedByName: event.target.value }))} /></Field>
       </div>
     </ObserverDialog>}
   </EntityRecordShell></Page>

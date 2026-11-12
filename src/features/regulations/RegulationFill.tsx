@@ -1,21 +1,21 @@
 import { useMemo, useState } from 'react'
 import { CheckCircle2, FilePenLine, ListChecks } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { applyFill, fillItems } from './regulationModel'
+import { applyFill, fillItems, type FillItem, type RegulationContent } from './regulationModel'
 import { sanitizeHtml } from './regulationHtml'
 
 // Filling in a regulation that came from a template: every «Fill in» note of
 // the draft, one under the other, with what it asks and where it is. What is
 // written takes the note's place in the text; the rest of the section stays as
 // the template has it.
-export function RegulationFill({ content, onChange, total = 0, language = 'el', onOpenSection, disabled = false }) {
+export function RegulationFill({ content, onChange, total = 0, language = 'el', onOpenSection, disabled = false }: { content: RegulationContent, onChange: (content: RegulationContent) => void, total?: number, language?: string, onOpenSection?: (item: FillItem) => void, disabled?: boolean }) {
   const en = language === 'en'
   const items = useMemo(() => fillItems(content), [content])
-  const [texts, setTexts] = useState({})
+  const [texts, setTexts] = useState<Record<string, string>>({})
   const all = Math.max(total, items.length)
   const done = all - items.length
 
-  const apply = item => {
+  const apply = (item: FillItem) => {
     const text = texts[item.key] || ''
     if (!text.trim()) return
     onChange(applyFill(content, item, text))
