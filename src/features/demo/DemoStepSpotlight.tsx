@@ -6,10 +6,10 @@ const HIGHLIGHT = 'demo-step-highlight'
 // step happens. Screens mark those elements with data-demo-step="scenario:step";
 // the outline follows them as they mount and unmount, and is removed once the
 // step is done or the scenario closes. Rendered only for a Demo evaluator.
-export function DemoStepSpotlight({ target }) {
+export function DemoStepSpotlight({ target }: { target: string | null }) {
   useEffect(() => {
     if (!target || typeof document === 'undefined') return undefined
-    let marked = []
+    let marked: Element[] = []
     const apply = () => {
       const found = [...document.querySelectorAll(`[data-demo-step="${target}"]`)]
       for (const element of marked) if (!found.includes(element)) element.classList.remove(HIGHLIGHT)

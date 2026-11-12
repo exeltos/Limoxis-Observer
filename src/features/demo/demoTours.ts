@@ -1,4 +1,4 @@
-import { DEMO_TOUR_STOPS } from './demoTourStops'
+import { DEMO_TOUR_STOPS, type DemoTourStop, type DemoTourTarget } from './demoTourStops'
 
 // Guided tours of the Demo evaluation scenarios (DemoGuidedTour): for each
 // scenario, the elements of the real screens to press, one after the other,
@@ -8,13 +8,13 @@ import { DEMO_TOUR_STOPS } from './demoTourStops'
 // the text (Greek, English) the element contains, the first match taken.
 export const DEMO_TOURS = DEMO_TOUR_STOPS
 
-const normalize = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('el')
+const normalize = (value: unknown) => String(value || '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('el')
 
-export function findTourTarget(target, language = 'el') {
+export function findTourTarget(target: DemoTourTarget | null | undefined, language = 'el'): HTMLElement | null {
   if (!target?.sel || typeof document === 'undefined') return null
-  let elements
+  let elements: HTMLElement[]
   try {
-    elements = [...document.querySelectorAll(target.sel)]
+    elements = [...document.querySelectorAll<HTMLElement>(target.sel)]
   } catch {
     return null
   }
@@ -24,8 +24,8 @@ export function findTourTarget(target, language = 'el') {
 }
 
 // The stops still ahead: those of steps not yet done, in order.
-export function demoTourStops(scenarioKey, stepsDone = {}) {
+export function demoTourStops(scenarioKey: string, stepsDone: Record<string, unknown> = {}): DemoTourStop[] {
   return (DEMO_TOURS[scenarioKey] || []).filter((stop) => !stop.step || !stepsDone[stop.step])
 }
 
-export const hasDemoTour = (scenarioKey) => Boolean(DEMO_TOURS[scenarioKey]?.length)
+export const hasDemoTour = (scenarioKey: string | null | undefined) => Boolean(DEMO_TOURS[scenarioKey || '']?.length)

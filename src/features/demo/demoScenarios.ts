@@ -3,7 +3,12 @@
 // demoScenarioSignals.js); one step can be the scenario's record opening.
 // A step with `target` is outlined on screen (DemoStepSpotlight) where the
 // screen marks it with data-demo-step="scenario:step".
-export const DEMO_SCENARIOS = Object.freeze([
+export type DemoProgress = Record<string, unknown>
+// A step's `route`: true = the scenario's own record opening, or the pattern of the record's path.
+export interface DemoScenarioStep { id: string, route?: boolean | RegExp, target?: boolean, labelEl: string, labelEn: string }
+export interface DemoScenario { key: string, to: string, titleEl: string, titleEn: string, textEl: string, textEn: string, steps?: DemoScenarioStep[] }
+
+export const DEMO_SCENARIOS: readonly DemoScenario[] = Object.freeze([
   { key: 'patient_admission', to: '/surveillance?tab=registry',
     titleEl: 'Εισαγωγή ασθενούς', titleEn: 'Admit a patient',
     textEl: 'Από το Μητρώο ασθενών πατήστε «Νέος ασθενής», συμπληρώστε τα στοιχεία και το τμήμα εισαγωγής και ανοίξτε την ενιαία κλινική καρτέλα του.',
@@ -43,8 +48,8 @@ export const DEMO_SCENARIOS = Object.freeze([
 
 // The scenarios of the other roles (phase 2). demo_evaluation_progress accepts
 // their keys only after 20261028120000_demo_role_guidance.sql.
-const RECORD = (base) => new RegExp(`^/${base}/(?!new(?:/|$))[^/]+/?$`)
-export const DEMO_ROLE_EXTRA_SCENARIOS = Object.freeze([
+const RECORD = (base: string) => new RegExp(`^/${base}/(?!new(?:/|$))[^/]+/?$`)
+export const DEMO_ROLE_EXTRA_SCENARIOS: readonly DemoScenario[] = Object.freeze([
   { key: 'employee_record', to: '/employees',
     titleEl: 'Καρτέλα εργαζομένου', titleEn: 'Employee record',
     textEl: 'Από το Μητρώο προσωπικού ανοίξτε έναν εργαζόμενο και δείτε την εκπαίδευση και τα έγγραφά του.',
@@ -121,11 +126,11 @@ export const DEMO_ROLE_EXTRA_SCENARIOS = Object.freeze([
 ])
 
 // Every scenario the guide knows: the six above and the other roles'.
-export const DEMO_ALL_SCENARIOS = Object.freeze([...DEMO_SCENARIOS, ...DEMO_ROLE_EXTRA_SCENARIOS])
+export const DEMO_ALL_SCENARIOS: readonly DemoScenario[] = Object.freeze([...DEMO_SCENARIOS, ...DEMO_ROLE_EXTRA_SCENARIOS])
 
 // The per-role guide (docs/ROLE_MENU_AND_DEMO_GUIDANCE_DESIGN.md): each role
 // sees the scenarios of its own daily work. Roles not listed see all six.
-export const DEMO_ROLE_SCENARIOS = Object.freeze({
+export const DEMO_ROLE_SCENARIOS: Readonly<Record<string, string[]>> = Object.freeze({
   infection_control_lead: ['clabsi_classification', 'microbiology_mdro', 'hand_hygiene', 'analysis_export'],
   infection_control_member: ['clabsi_classification', 'microbiology_mdro', 'hand_hygiene', 'analysis_export'],
   link_nurse: ['hand_hygiene', 'patient_admission', 'clabsi_classification', 'incident_capa'],
@@ -146,8 +151,8 @@ export const DEMO_ROLE_SCENARIOS = Object.freeze({
 // keeps only its original scenarios, or all six when it has none.
 export const ORIGINAL_SCENARIO_KEYS = new Set(['patient_admission', 'clabsi_classification', 'microbiology_mdro', 'hand_hygiene', 'incident_capa', 'analysis_export'])
 
-export function demoScenariosForRole(role, { extended = false } = {}) {
-  const keys = (DEMO_ROLE_SCENARIOS[role] || []).filter((key) => extended || ORIGINAL_SCENARIO_KEYS.has(key))
+export function demoScenariosForRole(role: string | null | undefined, { extended = false }: { extended?: boolean | null } = {}): readonly DemoScenario[] {
+  const keys = (DEMO_ROLE_SCENARIOS[role || ''] || []).filter((key) => extended || ORIGINAL_SCENARIO_KEYS.has(key))
   const all = extended ? DEMO_ALL_SCENARIOS : DEMO_SCENARIOS
   return keys.length ? keys.map((key) => all.find((scenario) => scenario.key === key)).filter(Boolean) : DEMO_SCENARIOS
 }
@@ -155,15 +160,16 @@ export function demoScenariosForRole(role, { extended = false } = {}) {
 // The scenarios to list for an evaluator in the Platform Owner's panel, from
 // the keys they touched: the first role set that holds them all, else the six
 // plus the others they touched.
-export function demoScenariosForEvaluator(touchedKeys = []) {
+export function demoScenariosForEvaluator(touchedKeys: string[] = []): readonly DemoScenario[] {
   const touched = [...new Set(touchedKeys)].filter((key) => DEMO_ALL_SCENARIOS.some((scenario) => scenario.key === key))
   if (touched.every((key) => ORIGINAL_SCENARIO_KEYS.has(key))) return DEMO_SCENARIOS
   const roleKeys = Object.values(DEMO_ROLE_SCENARIOS).find((keys) => touched.every((key) => keys.includes(key)))
   const keys = roleKeys || [...ORIGINAL_SCENARIO_KEYS, ...touched.filter((key) => !ORIGINAL_SCENARIO_KEYS.has(key))]
-  return keys.map((key) => DEMO_ALL_SCENARIOS.find((scenario) => scenario.key === key))
+  // Every key here is one of DEMO_ALL_SCENARIOS.
+  return keys.map((key) => DEMO_ALL_SCENARIOS.find((scenario) => scenario.key === key)) as DemoScenario[]
 }
 
-export const demoScenarioDoneCount = (progress = {}, scenarios = DEMO_SCENARIOS) => scenarios.filter((scenario) => progress[scenario.key]).length
+export const demoScenarioDoneCount = (progress: DemoProgress = {}, scenarios: readonly DemoScenario[] = DEMO_SCENARIOS) => scenarios.filter((scenario) => progress[scenario.key]).length
 
 // The steps of a scenario done so far: { stepId: true }.
-export const demoStepsComplete = (scenario, done = {}) => Boolean(scenario?.steps?.length) && scenario.steps.every((step) => done[step.id])
+export const demoStepsComplete = (scenario: DemoScenario | null | undefined, done: DemoProgress = {}): boolean => Boolean(scenario?.steps?.length) && Boolean(scenario?.steps?.every((step) => done[step.id]))

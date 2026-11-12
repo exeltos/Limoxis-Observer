@@ -13,7 +13,7 @@ export const ALL_SCREEN_GUIDES='*'
 
 // The Help Center manual section of a path: exact, else the longest matching
 // prefix; the dashboard ("/") only for "/" itself.
-export function screenGuideKey(pathname){
+export function screenGuideKey(pathname: string|null|undefined): string|null{
   const path=String(pathname||'/')
   if(helpManual[path])return path
   return Object.keys(helpManual).filter(key=>key!=='/'&&(path===key||path.startsWith(`${key}/`))).sort((a,b)=>b.length-a.length)[0]||null
@@ -23,12 +23,14 @@ export function screenGuideKey(pathname){
 // Center manual for that screen appears in front of it: what the screen is
 // for, the steps to try, and a tip. Each guide is shown once per user; the
 // Help Center can show them again.
-export function ScreenGuide({enabled,userId,language,hold=false,onOpenHelp,resetToken=0}){
+interface ScreenGuideProps {enabled: boolean,userId: string|null|undefined,language: string,hold?: boolean,onOpenHelp?: ()=>void,resetToken?: number}
+
+export function ScreenGuide({enabled,userId,language,hold=false,onOpenHelp,resetToken=0}: ScreenGuideProps){
   const {pathname}=useLocation()
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
-  const [seen,setSeen]=useState(null)
+  const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
+  const [seen,setSeen]=useState<Set<string|null>|null>(null)
   const [stopAll,setStopAll]=useState(false)
-  const [closedKey,setClosedKey]=useState('')
+  const [closedKey,setClosedKey]=useState<string|null>('')
 
   useEffect(()=>{let active=true
     setSeen(null)
@@ -43,7 +45,7 @@ export function ScreenGuide({enabled,userId,language,hold=false,onOpenHelp,reset
   const total=Object.keys(helpManual).length
   const seenCount=useMemo(()=>seen?[...seen].filter(k=>k!==ALL_SCREEN_GUIDES).length:0,[seen])
   const show=Boolean(enabled&&!hold&&seen&&manual&&!seen.has(ALL_SCREEN_GUIDES)&&!seen.has(key)&&closedKey!==key)
-  if(!show)return null
+  if(!show||!manual)return null
 
   async function close(openHelp=false){
     const keys=stopAll?[key,ALL_SCREEN_GUIDES]:[key]

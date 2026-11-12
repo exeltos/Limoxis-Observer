@@ -4,7 +4,10 @@
 // (or aria-label) contains it in the current language. `advance: 'click'`
 // moves on when the user clicks the target; without it the stop shows "Next".
 // Walked stop by stop on the sample Demo, in Greek and English.
-export const DEMO_TOUR_STOPS = Object.freeze({
+export interface DemoTourTarget { sel: string, text?: [string, string] | string[] }
+export interface DemoTourStop { step: string | null, target: DemoTourTarget, titleEl: string, titleEn: string, textEl: string, textEn: string, advance?: string }
+
+export const DEMO_TOUR_STOPS: Readonly<Record<string, DemoTourStop[]>> = Object.freeze({
   patient_admission: [
     { step: null, target: { sel: 'main button.lo-action-button', text: ['Δημιουργία', 'Create'] },
       titleEl: 'Νέος ασθενής', titleEn: 'New patient',

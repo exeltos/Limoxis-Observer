@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { ArrowRight, CheckCircle2, Circle, Compass, Flag, Send, Star, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { DEMO_SCENARIOS } from './demoScenarios'
+import { DEMO_SCENARIOS, type DemoScenario } from './demoScenarios'
 import './demoEvaluation.css'
 
-const RATING_LABELS={el:['','Καθόλου χρήσιμο','Λίγο χρήσιμο','Αρκετά χρήσιμο','Πολύ χρήσιμο','Εξαιρετικό'],en:['','Not useful','Slightly useful','Fairly useful','Very useful','Excellent']}
-const EASE_LABELS={el:['','Πολύ δύσκολο','Δύσκολο','Μέτριο','Εύκολο','Πολύ εύκολο'],en:['','Very hard','Hard','Moderate','Easy','Very easy']}
-const CLARITY_LABELS={el:['','Καθόλου σαφείς','Λίγο σαφείς','Αρκετά σαφείς','Σαφείς','Πολύ σαφείς'],en:['','Not clear','Slightly clear','Fairly clear','Clear','Very clear']}
+type ScaleLabels=Record<'el'|'en', string[]>
+const RATING_LABELS: ScaleLabels={el:['','Καθόλου χρήσιμο','Λίγο χρήσιμο','Αρκετά χρήσιμο','Πολύ χρήσιμο','Εξαιρετικό'],en:['','Not useful','Slightly useful','Fairly useful','Very useful','Excellent']}
+const EASE_LABELS: ScaleLabels={el:['','Πολύ δύσκολο','Δύσκολο','Μέτριο','Εύκολο','Πολύ εύκολο'],en:['','Very hard','Hard','Moderate','Easy','Very easy']}
+const CLARITY_LABELS: ScaleLabels={el:['','Καθόλου σαφείς','Λίγο σαφείς','Αρκετά σαφείς','Σαφείς','Πολύ σαφείς'],en:['','Not clear','Slightly clear','Fairly clear','Clear','Very clear']}
 
 // One 1-5 question of the questionnaire, as a row of stars.
-function StarScale({label,value,onChange,labels,en,large=false}){
+function StarScale({label,value,onChange,labels,en,large=false}:{label: string,value: number,onChange: (value: number)=>void,labels: ScaleLabels,en: boolean,large?: boolean}){
   const [hover,setHover]=useState(0)
   const shown=hover||value
   return <div className={`demo-rating-stars ${large?'':'is-compact'}`} role="radiogroup" aria-label={label} onMouseLeave={()=>setHover(0)}>
@@ -20,13 +21,15 @@ function StarScale({label,value,onChange,labels,en,large=false}){
 }
 
 // The Platform Owner's trial run: shown the same, stored nowhere.
-const TrialNote=({en})=><small className="demo-scenario-trial">{en?'Trial as Platform Owner: nothing is saved.':'Δοκιμή ως Ιδιοκτήτης πλατφόρμας: δεν αποθηκεύεται.'}</small>
+const TrialNote=({en}:{en: boolean})=><small className="demo-scenario-trial">{en?'Trial as Platform Owner: nothing is saved.':'Δοκιμή ως Ιδιοκτήτης πλατφόρμας: δεν αποθηκεύεται.'}</small>
 
 // The scenario the evaluator is working on, beside the screen: what to do and
 // its steps, checked off as the screens report them. The screens also tell
 // when it is done; a quiet link marks it done when they could not.
-export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone={},language,trial=false,working=false,onDone,onClose,onTour=null}){
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
+interface DemoActiveScenarioProps {scenario: DemoScenario,scenarios?: readonly DemoScenario[],stepsDone?: Record<string, boolean>,language: string,trial?: boolean,working?: boolean,onDone?: ()=>void,onClose?: ()=>void,onTour?: (()=>void)|null}
+
+export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone={},language,trial=false,working=false,onDone,onClose,onTour=null}: DemoActiveScenarioProps){
+  const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const index=scenarios.findIndex(item=>item.key===scenario.key)
   const steps=scenario.steps||[]
   const nextStep=steps.find(step=>!stepsDone[step.id])
@@ -46,8 +49,10 @@ export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone=
 // last one, for the guide as a whole), in front of the screen: one click on the
 // stars sends the rating. Then "Add details" opens how easy it was, how clear
 // the steps were and a comment, sent over the same rating.
-export function DemoScenarioRating({scenario,next,language,trial=false,working=false,canRequest=false,onSubmit,onLater,onNext,onRequestApplication}){
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
+interface DemoScenarioRatingProps {scenario: DemoScenario|null,next?: DemoScenario|null,language: string,trial?: boolean,working?: boolean,canRequest?: boolean,onSubmit?: (rating: number,comment: string,extra: {ease: number|null,clarity: number|null})=>unknown,onLater?: ()=>void,onNext?: (scenario: DemoScenario)=>void,onRequestApplication?: ()=>void}
+
+export function DemoScenarioRating({scenario,next,language,trial=false,working=false,canRequest=false,onSubmit,onLater,onNext,onRequestApplication}: DemoScenarioRatingProps){
+  const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const [rating,setRating]=useState(0)
   const [ease,setEase]=useState(0)
   const [clarity,setClarity]=useState(0)
@@ -57,12 +62,12 @@ export function DemoScenarioRating({scenario,next,language,trial=false,working=f
   const [detailsSent,setDetailsSent]=useState(false)
   const [failed,setFailed]=useState(false)
   const overall=!scenario
-  async function send(value,extra={}){setFailed(false);try{await onSubmit?.(value,extra.comment??comment,{ease:(extra.ease??ease)||null,clarity:(extra.clarity??clarity)||null});return true}catch{setFailed(true);return false}}
-  async function rate(value){setRating(value);if(await send(value))setSent(true)}
+  async function send(value: number,extra: {comment?: string,ease?: number,clarity?: number}={}){setFailed(false);try{await onSubmit?.(value,extra.comment??comment,{ease:(extra.ease??ease)||null,clarity:(extra.clarity??clarity)||null});return true}catch{setFailed(true);return false}}
+  async function rate(value: number){setRating(value);if(await send(value))setSent(true)}
   async function sendDetails(){if(await send(rating)){setDetailsSent(true);setDetails(false)}}
   return <div className="demo-rating-overlay"><aside className="demo-scenario-card demo-scenario-rating" role="dialog" aria-modal="true" aria-label={tx('Αξιολόγηση','Rating')}>
     <span className="demo-scenario-eyebrow is-done"><CheckCircle2 size={13}/>{overall?tx('Ολοκληρώσατε όλα τα σενάρια','You completed every scenario'):tx('Ολοκληρώσατε το σενάριο','Scenario completed')}</span>
-    {!overall&&<strong>{en?scenario.titleEn:scenario.titleEl}</strong>}
+    {scenario&&<strong>{en?scenario.titleEn:scenario.titleEl}</strong>}
     <p className="demo-rating-question">{overall?tx('Πώς σας φάνηκε συνολικά η εφαρμογή;','Overall, how did you find the application?'):tx('Πώς σας φάνηκε;','How did you find it?')}</p>
     <StarScale large label={tx('Βαθμολογία','Rating')} value={rating} onChange={value=>{if(!working)void rate(value)}} labels={RATING_LABELS} en={en}/>
     {sent&&!details&&<p className="demo-rating-thanks" role="status"><CheckCircle2 size={14}/>{detailsSent?tx('Ευχαριστούμε για τα σχόλιά σας!','Thank you for your feedback!'):tx('Ευχαριστούμε! Η βαθμολογία καταχωρίστηκε.','Thank you! Your rating is saved.')}</p>}

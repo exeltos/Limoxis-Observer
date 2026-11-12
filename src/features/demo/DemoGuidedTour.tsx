@@ -1,15 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Compass, X } from 'lucide-react'
 import { findTourTarget } from './demoTours'
+import type { DemoTourStop, DemoTourTarget } from './demoTourStops'
+import type { DemoScenario } from './demoScenarios'
 import './demoEvaluation.css'
 
 const PAD=6
 const NOTE_WIDTH=330
-const nextFrame=callback=>typeof requestAnimationFrame==='function'?requestAnimationFrame(callback):setTimeout(callback,100)
-const cancelFrame=id=>typeof cancelAnimationFrame==='function'?cancelAnimationFrame(id):clearTimeout(id)
+const nextFrame=(callback: ()=>void): number=>typeof requestAnimationFrame==='function'?requestAnimationFrame(callback):window.setTimeout(callback,100)
+const cancelFrame=(id: number)=>typeof cancelAnimationFrame==='function'?cancelAnimationFrame(id):clearTimeout(id)
 
 // Where the stop's element is now, a little larger; none while it is not on screen.
-function rectOf(target,language){
+interface Rect {top: number,left: number,width: number,height: number}
+function rectOf(target: DemoTourTarget|undefined,language: string): Rect|null{
   const element=findTourTarget(target,language)
   if(!element)return null
   const box=element.getBoundingClientRect()
@@ -23,10 +26,12 @@ function rectOf(target,language){
 // what it points at (or "Next"), and an element not on screen yet (a dialog
 // still closed) is waited for. `stops` are the stops of the steps not yet done,
 // so the tour moves on by itself when a screen checks a step off.
-export function DemoGuidedTour({scenario,stops,totalStops=stops.length,stepNumber,stepTotal,language,onClose,onFinish}){
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
+interface DemoGuidedTourProps {scenario: DemoScenario,stops: DemoTourStop[],totalStops?: number,stepNumber: number,stepTotal: number,language: string,onClose: ()=>void,onFinish: ()=>void}
+
+export function DemoGuidedTour({scenario,stops,totalStops=stops.length,stepNumber,stepTotal,language,onClose,onFinish}: DemoGuidedTourProps){
+  const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const [index,setIndex]=useState(0)
-  const [rect,setRect]=useState(null)
+  const [rect,setRect]=useState<Rect|null>(null)
   const stop=stops[Math.min(index,stops.length-1)]
   const last=index>=stops.length-1
   const next=()=>last?onFinish():setIndex(value=>value+1)
@@ -41,9 +46,9 @@ export function DemoGuidedTour({scenario,stops,totalStops=stops.length,stepNumbe
   useEffect(()=>{if(found)findTourTarget(stop?.target,language)?.scrollIntoView?.({block:'nearest',behavior:'smooth'})},[stop,language,found])
   // Pressing what the note points at moves the tour on, once the screen has answered.
   useEffect(()=>{if(stop?.advance!=='click'||!stop.target)return undefined
-    const onClick=event=>{const element=findTourTarget(stop.target,language);if(element&&event.target instanceof Node&&element.contains(event.target))setTimeout(()=>nextRef.current(),350)}
+    const onClick=(event: MouseEvent)=>{const element=findTourTarget(stop.target,language);if(element&&event.target instanceof Node&&element.contains(event.target))setTimeout(()=>nextRef.current(),350)}
     document.addEventListener('click',onClick,true);return ()=>document.removeEventListener('click',onClick,true)},[stop,language])
-  useEffect(()=>{const onKey=event=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',onKey);return ()=>window.removeEventListener('keydown',onKey)},[onClose])
+  useEffect(()=>{const onKey=(event: KeyboardEvent)=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',onKey);return ()=>window.removeEventListener('keydown',onKey)},[onClose])
   if(!stop)return null
 
   const viewport={width:window.innerWidth||1024,height:window.innerHeight||768}

@@ -4,10 +4,12 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import './demoEvaluation.css'
 
+interface DemoApplicationDialogProps {language: string,organizationName?: string,defaultName?: string,email?: string,working?: boolean,sentAt?: string|null,error?: string,onSubmit?: (values: {contactName: string,contactPhone: string,message: string})=>void,onClose?: ()=>void}
+
 // "I want the application": the evaluator's contact details and a message,
 // sent to the Platform Owner (notification and e-mail).
-export function DemoApplicationDialog({language,organizationName='',defaultName='',email='',working=false,sentAt=null,error='',onSubmit,onClose}){
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
+export function DemoApplicationDialog({language,organizationName='',defaultName='',email='',working=false,sentAt=null,error='',onSubmit,onClose}: DemoApplicationDialogProps){
+  const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const [name,setName]=useState(defaultName)
   const [phone,setPhone]=useState('')
   const [message,setMessage]=useState('')

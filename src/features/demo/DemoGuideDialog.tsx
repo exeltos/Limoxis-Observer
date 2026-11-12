@@ -1,7 +1,7 @@
 import { ArrowRight, CheckCircle2, Circle, CircleDot, RotateCcw, Star } from 'lucide-react'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
-import { DEMO_SCENARIOS, demoScenarioDoneCount } from './demoScenarios'
+import { DEMO_SCENARIOS, demoScenarioDoneCount, type DemoScenario } from './demoScenarios'
 import './demoEvaluation.css'
 
 export const OVERALL_RATING='guide_opened'
@@ -12,8 +12,10 @@ export const OVERALL_RATING='guide_opened'
 // a scenario is "not started", "in progress" with its steps checked off, or
 // "done" with its rating, or "Rate it" when it has none yet (the rating opens
 // in front of the screen, as when the scenario was completed).
-export function DemoGuideDialog({language,scenarios=DEMO_SCENARIOS,progress={},ratings={},stepsDone={},activeKey=null,onOpenScenario,onRate,onClose}){
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
+interface DemoGuideDialogProps {language: string,scenarios?: readonly DemoScenario[],progress?: Record<string, unknown>,ratings?: Record<string, {rating?: number}|unknown>,stepsDone?: Record<string, Record<string, boolean>>,activeKey?: string|null,onOpenScenario?: (scenario: DemoScenario)=>void,onRate?: ((key: string)=>void)|null,onClose: ()=>void}
+
+export function DemoGuideDialog({language,scenarios=DEMO_SCENARIOS,progress={},ratings={},stepsDone={},activeKey=null,onOpenScenario,onRate,onClose}: DemoGuideDialogProps){
+  const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const done=demoScenarioDoneCount(progress,scenarios),total=scenarios.length
   const allSix=total===DEMO_SCENARIOS.length
   return <ObserverDialog width="wide" className="demo-guide-dialog" eyebrow={tx('Demo αξιολόγησης','Evaluation Demo')} title={tx('Εκπαίδευση εφαρμογής','Application training')}
@@ -30,7 +32,7 @@ export function DemoGuideDialog({language,scenarios=DEMO_SCENARIOS,progress={},r
         const checked=stepsDone[scenario.key]||{}
         const stepCount=steps.filter(step=>checked[step.id]).length
         const started=!isDone&&(activeKey===scenario.key||stepCount>0)
-        const rating=ratings[scenario.key]
+        const rating=ratings[scenario.key] as {rating?: number}|undefined
         const state=isDone?'is-done':started?'is-started':''
         return <li key={scenario.key} className={state}>
           <span className="demo-guide-number">{isDone?<CheckCircle2 size={16} aria-label={tx('Ολοκληρώθηκε','Done')}/>:index+1}</span>

@@ -2,12 +2,13 @@ import { Compass, FlaskConical, ListChecks, Star } from 'lucide-react'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import './demoEvaluation.css'
+import type { DemoScenario } from './demoScenarios'
 
 // The first screen of an evaluation Demo, once per evaluator: what the Demo is,
 // how the scenarios guide them on the screen and that their opinion is asked,
 // then a guided tour of their role's first scenario (or the list of scenarios).
-export function DemoWelcome({language,organizationName,scenarios,onTour,onScenarios}){
-  const en=language==='en';const tx=(el,enText)=>en?enText:el
+export function DemoWelcome({language,organizationName,scenarios,onTour,onScenarios}:{language: string,organizationName: string,scenarios: readonly DemoScenario[],onTour: (scenario: DemoScenario)=>void,onScenarios: ()=>void}){
+  const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const first=scenarios[0]
   const count=scenarios.length
   const cards=[
