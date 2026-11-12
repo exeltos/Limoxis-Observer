@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Screens slow to show data: fewer and narrower reads (20261128500000).
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readSource } from './helpers/readSource'
 
 const read = path => readSource(path)
@@ -113,6 +113,8 @@ describe('employees cache', () => {
 })
 
 describe('cloud loaders (mocked client)', () => {
+  // Earlier tests load modules (cloudContext) with the real client: start each one from fresh modules.
+  beforeEach(() => { vi.resetModules() })
   afterEach(() => { vi.resetModules(); vi.doUnmock('../src/core/supabase/client'); vi.doUnmock('../src/core/data/dataEnvironment') })
 
   function client(calls, rows = {}) {

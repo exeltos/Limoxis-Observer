@@ -1,0 +1,53 @@
+import { Archive, Pencil } from 'lucide-react'
+import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { can, CAPABILITIES } from '../../core/permissions/roles'
+import { archivePatient, removeDemoPatient } from './patientsService'
+import { useState } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// Edit opens the patient details in place (onEdit, given by the patient record);
+// without onEdit the item is not offered.
+export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}: { patient: AnyRecord | null | undefined, onEdit?: (() => void) | null, onDeleted?: (() => void) | null, extraItems?: AnyRecord[] }){
+  const {t,language}=useLanguage()
+  const {notify}=useFeedback()
+  const {tenant,isDemo,role,membership}=useTenant()
+  const [deleting,setDeleting]=useState(false)
+  const deleteItem=useRecordDelete()
+  const has=(cap: string)=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
+  if(!patient)return null
+  const withLabel=(item: AnyRecord | null,label: string)=>item?{...item,label}:null
+  const patientLabel=language==='en'?(patient.nameEn||patient.name):patient.name
+
+  const items=[
+    onEdit&&has(CAPABILITIES.EDIT_PATIENT)?{id:'edit',label:language==='el'?'Επεξεργασία ασθενούς':'Edit patient',icon:Pencil,onClick:onEdit}:null,
+    ...extraItems,
+    // Archive keeps the patient's history for reports and hides them from the list; delete (for a mistake) moves everything to the recycle bin.
+    has(CAPABILITIES.DELETE_PATIENT)?{id:'archive',label:language==='el'?'Αρχειοθέτηση ασθενούς':'Archive patient',icon:Archive,separatorBefore:true,onClick:()=>setDeleting(true)}:null,
+    withLabel(deleteItem({
+      createdBy:patient.createdBy,table:'patients',id:patient.recordId,label:patientLabel,detail:[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · '),
+      demo:async()=>{const removed=removeDemoPatient(patient.id);if(removed)await binMemoryRow(null,{module:'clinical',kind:'patients',label:patientLabel,detail:patient.id,store:'patients',row:removed})},
+      onDone:onDeleted,
+    }),language==='el'?'Διαγραφή ασθενούς':'Delete patient'),
+  ].filter(Boolean)
+  if(!items.length)return null
+
+  async function remove(reason: string){
+    try{
+      await archivePatient(tenant?.id,patient as AnyRecord,reason,{isDemo})
+      setDeleting(false)
+      notify(t('archived'),'success')
+      onDeleted?.()
+    }catch(error){notify((error as Error|null)?.message||t('actionFailed'),'danger')}
+  }
+
+  return <>
+    <OverflowMenu label={language==='el'?'Ενέργειες ασθενούς':'Patient actions'} items={items}/>
+    <GovernedReasonDialog open={deleting} title={language==='el'?'Αρχειοθέτηση ασθενούς':'Archive patient'} description={language==='el'?'Ο ασθενής αφαιρείται από τη λίστα ασθενών· το κλινικό ιστορικό και η αιτιολογία κρατούνται για έλεγχο.':'The patient is removed from the patient list; the clinical history and the reason are kept for audit.'} confirmLabel={language==='el'?'Αρχειοθέτηση':'Archive'} onCancel={()=>setDeleting(false)} onConfirm={remove}/>
+  </>
+}
