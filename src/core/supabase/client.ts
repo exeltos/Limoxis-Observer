@@ -1,5 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { appConfig, hasSupabaseConfig } from '../config/env'
+import type { Database } from './database.types'
+
+// Ο client με τους τύπους της βάσης (src/core/supabase/database.types.ts).
+export type Cloud = SupabaseClient<Database>
 
 // The Help Center embeds live screens in an iframe on the same origin
 // (?helpPreview=1). That iframe must never reuse the signed-in user's stored
@@ -9,8 +13,8 @@ const isHelpPreviewFrame = typeof window !== 'undefined'
   && new URLSearchParams(window.location.search).get('helpPreview') === '1'
   && window.self !== window.top
 
-export const supabase = hasSupabaseConfig
-  ? createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey, {
+export const supabase: Cloud | null = hasSupabaseConfig
+  ? createClient<Database>(appConfig.supabaseUrl, appConfig.supabaseAnonKey, {
       auth: isHelpPreviewFrame
         ? {
             persistSession: false,
@@ -27,7 +31,8 @@ export const supabase = hasSupabaseConfig
   : null
 
 
-export async function invokeAuthenticatedFunction(name, body) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- each edge function answers its own shape
+export async function invokeAuthenticatedFunction(name: string, body?: unknown): Promise<any> {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
   if (sessionError) throw sessionError
@@ -39,7 +44,7 @@ export async function invokeAuthenticatedFunction(name, body) {
   }
   if (!session?.access_token) throw new Error('AUTH_SESSION_MISSING')
   const { data, error } = await supabase.functions.invoke(name, {
-    body,
+    body: body as Record<string, unknown> | undefined,
     headers: { Authorization: `Bearer ${session.access_token}` },
   })
   if (error) {

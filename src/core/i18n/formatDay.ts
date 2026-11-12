@@ -1,6 +1,6 @@
 // The application's calendar-day format ("20/8/2026" in Greek, "20/08/2026" in English),
 // the same as Intl.DateTimeFormat with the UI locale that most screens already use.
-export function formatDay(value, language = 'el') {
+export function formatDay(value: unknown, language = 'el'): string {
   if (!value) return '—'
   const text = String(value).slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return String(value)
@@ -9,7 +9,7 @@ export function formatDay(value, language = 'el') {
 
 // A day and a 24-hour time in the same day format ("11/6/2026 11:10", Athens time), for lists that
 // mix events with and without a time.
-export function formatDayTime(value, language = 'el') {
+export function formatDayTime(value: string | number | Date | null | undefined, language = 'el'): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return String(value)
@@ -22,7 +22,7 @@ export function formatDayTime(value, language = 'el') {
 
 // Date and 24-hour time ("16/10/2026, 09:05"), the format of every registry and
 // record that shows when something happened or is due.
-export function formatDateTime(value, language = 'el') {
+export function formatDateTime(value: string | number | Date | null | undefined, language = 'el'): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return String(value)

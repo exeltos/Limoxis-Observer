@@ -1,6 +1,6 @@
 // The greeting by the time of day, with the first name (the Greek vocative of the
 // common endings: Άρης → Άρη, Νίκος → Νίκο, Κώστας → Κώστα); a leading «Δρ.» is left out.
-export function greetingOf(tx,fullName,now=new Date()){
+export function greetingOf(tx:(el:string,en:string)=>string,fullName:string|null|undefined,now=new Date()):string{
   const hour=now.getHours()
   const hello=hour>=5&&hour<12?tx('Καλημέρα','Good morning'):hour>=12&&hour<18?tx('Καλησπέρα','Good afternoon'):tx('Καλησπέρα','Good evening')
   const first=String(fullName||'').trim().replace(/^(Δρ|Dr)\.?\s+/i,'').split(/\s+/)[0]||''

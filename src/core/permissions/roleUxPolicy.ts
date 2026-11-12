@@ -1,4 +1,3 @@
-// @ts-check
 import { CAPABILITIES,ROLES,can } from './roles'
 import { SCOPES } from './accessModel'
 
@@ -24,11 +23,18 @@ const ROLE_UX_POLICY = Object.freeze({
   [ROLES.DEMO]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Demo' },
 })
 
-/** @param {string|null|undefined} role @returns {{scope:string, sensitiveEmployeeHealth:boolean, label:string}} */
-export function uxPolicyFor(role){ return /** @type {Record<string, {scope:string, sensitiveEmployeeHealth:boolean, label:string}>} */(ROLE_UX_POLICY)[String(role)] ?? {scope:SCOPES.SELF,sensitiveEmployeeHealth:false,label:'User'} }
+export interface RoleUxPolicy {
+  scope: string
+  sensitiveEmployeeHealth: boolean
+  label: string
+}
 
-/** @param {{role?: string|null, membership?: Record<string, any>|null, userId?: string|null, record?: Record<string, any>|null}} [args] */
-export function recordWithinRoleScope({role, membership, userId, record}={}){
+export function uxPolicyFor(role: string|null|undefined): RoleUxPolicy{ return (ROLE_UX_POLICY as Record<string, RoleUxPolicy>)[String(role)] ?? {scope:SCOPES.SELF,sensitiveEmployeeHealth:false,label:'User'} }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- a membership and a record of any module
+type LooseRow = Record<string, any>
+
+export function recordWithinRoleScope({role, membership, userId, record}:{role?: string|null, membership?: LooseRow|null, userId?: string|null, record?: LooseRow|null}={}): boolean{
   if(!record) return true
   const policy=uxPolicyFor(role)
   if(policy.scope===SCOPES.PLATFORM) return true
@@ -51,7 +57,6 @@ export function recordWithinRoleScope({role, membership, userId, record}={}){
   return !record.userId || record.userId===userId
 }
 
-/** @param {string|null|undefined} role @param {string[]} [addOns] @param {string[]} [customCapabilities] */
-export function canSeeSensitiveEmployeeHealth(role,addOns=[],customCapabilities=[]){
+export function canSeeSensitiveEmployeeHealth(role: string|null|undefined,addOns: readonly string[]=[],customCapabilities: readonly string[]=[]): boolean{
   return Boolean(uxPolicyFor(role).sensitiveEmployeeHealth)&&can(role,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,addOns,customCapabilities)
 }

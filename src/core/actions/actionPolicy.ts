@@ -5,7 +5,7 @@ export const UI_ACTIONS = Object.freeze({
   ATTACH: 'attach', PRINT: 'print', EXPORT: 'export', ASSIGN: 'assign', MANAGE: 'manage',
 })
 
-const ACTION_CAPABILITY = Object.freeze({
+const ACTION_CAPABILITY: Readonly<Record<string, string>> = Object.freeze({
   [UI_ACTIONS.CREATE]: CAPABILITIES.CREATE_RECORDS,
   [UI_ACTIONS.EDIT]: CAPABILITIES.EDIT_RECORDS,
   [UI_ACTIONS.DELETE]: CAPABILITIES.DELETE_RECORDS,
@@ -18,12 +18,18 @@ const ACTION_CAPABILITY = Object.freeze({
   [UI_ACTIONS.MANAGE]: CAPABILITIES.MANAGE_ORGANIZATION,
 })
 
-/**
- * @param {{ role?: string | null, addOns?: string[], customCapabilities?: string[], action?: string, resourceCapability?: string, locked?: boolean }} [request]
- */
-export function canPerform({ role, addOns = [], customCapabilities = [], action, resourceCapability, locked = false } = {}) {
+export interface ActionRequest {
+  role?: string | null
+  addOns?: string[]
+  customCapabilities?: string[]
+  action?: string
+  resourceCapability?: string
+  locked?: boolean
+}
+
+export function canPerform({ role, addOns = [], customCapabilities = [], action, resourceCapability, locked = false }: ActionRequest = {}): boolean {
   if (!role || !action) return false
-  if (locked && [UI_ACTIONS.EDIT, UI_ACTIONS.DELETE].includes(action)) return false
+  if (locked && ([UI_ACTIONS.EDIT, UI_ACTIONS.DELETE] as string[]).includes(action)) return false
   const generic = ACTION_CAPABILITY[action]
   if (resourceCapability) return can(role, resourceCapability, addOns, customCapabilities)
   return generic ? can(role, generic, addOns, customCapabilities) : true

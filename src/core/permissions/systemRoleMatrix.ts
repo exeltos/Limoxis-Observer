@@ -1,4 +1,3 @@
-// @ts-check
 import { CAPABILITIES } from './capabilityCatalogue.js'
 import { DATA_SCOPES } from './scopeTypes.js'
 export const ROLES = Object.freeze({
@@ -33,10 +32,8 @@ export const PREVIEWABLE_ROLES = Object.freeze([
 ])
 // Raw record data (the «JSON» export) is for administrators only: Platform
 // Owner and the organization's Hospital Admin (and the demo, which acts as one).
-/** @param {string|null|undefined} role */
-export const canExportRawData = (role) => role === ROLES.PLATFORM_OWNER || role === ROLES.HOSPITAL_ADMIN || role === ROLES.DEMO
-/** @param {string|null|undefined} role */
-export const isPreviewableRole = (role) => /** @type {readonly unknown[]} */(PREVIEWABLE_ROLES).includes(role)
+export const canExportRawData = (role: string|null|undefined): boolean => role === ROLES.PLATFORM_OWNER || role === ROLES.HOSPITAL_ADMIN || role === ROLES.DEMO
+export const isPreviewableRole = (role: string|null|undefined): boolean => (PREVIEWABLE_ROLES as readonly unknown[]).includes(role)
 
 export const MANAGEMENT_CAPABILITIES = Object.freeze([
   CAPABILITIES.MANAGE_ORGANIZATION, CAPABILITIES.MANAGE_USERS, CAPABILITIES.MANAGE_ROLES,
@@ -74,15 +71,14 @@ const hospitalAdminExcluded=new Set([
   CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME,
   CAPABILITIES.REVIEW_CLINICAL,
 ])
-const hospitalAdminCapabilities=allCapabilities.filter(cap=>!/** @type {Set<string>} */(hospitalAdminExcluded).has(cap))
-const demoCapabilities=allCapabilities.filter(cap=>!/** @type {string[]} */([CAPABILITIES.VIEW_PLATFORM,CAPABILITIES.MANAGE_PLATFORM]).includes(cap))
+const hospitalAdminCapabilities=allCapabilities.filter(cap=>!(hospitalAdminExcluded as Set<string>).has(cap))
+const demoCapabilities=allCapabilities.filter(cap=>!([CAPABILITIES.VIEW_PLATFORM,CAPABILITIES.MANAGE_PLATFORM] as string[]).includes(cap))
 const recordWorker=[CAPABILITIES.CREATE_RECORDS,CAPABILITIES.EDIT_RECORDS,CAPABILITIES.ATTACH_FILES,CAPABILITIES.PRINT_RECORDS]
 const recordManager=[...recordWorker,CAPABILITIES.DELETE_RECORDS,CAPABILITIES.COMPLETE_RECORDS,CAPABILITIES.APPROVE_RECORDS,CAPABILITIES.EXPORT_RECORDS,CAPABILITIES.ASSIGN_RECORDS]
 
 // Every member of the staff may report an incident, a near miss or a
 // complaint (Quality > New incident report); reporting is not a privilege.
-/** @param {Record<string,string[]>} roles @returns {Record<string,string[]>} */
-const withIncidentReporting=roles=>Object.fromEntries(Object.entries(roles).map(([role,capabilities])=>[role,capabilities.includes(CAPABILITIES.REPORT_INCIDENT)?capabilities:[...capabilities,CAPABILITIES.REPORT_INCIDENT]]))
+const withIncidentReporting=(roles:Record<string,string[]>):Record<string,string[]>=>Object.fromEntries(Object.entries(roles).map(([role,capabilities])=>[role,capabilities.includes(CAPABILITIES.REPORT_INCIDENT)?capabilities:[...capabilities,CAPABILITIES.REPORT_INCIDENT]]))
 
 export const roleCapabilities=Object.freeze(withIncidentReporting({
   [ROLES.PLATFORM_OWNER]:allCapabilities,
@@ -118,14 +114,10 @@ export const addonCapabilityMap=Object.freeze({
   [ADD_ON_CAPABILITIES.SUPPLIER_RENEWAL_SENDER]:[CAPABILITIES.SEND_SUPPLIER_RENEWALS],
 })
 
-/** @type {Set<string>} */
-const departmentRoles=new Set([ROLES.LINK_NURSE,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LABORATORY])
-/** @type {Set<string>} */
-const assignmentRoles=new Set([ROLES.DOCTOR_REVIEWER,ROLES.COMMITTEE_SECRETARIAT])
-/** @type {Set<string>} */
-const laboratoryOrganizationCapabilities=new Set([CAPABILITIES.VIEW_LAB,CAPABILITIES.MANAGE_LAB_SAMPLES,CAPABILITIES.VALIDATE_LAB_RESULTS,CAPABILITIES.COMMUNICATE_CRITICAL_RESULTS,CAPABILITIES.CLASSIFY_RESISTANCE,CAPABILITIES.REOPEN_LAB_RECORD])
-/** @param {string} role @param {string} capability */
-const scopeForSystemRole=(role,capability)=>{
+const departmentRoles:Set<string>=new Set([ROLES.LINK_NURSE,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LABORATORY])
+const assignmentRoles:Set<string>=new Set([ROLES.DOCTOR_REVIEWER,ROLES.COMMITTEE_SECRETARIAT])
+const laboratoryOrganizationCapabilities:Set<string>=new Set([CAPABILITIES.VIEW_LAB,CAPABILITIES.MANAGE_LAB_SAMPLES,CAPABILITIES.VALIDATE_LAB_RESULTS,CAPABILITIES.COMMUNICATE_CRITICAL_RESULTS,CAPABILITIES.CLASSIFY_RESISTANCE,CAPABILITIES.REOPEN_LAB_RECORD])
+const scopeForSystemRole=(role:string,capability:string)=>{
   if(capability===CAPABILITIES.VIEW_MY_PROFILE)return DATA_SCOPES.SELF
   if(role===ROLES.PLATFORM_OWNER&&capability.includes('platform'))return DATA_SCOPES.PLATFORM
   if(role===ROLES.LABORATORY&&laboratoryOrganizationCapabilities.has(capability))return DATA_SCOPES.ORGANIZATION
@@ -133,5 +125,4 @@ const scopeForSystemRole=(role,capability)=>{
   return DATA_SCOPES.ORGANIZATION
 }
 export const systemRoleMatrix=Object.freeze(Object.entries(roleCapabilities).flatMap(([role,capabilities])=>capabilities.map(capability=>Object.freeze({role,capability,defaultScope:scopeForSystemRole(role,capability),maximumScope:scopeForSystemRole(role,capability),requiresAssignment:assignmentRoles.has(role)}))))
-/** @param {string|null|undefined} role @param {string} capability */
-export const roleCapabilityRule=(role,capability)=>systemRoleMatrix.find(row=>row.role===role&&row.capability===capability)??null
+export const roleCapabilityRule=(role:string|null|undefined,capability:string)=>systemRoleMatrix.find(row=>row.role===role&&row.capability===capability)??null

@@ -1,4 +1,3 @@
-// @ts-check
 export const SYSTEM_ROLE_KEYS=Object.freeze([
   'hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','laboratory','committee_secretariat','hr_office','pharmacy','occupational_physician','doctor_reviewer','quality_manager','hospital_director','division_director','link_nurse','staff_user',
 ])
@@ -36,15 +35,14 @@ export const ROLE_LABEL_KEYS=Object.freeze({
   linkNurseRole:'link_nurse',staffUserRole:'staff_user',demoRole:'demo',
 })
 
-/** @param {string|null|undefined} role @param {string} [language] */
-export function roleLabel(role,language='el'){
+export function roleLabel(role:string|null|undefined,language='el'):string{
   const key=String(role||'').trim()
   if(!key)return '—'
-  return /** @type {Record<string, {el:string, en:string}>} */(ROLE_LABELS)[key]?.[language==='en'?'en':'el']||key.replaceAll('_',' ')
+  return (ROLE_LABELS as Record<string, {el:string, en:string}>)[key]?.[language==='en'?'en':'el']||key.replaceAll('_',' ')
 }
 
-/** The name behind a dictionary key such as 'hospitalDirectorRole', or null. @param {string} key @param {string} [language] */
-export function roleLabelForKey(key,language='el'){
-  const role=/** @type {Record<string,string>} */(ROLE_LABEL_KEYS)[key]
+// The name behind a dictionary key such as 'hospitalDirectorRole', or null.
+export function roleLabelForKey(key:string,language='el'):string|null{
+  const role=(ROLE_LABEL_KEYS as Record<string,string>)[key]
   return role?roleLabel(role,language):null
 }
