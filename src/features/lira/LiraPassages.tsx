@@ -1,9 +1,10 @@
 import { BookOpen,ExternalLink } from 'lucide-react'
 import './liraPassages.css'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // Passages LIRA found in its approved knowledge, each with its source. Shown
 // without a provider key; with one, the written answer cites them.
-export function LiraPassages({passages,en}){
+export function LiraPassages({passages,en}: {passages?: AnyRecord[]|null; en: boolean}){
  if(!passages?.length)return null
  return <div className="lira-passages">{passages.map(p=><blockquote className="lira-passage" key={p.chunkId}>
   <p>{p.excerpt}</p>
@@ -11,7 +12,7 @@ export function LiraPassages({passages,en}){
  </blockquote>)}</div>
 }
 
-export function LiraModeBadge({item,en}){
+export function LiraModeBadge({item,en}: {item: AnyRecord; en: boolean}){
  if(item.ai)return <span className="lira-mode-badge ai">{en?'Written with AI':'Με σύνθεση AI'}</span>
  if(item.passages?.length)return <span className="lira-mode-badge">{en?'Internal · no external service':'Εσωτερική λειτουργία'}</span>
  return null

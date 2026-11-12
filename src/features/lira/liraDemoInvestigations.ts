@@ -4,8 +4,9 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { addDays } from '../../core/data/demoSeed'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const rows = [
+const rows: [string, string, string, string, string | null][] = [
   ['LIRA-INV-01', 'Klebsiella pneumoniae (KPC)', 'active', '2026-08-18T09:20:00Z', null],
   ['LIRA-INV-02', 'Acinetobacter baumannii', 'closed', '2026-06-30T10:05:00Z', '2026-07-21T15:40:00Z'],
   ['LIRA-INV-03', 'Clostridioides difficile', 'closed', '2026-05-12T08:45:00Z', '2026-05-29T12:10:00Z'],
@@ -26,7 +27,7 @@ const rows = [
 
 // For the investigation screen: the species the line list searches for, the ward, and
 // the actions taken (Greek, English). Closed investigations closed their actions.
-const DETAILS = {
+const DETAILS: Record<string, [string, string, string, string]> = {
   'LIRA-INV-01': ['Klebsiella pneumoniae', 'ΜΕΘ', 'ICU', 'contact'],
   'LIRA-INV-02': ['Acinetobacter baumannii', 'ΜΕΘ', 'ICU', 'environment'],
   'LIRA-INV-03': ['Clostridioides difficile', 'Παθολογική', 'Internal Medicine', 'cdi'],
@@ -45,7 +46,7 @@ const DETAILS = {
 }
 // [title, title (English), description, description (English), owner, owner (English), type, priority, days after the start]
 // prettier-ignore
-const ACTIONS = {
+const ACTIONS: Record<string, [string, string, string, string, string, string, string, string, number][]> = {
   contact: [
     ['Ενίσχυση προφυλάξεων επαφής και ομαδοποίηση νοσηλευτών', 'Reinforced contact precautions and nurse cohorting', 'Αποκλειστικό προσωπικό για τους αποικισμένους ασθενείς και έλεγχος συμμόρφωσης ανά βάρδια.', 'Dedicated staff for colonised patients and compliance checks every shift.', 'Προϊσταμένη τμήματος', 'Head nurse of the ward', 'corrective', 'high', 3],
     ['Εβδομαδιαίος προληπτικός έλεγχος (screening) ασθενών', 'Weekly patient screening', 'Ορθοπρωκτικά επιχρίσματα κατά την εισαγωγή και κάθε εβδομάδα για όσο διαρκεί η διερεύνηση.', 'Rectal swabs on admission and weekly while the investigation lasts.', 'Νοσηλεύτρια επιτήρησης', 'Infection control nurse', 'preventive', 'medium', 7],
@@ -66,7 +67,7 @@ const ACTIONS = {
     ['Επανεξέταση της αντιμικροβιακής αγωγής στο τμήμα', 'Review of the ward antimicrobial use', 'Περιορισμός κεφαλοσπορινών και κινολονών με την ομάδα επιτήρησης αντιβιοτικών.', 'Restricted cephalosporins and quinolones with the antimicrobial stewardship team.', 'Ομάδα επιτήρησης αντιβιοτικών', 'Antimicrobial stewardship team', 'preventive', 'medium', 8],
   ],
 }
-const HYPOTHESIS = {
+const HYPOTHESIS: Record<string, [string, string]> = {
   contact: ['Μετάδοση με τα χέρια του προσωπικού μεταξύ γειτονικών κλινών.', 'Transmission on staff hands between neighbouring beds.'],
   environment: ['Περιβαλλοντική δεξαμενή σε επιφάνειες και εξοπλισμό.', 'An environmental reservoir on surfaces and equipment.'],
   water: ['Μόλυνση των σιφωνίων και του δικτύου νερού.', 'Contamination of sink traps and the water network.'],
@@ -76,7 +77,7 @@ const DECISION = [
   'Η υπόθεση επιβεβαιώθηκε· τα μέτρα εφαρμόστηκαν και δεν υπήρξαν νέα περιστατικά για δύο χρόνους επώασης.',
   'The hypothesis was confirmed; the measures were applied and there were no new cases for two incubation periods.',
 ]
-const iso = (date, time) => `${date}T${time}:00Z`
+const iso = (date: string, time: string) => `${date}T${time}:00Z`
 
 export const liraDemoInvestigations = shiftDemoDatesInPlace(
   rows.map(([id, organism, status, created_at, closed_at]) => {
@@ -98,7 +99,7 @@ export const liraDemoInvestigations = shiftDemoDatesInPlace(
         { id: `${id}-EV-3`, event_type: 'hypothesis', payload: { text: HYPOTHESIS[kind][0], textEn: HYPOTHESIS[kind][1] }, created_at: iso(addDays(start, 2), '09:30') },
       ]),
       ...(status === 'closed' ? [
-        { id: `${id}-EV-4`, event_type: 'decision', payload: { text: DECISION[0], textEn: DECISION[1] }, created_at: iso(addDays(end, -1), '10:00') },
+        { id: `${id}-EV-4`, event_type: 'decision', payload: { text: DECISION[0], textEn: DECISION[1] }, created_at: iso(addDays(end!, -1), '10:00') },
         { id: `${id}-EV-5`, event_type: 'status', payload: { from: 'active', to: 'closed' }, created_at: closed_at },
       ] : []),
     ]
@@ -117,16 +118,16 @@ emptyInPreview(liraDemoInvestigations)
 // The human case reviews of a Demo investigation, made from the cases its line list
 // finds: the ward's cases confirmed, the others excluded. An active investigation has
 // reviewed only its first half, so its closure still waits on the rest.
-const reviewDay = (investigation, index) => {
+const reviewDay = (investigation: AnyRecord, index: number) => {
   const day = addDays(String(investigation.created_at).slice(0, 10), 1 + (index % 4))
   const last = investigation.closed_at && addDays(String(investigation.closed_at).slice(0, 10), -1)
   return last && day > last ? last : day
 }
-export function demoOutbreakCaseReviews(investigation, lineList) {
+export function demoOutbreakCaseReviews(investigation: AnyRecord | null | undefined, lineList: AnyRecord | null | undefined) {
   if (!investigation?.demoEvents || investigation.status === 'draft') return []
   const rows = lineList?.rows || []
   const reviewed = investigation.status === 'active' ? rows.slice(0, Math.ceil(rows.length / 2)) : rows
-  return reviewed.map((row, index) => {
+  return reviewed.map((row: AnyRecord, index: number) => {
     const ward = row.department === investigation.department
     return {
       id: `${investigation.id}-REV-${index + 1}`,

@@ -1,14 +1,14 @@
-const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('el-GR')
-const has=(text,terms)=>terms.some(term=>text.includes(normalize(term)))
+const normalize=(value: unknown)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('el-GR')
+const has=(text: string,terms: string[])=>terms.some(term=>text.includes(normalize(term)))
 
-export const LIRA_INTENTS=Object.freeze({
+export const LIRA_INTENTS: Readonly<Record<string,string>>=Object.freeze({
  OVERVIEW:'overview',COUNT:'count',STATUS:'status',TREND:'trend',COMPARISON:'comparison',RANKING:'ranking',CLUSTER:'cluster',OVERDUE:'overdue',EXPLANATION:'explanation',FOLLOW_UP:'follow_up',
 })
-export const LIRA_TOPICS=Object.freeze({
+export const LIRA_TOPICS: Readonly<Record<string,string>>=Object.freeze({
  INFECTIONS:'infections',AMR:'amr',LABORATORY:'laboratory',HAND_HYGIENE:'hand_hygiene',BUNDLES:'bundles',SURVEILLANCE:'surveillance',ISOLATION:'isolation',QUALITY:'quality',CAPA:'capa',INCIDENTS:'incidents',TRAINING:'training',DOCUMENTS:'documents',COMMITTEES:'committees',INDICATORS:'indicators',GENERAL:'general',
 })
 
-const topicRules=[
+const topicRules: [string,string[]][]=[
  [LIRA_TOPICS.AMR,['mdr','xdr','pdr','amr','ανθεκ','αντοχ','antibiogram','αντιβιογραμμα']],
  [LIRA_TOPICS.HAND_HYGIENE,['υγιεινη χεριων','hand hygiene','αλκοολουχο','συμμορφωση χεριων']],
  [LIRA_TOPICS.BUNDLES,['bundle','bundles','δεσμη μετρων']],
@@ -25,7 +25,7 @@ const topicRules=[
  [LIRA_TOPICS.INFECTIONS,['λοιμωξ','infection','μικροβ','microbe','μικροοργαν','organism','klebsiella','acinetobacter','pseudomonas','enterococcus','staphylococcus']],
 ]
 
-const intentFrom=text=>{
+const intentFrom=(text: string)=>{
  if(has(text,['γιατι','why','εξηγησε','explain','τι σημαινει','πως προκυπτ']))return LIRA_INTENTS.EXPLANATION
  if(has(text,['συρρο','εξαρσ','outbreak','cluster','συσσωρευση']))return LIRA_INTENTS.CLUSTER
  if(has(text,['σε σχεση','συγκρι','compare','versus',' vs ','προηγουμεν','last month compared','τι αλλαξε','πως αλλαξε','what changed','how changed']))return LIRA_INTENTS.COMPARISON
@@ -38,17 +38,19 @@ const intentFrom=text=>{
  return LIRA_INTENTS.OVERVIEW
 }
 
-const topicFrom=text=>topicRules.find(([,terms])=>has(text,terms))?.[0]||LIRA_TOPICS.GENERAL
-const antimicrobialFrom=text=>{const terms=[['meropenem','meropenem'],['μεροπενεμ','meropenem'],['ceftriaxone','ceftriaxone'],['κεφτριαξον','ceftriaxone'],['vancomycin','vancomycin'],['βανκομυκιν','vancomycin'],['oxacillin','oxacillin'],['οξακιλλιν','oxacillin']];return terms.find(([label])=>text.includes(label))?.[1]||null}
-const specimenFrom=text=>{const terms=[['αιμα','blood'],['blood','blood'],['ουρ','urine'],['urine','urine'],['αναπνευσ','respiratory'],['respiratory','respiratory'],['τραυμα','wound'],['wound','wound']];return terms.find(([label])=>text.includes(label))?.[1]||null}
-const entityFrom=text=>{
+const topicFrom=(text: string)=>topicRules.find(([,terms])=>has(text,terms))?.[0]||LIRA_TOPICS.GENERAL
+const antimicrobialFrom=(text: string)=>{const terms=[['meropenem','meropenem'],['μεροπενεμ','meropenem'],['ceftriaxone','ceftriaxone'],['κεφτριαξον','ceftriaxone'],['vancomycin','vancomycin'],['βανκομυκιν','vancomycin'],['oxacillin','oxacillin'],['οξακιλλιν','oxacillin']];return terms.find(([label])=>text.includes(label))?.[1]||null}
+const specimenFrom=(text: string)=>{const terms=[['αιμα','blood'],['blood','blood'],['ουρ','urine'],['urine','urine'],['αναπνευσ','respiratory'],['respiratory','respiratory'],['τραυμα','wound'],['wound','wound']];return terms.find(([label])=>text.includes(label))?.[1]||null}
+const entityFrom=(text: string)=>{
  const organisms=['klebsiella','acinetobacter','pseudomonas','enterococcus','staphylococcus','candida','clostridioides','e. coli','escherichia coli','enterobacter']
  const found=organisms.find(x=>text.includes(x));if(found)return found
  const greek=[['κλεμπσιελλα','klebsiella'],['ακινετομπακτερ','acinetobacter'],['ψευδομοναδα','pseudomonas'],['εντεροκοκκο','enterococcus'],['σταφυλοκοκκο','staphylococcus']]
  return greek.find(([label])=>text.includes(label))?.[1]||null
 }
 
-export function interpretLiraQuestion(question,{scope={},previousPlan=null}={}){
+// Πώς κατάλαβε η LIRA μια ερώτηση (θέμα, πρόθεση, τμήμα, περίοδος).
+export interface LiraPlan { intent: string; topic: string; entity: string|null; department: string; periodDays: number; comparison: boolean; operationalChange: boolean; antimicrobial: string|null; specimen: string|null; followUp: boolean; rawQuestion: unknown }
+export function interpretLiraQuestion(question: unknown,{scope={},previousPlan=null}: {scope?: {department?: string; periodDays?: number}; previousPlan?: Partial<LiraPlan>|null}={}): LiraPlan{
  const text=normalize(question)
  const intent=intentFrom(text)
  const topic=topicFrom(text)

@@ -1,15 +1,16 @@
 import {buildOutbreakLineList} from './liraOutbreakInvestigation'
 import {buildOutbreakClosureReadiness,latestCaseReviews} from './liraOutbreakClosure'
 import {listOutbreakInvestigations,loadOutbreakInvestigationEvents,loadOutbreakCaseReviews,loadOutbreakActions} from './liraOutbreakWorkspace'
-const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
-export function isOutbreakWorkspaceQuestion(question){const q=norm(question);return /διερευν|εξαρσ|outbreak|case review|capa|κλεισ|close|hypothes|υποθεσ/.test(q)&&/τι γνωριζ|μεχρι τωρα|candidate|περιστατικ|capa|εκκρεμ|pending|κλεισ|close|ready|ετοιμ|hypothes|υποθεσ|investigation|διερευν/.test(q)}
-function chooseInvestigation(question,rows){const q=norm(question);const explicit=rows.find(x=>q.includes(norm(x.title))||q.includes(String(x.id).toLowerCase()));if(explicit)return explicit;return rows.find(x=>x.status==='active')||rows.find(x=>x.status==='draft')||rows[0]||null}
-export async function answerOutbreakWorkspaceQuestion({question,data,organizationId,language='el'}){
+import type { AnyRecord } from '../../types/featureTypes'
+const norm=(v: unknown)=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+export function isOutbreakWorkspaceQuestion(question: string){const q=norm(question);return /διερευν|εξαρσ|outbreak|case review|capa|κλεισ|close|hypothes|υποθεσ/.test(q)&&/τι γνωριζ|μεχρι τωρα|candidate|περιστατικ|capa|εκκρεμ|pending|κλεισ|close|ready|ετοιμ|hypothes|υποθεσ|investigation|διερευν/.test(q)}
+function chooseInvestigation(question: string,rows: AnyRecord[]){const q=norm(question);const explicit=rows.find(x=>q.includes(norm(x.title))||q.includes(String(x.id).toLowerCase()));if(explicit)return explicit;return rows.find(x=>x.status==='active')||rows.find(x=>x.status==='draft')||rows[0]||null}
+export async function answerOutbreakWorkspaceQuestion({question,data,organizationId,language='el'}: AnyRecord){
  const en=language==='en',investigations=await listOutbreakInvestigations(organizationId),investigation=chooseInvestigation(question,investigations)
  if(!investigation)return {title:en?'Outbreak investigations':'Διερευνήσεις εξάρσεων',subtitle:'',points:[en?'No governed outbreak investigation is available in your authorized organization.':'Δεν υπάρχει ελεγχόμενη διερεύνηση έξαρσης στον εξουσιοδοτημένο οργανισμό σας.'],provenance:[{source:'lira_outbreak_investigations'}],context:{plan:null,timeWindow:null}}
  const [events,reviews,actions]=await Promise.all([loadOutbreakInvestigationEvents(investigation.id),loadOutbreakCaseReviews(investigation.id),loadOutbreakActions(organizationId,investigation.id)])
  const lineList=buildOutbreakLineList(data,{from:investigation.scope_from,to:investigation.scope_to,organism:investigation.organism||null}),closure=buildOutbreakClosureReadiness({lineList,caseReviews:reviews,actions,events}),latest=latestCaseReviews(reviews),q=norm(question)
- let points=[]
+ let points: string[]=[]
  if(/capa|εκκρεμ|pending|action|ενεργει/.test(q)){const open=actions.filter(x=>x.status!=='closed');points=open.length?open.slice(0,8).map(x=>`${x.title} · ${x.status} · ${x.owner_label||'—'} · ${x.due_date||'—'}`):[en?'No open investigation CAPA actions.':'Δεν υπάρχουν ανοιχτές διορθωτικές ενέργειες της διερεύνησης.']}
  else if(/κλεισ|close|ready|ετοιμ/.test(q)){points=[closure.ready?(en?'Deterministic closure checks are complete; human closure rationale is still required.':'Οι deterministic έλεγχοι κλεισίματος είναι πλήρεις· εξακολουθεί να απαιτείται ανθρώπινη αιτιολόγηση κλεισίματος.'):(en?'The investigation is not ready for closure review.':'Η διερεύνηση δεν είναι έτοιμη για έλεγχο κλεισίματος.'),...closure.blockers.map(x=>`${x.code.replaceAll('_',' ')}: ${x.count}`)]}
  else if(/candidate|περιστατικ|case review|αξιολογ/.test(q)){const reviewed=new Set(latest.map(x=>x.record_key)),pending=lineList.rows.filter(x=>!reviewed.has(x.recordKey));points=[en?`${lineList.rows.length} candidates · ${latest.length} human-reviewed · ${pending.length} pending review.`:`${lineList.rows.length} candidates · ${latest.length} ανθρώπινα αξιολογημένα · ${pending.length} προς αξιολόγηση.`,...pending.slice(0,6).map(x=>`${x.eventDate} · ${x.department} · ${x.organism||'—'} · ${x.specimenType||'—'}`)]}

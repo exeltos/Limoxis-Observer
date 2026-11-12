@@ -1,21 +1,28 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
-const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-const iso = date => date.toISOString().slice(0, 10)
-const parseIso = value => {
+import type { AnyRecord } from '../../types/featureTypes'
+
+// Χρονικό παράθυρο μιας ερώτησης («χθες», «Μάρτιος», «από 1/3 έως 5/3»).
+export interface LiraTimeWindow { start: string; end: string; label: string; kind?: string }
+// Δύο αντίστοιχες περίοδοι για σύγκριση (buildMatchedComparisonSpec). Οι αναλύσεις
+// τις δίνουν και ως επιλογές, γι' αυτό δέχονται και άλλα πεδία.
+export interface LiraComparisonSpec { current: LiraTimeWindow & AnyRecord; reference: LiraTimeWindow & AnyRecord }
+const normalize = (value: unknown) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const iso = (date: Date) => date.toISOString().slice(0, 10)
+const parseIso = (value: string) => {
   const date = new Date(`${value}T12:00:00`)
   return Number.isFinite(date.getTime()) ? date : null
 }
-const shift = (date, days) => {
+const shift = (date: Date, days: number) => {
   const next = new Date(date)
   next.setDate(next.getDate() + days)
   return next
 }
-const startOfWeek = date => {
+const startOfWeek = (date: Date) => {
   const day = (date.getDay() + 6) % 7
   return shift(date, -day)
 }
 
-const monthNames = {
+const monthNames: Record<string, number> = {
   ιανουαριος: 1, ιανουαριο: 1, ιανουαριου: 1, january: 1,
   φεβρουαριος: 2, φεβρουαριο: 2, φεβρουαριου: 2, february: 2,
   μαρτιος: 3, μαρτιο: 3, μαρτιου: 3, march: 3,
@@ -30,13 +37,13 @@ const monthNames = {
   δεκεμβριος: 12, δεκεμβριο: 12, δεκεμβριου: 12, december: 12,
 }
 
-const monthWindow = (year, month) => ({
+const monthWindow = (year: number, month: number) => ({
   start: `${year}-${String(month).padStart(2, '0')}-01`,
   end: iso(new Date(year, month, 0, 12)),
   label: `${String(month).padStart(2, '0')}/${year}`,
 })
 
-export function inferLiraTimeWindow(question, { today = hospitalToday() } = {}) {
+export function inferLiraTimeWindow(question: unknown, { today = hospitalToday() }: { today?: string } = {}): LiraTimeWindow | null {
   const text = normalize(question)
   const now = parseIso(today)
   if (!now) return null
@@ -73,7 +80,7 @@ export function inferLiraTimeWindow(question, { today = hospitalToday() } = {}) 
   if (range) {
     const rawYearA = Number(range[3] || now.getFullYear())
     const rawYearB = Number(range[6] || rawYearA)
-    const fullYear = year => (year < 100 ? 2000 + year : year)
+    const fullYear = (year: number) => (year < 100 ? 2000 + year : year)
     const start = `${fullYear(rawYearA)}-${String(range[2]).padStart(2, '0')}-${String(range[1]).padStart(2, '0')}`
     const end = `${fullYear(rawYearB)}-${String(range[5]).padStart(2, '0')}-${String(range[4]).padStart(2, '0')}`
     if (parseIso(start) && parseIso(end) && start <= end) {
@@ -92,11 +99,11 @@ export function inferLiraTimeWindow(question, { today = hospitalToday() } = {}) 
   return null
 }
 
-export function filterLiraDataByWindow(data, window) {
+export function filterLiraDataByWindow(data: AnyRecord, window: LiraTimeWindow | null | undefined) {
   if (!data || !window) return data
 
-  const dateOf = row => row?.signalDate || row?.resultedAt || row?.collectedAt || row?.date || row?.startedAt || row?.dueDate || null
-  const rows = items => (items || []).filter(row => {
+  const dateOf = (row: AnyRecord) => row?.signalDate || row?.resultedAt || row?.collectedAt || row?.date || row?.startedAt || row?.dueDate || null
+  const rows = (items: AnyRecord[] | undefined) => (items || []).filter(row => {
     const value = dateOf(row)
     if (!value) return false
     const date = String(value).slice(0, 10)

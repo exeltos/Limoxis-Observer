@@ -1,4 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '../../core/supabase/client'
+import type { AnyRecord } from '../../types/featureTypes'
 import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { handHygieneRows,bundleRows } from '../prevention/preventionDemoData'
@@ -15,18 +17,18 @@ import { collectDeviceDaySources } from '../surveillance/deviceDayIndicators'
  * operational decision support.
  */
 
-function bundleSignals(criteria,score){
+function bundleSignals(criteria: unknown,score: number){
   if(Array.isArray(criteria)){
-    const failedCount=criteria.filter(item=>item&&(item.compliant===false||item.passed===false||item.value===false)).length
+    const failedCount=criteria.filter((item: AnyRecord|null)=>item&&(item.compliant===false||item.passed===false||item.value===false)).length
     return {failedCount,allOrNone:criteria.length?failedCount===0:Number(score)>=100}
   }
-  const answers=criteria?.answers&&typeof criteria.answers==='object'?criteria.answers:{}
+  const answers=(criteria as AnyRecord|null)?.answers&&typeof (criteria as AnyRecord).answers==='object'?(criteria as AnyRecord).answers:{}
   const applicable=Object.values(answers).filter(value=>value==='yes'||value==='no')
   const failedCount=applicable.filter(value=>value==='no').length
   return {failedCount,allOrNone:applicable.length?failedCount===0:Number(score)>=100}
 }
 
-export async function loadLiraData({isDemo=false,organizationId=null}={}){
+export async function loadLiraData({isDemo=false,organizationId=null}: {isDemo?: boolean; organizationId?: string|null}={}): Promise<AnyRecord>{
   // surveillanceDemoData's own field is `status` (matching the real
   // surveillance_cases.status column and SurveillancePage's expectations).
   // LIRA's production mapping below normalizes that into its own `state`
@@ -34,18 +36,20 @@ export async function loadLiraData({isDemo=false,organizationId=null}={}){
   if(isDemo){const {devices,haiClassifications}=collectDeviceDaySources();return {surveillance:surveillanceDemoData.map(row=>({...row,state:row.status})),laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],haiClassifications,devices,isolations:[],generatedAt:new Date().toISOString(),source:'demo',provenance:{mode:'demo',surveillance:'surveillanceDemoData',laboratory:'laboratoryDemoData',prevention:'preventionDemoData',quality:'qualityDemoData',haiClassifications:'demo device-day sources',devices:'demo device-day sources'}}}
   if(!supabase||!organizationId) throw new Error('LIRA_CONTEXT_NOT_AVAILABLE')
 
-  const q=(table,columns)=>supabase.from(table).select(columns).eq('organization_id',organizationId).limit(500)
+  // Οι στήλες κάθε πίνακα δίνονται ως κείμενο (q(table,columns)): client χωρίς τύπους.
+  const db=supabase as unknown as SupabaseClient
+  const q=(table: string,columns: string)=>db.from(table).select<string,AnyRecord>(columns).eq('organization_id',organizationId).limit(500)
   const [departmentsRes,patientsRes,casesRes,reassessmentsRes,isolationRes,samplesRes,resultsRes,astRes,handRes,bundleRes,incidentRes,capaRes,patientDayPeriodsRes,haiRes,devicesRes]=await Promise.all([
     q('departments','id,name,code'),q('patients','id,patient_code,first_name,last_name,department_id,status'),q('surveillance_cases','id,patient_id,department_id,status,started_at,closed_at'),q('surveillance_reassessments','id,surveillance_case_id,reassessed_at,next_review_due_at'),q('isolation_episodes','id,surveillance_case_id,patient_id,started_at,ended_at,review_due_at,status'),q('laboratory_samples','id,patient_id,surveillance_case_id,department_id,sample_code,sample_type,status,collected_at'),q('microbiology_results','id,sample_id,result_status,organism,resistance_class,is_critical,critical_communicated_at,resulted_at,validation_status'),q('antimicrobial_susceptibility_results','id,microbiology_result_id,antimicrobial_code,antimicrobial_name,method,mic_value,mic_operator,zone_diameter_mm,sir_category,breakpoint_standard,breakpoint_version,technical_uncertainty'),q('hand_hygiene_sessions','id,department_id,observation_date,observations,compliant_observations,status'),q('prevention_bundle_assessments','id,department_id,bundle_key,assessment_date,score,criteria,status'),q('quality_incidents','id,code,title,department_id,occurred_at,severity,status'),q('quality_capa_actions','id,code,title,department_id,due_date,priority,status'),q('patient_day_periods','id,department_id,period_start,period_end,patient_days,source,source_reference,review_status'),q('hai_classifications','id,surveillance_case_id,patient_id,case_status,hai_type,definition_set,definition_version,criteria_met,classified_at'),q('surveillance_devices','id,surveillance_case_id,patient_id,department_id,device_type,inserted_at,removed_at,status'),
   ])
   const responses=[departmentsRes,patientsRes,casesRes,reassessmentsRes,isolationRes,samplesRes,resultsRes,astRes,handRes,bundleRes,incidentRes,capaRes,patientDayPeriodsRes,haiRes,devicesRes]
   const failed=responses.find(x=>x.error);if(failed?.error)throw failed.error
   const departments=new Map((departmentsRes.data||[]).map(x=>[x.id,x.name||x.code||'—']))
-  const astByResult=new Map();for(const ast of astRes.data||[]){const current=astByResult.get(ast.microbiology_result_id)||[];current.push({id:ast.id,antimicrobialCode:ast.antimicrobial_code,antimicrobialName:ast.antimicrobial_name,method:ast.method,micValue:ast.mic_value,micOperator:ast.mic_operator,zoneDiameterMm:ast.zone_diameter_mm,sirCategory:ast.sir_category,breakpointStandard:ast.breakpoint_standard,breakpointVersion:ast.breakpoint_version,technicalUncertainty:ast.technical_uncertainty});astByResult.set(ast.microbiology_result_id,current)}
-  const patients=new Map((patientsRes.data||[]).map(x=>[x.id,x]));const samples=samplesRes.data||[];const results=resultsRes.data||[];const sampleById=new Map(samples.map(x=>[x.id,x]));const resultsBySample=new Map()
+  const astByResult=new Map<string,AnyRecord[]>();for(const ast of astRes.data||[]){const current=astByResult.get(ast.microbiology_result_id)||[];current.push({id:ast.id,antimicrobialCode:ast.antimicrobial_code,antimicrobialName:ast.antimicrobial_name,method:ast.method,micValue:ast.mic_value,micOperator:ast.mic_operator,zoneDiameterMm:ast.zone_diameter_mm,sirCategory:ast.sir_category,breakpointStandard:ast.breakpoint_standard,breakpointVersion:ast.breakpoint_version,technicalUncertainty:ast.technical_uncertainty});astByResult.set(ast.microbiology_result_id,current)}
+  const patients=new Map((patientsRes.data||[]).map(x=>[x.id,x]));const samples=samplesRes.data||[];const results=resultsRes.data||[];const sampleById=new Map(samples.map(x=>[x.id,x]));const resultsBySample=new Map<string,AnyRecord[]>()
   for(const result of results){const current=resultsBySample.get(result.sample_id)||[];current.push(result);resultsBySample.set(result.sample_id,current)}
-  const patientName=(patientId)=>{const p=patients.get(patientId);return p?[p.first_name,p.last_name].filter(Boolean).join(' ')||p.patient_code:'—'}
-  const latest=(rows,dateKey)=>[...rows].sort((a,b)=>String(b?.[dateKey]||'').localeCompare(String(a?.[dateKey]||'')))[0]||null
+  const patientName=(patientId: string)=>{const p=patients.get(patientId);return p?[p.first_name,p.last_name].filter(Boolean).join(' ')||p.patient_code:'—'}
+  const latest=(rows: AnyRecord[],dateKey: string)=>[...rows].sort((a,b)=>String(b?.[dateKey]||'').localeCompare(String(a?.[dateKey]||'')))[0]||null
   const casesById=new Map((casesRes.data||[]).map(row=>[row.id,row]))
 
   const surveillance=(casesRes.data||[]).map(row=>{const caseSamples=samples.filter(x=>x.surveillance_case_id===row.id);const caseResults=caseSamples.flatMap(x=>resultsBySample.get(x.id)||[]);const latestResult=latest(caseResults,'resulted_at');const reviews=(reassessmentsRes.data||[]).filter(x=>x.surveillance_case_id===row.id);const latestReview=latest(reviews,'reassessed_at');const isolations=(isolationRes.data||[]).filter(x=>x.surveillance_case_id===row.id&&x.status==='active');return {id:row.id,state:row.status==='active'?'active':row.status,department:departments.get(row.department_id)||'—',patient:patientName(row.patient_id),resistance:caseResults.some(x=>Boolean(x.resistance_class)),resistanceClass:latestResult?.resistance_class||null,organism:latestResult?.organism||null,reviewDue:latestReview?.next_review_due_at||latest(isolations,'review_due_at')?.review_due_at||null,startedAt:row.started_at,signalDate:latestResult?.resulted_at||latestReview?.reassessed_at||row.started_at}}

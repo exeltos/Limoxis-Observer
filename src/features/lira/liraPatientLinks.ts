@@ -6,15 +6,15 @@ import { liraDemoInvestigations } from './liraDemoInvestigations'
 // does not count. The same roles that read the investigations read this; nobody else gets
 // a row (the policies decide, there is no security definer function that could leak it).
 // The demo hospital links its sample patient to the active Klebsiella investigation.
-export const DEMO_OUTBREAK_LINKS = Object.freeze({ 'PT-260184': { investigationId: 'LIRA-INV-01', department: 'ΜΕΘ', departmentEn: 'ICU', cases: 4 } })
+export const DEMO_OUTBREAK_LINKS: Readonly<Record<string, { investigationId: string; department: string; departmentEn: string; cases: number }>> = Object.freeze({ 'PT-260184': { investigationId: 'LIRA-INV-01', department: 'ΜΕΘ', departmentEn: 'ICU', cases: 4 } })
 
-const latestPerKey = (rows, keyOf) => {
-  const seen = new Map()
+const latestPerKey = <T,>(rows: T[], keyOf: (row: T) => string) => {
+  const seen = new Map<string, T>()
   for (const row of rows) if (!seen.has(keyOf(row))) seen.set(keyOf(row), row)
   return [...seen.values()]
 }
 
-export async function loadPatientOutbreakLinks(organizationId, { patientRecordId = null, patientCode = '' } = {}, { isDemo = false } = {}) {
+export async function loadPatientOutbreakLinks(organizationId: string | null | undefined, { patientRecordId = null, patientCode = '' }: { patientRecordId?: string | null; patientCode?: string } = {}, { isDemo = false }: { isDemo?: boolean } = {}) {
   if (isDemo) {
     const link = DEMO_OUTBREAK_LINKS[patientCode]
     const investigation = link && liraDemoInvestigations.find(row => row.id === link.investigationId)
@@ -39,9 +39,9 @@ export async function loadPatientOutbreakLinks(organizationId, { patientRecordId
   ])
   if (investigations.error) throw investigations.error
   if (all.error) throw all.error
-  const departmentIds = [...new Set((investigations.data || []).map(row => row.department_id).filter(Boolean))]
+  const departmentIds = [...new Set((investigations.data || []).map(row => row.department_id).filter(Boolean))] as string[]
   const departments = departmentIds.length ? await supabase.from('departments').select('id,name').eq('organization_id', organizationId).in('id', departmentIds) : { data: [] }
-  const departmentName = new Map((departments.data || []).map(row => [row.id, row.name]))
+  const departmentName = new Map<string | null, string>((departments.data || []).map(row => [row.id, row.name]))
   const counts = new Map()
   for (const row of latestPerKey(all.data || [], item => `${item.investigation_id}|${item.record_key}`))
     if (row.classification !== 'excluded') counts.set(row.investigation_id, (counts.get(row.investigation_id) || 0) + 1)
