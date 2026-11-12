@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { AlertCircle, ArrowRight, Building2, CheckCircle2, Eye, EyeOff, Info, Languages, Lock, ShieldCheck, User } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -7,13 +7,13 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { userFacingError } from '../../core/feedback/userFacingError'
 import { APP_VERSION } from '../../core/version'
 import { BrandMark } from '../../design-system/BrandMark'
-import { loadLoginNotice } from './loginNoticeService'
+import { loadLoginNotice, type LoginNotice } from './loginNoticeService'
 
 // Decorative product preview for the brand panel (pure CSS/SVG, hidden from assistive technology).
 // Set by AuthContext when the Platform Owner ended the session; cleared on the next sign-in.
 const readSessionEnded=()=>{try{return window.sessionStorage.getItem('limoxis.sessionEnded')==='1'}catch{return false}}
 
-function LoginPreview({ greek }) {
+function LoginPreview({ greek }: { greek: boolean }) {
   return (
     <div className="login-preview" aria-hidden="true">
       <div className="login-preview-window">
@@ -42,7 +42,7 @@ export function LoginPage() {
   const { loading:tenantLoading } = useTenant()
   const { language, setLanguage } = useLanguage()
   const location = useLocation()
-  const [notice,setNotice]=useState(null)
+  const [notice,setNotice]=useState<LoginNotice|null>(null)
   useEffect(()=>{let live=true;loadLoginNotice().then(value=>{if(live)setNotice(value)});return()=>{live=false}},[])
   const [identifier,setIdentifier]=useState(''),[password,setPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[capsLock,setCapsLock]=useState(false),[error,setError]=useState(''),[submitting,setSubmitting]=useState(false)
   const requestedReturnTo = typeof location.state?.from === 'string' && location.state.from.startsWith('/') && !location.state.from.startsWith('//')
@@ -59,7 +59,7 @@ export function LoginPage() {
   const sessionEnded=readSessionEnded()
   const maintenance=notice?(greek?(notice.noticeEl||notice.noticeEn):(notice.noticeEn||notice.noticeEl)):null
   const passwordDescribedBy=[capsLock&&'login-caps-lock',error&&'login-error'].filter(Boolean).join(' ')||undefined
-  async function handleSubmit(event){
+  async function handleSubmit(event: FormEvent<HTMLFormElement>){
     event.preventDefault()
     setError('')
     setSubmitting(true)

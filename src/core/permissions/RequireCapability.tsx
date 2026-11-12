@@ -25,7 +25,7 @@ export function RequireCapability({ capability, children }: { capability: string
 }
 
 // excludeRoles: roles kept out even when they hold one of the capabilities (e.g. the HR office from the shift roster).
-export function RequireAnyCapability({ capabilities=[], excludeRoles=[], children }: { capabilities?: string[]; excludeRoles?: string[]; children?: ReactNode }) {
+export function RequireAnyCapability({ capabilities=[], excludeRoles=[], children }: { capabilities?: readonly string[]; excludeRoles?: readonly string[]; children?: ReactNode }) {
   const { role, membership, loading } = useTenant()
   if (unresolvedTenantContext({ role, membership, loading })) return <RouteLoading />
   if (role && excludeRoles.includes(role)) return denied()

@@ -33,11 +33,12 @@ type PageModule = Record<string, ComponentType<any>>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a page takes any props
 export type LazyPage = LazyExoticComponent<ComponentType<any>> & { preload: () => Promise<boolean> }
 
-export function lazyPage(loader: () => Promise<PageModule>, name = 'default'): LazyPage {
+// The file may export more than pages (hooks, helpers): `name` picks the page.
+export function lazyPage(loader: () => Promise<object>, name = 'default'): LazyPage {
   let loaded: PageModule | null = null
   let pending: Promise<PageModule> | null = null
   const load = (): Promise<PageModule> => {
-    if (!pending) pending = loader().then(module => { loaded = module; return module }, error => { pending = null; throw error })
+    if (!pending) pending = loader().then(file => { const module = file as PageModule; loaded = module; return module }, error => { pending = null; throw error })
     return pending
   }
   const Page = lazy(() => {

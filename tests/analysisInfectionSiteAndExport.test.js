@@ -60,7 +60,7 @@ describe('microbiology analysis separates the technical category from the exact 
 // raw user-facing specimen name.
 describe('non-clinical sample types remain classification-only', () => {
   it('siteLabel falls back to a generic translated label instead of a raw value for an unmapped sample_type', () => {
-    expect(page).toContain("function siteLabel(value,tx){const pair=SITE_LABELS[value];return pair?tx(pair[0],pair[1]):tx('Λοιπό δείγμα','Other sample')}")
+    expect(page).toContain("function siteLabel(value: string,tx: Translate){const pair=SITE_LABELS[value];return pair?tx(pair[0],pair[1]):tx('Λοιπό δείγμα','Other sample')}")
   })
 
   it('SITE_LABELS covers known non-clinical technical categories', () => {

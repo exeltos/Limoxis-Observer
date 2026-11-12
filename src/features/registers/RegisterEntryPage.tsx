@@ -185,7 +185,7 @@ export function RegisterEntryPage() {
             const info = sectionIndex[position]
             return <section key={section.key || 'main'} id={`register-section-${info.id}`} data-register-section={info.id} className="register-entry-section">
               <header><span className="register-entry-badge">{info.no}</span><h3>{info.label}</h3>{info.wrong > 0 ? <small className="is-wrong">{en ? `to correct ${info.wrong}` : `προς διόρθωση ${info.wrong}`}</small> : <small>{info.filled}/{info.total}</small>}</header>
-              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={(value: unknown) => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
+              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} entryValues={full} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={(value: unknown) => set(field.key, value)} entryValues={full} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
             </section>
           })}
         </div>
@@ -195,10 +195,10 @@ export function RegisterEntryPage() {
 }
 
 // A field of a saved case, read-only: its label and value, compact.
-interface RegisterValueProps { field: AnyRecord, value: unknown, language: string }
-function RegisterValue({ field, value, language }: RegisterValueProps) {
+interface RegisterValueProps { field: AnyRecord, value: unknown, language: string, entryValues?: AnyRecord | null }
+function RegisterValue({ field, value, language, entryValues = null }: RegisterValueProps) {
   const empty = value == null || value === '' || (Array.isArray(value) && !value.length)
-  return <div className="register-value"><span className="lo-field-label">{textOf(field, language)}</span><strong>{empty ? '—' : formatValue(field, value, language)}</strong></div>
+  return <div className="register-value"><span className="lo-field-label">{textOf(field, language)}</span><strong>{empty ? '—' : formatValue(field, value, language, entryValues)}</strong></div>
 }
 
 // Notes about the FileMaker import belong to the register's definition, not to the form.
@@ -209,15 +209,15 @@ const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν β�
 // One field of a register, drawn with the shared controls.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a field's value: text, number, yes/no or a list
 type FieldValue = any
-interface RegisterFieldProps { field: AnyRecord, value: FieldValue, onChange: (value: unknown) => void, disabled?: boolean, error?: string, warning?: string, required?: boolean, language: string, cards?: boolean, action?: ReactNode }
-export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language, cards = false, action = null }: RegisterFieldProps) {
+interface RegisterFieldProps { field: AnyRecord, value: FieldValue, onChange: (value: unknown) => void, disabled?: boolean, error?: string, warning?: string, required?: boolean, language: string, cards?: boolean, action?: ReactNode, entryValues?: AnyRecord | null }
+export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language, cards = false, action = null, entryValues = null }: RegisterFieldProps) {
   const en = language === 'en'
   const label = `${textOf(field, language)}${required ? ' *' : ''}`
   const help = formHelp(en ? field.helpEn || field.help : field.help)
   const hint = warning || help || ''
   const unit = en ? field.unitEn || field.unit : field.unit
   const options: { value: string, label: string }[] = (field.options || []).map((option: AnyRecord) => ({ value: option.value, label: textOf(option, language) }))
-  if (field.type === 'computed') return <div className="field register-computed"><span className="lo-field-label">{textOf(field, language)}</span>{value == null ? <output className="is-pending">{en ? 'Calculated automatically' : 'Υπολογίζεται αυτόματα'}</output> : <output><Calculator size={14} />{formatValue(field, value, language)}</output>}{help && <span className="field-hint">{help}</span>}</div>
+  if (field.type === 'computed') return <div className="field register-computed"><span className="lo-field-label">{textOf(field, language)}</span>{value == null ? <output className="is-pending">{en ? 'Calculated automatically' : 'Υπολογίζεται αυτόματα'}</output> : <output><Calculator size={14} />{formatValue(field, value, language, entryValues)}</output>}{help && <span className="field-hint">{help}</span>}</div>
   if (field.type === 'date') return <div className={`register-field ${error ? 'has-error' : ''}`}><ManualDateField label={label} value={value || ''} disabled={disabled} onChange={next => onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'yesNo') return <div className={`register-field ${error ? 'has-error' : ''}`}><ChoiceField label={label} value={value === true ? 'yes' : value === false ? 'no' : ''} options={[{ value: 'no', label: en ? 'No' : 'Όχι' }, { value: 'yes', label: en ? 'Yes' : 'Ναι' }]} onChange={next => !disabled && onChange(next === 'yes')} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'choice' && options.length <= 3) return <div className={`register-field ${error ? 'has-error' : ''}`}><ChoiceField label={label} value={value || ''} options={options} onChange={next => !disabled && onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
@@ -225,7 +225,7 @@ export function RegisterField({ field, value, onChange, disabled, error, warning
   if (field.type === 'multiChoice') {
     const selected = Array.isArray(value) ? value : []
     if (cards) return <div className={`register-field register-field-wide register-procedure-field ${error ? 'has-error' : ''}`}><span className="lo-field-label">{label}</span><div className="register-procedure-cards" role="group" aria-label={textOf(field, language)}>{options.map(option => { const on = selected.includes(option.value); return <button key={option.value} type="button" aria-pressed={on} disabled={disabled} className={on ? 'is-selected' : ''} onClick={() => onChange(on ? selected.filter(item => item !== option.value) : [...selected, option.value])}><i aria-hidden="true">{on && <Check size={14} />}</i><span>{option.label}</span></button> })}</div>{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
-    return <div className={`register-field ${error ? 'has-error' : ''}`}><MultiSelect label={label} options={options} selected={selected} disabled={disabled} onChange={next => onChange(next)} placeholder={en ? 'Choose…' : 'Επιλογή…'} searchPlaceholder={en ? 'Search…' : 'Αναζήτηση…'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} selectAllLabel={en ? 'All' : 'Όλα'} clearAllLabel={en ? 'None' : 'Κανένα'} countLabel={count => (en ? `${count} selected` : `${count} επιλεγμένα`)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
+    return <div className={`register-field register-field-double ${error ? 'has-error' : ''}`}><MultiSelect label={label} options={options} selected={selected} disabled={disabled} onChange={next => onChange(next)} placeholder={en ? 'Choose…' : 'Επιλογή…'} searchPlaceholder={en ? 'Search…' : 'Αναζήτηση…'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} selectAllLabel={en ? 'All' : 'Όλα'} clearAllLabel={en ? 'None' : 'Κανένα'} countLabel={count => (en ? `${count} selected` : `${count} επιλεγμένα`)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   }
   if (field.type === 'gestation') return <GestationField label={label} value={value} onChange={onChange} disabled={disabled} error={error} hint={hint} />
   if (field.type === 'text') return <div className="register-field register-field-wide"><Field label={label} error={error} hint={hint}><textarea rows={2} value={value || ''} disabled={disabled} onChange={event => onChange(event.target.value)} /></Field></div>
