@@ -2,21 +2,25 @@ import { ChevronLeft,ChevronRight,Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
-import { MONTHS } from './trainingAnnualPlan'
+import { MONTHS, annualTrainingPlan } from './trainingAnnualPlan'
+import type { ReactNode } from 'react'
+
+type AnnualPlan = ReturnType<typeof annualTrainingPlan>
+type PlanNeed = AnnualPlan['needs'][number]
 import './trainingAnnualPlan.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 
-export const planStateText=(state,en)=>({done:en?'Completed':'Ολοκληρώθηκε',running:en?'In progress':'Σε εξέλιξη',planned:en?'Planned':'Προγραμματισμένο',overdue:en?'Overdue':'Εκπρόθεσμο'})[state]||state
+export const planStateText=(state: string,en: boolean)=>({done:en?'Completed':'Ολοκληρώθηκε',running:en?'In progress':'Σε εξέλιξη',planned:en?'Planned':'Προγραμματισμένο',overdue:en?'Overdue':'Εκπρόθεσμο'} as Record<string, string>)[state]||state
 
-const pad=n=>String(n).padStart(2,'0')
-const monthEnd=(year,month)=>`${year}-${pad(month+1)}-${pad(new Date(year,month+1,0).getDate())}`
+const pad=(n: number)=>String(n).padStart(2,'0')
+const monthEnd=(year: number,month: number)=>`${year}-${pad(month+1)}-${pad(new Date(year,month+1,0).getDate())}`
 
 // A programme is marked once, in the month it is due (not as a bar from its start to its end).
 // Two views of Training share this panel: "Annual plan" (programmes month by
 // month for one year) and "Retraining" (what the competence requirements call
 // for, with what is still not scheduled). The page owns the year and the plan,
 // so its Download button sits in the page header.
-export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canManage,section='programmes'}){
+export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canManage,section='programmes'}: {plan: AnnualPlan,year: number,onYearChange: (year: number)=>void,language: string,canManage: boolean,section?: string,onShowRetraining?: ()=>void}){
  const en=language==='en'
  const navigate=useNavigate()
  const months=MONTHS[en?'en':'el']
@@ -24,7 +28,7 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
  const currentMonth=today.slice(0,4)===String(year)?Number(today.slice(5,7))-1:-1
  const {rows,needs}=plan
 
- function schedule(need){
+ function schedule(need: PlanNeed){
   const first=Math.max(need.months.findIndex(n=>n>0),currentMonth,0)
   const thisMonthEnd=monthEnd(Number(today.slice(0,4)),Number(today.slice(5,7))-1)
   const dueDate=[monthEnd(year,first),thisMonthEnd].sort()[1]
@@ -34,7 +38,7 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
  const retraining=section==='retraining'
 
  // Planned against done, and the months so far with no programme at all (a future year has none «so far»).
- const count=state=>rows.filter(r=>r.state===state).length
+ const count=(state: string)=>rows.filter(r=>r.state===state).length
  const lastMonth=today.slice(0,4)===String(year)?currentMonth:today.slice(0,4)>String(year)?11:-1
  const emptyMonths=months.filter((_,m)=>m<=lastMonth&&!rows.some(r=>r.months.includes(m)))
  const summaryText=[
@@ -45,7 +49,7 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
   count('overdue')?(en?`${count('overdue')} overdue`:`${count('overdue')} εκπρόθεσμα`):'',
   emptyMonths.length?`${en?'No training in':'Χωρίς εκπαίδευση'}: ${emptyMonths.join(', ')}`:'',
  ].filter(Boolean).join(' · ')
- const monthCells=(row,render)=>months.map((_,m)=><td key={m} className={`training-plan-month${m===currentMonth?' current':''}`}>{render(m)}</td>)
+ const monthCells=(row: unknown,render: (month: number)=>ReactNode)=>months.map((_,m)=><td key={m} className={`training-plan-month${m===currentMonth?' current':''}`}>{render(m)}</td>)
 
  return <div className="training-plan">
   <div className="training-plan-toolbar">

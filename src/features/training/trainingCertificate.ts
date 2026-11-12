@@ -1,7 +1,10 @@
 import { escapeHtml, printReport } from '../../core/export/reportDocument'
 import { getReportBranding } from '../../core/organization/branding'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const fmt = (v, en) => {
+interface CertificateInput { certificate?: AnyRecord | null, program?: AnyRecord | null, participantName?: string | null, en?: boolean }
+
+const fmt = (v: unknown, en: boolean) => {
   if (!v) return '—'
   const d = new Date(`${String(v).slice(0, 10)}T12:00:00`)
   return Number.isNaN(d.getTime())
@@ -22,7 +25,7 @@ export function certificateDocument({
   participantName,
   en = false,
   branding = getReportBranding(),
-}) {
+}: CertificateInput & { branding?: ReturnType<typeof getReportBranding> }) {
   const hospital = branding?.name || 'Limoxis Observer'
   const number = certificate?.id || '—'
   const facts = [
@@ -40,7 +43,7 @@ export function certificateDocument({
       certificate?.validUntil ? fmt(certificate.validUntil, en) : en ? 'No expiry' : 'Χωρίς λήξη',
     ],
   ].filter(Boolean)
-  const signature = role =>
+  const signature = (role: string) =>
     `<td><strong>${escapeHtml(role)}</strong><span>${en ? 'Name' : 'Ονοματεπώνυμο'}:</span><span>${en ? 'Signature' : 'Υπογραφή'}:</span></td>`
   const body = `<div class="rd-certificate">
     ${branding?.logo ? `<div class="rd-cert-logo"><img src="${escapeHtml(branding.logo)}" alt=""></div>` : ''}
@@ -76,7 +79,7 @@ export async function downloadCertificatePdf({
   participantName,
   en = false,
   pdf = false,
-}) {
+}: CertificateInput & { pdf?: boolean }) {
   if (!printReport(certificateDocument({ certificate, program, participantName, en }), { pdf }))
     throw new Error(
       en

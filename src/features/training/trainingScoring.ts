@@ -2,13 +2,16 @@
 // (private.training_answer_correct, training_submit_evaluation,
 // training_finalize_review in 20261115100000_training_relational.sql). Demo
 // mode applies them locally; production calls the RPCs.
-import { validityUntil } from './trainingData'
+import { validityUntil, type TrainingState } from './trainingData'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const correctOptions=question=>(question?.options||[]).filter(option=>option.correct)
+type Question = AnyRecord
+
+const correctOptions=(question: Question|null|undefined): AnyRecord[]=>(question?.options||[]).filter((option: AnyRecord)=>option.correct)
 
 // single choice = the first correct option; multiple choice = exactly the
 // correct options; true/false = the correct value. A missing answer is wrong.
-export function answerIsCorrect(question,answer){
+export function answerIsCorrect(question: Question,answer: unknown){
  if(answer===undefined||answer===null)return false
  if(question.type==='single_choice'){const first=correctOptions(question)[0];return Boolean(first)&&String(answer)===first.id}
  if(question.type==='multiple_choice'){
@@ -23,16 +26,16 @@ export function answerIsCorrect(question,answer){
  return false
 }
 
-const blank=answer=>answer===undefined||answer===null||(typeof answer==='string'&&!answer.trim())
-const points=question=>Math.max(0,Number(question?.points??1)||0)
+const blank=(answer: unknown)=>answer===undefined||answer===null||(typeof answer==='string'&&!answer.trim())
+const points=(question: Question|null|undefined)=>Math.max(0,Number(question?.points??1)||0)
 
 // At submission: free text is not scored; one that needs a manual review
 // leaves the attempt pending.
-export function scoreSubmission(program,answers={}){
+export function scoreSubmission(program: AnyRecord|null|undefined,answers: AnyRecord={}){
  const questions=program?.assessmentQuestions||[]
  if(!program?.requiresAssessment)return {score:null,competent:true,manualReview:false,awarded:{}}
  if(!questions.length)throw new Error('TRAINING_ASSESSMENT_NOT_CONFIGURED')
- let total=0,earned=0,manualReview=false;const awarded={}
+ let total=0,earned=0,manualReview=false;const awarded: Record<string, number>={}
  for(const question of questions){
   const answer=answers[question.id]
   if(question.required!==false&&blank(answer))throw new Error('TRAINING_ASSESSMENT_INCOMPLETE')
@@ -49,8 +52,8 @@ export function scoreSubmission(program,answers={}){
 // At the review: the reviewer's points for each manual-review free-text
 // answer (0 up to the question's points) count with the automatic ones.
 // competent, when given, is the reviewer's decision.
-export function scoreReview(program,answers={},givenPoints={},competent=null){
- let total=0,earned=0;const awarded={}
+export function scoreReview(program: AnyRecord|null|undefined,answers: AnyRecord={},givenPoints: Record<string, unknown>|null={},competent: boolean|null=null){
+ let total=0,earned=0;const awarded: Record<string, number>={}
  for(const question of program?.assessmentQuestions||[]){
   let value
   if(question.type==='free_text'){
@@ -64,14 +67,14 @@ export function scoreReview(program,answers={},givenPoints={},competent=null){
  return {score,competent:competent==null?(score==null?true:score>=Number(program?.passScore||0)):Boolean(competent),awarded}
 }
 
-const certificateFor=(assignment,program,now)=>({id:`CERT-${assignment.id}`,assignmentId:assignment.id,employeeId:assignment.employeeId,title:program.title,issuedDate:now.slice(0,10),validUntil:validityUntil(now.slice(0,10),program.validMonths)||null,issuer:'Limoxis Observer',issuedAt:now})
-function withCertificate(state,assignment,program,now){
+const certificateFor=(assignment: AnyRecord,program: AnyRecord,now: string)=>({id:`CERT-${assignment.id}`,assignmentId:assignment.id,employeeId:assignment.employeeId,title:program.title,issuedDate:now.slice(0,10),validUntil:validityUntil(now.slice(0,10),program.validMonths)||null,issuer:'Limoxis Observer',issuedAt:now})
+function withCertificate(state: TrainingState,assignment: AnyRecord,program: AnyRecord,now: string){
  if(state.certificates.some(c=>c.assignmentId===assignment.id))return state.certificates
  return [certificateFor(assignment,program,now),...state.certificates]
 }
 
 // The learner's submission (training_submit_evaluation) on a local state.
-export function applySubmission(state,assignmentId,{answers={},feedbackScores={},feedbackComment='',now=new Date().toISOString()}={}){
+export function applySubmission(state: TrainingState,assignmentId: string,{answers={},feedbackScores={},feedbackComment='',now=new Date().toISOString()}: {answers?: AnyRecord,feedbackScores?: Record<string, number>,feedbackComment?: string|null,now?: string}={}): TrainingState{
  const assignment=state.assignments.find(a=>a.id===assignmentId)
  if(!assignment)throw new Error('TRAINING_ACCESS_NOT_AVAILABLE')
  if(assignment.feedbackSubmittedAt)throw new Error('TRAINING_ALREADY_SUBMITTED')
@@ -79,15 +82,15 @@ export function applySubmission(state,assignmentId,{answers={},feedbackScores={}
  if(!program)throw new Error('TRAINING_PROGRAM_NOT_FOUND')
  const {score,competent,manualReview,awarded}=scoreSubmission(program,answers)
  const comment=String(feedbackComment||'').trim()||null
- const next={...assignment,attendance:true,attendanceResponse:'confirmed',attendanceConfirmedAt:assignment.attendanceConfirmedAt||now,attendanceAttested:true,attendanceAttestedAt:now,attendanceAttestationMethod:'personal_email_token',attendanceAttestationVersion:'1.0',feedbackSubmittedAt:now,assessmentSubmittedAt:program.requiresAssessment?now:null,assessmentAnswers:answers,awardedPoints:awarded,assessmentReviewStatus:manualReview?'pending':'not_required',completionConfirmedAt:manualReview?null:now,status:manualReview?'in_progress':'completed',completedDate:manualReview?null:now.slice(0,10),score,competent:manualReview?null:competent,feedbackScores,feedbackComment:comment}
+ const next: AnyRecord={...assignment,attendance:true,attendanceResponse:'confirmed',attendanceConfirmedAt:assignment.attendanceConfirmedAt||now,attendanceAttested:true,attendanceAttestedAt:now,attendanceAttestationMethod:'personal_email_token',attendanceAttestationVersion:'1.0',feedbackSubmittedAt:now,assessmentSubmittedAt:program.requiresAssessment?now:null,assessmentAnswers:answers,awardedPoints:awarded,assessmentReviewStatus:manualReview?'pending':'not_required',completionConfirmedAt:manualReview?null:now,status:manualReview?'in_progress':'completed',completedDate:manualReview?null:now.slice(0,10),score,competent:manualReview?null:competent,feedbackScores,feedbackComment:comment}
  const passed=competent&&!manualReview
  next.certificateId=passed?`CERT-${assignment.id}`:null
  const response={employeeId:assignment.employeeId,userId:null,assignmentId:assignment.id,submittedAt:now,scores:feedbackScores,comment}
- return {...state,assignments:state.assignments.map(a=>a.id===assignmentId?next:a),programs:state.programs.map(p=>p.id===program.id?{...p,feedbackResponses:[...(p.feedbackResponses||[]).filter(r=>r.assignmentId!==assignment.id),response]}:p),certificates:passed?withCertificate(state,next,program,now):state.certificates}
+ return {...state,assignments:state.assignments.map(a=>a.id===assignmentId?next:a),programs:state.programs.map(p=>p.id===program.id?{...p,feedbackResponses:[...(p.feedbackResponses||[]).filter((r: AnyRecord)=>r.assignmentId!==assignment.id),response]}:p),certificates:passed?withCertificate(state,next,program,now):state.certificates}
 }
 
 // The manager finishes a pending review (training_finalize_review).
-export function applyReview(state,assignmentId,{points:givenPoints={},competent=null,note='',reviewer='',now=new Date().toISOString()}={}){
+export function applyReview(state: TrainingState,assignmentId: string,{points:givenPoints={},competent=null,note='',reviewer='',now=new Date().toISOString()}: {points?: Record<string, unknown>,competent?: boolean|null,note?: string,reviewer?: string,now?: string}={}): TrainingState{
  const assignment=state.assignments.find(a=>a.id===assignmentId)
  if(!assignment)throw new Error('TRAINING_ASSIGNMENT_NOT_FOUND')
  if(assignment.assessmentReviewStatus!=='pending')throw new Error('TRAINING_REVIEW_NOT_PENDING')
@@ -98,4 +101,4 @@ export function applyReview(state,assignmentId,{points:givenPoints={},competent=
 }
 
 // Free-text questions that wait for the reviewer's points.
-export const manualReviewQuestions=program=>(program?.assessmentQuestions||[]).filter(q=>q.type==='free_text'&&q.manualReview)
+export const manualReviewQuestions=(program: AnyRecord|null|undefined): Question[]=>(program?.assessmentQuestions||[]).filter((q: Question)=>q.type==='free_text'&&q.manualReview)

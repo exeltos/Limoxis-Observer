@@ -25,7 +25,7 @@ describe('training program record: scrolls like other record pages instead of cl
 
 describe('training programs list: sortable columns', () => {
   it('sorts every column', () => {
-    expect(productionPage).toContain('function toggleProgramSort(key)')
+    expect(productionPage).toContain('function toggleProgramSort(key: string)')
     expect(productionPage).toContain('function SortTh(')
     expect(productionPage).toContain('programSortAccessors')
   })
@@ -46,12 +46,12 @@ describe('training certificates: earned certificates can be downloaded as a PDF'
 
   it('lets a manager download a participant certificate from the results review', () => {
     expect(resultsReview).toContain("import {downloadCertificatePdf} from './trainingCertificate'")
-    expect(resultsReview).toContain('function downloadCertificateFor(row,pdf=false)')
+    expect(resultsReview).toContain('function downloadCertificateFor(row: AnyRecord,pdf=false)')
     expect(resultsReview).toContain('certificateFor(row)')
   })
 
   it('lets an employee download their own certificate from the assignments list', () => {
-    expect(productionPage).toContain('async function downloadCertificate(row,program,pdf=false)')
+    expect(productionPage).toContain('async function downloadCertificate(row: AnyRecord,program: AnyRecord|null|undefined,pdf=false)')
     expect(productionPage).toContain("import { downloadCertificatePdf } from './trainingCertificate'")
   })
 })

@@ -2,6 +2,12 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, dayInMonth, seededRandom } from '../../core/data/demoSeed'
 import { employeeRows } from '../employees/employeeDemoData'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// The training module's records: programmes, assignments (one per person), certificates,
+// role requirements, the demo e-mail outbox and the history. Each record is an untyped row.
+export interface TrainingState { programs: AnyRecord[], assignments: AnyRecord[], certificates: AnyRecord[], requirements: AnyRecord[], emailOutbox: AnyRecord[], history: AnyRecord[], [key: string]: unknown }
+type Question = AnyRecord
 export const trainerFeedbackTemplate=[
  {id:'clarity',label:'Σαφήνεια παρουσίασης'},
  {id:'knowledge',label:'Γνώση και επάρκεια εκπαιδευτή'},
@@ -12,12 +18,12 @@ export const trainerFeedbackTemplate=[
 
 
 // Demo knowledge-assessment questions (same schema as the question editor).
-const opts=(id,texts,correct)=>texts.map((text,i)=>({id:`${id}-O${i+1}`,text,correct:[].concat(correct).includes(i)}))
-const sc=(id,text,texts,correct,points)=>({id,type:'single_choice',text,points,required:true,options:opts(id,texts,correct),correctBoolean:true,modelAnswer:'',manualReview:false})
-const mc=(id,text,texts,correct,points)=>({...sc(id,text,texts,correct,points),type:'multiple_choice'})
-const tf=(id,text,correctBoolean,points)=>({id,type:'true_false',text,points,required:true,options:[],correctBoolean,modelAnswer:'',manualReview:false})
-const ft=(id,text,modelAnswer)=>({id,type:'free_text',text,points:0,required:false,options:[],correctBoolean:true,modelAnswer,manualReview:false})
-const DEMO_QUESTIONS={
+const opts=(id: string,texts: string[],correct: number|number[])=>texts.map((text,i)=>({id:`${id}-O${i+1}`,text,correct:([] as number[]).concat(correct).includes(i)}))
+const sc=(id: string,text: string,texts: string[],correct: number|number[],points: number)=>({id,type:'single_choice',text,points,required:true,options:opts(id,texts,correct),correctBoolean:true,modelAnswer:'',manualReview:false})
+const mc=(id: string,text: string,texts: string[],correct: number|number[],points: number)=>({...sc(id,text,texts,correct,points),type:'multiple_choice'})
+const tf=(id: string,text: string,correctBoolean: boolean,points: number)=>({id,type:'true_false',text,points,required:true,options:[],correctBoolean,modelAnswer:'',manualReview:false})
+const ft=(id: string,text: string,modelAnswer: string)=>({id,type:'free_text',text,points:0,required:false,options:[],correctBoolean:true,modelAnswer,manualReview:false})
+const DEMO_QUESTIONS: Record<string, Question[]>={
  'TRN-001':[
   sc('Q-001','Πότε εφαρμόζεται υγιεινή χεριών πριν από άσηπτη πράξη;',['Μόνο όταν δεν φοράμε γάντια','Αμέσως πριν από κάθε άσηπτη πράξη','Μόνο μετά την επαφή με τον ασθενή','Μία φορά στην αρχή της βάρδιας'],1,5),
   tf('Q-002','Τα γάντια αντικαθιστούν την υγιεινή χεριών.',false,5),
@@ -54,14 +60,14 @@ const DEMO_QUESTIONS={
  ],
 }
 // Answers matching each demo score: every question correct except the listed ones.
-const answer=q=>q.type==='single_choice'?q.options.find(o=>o.correct).id:q.type==='multiple_choice'?q.options.filter(o=>o.correct).map(o=>o.id):q.type==='true_false'?q.correctBoolean:q.modelAnswer
-const wrong=q=>q.type==='single_choice'?q.options.find(o=>!o.correct).id:q.type==='true_false'?!q.correctBoolean:[q.options[0].id]
-const demoAnswers=(programId,wrongIds=[])=>Object.fromEntries(DEMO_QUESTIONS[programId].map(q=>[q.id,wrongIds.includes(q.id)?wrong(q):answer(q)]))
+const answer=(q: Question)=>q.type==='single_choice'?q.options.find((o: AnyRecord)=>o.correct).id:q.type==='multiple_choice'?q.options.filter((o: AnyRecord)=>o.correct).map((o: AnyRecord)=>o.id):q.type==='true_false'?q.correctBoolean:q.modelAnswer
+const wrong=(q: Question)=>q.type==='single_choice'?q.options.find((o: AnyRecord)=>!o.correct).id:q.type==='true_false'?!q.correctBoolean:[q.options[0].id]
+const demoAnswers=(programId: string,wrongIds: string[]=[])=>Object.fromEntries(DEMO_QUESTIONS[programId].map(q=>[q.id,wrongIds.includes(q.id)?wrong(q):answer(q)]))
 // A completed demo attempt whose score follows from its answers.
-function completedAttempt(programId,wrongIds,passScore){const questions=DEMO_QUESTIONS[programId];const max=questions.reduce((n,q)=>n+(q.type==='free_text'?0:q.points),0);const lost=questions.filter(q=>wrongIds.includes(q.id)).reduce((n,q)=>n+q.points,0);const score=Math.round(100*(max-lost)/max);return {assessmentAnswers:demoAnswers(programId,wrongIds),score,competent:score>=passScore}}
-const done=(id,programId,employeeId,employeeName,department,email,day,wrongIds,passScore,feedbackScores,feedbackComment,certificateId)=>{const attempt=completedAttempt(programId,wrongIds,passScore);return {id,programId,employeeId,employeeName,department,email,accountLinked:true,assignedDate:'2026-06-01',dueDate:'2026-06-30',status:'completed',invitationSentAt:'2026-06-01T08:00:00Z',attendanceResponse:'confirmed',attendance:true,attendanceConfirmedAt:`${day}T09:00:00Z`,completionConfirmedAt:`${day}T10:40:00Z`,feedbackSubmittedAt:`${day}T10:42:00Z`,assessmentSubmittedAt:`${day}T10:45:00Z`,...attempt,feedbackScores,feedbackComment,assessmentReviewedAt:null,completedDate:day,certificateId:attempt.competent?certificateId:null}}
+function completedAttempt(programId: string,wrongIds: string[],passScore: number){const questions=DEMO_QUESTIONS[programId];const max=questions.reduce((n,q)=>n+(q.type==='free_text'?0:q.points),0);const lost=questions.filter(q=>wrongIds.includes(q.id)).reduce((n,q)=>n+q.points,0);const score=Math.round(100*(max-lost)/max);return {assessmentAnswers:demoAnswers(programId,wrongIds),score,competent:score>=passScore}}
+const done=(id: string,programId: string,employeeId: string,employeeName: string,department: string,email: string,day: string,wrongIds: string[],passScore: number,feedbackScores: Record<string, number>,feedbackComment: string,certificateId: string): AnyRecord=>{const attempt=completedAttempt(programId,wrongIds,passScore);return {id,programId,employeeId,employeeName,department,email,accountLinked:true,assignedDate:'2026-06-01',dueDate:'2026-06-30',status:'completed',invitationSentAt:'2026-06-01T08:00:00Z',attendanceResponse:'confirmed',attendance:true,attendanceConfirmedAt:`${day}T09:00:00Z`,completionConfirmedAt:`${day}T10:40:00Z`,feedbackSubmittedAt:`${day}T10:42:00Z`,assessmentSubmittedAt:`${day}T10:45:00Z`,...attempt,feedbackScores,feedbackComment,assessmentReviewedAt:null,completedDate:day,certificateId:attempt.competent?certificateId:null}}
 
-export const trainingDemoState={
+export const trainingDemoState: TrainingState={
  programs:[
   {id:'TRN-001',title:'Υγιεινή Χεριών – 5 Στιγμές του ΠΟΥ',category:'ipc',method:'hybrid',owner:'Ομάδα Πρόληψης Λοιμώξεων',trainer:'Δρ. Ελένη Κωνσταντίνου',audience:'Κλινικό προσωπικό',startDate:'2026-09-05',dueDate:'2026-09-30',validMonths:12,requiresAssessment:true,passScore:80,status:'active',description:'Ετήσια εκπαίδευση και επιβεβαίωση γνώσεων στην υγιεινή χεριών.',materials:[{id:'MAT-001',title:'5 Στιγμές του ΠΟΥ – συνοπτικός οδηγός',type:'PDF',url:''},{id:'MAT-002',title:'Παρουσίαση εκπαίδευσης',type:'Παρουσίαση',url:''}],assessmentQuestions:DEMO_QUESTIONS['TRN-001'],feedbackResponses:[{employeeId:'EMP-002',scores:{clarity:5,knowledge:5,usefulness:4,organization:5,materials:4},comment:'Πολύ πρακτική παρουσίαση.'}]},
   {id:'TRN-002',title:'Ορθή χρήση ΜΑΠ & απομόνωση',category:'ipc',method:'in_person',owner:'Ομάδα Πρόληψης Λοιμώξεων',trainer:'Ν. Παπαδόπουλος',audience:'ΜΕΘ · Παθολογική · ΤΕΠ',startDate:'2026-08-20',dueDate:'2026-09-10',validMonths:12,requiresAssessment:true,passScore:80,status:'active',description:'Πρακτική εκπαίδευση σε επιλογή, εφαρμογή και αφαίρεση ΜΑΠ και μέτρων απομόνωσης.',materials:[],assessmentQuestions:DEMO_QUESTIONS['TRN-002'],feedbackResponses:[]},
@@ -114,13 +120,13 @@ DEMO_QUESTIONS['TRN-007']=[
  sc('Q-405','Ποιος δείκτης μετρά τη συχνότητα CAUTI;',['Επεισόδια ανά 100 εισαγωγές','Επεισόδια ανά 1.000 ημέρες ουροκαθετήρα','Επεισόδια ανά κλίνη','Επεισόδια ανά μήνα'],1,2),
  ft('Q-406','Πότε αφαιρείτε τον ουροκαθετήρα;','Μόλις δεν υπάρχει πλέον ένδειξη, μετά την καθημερινή επανεκτίμηση.'),
 ]
-const pastProgram=(id,title,audience,startDate,dueDate,method,trainer,description)=>({id,title,category:'ipc',method,owner:'Ομάδα Πρόληψης Λοιμώξεων',trainer,audience,startDate,dueDate,validMonths:12,requiresAssessment:true,passScore:80,status:'completed',description,materials:[],assessmentQuestions:DEMO_QUESTIONS[id],feedbackResponses:[]})
+const pastProgram=(id: string,title: string,audience: string,startDate: string,dueDate: string,method: string,trainer: string,description: string)=>({id,title,category:'ipc',method,owner:'Ομάδα Πρόληψης Λοιμώξεων',trainer,audience,startDate,dueDate,validMonths:12,requiresAssessment:true,passScore:80,status:'completed',description,materials:[],assessmentQuestions:DEMO_QUESTIONS[id],feedbackResponses:[]})
 trainingDemoState.programs.push(
  pastProgram('TRN-005','Υγιεινή Χεριών – ετήσιος κύκλος 2025','Κλινικό προσωπικό','2025-09-08','2025-10-31','hybrid','Δρ. Ελένη Κωνσταντίνου','Ετήσια εκπαίδευση υγιεινής χεριών του προηγούμενου κύκλου.'),
  pastProgram('TRN-006','Προφυλάξεις επαφής για πολυανθεκτικούς μικροοργανισμούς','ΜΕΘ · Παθολογική · ΤΕΠ · Καρδιολογική','2025-11-10','2025-12-15','in_person','Ν. Παπαδόπουλος','Μέτρα απομόνωσης για KPC, MRSA, VRE και C. difficile.'),
  pastProgram('TRN-007','Πρόληψη CAUTI','Νοσηλευτικό προσωπικό ΜΕΘ · Παθολογικής · Χειρουργικής · Ορθοπαιδικής','2026-01-12','2026-02-20','in_person','Ομάδα IPC','Ένδειξη, τοποθέτηση, φροντίδα και έγκαιρη αφαίρεση ουροκαθετήρα.'),
 )
-const PAST_PLAN=[
+const PAST_PLAN: [string,string[]|null,string|null,string,string,string,number][]=[
  ['TRN-005',['ΜΕΘ','Παθολογική','Χειρουργική','ΤΕΠ','Καρδιολογική','Νεογνολογική / ΜΕΝΝ','Ορθοπαιδική'],null,'2025-09-08','2025-10-31','2025-09-15',40],
  ['TRN-006',['ΜΕΘ','Παθολογική','ΤΕΠ','Καρδιολογική'],null,'2025-11-10','2025-12-15','2025-11-17',30],
  ['TRN-007',['ΜΕΘ','Παθολογική','Χειρουργική','Ορθοπαιδική'],'Νοσηλευτικό προσωπικό','2026-01-12','2026-02-20','2026-01-19',35],
@@ -163,8 +169,8 @@ DEMO_QUESTIONS['TRN-013']=[
  ft('Q-806','Τι κάνετε αμέσως μετά από πτώση ασθενούς;','Εκτιμώ τον ασθενή, ενημερώνω τον ιατρό, καταγράφω και δηλώνω το συμβάν.'),
 ]
 const HISTORY_WARDS=['ΜΕΘ','Παθολογική','Χειρουργική','ΤΕΠ','Καρδιολογική','Νεογνολογική / ΜΕΝΝ','Ορθοπαιδική']
-const historyStart=monthIndex=>dayInMonth(DEMO_HISTORY_MONTHS[monthIndex],3)
-const HISTORY_PROGRAMS=[
+const historyStart=(monthIndex: number)=>dayInMonth(DEMO_HISTORY_MONTHS[monthIndex],3)
+const HISTORY_PROGRAMS: [string,string,string,string,number,string,string,string,string[]|null,string|null,{validMonths?: number,passScore?: number}][]=[
  ['TRN-008','Πρόληψη CLABSI – κύκλος 2025','ipc','Νοσηλευτικό προσωπικό ΜΕΘ · Χειρουργικής',0,'in_person','Ομάδα IPC','Δέσμη πρόληψης CLABSI και φροντίδα κεντρικών γραμμών, ετήσια επανάληψη.',['ΜΕΘ','Χειρουργική'],'Νοσηλευτικό προσωπικό',{}],
  ['TRN-009','Ορθολογική χρήση αντιμικροβιακών','clinical','Ιατρικό προσωπικό',2,'online','Δρ. Παναγιώτης Ρήγας','Εμπειρική αγωγή, επανεκτίμηση στις 48–72 ώρες, αποκλιμάκωση και διάρκεια θεραπείας.',HISTORY_WARDS,'Ιατρικό προσωπικό',{}],
  ['TRN-010','Ασφαλής διαχείριση αιχμηρών – κύκλος 2025','occupational_health','Όλο το προσωπικό',3,'online','Τμήμα Ποιότητας','Πρόληψη τραυματισμών και σωστή αναφορά έκθεσης.',null,'all',{validMonths:24,passScore:75}],
@@ -180,34 +186,34 @@ for(const [id,title,category,audience,monthIndex,method,trainer,description,depa
 }
 let pastIndex=0
 for(const [programId,departments,profession,assignedDate,dueDate,firstDay,spreadDays] of PAST_PLAN){
- const program=trainingDemoState.programs.find(p=>p.id===programId)
+ const program=trainingDemoState.programs.find(p=>p.id===programId) as AnyRecord
  const staff=employeeRows.filter(e=>e.employmentStatus==='active'&&(!departments||departments.includes(e.department))&&(profession==='all'||(profession?e.profession===profession:['Νοσηλευτικό προσωπικό','Ιατρικό προσωπικό'].includes(e.profession)))&&e.hireDate<=assignedDate)
  staff.forEach((e,i)=>{
   pastIndex+=1
   const id=`TRA-${String(100+pastIndex)}`,rand=seededRandom(`training|${id}`),name=`${e.firstName} ${e.lastName}`
   // Two people in the CAUTI programme never finished it.
   if(programId==='TRN-007'&&i%7===3){trainingDemoState.assignments.push({id,programId,employeeId:e.id,employeeName:name,department:e.department,email:e.email,accountLinked:true,assignedDate,dueDate,status:i%2?'in_progress':'assigned',invitationSentAt:`${assignedDate}T08:00:00Z`,attendanceResponse:i%2?'confirmed':'not_sent',attendance:i%2?true:null,attendanceConfirmedAt:null,completionConfirmedAt:null,feedbackSubmittedAt:null,assessmentSubmittedAt:null,score:null,completedDate:null,competent:null,certificateId:null});return}
-  const wrongIds=program.assessmentQuestions.filter(q=>q.type!=='free_text'&&rand()<(i%9===4?0.45:0.12)).map(q=>q.id)
+  const wrongIds=program.assessmentQuestions.filter((q: Question)=>q.type!=='free_text'&&rand()<(i%9===4?0.45:0.12)).map((q: Question)=>q.id)
   const day=addDays(firstDay,Math.floor(rand()*spreadDays)),row=done(id,programId,e.id,name,e.department,e.email,day,wrongIds,program.passScore,{clarity:4+(i%2),knowledge:5,usefulness:4+((i+1)%2),organization:4,materials:4},'',`CERT-${id}`)
   trainingDemoState.assignments.push({...row,assignedDate,dueDate,invitationSentAt:`${assignedDate}T08:00:00Z`,assessmentReviewedAt:`${day}T14:00:00Z`,assessmentReviewedBy:'Ελένη Κωνσταντίνου',assessmentReviewAcknowledged:true})
   if(row.certificateId)trainingDemoState.certificates.push({id:row.certificateId,assignmentId:id,employeeId:e.id,title:program.title,issuedDate:day,validUntil:addDays(day,Math.round(program.validMonths*30.4375)),issuer:'Limoxis Observer · Demo Hospital'})
  })
 }
 
-function withoutKeys(value,keys){const clean={...value};for(const key of keys)delete clean[key];return clean}
-function normalize(state){
- const source=state&&typeof state==='object'?state:structuredClone(trainingDemoState)
- return {...source,programs:(source.programs||[]).map(p=>{const clean=withoutKeys(p,['checkInToken','completionToken']);return {...clean,trainer:clean.trainer||clean.owner||'',materials:clean.materials||[],assessmentQuestions:clean.assessmentQuestions||[],feedbackResponses:clean.feedbackResponses||[]}}),assignments:(source.assignments||[]).map(a=>{const clean=withoutKeys(a,['checkInAt']);return {...clean,email:clean.email||'',accountLinked:clean.accountLinked!==false,invitationSentAt:clean.invitationSentAt||null,attendanceResponse:clean.attendanceResponse||(clean.attendance?'confirmed':'not_sent'),attendanceConfirmedAt:clean.attendanceConfirmedAt||null,completionConfirmedAt:clean.completionConfirmedAt||null,feedbackSubmittedAt:clean.feedbackSubmittedAt||null,assessmentSubmittedAt:clean.assessmentSubmittedAt||null}}),certificates:source.certificates||[],emailOutbox:source.emailOutbox||[],history:source.history||[]}
+function withoutKeys(value: AnyRecord,keys: string[]){const clean={...value};for(const key of keys)delete clean[key];return clean}
+function normalize(state: unknown): TrainingState{
+ const source: AnyRecord=state&&typeof state==='object'?state:structuredClone(trainingDemoState)
+ return {...source,programs:(source.programs||[]).map((p: AnyRecord)=>{const clean=withoutKeys(p,['checkInToken','completionToken']);return {...clean,trainer:clean.trainer||clean.owner||'',materials:clean.materials||[],assessmentQuestions:clean.assessmentQuestions||[],feedbackResponses:clean.feedbackResponses||[]}}),assignments:(source.assignments||[]).map((a: AnyRecord)=>{const clean=withoutKeys(a,['checkInAt']);return {...clean,email:clean.email||'',accountLinked:clean.accountLinked!==false,invitationSentAt:clean.invitationSentAt||null,attendanceResponse:clean.attendanceResponse||(clean.attendance?'confirmed':'not_sent'),attendanceConfirmedAt:clean.attendanceConfirmedAt||null,completionConfirmedAt:clean.completionConfirmedAt||null,feedbackSubmittedAt:clean.feedbackSubmittedAt||null,assessmentSubmittedAt:clean.assessmentSubmittedAt||null}}),certificates:source.certificates||[],emailOutbox:source.emailOutbox||[],history:source.history||[]} as TrainingState
 }
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([trainingDemoState])
 export function loadTrainingState(){return normalize(loadSnapshot('training_local_state',structuredClone(trainingDemoState)))}
-export function saveTrainingState(state){const normalized=normalize(state);saveSnapshot('training_local_state',normalized);return normalized}
-export function findTrainingAccess(state,token){
+export function saveTrainingState(state: unknown){const normalized=normalize(state);saveSnapshot('training_local_state',normalized);return normalized}
+export function findTrainingAccess(state: unknown,token: unknown){
  const normalized=normalize(state);const key=String(token||'').trim();if(!key)return null
  const assignment=normalized.assignments.find(x=>x.id===key||x.accessToken===key)
  const program=assignment?normalized.programs.find(x=>x.id===assignment.programId):normalized.programs.find(x=>x.id===key)
  return program?{program,assignment:assignment||null}:null
 }
-export function computedAssignmentStatus(row,today=new Date()){if(row.status==='completed')return 'completed';if(row.status==='cancelled')return 'cancelled';if(row.dueDate&&new Date(`${row.dueDate}T23:59:59`)<today)return 'overdue';return row.status||'assigned'}
-export function validityUntil(completedDate,months){if(!completedDate||!months)return '';const d=new Date(`${completedDate}T12:00:00`);d.setMonth(d.getMonth()+Number(months));return d.toISOString().slice(0,10)}
+export function computedAssignmentStatus(row: AnyRecord,today=new Date()){if(row.status==='completed')return 'completed';if(row.status==='cancelled')return 'cancelled';if(row.dueDate&&new Date(`${row.dueDate}T23:59:59`)<today)return 'overdue';return row.status||'assigned'}
+export function validityUntil(completedDate: string|null|undefined,months: unknown){if(!completedDate||!months)return '';const d=new Date(`${completedDate}T12:00:00`);d.setMonth(d.getMonth()+Number(months));return d.toISOString().slice(0,10)}

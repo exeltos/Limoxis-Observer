@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Eye, FileText, PauseCircle, ShieldCheck, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import type { AnyRecord } from '../../types/featureTypes'
 import { IDLE_AFTER_SECONDS, SEND_EVERY_SECONDS, createActiveTimer, formatActiveTime, loadAccessFiles, loadMaterialUrl, trackMaterialTime } from './trainingMaterialTime'
 
 // The files of the programme on the participant's personal link, opened inside the page:
 // the active time on each file is counted (the tab is visible and the page is in use) and
 // sent every few seconds. The participant is told so before opening a file.
-export function TrainingMaterialReader({ token, language = 'el' }) {
+export function TrainingMaterialReader({ token, language = 'el' }: { token: string, language?: string }) {
   const en = language === 'en'
-  const [files, setFiles] = useState([])
+  const [files, setFiles] = useState<AnyRecord[]>([])
   const [openId, setOpenId] = useState('')
   const [reader, setReader] = useState({ loading: false, url: '', mimeType: '', error: '' })
   const [paused, setPaused] = useState(false)
-  const timerRef = useRef(null)
+  const timerRef = useRef<ReturnType<typeof createActiveTimer> | null>(null)
 
   useEffect(() => {
     let active = true
@@ -20,7 +21,7 @@ export function TrainingMaterialReader({ token, language = 'el' }) {
     return () => { active = false }
   }, [token])
 
-  const flush = useCallback(async (attachmentId) => {
+  const flush = useCallback(async (attachmentId: string) => {
     const timer = timerRef.current
     if (!timer || !attachmentId) return
     const seconds = timer.take()
@@ -56,7 +57,7 @@ export function TrainingMaterialReader({ token, language = 'el' }) {
     }
   }, [openId, flush])
 
-  async function open(file) {
+  async function open(file: AnyRecord) {
     setOpenId('')
     setReader({ loading: true, url: '', mimeType: '', error: '' })
     try {

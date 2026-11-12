@@ -1,3 +1,5 @@
+import type { AnyRecord } from '../../types/featureTypes'
+
 export const DEFAULT_TRAINER_FEEDBACK_TEMPLATE={
  id:'TRAINER-FEEDBACK-DEFAULT',
  titleEl:'Αξιολόγηση εκπαιδευτή',
@@ -11,9 +13,9 @@ export const DEFAULT_TRAINER_FEEDBACK_TEMPLATE={
  ],
 }
 
-export function normalizeTrainerFeedbackTemplate(value={}){
- const source=value&&typeof value==='object'?value:{}
- const questions=Array.isArray(source.questions)?source.questions:DEFAULT_TRAINER_FEEDBACK_TEMPLATE.questions
+export function normalizeTrainerFeedbackTemplate(value: unknown={}){
+ const source: AnyRecord=value&&typeof value==='object'?value:{}
+ const questions: AnyRecord[]=Array.isArray(source.questions)?source.questions:DEFAULT_TRAINER_FEEDBACK_TEMPLATE.questions
  return {
   id:source.id||DEFAULT_TRAINER_FEEDBACK_TEMPLATE.id,
   titleEl:source.titleEl||DEFAULT_TRAINER_FEEDBACK_TEMPLATE.titleEl,
@@ -26,7 +28,7 @@ export function normalizeTrainerFeedbackTemplate(value={}){
  }
 }
 
-export function trainerFeedbackQuestionsForProgram(program,language='el'){
+export function trainerFeedbackQuestionsForProgram(program: AnyRecord|null|undefined,language='el'){
  const template=normalizeTrainerFeedbackTemplate(program?.trainerFeedbackTemplate||DEFAULT_TRAINER_FEEDBACK_TEMPLATE)
  return template.questions.map(q=>({id:q.id,label:language==='en'?(q.labelEn||q.labelEl):q.labelEl}))
 }
