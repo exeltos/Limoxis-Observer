@@ -10,7 +10,7 @@ const violations=[]
 for(const file of files){
   const text=readSource(file)
   const rel=path.relative(root,file)
-  if(file.includes(`${path.sep}features${path.sep}`)&&/>\s*(Εκτύπωση|Εξαγωγή|Print|Export)(?:\s+[^<]*)?</i.test(text))violations.push(`${rel}: visible Print/Export action detected; Observer uses icon-only utility actions`)
+  if(file.includes(`${path.sep}features${path.sep}`)&&/>[ \t]*(Εκτύπωση|Εξαγωγή|Print|Export)(?:[ \t]+[^<\n]*)?</i.test(text))violations.push(`${rel}: visible Print/Export action detected; Observer uses icon-only utility actions`)
   if(file.includes(`${path.sep}committees${path.sep}`)&&/(committee-dialog|committee-form-grid)/.test(text))violations.push(`${rel}: legacy committee-only form shell detected; use Observer shared form language`)
   if(file.includes(`${path.sep}features${path.sep}`)&&/<input[^>]+type=["'](?:date|time)["']/i.test(text))violations.push(`${rel}: native date/time field detected in feature UI; use ManualDateField / TimeField`)
   if(file.includes(`${path.sep}features${path.sep}`)&&/RecordPage\.(jsx|tsx)$/.test(file)&&text.includes('<EntityRecordShell')&&!text.includes('<ExportMenu'))violations.push(`${rel}: record page has no «Εξαγωγή» control (ExportMenu)`)

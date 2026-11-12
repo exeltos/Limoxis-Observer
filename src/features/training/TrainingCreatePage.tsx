@@ -1,0 +1,32 @@
+import { useEffect,useState } from 'react'
+import { GraduationCap } from 'lucide-react'
+import { useLocation,useNavigate } from 'react-router-dom'
+import { Page } from '../../design-system/Page'
+import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useEmployeesData } from '../employees/useEmployeesData'
+import { loadDepartments } from '../management/departmentsService'
+import { demoLibrarySeed } from '../management/managementData'
+import { createTrainingProgramAsync } from './trainingService'
+import { addTrainingParticipantsAsync } from './trainingService'
+import { linkMeetingTraining } from '../quality/meetings/meetingService'
+import { TrainingProgramForm,TRAINING_PROGRAM_DEFAULTS,trainingProgramIsValid } from './TrainingProgramForm'
+import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+
+export function TrainingCreatePage(){
+ const location=useLocation()
+ const navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,isDemo}=useTenant(),{notify,notifyError}=useFeedback(),{data:employees}=useEmployeesData();const [saving,setSaving]=useState(false),[departments,setDepartments]=useState<AnyRecord[]>([]),[v,setV]=useState<AnyRecord>(()=>({...TRAINING_PROGRAM_DEFAULTS,...(location.state?.trainingDraft||{}),...(location.state?.calendarDate?{startDate:location.state.calendarDate,dueDate:location.state.calendarDate}:{})}))
+ // loadDepartments is a plain cloud call with no demo awareness — calling it
+ // with tenant.id='demo-hospital' (not a real UUID) fails with a Postgres 400.
+ useEffect(()=>{let active=true;if(isDemo){setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})));return()=>{active=false}}if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[isDemo,tenant?.id])
+ const valid=trainingProgramIsValid(v)
+ async function save(){if(!valid||saving)return;setSaving(true);try{const program=await createTrainingProgramAsync(tenant!.id,{...v,status:v.startDate&&v.startDate>hospitalToday()?'planned':'active'});if(location.state?.meetingTraining){const meetingTraining=location.state.meetingTraining;await linkMeetingTraining(tenant!.id,meetingTraining,program).catch(error=>console.error(error));await addTrainingParticipantsAsync(tenant!.id,program,meetingTraining.attendees||[]).catch(error=>console.error(error))};notify(en?'Training program created.':'Το πρόγραμμα εκπαίδευσης δημιουργήθηκε.','success');navigate(`/training/${program.id}`,{replace:true,state:location.state?.limoxisFrom?{limoxisFrom:location.state.limoxisFrom}:undefined})}catch(error){notifyError(error,'save',{operation:'training_create'})}finally{setSaving(false)}}
+ return <Page><EntityRecordShell className="training-create-shell" avatar={<GraduationCap size={19}/>} eyebrow={en?'Training':'Εκπαίδευση'} title={en?'New training program':'Νέο πρόγραμμα εκπαίδευσης'} subtitle={en?'Create training program':'Δημιουργία προγράμματος εκπαίδευσης'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/training')}>
+  <div className="record-section training-create-form"><TrainingProgramForm compact value={v} onChange={setV} language={language} employees={employees||[]} departments={departments}/><div className="inline-edit-footer"><Button variant="secondary" onClick={()=>navigate('/training')} disabled={saving}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{en?'Save':'Αποθήκευση'}</SaveButton></div></div>
+ </EntityRecordShell></Page>
+}

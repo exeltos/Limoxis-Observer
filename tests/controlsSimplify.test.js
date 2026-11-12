@@ -16,7 +16,7 @@ describe('controls list: department cards, key figures per tab, no filter popove
   it('opens on the department cards, with the key figures of the open tab under the tabs', () => {
     expect(page).toContain("value:'departments',label:tx.departments,icon:LayoutGrid")
     expect(page).toContain('<ControlDepartmentCards cards={cards}')
-    expect(page).toContain('function openDepartment(dep){setDepartment(dep);setStatus(\'all\');setView(\'programme\')}')
+    expect(page).toContain('function openDepartment(dep:string|null){setDepartment(dep);setStatus(\'all\');setView(\'programme\')}')
     expect(page.indexOf('<CanonicalTabs')).toBeLessThan(page.indexOf('<ControlsKpis view={activeView}'))
     expect(page).not.toContain('module-summary-strip')
     expect(page).not.toContain('<Kpi ')
