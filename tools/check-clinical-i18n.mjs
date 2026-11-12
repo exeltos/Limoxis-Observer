@@ -2,11 +2,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { readSource } from './readSource.mjs'
 
-// The patient clinical record page is split across the first seven files.
+// The patient clinical record page is split across the surveillance files below.
 const files = [
   'src/features/surveillance/PatientClinicalCanonicalPage.jsx',
   'src/features/surveillance/PatientClinicalRecordTabs.tsx',
   'src/features/surveillance/ClinicalAdmissions.jsx',
+  'src/features/surveillance/ClinicalAdmissionDialogs.tsx',
   'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx',
   'src/features/surveillance/ClinicalJourney.jsx',
   'src/features/surveillance/ClinicalJourneyCareStages.tsx',
@@ -14,6 +15,9 @@ const files = [
   'src/features/surveillance/clinicalRecordLabels.js',
   'src/features/surveillance/ClinicalRecordViews.jsx',
   'src/features/surveillance/ClinicalRecordDialogs.jsx',
+  'src/features/surveillance/ClinicalCareDialogs.tsx',
+  'src/features/surveillance/ClinicalSimpleDialog.tsx',
+  'src/features/surveillance/clinicalDialogText.ts',
   'src/features/surveillance/SurveillanceCanonicalPage.jsx',
   'src/features/patients/PatientsPage.jsx',
 ]
@@ -28,13 +32,17 @@ const baseline = {
   'src/features/surveillance/PatientClinicalCanonicalPage.jsx': 0,
   'src/features/surveillance/PatientClinicalRecordTabs.tsx': 0,
   'src/features/surveillance/ClinicalAdmissions.jsx': 0,
+  'src/features/surveillance/ClinicalAdmissionDialogs.tsx': 0,
   'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx': 83,
   'src/features/surveillance/ClinicalJourney.jsx': 0,
   'src/features/surveillance/ClinicalJourneyCareStages.tsx': 0,
   'src/features/surveillance/ClinicalJourneyWindows.tsx': 0,
   'src/features/surveillance/clinicalRecordLabels.js': 1165,
   'src/features/surveillance/ClinicalRecordViews.jsx': 0,
-  'src/features/surveillance/ClinicalRecordDialogs.jsx': 457,
+  'src/features/surveillance/ClinicalRecordDialogs.jsx': 160,
+  'src/features/surveillance/ClinicalCareDialogs.tsx': 297,
+  'src/features/surveillance/ClinicalSimpleDialog.tsx': 0,
+  'src/features/surveillance/clinicalDialogText.ts': 0,
   'src/features/surveillance/SurveillanceCanonicalPage.jsx': 0,
   'src/features/patients/PatientsPage.jsx': 0,
 }

@@ -4,6 +4,8 @@ import { readSource } from './readSource'
 // source-level assertions read a split file together with its parts as one text.
 const S = 'src/features/surveillance/'
 export const SURVEILLANCE_SPLITS = {
+  [`${S}ClinicalRecordDialogs`]: [`${S}clinicalDialogText.ts`, `${S}ClinicalSimpleDialog.tsx`, `${S}ClinicalCareDialogs.tsx`],
+  [`${S}ClinicalAdmissions`]: [`${S}ClinicalAdmissionDialogs.tsx`],
   [`${S}clinicalCloudService`]: [`${S}clinicalCloudMappers.ts`],
   [`${S}PatientClinicalCanonicalPage`]: [`${S}PatientClinicalRecordTabs.tsx`],
   [`${S}ClinicalJourney`]: [`${S}ClinicalJourneyCareStages.tsx`, `${S}ClinicalJourneyWindows.tsx`],

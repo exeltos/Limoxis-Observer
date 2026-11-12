@@ -93,7 +93,7 @@ describe('forms never save empty', () => {
 
   it('wires the rule into every surveillance creation form', () => {
     for (const file of ['NewSurveillanceFlow.jsx', 'EmployeeSurveillanceCanonicalFlow.jsx', 'EnvironmentalSurveillanceFlow.jsx', 'ClinicalRecordDialogs.jsx']) {
-      const source = read(`src/features/surveillance/${file}`)
+      const source = readSplitSource(`src/features/surveillance/${file}`)
       expect(source, file).toContain('useFormValidation(')
       expect(source, file).toContain('<FormSubmit')
     }

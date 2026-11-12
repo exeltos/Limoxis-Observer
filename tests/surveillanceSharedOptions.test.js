@@ -66,7 +66,7 @@ describe('shared surveillance option lists', () => {
   })
 
   it('uses the shared field controls instead of raw selects, checkboxes and per-screen field titles', () => {
-    const dialogs = read('src/features/surveillance/ClinicalRecordDialogs.jsx')
+    const dialogs = readSplitSource('src/features/surveillance/ClinicalRecordDialogs.jsx')
     expect(dialogs).not.toMatch(/<select\b/)
     expect(dialogs).not.toContain('type="checkbox"')
     expect(dialogs).not.toMatch(/<label[^>]*>\s*<span>/)

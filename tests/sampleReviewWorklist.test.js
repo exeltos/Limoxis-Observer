@@ -119,7 +119,7 @@ describe('«Αίτημα δείγματος»', () => {
     const workspace = read('src/features/surveillance/ClinicalSurveillanceWorkspace.jsx')
     expect(workspace).toContain('sampleCode: `${parent.id}-R${siblings + 1}`')
     expect(workspace).toContain('SampleRequestDialog')
-    expect(read('src/features/surveillance/ClinicalRecordDialogs.jsx')).toContain('useFormValidation(')
+    expect(readSplitSource('src/features/surveillance/ClinicalRecordDialogs.jsx')).toContain('useFormValidation(')
     // Results are entered only in the Laboratory: the request never writes one.
     expect(readSplitSource('src/features/surveillance/clinicalCloudService.js')).toMatch(/status: 'requested',\n\s+requested_at/)
   })
