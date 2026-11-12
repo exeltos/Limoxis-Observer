@@ -5,7 +5,28 @@ import { CAPABILITIES, can, canAny, isProfileDisabled } from '../permissions/rol
 // section shows only the tabs the role may open, and is hidden when none.
 // `capability` is also the module gate (switched off by the operating profile);
 // `anyCapabilities`, when present, is the access rule.
-export const SECTION_TABS = Object.freeze({
+// Μια καρτέλα ενότητας: η οθόνη, το όνομά της και η πύλη πρόσβασης.
+export interface SectionTab {
+  id: string
+  label: string
+  capability: string
+  anyCapabilities?: string[]
+}
+
+export interface SectionDefinition {
+  path: string
+  title: string
+  defaultTab: string
+  tabs: SectionTab[]
+}
+
+interface TabAccess {
+  role?: string | null
+  addOns?: string[]
+  customCapabilities?: string[]
+}
+
+export const SECTION_TABS: Readonly<Record<string, SectionDefinition>> = Object.freeze({
   surveillance: {
     path: '/surveillance',
     title: 'sidebarNav.surveillanceSection',
@@ -42,34 +63,34 @@ export const SECTION_TABS = Object.freeze({
 })
 
 // Every capability that opens at least one tab of the section (the route gate).
-export function sectionCapabilities(sectionId) {
+export function sectionCapabilities(sectionId: string): string[] {
   const section = SECTION_TABS[sectionId]
   if (!section) return []
   return [...new Set(section.tabs.flatMap(tab => tab.anyCapabilities || [tab.capability]))]
 }
 
-export function sectionTabAllowed(tab, { role, addOns = [], customCapabilities = [] } = {}) {
+export function sectionTabAllowed(tab: SectionTab | null | undefined, { role, addOns = [], customCapabilities = [] }: TabAccess = {}): boolean {
   if (!tab || isProfileDisabled(tab.capability)) return false
   return tab.anyCapabilities ? canAny(role, tab.anyCapabilities, addOns, customCapabilities) : can(role, tab.capability, addOns, customCapabilities)
 }
 
 // The tabs of a section the role may open, in their order.
-export function sectionTabsFor(sectionId, context = {}) {
+export function sectionTabsFor(sectionId: string, context: TabAccess = {}): SectionTab[] {
   const section = SECTION_TABS[sectionId]
   if (!section) return []
   return section.tabs.filter(tab => sectionTabAllowed(tab, context))
 }
 
 // The tab to show: the requested one when allowed, else the section's default, else the first allowed.
-export function resolveSectionTab(sectionId, requested, allowed) {
+export function resolveSectionTab(sectionId: string, requested: string | null | undefined, allowed: readonly SectionTab[] | null | undefined): string | null {
   const ids = (allowed || []).map(tab => tab.id)
   if (requested && ids.includes(requested)) return requested
   const fallback = SECTION_TABS[sectionId]?.defaultTab
-  return ids.includes(fallback) ? fallback : ids[0] || null
+  return fallback && ids.includes(fallback) ? fallback : ids[0] || null
 }
 
 // The address of a tab: the section path, with ?tab= unless it is the default tab.
-export function sectionTabPath(sectionId, tabId, extra = '') {
+export function sectionTabPath(sectionId: string, tabId: string | null | undefined, extra = ''): string {
   const section = SECTION_TABS[sectionId]
   if (!section) return '/'
   const params = new URLSearchParams(extra)

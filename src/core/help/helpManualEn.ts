@@ -1,4 +1,6 @@
-export const helpManualEn={
+import type { HelpBook } from './helpTypes'
+
+export const helpManualEn: HelpBook={
  '/':{title:'Home',summary:'Your personal operational view of the day. An incident report opens from the “+ Incident report” button at the foot of the menu.',audience:'All users with Home access',chapters:[
   ['Orientation','The Dashboard is not identical for every user. It adapts to your role, scope, additional capabilities and current assignments.'],
   ['What needs attention','Start with pending items and notifications. Selecting a task takes you directly to the corresponding operational record.'],

@@ -3,11 +3,11 @@ import { PREVIEWABLE_ROLES } from '../permissions/roles'
 import { navigationFor } from '../../app/navigation'
 import { DEMO_ALL_SCENARIOS, DEMO_ROLE_SCENARIOS } from '../../features/demo/demoScenarios'
 
-const l=(el,en)=>({el,en})
+const l=(el: string,en: string)=>({el,en})
 
 // Who each hospital role is and what it does. What it sees is its menu, read
 // from the navigation itself, so the table never drifts from the app.
-export const ROLE_GUIDE=Object.freeze({
+export const ROLE_GUIDE: Readonly<Record<string, { who: { el: string, en: string }, does: { el: string, en: string } }>>=Object.freeze({
   hospital_admin:{who:l('Ο διαχειριστής του νοσοκομείου, που ορίζει ο Ιδιοκτήτης πλατφόρμας.','The hospital administrator, named by the Platform Owner.'),
     does:l('Χρήστες, ρόλοι και προσαρμοσμένοι ρόλοι, τμήματα, βιβλιοθήκες, κλινοημέρες και ρυθμίσεις του οργανισμού. Βλέπει όλες τις ενότητες του νοσοκομείου.','Users, roles and custom roles, departments, libraries, patient days and organization settings. Sees every area of the hospital.')},
   infection_control_lead:{who:l('Ο επικεφαλής της Ομάδας Ελέγχου Λοιμώξεων.','The head of the Infection Control team.'),
@@ -40,19 +40,19 @@ export const ROLE_GUIDE=Object.freeze({
     does:l('Βλέπει την πλήρη εικόνα του νοσοκομείου στους Δείκτες, με φίλτρα, σύγκριση και εξαγωγή αναφοράς. Δεν καταχωρεί.','Sees the whole hospital in Indicators, with filters, comparison and a report to export. Records nothing.')},
 })
 
-const roleLabelKey=role=>`${role.replace(/_([a-z])/g,(_,c)=>c.toUpperCase())}Role`
-const scenarioTitle=(key,en)=>{const scenario=DEMO_ALL_SCENARIOS.find(item=>item.key===key);return scenario?(en?scenario.titleEn:scenario.titleEl):key}
+const roleLabelKey=(role: string)=>`${role.replace(/_([a-z])/g,(_,c: string)=>c.toUpperCase())}Role`
+const scenarioTitle=(key: string,en: boolean)=>{const scenario=DEMO_ALL_SCENARIOS.find(item=>item.key===key);return scenario?(en?scenario.titleEn:scenario.titleEl):key}
 
 export function HelpRolesView(){
   const {language,t}=useLanguage();const en=language==='en'
-  const pick=text=>en?text.en:text.el
+  const pick=(text: { el: string, en: string })=>en?text.en:text.el
   return <main className="manual-special manual-roles">
     <span className="manual-step-label">{en?'WHO IS WHO':'ΠΟΙΟΣ ΕΙΝΑΙ ΠΟΙΟΣ'}</span>
     <h1>{en?'Roles in Limoxis Observer':'Ρόλοι στο Limoxis Observer'}</h1>
     <p>{en?'Who each role is, what its menu shows and what it does. In a Demo, each role is guided through the scenarios of its own work.':'Ποιος είναι κάθε ρόλος, τι δείχνει το μενού του και τι κάνει. Στο Demo, κάθε ρόλος καθοδηγείται στα σενάρια της δικής του δουλειάς.'}</p>
     <div className="manual-roles-table" role="table" aria-label={en?'Roles':'Ρόλοι'}>
       <div className="manual-roles-head" role="row">{[en?'Role':'Ρόλος',en?'Who':'Ποιος είναι',en?'Sees':'Τι βλέπει',en?'Does':'Τι κάνει'].map(label=><span key={label} role="columnheader">{label}</span>)}</div>
-      {PREVIEWABLE_ROLES.filter(role=>ROLE_GUIDE[role]).map(role=>{const guide=ROLE_GUIDE[role];const scenarios=DEMO_ROLE_SCENARIOS[role]||[]
+      {PREVIEWABLE_ROLES.filter(role=>ROLE_GUIDE[role]).map(role=>{const guide=ROLE_GUIDE[role];const scenarios: string[]=(DEMO_ROLE_SCENARIOS as Record<string, string[]>)[role]||[]
         return <div className="manual-roles-row" role="row" key={role}>
           <b role="cell">{t(roleLabelKey(role))}</b>
           <span role="cell">{pick(guide.who)}</span>

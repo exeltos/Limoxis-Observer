@@ -258,6 +258,7 @@ function applyRoleMenuPolicy(role,items){
 // One entry per destination: the department's calendar replaces the general one, and «Indicators & objectives» holds the indicators.
 const SUPERSEDED=[['departmentCalendar','calendar'],['qualityMeasures','indicators']]
 
+/** @param {{role?: string|null, addOns?: string[], customCapabilities?: string[], hasAssignments?: boolean}} [context] */
 export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignments=false}={}){
   const permitted=navigation.filter(item=>
     item.excludeRoles&&item.excludeRoles.includes(role)?false:

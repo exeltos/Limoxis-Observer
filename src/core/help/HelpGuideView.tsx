@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Check, Lock } from 'lucide-react'
-import { guideContent, pickGuide } from './helpGuide'
+import { guideContent, pickGuide, type GuideText } from './helpGuide'
 import { ADDONS, ADDON_LABELS, CORE_MODULES, MODULES, OPERATING_PROFILES, OPTIONAL_MODULES, PROFILE_LABELS } from '../organization/operatingProfile'
 import { roleLabel } from '../permissions/roleLabels'
 import './helpGuide.css'
@@ -25,16 +25,23 @@ const ui = {
 }
 
 // Getting-started guide inside the Help Center. Same content as the PDF manual (helpGuide.js).
-export function HelpGuideView({ language = 'el', hospitalMode = false, moduleEnabled = () => true, currentProfile = null }) {
+interface HelpGuideViewProps {
+  language?: string
+  hospitalMode?: boolean
+  moduleEnabled?: (module: string) => boolean
+  currentProfile?: string | null
+}
+
+export function HelpGuideView({ language = 'el', hospitalMode = false, moduleEnabled = () => true, currentProfile = null }: HelpGuideViewProps) {
   const lang = language === 'en' ? 'en' : 'el'
   const t = ui[lang]
-  const g = useMemo(() => pickGuide(guideContent, lang), [lang])
+  const g = useMemo(() => pickGuide(guideContent, lang) as GuideText, [lang])
   const [tab, setTab] = useState('journey')
-  const [pkg, setPkg] = useState(OPERATING_PROFILES.includes(currentProfile) ? currentProfile : 'basic')
-  const name = id => (MODULES[id] ? MODULES[id][lang] : ADDON_LABELS[id][lang])
+  const [pkg, setPkg] = useState(currentProfile && OPERATING_PROFILES.includes(currentProfile) ? currentProfile : 'basic')
+  const name = (id: string) => (MODULES[id] ? MODULES[id][lang] : ADDON_LABELS[id][lang])
   const selected = g.packages.find(item => item.id === pkg) || g.packages[0]
 
-  const status = id => {
+  const status = (id: string) => {
     if (!hospitalMode) return null
     if (CORE_MODULES.includes(id)) return { tone: 'on', text: t.always }
     return moduleEnabled(id) ? { tone: 'on', text: t.on } : { tone: 'off', text: t.off }
@@ -46,7 +53,7 @@ export function HelpGuideView({ language = 'el', hospitalMode = false, moduleEna
     <p>{g.subtitle}</p>
 
     <div className="manual-chapter-tabs" role="tablist" aria-label={g.title}>
-      {Object.keys(t.tabs).map((id, i) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}><span>{i + 1}</span>{t.tabs[id]}</button>)}
+      {Object.keys(t.tabs).map((id, i) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}><span>{i + 1}</span>{t.tabs[id as keyof typeof t.tabs]}</button>)}
     </div>
 
     {tab === 'journey' && <div className="manual-start-list">

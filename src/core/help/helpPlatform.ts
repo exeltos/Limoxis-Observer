@@ -2,7 +2,9 @@ import { BarChart3, Bot, Building2, Database, FlaskConical, LayoutDashboard, Meg
 
 // User guide for the Platform Owner screens (outside any hospital). Keys match
 // the platform routes: path, or path#hash for the Platform Center sections.
-export const platformHelpNavigation=[
+import type { HelpBook, HelpNavigationItem } from './helpTypes'
+
+export const platformHelpNavigation: HelpNavigationItem[]=[
  {to:'/platform',icon:LayoutDashboard},
  {to:'/platform#organizations',icon:Building2},
  {to:'/platform#users',icon:Users},
@@ -18,7 +20,7 @@ export const platformHelpNavigation=[
 const audienceEl='Ιδιοκτήτης Πλατφόρμας'
 const audienceEn='Platform Owner'
 
-export const platformHelp={
+export const platformHelp: Record<'el' | 'en', HelpBook>={
  el:{
   '/platform':{title:'Κέντρο Πλατφόρμας',summary:'Η συνολική εικόνα της εγκατάστασης χωρίς είσοδο σε κάποιον οργανισμό.',audience:audienceEl,chapters:[
    ['Επισκόπηση','Η γραμμή στην κορυφή δείχνει οργανισμούς, χρήστες, ενεργά Demo και σφάλματα του τελευταίου 24ώρου· πατώντας έναν αριθμό ανοίγει η αντίστοιχη οθόνη. Αριστερά είναι τα νοσοκομεία με τη δραστηριότητά τους και δεξιά ένα κουτί με όσα θέλουν προσοχή: ποιος είναι συνδεδεμένος τώρα, αποτυχίες σύνδεσης Demo που λήγουν σύντομα, λογαριασμοί που κλειδώθηκαν ή δεν έχουν αλλάξει ακόμα τον προσωρινό κωδικό, και προτάσεις νομοθεσίας που περιμένουν έλεγχο (οι γραμμές εμφανίζονται μόνο όταν υπάρχει κάτι). Τα «Νέο Demo» και «Νέος οργανισμός» είναι πάνω δεξιά.'],
