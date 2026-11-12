@@ -56,6 +56,7 @@ const clock = (value, language) => (value ? new Date(value).toLocaleTimeString(l
 // record › «Χρήστες & Ρόλοι». The roster with each employee's account state:
 // select, give a role (and department), confirm, create and send; then the result
 // per person and «Ξαναστείλε» for those who have not activated.
+/** @param {{ organization?: import('../../core/tenant/tenantTypes').Tenant | null, language?: string, roster?: any, loading?: boolean, onReload?: () => unknown, onAccountsChanged?: () => void, onOpenEmployee?: (employee: any) => void }} props */
 export function BulkAccountsPanel({ organization, language = 'el', roster, loading, onReload, onAccountsChanged, onOpenEmployee }) {
   const en = language === 'en'
   const tx = (el, enText) => (en ? enText : el)

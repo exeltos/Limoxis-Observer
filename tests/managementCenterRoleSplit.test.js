@@ -10,8 +10,8 @@ import { readSource } from './helpers/readSource'
 // Administrator sees. The Infection Control Lead also gets outbreak
 // investigations (VIEW_LIRA) instead of them being tied to user management.
 const page = readSource('src/features/management/ManagementPage.jsx')
-const hospitalTabs = page.slice(page.indexOf('const ok=cap=>'), page.indexOf(']},[global,role'))
-const globalTabs = page.slice(page.indexOf('if(global)return ['), page.indexOf('const ok=cap=>'))
+const hospitalTabs = page.slice(page.indexOf('const ok=(cap: string)=>'), page.indexOf(']},[global,role'))
+const globalTabs = page.slice(page.indexOf('if(global)return ['), page.indexOf('const ok=(cap: string)=>'))
 
 describe('Management Center: hospital vs platform', () => {
   it('keeps platform-wide tabs out of the hospital Management Center', () => {
