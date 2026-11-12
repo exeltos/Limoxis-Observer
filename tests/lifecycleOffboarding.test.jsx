@@ -5,6 +5,7 @@ import '@testing-library/jest-dom/vitest'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import { ConvertDemoDialog, DemoExtendControls } from '../src/features/platform/DemoLifecycleControls'
 import { readSource } from './helpers/readSource'
+import { hospitalToday } from '../src/core/dates/hospitalDate'
 
 const read = path => readSource(path)
 const migration = read('supabase/migrations/20261015120000_lifecycle_offboarding.sql')
@@ -25,7 +26,8 @@ describe('Demo lifecycle', () => {
     const onPast = vi.fn()
     render(wrap(<DemoExtendControls validUntil="2000-01-01" language="el" onExtend={onPast}/>))
     fireEvent.click(screen.getByText('+14 ημ.'))
-    const expected = new Date(); expected.setUTCDate(expected.getUTCDate() + 14)
+    // «Σήμερα» με το ρολόι της Αθήνας, όπως το υπολογίζει η εφαρμογή.
+    const expected = new Date(`${hospitalToday()}T12:00:00Z`); expected.setUTCDate(expected.getUTCDate() + 14)
     expect(onPast).toHaveBeenCalledWith(expected.toISOString().slice(0, 10))
   })
   it('converts only after the owner confirms that the demonstration data is deleted', () => {

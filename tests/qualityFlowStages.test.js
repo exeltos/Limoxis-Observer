@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { incidentFlow, incidentStage } from '../src/features/quality/qualityRecordRules'
 import { filterRegister, registerCounts, registerRows } from '../src/features/quality/qualityRegister'
 import { nextIncidentStep } from '../src/features/quality/IncidentFlowBar'
+import { hospitalToday } from '../src/core/dates/hospitalDate'
 
 describe('Quality: the stage of a report in its flow', () => {
   it('reads the stage from the status and the linked CAPAs', () => {
@@ -70,7 +71,7 @@ describe('Quality: actions with their source, audits with their figures', async 
   })
 
   it('counts this month’s, late and finding-bearing audits', () => {
-    const now = new Date().toISOString().slice(0, 10)
+    const now = hospitalToday()
     const rows = auditRows(
       [{ id: 'AUD-1', status: 'planned', plannedDate: now }, { id: 'AUD-2', status: 'planned', plannedDate: '2020-01-01' }, { id: 'AUD-3', status: 'completed', plannedDate: now, completedDate: now, checklist: [{ answer: 'yes' }] }],
       [{ id: 'FND-1', sourceId: 'AUD-3', status: 'open' }],
