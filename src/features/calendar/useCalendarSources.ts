@@ -6,7 +6,7 @@ import { loadTrainingCalendarAsync } from '../training/trainingService'
 import { groupDocumentFamilies,loadDocumentsAsync } from '../documents/documentService'
 import { loadCommitteesAsync } from '../committees/committeeService'
 import { loadMeetingGroups, loadMeetings } from '../quality/meetings/meetingService'
-import { groupStatus } from '../quality/meetings/meetingModel'
+import { groupStatus, type MeetingGroup } from '../quality/meetings/meetingModel'
 import { loadProtocolSuggestionsAsync } from '../documents/protocolReview/protocolReviewService'
 import { loadSupplierSchedule } from '../quality/resources/resourceService'
 import { withSupplierStatus } from '../quality/resources/resourceModel'
@@ -35,7 +35,7 @@ export function useCalendarSources(organizationId: string | null | undefined,all
    safe('documents',()=>loadDocumentsAsync(organizationId),[]),
    safe('committees',()=>loadCommitteesAsync(organizationId),[]),
    // The department meeting groups: when each department's next meeting is due.
-   safe('committees',()=>Promise.all([loadMeetingGroups(organizationId),loadMeetings(organizationId)]).then(([groups,meetings])=>groups.map((group: AnyRecord)=>{const status=groupStatus(group,meetings,todayKey());return {group,nextDue:status.nextDue,upcoming:status.meetings.filter(meeting=>meeting.status==='draft'&&String(meeting.meetingDate)>=todayKey())}})),[]),
+   safe('committees',()=>Promise.all([loadMeetingGroups(organizationId),loadMeetings(organizationId)]).then(([groups,meetings])=>groups.map((group: AnyRecord)=>{const status=groupStatus(group as MeetingGroup,meetings,todayKey());return {group,nextDue:status.nextDue,upcoming:status.meetings.filter(meeting=>meeting.status==='draft'&&String(meeting.meetingDate)>=todayKey())}})),[]),
    safe('documents',()=>loadProtocolSuggestionsAsync(organizationId),[]),
    safe('suppliers',()=>loadSupplierSchedule(organizationId).then(({suppliers,templates})=>withSupplierStatus(suppliers,[],undefined,templates)),[]),
    // The kitchen's calendar items reach back 30 days (verification, out of limits) and forward (plan, expiry): only that window is read.

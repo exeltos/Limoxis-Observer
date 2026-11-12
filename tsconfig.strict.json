@@ -40,6 +40,7 @@
     "src/features/pharmacy/**/*",
     "src/features/platform/**/*",
     "src/features/prevention/**/*",
+    "src/features/quality/**/*",
     "src/features/recycle-bin/**/*",
     "src/features/registers/**/*",
     "src/features/regulations/**/*",
