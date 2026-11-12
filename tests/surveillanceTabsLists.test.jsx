@@ -165,3 +165,16 @@ describe('List pattern of the Surveillance tabs', () => {
     expect(patients).toContain('<ClinicalRiskText')
   })
 })
+
+describe('Sorting the environmental samples list', () => {
+  it('the date and result arrows sort by the sample collection date and the sample result', async () => {
+    const source = read('src/features/surveillance/SurveillanceCanonicalPage.jsx')
+    expect(source).toContain("date: x => (mode === 'environmental' ? x.collectedAt || x.requestedAt : x.startedAt)")
+    expect(source).toContain("result: x => (mode === 'environmental' ? x.result : x.resultStatus)")
+    expect(source).not.toContain("=== 'environment' ?")
+    const { sortRowsBy } = await import('../src/design-system/useTableSort')
+    const rows = [{ collectedAt: '2026-10-17', result: 'pass' }, { collectedAt: '2026-10-02', result: 'fail' }]
+    expect(sortRowsBy(rows, x => x.collectedAt, 'asc').map(x => x.collectedAt)).toEqual(['2026-10-02', '2026-10-17'])
+    expect(sortRowsBy(rows, x => x.result, 'asc').map(x => x.result)).toEqual(['fail', 'pass'])
+  })
+})

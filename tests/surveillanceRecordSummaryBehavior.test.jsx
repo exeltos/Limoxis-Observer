@@ -9,6 +9,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { summaryAttention } from '../src/features/surveillance/recordAttention'
+import { hospitalToday } from '../src/core/dates/hospitalDate'
 
 let profile
 vi.mock('../src/core/auth/AuthContext', () => ({
@@ -59,8 +60,8 @@ async function openRecord(id) {
 const t = key =>
   ({ reassessmentOverdueBanner: 'late {days}', openReassessment: 'open review' })[key] || key
 const day = offset => {
-  const d = new Date()
-  d.setDate(d.getDate() + offset)
+  const d = new Date(`${hospitalToday()}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + offset)
   return d.toISOString().slice(0, 10)
 }
 
