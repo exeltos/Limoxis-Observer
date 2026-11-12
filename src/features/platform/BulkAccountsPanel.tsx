@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEventHandler, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Building2,
@@ -48,40 +48,42 @@ import '../../design-system/ChoiceChips.css'
 import './platformDeletion.css'
 import './bulkAccounts.css'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { RoleDraft, RoleDrafts } from './bulkAccountsModel'
 
-const shortDay = (value, language: string) => (value ? new Date(value).toLocaleDateString(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit' }) : '')
-const fullDay = (value, language: string) => (value ? new Date(value).toLocaleDateString(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
-const clock = (value, language: string) => (value ? new Date(value).toLocaleTimeString(language === 'en' ? 'en-GB' : 'el-GR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '')
+type Roster = { employees: AnyRecord[], departments: AnyRecord[] }
+
+const shortDay = (value: string | null | undefined, language: string) => (value ? new Date(value).toLocaleDateString(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit' }) : '')
+const fullDay = (value: string | null | undefined, language: string) => (value ? new Date(value).toLocaleDateString(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
+const clock = (value: string | null | undefined, language: string) => (value ? new Date(value).toLocaleTimeString(language === 'en' ? 'en-GB' : 'el-GR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '')
 
 // N1 · «Εργαζόμενοι χωρίς λογαριασμό» (Platform Owner only), in the hospital's
 // record › «Χρήστες & Ρόλοι». The roster with each employee's account state:
 // select, give a role (and department), confirm, create and send; then the result
 // per person and «Ξαναστείλε» for those who have not activated.
-/** @param {{ organization?: import('../../core/tenant/tenantTypes').Tenant | null, language?: string, roster?: any, loading?: boolean, onReload?: () => unknown, onAccountsChanged?: () => void, onOpenEmployee?: (employee: any) => void }} props */
-export function BulkAccountsPanel({ organization, language = 'el', roster, loading, onReload, onAccountsChanged, onOpenEmployee }) {
+export function BulkAccountsPanel({ organization, language = 'el', roster, loading, onReload, onAccountsChanged, onOpenEmployee }: { organization: AnyRecord | null, language?: string, roster: Roster | AnyRecord, loading?: boolean, onReload?: () => unknown, onAccountsChanged?: () => void, onOpenEmployee?: (employeeId: string) => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const { notify, notifyError } = useFeedback()
   const rows = roster.employees
   const departments = roster.departments
-  const rowsById = useMemo(() => new Map(rows.map((row: AnyRecord) => [row.employeeId, row])), [rows])
+  const rowsById = useMemo(() => new Map<string, AnyRecord>(rows.map((row: AnyRecord) => [row.employeeId, row])), [rows])
   const batch = useMemo(() => latestBatch(rows), [rows])
   const [filter, setFilter] = useState('none')
   const [query, setQuery] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('')
   const [professionFilter, setProfessionFilter] = useState('')
-  const [selected, setSelected] = useState(() => new Set())
-  const [drafts, setDrafts] = useState({})
+  const [selected, setSelected] = useState(() => new Set<string>())
+  const [drafts, setDrafts] = useState<RoleDrafts>({})
   const [bulkOpen, setBulkOpen] = useState(false)
   const [confirm, setConfirm] = useState<AnyRecord | null>(null)
-  const [confirmedExisting, setConfirmedExisting] = useState(() => new Set())
+  const [confirmedExisting, setConfirmedExisting] = useState(() => new Set<string>())
   const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [resending, setResending] = useState(false)
-  const [lastRunAt, setLastRunAt] = useState<AnyRecord | null>(null)
+  const [lastRunAt, setLastRunAt] = useState<string | null>(null)
 
   const counts = useMemo(() => chipCounts(rows), [rows])
-  const professions = useMemo(() => [...new Set(rows.map((row: AnyRecord) => row.profession).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [rows])
+  const professions = useMemo(() => [...new Set<string>(rows.map((row: AnyRecord) => row.profession).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [rows])
   const visible = useMemo(() => {
     const list = filterRows(rows, { filter, batchId: batch?.id, query, departmentId: departmentFilter, profession: professionFilter })
     return filter === 'batch' || filter === 'pending' ? sortByResult(list) : list
@@ -122,7 +124,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
     setConfirmedExisting(new Set())
     setConfirm({ items, preview: null })
     try {
-      const preview = await previewBulkAccounts(organization, items, rows)
+      const preview = await previewBulkAccounts(organization!, items, rows)
       setConfirm({ items, preview })
     } catch (error) {
       setConfirm(null)
@@ -138,7 +140,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
     if (!items.length) return
     setRunning(true)
     try {
-      const result = await createBulkAccounts(organization.id, items, { confirmExisting: [...confirmedExisting], onProgress: (done, total: number) => setProgress({ done, total }) })
+      const result = await createBulkAccounts(organization!.id, items, { confirmExisting: [...confirmedExisting], onProgress: (done: number, total: number) => setProgress({ done, total }) })
       const failed = (result.results || []).filter(row => row.status === 'failed').length
       notify(
         failed
@@ -166,7 +168,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
     if (!ids.length) return
     setResending(true)
     try {
-      const { results } = await resendAccountAccess(organization.id, ids)
+      const { results } = (await resendAccountAccess(organization!.id, ids)) as { results: AnyRecord[] }
       const sent = results.filter(row => row.status === 'sent').length
       const refused = results.length - sent
       const reason = results.find(row => row.status !== 'sent')?.code
@@ -354,7 +356,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
       </section>
       {confirm && (
         <BulkAccountsConfirmDialog
-          organization={organization}
+          organization={organization!}
           language={language}
           items={confirm.items}
           rowsById={rowsById}
@@ -380,7 +382,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
 }
 
 function resendReason(code: string, en: boolean) {
-  const map = {
+  const map: Record<string, [string, string]> = {
     RESEND_DAILY_LIMIT: ['έως 3 φορές ανά 24 ώρες', 'at most 3 times per 24 hours'],
     RESEND_TOO_SOON: ['τουλάχιστον 10 λεπτά μετά το προηγούμενο', 'at least 10 minutes after the previous one'],
     NOT_PENDING: ['έχει ήδη ενεργοποιήσει', 'already activated'],
@@ -389,15 +391,15 @@ function resendReason(code: string, en: boolean) {
   return map[code]?.[en ? 1 : 0] || code || ''
 }
 
-function HeaderCheckbox({ checked, mixed, disabled, onChange, label }) {
-  const ref = useRef(null)
+function HeaderCheckbox({ checked, mixed, disabled, onChange, label }: { checked: boolean, mixed: boolean, disabled?: boolean, onChange: ChangeEventHandler<HTMLInputElement>, label: string }) {
+  const ref = useRef<HTMLInputElement>(null)
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = mixed
   }, [mixed])
   return <input ref={ref} type="checkbox" className="bulk-accounts-check" checked={checked} disabled={disabled} aria-label={label} onChange={onChange} />
 }
 
-function EmployeeName({ row, onOpenEmployee, title }) {
+function EmployeeName({ row, onOpenEmployee, title }: { row: AnyRecord, onOpenEmployee?: (employeeId: string) => void, title?: string }) {
   return onOpenEmployee ? (
     <button type="button" className="bulk-accounts-link" title={title} onClick={() => onOpenEmployee(row.employeeId)}>
       <strong>{row.name}</strong>
@@ -407,7 +409,7 @@ function EmployeeName({ row, onOpenEmployee, title }) {
   )
 }
 
-function RosterRow({ row, language, departments, draft, selected, onToggle, onRole, onDepartment, onOpenEmployee }) {
+function RosterRow({ row, language, departments, draft, selected, onToggle, onRole, onDepartment, onOpenEmployee }: { row: AnyRecord, language: string, departments: AnyRecord[], draft?: RoleDraft, selected: boolean, onToggle: () => void, onRole: (role: string) => void, onDepartment: (id: string) => void, onOpenEmployee?: (employeeId: string) => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const blocked = row.accountState === 'none' && row.blockedReason
@@ -480,7 +482,7 @@ function RosterRow({ row, language, departments, draft, selected, onToggle, onRo
   )
 }
 
-function ResultRow({ row, language, checkbox, selected, onToggle, onResend, resending, onOpenEmployee }) {
+function ResultRow({ row, language, checkbox, selected, onToggle, onResend, resending, onOpenEmployee }: { row: AnyRecord, language: string, checkbox: boolean, selected: boolean, onToggle: () => void, onResend: () => void, resending: boolean, onOpenEmployee?: (employeeId: string) => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const status = resultStatus(row)
@@ -550,16 +552,16 @@ function ResultRow({ row, language, checkbox, selected, onToggle, onResend, rese
 }
 
 // «Ορισμός ρόλου σε όλους τους επιλεγμένους» (n1-2).
-function BulkRoleBar({ language, selected, drafts, rowsById, departments, open, onOpen, onApply }) {
+function BulkRoleBar({ language, selected, drafts, rowsById, departments, open, onOpen, onApply }: { language: string, selected: Set<string>, drafts: RoleDrafts, rowsById: Map<string, AnyRecord>, departments: AnyRecord[], open: boolean, onOpen: (open: boolean) => void, onApply: (options: AnyRecord) => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const [role, setRole] = useState('')
   const [scope, setScope] = useState('own')
   const [departmentId, setDepartmentId] = useState('')
   const [replace, setReplace] = useState(false)
-  const wrap = useRef(null)
-  const popoverRef = useRef(null)
-  const [placement, setPlacement] = useState<AnyRecord | null>(null)
+  const wrap = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const [placement, setPlacement] = useState<CSSProperties | null>(null)
   // Fixed under the trigger (a portal, so the table's scroll box does not clip it),
   // scrolling inside when the window is short.
   useLayoutEffect(() => {
@@ -575,8 +577,8 @@ function BulkRoleBar({ language, selected, drafts, rowsById, departments, open, 
   }, [open])
   useEffect(() => {
     if (!open) return undefined
-    const close = event => {
-      if (event.type === 'keydown' ? event.key === 'Escape' : !wrap.current?.contains(event.target) && !popoverRef.current?.contains(event.target)) onOpen(false)
+    const close = (event: Event) => {
+      if (event.type === 'keydown' ? (event as KeyboardEvent).key === 'Escape' : !wrap.current?.contains(event.target as Node) && !popoverRef.current?.contains(event.target as Node)) onOpen(false)
     }
     document.addEventListener('mousedown', close)
     document.addEventListener('keydown', close)

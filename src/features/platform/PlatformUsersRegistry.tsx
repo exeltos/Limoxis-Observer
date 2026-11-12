@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -18,7 +18,7 @@ import './platformDashboard.css'
 import './loginSessions.css'
 import type { AnyRecord } from '../../types/featureTypes'
 
-const fmtDay = (value, language: string) => value ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR').format(new Date(value)) : '—'
+const fmtDay = (value: string | null | undefined, language: string) => value ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR').format(new Date(value)) : '—'
 
 // Where a person stands: active, invitation pending or expired, or inactive.
 export function platformUserState(user: AnyRecord) {
@@ -31,7 +31,7 @@ export function platformUserState(user: AnyRecord) {
 // and where from (hospital, Demo or the platform itself), with where their
 // account stands, and when they last signed in. A row opens the user's record; «Νέος χρήστης» asks first
 // for the organization, then continues into that organization's own dialogs (onNewUser).
-export function PlatformUsersRegistry({ tabs = null, language = 'el', users = [], organizations = [], loading = false, onOpenUser, onNewUser }) {
+export function PlatformUsersRegistry({ tabs = null, language = 'el', users = [], organizations = [], loading = false, onOpenUser, onNewUser }: { tabs?: ReactNode, language?: string, users?: AnyRecord[], organizations?: AnyRecord[], loading?: boolean, onOpenUser?: (user: AnyRecord) => void, onNewUser?: (organizationId: string, mode: string) => void }) {
   const en = language === 'en', tx = (el: string, enText: string) => (en ? enText : el)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
@@ -43,10 +43,10 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
   const latest = useMemo(() => latestSessionByUser(sessions), [sessions])
   const onlineIds = useMemo(() => new Set(sessions.filter(row => row.online).map(row => row.userId)), [sessions])
   const kindLabel = (kind: string) => ({ hospital: tx('Νοσοκομείο', 'Hospital'), demo: 'Demo', platform: tx('Πλατφόρμα', 'Platform'), none: tx('Χωρίς οργανισμό', 'No organization') })[kind]
-  const stateLabel = (state: AnyRecord) => userStateLabel(tx, state)
+  const stateLabel = (state: string) => userStateLabel(tx, state)
   const roleText = (user: AnyRecord) => user.role ? roleLabel(user.role, language) : '—'
   const sorted = useMemo(() => [...users].sort((a, b) => String(a.organization?.name || '~').localeCompare(String(b.organization?.name || '~'), 'el') || String(a.name).localeCompare(String(b.name), 'el')), [users])
-  const counts = useMemo(() => sorted.reduce((acc, user) => { acc[user.kind] = (acc[user.kind] || 0) + 1; const state = platformUserState(user); if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; if (onlineIds.has(user.userId)) acc.online += 1; return acc }, { invited: 0, inactive: 0, online: 0 }), [sorted, onlineIds])
+  const counts = useMemo(() => sorted.reduce((acc, user) => { acc[user.kind] = (acc[user.kind] || 0) + 1; const state = platformUserState(user); if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; if (onlineIds.has(user.userId)) acc.online += 1; return acc }, { invited: 0, inactive: 0, online: 0 } as Record<string, number>), [sorted, onlineIds])
   const visible = useMemo(() => {
     const locale = en ? 'en-US' : 'el-GR', q = query.trim().toLocaleLowerCase(locale)
     return sorted.filter(user => {
@@ -70,7 +70,7 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
   }
   // A row is clickable only where a record exists: not the Platform Owner, nor an account without an organization.
   const knownOrganizationIds = useMemo(() => new Set(organizations.map(org => org.id)), [organizations])
-  const canOpen = user => Boolean(userRecordTarget(user, { organizationIds: knownOrganizationIds }))
+  const canOpen = (user: AnyRecord) => Boolean(userRecordTarget(user, { organizationIds: knownOrganizationIds }))
   const productionOrganizations = useMemo(() => organizations.filter(org => !org.is_demo).sort((a, b) => String(a.name).localeCompare(String(b.name), 'el')), [organizations])
   const organizationOptions = useMemo(() => productionOrganizations.map(org => ({ value: org.id, label: org.name, description: org.code })), [productionOrganizations])
   const closeNew = () => { setNewMode(''); setNewOrganizationId('') }

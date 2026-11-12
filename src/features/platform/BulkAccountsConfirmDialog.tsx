@@ -7,24 +7,24 @@ import { roleLabel } from '../../core/permissions/roleLabels'
 import { needsDepartment, reasonText } from './bulkAccountsModel'
 import type { AnyRecord } from '../../types/featureTypes'
 
-const day = (value, language: string, withWeekday = false) =>
+const day = (value: string | null | undefined, language: string, withWeekday = false) =>
   value
     ? new Date(value).toLocaleDateString(language === 'en' ? 'en-GB' : 'el-GR', {
-        ...(withWeekday ? { weekday: 'long' } : {}),
+        ...(withWeekday ? { weekday: 'long' as const } : {}),
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         timeZone: 'Europe/Athens',
       })
     : ''
-const time = (value, language: string) =>
+const time = (value: string | null | undefined, language: string) =>
   value ? new Date(value).toLocaleTimeString(language === 'en' ? 'en-GB' : 'el-GR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Athens' }) : ''
 
 // The confirmation of a bulk run (n1-3): people per role and department, the
 // link's validity, e-mails that already have an account in another hospital (each
 // confirmed one by one, no second account), who is skipped, that only the
 // Platform Owner can do this, and the e-mail of the first recipient.
-export function BulkAccountsConfirmDialog({ organization, language, items, rowsById, departments, preview, confirmedExisting, onToggleExisting, running, progress, onBack, onConfirm }) {
+export function BulkAccountsConfirmDialog({ organization, language, items, rowsById, departments, preview, confirmedExisting, onToggleExisting, running, progress, onBack, onConfirm }: { organization: AnyRecord, language: string, items: AnyRecord[], rowsById: Map<string, AnyRecord>, departments: AnyRecord[], preview: AnyRecord | null, confirmedExisting: Set<string>, onToggleExisting: (employeeId: string) => void, running: boolean, progress: AnyRecord | null, onBack: () => void, onConfirm: () => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const [fullEmail, setFullEmail] = useState(false)
@@ -62,7 +62,7 @@ export function BulkAccountsConfirmDialog({ organization, language, items, rowsB
             <Button disabled={!count || running || !preview} loading={running} onClick={onConfirm}>
               <UserPlus size={16} />
               {running
-                ? tx(`Δημιουργία… ${progress.done}/${progress.total}`, `Creating… ${progress.done}/${progress.total}`)
+                ? tx(`Δημιουργία… ${progress!.done}/${progress!.total}`, `Creating… ${progress!.done}/${progress!.total}`)
                 : tx(`Δημιουργία ${count} & αποστολή`, `Create ${count} & send`)}
             </Button>
           </>
@@ -232,9 +232,9 @@ export function BulkAccountsConfirmDialog({ organization, language, items, rowsB
   )
 }
 
-function departmentName(item: AnyRecord, rowsById: string, departments) {
+function departmentName(item: AnyRecord, rowsById: Map<string, AnyRecord>, departments: AnyRecord[] | null | undefined) {
   if (!item.departmentId) return ''
   const own = rowsById.get(item.employeeId)
-  if (own?.departmentId === item.departmentId) return own.departmentName
+  if (own?.departmentId === item.departmentId) return own!.departmentName
   return (departments || []).find((d: AnyRecord) => d.id === item.departmentId)?.name || [...rowsById.values()].find(row => row.departmentId === item.departmentId)?.departmentName || ''
 }

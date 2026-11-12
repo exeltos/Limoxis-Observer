@@ -53,7 +53,7 @@ export function PlatformOrganizationRecord({
   onEnter?: () => void
   onDelete?: (organization?: AnyRecord) => void
   onChanged?: (organization: AnyRecord) => void
-  onOpenEmployee?: (employee: AnyRecord) => void
+  onOpenEmployee?: (employeeId: string) => void
   initialUserId?: string
   onUserChange?: (userId: string, backTab?: string) => void
   initialNew?: string

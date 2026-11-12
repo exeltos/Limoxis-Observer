@@ -7,7 +7,7 @@ import type { AnyRecord } from '../../types/featureTypes'
 
 const ROLE_NAMES = ROLE_LABELS as Record<string, { el: string, en: string }>
 // Τμήμα όπως το δίνει η οθόνη ή η βάση: [{id, name, nameEn?}].
-export type DepartmentChoice = { id: string, name: string, nameEn?: string | null }
+export type DepartmentChoice = AnyRecord
 
 export const DEPARTMENT_ROLES = Object.freeze(['department_manager', 'link_nurse', 'department_user'])
 export const ACTIVE_USERS_CHUNK = 25

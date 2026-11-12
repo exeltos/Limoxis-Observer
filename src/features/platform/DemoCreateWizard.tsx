@@ -23,8 +23,8 @@ export const DEMO_DEPARTMENT_ROLES=new Set(['department_manager','link_nurse','d
 export const DEMO_DEPARTMENTS=[['ΜΕΘ','Μονάδα Εντατικής Θεραπείας'],['ΠΑΘ','Παθολογική Κλινική'],['ΧΕΙΡ','Χειρουργική Κλινική'],['ΚΑΡΔ','Καρδιολογική Κλινική'],['ΟΡΘ','Ορθοπαιδική Κλινική'],['ΝΕΦ','Νεφρολογική Κλινική'],['ΠΑΙΔ','Παιδιατρική Κλινική'],['ΜΕΝΝ','Μονάδα Εντατικής Νοσηλείας Νεογνών']]
 
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const addDays=(isoDate,days: number)=>{const date=new Date(`${isoDate}T00:00:00Z`);if(Number.isNaN(date.getTime()))return '';date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)}
-const fmtDay=(value,en: boolean)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${value}T12:00:00`)):'—'
+const addDays=(isoDate: string,days: number)=>{const date=new Date(`${isoDate}T00:00:00Z`);if(Number.isNaN(date.getTime()))return '';date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)}
+const fmtDay=(value: string|null|undefined,en: boolean)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${value}T12:00:00`)):'—'
 
 export function emptyDemoWizardDraft(days=30){
   const validFrom=hospitalToday()
@@ -50,11 +50,11 @@ function demoContents(en: boolean){
     :['8 τμήματα, 48 ασθενείς με τις νοσηλείες τους','Επιτήρηση με ΛΣΦΥ, απομονώσεις, μικροβιολογικά και αντιβιογράμματα','Υγιεινή χεριών, δέσμες μέτρων, απόβλητα και αντισηπτικά','Επαναλαμβανόμενοι έλεγχοι με ευρήματα, εκπαιδεύσεις με πιστοποιητικά','Φαρμακείο DDD, συμβάντα ποιότητας και διορθωτικές ενέργειες, επιτροπές και έγγραφα','Επαγγελματική υγεία: εμβολιασμοί, επισκέψεις, εκθέσεις']
 }
 
-export function DemoCreateWizard({language,defaultDurationDays=30,maxUsers=5,saving=false,result=null,onSubmit,onClose,initialStep=0,initialDraft=null}){
+export function DemoCreateWizard({language,defaultDurationDays=30,maxUsers=5,saving=false,result=null,onSubmit,onClose,initialStep=0,initialDraft=null}: {language: string,defaultDurationDays?: number,maxUsers?: number,saving?: boolean,result?: AnyRecord|null,onSubmit?: (payload: AnyRecord)=>unknown,onClose: ()=>void,initialStep?: number,initialDraft?: AnyRecord|null}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const [step,setStep]=useState(initialStep)
-  const [draft,setDraft]=useState(()=>initialDraft||emptyDemoWizardDraft(defaultDurationDays))
-  const set=(key: string,value)=>setDraft(c=>({...c,[key]:value}))
+  const [draft,setDraft]=useState<AnyRecord>(()=>initialDraft||emptyDemoWizardDraft(defaultDurationDays))
+  const set=(key: string,value: unknown)=>setDraft(c=>({...c,[key]:value}))
   const admin=wizardAdmin(draft)
   const stepValid=[
     Boolean(draft.label.trim())&&EMAIL.test(draft.contactEmail.trim())&&demoDatesValid(draft.validFrom,draft.validUntil),
@@ -62,11 +62,11 @@ export function DemoCreateWizard({language,defaultDurationDays=30,maxUsers=5,sav
     true,
   ]
   const steps=[tx('Πελάτης & διάρκεια','Customer & duration'),tx('Διαχειριστής Demo','Demo admin'),tx('Έλεγχος & αποστολή','Review & send')]
-  const goTo=next=>{
+  const goTo=(next: number)=>{
     if(next===1)setDraft(c=>({...c,adminName:c.adminName||c.contactName,adminEmail:c.adminEmail||c.contactEmail}))
     setStep(next)
   }
-  const durationDays=Math.round((new Date(draft.validUntil)-new Date(draft.validFrom))/86400000)
+  const durationDays=Math.round((new Date(draft.validUntil).getTime()-new Date(draft.validFrom).getTime())/86400000)
 
   if(result)return <DemoCreatedDialog language={language} result={result} onClose={onClose}/>
 
@@ -146,7 +146,7 @@ export function DemoCreateWizard({language,defaultDurationDays=30,maxUsers=5,sav
   </ObserverDialog>
 }
 
-function DemoEmailPreview({language,name,label,validFrom,validUntil}){
+function DemoEmailPreview({language,name,label,validFrom,validUntil}: {language: string,name?: string,label?: string,validFrom?: string,validUntil?: string}){
   const en=language==='en'
   return <div className="demo-email-preview" aria-label={en?'Email preview':'Προεπισκόπηση email'}>
     <div className="demo-email-preview-head">Limoxis Observer</div>
@@ -160,7 +160,7 @@ function DemoEmailPreview({language,name,label,validFrom,validUntil}){
   </div>
 }
 
-function DemoCreatedDialog({language,result,onClose}){
+function DemoCreatedDialog({language,result,onClose}: {language: string,result: AnyRecord,onClose: ()=>void}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const [copied,setCopied]=useState('')
   const [linkFor,setLinkFor]=useState<AnyRecord | null>(null)
@@ -180,7 +180,7 @@ function DemoCreatedDialog({language,result,onClose}){
   </ObserverDialog>
 }
 
-function seedSummary(seed: number,en: boolean){
+function seedSummary(seed: AnyRecord,en: boolean){
   if(seed?.ok===false)return en?'The data could not be written; use "Reset data" on the Demo record.':'Τα δεδομένα δεν γράφτηκαν· χρησιμοποιήστε «Επαναφορά δεδομένων» στην καρτέλα του Demo.'
   return en?`Data: ${seed.patients??0} patients, ${seed.surveillanceCases??0} surveillance cases, ${seed.departments??0} departments.`:`Δεδομένα: ${seed.patients??0} ασθενείς, ${seed.surveillanceCases??0} περιστατικά επιτήρησης, ${seed.departments??0} τμήματα.`
 }

@@ -106,7 +106,7 @@ export async function loadPlatformAnnouncements() {
   return (data || []).map(row => ({ ...mapAnnouncement(row), seenCount: seen.get(row.id) || 0 }))
 }
 
-export async function savePlatformAnnouncement(draft: AnyRecord, userId: string) {
+export async function savePlatformAnnouncement(draft: AnyRecord, userId: string | null | undefined) {
   const payload = { ...announcementPayload(draft), updated_by: userId || null, updated_at: new Date().toISOString() }
   const query = draft.id
     ? supabase.from('platform_announcements').update(payload).eq('id', draft.id)

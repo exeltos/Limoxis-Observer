@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { AlertTriangle, ChevronRight, Eye, Megaphone, Pause, Paperclip, Play, Plus, Save, Trash2, Wrench, X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -42,8 +42,8 @@ import type { AnyRecord } from '../../types/featureTypes'
 // (owner, 10/11/2026) The form is a record screen with Back: «Δημοσίευση» and «Προεπισκόπηση» in its header, Stop /
 // Delete in its «⋯»; a row opens it (no «⋯» on the row). The maintenance message, the band over every screen, is the
 // first, pinned item of the list and opens its own small editor.
-const day = value => (value ? String(value).slice(0, 10) : '')
-const fmt = value => (value ? new Date(value).toLocaleDateString('el-GR') : '—')
+const day = (value: unknown) => (value ? String(value).slice(0, 10) : '')
+const fmt = (value: string | null | undefined) => (value ? new Date(value).toLocaleDateString('el-GR') : '—')
 // The two shortcuts of the «Where it shows» list: every registered hospital, every demo.
 const ALL_HOSPITALS = '__all_hospitals__'
 const ALL_DEMOS = '__all_demos__'
@@ -61,14 +61,14 @@ export function PlatformAnnouncementsPage() {
   const [loading, setLoading] = useState(true)
   const location = useLocation()
   // «Νέα ανακοίνωση» of the Overview's quick actions opens the form at once.
-  const [draft, setDraft] = useState(() => (location.state?.newAnnouncement ? { ...EMPTY } : null))
+  const [draft, setDraft] = useState<AnyRecord | null>(() => (location.state?.newAnnouncement ? { ...EMPTY } : null))
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<AnyRecord | null>(null)
   const [settings, setSettings] = useState<AnyRecord | null>(null)
   const [maintenance, setMaintenance] = useState<AnyRecord | null>(null)
-  const imageInput = useRef(null)
-  const documentInput = useRef(null)
+  const imageInput = useRef<HTMLInputElement>(null)
+  const documentInput = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   // Hospitals and demo hospitals together (owner, 12/11/2026): one list to choose from, a demo marked «Demo».
   const [targets, setTargets] = useState<AnyRecord[]>([])
@@ -78,8 +78,8 @@ export function PlatformAnnouncementsPage() {
     return () => { alive = false }
   }, [])
   const organizations = useMemo(() => {
-    const own = memberships.map(item => item.organization).filter(org => org?.id)
-    const byId = new Map([...own, ...targets].map(org => [org.id, org]))
+    const own = memberships.map(item => item.organization).filter((org): org is NonNullable<typeof org> => Boolean(org?.id))
+    const byId = new Map<string, AnyRecord>([...own, ...targets].map(org => [org.id, org]))
     // Hospitals first, then the demos; each group by name.
     const isDemo = (org: AnyRecord) => Boolean(org.is_demo || org.mode === 'demo')
     return [...byId.values()].sort((a, b) => Number(isDemo(a)) - Number(isDemo(b)) || String(a.name || '').localeCompare(String(b.name || ''), 'el'))
@@ -106,7 +106,7 @@ export function PlatformAnnouncementsPage() {
     if (location.state?.newAnnouncement) navigate(location.pathname, { replace: true, state: null })
   }, [location.state, location.pathname, navigate])
   const paging = useSortedPaging(rows, rows.length, SORT)
-  const set = (key: string, value) => setDraft(current => ({ ...current, [key]: value }))
+  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
   const valid = draft && draft.titleEl.trim() && draft.bodyEl.trim() && (!draft.endsAt || !draft.startsAt || draft.endsAt >= draft.startsAt)
   async function save() {
     if (!valid) return
@@ -149,7 +149,7 @@ export function PlatformAnnouncementsPage() {
     }
   }
   // The image and the attached file (PDF, Word, PowerPoint, Excel) are two separate uploads.
-  const upload = (upload, patch: AnyRecord) => async event => {
+  const upload = (upload: (file: File) => Promise<AnyRecord>, patch: AnyRecord) => async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
@@ -171,7 +171,7 @@ export function PlatformAnnouncementsPage() {
     className: 'registry-row-clickable',
     tabIndex: 0,
     onClick: () => edit(row),
-    onKeyDown: event => {
+    onKeyDown: (event: KeyboardEvent) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()
         edit(row)
@@ -179,7 +179,7 @@ export function PlatformAnnouncementsPage() {
     },
   })
 
-  if (maintenance) return <MaintenanceEditor settings={maintenance} language={language} onBack={() => setMaintenance(null)} onSaved={value => { setSettings(value); setMaintenance(null) }} />
+  if (maintenance) return <MaintenanceEditor settings={maintenance} language={language} onBack={() => setMaintenance(null)} onSaved={(value: AnyRecord) => { setSettings(value); setMaintenance(null) }} />
 
   if (draft) {
     const stopped = draft.status !== 'active'
@@ -215,7 +215,7 @@ export function PlatformAnnouncementsPage() {
               </label>
               <label className="field platform-announcement-wide">
                 <span className="lo-field-label"><FieldLabelText label={tx('Κείμενο', 'Text')} required /></span>
-                <textarea rows="3" value={draft.bodyEl} onChange={event => set('bodyEl', event.target.value)} />
+                <textarea rows={3} value={draft.bodyEl} onChange={event => set('bodyEl', event.target.value)} />
               </label>
               <div className="field">
                 <span className="lo-field-label">{tx('Είδος', 'Type')}</span>
@@ -390,11 +390,11 @@ export function PlatformAnnouncementsPage() {
 
 // The maintenance message (platform_settings): on / off, the language being written and the text, with the band as it
 // will show. A single language is enough; without a translation the available text is shown.
-function MaintenanceEditor({ settings, language, onBack, onSaved }) {
+function MaintenanceEditor({ settings, language, onBack, onSaved }: { settings: AnyRecord, language: string, onBack: () => void, onSaved: (settings: AnyRecord) => void }) {
   const en = language === 'en'
   const tx = (elText: string, enText: string) => (en ? enText : elText)
   const { notify, notifyError } = useFeedback()
-  const [draft, setDraft] = useState(settings)
+  const [draft, setDraft] = useState<AnyRecord>(settings)
   const [noticeLanguage, setNoticeLanguage] = useState(() => (en ? (settings.maintenanceNoticeEn || !settings.maintenanceNoticeEl ? 'en' : 'el') : (settings.maintenanceNoticeEl || !settings.maintenanceNoticeEn ? 'el' : 'en')))
   const [saving, setSaving] = useState(false)
   const key = noticeLanguage === 'en' ? 'maintenanceNoticeEn' : 'maintenanceNoticeEl'
@@ -453,7 +453,7 @@ function MaintenanceEditor({ settings, language, onBack, onSaved }) {
           </div>
           <label className="field platform-announcement-wide">
             <span className="lo-field-label">{tx('Μήνυμα', 'Message')}</span>
-            <textarea rows="4" value={text} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))} placeholder={noticeLanguage === 'en' ? 'Type the maintenance message…' : 'Γράψτε το μήνυμα συντήρησης…'} />
+            <textarea rows={4} value={text} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))} placeholder={noticeLanguage === 'en' ? 'Type the maintenance message…' : 'Γράψτε το μήνυμα συντήρησης…'} />
             <small className={valid ? 'field-hint' : 'field-error'}>{valid ? tx('Αρκεί μία γλώσσα· χωρίς μετάφραση εμφανίζεται το διαθέσιμο κείμενο.', 'One language is enough; without a translation the available text is shown.') : tx('Για ενεργό μήνυμα χρειάζεται κείμενο σε μία γλώσσα τουλάχιστον.', 'An active message needs text in at least one language.')}</small>
           </label>
           <div className="field platform-announcement-wide">

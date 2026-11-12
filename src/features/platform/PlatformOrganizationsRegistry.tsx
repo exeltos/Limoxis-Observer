@@ -66,7 +66,7 @@ export function PlatformOrganizationsRegistry({
     {key:'paused',value:countBy('paused'),always:true,label:tx('σε παύση','paused'),tone:countBy('paused')?'danger':undefined,active:statusFilter==='paused',onClick:()=>toggleStatus('paused')},
     {key:'deletion',value:countBy('deletion'),label:tx('προς διαγραφή','deletion scheduled'),tone:'danger',active:statusFilter==='deletion',onClick:()=>toggleStatus('deletion')},
   ]
-  const fmt=value=>value?new Intl.DateTimeFormat(tx('el-GR','en-GB'),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value)):''
+  const fmt=(value: string|null|undefined)=>value?new Intl.DateTimeFormat(tx('el-GR','en-GB'),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value)):''
   function exportOrganizations(){
     exportRegistry({name:tx('organismoi','organizations'),
       headers:[tx('Οργανισμός','Organization'),tx('Κωδικός','Code'),tx('Πόλη','City'),tx('Περιφέρεια','Region'),tx('Ενεργοί χρήστες','Active users'),tx('Σύνολο χρηστών','All users'),tx('Τελευταία σύνδεση','Last sign-in'),tx('Χρήστης τελευταίας σύνδεσης','Last signed-in user'),tx('Κατάσταση','Status'),tx('Προφίλ λειτουργίας','Operating profile'),tx('Κλείδωμα οθόνης (λεπτά)','Screen lock (minutes)')],

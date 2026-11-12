@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { AlertTriangle, CheckCircle2, FileSpreadsheet, KeyRound, Upload } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
@@ -15,7 +15,7 @@ import { createActiveUsers, previewActiveUsers } from './activeUsersService'
 import './activeUsers.css'
 import type { AnyRecord } from '../../types/featureTypes'
 
-const EMPTY = { fullName: '', email: '', username: '', role: 'department_user', departmentId: '', employeeCode: '', phone: '', passwordMode: 'random', divisionName: '', departmentIds: [] }
+const EMPTY: AnyRecord = { fullName: '', email: '', username: '', role: 'department_user', departmentId: '', employeeCode: '', phone: '', passwordMode: 'random', divisionName: '', departmentIds: [] }
 // Names offered for a new division; the hospital's own divisions come first.
 const DIVISION_SUGGESTIONS = ['Νοσηλευτική Υπηρεσία', 'Διεύθυνση Λειτουργιών', 'Ιατρική Υπηρεσία', 'Διοικητική Υπηρεσία']
 
@@ -23,22 +23,22 @@ const DIVISION_SUGGESTIONS = ['Νοσηλευτική Υπηρεσία', 'Διε
 // Platform Owner only, in the hospital's record › «Χρήστες & Ρόλοι». The accounts are
 // created active with a temporary password, shown once here and in the Excel of the
 // results; the user changes it at the first sign-in. The welcome e-mail never carries it.
-export function ActiveUsersDialog({ mode = 'single', organization, departments = [], language = 'el', onClose, onCreated }) {
+export function ActiveUsersDialog({ mode = 'single', organization, departments = [], language = 'el', onClose, onCreated }: { mode?: string, organization: AnyRecord, departments?: AnyRecord[], language?: string, onClose: () => void, onCreated?: () => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const { confirm, notifyError } = useFeedback()
-  const [draft, setDraft] = useState(EMPTY)
+  const [draft, setDraft] = useState<AnyRecord>(EMPTY)
   const [fileName, setFileName] = useState('')
   const [readError, setReadError] = useState('')
   const [plan, setPlan] = useState<AnyRecord | null>(null)
-  const [people, setPeople] = useState<AnyRecord | null>(null)
+  const [people, setPeople] = useState<AnyRecord[] | null>(null)
   const [checking, setChecking] = useState(false)
   const [progress, setProgress] = useState<AnyRecord | null>(null)
-  const [results, setResults] = useState<AnyRecord | null>(null)
+  const [results, setResults] = useState<AnyRecord[] | null>(null)
   const [downloaded, setDownloaded] = useState(false)
   const [singleError, setSingleError] = useState('')
   const [divisions, setDivisions] = useState<AnyRecord[]>([])
-  const [fileRows, setFileRows] = useState<AnyRecord | null>(null)
+  const [fileRows, setFileRows] = useState<unknown[][] | null>(null)
   const [passwordMode, setPasswordMode] = useState('random')
 
   // The hospital's divisions, to choose from (a name that is not there yet creates a new one).
@@ -74,7 +74,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
     }
   }
 
-  async function pick(event) {
+  async function pick(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
@@ -134,7 +134,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   }
 
   function download() {
-    downloadXlsx(`${organization.code || 'organization'}-${tx('energoi-xristes', 'active-users')}.xlsx`, [resultsSheet(results, en)])
+    downloadXlsx(`${organization.code || 'organization'}-${tx('energoi-xristes', 'active-users')}.xlsx`, [resultsSheet(results || [], en)])
     setDownloaded(true)
   }
 
@@ -388,7 +388,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
             {plan?.missingColumns.length > 0 && (
               <p className="active-users-error" role="alert">
                 <AlertTriangle size={15} />
-                {tx(`Λείπουν στήλες: ${plan.missingColumns.join(', ')}`, `Missing columns: ${plan.missingColumns.join(', ')}`)}
+                {tx(`Λείπουν στήλες: ${plan!.missingColumns.join(', ')}`, `Missing columns: ${plan!.missingColumns.join(', ')}`)}
               </p>
             )}
             {plan?.tooMany && (
