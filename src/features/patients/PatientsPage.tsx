@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, LogOut, Plus, ShieldAlert, UsersRound } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent, type Ref } from 'react'
+import { type LucideIcon, Activity, LogOut, Plus, ShieldAlert, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
@@ -24,16 +24,21 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { Field } from '../../design-system/Field'
 import { useFormValidation } from '../../design-system/FormValidation'
 import { PERIOD_DAYS,departmentOptions,inPeriod,listTexts } from '../surveillance/surveillanceOptions'
-import {ClinicalRiskText} from '../clinical-scales/ClinicalRiskFlags'
+import {ClinicalRiskText as ClinicalRiskTextJs} from '../clinical-scales/ClinicalRiskFlags'
 import {PatientInfectionFlags} from './PatientInfectionFlags'
 import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { InfectionFlags } from './patientInfectionFlagsService'
+
+// clinical-scales is still JavaScript: its default (rows=[]) would type the rows as never[].
+const ClinicalRiskText=ClinicalRiskTextJs as ComponentType<{ rows: AnyRecord[], language: string, max?: number }>
 
 // The registry shows the patient first, as the episodes do, and the status as a badge.
-const PATIENT_STATUS_TONES={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral',noAdmission:'neutral'}
+const PATIENT_STATUS_TONES: Record<string, string>={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral',noAdmission:'neutral'}
 // A patient with no admission is not «active»: the laboratory imports can create the person alone.
-const effectiveStatus=p=>p.hasAdmission===false?'noAdmission':p.status
+const effectiveStatus=(p: AnyRecord)=>p.hasAdmission===false?'noAdmission':p.status
 
 export function PatientsPage(){
   const {t,language}=useLanguage()
@@ -44,7 +49,7 @@ export function PatientsPage(){
   const saved=registry.loadViewState({query:'',department:'all',status:'all',period:'all'})
   const [query,setQuery]=useState(saved.query)
   // null until the first load ends: the registry shows placeholders, not «no patients».
-  const [loadedPatients,setPatients]=useState(null)
+  const [loadedPatients,setPatients]=useState<AnyRecord[]|null>(null)
   const patients=useMemo(()=>loadedPatients||[],[loadedPatients])
   const loading=loadedPatients===null
   const [department,setDepartment]=useState(saved.department)
@@ -52,17 +57,17 @@ export function PatientsPage(){
   const [period,setPeriod]=useState(saved.period||'all')
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(15)
-  const [riskFlags,setRiskFlags]=useState({})
-  const [infectionFlags,setInfectionFlags]=useState({})
+  const [riskFlags,setRiskFlags]=useState<Record<string, AnyRecord[]>>({})
+  const [infectionFlags,setInfectionFlags]=useState<Record<string, InfectionFlags>>({})
   useEffect(()=>{
     let alive=true
-    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(isDemo?list.map(item=>({...item,hasAdmission:Boolean(item.admissionDate)})):list)}).catch(error=>{if(alive){setPatients([]);notify(error?.message||t('patientsLoadFailed'),'danger')}})
-    loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value)}).catch(()=>{})
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(isDemo?list.map(item=>({...item,hasAdmission:Boolean(item.admissionDate)})):list)}).catch(error=>{if(alive){setPatients([]);notify((error as Error|null)?.message||t('patientsLoadFailed'),'danger')}})
+    loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value as Record<string, AnyRecord[]>)}).catch(()=>{})
     loadPatientInfectionFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setInfectionFlags(value)}).catch(()=>{})
     return ()=>{alive=false}
   },[tenant?.id,isDemo,notify,t])
   useEffect(()=>{setPage(1)},[query,department,status,period,pageSize])
-  const isolated=useCallback(p=>Boolean((infectionFlags[p.recordId]||infectionFlags[p.id])?.isolation),[infectionFlags])
+  const isolated=useCallback((p: AnyRecord)=>Boolean((infectionFlags[p.recordId]||infectionFlags[p.id])?.isolation),[infectionFlags])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
     .filter(p=>canAccessRecord(p))
@@ -75,10 +80,10 @@ export function PatientsPage(){
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
   const safePage=Math.min(page,totalPages)
   const pagedRows=sortedRows.slice((safePage-1)*pageSize,safePage*pageSize)
-  const fmt=value=>formatDay(value,language)
+  const fmt=(value: unknown)=>formatDay(value,language)
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
   const canCreate=can(role,CAPABILITIES.CREATE_PATIENT,membership?.capabilities??[],membership?.customCapabilities??[])
-  function pageAction(action){
+  function pageAction(action: string){
     if(action===UI_ACTIONS.CREATE)navigate('/patients/new')
   }
   const activeAdvancedCount=(department!=='all'?1:0)+(status!=='all'?1:0)+(period!=='all'?1:0)
@@ -92,14 +97,14 @@ export function PatientsPage(){
   }
   return <Page fill title={t('patientRegistry')} actions={<div className="record-actions"><ExportMenu {...registryMenu(()=>patientsListExport(sortedRows,{language,t,fmt}),{language,kind:t('patientRegistry'),onBlocked:()=>notify(t('indicatorsRecords.allowPopups'),'error')})} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} end={<RegistryTotals label={t('patientRegistry')} items={[['all',UsersRound,'patientsCountAll',patientSummary.total],['active',Activity,'patientsCountActive',patientSummary.active],['discharged',LogOut,'patientsCountDischarged',patientSummary.discharged],['isolation',ShieldAlert,'patientsCountIsolation',patientSummary.isolation]].map(([filter,icon,key,value])=>{const active=filter!=='all'&&status===filter;return {key:filter,icon,label:t(key),value,active,onToggle:()=>setStatus(filter==='all'||active?'all':filter)}}).map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone === 'danger' || item.tone === 'warning' ? item.tone : null, active: item.active, onClick: item.onToggle }))} />} activeAdvancedCount={activeAdvancedCount} activeFilters={[department!=='all'&&{key:'department',label:`${t('department')}: ${department}`,onRemove:()=>setDepartment('all')},period!=='all'&&{key:'period',label:`${t('svPeriod')}: ${t(`svPeriod${period}`)}`,onRemove:()=>setPeriod('all')}].filter(Boolean)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} end={<RegistryTotals label={t('patientRegistry')} items={([['all',UsersRound,'patientsCountAll',patientSummary.total],['active',Activity,'patientsCountActive',patientSummary.active],['discharged',LogOut,'patientsCountDischarged',patientSummary.discharged],['isolation',ShieldAlert,'patientsCountIsolation',patientSummary.isolation]] as Array<[string, LucideIcon, string, number]>).map(([filter,icon,key,value]):{key:string,icon:LucideIcon,label:string,value:number,active:boolean,onToggle:()=>void,tone?:string}=>{const active=filter!=='all'&&status===filter;return {key:filter,icon,label:t(key),value,active,onToggle:()=>setStatus(filter==='all'||active?'all':filter)}}).map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone === 'danger' || item.tone === 'warning' ? item.tone : undefined, active: item.active, onClick: item.onToggle }))} />} activeAdvancedCount={activeAdvancedCount} activeFilters={[department!=='all'&&{key:'department',label:`${t('department')}: ${department}`,onRemove:()=>setDepartment('all')},period!=='all'&&{key:'period',label:`${t('svPeriod')}: ${t(`svPeriod${period}`)}`,onRemove:()=>setPeriod('all')}].filter(Boolean)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('patientsCountDischarged')}</option><option value="transferred">{t('transferred')}</option><option value="noAdmission">{t('patientNoAdmission')}</option><option value="deceased">{t('deceased')}</option><option value="isolation">{t('patientsCountIsolation')}</option></FilterSelect>
       <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days=><option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
       </FilterBar>
       <RegistryTable
         wrapperClassName="scroll-table"
-        wrapperRef={registry.scrollRef}
+        wrapperRef={registry.scrollRef as Ref<HTMLDivElement>}
         sort={sort}
         onSort={onSort}
         columns={[{key:'name',label:t('patient'),sortable:true},{key:'department',label:t('department'),sortable:true},{key:'admission',label:t('admissionDate'),sortable:true},{key:'status',label:t('status'),sortable:true},{key:'infection',label:t('patientsColumnInfection')},{key:'scores',label:t('patientsColumnScores')}]}
@@ -107,7 +112,7 @@ export function PatientsPage(){
         loading={loading}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,sortedRows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
+        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={(value: string)=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}
         emptyFiltered={scopedPatients.length>0}
@@ -121,25 +126,26 @@ export function PatientsPage(){
 }
 
 
+export type PatientForm=ReturnType<typeof usePatientForm>
 // The patient form's state and checks, shared by the «New patient» page and the
 // in-place edit of the patient record.
-export function usePatientForm({patient=null,departments=[],existingPatients=[]}){
+export function usePatientForm({patient=null,departments=[],existingPatients=[]}: { patient?: AnyRecord | null, departments?: AnyRecord[], existingPatients?: AnyRecord[] }){
   const {t,language}=useLanguage()
   const editing=Boolean(patient)
-  const [draft,setDraft]=useState(()=>({
+  const [draft,setDraft]=useState<AnyRecord>(()=>({
     patientCode:patient?.id||'',firstName:patient?.firstName||'',lastName:patient?.lastName||'',fatherName:patient?.fatherName||'',hospitalRecordNumber:patient?.hospitalRecordNumber||'',
     dateOfBirth:patient?.dateOfBirth||'',birthWeightGrams:patient?.birthWeightGrams||'',gestationalAgeWeeks:patient?.gestationalAgeWeeks||'',sex:patient?.sex||'',departmentId:patient?.departmentId||'',department:patient?.department||'',departmentEn:patient?.departmentEn||patient?.department||'',
     admissionDate:patient?.admissionDate||'',status:patient?.status||'active',notes:patient?.notes||''
   }))
   // The code is suggested for a new patient until the person types their own.
   const codeEdited=useRef(false)
-  const set=(key,value)=>{if(key==='patientCode')codeEdited.current=true;setDraft(d=>({...d,[key]:value}))}
+  const set=(key: string,value: unknown)=>{if(key==='patientCode')codeEdited.current=true;setDraft(d=>({...d,[key]:value}))}
   useEffect(()=>{
     if(editing||codeEdited.current)return
     const next=suggestPatientCode(existingPatients)
     if(next)setDraft(d=>(codeEdited.current||d.patientCode===next?d:{...d,patientCode:next}))
   },[editing,existingPatients])
-  function setDepartment(id){
+  function setDepartment(id: string){
     const item=departments.find(value=>value.id===id)
     setDraft(d=>({...d,departmentId:id,department:item?.name||'',departmentEn:item?.nameEn||item?.name||''}))
   }
@@ -174,13 +180,13 @@ export function usePatientForm({patient=null,departments=[],existingPatients=[]}
   return {editing,draft,set,setDepartment,validation,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate,invalid,payload}
 }
 
-export function PatientFormFields({form,t,language,departments=[],className=''}){
+export function PatientFormFields({form,t,language,departments=[],className=''}: { form: PatientForm, t: (key: string) => string, language: string, departments?: AnyRecord[], className?: string }){
   const {editing,draft,set,setDepartment,validation,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate}=form
   const lang=language==='el'?'el':'en'
   // Calculated age: the helper text under the date of birth.
-  const ageHint=ageYears!=null&&!birthInvalid?(ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))):''
+  const ageHint=ageYears!=null&&ageDays!=null&&!birthInvalid?(ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))):''
   // Optional fields with a wrong value: the message shows at once, not only after a submit.
-  const optionalError=(key,invalid,message)=>invalid?{fieldKey:key,error:message}:{fieldKey:key}
+  const optionalError=(key: string,invalid: boolean,message: string)=>invalid?{fieldKey:key,error:message}:{fieldKey:key}
   return <div ref={validation.scopeRef} className={`entry-grid patient-entry-grid ${className}`.trim()}>
       <h3 className="patient-form-group">{t('patientFormGroupPatient')}</h3>
       <Field label={t('firstName')} {...validation.field('firstName')}><input autoFocus value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></Field>
@@ -197,6 +203,6 @@ export function PatientFormFields({form,t,language,departments=[],className=''})
       <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)} {...validation.field('admissionDate')}/></>}
       <Field label={t('patientId')} {...validation.field('patientCode')} error={duplicate?`${t('patientCodeDuplicate')}${duplicate.name?` (${duplicate.name})`:''}`:validation.errorFor('patientCode')}><input disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/></Field>
       <Field label={t('hospitalRecordNumber')}><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></Field>
-      <Field label={t('notes')} className="entry-span-2"><textarea rows={2} className="patient-notes-field" value={draft.notes} onChange={e=>set('notes',e.target.value)} onInput={event=>{event.target.style.height='auto';event.target.style.height=`${event.target.scrollHeight}px`}}/></Field>
+      <Field label={t('notes')} className="entry-span-2"><textarea rows={2} className="patient-notes-field" value={draft.notes} onChange={e=>set('notes',e.target.value)} onInput={(event: FormEvent<HTMLTextAreaElement>)=>{const target=event.currentTarget;target.style.height='auto';target.style.height=`${target.scrollHeight}px`}}/></Field>
     </div>
 }

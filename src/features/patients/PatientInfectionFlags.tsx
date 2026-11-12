@@ -1,7 +1,8 @@
 import { ShieldAlert } from 'lucide-react'
+import type { InfectionFlags } from './patientInfectionFlagsService'
 
 // Compact MDR / isolation badges for the patient registry "Flags" column.
-export function PatientInfectionFlags({ flags, t, fmtDate }) {
+export function PatientInfectionFlags({ flags, t, fmtDate }: { flags?: InfectionFlags | null, t: (key: string) => string, fmtDate: (value: string) => string }) {
   if (!flags?.resistance && !flags?.isolation) return null
   const resistance = flags.resistance
   const resistanceTitle = resistance ? [t('infectionFlags.resistanceTitle'), resistance.organism, resistance.since ? fmtDate(resistance.since) : ''].filter(Boolean).join(' · ') : ''

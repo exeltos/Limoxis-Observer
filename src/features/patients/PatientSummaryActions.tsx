@@ -9,18 +9,19 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { archivePatient, removeDemoPatient } from './patientsService'
 import { useState } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // Edit opens the patient details in place (onEdit, given by the patient record);
 // without onEdit the item is not offered.
-export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}){
+export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}: { patient: AnyRecord | null | undefined, onEdit?: (() => void) | null, onDeleted?: (() => void) | null, extraItems?: AnyRecord[] }){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const {tenant,isDemo,role,membership}=useTenant()
   const [deleting,setDeleting]=useState(false)
   const deleteItem=useRecordDelete()
-  const has=cap=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
+  const has=(cap: string)=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
   if(!patient)return null
-  const withLabel=(item,label)=>item?{...item,label}:null
+  const withLabel=(item: AnyRecord | null,label: string)=>item?{...item,label}:null
   const patientLabel=language==='en'?(patient.nameEn||patient.name):patient.name
 
   const items=[
@@ -36,13 +37,13 @@ export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}){
   ].filter(Boolean)
   if(!items.length)return null
 
-  async function remove(reason){
+  async function remove(reason: string){
     try{
-      await archivePatient(tenant?.id,patient,reason,{isDemo})
+      await archivePatient(tenant?.id,patient as AnyRecord,reason,{isDemo})
       setDeleting(false)
       notify(t('archived'),'success')
       onDeleted?.()
-    }catch(error){notify(error?.message||t('actionFailed'),'danger')}
+    }catch(error){notify((error as Error|null)?.message||t('actionFailed'),'danger')}
   }
 
   return <>
