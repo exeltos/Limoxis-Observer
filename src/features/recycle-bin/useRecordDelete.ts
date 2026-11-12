@@ -13,6 +13,16 @@ import { useTenant } from '../../core/tenant/TenantContext'
 //   table / id   the database record (production: bin_delete moves it with what hangs from it)
 //   demo         Demo only: removes it from the session lists and files it in the local bin
 //   onDone       reloads the screen after the move
+export interface RecordDeleteOptions {
+  createdBy?: unknown
+  table: string
+  id: unknown
+  label?: string
+  detail?: string
+  demo?: (() => unknown) | null
+  onDone?: (() => unknown) | null
+}
+
 export function useRecordDelete() {
   const { tenant, isDemo, role, actualRole } = useTenant()
   const actor = useAuditActor()
@@ -20,7 +30,7 @@ export function useRecordDelete() {
   const { notify, notifyError, confirm } = useFeedback()
   const en = language === 'en'
   return useCallback(
-    ({ createdBy, table, id, label, detail = '', demo = null, onDone = null }) => {
+    ({ createdBy, table, id, label, detail = '', demo = null, onDone = null }: RecordDeleteOptions) => {
       if (!canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy })) return null
       return {
         id: `delete-${table}-${id}`,

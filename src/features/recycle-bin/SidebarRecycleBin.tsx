@@ -6,7 +6,7 @@ import { RecycleBinIcon } from './RecycleBinIcon'
 import './recycleBin.css'
 
 // The recycle bin sits at the bottom left of the menu, like a desktop bin: full when something was deleted.
-export function SidebarRecycleBin({organizationId,role,actorName,label,onOpen}){
+export function SidebarRecycleBin({organizationId,role,actorName,label,onOpen}:{organizationId:string|null|undefined,role:string|null|undefined,actorName?:string|null,label:string,onOpen?:()=>void}){
   const navigate=useNavigate(),location=useLocation()
   const {allowed,entries}=useRecycleBin(organizationId,role)
   useEffect(()=>{setRecycleBinActor({name:actorName})},[actorName])
