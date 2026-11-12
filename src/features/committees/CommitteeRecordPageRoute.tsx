@@ -13,8 +13,10 @@ import { can,CAPABILITIES } from '../../core/permissions/roles'
 import { CommitteeRecordPage } from './CommitteeRecordPage'
 import { CommitteeApprovalPanel } from './CommitteeApprovalPanel'
 import { loadCommitteeApprovalDeepLinkAsync,decideCommitteeApprovalDeepLinkAsync } from './committeeApprovalDeepLinkService'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const fmtDateTime=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{dateStyle:'medium',timeStyle:'short', hourCycle: 'h23'}):'—'
+type DeepLink=Awaited<ReturnType<typeof loadCommitteeApprovalDeepLinkAsync>>
+const fmtDateTime=(value: string|null|undefined,en: boolean)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{dateStyle:'medium',timeStyle:'short', hourCycle: 'h23'}):'—'
 
 export function CommitteeRecordPageRoute(){
   const [params,setParams]=useSearchParams()
@@ -25,7 +27,7 @@ export function CommitteeRecordPageRoute(){
   const {notify,notifyError}=useFeedback()
   const {reloadCommitteeMinutesApprovals}=useNotifications()
   const {language}=useLanguage();const en=language==='en'
-  const [state,setState]=useState({loading:false,data:null,error:null})
+  const [state,setState]=useState<{loading: boolean,data: DeepLink,error: unknown}>({loading:false,data:null,error:null})
   const [deciding,setDeciding]=useState(false)
   const canViewCommittee=can(role,CAPABILITIES.VIEW_COMMITTEES,membership?.capabilities??[],membership?.customCapabilities??[])
 
@@ -49,7 +51,7 @@ export function CommitteeRecordPageRoute(){
   const meeting=state.data?.meeting||null
   const routeMatches=useMemo(()=>!meetingKey||!meeting||[meeting.id,meeting.dbId].filter(Boolean).map(String).includes(String(meetingKey)),[meetingKey,meeting])
 
-  async function decide(status,comment=''){
+  async function decide(status: string,comment=''){
     if(!approvalId||deciding)return false
     setDeciding(true)
     try{
@@ -69,7 +71,7 @@ export function CommitteeRecordPageRoute(){
     {approvalId&&!state.loading&&state.data&&!routeMatches&&<ObserverDialog width="standard" eyebrow={en?'Minutes approval':'Έγκριση πρακτικών'} title={en?'The meeting link is no longer valid':'Ο σύνδεσμος συνεδρίασης δεν είναι πλέον έγκυρος'} subtitle={en?'Open the current notification from the notification center.':'Ανοίξτε την τρέχουσα ειδοποίηση από το κέντρο ειδοποιήσεων.'} onClose={closeApproval}/>} 
     {approvalId&&!state.loading&&state.data&&routeMatches&&<ObserverDialog width="workspace" eyebrow={state.data.committee.name||state.data.committee.code} title={meeting?.title|| (en?'Meeting minutes':'Πρακτικά συνεδρίασης')} subtitle={`${fmtDateTime(meeting?.scheduledAt,en)}${meeting?.location?` · ${meeting.location}`:''}`} onClose={closeApproval}>
       <div className="observer-form-section"><div className="details-grid"><div><span>{en?'Minutes number':'Αρ. πρακτικού'}</span><strong>{meeting?.minutesNo||'—'}</strong></div><div><span>{en?'Quorum':'Απαρτία'}</span><strong>{meeting?.quorum===true?(en?'Yes':'Ναι'):meeting?.quorum===false?(en?'No':'Όχι'):'—'}</strong></div><div><span>{en?'Meeting':'Συνεδρίαση'}</span><strong><ClipboardCheck size={15}/> {meeting?.title||'—'}</strong></div><div><span>{en?'Location':'Χώρος'}</span><strong><MapPin size={15}/> {meeting?.location||'—'}</strong></div></div></div>
-      <div className="observer-form-section"><div className="record-section-header"><div><h3>{en?'Agenda & conclusions':'Θέματα & συμπεράσματα'}</h3></div></div>{(meeting?.topics||[]).map((topic,index)=><div className="committee-topic-card" key={topic.id||index}><strong>{en?'Topic':'Θέμα'} {index+1}</strong><div className="source-truth-note"><strong>{topic.subject||'—'}</strong><p>{topic.decision||'—'}</p></div></div>)}{!(meeting?.topics||[]).length&&<div className="inline-empty">{en?'No agenda items recorded.':'Δεν έχουν καταγραφεί θέματα.'}</div>}</div>
+      <div className="observer-form-section"><div className="record-section-header"><div><h3>{en?'Agenda & conclusions':'Θέματα & συμπεράσματα'}</h3></div></div>{(meeting?.topics||[]).map((topic: AnyRecord,index: number)=><div className="committee-topic-card" key={topic.id||index}><strong>{en?'Topic':'Θέμα'} {index+1}</strong><div className="source-truth-note"><strong>{topic.subject||'—'}</strong><p>{topic.decision||'—'}</p></div></div>)}{!(meeting?.topics||[]).length&&<div className="inline-empty">{en?'No agenda items recorded.':'Δεν έχουν καταγραφεί θέματα.'}</div>}</div>
       <div className="observer-form-section"><div className="record-section-header"><div><h3>{en?'Minutes':'Πρακτικά'}</h3></div></div><div className="source-truth-note"><p>{meeting?.generalNotes|| (en?'No additional minutes text.':'Δεν υπάρχει πρόσθετο κείμενο πρακτικών.')}</p></div></div>
       <CommitteeApprovalPanel approvals={meeting?.approvals||[]} actorId={user?.id} busy={state.loading||deciding} onApprove={()=>decide('approved','')} onRequestChanges={(id,comment)=>decide('rejected',comment)} en={en}/>
       {state.data.approval.status!=='pending'&&<div className="source-truth-note"><strong><CheckCircle2 size={15}/> {en?'Your decision has been recorded':'Η απόφασή σας έχει καταγραφεί'}</strong></div>}

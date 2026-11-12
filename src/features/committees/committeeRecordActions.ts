@@ -20,13 +20,48 @@ import { externalMinutesActionAsync } from './committeeExternalApprovalService'
 import { fmtDate, createTopic } from './committeeRecordFormat'
 import { rolesFromTitle } from './committeeMemberRoles'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import type { NavigateFunction } from 'react-router-dom'
+import type { AuditActor } from '../../core/audit/actor'
+import type { FeedbackContextValue } from '../../core/feedback/feedbackTypes'
+import type { NotificationContextValue } from '../../core/notifications/notificationTypes'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// One save of the record: production runs `operation`, Demo `local` (the changed committee).
+export interface CommitteeStep {
+  operation: () => Promise<unknown>
+  local?: () => AnyRecord
+  success?: string
+  context?: string
+  close?: boolean
+}
+// The dialog open over the record, with the row it is about.
+export type CommitteeDialog = { type: string, value?: AnyRecord } | null
+export interface CommitteeRecordContext {
+  record: AnyRecord
+  rows: AnyRecord[]
+  setRows: (rows: AnyRecord[]) => void
+  execute: (step: CommitteeStep) => Promise<unknown>
+  en: boolean
+  organizationId: string | null
+  actor: AuditActor
+  staff: AnyRecord[]
+  activeMembers: AnyRecord[]
+  dialog: CommitteeDialog
+  setDialog: (dialog: CommitteeDialog) => void
+  confirm: FeedbackContextValue['confirm']
+  notify: FeedbackContextValue['notify']
+  navigate: NavigateFunction
+  isDemo: boolean
+  n: NotificationContextValue
+  openMeeting: (id: string) => void
+}
 
 // What the committee record does (members, meetings, minutes, decisions, plan, framework):
 // built by CommitteeRecordPage on each render, once the committee is loaded, from the page's
 // state. Demo keeps the change in the session list (execute → local), production saves it.
-export function committeeRecordActions(ctx) {
+export function committeeRecordActions(ctx: CommitteeRecordContext) {
   const { record, rows, setRows, execute, en, organizationId, actor, staff, activeMembers, dialog, setDialog, confirm, notify, navigate, isDemo, n, openMeeting } = ctx
-  async function saveDetails(draft) {
+  async function saveDetails(draft: AnyRecord) {
     await execute({
       operation: () => updateCommitteeDetailsAsync(organizationId, record, draft),
       local: () => ({ ...record, ...draft, updatedAt: new Date().toISOString() }),
@@ -65,7 +100,7 @@ export function committeeRecordActions(ctx) {
     })
     if (result) navigate('/meetings', { replace: true })
   }
-  async function addMember(draft) {
+  async function addMember(draft: AnyRecord) {
     const person = staff.find(x => x.id === draft.employeeId)
     const manualName = String(draft.manualName || '').trim()
     if (!person && !manualName) return
@@ -96,29 +131,29 @@ export function committeeRecordActions(ctx) {
       success: en ? 'Member added.' : 'Το μέλος προστέθηκε.',
     })
   }
-  async function editMember(draft) {
-    const member = record.memberRefs.find(x => x.id === draft.id)
+  async function editMember(draft: AnyRecord) {
+    const member = record.memberRefs.find((x: AnyRecord) => x.id === draft.id)
     if (!member) return
     await execute({
       operation: () => updateCommitteeMemberAsync(organizationId, record, member, draft),
       local: () => ({
         ...record,
-        memberRefs: record.memberRefs.map(x => (x.id === member.id ? { ...x, ...draft } : x)),
+        memberRefs: record.memberRefs.map((x: AnyRecord) => (x.id === member.id ? { ...x, ...draft } : x)),
       }),
       success: en ? 'Member updated.' : 'Το μέλος ενημερώθηκε.',
     })
   }
-  function endMember(member) {
+  function endMember(member: AnyRecord) {
     setDialog({ type: 'endMember', value: member })
   }
-  async function confirmEndMember(reason) {
+  async function confirmEndMember(reason: string) {
     const member = dialog?.value
     if (!member) return
     await execute({
       operation: () => endCommitteeMemberAsync(organizationId, record, member, reason),
       local: () => ({
         ...record,
-        memberRefs: record.memberRefs.map(x =>
+        memberRefs: record.memberRefs.map((x: AnyRecord) =>
           x.id === member.id
             ? { ...x, active: false, endedAt: new Date().toISOString(), endReason: reason }
             : x,
@@ -127,7 +162,7 @@ export function committeeRecordActions(ctx) {
       success: en ? 'Membership ended.' : 'Η συμμετοχή έληξε.',
     })
   }
-  async function notifyUpcomingMeeting(meeting) {
+  async function notifyUpcomingMeeting(meeting: AnyRecord) {
     const recipients = activeMembers
       .map(m => m.userId)
       .filter(Boolean)
@@ -159,7 +194,7 @@ export function committeeRecordActions(ctx) {
       /* the meeting itself is already saved; a failed notice is not worth surfacing as an error */
     }
   }
-  async function addMeeting(draft) {
+  async function addMeeting(draft: AnyRecord) {
     const id = `MTG-${Date.now()}`
     const next = {
       ...draft,
@@ -183,9 +218,9 @@ export function committeeRecordActions(ctx) {
       await notifyUpcomingMeeting(next)
     }
   }
-  async function saveMeeting(draft, finalize = false, external = []) {
+  async function saveMeeting(draft: AnyRecord, finalize = false, external: AnyRecord[] = []) {
     const counted = meetingQuorum(draft.attendanceRecords, record.quorumRule)
-    const next = { ...draft, quorum: counted.quorum, attendance: counted.attendance }
+    const next: AnyRecord = { ...draft, quorum: counted.quorum, attendance: counted.attendance }
     const blocker = finalize ? finalizationBlocker(next, counted) : null
     if (blocker) {
       const messages = {
@@ -211,7 +246,7 @@ export function committeeRecordActions(ctx) {
         saveCommitteeMeetingAsync(organizationId, record, next, { finalize, external }),
       local: () => ({
         ...record,
-        meetings: record.meetings.map(x =>
+        meetings: record.meetings.map((x: AnyRecord) =>
           x.id === next.id
             ? {
                 ...next,
@@ -233,17 +268,17 @@ export function committeeRecordActions(ctx) {
     if (result) signalDemoStep('committee_minutes', 'minutes')
     return Boolean(result)
   }
-  function cancelMeeting(meeting) {
+  function cancelMeeting(meeting: AnyRecord) {
     setDialog({ type: 'cancelMeeting', value: meeting })
   }
-  async function confirmCancelMeeting(reason) {
+  async function confirmCancelMeeting(reason: string) {
     const meeting = dialog?.value
     if (!meeting) return
     await execute({
       operation: () => cancelCommitteeMeetingAsync(organizationId, record, meeting, reason),
       local: () => ({
         ...record,
-        meetings: record.meetings.map(x =>
+        meetings: record.meetings.map((x: AnyRecord) =>
           x.id === meeting.id
             ? {
                 ...x,
@@ -268,7 +303,7 @@ export function committeeRecordActions(ctx) {
       success: en ? 'Meeting cancelled.' : 'Η συνεδρίαση ακυρώθηκε.',
     })
   }
-  async function answerApproval(id, status, comment = '') {
+  async function answerApproval(id: string, status: string, comment = '') {
     if (status === 'approved') {
       const ok = await confirm({
         title: en ? 'Approve minutes' : 'Έγκριση πρακτικών',
@@ -293,7 +328,7 @@ export function committeeRecordActions(ctx) {
       close: false,
     })
   }
-  async function externalAction(id, action) {
+  async function externalAction(id: string, action: string) {
     if (action === 'paper') {
       const ok = await confirm({
         title: en ? 'Signature on paper' : 'Υπογραφή σε χαρτί',
@@ -318,7 +353,7 @@ export function committeeRecordActions(ctx) {
       close: false,
     })
   }
-  async function notifyDecisionOwner(decision) {
+  async function notifyDecisionOwner(decision: AnyRecord) {
     if (!decision.ownerId) return
     const linkPath = `/committees/${record.id}`
     const title = en
@@ -346,9 +381,9 @@ export function committeeRecordActions(ctx) {
       /* the decision itself is already saved; a failed notice is not worth surfacing as an error */
     }
   }
-  async function saveDecision(draft) {
+  async function saveDecision(draft: AnyRecord) {
     const editing = Boolean(draft.id)
-    const existing = editing ? record.decisions.find(x => x.id === draft.id) : null
+    const existing = editing ? record.decisions.find((x: AnyRecord) => x.id === draft.id) : null
     const next = editing ? draft : { ...draft, id: `DEC-${Date.now()}`, status: 'open' }
     const result = await execute({
       operation: () =>
@@ -358,7 +393,7 @@ export function committeeRecordActions(ctx) {
       local: () => ({
         ...record,
         decisions: editing
-          ? record.decisions.map(x => (x.id === draft.id ? { ...x, ...draft } : x))
+          ? record.decisions.map((x: AnyRecord) => (x.id === draft.id ? { ...x, ...draft } : x))
           : [next, ...(record.decisions || [])],
       }),
       success: editing
@@ -372,20 +407,20 @@ export function committeeRecordActions(ctx) {
     if (result && draft.ownerId && draft.ownerId !== (existing?.ownerId || null))
       await notifyDecisionOwner(draft)
   }
-  async function decisionStatus(item, status) {
+  async function decisionStatus(item: AnyRecord, status: string) {
     await execute({
       operation: () => updateCommitteeDecisionAsync(organizationId, record, item, { status }),
       local: () => ({
         ...record,
-        decisions: record.decisions.map(x => (x.id === item.id ? { ...x, status } : x)),
+        decisions: record.decisions.map((x: AnyRecord) => (x.id === item.id ? { ...x, status } : x)),
       }),
       success: en ? 'Status updated.' : 'Η κατάσταση ενημερώθηκε.',
       close: false,
     })
   }
-  async function savePlan(draft) {
+  async function savePlan(draft: AnyRecord) {
     const editing = Boolean(draft.id)
-    const existing = editing ? record.annualPlan.find(x => x.id === draft.id) : null
+    const existing = editing ? record.annualPlan.find((x: AnyRecord) => x.id === draft.id) : null
     const next = editing
       ? draft
       : { ...draft, id: `OBJ-${Date.now()}`, status: draft.status || 'open' }
@@ -397,7 +432,7 @@ export function committeeRecordActions(ctx) {
       local: () => ({
         ...record,
         annualPlan: editing
-          ? record.annualPlan.map(x => (x.id === draft.id ? { ...x, ...draft } : x))
+          ? record.annualPlan.map((x: AnyRecord) => (x.id === draft.id ? { ...x, ...draft } : x))
           : [...(record.annualPlan || []), next],
       }),
       success: editing
@@ -409,7 +444,7 @@ export function committeeRecordActions(ctx) {
           : 'Ο στόχος προστέθηκε.',
     })
   }
-  async function removePlan(item) {
+  async function removePlan(item: AnyRecord) {
     const ok = await confirm({
       title: en ? 'Remove objective' : 'Διαγραφή στόχου',
       message: en
@@ -424,7 +459,7 @@ export function committeeRecordActions(ctx) {
         updateCommitteePlanItemAsync(organizationId, record, item, { status: 'cancelled' }),
       local: () => ({
         ...record,
-        annualPlan: record.annualPlan.map(x =>
+        annualPlan: record.annualPlan.map((x: AnyRecord) =>
           x.id === item.id ? { ...x, status: 'cancelled' } : x,
         ),
       }),
@@ -432,16 +467,16 @@ export function committeeRecordActions(ctx) {
       close: false,
     })
   }
-  async function saveFramework(draft) {
+  async function saveFramework(draft: AnyRecord) {
     await execute({
       operation: () => updateCommitteeFrameworkAsync(organizationId, record, draft),
       local: () => ({ ...record, ...draft }),
       success: en ? 'Framework updated.' : 'Το θεσμικό πλαίσιο ενημερώθηκε.',
     })
   }
-  function saveDemoDocuments(files) {
+  function saveDemoDocuments(files: AnyRecord[]) {
     if (!isDemo) return
-    const nextRows = rows.map(x => (x.id === record.id ? { ...x, documents: files } : x))
+    const nextRows = rows.map((x: AnyRecord) => (x.id === record.id ? { ...x, documents: files } : x))
     setRows(nextRows)
     saveCommittees(nextRows)
   }

@@ -3,7 +3,7 @@ import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { answerCommitteeMinutesApprovalAsync } from './committeeWorkflowService'
 
-export async function loadMyPendingCommitteeMinutesApprovalsAsync(organizationId,userId){
+export async function loadMyPendingCommitteeMinutesApprovalsAsync(organizationId: string|null|undefined,userId: string|null|undefined){
   if(isDemoDataEnvironment()||!organizationId||!userId)return []
   if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_COMMITTEES_SUPABASE_REQUIRED:minutes.approval.inbox')
   const {data,error}=await supabase
@@ -32,7 +32,7 @@ export async function loadMyPendingCommitteeMinutesApprovalsAsync(organizationId
   }))
 }
 
-export async function answerMyCommitteeMinutesApprovalAsync(item,status,comment=''){
+export async function answerMyCommitteeMinutesApprovalAsync(item: {id?: string}|null|undefined,status: string,comment=''){
   if(!item?.id)throw new Error('COMMITTEE_APPROVAL_ID_REQUIRED')
   return answerCommitteeMinutesApprovalAsync(item.id,status,comment)
 }

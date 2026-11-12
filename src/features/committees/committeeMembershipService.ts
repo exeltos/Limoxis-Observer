@@ -3,7 +3,7 @@ import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { answerCommitteeMembershipAsync } from './committeeWorkflowService'
 
-export async function loadMyPendingCommitteeMembershipsAsync(organizationId,userId){
+export async function loadMyPendingCommitteeMembershipsAsync(organizationId: string|null|undefined,userId: string|null|undefined){
   if(isDemoDataEnvironment()||!organizationId||!userId)return []
   if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_COMMITTEES_SUPABASE_REQUIRED:member.inbox')
   const {data,error}=await supabase.from('committee_members').select('id,committee_id,user_id,member_name,title,responsibilities,member_type,has_vote,approval_status,started_at,committee:committees!committee_members_tenant_fk(id,code,name,short_name,status)').eq('organization_id',organizationId).eq('user_id',userId).eq('approval_status','pending').is('ended_at',null).order('started_at',{ascending:false})
@@ -26,7 +26,7 @@ export async function loadMyPendingCommitteeMembershipsAsync(organizationId,user
   }))
 }
 
-export async function answerMyCommitteeMembershipAsync(item,status){
+export async function answerMyCommitteeMembershipAsync(item: {memberDbId?: string,approvalStatus?: string}|null|undefined,status: string){
   if(!item?.memberDbId)throw new Error('PRODUCTION_COMMITTEE_MEMBER_DB_ID_REQUIRED:member.inbox.answer')
   return answerCommitteeMembershipAsync({dbId:item.memberDbId,approvalStatus:item.approvalStatus},status)
 }

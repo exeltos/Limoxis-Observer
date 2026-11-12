@@ -1,12 +1,14 @@
 import { compositionLabel, controlTeamName, fmtDate, statusLabel } from './committeeRecordFormat'
+import type { ReportDoc } from '../../core/export/reportDocument'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const ATTENDANCE = {
+const ATTENDANCE: Record<string, string[]> = {
   present: ['Παρών/ούσα', 'Present'],
   absent: ['Απών/ούσα', 'Absent'],
   excused: ['Δικαιολογημένη απουσία', 'Excused'],
   not_recorded: ['—', '—'],
 }
-const APPROVAL = {
+const APPROVAL: Record<string, string[]> = {
   approved: ['Εγκρίθηκε', 'Approved'],
   rejected: ['Ζητήθηκαν διορθώσεις', 'Changes requested'],
   pending: ['Σε αναμονή', 'Pending'],
@@ -15,12 +17,12 @@ const APPROVAL = {
 // The minutes as a document on the shared layout (printReport / downloadReportWord):
 // the committee, the meeting, who attended, each topic with its decision, the
 // notes, the approvals and a signature line for the chair and the secretary.
-export function committeeMinutesReport({ committeeName = '', minutes, en }) {
-  const L = (el, enText) => (en ? enText : el)
-  const pick = (map, key) => (map[key] || [key, key])[en ? 1 : 0]
-  const attendance = (minutes.attendanceRecords || []).filter(x => x.name)
-  const topics = (minutes.topics || []).filter(t => t.subject || t.decision)
-  const approvals = (minutes.approvals || []).filter(x => x.status !== 'cancelled')
+export function committeeMinutesReport({ committeeName = '', minutes, en }: { committeeName?: string, minutes: AnyRecord, en: boolean }): ReportDoc {
+  const L = (el: string, enText: string) => (en ? enText : el)
+  const pick = (map: Record<string, string[]>, key: string) => (map[key] || [key, key])[en ? 1 : 0]
+  const attendance: AnyRecord[] = (minutes.attendanceRecords || []).filter((x: AnyRecord) => x.name)
+  const topics: AnyRecord[] = (minutes.topics || []).filter((t: AnyRecord) => t.subject || t.decision)
+  const approvals: AnyRecord[] = (minutes.approvals || []).filter((x: AnyRecord) => x.status !== 'cancelled')
   const team = minutes.composition === 'control_team'
   const time =
     minutes.time ||
@@ -100,8 +102,8 @@ export function committeeMinutesReport({ committeeName = '', minutes, en }) {
   }
 }
 
-const escape = value =>
+const escape = (value: unknown) =>
   String(value ?? '').replace(
     /[&<>"']/g,
-    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c],
   )

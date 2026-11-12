@@ -1,5 +1,5 @@
 import { InactiveEmployeeBadge } from '../../design-system/InactiveEmployeeBadge'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   CheckCircle2,
   Pencil,
@@ -23,16 +23,26 @@ import {
 } from './committeeRecordFormat'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { memberBadgeRoles, memberRoleLabel, sortMembersByRole } from './committeeMemberRoles'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// The rows of a tab and what its buttons do.
+interface ListProps {
+  rows: AnyRecord[]
+  canManage?: boolean
+  onAdd: () => void
+  onEdit: (row: AnyRecord) => void
+  en: boolean
+}
 
 // Tab sections of the committee record page (CommitteeRecordPage.jsx).
 // The mandate is often one long text with «•» between its points: one line per point.
-export function mandateList(text) {
+export function mandateList(text: string) {
   const points = String(text || '').split(/\s*[•▪]\s*|\n+/).map(point => point.trim()).filter(Boolean)
   if (points.length < 2) return text
   return <ul className="committee-mandate-list">{points.map((point, index) => <li key={index}>{point}</li>)}</ul>
 }
 
-export function Head({ title, subtitle, action }) {
+export function Head({ title, subtitle, action }: { title: ReactNode, subtitle?: ReactNode, action?: ReactNode }) {
   return (
     <div className="record-section-header">
       <div>
@@ -44,7 +54,7 @@ export function Head({ title, subtitle, action }) {
   )
 }
 
-export function Overview({ record, members, en }) {
+export function Overview({ record, members, en }: { record: AnyRecord, members: AnyRecord[], en: boolean }) {
   const meetings = record.meetings || []
   const next = [...meetings]
     .filter(x => x.date >= todayIso() && !['finalized', 'cancelled'].includes(x.status))
@@ -123,7 +133,7 @@ export function Overview({ record, members, en }) {
   )
 }
 
-export function Members({ inactiveCodes, rows, canManage, onAdd, onEdit, onEnd, en, teamShort = '' }) {
+export function Members({ inactiveCodes, rows, canManage, onAdd, onEdit, onEnd, en, teamShort = '' }: ListProps & { inactiveCodes?: Set<string>, onEnd: (row: AnyRecord) => void, teamShort?: string }) {
   // Former members stay on record (attendance history points at them) but are
   // hidden from the list unless asked for.
   const [showFormer, setShowFormer] = useState(false)
@@ -257,7 +267,7 @@ export function Members({ inactiveCodes, rows, canManage, onAdd, onEdit, onEnd, 
   )
 }
 
-export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, en, teamName = '' }) {
+export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, en, teamName = '' }: { rows: AnyRecord[], canCreate: boolean, canCancel: boolean, onAdd: () => void, onOpen: (row: AnyRecord) => void, onCancel: (row: AnyRecord) => void, en: boolean, teamName?: string }) {
   return (
     <section className="record-section">
       <Head
@@ -369,7 +379,7 @@ export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, 
   )
 }
 
-export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }) {
+export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }: ListProps & { onStatus: (row: AnyRecord, status: string) => void }) {
   return (
     <section className="record-section committee-decisions">
       <Head
@@ -469,7 +479,7 @@ export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }) {
   )
 }
 
-export function Plan({ rows, canManage, onAdd, onEdit, onDelete, en }) {
+export function Plan({ rows, canManage, onAdd, onEdit, onDelete, en }: ListProps & { onDelete: (row: AnyRecord) => void }) {
   return (
     <section className="record-section">
       <Head
@@ -554,7 +564,7 @@ export function Plan({ rows, canManage, onAdd, onEdit, onDelete, en }) {
   )
 }
 
-export function History({ rows, en }) {
+export function History({ rows, en }: { rows: AnyRecord[], en: boolean }) {
   return (
     <section className="record-section">
       <Head title={en ? 'Committee history' : 'Ιστορικό επιτροπής'} />

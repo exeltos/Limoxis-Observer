@@ -1,5 +1,5 @@
 import { InactiveEmployeeBadge } from '../../design-system/InactiveEmployeeBadge'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { CalendarDays, CheckSquare2, ClipboardList, NotebookPen, Plus, Send, Trash2, Users } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -23,6 +23,7 @@ import { useLibraries } from '../management/useLibraries'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { actionsOfSource, committeeDecisionSourceId } from '../quality/capaSources'
 import { qualityStatusTone } from '../quality/qualityVocabulary'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const ATTENDANCE = [
   ['not_recorded', 'Δεν καταγράφηκε', 'Not recorded'],
@@ -31,41 +32,62 @@ const ATTENDANCE = [
   ['excused', 'Δικαιολογημένη απουσία', 'Excused'],
 ]
 // The record shell keeps a `utility` action visible in the header (tone primary: the main one, last).
-const HeaderAction = ({ children }) => children
-const STATUS_TONE = { finalized: 'active', approval_pending: 'temporary', cancelled: '' }
+const HeaderAction = ({ children }: { children: ReactNode, utility?: boolean, tone?: string }) => children
+const STATUS_TONE: Record<string, string> = { finalized: 'active', approval_pending: 'temporary', cancelled: '' }
 
 // A committee meeting and its minutes as a record of its own (opened from the committee's
 // «Meetings» tab): the details, the attendance, the topics with their conclusions, and the
 // notes with the approval, each on its own tab, instead of one long window.
-export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', committeeCode = '', members, actorId, canSave, canFinalize, busy, onBack, onSave, onApproval, onExternalAction, initialTab = null, capas = [], canCreateCapa = false, onCreateCapa, onOpenCapa, actionStatus = value => value, en }) {
-  const [externalApprovers, setExternalApprovers] = useState(null)
+export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', committeeCode = '', members, actorId, canSave, canFinalize, busy, onBack, onSave, onApproval, onExternalAction, initialTab = null, capas = [], canCreateCapa = false, onCreateCapa, onOpenCapa, actionStatus = value => value, en }: {
+  inactiveCodes?: Set<string>
+  meeting: AnyRecord
+  committeeName?: string
+  committeeCode?: string
+  members: AnyRecord[]
+  actorId?: string | null
+  canSave: boolean
+  canFinalize: boolean
+  busy: boolean
+  onBack: () => void
+  onSave: (draft: AnyRecord, finalize?: boolean, external?: AnyRecord[]) => Promise<boolean> | boolean
+  onApproval: (id: string, status: string, comment?: string) => unknown
+  onExternalAction: (id: string, action: string) => unknown
+  initialTab?: string | null
+  capas?: AnyRecord[]
+  canCreateCapa?: boolean
+  onCreateCapa: (topic: AnyRecord) => void
+  onOpenCapa: (capa: AnyRecord) => void
+  actionStatus?: (value: string) => string
+  en: boolean
+}) {
+  const [externalApprovers, setExternalApprovers] = useState<AnyRecord[] | null>(null)
   const { notifyError } = useFeedback()
   // Topic suggestions from the hospital's library (Management > Libraries).
-  const { libraries } = useLibraries()
+  const { libraries } = useLibraries() as { libraries: AnyRecord }
   const topicLibrary = libraries.committeeTopics || []
   // A committee with a control team (members marked so) meets as a whole or as the team: the attendance, and so the
   // quorum, is then only the team's.
-  const team = members.filter(member => member.inControlTeam)
+  const team = members.filter((member: AnyRecord) => member.inControlTeam)
   const teamName = controlTeamName(committeeName, en)
   // Members who are inactive employees now (they stay in the history of the meeting).
   const inactiveMemberIds = new Set(members.filter(member => inactiveCodes?.has(String(member.employeeId || ''))).map(member => String(member.id)))
-  const membersOf = composition => (composition === 'control_team' && team.length ? team : members)
-  const [v, setV] = useState(() => ({
+  const membersOf = (composition: string) => (composition === 'control_team' && team.length ? team : members)
+  const [v, setV] = useState<AnyRecord>(() => ({
     ...meeting,
     composition: meeting.composition === 'control_team' ? 'control_team' : 'plenary',
     attendanceRecords: attendanceFor(membersOf(meeting.composition), meeting.attendanceRecords || []),
     topics: meeting.topics?.length ? meeting.topics : [createTopic()],
   }))
-  const latestChangeRequest = (meeting.approvals || []).find(x => x.status === 'rejected')
+  const latestChangeRequest = (meeting.approvals || []).find((x: AnyRecord) => x.status === 'rejected')
   const locked = ['finalized', 'approval_pending', 'cancelled'].includes(meeting.status)
   // The approval (or the corrections asked for) is what a pending or returned meeting needs first.
   const [tab, setTab] = useState(initialTab || (meeting.status === 'approval_pending' || (meeting.status === 'draft' && latestChangeRequest) ? 'notes' : 'attendance'))
   const editable = canSave && !locked
-  const set = (k, x) => setV(s => ({ ...s, [k]: x }))
-  const setComposition = composition => setV(s => ({ ...s, composition, attendanceRecords: attendanceFor(membersOf(composition), s.attendanceRecords) }))
-  const attendance = (id, status) => setV(s => ({ ...s, attendanceRecords: s.attendanceRecords.map(x => ((x.id || x.memberId) === id ? { ...x, status } : x)) }))
-  const topic = (id, k, x) => setV(s => ({ ...s, topics: s.topics.map(t => (t.id === id ? { ...t, [k]: x } : t)) }))
-  const removeTopic = id => setV(s => ({ ...s, topics: s.topics.filter(t => t.id !== id) }))
+  const set = (k: string, x: unknown) => setV(s => ({ ...s, [k]: x }))
+  const setComposition = (composition: string) => setV(s => ({ ...s, composition, attendanceRecords: attendanceFor(membersOf(composition), s.attendanceRecords) }))
+  const attendance = (id: string, status: string) => setV(s => ({ ...s, attendanceRecords: s.attendanceRecords.map((x: AnyRecord) => ((x.id || x.memberId) === id ? { ...x, status } : x)) }))
+  const topic = (id: string, k: string, x: unknown) => setV(s => ({ ...s, topics: s.topics.map((t: AnyRecord) => (t.id === id ? { ...t, [k]: x } : t)) }))
+  const removeTopic = (id: string) => setV(s => ({ ...s, topics: s.topics.filter((t: AnyRecord) => t.id !== id) }))
   // Present voting members without an account approve by e-mail link or on paper.
   const submit = () => {
     const missing = membersWithoutAccount(v.attendanceRecords, members)
@@ -73,14 +95,14 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', comm
     else onSave(v, true)
   }
   // The minutes as shown (unsaved edits included), printed on the shared document layout (PDF with real text).
-  function exportPdf(pdf) {
+  function exportPdf(pdf?: boolean) {
     if (!printReport(committeeMinutesReport({ committeeName, minutes: { ...v, approvals: meeting.approvals || [] }, en }), { pdf: pdf === true }))
       notifyError(new Error(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'), 'export', { operation: 'committee_minutes_pdf' })
   }
   // The actions opened from a decision of these minutes (source «COM:<committee>:<meeting>#<topic>»), with their
   // status; a saved decision can open a new one.
-  const savedTopics = new Set((meeting.topics || []).filter(item => String(item.decision || '').trim()).map(item => item.id))
-  const decisionActions = item => {
+  const savedTopics = new Set((meeting.topics || []).filter((item: AnyRecord) => String(item.decision || '').trim()).map((item: AnyRecord) => item.id))
+  const decisionActions = (item: AnyRecord) => {
     const linked = committeeCode && meeting.id ? actionsOfSource(capas, committeeDecisionSourceId(committeeCode, meeting.id, item.id)) : []
     const canAdd = canCreateCapa && savedTopics.has(item.id) && meeting.status !== 'cancelled'
     if (!linked.length && !canAdd) return null
@@ -92,7 +114,7 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', comm
       {canAdd && <Button variant="secondary" onClick={() => onCreateCapa(item)}><Plus size={14} />{en ? 'Create an action' : 'Δημιουργία ενέργειας'}</Button>}
     </div>
   }
-  const present = v.attendanceRecords.filter(x => x.status === 'present').length
+  const present = v.attendanceRecords.filter((x: AnyRecord) => x.status === 'present').length
   const footer = editable && <div className="inline-edit-footer"><Button variant="secondary" className="committee-minutes-save" disabled={busy} onClick={() => onSave(v, false)}>{en ? 'Save' : 'Αποθήκευση'}</Button></div>
   const tabs = [
     { id: 'attendance', label: `${en ? 'Attendance' : 'Παρουσίες'} ${present}/${v.attendanceRecords.length}`, icon: Users },
@@ -116,7 +138,7 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', comm
         <div className="scroll-table committee-attendance-wrap">
           <table className="data-table committee-attendance-table">
             <thead><tr><th>{en ? 'Member' : 'Μέλος'}</th><th>{en ? 'Status' : 'Κατάσταση'}</th></tr></thead>
-            <tbody>{v.attendanceRecords.map(x => <tr key={x.id || x.memberId} className={inactiveMemberIds.has(String(x.memberId || '')) ? 'inactive-employee-row' : undefined}>
+            <tbody>{v.attendanceRecords.map((x: AnyRecord) => <tr key={x.id || x.memberId} className={inactiveMemberIds.has(String(x.memberId || '')) ? 'inactive-employee-row' : undefined}>
               <td>{x.name}<InactiveEmployeeBadge inactive={inactiveMemberIds.has(String(x.memberId || ''))} /></td>
               <td><SearchableSelect hideLabel label={`${en ? 'Attendance' : 'Παρουσία'}: ${x.name}`} disabled={!editable} value={x.status || 'not_recorded'} onChange={status => status && attendance(x.id || x.memberId, status)} options={ATTENDANCE.map(([value, el, enText]) => ({ value, label: en ? enText : el }))} /></td>
             </tr>)}</tbody>
@@ -126,18 +148,18 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', comm
       {tab === 'topics' && <RecordTabPanel title={en ? 'Topics & decisions' : 'Θέματα & αποφάσεις'} footer={footer}
         actions={editable && <Button variant="secondary" onClick={() => setV(s => ({ ...s, topics: [...s.topics, createTopic()] }))}><Plus size={14} />{en ? 'Topic' : 'Θέμα'}</Button>}>
         <div className="committee-topics-section">
-          {v.topics.map((t, i) => <div className="committee-topic-card committee-topic-card-compact" key={t.id}>
+          {v.topics.map((t: AnyRecord, i: number) => <div className="committee-topic-card committee-topic-card-compact" key={t.id}>
             <div className="committee-topic-card-head">
               <strong>{en ? 'Topic' : 'Θέμα'} {i + 1}</strong>
               {editable && <IconButton tone="danger" label={en ? 'Delete topic' : 'Διαγραφή θέματος'} onClick={() => removeTopic(t.id)}><Trash2 size={15} /></IconButton>}
             </div>
             <div className="committee-topic-fields">
               <label><span>{en ? 'Subject' : 'Θέμα'}</span><input disabled={!editable} list={topicLibrary.length ? 'committee-topic-library' : undefined} value={t.subject || ''} onChange={e => topic(t.id, 'subject', e.target.value)} /></label>
-              <label><span>{en ? 'Decision / conclusion' : 'Απόφαση / συμπέρασμα'}</span><textarea disabled={!editable} rows="2" value={t.decision || ''} onChange={e => topic(t.id, 'decision', e.target.value)} /></label>
+              <label><span>{en ? 'Decision / conclusion' : 'Απόφαση / συμπέρασμα'}</span><textarea disabled={!editable} rows={2} value={t.decision || ''} onChange={e => topic(t.id, 'decision', e.target.value)} /></label>
             </div>
             {decisionActions(t)}
           </div>)}
-          {topicLibrary.length > 0 && <datalist id="committee-topic-library">{topicLibrary.map(item => <option key={item.meta?.id || item.value} value={en ? item.en : item.el} label={item.meta?.category || undefined} />)}</datalist>}
+          {topicLibrary.length > 0 && <datalist id="committee-topic-library">{topicLibrary.map((item: AnyRecord) => <option key={item.meta?.id || item.value} value={en ? item.en : item.el} label={item.meta?.category || undefined} />)}</datalist>}
           {!v.topics.length && <div className="inline-empty committee-topics-empty">{en ? 'No topics. Add one only when needed.' : 'Δεν υπάρχουν θέματα. Προσθέστε μόνο όσα χρειάζονται.'}</div>}
         </div>
       </RecordTabPanel>}
@@ -149,7 +171,7 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', comm
             <Field label={en ? 'Minutes number' : 'Αρ. πρακτικού'}><input disabled={!editable} value={v.minutesNo || ''} onChange={e => set('minutesNo', e.target.value)} /></Field>
             <Field label={en ? 'Location' : 'Χώρος'}><input disabled={!editable} value={v.location || ''} onChange={e => set('location', e.target.value)} /></Field>
           </FormGrid>
-          <label className="field committee-general-notes"><span>{en ? 'General notes' : 'Γενικές σημειώσεις'}</span><textarea disabled={!editable} rows="4" value={v.generalNotes || ''} onChange={e => set('generalNotes', e.target.value)} /></label>
+          <label className="field committee-general-notes"><span>{en ? 'General notes' : 'Γενικές σημειώσεις'}</span><textarea disabled={!editable} rows={4} value={v.generalNotes || ''} onChange={e => set('generalNotes', e.target.value)} /></label>
           {meeting.status === 'approval_pending' && <>
             <div className="source-truth-note"><strong>{en ? 'Minutes awaiting approval' : 'Τα πρακτικά βρίσκονται σε έγκριση'}</strong><p>{en ? 'They will be finalized automatically when every required approver accepts.' : 'Θα οριστικοποιηθούν αυτόματα όταν εγκρίνουν όλοι οι απαιτούμενοι χρήστες.'}</p></div>
             <CommitteeApprovalPanel approvals={meeting.approvals || []} actorId={actorId} busy={busy} canManage={canFinalize} onApprove={id => onApproval(id, 'approved', '')} onRequestChanges={(id, comment) => onApproval(id, 'rejected', comment)} onExternalAction={onExternalAction} en={en} />
@@ -158,6 +180,6 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', comm
       </RecordTabPanel>}
     </EntityRecordShell>
     {externalApprovers && <ExternalApproversDialog approvers={externalApprovers} busy={busy} en={en} onClose={() => setExternalApprovers(null)}
-      onSubmit={async choices => { const saved = await onSave(v, true, choices); if (saved) setExternalApprovers(null) }} />}
+      onSubmit={async (choices: AnyRecord[]) => { const saved = await onSave(v, true, choices); if (saved) setExternalApprovers(null) }} />}
   </>
 }
