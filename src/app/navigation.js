@@ -1,4 +1,4 @@
-import { Activity, Award, CalendarClock, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, CalendarRange, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, CalendarClock, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, CalendarRange, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Network, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -29,6 +29,8 @@ export const navigation=[
   {to:'/executive',key:'executiveDashboard',label:'sidebarNav.indicators',icon:Gauge,capability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
   {to:'/',key:'dashboard',label:'sidebarNav.home',icon:LayoutDashboard,capability:CAPABILITIES.VIEW_DASHBOARD,excludeRoles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
   {to:'/my-department',key:'myDepartment',icon:Home,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
+  // «Τμήματα Διεύθυνσης»: the Division Director's departments, one row each (read only).
+  {to:'/division',key:'divisionDepartments',label:'sidebarNav.divisionDepartments',icon:Network,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DIVISION_DIRECTOR]},
   // «Επιτήρηση» (Surveillance): the patient registry, the surveillance episodes and the outbreak investigations, one section with tabs.
   {to:'/surveillance',key:'surveillance',label:'sidebarNav.surveillanceSection',icon:Activity,capability:CAPABILITIES.VIEW_SURVEILLANCE,section:'surveillance'},
   {to:'/laboratory',key:'laboratory',icon:Beaker,capability:CAPABILITIES.VIEW_LAB},
@@ -41,7 +43,8 @@ export const navigation=[
   {to:'/quality/measures',key:'qualityMeasures',label:'sidebarNav.qualityMeasures',icon:Target,capability:CAPABILITIES.VIEW_QUALITY},
   // No «Incident reports» entry: the report form and «My reports» open from the button at the foot of the sidebar (route /quality/my-reports).
   // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
-  {to:'/registers',key:'departmentRegisters',label:'sidebarNav.departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // The Division Director reads the registers of the division's departments here, not in the Quality Center.
+  {to:'/registers',key:'departmentRegisters',label:'sidebarNav.departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE,ROLES.DIVISION_DIRECTOR],unlessCapability:CAPABILITIES.VIEW_QUALITY,keepForRoles:[ROLES.DIVISION_DIRECTOR]},
   // The suppliers the Quality team assigned to the department (read only).
   {to:'/my-department/suppliers',key:'departmentSuppliers',label:'sidebarNav.departmentSuppliers',icon:Truck,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   // The self-assessments the Quality team released to the department (a preparation for the audit).
@@ -54,7 +57,8 @@ export const navigation=[
   // The department's monthly shift roster (owner, 8/11/2026): the manager makes it, the department reads it.
   // The shift roster (owner, 8/11/2026): its own entry for the department manager (who makes it) and the department's
   // people (the published roster and their requests), inside «Staff» for the administrator.
-  {to:'/rosters',key:'rosters',label:'sidebarNav.rosters',icon:CalendarClock,anyCapabilities:[CAPABILITIES.VIEW_MY_DEPARTMENT,CAPABILITIES.VIEW_STAFF],roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
+  // The Division Director reads the rosters and requests of the division's departments («Προγράμματα βαρδιών»).
+  {to:'/rosters',key:'rosters',label:'sidebarNav.rosters',roleLabels:{[ROLES.DIVISION_DIRECTOR]:'sidebarNav.divisionRosters'},icon:CalendarClock,anyCapabilities:[CAPABILITIES.VIEW_MY_DEPARTMENT,CAPABILITIES.VIEW_STAFF],roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE,ROLES.DIVISION_DIRECTOR]},
   {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS,anyCapabilities:[CAPABILITIES.VIEW_INTERVIEWS,CAPABILITIES.VIEW_DIVISION_INTERVIEWS]},
   // The analysis is a set of tabs of «Δείκτες» for whoever has it; the others keep «Ανάλυση».
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS,unlessCapability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
@@ -179,10 +183,11 @@ const roleMenuPolicy=Object.freeze({
     [],
     ['dashboard','platformAnalyticsNav','management','pharmacy','occupationalHealth'],
   ),
+  // The Division Director: the division's departments, their rosters and staff, read only.
   [ROLES.DIVISION_DIRECTOR]:policy(
-    ['dashboard','interviews','calendar'],
-    ['documents','library'],
-    ['management','pharmacy','occupationalHealth'],
+    ['dashboard','divisionDepartments','rosters','employees','training','interviews','calendar'],
+    ['controls','departmentRegisters','quality','documents','library'],
+    ['management','pharmacy','occupationalHealth','qualityMeasures'],
   ),
   [ROLES.COMMITTEE_SECRETARIAT]:policy(
     ['dashboard','meetings','documents','library','calendar'],
@@ -262,14 +267,15 @@ export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignmen
     // A merged section is shown when at least one of its tabs is open to the role.
     item.section?sectionTabsFor(item.section,{role,addOns,customCapabilities}).length>0:
     isProfileDisabled(item.capability)?false:
-    item.unlessCapability&&can(role,item.unlessCapability,addOns,customCapabilities)?false:
+    item.unlessCapability&&!item.keepForRoles?.includes(role)&&can(role,item.unlessCapability,addOns,customCapabilities)?false:
     item.key==='controls'&&hasAssignments?true:
     item.anyCapabilities?canAny(role,item.anyCapabilities,addOns,customCapabilities):
     can(role,item.capability,addOns,customCapabilities)
   )
   const keys=new Set(permitted.map(item=>item.key))
   const allowed=permitted.filter(item=>!SUPERSEDED.some(([by,gone])=>gone===item.key&&keys.has(by)))
-  return applyRoleMenuPolicy(role,allowed)
+  // An entry may read differently for one role (roleLabels).
+  return applyRoleMenuPolicy(role,allowed.map(item=>item.roleLabels?.[role]?{...item,label:item.roleLabels[role]}:item))
 }
 
 // How the sidebar lays the menu out: blocks of
