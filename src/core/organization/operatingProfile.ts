@@ -6,21 +6,42 @@
 // was if the module is switched on again.
 import { CAPABILITIES as C } from '../permissions/capabilityCatalogue.js'
 
+// Ό,τι διαβάζεται από έναν οργανισμό (organizations) για τα modules του.
+export interface ProfileSource {
+  operating_profile?: string | null
+  enabled_addons?: readonly string[] | null
+  enabled_modules?: readonly string[] | null
+}
+
+interface ModuleDefinition {
+  el: string
+  en: string
+  from: 'basic' | 'surveillance' | 'full'
+  analysis: boolean
+}
+
+interface ChoiceLabel {
+  el: string
+  en: string
+  hintEl: string
+  hintEn: string
+}
+
 // The three presets fill in the module list; any other combination is stored as 'custom'.
 // 'laboratory' is the former first preset: still accepted for organizations saved before
 // the laboratory became an unlockable module, and read as patients + laboratory + EODY/EARS-Net.
-export const OPERATING_PROFILES = Object.freeze(['basic', 'surveillance', 'full'])
-const LEGACY_PROFILE_MODULES = Object.freeze({ laboratory: ['patients', 'laboratory', 'national', 'analysis'] })
+export const OPERATING_PROFILES: readonly string[] = Object.freeze(['basic', 'surveillance', 'full'])
+const LEGACY_PROFILE_MODULES: Readonly<Record<string, string[]>> = Object.freeze({ laboratory: ['patients', 'laboratory', 'national', 'analysis'] })
 const CUSTOM_PROFILE = 'custom'
-export const ADDONS = Object.freeze(['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'])
+export const ADDONS: readonly string[] = Object.freeze(['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'])
 const DEFAULT_PROFILE = 'full'
 
-export const PROFILE_LABELS = Object.freeze({
+export const PROFILE_LABELS: Readonly<Record<string, ChoiceLabel>> = Object.freeze({
   basic: { el: 'Βασική καταγραφή', en: 'Basic records', hintEl: 'Μόνο η καταγραφή ασθενών. Το Εργαστήριο και οι αναφορές ΕΟΔΥ & EARS-Net ξεκλειδώνονται όπου χρειάζονται.', hintEn: 'Patient records only. Laboratory and ΕΟΔΥ & EARS-Net reports can be unlocked where needed.' },
   surveillance: { el: 'Εργαστήριο & Επιτήρηση λοιμώξεων', en: 'Laboratory & infection surveillance', hintEl: 'Εργαστηριακή καταγραφή και αναφορές ΕΟΔΥ & EARS-Net, μαζί με επιτήρηση (ΛΣΦΥ, απομόνωση, αγωγή, έκβαση) και δείκτες.', hintEn: 'Laboratory records and ΕΟΔΥ & EARS-Net reports, plus surveillance (HAI, isolation, therapy, outcome) and indicators.' },
   full: { el: 'Πλήρες πρόγραμμα Ελέγχου Λοιμώξεων', en: 'Full infection control programme', hintEl: 'Ό,τι η επιτήρηση, μαζί με Πρόληψη, Ελέγχους, Ποιότητα, Εκπαίδευση, Επιτροπές και Έγγραφα.', hintEn: 'Surveillance plus Prevention, Controls, Quality, Training, Committees and Documents.' },
 })
-export const ADDON_LABELS = Object.freeze({
+export const ADDON_LABELS: Readonly<Record<string, ChoiceLabel>> = Object.freeze({
   occupational_health: { el: 'Υγεία εργαζομένων (Ιατρός Εργασίας)', en: 'Occupational health', hintEl: 'Εμβολιασμοί, επισκέψεις Ιατρού Εργασίας και επανέλεγχοι προσωπικού.', hintEn: 'Staff vaccination, occupational physician visits and follow-ups.' },
   pharmacy: { el: 'Φαρμακείο (κατανάλωση αντιμικροβιακών)', en: 'Pharmacy (antimicrobial consumption)', hintEl: 'Κατανάλωση και χορηγήσεις αντιμικροβιακών από το φαρμακείο.', hintEn: 'Antimicrobial consumption and dispensing from the pharmacy.' },
   prevalence_survey: { el: 'Μελέτη επιπολασμού (PPS)', en: 'Point prevalence survey (PPS)', hintEl: 'Περιοδικές μετρήσεις επιπολασμού ΛΣΦΥ και χρήσης αντιβιοτικών.', hintEn: 'Periodic HAI prevalence and antibiotic use measurements.' },
@@ -29,7 +50,7 @@ export const ADDON_LABELS = Object.freeze({
 
 // What each operating profile contains, cumulatively: the layout of the profile
 // picker is built from this, so the screen and the rules below cannot drift apart.
-export const MODULES = Object.freeze({
+export const MODULES: Readonly<Record<string, ModuleDefinition>> = Object.freeze({
   patients: { el: 'Ασθενείς', en: 'Patients', from: 'basic', analysis: false },
   laboratory: { el: 'Εργαστήριο & μικροβιολογία/AMR', en: 'Laboratory & microbiology/AMR', from: 'surveillance', analysis: true },
   national: { el: 'Αναφορές ΕΟΔΥ & EARS-Net', en: 'Δηλώσεις ΕΟΔΥ & EARS-Net', from: 'surveillance', analysis: true },
@@ -47,17 +68,17 @@ export const MODULES = Object.freeze({
   executive: { el: 'Πίνακας Διοίκησης (Διευθυντής)', en: 'Executive dashboard (Director)', from: 'full', analysis: false },
 })
 // Always on for every organization; the Platform Owner switches the rest one by one.
-export const CORE_MODULES = Object.freeze(['patients'])
+export const CORE_MODULES: readonly string[] = Object.freeze(['patients'])
 export const OPTIONAL_MODULES = Object.freeze(Object.keys(MODULES).filter(key => !CORE_MODULES.includes(key)))
-const PROFILE_RANK = Object.freeze({ basic: 0, surveillance: 1, full: 2 })
-export function profileModules(profile) {
-  const rank = PROFILE_RANK[profile] ?? PROFILE_RANK[DEFAULT_PROFILE]
+const PROFILE_RANK: Readonly<Record<string, number>> = Object.freeze({ basic: 0, surveillance: 1, full: 2 })
+export function profileModules(profile: string | null | undefined): string[] {
+  const rank = PROFILE_RANK[String(profile)] ?? PROFILE_RANK[DEFAULT_PROFILE]
   return Object.keys(MODULES).filter(key => PROFILE_RANK[MODULES[key].from] <= rank)
 }
 
 // Capabilities that belong to each switchable module. Everything not listed here
 // (patients, employees registry, management) is always on.
-const MODULE_CAPABILITIES = Object.freeze({
+const MODULE_CAPABILITIES: Readonly<Record<string, string[]>> = Object.freeze({
   laboratory: [C.VIEW_LAB, C.MANAGE_LAB_SAMPLES, C.REQUEST_LAB_SAMPLES, C.VALIDATE_LAB_RESULTS, C.REOPEN_LAB_RECORD],
   national: [], // ΕΟΔΥ & EARS-Net reports live in Analysis; gated there
   surveillance: [
@@ -85,7 +106,7 @@ const MODULE_CAPABILITIES = Object.freeze({
     C.SUPERSEDE_DOCUMENT, C.ARCHIVE_DOCUMENT, C.DELETE_DOCUMENT_DRAFT,
   ],
 })
-const ADDON_CAPABILITIES = Object.freeze({
+const ADDON_CAPABILITIES: Readonly<Record<string, string[]>> = Object.freeze({
   occupational_health: [C.VIEW_OCCUPATIONAL_HEALTH, C.MANAGE_OCCUPATIONAL_HEALTH],
   pharmacy: [C.VIEW_PHARMACY, C.MANAGE_PHARMACY, C.RECORD_PHARMACY_CONSUMPTION],
   prevalence_survey: [C.RECORD_PREVALENCE_SURVEY],
@@ -94,23 +115,23 @@ const ADDON_CAPABILITIES = Object.freeze({
 
 // Modules that give little without another one (e.g. indicators are computed from surveillance
 // data). Only used to warn the Platform Owner: nothing is blocked or switched on automatically.
-export const MODULE_DEPENDENCIES = Object.freeze({
+export const MODULE_DEPENDENCIES: Readonly<Record<string, string[]>> = Object.freeze({
   surveillance: ['laboratory'],
   indicators: ['surveillance'],
   national: ['laboratory'],
   executive: ['analysis'],
 })
 // [module, [missing modules]] for every enabled module whose prerequisite is locked.
-export function missingDependencies(modules) {
+export function missingDependencies(modules: readonly string[] | null | undefined): Array<[string, string[]]> {
   const on = new Set(modules || [])
   return Object.entries(MODULE_DEPENDENCIES)
     .filter(([module]) => on.has(module))
-    .map(([module, needs]) => [module, needs.filter(need => !on.has(need))])
+    .map(([module, needs]): [string, string[]] => [module, needs.filter(need => !on.has(need))])
     .filter(([, missing]) => missing.length)
 }
 
 // The preset whose module list equals `modules`, else 'custom'.
-export function profileFor(modules) {
+export function profileFor(modules: readonly string[] | null | undefined): string {
   const set = new Set(modules || [])
   return OPERATING_PROFILES.find(id => { const preset = profileModules(id); return preset.length === set.size && preset.every(key => set.has(key)) }) || CUSTOM_PROFILE
 }
@@ -118,17 +139,25 @@ export function profileFor(modules) {
 // Modules, add-ons and profile of an organization. `enabled_modules` (set by the
 // Platform Owner module by module) wins; without it the preset decides, so
 // organizations saved before per-module control behave exactly as before.
-export function normalizeProfile(organization) {
-  const stored = OPERATING_PROFILES.includes(organization?.operating_profile) || organization?.operating_profile === CUSTOM_PROFILE || organization?.operating_profile in LEGACY_PROFILE_MODULES ? organization.operating_profile : DEFAULT_PROFILE
+export interface OperatingProfile {
+  profile: string
+  addons: string[]
+  modules: string[]
+}
+
+export function normalizeProfile(organization: ProfileSource | null | undefined): OperatingProfile {
+  const operatingProfile = String(organization?.operating_profile ?? '')
+  const stored = OPERATING_PROFILES.includes(operatingProfile) || operatingProfile === CUSTOM_PROFILE || operatingProfile in LEGACY_PROFILE_MODULES ? operatingProfile : DEFAULT_PROFILE
   const addons = Array.isArray(organization?.enabled_addons) ? organization.enabled_addons.filter(item => ADDONS.includes(item)) : [...ADDONS]
   const fromProfile = LEGACY_PROFILE_MODULES[stored] || profileModules(stored === CUSTOM_PROFILE ? DEFAULT_PROFILE : stored)
-  const modules = Array.isArray(organization?.enabled_modules)
-    ? Object.keys(MODULES).filter(key => CORE_MODULES.includes(key) || organization.enabled_modules.includes(key))
+  const enabledModules = organization?.enabled_modules
+  const modules = Array.isArray(enabledModules)
+    ? Object.keys(MODULES).filter(key => CORE_MODULES.includes(key) || enabledModules.includes(key))
     : fromProfile
   return { profile: profileFor(modules), addons, modules }
 }
 
-export function moduleEnabled(organization, module) {
+export function moduleEnabled(organization: ProfileSource | null | undefined, module: string): boolean {
   const { addons, modules } = normalizeProfile(organization)
   if (MODULES[module]) return modules.includes(module)
   if (ADDONS.includes(module)) return addons.includes(module)
@@ -137,9 +166,9 @@ export function moduleEnabled(organization, module) {
 
 // Capabilities switched off by an organization's modules (empty for a full
 // profile with every add-on, and for no organization at all).
-export function disabledCapabilitiesFor(organization) {
+export function disabledCapabilitiesFor(organization: ProfileSource | null | undefined): Set<string> {
   if (!organization) return new Set()
-  const off = []
+  const off: string[] = []
   for (const module of OPTIONAL_MODULES) if (!moduleEnabled(organization, module)) off.push(...(MODULE_CAPABILITIES[module] || []))
   for (const addon of ADDONS) if (!moduleEnabled(organization, addon)) off.push(...ADDON_CAPABILITIES[addon])
   return new Set(off)

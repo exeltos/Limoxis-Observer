@@ -12,7 +12,7 @@ import { readSessionJson, removeSessionValue, writeSessionJson } from '../storag
 
 import { SAMPLE_DEFAULT_DEPARTMENT, SAMPLE_DEFAULT_DIVISION, SAMPLE_DIVISION_DEPARTMENTS } from './sampleDepartments'
 
-export const TenantContext = createContext(null)
+export const TenantContext = createContext(/** @type {import('./tenantTypes').TenantContextValue | null} */ (null))
 const DEMO_TENANT = Object.freeze({ id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', type: 'hospital', mode: 'demo' })
 const DEMO_MEMBERSHIP = Object.freeze({ id: 'demo-membership', role: ROLES.DEMO, status: 'active', organization: DEMO_TENANT, departmentIds: [], capabilities: [], customCapabilities: [], assignments: [] })
 const HYDRATION_TIMEOUT_MS=12000

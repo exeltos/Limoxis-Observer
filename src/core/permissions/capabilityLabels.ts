@@ -1,6 +1,4 @@
-// @ts-check
-/** @type {Record<string, [string, string]>} */
-export const capabilityLabels = {
+export const capabilityLabels: Record<string, [string, string]> = {
   view_kitchen:['Προβολή κουζίνας (HACCP)','View kitchen (HACCP)'], record_kitchen:['Καταχωρίσεις κουζίνας (παραλαβές, θερμοκρασίες, αποψύξεις)','Record kitchen entries (receipts, temperatures, defrosting)'], manage_kitchen:['Διαχείριση κουζίνας (όρια, σχέδιο HACCP, επαλήθευση)','Manage kitchen (limits, HACCP plan, verification)'],
   view_executive_dashboard:['Πίνακας Διοίκησης (ανάλυση για τον Διευθυντή)','Executive dashboard (analysis for the Director)'], view_interviews:['Προβολή συνεντεύξεων υποψηφίων','View candidate interviews'], manage_interviews:['Διαχείριση συνεντεύξεων υποψηφίων','Manage candidate interviews'], view_division_interviews:['Υποψήφιοι της διεύθυνσης (επαγγελματικά στοιχεία και βιογραφικό)','Candidates of the division (professional data and CV)'], send_supplier_renewals:['Αποστολή αιτημάτων ανανέωσης πιστοποιητικών σε προμηθευτές','Send certificate renewal requests to suppliers'],
   view_platform:['Προβολή πλατφόρμας','View platform'], view_dashboard:['Προβολή αρχικής εικόνας','View dashboard'], view_my_department:['Προβολή τμήματος','View my department'], view_my_profile:['Προβολή προσωπικής καρτέλας','View my profile'],
@@ -13,5 +11,4 @@ export const capabilityLabels = {
   execute_control:['Εκτέλεση ελέγχου','Execute control'], edit_control_definition:['Επεξεργασία ορισμού ελέγχου','Edit control definition'], edit_control_execution:['Διόρθωση εκτέλεσης ελέγχου','Edit control execution'], void_control_execution:['Αναίρεση εκτέλεσης ελέγχου','Void control execution'], archive_control_definition:['Αρχειοθέτηση ορισμού ελέγχου','Archive control definition'], delete_control_draft:['Διαγραφή πρόχειρου ελέγχου','Delete control draft'],
   create_committee:['Δημιουργία επιτροπής','Create committee'], manage_committee_members:['Διαχείριση μελών επιτροπής','Manage committee members'], create_committee_meeting:['Δημιουργία συνεδρίασης','Create committee meeting'], edit_committee_minutes:['Επεξεργασία πρακτικών','Edit committee minutes'], finalize_committee_minutes:['Οριστικοποίηση πρακτικών','Finalize committee minutes'], manage_committee_decisions:['Διαχείριση αποφάσεων επιτροπής','Manage committee decisions'], manage_committee_documents:['Διαχείριση εγγράφων επιτροπής','Manage committee documents'], archive_committee:['Αρχειοθέτηση επιτροπής','Archive committee'],
 }
-/** @param {string} capability @param {string} [language] */
-export function capabilityLabel(capability, language='el'){const item=capabilityLabels[capability];return item ? item[language==='el'?0:1] : capability.replaceAll('_',' ')}
+export function capabilityLabel(capability: string, language='el'): string{const item=capabilityLabels[capability];return item ? item[language==='el'?0:1] : capability.replaceAll('_',' ')}

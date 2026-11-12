@@ -1,49 +1,39 @@
-// @ts-check
 import { capabilityDefinition } from './capabilityCatalogue.js'
 import { addonCapabilityMap,roleCapabilities,roleCapabilityRule } from './systemRoleMatrix.js'
 import { DATA_SCOPES,scopeWithin } from './scopeTypes.js'
+import type { AccessContext, AccessRecord, DataScope } from './types'
 
-/** @typedef {import('./types.js').AccessContext} AccessContext @typedef {import('./types.js').AccessRecord} AccessRecord */
-
-/** @param {string|null|undefined} role @param {string[]} [addOns] @param {string[]} [customCapabilities] @returns {string[]} */
-export function capabilitiesFor(role,addOns=[],customCapabilities=[]){
- const base=/** @type {Record<string, readonly string[]>} */(roleCapabilities)[String(role)]??[]
- const supplemental=addOns.flatMap(item=>/** @type {Record<string, readonly string[]>} */(addonCapabilityMap)[item]??[])
+export function capabilitiesFor(role:string|null|undefined,addOns:readonly string[]=[],customCapabilities:readonly string[]=[]):string[]{
+ const base=(roleCapabilities as Record<string, readonly string[]>)[String(role)]??[]
+ const supplemental=addOns.flatMap(item=>(addonCapabilityMap as Record<string, readonly string[]>)[item]??[])
  return [...new Set([...base,...supplemental,...customCapabilities])]
 }
 
 // Capabilities the active organization's operating profile switches off
 // (core/organization/operatingProfile.js). Set by TenantContext; empty outside
 // an organization, so the platform workspace and tests are unaffected.
-/** @type {Set<string>} */
-let profileDisabled=new Set()
-/** @param {Set<string>|string[]|null|undefined} disabled */
-export function configureProfileAccess(disabled){profileDisabled=disabled instanceof Set?disabled:new Set(disabled||[])}
-/** @param {string} capability */
-export const isProfileDisabled=capability=>profileDisabled.has(capability)
-/** @param {string|null|undefined} role @param {string} capability @param {string[]} [addOns] @param {string[]} [customCapabilities] */
-export const can=(role,capability,addOns=[],customCapabilities=[])=>!profileDisabled.has(capability)&&capabilitiesFor(role,addOns,customCapabilities).includes(capability)
-/** @param {string|null|undefined} role @param {string[]} [capabilities] @param {string[]} [addOns] @param {string[]} [customCapabilities] */
-export const canAny=(role,capabilities=[],addOns=[],customCapabilities=[])=>capabilities.some(capability=>can(role,capability,addOns,customCapabilities))
+let profileDisabled:Set<string>=new Set()
+export function configureProfileAccess(disabled:Set<string>|readonly string[]|null|undefined):void{profileDisabled=disabled instanceof Set?disabled:new Set(disabled||[])}
+export const isProfileDisabled=(capability:string):boolean=>profileDisabled.has(capability)
+export const can=(role:string|null|undefined,capability:string,addOns:readonly string[]=[],customCapabilities:readonly string[]=[]):boolean=>!profileDisabled.has(capability)&&capabilitiesFor(role,addOns,customCapabilities).includes(capability)
+export const canAny=(role:string|null|undefined,capabilities:readonly string[]=[],addOns:readonly string[]=[],customCapabilities:readonly string[]=[]):boolean=>capabilities.some(capability=>can(role,capability,addOns,customCapabilities))
 
-/** @param {string} capability @param {AccessContext} [context] @returns {import('./types.js').DataScope|null} */
-export function scopeFor(capability,{role,scopeOverrides={}}={}){
+export function scopeFor(capability:string,{role,scopeOverrides={}}:AccessContext={}):DataScope|null{
  const definition=capabilityDefinition(capability)
  if(!definition)return null
  const rule=roleCapabilityRule(role,capability)
  const maximum=rule?.maximumScope??definition.maximumScope
- const requested=/** @type {import('./types.js').DataScope} */(scopeOverrides[capability]??rule?.defaultScope??definition.defaultScope)
+ const requested=(scopeOverrides[capability]??rule?.defaultScope??definition.defaultScope) as DataScope
  return definition.allowedScopes.includes(requested)&&scopeWithin(requested,maximum)?requested:null
 }
 
-/** @param {string|null|undefined} departmentId @param {{scope?: string|null, departmentIds?: string[]}} [context] */
-export function canAccessDepartment(departmentId,{scope,departmentIds=[]}={}){
+export function canAccessDepartment(departmentId:string|null|undefined,{scope,departmentIds=[]}:{scope?: string|null, departmentIds?: string[]}={}):boolean{
  if(scope===DATA_SCOPES.ORGANIZATION)return true
  return scope===DATA_SCOPES.DEPARTMENT&&Boolean(departmentId)&&departmentIds.includes(String(departmentId))
 }
 
-/** @param {Record<string, any>} item @param {AccessRecord|null|undefined} record */
-function assignmentMatchesRecord(item,record){
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- assignment rows of several tables
+function assignmentMatchesRecord(item:Record<string, any>,record:AccessRecord|null|undefined){
  const resourceType=item.resourceType??item.sourceType
  const resourceId=item.resourceId??item.sourceId??item.committeeId??item.controlId??item.recordId
  const recordId=record?.dbId??record?.id
@@ -51,8 +41,7 @@ function assignmentMatchesRecord(item,record){
  return !inactive&&resourceType===record?.resourceType&&String(resourceId)===String(recordId)
 }
 
-/** @param {string} capability @param {AccessRecord|null|undefined} record @param {AccessContext} [context] */
-export function canForRecord(capability,record,context={}){
+export function canForRecord(capability:string,record:AccessRecord|null|undefined,context:AccessContext={}):boolean{
  const {role,addOns=[],customCapabilities=[],organizationId,userId,employeeId,assignments=[]}=context
  if(!can(role,capability,addOns,customCapabilities))return false
  const definition=capabilityDefinition(capability)
@@ -67,11 +56,7 @@ export function canForRecord(capability,record,context={}){
  return true
 }
 
-/** @param {string} addOnId @param {AccessContext} [context] */
-export const hasAddOn=(addOnId,{addOns=[]}={})=>addOns.includes(addOnId)
-/** @param {AccessRecord|null|undefined} record @param {AccessContext} [context] */
-export const isSelf=(record,{employeeId}={})=>Boolean(employeeId)&&record?.employeeId===employeeId
-/** @param {AccessRecord|null|undefined} record @param {AccessContext} [context] */
-export const isOwner=(record,{userId}={})=>Boolean(userId)&&(record?.ownerId===userId||record?.createdBy===userId)
-/** @param {AccessRecord|null|undefined} record @param {AccessContext} [context] */
-export const isAssigned=(record,{assignments=[]}={})=>assignments.some(item=>assignmentMatchesRecord(item,record))
+export const hasAddOn=(addOnId:string,{addOns=[]}:AccessContext={}):boolean=>addOns.includes(addOnId)
+export const isSelf=(record:AccessRecord|null|undefined,{employeeId}:AccessContext={}):boolean=>Boolean(employeeId)&&record?.employeeId===employeeId
+export const isOwner=(record:AccessRecord|null|undefined,{userId}:AccessContext={}):boolean=>Boolean(userId)&&(record?.ownerId===userId||record?.createdBy===userId)
+export const isAssigned=(record:AccessRecord|null|undefined,{assignments=[]}:AccessContext={}):boolean=>assignments.some(item=>assignmentMatchesRecord(item,record))

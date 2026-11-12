@@ -1,4 +1,3 @@
-// @ts-check
 // Compatibility facade. New authorization code should import the catalogue,
 // matrix, scopes or permission engine directly.
 export { CAPABILITIES,capabilityCatalogue,capabilityDefinition,isCustomRoleEligible } from './capabilityCatalogue.js'

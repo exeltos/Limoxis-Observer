@@ -1,4 +1,3 @@
-// @ts-check
 export const SCOPES = Object.freeze({
   SELF: 'self',
   DEPARTMENT: 'department',
