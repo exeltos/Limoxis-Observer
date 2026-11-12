@@ -12,7 +12,7 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { AutoTranslatedMark } from '../../../design-system/AutoTranslatedMark'
 import { useAutoTranslated } from '../../../core/i18n/autoTranslated'
 import { RouteLoading } from '../../../design-system/RouteLoading'
-import { printReport } from '../../../core/export/reportDocument'
+import { printReport, type ReportFact } from '../../../core/export/reportDocument'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
@@ -29,7 +29,7 @@ import '../quality.css'
 import { LinkedActions } from '../LinkedActions'
 import type { AnyRecord } from '../../../types/featureTypes'
 
-const tone=(state: AnyRecord)=>({met:'success',missed:'danger'})[state]||'info'
+const tone=(state: string)=>({met:'success',missed:'danger'} as Record<string, string>)[state]||'info'
 
 // /quality/objectives/:objectiveId — one objective on its own page: where it stands today, what it is measured by, who owns it and by when.
 export function ObjectiveRecordPage(){
@@ -49,8 +49,9 @@ export function ObjectiveRecordPage(){
   loadObjectiveHistories(tenant.id,[target_],definitions).then(map=>{if(live)setHistory(map.get(target_.id)||[])}).catch(()=>{if(live)setHistory([])})
   return ()=>{live=false}
  },[tenant?.id,target_,definitions])
- const [drafts,setDrafts]=useState({})
- async function saveMonth(month: string){
+ const [drafts,setDrafts]=useState<Record<number, string>>({})
+ async function saveMonth(month: number){
+  if(!target_)return
   const key=monthStart(target_.year,month),value=drafts[month]
   if(value===undefined)return
   try{await saveObjectiveValue(tenant?.id,target_.id,key,value);setDrafts(current=>{const next={...current};delete next[month];return next});await reload();notify(en?'The value was saved.':'Η τιμή αποθηκεύτηκε.','success')}
@@ -63,7 +64,7 @@ export function ObjectiveRecordPage(){
  const {current,register,unit}=objective
  const monthly=objectiveSource(objective)==='monthly'
  const state=current.status,reach=targetReach(objective),sign=objective.direction==='lower'?'≤':'≥'
- const monthChange=history.length>1?Number((history.at(-1).value-history.at(-2).value).toFixed(2)):null
+ const monthChange=history.length>1?Number(((history.at(-1) as AnyRecord).value-(history.at(-2) as AnyRecord).value).toFixed(2)):null
  const value=formatObjectiveValue(current.value,unit,language),target=`${sign} ${formatObjectiveValue(objective.target,unit,language)}${objective.targetFromIndicator?(en?' (indicator)':' (από τον δείκτη)'):''}`
  const detail=[
   {title:en?'Measurement':'Μέτρηση',items:[
@@ -79,10 +80,10 @@ export function ObjectiveRecordPage(){
   ]},
  ]
  // The objective as a printed sheet.
- const printObjective=pdf=>{
+ const printObjective=(pdf?: boolean)=>{
   const ok=printReport({language,kind:en?'Quality objective':'Στόχος ποιότητας',code:objective.code,title:objectiveTitle(objective,language),subtitle:String(objective.year),
-   meta:[[en?'Value today':'Τιμή σήμερα',value],[en?'Target':'Στόχος',target],[en?'Status':'Κατάσταση',objectiveStateLabel(state,en)],...detail.flatMap(section=>section.items.filter(item=>item.value!=null&&item.value!=='').map(item=>[item.label,String(item.value)]))],
-   sections:[{...objectiveSection(objective,history,language),title:en?'Value by month':'Τιμή ανά μήνα',facts:null}],
+   meta:[[en?'Value today':'Τιμή σήμερα',value],[en?'Target':'Στόχος',target],[en?'Status':'Κατάσταση',objectiveStateLabel(state,en)],...detail.flatMap(section=>section.items.filter(item=>item.value!=null&&item.value!=='').map(item=>[item.label,String(item.value)] as ReportFact))],
+   sections:[{...objectiveSection(objective,history,language),title:en?'Value by month':'Τιμή ανά μήνα',facts:undefined}],
    filename:`${objective.code}_${objective.year}`},{pdf:pdf===true})
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }

@@ -20,7 +20,7 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { useAuth } from '../../../core/auth/AuthContext'
 import { auditActorFromAuth } from '../../../core/audit/actor'
 import { formatDay } from '../../../core/i18n/formatDay'
-import { reportExports } from '../../../core/export/reportDocument'
+import { reportExports, type ReportDoc, type ReportSection } from '../../../core/export/reportDocument'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { loadQualityRecords } from '../qualityService'
@@ -40,7 +40,7 @@ import type { AnyRecord } from '../../../types/featureTypes'
 
 // The minutes on the shared document layout (hospital band, DEMO mark in a
 // Demo, signatures): as Word, laid out like the hospital's form, or printed.
-function minutesDocument(review: AnyRecord) {
+function minutesDocument(review: AnyRecord): ReportDoc {
   const present = review.participants.filter((person: AnyRecord) => person.attended !== false)
   const absent = review.participants.filter((person: AnyRecord) => person.attended === false)
   return {
@@ -58,18 +58,18 @@ function minutesDocument(review: AnyRecord) {
     ],
     sections: [
       review.summary && { title: 'Σύνοψη', text: review.summary },
-      ...review.sections.map((section: string) => ({ title: section.title, text: String(section.body || '').trim() || '—' })),
+      ...review.sections.map((section: AnyRecord) => ({ title: section.title, text: String(section.body || '').trim() || '—' })),
       review.actions.length && { title: 'Αποφάσεις και ενέργειες', table: { columns: ['Α/Α', 'Ενέργεια', 'Υπεύθυνος', 'Προθεσμία'], rows: review.actions.map((action: AnyRecord, index: number) => [String(index + 1), action.title, action.ownerLabel || '—', formatDay(action.dueDate, 'el')]) } },
       { title: 'Υπογραφές συμμετεχόντων', keepTogether: true, table: { columns: ['Α/Α', 'Ονοματεπώνυμο', 'Υπογραφή'], rows: present.map((person: AnyRecord, index: number) => [String(index + 1), person.name, person.signedAt ? `Υπεγράφη ${formatDay(person.signedAt, 'el')}` : '']) } },
-    ].filter(Boolean),
+    ].filter(Boolean) as ReportSection[],
     filename: `${review.code || 'Anaskopisi'}_${review.reviewDate}`,
   }
 }
 
 // The text of a section: as tall as what is written (no scrolling inside the
 // card), and plain paragraphs once the review is approved.
-function MinutesText({ label, value, locked, onChange, rows = 3 }: { label: string, value: string, locked?: boolean, onChange: (...args: never[]) => unknown, rows?: number }) {
-  const ref = useRef(null)
+function MinutesText({ label, value, locked, onChange, rows = 3 }: { label: string, value: string, locked?: boolean, onChange: (value: string) => void, rows?: number }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return undefined
@@ -97,12 +97,12 @@ export function ReviewRecordPage() {
   const { tenant, role, membership, actualRole, isRolePreview } = useTenant()
   const { user, profile } = useAuth()
   const canManage = (!isRolePreview && actualRole === ROLES.PLATFORM_OWNER) || can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
-  const [reviews, setReviews] = useState<AnyRecord | null>(null)
+  const [reviews, setReviews] = useState<AnyRecord[] | null>(null)
   const [review, setReview] = useState<AnyRecord | null>(null)
   const [tab, setTab] = useState('details')
   const [sectionKey, setSectionKey] = useState(REVIEW_SECTIONS[0].key)
   const [saving, setSaving] = useState(false)
-  const [facts, setFacts] = useState({ incidents: [], capas: [], findings: [], audits: [] })
+  const [facts, setFacts] = useState<AnyRecord>({ incidents: [], capas: [], findings: [], audits: [] })
   const objectives = useObjectives(tenant?.id)
   const { goBack, goTo } = useContextualNavigation('/meetings?tab=reviews')
 
@@ -114,13 +114,13 @@ export function ReviewRecordPage() {
       const found = isNew ? newReviewFrom(rows.find((row: AnyRecord) => row.status === 'approved') || rows[0]) : rows.find((row: AnyRecord) => row.id === reviewId || row.code === reviewId)
       setReview(found ? structuredClone(found) : null)
     }).catch(() => { if (active) setReviews([]) })
-    const add = next => { if (active) setFacts(current => ({ ...current, ...next })) }
+    const add = (next: AnyRecord) => { if (active) setFacts(current => ({ ...current, ...next })) }
     const orgId = tenant?.id
     Promise.all(['incidents', 'capas', 'findings', 'audits'].map(section => loadQualityRecords(section, orgId).catch(() => []))).then(([incidents, capas, findings, audits]) => add({ incidents, capas, findings, audits }))
     // What the other screens hold for the remaining sections; a screen the user cannot read adds nothing.
     loadResources(orgId).then(resources => add({ suppliers: resources.suppliers, equipment: resources.equipment, equipmentEvents: resources.events })).catch(() => {})
     loadRiskAssessments(orgId).then(riskAssessments => add({ riskAssessments })).catch(() => {})
-    loadTrainingStateAsync(orgId).then(state => add({ trainingPrograms: state.programs, trainingAssignments: state.assignments })).catch(() => {})
+    loadTrainingStateAsync(orgId as string).then(state => add({ trainingPrograms: state.programs, trainingAssignments: state.assignments })).catch(() => {})
     loadCommitteesFullAsync(orgId).then(committees => add({ committees: Array.isArray(committees) ? committees : [] })).catch(() => {})
     loadDocumentsAsync(orgId).then(documents => add({ documents: Array.isArray(documents) ? documents : [] })).catch(() => {})
     Promise.all([loadMeetingGroups(orgId), loadMeetings(orgId)]).then(([meetingGroups, meetings]) => add({ meetingGroups, meetings })).catch(() => {})
@@ -135,14 +135,15 @@ export function ReviewRecordPage() {
   const locked = review.status === 'approved' || !canManage
   const period = { from: review.periodFrom || '0000-01-01', to: review.periodTo || review.reviewDate }
   const data = { ...facts, objectives: objectives.objectives, previous }
-  const set = next => setReview(current => ({ ...current, ...next }))
-  const setSection = (key: string, body) => setReview(current => ({ ...current, sections: current.sections.map((section: string) => (section.key === key ? { ...section, body } : section)) }))
-  const setAction = (index: number, next) => setReview(current => ({ ...current, actions: current.actions.map((action, position: number) => (position === index ? { ...action, ...next } : action)) }))
-  const setPerson = (index: number, next) => setReview(current => ({ ...current, participants: current.participants.map((person, position: number) => (position === index ? { ...person, ...next } : person)) }))
+  const set = (next: AnyRecord) => setReview(current => ({ ...current, ...next }))
+  const setSection = (key: string, body: string) => setReview(current => ({ ...current, sections: current?.sections.map((section: AnyRecord) => (section.key === key ? { ...section, body } : section)) }))
+  const setAction = (index: number, next: AnyRecord) => setReview(current => ({ ...current, actions: current?.actions.map((action: AnyRecord, position: number) => (position === index ? { ...action, ...next } : action)) }))
+  const setPerson = (index: number, next: AnyRecord) => setReview(current => ({ ...current, participants: current?.participants.map((person: AnyRecord, position: number) => (position === index ? { ...person, ...next } : person)) }))
   const present = review.participants.filter((person: AnyRecord) => person.attended !== false)
   const allSigned = present.length > 0 && present.every((person: AnyRecord) => person.signedAt)
 
-  async function save(nextStatus) {
+  async function save(nextStatus?: string) {
+    if (!review) return
     setSaving(true)
     try {
       const next = { ...review, status: nextStatus || review.status, ...(nextStatus === 'approved' ? { approvedAt: new Date().toISOString(), approvedByLabel: auditActorFromAuth({ profile, user }).name } : {}) }
@@ -155,8 +156,9 @@ export function ReviewRecordPage() {
   // A decision's corrective action: its source is this review and decision, so the decision
   // then opens the one already made (and «Back» returns here).
   const capaSource = (action: AnyRecord) => `MR:${review.code}#${action.id}`
-  const capaOf = (action: AnyRecord) => (action.id ? (facts.capas || []).find(capa => capa.sourceId === capaSource(action) || (action.capaId && (capa.id === action.capaId || capa.dbId === action.capaId))) : null)
+  const capaOf = (action: AnyRecord) => (action.id ? (facts.capas || []).find((capa: AnyRecord) => capa.sourceId === capaSource(action) || (action.capaId && (capa.id === action.capaId || capa.dbId === action.capaId))) : null)
   function openCapa(action: AnyRecord) {
+    if (!review) return
     const existing = capaOf(action)
     if (existing) { goTo(`/quality/capas/${existing.id}`, { tab }); return }
     goTo('/quality/capas/new', { tab, state: { qualitySource: { source: 'other', sourceId: capaSource(action), title: action.title, dueDate: action.dueDate, description: en ? `Decision of the management review ${review.code} (${formatDay(review.reviewDate, 'en')}).` : `Απόφαση της Ανασκόπησης Διοίκησης ${review.code} (${formatDay(review.reviewDate, 'el')}).` } } })
@@ -193,15 +195,15 @@ export function ReviewRecordPage() {
     </RecordTabPanel>}
     {tab === 'minutes' && (() => {
       // One section at a time, picked from the list on the left (no long page to scroll).
-      const index = Math.max(0, review.sections.findIndex((section: string) => section.key === sectionKey))
+      const index = Math.max(0, review.sections.findIndex((section: AnyRecord) => section.key === sectionKey))
       const section = review.sections[index]
-      const meta = REVIEW_SECTIONS.find(item => item.key === section?.key) || {}
+      const meta: AnyRecord = REVIEW_SECTIONS.find(item => item.key === section?.key) || {}
       // The facts help write the minutes; an approved review shows its text only.
       const lines = meta.source && !locked ? sectionFacts(meta.source, data, period, language) : []
       return <RecordTabPanel className="review-minutes" title={en ? 'Minutes' : 'Πρακτικό'} subtitle={locked ? undefined : (en ? '«From Limoxis» brings what the other screens hold for the period; edit it freely.' : 'Το «Από το Limoxis» φέρνει όσα έχουν οι άλλες οθόνες για την περίοδο· τα επεξεργάζεστε ελεύθερα.')} footer={footer}>
         <div className="review-sections-layout">
           <nav className="review-sections-rail" aria-label={en ? 'Sections of the minutes' : 'Ενότητες του πρακτικού'}>
-            {review.sections.map((item: AnyRecord, position: number) => { const itemMeta = REVIEW_SECTIONS.find(entry => entry.key === item.key) || {}; const written = Boolean(String(item.body || '').trim()); return <button key={item.key} type="button" className={`${item.key === section?.key ? 'is-active' : ''}${written ? ' is-done' : ''}`.trim()} aria-current={item.key === section?.key ? 'true' : undefined} onClick={() => setSectionKey(item.key)}>
+            {review.sections.map((item: AnyRecord, position: number) => { const itemMeta: AnyRecord = REVIEW_SECTIONS.find(entry => entry.key === item.key) || {}; const written = Boolean(String(item.body || '').trim()); return <button key={item.key} type="button" className={`${item.key === section?.key ? 'is-active' : ''}${written ? ' is-done' : ''}`.trim()} aria-current={item.key === section?.key ? 'true' : undefined} onClick={() => setSectionKey(item.key)}>
               <i>{written ? <Check size={12} aria-hidden="true" /> : position + 1}</i><span>{(en ? itemMeta.shortEn : itemMeta.short) || item.title}</span>
             </button> })}
           </nav>
@@ -234,7 +236,7 @@ export function ReviewRecordPage() {
           <Field label={en ? 'Owner' : 'Υπεύθυνος'}><input value={action.ownerLabel} onChange={event => setAction(index, { ownerLabel: event.target.value })} /></Field>
           <ManualDateField label={en ? 'Due' : 'Προθεσμία'} value={action.dueDate} onChange={value => setAction(index, { dueDate: value })} />
           <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={action.status} options={[{ value: 'open', label: en ? 'Open' : 'Ανοιχτή' }, { value: 'done', label: en ? 'Done' : 'Ολοκληρώθηκε' }]} onChange={value => setAction(index, { status: value })} />
-          <span className="review-action-tools">{capaButton(action)}<IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ actions: review.actions.filter((_, position: number) => position !== index) })}><Trash2 size={15} /></IconButton></span>
+          <span className="review-action-tools">{capaButton(action)}<IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ actions: review.actions.filter((_: AnyRecord, position: number) => position !== index) })}><Trash2 size={15} /></IconButton></span>
         </div>)}{!review.actions.length && <div className="inline-empty">{en ? 'No decisions yet.' : 'Δεν υπάρχουν αποφάσεις ακόμη.'}</div>}</div>}
     </RecordTabPanel>}
     {tab === 'people' && <RecordTabPanel title={en ? 'Participants and signatures' : 'Συμμετέχοντες και υπογραφές'} subtitle={allSigned ? (en ? 'Everyone present has signed: the review can be approved.' : 'Υπέγραψαν όλοι οι παρόντες: η ανασκόπηση μπορεί να εγκριθεί.') : (en ? 'The review is approved once everyone present has signed.' : 'Η ανασκόπηση εγκρίνεται όταν υπογράψουν όλοι οι παρόντες.')} actions={!locked && <Button variant="secondary" onClick={() => set({ participants: [...review.participants, { name: '', role: '', attended: true, signedAt: null }] })}><Plus size={15} />{en ? 'Participant' : 'Συμμετέχων'}</Button>} footer={footer}>
@@ -252,7 +254,7 @@ export function ReviewRecordPage() {
           <Field label={`${index + 1}. ${en ? 'Name' : 'Ονοματεπώνυμο'}`}><input value={person.name} onChange={event => setPerson(index, { name: event.target.value })} /></Field>
           <Field label={en ? 'Role' : 'Ιδιότητα'}><input value={person.role} onChange={event => setPerson(index, { role: event.target.value })} /></Field>
           <ChoiceField label={en ? 'Present' : 'Παρών'} value={person.attended === false ? 'no' : 'yes'} options={[{ value: 'yes', label: en ? 'Present' : 'Παρών' }, { value: 'no', label: en ? 'Absent' : 'Απών' }]} onChange={value => setPerson(index, { attended: value === 'yes', signedAt: value === 'yes' ? person.signedAt : null })} />
-          <span className="review-action-tools">{person.attended !== false && (person.signedAt ? <StatusBadge tone="success">{en ? 'Signed' : 'Υπέγραψε'} {formatDay(person.signedAt, language)}</StatusBadge> : <Button variant="secondary" disabled={!person.name} onClick={() => setPerson(index, { signedAt: new Date().toISOString() })}>{en ? 'Mark signed' : 'Υπογραφή'}</Button>)}<IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ participants: review.participants.filter((_, position: number) => position !== index) })}><Trash2 size={15} /></IconButton></span>
+          <span className="review-action-tools">{person.attended !== false && (person.signedAt ? <StatusBadge tone="success">{en ? 'Signed' : 'Υπέγραψε'} {formatDay(person.signedAt, language)}</StatusBadge> : <Button variant="secondary" disabled={!person.name} onClick={() => setPerson(index, { signedAt: new Date().toISOString() })}>{en ? 'Mark signed' : 'Υπογραφή'}</Button>)}<IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ participants: review.participants.filter((_: AnyRecord, position: number) => position !== index) })}><Trash2 size={15} /></IconButton></span>
         </div>)}</div>}
     </RecordTabPanel>}
   </EntityRecordShell></Page>

@@ -68,7 +68,7 @@ export function objectiveSection(objective: AnyRecord, history: AnyRecord[], lan
       [en ? 'Due' : 'Προθεσμία', objective.dueDate ? formatDay(objective.dueDate, language) : '—'],
     ],
     html: historyChartHtml(objective, history, language),
-    table: history?.length ? { columns: [en ? 'Month' : 'Μήνας', en ? 'Value' : 'Τιμή', en ? 'Status' : 'Κατάσταση'], rows: history.map((row: AnyRecord) => [monthName(objective.year, row.month, en), formatObjectiveValue(row.value, unit, language), { text: objectiveStateLabel(objectiveState(objective, row.value), en), className: objectiveState(objective, row.value) === 'missed' ? 'rd-bad' : 'rd-good' }]) } : null,
+    table: history?.length ? { columns: [en ? 'Month' : 'Μήνας', en ? 'Value' : 'Τιμή', en ? 'Status' : 'Κατάσταση'], rows: history.map((row: AnyRecord) => [monthName(objective.year, row.month, en), formatObjectiveValue(row.value, unit, language), { text: objectiveStateLabel(objectiveState(objective, row.value), en), className: objectiveState(objective, row.value) === 'missed' ? 'rd-bad' : 'rd-good' }]) } : undefined,
   }
 }
 
