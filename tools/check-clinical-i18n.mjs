@@ -19,6 +19,8 @@ const files = [
   'src/features/surveillance/ClinicalSimpleDialog.tsx',
   'src/features/surveillance/clinicalDialogText.ts',
   'src/features/surveillance/SurveillanceCanonicalPage.jsx',
+  'src/features/surveillance/SurveillanceListRows.tsx',
+  'src/features/surveillance/surveillanceListModel.ts',
   'src/features/patients/PatientsPage.jsx',
 ]
 
@@ -44,6 +46,8 @@ const baseline = {
   'src/features/surveillance/ClinicalSimpleDialog.tsx': 0,
   'src/features/surveillance/clinicalDialogText.ts': 0,
   'src/features/surveillance/SurveillanceCanonicalPage.jsx': 0,
+  'src/features/surveillance/SurveillanceListRows.tsx': 0,
+  'src/features/surveillance/surveillanceListModel.ts': 0,
   'src/features/patients/PatientsPage.jsx': 0,
 }
 

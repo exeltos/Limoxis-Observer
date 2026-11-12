@@ -42,7 +42,7 @@ describe('shared surveillance option lists', () => {
     expect(statusTone('pending')).toBe('warning')
     expect(statusTone('completed')).toBe('neutral')
     expect(readSplitSource('src/features/surveillance/ClinicalJourney.jsx')).not.toContain('const STATUS_TONES')
-    expect(read('src/features/surveillance/SurveillanceCanonicalPage.jsx')).not.toContain('EMPLOYEE_STATE_TONES')
+    expect(readSplitSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')).not.toContain('EMPLOYEE_STATE_TONES')
   })
 
   it('keeps surface / room / air / water as the canonical environmental types', () => {

@@ -3,7 +3,7 @@ import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecord
 import { readSource } from './helpers/readSource'
 import { readSplitSource } from './helpers/surveillanceSplitSource'
 
-const registry=readSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
+const registry=readSplitSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
 const record=readPatientClinicalRecordSource()
 const repository=readSource('src/features/surveillance/clinicalRepository.js')
 const admissionService=readSource('src/features/surveillance/clinicalAdmissionService.js')

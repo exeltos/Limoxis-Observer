@@ -1,11 +1,12 @@
 import { describe,expect,it } from 'vitest'
 import { readAnalysisPageSource } from './helpers/analysisPageSource'
 import { readSource } from './helpers/readSource'
+import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 // Regression guard: Demo may change repositories/data, never the product component tree.
 const users=readSource('src/features/management/ManagementUsersPanel.jsx')
 const employee=readSource('src/features/employees/EmployeeRecordPage.jsx')
-const surveillance=readSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
+const surveillance=readSplitSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
 const employeeDialog=readSource('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx')
 const analysis=readAnalysisPageSource()
 const parityAudit=readSource('tools/check-frontend-parity.mjs')
