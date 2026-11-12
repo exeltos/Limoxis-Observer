@@ -1,0 +1,463 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Save } from 'lucide-react'
+import { useAuth } from '../../core/auth/AuthContext'
+import { controlActorFromAuth } from '../controls/controlActor'
+import { ActionButton } from '../../design-system/ActionButton'
+import { ChoiceField } from '../../design-system/ChoiceField'
+import { MonthField } from '../../design-system/MonthField'
+import { Field } from '../../design-system/Field'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { ANTISEPTIC_METHODS, antisepticPeriodBounds, antisepticPeriodKind, antisepticPeriodLabel, isAbhrProduct } from './antisepticMethods'
+import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
+import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment } from './preventionCloud'
+
+export const HOSPITAL_SCOPE = '__hospital__'
+
+// A whole year is kept as «YYYY-01 – YYYY-12»; a month as «YYYY-MM».
+const yearPeriod = (year: string) => `${year}-01 – ${year}-12`
+const yearOf = (period: unknown) => String(period || '').slice(0, 4)
+
+export function AntisepticEntryEditor({
+  onSave,
+  fixedDepartment = '',
+  initialRecord = null,
+  departments = [],
+  products: loadedProducts = [],
+  findPatientDays,
+}: { onSave: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[]; products?: AnyRecord[]; findPatientDays?: (departmentId: string | null, from: string, to: string) => Promise<number | null> }) {
+  // Products from the central antiseptics library (the screen's list until it loads).
+  const products = usePreventionLibrary('antiseptics', loadedProducts)
+  const { profile, user } = useAuth()
+  const { language, locale } = useLanguage()
+  const en = language === 'en'
+  const actor = useMemo(() => controlActorFromAuth({ profile, user }), [profile, user])
+  const today = hospitalToday()
+  const currentMonth = today.slice(0, 7)
+  const initialDepartment =
+    initialRecord?.departmentScope === 'hospital'
+      ? HOSPITAL_SCOPE
+      : initialRecord?.departmentEl || fixedDepartment || ''
+  const initialProduct = initialRecord?.product || products[0]?.el || ''
+  const [draft, setDraft] = useState<AnyRecord>(() =>
+    initialRecord
+      ? JSON.parse(
+          JSON.stringify({
+            ...initialRecord,
+            departmentEl: initialDepartment,
+            periodKind: antisepticPeriodKind(initialRecord.period) || 'month',
+          }),
+        )
+      : {
+          periodKind: 'month',
+          period: currentMonth,
+          departmentEl: initialDepartment,
+          product: initialProduct,
+          antisepticItemId: products.find(x => x.el === initialProduct)?.id || '',
+          litres: '',
+          patientDays: '',
+          patientDaysSource: '',
+          method: 'pharmacy_issue',
+          referenceNumber: '',
+          responsible: actor.name,
+          notes: '',
+          status: 'completed',
+        },
+  )
+  const [suggestedPatientDays, setSuggestedPatientDays] = useState<number | string>('')
+  const [saving, setSaving] = useState(false)
+  const set = (key: string, value: unknown) => setDraft(state => ({ ...state, [key]: value }))
+  const hospitalScope = draft.departmentEl === HOSPITAL_SCOPE
+  const departmentRows = usePreventionDepartments(departments)
+  const departmentInfo = hospitalScope
+    ? null
+    : departments.find(item => item.el === draft.departmentEl) ||
+      departmentRows.find(item => item.el === draft.departmentEl)
+  const productInfo = products.find(
+    item => item.id === draft.antisepticItemId || item.el === draft.product,
+  )
+  const departmentEn = hospitalScope ? 'Whole hospital' : departmentInfo?.en || draft.departmentEl
+  const productEn = productInfo?.en || draft.product
+  const range = useMemo(() => antisepticPeriodBounds(draft.period), [draft.period])
+
+  useEffect(() => {
+    if (draft.antisepticItemId || draft.product || !products.length) return
+    const first = products[0]
+    setDraft(state => ({
+      ...state,
+      antisepticItemId: first.id,
+      product: first.el,
+      productEn: first.en || first.el,
+      productCode: first.code || '',
+    }))
+  }, [draft.antisepticItemId, draft.product, products])
+
+  useEffect(() => {
+    let active = true
+    async function load() {
+      if (!findPatientDays || (!hospitalScope && !departmentInfo?.id) || !range) {
+        setSuggestedPatientDays('')
+        return
+      }
+      try {
+        const value = await findPatientDays(
+          hospitalScope ? null : (departmentInfo?.id as string),
+          range.from,
+          range.to,
+        )
+        if (active) setSuggestedPatientDays(value || '')
+      } catch {
+        if (active) setSuggestedPatientDays('')
+      }
+    }
+    void load()
+    return () => {
+      active = false
+    }
+  }, [findPatientDays, hospitalScope, departmentInfo?.id, range])
+
+  const patientDays = Number(draft.patientDays) || 0
+  const litres = Number(draft.litres) || 0
+  const abhr = isAbhrProduct(productInfo)
+  const indicator =
+    abhr && patientDays > 0 ? Number(((litres / patientDays) * 1000).toFixed(2)) : null
+  const usingLibraryDays =
+    Boolean(suggestedPatientDays) &&
+    Number(draft.patientDays) === Number(suggestedPatientDays) &&
+    draft.patientDaysSource === 'library'
+  const valid = Boolean(
+    draft.period &&
+    draft.departmentEl &&
+    draft.product &&
+    draft.antisepticItemId &&
+    Number.isFinite(litres) &&
+    litres >= 0 &&
+    draft.method,
+  )
+
+  const thisYear = new Date().getFullYear()
+  const yearOptions = Array.from({ length: 8 }, (_, index) => String(thisYear - index))
+  const startYear = yearOf(draft.period)
+  if (startYear && !yearOptions.includes(startYear)) yearOptions.push(startYear)
+  function changePeriodKind(kind: string) {
+    setDraft(state => {
+      const year = yearOf(state.period) || String(thisYear)
+      return {
+        ...state,
+        periodKind: kind,
+        period: kind === 'year' ? yearPeriod(year) : kind === 'month' ? `${year}-${String(state.period || '').slice(5, 7) || currentMonth.slice(5, 7)}` : state.period,
+        patientDays: '',
+        patientDaysSource: '',
+      }
+    })
+  }
+  function changeProduct(value: string) {
+    const selected = products.find(item => item.id === value)
+    if (!selected) return
+    setDraft(state => ({
+      ...state,
+      antisepticItemId: value,
+      product: selected?.el || '',
+      productEn: selected?.en || '',
+      productCode: selected?.code || '',
+    }))
+  }
+  async function submit() {
+    if (!valid || saving) return
+    const selectedProduct = products.find(
+      item => item.id === draft.antisepticItemId || item.el === draft.product,
+    )
+    const now = new Date().toISOString()
+    const record = {
+      ...draft,
+      periodStart: draft.periodKind === 'range' ? draft.periodStart : undefined,
+      periodEnd: draft.periodKind === 'range' ? draft.periodEnd : undefined,
+      departmentScope: hospitalScope ? 'hospital' : 'department',
+      departmentEl: hospitalScope ? 'Όλο το νοσοκομείο' : draft.departmentEl,
+      antisepticItemId: selectedProduct?.id || draft.antisepticItemId || '',
+      productCode: selectedProduct?.code || '',
+      departmentEn,
+      product: selectedProduct?.el || draft.product,
+      productEn: selectedProduct?.en || productEn,
+      litres,
+      patientDays: patientDays || null,
+      indicator,
+      indicatorEligible: isAbhrProduct(selectedProduct),
+      responsible: draft.responsible || actor.name,
+      createdAt: initialRecord?.createdAt || now,
+      createdBy: initialRecord?.createdBy || actor.name,
+      createdById: initialRecord?.createdById || actor.id,
+      updatedAt: initialRecord ? now : null,
+      updatedBy: initialRecord ? actor.name : null,
+      updatedById: initialRecord ? actor.id : null,
+      status: 'completed',
+      lifecycleStatus: 'finalized',
+    }
+    try {
+      setSaving(true)
+      await onSave(record)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="antiseptic-page-editor antiseptic-entry-card">
+      <div className="antiseptic-entry-workspace">
+        <main className="antiseptic-entry-main">
+          <section className="antiseptic-form-section">
+            <div className="antiseptic-form-heading">
+              <strong>{en ? 'Consumption' : 'Κατανάλωση'}</strong>
+              <small>
+                {en
+                  ? 'Product is selected from the central antiseptic Library.'
+                  : 'Το προϊόν επιλέγεται από την κεντρική Βιβλιοθήκη αντισηπτικών.'}
+              </small>
+            </div>
+            <div className="entry-grid antiseptic-consumption-grid">
+              <ChoiceField
+                label={en ? 'Reporting period' : 'Περίοδος αναφοράς'}
+                value={draft.periodKind}
+                onChange={changePeriodKind}
+                options={[
+                  { value: 'month', label: en ? 'One month' : 'Ένας μήνας' },
+                  { value: 'year', label: en ? 'Whole year' : 'Ολόκληρο έτος' },
+                  ...(draft.periodKind === 'range'
+                    ? [{ value: 'range', label: antisepticPeriodLabel(draft.period) }]
+                    : []),
+                ]}
+              />
+              {draft.periodKind === 'year' ? (
+                <ChoiceField
+                  label={en ? 'Year *' : 'Έτος *'}
+                  value={yearOf(draft.period)}
+                  onChange={value => set('period', yearPeriod(value))}
+                  options={yearOptions.map(year => ({ value: year, label: year }))}
+                />
+              ) : draft.periodKind === 'month' ? (
+                <MonthField
+                  label={en ? 'Reporting month' : 'Μήνας αναφοράς'}
+                  required
+                  value={draft.period}
+                  onChange={value => set('period', value)}
+                />
+              ) : null}
+              <PreventionDepartmentField
+                label={en ? 'Scope / department *' : 'Εύρος / Τμήμα *'}
+                placeholder={en ? 'Select scope' : 'Επιλέξτε εύρος'}
+                extraOptions={[{ value: HOSPITAL_SCOPE, label: en ? 'Whole hospital' : 'Όλο το νοσοκομείο' }]}
+                value={draft.departmentEl}
+                onChange={value =>
+                  setDraft(state => ({
+                    ...state,
+                    departmentEl: value,
+                    patientDays: '',
+                    patientDaysSource: '',
+                  }))
+                }
+                departments={departments}
+                fixed={Boolean(fixedDepartment)}
+              />
+              <SearchableSelect
+                label={en ? 'Product *' : 'Προϊόν *'}
+                value={draft.antisepticItemId || productInfo?.id || ''}
+                options={[
+                  ...products.map(item => ({ value: item.id, label: en ? item.en || item.el : item.el, description: isAbhrProduct(item) ? 'ABHR' : undefined, keywords: `${item.el} ${item.en || ''} ${item.code || ''}` })),
+                  ...(draft.product && !productInfo ? [{ value: draft.antisepticItemId || draft.product, label: en ? draft.productEn || draft.product : draft.product }] : []),
+                ]}
+                onChange={changeProduct}
+                placeholder={en ? 'Select product' : 'Επιλέξτε προϊόν'}
+                {...selectTexts(en)}
+              />
+              <Field label={en ? 'Consumption *' : 'Κατανάλωση *'}>
+                <div className="field-with-unit">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={draft.litres}
+                    onChange={event => set('litres', event.target.value)}
+                    placeholder="0,0"
+                  />
+                  <span>L</span>
+                </div>
+              </Field>
+              <SearchableSelect
+                label={en ? 'Data source / method *' : 'Πηγή / μέθοδος δεδομένων *'}
+                value={draft.method}
+                options={ANTISEPTIC_METHODS.map(item => ({ value: item.id, label: en ? item.labelEn : item.label, description: en ? undefined : item.labelEn }))}
+                onChange={value => value && set('method', value)}
+                {...selectTexts(en)}
+              />
+            </div>
+            <div className={`antiseptic-eligibility ${abhr ? 'eligible' : 'informative'}`}>
+              <strong>
+                {abhr
+                  ? en
+                    ? 'ABHR · Indicator active'
+                    : 'ABHR · Δείκτης ενεργός'
+                  : en
+                    ? 'Non-ABHR product'
+                    : 'Μη ABHR προϊόν'}
+              </strong>
+              <span>
+                {abhr
+                  ? en
+                    ? 'Consumption contributes to the L / 1,000 patient-days indicator.'
+                    : 'Η κατανάλωση προσμετράται στον δείκτη L / 1.000 νοσηλευτικές ημέρες.'
+                  : en
+                    ? 'Consumption is stored and analysed but does not contribute to the alcohol-based hand rub consumption indicator.'
+                    : 'Η κατανάλωση αποθηκεύεται και αναλύεται, αλλά δεν προσμετράται στον δείκτη κατανάλωσης αλκοολούχου αντισηπτικού.'}
+              </span>
+            </div>
+          </section>
+          <section className="antiseptic-form-section">
+            <div className="antiseptic-form-heading">
+              <strong>{en ? 'Traceability' : 'Ιχνηλασιμότητα'}</strong>
+              <small>
+                {en
+                  ? 'Link the value to its source and responsible recorder.'
+                  : 'Σύνδεση της τιμής με την πηγή και τον υπεύθυνο καταχώρησης.'}
+              </small>
+            </div>
+            <div className="entry-grid antiseptic-trace-grid">
+              <Field label={en ? 'Responsible person' : 'Υπεύθυνος'}>
+                <input
+                  value={draft.responsible || ''}
+                  onChange={event => set('responsible', event.target.value)}
+                  placeholder={actor.name}
+                />
+              </Field>
+              <Field label={en ? 'Reference / document' : 'Αναφορά / παραστατικό'}>
+                <input
+                  value={draft.referenceNumber || ''}
+                  onChange={event => set('referenceNumber', event.target.value)}
+                  placeholder={en ? 'e.g. PHARM-2026-08' : 'π.χ. ΦΑΡΜ-2026-08'}
+                />
+              </Field>
+              <label className="field entry-span-2">
+                <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
+                <textarea
+                  rows={2}
+                  value={draft.notes || ''}
+                  onChange={event => set('notes', event.target.value)}
+                  placeholder={
+                    en
+                      ? 'Optional notes or clarifications about the data source'
+                      : 'Προαιρετικές παρατηρήσεις ή διευκρινίσεις για την πηγή των δεδομένων'
+                  }
+                />
+              </label>
+            </div>
+          </section>
+        </main>
+        <aside className="antiseptic-entry-rail">
+          <section className="antiseptic-form-section antiseptic-indicator-panel">
+            <div className="antiseptic-form-heading">
+              <strong>{en ? 'Denominator & indicator' : 'Παρονομαστής & δείκτης'}</strong>
+              <small>
+                {hospitalScope
+                  ? en
+                    ? 'Hospital-wide patient-days are used for the same approved reporting period.'
+                    : 'Χρησιμοποιούνται οι συνολικές νοσηλευτικές ημέρες του νοσοκομείου για την ίδια εγκεκριμένη περίοδο.'
+                  : en
+                    ? 'Library patient-days are offered only for the exact approved reporting period.'
+                    : 'Οι νοσηλευτικές ημέρες προτείνονται μόνο για την ίδια ακριβώς εγκεκριμένη περίοδο.'}
+              </small>
+            </div>
+            <label className="field">
+              <span className="lo-field-label">
+                {en ? 'Patient-days of the period' : 'Νοσηλευτικές ημέρες περιόδου'}
+              </span>
+              <div className="antiseptic-patient-days-field">
+                <input
+                  type="number"
+                  min="0"
+                  value={draft.patientDays || ''}
+                  onChange={event =>
+                    setDraft(state => ({
+                      ...state,
+                      patientDays: event.target.value,
+                      patientDaysSource: 'manual',
+                    }))
+                  }
+                  placeholder={
+                    suggestedPatientDays
+                      ? String(suggestedPatientDays)
+                      : en
+                        ? 'No approved matching period'
+                        : 'Δεν βρέθηκε εγκεκριμένη ίδια περίοδος'
+                  }
+                />
+                {suggestedPatientDays && (
+                  <button
+                    type="button"
+                    className={usingLibraryDays ? 'applied' : ''}
+                    onClick={() =>
+                      setDraft(state => ({
+                        ...state,
+                        patientDays: suggestedPatientDays,
+                        patientDaysSource: 'library',
+                      }))
+                    }
+                  >
+                    {usingLibraryDays
+                      ? en
+                        ? '✓ From Library'
+                        : '✓ Από Βιβλιοθήκη'
+                      : (en ? 'Use ' : 'Χρήση ') + suggestedPatientDays}
+                  </button>
+                )}
+              </div>
+            </label>
+            <div className={`antiseptic-indicator-card ${abhr ? 'active' : ''}`}>
+              <span>{en ? 'ABHR indicator' : 'Δείκτης ABHR'}</span>
+              <strong>{indicator === null ? '—' : indicator.toLocaleString(locale)}</strong>
+              <small>{en ? 'L / 1,000 patient-days' : 'L / 1.000 νοσηλευτικές ημέρες'}</small>
+            </div>
+            {usingLibraryDays && (
+              <small className="antiseptic-source-note">
+                {en
+                  ? `${suggestedPatientDays} patient-days from the approved matching period are used.`
+                  : `Χρησιμοποιούνται ${suggestedPatientDays} νοσηλευτικές ημέρες από την εγκεκριμένη ίδια περίοδο.`}
+              </small>
+            )}
+          </section>
+        </aside>
+      </div>
+      <div className="prevention-editor-page-actions">
+        <ActionButton
+          label={
+            initialRecord
+              ? en
+                ? 'Save changes'
+                : 'Αποθήκευση αλλαγών'
+              : en
+                ? 'Save consumption'
+                : 'Αποθήκευση κατανάλωσης'
+          }
+          tone="primary"
+          disabled={!valid || saving}
+          onClick={submit}
+        >
+          <Save size={16} />
+          <span>
+            {saving
+              ? en
+                ? 'Saving…'
+                : 'Αποθήκευση…'
+              : initialRecord
+                ? en
+                  ? 'Save changes'
+                  : 'Αποθήκευση αλλαγών'
+                : en
+                  ? 'Save consumption'
+                  : 'Αποθήκευση κατανάλωσης'}
+          </span>
+        </ActionButton>
+      </div>
+    </div>
+  )
+}

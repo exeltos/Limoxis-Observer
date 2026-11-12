@@ -22,11 +22,11 @@ export const antibioticLibrary=[
 // Ενδεικτικές τιμές DDD (WHO ATC/DDD Index) — μόνο για επίδειξη στο demo
 // περιβάλλον. Σε πραγματικό οργανισμό οι τιμές καταχωρούνται και
 // επαληθεύονται από το φαρμακείο έναντι του τρέχοντος επίσημου δείκτη.
-export const dddReferenceLibrary={'ABX-CRO':2,'ABX-MEM':3,'ABX-VAN':2,'ABX-OXA':2,'ABX-TZP':14,'ABX-CFZ':3,'ABX-AMC':3}
+export const dddReferenceLibrary: Record<string, number>={'ABX-CRO':2,'ABX-MEM':3,'ABX-VAN':2,'ABX-OXA':2,'ABX-TZP':14,'ABX-CFZ':3,'ABX-AMC':3}
 
 interface DemoItem { id: string, el: string, en: string, code?: string }
 
-function dispensingRow({id,periodStart,periodEnd,department,product,quantityGrams,method,referenceNumber,responsible}:{id:string,periodStart:string,periodEnd:string,department:DemoItem|null,product:DemoItem,quantityGrams:number,method:string,referenceNumber:string,responsible:string}){
+function dispensingRow({id,periodStart,periodEnd,department,product,quantityGrams,method,referenceNumber,responsible}:{id:string,periodStart:string,periodEnd:string,department:DemoItem|null,product:DemoItem&{code:string},quantityGrams:number,method:string,referenceNumber:string,responsible:string}){
   return {
     id,period:periodStart.slice(0,7),periodStart,periodEnd,
     departmentScope:department?'department':'hospital',departmentEl:department?.el||'Όλο το νοσοκομείο',departmentEn:department?.en||'Whole hospital',
@@ -52,7 +52,7 @@ export const antibioticDispensingRows=[
 // Antimicrobial Stewardship Committee tightens its restriction.
 const [CRO,MEM,VAN,,TZP,CFZ,AMC]=antibioticLibrary
 const [ICU,IM,SURG,ED,CARDIO]=pharmacyDepartments
-const DISPENSING_PLAN: [DemoItem, DemoItem, number, number][]=[[ICU,MEM,900,-9],[ICU,TZP,2100,0],[IM,CRO,1000,0],[SURG,CFZ,690,0],[ED,AMC,600,0],[CARDIO,VAN,380,0]]
+const DISPENSING_PLAN: [DemoItem, DemoItem&{code:string}, number, number][]=[[ICU,MEM,900,-9],[ICU,TZP,2100,0],[IM,CRO,1000,0],[SURG,CFZ,690,0],[ED,AMC,600,0],[CARDIO,VAN,380,0]]
 let dispensingReference=300
 DEMO_HISTORY_MONTHS.forEach((month,monthIndex)=>{
   const periodStart=`${month}-01`,periodEnd=`${month}-${pad2(lastDayOfMonth(month))}`

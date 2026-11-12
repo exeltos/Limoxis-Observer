@@ -1,0 +1,475 @@
+import { useEffect, useMemo, useState } from 'react'
+import { ShieldAlert } from 'lucide-react'
+import { useAuth } from '../../core/auth/AuthContext'
+import { controlActorFromAuth } from '../controls/controlActor'
+import { ManualDateField } from '../../design-system/ManualDateField'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { SaveButton } from '../../design-system/SaveButton'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { PreventionDepartmentField, selectTexts, usePreventionDepartments } from './PreventionFields'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { loadBundleClinicalOptions } from './bundleCloudService'
+import { PrefilledList } from '../surveillance/forms/PrefilledList'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDepartment } from './preventionCloud'
+
+function scoreFor(answers: Record<string, string> = {}) {
+  const applicable = Object.values(answers).filter(x => x === 'yes' || x === 'no')
+  if (!applicable.length) return null
+  return Math.round((applicable.filter(x => x === 'yes').length / applicable.length) * 100)
+}
+const SHIFTS = [
+  ['Πρωινή', 'Morning'],
+  ['Απογευματινή', 'Afternoon'],
+  ['Νυχτερινή', 'Night'],
+  ['Άλλο', 'Other'],
+]
+function allOrNoneFor(answers: Record<string, string> = {}) {
+  const applicable = Object.values(answers).filter(x => x === 'yes' || x === 'no')
+  return applicable.length > 0 && applicable.every(x => x === 'yes')
+}
+
+export function BundleExecutionEditor({
+  onSave,
+  fixedDepartment = '',
+  initialRecord = null,
+  departments = [],
+  templates = [],
+  prefill = null,
+}: { onSave?: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[]; templates?: AnyRecord[]; prefill?: AnyRecord | null }) {
+  const { profile, user } = useAuth()
+  const { tenant } = useTenant()
+  const { language } = useLanguage()
+  const en = language === 'en'
+  const actor = useMemo(() => controlActorFromAuth({ profile, user }), [profile, user])
+  const [saving, setSaving] = useState(false)
+  const [clinicalLoading, setClinicalLoading] = useState(false)
+  const [clinicalOptions, setClinicalOptions] = useState<{ patients: AnyRecord[]; devices: AnyRecord[] }>({ patients: [], devices: [] })
+  // Opened from a device of an episode: the patient, episode, device, department and day
+  // come from there (locked); the user chooses only date, shift and the bundle elements.
+  const locked = Boolean(prefill?.surveillanceDeviceId) && !initialRecord
+  const [draft, setDraft] = useState<AnyRecord>(() =>
+    initialRecord
+      ? JSON.parse(JSON.stringify(initialRecord))
+      : {
+          ...(locked
+            ? {
+                surveillanceCaseId: prefill!.surveillanceCaseId,
+                surveillanceDeviceId: prefill!.surveillanceDeviceId,
+                patientRecordId: prefill!.patientRecordId || '',
+                deviceDay: prefill!.deviceDay || null,
+              }
+            : {}),
+          templateId: '',
+          departmentEl: (locked && prefill!.departmentName) || fixedDepartment || '',
+          date: (locked && prefill!.date) || '',
+          shift: (locked && prefill!.shift) || '',
+          context: '',
+          patientId: (locked && prefill!.patientRecordId) || '',
+          patientRef: (locked && prefill!.patientLabel) || '',
+          deviceId: (locked && prefill!.surveillanceDeviceId) || '',
+          deviceRef: (locked && prefill!.deviceLabel) || '',
+          answers: {},
+          answerNotes: {},
+          generalNotes: '',
+          status: 'draft',
+        },
+  )
+
+  useEffect(() => {
+    if (!initialRecord && fixedDepartment && draft.departmentEl !== fixedDepartment)
+      setDraft(current => ({ ...current, departmentEl: fixedDepartment }))
+  }, [fixedDepartment, initialRecord, draft.departmentEl])
+  // The episode's department, matched to the organization's list (by id, else by name).
+  useEffect(() => {
+    if (!locked || !departments.length) return
+    const match =
+      departments.find(item => prefill!.departmentId && String(item.id) === String(prefill!.departmentId)) ||
+      departments.find(item => [item.el, item.en].includes(prefill!.departmentName))
+    if (match && match.el !== draft.departmentEl) setDraft(current => ({ ...current, departmentEl: match.el }))
+  }, [locked, prefill, departments, draft.departmentEl])
+  // The bundle of the device type, chosen as soon as the library is read.
+  useEffect(() => {
+    if (!locked || draft.templateId || !templates.length) return
+    const match = (prefill!.bundleKeys || [])
+      .map((key: string) => templates.find(item => item.bundleKey === key || item.id === key))
+      .find(Boolean)
+    if (match) setDraft(current => (current.templateId ? current : { ...current, templateId: match.id }))
+  }, [locked, prefill, templates, draft.templateId])
+  useEffect(() => {
+    if (!tenant?.id || locked) return
+    let active = true
+    setClinicalLoading(true)
+    loadBundleClinicalOptions(tenant.id)
+      .then(data => {
+        if (active) setClinicalOptions(data)
+      })
+      .catch(() => {
+        if (active) setClinicalOptions({ patients: [], devices: [] })
+      })
+      .finally(() => {
+        if (active) setClinicalLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [tenant?.id, locked])
+
+  const template =
+    templates.find(x => x.id === draft.templateId || x.bundleKey === draft.templateId) || null
+  const elements: [string, string][] = template?.elements || []
+  const score = scoreFor(draft.answers)
+  const allOrNone = allOrNoneFor(draft.answers)
+  const answered = elements.filter(([id]) => ['yes', 'no', 'na'].includes(draft.answers[id])).length
+  const applicable = elements.filter(([id]) => ['yes', 'no'].includes(draft.answers[id])).length
+  const failures = elements.filter(([id]) => draft.answers[id] === 'no')
+  const complete = elements.length > 0 && answered === elements.length
+  const canSave = Boolean(template && draft.templateId && draft.departmentEl && draft.date)
+  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
+  const answer = (id: string, value: string) =>
+    setDraft(current => ({ ...current, answers: { ...current.answers, [id]: value } }))
+  const note = (id: string, value: string) =>
+    setDraft(current => ({ ...current, answerNotes: { ...current.answerNotes, [id]: value } }))
+  const elementLabel = (id: string, fallback: string) => {
+    const raw = (template?.rawElements || []).find((item: AnyRecord) => item.id === id)
+    if (!raw) return fallback
+    return en
+      ? raw.labelEn || raw.label_en || raw.labelEl || raw.label_el || fallback
+      : raw.labelEl || raw.label_el || raw.label || fallback
+  }
+  const patients = clinicalOptions.patients || []
+  const departmentById = useMemo(
+    () => new Map(departments.map(item => [item.id, item])),
+    [departments],
+  )
+  const departmentRows = usePreventionDepartments(departments)
+  const selectedDepartment =
+    departments.find(item => item.el === draft.departmentEl) ||
+    departmentRows.find(item => item.el === draft.departmentEl) ||
+    null
+  const visiblePatients = patients.filter(
+    item => !selectedDepartment?.id || item.departmentId === selectedDepartment.id,
+  )
+  const selectedPatient = patients.find(item => item.id === draft.patientId) || null
+  const devices = (clinicalOptions.devices || []).filter(
+    item => !draft.patientId || item.patientId === draft.patientId,
+  )
+  const selectedDevice = devices.find(item => item.id === draft.deviceId) || null
+  const chooseDepartment = (value: string) => {
+    const department =
+      departments.find(item => item.el === value) ||
+      departmentRows.find(item => item.el === value) ||
+      null
+    setDraft(current => {
+      const currentPatient = patients.find(item => item.id === current.patientId) || null
+      const patientMatches =
+        !currentPatient || !department?.id || currentPatient.departmentId === department.id
+      return {
+        ...current,
+        departmentEl: value,
+        ...(!patientMatches ? { patientId: '', patientRef: '', deviceId: '', deviceRef: '' } : {}),
+      }
+    })
+  }
+  const choosePatient = (value: string) => {
+    const patient = patients.find(item => item.id === value) || null
+    const patientDepartment = patient?.departmentId
+      ? departmentById.get(patient.departmentId)
+      : null
+    setDraft(current => ({
+      ...current,
+      patientId: value,
+      patientRef: patient?.label || '',
+      departmentEl: patientDepartment?.el || current.departmentEl,
+      deviceId: '',
+      deviceRef: '',
+    }))
+  }
+  const chooseDevice = (value: string) => {
+    const device = devices.find(item => item.id === value)
+    setDraft(current => ({ ...current, deviceId: value, deviceRef: device?.label || '' }))
+  }
+  async function submit() {
+    if (!canSave || saving) return
+    const now = new Date().toISOString()
+    const dep = departments.find(x => x.el === draft.departmentEl)
+    const payload = {
+      ...draft,
+      bundle: template!.id,
+      templateName: template!.name,
+      templateTitle: en ? template!.titleEn || template!.title : template!.title,
+      templateVersion: template!.version,
+      templateSource: template!.source,
+      templateSnapshot: JSON.parse(JSON.stringify(template)),
+      departmentEn: dep?.en || draft.departmentEl,
+      score,
+      allOrNone,
+      patientRef: selectedPatient?.label || draft.patientRef || '',
+      deviceRef: selectedDevice?.label || draft.deviceRef || '',
+      applicableCount: applicable,
+      failedCount: failures.length,
+      findings: failures.map(([id, label]) => ({
+        id,
+        label: elementLabel(id, label),
+        note: draft.answerNotes[id] || '',
+      })),
+      owner: actor.name,
+      createdAt: initialRecord?.createdAt || now,
+      createdBy: initialRecord?.createdBy || actor.name,
+      createdById: initialRecord?.createdById || actor.id,
+      updatedAt: initialRecord ? now : null,
+      updatedBy: initialRecord ? actor.name : null,
+      updatedById: initialRecord ? actor.id : null,
+      status: complete ? 'completed' : 'draft',
+      lifecycleStatus: complete ? 'finalized' : 'draft',
+    }
+    setSaving(true)
+    try {
+      await onSave?.(payload)
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <div className="bundle-page-editor">
+      <section className="bundle-page-context">
+        {locked && (
+          <PrefilledList
+            items={[
+              { label: en ? 'Patient' : 'Ασθενής', value: prefill!.patientLabel },
+              { label: en ? 'Admission' : 'Νοσηλεία', value: prefill!.admissionLabel },
+              { label: en ? 'Surveillance episode' : 'Επεισόδιο επιτήρησης', value: prefill!.episodeLabel },
+              { label: en ? 'Device' : 'Συσκευή', value: prefill!.deviceLabel },
+              { label: en ? 'Device day' : 'Ημέρα συσκευής', value: prefill!.deviceDay ? String(prefill!.deviceDay) : '' },
+              { label: en ? 'Department' : 'Τμήμα', value: prefill!.departmentName },
+              { label: en ? 'Bundle' : 'Δέσμη μέτρων', value: template ? `${template.name} — ${en ? template.titleEn || template.title : template.title}` : '' },
+              // PrefilledList (surveillance, JavaScript) types its items from the default `[]`.
+            ] as never[]}
+          />
+        )}
+        <div className="bundle-page-grid">
+          {!locked && (
+          <SearchableSelect
+            label={en ? 'Bundle *' : 'Δέσμη μέτρων *'}
+            value={draft.templateId}
+            options={templates.map(item => ({ value: item.id, label: `${item.name} — ${en ? item.titleEn || item.title : item.title}`, keywords: `${item.bundleKey || ''} ${item.titleEn || ''} ${item.source || ''}` }))}
+            onChange={value =>
+              value &&
+              setDraft(current =>
+                current.templateId === value
+                  ? current
+                  : { ...current, templateId: value, answers: {}, answerNotes: {} },
+              )
+            }
+            placeholder={en ? 'Select Bundle' : 'Επιλέξτε δέσμη μέτρων'}
+            {...selectTexts(en)}
+          />
+          )}
+          {!locked && (
+          <PreventionDepartmentField
+            value={draft.departmentEl}
+            onChange={chooseDepartment}
+            departments={departments}
+            fixed={Boolean(fixedDepartment)}
+          />
+          )}
+          <ManualDateField
+            label={en ? 'Date *' : 'Ημερομηνία *'}
+            value={draft.date}
+            onChange={value => set('date', value)}
+          />
+          <SearchableSelect
+            label={en ? 'Shift / context' : 'Βάρδια / πλαίσιο'}
+            value={draft.shift}
+            options={[
+              ...SHIFTS.map(([el, enLabel]) => ({ value: el, label: en ? enLabel : el })),
+              ...(draft.shift && !SHIFTS.some(([el]) => el === draft.shift) ? [{ value: draft.shift, label: draft.shift }] : []),
+            ]}
+            onChange={value => set('shift', value)}
+            placeholder={en ? 'Select shift / context' : 'Επιλέξτε βάρδια / πλαίσιο'}
+            {...selectTexts(en, { clear: true })}
+          />
+          {!locked && (<>
+          <SearchableSelect
+            label={en ? 'Patient' : 'Ασθενής'}
+            value={draft.patientId || ''}
+            options={visiblePatients.map(item => ({ value: item.id, label: item.label }))}
+            onChange={choosePatient}
+            disabled={clinicalLoading}
+            placeholder={
+              clinicalLoading
+                ? en
+                  ? 'Loading patients…'
+                  : 'Φόρτωση ασθενών…'
+                : en
+                  ? 'Select patient (optional)'
+                  : 'Επιλέξτε ασθενή (προαιρετικό)'
+            }
+            {...selectTexts(en, { clear: true })}
+          />
+          <SearchableSelect
+            label={en ? 'Device' : 'Συσκευή'}
+            value={draft.deviceId || ''}
+            options={devices.map(item => ({ value: item.id, label: item.label }))}
+            onChange={chooseDevice}
+            disabled={clinicalLoading || !draft.patientId}
+            placeholder={
+              !draft.patientId
+                ? en
+                  ? 'Select patient first'
+                  : 'Επιλέξτε πρώτα ασθενή'
+                : clinicalLoading
+                  ? en
+                    ? 'Loading devices…'
+                    : 'Φόρτωση συσκευών…'
+                  : en
+                    ? 'Select device (optional)'
+                    : 'Επιλέξτε συσκευή (προαιρετικό)'
+            }
+            {...selectTexts(en, { clear: true })}
+          />
+          </>)}
+        </div>
+        {template && (
+          <div className="bundle-page-template-meta">
+            <span>
+              <b>{template.name}</b> · v{template.version}
+            </span>
+            <span>{template.source}</span>
+          </div>
+        )}
+      </section>
+      {template ? (
+        <section className="bundle-page-checklist">
+          <div className="bundle-page-checklist-head">
+            <div>
+              <strong>{en ? 'Bundle elements' : 'Στοιχεία δέσμης μέτρων'}</strong>
+              <small>
+                {en
+                  ? 'You can save at any time. A complete checklist is finalized automatically.'
+                  : 'Μπορείτε να αποθηκεύσετε οποιαδήποτε στιγμή. Όταν απαντηθούν όλα τα στοιχεία, η αξιολόγηση ολοκληρώνεται αυτόματα.'}
+              </small>
+            </div>
+            <div className="bundle-page-progress">
+              <span>
+                {en ? 'Answered' : 'Απαντημένα'} {answered}/{elements.length}
+              </span>
+              <strong>{score === null ? '—' : `${score}%`}</strong>
+              <small>
+                {en
+                  ? allOrNone
+                    ? 'All-or-none ✓'
+                    : 'All-or-none —'
+                  : allOrNone
+                    ? 'Πλήρης συμμόρφωση ✓'
+                    : 'Πλήρης συμμόρφωση —'}
+              </small>
+            </div>
+          </div>
+          <div className="bundle-page-rows">
+            {elements.map(([id, label], index) => {
+              const value = draft.answers[id]
+              return (
+                <div className={`bundle-page-row ${value || 'unanswered'}`} key={id}>
+                  <div className="bundle-page-row-main">
+                    <span className="bundle-page-index">{index + 1}</span>
+                    <strong>{elementLabel(id, label)}</strong>
+                    <div className="bundle-page-answers">
+                      {[
+                        ['yes', en ? 'Yes' : 'Ναι'],
+                        ['no', en ? 'No' : 'Όχι'],
+                        ['na', en ? 'N/A' : 'Μ/Ε'],
+                      ].map(([answerValue, text]) => (
+                        <button
+                          type="button"
+                          key={answerValue}
+                          className={value === answerValue ? 'active' : ''}
+                          onClick={() => answer(id, answerValue)}
+                        >
+                          {text}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {value === 'no' && (
+                    <div className="bundle-page-deviation">
+                      <ShieldAlert size={15} />
+                      <input
+                        value={draft.answerNotes[id] || ''}
+                        onChange={e => note(id, e.target.value)}
+                        placeholder={
+                          en ? 'Deviation / action required' : 'Απόκλιση / ενέργεια που απαιτείται'
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      ) : (
+        <div className="inline-empty">
+          {en
+            ? 'Select a Bundle to begin the assessment.'
+            : 'Επιλέξτε δέσμη μέτρων για να ξεκινήσει η αξιολόγηση.'}
+        </div>
+      )}
+      <div className="bundle-page-summary">
+        <span>
+          <b>{en ? 'Answered' : 'Απαντημένα'}</b>
+          {answered}/{elements.length}
+        </span>
+        <span>
+          <b>{en ? 'Applicable' : 'Εφαρμόσιμα'}</b>
+          {applicable}
+        </span>
+        <span>
+          <b>{en ? 'Deviations' : 'Αποκλίσεις'}</b>
+          {failures.length}
+        </span>
+        <span>
+          <b>{en ? 'Compliance' : 'Συμμόρφωση'}</b>
+          {score === null ? '—' : `${score}%`}
+        </span>
+        <span>
+          <b>{en ? 'All-or-none' : 'Πλήρης συμμόρφωση'}</b>
+          {applicable === 0 ? '—' : allOrNone ? (en ? 'Yes' : 'Ναι') : en ? 'No' : 'Όχι'}
+        </span>
+      </div>
+      {!complete && elements.length > 0 && (
+        <div className="bundle-page-hint">
+          {en
+            ? `${elements.length - answered} element(s) remain. Saving now will keep this assessment as a draft.`
+            : `Απομένουν ${elements.length - answered} στοιχείο/α. Η αποθήκευση τώρα θα κρατήσει την αξιολόγηση ως πρόχειρη.`}
+        </div>
+      )}
+      <label className="field bundle-page-notes">
+        <span className="lo-field-label">{en ? 'General notes' : 'Γενικές σημειώσεις'}</span>
+        <textarea
+          rows={3}
+          value={draft.generalNotes || ''}
+          onChange={e => set('generalNotes', e.target.value)}
+          placeholder={
+            en ? 'Optional execution notes' : 'Προαιρετικές παρατηρήσεις για την εκτέλεση'
+          }
+        />
+      </label>
+      <div className="bundle-page-actions">
+        <SaveButton disabled={!canSave || saving} onClick={submit}>
+          {saving
+            ? en
+              ? 'Saving…'
+              : 'Αποθήκευση…'
+            : complete
+              ? en
+                ? 'Complete assessment'
+                : 'Ολοκλήρωση αξιολόγησης'
+              : en
+                ? 'Save draft'
+                : 'Αποθήκευση προχείρου'}
+        </SaveButton>
+      </div>
+    </div>
+  )
+}

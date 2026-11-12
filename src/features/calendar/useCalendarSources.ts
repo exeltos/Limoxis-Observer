@@ -31,7 +31,7 @@ export function useCalendarSources(organizationId: string | null | undefined,all
    (allowed.has('controls')||allowed.has('cultures'))?loadControlProgramme(organizationId).catch(()=>[]):Promise.resolve([]),
    safe('capa',()=>loadQualityRecords('capas',organizationId),[]),
    safe('audits',()=>loadQualityRecords('audits',organizationId),[]),
-   safe('training',()=>loadTrainingCalendarAsync(organizationId),null),
+   safe('training',()=>loadTrainingCalendarAsync(organizationId as string),null),
    safe('documents',()=>loadDocumentsAsync(organizationId),[]),
    safe('committees',()=>loadCommitteesAsync(organizationId),[]),
    // The department meeting groups: when each department's next meeting is due.

@@ -30,9 +30,9 @@ function toRow(item: AnyRecord,organizationId: string,userId: string|null){retur
  updated_by:userId,updated_at:new Date().toISOString(),
 }}
 
-export async function createAnnouncement(organizationId: string,item: AnyRecord){
+export async function createAnnouncement(organizationId: string|null|undefined,item: AnyRecord){
  const supabase=requireCloud();requireOrganization(organizationId);const userId=await currentUserId()
- const {data,error}=await supabase.from('management_announcements').insert({...toRow(item,organizationId,userId),created_by:userId}).select('*').single()
+ const {data,error}=await supabase.from('management_announcements').insert({...toRow(item,organizationId as string,userId),created_by:userId}).select('*').single()
  if(error)throw error;return mapAnnouncement(data)
 }
 export async function updateAnnouncement(organizationId: string,item: AnyRecord){
