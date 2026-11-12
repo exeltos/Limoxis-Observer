@@ -3,8 +3,12 @@
 // and year, exported as one row per antimicrobial test in the EARS-Net
 // (TESSy) variable layout.
 import { currentResults, isValidatedPositive, organismsOf, specimenOf, testsForOrganism } from './labResults'
+import type { AnyRecord } from '../../types/featureTypes'
 
-export const EARS_NET_PATHOGENS = [
+// An invasive isolate of an EARS-Net pathogen (one organism of a validated positive result).
+export interface EarsNetIsolate { sample: AnyRecord, result: AnyRecord, organism: string, tests: AnyRecord[], specimen: string, pathogen: string, patient: string, date: string, year: string }
+
+export const EARS_NET_PATHOGENS: Array<[string, RegExp, string]> = [
   ['ESCCOL', /escherichia\s+coli|^e\.\s*coli/i, 'Escherichia coli'],
   ['KLEPNE', /klebsiella\s+pneumoniae/i, 'Klebsiella pneumoniae'],
   ['PSEAER', /pseudomonas\s+aeruginosa/i, 'Pseudomonas aeruginosa'],
@@ -17,7 +21,7 @@ export const EARS_NET_PATHOGENS = [
 
 // WHONET/EARS-Net antimicrobial codes, matched on English and Greek names.
 // Order matters: combinations first.
-const ANTIBIOTICS = [
+const ANTIBIOTICS: Array<[string, RegExp]> = [
   ['CZA', /ceftazidime.{0,3}avibactam|κεφταζιδίμη.{0,3}αβιβακτάμη/i], ['TZP', /piperacillin.{0,3}tazobactam|πιπερακιλλίνη.{0,3}ταζομπακτάμη/i], ['AMC', /amoxicillin.{0,3}clavulan|αμοξικιλλίνη.{0,3}κλαβουλαν/i], ['SXT', /trimethoprim.{0,3}sulfamethoxazole|co-?trimoxazole|τριμεθοπρίμη/i], ['MEV', /meropenem.{0,3}vaborbactam|μεροπενέμη.{0,3}βαμπορμπακτάμη/i], ['C_T', /ceftolozane|κεφτολοζάνη/i],
   ['AMK', /amikacin|αμικασίνη/i], ['GEN', /gentamicin|γενταμικίνη/i], ['TOB', /tobramycin|τομπραμυκίνη/i],
   ['AMP', /ampicillin|αμπικιλλίνη/i], ['AMX', /amoxicillin|αμοξικιλλίνη/i], ['PEN', /penicillin|πενικιλλίνη/i], ['OXA', /oxacillin|οξακιλλίνη/i], ['FOX', /cefoxitin|κεφοξιτίνη/i],
@@ -29,14 +33,14 @@ const ANTIBIOTICS = [
   ['RIF', /rifampi|ριφαμπικίνη/i], ['ERY', /erythromycin|ερυθρομυκίνη/i], ['CLI', /clindamycin|κλινδαμυκίνη/i],
 ]
 // Library codes that differ from the EARS-Net code.
-const CODE_ALIASES = { PTZ: 'TZP', IMP: 'IPM', ERT: 'ETP', LEV: 'LVX', MOX: 'MFX', TEI: 'TEC', LZD: 'LNZ', CST: 'COL', TIG: 'TGC' }
+const CODE_ALIASES: Record<string, string> = { PTZ: 'TZP', IMP: 'IPM', ERT: 'ETP', LEV: 'LVX', MOX: 'MFX', TEI: 'TEC', LZD: 'LNZ', CST: 'COL', TIG: 'TGC' }
 
-export function earsNetPathogen(organism) {
+export function earsNetPathogen(organism: unknown) {
   const text = String(organism || '')
   return EARS_NET_PATHOGENS.find(([, pattern]) => pattern.test(text))?.[0] || null
 }
 
-export function earsNetAntibiotic(test = {}) {
+export function earsNetAntibiotic(test: AnyRecord = {}) {
   const raw = String(test.code || '').toUpperCase().replace(/^ABX-/, '')
   const code = CODE_ALIASES[raw] || raw
   if (ANTIBIOTICS.some(([known]) => known === code)) return code
@@ -45,14 +49,14 @@ export function earsNetAntibiotic(test = {}) {
 }
 
 // Blood cultures, and any sample whose type or source names CSF.
-export const earsNetSpecimen = sample => specimenOf(sample) || null
+export const earsNetSpecimen = (sample: AnyRecord) => specimenOf(sample) || null
 
-const dateOf = value => String(value || '').slice(0, 10)
-const patientKey = sample => String(sample.subjectCode || sample.patientId || sample.subjectId || '').trim()
+const dateOf = (value: unknown) => String(value || '').slice(0, 10)
+const patientKey = (sample: AnyRecord) => String(sample.subjectCode || sample.patientId || sample.subjectId || '').trim()
 
 // Every validated positive result of an invasive sample of an EARS-Net pathogen.
-export function earsNetIsolates(samples = []) {
-  const isolates = []
+export function earsNetIsolates(samples: AnyRecord[] = []): EarsNetIsolate[] {
+  const isolates: EarsNetIsolate[] = []
   for (const sample of samples) {
     if ((sample.subjectType || 'patient') !== 'patient') continue
     const specimen = earsNetSpecimen(sample)
@@ -74,7 +78,7 @@ export function earsNetIsolates(samples = []) {
 
 // ECDC/EARS-Net rule: only the first isolate per patient, pathogen and year.
 // Isolates without a patient identifier cannot be de-duplicated and are kept.
-export function firstIsolates(isolates = []) {
+export function firstIsolates(isolates: EarsNetIsolate[] = []) {
   const sorted = [...isolates].sort((a, b) => a.date.localeCompare(b.date) || String(a.sample.id).localeCompare(String(b.sample.id)))
   const seen = new Set()
   return sorted.filter(isolate => {
@@ -88,13 +92,13 @@ export function firstIsolates(isolates = []) {
 
 // Stable, non-reversible patient counter (FNV-1a), so the export carries no
 // patient code or name.
-export function pseudonym(value, salt = '') {
+export function pseudonym(value: unknown, salt = '') {
   let hash = 0x811c9dc5
-  for (const ch of `${salt}|${value}`) { hash ^= ch.codePointAt(0); hash = Math.imul(hash, 0x01000193) >>> 0 }
+  for (const ch of `${salt}|${value}`) { hash ^= ch.codePointAt(0) as number; hash = Math.imul(hash, 0x01000193) >>> 0 }
   return hash.toString(36).toUpperCase().padStart(7, '0')
 }
 
-export function ageInYears(dateOfBirth, onDate) {
+export function ageInYears(dateOfBirth: string | null | undefined, onDate: string | null | undefined) {
   if (!dateOfBirth || !onDate) return ''
   const birth = new Date(dateOfBirth), at = new Date(onDate)
   if (Number.isNaN(birth.getTime()) || Number.isNaN(at.getTime())) return ''
@@ -103,10 +107,10 @@ export function ageInYears(dateOfBirth, onDate) {
   return age >= 0 ? String(age) : ''
 }
 
-const GENDER = { male: 'M', m: 'M', female: 'F', f: 'F', other: 'O' }
-const UNIT_TYPE = { icu: 'ICU', nicu: 'ICU', picu: 'ICU' }
+const GENDER: Record<string, string> = { male: 'M', m: 'M', female: 'F', f: 'F', other: 'O' }
+const UNIT_TYPE: Record<string, string> = { icu: 'ICU', nicu: 'ICU', picu: 'ICU' }
 
-function hospitalUnitType(patient, sample) {
+function hospitalUnitType(patient: AnyRecord | undefined, sample: AnyRecord) {
   const type = String(patient?.departmentType || '').toLowerCase()
   if (UNIT_TYPE[type]) return UNIT_TYPE[type]
   const name = `${sample.department || ''} ${sample.departmentEn || ''}`
@@ -120,10 +124,10 @@ function hospitalUnitType(patient, sample) {
 }
 
 const MIC = /^\s*(<=|>=|≤|≥|<|>|=)?\s*([0-9]+(?:[.,][0-9]+)?)\s*$/
-const SIGNS = { '≤': '<=', '≥': '>=', '<=': '<=', '>=': '>=', '<': '<', '>': '>', '=': '=' }
+const SIGNS: Record<string, string> = { '≤': '<=', '≥': '>=', '<=': '<=', '>=': '>=', '<': '<', '>': '>', '=': '=' }
 
 // MIC sign and value: the stored operator wins; otherwise it is read from the value ("≥16").
-export function micOf(test = {}) {
+export function micOf(test: AnyRecord = {}) {
   const match = MIC.exec(String(test.mic ?? '').replace(',', '.'))
   if (!match) return { sign: '', value: '' }
   return { sign: SIGNS[String(test.operator || '').trim()] || SIGNS[match[1]] || '=', value: match[2] }
@@ -131,7 +135,7 @@ export function micOf(test = {}) {
 
 // Inpatient when the isolate falls within the patient's recorded admission;
 // unknown otherwise (admission is optional, so its absence proves nothing).
-export function patientTypeOf(patient, date) {
+export function patientTypeOf(patient: AnyRecord | null | undefined, date: string) {
   const from = String(patient?.admissionDate || '').slice(0, 10), to = String(patient?.dischargeDate || '').slice(0, 10)
   return from && date >= from && (!to || date <= to) ? 'INPAT' : 'UNK'
 }
@@ -140,10 +144,10 @@ const EARS_NET_COLUMNS = ['RecordId', 'ReportingCountry', 'DataSource', 'DateUse
 
 // One row per (first isolate × tested antimicrobial). Tests without a known
 // EARS-Net antimicrobial code are reported separately so they can be mapped.
-export function buildEarsNetRows(samples, { patients = [], year, hospitalId = '', laboratoryCode = '', dataSource = '', salt = '' } = {}) {
+export function buildEarsNetRows(samples: AnyRecord[], { patients = [], year, hospitalId = '', laboratoryCode = '', dataSource = '', salt = '' }: { patients?: AnyRecord[], year?: string | number | null, hospitalId?: string, laboratoryCode?: string, dataSource?: string, salt?: string } = {}) {
   const byPatient = new Map(patients.map(patient => [String(patient.id || patient.patientCode || ''), patient]))
   const isolates = firstIsolates(earsNetIsolates(samples)).filter(isolate => !year || isolate.year === String(year))
-  const rows = []; const unmapped = new Map(); let withoutAst = 0
+  const rows: Array<Record<string, unknown>> = []; const unmapped = new Map<string, number>(); let withoutAst = 0
   for (const isolate of isolates) {
     const { sample, result, tests } = isolate
     if (!tests.length) { withoutAst++; continue }
@@ -180,7 +184,7 @@ export function buildEarsNetRows(samples, { patients = [], year, hospitalId = ''
   return { rows, isolates: isolates.length, withoutAst, unmapped: [...unmapped.entries()] }
 }
 
-export function toCsv(rows, columns = EARS_NET_COLUMNS) {
-  const cell = value => { const text = String(value ?? ''); return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text }
+export function toCsv(rows: Array<Record<string, unknown>>, columns = EARS_NET_COLUMNS) {
+  const cell = (value: unknown) => { const text = String(value ?? ''); return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text }
   return [columns.join(','), ...rows.map(row => columns.map(column => cell(row[column])).join(','))].join('\r\n') + '\r\n'
 }

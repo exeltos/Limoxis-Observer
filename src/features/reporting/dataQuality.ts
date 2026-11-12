@@ -2,22 +2,27 @@
 // surveillance indicators or EARS-Net/ΕΟΔΥ reporting incomplete or wrong.
 import { earsNetIsolates, firstIsolates } from './earsNet'
 import { currentResults } from './labResults'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// One item of a check: the sample or patient to open.
+export interface DataQualityItem { id: string, to: string, label: string, detail: string, detailEn: string }
+export interface DataQualityCheck { id: string, severity: 'high' | 'medium' | 'low', el: string, en: string, hintEl?: string, hintEn?: string, items: DataQualityItem[] }
 
 const VALIDATED = new Set(['validated', 'amended'])
 const DAY = 86400000
-const time = value => { const t = Date.parse(value || ''); return Number.isNaN(t) ? null : t }
+const time = (value: string | null | undefined) => { const t = Date.parse(value || ''); return Number.isNaN(t) ? null : t }
 const resultsOf = currentResults
-const sampleItem = (sample, note = '') => ({ id: sample.id, to: `/laboratory/${encodeURIComponent(sample.id)}`, label: sample.id, detail: [sample.patient || sample.subjectName, sample.department, note].filter(Boolean).join(' · '), detailEn: [sample.patientEn || sample.patient || sample.subjectName, sample.departmentEn || sample.department, note].filter(Boolean).join(' · ') })
-const patientItem = (patient, note = '') => ({ id: patient.id, to: `/patients/${encodeURIComponent(patient.id)}`, label: patient.id, detail: [patient.name, patient.department, note].filter(Boolean).join(' · '), detailEn: [patient.nameEn || patient.name, patient.departmentEn || patient.department, note].filter(Boolean).join(' · ') })
+const sampleItem = (sample: AnyRecord, note = ''): DataQualityItem => ({ id: sample.id, to: `/laboratory/${encodeURIComponent(sample.id)}`, label: sample.id, detail: [sample.patient || sample.subjectName, sample.department, note].filter(Boolean).join(' · '), detailEn: [sample.patientEn || sample.patient || sample.subjectName, sample.departmentEn || sample.department, note].filter(Boolean).join(' · ') })
+const patientItem = (patient: AnyRecord, note = ''): DataQualityItem => ({ id: patient.id, to: `/patients/${encodeURIComponent(patient.id)}`, label: patient.id, detail: [patient.name, patient.department, note].filter(Boolean).join(' · '), detailEn: [patient.nameEn || patient.name, patient.departmentEn || patient.department, note].filter(Boolean).join(' · ') })
 
-export function runDataQualityChecks({ samples = [], patients = [], now = new Date() } = {}) {
+export function runDataQualityChecks({ samples = [], patients = [], now = new Date() }: { samples?: AnyRecord[], patients?: AnyRecord[], now?: Date } = {}): DataQualityCheck[] {
   const patientSamples = samples.filter(sample => (sample.subjectType || 'patient') === 'patient')
   const nowTime = now.getTime()
-  const checks = []
-  const add = (id, severity, el, en, items, hintEl, hintEn) => checks.push({ id, severity, el, en, hintEl, hintEn, items })
+  const checks: DataQualityCheck[] = []
+  const add = (id: string, severity: DataQualityCheck['severity'], el: string, en: string, items: DataQualityItem[], hintEl?: string, hintEn?: string) => checks.push({ id, severity, el, en, hintEl, hintEn, items })
 
   add('positive_without_organism', 'high', 'Θετικό αποτέλεσμα χωρίς μικροοργανισμό', 'Positive result without an organism',
-    patientSamples.filter(sample => resultsOf(sample).some(result => result.result === 'positive' && !String(result.organism || '').trim())).map(sample => sampleItem(sample)),
+    patientSamples.filter(sample => resultsOf(sample).some((result: AnyRecord) => result.result === 'positive' && !String(result.organism || '').trim())).map(sample => sampleItem(sample)),
     'Χωρίς μικροοργανισμό το εύρημα δεν μετράει σε δείκτες, AMR και EARS-Net.', 'Without an organism the finding is missing from indicators, AMR and EARS-Net.')
 
   add('invasive_without_ast', 'high', 'Διεισδυτικό στέλεχος EARS-Net χωρίς αντιβιόγραμμα', 'Invasive EARS-Net isolate without susceptibility tests',
@@ -25,7 +30,7 @@ export function runDataQualityChecks({ samples = [], patients = [], now = new Da
     'Το πρώτο στέλεχος ανά ασθενή χρειάζεται αντιβιόγραμμα για την αναφορά EARS-Net.', 'The first isolate per patient needs susceptibility results for EARS-Net.')
 
   add('ast_without_standard', 'medium', 'Αντιβιόγραμμα χωρίς πρότυπο ερμηνείας (EUCAST/CLSI)', 'Susceptibility test without an interpretation standard',
-    patientSamples.filter(sample => resultsOf(sample).some(result => (result.ast || []).some(test => !test.standard))).map(sample => sampleItem(sample)),
+    patientSamples.filter(sample => resultsOf(sample).some((result: AnyRecord) => (result.ast || []).some((test: AnyRecord) => !test.standard))).map(sample => sampleItem(sample)),
     'Το EARS-Net ζητά το πρότυπο και την έκδοση των ορίων ευαισθησίας.', 'EARS-Net asks for the breakpoint standard and version.')
 
   add('missing_collection_date', 'high', 'Δείγμα χωρίς ημερομηνία λήψης', 'Sample without a collection date',
@@ -36,7 +41,7 @@ export function runDataQualityChecks({ samples = [], patients = [], now = new Da
     patientSamples.filter(sample => {
       const collected = time(sample.collectedAt); if (collected == null) return false
       const received = time(sample.receivedAt)
-      return (received != null && received < collected) || resultsOf(sample).some(result => { const at = time(result.resultedAt); return at != null && at < collected })
+      return (received != null && received < collected) || resultsOf(sample).some((result: AnyRecord) => { const at = time(result.resultedAt); return at != null && at < collected })
     }).map(sample => sampleItem(sample)))
 
   add('missing_department', 'medium', 'Δείγμα ασθενή χωρίς τμήμα', 'Patient sample without a department',
@@ -48,10 +53,10 @@ export function runDataQualityChecks({ samples = [], patients = [], now = new Da
     'Χωρίς ασθενή δεν γίνεται αφαίρεση διπλοεγγραφών (πρώτο στέλεχος ανά ασθενή).', 'Without a patient, duplicate isolates cannot be removed (first isolate per patient).')
 
   add('stale_unvalidated', 'medium', 'Αποτέλεσμα χωρίς επικύρωση για πάνω από 7 ημέρες', 'Result not validated for more than 7 days',
-    patientSamples.filter(sample => resultsOf(sample).some(result => result.result && !VALIDATED.has(result.resultStatus) && time(result.resultedAt) != null && nowTime - time(result.resultedAt) > 7 * DAY)).map(sample => sampleItem(sample)),
+    patientSamples.filter(sample => resultsOf(sample).some((result: AnyRecord) => result.result && !VALIDATED.has(result.resultStatus) && time(result.resultedAt) != null && nowTime - (time(result.resultedAt) as number) > 7 * DAY)).map(sample => sampleItem(sample)),
     'Μη επικυρωμένα αποτελέσματα δεν μετρούν στην Ανάλυση και στις δηλώσεις.', 'Unvalidated results are left out of Analytics and notifications.')
 
-  const seen = new Map()
+  const seen = new Map<string, AnyRecord[]>()
   for (const sample of patientSamples) {
     const patient = String(sample.subjectCode || sample.patientId || '').trim(); const day = String(sample.collectedAt || '').slice(0, 10)
     if (!patient || !day) continue
@@ -73,4 +78,4 @@ export function runDataQualityChecks({ samples = [], patients = [], now = new Da
   return checks
 }
 
-export const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 }
+export const SEVERITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }

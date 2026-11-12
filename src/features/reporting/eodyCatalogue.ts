@@ -5,7 +5,7 @@
 export const EODY_SOURCE = 'ΕΟΔΥ · Υ.Α. Δ1α/Γ.Π.οικ. 16711/2022 (ΦΕΚ 1665/Β/2022)'
 export const EODY_SOURCE_VERSION = '2022'
 
-export const EODY_FOOTNOTES = Object.freeze({
+export const EODY_FOOTNOTES: Readonly<Record<string, { el: string, en: string }>> = Object.freeze({
   biothreat: { el: 'Εάν υπάρχει υποψία σκόπιμης απελευθέρωσης μικροοργανισμών (βιοτρομοκρατική ενέργεια), η δήλωση πρέπει να γίνεται αμέσως.', en: 'If deliberate release of microorganisms (bioterrorism) is suspected, the notification must be made immediately.' },
   covid: { el: 'Η λοίμωξη COVID-19 δηλώνεται αποκλειστικά μέσω του ψηφιοποιημένου δελτίου δήλωσης που υπάρχει στο μητρώο COVID-19.', en: 'COVID-19 is notified exclusively through the digital notification form of the COVID-19 registry.' },
   haemorrhagic: { el: 'Περιλαμβάνει τους αιμορραγικούς πυρετούς πλην του Δάγκειου Πυρετού, που αποτελεί ξεχωριστά δηλούμενο νόσημα, με δικό του δελτίο δήλωσης και ορισμό κρούσματος. Περιλαμβάνει τον Κίτρινο Πυρετό (για τον οποίο σημειώνεται ότι υπάρχει ξεχωριστός ορισμός κρούσματος).', en: 'Includes haemorrhagic fevers except Dengue fever, which is a separately notifiable disease with its own notification form and case definition. Includes Yellow fever (which has a separate case definition).' },
@@ -14,7 +14,9 @@ export const EODY_FOOTNOTES = Object.freeze({
 
 export const EODY_DEADLINES = Object.freeze(['immediate', '24h', 'weekly'])
 
-const row = (n, id, el, en, deadline, ...notes) => Object.freeze({ n, id, el, en, deadline, notes: Object.freeze(notes) })
+// One disease of the catalogue.
+export interface EodyEntry { readonly n: number, readonly id: string, readonly el: string, readonly en: string, readonly deadline: string, readonly notes: readonly string[] }
+const row = (n: number, id: string, el: string, en: string, deadline: string, ...notes: string[]): EodyEntry => Object.freeze({ n, id, el, en, deadline, notes: Object.freeze(notes) })
 
 export const EODY_CATALOGUE = Object.freeze([
   row(1, 'cjd', 'Creutzfeldt-Jakob (Νόσος Creutzfeldt-Jakob - CJD)', 'Creutzfeldt-Jakob disease (CJD)', 'weekly'),
@@ -77,34 +79,34 @@ export const EODY_CATALOGUE = Object.freeze([
 ])
 
 const byId = new Map(EODY_CATALOGUE.map(entry => [entry.id, entry]))
-const norm = value => String(value || '').trim().toLowerCase()
-const byName = new Map(EODY_CATALOGUE.flatMap(entry => [[norm(entry.el), entry], [norm(entry.en), entry]]))
+const norm = (value: unknown) => String(value || '').trim().toLowerCase()
+const byName = new Map(EODY_CATALOGUE.flatMap(entry => [[norm(entry.el), entry], [norm(entry.en), entry]] as Array<[string, EodyEntry]>))
 
-export const eodyEntry = id => byId.get(id) || null
-export const eodyEntryByName = name => byName.get(norm(name)) || null
-export const eodyCode = entry => `ND-EODY-${String(entry.n).padStart(2, '0')}`
-export const eodyLabel = (entry, language = 'el') => (language === 'en' ? entry.en : entry.el)
+export const eodyEntry = (id: string | null | undefined): EodyEntry | null => byId.get(id as string) || null
+export const eodyEntryByName = (name: unknown): EodyEntry | null => byName.get(norm(name)) || null
+export const eodyCode = (entry: EodyEntry) => `ND-EODY-${String(entry.n).padStart(2, '0')}`
+export const eodyLabel = (entry: EodyEntry, language = 'el') => (language === 'en' ? entry.en : entry.el)
 // Footnotes that apply to an entry: its own, and the general biological-threat note for every disease.
-export const eodyNotes = (entry, language = 'el') => ['biothreat', ...entry.notes].map(key => EODY_FOOTNOTES[key][language === 'en' ? 'en' : 'el'])
+export const eodyNotes = (entry: EodyEntry, language = 'el') => ['biothreat', ...entry.notes].map(key => EODY_FOOTNOTES[key][language === 'en' ? 'en' : 'el'])
 
-const DEADLINE_WORDS = {
+const DEADLINE_WORDS: Record<string, { el: string, en: string }> = {
   immediate: { el: 'Δήλωση αμέσως', en: 'Notify immediately' },
   '24h': { el: 'Δήλωση εντός 24 ωρών', en: 'Notify within 24 hours' },
   weekly: { el: 'Δήλωση εντός εβδομάδας', en: 'Notify within a week' },
 }
-const GROUP_WORDS = {
+const GROUP_WORDS: Record<string, { el: string, en: string }> = {
   immediate: { el: 'Αμέσως', en: 'Immediately' },
   '24h': { el: 'Εντός 24 ωρών', en: 'Within 24 hours' },
   weekly: { el: 'Εντός εβδομάδας', en: 'Within a week' },
 }
-const lang = language => (language === 'en' ? 'en' : 'el')
-export const deadlineWords = (deadline, language = 'el') => DEADLINE_WORDS[deadline]?.[lang(language)] || ''
-export const deadlineGroupWords = (deadline, language = 'el') => GROUP_WORDS[deadline]?.[lang(language)] || ''
+const lang = (language: string) => (language === 'en' ? 'en' : 'el')
+export const deadlineWords = (deadline: string | null | undefined, language = 'el') => DEADLINE_WORDS[deadline || '']?.[lang(language)] || ''
+export const deadlineGroupWords = (deadline: string | null | undefined, language = 'el') => GROUP_WORDS[deadline || '']?.[lang(language)] || ''
 
-const LIMIT_HOURS = { '24h': 24, weekly: 168 }
-const plural = (n, el, elMany, en, enMany, language) => (language === 'en' ? (n === 1 ? en : enMany) : (n === 1 ? el : elMany))
+const LIMIT_HOURS: Record<string, number> = { '24h': 24, weekly: 168 }
+const plural = (n: number, el: string, elMany: string, en: string, enMany: string, language: string) => (language === 'en' ? (n === 1 ? en : enMany) : (n === 1 ? el : elMany))
 
-function span(hours, language) {
+function span(hours: number, language: string) {
   const abs = Math.max(0, Math.abs(hours))
   if (abs < 1) return language === 'en' ? 'less than an hour' : 'λιγότερο από μία ώρα'
   if (abs < 48) { const n = Math.floor(abs); return `${n} ${plural(n, 'ώρα', 'ώρες', 'hour', 'hours', language)}` }
@@ -115,7 +117,7 @@ function span(hours, language) {
 // How a pending notification stands against its deadline, measured from `startIso` (creation or
 // finding date): { overdue, text }. «Αμέσως» has no limit to count down, so it states how long it has waited.
 // A date without a time starts at midnight in Europe/Athens (the hospital's clock).
-function startOf(value) {
+function startOf(value: unknown) {
   const text = String(value || '')
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return Date.parse(text)
   const zone = new Intl.DateTimeFormat('en', { timeZone: 'Europe/Athens', timeZoneName: 'longOffset' }).formatToParts(new Date(`${text}T12:00:00Z`)).find(part => part.type === 'timeZoneName')?.value || 'GMT+02:00'
@@ -123,17 +125,17 @@ function startOf(value) {
 }
 
 // When a notification with a timed deadline is due (null for «immediately» or no deadline).
-export function deadlineDueAt(deadline, startIso) {
+export function deadlineDueAt(deadline: string | null | undefined, startIso: unknown) {
   const start = startOf(startIso)
-  const limit = LIMIT_HOURS[deadline]
+  const limit = LIMIT_HOURS[deadline || '']
   return limit && !Number.isNaN(start) ? new Date(start + limit * 3600000) : null
 }
 
-export function deadlineStatusText(deadline, startIso, { now = Date.now(), language = 'el' } = {}) {
+export function deadlineStatusText(deadline: string | null | undefined, startIso: unknown, { now = Date.now(), language = 'el' }: { now?: number, language?: string } = {}) {
   const start = startOf(startIso)
   if (!deadline || Number.isNaN(start)) return { overdue: false, text: '' }
   const elapsed = (now - start) / 3600000
-  const limit = LIMIT_HOURS[deadline]
+  const limit = LIMIT_HOURS[deadline || '']
   if (!limit) return { overdue: false, text: language === 'en' ? `waiting for ${span(elapsed, language)}` : `εκκρεμεί εδώ και ${span(elapsed, language)}` }
   if (elapsed > limit) return { overdue: true, text: language === 'en' ? `${span(elapsed - limit, language)} overdue` : `καθυστέρηση ${span(elapsed - limit, language)}` }
   return { overdue: false, text: language === 'en' ? `${span(limit - elapsed, language)} left` : `απομένουν ${span(limit - elapsed, language)}` }

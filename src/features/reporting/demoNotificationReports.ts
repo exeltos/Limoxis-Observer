@@ -10,9 +10,11 @@ import { historyCases } from '../surveillance/demoInfectionHistory'
 import { notifiableFindings } from './notifiableFindings'
 import { eodyEntry } from './eodyCatalogue'
 import { hospitalDate } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { NotificationReport } from './notificationReportsService'
 
 // [date, patient, disease, status]
-const CLINICAL = [
+const CLINICAL: Array<[string, string, string, string]> = [
   ['2025-10-10', 'PT-252004', 'tuberculosis', 'notified'],
   ['2025-12-27', 'PT-252008', 'hepatitis_b', 'notified'],
   ['2026-01-19', 'PT-260082', 'influenza', 'notified'],
@@ -26,16 +28,16 @@ const REPORTED_RESISTANCE = ['MDR', 'XDR', 'VRE', 'MRSA']
 
 export function demoNotificationReports(today = new Date()) {
   if (isEmptyPreview()) return []
-  const reference = (date, number) => `ΕΟΔΥ-${date.slice(0, 4)}-${String(number).padStart(4, '0')}`
-  const report = (key, date, patientRecordId, code, status, number, extra = {}) => ({
+  const reference = (date: string, number: number) => `ΕΟΔΥ-${date.slice(0, 4)}-${String(number).padStart(4, '0')}`
+  const report = (key: string, date: string, patientRecordId: string, code: string, status: string, number: number, extra: AnyRecord = {}): NotificationReport => ({
     id: key, findingKey: key, status, notifiedAt: status === 'notified' ? addDays(date, 2) : '', reference: status === 'notified' ? reference(date, number) : '',
     notes: '', updatedAt: `${status === 'notified' ? addDays(date, 2) : date}T10:00:00Z`, sampleId: '', patientRecordId,
     disease: eodyEntry(code)?.el || '', diseaseCode: code, createdAt: `${date}T09:30:00Z`, ...extra,
   })
-  const findings = notifiableFindings(laboratorySamples, [])
+  const findings = notifiableFindings(laboratorySamples as AnyRecord[], [])
   const reportedSamples = new Set(findings.map(finding => finding.sample.id))
   const authored = [
-    ...historyCases
+    ...(historyCases as AnyRecord[])
       .filter(item => item.hai?.[0] === 'confirmed' && REPORTED_RESISTANCE.includes(item.resistance) && !reportedSamples.has(item.sampleId))
       .map((item, index) => report(`clinical|demo-hai-${item.id}`, item.startedAt, item.patientId, 'hai', 'notified', 210 + index)),
     ...CLINICAL.map(([date, patient, code, status], index) => report(`clinical|demo-${index + 2}`, date, patient, code, status, 160 + index)),

@@ -12,17 +12,24 @@ import { buildEarsNetRows, earsNetIsolates, EARS_NET_PATHOGENS, firstIsolates, t
 import { notifiableFindings, notificationStatus } from './notifiableFindings'
 import { deadlineStatusText, deadlineWords } from './eodyCatalogue'
 import { loadNotificationReports, saveNotificationReport } from './notificationReportsService'
+import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { DataQualityCheck } from './dataQuality'
+import type { NotifiableFinding } from './notifiableFindings'
+import type { NotificationReport } from './notificationReportsService'
 import './ReportingPanel.css'
 
-const fmtDate = value => (value ? String(value).slice(0, 10).split('-').reverse().join('/') : '—')
+type ReportDraft = { status: string, reference: string, notifiedAt: string }
+type SaveFinding = (finding: NotifiableFinding, draft: ReportDraft) => Promise<void>
 
-function download(filename, text) {
+const fmtDate = (value: unknown) => (value ? String(value).slice(0, 10).split('-').reverse().join('/') : '—')
+
+function download(filename: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8;' }))
   const link = Object.assign(document.createElement('a'), { href: url, download: filename })
   document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
 }
 
-function QualityChecks({ checks, tx }) {
+function QualityChecks({ checks, tx }: { checks: DataQualityCheck[], tx: Translate }) {
   const failing = checks.filter(check => check.items.length).sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || b.items.length - a.items.length)
   const passing = checks.filter(check => !check.items.length)
   return <section className="reporting-card">
@@ -30,8 +37,8 @@ function QualityChecks({ checks, tx }) {
     {failing.length === 0 && <p className="reporting-ok"><CheckCircle2 size={15} aria-hidden="true"/>{tx('Όλοι οι έλεγχοι πέρασαν.', 'All checks passed.')}</p>}
     <ul className="reporting-checks">{failing.map(check => <li key={check.id} className={`reporting-check reporting-${check.severity}`}>
       <details>
-        <summary><span className="reporting-count">{check.items.length}</span><span className="reporting-check-title">{tx(check.el, check.en)}</span><span className="reporting-severity">{tx({ high: 'Υψηλή', medium: 'Μέτρια', low: 'Χαμηλή' }[check.severity], { high: 'High', medium: 'Medium', low: 'Low' }[check.severity])}</span></summary>
-        {check.hintEl && <p className="reporting-hint">{tx(check.hintEl, check.hintEn)}</p>}
+        <summary><span className="reporting-count">{check.items.length}</span><span className="reporting-check-title">{tx(check.el, check.en)}</span><span className="reporting-severity">{tx(({ high: 'Υψηλή', medium: 'Μέτρια', low: 'Χαμηλή' } as Record<string, string>)[check.severity], ({ high: 'High', medium: 'Medium', low: 'Low' } as Record<string, string>)[check.severity])}</span></summary>
+        {check.hintEl && <p className="reporting-hint">{tx(check.hintEl, check.hintEn || '')}</p>}
         <ul className="reporting-items">{check.items.slice(0, 50).map(item => <li key={`${check.id}-${item.id}`}><Link to={item.to}>{item.label}</Link><span>{tx(item.detail, item.detailEn)}</span></li>)}</ul>
         {check.items.length > 50 && <p className="reporting-hint">{tx(`και ${check.items.length - 50} ακόμη`, `and ${check.items.length - 50} more`)}</p>}
       </details>
@@ -41,14 +48,14 @@ function QualityChecks({ checks, tx }) {
 }
 
 // The deadline of a finding in words, and how much of it is left while it is still pending.
-function findingDeadline(finding, tx, en) {
+function findingDeadline(finding: NotifiableFinding, tx: Translate, en: boolean) {
   if (!finding.entry) return { label: finding.rule.nationalPlan ? tx('Εθνικό σχέδιο', 'National plan') : tx('Εκτός καταλόγου ΕΟΔΥ', 'Not in the EODY catalogue'), text: '', overdue: false }
   const status = notificationStatus(finding) === 'pending' ? deadlineStatusText(finding.entry.deadline, finding.date, { language: en ? 'en' : 'el' }) : { text: '', overdue: false }
   return { label: deadlineWords(finding.entry.deadline, en ? 'en' : 'el'), ...status }
 }
 
-function NotificationRow({ finding, tx, en, onSave, readOnly }) {
-  const [draft, setDraft] = useState({ status: notificationStatus(finding), reference: finding.report?.reference || '', notifiedAt: finding.report?.notifiedAt || '' })
+function NotificationRow({ finding, tx, en, onSave, readOnly }: { finding: NotifiableFinding, tx: Translate, en: boolean, onSave: SaveFinding, readOnly: boolean }) {
+  const [draft, setDraft] = useState<ReportDraft>({ status: notificationStatus(finding), reference: finding.report?.reference || '', notifiedAt: finding.report?.notifiedAt || '' })
   const [saving, setSaving] = useState(false)
   const dirty = draft.status !== notificationStatus(finding) || draft.reference !== (finding.report?.reference || '') || draft.notifiedAt !== (finding.report?.notifiedAt || '')
   const save = async () => { setSaving(true); try { await onSave(finding, draft) } finally { setSaving(false) } }
@@ -65,7 +72,7 @@ function NotificationRow({ finding, tx, en, onSave, readOnly }) {
   </tr>
 }
 
-function Notifications({ findings, tx, en, onSave, unavailable }) {
+function Notifications({ findings, tx, en, onSave, unavailable }: { findings: NotifiableFinding[], tx: Translate, en: boolean, onSave: SaveFinding, unavailable: boolean }) {
   const pending = findings.filter(finding => notificationStatus(finding) === 'pending').length
   return <section className="reporting-card">
     <header><Megaphone size={17} aria-hidden="true"/><div><h2>{tx('Υποχρεωτικές δηλώσεις ΕΟΔΥ', 'Mandatory ΕΟΔΥ notifications')}</h2><p>{tx('Επικυρωμένα θετικά αποτελέσματα που αντιστοιχούν σε νόσημα υποχρεωτικής δήλωσης. Καταγράψτε πότε δηλώθηκαν και με ποιον αριθμό πρωτοκόλλου.', 'Validated positive results that match a notifiable disease. Record when they were notified and the reference number.')}</p></div>{pending > 0 && <span className="reporting-badge">{tx(`${pending} εκκρεμούν`, `${pending} pending`)}</span>}</header>
@@ -78,7 +85,7 @@ function Notifications({ findings, tx, en, onSave, unavailable }) {
   </section>
 }
 
-function EarsNetExport({ samples, patients, tenant, year, tx }) {
+function EarsNetExport({ samples, patients, tenant, year, tx }: { samples: AnyRecord[], patients: AnyRecord[], tenant: AnyRecord | null | undefined, year: string | number, tx: Translate }) {
   const [hospitalId, setHospitalId] = useState(''), [laboratoryCode, setLaboratoryCode] = useState('')
   const all = useMemo(() => earsNetIsolates(samples).filter(isolate => isolate.year === String(year)), [samples, year])
   const first = useMemo(() => firstIsolates(all), [all])
@@ -106,34 +113,34 @@ function EarsNetExport({ samples, patients, tenant, year, tx }) {
 }
 
 // parts: which of the three to show (the laboratory shows the data checks and the EARS-Net export apart, in a dialog each).
-export function ReportingPanel({ tenant, isDemo, year, tx, en, parts = ['quality', 'notifications', 'ears'] }) {
+export function ReportingPanel({ tenant, isDemo, year, tx, en, parts = ['quality', 'notifications', 'ears'] }: { tenant: AnyRecord | null | undefined, isDemo: boolean, year: string | number, tx: Translate, en: boolean, parts?: string[] }) {
   const repository = useLaboratoryRepository()
   const { notify } = useFeedback()
-  const [state, setState] = useState({ loading: true, error: '', samples: [], patients: [], reports: [], reportsUnavailable: false })
+  const [state, setState] = useState<{ loading: boolean, error: string, samples: AnyRecord[], patients: AnyRecord[], reports: NotificationReport[], reportsUnavailable: boolean }>({ loading: true, error: '', samples: [], patients: [], reports: [], reportsUnavailable: false })
   const load = useCallback(async () => {
     setState(value => ({ ...value, loading: true, error: '' }))
     try {
       const [listed, patients, reports] = await Promise.all([
         repository.listAll ? repository.listAll() : repository.list(),
         loadPatients(tenant?.id, { isDemo, includeArchived: true }).catch(() => []),
-        loadNotificationReports(tenant?.id, { isDemo }).then(rows => ({ rows }), () => ({ rows: [], unavailable: true })),
+        loadNotificationReports(tenant?.id, { isDemo }).then((rows): { rows: NotificationReport[], unavailable?: boolean } => ({ rows }), () => ({ rows: [], unavailable: true })),
       ])
       const samples = Array.isArray(listed) ? listed : (listed?.data || listed?.rows || [])
       setState({ loading: false, error: '', samples, patients, reports: reports.rows, reportsUnavailable: Boolean(reports.unavailable) })
     } catch (error) {
-      setState(value => ({ ...value, loading: false, error: error?.message || 'LOAD_FAILED' }))
+      setState(value => ({ ...value, loading: false, error: (error as Error | null)?.message || 'LOAD_FAILED' }))
     }
   }, [repository, tenant?.id, isDemo])
   useEffect(() => { load() }, [load])
   const checks = useMemo(() => runDataQualityChecks({ samples: state.samples, patients: state.patients }), [state.samples, state.patients])
   const findings = useMemo(() => notifiableFindings(state.samples, state.reports), [state.samples, state.reports])
-  const onSave = async (finding, draft) => {
+  const onSave: SaveFinding = async (finding, draft) => {
     try {
       const saved = await saveNotificationReport(tenant?.id, finding, draft, { isDemo })
       setState(value => ({ ...value, reports: [...value.reports.filter(report => report.findingKey !== saved.findingKey), saved] }))
       notify(tx('Η δήλωση αποθηκεύτηκε.', 'Notification saved.'), 'success')
     } catch (error) {
-      notify(error?.message || tx('Η δήλωση δεν αποθηκεύτηκε.', 'Notification could not be saved.'), 'danger')
+      notify((error as Error | null)?.message || tx('Η δήλωση δεν αποθηκεύτηκε.', 'Notification could not be saved.'), 'danger')
     }
   }
   if (state.loading) return <div className="analysis-chart-empty">{tx('Φόρτωση εργαστηριακών δεδομένων…', 'Loading laboratory data…')}</div>

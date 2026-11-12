@@ -6,7 +6,12 @@
 // «Μηνιγγίτιδα», which applies when the specimen is CSF) and the national
 // action plan for resistant pathogens (nationalPlan, not in the catalogue).
 import { currentResults, isValidatedPositive, organismsOf, specimenOf, testsForOrganism } from './labResults'
-import { eodyEntry } from './eodyCatalogue'
+import { eodyEntry, type EodyEntry } from './eodyCatalogue'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// A notifiable rule: its organism and, for the catalogue's diseases, the catalogue's labels and deadline.
+export interface NotifiableRule { id: string, organism: RegExp, el: string, en: string, catalogueId?: string, deadline?: string, csfCatalogueId?: string, invasiveOnly?: boolean, bloodOnly?: boolean, carbapenemResistant?: boolean, nationalPlan?: boolean }
+export interface NotifiableFinding { findingKey: string, rule: NotifiableRule, entry: EodyEntry | null, sample: AnyRecord, result: AnyRecord, organism: string, date: string, report: AnyRecord | null }
 
 const INVASIVE = new Set(['BLOOD', 'CSF'])
 const CARBAPENEM_NAME = /meropenem|imipenem|ertapenem|doripenem|μεροπενέμη|ιμιπενέμη|ερταπενέμη|δοριπενέμη/i
@@ -14,7 +19,7 @@ const CARBAPENEM_CODE = /^(ABX-)?(MEM|IPM|IMP|ETP|ERT|DOR)$/i
 
 // Catalogue rules: { id, organism }; the labels and the deadline are the catalogue's.
 // Order matters: the most specific rule wins (typhoid before salmonellosis, etc.).
-const CATALOGUE_RULES = [
+const CATALOGUE_RULES: NotifiableRule[] = [
   { id: 'meningococcal', organism: /neisseria\s+meningitidis/i },
   { id: 'gonorrhoea', organism: /neisseria\s+gonorrhoeae/i },
   { id: 'tuberculosis', organism: /mycobacterium\s+(tuberculosis|bovis|africanum)|\bM\.?\s*tuberculosis complex/i },
@@ -43,11 +48,11 @@ const CATALOGUE_RULES = [
   { id: 'echinococcosis', organism: /echinococcus/i },
   { id: 'melioidosis_glanders', organism: /burkholderia\s+(pseudomallei|mallei)/i },
 ].map(rule => {
-  const entry = eodyEntry(rule.id)
+  const entry = eodyEntry(rule.id) as EodyEntry
   return { ...rule, catalogueId: entry.id, el: entry.el, en: entry.en, deadline: entry.deadline }
 })
 
-const NOTIFIABLE_RULES = [
+const NOTIFIABLE_RULES: NotifiableRule[] = [
   ...CATALOGUE_RULES,
   // Invasive isolates: in CSF they are meningitis (catalogue no. 36); a blood isolate has no entry of its own.
   { id: 'invasive_haemophilus', organism: /haemophilus\s+influenzae/i, invasiveOnly: true, csfCatalogueId: 'meningitis', el: 'Διεισδυτική νόσος από Haemophilus influenzae', en: 'Invasive Haemophilus influenzae disease' },
@@ -62,15 +67,15 @@ export const NOTIFIABLE_RULE_LIST = Object.freeze(NOTIFIABLE_RULES)
 
 // The catalogue entry whose deadline applies to a finding of this rule; null for the national plan
 // and for an invasive isolate outside CSF (it has no entry of its own).
-export const catalogueEntryFor = (rule, specimen) => eodyEntry(rule.catalogueId || (specimen === 'CSF' && rule.csfCatalogueId) || '')
+export const catalogueEntryFor = (rule: NotifiableRule, specimen: string) => eodyEntry(rule.catalogueId || (specimen === 'CSF' && rule.csfCatalogueId) || '')
 
-const isCarbapenem = test => CARBAPENEM_CODE.test(String(test.code || '').trim()) || CARBAPENEM_NAME.test(`${test.drug || ''} ${test.name || ''}`)
-const carbapenemResistant = (tests, result) => tests.some(test => isCarbapenem(test) && String(test.sir || '').toUpperCase() === 'R')
+const isCarbapenem = (test: AnyRecord) => CARBAPENEM_CODE.test(String(test.code || '').trim()) || CARBAPENEM_NAME.test(`${test.drug || ''} ${test.name || ''}`)
+const carbapenemResistant = (tests: AnyRecord[], result: AnyRecord) => tests.some(test => isCarbapenem(test) && String(test.sir || '').toUpperCase() === 'R')
   || /\b(CRE|CPE|CRAB|CRPA|KPC|NDM|VIM|OXA-?48)\b/i.test(`${result.resistance || ''}`)
 
 // The notifiable rule for one organism of a result (the most specific rule
 // wins: typhoid before salmonellosis, etc.).
-export function notifiableRuleFor(sample, result, organism = result.organism, tests = testsForOrganism(result, organism)) {
+export function notifiableRuleFor(sample: AnyRecord, result: AnyRecord, organism: string = result.organism, tests: AnyRecord[] = testsForOrganism(result, organism)): NotifiableRule | null {
   if (!String(organism || '').trim()) return null
   const specimen = specimenOf(sample)
   return NOTIFIABLE_RULES.find(rule => rule.organism.test(organism)
@@ -80,19 +85,19 @@ export function notifiableRuleFor(sample, result, organism = result.organism, te
 }
 
 // The first result of an amendment chain, so the finding key survives amendments.
-function rootResultId(sample, result) {
-  const byId = new Map((sample.microbiologyResults || []).map(item => [item.id, item]))
-  let current = result
-  const visited = new Set()
+function rootResultId(sample: AnyRecord, result: AnyRecord) {
+  const byId = new Map<unknown, AnyRecord>((sample.microbiologyResults || []).map((item: AnyRecord) => [item.id, item]))
+  let current: AnyRecord | undefined = result
+  const visited = new Set<unknown>()
   while (current?.amendedFrom && byId.has(current.amendedFrom) && !visited.has(current.id)) { visited.add(current.id); current = byId.get(current.amendedFrom) }
   return current?.id || 'result'
 }
 
 // One entry per validated positive patient result that matches a rule, newest first.
 // Each carries its catalogue entry (the deadline) or null for the national plan.
-export function notifiableFindings(samples = [], reports = []) {
+export function notifiableFindings(samples: AnyRecord[] = [], reports: AnyRecord[] = []): NotifiableFinding[] {
   const byKey = new Map(reports.map(report => [report.findingKey, report]))
-  const findings = []
+  const findings: NotifiableFinding[] = []
   for (const sample of samples) {
     if ((sample.subjectType || 'patient') !== 'patient') continue
     // Superseded (amended) results are skipped; an amendment keeps the
@@ -101,7 +106,7 @@ export function notifiableFindings(samples = [], reports = []) {
     for (const result of results) {
       if (!isValidatedPositive(result)) continue
       const organisms = organismsOf(result)
-      const seen = new Set()
+      const seen = new Set<string>()
       for (const organism of organisms) {
         const rule = notifiableRuleFor(sample, result, organism, testsForOrganism(result, organism, organisms.length))
         if (!rule || seen.has(rule.id)) continue
@@ -114,4 +119,4 @@ export function notifiableFindings(samples = [], reports = []) {
   return findings.sort((a, b) => b.date.localeCompare(a.date))
 }
 
-export const notificationStatus = finding => finding.report?.status || 'pending'
+export const notificationStatus = (finding: NotifiableFinding | AnyRecord) => finding.report?.status || 'pending'
