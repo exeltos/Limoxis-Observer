@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { AnyRecord } from '../../../types/featureTypes'
 import { Navigate } from 'react-router-dom'
 import { ClipboardCheck, Search } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
@@ -21,7 +22,7 @@ import { AUDIT_AREAS, areaLabel, departmentArea, standardShort } from '../audits
 import { createSelfAssessments } from './selfAssessmentService'
 import './selfAssessment.css'
 
-const L = (en, el, english) => (en ? english : el)
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
 
 // A new self-assessment, on a page of its own: the questionnaire, the title and the due date on one line, then
 // the departments as a list to tick (search, a button per area, «all» and «clear»). One self-assessment is made per
@@ -37,11 +38,11 @@ export function SelfAssessmentCreatePage() {
   const { templates, loading } = useAuditTemplates(tenant?.id)
   const { departments } = useDepartments()
   // The ward checklist (a department's own checklist) first, then the standards' questionnaires.
-  const active = useMemo(() => templates.filter(item => item.active !== false && item.questions.length).sort((a, b) => Number(b.key === 'ward' || b.basedOn != null) - Number(a.key === 'ward' || a.basedOn != null)), [templates])
+  const active = useMemo(() => (templates as AnyRecord[]).filter(item => item.active !== false && item.questions.length).sort((a, b) => Number(b.key === 'ward' || b.basedOn != null) - Number(a.key === 'ward' || a.basedOn != null)), [templates])
   const [templateId, setTemplateId] = useState('')
   const [title, setTitle] = useState('')
   const [dueOn, setDueOn] = useState('')
-  const [picked, setPicked] = useState([])
+  const [picked, setPicked] = useState<string[]>([])
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
   useEffect(() => {
@@ -51,11 +52,11 @@ export function SelfAssessmentCreatePage() {
     setTitle(`${L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} · ${first.title}`)
   }, [active, templateId, en])
   const template = active.find(item => item.id === templateId)
-  const all = useMemo(() => departments.map(item => ({ id: item.id || item.name, name: item.name || item.el || '', area: departmentArea(item.name || item.el || '') })).filter(item => item.name).sort((a, b) => a.name.localeCompare(b.name, 'el')), [departments])
+  const all = useMemo(() => (departments as AnyRecord[]).map(item => ({ id: item.id || item.name, name: item.name || item.el || '', area: departmentArea(item.name || item.el || '') })).filter(item => item.name).sort((a, b) => a.name.localeCompare(b.name, 'el')), [departments])
   const shown = all.filter(item => !search.trim() || item.name.toLowerCase().includes(search.trim().toLowerCase()))
   const areas = AUDIT_AREAS.map(area => ({ ...area, ids: all.filter(item => item.area === area.value).map(item => item.id) })).filter(area => area.ids.length)
-  const toggle = id => setPicked(current => (current.includes(id) ? current.filter(item => item !== id) : [...current, id]))
-  const addIds = ids => setPicked(current => [...new Set([...current, ...ids])])
+  const toggle = (id: string) => setPicked(current => (current.includes(id) ? current.filter(item => item !== id) : [...current, id]))
+  const addIds = (ids: string[]) => setPicked(current => [...new Set([...current, ...ids])])
   async function save() {
     if (!template || !picked.length || busy) return
     setBusy(true)

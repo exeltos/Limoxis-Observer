@@ -1,9 +1,12 @@
 import { supabase } from '../../../core/supabase/client'
+import { cloudClient } from '../../../core/supabase/cloudContext'
+import type { Tables, Json } from '../../../core/supabase/database.types'
+import type { AnyRecord } from '../../../types/featureTypes'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { isEmptyPreview } from '../../../core/preview/emptyPreview'
 import { seededRandom } from '../../../core/data/demoSeed'
-import { selfChecklist, selfFigures } from './selfAssessmentModel'
+import { selfChecklist, selfFigures, type SelfAssessment, type SelfRow } from './selfAssessmentModel'
 import { hospitalDate } from '../../../core/dates/hospitalDate'
 
 // The self-assessments of departments (20261214100000_quality_self_assessments.sql). The
@@ -11,11 +14,11 @@ import { hospitalDate } from '../../../core/dates/hospitalDate'
 // quality_self_assessment_save. The demo keeps them in the browser.
 
 const LOCAL_KEY = 'quality_local_self_assessments'
-const must = ({ data, error }) => { if (error) throw error; return data }
+const must = <T>({ data, error }: { data: T, error: unknown }) => { if (error) throw error; return data }
 const localId = () => `sa-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-const local = () => loadSnapshot(LOCAL_KEY, []) || []
+const local = (): SelfAssessment[] => loadSnapshot(LOCAL_KEY, []) || []
 
-export const selfFromRow = row => ({
+export const selfFromRow = (row: Tables<'quality_self_assessments'>): SelfAssessment => ({
   id: row.id,
   organizationId: row.organization_id,
   templateId: row.template_id || null,
@@ -27,16 +30,16 @@ export const selfFromRow = row => ({
   dueOn: row.due_on || '',
   releasedAt: row.released_at || '',
   submittedAt: row.submitted_at || '',
-  checklist: row.checklist || [],
+  checklist: (row.checklist || []) as SelfRow[],
   totalCount: row.total_count || 0,
   answeredCount: row.answered_count || 0,
   score: row.score ?? null,
   updatedAt: row.updated_at || '',
 })
 
-export async function loadSelfAssessments(organizationId) {
+export async function loadSelfAssessments(organizationId: string | null | undefined): Promise<SelfAssessment[]> {
   if (isDemoDataEnvironment()) {
-    const saved = loadSnapshot(LOCAL_KEY, null)
+    const saved: SelfAssessment[] | null = loadSnapshot(LOCAL_KEY, null)
     if (Array.isArray(saved)) return saved
     // The first visit of the Demo starts from its own self-assessments (kept in the browser from then on).
     const seed = await demoSelfAssessments(organizationId)
@@ -49,35 +52,35 @@ export async function loadSelfAssessments(organizationId) {
 }
 
 // One self-assessment per department, each with the questionnaire's questions for its area.
-export async function createSelfAssessments(organizationId, { template, departments, title, dueOn }) {
-  const made = (departments || []).map(department => {
+export async function createSelfAssessments(organizationId: string | null | undefined, { template, departments, title, dueOn }: { template: AnyRecord, departments: { id: string, name: string }[], title: string, dueOn?: string }): Promise<SelfAssessment[]> {
+  const made = (departments || []).map((department): SelfAssessment => {
     const checklist = selfChecklist(template, department.name)
     const figures = selfFigures(checklist)
     return { id: localId(), organizationId, templateId: template.isSystem && String(template.id).startsWith('system-') ? null : template.id, standard: template.standard || '', title, departmentId: department.id, departmentName: department.name, status: 'draft', dueOn: dueOn || '', releasedAt: '', submittedAt: '', checklist, totalCount: figures.total, answeredCount: 0, score: null, updatedAt: new Date().toISOString() }
   }).filter(item => item.checklist.length)
   if (isDemoDataEnvironment()) { saveSnapshot(LOCAL_KEY, [...made, ...local()]); return made }
   if (!made.length) return []
-  const rows = made.map(item => ({ organization_id: organizationId, template_id: item.templateId && /^[0-9a-f-]{36}$/i.test(item.templateId) ? item.templateId : null, standard: item.standard || null, title: item.title, department_id: item.departmentId, department_name: item.departmentName, due_on: item.dueOn || null, checklist: item.checklist, total_count: item.totalCount }))
-  return (must(await supabase.from('quality_self_assessments').insert(rows).select('*')) || []).map(selfFromRow)
+  const rows = made.map(item => ({ organization_id: organizationId as string, template_id: item.templateId && /^[0-9a-f-]{36}$/i.test(item.templateId) ? item.templateId : null, standard: item.standard || null, title: item.title, department_id: item.departmentId, department_name: item.departmentName, due_on: item.dueOn || null, checklist: item.checklist, total_count: item.totalCount }))
+  return (must(await cloudClient().from('quality_self_assessments').insert(rows).select('*')) || []).map(selfFromRow)
 }
 
 // draft → released (the department sees it) → submitted → closed; a released one may go back to draft.
-export async function setSelfStatus(organizationId, item, status) {
+export async function setSelfStatus(organizationId: string | null | undefined, item: SelfAssessment, status: string) {
   const now = new Date().toISOString()
   if (isDemoDataEnvironment()) { saveSnapshot(LOCAL_KEY, local().map(row => (row.id === item.id ? { ...row, status, releasedAt: status === 'released' ? now : row.releasedAt, updatedAt: now } : row))); return }
-  must(await supabase.from('quality_self_assessments').update({ status, ...(status === 'released' ? { released_at: now } : {}) }).eq('id', item.id).eq('organization_id', organizationId).select('id'))
+  must(await cloudClient().from('quality_self_assessments').update({ status, ...(status === 'released' ? { released_at: now } : {}) }).eq('id', item.id).eq('organization_id', organizationId as string).select('id'))
 }
 
-export async function removeSelfAssessment(organizationId, item) {
+export async function removeSelfAssessment(organizationId: string | null | undefined, item: SelfAssessment) {
   if (isDemoDataEnvironment()) { saveSnapshot(LOCAL_KEY, local().filter(row => row.id !== item.id)); return }
-  must(await supabase.from('quality_self_assessments').delete().eq('id', item.id).eq('organization_id', organizationId).select('id'))
+  must(await cloudClient().from('quality_self_assessments').delete().eq('id', item.id).eq('organization_id', organizationId as string).select('id'))
 }
 
 // answers: [{id, answer, note, evidence}]. submit needs every row answered.
-export async function saveSelfAnswers(organizationId, item, answers, { submit = false } = {}) {
+export async function saveSelfAnswers(organizationId: string | null | undefined, item: SelfAssessment, answers: SelfRow[], { submit = false } = {}): Promise<SelfAssessment> {
   if (isDemoDataEnvironment()) {
     const byId = new Map(answers.map(entry => [entry.id, entry]))
-    const checklist = item.checklist.map(row => (byId.has(row.id) ? { ...row, answer: byId.get(row.id).answer || '', note: byId.get(row.id).note || '', evidence: byId.get(row.id).evidence || '' } : row))
+    const checklist = item.checklist.map(row => (byId.has(row.id) ? { ...row, answer: byId.get(row.id)?.answer || '', note: byId.get(row.id)?.note || '', evidence: byId.get(row.id)?.evidence || '' } : row))
     const figures = selfFigures(checklist)
     if (submit && figures.answered < figures.total) throw new Error('SELF_ASSESSMENT_INCOMPLETE')
     const now = new Date().toISOString()
@@ -85,7 +88,7 @@ export async function saveSelfAnswers(organizationId, item, answers, { submit = 
     saveSnapshot(LOCAL_KEY, local().map(row => (row.id === item.id ? next : row)))
     return next
   }
-  return must(await supabase.rpc('quality_self_assessment_save', { p_id: item.id, p_answers: answers, p_submit: submit }))
+  return must(await cloudClient().rpc('quality_self_assessment_save', { p_id: item.id, p_answers: answers as Json, p_submit: submit })) as unknown as SelfAssessment
 }
 
 // The Demo's self-assessments (owner, 9/11/2026: the whole of 2025 and 2026): the clinical departments answered the
@@ -93,18 +96,18 @@ export async function saveSelfAnswers(organizationId, item, answers, { submit = 
 // second round of 2026 is under way (in progress, one not answered yet, one still a draft). Answers are seeded,
 // so the scores are the same every time; they improve from round to round.
 const DEMO_SELF_DEPARTMENTS = ['ΜΕΘ', 'Παθολογική', 'Χειρουργική', 'Καρδιολογική', 'Ορθοπαιδική', 'Νεογνολογική / ΜΕΝΝ']
-const DEMO_SELF_NOTES = { partial: ['Λείπει η υπογραφή σε δύο ημέρες.', 'Εφαρμόζεται, αλλά δεν καταγράφεται πάντα.', 'Μερική ενημέρωση του νέου προσωπικού.'], no: ['Δεν βρέθηκε καταγραφή τον τελευταίο μήνα.', 'Το έντυπο δεν είναι διαθέσιμο στο τμήμα.'] }
-const isoDay = days => { const date = new Date(`${hospitalDate()}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
-const plusDays = (day, days) => new Date(Date.parse(`${day}T12:00:00Z`) + days * 86400000).toISOString().slice(0, 10)
+const DEMO_SELF_NOTES: Record<string, string[]> = { partial: ['Λείπει η υπογραφή σε δύο ημέρες.', 'Εφαρμόζεται, αλλά δεν καταγράφεται πάντα.', 'Μερική ενημέρωση του νέου προσωπικού.'], no: ['Δεν βρέθηκε καταγραφή τον τελευταίο μήνα.', 'Το έντυπο δεν είναι διαθέσιμο στο τμήμα.'] }
+const isoDay = (days: number) => { const date = new Date(`${hospitalDate()}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
+const plusDays = (day: string, days: number) => new Date(Date.parse(`${day}T12:00:00Z`) + days * 86400000).toISOString().slice(0, 10)
 
-async function demoSelfAssessments(organizationId) {
+async function demoSelfAssessments(organizationId: string | null | undefined): Promise<SelfAssessment[]> {
   if (isEmptyPreview()) return []
   const { SYSTEM_TEMPLATES } = await import('../audits/seed/index.js')
-  const template = SYSTEM_TEMPLATES.find(item => item.key === 'ward')
+  const template = SYSTEM_TEMPLATES.find((item: AnyRecord) => item.key === 'ward')
   if (!template) return []
   const recent = isoDay(-12)
   // [round, title, released on, due on, departments, status of each, share answered when in progress, quality]
-  const rounds = [
+  const rounds: [string, string, string, string, string[], (index: number) => string, number, number][] = [
     ['2025a', 'Αυτοαξιολόγηση άνοιξης 2025', '2025-03-03', '2025-03-31', DEMO_SELF_DEPARTMENTS, () => 'closed', 1, 0.78],
     ['2025b', 'Αυτοαξιολόγηση φθινοπώρου 2025', '2025-10-01', '2025-10-31', DEMO_SELF_DEPARTMENTS.slice(0, 4), () => 'closed', 1, 0.84],
     ['2026a', 'Αυτοαξιολόγηση άνοιξης 2026', '2026-03-02', '2026-03-31', DEMO_SELF_DEPARTMENTS, index => (index < 4 ? 'closed' : 'submitted'), 1, 0.88],

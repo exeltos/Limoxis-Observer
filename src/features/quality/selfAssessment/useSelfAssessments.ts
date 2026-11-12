@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadSelfAssessments } from './selfAssessmentService'
+import type { SelfAssessment } from './selfAssessmentModel'
 
 // The self-assessments the signed-in member may read: all of them for Quality, the
 // released ones of their own departments for staff (the database decides).
-export function useSelfAssessments(organizationId) {
-  const [items, setItems] = useState([])
+export function useSelfAssessments(organizationId: string | null | undefined) {
+  const [items, setItems] = useState<SelfAssessment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const reload = useCallback(() => {

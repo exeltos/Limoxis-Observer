@@ -1,5 +1,6 @@
 import { FINDING_CLASSES, RESULT_VALUE, departmentArea, riskMonths, standardShort } from './auditStandards'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // The audit programme in pure functions: which questions an audit asks, how it
 // scores, which answers become findings, whether the team is independent and
@@ -34,7 +35,7 @@ export function questionApplies(question, area) {
 
 // The checklist an audit opens with: the template's questions for the
 // department's area and the clauses in scope, each an answer row.
-export function questionsForAudit(template, { department = '', scope = [], allAreas = false } = {}) {
+export function questionsForAudit(template: AnyRecord | null | undefined, { department = '', scope = [], allAreas = false }: { department?: string, scope?: string[], allAreas?: boolean } = {}) {
   const area = department && !allAreas ? departmentArea(department) : ''
   return (template?.questions || [])
     .filter(question => questionApplies(question, area) && inScope(question, scope))
@@ -121,7 +122,7 @@ function tally(rows) {
   return { ...counts, applicable, answered: applicable + counts.na, total: rows.length, rate: weight ? round(points * 100 / weight) : null, points, weight }
 }
 
-export function auditScore(rows = []) {
+export function auditScore(rows: AnyRecord[] = []) {
   const chapters = new Map()
   const standards = new Map()
   for (const row of rows) {
@@ -148,7 +149,7 @@ export const complianceOf = record => {
 
 // --- Findings -------------------------------------------------------------------------------
 
-export const needsClass = row => row.answer === 'partial' || row.answer === 'no'
+export const needsClass = (row: AnyRecord) => row.answer === 'partial' || row.answer === 'no'
 // The answers still to classify, and the classified ones still without a finding.
 export const unclassified = (rows = []) => rows.filter(row => needsClass(row) && !row.findingClass)
 export const awaitingFinding = (rows = []) => rows.filter(row => !row.findingId && ((needsClass(row) && row.findingClass) || (row.answer === 'yes' && ['observation', 'opportunity'].includes(row.findingClass))))

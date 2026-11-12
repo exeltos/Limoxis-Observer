@@ -1,5 +1,28 @@
 import { auditScore, needsClass, questionsForAudit } from '../audits/auditModel'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
+
+// One question of a self-assessment (a row of the audit questionnaire) with the department's answer.
+export interface SelfRow extends AnyRecord { id: string, answer?: string, note?: string, evidence?: string, critical?: boolean, chapterRef?: string, chapterTitle?: string, position?: number }
+// A department's self-assessment (quality_self_assessments, or the Demo's copy in the browser).
+export interface SelfAssessment {
+  id: string
+  organizationId: string | null | undefined
+  templateId: string | null
+  standard: string
+  title: string
+  departmentId: string
+  departmentName: string
+  status: string
+  dueOn: string
+  releasedAt: string
+  submittedAt: string
+  checklist: SelfRow[]
+  totalCount: number
+  answeredCount: number
+  score: number | null
+  updatedAt: string
+}
 
 // The self-assessment of a department against an audit questionnaire, in pure
 // functions: the checklist it opens with, its progress and score (the audit scale)
@@ -11,38 +34,38 @@ export const SELF_STATUSES = [
   { value: 'submitted', label: ['Υποβλήθηκε', 'Submitted'], tone: 'success' },
   { value: 'closed', label: ['Έκλεισε', 'Closed'], tone: 'neutral' },
 ]
-export const selfStatusLabel = (value, language = 'el') => { const item = SELF_STATUSES.find(entry => entry.value === value); return item ? item.label[language === 'en' ? 1 : 0] : value || '' }
-export const selfStatusTone = value => SELF_STATUSES.find(entry => entry.value === value)?.tone || 'neutral'
+export const selfStatusLabel = (value: string | null | undefined, language = 'el') => { const item = SELF_STATUSES.find(entry => entry.value === value); return item ? item.label[language === 'en' ? 1 : 0] : value || '' }
+export const selfStatusTone = (value: string | null | undefined) => SELF_STATUSES.find(entry => entry.value === value)?.tone || 'neutral'
 
 // The rows of a self-assessment: the questionnaire's questions for the department's area.
-export const selfChecklist = (template, departmentName = '') => questionsForAudit(template, { department: departmentName })
+export const selfChecklist = (template: AnyRecord, departmentName = ''): SelfRow[] => questionsForAudit(template, { department: departmentName })
 
 const ANSWERS = ['yes', 'partial', 'no', 'na']
 // Answered rows, the share of all rows, and the compliance score of the answers given.
-export function selfFigures(checklist = []) {
+export function selfFigures(checklist: SelfRow[] = []) {
   const total = checklist.length
-  const answered = checklist.filter(row => ANSWERS.includes(row.answer)).length
+  const answered = checklist.filter(row => ANSWERS.includes(row.answer as string)).length
   const { overall } = auditScore(checklist)
   return { total, answered, pct: total ? Math.round((answered * 100) / total) : 0, score: overall.rate, yes: overall.yes, partial: overall.partial, no: overall.no, na: overall.na, criticalFailed: checklist.filter(row => row.critical && row.answer === 'no').length }
 }
 
 // What the department should fix before the audit: partial and nonconforming answers, critical ones first.
-export const selfGaps = (checklist = []) => checklist.filter(needsClass).sort((a, b) => Number(Boolean(b.critical)) - Number(Boolean(a.critical)) || (a.position || 0) - (b.position || 0))
+export const selfGaps = (checklist: SelfRow[] = []) => checklist.filter(needsClass).sort((a, b) => Number(Boolean(b.critical)) - Number(Boolean(a.critical)) || (a.position || 0) - (b.position || 0))
 
 // The chapters of the checklist in order, with the rows of each.
-export function selfChapters(checklist = []) {
-  const chapters = new Map()
+export function selfChapters(checklist: SelfRow[] = []) {
+  const chapters = new Map<string, { ref: string, title: string, rows: SelfRow[] }>()
   for (const row of checklist) {
     const key = row.chapterRef || '—'
     if (!chapters.has(key)) chapters.set(key, { ref: row.chapterRef || '', title: row.chapterTitle || '', rows: [] })
-    chapters.get(key).rows.push(row)
+    chapters.get(key)?.rows.push(row)
   }
   return [...chapters.values()]
 }
 
-export const isOverdue = (item, today = hospitalToday()) => Boolean(item.dueOn) && item.dueOn < today && item.status === 'released'
+export const isOverdue = (item: SelfAssessment, today = hospitalToday()) => Boolean(item.dueOn) && item.dueOn < today && item.status === 'released'
 
-export function selfCounts(items = []) {
+export function selfCounts(items: SelfAssessment[] = []) {
   return {
     total: items.length,
     inProgress: items.filter(item => item.status === 'released').length,
@@ -52,12 +75,12 @@ export function selfCounts(items = []) {
   }
 }
 
-export function filterSelf(items = [], query = '') {
+export function filterSelf(items: SelfAssessment[] = [], query = '') {
   const q = String(query || '').trim().toLowerCase()
   return q ? items.filter(item => `${item.title} ${item.departmentName}`.toLowerCase().includes(q)) : items
 }
 
-export const selfExport = (items = [], language = 'el') => {
+export const selfExport = (items: SelfAssessment[] = [], language = 'el') => {
   const en = language === 'en'
   return {
     name: en ? 'self-assessments' : 'aftoaxiologiseis',

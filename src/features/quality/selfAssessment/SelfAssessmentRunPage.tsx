@@ -17,18 +17,18 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { exportRegistry, printRegistry } from '../../../core/export/registryExports'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { AUDIT_RESULTS, resultLabel } from '../audits/auditStandards'
-import { selfChapters, selfFigures, selfGaps, selfStatusLabel, selfStatusTone } from './selfAssessmentModel'
+import { selfChapters, selfFigures, selfGaps, selfStatusLabel, selfStatusTone, type SelfRow } from './selfAssessmentModel'
 import { saveSelfAnswers } from './selfAssessmentService'
 import { useSelfAssessments } from './useSelfAssessments'
 import { SelfAssessmentProgress } from './SelfAssessmentPanel'
 import './selfAssessment.css'
 
-const L = (en, el, english) => (en ? english : el)
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
 
 // The department answers its self-assessment (Quality may too, before it closes). The progress
 // bar counts the answered questions; «Submit» needs every one answered. Once submitted, the
 // «Gaps» list (partial and nonconforming answers) is the preparation for the audit.
-export function SelfAssessmentRunPage({ backTo = '/quality' }) {
+export function SelfAssessmentRunPage({ backTo = '/quality' }: { backTo?: string }) {
   const { id } = useParams()
   const { language } = useLanguage()
   const en = language === 'en'
@@ -38,17 +38,17 @@ export function SelfAssessmentRunPage({ backTo = '/quality' }) {
   const list = useSelfAssessments(tenant?.id)
   const item = list.items.find(entry => entry.id === id) || null
   const manager = (!isRolePreview && actualRole === ROLES.PLATFORM_OWNER) || can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
-  const [rows, setRows] = useState([])
+  const [rows, setRows] = useState<SelfRow[]>([])
   const [busy, setBusy] = useState(false)
   const [dirty, setDirty] = useState(false)
   useEffect(() => { if (item) { setRows(item.checklist); setDirty(false) } }, [item?.id, item?.updatedAt]) // eslint-disable-line react-hooks/exhaustive-deps
-  const editable = Boolean(item) && (item.status === 'released' || (manager && item.status !== 'closed'))
+  const editable = Boolean(item) && (item?.status === 'released' || (manager && item?.status !== 'closed'))
   const figures = useMemo(() => selfFigures(rows), [rows])
   const gaps = useMemo(() => selfGaps(rows), [rows])
   const chapters = useMemo(() => selfChapters(rows), [rows])
-  const set = (rowId, patch) => { setRows(current => current.map(row => (row.id === rowId ? { ...row, ...patch } : row))); setDirty(true) }
+  const set = (rowId: string, patch: Partial<SelfRow>) => { setRows(current => current.map(row => (row.id === rowId ? { ...row, ...patch } : row))); setDirty(true) }
   const answers = () => rows.map(row => ({ id: row.id, answer: row.answer || '', note: row.note || '', evidence: row.evidence || '' }))
-  async function save(submit) {
+  async function save(submit: boolean) {
     if (!item || busy) return
     setBusy(true)
     try {
@@ -57,7 +57,7 @@ export function SelfAssessmentRunPage({ backTo = '/quality' }) {
       await list.reload()
     } catch (error) {
       console.error(error)
-      notify(String(error?.message || '').includes('INCOMPLETE') ? L(en, 'Απαντήστε σε όλες τις ερωτήσεις πριν την υποβολή.', 'Answer every question before submitting.') : L(en, 'Δεν αποθηκεύτηκε.', 'It could not be saved.'), 'error')
+      notify(String((error as { message?: unknown } | null)?.message || '').includes('INCOMPLETE') ? L(en, 'Απαντήστε σε όλες τις ερωτήσεις πριν την υποβολή.', 'Answer every question before submitting.') : L(en, 'Δεν αποθηκεύτηκε.', 'It could not be saved.'), 'error')
     } finally { setBusy(false) }
   }
   const gapsExport = () => ({ name: en ? 'self-assessment-gaps' : 'aftoaxiologisi-kena', headers: en ? ['Clause', 'Question', 'Answer', 'Critical', 'Note'] : ['Ρήτρα', 'Ερώτηση', 'Απάντηση', 'Κρίσιμη', 'Σημείωση'], rows: gaps.map(row => [row.clauseRef, row.item, resultLabel(row.answer, language), row.critical ? (en ? 'Yes' : 'Ναι') : '', row.note || '']) })
@@ -67,7 +67,7 @@ export function SelfAssessmentRunPage({ backTo = '/quality' }) {
   const cards = [
     { key: 'answered', icon: ClipboardCheck, value: `${figures.answered}/${figures.total}`, label: L(en, 'Απαντήθηκαν', 'Answered'), hint: `${figures.pct}%` },
     { key: 'score', icon: Gauge, value: figures.score == null ? null : figures.score, unit: '%', label: L(en, 'Βαθμός συμμόρφωσης', 'Compliance score') },
-    { key: 'gaps', icon: FileWarning, value: gaps.length, label: L(en, 'Κενά', 'Gaps'), tone: 'warning', hint: figures.criticalFailed ? L(en, `${figures.criticalFailed} κρίσιμα`, `${figures.criticalFailed} critical`) : null },
+    { key: 'gaps', icon: FileWarning, value: gaps.length, label: L(en, 'Κενά', 'Gaps'), tone: 'warning', hint: figures.criticalFailed ? L(en, `${figures.criticalFailed} κρίσιμα`, `${figures.criticalFailed} critical`) : undefined },
   ]
   return <Page fill className="self-run-page" title={item.title} subtitle={[item.departmentName, item.dueOn && `${L(en, 'προθεσμία', 'due')} ${formatDay(item.dueOn, language)}`].filter(Boolean).join(' · ')}
     navigation={<BackButton onClick={goBack} label={L(en, 'Πίσω', 'Back')} />}

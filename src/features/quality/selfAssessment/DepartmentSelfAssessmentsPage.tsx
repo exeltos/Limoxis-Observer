@@ -13,7 +13,7 @@ import { SelfAssessmentProgress } from './SelfAssessmentPanel'
 import { useSelfAssessments } from './useSelfAssessments'
 import './selfAssessment.css'
 
-const L = (en, el, english) => (en ? english : el)
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
 
 // /my-department/self-assessment — the self-assessments the Quality team released to the
 // department, each with its progress bar; open one to answer it.

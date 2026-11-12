@@ -13,14 +13,14 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { exportRegistry } from '../../../core/export/registryExports'
 import { standardShort } from '../audits/auditStandards'
-import { filterSelf, isOverdue, selfCounts, selfExport, selfGaps, selfStatusLabel, selfStatusTone } from './selfAssessmentModel'
+import { filterSelf, isOverdue, selfCounts, selfExport, selfGaps, selfStatusLabel, selfStatusTone, type SelfAssessment } from './selfAssessmentModel'
 import { removeSelfAssessment, setSelfStatus } from './selfAssessmentService'
 import { useSelfAssessments } from './useSelfAssessments'
 import './selfAssessment.css'
 
-const L = (en, el, english) => (en ? english : el)
+const L = (en: boolean, el: string, english: string) => (en ? english : el)
 
-export function SelfAssessmentProgress({ answered, total, label }) {
+export function SelfAssessmentProgress({ answered, total, label }: { answered: number, total: number, label?: string }) {
   const pct = total ? Math.round((answered * 100) / total) : 0
   return <div className="self-progress" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
     <span className="self-progress-track"><span className="self-progress-fill" style={{ width: `${pct}%` }} /></span>
@@ -31,7 +31,7 @@ export function SelfAssessmentProgress({ answered, total, label }) {
 // Quality → Audits → «Αυτοαξιολόγηση»: the Quality team creates a self-assessment for
 // departments from an audit questionnaire and releases it; the department then sees and
 // answers it, and the gaps it leaves are the preparation for the audit.
-export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot = null }) {
+export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot = null }: { query?: string, canManage?: boolean, toolbarSlot?: Element | null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { tenant } = useTenant()
@@ -41,10 +41,10 @@ export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot
   const rows = useMemo(() => filterSelf(list.items, query), [list.items, query])
   const counts = selfCounts(list.items)
   const gaps = list.items.filter(item => item.status === 'submitted').reduce((sum, item) => sum + selfGaps(item.checklist).length, 0)
-  async function act(item, status, message) {
+  async function act(item: SelfAssessment, status: string, message: string) {
     try { await setSelfStatus(tenant?.id, item, status); notify(message, 'success'); await list.reload() } catch (error) { console.error(error); notify(L(en, 'Η ενέργεια δεν ολοκληρώθηκε.', 'The action could not be completed.'), 'error') }
   }
-  async function remove(item) {
+  async function remove(item: SelfAssessment) {
     const ok = await confirm({ title: L(en, 'Διαγραφή αυτοαξιολόγησης', 'Delete self-assessment'), message: L(en, `Θα διαγραφεί η αυτοαξιολόγηση «${item.title}» του τμήματος ${item.departmentName} μαζί με τις απαντήσεις της.`, `The self-assessment “${item.title}” of ${item.departmentName} and its answers will be deleted.`), confirmLabel: L(en, 'Διαγραφή', 'Delete'), danger: true })
     if (!ok) return
     try { await removeSelfAssessment(tenant?.id, item); await list.reload() } catch (error) { console.error(error); notify(L(en, 'Δεν ήταν δυνατή η διαγραφή.', 'It could not be deleted.'), 'error') }
