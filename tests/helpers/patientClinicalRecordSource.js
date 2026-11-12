@@ -9,6 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 // and the modules below; source-level assertions read them as one text.
 export const PATIENT_CLINICAL_RECORD_FILES = [
   'src/features/surveillance/PatientClinicalCanonicalPage.jsx',
+  'src/features/surveillance/PatientClinicalRecordTabs.tsx',
   'src/features/surveillance/ClinicalAdmissions.jsx',
   'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx',
   'src/features/surveillance/ClinicalJourney.jsx',

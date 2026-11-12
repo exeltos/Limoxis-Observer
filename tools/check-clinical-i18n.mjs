@@ -5,6 +5,7 @@ import { readSource } from './readSource.mjs'
 // The patient clinical record page is split across the first seven files.
 const files = [
   'src/features/surveillance/PatientClinicalCanonicalPage.jsx',
+  'src/features/surveillance/PatientClinicalRecordTabs.tsx',
   'src/features/surveillance/ClinicalAdmissions.jsx',
   'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx',
   'src/features/surveillance/ClinicalJourney.jsx',
@@ -25,6 +26,7 @@ const files = [
 // Lower this number whenever debt is removed; never raise it to make CI pass.
 const baseline = {
   'src/features/surveillance/PatientClinicalCanonicalPage.jsx': 0,
+  'src/features/surveillance/PatientClinicalRecordTabs.tsx': 0,
   'src/features/surveillance/ClinicalAdmissions.jsx': 0,
   'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx': 83,
   'src/features/surveillance/ClinicalJourney.jsx': 0,

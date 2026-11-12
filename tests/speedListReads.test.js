@@ -30,7 +30,7 @@ describe('list reads', () => {
   })
 
   it('reads the patient record without the roster or the whole laboratory', () => {
-    const record = read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
+    const record = readSplitSource('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
     expect(record).toContain('loadPatientsByKeys(tenant.id, UUID_PATTERN.test(patientId) ? { recordIds: [patientId] } : { codes: [patientId] })')
     // The link from a surveillance row carries the record id: it opens the same patient.
     expect(record).toContain('isPatientKey(row, patientId)')

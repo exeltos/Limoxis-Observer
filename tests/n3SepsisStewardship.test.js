@@ -154,6 +154,6 @@ describe('wiring', () => {
     expect(workspace).toContain("askSheet('therapy', 'protocolPicker')")
     expect(workspace).toContain('<ProtocolBadge entry={openRunFor(ep)}')
     expect(read('src/features/surveillance/SurveillanceCanonicalPage.jsx')).toContain('<ProtocolBadge entry={openRunOf(x)}')
-    expect(read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('canProtocol:')
+    expect(readSplitSource('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('canProtocol:')
   })
 })

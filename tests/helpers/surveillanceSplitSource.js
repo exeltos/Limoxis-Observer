@@ -5,6 +5,7 @@ import { readSource } from './readSource'
 const S = 'src/features/surveillance/'
 export const SURVEILLANCE_SPLITS = {
   [`${S}clinicalCloudService`]: [`${S}clinicalCloudMappers.ts`],
+  [`${S}PatientClinicalCanonicalPage`]: [`${S}PatientClinicalRecordTabs.tsx`],
   [`${S}ClinicalJourney`]: [`${S}ClinicalJourneyCareStages.tsx`, `${S}ClinicalJourneyWindows.tsx`],
 }
 
