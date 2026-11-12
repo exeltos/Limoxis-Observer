@@ -115,6 +115,14 @@ describe('Division Director home', () => {
     expect(await screen.findByText('Δεν σας έχει ανατεθεί ακόμα διεύθυνση')).toBeTruthy()
   })
 
+  it('flu with no records this season reads «Δεν υπάρχουν καταγραφές», not 0%', async () => {
+    const base = fullOverview()
+    const departments = base.departments.map(item => ({ ...item, fluPct: null }))
+    overview = { ...base, departments, totals: { ...service.totalsOf(departments), fluPct: null } }
+    home()
+    expect(await screen.findByText('Δεν υπάρχουν καταγραφές')).toBeTruthy()
+    expect(readSource('supabase/migrations/20261231470000_division_overview_flu_no_records.sql')).toContain("coalesce((r ->> 'flu_recorded')::integer, 0) = 0 then null")
+  })
   it('offers «Διεύθυνση» only to a director of more than one division', async () => {
     home()
     await screen.findByText('Μιχαηλίδου Άννα')

@@ -131,7 +131,7 @@ describe('executive dashboard reads', () => {
   })
   it('lets the Director into Analysis, and grants the analysis RPCs to the director role', () => {
     const page = readSource('src/features/analysis/AnalysisPage.jsx')
-    expect(page).toContain('ROLES.HOSPITAL_DIRECTOR,ROLES.DEMO].includes(role)')
+    expect(page).toContain('ROLES.HOSPITAL_DIRECTOR,ROLES.DEMO] as (string|null)[]).includes(role)')
     const sql = readSource('supabase/migrations/20261128400000_executive_director_analysis_access.sql')
     for (const fn of ['analysis_domain_metrics', 'analysis_people_metrics', 'analysis_quality_food_metrics', 'analysis_crosstab_metrics', 'platform_report_summary', 'detect_organism_clusters']) expect(sql).toContain(fn)
     expect(sql).toContain("raise exception '%: role array not found exactly once (%)'")

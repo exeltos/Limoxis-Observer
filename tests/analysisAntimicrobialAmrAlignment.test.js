@@ -65,7 +65,7 @@ describe('AnalysisPage renders the richer antimicrobial/AMR shapes', () => {
   })
 
   it('renders one row per organism as resistant/tested from amrSusceptibility instead of a blunt MDR/XDR/PDR sum', () => {
-    expect(page).toContain('snapshot.amrSusceptibility.map(([organism,tested,resistant])=>[organism,`${resistant}/${tested}`')
+    expect(page).toContain('snapshot!.amrSusceptibility.map(([organism,tested,resistant]: [string,number,number])=>[organism,`${resistant}/${tested}`')
   })
 })
 

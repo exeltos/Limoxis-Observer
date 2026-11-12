@@ -1,0 +1,123 @@
+// Status of ΕΟΔΥ notifications per laboratory finding (notifiable_disease_reports).
+// The demo workspace keeps them in memory for the session.
+import { supabase } from '../../core/supabase/client'
+import { hospitalDate, hospitalToday } from '../../core/dates/hospitalDate'
+import { cloudClient } from '../../core/supabase/cloudContext'
+import type { Tables } from '../../core/supabase/database.types'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { EodyEntry } from './eodyCatalogue'
+
+type ReportRow=Pick<Tables<'notifiable_disease_reports'>,'id'|'finding_key'|'status'|'notified_at'|'reference'|'notes'|'updated_at'|'sample_id'|'patient_id'|'disease_label'|'disease_code'|'created_at'|'updated_by'>
+// A notification to ΕΟΔΥ as the screens read it (demo reports have the same shape).
+export interface NotificationReport { id: string, findingKey: string, status: string, notifiedAt: string, reference: string, notes: string, updatedBy?: string | null, updatedAt: string, sampleId: string, patientRecordId: string, disease?: string, diseaseCode?: string, createdAt?: string }
+interface ReportDraft { status: string, notifiedAt?: string, reference?: string, notes?: string }
+
+const demoReports = new Map<string, NotificationReport>()
+// A clinical notification of the demo patient with no admission (PT-260231): it shows in that
+// patient's record under «Δηλωτέα νοσήματα» even though the patient has no admission.
+const DEMO_NOTIFIED_AT = hospitalDate(new Date(Date.now() - 35 * 86400000))
+demoReports.set('clinical|demo-1', { id: 'clinical|demo-1', findingKey: 'clinical|demo-1', status: 'notified', notifiedAt: DEMO_NOTIFIED_AT, reference: 'ΕΟΔΥ-2026-0147', notes: '', updatedAt: `${DEMO_NOTIFIED_AT}T10:00:00Z`, sampleId: '', patientRecordId: 'PT-260231', disease: 'Ελονοσία', diseaseCode: 'malaria', createdAt: `${DEMO_NOTIFIED_AT}T09:30:00Z` })
+// The rest of the Demo's notifications of 2025–2026 (demoNotificationReports.js), added once on the first demo read;
+// loaded on demand so production never loads the Demo data.
+let demoSeeded: Promise<void> | null = null
+const seedDemoReports = () => (demoSeeded ||= import('./demoNotificationReports')
+  .then(({ demoNotificationReports }) => { for (const report of demoNotificationReports()) if (!demoReports.has(report.findingKey)) demoReports.set(report.findingKey, report) })
+  .catch(() => {}))
+
+const mapRow = (row: ReportRow): NotificationReport => ({ id: row.id, findingKey: row.finding_key, status: row.status, notifiedAt: row.notified_at || '', reference: row.reference || '', notes: row.notes || '', updatedBy: row.updated_by || null, updatedAt: row.updated_at, sampleId: row.sample_id || '', patientRecordId: row.patient_id || '', disease: row.disease_label || '', diseaseCode: row.disease_code || '', createdAt: row.created_at || '' })
+
+export async function loadNotificationReports(organizationId: string | null | undefined, { isDemo = false } = {}): Promise<NotificationReport[]> {
+  if (isDemo) { await seedDemoReports(); return [...demoReports.values()] }
+  if (!supabase || !organizationId) return []
+  const { data, error } = await supabase.from('notifiable_disease_reports').select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').eq('organization_id', organizationId)
+  if (error) throw error
+  return (data || []).map(mapRow)
+}
+
+// The notifications made for one patient (clinical ones carry the patient, laboratory ones their sample's patient),
+// newest first. Read-only; the demo workspace has none per patient.
+export async function loadPatientNotificationReports(organizationId: string | null | undefined, patientRecordId: string | null | undefined, { isDemo = false } = {}) {
+  if (isDemo || !supabase || !organizationId || !patientRecordId) return []
+  const { data, error } = await supabase.from('notifiable_disease_reports').select('id,disease_code,disease_label,status,notified_at,created_at').eq('organization_id', organizationId).eq('patient_id', patientRecordId).order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(row => ({ id: row.id, disease: row.disease_label || row.disease_code || '', status: row.status, notifiedAt: row.notified_at || '', createdAt: row.created_at || '' }))
+}
+
+export async function saveNotificationReport(organizationId: string | null | undefined, finding: AnyRecord, draft: ReportDraft, { isDemo = false } = {}): Promise<NotificationReport> {
+  const report: NotificationReport = { id: finding.findingKey, sampleId: finding.sample?.recordId || '', patientRecordId: finding.patientRecordId || '', findingKey: finding.findingKey, status: draft.status, notifiedAt: draft.status === 'notified' ? (draft.notifiedAt || hospitalToday()) : '', reference: draft.reference || '', notes: draft.notes || '', updatedAt: new Date().toISOString() }
+  if (isDemo) { demoReports.set(report.findingKey, report); return report }
+  const supabase = cloudClient()
+  const { data, error } = await supabase.from('notifiable_disease_reports').upsert({
+    organization_id: organizationId as string,
+    finding_key: finding.findingKey,
+    sample_id: finding.sample.recordId || null,
+    ...(finding.patientRecordId ? { patient_id: finding.patientRecordId } : {}),
+    disease_code: finding.rule.id,
+    status: report.status,
+    notified_at: report.notifiedAt || null,
+    reference: report.reference || null,
+    notes: report.notes || null,
+    updated_at: report.updatedAt,
+  }, { onConflict: 'organization_id,finding_key' }).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').single()
+  if (error) throw error
+  return mapRow(data)
+}
+
+// The notifications that belong to one record: those of the given laboratory samples (the
+// episode's, reached through sample_id) and the clinical ones carrying the patient. Newest first.
+export async function loadRecordNotificationReports(organizationId: string | null | undefined, { sampleRecordIds = [], patientRecordId = null }: { sampleRecordIds?: string[], patientRecordId?: string | null } = {}, { isDemo = false } = {}): Promise<NotificationReport[]> {
+  if (isDemo) await seedDemoReports()
+  if (isDemo) return [...demoReports.values()].filter(report => (patientRecordId && report.patientRecordId === patientRecordId) || sampleRecordIds.some(id => String(report.findingKey).startsWith(`${id}|`)))
+  if (!supabase || !organizationId) return []
+  const ids = [...new Set(sampleRecordIds.filter(Boolean))]
+  const filters = [ids.length && `sample_id.in.(${ids.join(',')})`, patientRecordId && `patient_id.eq.${patientRecordId}`].filter(Boolean)
+  if (!filters.length) return []
+  const { data, error } = await supabase.from('notifiable_disease_reports').select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').eq('organization_id', organizationId).or(filters.join(',')).order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(mapRow)
+}
+
+// A new clinical notification of a patient, picked from the ΕΟΔΥ catalogue: a pending report
+// (disease_code is the catalogue id; the deadline itself is read from the catalogue). The database
+// column notification_deadline only knows '24h' and 'week', so «Αμέσως» is left empty there.
+export async function createClinicalNotificationReport(organizationId: string | null | undefined, { patientRecordId, departmentId = null, entry }: { patientRecordId: string, departmentId?: string | null, entry: EodyEntry }, { isDemo = false } = {}): Promise<NotificationReport> {
+  const now = new Date().toISOString()
+  const key = `clinical|${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
+  if (isDemo || !supabase) {
+    const report: NotificationReport = { id: key, findingKey: key, status: 'pending', notifiedAt: '', reference: '', notes: '', updatedAt: now, sampleId: '', patientRecordId, disease: entry.el, diseaseCode: entry.id, createdAt: now }
+    demoReports.set(key, report)
+    return report
+  }
+  const { data, error } = await supabase.from('notifiable_disease_reports').insert({
+    organization_id: organizationId as string,
+    finding_key: key,
+    source: 'clinical',
+    patient_id: patientRecordId,
+    ...(departmentId ? { department_id: departmentId } : {}),
+    disease_code: entry.id,
+    disease_label: entry.el,
+    status: 'pending',
+    notification_deadline: ({ '24h': '24h', weekly: 'week' } as Record<string, string>)[entry.deadline] || null,
+  }).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').single()
+  if (error) throw error
+  return mapRow(data)
+}
+
+// A clinical notification (no laboratory finding) is updated by its id.
+export async function updateNotificationReport(organizationId: string | null | undefined, id: string, draft: ReportDraft, { isDemo = false } = {}) {
+  const patch = { status: draft.status, notified_at: draft.status === 'notified' ? (draft.notifiedAt || hospitalToday()) : null, reference: draft.reference || null, notes: draft.notes || null, updated_at: new Date().toISOString() }
+  if (isDemo || !supabase) return { id, status: draft.status, notifiedAt: patch.notified_at || '', reference: draft.reference || '', notes: draft.notes || '' }
+  const { data, error } = await supabase.from('notifiable_disease_reports').update(patch).eq('organization_id', organizationId as string).eq('id', id).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').single()
+  if (error) throw error
+  return mapRow(data)
+}
+
+// Demo only: the saved report leaves the session list (and comes back on «Restore» from the recycle bin).
+export function removeDemoNotificationReport(findingKey: string) {
+  const report = demoReports.get(findingKey)
+  demoReports.delete(findingKey)
+  return report || null
+}
+export function restoreDemoNotificationReport(report: NotificationReport | null | undefined) {
+  if (report?.findingKey) demoReports.set(report.findingKey, report)
+}
