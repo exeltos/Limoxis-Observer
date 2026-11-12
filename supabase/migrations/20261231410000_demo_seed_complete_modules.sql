@@ -44,8 +44,10 @@ begin
   -- The kitchen (HACCP), 20261123110200.
   perform private.demo_seed_kitchen(v_org, p_actor);
   -- Οι ενότητες που ήταν άδειες στα Demo (20261231350000–20261231390000).
-  perform private.demo_seed_rosters_regulations(v_org, p_actor);
+  -- Τα μητρώα πρώτα: προσθέτουν τα τμήματα Μαιευτικής, Τοκετών, ΤΕΠ και
+  -- Ενδοσκοπικού, ώστε οι βάρδιες να βρουν όλα τα τμήματα.
   perform private.demo_seed_registers(v_org, p_actor);
+  perform private.demo_seed_rosters_regulations(v_org, p_actor);
   perform private.demo_seed_interviews(v_org, p_actor);
   perform private.demo_seed_quality_resources(v_org, p_actor);
   perform private.demo_seed_quality_governance(v_org, p_actor);

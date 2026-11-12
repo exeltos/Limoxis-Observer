@@ -52,14 +52,15 @@ begin
     case when s.g % 3 = 0 then fm[1 + (s.g * 5) % 12] else ff[1 + (s.g * 5) % 12] end,
     case when s.g % 3 = 0 then lm[1 + (s.g * 7 + s.ord) % 12] else lf[1 + (s.g * 7 + s.ord) % 12] end,
     null, null, s.dep_id, s.dep_name,
-    case when s.k in (5, 6) then 'Βοηθός Νοσηλευτή' else 'Νοσηλευτής / Νοσηλεύτρια' end,
-    case when s.k = 7 then 'Προϊστάμενος Τμήματος' when s.k in (5, 6) then 'Βοηθός Νοσηλευτή' else 'Νοσηλευτής Τμήματος' end,
+    case when s.k in (5, 6) then 'Βοηθός Νοσηλευτή' when s.code in ('ΜΑΙ', 'ΑΤ') then 'Μαία / Μαιευτής' else 'Νοσηλευτής / Νοσηλεύτρια' end,
+    case when s.k = 7 then 'Προϊστάμενος Τμήματος' when s.k in (5, 6) then 'Βοηθός Νοσηλευτή' when s.code in ('ΜΑΙ', 'ΑΤ') then 'Μαία Τμήματος' else 'Νοσηλευτής Τμήματος' end,
     -- One of the new people is on leave in the register (and comes in out of the roster).
     case when s.g = 113 then 'leave' else 'active' end,
     d0 - (150 + (s.g * 67) % 3200), 'emp' || s.g::text || '@demo.invalid', p_actor, p_actor
   from (
-    select dep.id as dep_id, dep.name as dep_name, o.ord, k, 100 + (o.ord - 1) * 8 + k as g
-    from (values ('ΜΕΘ', 1), ('ΠΑΘ', 2), ('ΧΕΙΡ', 3), ('ΚΑΡΔ', 4), ('ΟΡΘ', 5), ('ΝΕΦ', 6), ('ΠΑΙΔ', 7), ('ΜΕΝΝ', 8)) o(code, ord)
+    select dep.id as dep_id, dep.name as dep_name, o.code, o.ord, k, 100 + (o.ord - 1) * 8 + k as g
+    from (values ('ΜΕΘ', 1), ('ΠΑΘ', 2), ('ΧΕΙΡ', 3), ('ΚΑΡΔ', 4), ('ΟΡΘ', 5), ('ΝΕΦ', 6), ('ΠΑΙΔ', 7), ('ΜΕΝΝ', 8),
+      ('ΜΑΙ', 9), ('ΑΤ', 10), ('ΤΕΠ', 11), ('ΕΝΔ', 12)) o(code, ord)
     join public.departments dep on dep.organization_id = v_org and dep.code = o.code
     cross join generate_series(1, 8) k
     where k < 7 or (k = 8 and o.code = 'ΠΑΘ') or (k = 7 and not exists (select 1 from public.employees e where e.organization_id = v_org and e.department_id = dep.id
@@ -73,9 +74,10 @@ begin
   cross join lateral (select substring(e.employee_code from 5)::int g) n
   cross join lateral (values
     ('VAC-INFLUENZA', 'Γρίπη εποχική', 'Εποχική δόση',
-      case when n.g % 5 = 3 then d0 - 380 else d0 - (n.g % 40) * 2 end,
-      case when n.g % 5 = 3 then d0 - 15 when n.g % 5 = 0 then null else d0 - (n.g % 40) * 2 + 365 end,
-      case when n.g % 5 = 0 then 'declined' when n.g % 5 = 3 then 'overdue' else 'complete' end,
+      case when n.g % 5 in (3, 4) then d0 - 380 else d0 - (n.g % 40) * 2 end,
+      case when n.g % 5 in (3, 4) then d0 - 15 when n.g % 5 = 0 then null else d0 - (n.g % 40) * 2 + 365 end,
+      -- About two in five vaccinated this season, as among the Demo's other employees.
+      case when n.g % 5 = 0 then 'declined' when n.g % 5 in (3, 4) then 'overdue' else 'complete' end,
       case when n.g % 5 = 0 then 'Άρνηση εμβολιασμού – ενημερώθηκε για τους κινδύνους.' end),
     ('VAC-HBV', 'Ηπατίτιδα Β', 'Πλήρης σειρά (3 δόσεις)', d0 - 900 - (n.g % 40) * 20, null::date,
       case when n.g % 11 = 0 then 'renew_soon' else 'complete' end, case when n.g % 11 = 0 then 'Anti-HBs < 10 mIU/mL – προγραμματισμός αναμνηστικής δόσης.' end),

@@ -38,7 +38,7 @@ describe('Demo data pack: the modules that were empty', () => {
   it('contact addresses in the Demo are never real mailboxes', () => {
     for (const path of Object.values(seeds)) {
       const emails = strip(read(path)).match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || []
-      for (const email of emails) expect(email).toMatch(/@example\.(com|org|net)$/)
+      for (const email of emails) expect(email).toMatch(/@(example\.(com|org|net)|[a-z.]*\.invalid)$/)
     }
   })
 })
