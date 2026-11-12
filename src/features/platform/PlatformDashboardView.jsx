@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Building2, CalendarClock, FlaskConical, Megaphone, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowRight, Building2, CalendarClock, Plus, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ACTIVITY_DAYS, loadHospitalHealth } from './platformHealthService'
 import { initialsOf, sinceText, statusOf } from './platformOverviewShared'
-import { greetingOf } from '../../core/i18n/greeting'
 import './platformDashboard.css'
 
 const DAY=86400000
@@ -58,46 +57,33 @@ function HospitalsTable({tx,hospitals,members,health,onNavigate,onCreateOrganiza
   </section>
 }
 
-function QuickActions({tx,onNavigate,onEnterDemo}){
-  const tiles=[
-    {id:'users',icon:Users,label:tx('Ενεργοί χρήστες','Active users'),run:()=>onNavigate('/platform#users')},
-    {id:'announcement',icon:Megaphone,label:tx('Νέα ανακοίνωση','New announcement'),run:()=>onNavigate('/platform/announcements',{state:{newAnnouncement:true}})},
-    onEnterDemo&&{id:'demo',icon:FlaskConical,label:tx('Είσοδος Demo','Enter Demo'),run:onEnterDemo},
-  ].filter(Boolean)
-  return <section className="platform-dashboard-panel platform-overview-quick"><header><h3>{tx('Γρήγορες ενέργειες','Quick actions')}</h3></header>
-    <div className="platform-overview-tiles">{tiles.map(({id,icon:Icon,label,run})=><button type="button" key={id} className="platform-overview-tile" onClick={run}><span className="platform-overview-tile-icon" aria-hidden="true"><Icon size={16}/></span>{label}</button>)}</div>
-  </section>
-}
-
-export function PlatformDashboardView({tx,organizations,members=[],users=[],activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate,ownerName='',onCreateOrganization,onCreateDemo,onEnterDemo,liveSessions=null}) {
+export function PlatformDashboardView({tx,organizations,members=[],users=[],activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate,onCreateOrganization,onCreateDemo,liveSessions=null}) {
   const [health,setHealth]=useState(null)
   useEffect(()=>{let active=true;loadHospitalHealth().then(data=>{if(active)setHealth(data||{})}).catch(()=>{if(active)setHealth({})});return()=>{active=false}},[])
-  const now=new Date(),locale=tx('el-GR','en-GB')
   const hospitals=(organizations||[]).filter(o=>!o.is_demo&&o.status!=='archived')
   const activeCount=hospitals.filter(o=>o.status==='active'&&!o.paused_at).length,pausedCount=hospitals.filter(o=>o.status==='suspended'||o.paused_at).length
   const people=new Map(users.filter(u=>u.kind!=='platform'&&u.userId).map(u=>[u.userId,u])),weekAgo=Date.now()-7*DAY,newThisWeek=[...people.values()].filter(u=>u.createdAt&&new Date(u.createdAt).getTime()>=weekAgo).length
   const nearest=activeDemos.length?Math.min(...activeDemos.map(d=>demoProgress?demoProgress(d).remaining:daysUntil(d.valid_until))):null
   const errors=health?Object.values(health).reduce((sum,item)=>sum+(item?.errors24h||0),0):null
-  const dateText=new Intl.DateTimeFormat(locale,{weekday:'long',day:'numeric',month:'long'}).format(now)
   const totals=[
     {id:'organizations',label:tx('Οργανισμοί','Organizations'),value:hospitals.length,note:tx(`${activeCount} ενεργοί · ${pausedCount} σε παύση`,`${activeCount} active · ${pausedCount} paused`),to:'/platform#organizations'},
     {id:'users',label:tx('Χρήστες','Users'),value:loadingStats&&!users.length?'—':people.size,note:newThisWeek?tx(`+${newThisWeek} αυτή την εβδομάδα`,`+${newThisWeek} this week`):tx('Κανένας νέος αυτή την εβδομάδα','None new this week'),tone:newThisWeek?'success':'',to:'/platform#users'},
     {id:'demo',label:'Demo',value:loadingStats?'—':activeDemos.length,note:nearest==null?tx('Κανένα ενεργό Demo','No active Demo'):nearest<=1?tx('Το πρώτο λήγει αύριο','The first ends tomorrow'):tx(`Το πρώτο λήγει σε ${nearest} ημέρες`,`The first ends in ${nearest} days`),tone:nearest!=null&&nearest<=7?'warning':'',to:'/platform#demo'},
     {id:'errors',label:tx('Σφάλματα 24ώρου','Errors, 24 h'),value:errors==null?'—':errors,note:errors==null?'…':errors?tx('Δείτε το Ιστορικό & Υγεία','See History & Health'):tx('Καμία αποτυχία','No failures'),tone:errors==null?'':errors?'danger':'success',to:'/platform/audit'},
   ]
-  const subtitle=`${dateText.charAt(0).toLocaleUpperCase(locale)}${dateText.slice(1)} · ${errors==null?tx('έλεγχος συστημάτων…','checking systems…'):errors?tx(`${errors} σφάλματα το τελευταίο 24ωρο`,`${errors} errors in the last 24 hours`):tx('χωρίς σφάλματα το τελευταίο 24ωρο','no errors in the last 24 hours')}`
   // The Overview (owner, 9/11/2026): one strip of totals (each opens its registry), the hospitals with their activity,
   // and on the right what needs action and the quick actions.
-  return <Page title={greetingOf(tx,ownerName,now)} subtitle={subtitle} actions={<div className="platform-overview-actions">{onCreateDemo&&<Button variant="secondary" onClick={onCreateDemo}><Plus size={15} aria-hidden="true"/>{tx('Νέο Demo','New Demo')}</Button>}{onCreateOrganization&&<Button onClick={onCreateOrganization}><Plus size={15} aria-hidden="true"/>{tx('Νέος οργανισμός','New organization')}</Button>}</div>}>
+  return <Page title={tx('Επισκόπηση','Overview')} actions={<div className="platform-overview-actions">{onCreateDemo&&<Button variant="secondary" onClick={onCreateDemo}><Plus size={15} aria-hidden="true"/>{tx('Νέο Demo','New Demo')}</Button>}{onCreateOrganization&&<Button onClick={onCreateOrganization}><Plus size={15} aria-hidden="true"/>{tx('Νέος οργανισμός','New organization')}</Button>}</div>}>
     <div className="platform-dashboard platform-overview">
       <div className="platform-overview-totals">{totals.map(item=><button type="button" key={item.id} className="platform-overview-total" onClick={()=>onNavigate(item.to)}><span>{item.label}</span><strong>{item.value}</strong><small className={item.tone?`tone-${item.tone}`:undefined}>{item.note}</small></button>)}</div>
       <div className="platform-overview-grid">
         <HospitalsTable tx={tx} hospitals={hospitals} members={members} health={health} onNavigate={onNavigate} onCreateOrganization={onCreateOrganization}/>
         <div className="platform-overview-side">
-          {/* Slot: «Συνδεδεμένοι τώρα» (connected now), supplied by the caller. */}
-          {liveSessions}
-          <ActionList tx={tx} demos={expiringDemos} organizations={organizations} demoProgress={demoProgress} onOpenDemo={onOpenDemo} onNavigate={onNavigate}/>
-          <QuickActions tx={tx} onNavigate={onNavigate} onEnterDemo={onEnterDemo}/>
+          <div className="platform-overview-attention">
+            {/* Slot: «Συνδεδεμένοι τώρα» (connected now), supplied by the caller. */}
+            {liveSessions}
+            <ActionList tx={tx} demos={expiringDemos} organizations={organizations} demoProgress={demoProgress} onOpenDemo={onOpenDemo} onNavigate={onNavigate}/>
+          </div>
         </div>
       </div>
     </div>
