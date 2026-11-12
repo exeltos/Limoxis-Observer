@@ -22,23 +22,25 @@ import { useContextualNavigation } from '../../../core/navigation/useContextualN
 import { useDepartments } from '../../management/useLibraries'
 import { useMeetingGroups } from './MeetingsPanel'
 import { deleteMeetingGroup, saveMeetingGroup } from './meetingService'
-import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, newMeetingGroup } from './meetingModel'
+import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, newMeetingGroup, type Meeting, type MeetingGroup, type MeetingParticipant, type MeetingTopic } from './meetingModel'
+import type { ReactNode } from 'react'
+import type { AnyRecord } from '../../../types/featureTypes'
 import { loadQualityRecords } from '../qualityService'
 import '../quality.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
 
-const HeaderAction = ({ children }) => children
-const yesNo = (value, en) => (value ? (en ? 'Yes' : 'Ναι') : '—')
-const kindLabel = (kind, en) => (kind === 'extraordinary' ? (en ? 'Extraordinary' : 'Έκτακτη') : (en ? 'Regular' : 'Τακτική'))
-const presentOf = meeting => (meeting.participants || []).filter(person => person.attended !== false).length
+const HeaderAction = ({ children }: { children?: ReactNode; tone?: string; utility?: boolean }) => children
+const yesNo = (value: unknown, en: boolean) => (value ? (en ? 'Yes' : 'Ναι') : '—')
+const kindLabel = (kind: string, en: boolean) => (kind === 'extraordinary' ? (en ? 'Extraordinary' : 'Έκτακτη') : (en ? 'Regular' : 'Τακτική'))
+const presentOf = (meeting: Meeting) => (meeting.participants || []).filter((person: MeetingParticipant) => person.attended !== false).length
 
 // Quality defines a department's meeting group: which department, how often it meets, who leads it.
-export function MeetingGroupDialog({ initial, departments, saving, onClose, onSave, language }) {
+export function MeetingGroupDialog({ initial, departments, saving, onClose, onSave, language }: { initial: Partial<MeetingGroup>, departments: AnyRecord[], saving: boolean, onClose: () => void, onSave: (group: MeetingGroup) => void, language: string }) {
   const en = language === 'en'
   const [v, setV] = useState(() => ({ ...newMeetingGroup(), ...initial }))
-  const set = next => setV(current => ({ ...current, ...next }))
-  const chooseDepartment = id => { const department = departments.find(item => (item.id || item.name) === id); set({ departmentId: id || '', department: department?.name || '', name: v.name || (department ? `${en ? 'Meetings' : 'Συναντήσεις'} ${department.name}` : '') }) }
+  const set = (next: Partial<MeetingGroup>) => setV(current => ({ ...current, ...next }))
+  const chooseDepartment = (id: string) => { const department = departments.find(item => (item.id || item.name) === id); set({ departmentId: id || '', department: department?.name || '', name: v.name || (department ? `${en ? 'Meetings' : 'Συναντήσεις'} ${department.name}` : '') }) }
   const frequencies = MEETING_FREQUENCIES.includes(Number(v.frequencyDays)) ? MEETING_FREQUENCIES : [...MEETING_FREQUENCIES, Number(v.frequencyDays)].sort((a, b) => a - b)
   return <ObserverDialog title={v.id ? (en ? 'Meeting group' : 'Ομάδα συναντήσεων') : (en ? 'New meeting department' : 'Νέο τμήμα συναντήσεων')} subtitle={en ? 'How often the department meets, as the administration set it.' : 'Πόσο συχνά συναντάται το τμήμα, όπως το όρισε η διοίκηση.'} onClose={onClose}
     footer={<DialogActions onSave={() => onSave(v)} saveLabel={en ? 'Save' : 'Αποθήκευση'} disabled={saving || !String(v.name).trim() || !v.departmentId} />}>
@@ -54,7 +56,7 @@ export function MeetingGroupDialog({ initial, departments, saving, onClose, onSa
 }
 
 // The groups: one row per department, with how often it meets and when the next meeting is due.
-export function MeetingGroupsList({ data, onOpen, language }) {
+export function MeetingGroupsList({ data, onOpen, language }: { data: ReturnType<typeof useMeetingGroups>, onOpen: (group: MeetingGroup) => void, language: string }) {
   const en = language === 'en'
   const today = hospitalToday()
   const rows = useMemo(() => data.groups.map(group => ({ group, status: groupStatus(group, data.meetings.meetings, today) })), [data.groups, data.meetings.meetings, today])
@@ -75,7 +77,7 @@ export function MeetingGroupsList({ data, onOpen, language }) {
 
 // One department's meeting group: its summary, its meetings (regular and extraordinary), the
 // decisions still open and the training that came up. `groupId` given by the department's own page.
-export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings?tab=departments' } = {}) {
+export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings?tab=departments' }: { groupId?: string | null, home?: string } = {}) {
   const params = useParams()
   const groupId = ownGroupId || params.groupId
   const { language } = useLanguage()
@@ -84,31 +86,31 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
   const { tenant } = useTenant()
   const { goTo, goBack, restored } = useContextualNavigation(home)
   const data = useMeetingGroups()
-  const { departments } = useDepartments()
+  const { departments }: { departments: AnyRecord[] } = useDepartments()
   const [tab, setTab] = useState(restored?.tab || 'meetings')
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   // The corrective actions opened from the meetings' decisions.
-  const [capas, setCapas] = useState([])
-  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter(row => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
+  const [capas, setCapas] = useState<AnyRecord[]>([])
+  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter((row: AnyRecord) => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
   const group = data.groups.find(item => item.id === groupId) || null
   const today = hospitalToday()
   if (data.loading && !group) return <Page fill><TableSkeleton/></Page>
   if (!group) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Meeting group not found' : 'Η ομάδα συναντήσεων δεν βρέθηκε'}</strong></div></Page>
   const status = groupStatus(group, data.meetings.meetings, today)
   const canWrite = data.canManage || data.meetings.access.canSee({ departmentId: group.departmentId, department: group.department })
-  const openMeeting = meeting => goTo(`/meetings/${meeting.id}`, { tab })
+  const openMeeting = (meeting: Meeting) => goTo(`/meetings/${meeting.id}`, { tab })
   // What was said in the group's meetings, newest first: each topic with what was discussed and concluded.
-  const topicRows = status.meetings.flatMap(meeting => (meeting.topics || []).map(topic => ({ ...topic, meeting })))
-  const newMeeting = kind => goTo('/meetings/new', { tab: 'meetings', state: { group, kind } })
-  async function saveGroup(next) {
+  const topicRows = status.meetings.flatMap(meeting => (meeting.topics || []).map((topic: MeetingTopic) => ({ ...topic, meeting })))
+  const newMeeting = (kind: string) => goTo('/meetings/new', { tab: 'meetings', state: { group, kind } })
+  async function saveGroup(next: MeetingGroup) {
     setSaving(true)
     try { await saveMeetingGroup(tenant?.id, next); notify(en ? 'Group saved.' : 'Η ομάδα αποθηκεύτηκε.', 'success'); setEditing(false); data.reload() } catch (error) { console.error(error); notify(en ? 'The group could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση της ομάδας.', 'error') } finally { setSaving(false) }
   }
   async function removeGroup() {
     if (status.meetings.length) { notify(en ? `The department has ${status.meetings.length} meetings: delete them first, or deactivate the department.` : `Το τμήμα έχει ${status.meetings.length} συναντήσεις: διαγράψτε τες πρώτα ή κάντε το τμήμα ανενεργό.`, 'error'); return }
     const ok = await confirm({ title: en ? 'Delete department' : 'Διαγραφή τμήματος', message: en ? 'The department is removed from the meetings.' : 'Το τμήμα αφαιρείται από τις συναντήσεις.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
-    if (!ok) return
+    if (!ok || !group) return
     try { await deleteMeetingGroup(tenant?.id, group.id); data.reload(); notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success'); goBack() } catch (error) { console.error(error); notify(en ? 'The department could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή.', 'error') }
   }
   const tabs = [

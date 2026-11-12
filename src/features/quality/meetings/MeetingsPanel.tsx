@@ -4,7 +4,7 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { useRegisterAccess } from '../../registers/registerAccess'
 import { loadMeetingGroups, loadMeetings } from './meetingService'
-import { meetingAccess } from './meetingModel'
+import { meetingAccess, type Meeting, type MeetingGroup, type MeetingTopic } from './meetingModel'
 
 // The department meetings the user may see: every department for Quality, the
 // own department(s) for its members (the database filters the same way).
@@ -13,7 +13,7 @@ export function useMeetings(enabled = true) {
   const registerAccess = useRegisterAccess()
   const canManage = (!isRolePreview && actualRole === ROLES.PLATFORM_OWNER) || can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const access = useMemo(() => meetingAccess(registerAccess, canManage), [registerAccess, canManage])
-  const [meetings, setMeetings] = useState([])
+  const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState(false)
   const reload = useCallback(() => {
@@ -30,7 +30,7 @@ export function useMeetings(enabled = true) {
 export function useMeetingGroups(enabled = true) {
   const { tenant } = useTenant()
   const meetings = useMeetings(enabled)
-  const [groups, setGroups] = useState([])
+  const [groups, setGroups] = useState<MeetingGroup[]>([])
   const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState(false)
   const reloadGroups = useCallback(() => {
@@ -44,14 +44,14 @@ export function useMeetingGroups(enabled = true) {
   return { groups: visible, meetings, loading: loading || meetings.loading, error: error || meetings.error, reload, canManage: meetings.canManage }
 }
 
-const departmentOf = (meeting, en) => (en ? meeting.departmentEn : meeting.department) || meeting.department || '—'
+const departmentOf = (meeting: Meeting, en: boolean) => (en ? meeting.departmentEn : meeting.department) || meeting.department || '—'
 
-export function meetingsExport(meetings, language) {
+export function meetingsExport(meetings: Meeting[], language: string) {
   const en = language === 'en'
-  const yes = value => (value ? (en ? 'Yes' : 'Ναι') : '')
+  const yes = (value: unknown) => (value ? (en ? 'Yes' : 'Ναι') : '')
   return {
     name: en ? 'department-meetings' : 'synantiseis-tmimaton',
     headers: en ? ['Code', 'Department', 'Date', 'Kind', 'Topics', 'Decision', 'Training'] : ['Κωδικός', 'Τμήμα', 'Ημερομηνία', 'Είδος', 'Θέματα', 'Απόφαση', 'Εκπαίδευση'],
-    rows: meetings.map(meeting => [meeting.code, departmentOf(meeting, en), formatDay(meeting.meetingDate, language), meeting.kind === 'extraordinary' ? (en ? 'Extraordinary' : 'Έκτακτη') : (en ? 'Regular' : 'Τακτική'), (meeting.topics || []).map(topic => topic.subject).filter(Boolean).join(' · '), yes(meeting.decisions.length > 0), yes(meeting.trainingHeld)]),
+    rows: meetings.map(meeting => [meeting.code, departmentOf(meeting, en), formatDay(meeting.meetingDate, language), meeting.kind === 'extraordinary' ? (en ? 'Extraordinary' : 'Έκτακτη') : (en ? 'Regular' : 'Τακτική'), (meeting.topics || []).map((topic: MeetingTopic) => topic.subject).filter(Boolean).join(' · '), yes(meeting.decisions.length > 0), yes(meeting.trainingHeld)]),
   }
 }

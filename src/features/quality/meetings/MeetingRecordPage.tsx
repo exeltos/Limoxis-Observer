@@ -31,22 +31,25 @@ import { useMeetings } from './MeetingsPanel'
 import { loadQualityRecords } from '../qualityService'
 import { useEmployeesData } from '../../employees/useEmployeesData'
 import { DocumentsWorkspace } from '../../../design-system/DocumentsWorkspace'
+import type { AttachmentFile } from '../../../design-system/AttachmentField'
 import { ModeSwitch } from '../../../design-system/ModeSwitch'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { deleteMeeting, saveMeeting } from './meetingService'
-import { MEETING_KINDS, addDays, decisionStatusLabel, newMeetingFor, previousMonth } from './meetingModel'
+import { MEETING_KINDS, addDays, decisionStatusLabel, newMeetingFor, previousMonth, type Meeting, type MeetingDecision, type MeetingParticipant, type MeetingTopic } from './meetingModel'
+import type { ReactNode } from 'react'
+import type { AnyRecord } from '../../../types/featureTypes'
 import '../quality.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
-const escapeHtml = text => String(text ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char])
+const escapeHtml = (text: unknown) => String(text ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as Record<string, string>)[char])
 
 // The minutes as a Word document: who, the month's indicators as written, the discussion, the decisions.
-function downloadMinutes(meeting, organizationName) {
-  const paragraphs = text => String(text || '').split(/\n+/).filter(Boolean).map(line => `<p>${escapeHtml(line)}</p>`).join('')
+function downloadMinutes(meeting: Meeting, organizationName: string) {
+  const paragraphs = (text: unknown) => String(text || '').split(/\n+/).filter(Boolean).map(line => `<p>${escapeHtml(line)}</p>`).join('')
   const present = meeting.participants.filter(person => person.attended !== false).map(person => escapeHtml(person.name)).join(', ')
   const absent = meeting.participants.filter(person => person.attended === false).map(person => escapeHtml(person.name)).join(', ')
   const decisions = meeting.decisions.length ? `<h2>Αποφάσεις</h2><table border="1" cellpadding="4" cellspacing="0"><tr><th>Α/Α</th><th>Απόφαση</th><th>Υπεύθυνος</th><th>Προθεσμία</th><th>Κατάσταση</th></tr>${meeting.decisions.map((item, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(item.title)}</td><td>${escapeHtml(item.ownerLabel)}</td><td>${formatDay(item.dueDate, 'el')}</td><td>${decisionStatusLabel(item.status, 'el')}</td></tr>`).join('')}</table>` : ''
-  const topics = (meeting.topics || []).map((item, index) => `<p><b>${index + 1}. ${escapeHtml(item.subject)}</b></p>${item.discussion ? `<p>${escapeHtml(item.discussion)}</p>` : ''}${item.conclusion ? `<p><i>Συμπέρασμα:</i> ${escapeHtml(item.conclusion)}</p>` : ''}`).join('')
+  const topics = (meeting.topics || []).map((item: MeetingTopic, index: number) => `<p><b>${index + 1}. ${escapeHtml(item.subject)}</b></p>${item.discussion ? `<p>${escapeHtml(item.discussion)}</p>` : ''}${item.conclusion ? `<p><i>Συμπέρασμα:</i> ${escapeHtml(item.conclusion)}</p>` : ''}`).join('')
   const training = meeting.trainingHeld ? `<h2>Εκπαίδευση</h2><p>Έγινε εκπαίδευση στη συνάντηση${meeting.trainingTitle ? `: ${escapeHtml(meeting.trainingTitle)}` : ''}.</p>` : ''
   const html = `<html><head><meta charset="utf-8"><title>${escapeHtml(meeting.title)}</title><style>body{font-family:Calibri,Arial;font-size:11pt}h1{font-size:16pt}h2{font-size:12pt;margin-top:14pt}table{border-collapse:collapse;width:100%}</style></head><body>
 <h1>${escapeHtml(meeting.title)} · ${escapeHtml(meeting.department)}</h1><p><b>Πρακτικό συνάντησης τμήματος</b> ${escapeHtml(meeting.code)} · ${escapeHtml(organizationName || '')}</p>
@@ -62,15 +65,17 @@ function downloadMinutes(meeting, organizationName) {
 }
 
 // Earlier meetings kept their topics as lines of the agenda: they open as topics.
-const withTopics = meeting => ({ ...meeting, topics: meeting.topics?.length ? meeting.topics : String(meeting.agenda || '').split(/\n+/).map(line => line.trim()).filter(Boolean).map(subject => ({ id: newId('dmt'), subject, discussion: '', conclusion: '' })) })
-const trainingStatusText = (status, en) => ({ completed: en ? 'Training done' : 'Η εκπαίδευση έγινε', cancelled: en ? 'Training cancelled' : 'Η εκπαίδευση ακυρώθηκε' })[status] || (en ? 'Training created' : 'Η εκπαίδευση δημιουργήθηκε')
+const withTopics = (meeting: Meeting): OpenMeeting => ({ ...meeting, topics: meeting.topics?.length ? meeting.topics : String(meeting.agenda || '').split(/\n+/).map(line => line.trim()).filter(Boolean).map(subject => ({ id: newId('dmt'), subject, discussion: '', conclusion: '' })) })
+const trainingStatusText = (status: string, en: boolean) => ({ completed: en ? 'Training done' : 'Η εκπαίδευση έγινε', cancelled: en ? 'Training cancelled' : 'Η εκπαίδευση ακυρώθηκε' })[status] || (en ? 'Training created' : 'Η εκπαίδευση δημιουργήθηκε')
 
 // The profession as the people register keeps it («190 ΝΟΣΗΛΕΥΤΗΣ/ΤΡΙΑ 2ΕΤΟΥΣ»): without the code and the years.
 // Topics and decisions get an id at once, so a decision can point to the topic it came out of.
 // The record shell keeps a `utility` action visible in the header (tone primary: the main one, last).
-const HeaderAction = ({ children }) => children
-const newId = prefix => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`)
-const cleanRole = text => String(text || '').replace(/^\s*\d+\s*/, '').replace(/\s+\d+\s*(ΕΤΟΥΣ|ΕΤΩΝ|ΕΤΙΑΣ)\s*$/i, '').trim()
+// The open meeting always has its topics (withTopics).
+type OpenMeeting = Meeting & { topics: MeetingTopic[] }
+const HeaderAction = ({ children }: { children?: ReactNode; tone?: string; utility?: boolean }) => children
+const newId = (prefix: string) => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`)
+const cleanRole = (text: unknown) => String(text || '').replace(/^\s*\d+\s*/, '').replace(/\s+\d+\s*(ΕΤΟΥΣ|ΕΤΩΝ|ΕΤΙΑΣ)\s*$/i, '').trim()
 
 // One department meeting: when, topics and conclusions, decisions (carried from the previous one), who attended, a training held,
 // the decisions (with those carried from the previous meeting) and who took part.
@@ -87,12 +92,14 @@ export function MeetingRecordPage() {
   const { user, profile } = useAuth()
   const { goBack, goTo } = useContextualNavigation('/meetings?tab=departments')
   const list = useMeetings()
-  const { departments, loading: departmentsLoading } = useDepartments()
+  const { departments, loading: departmentsLoading }: { departments: AnyRecord[], loading: boolean } = useDepartments()
   // Topics from the hospital's library (Management > Libraries > Committee and meeting topics).
-  const { libraries } = useLibraries()
-  const topicOptions = useMemo(() => libraryOptions(libraries.committeeTopics || [], language).map(option => ({ ...option, description: [option.description, (libraries.committeeTopics || []).find(item => item.value === option.value)?.meta?.category].filter(Boolean).join(' · ') || undefined })), [libraries.committeeTopics, language])
+  const { libraries }: { libraries: AnyRecord } = useLibraries()
+  const topicOptions = useMemo(() => libraryOptions(libraries.committeeTopics || [], language).map(option => ({ ...option, description: [option.description, (libraries.committeeTopics || []).find((item: AnyRecord) => item.value === option.value)?.meta?.category].filter(Boolean).join(' · ') || undefined })), [libraries.committeeTopics, language])
   const topicLabels = useMemo(() => topicOptions.map(option => option.label), [topicOptions])
-  const [meeting, setMeeting] = useState(null)
+  const [meeting, setMeetingValue] = useState<OpenMeeting | null | false>(null)
+  // Every change after the load works on the open meeting (null while loading, false when not found).
+  const setMeeting = setMeetingValue as (next: OpenMeeting | false | ((current: OpenMeeting) => OpenMeeting)) => void
   const [tab, setTab] = useState('details')
   const [saving, setSaving] = useState(false)
   // Departments the user may hold a meeting for: all of them for Quality, their own otherwise.
@@ -112,54 +119,57 @@ export function MeetingRecordPage() {
     const wanted = location.state?.department
     const department = ownDepartments.find(item => item.name === wanted || item.id === wanted) || (ownDepartments.length === 1 ? ownDepartments[0] : null)
     if (department || ownDepartments.length || !departmentsLoading) setMeeting(withTopics(department ? newMeetingFor(department, list.all) : { ...newMeetingFor(null, list.all), departmentId: '' }))
-  }, [list.loading, list.meetings, list.all, meetingId, isNew, meeting, ownDepartments, departmentsLoading, location.state, en])
+  }, [list.loading, list.meetings, list.all, meetingId, isNew, meeting, ownDepartments, departmentsLoading, location.state, en, setMeeting])
 
   // The attendance: the department's active employees, each present or absent.
-  const { data: employees } = useEmployeesData()
+  const { data: employees }: { data: AnyRecord[] | null | undefined } = useEmployeesData()
   const staff = useMemo(() => (meeting ? (employees || []).filter(employee => (employee.employmentStatus || 'active') === 'active' && ((meeting.departmentId && employee.departmentId === meeting.departmentId) || (employee.department && employee.department === meeting.department))) : []).map(employee => ({ employeeId: employee.dbId || employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(), role: cleanRole(employee.position || employee.profession) })), [employees, meeting])
   const employeeById = useMemo(() => new Map((employees || []).map(employee => [employee.dbId || employee.id, employee])), [employees])
-  const [documents, setDocuments] = useState([])
+  const [documents, setDocuments] = useState<AttachmentFile[]>([])
   // The corrective actions opened from decisions of department meetings.
-  const [capas, setCapas] = useState([])
-  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter(row => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
+  const [capas, setCapas] = useState<AnyRecord[]>([])
+  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter((row: AnyRecord) => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
   useEffect(() => {
     // A new meeting starts with every active employee of the department present; the head marks who was absent.
     if (!isNew || !meeting || meeting.staffFilled || !staff.length) return
     setMeeting(current => ({ ...current, staffFilled: true, participants: staff.map(person => ({ ...person, attended: true })) }))
-  }, [isNew, meeting, staff])
+  }, [isNew, meeting, staff, setMeeting])
   if (list.loading || meeting === null) return <Page fill><TableSkeleton/></Page>
   if (meeting === false) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Meeting not found' : 'Η συνάντηση δεν βρέθηκε'}</strong></div></Page>
 
   const canWrite = isNew ? ownDepartments.length > 0 : list.access.canWrite(meeting)
   const locked = !canWrite
-  const set = next => setMeeting(current => ({ ...current, ...next }))
-  const setDecision = (index, next) => setMeeting(current => ({ ...current, decisions: current.decisions.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
-  const setTopic = (index, next) => setMeeting(current => ({ ...current, topics: current.topics.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
-  const addTopic = subject => setMeeting(current => ({ ...current, topics: [...current.topics, { id: newId('dmt'), subject, discussion: '', conclusion: '' }] }))
+  const set = (next: Partial<Meeting>) => setMeeting(current => ({ ...current, ...next }))
+  const setDecision = (index: number, next: Partial<MeetingDecision>) => setMeeting(current => ({ ...current, decisions: current.decisions.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
+  const setTopic = (index: number, next: Partial<MeetingTopic>) => setMeeting(current => ({ ...current, topics: current.topics.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
+  const addTopic = (subject: string) => setMeeting(current => ({ ...current, topics: [...current.topics, { id: newId('dmt'), subject, discussion: '', conclusion: '' }] }))
   // A decision comes out of a topic («Decision» on the topic), when the topic has one.
-  const addDecision = topicId => setMeeting(current => ({ ...current, decisions: [...current.decisions, { id: newId('dmd'), topicId, title: '', ownerLabel: '', dueDate: '', status: 'open', capaId: '', carriedFrom: '' }] }))
+  const addDecision = (topicId: string) => setMeeting(current => ({ ...current, decisions: [...current.decisions, { id: newId('dmd'), topicId, title: '', ownerLabel: '', dueDate: '', status: 'open', capaId: '', carriedFrom: '' }] }))
   // The training held at the meeting: a new programme, filled in from the meeting; it is linked back when saved.
   // The people present become the programme's participants; the meeting is saved first so nothing typed is lost.
   async function createTraining() {
+    if (!meeting) return
     if (!locked && !(await save())) return
     const attendees = meeting.participants.filter(person => person.attended !== false && String(person.name).trim()).map(person => { const employee = employeeById.get(person.employeeId); return { employeeCode: employee?.id || '', name: person.name, department: employee?.department || meeting.department, departmentId: employee?.departmentId || meeting.departmentId || null, email: employee?.email || '' } })
     goTo('/training/new', { tab, state: { trainingDraft: { title: meeting.topics.map(topic => topic.subject).filter(Boolean)[0] || '', audience: meeting.department, deliveryKind: 'intra_department', startDate: meeting.meetingDate, dueDate: meeting.meetingDate, description: en ? `Held at the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Έγινε στη συνάντηση ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` }, meetingTraining: { meetingId: meeting.id, attendees } } })
   }
-  const setPerson = (index, next) => setMeeting(current => ({ ...current, participants: current.participants.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
-  const chooseDepartment = id => { const department = ownDepartments.find(item => (item.id || item.name) === id); if (department) setMeeting(current => ({ ...newMeetingFor(department, list.all, current.meetingDate), meetingDate: current.meetingDate })) }
+  const setPerson = (index: number, next: Partial<MeetingParticipant>) => setMeeting(current => ({ ...current, participants: current.participants.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
+  const chooseDepartment = (id: string) => { const department = ownDepartments.find(item => (item.id || item.name) === id); if (department) setMeeting(current => withTopics({ ...newMeetingFor(department, list.all, current.meetingDate), meetingDate: current.meetingDate })) }
 
   async function remove() {
+    if (!meeting) return
     const ok = await confirm({ title: en ? 'Delete meeting' : 'Διαγραφή συνάντησης', message: en ? 'The meeting is deleted with its topics, decisions and attendance. A linked training or corrective action stays.' : 'Διαγράφεται η συνάντηση με τα θέματα, τις αποφάσεις και τις παρουσίες της. Η εκπαίδευση ή η διορθωτική ενέργεια που συνδέθηκε μένει.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
     if (!ok) return
     try { await deleteMeeting(tenant?.id, meeting.id); list.reload(); notify(en ? 'Meeting deleted.' : 'Η συνάντηση διαγράφηκε.', 'success'); goBack() } catch (error) { console.error(error); notify(en ? 'The meeting could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή της συνάντησης.', 'error') }
   }
-  async function save(nextStatus) {
+  async function save(nextStatus?: string) {
+    if (!meeting) return false
     if (!meeting.departmentId) { notify(en ? 'Choose the department first.' : 'Επιλέξτε πρώτα το τμήμα.', 'error'); return }
     setSaving(true)
     try {
       const topics = meeting.topics.filter(item => String(item.subject).trim())
       const next = { ...meeting, topics, agenda: topics.map(item => item.subject.trim()).join('\n'), decisions: meeting.decisions.filter(item => String(item.title).trim()), participants: meeting.participants.filter(item => String(item.name).trim()), status: nextStatus || meeting.status, ...(nextStatus === 'final' ? { finalizedAt: new Date().toISOString(), finalizedByLabel: auditActorFromAuth({ profile, user }).name } : nextStatus === 'draft' ? { finalizedAt: null, finalizedByLabel: '' } : {}) }
-      const saved = await saveMeeting(tenant?.id, next)
+      const saved = (await saveMeeting(tenant?.id, next)) as Meeting
       notify(en ? 'Meeting saved.' : 'Η συνάντηση αποθηκεύτηκε.', 'success')
       list.reload()
       if (isNew) navigate(`/meetings/${saved.id}`, { replace: true, state: location.state })
@@ -167,7 +177,8 @@ export function MeetingRecordPage() {
       return true
     } catch (error) { console.error(error); notify(en ? 'The meeting could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση της συνάντησης.', 'error'); return false } finally { setSaving(false) }
   }
-  function openCapa(decision) {
+  function openCapa(decision: MeetingDecision) {
+    if (!meeting) return
     goTo('/quality/capas/new', { tab, state: { qualitySource: { source: 'other', sourceId: `DM:${meeting.code}#${decision.id}`, departmentId: meeting.departmentId, department: meeting.department, departmentEn: meeting.departmentEn, title: decision.title, description: en ? `Decision of the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Απόφαση της συνάντησης ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` } } })
   }
 
@@ -187,9 +198,9 @@ export function MeetingRecordPage() {
   </div>
 
   // The corrective actions opened from this meeting's decisions (their source is «DM:<code>#<decision id>»).
-  const capaOf = item => capas.find(capa => capa.sourceId === `DM:${meeting.code}#${item.id}`)
+  const capaOf = (item: MeetingDecision) => capas.find(capa => capa.sourceId === `DM:${meeting.code}#${item.id}`)
   // One decision: its text and, if there was one, the corrective action (opening it, or going to it).
-  const decisionRow = (item, index) => {
+  const decisionRow = (item: MeetingDecision, index: number) => {
     const capa = capaOf(item)
     const capaButton = capa
       ? <Button variant="secondary" onClick={() => goTo(`/quality/capas/${capa.id}`, { tab })}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'} {capa.code || ''}<StatusBadge tone={qualityStatusTone(capa.status)}>{t(capa.status)}</StatusBadge></Button>
@@ -200,7 +211,7 @@ export function MeetingRecordPage() {
     </div>
   }
   const looseDecisions = meeting.decisions.map((item, index) => ({ item, index })).filter(({ item }) => !meeting.topics.some(topic => topic.id && topic.id === item.topicId))
-  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} headerActions={<>{!locked && <HeaderAction utility tone="primary"><Button onClick={() => { setTab('topics'); addTopic('') }}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button></HeaderAction>}{!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />}{!isNew && !locked && <IconButton tone="danger" label={en ? 'Delete meeting' : 'Διαγραφή συνάντησης'} onClick={remove}><Trash2 size={16} /></IconButton>}</>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
+  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} headerActions={<>{!locked && <HeaderAction utility tone="primary"><Button onClick={() => { setTab('topics'); addTopic('') }}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button></HeaderAction>}{!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name || '')} />}{!isNew && !locked && <IconButton tone="danger" label={en ? 'Delete meeting' : 'Διαγραφή συνάντησης'} onClick={remove}><Trash2 size={16} /></IconButton>}</>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
     {tab === 'details' && <RecordTabPanel className="review-minutes" title={en ? 'Details' : 'Στοιχεία'} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Meeting' : 'Συνάντηση'}>
@@ -248,7 +259,7 @@ export function MeetingRecordPage() {
         </div>
         : <RegistryTable sortable={false} className="quality-table meeting-attendance-table" rows={meeting.participants} rowKey={(person, index) => person.id || person.employeeId || index}
           columns={[{ key: 'name', label: en ? 'Name' : 'Ονοματεπώνυμο' }, { key: 'role', label: en ? 'Role' : 'Ιδιότητα' }, { key: 'attended', label: en ? 'Attendance' : 'Παρουσία' }]}
-          renderRow={(person, index) => { const former = person.employeeId && employeeById.get(person.employeeId) && employeeById.get(person.employeeId).employmentStatus && employeeById.get(person.employeeId).employmentStatus === 'inactive'; return <>
+          renderRow={(person, index) => { const former = person.employeeId && employeeById.get(person.employeeId) && employeeById.get(person.employeeId)?.employmentStatus && employeeById.get(person.employeeId)?.employmentStatus === 'inactive'; return <>
             <td>{person.employeeId || locked ? <strong>{person.name}</strong> : <input aria-label={en ? 'Name' : 'Ονοματεπώνυμο'} value={person.name} placeholder={en ? 'Name' : 'Ονοματεπώνυμο'} onChange={event => setPerson(index, { name: event.target.value })} />}<InactiveEmployeeBadge inactive={Boolean(former)} /></td>
             <td>{person.employeeId || locked ? (person.role || cleanRole(employeeById.get(person.employeeId)?.position || employeeById.get(person.employeeId)?.profession) || '—') : <input aria-label={en ? 'Role' : 'Ιδιότητα'} value={person.role} onChange={event => setPerson(index, { role: event.target.value })} />}</td>
             <td className="meeting-attendance-cell">

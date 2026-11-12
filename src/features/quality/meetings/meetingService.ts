@@ -1,8 +1,10 @@
-import { supabase } from '../../../core/supabase/client'
+import { cloudClient } from '../../../core/supabase/cloudContext'
+import type { Tables } from '../../../core/supabase/database.types'
+import type { AnyRecord } from '../../../types/featureTypes'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
-import { addDays, nextMeetingCode, previousMonth } from './meetingModel'
+import { addDays, nextMeetingCode, previousMonth, type Meeting, type MeetingDecision, type MeetingGroup, type MeetingParticipant, type MeetingTopic } from './meetingModel'
 import { seededRandom } from '../../../core/data/demoSeed'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
 
@@ -11,15 +13,15 @@ import { hospitalToday } from '../../../core/dates/hospitalDate'
 // department read and write only its own meetings.
 
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
-const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
-const localId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-const must = ({ data, error }) => { if (error) throw error; return data }
+const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
+const localId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+const must = <T>({ data, error }: { data: T | null, error: unknown }): T => { if (error) throw error; return data as T }
 const LOCAL_KEY = 'quality_local_department_meetings'
 const LOCAL_GROUPS_KEY = 'quality_local_department_meeting_groups'
 
 // --- Demo -------------------------------------------------------------------------
 
-function demoMeetings() {
+function demoMeetings(): Meeting[] {
   const day = hospitalToday()
   const nicu = { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU', groupId: 'dmg-nicu' }
   const icu = { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU', groupId: 'dmg-icu' }
@@ -51,7 +53,7 @@ function demoMeetings() {
 // often as it is set to, from January 2025 until its recent meetings above (or until today), with topics,
 // decisions and attendance. Seeded, so the same rows every time. Codes are then numbered within each
 // department and year, oldest first.
-const HISTORY_GROUPS = [
+const HISTORY_GROUPS: { groupId: string, departmentId: string, department: string, departmentEn: string, title: string, months: number, day: number, people: string[] }[] = [
   { groupId: 'dmg-nicu', departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU', title: 'Μηνιαία συνάντηση ΜΕΝΝ', months: 1, day: 12, people: ['Διευθυντής ΜΕΝΝ', 'Προϊσταμένη ΜΕΝΝ', 'Υπεύθυνος Ποιότητας'] },
   { groupId: 'dmg-icu', departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU', title: 'Συνάντηση ΜΕΘ', months: 3, day: 18, people: ['Διευθυντής ΜΕΘ', 'Προϊσταμένη ΜΕΘ', 'Link Nurse ΜΕΘ'] },
   { groupId: 'dmg-surgery', departmentId: 'Χειρουργική', department: 'Χειρουργική', departmentEn: 'Surgery', title: 'Μηνιαία συνάντηση Χειρουργικής', months: 1, day: 8, people: ['Διευθυντής Χειρουργικής', 'Προϊστάμενος Χειρουργικής', 'Link Nurse Χειρουργικής', 'Υπεύθυνος Ποιότητας'] },
@@ -59,7 +61,7 @@ const HISTORY_GROUPS = [
   { groupId: 'dmg-ed', departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'ED', title: 'Συνάντηση ΤΕΠ', months: 2, day: 15, people: ['Διευθυντής ΤΕΠ', 'Προϊσταμένη ΤΕΠ', 'Υπεύθυνος Ποιότητας'] },
   { groupId: 'dmg-cardiology', departmentId: 'Καρδιολογική', department: 'Καρδιολογική', departmentEn: 'Cardiology', title: 'Συνάντηση Καρδιολογικής', months: 3, day: 25, people: ['Διευθυντής Καρδιολογικής', 'Προϊστάμενος Καρδιολογικής', 'Link Nurse Καρδιολογικής'] },
 ]
-const HISTORY_TOPICS = [
+const HISTORY_TOPICS: [string, string, string, string][] = [
   ['Δείκτες του μήνα', 'Οι δείκτες του τμήματος είναι εντός στόχου, εκτός από τη συμμόρφωση στην υγιεινή χεριών.', 'Στοχευμένες παρατηρήσεις τον επόμενο μήνα.', 'Στοχευμένες παρατηρήσεις υγιεινής χεριών'],
   ['Συμβάντα και διορθωτικές ενέργειες', 'Συζητήθηκαν τα συμβάντα του μήνα και η πορεία των ανοιχτών διορθωτικών ενεργειών.', 'Κλείνουν οι ενέργειες που ολοκληρώθηκαν.', 'Ενημέρωση προσωπικού για τα συμβάντα του μήνα'],
   ['Λοιμώξεις και απομονώσεις', 'Δύο ασθενείς σε απομόνωση επαφής· τηρήθηκαν τα μέτρα.', 'Υπενθύμιση σήμανσης απομόνωσης.', 'Έλεγχος σήμανσης απομόνωσης σε κάθε βάρδια'],
@@ -69,9 +71,9 @@ const HISTORY_TOPICS = [
   ['Πτώσεις και έλκη πίεσης', 'Μία πτώση χωρίς κάκωση· τα έλκη πίεσης μειώθηκαν.', 'Αξιολόγηση κινδύνου πτώσης σε κάθε εισαγωγή.', 'Έλεγχος κλίμακας Morse στους φακέλους'],
   ['Φάρμακα υψηλού κινδύνου', 'Ο διπλός έλεγχος τηρείται στις περισσότερες χορηγήσεις.', 'Υπενθύμιση διπλού ελέγχου στις βάρδιες.', 'Αυτοέλεγχος διπλού ελέγχου ινσουλίνης και ηπαρίνης'],
 ]
-const monthDay = (year, month, day) => new Date(Date.UTC(year, month, Math.min(day, 28))).toISOString().slice(0, 10)
-function withHistory(recent, day) {
-  const rows = [...recent]
+const monthDay = (year: number, month: number, day: number) => new Date(Date.UTC(year, month, Math.min(day, 28))).toISOString().slice(0, 10)
+function withHistory(recent: AnyRecord[], day: string): Meeting[] {
+  const rows: AnyRecord[] = [...recent]
   for (const group of HISTORY_GROUPS) {
     const own = recent.filter(row => row.groupId === group.groupId).map(row => row.meetingDate).sort()
     const until = own.length ? addDays(own[0], -20) : addDays(day, -3)
@@ -92,8 +94,8 @@ function withHistory(recent, day) {
     }
   }
   // DM-2025-01, DM-2025-02… within each department, oldest first; a carried decision keeps pointing at its meeting.
-  const renamed = new Map()
-  const byDepartment = new Map()
+  const renamed = new Map<string, string>()
+  const byDepartment = new Map<string, string[]>()
   for (const row of [...rows].sort((a, b) => a.meetingDate.localeCompare(b.meetingDate))) {
     const codes = byDepartment.get(row.departmentId) || []
     const code = nextMeetingCode(codes, Number(row.meetingDate.slice(0, 4)))
@@ -101,11 +103,11 @@ function withHistory(recent, day) {
     codes.push(code)
     byDepartment.set(row.departmentId, codes)
   }
-  return rows.map(row => ({ ...row, code: renamed.get(`${row.departmentId}|${row.code}`), decisions: row.decisions.map(decision => (decision.carriedFrom ? { ...decision, carriedFrom: renamed.get(`${row.departmentId}|${decision.carriedFrom}`) || decision.carriedFrom } : decision)) }))
+  return rows.map(row => ({ ...row, code: renamed.get(`${row.departmentId}|${row.code}`), decisions: row.decisions.map((decision: MeetingDecision) => (decision.carriedFrom ? { ...decision, carriedFrom: renamed.get(`${row.departmentId}|${decision.carriedFrom}`) || decision.carriedFrom } : decision)) })) as Meeting[]
 }
 
 // The demo's meeting groups: one per department that meets, defined by Quality.
-const demoGroups = () => [
+const demoGroups = (): MeetingGroup[] => [
   { id: 'dmg-nicu', departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU', name: 'Συναντήσεις ΜΕΝΝ', frequencyDays: 30, durationHours: 1, managerLabel: 'Προϊσταμένη ΜΕΝΝ', active: true },
   { id: 'dmg-icu', departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU', name: 'Συναντήσεις ΜΕΘ', frequencyDays: 90, durationHours: 1, managerLabel: 'Προϊσταμένη ΜΕΘ', active: true },
   { id: 'dmg-surgery', departmentId: 'Χειρουργική', department: 'Χειρουργική', departmentEn: 'Surgery', name: 'Συναντήσεις Χειρουργικής', frequencyDays: 30, durationHours: 1, managerLabel: 'Προϊστάμενος Χειρουργικής', active: true },
@@ -113,7 +115,7 @@ const demoGroups = () => [
   { id: 'dmg-ed', departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'ED', name: 'Συναντήσεις ΤΕΠ', frequencyDays: 60, durationHours: 1.5, managerLabel: 'Προϊσταμένη ΤΕΠ', active: true },
   { id: 'dmg-cardiology', departmentId: 'Καρδιολογική', department: 'Καρδιολογική', departmentEn: 'Cardiology', name: 'Συναντήσεις Καρδιολογικής', frequencyDays: 90, durationHours: 1, managerLabel: 'Προϊστάμενος Καρδιολογικής', active: true },
 ]
-function localGroups() {
+function localGroups(): MeetingGroup[] {
   const rows = loadSnapshot(LOCAL_GROUPS_KEY, null)
   if (Array.isArray(rows)) return rows
   const initial = demoGroups()
@@ -121,7 +123,7 @@ function localGroups() {
   return initial
 }
 
-function local() {
+function local(): Meeting[] {
   const rows = loadSnapshot(LOCAL_KEY, null)
   if (Array.isArray(rows)) return rows
   const initial = demoMeetings()
@@ -131,7 +133,7 @@ function local() {
 
 // --- Cloud --------------------------------------------------------------------------
 
-const toMeeting = (row, decisions = [], participants = [], departments = new Map(), topics = [], program = null) => ({
+const toMeeting = (row: Tables<'quality_department_meetings'>, decisions: Tables<'quality_department_meeting_decisions'>[] = [], participants: Tables<'quality_department_meeting_participants'>[] = [], departments: DepartmentNames = new Map(), topics: Tables<'quality_department_meeting_topics'>[] = [], program: { program_key: string | null, title: string | null, status: string | null } | null = null): Meeting => ({
   id: row.id, groupId: row.group_id || '', trainingHeld: Boolean(row.training_held || row.training_program_id), trainingProgramId: row.training_program_id || '', trainingProgramKey: program?.program_key || '', trainingTitle: program?.title || '', trainingStatus: program?.status || '', code: row.code, departmentId: row.department_id, department: departments.get(row.department_id)?.name || '', departmentEn: departments.get(row.department_id)?.nameEn || departments.get(row.department_id)?.name || '',
   title: row.title, kind: row.kind, meetingDate: row.meeting_date, periodMonth: row.period_month || '', agenda: row.agenda || '', minutes: row.minutes || '', nextMeetingDate: row.next_meeting_date || '', status: row.status, finalizedAt: row.finalized_at, finalizedByLabel: row.finalized_by_label || '',
   decisions: decisions.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, topicId: item.topic_id || '', title: item.title, ownerLabel: item.owner_label || '', dueDate: item.due_date || '', status: item.status, capaId: item.capa_id || '', carriedFrom: item.carried_from || '' })),
@@ -139,87 +141,88 @@ const toMeeting = (row, decisions = [], participants = [], departments = new Map
   topics: topics.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, subject: item.subject, discussion: item.discussion || '', conclusion: item.conclusion || '' })),
 })
 
-async function departmentNames(organizationId) {
-  const rows = must(await supabase.from('departments').select('id,name').eq('organization_id', organizationId)) || []
+type DepartmentNames = Map<string | null, { name: string, nameEn: string }>
+async function departmentNames(organizationId: string): Promise<DepartmentNames> {
+  const rows = must(await cloudClient().from('departments').select('id,name').eq('organization_id', organizationId as string)) || []
   return new Map(rows.map(row => [row.id, { name: row.name, nameEn: row.name }]))
 }
 
 // The meetings the user may see: the database returns only their department's,
 // unless they see the whole Quality Center.
-export async function loadMeetings(organizationId) {
+export async function loadMeetings(organizationId: string | null | undefined): Promise<Meeting[]> {
   if (isLocal()) return local()
   // Before the hospital is known there is nothing to read (no «organization_id=undefined» request).
   if (!organizationId) return []
   // The meetings with their decisions and participants embedded, beside the
   // department names: one round trip instead of two in a row.
   const [rows, departments] = await Promise.all([
-    supabase.from('quality_department_meetings').select('*,decisions:quality_department_meeting_decisions(*),participants:quality_department_meeting_participants(*),topics:quality_department_meeting_topics(*),program:training_programs(program_key,title,status)').eq('organization_id', organizationId).order('meeting_date', { ascending: false }).then(must),
+    cloudClient().from('quality_department_meetings').select('*,decisions:quality_department_meeting_decisions(*),participants:quality_department_meeting_participants(*),topics:quality_department_meeting_topics(*),program:training_programs(program_key,title,status)').eq('organization_id', organizationId as string).order('meeting_date', { ascending: false }).then(must),
     departmentNames(organizationId),
   ])
   return (rows || []).map(({ decisions, participants, topics, program, ...row }) => toMeeting(row, decisions || [], participants || [], departments, topics || [], program || null))
 }
 
 // Saves the meeting and replaces its decisions and participants.
-export async function saveMeeting(organizationId, meeting) {
+export async function saveMeeting(organizationId: string | null | undefined, meeting: Meeting): Promise<Meeting | undefined> {
   const year = Number(String(meeting.meetingDate).slice(0, 4)) || new Date().getFullYear()
   if (isLocal()) {
     const rows = local()
     const sameDepartment = rows.filter(row => row.departmentId === meeting.departmentId).map(row => row.code)
-    const next = { ...meeting, code: meeting.code || nextMeetingCode(sameDepartment, year), id: meeting.id || localId('dm'), decisions: meeting.decisions.map((decision, position) => ({ ...decision, id: decision.id || localId('dmd'), position })), participants: meeting.participants.map((person, position) => ({ ...person, id: person.id || localId('dmp'), position })), topics: (meeting.topics || []).map(topic => ({ ...topic, id: topic.id || localId('dmt') })) }
+    const next = { ...meeting, code: meeting.code || nextMeetingCode(sameDepartment, year), id: meeting.id || localId('dm'), decisions: meeting.decisions.map((decision: MeetingDecision, position: number) => ({ ...decision, id: decision.id || localId('dmd'), position })), participants: meeting.participants.map((person: MeetingParticipant, position: number) => ({ ...person, id: person.id || localId('dmp'), position })), topics: (meeting.topics || []).map(topic => ({ ...topic, id: topic.id || localId('dmt') })) }
     saveSnapshot(LOCAL_KEY, meeting.id ? rows.map(row => (row.id === meeting.id ? next : row)) : [next, ...rows])
     return next
   }
-  const head = { organization_id: organizationId, group_id: isUuid(meeting.groupId) ? meeting.groupId : null, training_held: Boolean(meeting.trainingHeld), training_program_id: isUuid(meeting.trainingProgramId) ? meeting.trainingProgramId : null, department_id: meeting.departmentId, title: meeting.title, kind: meeting.kind || 'regular', meeting_date: meeting.meetingDate, period_month: meeting.periodMonth || null, agenda: meeting.agenda || null, minutes: meeting.minutes || null, next_meeting_date: meeting.nextMeetingDate || null, status: meeting.status, finalized_at: meeting.finalizedAt || null, finalized_by_label: meeting.finalizedByLabel || null }
-  let id = isUuid(meeting.id) ? meeting.id : null
-  if (id) must(await supabase.from('quality_department_meetings').update(head).eq('id', id))
+  const head = { organization_id: organizationId as string, group_id: isUuid(meeting.groupId) ? meeting.groupId : null, training_held: Boolean(meeting.trainingHeld), training_program_id: isUuid(meeting.trainingProgramId) ? meeting.trainingProgramId : null, department_id: meeting.departmentId, title: meeting.title, kind: meeting.kind || 'regular', meeting_date: meeting.meetingDate, period_month: meeting.periodMonth || null, agenda: meeting.agenda || null, minutes: meeting.minutes || null, next_meeting_date: meeting.nextMeetingDate || null, status: meeting.status, finalized_at: meeting.finalizedAt || null, finalized_by_label: meeting.finalizedByLabel || null }
+  let id: string | null = isUuid(meeting.id) ? meeting.id : null
+  if (id) must(await cloudClient().from('quality_department_meetings').update(head).eq('id', id))
   else {
-    const codes = must(await supabase.from('quality_department_meetings').select('code').eq('organization_id', organizationId).eq('department_id', meeting.departmentId)) || []
-    id = must(await supabase.from('quality_department_meetings').insert({ ...head, code: nextMeetingCode(codes.map(row => row.code), year) }).select('id').single()).id
+    const codes = must(await cloudClient().from('quality_department_meetings').select('code').eq('organization_id', organizationId as string).eq('department_id', meeting.departmentId)) || []
+    id = (must(await cloudClient().from('quality_department_meetings').insert({ ...head, code: nextMeetingCode(codes.map(row => row.code), year) }).select('id').single()) as { id: string }).id
   }
-  const base = { organization_id: organizationId, meeting_id: id }
-  for (const table of ['quality_department_meeting_decisions', 'quality_department_meeting_participants']) must(await supabase.from(table).delete().eq('meeting_id', id))
+  const base = { organization_id: organizationId as string, meeting_id: id as string }
+  for (const table of ['quality_department_meeting_decisions', 'quality_department_meeting_participants'] as const) must(await cloudClient().from(table as 'quality_department_meeting_decisions').delete().eq('meeting_id', id as string))
   // Topics keep their ids (a FileMaker topic).
-  const topics = (meeting.topics || []).filter(topic => String(topic.subject || '').trim())
-  must(await supabase.from('quality_department_meeting_topics').delete().eq('meeting_id', id))
-  if (topics.length) must(await supabase.from('quality_department_meeting_topics').insert(topics.map((topic, position) => ({ ...base, ...(isUuid(topic.id) ? { id: topic.id } : {}), position, subject: String(topic.subject).trim(), discussion: topic.discussion || null, conclusion: topic.conclusion || null }))))
+  const topics = (meeting.topics || []).filter((topic: MeetingTopic) => String(topic.subject || '').trim())
+  must(await cloudClient().from('quality_department_meeting_topics').delete().eq('meeting_id', id as string))
+  if (topics.length) must(await cloudClient().from('quality_department_meeting_topics').insert(topics.map((topic, position) => ({ ...base, ...(isUuid(topic.id) ? { id: topic.id } : {}), position, subject: String(topic.subject).trim(), discussion: topic.discussion || null, conclusion: topic.conclusion || null }))))
   const topicIds = new Set(topics.map(topic => topic.id))
-  if (meeting.decisions.length) must(await supabase.from('quality_department_meeting_decisions').insert(meeting.decisions.map((decision, position) => ({ ...base, ...(isUuid(decision.id) ? { id: decision.id } : {}), position, topic_id: isUuid(decision.topicId) && topicIds.has(decision.topicId) ? decision.topicId : null, title: decision.title, owner_label: decision.ownerLabel || null, due_date: decision.dueDate || null, status: decision.status || 'open', capa_id: isUuid(decision.capaId) ? decision.capaId : null, carried_from: decision.carriedFrom || null }))))
-  if (meeting.participants.length) must(await supabase.from('quality_department_meeting_participants').insert(meeting.participants.map((person, position) => ({ ...base, position, employee_id: isUuid(person.employeeId) ? person.employeeId : null, name: person.name, role: person.role || null, attended: person.attended !== false }))))
+  if (meeting.decisions.length) must(await cloudClient().from('quality_department_meeting_decisions').insert(meeting.decisions.map((decision, position) => ({ ...base, ...(isUuid(decision.id) ? { id: decision.id } : {}), position, topic_id: isUuid(decision.topicId) && topicIds.has(decision.topicId as string) ? decision.topicId : null, title: decision.title, owner_label: decision.ownerLabel || null, due_date: decision.dueDate || null, status: decision.status || 'open', capa_id: isUuid(decision.capaId) ? decision.capaId : null, carried_from: decision.carriedFrom || null }))))
+  if (meeting.participants.length) must(await cloudClient().from('quality_department_meeting_participants').insert(meeting.participants.map((person, position) => ({ ...base, position, employee_id: isUuid(person.employeeId) ? person.employeeId : null, name: person.name, role: person.role || null, attended: person.attended !== false }))))
   return (await loadMeetings(organizationId)).find(row => row.id === id)
 }
 
 // A meeting is deleted with its topics, decisions and attendance (the database cascades). A meeting
 // that came from FileMaker keeps its import link, so the hourly sync does not bring it back.
-export async function deleteMeeting(organizationId, meetingId) {
+export async function deleteMeeting(organizationId: string | null | undefined, meetingId: string) {
   if (isLocal()) { saveSnapshot(LOCAL_KEY, local().filter(row => row.id !== meetingId)); return }
-  const rows = must(await supabase.from('quality_department_meetings').delete().eq('id', meetingId).eq('organization_id', organizationId).select('id')) || []
+  const rows = must(await cloudClient().from('quality_department_meetings').delete().eq('id', meetingId).eq('organization_id', organizationId as string).select('id')) || []
   if (!rows.length) throw new Error('meeting_not_deleted')
 }
 
 // A training created for a meeting is linked back to it (the meeting then shows it, and whether it was done).
-export async function linkMeetingTraining(organizationId, { meetingId }, program) {
+export async function linkMeetingTraining(organizationId: string | null | undefined, { meetingId }: { meetingId: string }, program: AnyRecord) {
   if (isLocal()) {
     const rows = local()
     saveSnapshot(LOCAL_KEY, rows.map(row => (row.id !== meetingId ? row : { ...row, trainingHeld: true, trainingProgramId: program.dbId || program.id, trainingProgramKey: program.id, trainingTitle: program.title || '', trainingStatus: program.status || 'active' })))
     return
   }
   if (!isUuid(meetingId) || !isUuid(program.dbId)) return
-  must(await supabase.from('quality_department_meetings').update({ training_program_id: program.dbId, training_held: true }).eq('id', meetingId).eq('organization_id', organizationId))
+  must(await cloudClient().from('quality_department_meetings').update({ training_program_id: program.dbId, training_held: true }).eq('id', meetingId).eq('organization_id', organizationId as string))
 }
 
 // --- Meeting groups ------------------------------------------------------------------
 
-const toGroup = (row, departments = new Map()) => ({
+const toGroup = (row: Tables<'quality_department_meeting_groups'>, departments: DepartmentNames = new Map()): MeetingGroup => ({
   id: row.id, departmentId: row.department_id || '', department: departments.get(row.department_id)?.name || '', departmentEn: departments.get(row.department_id)?.nameEn || departments.get(row.department_id)?.name || '',
   name: row.name, frequencyDays: row.frequency_days, durationHours: row.duration_hours == null ? '' : Number(row.duration_hours), managerLabel: row.manager_label || '', active: row.active !== false,
 })
 
 // The groups the user may see: the database returns only their department's, unless they see the whole Quality Center.
-export async function loadMeetingGroups(organizationId) {
+export async function loadMeetingGroups(organizationId: string | null | undefined): Promise<MeetingGroup[]> {
   if (isLocal()) return localGroups()
   if (!organizationId) return []
   const [rows, departments] = await Promise.all([
-    supabase.from('quality_department_meeting_groups').select('*').eq('organization_id', organizationId).order('name').then(must),
+    cloudClient().from('quality_department_meeting_groups').select('*').eq('organization_id', organizationId as string).order('name').then(must),
     departmentNames(organizationId),
   ])
   return (rows || []).map(row => toGroup(row, departments))
@@ -227,13 +230,13 @@ export async function loadMeetingGroups(organizationId) {
 
 // Quality defines a group: its department, name, how often it meets.
 // A group is deleted only when it has no meetings (its meetings would be left without a group).
-export async function deleteMeetingGroup(organizationId, groupId) {
+export async function deleteMeetingGroup(organizationId: string | null | undefined, groupId: string) {
   if (isLocal()) { saveSnapshot(LOCAL_GROUPS_KEY, localGroups().filter(row => row.id !== groupId)); return }
-  const rows = must(await supabase.from('quality_department_meeting_groups').delete().eq('id', groupId).eq('organization_id', organizationId).select('id')) || []
+  const rows = must(await cloudClient().from('quality_department_meeting_groups').delete().eq('id', groupId).eq('organization_id', organizationId as string).select('id')) || []
   if (!rows.length) throw new Error('group_not_deleted')
 }
 
-export async function saveMeetingGroup(organizationId, group) {
+export async function saveMeetingGroup(organizationId: string | null | undefined, group: MeetingGroup): Promise<MeetingGroup> {
   const days = Math.min(730, Math.max(1, Number(group.frequencyDays) || 90))
   if (isLocal()) {
     const rows = localGroups()
@@ -241,7 +244,7 @@ export async function saveMeetingGroup(organizationId, group) {
     saveSnapshot(LOCAL_GROUPS_KEY, group.id ? rows.map(row => (row.id === group.id ? next : row)) : [...rows, next])
     return next
   }
-  const row = { organization_id: organizationId, department_id: isUuid(group.departmentId) ? group.departmentId : null, name: String(group.name || '').trim(), frequency_days: days, duration_hours: Number(group.durationHours) > 0 ? Number(group.durationHours) : null, manager_label: group.managerLabel || null, active: group.active !== false }
-  if (isUuid(group.id)) return toGroup(must(await supabase.from('quality_department_meeting_groups').update(row).eq('id', group.id).eq('organization_id', organizationId).select('*').single()))
-  return toGroup(must(await supabase.from('quality_department_meeting_groups').insert(row).select('*').single()))
+  const row = { organization_id: organizationId as string, department_id: isUuid(group.departmentId) ? group.departmentId : null, name: String(group.name || '').trim(), frequency_days: days, duration_hours: Number(group.durationHours) > 0 ? Number(group.durationHours) : null, manager_label: group.managerLabel || null, active: group.active !== false }
+  if (isUuid(group.id)) return toGroup(must(await cloudClient().from('quality_department_meeting_groups').update(row).eq('id', group.id).eq('organization_id', organizationId as string).select('*').single()))
+  return toGroup(must(await cloudClient().from('quality_department_meeting_groups').insert(row).select('*').single()))
 }
