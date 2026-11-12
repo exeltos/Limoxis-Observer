@@ -63,7 +63,7 @@ export const platformHelp={
    ['Οδηγίες & σύνδεσμοι, εξωτερικές πηγές','Το περιεχόμενο της Βιβλιοθήκης σε επίπεδο πλατφόρμας και οι επίσημες πηγές (ΠΟΥ, ECDC, ΕΟΔΥ…) που διαβάζουν όλα τα νοσοκομεία.']
   ],steps:['Διαλέξτε επιλογή από τη γραμμή στην κορυφή.','Ελέγξτε τα ευρήματα «Προς έλεγχο».','Δημοσιεύστε ό,τι πρέπει να δουν τα νοσοκομεία.']},
   '/platform#management?group=lira':{title:'LIRA & AI',summary:'Η γνώση που χρησιμοποιεί η LIRA σε όλα τα νοσοκομεία.',audience:audienceEl,chapters:[
-   ['Γνώση της LIRA','Τα κείμενα και οι πηγές στα οποία βασίζεται η LIRA όταν απαντά. Οι αλλαγές ισχύουν για όλα τα νοσοκομεία.']
+   ['Γνώση της LIRA','Η LIRA είναι ο βοηθός τεχνητής νοημοσύνης που απαντά μέσα στα νοσοκομεία. Η σελίδα (στο μενού «LIRA & AI») έχει τίτλο «Πηγές γνώσης της LIRA (βοηθός AI)» και δείχνει τα κείμενα και τις πηγές στα οποία βασίζεται όταν απαντά: φορέας, πηγή, έκδοση, έγκριση και αν η γνώση είναι έτοιμη. Οι αλλαγές ισχύουν για όλα τα νοσοκομεία.']
   ],steps:['Ελέγξτε τη λίστα.','Προσθέστε ή διορθώστε ό,τι χρειάζεται.']},
   '/platform/audit':{title:'Ιστορικό & Ασφάλεια',summary:'Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων.',audience:audienceEl,chapters:[
    ['Ενέργειες & πρόσβαση','Κάθε σημαντική διοικητική ενέργεια καταγράφεται με χρήστη, χρόνο και οργανισμό. Το ιστορικό είναι μόνο για ανάγνωση· τα φίλτρα δείχνουν αλλαγές ρόλων, προσκλήσεις και διαγραφές.'],
@@ -115,7 +115,7 @@ export const platformHelp={
    ['Guides & links, external sources','The Library content at platform level and the official sources (WHO, ECDC, EODY…) every hospital reads.']
   ],steps:['Pick a choice from the row at the top.','Check the items "To review".','Publish what the hospitals should see.']},
   '/platform#management?group=lira':{title:'LIRA & AI',summary:'The knowledge LIRA uses in every hospital.',audience:audienceEn,chapters:[
-   ['LIRA’s knowledge','The texts and sources LIRA relies on when it answers. Changes apply to every hospital.']
+   ['LIRA’s knowledge','LIRA is the AI assistant that answers inside the hospitals. The page (in the “LIRA & AI” menu) is titled “LIRA knowledge sources (AI assistant)” and shows the texts and sources it relies on when it answers: authority, source, version, approval and whether the knowledge is ready. Changes apply to every hospital.']
   ],steps:['Check the list.','Add or correct what is needed.']},
   '/platform/audit':{title:'Audit & Security',summary:'Traceability of actions, access changes and operational events.',audience:audienceEn,chapters:[
    ['Actions & access','Every significant administrative action is recorded with user, time and organization. The history is read-only; the filters show role changes, invitations and deletions.'],
