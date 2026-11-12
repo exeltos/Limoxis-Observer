@@ -1,0 +1,333 @@
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { bundleTemplateLibrary } from './preventionDemoData'
+import { loadBundlesLocal, saveBundlesLocal } from './preventionStore'
+import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
+import type { AnyRecord } from '../../types/featureTypes'
+import { deletePreventionRecord, loadPreventionDepartments, sharedInFlight, type PreventionOrgId } from './preventionCloud'
+
+function mapTemplate(row: AnyRecord) {
+  const elements = Array.isArray(row.elements) ? row.elements : []
+  return {
+    dbId: row.id,
+    id: row.bundle_key,
+    bundleKey: row.bundle_key,
+    name: row.name,
+    title: row.title_el,
+    titleEl: row.title_el,
+    titleEn: row.title_en,
+    version: row.version,
+    status: row.status,
+    scope: row.scope,
+    source: row.source,
+    sourceVersion: row.source_version,
+    system: Boolean(row.is_system),
+    departments: Array.isArray(row.departments) ? row.departments : [],
+    elements: elements.map(item => [
+      item.id,
+      item.labelEl || item.label_el || item.label || item.id,
+    ]),
+    rawElements: elements,
+  }
+}
+function mapAssessment(row: AnyRecord, templates: AnyRecord[] = []) {
+  const criteria = row.criteria && typeof row.criteria === 'object' ? row.criteria : {}
+  const evidence = Array.isArray(row.evidence) ? row.evidence : []
+  const template =
+    templates.find(x => x.bundleKey === row.bundle_key) || criteria.templateSnapshot || null
+  const answers = criteria.answers || {}
+  const answerNotes = criteria.answerNotes || {}
+  const applicableCount = Object.values(answers).filter(x => x === 'yes' || x === 'no').length
+  const failedCount = Object.values(answers).filter(x => x === 'no').length
+  const allOrNone = applicableCount > 0 && failedCount === 0
+  return {
+    id: row.id,
+    bundle: row.bundle_key,
+    templateId: row.bundle_key,
+    templateName: template?.name || row.bundle_key,
+    templateTitle: template?.titleEl || template?.title || '',
+    templateVersion: template?.version || '1.0',
+    templateSource: template?.source || '',
+    templateSnapshot: template,
+    departmentId: row.department_id || row.department?.id || '',
+    departmentEl: row.department?.name || '',
+    departmentEn: row.department?.name || '',
+    date: row.assessment_date,
+    period: row.period_label || row.assessment_date,
+    score: row.score == null ? null : Number(row.score),
+    answers,
+    answerNotes,
+    shift: criteria.shift || '',
+    context: criteria.context || '',
+    patientId: criteria.patientId || row.patient_id || '',
+    patientRef: criteria.patientRef || '',
+    deviceId: criteria.deviceId || row.surveillance_device_id || '',
+    deviceRef: criteria.deviceRef || '',
+    // Episode links (null for a check made per department).
+    patientRecordId: row.patient_id || '',
+    surveillanceCaseId: row.surveillance_case_id || '',
+    surveillanceDeviceId: row.surveillance_device_id || '',
+    deviceDay: row.device_day == null ? null : Number(row.device_day),
+    generalNotes: criteria.generalNotes || '',
+    followUps:
+      criteria.followUps && typeof criteria.followUps === 'object' ? criteria.followUps : {},
+    applicableCount,
+    failedCount,
+    allOrNone,
+    findings: evidence,
+    owner: criteria.owner || '',
+    status: row.status,
+    lifecycleStatus:
+      row.status === 'cancelled' ? 'voided' : row.status === 'draft' ? 'draft' : 'active',
+    createdAt: row.created_at,
+    createdById: row.created_by,
+    updatedAt: row.updated_at,
+    updatedById: row.updated_by,
+  }
+}
+export async function loadBundleSupportData(organizationId: PreventionOrgId) {
+  if (isDemoDataEnvironment())
+    return {
+      departments: await loadPreventionDepartments(organizationId),
+      templates: bundleTemplateLibrary,
+    }
+  assertCloud(organizationId)
+  // The tab and its assessments ask at the same time: one read serves both.
+  const [departments, templatesResult] = await Promise.all([
+    loadPreventionDepartments(organizationId),
+    sharedInFlight(`bundle-templates|${organizationId}`, () =>
+      cloudClient()
+        .from('prevention_bundle_templates')
+        .select('*')
+        .eq('status', 'published')
+        .eq('hidden', false)
+        .or(`is_system.eq.true,organization_id.eq.${organizationId}`)
+        .order('is_system', { ascending: false })
+        .order('name')
+        .then(result => result),
+    ),
+  ])
+  if (templatesResult.error) throw templatesResult.error
+  return {
+    departments,
+    templates: (templatesResult.data || []).map(mapTemplate),
+  }
+}
+export async function loadBundleClinicalOptions(organizationId: PreventionOrgId) {
+  if (isDemoDataEnvironment()) return { patients: [], devices: [] }
+  assertCloud(organizationId)
+  const [patientsResult, devicesResult] = await Promise.all([
+    cloudClient()
+      .from('patients')
+      .select(
+        'id,patient_code,first_name,last_name,department_id,status,admission_date,discharge_date',
+      )
+      .eq('organization_id', organizationId as string)
+      .order('last_name')
+      .order('first_name'),
+    cloudClient()
+      .from('surveillance_devices')
+      .select('id,patient_id,department_id,device_type,site,status,inserted_at,removed_at')
+      .eq('organization_id', organizationId as string)
+      .order('inserted_at', { ascending: false }),
+  ])
+  if (patientsResult.error) throw patientsResult.error
+  if (devicesResult.error) throw devicesResult.error
+  const patients = (patientsResult.data || []).map(row => ({
+    id: row.id,
+    code: row.patient_code || '',
+    firstName: row.first_name || '',
+    lastName: row.last_name || '',
+    departmentId: row.department_id || '',
+    status: row.status || '',
+    admissionDate: row.admission_date || '',
+    dischargeDate: row.discharge_date || '',
+    label:
+      [row.patient_code, [row.last_name, row.first_name].filter(Boolean).join(' ')]
+        .filter(Boolean)
+        .join(' · ') || row.id,
+  }))
+  const devices = (devicesResult.data || []).map(row => ({
+    id: row.id,
+    patientId: row.patient_id || '',
+    departmentId: row.department_id || '',
+    type: row.device_type || '',
+    site: row.site || '',
+    status: row.status || '',
+    insertedAt: row.inserted_at || '',
+    removedAt: row.removed_at || '',
+    label: [row.device_type, row.site].filter(Boolean).join(' · ') || row.id,
+  }))
+  return { patients, devices }
+}
+export async function loadBundleAssessments(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
+  if (isDemoDataEnvironment()) return loadBundlesLocal()
+  assertCloud(organizationId)
+  const support = await loadBundleSupportData(organizationId)
+  const { data, error } = await cloudClient()
+    .from('prevention_bundle_assessments')
+    .select('*,department:departments(id,name)')
+    .eq('organization_id', organizationId as string)
+    .order('assessment_date', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(row => mapAssessment(row, support.templates))
+}
+// The checks made from one episode (its devices), newest first. Production reads only the
+// episode's rows; the demo filters its in-memory list.
+export async function loadEpisodeBundleAssessments(organizationId: PreventionOrgId, caseIds: string[] = []) {
+  const ids = [...new Set(caseIds.map(String).filter(Boolean))]
+  if (!ids.length) return []
+  if (isDemoDataEnvironment())
+    return loadBundlesLocal().filter(row => ids.includes(String(row.surveillanceCaseId || '')))
+  assertCloud(organizationId)
+  const support = await loadBundleSupportData(organizationId)
+  const { data, error } = await cloudClient()
+    .from('prevention_bundle_assessments')
+    .select('*,department:departments(id,name)')
+    .eq('organization_id', organizationId as string)
+    .in('surveillance_case_id', ids)
+    .order('assessment_date', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(row => mapAssessment(row, support.templates))
+}
+export async function saveBundleAssessment(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
+  if (isDemoDataEnvironment()) {
+    const rows = loadBundlesLocal()
+    const id = existingId || `BND-${Date.now()}`
+    const saved = {
+      ...record,
+      id,
+      followUps: record.followUps || {},
+      lifecycleStatus: record.lifecycleStatus || 'active',
+    }
+    const next = existingId
+      ? rows.map(row => (row.id === existingId ? saved : row))
+      : [saved, ...rows]
+    saveBundlesLocal(next)
+    return saved
+  }
+  assertCloud(organizationId)
+  const userId = await currentUserId()
+  const support = await loadBundleSupportData(organizationId)
+  const department = support.departments.find(x => x.el === record.departmentEl)
+  if (!department) throw new Error('Selected department is not available for this organization.')
+  const template = support.templates.find(
+    x =>
+      x.bundleKey === record.templateId ||
+      x.id === record.templateId ||
+      x.bundleKey === record.bundle,
+  )
+  if (!template) throw new Error('Selected bundle template is not available.')
+  if (!record.date) throw new Error('Assessment date is required.')
+  const answers = record.answers || {}
+  const answerNotes = record.answerNotes || {}
+  const elementIds = (template.rawElements || []).map(item => item.id).filter(Boolean)
+  const complete =
+    elementIds.length > 0 && elementIds.every(id => ['yes', 'no', 'na'].includes(answers[id]))
+  const applicable = elementIds.map(id => answers[id]).filter(x => x === 'yes' || x === 'no')
+  const yes = applicable.filter(x => x === 'yes').length
+  const score = applicable.length ? Math.round((yes / applicable.length) * 100) : null
+  const findings = (template.rawElements || [])
+    .filter(item => answers[item.id] === 'no')
+    .map(item => ({
+      id: item.id,
+      label: item.labelEl || item.label_en || item.labelEn || item.label_el || item.id,
+      note: answerNotes[item.id] || '',
+    }))
+  const criteria = {
+    answers,
+    answerNotes,
+    shift: record.shift || '',
+    context: record.context || '',
+    patientId: record.patientId || '',
+    patientRef: record.patientRef || '',
+    deviceId: record.deviceId || '',
+    deviceRef: record.deviceRef || '',
+    generalNotes: record.generalNotes || '',
+    followUps: record.followUps || {},
+    owner: record.owner || '',
+    templateSnapshot: template,
+  }
+  const payload = {
+    organization_id: organizationId as string,
+    department_id: department.id,
+    bundle_key: template.bundleKey,
+    assessment_date: record.date,
+    period_label: record.period || record.date || null,
+    score,
+    criteria,
+    evidence: findings,
+    status: complete ? 'completed' : 'draft',
+    patient_id: record.patientRecordId || record.patientId || null,
+    surveillance_case_id: record.surveillanceCaseId || null,
+    surveillance_device_id: record.surveillanceDeviceId || record.deviceId || null,
+    device_day: record.deviceDay || null,
+    updated_by: userId,
+    updated_at: new Date().toISOString(),
+  }
+  let saved
+  if (existingId) {
+    const { data, error } = await cloudClient()
+      .from('prevention_bundle_assessments')
+      .update(payload)
+      .eq('organization_id', organizationId as string)
+      .eq('id', existingId)
+      .select('*')
+      .single()
+    if (error) throw error
+    saved = data
+  } else {
+    const { data, error } = await cloudClient()
+      .from('prevention_bundle_assessments')
+      .insert({ ...payload, created_by: userId })
+      .select('*')
+      .single()
+    if (error) throw error
+    saved = data
+  }
+  const rows = await loadBundleAssessments(organizationId)
+  return rows.find(x => x.id === saved.id) || null
+}
+export async function saveBundleFollowUp(organizationId: PreventionOrgId, assessmentId: string, itemId: string, followUp: AnyRecord) {
+  if (!assessmentId || !itemId)
+    throw new Error('Bundle assessment and follow-up item are required.')
+  if (isDemoDataEnvironment()) {
+    const rows = loadBundlesLocal()
+    const row = rows.find(item => item.id === assessmentId)
+    if (!row) throw new Error('Bundle assessment not found.')
+    const saved = {
+      ...row,
+      followUps: { ...(row.followUps || {}), [itemId]: followUp },
+      updatedAt: new Date().toISOString(),
+    }
+    saveBundlesLocal(rows.map(item => (item.id === assessmentId ? saved : item)))
+    return saved
+  }
+  assertCloud(organizationId)
+  const userId = await currentUserId()
+  const { data: current, error: loadError } = await cloudClient()
+    .from('prevention_bundle_assessments')
+    .select('criteria')
+    .eq('organization_id', organizationId as string)
+    .eq('id', assessmentId)
+    .single()
+  if (loadError) throw loadError
+  const criteria: AnyRecord = current?.criteria && typeof current.criteria === 'object' ? current.criteria : {}
+  const followUps = { ...(criteria.followUps || {}), [itemId]: followUp }
+  const { error: updateError } = await cloudClient()
+    .from('prevention_bundle_assessments')
+    .update({
+      criteria: { ...criteria, followUps },
+      updated_by: userId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('organization_id', organizationId as string)
+    .eq('id', assessmentId)
+  if (updateError) throw updateError
+  const rows = await loadBundleAssessments(organizationId)
+  return rows.find(item => item.id === assessmentId) || null
+}
+export function deleteBundleAssessment(organizationId: PreventionOrgId, id: string | null | undefined) {
+  return deletePreventionRecord(organizationId, id, { table: 'prevention_bundle_assessments', localTable: 'prevention_bundles', label: 'Δέσμη μέτρων', loadLocal: loadBundlesLocal, saveLocal: saveBundlesLocal })
+}

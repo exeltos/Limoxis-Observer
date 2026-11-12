@@ -34,7 +34,7 @@ export function PharmacyIndicators({ organizationId, en, onRows, totals = null }
     if (!organizationId || !from || !to || to < from) { setState(current => ({ ...current, loading: false })); return }
     setState(current => ({ ...current, loading: true }))
     try {
-      const [metrics, definitions, snapshots] = await Promise.all([collectCloudIndicatorMetrics(organizationId, { from, to } as AnyRecord), loadOperationalIndicatorDefinitions(organizationId, { from, to }), loadIndicatorSnapshots(organizationId, {})])
+      const [metrics, definitions, snapshots] = await Promise.all([collectCloudIndicatorMetrics(organizationId, { from, to }), loadOperationalIndicatorDefinitions(organizationId, { from, to }), loadIndicatorSnapshots(organizationId, {})])
       const rows = definitions.filter((def: AnyRecord) => def.category === 'pharmacy').map((def: AnyRecord) => calculateCloudDefinition(def, metrics || {}))
       const keys = new Set(rows.map((row: AnyRecord) => row.id))
       setState({ loading: false, rows, history: (snapshots || []).filter((s: AnyRecord) => keys.has(s.indicator_key) && s.status === 'approved').sort((a: AnyRecord, b: AnyRecord) => String(b.period_start).localeCompare(String(a.period_start))) })

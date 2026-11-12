@@ -27,9 +27,10 @@ import { dayOf, dayRecords, defrostMethodLabel, dietLabel, fmtQty, fmtTemp, meal
 import { limitText } from './kitchenLimits'
 import { dailyHaccpDocument } from './kitchenReports'
 import { kitchenErrorMessage, removeEntry, saveProduction } from './kitchenService'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const temp = (value, text, language) => (value !== '' && value != null ? fmtTemp(value, language) : text ? <span className="kitchen-unparsed" title={text}>{text}</span> : '—')
-const timeOf = value => { if (!value) return ''; const d = new Date(value); return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
+const temp = (value: unknown, text: string, language: string) => (value !== '' && value != null ? fmtTemp(value, language) : text ? <span className="kitchen-unparsed" title={text}>{text}</span> : '—')
+const timeOf = (value: string | null | undefined) => { if (!value) return ''; const d = new Date(value); return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
 
 // The production day («Λεπτομέρειες Παραγωγής»), the hub of the kitchen: its menu and
 // notes, the raw materials taken from stock, the heat parameters of each dish, pureeing,
@@ -48,16 +49,16 @@ export function KitchenDayRecordPage() {
   const { state, loading, reload, organizationId } = useKitchen({ productionId })
   const { sign, reopenRow } = useSignOff(organizationId, reload)
   const [tab, setTab] = useState('usage')
-  const [dialog, setDialog] = useState(null)
-  const [trace, setTrace] = useState(null)
+  const [dialog, setDialog] = useState<AnyRecord | null>(null)
+  const [trace, setTrace] = useState<string | null>(null)
   const [traceDay, setTraceDay] = useState(false)
-  const [meal, setMeal] = useState(null)
-  const [disinfection, setDisinfection] = useState(null)
+  const [meal, setMeal] = useState<AnyRecord | null>(null)
+  const [disinfection, setDisinfection] = useState<AnyRecord | null>(null)
   const [saving, setSaving] = useState(false)
-  const production = state?.productions.find(item => item.id === productionId) || null
+  const production = state?.productions.find((item: AnyRecord) => item.id === productionId) || null
   const stock = useMemo(() => (state ? stockRows(state) : []), [state])
   const records = useMemo(() => (state && production ? dayRecords(state, production) : null), [state, production])
-  const dishes = useMemo(() => (production ? [...new Set([...(production.meals || []).map(item => item.dish), ...(records?.thermal || []).map(item => item.dishName), ...(production.menuText || '').split('\n').map(line => line.trim()).filter(line => line && !/^(μεσημεριανό|βραδινό|πρωινό|lunch|dinner|breakfast)$/i.test(line))].filter(Boolean))] : []), [production, records])
+  const dishes = useMemo(() => (production ? [...new Set([...(production.meals || []).map((item: AnyRecord) => item.dish), ...(records?.thermal || []).map((item: AnyRecord) => item.dishName), ...(production.menuText || '').split('\n').map((line: string) => line.trim()).filter((line: string) => line && !/^(μεσημεριανό|βραδινό|πρωινό|lunch|dinner|breakfast)$/i.test(line))].filter(Boolean))] : []), [production, records])
 
   if (!state) return <Page fill><div className="inline-empty">{loading ? (en ? 'Loading…' : 'Φόρτωση…') : (en ? 'Not available.' : 'Δεν είναι διαθέσιμο.')}</div></Page>
   if (!production) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Production day not found' : 'Η ημέρα παραγωγής δεν βρέθηκε'}</strong></div></Page>
@@ -65,19 +66,19 @@ export function KitchenDayRecordPage() {
   const locked = Boolean(production.verifiedAt)
   const canEdit = access.canRecord && !locked
   const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
-  const persist = async (next, message) => {
+  const persist = async (next: AnyRecord, message?: string) => {
     setSaving(true)
     try { await saveProduction(organizationId, next); notify(message || (en ? 'Saved.' : 'Αποθηκεύτηκε.'), 'success'); await reload(); return true } catch (error) { console.error(error); notify(kitchenErrorMessage(error, language), 'error'); return false } finally { setSaving(false) }
   }
-  const drop = async (table, row) => {
+  const drop = async (table: string, row: AnyRecord) => {
     if (!await confirm({ title: en ? 'Delete' : 'Διαγραφή', message: en ? 'The entry is deleted.' : 'Η εγγραφή διαγράφεται.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
     try { await removeEntry(organizationId, table, row.id); await reload() } catch (error) { notify(kitchenErrorMessage(error, language), 'error') }
   }
-  const editActions = (type, table, row) => canEdit && <div className="row-actions">
+  const editActions = (type: string, table: string, row: AnyRecord) => canEdit && <div className="row-actions">
     <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setDialog({ type, initial: { ...row } })}><Pencil size={14} /></IconButton>
     {(table === 'kitchen_material_usage' || access.canManage) && <IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => drop(table, row)}><Trash2 size={14} /></IconButton>}
   </div>
-  const add = (label, onClick) => canEdit && <Button onClick={onClick}><Plus size={15} />{label}</Button>
+  const add = (label: string, onClick: () => void) => canEdit && <Button onClick={onClick}><Plus size={15} />{label}</Button>
   const headerActions = <div className="row-actions">
     <ExportMenu {...reportExports(() => dailyHaccpDocument(state, production, { language }), { word: true, onBlocked: blocked })} />
     <Button variant="secondary" onClick={() => setTraceDay(true)}><Route size={15} />{en ? 'Traceability' : 'Ιχνηλάτηση'}</Button>
@@ -85,22 +86,22 @@ export function KitchenDayRecordPage() {
     {canEdit && <IconButton tone="edit" label={en ? 'Edit day' : 'Επεξεργασία ημέρας'} onClick={() => setDialog({ type: 'production', initial: { ...production } })}><Pencil size={16} /></IconButton>}
   </div>
   const tabs = [
-    { id: 'usage', label: en ? `Raw materials ${records.usage.length}` : `Α΄ ύλες ${records.usage.length}`, icon: Package },
-    { id: 'thermal', label: en ? `Heat parameters ${records.thermal.length}` : `Παράμετροι ζέστης ${records.thermal.length}`, icon: Thermometer },
-    { id: 'pureeing', label: en ? `Pureeing / sieving ${records.pureeing.length}` : `Πολτοποίηση / σούρωμα ${records.pureeing.length}`, icon: Blend },
+    { id: 'usage', label: en ? `Raw materials ${records!.usage.length}` : `Α΄ ύλες ${records!.usage.length}`, icon: Package },
+    { id: 'thermal', label: en ? `Heat parameters ${records!.thermal.length}` : `Παράμετροι ζέστης ${records!.thermal.length}`, icon: Thermometer },
+    { id: 'pureeing', label: en ? `Pureeing / sieving ${records!.pureeing.length}` : `Πολτοποίηση / σούρωμα ${records!.pureeing.length}`, icon: Blend },
     { id: 'disinfection', label: en ? 'Disinfection' : 'Απολύμανση', icon: Droplets },
-    { id: 'defrost', label: en ? `Defrosting ${records.defrosting.length}` : `Αποψύξεις ${records.defrosting.length}`, icon: Snowflake },
+    { id: 'defrost', label: en ? `Defrosting ${records!.defrosting.length}` : `Αποψύξεις ${records!.defrosting.length}`, icon: Snowflake },
     { id: 'menu', label: en ? 'Menu & plan' : 'Μενού & πλάνο', icon: Utensils },
   ]
   const dis = disinfection || { disinfectionVegetables: production.disinfectionVegetables, disinfectionFruit: production.disinfectionFruit, disinfectionAgent: production.disinfectionAgent || '', disinfectionConcentrationPpm: production.disinfectionConcentrationPpm || '', disinfectionMinutes: production.disinfectionMinutes || '', disinfectionNotes: production.disinfectionNotes || '' }
-  const setDis = next => setDisinfection({ ...dis, ...next })
-  const usedBatches = [...new Set(records.usage.map(row => row.receiptItemId).filter(Boolean))].map(id => stock.find(row => row.receiptItemId === id)).filter(Boolean)
+  const setDis = (next: AnyRecord) => setDisinfection({ ...dis, ...next })
+  const usedBatches = [...new Set(records!.usage.map((row: AnyRecord) => row.receiptItemId).filter(Boolean))].map(id => stock.find(row => row.receiptItemId === id)).filter(Boolean)
   return <Page fill><EntityRecordShell className="kitchen-record-shell workspace-fill" avatar={<ChefHat size={19} />} eyebrow={en ? 'Production day' : 'Ημέρα παραγωγής'} title={`${weekdayLabel(weekdayOf(production.productionDate), language)} ${fmtDay(production.productionDate)}`}
-    subtitle={(production.menuText || '').split('\n').map(line => line.trim()).filter(line => line && !MEAL_HEADING.test(line)).slice(0, 4).join(' · ')}
-    status={<span className="kitchen-notes">{locked ? <SignalBadge tone="success"><ShieldCheck size={13} />{en ? 'Signed off' : 'Επαληθεύτηκε'} · {production.verifiedByName || '—'} · {fmtStamp(production.verifiedAt, language)}</SignalBadge> : <SignalBadge tone="warning">{en ? 'Sign-off pending' : 'Εκκρεμεί επαλήθευση'}</SignalBadge>}{records.outOfLimits > 0 && <SignalBadge tone="danger">{records.outOfLimits} {en ? 'out of limits' : 'εκτός ορίων'}</SignalBadge>}</span>}
+    subtitle={(production.menuText || '').split('\n').map((line: string) => line.trim()).filter((line: string) => line && !MEAL_HEADING.test(line)).slice(0, 4).join(' · ')}
+    status={<span className="kitchen-notes">{locked ? <SignalBadge tone="success"><ShieldCheck size={13} />{en ? 'Signed off' : 'Επαληθεύτηκε'} · {production.verifiedByName || '—'} · {fmtStamp(production.verifiedAt, language)}</SignalBadge> : <SignalBadge tone="warning">{en ? 'Sign-off pending' : 'Εκκρεμεί επαλήθευση'}</SignalBadge>}{records!.outOfLimits > 0 && <SignalBadge tone="danger">{records!.outOfLimits} {en ? 'out of limits' : 'εκτός ορίων'}</SignalBadge>}</span>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
     {tab === 'usage' && <RecordTabPanel title={en ? 'Raw materials' : 'Πρώτες ύλες'} subtitle={en ? 'Taken from the batches in stock, the oldest batch first; each comes off its batch. An expired batch cannot be used.' : 'Από τις παρτίδες του αποθέματος, πρώτα η παλαιότερη παρτίδα· κάθε μία αφαιρείται από την παρτίδα της. Παρτίδα που έληξε δεν χρησιμοποιείται.'} actions={add(en ? 'Raw material' : 'Πρώτη ύλη', () => setDialog({ type: 'usage', initial: newUsage(production) }))}>
-      <RegistryTable className="kitchen-table" rows={records.usage} rowKey={row => row.id}
+      <RegistryTable className="kitchen-table" rows={records!.usage} rowKey={row => row.id}
         columns={[{ key: 'product', label: en ? 'Product' : 'Προϊόν' }, { key: 'batch', label: en ? 'Batch · supplier' : 'Παρτίδα · προμηθευτής' }, { key: 'qty', label: en ? 'Quantity' : 'Ποσότητα' }, { key: 'dish', label: en ? 'Dish' : 'Πιάτο' }, { key: 'notes', label: en ? 'Notes' : 'Παρατηρήσεις' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No raw materials yet' : 'Δεν έχουν καταγραφεί πρώτες ύλες'} emptyText={en ? 'Record each batch the production uses: it comes off the stock.' : 'Καταγράψτε κάθε παρτίδα που χρησιμοποιεί η παραγωγή: αφαιρείται από το απόθεμα.'}
         renderRow={row => { const batch = stock.find(item => item.receiptItemId === row.receiptItemId); return <>
@@ -111,8 +112,8 @@ export function KitchenDayRecordPage() {
           <td><div className="row-actions">{row.receiptItemId && <IconButton size="sm" label={en ? 'Traceability' : 'Ιχνηλάτηση'} onClick={() => setTrace(row.receiptItemId)}><Route size={14} /></IconButton>}{editActions('usage', 'kitchen_material_usage', row)}</div></td>
         </> }} />
     </RecordTabPanel>}
-    {tab === 'thermal' && <RecordTabPanel title={en ? 'Heat parameters' : 'Παράμετροι ζέστης'} subtitle={`${en ? 'Core' : 'Πυρήνας'} ${limitText(state.limits.find(item => item.limitKey === 'cooking_core'), language)} · ${en ? 'chilling' : 'ψύξη'} ${limitText(state.limits.find(item => item.limitKey === 'chilling'), language)} · ${en ? 'reheating' : 'αναθέρμανση'} ${limitText(state.limits.find(item => item.limitKey === 'reheating'), language)}`} actions={add(en ? 'Dish' : 'Πιάτο', () => setDialog({ type: 'thermal', initial: newThermal(production) }))}>
-      <RegistryTable className="kitchen-table" rows={records.thermal} rowKey={row => row.id}
+    {tab === 'thermal' && <RecordTabPanel title={en ? 'Heat parameters' : 'Παράμετροι ζέστης'} subtitle={`${en ? 'Core' : 'Πυρήνας'} ${limitText(state.limits.find((item: AnyRecord) => item.limitKey === 'cooking_core'), language)} · ${en ? 'chilling' : 'ψύξη'} ${limitText(state.limits.find((item: AnyRecord) => item.limitKey === 'chilling'), language)} · ${en ? 'reheating' : 'αναθέρμανση'} ${limitText(state.limits.find((item: AnyRecord) => item.limitKey === 'reheating'), language)}`} actions={add(en ? 'Dish' : 'Πιάτο', () => setDialog({ type: 'thermal', initial: newThermal(production) }))}>
+      <RegistryTable className="kitchen-table" rows={records!.thermal} rowKey={row => row.id}
         columns={[{ key: 'dish', label: en ? 'Dish' : 'Πιάτο' }, { key: 'cook', label: en ? 'Core' : 'Πυρήνας' }, { key: 'chill', label: en ? 'Chilling' : 'Ψύξη' }, { key: 'reheat', label: en ? 'Reheating' : 'Αναθέρμανση' }, { key: 'fry', label: en ? 'Frying' : 'Τηγάνισμα' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No heat parameters yet' : 'Δεν έχουν καταγραφεί παράμετροι ζέστης'}
         renderRow={row => <>
@@ -126,7 +127,7 @@ export function KitchenDayRecordPage() {
         </>} />
     </RecordTabPanel>}
     {tab === 'pureeing' && <RecordTabPanel title={en ? 'Pureeing / sieving' : 'Πολτοποίηση / σούρωμα'} actions={add(en ? 'Pureeing' : 'Πολτοποίηση', () => setDialog({ type: 'pureeing', initial: newPureeing(production) }))}>
-      <RegistryTable className="kitchen-table" rows={records.pureeing} rowKey={row => row.id}
+      <RegistryTable className="kitchen-table" rows={records!.pureeing} rowKey={row => row.id}
         columns={[{ key: 'dish', label: en ? 'Dish / product' : 'Πιάτο / προϊόν' }, { key: 'method', label: en ? 'Method' : 'Μέθοδος' }, { key: 'visual', label: en ? 'Visual check' : 'Οπτικός έλεγχος' }, { key: 'blade', label: en ? 'Blade check' : 'Έλεγχος λεπίδας' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No pureeing' : 'Καμία πολτοποίηση'}
         renderRow={row => <>
@@ -148,7 +149,7 @@ export function KitchenDayRecordPage() {
       <Field label={en ? 'Notes' : 'Σημειώσεις'}><textarea rows={2} value={dis.disinfectionNotes} disabled={!canEdit} onChange={e => setDis({ disinfectionNotes: e.target.value })} /></Field></div>
     </RecordTabPanel>}
     {tab === 'defrost' && <RecordTabPanel title={en ? 'Defrosting' : 'Αποψύξεις'} subtitle={en ? 'The defrosts of this day, with their HACCP sign-off.' : 'Οι αποψύξεις της ημέρας, με την επαλήθευση HACCP.'} actions={access.canRecord && <Button onClick={() => setDialog({ type: 'defrost', initial: { ...newDefrost(), productionId: production.id } })}><Plus size={15} />{en ? 'Defrosting' : 'Απόψυξη'}</Button>}>
-      <RegistryTable className="kitchen-table" rows={records.defrosting} rowKey={row => row.id}
+      <RegistryTable className="kitchen-table" rows={records!.defrosting} rowKey={row => row.id}
         columns={[{ key: 'product', label: en ? 'Product' : 'Προϊόν' }, { key: 'start', label: en ? 'Start' : 'Έναρξη' }, { key: 'end', label: en ? 'End' : 'Λήξη' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'sign', label: en ? 'Sign-off' : 'Επαλήθευση' }]}
         emptyTitle={en ? 'No defrosting this day' : 'Καμία απόψυξη την ημέρα αυτή'}
         renderRow={row => <>
@@ -161,7 +162,7 @@ export function KitchenDayRecordPage() {
     </RecordTabPanel>}
     {tab === 'menu' && <RecordTabPanel title={en ? 'Daily menu and meal plan' : 'Μενού ημέρας και πλάνο γευμάτων'} actions={canEdit && <Button onClick={() => setMeal({ index: -1, item: newMeal() })}><Plus size={15} />{en ? 'Meal plan line' : 'Γραμμή πλάνου'}</Button>}>
       <div className="record-view-stack">
-        <RecordMetricStrip items={[{ label: en ? 'Portions' : 'Μερίδες', value: (production.meals || []).reduce((sum, item) => sum + (Number(item.portions) || 0), 0), primary: true }, { label: en ? 'Special diets' : 'Ειδικές δίαιτες', value: (production.meals || []).filter(item => item.diet !== 'normal').length }, { label: en ? 'Dishes' : 'Πιάτα', value: (production.meals || []).length }]} />
+        <RecordMetricStrip items={[{ label: en ? 'Portions' : 'Μερίδες', value: (production.meals || []).reduce((sum: number, item: AnyRecord) => sum + (Number(item.portions) || 0), 0), primary: true }, { label: en ? 'Special diets' : 'Ειδικές δίαιτες', value: (production.meals || []).filter((item: AnyRecord) => item.diet !== 'normal').length }, { label: en ? 'Dishes' : 'Πιάτα', value: (production.meals || []).length }]} />
         <div className="kitchen-day-menu">
           <div><span className="lo-field-label">{en ? 'Daily menu' : 'Μενού ημέρας'}</span><pre className="kitchen-menu-text">{production.menuText || '—'}</pre></div>
           <div><span className="lo-field-label">{en ? 'Production notes' : 'Σημειώσεις παραγωγής'}</span><pre className="kitchen-menu-text">{production.notes || '—'}</pre></div>
@@ -170,10 +171,10 @@ export function KitchenDayRecordPage() {
           columns={[{ key: 'meal', label: en ? 'Meal' : 'Γεύμα' }, { key: 'diet', label: en ? 'Diet' : 'Δίαιτα' }, { key: 'dish', label: en ? 'Dish' : 'Πιάτο' }, { key: 'portions', label: en ? 'Portions' : 'Μερίδες' }, { key: 'actions', label: '' }]}
           emptyTitle={en ? 'No meal plan' : 'Χωρίς πλάνο γευμάτων'} emptyText={en ? 'Plan the dishes per meal and diet, with the portions.' : 'Προγραμματίστε τα πιάτα ανά γεύμα και δίαιτα, με τις μερίδες.'}
           renderRow={(row, index) => <><td>{mealLabel(row.meal, language)}</td><td>{dietLabel(row.diet, language)}</td><td>{row.dish}{row.notes && <small>{row.notes}</small>}</td><td>{row.portions || '—'}</td>
-            <td>{canEdit && <div className="row-actions"><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setMeal({ index, item: { ...row } })}><Pencil size={14} /></IconButton><IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => persist({ ...production, meals: production.meals.filter((_, at) => at !== index) })}><Trash2 size={14} /></IconButton></div>}</td></>} />
+            <td>{canEdit && <div className="row-actions"><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setMeal({ index, item: { ...row } })}><Pencil size={14} /></IconButton><IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => persist({ ...production, meals: production.meals.filter((_: unknown, at: number) => at !== index) })}><Trash2 size={14} /></IconButton></div>}</td></>} />
       </div>
     </RecordTabPanel>}
-    {meal && <MealDialog initial={meal.item} onClose={() => setMeal(null)} onSave={async item => { const meals = meal.index < 0 ? [...(production.meals || []), item] : production.meals.map((entry, at) => (at === meal.index ? item : entry)); if (await persist({ ...production, meals })) setMeal(null) }} />}
+    {meal && <MealDialog initial={meal.item} onClose={() => setMeal(null)} onSave={async (item: AnyRecord) => { const meals = meal.index < 0 ? [...(production.meals || []), item] : production.meals.map((entry: AnyRecord, at: number) => (at === meal.index ? item : entry)); if (await persist({ ...production, meals })) setMeal(null) }} />}
     <KitchenDialogHost dialog={dialog} setDialog={setDialog} state={state} stock={stock} dishes={dishes} organizationId={organizationId} reload={reload} />
     {trace && <TraceDialog state={state} organizationId={organizationId} receiptItemId={trace} onClose={() => setTrace(null)} />}
     {traceDay && <ObserverDialog width="wide" title={en ? 'Traceability of the day' : 'Ιχνηλάτηση ημέρας'} subtitle={`${fmtDay(production.productionDate)} · ${en ? 'supplier → batch → dish' : 'προμηθευτής → παρτίδα → πιάτο'}`} onClose={() => setTraceDay(false)} footer={<DialogActions />}>
@@ -181,7 +182,7 @@ export function KitchenDayRecordPage() {
         columns={[{ key: 'supplier', label: en ? 'Supplier · receipt' : 'Προμηθευτής · παραλαβή' }, { key: 'batch', label: en ? 'Product · batch' : 'Προϊόν · παρτίδα' }, { key: 'dishes', label: en ? 'Dishes of the day' : 'Πιάτα της ημέρας' }, { key: 'more', label: '' }]}
         emptyTitle={en ? 'No batch used this day' : 'Καμία παρτίδα την ημέρα αυτή'}
         renderRow={row => <><td>{row.supplierName || '—'}<small>{row.receiptCode} · {fmtDay(row.receivedOn)}</small></td><td><strong>{row.productName}</strong><small>{row.batchCode || row.lotLabel || '—'}</small></td>
-          <td>{[...new Set(records.usage.filter(item => item.receiptItemId === row.receiptItemId).map(item => item.dishName).filter(Boolean))].join(' · ') || '—'}</td>
+          <td>{[...new Set(records!.usage.filter((item: AnyRecord) => item.receiptItemId === row.receiptItemId).map((item: AnyRecord) => item.dishName).filter(Boolean))].join(' · ') || '—'}</td>
           <td><IconButton size="sm" label={en ? 'Traceability' : 'Ιχνηλάτηση'} onClick={() => { setTraceDay(false); setTrace(row.receiptItemId) }}><Route size={14} /></IconButton></td></>} />
     </ObserverDialog>}
   </EntityRecordShell></Page>

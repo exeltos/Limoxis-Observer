@@ -1,0 +1,28 @@
+import { supabase } from '../../core/supabase/client'
+import { hasSupabaseConfig } from '../../core/config/env'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import type { AnyRecord } from '../../types/featureTypes'
+
+export async function cancelCommitteeMeetingAsync(organizationId: string|null|undefined,committee: AnyRecord|null|undefined,meeting: AnyRecord|null|undefined,reason: unknown){
+  if(isDemoDataEnvironment())throw new Error('DEMO_COMMITTEE_MEETING_CANCELLATION_LOCAL_ONLY')
+  if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_COMMITTEES_SUPABASE_REQUIRED:meeting.cancel')
+  if(!organizationId)throw new Error('PRODUCTION_COMMITTEES_ORGANIZATION_REQUIRED:meeting.cancel')
+  if(!committee?.dbId)throw new Error('PRODUCTION_COMMITTEE_DB_ID_REQUIRED:meeting.cancel')
+  if(!meeting?.dbId)throw new Error('PRODUCTION_COMMITTEE_MEETING_DB_ID_REQUIRED:meeting.cancel')
+  const cleanReason=String(reason||'').trim()
+  if(!cleanReason)throw new Error('COMMITTEE_MEETING_CANCELLATION_REASON_REQUIRED')
+
+  const {data,error}=await supabase.rpc('cancel_committee_meeting',{
+    p_meeting_id:meeting.dbId,
+    p_reason:cleanReason,
+  })
+  if(error)throw error
+
+  return {
+    ...meeting,
+    status:data?.status||'cancelled',
+    cancellationReason:data?.cancellation_reason||cleanReason,
+    cancelledAt:data?.cancelled_at||null,
+    cancelledBy:data?.cancelled_by||null,
+  }
+}

@@ -1,0 +1,32 @@
+export const HOSPITAL_MANAGED_LIBRARY_KEYS=Object.freeze([
+  'departments',
+  'positions',
+])
+
+export const SYSTEM_BASELINE_LIBRARY_KEYS=Object.freeze([
+  'microorganisms',
+  'antibiotics',
+  'notifiableDiseases',
+  'sampleTypes',
+  'professionalCategories',
+  'vaccines',
+  'wasteTypes',
+  'antiseptics',
+  'isolationTypes',
+  'controlTypes',
+  'measurementUnits',
+  'controlAnswers',
+  'itemForms',
+  'medicinesSupplies',
+  'equipment',
+  'environmentalLocations',
+  'surfacePoints',
+  'documentCategories',
+  'deviceTypes',
+  'surveillanceDefinitions',
+  'incidentCategories',
+])
+
+export function isHospitalManagedLibraryKey(key: string){
+  return HOSPITAL_MANAGED_LIBRARY_KEYS.includes(key)
+}
