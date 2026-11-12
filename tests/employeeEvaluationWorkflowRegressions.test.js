@@ -28,7 +28,7 @@ describe('the employee performance-evaluation workflow works in both demo and pr
   })
 
   it('create and workflow actions branch to a local demo implementation instead of always calling Supabase', () => {
-    expect(service).toContain('export async function createEmployeeEvaluationAsync(organizationId,employeeDbId,draft){\n  if(isDemoDataEnvironment())return createEvaluationLocal(employeeDbId,draft)')
+    expect(service).toMatch(/export async function createEmployeeEvaluationAsync\(organizationId(: [^,]*)?,employeeDbId(: [^,]*)?,draft(: [^)]*)?\)\{\n {2}if\(isDemoDataEnvironment\(\)\)return createEvaluationLocal\(employeeDbId,draft\)/)
     expect(service).toContain("if(isDemoDataEnvironment())return updateEvaluationWorkflowLocal(evaluationId,{action,comment,agreement})")
     expect(recordsService).toContain('export const saveEvaluations=')
   })
