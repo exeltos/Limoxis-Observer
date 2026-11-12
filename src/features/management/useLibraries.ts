@@ -74,15 +74,16 @@ export function useDepartments(){
  return {departments,loading,error,reload}
 }
 
-export const libraryLabel=(item: LibraryItem|null|undefined,language='el')=>item?(language==='en'?item.en||item.el:item.el):''
+export const libraryLabel=(item: LibraryItem|AnyRecord|null|undefined,language='el')=>item?(language==='en'?item.en||item.el:item.el):''
 
 // SearchableSelect / MultiSelect options from a library: the label in the
 // screen's language, the other language as the description, both searchable.
-export function libraryOptions(items: LibraryItem[]=[],language='el',{getValue=(item: LibraryItem): string|null=>item.value}: {getValue?: (item: LibraryItem)=>string|null}={}){
+// Rows of a library, or the same shape built by a caller (e.g. a vaccine list with `value` set).
+export function libraryOptions(items: readonly (LibraryItem|AnyRecord)[]=[],language='el',{getValue=(item: AnyRecord): string|null=>item.value}: {getValue?: (item: AnyRecord)=>string|null}={}){
  return items.map(item=>{const label=libraryLabel(item,language),other=language==='en'?item.el:item.en;return {value:getValue(item),label,description:other&&other!==label?other:undefined,keywords:`${item.el} ${item.en} ${item.code||''}`}})
 }
 
-export function findLibraryItem(items: LibraryItem[]=[],value: unknown){
+export function findLibraryItem(items: readonly (LibraryItem|AnyRecord)[]=[],value: unknown){
  const text=String(value??'').trim().toLocaleLowerCase('el')
  if(!text)return null
  return items.find(item=>[item.id,item.value,item.code,item.el,item.en].some(x=>String(x||'').trim().toLocaleLowerCase('el')===text))||null
