@@ -33,13 +33,14 @@ import {
 } from './clinicalCloudService'
 import { loadSurveillanceAdmissionLinks } from './clinicalAdmissionService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const now=()=>new Date().toISOString()
 const clone=value=>JSON.parse(JSON.stringify(value))
-const id=(prefix)=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`
-const event=(type,actor,detail)=>({at:now(),type,actor:actor?.name||'Demo user',actorId:actor?.id||'demo',detail:detail||''})
+const id=(prefix: string)=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`
+const event=(type: string,actor: AnyRecord,detail: string)=>({at:now(),type,actor:actor?.name||'Demo user',actorId:actor?.id||'demo',detail:detail||''})
 
-function demoRecord(record){
+function demoRecord(record: AnyRecord){
   if(!record)return null
   record.samples=record.samples||[]
   record.therapy=record.therapy||[]
@@ -48,38 +49,43 @@ function demoRecord(record){
   record.timeline=record.timeline||[]
   return record
 }
-function touch(record,actor,type,detail){
+function touch(record: AnyRecord,actor: AnyRecord,type: string,detail: string){
   record.updatedAt=now();record.updatedBy=actor?.name||'Demo user';record.updatedById=actor?.id||'demo'
   record.timeline=[event(type,actor,detail),...(record.timeline||[])]
   return clone(record)
 }
 
-export function createClinicalRepository({isDemo,organizationId,actor}){
-  async function withAdmissionLinks(rows){
+interface CreateClinicalRepositoryOptions {
+  isDemo: boolean
+  organizationId: string
+  actor: string
+}
+export function createClinicalRepository({isDemo,organizationId,actor}: CreateClinicalRepositoryOptions){
+  async function withAdmissionLinks(rows: AnyRecord[]){
     if(isDemo||!rows?.length)return rows||[]
-    const links=await loadSurveillanceAdmissionLinks(organizationId,rows.map(row=>row.recordId||row.id))
-    return rows.map(row=>({...row,admissionId:links.get(row.recordId||row.id)||null}))
+    const links=await loadSurveillanceAdmissionLinks(organizationId,rows.map((row: AnyRecord)=>row.recordId||row.id))
+    return rows.map((row: AnyRecord)=>({...row,admissionId:links.get(row.recordId||row.id)||null}))
   }
   // «Recorded by»: the name of each person in the history, from their id.
-  async function withActorNames(rows){
-    const ids=rows.flatMap(row=>(row.timeline||[]).map(item=>item.actorId))
+  async function withActorNames(rows: AnyRecord[]){
+    const ids=rows.flatMap((row: AnyRecord)=>(row.timeline||[]).map((item: AnyRecord)=>item.actorId))
     if(!ids.some(Boolean))return rows
     const names=await loadActorNames(organizationId,ids).catch(()=>null)
     if(!names?.size)return rows
-    return rows.map(row=>({...row,timeline:(row.timeline||[]).map(item=>item.actor||!names.has(String(item.actorId))?item:{...item,actor:names.get(String(item.actorId))})}))
+    return rows.map((row: AnyRecord)=>({...row,timeline:(row.timeline||[]).map((item: AnyRecord)=>item.actor||!names.has(String(item.actorId))?item:{...item,actor:names.get(String(item.actorId))})}))
   }
-  async function loadForPatient(patient){
+  async function loadForPatient(patient: AnyRecord){
     if(isDemo)return clone(findCasesByPatient(patient?.id||patient?.patientId||''))
     if(!organizationId||!patient?.recordId)return []
     return withActorNames(await withAdmissionLinks(await loadClinicalCasesForPatient(organizationId,patient.recordId)))
   }
-  async function loadCase(caseId){
+  async function loadCase(caseId: string){
     if(isDemo)return clone(getClinicalCase(caseId))
     if(!organizationId||!caseId)return null
     const row=await loadClinicalCase(organizationId,caseId)
     return row?(await withActorNames(await withAdmissionLinks([row])))[0]:null
   }
-  async function createCase(patient,draft){
+  async function createCase(patient: AnyRecord,draft: AnyRecord){
     if(!isDemo){
       // The admission link is set with the case, in the same transaction.
       const created=await createClinicalCase(organizationId,patient.recordId,draft)
@@ -91,97 +97,97 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
       admissionId:draft.admissionId||null,admissionDate:draft.admissionDate||patient.admissionDate,...draft,createdBy:actor?.name,createdById:actor?.id,
     }))
   }
-  async function updateCase(record,draft){
+  async function updateCase(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return updateClinicalCaseBasics(organizationId,record,draft)
     const target=demoRecord(clinicalCases[record.id])
     Object.assign(target,{startedAt:draft.startedAt||target.startedAt,reviewDue:draft.reviewDue??target.reviewDue,room:draft.room??target.room,reason:draft.reason??target.reason,reasonEn:draft.reasonEn??draft.reason??target.reasonEn,suspectedSource:draft.suspectedSource??target.suspectedSource})
     return touch(target,actor,'surveillanceUpdated',draft.reason||target.reason)
   }
-  async function saveAssessment(record,draft){
+  async function saveAssessment(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return saveClinicalAssessment(organizationId,record,draft)
     const target=demoRecord(clinicalCases[record.id]);target.assessment={id:id('ASM'),...draft,assessedBy:actor?.name||'Demo user'}
     return touch(target,actor,'clinicalAssessment',draft.classification)
   }
-  async function saveHai(record,draft){
+  async function saveHai(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return saveHaiClassification(organizationId,record,draft)
     const target=demoRecord(clinicalCases[record.id]);target.haiClassification={id:id('HAI'),...draft,classifiedAt:now(),classifiedBy:actor?.name||'Demo user'}
     return touch(target,actor,'haiClassification',draft.type)
   }
-  async function requestSample(record,draft){
+  async function requestSample(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return requestLaboratorySample(organizationId,record,draft)
     const target=demoRecord(clinicalCases[record.id]);const sample={id:`LAB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`,type:draft.type,source:draft.source||'',priority:draft.priority||'routine',requestedAt:now(),result:'pending',organism:null,resistance:null,critical:false}
     // The request is also a «requested» row of the laboratory list, linked to the episode and the patient: the laboratory receives it and enters the result there.
     createDemoLabSample({id:sample.id,patient:target.patient,patientEn:target.patientEn||target.patient,patientId:target.patientId,department:target.department,departmentEn:target.departmentEn||target.department,type:sample.type,source:sample.source,sourceEn:sample.source,collectedAt:null,requestedAt:sample.requestedAt,receivedAt:null,priority:sample.priority,status:'requested',surveillanceCase:target.id,result:null,resultStatus:'draft',organism:null,resistance:null,critical:false,ast:[],communications:[],attachments:[],requestQuestions:draft.requestQuestions||{},timeline:[{at:sample.requestedAt,type:'sampleRequested',actor:actor?.name||'Demo user'}]})
     target.samples.unshift(sample);touch(target,actor,'samples',sample.id);return clone(sample)
   }
-  async function setIsolationNotRequired(record){
+  async function setIsolationNotRequired(record: AnyRecord){
     if(!isDemo){await markIsolationNotRequired(organizationId,record.recordId);return null}
     const target=demoRecord(clinicalCases[record.id]);target.isolation=null;target.isolationDecision={required:false,at:now(),by:actor?.name||'Demo user'}
     return touch(target,actor,'isolationNotRequired','no')
   }
-  async function beginIsolation(record,draft){
+  async function beginIsolation(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return startIsolation(organizationId,record,draft)
     const target=demoRecord(clinicalCases[record.id]);target.isolation={id:id('ISO'),status:'active',...draft,startedAt:draft.startedAt||now()}
     return touch(target,actor,'isolation',draft.reason)
   }
-  async function finishIsolation(record,draft){
+  async function finishIsolation(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return endIsolation(organizationId,record.isolation?.id,draft)
     const target=demoRecord(clinicalCases[record.id]);if(target.isolation)target.isolation={...target.isolation,status:'ended',endedAt:draft.endedAt||now(),endReason:draft.reason||''}
     return touch(target,actor,'isolationEnded',draft.reason)
   }
-  async function addTherapy(record,draft){
+  async function addTherapy(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return addAntimicrobialTherapy(organizationId,record,draft)
     const target=demoRecord(clinicalCases[record.id]);const therapy={id:id('TX'),status:'active',...draft,approvalStatus:draft.isAdvancedAntibiotic?'pending':(draft.approvalStatus||'not_required'),startedAt:draft.startedAt||hospitalToday(),plannedEnd:draft.plannedEndAt||draft.plannedEnd||null,administrations:[]}
     target.therapy.unshift(therapy);return touch(target,actor,'therapy',therapy.antimicrobial)
   }
-  async function finishTherapy(record,therapyId,draft){
+  async function finishTherapy(record: AnyRecord,therapyId: string,draft: AnyRecord){
     if(!isDemo)return endAntimicrobialTherapy(organizationId,therapyId,draft)
-    const target=demoRecord(clinicalCases[record.id]);target.therapy=target.therapy.map(item=>item.id===therapyId?{...item,status:'completed',endedAt:draft.endedAt||now()}:item)
+    const target=demoRecord(clinicalCases[record.id]);target.therapy=target.therapy.map((item: AnyRecord)=>item.id===therapyId?{...item,status:'completed',endedAt:draft.endedAt||now()}:item)
     return touch(target,actor,'therapyEnded',therapyId)
   }
-  async function updateTherapyApproval(record,therapyId,approvalStatus){
+  async function updateTherapyApproval(record: AnyRecord,therapyId: string,approvalStatus){
     if(!isDemo)return setTherapyApproval(organizationId,therapyId,approvalStatus)
-    const target=demoRecord(clinicalCases[record.id]);target.therapy=target.therapy.map(item=>item.id===therapyId?{...item,approvalStatus}:item)
+    const target=demoRecord(clinicalCases[record.id]);target.therapy=target.therapy.map((item: AnyRecord)=>item.id===therapyId?{...item,approvalStatus}:item)
     return touch(target,actor,'therapyApproval',approvalStatus)
   }
-  async function recordAdministration(record,therapyId,draft){
+  async function recordAdministration(record: AnyRecord,therapyId: string,draft: AnyRecord){
     if(!isDemo)return recordTherapyAdministration(organizationId,therapyId,draft)
     const target=demoRecord(clinicalCases[record.id])
     const administration={id:id('ADM'),therapyId,administeredAt:draft.administeredAt||now(),dose:draft.dose||'',route:draft.route||'',status:draft.status||'administered',withheldReason:draft.withheldReason||'',administeredBy:actor?.id||'demo',notes:draft.notes||'',createdBy:actor?.id||'demo',createdAt:now()}
-    target.therapy=target.therapy.map(item=>item.id===therapyId?{...item,administrations:[administration,...(item.administrations||[])]}:item)
+    target.therapy=target.therapy.map((item: AnyRecord)=>item.id===therapyId?{...item,administrations:[administration,...(item.administrations||[])]}:item)
     touch(target,actor,'therapyAdministered',therapyId);return administration
   }
-  async function addDevice(record,draft){
+  async function addDevice(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return addSurveillanceDevice(organizationId,record,draft)
     const target=demoRecord(clinicalCases[record.id]);const device={id:id('DEV'),status:'active',name:draft.type,nameEn:draft.type,...draft}
     target.devices.unshift(device);return touch(target,actor,'deviceAdded',draft.type)
   }
-  async function removeDevice(record,deviceId,draft={}){
+  async function removeDevice(record: AnyRecord,deviceId: string,draft: AnyRecord={}){
     if(!isDemo)return removeSurveillanceDevice(organizationId,deviceId,draft)
-    const target=demoRecord(clinicalCases[record.id]);target.devices=target.devices.map(item=>item.id===deviceId?{...item,status:'removed',removedAt:draft.removedAt||now()}:item)
+    const target=demoRecord(clinicalCases[record.id]);target.devices=target.devices.map((item: AnyRecord)=>item.id===deviceId?{...item,status:'removed',removedAt:draft.removedAt||now()}:item)
     return touch(target,actor,'deviceRemoved',deviceId)
   }
-  async function reassess(record,draft){
+  async function reassess(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return addClinicalReassessment(organizationId,record.recordId,record.patientRecordId,draft)
     const target=demoRecord(clinicalCases[record.id]);const row={id:id('REV'),...draft,by:actor?.name||'Demo user'};target.reassessments.unshift(row);if(draft.nextReviewDue)target.reviewDue=draft.nextReviewDue
     return touch(target,actor,'reassessment',draft.status)
   }
-  async function complete(record,draft){
+  async function complete(record: AnyRecord,draft: AnyRecord){
     if(!isDemo)return completeClinicalCase(organizationId,record.recordId,record.patientRecordId,draft)
     const target=demoRecord(clinicalCases[record.id]);target.outcome={id:id('OUT'),...draft};target.status='completed';target.completedAt=draft.date||now()
     return touch(target,actor,'outcome',draft.status)
   }
-  async function reopen(record,reason){
+  async function reopen(record: AnyRecord,reason: string){
     if(!isDemo){await reopenClinicalCase(organizationId,record.recordId,reason);return true}
     const target=demoRecord(clinicalCases[record.id]);target.status='active';target.completedAt=null;target.previousOutcome=target.outcome?clone(target.outcome):target.previousOutcome;target.outcome=null;target.reopenReason=reason
     touch(target,actor,'surveillanceReopened',reason);return true
   }
-  async function voidCase(record,reason){
+  async function voidCase(record: AnyRecord,reason: string){
     if(!isDemo){await voidClinicalCase(organizationId,record.recordId,reason);return true}
     return deleteClinicalSurveillance(record.id,{actor:actor?.name,actorId:actor?.id,reason})
   }
   // «Delete»: the episode and everything under it go to the deleter's recycle bin.
-  async function deleteCase(record,reason){
+  async function deleteCase(record: AnyRecord,reason: string){
     const {label,detail}=describeDeleted('Επιτήρηση',{code:record.patientId,date:record.startedAt,department:record.department})
     if(isDemo){
       const before=clinicalCases[record.id]?{...clinicalCases[record.id]}:null
@@ -202,13 +208,13 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     reassessment:{table:'surveillance_reassessments',field:'reassessments',list:true,label:'Επαναξιολόγηση'},
     device:{table:'surveillance_devices',field:'devices',list:true,label:'Συσκευή'},
   }
-  async function deleteEntry(record,kind,row){
+  async function deleteEntry(record: AnyRecord,kind: string,row: AnyRecord){
     const spec=ENTRY_KINDS[kind];if(!spec||!row?.id)return false
     const {label,detail}=describeDeleted(spec.label,{code:record.patientId,date:record.startedAt,department:record.department})
     if(isDemo){
-      const target=demoRecord(clinicalCases[record.id]);const item=target[spec.field]&&!spec.list?target[spec.field]:(target[spec.field]||[]).find(x=>String(x.id)===String(row.id))
+      const target=demoRecord(clinicalCases[record.id]);const item=target[spec.field]&&!spec.list?target[spec.field]:(target[spec.field]||[]).find((x: AnyRecord)=>String(x.id)===String(row.id))
       if(!item)return false
-      if(spec.list)target[spec.field]=target[spec.field].filter(x=>String(x.id)!==String(row.id))
+      if(spec.list)target[spec.field]=target[spec.field].filter((x: AnyRecord)=>String(x.id)!==String(row.id))
       else{target[spec.field]=null;if(kind==='outcome'){target.status='active';target.completedAt=null}}
       await binMemoryRow(null,{module:'clinical',kind:spec.table,label,detail,store:'clinical_case_entries',row:{caseId:record.id,field:spec.field,list:Boolean(spec.list),item:clone(item)}})
       return true

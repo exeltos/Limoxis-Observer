@@ -12,7 +12,18 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
+interface NewSurveillanceFlowProps {
+  patient?: AnyRecord | null
+  patients?: AnyRecord[]
+  onClose: Handler
+  onCreate: Handler
+  onPatientsChange: Handler
+  sample?: AnyRecord | null
+  sampleOptions?: AnyRecord[]
+}
 export function NewSurveillanceFlow({
   patient = null,
   patients = [],
@@ -23,18 +34,18 @@ export function NewSurveillanceFlow({
   // The patient's samples that no surveillance holds yet: a surveillance starts from one of them or from a new
   // request (owner, 8/11/2026). Without the list (the surveillance list page) only a new request is offered.
   sampleOptions = [],
-}) {
+}: NewSurveillanceFlowProps) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { tenant, isDemo } = useTenant()
   const [patientMode, setPatientMode] = useState(patient ? 'fixed' : 'existing')
   const [selectedPatientId, setSelectedPatientId] = useState(patient?.id || '')
-  const [createdPatient, setCreatedPatient] = useState(null)
+  const [createdPatient, setCreatedPatient] = useState<AnyRecord | null>(null)
   const selectedPatient =
     patient || createdPatient || patients.find(x => x.id === selectedPatientId) || null
   // The organization's departments (Management > Libraries); the inline patient
   // keeps the department's id and its Greek / English names, as before.
-  const { departments } = useDepartments()
+  const { departments }: { departments: AnyRecord[] } = useDepartments()
   const firstDepartment = [selectedPatient?.department, selectedPatient?.departmentEn]
   const today = hospitalToday()
   const [patientDraft, setPatientDraft] = useState({
@@ -71,7 +82,7 @@ export function NewSurveillanceFlow({
   const setStart = (k, v) => setStartDraft(d => ({ ...d, [k]: v }))
   const setPatientField = (k, v) => setPatientDraft(d => ({ ...d, [k]: v }))
 
-  function chooseExistingPatient(id) {
+  function chooseExistingPatient(id: string) {
     setSelectedPatientId(id)
     setCreatedPatient(null)
     const next = patients.find(x => x.id === id)
@@ -221,7 +232,7 @@ export function NewSurveillanceFlow({
     },
     !sample && { key: 'sample', label: t('svSampleField'), valid: Boolean(sampleChoice) },
   ])
-  const sampleLabel = item => [t(item.type || item.sampleType || 'other'), String(item.collectedAt || item.requestedAt || '').slice(0, 10).split('-').reverse().join('/'), item.id, item.organism || (item.result ? t(item.result) : t('pending'))].filter(Boolean).join(' · ')
+  const sampleLabel = (item: AnyRecord) => [t(item.type || item.sampleType || 'other'), String(item.collectedAt || item.requestedAt || '').slice(0, 10).split('-').reverse().join('/'), item.id, item.organism || (item.result ? t(item.result) : t('pending'))].filter(Boolean).join(' · ')
   return (
     <ObserverDialog
       width="standard"

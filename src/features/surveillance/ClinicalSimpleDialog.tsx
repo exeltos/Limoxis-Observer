@@ -4,7 +4,23 @@ import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { FormSubmit } from '../../design-system/FormValidation'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
+import type { ReactNode } from 'react'
 
+interface SimpleDialogProps {
+  title: string
+  t: (key: string) => string
+  onClose: Handler
+  onSave: Handler
+  children: ReactNode
+  disabled?: boolean
+  saveLabel?: string
+  width?: string
+  className?: string
+  form?: AnyRecord | null
+  danger?: boolean
+}
 export function SimpleDialog({
   title,
   t,
@@ -19,7 +35,7 @@ export function SimpleDialog({
   form = null,
   // A deletion: the button is red and names what it does.
   danger = false,
-}) {
+}: SimpleDialogProps) {
   return (
     <ObserverDialog
       title={title}

@@ -13,10 +13,12 @@ import { StagePanel } from '../ClinicalRecordViews'
 import { CLINICAL_PROTOCOLS, HOUR_ONE_MINUTES, pendingSteps, protocolByKey, stepOf, visibleSteps } from './protocolCatalogue'
 import { formatElapsed, minutesBetween, runSummary, timelineScale } from './protocolTiming'
 import './protocols.css'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { Handler } from '../surveillanceTypes'
 
-export const fill = (text, vars = {}) => String(text || '').replace(/\{(\w+)\}/g, (_, key) => (vars[key] ?? ''))
+export const fill = (text: string, vars: AnyRecord = {}) => String(text || '').replace(/\{(\w+)\}/g, (_, key) => (vars[key] ?? ''))
 const STEP_ICONS = { lactate: FlaskConical, cultures: Droplets, antibiotic: Pill, fluids: Droplet, vasopressor: Syringe }
-const pad = n => String(n).padStart(2, '0')
+const pad = (n: number) => String(n).padStart(2, '0')
 export const clockTime = value => {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? '—' : `${pad(date.getHours())}:${pad(date.getMinutes())}`
@@ -29,7 +31,7 @@ const localDate = value => {
   const date = value ? new Date(value) : new Date()
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
-const combine = (date, time) => {
+const combine = (date: string, time) => {
   if (!date || !/^\d{2}:\d{2}$/.test(time || '')) return null
   const value = new Date(`${date}T${time}:00`)
   return Number.isNaN(value.getTime()) ? null : value.toISOString()
@@ -50,11 +52,18 @@ export function useNow(active = true) {
   return now
 }
 
-const protocolText = (t, key, field) => t(`sepsis.protocols.${key}.${field}`)
-const stepText = (t, key, field) => t(`sepsis.steps.${key}.${field}`)
+const protocolText = (t: (key: string) => string, key: string, field: string) => t(`sepsis.protocols.${key}.${field}`)
+const stepText = (t: (key: string) => string, key: string, field: string) => t(`sepsis.steps.${key}.${field}`)
 
+interface ProtocolPickerDialogProps {
+  t: (key: string) => string
+  runs?: AnyRecord[]
+  preset?: AnyRecord | null
+  onClose: Handler
+  onStart: Handler
+}
 // Picker: which protocol, time zero, trigger and weight.
-export function ProtocolPickerDialog({ t, runs = [], preset = null, onClose, onStart }) {
+export function ProtocolPickerDialog({ t, runs = [], preset = null, onClose, onStart }: ProtocolPickerDialogProps) {
   const open = runs.find(run => run.status === 'open')
   const [protocolKey, setProtocolKey] = useState(CLINICAL_PROTOCOLS[0].key)
   const [date, setDate] = useState(localDate(preset?.recognizedAt))
@@ -119,7 +128,10 @@ export function ProtocolPickerDialog({ t, runs = [], preset = null, onClose, onS
   )
 }
 
-function Disclaimer({ t }) {
+interface DisclaimerProps {
+  t: (key: string) => string
+}
+function Disclaimer({ t }: DisclaimerProps) {
   return (
     <div className="sp-callout">
       <Info size={16} />
@@ -130,13 +142,24 @@ function Disclaimer({ t }) {
   )
 }
 
-const STATE_KEY = code => `sepsis.state_${code}`
+const STATE_KEY = (code: string) => `sepsis.state_${code}`
 
+interface ProtocolPanelProps {
+  run: Handler
+  record: AnyRecord
+  t: (key: string) => string
+  language: string
+  canRecord: boolean
+  onRecordStep: Handler
+  onChangeTime: Handler
+  onFinish: Handler
+  menu?: AnyRecord[]
+}
 // The section of a started protocol.
-export function ProtocolPanel({ run, record, t, language, canRecord, onRecordStep, onChangeTime, onFinish, menu = [] }) {
+export function ProtocolPanel({ run, record, t, language, canRecord, onRecordStep, onChangeTime, onFinish, menu = [] }: ProtocolPanelProps) {
   const open = run.status === 'open'
   const now = useNow(open)
-  const [stepDialog, setStepDialog] = useState(null)
+  const [stepDialog, setStepDialog] = useState<AnyRecord | null>(null)
   const [timeDialog, setTimeDialog] = useState(false)
   const [closeDialog, setCloseDialog] = useState(false)
   const summary = useMemo(() => runSummary(run, now), [run, now])
@@ -202,7 +225,7 @@ export function ProtocolPanel({ run, record, t, language, canRecord, onRecordSte
             {t('sepsis.history')} · {t('sepsis.auditNote')}
           </summary>
           <ul className="sp-history">
-            {(run.events || []).map((event, index) => (
+            {(run.events || []).map((event, index: number) => (
               <li key={event.id || index}>
                 <span>{dayTime(event.at)}</span>
                 <strong>{t(`sepsis.event_${event.type}`)}</strong>
@@ -265,7 +288,15 @@ export function ProtocolPanel({ run, record, t, language, canRecord, onRecordSte
   )
 }
 
-function ProtocolTimeline({ t, language, run, items, scale, now }) {
+interface ProtocolTimelineProps {
+  t: (key: string) => string
+  language: string
+  run: Handler
+  items: AnyRecord[]
+  scale: AnyRecord
+  now: AnyRecord
+}
+function ProtocolTimeline({ t, language, run, items, scale, now }: ProtocolTimelineProps) {
   const hour = (HOUR_ONE_MINUTES / scale) * 100
   const ticks = []
   const every = scale <= 90 ? 15 : 30
@@ -310,7 +341,15 @@ function ProtocolTimeline({ t, language, run, items, scale, now }) {
   )
 }
 
-function BundleStep({ item, run, t, language, editable, onOpen }) {
+interface BundleStepProps {
+  item: AnyRecord
+  run: Handler
+  t: (key: string) => string
+  language: string
+  editable: AnyRecord
+  onOpen: Handler
+}
+function BundleStep({ item, run, t, language, editable, onOpen }: BundleStepProps) {
   const { step, recorded, state, number } = item
   const Icon = STEP_ICONS[step.icon] || FlaskConical
   const title = `${number ? `${number} · ` : ''}${stepText(t, step.key, 'title')}`
@@ -409,7 +448,16 @@ function BundleStep({ item, run, t, language, editable, onOpen }) {
   )
 }
 
-function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }) {
+interface StepDialogProps {
+  t: (key: string) => string
+  run: Handler
+  record: AnyRecord
+  initialKey: string
+  choose: AnyRecord
+  onClose: Handler
+  onSave: Handler
+}
+function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }: StepDialogProps) {
   const steps = visibleSteps(run)
   const [key, setKey] = useState(initialKey || steps[0]?.key)
   const step = steps.find(item => item.key === key) || steps[0]
@@ -438,7 +486,7 @@ function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }) {
     ...(step.canSkip ? [{ value: 'not_indicated', label: t('sepsis.stepNotIndicated') }] : []),
     ...(recorded && recorded.status !== 'pending' ? [{ value: 'pending', label: t('sepsis.stepPending') }] : []),
   ]
-  const therapies = (record?.therapy || []).map(item => ({ value: item.id, label: [item.antimicrobial, item.dose, item.route].filter(Boolean).join(' · ') }))
+  const therapies = (record?.therapy || []).map((item: AnyRecord) => ({ value: item.id, label: [item.antimicrobial, item.dose, item.route].filter(Boolean).join(' · ') }))
   async function save() {
     if (!valid || busy) return
     setBusy(true)
@@ -494,7 +542,13 @@ function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }) {
   )
 }
 
-function ChangeTimeDialog({ t, run, onClose, onSave }) {
+interface ChangeTimeDialogProps {
+  t: (key: string) => string
+  run: Handler
+  onClose: Handler
+  onSave: Handler
+}
+function ChangeTimeDialog({ t, run, onClose, onSave }: ChangeTimeDialogProps) {
   const [date, setDate] = useState(localDate(run.recognizedAt))
   const [time, setTime] = useState(clockTime(run.recognizedAt))
   const [weight, setWeight] = useState(run.weightKg ?? '')
@@ -528,7 +582,14 @@ function ChangeTimeDialog({ t, run, onClose, onSave }) {
   )
 }
 
-function ReasonOnlyDialog({ title, label, hint, onClose, onSave }) {
+interface ReasonOnlyDialogProps {
+  title: string
+  label: string
+  hint: string
+  onClose: Handler
+  onSave: Handler
+}
+function ReasonOnlyDialog({ title, label, hint, onClose, onSave }: ReasonOnlyDialogProps) {
   const [reason, setReason] = useState('')
   return (
     <ObserverDialog title={title} subtitle={hint} onClose={onClose} footer={<DialogActions disabled={!reason.trim()} saveLabel={title} onSave={() => onSave(reason.trim())} />}>
@@ -540,8 +601,14 @@ function ReasonOnlyDialog({ title, label, hint, onClose, onSave }) {
   )
 }
 
+interface ProtocolBadgeProps {
+  entry: AnyRecord
+  t: (key: string) => string
+  language: string
+  now?: AnyRecord
+}
 // «Σήψη · Hour-1 72΄» while a protocol is open (surveillance list, episode tree).
-export function ProtocolBadge({ entry, t, language, now = new Date() }) {
+export function ProtocolBadge({ entry, t, language, now = new Date() }: ProtocolBadgeProps) {
   if (!entry) return null
   const minutes = minutesBetween(entry.recognizedAt, now)
   const tone = minutes != null && minutes > HOUR_ONE_MINUTES ? 'r' : 'a'

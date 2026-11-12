@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { visibleEpisodeFormSections } from './formsRegistry'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // Loads the data of every registered section that has a `load`, once per record (the key is
 // ctx.scopeKey). Lives in the record page, not in the tab, so the tab header, the device row
 // of the surveillance stage and the printed report read the same rows. Each section is
 // { loading, value, error }; a failing section never blocks the others.
-export function useEpisodeFormsData(ctx) {
+export function useEpisodeFormsData(ctx: AnyRecord) {
   const [state, setState] = useState({})
   const ctxRef = useRef(ctx)
   ctxRef.current = ctx
@@ -13,7 +14,7 @@ export function useEpisodeFormsData(ctx) {
   const enabled = Boolean(ctx?.enabled)
   const scopeKey = ctx?.scopeKey || ''
 
-  const runOne = useCallback((section, token) => {
+  const runOne = useCallback((section: string, token: string) => {
     setState(current => ({ ...current, [section.id]: { ...current[section.id], loading: true } }))
     return Promise.resolve()
       .then(() => section.load(ctxRef.current))
@@ -35,7 +36,7 @@ export function useEpisodeFormsData(ctx) {
   }, [enabled, scopeKey, runOne])
 
   const reload = useCallback(
-    id => {
+    (id: string) => {
       const section = visibleEpisodeFormSections(ctxRef.current).find(item => item.id === id)
       return section?.load ? runOne(section, generation.current) : Promise.resolve()
     },

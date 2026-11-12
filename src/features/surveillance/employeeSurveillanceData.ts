@@ -3,6 +3,7 @@ import { EMPLOYEE_SCREENING_TYPES, OTHER_EMPLOYEE_SCREENING } from './surveillan
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pick, seededRandom } from '../../core/data/demoSeed'
 import { emptyInPreview } from '../../core/preview/emptyPreview'
+import type { AnyRecord } from '../../types/featureTypes'
 
 export const employeeSurveillanceRecords=[
   {
@@ -40,14 +41,14 @@ const DEMO_STAFF=[
   ['EMP-007','Βασιλείου Χρήστος','Christos Vasileiou','Αποστείρωση','CSSD'],['EMP-008','Σταθάτου Δήμητρα','Dimitra Stathatou','Ποιότητα','Quality'],
 ]
 const historyScreeningSamples=[]
-function historyScreeningSample(id,[employeeId,name,nameEn,department,departmentEn],typeId,date,caseId,extra={}){
+function historyScreeningSample(id: string,[employeeId,name,nameEn,department,departmentEn]: AnyRecord,typeId: string,date: string,caseId: string,extra: AnyRecord={}){
   const type=EMPLOYEE_SCREENING_TYPES.find(item=>item.id===typeId),positive=Boolean(extra.organism),resultDay=positive?addDays(date,2):date
   historyScreeningSamples.push({id,subjectType:'employee',patient:name,patientEn:nameEn,patientId:employeeId,department,departmentEn,type:'employeeScreening',source:type.el,sourceEn:type.en,collectedAt:`${date}T08:45:00+03:00`,receivedAt:`${date}T09:30:00+03:00`,status:'completed',priority:'routine',organism:null,result:positive?'positive':'negative',resultStatus:'validated',resultedAt:`${resultDay}T15:00:00+03:00`,validatedAt:`${resultDay}T15:20:00+03:00`,validatedBy:'Demo Microbiology',resistance:null,critical:false,employeeSurveillanceCase:caseId,ast:[],communications:[],attachments:[],timeline:[{at:`${date}T09:30:00+03:00`,type:'sampleReceived',actor:'Εργαστήριο'},{at:`${resultDay}T15:20:00+03:00`,type:'resultValidated',actor:'Demo Microbiology'}],...extra})
   return id
 }
-function historyScreening(id,staff,typeIds,date,batchId=null,extra={}){
+function historyScreening(id: string,staff,typeIds: AnyRecord[],date: string,batchId: AnyRecord | null=null,extra: AnyRecord={}){
   const [employeeId,employeeName,employeeNameEn,department,departmentEn]=staff
-  const sampleIds=typeIds.map((typeId,index)=>historyScreeningSample(`LAB-EMP-${id.slice(5)}-${index+1}`,staff,typeId,date,id))
+  const sampleIds=typeIds.map((typeId: string,index: number)=>historyScreeningSample(`LAB-EMP-${id.slice(5)}-${index+1}`,staff,typeId,date,id))
   const record={id,subjectType:'employee',employeeId,employeeName,employeeNameEn,department,departmentEn,startedAt:date,screeningTypes:[...typeIds],batchId,status:'completed',sampleIds,timeline:[],...extra}
   employeeSurveillanceRecords.push(record)
   return record
@@ -61,8 +62,8 @@ const DEMO_BATCHES=[
   ['EBAT-251014','2025-10-14','Χειρουργική','Surgery',['EMP-003','EMP-005','EMP-006'],['nasalSwab','throatSwab']],
 ]
 for(const [batchId,date,department,departmentEn,employeeIds,typeIds] of DEMO_BATCHES){
-  const records=employeeIds.map((employeeId,index)=>historyScreening(`ESUR-${date.slice(2).replaceAll('-','')}-${index+1}`,DEMO_STAFF.find(staff=>staff[0]===employeeId),typeIds,date,batchId))
-  employeeSurveillanceBatches.push({id:batchId,subjectType:'employee_batch',department,departmentEn,startedAt:date,screeningTypes:[...typeIds],employeeIds:[...employeeIds],surveillanceIds:records.map(record=>record.id),status:'completed',createdBy:'Ομάδα ελέγχου λοιμώξεων',createdById:'demo',createdAt:`${date}T08:30:00+03:00`,updatedBy:'Ομάδα ελέγχου λοιμώξεων',updatedById:'demo',updatedAt:`${addDays(date,14)}T12:00:00+03:00`})
+  const records=employeeIds.map((employeeId: string,index: number)=>historyScreening(`ESUR-${date.slice(2).replaceAll('-','')}-${index+1}`,DEMO_STAFF.find(staff=>staff[0]===employeeId),typeIds,date,batchId))
+  employeeSurveillanceBatches.push({id:batchId,subjectType:'employee_batch',department,departmentEn,startedAt:date,screeningTypes:[...typeIds],employeeIds:[...employeeIds],surveillanceIds:records.map((record: AnyRecord)=>record.id),status:'completed',createdBy:'Ομάδα ελέγχου λοιμώξεων',createdById:'demo',createdAt:`${date}T08:30:00+03:00`,updatedBy:'Ομάδα ελέγχου λοιμώξεων',updatedById:'demo',updatedAt:`${addDays(date,14)}T12:00:00+03:00`})
 }
 // The ICU nurse carrying MRSA: nasal mupirocin and chlorhexidine for five days, negative recheck a week later.
 {
@@ -93,10 +94,19 @@ function nextBatchId(){
 function nextLabId(){
   return `LAB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(laboratorySamples.length+1).padStart(3,'0')}`
 }
-export function getEmployeeSurveillanceForEmployee(employeeId){
+export function getEmployeeSurveillanceForEmployee(employeeId: string){
   return employeeSurveillanceRecords.filter(x=>x.employeeId===employeeId)
 }
-export function createEmployeeSurveillance({employee,screeningTypes,startedAt,notes='',batchId=null,createdBy='Unknown actor',createdById='unknown'}){
+interface CreateEmployeeSurveillanceOptions {
+  employee: AnyRecord
+  screeningTypes: AnyRecord[]
+  startedAt: string
+  notes?: string
+  batchId?: string | null
+  createdBy?: string
+  createdById?: string
+}
+export function createEmployeeSurveillance({employee,screeningTypes,startedAt,notes='',batchId=null,createdBy='Unknown actor',createdById='unknown'}: CreateEmployeeSurveillanceOptions){
   const id=nextSurveillanceId()
   const sampleIds=[]
   screeningTypes.forEach(typeId=>{
@@ -173,7 +183,17 @@ export function createEmployeeSurveillance({employee,screeningTypes,startedAt,no
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated',{detail:{type:'created',recordId:record.id}}))
   return record
 }
-export function createEmployeeSurveillanceBatch({employees,screeningTypes,startedAt,department,departmentEn,notes='',createdBy='Unknown actor',createdById='unknown'}){
+interface CreateEmployeeSurveillanceBatchOptions {
+  employees: AnyRecord[]
+  screeningTypes: AnyRecord[]
+  startedAt: string
+  department: AnyRecord
+  departmentEn: AnyRecord
+  notes?: string
+  createdBy?: string
+  createdById?: string
+}
+export function createEmployeeSurveillanceBatch({employees,screeningTypes,startedAt,department,departmentEn,notes='',createdBy='Unknown actor',createdById='unknown'}: CreateEmployeeSurveillanceBatchOptions){
   const id=nextBatchId()
   const records=employees.map(employee=>createEmployeeSurveillance({employee,screeningTypes,startedAt,notes,batchId:id,createdBy,createdById}))
   const batch={
@@ -197,18 +217,18 @@ export function createEmployeeSurveillanceBatch({employees,screeningTypes,starte
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated',{detail:{type:'batch-created',batchId:batch.id,count:records.length}}))
   return batch
 }
-function getEmployeeSurveillanceRecord(id){
+function getEmployeeSurveillanceRecord(id: string){
   return employeeSurveillanceRecords.find(x=>x.id===id)||null
 }
 // Demo: the bin takes a screening out of the session list and puts it back on restore.
-export function removeDemoEmployeeSurveillance(id){
+export function removeDemoEmployeeSurveillance(id: string){
   const index=employeeSurveillanceRecords.findIndex(item=>item.id===id)
   return index<0?null:employeeSurveillanceRecords.splice(index,1)[0]
 }
-export function restoreDemoEmployeeSurveillance(row){
+export function restoreDemoEmployeeSurveillance(row: AnyRecord){
   if(row&&!employeeSurveillanceRecords.some(item=>item.id===row.id))employeeSurveillanceRecords.unshift(row)
 }
-export function updateEmployeeSurveillanceRecord(id,patch){
+export function updateEmployeeSurveillanceRecord(id: string,patch: AnyRecord){
   const record=getEmployeeSurveillanceRecord(id)
   if(!record)return null
   Object.assign(record,typeof patch==='function'?patch({...record}):patch)

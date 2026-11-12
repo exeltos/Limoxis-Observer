@@ -13,8 +13,53 @@ import { episodeTypeLabel } from './clinicalRecordLabels'
 import { CanonicalJourney } from './ClinicalJourney'
 import { SimpleDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { listTexts, statusTone, suspectedSourceOptions } from './surveillanceOptions'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler, StateSetter } from './surveillanceTypes'
 
-export function SurveillanceEpisodeSheet({ j }) {
+// What the screen hands to this part (one object, so the part reads like the code it came from).
+export interface SurveillanceEpisodeSheetScope {
+  askSampleFor: Handler
+  askSheet: Handler
+  canEditSheet: boolean
+  copyText: (key: string) => string
+  deleteItem: Handler
+  deleteOpen: AnyRecord
+  deleteReason: string
+  detailRecord: AnyRecord
+  deviceBundles: AnyRecord
+  editBusy: AnyRecord
+  editDraft: AnyRecord
+  editOpen: AnyRecord
+  fmtDate: (value: unknown) => string
+  fmtDateTime: (value: unknown) => string
+  initialStage: string
+  isDemo: boolean
+  language: string
+  libraries: AnyRecord
+  onLibraryAdded: Handler
+  onReload: Handler
+  onSampleAsked: Handler
+  openEditEpisode: Handler
+  organizationId: string
+  permissions: AnyRecord
+  removeEpisode: Handler
+  repository: AnyRecord
+  saveEpisodeEdit: Handler
+  setDeleteOpen: StateSetter
+  setDeleteReason: StateSetter
+  setDetailId: StateSetter
+  setEditDraft: StateSetter
+  setEditOpen: StateSetter
+  setSheetAction: StateSetter
+  setSheetEditing: StateSetter
+  setStartRequest: StateSetter
+  sheetAction: AnyRecord
+  sheetActive: AnyRecord
+  sheetEditing: AnyRecord
+  startRequest: AnyRecord
+  t: (key: string) => string
+}
+export function SurveillanceEpisodeSheet({ j }: { j: SurveillanceEpisodeSheetScope }) {
   const { askSampleFor, askSheet, canEditSheet, copyText, deleteItem, deleteOpen, deleteReason, detailRecord, deviceBundles, editBusy, editDraft, editOpen, fmtDate, fmtDateTime, initialStage, isDemo, language, libraries, onLibraryAdded, onReload, onSampleAsked, openEditEpisode, organizationId, permissions, removeEpisode, repository, saveEpisodeEdit, setDeleteOpen, setDeleteReason, setDetailId, setEditDraft, setEditOpen, setSheetAction, setSheetEditing, setStartRequest, sheetAction, sheetActive, sheetEditing, startRequest, t } = j
   return (
     <>

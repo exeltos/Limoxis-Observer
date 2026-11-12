@@ -1,14 +1,16 @@
 import { parseSusceptibility, sirWord } from '../../design-system/recordReport'
 import { clinicalTerm, clinicalValueLabel, episodeTypeLabel, libraryLabel, termLabel, timelineLabel } from './clinicalRecordLabels'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
 // The printed report of a surveillance episode (or of a patient's admission): the
 // description RecordReportPrint lays out as a document. Pure: the page passes what the
 // user can see (permissions are decided by `can`), the labels come from the same
 // helpers as the screen, never raw keys.
-function sampleItem(sample, { L, en, t, fmtDate, fmtDateTime, sampleLabel }) {
+function sampleItem(sample: AnyRecord, { L, en, t, fmtDate, fmtDateTime, sampleLabel }: AnyRecord) {
   const when = sample.collectedAt || sample.requestedAt
   const antibiogram = Array.isArray(sample.ast) && sample.ast.length
-    ? sample.ast.map(row => [row.drug, sirWord(row.sir, en)])
+    ? sample.ast.map((row: AnyRecord) => [row.drug, sirWord(row.sir, en)])
     : parseSusceptibility(sample.susceptibility, en)
   return {
     title: [sampleLabel(sample), when && fmtDate(when)].filter(Boolean).join(' · '),
@@ -25,7 +27,10 @@ function sampleItem(sample, { L, en, t, fmtDate, fmtDateTime, sampleLabel }) {
   }
 }
 
-function episodeBlocks(record, ctx, { libraries = {} } = {}) {
+interface EpisodeBlocksOptions {
+  libraries?: AnyRecord
+}
+function episodeBlocks(record: AnyRecord, ctx, { libraries = {} }: EpisodeBlocksOptions = {}) {
   const { L, en, t, fmtDate, language } = ctx
   const items = []
   const hai = record.haiClassification
@@ -51,7 +56,7 @@ function episodeBlocks(record, ctx, { libraries = {} } = {}) {
   })
   if (record.devices?.length) items.push({
     title: L('Επεμβατικές συσκευές', 'Invasive devices'),
-    list: record.devices.map(device => [en ? device.nameEn || device.name : device.name, en ? device.siteEn || device.site : device.site, device.insertedAt && `${L('τοποθέτηση', 'inserted')} ${fmtDate(device.insertedAt)}`, device.status && t(device.status)].filter(Boolean).join(' · ')),
+    list: record.devices.map((device: AnyRecord) => [en ? device.nameEn || device.name : device.name, en ? device.siteEn || device.site : device.site, device.insertedAt && `${L('τοποθέτηση', 'inserted')} ${fmtDate(device.insertedAt)}`, device.status && t(device.status)].filter(Boolean).join(' · ')),
   })
   if (record.isolation) items.push({
     title: L('Απομόνωση', 'Isolation'),
@@ -65,11 +70,11 @@ function episodeBlocks(record, ctx, { libraries = {} } = {}) {
   })
   if (record.therapy?.length) items.push({
     title: L('Αντιμικροβιακή αγωγή', 'Antimicrobial therapy'),
-    list: record.therapy.map(x => [x.antimicrobial || x.drug, [x.dose, x.route].filter(Boolean).join(' '), (x.startedAt || x.startDate) && `${L('από', 'from')} ${fmtDate(x.startedAt || x.startDate)}`, (x.endedAt || x.endDate || x.plannedEnd || x.plannedEndAt) && `${L('έως', 'to')} ${fmtDate(x.endedAt || x.endDate || x.plannedEnd || x.plannedEndAt)}`, x.indication, x.approvalStatus === 'pending' && L('εκκρεμεί έγκριση', 'awaiting approval')].filter(Boolean).join(' · ')),
+    list: record.therapy.map((x: AnyRecord) => [x.antimicrobial || x.drug, [x.dose, x.route].filter(Boolean).join(' '), (x.startedAt || x.startDate) && `${L('από', 'from')} ${fmtDate(x.startedAt || x.startDate)}`, (x.endedAt || x.endDate || x.plannedEnd || x.plannedEndAt) && `${L('έως', 'to')} ${fmtDate(x.endedAt || x.endDate || x.plannedEnd || x.plannedEndAt)}`, x.indication, x.approvalStatus === 'pending' && L('εκκρεμεί έγκριση', 'awaiting approval')].filter(Boolean).join(' · ')),
   })
   if (record.reassessments?.length) items.push({
     title: L('Επανεκτιμήσεις', 'Reassessments'),
-    list: record.reassessments.map(x => [x.date && fmtDate(x.date), clinicalTerm(x.status, language, t), x.decision && termLabel(x.decision, t, language), en ? x.notesEn || x.notes : x.notes, x.by].filter(Boolean).join(' · ')),
+    list: record.reassessments.map((x: AnyRecord) => [x.date && fmtDate(x.date), clinicalTerm(x.status, language, t), x.decision && termLabel(x.decision, t, language), en ? x.notesEn || x.notes : x.notes, x.by].filter(Boolean).join(' · ')),
   })
   if (record.outcome) items.push({
     title: L('Έκβαση', 'Outcome'),
@@ -82,8 +87,8 @@ function episodeBlocks(record, ctx, { libraries = {} } = {}) {
   return items
 }
 
-function timelineEvents(rows, { t, language, fmtDate, fmtDateTime }) {
-  return (rows || []).filter(row => row?.at).map(row => ({
+function timelineEvents(rows: AnyRecord[], { t, language, fmtDate, fmtDateTime }: AnyRecord) {
+  return (rows || []).filter((row: AnyRecord) => row?.at).map((row: AnyRecord) => ({
     when: /^\d{4}-\d{2}-\d{2}$/.test(String(row.at)) ? fmtDate(row.at) : fmtDateTime(row.at),
     sort: String(row.at),
     title: timelineLabel(row.type, language, t),
@@ -92,6 +97,27 @@ function timelineEvents(rows, { t, language, fmtDate, fmtDateTime }) {
   }))
 }
 
+interface BuildSurveillanceReportOptions {
+  language?: string
+  t: (key: string) => string
+  fmtDate: (value: unknown) => string
+  fmtDateTime: (value: unknown) => string
+  record?: AnyRecord | null
+  patient?: AnyRecord | null
+  admission?: AnyRecord | null
+  patientMode?: boolean
+  admissionEpisodes?: AnyRecord[]
+  samples?: AnyRecord[]
+  admissionTimeline?: AnyRecord[]
+  outsideTimeline?: AnyRecord[]
+  libraries?: AnyRecord
+  documents?: AnyRecord[] | null
+  department?: string
+  status?: string
+  sampleLabel?: Handler
+  can?: AnyRecord
+  formSections?: AnyRecord[]
+}
 export function buildSurveillanceReport({
   language = 'el',
   t,
@@ -113,9 +139,9 @@ export function buildSurveillanceReport({
   can = {},
   // Sections of the «Φόρμες & ερωτηματολόγια» tab (forms/formsRegistry.js buildReport), after the scales.
   formSections = [],
-}) {
+}: BuildSurveillanceReportOptions) {
   const en = language === 'en'
-  const L = (el, enText) => (en ? enText : el)
+  const L = (el: string, enText: string) => (en ? enText : el)
   const ctx = { L, en, t, fmtDate, fmtDateTime, language, sampleLabel }
   const name = en ? patient?.nameEn || record?.patientEn || patient?.name || record?.patient : patient?.name || record?.patient
   const code = patient?.id || record?.patientId
@@ -143,7 +169,7 @@ export function buildSurveillanceReport({
   const summaryPairs = record
     ? [
         [L('Δείγματα', 'Samples'), samples.length ? String(samples.length) : ''],
-        [L('Αντιμικροβιακή αγωγή', 'Antimicrobial therapy'), (record.therapy || []).map(x => x.antimicrobial).filter(Boolean).join(', ')],
+        [L('Αντιμικροβιακή αγωγή', 'Antimicrobial therapy'), (record.therapy || []).map((x: AnyRecord) => x.antimicrobial).filter(Boolean).join(', ')],
         [L('Επόμενη επανεκτίμηση', 'Next review'), record.reviewDue && fmtDate(record.reviewDue)],
       ]
     : [
@@ -170,7 +196,7 @@ export function buildSurveillanceReport({
             [L('Κατάσταση', 'Status'), ep.status && t(ep.status)],
             [L('Μικροοργανισμός', 'Organism'), ep.organism],
             [L('Αντοχή', 'Resistance'), ep.resistance],
-            [L('Αντιμικροβιακή αγωγή', 'Antimicrobial therapy'), (ep.therapy || []).map(x => x.antimicrobial).filter(Boolean).join(', ')],
+            [L('Αντιμικροβιακή αγωγή', 'Antimicrobial therapy'), (ep.therapy || []).map((x: AnyRecord) => x.antimicrobial).filter(Boolean).join(', ')],
             [L('Απομόνωση', 'Isolation'), ep.isolation?.status && t(ep.isolation.status)],
           ],
         })), keep: true }),

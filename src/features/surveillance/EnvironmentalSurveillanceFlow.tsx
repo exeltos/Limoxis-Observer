@@ -37,9 +37,11 @@ import { listTexts } from './surveillanceOptions'
 import './surveillanceRegistry.css'
 import './surveillanceEntryCard.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
 const icons = { surface: Layers3, room: Building2, air: Wind, water: Droplets }
-const sourceByType = {
+const sourceByType: Record<string, string[]> = {
   surface: ['surfaceSwab', 'contactPlate', 'other'],
   room: ['roomSampling', 'surfaceSwab', 'contactPlate', 'other'],
   air: ['activeAir', 'passiveAir', 'airSampling', 'other'],
@@ -50,12 +52,12 @@ const closedStatuses = ['cancelled', 'rejected', 'voided']
 
 // A result outside the acceptable limits is not "done": the point needs action
 // (remediation and a new sampling), whatever the laboratory status says.
-export const environmentalNeedsAction = row =>
+export const environmentalNeedsAction = (row: AnyRecord) =>
   !closedStatuses.includes(row?.status) &&
   (row?.microbiologyResults || []).some(result => isOutsideLimit(result))
 
 // The registry status shown for an environmental sample, with its badge tone.
-export function environmentalStatusDisplay(row, t) {
+export function environmentalStatusDisplay(row: AnyRecord, t: (key: string) => string) {
   if (environmentalNeedsAction(row))
     return { label: t('surveillanceList.actionNeeded'), tone: 'warning' }
   if (inProgressStatuses.includes(row?.status)) return { label: t(row.status), tone: 'info' }
@@ -63,7 +65,7 @@ export function environmentalStatusDisplay(row, t) {
 }
 
 // Prefill for a new sampling at the same point as an earlier sample.
-export function environmentalResampleInitial(row, departmentOptions = []) {
+export function environmentalResampleInitial(row: AnyRecord, departmentOptions: AnyRecord[] = []) {
   const department = departmentOptions.find(
     item =>
       (row.departmentId && item.value === row.departmentId) ||
@@ -84,6 +86,14 @@ export function environmentalResampleInitial(row, departmentOptions = []) {
   }
 }
 
+interface EnvironmentalSurveillanceFlowProps {
+  isDemo: boolean
+  departmentOptions?: AnyRecord[]
+  initial?: AnyRecord | null
+  createSample: Handler
+  onClose: Handler
+  onCreated: Handler
+}
 export function EnvironmentalSurveillanceFlow({
   isDemo,
   departmentOptions = [],
@@ -91,7 +101,7 @@ export function EnvironmentalSurveillanceFlow({
   createSample,
   onClose,
   onCreated,
-}) {
+}: EnvironmentalSurveillanceFlowProps) {
   const { t, language } = useLanguage(),
     { notify, notifyError, confirm } = useFeedback()
   const [subjectType, setSubjectType] = useState(initial?.subjectType || 'surface'),
@@ -116,7 +126,7 @@ export function EnvironmentalSurveillanceFlow({
   const texts = listTexts(language)
   const locationOptions = libraryOptions(libraries.environmentalLocations || [], language),
     pointOptions = libraryOptions(libraries.surfacePoints || [], language)
-  function chooseType(type) {
+  function chooseType(type: string) {
     setSubjectType(type)
     setSourceCode(environmentalSubjectCatalog.find(x => x.id === type)?.defaultSource || 'other')
   }
@@ -127,7 +137,7 @@ export function EnvironmentalSurveillanceFlow({
       ? { department: dep.label, departmentEn: dep.labelEn || dep.label }
       : { departmentId: dep.value }
   }
-  function buildDraft(entryLocation, entryPoint, batchId, entryPlate = '', entryPosition = '') {
+  function buildDraft(entryLocation, entryPoint, batchId: string, entryPlate = '', entryPosition = '') {
     const subjectName = [entryLocation, entryPoint].filter(Boolean).join(' · ')
     return {
       subjectType: 'environment',
@@ -185,9 +195,9 @@ export function EnvironmentalSurveillanceFlow({
       setSaving(false)
     }
   }
-  const updateRow = (id, key, value) =>
+  const updateRow = (id: string, key: string, value) =>
     setBatchRows(rows => rows.map(row => (row.id === id ? { ...row, [key]: value } : row)))
-  const removeRow = async id => {
+  const removeRow = async (id: string) => {
     const ok = await confirm({
       title: language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point',
       message:
@@ -288,7 +298,7 @@ export function EnvironmentalSurveillanceFlow({
       ) : null}
       {created ? (
         <ul className="environmental-created-list" aria-label={t('clinicalRecords.envSheetPoints')}>
-          {created.points.map((item, index) => (
+          {created.points.map((item: AnyRecord, index: number) => (
             <li key={`${item.code}-${index}`}>
               <span>{String(index + 1).padStart(2, '0')}</span>
               <strong>{[item.location, item.point].filter(Boolean).join(' · ')}</strong>
@@ -348,7 +358,7 @@ export function EnvironmentalSurveillanceFlow({
             label={t('samplingMethod')}
             {...form.field('method')}
             value={sourceCode}
-            options={sources.map(code => ({ value: code, label: environmentalMethodLabel(code, t) }))}
+            options={sources.map((code: string) => ({ value: code, label: environmentalMethodLabel(code, t) }))}
             emptyLabel={texts.emptyLabel}
             onChange={v => v && setSourceCode(v)}
           />
@@ -490,6 +500,19 @@ export function EnvironmentalSurveillanceFlow({
   )
 }
 
+interface EnvironmentalRegistryProps {
+  loading?: boolean
+  rows: AnyRecord[]
+  empty: boolean
+  t: (key: string) => string
+  language: string
+  fmt: (value: unknown) => string
+  onOpenSample: Handler
+  highlightId?: string
+  scrollRef: AnyRecord
+  sort: AnyRecord
+  onSort: Handler
+}
 export function EnvironmentalRegistry({
   loading = false,
   rows,
@@ -502,7 +525,7 @@ export function EnvironmentalRegistry({
   scrollRef,
   sort,
   onSort,
-}) {
+}: EnvironmentalRegistryProps) {
   // Date, department and batch are the secondary columns: on a narrow screen (tablet)
   // they move under the sample code, so the list never scrolls sideways.
   const columns = [
@@ -514,7 +537,7 @@ export function EnvironmentalRegistry({
     { key: 'result', label: t('result'), sortable: true },
     { key: 'status', label: t('status'), sortable: true },
   ]
-  const departmentName = row => (language === 'el' ? row.department : row.departmentEn)
+  const departmentName = (row: AnyRecord) => (language === 'el' ? row.department : row.departmentEn)
   return (
     <section className="environmental-registry workspace-fill">
       <div className="scroll-table" ref={scrollRef}>
@@ -589,7 +612,11 @@ export function EnvironmentalRegistry({
   )
 }
 
-function EnvironmentalStatusCell({ row, t }) {
+interface EnvironmentalStatusCellProps {
+  row: AnyRecord
+  t: (key: string) => string
+}
+function EnvironmentalStatusCell({ row, t }: EnvironmentalStatusCellProps) {
   const status = environmentalStatusDisplay(row, t)
   return <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
 }

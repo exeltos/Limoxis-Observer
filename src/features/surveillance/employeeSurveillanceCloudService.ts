@@ -1,10 +1,14 @@
 import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
-import { supabase } from '../../core/supabase/client'
+import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// The calls below run with a configured client: the demo and an unconfigured build return before them.
+const supabase = configuredClient as Cloud
 
 
-function mapRecord(row,employee,department){
+function mapRecord(row: AnyRecord,employee: AnyRecord,department: AnyRecord){
   return {
     id:row.surveillance_code,
     recordId:row.id,
@@ -39,8 +43,8 @@ function mapRecord(row,employee,department){
   }
 }
 
-function mapBatch(row,department,records){
-  const linked=(records||[]).filter(item=>item.batchId===row.id)
+function mapBatch(row: AnyRecord,department: AnyRecord,records: AnyRecord[]){
+  const linked=(records||[]).filter((item: AnyRecord)=>item.batchId===row.id)
   return {
     id:row.batch_code,
     recordId:row.id,
@@ -52,42 +56,42 @@ function mapBatch(row,department,records){
     screeningTypes:row.screening_types||[],
     notes:row.notes||'',
     employeeCount:linked.length,
-    activeCount:linked.filter(item=>item.status==='active').length,
-    positiveCount:linked.filter(item=>item.resultStatus==='positive').length,
+    activeCount:linked.filter((item: AnyRecord)=>item.status==='active').length,
+    positiveCount:linked.filter((item: AnyRecord)=>item.resultStatus==='positive').length,
     records:linked,
     createdAt:row.created_at,
   }
 }
 
-async function hydrateRecords(rows){
+async function hydrateRecords(rows: AnyRecord[]){
   if(!rows?.length)return []
-  const employeeIds=[...new Set(rows.map(row=>row.employee_id))]
+  const employeeIds=[...new Set(rows.map((row: AnyRecord)=>row.employee_id))]
   const {data:employees,error}=await selectInChunks(employeeIds,ids=>supabase.from('employees').select('id,employee_code,first_name,first_name_en,last_name,last_name_en,department_id,department_name,department_name_en').in('id',ids))
   if(error)throw error
   const departmentIds=[...new Set((employees||[]).map(row=>row.department_id).filter(Boolean))]
   const departmentResult=await selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name').in('id',ids))
   if(departmentResult.error)throw departmentResult.error
-  return rows.map(row=>{
+  return rows.map((row: AnyRecord)=>{
     const employee=(employees||[]).find(item=>item.id===row.employee_id)
     const department=(departmentResult.data||[]).find(item=>item.id===employee?.department_id)
     return mapRecord(row,employee,department)
   })
 }
 
-export async function loadEmployeeSurveillanceRecords(organizationId){
+export async function loadEmployeeSurveillanceRecords(organizationId: string | null | undefined){
   assertCloud()
   if(!organizationId)return []
   return hydrateRecords(await selectAllPages(()=>supabase.from('employee_surveillance_records').select('*').eq('organization_id',organizationId).order('started_at',{ascending:false}).order('id',{ascending:true})))
 }
 
 // One employee's surveillance records (the employee record's tab).
-export async function loadEmployeeSurveillanceRecordsForEmployee(organizationId,employeeDbId){
+export async function loadEmployeeSurveillanceRecordsForEmployee(organizationId: string | null | undefined,employeeDbId: string){
   assertCloud()
   if(!organizationId||!employeeDbId)return []
   return hydrateRecords(await selectAllPages(()=>supabase.from('employee_surveillance_records').select('*').eq('organization_id',organizationId).eq('employee_id',employeeDbId).order('started_at',{ascending:false}).order('id',{ascending:true})))
 }
 
-async function loadEmployeeSurveillanceBatches(organizationId,records=[]){
+async function loadEmployeeSurveillanceBatches(organizationId: string | null | undefined,records: AnyRecord[]=[]){
   assertCloud()
   if(!organizationId)return []
   const {data,error}=await supabase.from('employee_surveillance_batches').select('*').eq('organization_id',organizationId).order('started_at',{ascending:false})
@@ -102,9 +106,9 @@ async function loadEmployeeSurveillanceBatches(organizationId,records=[]){
 // "No intervention needed" is stored as no_intervention=true with intervention_status 'none'.
 const interventionStatuses=['none','required','in_progress','completed']
 export const interventionStatusDbValue=value=>interventionStatuses.includes(value)?value:value==='recorded'?'in_progress':'none'
-export const followupInterventionStatus=patch=>patch?.noIntervention?'none':((patch?.intervention?.trim()||patch?.interventionType)?'in_progress':'none')
+export const followupInterventionStatus=(patch: AnyRecord)=>patch?.noIntervention?'none':((patch?.intervention?.trim()||patch?.interventionType)?'in_progress':'none')
 
-export async function createEmployeeSurveillanceRecord(organizationId,employeeDbId,draft){
+export async function createEmployeeSurveillanceRecord(organizationId: string | null | undefined,employeeDbId: string,draft: AnyRecord){
   assertCloud()
   const actorId=await currentUserId()
   const code=draft.code||`ESUR-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
@@ -127,7 +131,7 @@ export async function createEmployeeSurveillanceRecord(organizationId,employeeDb
   return (await hydrateRecords([data]))[0]
 }
 
-export async function createEmployeeSurveillanceBatch(organizationId,employees,draft){
+export async function createEmployeeSurveillanceBatch(organizationId: string | null | undefined,employees: AnyRecord[],draft: AnyRecord){
   assertCloud()
   const actorId=await currentUserId()
   const batchCode=draft.code||`EBAT-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
@@ -141,7 +145,7 @@ export async function createEmployeeSurveillanceBatch(organizationId,employees,d
     created_by:actorId,
   }).select('*').single()
   if(batchError)throw batchError
-  const payload=employees.map((employee,index)=>({
+  const payload=employees.map((employee: AnyRecord,index: number)=>({
     organization_id:organizationId,
     surveillance_code:`ESUR-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()+index).slice(-5)}`,
     employee_id:employee.dbId,
@@ -155,7 +159,7 @@ export async function createEmployeeSurveillanceBatch(organizationId,employees,d
   return (await loadEmployeeSurveillanceBatches(organizationId,records)).find(item=>item.recordId===batch.id)
 }
 
-export async function updateEmployeeSurveillanceFollowup(organizationId,record,patch){
+export async function updateEmployeeSurveillanceFollowup(organizationId: string | null | undefined,record: AnyRecord,patch: AnyRecord){
   assertCloud()
   const actorId=await currentUserId()
   const now=new Date().toISOString()
@@ -178,12 +182,12 @@ export async function updateEmployeeSurveillanceFollowup(organizationId,record,p
   return (await hydrateRecords([data]))[0]
 }
 
-export function getEmployeeSurveillanceKpis(rows){
+export function getEmployeeSurveillanceKpis(rows: AnyRecord[]){
   const today=hospitalToday()
   return {
-    active:(rows||[]).filter(row=>row.status==='active').length,
-    positive:(rows||[]).filter(row=>row.resultStatus==='positive').length,
-    needsIntervention:(rows||[]).filter(row=>['required','in_progress'].includes(row.interventionStatus)).length,
-    needsRecheck:(rows||[]).filter(row=>row.recheckDue&&row.recheckDue<=today&&row.status==='active').length,
+    active:(rows||[]).filter((row: AnyRecord)=>row.status==='active').length,
+    positive:(rows||[]).filter((row: AnyRecord)=>row.resultStatus==='positive').length,
+    needsIntervention:(rows||[]).filter((row: AnyRecord)=>['required','in_progress'].includes(row.interventionStatus)).length,
+    needsRecheck:(rows||[]).filter((row: AnyRecord)=>row.recheckDue&&row.recheckDue<=today&&row.status==='active').length,
   }
 }

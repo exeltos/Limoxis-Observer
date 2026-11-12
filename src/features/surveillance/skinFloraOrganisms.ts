@@ -9,7 +9,7 @@ export function isSkinFloraOrganism(organism) {
   return SKIN_FLORA_PATTERN.test(String(organism || '').trim().toLowerCase())
 }
 
-export function skinFloraRuleNote(en) {
+export function skinFloraRuleNote(en: boolean) {
   return en ? 'Skin organism: only patients with 2+ samples are counted' : 'Μικρόβιο δέρματος: μετράνε μόνο ασθενείς με 2+ δείγματα'
 }
 

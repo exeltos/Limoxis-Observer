@@ -23,7 +23,19 @@ import {
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { copy, NEW_ITEM, rowLabel } from './clinicalDialogText'
 import { SimpleDialog } from './ClinicalSimpleDialog'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler, StateSetter } from './surveillanceTypes'
 
+interface HaiDialogProps {
+  t: (key: string) => string
+  items?: AnyRecord[]
+  patientAgeDays?: number | null
+  organizationId: string
+  isDemo: boolean
+  onAddLibraryItem: Handler
+  onClose: Handler
+  onSave: Handler
+}
 export function HaiDialog({
   t,
   items = [],
@@ -33,10 +45,10 @@ export function HaiDialog({
   onAddLibraryItem,
   onClose,
   onSave,
-}) {
+}: HaiDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
-  const [criteriaSets, setCriteriaSets] = useState(null)
+  const [criteriaSets, setCriteriaSets] = useState<AnyRecord | null>(null)
   useEffect(() => {
     let alive = true
     loadHaiCriteriaSets(organizationId)
@@ -142,7 +154,7 @@ export function HaiDialog({
     setAdding(false)
     setNewName('')
   }
-  function toggleCriterion(itemId) {
+  function toggleCriterion(itemId: string) {
     setD(x => ({
       ...x,
       criteriaEvidence: x.criteriaEvidence.includes(itemId)
@@ -222,11 +234,11 @@ export function HaiDialog({
               ? `Απλοποιημένο checklist βάσει ${criteriaSet.source} — ενδεικτικό εργαλείο υποστήριξης, δεν υποκαθιστά την κλινική κρίση.`
               : `Simplified checklist based on ${criteriaSet.source} — an indicative decision-support aid, not a substitute for clinical judgement.`}
           </p>
-          {criteriaSet.groups.map(group => (
+          {criteriaSet.groups.map((group: AnyRecord) => (
             <ChoiceChips
               key={group.id}
               className="hai-criteria-group"
-              options={group.items.map(item => ({
+              options={group.items.map((item: AnyRecord) => ({
                 value: item.id,
                 label: language === 'el' ? item.textEl : item.textEn,
               }))}
@@ -250,7 +262,14 @@ export function HaiDialog({
     </SimpleDialog>
   )
 }
-export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], onClose, onSave }) {
+interface TherapyDialogProps {
+  t: (key: string) => string
+  antibiotics?: AnyRecord[]
+  advancedAntibiotics?: AnyRecord[]
+  onClose: Handler
+  onSave: Handler
+}
+export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], onClose, onSave }: TherapyDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
   const options = antibiotics.length ? antibiotics : demoLibrarySeed.antibiotics
@@ -258,7 +277,7 @@ export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], o
     advancedAntibiotics.length ? advancedAntibiotics : demoLibrarySeed.advancedAntibiotics,
   )
   const [rows, setRows] = useState(() => [newTherapyRow()])
-  const update = (i, key, value) =>
+  const update = (i: number, key: string, value) =>
     setRows(list => list.map((x, n) => (n === i ? { ...x, [key]: value } : x)))
   const save = async () => {
     for (const therapy of therapiesToSave(rows, advancedNames)) await onSave(therapy)
@@ -343,7 +362,12 @@ export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], o
     </SimpleDialog>
   )
 }
-export function IsolationDialog({ t, onClose, onSave }) {
+interface IsolationDialogProps {
+  t: (key: string) => string
+  onClose: Handler
+  onSave: Handler
+}
+export function IsolationDialog({ t, onClose, onSave }: IsolationDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
   const [d, setD] = useState({
@@ -394,7 +418,13 @@ export function IsolationDialog({ t, onClose, onSave }) {
     </SimpleDialog>
   )
 }
-export function EndDialog({ title, t, onClose, onSave }) {
+interface EndDialogProps {
+  title: string
+  t: (key: string) => string
+  onClose: Handler
+  onSave: Handler
+}
+export function EndDialog({ title, t, onClose, onSave }: EndDialogProps) {
   const [d, setD] = useState({ endedAt: hospitalToday(), reason: '' })
   return (
     <SimpleDialog title={title} t={t} onClose={onClose} onSave={() => onSave(d)}>
@@ -410,7 +440,12 @@ export function EndDialog({ title, t, onClose, onSave }) {
     </SimpleDialog>
   )
 }
-export function ReassessmentDialog({ t, onClose, onSave }) {
+interface ReassessmentDialogProps {
+  t: (key: string) => string
+  onClose: Handler
+  onSave: Handler
+}
+export function ReassessmentDialog({ t, onClose, onSave }: ReassessmentDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
   const [d, setD] = useState({
@@ -451,7 +486,12 @@ export function ReassessmentDialog({ t, onClose, onSave }) {
     </SimpleDialog>
   )
 }
-export function OutcomeDialog({ t, onClose, onSave }) {
+interface OutcomeDialogProps {
+  t: (key: string) => string
+  onClose: Handler
+  onSave: Handler
+}
+export function OutcomeDialog({ t, onClose, onSave }: OutcomeDialogProps) {
   const { language } = useLanguage()
   const [d, setD] = useState({
     status: 'resolved',
@@ -479,7 +519,18 @@ export function OutcomeDialog({ t, onClose, onSave }) {
     </SimpleDialog>
   )
 }
-export function ReasonDialog({ title, t, reason, setReason, onClose, onSave, saveLabel = '', note = '', danger = false }) {
+interface ReasonDialogProps {
+  title: string
+  t: (key: string) => string
+  reason: string
+  setReason: StateSetter
+  onClose: Handler
+  onSave: Handler
+  saveLabel?: string
+  note?: string
+  danger?: boolean
+}
+export function ReasonDialog({ title, t, reason, setReason, onClose, onSave, saveLabel = '', note = '', danger = false }: ReasonDialogProps) {
   return (
     <SimpleDialog title={title} t={t} onClose={onClose} onSave={onSave} disabled={!reason.trim()} saveLabel={saveLabel} danger={danger}>
       {note && <p className="entry-span-2">{note}</p>}

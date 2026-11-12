@@ -1,13 +1,14 @@
 import { AMR_CATEGORY_SELECT, amrCalculationSnapshot } from '../laboratory/amrCalculation'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // Rows of the surveillance tables as the records the screens read (clinicalCloudService.ts reads and writes them).
 
 export const iso = value => (value ? new Date(value).toISOString() : null)
 export const dateOnly = value => (value ? String(value).slice(0, 10) : null)
-const latest = (rows = []) => rows[0] || null
+const latest = (rows: AnyRecord[] = []) => rows[0] || null
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const byPosition = (a, b) => (a.position || 0) - (b.position || 0)
-export const textList = list =>
+const byPosition = (a: AnyRecord, b: AnyRecord) => (a.position || 0) - (b.position || 0)
+export const textList = (list: AnyRecord[]) =>
   (Array.isArray(list) ? list : []).map(item => String(item ?? '').trim()).filter(Boolean)
 
 // The lists of a record are rows of their own, embedded in the record's query.
@@ -20,17 +21,17 @@ export const AMR_SELECT = `*,${AMR_CATEGORY_SELECT}`
 // A finding as the assessment lists it: its wording, and the value when one
 // was recorded (a fever reading, a date or detail). A risk factor answered
 // «no» is not listed.
-function findingText(row) {
+function findingText(row: AnyRecord) {
   const value = row.value_text ?? (row.value_numeric != null ? String(row.value_numeric) : null)
   return value ? `${row.label}: ${value}` : row.label
 }
-const findingsOf = (row, kinds) =>
+const findingsOf = (row: AnyRecord, kinds: AnyRecord) =>
   [...(row.findings || [])]
     .filter(item => kinds.includes(item.kind) && item.value_boolean !== false)
     .sort((a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind) || byPosition(a, b))
     .map(findingText)
 
-export function mapAssessment(row) {
+export function mapAssessment(row: AnyRecord) {
   if (!row) return null
   return {
     id: row.id,
@@ -45,7 +46,7 @@ export function mapAssessment(row) {
   }
 }
 
-export function mapHai(row) {
+export function mapHai(row: AnyRecord) {
   if (!row) return null
   return {
     id: row.id,
@@ -61,7 +62,7 @@ export function mapHai(row) {
   }
 }
 
-function mapAmr(row) {
+function mapAmr(row: AnyRecord) {
   if (!row) return null
   return {
     id: row.id,
@@ -76,7 +77,12 @@ function mapAmr(row) {
   }
 }
 
-function mapMicrobiologyResult(row, { amrRows = [], astRows = [], communications = [] } = {}) {
+interface MapMicrobiologyResultOptions {
+  amrRows?: AnyRecord[]
+  astRows?: AnyRecord[]
+  communications?: AnyRecord[]
+}
+function mapMicrobiologyResult(row: AnyRecord, { amrRows = [], astRows = [], communications = [] }: MapMicrobiologyResultOptions = {}) {
   if (!row) return null
   return {
     id: row.id,
@@ -123,12 +129,12 @@ function mapMicrobiologyResult(row, { amrRows = [], astRows = [], communications
   }
 }
 
-export function mapSample(row, related = {}) {
+export function mapSample(row: AnyRecord, related: AnyRecord = {}) {
   const results = (related.results || [])
-    .filter(item => item.sample_id === row.id)
-    .map(item => mapMicrobiologyResult(item, related))
+    .filter((item: AnyRecord) => item.sample_id === row.id)
+    .map((item: AnyRecord) => mapMicrobiologyResult(item, related))
   const validated =
-    results.find(item => item.validationStatus === 'validated') || results[0] || null
+    results.find((item: AnyRecord) => item.validationStatus === 'validated') || results[0] || null
   return {
     id: row.sample_code,
     recordId: row.id,
@@ -151,9 +157,9 @@ export function mapSample(row, related = {}) {
 
 // An isolation is active while its status is 'active' and it has not ended
 // (as patient_infection_flags and analysis_domain_metrics count it).
-const isolationActive = row => row?.status === 'active' && !row.ended_at
+const isolationActive = (row: AnyRecord) => row?.status === 'active' && !row.ended_at
 
-export function mapIsolation(row) {
+export function mapIsolation(row: AnyRecord) {
   if (!row) return null
   return {
     id: row.id,
@@ -170,7 +176,7 @@ export function mapIsolation(row) {
   }
 }
 
-export function mapAdministration(row) {
+export function mapAdministration(row: AnyRecord) {
   return {
     id: row.id,
     therapyId: row.therapy_id,
@@ -186,7 +192,7 @@ export function mapAdministration(row) {
   }
 }
 
-export function mapTherapy(row, administrations = []) {
+export function mapTherapy(row: AnyRecord, administrations: AnyRecord[] = []) {
   return {
     id: row.id,
     antimicrobial: row.antimicrobial,
@@ -203,7 +209,7 @@ export function mapTherapy(row, administrations = []) {
   }
 }
 
-export function mapDevice(row) {
+export function mapDevice(row: AnyRecord) {
   return {
     id: row.id,
     name: row.device_type,
@@ -221,14 +227,14 @@ export function mapDevice(row) {
 }
 
 // UI reassessment vocabulary -> surveillance_reassessments check constraints (clinical_status / *_decision).
-const reassessmentStatusToDb = {
+const reassessmentStatusToDb: Record<string, string> = {
   clinicalImprovement: 'improved',
   improvement: 'improved',
   deterioration: 'deteriorated',
   worsened: 'deteriorated',
 }
-const reassessmentStatusFromDb = { improved: 'clinicalImprovement', deteriorated: 'deterioration' }
-const reassessmentDecisionToDb = {
+const reassessmentStatusFromDb: Record<string, string> = { improved: 'clinicalImprovement', deteriorated: 'deterioration' }
+const reassessmentDecisionToDb: Record<string, string> = {
   continueTreatment: 'continue',
   continueIsolation: 'continue',
   modifyTreatment: 'modify',
@@ -251,7 +257,7 @@ export const reassessmentDecisionDbValue = (
   return allowed.includes(v) ? v : null
 }
 
-export function mapReassessment(row) {
+export function mapReassessment(row: AnyRecord) {
   return {
     id: row.id,
     date: dateOnly(row.reassessed_at),
@@ -265,7 +271,7 @@ export function mapReassessment(row) {
   }
 }
 
-export function mapOutcome(row) {
+export function mapOutcome(row: AnyRecord) {
   if (!row) return null
   return {
     id: row.id,
@@ -276,6 +282,17 @@ export function mapOutcome(row) {
   }
 }
 
+interface ClinicalTimelineOptions {
+  events?: AnyRecord[]
+  assessments?: AnyRecord[]
+  hai?: AnyRecord[]
+  samples?: AnyRecord[]
+  therapies?: AnyRecord[]
+  isolations?: AnyRecord[]
+  reassessments?: AnyRecord[]
+  outcomes?: AnyRecord[]
+  devices?: AnyRecord[]
+}
 function clinicalTimeline({
   events = [],
   assessments = [],
@@ -286,7 +303,7 @@ function clinicalTimeline({
   reassessments = [],
   outcomes = [],
   devices = [],
-}) {
+}: ClinicalTimelineOptions) {
   return [
     ...events.map(row => ({
       at: row.occurred_at || row.created_at,
@@ -345,9 +362,25 @@ function clinicalTimeline({
     })),
   ]
     .filter(item => item.at)
-    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 }
 
+interface MapClinicalCaseOptions {
+  caseRow: AnyRecord
+  patient: AnyRecord
+  department: AnyRecord
+  events?: AnyRecord[]
+  assessments?: AnyRecord[]
+  hai?: AnyRecord[]
+  samples?: AnyRecord[]
+  relatedLab?: AnyRecord
+  therapies?: AnyRecord[]
+  therapyAdministrations?: AnyRecord[]
+  isolations?: AnyRecord[]
+  reassessments?: AnyRecord[]
+  outcomes?: AnyRecord[]
+  devices?: AnyRecord[]
+}
 export function mapClinicalCase({
   caseRow,
   patient,
@@ -363,7 +396,7 @@ export function mapClinicalCase({
   reassessments = [],
   outcomes = [],
   devices = [],
-}) {
+}: MapClinicalCaseOptions) {
   const caseAssessments = assessments.filter(row => row.surveillance_case_id === caseRow.id)
   const caseHai = hai.filter(row => row.surveillance_case_id === caseRow.id)
   const caseSamples = samples.filter(row => row.surveillance_case_id === caseRow.id)

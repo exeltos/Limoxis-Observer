@@ -7,6 +7,7 @@
 // the tightest interval between cases rather than a fixed lookback from
 // query time). `lastEventDate` lets a caller judge staleness separately.
 import { isContaminationNote, isSkinFloraOrganism } from './skinFloraOrganisms'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const DAY_MS = 86400000
 
@@ -14,16 +15,16 @@ function normalizeOrganism(value) {
   return String(value || '').trim().toLowerCase()
 }
 
-function addDays(isoDate, days) {
+function addDays(isoDate, days: number) {
   const date = new Date(`${isoDate}T00:00:00Z`)
   return new Date(date.getTime() + days * DAY_MS).toISOString().slice(0, 10)
 }
 
 // Skin flora / contaminants (see skinFloraOrganisms.js) count only patients with 2+ distinct
 // positive samples inside the window, and the count is then of patients, not isolates.
-function skinFloraWindow(items, i, j) {
+function skinFloraWindow(items: AnyRecord[], i: number, j: number) {
   const perPatient = new Map()
-  items.slice(i, j + 1).forEach((item, index) => {
+  items.slice(i, j + 1).forEach((item: AnyRecord, index: number) => {
     const patient = item.patientId || item.sampleId || `row-${index}`
     if (!perPatient.has(patient)) perPatient.set(patient, { samples: new Set(), items: [] })
     const entry = perPatient.get(patient)
@@ -35,8 +36,12 @@ function skinFloraWindow(items, i, j) {
   return { count: kept.length, items: keptItems }
 }
 
+interface DetectOrganismClustersOptions {
+  windowDays?: number
+  threshold?: number
+}
 // records: [{organism, department, date /* 'YYYY-MM-DD' */, resistance?, patientId?, sampleId?}]
-export function detectOrganismClusters(records, { windowDays = 14, threshold = 3 } = {}) {
+export function detectOrganismClusters(records: AnyRecord[], { windowDays = 14, threshold = 3 }: DetectOrganismClustersOptions = {}) {
   const groups = new Map()
   for (const record of records || []) {
     if (!record?.organism || !record?.department || !record?.date) continue
@@ -81,6 +86,6 @@ export function detectOrganismClusters(records, { windowDays = 14, threshold = 3
   return clusters.sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate))
 }
 
-export function clusterAlertId(cluster) {
+export function clusterAlertId(cluster: AnyRecord) {
   return `CLUSTER-${cluster.department}-${normalizeOrganism(cluster.organism)}-${cluster.firstDate}`.replace(/\s+/g, '_')
 }

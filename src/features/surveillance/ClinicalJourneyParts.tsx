@@ -8,7 +8,24 @@ import { Detail } from './ClinicalAdmissions'
 import { approvalStatusLabel, administrationStatusLabel, clinicalValueLabel } from './clinicalRecordLabels'
 import { AdministrationDialog } from './ClinicalRecordDialogs'
 import { statusTone } from './surveillanceOptions'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
+interface ClinicalEntryDetailProps {
+  entry: AnyRecord
+  t: (key: string) => string
+  language: string
+  fmtDate: (value: unknown) => string
+  fmtDateTime: (value: unknown) => string
+  canManage: boolean
+  onClose: Handler
+  onDelete: Handler
+  onEdit: Handler
+  onFinishTherapy: Handler
+  onApproveTherapy: Handler
+  onRejectTherapy: Handler
+  onRecordAdministration: Handler
+}
 // The detail window of a clinical entry of an episode, and the table and badge the stages share
 // (split from ClinicalJourney.jsx; the episode journey itself stays there).
 export function ClinicalEntryDetail({
@@ -25,10 +42,10 @@ export function ClinicalEntryDetail({
   onApproveTherapy,
   onRejectTherapy,
   onRecordAdministration,
-}) {
+}: ClinicalEntryDetailProps) {
   const [showAdminForm, setShowAdminForm] = useState(false)
   const row = entry.row || {}
-  const titleMap = {
+  const titleMap: Record<string, string> = {
     sample: translate('copy.clinicalRecordCopy.sampleDetails', language === 'el' ? 'el' : 'en'),
     therapy: translate(
       'copy.clinicalRecordCopy.antimicrobialTherapyDetails',
@@ -245,9 +262,15 @@ export function ClinicalEntryDetail({
   )
 }
 
+interface StageTableProps {
+  columns: AnyRecord[]
+  rows: AnyRecord[]
+  renderRow: Handler
+  onOpen: Handler
+}
 // Lists inside an episode use the same table as the registries; rows that open
 // a detail window are clickable and keyboard-reachable.
-export function StageTable({ columns, rows, renderRow, onOpen }) {
+export function StageTable({ columns, rows, renderRow, onOpen }: StageTableProps) {
   return (
     <RegistryTable
       columns={columns}
@@ -271,7 +294,11 @@ export function StageTable({ columns, rows, renderRow, onOpen }) {
     />
   )
 }
+interface StateBadgeProps {
+  status: string
+  label: string
+}
 // The same coloured status labels as the surveillance list.
-export function StateBadge({ status, label }) {
+export function StateBadge({ status, label }: StateBadgeProps) {
   return <StatusBadge tone={statusTone(status)}>{label}</StatusBadge>
 }

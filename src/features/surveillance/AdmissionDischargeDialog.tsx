@@ -11,6 +11,8 @@ import { TimeField } from '../../design-system/TimeField'
 import { translate } from '../../core/i18n/LanguageContext'
 import { hospitalDay } from './patientRecordScope'
 import { hospitalNow } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
 // «Εξιτήριο ασθενούς»: never saved by one click. Step 1 asks when and why,
 // step 2 shows the summary and waits for the explicit «Επιβεβαίωση εξιτηρίου».
@@ -27,9 +29,15 @@ export const DISCHARGE_REASONS = Object.freeze([
 // «Now» on the hospital's clock (Europe/Athens), as { date: 'YYYY-MM-DD', time: 'HH:MM' }.
 export { hospitalNow }
 
+interface DischargeDateIssuesOptions {
+  date: string
+  time: AnyRecord
+  admissionDate: string
+  now?: AnyRecord
+}
 // What keeps a discharge from being recorded: no date in the future (nor a time later
 // than now today), none before the admission. Returns { date?, time? } messages ('' when fine).
-export function dischargeDateIssues({ date, time, admissionDate, now = hospitalNow() }, text) {
+export function dischargeDateIssues({ date, time, admissionDate, now = hospitalNow() }: DischargeDateIssuesOptions, text: string) {
   const issues = {}
   const admitted = hospitalDay(admissionDate)
   if (date && date > now.date) issues.date = text.future
@@ -38,17 +46,32 @@ export function dischargeDateIssues({ date, time, admissionDate, now = hospitalN
   return issues
 }
 
+interface DischargeReasonTextOptions {
+  reason: string
+  time: AnyRecord
+  note: string
+}
 // The line kept in the admission notes (the stored reason): «Μεταφορά σε άλλο νοσοκομείο · 14:30 — σημείωση».
-export function dischargeReasonText({ reason, time, note }) {
+export function dischargeReasonText({ reason, time, note }: DischargeReasonTextOptions) {
   const label = DISCHARGE_REASONS.find(item => item.value === reason)?.el || reason
   return `${[label, time].filter(Boolean).join(' · ')}${note?.trim() ? ` — ${note.trim()}` : ''}`
 }
 
-export function AdmissionDischargeDialog({ patient, admission, t, language, fmtDate, busy = false, onClose, onConfirm }) {
+interface AdmissionDischargeDialogProps {
+  patient: AnyRecord
+  admission: AnyRecord
+  t: (key: string) => string
+  language: string
+  fmtDate: (value: unknown) => string
+  busy?: boolean
+  onClose: Handler
+  onConfirm: Handler
+}
+export function AdmissionDischargeDialog({ patient, admission, t, language, fmtDate, busy = false, onClose, onConfirm }: AdmissionDischargeDialogProps) {
   const now = useMemo(() => hospitalNow(), [])
   const [step, setStep] = useState('form')
   const [draft, setDraft] = useState({ date: now.date, time: now.time, reason: '', note: '' })
-  const set = (key, value) => setDraft(current => ({ ...current, [key]: value }))
+  const set = (key: string, value) => setDraft(current => ({ ...current, [key]: value }))
   const text = {
     future: t('clinicalRecords.dischargeInFuture'),
     beforeAdmission: `${t('clinicalRecords.dischargeBeforeAdmission')} (${fmtDate(admission?.admissionDate)})`,

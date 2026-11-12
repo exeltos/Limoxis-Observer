@@ -20,8 +20,28 @@ import { ISOLATION_STATUS, clinicalTerm, clinicalValueLabel, timelineLabel } fro
 import { isAwaitingResult, summaryAttention } from './recordAttention'
 import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 import { AdmissionDeleteDialog, PatientDetailsEditor, useAdmissionLifecycle } from './ClinicalAdmissionDialogs'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 export { Detail, NewAdmissionDialog, AdmissionPicker } from './ClinicalAdmissionDialogs'
 
+interface PatientDetailsSectionProps {
+  patient: AnyRecord
+  tenantId: string
+  isDemo: boolean
+  departments: AnyRecord[]
+  t: (key: string) => string
+  language: string
+  fmtDate: (value: unknown) => string
+  onChanged: Handler
+  onDeleted: Handler
+  stayFields?: AnyRecord[] | null
+  leadingActions?: AnyRecord[] | null
+  extraMenuItems?: AnyRecord[]
+  bare?: boolean
+  compact?: boolean
+  extraItems?: AnyRecord[]
+  title?: string | null
+}
 // Admissions of the clinical record: patient admissions home, admission summary
 // and lifecycle actions (admit, transfer, discharge).
 
@@ -48,7 +68,7 @@ export function PatientDetailsSection({
   extraItems = [],
   // The card's own heading when it is not «Patient & admission» (a patient with no admission).
   title = null,
-}) {
+}: PatientDetailsSectionProps) {
   const { notify } = useFeedback()
   // «Edit patient» turns the patient details into the form, in place.
   const [editing, setEditing] = useState(false)
@@ -95,7 +115,7 @@ export function PatientDetailsSection({
   const infantWithoutBirthWeight =
     ageInDays != null && ageInDays <= 365 && !patient?.birthWeightGrams
   const lang = language === 'el' ? 'el' : 'en'
-  const cr = key => translate(`copy.clinicalRecordCopy.${key}`, lang)
+  const cr = (key: string) => translate(`copy.clinicalRecordCopy.${key}`, lang)
   // Grouped as a details list: the patient, the stay, the clinical details.
   const compactSections = [
     {
@@ -222,6 +242,29 @@ export function PatientDetailsSection({
     </section>
   )
 }
+interface CanonicalSummaryProps {
+  onOpenStage: Handler
+  onOpenHistory: Handler
+  extraAttention?: AnyRecord[]
+  epiItems?: AnyRecord[]
+  samples: AnyRecord[]
+  scaleRows?: AnyRecord[]
+  patient: AnyRecord
+  admission: AnyRecord
+  record: AnyRecord
+  tenantId: string
+  isDemo: boolean
+  departments: AnyRecord[]
+  canEdit: boolean
+  canDelete: boolean
+  showPatientActions: boolean
+  onDeleted: Handler
+  onChanged: Handler
+  onAdmissionDeleted: Handler
+  t: (key: string) => string
+  language: string
+  fmtDate: (value: unknown) => string
+}
 // Admission summary: one info sheet for the stay (no duplicate status — the
 // header already shows it) and one for the current surveillance episode,
 // in the same info-sheet style as the rest of the record instead of six
@@ -254,7 +297,7 @@ export function CanonicalSummary({
   t,
   language,
   fmtDate,
-}) {
+}: CanonicalSummaryProps) {
   const [admissionDeleteOpen, setAdmissionDeleteOpen] = useState(false)
   const en = language === 'en'
   const samplePool = samples || record?.samples || []
@@ -294,7 +337,7 @@ export function CanonicalSummary({
         ],
         [t('admissionDate'), fmtDate(admittedAt)],
       ]
-  const badge = (text, tone) =>
+  const badge = (text: string, tone) =>
     text ? <StatusBadge tone={tone}>{text}</StatusBadge> : '—'
   const hai = record?.haiClassification
   const haiValue = hai ? (
@@ -364,16 +407,16 @@ export function CanonicalSummary({
   ) : (
     t('clinicalRecords.notDocumentedYet')
   )
-  const pendingTherapy = (record?.therapy || []).filter(x => x.approvalStatus === 'pending')
+  const pendingTherapy = (record?.therapy || []).filter((x: AnyRecord) => x.approvalStatus === 'pending')
   const therapyValue = record?.therapy?.length ? (
     <>
-      {record.therapy.map(x => x.antimicrobial).join(', ')}
+      {record.therapy.map((x: AnyRecord) => x.antimicrobial).join(', ')}
       {pendingTherapy.length ? (
         <>
           {' '}
           {badge(
             record.therapy.length > 1
-              ? `${pendingTherapy.map(x => x.antimicrobial).join(', ')}: ${t('clinicalRecords.awaitingApproval')}`
+              ? `${pendingTherapy.map((x: AnyRecord) => x.antimicrobial).join(', ')}: ${t('clinicalRecords.awaitingApproval')}`
               : t('clinicalRecords.awaitingApproval'),
             'warning',
           )}
@@ -389,7 +432,7 @@ export function CanonicalSummary({
   const therapyItem = { label: t('therapy'), value: therapyValue }
   // The latest three events of the surveillance, newest first, under its details.
   const recentEvents = [...(record?.timeline || [])]
-    .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
+    .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime())
     .slice(0, 3)
   const stayRows = admission
     ? details

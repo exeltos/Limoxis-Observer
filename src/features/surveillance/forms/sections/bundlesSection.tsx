@@ -8,28 +8,36 @@ import { FormEmpty, FormRow, FormRows } from '../FormRow'
 import { FormSection } from '../FormSection'
 import { FORM_STATUS, athensToday, bundleStatusForDevice, isActiveDevice } from '../formStatus'
 import { hospitalDay } from '../../patientRecordScope'
+import type { AnyRecord } from '../../../../types/featureTypes'
+import type { Handler } from '../../surveillanceTypes'
 
 // The devices of the episodes in scope, with the episode each belongs to. A bundle needs a
 // device type that has one (central line, urinary catheter, ventilator).
-export function bundleDevices(ctx) {
-  return (ctx.episodes || []).flatMap(episode =>
+export function bundleDevices(ctx: AnyRecord) {
+  return (ctx.episodes || []).flatMap((episode: AnyRecord) =>
     (episode.devices || []).filter(isActiveDevice).map(device => ({ device, episode })),
   )
 }
 export function bundleRowsFor(ctx, assessments, today = athensToday()) {
   return bundleDevices(ctx)
-    .map(({ device, episode }) => ({ device, episode, info: bundleStatusForDevice({ device, assessments: assessments || [], today }) }))
-    .filter(row => row.info.bundleKeys.length > 0)
+    .map(({ device, episode }: AnyRecord) => ({ device, episode, info: bundleStatusForDevice({ device, assessments: assessments || [], today }) }))
+    .filter((row: AnyRecord) => row.info.bundleKeys.length > 0)
 }
 
 // The bundle is named by the infection it prevents in the Greek UI (never the English code).
-const BUNDLE_NAMES_EL = { CLABSI: 'λοίμωξη κεντρικού καθετήρα', CAUTI: 'λοίμωξη ουροκαθετήρα', VAP: 'πνευμονία αναπνευστήρα' }
-const keyLabel = (info, language) => (language === 'en' ? info.bundleKeys[0] : BUNDLE_NAMES_EL[info.bundleKeys[0]] || info.bundleKeys[0])
-export function deviceTitle(device, language) {
+const BUNDLE_NAMES_EL: Record<string, string> = { CLABSI: 'λοίμωξη κεντρικού καθετήρα', CAUTI: 'λοίμωξη ουροκαθετήρα', VAP: 'πνευμονία αναπνευστήρα' }
+const keyLabel = (info: AnyRecord, language: string) => (language === 'en' ? info.bundleKeys[0] : BUNDLE_NAMES_EL[info.bundleKeys[0]] || info.bundleKeys[0])
+export function deviceTitle(device: AnyRecord, language: string) {
   return (language === 'en' ? device.nameEn || device.name : device.name) || '—'
 }
 
-function BundleHistory({ row, ctx, onClose, reload }) {
+interface BundleHistoryProps {
+  row: AnyRecord
+  ctx: AnyRecord
+  onClose: Handler
+  reload: Handler
+}
+function BundleHistory({ row, ctx, onClose, reload }: BundleHistoryProps) {
   const { t, language } = useLanguage()
   const { fmtDate } = ctx
   return (
@@ -43,7 +51,7 @@ function BundleHistory({ row, ctx, onClose, reload }) {
         <FormEmpty>{t('episodeForms.bundles.historyEmpty')}</FormEmpty>
       ) : (
         <FormRows label={t('episodeForms.bundles.history')}>
-          {row.info.history.map(check => (
+          {row.info.history.map((check: AnyRecord) => (
             <FormRow
               key={check.id}
               title={`${fmtDate(check.date)}${check.shift ? ` · ${check.shift}` : ''}`}
@@ -79,14 +87,19 @@ function BundleHistory({ row, ctx, onClose, reload }) {
   )
 }
 
-function BundlesSection({ ctx, section, reload }) {
+interface BundlesSectionProps {
+  ctx: AnyRecord
+  section: string
+  reload: Handler
+}
+function BundlesSection({ ctx, section, reload }: BundlesSectionProps) {
   const { t, language } = useLanguage()
   const { fmtDate } = ctx
-  const [historyOf, setHistoryOf] = useState(null)
+  const [historyOf, setHistoryOf] = useState<AnyRecord | null>(null)
   const today = athensToday()
   const rows = useMemo(() => bundleRowsFor(ctx, section.value, today), [ctx, section.value, today])
-  const overdue = rows.filter(row => row.info.status === FORM_STATUS.OVERDUE).length
-  const pending = rows.filter(row => row.info.status === FORM_STATUS.PENDING).length
+  const overdue = rows.filter((row: AnyRecord) => row.info.status === FORM_STATUS.OVERDUE).length
+  const pending = rows.filter((row: AnyRecord) => row.info.status === FORM_STATUS.PENDING).length
   // Without a device with a bundle there is nothing to show: no section, no instructions.
   if (rows.length === 0) return null
   const summary = [
@@ -97,7 +110,7 @@ function BundlesSection({ ctx, section, reload }) {
   return (
     <FormSection id="bundles" title={t('episodeForms.bundles.title')} icon={ShieldCheck} defaultOpen summary={summary} needsAttention={overdue > 0}>
       <FormRows label={t('episodeForms.bundles.title')}>
-        {rows.map(({ device, episode, info }) => {
+        {rows.map(({ device, episode, info }: AnyRecord) => {
           const statusDetail =
             info.status === FORM_STATUS.OVERDUE
               ? `${t('episodeForms.bundles.dueWas')} ${fmtDate(info.dueOn)}`
@@ -135,21 +148,21 @@ function BundlesSection({ ctx, section, reload }) {
 export const bundlesSection = {
   id: 'bundles',
   order: 10,
-  canSee: ctx =>
+  canSee: (ctx: AnyRecord) =>
     ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) &&
     !isProfileDisabled(CAPABILITIES.VIEW_PREVENTION) &&
     (ctx.has(CAPABILITIES.RECORD_PREVENTION_BUNDLE) || ctx.has(CAPABILITIES.VIEW_PREVENTION)) &&
     (ctx.episodes || []).length > 0,
-  load: ctx => loadEpisodeBundleAssessments(ctx.organizationId, (ctx.episodes || []).map(episode => episode.recordId || episode.id)),
+  load: (ctx: AnyRecord) => loadEpisodeBundleAssessments(ctx.organizationId, (ctx.episodes || []).map((episode: AnyRecord) => episode.recordId || episode.id)),
   Component: BundlesSection,
-  buildReport(ctx, section) {
+  buildReport(ctx, section: string) {
     const rows = bundleRowsFor(ctx, section.value)
     if (!rows.length) return null
     const { language, t, fmtDate } = ctx
     return {
       id: 'bundles',
       title: t('episodeForms.bundles.title'),
-      list: rows.map(({ device, info }) =>
+      list: rows.map(({ device, info }: AnyRecord) =>
         [
           deviceTitle(device, language),
           keyLabel(info, language),

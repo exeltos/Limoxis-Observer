@@ -1,3 +1,4 @@
+import type { AnyRecord } from '../../types/featureTypes'
 export const environmentalSubjectCatalog=[
   {id:'surface',defaultSource:'surfaceSwab'},
   {id:'room',defaultSource:'roomSampling'},
@@ -20,4 +21,4 @@ export const ENVIRONMENTAL_SAMPLE_TYPES=[
 ]
 // Older laboratory rows carry a free-text type; these words also mark a row as environmental.
 const LEGACY_ENVIRONMENTAL_TYPES=['environment','environmental','νερό','επιφάνεια','επιφανεια']
-export const isEnvironmentalSample=row=>row?.subjectType==='environment'||[...ENVIRONMENTAL_TYPES,...LEGACY_ENVIRONMENTAL_TYPES].some(type=>String(row?.type||'').toLowerCase().includes(type))
+export const isEnvironmentalSample=(row: AnyRecord)=>row?.subjectType==='environment'||[...ENVIRONMENTAL_TYPES,...LEGACY_ENVIRONMENTAL_TYPES].some(type=>String(row?.type||'').toLowerCase().includes(type))

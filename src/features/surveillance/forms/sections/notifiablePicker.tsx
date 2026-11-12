@@ -8,20 +8,28 @@ import { FieldLabelText, FormSubmit, useFormValidation } from '../../../../desig
 import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { EODY_CATALOGUE, EODY_FOOTNOTES, deadlineWords, eodyEntry, eodyLabel } from '../../../reporting/eodyCatalogue'
 import { suggestPatientCode } from '../../../patients/patientsService'
+import type { AnyRecord } from '../../../../types/featureTypes'
+import type { Handler } from '../../surveillanceTypes'
 
+interface NewNotificationDialogProps {
+  patients?: AnyRecord[] | null
+  busy?: boolean
+  onSave: Handler
+  onClose: Handler
+}
 // «Νέα δήλωση νοσήματος»: one window like every other form. The disease is one searchable list of
 // the 57 ΕΟΔΥ diseases, each with its deadline under it; its notes show once it is chosen.
 // With `patients` (the laboratory) the window also asks for the patient, an existing one or a
 // new one (last name, first name, code); from a patient's record the patient is already known.
 // onSave({ entry, patient }) for an existing patient, onSave({ entry, newPatient }) for a new one.
-export function NewNotificationDialog({ patients = null, busy = false, onSave, onClose }) {
+export function NewNotificationDialog({ patients = null, busy = false, onSave, onClose }: NewNotificationDialogProps) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const [diseaseId, setDiseaseId] = useState('')
   const [mode, setMode] = useState('')
   const [patientId, setPatientId] = useState('')
   const [draft, setDraft] = useState({ lastName: '', firstName: '', patientCode: '' })
-  const set = (key, value) => setDraft(current => ({ ...current, [key]: value }))
+  const set = (key: string, value) => setDraft(current => ({ ...current, [key]: value }))
   const askPatient = Array.isArray(patients)
   const entry = diseaseId ? eodyEntry(diseaseId) : null
   const diseaseOptions = useMemo(

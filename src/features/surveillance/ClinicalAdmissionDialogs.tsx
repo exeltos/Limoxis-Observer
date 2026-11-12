@@ -30,7 +30,19 @@ import { AdmissionDischargeDialog } from './AdmissionDischargeDialog'
 import { formatDay } from '../../core/i18n/formatDay'
 import { departmentOptions, listTexts } from './surveillanceOptions'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
+interface PatientDetailsEditorProps {
+  title: string
+  patient: AnyRecord
+  departments: AnyRecord[]
+  t: (key: string) => string
+  language: string
+  saving: boolean
+  onCancel: Handler
+  onSave: Handler
+}
 // The patient form in place of the details; its cancel / save sit in the
 // section header, where the «…» menu was, so they stay in view.
 export function PatientDetailsEditor({
@@ -42,7 +54,7 @@ export function PatientDetailsEditor({
   saving,
   onCancel,
   onSave,
-}) {
+}: PatientDetailsEditorProps) {
   const form = usePatientForm({ patient, departments })
   return (
     <>
@@ -75,6 +87,17 @@ export function PatientDetailsEditor({
     </>
   )
 }
+interface UseAdmissionLifecycleOptions {
+  patient: AnyRecord
+  admission: AnyRecord
+  tenantId: string
+  isDemo: boolean
+  departments: AnyRecord[]
+  canEdit: boolean
+  onChanged: Handler
+  t: (key: string) => string
+  language: string
+}
 // Transfer and discharge: the menu items (or buttons) that open them, and the
 // dialog they share.
 export function useAdmissionLifecycle({
@@ -87,9 +110,9 @@ export function useAdmissionLifecycle({
   onChanged,
   t,
   language,
-}) {
+}: UseAdmissionLifecycleOptions) {
   const { notify } = useFeedback()
-  const [kind, setKind] = useState(null),
+  const [kind, setKind] = useState<AnyRecord | null>(null),
     [busy, setBusy] = useState(false),
     [draft, setDraft] = useState({
       date: hospitalToday(),
@@ -221,6 +244,16 @@ export function useAdmissionLifecycle({
   ) : null
   return { items: lifecycleItems, dialog }
 }
+interface AdmissionDeleteDialogProps {
+  open: boolean
+  patient: AnyRecord
+  admission: AnyRecord
+  tenantId: string
+  isDemo: boolean
+  t: (key: string) => string
+  onClose: Handler
+  onDeleted: Handler
+}
 // Deleting an admission asks for a reason; the database keeps it in the audit
 // log and refuses a patient's last admission or one with surveillance episodes.
 export function AdmissionDeleteDialog({
@@ -232,9 +265,9 @@ export function AdmissionDeleteDialog({
   t,
   onClose,
   onDeleted,
-}) {
+}: AdmissionDeleteDialogProps) {
   const { notify } = useFeedback()
-  async function remove(reason) {
+  async function remove(reason: string) {
     try {
       await deleteAdmission(tenantId, patient, admission, reason, { isDemo })
       onClose()
@@ -263,7 +296,11 @@ export function AdmissionDeleteDialog({
     />
   )
 }
-export function Detail({ label, value }) {
+interface DetailProps {
+  label: string
+  value: AnyRecord
+}
+export function Detail({ label, value }: DetailProps) {
   return (
     <div className="detail-item">
       <span className="lo-field-label">{label}</span>
@@ -272,6 +309,16 @@ export function Detail({ label, value }) {
   )
 }
 
+interface NewAdmissionDialogProps {
+  patient: AnyRecord
+  activeAdmission: AnyRecord
+  tenantId: string
+  isDemo: boolean
+  departments: AnyRecord[]
+  t: (key: string) => string
+  onClose: Handler
+  onAdmitted: Handler
+}
 // A new admission for the patient. While another admission is still active the
 // patient is discharged from it first (one active admission at a time).
 export function NewAdmissionDialog({
@@ -283,7 +330,7 @@ export function NewAdmissionDialog({
   t,
   onClose,
   onAdmitted,
-}) {
+}: NewAdmissionDialogProps) {
   const { notify } = useFeedback()
   const { language } = useLanguage()
   const today = hospitalToday()
@@ -380,9 +427,17 @@ export function NewAdmissionDialog({
   )
 }
 
+interface AdmissionPickerProps {
+  admissions: AnyRecord[]
+  selected: boolean
+  onSelect: Handler
+  onNew: Handler
+  t: (key: string) => string
+  fmtDate: (value: unknown) => string
+}
 // The patient's admissions, always in view under the name: pick the one the
 // record shows, or start a new one.
-export function AdmissionPicker({ admissions, selected, onSelect, onNew, t, fmtDate }) {
+export function AdmissionPicker({ admissions, selected, onSelect, onNew, t, fmtDate }: AdmissionPickerProps) {
   const items = admissions.map(row => {
     const days = stayDays(row.admissionDate, row.dischargeDate)
     return {

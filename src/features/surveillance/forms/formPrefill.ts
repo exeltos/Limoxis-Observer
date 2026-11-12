@@ -1,5 +1,6 @@
 import { episodeTypeLabel } from '../clinicalRecordLabels'
 import { athensHour, athensToday, shiftForHour } from './formStatus'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // What every form opened from an episode already knows: patient, admission, episode. Built
 // once here, so the bundle, the incident report, the notifiable report and the exposure
@@ -11,7 +12,7 @@ export function patientDisplayName(ctx) {
     : patient?.name || record?.patient || ''
 }
 
-export function episodeContext(ctx, episode = ctx.record) {
+export function episodeContext(ctx: AnyRecord, episode = ctx.record) {
   const { patient, admission, fmtDate, language } = ctx
   const en = language === 'en'
   const department = (en ? episode?.departmentEn : episode?.department) || episode?.department || admission?.department || patient?.department || ''
@@ -35,14 +36,21 @@ export function episodeContext(ctx, episode = ctx.record) {
 }
 
 // The state a form page needs to send the user back to this tab.
-export function episodeReturn(ctx) {
+export function episodeReturn(ctx: AnyRecord) {
   return {
     returnTo: ctx.returnPath,
     returnState: { openTab: 'episodeForms', ...(ctx.admission?.id && ctx.patientMode ? { admissionId: ctx.admission.id } : {}) },
   }
 }
 
-export function buildBundlePrefill({ ctx, device, episode, info, now = new Date() }) {
+interface BuildBundlePrefillOptions {
+  ctx: AnyRecord
+  device: AnyRecord
+  episode: AnyRecord
+  info: AnyRecord
+  now?: AnyRecord
+}
+export function buildBundlePrefill({ ctx, device, episode, info, now = new Date() }: BuildBundlePrefillOptions) {
   const base = episodeContext(ctx, episode)
   const en = ctx.language === 'en'
   return {
@@ -64,7 +72,7 @@ export function buildBundlePrefill({ ctx, device, episode, info, now = new Date(
 
 // What the incident report form receives: the links to save (patient, admission, surveillance
 // episode; the demo keeps codes, production the record ids) and the labels the form shows locked.
-export function incidentSource(ctx) {
+export function incidentSource(ctx: AnyRecord) {
   const base = episodeContext(ctx)
   return {
     patientLabel: base.patientLabel,

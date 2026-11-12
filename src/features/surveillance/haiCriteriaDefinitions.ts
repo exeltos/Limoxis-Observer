@@ -1,3 +1,4 @@
+import type { AnyRecord } from '../../types/featureTypes'
 // Simplified, indicative checklists inspired by CDC/NHSN surveillance definitions for the
 // HAI types offered in the classification dialog. They are a decision-support aid, not a
 // substitute for the full NHSN protocol or clinical judgement — the free-text rationale
@@ -7,7 +8,9 @@
 // centrally governed as master_library_items rows (library_key 'hai_criteria', see
 // haiCriteriaLibraryService.js) so a Platform Owner can edit/version them without a deploy,
 // exactly like the antibiotics/microorganisms libraries.
-export const HAI_CRITERIA_SETS = {
+// The checklists by HAI type (clabsi, cauti, …); the central library returns the same shape.
+export type HaiCriteriaSets = Record<string, AnyRecord>
+export const HAI_CRITERIA_SETS: HaiCriteriaSets = {
   clabsi: {
     labelEl: 'CLABSI – Λοίμωξη αιματικής ροής σχετιζόμενη με κεντρικό φλεβικό καθετήρα',
     labelEn: 'CLABSI – Central line-associated bloodstream infection',
@@ -243,20 +246,20 @@ export const HAI_CRITERIA_SETS = {
   },
 }
 
-export function haiCriteriaSetForType(typeKey, sets = HAI_CRITERIA_SETS) {
+export function haiCriteriaSetForType(typeKey: string, sets: HaiCriteriaSets = HAI_CRITERIA_SETS) {
   return sets[typeKey] || null
 }
 
-function groupSatisfied(group, selectedIds) {
-  const metCount = group.items.filter(item => selectedIds.has(item.id)).length
+function groupSatisfied(group: AnyRecord, selectedIds: Set<string>) {
+  const metCount = group.items.filter((item: AnyRecord) => selectedIds.has(item.id)).length
   if (group.rule === 'all') return metCount === group.items.length
   if (group.rule === 'atLeastTwo') return metCount >= 2
   return metCount > 0
 }
 
-export function evaluateHaiCriteria(typeKey, selectedIds = [], sets = HAI_CRITERIA_SETS) {
+export function evaluateHaiCriteria(typeKey: string, selectedIds: string[] = [], sets: HaiCriteriaSets = HAI_CRITERIA_SETS) {
   const set = haiCriteriaSetForType(typeKey, sets)
   if (!set) return null
   const selected = new Set(selectedIds)
-  return set.groups.every(group => groupSatisfied(group, selected))
+  return set.groups.every((group: AnyRecord) => groupSatisfied(group, selected))
 }

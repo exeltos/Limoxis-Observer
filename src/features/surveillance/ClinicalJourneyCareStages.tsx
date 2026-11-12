@@ -9,8 +9,38 @@ import { StagePanel } from './ClinicalRecordViews'
 import { TherapyReviewCard } from './protocols/TherapyReviewCard'
 import { reviewWindow, showsReviewCard } from './protocols/therapyReview'
 import { createTherapyReview } from './protocols/protocolService'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler, StateSetter } from './surveillanceTypes'
 
-export function JourneyCareStages({ j }) {
+// What the screen hands to this part (one object, so the part reads like the code it came from).
+export interface JourneyCareStagesScope {
+  actor: string
+  deleteItem: Handler
+  deviceBundles: AnyRecord
+  editing: boolean
+  entryDelete: Handler
+  fmtDate: (value: unknown) => string
+  language: string
+  now: AnyRecord
+  organizationId: string
+  permissions: AnyRecord
+  protocolOptions: AnyRecord
+  protocols: AnyRecord
+  record: AnyRecord
+  repository: AnyRecord
+  run: Handler
+  runProtocol: Handler
+  setBundleDevice: StateSetter
+  setDialog: StateSetter
+  setEntryDetail: StateSetter
+  SheetDetail: AnyRecord
+  sheetEdit: AnyRecord
+  sheetForm: AnyRecord
+  stage: string
+  stageForms: AnyRecord
+  t: (key: string) => string
+}
+export function JourneyCareStages({ j }: { j: JourneyCareStagesScope }) {
   const { actor, deleteItem, deviceBundles, editing, entryDelete, fmtDate, language, now, organizationId, permissions, protocolOptions, protocols, record, repository, run, runProtocol, setBundleDevice, setDialog, setEntryDetail, SheetDetail, sheetEdit, sheetForm, stage, stageForms, t } = j
   return (
     <>
@@ -259,7 +289,7 @@ export function JourneyCareStages({ j }) {
             ) : (
               <div className="inline-empty">{t('clinicalRecords.noTherapyRecorded')}</div>
             )}
-            {(record.therapy || []).map(therapy => {
+            {(record.therapy || []).map((therapy: AnyRecord) => {
               const window = reviewWindow(therapy, protocols.reviews, now)
               return showsReviewCard(window) ? (
                 <TherapyReviewCard

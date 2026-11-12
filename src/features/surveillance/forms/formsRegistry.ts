@@ -5,6 +5,7 @@ import { incidentsSection } from './sections/incidentsSection'
 import { outbreakSection } from './sections/outbreakSection'
 import { exposureSourceSection } from './sections/exposureSourceSection'
 import { epiQuestionnaireSection } from './sections/epiQuestionnaireSection'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // The registered sections of the «Φόρμες & ερωτηματολόγια» tab, in display order.
 //
@@ -22,7 +23,7 @@ import { epiQuestionnaireSection } from './sections/epiQuestionnaireSection'
 // array below; nothing else in the tab changes. See docs/EPISODE_FORMS_TAB.md.
 const REGISTERED = [bundlesSection, scalesSection, notifiableSection, incidentsSection, epiQuestionnaireSection, outbreakSection, exposureSourceSection]
 
-export function registerEpisodeFormSection(definition) {
+export function registerEpisodeFormSection(definition: AnyRecord) {
   if (!definition?.id || !definition.Component) throw new Error('A form section needs an id and a Component.')
   const index = REGISTERED.findIndex(item => item.id === definition.id)
   if (index >= 0) REGISTERED[index] = definition

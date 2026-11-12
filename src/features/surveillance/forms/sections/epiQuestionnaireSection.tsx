@@ -10,17 +10,19 @@ import { activeEpiQuestions, applyEpiSettings, answerOf, epiCounts, epiSummary, 
 import { canWriteEpi, fill, originWords, riskWords } from '../../epiQuestionnaire/epiQuestionnaireText'
 import { binMemoryRow } from '../../../../core/recycleBin/recycleBinService'
 import { loadEpiQuestionnaires, loadEpiSettings, removeDemoEpiQuestionnaire } from '../../epiQuestionnaire/epiQuestionnaireService'
+import type { AnyRecord } from '../../../../types/featureTypes'
+import type { Handler } from '../../surveillanceTypes'
 
 // «Επιδημιολογικό ιστορικό»: the epidemiological questionnaire of the episode, as a section of the
 // «Φόρμες & ερωτηματολόγια» tab. One row per episode (the questionnaire is one per episode); the
 // action opens the same dialog that fills it in and corrects it later. See docs/EPI_QUESTIONNAIRE.md.
-export const epiCaseKey = (ctx, episode) => (ctx.isDemo ? episode.id : episode.recordId || episode.id)
+export const epiCaseKey = (ctx: AnyRecord, episode: AnyRecord) => (ctx.isDemo ? episode.id : episode.recordId || episode.id)
 
-const samplesOf = (ctx, episode) =>
-  (ctx.samples || []).filter(sample => [episode.id, episode.recordId].filter(Boolean).map(String).includes(String(sample.surveillanceCase || sample.surveillanceCaseId || '')))
+const samplesOf = (ctx: AnyRecord, episode: AnyRecord) =>
+  (ctx.samples || []).filter((sample: AnyRecord) => [episode.id, episode.recordId].filter(Boolean).map(String).includes(String(sample.surveillanceCase || sample.surveillanceCaseId || '')))
 
 // One entry per episode: the stored questionnaire (or none), and what is worked out from it.
-export function epiRows(ctx, value) {
+export function epiRows(ctx: AnyRecord, value: AnyRecord) {
   const stored = value?.rows || {}
   return (ctx.episodes || []).map(episode => {
     const row = stored[epiCaseKey(ctx, episode)] || null
@@ -28,13 +30,18 @@ export function epiRows(ctx, value) {
   })
 }
 
-function EpiQuestionnaireSection({ ctx, section, reload }) {
+interface EpiQuestionnaireSectionProps {
+  ctx: AnyRecord
+  section: string
+  reload: Handler
+}
+function EpiQuestionnaireSection({ ctx, section, reload }: EpiQuestionnaireSectionProps) {
   const { t } = useLanguage()
-  const [open, setOpen] = useState(null)
+  const [open, setOpen] = useState<AnyRecord | null>(null)
   const rows = useMemo(() => epiRows(ctx, section.value), [ctx, section.value])
   const settings = useMemo(() => section.value?.settings || [], [section.value])
   const questions = useMemo(() => activeEpiQuestions(applyEpiSettings(settings)), [settings])
-  const pending = rows.filter(item => item.summary.status !== 'done').length
+  const pending = rows.filter((item: AnyRecord) => item.summary.status !== 'done').length
   const canEdit = canWriteEpi(ctx.role)
   const first = rows[0]
   const counts = first?.row ? epiCounts(first.row.answers, questions) : null
@@ -49,7 +56,7 @@ function EpiQuestionnaireSection({ ctx, section, reload }) {
         <FormEmpty>{t('epiQuestionnaire.empty')}</FormEmpty>
       ) : (
         <FormRows label={t('epiQuestionnaire.sectionTitle')}>
-          {rows.map(item => {
+          {rows.map((item: AnyRecord) => {
             const done = item.summary.status === 'done'
             const rowCounts = item.row ? epiCounts(item.row.answers, questions) : null
             const detail = [
@@ -109,20 +116,20 @@ function EpiQuestionnaireSection({ ctx, section, reload }) {
 export const epiQuestionnaireSection = {
   id: 'epiQuestionnaire',
   order: 50,
-  canSee: ctx => ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) && (ctx.episodes || []).length > 0,
-  load: async ctx => {
+  canSee: (ctx: AnyRecord) => ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) && (ctx.episodes || []).length > 0,
+  load: async (ctx: AnyRecord) => {
     const ids = (ctx.episodes || []).map(episode => epiCaseKey(ctx, episode))
     const [rows, settings] = await Promise.all([loadEpiQuestionnaires(ctx.organizationId, ids, { isDemo: ctx.isDemo }), loadEpiSettings(ctx.organizationId, { isDemo: ctx.isDemo }).catch(() => [])])
     return { rows, settings }
   },
   Component: EpiQuestionnaireSection,
   // The printed report: origin, risk factors and every answer in words (one block per episode).
-  buildReport(ctx, section) {
+  buildReport(ctx: AnyRecord, section: string) {
     const rows = epiRows(ctx, section.value)
     if (!rows.length || !section.value) return null
     const questions = activeEpiQuestions(applyEpiSettings(section.value.settings || []))
-    const word = key => ctx.t(`epiQuestionnaire.${key}`)
-    const items = rows.map(item => {
+    const word = (key: string) => ctx.t(`epiQuestionnaire.${key}`)
+    const items = rows.map((item: AnyRecord) => {
       const answers = item.row?.answers || {}
       const pairs = [[word('originLabel'), originWords(item.summary.origin, ctx.t)]]
       if (item.summary.status === 'done') {

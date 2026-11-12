@@ -5,13 +5,14 @@
 import { emptyInPreview } from '../../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../../core/data/demoClock'
 import { historyCases } from '../demoInfectionHistory'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const minutesAgo = minutes => new Date(Date.now() - minutes * 60000).toISOString()
-const atMinute = (zero, minute) => new Date(new Date(zero).getTime() + minute * 60000).toISOString()
+const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60000).toISOString()
+const atMinute = (zero, minute: number) => new Date(new Date(zero).getTime() + minute * 60000).toISOString()
 
 function hourOneRun() {
   const zero = minutesAgo(72)
-  const step = (key, minute, value, by = 'Μ. Κωνσταντίνου') => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
+  const step = (key: string, minute, value, by = 'Μ. Κωνσταντίνου') => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
   return {
     id: 'PRT-260041-1',
     caseId: 'SUR-260041',
@@ -45,12 +46,12 @@ function hourOneRun() {
 // for the patients who died, the plain bundle for the others. Written in the Demo's authored frame and
 // moved to today like the episodes themselves.
 const RUN_STAFF = [['Δρ. Κ. Μαργαρίτης', 'Μ. Κωνσταντίνου'], ['Δρ. Ε. Λαμπράκη', 'Α. Νικολάου'], ['Δρ. Σ. Καλλέργης', 'Δ. Παπαδάκη']]
-function historyRun(item, index) {
+function historyRun(item: AnyRecord, index: number) {
   const shock = item.outcome === 'deceased' || item.critical
   const zero = `${item.startedAt}T05:${String(10 + (index % 5) * 8).padStart(2, '0')}:00.000Z`
   const [doctor, nurse] = RUN_STAFF[index % RUN_STAFF.length]
   const lactate = shock ? '5.1' : index % 2 ? '1.6' : '2.8'
-  const done = (key, minute, value, by = nurse) => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
+  const done = (key: string, minute, value, by = nurse) => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
   const steps = [
     done('lactate', 12 + (index % 3), lactate),
     done('blood_cultures', 18 + (index % 4), `${item.sampleId} · 2 σετ`),

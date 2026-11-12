@@ -3,6 +3,7 @@
 // every screen tells the same story. Each module builds its own records from these
 // definitions and moves their dates forward itself (src/core/data/demoClock.js).
 import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pick, seededRandom } from '../../core/data/demoSeed'
+import type { AnyRecord } from '../../types/featureTypes'
 
 export const WARD_EN = {
   ΜΕΘ: 'ICU',
@@ -128,7 +129,7 @@ const AST_PROFILES = {
 }
 export function astFor(organism, resistance) {
   const rows = AST_PROFILES[`${organism}|${resistance || ''}`] || []
-  return rows.map(([drug, sir, mic]) => ({
+  return rows.map(([drug, sir, mic]: AnyRecord) => ({
     drug,
     sir,
     mic,
@@ -139,7 +140,7 @@ export function astFor(organism, resistance) {
 }
 export const susceptibilitySummary = (organism, resistance) =>
   astFor(organism, resistance)
-    .map(row => `${row.drug} ${row.sir}`)
+    .map((row: AnyRecord) => `${row.drug} ${row.sir}`)
     .join(' · ') || null
 
 const DEVICES = {
@@ -154,7 +155,7 @@ const DEVICES = {
   pvc: ['Περιφερικός φλεβικός καθετήρας', 'Peripheral venous catheter', null],
 }
 
-const HAI_TEXT = {
+const HAI_TEXT: Record<string, (string | string[])[]> = {
   bloodstreamInfection: [
     'Πυρετός με θετική αιμοκαλλιέργεια.',
     'Fever with a positive blood culture.',
@@ -340,10 +341,10 @@ export const historyCases = CASES.map(
 )
 
 // Contact precautions for multidrug-resistant organisms and C. difficile.
-export const needsIsolation = item =>
+export const needsIsolation = (item: AnyRecord) =>
   ['MDR', 'XDR', 'PDR', 'ESBL', 'MRSA', 'VRE'].includes(item.resistance) ||
   /difficile/.test(item.organism)
 
-export const deviceFor = key => DEVICES[key] || null
+export const deviceFor = (key: string) => DEVICES[key] || null
 export const haiTextFor = (hai, organism) =>
   HAI_TEXT[hai?.[1] || (/difficile/.test(organism) ? 'cdi' : 'bloodstreamInfection')]

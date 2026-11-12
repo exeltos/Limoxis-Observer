@@ -22,10 +22,17 @@ import { employeeScreeningOptions, listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
 import { isStaffEmployee } from '../employees/staffCategory'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
+interface EmployeeSurveillanceCanonicalFlowProps {
+  employee?: AnyRecord | null
+  onClose: Handler
+  onCreated: Handler
+}
 // One multi-select: pick one employee or as many as needed. A single pick creates an
 // individual record, more than one a batch.
-export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, onCreated }) {
+export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, onCreated }: EmployeeSurveillanceCanonicalFlowProps) {
   const actor = useAuditActor(),
     { tenant, isDemo } = useTenant(),
     { language, t } = useLanguage(),
@@ -57,11 +64,11 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
         (language === 'el' ? row.department : row.departmentEn) === department,
     ),
     chosen = employee ? [employee] : activeEmployees.filter(row => selectedIds.includes(row.id))
-  const toggleType = id =>
+  const toggleType = (id: string) =>
       setTypes(current =>
         current.includes(id) ? current.filter(item => item !== id) : [...current, id],
       ),
-    employeeLabel = row =>
+    employeeLabel = (row: AnyRecord) =>
       [
         language === 'el' ? `${row.lastName} ${row.firstName}` : `${row.firstNameEn} ${row.lastNameEn}`,
         language === 'el' ? row.department : row.departmentEn,
@@ -236,7 +243,13 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     </ObserverDialog>
   )
 }
-function ScreeningTypes({ types, toggle, en, fieldProps }) {
+interface ScreeningTypesProps {
+  types: AnyRecord[]
+  toggle: Handler
+  en: AnyRecord
+  fieldProps: AnyRecord[]
+}
+function ScreeningTypes({ types, toggle, en, fieldProps }: ScreeningTypesProps) {
   return (
     <ChoiceChips
       {...fieldProps}

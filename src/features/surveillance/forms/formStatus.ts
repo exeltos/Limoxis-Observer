@@ -1,6 +1,7 @@
 import { deviceRuleKey } from '../../lira/liraHaiMetrics'
 import { hospitalDay } from '../patientRecordScope'
 import { hospitalDate, hospitalHour } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // One vocabulary for every connected form of an episode: three plain words, never codes.
 export const FORM_STATUS = Object.freeze({ PENDING: 'pending', DONE: 'done', OVERDUE: 'overdue' })
@@ -9,12 +10,12 @@ export const FORM_STATUS = Object.freeze({ PENDING: 'pending', DONE: 'done', OVE
 export const athensToday = (now = new Date()) => hospitalDate(now)
 export const athensHour = (now = new Date()) => hospitalHour(now)
 
-export function addDays(day, count) {
+export function addDays(day: string, count: number) {
   const value = new Date(`${String(day).slice(0, 10)}T12:00:00Z`)
   value.setUTCDate(value.getUTCDate() + count)
   return value.toISOString().slice(0, 10)
 }
-export function daysBetween(from, to) {
+export function daysBetween(from: string, to: string) {
   const a = Date.parse(`${String(from).slice(0, 10)}T12:00:00Z`)
   const b = Date.parse(`${String(to).slice(0, 10)}T12:00:00Z`)
   return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / 86400000) : null
@@ -32,24 +33,29 @@ export function shiftForHour(hour) {
 
 // The bundle a device type asks for: central line -> CLABSI, urinary catheter -> CAUTI,
 // mechanical ventilation -> VAP (a library that only has VAE accepts it).
-const BUNDLE_KEYS = { clabsi: ['CLABSI'], cauti: ['CAUTI'], vap: ['VAP', 'VAE'] }
-export function bundleKeysForDevice(device) {
+const BUNDLE_KEYS: Record<string, string[]> = { clabsi: ['CLABSI'], cauti: ['CAUTI'], vap: ['VAP', 'VAE'] }
+export function bundleKeysForDevice(device: AnyRecord) {
   const text = `${device?.name || device?.type || ''} ${device?.nameEn || ''}`
   // An endotracheal tube is the airway of a ventilated patient.
   const key = deviceRuleKey(text) || (/ενδοτραχει|endotracheal|intubat/i.test(text) ? 'vap' : null)
   return key ? BUNDLE_KEYS[key] : []
 }
-export const isActiveDevice = device => Boolean(device) && !device.removedAt && device.status !== 'removed'
+export const isActiveDevice = (device: AnyRecord) => Boolean(device) && !device.removedAt && device.status !== 'removed'
 
-function yesCount(row) {
+function yesCount(row: AnyRecord) {
   const answers = row?.answers && typeof row.answers === 'object' ? row.answers : {}
   const values = Object.values(answers)
   return { yes: values.filter(x => x === 'yes').length, applicable: values.filter(x => x === 'yes' || x === 'no').length }
 }
 
+interface BundleStatusForDeviceOptions {
+  device: AnyRecord
+  assessments?: AnyRecord[]
+  today?: string
+}
 // Status of the daily check of one device. Computed, never stored: done = a completed check
 // today; overdue = the day after the last check (or the insertion day) has passed; else pending.
-export function bundleStatusForDevice({ device, assessments = [], today = athensToday() }) {
+export function bundleStatusForDevice({ device, assessments = [], today = athensToday() }: BundleStatusForDeviceOptions) {
   const own = assessments
     .filter(row => row.status !== 'cancelled' && String(row.surveillanceDeviceId || '') === String(device.id))
     .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')))

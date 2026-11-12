@@ -8,7 +8,27 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { Field } from '../../design-system/Field'
 import { ReadOnlyField } from '../../design-system/ReadOnlyField'
 import { departmentOptions, listTexts, suspectedSourceOptions } from './surveillanceOptions'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { StateSetter } from './surveillanceTypes'
 
+interface PatientSelectorProps {
+  chooseExistingPatient: AnyRecord
+  createdPatient: AnyRecord
+  departments: AnyRecord[]
+  isDemo: boolean
+  language: string
+  patientDraft: AnyRecord
+  patientMode: boolean
+  patients: AnyRecord[]
+  selectedPatientId: string
+  setCreatedPatient: StateSetter
+  setPatientDepartment: StateSetter
+  setPatientField: StateSetter
+  setPatientMode: StateSetter
+  setSelectedPatientId: StateSetter
+  form: AnyRecord
+  t: (key: string) => string
+}
 export function PatientSelector({
   chooseExistingPatient,
   createdPatient,
@@ -26,7 +46,7 @@ export function PatientSelector({
   setSelectedPatientId,
   form,
   t,
-}) {
+}: PatientSelectorProps) {
   return (
     <div className="flow-patient-selector surveillance-patient-entry">
       <ModeSwitch
@@ -109,7 +129,15 @@ export function PatientSelector({
   )
 }
 
-export function StartStep({ contextDepartment, language, setStart, startDraft, form, t }) {
+interface StartStepProps {
+  contextDepartment: AnyRecord
+  language: string
+  setStart: StateSetter
+  startDraft: AnyRecord
+  form: AnyRecord
+  t: (key: string) => string
+}
+export function StartStep({ contextDepartment, language, setStart, startDraft, form, t }: StartStepProps) {
   return (
     <div className="entry-grid surveillance-start-fields">
       <ManualDateField

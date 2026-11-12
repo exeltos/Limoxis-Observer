@@ -2,6 +2,7 @@
 // Always words, never codes; the same sentence everywhere.
 import { riskFactorWords } from './epiQuestionnaireModel'
 import { ROLES } from '../../../core/permissions/systemRoleMatrix'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // The roles the database lets write the questionnaire (RLS of surveillance_case_questionnaires):
 // the surveillance writers and the department's own managers and link nurses (inside their scope).
@@ -13,23 +14,23 @@ export const EPI_WRITE_ROLES = Object.freeze([
   ROLES.DEPARTMENT_MANAGER,
   ROLES.LINK_NURSE,
 ])
-export const canWriteEpi = role => EPI_WRITE_ROLES.includes(role)
+export const canWriteEpi = (role: string) => EPI_WRITE_ROLES.includes(role)
 
-export const fill = (text, values = {}) => Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), String(text || ''))
+export const fill = (text: string, values: AnyRecord = {}) => Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), String(text || ''))
 
-export const originWords = (origin, t) =>
+export const originWords = (origin: AnyRecord, t: (key: string) => string) =>
   !origin ? t('epiQuestionnaire.originUnknown') : origin.kind === 'hospital' ? t('epiQuestionnaire.originHospital') : t('epiQuestionnaire.originCommunity')
 
-export const factorCountWords = (count, t) => `${count} ${t(count === 1 ? 'epiQuestionnaire.factorOne' : 'epiQuestionnaire.factorMany')}`
+export const factorCountWords = (count: number, t: (key: string) => string) => `${count} ${t(count === 1 ? 'epiQuestionnaire.factorOne' : 'epiQuestionnaire.factorMany')}`
 
 // «πρόσφατα αντιβιοτικά · ΜΕΘ · μεταφορά από άλλο νοσοκομείο», or «κανένας».
-export const riskWords = (row, language, t) => {
+export const riskWords = (row: AnyRecord, language: string, t: (key: string) => string) => {
   const words = riskFactorWords(row?.answers || {}, language)
   return words.length ? words.join(' · ') : t('epiQuestionnaire.riskNone')
 }
 
 // The short line of an episode row: «Προέλευση: … · 3 παράγοντες κινδύνου».
-export function rowLine(summary, t) {
+export function rowLine(summary: AnyRecord, t: (key: string) => string) {
   if (!summary.origin && !summary.hasRow) return ''
   const parts = [`${t('epiQuestionnaire.originLabel')}: ${originWords(summary.origin, t)}`]
   if (summary.hasRow && summary.factorCount) parts.push(factorCountWords(summary.factorCount, t))

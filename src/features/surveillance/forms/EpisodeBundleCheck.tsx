@@ -5,14 +5,23 @@ import { ObserverDialog } from '../../../design-system/ObserverDialog'
 import { RouteLoading } from '../../../design-system/RouteLoading'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useOptionalFeedback } from '../../../core/feedback/FeedbackContext'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { Handler } from '../surveillanceTypes'
 
+interface EpisodeBundleCheckProps {
+  deviceBundles: AnyRecord
+  device: AnyRecord
+  episode: AnyRecord
+  onClose: Handler
+  onSaved: Handler
+}
 // The bundle check of a device, on the surveillance sheet under the device (owner, 8/11/2026): the same editor
 // as Prevention › Bundles, with the patient, episode, device and day locked; Save keeps the user on the sheet.
-export function EpisodeBundleCheck({ deviceBundles, device, episode, onClose, onSaved }) {
+export function EpisodeBundleCheck({ deviceBundles, device, episode, onClose, onSaved }: EpisodeBundleCheckProps) {
   const { t } = useLanguage()
   const notify = useOptionalFeedback()?.notify
   const organizationId = deviceBundles?.organizationId
-  const [support, setSupport] = useState(null)
+  const [support, setSupport] = useState<AnyRecord | null>(null)
   useEffect(() => {
     let alive = true
     loadBundleSupportData(organizationId)
@@ -36,7 +45,7 @@ export function EpisodeBundleCheck({ deviceBundles, device, episode, onClose, on
           departments={support.departments}
           templates={support.templates}
           prefill={prefill}
-          onSave={async payload => {
+          onSave={async (payload: AnyRecord) => {
             try {
               await saveBundleAssessment(organizationId, payload, { existingId: null })
               notify?.(t('actionCompleted'), 'success')

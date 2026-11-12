@@ -2,6 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { ChevronDown } from 'lucide-react'
 import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 
 // Open / closed state of the sections lives in the tab, so a deep link or a header chip can
 // open one (e.g. the NEWS2 chip opens «Κλίμακες»). A section is a heading line, a one-line
@@ -15,34 +18,44 @@ export const useFormsTab = () => useContext(FormsTabContext)
 export function useFormsTabState() {
   const [open, setOpen] = useState({})
   const touched = useRef(new Set())
-  const toggle = useCallback(id => {
+  const toggle = useCallback((id: string) => {
     touched.current.add(id)
     setOpen(current => ({ ...current, [id]: !current[id] }))
   }, [])
   // A section says how it would like to be: the first time sets its default; later it only ever
   // asks to open (its data arrived, or it needs action), and only if the user has not chosen.
-  const offer = useCallback((id, wantOpen) => {
+  const offer = useCallback((id: string, wantOpen) => {
     setOpen(current => {
       if (!(id in current)) return { ...current, [id]: wantOpen }
       if (wantOpen && !touched.current.has(id) && !current[id]) return { ...current, [id]: true }
       return current
     })
   }, [])
-  const openSection = useCallback(id => {
+  const openSection = useCallback((id: string) => {
     touched.current.add(id)
     setOpen(current => ({ ...current, [id]: true }))
   }, [])
-  const value = useMemo(() => ({ isOpen: id => Boolean(open[id]), toggle, offer }), [open, toggle, offer])
+  const value = useMemo(() => ({ isOpen: (id: string) => Boolean(open[id]), toggle, offer }), [open, toggle, offer])
   return { value, openSection }
 }
 
-export function FormsTabProvider({ children }) {
+interface FormsTabProviderProps {
+  children: ReactNode
+}
+export function FormsTabProvider({ children }: FormsTabProviderProps) {
   const { value } = useFormsTabState()
   return <FormsTabContext.Provider value={value}>{children}</FormsTabContext.Provider>
 }
 
+interface FormLineProps {
+  id: string
+  title: string
+  icon: LucideIcon
+  summary: boolean
+  action: AnyRecord
+}
 // A section that is a single line, without a body: icon, title, what it says and its link.
-export function FormLine({ id, title, icon: Icon, summary, action }) {
+export function FormLine({ id, title, icon: Icon, summary, action }: FormLineProps) {
   return (
     <section className="episode-form-section episode-form-line" data-section={id}>
       <div className="episode-form-section-head">
@@ -57,7 +70,17 @@ export function FormLine({ id, title, icon: Icon, summary, action }) {
   )
 }
 
-export function FormSection({ id, title, icon: Icon, summary, defaultOpen = false, needsAttention = false, actions, children }) {
+interface FormSectionProps {
+  id: string
+  title: string
+  icon: LucideIcon
+  summary: boolean
+  defaultOpen?: boolean
+  needsAttention?: boolean
+  actions: AnyRecord[]
+  children: ReactNode
+}
+export function FormSection({ id, title, icon: Icon, summary, defaultOpen = false, needsAttention = false, actions, children }: FormSectionProps) {
   const { isOpen, toggle, offer, flat } = useFormsTab()
   const { t } = useLanguage()
   // The tab learns how each section would like to be; one that needs action opens itself

@@ -1,4 +1,6 @@
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { Handler } from '../surveillanceTypes'
 // Το επιδημιολογικό ερωτηματολόγιο επιτήρησης: ορισμός ερωτήσεων, κανόνες και υπολογισμοί.
 // ΕΝΑ ερωτηματολόγιο ανά επεισόδιο· η προέλευση και οι παράγοντες κινδύνου ΔΕΝ αποθηκεύονται,
 // υπολογίζονται εδώ από τις απαντήσεις και τις ημερομηνίες. Σχεδιασμός: docs/design/epi-questionnaire/.
@@ -44,13 +46,13 @@ export const EPI_QUESTIONS = Object.freeze([
 export const EPI_CORE_KEYS = Object.freeze(EPI_QUESTIONS.filter(question => question.core).map(question => question.key))
 export const EPI_QUESTION_COUNT = EPI_QUESTIONS.length
 const byKey = Object.fromEntries(EPI_QUESTIONS.map(question => [question.key, question]))
-export const epiQuestion = key => byKey[key] || null
+export const epiQuestion = (key: string) => byKey[key] || null
 
-export const epiText = (value, lang) => (value && typeof value === 'object' ? value[lang === 'en' ? 'en' : 'el'] || value.el || '' : value || '')
+export const epiText = (value: AnyRecord, lang: string) => (value && typeof value === 'object' ? value[lang === 'en' ? 'en' : 'el'] || value.el || '' : value || '')
 
 // The hospital's settings (epi_questionnaire_question_settings rows) applied over the defaults:
 // wording, help text, time window, on / off. The three core questions are never off.
-export function applyEpiSettings(settings = []) {
+export function applyEpiSettings(settings: AnyRecord[] = []) {
   const rows = new Map((settings || []).map(row => [row.questionKey, row]))
   return EPI_QUESTIONS.map(question => {
     const row = rows.get(question.key)
@@ -65,33 +67,33 @@ export function applyEpiSettings(settings = []) {
   })
 }
 // The version of the questionnaire definition: 1 plus every saved change of any question.
-export const epiDefinitionVersion = (settings = []) => 1 + (settings || []).reduce((sum, row) => sum + (Number(row.version) || 0), 0)
+export const epiDefinitionVersion = (settings: AnyRecord[] = []) => 1 + (settings || []).reduce((sum, row) => sum + (Number(row.version) || 0), 0)
 
 export const isEpiAnswer = value => EPI_ANSWERS.includes(value)
-export const answerOf = (answers, key) => (isEpiAnswer(answers?.[key]?.a) ? answers[key].a : null)
+export const answerOf = (answers, key: string) => (isEpiAnswer(answers?.[key]?.a) ? answers[key].a : null)
 
 // The core questions with no answer yet. «Άγνωστο» counts as an answer, so nobody is blocked.
-export const missingCoreQuestions = (answers = {}) => EPI_CORE_KEYS.filter(key => !answerOf(answers, key))
+export const missingCoreQuestions = (answers: AnyRecord = {}) => EPI_CORE_KEYS.filter(key => !answerOf(answers, key))
 export const isCoreComplete = answers => missingCoreQuestions(answers).length === 0
 
 // The visible questions: the active ones.
-export const activeEpiQuestions = questions => (questions || applyEpiSettings()).filter(question => question.active !== false)
+export const activeEpiQuestions = questions => (questions || applyEpiSettings()).filter((question: AnyRecord) => question.active !== false)
 
-export function epiCounts(answers = {}, questions = activeEpiQuestions()) {
-  const list = questions.map(question => question.key)
-  const answered = list.filter(key => answerOf(answers, key)).length
+export function epiCounts(answers: AnyRecord = {}, questions = activeEpiQuestions()) {
+  const list = questions.map((question: AnyRecord) => question.key)
+  const answered = list.filter((key: string) => answerOf(answers, key)).length
   return {
     total: list.length,
     answered,
-    unknown: list.filter(key => answerOf(answers, key) === EPI_ANSWER.UNKNOWN).length,
-    prefilled: list.filter(key => answers?.[key]?.src === EPI_SOURCE.PREFILL || answers?.[key]?.src === EPI_SOURCE.PREFILL_EDITED).length,
+    unknown: list.filter((key: string) => answerOf(answers, key) === EPI_ANSWER.UNKNOWN).length,
+    prefilled: list.filter((key: string) => answers?.[key]?.src === EPI_SOURCE.PREFILL || answers?.[key]?.src === EPI_SOURCE.PREFILL_EDITED).length,
     coreAnswered: EPI_CORE_KEYS.length - missingCoreQuestions(answers).length,
     coreTotal: EPI_CORE_KEYS.length,
   }
 }
 
 // Computed status in the form vocabulary: done when the three core questions are answered.
-export const epiFormStatus = row => (row && isCoreComplete(row.answers) ? 'done' : 'pending')
+export const epiFormStatus = (row: AnyRecord) => (row && isCoreComplete(row.answers) ? 'done' : 'pending')
 
 // ---- origin (hospital / outside the hospital) ------------------------------------------------
 // Admission day = day 1. Day 3 or later (more than 48 hours) = hospital origin (the common ECDC /
@@ -103,11 +105,16 @@ function dayNumber(admissionDay, referenceDay) {
   const b = Date.parse(`${referenceDay}T12:00:00Z`)
   return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / 86400000) + 1 : null
 }
-export function referenceDate(record, samples = []) {
+export function referenceDate(record: AnyRecord, samples: AnyRecord[] = []) {
   const dates = [...samples, ...(record?.samples || [])].map(sample => day(sample.collectedAt || sample.requestedAt)).filter(Boolean).sort()
   return dates[0] || day(record?.startedAt) || ''
 }
-export function deriveOrigin({ admissionDate, record, samples = [] } = {}) {
+interface DeriveOriginOptions {
+  admissionDate?: string
+  record?: AnyRecord
+  samples?: AnyRecord[]
+}
+export function deriveOrigin({ admissionDate, record, samples = [] }: DeriveOriginOptions = {}) {
   const admitted = day(admissionDate || record?.admissionDate)
   const reference = referenceDate(record, samples)
   if (!admitted || !reference) return null
@@ -117,14 +124,20 @@ export function deriveOrigin({ admissionDate, record, samples = [] } = {}) {
 }
 
 // ---- risk factors and the safety signal ------------------------------------------------------
-export const riskFactorKeys = (answers = {}) => EPI_QUESTIONS.filter(question => question.risk && answerOf(answers, question.key) === EPI_ANSWER.YES).map(question => question.key)
-export const riskFactorWords = (answers, lang) => riskFactorKeys(answers).map(key => epiText(byKey[key].risk, lang))
+export const riskFactorKeys = (answers: AnyRecord = {}) => EPI_QUESTIONS.filter(question => question.risk && answerOf(answers, question.key) === EPI_ANSWER.YES).map(question => question.key)
+export const riskFactorWords = (answers, lang: string) => riskFactorKeys(answers).map(key => epiText(byKey[key].risk, lang))
 // Advisory, transparent, not a score: a known multidrug-resistant organism, or at least two factors.
 // It suggests; it never decides isolation. Needs local validation by the owner.
-export const riskSignal = (answers = {}) => answerOf(answers, 'known_mdro') === EPI_ANSWER.YES || riskFactorKeys(answers).length >= 2
+export const riskSignal = (answers: AnyRecord = {}) => answerOf(answers, 'known_mdro') === EPI_ANSWER.YES || riskFactorKeys(answers).length >= 2
 
+interface EpiSummaryOptions {
+  row: AnyRecord
+  record: AnyRecord
+  admissionDate: string
+  samples?: AnyRecord[]
+}
 // What the header, the episode row and the list show.
-export function epiSummary({ row, record, admissionDate, samples = [] }) {
+export function epiSummary({ row, record, admissionDate, samples = [] }: EpiSummaryOptions) {
   const origin = deriveOrigin({ admissionDate, record, samples })
   const answers = row?.answers || {}
   const factors = riskFactorKeys(answers)
@@ -135,18 +148,25 @@ export function epiSummary({ row, record, admissionDate, samples = [] }) {
 // Suggestions from what the record already holds; nothing is guessed. Absence of a record is not a
 // «Όχι», except for devices where the system itself is the source. Stored as a snapshot in `prefilled`.
 const ICU_TYPES = ['icu', 'nicu', 'picu']
-const isIcu = (record, admission) =>
+const isIcu = (record: AnyRecord, admission: AnyRecord) =>
   ICU_TYPES.includes(String(admission?.department_type || admission?.departmentType || record?.departmentType || '').toLowerCase()) ||
   /(^|\s)(ΜΕΘ|ΜΕΝΝ|ICU|NICU|PICU)(\s|$)/i.test(`${record?.department || ''} ${record?.departmentEn || ''} ${admission?.department || ''}`)
 
-export function buildEpiPrefill({ record, admission, samples = [], today = hospitalToday(), fmtDate = value => value } = {}) {
+interface BuildEpiPrefillOptions {
+  record?: AnyRecord
+  admission?: AnyRecord
+  samples?: AnyRecord[]
+  today?: string
+  fmtDate?: Handler
+}
+export function buildEpiPrefill({ record, admission, samples = [], today = hospitalToday(), fmtDate = value => value }: BuildEpiPrefillOptions = {}) {
   const out = {}
   const base = Date.parse(`${day(today)}T12:00:00Z`)
-  const within = (value, days) => {
+  const within = (value, days: number) => {
     const time = Date.parse(`${day(value)}T12:00:00Z`)
     return Number.isFinite(time) && Number.isFinite(base) && base - time <= days * 86400000
   }
-  const therapies = (record?.therapy || []).filter(item => item && item.startedAt && within(item.startedAt, 90))
+  const therapies = (record?.therapy || []).filter((item: AnyRecord) => item && item.startedAt && within(item.startedAt, 90))
   if (therapies.length) {
     const first = [...therapies].sort((a, b) => String(a.startedAt).localeCompare(String(b.startedAt)))[0]
     out.antibiotics_90d = { a: EPI_ANSWER.YES, source: 'therapy', detail: `${first.antimicrobial || ''}${first.antimicrobial ? ', ' : ''}${fmtDate(first.startedAt)}`.trim() }
@@ -174,7 +194,7 @@ export function buildEpiPrefill({ record, admission, samples = [], today = hospi
 }
 
 // The answers a questionnaire starts from: the stored ones, with the prefill for the rest.
-export function startingAnswers(row, prefill = {}) {
+export function startingAnswers(row: AnyRecord, prefill: AnyRecord = {}) {
   const answers = {}
   for (const question of EPI_QUESTIONS) {
     const stored = row?.answers?.[question.key]
@@ -186,7 +206,7 @@ export function startingAnswers(row, prefill = {}) {
 }
 
 // A person's choice: the source becomes «prefill_edited» when it differs from what the system suggested.
-export function setEpiAnswer(answers, key, patch, suggestion) {
+export function setEpiAnswer(answers, key: string, patch: AnyRecord, suggestion: AnyRecord) {
   const current = answers[key] || { a: null, detail: '', src: EPI_SOURCE.MANUAL }
   const next = { ...current, ...patch }
   const wasSuggested = suggestion && (current.src === EPI_SOURCE.PREFILL || current.src === EPI_SOURCE.PREFILL_EDITED)
@@ -205,4 +225,4 @@ export const cleanAnswers = answers =>
 // The three core questions only: the mini version (sample request, sample entry).
 export const coreOnly = answers => Object.fromEntries(EPI_CORE_KEYS.filter(key => answers?.[key]).map(key => [key, answers[key]]))
 // The mini version appears for culture samples only.
-export const isCultureSampleType = type => ['bloodCulture', 'urineCulture', 'respiratorySample', 'woundCulture'].includes(type)
+export const isCultureSampleType = (type: string) => ['bloodCulture', 'urineCulture', 'respiratorySample', 'woundCulture'].includes(type)

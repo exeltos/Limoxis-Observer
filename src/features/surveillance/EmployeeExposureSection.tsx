@@ -20,24 +20,36 @@ import { FormSection, FormsTabProvider } from './forms/FormSection'
 import { FORM_STATUS, athensToday } from './forms/formStatus'
 import { hospitalDay } from './patientRecordScope'
 import './forms/episodeForms.css'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
+interface CanSeeExposureOptions {
+  isDemo: boolean
+  role: string
+  has: Handler
+}
 // «Έκθεση προσωπικού» on the staff surveillance record: the occupational exposures recorded
 // from it, with the source (patient) as far as this role may know it, the prophylaxis and the
 // follow-up. Seen only by the occupational physician (or the manage-occupational-health
 // permission): the same roles the database lets read occupational_exposure_incidents.
-export const canSeeExposure = ({ isDemo, role, has }) => isDemo || role === ROLES.OCCUPATIONAL_PHYSICIAN || has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
+export const canSeeExposure = ({ isDemo, role, has }: CanSeeExposureOptions) => isDemo || role === ROLES.OCCUPATIONAL_PHYSICIAN || has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
 
-export function exposureStatus(row, today = athensToday()) {
+export function exposureStatus(row: AnyRecord, today = athensToday()) {
   if (['completed', 'closed'].includes(row.followUpStatus) || row.status === 'closed') return FORM_STATUS.DONE
   const due = row.followUpDueAt ? hospitalDay(row.followUpDueAt) : ''
   return due && due < today ? FORM_STATUS.OVERDUE : FORM_STATUS.PENDING
 }
 
-async function episodeOptions({ isDemo, organizationId, language }) {
+interface EpisodeOptionsOptions {
+  isDemo: boolean
+  organizationId: string
+  language: string
+}
+async function episodeOptions({ isDemo, organizationId, language }: EpisodeOptionsOptions) {
   const rows = isDemo ? Object.values(clinicalCases) : await loadClinicalCases(organizationId, { summary: true })
   const en = language === 'en'
   // The patient and the episode in words (name, code, department, start date), never an internal id.
-  return rows.map(row => {
+  return rows.map((row: AnyRecord) => {
     const name = en ? row.patientEn || row.patient : row.patient
     return {
       value: isDemo ? row.id : row.recordId || row.id,
@@ -48,17 +60,21 @@ async function episodeOptions({ isDemo, organizationId, language }) {
   })
 }
 
-function ExposureSectionBody({ record, department }) {
+interface ExposureSectionBodyProps {
+  record: AnyRecord
+  department: AnyRecord
+}
+function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
   const { tenant, isDemo, role, membership } = useTenant()
   const has = useCallback(cap => can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? []), [role, membership])
   const { data: employeeRows = [] } = useEmployeesData()
-  const [rows, setRows] = useState([])
-  const [editor, setEditor] = useState(null)
-  const [detail, setDetail] = useState(null)
-  const [caseOptions, setCaseOptions] = useState([])
+  const [rows, setRows] = useState<AnyRecord[]>([])
+  const [editor, setEditor] = useState<AnyRecord | null>(null)
+  const [detail, setDetail] = useState<AnyRecord | null>(null)
+  const [caseOptions, setCaseOptions] = useState<AnyRecord[]>([])
   const recordKey = record.recordId || record.id
   const canLinkEpisode = has(CAPABILITIES.VIEW_SURVEILLANCE)
   const fmt = value => (value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR') : '')
@@ -80,7 +96,7 @@ function ExposureSectionBody({ record, department }) {
     setEditor({ ...EMPTY_EXPOSURE_INCIDENT, employeeId: employee?.id || record.employeeId, employeeSurveillanceRecordId: recordKey, sourceCaseId: '' })
     if (canLinkEpisode && !caseOptions.length) setCaseOptions(await episodeOptions({ isDemo, organizationId: tenant?.id, language }).catch(() => []))
   }
-  async function save(draft) {
+  async function save(draft: AnyRecord) {
     try {
       await createExposureIncidentAsync(tenant?.id, employee, draft)
       notify(t('episodeForms.exposure.saved'), 'success')
@@ -172,7 +188,11 @@ function ExposureSectionBody({ record, department }) {
   )
 }
 
-export function EmployeeExposureSection({ record, department }) {
+interface EmployeeExposureSectionProps {
+  record: AnyRecord
+  department: AnyRecord
+}
+export function EmployeeExposureSection({ record, department }: EmployeeExposureSectionProps) {
   const { isDemo, role, membership } = useTenant()
   const has = cap => can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   if (!canSeeExposure({ isDemo, role, has })) return null

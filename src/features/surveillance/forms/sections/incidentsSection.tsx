@@ -7,12 +7,13 @@ import { FormEmpty, FormRow, FormRows } from '../FormRow'
 import { FormSection } from '../FormSection'
 import { FORM_STATUS } from '../formStatus'
 import { incidentSource } from '../formPrefill'
+import type { AnyRecord } from '../../../../types/featureTypes'
 
-const episodeIds = ctx => (ctx.episodes || []).map(episode => episode.recordId || episode.id)
-const incidentTitle = (row, language) => (language === 'en' ? row.titleEn || row.title : row.title) || row.id
-const isClosed = row => row.status === 'closed' || row.lifecycleStatus === 'voided'
+const episodeIds = (ctx: AnyRecord) => (ctx.episodes || []).map((episode: AnyRecord) => episode.recordId || episode.id)
+const incidentTitle = (row: AnyRecord, language: string) => (language === 'en' ? row.titleEn || row.title : row.title) || row.id
+const isClosed = (row: AnyRecord) => row.status === 'closed' || row.lifecycleStatus === 'voided'
 
-export function incidentRows(ctx, rows = []) {
+export function incidentRows(ctx: AnyRecord, rows: AnyRecord[] = []) {
   return rows.map(row => ({
     key: row.id,
     row,
@@ -23,7 +24,11 @@ export function incidentRows(ctx, rows = []) {
   }))
 }
 
-function IncidentsSection({ ctx, section }) {
+interface IncidentsSectionProps {
+  ctx: AnyRecord
+  section: string
+}
+function IncidentsSection({ ctx, section }: IncidentsSectionProps) {
   const { t } = useLanguage()
   const { fmtDate } = ctx
   const rows = useMemo(() => incidentRows(ctx, section.value || []), [ctx, section.value])
@@ -65,15 +70,15 @@ export const incidentsSection = {
   id: 'incidents',
   order: 40,
   // Whoever can report an incident or read Quality; the list shows only what the policies let them read.
-  canSee: ctx => (ctx.has(CAPABILITIES.REPORT_INCIDENT) || ctx.has(CAPABILITIES.VIEW_QUALITY)) && Boolean(ctx.record || ctx.admission),
-  load: ctx =>
+  canSee: (ctx: AnyRecord) => (ctx.has(CAPABILITIES.REPORT_INCIDENT) || ctx.has(CAPABILITIES.VIEW_QUALITY)) && Boolean(ctx.record || ctx.admission),
+  load: (ctx: AnyRecord) =>
     loadLinkedIncidents(ctx.organizationId, {
       caseIds: episodeIds(ctx),
       admissionId: ctx.isDemo ? null : ctx.admission?.id || null,
       patientCode: ctx.patient?.id || '',
     }),
   Component: IncidentsSection,
-  buildReport(ctx, section) {
+  buildReport(ctx: AnyRecord, section: string) {
     const rows = incidentRows(ctx, section.value || [])
     if (!rows.length) return null
     return {

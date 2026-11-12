@@ -5,14 +5,15 @@
 //   r  red    not done after the hour, done late, or cultures after the antibiotic
 //   n  grey   not indicated (with a reason), or a follow-up not due yet
 import { HOUR_ONE_MINUTES, stepOf, visibleSteps } from './protocolCatalogue'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 const ms = value => {
   if (!value) return NaN
   return new Date(value).getTime()
 }
-export const minutesBetween = (from, to) => (Number.isFinite(ms(from)) && Number.isFinite(ms(to)) ? Math.round((ms(to) - ms(from)) / 60000) : null)
+export const minutesBetween = (from: string, to: string) => (Number.isFinite(ms(from)) && Number.isFinite(ms(to)) ? Math.round((ms(to) - ms(from)) / 60000) : null)
 
-export function stepState(run, step, now = new Date()) {
+export function stepState(run: AnyRecord, step: number, now = new Date()) {
   const recorded = stepOf(run, step.key)
   const zero = run?.recognizedAt
   const elapsed = minutesBetween(zero, now)
@@ -41,7 +42,7 @@ export function stepState(run, step, now = new Date()) {
   return { tone: 'r', code: 'overdue', minutes: null }
 }
 
-export function runSummary(run, now = new Date()) {
+export function runSummary(run: AnyRecord, now = new Date()) {
   const steps = visibleSteps(run).map(step => ({ step, recorded: stepOf(run, step.key), state: stepState(run, step, now) }))
   const main = steps.filter(item => !item.step.followUp)
   const elapsed = minutesBetween(run?.recognizedAt, run?.status === 'open' ? now : run?.completedAt || now)
@@ -52,7 +53,7 @@ export function runSummary(run, now = new Date()) {
 }
 
 // "1 ώρα 12΄" / "1 h 12′"
-export function formatElapsed(minutes, language = 'el') {
+export function formatElapsed(minutes: number, language = 'el') {
   if (minutes == null || !Number.isFinite(minutes)) return '—'
   const sign = minutes < 0 ? '−' : ''
   const value = Math.abs(minutes)
@@ -66,7 +67,7 @@ export function formatElapsed(minutes, language = 'el') {
 
 // Timeline scale: 0–90 minutes, widened in steps of 30 minutes once the run
 // goes past it (at most 6 hours).
-export function timelineScale(run, now = new Date()) {
+export function timelineScale(run: AnyRecord, now = new Date()) {
   const steps = visibleSteps(run)
   const doneMinutes = steps.map(step => minutesBetween(run?.recognizedAt, stepOf(run, step.key)?.doneAt)).filter(value => value != null)
   const elapsed = minutesBetween(run?.recognizedAt, run?.status === 'open' ? now : run?.completedAt || now) || 0

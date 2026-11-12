@@ -1,4 +1,4 @@
-import { supabase } from '../../core/supabase/client'
+import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { loadControlAssignmentsLocal, loadControlDefinitionsLocal } from '../controls/controlStore'
@@ -8,13 +8,16 @@ import { isEnvironmentalSample } from './environmentalSurveillanceData'
 import { isOutsideLimit } from '../laboratory/environmentalLimit'
 import { CULTURE_CATEGORY } from './culturePlan'
 
+// The calls below run with a configured client: the demo and an unconfigured build return before them.
+const supabase = configuredClient as Cloud
+
 // The culture programme's reads: the culture controls (with the department sampled and the kinds of sample) and the
 // environmental samples of the laboratory with their results. One read each.
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 // The demo hospital's air cultures, every six months: a culture of a group, from any department.
 const DEMO_GROUP_CULTURES = [{ code: 'CTRL-DEMO-AIR', title: 'Καλλιέργειες αέρα', category: CULTURE_CATEGORY, status: 'active', frequency: { kind: 'monthly', interval: 6 }, cultureDepartment: '', cultureSampleTypes: [], cultureGroup: 'air', departments: [] }]
 
-export async function loadCultureControls(organizationId) {
+export async function loadCultureControls(organizationId: string | null | undefined) {
   if (isLocal()) {
     const assignments = loadControlAssignmentsLocal()
     return loadControlDefinitionsLocal().filter(row => row.category === CULTURE_CATEGORY).map(row => ({
@@ -25,7 +28,7 @@ export async function loadCultureControls(organizationId) {
   }
   const { data, error } = await supabase.from('control_definitions')
     .select('code,title,category,status,frequency_config,culture_sample_types,culture_group,culture_department:departments!control_definitions_culture_department_id_fkey(name),control_assignments!control_assignments_control_id_fkey(frequency_config,status,department:departments(name))')
-    .eq('organization_id', organizationId).eq('category', CULTURE_CATEGORY).neq('status', 'archived')
+    .eq('organization_id', organizationId as string).eq('category', CULTURE_CATEGORY).neq('status', 'archived')
   if (error) throw error
   return (data || []).map(row => {
     const assignment = (row.control_assignments || []).find(item => item.status !== 'paused') || null
@@ -40,7 +43,7 @@ export async function loadCultureControls(organizationId) {
 
 // The environmental samples since a day, and the employees' screening samples (the staff cultures, of kind «staff»), each
 // marked when one of its results is out of the limit.
-export async function loadCultureSamples(organizationId, since) {
+export async function loadCultureSamples(organizationId: string | null | undefined, since: string) {
   const [environmental, staff] = isLocal()
     ? [laboratorySamples.filter(isEnvironmentalSample), laboratorySamples.filter(row => row.employeeSurveillanceId)]
     : await Promise.all([loadLaboratorySamples(organizationId, { environmental: true, since }), loadStaffCultureSamples(organizationId, since)])

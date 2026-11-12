@@ -4,6 +4,7 @@ import {
   isDemoReport,
 } from '../../core/organization/branding'
 import { translate } from '../../core/i18n/LanguageContext'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // Labels, HAI criteria helpers and the printable report of the clinical record
 // (PatientClinicalCanonicalPage.jsx). No React components live here.
@@ -22,7 +23,7 @@ export const RESISTANCE_ALERT = new Set([
   'CRPA',
 ])
 
-export function approvalStatusLabel(status, language) {
+export function approvalStatusLabel(status: string, language: string) {
   return (
     {
       pending: translate(
@@ -40,7 +41,7 @@ export function approvalStatusLabel(status, language) {
     '—'
   )
 }
-export function administrationStatusLabel(status, language) {
+export function administrationStatusLabel(status: string, language: string) {
   return (
     {
       administered: translate(
@@ -60,30 +61,30 @@ function escapeReport(value) {
   )
 }
 export function printSurveillanceReport(
-  record,
-  { language = 'el', fmtDate, fmtDateTime, t = null, libraries = {} },
+  record: AnyRecord,
+  { language = 'el', fmtDate, fmtDateTime, t = null, libraries = {} }: AnyRecord,
 ) {
   const esc = escapeReport
-  const L = (el, en) => (language === 'el' ? el : en)
-  const rows = (items, empty = '—') =>
+  const L = (el: string, en: boolean) => (language === 'el' ? el : en)
+  const rows = (items: AnyRecord[], empty = '—') =>
     items?.length ? items.map(x => `<li>${esc(x)}</li>`).join('') : `<li>${empty}</li>`
   const samples = (record.samples || [])
     .map(
-      s =>
+      (s: AnyRecord) =>
         `<tr><td>${esc(fmtDate(s.collectedAt || s.requestedAt))}</td><td>${esc(s.type || s.sampleType)}</td><td>${esc(s.sampleCode || s.id)}</td><td>${esc(clinicalTerm(s.result, language, t))}</td><td>${esc(s.organism)}</td><td>${esc(s.resistance || s.amr)}</td></tr>`,
     )
     .join('')
   const therapy = (record.therapy || [])
     .map(
-      x =>
+      (x: AnyRecord) =>
         `<tr><td>${esc(x.antimicrobial || x.drug)}</td><td>${esc(x.dose)}</td><td>${esc(x.route)}</td><td>${esc(fmtDate(x.startedAt || x.startDate))}</td><td>${esc(fmtDate(x.endedAt || x.endDate))}</td></tr>`,
     )
     .join('')
   const timeline = (record.timeline || [])
     .slice()
-    .sort((a, b) => new Date(a.at || a.createdAt) - new Date(b.at || b.createdAt))
+    .sort((a: AnyRecord, b: AnyRecord) => new Date(a.at || a.createdAt).getTime() - new Date(b.at || b.createdAt).getTime())
     .map(
-      x =>
+      (x: AnyRecord) =>
         `<tr><td>${esc(fmtDateTime(x.at || x.createdAt))}</td><td>${esc(x.label || x.type)}</td><td>${esc(clinicalTerm(x.value || x.detail || x.notes, language, t))}</td></tr>`,
     )
     .join('')
@@ -100,7 +101,7 @@ export function printSurveillanceReport(
 // Surveillance tree label: the HAI type once classified, otherwise the
 // suspected source, otherwise the free-text reason. Previously showed the raw
 // suspectedSource key or "—" for classified episodes.
-export function episodeTypeLabel(ep, t) {
+export function episodeTypeLabel(ep: AnyRecord, t: (key: string) => string) {
   const type = ep?.haiClassification?.type
   if (type) {
     const label = t(type)
@@ -117,7 +118,7 @@ export function episodeTypeLabel(ep, t) {
   }
   return ep?.reason || '—'
 }
-const CLASSIFICATION_LABELS = {
+const CLASSIFICATION_LABELS: Record<string, string[]> = {
   infection: ['Λοίμωξη', 'Infection'],
   colonization: ['Αποικισμός', 'Colonization'],
   no_infection: ['Δεν τεκμηριώνεται λοίμωξη', 'No evidence of infection'],
@@ -125,7 +126,7 @@ const CLASSIFICATION_LABELS = {
   probable_infection: ['Πιθανή λοίμωξη', 'Probable infection'],
   confirmed_infection: ['Επιβεβαιωμένη λοίμωξη', 'Confirmed infection'],
 }
-export function clinicalTerm(value, language = 'el', t = null) {
+export function clinicalTerm(value, language = 'el', t: (key: string) => string | null = null) {
   if (value == null || value === '') return '—'
   const key = String(value).trim().toUpperCase()
   const el = {
@@ -188,7 +189,7 @@ export function clinicalTerm(value, language = 'el', t = null) {
 }
 // Assessment values are stored as library ids/codes; show the library label
 // (Greek or English) and fall back to the clinical dictionary for legacy text values.
-export function libraryLabel(value, rows = [], language = 'el', t = null) {
+export function libraryLabel(value, rows: AnyRecord[] = [], language = 'el', t: (key: string) => string | null = null) {
   const key = String(value ?? '').trim()
   const row = rows.find(item =>
     [item?.[2]?.id, item?.[2]?.code, item?.[0], item?.[1]].some(
@@ -203,7 +204,7 @@ export function libraryLabel(value, rows = [], language = 'el', t = null) {
     )
   return clinicalTerm(value, language, t)
 }
-export function clinicalValueLabel(value, language, t) {
+export function clinicalValueLabel(value, language: string, t: (key: string) => string) {
   if (value === null || value === undefined || value === '') return '—'
   const labels = {
     FEVER: translate('copy.clinicalRecordCopy.fever', language === 'el' ? 'el' : 'en'),
@@ -221,7 +222,7 @@ export function clinicalValueLabel(value, language, t) {
   const translated = t(String(value))
   return translated === String(value) ? String(value).replaceAll('_', ' ') : translated
 }
-export function timelineLabel(type, language, t) {
+export function timelineLabel(type: string, language: string, t: (key: string) => string) {
   const labels = {
     created: ['Δημιουργία επιτήρησης', 'Surveillance created'],
     surveillance_start: ['Έναρξη επιτήρησης', 'Surveillance started'],
@@ -239,7 +240,7 @@ export function timelineLabel(type, language, t) {
   }
   // A stored event type is snake_case (device_added), the translated key camelCase (deviceAdded).
   const camel = String(type || '').replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
-  const translated = key => {
+  const translated = (key: string) => {
     const text = t(key)
     return text && text !== key ? text : ''
   }
@@ -254,7 +255,7 @@ export const ISOLATION_STATUS = {
   ended: 'finalReport.isolationEnded',
   completed: 'finalReport.isolationEnded',
 }
-export function termLabel(value, t, language) {
+export function termLabel(value, t: (key: string) => string, language: string) {
   if (!value) return '—'
   if (typeof t === 'function') {
     const translated = t(value)
@@ -266,8 +267,8 @@ export function termLabel(value, t, language) {
 }
 // NHSN applies infant-specific (≤1 year) bloodstream criteria; offer them first
 // for infants and flag an age/definition mismatch either way.
-export const criteriaKeyOf = row => row?.[2]?.criteriaKey || row?.[2]?.id || null
-const isNeonatalCriteria = row =>
+export const criteriaKeyOf = (row: AnyRecord) => row?.[2]?.criteriaKey || row?.[2]?.id || null
+const isNeonatalCriteria = (row: AnyRecord) =>
   /neonatal/.test(String(criteriaKeyOf(row) || '')) ||
   /neonatal|infant/i.test(String(row?.[1] || ''))
 // Surveillance-definition library rows carry library ids, not criteria keys, so
@@ -280,7 +281,7 @@ const CRITERIA_PREFIXES = [
   ['vap', /^VAP\b/i],
   ['ssi', /^SSI\b/i],
 ]
-export function withCriteriaKeys(items = [], criteriaRows = []) {
+export function withCriteriaKeys(items: AnyRecord[] = [], criteriaRows: AnyRecord[] = []) {
   const known = new Set(criteriaRows.map(criteriaKeyOf).filter(Boolean))
   const linked = items.map(row => {
     if (row?.[2]?.criteriaKey) return row
@@ -297,11 +298,11 @@ export function withCriteriaKeys(items = [], criteriaRows = []) {
   const covered = new Set(linked.map(criteriaKeyOf).filter(Boolean))
   return [...linked, ...criteriaRows.filter(row => !covered.has(criteriaKeyOf(row)))]
 }
-export function orderCriteriaForAge(options = [], ageDays = null) {
+export function orderCriteriaForAge(options: AnyRecord[] = [], ageDays: AnyRecord | null = null) {
   if (ageDays == null || ageDays > 365) return options
   return [...options.filter(isNeonatalCriteria), ...options.filter(row => !isNeonatalCriteria(row))]
 }
-export function criteriaAgeWarning(criteriaKey, ageDays = null) {
+export function criteriaAgeWarning(criteriaKey, ageDays: AnyRecord | null = null) {
   if (ageDays == null || !criteriaKey) return null
   if (criteriaKey === 'clabsi' && ageDays <= 365) return 'useInfantDefinition'
   if (/neonatal/.test(criteriaKey) && ageDays > 365) return 'infantDefinitionOverOneYear'

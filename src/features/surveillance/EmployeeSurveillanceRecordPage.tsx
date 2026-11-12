@@ -58,6 +58,8 @@ import { employeeScreeningLabel, priorityOptions, statusTone } from './surveilla
 import { surveillanceTabAccess } from './surveillanceTabAccess'
 import { EmployeeExposureSection } from './EmployeeExposureSection'
 import './employeeLabRequest.css'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
 // A staff screening opened from the «Εργαζόμενοι» list of the Surveillance
 // Center: a record page like the episode's (shared EntityRecordShell, DetailList,
@@ -67,7 +69,7 @@ export function EmployeeSurveillanceRecordPage() {
   const { recordId } = useParams()
   const { t, language } = useLanguage()
   const en = language === 'en'
-  const L = (el, enText) => (en ? enText : el)
+  const L = (el: string, enText: string) => (en ? enText : el)
   const { notify, notifyError, confirm } = useFeedback()
   const { tenant, isDemo, role, actualRole, membership, canSeeSensitiveEmployeeHealth } = useTenant()
   const { goBack } = useContextualNavigation('/surveillance')
@@ -78,12 +80,12 @@ export function EmployeeSurveillanceRecordPage() {
     pathForId: id => `/surveillance/staff/${id}`,
   })
   const fmt = value => formatDay(value, language)
-  const [record, setRecord] = useState(null)
-  const [samples, setSamples] = useState([])
+  const [record, setRecord] = useState<AnyRecord | null>(null)
+  const [samples, setSamples] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('summary')
   const [followupOpen, setFollowupOpen] = useState(false)
-  const [requestEditor, setRequestEditor] = useState(null)
+  const [requestEditor, setRequestEditor] = useState<AnyRecord | null>(null)
   const [requestSaving, setRequestSaving] = useState(false)
   const recordRef = useRef(null)
   recordRef.current = record
@@ -96,7 +98,7 @@ export function EmployeeSurveillanceRecordPage() {
   const navigate = useNavigate()
 
   const loadSamples = useCallback(
-    async row => {
+    async (row: AnyRecord) => {
       if (!row) return setSamples([])
       if (isDemo) return setSamples(demoLaboratorySamples.filter(sample => sample.employeeSurveillanceCase === row.id))
       if (!organizationId || !row.recordId) return setSamples([])
@@ -120,7 +122,7 @@ export function EmployeeSurveillanceRecordPage() {
           : organizationId
             ? await loadEmployeeSurveillanceRecords(organizationId)
             : []
-        const found = rows.find(row => String(row.recordId || row.id) === String(recordId)) || null
+        const found = rows.find((row: AnyRecord) => String(row.recordId || row.id) === String(recordId)) || null
         if (!alive) return
         setRecord(found ? { ...found } : null)
         await loadSamples(found)
@@ -156,7 +158,7 @@ export function EmployeeSurveillanceRecordPage() {
     [t],
   )
 
-  async function saveFollowup(patch) {
+  async function saveFollowup(patch: AnyRecord) {
     const stamped = { ...patch, updatedAt: new Date().toISOString() }
     const updated = isDemo
       ? await Promise.resolve(updateEmployeeSurveillanceRecord(record.id, stamped))
@@ -183,7 +185,7 @@ export function EmployeeSurveillanceRecordPage() {
       setRequestSaving(false)
     }
   }
-  async function cancelRequest(sample) {
+  async function cancelRequest(sample: AnyRecord) {
     const ok = await confirm({
       title: L('Ακύρωση αιτήματος εργαστηρίου', 'Cancel laboratory request'),
       message: L('Το εκκρεμές αίτημα θα ακυρωθεί.', 'The pending request will be cancelled.'),
@@ -199,7 +201,7 @@ export function EmployeeSurveillanceRecordPage() {
       notifyError(error, 'save', { operation: 'employee_laboratory_request_cancel' })
     }
   }
-  async function deleteRequest(sample) {
+  async function deleteRequest(sample: AnyRecord) {
     const ok = await confirm({
       title: L('Διαγραφή αιτήματος εργαστηρίου', 'Delete laboratory request'),
       message: L(
@@ -235,7 +237,7 @@ export function EmployeeSurveillanceRecordPage() {
 
   const name = en ? record.employeeNameEn || record.employeeName : record.employeeName
   const department = en ? record.departmentEn || record.department : record.department
-  const screening = (record.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', ')
+  const screening = (record.screeningTypes || []).map((id: string) => employeeScreeningLabel(id, language)).join(', ')
   const resultStatus = record.resultStatus || 'pending'
   // «Delete» of the screening (with its requests and results) is made from inside the record.
   const screeningDelete = deleteItem({
@@ -325,12 +327,12 @@ export function EmployeeSurveillanceRecordPage() {
         title: `${L('Αποτέλεσμα', 'Result')} · ${sample.result ? t(sample.result) : t(sample.status)}`,
       },
     ]),
-    ...(record.timeline || []).map(entry => entry?.at && { at: entry.at, title: entry.type === 'employeeFollowupCorrected' ? L('Διόρθωση παρακολούθησης', 'Follow-up corrected') : L('Καταγραφή παρακολούθησης', 'Follow-up recorded'), detail: entry.detail }),
+    ...(record.timeline || []).map((entry: AnyRecord) => entry?.at && { at: entry.at, title: entry.type === 'employeeFollowupCorrected' ? L('Διόρθωση παρακολούθησης', 'Follow-up corrected') : L('Καταγραφή παρακολούθησης', 'Follow-up recorded'), detail: entry.detail }),
   ]
     .filter(Boolean)
-    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 
-  const renderTab = tabId => (
+  const renderTab = (tabId: string) => (
     <>
       {tabId === 'summary' && (
         <div className="record-section employee-record-page-summary">
@@ -508,11 +510,18 @@ export function EmployeeSurveillanceRecordPage() {
   )
 }
 
+interface FollowupDialogProps {
+  record: AnyRecord
+  language: string
+  fmtLabel: (value: unknown) => string
+  onClose: Handler
+  onSave: Handler
+}
 // Intervention and recheck: a small window as tall as its fields; a change to an
 // existing follow-up needs its reason.
-function FollowupDialog({ record, language, fmtLabel, onClose, onSave }) {
+function FollowupDialog({ record, language, fmtLabel, onClose, onSave }: FollowupDialogProps) {
   const en = language === 'en'
-  const L = (el, enText) => (en ? enText : el)
+  const L = (el: string, enText: string) => (en ? enText : el)
   const { notifyError } = useFeedback()
   const [saving, setSaving] = useState(false)
   const [intervention, setIntervention] = useState(record.intervention || '')
@@ -625,9 +634,17 @@ function FollowupDialog({ record, language, fmtLabel, onClose, onSave }) {
   )
 }
 
-function RequestDialog({ editor, saving, language, onChange, onClose, onSave }) {
+interface RequestDialogProps {
+  editor: AnyRecord
+  saving: boolean
+  language: string
+  onChange: Handler
+  onClose: Handler
+  onSave: Handler
+}
+function RequestDialog({ editor, saving, language, onChange, onClose, onSave }: RequestDialogProps) {
   const en = language === 'en'
-  const L = (el, enText) => (en ? enText : el)
+  const L = (el: string, enText: string) => (en ? enText : el)
   const form = useFormValidation([
     { key: 'source', label: L('Ζητούμενος έλεγχος / υλικό', 'Requested examination / material'), valid: splitMaterials(editor.source).length > 0 },
   ])
@@ -650,7 +667,7 @@ function RequestDialog({ editor, saving, language, onChange, onClose, onSave }) 
             label={L('Ζητούμενος έλεγχος / υλικό', 'Requested examination / material')}
             options={REQUEST_MATERIALS.map(item => ({ value: item.id, label: en ? item.en : item.el }))}
             selected={splitMaterials(editor.source)}
-            onToggle={id => onChange(value => ({ ...value, source: toggleMaterial(value.source, id) }))}
+            onToggle={id => onChange((value: AnyRecord) => ({ ...value, source: toggleMaterial(value.source, id) }))}
           />
           {form.errorFor('source') && <span className="field-error">{form.errorFor('source')}</span>}
         </div>

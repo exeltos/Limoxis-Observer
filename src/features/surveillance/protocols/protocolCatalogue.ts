@@ -1,3 +1,4 @@
+import type { AnyRecord } from '../../../types/featureTypes'
 // The clinical protocols a surveillance episode can start. Data, not screens:
 // a new protocol is a new entry here (key, steps, timing) plus its strings in
 // the `sepsis` namespace of stringsEl / stringsEn. The database stores only the
@@ -49,15 +50,15 @@ export const CLINICAL_PROTOCOLS = Object.freeze([
   },
 ])
 
-export const protocolByKey = key => CLINICAL_PROTOCOLS.find(item => item.key === key) || null
+export const protocolByKey = (key: string) => CLINICAL_PROTOCOLS.find(item => item.key === key) || null
 
-export function stepOf(run, key) {
-  return (run?.steps || []).find(step => step.key === key) || null
+export function stepOf(run: AnyRecord, key: string) {
+  return (run?.steps || []).find((step: number) => step.key === key) || null
 }
 
 // The steps a run shows now: the protocol's steps, without the follow-ups whose
 // condition does not hold yet.
-export function visibleSteps(run) {
+export function visibleSteps(run: AnyRecord) {
   const protocol = protocolByKey(run?.protocolKey)
   if (!protocol) return []
   return protocol.steps.filter(step => !step.followUp || step.when?.(run) || stepOf(run, step.key))

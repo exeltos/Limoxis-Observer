@@ -13,9 +13,11 @@ import { EpiReminder } from './epiQuestionnaire/EpiQuestionnaireViews'
 import { epiPending } from './epiQuestionnaire/useEpiIndex'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
 export const HIDDEN_CASE_STATUSES = new Set(['cancelled', 'voided', 'void'])
-export function groupByPatient(list) {
+export function groupByPatient(list: AnyRecord[]) {
   const groups = new Map()
   for (const item of list) {
     const key = String(item.patientRecordId || item.patientId || item.patient || item.id)
@@ -37,7 +39,7 @@ export function groupByPatient(list) {
       const linkedSampleCount = new Set(
         ordered.flatMap(x =>
           (x.samples || [])
-            .map(sample => sample.recordId || sample.id)
+            .map((sample: AnyRecord) => sample.recordId || sample.id)
             .filter(Boolean),
         ),
       ).size
@@ -57,10 +59,25 @@ export function groupByPatient(list) {
         String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
     )
 }
-export function PatientRows({ sort, onSort, loading = false, rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
-  const openRunOf = x =>
+interface PatientRowsProps {
+  sort: AnyRecord
+  onSort: Handler
+  loading?: boolean
+  rows: AnyRecord[]
+  showDepartment?: boolean
+  openRuns?: AnyRecord[]
+  epiIndex?: number | null
+  empty: boolean
+  registry: AnyRecord
+  t: (key: string) => string
+  language: string
+  fmt: (value: unknown) => string
+  onOpen: Handler
+}
+export function PatientRows({ sort, onSort, loading = false, rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }: PatientRowsProps) {
+  const openRunOf = (x: AnyRecord) =>
     (x.episodes || [x])
-      .map(ep => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
+      .map((ep: AnyRecord) => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
       .find(Boolean)
   return (
     <div className="scroll-table" ref={registry.scrollRef}>
@@ -115,8 +132,20 @@ export function PatientRows({ sort, onSort, loading = false, rows, showDepartmen
     </div>
   )
 }
-export function EmployeeRows({ sort, onSort, loading = false, rows, empty, registry, language, fmt, t, onOpen }) {
-  const rowId = x => String(x.recordId || x.id)
+interface EmployeeRowsProps {
+  sort: AnyRecord
+  onSort: Handler
+  loading?: boolean
+  rows: AnyRecord[]
+  empty: boolean
+  registry: AnyRecord
+  language: string
+  fmt: (value: unknown) => string
+  t: (key: string) => string
+  onOpen: Handler
+}
+export function EmployeeRows({ sort, onSort, loading = false, rows, empty, registry, language, fmt, t, onOpen }: EmployeeRowsProps) {
+  const rowId = (x: AnyRecord) => String(x.recordId || x.id)
   const { data: staffRows } = useEmployeesData()
   const inactiveCodes = useMemo(() => inactiveEmployeeCodes(staffRows || []), [staffRows])
   return (
@@ -155,7 +184,7 @@ export function EmployeeRows({ sort, onSort, loading = false, rows, empty, regis
             </td>
             <td>{language === 'en' ? x.departmentEn : x.department}</td>
             <td>{fmt(x.startedAt)}</td>
-            <td>{(x.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', ') || '—'}</td>
+            <td>{(x.screeningTypes || []).map((id: string) => employeeScreeningLabel(id, language)).join(', ') || '—'}</td>
             <td><StatusBadge tone={statusTone(x.resultStatus || 'pending')}>{t(x.resultStatus || 'pending')}</StatusBadge></td>
             <td><EmployeeStatusBadge row={x} t={t} /></td>
           </>
@@ -166,7 +195,7 @@ export function EmployeeRows({ sort, onSort, loading = false, rows, empty, regis
 }
 export const POSITIVE_EMPLOYEE_RESULTS = ['positive', 'positive_recheck']
 export const CLOSED_EMPLOYEE_STATUSES = ['cancelled', 'voided', 'void']
-export function employeeFollowupState(row) {
+export function employeeFollowupState(row: AnyRecord) {
   if (CLOSED_EMPLOYEE_STATUSES.includes(row.status)) return 'cancelled'
   const today = hospitalToday()
   const positive = POSITIVE_EMPLOYEE_RESULTS.includes(row.resultStatus)
@@ -180,13 +209,17 @@ export function employeeFollowupState(row) {
   if ((positive && (interventionOpen || interventionMissing || recheckMissing)) || recheckDue) return 'needsFollowup'
   return row.status === 'active' ? 'active' : 'completed'
 }
-export function EmployeeStatusBadge({ row, t }) {
+interface EmployeeStatusBadgeProps {
+  row: AnyRecord
+  t: (key: string) => string
+}
+export function EmployeeStatusBadge({ row, t }: EmployeeStatusBadgeProps) {
   const state = employeeFollowupState(row)
   return <StatusBadge tone={statusTone(state)}>{state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}</StatusBadge>
 }
 // One count of the row of cards above the list; with a quick key it filters the list, pressing it again shows everything.
 export const SAMPLE_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
-export function matchesEmployeeQuick(row, quick) {
+export function matchesEmployeeQuick(row: AnyRecord, quick) {
   const today = hospitalToday()
   if (quick === 'active') return row.status === 'active'
   if (quick === 'positive') return row.resultStatus === 'positive'
@@ -194,14 +227,14 @@ export function matchesEmployeeQuick(row, quick) {
   if (quick === 'recheck') return Boolean(row.recheckDue) && row.recheckDue <= today && row.status === 'active'
   return true
 }
-export function matchesEnvironmentQuick(row, quick) {
+export function matchesEnvironmentQuick(row: AnyRecord, quick) {
   if (quick === 'active') return SAMPLE_PENDING_STATUSES.includes(row.status)
   if (quick === 'pending') return SAMPLE_PENDING_STATUSES.includes(row.status) && !row.result
   if (quick === 'outside') return environmentalNeedsAction(row)
   if (quick === 'critical') return Boolean(row.critical)
   return true
 }
-export function matchesQuick(x, quick) {
+export function matchesQuick(x: AnyRecord, quick) {
   const active = x.status === 'active'
   if (quick === 'active') return active
   if (quick === 'due') return active && reviewState(x) === 'overdue'

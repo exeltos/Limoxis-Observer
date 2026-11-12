@@ -11,14 +11,25 @@ import { formatDateTime } from '../../core/i18n/formatDay'
 import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { NO_SURVEILLANCE_REASONS, reasonLabel } from '../laboratory/sampleReviewModel'
 import './surveillanceRegistry.css'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
-export const worklistTexts = language => language === 'en'
+export const worklistTexts = (language: string) => language === 'en'
   ? { title: 'To review', emptyTitle: 'No samples to review', emptyText: 'New positive samples without an episode appear here until a decision is made.', saved: 'Decision saved.' }
   : { title: 'Προς έλεγχο', emptyTitle: 'Δεν υπάρχουν δείγματα προς έλεγχο', emptyText: 'Τα νέα θετικά δείγματα χωρίς επεισόδιο εμφανίζονται εδώ μέχρι να ληφθεί απόφαση.', saved: 'Η απόφαση αποθηκεύτηκε.' }
 
-export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide }) {
+interface SampleReviewWorklistProps {
+  rows: AnyRecord[]
+  empty: boolean
+  language: string
+  t: (key: string) => string
+  canOpenEpisode: boolean
+  onOpenEpisode: Handler
+  onDecide: Handler
+}
+export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide }: SampleReviewWorklistProps) {
   const en = language === 'en'
-  const [deciding, setDeciding] = useState(null)
+  const [deciding, setDeciding] = useState<AnyRecord | null>(null)
   return (
     <div className="scroll-table sample-review-worklist">
       <RegistryTable
@@ -80,7 +91,13 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
   )
 }
 
-export function NoSurveillanceDialog({ sample, language, onClose, onSave }) {
+interface NoSurveillanceDialogProps {
+  sample: AnyRecord
+  language: string
+  onClose: Handler
+  onSave: Handler
+}
+export function NoSurveillanceDialog({ sample, language, onClose, onSave }: NoSurveillanceDialogProps) {
   const en = language === 'en'
   const [reason, setReason] = useState('')
   const [note, setNote] = useState('')
@@ -124,7 +141,10 @@ export function NoSurveillanceDialog({ sample, language, onClose, onSave }) {
   )
 }
 
-export function SampleReviewTag({ label }) {
+interface SampleReviewTagProps {
+  label: string
+}
+export function SampleReviewTag({ label }: SampleReviewTagProps) {
   if (!label) return null
   return <StatusBadge tone="neutral">{label}</StatusBadge>
 }

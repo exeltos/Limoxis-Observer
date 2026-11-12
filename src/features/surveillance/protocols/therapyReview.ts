@@ -1,3 +1,4 @@
+import type { AnyRecord } from '../../../types/featureTypes'
 // The 48–72 h review of an antimicrobial therapy («antibiotic time-out»): the
 // card appears 48 hours after the start, stays until a decision is recorded and
 // is overdue after 72 hours (CDC Core Elements 2019; SSC 2021: daily assessment
@@ -9,7 +10,7 @@ export const REVIEW_DECISIONS = Object.freeze(['continue', 'deescalate', 'iv_to_
 export const REVIEW_REASONS = Object.freeze(['susceptibility', 'negative_cultures', 'clinical_improvement', 'no_infection', 'course_complete', 'adverse_event', 'oral_route_possible', 'no_improvement'])
 
 // A date without a time (the demo, older entries) counts from the start of that day.
-export function therapyStart(therapy) {
+export function therapyStart(therapy: AnyRecord) {
   const value = therapy?.startedAt
   if (!value) return null
   const text = String(value)
@@ -18,10 +19,10 @@ export function therapyStart(therapy) {
 }
 
 const HOUR = 3600000
-export function reviewWindow(therapy, reviews = [], now = new Date()) {
+export function reviewWindow(therapy: AnyRecord, reviews: AnyRecord[] = [], now = new Date()) {
   const start = therapyStart(therapy)
   if (!start) return null
-  const own = reviews.filter(row => String(row.therapyId) === String(therapy.id)).sort((a, b) => new Date(b.reviewedAt) - new Date(a.reviewedAt))
+  const own = reviews.filter(row => String(row.therapyId) === String(therapy.id)).sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime())
   const latest = own[0] || null
   const hours = Math.floor((now.getTime() - start.getTime()) / HOUR)
   const opensAt = new Date(start.getTime() + REVIEW_FROM_HOURS * HOUR)
@@ -37,7 +38,7 @@ export function reviewWindow(therapy, reviews = [], now = new Date()) {
   return { ...base, state: 'overdue', hoursOver: hours - REVIEW_BY_HOURS }
 }
 
-export const reviewTone = state => ({ reviewed: 'success', reviewedLate: 'warning', due: 'warning', overdue: 'danger' })[state] || 'neutral'
+export const reviewTone = (state: AnyRecord) => ({ reviewed: 'success', reviewedLate: 'warning', due: 'warning', overdue: 'danger' })[state] || 'neutral'
 
 // Which therapies show a review card: in the window, overdue, or already reviewed.
-export const showsReviewCard = window => Boolean(window && ['due', 'overdue', 'reviewed', 'reviewedLate'].includes(window.state))
+export const showsReviewCard = (window: AnyRecord) => Boolean(window && ['due', 'overdue', 'reviewed', 'reviewedLate'].includes(window.state))

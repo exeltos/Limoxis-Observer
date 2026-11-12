@@ -65,18 +65,22 @@ export {
   SURVEILLANCE_OUTCOMES,
 } from './clinicalRecordLabels'
 import { renderPatientRecordTab } from './PatientClinicalRecordTabs'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The former clinical assessments tab is now the scales section of the forms tab:
 // an old link or a stored tab name lands on the new tab.
-const legacyTab = id => (id === 'clinicalScales' ? 'episodeForms' : id)
-const deepLinkTab = location => new URLSearchParams(location.search).get('tab')
+const legacyTab = (id: string) => (id === 'clinicalScales' ? 'episodeForms' : id)
+const deepLinkTab = (location: AnyRecord) => new URLSearchParams(location.search).get('tab')
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 // /patients/:patientId carries the patient code, or the record id when the page is
 // reached from a surveillance row: both open the same patient.
-const isPatientKey = (row, key) => String(row.id) === String(key) || String(row.recordId) === String(key)
+const isPatientKey = (row: AnyRecord, key: string) => String(row.id) === String(key) || String(row.recordId) === String(key)
 
-export function PatientClinicalCanonicalPage({ patientMode = false }) {
+interface PatientClinicalCanonicalPageProps {
+  patientMode?: boolean
+}
+export function PatientClinicalCanonicalPage({ patientMode = false }: PatientClinicalCanonicalPageProps) {
   const actor = useAuditActor()
   const { caseId, patientId } = useParams()
   const location = useLocation()
@@ -90,8 +94,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     [isDemo, tenant?.id, actor],
   )
   // The organization's active departments, one shape for every dialog of the record.
-  const { departments } = useDepartments()
-  const [patients, setPatients] = useState([]),
+  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const [patients, setPatients] = useState<AnyRecord[]>([]),
     [episodes, setEpisodes] = useState([]),
     [admissions, setAdmissions] = useState([]),
     [clinicalLibraries, setClinicalLibraries] = useState(demoLibrarySeed)
@@ -107,7 +111,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     [loadedFor, setLoadedFor] = useState(''),
     [error, setError] = useState(''),
     [createOpen, setCreateOpen] = useState(false)
-  const [sampleToLink, setSampleToLink] = useState(null)
+  const [sampleToLink, setSampleToLink] = useState<AnyRecord | null>(null)
   // A surveillance started with «new sample request»: its sample dialog opens as soon as it is created.
   const [askSampleFor, setAskSampleFor] = useState(() => location.state?.askSampleFor || null)
   // "Open episode" from the worklist or the sample record: this page opens the
@@ -130,9 +134,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const creatingAdmissionSampleRef = useMemo(() => ({ current: false }), [])
   const [tab, setTab] = useState(() => legacyTab(deepLinkTab(location) || location.state?.openTab || restored?.tab || 'summary'))
   // Stage the surveillance tab opens on, e.g. when the summary sends the user to an overdue reassessment.
-  const [journeyStage, setJourneyStage] = useState(null)
+  const [journeyStage, setJourneyStage] = useState<AnyRecord | null>(null)
   // N3: a qSOFA / SOFA prompt asks the surveillance tab to open the protocol picker.
-  const [protocolRequest, setProtocolRequest] = useState(null)
+  const [protocolRequest, setProtocolRequest] = useState<AnyRecord | null>(null)
   const has = cap =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const deleteItem = useRecordDelete()
@@ -282,7 +286,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         rows = one ? [one] : []
       }
       if (cloud && !patientMode)
-        roster = await loadPatientsByKeys(tenant.id, { recordIds: rows.map(row => row.patientRecordId) })
+        roster = await loadPatientsByKeys(tenant.id, { recordIds: rows.map((row: AnyRecord) => row.patientRecordId) })
       setPatients(roster)
       // Surveillance switched off by the operating profile: its episodes are hidden, not deleted.
       if (isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE)) rows = []
@@ -290,7 +294,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       const current = preferred || selectedEpisodeId || caseId || rows[0]?.id || ''
       if (!patientMode)
         setSelectedEpisodeId(
-          rows.some(row => String(row.id) === String(current)) ? current : rows[0]?.id || '',
+          rows.some((row: AnyRecord) => String(row.id) === String(current)) ? current : rows[0]?.id || '',
         )
       const patientForAdmissions =
         selectedPatient || roster.find(row => rows.some(ep => episodeBelongsToPatient(ep, row)))
@@ -377,7 +381,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     fmtDate: value => formatDay(value, language),
     fmtDateTime: value => formatDateTime(value, language),
     // A qSOFA / SOFA prompt of the scales section asks the surveillance tab for a protocol.
-    startProtocol: prompt => {
+    startProtocol: (prompt: AnyRecord) => {
       const episode = admissionEpisodes.find(ep => ep.status === 'active') || formsEpisodes.find(ep => ep.status === 'active')
       if (episode) {
         setSelectedEpisodeId(episode.id)
@@ -391,7 +395,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   // The epidemiological questionnaire of the selected episode: the header line and the safety signal.
   const epiEntry =
     record && forms.data.epiQuestionnaire?.value
-      ? epiRows(formsCtx, forms.data.epiQuestionnaire.value).find(item => String(item.episode.id) === String(record.id)) || null
+      ? epiRows(formsCtx, forms.data.epiQuestionnaire.value).find((item: AnyRecord) => String(item.episode.id) === String(record.id)) || null
       : null
   // The record's first read: the page placeholder, not a generic «patient record» page.
   // A reload after a save keeps the screen as it is, inside the open surveillance (owner, 8/11/2026); only the first
@@ -465,14 +469,14 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     setFormsOpenRequest({ id: 'scales', nonce: Date.now() })
   }
 
-  function openAdmission(id) {
+  function openAdmission(id: string) {
     const scoped = episodes.filter(ep => String(ep.admissionId || '') === String(id))
     setSelectedAdmissionId(id)
     setSelectedEpisodeId(scoped[0]?.id || '')
     setTab('summary')
   }
 
-  async function createEpisode(draft, targetPatient) {
+  async function createEpisode(draft: AnyRecord, targetPatient) {
     const scopedDraft = selectedAdmission
       ? {
           ...draft,
@@ -516,7 +520,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     return created
   }
 
-  async function createAdmissionSample(draft) {
+  async function createAdmissionSample(draft: AnyRecord) {
     if (!patient || creatingAdmissionSampleRef.current) return null
     // Outside the patient route (/surveillance/:id) there is no selected admission:
     // the episode's own department is used instead, so follow-up samples still save.
@@ -586,7 +590,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const shellStatus = selectedAdmission?.status || record?.status || patient?.status || 'active'
   // One tab of the record: on screen the active one; when the record is printed
   // (EntityRecordShell renderTab) every tab, one after the other.
-  const renderTab = tabId =>
+  const renderTab = (tabId: string) =>
     renderPatientRecordTab(tabId, { actor, actualRole, admissionEpisodes, admissions, admissionSamples, admissionTimeline, askSampleFor, canCreateLabSample, canLab, canTherapy, caseId, clinicalLibraries, createAdmissionSample, demoDocuments, departments, deviceBundles, documentsScope, epiEntry, fmtDate, fmtDateTime, forms, formsCtx, formsOpenRequest, goBack, has, isDemo, journeyStage, laboratory, language, load, navigate, outsideTimeline, patient, patientMode, protocolRequest, record, recordSamples, repository, riskFlagRows, role, selectedAdmission, setAskSampleFor, setClinicalLibraries, setCreateOpen, setDemoDocuments, setJourneyStage, setSampleToLink, setSelectedAdmissionId, setSelectedEpisodeId, setTab, t, tenant })
   // The report window of the open episode, from the single Export menu in the header.
   const printEpisodeReport = () => {

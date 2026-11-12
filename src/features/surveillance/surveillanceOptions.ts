@@ -1,3 +1,4 @@
+import type { AnyRecord } from '../../types/featureTypes'
 // The option lists of the surveillance and patient screens, in one place.
 // Records keep storing the same codes as before; only the labels and the way
 // the lists are offered (SearchableSelect / ModeSwitch / ChoiceChips) are shared.
@@ -12,7 +13,7 @@ export const EMPLOYEE_SCREENING_TYPES=[
 ]
 export const OTHER_EMPLOYEE_SCREENING={id:'otherEmployeeScreening',el:'Άλλος προληπτικός έλεγχος εργαζομένου',en:'Other employee screening'}
 export const employeeScreeningOptions=(language='el')=>EMPLOYEE_SCREENING_TYPES.map(item=>({value:item.id,label:language==='en'?item.en:item.el}))
-export function employeeScreeningLabel(id,language='el'){
+export function employeeScreeningLabel(id: string,language='el'){
   const item=[...EMPLOYEE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING].find(row=>row.id===id)
   return item?(language==='en'?item.en:item.el):id
 }
@@ -37,11 +38,11 @@ const SPECIMEN_CODES=[
   ['woundCulture',/τραύμ|τραυμ|wound|πύον|pus/i],
 ]
 const ENVIRONMENTAL_SPECIMEN=/επιφάν|επιφαν|surface|αέρα|αερα|\bair\b|νερό|νερο|water|περιβάλλ|περιβαλλ|environment/i
-export function specimenCode(item){
+export function specimenCode(item: AnyRecord){
   const text=`${item?.el||''} ${item?.en||''} ${item?.code||''}`
   return SPECIMEN_CODES.find(([,pattern])=>pattern.test(text))?.[0]||'other'
 }
-export function patientSampleTypeOptions(items=[],language='el',t=key=>key){
+export function patientSampleTypeOptions(items: AnyRecord[]=[],language='el',t=(key: string)=>key){
   const specimens=items.filter(item=>!ENVIRONMENTAL_SPECIMEN.test(`${item.el} ${item.en}`)&&!/environment/i.test(String(item.meta?.source||'')))
   return PATIENT_SAMPLE_TYPES.map(code=>{
     const names=specimens.filter(item=>specimenCode(item)===code).map(item=>language==='en'?item.en||item.el:item.el)
@@ -51,21 +52,21 @@ export function patientSampleTypeOptions(items=[],language='el',t=key=>key){
 
 // Suspected source of a new surveillance episode ('' = under assessment).
 export const SUSPECTED_SOURCES=['bloodstream','urinary','respiratory','surgicalSite','other']
-export const suspectedSourceOptions=t=>SUSPECTED_SOURCES.map(value=>({value,label:value==='other'?t('other'):t(`clinicalRecords.${value}`)}))
+export const suspectedSourceOptions=(t: (key: string) => string)=>SUSPECTED_SOURCES.map(value=>({value,label:value==='other'?t('other'):t(`clinicalRecords.${value}`)}))
 
 // Departments from useDepartments(), as SearchableSelect options.
-export const departmentLabel=(department,language='el')=>department?(language==='en'?department.nameEn||department.name:department.name):''
-export function departmentOptions(departments=[],language='el'){
+export const departmentLabel=(department: AnyRecord,language='el')=>department?(language==='en'?department.nameEn||department.name:department.name):''
+export function departmentOptions(departments: AnyRecord[]=[],language='el'){
   return departments.map(department=>{const label=departmentLabel(department,language),other=language==='en'?department.name:department.nameEn;return {value:department.id,label,description:other&&other!==label?other:undefined,keywords:`${department.name} ${department.nameEn||''}`}})
 }
 
 // The status-badge tone of a surveillance, sample, therapy or screening status.
-const STATUS_TONES={
+const STATUS_TONES: Record<string, string>={
   active:'success',negative:'success',administered:'success',completed:'neutral',
   positive:'danger',positive_recheck:'danger',critical:'danger',rejected:'danger',
   withheld:'warning',pending:'warning',pending_lab:'warning',received:'warning',processing:'warning',needsFollowup:'warning',
 }
-export const statusTone=status=>STATUS_TONES[status]||'neutral'
+export const statusTone=(status: string)=>STATUS_TONES[status]||'neutral'
 
 // The texts of the shared list fields in the screen's language.
 export function listTexts(language='el'){
@@ -76,8 +77,8 @@ export function listTexts(language='el'){
     searchPlaceholder:en?'Search…':'Αναζήτηση…',
     selectAllLabel:en?'Select all':'Επιλογή όλων',
     clearAllLabel:en?'Clear all':'Αποεπιλογή όλων',
-    countLabel:count=>en?`${count} selected`:`${count} επιλεγμένα`,
-    customLabel:text=>en?`Use «${text}»`:`Χρήση «${text}»`,
+    countLabel:(count: number)=>en?`${count} selected`:`${count} επιλεγμένα`,
+    customLabel:(text: string)=>en?`Use «${text}»`:`Χρήση «${text}»`,
   }
 }
 

@@ -4,6 +4,8 @@ import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FormsTabContext, useFormsTabState } from './FormSection'
 import { visibleEpisodeFormSections } from './formsRegistry'
 import './episodeForms.css'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { Handler } from '../surveillanceTypes'
 
 // «Φόρμες & ερωτηματολόγια»: every form connected to the episode in one tab of collapsible
 // sections. The sections come from the registry (formsRegistry.js); this component only
@@ -13,7 +15,13 @@ import './episodeForms.css'
 // as plain sections of the page (no panel title of their own).
 const SHEET_SECTIONS = new Set(['bundles', 'epiQuestionnaire'])
 
-export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmission = false }) {
+interface EpisodeFormsTabProps {
+  ctx: AnyRecord
+  forms: AnyRecord
+  openRequest?: Handler | null
+  withoutAdmission?: boolean
+}
+export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmission = false }: EpisodeFormsTabProps) {
   const { t } = useLanguage()
   const sections = useMemo(
     () =>

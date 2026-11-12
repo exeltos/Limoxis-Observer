@@ -12,8 +12,9 @@ import { CanonicalSummary } from './ClinicalAdmissions'
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
 import { canDeleteRecord } from '../../core/recycleBin/recycleBinService'
+import type { AnyRecord } from '../../types/featureTypes'
 
-export function renderPatientRecordTab(tabId, j) {
+export function renderPatientRecordTab(tabId: string, j: number) {
   const { actor, actualRole, admissionEpisodes, admissions, admissionSamples, admissionTimeline, askSampleFor, canCreateLabSample, canLab, canTherapy, caseId, clinicalLibraries, createAdmissionSample, demoDocuments, departments, deviceBundles, documentsScope, epiEntry, fmtDate, fmtDateTime, forms, formsCtx, formsOpenRequest, goBack, has, isDemo, journeyStage, laboratory, language, load, navigate, outsideTimeline, patient, patientMode, protocolRequest, record, recordSamples, repository, riskFlagRows, role, selectedAdmission, setAskSampleFor, setClinicalLibraries, setCreateOpen, setDemoDocuments, setJourneyStage, setSampleToLink, setSelectedAdmissionId, setSelectedEpisodeId, setTab, t, tenant } = j
   return (
     <>
@@ -152,7 +153,7 @@ export function renderPatientRecordTab(tabId, j) {
               has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME) ||
               has(CAPABILITIES.CLOSE_SURVEILLANCE),
             canEdit: has(CAPABILITIES.EDIT_SURVEILLANCE),
-            canDelete: record => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy: record?.createdBy }),
+            canDelete: (record: AnyRecord) => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy: record?.createdBy }),
             canReopen: has(CAPABILITIES.REOPEN_SURVEILLANCE),
           }}
         />

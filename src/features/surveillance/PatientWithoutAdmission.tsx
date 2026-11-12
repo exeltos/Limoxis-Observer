@@ -1,10 +1,18 @@
 import { Plus } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import type { Handler } from './surveillanceTypes'
 
+interface PatientWithoutAdmissionProps {
+  canAdmit: boolean
+  onNewAdmission: Handler
+  episodesCount?: number
+  samplesCount?: number
+  t: (key: string) => string
+}
 // A patient record with no admission is never an empty page and never a card of its own:
 // one short line with «Νέα νοσηλεία»; what exists for the patient (notifiable reports,
 // episodes and samples outside admissions) follows as sections of the page.
-export function PatientWithoutAdmission({ canAdmit, onNewAdmission, episodesCount = 0, samplesCount = 0, t }) {
+export function PatientWithoutAdmission({ canAdmit, onNewAdmission, episodesCount = 0, samplesCount = 0, t }: PatientWithoutAdmissionProps) {
   const outside = [
     episodesCount > 0 && `${episodesCount} ${t('clinicalRecords.episodesCountLabel').toLowerCase()}`,
     samplesCount > 0 && `${samplesCount} ${t('clinicalRecords.samplesCountLabel').toLowerCase()}`,

@@ -22,14 +22,22 @@ import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { copy, NEW_ITEM, rowLabel } from './clinicalDialogText'
 import { SimpleDialog } from './ClinicalSimpleDialog'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 export { SimpleDialog } from './ClinicalSimpleDialog'
 export { HaiDialog, TherapyDialog, IsolationDialog, EndDialog, ReassessmentDialog, OutcomeDialog, ReasonDialog } from './ClinicalCareDialogs'
 
+interface AdministrationDialogProps {
+  t: (key: string) => string
+  language: string
+  onClose: Handler
+  onSave: Handler
+}
 // Dialogs of the clinical record: assessment, devices, samples, HAI criteria,
 // therapy, isolation, reassessment, outcome and reasons. Every field is a shared
 // design-system control (Field, SearchableSelect, MultiSelect, ModeSwitch, ChoiceChips).
 
-export function AdministrationDialog({ t, language, onClose, onSave }) {
+export function AdministrationDialog({ t, language, onClose, onSave }: AdministrationDialogProps) {
   const tr = copy(language)
   const [d, setD] = useState({
     administeredAt: hospitalToday(),
@@ -92,7 +100,15 @@ export function AdministrationDialog({ t, language, onClose, onSave }) {
     </SimpleDialog>
   )
 }
-export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], onClose, onSave }) {
+interface AssessmentDialogProps {
+  t: (key: string) => string
+  record: AnyRecord
+  symptomRows?: AnyRecord[]
+  riskRows?: AnyRecord[]
+  onClose: Handler
+  onSave: Handler
+}
+export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], onClose, onSave }: AssessmentDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language),
     a = record.assessment || {}
@@ -208,10 +224,17 @@ export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], o
     </SimpleDialog>
   )
 }
+interface LibraryMultiSelectProps {
+  label: string
+  rows?: AnyRecord[]
+  selected?: AnyRecord[]
+  onChange: Handler
+  language: string
+}
 // Symptoms and risk factors come from the central libraries as [el, en, meta]
 // rows; the record keeps the row's id or code (its Greek name for local rows).
-function LibraryMultiSelect({ label, rows = [], selected = [], onChange, language }) {
-  const valueOf = row => row?.[2]?.id || row?.[2]?.code || row?.[0] || row?.[1] || ''
+function LibraryMultiSelect({ label, rows = [], selected = [], onChange, language }: LibraryMultiSelectProps) {
+  const valueOf = (row: AnyRecord) => row?.[2]?.id || row?.[2]?.code || row?.[0] || row?.[1] || ''
   const texts = listTexts(language)
   // A stored value no longer in the list (older record, retired entry) stays visible and selected.
   const options = rows.map(row => ({ value: valueOf(row), label: rowLabel(row, language) }))
@@ -230,7 +253,14 @@ function LibraryMultiSelect({ label, rows = [], selected = [], onChange, languag
     />
   )
 }
-export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave }) {
+interface DeviceDialogProps {
+  t: (key: string) => string
+  items?: AnyRecord[]
+  onAddLibraryItem: Handler
+  onClose: Handler
+  onSave: Handler
+}
+export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave }: DeviceDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
   const defaults = [
@@ -248,7 +278,7 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
   })
   const [rows, setRows] = useState([blank()])
   // The row whose type is being added to the library (an index), or null.
-  const [adding, setAdding] = useState(null),
+  const [adding, setAdding] = useState<AnyRecord | null>(null),
     [newName, setNewName] = useState('')
   async function add() {
     const name = newName.trim()
@@ -261,7 +291,7 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
     setNewName('')
     setAdding(null)
   }
-  const update = (i, key, value) =>
+  const update = (i: number, key: string, value) =>
     setRows(list => list.map((x, n) => (n === i ? { ...x, [key]: value } : x)))
   const save = async () => {
     for (const row of rows.filter(x => x.type)) await onSave(row)
@@ -329,6 +359,16 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
     </SimpleDialog>
   )
 }
+interface SampleRequestDialogProps {
+  t: (key: string) => string
+  title: string
+  initialType?: string
+  context?: AnyRecord | null
+  epi?: AnyRecord | null
+  inSheet?: boolean
+  onClose: Handler
+  onSave: Handler
+}
 // Sample request: a request to the laboratory, not a sample entry. It names the
 // patient, the episode, the department, the sample type and site and the priority; the
 // laboratory receives and completes it, and the result is entered only there.
@@ -336,14 +376,14 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
 // of sampleRequestForm.js are rendered after the core fields.
 // inSheet: on the surveillance sheet the patient, episode and department are its header and the questionnaire is
 // its own step, so they are not repeated here (owner, 8/11/2026).
-export function SampleRequestDialog({ t, title, initialType = '', context = null, epi = null, inSheet = false, onClose, onSave }) {
+export function SampleRequestDialog({ t, title, initialType = '', context = null, epi = null, inSheet = false, onClose, onSave }: SampleRequestDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
   const en = language === 'en'
   const { libraries } = useLibraries()
   const [d, setD] = useState(() => emptySampleRequest({ type: initialType }))
-  const answer = key => d.requestQuestions?.[key] ?? ''
-  const setAnswer = (key, value) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
+  const answer = (key: string) => d.requestQuestions?.[key] ?? ''
+  const setAnswer = (key: string, value) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
   // The mini version (3 core questions) of the epidemiological questionnaire: for cultures only, and
   // written to the episode's one questionnaire (or to the sample when there is no episode).
   const role = useContext(TenantContext)?.role

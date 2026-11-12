@@ -1,9 +1,10 @@
+import type { AnyRecord } from '../../types/featureTypes'
 // «Φύλλο καταγραφής σημείων δειγματοληψίας»: the sheet a sampler fills in the field and hands
 // to the laboratory with the plates. One row per point, with the plate («τρυβλίο») and the spot on
 // it («θέση»). Pure: the dialog prints it (reportDocument.printReport) and the test reads it.
 
 // «Τρυβλίο Α · Θέση 1» for a sample, from whichever of the two it has.
-export function environmentalPlateText(sample, t) {
+export function environmentalPlateText(sample: AnyRecord, t: (key: string) => string) {
   return [
     sample?.environmentalPlate && `${t('clinicalRecords.envPlate')} ${sample.environmentalPlate}`,
     sample?.environmentalPosition && `${t('clinicalRecords.envPosition')} ${sample.environmentalPosition}`,
@@ -12,8 +13,19 @@ export function environmentalPlateText(sample, t) {
     .join(' · ')
 }
 
+interface EnvironmentalSheetDocumentOptions {
+  language?: string
+  t: (key: string) => string
+  department?: string
+  date?: string
+  typeLabel?: string
+  methodLabel?: string
+  points?: AnyRecord[]
+  notes?: string
+  code?: string
+}
 // points: [{ location, point, plate, position, code? }]; the sample codes are known once the points are saved.
-export function environmentalSheetDocument({ language = 'el', t, department = '', date = '', typeLabel = '', methodLabel = '', points = [], notes = '', code = '' }) {
+export function environmentalSheetDocument({ language = 'el', t, department = '', date = '', typeLabel = '', methodLabel = '', points = [], notes = '', code = '' }: EnvironmentalSheetDocumentOptions) {
   const withCodes = points.some(point => point.code)
   const columns = [
     '#',

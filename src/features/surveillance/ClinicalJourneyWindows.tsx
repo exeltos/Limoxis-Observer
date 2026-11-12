@@ -10,8 +10,47 @@ import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { ProtocolPickerDialog } from './protocols/ProtocolViews'
 import { startProtocolRun } from './protocols/protocolService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler, StateSetter } from './surveillanceTypes'
 
-export function JourneyWindows({ j }) {
+// What the screen hands to this part (one object, so the part reads like the code it came from).
+export interface JourneyWindowsScope {
+  active: boolean
+  admission: AnyRecord
+  bundleDevice: AnyRecord
+  closeDialog: AnyRecord
+  deviceBundles: AnyRecord
+  dialog: AnyRecord
+  entryDelete: Handler
+  entryDetail: AnyRecord
+  epi: AnyRecord
+  fmtDate: (value: unknown) => string
+  fmtDateTime: (value: unknown) => string
+  isDemo: boolean
+  language: string
+  libraries: AnyRecord
+  onLibraryAdded: Handler
+  organizationId: string
+  patient: AnyRecord
+  permissions: AnyRecord
+  protocolOptions: AnyRecord
+  protocolPreset: AnyRecord
+  protocols: AnyRecord
+  record: AnyRecord
+  repository: AnyRecord
+  role: string
+  run: Handler
+  runProtocol: Handler
+  setBundleDevice: StateSetter
+  setDialog: StateSetter
+  setEntryDetail: StateSetter
+  setEpi: StateSetter
+  setFormNonce: StateSetter
+  setStage: StateSetter
+  shownDialog: boolean
+  t: (key: string) => string
+}
+export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
   const { active, admission, bundleDevice, closeDialog, deviceBundles, dialog, entryDelete, entryDetail, epi, fmtDate, fmtDateTime, isDemo, language, libraries, onLibraryAdded, organizationId, patient, permissions, protocolOptions, protocolPreset, protocols, record, repository, role, run, runProtocol, setBundleDevice, setDialog, setEntryDetail, setEpi, setFormNonce, setStage, shownDialog, t } = j
   return (
     <>
@@ -33,7 +72,7 @@ export function JourneyWindows({ j }) {
       {shownDialog === 'epi' && (
         <EpiQuestionnaireDialog
           inSheet
-          ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map(sample => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
+          ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map((sample: AnyRecord) => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
           episode={record}
           row={epi.row}
           settings={epi.settings}
@@ -42,7 +81,7 @@ export function JourneyWindows({ j }) {
           onSaved={() => {
             setDialog(null)
             setFormNonce(value => value + 1)
-            setEpi(current => ({ ...current, nonce: current.nonce + 1 }))
+            setEpi((current: AnyRecord) => ({ ...current, nonce: current.nonce + 1 }))
           }}
         />
       )}

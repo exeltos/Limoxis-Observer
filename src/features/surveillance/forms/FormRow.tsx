@@ -4,7 +4,23 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FORM_STATUS } from './formStatus'
 import { useFormsTab } from './FormSection'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { ReactNode } from 'react'
 
+interface FormRowProps {
+  title: string
+  detail: AnyRecord
+  status: string
+  statusLabel: string
+  statusDetail: AnyRecord
+  signal?: string
+  badge?: AnyRecord | null
+  date: string
+  dateLabel: string
+  action?: AnyRecord | null
+  menu?: AnyRecord[]
+  children: ReactNode
+}
 // The one row of every form connected to an episode (bundles, scales, notifiable report,
 // incidents, questionnaires …): title with a detail line, the status in plain words, the
 // last date and one action. Colour only for a safety signal (overdue, a notifiable
@@ -13,7 +29,7 @@ import { useFormsTab } from './FormSection'
 //   <FormRow title detail status={FORM_STATUS.OVERDUE} statusDetail date dateLabel
 //            action={{ label, onClick, primary }} menu={[{ label, icon, tone, onClick }]} signal="danger" />
 // Props are listed above.
-export function FormRow({ title, detail, status, statusLabel, statusDetail, signal = '', badge = null, date, dateLabel, action = null, menu = [], children }) {
+export function FormRow({ title, detail, status, statusLabel, statusDetail, signal = '', badge = null, date, dateLabel, action = null, menu = [], children }: FormRowProps) {
   const { t } = useLanguage()
   const word = statusLabel || (status ? t(`episodeForms.status.${status}`) : '')
   const danger = signal === 'danger' || status === FORM_STATUS.OVERDUE
@@ -64,12 +80,19 @@ export function FormRow({ title, detail, status, statusLabel, statusDetail, sign
   )
 }
 
+interface FormEmptyProps {
+  children: ReactNode
+}
 // The same empty sentence of every section: what will appear here and where the action starts.
-export function FormEmpty({ children }) {
+export function FormEmpty({ children }: FormEmptyProps) {
   return <p className="episode-form-empty">{children}</p>
 }
 
-export function FormRows({ children, label }) {
+interface FormRowsProps {
+  children: ReactNode
+  label: string
+}
+export function FormRows({ children, label }: FormRowsProps) {
   return (
     <ul className="episode-form-rows" aria-label={label}>
       {children}

@@ -1,11 +1,16 @@
 import { Lock } from 'lucide-react'
 import { DetailList } from '../../../design-system/DetailList'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
+import type { AnyRecord } from '../../../types/featureTypes'
 
+interface PrefilledListProps {
+  items?: AnyRecord[]
+  className?: string
+}
 // The one «Προσυμπληρωμένα» block of every form opened from an episode: what the form
 // already knows (patient, admission, episode, device …) as a locked read-only list, so the
 // user fills in only what is new. `items` is [{ label, value }]; blanks are left out.
-export function PrefilledList({ items = [], className = '' }) {
+export function PrefilledList({ items = [], className = '' }: PrefilledListProps) {
   const { t } = useLanguage()
   const shown = items.filter(item => item && item.value != null && String(item.value).trim() !== '')
   if (!shown.length) return null

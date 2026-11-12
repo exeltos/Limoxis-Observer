@@ -63,10 +63,11 @@ import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleRevie
 import { SampleReviewWorklist, worklistTexts } from './SampleReviewWorklist'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
 import { EmployeeRows, groupByPatient, HIDDEN_CASE_STATUSES, matchesEmployeeQuick, matchesEnvironmentQuick, matchesQuick, PatientRows } from './SurveillanceListRows'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const isEnvironmental = isEnvironmentalSample
-const SECTION_MODES = { episodes: 'patients', employees: 'employees', environmental: 'environmental' }
-const unique = values => [...new Set(values.filter(Boolean))]
+const SECTION_MODES: Record<string, string> = { episodes: 'patients', employees: 'employees', environmental: 'environmental' }
+const unique = (values: AnyRecord) => [...new Set(values.filter(Boolean))]
 
 export function SurveillanceCanonicalPage() {
   const actor = useAuditActor(),
@@ -92,12 +93,12 @@ export function SurveillanceCanonicalPage() {
   const restoredMode = restored.mode === 'batches' ? 'employees' : restored.mode
   const section = useSectionTabs()
   const sectionMode = section ? SECTION_MODES[section.value] || null : null
-  const [patients, setPatients] = useState([]),
+  const [patients, setPatients] = useState<AnyRecord[]>([]),
     [cases, setCases] = useState([]),
     [employeeRows, setEmployeeRows] = useState([]),
     [environmentRows, setEnvironmentRows] = useState([]),
     [loading, setLoading] = useState(true)
-  const { departments } = useDepartments()
+  const { departments }: { departments: AnyRecord[] } = useDepartments()
   const [quick, setQuick] = useState(() =>
     new URLSearchParams(location.search).get('review') === '1' ? 'review' : null,
   )
@@ -110,7 +111,7 @@ export function SurveillanceCanonicalPage() {
     [pageSize, setPageSize] = useState(restored.pageSize || 15),
     [creation, setCreation] = useState(null),
     [resample, setResample] = useState(null)
-  const [openRuns, setOpenRuns] = useState([])
+  const [openRuns, setOpenRuns] = useState<AnyRecord[]>([])
   const epiIndex = useEpiIndex({ organizationId: tenant?.id, isDemo, enabled: canWriteEpi(role) })
   useEffect(() => {
     let alive = true
@@ -168,7 +169,7 @@ export function SurveillanceCanonicalPage() {
       } else if (tenant?.id) {
         const results = await rest
         // A surveillance without a sample is not listed (owner, 8/11/2026): every surveillance starts from a sample.
-        const withSample = row => (row.caseSampleCount ?? (row.samples || []).length) > 0
+        const withSample = (row: AnyRecord) => (row.caseSampleCount ?? (row.samples || []).length) > 0
         setCases(results[0].status === 'fulfilled' ? results[0].value.filter(withSample) : [])
         setEmployeeRows(results[1].status === 'fulfilled' ? results[1].value : [])
         setEnvironmentRows(
@@ -279,7 +280,7 @@ export function SurveillanceCanonicalPage() {
     micro: x => (x.episodes || [x]).map(latestOrganism).find(Boolean),
     status: x => x.status,
     review: x => (x.status === 'active' ? x.groupReviewDue ?? x.reviewDue : null),
-    screening: x => (x.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', '),
+    screening: x => (x.screeningTypes || []).map((id: string) => employeeScreeningLabel(id, language)).join(', '),
     result: x => (mode === 'environment' ? x.result : x.resultStatus),
     surveillance: x => x.code || x.id,
     point: x => [x.location, x.point].filter(Boolean).join(' · '),
@@ -331,7 +332,7 @@ export function SurveillanceCanonicalPage() {
     navigate(`${location.pathname}${location.search}`, { replace: true, state: { ...location.state, resampleOf: undefined } })
   }, [resampleRequest, canEnvironment, environmentDepartmentOptions.length]) // eslint-disable-line react-hooks/exhaustive-deps
   const saveView = () => ({ mode, page: safePage, pageSize, query, department, status, period })
-  const openCase = item =>
+  const openCase = (item: AnyRecord) =>
     registry.openRecord(
       navigate,
       `/surveillance/${item.id}`,
@@ -339,7 +340,7 @@ export function SurveillanceCanonicalPage() {
       rows.map(x => String(x.id)),
       { returnState: { surveillanceView: saveView() } },
     )
-  const openEmployee = item =>
+  const openEmployee = (item: AnyRecord) =>
     registry.openRecord(
       navigate,
       `/surveillance/staff/${item.recordId || item.id}`,
@@ -360,7 +361,7 @@ export function SurveillanceCanonicalPage() {
     action: UI_ACTIONS.CREATE,
     resourceCapability: CAPABILITIES.CREATE_SURVEILLANCE,
   })
-  const startCreation = kind => {
+  const startCreation = (kind: string) => {
     if (kind === 'employees' || kind === 'employee') {
       if (canEmployees) setCreation('employee')
     } else if (kind === 'environmental' || kind === 'environment') {
@@ -401,7 +402,7 @@ export function SurveillanceCanonicalPage() {
       : []),
   ]
 
-  async function createPatient(draft, patient) {
+  async function createPatient(draft: AnyRecord, patient) {
     // Here the patient's samples are not on hand: the surveillance opens and asks its sample right away (owner, 8/11/2026).
     const { sampleChoice = null, ...caseDraft } = draft
     const created = await clinical.createCase(patient, caseDraft)
@@ -410,15 +411,19 @@ export function SurveillanceCanonicalPage() {
     if (sampleChoice === 'new' && created?.id) navigate(`/surveillance/${encodeURIComponent(created.id)}`, { state: { askSampleFor: created.id } })
     return created
   }
-  async function createEnvironment({ patientRecordId, draft }) {
+  interface CreateEnvironmentOptions {
+    patientRecordId: string
+    draft: AnyRecord
+  }
+  async function createEnvironment({ patientRecordId, draft }: CreateEnvironmentOptions) {
     if (isDemo) return laboratoryRegistry.createSample({ patientRecordId, draft })
     return createLaboratorySample(tenant?.id, patientRecordId, draft)
   }
 
   // The totals beside the search (owner, 8/11/2026: no cards): each one filters the list, a second click clears it.
   // Short words in the line, the full name in the tooltip, so the totals stay on the search's line.
-  const SHORT = { review: t('svShortReview'), active: t('svShortActive'), due: t('svShortDue'), isolation: t('svShortIsolation'), resistant: 'MDR / XDR' }
-  const total = (key, label, value, show = true) => (show ? { key, value, label: mode === 'patients' || !mode ? SHORT[key] || label : label, title: label, active: quick === key, onClick: () => setQuick(quick === key ? null : key) } : null)
+  const SHORT: Record<string, string> = { review: t('svShortReview'), active: t('svShortActive'), due: t('svShortDue'), isolation: t('svShortIsolation'), resistant: 'MDR / XDR' }
+  const total = (key: string, label: string, value, show = true) => (show ? { key, value, label: mode === 'patients' || !mode ? SHORT[key] || label : label, title: label, active: quick === key, onClick: () => setQuick(quick === key ? null : key) } : null)
   const totals = <RegistryTotals label={t('svTotals')} items={(mode === 'employees' ? [
     total('active', t('clinicalRecords.activeEmployeeScreenings'), employeeKpis.active),
     total('positive', t('clinicalRecords.positiveEmployeeScreenings'), employeeKpis.positive),

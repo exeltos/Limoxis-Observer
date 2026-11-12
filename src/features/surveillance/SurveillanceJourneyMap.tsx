@@ -1,17 +1,20 @@
 import { Check, CheckCircle2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
+import type { ReactNode } from 'react'
 
 
-export function buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire = null) {
+export function buildSurveillanceJourneyStages(record: AnyRecord, t: (key: string) => string, fmtDate: (value: unknown) => string, questionnaire: AnyRecord | null = null) {
   const samples = record?.samples || [],
-    validatedSamples = samples.filter(sample => Boolean(sample.organism))
+    validatedSamples = samples.filter((sample: AnyRecord) => Boolean(sample.organism))
   const reassessments = record?.reassessments || [],
     therapy = record?.therapy || [],
     devices = record?.devices || []
   const isolationDecided =
     Boolean(record?.isolation) || record?.isolationDecision?.required === false
   const assessed = Boolean(record?.assessment)
-  const unlocked = {
+  const unlocked: Record<string, boolean> = {
     assessment: true,
     devices: true,
     samples: true,
@@ -101,17 +104,27 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire
     .map(stage => ({ ...stage, locked: !unlocked[stage.id] && stage.id !== 'questionnaire' }))
 }
 
+interface SurveillanceJourneyMapProps {
+  record: AnyRecord
+  t: (key: string) => string
+  fmtDate: (value: unknown) => string
+  activeStage: string
+  onSelect: Handler
+  extraStages?: AnyRecord[]
+  questionnaire?: AnyRecord | null
+  children?: ReactNode
+}
 // The surveillance sheet (owner, 8/11/2026, design 2): every section on one page, one under the other, and on the
 // left a small index of the steps (numbered, ✓ when done, the progress under them); a click on a step scrolls to it.
 // extraStages: the protocols started on the episode (N3), right after the clinical assessment.
-export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [], questionnaire = null, children = null }) {
+export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [], questionnaire = null, children = null }: SurveillanceJourneyMapProps) {
   const { language } = useLanguage()
   const baseStages = buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire)
   const at = baseStages.findIndex(stage => stage.id === 'assessment') + 1
   const stages = extraStages.length ? [...baseStages.slice(0, at), ...extraStages, ...baseStages.slice(at)] : baseStages
   const done = baseStages.filter(stage => stage.status === 'complete').length
   const atIndex = stages.findIndex(stage => stage.id === activeStage)
-  const go = id => {
+  const go = (id: string) => {
     onSelect?.(id)
     document.getElementById(`sheet-${id}-${record.id}`)?.scrollIntoView?.({ block: 'nearest' })
   }
@@ -136,6 +149,17 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
   )
 }
 
+interface SurveillanceJourneyGuidanceProps {
+  record: AnyRecord
+  t: (key: string) => string
+  canAssess: boolean
+  canLab: boolean
+  canIsolation: boolean
+  canTherapy: boolean
+  canReassess: boolean
+  onSelect: Handler
+  extraCues?: AnyRecord[]
+}
 export function SurveillanceJourneyGuidance({
   record,
   t,
@@ -146,11 +170,11 @@ export function SurveillanceJourneyGuidance({
   canReassess,
   onSelect,
   extraCues = [],
-}) {
+}: SurveillanceJourneyGuidanceProps) {
   // A short list: the first three, the rest behind «and N more».
   const cues = [...extraCues],
     samples = record?.samples || [],
-    pendingSamples = samples.filter(sample => !sample.organism)
+    pendingSamples = samples.filter((sample: AnyRecord) => !sample.organism)
   if (canAssess && !record?.assessment)
     cues.push({
       id: 'assessment',
@@ -163,7 +187,7 @@ export function SurveillanceJourneyGuidance({
     cues.push({ id: 'isolation', tone: 'neutral', title: t('isolation') })
   if (canTherapy && !record?.therapy?.length)
     cues.push({ id: 'therapy', tone: 'neutral', title: t('therapy') })
-  if (canAssess && record?.assessment && !record?.haiClassification?.criteriaMet && (record?.haiClassification || samples.some(sample => Boolean(sample.organism))))
+  if (canAssess && record?.assessment && !record?.haiClassification?.criteriaMet && (record?.haiClassification || samples.some((sample: AnyRecord) => Boolean(sample.organism))))
     cues.push({ id: 'hai', tone: 'warning', title: t('clinicalRecords.haiCriteriaNeedReview') })
   if (canReassess && !record?.reassessments?.length)
     cues.push({ id: 'reassessment', tone: 'due', title: t('clinicalRecords.reassessmentRequired') })
@@ -191,7 +215,13 @@ export function SurveillanceJourneyGuidance({
 
 // Stages that are steps of the Demo guide's CLABSI scenario (outlined while it runs).
 const DEMO_STEP_STAGES = new Set(['hai', 'reassessment'])
-function EpisodeStep({ number, stage, active, onSelect }) {
+interface EpisodeStepProps {
+  number: AnyRecord
+  stage: string
+  active: boolean
+  onSelect: Handler
+}
+function EpisodeStep({ number, stage, active, onSelect }: EpisodeStepProps) {
   const tone = stage.status === 'complete' ? 'done' : stage.status === 'due' || stage.status === 'waiting' ? 'due' : 'pending'
   return (
     <button

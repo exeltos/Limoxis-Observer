@@ -1,10 +1,11 @@
 import { clinicalCases } from './clinicalDemoData'
 import { deviceRuleKey } from '../lira/liraHaiMetrics'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // clinicalDemoData stores hai classification types as descriptive keys
 // (bloodstreamInfection/urinaryTractInfection/ventilatorAssociatedPneumonia)
 // rather than the clabsi/cauti/vap keys liraHaiMetrics.HAI_DEVICE_RULES expects.
-const HAI_TYPE_TO_RULE_KEY = {
+const HAI_TYPE_TO_RULE_KEY: Record<string, string> = {
   bloodstreamInfection: 'clabsi',
   urinaryTractInfection: 'cauti',
   ventilatorAssociatedPneumonia: 'vap',
@@ -27,7 +28,7 @@ export function birthWeightBandId(grams) {
   return BIRTH_WEIGHT_BANDS.find(band => (band.min == null || value >= band.min) && (band.max == null || value <= band.max))?.id || null
 }
 
-function canonicalDeviceType(device) {
+function canonicalDeviceType(device: AnyRecord) {
   const text = `${device?.nameEn || device?.name || ''} ${device?.indicationEn || device?.indication || ''}`.toLowerCase()
   if (text.includes('central') && (text.includes('venous') || text.includes('line'))) return 'central line'
   if (text.includes('urinary') || text.includes('foley')) return 'urinary catheter'
@@ -40,7 +41,7 @@ function canonicalDeviceType(device) {
 // patients under surveillance. The demo therefore adds a ward census of
 // device episodes without infection (Aug–Sep 2026), so demo rates land in a
 // realistic range instead of being computed over a handful of device-days.
-function censusDevices(count, deviceType, department, days, bandId = null) {
+function censusDevices(count: number, deviceType, department, days: number, bandId: AnyRecord | null = null) {
   return Array.from({ length: count }, (_, index) => {
     const start = new Date(Date.UTC(2026, 7, 1 + (index % 40)))
     const end = new Date(start.getTime() + days * 86400000)

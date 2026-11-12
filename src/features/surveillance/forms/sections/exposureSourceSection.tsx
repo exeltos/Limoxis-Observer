@@ -4,14 +4,19 @@ import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/ro
 import { ROLES } from '../../../../core/permissions/systemRoleMatrix'
 import { countSourceExposuresAsync } from '../../../occupational-health/exposureIncidentService'
 import { FormLine } from '../FormSection'
+import type { AnyRecord } from '../../../../types/featureTypes'
 
 // «Πηγή έκθεσης για N εργαζόμενους»: on the episode of the source patient, a number and nothing
 // else (never names). It is read through surveillance_case_exposure_count, so it needs no right
 // on the occupational-health tables. The link to the exposures is only for the roles that read them.
-export const canOpenExposures = ctx => ctx.role === ROLES.OCCUPATIONAL_PHYSICIAN || ctx.has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
-const caseRef = (ctx, episode) => (ctx.isDemo ? episode.id : episode.recordId || episode.id)
+export const canOpenExposures = (ctx: AnyRecord) => ctx.role === ROLES.OCCUPATIONAL_PHYSICIAN || ctx.has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
+const caseRef = (ctx: AnyRecord, episode: AnyRecord) => (ctx.isDemo ? episode.id : episode.recordId || episode.id)
 
-function ExposureSourceLine({ ctx, section }) {
+interface ExposureSourceLineProps {
+  ctx: AnyRecord
+  section: string
+}
+function ExposureSourceLine({ ctx, section }: ExposureSourceLineProps) {
   const { t } = useLanguage()
   const count = Number(section.value) || 0
   if (!count) return null
@@ -35,13 +40,13 @@ function ExposureSourceLine({ ctx, section }) {
 export const exposureSourceSection = {
   id: 'exposureSource',
   order: 95,
-  canSee: ctx => ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) && !isProfileDisabled(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH) && (ctx.episodes || []).length > 0,
-  load: async ctx => {
+  canSee: (ctx: AnyRecord) => ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) && !isProfileDisabled(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH) && (ctx.episodes || []).length > 0,
+  load: async (ctx: AnyRecord) => {
     const counts = await Promise.all((ctx.episodes || []).map(episode => countSourceExposuresAsync(ctx.organizationId, caseRef(ctx, episode))))
     return counts.reduce((sum, value) => sum + value, 0)
   },
   Component: ExposureSourceLine,
-  buildReport(ctx, section) {
+  buildReport(ctx: AnyRecord, section: string) {
     const count = Number(section.value) || 0
     if (!count) return null
     return {

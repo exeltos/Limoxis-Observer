@@ -8,14 +8,26 @@ import { ChoiceChips } from '../../../design-system/ChoiceChips'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { REVIEW_DECISIONS, REVIEW_REASONS, reviewTone } from './therapyReview'
 import { dayTime, fill } from './ProtocolViews'
+import type { AnyRecord } from '../../../types/featureTypes'
+import type { Handler } from '../surveillanceTypes'
 
 const DECISION_ICONS = { continue: CirclePlay, deescalate: TrendingDown, iv_to_oral: Pill, stop: CircleStop }
-const r = key => `sepsis.review.${key}`
+const r = (key: string) => `sepsis.review.${key}`
 
-export function TherapyReviewCard({ record, therapy, window, t, actorName, canReview, onSave, quiet = false }) {
+interface TherapyReviewCardProps {
+  record: AnyRecord
+  therapy: AnyRecord
+  window: AnyRecord
+  t: (key: string) => string
+  actorName: string
+  canReview: boolean
+  onSave: Handler
+  quiet?: boolean
+}
+export function TherapyReviewCard({ record, therapy, window, t, actorName, canReview, onSave, quiet = false }: TherapyReviewCardProps) {
   const [editing, setEditing] = useState(false)
   const [decision, setDecision] = useState('')
-  const [reasons, setReasons] = useState([])
+  const [reasons, setReasons] = useState<AnyRecord[]>([])
   const [newRegimen, setNewRegimen] = useState('')
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
@@ -23,7 +35,7 @@ export function TherapyReviewCard({ record, therapy, window, t, actorName, canRe
   const latest = window.latest
   const formOpen = canReview && (editing || ['due', 'overdue'].includes(window.state))
   const stateLabel = fill(t(r(`state_${window.state}`)), { hours: window.reviewedHours ?? window.hours })
-  const organisms = (record?.samples || []).filter(sample => sample.organism)
+  const organisms = (record?.samples || []).filter((sample: AnyRecord) => sample.organism)
   const toggle = value => setReasons(current => (current.includes(value) ? current.filter(item => item !== value) : [...current, value]))
   async function save() {
     if (!decision || !reasons.length) {
@@ -80,7 +92,7 @@ export function TherapyReviewCard({ record, therapy, window, t, actorName, canRe
         <div>
           <strong>{t(r('microbiology'))}:</strong>{' '}
           {organisms.length
-            ? organisms.map(sample => [sample.id, sample.organism, sample.resistance].filter(Boolean).join(' · ')).join(' — ')
+            ? organisms.map((sample: AnyRecord) => [sample.id, sample.organism, sample.resistance].filter(Boolean).join(' · ')).join(' — ')
             : t(r('noMicrobiology'))}
         </div>
       </div>
@@ -89,7 +101,7 @@ export function TherapyReviewCard({ record, therapy, window, t, actorName, canRe
           <div>
             <span className="sp-eyebrow">{t(r('lastDecision'))}</span>
             <p>
-              <strong>{t(r(`decision_${latest.decision}`))}</strong> · {latest.reasons.map(reason => t(r(`reason_${reason}`))).join(', ')}
+              <strong>{t(r(`decision_${latest.decision}`))}</strong> · {latest.reasons.map((reason: string) => t(r(`reason_${reason}`))).join(', ')}
               {latest.newRegimen ? ` · ${latest.newRegimen}` : ''}
             </p>
             {latest.note && <p className="sp-muted">{latest.note}</p>}

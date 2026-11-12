@@ -21,9 +21,11 @@ import { updateEmployeeSurveillanceFollowup } from './employeeSurveillanceCloudS
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { EMPLOYEE_SCREENING_TYPES, priorityOptions } from './surveillanceOptions'
 import './employeeLabRequest.css'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
-export const isPositive = row => ['positive', 'positive_recheck'].includes(row.resultStatus)
-export const hasFollowup = row =>
+export const isPositive = (row: AnyRecord) => ['positive', 'positive_recheck'].includes(row.resultStatus)
+export const hasFollowup = (row: AnyRecord) =>
   Boolean(
     row.intervention ||
     row.interventionType ||
@@ -32,9 +34,9 @@ export const hasFollowup = row =>
     row.noRecheck ||
     row.recheckDate,
   )
-export const hasPositiveHistory = samples =>
+export const hasPositiveHistory = (samples: AnyRecord[]) =>
   samples.some(
-    sample =>
+    (sample: AnyRecord) =>
       (sample.finalizedAt || sample.resultStatus === 'validated') && sample.result === 'positive',
   )
 export const compactCode = value => {
@@ -55,7 +57,7 @@ export function splitMaterials(value) {
     .map(part => part.trim())
     .filter(Boolean)
 }
-export function materialLabels(value, en) {
+export function materialLabels(value, en: boolean) {
   return splitMaterials(value)
     .map(code => {
       const item = REQUEST_MATERIALS.find(row => row.id === code)
@@ -63,11 +65,23 @@ export function materialLabels(value, en) {
     })
     .join(', ')
 }
-export function toggleMaterial(value, code) {
+export function toggleMaterial(value, code: string) {
   const current = splitMaterials(value)
   return (current.includes(code) ? current.filter(item => item !== code) : [...current, code]).join(
     ', ',
   )
+}
+interface EmployeeSurveillanceRecordDialogProps {
+  organizationId: string
+  record: AnyRecord
+  samples?: AnyRecord[]
+  canManage: boolean
+  t: (key: string) => string
+  language: string
+  fmt: (value: unknown) => string
+  onClose: Handler
+  onUpdated: Handler
+  onSaveFollowup: Handler
 }
 export function EmployeeSurveillanceRecordDialog({
   organizationId,
@@ -80,7 +94,7 @@ export function EmployeeSurveillanceRecordDialog({
   onClose,
   onUpdated,
   onSaveFollowup,
-}) {
+}: EmployeeSurveillanceRecordDialogProps) {
   const { notify, notifyError, confirm } = useFeedback()
   const { role, membership, isDemo } = useTenant()
   const en = language === 'en'
@@ -99,7 +113,7 @@ export function EmployeeSurveillanceRecordDialog({
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState(record)
   const [resolvedSamples, setResolvedSamples] = useState(samples)
-  const [requestEditor, setRequestEditor] = useState(null)
+  const [requestEditor, setRequestEditor] = useState<AnyRecord | null>(null)
   const [requestSaving, setRequestSaving] = useState(false)
   const [intervention, setIntervention] = useState(record.intervention || '')
   const [interventionType, setInterventionType] = useState(record.interventionType || '')
@@ -163,7 +177,7 @@ export function EmployeeSurveillanceRecordDialog({
       sample => sample.result && (sample.finalizedAt || sample.resultStatus === 'validated'),
     )
 
-  function loadFollowup(row) {
+  function loadFollowup(row: AnyRecord) {
     setIntervention(row.intervention || '')
     setInterventionType(row.interventionType || '')
     setInterventionStart(row.interventionStart || '')
@@ -181,7 +195,7 @@ export function EmployeeSurveillanceRecordDialog({
     loadFollowup(selected)
     setEditMode(false)
   }
-  function editRequest(sample) {
+  function editRequest(sample: AnyRecord) {
     setRequestEditor({
       sample,
       source: sample.source || '',
@@ -251,7 +265,7 @@ export function EmployeeSurveillanceRecordDialog({
     }
   }
 
-  async function cancelRequest(sample) {
+  async function cancelRequest(sample: AnyRecord) {
     const ok = await confirm({
       title: en ? 'Cancel laboratory request' : 'Ακύρωση αιτήματος εργαστηρίου',
       message: en ? 'The pending request will be cancelled.' : 'Το εκκρεμές αίτημα θα ακυρωθεί.',
@@ -268,7 +282,7 @@ export function EmployeeSurveillanceRecordDialog({
     }
   }
 
-  async function deleteRequest(sample) {
+  async function deleteRequest(sample: AnyRecord) {
     const ok = await confirm({
       title: en ? 'Delete laboratory request' : 'Διαγραφή αιτήματος εργαστηρίου',
       message: en
@@ -320,7 +334,7 @@ export function EmployeeSurveillanceRecordDialog({
       <div className="employee-record-status-strip">
         <div>
           <small className="lo-field-label">{en ? 'Screening type' : 'Τύπος ελέγχου'}</small>
-          <strong>{(selected.screeningTypes || []).map(type => t(type)).join(', ') || '—'}</strong>
+          <strong>{(selected.screeningTypes || []).map((type: string) => t(type)).join(', ') || '—'}</strong>
         </div>
         <div>
           <small className="lo-field-label">{en ? 'Result' : 'Αποτέλεσμα'}</small>

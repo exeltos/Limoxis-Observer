@@ -20,7 +20,39 @@ import { SampleRequestDialog } from './ClinicalRecordDialogs'
 import { statusTone } from './surveillanceOptions'
 import { SurveillanceEpisodeSheet } from './SurveillanceEpisodeSheet'
 import { SampleTree } from './SurveillanceSampleTree'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { Handler } from './surveillanceTypes'
 
+interface SurveillanceWorkspaceProps {
+  initialStage?: string | null
+  samples?: AnyRecord[]
+  episodes: AnyRecord[]
+  selectedId: string
+  onSelect: Handler
+  onCreate: Handler
+  onCreateFromSample: Handler
+  onCreateSample: Handler
+  canCreate: boolean
+  canCreateSample: boolean
+  onOpenSample: Handler
+  onRemoveSample: Handler
+  askSampleFor?: Handler | null
+  onSampleAsked: Handler
+  repository: AnyRecord
+  onReload: Handler
+  onEpisodeDeleted: Handler
+  t: (key: string) => string
+  language: string
+  fmtDate: (value: unknown) => string
+  fmtDateTime: (value: unknown) => string
+  libraries?: AnyRecord
+  organizationId: string
+  isDemo: boolean
+  onLibraryAdded: Handler
+  permissions: AnyRecord
+  protocolRequest?: AnyRecord | null
+  deviceBundles?: AnyRecord | null
+}
 // Surveillance workspace of the clinical record: the episode tree and its samples.
 export function SurveillanceWorkspace({
   initialStage = null,
@@ -52,10 +84,10 @@ export function SurveillanceWorkspace({
   permissions,
   protocolRequest = null,
   deviceBundles = null,
-}) {
+}: SurveillanceWorkspaceProps) {
   const { notify } = useFeedback()
   // N3: "Start protocol" (header or a qSOFA / SOFA prompt) and the open protocols for the badges.
-  const [startRequest, setStartRequest] = useState(null),
+  const [startRequest, setStartRequest] = useState<AnyRecord | null>(null),
     [openRuns, setOpenRuns] = useState([])
   const [sampleOpen, setSampleOpen] = useState(false),
     [samplePrompt, setSamplePrompt] = useState(null),
@@ -73,7 +105,7 @@ export function SurveillanceWorkspace({
       suspectedSource: '',
     })
   const deleteItem = useRecordDelete()
-  const sampleMenu = sample =>
+  const sampleMenu = (sample: AnyRecord) =>
     [
       onOpenSample && {
         id: 'edit',
@@ -101,7 +133,7 @@ export function SurveillanceWorkspace({
     setSheetEditing(true)
     setSheetAction({ stage, dialog, nonce: Date.now() })
   }
-  const copyText = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
+  const copyText = (key: string) => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
   // A surveillance started with «new sample request» opens with its sample dialog (owner, 8/11/2026).
   useEffect(() => {
     if (askSampleFor && episodes.some(ep => String(ep.id) === String(askSampleFor))) setDetailId(askSampleFor)
@@ -125,9 +157,9 @@ export function SurveillanceWorkspace({
     setDetailId(protocolRequest.episodeId)
     setStartRequest(protocolRequest)
   }, [protocolRequest])
-  const openRunFor = ep =>
+  const openRunFor = (ep: AnyRecord) =>
     openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id) || String(run.caseId) === String(ep.id))
-  async function saveSample(draft) {
+  async function saveSample(draft: AnyRecord) {
     if (!onCreateSample) return
     const parent = followUpParent
     const siblings = parent
@@ -152,7 +184,7 @@ export function SurveillanceWorkspace({
     setFollowUpParent(null)
     if (created && !parent) setSamplePrompt(created)
   }
-  function openEpisode(id) {
+  function openEpisode(id: string) {
     onSelect?.(id)
     setDetailId(id)
   }
@@ -242,10 +274,10 @@ export function SurveillanceWorkspace({
           const listedIds = new Set(listed.map(x => String(x.id || '')))
           const linked = [
             ...listed,
-            ...(ep.samples || []).filter(x => !listedIds.has(String(x.id || ''))),
+            ...(ep.samples || []).filter((x: AnyRecord) => !listedIds.has(String(x.id || ''))),
           ]
           const organism =
-            ep.samples?.find(x => x.organism)?.organism ||
+            ep.samples?.find((x: AnyRecord) => x.organism)?.organism ||
             linked.find(x => x.organism)?.organism ||
             ''
           const resistance = ep.resistance || linked.find(x => x.resistance)?.resistance || ''
@@ -367,7 +399,7 @@ export function SurveillanceWorkspace({
                   ) === String(ep.id) ||
                   (Boolean(sample.surveillanceCase) &&
                     String(sample.surveillanceCase) === String(ep.recordId || '')) ||
-                  (ep.samples || []).some(x => x.id && String(x.id) === String(sample.id)),
+                  (ep.samples || []).some((x: AnyRecord) => x.id && String(x.id) === String(sample.id)),
               ),
           )
           return unlinked.length ? (

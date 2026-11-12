@@ -23,6 +23,9 @@ import {
   ISOLATION_STATUS,
   termLabel,
 } from './clinicalRecordLabels'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 
 // Read-only views of the clinical record: the timeline and the
 // final report of a completed episode.
@@ -33,7 +36,14 @@ export const SAMPLE_TONES = { positive: 'danger', negative: 'success', pending: 
 // The sheet of a surveillance is read-only until «Edit sheet»: the panels' buttons and «⋯» show only then
 // (owner, 8/11/2026). Outside the sheet a panel keeps its buttons.
 export const SheetEditingContext = createContext(true)
-export function StagePanel({ icon: Icon, title, action: shownAction, menu: shownMenu = [], children }) {
+interface StagePanelProps {
+  icon: LucideIcon
+  title: string
+  action: boolean
+  menu?: AnyRecord[]
+  children: ReactNode
+}
+export function StagePanel({ icon: Icon, title, action: shownAction, menu: shownMenu = [], children }: StagePanelProps) {
   const { t } = useLanguage()
   const editing = useContext(SheetEditingContext)
   const action = editing ? shownAction : null
@@ -58,7 +68,14 @@ export function StagePanel({ icon: Icon, title, action: shownAction, menu: shown
     </section>
   )
 }
-export function TagList({ title, items = [], rows = [], t, language }) {
+interface TagListProps {
+  title: string
+  items?: AnyRecord[]
+  rows?: AnyRecord[]
+  t: (key: string) => string
+  language: string
+}
+export function TagList({ title, items = [], rows = [], t, language }: TagListProps) {
   if (!items?.length) return null
   return (
     <>
@@ -75,13 +92,21 @@ export function TagList({ title, items = [], rows = [], t, language }) {
 }
 // Who recorded it: the person's name, never their id (an unresolved id shows nothing).
 const UUID_TEXT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-export const personLabel = x => x.actor || (UUID_TEXT.test(String(x.actorId || '')) ? '' : x.actorId || '')
+export const personLabel = (x: AnyRecord) => x.actor || (UUID_TEXT.test(String(x.actorId || '')) ? '' : x.actorId || '')
 
+interface TimelineProps {
+  record: AnyRecord
+  t: (key: string) => string
+  language: string
+  fmtDateTime: (value: unknown) => string
+  title: string
+  subtitle: string
+}
 // `title`/`subtitle` replace the surveillance heading (an admission without surveillance).
-export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) {
-  const tr = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
+export function Timeline({ record, t, language, fmtDateTime, title, subtitle }: TimelineProps) {
+  const tr = (key: string) => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
   const events = [...(record?.timeline || [])]
-    .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
+    .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime())
     // One line says what happened ("Reassessment: clinical improvement"), the next who and which sample.
     .map(x => ({
       at: x.at,
@@ -100,20 +125,27 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) 
     />
   )
 }
+interface CompletedReportProps {
+  record: AnyRecord
+  t: (key: string) => string
+  fmtDate: (value: unknown) => string
+  language?: string
+  libraries?: AnyRecord
+}
 export function CompletedReport({
   record,
   t,
   fmtDate,
   language = 'el',
   libraries = {},
-}) {
+}: CompletedReportProps) {
   const el = language !== 'en'
   const samples = record.samples || [],
-    positive = samples.filter(x => x.result === 'positive'),
+    positive = samples.filter((x: AnyRecord) => x.result === 'positive'),
     therapy = record.therapy || [],
     reassessments = record.reassessments || []
-  const organism = positive.find(x => x.organism)?.organism || record.organism || '',
-    resistance = record.resistance || positive.find(x => x.resistance)?.resistance || ''
+  const organism = positive.find((x: AnyRecord) => x.organism)?.organism || record.organism || '',
+    resistance = record.resistance || positive.find((x: AnyRecord) => x.resistance)?.resistance || ''
   const start = record.startedAt,
     end = record.completedAt || record.outcome?.date
   const days =
@@ -121,13 +153,19 @@ export function CompletedReport({
       ? Math.max(
           1,
           Math.round(
-            (new Date(String(end).slice(0, 10)) - new Date(String(start).slice(0, 10))) / 86400000,
+            (new Date(String(end).slice(0, 10)).getTime() - new Date(String(start).slice(0, 10)).getTime()) / 86400000,
           ) + 1,
         )
       : null
   const hai = record.haiClassification,
     iso = record.isolation
-  const Section = ({ icon: Icon, title, children, wide = false }) => (
+  interface SectionProps {
+    icon: LucideIcon
+    title: string
+    children: ReactNode
+    wide?: boolean
+  }
+  const Section = ({ icon: Icon, title, children, wide = false }: SectionProps) => (
     <section className={`final-report-card${wide ? ' wide' : ''}`}>
       <header>
         <span className="final-report-card-icon">
@@ -138,7 +176,10 @@ export function CompletedReport({
       {children}
     </section>
   )
-  const Empty = ({ text }) => <p className="final-report-empty">{text}</p>
+  interface EmptyProps {
+    text: string
+  }
+  const Empty = ({ text }: EmptyProps) => <p className="final-report-empty">{text}</p>
   return (
     <article className="surveillance-final-report final-report-v2">
       <header className="final-report-hero">
@@ -285,7 +326,7 @@ export function CompletedReport({
         <Section icon={Pill} title={t('therapy')}>
           {therapy.length ? (
             <ul className="final-report-list">
-              {therapy.map(x => (
+              {therapy.map((x: AnyRecord) => (
                 <li key={x.id}>
                   <strong>{x.antimicrobial}</strong>
                   {[x.dose, x.route].filter(Boolean).length > 0 && <span>{[x.dose, x.route].filter(Boolean).join(' · ')}</span>}
@@ -339,7 +380,7 @@ export function CompletedReport({
         <Section icon={RefreshCcw} title={t('reassessment')}>
           {reassessments.length ? (
             <ul className="final-report-list">
-              {reassessments.map(x => (
+              {reassessments.map((x: AnyRecord) => (
                 <li key={x.id || x.date}>
                   <strong>{termLabel(x.status, t, language)}</strong>
                   {x.notes && <span>{x.notes}</span>}

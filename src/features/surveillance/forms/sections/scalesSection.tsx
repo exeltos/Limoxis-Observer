@@ -10,13 +10,18 @@ import { FormSection } from '../FormSection'
 import { FORM_STATUS } from '../formStatus'
 import { episodeContext } from '../formPrefill'
 import { scaleTrend } from '../scaleTrend'
+import type { AnyRecord } from '../../../../types/featureTypes'
 
 // A scale appears when it has an assessment, or when the hospital requires it; the others
 // are reached from «New assessment», which lists every tool.
-const listed = item => item.latest || item.availability === 'required'
-const statusOf = item => (item.state === 'overdue' ? FORM_STATUS.OVERDUE : item.state === 'completed' || item.state === 'current' ? FORM_STATUS.DONE : FORM_STATUS.PENDING)
+const listed = (item: AnyRecord) => item.latest || item.availability === 'required'
+const statusOf = (item: AnyRecord) => (item.state === 'overdue' ? FORM_STATUS.OVERDUE : item.state === 'completed' || item.state === 'current' ? FORM_STATUS.DONE : FORM_STATUS.PENDING)
+interface ScaleLinesOptions {
+  scaleContext?: AnyRecord[]
+  ctx: AnyRecord
+}
 // «Κλίμακες» rows as plain data (screen and printed report share it).
-export function scaleLines({ scaleContext = [], ctx }) {
+export function scaleLines({ scaleContext = [], ctx }: ScaleLinesOptions) {
   const en = ctx.language === 'en'
   return scaleContext.filter(listed).map(item => {
     const band = item.latest ? scoreBandLabel(item.scale_key, item.latest.score, en) : null
@@ -25,12 +30,15 @@ export function scaleLines({ scaleContext = [], ctx }) {
   })
 }
 
-function ScalesSection({ ctx }) {
+interface ScalesSectionProps {
+  ctx: AnyRecord
+}
+function ScalesSection({ ctx }: ScalesSectionProps) {
   const { t } = useLanguage()
   const [data, setData] = useState({ scaleContext: [], rows: [] })
-  const [request, setRequest] = useState(null)
+  const [request, setRequest] = useState<AnyRecord | null>(null)
   const [showAll, setShowAll] = useState(false)
-  const [removeRequest, setRemoveRequest] = useState(null)
+  const [removeRequest, setRemoveRequest] = useState<AnyRecord | null>(null)
   // The scales (NEWS2, Braden, Morse…) are recorded by the clinical team and the ward nurses (owner, 8/11/2026), as the
   // RLS policy patient_scale_insert allows; the other roles see them only.
   const canRecord = ctx.has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT) || ctx.has(CAPABILITIES.MANAGE_ISOLATION) || ctx.has(CAPABILITIES.REQUEST_LAB_SAMPLES)
@@ -42,7 +50,7 @@ function ScalesSection({ ctx }) {
     { label: t('episodeForms.prefill.admission'), value: base.admissionLabel },
     { label: t('episodeForms.prefill.episode'), value: base.episodeLabel },
   ]
-  const ask = definitionId => setRequest({ nonce: Date.now(), definitionId })
+  const ask = (definitionId: string) => setRequest({ nonce: Date.now(), definitionId })
   const flagged = lines.filter(line => line.item.latest).slice(0, 4)
   const summary = flagged.length ? flagged.map(line => `${scaleShortName(line.item.scale_key)} ${line.item.latest.score}`).join(' · ') : t('episodeForms.scales.none')
   const overdue = lines.some(line => line.status === FORM_STATUS.OVERDUE)
@@ -106,7 +114,7 @@ function ScalesSection({ ctx }) {
         isDemo={ctx.isDemo}
         language={ctx.language}
         canRecord={canRecord}
-        hasActiveEpisode={ctx.episodes.some(ep => ep.status === 'active')}
+        hasActiveEpisode={ctx.episodes.some((ep: AnyRecord) => ep.status === 'active')}
         onStartProtocol={ctx.startProtocol}
         hideTable={!showAll}
         newRequest={request}
@@ -123,10 +131,10 @@ function ScalesSection({ ctx }) {
 export const scalesSection = {
   id: 'scales',
   order: 20,
-  canSee: ctx => Boolean(ctx.patient) && (ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) || ctx.has(CAPABILITIES.VIEW_PATIENTS)),
+  canSee: (ctx: AnyRecord) => Boolean(ctx.patient) && (ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) || ctx.has(CAPABILITIES.VIEW_PATIENTS)),
   Component: ScalesSection,
   // The printed record lists the patient's latest score per scale (the page already read them for the header chips).
-  buildReport(ctx) {
+  buildReport(ctx: AnyRecord) {
     const latest = new Map()
     for (const row of ctx.scaleRows || []) if (!latest.has(row.scale_key)) latest.set(row.scale_key, row)
     if (!latest.size) return null
