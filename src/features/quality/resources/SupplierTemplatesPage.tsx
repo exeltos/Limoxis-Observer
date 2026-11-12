@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { ArrowDown, ArrowUp, ClipboardList, ListChecks, Plus, Trash2 } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { BackButton } from '../../../design-system/BackButton'
@@ -26,8 +26,9 @@ import { SUPPLIER_CATEGORIES, supplierCategoryLabel } from './resourceModel'
 import { moveCriterion, newCriterion, newTemplate, templateProblems, weightTotal } from './supplierTemplates'
 import '../quality.css'
 import './resources.css'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const comma = (value, en) => (en ? String(value) : String(value).replace('.', ','))
+const comma = (value: unknown, en: boolean) => (en ? String(value) : String(value).replace('.', ','))
 
 // Quality → Resources → Suppliers → «Evaluation templates»: one template per kind
 // of supplier, with its criteria and weights, thresholds and frequency. Saving a
@@ -39,9 +40,9 @@ export function SupplierTemplatesPage() {
   const { tenant } = useTenant()
   const access = useResourceAccess()
   const { goBack } = useContextualNavigation('/quality')
-  const [templates, setTemplates] = useState([])
+  const [templates, setTemplates] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(null)
+  const [editing, setEditing] = useState<AnyRecord | null>(null)
   const [saving, setSaving] = useState(false)
   const reload = useCallback(() => {
     setLoading(true)
@@ -52,6 +53,7 @@ export function SupplierTemplatesPage() {
   const locked = !access.canManage
 
   async function save() {
+    if (!editing) return
     const problems = templateProblems(editing.draft, language)
     if (problems.length) { notify(`${en ? 'Fill in:' : 'Συμπληρώστε:'} ${problems.join(' · ')}`, 'error'); return }
     setSaving(true)
@@ -64,15 +66,15 @@ export function SupplierTemplatesPage() {
   }
   async function remove() {
     const ok = await confirm({ title: en ? 'Delete template' : 'Διαγραφή προτύπου', message: en ? 'The template is deleted; evaluations made on it keep its name, criteria and weights. A template no longer used is better made inactive.' : 'Το πρότυπο διαγράφεται· οι αξιολογήσεις που έγιναν με αυτό κρατούν το όνομα, τα κριτήρια και τα βάρη του. Για πρότυπο που δεν χρησιμοποιείται πια, προτιμήστε να το κάνετε ανενεργό.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
-    if (!ok) return
+    if (!ok || !editing) return
     try { await removeTemplate(tenant?.id, editing.draft.id); notify(en ? 'Template deleted.' : 'Το πρότυπο διαγράφηκε.', 'success'); setEditing(null); await reload() } catch (error) { console.error(error); notify(en ? 'The template could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή.', 'error') }
   }
   const exportTemplates = () => exportRegistry({
     name: en ? 'supplier-evaluation-templates' : 'protypa-axiologisis-promitheftwn',
     headers: en ? ['Template', 'Categories', 'Approved from %', 'Conditional from %', 'Every (months)', 'Scale', 'Version', 'Active', '#', 'Criterion', 'Description', 'Weight'] : ['Πρότυπο', 'Κατηγορίες', 'Εγκεκριμένος από %', 'Υπό όρους από %', 'Κάθε (μήνες)', 'Κλίμακα', 'Έκδοση', 'Ενεργό', '#', 'Κριτήριο', 'Περιγραφή', 'Βάρος'],
-    rows: rows.flatMap(template => (template.criteria || []).map((criterion, index) => [template.name, (template.categories || []).map(value => supplierCategoryLabel(value, language)).join(', '), template.passThreshold, template.conditionalThreshold, template.frequencyMonths, template.scoreScale === 10 ? '0–10' : '1–5', template.version, template.active !== false ? (en ? 'Yes' : 'Ναι') : (en ? 'No' : 'Όχι'), index + 1, criterion.label, criterion.description || '', criterion.weight])),
+    rows: rows.flatMap(template => (template.criteria || []).map((criterion: AnyRecord, index: number) => [template.name, (template.categories || []).map((value: string) => supplierCategoryLabel(value, language)).join(', '), template.passThreshold, template.conditionalThreshold, template.frequencyMonths, template.scoreScale === 10 ? '0–10' : '1–5', template.version, template.active !== false ? (en ? 'Yes' : 'Ναι') : (en ? 'No' : 'Όχι'), index + 1, criterion.label, criterion.description || '', criterion.weight])),
   })
-  const open = template => setEditing({ draft: structuredClone(template), before: template.id ? template : null })
+  const open = (template: AnyRecord) => setEditing({ draft: structuredClone(template), before: template.id ? template : null })
 
   // A template opens as a page of its own, as the other records (back returns to the list).
   if (editing) return <TemplateEditor editing={editing} setEditing={setEditing} saving={saving} locked={locked} language={language} onSave={save} onRemove={editing.draft.id && !locked ? remove : null} />
@@ -87,7 +89,7 @@ export function SupplierTemplatesPage() {
         rowProps={row => ({ className: 'registry-row-clickable', onClick: () => open(row) })}
         renderRow={row => <>
           <td><strong>{row.name}</strong><small>{en ? 'version' : 'έκδοση'} {row.version}{row.description ? ` · ${row.description}` : ''}</small></td>
-          <td>{(row.categories || []).length ? <span className="resource-notes">{row.categories.map(value => <StatusBadge key={value} tone="neutral">{supplierCategoryLabel(value, language)}</StatusBadge>)}</span> : (en ? 'Every supplier' : 'Όλοι οι προμηθευτές')}</td>
+          <td>{(row.categories || []).length ? <span className="resource-notes">{row.categories.map((value: string) => <StatusBadge key={value} tone="neutral">{supplierCategoryLabel(value, language)}</StatusBadge>)}</span> : (en ? 'Every supplier' : 'Όλοι οι προμηθευτές')}</td>
           <td className="nowrap-cell">{(row.criteria || []).length}<small>{en ? 'weights' : 'βάρη'} {comma(weightTotal(row.criteria), en)} · {row.scoreScale === 10 ? '0–10' : '1–5'}</small></td>
           <td className="nowrap-cell">{comma(row.passThreshold, en)}%{Number(row.conditionalThreshold) < Number(row.passThreshold) ? ` / ${comma(row.conditionalThreshold, en)}%` : ''}</td>
           <td className="nowrap-cell">{en ? `every ${row.frequencyMonths} months` : `κάθε ${row.frequencyMonths} μήνες`}</td>
@@ -97,11 +99,11 @@ export function SupplierTemplatesPage() {
   </Page>
 }
 
-function TemplateEditor({ editing, setEditing, saving, locked, language, onSave, onRemove }) {
+function TemplateEditor({ editing, setEditing, saving, locked, language, onSave, onRemove }: { editing: AnyRecord, setEditing: Dispatch<SetStateAction<AnyRecord | null>>, saving: boolean, locked: boolean, language: string, onSave: () => void | Promise<void>, onRemove: (() => void | Promise<void>) | null }) {
   const en = language === 'en'
   const draft = editing.draft
-  const set = next => setEditing(current => ({ ...current, draft: { ...current.draft, ...next } }))
-  const setCriterion = (index, next) => set({ criteria: draft.criteria.map((item, at) => (at === index ? { ...item, ...next } : item)) })
+  const set = (next: AnyRecord) => setEditing(current => ({ ...current, draft: { ...current?.draft, ...next } }))
+  const setCriterion = (index: number, next: AnyRecord) => set({ criteria: draft.criteria.map((item: AnyRecord, at: number) => (at === index ? { ...item, ...next } : item)) })
   const total = weightTotal(draft.criteria)
   const [tab, setTab] = useState('details')
   const title = draft.id ? draft.name || (en ? 'Template' : 'Πρότυπο') : (en ? 'New template' : 'Νέο πρότυπο')
@@ -109,7 +111,7 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
   const headerActions = onRemove && <div className="row-actions"><IconButton tone="danger" label={en ? 'Delete template' : 'Διαγραφή προτύπου'} onClick={onRemove}><Trash2 size={16} /></IconButton></div>
   return <Page fill><EntityRecordShell className="quality-record-shell resource-record-shell workspace-fill" avatar={<ListChecks size={19} />}
     eyebrow={en ? 'Supplier evaluation template' : 'Πρότυπο αξιολόγησης προμηθευτών'} title={title}
-    subtitle={[draft.id && `${en ? 'version' : 'έκδοση'} ${draft.version}`, (draft.categories || []).map(value => supplierCategoryLabel(value, language)).join(', ')].filter(Boolean).join(' · ')}
+    subtitle={[draft.id && `${en ? 'version' : 'έκδοση'} ${draft.version}`, (draft.categories || []).map((value: string) => supplierCategoryLabel(value, language)).join(', ')].filter(Boolean).join(' · ')}
     status={<StatusBadge tone={draft.active !== false ? 'success' : 'neutral'}>{draft.active !== false ? (en ? 'Active' : 'Ενεργό') : (en ? 'Inactive' : 'Ανενεργό')}</StatusBadge>}
     onBack={() => setEditing(null)} backLabel={en ? 'Templates' : 'Πρότυπα'} headerActions={headerActions}
     tabs={[{ id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: ClipboardList }, { id: 'criteria', label: en ? `Criteria ${draft.criteria.length}` : `Κριτήρια ${draft.criteria.length}`, icon: ListChecks }]}
@@ -143,7 +145,7 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
           <span role="columnheader">{en ? 'Optional' : 'Προαιρετικό'}</span>
           <span role="columnheader" aria-label={en ? 'Actions' : 'Ενέργειες'} />
         </div>
-        {draft.criteria.map((item, index) => <div className="supplier-template-row" role="row" key={item.id || index}>
+        {draft.criteria.map((item: AnyRecord, index: number) => <div className="supplier-template-row" role="row" key={item.id || index}>
           <span className="supplier-template-index" role="cell">{index + 1}</span>
           <input role="cell" aria-label={`${en ? 'Criterion' : 'Κριτήριο'} ${index + 1}`} value={item.label} disabled={locked} onChange={e => setCriterion(index, { label: e.target.value })} />
           <input role="cell" aria-label={`${en ? 'Question / guidance' : 'Ερώτηση / οδηγία'} ${index + 1}`} value={item.description || ''} placeholder={en ? 'What the evaluator checks' : 'Τι ελέγχει ο αξιολογητής'} disabled={locked} onChange={e => setCriterion(index, { description: e.target.value })} />
@@ -152,7 +154,7 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
           <span className="row-actions supplier-template-moves" role="cell">{!locked && <>
             <IconButton size="sm" label={en ? 'Move up' : 'Μετακίνηση πάνω'} disabled={index === 0} onClick={() => set({ criteria: moveCriterion(draft.criteria, index, -1) })}><ArrowUp size={14} /></IconButton>
             <IconButton size="sm" label={en ? 'Move down' : 'Μετακίνηση κάτω'} disabled={index === draft.criteria.length - 1} onClick={() => set({ criteria: moveCriterion(draft.criteria, index, 1) })}><ArrowDown size={14} /></IconButton>
-            <IconButton size="sm" tone="danger" label={en ? 'Remove criterion' : 'Αφαίρεση κριτηρίου'} onClick={() => set({ criteria: draft.criteria.filter((_, at) => at !== index) })}><Trash2 size={14} /></IconButton>
+            <IconButton size="sm" tone="danger" label={en ? 'Remove criterion' : 'Αφαίρεση κριτηρίου'} onClick={() => set({ criteria: draft.criteria.filter((_: AnyRecord, at: number) => at !== index) })}><Trash2 size={14} /></IconButton>
           </>}</span>
         </div>)}
       </div>}

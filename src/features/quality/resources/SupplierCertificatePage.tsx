@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle2, Clock3, Eye, FileText, FileUp, Info, Lock, Mail, Phone, ShieldCheck, UploadCloud, X } from 'lucide-react'
+import { CheckCircle2, Clock3, Eye, FileText, FileUp, Info, Lock, Mail, Phone, ShieldCheck, UploadCloud, X, type LucideIcon } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { RouteLoading } from '../../../design-system/RouteLoading'
 import { FormGrid } from '../../../design-system/FormCard'
@@ -11,17 +11,18 @@ import { FILE_ACCEPT, FILE_TYPES, MAX_FILE_BYTES, SUBMISSION_PROBLEMS, accessCom
 import { loadSupplierCertificateAccess, submitSupplierCertificate } from './supplierRenewalService'
 import './resources.css'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
 
-const asDate = value => new Date(String(value).length === 10 ? `${value}T12:00:00` : value)
-const day = (value, en) => (value ? asDate(value).toLocaleDateString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—')
-const dayTime = (value, en) => (value ? asDate(value).toLocaleString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '—')
-const size = bytes => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`)
-const certificateName = item => [item.type, item.title && item.title !== item.type ? item.title : ''].filter(Boolean).join(' · ') || '—'
-const isExpired = item => Boolean(item.expiresOn) && String(item.expiresOn).slice(0, 10) <= hospitalToday()
+const asDate = (value: string) => new Date(String(value).length === 10 ? `${value}T12:00:00` : value)
+const day = (value: string | null | undefined, en: boolean) => (value ? asDate(value).toLocaleDateString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—')
+const dayTime = (value: string | null | undefined, en: boolean) => (value ? asDate(value).toLocaleString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '—')
+const size = (bytes: number) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`)
+const certificateName = (item: AnyRecord) => [item.type, item.title && item.title !== item.type ? item.title : ''].filter(Boolean).join(' · ') || '—'
+const isExpired = (item: AnyRecord) => Boolean(item.expiresOn) && String(item.expiresOn).slice(0, 10) <= hospitalToday()
 // The hospital's initials when it has no logo (as in the e-mail).
-export const hospitalInitials = name => (String(name || '').replace(/\([^)]*\)/g, ' ').normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^\p{L}\p{N}]+/u).filter(word => word && !['και', 'του', 'της', 'των', 'το', 'η', 'ο', 'of', 'the', 'and'].includes(word.toLowerCase())).slice(0, 3).map(word => word[0]).join('') || 'LO').toLocaleUpperCase('el')
+export const hospitalInitials = (name: string) => (String(name || '').replace(/\([^)]*\)/g, ' ').normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^\p{L}\p{N}]+/u).filter(word => word && !['και', 'του', 'της', 'των', 'το', 'η', 'ο', 'of', 'the', 'and'].includes(word.toLowerCase())).slice(0, 3).map(word => word[0]).join('') || 'LO').toLocaleUpperCase('el')
 // A file the supplier picked or dropped: what is wrong with it, before the form is sent.
-const fileProblem = file => (file.size > MAX_FILE_BYTES ? 'fileSize' : file.type && !FILE_TYPES.includes(file.type) ? 'fileType' : '')
+const fileProblem = (file: AnyRecord) => (file.size > MAX_FILE_BYTES ? 'fileSize' : file.type && !FILE_TYPES.includes(file.type) ? 'fileType' : '')
 
 // Public page of the e-mailed link (no account): the hospital (logo or initials, name,
 // Quality Office), what is asked and why, the progress, and every certificate of the
@@ -33,11 +34,11 @@ export function SupplierCertificatePage() {
   const { token } = useParams()
   const { language, setLanguage } = useLanguage()
   const en = language === 'en'
-  const [state, setState] = useState({ loading: true, data: null, error: null })
-  const [done, setDone] = useState({})
+  const [state, setState] = useState<{ loading: boolean, data: AnyRecord | null, error: unknown }>({ loading: true, data: null, error: null })
+  const [done, setDone] = useState<Record<string, string>>({})
   const load = useCallback(async () => {
     setState(current => ({ ...current, loading: true }))
-    try { setState({ loading: false, data: await loadSupplierCertificateAccess(token), error: null }) } catch (error) { setState({ loading: false, data: null, error }) }
+    try { setState({ loading: false, data: await loadSupplierCertificateAccess(token as string), error: null }) } catch (error) { setState({ loading: false, data: null, error }) }
   }, [token])
   useEffect(() => { void load() }, [load])
   const toggle = <button type="button" className="supplier-portal-language" onClick={() => setLanguage(en ? 'el' : 'en')} aria-label={en ? 'Αλλαγή σε Ελληνικά' : 'Switch to English'}>{en ? 'ΕΛ' : 'EN'}</button>
@@ -45,7 +46,7 @@ export function SupplierCertificatePage() {
   if (state.loading && !state.data) return <Frame><RouteLoading /></Frame>
   if (state.error || !state.data) return <Frame band={<HospitalBand info={{}} en={en} toggle={toggle} />}><Status icon={ShieldCheck} title={en ? 'This link is not available' : 'Ο σύνδεσμος δεν είναι διαθέσιμος'} text={en ? 'The link may have been cut when it was copied, or a newer e-mail replaced it. Paste the whole link from the e-mail below, or contact the hospital’s quality office.' : 'Ο σύνδεσμος μπορεί να κόπηκε στην αντιγραφή ή να τον αντικατέστησε νεότερο email. Επικολλήστε παρακάτω ολόκληρο τον σύνδεσμο του email ή επικοινωνήστε με το Γραφείο Ποιότητας του νοσοκομείου.'} /><PasteLink en={en} /></Frame>
   // The demo keeps its submissions on the page.
-  const info = { ...state.data, items: (state.data.items || []).map(item => (done[item.id] ? { ...item, status: 'submitted', submittedAt: done[item.id] } : item)) }
+  const info: AnyRecord = { ...state.data, items: (state.data.items || []).map((item: AnyRecord) => (done[item.id] ? { ...item, status: 'submitted', submittedAt: done[item.id] } : item)) }
   const band = <HospitalBand info={info} en={en} toggle={toggle} />
   if (info.status === 'expired') return <Frame band={band}><Status icon={Clock3} title={en ? 'The link has expired' : 'Ο σύνδεσμος έληξε'} text={en ? 'Ask the hospital’s quality office to send it again.' : 'Ζητήστε από το Γραφείο Ποιότητας του νοσοκομείου να τον στείλει ξανά.'} /></Frame>
   if (info.status !== 'sent' && info.status !== 'closed') return <Frame band={band}><Status icon={ShieldCheck} title={en ? 'This link is no longer valid' : 'Ο σύνδεσμος δεν ισχύει πια'} text={en ? 'The request was withdrawn by the hospital.' : 'Το αίτημα αποσύρθηκε από το νοσοκομείο.'} /></Frame>
@@ -55,7 +56,7 @@ export function SupplierCertificatePage() {
   const submitted = total - pending.length
   const percent = total ? Math.round((submitted / total) * 100) : 0
   const hospital = info.organizationName || 'Limoxis Observer'
-  const onSubmitted = async item => { if (info.demo) setDone(current => ({ ...current, [item.id]: new Date().toISOString() })); else await load() }
+  const onSubmitted = async (item: AnyRecord) => { if (info.demo) setDone(current => ({ ...current, [item.id]: new Date().toISOString() })); else await load() }
 
   return <Frame band={band}><div className="supplier-portal-card">
     {info.demo && <div className="source-truth-note supplier-certificate-demo"><Eye size={16} /><span>{en ? 'Preview with sample data: nothing is sent or stored.' : 'Προεπισκόπηση με δείγμα: τίποτα δεν αποστέλλεται ούτε αποθηκεύεται.'}</span></div>}
@@ -73,7 +74,7 @@ export function SupplierCertificatePage() {
         </div>
       </>}
     <div className="supplier-portal-items">
-      {info.items.map((item, index) => <CertificateItem key={item.id} item={item} index={index} total={total} token={token} language={language} disabled={info.status !== 'sent'} onSubmitted={() => onSubmitted(item)} onStale={load} />)}
+      {info.items.map((item: AnyRecord, index: number) => <CertificateItem key={item.id} item={item} index={index} total={total} token={token} language={language} disabled={info.status !== 'sent'} onSubmitted={() => onSubmitted(item)} onStale={load} />)}
     </div>
     <footer className="supplier-portal-footer">
       <p><Lock size={15} aria-hidden="true" /><span>{en ? `Personal link, no account or password needed${info.expiresAt && !complete ? `, valid until ${day(info.expiresAt, en)}` : ''}. Do not forward it. The files go only to the hospital’s supplier records.` : `Προσωπικός σύνδεσμος, χωρίς λογαριασμό ή κωδικό${info.expiresAt && !complete ? ` (ισχύει έως ${day(info.expiresAt, en)})` : ''}. Μην τον προωθήσετε. Τα αρχεία καταχωρίζονται μόνο στο αρχείο προμηθευτών του νοσοκομείου.`}</span></p>
@@ -85,7 +86,7 @@ export function SupplierCertificatePage() {
 
 // The hospital at the top: its logo (organizations.branding) or initials, its name and
 // the Quality Office.
-function HospitalBand({ info, en, toggle }) {
+function HospitalBand({ info, en, toggle }: { info: AnyRecord, en: boolean, toggle: ReactNode }) {
   const name = info.organizationName || 'Limoxis Observer'
   return <header className="supplier-portal-band">
     {info.organizationLogo ? <img className="supplier-portal-logo" src={info.organizationLogo} alt="" /> : <span className="supplier-portal-monogram" aria-hidden="true">{hospitalInitials(name)}</span>}
@@ -96,7 +97,7 @@ function HospitalBand({ info, en, toggle }) {
 
 // A link that arrived cut (long e-mail links wrap or lose their end): the supplier
 // pastes the whole link or its code, and the page opens it.
-function PasteLink({ en }) {
+function PasteLink({ en }: { en: boolean }) {
   const navigate = useNavigate()
   const [value, setValue] = useState('')
   const code = value.match(/SCR-[0-9a-f]{20,}/i)?.[0] || ''
@@ -108,14 +109,25 @@ function PasteLink({ en }) {
 
 // One certificate: what is on file and, while it is awaited, its own form and file;
 // once sent, a short green summary.
-function CertificateItem({ item, index, total, token, language, disabled, onSubmitted, onStale }) {
+interface CertificateItemProps {
+  item: AnyRecord
+  index: number
+  total: number
+  token?: string
+  language: string
+  disabled: boolean
+  onSubmitted: () => Promise<void>
+  onStale: () => Promise<void>
+}
+
+function CertificateItem({ item, index, total, token, language, disabled, onSubmitted, onStale }: CertificateItemProps) {
   const en = language === 'en'
   const [form, setForm] = useState({ type: item.type || '', number: '', issuer: item.issuer || '', issuedOn: '', expiresOn: '', note: '' })
-  const [file, setFile] = useState(null)
+  const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
-  const [problems, setProblems] = useState([])
+  const [problems, setProblems] = useState<string[]>([])
   const [failure, setFailure] = useState('')
-  const set = next => setForm(current => ({ ...current, ...next }))
+  const set = (next: Partial<typeof form>) => setForm(current => ({ ...current, ...next }))
   const open = item.status === 'pending' && !disabled
   const expired = isExpired(item)
   async function submit() {
@@ -125,8 +137,8 @@ function CertificateItem({ item, index, total, token, language, disabled, onSubm
     setFailure('')
     if (found.length) return
     setBusy(true)
-    try { await submitSupplierCertificate(token, item.id, form, file); await onSubmitted() }
-    catch (error) { setFailure(submitErrorMessage(error?.code, language)); if (['SUPPLIER_CERTIFICATE_ALREADY_SUBMITTED', 'SUPPLIER_CERTIFICATE_ACCESS_EXPIRED', 'SUPPLIER_CERTIFICATE_ACCESS_NOT_AVAILABLE', 'SUPPLIER_CERTIFICATE_ITEM_NOT_AVAILABLE'].includes(error?.code)) await onStale() }
+    try { await submitSupplierCertificate(token as string, item.id, form, file as File); await onSubmitted() }
+    catch (error) { const code = (error as { code?: string } | null)?.code as string; setFailure(submitErrorMessage(code, language)); if (['SUPPLIER_CERTIFICATE_ALREADY_SUBMITTED', 'SUPPLIER_CERTIFICATE_ACCESS_EXPIRED', 'SUPPLIER_CERTIFICATE_ACCESS_NOT_AVAILABLE', 'SUPPLIER_CERTIFICATE_ITEM_NOT_AVAILABLE'].includes(code)) await onStale() }
     finally { setBusy(false) }
   }
   const counter = en ? `Certificate ${index + 1} of ${total}` : `Πιστοποιητικό ${index + 1} από ${total}`
@@ -157,7 +169,7 @@ function CertificateItem({ item, index, total, token, language, disabled, onSubm
         <ManualDateField label={en ? 'Issue date' : 'Ημερομηνία έκδοσης'} optional value={form.issuedOn} onChange={value => set({ issuedOn: value })} />
         <ManualDateField label={en ? 'Expiry date *' : 'Ημερομηνία λήξης *'} value={form.expiresOn} onChange={value => set({ expiresOn: value })} />
       </FormGrid>
-      <FileDrop file={file} en={en} invalid={problems.some(code => code.startsWith('file'))} onChange={next => { setFile(next); setProblems(current => current.filter(code => !code.startsWith('file'))) }} />
+      <FileDrop file={file} en={en} invalid={problems.some(code => code.startsWith('file'))} onChange={(next: File | null) => { setFile(next); setProblems(current => current.filter(code => !code.startsWith('file'))) }} />
       <Field label={en ? 'Note' : 'Σημείωση'}><textarea rows={2} maxLength={2000} value={form.note} onChange={e => set({ note: e.target.value })} /></Field>
       <div aria-live="polite">
         {problems.length > 0 && <p className="field-error supplier-certificate-error" role="alert">{en ? 'Please check: ' : 'Ελέγξτε: '}{submissionProblemText(problems, language).join(' · ')}</p>}
@@ -169,12 +181,12 @@ function CertificateItem({ item, index, total, token, language, disabled, onSubm
 }
 
 // The certificate file: click or drop, shows name, size and type; PDF or image up to 10 MB.
-function FileDrop({ file, en, invalid, onChange }) {
+function FileDrop({ file, en, invalid, onChange }: { file: File | null, en: boolean, invalid: boolean, onChange: (file: File | null) => void }) {
   const id = useId()
-  const input = useRef(null)
+  const input = useRef<HTMLInputElement | null>(null)
   const [over, setOver] = useState(false)
   const [error, setError] = useState('')
-  const take = picked => {
+  const take = (picked: File | null | undefined) => {
     if (!picked) return
     const problem = fileProblem(picked)
     if (problem) { setError(SUBMISSION_PROBLEMS[problem][en ? 1 : 0]); onChange(null); return }
@@ -194,5 +206,5 @@ function FileDrop({ file, en, invalid, onChange }) {
   </div>
 }
 
-function Frame({ band, children }) { return <main className="public-flow-page supplier-portal"><div className="supplier-portal-shell">{band}{children}</div></main> }
-function Status({ title, text, icon: Icon }) { return <div className="public-flow-card public-flow-status"><Icon size={34} /><h1>{title}</h1>{text && <p>{text}</p>}</div> }
+function Frame({ band, children }: { band?: ReactNode, children: ReactNode }) { return <main className="public-flow-page supplier-portal"><div className="supplier-portal-shell">{band}{children}</div></main> }
+function Status({ title, text, icon: Icon }: { title: string, text?: string, icon: LucideIcon }) { return <div className="public-flow-card public-flow-status"><Icon size={34} /><h1>{title}</h1>{text && <p>{text}</p>}</div> }

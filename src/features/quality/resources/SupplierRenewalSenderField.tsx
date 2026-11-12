@@ -9,7 +9,7 @@ import './resources.css'
 // The add-on supplier_renewal_sender of one member: may send (and re-send, remind)
 // the renewal requests of expired certificates to suppliers. Only the Platform Owner
 // sees and changes it (Management → Users, and the organization record of the platform).
-export function SupplierRenewalSenderField({ organizationId, membershipId, userId, disabled = false, className = 'management-user-section' }) {
+export function SupplierRenewalSenderField({ organizationId, membershipId, userId, disabled = false, className = 'management-user-section' }: { organizationId: string | null | undefined, membershipId: string, userId?: string | null, disabled?: boolean, className?: string }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
@@ -22,7 +22,7 @@ export function SupplierRenewalSenderField({ organizationId, membershipId, userI
     loadSupplierRenewalSender(membershipId).then(value => { if (alive) setEnabled(Boolean(value)) }).catch(error => console.error(error)).finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [membershipId])
-  async function change(next) {
+  async function change(next: boolean) {
     if (busy) return
     setBusy(true)
     try { await setSupplierRenewalSender(organizationId, { membershipId, userId }, next); setEnabled(next); notify(next ? (en ? 'They may now send renewal requests to suppliers.' : 'Μπορεί πλέον να στέλνει αιτήματα ανανέωσης σε προμηθευτές.') : (en ? 'They may no longer send renewal requests.' : 'Δεν μπορεί πλέον να στέλνει αιτήματα ανανέωσης.'), 'success') }

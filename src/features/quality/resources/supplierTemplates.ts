@@ -1,4 +1,5 @@
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../../types/featureTypes'
 // Supplier evaluation templates (20261122100000_quality_supplier_eval_templates.sql):
 // each supplier category has its own weighted criteria, approval thresholds and
 // evaluation frequency. An evaluation keeps a snapshot of its template (name,
@@ -16,30 +17,30 @@ export const RESULTS = [
   { value: 'rejected', label: ['Απορρίπτεται', 'Rejected'], tone: 'danger' },
 ]
 
-const itemId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-const text = value => String(value ?? '').trim()
-const number = value => (value === '' || value == null ? NaN : Number(value))
-const round1 = value => Math.round(value * 10) / 10
+const itemId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+const text = (value: unknown) => String(value ?? '').trim()
+const number = (value: unknown) => (value === '' || value == null ? NaN : Number(value))
+const round1 = (value: number) => Math.round(value * 10) / 10
 
 export function newCriterion(label = '', weight = 1) {
   return { id: itemId('crit'), label, description: '', weight, optional: false }
 }
 
-export function newTemplate(categories = []) {
+export function newTemplate(categories: AnyRecord[] = []) {
   return { id: '', name: '', description: '', categories, passThreshold: DEFAULT_PASS, conditionalThreshold: DEFAULT_CONDITIONAL, frequencyMonths: DEFAULT_FREQUENCY, scoreScale: 5, active: true, version: 1, criteria: [newCriterion()] }
 }
 
-export const weightTotal = (criteria = []) => round1(criteria.reduce((sum, item) => sum + (Number(item.weight) > 0 ? Number(item.weight) : 0), 0) * 100) / 100
+export const weightTotal = (criteria: AnyRecord[] = []) => round1(criteria.reduce((sum, item) => sum + (Number(item.weight) > 0 ? Number(item.weight) : 0), 0) * 100) / 100
 
 // What a template needs before it is saved.
-export function templateProblems(template, language = 'el') {
+export function templateProblems(template: AnyRecord, language = 'el') {
   const en = language === 'en'
   const problems = []
   if (text(template?.name).length < 2) problems.push(en ? 'a name' : 'όνομα')
   const criteria = template?.criteria || []
   if (!criteria.length) problems.push(en ? 'at least one criterion' : 'τουλάχιστον ένα κριτήριο')
-  if (criteria.some(item => !text(item.label))) problems.push(en ? 'a label for each criterion' : 'περιγραφή σε κάθε κριτήριο')
-  if (criteria.some(item => !(number(item.weight) > 0))) problems.push(en ? 'a weight above 0 for each criterion' : 'βάρος πάνω από 0 σε κάθε κριτήριο')
+  if (criteria.some((item: AnyRecord) => !text(item.label))) problems.push(en ? 'a label for each criterion' : 'περιγραφή σε κάθε κριτήριο')
+  if (criteria.some((item: AnyRecord) => !(number(item.weight) > 0))) problems.push(en ? 'a weight above 0 for each criterion' : 'βάρος πάνω από 0 σε κάθε κριτήριο')
   const pass = number(template?.passThreshold), conditional = number(template?.conditionalThreshold)
   if (!(pass >= 0 && pass <= 100) || !(conditional >= 0 && conditional <= 100)) problems.push(en ? 'thresholds between 0 and 100%' : 'όρια από 0 έως 100%')
   else if (conditional > pass) problems.push(en ? 'a conditional threshold not above the approval one' : 'όριο «υπό όρους» όχι πάνω από το όριο έγκρισης')
@@ -49,7 +50,7 @@ export function templateProblems(template, language = 'el') {
 }
 
 // Moves a criterion up (-1) or down (+1); the list keeps its other order.
-export function moveCriterion(criteria = [], index, delta) {
+export function moveCriterion(criteria: AnyRecord[] = [], index: number, delta: number) {
   const target = index + delta
   if (index < 0 || index >= criteria.length || target < 0 || target >= criteria.length) return criteria
   const next = [...criteria]
@@ -60,20 +61,20 @@ export function moveCriterion(criteria = [], index, delta) {
 
 // The active templates that apply to a category, by name; a template with no
 // category applies to every supplier.
-export function templatesFor(templates = [], category) {
+export function templatesFor(templates: AnyRecord[] = [], category: string | null | undefined) {
   const active = templates.filter(item => item.active !== false)
   const own = active.filter(item => (item.categories || []).includes(category))
   const general = active.filter(item => !(item.categories || []).length)
   return [...own, ...general].sort((a, b) => Number(!(a.categories || []).includes(category)) - Number(!(b.categories || []).includes(category)) || String(a.name).localeCompare(String(b.name), 'el'))
 }
-export const templateFor = (templates = [], category) => templatesFor(templates, category)[0] || null
+export const templateFor = (templates: AnyRecord[] = [], category: string | null | undefined) => templatesFor(templates, category)[0] || null
 
 // The kitchen has its own evaluation: a kitchen supplier is always evaluated on
 // the kitchen template (chosen for it); any other supplier is evaluated on the
 // template the evaluator picks among the non-kitchen ones (products, services,
 // laboratory…), the one of its category first.
-export const isKitchenTemplate = template => (template?.categories || []).includes('kitchen')
-export function evaluationTemplates(templates = [], category) {
+export const isKitchenTemplate = (template: AnyRecord) => (template?.categories || []).includes('kitchen')
+export function evaluationTemplates(templates: AnyRecord[] = [], category: string | null | undefined) {
   const active = templates.filter(item => item.active !== false)
   if (category === 'kitchen') return active.filter(isKitchenTemplate)
   const others = active.filter(item => !isKitchenTemplate(item))
@@ -82,7 +83,7 @@ export function evaluationTemplates(templates = [], category) {
 
 // The weighted result as % of the scale: Σ(score / scale × weight) / Σ(weight of
 // the scored criteria). A criterion not scored does not count; nothing scored: null.
-export function weightedScore(criteria = [], scale = 5) {
+export function weightedScore(criteria: AnyRecord[] = [], scale = 5) {
   const max = Number(scale) || 5
   const scored = criteria.map(item => ({ score: number(item.score), weight: Number(item.weight) > 0 ? Number(item.weight) : 0 })).filter(item => item.weight > 0 && item.score >= 0 && item.score <= max)
   if (!scored.length) return null
@@ -90,39 +91,40 @@ export function weightedScore(criteria = [], scale = 5) {
   return round1((scored.reduce((sum, item) => sum + (item.score / max) * item.weight, 0) / weights) * 100)
 }
 
-export function resultFor(score, pass = DEFAULT_PASS, conditional = DEFAULT_CONDITIONAL) {
+export function resultFor(score: number | null | undefined, pass = DEFAULT_PASS, conditional = DEFAULT_CONDITIONAL) {
   if (score == null || Number.isNaN(Number(score))) return 'unevaluated'
   const value = Number(score)
   return value >= Number(pass ?? DEFAULT_PASS) ? 'approved' : value >= Number(conditional ?? DEFAULT_CONDITIONAL) ? 'conditional' : 'rejected'
 }
 
 // A new evaluation on a template: the template's snapshot and one empty score per criterion.
-export function evaluationFromTemplate(template, today = hospitalToday()) {
+export function evaluationFromTemplate(template: AnyRecord | null | undefined, today = hospitalToday()) {
   const evaluation = { id: itemId('ev'), evaluatedOn: today, evaluator: '', notes: '', source: 'app' }
   return template ? applyTemplate(evaluation, template) : { ...evaluation, scores: {}, criteria: [] }
 }
 
 // Puts an evaluation on a (different) template; a criterion of the same template keeps its score.
-export function applyTemplate(evaluation, template) {
-  const before = new Map((evaluation.criteria || []).map(item => [item.criterionId, item.score]))
+export function applyTemplate(evaluation: AnyRecord, template: AnyRecord) {
+  const before = new Map((evaluation.criteria || []).map((item: AnyRecord) => [item.criterionId, item.score]))
   return {
     ...evaluation,
     templateId: template.id, templateName: template.name, templateVersion: template.version || 1,
     passThreshold: Number(template.passThreshold ?? DEFAULT_PASS), conditionalThreshold: Number(template.conditionalThreshold ?? DEFAULT_CONDITIONAL),
     scoreScale: Number(template.scoreScale) || 5, frequencyMonths: Number(template.frequencyMonths) || DEFAULT_FREQUENCY,
-    criteria: (template.criteria || []).map((item, index) => ({ id: '', criterionId: item.id, label: item.label, description: item.description || '', weight: Number(item.weight) || 1, optional: Boolean(item.optional), position: index, score: before.get(item.id) ?? '' })),
+    criteria: (template.criteria || []).map((item: AnyRecord, index: number) => ({ id: '', criterionId: item.id, label: item.label, description: item.description || '', weight: Number(item.weight) || 1, optional: Boolean(item.optional), position: index, score: before.get(item.id) ?? '' })),
     criteriaScores: 'complete',
   }
 }
 
-export const isTemplateEvaluation = evaluation => Boolean(evaluation?.templateId || evaluation?.templateName || evaluation?.criteria?.length)
+export const isTemplateEvaluation = (evaluation: AnyRecord) => Boolean(evaluation?.templateId || evaluation?.templateName || evaluation?.criteria?.length)
 // Every criterion that is not optional has a score (an optional one, «Άλλο», counts only when scored).
-export const everyCriterionScored = evaluation => (evaluation?.criteria || []).length > 0 && evaluation.criteria.every(item => item.optional || number(item.score) >= (Number(evaluation.scoreScale) === 10 ? 0 : 1))
+export const everyCriterionScored = (evaluation: AnyRecord) => (evaluation?.criteria || []).length > 0 && evaluation.criteria.every((item: AnyRecord) => item.optional || number(item.score) >= (Number(evaluation.scoreScale) === 10 ? 0 : 1))
 
 // An evaluation's result in %: worked out from its criteria while they are all
 // recorded; else the total it keeps (FileMaker kept the total and only the first
 // criterion). The earlier six-criterion evaluations go through `legacy`.
-export function evaluationTotal(evaluation, legacy = () => null) {
+export type LegacyScore = (evaluation: AnyRecord) => number | null
+export function evaluationTotal(evaluation: AnyRecord, legacy: LegacyScore = () => null) {
   if (!evaluation) return null
   if (isTemplateEvaluation(evaluation)) {
     if ((evaluation.criteriaScores || 'complete') === 'complete') {
@@ -134,14 +136,14 @@ export function evaluationTotal(evaluation, legacy = () => null) {
   return legacy(evaluation)
 }
 
-export function evaluationResult(evaluation, legacy) {
+export function evaluationResult(evaluation: AnyRecord, legacy?: LegacyScore) {
   const score = evaluationTotal(evaluation, legacy)
   return resultFor(score, evaluation?.passThreshold ?? DEFAULT_PASS, evaluation?.conditionalThreshold ?? DEFAULT_CONDITIONAL)
 }
 
 // When the supplier is evaluated next: the latest evaluation plus the supplier's own
 // frequency, else its template's, else the category's template's, else 12 months.
-export function evaluationMonths(supplier, latest, templates = []) {
+export function evaluationMonths(supplier: AnyRecord, latest: AnyRecord, templates: AnyRecord[] = []) {
   const own = Number(supplier?.evaluationMonths)
   if (own >= 1) return own
   const used = latest?.templateId ? templates.find(item => item.id === latest.templateId) : null
@@ -154,7 +156,7 @@ export function evaluationMonths(supplier, latest, templates = []) {
 // The criteria of the hospital's form Ε.Δ.FS.130.Θ-01 «Αξιολόγηση εξωτερικών παρόχων»: nine of equal weight, the
 // ninth («Άλλο») counted only when scored; scale 1–5, approved from 3,5 (70%), approved or not (no «conditional»).
 // The second criterion is the system or licence that matters for each kind of supplier.
-const formCriteria = second => [
+const formCriteria = (second: string): [string, boolean?][] => [
   ['Ποιότητα προσφερόμενων προϊόντων / υπηρεσιών'], [second], ['Φερεγγυότητα και αξιοπιστία'], ['Ταχύτητα εξυπηρέτησης'],
   ['Πληρότητα συνοδευτικής τεκμηρίωσης'], ['Ευκολία επικοινωνίας / προσωπικής επαφής'], ['Διαθεσιμότητα προϊόντων / υπηρεσιών'],
   ['Παροχή επιστημονικής υποστήριξης'], ['Άλλο (ανάλογα με την κατηγορία του προμηθευτή)', true],
@@ -178,10 +180,10 @@ export function presetTemplates(prefix = 'tpl') {
 }
 
 // The evaluation sheet: the template's criteria with their scores and the result.
-export function evaluationSheetRows(evaluation, language = 'el') {
+export function evaluationSheetRows(evaluation: AnyRecord, language = 'el') {
   const en = language === 'en'
   const scale = Number(evaluation?.scoreScale) || 5
-  return (evaluation?.criteria || []).map((item, index) => {
+  return (evaluation?.criteria || []).map((item: AnyRecord, index: number) => {
     const score = number(item.score)
     const recorded = score >= 0 && score <= scale && item.score !== '' && item.score != null
     return [String(index + 1), item.label, String(item.weight).replace('.', en ? '.' : ','), recorded ? `${score} / ${scale}` : en ? 'not recorded' : 'δεν καταγράφηκε', recorded ? String(Math.round((score / scale) * Number(item.weight) * 1000) / 1000).replace('.', en ? '.' : ',') : '—']
@@ -189,4 +191,4 @@ export function evaluationSheetRows(evaluation, language = 'el') {
 }
 
 // 76.5 → «76,5%» (Greek) or "76.5%".
-export const formatPercent = (score, language = 'el') => (score == null || score === '' || Number.isNaN(Number(score)) ? '—' : `${new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(Number(score))}%`)
+export const formatPercent = (score: number | string | null | undefined, language = 'el') => (score == null || score === '' || Number.isNaN(Number(score)) ? '—' : `${new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(Number(score))}%`)

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
 import { useSortedPaging, withSort } from '../useSortedPaging'
@@ -14,6 +14,7 @@ import { loadResources } from './resourceService'
 import { formatPercent } from './supplierTemplates'
 import { APPROVALS, CRITICALITY, DUE_STATES, EQUIPMENT_STATES, SUPPLIER_CATEGORIES, approvalLabel, approvalTone, criticalityLabel, criticalityTone, dueStateLabel, dueStateTone, equipmentStateLabel, equipmentStateTone, eventKindLabel, filterEquipment, filterSuppliers, supplierCategoryLabel, withEquipmentStatus, withSupplierStatus } from './resourceModel'
 import './resources.css'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 // Who may do what with equipment and suppliers.
 export function useResourceAccess() {
@@ -34,9 +35,9 @@ export function useResourceAccess() {
 export function useResources(enabled = true) {
   const { tenant } = useTenant()
   const { language } = useLanguage()
-  const { departments } = useDepartments()
+  const { departments }: { departments: AnyRecord[] } = useDepartments()
   const access = useResourceAccess()
-  const [data, setData] = useState({ suppliers: [], equipment: [], events: [], templates: [] })
+  const [data, setData] = useState<{ suppliers: AnyRecord[], equipment: AnyRecord[], events: AnyRecord[], templates: AnyRecord[] }>({ suppliers: [], equipment: [], events: [], templates: [] })
   const [loading, setLoading] = useState(enabled)
   const reload = useCallback(() => {
     if (!enabled) { setLoading(false); return Promise.resolve() }
@@ -51,28 +52,37 @@ export function useResources(enabled = true) {
     const own = new Set(ownKey.split('|').filter(Boolean))
     const equipment = scoped ? data.equipment.filter(item => own.has(item.departmentId)) : data.equipment
     // A department reads the suppliers assigned to it (the database returns only those; the demo filters here).
-    const suppliers = access.canViewAll ? data.suppliers : data.suppliers.filter(item => (item.departmentIds || []).some(id => own.has(id)))
+    const suppliers = access.canViewAll ? data.suppliers : data.suppliers.filter(item => (item.departmentIds || []).some((id: string) => own.has(id)))
     const supplierNames = new Map(data.suppliers.map(item => [item.id, item.name]))
-    const devices = withEquipmentStatus(equipment, data.events).map(item => { const department = names.get(item.departmentId); return { ...item, department: department?.name || (item.departmentId && !/^[0-9a-f-]{36}$/.test(item.departmentId) ? item.departmentId : ''), departmentEn: department?.nameEn || department?.name || '', supplierName: supplierNames.get(item.supplierId) || '' } })
+    const devices = withEquipmentStatus(equipment, data.events).map((item): AnyRecord => { const department = names.get(item.departmentId); return { ...item, department: department?.name || (item.departmentId && !/^[0-9a-f-]{36}$/.test(item.departmentId) ? item.departmentId : ''), departmentEn: department?.nameEn || department?.name || '', supplierName: supplierNames.get(item.supplierId) || '' } })
     return { equipment: devices, suppliers: withSupplierStatus(suppliers, equipment, undefined, data.templates || []), events: data.events, templates: data.templates || [] }
   }, [data, departments, scoped, ownKey, access.canViewAll])
   return { ...rows, loading, reload, departments, language }
 }
 
-const NEXT_LABEL = (row, language) => row.next ? `${eventKindLabel(row.next.kind, language)} · ${formatDay(row.next.nextDue, language)}` : '—'
+interface ResourceListProps {
+  list: ReturnType<typeof useResources>
+  registry?: AnyRecord | null
+  filters: AnyRecord
+  setFilters: (update: (current: AnyRecord) => AnyRecord) => void
+  onOpen: (row: AnyRecord, sorted: AnyRecord[]) => void
+  filterEnd?: ReactNode
+}
 
-export function EquipmentList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null, showDepartment = true }) {
+const NEXT_LABEL = (row: AnyRecord, language: string) => row.next ? `${eventKindLabel(row.next.kind, language)} · ${formatDay(row.next.nextDue, language)}` : '—'
+
+export function EquipmentList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null, showDepartment = true }: ResourceListProps & { showDepartment?: boolean }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
+  const set = (key: string, value: unknown) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterEquipment(list.equipment, filters), [list.equipment, filters])
-  const sortBy = { code: row => row.code, criticality: row => ({ high: 3, medium: 2, low: 1 })[row.criticality] || 0, device: row => row.name, department: row => (en ? row.departmentEn : row.department), next: row => row.next?.nextDue || null, programme: row => row.due, status: row => row.state }
+  const sortBy = { code: (row: AnyRecord) => row.code, criticality: (row: AnyRecord) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[row.criticality] || 0, device: (row: AnyRecord) => row.name, department: (row: AnyRecord) => (en ? row.departmentEn : row.department), next: (row: AnyRecord) => row.next?.nextDue || null, programme: (row: AnyRecord) => row.due, status: (row: AnyRecord) => row.state }
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
-  const usedDepartments = useMemo(() => { const ids = new Set(list.equipment.map(item => item.departmentId).filter(Boolean)); return list.departments.filter(item => ids.has(item.id || item.name)) }, [list.equipment, list.departments])
+  const usedDepartments = useMemo(() => { const ids = new Set(list.equipment.map((item: AnyRecord) => item.departmentId).filter(Boolean)); return list.departments.filter((item: AnyRecord) => ids.has(item.id || item.name)) }, [list.equipment, list.departments])
   const advanced = ['department', 'state', 'due', 'criticality'].filter(key => filters[key] !== 'all').length
   return <>
     <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search device, serial number, location…' : 'Αναζήτηση εξοπλισμού, σειριακού αριθμού, θέσης…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))} end={filterEnd}>
-      {showDepartment && usedDepartments.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={filters.department} onChange={value => set('department', value)}><option value="all">{t('all')}</option>{usedDepartments.map(item => <option key={item.id || item.name} value={item.id || item.name}>{en ? item.nameEn || item.name : item.name}</option>)}</FilterSelect>}
+      {showDepartment && usedDepartments.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={filters.department} onChange={value => set('department', value)}><option value="all">{t('all')}</option>{usedDepartments.map((item: AnyRecord) => <option key={item.id || item.name} value={item.id || item.name}>{en ? item.nameEn || item.name : item.name}</option>)}</FilterSelect>}
       <FilterSelect label={t('status')} value={filters.state} onChange={value => set('state', value)}><option value="all">{en ? 'In use' : 'Σε χρήση'}</option>{EQUIPMENT_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Programme' : 'Πρόγραμμα'} value={filters.due} onChange={value => set('due', value)}><option value="all">{t('all')}</option>{DUE_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -96,14 +106,14 @@ export function EquipmentList({ list, registry = null, filters, setFilters, onOp
   </>
 }
 
-export function SuppliersList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
+export function SuppliersList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }: ResourceListProps) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   // The certificates to renew by e-mail open from «Δημιουργία» of the Quality Center (with the evaluation templates).
   const end = filterEnd
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
+  const set = (key: string, value: unknown) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSuppliers(list.suppliers, filters), [list.suppliers, filters])
-  const sortBy = { code: row => row.code, criticality: row => ({ high: 3, medium: 2, low: 1 })[row.criticality] || 0, supplier: row => row.name, evaluation: row => row.latestEvaluation?.evaluatedOn || null, attention: row => supplierNotes(row, language).length, approval: row => row.approval }
+  const sortBy = { code: (row: AnyRecord) => row.code, criticality: (row: AnyRecord) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[row.criticality] || 0, supplier: (row: AnyRecord) => row.name, evaluation: (row: AnyRecord) => row.latestEvaluation?.evaluatedOn || null, attention: (row: AnyRecord) => supplierNotes(row, language).length, approval: (row: AnyRecord) => row.approval }
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const advanced = ['category', 'approval', 'criticality'].filter(key => filters[key] !== 'all').length + (filters.status !== 'active' ? 1 : 0)
   return <>
@@ -132,7 +142,7 @@ export function SuppliersList({ list, registry = null, filters, setFilters, onOp
 }
 
 // The short notes the supplier list shows: open nonconformities, certificates, the contract.
-export function supplierNotes(row, language = 'el') {
+export function supplierNotes(row: AnyRecord, language = 'el') {
   const en = language === 'en'
   return [
     row.openNonconformities > 0 && { key: 'nc', tone: row.majorOpen ? 'danger' : 'warning', label: en ? `${row.openNonconformities} open nonconformit${row.openNonconformities === 1 ? 'y' : 'ies'}` : `${row.openNonconformities} ανοιχτ${row.openNonconformities === 1 ? 'ή' : 'ές'} μη συμμόρφωσ${row.openNonconformities === 1 ? 'η' : 'εις'}` },
@@ -140,5 +150,5 @@ export function supplierNotes(row, language = 'el') {
     row.expiringCertificates > 0 && { key: 'expiring', tone: 'warning', label: en ? 'Certificate expiring' : 'Πιστοποιητικό λήγει' },
     row.contractState === 'expired' && { key: 'contract', tone: 'danger', label: en ? 'Contract ended' : 'Η σύμβαση έληξε' },
     row.contractState === 'expiring' && { key: 'contract', tone: 'warning', label: en ? 'Contract ends soon' : 'Η σύμβαση λήγει' },
-  ].filter(Boolean)
+  ].filter((note): note is { key: string, tone: string, label: string } => Boolean(note))
 }

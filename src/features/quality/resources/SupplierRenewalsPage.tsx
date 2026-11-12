@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { RegistryTotals } from '../../../design-system/RegistryTotals'
 import { BellRing, CheckCircle2, FileText, Lock, Moon, RefreshCw, Send, ShieldCheck, X } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
@@ -28,13 +28,14 @@ import { filterRenewals, isEmail, isOpenItem, itemStatusLabel, itemStatusTone, r
 import { certificateItemAction, certificateRequestAction, createCertificateRequests, DEFAULT_RENEWAL_SETTINGS, loadCertificateRequests, loadRenewalSettings, saveRenewalSettings } from './supplierRenewalService'
 import '../quality.css'
 import './resources.css'
+import type { AnyRecord } from '../../../types/featureTypes'
 
 const NO_FILTERS = { query: '', state: 'expired', request: 'all' }
 
 // The renewal requests of the organization (Quality reads them), each with its certificates.
 export function useCertificateRequests(enabled = true) {
   const { tenant } = useTenant()
-  const [requests, setRequests] = useState([])
+  const [requests, setRequests] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(enabled)
   const reload = useCallback(() => {
     if (!enabled) { setLoading(false); return Promise.resolve() }
@@ -45,10 +46,10 @@ export function useCertificateRequests(enabled = true) {
   return { requests, loading, reload }
 }
 
-const certificateText = certification => [certification.type, certification.title && certification.title !== certification.type ? certification.title : '', certification.number].filter(Boolean).join(' · ')
+const certificateText = (certification: AnyRecord) => [certification.type, certification.title && certification.title !== certification.type ? certification.title : '', certification.number].filter(Boolean).join(' · ')
 
 // A sending action for someone who may not send: shown disabled, with the reason.
-function SenderLocked({ allowed, language, children }) {
+function SenderLocked({ allowed, language, children }: { allowed: boolean, language: string, children: ReactNode }) {
   if (allowed) return children
   return <span className="supplier-renewal-locked" title={senderOnlyHint(language)}>{children}</span>
 }
@@ -68,9 +69,9 @@ export function SupplierRenewalsPage() {
   const list = useResources()
   const { requests, loading, reload } = useCertificateRequests(access.canViewAll)
   const [filters, setFilters] = useState(NO_FILTERS)
-  const [selected, setSelected] = useState([])
-  const [sending, setSending] = useState(null)
-  const [reviewing, setReviewing] = useState(null)
+  const [selected, setSelected] = useState<string[]>([])
+  const [sending, setSending] = useState<AnyRecord[] | null>(null)
+  const [reviewing, setReviewing] = useState<AnyRecord | null>(null)
   const [autoOpen, setAutoOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
@@ -83,20 +84,20 @@ export function SupplierRenewalsPage() {
   useEffect(() => setPage(1), [filters, pageSize])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
   const visible = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const selectableVisible = visible.flatMap(group => group.selectable.map(row => row.key))
+  const selectableVisible = visible.flatMap(group => group.selectable.map((row: AnyRecord) => row.key))
   const allVisible = selectableVisible.length > 0 && selectableVisible.every(key => selected.includes(key))
-  const toggle = (keys, on) => setSelected(current => (on ? [...new Set([...current, ...keys])] : current.filter(item => !keys.includes(item))))
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
+  const toggle = (keys: string[], on: boolean) => setSelected(current => (on ? [...new Set([...current, ...keys])] : current.filter(item => !keys.includes(item))))
+  const set = (key: string, value: string) => setFilters(current => ({ ...current, [key]: value }))
   const refresh = async () => { setSelected([]); await Promise.all([reload(), list.reload()]) }
   const lockedText = senderOnlyHint(language)
 
-  async function act(request, action, message) {
+  async function act(request: AnyRecord, action: string, message: string) {
     try { await certificateRequestAction(tenant?.id, request, action); notify(message, 'success'); await refresh() } catch (error) { console.error(error); notify(en ? 'The action could not be completed.' : 'Η ενέργεια δεν ολοκληρώθηκε.', 'error') }
   }
   const exportQueue = () => exportRegistry({
     name: en ? 'supplier-certificates-to-renew' : 'pistopoiitika-pros-ananeosi',
     headers: en ? ['Supplier code', 'Supplier', 'Certificate', 'Expires', 'State', 'E-mail', 'Request', 'Certificate request'] : ['Κωδικός', 'Προμηθευτής', 'Πιστοποιητικό', 'Λήξη', 'Κατάσταση', 'Email', 'Αίτημα', 'Πιστοποιητικό στο αίτημα'],
-    rows: rows.flatMap(group => group.rows.map(row => [row.supplierCode, row.supplierName, certificateText(row.certification), row.certification.expiresOn, certificationStateLabel(row.state, language), row.recipient, row.request && isOpenItem(row.item) ? requestStatusLabel(row.request.status, language) : '', row.item ? itemStatusLabel(row.item.status, language) : ''])),
+    rows: rows.flatMap(group => group.rows.map((row: AnyRecord) => [row.supplierCode, row.supplierName, certificateText(row.certification), row.certification.expiresOn, certificationStateLabel(row.state, language), row.recipient, row.request && isOpenItem(row.item) ? requestStatusLabel(row.request.status, language) : '', row.item ? itemStatusLabel(row.item.status, language) : ''])),
   })
   const selectedRows = queue.filter(row => selected.includes(row.key) && row.selectable)
   const selectedSuppliers = new Set(selectedRows.map(row => row.supplierId)).size
@@ -105,7 +106,7 @@ export function SupplierRenewalsPage() {
   const allSuppliers = new Set(allExpired.map(row => row.supplierId)).size
 
   // The figures beside the search (each one filters the list), instead of cards above it.
-  const dash = value => (list.loading || loading ? '—' : value)
+  const dash = (value: number) => (list.loading || loading ? '—' : value)
   const totals = <RegistryTotals label={en ? 'Totals' : 'Σύνολα'} items={[
     { key: 'expired', always: true, value: Number(dash(counts.expired)) || 0, display: dash(counts.expired), label: en ? `expired · ${counts.suppliers} suppliers` : `ληγμένα · ${counts.suppliers} προμηθευτές`, active: filters.state === 'expired' && filters.request === 'all', onClick: () => setFilters({ ...NO_FILTERS }) },
     { key: 'toSend', value: counts.toSend, label: en ? 'to send' : 'για αποστολή', active: filters.request === 'none', onClick: () => setFilters(current => ({ ...current, state: 'all', request: 'none' })) },
@@ -143,12 +144,12 @@ export function SupplierRenewalsPage() {
         <RegistryTable sortable={false} bare className="quality-table quality-register-table supplier-renewal-table" rows={visible} rowKey={group => group.key} empty={!list.loading && !rows.length} emptyFiltered={groups.length > 0} onClearFilters={() => setFilters({ ...NO_FILTERS })}
           columns={[{ key: 'select', label: <CheckboxField label="" ariaLabel={en ? 'Select all' : 'Επιλογή όλων'} checked={allVisible} disabled={!selectableVisible.length} onChange={on => toggle(selectableVisible, on)} /> }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'certificates', label: en ? 'Certificates' : 'Πιστοποιητικά' }, { key: 'request', label: en ? 'Request' : 'Αίτημα' }, { key: 'actions', label: '' }]}
           emptyTitle={en ? 'No certificates to renew' : 'Δεν υπάρχουν πιστοποιητικά προς ανανέωση'} emptyText={en ? 'Every supplier certificate is in date.' : 'Όλα τα πιστοποιητικά των προμηθευτών είναι σε ισχύ.'}
-          renderRow={group => { const request = group.request; const keys = group.selectable.map(row => row.key); return <>
-            <td><CheckboxField label="" ariaLabel={`${group.supplierName} · ${group.rows.length}`} checked={keys.length > 0 && keys.every(key => selected.includes(key))} disabled={!keys.length} onChange={on => toggle(keys, on)} /></td>
+          renderRow={group => { const request = group.request; const keys = group.selectable.map((row: AnyRecord) => row.key); return <>
+            <td><CheckboxField label="" ariaLabel={`${group.supplierName} · ${group.rows.length}`} checked={keys.length > 0 && keys.every((key: string) => selected.includes(key))} disabled={!keys.length} onChange={on => toggle(keys, on)} /></td>
             {/* The e-mail sits under the supplier (no column of its own, no sideways scroll). */}
             <td><strong>{group.supplierName}</strong><small>{group.supplierCode}{group.rows.length > 1 ? ` · ${en ? `${group.rows.length} certificates` : `${group.rows.length} πιστοποιητικά`}` : ''}</small>
               {group.recipient ? <small>{group.recipient}{group.recipients.length > 1 ? (en ? ` (+${group.recipients.length - 1} more)` : ` (+${group.recipients.length - 1} ακόμη)`) : ''}</small> : <StatusBadge tone="warning">{en ? 'No e-mail' : 'Χωρίς email'}</StatusBadge>}</td>
-            <td><ul className="supplier-renewal-certs">{group.rows.map(row => <li key={row.key}>
+            <td><ul className="supplier-renewal-certs">{group.rows.map((row: AnyRecord) => <li key={row.key}>
               {/* Title, expiry and state in three aligned columns. */}
               <span className="supplier-renewal-cert-title">{certificateText(row.certification) || '—'}</span>
               <span className="nowrap-cell">{formatDay(row.certification.expiresOn, language) || '—'}</span>
@@ -179,7 +180,7 @@ export function SupplierRenewalsPage() {
 // The nightly automatic e-mailing of this hospital (off by default): requests for the
 // expired certificates, a reminder after a few days, and a note to the Platform Owner
 // when suppliers submit.
-export function RenewalAutoDialog({ organizationId, onClose }) {
+export function RenewalAutoDialog({ organizationId, onClose }: { organizationId: string | null | undefined, onClose: () => void }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
@@ -187,7 +188,7 @@ export function RenewalAutoDialog({ organizationId, onClose }) {
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
   useEffect(() => { loadRenewalSettings(organizationId).then(setSettings).catch(error => console.error(error)).finally(() => setLoaded(true)) }, [organizationId])
-  const set = (key, value) => setSettings(current => ({ ...current, [key]: value }))
+  const set = (key: string, value: unknown) => setSettings(current => ({ ...current, [key]: value }))
   async function save() {
     if (busy) return
     setBusy(true)
@@ -211,20 +212,20 @@ export function RenewalAutoDialog({ organizationId, onClose }) {
 // The approval: the selected certificates by supplier, with the address of each
 // supplier's single e-mail. Nothing is e-mailed before this confirmation; whoever may
 // not send only proposes the requests for the Platform Owner or a designated sender.
-export function RenewalSendDialog({ rows, canSend, onClose, onDone }) {
+export function RenewalSendDialog({ rows, canSend, onClose, onDone }: { rows: AnyRecord[], canSend: boolean, onClose: () => void, onDone: () => void | Promise<void> }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
   const { tenant } = useTenant()
-  const groups = useMemo(() => sendGroups(rows, rows.map(row => row.key)), [rows])
-  const [recipients, setRecipients] = useState(() => Object.fromEntries(groups.map(group => [group.supplierId, group.recipient])))
+  const groups = useMemo(() => sendGroups(rows, rows.map((row: AnyRecord) => row.key)), [rows])
+  const [recipients, setRecipients] = useState<Record<string, string>>(() => Object.fromEntries(groups.map(group => [group.supplierId, group.recipient])))
   const [busy, setBusy] = useState(false)
   const invalid = groups.filter(group => !isEmail(recipients[group.supplierId]))
   async function send() {
     if (invalid.length || busy) return
     setBusy(true)
     try {
-      const result = await createCertificateRequests(tenant?.id, sendItems(rows, rows.map(row => row.key), recipients), { send: canSend })
+      const result = await createCertificateRequests(tenant?.id, sendItems(rows, rows.map((row: AnyRecord) => row.key), recipients), { send: canSend })
       const done = Number(result?.created || 0), mails = Number(result?.sent || 0), skipped = (result?.skipped || []).length
       const demo = isDemoDataEnvironment() ? (en ? ' (demo: no e-mail is actually sent)' : ' (demo: δεν στέλνεται πραγματικό email)') : ''
       notify(canSend ? (en ? `${mails} e-mail${mails === 1 ? '' : 's'} sent for ${done} certificate${done === 1 ? '' : 's'}${skipped ? `, ${skipped} skipped` : ''}.${demo}` : `Στάλθηκαν ${mails} email για ${done} πιστοποιητικά${skipped ? `· ${skipped} παραλείφθηκαν` : ''}.${demo}`) : (en ? `${done} certificate${done === 1 ? '' : 's'} proposed for approval.` : `Προτάθηκαν ${done} πιστοποιητικά για έγκριση.`), 'success')
@@ -236,7 +237,7 @@ export function RenewalSendDialog({ rows, canSend, onClose, onDone }) {
     onClose={onClose} footer={<DialogActions onSave={send} disabled={busy || Boolean(invalid.length)} saveLabel={busy ? (en ? 'Sending…' : 'Αποστολή…') : canSend ? (en ? `Approve & send (${groups.length} e-mails)` : `Έγκριση & αποστολή (${groups.length} email)`) : (en ? `Propose (${rows.length})` : `Πρόταση (${rows.length})`)} />}>
     <div className="supplier-renewal-send">
       {groups.map(group => <div key={group.supplierId} className="supplier-renewal-send-row">
-        <div><strong>{group.supplierName}</strong>{group.rows.map(row => <small key={row.key}>{certificateText(row.certification)} · {en ? 'expiry' : 'λήξη'} {formatDay(row.certification.expiresOn, language) || '—'}</small>)}</div>
+        <div><strong>{group.supplierName}</strong>{group.rows.map((row: AnyRecord) => <small key={row.key}>{certificateText(row.certification)} · {en ? 'expiry' : 'λήξη'} {formatDay(row.certification.expiresOn, language) || '—'}</small>)}</div>
         <Field label={en ? 'E-mail *' : 'Email *'} error={recipients[group.supplierId] && !isEmail(recipients[group.supplierId]) ? (en ? 'Not a valid e-mail' : 'Μη έγκυρο email') : ''}><input type="email" value={recipients[group.supplierId] || ''} onChange={e => setRecipients(current => ({ ...current, [group.supplierId]: e.target.value }))} /></Field>
       </div>)}
     </div>
@@ -246,7 +247,7 @@ export function RenewalSendDialog({ rows, canSend, onClose, onDone }) {
 // The review of one submitted certificate: the current and the submitted values, the
 // file; «Accept» replaces the certificate, «Reject» needs a comment and may ask for it
 // again on the same link (that sends a reminder: Platform Owner or a designated sender).
-export function RenewalReviewDialog({ item, row, canManage, canSend, onClose, onDone }) {
+export function RenewalReviewDialog({ item, row, canManage, canSend, onClose, onDone }: { item: AnyRecord, row?: AnyRecord | null, canManage: boolean, canSend: boolean, onClose: () => void, onDone: () => void | Promise<void> }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
@@ -260,7 +261,7 @@ export function RenewalReviewDialog({ item, row, canManage, canSend, onClose, on
   async function openFile() {
     try { const url = await getAttachmentUrl(item.attachment.storagePath); if (url) window.open(url, '_blank', 'noopener') } catch (error) { console.error(error); notify(en ? 'The file could not be opened.' : 'Δεν ήταν δυνατό το άνοιγμα του αρχείου.', 'error') }
   }
-  async function decide(action) {
+  async function decide(action: string) {
     if (busy || (action === 'reject' && !comment.trim())) return
     setBusy(true)
     try {
@@ -297,4 +298,4 @@ export function RenewalReviewDialog({ item, row, canManage, canSend, onClose, on
 }
 
 // The per-certificate request on the supplier's record: whether one can be sent.
-export function canRequestRenewal(row) { return Boolean(row) && (row.state === 'expired' || row.state === 'expiring') && !isOpenItem(row.item) }
+export function canRequestRenewal(row: AnyRecord) { return Boolean(row) && (row.state === 'expired' || row.state === 'expiring') && !isOpenItem(row.item) }
