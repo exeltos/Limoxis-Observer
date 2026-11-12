@@ -1,0 +1,71 @@
+import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
+import { hasSupabaseConfig } from '../../core/config/env'
+import { isOwnerPreview,previewPlatformSettings } from '../../core/preview/ownerPreview'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// The calls below run with a configured client: the demo and an unconfigured build return before them.
+const supabase = configuredClient as Cloud
+
+const fallback={
+  id:'global',
+  supportEmail:'',
+  defaultDemoDurationDays:30,
+  demoAutoPurgeAfterDays:14,
+  organizationDeletionGraceDays:30,
+  maxDemoUsers:5,
+  maintenanceNoticeEnabled:false,
+  maintenanceNoticeEl:'',
+  maintenanceNoticeEn:'',
+  updatedAt:null,
+}
+
+function mapRow(row: AnyRecord){
+  if(!row)return fallback
+  return {
+    id:row.id||'global',
+    supportEmail:row.support_email||'',
+    defaultDemoDurationDays:Number(row.default_demo_duration_days)||30,
+    demoAutoPurgeAfterDays:row.demo_auto_purge_after_days==null?14:Number(row.demo_auto_purge_after_days),
+    organizationDeletionGraceDays:Number(row.organization_deletion_grace_days)||30,
+    maxDemoUsers:Number(row.max_demo_users)||5,
+    maintenanceNoticeEnabled:Boolean(row.maintenance_notice_enabled),
+    maintenanceNoticeEl:row.maintenance_notice_el||'',
+    maintenanceNoticeEn:row.maintenance_notice_en||'',
+    updatedAt:row.updated_at||null,
+  }
+}
+
+export async function getPlatformSettings(){
+  if(isOwnerPreview())return previewPlatformSettings()
+  if(!hasSupabaseConfig||!supabase)return fallback
+  const {data,error}=await supabase
+    .from('platform_settings')
+    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,max_demo_users,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,updated_at')
+    .eq('id','global')
+    .single()
+  if(error)throw error
+  return mapRow(data)
+}
+
+export async function updatePlatformSettings(values: AnyRecord){
+  if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_NOT_CONFIGURED')
+  const payload={
+    support_email:String(values.supportEmail||'').trim()||null,
+    default_demo_duration_days:Math.min(365,Math.max(1,Number(values.defaultDemoDurationDays)||30)),
+    // 0 = expired Demos are never deleted automatically.
+    demo_auto_purge_after_days:Math.min(365,Math.max(0,Math.round(Number(values.demoAutoPurgeAfterDays??14)))),
+    organization_deletion_grace_days:Math.min(365,Math.max(1,Math.round(Number(values.organizationDeletionGraceDays)||30))),
+    max_demo_users:Math.min(20,Math.max(1,Math.round(Number(values.maxDemoUsers)||5))),
+    maintenance_notice_enabled:Boolean(values.maintenanceNoticeEnabled),
+    maintenance_notice_el:String(values.maintenanceNoticeEl||'').trim(),
+    maintenance_notice_en:String(values.maintenanceNoticeEn||'').trim(),
+  }
+  const {data,error}=await supabase
+    .from('platform_settings')
+    .update(payload)
+    .eq('id','global')
+    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,max_demo_users,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,updated_at')
+    .single()
+  if(error)throw error
+  return mapRow(data)
+}

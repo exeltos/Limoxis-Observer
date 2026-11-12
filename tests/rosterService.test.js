@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { rosterPeriod } from '../src/features/rosters/rosterService'
 import { readSource } from './helpers/readSource'
+import { readEmployeeRecordPageSource } from './helpers/employeeRecordPageSource'
 
 // The department's shift roster (owner, 8/11/2026): the IASO payroll period and who may write it.
 describe('roster period and access', () => {
@@ -32,7 +33,7 @@ describe('employee record: status and free job position (owner, 8/11/2026)', () 
   it('names the «leave» status and lets status, category and position be edited', () => {
     expect(readSource('src/core/i18n/stringsEl.js')).toContain("leave:'Σε άδεια'")
     expect(readSource('src/core/i18n/stringsEn.js')).toContain("leave:'On leave'")
-    const page = readSource('src/features/employees/EmployeeRecordPage.jsx')
+    const page = readEmployeeRecordPageSource()
     expect(page).toContain("options={['active', 'leave', 'inactive'].map(value => ({ value, label: t(value) }))}")
     expect(page).not.toContain('<input value={t(employee.employmentStatus)} disabled readOnly />')
     expect(page.match(/allowCustom\n/g)?.length).toBe(2)
