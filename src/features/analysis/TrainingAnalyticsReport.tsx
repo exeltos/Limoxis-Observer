@@ -1,5 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
-import { supabase } from '../../core/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { cloudClient } from '../../core/supabase/cloudContext'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FiguresLine } from './AnalysisPanels'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -7,19 +8,27 @@ import { downloadCsv } from '../../core/export/csvExport'
 import { BarList,ChartCard,Scoreboard,TrendChart } from './AnalysisCharts'
 import { ScopeComparison } from './AnalysisPanels'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import type { MetricRow } from './analysisPageModel'
+import type { AnyRecord, Translate } from '../../types/featureTypes'
 
-const empty={assignments:0,completed:0,overdue:0,programs:0,completedInPeriod:0,trainees:0,personHours:0,averageHoursPerTrainee:null,missingDurationCompletions:0,hoursCoverage:null,byDepartment:[],hoursByDepartment:[],byProgram:[],byEmployee:[],byProfession:[],monthlyHours:[]}
-const n=value=>Number(value)||0
-const pct=(a,b)=>b?Math.round(n(a)/n(b)*1000)/10:null
+// What analysis_training_metrics returns (counts and [key, ...counts] rows).
+interface TrainingDetails { assignments: number; completed: number; overdue: number; programs: number; completedInPeriod: number; trainees: number; personHours: number; averageHoursPerTrainee: number|null; missingDurationCompletions: number; hoursCoverage: number|null; byDepartment: MetricRow[]; hoursByDepartment: MetricRow[]; byProgram: MetricRow[]; byEmployee: MetricRow[]; byProfession: MetricRow[]; monthlyHours: MetricRow[] }
+interface DateRange { from?: string; to?: string }
+// The RPC's arguments are typed without null, and the call sends null for «all»: client without types.
+const rpcClient=()=>cloudClient() as unknown as SupabaseClient
 
-function fmt(value,en,digits=1){
+const empty: TrainingDetails={assignments:0,completed:0,overdue:0,programs:0,completedInPeriod:0,trainees:0,personHours:0,averageHoursPerTrainee:null,missingDurationCompletions:0,hoursCoverage:null,byDepartment:[],hoursByDepartment:[],byProgram:[],byEmployee:[],byProfession:[],monthlyHours:[]}
+const n=(value: unknown)=>Number(value)||0
+const pct=(a: unknown,b: unknown)=>b?Math.round(n(a)/n(b)*1000)/10:null
+
+function fmt(value: unknown,en: boolean,digits=1){
  if(value==null||value==='')return '—'
  const number=Number(value)
  if(!Number.isFinite(number))return String(value)
  return new Intl.NumberFormat(en?'en-GB':'el-GR',{maximumFractionDigits:digits}).format(number)
 }
-function fmtHours(value,en){return `${fmt(value,en,2)} ${en?'h':'ώρες'}`}
-function kpiRows(details,tx,en){
+function fmtHours(value: unknown,en: boolean){return `${fmt(value,en,2)} ${en?'h':'ώρες'}`}
+function kpiRows(details: TrainingDetails,tx: Translate,en: boolean): MetricRow[]{
  const completion=pct(details.completed,details.assignments)
  const coverage=details.hoursCoverage==null?'—':`${fmt(details.hoursCoverage,en)}%`
  return [
@@ -31,23 +40,23 @@ function kpiRows(details,tx,en){
   [tx('Εκπρόθεσμες αναθέσεις','Overdue assignments'),fmt(details.overdue,en,0),tx('πέρασε η προθεσμία ολοκλήρωσης','past the completion due date'),details.overdue?'danger':'good'],
  ]
 }
-function Kpis({rows}){return <FiguresLine rows={rows}/>}
+function Kpis({rows}: {rows: MetricRow[]}){return <FiguresLine rows={rows}/>}
 
-async function loadTrainingAnalytics({organizationId,range,departmentId}){
- const {data,error}=await supabase.rpc('analysis_training_metrics',{p_organization_id:organizationId||null,p_from:range?.from||null,p_to:range?.to||null,p_department_id:departmentId||null})
+async function loadTrainingAnalytics({organizationId,range,departmentId}: {organizationId: string; range: DateRange|null; departmentId: string}): Promise<TrainingDetails>{
+ const {data,error}=await rpcClient().rpc('analysis_training_metrics',{p_organization_id:organizationId||null,p_from:range?.from||null,p_to:range?.to||null,p_department_id:departmentId||null})
  if(error)throw error
  return {...empty,...(data||{})}
 }
 
 // The long lists show their first rows; «+N ακόμα» opens the rest (owner, 8/11/2026: less detail on the screen).
 const SHOWN=8
-function MoreRows({total,all,onToggle,tx}){
+function MoreRows({total,all,onToggle,tx}: {total: number; all: boolean; onToggle: ()=>void; tx: Translate}){
  if(total<=SHOWN)return null
  return <button type="button" className="analysis-matrix-more" onClick={onToggle}>{all?tx('Λιγότερα','Fewer'):tx(`+${total-SHOWN} ακόμα`,`+${total-SHOWN} more`)}</button>
 }
 
-export function TrainingAnalyticsReport({organizationId='',range,departmentId='',compareRange=null,compareLabel='',currentLabel='',tx,en=false}){
- const [details,setDetails]=useState(empty),[compare,setCompare]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[employeeQuery,setEmployeeQuery]=useState(''),[allPrograms,setAllPrograms]=useState(false),[allEmployees,setAllEmployees]=useState(false)
+export function TrainingAnalyticsReport({organizationId='',range,departmentId='',compareRange=null,compareLabel='',currentLabel='',tx,en=false}: {organizationId?: string; range?: DateRange|null; departmentId?: string; compareRange?: DateRange|null; compareLabel?: string; currentLabel?: string; tx: Translate; en?: boolean}){
+ const [details,setDetails]=useState<TrainingDetails>(empty),[compare,setCompare]=useState<TrainingDetails|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[employeeQuery,setEmployeeQuery]=useState(''),[allPrograms,setAllPrograms]=useState(false),[allEmployees,setAllEmployees]=useState(false)
  const rangeFrom=range?.from||'',rangeTo=range?.to||'',compareFrom=compareRange?.from||'',compareTo=compareRange?.to||''
  useEffect(()=>{
   let live=true
@@ -62,18 +71,18 @@ export function TrainingAnalyticsReport({organizationId='',range,departmentId=''
  },[organizationId,rangeFrom,rangeTo,departmentId,compareFrom,compareTo])
 
  const rows=kpiRows(details,tx,en),compareRows=compare?kpiRows(compare,tx,en):[]
- const hoursByDepartment=useMemo(()=>new Map((details.hoursByDepartment||[]).map(([name,completed,trainees,hours,avg])=>[name,{completed:n(completed),trainees:n(trainees),hours:n(hours),avg:n(avg)}])),[details.hoursByDepartment])
+ const hoursByDepartment=useMemo(()=>new Map<string,AnyRecord>((details.hoursByDepartment||[]).map(([name,completed,trainees,hours,avg])=>[name,{completed:n(completed),trainees:n(trainees),hours:n(hours),avg:n(avg)}])),[details.hoursByDepartment])
  const departmentRows=useMemo(()=>(details.byDepartment||[]).map(([name,assigned,completed])=>{const h=hoursByDepartment.get(name)||{};return {key:name,name,assigned:n(assigned),completed:n(completed),completion:pct(completed,assigned),trainees:h.trainees??0,hours:h.hours??0,avgHours:h.avg??0}}),[details.byDepartment,hoursByDepartment])
  const programRows=useMemo(()=>details.byProgram||[],[details.byProgram])
  // «Αναλυτικά ανά εκπαίδευση» (owner, 8/11/2026: not every session): one row per training (BLS-AED held eight times is one
  // row), the most person-hours first; the Excel keeps every session.
- const programGroups=useMemo(()=>{const groups=new Map();for(const [,title,,assigned,completed,,trainees,hours,overdue] of programRows){const key=String(title||'—').trim();const group=groups.get(key)||{title:key,sessions:0,assigned:0,completed:0,trainees:0,hours:0,overdue:0};group.sessions+=1;group.assigned+=n(assigned);group.completed+=n(completed);group.trainees+=n(trainees);group.hours+=n(hours);group.overdue+=n(overdue);groups.set(key,group)}return [...groups.values()].sort((a,b)=>b.hours-a.hours||a.title.localeCompare(b.title,'el'))},[programRows])
+ const programGroups=useMemo(()=>{const groups=new Map<string,AnyRecord>();for(const [,title,,assigned,completed,,trainees,hours,overdue] of programRows){const key=String(title||'—').trim();const group=groups.get(key)||{title:key,sessions:0,assigned:0,completed:0,trainees:0,hours:0,overdue:0};group.sessions+=1;group.assigned+=n(assigned);group.completed+=n(completed);group.trainees+=n(trainees);group.hours+=n(hours);group.overdue+=n(overdue);groups.set(key,group)}return [...groups.values()].sort((a,b)=>b.hours-a.hours||a.title.localeCompare(b.title,'el'))},[programRows])
  const employeeRows=useMemo(()=>details.byEmployee||[],[details.byEmployee])
  const filteredEmployees=useMemo(()=>{const q=employeeQuery.trim().toLocaleLowerCase('el');if(!q)return employeeRows;return employeeRows.filter(([,name,department,profession])=>`${name} ${department} ${profession}`.toLocaleLowerCase('el').includes(q))},[employeeRows,employeeQuery])
  // One bar per kind of training (BLS-AED held eight times is one bar), with how many people were trained in it.
- const topPrograms=useMemo(()=>{const groups=new Map();for(const [,title,,,,,trainees,hours] of programRows){if(!title)continue;const key=String(title).trim();const group=groups.get(key)||{hours:0,trainees:0};group.hours+=n(hours);group.trainees+=n(trainees);groups.set(key,group)}return [...groups.entries()].map(([title,group])=>[`${title} · ${Math.round(group.trainees)} ${tx('συμμετοχές','participations')}`,Math.round(group.hours*10)/10]).sort((a,b)=>b[1]-a[1]).slice(0,12)},[programRows]) // eslint-disable-line react-hooks/exhaustive-deps
+ const topPrograms=useMemo(()=>{const groups=new Map<string,AnyRecord>();for(const [,title,,,,,trainees,hours] of programRows){if(!title)continue;const key=String(title).trim();const group=groups.get(key)||{hours:0,trainees:0};group.hours+=n(hours);group.trainees+=n(trainees);groups.set(key,group)}return [...groups.entries()].map(([title,group])=>[`${title} · ${Math.round(group.trainees)} ${tx('συμμετοχές','participations')}`,Math.round(group.hours*10)/10]).sort((a: MetricRow,b: MetricRow)=>b[1]-a[1]).slice(0,12)},[programRows]) // eslint-disable-line react-hooks/exhaustive-deps
  // No names here: how many employees are in each band of training hours.
- const hourBands=useMemo(()=>{const bands=[[tx('Έως 5 ώρες','Up to 5 hours'),0,5],[tx('5–10 ώρες','5–10 hours'),5,10],[tx('10–20 ώρες','10–20 hours'),10,20],[tx('Πάνω από 20 ώρες','Over 20 hours'),20,Infinity]];return bands.map(([label,from,to])=>[label,employeeRows.filter(([,name,,,,,,hours])=>name&&n(hours)>from&&n(hours)<=to).length]).filter(row=>row[1]>0)},[employeeRows]) // eslint-disable-line react-hooks/exhaustive-deps
+ const hourBands=useMemo(()=>{const bands: [string,number,number][]=[[tx('Έως 5 ώρες','Up to 5 hours'),0,5],[tx('5–10 ώρες','5–10 hours'),5,10],[tx('10–20 ώρες','10–20 hours'),10,20],[tx('Πάνω από 20 ώρες','Over 20 hours'),20,Infinity]];return bands.map(([label,from,to])=>[label,employeeRows.filter(([,name,,,,,,hours])=>name&&n(hours)>from&&n(hours)<=to).length]).filter((row: MetricRow)=>row[1]>0)},[employeeRows]) // eslint-disable-line react-hooks/exhaustive-deps
  const professionHours=(details.byProfession||[]).map(([profession,,,hours])=>[profession,n(hours)]).slice(0,12)
 
  function exportPrograms(){downloadCsv(en?'training_programmes.csv':'εκπαίδευση_ανά_πρόγραμμα.csv',[tx('Κωδικός','Code'),tx('Εκπαίδευση','Training'),tx('Διάρκεια (ώρες)','Duration (hours)'),tx('Αναθέσεις','Assignments'),tx('Ολοκληρώθηκαν από τις αναθέσεις','Completed from assignments'),tx('Ολοκληρώσεις στην περίοδο','Completions in period'),tx('Εκπαιδευόμενοι','Trainees'),tx('Ανθρωποώρες','Person-hours'),tx('Εκπρόθεσμες','Overdue')],programRows.map(row=>row))}

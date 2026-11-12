@@ -28,7 +28,7 @@ const PATTERNS = [
   /\bclostridi(oides|um)\s+difficile\b|\bc\.?\s*difficile\b/i,
 ]
 
-export function isSurveillanceOrganism(name) {
+export function isSurveillanceOrganism(name: unknown) {
   const text = String(name || '').trim()
   return Boolean(text) && PATTERNS.some((pattern) => pattern.test(text))
 }

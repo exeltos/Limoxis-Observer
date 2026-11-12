@@ -5,25 +5,28 @@
 import { readSessionJson, writeSessionJson } from '../../core/storage/browserStorage'
 import { calendarRange } from './analysisPageModel'
 
+// Η κοινή περίοδος (Διεύθυνση και Ανάλυση).
+export interface SharedPeriod { period: string; from: string; to: string }
+
 const KEY = 'lo.period.shared'
-export const SHARED_PERIOD_DEFAULT = Object.freeze({ period: 'year', from: '', to: '' })
+export const SHARED_PERIOD_DEFAULT: Readonly<SharedPeriod> = Object.freeze({ period: 'year', from: '', to: '' })
 const PRESETS = ['month', '3m', '6m', '12m', 'year', 'custom']
 
-export function readSharedPeriod() {
-  const value = readSessionJson(KEY, null)
+export function readSharedPeriod(): Readonly<SharedPeriod> {
+  const value: SharedPeriod | null = readSessionJson(KEY, null)
   if (!value || !PRESETS.includes(value.period)) return SHARED_PERIOD_DEFAULT
   return { period: value.period, from: value.from || '', to: value.to || '' }
 }
-export function writeSharedPeriod({ period, from = '', to = '' }) {
+export function writeSharedPeriod({ period, from = '', to = '' }: { period: string; from?: string; to?: string }) {
   if (!PRESETS.includes(period)) return
   writeSessionJson(KEY, period === 'custom' ? { period, from, to } : { period, from: '', to: '' })
 }
 
-const SLOTS = { year: [1], half: [1, 2], quarter: [1, 2, 3, 4], month: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+const SLOTS: Record<string, number[]> = { year: [1], half: [1, 2], quarter: [1, 2, 3, 4], month: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
 
 // The shared period as Analysis's {year, periodType, periodSlot}; a span
 // Analysis cannot show (the last 3/6/12 months) opens on the current year.
-export function analysisPeriodOf(shared = SHARED_PERIOD_DEFAULT, today = new Date()) {
+export function analysisPeriodOf(shared: Readonly<SharedPeriod> = SHARED_PERIOD_DEFAULT, today = new Date()) {
   const year = String(today.getFullYear())
   if (shared.period === 'month') return { year, periodType: 'month', periodSlot: String(today.getMonth() + 1) }
   if (shared.period === 'custom' && shared.from && shared.to) {
@@ -36,7 +39,7 @@ export function analysisPeriodOf(shared = SHARED_PERIOD_DEFAULT, today = new Dat
   return { year, periodType: 'year', periodSlot: '1' }
 }
 // Analysis's choice back in the shared shape.
-export function sharedPeriodOfAnalysis(year, periodType, periodSlot, today = new Date()) {
+export function sharedPeriodOfAnalysis(year: number | string, periodType: string, periodSlot: number | string, today = new Date()) {
   const current = String(year) === String(today.getFullYear())
   if (periodType === 'year' && current) return { period: 'year', from: '', to: '' }
   if (periodType === 'month' && current && Number(periodSlot) === today.getMonth() + 1) return { period: 'month', from: '', to: '' }
@@ -44,14 +47,14 @@ export function sharedPeriodOfAnalysis(year, periodType, periodSlot, today = new
   return { period: 'custom', from: range.from, to: range.to }
 }
 
-const MONTHS = { el: ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιουν', 'Ιουλ', 'Αύγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'], en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] }
-const lastDay = (y, m) => new Date(Number(y), Number(m), 0).getDate()
-const dmy = value => { const [y, m, d] = String(value || '').split('-'); return y && m && d ? `${d}/${m}/${y}` : '—' }
+const MONTHS: Record<string, string[]> = { el: ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιουν', 'Ιουλ', 'Αύγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'], en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] }
+const lastDay = (y: number, m: number) => new Date(Number(y), Number(m), 0).getDate()
+const dmy = (value: unknown) => { const [y, m, d] = String(value || '').split('-'); return y && m && d ? `${d}/${m}/${y}` : '—' }
 
 // The short period shown next to each measure: «2026 · έτος», «Οκτ 2026 · μήνας»,
 // «Q3 2026 · τρίμηνο», «Τελευταίοι 3 μήνες», or the dates.
-export function periodTag({ from, to } = {}, en = false, period = '') {
-  const tx = (el, enText) => (en ? enText : el)
+export function periodTag({ from, to }: { from?: string; to?: string } = {}, en = false, period = '') {
+  const tx = (el: string, enText: string) => (en ? enText : el)
   if (period === '3m' || period === '6m' || period === '12m') { const n = period.replace('m', ''); return tx(`Τελευταίοι ${n} μήνες`, `Last ${n} months`) }
   if (!from || !to) return ''
   const [fy, fm, fd] = from.split('-').map(Number), [ty, tm, td] = to.split('-').map(Number)

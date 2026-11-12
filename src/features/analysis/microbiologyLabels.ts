@@ -6,24 +6,25 @@
 // with their laboratory label; free text is kept as written.
 import { sampleSourceLabel } from '../laboratory/laboratoryReferenceData'
 import { SITE_LABELS } from './analysisPageModel'
+import type { Translate } from '../../types/featureTypes'
 
 // A positive finding without an identified organism: in the cloud data these are
 // environmental contact plates, staff hand/nasal swabs and a few patient cultures
 // marked positive with no organism (and so no antibiogram).
 export const NOT_IDENTIFIED = ['Χωρίς ταυτοποίηση', 'Not identified']
-const blank = value => { const text = String(value ?? '').trim(); return !text || text === '—' }
-export const isIdentified = organism => !blank(organism)
-export function organismLabel(organism, tx) { return blank(organism) ? tx(NOT_IDENTIFIED[0], NOT_IDENTIFIED[1]) : String(organism).trim() }
+const blank = (value: unknown) => { const text = String(value ?? '').trim(); return !text || text === '—' }
+export const isIdentified = (organism: unknown) => !blank(organism)
+export function organismLabel(organism: unknown, tx: Translate) { return blank(organism) ? tx(NOT_IDENTIFIED[0], NOT_IDENTIFIED[1]) : String(organism).trim() }
 // No resistance class: without an isolate there is no antibiogram («Δεν ελέγχθηκε»);
 // an identified isolate without a class keeps «—».
-export function resistanceLabel(resistanceClass, organism, tx) {
+export function resistanceLabel(resistanceClass: unknown, organism: unknown, tx: Translate) {
   if (!blank(resistanceClass)) return String(resistanceClass).trim()
   return isIdentified(organism) ? '—' : tx('Δεν ελέγχθηκε', 'Not tested')
 }
 
 // Specimen detail: a source code (sampleSourceLabel knows the patient, staff and
 // environmental sources), else a sample-type code, else the free text itself.
-export function specimenLabel(value, tx) {
+export function specimenLabel(value: unknown, tx: Translate) {
   if (blank(value)) return '—'
   const raw = String(value).trim()
   const language = tx('el', 'en')
@@ -33,8 +34,8 @@ export function specimenLabel(value, tx) {
   return site ? tx(site[0], site[1]) : raw
 }
 // The «Specimen detail» chart: labels translated, rows that now read the same merged.
-export function specimenRows(rows, tx) {
-  const merged = new Map()
+export function specimenRows(rows: [unknown, unknown][] | null | undefined, tx: Translate) {
+  const merged = new Map<string, number>()
   for (const [value, count] of rows || []) { const label = specimenLabel(value, tx); merged.set(label, (merged.get(label) || 0) + (Number(count) || 0)) }
   return [...merged.entries()].sort((a, b) => b[1] - a[1])
 }
@@ -42,7 +43,7 @@ export function specimenRows(rows, tx) {
 // Which picture a finding belongs to, from its sample_type: environmental
 // samples, staff screening, or clinical (patient) specimens.
 const ENVIRONMENTAL_TYPES = new Set(['environmental', 'surface', 'equipment', 'water', 'air', 'room'])
-export function findingCategory(sampleType) {
+export function findingCategory(sampleType: unknown): 'clinical' | 'environment' | 'staff' {
   const type = String(sampleType ?? '').trim()
   if (ENVIRONMENTAL_TYPES.has(type)) return 'environment'
   if (type === 'surveillance') return 'staff'
@@ -50,8 +51,8 @@ export function findingCategory(sampleType) {
 }
 export const FINDING_CATEGORIES = [['clinical', 'Κλινικά', 'Clinical'], ['environment', 'Περιβάλλον', 'Environment'], ['staff', 'Προσωπικό', 'Staff']]
 // Positive findings per category (the counts on the filter chips).
-export function categoryCounts(rows) {
-  const counts = { clinical: 0, environment: 0, staff: 0 }
+export function categoryCounts(rows: unknown[][] | null | undefined) {
+  const counts: Record<string, number> = { clinical: 0, environment: 0, staff: 0 }
   for (const row of rows || []) counts[findingCategory(row[6])] += Number(row[4]) || 0
   return counts
 }
@@ -59,5 +60,5 @@ export function categoryCounts(rows) {
 // environmental plates never pushes the clinical rows out of the list.
 export function keepPerCategory(limit = 80) {
   const kept = { clinical: 0, environment: 0, staff: 0 }
-  return row => { const category = findingCategory(row[6]); kept[category] += 1; return kept[category] <= limit }
+  return (row: unknown[]) => { const category = findingCategory(row[6]); kept[category] += 1; return kept[category] <= limit }
 }

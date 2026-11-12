@@ -22,52 +22,55 @@ import { loadResourcesLocal } from '../quality/resources/resourceService'
 import { loadSurveysLocal } from '../quality/surveys/surveyService'
 import { loadRiskAssessmentsLocal } from '../quality/risk/riskService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { DateRange } from './analysisAddonMetrics'
+import type { MetricRow } from './analysisPageModel'
 
-const day = value => String(value || '').slice(0, 10)
-const month = value => String(value || '').slice(0, 7)
-const inRange = (value, range) => { const d = day(value); if (!d) return true; return (!range?.from || d >= range.from) && (!range?.to || d <= range.to) }
+const day = (value: unknown) => String(value || '').slice(0, 10)
+const month = (value: unknown) => String(value || '').slice(0, 7)
+const inRange = (value: unknown, range: DateRange | null | undefined) => { const d = day(value); if (!d) return true; return (!range?.from || d >= range.from) && (!range?.to || d <= range.to) }
 // Hand hygiene: a month resting on fewer opportunities than this is marked «few observations».
 const FEW_HH_OPPORTUNITIES = 20
-function tally(rows, keyFn) { const out = new Map(); for (const row of rows) { const key = keyFn(row); if (key == null || key === '') continue; out.set(key, (out.get(key) || 0) + 1) } return [...out.entries()].sort((a, b) => b[1] - a[1]) }
-function sums(rows, keyFn, valueFns) { const out = new Map(); for (const row of rows) { const key = keyFn(row); if (!key) continue; const current = out.get(key) || valueFns.map(() => 0); valueFns.forEach((fn, index) => { current[index] += Number(fn(row)) || 0 }); out.set(key, current) } return [...out.entries()].map(([key, values]) => [key, ...values]) }
+function tally(rows: AnyRecord[], keyFn: (row: AnyRecord) => string | null | undefined): [string, number][] { const out = new Map<string, number>(); for (const row of rows) { const key = keyFn(row); if (key == null || key === '') continue; out.set(key, (out.get(key) || 0) + 1) } return [...out.entries()].sort((a, b) => b[1] - a[1]) }
+function sums(rows: AnyRecord[], keyFn: (row: AnyRecord) => string | null | undefined, valueFns: ((row: AnyRecord) => unknown)[]): [string, ...number[]][] { const out = new Map<string, number[]>(); for (const row of rows) { const key = keyFn(row); if (!key) continue; const current = out.get(key) || valueFns.map(() => 0); valueFns.forEach((fn, index) => { current[index] += Number(fn(row)) || 0 }); out.set(key, current) } return [...out.entries()].map(([key, values]: MetricRow) => [key, ...values]) }
 const CLOSED_QUALITY = new Set(['closed', 'resolved', 'completed', 'verified'])
 // CLABSI / CAUTI / VAP: an HAI of the matching type in a patient with the matching device.
-const DEVICE_HAI = [
+const DEVICE_HAI: [string, string[], RegExp][] = [
   ['CLABSI', ['bloodstreamInfection'], /central|cvc|picc|κεντρικ/i],
   ['CAUTI', ['urinaryTractInfection'], /urinary|foley|ουροκαθ/i],
   ['VAP', ['pneumonia', 'ventilatorAssociatedPneumonia'], /endotracheal|ventilat|tracheost|ενδοτραχ|αναπνευστ|τραχειοστ/i],
 ]
-function deviceAssociation(item) {
-  const names = (item.devices || []).map(device => `${device.nameEn || ''} ${device.name || ''} ${device.type || ''}`).join(' ')
-  const match = DEVICE_HAI.find(([, types, pattern]) => types.includes(item.haiClassification?.type) && pattern.test(names))
+function deviceAssociation(item: AnyRecord) {
+  const names = (item.devices || []).map((device: AnyRecord) => `${device.nameEn || ''} ${device.name || ''} ${device.type || ''}`).join(' ')
+  const match = DEVICE_HAI.find(([, types, pattern]: MetricRow) => types.includes(item.haiClassification?.type) && pattern.test(names))
   return match ? match[0] : null
 }
 
 // Employees whose latest visit has a follow-up date already past (a later visit means the follow-up was done).
-export function overdueFollowUps(visits, today) {
-  const latest = new Map()
+export function overdueFollowUps(visits: AnyRecord[], today: string) {
+  const latest = new Map<string, AnyRecord>()
   for (const row of visits) { const known = latest.get(row.employeeId); if (!known || String(row.date || '') > String(known.date || '')) latest.set(row.employeeId, row) }
   return [...latest.values()].filter(row => row.followUpDate && row.followUpDate < today).length
 }
 
-export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
+export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clusters: unknown = 0) {
   const today = hospitalToday()
-  const cases = Object.values(clinicalCases).filter(item => item.lifecycleStatus !== 'voided' && item.status !== 'cancelled' && inRange(item.startedAt, range))
-  const dept = item => (en ? item.departmentEn : item.department) || item.department || '—'
+  const cases = (Object.values(clinicalCases) as AnyRecord[]).filter(item => item.lifecycleStatus !== 'voided' && item.status !== 'cancelled' && inRange(item.startedAt, range))
+  const dept = (item: AnyRecord) => (en ? item.departmentEn : item.department) || item.department || '—'
   const hai = cases.filter(item => item.haiClassification)
-  const devices = cases.flatMap(item => (item.devices || []).filter(device => !device.removedAt && (device.status || 'active') === 'active'))
-  const therapies = cases.flatMap(item => item.therapy || [])
-  const hh = loadHandHygieneLocal().filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
-  const hhItems = hh.flatMap(row => row.whoObservations || [])
-  const weight = item => Math.max(1, Number(item.professionalsCount) || 1)
-  const bundles = loadBundlesLocal().filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
+  const devices: AnyRecord[] = cases.flatMap(item => (item.devices || []).filter((device: AnyRecord) => !device.removedAt && (device.status || 'active') === 'active'))
+  const therapies: AnyRecord[] = cases.flatMap(item => item.therapy || [])
+  const hh = (loadHandHygieneLocal() as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
+  const hhItems: AnyRecord[] = hh.flatMap(row => row.whoObservations || [])
+  const weight = (item: AnyRecord) => Math.max(1, Number(item.professionalsCount) || 1)
+  const bundles = (loadBundlesLocal() as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
   const scored = bundles.filter(row => row.score != null)
-  const waste = loadWasteLocal().filter(row => row.lifecycleStatus !== 'voided' && inRange(row.periodEnd || row.date, range))
-  const executions = loadControlExecutionsLocal().filter(row => !row.cancelled_at && inRange(row.performed_at, range))
-  const assignments = loadControlAssignmentsLocal()
-  const incidents = loadQualityLocal('incidents').filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
-  const capas = loadQualityLocal('capas').filter(row => row.lifecycleStatus !== 'voided')
-  const avg = rows => rows.length ? Math.round(rows.reduce((sum, row) => sum + Number(row.score || 0), 0) / rows.length * 10) / 10 : null
+  const waste = (loadWasteLocal() as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.periodEnd || row.date, range))
+  const executions = (loadControlExecutionsLocal() as AnyRecord[]).filter(row => !row.cancelled_at && inRange(row.performed_at, range))
+  const assignments = loadControlAssignmentsLocal() as AnyRecord[]
+  const incidents = (loadQualityLocal('incidents') as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
+  const capas = (loadQualityLocal('capas') as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided')
+  const avg = (rows: AnyRecord[]) => rows.length ? Math.round(rows.reduce((sum, row) => sum + Number(row.score || 0), 0) / rows.length * 10) / 10 : null
   const byBundle = [...new Set(bundles.map(row => row.bundle))].map(key => { const rows = bundles.filter(row => row.bundle === key); return [key, rows.length, avg(rows.filter(row => row.score != null))] })
   const byBundleDepartment = [...new Set(bundles.map(row => (en ? row.departmentEn : row.departmentEl)))].map(key => { const rows = bundles.filter(row => (en ? row.departmentEn : row.departmentEl) === key); return [key, rows.length, avg(rows.filter(row => row.score != null))] })
   return {
@@ -89,7 +92,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       // Cross-tabulations as [row, column, count] cells.
       haiByDepartment: hai.map(item => [dept(item), item.haiClassification.type || '—', 1]),
       organismByHaiType: hai.filter(item => item.organism).map(item => [item.organism, item.haiClassification.type || '—', 1]),
-      deviceAssociated: hai.map(item => [dept(item), deviceAssociation(item)]).filter(([, kind]) => kind).map(([key, kind]) => [key, kind, 1]),
+      deviceAssociated: hai.map(item => [dept(item), deviceAssociation(item)]).filter(([, kind]: MetricRow) => kind).map(([key, kind]: MetricRow) => [key, kind, 1]),
     },
     handHygiene: {
       sessions: hh.length,
@@ -104,7 +107,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       records: waste.length,
       totalKg: Math.round(waste.reduce((sum, row) => sum + (Number(row.weight) || 0), 0) * 10) / 10,
       patientDays: waste.reduce((sum, row) => sum + (Number(row.patientDays) || 0), 0),
-      byDepartment: sums(waste, row => (en ? row.departmentEn : row.departmentEl), [row => row.weight]).map(([key, kg]) => [key, Math.round(kg * 10) / 10]),
+      byDepartment: sums(waste, row => (en ? row.departmentEn : row.departmentEl), [row => row.weight]).map(([key, kg]: MetricRow) => [key, Math.round(kg * 10) / 10]),
     },
     controls: {
       executions: executions.length,
@@ -113,7 +116,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       overdueAssignments: assignments.filter(row => (row.status || 'active') === 'active' && row.next_due_at && row.next_due_at < new Date().toISOString()).length,
       byDepartment: sums(executions, row => row.department_id || '—', [() => 1, row => (row.has_finding ? 1 : 0)]),
       monthly: tally(executions, row => month(row.performed_at)).sort((a, b) => a[0].localeCompare(b[0])),
-      findingsByControl: (() => { const titles = new Map(loadControlDefinitionsLocal().map(row => [row.id, (en ? row.titleEn || row.title_en : null) || row.title])); return executions.filter(row => row.has_finding).map(row => [titles.get(row.control_id || row.control_definition_id) || '—', row.department_id || '—', 1]) })(),
+      findingsByControl: (() => { const titles = new Map((loadControlDefinitionsLocal() as AnyRecord[]).map(row => [row.id, (en ? row.titleEn || row.title_en : null) || row.title])); return executions.filter(row => row.has_finding).map(row => [titles.get(row.control_id || row.control_definition_id) || '—', row.department_id || '—', 1]) })(),
     },
     quality: {
       incidents: incidents.length,
@@ -129,25 +132,25 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       categoryByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα'), row.category || '—', 1]),
     },
     workforce: (() => {
-      const active = employeeRows.filter(row => (row.employmentStatus || 'active') === 'active')
+      const active = (employeeRows as AnyRecord[]).filter(row => (row.employmentStatus || 'active') === 'active')
       const ids = new Set(active.map(row => row.id))
-      const valid = employeeVaccinations.filter(row => ids.has(row.employeeId) && (!row.validUntil || row.validUntil >= today))
-      const visits = loadOccupationalVisits().filter(row => ids.has(row.employeeId) && inRange(row.date, range))
-      const byVaccine = new Map(); for (const row of valid) { const set = byVaccine.get(row.vaccine) || new Set(); set.add(row.employeeId); byVaccine.set(row.vaccine, set) }
+      const valid = (employeeVaccinations as AnyRecord[]).filter(row => ids.has(row.employeeId) && (!row.validUntil || row.validUntil >= today))
+      const visits = (loadOccupationalVisits() as AnyRecord[]).filter(row => ids.has(row.employeeId) && inRange(row.date, range))
+      const byVaccine = new Map<string, Set<string>>(); for (const row of valid) { const set = byVaccine.get(row.vaccine) || new Set(); set.add(row.employeeId); byVaccine.set(row.vaccine, set) }
       return {
         activeEmployees: active.length,
         vaccinatedEmployees: new Set(valid.map(row => row.employeeId)).size,
-        byVaccine: [...byVaccine.entries()].map(([key, set]) => [key, set.size]).sort((a, b) => b[1] - a[1]),
+        byVaccine: [...byVaccine.entries()].map(([key, set]: MetricRow) => [key, set.size]).sort((a, b) => b[1] - a[1]),
         visits: visits.length,
         byVisitType: tally(visits, row => row.type || '—'),
-        followUpsDue: overdueFollowUps(loadOccupationalVisits().filter(row => ids.has(row.employeeId) && row.status !== 'cancelled'), today),
+        followUpsDue: overdueFollowUps((loadOccupationalVisits() as AnyRecord[]).filter(row => ids.has(row.employeeId) && row.status !== 'cancelled'), today),
         byDepartment: tally(active, row => (en ? row.departmentEn : row.department) || '—'),
-        exposuresByType: tally(employeeExposureIncidents.filter(row => inRange(row.incidentDate, range)), row => row.exposureType || '—'),
+        exposuresByType: tally((employeeExposureIncidents as AnyRecord[]).filter(row => inRange(row.incidentDate, range)), row => row.exposureType || '—'),
       }
     })(),
     training: (() => {
-      const rows = (loadTrainingState().assignments || []).filter(row => inRange(row.assignedDate, range))
-      const status = row => row.computedStatus || row.status
+      const rows: AnyRecord[] = (loadTrainingState().assignments || []).filter((row: AnyRecord) => inRange(row.assignedDate, range))
+      const status = (row: AnyRecord) => row.computedStatus || row.status
       const scored = rows.filter(row => row.score != null && row.score !== '')
       return {
         assignments: rows.length,
@@ -158,9 +161,9 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       }
     })(),
     governance: (() => {
-      const docs = loadDocuments().filter(row => !['archived', 'superseded'].includes(row.status))
-      const committees = loadCommittees()
-      const meetings = committees.flatMap(row => row.meetings || []).filter(row => inRange(row.date, range) && row.status !== 'cancelled')
+      const docs = (loadDocuments() as AnyRecord[]).filter(row => !['archived', 'superseded'].includes(row.status))
+      const committees = loadCommittees() as AnyRecord[]
+      const meetings: AnyRecord[] = committees.flatMap(row => row.meetings || []).filter((row: AnyRecord) => inRange(row.date, range) && row.status !== 'cancelled')
       return {
         documents: docs.length,
         published: docs.filter(row => ['published', 'approved'].includes(row.status)).length,
@@ -173,7 +176,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
         minutesPending: meetings.filter(row => row.status !== 'finalized' && row.date && row.date < today).length,
       }
     })(),
-    pps: buildPpsMetrics(loadPrevalenceSurveyLocal(), range),
+    pps: buildPpsMetrics(loadPrevalenceSurveyLocal() as AnyRecord[], range),
     qualityFood: collectDemoQualityFood(range, today),
     lira: buildLiraMetrics(liraDemoInvestigations, range, clusters),
     antimicrobial: {
@@ -182,14 +185,14 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       pending: therapies.filter(row => row.approvalStatus === 'pending' || row.approved === false).length,
       byAgent: tally(therapies, row => row.antimicrobial || '—').slice(0, 10),
       byApproval: tally(therapies, row => row.approvalStatus || (row.approved === true ? 'approved' : row.approved === false ? 'pending' : 'not_required')),
-      byAgentDepartment: cases.flatMap(item => (item.therapy || []).map(row => [row.antimicrobial || '—', dept(item), 1])),
-      byAgentOrganism: cases.filter(item => item.organism).flatMap(item => (item.therapy || []).map(row => [row.antimicrobial || '—', item.organism, 1])),
+      byAgentDepartment: cases.flatMap(item => (item.therapy || []).map((row: AnyRecord) => [row.antimicrobial || '—', dept(item), 1])),
+      byAgentOrganism: cases.filter(item => item.organism).flatMap(item => (item.therapy || []).map((row: AnyRecord) => [row.antimicrobial || '—', item.organism, 1])),
     },
   }
 }
 
 // The demo stores of audits, suppliers, kitchen, surveys and risks, as this browser keeps them.
-export function collectDemoQualityFood(range = {}, today = hospitalToday()) {
+export function collectDemoQualityFood(range: DateRange = {}, today = hospitalToday()) {
   const surveyState = loadSurveysLocal()
   return buildQualityFoodMetrics({
     audits: loadQualityLocal('audits'),
@@ -204,7 +207,7 @@ export function collectDemoQualityFood(range = {}, today = hospitalToday()) {
 
 export { mergeDomainMetrics } from './analysisDomainMerge'
 
-const LABELS = {
+const LABELS: Record<string, string[]> = {
   confirmed: ['Επιβεβαιωμένη', 'Confirmed'], probable: ['Πιθανή', 'Probable'], suspected: ['Υπό διερεύνηση', 'Suspected'], notHai: ['Όχι ΛΣΦΥ', 'Not HAI'], excluded: ['Αποκλείστηκε', 'Excluded'],
   high: ['Υψηλή', 'High'], medium: ['Μέτρια', 'Medium'], low: ['Χαμηλή', 'Low'], critical: ['Κρίσιμη', 'Critical'],
   reported: ['Αναφέρθηκε', 'Reported'], underReview: ['Υπό διερεύνηση', 'Under review'], under_review: ['Υπό διερεύνηση', 'Under review'], inProgress: ['Σε εξέλιξη', 'In progress'], open: ['Ανοιχτό', 'Open'], closed: ['Κλειστό', 'Closed'], resolved: ['Επιλύθηκε', 'Resolved'],
@@ -221,17 +224,17 @@ const LABELS = {
   CLABSI: ['CLABSI', 'CLABSI'], CAUTI: ['CAUTI', 'CAUTI'], SSI: ['SSI', 'SSI'], VAP: ['VAP', 'VAP'], VAE: ['VAE', 'VAE'],
 }
 // The same codes name the prevention bundles in «Συμμόρφωση ανά δέσμη».
-const BUNDLE_LABELS = { CLABSI: ['Δέσμη CLABSI', 'CLABSI bundle'], VAE: ['Δέσμη VAE', 'VAE bundle'], VAP: ['Δέσμη VAP', 'VAP bundle'], CAUTI: ['Δέσμη CAUTI', 'CAUTI bundle'], SSI: ['Δέσμη SSI', 'SSI bundle'], PIV: ['Δέσμη PIV (περιφερικός φλεβικός καθετήρας)', 'PIV bundle (peripheral IV)'], HD: ['Δέσμη HD (αιμοκάθαρση)', 'HD bundle (haemodialysis)'] }
-const pct = (part, whole) => (whole ? Math.round((part / whole) * 1000) / 10 : null)
-const fmtPct = value => (value == null ? '—' : `${String(value).replace('.', ',')}%`)
+const BUNDLE_LABELS: Record<string, string[]> = { CLABSI: ['Δέσμη CLABSI', 'CLABSI bundle'], VAE: ['Δέσμη VAE', 'VAE bundle'], VAP: ['Δέσμη VAP', 'VAP bundle'], CAUTI: ['Δέσμη CAUTI', 'CAUTI bundle'], SSI: ['Δέσμη SSI', 'SSI bundle'], PIV: ['Δέσμη PIV (περιφερικός φλεβικός καθετήρας)', 'PIV bundle (peripheral IV)'], HD: ['Δέσμη HD (αιμοκάθαρση)', 'HD bundle (haemodialysis)'] }
+const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 1000) / 10 : null)
+const fmtPct = (value: number | null) => (value == null ? '—' : `${String(value).replace('.', ',')}%`)
 
 // One row per department with its surveillance, HAI, cultures, resistant
 // isolates and compliance (hand hygiene, bundles) for the overview.
-function departmentScoreboard(snapshot) {
+function departmentScoreboard(snapshot: AnyRecord | null | undefined) {
   const d = snapshot?.domains || {}, s = d.surveillance || {}, hh = d.handHygiene || {}, b = d.bundles || {}
   const micro = snapshot?.microbiology || {}
-  const rows = new Map()
-  const at = name => { if (!rows.has(name)) rows.set(name, { name }); return rows.get(name) }
+  const rows = new Map<string, AnyRecord>()
+  const at = (name: string) => { if (!rows.has(name)) rows.set(name, { name }); return rows.get(name)! }
   for (const [name, n] of s.byDepartment || []) at(name).episodes = n
   for (const [name, , n] of s.haiByDepartment || []) at(name).hai = (at(name).hai || 0) + n
   for (const [name, n] of micro.byDepartment || []) at(typeof name === 'object' ? name?.name : name).positives = n
@@ -242,16 +245,16 @@ function departmentScoreboard(snapshot) {
 }
 
 // What each Analysis section shows: KPI tiles and charts built from the metrics.
-export function buildSectionModel(tab, snapshot, tx, t) {
+export function buildSectionModel(tab: string, snapshot: AnyRecord | null | undefined, tx: Translate, t?: (key: string) => string) {
   const en = tx('el', 'en') === 'en'
-  const label = key => { const pair = LABELS[key]; if (pair) return en ? pair[1] : pair[0]; const translated = typeof t === 'function' ? t(key) : key; return translated || key }
-  const named = rows => (rows || []).map(([key, ...values]) => [label(key), ...values])
+  const label = (key: string) => { const pair = LABELS[key]; if (pair) return en ? pair[1] : pair[0]; const translated = typeof t === 'function' ? t(key) : key; return translated || key }
+  const named = (rows: MetricRow[] | undefined) => (rows || []).map(([key, ...values]: MetricRow) => [label(key), ...values])
   const d = snapshot?.domains || {}, s = d.surveillance || {}, hh = d.handHygiene || {}, b = d.bundles || {}, w = d.waste || {}, c = d.controls || {}, q = d.quality || {}, a = d.antimicrobial || {}
   const micro = snapshot?.microbiology || {}
   const hhRate = pct(hh.compliant, hh.observations)
   // The rate with how many it rests on («· 52»), or how many out of how many («· 12/263»).
-  const rateRowsWithTotal = rows => (rows || []).map(([key, total, part]) => [label(key), pct(part, total) ?? 0, String(total ?? 0)]).filter(([, value]) => value != null)
-  const mdro = (micro.resistance || []).filter(([key]) => ['MDR', 'XDR', 'PDR'].includes(key)).reduce((sum, [, value]) => sum + (Number(value) || 0), 0)
+  const rateRowsWithTotal = (rows: MetricRow[] | undefined) => (rows || []).map(([key, total, part]: MetricRow) => [label(key), pct(part, total) ?? 0, String(total ?? 0)]).filter(([, value]: MetricRow) => value != null)
+  const mdro = (micro.resistance || []).filter(([key]: MetricRow) => ['MDR', 'XDR', 'PDR'].includes(key)).reduce((sum: number, [, value]: MetricRow) => sum + (Number(value) || 0), 0)
   if (!snapshot?.domains) return null
   // Several hospitals (the platform's "all hospitals"): compared by hospital, not by department.
   const byHospital = (snapshot.hospitals || []).length > 1
@@ -266,13 +269,13 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : ''],
       ],
       charts: [
-        { type: 'scoreboard', wide: true, ...(byHospital ? { title: tx('Σύγκριση νοσοκομείων', 'Hospitals side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε νοσοκομείου για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each hospital\'s headline figures for the period; shading marks the highest in each column.'), rowLabel: tx('Νοσοκομείο', 'Hospital'), rows: (snapshot.hospitals || []).map(row => ({ ...row, key: row.organizationId })).sort((a, b) => b.episodes + b.positives - (a.episodes + a.positives)) } : { title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot) }), columns: [
+        { type: 'scoreboard', wide: true, ...(byHospital ? { title: tx('Σύγκριση νοσοκομείων', 'Hospitals side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε νοσοκομείου για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each hospital\'s headline figures for the period; shading marks the highest in each column.'), rowLabel: tx('Νοσοκομείο', 'Hospital'), rows: (snapshot.hospitals || []).map((row: AnyRecord) => ({ ...row, key: row.organizationId })).sort((a: AnyRecord, b: AnyRecord) => b.episodes + b.positives - (a.episodes + a.positives)) } : { title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot) }), columns: [
           { key: 'episodes', label: tx('Επιτηρήσεις', 'Surveillance') },
           { key: 'hai', label: tx('ΛΣΦΥ', 'HAI'), tone: 'warn' },
           { key: 'positives', label: tx('Θετικές καλλιέργειες', 'Positive cultures') },
           { key: 'mdro', label: 'MDR/XDR/PDR', tone: 'danger' },
-          { key: 'hand', label: tx('Υγιεινή χεριών', 'Hand hygiene'), shade: false, format: value => fmtPct(value) },
-          { key: 'bundles', label: tx('Δέσμες μέτρων', 'Bundles'), shade: false, format: value => fmtPct(value) },
+          { key: 'hand', label: tx('Υγιεινή χεριών', 'Hand hygiene'), shade: false, format: (value: number | null) => fmtPct(value) },
+          { key: 'bundles', label: tx('Δέσμες μέτρων', 'Bundles'), shade: false, format: (value: number | null) => fmtPct(value) },
         ] },
         { type: 'donut', title: tx('Ταξινόμηση ΛΣΦΥ', 'HAI classification'), subtitle: tx('Τελευταία ταξινόμηση κάθε επεισοδίου.', 'Latest classification per episode.'), rows: named(s.byCaseStatus), center: tx('επεισόδια', 'episodes') },
         { type: 'bars', title: tx('Τι χρειάζεται ενέργεια', 'What needs action'), subtitle: tx('Εκκρεμότητες όλων των ενοτήτων αυτή τη στιγμή.', 'Open items across all areas right now.'), rows: [
@@ -281,12 +284,12 @@ export function buildSectionModel(tab, snapshot, tx, t) {
           [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0],
           [tx('Ανοιχτά συμβάντα', 'Open incidents'), q.openIncidents ?? 0],
           [tx('Αγωγές σε αναμονή έγκρισης', 'Therapies awaiting approval'), a.pending ?? 0],
-        ].filter(([, n]) => n > 0) },
+        ].filter(([, n]: MetricRow) => n > 0) },
       ],
     }
     case 'surveillance': {
       // No HAI classified (or no device recorded) in the period: one line instead of empty charts.
-      const classified = (s.byCaseStatus || []).reduce((sum, [, n]) => sum + (Number(n) || 0), 0)
+      const classified = (s.byCaseStatus || []).reduce((sum: number, [, n]: MetricRow) => sum + (Number(n) || 0), 0)
       return {
       kpis: [
         [tx('Επεισόδια περιόδου', 'Episodes in period'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
@@ -298,8 +301,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'trend', title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
         { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
         ...(classified ? [] : [{ type: 'note', text: tx('Δεν γίνεται ταξινόμηση ΛΣΦΥ: τα γραφήματα των λοιμώξεων εμφανίζονται όταν ταξινομηθούν επεισόδια.', 'No HAI is classified: the infection charts appear once episodes are classified.') }]),
-        classified && { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
-        classified && { type: 'matrix', wide: true, organisms: 'rows', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
+        classified && { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]: MetricRow) => [row, label(column), n]) },
+        classified && { type: 'matrix', wide: true, organisms: 'rows', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]: MetricRow) => [row, label(column), n]) },
       ].filter(Boolean),
     } }
     case 'laboratory': return {
@@ -347,11 +350,11 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         ...(hasWaste ? [[tx('Ιατρικά απόβλητα', 'Healthcare waste'), `${Number(w.totalKg ?? 0).toLocaleString(en ? 'en-US' : 'el-GR', { maximumFractionDigits: 1 })} kg`, w.patientDays ? tx(`${(w.totalKg / w.patientDays * 1000).toFixed(1).replace('.', ',')} kg / 1.000 ημέρες νοσηλείας`, `${(w.totalKg / w.patientDays * 1000).toFixed(1)} kg / 1,000 patient-days`) : tx(`${w.records ?? 0} καταγραφές`, `${w.records ?? 0} records`)]] : []),
       ],
       charts: [
-        { type: 'trend', wide: true, sparse: true, emptyText: nothingRecorded ? tx('δεν υπάρχουν καταγραφές υγιεινής χεριών, δεσμών μέτρων και ιατρικών αποβλήτων στην περίοδο.', 'there are no hand-hygiene, care-bundle or healthcare-waste records in the period.') : undefined, title: tx('Υγιεινή χεριών ανά μήνα (%)', 'Hand hygiene by month (%)'), subtitle: tx('Ποσοστό ευκαιριών με σωστή υγιεινή χεριών.', 'Share of opportunities with correct hand hygiene.'), points: (hh.monthly || []).map(([key, total, part]) => [key, pct(part, total) ?? 0]), few: (hh.monthly || []).filter(([, total]) => Number(total) < FEW_HH_OPPORTUNITIES).map(([key]) => key) },
+        { type: 'trend', wide: true, sparse: true, emptyText: nothingRecorded ? tx('δεν υπάρχουν καταγραφές υγιεινής χεριών, δεσμών μέτρων και ιατρικών αποβλήτων στην περίοδο.', 'there are no hand-hygiene, care-bundle or healthcare-waste records in the period.') : undefined, title: tx('Υγιεινή χεριών ανά μήνα (%)', 'Hand hygiene by month (%)'), subtitle: tx('Ποσοστό ευκαιριών με σωστή υγιεινή χεριών.', 'Share of opportunities with correct hand hygiene.'), points: (hh.monthly || []).map(([key, total, part]: MetricRow) => [key, pct(part, total) ?? 0]), few: (hh.monthly || []).filter(([, total]: MetricRow) => Number(total) < FEW_HH_OPPORTUNITIES).map(([key]: MetricRow) => key) },
         { type: 'rate', title: tx('Υγιεινή χεριών ανά τμήμα', 'Hand hygiene by department'), subtitle: tx('Ποσοστό συμμόρφωσης · δίπλα οι ευκαιρίες.', 'Compliance rate · beside it the opportunities.'), rows: rateRowsWithTotal(hh.byDepartment) },
         { type: 'rate', title: tx('Υγιεινή χεριών ανά επαγγελματική κατηγορία', 'Hand hygiene by professional category'), subtitle: tx('Ποσοστό συμμόρφωσης · δίπλα οι ευκαιρίες.', 'Compliance rate · beside it the opportunities.'), rows: rateRowsWithTotal(hh.byCategory) },
-        hasBundles && { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]) => score != null).map(([key, , score]) => [BUNDLE_LABELS[key] ? BUNDLE_LABELS[key][en ? 1 : 0] : label(key), score]) },
-        hasBundles && { type: 'rate', title: tx('Συμμόρφωση δεσμών ανά τμήμα', 'Bundle compliance by department'), subtitle: tx('Μέσο ποσοστό ανά τμήμα.', 'Average per department.'), rows: (b.byDepartment || []).filter(([, , score]) => score != null).map(([key, , score]) => [key, score]) },
+        hasBundles && { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]: MetricRow) => score != null).map(([key, , score]: MetricRow) => [BUNDLE_LABELS[key] ? BUNDLE_LABELS[key][en ? 1 : 0] : label(key), score]) },
+        hasBundles && { type: 'rate', title: tx('Συμμόρφωση δεσμών ανά τμήμα', 'Bundle compliance by department'), subtitle: tx('Μέσο ποσοστό ανά τμήμα.', 'Average per department.'), rows: (b.byDepartment || []).filter(([, , score]: MetricRow) => score != null).map(([key, , score]: MetricRow) => [key, score]) },
         ...(hasBundles || nothingRecorded ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται αξιολογήσεις δεσμών μέτρων στην περίοδο.', 'No care-bundle assessments are recorded in the period.') }]),
         ...(hasWaste || nothingRecorded ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται μετρήσεις ιατρικών αποβλήτων στην περίοδο.', 'No healthcare-waste measurements are recorded in the period.') }]),
       ].filter(Boolean),
@@ -366,8 +369,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       ],
       charts: [
         { type: 'matrix', wide: true, emptyText: tx('δεν έχουν καταγραφεί εκτελέσεις ελέγχων στην περίοδο.', 'no control executions have been recorded in the period.'), title: tx('Ευρήματα ανά έλεγχο και τμήμα', 'Findings by control and department'), subtitle: tx('Σε ποιον έλεγχο και ποιο τμήμα εντοπίζονται ευρήματα.', 'Which control and which department the findings come from.'), rowLabel: tx('Έλεγχος', 'Control'), cells: c.findingsByControl },
-        { type: 'bars', title: tx('Εκτελέσεις ανά τμήμα', 'Executions by department'), subtitle: tx('Ολοκληρωμένοι έλεγχοι στην περίοδο.', 'Controls performed in the period.'), rows: (c.byDepartment || []).map(([key, n]) => [key, n]) },
-        { type: 'rate', relative: true, title: tx('Ποσοστό ευρημάτων ανά τμήμα', 'Finding rate by department'), subtitle: tx('Εκτελέσεις με εύρημα προς το σύνολο των εκτελέσεων.', 'Executions with a finding over all executions.'), rows: (c.byDepartment || []).map(([key, total, findings]) => [key, pct(findings, total) ?? 0, `${findings ?? 0}/${total ?? 0}`]) },
+        { type: 'bars', title: tx('Εκτελέσεις ανά τμήμα', 'Executions by department'), subtitle: tx('Ολοκληρωμένοι έλεγχοι στην περίοδο.', 'Controls performed in the period.'), rows: (c.byDepartment || []).map(([key, n]: MetricRow) => [key, n]) },
+        { type: 'rate', relative: true, title: tx('Ποσοστό ευρημάτων ανά τμήμα', 'Finding rate by department'), subtitle: tx('Εκτελέσεις με εύρημα προς το σύνολο των εκτελέσεων.', 'Executions with a finding over all executions.'), rows: (c.byDepartment || []).map(([key, total, findings]: MetricRow) => [key, pct(findings, total) ?? 0, `${findings ?? 0}/${total ?? 0}`]) },
       ],
     }
     case 'quality': return {
@@ -383,8 +386,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'trend', wide: true, emptyText: tx('δεν έχουν καταγραφεί συμβάντα στην περίοδο.', 'no incidents have been recorded in the period.'), title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
         // The categories of the incidents (owner, 8/11/2026): which, and where by group of the ΟΔΙΠΥ form.
         { type: 'bars', title: tx('Κατηγορίες συμβάντων', 'Incident categories'), subtitle: tx('Τι είδους συμβάντα αναφέρθηκαν.', 'What kind of incidents were reported.'), rows: incidentCategoryRows(q.byCategory, en) },
-        { type: 'matrix', wide: true, title: tx('Κατηγορίες ανά τμήμα', 'Categories by department'), subtitle: tx('Ομάδες κατηγοριών του εντύπου ΟΔΙΠΥ σε κάθε τμήμα.', 'Groups of the ΟΔΙΠΥ form in each department.'), rowLabel: tx('Τμήμα', 'Department'), cells: q.categoryByDepartment?.map(([row, column, n]) => [row, incidentGroupLabel(column, en), n]) },
-        { type: 'matrix', wide: true, title: tx('Σοβαρότητα ανά τμήμα', 'Severity by department'), subtitle: tx('Πού συμβαίνουν τα σοβαρότερα συμβάντα.', 'Where the most severe incidents happen.'), rowLabel: tx('Τμήμα', 'Department'), columnOrder: ['low', 'medium', 'high', 'critical'].map(label), cells: q.severityByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
+        { type: 'matrix', wide: true, title: tx('Κατηγορίες ανά τμήμα', 'Categories by department'), subtitle: tx('Ομάδες κατηγοριών του εντύπου ΟΔΙΠΥ σε κάθε τμήμα.', 'Groups of the ΟΔΙΠΥ form in each department.'), rowLabel: tx('Τμήμα', 'Department'), cells: q.categoryByDepartment?.map(([row, column, n]: MetricRow) => [row, incidentGroupLabel(column, en), n]) },
+        { type: 'matrix', wide: true, title: tx('Σοβαρότητα ανά τμήμα', 'Severity by department'), subtitle: tx('Πού συμβαίνουν τα σοβαρότερα συμβάντα.', 'Where the most severe incidents happen.'), rowLabel: tx('Τμήμα', 'Department'), columnOrder: ['low', 'medium', 'high', 'critical'].map(label), cells: q.severityByDepartment?.map(([row, column, n]: MetricRow) => [row, label(column), n]) },
         // No severity donut: it repeated the «Total» row of the table above.
         { type: 'bars', title: tx('Κατάσταση συμβάντων', 'Incident status'), subtitle: tx('Πού βρίσκεται η διερεύνηση.', 'Where investigation stands.'), rows: named(q.byStatus) },
       ],
@@ -414,7 +417,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       ],
       charts: [
         // One card: the share completed and «how many of how many» (the assignments), as in hand hygiene.
-        { type: 'rate', wide: true, emptyText: tx('δεν υπάρχουν αναθέσεις εκπαίδευσης στην περίοδο.', 'there are no training assignments in the period.'), title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ολοκληρωμένες αναθέσεις προς τις αναθέσεις της περιόδου.', 'Completed assignments over the assignments of the period.'), rows: (tr.byDepartment || []).map(([key, total, done]) => [label(key), pct(done, total) ?? 0, `${done ?? 0}/${total ?? 0}`]) },
+        { type: 'rate', wide: true, emptyText: tx('δεν υπάρχουν αναθέσεις εκπαίδευσης στην περίοδο.', 'there are no training assignments in the period.'), title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ολοκληρωμένες αναθέσεις προς τις αναθέσεις της περιόδου.', 'Completed assignments over the assignments of the period.'), rows: (tr.byDepartment || []).map(([key, total, done]: MetricRow) => [label(key), pct(done, total) ?? 0, `${done ?? 0}/${total ?? 0}`]) },
       ],
     } }
     case 'governance': { const g = d.governance || {}; return {
@@ -432,9 +435,9 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       ],
     } }
     case 'pps': { const p = d.pps || {}; const months = p.byMonth || []; const last = months[months.length - 1], prev = months[months.length - 2]
-      const rate = (row, index) => (row ? pct(row[index], row[1]) : null)
-      const surveyMonth = key => { const [y, m] = String(key).split('-'); const names = tx('Ιαν Φεβ Μαρ Απρ Μάι Ιουν Ιουλ Αυγ Σεπ Οκτ Νοε Δεκ', 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec').split(' '); return m ? `${names[Number(m) - 1] || m} ${y}` : String(key) }
-      const delta = (now, before) => (now == null || before == null ? tx('Χωρίς προηγούμενη μέτρηση', 'No earlier survey') : tx(`${before > now ? '↓' : before < now ? '↑' : '='} από ${fmtPct(before)} στην προηγούμενη`, `${before > now ? '↓' : before < now ? '↑' : '='} from ${fmtPct(before)} in the previous`))
+      const rate = (row: MetricRow | undefined, index: number) => (row ? pct(row[index], row[1]) : null)
+      const surveyMonth = (key: unknown) => { const [y, m] = String(key).split('-'); const names = tx('Ιαν Φεβ Μαρ Απρ Μάι Ιουν Ιουλ Αυγ Σεπ Οκτ Νοε Δεκ', 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec').split(' '); return m ? `${names[Number(m) - 1] || m} ${y}` : String(key) }
+      const delta = (now: number | null, before: number | null) => (now == null || before == null ? tx('Χωρίς προηγούμενη μέτρηση', 'No earlier survey') : tx(`${before > now ? '↓' : before < now ? '↑' : '='} από ${fmtPct(before)} στην προηγούμενη`, `${before > now ? '↓' : before < now ? '↑' : '='} from ${fmtPct(before)} in the previous`))
       const haiNow = rate(last, 2), haiBefore = rate(prev, 2), abxNow = rate(last, 3), abxBefore = rate(prev, 3)
       return {
       kpis: [
@@ -446,12 +449,12 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         ] : []),
       ],
       charts: [
-        { type: 'trend', wide: true, sparse: true, emptyText: tx('δεν έχει καταγραφεί ακόμη μέτρηση επιπολασμού στην περίοδο.', 'no prevalence survey has been recorded in the period yet.'), title: tx('Επιπολασμός ΛΣΦΥ ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με ΛΣΦΥ προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
-        { type: 'trend', wide: true, sparse: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]) => [key, pct(abx, total) ?? 0]) },
+        { type: 'trend', wide: true, sparse: true, emptyText: tx('δεν έχει καταγραφεί ακόμη μέτρηση επιπολασμού στην περίοδο.', 'no prevalence survey has been recorded in the period yet.'), title: tx('Επιπολασμός ΛΣΦΥ ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με ΛΣΦΥ προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]: MetricRow) => [key, pct(hai, total) ?? 0]) },
+        { type: 'trend', wide: true, sparse: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]: MetricRow) => [key, pct(abx, total) ?? 0]) },
         // One row per survey, in time order: the month, the patients and the two rates (not bars of «2026-07» sorted by size).
         { type: 'scoreboard', wide: true, title: tx('Οι μετρήσεις', 'The surveys'), subtitle: tx('Μία γραμμή ανά μέτρηση επιπολασμού.', 'One row per prevalence survey.'), rowLabel: tx('Μέτρηση', 'Survey'),
           columns: [{ key: 'patients', label: tx('Ασθενείς', 'Patients'), shade: false }, { key: 'hai', label: tx('ΛΣΦΥ', 'HAI'), format: fmtPct }, { key: 'abx', label: tx('Αντιβιοτικά', 'Antibiotics'), format: fmtPct }],
-          rows: months.map((row, index) => ({ key: row[0], name: surveyMonth(row[0]), patients: row[1] ?? 0, hai: rate(row, 2), abx: rate(row, 3), index })) },
+          rows: months.map((row: MetricRow, index: number) => ({ key: row[0], name: surveyMonth(row[0]), patients: row[1] ?? 0, hai: rate(row, 2), abx: rate(row, 3), index })) },
       ],
     } }
     case 'lira': { const l = d.lira || {}; const averageDays = l.closedWithDates ? Math.round(l.closedDaysTotal / l.closedWithDates * 10) / 10 : null; return {
@@ -473,14 +476,14 @@ export function buildSectionModel(tab, snapshot, tx, t) {
 
 // Incident categories (the record's key) named, and grouped by the group of the ΟΔΙΠΥ form; a category of the hospital's
 // own list is a complaint or «Άλλες».
-export function incidentGroupLabel(key, en = false) {
+export function incidentGroupLabel(key: string | null | undefined, en = false) {
   if (!key || key === '—') return en ? 'No category' : 'Χωρίς κατηγορία'
   const group = odipyGroupOf(key)
   if (group) return en ? group.en : group.el
   return categoryKind(key) === 'complaint' ? (en ? 'Complaints' : 'Παράπονα') : (en ? 'Other' : 'Άλλες')
 }
-export function incidentCategoryRows(rows = [], en = false) {
-  const out = new Map()
+export function incidentCategoryRows(rows: MetricRow[] = [], en = false) {
+  const out = new Map<string, number>()
   for (const [key, n] of rows || []) {
     const name = !key || key === '—' ? (en ? 'No category' : 'Χωρίς κατηγορία') : incidentCategoryLabel(key, [], en ? 'en' : 'el').replace(/^[^·]*·\s*/, '') || key
     out.set(name, (out.get(name) || 0) + (Number(n) || 0))

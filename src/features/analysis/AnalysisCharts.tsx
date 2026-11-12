@@ -1,29 +1,37 @@
-import { useEffect,useRef,useState } from 'react'
+import { useEffect,useRef,useState,type ReactNode } from 'react'
 import './AnalysisCharts.css'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// A chart row: [label, value, detail?] (the value can be '—' or a '3/12' ratio).
+export type ChartRow=readonly unknown[]
+// A trend point: [month (yyyy-mm), value].
+export type TrendPoint=readonly unknown[]
+// A column of the Scoreboard.
+export interface ScoreColumn { key: string; label: string; shade?: boolean; tone?: string; format?: (value: never)=>ReactNode }
 
 // Validated categorical order (identity) and a single magnitude hue.
 // Colour follows the entity's position in the data, never its rank on screen.
 export const SERIES_COLORS=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#4a3aa7','#e34948']
 const MAGNITUDE='#2a78d6'
-const MONTHS={el:['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοε','Δεκ'],en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']}
+const MONTHS: Record<string,string[]>={el:['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοε','Δεκ'],en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']}
 
-const toNumber=value=>{const n=Number(String(value??'').split('/')[0].replace(',','.'));return Number.isFinite(n)?n:0}
-export function numericRows(rows){return (rows||[]).filter(([,value])=>value!=='—'&&value!=null).map(([label,value])=>[String(label),toNumber(value)]).filter(([,value])=>value>=0)}
-const fmt=(value,en)=>new Intl.NumberFormat(en?'en-GB':'el-GR').format(value)
+const toNumber=(value: unknown)=>{const n=Number(String(value??'').split('/')[0].replace(',','.'));return Number.isFinite(n)?n:0}
+export function numericRows(rows: readonly ChartRow[]|null|undefined): [string,number][]{return ((rows||[]).filter(([,value])=>value!=='—'&&value!=null).map(([label,value])=>[String(label),toNumber(value)]) as [string,number][]).filter(([,value])=>value>=0)}
+const fmt=(value: number,en: boolean)=>new Intl.NumberFormat(en?'en-GB':'el-GR').format(value)
 
-function monthLabel(key,en){const [y,m]=String(key).split('-');const name=MONTHS[en?'en':'el'][Number(m)-1];return name?`${name} ${String(y).slice(2)}`:String(key)}
+function monthLabel(key: unknown,en: boolean){const [y,m]=String(key).split('-');const name=MONTHS[en?'en':'el'][Number(m)-1];return name?`${name} ${String(y).slice(2)}`:String(key)}
 
-export function ChartCard({title,subtitle,wide=false,children}){
+export function ChartCard({title,subtitle,wide=false,children}: {title?: ReactNode; subtitle?: ReactNode; wide?: boolean; children?: ReactNode}){
  return <article className={`analysis-chart-card analysis-viz-card ${wide?'analysis-wide-card':''}`}><header><div><strong>{title}</strong>{subtitle&&<span>{subtitle}</span>}</div></header>{children}</article>
 }
 
-function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the selected scope.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στο επιλεγμένο εύρος.'}</div>}
+function EmptyChart({en}: {en: boolean}){return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the selected scope.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στο επιλεγμένο εύρος.'}</div>}
 
 // Horizontal magnitude bars: one hue, value right-aligned, hover names the mark.
 // scale fixes the axis (e.g. 100 for percentages); suffix is appended to values.
 // Bars largest first (keepOrder keeps the given order); a row's third item is a detail beside the value («12/263»).
-export function BarList({rows,en,max:limit=8,scale,suffix='',keepOrder=false}){
- const details=new Map((rows||[]).filter(row=>row?.[2]!=null).map(row=>[String(row[0]),row[2]]))
+export function BarList({rows,en,max:limit=8,scale,suffix='',keepOrder=false}: {rows?: readonly ChartRow[]|null; en: boolean; max?: number; scale?: number; suffix?: string; keepOrder?: boolean}){
+ const details=new Map((rows||[]).filter(row=>row?.[2]!=null).map(row=>[String(row[0]),row[2] as ReactNode]))
  const sorted=numericRows(rows),data=(keepOrder?sorted:[...sorted].sort((a,b)=>b[1]-a[1])).slice(0,limit)
  if(!data.length)return <EmptyChart en={en}/>
  const max=scale||Math.max(1,...data.map(([,v])=>v))
@@ -36,8 +44,8 @@ export function BarList({rows,en,max:limit=8,scale,suffix='',keepOrder=false}){
 
 // Donut for part-to-whole: fixed categorical order, 2px surface gaps, legend
 // with value and share; hovering a slice or legend row shows it in the centre.
-export function DonutChart({rows,en,centerLabel,max:limit=6}){
- const [active,setActive]=useState(null)
+export function DonutChart({rows,en,centerLabel,max:limit=6}: {rows?: readonly ChartRow[]|null; en: boolean; centerLabel?: string; max?: number}){
+ const [active,setActive]=useState<number|null>(null)
  let data=numericRows(rows).filter(([,v])=>v>0)
  if(data.length>limit){const rest=data.slice(limit-1).reduce((s,[,v])=>s+v,0);data=[...data.slice(0,limit-1),[en?'Other':'Λοιπά',rest]]}
  const total=data.reduce((s,[,v])=>s+v,0)
@@ -63,18 +71,18 @@ export function DonutChart({rows,en,centerLabel,max:limit=6}){
 // crosshair + tooltip on hover (the whole column is the hit target).
 // few: the months (keys) whose value rests on too few observations — a grey point and «λίγες παρατηρήσεις» on hover.
 // percent: a share of 100, so the axis runs 0–100 in even steps (not 0, 23, 46, 69, 92).
-export function TrendChart({points,en,label,few=null,percent=false,compare=null,compareLabel=''}){
+export function TrendChart({points,en,label,few=null,percent=false,compare=null,compareLabel=''}: {points?: readonly TrendPoint[]|null; en: boolean; label?: string; few?: readonly string[]|null; percent?: boolean; compare?: readonly TrendPoint[]|null; compareLabel?: string}){
  const fewKeys=new Set(few||[])
- const [hover,setHover]=useState(null)
- const wrapRef=useRef(null),[width,setWidth]=useState(640)
+ const [hover,setHover]=useState<number|null>(null)
+ const wrapRef=useRef<HTMLDivElement>(null),[width,setWidth]=useState(640)
  useEffect(()=>{const el=wrapRef.current;if(!el||typeof ResizeObserver==='undefined')return undefined;const ro=new ResizeObserver(([entry])=>{const next=Math.round(entry.contentRect.width);if(next>0)setWidth(next)});ro.observe(el);return()=>ro.disconnect()},[])
- const data=(points||[]).map(([key,value])=>[key,toNumber(value)])
+ const data: [string,number][]=(points||[]).map(([key,value])=>[key as string,toNumber(value)])
  if(data.length<2)return <EmptyChart en={en}/>
  const w=Math.max(320,width),h=220,pl=34,pr=26,pt=14,pb=28
  // compare: the other period's months, in order, beside these (owner, 7/11/2026: «φέτος / πέρσι» on one chart).
- const other=(compare||[]).map(([key,value])=>[key,toNumber(value)]).slice(-data.length)
+ const other: [string,number][]=(compare||[]).map(([key,value])=>[key as string,toNumber(value)] as [string,number]).slice(-data.length)
  const max=Math.max(1,...data.map(([,v])=>v),...other.map(([,v])=>v)),niceMax=percent?Math.max(100,Math.ceil(max/25)*25):Math.ceil(max/4)*4||4
- const x=i=>pl+i*(w-pl-pr)/(data.length-1),y=v=>pt+(1-v/niceMax)*(h-pt-pb)
+ const x=(i: number)=>pl+i*(w-pl-pr)/(data.length-1),y=(v: number)=>pt+(1-v/niceMax)*(h-pt-pb)
  const line=data.map(([,v],i)=>`${i?'L':'M'}${x(i)},${y(v)}`).join(' ')
  // The month still running (the last point is this month): its segment dashed and «έως 2/11», so a few days do not read as a drop.
  const now=new Date(),thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
@@ -108,15 +116,15 @@ export function TrendChart({points,en,label,few=null,percent=false,compare=null,
 // most frequent rows and columns first, each cell shaded by its share of the
 // largest one, with totals. `percent` shows each row's cells as % of its total.
 // columnOrder: columns in a fixed order (severity low → critical) instead of by their totals.
-export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalLabel,columnOrder=null,shown=6}){
+export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalLabel,columnOrder=null,shown=6}: {cells?: readonly ChartRow[]; rowLabel?: string; en: boolean; maxRows?: number; maxColumns?: number; totalLabel?: string; columnOrder?: readonly string[]|null; shown?: number}){
   const [all,setAll]=useState(false)
-  const rowTotals=new Map(),columnTotals=new Map(),values=new Map()
-  for(const [row,column,count] of cells){const n=Number(count)||0;if(!n||row==null||column==null)continue;rowTotals.set(row,(rowTotals.get(row)||0)+n);columnTotals.set(column,(columnTotals.get(column)||0)+n);values.set(`${row}\u0000${column}`,(values.get(`${row}\u0000${column}`)||0)+n)}
+  const rowTotals=new Map<string,number>(),columnTotals=new Map<string,number>(),values=new Map<string,number>()
+  for(const [row,column,count] of cells as [string,string,unknown][]){const n=Number(count)||0;if(!n||row==null||column==null)continue;rowTotals.set(row,(rowTotals.get(row)||0)+n);columnTotals.set(column,(columnTotals.get(column)||0)+n);values.set(`${row}\u0000${column}`,(values.get(`${row}\u0000${column}`)||0)+n)}
   if(!rowTotals.size)return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the period.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στην περίοδο.'}</div>
   const rows=[...rowTotals].sort((a,b)=>b[1]-a[1]).slice(0,maxRows).map(([key])=>key)
   // The first rows on screen (owner, 7/11/2026: no long half-empty tables); the rest on «+N more», and always on paper.
   const hidden=all?0:Math.max(0,rows.length-shown)
-  const rank=key=>{const at=columnOrder?columnOrder.indexOf(key):-1;return at<0?Infinity:at}
+  const rank=(key: string)=>{const at=columnOrder?columnOrder.indexOf(key):-1;return at<0?Infinity:at}
   const columns=[...columnTotals].sort((a,b)=>(rank(a[0])-rank(b[0]))||(b[1]-a[1])).slice(0,maxColumns).map(([key])=>key)
   const peak=Math.max(...[...values.values()])
   const total=en?'Total':'Σύνολο'
@@ -128,10 +136,10 @@ export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalL
 // One row per department (or hospital, `rowLabel`) with the headline figures
 // of every area, so units can be compared side by side; cells are shaded
 // within their column.
-export function Scoreboard({rows=[],columns:allColumns=[],rowLabel,en}){
+export function Scoreboard({rows=[],columns:allColumns=[],rowLabel,en}: {rows?: AnyRecord[]; columns?: ScoreColumn[]; rowLabel?: string; en: boolean}){
   if(!rows.length)return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the period.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στην περίοδο.'}</div>
   const columns=allColumns.filter(column=>rows.some(row=>row[column.key]!=null&&row[column.key]!==''&&!Number.isNaN(Number(row[column.key]))))
   const peaks=columns.map(column=>Math.max(0,...rows.map(row=>Number(row[column.key])||0)))
   return <div className="analysis-matrix-wrap"><table className="analysis-matrix analysis-scoreboard"><thead><tr><th scope="col">{rowLabel||(en?'Department':'Τμήμα')}</th>{columns.map(column=><th key={column.key} scope="col">{column.label}</th>)}</tr></thead>
-    <tbody>{rows.map(row=><tr key={row.key||row.name}><th scope="row">{row.name}</th>{columns.map((column,index)=>{const value=row[column.key];const n=Number(value);const shade=column.shade!==false&&Number.isFinite(n)&&peaks[index]>0&&n>0;return <td key={column.key} className={`${column.tone?`tone-${column.tone}`:''}${value==null?' is-zero':''}`} style={shade?{'--cell-heat':(0.06+0.3*n/peaks[index]).toFixed(2)}:undefined}>{value==null?'—':column.format?column.format(value):value}</td>})}</tr>)}</tbody></table></div>
+    <tbody>{rows.map(row=><tr key={row.key||row.name}><th scope="row">{row.name}</th>{columns.map((column,index)=>{const value=row[column.key];const n=Number(value);const shade=column.shade!==false&&Number.isFinite(n)&&peaks[index]>0&&n>0;return <td key={column.key} className={`${column.tone?`tone-${column.tone}`:''}${value==null?' is-zero':''}`} style={shade?{'--cell-heat':(0.06+0.3*n/peaks[index]).toFixed(2)}:undefined}>{value==null?'—':column.format?column.format(value as never):value}</td>})}</tr>)}</tbody></table></div>
 }

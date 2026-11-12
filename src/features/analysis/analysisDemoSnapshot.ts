@@ -21,37 +21,39 @@ import { CLUSTER_THRESHOLD, CLUSTER_WINDOW_DAYS, demoClusterRecords } from '../s
 import { detectOrganismClusters } from '../surveillance/clusterDetection'
 import { keepPerCategory } from './microbiologyLabels'
 import { hospitalDate } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { DateRange } from './analysisAddonMetrics'
 
 // Same eight ΕΟΔΥ reference pathogens and reference antibiotics as
 // indicatorEngine.js's REFERENCE_PATHOGEN_PATTERNS/AMR_REFERENCE_ANTIBIOTIC.
-const ORGANISM_PATTERNS = {
+const ORGANISM_PATTERNS: Record<string, string> = {
   ecoli: 'escherichia coli', proteus: 'proteus', acinetobacter: 'acinetobacter', klebsiella: 'klebsiella',
   enterobacter: 'enterobacter', pseudomonas: 'pseudomonas', saureus: 'staphylococcus aureus', enterococcus: 'enterococcus',
 }
-const ORGANISM_LABELS = {
+const ORGANISM_LABELS: Record<string, string> = {
   ecoli: 'Escherichia coli', proteus: 'Proteus spp.', acinetobacter: 'Acinetobacter spp.', klebsiella: 'Klebsiella spp.',
   enterobacter: 'Enterobacter spp.', pseudomonas: 'Pseudomonas aeruginosa', saureus: 'Staphylococcus aureus', enterococcus: 'Enterococcus spp.',
 }
-const REFERENCE_ANTIBIOTIC = {
+const REFERENCE_ANTIBIOTIC: Record<string, string> = {
   ecoli: 'ceftriaxone', proteus: 'ceftriaxone', enterobacter: 'ceftriaxone',
   klebsiella: 'meropenem', acinetobacter: 'meropenem', pseudomonas: 'meropenem',
   saureus: 'oxacillin', enterococcus: 'vancomycin',
 }
 
-function countBy(rows, keyFn) {
-  const out = {}
+function countBy(rows: AnyRecord[], keyFn: (row: AnyRecord) => string | null | undefined) {
+  const out: Record<string, number> = {}
   for (const row of rows) { const key = keyFn(row); if (!key) continue; out[key] = (out[key] || 0) + 1 }
   return out
 }
-function sortedEntries(map, limit = 10) { return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, limit) }
-function monthKey(value) { return String(value || '').slice(0, 7) }
+function sortedEntries(map: Record<string, number>, limit = 10) { return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, limit) }
+function monthKey(value: unknown) { return String(value || '').slice(0, 7) }
 // A continuous 12-month axis ending this month: months without positives
 // count as 0 instead of disappearing (which made the trend look flat).
-function lastTwelveMonths(counts, now = new Date()) {
+function lastTwelveMonths(counts: Record<string, number>, now = new Date()) {
   return Array.from({ length: 12 }, (_, index) => {
     const date = new Date(now.getFullYear(), now.getMonth() - 11 + index, 1)
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    return [key, counts[key] || 0]
+    return [key, counts[key] || 0] as [string, number]
   })
 }
 
@@ -65,22 +67,22 @@ function lastTwelveMonths(counts, now = new Date()) {
 // activity (sample counts) still includes them.
 const laboratorySamples = allLaboratorySamples.filter(sample => sample.subjectType !== 'environment')
 
-export function collectAmrSusceptibility(samples = laboratorySamples) {
+export function collectAmrSusceptibility(samples: AnyRecord[] = laboratorySamples) {
   const validated = samples.filter(x => x.organism && ['validated', 'amended'].includes(x.resultStatus))
     .sort((a, b) => String(a.collectedAt || '').localeCompare(String(b.collectedAt || '')) || String(a.id).localeCompare(String(b.id)))
   return Object.entries(ORGANISM_PATTERNS)
     .map(([key, pattern]) => {
-      const seen = new Set()
-      const tested = []
+      const seen = new Set<string>()
+      const tested: AnyRecord[] = []
       for (const isolate of validated.filter(x => String(x.organism).toLowerCase().includes(pattern))) {
-        const reference = (isolate.ast || []).filter(row => String(row.drug || '').toLowerCase().includes(REFERENCE_ANTIBIOTIC[key]))
+        const reference = (isolate.ast || []).filter((row: AnyRecord) => String(row.drug || '').toLowerCase().includes(REFERENCE_ANTIBIOTIC[key]))
         if (!reference.length) continue
         const patientKey = `${isolate.patientId || `sample:${isolate.id}`}|${String(isolate.collectedAt || '').slice(0, 4)}`
         if (seen.has(patientKey)) continue
         seen.add(patientKey)
         tested.push(...reference)
       }
-      return [ORGANISM_LABELS[key], tested.length, tested.filter(row => row.sir === 'R').length]
+      return [ORGANISM_LABELS[key], tested.length, tested.filter(row => row.sir === 'R').length] as [string, number, number]
     })
     .filter(([, tested]) => tested > 0)
     .sort((a, b) => b[1] - a[1])
@@ -97,8 +99,8 @@ export function collectAmrSusceptibility(samples = laboratorySamples) {
 // computes for production's nationalRows, which is the actual "which microbe,
 // in which department, from which specimen" line list the National
 // surveillance tab is meant to show.
-function collectNationalRows(positive) {
-  const grouped = new Map()
+function collectNationalRows(positive: AnyRecord[]) {
+  const grouped = new Map<string, { organism: string; resistanceClass: string; department: string; source: string; sampleType: string; count: number; lastDate: string }>()
   for (const row of positive) {
     const key = [row.organism?.trim() || '—', row.resistance || '—', row.department, row.source, row.type].join('|||')
     const current = grouped.get(key) || { organism: row.organism?.trim() || '—', resistanceClass: row.resistance || '—', department: row.department, source: row.source, sampleType: row.type, count: 0, lastDate: '' }
@@ -112,24 +114,24 @@ function collectNationalRows(positive) {
 
 // The months a monthly series covers: the selected range up to the current
 // month, or the last twelve months when no range is given.
-function rangeMonths(counts, range) {
+function rangeMonths(counts: Record<string, number>, range: DateRange | null) {
   if (!range?.from) return lastTwelveMonths(counts)
   const now = new Date()
   const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const end = [String(range.to || current).slice(0, 7), current].sort()[0]
-  const out = []
+  const out: [string, number][] = []
   for (let [y, m] = String(range.from).slice(0, 7).split('-').map(Number); `${y}-${String(m).padStart(2, '0')}` <= end; m === 12 ? (y++, (m = 1)) : m++) {
     const key = `${y}-${String(m).padStart(2, '0')}`
     out.push([key, counts[key] || 0])
   }
   return out
 }
-const inSampleRange = (sample, range) => {
+const inSampleRange = (sample: AnyRecord, range: DateRange | null) => {
   const date = String(sample.resultedAt || sample.collectedAt || '').slice(0, 10)
-  return !range?.from || !date || (date >= range.from && (!range.to || date <= range.to))
+  return !range?.from || !date || (date >= range.from! && (!range.to || date <= range.to))
 }
 
-function collectMicrobiology(range) {
+function collectMicrobiology(range: DateRange | null) {
   const positive = laboratorySamples.filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus) && inSampleRange(x, range))
   const departments = preventionDepartments.map(d => ({ id: d.id, name: d.el }))
   return {
@@ -158,7 +160,7 @@ function collectMicrobiology(range) {
 // therapy's own `administrations` array with a `status`, matching
 // platform_report_summary's own `status='administered'` filter.
 function collectAntimicrobialSummary() {
-  const therapies = Object.values(clinicalCases).flatMap(record => record.therapy || [])
+  const therapies: AnyRecord[] = Object.values(clinicalCases as Record<string, AnyRecord>).flatMap(record => record.therapy || [])
   const pending = therapies.filter(x => x.approvalStatus === 'pending' || x.approved === false).length
   const administrations = therapies.flatMap(x => x.administrations || []).filter(a => a.status === 'administered').length
   return { total: therapies.length, pending, administrations }
@@ -167,21 +169,21 @@ function collectAntimicrobialSummary() {
 // The dashboard tiles counted the same way as dashboardCloudService.js does for a
 // real hospital: today, the last 30 days and the next 30 days.
 function collectDashboardCounts(now = new Date()) {
-  const day = offset => { const d = new Date(now); d.setDate(d.getDate() + offset); return hospitalDate(d) }
+  const day = (offset: number) => { const d = new Date(now); d.setDate(d.getDate() + offset); return hospitalDate(d) }
   const today = day(0), monthAgo = day(-30), soon = day(30)
-  const openStatus = status => !['closed', 'completed', 'cancelled'].includes(status)
+  const openStatus = (status: string) => !['closed', 'completed', 'cancelled'].includes(status)
   return {
-    ohVisitsToday: loadOccupationalVisits().filter(visit => String(visit.date || '').slice(0, 10) === today).length,
+    ohVisitsToday: loadOccupationalVisits().filter((visit: AnyRecord) => String(visit.date || '').slice(0, 10) === today).length,
     // a vaccination the Demo already marks for renewal counts too, as the employee record shows it
     vaccinationsDue: employeeVaccinations.filter(item => item.status === 'renewSoon' || (item.validUntil && item.validUntil >= today && item.validUntil <= soon)).length,
-    newSamplesToday: allLaboratorySamples.filter(sample => String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === today).length,
+    newSamplesToday: (allLaboratorySamples as AnyRecord[]).filter(sample => String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === today).length,
     newEmployees30d: employeeRows.filter(employee => employee.hireDate && employee.hireDate >= monthAgo).length,
-    severeOpenIncidents: loadQualityLocal('incidents').filter(incident => incident.severity === 'high' && openStatus(incident.status)).length,
+    severeOpenIncidents: loadQualityLocal('incidents').filter((incident: AnyRecord) => incident.severity === 'high' && openStatus(incident.status)).length,
   }
 }
 
 // `range` ({from,to}) narrows the microbiology to the Analysis period.
-export function collectAnalysisDemoSnapshot({ range = null } = {}) {
+export function collectAnalysisDemoSnapshot({ range = null }: { range?: DateRange | null } = {}) {
   const training = loadTrainingState()
   const handHygieneRows = loadHandHygieneLocal()
   const wasteRows = loadWasteLocal()
