@@ -5,6 +5,7 @@ import { Meter } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
 import { subActionProgress } from './qualityDeviations'
 import { EFFECTIVENESS, qualityCode, qualityStatusTone, vocabularyLabel } from './qualityVocabulary'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The flow of an incident beside its details: reported → assessment → CAPA →
 // effectiveness → closed (qualityRecordRules.incidentFlow). A step opens the
@@ -20,10 +21,10 @@ const STEPS = {
 // A deviation (finding) goes through the same steps; only some words differ.
 const FINDING_REPORTED = ['Εντοπίστηκε', 'Found']
 
-const isDone = capa => ['closed', 'completed', 'cancelled'].includes(capa.status)
+const isDone = (capa: AnyRecord) => ['closed', 'completed', 'cancelled'].includes(capa.status)
 
 // What a step says under its name.
-function stepNote(id, status, { record, capas, language, t, kind = 'incident' }) {
+function stepNote(id: string, status: string, { record, capas, language, t, kind = 'incident' }: AnyRecord) {
   const en = language === 'en'
   if (kind === 'finding') {
     if (status === 'skipped') return en ? 'Not needed' : 'Δεν χρειάστηκε'
@@ -45,8 +46,8 @@ function stepNote(id, status, { record, capas, language, t, kind = 'incident' })
 }
 
 // The next step for whoever manages Quality: its label and what it opens.
-export function nextIncidentStep(steps, { record, capas, en, kind = 'incident' }) {
-  const current = steps.find(step => step.status === 'current')?.id
+export function nextIncidentStep(steps: AnyRecord[], { record, capas, en, kind = 'incident' }: AnyRecord) {
+  const current = steps.find((step: number) => step.status === 'current')?.id
   if (!current || record.status === 'closed') return null
   if (kind === 'finding') {
     if (current === 'assessment') return { id: 'assess', label: en ? 'Assess the deviation' : 'Αξιολόγηση απόκλισης' }
@@ -60,7 +61,7 @@ export function nextIncidentStep(steps, { record, capas, en, kind = 'incident' }
   return { id: 'close', label: en ? 'Close the incident' : 'Κλείσιμο συμβάντος' }
 }
 
-export function IncidentFlowPanel({ steps = [], record, capas = [], language = 'el', t, activeTab, canAct = false, kind = 'incident', onSelect, onStep, onOpenCapa }) {
+export function IncidentFlowPanel({ steps = [], record, capas = [], language = 'el', t, activeTab, canAct = false, kind = 'incident', onSelect, onStep, onOpenCapa }: { steps?: AnyRecord[], record: AnyRecord, capas?: AnyRecord[], language?: string, t: (key: string) => string, activeTab: string, canAct?: boolean, kind?: string, onSelect: (id: string) => void, onStep: (next: AnyRecord) => void, onOpenCapa: (capa: AnyRecord) => void }) {
   const en = language === 'en'
   const next = canAct ? nextIncidentStep(steps, { record, capas, en, kind }) : null
   return (

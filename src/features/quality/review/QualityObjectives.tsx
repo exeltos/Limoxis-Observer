@@ -28,8 +28,8 @@ export function useObjectives(organizationId: string | null | undefined, { enabl
   const [objectives, setObjectives] = useState<AnyRecord[]>([])
   const [registers, setRegisters] = useState<AnyRecord[]>([])
   const [definitions, setDefinitions] = useState<AnyRecord[]>([])
-  const [values, setValues] = useState<string[]>([])
-  const [levels, setLevels] = useState({ departments: [], committees: [] })
+  const [values, setValues] = useState<AnyRecord[]>([])
+  const [levels, setLevels] = useState<{ departments: AnyRecord[], committees: AnyRecord[] }>({ departments: [], committees: [] })
   const [committeeTargets, setCommitteeTargets] = useState<AnyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -45,16 +45,16 @@ export function useObjectives(organizationId: string | null | undefined, { enabl
       setLevels(names)
       setCommitteeTargets(plans)
       // The registers the objectives read, together; the platform's indicators once per year.
-      const linked = [...new Set(rows.map((row: AnyRecord) => row.registerId).filter(Boolean))].map(id => allRegisters.find(item => item.id === id)).filter(Boolean)
-      const entriesBy = new Map(await Promise.all(linked.map(async register => [register.id, await loadEntries(organizationId, register.id, { register }).catch(() => [])])))
-      const platformYears = [...new Set(rows.filter((row: AnyRecord) => !row.registerId && row.platformIndicatorKey).map((row: AnyRecord) => Number(row.year)))]
+      const linked = [...new Set(rows.map((row: AnyRecord) => row.registerId).filter(Boolean))].map(id => allRegisters.find(item => item.id === id)).filter(Boolean) as AnyRecord[]
+      const entriesBy = new Map(await Promise.all(linked.map(async register => [register.id, await loadEntries(organizationId, register.id, { register }).catch(() => [])] as [string, AnyRecord[]])))
+      const platformYears = [...new Set<number>(rows.filter((row: AnyRecord) => !row.registerId && row.platformIndicatorKey).map((row: AnyRecord) => Number(row.year)))]
       const platform = await platformValuesForYears(organizationId, allDefinitions, platformYears)
       setObjectives(rows.map((objective: AnyRecord) => {
         const register = allRegisters.find(item => item.id === objective.registerId)
         const indicator = register?.indicators.find(item => item.id === objective.indicatorKey)
         const platformIndicator = !register && objective.platformIndicatorKey ? allDefinitions.find(def => def.id === objective.platformIndicatorKey) || null : null
         const months = allValues.filter((row: AnyRecord) => row.objectiveId === objective.id && row.month.startsWith(`${objective.year}-`)).sort((a: AnyRecord, b: AnyRecord) => a.month.localeCompare(b.month))
-        const value = indicator ? computeIndicator(register, indicator, entriesBy.get(register.id) || [], periodOf('year', `${objective.year}-06-01`)).value
+        const value = indicator ? computeIndicator(register as AnyRecord, indicator, entriesBy.get((register as AnyRecord).id) || [], periodOf('year', `${objective.year}-06-01`)).value
           : platformIndicator ? platform.get(Number(objective.year))?.get(platformIndicator.id) ?? null
             : months.length ? monthlyMean(months) : toNumber(objective.reportedValue)
         // Without a target of its own, a linked objective takes the target set in the indicator's definition.
@@ -104,7 +104,7 @@ export function useReviews(organizationId: string | null | undefined) {
   return { reviews, loading }
 }
 
-export const objectiveStateLabel = (state, en: boolean) => (en ? { met: 'Met', missed: 'Not met', pending: 'Not measured yet' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Δεν μετριέται ακόμα' })[state]
+export const objectiveStateLabel = (state: string, en: boolean) => (en ? { met: 'Met', missed: 'Not met', pending: 'Not measured yet' } as Record<string, string> : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Δεν μετριέται ακόμα' } as Record<string, string>)[state]
 // How close the value is to the target (100 = met): value / target when more is
 // better, target / value when less is better.
 export function targetReach(objective: AnyRecord) {
@@ -113,7 +113,7 @@ export function targetReach(objective: AnyRecord) {
   if (objective.direction === 'lower') return value <= target ? 100 : target <= 0 ? 0 : (target / value) * 100
   return target <= 0 ? 100 : Math.min(100, (value / target) * 100)
 }
-const objectiveStateTone = state => ({ met: 'success', missed: 'danger' })[state] || 'info'
+const objectiveStateTone = (state: string) => ({ met: 'success', missed: 'danger' } as Record<string, string>)[state] || 'info'
 
 export const objectiveTitle = (objective: AnyRecord, language: string) => (language === 'en' && objective.titleEn) || objective.title
 
@@ -139,7 +139,7 @@ export function reviewsExport(rows: AnyRecord[], language: string) {
 
 // The year's objectives with their value today (Indicators & objectives › Objectives): the hospital's, the departments'
 // and the committees' (those of the committees' annual plans open the committee).
-export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen }) {
+export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen }: { rows: AnyRecord[], loading: boolean, error?: boolean, onRetry: () => Promise<void>, onOpen: (objective: AnyRecord) => void }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const plan = (row: AnyRecord) => row.kind === 'plan'
@@ -164,13 +164,13 @@ export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen 
       <td><strong>{row.title}</strong><small>{row.committeeName} · {en ? 'annual plan' : 'ετήσιο σχέδιο'}</small></td>
       <td>{row.indicator || '—'}<small>{en ? 'Committee' : 'Επιτροπή'}</small></td>
       <td><strong>{row.target || '—'}</strong>{row.baseline ? <small>{en ? 'from' : 'από'} {row.baseline}</small> : null}</td>
-      <td>{roleTitleText(row.ownerLabel, language) || '—'}<small>{formatDay(row.dueDate, language)}</small></td>
+      <td>{String(roleTitleText(row.ownerLabel, language) || '—')}<small>{formatDay(row.dueDate, language)}</small></td>
       <td><StatusBadge tone={row.status === 'completed' ? 'success' : row.status === 'cancelled' ? 'neutral' : 'info'}>{planStatusLabel(row.status, en)}</StatusBadge></td>
     </> : <>
       <td><strong>{objectiveTitle(row, language)}</strong><small>{objectiveLevelText(row, language)} · {row.code}</small></td>
       <td>{objectiveMeasureText(row, language)}<small>{objectiveMeasureSource(row, language)}</small></td>
       <td><strong>{objectiveValueText(row.current.value, row.unit, language)}</strong><small>{row.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(row.target, row.unit, language)}</small><Meter value={targetReach(row)} tone={objectiveStateTone(row.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
-      <td>{roleTitleText(row.ownerLabel, language) || '—'}<small>{formatDay(row.dueDate, language)}</small></td>
+      <td>{String(roleTitleText(row.ownerLabel, language) || '—')}<small>{formatDay(row.dueDate, language)}</small></td>
       <td><StatusBadge tone={objectiveStateTone(row.current.status)}>{objectiveStateLabel(row.current.status, en)}</StatusBadge></td>
     </>}
     emptyTitle={!loading && !rows.length ? (en ? 'No objectives' : 'Δεν υπάρχουν στόχοι') : ''} emptyText={en ? 'Set the year’s objectives of the hospital, the departments and the committees.' : 'Ορίστε τους στόχους του έτους για το νοσοκομείο, τα τμήματα και τις επιτροπές.'} />
@@ -178,7 +178,7 @@ export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen 
 }
 
 // The management reviews (ISO 9001 §9.3).
-export function ReviewsTable({ rows, loading, onOpen }) {
+export function ReviewsTable({ rows, loading, onOpen }: { rows: AnyRecord[], loading: boolean, onOpen: (review: AnyRecord) => void }) {
   const { language } = useLanguage()
   const en = language === 'en'
   return <RegistryTable className="quality-table" rows={rows} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'actions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'next', label: en ? 'Next review' : 'Επόμενη' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
@@ -196,7 +196,7 @@ export function ReviewsTable({ rows, loading, onOpen }) {
 
 // The objectives as bars, for the review's «Achievement of objectives»: each
 // one's value against its target, read in a line.
-export function ObjectiveBars({ objectives }) {
+export function ObjectiveBars({ objectives }: { objectives: AnyRecord[] }) {
   const { language } = useLanguage()
   const en = language === 'en'
   if (!objectives.length) return null
@@ -210,7 +210,7 @@ export function ObjectiveBars({ objectives }) {
 
 // The target set in the definition of the indicator an objective is linked to (null when none): the register's indicator
 // or the platform's.
-export function linkedTarget(registers: AnyRecord[], objective: AnyRecord, definitions = []) {
+export function linkedTarget(registers: AnyRecord[], objective: AnyRecord, definitions: AnyRecord[] = []) {
   const indicator = objective.registerId ? registers.find((item: AnyRecord) => item.id === objective.registerId)?.indicators.find((item: AnyRecord) => item.id === objective.indicatorKey) : objective.platformIndicatorKey ? definitions.find(item => item.id === objective.platformIndicatorKey) : null
   return indicator && indicator.target != null && indicator.target !== '' ? Number(indicator.target) : null
 }
@@ -219,7 +219,7 @@ export const newObjective = () => ({ year: new Date().getFullYear(), level: 'hos
 
 // The fields of an objective, shared by the new-objective page and the edit page: where it sits (the hospital,
 // a department or a committee) and how it is measured (a register's indicator, a platform indicator or a value per month).
-export function ObjectiveFields({ objective, set, registers, definitions = [], levels = { departments: [], committees: [] } }) {
+export function ObjectiveFields({ objective, set, registers, definitions = [], levels = { departments: [], committees: [] } }: { objective: AnyRecord, set: (patch: AnyRecord) => void, registers: AnyRecord[], definitions?: AnyRecord[], levels?: AnyRecord }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const level = objective.level || objectiveLevel(objective)
@@ -228,7 +228,7 @@ export function ObjectiveFields({ objective, set, registers, definitions = [], l
   const indicatorOptions = useMemo(() => (register?.indicators || []).map((item: AnyRecord) => ({ value: item.id, label: textOf(item, language) })), [register, language])
   const definitionOptions = useMemo(() => definitions.map(def => ({ value: def.id, label: en ? def.titleEn || def.titleEl : def.titleEl, description: def.unit || '' })), [definitions, en])
   const indicatorTarget = linkedTarget(registers, objective, definitions)
-  const setMeasure = value => set(value === 'register' ? { measure: value, platformIndicatorKey: '' } : value === 'indicator' ? { measure: value, registerId: '', indicatorKey: '' } : { measure: value, registerId: '', indicatorKey: '', platformIndicatorKey: '' })
+  const setMeasure = (value: string) => set(value === 'register' ? { measure: value, platformIndicatorKey: '' } : value === 'indicator' ? { measure: value, registerId: '', indicatorKey: '' } : { measure: value, registerId: '', indicatorKey: '', platformIndicatorKey: '' })
   return <>
     <div className="lo-form-cards"><FormCard wide>
       <Field label={`${en ? 'Objective' : 'Στόχος'} *`}><input value={objective.title || ''} onChange={event => set({ title: event.target.value })} /></Field>

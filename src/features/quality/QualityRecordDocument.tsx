@@ -6,6 +6,7 @@ import { AFFECTS, odipyGroupOf, odipyItem, odipyLabel } from './odipyCategories'
 import { ISHIKAWA_CATEGORIES, normalizeAnalysis } from './rootCauseAnalysis'
 import { glanceItems } from './QualityGlance'
 import { incidentDetailFacts } from './incidentDetails'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const KIND = { incidents: ['Συμβάν', 'Incident'], findings: ['Εύρημα', 'Finding'], capas: ['Διορθωτική ενέργεια', 'Corrective action'], audits: ['Επιθεώρηση', 'Audit'] }
 const ANSWER = { yes: ['Ναι', 'Yes'], no: ['Όχι', 'No'], na: ['Δ/Ε', 'N/A'] }
@@ -14,12 +15,12 @@ const ANSWER = { yes: ['Ναι', 'Yes'], no: ['Όχι', 'No'], na: ['Δ/Ε', 'N/
 // stands, its details and texts, what follows it and its history. Rendered off
 // screen; its HTML is printed on the shared document layout (reportDocument),
 // which adds the hospital band, the signatures and the page footer.
-export function QualityRecordDocument({ recordType, record, linked = [], language, t: translate, documentRef }) {
+export function QualityRecordDocument({ recordType, record, linked = [], language, t: translate, documentRef }: { recordType: string, record: AnyRecord, linked?: AnyRecord[], language: string, t: (key: string) => string, documentRef: React.MutableRefObject<null> | null }) {
   // Missing values (no priority, an event without a name) read as «—», never as an error.
   const t = value => (value ? translate(value) : '—')
   const en = language === 'en'
-  const L = (el, enText) => (en ? enText : el)
-  const text = (el, enText) => (en ? enText || el : el) || ''
+  const L = (el: string, enText: string) => (en ? enText : el)
+  const text = (el: string, enText: string) => (en ? enText || el : el) || ''
   const day = value => formatDay(value, language) || '—'
   const { libraries } = useLibraries()
   const figures = glanceItems(recordType, record, { language, t, linked })
@@ -102,8 +103,8 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
       record.contributingFactors && `${L('Συνεισφέροντες παράγοντες', 'Contributing factors')}: ${text(record.contributingFactors, record.contributingFactorsEn)}`,
       record.notes,
     ].filter(Boolean).join('\n')
-    const block = (title, value, hint) => <section><h3>{title}</h3>{hint && <p className="quality-document-hint">{hint}</p>}{String(value || '—').split(/\n+/).filter(Boolean).map((line, index) => <p key={index}>{line}</p>)}</section>
-    const factList = list => <dl className="quality-document-details">{list.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
+    const block = (title: string, value, hint: number) => <section><h3>{title}</h3>{hint && <p className="quality-document-hint">{hint}</p>}{String(value || '—').split(/\n+/).filter(Boolean).map((line, index) => <p key={index}>{line}</p>)}</section>
+    const factList = (list: AnyRecord[]) => <dl className="quality-document-details">{list.map(([label, value]: AnyRecord) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
     return <div className="quality-record-document" ref={documentRef} aria-hidden="true">
       <p className="quality-document-eyebrow">{L('Αναφορά συμβάντος', 'Incident report')} · {qualityCode(record, language)}</p>
       <h1>{text(record.title, record.titleEn)}</h1>
@@ -131,26 +132,26 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
     {voided && <p className="quality-document-voided">{L('Ακυρώθηκε', 'Voided')} {formatDateTime(record.voidedAt, language)}{record.voidedBy ? ` · ${record.voidedBy}` : ''}{record.voidReason ? ` · ${L('Λόγος', 'Reason')}: ${record.voidReason}` : ''}</p>}
     {figures.length > 0 && <dl className="quality-document-figures">{figures.map(item => <div key={item.id}><dt>{item.label}</dt><dd>{item.value}{item.unit ? ` ${item.unit}` : ''}{item.note && <small>{item.note}</small>}</dd></div>)}</dl>}
     <h3>{L('Στοιχεία', 'Details')}</h3>
-    <dl className="quality-document-details">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
+    <dl className="quality-document-details">{details.map(([label, value]: AnyRecord) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
     {texts.map(([label, value]) => <section key={label}><h3>{label}</h3>{String(value).split(/\n+/).filter(Boolean).map((line, index) => <p key={index}>{line}</p>)}</section>)}
     {checklist.length > 0 && <>
       <h3>{L('Λίστα ελέγχου', 'Checklist')}</h3>
       <table><thead><tr><th>#</th><th>{L('Σημείο ελέγχου', 'Item')}</th><th>{L('Απάντηση', 'Answer')}</th><th>{L('Τι βρέθηκε', 'What was found')}</th><th>{L('Εύρημα', 'Finding')}</th></tr></thead>
-        <tbody>{checklist.map((row, index) => <tr key={row.id || index}><td>{index + 1}</td><td>{text(row.item, row.itemEn)}</td><td>{row.answer ? ANSWER[row.answer]?.[en ? 1 : 0] : '—'}</td><td>{row.note || ''}</td><td>{row.findingId || ''}</td></tr>)}</tbody></table>
+        <tbody>{checklist.map((row: AnyRecord, index: number) => <tr key={row.id || index}><td>{index + 1}</td><td>{text(row.item, row.itemEn)}</td><td>{row.answer ? ANSWER[row.answer]?.[en ? 1 : 0] : '—'}</td><td>{row.note || ''}</td><td>{row.findingId || ''}</td></tr>)}</tbody></table>
     </>}
     {steps.length > 0 && <>
       <h3>{L('Βήματα', 'Steps')}</h3>
       <table><thead><tr><th>{L('Βήμα', 'Step')}</th><th>{L('Υπεύθυνος', 'Owner')}</th><th>{L('Προθεσμία', 'Due')}</th><th>{L('Ολοκλήρωση', 'Done')}</th></tr></thead>
-        <tbody>{steps.map((step, index) => <tr key={step.id || index}><td>{step.title}</td><td>{step.owner || '—'}</td><td>{day(step.dueDate)}</td><td>{step.done ? `✓ ${formatDay(step.doneAt, language) || ''}` : '—'}</td></tr>)}</tbody></table>
+        <tbody>{steps.map((step: number, index: number) => <tr key={step.id || index}><td>{step.title}</td><td>{step.owner || '—'}</td><td>{day(step.dueDate)}</td><td>{step.done ? `✓ ${formatDay(step.doneAt, language) || ''}` : '—'}</td></tr>)}</tbody></table>
     </>}
     {progress.length > 0 && <>
       <h3>{L('Πρόοδος', 'Progress')}</h3>
-      <table><tbody>{progress.map((entry, index) => <tr key={entry.id || index}><td>{day(entry.date)}</td><td>{entry.note}</td><td>{entry.author || '—'}</td></tr>)}</tbody></table>
+      <table><tbody>{progress.map((entry: AnyRecord, index: number) => <tr key={entry.id || index}><td>{day(entry.date)}</td><td>{entry.note}</td><td>{entry.author || '—'}</td></tr>)}</tbody></table>
     </>}
     {analysis && (analysis.problem || analysis.rootCause || analysis.whys.some(Boolean) || ISHIKAWA_CATEGORIES.some(([key]) => analysis.causes[key].length)) && <>
       <h3>{L('Ανάλυση αιτιών', 'Root cause analysis')}</h3>
       {analysis.problem && <p><strong>{L('Πρόβλημα', 'Problem')}:</strong> {analysis.problem}</p>}
-      {analysis.whys.some(Boolean) && <ol>{analysis.whys.filter(Boolean).map((why, index) => <li key={index}>{why}</li>)}</ol>}
+      {analysis.whys.some(Boolean) && <ol>{analysis.whys.filter(Boolean).map((why, index: number) => <li key={index}>{why}</li>)}</ol>}
       {ISHIKAWA_CATEGORIES.some(([key]) => analysis.causes[key].length) && <p>{ISHIKAWA_CATEGORIES.filter(([key]) => analysis.causes[key].length).map(([key, el, enLabel]) => `${en ? enLabel : el}: ${analysis.causes[key].join(', ')}`).join(' · ')}</p>}
       {analysis.rootCause && <p><strong>{L('Βασική αιτία', 'Root cause')}:</strong> {analysis.rootCause}</p>}
     </>}

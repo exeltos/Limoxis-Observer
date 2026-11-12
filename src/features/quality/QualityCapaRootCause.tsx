@@ -1,3 +1,6 @@
+import type { AuditActor } from '../../core/audit/actor'
+import type { FeedbackContextValue } from '../../core/feedback/feedbackTypes'
+import type { Dispatch, SetStateAction } from 'react'
 import { useEffect,useMemo,useState } from 'react'
 import { Pencil,Plus,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -7,10 +10,11 @@ import { formatDateTime } from '../../core/i18n/formatDay'
 import { saveQualityRecord } from './qualityService'
 import { ISHIKAWA_CATEGORIES,WHY_COUNT,analysisProgress,cleanAnalysis,normalizeAnalysis } from './rootCauseAnalysis'
 import './rootCause.css'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // CAPA tab "Root causes": the problem, 5 Whys, and an Ishikawa diagram whose
 // head is the problem and whose bones are the healthcare cause categories.
-export function QualityCapaRootCause({record,setRecord,canManage,finalized,organizationId,actor,notify,language}){
+export function QualityCapaRootCause({record,setRecord,canManage,finalized,organizationId,actor,notify,language}: { record: AnyRecord, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }){
  const en=language==='en'
  const saved=useMemo(()=>normalizeAnalysis(record.rootCauseAnalysis),[record.rootCauseAnalysis])
  const [draft,setDraft]=useState(saved)
@@ -21,16 +25,16 @@ export function QualityCapaRootCause({record,setRecord,canManage,finalized,organ
  const editable=canManage&&!finalized
  const progress=analysisProgress(saved)
  const view=editing?draft:saved
- const label=row=>en?row[2]:row[1]
+ const label=(row: AnyRecord)=>en?row[2]:row[1]
 
- const setWhy=(index,value)=>setDraft(current=>({...current,whys:current.whys.map((w,i)=>i===index?value:w)}))
- function addCause(key){
+ const setWhy=(index: number,value)=>setDraft((current: AnyRecord)=>({...current,whys:current.whys.map((w,i: number)=>i===index?value:w)}))
+ function addCause(key: string){
   const text=String(newCause[key]||'').trim()
   if(!text)return
-  setDraft(current=>({...current,causes:{...current.causes,[key]:[...current.causes[key],text]}}))
+  setDraft((current: AnyRecord)=>({...current,causes:{...current.causes,[key]:[...current.causes[key],text]}}))
   setNewCause(current=>({...current,[key]:''}))
  }
- const removeCause=(key,index)=>setDraft(current=>({...current,causes:{...current.causes,[key]:current.causes[key].filter((_,i)=>i!==index)}}))
+ const removeCause=(key: string,index: number)=>setDraft((current: AnyRecord)=>({...current,causes:{...current.causes,[key]:current.causes[key].filter((_,i: number)=>i!==index)}}))
 
  async function save(){
   setSaving(true)
@@ -47,12 +51,12 @@ export function QualityCapaRootCause({record,setRecord,canManage,finalized,organ
   }finally{setSaving(false)}
  }
 
- const bone=row=>{
+ const bone=(row: AnyRecord)=>{
   const [key]=row
   const causes=view.causes[key]
   return <div key={key} className="rca-bone">
    <strong>{label(row)}</strong>
-   <ul>{causes.map((cause,index)=><li key={`${cause}-${index}`}>{cause}{editing&&<button type="button" aria-label={en?'Remove':'Αφαίρεση'} onClick={()=>removeCause(key,index)}><X size={12}/></button>}</li>)}{!causes.length&&!editing&&<li className="rca-empty">—</li>}</ul>
+   <ul>{causes.map((cause,index: number)=><li key={`${cause}-${index}`}>{cause}{editing&&<button type="button" aria-label={en?'Remove':'Αφαίρεση'} onClick={()=>removeCause(key,index)}><X size={12}/></button>}</li>)}{!causes.length&&!editing&&<li className="rca-empty">—</li>}</ul>
    {editing&&<div className="rca-add"><input value={newCause[key]||''} onChange={e=>setNewCause(current=>({...current,[key]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addCause(key)}}} placeholder={en?'Add a cause':'Προσθήκη αιτίας'}/><button type="button" aria-label={en?'Add':'Προσθήκη'} onClick={()=>addCause(key)}><Plus size={14}/></button></div>}
   </div>
  }

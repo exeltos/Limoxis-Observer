@@ -2,16 +2,17 @@
 import { qualityCode } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
 import { isDueSoonAction, isOpenRecord, isOverdueAction } from './QualityLists'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const dmy = value => (value ? String(value).slice(0, 10).split('-').reverse().join('/') : '')
-const mid = text => ({ text, align: 'center' })
+const dmy = (value: unknown) => (value ? String(value).slice(0, 10).split('-').reverse().join('/') : '')
+const mid = (text: string) => ({ text, align: 'center' })
 
-export function actionsReportDoc({ rows, groupBy = 'none', language = 'el', t = value => value, sourceLabel = value => value, period = '' }) {
+export function actionsReportDoc({ rows, groupBy = 'none', language = 'el', t = (value: string) => value, sourceLabel = (value: string) => value, period = '' }: AnyRecord) {
   const en = language === 'en'
-  const title = row => (en ? row.titleEn : row.title) || row.title || ''
-  const department = row => (en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα')
-  const owners = row => recordOwners(row).join(', ') || (en ? 'No owner' : 'Χωρίς υπεύθυνο')
-  const keyOf = { status: row => t(row.status), department, owner: owners, source: row => sourceLabel(row.sourceKind) }[groupBy]
+  const title = (row: AnyRecord) => (en ? row.titleEn : row.title) || row.title || ''
+  const department = (row: AnyRecord) => (en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα')
+  const owners = (row: AnyRecord) => recordOwners(row).join(', ') || (en ? 'No owner' : 'Χωρίς υπεύθυνο')
+  const keyOf = ({ status: (row: AnyRecord) => t(row.status), department, owner: owners, source: (row: AnyRecord) => sourceLabel(row.sourceKind) } as Record<string, (row: AnyRecord) => string>)[groupBy]
   const columns = [
     { text: en ? 'Code' : 'Κωδικός', width: '11%' },
     { text: en ? 'Action' : 'Ενέργεια', width: '29%' },
@@ -21,7 +22,7 @@ export function actionsReportDoc({ rows, groupBy = 'none', language = 'el', t = 
     { text: en ? 'Due' : 'Προθεσμία', width: '9%', align: 'center' },
     ...(groupBy === 'status' ? [] : [{ text: en ? 'Status' : 'Κατάσταση', width: '11%' }]),
   ]
-  const line = row => [
+  const line = (row: AnyRecord) => [
     qualityCode(row, language), title(row), [sourceLabel(row.sourceKind), row.sourceCode].filter(Boolean).join(' · '),
     ...(groupBy === 'department' ? [] : [department(row)]),
     ...(groupBy === 'owner' ? [] : [recordOwners(row).join(', ')]),

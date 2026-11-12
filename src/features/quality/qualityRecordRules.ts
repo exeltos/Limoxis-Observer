@@ -2,51 +2,52 @@
 // when it counts as finalized, its responsible people, and the checks on save.
 import { subActionProgress } from './qualityDeviations'
 import { isSentinelHarm } from './qualityVocabulary'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const STATUSES = {
+const STATUSES: Record<string, string[]> = {
   incidents: ['reported', 'underReview', 'closed'],
   findings: ['open', 'inProgress', 'closed'],
   capas: ['open', 'inProgress', 'verification', 'closed'],
 }
 const AUDIT_STATUSES = ['planned', 'inProgress', 'completed', 'cancelled']
 
-export function statusOptions(recordType) {
+export function statusOptions(recordType: string) {
   return STATUSES[recordType] || AUDIT_STATUSES
 }
 
 // A closed, completed or cancelled record is only changed through a governed
 // correction with a reason.
-export function isFinalizedQualityRecord(record) {
+export function isFinalizedQualityRecord(record: AnyRecord) {
   return Boolean(record && ['closed', 'completed', 'cancelled'].includes(record.status))
 }
 
 // Responsible people: the `owners` list, or the single legacy `owner`.
-export function recordOwners(record) {
+export function recordOwners(record: AnyRecord) {
   return record.owners?.length ? record.owners : [record.owner].filter(Boolean)
 }
 
-export function withOwnerAdded(record, name) {
+export function withOwnerAdded(record: AnyRecord, name: string) {
   const value = String(name || '').trim()
   if (!value) return record
   return { ...record, owner: '', owners: [...new Set([...recordOwners(record), value])] }
 }
 
-export function withOwnerRemoved(record, name) {
-  return { ...record, owners: recordOwners(record).filter(owner => owner !== name), owner: '' }
+export function withOwnerRemoved(record: AnyRecord, name: string) {
+  return { ...record, owners: recordOwners(record).filter((owner: string) => owner !== name), owner: '' }
 }
 
 // Open steps that stop a CAPA from moving to verification or closing. Zero
 // when the CAPA is already there, or the record is not a CAPA.
-export function openStepsBlockingCapa(recordType, draft, saved) {
+export function openStepsBlockingCapa(recordType: string, draft: AnyRecord, saved: AnyRecord) {
   if (recordType !== 'capas') return 0
-  const finishing = status => ['verification', 'closed'].includes(status)
+  const finishing = (status: string) => ['verification', 'closed'].includes(status)
   if (!finishing(draft.status) || finishing(saved.status)) return 0
   return subActionProgress(draft.subActions || []).open
 }
 
 // An incident's class sets whether it reached the patient and caused harm. A
 // harmful incident cannot keep impact 'none'; any other class has no impact.
-export function withIncidentClass(record, incidentClass) {
+export function withIncidentClass(record: AnyRecord, incidentClass: string) {
   const harmful = incidentClass === 'harmful'
   return {
     ...record,
@@ -60,7 +61,7 @@ export function withIncidentClass(record, incidentClass) {
 
 // The harm level of an incident. Death or severe harm makes it a sentinel
 // event; a sentinel marked by hand stays one when the harm is lowered.
-export function withHarm(record, impact) {
+export function withHarm(record: AnyRecord, impact: string) {
   const manual = Boolean(record.sentinel) && !isSentinelHarm(record.impact)
   return { ...record, impact, sentinel: isSentinelHarm(impact) || manual }
 }
@@ -68,7 +69,7 @@ export function withHarm(record, impact) {
 // Where an incident stands in its flow (ISO 9001 §10.2): reported → assessed →
 // CAPA → CAPA effective → closed. A closed incident without a CAPA did not
 // need one. Each step is done, current, skipped or todo.
-export function incidentFlow(record, capas = []) {
+export function incidentFlow(record: AnyRecord, capas: AnyRecord[] = []) {
   const linked = capas.filter(capa => capa.lifecycleStatus !== 'voided')
   const closed = record?.status === 'closed'
   const assessed = closed || record?.status === 'underReview'
@@ -94,7 +95,7 @@ export function incidentFlow(record, capas = []) {
 // assessment → CAPA → effectiveness → closed. The assessment is where Quality
 // decides whether a corrective action is needed at all: «no» (with its reason)
 // skips the CAPA and its effectiveness check.
-export function findingFlow(record, capas = []) {
+export function findingFlow(record: AnyRecord, capas: AnyRecord[] = []) {
   const linked = capas.filter(capa => capa.lifecycleStatus !== 'voided')
   const closed = record?.status === 'closed'
   const noAction = record?.correctiveActionNeeded === false && linked.length === 0
@@ -118,7 +119,7 @@ export function findingFlow(record, capas = []) {
 }
 
 // A deviation waits for an action when it is open, has no CAPA and nobody decided that none is needed.
-export const findingNeedsAction = (record, capas = []) =>
+export const findingNeedsAction = (record: AnyRecord, capas: AnyRecord[] = []) =>
   record?.status !== 'closed' && record?.correctiveActionNeeded !== false && !capas.some(capa => capa.lifecycleStatus !== 'voided')
 
 // Where an open incident waits, read from its flow: to be assessed, under
@@ -127,7 +128,7 @@ export const findingNeedsAction = (record, capas = []) =>
 export const INCIDENT_STAGES = ['toAssess', 'investigating', 'action', 'effectiveness', 'toClose', 'closed']
 
 // A voided report keeps its workflow status but stands outside the flow.
-export function incidentStage(record, capas = []) {
+export function incidentStage(record: AnyRecord, capas: AnyRecord[] = []) {
   if (record?.lifecycleStatus === 'voided') return 'voided'
   if (record?.status === 'closed') return 'closed'
   const current = incidentFlow(record, capas).find(step => step.status === 'current')?.id

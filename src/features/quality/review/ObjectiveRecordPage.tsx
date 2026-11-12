@@ -29,7 +29,7 @@ import '../quality.css'
 import { LinkedActions } from '../LinkedActions'
 import type { AnyRecord } from '../../../types/featureTypes'
 
-const tone=state=>({met:'success',missed:'danger'})[state]||'info'
+const tone=(state: AnyRecord)=>({met:'success',missed:'danger'})[state]||'info'
 
 // /quality/objectives/:objectiveId — one objective on its own page: where it stands today, what it is measured by, who owns it and by when.
 export function ObjectiveRecordPage(){

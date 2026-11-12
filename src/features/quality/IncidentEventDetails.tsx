@@ -7,33 +7,34 @@ import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { BED_RAILS, BLUE_CODE_INTERVENTIONS, BLUE_CODE_OUTCOMES, BODY_SITES, EVENT_TYPES, FALL_TYPES, FLOOR_CONDITIONS, INJURED_PERSON_TYPES, INJURY_CATEGORIES, INJURY_SUBCATEGORIES, OBSTETRIC_SUBCATEGORIES, SHARP_TOOLS, TOOL_STATES, TRANSFER_TARGETS, detailBlock, detailBlocks, detailOptions, employeeName, incidentDetailFacts } from './incidentDetails'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // The event type of an incident and the details it records (incidentDetails.js):
 // the form's fields, and what the record shows.
 
-const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
-const yesNoOptions = en => [{ value: 'yes', label: en ? 'Yes' : 'Ναι' }, { value: 'no', label: en ? 'No' : 'Όχι' }]
+const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
+const yesNoOptions = (en: boolean) => [{ value: 'yes', label: en ? 'Yes' : 'Ναι' }, { value: 'no', label: en ? 'No' : 'Όχι' }]
 const toYesNo = value => (value === true ? 'yes' : value === false ? 'no' : '')
 
-export function IncidentEventTypeField({ value, onChange, language }) {
+export function IncidentEventTypeField({ value, onChange, language }: { value: string, onChange: (...args: never[]) => unknown, language: string }) {
   const en = language === 'en'
   return <SearchableSelect label={en ? 'Event type' : 'Είδος συμβάντος'} value={value || ''} options={detailOptions(EVENT_TYPES, language)} onChange={next => onChange(next || '')} placeholder={en ? 'Optional' : 'Προαιρετικό'} {...selectText(en)} />
 }
 
 // The fields of the blocks the record's event type records; `onChange` gets the changed record.
-export function IncidentEventFields({ record, onChange, language }) {
+export function IncidentEventFields({ record, onChange, language }: { record: AnyRecord, onChange: (...args: never[]) => unknown, language: string }) {
   const en = language === 'en'
   const { data: employeeRows } = useEmployeesData()
   const employees = useMemo(() => (employeeRows || []).filter(item => item.employmentStatus !== 'inactive').map(item => ({ value: item.id, label: employeeName(item, language) })).filter(item => item.label), [employeeRows, language])
   const blocks = detailBlocks(record)
   if (!blocks.length) return null
-  const block = key => detailBlock(record, key)
-  const set = (key, patch) => onChange({ ...record, [key]: { ...block(key), ...patch } })
-  const choice = (key, field, label, list) => <ChoiceField label={label} value={block(key)[field]} options={detailOptions(list, language)} onChange={value => set(key, { [field]: value })} />
-  const select = (key, field, label, list) => <SearchableSelect label={label} value={block(key)[field] || ''} options={detailOptions(list, language)} onChange={value => set(key, { [field]: value || '' })} {...selectText(en)} />
-  const input = (key, field, label) => <Field label={label}><input value={block(key)[field] || ''} onChange={event => set(key, { [field]: event.target.value })} /></Field>
-  const area = (key, field, label) => <Field label={label}><textarea rows={2} value={block(key)[field] || ''} onChange={event => set(key, { [field]: event.target.value })} /></Field>
-  const yesNo = (key, field, label) => <ChoiceField label={label} value={toYesNo(block(key)[field])} options={yesNoOptions(en)} onChange={value => set(key, { [field]: value === 'yes' })} />
+  const block = (key: string) => detailBlock(record, key)
+  const set = (key: string, patch: AnyRecord) => onChange({ ...record, [key]: { ...block(key), ...patch } })
+  const choice = (key: string, field: string, label: string, list: AnyRecord[]) => <ChoiceField label={label} value={block(key)[field]} options={detailOptions(list, language)} onChange={value => set(key, { [field]: value })} />
+  const select = (key: string, field: string, label: string, list: AnyRecord[]) => <SearchableSelect label={label} value={block(key)[field] || ''} options={detailOptions(list, language)} onChange={value => set(key, { [field]: value || '' })} {...selectText(en)} />
+  const input = (key: string, field: string, label: string) => <Field label={label}><input value={block(key)[field] || ''} onChange={event => set(key, { [field]: event.target.value })} /></Field>
+  const area = (key: string, field: string, label: string) => <Field label={label}><textarea rows={2} value={block(key)[field] || ''} onChange={event => set(key, { [field]: event.target.value })} /></Field>
+  const yesNo = (key: string, field: string, label: string) => <ChoiceField label={label} value={toYesNo(block(key)[field])} options={yesNoOptions(en)} onChange={value => set(key, { [field]: value === 'yes' })} />
   const fall = block('fall')
   return <div className="quality-event-details">
     {blocks.includes('fall') && <>
@@ -80,7 +81,7 @@ export function IncidentEventFields({ record, onChange, language }) {
 }
 
 // What the record shows: the event type and the details filled in.
-export function IncidentEventSummary({ record, language }) {
+export function IncidentEventSummary({ record, language }: { record: AnyRecord, language: string }) {
   const { data: employeeRows } = useEmployeesData()
   const facts = incidentDetailFacts(record, language, employeeRows || [])
   return <RecordDetailsGrid className="quality-event-summary" fields={facts.map(([label, value]) => ({ label, value }))} />

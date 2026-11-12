@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react'
 import { useMemo,useState } from 'react'
 import { auditReadiness } from './audits/auditModel'
 import { standardShort } from './audits/auditStandards'
@@ -9,6 +10,8 @@ import { IMPACTS,INCIDENT_CLASSES,REPORT_KINDS,harmLevel,incidentCategoryLabel,q
 import './risk/riskAssessment.css'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { roleTitleText } from '../../core/i18n/roleTitles'
+import type { AnyRecord } from '../../types/featureTypes'
+import type { ReactNode } from 'react'
 
 // The first tab of the Quality Center, built like the risk assessment's
 // «Analysis»: what needs a decision first, what falls due next, then the
@@ -16,23 +19,23 @@ import { roleTitleText } from '../../core/i18n/roleTitles'
 
 const SOON_DAYS=30
 const FIRST=8
-const L=(en,el,enText)=>en?enText:el
-const titleOf=(row,en)=>(en?row.titleEn:row.title)||row.title||''
-const departmentOf=(row,en)=>(en?row.departmentEn:row.department)||row.department||''
+const L=(en: boolean,el: string,enText: string)=>en?enText:el
+const titleOf=(row: AnyRecord,en: boolean)=>(en?row.titleEn:row.title)||row.title||''
+const departmentOf=(row: AnyRecord,en: boolean)=>(en?row.departmentEn:row.department)||row.department||''
 
 // A short coloured figure in front of a list line: days late, days left, age.
-function Chip({value,unit,tone='neutral',title}){
+function Chip({value,unit,tone='neutral',title}: { value?: string, unit?: AnyRecord, tone?: AnyRecord, title?: string }){
  return <span className={`quality-chip is-${tone}`} title={title}><strong>{value}</strong>{unit&&<small>{unit}</small>}</span>
 }
 
-function AttentionList({items,empty,onOpen}){
+function AttentionList({items,empty,onOpen}: { items: AnyRecord[], empty: string, onOpen: (...args: never[]) => unknown }){
  if(!items.length)return <p className="risk-empty-note">{empty}</p>
- return <ol className="risk-list quality-attention-list">{items.map(item=><li key={item.key}><button type="button" onClick={()=>onOpen(item)}>
+ return <ol className="risk-list quality-attention-list">{items.map((item: AnyRecord)=><li key={item.key}><button type="button" onClick={()=>onOpen(item)}>
   <Chip {...item.chip}/><span><strong>{item.code} · {item.title}</strong><small>{item.meta.filter(Boolean).join(' · ')}</small></span>
  </button></li>)}</ol>
 }
 
-function Panel({title,caption,count,onAll,allLabel,children}){
+function Panel({title,caption,count,onAll,allLabel,children}: { title: string, caption: string, count: number, onAll?: (...args: never[]) => unknown, allLabel?: string, children: ReactNode }){
  return <section className="risk-panel quality-panel">
   <header><h3>{title}{count>0&&<span className="quality-panel-count">{count}</span>}</h3>{caption&&<small>{caption}</small>}</header>
   {children}
@@ -42,18 +45,18 @@ function Panel({title,caption,count,onAll,allLabel,children}){
 
 // Horizontal bars of a few groups, largest first; the value is written beside each bar.
 // A row can be picked (filters the other charts) and can carry the change from the previous period.
-function Delta({row,en}){
+function Delta({row,en}: { row: AnyRecord, en: boolean }){
  if(row.prev==null)return null
  const diff=row.value-row.prev
  return <small className={`quality-delta${diff>0?' is-up':diff<0?' is-down':''}`} title={L(en,`Προηγούμενη περίοδος: ${row.prev}`,`Previous period: ${row.prev}`)}>{diff>0?'▲ +':diff<0?'▼ −':'= '}{diff===0?0:Math.abs(diff)}</small>
 }
 // «Ομάδα · Κατηγορία» shows the category only (the group is the same for many rows and
 // pushed the category out of sight); the full name is in the row's tooltip.
-const shortLabel=label=>String(label||'').split(' · ').pop()
-function BarList({rows,empty,en,onPick,picked}){
- const max=Math.max(1,...rows.map(row=>Math.max(row.value,row.prev||0)))
+const shortLabel=(label: string)=>String(label||'').split(' · ').pop()
+function BarList({rows,empty,en,onPick,picked}: { rows: AnyRecord[] | null, empty: string, en: boolean, onPick?: Dispatch<SetStateAction<AnyRecord | null>>, picked?: AnyRecord | null }){
+ const max=Math.max(1,...rows.map((row: AnyRecord)=>Math.max(row.value,row.prev||0)))
  if(!rows.length)return <p className="risk-empty-note">{empty}</p>
- return <ul className="quality-bars">{rows.map(row=>{
+ return <ul className="quality-bars">{rows.map((row: AnyRecord)=>{
   const body=<>
    <span>{shortLabel(row.label)}</span><span className="quality-bar">{row.prev!=null&&<b style={{width:`${row.prev*100/max}%`}}/>}<i style={{width:`${row.value*100/max}%`}}/></span><strong>{row.value}</strong>{row.prev!=null?<Delta row={row} en={en}/>:<small>{row.share!=null?`${row.share}%`:''}</small>}
   </>
@@ -63,50 +66,50 @@ function BarList({rows,empty,en,onPick,picked}){
 }
 
 // Monthly columns, the current month last; each column shows its count and can be picked.
-function MonthColumns({months,en,picked,onPick}){
- const max=Math.max(1,...months.map(month=>Math.max(month.value,month.prev||0)))
+function MonthColumns({months,en,picked,onPick}: { months: AnyRecord, en: boolean, picked: AnyRecord[], onPick: (key: string) => void }){
+ const max=Math.max(1,...months.map((month: AnyRecord)=>Math.max(month.value,month.prev||0)))
  return <div className="quality-columns" style={{gridTemplateColumns:`repeat(${months.length},minmax(0,1fr))`}} role="group" aria-label={L(en,'Αναφορές ανά μήνα','Reports by month')}>
-  {months.map(month=><button type="button" key={month.key} className={`quality-column${picked.includes(month.key)?' is-picked':''}`} aria-pressed={picked.includes(month.key)} onClick={()=>onPick(month.key)}
+  {months.map((month: AnyRecord)=><button type="button" key={month.key} className={`quality-column${picked.includes(month.key)?' is-picked':''}`} aria-pressed={picked.includes(month.key)} onClick={()=>onPick(month.key)}
    title={`${month.label}: ${month.value}${month.prev!=null?` · ${L(en,'πριν','before')}: ${month.prev}`:''}`}>
    <small>{month.value||''}</small><span>{month.prev!=null&&<b style={{height:`${month.prev*100/max}%`}}/>}<i style={{height:`${month.value*100/max}%`}}/></span><em>{month.short}</em>
   </button>)}
  </div>
 }
 
-const monthKey=date=>String(date||'').slice(0,7)
-function lastMonths(count,locale){
+const monthKey=(date: string)=>String(date||'').slice(0,7)
+function lastMonths(count: number,locale){
  const now=new Date()
  return Array.from({length:count},(_,index)=>{
   const day=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-(count-1-index),1))
   return {key:day.toISOString().slice(0,7),short:day.toLocaleDateString(locale,{month:'short',timeZone:'UTC'}).replace('.',''),label:day.toLocaleDateString(locale,{month:'long',year:'numeric',timeZone:'UTC'})}
  })
 }
-function grouped(rows,keyOf,labelOf,limit=6,prevRows){
- const count=list=>{const counts=new Map();list.forEach(row=>{const key=keyOf(row);if(key)counts.set(key,(counts.get(key)||0)+1)});return counts}
+function grouped(rows: AnyRecord[],keyOf,labelOf,limit=6,prevRows){
+ const count=(list: AnyRecord[])=>{const counts=new Map();list.forEach((row: AnyRecord)=>{const key=keyOf(row);if(key)counts.set(key,(counts.get(key)||0)+1)});return counts}
  const counts=count(rows),before=prevRows&&count(prevRows)
  const total=rows.length
  return [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit).map(([key,value])=>({key,label:labelOf(key),value,share:total?Math.round(value*100/total):null,prev:before?(before.get(key)||0):undefined}))
 }
-const shiftMonth=(key,by)=>{const [y,m]=key.split('-').map(Number);return new Date(Date.UTC(y,m-1+by,1)).toISOString().slice(0,7)}
+const shiftMonth=(key: string,by)=>{const [y,m]=key.split('-').map(Number);return new Date(Date.UTC(y,m-1+by,1)).toISOString().slice(0,7)}
 const PERIODS=[3,6,12]
 
-export function QualityOverview({reports,capas,audits,findings=[],language,categories,onOpen,onGo,onMeetings}){
+export function QualityOverview({reports,capas,audits,findings=[],language,categories,onOpen,onGo,onMeetings}: { reports: AnyRecord, capas: AnyRecord[], audits: AnyRecord[], findings?: AnyRecord[], language: string, categories: AnyRecord, onOpen: (type: string, id: string) => void, onGo: (...args: never[]) => unknown, onMeetings: (...args: never[]) => unknown }){
  const en=language==='en'
  const locale=en?'en-GB':'el-GR'
  const data=useMemo(()=>{
-  const plural=(n,one,many,oneEn,manyEn)=>en?(n===1?oneEn:manyEn):(n===1?one:many)
-  const openReports=reports.filter(row=>!['closed','voided'].includes(row.stage))
+  const plural=(n: number,one: string,many: string,oneEn,manyEn)=>en?(n===1?oneEn:manyEn):(n===1?one:many)
+  const openReports=reports.filter((row: AnyRecord)=>!['closed','voided'].includes(row.stage))
   const openCapas=capas.filter(isOpenRecord)
-  const sentinel=openReports.filter(row=>row.sentinel).map(row=>{const days=daysUntil(row.record.rcaDueDate);return {key:`s:${row.id}`,type:'incidents',id:row.id,rank:-1000+(days??0),code:row.code,title:titleOf(row,en),
+  const sentinel=openReports.filter((row: AnyRecord)=>row.sentinel).map((row: AnyRecord)=>{const days=daysUntil(row.record.rcaDueDate);return {key:`s:${row.id}`,type:'incidents',id:row.id,rank:-1000+(days??0),code:row.code,title:titleOf(row,en),
    chip:days==null?{value:'RCA',tone:'danger'}:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger',title:L(en,'Ανάλυση ριζικής αιτίας εκπρόθεσμη','Root cause analysis overdue')}:{value:days,unit:L(en,'ημέρες για RCA','days to RCA'),tone:'danger'},
    meta:['Sentinel',departmentOf(row,en),stageLabel(row.stage,language)]}})
-  const overdue=openCapas.filter(row=>row.dueDate&&daysUntil(row.dueDate)<0).map(row=>{const late=-daysUntil(row.dueDate);return {key:`c:${row.id}`,type:'capas',id:row.id,rank:-late,code:qualityCode(row,language),title:titleOf(row,en),chip:{value:late,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'},meta:[L(en,'Εκπρόθεσμη διορθωτική ενέργεια','Overdue corrective action'),departmentOf(row,en),(row.owners?.length?row.owners:[row.owner]).filter(Boolean).map(name=>roleTitleText(name,language)).join(', ')]}})
-  const toAssess=openReports.filter(row=>row.stage==='toAssess'&&!row.sentinel).map(row=>{const age=Math.max(0,-(daysUntil(row.date)??0));return {key:`r:${row.id}`,type:'incidents',id:row.id,rank:1000-age,code:row.code,title:titleOf(row,en),chip:{value:age,unit:plural(age,'ημέρα','ημέρες','day','days'),tone:age>7?'warning':'neutral',title:L(en,'Από την αναφορά','Since reported')},meta:[L(en,'Προς αξιολόγηση','To assess'),vocabularyLabel(REPORT_KINDS,row.kind,language),departmentOf(row,en)]}})
+  const overdue=openCapas.filter((row: AnyRecord)=>row.dueDate&&daysUntil(row.dueDate)<0).map((row: AnyRecord)=>{const late=-daysUntil(row.dueDate);return {key:`c:${row.id}`,type:'capas',id:row.id,rank:-late,code:qualityCode(row,language),title:titleOf(row,en),chip:{value:late,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'},meta:[L(en,'Εκπρόθεσμη διορθωτική ενέργεια','Overdue corrective action'),departmentOf(row,en),(row.owners?.length?row.owners:[row.owner]).filter(Boolean).map((name: string)=>roleTitleText(name,language)).join(', ')]}})
+  const toAssess=openReports.filter((row: AnyRecord)=>row.stage==='toAssess'&&!row.sentinel).map((row: AnyRecord)=>{const age=Math.max(0,-(daysUntil(row.date)??0));return {key:`r:${row.id}`,type:'incidents',id:row.id,rank:1000-age,code:row.code,title:titleOf(row,en),chip:{value:age,unit:plural(age,'ημέρα','ημέρες','day','days'),tone:age>7?'warning':'neutral',title:L(en,'Από την αναφορά','Since reported')},meta:[L(en,'Προς αξιολόγηση','To assess'),vocabularyLabel(REPORT_KINDS,row.kind,language),departmentOf(row,en)]}})
   const decide=[...sentinel,...overdue,...toAssess].sort((a,b)=>a.rank-b.rank)
-  const dueSoon=openCapas.filter(row=>{const days=daysUntil(row.dueDate);return days!=null&&days>=0&&days<=SOON_DAYS}).sort((a,b)=>String(a.dueDate).localeCompare(String(b.dueDate))).map(row=>{const days=daysUntil(row.dueDate);return {key:`d:${row.id}`,type:'capas',id:row.id,days,kind:L(en,'Λήξη ενέργειας','Action due'),code:qualityCode(row,language),title:titleOf(row,en),chip:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.dueDate,language),departmentOf(row,en)]}})
+  const dueSoon=openCapas.filter((row: AnyRecord)=>{const days=daysUntil(row.dueDate);return days!=null&&days>=0&&days<=SOON_DAYS}).sort((a: AnyRecord,b: AnyRecord)=>String(a.dueDate).localeCompare(String(b.dueDate))).map((row: AnyRecord)=>{const days=daysUntil(row.dueDate);return {key:`d:${row.id}`,type:'capas',id:row.id,days,kind:L(en,'Λήξη ενέργειας','Action due'),code:qualityCode(row,language),title:titleOf(row,en),chip:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.dueDate,language),departmentOf(row,en)]}})
   // CAPAs whose effectiveness is to be checked: in verification, or due for the check and still pending.
-  const effectiveness=capas.filter(row=>row.lifecycleStatus!=='voided'&&(row.effectivenessStatus||'pending')==='pending'&&(row.effectivenessDue?daysUntil(row.effectivenessDue)<=SOON_DAYS:row.status==='verification')).map(row=>{const days=daysUntil(row.effectivenessDue);return {key:`e:${row.id}`,type:'capas',id:row.id,days:days??0,kind:L(en,'Έλεγχος αποτελεσματικότητας','Effectiveness check'),code:qualityCode(row,language),title:titleOf(row,en),chip:days==null?{value:'✓?',tone:'warning'}:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days,unit:plural(days,'ημέρα','ημέρες','day','days'),tone:'warning'},meta:[row.status==='verification'?L(en,'Σε επαλήθευση','In verification'):L(en,'Έλεγχος έως','Check by')+' '+formatDay(row.effectivenessDue,language),departmentOf(row,en)]}})
-  const auditsDue=audits.filter(row=>!['completed','cancelled'].includes(row.status)&&row.lifecycleStatus!=='voided'&&row.plannedDate&&daysUntil(row.plannedDate)<=SOON_DAYS).sort((a,b)=>String(a.plannedDate).localeCompare(String(b.plannedDate))).map(row=>{const days=daysUntil(row.plannedDate);return {key:`a:${row.id}`,type:'audits',id:row.id,days,kind:L(en,'Επιθεώρηση','Audit'),code:qualityCode(row,language),title:titleOf(row,en),chip:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.plannedDate,language),departmentOf(row,en),roleTitleText(row.leadAuditor,language)]}})
+  const effectiveness=capas.filter((row: AnyRecord)=>row.lifecycleStatus!=='voided'&&(row.effectivenessStatus||'pending')==='pending'&&(row.effectivenessDue?daysUntil(row.effectivenessDue)<=SOON_DAYS:row.status==='verification')).map((row: AnyRecord)=>{const days=daysUntil(row.effectivenessDue);return {key:`e:${row.id}`,type:'capas',id:row.id,days:days??0,kind:L(en,'Έλεγχος αποτελεσματικότητας','Effectiveness check'),code:qualityCode(row,language),title:titleOf(row,en),chip:days==null?{value:'✓?',tone:'warning'}:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days,unit:plural(days,'ημέρα','ημέρες','day','days'),tone:'warning'},meta:[row.status==='verification'?L(en,'Σε επαλήθευση','In verification'):L(en,'Έλεγχος έως','Check by')+' '+formatDay(row.effectivenessDue,language),departmentOf(row,en)]}})
+  const auditsDue=audits.filter((row: AnyRecord)=>!['completed','cancelled'].includes(row.status)&&row.lifecycleStatus!=='voided'&&row.plannedDate&&daysUntil(row.plannedDate)<=SOON_DAYS).sort((a: AnyRecord,b: AnyRecord)=>String(a.plannedDate).localeCompare(String(b.plannedDate))).map((row: AnyRecord)=>{const days=daysUntil(row.plannedDate);return {key:`a:${row.id}`,type:'audits',id:row.id,days,kind:L(en,'Επιθεώρηση','Audit'),code:qualityCode(row,language),title:titleOf(row,en),chip:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.plannedDate,language),departmentOf(row,en),roleTitleText(row.leadAuditor,language)]}})
 
   // Off-track objectives are not due in 30 days: the «Objectives not met» figure counts and opens them.
   const next=[...dueSoon,...effectiveness,...auditsDue].sort((a,b)=>(a.days??0)-(b.days??0)).map(item=>({...item,meta:[item.kind,...item.meta]}))
@@ -117,39 +120,39 @@ export function QualityOverview({reports,capas,audits,findings=[],language,categ
  // The reports by month and in groups: a period of 3, 6 or 12 months, optionally against the one before it.
  const [period,setPeriod]=useState(12)
  const [compare,setCompare]=useState(false)
- const [pickedMonths,setPickedMonths]=useState([])
- const [category,setCategory]=useState(null)
- const [department,setDepartment]=useState(null)
- const pickMonth=key=>setPickedMonths(list=>list.includes(key)?list.filter(item=>item!==key):[...list,key])
+ const [pickedMonths,setPickedMonths]=useState<AnyRecord[]>([])
+ const [category,setCategory]=useState<AnyRecord | null>(null)
+ const [department,setDepartment]=useState<AnyRecord | null>(null)
+ const pickMonth=(key: string)=>setPickedMonths(list=>list.includes(key)?list.filter(item=>item!==key):[...list,key])
  const changePeriod=value=>{setPeriod(value);setPickedMonths([])}
  const stats=useMemo(()=>{
   const all=lastMonths(period*2,locale)
   const months=all.slice(period),before=all.slice(0,period)
   const since=months[0].key,until=months[months.length-1].key
-  const base=reports.filter(row=>row.stage!=='voided')
-  const catOf=row=>row.category,depOf=row=>departmentOf(row,en)
-  const pass=(row,skip)=>(skip==='category'||!category||catOf(row)===category)&&(skip==='department'||!department||depOf(row)===department)
-  const inMonths=(row,keys)=>keys.includes(monthKey(row.date))
+  const base=reports.filter((row: AnyRecord)=>row.stage!=='voided')
+  const catOf=(row: AnyRecord)=>row.category,depOf=(row: AnyRecord)=>departmentOf(row,en)
+  const pass=(row: AnyRecord,skip)=>(skip==='category'||!category||catOf(row)===category)&&(skip==='department'||!department||depOf(row)===department)
+  const inMonths=(row: AnyRecord,keys: string[])=>keys.includes(monthKey(row.date))
   const chosen=pickedMonths.length?pickedMonths:months.map(month=>month.key)
   const chosenBefore=chosen.map(key=>shiftMonth(key,-period))
-  const rows=skip=>base.filter(row=>inMonths(row,chosen)&&pass(row,skip))
-  const prevRows=skip=>compare?base.filter(row=>inMonths(row,chosenBefore)&&pass(row,skip)):undefined
-  const monthRows=base.filter(row=>pass(row))
-  const monthCount=key=>monthRows.filter(row=>monthKey(row.date)===key).length
+  const rows=skip=>base.filter((row: AnyRecord)=>inMonths(row,chosen)&&pass(row,skip))
+  const prevRows=skip=>compare?base.filter((row: AnyRecord)=>inMonths(row,chosenBefore)&&pass(row,skip)):undefined
+  const monthRows=base.filter((row: AnyRecord)=>pass(row))
+  const monthCount=(key: string)=>monthRows.filter((row: AnyRecord)=>monthKey(row.date)===key).length
   const byMonth=months.map((month,index)=>({...month,value:monthCount(month.key),prev:compare?monthCount(before[index].key):undefined}))
   const current=rows()
-  const patientOf=list=>list?.filter(row=>['clinical','nonClinical'].includes(reportKindOf(row.record)))
+  const patientOf=(list: AnyRecord[])=>list?.filter((row: AnyRecord)=>['clinical','nonClinical'].includes(reportKindOf(row.record)))
   // Only incidents whose outcome was recorded (the ΟΔΙΠΥ form does not ask for it).
-  const patientIncidents=patientOf(current)?.filter(row=>row.record.incidentClass)
-  const outcomeOf=row=>row.record.incidentClass==='harmful'?harmLevel(row.record.impact):row.record.incidentClass||'nearMiss'
-  const outcomeLabel=key=>INCIDENT_CLASSES.some(item=>item.value===key)?vocabularyLabel(INCIDENT_CLASSES,key,language):`${L(en,'Βλάβη','Harm')}: ${vocabularyLabel(IMPACTS,key,language)}`
+  const patientIncidents=patientOf(current)?.filter((row: AnyRecord)=>row.record.incidentClass)
+  const outcomeOf=(row: AnyRecord)=>row.record.incidentClass==='harmful'?harmLevel(row.record.impact):row.record.incidentClass||'nearMiss'
+  const outcomeLabel=(key: string)=>INCIDENT_CLASSES.some(item=>item.value===key)?vocabularyLabel(INCIDENT_CLASSES,key,language):`${L(en,'Βλάβη','Harm')}: ${vocabularyLabel(IMPACTS,key,language)}`
   const ORDER=['nearMiss','noHarm','mild','moderate','severe','death']
   const total=current.length,totalBefore=compare?prevRows().length:null
   return {
    byMonth,total,totalBefore,since,until,
-   byCategory:grouped(rows('category'),catOf,key=>incidentCategoryLabel(key,categories,language),6,prevRows('category')),
-   byDepartment:grouped(rows('department'),depOf,key=>key,6,prevRows('department')),
-   byKind:grouped(current,row=>row.kind,key=>vocabularyLabel(REPORT_KINDS,key,language),4,prevRows()),
+   byCategory:grouped(rows('category'),catOf,(key: string)=>incidentCategoryLabel(key,categories,language),6,prevRows('category')),
+   byDepartment:grouped(rows('department'),depOf,(key: string)=>key,6,prevRows('department')),
+   byKind:grouped(current,(row: AnyRecord)=>row.kind,(key: string)=>vocabularyLabel(REPORT_KINDS,key,language),4,prevRows()),
    byOutcome:grouped(patientIncidents,outcomeOf,outcomeLabel,ORDER.length,patientOf(prevRows())).sort((a,b)=>ORDER.indexOf(a.key)-ORDER.indexOf(b.key)),
    patient:patientIncidents.length,
    pickedLabels:chosen.length&&pickedMonths.length?months.filter(month=>pickedMonths.includes(month.key)).map(month=>month.label):[]
@@ -159,10 +162,10 @@ export function QualityOverview({reports,capas,audits,findings=[],language,categ
  const hasFilter=pickedMonths.length>0||category||department
  const clearFilters=()=>{setPickedMonths([]);setCategory(null);setDepartment(null)}
 
- const open=item=>onOpen(item.type,item.id)
+ const open=(item: AnyRecord)=>onOpen(item.type,item.id)
  const [allDecide,setAllDecide]=useState(false)
  const [allNext,setAllNext]=useState(false)
- const more=(count,shown,toggle)=>count>FIRST&&<button type="button" className="quality-panel-all" onClick={toggle}>{shown?L(en,'Λιγότερα','Less'):L(en,`Όλα (${count})`,`All (${count})`)}</button>
+ const more=(count: number,shown,toggle)=>count>FIRST&&<button type="button" className="quality-panel-all" onClick={toggle}>{shown?L(en,'Λιγότερα','Less'):L(en,`Όλα (${count})`,`All (${count})`)}</button>
  return <div className="risk-analysis quality-overview quality-dash">
   <div className="risk-two-columns risk-analysis-decide">
    <Panel title={L(en,'Θέλει απόφαση τώρα','Needs a decision now')} caption={L(en,'Συμβάντα-φρουροί, εκπρόθεσμες ενέργειες, αναφορές προς αξιολόγηση','Sentinel events, overdue actions, reports to assess')} count={data.decide.length}>

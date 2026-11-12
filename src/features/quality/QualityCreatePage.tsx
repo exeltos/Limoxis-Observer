@@ -31,6 +31,7 @@ import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { capaSourceInfo,sourceKindLabel } from './capaSources'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const config={findings:{icon:ShieldCheck,title:['Νέα απόκλιση','New deviation']},capas:{icon:CheckSquare2,title:'newCapa'},audits:{icon:ClipboardCheck,title:'newAudit'}}
 
@@ -45,24 +46,24 @@ export function QualityCreatePage(){
 const initialStatus={findings:'open',capas:'open',audits:'planned'}
 
 // What another screen (a pending deviation, risk, calendar or incident) hands to the form.
-function prefillFrom(source){
+function prefillFrom(source: AnyRecord){
   if(!source)return {}
   return Object.fromEntries(Object.entries({source:source.source,sourceId:source.sourceId,departmentId:source.departmentId,department:source.department,departmentEn:source.departmentEn,title:source.title,titleEn:source.title,description:source.description,descriptionEn:source.description,priority:source.priority,subActions:Array.isArray(source.subActions)?source.subActions:undefined,dueDate:source.dueDate,plannedDate:source.plannedDate}).filter(([,value])=>value!==undefined&&value!==null&&value!==''))
 }
 
-function QualityRecordCreate({recordType}){
+function QualityRecordCreate({recordType}: { recordType: string }){
   const location=useLocation();const {goBack}=useContextualNavigation('/quality');const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const {user,profile}=useAuth();const {role,membership,tenant,actualRole,isRolePreview}=useTenant();const c=config[recordType];const Icon=c.icon
   const pageTitle=Array.isArray(c.title)?c.title[en?1:0]:t(c.title)
   const [saving,setSaving]=useState(false)
   const pending=usePendingFiles(notify,en)
   const navigate=useNavigate()
   // The deviations and incidents an action can come from, to pick instead of typing a code.
-  const [origins,setOrigins]=useState([])
+  const [origins,setOrigins]=useState<AnyRecord[]>([])
   useEffect(()=>{
    if(recordType!=='capas'||!tenant?.id)return undefined
    let active=true
    Promise.all([loadQualityRecords('findings',tenant.id),loadQualityRecords('incidents',tenant.id)]).then(([findings,incidents])=>{
-    if(active)setOrigins([...findings.map(row=>({row,kind:'finding'})),...incidents.map(row=>({row,kind:'incident'}))])
+    if(active)setOrigins([...findings.map((row: AnyRecord)=>({row,kind:'finding'})),...incidents.map((row: AnyRecord)=>({row,kind:'incident'}))])
    }).catch(()=>{if(active)setOrigins([])})
    return()=>{active=false}
   },[recordType,tenant?.id])
@@ -94,7 +95,7 @@ function QualityRecordCreate({recordType}){
   if(recordType==='capas'&&created?.id)navigate(`/quality/capas/${created.id}`,{replace:true,state:{limoxisRestore:{tab:'steps'}}});else goBack()}catch(error){console.error(error);notify(en?'The quality record could not be saved.':'Δεν ήταν δυνατή η αποθήκευση της εγγραφής ποιότητας.','error')}finally{setSaving(false)}}
   if(!canManage)return <Navigate to="/quality" replace/>
   const sourceText={emptyLabel:en?'No match':'Δεν βρέθηκε',clearLabel:en?'Clear':'Καθαρισμός'}
-  const steps=draft.subActions?.length>0&&recordType==='capas'&&<FormCard wide icon={ListChecks} title={String(draft.sourceId||'').startsWith('TRAINING:')?(en?'Suggested steps':'Προτεινόμενα βήματα'):en?'Steps from the control’s actions on deviation':'Βήματα από τις ενέργειες σε απόκλιση του ελέγχου'} hint={en?'Assign owners and due dates in the Steps tab after saving.':'Υπεύθυνους και προθεσμίες ορίζετε στην καρτέλα «Βήματα» μετά την αποθήκευση.'}><ol className="quality-prefill-steps">{draft.subActions.map(step=><li key={step.id}>{step.title}</li>)}</ol></FormCard>
+  const steps=draft.subActions?.length>0&&recordType==='capas'&&<FormCard wide icon={ListChecks} title={String(draft.sourceId||'').startsWith('TRAINING:')?(en?'Suggested steps':'Προτεινόμενα βήματα'):en?'Steps from the control’s actions on deviation':'Βήματα από τις ενέργειες σε απόκλιση του ελέγχου'} hint={en?'Assign owners and due dates in the Steps tab after saving.':'Υπεύθυνους και προθεσμίες ορίζετε στην καρτέλα «Βήματα» μετά την αποθήκευση.'}><ol className="quality-prefill-steps">{draft.subActions.map((step: number)=><li key={step.id}>{step.title}</li>)}</ol></FormCard>
   return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={t('quality')} title={pageTitle} subtitle={t('qualityRecords.newQualityRecord')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
     <div className="record-section quality-create-form">{recordType==='audits'?<div className="lo-form-cards audit-plan-form">
       <AuditPlanFields draft={draft} setDraft={setDraft} templates={templates} competence={competence} language={language}/>
@@ -111,7 +112,7 @@ function QualityRecordCreate({recordType}){
         {recordType==='audits'&&<ChoiceField label={t('auditType')} value={draft.auditType} options={vocabularyOptions(AUDIT_TYPES,language)} onChange={v=>set('auditType',v)}/>}
       </FormCard>
       <FormCard title={recordType==='audits'?(en?'Planning':'Προγραμματισμός'):(en?'Responsibility':'Ευθύνη')} icon={UserCheck}>
-        {recordType==='audits'?<><QualityPersonField label={t('leadAuditor')} name={draft.leadAuditor} department={draft.department} onChange={({name,userId})=>patch({leadAuditor:name,leadAuditorId:userId})}/><ManualDateField label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)}/></>:<QualityOwnerField record={draft} onChange={patch}/>}
+        {recordType==='audits'?<><QualityPersonField label={t('leadAuditor')} name={draft.leadAuditor} department={draft.department} onChange={({name,userId}: AnyRecord)=>patch({leadAuditor:name,leadAuditorId:userId})}/><ManualDateField label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)}/></>:<QualityOwnerField record={draft} onChange={patch}/>}
         {recordType==='findings'&&<FormGrid columns={2}><SearchableSelect label={t('source')} value={draft.source} options={vocabularyOptions(FINDING_SOURCES,language)} onChange={v=>set('source',v||'manual')} {...sourceText} clearLabel=""/><Field label={t('qualityRecords.sourceId')}><input value={draft.sourceId} onChange={e=>set('sourceId',e.target.value)} placeholder={en?'e.g. INC-2608-003':'π.χ. INC-2608-003'}/></Field></FormGrid>}
         {recordType==='capas'&&<FormGrid columns={2}><ManualDateField label={`${t('dueDate')} *`} value={draft.dueDate} onChange={v=>set('dueDate',v)}/><SearchableSelect label={en?'Came from':'Προέλευση'} value={draft.sourceId} options={originOptions} allowCustom onChange={v=>patch({sourceId:v||'',source:v?originKind(v):'other'})} placeholder={en?'Search a deviation or incident…':'Αναζήτηση απόκλισης ή συμβάντος…'} {...sourceText}/></FormGrid>}
       </FormCard>

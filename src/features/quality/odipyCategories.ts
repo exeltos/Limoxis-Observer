@@ -1,7 +1,7 @@
 // The incident categories of the ΟΔΙΠΥ incident report form («Αναφορά Συμβάντος»): six groups, each with its
 // items and an «Άλλο». Clinical outcome records (deaths, cardiac arrests, …) are not on the form; they keep a
 // group of their own so they do not mix with the reports. A record stores the item's key (e.g. «odipy-fall»).
-const item = (key, el, en) => ({ key: `odipy-${key}`, el, en })
+const item = (key: string, el: string, en: string) => ({ key: `odipy-${key}`, el, en })
 
 export const ODIPY_GROUPS = [
   { key: 'care', el: 'Φροντίδα ασθενούς', en: 'Patient care', items: [
@@ -77,7 +77,7 @@ export const ODIPY_GROUPS = [
 const ITEMS = new Map(ODIPY_GROUPS.flatMap(group => group.items.map(entry => [entry.key, { ...entry, group }])))
 
 // The earlier built-in categories, read as the nearest item of the form (records before the form keep their key).
-const LEGACY = {
+const LEGACY: Record<string, string> = {
   clinical: 'odipy-care-other', medication: 'odipy-medication', fall: 'odipy-fall', pressureinjury: 'odipy-ulcer',
   infection: 'odipy-hai', identification: 'odipy-patient-id', surgery: 'odipy-surgery', transfusion: 'odipy-transfusion',
   diagnosis: 'odipy-sample-id', equipment: 'odipy-equipment-other', supplier: 'odipy-unavailable', it: 'odipy-it',
@@ -85,19 +85,19 @@ const LEGACY = {
   other: 'odipy-process-other',
 }
 
-export const isOdipyCategory = key => ITEMS.has(String(key || ''))
+export const isOdipyCategory = (key: string) => ITEMS.has(String(key || ''))
 // The item of the form a category stands for (its own, or the one an earlier category reads as).
-export const odipyItem = key => ITEMS.get(String(key || '')) || ITEMS.get(LEGACY[String(key || '').toLowerCase()]) || null
-export const odipyGroupOf = key => odipyItem(key)?.group || null
-export const odipyLabel = (key, language = 'el', withGroup = true) => {
+export const odipyItem = (key: string) => ITEMS.get(String(key || '')) || ITEMS.get(LEGACY[String(key || '').toLowerCase()]) || null
+export const odipyGroupOf = (key: string) => odipyItem(key)?.group || null
+export const odipyLabel = (key: string, language = 'el', withGroup = true) => {
   const found = ITEMS.get(String(key || ''))
   if (!found) return ''
   const en = language === 'en'
   const name = en ? found.en : found.el
   return withGroup ? `${en ? found.group.en : found.group.el} · ${name}` : name
 }
-export const odipyGroupOptions = language => ODIPY_GROUPS.map(group => ({ value: group.key, label: language === 'en' ? group.en : group.el }))
-export const odipyItemOptions = (groupKey, language) => (ODIPY_GROUPS.find(group => group.key === groupKey)?.items || []).map(entry => ({ value: entry.key, label: language === 'en' ? entry.en : entry.el }))
+export const odipyGroupOptions = (language: string) => ODIPY_GROUPS.map(group => ({ value: group.key, label: language === 'en' ? group.en : group.el }))
+export const odipyItemOptions = (groupKey: string, language: string) => (ODIPY_GROUPS.find(group => group.key === groupKey)?.items || []).map(entry => ({ value: entry.key, label: language === 'en' ? entry.en : entry.el }))
 
 // «Αφορά σε» of the form.
 export const AFFECTS = [

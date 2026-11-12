@@ -22,7 +22,7 @@ const todayIso = () => hospitalToday()
 
 export const OBJECTIVE_LEVELS = ['hospital', 'department', 'committee']
 export const objectiveLevel = (objective: AnyRecord) => objective.level || (objective.departmentId || objective.registerId ? 'department' : objective.committeeId ? 'committee' : 'hospital')
-export const levelLabel = (level: number, en: boolean) => (en ? { hospital: 'Hospital', department: 'Department', committee: 'Committee' } : { hospital: 'Νοσοκομείο', department: 'Τμήμα', committee: 'Επιτροπή' })[level] || ''
+export const levelLabel = (level: string, en: boolean) => (en ? { hospital: 'Hospital', department: 'Department', committee: 'Committee' } as Record<string, string> : { hospital: 'Νοσοκομείο', department: 'Τμήμα', committee: 'Επιτροπή' } as Record<string, string>)[level] || ''
 // How an objective is measured.
 export const objectiveSource = (objective: AnyRecord) => (objective.registerId ? 'register' : objective.platformIndicatorKey ? 'indicator' : 'monthly')
 
@@ -50,7 +50,7 @@ export async function platformValuesForYears(organizationId: string | null | und
   const byYear = new Map()
   for (const year of years) {
     if (year > new Date().getFullYear()) { byYear.set(year, new Map()); continue }
-    const metrics = await collectCloudIndicatorMetrics(organizationId, { from: `${year}-01-01`, to: yearEnd(year) }).catch(() => null)
+    const metrics = await collectCloudIndicatorMetrics(organizationId, { from: `${year}-01-01`, to: yearEnd(year) } as AnyRecord).catch(() => null)
     byYear.set(year, new Map(metrics ? definitions.map((def: AnyRecord) => [def.id, calculateCloudDefinition(def, metrics).value]) : []))
   }
   return byYear
@@ -61,7 +61,7 @@ export async function platformMonthlyValues(organizationId: string | null | unde
   const wanted = definitions.filter((def: AnyRecord) => keys.includes(def.id))
   const months = []
   for (let month = 1; month <= monthsSoFar(year); month += 1) {
-    const metrics = await collectCloudIndicatorMetrics(organizationId, { from: monthStart(year, month), to: monthEnd(year, month) }).catch(() => null)
+    const metrics = await collectCloudIndicatorMetrics(organizationId, { from: monthStart(year, month), to: monthEnd(year, month) } as AnyRecord).catch(() => null)
     months.push({ month, values: new Map(metrics ? wanted.map((def: AnyRecord) => [def.id, calculateCloudDefinition(def, metrics).value]) : []) })
   }
   return months

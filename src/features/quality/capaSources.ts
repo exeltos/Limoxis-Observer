@@ -1,3 +1,4 @@
+import type { AnyRecord } from '../../types/featureTypes'
 // Where a corrective action came from, read from its source reference (source_id): the kind of record,
 // its code as shown, and the page that opens it (null when there is none, e.g. a committee decision brought
 // over without its meeting). One place for the action list, the action record, the print and the filter.
@@ -9,7 +10,7 @@
 //   COM:<committee>:<meeting>#<topic> (a decision in the minutes) · COM-… (a committee) · DEC-… (a committee
 //   decision brought over without its meeting) · QO-… (a quality objective)
 
-export const SOURCE_KINDS = {
+export const SOURCE_KINDS: Record<string, string[]> = {
   finding: ['Απόκλιση', 'Deviation'],
   incident: ['Συμβάν', 'Incident'],
   audit: ['Επιθεώρηση', 'Audit'],
@@ -28,10 +29,10 @@ export const SOURCE_KINDS = {
   manual: ['Χωρίς πηγή', 'No source'],
 }
 
-export const sourceKindLabel = (kind, language = 'el') => (SOURCE_KINDS[kind] || SOURCE_KINDS.manual)[language === 'en' ? 1 : 0]
+export const sourceKindLabel = (kind: string, language = 'el') => (SOURCE_KINDS[kind] || SOURCE_KINDS.manual)[language === 'en' ? 1 : 0]
 
-const after = (value, prefix) => value.slice(prefix.length)
-const head = value => value.split('#')[0]
+const after = (value: string, prefix: string) => value.slice(prefix.length)
+const head = (value: string) => value.split('#')[0]
 
 // { kind, code, path } of a source reference (and of the action's own source type when there is no reference).
 export function capaSourceInfo(sourceId = '', sourceType = '') {
@@ -64,10 +65,10 @@ export function capaSourceInfo(sourceId = '', sourceType = '') {
 }
 
 // The reference of a decision in a committee's minutes.
-export const committeeDecisionSourceId = (committeeCode, meetingId, topicId) => `COM:${committeeCode}:${meetingId}#${topicId}`
+export const committeeDecisionSourceId = (committeeCode: string, meetingId: string, topicId: string) => `COM:${committeeCode}:${meetingId}#${topicId}`
 
 // The live actions of a source: those with this exact reference, or (prefix) any of its parts («DM:<code>#»).
-export function actionsOfSource(capas = [], sourceId, { prefix = false } = {}) {
+export function actionsOfSource(capas: AnyRecord[] = [], sourceId: string, { prefix = false } = {}) {
   if (!sourceId) return []
   return capas.filter(capa => capa.lifecycleStatus !== 'voided' && (prefix ? String(capa.sourceId || '').startsWith(sourceId) : capa.sourceId === sourceId))
 }

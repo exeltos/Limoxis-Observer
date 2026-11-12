@@ -1,3 +1,4 @@
+import type { AnyRecord } from '../../types/featureTypes'
 // The event type of an incident and the details each type records
 // (20261116100000_quality_relational.sql): an injury, fall or exposure has its
 // fall / injury block (and a sharps block when a sharp object caused it), a blue
@@ -5,7 +6,7 @@
 // block is a 1:1 row of its own table; the record carries it as fall, sharp,
 // blueCode and obstetric.
 
-const option = (value, el, en) => ({ value, label: [el, en] })
+const option = (value: string, el: string, en: string) => ({ value, label: [el, en] })
 
 export const EVENT_TYPES = [
   option('death', 'Θάνατος', 'Death'),
@@ -82,17 +83,17 @@ export const OBSTETRIC_SUBCATEGORIES = [
   option('other', 'Άλλο', 'Other'),
 ]
 
-export const detailOptions = (list, language = 'el') => list.map(item => ({ value: item.value, label: item.label[language === 'en' ? 1 : 0] }))
-export const detailLabel = (list, value, language = 'el') => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
+export const detailOptions = (list: AnyRecord[], language = 'el') => list.map((item: AnyRecord) => ({ value: item.value, label: item.label[language === 'en' ? 1 : 0] }))
+export const detailLabel = (list: AnyRecord[], value: string, language = 'el') => list.find((item: AnyRecord) => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
 
 export const emptyFall = () => ({ fallType: '', floorCondition: '', bedRails: '', location: '', examinedByDoctor: null, doctorInstructions: '', injuryCategory: '', injurySubcategory: '', injuredPersonType: '', injuredEmployeeId: '', injuryDescription: '' })
 export const emptySharp = () => ({ tool: '', toolState: '', bodySite: '', bodySiteOther: '', firstUser: '', contactDuration: '', exposedBodyPart: '', substance: '' })
 export const emptyBlueCode = () => ({ interventions: [], outcome: '', patientStatus: '', transferTo: '', doctor: '', nurse: '', staffInvolved: '', gloves: null })
 export const emptyObstetric = () => ({ subcategory: '' })
-const EMPTY = { fall: emptyFall, sharp: emptySharp, blueCode: emptyBlueCode, obstetric: emptyObstetric }
+const EMPTY: Record<string, () => AnyRecord> = { fall: emptyFall, sharp: emptySharp, blueCode: emptyBlueCode, obstetric: emptyObstetric }
 
 // The blocks an event type records; the sharps block follows a sharp-object injury.
-export function detailBlocks(record = {}) {
+export function detailBlocks(record: AnyRecord = {}) {
   if (record.eventType === 'injury_fall_exposure') return record.fall?.injurySubcategory === 'sharp_object' ? ['fall', 'sharp'] : ['fall']
   if (record.eventType === 'blue_code') return ['blueCode']
   if (record.eventType === 'obstetric') return ['obstetric']
@@ -100,46 +101,46 @@ export function detailBlocks(record = {}) {
 }
 
 // The record's block, or an empty one to fill.
-export const detailBlock = (record, key) => ({ ...EMPTY[key](), ...(record?.[key] || {}) })
+export const detailBlock = (record: AnyRecord, key: string) => ({ ...EMPTY[key](), ...(record?.[key] || {}) })
 
-const filled = value => (Array.isArray(value) ? value.length > 0 : value !== '' && value !== null && value !== undefined)
-export const hasDetail = block => Boolean(block) && Object.values(block).some(filled)
+const filled = (value: unknown) => (Array.isArray(value) ? value.length > 0 : value !== '' && value !== null && value !== undefined)
+export const hasDetail = (block: unknown) => Boolean(block) && Object.values(block as AnyRecord).some(filled)
 
 // --- Database rows ----------------------------------------------------------------------
 
-const text = value => { const kept = String(value ?? '').trim(); return kept || null }
-const bool = value => (value === true || value === false ? value : null)
-const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
+const text = (value: unknown) => { const kept = String(value ?? '').trim(); return kept || null }
+const bool = (value: unknown) => (value === true || value === false ? value : null)
+const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
 // An embedded 1:1 row comes back as an object (or, from an older PostgREST, a one-row array).
-const single = value => (Array.isArray(value) ? value[0] || null : value || null)
+const single = (value: unknown): AnyRecord | null => (Array.isArray(value) ? value[0] || null : value || null)
 
 export const DETAIL_TABLES = { fall: 'quality_incident_falls', sharp: 'quality_incident_sharps', blueCode: 'quality_incident_blue_codes', obstetric: 'quality_incident_obstetric' }
 // What the incident select embeds: each block under its own name.
 export const INCIDENT_DETAIL_SELECT = 'fall:quality_incident_falls(*),sharp:quality_incident_sharps(*),blue_code:quality_incident_blue_codes(*),obstetric:quality_incident_obstetric(*)'
 
-const FROM_ROW = {
-  fall: row => ({ fallType: row.fall_type || '', floorCondition: row.floor_condition || '', bedRails: row.bed_rails || '', location: row.location || '', examinedByDoctor: bool(row.examined_by_doctor), doctorInstructions: row.doctor_instructions || '', injuryCategory: row.injury_category || '', injurySubcategory: row.injury_subcategory || '', injuredPersonType: row.injured_person_type || '', injuredEmployeeId: row.injured_employee_id || '', injuryDescription: row.injury_description || '' }),
-  sharp: row => ({ tool: row.tool || '', toolState: row.tool_state || '', bodySite: row.body_site || '', bodySiteOther: row.body_site_other || '', firstUser: row.first_user || '', contactDuration: row.contact_duration || '', exposedBodyPart: row.exposed_body_part || '', substance: row.substance || '' }),
-  blueCode: row => ({ interventions: Array.isArray(row.interventions) ? row.interventions : [], outcome: row.outcome || '', patientStatus: row.patient_status || '', transferTo: row.transfer_to || '', doctor: row.doctor_label || '', nurse: row.nurse_label || '', staffInvolved: row.staff_involved || '', gloves: bool(row.gloves) }),
-  obstetric: row => ({ subcategory: row.subcategory || '' }),
+const FROM_ROW: Record<string, (row: AnyRecord) => AnyRecord> = {
+  fall: (row: AnyRecord) => ({ fallType: row.fall_type || '', floorCondition: row.floor_condition || '', bedRails: row.bed_rails || '', location: row.location || '', examinedByDoctor: bool(row.examined_by_doctor), doctorInstructions: row.doctor_instructions || '', injuryCategory: row.injury_category || '', injurySubcategory: row.injury_subcategory || '', injuredPersonType: row.injured_person_type || '', injuredEmployeeId: row.injured_employee_id || '', injuryDescription: row.injury_description || '' }),
+  sharp: (row: AnyRecord) => ({ tool: row.tool || '', toolState: row.tool_state || '', bodySite: row.body_site || '', bodySiteOther: row.body_site_other || '', firstUser: row.first_user || '', contactDuration: row.contact_duration || '', exposedBodyPart: row.exposed_body_part || '', substance: row.substance || '' }),
+  blueCode: (row: AnyRecord) => ({ interventions: Array.isArray(row.interventions) ? row.interventions : [], outcome: row.outcome || '', patientStatus: row.patient_status || '', transferTo: row.transfer_to || '', doctor: row.doctor_label || '', nurse: row.nurse_label || '', staffInvolved: row.staff_involved || '', gloves: bool(row.gloves) }),
+  obstetric: (row: AnyRecord) => ({ subcategory: row.subcategory || '' }),
 }
-const TO_ROW = {
-  fall: block => ({ fall_type: text(block.fallType), floor_condition: text(block.floorCondition), bed_rails: text(block.bedRails), location: text(block.location), examined_by_doctor: bool(block.examinedByDoctor), doctor_instructions: text(block.doctorInstructions), injury_category: text(block.injuryCategory), injury_subcategory: text(block.injurySubcategory), injured_person_type: text(block.injuredPersonType), injured_employee_id: block.injuredPersonType === 'employee' && isUuid(block.injuredEmployeeId) ? block.injuredEmployeeId : null, injury_description: text(block.injuryDescription) }),
-  sharp: block => ({ tool: text(block.tool), tool_state: text(block.toolState), body_site: text(block.bodySite), body_site_other: block.bodySite === 'other' ? text(block.bodySiteOther) : null, first_user: text(block.firstUser), contact_duration: text(block.contactDuration), exposed_body_part: text(block.exposedBodyPart), substance: text(block.substance) }),
-  blueCode: block => ({ interventions: (block.interventions || []).filter(value => BLUE_CODE_INTERVENTIONS.some(item => item.value === value)), outcome: text(block.outcome), patient_status: text(block.patientStatus), transfer_to: text(block.transferTo), doctor_label: text(block.doctor), nurse_label: text(block.nurse), staff_involved: text(block.staffInvolved), gloves: bool(block.gloves) }),
-  obstetric: block => ({ subcategory: text(block.subcategory) }),
+const TO_ROW: Record<string, (block: AnyRecord) => AnyRecord> = {
+  fall: (block: AnyRecord) => ({ fall_type: text(block.fallType), floor_condition: text(block.floorCondition), bed_rails: text(block.bedRails), location: text(block.location), examined_by_doctor: bool(block.examinedByDoctor), doctor_instructions: text(block.doctorInstructions), injury_category: text(block.injuryCategory), injury_subcategory: text(block.injurySubcategory), injured_person_type: text(block.injuredPersonType), injured_employee_id: block.injuredPersonType === 'employee' && isUuid(block.injuredEmployeeId) ? block.injuredEmployeeId : null, injury_description: text(block.injuryDescription) }),
+  sharp: (block: AnyRecord) => ({ tool: text(block.tool), tool_state: text(block.toolState), body_site: text(block.bodySite), body_site_other: block.bodySite === 'other' ? text(block.bodySiteOther) : null, first_user: text(block.firstUser), contact_duration: text(block.contactDuration), exposed_body_part: text(block.exposedBodyPart), substance: text(block.substance) }),
+  blueCode: (block: AnyRecord) => ({ interventions: (block.interventions || []).filter((value: string) => BLUE_CODE_INTERVENTIONS.some(item => item.value === value)), outcome: text(block.outcome), patient_status: text(block.patientStatus), transfer_to: text(block.transferTo), doctor_label: text(block.doctor), nurse_label: text(block.nurse), staff_involved: text(block.staffInvolved), gloves: bool(block.gloves) }),
+  obstetric: (block: AnyRecord) => ({ subcategory: text(block.subcategory) }),
 }
-const ROW_KEY = { fall: 'fall', sharp: 'sharp', blueCode: 'blue_code', obstetric: 'obstetric' }
+const ROW_KEY: Record<string, string> = { fall: 'fall', sharp: 'sharp', blueCode: 'blue_code', obstetric: 'obstetric' }
 
 // The record's blocks from an incident row with its embedded detail rows.
-export function incidentDetailsFromRow(row = {}) {
+export function incidentDetailsFromRow(row: AnyRecord = {}) {
   return Object.fromEntries(Object.keys(DETAIL_TABLES).map(key => { const detail = single(row[ROW_KEY[key]]); return [key, detail ? FROM_ROW[key](detail) : null] }))
 }
 
 // What each detail table holds for the record: a row for each block its event
 // type records and that has something filled in; null where the table has
 // nothing for it (a row there is removed). An obstetric row needs its subcategory.
-export function incidentDetailRows(record = {}) {
+export function incidentDetailRows(record: AnyRecord = {}) {
   const blocks = detailBlocks(record)
   return Object.fromEntries(Object.entries(DETAIL_TABLES).map(([key, table]) => {
     if (!blocks.includes(key) || !hasDetail(record[key])) return [table, null]
@@ -151,9 +152,9 @@ export function incidentDetailRows(record = {}) {
 
 // The record as saved: only the blocks its event type records, and only if
 // something is filled in (the form keeps the others while one changes its mind).
-export function keptDetails(record = {}) {
+export function keptDetails(record: AnyRecord = {}) {
   const blocks = detailBlocks(record)
-  const next = { ...record, eventType: record.eventType || '' }
+  const next: AnyRecord = { ...record, eventType: record.eventType || '' }
   for (const key of Object.keys(DETAIL_TABLES)) next[key] = blocks.includes(key) && hasDetail(record[key]) ? detailBlock(record, key) : null
   if (next.obstetric && !next.obstetric.subcategory) next.obstetric = null
   return next
@@ -161,13 +162,13 @@ export function keptDetails(record = {}) {
 
 // --- What the record shows ------------------------------------------------------------
 
-const yesNo = (value, en) => (value === true ? (en ? 'Yes' : 'Ναι') : value === false ? (en ? 'No' : 'Όχι') : '')
-export const employeeName = (employee, language = 'el') => (employee ? (language === 'en' ? [employee.firstNameEn || employee.firstName, employee.lastNameEn || employee.lastName] : [employee.lastName, employee.firstName]).filter(Boolean).join(' ') : '')
+const yesNo = (value: unknown, en: boolean) => (value === true ? (en ? 'Yes' : 'Ναι') : value === false ? (en ? 'No' : 'Όχι') : '')
+export const employeeName = (employee: AnyRecord | undefined, language = 'el') => (employee ? (language === 'en' ? [employee.firstNameEn || employee.firstName, employee.lastNameEn || employee.lastName] : [employee.lastName, employee.firstName]).filter(Boolean).join(' ') : '')
 
 // The event type and its details as [label, value] pairs, the empty ones left out.
-export function incidentDetailFacts(record = {}, language = 'el', employees = []) {
+export function incidentDetailFacts(record: AnyRecord = {}, language = 'el', employees: AnyRecord[] = []) {
   const en = language === 'en'
-  const L = (el, english) => (en ? english : el)
+  const L = (el: string, english: string) => (en ? english : el)
   const facts = [[L('Είδος συμβάντος', 'Event type'), detailLabel(EVENT_TYPES, record.eventType, language)]]
   const blocks = detailBlocks(record)
   if (blocks.includes('fall')) {
@@ -200,7 +201,7 @@ export function incidentDetailFacts(record = {}, language = 'el', employees = []
   if (blocks.includes('blueCode')) {
     const blue = detailBlock(record, 'blueCode')
     facts.push(
-      [L('Παρεμβάσεις', 'Interventions'), blue.interventions.map(value => detailLabel(BLUE_CODE_INTERVENTIONS, value, language)).join(', ')],
+      [L('Παρεμβάσεις', 'Interventions'), blue.interventions.map((value: string) => detailLabel(BLUE_CODE_INTERVENTIONS, value, language)).join(', ')],
       [L('Έκβαση', 'Outcome'), detailLabel(BLUE_CODE_OUTCOMES, blue.outcome, language)],
       [L('Κατάσταση ασθενούς', 'Patient status'), blue.patientStatus],
       [L('Μεταφορά', 'Transfer to'), detailLabel(TRANSFER_TARGETS, blue.transferTo, language)],

@@ -28,6 +28,7 @@ import { QualityDepartmentField, QualityOwnerField, QualityVisiblePersonField, d
 import { PrefilledList } from '../surveillance/forms/PrefilledList'
 import './quality.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const today = () => hospitalToday()
 const MAX_FILES = 10
@@ -51,7 +52,7 @@ export function emptyIncidentReport() {
 
 // A report may start from another workflow (episode/control). It is still a
 // report first; its source only pre-fills context for Quality to assess later.
-export function incidentPrefill(state, language = 'el') {
+export function incidentPrefill(state: AnyRecord, language = 'el') {
   const en = language === 'en'
   const episode = state?.episodeSource
   if (episode) return {
@@ -92,12 +93,12 @@ export function IncidentReportPage() {
   const canViewQuality = ownerFullAccess || can(role, CAPABILITIES.VIEW_QUALITY, addOns, custom)
   const { goBack } = useContextualNavigation(canViewQuality ? '/quality' : '/quality/my-reports')
   const fromEpisode = location.state?.episodeSource || null
-  const [files, setFiles] = useState([])
+  const [files, setFiles] = useState<AnyRecord[]>([])
   const fileInput = useRef(null)
   const [draft, setDraft] = useState(() => ({ ...emptyIncidentReport(), ...(incidentPrefill(location.state, language) || {}) }))
   const [saving, setSaving] = useState(false)
-  const [sent, setSent] = useState(null)
-  const set = (key, value) => setDraft(current => ({ ...current, [key]: value }))
+  const [sent, setSent] = useState<AnyRecord | null>(null)
+  const set = (key: string, value) => setDraft(current => ({ ...current, [key]: value }))
   const patch = next => setDraft(current => ({ ...current, ...next }))
 
   const self = useMemo(() => resolveSelfEmployee({ employeeRows, membership, profile, user, isDemo }), [employeeRows, membership, profile, user, isDemo])
@@ -120,7 +121,7 @@ export function IncidentReportPage() {
   const valid = Boolean(departmentRef(draft) && draft.date && draft[titleKey].trim() && draft[descriptionKey].trim() && (!isPrivate || draft.visibility !== 'person' || draft.visibleTo))
   const attachmentsOn = cloudAttachmentsEnabled()
   const privacy = draft.privacy
-  const addFiles = list => {
+  const addFiles = (list: AnyRecord[]) => {
     const picked = [...list]
     const tooBig = picked.filter(file => file.size > MAX_FILE_BYTES)
     if (tooBig.length) notify(en ? `Files over ${MAX_FILE_MB} MB were not added.` : `Δεν προστέθηκαν αρχεία πάνω από ${MAX_FILE_MB} MB.`, 'error')
@@ -192,7 +193,7 @@ export function IncidentReportPage() {
     </div>
   </div>)
 
-  const fileSize = bytes => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`)
+  const fileSize = (bytes: number) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`)
   return shell(<div className="record-section quality-report-form">
     <div className="lo-form-cards quality-report-body">
       {draft.episodeSource && <PrefilledList items={[{ label: t('episodeForms.prefill.patient'), value: draft.episodeSource.patientLabel }, { label: t('episodeForms.prefill.admission'), value: draft.episodeSource.admissionLabel }, { label: t('episodeForms.prefill.episode'), value: draft.episodeSource.episodeLabel }].filter(item => item.value)} />}

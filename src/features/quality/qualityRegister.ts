@@ -1,5 +1,6 @@
 import { reportKindOf } from './qualityVocabulary'
 import { INCIDENT_STAGES, incidentStage } from './qualityRecordRules'
+import type { AnyRecord } from '../../types/featureTypes'
 
 // One register for everything that went wrong or could go better (ISO 9001
 // §10.2): the reports people send and the deviations other modules record
@@ -14,7 +15,7 @@ export const REGISTER_SOURCES = [
 ]
 
 // A report's stage reads the CAPAs that point to it (capa.sourceId).
-export function registerRows(incidents = [], deviations = [], capas = []) {
+export function registerRows(incidents: AnyRecord[] = [], deviations: AnyRecord[] = [], capas: AnyRecord[] = []) {
   const reports = incidents.map(record => ({
     stage: incidentStage(record, capas.filter(capa => capa.sourceId === record.id)),
     key: `report:${record.id}`,
@@ -61,33 +62,33 @@ export function registerRows(incidents = [], deviations = [], capas = []) {
 
 // The filters of the register; `quick` is a summary card (open, sentinel,
 // deviations without a CAPA).
-export function filterRegister(rows, { query = '', kind = 'all', source = 'all', status = 'all', stage = 'all', department = 'all', category = 'all', quick = null, language = 'el' } = {}) {
+export function filterRegister(rows: AnyRecord[], { query = '', kind = 'all', source = 'all', status = 'all', stage = 'all', department = 'all', category = 'all', quick = null, language = 'el' } = {}) {
   const text = query.trim().toLowerCase()
   return rows
-    .filter(row => !text || `${row.code} ${row.title} ${row.titleEn} ${row.owner} ${row.department} ${row.reporter || ''}`.toLowerCase().includes(text))
-    .filter(row => kind === 'all' || row.kind === kind)
-    .filter(row => source === 'all' || row.source === source)
-    .filter(row => status === 'all' || row.status === status)
-    .filter(row => stage === 'all' || row.stage === stage)
-    .filter(row => category === 'all' || row.category === category)
-    .filter(row => department === 'all' || (language === 'en' ? row.departmentEn : row.department) === department)
-    .filter(row => !quick || (quick === 'open' ? row.type === 'report' && row.status !== 'closed' : quick === 'sentinel' ? row.sentinel : quick === 'deviations' ? row.type === 'deviation' : quick === 'closed' ? row.status === 'closed' : INCIDENT_STAGES.includes(quick) ? row.stage === quick : true))
+    .filter((row: AnyRecord) => !text || `${row.code} ${row.title} ${row.titleEn} ${row.owner} ${row.department} ${row.reporter || ''}`.toLowerCase().includes(text))
+    .filter((row: AnyRecord) => kind === 'all' || row.kind === kind)
+    .filter((row: AnyRecord) => source === 'all' || row.source === source)
+    .filter((row: AnyRecord) => status === 'all' || row.status === status)
+    .filter((row: AnyRecord) => stage === 'all' || row.stage === stage)
+    .filter((row: AnyRecord) => category === 'all' || row.category === category)
+    .filter((row: AnyRecord) => department === 'all' || (language === 'en' ? row.departmentEn : row.department) === department)
+    .filter((row: AnyRecord) => !quick || (quick === 'open' ? row.type === 'report' && row.status !== 'closed' : quick === 'sentinel' ? row.sentinel : quick === 'deviations' ? row.type === 'deviation' : quick === 'closed' ? row.status === 'closed' : INCIDENT_STAGES.includes(quick) ? row.stage === quick : true))
 }
 
-export function registerCounts(rows) {
+export function registerCounts(rows: AnyRecord[]) {
   return {
     total: rows.length,
-    open: rows.filter(row => row.type === 'report' && !['closed', 'voided'].includes(row.stage)).length,
-    sentinel: rows.filter(row => row.sentinel && !['closed', 'voided'].includes(row.stage)).length,
-    deviations: rows.filter(row => row.type === 'deviation').length,
-    stages: Object.fromEntries(INCIDENT_STAGES.map(id => [id, rows.filter(row => row.type === 'report' && row.stage === id).length])),
+    open: rows.filter((row: AnyRecord) => row.type === 'report' && !['closed', 'voided'].includes(row.stage)).length,
+    sentinel: rows.filter((row: AnyRecord) => row.sentinel && !['closed', 'voided'].includes(row.stage)).length,
+    deviations: rows.filter((row: AnyRecord) => row.type === 'deviation').length,
+    stages: Object.fromEntries(INCIDENT_STAGES.map(id => [id, rows.filter((row: AnyRecord) => row.type === 'report' && row.stage === id).length])),
   }
 }
 
 // Reports no one has classified for `days` days or more (the reminder in the bell).
-export function staleReports(incidents = [], { today, days = 7 } = {}) {
-  const day = value => Date.parse(`${String(value).slice(0, 10)}T12:00:00Z`)
+export function staleReports(incidents: AnyRecord[] = [], { today, days = 7 }: { today?: string, days?: number } = {}) {
+  const day = (value: unknown) => Date.parse(`${String(value).slice(0, 10)}T12:00:00Z`)
   return registerRows(incidents, [], [])
-    .filter(row => row.kind === 'report' && row.stage === 'toAssess' && row.date)
+    .filter((row: AnyRecord) => row.kind === 'report' && row.stage === 'toAssess' && row.date)
     .filter(row => Math.round((day(today) - day(row.date)) / 86400000) >= days)
 }

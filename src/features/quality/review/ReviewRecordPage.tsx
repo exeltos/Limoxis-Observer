@@ -68,7 +68,7 @@ function minutesDocument(review: AnyRecord) {
 
 // The text of a section: as tall as what is written (no scrolling inside the
 // card), and plain paragraphs once the review is approved.
-function MinutesText({ label, value, locked, onChange, rows = 3 }) {
+function MinutesText({ label, value, locked, onChange, rows = 3 }: { label: string, value: string, locked?: boolean, onChange: (...args: never[]) => unknown, rows?: number }) {
   const ref = useRef(null)
   useLayoutEffect(() => {
     const el = ref.current

@@ -8,10 +8,10 @@ import type { AnyRecord } from '../../../types/featureTypes'
 // The indicators of the year's file: each with how it was computed (numerator / denominator, or the value entered by hand)
 // and, where it has no value, why: the data the platform does not record. The same reasons make the file's last page.
 
-const yearEnd = (year: string) => { const end = `${year}-12-31`, today = hospitalToday(); return end < today ? end : today }
+const yearEnd = (year: string | number) => { const end = `${year}-12-31`, today = hospitalToday(); return end < today ? end : today }
 
 // What is missing, by the metric that is empty. Each reason is one line of the «missing data» page.
-const MISSING = {
+const MISSING: Record<string, string[]> = {
   central_line_days: ['Δεν καταγράφονται ημέρες κεντρικού καθετήρα', 'Central-line days are not recorded'],
   urinary_catheter_days: ['Δεν καταγράφονται ημέρες ουροκαθετήρα', 'Urinary-catheter days are not recorded'],
   ventilator_days: ['Δεν καταγράφονται ημέρες αναπνευστήρα', 'Ventilator days are not recorded'],
@@ -47,7 +47,7 @@ const SOURCE_METRICS = new Set(['antibiotic_ddd_total', 'aware_access_ddd_total'
 export const missingText = (key: string, en: boolean) => (MISSING[key] || MISSING.zero)[en ? 1 : 0]
 
 // One platform indicator for the year: its value, the numerator and denominator it came from, and the reason when it has no value.
-export function dossierIndicatorResult(def: AnyRecord, metrics: AnyRecord, manual = null) {
+export function dossierIndicatorResult(def: AnyRecord, metrics: AnyRecord | null, manual: AnyRecord | null = null) {
   if (def.calculation === 'manual') {
     const value = manual && Number.isFinite(Number(manual.value)) ? Number(manual.value) : null
     return { value, manual, evidence: null, missing: value == null ? 'manual' : null }
@@ -64,8 +64,8 @@ export function dossierIndicatorResult(def: AnyRecord, metrics: AnyRecord, manua
 }
 
 // The value entered by hand for a manual indicator in the year: the whole year if entered so, else the latest period of the year.
-export function manualForYear(snapshots, key: string, year: string) {
-  const inYear = (snapshots || []).filter((row: AnyRecord) => row.indicator_key === key && row.calculation_type === 'manual' && !row.department_id && String(row.period_start || '').startsWith(String(year)) && row.value != null)
+export function manualForYear(snapshots: unknown, key: string, year: string | number) {
+  const inYear = ((snapshots as AnyRecord[] | null) || []).filter((row: AnyRecord) => row.indicator_key === key && row.calculation_type === 'manual' && !row.department_id && String(row.period_start || '').startsWith(String(year)) && row.value != null)
   if (!inYear.length) return null
   const whole = inYear.find((row: AnyRecord) => row.period_start === `${year}-01-01` && String(row.period_end) >= `${year}-12-31`)
   const row = whole || [...inYear].sort((a, b) => String(b.period_end).localeCompare(String(a.period_end)))[0]
@@ -73,13 +73,13 @@ export function manualForYear(snapshots, key: string, year: string) {
 }
 
 // The platform's indicators of the year, computed once from the year's data, with the values entered by hand.
-export async function loadDossierIndicators(organizationId: string | null | undefined, year: string, definitions = []) {
-  if (year > new Date().getFullYear()) return definitions.map(def => ({ def, value: null, missing: null }))
+export async function loadDossierIndicators(organizationId: string | null | undefined, year: string | number, definitions: AnyRecord[] = []) {
+  if (Number(year) > new Date().getFullYear()) return definitions.map(def => ({ def, value: null, missing: null }))
   const [metrics, snapshots] = await Promise.all([
-    collectCloudIndicatorMetrics(organizationId, { from: `${year}-01-01`, to: yearEnd(year) }).catch(() => null),
+    collectCloudIndicatorMetrics(organizationId, { from: `${year}-01-01`, to: yearEnd(year) } as AnyRecord).catch(() => null),
     definitions.some(def => def.calculation === 'manual') ? loadIndicatorSnapshots(organizationId, {}).catch(() => []) : [],
   ])
-  return definitions.map(def => ({ def, ...(metrics || def.calculation === 'manual' ? dossierIndicatorResult(def, metrics, manualForYear(snapshots, def.id, year)) : { value: null, missing: null }) }))
+  return definitions.map(def => ({ def, ...(metrics || def.calculation === 'manual' ? dossierIndicatorResult(def, metrics as AnyRecord | null, manualForYear(snapshots, def.id, year)) : { value: null, missing: null }) }))
 }
 
 // Every indicator of the active registers for the year, computed from their entries.
@@ -100,27 +100,27 @@ export async function loadRegisterIndicators(organizationId: string | null | und
   }))
 }
 
-const decimal = (value, en: boolean) => String(value).replace('.', en ? '.' : ',')
-const thousands = (value, en: boolean) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(Number(value))
+const decimal = (value: unknown, en: boolean) => String(value).replace('.', en ? '.' : ',')
+const thousands = (value: unknown, en: boolean) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(Number(value))
 export const evidenceText = (row: AnyRecord, language: string) => {
   const en = language === 'en'
   if (row.manual) return en ? `Entered by hand (${row.manual.from} – ${row.manual.to})` : `Καταχώριση (${row.manual.from.split('-').reverse().join('/')} – ${row.manual.to.split('-').reverse().join('/')})`
   if (row.ssi != null) return en ? `${row.ssi} infections` : `${row.ssi} λοιμώξεις`
   return row.evidence ? `${thousands(row.evidence[0], en)} / ${thousands(row.evidence[1], en)}` : '—'
 }
-export const valueText = (value, unit: string, language: string) => {
+export const valueText = (value: unknown, unit: string, language: string) => {
   const en = language === 'en'
   if (value == null) return '—'
   return `${decimal(value, en)}${unit && unit !== '%' ? `${unit.startsWith('/') ? '' : ' '}${unit}` : unit || ''}`
 }
-const targetText = (target, direction, unit: string) => (target == null ? '—' : `${direction === 'lower' ? '≤' : '≥'} ${target}${unit === '%' ? '%' : ''}`)
-const judged = (value, target, direction) => (value == null || target == null || !['higher', 'lower'].includes(direction) ? null : direction === 'lower' ? value <= target : value >= target)
-const stateCell = (row: AnyRecord, met, en: boolean) => (row.value == null
+const targetText = (target: unknown, direction: string, unit: string) => (target == null ? '—' : `${direction === 'lower' ? '≤' : '≥'} ${target}${unit === '%' ? '%' : ''}`)
+const judged = (value: number | null | undefined, target: number | null | undefined, direction: string) => (value == null || target == null || !['higher', 'lower'].includes(direction) ? null : direction === 'lower' ? value <= target : value >= target)
+const stateCell = (row: AnyRecord, met: boolean | null, en: boolean) => (row.value == null
   ? { text: row.missing ? missingText(row.missing, en) : en ? 'Not started yet' : 'Δεν έχει ξεκινήσει ο υπολογισμός', className: 'rd-muted' }
   : met == null ? { text: en ? 'No target' : 'Χωρίς στόχο', className: '' } : { text: met ? (en ? 'On target' : 'Εντός στόχου') : (en ? 'Off target' : 'Εκτός στόχου'), className: met ? 'rd-good' : 'rd-bad' })
 
 // The table of the platform's indicators: the hospital's objective, where it has one, is the target.
-export function platformIndicatorsTable(indicatorRows: AnyRecord[], objectives, language: string) {
+export function platformIndicatorsTable(indicatorRows: AnyRecord[], objectives: AnyRecord[] | null | undefined, language: string) {
   const en = language === 'en'
   return {
     columns: [en ? 'Indicator' : 'Δείκτης', en ? 'Value' : 'Τιμή', en ? 'Computed from' : 'Υπολογισμός', en ? 'Target' : 'Στόχος', en ? 'Status' : 'Κατάσταση'],
@@ -139,7 +139,7 @@ export function platformIndicatorsTable(indicatorRows: AnyRecord[], objectives, 
 export function registerIndicatorSections(registerRows: AnyRecord[], language: string) {
   const en = language === 'en'
   const columns = [{ text: en ? 'Indicator' : 'Δείκτης', width: '52%' }, { text: en ? 'Value' : 'Τιμή', align: 'right', width: '18%' }, { text: en ? 'Target' : 'Στόχος', width: '9%' }, { text: en ? 'Status' : 'Κατάσταση', width: '21%' }]
-  const groups = []
+  const groups: { name: string, rows: AnyRecord[] }[] = []
   for (const row of registerRows.filter((item: AnyRecord) => item.target != null && item.target !== '')) {
     const name = (en ? row.register.nameEn : row.register.name) || row.register.name
     const group = groups.find(item => item.name === name)

@@ -140,7 +140,7 @@ export function objectivesDossier({ objectives, committeeTargets = [], reviews, 
   const summary = { title: en ? 'Summary' : 'Σύνοψη', table: { columns: [en ? 'Level' : 'Επίπεδο', en ? 'Objectives' : 'Στόχοι', en ? 'Met' : 'Επιτυγχάνονται', en ? 'Not met' : 'Δεν επιτυγχάνονται', en ? 'Not measured yet' : 'Δεν μετριέται ακόμα'], rows: [...byLevel.map(({ level, list }) => [levelHeading(level, en), String(list.length + (level === 'committee' ? plans.length : 0)), String(count(list, 'met') + (level === 'committee' ? plans.filter((item: AnyRecord) => item.status === 'completed').length : 0)), String(count(list, 'missed')), String(count(list, 'pending') + (level === 'committee' ? plans.filter((item: AnyRecord) => item.status !== 'completed').length : 0))])] } }
   // One table per place (the hospital, each department, each committee with its annual plan), without the months
   // (owner, 6/11/2026: the file is a summary for the auditor).
-  const levelSections = byLevel.flatMap(({ level, list }) => {
+  const levelSections = byLevel.flatMap(({ level, list }): AnyRecord[] => {
     const all = level === 'committee' ? [...list, ...plans.map((item: AnyRecord) => ({ ...item, kind: 'plan' }))] : list
     if (!all.length) return []
     const places = objectivesByPlace(all, language)

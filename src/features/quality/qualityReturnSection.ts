@@ -2,7 +2,7 @@ import { writeSessionValue } from '../../core/storage/browserStorage'
 
 // The Quality Center tab to show when the user comes back from a record.
 export const QUALITY_RETURN_KEY = 'limoxis.quality.returnSection'
-export const rememberQualitySection = (section) => writeSessionValue(QUALITY_RETURN_KEY, section)
+export const rememberQualitySection = (section: string) => writeSessionValue(QUALITY_RETURN_KEY, section)
 
 // The Center's «indicators» tab holds the calculated indicators first, then
 // registers, objectives and satisfaction surveys. «resources» holds equipment

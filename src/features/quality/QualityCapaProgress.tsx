@@ -1,3 +1,6 @@
+import type { AuditActor } from '../../core/audit/actor'
+import type { FeedbackContextValue } from '../../core/feedback/feedbackTypes'
+import type { Dispatch, SetStateAction } from 'react'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -10,19 +13,20 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { formatDay } from '../../core/i18n/formatDay'
 import { addCapaProgress, removeCapaProgress } from './qualityService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import type { AnyRecord } from '../../types/featureTypes'
 
 const today = () => hospitalToday()
 
 // CAPA tab «Progress»: dated notes on how the action is going (quality_capa_progress), newest first.
-export function QualityCapaProgress({ record, setRecord, canManage, finalized, organizationId, actor, notify, language }) {
+export function QualityCapaProgress({ record, setRecord, canManage, finalized, organizationId, actor, notify, language }: { record: AnyRecord, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }) {
   const en = language === 'en'
   const entries = record.progress || []
   // The note is written in a dialog, like every other record tab.
-  const [draft, setDraft] = useState(null)
+  const [draft, setDraft] = useState<AnyRecord | null>(null)
   const [saving, setSaving] = useState(false)
   const editable = canManage && !finalized
 
-  async function run(action, message) {
+  async function run(action, message: string) {
     setSaving(true)
     try {
       setRecord({ ...(await action()) })
@@ -38,7 +42,7 @@ export function QualityCapaProgress({ record, setRecord, canManage, finalized, o
     if (!draft?.note?.trim() || !draft.date) return
     if (await run(() => addCapaProgress(organizationId, record, { ...draft, author: actor?.name || '' }), en ? 'Progress noted.' : 'Η πρόοδος καταγράφηκε.')) setDraft(null)
   }
-  const remove = entry => void run(() => removeCapaProgress(organizationId, record, entry.id), en ? 'Note removed.' : 'Η σημείωση αφαιρέθηκε.')
+  const remove = (entry: AnyRecord) => void run(() => removeCapaProgress(organizationId, record, entry.id), en ? 'Note removed.' : 'Η σημείωση αφαιρέθηκε.')
 
   return <RecordTabPanel className="quality-capa-panel" title={en ? 'Progress' : 'Πρόοδος'} subtitle={en ? 'Dated notes on how the action is going: what was done, what is holding it up.' : 'Σημειώσεις με ημερομηνία για την πορεία της ενέργειας: τι έγινε, τι την καθυστερεί.'}
     actions={editable && <Button onClick={() => setDraft({ date: today(), note: '' })}><Plus size={15} />{en ? 'Add note' : 'Προσθήκη σημείωσης'}</Button>}>

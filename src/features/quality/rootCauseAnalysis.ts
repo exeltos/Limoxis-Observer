@@ -1,8 +1,9 @@
+import type { AnyRecord } from '../../types/featureTypes'
 // Root cause analysis of a CAPA: the problem, a 5 Whys chain, and an Ishikawa
 // (fishbone) diagram with the categories used in healthcare. The conclusion
 // is the root cause the corrective action has to remove.
 
-export const ISHIKAWA_CATEGORIES=[
+export const ISHIKAWA_CATEGORIES: [string, string, string][]=[
  ['people','Προσωπικό','People'],
  ['methods','Διαδικασίες / πρωτόκολλα','Methods / protocols'],
  ['equipment','Εξοπλισμός','Equipment'],
@@ -12,14 +13,17 @@ export const ISHIKAWA_CATEGORIES=[
 ]
 export const WHY_COUNT=5
 
-function emptyAnalysis(){
+export interface RootCauseAnalysis { problem: string, whys: string[], causes: Record<string, string[]>, rootCause: string, updatedAt: string, updatedBy: string }
+
+function emptyAnalysis(): RootCauseAnalysis{
  return {problem:'',whys:Array(WHY_COUNT).fill(''),causes:Object.fromEntries(ISHIKAWA_CATEGORIES.map(([key])=>[key,[]])),rootCause:'',updatedAt:'',updatedBy:''}
 }
 
 // Fills gaps of a stored (or missing) analysis, so the form always has every field.
-export function normalizeAnalysis(value){
+export function normalizeAnalysis(input: unknown): RootCauseAnalysis{
  const base=emptyAnalysis()
- if(!value||typeof value!=='object')return base
+ if(!input||typeof input!=='object')return base
+ const value=input as AnyRecord
  const whys=Array.isArray(value.whys)?value.whys.map(String):[]
  return {
   ...base,...value,
@@ -28,21 +32,21 @@ export function normalizeAnalysis(value){
  }
 }
 
-export function analysisProgress(value){
+export function analysisProgress(value: unknown){
  const analysis=normalizeAnalysis(value)
- const whys=analysis.whys.filter(w=>w.trim()).length
+ const whys=analysis.whys.filter((w: string)=>w.trim()).length
  const causes=ISHIKAWA_CATEGORIES.reduce((sum,[key])=>sum+analysis.causes[key].length,0)
  return {whys,causes,concluded:Boolean(analysis.rootCause.trim()),started:Boolean(analysis.problem.trim()||whys||causes||analysis.rootCause.trim())}
 }
 
 // Trims what was typed; empty answers after the last filled one are dropped.
-export function cleanAnalysis(value,{actorName='',now=new Date().toISOString()}={}){
+export function cleanAnalysis(value: unknown,{actorName='',now=new Date().toISOString()}: {actorName?: string, now?: string}={}){
  const analysis=normalizeAnalysis(value)
  return {
   ...analysis,
   problem:analysis.problem.trim(),
-  whys:analysis.whys.map(w=>w.trim()),
-  causes:Object.fromEntries(Object.entries(analysis.causes).map(([key,list])=>[key,list.map(c=>c.trim()).filter(Boolean)])),
+  whys:analysis.whys.map((w: string)=>w.trim()),
+  causes:Object.fromEntries(Object.entries(analysis.causes).map(([key,list])=>[key,list.map((c: string)=>c.trim()).filter(Boolean)])),
   rootCause:analysis.rootCause.trim(),
   updatedAt:now,
   updatedBy:actorName,
