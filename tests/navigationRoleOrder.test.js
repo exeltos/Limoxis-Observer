@@ -121,7 +121,7 @@ describe('shift roster in the menu (owner, 8/11/2026)', () => {
 describe('shift roster closed to the HR office (owner, 8/11/2026)', () => {
   it('keeps the HR office out of the route and the editors', async () => {
     expect(readSource('src/app/App.jsx')).toContain('excludeRoles={[ROLES.HR_OFFICE]}><RostersPage/>')
-    expect(readSource('src/features/rosters/RostersPage.jsx')).not.toMatch(/WRITERS = new Set\(\[[^\]]*HR_OFFICE/)
+    expect(readSource('src/features/rosters/RostersPage.jsx')).not.toMatch(/WRITERS(?::[^=]*)? = new Set\(\[[^\]]*HR_OFFICE/)
     const sql = readSource('supabase/manual/20261108_department_rosters_without_hr.sql')
     expect(sql.split('commit;')[0]).not.toContain('hr_office')
   })

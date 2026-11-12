@@ -84,7 +84,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
     setLoadingLog(true)
     // Without the member list (database function not installed yet) fall back to
     // the acknowledgers with their profile names, as before.
-    const load: Promise<AnyRecord[]> = membersComplete ? loadAcknowledgements(organizationId, [distribution.id]) : loadAnnouncementAcknowledgers(organizationId, distribution.id)
+    const load: Promise<AnyRecord[]> = membersComplete ? loadAcknowledgements(organizationId, [distribution.id]) : loadAnnouncementAcknowledgers(organizationId as string, distribution.id)
     load
       .then((rows) => { if (active) setAcks(rows) })
       .catch(() => { if (active) setAcks([]) })

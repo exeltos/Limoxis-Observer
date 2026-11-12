@@ -36,7 +36,7 @@ describe('kitchen: five tabs in one row', () => {
     expect(page).toContain('KITCHEN_PRIMARY_ACTION[tab]')
     // The top bar is Export plus that one button; no other page-level action buttons.
     expect(page).toContain('{primaryButton}')
-    expect((page.match(/<Button onClick=\{\(\) => \(?(?:summary\.production|setDialog|setRecall)/g) || []).length).toBe(4)
+    expect((page.match(/<Button onClick=\{\(\) => \(?(?:summary!?\.production|setDialog|setRecall)/g) || []).length).toBe(4)
   })
 
   it('draws one row of tabs, the cards only on Today and the storage selector as a mode switch', () => {

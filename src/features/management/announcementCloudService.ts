@@ -1,0 +1,89 @@
+import { supabase } from '../../core/supabase/client'
+import type { Tables } from '../../core/supabase/database.types'
+import type { AnyRecord } from '../../types/featureTypes'
+
+function requireCloud(){if(!supabase)throw new Error('Supabase is not configured');return supabase}
+function requireOrganization(organizationId: string|null|undefined){if(!organizationId)throw new Error('Organization is required')}
+
+const mapAnnouncement=(row: Tables<'management_announcements'>)=>({
+ id:row.id,title:row.title,message:row.message,priority:row.priority,
+ audienceType:row.audience_type,audienceValues:Array.isArray(row.audience_values)?row.audience_values:[],
+ requiresAck:Boolean(row.requires_ack),startAt:row.starts_at||'',endAt:row.ends_at||'',
+ linkPath:row.link_path||'',
+ createdAt:row.created_at,createdById:row.created_by||null,updatedAt:row.updated_at,
+})
+
+async function currentUserId(){const supabase=requireCloud();const {data,error}=await supabase.auth.getUser();if(error)throw error;return data?.user?.id||null}
+
+export async function loadAnnouncements(organizationId: string){
+ const supabase=requireCloud();requireOrganization(organizationId)
+ const {data,error}=await supabase.from('management_announcements').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false})
+ if(error)throw error
+ return (data||[]).map(mapAnnouncement)
+}
+
+function toRow(item: AnyRecord,organizationId: string,userId: string|null){return {
+ organization_id:organizationId,title:item.title.trim(),message:item.message.trim(),priority:item.priority||'normal',
+ audience_type:item.audienceType||'all',audience_values:item.audienceType==='all'?[]:(item.audienceValues||[]),
+ requires_ack:Boolean(item.requiresAck),starts_at:item.startAt||null,ends_at:item.endAt||null,
+ link_path:item.linkPath||null,
+ updated_by:userId,updated_at:new Date().toISOString(),
+}}
+
+export async function createAnnouncement(organizationId: string|null|undefined,item: AnyRecord){
+ const supabase=requireCloud();requireOrganization(organizationId);const userId=await currentUserId()
+ const {data,error}=await supabase.from('management_announcements').insert({...toRow(item,organizationId as string,userId),created_by:userId}).select('*').single()
+ if(error)throw error;return mapAnnouncement(data)
+}
+export async function updateAnnouncement(organizationId: string,item: AnyRecord){
+ const supabase=requireCloud();requireOrganization(organizationId);const userId=await currentUserId()
+ const {data,error}=await supabase.from('management_announcements').update(toRow(item,organizationId,userId)).eq('organization_id',organizationId).eq('id',item.id).select('*').single()
+ if(error)throw error;return mapAnnouncement(data)
+}
+export async function removeAnnouncement(organizationId: string,id: string){
+ const supabase=requireCloud();requireOrganization(organizationId)
+ const {error}=await supabase.from('management_announcements').delete().eq('organization_id',organizationId).eq('id',id)
+ if(error)throw error;return true
+}
+
+export async function loadMyAnnouncementAcknowledgements(organizationId: string,userId: string|null|undefined){
+ const supabase=requireCloud();requireOrganization(organizationId);if(!userId)return new Set<string>()
+ const {data,error}=await supabase.from('management_announcement_acknowledgements').select('announcement_id').eq('organization_id',organizationId).eq('user_id',userId)
+ if(error)throw error;return new Set((data||[]).map(x=>x.announcement_id))
+}
+export async function acknowledgeAnnouncement(organizationId: string,announcementId: string,userId: string){
+ const supabase=requireCloud();requireOrganization(organizationId);if(!announcementId||!userId)throw new Error('Announcement and user are required')
+ const {error}=await supabase.from('management_announcement_acknowledgements').upsert({organization_id:organizationId,announcement_id:announcementId,user_id:userId},{onConflict:'announcement_id,user_id'})
+ if(error)throw error;return true
+}
+
+export async function loadAnnouncementByLinkPath(organizationId: string,linkPath: string|null|undefined){
+ const supabase=requireCloud();requireOrganization(organizationId);if(!linkPath)return null
+ const {data,error}=await supabase.from('management_announcements').select('*').eq('organization_id',organizationId).eq('link_path',linkPath).order('created_at',{ascending:false}).limit(1).maybeSingle()
+ if(error)throw error
+ return data?mapAnnouncement(data):null
+}
+
+export async function loadAnnouncementAcknowledgers(organizationId: string,announcementId: string|null|undefined){
+ const supabase=requireCloud();requireOrganization(organizationId);if(!announcementId)return []
+ const {data,error}=await supabase.from('management_announcement_acknowledgements').select('user_id,acknowledged_at').eq('organization_id',organizationId).eq('announcement_id',announcementId).order('acknowledged_at',{ascending:true})
+ if(error)throw error
+ const ids=[...new Set((data||[]).map(x=>x.user_id).filter(Boolean))]
+ if(!ids.length)return []
+ const {data:profiles,error:profilesError}=await supabase.from('profiles').select('id,full_name,username').in('id',ids)
+ if(profilesError)throw profilesError
+ const byId=new Map((profiles||[]).map(p=>[p.id,p]))
+ return (data||[]).map(row=>({userId:row.user_id,name:byId.get(row.user_id)?.full_name||byId.get(row.user_id)?.username||row.user_id,acknowledgedAt:row.acknowledged_at}))
+}
+
+export async function loadAnnouncementUsers(organizationId: string){
+ const supabase=requireCloud();requireOrganization(organizationId)
+ const {data:members,error:membersError}=await supabase.from('organization_members').select('user_id,role,status').eq('organization_id',organizationId).eq('status','active')
+ if(membersError)throw membersError
+ const ids=[...new Set((members||[]).map(x=>x.user_id).filter(Boolean))]
+ if(!ids.length)return []
+ const {data:profiles,error:profilesError}=await supabase.from('profiles').select('id,full_name,contact_email,username').in('id',ids)
+ if(profilesError)throw profilesError
+ const byId=new Map((profiles||[]).map(p=>[p.id,p]))
+ return ids.map(id=>{const p: Partial<Pick<Tables<'profiles'>,'full_name'|'username'|'contact_email'>>=byId.get(id)||{};return {id,label:p.full_name||p.username||p.contact_email||id,secondary:p.contact_email||p.username||id}})
+}

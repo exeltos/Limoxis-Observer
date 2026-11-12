@@ -1,0 +1,226 @@
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react'
+import {BrainCircuit,ClipboardList,History,ListChecks,Plus,Radar,Sparkles,Users} from 'lucide-react'
+import {useSearchParams} from 'react-router-dom'
+import {Button} from '../../design-system/Button'
+import {TableSkeleton} from '../../design-system/LoadingSkeleton'
+import {Page} from '../../design-system/Page'
+import {EntityRecordShell} from '../../design-system/EntityRecordShell'
+import {SectionTabsProvider} from '../../design-system/SectionTabs'
+import {FilterBar} from '../../design-system/FilterBar'
+import {RegistryTable} from '../../design-system/RegistryTable'
+import {RegistryEmptyState} from '../../design-system/RegistryEmptyState'
+import {StatusBadge} from '../../design-system/StatusBadge'
+import {DetailList} from '../../design-system/DetailList'
+import {ExportMenu} from '../../design-system/ExportMenu'
+import {exportElementAsPdf} from '../../core/export/pdfReportExport'
+import {LiraOutbreakReport} from '../lira/LiraOutbreakReport'
+import {ManualDateField} from '../../design-system/ManualDateField'
+import {ObserverDialog,DialogActions} from '../../design-system/ObserverDialog'
+import {Field} from '../../design-system/Field'
+import {FormGrid} from '../../design-system/FormCard'
+import {MoreSection} from '../../design-system/MoreSection'
+import {useFormValidation,FormSubmit} from '../../design-system/FormValidation'
+import {skinFloraRuleNote} from '../surveillance/skinFloraOrganisms'
+import {useLanguage} from '../../core/i18n/LanguageContext'
+import {useTenant} from '../../core/tenant/TenantContext'
+import {useFeedback} from '../../core/feedback/FeedbackContext'
+import {ROLES} from '../../core/permissions/roles'
+import {loadActiveClustersAsync} from '../surveillance/outbreakClusterService'
+import {clusterAlertId} from '../surveillance/clusterDetection'
+import {loadLiraData} from '../lira/liraDataLayer'
+import {liraDemoInvestigations,demoOutbreakCaseReviews} from '../lira/liraDemoInvestigations'
+import {buildOutbreakClosureReadiness} from '../lira/liraOutbreakClosure'
+import {buildInvestigationCopilot} from '../lira/liraInvestigationCopilot'
+import {buildOutbreakLineList,buildOutbreakTimeline,evaluateOutbreakCaseDefinition} from '../lira/liraOutbreakInvestigation'
+import {listOutbreakInvestigations,createOutbreakInvestigation,updateOutbreakInvestigation,appendOutbreakInvestigationEvent,loadOutbreakInvestigationEvents,loadOutbreakCaseReviews,createOutbreakCaseReview,loadOutbreakActions,createOutbreakAction,updateOutbreakActionStatus} from '../lira/liraOutbreakWorkspace'
+import './outbreakInvestigations.css'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
+import type { ReactNode } from 'react'
+import type { AnyRecord } from '../../types/featureTypes'
+
+// `shell` (Επιτήρηση › Διερευνήσεις): το κουμπί νέας διερεύνησης στην κεφαλίδα και οι μετρητές πάνω από τη λίστα.
+export type OutbreakShell = (parts: { actions: ReactNode, summary: ReactNode, children: ReactNode }) => ReactNode
+const statusLabel=(s: string,en: boolean)=>({draft:en?'Draft':'Πρόχειρη',active:en?'Active':'Ενεργή',closed:en?'Closed':'Κλειστή'} as Record<string,string>)[s]||s
+const caseDefinitionLabel=(en: boolean)=>en?'Case definition':'Ορισμός περιστατικού'
+const actionStatusLabel=(s: string,en: boolean)=>({open:en?'Open':'Ανοικτή',in_progress:en?'In progress':'Σε εξέλιξη',verification:en?'Verification':'Σε επαλήθευση',closed:en?'Closed':'Κλειστή'} as Record<string,string>)[s]||s
+const priorityLabel=(p: string,en: boolean)=>({low:en?'Low':'Χαμηλή',medium:en?'Medium':'Μέτρια',high:en?'High':'Υψηλή',critical:en?'Critical':'Κρίσιμη'} as Record<string,string>)[p]||p
+const actionTypeLabel=(t: string,en: boolean)=>({corrective:en?'Corrective':'Διορθωτική',preventive:en?'Preventive':'Προληπτική'} as Record<string,string>)[t]||t
+const classificationLabel=(c: string,en: boolean)=>({suspected:en?'Suspected':'Πιθανό',probable:en?'Probable':'Πιθανολογούμενο',confirmed:en?'Confirmed':'Επιβεβαιωμένο',excluded:en?'Excluded':'Αποκλεισμένο'} as Record<string,string>)[c]||c
+const fmtDay=(value: unknown,en: boolean)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
+// Count and dates describe the same densest window: «13 patients in 14 days (25/5 → 7/6/2025)».
+export function clusterWindowText(c: AnyRecord,en: boolean){const loc=en?'en-GB':'el-GR',d=(v: unknown)=>new Date(`${String(v).slice(0,10)}T12:00:00`),first=c.firstDate&&d(c.firstDate),last=c.lastDate&&d(c.lastDate);const range=first&&last?` (${first.getFullYear()===last.getFullYear()?new Intl.DateTimeFormat(loc,{day:'numeric',month:'numeric'}).format(first):fmtDay(c.firstDate,en)} → ${fmtDay(c.lastDate,en)})`:'';return en?`${c.count} patients in ${c.windowDays} days${range}`:`${c.count} ασθενείς σε ${c.windowDays} ημέρες${range}`}
+export function clusterRangeText(c: AnyRecord,en: boolean){const t=clusterWindowText(c,en),m=t.match(/\((.*)\)$/);return m?m[1]:''}
+// «5 patients · 12 samples»: a cluster is told in patients, the samples behind it second.
+export function clusterPatientsText(c: AnyRecord,en: boolean){const patients=c.patientCount||c.count,samples=c.sampleCount||c.count;return en?`${patients} patient${patients===1?'':'s'} · ${samples} sample${samples===1?'':'s'} in ${c.windowDays} days`:`${patients} ${patients===1?'ασθενής':'ασθενείς'} · ${samples} ${samples===1?'δείγμα':'δείγματα'} σε ${c.windowDays} ημέρες`}
+// The most serious first: more patients, then more resistance markers, then the most recent.
+const clusterWeight=(c: AnyRecord)=>c.patientCount||c.count
+const bySeriousness=(a: AnyRecord,b: AnyRecord)=>clusterWeight(b)-clusterWeight(a)||(b.resistanceLabels?.length||0)-(a.resistanceLabels?.length||0)||String(b.lastDate).localeCompare(String(a.lastDate))
+const statusTone=(s: string)=>s==='active'?'active':s==='closed'?'neutral':'temporary'
+// The tabs of an open investigation, and where each LIRA suggestion leads.
+const RECORD_TABS=['summary','cases','actions','history']
+const RECORD_TAB_ICONS: Record<string,typeof ClipboardList>={summary:ClipboardList,cases:Users,actions:ListChecks,history:History}
+const recordTabLabel=(id: string,en: boolean)=>({summary:en?'Summary':'Σύνοψη',cases:en?'Cases':'Περιστατικά',actions:en?'Actions':'Ενέργειες',history:en?'History':'Ιστορικό'} as Record<string,string>)[id]
+const SUGGESTION_TAB: Record<string,string>={'line-list':'cases',capa:'actions',hypotheses:'actions',evidence:'history'}
+// Who may start an investigation: the same roles the database policy lets insert one.
+const INVESTIGATION_ROLES: (string|null)[]=[ROLES.PLATFORM_OWNER,ROLES.DEMO,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD,ROLES.INFECTION_CONTROL_MEMBER]
+type InvestigationForm = { title: string, organism: string, from: string, to: string, definitionId: string, definitionVersion: string, cluster: AnyRecord|null }
+const EMPTY_FORM: InvestigationForm={title:'',organism:'',from:'',to:'',definitionId:'',definitionVersion:'',cluster:null}
+const sameOrganism=(a: unknown,b: unknown)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase()
+// The form of a new investigation started from a detected cluster: organism, period and a title that names the department.
+export function investigationFormFromCluster(cluster: AnyRecord): InvestigationForm{return {...EMPTY_FORM,title:`${cluster.organism} — ${cluster.department}`,organism:cluster.organism,from:cluster.firstDate||'',to:cluster.lastDate||'',cluster:{department:cluster.department,count:cluster.count,windowDays:cluster.windowDays}}}
+const blockerLabel=(code: string,en: boolean)=>({unreviewed_candidates:en?'Unreviewed candidates':'Μη αξιολογημένα υποψήφια',open_actions:en?'Open actions':'Ανοικτές ενέργειες',unresolved_hypotheses:en?'Unresolved hypotheses':'Ανεπίλυτες υποθέσεις'} as Record<string,string>)[code]||code
+const timelineTypeLabel=(t: string,en: boolean)=>({microbiology:en?'Microbiology':'Μικροβιολογία',hai:'HAI',device:en?'Device':'Συσκευή',isolation:en?'Isolation':'Απομόνωση'} as Record<string,string>)[t]||t
+const eventTypeLabel=(t: string,en: boolean)=>({status:en?'Status':'Κατάσταση',note:en?'Note':'Σημείωση',hypothesis:en?'Hypothesis':'Υπόθεση',decision:en?'Decision':'Απόφαση',case_review:en?'Case review':'Αξιολόγηση περιστατικού',evidence:en?'Evidence':'Τεκμήριο'} as Record<string,string>)[t]||t
+function eventText(e: AnyRecord,en: boolean){const p=e.payload||{};if(p.text)return en&&p.textEn||p.text;if(p.action==='created')return en?'Investigation created':'Δημιουργία διερεύνησης';if(p.action==='capa_created')return `${en?'CAPA created':'Δημιουργία διορθωτικής ενέργειας'}${p.title?`: ${p.title}`:''}`;if(p.action==='capa_status')return `${en?'CAPA status':'Κατάσταση διορθωτικής ενέργειας'} → ${actionStatusLabel(p.status,en)}`;if(p.action==='lira_signal_handoff')return en?'Started from a LIRA signal':'Έναρξη από σήμα της LIRA';if(e.event_type==='status'&&p.to)return `${statusLabel(p.from,en)} → ${statusLabel(p.to,en)}`;if(e.event_type==='case_review')return `${p.recordKey||''} · ${classificationLabel(p.classification,en)}`;return '—'}
+// `shell` lays the panel out as a screen like the other Surveillance tabs: the new-investigation
+// button in the page header and a row of counts above the list ({actions,summary,children}) => page.
+export function LiraOutbreakInvestigationsPanel({shell=null}: { shell?: OutbreakShell | null }={}){
+ const reportRef=useRef<HTMLDivElement>(null)
+ const {language}=useLanguage(),en=language==='en';const {tenant,isDemo,role}=useTenant();const {notify}=useFeedback()
+ const [rows,setRows]=useState<AnyRecord[]>([]),[selected,setSelected]=useState<AnyRecord|null>(null),[events,setEvents]=useState<AnyRecord[]>([]),[query,setQuery]=useState(''),[creating,setCreating]=useState(false),[note,setNote]=useState(''),[lineList,setLineList]=useState<AnyRecord|null>(null),[timeline,setTimeline]=useState<AnyRecord[]>([]),[caseReview,setCaseReview]=useState<AnyRecord|null>(null),[evidenceLoading,setEvidenceLoading]=useState(false),[reviews,setReviews]=useState<AnyRecord[]>([]),[reviewing,setReviewing]=useState<AnyRecord|null>(null),[reviewForm,setReviewForm]=useState({classification:'suspected',rationale:''}),[actions,setActions]=useState<AnyRecord[]>([]),[actionForm,setActionForm]=useState({title:'',owner:'',dueDate:'',priority:'medium',actionType:'corrective',description:''}),[addingAction,setAddingAction]=useState(false),[closing,setClosing]=useState(false),[closureNote,setClosureNote]=useState('')
+ const [form,setForm]=useState<InvestigationForm>(EMPTY_FORM),[clusters,setClusters]=useState<AnyRecord[]>([]),[recordTab,setRecordTab]=useState('summary')
+ // The list shows placeholders until both reads end: never «no investigations» or 0 figures before the first load.
+ const [rowsLoaded,setRowsLoaded]=useState(Boolean(isDemo)),[clustersLoaded,setClustersLoaded]=useState(false)
+ // The Demo opens with its sample investigations (liraDemoInvestigations.js): history, case reviews and actions.
+ useEffect(()=>{if(isDemo){setRows(liraDemoInvestigations.map(row=>({...row})));setRowsLoaded(true)}},[isDemo])
+ const [,setSearchParams]=useSearchParams()
+ // Back to the list: the address loses ?investigation= so a reload shows the list again.
+ function closeRecord(){setSelected(null);setSearchParams(current=>{const next=new URLSearchParams(current);next.delete('investigation');return next},{replace:true})}
+ const validation=useFormValidation([{key:'title',label:en?'Title':'Τίτλος',valid:Boolean(form.title.trim())}])
+  const canCreate=INVESTIGATION_ROLES.includes(role)
+  // Without a hospital in production there is nowhere to record the investigation: the button says why instead of just greying out.
+  const blockedReason=!isDemo&&!tenant?.id?(en?'Select a hospital first.':'Επιλέξτε πρώτα νοσοκομείο.'):''
+ const load=useCallback(async()=>{if(!tenant?.id||isDemo)return;try{setRows(await listOutbreakInvestigations(tenant.id))}catch(e){notify((e as Error).message,'error')}finally{setRowsLoaded(true)}},[tenant?.id,isDemo,notify])
+ useEffect(()=>{load()},[load])
+ // A link from a patient record (?investigation=<id>) opens that investigation once the list is read.
+ const wantedInvestigation=useRef(typeof window!=='undefined'?new URLSearchParams(window.location.search).get('investigation'):null)
+ useEffect(()=>{const id=wantedInvestigation.current;if(!id||!rows.length)return;const row=rows.find(item=>String(item.id)===String(id));if(row){wantedInvestigation.current=null;void open(row)}// eslint-disable-next-line react-hooks/exhaustive-deps
+ },[rows])
+ // The clusters the app has already detected (the same rule as the notifications and the Analysis).
+ useEffect(()=>{let alive=true;loadActiveClustersAsync(tenant?.id).then(list=>{if(alive)setClusters(list)}).catch(()=>{if(alive)setClusters([])}).finally(()=>{if(alive)setClustersLoaded(true)});return()=>{alive=false}},[tenant?.id])
+ const closure=useMemo(()=>buildOutbreakClosureReadiness({lineList,caseReviews:reviews,actions,events}),[lineList,reviews,actions,events])
+ const copilot=useMemo(()=>buildInvestigationCopilot({investigation:selected,lineList,caseReviews:reviews,actions,events,closure,language}),[selected,lineList,reviews,actions,events,closure,language])
+ function runCopilotSuggestion(item: AnyRecord){if(item.target==='closure'){setClosing(true);return}const ids: Record<string,string>={'line-list':'lira-investigation-line-list',capa:'lira-investigation-capa',hypotheses:'lira-investigation-hypotheses',evidence:'lira-investigation-evidence'};setRecordTab(SUGGESTION_TAB[item.target]||'summary');setTimeout(()=>document.getElementById(ids[item.target])?.scrollIntoView({behavior:'smooth',block:'start'}),60)}
+ const filtered=useMemo(()=>rows.filter(x=>!query||[x.title,x.organism,x.status].some(v=>String(v||'').toLowerCase().includes(query.toLowerCase()))),[rows,query])
+ async function open(row: AnyRecord){setSelected(row);setRecordTab('summary');setSearchParams(current=>{const next=new URLSearchParams(current);next.set('investigation',String(row.id));return next},{replace:true});setEvidenceLoading(true);try{const [history,data,caseReviews,ipcActions]=await Promise.all(isDemo?[Promise.resolve(row.demoEvents||[]),loadLiraData({isDemo:true}),Promise.resolve([]),Promise.resolve(row.demoActions||[])]:[loadOutbreakInvestigationEvents(row.id),loadLiraData({organizationId:tenant!.id}),loadOutbreakCaseReviews(row.id),loadOutbreakActions(tenant!.id,row.id)]);setEvents(history);setReviews(caseReviews);setActions(ipcActions);const list=buildOutbreakLineList(data,{from:row.scope_from,to:row.scope_to,organism:row.species||row.organism||null});if(isDemo)setReviews(demoOutbreakCaseReviews(row,list));setLineList(list);setTimeline(buildOutbreakTimeline(list));setCaseReview(evaluateOutbreakCaseDefinition(list,{...(row.definition_json||{}),id:row.definition_id,version:row.definition_version,organism:row.definition_json?.organism||row.organism||null,from:row.definition_json?.from||row.scope_from||null,to:row.definition_json?.to||row.scope_to||null}))}catch(e){notify((e as Error).message,'error');setLineList(null);setTimeline([]);setCaseReview(null)}finally{setEvidenceLoading(false)}}
+ async function create(){if(!form.title.trim())return;if(isDemo){const now=new Date().toISOString(),row={id:`demo-${Date.now()}`,title:form.title.trim(),organism:form.organism.trim()||null,scope_from:form.from||null,scope_to:form.to||null,definition_id:form.definitionId||null,definition_version:form.definitionVersion||null,status:'draft',created_at:now,updated_at:now,demoEvents:[{id:`demo-ev-${Date.now()}`,event_type:'status',payload:{status:'draft',action:'created'},created_at:now}]};setRows(current=>[row,...current]);setCreating(false);setForm(EMPTY_FORM);await open(row);notify(en?'Investigation created (demo, kept on this screen only).':'Η διερεύνηση δημιουργήθηκε (demo, μένει μόνο σε αυτή την οθόνη).','success');return}try{const definition=form.definitionId&&form.definitionVersion?{id:form.definitionId,version:form.definitionVersion}:null;const row=await createOutbreakInvestigation(tenant!.id,{title:form.title.trim(),organism:form.organism.trim()||null,from:form.from||null,to:form.to||null,definition});await appendOutbreakInvestigationEvent(tenant!.id,row.id,'status',{status:'draft',action:'created'});setCreating(false);setForm(EMPTY_FORM);await load();await open(row);notify(en?'Investigation created.':'Η διερεύνηση δημιουργήθηκε.','success')}catch(e){notify((e as Error).message,'error')}}
+ async function changeStatus(status: string){if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{const patch: AnyRecord={status};if(status==='closed')patch.closed_at=new Date().toISOString();const row=await updateOutbreakInvestigation(selected!.id,patch);await appendOutbreakInvestigationEvent(tenant!.id,selected!.id,'status',{from:selected!.status,to:status});setSelected(row);setEvents(await loadOutbreakInvestigationEvents(row.id));load()}catch(e){notify((e as Error).message,'error')}}
+ async function closeInvestigation(){if(!closure.ready||!closureNote.trim())return;if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{await appendOutbreakInvestigationEvent(tenant!.id,selected!.id,'decision',{action:'closure_review',text:closureNote.trim(),readiness:closure.counts});setClosing(false);setClosureNote('');await changeStatus('closed');notify(en?'Investigation closed after human readiness review.':'Η διερεύνηση έκλεισε μετά από ανθρώπινο έλεγχο ετοιμότητας.','success')}catch(e){notify((e as Error).message,'error')}}
+ async function saveCaseReview(){if(!reviewing||!reviewForm.rationale.trim())return;if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{const prior=[...reviews].reverse().find(x=>x.record_key===reviewing.recordKey);await createOutbreakCaseReview(tenant!.id,selected!.id,{recordKey:reviewing.recordKey,patientId:reviewing.patientKey,classification:reviewForm.classification,rationale:reviewForm.rationale.trim(),supersedesReviewId:prior?.id||null});await appendOutbreakInvestigationEvent(tenant!.id,selected!.id,'case_review',{recordKey:reviewing.recordKey,classification:reviewForm.classification});setReviews(await loadOutbreakCaseReviews(selected!.id));setEvents(await loadOutbreakInvestigationEvents(selected!.id));setReviewing(null);setReviewForm({classification:'suspected',rationale:''});notify(en?'Case review recorded.':'Η αξιολόγηση περιστατικού καταγράφηκε.','success')}catch(e){notify((e as Error).message,'error')}}
+ async function saveAction(){if(!selected||!actionForm.title.trim())return;if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{const action=await createOutbreakAction(tenant!.id,selected.id,actionForm);await appendOutbreakInvestigationEvent(tenant!.id,selected.id,'decision',{action:'capa_created',capaId:action.id,title:action.title});setActions(await loadOutbreakActions(tenant!.id,selected.id));setAddingAction(false);setActionForm({title:'',owner:'',dueDate:'',priority:'medium',actionType:'corrective',description:''});notify(en?'IPC/CAPA action created.':'Η διορθωτική ενέργεια IPC δημιουργήθηκε.','success')}catch(e){notify((e as Error).message,'error')}}
+ async function changeActionStatus(action: AnyRecord,status: string){if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{await updateOutbreakActionStatus(tenant!.id,action.id,status);await appendOutbreakInvestigationEvent(tenant!.id,selected!.id,'decision',{action:'capa_status',capaId:action.id,status});setActions(await loadOutbreakActions(tenant!.id,selected!.id));setEvents(await loadOutbreakInvestigationEvents(selected!.id))}catch(e){notify((e as Error).message,'error')}}
+ async function addEvidence(type: string){if(!note.trim())return;if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{await appendOutbreakInvestigationEvent(tenant!.id,selected!.id,type,{text:note.trim()});setNote('');setEvents(await loadOutbreakInvestigationEvents(selected!.id));notify(en?'Recorded.':'Καταγράφηκε.','success')}catch(e){notify((e as Error).message,'error')}}
+  const visibleClusters=useMemo(()=>clusters.filter(c=>!rows.some(r=>r.status!=='closed'&&sameOrganism(r.organism,c.organism))).sort(bySeriousness),[clusters,rows]),[showAllClusters,setShowAllClusters]=useState(false)
+  function startNew(){setForm(EMPTY_FORM);setCreating(true)}
+  function startFromCluster(cluster: AnyRecord){setForm(investigationFormFromCluster(cluster));setCreating(true)}
+  function closeCreate(){setCreating(false);setForm(EMPTY_FORM);validation.reset()}
+  const newButton=canCreate?<Button disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={startNew}><Plus size={16}/>{en?'New investigation':'Νέα διερεύνηση'}</Button>:null
+  const hasRows=rows.length>0,hasClusters=visibleClusters.length>0
+  const loading=!rowsLoaded||!clustersLoaded
+  const openCount=rows.filter(x=>x.status!=='closed').length,closedCount=rows.length-openCount
+  // The counts beside the search (owner, 8/11/2026: no cards); without investigations the clusters say it themselves.
+  const summary=null
+  const outbreakTotals=<RegistryTotals label={en?'Outbreak investigations':'Διερευνήσεις εξάρσεων'} items={[
+   {key:'clusters',value:visibleClusters.length,label:en?'to review':'χρειάζονται έλεγχο'},
+   {key:'open',value:openCount,label:en?'under investigation':'σε διερεύνηση'},
+   {key:'closed',value:closedCount,label:en?'completed':'ολοκληρωμένες'},
+  ]}/>
+  const toolbarButton=shell?null:newButton
+  const body=<section className="outbreak-investigations">
+   {loading
+    ?<TableSkeleton rows={5}/>
+    :(hasRows||hasClusters)
+    ?<>
+   {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={<>{outbreakTotals}{toolbarButton}</>}/>:toolbarButton&&<div className="outbreak-toolbar">{toolbarButton}</div>}
+   {hasClusters&&<section className="outbreak-clusters" aria-label={en?'Possible clusters':'Πιθανές συρροές'}>
+    <h3>{en?'Possible clusters':'Πιθανές συρροές'}</h3>
+    <p className="outbreak-cluster-note">{en?'We flag 3 or more positive results of the same organism in the same department within 14 days. Start an investigation for the ones that worry you.':'Εντοπίζουμε 3 ή περισσότερα θετικά αποτελέσματα του ίδιου μικροοργανισμού στο ίδιο τμήμα μέσα σε 14 ημέρες. Ξεκινάς διερεύνηση για όσα σε προβληματίζουν.'}</p>
+    <ul>{(showAllClusters?visibleClusters:visibleClusters.slice(0,5)).map(c=><li key={clusterAlertId(c)}>
+     <div><strong>{c.organism}</strong><span>{c.department} · {clusterPatientsText(c,en)}{clusterRangeText(c,en)?` · ${clusterRangeText(c,en)}`:''}{c.resistanceLabels?.length?` · ${c.resistanceLabels.join(', ')}`:''}</span>{c.skinFloraRule&&<small className="outbreak-cluster-rule">{skinFloraRuleNote(en)}</small>}</div>
+     {canCreate&&<Button variant="secondary" className="outbreak-start" disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={()=>startFromCluster(c)}>{en?'Start investigation':'Έναρξη διερεύνησης'}</Button>}
+    </li>)}</ul>
+    {visibleClusters.length>5&&<Button variant="secondary" className="outbreak-show-all" onClick={()=>setShowAllClusters(v=>!v)}>{showAllClusters?(en?'Show fewer':'Εμφάνιση λιγότερων'):(en?`Show all ${visibleClusters.length}`:`Εμφάνιση όλων (${visibleClusters.length})`)}</Button>}
+   </section>}
+   {hasRows&&<h3 className="outbreak-section-title">{en?'Investigations':'Διερευνήσεις'}</h3>}
+   {hasRows&&<RegistryTable
+    wrapperClassName="table-wrap scroll-table"
+    columns={[{key:'title',label:en?'Investigation':'Διερεύνηση'},{key:'organism',label:en?'Organism':'Μικροοργανισμός'},{key:'period',label:en?'Period':'Περίοδος'},{key:'definition',label:caseDefinitionLabel(en)},{key:'status',label:en?'Status':'Κατάσταση'}]}
+    rows={filtered}
+    rowKey={x=>x.id}
+    rowProps={x=>({className:'clickable-row',tabIndex:0,onClick:()=>open(x),onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(x)}}})}
+    renderRow={x=><><td><strong>{en&&x.titleEn||x.title}</strong></td><td>{x.organism||'—'}</td><td>{fmtDay(x.scope_from,en)} → {fmtDay(x.scope_to,en)}</td><td>{x.definition_id?x.definition_id+' · '+x.definition_version:'—'}</td><td><StatusBadge tone={statusTone(x.status)}>{statusLabel(x.status,en)}</StatusBadge></td></>}
+    emptyFiltered
+    onClearFilters={()=>setQuery('')}
+   />}
+    </>
+    :<RegistryEmptyState icon={Radar} title={en?'No outbreak investigations.':'Δεν υπάρχουν διερευνήσεις εξάρσεων.'} text={en?'Start an investigation when two or more patients have the same organism in the same department.':'Ξεκινήστε διερεύνηση όταν δύο ή περισσότεροι ασθενείς έχουν τον ίδιο μικροοργανισμό στο ίδιο τμήμα.'} action={newButton?{label:en?'New investigation':'Νέα διερεύνηση',icon:Plus,onClick:startNew}:null}/>}
+
+ </section>
+
+  // The dialogs of the investigation (closure, action, case review) and of a new one.
+  const dialogs=<>
+  {closing&&<ObserverDialog width="wide" title={en?'Closure readiness review':'Έλεγχος ετοιμότητας κλεισίματος'} onClose={()=>setClosing(false)} footer={<DialogActions onCancel={()=>setClosing(false)} onSave={closeInvestigation} disabled={!closure.ready||!closureNote.trim()}/>}><div className="detail-summary-grid"><div><span>{en?'Unreviewed candidates':'Μη αξιολογημένα πιθανά περιστατικά'}</span><strong>{closure.counts.candidates-closure.counts.reviewed}</strong></div><div><span>{en?'Open actions':'Ανοικτές ενέργειες'}</span><strong>{closure.counts.openActions}</strong></div><div><span>{en?'Unresolved hypotheses':'Ανεπίλυτες υποθέσεις'}</span><strong>{closure.counts.unresolvedHypotheses}</strong></div></div>{closure.ready?<p>{en?'Deterministic checks are complete. A human closure rationale is still required.':'Οι αυτόματοι έλεγχοι ολοκληρώθηκαν. Απαιτείται ακόμη ανθρώπινη αιτιολόγηση κλεισίματος.'}</p>:<p className="muted">{en?'Resolve all blockers before closure.':'Επιλύστε όλες τις εκκρεμότητες πριν από το κλείσιμο.'}</p>}<label>{en?'Closure rationale':'Αιτιολόγηση κλεισίματος'}<textarea value={closureNote} onChange={e=>setClosureNote(e.target.value)}/></label></ObserverDialog>}
+  {addingAction&&<ObserverDialog width="wide" title={en?'New IPC / CAPA action':'Νέα διορθωτική ενέργεια IPC'} onClose={()=>setAddingAction(false)} footer={<DialogActions onCancel={()=>setAddingAction(false)} onSave={saveAction} disabled={!actionForm.title.trim()}/>}><div className="form-grid"><label>{en?'Title':'Τίτλος'}<input value={actionForm.title} onChange={e=>setActionForm({...actionForm,title:e.target.value})}/></label><label>{en?'Owner':'Υπεύθυνος'}<input value={actionForm.owner} onChange={e=>setActionForm({...actionForm,owner:e.target.value})}/></label><ManualDateField label={en?'Due date':'Προθεσμία'} value={actionForm.dueDate} onChange={value=>setActionForm({...actionForm,dueDate:value})}/><label>{en?'Priority':'Προτεραιότητα'}<select value={actionForm.priority} onChange={e=>setActionForm({...actionForm,priority:e.target.value})}><option value="low">{priorityLabel('low',en)}</option><option value="medium">{priorityLabel('medium',en)}</option><option value="high">{priorityLabel('high',en)}</option><option value="critical">{priorityLabel('critical',en)}</option></select></label><label>{en?'Type':'Τύπος'}<select value={actionForm.actionType} onChange={e=>setActionForm({...actionForm,actionType:e.target.value})}><option value="corrective">{actionTypeLabel('corrective',en)}</option><option value="preventive">{actionTypeLabel('preventive',en)}</option></select></label><label className="form-span-2">{en?'Description':'Περιγραφή'}<textarea value={actionForm.description} onChange={e=>setActionForm({...actionForm,description:e.target.value})}/></label></div></ObserverDialog>}
+  {reviewing&&<ObserverDialog width="wide" title={en?'Human case review':'Ανθρώπινη αξιολόγηση περιστατικού'} subtitle={[reviewing.eventDate,reviewing.organism,reviewing.department].filter(Boolean).join(' · ')} onClose={()=>setReviewing(null)} footer={<DialogActions onCancel={()=>setReviewing(null)} onSave={saveCaseReview} disabled={!reviewForm.rationale.trim()}/>}><div className="form-grid"><label>{en?'Classification':'Ταξινόμηση'}<select value={reviewForm.classification} onChange={e=>setReviewForm({...reviewForm,classification:e.target.value})}><option value="suspected">{classificationLabel('suspected',en)}</option><option value="probable">{classificationLabel('probable',en)}</option><option value="confirmed">{classificationLabel('confirmed',en)}</option><option value="excluded">{classificationLabel('excluded',en)}</option></select></label><label className="form-span-2">{en?'Rationale':'Αιτιολόγηση'}<textarea value={reviewForm.rationale} onChange={e=>setReviewForm({...reviewForm,rationale:e.target.value})} placeholder={en?'Required clinical/epidemiological rationale…':'Υποχρεωτική κλινική/επιδημιολογική αιτιολόγηση…'}/></label></div><p className="muted">{en?'Classification is a human-reviewed investigation decision and does not alter the source clinical record.':'Η ταξινόμηση αποτελεί ανθρώπινη απόφαση της διερεύνησης και δεν μεταβάλλει την αρχική κλινική εγγραφή.'}</p></ObserverDialog>}
+  {creating&&<ObserverDialog width="wide" title={en?'New outbreak investigation':'Νέα διερεύνηση πιθανής έξαρσης'} onClose={closeCreate} footer={<FormSubmit form={validation} onSubmit={create}>{en?'Save':'Αποθήκευση'}</FormSubmit>}>{form.cluster&&<p className="outbreak-cluster-note">{en?`From the detected cluster: ${form.cluster.count} cases in ${form.cluster.department} within ${form.cluster.windowDays} days. The linked cases are collected from the organism and the period.`:`Από την ανίχνευση συρροής: ${form.cluster.count} περιστατικά στο τμήμα ${form.cluster.department} σε ${form.cluster.windowDays} ημέρες. Τα συνδεδεμένα περιστατικά συλλέγονται από τον μικροοργανισμό και την περίοδο.`}</p>}<div className="outbreak-create-form"><FormGrid columns={2}><Field label={en?'Title':'Τίτλος'} className="is-span" {...validation.field('title')}><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></Field><Field label={en?'Organism':'Μικροοργανισμός'} className="is-span"><input value={form.organism} onChange={e=>setForm({...form,organism:e.target.value})}/></Field><ManualDateField label={en?'From':'Από'} value={form.from} onChange={value=>setForm({...form,from:value})} optional/><ManualDateField label={en?'To':'Έως'} value={form.to} onChange={value=>setForm({...form,to:value})} optional/></FormGrid><MoreSection moreLabel={en?'Advanced':'Προχωρημένα'} lessLabel={en?'Hide advanced':'Απόκρυψη προχωρημένων'}><FormGrid columns={2}><Field label={en?'Case definition ID':'Κωδικός ορισμού περιστατικού'} hint={en?'Only if your hospital keeps a written case definition. Leave empty otherwise.':'Μόνο αν το νοσοκομείο έχει γραπτό ορισμό περιστατικού. Αλλιώς αφήστε το κενό.'}><input value={form.definitionId} onChange={e=>setForm({...form,definitionId:e.target.value})}/></Field><Field label={en?'Definition version':'Έκδοση ορισμού'} hint={en?'The version of that definition, e.g. 2 or 2025-06.':'Η έκδοση αυτού του ορισμού, π.χ. 2 ή 2025-06.'}><input value={form.definitionVersion} onChange={e=>setForm({...form,definitionVersion:e.target.value})}/></Field></FormGrid></MoreSection></div></ObserverDialog>}
+  </>
+  // An open investigation is a record page in place of the list, as a patient record is:
+  // header with the status, its commands and the export, then its tabs. No overlay window.
+  const recordView=selected?<SectionTabsProvider value={null}><Page fill title={en&&selected.titleEn||selected.title}>
+   <EntityRecordShell
+    className="outbreak-record-shell"
+    avatar={<Radar size={18}/>}
+    eyebrow={en?'OUTBREAK INVESTIGATION':'ΔΙΕΡΕΥΝΗΣΗ ΕΞΑΡΣΗΣ'}
+    title={en&&selected.titleEn||selected.title}
+    subtitle={[selected.organism,`${fmtDay(selected.scope_from,en)} → ${fmtDay(selected.scope_to,en)}`].filter(Boolean).join(' · ')}
+    status={<StatusBadge tone={statusTone(selected.status)}>{statusLabel(selected.status,en)}</StatusBadge>}
+    headerActions={<>{selected.status==='draft'&&<Button onClick={()=>changeStatus('active')}>{en?'Start investigation':'Έναρξη διερεύνησης'}</Button>}{selected.status==='active'&&<Button variant="danger" onClick={()=>setClosing(true)}>{en?'Review closure':'Έλεγχος κλεισίματος'}</Button>}<ExportMenu onPrint={()=>window.print()} onPdf={()=>exportElementAsPdf({element:reportRef.current,filename:'outbreak-investigation-'+selected.id,orientation:'landscape'})} /></>}
+    onBack={closeRecord}
+    backLabel={en?'Back to the investigations':'Πίσω στις διερευνήσεις'}
+    tabs={RECORD_TABS.map(id=>({id,label:recordTabLabel(id,en),icon:RECORD_TAB_ICONS[id]}))}
+    activeTab={recordTab}
+    onTabChange={setRecordTab}
+   >
+  {selected&&<div className="outbreak-workspace">
+   {recordTab==='summary'&&<>
+    <section className="record-section outbreak-summary"><div className="record-section-header"><div><span className="eyebrow">{en?'SCOPE':'ΕΥΡΟΣ'}</span><h3>{en?'Investigation details':'Στοιχεία διερεύνησης'}</h3></div></div>
+     <DetailList sections={[{items:[{key:'period',label:en?'Period':'Περίοδος',value:`${fmtDay(selected.scope_from,en)} → ${fmtDay(selected.scope_to,en)}`},{key:'definition',label:caseDefinitionLabel(en),value:selected.definition_id?selected.definition_id+' · v'+selected.definition_version:'—'},{key:'status',label:en?'Status':'Κατάσταση',value:<StatusBadge tone={statusTone(selected.status)}>{statusLabel(selected.status,en)}</StatusBadge>},{key:'events',label:en?'Evidence entries':'Εγγραφές τεκμηρίωσης',value:events.length}]}]}/>
+    </section>
+    <section className="record-section outbreak-copilot"><div className="record-section-header"><div><span className="eyebrow">LIRA</span><h3><BrainCircuit size={16}/> {en?'LIRA investigation assistant':'Βοηθός διερεύνησης LIRA'}</h3><p>{copilot.summary}</p></div><span className="status-badge"><Sparkles size={13}/> {en?'Bound to this investigation':'Συνδεδεμένη με αυτή τη διερεύνηση'}</span></div>
+     {copilot.suggestions.length>0&&<div className="outbreak-chip-row">{copilot.suggestions.map((item: AnyRecord)=><Button key={item.id} variant="secondary" onClick={()=>runCopilotSuggestion(item)}>{item.label}</Button>)}</div>}
+     <small className="muted">{en?'Suggestions navigate governed work only. LIRA does not classify cases, change CAPA, or close an investigation autonomously.':'Οι προτάσεις οδηγούν μόνο σε ελεγχόμενες εργασίες. Η LIRA δεν ταξινομεί περιστατικά, δεν αλλάζει διορθωτικές ενέργειες και δεν κλείνει διερεύνηση αυτόνομα.'}</small>
+    </section>
+    <section className="record-section outbreak-readiness"><div className="record-section-header"><div><span className="eyebrow">{en?'READINESS':'ΕΤΟΙΜΟΤΗΤΑ'}</span><h3>{en?'Investigation dashboard':'Πίνακας διερεύνησης'}</h3><p>{en?'Automatic readiness indicators; closure always requires human review.':'Αυτόματοι δείκτες ετοιμότητας· το κλείσιμο απαιτεί πάντα ανθρώπινο έλεγχο.'}</p></div><span className={'status-badge '+(closure.ready?'active':'temporary')}>{closure.ready?(en?'Ready for closure review':'Έτοιμη για έλεγχο κλεισίματος'):(en?'Open items remain':'Υπάρχουν εκκρεμότητες')}</span></div>
+     <div className="outbreak-metrics">{[[en?'Candidates':'Υποψήφια',closure.counts.candidates],[en?'Reviewed':'Αξιολογημένα',closure.counts.reviewed],[en?'Confirmed':'Επιβεβαιωμένα',closure.counts.confirmed],[en?'Open CAPA':'Ανοιχτές διορθωτικές ενέργειες',closure.counts.openActions,closure.counts.openActions>0],[en?'Overdue CAPA':'Εκπρόθεσμες διορθωτικές ενέργειες',closure.counts.overdueActions,closure.counts.overdueActions>0],[en?'Unresolved hypotheses':'Ανεπίλυτες υποθέσεις',closure.counts.unresolvedHypotheses,closure.counts.unresolvedHypotheses>0]].map(([label,value,warn])=><div key={label} className={`outbreak-metric ${warn?'is-warning':''}`}><span>{label}</span><strong>{value}</strong></div>)}</div>
+     {!closure.ready&&closure.blockers.length>0&&<div className="outbreak-blockers">{closure.blockers.map((b: AnyRecord)=><span key={b.code} className="status-badge temporary">{blockerLabel(b.code,en)}: {b.count}</span>)}</div>}
+    </section>
+   </>}
+   {recordTab==='cases'&&<>
+    <section id="lira-investigation-line-list" className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'CASES':'ΠΕΡΙΣΤΑΤΙΚΑ'}</span><h3>{en?'Case line list':'Κατάλογος περιστατικών'}</h3><p>{en?'Candidate criteria never confirm an outbreak case automatically.':'Τα αυτόματα κριτήρια δεν επιβεβαιώνουν αυτόματα περιστατικό έξαρσης.'}</p></div></div>
+     {evidenceLoading?<div className="inline-empty">{en?'Loading authorized evidence…':'Φόρτωση εξουσιοδοτημένων δεδομένων…'}</div>:<RegistryTable wrapperClassName="table-wrap" columns={[{key:'date',label:en?'Date':'Ημερομηνία'},{key:'patient',label:en?'Patient':'Ασθενής'},{key:'department',label:en?'Department':'Τμήμα'},{key:'organism',label:en?'Organism / specimen':'Μικροοργανισμός / δείγμα'},{key:'hai',label:'HAI'},{key:'devices',label:en?'Devices / isolation':'Συσκευές / απομόνωση'},{key:'review',label:en?'Case review':'Αξιολόγηση περιστατικού'}]} rows={lineList?.rows||[]} rowKey={row=>row.recordKey} renderRow={row=>{const review=caseReview?.cases?.find((x: AnyRecord)=>x.recordKey===row.recordKey);const human=[...reviews].reverse().find(x=>x.record_key===row.recordKey);return <><td>{fmtDay(row.eventDate,en)}</td><td>{row.patientLabel||'—'}</td><td>{row.department||'—'}</td><td><strong>{row.organism||'—'}</strong><small>{row.specimenType||'—'}</small></td><td>{row.hai.map((x: AnyRecord)=>x.type).join(', ')||'—'}</td><td>{[...row.devices.map((x: AnyRecord)=>x.type),...row.isolation.map(()=>en?'Isolation':'Απομόνωση')].join(', ')||'—'}</td><td><button type="button" className={`status-badge ${human?'active':'temporary'}`} disabled={selected.status==='closed'} onClick={()=>{setReviewing(row);setReviewForm({classification:human?.classification||'suspected',rationale:''})}}>{human?classificationLabel(human.classification,en):(review?.classification==='meets_machine_readable_criteria'?(en?'Criteria met · review required':'Πληροί κριτήρια · απαιτείται έλεγχος'):(en?'Unclassified':'Μη ταξινομημένο'))}</button></td></>}} emptyTitle={en?'No matching microbiology records in scope.':'Δεν βρέθηκαν αντίστοιχες μικροβιολογικές εγγραφές.'}/>}
+    </section>
+    <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'TIMELINE':'ΧΡΟΝΟΓΡΑΜΜΗ'}</span><h3>{en?'Person–place–time timeline':'Χρονογραμμή πρόσωπο–τόπος–χρόνος'}</h3></div></div>
+     {!timeline.length?<div className="inline-empty">{en?'No events in scope yet.':'Δεν υπάρχουν ακόμη συμβάντα στο εύρος.'}</div>:<ol className="outbreak-timeline">{timeline.map((item,index)=><li key={item.type+'-'+item.recordKey+'-'+index}><time>{fmtDay(item.date,en)}</time><span className="status-badge">{timelineTypeLabel(item.type,en)}</span><span>{item.department||'—'} · {item.label||'—'}</span></li>)}</ol>}
+    </section>
+   </>}
+   {recordTab==='actions'&&<>
+    <section id="lira-investigation-capa" className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'CAPA':'Διορθωτικές ενέργειες'}</span><h3>{en?'Investigation actions / CAPA':'Ενέργειες διερεύνησης / διορθωτικές ενέργειες'}</h3><p>{en?'Actions are linked to the Quality CAPA registry.':'Οι ενέργειες συνδέονται με το μητρώο διορθωτικών ενεργειών της Ποιότητας.'}</p></div>{selected.status==='active'&&<Button onClick={()=>setAddingAction(true)}><Plus size={16}/>{en?'New action':'Νέα ενέργεια'}</Button>}</div>
+     <RegistryTable wrapperClassName="table-wrap" columns={[{key:'action',label:en?'Action':'Ενέργεια'},{key:'owner',label:en?'Owner':'Υπεύθυνος'},{key:'due',label:en?'Due':'Προθεσμία'},{key:'priority',label:en?'Priority':'Προτεραιότητα'},{key:'status',label:en?'Status':'Κατάσταση'}]} rows={actions} rowKey={a=>a.id} renderRow={a=><><td><strong>{en&&a.titleEn||a.title}</strong>{a.code&&<small>{a.code}</small>}</td><td>{en&&a.owner_labelEn||a.owner_label||a.owner||'—'}</td><td>{fmtDay(a.due_date,en)}</td><td><span className={`status-badge ${['high','critical'].includes(a.priority)?'danger':'temporary'}`}>{priorityLabel(a.priority,en)}</span></td><td><select className="outbreak-status-select" disabled={selected.status==='closed'} aria-label={en?'Action status':'Κατάσταση ενέργειας'} value={a.status} onChange={e=>changeActionStatus(a,e.target.value)}><option value="open">{actionStatusLabel('open',en)}</option><option value="in_progress">{actionStatusLabel('in_progress',en)}</option><option value="verification">{actionStatusLabel('verification',en)}</option><option value="closed">{actionStatusLabel('closed',en)}</option></select></td></>} emptyTitle={en?'No linked actions.':'Δεν υπάρχουν συνδεδεμένες ενέργειες.'}/>
+    </section>
+    <section id="lira-investigation-hypotheses" className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'REASONING':'ΣΚΕΠΤΙΚΟ'}</span><h3>{en?'Hypotheses / decisions':'Υποθέσεις / αποφάσεις'}</h3></div></div>
+     <textarea className="outbreak-note" rows={3} value={note} onChange={e=>setNote(e.target.value)} placeholder={en?'Record a hypothesis or decision…':'Καταγραφή υπόθεσης ή απόφασης…'}/>
+     <div className="outbreak-note-actions"><Button variant="secondary" disabled={!note.trim()} onClick={()=>addEvidence('hypothesis')}>{en?'Add hypothesis':'Προσθήκη υπόθεσης'}</Button><Button disabled={!note.trim()} onClick={()=>addEvidence('decision')}>{en?'Record decision':'Καταγραφή απόφασης'}</Button></div>
+    </section>
+   </>}
+   {recordTab==='history'&&<>
+    <section id="lira-investigation-evidence" className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'AUDIT':'ΙΣΤΟΡΙΚΟ'}</span><h3>{en?'Evidence trail':'Ιστορικό τεκμηρίωσης'}</h3><p>{en?'Append-only: entries cannot be edited or removed.':'Οι εγγραφές δεν τροποποιούνται ούτε διαγράφονται.'}</p></div></div>
+     {!events.length?<div className="inline-empty">{en?'No entries yet.':'Δεν υπάρχουν ακόμη εγγραφές.'}</div>:<ol className="outbreak-evidence">{events.map(e=><li key={e.id}><span className="status-badge">{eventTypeLabel(e.event_type,en)}</span><div><strong>{eventText(e,en)}</strong><time>{new Date(e.created_at).toLocaleString(en?'en-GB':'el-GR')}</time></div></li>)}</ol>}
+    </section>
+   </>}
+    <div style={{position:'fixed',left:'-20000px',top:0,pointerEvents:'none'}}><LiraOutbreakReport ref={reportRef} investigation={selected} lineList={lineList} timeline={timeline} reviews={reviews} actions={actions} events={events} language={language}/></div>
+  </div>}
+   </EntityRecordShell>
+  </Page></SectionTabsProvider>:null
+  if(recordView)return <>{recordView}{dialogs}</>
+  return shell?shell({actions:newButton,summary,children:<>{body}{dialogs}</>}):<>{body}{dialogs}</>
+}
