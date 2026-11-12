@@ -7,11 +7,16 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { HospitalStructurePanel } from '../management/HospitalStructurePanel'
 import { PrevalenceSurveyPanel } from '../management/PrevalenceSurveyPanel'
 import '../management/managementCenter.css'
+import type { IconType } from '../../design-system/types'
+import type { Membership } from '../../core/tenant/tenantTypes'
+import type { ReactNode } from 'react'
+
+export interface IndicatorDataItem { id: string, label: string, icon: IconType, tone: string, render: () => ReactNode }
 
 // «Δεδομένα» of the Indicators: what the indicators are calculated from and is entered by hand (structural
 // indicators, the point prevalence survey). The bed days have a tab of their own in the Management Center.
-export function indicatorDataItems({ role, membership, language }) {
-  const ok = capability => can(role, capability, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
+export function indicatorDataItems({ role, membership, language }: { role: string | null | undefined, membership: Membership | null | undefined, language: string }): IndicatorDataItem[] {
+  const ok = (capability: string) => can(role, capability, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const lang = language === 'en' ? 'en' : 'el'
   return [
     ...(ok(CAPABILITIES.MANAGE_HOSPITAL_STRUCTURE) ? [{ id: 'hospitalStructure', label: translate('copy.managementCopy.structuralIndicators', lang), icon: Building2, tone: 'indigo', render: () => <HospitalStructurePanel /> }] : []),
@@ -26,7 +31,7 @@ export function useIndicatorDataItems() {
 }
 
 // Two small tabs over a full-width table (no side list for two items).
-export function IndicatorDataPanel({ initial = null }) {
+export function IndicatorDataPanel({ initial = null }: { initial?: string | null }) {
   const { language } = useLanguage()
   const items = useIndicatorDataItems()
   const [active, setActive] = useState(() => (items.some(item => item.id === initial) ? initial : items[0]?.id))

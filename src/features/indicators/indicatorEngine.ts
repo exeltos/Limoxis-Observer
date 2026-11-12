@@ -14,8 +14,12 @@ import { collectDemoQualityFood } from '../analysis/analysisDomains'
 import { qualityFoodIndicatorMetrics } from '../analysis/analysisQualityFood'
 import { foodSatisfactionMetrics } from '../analysis/foodSatisfaction'
 import { loadSurveysLocal } from '../quality/surveys/surveyService'
+import type { AnyRecord } from '../../types/featureTypes'
 
-const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
+// calculateHaiRate (still JS) returns null only for an unknown infection type; these are known.
+type HaiRate = NonNullable<ReturnType<typeof calculateHaiRate>>
+
+const round=(n: number,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
 
 // The 8 ΕΟΔΥ reference pathogens for bacteremia/resistance reporting (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014).
 const REFERENCE_PATHOGEN_PATTERNS={
@@ -30,7 +34,7 @@ const REFERENCE_PATHOGEN_PATTERNS={
 }
 const BACTEREMIA_PATHOGEN_PATTERNS=Object.fromEntries(Object.entries(REFERENCE_PATHOGEN_PATTERNS).map(([key,pattern])=>[`bacteremia_${key}`,pattern]))
 // One EARS-Net-style reference antibiotic per pathogen, used as the resistance indicator antibiotic (3rd-gen cephalosporin or carbapenem for Enterobacterales/non-fermenters, oxacillin for MRSA, vancomycin for VRE).
-const AMR_REFERENCE_ANTIBIOTIC={
+const AMR_REFERENCE_ANTIBIOTIC: Record<string, string>={
  ecoli:'ceftriaxone',
  proteus:'ceftriaxone',
  enterobacter:'ceftriaxone',
@@ -54,14 +58,14 @@ export function collectIndicatorMetrics(){
  const abhrEligible=antisepticRows.filter(x=>x.indicatorEligible)
  const training=loadTrainingState(); const assignments=training.assignments||[]
  const employees=loadEmployees(); const activeStaff=employees.filter(x=>x.employmentStatus==='active')
- const vaccinated=new Set(loadVaccinations().filter(x=>FLU_VACCINE_PATTERNS.some(pattern=>String(x.vaccine||'').toLowerCase().includes(pattern))).map(x=>x.employeeId))
+ const vaccinated=new Set(loadVaccinations().filter((x: AnyRecord)=>FLU_VACCINE_PATTERNS.some(pattern=>String(x.vaccine||'').toLowerCase().includes(pattern))).map((x: AnyRecord)=>x.employeeId))
  const mdroBsi=laboratorySamples.filter(x=>x.result==='positive'&&x.organism&&x.resistance&&String(x.source||x.type||'').toLowerCase().includes('blood')).length
  const patientDays=abhrEligible.reduce((s,x)=>s+Number(x.patientDays||0),0)
  const bacteremias=laboratorySamples.filter(x=>x.type==='bloodCulture'&&x.result==='positive'&&x.organism&&['validated','amended'].includes(x.resultStatus))
  const bacteremiaByPathogen=Object.fromEntries(Object.entries(BACTEREMIA_PATHOGEN_PATTERNS).map(([key,pattern])=>[key,bacteremias.filter(x=>String(x.organism).toLowerCase().includes(pattern)).length]))
  const bacteremiaTotal=bacteremias.filter(x=>Object.values(BACTEREMIA_PATHOGEN_PATTERNS).some(pattern=>String(x.organism).toLowerCase().includes(pattern))).length
  const validatedIsolates=laboratorySamples.filter(x=>x.organism&&['validated','amended'].includes(x.resultStatus))
- const amrByPathogen={}
+ const amrByPathogen: Record<string, number>={}
  for(const [key,organismPattern] of Object.entries(REFERENCE_PATHOGEN_PATTERNS)){
   const antibioticPattern=AMR_REFERENCE_ANTIBIOTIC[key]
   const isolates=validatedIsolates.filter(x=>String(x.organism).toLowerCase().includes(organismPattern))
@@ -77,7 +81,7 @@ export function collectIndicatorMetrics(){
   const ddd=dddReferenceLibrary[row.productCode]
   return ddd&&awareCategoryFor(row.productEn||row.product)==='access'?sum+Number(row.quantityGrams||0)/ddd:sum
  },0)
- const mdrIsolations=surveillanceDemoData.filter(x=>x.isolation&&['MDR','XDR','PDR'].includes(x.resistance))
+ const mdrIsolations=surveillanceDemoData.filter(x=>x.isolation&&['MDR','XDR','PDR'].includes(x.resistance as string))
  const mdrIsolationByPathogen=Object.fromEntries(Object.entries(REFERENCE_PATHOGEN_PATTERNS).map(([key,pattern])=>[`mdr_isolation_${key}`,mdrIsolations.filter(x=>String(x.organism||'').toLowerCase().includes(pattern)).length]))
  const mdrIsolationTotal=mdrIsolations.filter(x=>Object.values(REFERENCE_PATHOGEN_PATTERNS).some(pattern=>String(x.organism||'').toLowerCase().includes(pattern))).length
  const prevalenceSurveys=loadPrevalenceSurveyLocal()
@@ -85,13 +89,13 @@ export function collectIndicatorMetrics(){
  const ppsPatientsWithHai=prevalenceSurveys.reduce((s,x)=>s+Number(x.patientsWithHai||0),0)
  const ppsPatientsOnAntibiotics=prevalenceSurveys.reduce((s,x)=>s+Number(x.patientsOnAntibiotics||0),0)
  const deviceDaySources=collectDeviceDaySources()
- const clabsi=calculateHaiRate(deviceDaySources,'clabsi',{})
- const cauti=calculateHaiRate(deviceDaySources,'cauti',{})
- const vap=calculateHaiRate(deviceDaySources,'vap',{})
+ const clabsi=calculateHaiRate(deviceDaySources,'clabsi',{}) as HaiRate
+ const cauti=calculateHaiRate(deviceDaySources,'cauti',{}) as HaiRate
+ const vap=calculateHaiRate(deviceDaySources,'vap',{}) as HaiRate
  const neonatalDeviceDaysByBand=collectNeonatalDeviceDaySourcesByBand()
- const neonatalClabsiByBand={}
+ const neonatalClabsiByBand: Record<string, number>={}
  for(const band of BIRTH_WEIGHT_BANDS){
-  const rate=calculateHaiRate(neonatalDeviceDaysByBand[band.id],'clabsi',{})
+  const rate=calculateHaiRate(neonatalDeviceDaysByBand[band.id],'clabsi',{}) as HaiRate
   neonatalClabsiByBand[`clabsi_events_${band.id}`]=rate.events
   neonatalClabsiByBand[`central_line_days_${band.id}`]=rate.deviceDays
  }
@@ -103,7 +107,7 @@ export function collectIndicatorMetrics(){
   bundle_all_or_none_pass:bundleRows.filter(x=>x.allOrNone).length,
   bundle_executions:bundleRows.length,
   abhr_litres:round(abhrEligible.reduce((s,x)=>s+Number(x.litres||0),0),1),
-  training_completed:assignments.filter(x=>x.status==='completed').length,
+  training_completed:assignments.filter((x: AnyRecord)=>x.status==='completed').length,
   training_assignments:assignments.length,
   active_staff:activeStaff.length,
   active_staff_with_vaccination:activeStaff.filter(x=>vaccinated.has(x.id)).length,

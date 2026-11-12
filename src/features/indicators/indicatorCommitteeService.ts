@@ -1,9 +1,11 @@
-import {supabase} from '../../core/supabase/client'
+import {cloudClient} from '../../core/supabase/cloudContext'
 import {isDemoDataEnvironment} from '../../core/data/dataEnvironment'
+import type {AnyRecord} from '../../types/featureTypes'
 
-export async function loadCommitteeObjectivesForIndicator(organizationId,definition){
+export async function loadCommitteeObjectivesForIndicator(organizationId: string|null|undefined,definition: AnyRecord|null|undefined): Promise<AnyRecord[]>{
  if(!organizationId||!definition)return []
  if(isDemoDataEnvironment())return []
+ const supabase=cloudClient()
  let query=supabase
   .from('committee_plan_items')
   .select('id,committee_id,title,indicator,indicator_key,indicator_definition_id,baseline,target,owner_label,due_date,status,committee:committees(code,name)')
