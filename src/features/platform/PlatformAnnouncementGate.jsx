@@ -41,7 +41,7 @@ export function PlatformAnnouncementGate({ hold = false }) {
   useEffect(() => {
     if (!eligible) return undefined
     let alive = true
-    ;(demo ? loadDemoAnnouncements() : loadPendingAnnouncements(tenant.id, user.id))
+    ;(demo ? loadDemoAnnouncements(tenant?.id) : loadPendingAnnouncements(tenant.id, user.id))
       .then(list => {
         const shown = shownThisSession()
         if (alive) setQueue(list.filter(item => !shown.has(item.id)))

@@ -43,9 +43,9 @@ const baseProps = {
 }
 
 describe('PlatformDashboardView', () => {
-  it('greets the owner by first name; hospitals are rows of the hospitals table', () => {
+  it('is titled Overview; hospitals are rows of the hospitals table', () => {
     render(<PlatformDashboardView {...baseProps} ownerName="Άρης Ιωάννου"/>)
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/^(Καλημέρα|Καλησπέρα), Άρη$/)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Επισκόπηση')
     expect(screen.getByText('Lena Hospital').closest('.platform-hospital-row')).not.toBeNull()
     expect(screen.getAllByText(/Οργανισμοί/).length).toBeGreaterThan(0)
   })

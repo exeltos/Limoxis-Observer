@@ -21,7 +21,7 @@ const audienceEn='Platform Owner'
 export const platformHelp={
  el:{
   '/platform':{title:'Κέντρο Πλατφόρμας',summary:'Η συνολική εικόνα της εγκατάστασης χωρίς είσοδο σε κάποιον οργανισμό.',audience:audienceEl,chapters:[
-   ['Επισκόπηση','Οι δείκτες στην κορυφή δείχνουν οργανισμούς, ανενεργούς οργανισμούς, ενεργά Demo και Demo που λήγουν σύντομα.'],
+   ['Επισκόπηση','Η γραμμή στην κορυφή δείχνει οργανισμούς, χρήστες, ενεργά Demo και σφάλματα του τελευταίου 24ώρου· πατώντας έναν αριθμό ανοίγει η αντίστοιχη οθόνη. Αριστερά είναι τα νοσοκομεία με τη δραστηριότητά τους και δεξιά ένα κουτί με όσα θέλουν προσοχή: ποιος είναι συνδεδεμένος τώρα, αποτυχίες σύνδεσης Demo που λήγουν σύντομα, λογαριασμοί που κλειδώθηκαν ή δεν έχουν αλλάξει ακόμα τον προσωρινό κωδικό, και προτάσεις νομοθεσίας που περιμένουν έλεγχο (οι γραμμές εμφανίζονται μόνο όταν υπάρχει κάτι). Τα «Νέο Demo» και «Νέος οργανισμός» είναι πάνω δεξιά.'],
    ['Χώροι εργασίας','Από τις κάρτες Διαχείρισης και Διακυβέρνησης μεταβαίνετε σε Οργανισμούς, Demo, Ανάλυση, Κεντρική Διαχείριση, Υγεία, Ιστορικό και Ρυθμίσεις.'],
    ['Επιστροφή','Σε κάθε οθόνη πλατφόρμας η διαδρομή στην πάνω μπάρα («Κέντρο Πλατφόρμας › …») σας επιστρέφει εδώ με ένα κλικ.']
   ],steps:['Ελέγξτε τους δείκτες και τα Demo που λήγουν.','Ανοίξτε τον χώρο εργασίας που χρειάζεστε.','Επιστρέψτε από τη διαδρομή στην πάνω μπάρα.']},
@@ -50,7 +50,7 @@ export const platformHelp={
   '/platform/announcements':{title:'Ανακοινώσεις',summary:'Ανακοινώσεις και προωθήσεις προς τους διαχειριστές των νοσοκομείων.',audience:audienceEl,chapters:[
    ['Λίστα','Κάθε γραμμή δείχνει τίτλο, είδος, περίοδο, σε ποια νοσοκομεία απευθύνεται, πόσοι την είδαν και αν είναι ενεργή. Με κλικ ανοίγει η καρτέλα της: «Προεπισκόπηση» και «Δημοσίευση» στην κορυφή, και στο «⋯» η διακοπή, η επανενεργοποίηση και η διαγραφή. «Πίσω» επιστρέφει στη λίστα.'],
    ['Μήνυμα συντήρησης','Το πρώτο, καρφιτσωμένο στοιχείο της λίστας είναι η λωρίδα που εμφανίζεται πάνω σε όλες τις οθόνες όλων των χρηστών (π.χ. για προγραμματισμένη συντήρηση). Με κλικ το ενεργοποιείτε ή το σβήνετε και γράφετε το κείμενο, σε μία ή δύο γλώσσες, με προεπισκόπηση.'],
-   ['Νέα ανακοίνωση','Γράφετε τίτλο και κείμενο, διαλέγετε νοσοκομεία (ή όλα), περίοδο και αν εμφανίζεται μία φορά ή σε κάθε είσοδο. Προαιρετικά επισυνάπτετε εικόνα ή αρχείο και τη δείχνετε και στα Demo.'],
+   ['Νέα ανακοίνωση','Γράφετε τίτλο και κείμενο, διαλέγετε περίοδο και αν εμφανίζεται μία φορά ή σε κάθε είσοδο. Στο πεδίο «Πού εμφανίζεται» διαλέγετε, με πολλαπλή επιλογή: «Όλα τα νοσοκομεία (εγγεγραμμένα)», «Όλα τα demo» ή μεμονωμένα νοσοκομεία και demo (τα demo έχουν δίπλα την ένδειξη Demo). Αν δεν διαλέξετε τίποτα, εμφανίζεται σε όλα τα νοσοκομεία και σε όλα τα demo· αν διαλέξετε μόνο «Όλα τα νοσοκομεία», δεν εμφανίζεται στα demo, και αντίστροφα. Όποιος μπαίνει σε ένα demo που ισχύει τη βλέπει, μία φορά ανά συνεδρία. Προαιρετικά επισυνάπτετε εικόνα ή αρχείο.'],
    ['Εικόνα, αρχείο και θέση','Στην καρτέλα της ανακοίνωσης υπάρχουν ξεχωριστά πεδία Εικόνα και Συνημμένο αρχείο (PDF, Word, PowerPoint, Excel) και η Θέση εικόνας: πάνω, αριστερά, δεξιά ή κάτω από το κείμενο. Όταν η ανακοίνωση εμφανίζεται στους χρήστες, δεν κλείνει με κλικ έξω από το παράθυρο ώστε να προλαβαίνουν να τη διαβάσουν· κλείνει από το Χ πάνω δεξιά ή από το κουμπί της ενέργειας. Η εικόνα φορτώνει πρώτα και μετά ανοίγει η ανακοίνωση, χωρίς να αλλάζει μέγεθος.']
   ],steps:['Πατήστε «Νέα ανακοίνωση».','Συμπληρώστε κείμενο, νοσοκομεία και περίοδο.','Αποθηκεύστε· εμφανίζεται στους διαχειριστές μόλις ανοίξουν την εφαρμογή.']},
   '/platform#management':{title:'Λίστες',summary:'Οι κοινές λίστες, οι δέσμες μέτρων, τα κριτήρια λοιμώξεων και οι ορισμοί δεικτών για όλα τα νοσοκομεία.',audience:audienceEl,chapters:[
@@ -63,7 +63,7 @@ export const platformHelp={
    ['Οδηγίες & σύνδεσμοι, εξωτερικές πηγές','Το περιεχόμενο της Βιβλιοθήκης σε επίπεδο πλατφόρμας και οι επίσημες πηγές (ΠΟΥ, ECDC, ΕΟΔΥ…) που διαβάζουν όλα τα νοσοκομεία.']
   ],steps:['Διαλέξτε επιλογή από τη γραμμή στην κορυφή.','Ελέγξτε τα ευρήματα «Προς έλεγχο».','Δημοσιεύστε ό,τι πρέπει να δουν τα νοσοκομεία.']},
   '/platform#management?group=lira':{title:'LIRA & AI',summary:'Η γνώση που χρησιμοποιεί η LIRA σε όλα τα νοσοκομεία.',audience:audienceEl,chapters:[
-   ['Γνώση της LIRA','Τα κείμενα και οι πηγές στα οποία βασίζεται η LIRA όταν απαντά. Οι αλλαγές ισχύουν για όλα τα νοσοκομεία.']
+   ['Γνώση της LIRA','Η LIRA είναι ο βοηθός τεχνητής νοημοσύνης που απαντά μέσα στα νοσοκομεία. Η σελίδα (στο μενού «LIRA & AI») έχει τίτλο «Πηγές γνώσης της LIRA (βοηθός AI)» και δείχνει τα κείμενα και τις πηγές στα οποία βασίζεται όταν απαντά: φορέας, πηγή, έκδοση, έγκριση και αν η γνώση είναι έτοιμη. Οι αλλαγές ισχύουν για όλα τα νοσοκομεία.']
   ],steps:['Ελέγξτε τη λίστα.','Προσθέστε ή διορθώστε ό,τι χρειάζεται.']},
   '/platform/audit':{title:'Ιστορικό & Ασφάλεια',summary:'Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων.',audience:audienceEl,chapters:[
    ['Ενέργειες & πρόσβαση','Κάθε σημαντική διοικητική ενέργεια καταγράφεται με χρήστη, χρόνο και οργανισμό. Το ιστορικό είναι μόνο για ανάγνωση· τα φίλτρα δείχνουν αλλαγές ρόλων, προσκλήσεις και διαγραφές.'],
@@ -73,7 +73,7 @@ export const platformHelp={
  },
  en:{
   '/platform':{title:'Platform Center',summary:'The overall picture of the installation without entering an organization.',audience:audienceEn,chapters:[
-   ['Overview','The top indicators show organizations, inactive organizations, active demos and demos expiring soon.'],
+   ['Overview','The strip at the top shows organizations, users, active demos and the errors of the last 24 hours; click a number to open its screen. On the left are the hospitals with their activity and on the right one box for what needs attention: who is connected now, failed sign-ins demos expiring soon, accounts that were locked or have not yet changed their temporary password, and legislation proposals waiting for review (a row shows only when there is something). “New Demo” and “New organization” are at the top right.'],
    ['Workspaces','From the Management and Governance cards you open Organizations, Demo, Analysis, Central Management, Health, Audit and Settings.'],
    ['Going back','On every platform screen the topbar breadcrumb ("Platform Center › …") brings you back here in one click.']
   ],steps:['Review the indicators and expiring demos.','Open the workspace you need.','Return from the topbar breadcrumb.']},
@@ -102,7 +102,7 @@ export const platformHelp={
   '/platform/announcements':{title:'Announcements',summary:'Announcements and promotions to the hospital administrators.',audience:audienceEn,chapters:[
    ['List','Each row shows the title, type, period, which hospitals it is for, how many saw it and whether it is active. A click opens its record: “Preview” and “Publish” at the top, and in the «⋯» stop, resume and delete. “Back” returns to the list.'],
    ['Maintenance message','The first, pinned item of the list is the band shown over every screen for every user (e.g. for planned maintenance). Click it to turn it on or off and write the text, in one or two languages, with a preview.'],
-   ['New announcement','Write a title and text, choose the hospitals (or all), the period and whether it shows once or at every visit. Optionally attach an image or a file and show it in the Demos too.'],
+   ['New announcement','Write a title and text, choose the period and whether it shows once or at every visit. In the “Where it shows” field choose, with multiple selection: “Every registered hospital”, “Every demo”, or single hospitals and demos (demos carry a Demo mark). If you choose nothing it shows in every hospital and every demo; choose only “Every registered hospital” and it does not show in demos, and the other way round. Whoever opens a demo it applies to sees it, once per session. Optionally attach an image or a file.'],
    ['Image, file and position','The announcement card has separate Image and Attached file fields (PDF, Word, PowerPoint, Excel) and the Image position: above, left, right or below the text. When the announcement is shown to users it does not close by clicking outside the window, so they have time to read it; it closes with the X at the top right or with the action button. The image loads first and then the announcement opens, without changing size.']
   ],steps:['Select "New announcement".','Fill in the text, hospitals and period.','Save; the administrators see it when they open the application.']},
   '/platform#management':{title:'Lists',summary:'The shared lists, prevention bundles, infection criteria and indicator definitions for every hospital.',audience:audienceEn,chapters:[
@@ -115,7 +115,7 @@ export const platformHelp={
    ['Guides & links, external sources','The Library content at platform level and the official sources (WHO, ECDC, EODY…) every hospital reads.']
   ],steps:['Pick a choice from the row at the top.','Check the items "To review".','Publish what the hospitals should see.']},
   '/platform#management?group=lira':{title:'LIRA & AI',summary:'The knowledge LIRA uses in every hospital.',audience:audienceEn,chapters:[
-   ['LIRA’s knowledge','The texts and sources LIRA relies on when it answers. Changes apply to every hospital.']
+   ['LIRA’s knowledge','LIRA is the AI assistant that answers inside the hospitals. The page (in the “LIRA & AI” menu) is titled “LIRA knowledge sources (AI assistant)” and shows the texts and sources it relies on when it answers: authority, source, version, approval and whether the knowledge is ready. Changes apply to every hospital.']
   ],steps:['Check the list.','Add or correct what is needed.']},
   '/platform/audit':{title:'Audit & Security',summary:'Traceability of actions, access changes and operational events.',audience:audienceEn,chapters:[
    ['Actions & access','Every significant administrative action is recorded with user, time and organization. The history is read-only; the filters show role changes, invitations and deletions.'],

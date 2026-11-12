@@ -1264,3 +1264,9 @@ button.registry-total.is-active{border-color:var(--accent);background:var(--lo-c
 .registry-total.is-good strong{color:#1f7a45}
 .registry-total.is-warning strong{color:#8a5a00}
 .registry-total.is-danger strong{color:#a32121}
+
+/* The owner's console: every page title on the same line (owner, 12/11/2026). The header was as tall as its tallest action
+   (a 34–40px button), so the title sat at 76, 82 or 85px depending on the page: the title block is now one height
+   (44px) on every page, with the title and the actions centred in it. */
+.platform-mode .main-column .page>.page-header>.page-heading-group{min-height:44px;display:flex;align-items:center}
+.platform-mode .main-column .page>.page-header>.page-actions,.platform-mode .main-column .page>.page-header>.page-header-actions{align-self:center}

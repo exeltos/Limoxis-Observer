@@ -11,7 +11,6 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { CheckboxField } from '../../design-system/CheckboxField'
 import { FieldLabelText } from '../../design-system/FormValidation'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -24,9 +23,11 @@ import { getPlatformSettings, updatePlatformSettings } from './platformSettingsS
 import {
   DOCUMENT_ACCEPT,
   IMAGE_ACCEPT,
+  audienceSummary,
   deletePlatformAnnouncement,
   uploadAnnouncementAttachment,
   uploadAnnouncementDocument,
+  loadAnnouncementTargets,
   loadPlatformAnnouncements,
   savePlatformAnnouncement,
   setPlatformAnnouncementStatus,
@@ -42,6 +43,9 @@ import './platformSettings.css'
 // first, pinned item of the list and opens its own small editor.
 const day = value => (value ? String(value).slice(0, 10) : '')
 const fmt = value => (value ? new Date(value).toLocaleDateString('el-GR') : '—')
+// The two shortcuts of the «Where it shows» list: every registered hospital, every demo.
+const ALL_HOSPITALS = '__all_hospitals__'
+const ALL_DEMOS = '__all_demos__'
 const EMPTY = { kind: 'announcement', titleEl: '', titleEn: '', bodyEl: '', bodyEn: '', ctaLabelEl: '', ctaUrl: '', imageUrl: '', attachmentPath: '', attachmentName: '', attachmentType: '', imagePosition: 'top', documentPath: '', documentName: '', documentType: '', showInDemo: false, startsAt: '', endsAt: '', audience: [], frequency: 'once', status: 'active' }
 const SORT = { title: row => row.titleEl, kind: row => row.kind, period: row => day(row.startsAt), seen: row => row.seenCount, status: row => row.status }
 
@@ -65,10 +69,21 @@ export function PlatformAnnouncementsPage() {
   const imageInput = useRef(null)
   const documentInput = useRef(null)
   const navigate = useNavigate()
-  const organizations = useMemo(
-    () => memberships.map(item => item.organization).filter(org => org?.id && org.mode !== 'demo'),
-    [memberships],
-  )
+  // Hospitals and demo hospitals together (owner, 12/11/2026): one list to choose from, a demo marked «Demo».
+  const [targets, setTargets] = useState([])
+  useEffect(() => {
+    let alive = true
+    loadAnnouncementTargets().then(list => alive && setTargets(list)).catch(() => {})
+    return () => { alive = false }
+  }, [])
+  const organizations = useMemo(() => {
+    const own = memberships.map(item => item.organization).filter(org => org?.id)
+    const byId = new Map([...own, ...targets].map(org => [org.id, org]))
+    // Hospitals first, then the demos; each group by name.
+    const isDemo = org => Boolean(org.is_demo || org.mode === 'demo')
+    return [...byId.values()].sort((a, b) => Number(isDemo(a)) - Number(isDemo(b)) || String(a.name || '').localeCompare(String(b.name || ''), 'el'))
+  }, [memberships, targets])
+  const everyone = item => item.allHospitals && item.showInDemo && !item.audience.length
   const orgName = id => organizations.find(org => org.id === id)?.name || id
   const reload = useCallback(() => {
     setLoading(true)
@@ -223,12 +238,21 @@ export function PlatformAnnouncementsPage() {
               <ManualDateField label={tx('Έως', 'Until')} value={draft.endsAt} onChange={value => set('endsAt', value)} optional error={draft.endsAt && draft.startsAt && draft.endsAt < draft.startsAt ? tx('Η λήξη είναι πριν την έναρξη.', 'The end is before the start.') : ''} />
               <div className="platform-announcement-wide">
                 <MultiSelect
-                  label={tx('Νοσοκομεία (κενό = όλα)', 'Hospitals (empty = all)')}
+                  label={tx('Πού εμφανίζεται', 'Where it shows')}
                   tags
-                  options={organizations.map(org => ({ value: org.id, label: org.name }))}
-                  selected={draft.audience}
-                  onChange={value => set('audience', value)}
-                  placeholder={tx('Όλα τα νοσοκομεία', 'Every hospital')}
+                  options={[
+                    { value: ALL_HOSPITALS, label: tx('Όλα τα νοσοκομεία (εγγεγραμμένα)', 'Every registered hospital') },
+                    { value: ALL_DEMOS, label: tx('Όλα τα demo', 'Every demo') },
+                    ...organizations.map(org => ({ value: org.id, label: (org.is_demo || org.mode === 'demo') ? `${org.name} · Demo` : org.name })),
+                  ]}
+                  selected={everyone(draft) ? [] : [...(draft.allHospitals ? [ALL_HOSPITALS] : []), ...(draft.showInDemo ? [ALL_DEMOS] : []), ...draft.audience]}
+                  onChange={value => {
+                    set('allHospitals', value.includes(ALL_HOSPITALS))
+                    set('showInDemo', value.includes(ALL_DEMOS))
+                    set('audience', value.filter(id => id !== ALL_HOSPITALS && id !== ALL_DEMOS))
+                  }}
+                  placeholder={tx('Όλα τα νοσοκομεία και τα demo', 'Every hospital and demo')}
+                  hint={tx('Κενό = όλα τα νοσοκομεία και όλα τα demo.', 'Empty = every hospital and every demo.')}
                 />
               </div>
               <label className="field">
@@ -295,12 +319,6 @@ export function PlatformAnnouncementsPage() {
                   <small>{tx('Στην ανακοίνωση εμφανίζεται ως σύνδεσμος που ανοίγει σε νέα καρτέλα.', 'It shows in the announcement as a link that opens in a new tab.')}</small>
                 </div>
               </div>
-              <CheckboxField
-                className="platform-announcement-wide"
-                label={tx('Εμφάνιση και στο demo (σε όποιον μπαίνει στα demo νοσοκομεία)', 'Show in the demo too (to whoever opens the demo hospitals)')}
-                checked={draft.showInDemo}
-                onChange={value => set('showInDemo', value)}
-              />
             </div>
           </div>
         </EntityRecordShell>
@@ -313,7 +331,7 @@ export function PlatformAnnouncementsPage() {
     { key: 'title', label: tx('Τίτλος', 'Title'), sortable: true },
     { key: 'kind', label: tx('Είδος', 'Type'), sortable: true },
     { key: 'period', label: tx('Περίοδος', 'Period'), sortable: true },
-    { key: 'audience', label: tx('Νοσοκομεία', 'Hospitals') },
+    { key: 'audience', label: tx('Πού εμφανίζεται', 'Where it shows') },
     { key: 'seen', label: tx('Το είδαν', 'Seen by'), sortable: true },
     { key: 'status', label: tx('Κατάσταση', 'Status'), sortable: true },
   ]
@@ -354,7 +372,7 @@ export function PlatformAnnouncementsPage() {
                 <td><strong>{en && row.titleEn ? row.titleEn : row.titleEl}</strong></td>
                 <td>{row.kind === 'promotion' ? tx('Προώθηση', 'Promotion') : tx('Ανακοίνωση', 'Announcement')}</td>
                 <td className="platform-announcement-period">{fmt(row.startsAt)} – {row.endsAt ? fmt(row.endsAt) : tx('χωρίς λήξη', 'no end')}</td>
-                <td className="platform-announcement-audience">{row.audience.length ? row.audience.map(orgName).join(', ') : tx('Όλα', 'All')}</td>
+                <td className="platform-announcement-audience">{audienceSummary(row, orgName, tx)}</td>
                 <td>{row.seenCount}</td>
                 <td>
                   <StatusBadge tone={row.status === 'active' ? 'success' : 'neutral'}>{row.status === 'active' ? tx('Ενεργή', 'Active') : tx('Σταματημένη', 'Stopped')}</StatusBadge>

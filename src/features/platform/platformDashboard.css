@@ -18,7 +18,7 @@
 .platform-overview-total>small.tone-danger{color:var(--lo-status-danger-fg)}
 
 /* Two columns: the hospitals (wider) and the side column; one column under 1100px */
-.platform-overview-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);gap:16px;align-items:start}
+.platform-overview-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);gap:16px;align-items:stretch}
 .platform-overview-side{display:flex;flex-direction:column;gap:16px;min-width:0}
 @media(max-width:1100px){.platform-overview-grid{grid-template-columns:minmax(0,1fr)}}
 .platform-overview .platform-dashboard-panel{border-radius:12px;box-shadow:var(--lo-shadow-soft)}
@@ -112,3 +112,13 @@
 .platform-org-users-count{font-size:11px;font-weight:700;opacity:.8}
 .platform-org-users-actions+.registry-workspace .filter-search{flex:1 1 220px;min-width:220px}
 .platform-org-users-actions+.registry-workspace .filter-end{flex:none}
+
+/* The Overview (owner, 12/11/2026): a low strip of totals, two columns of the same height, one box for what needs attention. */
+.platform-overview-total{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:10px 20px}
+.platform-overview-total>strong{order:2;font-size:22px;line-height:1.2}
+.platform-overview-total>span{order:1;flex:1 0 100%}
+.platform-overview-total>small{order:3}
+.platform-overview-hospitals{display:flex;flex-direction:column}
+.platform-overview-attention{display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);box-shadow:var(--lo-shadow-soft)}
+.platform-overview .platform-overview-attention .platform-dashboard-panel{border:0;border-radius:0;box-shadow:none}
+.platform-overview-attention>*+*{border-top:1px solid var(--lo-color-border)}
