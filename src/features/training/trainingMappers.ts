@@ -5,9 +5,13 @@
 
 import type { AnyRecord } from '../../types/featureTypes'
 import type { TrainingState } from './trainingData'
+import type { AssessmentAnswer, AssessmentQuestion, FeedbackResponse, FeedbackTemplate, TrainingAssignment, TrainingCertificate, TrainingEffectiveness, TrainingHistoryEntry, TrainingProgram, TrainingRequirement } from './trainingTypes'
 
-// A row of a training_* table, with its PostgREST embeds.
+// A row of a training_* table, with its PostgREST embeds. The selects are shared
+// constants (PROGRAM_SELECT…), so the client cannot type them: the boundary stays untyped
+// here, and every mapper below returns a typed object.
 type Row = AnyRecord
+export type TrainingRow = Row
 const one=(value: unknown): Row|null=>Array.isArray(value)?value[0]||null:value||null
 const byPosition=(a: Row,b: Row)=>(a.position??0)-(b.position??0)||String(a.question_key||a.option_key||a.material_key||a.value||'').localeCompare(String(b.question_key||b.option_key||b.material_key||b.value||''))
 const sorted=(list: unknown): Row[]=>[...(Array.isArray(list)?list:[])].sort(byPosition)
@@ -29,17 +33,17 @@ export const REQUIREMENT_SELECT='id,requirement_key,title,renewal_months,active,
 export const HISTORY_SELECT='position,occurred_at,actor,action'
 export const TEMPLATE_SELECT='template_key,title_el,title_en,updated_at,training_feedback_template_questions(question_key,position,label_el,label_en)'
 
-export function effectivenessFromRow(row: Row|null){
+export function effectivenessFromRow(row: Row|null): TrainingEffectiveness|null{
  if(!row)return null
  return {plannedDate:row.planned_date||'',method:row.method||'',criterion:row.criterion||'',result:row.result||'',evaluatedAt:row.evaluated_at||'',evaluatedBy:row.evaluated_by||'',notes:row.notes||'',comment:row.comment||''}
 }
 
-export function questionFromRow(row: Row){
+export function questionFromRow(row: Row): AssessmentQuestion{
  return {id:row.question_key,type:row.question_type,text:row.text||'',points:num(row.points)??0,required:row.required!==false,options:sorted(row.training_assessment_options).map(o=>({id:o.option_key,text:o.text||'',correct:Boolean(o.correct)})),correctBoolean:row.correct_boolean==null?true:Boolean(row.correct_boolean),modelAnswer:row.model_answer||'',manualReview:Boolean(row.manual_review)}
 }
 
-export function programFromRow(row: Row,feedbackResponses: AnyRecord[]=[]){
- const program: AnyRecord={id:row.program_key,dbId:row.id,title:row.title||'',category:row.category||'',method:row.method||'',owner:row.owner||'',trainer:row.trainer||'',audience:row.audience||'',description:row.description||'',startDate:row.start_date||'',dueDate:row.due_date||'',validMonths:num(row.valid_months),requiresAssessment:Boolean(row.requires_assessment),passScore:num(row.pass_score),status:row.status||'planned',departmentId:row.department_id||null,userId:null,
+export function programFromRow(row: Row,feedbackResponses: FeedbackResponse[]=[]): TrainingProgram{
+ const program: TrainingProgram={id:row.program_key,dbId:row.id,title:row.title||'',category:row.category||'',method:row.method||'',owner:row.owner||'',trainer:row.trainer||'',audience:row.audience||'',description:row.description||'',startDate:row.start_date||'',dueDate:row.due_date||'',validMonths:num(row.valid_months),requiresAssessment:Boolean(row.requires_assessment),passScore:num(row.pass_score),status:row.status||'planned',departmentId:row.department_id||null,userId:null,
   deliveryKind:row.delivery_kind||'',startTime:row.start_time?String(row.start_time).slice(0,5):'',durationHours:num(row.duration_hours),location:row.location||'',cost:num(row.cost),
   materials:sorted(row.training_program_materials).map(m=>({id:m.material_key,title:m.title||'',type:m.material_type||'',url:m.url||''})),
   assessmentQuestions:sorted(row.training_assessment_questions).map(questionFromRow),
@@ -52,7 +56,7 @@ export function programFromRow(row: Row,feedbackResponses: AnyRecord[]=[]){
 }
 
 // An answer row back to the value the learner gave.
-export function answerValue(row: Row){
+export function answerValue(row: Row): AssessmentAnswer{
  if(row.answer_kind==='boolean')return row.answer_boolean
  if(row.answer_kind==='number')return num(row.answer_number)
  if(row.answer_kind==='options')return Array.isArray(row.answer_option_keys)?[...row.answer_option_keys]:[]
@@ -65,11 +69,11 @@ export function answersFromRows(rows: unknown){
 }
 const scoresFromRows=(rows: unknown)=>Object.fromEntries((Array.isArray(rows)?rows:[]).map(s=>[s.question_key,num(s.score)]))
 
-export function assignmentFromRow(row: Row,programKeyById=new Map<unknown, string>()){
+export function assignmentFromRow(row: Row,programKeyById=new Map<unknown, string>()): TrainingAssignment{
  const response=one(row.training_feedback_responses),certificate=one(row.training_certificates)
  const answers=answersFromRows(row.training_assessment_answers)
  const awarded=(Array.isArray(row.training_assessment_answers)?row.training_assessment_answers:[]).filter((a: Row)=>a.awarded_points!=null)
- const assignment: AnyRecord={id:row.assignment_key,dbId:row.id,programId:programKeyById.get(row.program_id)||null,employeeId:row.employee_code||'',employeeDbId:row.employee_id||null,employeeName:row.employee_name||'',department:row.department_name||'',departmentId:row.department_id||null,userId:row.employee_user_id||null,email:row.email||'',accountLinked:row.account_linked,
+ const assignment: TrainingAssignment={id:row.assignment_key,dbId:row.id,programId:programKeyById.get(row.program_id)||null,employeeId:row.employee_code||'',employeeDbId:row.employee_id||null,employeeName:row.employee_name||'',department:row.department_name||'',departmentId:row.department_id||null,userId:row.employee_user_id||null,email:row.email||'',accountLinked:row.account_linked,
   assignedDate:row.assigned_date||'',dueDate:row.due_date||'',status:row.status||'assigned',invitationSentAt:row.invitation_sent_at||null,attendanceResponse:row.attendance_response||'not_sent',attendance:row.attendance??null,attendanceConfirmedAt:row.attendance_confirmed_at||null,
   attendanceAttested:row.attendance_attested??null,attendanceAttestedAt:row.attendance_attested_at||null,attendanceAttestationMethod:row.attendance_attestation_method||null,attendanceAttestationVersion:row.attendance_attestation_version||null,
   completionConfirmedAt:row.completion_confirmed_at||null,feedbackSubmittedAt:row.feedback_submitted_at||null,assessmentSubmittedAt:row.assessment_submitted_at||null,
@@ -85,7 +89,7 @@ export function assignmentFromRow(row: Row,programKeyById=new Map<unknown, strin
 // The trainer evaluations a programme collected, from its assignments
 // (programme.feedbackResponses), oldest first.
 export function feedbackResponsesFromRows(assignmentRows: Row[]=[]){
- const byProgram=new Map<unknown, AnyRecord[]>()
+ const byProgram=new Map<unknown, FeedbackResponse[]>()
  for(const row of assignmentRows){
   const response=one(row.training_feedback_responses)
   if(!response)continue
@@ -97,21 +101,21 @@ export function feedbackResponsesFromRows(assignmentRows: Row[]=[]){
  return byProgram
 }
 
-export function certificateFromRow(row: Row,assignmentKeyById=new Map<unknown, string>()){
- const certificate: AnyRecord={id:row.certificate_key,dbId:row.id,assignmentId:one(row.training_assignments)?.assignment_key||assignmentKeyById.get(row.assignment_id)||null,employeeId:row.employee_code||'',title:row.title||'',issuedDate:row.issued_date||'',validUntil:row.valid_until||null,issuer:row.issuer||'',departmentId:row.department_id||null,userId:row.employee_user_id||null}
+export function certificateFromRow(row: Row,assignmentKeyById=new Map<unknown, string>()): TrainingCertificate{
+ const certificate: TrainingCertificate={id:row.certificate_key,dbId:row.id,assignmentId:one(row.training_assignments)?.assignment_key||assignmentKeyById.get(row.assignment_id)||null,employeeId:row.employee_code||'',title:row.title||'',issuedDate:row.issued_date||'',validUntil:row.valid_until||null,issuer:row.issuer||'',departmentId:row.department_id||null,userId:row.employee_user_id||null}
  if(row.issued_at)certificate.issuedAt=row.issued_at
  if(row.issued_by)certificate.issuedById=row.issued_by
  return certificate
 }
 
-export function requirementFromRow(row: Row){
+export function requirementFromRow(row: Row): TrainingRequirement{
  const targets=sorted(row.training_requirement_targets),of=(kind: string)=>targets.filter(t=>t.target_kind===kind).map(t=>t.value)
  return {id:row.requirement_key,dbId:row.id,title:row.title||'',programIds:sorted(row.training_requirement_programs).map(rp=>one(rp.training_programs)?.program_key).filter(Boolean),professions:of('profession'),positions:of('position'),departments:of('department'),renewalMonths:num(row.renewal_months),active:row.active!==false,departmentId:null,userId:null}
 }
 
-export const historyFromRows=(rows: Row[]=[])=>sorted(rows).map(row=>({at:row.occurred_at||'',actor:row.actor||'',action:row.action||''}))
+export const historyFromRows=(rows: Row[]=[]): TrainingHistoryEntry[]=>sorted(rows).map(row=>({at:row.occurred_at||'',actor:row.actor||'',action:row.action||''}))
 
-export function templateFromRow(row: Row|null|undefined){
+export function templateFromRow(row: Row|null|undefined): FeedbackTemplate|null{
  if(!row)return null
  return {id:row.template_key,titleEl:row.title_el||'',titleEn:row.title_en||'',questions:sorted(row.training_feedback_template_questions).map(q=>({id:q.question_key,labelEl:q.label_el||'',labelEn:q.label_en||''})),updatedAt:row.updated_at||null}
 }
@@ -127,13 +131,13 @@ export function trainingStateFromRows({programs=[],assignments=[],certificates=[
 // A lean register row leaves the detail keys out (not empty): a save of a lean
 // programme then keeps its questions and feedback template in the database
 // (training_save_program only replaces what it is sent).
-export function leanProgram(program: AnyRecord,row: Row|null|undefined){
+export function leanProgram(program: TrainingProgram,row: Row|null|undefined){
  const lean={...program}
  delete lean.assessmentQuestions;delete lean.trainerFeedbackTemplate;delete lean.feedbackResponses
  lean.questionCount=Array.isArray(row?.training_assessment_questions)?row.training_assessment_questions.length:0
  return lean
 }
-export function leanAssignment(assignment: AnyRecord){
+export function leanAssignment(assignment: TrainingAssignment){
  const lean={...assignment}
  delete lean.assessmentAnswers;delete lean.feedbackScores;delete lean.feedbackComment;delete lean.awardedPoints
  return lean
@@ -149,16 +153,16 @@ export function leanTrainingStateFromRows(rows: TrainingRows={}): TrainingState{
 export const learnerOwnedAssignmentFields=['attendance','attendanceResponse','attendanceConfirmedAt','attendanceAttested','attendanceAttestedAt','attendanceAttestationMethod','attendanceAttestationVersion','completionConfirmedAt','feedbackSubmittedAt','assessmentSubmittedAt','assessmentAnswers','awardedPoints','score','competent','certificateId','feedbackScores','feedbackComment','completedDate','accessToken','invitationSentAt','assessmentReviewStatus','assessmentReviewNote']
 const derivedFields=['dbId','employeeDbId','computedStatus','createdAt','updatedAt']
 
-function omit(value: AnyRecord,keys: string[]){const clean={...value};for(const key of keys)delete clean[key];return clean}
+function omit<T extends object>(value: T,keys: string[]): Partial<T>{const clean={...value} as Record<string, unknown>;for(const key of keys)delete clean[key];return clean as Partial<T>}
 // RPC input (JSON only as the input format; the RPC writes columns).
-export const programToRpc=(program: AnyRecord)=>omit(program,['dbId','feedbackResponses','questionCount','createdAt','updatedAt'])
-export const assignmentToRpc=(assignment: AnyRecord)=>omit(assignment,[...learnerOwnedAssignmentFields,...derivedFields])
-export const requirementToRpc=(requirement: AnyRecord)=>omit(requirement,['dbId','departmentId','userId'])
+export const programToRpc=(program: TrainingProgram)=>omit(program,['dbId','feedbackResponses','questionCount','createdAt','updatedAt'])
+export const assignmentToRpc=(assignment: TrainingAssignment)=>omit(assignment,[...learnerOwnedAssignmentFields,...derivedFields])
+export const requirementToRpc=(requirement: TrainingRequirement)=>omit(requirement,['dbId','departmentId','userId'])
 
 // Which records changed since they were loaded: only those are sent.
-const stable=(value: unknown): unknown=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().filter(key=>(value as AnyRecord)[key]!==undefined).map(key=>[key,stable((value as AnyRecord)[key])])):value
+const stable=(value: unknown): unknown=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().filter(key=>(value as Record<string, unknown>)[key]!==undefined).map(key=>[key,stable((value as Record<string, unknown>)[key])])):value
 export const recordFingerprint=(value: unknown)=>JSON.stringify(stable(value))
-export function changedRecords(list: AnyRecord[]=[],baseline=new Map<unknown, string>(),toRpc: (record: AnyRecord)=>AnyRecord=x=>x){
+export function changedRecords<T, R extends { id?: string } = T & { id?: string }>(list: T[]=[],baseline=new Map<unknown, string>(),toRpc: (record: T)=>R=x=>x as unknown as R){
  return list.map(toRpc).filter(item=>item?.id&&baseline.get(item.id)!==recordFingerprint(item))
 }
 export function fingerprints(state: Partial<TrainingState>|null|undefined){

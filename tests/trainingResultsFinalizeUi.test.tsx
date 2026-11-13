@@ -5,6 +5,8 @@
 import { afterEach,describe,expect,it,vi } from 'vitest'
 import { cleanup,fireEvent,render,screen,waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import type { TrainingState } from '../src/features/training/trainingData'
+import type { TrainingAssignment, TrainingProgram } from '../src/features/training/trainingTypes'
 
 const feedback={notify:vi.fn(),notifyError:vi.fn(),confirm:vi.fn(async()=>true)}
 vi.mock('../src/core/supabase/client',()=>({supabase:null}))
@@ -16,9 +18,9 @@ const { LanguageProvider }=await import('../src/core/i18n/LanguageContext')
 const { TrainingResultsReview }=await import('../src/features/training/TrainingResultsReview')
 
 const program={id:'TRN-R',title:'Review programme',requiresAssessment:true,passScore:50,validMonths:12,feedbackResponses:[],trainerFeedbackTemplate:{id:'T',titleEl:'',titleEn:'',questions:[{id:'clarity',labelEl:'Σαφήνεια',labelEn:'Clarity'}]},
- assessmentQuestions:[{id:'Q1',type:'single_choice',text:'Pick B',points:2,required:true,options:[{id:'A',text:'A',correct:false},{id:'B',text:'B',correct:true}]},{id:'Q2',type:'free_text',text:'Explain',points:4,required:true,options:[],manualReview:true}]}
-const pending={id:'TRA-R',programId:'TRN-R',employeeId:'EMP-1',employeeName:'Μαρία Π.',department:'ΜΕΘ',status:'in_progress',attendanceResponse:'confirmed',feedbackSubmittedAt:'2026-10-01T09:00:00Z',assessmentSubmittedAt:'2026-10-01T09:00:00Z',assessmentReviewStatus:'pending',assessmentAnswers:{Q1:'B',Q2:'Because'},feedbackScores:{clarity:5},feedbackComment:'',score:100,competent:null,certificateId:null}
-const state={programs:[program],assignments:[pending],certificates:[],requirements:[],emailOutbox:[],history:[]}
+ assessmentQuestions:[{id:'Q1',type:'single_choice',text:'Pick B',points:2,required:true,options:[{id:'A',text:'A',correct:false},{id:'B',text:'B',correct:true}]},{id:'Q2',type:'free_text',text:'Explain',points:4,required:true,options:[],manualReview:true}]} as unknown as TrainingProgram
+const pending={id:'TRA-R',programId:'TRN-R',employeeId:'EMP-1',employeeName:'Μαρία Π.',department:'ΜΕΘ',status:'in_progress',attendanceResponse:'confirmed',feedbackSubmittedAt:'2026-10-01T09:00:00Z',assessmentSubmittedAt:'2026-10-01T09:00:00Z',assessmentReviewStatus:'pending',assessmentAnswers:{Q1:'B',Q2:'Because'},feedbackScores:{clarity:5},feedbackComment:'',score:100,competent:null,certificateId:null} as unknown as TrainingAssignment
+const state={programs:[program],assignments:[pending],certificates:[],requirements:[],emailOutbox:[],history:[]} as unknown as TrainingState
 
 afterEach(()=>{cleanup();vi.clearAllMocks()})
 

@@ -1,13 +1,13 @@
 // The printouts of Training, on the shared report layout (printReport): the programmes with how many attended,
 // the participants of each programme, the annual or monthly plan, and an employee's training history.
 import { MONTHS, programMonths } from './trainingAnnualPlan'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeTrainingRow, TrainingAssignment, TrainingEmployee, TrainingProgram } from './trainingTypes'
 import type { CompetenceCell, CompetenceMatrix, RetrainingItem } from './trainingCompetence'
 import type { ReportCell, ReportDoc, ReportFact } from '../../core/export/reportDocument'
 
 type Label = (value: string) => string
 type Cell = ReportCell
-interface ProgramStat { program: AnyRecord, list: AnyRecord[], assigned: number, done: number, personHours: number }
+interface ProgramStat { program: TrainingProgram, list: TrainingAssignment[], assigned: number, done: number, personHours: number }
 
 const day = (value: unknown) => String(value || '').slice(0, 10)
 const dmy = (value: unknown) => (day(value) ? day(value).split('-').reverse().join('/') : '')
@@ -20,11 +20,11 @@ const MONTH_NAMES: Record<'el' | 'en', string[]> = {
 // Dates and numbers are centred, under centred headers, so the columns line up.
 const mid = (value: string): Cell => ({ text: value, align: 'center' })
 const heads = (list: string[], centred: number[], widths: string[] = []): Cell[] => list.map((label, i) => ({ text: label, ...(centred.includes(i) ? { align: 'center' } : {}), ...(widths[i] ? { width: widths[i] } : {}) }))
-const attended = (assignment: AnyRecord) => assignment.computedStatus === 'completed' || assignment.status === 'completed' || assignment.attendance === true
+const attended = (assignment: TrainingAssignment) => assignment.computedStatus === 'completed' || assignment.status === 'completed' || assignment.attendance === true
 
 // Per programme: assigned, attended, person-hours.
-function programStats(programs: AnyRecord[], assignments: AnyRecord[]): ProgramStat[] {
-  const byProgram = new Map<unknown, AnyRecord[]>()
+function programStats(programs: TrainingProgram[], assignments: TrainingAssignment[]): ProgramStat[] {
+  const byProgram = new Map<unknown, TrainingAssignment[]>()
   for (const a of assignments) { const list = byProgram.get(a.programId) || []; list.push(a); byProgram.set(a.programId, list) }
   return programs.map(program => {
     const list = byProgram.get(program.id) || []
@@ -34,7 +34,7 @@ function programStats(programs: AnyRecord[], assignments: AnyRecord[]): ProgramS
 }
 
 // «Αναφορά προγραμμάτων»: totals, then the programmes (grouped by month, by organiser, or one table).
-export function programmesReportDoc({ programs, assignments, language = 'el', statusLabel = v => v, groupBy = 'month', period = '' }: { programs: AnyRecord[], assignments: AnyRecord[], language?: string, statusLabel?: Label, groupBy?: string, period?: string }): ReportDoc {
+export function programmesReportDoc({ programs, assignments, language = 'el', statusLabel = v => v, groupBy = 'month', period = '' }: { programs: TrainingProgram[], assignments: TrainingAssignment[], language?: string, statusLabel?: Label, groupBy?: string, period?: string }): ReportDoc {
   const en = language === 'en'
   const stats = programStats(programs, assignments)
   const people = new Set(assignments.filter(a => programs.some(p => p.id === a.programId) && attended(a)).map(a => a.employeeId || a.employeeName).filter(Boolean))
@@ -78,7 +78,7 @@ export function programmesReportDoc({ programs, assignments, language = 'el', st
 }
 
 // «Συμμετέχοντες ανά πρόγραμμα»: each programme with who attended.
-export function participantsReportDoc({ programs, assignments, language = 'el', statusLabel = v => v, period = '' }: { programs: AnyRecord[], assignments: AnyRecord[], language?: string, statusLabel?: Label, period?: string }): ReportDoc {
+export function participantsReportDoc({ programs, assignments, language = 'el', statusLabel = v => v, period = '' }: { programs: TrainingProgram[], assignments: TrainingAssignment[], language?: string, statusLabel?: Label, period?: string }): ReportDoc {
   const en = language === 'en'
   const stats = programStats(programs, assignments).filter(s => s.assigned).sort((a, b) => day(a.program.startDate || a.program.dueDate).localeCompare(day(b.program.startDate || b.program.dueDate)))
   const columns = heads(en ? ['#', 'Person', 'Department', 'Status', 'Completed'] : ['#', 'Ονοματεπώνυμο', 'Τμήμα', 'Κατάσταση', 'Ολοκλήρωση'], [0, 4], ['6%', '36%', '24%', '18%', '16%'])
@@ -96,7 +96,7 @@ export function participantsReportDoc({ programs, assignments, language = 'el', 
 }
 
 // The plan of a year or of one month: what is planned and, if asked, what happened.
-export function trainingPlanReportDoc({ programs, assignments, year, month = null, withActual = true, language = 'el', stateLabel = v => v }: { programs: AnyRecord[], assignments: AnyRecord[], year: number | string, month?: number | null, withActual?: boolean, language?: string, stateLabel?: Label }): ReportDoc {
+export function trainingPlanReportDoc({ programs, assignments, year, month = null, withActual = true, language = 'el', stateLabel = v => v }: { programs: TrainingProgram[], assignments: TrainingAssignment[], year: number | string, month?: number | null, withActual?: boolean, language?: string, stateLabel?: Label }): ReportDoc {
   const en = language === 'en'
   const y = Number(year)
   const stats = programStats(programs.filter(p => p.status !== 'cancelled'), assignments)
@@ -127,7 +127,7 @@ export function trainingPlanReportDoc({ programs, assignments, year, month = nul
 }
 
 // An employee's training history.
-export function employeeTrainingDoc({ employeeName, employeeCode, department, rows, language = 'el' }: { employeeName: string, employeeCode: string, department?: string, rows: AnyRecord[], language?: string }): ReportDoc {
+export function employeeTrainingDoc({ employeeName, employeeCode, department, rows, language = 'el' }: { employeeName: string, employeeCode: string, department?: string, rows: EmployeeTrainingRow[], language?: string }): ReportDoc {
   const en = language === 'en'
   const total = rows.reduce((n, r) => n + (r.done ? num(r.hours) : 0), 0)
   return {
@@ -137,13 +137,13 @@ export function employeeTrainingDoc({ employeeName, employeeCode, department, ro
     title: en ? `Training history · ${employeeName}` : `Ιστορικό εκπαίδευσης · ${employeeName}`,
     filename: en ? `training-history-${employeeCode}` : `istoriko-ekpaideusis-${employeeCode}`,
     meta: [[en ? 'Code' : 'Κωδικός', employeeCode || ''], [en ? 'Department' : 'Τμήμα', department || ''], [en ? 'Trainings completed' : 'Ολοκληρωμένες εκπαιδεύσεις', String(rows.filter(r => r.done).length)], [en ? 'Hours' : 'Ώρες', hours(total) || '0']],
-    sections: [{ title: '', table: { columns: heads(en ? ['Training', 'Organiser', 'Date', 'Hours', 'Status', 'Score'] : ['Εκπαίδευση', 'Διοργανωτής', 'Ημερομηνία', 'Ώρες', 'Κατάσταση', 'Βαθμολογία'], [2, 3, 5], ['36%', '20%', '12%', '8%', '14%', '10%']), rows: rows.map(r => [r.title, r.organiser || '', mid(dmy(r.date)), mid(hours(r.hours)), r.statusLabel, mid(r.score ?? '')]) } }],
+    sections: [{ title: '', table: { columns: heads(en ? ['Training', 'Organiser', 'Date', 'Hours', 'Status', 'Score'] : ['Εκπαίδευση', 'Διοργανωτής', 'Ημερομηνία', 'Ώρες', 'Κατάσταση', 'Βαθμολογία'], [2, 3, 5], ['36%', '20%', '12%', '8%', '14%', '10%']), rows: rows.map(r => [r.title, r.organiser || '', mid(dmy(r.date)), mid(hours(r.hours)), r.statusLabel, mid((r.score ?? '') as string)]) } }],
   }
 }
 
 // «Επάρκεια»: the matrix (who is covered for each required training, per department) or the retraining plan
 // (who has to be trained and by when, per month). matrix/plan come from trainingCompetence.
-export function competenceReportDoc({ matrix, plan, content = 'matrix', department = 'all', language = 'el', personName = e => e.name || '', today = '' }: { matrix: CompetenceMatrix, plan: RetrainingItem[], content?: string, department?: string, language?: string, personName?: (employee: AnyRecord) => string, today?: string }): ReportDoc {
+export function competenceReportDoc({ matrix, plan, content = 'matrix', department = 'all', language = 'el', personName = e => e.name || '', today = '' }: { matrix: CompetenceMatrix, plan: RetrainingItem[], content?: string, department?: string, language?: string, personName?: (employee: TrainingEmployee) => string, today?: string }): ReportDoc {
   const en = language === 'en'
   const stateText = (state: string) => ({ valid: en ? 'Valid' : 'Σε ισχύ', expiring: en ? 'Expiring' : 'Λήγει', expired: en ? 'Expired' : 'Έληξε', missing: en ? 'Missing' : 'Λείπει' } as Record<string, string>)[state] || state
   const scope = department === 'all' ? (en ? 'All departments' : 'Όλα τα τμήματα') : department
@@ -183,7 +183,7 @@ export function competenceReportDoc({ matrix, plan, content = 'matrix', departme
     title: en ? 'Competence matrix' : 'Πίνακας επάρκειας',
     filename: en ? 'competence-matrix' : 'pinakas-eparkeias',
     meta: [[en ? 'Department' : 'Τμήμα', scope], [en ? 'People' : 'Άτομα', String(matrix.rows.length)], [en ? 'Coverage' : 'Κάλυψη', matrix.rate == null ? '—' : `${matrix.rate}%`], [en ? 'Missing / expired / expiring' : 'Λείπει / έληξε / λήγει', `${count('missing')} / ${count('expired')} / ${count('expiring')}`]],
-    sections: byDepartment(matrix.rows, row => row.employee.department).map(([name, rows]) => ({
+    sections: byDepartment(matrix.rows, row => row.employee.department as string).map(([name, rows]) => ({
       title: `${name} · ${rows.length}`,
       table: { columns, rows: [...rows].sort((a, b) => personName(a.employee).localeCompare(personName(b.employee), 'el')).map(row => [personName(row.employee), row.employee.profession || '', ...row.cells.map(cell => ({ text: cellText(cell) || '—', align: 'center', className: cell && cell.state !== 'valid' && cell.state !== 'expiring' ? 'rd-bad' : '' }))]) },
     })),
@@ -192,7 +192,7 @@ export function competenceReportDoc({ matrix, plan, content = 'matrix', departme
 
 // «Φύλλο προγράμματος»: the programme's details and its attendance list — blank, for signatures on the day,
 // or with who attended (for the file). A few empty rows are left for people added on the day.
-export function programSheetDoc({ program, assignments, language = 'el', withAttendance = false, categoryLabel = v => v, methodLabel = v => v, statusLabel = v => v }: { program: AnyRecord, assignments: AnyRecord[], language?: string, withAttendance?: boolean, categoryLabel?: Label, methodLabel?: Label, statusLabel?: Label }): ReportDoc {
+export function programSheetDoc({ program, assignments, language = 'el', withAttendance = false, categoryLabel = v => v, methodLabel = v => v, statusLabel = v => v }: { program: TrainingProgram, assignments: TrainingAssignment[], language?: string, withAttendance?: boolean, categoryLabel?: Label, methodLabel?: Label, statusLabel?: Label }): ReportDoc {
   const en = language === 'en'
   const list = [...assignments].sort((a, b) => String(a.employeeName || '').localeCompare(String(b.employeeName || ''), 'el'))
   const period = program.startDate && day(program.startDate) !== day(program.dueDate) ? `${dmy(program.startDate)} – ${dmy(program.dueDate)}` : dmy(program.startDate || program.dueDate)

@@ -5,21 +5,23 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { YesNoField } from '../../design-system/YesNoField'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { TrainingEmployee, TrainingProgramDraft } from './trainingTypes'
+// A department in the form's choices (a library or a hospital department).
+type DepartmentOption = { name?: string, label?: string, title?: string }
 
-export const TRAINING_PROGRAM_DEFAULTS: AnyRecord={title:'',category:'ipc',method:'in_person',owner:'',trainer:'',audience:'',deliveryKind:'',startTime:'',durationHours:'',location:'',cost:'',status:'active',startDate:'',dueDate:'',validMonths:'12',requiresAssessment:true,passScore:'80',description:''}
+export const TRAINING_PROGRAM_DEFAULTS: TrainingProgramDraft={title:'',category:'ipc',method:'in_person',owner:'',trainer:'',audience:'',deliveryKind:'',startTime:'',durationHours:'',location:'',cost:'',status:'active',startDate:'',dueDate:'',validMonths:'12',requiresAssessment:true,passScore:'80',description:''}
 const TRAINING_CATEGORY_OPTIONS=[['ipc','Πρόληψη & Έλεγχος Λοιμώξεων','Infection Prevention & Control'],['clinical','Κλινική εκπαίδευση','Clinical training'],['quality','Ποιότητα & Ασφάλεια','Quality & Safety'],['occupational_health','Υγεία & Ασφάλεια Εργαζομένων','Occupational Health & Safety'],['mandatory','Υποχρεωτική / Κανονιστική','Mandatory / Regulatory'],['other','Άλλο','Other']]
 const TRAINING_DELIVERY_KIND_OPTIONS=[['internal','Εσωτερική','Internal'],['external','Εξωτερική','External'],['intra_department','Ενδοτμηματική','Intra-departmental']]
 const TRAINING_METHOD_OPTIONS=[['in_person','Δια ζώσης','In person'],['online','Διαδικτυακά','Online'],['hybrid','Υβριδικά','Hybrid'],['on_the_job','Εκπαίδευση στο χώρο εργασίας','On-the-job'],['self_study','Αυτοεκπαίδευση','Self-study']]
 export function trainingCategoryLabel(value: string|null|undefined,language='el'){const row=TRAINING_CATEGORY_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
 export function trainingDeliveryKindLabel(value: string|null|undefined,language='el'){const row=TRAINING_DELIVERY_KIND_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
 export function trainingMethodLabel(value: string|null|undefined,language='el'){const row=TRAINING_METHOD_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
-function normalizeTrainingProgramDraft(value: AnyRecord|null|undefined={}): AnyRecord{return {...TRAINING_PROGRAM_DEFAULTS,...value}}
-export function trainingProgramIsValid(v: AnyRecord|null|undefined){return Boolean(v?.title?.trim()&&v?.trainer?.trim()&&v?.audience?.trim()&&v?.dueDate&&(!v.startDate||v.dueDate>=v.startDate)&&(!v.requiresAssessment||Number(v.passScore)>=0&&Number(v.passScore)<=100))}
+function normalizeTrainingProgramDraft(value: TrainingProgramDraft|null|undefined={}): TrainingProgramDraft{return {...TRAINING_PROGRAM_DEFAULTS,...value}}
+export function trainingProgramIsValid(v: TrainingProgramDraft|null|undefined){return Boolean(v?.title?.trim()&&v?.trainer?.trim()&&v?.audience?.trim()&&v?.dueDate&&(!v.startDate||v.dueDate>=v.startDate)&&(!v.requiresAssessment||Number(v.passScore)>=0&&Number(v.passScore)<=100))}
 function unique(values: unknown[]){return [...new Set(values.map(x=>String(x||'').trim()).filter(Boolean))]}
 
 // `compact` (a new programme): the essentials first, the rest under «More details». The status is not asked: it follows the start date.
-interface TrainingProgramFormProps { value: AnyRecord|null|undefined, onChange?: (value: AnyRecord)=>void, language?: string, readOnly?: boolean, employees?: AnyRecord[], departments?: AnyRecord[], compact?: boolean }
+interface TrainingProgramFormProps { value: TrainingProgramDraft|null|undefined, onChange?: (value: TrainingProgramDraft)=>void, language?: string, readOnly?: boolean, employees?: Pick<TrainingEmployee,'firstName'|'lastName'|'department'>[], departments?: DepartmentOption[], compact?: boolean }
 export function TrainingProgramForm({value,onChange,language='el',readOnly=false,employees=[],departments=[],compact=false}: TrainingProgramFormProps){
  const [more,setMore]=useState(!compact)
  const en=language==='en',v=normalizeTrainingProgramDraft(value),set=(key: string,next: unknown)=>onChange?.({...v,[key]:next}),datesInvalid=Boolean(v.startDate&&v.dueDate&&v.dueDate<v.startDate)
@@ -46,9 +48,9 @@ export function TrainingProgramForm({value,onChange,language='el',readOnly=false
   <label><span>{en?'Duration (hours)':'Διάρκεια (ώρες)'}</span><input disabled={readOnly} type="number" min="0.5" step="0.5" value={v.durationHours??''} onChange={e=>set('durationHours',e.target.value)}/></label>
   <label><span>{en?'Location':'Τόπος'}</span><input disabled={readOnly} value={v.location||''} onChange={e=>set('location',e.target.value)}/></label>
   <label><span>{en?'Cost (€)':'Κόστος (€)'}</span><input disabled={readOnly} type="number" min="0" step="0.01" value={v.cost??''} onChange={e=>set('cost',e.target.value)}/></label>
-  <label><span>{en?'Competency validity (months)':'Ισχύς επάρκειας (μήνες)'}</span><input disabled={readOnly} type="number" min="1" value={v.validMonths} onChange={e=>set('validMonths',e.target.value)}/></label>
+  <label><span>{en?'Competency validity (months)':'Ισχύς επάρκειας (μήνες)'}</span><input disabled={readOnly} type="number" min="1" value={v.validMonths as string|number|undefined} onChange={e=>set('validMonths',e.target.value)}/></label>
   <YesNoField label={en?'Knowledge assessment required':'Απαιτείται αξιολόγηση γνώσεων'} value={Boolean(v.requiresAssessment)} onChange={x=>!readOnly&&set('requiresAssessment',x)}/>
-  {v.requiresAssessment&&<label><span>{en?'Pass score (%)':'Όριο επιτυχίας (%)'}</span><input disabled={readOnly} type="number" min="0" max="100" value={v.passScore} onChange={e=>set('passScore',e.target.value)}/></label>}
+  {v.requiresAssessment&&<label><span>{en?'Pass score (%)':'Όριο επιτυχίας (%)'}</span><input disabled={readOnly} type="number" min="0" max="100" value={v.passScore as string|number|undefined} onChange={e=>set('passScore',e.target.value)}/></label>}
   <label className="entry-span-2"><span>{en?'Purpose / description':'Σκοπός / περιγραφή'}</span><textarea disabled={readOnly} rows={4} value={v.description} onChange={e=>set('description',e.target.value)}/></label>
   </>}
  </div>
@@ -56,13 +58,13 @@ export function TrainingProgramForm({value,onChange,language='el',readOnly=false
 
 // The programme as read (Overview): the filled fields only; «Edit» in «⋯» opens the form.
 const STATUS_LABELS: Record<string, [string, string]>={planned:['Προγραμματισμένο','Planned'],active:['Ενεργό','Active'],completed:['Ολοκληρωμένο','Completed'],cancelled:['Ακυρώθηκε','Cancelled']}
-export function TrainingProgramDetails({value,language='el'}: {value: AnyRecord|null|undefined,language?: string}){
+export function TrainingProgramDetails({value,language='el'}: {value: TrainingProgramDraft|null|undefined,language?: string}){
  const en=language==='en',v=normalizeTrainingProgramDraft(value)
  const day=(iso: unknown)=>iso?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(iso).slice(0,10)}T12:00:00`)):''
  const present=(x: unknown)=>x!==''&&x!=null
  return <DetailFields fields={[
   {label:en?'Category':'Κατηγορία',value:trainingCategoryLabel(v.category,language)},
-  {label:en?'Status':'Κατάσταση',value:STATUS_LABELS[v.status]?.[en?1:0]||v.status},
+  {label:en?'Status':'Κατάσταση',value:STATUS_LABELS[v.status as string]?.[en?1:0]||v.status},
   {label:en?'Method':'Τρόπος',value:trainingMethodLabel(v.method,language)},
   {label:en?'Training type':'Είδος εκπαίδευσης',value:v.deliveryKind?trainingDeliveryKindLabel(v.deliveryKind,language):'',hidden:!v.deliveryKind},
   {label:en?'Organizer / owner':'Υπεύθυνος / διοργανωτής',value:v.owner},
