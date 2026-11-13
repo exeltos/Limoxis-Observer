@@ -4,7 +4,7 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { createClinicalRepository } from './clinicalRepository'
 import { PatientClinicalCanonicalPage } from './PatientClinicalCanonicalPage'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalCase } from './clinicalTypes'
 
 interface PatientClinicalRecordRouteProps {
   patientMode?: boolean
@@ -15,7 +15,7 @@ export function PatientClinicalRecordRoute({ patientMode = false }: PatientClini
   const { tenant, isDemo } = useTenant()
   const fromPatientRegistry =
     !patientMode && location.state?.limoxisFrom?.registry === 'surveillance-patients'
-  const [target, setTarget] = useState<AnyRecord | null>(null)
+  const [target, setTarget] = useState<Pick<ClinicalCase, 'patientRecordId' | 'admissionId'> | null>(null)
   const [resolved, setResolved] = useState(!fromPatientRegistry)
 
   useEffect(() => {

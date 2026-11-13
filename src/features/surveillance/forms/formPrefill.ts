@@ -1,18 +1,18 @@
 import { episodeTypeLabel } from '../clinicalRecordLabels'
 import { athensHour, athensToday, shiftForHour } from './formStatus'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { BundleDevice, BundleStatus, EpisodeFormsCtx, FormsEpisode } from './formTypes'
 
 // What every form opened from an episode already knows: patient, admission, episode. Built
 // once here, so the bundle, the incident report, the notifiable report and the exposure
 // record start from the same values (the PrefilledList shows them locked).
-export function patientDisplayName(ctx: AnyRecord) {
+export function patientDisplayName(ctx: Pick<EpisodeFormsCtx, 'patient' | 'record' | 'language'>) {
   const { patient, record, language } = ctx
   return language === 'en'
     ? patient?.nameEn || record?.patientEn || patient?.name || record?.patient || ''
     : patient?.name || record?.patient || ''
 }
 
-export function episodeContext(ctx: AnyRecord, episode = ctx.record) {
+export function episodeContext(ctx: Pick<EpisodeFormsCtx, 'patient' | 'record' | 'language' | 'admission' | 'fmtDate' | 't'>, episode: FormsEpisode | null | undefined = ctx.record) {
   const { patient, admission, fmtDate, language } = ctx
   const en = language === 'en'
   const department = (en ? episode?.departmentEn : episode?.department) || episode?.department || admission?.department || patient?.department || ''
@@ -36,7 +36,7 @@ export function episodeContext(ctx: AnyRecord, episode = ctx.record) {
 }
 
 // The state a form page needs to send the user back to this tab.
-export function episodeReturn(ctx: AnyRecord) {
+export function episodeReturn(ctx: Pick<EpisodeFormsCtx, 'returnPath' | 'admission' | 'patientMode'>) {
   return {
     returnTo: ctx.returnPath,
     returnState: { openTab: 'episodeForms', ...(ctx.admission?.id && ctx.patientMode ? { admissionId: ctx.admission.id } : {}) },
@@ -44,10 +44,10 @@ export function episodeReturn(ctx: AnyRecord) {
 }
 
 interface BuildBundlePrefillOptions {
-  ctx: AnyRecord
-  device: AnyRecord
-  episode: AnyRecord
-  info: AnyRecord
+  ctx: EpisodeFormsCtx
+  device: BundleDevice
+  episode: FormsEpisode | null | undefined
+  info: Pick<BundleStatus, 'deviceDay' | 'bundleKeys'>
   now?: Date
 }
 export function buildBundlePrefill({ ctx, device, episode, info, now = new Date() }: BuildBundlePrefillOptions) {
@@ -72,7 +72,7 @@ export function buildBundlePrefill({ ctx, device, episode, info, now = new Date(
 
 // What the incident report form receives: the links to save (patient, admission, surveillance
 // episode; the demo keeps codes, production the record ids) and the labels the form shows locked.
-export function incidentSource(ctx: AnyRecord) {
+export function incidentSource(ctx: EpisodeFormsCtx) {
   const base = episodeContext(ctx)
   return {
     patientLabel: base.patientLabel,

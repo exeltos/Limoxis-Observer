@@ -14,11 +14,11 @@ import { useLibraries } from '../management/useLibraries'
 import { loadQualityRecords } from './qualityService'
 import { INCIDENT_CLASSES, incidentCategoryLabel, qualityStatusTone, vocabularyLabel } from './qualityVocabulary'
 import './quality.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { QualityDraft, QualityRecord } from './qualityTypes'
 
 // The reports the signed-in user sent, and where each one stands. Anonymous
 // reports carry no name, so they never appear here; a confidential one does.
-export function isOwnReport(record: AnyRecord, userId: string | null | undefined) {
+export function isOwnReport(record: QualityDraft | null | undefined, userId: string | null | undefined) {
   return Boolean(userId && record && !record.anonymous && record.reportedById === userId)
 }
 
@@ -38,9 +38,9 @@ export function MyReportsPage() {
   const { libraries } = useLibraries()
   const categories = libraries.incidentCategories || []
   const userId = profile?.id || user?.id || null
-  const [rows, setRows] = useState<AnyRecord[]>([])
+  const [rows, setRows] = useState<QualityRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [open, setOpen] = useState<AnyRecord | null>(null)
+  const [open, setOpen] = useState<QualityRecord | null>(null)
   useEffect(() => {
     let active = true
     loadQualityRecords('incidents', tenant?.id).then(data => { if (active) setRows(data) }).catch(() => { if (active) setRows([]) }).finally(() => { if (active) setLoading(false) })
@@ -48,7 +48,7 @@ export function MyReportsPage() {
   }, [tenant?.id])
   const mine = useMemo(() => rows.filter(row => isOwnReport(row, userId)).sort((a, b) => String(b.date).localeCompare(String(a.date))), [rows, userId])
   const newReport = () => navigate('/quality/report', { state: { limoxisFrom: { pathname: '/quality/my-reports', search: '', hash: '', state: null } } })
-  const title = (row: AnyRecord) => (en ? row.titleEn || row.title : row.title)
+  const title = (row: QualityRecord) => (en ? row.titleEn || row.title : row.title)
   return <Page fill className="quality-my-reports" title={en ? 'My incident reports' : 'Οι αναφορές συμβάντων μου'} subtitle={en ? 'Incidents, near misses and complaints you reported, and where each one stands.' : 'Τα συμβάντα, παρ’ ολίγον συμβάντα και παράπονα που αναφέρατε και σε ποια κατάσταση βρίσκεται το καθένα.'} actions={<ActionButton tone="primary" label={en ? 'New incident report' : 'Νέα αναφορά συμβάντος'} onClick={newReport}><Plus size={18} /><span>{en ? 'New incident report' : 'Νέα αναφορά συμβάντος'}</span></ActionButton>}>
     <div className="surface registry-workspace workspace-column workspace-fill">
       <RegistryTable className="quality-table" rows={mine} empty={!loading && !mine.length} emptyTitle={en ? 'You have not reported any incident yet' : 'Δεν έχετε αναφέρει ακόμη συμβάν'} emptyText={en ? 'Anything that went wrong or almost did: reporting helps the hospital learn.' : 'Ό,τι πήγε στραβά ή παραλίγο: η αναφορά βοηθά το νοσοκομείο να μαθαίνει.'} columns={[{ key: 'code', label: t('code'), sortValue: row => row.displayId || row.id }, { key: 'title', label: t('title'), sortValue: title }, { key: 'category', label: en ? 'Category' : 'Κατηγορία', sortValue: row => incidentCategoryLabel(row.category, categories, language) }, { key: 'date', label: t('date'), sortValue: row => row.date }, { key: 'status', label: t('status'), sortValue: row => row.status }]} rowProps={row => ({ className: 'clickable-row', onClick: () => setOpen(row) })} renderRow={row => <>

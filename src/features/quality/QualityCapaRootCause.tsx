@@ -10,11 +10,11 @@ import { formatDateTime } from '../../core/i18n/formatDay'
 import { saveQualityRecord } from './qualityService'
 import { ISHIKAWA_CATEGORIES,WHY_COUNT,analysisProgress,cleanAnalysis,normalizeAnalysis } from './rootCauseAnalysis'
 import './rootCause.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { QualityRecord } from './qualityTypes'
 
 // CAPA tab "Root causes": the problem, 5 Whys, and an Ishikawa diagram whose
 // head is the problem and whose bones are the healthcare cause categories.
-export function QualityCapaRootCause({record,setRecord,canManage,finalized,organizationId,actor,notify,language}: { record: AnyRecord, locale?: string, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string | null | undefined, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }){
+export function QualityCapaRootCause({record,setRecord,canManage,finalized,organizationId,actor,notify,language}: { record: QualityRecord, locale?: string, setRecord: Dispatch<SetStateAction<QualityRecord | null>>, canManage: boolean, finalized: boolean, organizationId: string | null | undefined, actor: AuditActor, notify: FeedbackContextValue['notify'], language: string }){
  const en=language==='en'
  const saved=useMemo(()=>normalizeAnalysis(record.rootCauseAnalysis),[record.rootCauseAnalysis])
  const [draft,setDraft]=useState(saved)
