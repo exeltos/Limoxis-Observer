@@ -79,6 +79,9 @@ export function LaboratoryWorkspace() {
   const [result, setResult] = useState(saved.result)
   const [department, setDepartment] = useState(saved.department)
   const [period, setPeriod] = useState(saved.period || 'all')
+  // Production reads the last 12 months first; «All samples» in the period filter reads the older ones too (once).
+  const recentFirst = !isDemo
+  useEffect(() => { if (period === 'older' && recentOnly) showOlder() }, [period, recentOnly, showOlder])
   const [scope, setScope] = useState(saved.scope || defaultLabScope(role || actualRole))
   const [quick, setQuick] = useState(saved.quick || 'all')
   const [newOpen, setNewOpen] = useState(false)
@@ -129,7 +132,7 @@ export function LaboratoryWorkspace() {
     .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)
     .filter(sample => matchesLabScope(sample, scope))
     .filter(sample => quick === 'all' || (quick === 'today' ? String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === hospitalToday() : LAB_PENDING_STATUSES.includes(sample.status)))
-    .filter(sample => inPeriod(sample.collectedAt || sample.requestedAt, period)),
+    .filter(sample => inPeriod(sample.collectedAt || sample.requestedAt, period === 'older' ? 'all' : period)),
   [query, status, result, department, period, scope, quick, language, repositoryRows, canAccessRecord])
 
   const clearFilters = () => { setQuery(''); setStatus('all'); setResult('all'); setDepartment('all'); setPeriod('all'); setQuick('all'); setScope(LAB_RESULT_SCOPES.ALL) }
@@ -257,12 +260,12 @@ export function LaboratoryWorkspace() {
   return <Page fill title={t('laboratory')} actions={<>{exportActions}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: canRequestOnly ? CAPABILITIES.REQUEST_LAB_SAMPLES : CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} /></>}>
     {tabs}
     <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0) + (scope !== LAB_RESULT_SCOPES.ALL ? 1 : 0)} end={labTotals} activeFilters={[scope !== LAB_RESULT_SCOPES.ALL && { key: 'scope', label: language === 'en' ? 'Positive only' : 'Μόνο θετικά', onRemove: () => setScope(LAB_RESULT_SCOPES.ALL) }, department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') }, status !== 'all' && { key: 'status', label: `${t('status')}: ${labStatusLabel(status, language)}`, onRemove: () => setStatus('all') }, result !== 'all' && { key: 'result', label: `${t('result')}: ${result === 'critical' ? t('criticalResult') : t(result)}`, onRemove: () => setResult('all') }, period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') }].filter(Boolean)} onClear={clearFilters} advanced={<>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0) + (scope !== LAB_RESULT_SCOPES.ALL ? 1 : 0)} end={labTotals} activeFilters={[scope !== LAB_RESULT_SCOPES.ALL && { key: 'scope', label: language === 'en' ? 'Positive only' : 'Μόνο θετικά', onRemove: () => setScope(LAB_RESULT_SCOPES.ALL) }, department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') }, status !== 'all' && { key: 'status', label: `${t('status')}: ${labStatusLabel(status, language)}`, onRemove: () => setStatus('all') }, result !== 'all' && { key: 'result', label: `${t('result')}: ${result === 'critical' ? t('criticalResult') : t(result)}`, onRemove: () => setResult('all') }, period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${period === 'older' ? t('laboratoryRecords.periodEverything') : t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') }].filter(Boolean)} onClear={clearFilters} advanced={<>
         <FilterSelect label={language === 'en' ? 'Show' : 'Εμφάνιση'} value={scope} onChange={setScope}><option value={LAB_RESULT_SCOPES.ALL}>{language === 'en' ? 'All' : 'Όλα'}</option><option value={LAB_RESULT_SCOPES.POSITIVE}>{language === 'en' ? 'Positive only' : 'Μόνο θετικά'}</option></FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(item => <option key={item}>{item}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{LAB_STATUS_ORDER.map(item => <option key={item} value={item}>{labStatusLabel(item, language)}</option>)}</FilterSelect>
         <FilterSelect label={t('result')} value={result} onChange={setResult}><option value="all">{t('all')}</option><option value="positive">{t('positive')}</option><option value="negative">{t('negative')}</option><option value="critical">{t('criticalResult')}</option></FilterSelect>
-        <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days => <option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
+        <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{recentFirst ? t('laboratoryRecords.periodRecent') : t('svPeriodAll')}</option>{PERIOD_DAYS.map(days => <option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}{recentFirst && <option value="older">{t('laboratoryRecords.periodEverything')}</option>}</FilterSelect>
       </>}/>
       <div className="scroll-table" ref={registry.scrollRef as RefObject<HTMLDivElement>}>
       <RegistryTable bare className="lab-table" sort={sort} onSort={onSort} columns={[
@@ -277,7 +280,6 @@ export function LaboratoryWorkspace() {
       </>}/>
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
-      {recentOnly && !samplesLoading && <p className="lab-recent-note">{t('laboratoryRecords.recentOnlyNote')} <button type="button" className="text-button" onClick={showOlder}>{t('laboratoryRecords.olderSamples')}</button></p>}
     </section>
     {duplicateDialog}
   </Page>

@@ -35,7 +35,7 @@ export const helpManualEn: HelpBook={
   ['Reassessment & outcome','Only authorized roles can close an episode. Completion remains traceable in the record history.']
  ],steps:['Open the active surveillance episode.','Review the timeline and missing information.','Complete the appropriate clinical or laboratory-related section.','Reassess isolation and outcome when required.'],preview:'surveillance'},
  '/laboratory':{title:'Laboratory',summary:'Samples, microbiology, AST and critical results without duplicate data entry.',audience:'Laboratory and authorized users',chapters:[
-  ['Laboratory queue','The landing page highlights pending samples, results and critical laboratory work.'],
+  ['Laboratory queue','The Laboratory landing page highlights pending samples, results and critical laboratory work. The list shows the last 12 months (by collection date) and the samples not finished yet; «All samples» in the «Period» filter brings the older ones.'],
   ['Sample & result','A sample remains linked to its subject/source and progresses to a result without creating a second disconnected record.'],
   ['AST & resistance','Susceptibility data use the central organism and antimicrobial libraries to support consistent recording.'],
   ['Critical communication','Critical-result communication is documented with time, recipient and responsible user.']
