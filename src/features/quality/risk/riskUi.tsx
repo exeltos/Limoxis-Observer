@@ -11,19 +11,19 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { readSessionValue,writeSessionValue } from '../../../core/storage/browserStorage'
 import { CONSEQUENCE,LEVELS,LIKELIHOOD,levelForScore,levelLabel } from './riskModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ScaleOption } from './riskTypes'
 
 // The row last opened in a list, kept for the session, so it is highlighted
 // on the way back (the registries' registry-row-returned).
-export const rememberRow=(key: string,id: string)=>writeSessionValue(key,String(id))
+export const rememberRow=(key: string,id: string|undefined)=>writeSessionValue(key,String(id))
 export function useReturnedRow(key: string){
  const [returned,setReturned]=useState(()=>readSessionValue(key,'')||'')
- return {returned,remember:(id: string)=>{rememberRow(key,id);setReturned(String(id))}}
+ return {returned,remember:(id: string|undefined)=>{rememberRow(key,id);setReturned(String(id))}}
 }
 // Pages of a table with the registries' pager. A new filter (resetOn) goes back
 // to page 1; on the way back from a record the page holding it is shown.
 // sortBy (column key → value reader) gives the table's arrows: the whole list is sorted, then the page is cut.
-export function usePaged(list: AnyRecord[],{en=false,resetOn='',startIndex=-1,sortBy=null}: {en?: boolean,resetOn?: string,startIndex?: number,sortBy?: Record<string,(row: AnyRecord)=>unknown>|null}={}){
+export function usePaged<T>(list: T[],{en=false,resetOn='',startIndex=-1,sortBy=null}: {en?: boolean,resetOn?: string,startIndex?: number,sortBy?: Record<string,(row: T)=>unknown>|null}={}){
  const {sorted,sort,onSort}=useTableSort(list,sortBy||{})
  const [pageSize,setPageSize]=useState(15)
  const [page,setPage]=useState(()=>startIndex>=0?Math.floor(startIndex/15)+1:1)
@@ -40,10 +40,10 @@ export function usePaged(list: AnyRecord[],{en=false,resetOn='',startIndex=-1,so
 export type RiskFrame=(kpis: ReactNode,content: ReactNode,options?: {registry?: boolean,name?: string})=>ReactNode
 export const defaultFrame=(kpis: ReactNode,content: ReactNode,{name=''}: {name?: string}={})=><>{kpis}{name?<div className={name}>{content}</div>:content}</>
 // The class that marks the row last opened.
-export const returnedClass=(returned: string,id: string)=>returned&&String(id)===returned?' registry-row-returned':''
+export const returnedClass=(returned: string,id: string|undefined)=>returned&&String(id)===returned?' registry-row-returned':''
 
 // Demo records carry English wording in `<field>En`; user records have one language.
-export const txt=(item: AnyRecord,field: string,en: boolean)=>(en&&item?.[`${field}En`])||item?.[field]||''
+export const txt=(item: Readonly<Record<string,unknown>>|null|undefined,field: string,en: boolean)=>((en&&item?.[`${field}En`])||item?.[field]||'') as string
 export const L=(en: boolean,el: string,enText: string)=>en?enText:el
 
 export function LevelChip({score,level,en,compact=false,title}: {score?: number|null,level?: string|null,en: boolean,compact?: boolean,title?: string}){
@@ -55,7 +55,7 @@ export function LevelChip({score,level,en,compact=false,title}: {score?: number|
 // Rows: consequence 5 (top) to 1; columns: likelihood 1 to 5. A cell shows how
 // many risks sit there; its colour is the band of L×C.
 export function RiskHeatMap({heat,en,title,caption,onCell,active,emptyNote=''}: {heat?: number[][],en: boolean,title?: string,caption?: string,onCell?: ((cell: {l: number,c: number})=>void)|null,active?: {l: number,c: number}|null,emptyNote?: string}){
- const empty=!(heat||[]).some((row: AnyRecord)=>row.some(Boolean))
+ const empty=!(heat||[]).some(row=>row.some(Boolean))
  return <figure className={`risk-heatmap${empty&&emptyNote?' is-empty':''}`}>
   {title&&<figcaption><strong>{title}</strong>{caption&&<span>{caption}</span>}</figcaption>}
   <div className="risk-heatmap-body">
@@ -76,8 +76,8 @@ export function LevelLegend({en,showResponse=false}: {en: boolean,showResponse?:
 }
 
 // L or C of a stage: one value of the 1–5 scale, typed or picked; «×» clears it.
-export function AxisSelect({label,value,onChange,scale,en,disabled=false}: {label: string,value: number|null|undefined,onChange: (value: number|null)=>void,scale: AnyRecord[],en: boolean,disabled?: boolean}){
- return <SearchableSelect className="risk-axis-select" label={label} value={value??''} disabled={disabled} placeholder="—" clearLabel={disabled?'':L(en,'Καθαρισμός','Clear')} emptyLabel={L(en,'Καμία τιμή','No value')} onChange={v=>onChange(v===''||v==null?null:Number(v))} options={scale.map((x: AnyRecord)=>({value:x.value,label:`${x.value} · ${en?x.en:x.el}`}))}/>
+export function AxisSelect({label,value,onChange,scale,en,disabled=false}: {label: string,value: number|null|undefined,onChange: (value: number|null)=>void,scale: ScaleOption[],en: boolean,disabled?: boolean}){
+ return <SearchableSelect className="risk-axis-select" label={label} value={value??''} disabled={disabled} placeholder="—" clearLabel={disabled?'':L(en,'Καθαρισμός','Clear')} emptyLabel={L(en,'Καμία τιμή','No value')} onChange={v=>onChange(v===''||v==null?null:Number(v))} options={scale.map(x=>({value:x.value,label:`${x.value} · ${en?x.en:x.el}`}))}/>
 }
 
 export const STATUS_LABELS: Record<string,string[]>={draft:['Πρόχειρο','Draft'],under_review:['Σε έλεγχο','Under review'],approved:['Εγκεκριμένη','Approved'],archived:['Αρχειοθετημένη','Archived']}
@@ -89,7 +89,7 @@ export const fmtDate=(value: unknown,locale: string)=>formatDay(value,String(loc
 
 // Edit and delete of a risk or an opportunity: the record shell lists them in
 // its "…" menu. The page opens read-only; «Επεξεργασία» unlocks the fields.
-export function recordActions({en,canEdit,editing,isNew,onEdit,onDelete}: AnyRecord){
+export function recordActions({en,canEdit,editing,isNew,onEdit,onDelete}: {en: boolean,canEdit: boolean,editing: boolean,isNew: boolean,onEdit: ()=>void,onDelete?: (()=>void)|null}){
  if(!canEdit||editing||isNew)return null
  return <>
   <ActionButton label={L(en,'Επεξεργασία','Edit')} tone="edit" onClick={onEdit}><Pencil size={16}/><span>{L(en,'Επεξεργασία','Edit')}</span></ActionButton>
