@@ -22,7 +22,8 @@ import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { copy, NEW_ITEM, rowLabel } from './clinicalDialogText'
 import { SimpleDialog } from './ClinicalSimpleDialog'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AdministrationDraft, ClinicalLibraryRow } from './clinicalTypes'
+import type { AssessmentForm, JourneyCase, SampleRequestContext, SampleRequestEpi, SampleRequestForm } from './clinicalScreenTypes'
 import type { Handler } from './surveillanceTypes'
 export { SimpleDialog } from './ClinicalSimpleDialog'
 export { HaiDialog, TherapyDialog, IsolationDialog, EndDialog, ReassessmentDialog, OutcomeDialog, ReasonDialog } from './ClinicalCareDialogs'
@@ -39,7 +40,7 @@ interface AdministrationDialogProps {
 
 export function AdministrationDialog({ t, language, onClose, onSave }: AdministrationDialogProps) {
   const tr = copy(language)
-  const [d, setD] = useState<AnyRecord>({
+  const [d, setD] = useState<Required<AdministrationDraft>>({
     administeredAt: hospitalToday(),
     dose: '',
     route: '',
@@ -102,9 +103,9 @@ export function AdministrationDialog({ t, language, onClose, onSave }: Administr
 }
 interface AssessmentDialogProps {
   t: (key: string) => string
-  record: AnyRecord
-  symptomRows?: AnyRecord[]
-  riskRows?: AnyRecord[]
+  record: JourneyCase
+  symptomRows?: ClinicalLibraryRow[]
+  riskRows?: ClinicalLibraryRow[]
   onClose?: Handler | null
   onSave: Handler
 }
@@ -139,7 +140,7 @@ export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], o
     ['immunosuppression', tr('immunosuppression')],
     ['recentProcedure', tr('recentInvasiveProcedure')],
   ]
-  const [d, setD] = useState<AnyRecord>({
+  const [d, setD] = useState<AssessmentForm>({
     date: String(a.date || new Date().toISOString()).slice(0, 10),
     classification: a.classification || 'undetermined',
     summary: a.summary || '',
@@ -226,7 +227,7 @@ export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], o
 }
 interface LibraryMultiSelectProps {
   label: string
-  rows?: AnyRecord[]
+  rows?: ClinicalLibraryRow[]
   selected?: string[]
   onChange: Handler
   language: string
@@ -234,7 +235,7 @@ interface LibraryMultiSelectProps {
 // Symptoms and risk factors come from the central libraries as [el, en, meta]
 // rows; the record keeps the row's id or code (its Greek name for local rows).
 function LibraryMultiSelect({ label, rows = [], selected = [], onChange, language }: LibraryMultiSelectProps) {
-  const valueOf = (row: AnyRecord) => row?.[2]?.id || row?.[2]?.code || row?.[0] || row?.[1] || ''
+  const valueOf = (row: ClinicalLibraryRow) => row?.[2]?.id || row?.[2]?.code || row?.[0] || row?.[1] || ''
   const texts = listTexts(language)
   // A stored value no longer in the list (older record, retired entry) stays visible and selected.
   const options = rows.map(row => ({ value: valueOf(row), label: rowLabel(row, language) }))
@@ -255,7 +256,7 @@ function LibraryMultiSelect({ label, rows = [], selected = [], onChange, languag
 }
 interface DeviceDialogProps {
   t: (key: string) => string
-  items?: AnyRecord[]
+  items?: ClinicalLibraryRow[]
   onAddLibraryItem: Handler
   onClose?: Handler | null
   onSave: Handler
@@ -363,8 +364,8 @@ interface SampleRequestDialogProps {
   t: (key: string) => string
   title?: string | null
   initialType?: string
-  context?: AnyRecord | null
-  epi?: AnyRecord | null
+  context?: SampleRequestContext | null
+  epi?: SampleRequestEpi | null
   inSheet?: boolean
   onClose?: Handler | null
   onSave: Handler
@@ -381,9 +382,9 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
     tr = copy(language)
   const en = language === 'en'
   const { libraries } = useLibraries()
-  const [d, setD] = useState<AnyRecord>(() => emptySampleRequest({ type: initialType }))
+  const [d, setD] = useState<SampleRequestForm>(() => emptySampleRequest({ type: initialType }))
   const answer = (key: string) => d.requestQuestions?.[key] ?? ''
-  const setAnswer = (key: string, value: unknown) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
+  const setAnswer = (key: string, value: string) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
   // The mini version (3 core questions) of the epidemiological questionnaire: for cultures only, and
   // written to the episode's one questionnaire (or to the sample when there is no episode).
   const role = useContext(TenantContext)?.role

@@ -8,12 +8,14 @@ import { Detail } from './ClinicalAdmissions'
 import { approvalStatusLabel, administrationStatusLabel, clinicalValueLabel } from './clinicalRecordLabels'
 import { AdministrationDialog } from './ClinicalRecordDialogs'
 import { statusTone } from './surveillanceOptions'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalEntry, ClinicalEntryRow } from './clinicalScreenTypes'
+import type { RegistryColumn } from '../../design-system/RegistryTable'
 import type { Handler } from './surveillanceTypes'
 import type { ReactNode } from 'react'
+// `as string` below: an optional text of a record handed to a helper typed for text (approvalStatusLabel), which reads a missing one as before.
 
 interface ClinicalEntryDetailProps {
-  entry: AnyRecord
+  entry: ClinicalEntry
   t: (key: string) => string
   language: string
   fmtDate: (value: unknown) => string
@@ -45,7 +47,7 @@ export function ClinicalEntryDetail({
   onRecordAdministration,
 }: ClinicalEntryDetailProps) {
   const [showAdminForm, setShowAdminForm] = useState(false)
-  const row = entry.row || {}
+  const row: ClinicalEntryRow = entry.row || {}
   const titleMap: Record<string, string> = {
     sample: translate('copy.clinicalRecordCopy.sampleDetails', language === 'el' ? 'el' : 'en'),
     therapy: translate(
@@ -87,7 +89,7 @@ export function ClinicalEntryDetail({
             [t('status'), clinicalValueLabel(row.status || 'active', language, t)],
             [
               language === 'el' ? 'Stewardship' : 'Stewardship',
-              approvalStatusLabel(row.approvalStatus, language),
+              approvalStatusLabel(row.approvalStatus as string, language),
             ],
           ]
         : [
@@ -263,15 +265,15 @@ export function ClinicalEntryDetail({
   )
 }
 
-interface StageTableProps {
-  columns: AnyRecord[]
-  rows: AnyRecord[]
-  renderRow: Handler
-  onOpen?: Handler
+interface StageTableProps<Row> {
+  columns: RegistryColumn<Row>[]
+  rows: Row[]
+  renderRow: (row: Row, index: number) => ReactNode
+  onOpen?: (row: Row) => void
 }
 // Lists inside an episode use the same table as the registries; rows that open
 // a detail window are clickable and keyboard-reachable.
-export function StageTable({ columns, rows, renderRow, onOpen }: StageTableProps) {
+export function StageTable<Row>({ columns, rows, renderRow, onOpen }: StageTableProps<Row>) {
   return (
     <RegistryTable
       columns={columns}

@@ -12,7 +12,10 @@ import { CanonicalSummary } from './ClinicalAdmissions'
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
 import { canDeleteRecord } from '../../core/recycleBin/recycleBinService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryDepartment } from '../management/useLibraries'
+import type { useEpisodeFormsData } from './forms/useEpisodeFormsData'
+import type { ClinicalCase, ClinicalTimelineEvent } from './clinicalTypes'
+import type { ClinicalLibraries, ClinicalRecordRepository, DeviceBundles, EpiEntry, EpisodeFormsData, LaboratoryRegistry, ProtocolRequest, RecordAdmission, RecordPatient, RecordSample } from './clinicalScreenTypes'
 import type { DateValue, Handler, Setter } from './surveillanceTypes'
 import type { AttachmentFile } from '../../design-system/AttachmentField'
 import type { AuditActor } from '../../core/audit/actor'
@@ -24,57 +27,58 @@ import type { RiskFlagRow } from '../clinical-scales/patientRiskFlagsService'
 export interface PatientRecordTabScope {
   actor: AuditActor
   actualRole: string | null
-  admissionEpisodes: AnyRecord[]
-  admissions: AnyRecord[]
-  admissionSamples: AnyRecord[]
-  admissionTimeline: AnyRecord[]
+  admissionEpisodes: ClinicalCase[]
+  admissions: RecordAdmission[]
+  admissionSamples: RecordSample[]
+  admissionTimeline: ClinicalTimelineEvent[]
   askSampleFor: string | null
   canCreateLabSample: boolean
   canLab: boolean
   canTherapy: boolean
   caseId: string | undefined
-  clinicalLibraries: AnyRecord
+  clinicalLibraries: ClinicalLibraries
   createAdmissionSample: Handler
   demoDocuments: Record<string, AttachmentFile[]>
-  departments: AnyRecord[]
-  deviceBundles: AnyRecord | null
-  documentsScope: AnyRecord | null
-  epiEntry: AnyRecord | null
+  departments: LibraryDepartment[]
+  deviceBundles: DeviceBundles | null
+  documentsScope: { key: string, entityType: string, entityId: string | undefined } | null
+  epiEntry: EpiEntry | null
   fmtDate: (value: unknown) => string
   fmtDateTime: (value: unknown) => string
-  forms: AnyRecord
-  formsCtx: AnyRecord
+  forms: EpisodeFormsData
+  formsCtx: Parameters<typeof useEpisodeFormsData>[0]
   formsOpenRequest: { id: string, nonce: unknown } | null
   goBack: Handler
   has: (capability: string) => boolean
   isDemo: boolean
   journeyStage: string | null
-  laboratory: AnyRecord
+  laboratory: LaboratoryRegistry
   language: string
   load: Handler
   navigate: NavigateFunction
-  outsideTimeline: AnyRecord[]
-  patient: AnyRecord | null
+  outsideTimeline: ClinicalTimelineEvent[]
+  patient: RecordPatient | null
   patientMode: boolean
-  protocolRequest: AnyRecord | null
-  record: AnyRecord | null
-  recordSamples: AnyRecord[]
-  repository: AnyRecord
+  protocolRequest: ProtocolRequest | null
+  record: ClinicalCase | null
+  recordSamples: RecordSample[]
+  repository: ClinicalRecordRepository
   riskFlagRows: Record<string, RiskFlagRow[]>
   role: string | null
-  selectedAdmission: AnyRecord | null
+  selectedAdmission: RecordAdmission | null
   setAskSampleFor: Setter<string | null>
-  setClinicalLibraries: Setter<AnyRecord>
+  setClinicalLibraries: Setter<ClinicalLibraries>
   setCreateOpen: Setter<boolean>
   setDemoDocuments: Setter<Record<string, AttachmentFile[]>>
   setJourneyStage: Setter<string | null>
-  setSampleToLink: Setter<AnyRecord | null>
+  setSampleToLink: Setter<RecordSample | null>
   setSelectedAdmissionId: Setter<string>
   setSelectedEpisodeId: Setter<string>
   setTab: Setter<string>
   t: (key: string) => string
   tenant: Tenant | null
 }
+// originWords' own type until the questionnaire helpers take a missing origin (they read it as «unknown»).
 export function renderPatientRecordTab(tabId: string, j: PatientRecordTabScope) {
   const { actor, actualRole, admissionEpisodes, admissions, admissionSamples, admissionTimeline, askSampleFor, canCreateLabSample, canLab, canTherapy, caseId, clinicalLibraries, createAdmissionSample, demoDocuments, departments, deviceBundles, documentsScope, epiEntry, fmtDate, fmtDateTime, forms, formsCtx, formsOpenRequest, goBack, has, isDemo, journeyStage, laboratory, language, load, navigate, outsideTimeline, patient, patientMode, protocolRequest, record, recordSamples, repository, riskFlagRows, role, selectedAdmission, setAskSampleFor, setClinicalLibraries, setCreateOpen, setDemoDocuments, setJourneyStage, setSampleToLink, setSelectedAdmissionId, setSelectedEpisodeId, setTab, t, tenant } = j
   return (
@@ -82,7 +86,7 @@ export function renderPatientRecordTab(tabId: string, j: PatientRecordTabScope) 
       {(!patientMode || selectedAdmission) && tabId === 'summary' && (
         <CanonicalSummary
           samples={patientMode ? admissionSamples : recordSamples}
-          scaleRows={patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []}
+          scaleRows={patient ? riskFlagRows[String(patient.recordId)] || riskFlagRows[String(patient.id)] || [] : []}
           onOpenStage={stage => {
             setJourneyStage(stage)
             setTab('surveillanceJourney')
@@ -91,7 +95,7 @@ export function renderPatientRecordTab(tabId: string, j: PatientRecordTabScope) 
           epiItems={
             epiEntry
               ? [
-                  { label: t('epiQuestionnaire.originLabel'), value: originWords(epiEntry.summary.origin, t) },
+                  { label: t('epiQuestionnaire.originLabel'), value: originWords(epiEntry.summary.origin as Parameters<typeof originWords>[0], t) },
                   {
                     label: t('epiQuestionnaire.riskLabel'),
                     value: (
@@ -214,7 +218,7 @@ export function renderPatientRecordTab(tabId: string, j: PatientRecordTabScope) 
               has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME) ||
               has(CAPABILITIES.CLOSE_SURVEILLANCE),
             canEdit: has(CAPABILITIES.EDIT_SURVEILLANCE),
-            canDelete: (record: AnyRecord) => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy: record?.createdBy }),
+            canDelete: (record: ClinicalCase) => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy: record?.createdBy }),
             canReopen: has(CAPABILITIES.REOPEN_SURVEILLANCE),
           }}
         />
