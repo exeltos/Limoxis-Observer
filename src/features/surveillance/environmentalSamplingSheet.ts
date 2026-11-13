@@ -1,11 +1,11 @@
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PlatePlace, SheetPoint } from './environmentTypes'
 import type { ReportDoc, ReportFact, ReportSection } from '../../core/export/reportDocument'
 // «Φύλλο καταγραφής σημείων δειγματοληψίας»: the sheet a sampler fills in the field and hands
 // to the laboratory with the plates. One row per point, with the plate («τρυβλίο») and the spot on
 // it («θέση»). Pure: the dialog prints it (reportDocument.printReport) and the test reads it.
 
 // «Τρυβλίο Α · Θέση 1» for a sample, from whichever of the two it has.
-export function environmentalPlateText(sample: AnyRecord, t: (key: string) => string) {
+export function environmentalPlateText(sample: PlatePlace | null | undefined, t: (key: string) => string) {
   return [
     sample?.environmentalPlate && `${t('clinicalRecords.envPlate')} ${sample.environmentalPlate}`,
     sample?.environmentalPosition && `${t('clinicalRecords.envPosition')} ${sample.environmentalPosition}`,
@@ -21,7 +21,7 @@ interface EnvironmentalSheetDocumentOptions {
   date?: string
   typeLabel?: string
   methodLabel?: string
-  points?: AnyRecord[]
+  points?: SheetPoint[]
   notes?: string
   code?: string
 }
