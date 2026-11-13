@@ -16,7 +16,7 @@ const page = readAnalysisPageSource()
 // summary.antimicrobial itself was later restructured (P2 alignment PR) from
 // a bare count into a {total,pending,administrations} object when present,
 // still null when department-scoped — see
-// tests/analysisAntimicrobialAmrAlignment.test.js for the current shape.
+// tests/analysisAntimicrobialAmrAlignment.test.ts for the current shape.
 describe('Analysis KPI rows show "—", not a fabricated 0, for department-scoped-null fields', () => {
   it('the Antimicrobials tab falls back to a single "—" row for a department-scoped (null) summary.antimicrobial', () => {
     expect(page).toContain("[tx('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),'—','—','up']")

@@ -13,10 +13,9 @@ import { episodeTypeLabel } from './clinicalRecordLabels'
 import { CanonicalJourney } from './ClinicalJourney'
 import { SimpleDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { listTexts, statusTone, suspectedSourceOptions } from './surveillanceOptions'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler, Setter } from './surveillanceTypes'
 import type { ClinicalCase } from './clinicalTypes'
-import type { ClinicalPermissions, ClinicalRecordRepository, DeviceBundles } from './clinicalScreenTypes'
+import type { ClinicalLibraries, ClinicalPermissions, ClinicalRecordRepository, DeviceBundles, ProtocolRequest } from './clinicalScreenTypes'
 
 // What the screen hands to this part (one object, so the part reads like the code it came from).
 // The start fields of an episode being corrected.
@@ -51,7 +50,7 @@ export interface SurveillanceEpisodeSheetScope {
   initialStage: string | null
   isDemo: boolean
   language: string
-  libraries: AnyRecord
+  libraries: ClinicalLibraries
   onLibraryAdded: Handler
   onReload: Handler
   onSampleAsked: Handler
@@ -68,11 +67,11 @@ export interface SurveillanceEpisodeSheetScope {
   setEditOpen: Setter<boolean>
   setSheetAction: Setter<SheetAction | null>
   setSheetEditing: Setter<boolean>
-  setStartRequest: Setter<AnyRecord | null>
+  setStartRequest: Setter<ProtocolRequest | null>
   sheetAction: SheetAction | null
   sheetActive: boolean
   sheetEditing: boolean
-  startRequest: AnyRecord | null
+  startRequest: ProtocolRequest | null
   t: (key: string) => string
 }
 export function SurveillanceEpisodeSheet({ j }: { j: SurveillanceEpisodeSheetScope }) {
