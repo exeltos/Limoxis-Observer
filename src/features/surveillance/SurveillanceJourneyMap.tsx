@@ -1,13 +1,15 @@
 import { Check, CheckCircle2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalCaseLike, EpisodeSample } from './clinicalTypes'
+import type { JourneyCue, JourneyStage, QuestionnaireState } from './surveillanceListTypes'
 import type { Handler } from './surveillanceTypes'
 import type { ReactNode } from 'react'
 
 
-export function buildSurveillanceJourneyStages(record: AnyRecord, t: (key: string) => string, fmtDate: (value: unknown) => string, questionnaire: AnyRecord | null = null) {
+// An isolation and an outcome always carry their status (`as string` below).
+export function buildSurveillanceJourneyStages(record: ClinicalCaseLike | null, t: (key: string) => string, fmtDate: (value: unknown) => string, questionnaire: QuestionnaireState | null = null) {
   const samples = record?.samples || [],
-    validatedSamples = samples.filter((sample: AnyRecord) => Boolean(sample.organism))
+    validatedSamples = samples.filter((sample: EpisodeSample) => Boolean(sample.organism))
   const reassessments = record?.reassessments || [],
     therapy = record?.therapy || [],
     devices = record?.devices || []
@@ -58,7 +60,7 @@ export function buildSurveillanceJourneyStages(record: AnyRecord, t: (key: strin
       label: t('isolation'),
       status: isolationDecided ? 'complete' : 'pending',
       meta: record?.isolation
-        ? t(record.isolation.status)
+        ? t(record.isolation.status as string)
         : isolationDecided
           ? t('notRequired')
           : t('clinicalRecords.notStarted'),
@@ -83,7 +85,7 @@ export function buildSurveillanceJourneyStages(record: AnyRecord, t: (key: strin
       id: 'outcome',
       label: t('outcome'),
       status: record?.outcome ? 'complete' : 'pending',
-      meta: record?.outcome ? t(record.outcome.status) : t('pending'),
+      meta: record?.outcome ? t(record.outcome.status as string) : t('pending'),
     },
     // The epidemiological questionnaire of the episode, a step of its own right after the samples (owner, 8/11/2026).
     ...(questionnaire
@@ -105,13 +107,13 @@ export function buildSurveillanceJourneyStages(record: AnyRecord, t: (key: strin
 }
 
 interface SurveillanceJourneyMapProps {
-  record: AnyRecord
+  record: ClinicalCaseLike
   t: (key: string) => string
   fmtDate: (value: unknown) => string
   activeStage: string
   onSelect: Handler
-  extraStages?: AnyRecord[]
-  questionnaire?: AnyRecord | null
+  extraStages?: JourneyStage[]
+  questionnaire?: QuestionnaireState | null
   children?: ReactNode
 }
 // The surveillance sheet (owner, 8/11/2026, design 2): every section on one page, one under the other, and on the
@@ -150,7 +152,7 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
 }
 
 interface SurveillanceJourneyGuidanceProps {
-  record: AnyRecord
+  record: ClinicalCaseLike
   t: (key: string) => string
   canAssess: boolean
   canLab: boolean
@@ -158,7 +160,7 @@ interface SurveillanceJourneyGuidanceProps {
   canTherapy: boolean
   canReassess: boolean
   onSelect: Handler
-  extraCues?: AnyRecord[]
+  extraCues?: JourneyCue[]
 }
 export function SurveillanceJourneyGuidance({
   record,
@@ -172,9 +174,9 @@ export function SurveillanceJourneyGuidance({
   extraCues = [],
 }: SurveillanceJourneyGuidanceProps) {
   // A short list: the first three, the rest behind «and N more».
-  const cues = [...extraCues],
+  const cues: JourneyCue[] = [...extraCues],
     samples = record?.samples || [],
-    pendingSamples = samples.filter((sample: AnyRecord) => !sample.organism)
+    pendingSamples = samples.filter((sample: EpisodeSample) => !sample.organism)
   if (canAssess && !record?.assessment)
     cues.push({
       id: 'assessment',
@@ -187,7 +189,7 @@ export function SurveillanceJourneyGuidance({
     cues.push({ id: 'isolation', tone: 'neutral', title: t('isolation') })
   if (canTherapy && !record?.therapy?.length)
     cues.push({ id: 'therapy', tone: 'neutral', title: t('therapy') })
-  if (canAssess && record?.assessment && !record?.haiClassification?.criteriaMet && (record?.haiClassification || samples.some((sample: AnyRecord) => Boolean(sample.organism))))
+  if (canAssess && record?.assessment && !record?.haiClassification?.criteriaMet && (record?.haiClassification || samples.some((sample: EpisodeSample) => Boolean(sample.organism))))
     cues.push({ id: 'hai', tone: 'warning', title: t('clinicalRecords.haiCriteriaNeedReview') })
   if (canReassess && !record?.reassessments?.length)
     cues.push({ id: 'reassessment', tone: 'due', title: t('clinicalRecords.reassessmentRequired') })
@@ -217,7 +219,7 @@ export function SurveillanceJourneyGuidance({
 const DEMO_STEP_STAGES = new Set(['hai', 'reassessment'])
 interface EpisodeStepProps {
   number: number
-  stage: AnyRecord
+  stage: JourneyStage
   active: boolean
   onSelect: Handler
 }

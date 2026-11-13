@@ -1,4 +1,4 @@
-import type { AnyRecord } from '../../types/featureTypes'
+import type { HaiCriteriaGroup, HaiCriteriaSet, HaiCriterion } from './surveillanceListTypes'
 // Simplified, indicative checklists inspired by CDC/NHSN surveillance definitions for the
 // HAI types offered in the classification dialog. They are a decision-support aid, not a
 // substitute for the full NHSN protocol or clinical judgement — the free-text rationale
@@ -9,7 +9,7 @@ import type { AnyRecord } from '../../types/featureTypes'
 // haiCriteriaLibraryService.js) so a Platform Owner can edit/version them without a deploy,
 // exactly like the antibiotics/microorganisms libraries.
 // The checklists by HAI type (clabsi, cauti, …); the central library returns the same shape.
-export type HaiCriteriaSets = Record<string, AnyRecord>
+export type HaiCriteriaSets = Record<string, HaiCriteriaSet>
 export const HAI_CRITERIA_SETS: HaiCriteriaSets = {
   clabsi: {
     labelEl: 'CLABSI – Λοίμωξη αιματικής ροής σχετιζόμενη με κεντρικό φλεβικό καθετήρα',
@@ -250,8 +250,8 @@ export function haiCriteriaSetForType(typeKey: string, sets: HaiCriteriaSets = H
   return sets[typeKey] || null
 }
 
-function groupSatisfied(group: AnyRecord, selectedIds: Set<string>) {
-  const metCount = group.items.filter((item: AnyRecord) => selectedIds.has(item.id)).length
+function groupSatisfied(group: HaiCriteriaGroup, selectedIds: Set<string>) {
+  const metCount = group.items.filter((item: HaiCriterion) => selectedIds.has(item.id)).length
   if (group.rule === 'all') return metCount === group.items.length
   if (group.rule === 'atLeastTwo') return metCount >= 2
   return metCount > 0
@@ -261,5 +261,5 @@ export function evaluateHaiCriteria(typeKey: string, selectedIds: string[] = [],
   const set = haiCriteriaSetForType(typeKey, sets)
   if (!set) return null
   const selected = new Set(selectedIds)
-  return set.groups.every((group: AnyRecord) => groupSatisfied(group, selected))
+  return set.groups.every((group: HaiCriteriaGroup) => groupSatisfied(group, selected))
 }
