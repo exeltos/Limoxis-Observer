@@ -32,7 +32,7 @@ const SNAPSHOT_STATUS: Record<string,[string,string]>={approved:['Εγκρίθη
 // period, or this month so far), with its target, and the approved results kept
 // over time. Opening an indicator shows what it measures before how it is defined.
 interface IndicatorResultState {loading: boolean,result: CalculatedIndicator|null,previous?: number|null,lastYear?: number|null,series: (number|null)[],definition?: OperationalIndicator|null,history: IndicatorSnapshotRow[],error: boolean}
-export function IndicatorResultPanel({organizationId,record,period,language}:{organizationId: string|null|undefined,record: IndicatorDefinition|null,period?: {from?: string,to?: string,departmentId?: string|null}|null,language: string}){
+export function IndicatorResultPanel({organizationId,record,period,language}:{organizationId: string|null|undefined,record: Pick<IndicatorDefinition,'id'|'key'>|null,period?: {from?: string,to?: string,departmentId?: string|null}|null,language: string}){
  const el=language!=='en'
  const from=period?.from||monthStart(),to=period?.to||today(),departmentId=period?.departmentId||null
  const navigate=useNavigate()

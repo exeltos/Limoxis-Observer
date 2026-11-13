@@ -72,7 +72,7 @@ export async function saveIndicatorEnabled(organizationId: string|null|undefined
 // the restriction only applies once a specific department is being viewed
 // (either because the viewer is department-scoped, or an org admin picked
 // a department filter), so it mirrors what that department would see.
-export function visibleForDepartment(def: OperationalIndicator,departmentId: string|null|undefined): boolean{
+export function visibleForDepartment(def: Pick<OperationalIndicator,'visibleDepartmentIds'>,departmentId: string|null|undefined): boolean{
  return !def.visibleDepartmentIds?.length||!departmentId||def.visibleDepartmentIds.includes(departmentId)
 }
 
