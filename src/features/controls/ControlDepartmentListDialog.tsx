@@ -2,17 +2,17 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { formatDay } from '../../core/i18n/formatDay'
 import { ITEM_CATEGORIES, noteText, prefilledExpiryRows, quantityShort } from './controlExpiry'
 import { categoryLabel } from './ControlExpiryEntry'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlRecord, StructuredRow } from './controlTypes'
 
 // A department's list of medicines and supplies, to read without opening the
 // editor: what should be there, what the latest check found and when it expires.
 // The same rows the next check opens with (prefilledExpiryRows).
-interface ControlDepartmentListDialogProps { record: AnyRecord, department: string, language?: string, onClose: () => void }
+interface ControlDepartmentListDialogProps { record: ControlRecord, department: string, language?: string, onClose: () => void }
 export function ControlDepartmentListDialog({ record, department, language = 'el', onClose }: ControlDepartmentListDialogProps) {
   const en = language === 'en'
   const rows = prefilledExpiryRows(record, department)
   const order = [...ITEM_CATEGORIES.map(([key]) => key), '']
-  const groups = order.map((key): [string, AnyRecord[]] => [key, rows.filter((row) => (ITEM_CATEGORIES.some(([k]) => k === row.category) ? row.category : '') === key)]).filter(([, entries]) => entries.length)
+  const groups = order.map((key): [string, StructuredRow[]] => [key, rows.filter((row) => (ITEM_CATEGORIES.some(([k]) => k === row.category) ? row.category : '') === key)]).filter(([, entries]) => entries.length)
   const count = (key: string) => rows.filter((row) => row.category === key).length
   const subtitle = [record.title && (en ? record.titleEn || record.title : record.title), count('medicine') && `${count('medicine')} ${en ? 'medicines' : 'φάρμακα'}`, count('supply') && `${count('supply')} ${en ? 'supplies' : 'υλικά'}`].filter(Boolean).join(' · ')
   return <ObserverDialog eyebrow={en ? 'Department list' : 'Λίστα τμήματος'} title={department} subtitle={subtitle} width="wide" onClose={onClose}>
