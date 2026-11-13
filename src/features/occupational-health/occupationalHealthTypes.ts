@@ -32,7 +32,7 @@ export interface OccupationalVisit {
 export type OccupationalVisitDraft = Partial<OccupationalVisit>
 
 // Το προσχέδιο του διαλόγου καταγραφής περιστατικού έκθεσης.
-export interface ExposureIncidentDraft {
+export type ExposureIncidentDraft = {
   employeeId?: string
   incidentDate?: string
   exposureType?: string
