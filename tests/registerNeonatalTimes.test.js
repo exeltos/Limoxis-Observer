@@ -58,5 +58,9 @@ describe('NICU register: birth and admission times', () => {
     expect(migration).toContain("if exists (select 1 from public.department_register_fields where register_id = p_register_id and key = p_field ->> 'key') then return; end if;")
     expect(migration).not.toMatch(/\bdelete\s+from\b|\bdrop\s+(table|function|column)\b|\brevoke\s+all\s+on\s+table\b/i)
     expect(migration).not.toMatch(/update\s+public\.register_nicu/i)
+    // The helpers refuse app users; the owner's SQL also revokes them.
+    expect(migration.split("if current_user in ('authenticated', 'anon') then raise exception 'Not allowed' using errcode = '42501'; end if;").length - 1).toBe(2)
+    expect(ownerSql).toContain('revoke all on function private.register_add_field_after(uuid, text, jsonb) from public, anon, authenticated;')
+    expect(ownerSql).toContain('revoke all on function private.register_add_neonatal_times(uuid) from public, anon, authenticated;')
   })
 })

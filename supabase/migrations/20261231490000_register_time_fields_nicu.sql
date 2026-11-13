@@ -3,6 +3,9 @@
 -- σε ώρες» υπολογίζεται στην εφαρμογή (ρολόι Αθήνας)· χωρίς αυτές γράφεται με το
 -- χέρι, όπως στο FileMaker. Οι ώρες που ήρθαν από το FileMaker δεν αλλάζουν.
 -- Προϋπόθεση: docs/sql/register_time_field_type.sql (νέος τύπος στον έλεγχο).
+-- Οι δύο βοηθητικές συναρτήσεις τρέχουν με τα δικαιώματα του καλούντος και
+-- αρνούνται τους χρήστες της εφαρμογής· το revoke τους είναι στο
+-- docs/sql/register_time_field_type.sql (το τρέχει ο ιδιοκτήτης).
 
 create or replace function private.register_column_sql(f public.department_register_fields)
 returns text
@@ -34,14 +37,13 @@ begin
   end case;
 end;
 $function$;
-revoke all on function private.register_column_sql(public.department_register_fields) from public, anon, authenticated;
 
 -- Ένα πεδίο αμέσως μετά από ένα άλλο: τα επόμενα μετακινούνται μία θέση. Αν
 -- υπάρχει ήδη, μένει ως έχει. Η στήλη του πίνακα προστίθεται αν λείπει.
 create or replace function private.register_add_field_after(p_register_id uuid, p_after text, p_field jsonb)
 returns void
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $function$
 declare
@@ -49,10 +51,12 @@ declare
   v_pos integer;
   f public.department_register_fields;
 begin
+  -- Μόνο από τη βάση (migration, επαναφορά Demo): ποτέ από χρήστη της εφαρμογής.
+  if current_user in ('authenticated', 'anon') then raise exception 'Not allowed' using errcode = '42501'; end if;
   select * into r from public.department_registers where id = p_register_id;
   if r.id is null then raise exception 'Unknown register'; end if;
   if exists (select 1 from public.department_register_fields where register_id = p_register_id and key = p_field ->> 'key') then return; end if;
-  select position, section_key into v_pos from public.department_register_fields where register_id = p_register_id and key = p_after;
+  select position into v_pos from public.department_register_fields where register_id = p_register_id and key = p_after;
   if v_pos is null then raise exception 'Unknown field %', p_after; end if;
   update public.department_register_fields set position = position + 1 where register_id = p_register_id and position > v_pos;
   insert into public.department_register_fields (organization_id, register_id, key, section_key, position, field_type, label_el, label_en, unit_el, unit_en, min_value, max_value, help_el, help_en, aliases, archived)
@@ -69,17 +73,17 @@ begin
   end if;
 end;
 $function$;
-revoke all on function private.register_add_field_after(uuid, text, jsonb) from public, anon, authenticated;
 
 -- ΜΕΝΝ: ώρα εισαγωγής μετά την ημερομηνία εισαγωγής, ώρα γέννησης μετά την
 -- ημερομηνία γέννησης, ηλικία σε ώρες μετά την ηλικία σε ημέρες.
 create or replace function private.register_add_neonatal_times(p_register_id uuid)
 returns void
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $function$
 begin
+  if current_user in ('authenticated', 'anon') then raise exception 'Not allowed' using errcode = '42501'; end if;
   perform private.register_add_field_after(p_register_id, 'admission_date', jsonb_build_object('key', 'admission_time', 'field_type', 'time', 'label_el', 'Ώρα εισαγωγής', 'label_en', 'Time of admission'));
   perform private.register_add_field_after(p_register_id, 'birth_date', jsonb_build_object('key', 'birth_time', 'field_type', 'time', 'label_el', 'Ώρα γέννησης', 'label_en', 'Time of birth',
     'help_el', 'Με την ώρα εισαγωγής, η ηλικία υπολογίζεται σε ώρες.', 'help_en', 'With the admission time, the age is calculated in hours.'));
@@ -88,7 +92,6 @@ begin
     'help_el', 'Όταν δεν είναι γνωστές οι ώρες γέννησης και εισαγωγής.', 'help_en', 'When the birth and admission times are not known.'));
 end;
 $function$;
-revoke all on function private.register_add_neonatal_times(uuid) from public, anon, authenticated;
 
 -- Demo: τα νεογνά που γεννήθηκαν εδώ έχουν ώρες γέννησης και εισαγωγής.
 create or replace function private.demo_seed_register_nicu(p_register_id uuid, p_actor uuid, d0 date)
@@ -190,7 +193,6 @@ begin
   return private.demo_register_insert(p_register_id, p_actor, v_rows);
 end;
 $function$;
-revoke all on function private.demo_seed_register_nicu(uuid, uuid, date) from public, anon, authenticated;
 
 -- Τα υπάρχοντα μητρώα ΜΕΝΝ (ΙΑΣΩ και Demo) παίρνουν τα νέα πεδία.
 do $$
