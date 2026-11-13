@@ -1,4 +1,5 @@
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ScaleParts, ScaleValues } from './clinicalScaleEngine'
+import type { ScaleDefinition } from './clinicalScaleTypes'
 
 // [key, Greek label, English label]
 export type ClinicalScaleField=[string,string,string]
@@ -17,7 +18,7 @@ export const CLINICAL_SCALE_FIELDS: Record<string, ClinicalScaleField[]>={
  'humpty-dumpty':[['age','Ηλικία','Age'],['diagnosis','Διάγνωση','Diagnosis'],['cognitiveImpairment','Γνωστική κατάσταση','Cognitive impairment'],['environmentalFactors','Περιβαλλοντικοί παράγοντες','Environmental factors'],['surgerySedationAnesthesia','Χειρουργείο / καταστολή / αναισθησία','Surgery / sedation / anaesthesia']]
 }
 export const clinicalScaleFields=(key: string)=>CLINICAL_SCALE_FIELDS[key]||[]
-export const clinicalScaleReady=(row: AnyRecord|null|undefined)=>row?.status==='approved'&&row?.definition?.scoringStatus==='ready'&&clinicalScaleFields(row.scale_key).length>0
+export const clinicalScaleReady=(row: Partial<Pick<ScaleDefinition,'status'|'definition'|'scale_key'>>|null|undefined)=>row?.status==='approved'&&row?.definition?.scoringStatus==='ready'&&clinicalScaleFields(row.scale_key as string).length>0
 
 // Reference values shown next to each parameter (adult normal range or the
 // item's best/worst anchor) and the published score bands of each scale.
@@ -83,9 +84,9 @@ export const fieldReference=(scale: string,key: string,en?: boolean)=>{const ref
 
 // One row per recorded parameter (label, value, points, reference, status),
 // followed by component scores that are not tied to one parameter.
-export function buildScaleReportRows(scale: string,answers: AnyRecord={},parts: AnyRecord={},en=false){
+export function buildScaleReportRows(scale: string,answers: ScaleValues={},parts: ScaleParts={},en=false){
  const toField=PART_TO_FIELD[scale]||{}
- const pointsByField: AnyRecord={};const used=new Set<string>()
+ const pointsByField: ScaleParts={};const used=new Set<string>()
  for(const [part,points] of Object.entries(parts||{})){const field=toField[part]||part;pointsByField[field]=points}
  const defs=[...clinicalScaleFields(scale),...(EXTRA_ANSWERS[scale]||[])]
  const rows=defs.filter(([key])=>answers?.[key]!==undefined||pointsByField[key]!==undefined).map(([key,el,enLabel])=>{if(pointsByField[key]!==undefined)used.add(key);return {key,label:en?enLabel:el,value:displayValue(scale,key,answers?.[key],en),points:pointsByField[key]??null,reference:fieldReference(scale,key,en),status:valueStatus(scale,key,answers?.[key])}})

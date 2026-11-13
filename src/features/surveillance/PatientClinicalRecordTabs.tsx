@@ -18,6 +18,7 @@ import type { AttachmentFile } from '../../design-system/AttachmentField'
 import type { AuditActor } from '../../core/audit/actor'
 import type { Tenant } from '../../core/tenant/tenantTypes'
 import type { NavigateFunction } from 'react-router-dom'
+import type { RiskFlagRow } from '../clinical-scales/patientRiskFlagsService'
 
 // What the record page hands to its tabs (one object, so the tabs read like the code they came from).
 export interface PatientRecordTabScope {
@@ -59,7 +60,7 @@ export interface PatientRecordTabScope {
   record: AnyRecord | null
   recordSamples: AnyRecord[]
   repository: AnyRecord
-  riskFlagRows: Record<string, AnyRecord[]>
+  riskFlagRows: Record<string, RiskFlagRow[]>
   role: string | null
   selectedAdmission: AnyRecord | null
   setAskSampleFor: Setter<string | null>

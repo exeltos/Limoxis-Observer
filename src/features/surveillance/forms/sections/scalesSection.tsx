@@ -11,6 +11,7 @@ import { FORM_STATUS } from '../formStatus'
 import { episodeContext } from '../formPrefill'
 import { scaleTrend } from '../scaleTrend'
 import type { AnyRecord } from '../../../../types/featureTypes'
+import type { ScaleAssessment } from '../../../clinical-scales/clinicalScaleTypes'
 
 // A scale appears when it has an assessment, or when the hospital requires it; the others
 // are reached from «New assessment», which lists every tool.
@@ -38,7 +39,7 @@ function ScalesSection({ ctx }: ScalesSectionProps) {
   const [data, setData] = useState<AnyRecord>({ scaleContext: [], rows: [] })
   const [request, setRequest] = useState<{ nonce: unknown, definitionId?: string | null } | null>(null)
   const [showAll, setShowAll] = useState(false)
-  const [removeRequest, setRemoveRequest] = useState<{ nonce: unknown, row?: AnyRecord | null } | null>(null)
+  const [removeRequest, setRemoveRequest] = useState<{ nonce: unknown, row?: ScaleAssessment | null } | null>(null)
   // The scales (NEWS2, Braden, Morse…) are recorded by the clinical team and the ward nurses (owner, 8/11/2026), as the
   // RLS policy patient_scale_insert allows; the other roles see them only.
   const canRecord = ctx.has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT) || ctx.has(CAPABILITIES.MANAGE_ISOLATION) || ctx.has(CAPABILITIES.REQUEST_LAB_SAMPLES)

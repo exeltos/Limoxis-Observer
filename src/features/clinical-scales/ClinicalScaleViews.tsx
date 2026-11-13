@@ -1,7 +1,7 @@
 import {buildScaleReportRows,clinicalScaleExtraFields,clinicalScaleFields,clinicalScaleOptions,fieldReference,isChoiceScale,scaleReference,scoreBand,valueStatus} from './clinicalScaleForms'
 import type {ClinicalScaleBand} from './clinicalScaleForms'
 import type {ClinicalScaleResult} from './clinicalScaleEngine'
-import type {AnyRecord} from '../../types/featureTypes'
+import type {ScaleAssessment} from './clinicalScaleTypes'
 import './clinicalScales.css'
 
 const bandText=(band: ClinicalScaleBand|null|undefined,en?: boolean)=>band?(en?band[2].en:band[2].el):''
@@ -16,7 +16,7 @@ export function ScaleFieldHint({scale,fieldKey,value,en}: {scale: string,fieldKe
 
 export function ScaleLiveResult({scale,result,en}: {scale: string,result: ClinicalScaleResult|null,en?: boolean}){const band=result?.complete?scoreBand(scale,result.score):null;return <div className={`cs-live tone-${band?.[3]||'none'}`}><div className="cs-live-score"><span>{en?'Score':'Βαθμολογία'}</span><strong>{result?.complete?result.score:'—'}</strong></div><div className="cs-live-text">{result?.complete?<strong>{bandText(band,en)||(en?'Calculated':'Υπολογίστηκε')}</strong>:<strong>{en?'Complete all parameters to calculate':'Συμπληρώστε όλες τις παραμέτρους για τον υπολογισμό'}</strong>}<ScaleBands scale={scale} score={result?.complete?result.score:null} en={en}/></div></div>}
 
-export function ScaleReport({report,scaleKey,title,date,en}: {report: AnyRecord,scaleKey: string,title?: string,date?: string,en?: boolean}){
+export function ScaleReport({report,scaleKey,title,date,en}: {report: Partial<ScaleAssessment>,scaleKey: string,title?: string,date?: string,en?: boolean}){
  const {rows,components}=buildScaleReportRows(scaleKey,report.answers||{},report.score_parts||{},en)
  const band=scoreBand(scaleKey,report.score)
  const hasPoints=rows.some(r=>r.points!=null)
