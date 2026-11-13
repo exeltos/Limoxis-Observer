@@ -4,21 +4,29 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FORM_STATUS } from './formStatus'
 import { useFormsTab } from './FormSection'
-import type { AnyRecord } from '../../../types/featureTypes'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
+import type { OverflowItem } from '../../../design-system/OverflowMenu'
+
+// The row's one action: a button, or in the forms tab the first item of its «⋯».
+export interface FormRowAction {
+  label: string
+  onClick: () => void
+  primary?: boolean
+  disabled?: boolean
+}
 
 interface FormRowProps {
-  title: string
+  title: ReactNode
   detail?: ReactNode
   status?: string
   statusLabel?: string
   statusDetail?: ReactNode
   signal?: string
-  badge?: AnyRecord | null
+  badge?: { label: ReactNode, tone?: string | null } | null
   date?: string
   dateLabel?: string
-  action?: AnyRecord | null
-  menu?: AnyRecord[]
+  action?: FormRowAction | null
+  menu?: (OverflowItem | null | false | undefined)[]
   children?: ReactNode
 }
 // The one row of every form connected to an episode (bundles, scales, notifiable report,

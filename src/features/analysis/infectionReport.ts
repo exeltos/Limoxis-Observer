@@ -1,16 +1,14 @@
 import { loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import { loadObjectives } from '../quality/review/reviewService'
 import { loadDossierIndicators, missingDataTable, platformIndicatorsTable } from '../quality/review/dossierIndicators'
-
-// Στενές όψεις για την αναφορά: ο ορισμός δείκτη, μια γραμμή dossier και ένας στόχος.
-type ReportDefinition = { id?: string, key?: string, category?: string }
-type ReportRow = { def: ReportDefinition, value?: number | null }
-type ReportObjective = { year?: number | string }
+import type { DossierIndicatorRow, Objective, PlatformIndicatorDef } from '../quality/review/reviewTypes'
 
 // The annual infections and microbiology report: the platform's indicators of infection surveillance, multidrug-resistant
 // isolations, bacteraemias, resistance, hand hygiene and care bundles and antimicrobial use, each with its value, the numerator and
 // denominator it comes from and its target, and a last page of what is not recorded. (The objectives' file holds none of these.)
 
+// Στενή όψη του ορισμού δείκτη: όσα κοιτάζουν οι ομάδες της αναφοράς.
+type ReportDefinition = { id?: string, key?: string, category?: string }
 const keyOf = (def: ReportDefinition) => String(def.id || def.key || '')
 const GROUPS: { id: string; el: string; en: string; match: (def: ReportDefinition) => boolean }[] = [
   { id: 'hai', el: 'Λοιμώξεις συνδεόμενες με τη φροντίδα', en: 'Healthcare-associated infections', match: def => def.category === 'surveillance' && !/^mdr/.test(keyOf(def)) },
@@ -20,16 +18,16 @@ const GROUPS: { id: string; el: string; en: string; match: (def: ReportDefinitio
   { id: 'prevention', el: 'Πρόληψη: υγιεινή χεριών και δέσμες μέτρων', en: 'Prevention: hand hygiene and care bundles', match: def => def.category === 'prevention' },
   { id: 'antimicrobials', el: 'Αντιμικροβιακά', en: 'Antimicrobials', match: def => def.category === 'pharmacy' },
 ]
-export const infectionDefinitions = (definitions: ReportDefinition[] | null | undefined) => (definitions || []).filter(def => GROUPS.some(group => group.match(def)))
+export const infectionDefinitions = <T extends ReportDefinition>(definitions: T[] | null | undefined) => (definitions || []).filter(def => GROUPS.some(group => group.match(def)))
 
 export async function loadInfectionReportRows(organizationId: string, year: number | string) {
-  const definitions = infectionDefinitions(await loadOperationalIndicatorDefinitions(organizationId).catch(() => []))
-  const [rows, objectives] = await Promise.all([loadDossierIndicators(organizationId, year, definitions), loadObjectives(organizationId).catch(() => [])])
+  const definitions = infectionDefinitions(await loadOperationalIndicatorDefinitions(organizationId).catch((): Awaited<ReturnType<typeof loadOperationalIndicatorDefinitions>> => []))
+  const [rows, objectives] = await Promise.all([loadDossierIndicators(organizationId, year, definitions as PlatformIndicatorDef[]), loadObjectives(organizationId).catch(() => [])])
   // The hospital's own objective of the year, where it has one, is the target of the indicator it is measured by.
-  return { rows, objectives: (objectives || []).filter((objective: ReportObjective) => Number(objective.year) === Number(year)) }
+  return { rows, objectives: (objectives || []).filter((objective: Objective) => Number(objective.year) === Number(year)) }
 }
 
-export function infectionReportDocument({ rows, objectives = [], year, language }: { rows: ReportRow[]; objectives?: ReportObjective[]; year: number | string; language: string }) {
+export function infectionReportDocument({ rows, objectives = [], year, language }: { rows: DossierIndicatorRow[]; objectives?: Objective[]; year: number | string; language: string }) {
   const en = language === 'en'
   const sections = GROUPS.map(group => ({ group, list: rows.filter(row => group.match(row.def)) })).filter(({ list }) => list.length)
     .map(({ group, list }) => ({ title: en ? group.en : group.el, table: platformIndicatorsTable(list, objectives, language) }))

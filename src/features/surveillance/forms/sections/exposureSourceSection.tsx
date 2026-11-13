@@ -4,17 +4,17 @@ import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/ro
 import { ROLES } from '../../../../core/permissions/systemRoleMatrix'
 import { countSourceExposuresAsync } from '../../../occupational-health/exposureIncidentService'
 import { FormLine } from '../FormSection'
-import type { AnyRecord } from '../../../../types/featureTypes'
+import type { EpisodeFormSection, EpisodeFormsCtx, FormSectionState, FormsEpisode } from '../formTypes'
 
 // «Πηγή έκθεσης για N εργαζόμενους»: on the episode of the source patient, a number and nothing
 // else (never names). It is read through surveillance_case_exposure_count, so it needs no right
 // on the occupational-health tables. The link to the exposures is only for the roles that read them.
-export const canOpenExposures = (ctx: AnyRecord) => ctx.role === ROLES.OCCUPATIONAL_PHYSICIAN || ctx.has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
-const caseRef = (ctx: AnyRecord, episode: AnyRecord) => (ctx.isDemo ? episode.id : episode.recordId || episode.id)
+export const canOpenExposures = (ctx: Pick<EpisodeFormsCtx, 'role' | 'has'>) => ctx.role === ROLES.OCCUPATIONAL_PHYSICIAN || ctx.has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
+const caseRef = (ctx: EpisodeFormsCtx, episode: FormsEpisode) => (ctx.isDemo ? episode.id : episode.recordId || episode.id)
 
 interface ExposureSourceLineProps {
-  ctx: AnyRecord
-  section: AnyRecord
+  ctx: EpisodeFormsCtx
+  section: FormSectionState<number>
 }
 function ExposureSourceLine({ ctx, section }: ExposureSourceLineProps) {
   const { t } = useLanguage()
@@ -40,13 +40,13 @@ function ExposureSourceLine({ ctx, section }: ExposureSourceLineProps) {
 export const exposureSourceSection = {
   id: 'exposureSource',
   order: 95,
-  canSee: (ctx: AnyRecord) => ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) && !isProfileDisabled(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH) && (ctx.episodes || []).length > 0,
-  load: async (ctx: AnyRecord) => {
-    const counts = await Promise.all((ctx.episodes || []).map((episode: AnyRecord) => countSourceExposuresAsync(ctx.organizationId, caseRef(ctx, episode))))
+  canSee: (ctx: EpisodeFormsCtx) => ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) && !isProfileDisabled(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH) && (ctx.episodes || []).length > 0,
+  load: async (ctx: EpisodeFormsCtx) => {
+    const counts = await Promise.all((ctx.episodes || []).map((episode: FormsEpisode) => countSourceExposuresAsync(ctx.organizationId, caseRef(ctx, episode))))
     return counts.reduce((sum, value) => sum + value, 0)
   },
   Component: ExposureSourceLine,
-  buildReport(ctx: AnyRecord, section: AnyRecord) {
+  buildReport(ctx: EpisodeFormsCtx, section: FormSectionState<number>) {
     const count = Number(section.value) || 0
     if (!count) return null
     return {
@@ -55,4 +55,4 @@ export const exposureSourceSection = {
       list: [`${count} ${count === 1 ? ctx.t('episodeForms.exposureSource.one') : ctx.t('episodeForms.exposureSource.many')}`],
     }
   },
-}
+} satisfies EpisodeFormSection<number>

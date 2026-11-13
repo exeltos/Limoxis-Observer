@@ -1,4 +1,4 @@
-import type { AnyRecord } from '../../types/featureTypes'
+import type { QualityDraft } from './qualityTypes'
 // Where a corrective action came from, read from its source reference (source_id): the kind of record,
 // its code as shown, and the page that opens it (null when there is none, e.g. a committee decision brought
 // over without its meeting). One place for the action list, the action record, the print and the filter.
@@ -68,7 +68,7 @@ export function capaSourceInfo(sourceId = '', sourceType = '') {
 export const committeeDecisionSourceId = (committeeCode: string, meetingId: string, topicId: string) => `COM:${committeeCode}:${meetingId}#${topicId}`
 
 // The live actions of a source: those with this exact reference, or (prefix) any of its parts («DM:<code>#»).
-export function actionsOfSource(capas: AnyRecord[] = [], sourceId: string, { prefix = false } = {}) {
+export function actionsOfSource<T extends QualityDraft>(capas: T[] = [], sourceId: string, { prefix = false } = {}) {
   if (!sourceId) return []
   return capas.filter(capa => capa.lifecycleStatus !== 'voided' && (prefix ? String(capa.sourceId || '').startsWith(sourceId) : capa.sourceId === sourceId))
 }

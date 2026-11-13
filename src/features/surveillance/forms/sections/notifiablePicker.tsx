@@ -9,11 +9,11 @@ import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { EODY_CATALOGUE, EODY_FOOTNOTES, deadlineWords, eodyEntry, eodyLabel } from '../../../reporting/eodyCatalogue'
 import { suggestPatientCode } from '../../../patients/patientsService'
 import type { Patient } from '../../../patients/patientTypes'
-import type { AnyRecord } from '../../../../types/featureTypes'
 import type { Handler } from '../../surveillanceTypes'
+import type { PickerPatient } from '../formTypes'
 
 interface NewNotificationDialogProps {
-  patients?: AnyRecord[] | null
+  patients?: PickerPatient[] | null
   busy?: boolean
   onSave: Handler
   onClose: Handler

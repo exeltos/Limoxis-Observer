@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { loadAllEpiQuestionnaires } from './epiQuestionnaireService'
 import { isCoreComplete } from './epiQuestionnaireModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { EpiEpisode, EpiQuestionnaire } from './epiQuestionnaireTypes'
 
 // The questionnaires by episode id; `ready` once a read succeeded.
 export interface EpiIndex {
-  rows: Record<string, AnyRecord>
+  rows: Record<string, EpiQuestionnaire>
   ready: boolean
 }
 interface UseEpiIndexOptions {
@@ -32,5 +32,5 @@ export function useEpiIndex({ organizationId, isDemo, enabled = true, refreshKey
   return state
 }
 
-// An active episode whose core questions are not answered yet.
-export const epiPending = (index: EpiIndex | null | undefined, episode: AnyRecord) => Boolean(index?.ready) && episode?.status === 'active' && !isCoreComplete(index!.rows[episode.recordId || episode.id]?.answers)
+// An active episode whose core questions are not answered yet (an episode always has its id).
+export const epiPending = (index: EpiIndex | null | undefined, episode: Pick<EpiEpisode, 'id' | 'recordId' | 'status'>) => Boolean(index?.ready) && episode?.status === 'active' && !isCoreComplete(index!.rows[(episode.recordId || episode.id) as string]?.answers)

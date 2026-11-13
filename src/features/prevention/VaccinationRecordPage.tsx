@@ -20,6 +20,7 @@ import {
 } from '../occupational-health/vaccinationService'
 import { EMPTY_VACCINATION, StaffVaccinationEditor, type VaccinationEditorValue } from './StaffVaccinationEditor'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeRow } from '../occupational-health/occupationalHealthTypes'
 
 const BACK = '/prevention?tab=vaccinations'
 
@@ -60,7 +61,7 @@ export function VaccinationRecordPage() {
         notify(en ? 'Vaccination updated.' : t('vaccinationUpdated'), 'success')
       } else {
         const selected = (employeeRows || []).filter(item => payload.selectedEmployeeIds.includes(item.id))
-        await createVaccinationsBulkAsync(tenant!.id, selected, payload.draft)
+        await createVaccinationsBulkAsync(tenant!.id, selected as unknown as EmployeeRow[], payload.draft)
         notify(t(selected.length === 1 ? 'copy.preventionCopy.vaccinationSavedOne' : 'copy.preventionCopy.vaccinationSavedMany').replace('{count}', String(selected.length)), 'success')
       }
       navigate(BACK)

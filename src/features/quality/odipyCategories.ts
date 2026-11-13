@@ -85,10 +85,10 @@ const LEGACY: Record<string, string> = {
   other: 'odipy-process-other',
 }
 
-export const isOdipyCategory = (key: string) => ITEMS.has(String(key || ''))
+export const isOdipyCategory = (key: string | undefined) => ITEMS.has(String(key || ''))
 // The item of the form a category stands for (its own, or the one an earlier category reads as).
-export const odipyItem = (key: string) => ITEMS.get(String(key || '')) || ITEMS.get(LEGACY[String(key || '').toLowerCase()]) || null
-export const odipyGroupOf = (key: string) => odipyItem(key)?.group || null
+export const odipyItem = (key: string | undefined) => ITEMS.get(String(key || '')) || ITEMS.get(LEGACY[String(key || '').toLowerCase()]) || null
+export const odipyGroupOf = (key: string | undefined) => odipyItem(key)?.group || null
 export const odipyLabel = (key: string, language = 'el', withGroup = true) => {
   const found = ITEMS.get(String(key || ''))
   if (!found) return ''
