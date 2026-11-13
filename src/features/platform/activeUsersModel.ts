@@ -3,11 +3,55 @@
 // person; the same checks run on the server (platform-create-active-users), which
 // also knows the existing accounts, usernames and employee codes.
 import { ROLE_LABELS, SYSTEM_ROLE_KEYS } from '../../core/permissions/roleLabels'
-import type { AnyRecord } from '../../types/featureTypes'
 
 const ROLE_NAMES = ROLE_LABELS as Record<string, { el: string, en: string }>
 // Τμήμα όπως το δίνει η οθόνη ή η βάση: [{id, name, nameEn?}].
-export type DepartmentChoice = AnyRecord
+export type DepartmentChoice = { id: string, name: string, nameEn?: string | null, is_active?: boolean | null }
+export type PasswordMode = 'random' | 'phone'
+// Ένα πρόσωπο όπως το δίνει η φόρμα ή μια γραμμή του αρχείου (πριν τον έλεγχο).
+export type PersonInput = {
+  line?: number
+  fullName?: string
+  email?: string
+  username?: string
+  role?: string | null
+  department?: string
+  departmentId?: string | null
+  employeeCode?: string
+  phone?: string
+  passwordMode?: string
+  divisionName?: string
+  departmentIds?: string[]
+  divisionDepartments?: string
+}
+// Το πρόσωπο μετά τον έλεγχο χωρίς βάση (checkPerson).
+export type CheckedPerson = {
+  line: number
+  fullName: string
+  email: string
+  username: string
+  roleText: string
+  role: string | null
+  departmentName: string
+  departmentId: string | null
+  employeeCode: string
+  phone: string
+  passwordMode: PasswordMode
+  divisionName: string
+  departmentIds: string[]
+  errors: string[]
+}
+// Η απάντηση του server για μία γραμμή του ελέγχου (dryRun).
+export type ActiveUserVerdict = { line: number, status?: string, code?: string | null }
+// Το πρόσωπο με την τελική κρίση της προεπισκόπησης (mergeVerdicts).
+export type PreviewPerson = CheckedPerson & { status: 'ok' | 'error', code: string | null }
+// Το αποτέλεσμα του server για έναν λογαριασμό που δημιουργήθηκε (ή απέτυχε).
+export type ActiveUserResult = { line: number, status: string, code: string | null, username?: string, temporaryPassword?: string, temporaryPasswordExpiresAt?: string | null, welcomeEmail?: boolean }
+// Γραμμή των αποτελεσμάτων: το πρόσωπο μαζί με το αποτέλεσμα του server.
+export type CreatedActiveUser = Partial<CheckedPerson> & ActiveUserResult & { email: string }
+// Όσα διαβάζει το Excel των αποτελεσμάτων.
+export type ResultSheetRow = { fullName?: string, username?: string, temporaryPassword?: string, temporaryPasswordExpiresAt?: string | null, role?: string | null, roleText?: string, divisionName?: string, departmentName?: string, email?: string, status?: string, code?: string | null }
+export type FilePlan = { missingColumns: string[], people: CheckedPerson[], tooMany: boolean }
 
 export const DEPARTMENT_ROLES = Object.freeze(['department_manager', 'link_nurse', 'department_user'])
 export const ACTIVE_USERS_CHUNK = 25
@@ -92,7 +136,7 @@ export function mapHeaders(header: unknown[] = []) {
 }
 
 // One person as the form or the file gives it, checked without the database.
-export function checkPerson(raw: AnyRecord, departments: DepartmentChoice[] = []) {
+export function checkPerson(raw: PersonInput, departments: DepartmentChoice[] = []): CheckedPerson {
   const fullName = String(raw.fullName ?? '').trim().replace(/\s+/g, ' ')
   const email = String(raw.email ?? '').trim().toLowerCase()
   const username = String(raw.username ?? '').trim()
@@ -103,13 +147,13 @@ export function checkPerson(raw: AnyRecord, departments: DepartmentChoice[] = []
   const employeeCode = String(raw.employeeCode ?? '').trim()
   const phoneText = String(raw.phone ?? '').trim()
   const phone = normalizeMobile(phoneText)
-  const passwordMode = raw.passwordMode === 'phone' ? 'phone' : 'random'
+  const passwordMode: PasswordMode = raw.passwordMode === 'phone' ? 'phone' : 'random'
   const divisionName = String(raw.divisionName ?? '').trim().replace(/\s+/g, ' ')
   // A division director: the departments chosen in the form (ids) or named in the file.
   const chosenIds = Array.isArray(raw.departmentIds) ? raw.departmentIds : []
   const namedDepartments = splitNames(raw.divisionDepartments)
   const matchedByName = namedDepartments.map(name => matchDepartment(departments, name))
-  const departmentIds: string[] = [...new Set<string>([...chosenIds, ...matchedByName.filter(Boolean).map(row => row.id)])].filter(id => departments.some(row => row.id === id))
+  const departmentIds: string[] = [...new Set<string>([...chosenIds, ...matchedByName.filter((row): row is DepartmentChoice => Boolean(row)).map(row => row.id)])].filter(id => departments.some(row => row.id === id))
   const errors: string[] = []
   if (!fullName) errors.push('FULL_NAME_REQUIRED')
   if (!email && !username) errors.push('EMAIL_OR_USERNAME_REQUIRED')
@@ -144,15 +188,15 @@ export function checkPerson(raw: AnyRecord, departments: DepartmentChoice[] = []
 }
 
 // The same e-mail or username twice: both rows are refused.
-export function markDuplicates(people: AnyRecord[]) {
-  const keys = (person: AnyRecord) => [person.email && `e:${person.email}`, person.username && `u:${person.username.toLowerCase()}`].filter(Boolean)
+export function markDuplicates(people: CheckedPerson[]) {
+  const keys = (person: CheckedPerson) => [person.email && `e:${person.email}`, person.username && `u:${person.username.toLowerCase()}`].filter(Boolean)
   const count = new Map<string, number>()
   for (const person of people) for (const key of keys(person)) count.set(key, (count.get(key) || 0) + 1)
-  return people.map((person: AnyRecord) => (keys(person).some(key => (count.get(key) || 0) > 1) && !person.errors.includes('DUPLICATE_IN_FILE') ? { ...person, errors: [...person.errors, 'DUPLICATE_IN_FILE'] } : person))
+  return people.map((person: CheckedPerson) => (keys(person).some(key => (count.get(key) || 0) > 1) && !person.errors.includes('DUPLICATE_IN_FILE') ? { ...person, errors: [...person.errors, 'DUPLICATE_IN_FILE'] } : person))
 }
 
 // The rows of the file ([header, ...rows]) as people; empty rows are left out.
-export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[] = [], en = false, passwordMode = 'random') {
+export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[] = [], en = false, passwordMode = 'random'): FilePlan {
   const [header = [], ...body] = rows
   const columns = mapHeaders(header)
   const missing = REQUIRED_COLUMNS.filter(key => columns[key] == null)
@@ -167,7 +211,7 @@ export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[]
 }
 
 // What the server receives for one person.
-export const requestUser = (person: AnyRecord) => ({
+export const requestUser = (person: CheckedPerson) => ({
   line: person.line,
   fullName: person.fullName,
   email: person.email || undefined,
@@ -183,17 +227,17 @@ export const requestUser = (person: AnyRecord) => ({
 })
 
 // The person with the server's verdict (the first error found locally wins).
-export function mergeVerdicts(people: AnyRecord[], results: AnyRecord[] = []) {
+export function mergeVerdicts(people: CheckedPerson[], results: ActiveUserVerdict[] = []): PreviewPerson[] {
   const byLine = new Map(results.map(result => [result.line, result]))
-  return people.map((person: AnyRecord) => {
+  return people.map((person: CheckedPerson) => {
     const result = byLine.get(person.line)
     const code = person.errors[0] || result?.code || null
     return { ...person, status: code ? 'error' : 'ok', code }
   })
 }
 
-export function previewCounts(people: AnyRecord[]) {
-  const ok = people.filter((person: AnyRecord) => person.status === 'ok').length
+export function previewCounts(people: Pick<PreviewPerson, 'status'>[]) {
+  const ok = people.filter(person => person.status === 'ok').length
   return { ok, error: people.length - ok }
 }
 
@@ -221,19 +265,19 @@ const ERRORS: Record<string, [string, string]> = {
   PASSWORD_REJECTED: ['Ο προσωρινός κωδικός απορρίφθηκε· δοκιμάστε ξανά', 'The temporary password was rejected; try again'],
   ORGANIZATION_PAUSED: ['Ο οργανισμός είναι σε παύση', 'The organization is suspended'],
 }
-export function errorText(code: string, en = false) {
+export function errorText(code: string | null | undefined, en = false) {
   if (!code) return ''
   return ERRORS[code]?.[en ? 1 : 0] || (en ? 'The account could not be created' : 'Ο λογαριασμός δεν δημιουργήθηκε')
 }
 
 // The Excel of the results: who was created, with the username and the temporary password.
-export function resultsSheet(results: AnyRecord[], en = false) {
+export function resultsSheet(results: ResultSheetRow[], en = false) {
   return {
     name: en ? 'Accounts' : 'Λογαριασμοί',
     headers: en
       ? ['Full name', 'Username', 'Temporary password', 'Valid until', 'Role', 'Division', 'Department', 'Email', 'Result']
       : ['Ονοματεπώνυμο', 'Όνομα χρήστη', 'Προσωρινός κωδικός', 'Ισχύει έως', 'Ρόλος', 'Διεύθυνση', 'Τμήμα', 'Email', 'Αποτέλεσμα'],
-    rows: results.map((row: AnyRecord) => [
+    rows: results.map((row: ResultSheetRow) => [
       row.fullName,
       row.username || '',
       row.temporaryPassword || '',
