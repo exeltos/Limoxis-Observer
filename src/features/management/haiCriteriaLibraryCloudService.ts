@@ -45,7 +45,7 @@ export async function loadGlobalHaiCriteriaLibraryItems() {
   return (data || []).map(mapRow)
 }
 
-export async function updateGlobalHaiCriteriaLibraryItem(item: HaiCriteriaLibraryItem) {
+export async function updateGlobalHaiCriteriaLibraryItem(item: Pick<HaiCriteriaLibraryItem, 'id' | 'labelEl' | 'labelEn' | 'source' | 'groups'>) {
   const supabase = requireCloud()
   if (!item?.id) throw new Error('Library item id is required.')
   const payload = {
