@@ -1,13 +1,13 @@
 import { supabase } from '../../core/supabase/client'
-import type { Tables } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Json, Tables } from '../../core/supabase/database.types'
+import type { BundleLibraryElement, BundleLibraryTemplate } from './managementTypes'
 
 function requireCloud(){if(!supabase) throw new Error('Supabase is not configured');return supabase}
 // Για τον τύπο: μια δέσμη του συστήματος (system) δεν έχει νοσοκομείο, και τότε τα ερωτήματα πάνε από το
 // is('organization_id',null)· σε κάθε άλλη περίπτωση το νοσοκομείο υπάρχει (αλλιώς σφάλμα εδώ).
 function requireOrganization(organizationId: string|null|undefined,{system=false}: {system?: boolean}={}): asserts organizationId is string{if(!organizationId&&!system) throw new Error('Organization is required')}
 
-const mapRow=(row: Tables<'prevention_bundle_templates'>)=>({
+const mapRow=(row: Tables<'prevention_bundle_templates'>): BundleLibraryTemplate=>({
  id:row.id,
  bundleKey:row.bundle_key,
  name:row.name,
@@ -18,8 +18,8 @@ const mapRow=(row: Tables<'prevention_bundle_templates'>)=>({
  scope:row.scope,
  source:row.source,
  sourceVersion:row.source_version,
- departments:Array.isArray(row.departments)?row.departments:[],
- elements:Array.isArray(row.elements)?row.elements:[],
+ departments:(Array.isArray(row.departments)?row.departments:[]) as string[],
+ elements:(Array.isArray(row.elements)?row.elements:[]) as BundleLibraryElement[],
  basedOn:row.based_on||null,
  system:Boolean(row.is_system),
  hidden:Boolean(row.hidden),
@@ -48,7 +48,7 @@ export async function loadBundleTemplates(organizationId: string|null|undefined)
  return (data||[]).map(mapRow)
 }
 
-function payload(item: AnyRecord,organizationId: string|null,userId: string|null){return {
+function payload(item: BundleLibraryTemplate,organizationId: string|null,userId: string|null){return {
  organization_id:item.system?null:organizationId,
  bundle_key:item.bundleKey||item.name,
  name:item.name,
@@ -60,7 +60,7 @@ function payload(item: AnyRecord,organizationId: string|null,userId: string|null
  source:item.source||'',
  source_version:item.sourceVersion||'',
  departments:item.departments||[],
- elements:item.elements||[],
+ elements:(item.elements||[]) as Json,
  based_on:item.basedOn||null,
  is_system:Boolean(item.system),
  hidden:Boolean(item.hidden),
@@ -68,7 +68,7 @@ function payload(item: AnyRecord,organizationId: string|null,userId: string|null
  updated_at:new Date().toISOString(),
 }}
 
-export async function createBundleTemplate(organizationId: string|null,item: AnyRecord){
+export async function createBundleTemplate(organizationId: string|null,item: BundleLibraryTemplate){
  const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
  const row={...payload(item,organizationId,userId),created_by:userId}
@@ -77,40 +77,40 @@ export async function createBundleTemplate(organizationId: string|null,item: Any
  return mapRow(data)
 }
 
-export async function updateBundleTemplate(organizationId: string|null,item: AnyRecord){
+export async function updateBundleTemplate(organizationId: string|null,item: BundleLibraryTemplate){
  const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  if(!item?.id) throw new Error('Bundle template id is required')
  const userId=await actorId()
- let query=supabase.from('prevention_bundle_templates').update(payload(item,organizationId,userId)).eq('id',item.id)
+ let query=supabase.from('prevention_bundle_templates').update(payload(item,organizationId,userId)).eq('id',item.id as string)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
  const {data,error}=await query.select('*').single()
  if(error) throw error
  return mapRow(data)
 }
 
-export async function publishBundleTemplate(organizationId: string|null,item: AnyRecord){
+export async function publishBundleTemplate(organizationId: string|null,item: BundleLibraryTemplate){
  const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
- let query=supabase.from('prevention_bundle_templates').update({status:'published',published_by:userId,published_at:new Date().toISOString(),updated_by:userId,updated_at:new Date().toISOString()}).eq('id',item.id)
+ let query=supabase.from('prevention_bundle_templates').update({status:'published',published_by:userId,published_at:new Date().toISOString(),updated_by:userId,updated_at:new Date().toISOString()}).eq('id',item.id as string)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
  const {data,error}=await query.select('*').single()
  if(error) throw error
  return mapRow(data)
 }
 
-export async function retireBundleTemplate(organizationId: string|null,item: AnyRecord){
+export async function retireBundleTemplate(organizationId: string|null,item: BundleLibraryTemplate){
  const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
- let query=supabase.from('prevention_bundle_templates').update({status:'retired',retired_by:userId,retired_at:new Date().toISOString(),updated_by:userId,updated_at:new Date().toISOString()}).eq('id',item.id)
+ let query=supabase.from('prevention_bundle_templates').update({status:'retired',retired_by:userId,retired_at:new Date().toISOString(),updated_by:userId,updated_at:new Date().toISOString()}).eq('id',item.id as string)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
  const {data,error}=await query.select('*').single()
  if(error) throw error
  return mapRow(data)
 }
 
-export async function removeBundleTemplate(organizationId: string|null,item: AnyRecord){
+export async function removeBundleTemplate(organizationId: string|null,item: BundleLibraryTemplate){
  const supabase=requireCloud();requireOrganization(organizationId,{system:item.system})
- let query=supabase.from('prevention_bundle_templates').delete().eq('id',item.id)
+ let query=supabase.from('prevention_bundle_templates').delete().eq('id',item.id as string)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
  const {error}=await query
  if(error) throw error

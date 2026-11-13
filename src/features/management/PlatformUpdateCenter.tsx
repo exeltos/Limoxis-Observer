@@ -4,7 +4,12 @@ import { Button } from '../../design-system/Button'
 import { BackButton } from '../../design-system/BackButton'
 import { changesByRun } from './clinicalContentSourceService'
 import './platformUpdateCenter.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DetectedClinicalChange, PendingClinicalUpdate, PlatformUpdateRun } from './clinicalContentSourceService'
+// What the history and the changes lists read of each check and each change.
+type RunRow = Pick<PlatformUpdateRun, 'id' | 'started_at' | 'completed_at' | 'status' | 'trigger' | 'checked_count' | 'changed_count'> & Partial<Pick<PlatformUpdateRun, 'summary'>>
+type ChangeRow = Pick<DetectedClinicalChange, 'id' | 'checked_at' | 'review_status'> & Partial<Pick<DetectedClinicalChange, 'reviewed_at' | 'note'>> & { source: Partial<DetectedClinicalChange['source']> }
+// The progress of a running check: the stage, and inside it the source being read.
+export type CenterProgress = { total: number, current: number, label: string, detail: string, subCurrent?: number, subTotal?: number }
 
 const DAY=86400000
 const copy={
@@ -14,7 +19,7 @@ const copy={
 
 function relative(value: string|null|undefined,c: typeof copy.en){if(!value)return c.never;const diff=Date.now()-new Date(value).getTime();if(diff<60000)return c.ago.now;if(diff<3600000)return c.ago.min(Math.round(diff/60000));if(diff<DAY)return c.ago.hour(Math.round(diff/3600000));return c.ago.day(Math.round(diff/DAY))}
 
-export function PlatformUpdateCenter({language='el',pending=[],history=[],changes=[],reviewingId=null,onReview,onRun,running=null,onClose}: {language?: string,pending?: AnyRecord[],history?: AnyRecord[],changes?: AnyRecord[],reviewingId?: string|null,onReview: (item: AnyRecord,status: string)=>void,onRun?: ()=>void,running?: AnyRecord|null,onClose?: ()=>void}){
+export function PlatformUpdateCenter({language='el',pending=[],history=[],changes=[],reviewingId=null,onReview,onRun,running=null,onClose}: {language?: string,pending?: PendingClinicalUpdate[],history?: RunRow[],changes?: ChangeRow[],reviewingId?: string|null,onReview: (item: PendingClinicalUpdate,status: string)=>void,onRun?: ()=>void,running?: CenterProgress|null,onClose?: ()=>void}){
  const en=language==='en',c=copy[en?'en':'el'],locale=en?'en-GB':'el-GR'
  const [showAll,setShowAll]=useState(false),[openRun,setOpenRun]=useState<string|null>(null)
  const runChanges=changesByRun(history,changes)
@@ -22,8 +27,8 @@ export function PlatformUpdateCenter({language='el',pending=[],history=[],change
  const last=history[0]||null
  const failures=history.filter(run=>run.status==='failed'&&Date.now()-new Date(run.started_at).getTime()<30*DAY).length
  const visibleHistory=showAll?history:history.slice(0,6)
- const runStatus=(run: AnyRecord): [string,string,LucideIcon]=>run.status==='completed'?['ok',c.completed,CheckCircle2]:run.status==='failed'?['fail',c.failed,XCircle]:['run',c.runningStatus,Clock3]
- const duration=(run: AnyRecord)=>run.completed_at&&run.started_at?Math.max(1,Math.round((new Date(run.completed_at).getTime()-new Date(run.started_at).getTime())/1000)):null
+ const runStatus=(run: RunRow): [string,string,LucideIcon]=>run.status==='completed'?['ok',c.completed,CheckCircle2]:run.status==='failed'?['fail',c.failed,XCircle]:['run',c.runningStatus,Clock3]
+ const duration=(run: RunRow)=>run.completed_at&&run.started_at?Math.max(1,Math.round((new Date(run.completed_at).getTime()-new Date(run.started_at).getTime())/1000)):null
  return <section className="surface puc-page workspace-fill">
   <header className="puc-page-header"><BackButton onClick={onClose} label={c.back}/><h2>{c.title}</h2></header>
   <div className="puc">
@@ -51,7 +56,7 @@ export function PlatformUpdateCenter({language='el',pending=[],history=[],change
 
    <section className="puc-section">
     <header><h4>{c.historyTitle}</h4></header>
-    {history.length?<ol className="puc-history">{visibleHistory.map(run=>{const [tone,label,Icon]=runStatus(run);const seconds=duration(run);const error=run.summary?.error;const open=openRun===run.id;const found=runChanges.get(run.id)||[];return <li key={run.id} className={`puc-run-row is-${tone}`}>
+    {history.length?<ol className="puc-history">{visibleHistory.map(run=>{const [tone,label,Icon]=runStatus(run);const seconds=duration(run);const error=(run.summary as {error?: string}|null)?.error;const open=openRun===run.id;const found=runChanges.get(run.id)||[];return <li key={run.id} className={`puc-run-row is-${tone}`}>
      <Icon size={17} className="puc-run-icon"/>
      <div className="puc-run-main"><strong>{fmt(run.started_at)}</strong><span>{run.trigger==='scheduled'?c.automatic:c.manual}{seconds?` · ${seconds} ${c.seconds}`:''}</span>{tone==='fail'&&<small title={error||undefined}>{c.failedNote}</small>}</div>
      <div className="puc-run-counts"><span>{c.sourcesN(run.checked_count||0)}</span>{run.changed_count?<button type="button" className="has-changes" aria-expanded={open} aria-controls={`puc-run-changes-${run.id}`} title={open?c.hideChanges:c.showChanges} onClick={()=>setOpenRun(open?null:run.id)}>{c.changesN(run.changed_count)}<ChevronDown size={13} aria-hidden="true"/></button>:<span>{c.changesN(0)}</span>}</div>

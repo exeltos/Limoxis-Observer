@@ -2,12 +2,16 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, dayInMonth, seededRandom } from '../../core/data/demoSeed'
 import { employeeRows } from '../employees/employeeDemoData'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AssessmentQuestion, TrainingAssignment, TrainingCertificate, TrainingHistoryEntry, TrainingProgram, TrainingRequirement } from './trainingTypes'
 
 // The training module's records: programmes, assignments (one per person), certificates,
 // role requirements, the demo e-mail outbox and the history. Each record is an untyped row.
-export interface TrainingState { programs: AnyRecord[], assignments: AnyRecord[], certificates: AnyRecord[], requirements: AnyRecord[], emailOutbox: AnyRecord[], history: AnyRecord[], [key: string]: unknown }
-type Question = AnyRecord
+// The whole Training state: the register's records, and the Demo's sent e-mails (empty in production).
+export interface TrainingState { programs: TrainingProgram[], assignments: TrainingAssignment[], certificates: TrainingCertificate[], requirements: TrainingRequirement[], emailOutbox: Record<string, unknown>[], history: TrainingHistoryEntry[], [key: string]: unknown }
+type Question = AssessmentQuestion
+// A state as the browser stored it (perhaps by an older version): loose records, normalized below.
+type StoredRecord = Record<string, unknown>
+type StoredState = { [key: string]: unknown, programs?: StoredRecord[], assignments?: StoredRecord[], certificates?: unknown[], emailOutbox?: unknown[], history?: unknown[] }
 export const trainerFeedbackTemplate=[
  {id:'clarity',label:'Σαφήνεια παρουσίασης'},
  {id:'knowledge',label:'Γνώση και επάρκεια εκπαιδευτή'},
@@ -60,12 +64,12 @@ const DEMO_QUESTIONS: Record<string, Question[]>={
  ],
 }
 // Answers matching each demo score: every question correct except the listed ones.
-const answer=(q: Question)=>q.type==='single_choice'?q.options.find((o: AnyRecord)=>o.correct).id:q.type==='multiple_choice'?q.options.filter((o: AnyRecord)=>o.correct).map((o: AnyRecord)=>o.id):q.type==='true_false'?q.correctBoolean:q.modelAnswer
-const wrong=(q: Question)=>q.type==='single_choice'?q.options.find((o: AnyRecord)=>!o.correct).id:q.type==='true_false'?!q.correctBoolean:[q.options[0].id]
+const answer=(q: Question)=>q.type==='single_choice'?q.options.find(o=>o.correct)!.id:q.type==='multiple_choice'?q.options.filter(o=>o.correct).map(o=>o.id):q.type==='true_false'?q.correctBoolean:q.modelAnswer
+const wrong=(q: Question)=>q.type==='single_choice'?q.options.find(o=>!o.correct)!.id:q.type==='true_false'?!q.correctBoolean:[q.options[0].id]
 const demoAnswers=(programId: string,wrongIds: string[]=[])=>Object.fromEntries(DEMO_QUESTIONS[programId].map(q=>[q.id,wrongIds.includes(q.id)?wrong(q):answer(q)]))
 // A completed demo attempt whose score follows from its answers.
 function completedAttempt(programId: string,wrongIds: string[],passScore: number){const questions=DEMO_QUESTIONS[programId];const max=questions.reduce((n,q)=>n+(q.type==='free_text'?0:q.points),0);const lost=questions.filter(q=>wrongIds.includes(q.id)).reduce((n,q)=>n+q.points,0);const score=Math.round(100*(max-lost)/max);return {assessmentAnswers:demoAnswers(programId,wrongIds),score,competent:score>=passScore}}
-const done=(id: string,programId: string,employeeId: string,employeeName: string,department: string,email: string,day: string,wrongIds: string[],passScore: number,feedbackScores: Record<string, number>,feedbackComment: string,certificateId: string): AnyRecord=>{const attempt=completedAttempt(programId,wrongIds,passScore);return {id,programId,employeeId,employeeName,department,email,accountLinked:true,assignedDate:'2026-06-01',dueDate:'2026-06-30',status:'completed',invitationSentAt:'2026-06-01T08:00:00Z',attendanceResponse:'confirmed',attendance:true,attendanceConfirmedAt:`${day}T09:00:00Z`,completionConfirmedAt:`${day}T10:40:00Z`,feedbackSubmittedAt:`${day}T10:42:00Z`,assessmentSubmittedAt:`${day}T10:45:00Z`,...attempt,feedbackScores,feedbackComment,assessmentReviewedAt:null,completedDate:day,certificateId:attempt.competent?certificateId:null}}
+const done=(id: string,programId: string,employeeId: string,employeeName: string,department: string,email: string,day: string,wrongIds: string[],passScore: number,feedbackScores: Record<string, number>,feedbackComment: string,certificateId: string): TrainingAssignment=>{const attempt=completedAttempt(programId,wrongIds,passScore);return {id,programId,employeeId,employeeName,department,email,accountLinked:true,assignedDate:'2026-06-01',dueDate:'2026-06-30',status:'completed',invitationSentAt:'2026-06-01T08:00:00Z',attendanceResponse:'confirmed',attendance:true,attendanceConfirmedAt:`${day}T09:00:00Z`,completionConfirmedAt:`${day}T10:40:00Z`,feedbackSubmittedAt:`${day}T10:42:00Z`,assessmentSubmittedAt:`${day}T10:45:00Z`,...attempt,feedbackScores,feedbackComment,assessmentReviewedAt:null,completedDate:day,certificateId:attempt.competent?certificateId:null}}
 
 export const trainingDemoState: TrainingState={
  programs:[
@@ -186,24 +190,24 @@ for(const [id,title,category,audience,monthIndex,method,trainer,description,depa
 }
 let pastIndex=0
 for(const [programId,departments,profession,assignedDate,dueDate,firstDay,spreadDays] of PAST_PLAN){
- const program=trainingDemoState.programs.find(p=>p.id===programId) as AnyRecord
+ const program=trainingDemoState.programs.find(p=>p.id===programId) as TrainingProgram
  const staff=employeeRows.filter(e=>e.employmentStatus==='active'&&(!departments||departments.includes(e.department))&&(profession==='all'||(profession?e.profession===profession:['Νοσηλευτικό προσωπικό','Ιατρικό προσωπικό'].includes(e.profession)))&&e.hireDate<=assignedDate)
  staff.forEach((e,i)=>{
   pastIndex+=1
   const id=`TRA-${String(100+pastIndex)}`,rand=seededRandom(`training|${id}`),name=`${e.firstName} ${e.lastName}`
   // Two people in the CAUTI programme never finished it.
   if(programId==='TRN-007'&&i%7===3){trainingDemoState.assignments.push({id,programId,employeeId:e.id,employeeName:name,department:e.department,email:e.email,accountLinked:true,assignedDate,dueDate,status:i%2?'in_progress':'assigned',invitationSentAt:`${assignedDate}T08:00:00Z`,attendanceResponse:i%2?'confirmed':'not_sent',attendance:i%2?true:null,attendanceConfirmedAt:null,completionConfirmedAt:null,feedbackSubmittedAt:null,assessmentSubmittedAt:null,score:null,completedDate:null,competent:null,certificateId:null});return}
-  const wrongIds=program.assessmentQuestions.filter((q: Question)=>q.type!=='free_text'&&rand()<(i%9===4?0.45:0.12)).map((q: Question)=>q.id)
-  const day=addDays(firstDay,Math.floor(rand()*spreadDays)),row=done(id,programId,e.id,name,e.department,e.email,day,wrongIds,program.passScore,{clarity:4+(i%2),knowledge:5,usefulness:4+((i+1)%2),organization:4,materials:4},'',`CERT-${id}`)
+  const wrongIds=program.assessmentQuestions!.filter(q=>q.type!=='free_text'&&rand()<(i%9===4?0.45:0.12)).map(q=>q.id)
+  const day=addDays(firstDay,Math.floor(rand()*spreadDays)),row=done(id,programId,e.id,name,e.department,e.email,day,wrongIds,program.passScore as number,{clarity:4+(i%2),knowledge:5,usefulness:4+((i+1)%2),organization:4,materials:4},'',`CERT-${id}`)
   trainingDemoState.assignments.push({...row,assignedDate,dueDate,invitationSentAt:`${assignedDate}T08:00:00Z`,assessmentReviewedAt:`${day}T14:00:00Z`,assessmentReviewedBy:'Ελένη Κωνσταντίνου',assessmentReviewAcknowledged:true})
-  if(row.certificateId)trainingDemoState.certificates.push({id:row.certificateId,assignmentId:id,employeeId:e.id,title:program.title,issuedDate:day,validUntil:addDays(day,Math.round(program.validMonths*30.4375)),issuer:'Limoxis Observer · Demo Hospital'})
+  if(row.certificateId)trainingDemoState.certificates.push({id:row.certificateId,assignmentId:id,employeeId:e.id,title:program.title,issuedDate:day,validUntil:addDays(day,Math.round((program.validMonths as number)*30.4375)),issuer:'Limoxis Observer · Demo Hospital'})
  })
 }
 
-function withoutKeys(value: AnyRecord,keys: string[]){const clean={...value};for(const key of keys)delete clean[key];return clean}
+function withoutKeys(value: StoredRecord,keys: string[]){const clean={...value};for(const key of keys)delete clean[key];return clean}
 function normalize(state: unknown): TrainingState{
- const source: AnyRecord=state&&typeof state==='object'?state:structuredClone(trainingDemoState)
- return {...source,programs:(source.programs||[]).map((p: AnyRecord)=>{const clean=withoutKeys(p,['checkInToken','completionToken']);return {...clean,trainer:clean.trainer||clean.owner||'',materials:clean.materials||[],assessmentQuestions:clean.assessmentQuestions||[],feedbackResponses:clean.feedbackResponses||[]}}),assignments:(source.assignments||[]).map((a: AnyRecord)=>{const clean=withoutKeys(a,['checkInAt']);return {...clean,email:clean.email||'',accountLinked:clean.accountLinked!==false,invitationSentAt:clean.invitationSentAt||null,attendanceResponse:clean.attendanceResponse||(clean.attendance?'confirmed':'not_sent'),attendanceConfirmedAt:clean.attendanceConfirmedAt||null,completionConfirmedAt:clean.completionConfirmedAt||null,feedbackSubmittedAt:clean.feedbackSubmittedAt||null,assessmentSubmittedAt:clean.assessmentSubmittedAt||null}}),certificates:source.certificates||[],emailOutbox:source.emailOutbox||[],history:source.history||[]} as TrainingState
+ const source=(state&&typeof state==='object'?state:structuredClone(trainingDemoState)) as StoredState
+ return {...source,programs:(source.programs||[]).map(p=>{const clean=withoutKeys(p,['checkInToken','completionToken']);return {...clean,trainer:clean.trainer||clean.owner||'',materials:clean.materials||[],assessmentQuestions:clean.assessmentQuestions||[],feedbackResponses:clean.feedbackResponses||[]}}),assignments:(source.assignments||[]).map(a=>{const clean=withoutKeys(a,['checkInAt']);return {...clean,email:clean.email||'',accountLinked:clean.accountLinked!==false,invitationSentAt:clean.invitationSentAt||null,attendanceResponse:clean.attendanceResponse||(clean.attendance?'confirmed':'not_sent'),attendanceConfirmedAt:clean.attendanceConfirmedAt||null,completionConfirmedAt:clean.completionConfirmedAt||null,feedbackSubmittedAt:clean.feedbackSubmittedAt||null,assessmentSubmittedAt:clean.assessmentSubmittedAt||null}}),certificates:source.certificates||[],emailOutbox:source.emailOutbox||[],history:source.history||[]} as TrainingState
 }
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([trainingDemoState])
@@ -215,5 +219,5 @@ export function findTrainingAccess(state: unknown,token: unknown){
  const program=assignment?normalized.programs.find(x=>x.id===assignment.programId):normalized.programs.find(x=>x.id===key)
  return program?{program,assignment:assignment||null}:null
 }
-export function computedAssignmentStatus(row: AnyRecord,today=new Date()){if(row.status==='completed')return 'completed';if(row.status==='cancelled')return 'cancelled';if(row.dueDate&&new Date(`${row.dueDate}T23:59:59`)<today)return 'overdue';return row.status||'assigned'}
+export function computedAssignmentStatus(row: Pick<TrainingAssignment,'status'|'dueDate'>,today=new Date()){if(row.status==='completed')return 'completed';if(row.status==='cancelled')return 'cancelled';if(row.dueDate&&new Date(`${row.dueDate}T23:59:59`)<today)return 'overdue';return row.status||'assigned'}
 export function validityUntil(completedDate: string|null|undefined,months: unknown){if(!completedDate||!months)return '';const d=new Date(`${completedDate}T12:00:00`);d.setMonth(d.getMonth()+Number(months));return d.toISOString().slice(0,10)}

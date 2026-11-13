@@ -1,5 +1,5 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CompetenceAssignment, CompetenceCertificate, CompetenceRequirement, TrainingEmployee } from './trainingTypes'
 // Required training per professional category and department, and each
 // employee's standing against it. A requirement is met by completing any of
 // its programmes; it stays valid for renewalMonths (or until the certificate's
@@ -19,9 +19,9 @@ export function newRequirement(){
 
 // One person's standing against one requirement.
 export interface CompetenceCell { state: 'valid' | 'expiring' | 'expired' | 'missing', completedOn: string, validUntil: string, programId: string }
-export interface CompetenceMatrix { requirements: AnyRecord[], rows: { employee: AnyRecord, cells: (CompetenceCell | null)[] }[], counts: Record<CompetenceCell['state'], number>, required: number, rate: number | null }
+export interface CompetenceMatrix { requirements: CompetenceRequirement[], rows: { employee: TrainingEmployee, cells: (CompetenceCell | null)[] }[], counts: Record<CompetenceCell['state'], number>, required: number, rate: number | null }
 
-export function requirementApplies(requirement: AnyRecord,employee: AnyRecord){
+export function requirementApplies(requirement: CompetenceRequirement,employee: TrainingEmployee){
  if(requirement.active===false)return false
  const professions=(requirement.professions||[]).map(norm)
  const positions=(requirement.positions||[]).map(norm)
@@ -38,28 +38,28 @@ function addMonths(day: string,months: unknown){
  return date.toISOString().slice(0,10)
 }
 
-const completedOn=(assignment: AnyRecord)=>String(assignment.completedDate||assignment.completionConfirmedAt||'').slice(0,10)
+const completedOn=(assignment: CompetenceAssignment)=>String(assignment.completedDate||assignment.completionConfirmedAt||'').slice(0,10)
 
 // Latest completion of any of the requirement's programmes by this employee.
-interface CompetenceRecords { assignments?: AnyRecord[], certificates?: AnyRecord[], today?: string }
-export function requirementStatus(requirement: AnyRecord,employee: AnyRecord,{assignments=[],certificates=[],today=hospitalToday()}: CompetenceRecords={}): CompetenceCell{
- const programIds=new Set(requirement.programIds||[])
+interface CompetenceRecords { assignments?: CompetenceAssignment[], certificates?: CompetenceCertificate[], today?: string }
+export function requirementStatus(requirement: CompetenceRequirement,employee: TrainingEmployee,{assignments=[],certificates=[],today=hospitalToday()}: CompetenceRecords={}): CompetenceCell{
+ const programIds=new Set<string|null>(requirement.programIds||[])
  const code=String(employee.employeeCode||employee.id||'')
  const done=assignments
   .filter(a=>programIds.has(a.programId)&&a.status==='completed'&&String(a.employeeId||'')===code&&completedOn(a))
   .sort((a,b)=>completedOn(b).localeCompare(completedOn(a)))[0]
  if(!done)return {state:'missing',completedOn:'',validUntil:'',programId:''}
  const certificate=certificates.find(c=>c.assignmentId===done.id)
- const validUntil=String(certificate?.validUntil||'').slice(0,10)||(Number(requirement.renewalMonths)>0?addMonths(completedOn(done),requirement.renewalMonths):'')
+ const validUntil=String(certificate?.validUntil||'').slice(0,10)||(Number(requirement.renewalMonths)>0?addMonths(completedOn(done),requirement.renewalMonths as number):'')
  let state: CompetenceCell['state']='valid'
  if(validUntil&&validUntil<today)state='expired'
  else if(validUntil&&(new Date(`${validUntil}T12:00:00`).getTime()-new Date(`${today}T12:00:00`).getTime())/DAY<=EXPIRING_DAYS)state='expiring'
- return {state,completedOn:completedOn(done),validUntil,programId:done.programId}
+ return {state,completedOn:completedOn(done),validUntil,programId:done.programId as string}
 }
 
 // Rows: employees the requirements apply to; cells: one status per requirement
 // (null when the requirement does not apply to that person).
-export function competenceMatrix({requirements=[],employees=[],assignments=[],certificates=[],today}: CompetenceRecords & { requirements?: AnyRecord[], employees?: AnyRecord[] }={}): CompetenceMatrix{
+export function competenceMatrix({requirements=[],employees=[],assignments=[],certificates=[],today}: CompetenceRecords & { requirements?: CompetenceRequirement[], employees?: TrainingEmployee[] }={}): CompetenceMatrix{
  const active=requirements.filter(r=>r.active!==false)
  const rows: CompetenceMatrix['rows']=[]
  for(const employee of employees){
@@ -75,7 +75,7 @@ export function competenceMatrix({requirements=[],employees=[],assignments=[],ce
 // Who has to be trained, and by when: missing now, expired, or expiring
 // (on its validUntil date). Feeds the "Plan" list and the calendar.
 // One person who has to be trained for one requirement, and by when.
-export interface RetrainingItem { key: string, requirement: AnyRecord, employee: AnyRecord, state: CompetenceCell['state'], due: string, validUntil: string, completedOn: string }
+export interface RetrainingItem { key: string, requirement: CompetenceRequirement, employee: TrainingEmployee, state: CompetenceCell['state'], due: string, validUntil: string, completedOn: string }
 export function retrainingPlan(matrix: CompetenceMatrix,{today=hospitalToday()}: { today?: string }={}){
  const items: RetrainingItem[]=[]
  for(const row of matrix.rows){

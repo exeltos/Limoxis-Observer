@@ -1,13 +1,13 @@
 import { supabase } from '../../core/supabase/client'
 import type { Tables } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Announcement } from './managementTypes'
 
 function requireCloud(){if(!supabase)throw new Error('Supabase is not configured');return supabase}
 function requireOrganization(organizationId: string|null|undefined){if(!organizationId)throw new Error('Organization is required')}
 
-const mapAnnouncement=(row: Tables<'management_announcements'>)=>({
+const mapAnnouncement=(row: Tables<'management_announcements'>): Announcement=>({
  id:row.id,title:row.title,message:row.message,priority:row.priority,
- audienceType:row.audience_type,audienceValues:Array.isArray(row.audience_values)?row.audience_values:[],
+ audienceType:row.audience_type,audienceValues:(Array.isArray(row.audience_values)?row.audience_values:[]) as string[],
  requiresAck:Boolean(row.requires_ack),startAt:row.starts_at||'',endAt:row.ends_at||'',
  linkPath:row.link_path||'',
  createdAt:row.created_at,createdById:row.created_by||null,updatedAt:row.updated_at,
@@ -22,7 +22,7 @@ export async function loadAnnouncements(organizationId: string){
  return (data||[]).map(mapAnnouncement)
 }
 
-function toRow(item: AnyRecord,organizationId: string,userId: string|null){return {
+function toRow(item: Announcement,organizationId: string,userId: string|null){return {
  organization_id:organizationId,title:item.title.trim(),message:item.message.trim(),priority:item.priority||'normal',
  audience_type:item.audienceType||'all',audience_values:item.audienceType==='all'?[]:(item.audienceValues||[]),
  requires_ack:Boolean(item.requiresAck),starts_at:item.startAt||null,ends_at:item.endAt||null,
@@ -30,14 +30,14 @@ function toRow(item: AnyRecord,organizationId: string,userId: string|null){retur
  updated_by:userId,updated_at:new Date().toISOString(),
 }}
 
-export async function createAnnouncement(organizationId: string|null|undefined,item: AnyRecord){
+export async function createAnnouncement(organizationId: string|null|undefined,item: Announcement){
  const supabase=requireCloud();requireOrganization(organizationId);const userId=await currentUserId()
  const {data,error}=await supabase.from('management_announcements').insert({...toRow(item,organizationId as string,userId),created_by:userId}).select('*').single()
  if(error)throw error;return mapAnnouncement(data)
 }
-export async function updateAnnouncement(organizationId: string,item: AnyRecord){
+export async function updateAnnouncement(organizationId: string,item: Announcement){
  const supabase=requireCloud();requireOrganization(organizationId);const userId=await currentUserId()
- const {data,error}=await supabase.from('management_announcements').update(toRow(item,organizationId,userId)).eq('organization_id',organizationId).eq('id',item.id).select('*').single()
+ const {data,error}=await supabase.from('management_announcements').update(toRow(item,organizationId,userId)).eq('organization_id',organizationId).eq('id',item.id as string).select('*').single()
  if(error)throw error;return mapAnnouncement(data)
 }
 export async function removeAnnouncement(organizationId: string,id: string){

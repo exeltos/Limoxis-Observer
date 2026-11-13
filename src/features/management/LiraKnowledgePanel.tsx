@@ -11,7 +11,10 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase } from '../../core/supabase/client'
 import { cloudClient } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Tables } from '../../core/supabase/database.types'
+// A knowledge source as the list reads it, a passage of it, and the source in the edit form.
+type KnowledgeSource = Pick<Tables<'lira_knowledge_sources'>, 'id' | 'title' | 'authority' | 'source_version' | 'source_url' | 'status' | 'ingestion_status' | 'effective_from' | 'effective_to' | 'approved_at' | 'review_notes'>
+type KnowledgeChunk = Pick<Tables<'lira_knowledge_chunks'>, 'id' | 'chunk_index' | 'heading' | 'content' | 'citation_label' | 'page_start' | 'page_end'>
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -23,18 +26,18 @@ const badgeClass=(value: string)=>value==='approved'||value==='ingested'?'active
 
 export function LiraKnowledgePanel(){
  const {language}=useLanguage();const en=language==='en';const navigate=useNavigate();const platformScreen=useLocation().pathname.startsWith('/platform');const {tenant}=useTenant();const {notify}=useFeedback()
- const [rows,setRows]=useState<AnyRecord[]>([]);const [loading,setLoading]=useState(true);const [selected,setSelected]=useState<AnyRecord|null>(null);const [chunks,setChunks]=useState<AnyRecord[]>([]);const [edit,setEdit]=useState<AnyRecord|null>(null);const [version,setVersion]=useState('');const [query,setQuery]=useState('');const [authority,setAuthority]=useState('all');const [status,setStatus]=useState('all')
+ const [rows,setRows]=useState<KnowledgeSource[]>([]);const [loading,setLoading]=useState(true);const [selected,setSelected]=useState<KnowledgeSource|null>(null);const [chunks,setChunks]=useState<KnowledgeChunk[]>([]);const [edit,setEdit]=useState<KnowledgeSource|null>(null);const [version,setVersion]=useState('');const [query,setQuery]=useState('');const [authority,setAuthority]=useState('all');const [status,setStatus]=useState('all')
  const load=useCallback(async()=>{if(!supabase||isOwnerPreview()){setRows([]);setLoading(false);return}setLoading(true);const {data,error}=await supabase.from('lira_knowledge_sources').select('id,title,authority,source_version,source_url,status,ingestion_status,effective_from,effective_to,approved_at,review_notes').order('authority').order('title');if(error)notify(error.message,'error');else setRows(data||[]);setLoading(false)},[notify])
  // Reload when the organization changes (RLS decides which sources it sees).
  useEffect(()=>{load()},[load,tenant?.id])
  const authorities=useMemo(()=>[...new Set(rows.map(x=>x.authority).filter(Boolean))].sort(),[rows])
  const filtered=useMemo(()=>{const q=query.trim().toLocaleLowerCase();return rows.filter(x=>(authority==='all'||x.authority===authority)&&(status==='all'||x.status===status)&&(!q||[x.authority,x.title,x.source_version].some(v=>String(v||'').toLocaleLowerCase().includes(q))))},[rows,query,authority,status])
  // Pages of 15 with the registries' pager (owner, 10/11/2026: every owner list pages, the page itself does not scroll).
- const paging=useSortedPaging(filtered,`${query}|${authority}|${status}`,{authority:(x: AnyRecord)=>x.authority,source:(x: AnyRecord)=>x.title,version:(x: AnyRecord)=>x.source_version,status:(x: AnyRecord)=>x.status,knowledge:(x: AnyRecord)=>x.ingestion_status})
- async function open(row: AnyRecord){setSelected(row);setVersion('');const {data,error}=await cloudClient().from('lira_knowledge_chunks').select('id,chunk_index,heading,content,citation_label,page_start,page_end').eq('source_id',row.id).order('chunk_index');if(error)notify(error.message,'error');setChunks(data||[])}
+ const paging=useSortedPaging(filtered,`${query}|${authority}|${status}`,{authority:(x: KnowledgeSource)=>x.authority,source:(x: KnowledgeSource)=>x.title,version:(x: KnowledgeSource)=>x.source_version,status:(x: KnowledgeSource)=>x.status,knowledge:(x: KnowledgeSource)=>x.ingestion_status})
+ async function open(row: KnowledgeSource){setSelected(row);setVersion('');const {data,error}=await cloudClient().from('lira_knowledge_chunks').select('id,chunk_index,heading,content,citation_label,page_start,page_end').eq('source_id',row.id).order('chunk_index');if(error)notify(error.message,'error');setChunks(data||[])}
  async function approve(){const {error}=await cloudClient().rpc('approve_lira_knowledge_source',{p_source_id:selected!.id,p_review_notes:'Approved from LIRA Knowledge Center'});if(error)return notify(error.message,'error');notify(en?'Knowledge source approved.':'Η πηγή γνώσης εγκρίθηκε.','success');setSelected(null);load()}
  async function retire(){const {error}=await cloudClient().rpc('retire_lira_knowledge_source',{p_source_id:selected!.id,p_review_notes:'Retired from LIRA Knowledge Center'});if(error)return notify(error.message,'error');notify(en?'Source retired.':'Η πηγή αποσύρθηκε.','success');setSelected(null);load()}
- async function saveEdit(){if(!edit)return;const {error}=await cloudClient().rpc('revise_lira_knowledge_source',{p_source_id:selected!.id,p_title:edit.title,p_source_version:edit.source_version,p_source_url:edit.source_url||'',p_review_notes:edit.review_notes||''});if(error)return notify(error.message,'error');notify(en?'Source updated.':'Η πηγή ενημερώθηκε.','success');setEdit(null);setSelected(null);load()}
+ async function saveEdit(){if(!edit)return;const {error}=await cloudClient().rpc('revise_lira_knowledge_source',{p_source_id:selected!.id,p_title:edit.title,p_source_version:edit.source_version as string,p_source_url:edit.source_url||'',p_review_notes:edit.review_notes||''});if(error)return notify(error.message,'error');notify(en?'Source updated.':'Η πηγή ενημερώθηκε.','success');setEdit(null);setSelected(null);load()}
  async function newVersion(){if(!version.trim())return;const {error}=await cloudClient().rpc('create_lira_knowledge_source_version',{p_source_id:selected!.id,p_source_version:version.trim(),p_review_notes:'New version created from approved source'});if(error)return notify(error.message,'error');notify(en?'New review version created.':'Δημιουργήθηκε νέα έκδοση προς έλεγχο.','success');setSelected(null);load()}
  return <section className="management-section management-scroll-section">
   {/* On the platform the page title («LIRA & AI») names it: no second heading. */}
@@ -64,7 +67,7 @@ export function LiraKnowledgePanel(){
     {id:'version',label:en?'Version':'Έκδοση',value:selected.source_version},
     {id:'status',label:en?'Approval':'Έγκριση',value:<span className={`status-badge ${badgeClass(selected.status)}`}>{statusLabel(selected.status,en)}</span>},
     {id:'knowledge',label:en?'Knowledge':'Γνώση',value:<span className={`status-badge ${badgeClass(selected.ingestion_status)}`}>{ingestionLabel(selected.ingestion_status,en)}</span>},
-    {id:'url',label:en?'Official source':'Επίσημη πηγή',value:<a href={selected.source_url} target="_blank" rel="noreferrer">{selected.source_url}</a>,hidden:!selected.source_url,className:'detail-span-full'},
+    {id:'url',label:en?'Official source':'Επίσημη πηγή',value:<a href={selected.source_url ?? undefined} target="_blank" rel="noreferrer">{selected.source_url}</a>,hidden:!selected.source_url,className:'detail-span-full'},
     {id:'notes',label:en?'Review notes':'Σημειώσεις ελέγχου',value:selected.review_notes,hidden:!selected.review_notes,className:'detail-span-full'},
    ]}/></section>
    {selected.status==='approved'&&<section className="lira-knowledge-new-version"><div><strong>{en?'New version for review':'Νέα έκδοση προς έλεγχο'}</strong><small>{en?'Creates a copy in review; the approved version stays active until the new one is approved.':'Δημιουργεί αντίγραφο προς έλεγχο· η εγκεκριμένη έκδοση μένει ενεργή μέχρι να εγκριθεί η νέα.'}</small></div><input className="lira-knowledge-version-input" aria-label={en?'New version':'Νέα έκδοση'} value={version} onChange={e=>setVersion(e.target.value)} placeholder={en?'e.g. 2026-01':'π.χ. 2026-01'}/><Button variant="secondary" disabled={!version.trim()} onClick={newVersion}><FilePlus2 size={15}/>{en?'Create version':'Δημιουργία έκδοσης'}</Button></section>}

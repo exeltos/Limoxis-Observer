@@ -1,6 +1,7 @@
 import { describe,expect,it } from 'vitest'
 import { assignmentToRpc,learnerOwnedAssignmentFields,programToRpc } from '../src/features/training/trainingMappers'
 import { readSource } from './helpers/readSource'
+import type { TrainingAssignment, TrainingProgram } from '../src/features/training/trainingTypes'
 
 const service=readSource(new URL('../src/features/training/trainingService.js',import.meta.url))
 const migration=readSource(new URL('../supabase/migrations/20261115100000_training_relational.sql',import.meta.url))
@@ -11,7 +12,7 @@ describe('training manager and learner concurrency',()=>{
     expect(service).toContain('learnerOwnedAssignmentFields')
     for(const field of ['attendanceConfirmedAt','completionConfirmedAt','score','competent','assessmentAnswers','feedbackScores','accessToken'])expect(learnerOwnedAssignmentFields).toContain(field)
     expect(learnerOwnedAssignmentFields).not.toContain('checkInAt')
-    const input=assignmentToRpc({id:'TRA-1',programId:'TRN-1',employeeId:'EMP-1',status:'assigned',score:100,competent:true,attendanceConfirmedAt:'x',completionConfirmedAt:'x',assessmentAnswers:{Q:1},feedbackScores:{a:5},accessToken:'T',dbId:'u',computedStatus:'overdue'})
+    const input=assignmentToRpc({id:'TRA-1',programId:'TRN-1',employeeId:'EMP-1',status:'assigned',score:100,competent:true,attendanceConfirmedAt:'x',completionConfirmedAt:'x',assessmentAnswers:{Q:1},feedbackScores:{a:5},accessToken:'T',dbId:'u',computedStatus:'overdue'} as unknown as TrainingAssignment)
     expect(input).toEqual({id:'TRA-1',programId:'TRN-1',employeeId:'EMP-1',status:'assigned'})
   })
 
@@ -28,7 +29,7 @@ describe('training manager and learner concurrency',()=>{
   })
 
   it('preserves the trainer evaluations a programme collected when a manager edits it',()=>{
-    expect(programToRpc({id:'TRN-1',dbId:'u',feedbackResponses:[{assignmentId:'TRA-1'}],title:'T'})).toEqual({id:'TRN-1',title:'T'})
+    expect(programToRpc({id:'TRN-1',dbId:'u',feedbackResponses:[{assignmentId:'TRA-1'}],title:'T'} as unknown as TrainingProgram)).toEqual({id:'TRN-1',title:'T'})
     expect(fn('public.training_save_program')).not.toContain('training_feedback_responses')
   })
 })

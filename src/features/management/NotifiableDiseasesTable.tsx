@@ -5,10 +5,11 @@ import { FilterSelect } from '../../design-system/FilterBar'
 import { EODY_FOOTNOTES,eodyEntryByName } from '../reporting/eodyCatalogue'
 import type { LanguageContextValue } from '../../core/i18n/languageTypes'
 import type { LibraryTuple } from './managementCloudService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EodyEntry } from '../reporting/eodyCatalogue'
+import type { LibraryMeta } from './managementTypes'
 
 type T = LanguageContextValue['t']
-type CatalogueRow = { row: LibraryTuple, entry: AnyRecord }
+type CatalogueRow = { row: LibraryTuple, entry: EodyEntry }
 
 const DEADLINE_SHORT: Record<string,string>={immediate:'eodyFilterImmediate','24h':'eodyFilter24h',weekly:'eodyFilterWeekly'}
 const FILTERS=[['all','eodyFilterAll'],['immediate','eodyFilterImmediate'],['24h','eodyFilter24h'],['weekly','eodyFilterWeekly']]
@@ -35,7 +36,7 @@ export function EodyDeadlineFilter({value,onChange,t}: {value: string,onChange: 
 export function NotifiableDiseasesTable({rows,query,deadline='all',language,t,loading,onOpen}: {rows: LibraryTuple[],query: string,deadline?: string,language: string,t: T,loading?: boolean,onOpen?: (row: LibraryTuple)=>void}){
  const {catalogue,legacy}=useMemo(()=>splitNotifiableRows(rows,{deadline,query}),[rows,deadline,query])
  const en=language==='en'
- const statusCell=(meta: AnyRecord)=>meta.active===false?<span className="status-badge temporary">{t('librariesPanel.inactiveStatus')}</span>:<span className="eody-status">{t('librariesPanel.activeStatus')}</span>
+ const statusCell=(meta: LibraryMeta)=>meta.active===false?<span className="status-badge temporary">{t('librariesPanel.inactiveStatus')}</span>:<span className="eody-status">{t('librariesPanel.activeStatus')}</span>
  return <div className="eody-library">
   <RegistryTable<CatalogueRow>
    wrapperClassName="table-wrap scroll-table"

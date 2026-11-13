@@ -1,4 +1,5 @@
 import type { Json, Tables } from '../../core/supabase/database.types'
+import type { HaiCriteriaGroup } from '../surveillance/surveillanceListTypes'
 
 // Τύποι της Διαχείρισης: οι εγγραφές των κεντρικών βιβλιοθηκών και οι πηγές αναφοράς.
 
@@ -99,3 +100,103 @@ export type PatientDayPeriod = {
 }
 // Ό,τι στέλνει η φόρμα των ημερών νοσηλείας.
 export type PatientDayPeriodInput = { scope?: string, departmentId?: string | null, from: string, to: string, value: number | string }
+
+// --- Βιβλιοθήκη δεσμών μέτρων (prevention_bundle_templates) ---
+// Ένα στοιχείο της δέσμης (ερώτηση ναι/όχι/δεν εφαρμόζεται).
+export type BundleLibraryElement = { id?: string, labelEl: string, labelEn?: string, required?: boolean }
+// Ένα πρότυπο δέσμης όπως το διαχειρίζεται η βιβλιοθήκη (readOnly/isNew: μόνο στη φόρμα).
+export type BundleLibraryTemplate = {
+  id?: string
+  bundleKey?: string
+  name: string
+  titleEl?: string
+  titleEn?: string
+  version?: string
+  status?: string
+  scope?: string
+  source?: string
+  sourceVersion?: string
+  departments?: string[]
+  elements: BundleLibraryElement[]
+  basedOn?: string | null
+  system?: boolean
+  hidden?: boolean
+  publishedAt?: string | null
+  retiredAt?: string | null
+  createdAt?: string
+  updatedAt?: string
+  readOnly?: boolean
+  isNew?: boolean
+}
+
+// --- Βιβλιοθήκη κριτηρίων ΛΣΦΥ (master_library_items, library_key = hai_criteria) ---
+export type HaiCriteriaLibraryItem = {
+  id: string
+  criteriaKey: string | null
+  // Τα σετ του demo (HAI_CRITERIA_SETS) μπορεί να μην έχουν ετικέτα ή πηγή.
+  labelEl?: string
+  labelEn?: string
+  source?: string
+  groups: HaiCriteriaGroup[]
+  system: boolean
+  organizationId: string | null
+  // Μόνο στη φόρμα: ο χρήστης δεν μπορεί να το αλλάξει.
+  readOnly?: boolean
+}
+
+// --- Δομικοί δείκτες νοσοκομείου (hospital_structure_snapshots) ---
+export type HospitalStructureSnapshot = {
+  id: string
+  effectiveDate: string
+  // Αριθμοί από τη βάση· στο demo η καταγραφή μένει όπως γράφτηκε στη φόρμα (κείμενο).
+  totalBeds?: number | string | null
+  icuBeds?: number | string | null
+  singleRooms?: number | string | null
+  infectionControlNurses?: number | string | null
+  infectiousDiseasePhysicians?: number | string | null
+  microbiologists?: number | string | null
+  notes?: string
+  createdAt?: string
+  createdById?: string | null
+  createdBy?: string
+}
+// Η καταγραφή στη φόρμα: οι αριθμοί μένουν κείμενο όσο γράφονται.
+export type HospitalStructureDraft = { effectiveDate: string, notes?: string } & Partial<Record<'totalBeds' | 'icuBeds' | 'singleRooms' | 'infectionControlNurses' | 'infectiousDiseasePhysicians' | 'microbiologists', number | string | null>>
+
+// --- Μελέτες σημειακού επιπολασμού (point_prevalence_surveys) ---
+// Αριθμοί από τη βάση· στο demo η μελέτη μένει όπως γράφτηκε στη φόρμα (κείμενο).
+export type PrevalenceSurvey = {
+  id: string
+  surveyDate: string
+  departmentId: string
+  departmentEl: string
+  patientsTotal: number | string
+  patientsWithHai: number | string
+  patientsOnAntibiotics: number | string
+  responsibleName: string
+  notes: string
+  createdAt?: string
+  createdById?: string | null
+}
+export type PrevalenceSurveyDraft = Omit<PrevalenceSurvey, 'id' | 'createdAt' | 'createdById'>
+// Ένα τμήμα στις επιλογές της φόρμας (νοσοκομείου ή του demo).
+export type DepartmentChoice = { id: string, name: string, nameEn?: string | null }
+
+// --- Ανακοινώσεις (management_announcements) ---
+export type Announcement = {
+  id?: string
+  title: string
+  message: string
+  priority?: string
+  audienceType?: string
+  audienceValues: string[]
+  requiresAck?: boolean
+  startAt?: string
+  endAt?: string
+  linkPath?: string
+  createdAt?: string
+  createdById?: string | null
+  updatedAt?: string
+}
+// Η ανακοίνωση στη φόρμα: έναρξη και λήξη ως ημερομηνία και ώρα χωριστά.
+export type AnnouncementEditor = Announcement & { startDate: string, startTime: string, endDate: string, endTime: string }

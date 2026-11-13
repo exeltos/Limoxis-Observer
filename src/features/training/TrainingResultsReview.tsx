@@ -15,13 +15,13 @@ import {manualReviewQuestions,scoreReview} from './trainingScoring'
 import {finalizeTrainingReviewAsync} from './trainingService'
 import './TrainingResultsReview.css'
 import {trainerFeedbackQuestionsForProgram} from './trainingFeedbackTemplate'
-import type {AnyRecord} from '../../types/featureTypes'
+import type { AssessmentQuestion, TrainingAssignment, TrainingProgram } from './trainingTypes'
 import type {ReactNode} from 'react'
 import type {TrainingState} from './trainingData'
 
 const fmt=(v: string|null|undefined)=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit', hourCycle: 'h23'})}
 
-function answerText(question: AnyRecord,answer: unknown,en: boolean){
+function answerText(question: AssessmentQuestion,answer: unknown,en: boolean){
  const q=normalizeTrainingQuestion(question)
  if(answer===undefined||answer===null||answer==='')return '—'
  if(q.type==='single_choice')return q.options.find(option=>option.id===answer)?.text||String(answer)
@@ -30,40 +30,40 @@ function answerText(question: AnyRecord,answer: unknown,en: boolean){
  return String(answer)
 }
 
-interface TrainingResultsReviewProps { program: AnyRecord, rows: AnyRecord[], state: TrainingState, onPersist: (state: TrainingState, message: string)=>Promise<unknown>, busy?: boolean, en?: boolean, language?: string, organizationId?: string|null, onReviewed?: ((state: TrainingState)=>unknown)|null }
+interface TrainingResultsReviewProps { program: TrainingProgram, rows: TrainingAssignment[], state: TrainingState, onPersist: (state: TrainingState, message: string)=>Promise<unknown>, busy?: boolean, en?: boolean, language?: string, organizationId?: string|null, onReviewed?: ((state: TrainingState)=>unknown)|null }
 export function TrainingResultsReview({program,rows,state,onPersist,busy=false,en=false,language='el',organizationId=null,onReviewed=null}: TrainingResultsReviewProps){
  const {profile,user}=useAuth()
  const {notify}=useFeedback()
- const [selected,setSelected]=useState<AnyRecord|null>(null)
+ const [selected,setSelected]=useState<TrainingAssignment|null>(null)
  const [reviewed,setReviewed]=useState(false)
  const [certBusyId,setCertBusyId]=useState<string|null>(null)
  const [reviewPoints,setReviewPoints]=useState<Record<string, number|string>>({}),[decision,setDecision]=useState('auto'),[reviewNote,setReviewNote]=useState(''),[finalizing,setFinalizing]=useState(false)
- const certificateFor=(row: AnyRecord|null)=>row?.certificateId?(state.certificates||[]).find(c=>c.id===row.certificateId)||null:null
+ const certificateFor=(row: TrainingAssignment|null)=>row?.certificateId?(state.certificates||[]).find(c=>c.id===row.certificateId)||null:null
  const selectedCertificate=certificateFor(selected)
- async function downloadCertificateFor(row: AnyRecord,pdf=false){
+ async function downloadCertificateFor(row: TrainingAssignment,pdf=false){
   const certificate=certificateFor(row)
   if(certBusyId||!certificate)return
   setCertBusyId(row.id)
   try{await downloadCertificatePdf({certificate,program,participantName:row.employeeName,en,pdf})}
-  catch(error){notify((error as AnyRecord)?.message||(en?'Could not export the certificate.':'Δεν ήταν δυνατή η εξαγωγή του πιστοποιητικού.'),'danger')}
+  catch(error){notify((error as Error)?.message||(en?'Could not export the certificate.':'Δεν ήταν δυνατή η εξαγωγή του πιστοποιητικού.'),'danger')}
   finally{setCertBusyId(null)}
  }
- const questions: AnyRecord[]=Array.isArray(program?.assessmentQuestions)?program.assessmentQuestions:[]
+ const questions: AssessmentQuestion[]=Array.isArray(program?.assessmentQuestions)?program.assessmentQuestions:[]
  // The programme's own trainer-evaluation questions, or the default ones (clarity, knowledge, …) the answers were given to.
  const feedbackLabelById=useMemo(()=>new Map(trainerFeedbackQuestionsForProgram(program,language).map(question=>[question.id,question.label||question.id])),[program,language])
  const completed=rows.filter(x=>x.status==='completed').length
  const scored=rows.filter(x=>x.score!=null)
  const avg=scored.length?Math.round(scored.reduce((sum,row)=>sum+Number(row.score||0),0)/scored.length):0
- const pass=program.requiresAssessment&&program.passScore!==''&&program.passScore!=null?Number(program.passScore):null
+ const pass=program.requiresAssessment&&(program.passScore as unknown)!==''&&program.passScore!=null?Number(program.passScore):null
  const submittedRows=rows.filter(x=>x.feedbackSubmittedAt||x.assessmentSubmittedAt)
  const reviewedCount=submittedRows.filter(x=>x.assessmentReviewedAt).length
- const reviewerName=profile?.fullName||(profile as AnyRecord|null)?.name||profile?.username||user?.email||'—'
+ const reviewerName=profile?.fullName||(profile as {name?: string}|null)?.name||profile?.username||user?.email||'—'
  const selectedAnswers=useMemo(()=>selected?.assessmentAnswers||{},[selected])
 
  const pendingReview=selected?.assessmentReviewStatus==='pending'
  const manualQuestions=useMemo(()=>manualReviewQuestions(program),[program])
  const projected=useMemo(()=>pendingReview?scoreReview(program,selectedAnswers,reviewPoints,decision==='auto'?null:decision==='pass'):null,[pendingReview,program,selectedAnswers,reviewPoints,decision])
- function open(row: AnyRecord){if(!row.feedbackSubmittedAt&&!row.assessmentSubmittedAt)return;setSelected(row);setReviewed(Boolean(row.assessmentReviewedAt));setReviewPoints(Object.fromEntries(manualReviewQuestions(program).map(q=>[q.id,row.awardedPoints?.[q.id]??0])));setDecision('auto');setReviewNote('')}
+ function open(row: TrainingAssignment){if(!row.feedbackSubmittedAt&&!row.assessmentSubmittedAt)return;setSelected(row);setReviewed(Boolean(row.assessmentReviewedAt));setReviewPoints(Object.fromEntries(manualReviewQuestions(program).map(q=>[q.id,row.awardedPoints?.[q.id]??0])));setDecision('auto');setReviewNote('')}
  // A free-text answer that needs a manual review: the reviewer awards its
  // points, the score is recomputed and the assignment completed (with its
  // certificate when competent).
@@ -75,7 +75,7 @@ export function TrainingResultsReview({program,rows,state,onPersist,busy=false,e
    notify(en?'Review completed.':'Ο έλεγχος ολοκληρώθηκε.','success')
    setSelected(null)
    if(onReviewed)await onReviewed(next)
-  }catch(error){notify((error as AnyRecord)?.message||(en?'Could not complete the review.':'Δεν ήταν δυνατή η ολοκλήρωση του ελέγχου.'),'danger')}
+  }catch(error){notify((error as Error)?.message||(en?'Could not complete the review.':'Δεν ήταν δυνατή η ολοκλήρωση του ελέγχου.'),'danger')}
   finally{setFinalizing(false)}
  }
  async function saveReview(){
