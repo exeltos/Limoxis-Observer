@@ -55,11 +55,15 @@ import { groupedListDoc } from './listReports'
 import { supplierEvaluationsSheet } from './resources/supplierEvaluationReport'
 import './quality.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { PlanObjective } from './review/reviewTypes'
+import type { ObjectiveView, PlanObjective } from './review/reviewTypes'
+import type { SurveyFilters } from './surveys/surveyTypes'
+import type { RiskAssessment } from './risk/riskTypes'
 import type { Register } from '../registers/registerTypes'
 import type { ComponentProps } from 'react'
 import type { ActionFilters, AuditFilters, CreateOption, DeviationItem, QualityRecord, TabFigure } from './qualityTypes'
+
+// What the objectives' annual dossier is printed from (loaded when the objectives are shown).
+type DossierData = { histories: Awaited<ReturnType<typeof loadObjectiveHistories>>, reviews: Awaited<ReturnType<typeof loadReviews>>, extras: Awaited<ReturnType<typeof loadDossierExtras>> | null }
 
 // Intake and governance are deliberately separate:
 // Report (staff) → Quality assessment/classification → Incident and/or
@@ -139,7 +143,7 @@ export function QualityPage({section=''}: { section?: string }={}){
  useEffect(()=>{if(EQUIPMENT_SHOWN&&!suppliersOn&&resourceView==='suppliers')setResourceView('equipment')},[suppliersOn,resourceView])
  const [equipmentFilters,setEquipmentFilters]=useState(NO_EQUIPMENT_FILTERS)
  const [supplierFilters,setSupplierFilters]=useState(NO_SUPPLIER_FILTERS)
- const [surveyFilters,setSurveyFilters]=useState<AnyRecord>({query:'',audience:'all',status:'all',quick:null})
+ const [surveyFilters,setSurveyFilters]=useState<SurveyFilters>({query:'',audience:'all',status:'all',quick:null})
  const registry=useRegistryMemory(`quality.${tab}`)
 
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
@@ -170,13 +174,13 @@ export function QualityPage({section=''}: { section?: string }={}){
  const riskList=useRiskAssessmentList(tenant?.id,true)
  const [riskCreating,setRiskCreating]=useState(false)
  const riskFile=useRef<HTMLInputElement>(null)
- const [riskRows,setRiskRows]=useState<AnyRecord[]>([])
+ const [riskRows,setRiskRows]=useState<RiskAssessment[]>([])
  const [registerRows,setRegisterRows]=useState<Register[]>([])
  const [staleOnly,setStaleOnly]=useState(false)
  const registerList=useRegisterList()
  const objectives=useObjectives(tenant?.id)
  // The auditor's file of the year's objectives: the months of each and the last management review, read once the objectives are on screen.
- const [dossierData,setDossierData]=useState<AnyRecord | null>(null)
+ const [dossierData,setDossierData]=useState<DossierData | null>(null)
  const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all',year:'auto',level:'all'})
  const dossierYear=objectiveFilters.year==='auto'||objectiveFilters.year==='all'?new Date().getFullYear():Number(objectiveFilters.year)
  useEffect(()=>{if(tab!=='indicators'||measureView!=='objectives'||objectives.loading||!tenant?.id){return undefined}let live=true;Promise.all([loadObjectiveHistories(tenant.id,objectives.objectives,objectives.definitions),loadReviews(tenant.id).catch(()=>[]),loadDossierExtras(tenant.id,dossierYear).catch(()=>null)]).then(([histories,reviews,extras])=>{if(live)setDossierData({histories,reviews,extras})}).catch(()=>{if(live)setDossierData(null)});return()=>{live=false}},[tab,measureView,objectives.loading,objectives.objectives,objectives.definitions,tenant?.id,dossierYear])
@@ -190,7 +194,7 @@ export function QualityPage({section=''}: { section?: string }={}){
  const objectiveYears=useMemo(()=>[...new Set(objectives.objectives.map(item=>item.year).filter(Boolean))].sort((a,b)=>b-a),[objectives.objectives])
  const objectiveYear=objectiveFilters.year==='auto'?(objectiveYears.includes(new Date().getFullYear())?String(new Date().getFullYear()):'all'):objectiveFilters.year
  const inObjectiveYear=(item: { year?: unknown })=>objectiveYear==='all'||String(item.year)===objectiveYear
- const isMissed=(item: AnyRecord)=>(item.status||'active')==='active'&&item.current.status==='missed'
+ const isMissed=(item: ObjectiveView)=>(item.status||'active')==='active'&&item.current.status==='missed'
  // All the hospital's objectives in one list: its own, the departments' and the committees' (with the committees' annual plans).
  const planRows=useMemo<PlanObjective[]>(()=>objectives.committeeTargets.map(item=>({...item,kind:'plan',level:'committee'})),[objectives.committeeTargets])
  // The objectives' totals count what the year, level and search leave; each one sets the state filter.
@@ -413,12 +417,12 @@ function CreateAction({options,label}: { options: CreateOption[], label: string 
  return <OverflowMenu label={label} triggerTone="primary" width={240} trigger={<><Plus size={18} aria-hidden="true"/>{label}</>} items={options}/>
 }
 
-function riskAssessmentsExport(items: AnyRecord[],language: string){
+function riskAssessmentsExport(items: RiskAssessment[],language: string){
  const en=language==='en'
  return {
   name:en?'risk-assessments':'ektimiseis-kindynou',
   headers:en?['Code','Period','Assessment','Date','Next assessment','Risks','Very high (residual)','High (residual)','Status']:['Κωδικός','Περίοδος','Εκτίμηση','Ημερομηνία','Επόμενη αξιολόγηση','Κίνδυνοι','Πολύ υψηλοί (υπολειπόμενοι)','Υψηλοί (υπολειπόμενοι)','Κατάσταση'],
-  rows:items.map((item: AnyRecord)=>{const summary=summarizeRisks(item.risks||[]);return [item.code,item.periodLabel,(en?item.titleEn:item.title)||item.title,formatDay(item.assessedOn,language),formatDay(item.nextReviewOn,language),summary.total,summary.levels.residual.very_high,summary.levels.residual.high,item.status]}),
+  rows:items.map(item=>{const summary=summarizeRisks(item.risks||[]);return [item.code,item.periodLabel,(en?item.titleEn:item.title)||item.title,formatDay(item.assessedOn,language),formatDay(item.nextReviewOn,language),summary.total,summary.levels.residual.very_high,summary.levels.residual.high,item.status]}),
  }
 }
 
