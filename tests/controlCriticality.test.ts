@@ -15,7 +15,7 @@ describe('control criticality', () => {
   it('reads evidence and deviation settings', () => {
     expect(requiresEvidence(control())).toBe(false)
     expect(requiresEvidence(control({ requiresEvidence: true }))).toBe(true)
-    expect(deviationActions(control({ deviationActions: '  Move vaccines  ' }))).toBe('Move vaccines')
+    expect((deviationActions as (record: object) => string)(control({ deviationActions: '  Move vaccines  ' }))).toBe('Move vaccines')
   })
 
   it('orders overdue before due soon, then high criticality first', () => {
@@ -30,6 +30,6 @@ describe('control criticality', () => {
   })
 
   it('keeps only name, size and type of an evidence file', () => {
-    expect(evidenceSummary({ name: 'print.jpg', size: 2048, type: 'image/jpeg', lastModified: 1 })).toEqual({ name: 'print.jpg', size: 2048, type: 'image/jpeg' })
+    expect(evidenceSummary({ name: 'print.jpg', size: 2048, type: 'image/jpeg', lastModified: 1 } as { name: string })).toEqual({ name: 'print.jpg', size: 2048, type: 'image/jpeg' })
   })
 })

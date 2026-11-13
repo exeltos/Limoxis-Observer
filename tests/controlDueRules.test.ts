@@ -9,6 +9,7 @@ import { programmeCalendar } from '../src/features/controls/controlCalendar'
 import { progressCompleteMessage, progressText } from '../src/features/controls/controlProgress'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { readSource } from './helpers/readSource'
+import type { ControlRow } from '../src/features/controls/controlTypes'
 
 const iso = (value) => new Date(value).toISOString()
 const daily1 = { kind: 'daily', timesPerDay: 1, times: ['09:00'] }
@@ -25,9 +26,9 @@ describe('time zone helpers (Europe/Athens)', () => {
   })
   it('gives the day of a 25-hour and a 23-hour day', () => {
     const autumn = periodBounds(daily1, new Date('2026-10-25T12:00:00Z'))
-    expect((autumn.end - autumn.start) / 3600000).toBe(25)
+    expect(((autumn.end as unknown as number) - (autumn.start as unknown as number)) / 3600000).toBe(25)
     const spring = periodBounds(daily1, new Date('2026-03-29T12:00:00Z'))
-    expect((spring.end - spring.start) / 3600000).toBe(23)
+    expect(((spring.end as unknown as number) - (spring.start as unknown as number)) / 3600000).toBe(23)
   })
 })
 
@@ -159,7 +160,7 @@ describe('filters keep only the selected department everywhere', () => {
       ΤΕΠ: { dbId: `${id}-ed`, nextDueAt: '2026-10-30T00:00:00Z', history: [{ at: '2026-10-06T10:00:00Z' }, { at: '2026-09-29T10:00:00Z' }] },
     },
   })
-  const rows = [{ item: item('A'), departments: ['ΜΕΘ', 'ΤΕΠ'] }, { item: item('B', { responseConfig: { criticality: 'low' } }), departments: ['ΤΕΠ'] }]
+  const rows: ControlRow[] = [{ item: item('A'), departments: ['ΜΕΘ', 'ΤΕΠ'] }, { item: item('B', { responseConfig: { criticality: 'low' } }), departments: ['ΤΕΠ'] }] as never
 
   it('narrows each row to the department, and the status to its departments', () => {
     expect(scopeControlRows(rows, { department: 'ΜΕΘ' }).map((r) => [r.item.id, r.departments])).toEqual([['A', ['ΜΕΘ']]])
@@ -220,7 +221,7 @@ describe('working days only (Monday–Friday)', () => {
   })
   it('expects no entry at the weekend', () => {
     // Monday 12 to Monday 19 October: five working days.
-    expect(programmeAdherence([{ item: { id: 'W', frequency: f, assignments: { Ενδοσκοπικό: { history: [] } } }, departments: ['Ενδοσκοπικό'] }], { from: new Date('2026-10-11T21:00:00Z'), to: new Date('2026-10-18T21:00:00Z'), now: new Date('2026-10-18T21:00:00Z') }).totals.expected).toBe(5)
+    expect(programmeAdherence([{ item: { id: 'W', frequency: f, assignments: { Ενδοσκοπικό: { history: [] } } }, departments: ['Ενδοσκοπικό'] }] as never, { from: new Date('2026-10-11T21:00:00Z'), to: new Date('2026-10-18T21:00:00Z'), now: new Date('2026-10-18T21:00:00Z') }).totals.expected).toBe(5)
   })
   it('is mirrored by the database', () => {
     const sql = readSource(new URL('../supabase/migrations/20261211120000_control_weekdays_only.sql', import.meta.url))

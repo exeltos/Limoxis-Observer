@@ -29,7 +29,7 @@ vi.mock('../src/features/indicators/indicatorDefinitionService', () => ({ loadIn
 vi.mock('../src/core/attachments/attachmentService', () => ({
   cloudAttachmentsEnabled: () => cloudAttachments,
   loadAttachments: vi.fn(async () => []),
-  uploadAttachment: (...args) => uploadAttachment(...args),
+  uploadAttachment: (...args: Parameters<typeof uploadAttachment>) => uploadAttachment(...args),
   updateAttachmentMetadata: vi.fn(async (id, meta) => ({ id, name: 'protocol.pdf', ...meta })),
   deleteAttachment: vi.fn(),
   getAttachmentUrl: vi.fn(),
@@ -217,7 +217,7 @@ describe('committee record: meetings', () => {
   it('sends a change request with its comment from the shared approval panel', async () => {
     const onApproval = vi.fn()
     const pending = meeting({ status: 'approval_pending', approvals: [{ id: 'AP-1', status: 'pending', approverId: 'u-actor', approverName: 'Actor' }] })
-    render(<LanguageProvider><MemoryRouter><MeetingRecord meeting={pending} members={members} actorId="u-actor" canSave canFinalize busy={false} onBack={() => {}} onSave={() => {}} onApproval={onApproval} onExternalAction={() => {}} en={false}/></MemoryRouter></LanguageProvider>)
+    render(<LanguageProvider><MemoryRouter><MeetingRecord meeting={pending} members={members} actorId="u-actor" canSave canFinalize busy={false} onBack={() => {}} onSave={(() => {}) as never} onApproval={onApproval} onExternalAction={() => {}} en={false} {...{} as { onCreateCapa: never, onOpenCapa: never }}/></MemoryRouter></LanguageProvider>)
     fireEvent.click(screen.getByRole('button', { name: /Αίτημα διορθώσεων/ }))
     fireEvent.change(await screen.findByPlaceholderText('Περιγράψτε τις απαιτούμενες διορθώσεις…'), { target: { value: 'Συμπληρώστε το θέμα 2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Αποστολή αιτήματος' }))
@@ -249,7 +249,7 @@ describe('committee record: documents', () => {
     openPage(); openTab('Έγγραφα')
     await addFile()
     await waitFor(() => expect(saveCommittees).toHaveBeenCalled())
-    expect(saveCommittees.mock.lastCall[0][0].documents).toEqual([expect.objectContaining({ name: 'protocol.pdf' })])
+    expect(vi.mocked(saveCommittees).mock.lastCall[0][0].documents).toEqual([expect.objectContaining({ name: 'protocol.pdf' })])
     expect(uploadAttachment).not.toHaveBeenCalled()
   })
 

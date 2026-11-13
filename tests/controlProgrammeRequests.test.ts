@@ -22,7 +22,7 @@ const rows = {
 function builder(table) {
   const call = { table, filters: [] }
   calls.push(call)
-  const chain = {}
+  const chain: Record<string, (...args: unknown[]) => unknown> = {}
   for (const method of ['select', 'eq', 'neq', 'in', 'not', 'gte', 'lt', 'order', 'range', 'limit', 'is']) {
     chain[method] = (...args) => { call.filters.push([method, ...args]); return chain }
   }
