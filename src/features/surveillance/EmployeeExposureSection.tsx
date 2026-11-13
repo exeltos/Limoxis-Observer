@@ -13,6 +13,7 @@ import { ROLES } from '../../core/permissions/systemRoleMatrix'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { createExposureIncidentAsync, loadExposureIncidentsForRecordAsync } from '../occupational-health/exposureIncidentService'
 import { EMPTY_EXPOSURE_INCIDENT, ExposureIncidentEditor, exposureTypeLabel, followUpLabel, sourceStatusLabel } from '../occupational-health/ExposureIncidentEditor'
+import type { EmployeeRow } from '../occupational-health/occupationalHealthTypes'
 import { loadClinicalCases } from './clinicalCloudService'
 import { clinicalCases } from './clinicalDemoData'
 import { FormEmpty, FormRow, FormRows } from './forms/FormRow'
@@ -98,7 +99,7 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
   }
   async function save(draft: AnyRecord) {
     try {
-      await createExposureIncidentAsync(tenant?.id, employee, draft)
+      await createExposureIncidentAsync(tenant?.id, employee as unknown as EmployeeRow | null, draft)
       notify(t('episodeForms.exposure.saved'), 'success')
       setEditor(null)
       await reload()
@@ -151,7 +152,7 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
       {editor && (
         <ExposureIncidentEditor
           language={language}
-          employees={employee ? [employee] : []}
+          employees={(employee ? [employee] : []) as unknown as EmployeeRow[]}
           draft={editor}
           onChange={setEditor}
           onClose={() => setEditor(null)}

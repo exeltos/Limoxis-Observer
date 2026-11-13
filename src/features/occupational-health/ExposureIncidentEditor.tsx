@@ -5,13 +5,13 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { PrefilledList as PrefilledListJs } from '../surveillance/forms/PrefilledList'
 import type { ComponentType, FormEvent } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeRow, ExposureIncidentDraft } from './occupationalHealthTypes'
 import '../occupational-health/OccupationalHealthPage.css'
 
-export const EMPTY_EXPOSURE_INCIDENT: AnyRecord={employeeId:'',incidentDate:'',exposureType:'',deviceOrSource:'',bodySite:'',sourcePatientStatus:'',pepAdministered:null,pepDetails:'',followUpStatus:'pending',followUpDueAt:'',notes:''}
+export const EMPTY_EXPOSURE_INCIDENT: ExposureIncidentDraft={employeeId:'',incidentDate:'',exposureType:'',deviceOrSource:'',bodySite:'',sourcePatientStatus:'',pepAdministered:null,pepDetails:'',followUpStatus:'pending',followUpDueAt:'',notes:''}
 
 // surveillance is still JavaScript: its default (items=[]) would type the items as never[].
-const PrefilledList=PrefilledListJs as ComponentType<{ items: AnyRecord[] }>
+const PrefilledList=PrefilledListJs as ComponentType<{ items: Array<Record<string, unknown>> }>
 
 // [value, Greek, English]
 type Choice=[string, string, string]
@@ -32,26 +32,26 @@ const growNotes=(event: FormEvent<HTMLTextAreaElement>)=>{const target=event.cur
 
 interface ExposureIncidentEditorProps {
  language: string
- employees: AnyRecord[]
- draft: AnyRecord
- onChange: (draft: AnyRecord) => void
+ employees: EmployeeRow[]
+ draft: ExposureIncidentDraft
+ onChange: (draft: ExposureIncidentDraft) => void
  onClose: () => void
- onSave: (draft: AnyRecord) => void
- prefillItems?: AnyRecord[] | null
+ onSave: (draft: ExposureIncidentDraft) => void
+ prefillItems?: Array<Record<string, unknown>> | null
  sourceCaseOptions?: Array<{ value: string, label: string }>
 }
 
 export function ExposureIncidentEditor({language,employees,draft,onChange,onClose,onSave,prefillItems=null,sourceCaseOptions=[]}: ExposureIncidentEditorProps){
  const en=language==='en'
- const patch=(next: AnyRecord)=>onChange({...draft,...next})
+ const patch=(next: Partial<ExposureIncidentDraft>)=>onChange({...draft,...next})
  // Employee, incident date and exposure type are required (draft.employeeId&&draft.incidentDate&&draft.exposureType).
  const form=useFormValidation([
   !prefillItems&&{key:'employeeId',label:en?'Employee':'Εργαζόμενος',valid:Boolean(draft.employeeId)},
   {key:'incidentDate',label:en?'Incident date':'Ημερομηνία περιστατικού',valid:Boolean(draft.incidentDate)},
   {key:'exposureType',label:en?'Exposure type':'Τύπος έκθεσης',valid:Boolean(draft.exposureType)},
  ])
- const followUpOpen=!['completed','closed'].includes(draft.followUpStatus)
- const employeeOptions=employees.map((e: AnyRecord)=>({value:e.id,label:`${en?`${e.firstNameEn||e.firstName} ${e.lastNameEn||e.lastName}`:`${e.lastName} ${e.firstName}`} · ${en?e.departmentEn:e.department}`}))
+ const followUpOpen=!['completed','closed'].includes(draft.followUpStatus||'')
+ const employeeOptions=employees.map((e: EmployeeRow)=>({value:e.id,label:`${en?`${e.firstNameEn||e.firstName} ${e.lastNameEn||e.lastName}`:`${e.lastName} ${e.firstName}`} · ${en?e.departmentEn:e.department}`}))
  return <ObserverDialog width="workspace" title={en?'Report an exposure incident':'Καταγραφή περιστατικού έκθεσης'} subtitle={en?'Record a needlestick, sharps or mucocutaneous exposure and its follow-up.':'Καταγράψτε τρύπημα βελόνας, αιχμηρό αντικείμενο ή έκθεση βλεννογόνου και την παρακολούθησή της.'} onClose={onClose} footer={<FormSubmit form={form} onSubmit={()=>onSave(draft)}>{en?'Save':'Αποθήκευση'}</FormSubmit>}>
   <div className="vaccination-editor" ref={form.scopeRef}>
    {prefillItems?<PrefilledList items={prefillItems}/>:<section className="vaccination-editor-card vaccination-employee-picker"><h4>{en?'Employee':'Εργαζόμενος'}</h4><SearchableSelect label={en?'Employee':'Εργαζόμενος'} {...form.field('employeeId')} value={draft.employeeId} options={employeeOptions} placeholder={en?'Select employee':'Επιλέξτε εργαζόμενο'} clearLabel="" onChange={employeeId=>patch({employeeId:employeeId||''})}/></section>}
