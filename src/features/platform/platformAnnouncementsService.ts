@@ -1,6 +1,7 @@
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { isOwnerPreview, previewPlatformAnnouncements } from '../../core/preview/ownerPreview'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
+import type { AnnouncementAudience, AnnouncementDraft, AnnouncementRowInput, AnnouncementSchedule, ListedAnnouncement, PlatformAnnouncement, UploadedAttachment, UploadedDocument } from './platformAnnouncementTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
@@ -12,9 +13,11 @@ const COLUMNS = 'id,kind,title_el,title_en,body_el,body_en,cta_label_el,cta_labe
 
 // Where the image sits next to the text.
 export const IMAGE_POSITIONS = ['top', 'left', 'right', 'bottom']
-const isImageType = (type: string) => /^image\//.test(type || '')
+const isImageType = (type: string | null | undefined) => /^image\//.test(type || '')
+// A known position (the value comes from the database or the form).
+const isImagePosition = (value: unknown): value is string => (IMAGE_POSITIONS as unknown[]).includes(value)
 
-export function mapAnnouncement(row: AnyRecord) {
+export function mapAnnouncement(row: AnnouncementRowInput): PlatformAnnouncement {
   const legacyFile = Boolean(row.attachment_path) && !isImageType(row.attachment_type)
   return {
     id: row.id,
@@ -35,7 +38,7 @@ export function mapAnnouncement(row: AnyRecord) {
     documentPath: row.document_path || (legacyFile ? row.attachment_path : ''),
     documentName: row.document_name || (legacyFile ? row.attachment_name || '' : ''),
     documentType: row.document_type || (legacyFile ? row.attachment_type || '' : ''),
-    imagePosition: IMAGE_POSITIONS.includes(row.image_position) ? row.image_position : 'top',
+    imagePosition: isImagePosition(row.image_position) ? row.image_position : 'top',
     showInDemo: Boolean(row.show_in_demo),
     startsAt: row.starts_at || null,
     endsAt: row.ends_at || null,
@@ -49,9 +52,9 @@ export function mapAnnouncement(row: AnyRecord) {
 }
 
 // Nothing chosen in «Where it shows» means every hospital and every demo.
-const nobodyChosen = (draft: AnyRecord) => !draft.allHospitals && !draft.showInDemo && !(Array.isArray(draft.audience) && draft.audience.length)
+const nobodyChosen = (draft: AnnouncementDraft) => !draft.allHospitals && !draft.showInDemo && !(Array.isArray(draft.audience) && draft.audience.length)
 const blank = (value: unknown) => (String(value ?? '').trim() ? String(value).trim() : null)
-export function announcementPayload(draft: AnyRecord) {
+export function announcementPayload(draft: AnnouncementDraft) {
   return {
     kind: draft.kind === 'promotion' ? 'promotion' : 'announcement',
     title_el: String(draft.titleEl || '').trim(),
@@ -65,7 +68,7 @@ export function announcementPayload(draft: AnyRecord) {
     attachment_path: blank(draft.attachmentPath),
     attachment_name: blank(draft.attachmentName),
     attachment_type: blank(draft.attachmentType),
-    image_position: IMAGE_POSITIONS.includes(draft.imagePosition) ? draft.imagePosition : 'top',
+    image_position: isImagePosition(draft.imagePosition) ? draft.imagePosition : 'top',
     document_path: blank(draft.documentPath),
     document_name: blank(draft.documentName),
     document_type: blank(draft.documentType),
@@ -93,7 +96,7 @@ export async function loadAnnouncementTargets() {
 }
 
 // The owner's list, with how many administrators have seen each one.
-export async function loadPlatformAnnouncements() {
+export async function loadPlatformAnnouncements(): Promise<ListedAnnouncement[]> {
   if (isOwnerPreview()) return previewPlatformAnnouncements()
   const [{ data, error }, views] = await Promise.all([
     supabase.from('platform_announcements').select(COLUMNS).order('created_at', { ascending: false }),
@@ -101,12 +104,12 @@ export async function loadPlatformAnnouncements() {
   ])
   if (error) throw error
   if (views.error) throw views.error
-  const seen = new Map()
+  const seen = new Map<string, number>()
   for (const row of views.data || []) seen.set(row.announcement_id, (seen.get(row.announcement_id) || 0) + 1)
   return (data || []).map(row => ({ ...mapAnnouncement(row), seenCount: seen.get(row.id) || 0 }))
 }
 
-export async function savePlatformAnnouncement(draft: AnyRecord, userId: string | null | undefined) {
+export async function savePlatformAnnouncement(draft: AnnouncementDraft, userId: string | null | undefined) {
   const payload = { ...announcementPayload(draft), updated_by: userId || null, updated_at: new Date().toISOString() }
   const query = draft.id
     ? supabase.from('platform_announcements').update(payload).eq('id', draft.id)
@@ -150,14 +153,14 @@ export async function loadDemoAnnouncements(organizationId: string | null | unde
     .filter(item => pendingFor([{ ...item, allHospitals: true }], '', new Set()).length)
 }
 // Who an announcement is for, in words (the list column): «all hospitals and demos», «all hospitals», «all demos», or the names.
-export function audienceSummary(item: AnyRecord, nameOf: (id: string) => string, tx: Translate) {
+export function audienceSummary(item: Partial<AnnouncementAudience>, nameOf: (id: string) => string, tx: Translate) {
   const names = (item.audience || []).map(nameOf)
   const hospitals = item.allHospitals ?? !names.length
   if (hospitals && item.showInDemo && !names.length) return tx('Όλα τα νοσοκομεία και τα demo', 'Every hospital and demo')
   return [hospitals ? tx('Όλα τα νοσοκομεία', 'Every hospital') : '', item.showInDemo ? tx('Όλα τα demo', 'Every demo') : '', ...names].filter(Boolean).join(', ')
 }
 // Pure: an announcement is for a demo hospital when it is for every demo (the old setting) or names this one.
-export const meantForDemo = (item: AnyRecord, organizationId: string | null | undefined) => Boolean(item.showInDemo || (organizationId && item.audience.includes(organizationId)))
+export const meantForDemo = (item: AnnouncementAudience, organizationId: string | null | undefined) => Boolean(item.showInDemo || (organizationId && item.audience.includes(organizationId)))
 
 // The uploaded image or file: a private bucket, read through a short signed link.
 const BUCKET = 'platform-announcements'
@@ -165,13 +168,13 @@ export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
 export const DOCUMENT_ACCEPT = 'application/pdf,.docx,.pptx,.xlsx'
 export const ATTACHMENT_ACCEPT = `${IMAGE_ACCEPT},${DOCUMENT_ACCEPT}`
 export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
-export const isImageAttachment = (item: AnyRecord) => isImageType(item?.attachmentType)
+export const isImageAttachment = (item: { attachmentType?: string | null } | null | undefined) => isImageType(item?.attachmentType)
 // The attached file (PDF, Word, PowerPoint, Excel) is uploaded the same way; it comes back under the document_* names.
-export async function uploadAnnouncementDocument(file: File) {
+export async function uploadAnnouncementDocument(file: File): Promise<UploadedDocument> {
   const uploaded = await uploadAnnouncementAttachment(file)
   return { documentPath: uploaded.attachmentPath, documentName: uploaded.attachmentName, documentType: uploaded.attachmentType }
 }
-export async function uploadAnnouncementAttachment(file: AnyRecord) {
+export async function uploadAnnouncementAttachment(file: File): Promise<UploadedAttachment> {
   if (Number(file?.size || 0) > ATTACHMENT_MAX_BYTES) throw new Error('ATTACHMENT_TOO_LARGE')
   const safe = String(file.name || 'file').normalize('NFKD').replace(/[^\w.-]+/g, '_').slice(-80)
   const path = `${Date.now()}-${safe}`
@@ -187,12 +190,12 @@ export async function announcementAttachmentUrl(path: string) {
 }
 
 // Pure: the announcements to show in a hospital (tested on its own).
-export function pendingFor(list: AnyRecord[], organizationId: string | null | undefined, seenIds = new Set(), now = new Date()) {
-  return list.filter((item: AnyRecord) => {
+export function pendingFor<T extends AnnouncementSchedule>(list: T[], organizationId: string | null | undefined, seenIds = new Set<string>(), now = new Date()) {
+  return list.filter((item: T) => {
     if (item.status !== 'active') return false
     if (item.startsAt && new Date(item.startsAt) > now) return false
     if (item.endsAt && new Date(item.endsAt) <= now) return false
-    if (!(item.allHospitals ?? !item.audience.length) && !item.audience.includes(organizationId)) return false
+    if (!(item.allHospitals ?? !item.audience.length) && !item.audience.includes(organizationId as string)) return false
     return item.frequency === 'every_visit' || !seenIds.has(item.id)
   })
 }

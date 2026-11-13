@@ -6,7 +6,6 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { loadCandidates, loadSources } from '../legislation/legislationService'
 import { sourceHealth } from '../legislation/legislationModel'
 import './platformLegalTabs.css'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // «Νομοθεσία & πηγές» of the owner's menu (owner, 9/11/2026): one row of choices in the normal shell — the platform's
 // legislation library, what the automatic check found, the sources it checks, the Library's guides & links and the
@@ -19,11 +18,14 @@ const TARGETS: Record<string, string> = {
   references: '/platform#management?group=sources',
 }
 
-export function PlatformLegalTabs({ active, counts = null }: { active: string, counts?: AnyRecord | null }) {
+// The counts on the tabs: legislation to review and failing sources.
+export type LegalTabCounts = { review?: number, checks?: number }
+
+export function PlatformLegalTabs({ active, counts = null }: { active: string, counts?: LegalTabCounts | null }) {
   const { language } = useLanguage()
   const navigate = useNavigate()
   const en = language === 'en'
-  const [loaded, setLoaded] = useState<AnyRecord | null>(null)
+  const [loaded, setLoaded] = useState<LegalTabCounts | null>(null)
   // The legislation screen passes its own counts; the other choices read them once.
   useEffect(() => {
     if (counts) return undefined
@@ -33,8 +35,8 @@ export function PlatformLegalTabs({ active, counts = null }: { active: string, c
     })
     return () => { alive = false }
   }, [counts])
-  const shown = counts || loaded || {}
-  const count = (value: number) => (value > 0 ? value : null)
+  const shown: LegalTabCounts = counts || loaded || {}
+  const count = (value: number | undefined) => (value !== undefined && value > 0 ? value : null)
   return (
     <ModuleTabs
       className="platform-legal-tabs"

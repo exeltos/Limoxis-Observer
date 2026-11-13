@@ -1,12 +1,29 @@
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isOwnerPreview,previewPlatformSettings } from '../../core/preview/ownerPreview'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Tables } from '../../core/supabase/database.types'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
-const fallback={
+// The platform settings as the screens keep them (the one platform_settings row, id «global»).
+export interface PlatformSettings {
+  id: string
+  supportEmail: string
+  defaultDemoDurationDays: number
+  demoAutoPurgeAfterDays: number
+  organizationDeletionGraceDays: number
+  maxDemoUsers: number
+  maintenanceNoticeEnabled: boolean
+  maintenanceNoticeEl: string
+  maintenanceNoticeEn: string
+  updatedAt: string | null
+}
+// What updatePlatformSettings saves: the settings as edited (a number field holds the text typed in it until saved).
+export type PlatformSettingsInput = { [K in keyof PlatformSettings]?: PlatformSettings[K] | string | null }
+type PlatformSettingsRow = Omit<Tables<'platform_settings'>, 'updated_by'>
+
+const fallback: PlatformSettings={
   id:'global',
   supportEmail:'',
   defaultDemoDurationDays:30,
@@ -19,7 +36,7 @@ const fallback={
   updatedAt:null,
 }
 
-function mapRow(row: AnyRecord){
+function mapRow(row: PlatformSettingsRow | null): PlatformSettings{
   if(!row)return fallback
   return {
     id:row.id||'global',
@@ -35,7 +52,7 @@ function mapRow(row: AnyRecord){
   }
 }
 
-export async function getPlatformSettings(){
+export async function getPlatformSettings(): Promise<PlatformSettings>{
   if(isOwnerPreview())return previewPlatformSettings()
   if(!hasSupabaseConfig||!supabase)return fallback
   const {data,error}=await supabase
@@ -47,7 +64,7 @@ export async function getPlatformSettings(){
   return mapRow(data)
 }
 
-export async function updatePlatformSettings(values: AnyRecord){
+export async function updatePlatformSettings(values: PlatformSettingsInput){
   if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_NOT_CONFIGURED')
   const payload={
     support_email:String(values.supportEmail||'').trim()||null,

@@ -4,15 +4,17 @@ import { IconButton } from '../../design-system/IconButton'
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
+// What get_platform_maintenance_notice returns (json): the band's switch and its text in each language.
+type MaintenanceNotice = { enabled?: boolean, message_el?: string | null, message_en?: string | null, updated_at?: string | null }
+
 export function PlatformMaintenanceBanner(){
   const {profile}=useAuth()
   const {language}=useLanguage()
-  const [notice,setNotice]=useState<AnyRecord | null>(null)
+  const [notice,setNotice]=useState<MaintenanceNotice | null>(null)
   const [dismissed,setDismissed]=useState(false)
 
   useEffect(()=>{
@@ -22,7 +24,7 @@ export function PlatformMaintenanceBanner(){
       try{
         const {data,error}=await supabase.rpc('get_platform_maintenance_notice')
         if(error)throw error
-        if(active)setNotice((data||null) as AnyRecord|null)
+        if(active)setNotice((data||null) as MaintenanceNotice|null)
       }catch{
         if(active)setNotice(null)
       }

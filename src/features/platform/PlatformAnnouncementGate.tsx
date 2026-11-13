@@ -9,7 +9,7 @@ import { Button } from '../../design-system/Button'
 import { announcementAttachmentUrl, isImageAttachment, loadDemoAnnouncements, loadPendingAnnouncements, markAnnouncementSeen } from './platformAnnouncementsService'
 import '../../design-system/LoadingSkeleton.css'
 import './platformAnnouncements.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AnnouncementCard, PlatformAnnouncement } from './platformAnnouncementTypes'
 
 // The platform owner's announcement or promotion, shown to a hospital administrator when they open the application
 // (owner, 8/11/2026): the hospital administrator in production, and whoever is in a demo hospital for the ones marked
@@ -36,7 +36,7 @@ export function PlatformAnnouncementGate({ hold = false }: { hold?: boolean }) {
   const { tenant, actualRole, isDemo, isRolePreview } = useTenant()
   const { language } = useLanguage()
   const navigate = useNavigate()
-  const [queue, setQueue] = useState<AnyRecord[]>([])
+  const [queue, setQueue] = useState<PlatformAnnouncement[]>([])
   const demo = Boolean(user?.id && isDemo)
   const eligible = demo || Boolean(user?.id && tenant?.id && !isDemo && !isRolePreview && actualRole === 'hospital_admin')
   useEffect(() => {
@@ -45,7 +45,7 @@ export function PlatformAnnouncementGate({ hold = false }: { hold?: boolean }) {
     ;(demo ? loadDemoAnnouncements(tenant?.id) : loadPendingAnnouncements(tenant?.id as string, user?.id as string))
       .then(list => {
         const shown = shownThisSession()
-        if (alive) setQueue(list.filter((item: AnyRecord) => !shown.has(item.id)))
+        if (alive) setQueue(list.filter((item: PlatformAnnouncement) => !shown.has(item.id)))
       })
       .catch(() => {})
     return () => {
@@ -84,7 +84,7 @@ class AnnouncementBoundary extends Component<{ onError?: () => void, children?: 
 }
 
 // The announcement itself: the gate shows it to the administrator, the owner's page as a preview.
-export function PlatformAnnouncementDialog({ announcement: current, onClose: close, language, navigate, large = false }: { announcement: AnyRecord, onClose: () => void, language: string, navigate: (to: string) => void, large?: boolean }) {
+export function PlatformAnnouncementDialog({ announcement: current, onClose: close, language, navigate, large = false }: { announcement: AnnouncementCard, onClose: () => void, language: string, navigate: (to: string) => void, large?: boolean }) {
   const en = language === 'en'
   // The card appears once, whole: its image and its file are fetched first (a signed link, then the picture itself), so it
   // does not show the green band, then the image, then change size. A slow or broken image never holds it for more than 6 s.
@@ -97,7 +97,7 @@ export function PlatformAnnouncementDialog({ announcement: current, onClose: clo
       return undefined
     }
     setMedia({ ready: false, image: '', documentUrl: '' })
-    const sign = (path: string) => (path ? announcementAttachmentUrl(path).catch(() => '') : Promise.resolve(''))
+    const sign = (path: string | null | undefined) => (path ? announcementAttachmentUrl(path).catch(() => '') : Promise.resolve(''))
     const preload = (src: string) =>
       new Promise<string>(resolve => {
         if (!src) return resolve('')
@@ -119,7 +119,7 @@ export function PlatformAnnouncementDialog({ announcement: current, onClose: clo
       alive = false
     }
   }, [wantsMedia, current.attachmentPath, current.attachmentType, current.imageUrl, current.documentPath]) // eslint-disable-line react-hooks/exhaustive-deps
-  const pick = (el: string, enText: string) => (en && enText ? enText : el)
+  const pick = (el: string, enText: string | undefined) => (en && enText ? enText : el)
   const title = pick(current.titleEl, current.titleEn)
   const { image, documentUrl } = media
   const ctaUrl = typeof current.ctaUrl === 'string' ? current.ctaUrl.trim() : ''

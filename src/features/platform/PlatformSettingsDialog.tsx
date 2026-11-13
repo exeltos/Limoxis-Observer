@@ -2,15 +2,17 @@ import { useEffect,useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { getPlatformSettings,updatePlatformSettings } from './platformSettingsService'
+import { getPlatformSettings,updatePlatformSettings,type PlatformSettings } from './platformSettingsService'
 import './platformSettings.css'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // Each platform setting where it is used (owner, 10/11/2026): the Demo defaults on the Demo screen, the deletion grace
 // period and the support email on the Organizations screen, the maintenance message among the Announcements. The same
 // platform_settings row and the same save; a dialog changes only its own fields.
 type Pair = [string,string]
-type SettingField = { key: string, min?: number, max?: number, email?: boolean, unit?: Pair, label: Pair, hint: Pair }
+// The settings these dialogs change; a number field holds the text typed in it until saved.
+type SettingKey = 'defaultDemoDurationDays'|'maxDemoUsers'|'organizationDeletionGraceDays'|'supportEmail'
+type SettingsForm = Omit<PlatformSettings,SettingKey> & { [K in SettingKey]: PlatformSettings[K]|string }
+type SettingField = { key: SettingKey, min?: number, max?: number, email?: boolean, unit?: Pair, label: Pair, hint: Pair }
 const KINDS: Record<string,SettingField[]>={
   demo:[
     {key:'defaultDemoDurationDays',min:1,max:365,unit:['ημέρες','days'],label:['Διάρκεια νέου Demo','New Demo duration'],hint:['Η λήξη που προτείνεται όταν δημιουργείτε Demo.','The end date suggested when you create a Demo.']},
@@ -22,12 +24,12 @@ const KINDS: Record<string,SettingField[]>={
   ],
 }
 
-export function PlatformSettingsDialog({kind,language='el',onClose,onSaved}: {kind: string,language?: string,onClose: ()=>void,onSaved?: (settings: AnyRecord)=>void}){
+export function PlatformSettingsDialog({kind,language='el',onClose,onSaved}: {kind: string,language?: string,onClose: ()=>void,onSaved?: (settings: PlatformSettings)=>void}){
   const en=language==='en'
   const tx=(elText: string,enText: string)=>en?enText:elText
   const {notify,notifyError}=useFeedback()
   const fields=KINDS[kind]||[]
-  const [settings,setSettings]=useState<AnyRecord | null>(null)
+  const [settings,setSettings]=useState<SettingsForm | null>(null)
   const [error,setError]=useState<unknown>(null)
   const [saving,setSaving]=useState(false)
   useEffect(()=>{let active=true;getPlatformSettings().then(value=>{if(active)setSettings(value)}).catch(err=>{if(active)setError(err)});return()=>{active=false}},[])
