@@ -9,11 +9,11 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { demoLibrarySeed } from './managementData'
 import { useRepositoryData } from '../../core/data/useRepositoryData'
-import type { AnyRecord } from '../../types/featureTypes'
-const empty={protocolCode:'',subjectType:'surface',sourceCode:'surfaceSwab',unit:'CFU',limitCfu:'',active:true,system:false,locked:false,source:'Hospital',version:'local'}
-const normalizeSystemStandards=(rows: AnyRecord[]|null|undefined)=>(rows||[]).map(row=>row?.system===undefined?{...row,system:true,locked:true,source:'Limoxis System',version:'core'}:row)
-function mergeCoreWithLocal(core: AnyRecord[],stored: AnyRecord[]){
-  const byId=new Map<string,AnyRecord>()
+import type { EnvironmentalStandard, EnvironmentalStandardDraft } from './managementTypes'
+const empty: EnvironmentalStandardDraft={protocolCode:'',subjectType:'surface',sourceCode:'surfaceSwab',unit:'CFU',limitCfu:'',active:true,system:false,locked:false,source:'Hospital',version:'local'}
+const normalizeSystemStandards=(rows: EnvironmentalStandard[]|null|undefined)=>(rows||[]).map(row=>row?.system===undefined?{...row,system:true,locked:true,source:'Limoxis System',version:'core'}:row)
+function mergeCoreWithLocal(core: EnvironmentalStandard[],stored: EnvironmentalStandard[]){
+  const byId=new Map<string,EnvironmentalStandard>()
   for(const row of core||[])byId.set(row.id,row)
   for(const row of stored||[])byId.set(row.id,row)
   return [...byId.values()]
@@ -27,10 +27,10 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
   const {data:repositoryRows,loading,saving,error,reload,saveData}=useRepositoryData('environmental_standards',{fallback})
   const rows=useMemo(()=>mergeCoreWithLocal(fallback,Array.isArray(repositoryRows)?repositoryRows:[]),[fallback,repositoryRows])
   const [query,setQuery]=useState('')
-  const [draft,setDraft]=useState<AnyRecord|null>(null)
+  const [draft,setDraft]=useState<EnvironmentalStandardDraft|null>(null)
   const readOnlySystem=Boolean(draft?.system&&!isPlatformOwner)
   const filtered=useMemo(()=>rows.filter(x=>`${x.protocolCode} ${x.subjectType} ${x.sourceCode} ${x.unit} ${x.source||''}`.toLowerCase().includes(query.toLowerCase())),[rows,query])
-  async function persist(next: AnyRecord[]){await saveData(next);window.dispatchEvent(new CustomEvent('limoxis:environmental-standards-updated'))}
+  async function persist(next: EnvironmentalStandard[]){await saveData(next);window.dispatchEvent(new CustomEvent('limoxis:environmental-standards-updated'))}
   async function save(){
     if(!draft)return
     if(readOnlySystem){notify(language==='en'?'System protocols can only be changed by the Platform Owner.':'Τα πρωτόκολλα συστήματος μπορούν να αλλάξουν μόνο από τον Ιδιοκτήτη πλατφόρμας.','warning');return}
@@ -40,7 +40,7 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
     const item={...draft,protocolCode:draft.protocolCode.trim(),unit:draft.unit.trim(),limitCfu:limit,id:draft.id||`ENV-${Date.now()}`,system:Boolean(draft.system),locked:Boolean(draft.system),source:draft.system?(draft.source||'Limoxis System'):'Hospital',version:draft.system?(draft.version||'core'):'local'}
     try{await persist(draft.id?rows.map(x=>x.id===draft.id?item:x):[...rows,item]);setDraft(null);notify(t('environmentalStandards.environmentalProtocolSaved'),'success')}catch{return}
   }
-  async function remove(item: AnyRecord){
+  async function remove(item: EnvironmentalStandard){
     if(item.system&&!isPlatformOwner){notify(language==='en'?'System protocols can only be deleted by the Platform Owner.':'Τα πρωτόκολλα συστήματος μπορούν να διαγραφούν μόνο από τον Ιδιοκτήτη πλατφόρμας.','warning');return}
     const ok=await confirm({title:t('delete'),message:t('environmentalStandards.confirmEnvironmentalProtocolDelete'),confirmLabel:t('delete'),danger:true})
     if(!ok)return
@@ -68,7 +68,7 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
         <label className="field"><span>{t('environmentalStandards.samplingCategory')}</span><select disabled={readOnlySystem} value={draft.subjectType} onChange={e=>setDraft({...draft,subjectType:e.target.value})}><option value="surface">{t('environmentalStandards.surface')}</option><option value="room">{t('environmentalStandards.roomCategory')}</option><option value="air">{t('environmentalStandards.air')}</option><option value="water">{t('environmentalStandards.water')}</option></select></label>
         <label className="field"><span>{t('samplingMethod')}</span><select disabled={readOnlySystem} value={draft.sourceCode} onChange={e=>setDraft({...draft,sourceCode:e.target.value})}><option value="surfaceSwab">{t('environmentalStandards.surfaceSwab')}</option><option value="contactPlate">{t('environmentalStandards.contactPlate')}</option><option value="roomSampling">{t('environmentalStandards.roomSampling')}</option><option value="activeAir">{t('environmentalStandards.activeAir')}</option><option value="passiveAir">{t('environmentalStandards.passiveAir')}</option><option value="waterSampling">{t('environmentalStandards.waterSampling')}</option></select></label>
         <label className="field"><span>{t('environmentalStandards.measurementUnit')}</span><select disabled={readOnlySystem} value={draft.unit} onChange={e=>setDraft({...draft,unit:e.target.value})}><option value="CFU">CFU</option><option value="CFU/cm²">CFU/cm²</option><option value="CFU/plate">CFU/plate</option><option value="CFU/m³">CFU/m³</option><option value="CFU/mL">CFU/mL</option><option value="CFU/100mL">CFU/100mL</option></select><small>{t('environmentalStandards.measurementUnitHelp')}</small></label>
-        <label className="field"><span>{t('environmentalStandards.acceptableLimit')}</span><div className="field-with-suffix"><input disabled={readOnlySystem} type="number" min="0" step="any" value={draft.limitCfu} onChange={e=>setDraft({...draft,limitCfu:e.target.value})} placeholder={t('environmentalStandards.enterProtocolLimit')}/><span>{draft.unit}</span></div><small>{t('environmentalStandards.acceptableLimitHelp')}</small></label>
+        <label className="field"><span>{t('environmentalStandards.acceptableLimit')}</span><div className="field-with-suffix"><input disabled={readOnlySystem} type="number" min="0" step="any" value={draft.limitCfu ?? ''} onChange={e=>setDraft({...draft,limitCfu:e.target.value})} placeholder={t('environmentalStandards.enterProtocolLimit')}/><span>{draft.unit}</span></div><small>{t('environmentalStandards.acceptableLimitHelp')}</small></label>
         <div className="field environmental-active-field"><label className="environmental-active-toggle"><input disabled={readOnlySystem} type="checkbox" checked={draft.active} onChange={e=>setDraft({...draft,active:e.target.checked})}/><span>{t('active')}</span></label></div>
       </div>
       {!readOnlySystem&&<footer><Button disabled={saving} onClick={save}>{saving?(language==='en'?'Saving…':'Αποθήκευση…'):t('save')}</Button></footer>}

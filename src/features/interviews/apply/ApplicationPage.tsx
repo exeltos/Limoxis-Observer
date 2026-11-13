@@ -9,16 +9,16 @@ import { loadApplicationLink, submitApplication } from '../applicationService'
 import { SignaturePad } from './SignaturePad'
 import type { LucideIcon } from 'lucide-react'
 import type { ServerConsentTexts } from '../applicationModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ApplicationDraft, ApplicationInfo, ApplicationListKey } from '../applicationModel'
 import './application.css'
 
 // What every step of the form gets.
 interface StepProps {
-  draft: AnyRecord
-  set: (change: AnyRecord) => void
-  setRow: (list: string, index: number, change: AnyRecord) => void
-  addRow: (list: string, row: AnyRecord) => void
-  removeRow: (list: string, index: number) => void
+  draft: ApplicationDraft
+  set: (change: Partial<ApplicationDraft>) => void
+  setRow: <K extends ApplicationListKey>(list: K, index: number, change: Partial<ApplicationDraft[K][number]>) => void
+  addRow: <K extends ApplicationListKey>(list: K, row: ApplicationDraft[K][number]) => void
+  removeRow: (list: ApplicationListKey, index: number) => void
   errorOf: (field: string) => string
   en: boolean
   language: string
@@ -51,9 +51,9 @@ function ApplicationForm({ token }: { token: string }) {
   const demo = isDemoToken(token)
   const preview = demo && inPreview()
   const key = draftKey(token)
-  const [link, setLink] = useState<{ loading: boolean, data: AnyRecord | null, error: unknown }>({ loading: true, data: null, error: null })
+  const [link, setLink] = useState<{ loading: boolean, data: ApplicationInfo | null, error: unknown }>({ loading: true, data: null, error: null })
   const [step, setStep] = useState(() => (preview && Number(params.get('step')) >= 0 ? Math.min(Number(params.get('step')) || 0, APPLICATION_STEPS.length - 1) : readSessionJson(key)?.step || 0))
-  const [draft, setDraft] = useState<AnyRecord>(() => (preview ? demoApplication() : readSessionJson(key)?.draft || newApplication()))
+  const [draft, setDraft] = useState<ApplicationDraft>(() => (preview ? demoApplication() : readSessionJson(key)?.draft || newApplication()))
   const [tried, setTried] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState('')
@@ -76,10 +76,10 @@ function ApplicationForm({ token }: { token: string }) {
   const today = todayKey()
   const problems = useMemo(() => (tried ? stepProblems(stepKey(step), draft, language, today) : []), [tried, step, draft, language, today])
   const errorOf = (field: string) => problems.find(([name]) => name === field)?.[1] || ''
-  const set = (change: AnyRecord) => setDraft(current => ({ ...current, ...change }))
-  const setRow = (list: string, index: number, change: AnyRecord) => setDraft(current => ({ ...current, [list]: current[list].map((row: AnyRecord, i: number) => (i === index ? { ...row, ...change } : row)) }))
-  const addRow = (list: string, row: AnyRecord) => setDraft(current => ({ ...current, [list]: [...current[list], row] }))
-  const removeRow = (list: string, index: number) => setDraft(current => ({ ...current, [list]: current[list].filter((_: unknown, i: number) => i !== index) }))
+  const set = (change: Partial<ApplicationDraft>) => setDraft(current => ({ ...current, ...change }))
+  const setRow = <K extends ApplicationListKey>(list: K, index: number, change: Partial<ApplicationDraft[K][number]>) => setDraft(current => ({ ...current, [list]: (current[list] as ApplicationDraft[K][number][]).map((row, i) => (i === index ? { ...row, ...change } : row)) }))
+  const addRow = <K extends ApplicationListKey>(list: K, row: ApplicationDraft[K][number]) => setDraft(current => ({ ...current, [list]: [...current[list], row] }))
+  const removeRow = (list: ApplicationListKey, index: number) => setDraft(current => ({ ...current, [list]: (current[list] as unknown[]).filter((_, i) => i !== index) }))
   const toTop = () => document.querySelector('.apply-progress')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
   const goTo = (index: number) => { setTried(false); setFailed(''); setStep(index); toTop() }
   function next() {
@@ -120,7 +120,7 @@ function ApplicationForm({ token }: { token: string }) {
       {current === 'languages' && <LanguagesStep {...common} />}
       {current === 'experience' && <ExperienceStep {...common} />}
       {current === 'about' && <AboutStep {...common} />}
-      {current === 'consents' && <ConsentsStep {...common} server={info.consents} today={today} />}
+      {current === 'consents' && <ConsentsStep {...common} server={info.consents ?? null} today={today} />}
       {current === 'review' && <ReviewStep {...common} info={info} position={position} onEdit={goTo} today={today} />}
       {tried && problems.length > 0 && <p className="apply-alert" role="alert">{L(en, 'Συμπληρώστε ό,τι σημειώνεται με κόκκινο για να συνεχίσετε.', 'Complete what is marked in red to continue.')}</p>}
       {failed && <p className="apply-alert" role="alert">{failed}</p>}
@@ -135,7 +135,7 @@ function ApplicationForm({ token }: { token: string }) {
 
 // The page around the form: the hospital (logo, name) and the language; nothing leads
 // into the rest of the application.
-function Frame({ info, en, onLanguage, children }: { info: AnyRecord | null, en: boolean, onLanguage?: () => void, children: ReactNode }) {
+function Frame({ info, en, onLanguage, children }: { info: ApplicationInfo | null, en: boolean, onLanguage?: () => void, children: ReactNode }) {
   const [full, setFull] = useState(() => typeof document !== 'undefined' && Boolean(document.fullscreenElement))
   useEffect(() => {
     const sync = () => setFull(Boolean(document.fullscreenElement))
@@ -196,7 +196,7 @@ function AddButton({ onClick, children, disabled }: { onClick: () => void, child
 
 // --- Steps --------------------------------------------------------------------------------
 
-function WelcomeStep({ draft, set, en, info, position }: StepProps & { info: AnyRecord, position: string }) {
+function WelcomeStep({ draft, set, en, info, position }: StepProps & { info: ApplicationInfo, position: string }) {
   return <>
     <div className="apply-welcome">
       {info.logo ? <img className="apply-welcome-logo" src={info.logo} alt="" /> : <span className="apply-welcome-mark"><Briefcase size={40} /></span>}
@@ -210,9 +210,9 @@ function WelcomeStep({ draft, set, en, info, position }: StepProps & { info: Any
       <li><PenLine size={22} /><span>{L(en, 'Στο τέλος διαβάζετε τις συναινέσεις και υπογράφετε με το δάχτυλο.', 'At the end you read the consents and sign with your finger.')}</span></li>
     </ul>
     <div className="apply-grid">
-      {!info.professionalCategory && <Chips wide label={L(en, 'Σε ποιον χώρο θέλετε να εργαστείτε;', 'Which area do you want to work in?')} value={draft.professionalCategory} options={pairs(PROFESSIONAL_CATEGORIES, en)} onChange={value => set({ professionalCategory: value })} />}
+      {!info.professionalCategory && <Chips wide label={L(en, 'Σε ποιον χώρο θέλετε να εργαστείτε;', 'Which area do you want to work in?')} value={draft.professionalCategory} options={pairs(PROFESSIONAL_CATEGORIES, en)} onChange={value => set({ professionalCategory: value as string })} />}
       {!position && <Field wide label={L(en, 'Θέση που σας ενδιαφέρει', 'Position you are interested in')}><Text value={draft.requestedPosition} onChange={value => set({ requestedPosition: value })} placeholder={L(en, 'π.χ. Νοσηλευτής/τρια', 'e.g. Nurse')} /></Field>}
-      {!info.employmentType && <Chips wide label={L(en, 'Είδος απασχόλησης', 'Type of employment')} value={draft.employmentType} options={pairs(EMPLOYMENT_TYPES, en)} onChange={value => set({ employmentType: value })} />}
+      {!info.employmentType && <Chips wide label={L(en, 'Είδος απασχόλησης', 'Type of employment')} value={draft.employmentType} options={pairs(EMPLOYMENT_TYPES, en)} onChange={value => set({ employmentType: value as string })} />}
     </div>
   </>
 }
@@ -229,11 +229,11 @@ function PersonalStep({ draft, set, errorOf, en }: StepProps) {
       <Field label={L(en, 'Τόπος γέννησης', 'Place of birth')}><Text value={draft.birthPlace} onChange={value => set({ birthPlace: value })} /></Field>
       <Field label={L(en, 'Υπηκοότητα', 'Nationality')}><Text value={draft.nationality} onChange={value => set({ nationality: value })} placeholder={L(en, 'π.χ. Ελληνική', 'e.g. Greek')} /></Field>
       <Field label={L(en, 'Αριθμός παιδιών', 'Number of children')} error={errorOf('children')}><Text value={draft.children} onChange={value => set({ children: value.replace(/\D/g, '') })} inputMode="numeric" max={2} /></Field>
-      <Chips wide label={L(en, 'Φύλο', 'Gender')} value={draft.gender} options={pairs(GENDERS, en)} onChange={value => set({ gender: value })} />
-      <Chips wide label={L(en, 'Οικογενειακή κατάσταση', 'Marital status')} value={draft.maritalStatus} options={pairs(MARITAL, en)} onChange={value => set({ maritalStatus: value })} />
-      <Chips wide label={L(en, 'Στρατιωτικές υποχρεώσεις', 'Military service')} value={draft.militaryService} options={pairs(MILITARY, en)} onChange={value => set({ militaryService: value })} />
-      <Chips label={L(en, 'Άδεια εργασίας στην Ελλάδα', 'Work permit in Greece')} value={draft.workPermit} options={yesNoOptions(en)} onChange={value => set({ workPermit: value })} />
-      <Chips label={L(en, 'Άδεια άσκησης επαγγέλματος', 'Licence to practise')} value={draft.practiceLicence} options={yesNoOptions(en)} onChange={value => set({ practiceLicence: value })} />
+      <Chips wide label={L(en, 'Φύλο', 'Gender')} value={draft.gender} options={pairs(GENDERS, en)} onChange={value => set({ gender: value as string })} />
+      <Chips wide label={L(en, 'Οικογενειακή κατάσταση', 'Marital status')} value={draft.maritalStatus} options={pairs(MARITAL, en)} onChange={value => set({ maritalStatus: value as string })} />
+      <Chips wide label={L(en, 'Στρατιωτικές υποχρεώσεις', 'Military service')} value={draft.militaryService} options={pairs(MILITARY, en)} onChange={value => set({ militaryService: value as string })} />
+      <Chips label={L(en, 'Άδεια εργασίας στην Ελλάδα', 'Work permit in Greece')} value={draft.workPermit} options={yesNoOptions(en)} onChange={value => set({ workPermit: value as boolean | null })} />
+      <Chips label={L(en, 'Άδεια άσκησης επαγγέλματος', 'Licence to practise')} value={draft.practiceLicence} options={yesNoOptions(en)} onChange={value => set({ practiceLicence: value as boolean | null })} />
     </div>
   </>
 }
@@ -255,9 +255,9 @@ function ContactStep({ draft, set, errorOf, en }: StepProps) {
 function EducationStep({ draft, set, setRow, addRow, removeRow, errorOf, en }: StepProps) {
   return <>
     <StepHead icon={GraduationCap} title={L(en, 'Εκπαίδευση', 'Education')} text={L(en, 'Η βασική εκπαίδευση και τα πτυχία, τα διπλώματα ή οι πιστοποιήσεις σας.', 'Your schooling and your degrees, diplomas or certifications.')} />
-    <Chips wide label={L(en, 'Βασική εκπαίδευση', 'Schooling')} value={draft.educationLevel} options={SCHOOL_LEVELS.map(([el, enText]) => [el, en ? enText : el])} onChange={value => set({ educationLevel: value })} />
+    <Chips wide label={L(en, 'Βασική εκπαίδευση', 'Schooling')} value={draft.educationLevel} options={SCHOOL_LEVELS.map(([el, enText]) => [el, en ? enText : el])} onChange={value => set({ educationLevel: value as string })} />
     <div className="apply-rows">
-      {draft.education.map((row: AnyRecord, index: number) => <RowCard key={index} title={L(en, `Τίτλος σπουδών ${index + 1}`, `Qualification ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('education', index)}>
+      {draft.education.map((row, index) => <RowCard key={index} title={L(en, `Τίτλος σπουδών ${index + 1}`, `Qualification ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('education', index)}>
         <Field wide label={L(en, 'Τίτλος (πτυχίο, δίπλωμα)', 'Title (degree, diploma)')} error={errorOf(`education.${index}.title`)}><Text value={row.title} onChange={value => setRow('education', index, { title: value })} max={160} /></Field>
         <Field label={L(en, 'Σχολή / ίδρυμα', 'School / institution')}><Text value={row.school} onChange={value => setRow('education', index, { school: value })} max={160} /></Field>
         <Field label={L(en, 'Έτος αποφοίτησης', 'Year of graduation')} error={errorOf(`education.${index}.year`)}><Text inputMode="numeric" value={row.year} onChange={value => setRow('education', index, { year: value.replace(/\D/g, '') })} max={4} placeholder={L(en, 'ΕΕΕΕ', 'YYYY')} /></Field>
@@ -272,14 +272,14 @@ function LanguagesStep({ draft, setRow, addRow, removeRow, errorOf, en, language
   return <>
     <StepHead icon={Languages} title={L(en, 'Γλώσσες', 'Languages')} text={L(en, 'Για κάθε γλώσσα, πόσο καλά τη μιλάτε, τη διαβάζετε και τη γράφετε.', 'For each language, how well you speak, read and write it.')} />
     <div className="apply-rows">
-      {draft.languages.map((row: AnyRecord, index: number) => {
+      {draft.languages.map((row, index) => {
         const other = row.language && !TOP_LANGUAGES.includes(row.language)
         return <RowCard key={index} title={row.language && !other ? LANGUAGES[row.language][en ? 1 : 0] : L(en, `Γλώσσα ${index + 1}`, `Language ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('languages', index)}>
           <Chips wide label={L(en, 'Γλώσσα', 'Language')} error={errorOf(`languages.${index}.language`)} value={other ? '__other' : row.language}
-            options={[...TOP_LANGUAGES.map(code => [code, LANGUAGES[code][en ? 1 : 0]]), ['__other', L(en, 'Άλλη', 'Other')]]} onChange={value => setRow('languages', index, { language: value === '__other' ? ' ' : value })} />
+            options={[...TOP_LANGUAGES.map(code => [code, LANGUAGES[code][en ? 1 : 0]]), ['__other', L(en, 'Άλλη', 'Other')]]} onChange={value => setRow('languages', index, { language: value === '__other' ? ' ' : value as string })} />
           {other && <Field wide label={L(en, 'Ποια γλώσσα;', 'Which language?')}><Text value={row.language.trim()} onChange={value => setRow('languages', index, { language: value || ' ' })} max={40} /></Field>}
           <div className={`apply-skills ${errorOf(`languages.${index}.levels`) ? 'has-error' : ''}`.trim()}>
-            {LANGUAGE_SKILLS.map(([skill, el, enText]) => <Chips key={skill} compact label={en ? enText : el} value={row[skill]} options={levels} onChange={value => setRow('languages', index, { [skill]: value })} />)}
+            {LANGUAGE_SKILLS.map(([skill, el, enText]) => <Chips key={skill} compact label={en ? enText : el} value={row[skill]} options={levels} onChange={value => setRow('languages', index, { [skill]: value as string })} />)}
             {errorOf(`languages.${index}.levels`) && <em>{errorOf(`languages.${index}.levels`)}</em>}
           </div>
           <Chips label={L(en, 'Πιστοποιητικό γλωσσομάθειας', 'Language certificate')} value={row.certificate} options={yesNoOptions(en)} onChange={value => setRow('languages', index, { certificate: value === true, certificateName: value === true ? row.certificateName : '' })} />
@@ -296,7 +296,7 @@ function ExperienceStep({ draft, setRow, addRow, removeRow, errorOf, en }: StepP
     <StepHead icon={Briefcase} title={L(en, 'Προϋπηρεσία', 'Work experience')} text={L(en, 'Οι προηγούμενοι εργοδότες σας, από τον πιο πρόσφατο. Αν δεν έχετε, συνεχίστε.', 'Your previous employers, most recent first. If you have none, continue.')} />
     <div className="apply-rows">
       {!draft.employers.length && <p className="apply-empty">{L(en, 'Δεν έχετε προσθέσει εργοδότη.', 'No employer added.')}</p>}
-      {draft.employers.map((row: AnyRecord, index: number) => <RowCard key={index} title={row.employer || L(en, `Εργοδότης ${index + 1}`, `Employer ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('employers', index)}>
+      {draft.employers.map((row, index) => <RowCard key={index} title={row.employer || L(en, `Εργοδότης ${index + 1}`, `Employer ${index + 1}`)} removeLabel={L(en, 'Αφαίρεση', 'Remove')} onRemove={() => removeRow('employers', index)}>
         <Field wide required label={L(en, 'Εργοδότης', 'Employer')} error={errorOf(`employers.${index}.employer`)}><Text value={row.employer} onChange={value => setRow('employers', index, { employer: value })} max={160} /></Field>
         <Field label={L(en, 'Από (μήνας/έτος)', 'From (month/year)')} error={errorOf(`employers.${index}.from`)}><Text inputMode="numeric" value={row.from} onChange={value => setRow('employers', index, { from: value })} mask={maskMonth} placeholder={L(en, 'ΜΜ/ΕΕΕΕ', 'MM/YYYY')} max={7} /></Field>
         {row.current ? <Field label={L(en, 'Έως', 'To')}><span className="apply-input is-static">{L(en, 'Σήμερα', 'Today')}</span></Field>
@@ -346,7 +346,7 @@ function ConsentsStep({ draft, set, errorOf, en, language, server, today }: Step
   </>
 }
 
-function ReviewStep({ draft, info, en, language, position, onEdit, today }: StepProps & { info: AnyRecord, position: string, onEdit: (index: number) => void, today: string }) {
+function ReviewStep({ draft, info, en, language, position, onEdit, today }: StepProps & { info: ApplicationInfo, position: string, onEdit: (index: number) => void, today: string }) {
   const pending = stepProblems('review', draft, language, today)
   const join = (...values: unknown[]) => values.filter(value => String(value ?? '').trim()).join(' · ')
   const section = (index: number, title: string, rows: [string, ReactNode][]) => <section className="apply-review-block" key={index}>
@@ -363,10 +363,10 @@ function ReviewStep({ draft, info, en, language, position, onEdit, today }: Step
         [L(en, 'Φύλο', 'Gender'), genderLabel(draft.gender, language)], [L(en, 'Υπηκοότητα', 'Nationality'), draft.nationality], [L(en, 'Οικογένεια', 'Family'), join(maritalLabel(draft.maritalStatus, language), draft.children !== '' ? `${draft.children} ${L(en, 'παιδιά', 'children')}` : '')],
         [L(en, 'Στρατιωτικές υποχρεώσεις', 'Military service'), militaryLabel(draft.militaryService, language)], [L(en, 'Άδεια εργασίας', 'Work permit'), draft.workPermit == null ? '' : yesNo(draft.workPermit, language)], [L(en, 'Άδεια άσκησης', 'Licence to practise'), draft.practiceLicence == null ? '' : yesNo(draft.practiceLicence, language)]])}
       {section(2, L(en, 'Επικοινωνία', 'Contact'), [[L(en, 'Τηλέφωνα', 'Phones'), join(draft.phoneMobile, draft.phoneLandline)], ['Email', draft.email], [L(en, 'Διεύθυνση', 'Address'), join(draft.address, draft.area, draft.postcode)]])}
-      {section(3, L(en, 'Εκπαίδευση', 'Education'), [[L(en, 'Βασική', 'Schooling'), draft.educationLevel], ...draft.education.filter((row: AnyRecord) => row.title || row.school).map((row: AnyRecord, index: number): [string, ReactNode] => [`${L(en, 'Τίτλος', 'Title')} ${index + 1}`, join(row.title, row.school, row.year)])])}
-      {section(4, L(en, 'Γλώσσες', 'Languages'), draft.languages.filter((row: AnyRecord) => row.language.trim()).map((row: AnyRecord): [string, ReactNode] => [LANGUAGES[row.language]?.[en ? 1 : 0] || row.language,
+      {section(3, L(en, 'Εκπαίδευση', 'Education'), [[L(en, 'Βασική', 'Schooling'), draft.educationLevel], ...draft.education.filter(row => row.title || row.school).map((row, index): [string, ReactNode] => [`${L(en, 'Τίτλος', 'Title')} ${index + 1}`, join(row.title, row.school, row.year)])])}
+      {section(4, L(en, 'Γλώσσες', 'Languages'), draft.languages.filter(row => row.language.trim()).map((row): [string, ReactNode] => [LANGUAGES[row.language]?.[en ? 1 : 0] || row.language,
         join(...LANGUAGE_SKILLS.filter(([skill]) => row[skill]).map(([skill, el, enText]) => `${en ? enText : el}: ${shortLevel(row[skill], language)}`), certificateLabel(row, language))]))}
-      {section(5, L(en, 'Προϋπηρεσία', 'Work experience'), draft.employers.filter((row: AnyRecord) => row.employer).map((row: AnyRecord): [string, ReactNode] => [row.employer, join(`${month(row.from) || '…'} – ${row.current ? L(en, 'σήμερα', 'today') : month(row.to) || '…'}`, row.jobTitle, row.leavingReason)]))}
+      {section(5, L(en, 'Προϋπηρεσία', 'Work experience'), draft.employers.filter(row => row.employer).map((row): [string, ReactNode] => [row.employer, join(`${month(row.from) || '…'} – ${row.current ? L(en, 'σήμερα', 'today') : month(row.to) || '…'}`, row.jobTitle, row.leavingReason)]))}
       {section(6, L(en, 'Δεξιότητες & «Γιατί εμάς»', 'Skills & why us'), [[L(en, 'Πληροφορική', 'Computer skills'), draft.itSkills], [L(en, 'Δραστηριότητες', 'Activities'), draft.activities], [L(en, 'Γιατί εμάς', 'Why us'), draft.whyUs]])}
       <section className="apply-review-block">
         <header><strong>{L(en, 'Συναινέσεις και υπογραφή', 'Consents and signature')}</strong><button type="button" className="apply-link-button" onClick={() => onEdit(7)}><PenLine size={18} />{L(en, 'Αλλαγή', 'Change')}</button></header>

@@ -1,13 +1,14 @@
 import {latestCaseReviews,type OutbreakEvidence} from './liraOutbreakClosure'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
-export function buildInvestigationCopilot({investigation,lineList,caseReviews=[],actions=[],events=[],closure,language='el'}: OutbreakEvidence&{investigation?: AnyRecord|null; closure?: AnyRecord|null; language?: string}={}){
- const en=language==='en',latest=latestCaseReviews(caseReviews),reviewed=new Set(latest.map(x=>x.record_key)),pending=(lineList?.rows||[]).filter((x: AnyRecord)=>!reviewed.has(x.recordKey)),openActions=actions.filter(x=>x.status!=='closed'),overdue=openActions.filter(x=>x.due_date&&x.due_date<hospitalToday())
+import type { OutbreakInvestigationLike } from './liraTypes'
+import type { buildOutbreakClosureReadiness } from './liraOutbreakClosure'
+export function buildInvestigationCopilot({investigation,lineList,caseReviews=[],actions=[],events=[],closure,language='el'}: OutbreakEvidence&{investigation?: OutbreakInvestigationLike|null; closure?: Partial<ReturnType<typeof buildOutbreakClosureReadiness>>|null; language?: string}={}){
+ const en=language==='en',latest=latestCaseReviews(caseReviews),reviewed=new Set(latest.map(x=>x.record_key)),pending=(lineList?.rows||[]).filter(x=>!reviewed.has(x.recordKey)),openActions=actions.filter(x=>x.status!=='closed'),overdue=openActions.filter(x=>x.due_date&&x.due_date<hospitalToday())
  const suggestions=[]
  if(pending.length)suggestions.push({id:'review_cases',label:en?'Review '+pending.length+' candidate case(s)':'Αξιολόγηση '+pending.length+(pending.length===1?' υποψήφιου περιστατικού':' υποψήφιων περιστατικών'),target:'line-list'})
  if(overdue.length)suggestions.push({id:'overdue_capa',label:en?overdue.length+' overdue CAPA require follow-up':overdue.length+' εκπρόθεσμες διορθωτικές ενέργειες χρειάζονται παρακολούθηση',target:'capa'})
  else if(openActions.length)suggestions.push({id:'open_capa',label:en?openActions.length+' open CAPA action(s)':openActions.length+' ανοιχτές διορθωτικές ενέργειες',target:'capa'})
- if(closure?.blockers?.some((x: AnyRecord)=>x.code==='unresolved_hypotheses'))suggestions.push({id:'hypotheses',label:en?'Resolve documented hypotheses':'Επίλυση καταγεγραμμένων υποθέσεων',target:'hypotheses'})
+ if(closure?.blockers?.some(x=>x.code==='unresolved_hypotheses'))suggestions.push({id:'hypotheses',label:en?'Resolve documented hypotheses':'Επίλυση καταγεγραμμένων υποθέσεων',target:'hypotheses'})
  if(closure?.ready&&investigation?.status==='active')suggestions.push({id:'closure',label:en?'Review investigation closure':'Έλεγχος κλεισίματος διερεύνησης',target:'closure'})
  if(!suggestions.length)suggestions.push({id:'summary',label:en?'Review current investigation evidence':'Έλεγχος τρέχουσας τεκμηρίωσης',target:'evidence'})
  return {summary:en?(lineList?.summary?.uniquePatients||0)+' patient(s) · '+latest.length+' reviewed · '+openActions.length+' open CAPA.':(lineList?.summary?.uniquePatients||0)+' ασθενείς · '+latest.length+' αξιολογημένα · '+openActions.length+' ανοιχτές διορθωτικές ενέργειες.',suggestions,guardrails:{contextBound:true,noAutonomousAction:true,noGenerativePatientContext:true},evidenceEvents:events.length}

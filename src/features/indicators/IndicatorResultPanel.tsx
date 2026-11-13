@@ -7,8 +7,12 @@ import { loadRiskAssessments } from '../quality/risk/riskService'
 import { levelLabel,scored } from '../quality/risk/riskModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadIndicatorSnapshots,loadOperationalIndicatorDefinitions } from './indicatorCloudService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CalculatedIndicator, IndicatorDefinition, IndicatorSnapshotRow, OperationalIndicator } from './indicatorTypes'
 import type { IndicatorMetrics } from './indicatorCloudService'
+
+// Στενή όψη των κινδύνων της τελευταίας εκτίμησης (ενότητα quality) που παρακολουθεί ο δείκτης.
+type ResultRisk = { lineageKey?: string, hazard?: string, process?: string, scope?: string, indicatorKeys?: string[] }
+type ResultAssessment = { code?: string, periodLabel?: string, status?: string, risks?: ResultRisk[] }
 
 const monthStart=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
 const today=()=>hospitalToday()
@@ -27,18 +31,18 @@ const SNAPSHOT_STATUS: Record<string,[string,string]>={approved:['Εγκρίθη
 // The indicator's result for the period the user came from (the registry's
 // period, or this month so far), with its target, and the approved results kept
 // over time. Opening an indicator shows what it measures before how it is defined.
-interface IndicatorResultState {loading: boolean,result: AnyRecord|null,previous?: number|null,lastYear?: number|null,series: (number|null)[],definition?: AnyRecord|null,history: AnyRecord[],error: boolean}
-export function IndicatorResultPanel({organizationId,record,period,language}:{organizationId: string|null|undefined,record: AnyRecord|null,period?: {from?: string,to?: string,departmentId?: string|null}|null,language: string}){
+interface IndicatorResultState {loading: boolean,result: CalculatedIndicator|null,previous?: number|null,lastYear?: number|null,series: (number|null)[],definition?: OperationalIndicator|null,history: IndicatorSnapshotRow[],error: boolean}
+export function IndicatorResultPanel({organizationId,record,period,language}:{organizationId: string|null|undefined,record: Pick<IndicatorDefinition,'id'|'key'>|null,period?: {from?: string,to?: string,departmentId?: string|null}|null,language: string}){
  const el=language!=='en'
  const from=period?.from||monthStart(),to=period?.to||today(),departmentId=period?.departmentId||null
  const navigate=useNavigate()
  const [state,setState]=useState<IndicatorResultState>({loading:true,result:null,previous:null,lastYear:null,series:[],definition:null,history:[],error:false})
  // The risks of the latest assessment that name this indicator as their measure.
- const [risks,setRisks]=useState<{assessment: AnyRecord|null,list: AnyRecord[]}>({assessment:null,list:[]})
+ const [risks,setRisks]=useState<{assessment: ResultAssessment|null,list: ResultRisk[]}>({assessment:null,list:[]})
  useEffect(()=>{
   let active=true
   if(!organizationId||!record?.id)return()=>{active=false}
-  loadRiskAssessments(organizationId).then(all=>{if(!active)return;const latest=(all||[]).find(a=>a.status!=='archived')||(all||[])[0];setRisks({assessment:latest||null,list:(latest?.risks||[]).filter((r: AnyRecord)=>(r.indicatorKeys||[]).includes(record.id))})}).catch(()=>{if(active)setRisks({assessment:null,list:[]})})
+  loadRiskAssessments(organizationId).then(all=>{if(!active)return;const latest=(all||[]).find((a: ResultAssessment)=>a.status!=='archived')||(all||[])[0];setRisks({assessment:latest||null,list:(latest?.risks||[]).filter((r: ResultRisk)=>(r.indicatorKeys||[]).includes(record.id||''))})}).catch(()=>{if(active)setRisks({assessment:null,list:[]})})
   return()=>{active=false}
  },[organizationId,record?.id])
  useEffect(()=>{
@@ -61,7 +65,7 @@ export function IndicatorResultPanel({organizationId,record,period,language}:{or
   return()=>{active=false}
  },[organizationId,record,from,to,departmentId])
  const result=state.result,unit=result?(el?result.unit:result.unitEn):''
- const status=STATUS[result?.status]||STATUS.context
+ const status=STATUS[result?.status||'']||STATUS.context
  const target=result?.target==null?'—':`${result.direction==='lower'?'≤ ':result.direction==='higher'?'≥ ':''}${fmtNumber(result.target,el)}${unit?` ${unit}`:''}`
  return <div className="indicator-result">
   <section className="record-section">
@@ -93,7 +97,7 @@ export function IndicatorResultPanel({organizationId,record,period,language}:{or
   <section className="record-section">
    <div className="record-section-header"><div><h3>{el?'Εγκεκριμένα αποτελέσματα':'Approved results'}</h3><p>{el?'Τα αποτελέσματα που αποθηκεύτηκαν και εγκρίθηκαν από τη λίστα δεικτών, ανά περίοδο.':'Results saved and approved from the indicators list, by period.'}</p></div></div>
    {state.history.length?<div className="scroll-table"><table className="data-table"><thead><tr><th>{el?'Περίοδος':'Period'}</th><th>{el?'Αποτέλεσμα':'Result'}</th><th>{el?'Αριθμητής / παρονομαστής':'Numerator / denominator'}</th><th>{el?'Στόχος':'Target'}</th><th>{el?'Κατάσταση':'Status'}</th></tr></thead><tbody>
-    {state.history.map(s=><tr key={s.id}><td>{fmtDay(s.period_start)} – {fmtDay(s.period_end)}</td><td><strong>{fmtNumber(s.value,el)}</strong> {s.unit||''}</td><td>{s.denominator==null?fmtNumber(s.numerator,el):`${fmtNumber(s.numerator,el)} / ${fmtNumber(s.denominator,el)}`}</td><td>{fmtNumber(s.target_value,el)}</td><td><span className={`status-badge ${s.status==='approved'?'active':''}`}>{(SNAPSHOT_STATUS[s.status]||[s.status,s.status])[el?0:1]}</span></td></tr>)}
+    {state.history.map(s=><tr key={s.id}><td>{fmtDay(s.period_start)} – {fmtDay(s.period_end)}</td><td><strong>{fmtNumber(s.value,el)}</strong> {s.unit||''}</td><td>{s.denominator==null?fmtNumber(s.numerator,el):`${fmtNumber(s.numerator,el)} / ${fmtNumber(s.denominator,el)}`}</td><td>{fmtNumber(s.target_value,el)}</td><td><span className={`status-badge ${s.status==='approved'?'active':''}`}>{(SNAPSHOT_STATUS[s.status||'']||[s.status,s.status])[el?0:1]}</span></td></tr>)}
    </tbody></table></div>:<div className="inline-empty">{el?'Δεν υπάρχουν ακόμη αποθηκευμένα αποτελέσματα για αυτόν τον δείκτη.':'No saved results for this indicator yet.'}</div>}
   </section>
  </div>
@@ -109,8 +113,8 @@ function Change({now,then,direction,el}:{now: unknown,then: unknown,direction?: 
  return <b className={`indicator-change${better===true?' is-better':better===false?' is-worse':''}`}><Icon size={13}/>{delta>0?'+':'−'}{fmtNumber(Math.abs(delta),el)}</b>
 }
 // «84 patients with an infection ÷ 1,245 study patients × 100 = 6,7 %»: the calculation in words, then with the numbers.
-function formulaText(definition: AnyRecord|null|undefined,el: boolean){
+function formulaText(definition: OperationalIndicator|null|undefined,el: boolean){
  if(!definition)return ''
  if(definition.calculation==='manual')return el?'Η τιμή καταχωρίζεται χειροκίνητα από τον υπεύθυνο.':'The value is entered by hand by the person responsible.'
- return [indicatorMetricLabel(definition.numerator,el?'el':'en'),definition.denominator?`÷ ${indicatorMetricLabel(definition.denominator,el?'el':'en')}`:'',definition.denominator&&Number(definition.multiplier||1)!==1?`× ${fmtNumber(definition.multiplier,el)}`:''].filter(Boolean).join(' ')
+ return [indicatorMetricLabel(definition.numerator||'',el?'el':'en'),definition.denominator?`÷ ${indicatorMetricLabel(definition.denominator,el?'el':'en')}`:'',definition.denominator&&Number(definition.multiplier||1)!==1?`× ${fmtNumber(definition.multiplier,el)}`:''].filter(Boolean).join(' ')
 }

@@ -1,8 +1,8 @@
 import {cloudClient} from '../../core/supabase/cloudContext'
 import {isDemoDataEnvironment} from '../../core/data/dataEnvironment'
-import type {AnyRecord} from '../../types/featureTypes'
+import type {CommitteeObjectiveRow} from './indicatorTypes'
 
-export async function loadCommitteeObjectivesForIndicator(organizationId: string|null|undefined,definition: AnyRecord|null|undefined): Promise<AnyRecord[]>{
+export async function loadCommitteeObjectivesForIndicator(organizationId: string|null|undefined,definition: {id?: string|null, key?: string}|null|undefined): Promise<CommitteeObjectiveRow[]>{
  if(!organizationId||!definition)return []
  if(isDemoDataEnvironment())return []
  const supabase=cloudClient()
@@ -25,9 +25,9 @@ export async function loadCommitteeObjectivesForIndicator(organizationId: string
     .ilike('indicator',definition.key)
     .order('due_date',{ascending:true,nullsFirst:false})
    if(fallback.error)throw error
-   return fallback.data||[]
+   return (fallback.data||[]) as unknown as CommitteeObjectiveRow[]
   }
   throw error
  }
- return data||[]
+ return (data||[]) as unknown as CommitteeObjectiveRow[]
 }

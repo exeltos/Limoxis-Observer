@@ -581,7 +581,7 @@ export type ClinicalEntryKind = 'assessment' | 'hai' | 'isolation' | 'outcome' |
 // The extra fields of a library row ([el, en, meta]) the clinical screens read.
 export interface ClinicalLibraryMeta {
   id?: string
-  code?: string
+  code?: string | null
   criteriaKey?: string
   [key: string]: unknown
 }

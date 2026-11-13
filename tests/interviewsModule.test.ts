@@ -5,7 +5,6 @@ import { evaluationDocument } from '../src/features/interviews/interviewsReports
 import { decide, fromRow, loadInterviews, markHired, saveCandidate, saveInterview, toRow } from '../src/features/interviews/interviewsService'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { CAPABILITIES, ROLES, can } from '../src/core/permissions/roles'
-import type { AnyRecord } from '../src/types/featureTypes'
 import { readSource } from './helpers/readSource'
 
 describe('Interviews model', () => {
@@ -52,7 +51,7 @@ describe('Interviews model', () => {
   })
 
   it('finds the next and the latest interview, and the ones to come', () => {
-    const { candidates } = interviewsDemoState() as { candidates: AnyRecord[] }
+    const { candidates } = interviewsDemoState()
     const scheduled = candidates.find(item => item.status === 'interview_scheduled')
     expect(nextInterview(scheduled)?.status).toBe('scheduled')
     expect(latestEvaluation(candidates.find(item => item.status === 'offer'))?.overallRating).toBe(4.5)
@@ -69,7 +68,7 @@ describe('Interviews model', () => {
   })
 
   it('prints the evaluation sheet with the score per criterion and the panel', () => {
-    const { candidates } = interviewsDemoState() as { candidates: AnyRecord[] }
+    const { candidates } = interviewsDemoState()
     const candidate = candidates.find(item => item.status === 'offer')
     const doc = evaluationDocument(candidate, latestEvaluation(candidate), { language: 'en' })
     expect(doc.code).toBe(candidate.code)

@@ -1,8 +1,8 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LiraData, LiraRow, LiraSignal } from './liraTypes'
 const severityRank: Record<string, number>={critical:4,high:3,medium:2,low:1}
 
-const dateOf=(row: AnyRecord)=>row?.signalDate||row?.resultedAt||row?.collectedAt||row?.date||row?.startedAt||row?.dueDate||null
+const dateOf=(row: LiraRow)=>row?.signalDate||row?.resultedAt||row?.collectedAt||row?.date||row?.startedAt||row?.dueDate||null
 const day=(value: unknown)=>value?String(value).slice(0,10):null
 const inPeriod=(value: string|null,days: number,today: string)=>{
   if(!days||!value)return true
@@ -11,22 +11,22 @@ const inPeriod=(value: string|null,days: number,today: string)=>{
   const current=new Date(value)
   return Number.isFinite(current.getTime())&&current>=start&&current<=end
 }
-const departmentOf=(row: AnyRecord,language: string)=>language==='en'?(row.departmentEn||row.departmentEl||row.department):(row.departmentEl||row.departmentEn||row.department)
+const departmentOf=(row: LiraRow,language: string)=>language==='en'?(row.departmentEn||row.departmentEl||row.department):(row.departmentEl||row.departmentEn||row.department)
 const normalize=(value: unknown)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('el-GR')
 
-export function filterLiraData(data: AnyRecord,{department='all',periodDays=0,language='el',today=hospitalToday()}: {department?: string; periodDays?: number; language?: string; today?: string}={}): AnyRecord{
+export function filterLiraData(data: LiraData,{department='all',periodDays=0,language='el',today=hospitalToday()}: {department?: string; periodDays?: number; language?: string; today?: string}={}): LiraData{
   if(!data)return data
-  const filterRows=(rows: AnyRecord[]=[])=>rows.filter(row=>(department==='all'||departmentOf(row,language)===department)&&inPeriod(dateOf(row),periodDays,today))
+  const filterRows=<T extends LiraRow>(rows: T[]=[])=>rows.filter(row=>(department==='all'||departmentOf(row,language)===department)&&inPeriod(dateOf(row),periodDays,today))
   return {...data,surveillance:filterRows(data.surveillance),laboratory:filterRows(data.laboratory),handHygiene:filterRows(data.handHygiene),bundles:filterRows(data.bundles),qualityIncidents:filterRows(data.qualityIncidents),qualityCapas:filterRows(data.qualityCapas)}
 }
 
-function liraDepartments(data: AnyRecord,language='el'){
+function liraDepartments(data: LiraData,language='el'){
   const values=new Set<string>()
-  for(const key of ['surveillance','laboratory','handHygiene','bundles','qualityIncidents','qualityCapas'])for(const row of data?.[key]||[]){const value=departmentOf(row,language);if(value&&value!=='—')values.add(value)}
+  for(const key of ['surveillance','laboratory','handHygiene','bundles','qualityIncidents','qualityCapas'] as const)for(const row of (data?.[key]||[]) as LiraRow[]){const value=departmentOf(row,language);if(value&&value!=='—')values.add(value)}
   return [...values].sort((a,b)=>a.localeCompare(b,language==='en'?'en':'el'))
 }
 
-export function inferLiraQuestionScope(question: unknown,data: AnyRecord,language='el'){
+export function inferLiraQuestionScope(question: unknown,data: LiraData,language='el'){
   const text=normalize(question)
   let periodDays=0
   if(/\b(σημερα|today)\b/.test(text))periodDays=1
@@ -42,9 +42,9 @@ export function inferLiraQuestionScope(question: unknown,data: AnyRecord,languag
   return {department,periodDays}
 }
 
-export function buildLiraAnalysis(data: AnyRecord,language='el',{today=hospitalToday()}: {today?: string}={}){
+export function buildLiraAnalysis(data: LiraData,language='el',{today=hospitalToday()}: {today?: string}={}){
  const en=language==='en'
- const {surveillance=[],laboratory=[],handHygiene=[],bundles=[],qualityIncidents=[],qualityCapas=[]}: Record<string, AnyRecord[]>=data||{}
+ const {surveillance=[],laboratory=[],handHygiene=[],bundles=[],qualityIncidents=[],qualityCapas=[]}: LiraData=data||{}
  const active=surveillance.filter(x=>x.state==='active')
  const amrSurv=active.filter(x=>x.resistance)
  const criticalLab=laboratory.filter(x=>x.critical&&!(x.communications?.length))
@@ -52,17 +52,17 @@ export function buildLiraAnalysis(data: AnyRecord,language='el',{today=hospitalT
  const overdueReview=active.filter(x=>x.reviewDue&&day(x.reviewDue)!<today)
  const lowHand=handHygiene.filter(x=>Number(x.rate)<80)
  const failedBundles=bundles.filter(x=>x.allOrNone===false)
- const highIncidents=qualityIncidents.filter(x=>['high','critical'].includes(x.severity)&&x.status!=='closed')
+ const highIncidents=qualityIncidents.filter(x=>['high','critical'].includes(x.severity||'')&&x.status!=='closed')
  const overdueCapa=qualityCapas.filter(x=>x.status!=='completed'&&x.dueDate&&day(x.dueDate)!<today)
- const signals: AnyRecord[]=[]
- const evidence=(source: string,id: string,date: unknown)=>({source,id,date:day(date)})
+ const signals: LiraSignal[]=[]
+ const evidence=(source: string,id: string|undefined,date: unknown)=>({source,id,date:day(date)})
  const icu=en?'ICU':'ΜΕΘ'
  const icuAmr=amrSurv.filter(x=>String(x.department||'').toLocaleLowerCase('el-GR').includes('μεθ')||String(x.department||'').toLowerCase().includes('icu'))
  if(icuAmr.length)signals.push({id:'amr-concentration',severity:'high',domain:en?'Surveillance / AMR':'Επιτήρηση / AMR',department:icu,title:en?'Resistant-organism records requiring epidemiological review in ICU':'Εγγραφές ανθεκτικών μικροοργανισμών που απαιτούν επιδημιολογική αξιολόγηση στη ΜΕΘ',summary:en?`${icuAmr.length} active resistant-organism surveillance record(s) are present in ICU; no cluster threshold is inferred.`:`${icuAmr.length} ενεργές εγγραφές επιτήρησης ανθεκτικών μικροοργανισμών υπάρχουν στη ΜΕΘ· δεν συνάγεται όριο cluster.`,evidence:icuAmr.map(x=>evidence('surveillance_cases',x.id,x.startedAt)),to:'/surveillance'})
  criticalLab.forEach(x=>signals.push({id:`critical-${x.resultId||x.id}`,severity:'critical',domain:en?'Laboratory':'Εργαστήριο',department:x.department,title:en?'Critical result without closed-loop communication':'Κρίσιμο αποτέλεσμα χωρίς κλειστό κύκλο επικοινωνίας',summary:`${x.patient} · ${x.organism||(en?'critical laboratory result':'κρίσιμο εργαστηριακό αποτέλεσμα')}`,evidence:[evidence('microbiology_results',x.resultId||x.id,x.resultedAt)],to:`/laboratory/${x.id}`}))
  overdueReview.forEach(x=>signals.push({id:`review-${x.id}`,severity:'high',domain:en?'Surveillance':'Επιτήρηση',department:x.department,title:en?'Active surveillance reassessment is pending':'Εκκρεμεί επανεκτίμηση ενεργής επιτήρησης',summary:`${x.patient} · ${x.organism||(en?'no microorganism':'χωρίς μικροοργανισμό')}`,evidence:[evidence('surveillance_cases',x.id,x.reviewDue)],to:`/surveillance/${x.id}`}))
- lowHand.forEach(x=>signals.push({id:`hh-${x.id}`,severity:x.rate<70?'high':'medium',domain:en?'Prevention':'Πρόληψη',department:departmentOf(x,language),title:en?'Low hand-hygiene compliance':'Χαμηλή συμμόρφωση υγιεινής χεριών',summary:en?`Compliance was ${x.rate}% across ${x.observations} opportunities.`:`Καταγράφηκε συμμόρφωση ${x.rate}% σε ${x.observations} ευκαιρίες.`,evidence:[evidence('hand_hygiene_sessions',x.id,x.date)],to:'/prevention'}))
- failedBundles.forEach(x=>signals.push({id:`bundle-${x.id}`,severity:x.score<85?'high':'medium',domain:en?'Prevention bundles':'Δέσμες μέτρων πρόληψης',department:departmentOf(x,language),title:en?`Bundle ${x.bundle} without all-or-none compliance`:`Bundle ${x.bundle} χωρίς συμμόρφωση`,summary:en?`Score ${x.score}% · ${x.failedCount} non-compliant item(s).`:`Βαθμολογία ${x.score}% · ${x.failedCount} μη συμμορφούμενο στοιχείο.`,evidence:[evidence('prevention_bundle_assessments',x.id,x.date)],to:'/prevention'}))
+ lowHand.forEach(x=>signals.push({id:`hh-${x.id}`,severity:Number(x.rate)<70?'high':'medium',domain:en?'Prevention':'Πρόληψη',department:departmentOf(x,language),title:en?'Low hand-hygiene compliance':'Χαμηλή συμμόρφωση υγιεινής χεριών',summary:en?`Compliance was ${x.rate}% across ${x.observations} opportunities.`:`Καταγράφηκε συμμόρφωση ${x.rate}% σε ${x.observations} ευκαιρίες.`,evidence:[evidence('hand_hygiene_sessions',x.id,x.date)],to:'/prevention'}))
+ failedBundles.forEach(x=>signals.push({id:`bundle-${x.id}`,severity:Number(x.score)<85?'high':'medium',domain:en?'Prevention bundles':'Δέσμες μέτρων πρόληψης',department:departmentOf(x,language),title:en?`Bundle ${x.bundle} without all-or-none compliance`:`Bundle ${x.bundle} χωρίς συμμόρφωση`,summary:en?`Score ${x.score}% · ${x.failedCount} non-compliant item(s).`:`Βαθμολογία ${x.score}% · ${x.failedCount} μη συμμορφούμενο στοιχείο.`,evidence:[evidence('prevention_bundle_assessments',x.id,x.date)],to:'/prevention'}))
  highIncidents.forEach(x=>signals.push({id:`incident-${x.id}`,severity:x.severity==='critical'?'critical':'high',domain:en?'Quality':'Ποιότητα',department:x.department,title:en?'Open serious incident':'Ανοιχτό σοβαρό συμβάν',summary:x.title,evidence:[evidence('quality_incidents',x.id,x.date)],to:`/quality/incidents/${x.id}`}))
  overdueCapa.forEach(x=>signals.push({id:`capa-${x.id}`,severity:x.priority==='high'?'high':'medium',domain:en?'Quality / CAPA':'Ποιότητα / διορθωτικές ενέργειες',department:x.department,title:en?'Overdue corrective action':'Εκπρόθεσμη διορθωτική ενέργεια',summary:x.title,evidence:[evidence('quality_capa_actions',x.id,x.dueDate)],to:`/quality/capas/${x.id}`}))
  signals.sort((a,b)=>severityRank[b.severity]-severityRank[a.severity])

@@ -1,11 +1,11 @@
 import {buildOutbreakLineList} from './liraOutbreakInvestigation'
 import {buildOutbreakClosureReadiness,latestCaseReviews} from './liraOutbreakClosure'
 import {listOutbreakInvestigations,loadOutbreakInvestigationEvents,loadOutbreakCaseReviews,loadOutbreakActions} from './liraOutbreakWorkspace'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LiraData, OutbreakInvestigation } from './liraTypes'
 const norm=(v: unknown)=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
 export function isOutbreakWorkspaceQuestion(question: string){const q=norm(question);return /διερευν|εξαρσ|outbreak|case review|capa|κλεισ|close|hypothes|υποθεσ/.test(q)&&/τι γνωριζ|μεχρι τωρα|candidate|περιστατικ|capa|εκκρεμ|pending|κλεισ|close|ready|ετοιμ|hypothes|υποθεσ|investigation|διερευν/.test(q)}
-function chooseInvestigation(question: string,rows: AnyRecord[]){const q=norm(question);const explicit=rows.find(x=>q.includes(norm(x.title))||q.includes(String(x.id).toLowerCase()));if(explicit)return explicit;return rows.find(x=>x.status==='active')||rows.find(x=>x.status==='draft')||rows[0]||null}
-export async function answerOutbreakWorkspaceQuestion({question,data,organizationId,language='el'}: AnyRecord){
+function chooseInvestigation(question: string,rows: OutbreakInvestigation[]){const q=norm(question);const explicit=rows.find(x=>q.includes(norm(x.title))||q.includes(String(x.id).toLowerCase()));if(explicit)return explicit;return rows.find(x=>x.status==='active')||rows.find(x=>x.status==='draft')||rows[0]||null}
+export async function answerOutbreakWorkspaceQuestion({question,data,organizationId,language='el'}: {question: string, data: LiraData, organizationId: string, language?: string}){
  const en=language==='en',investigations=await listOutbreakInvestigations(organizationId),investigation=chooseInvestigation(question,investigations)
  if(!investigation)return {title:en?'Outbreak investigations':'Διερευνήσεις εξάρσεων',subtitle:'',points:[en?'No governed outbreak investigation is available in your authorized organization.':'Δεν υπάρχει ελεγχόμενη διερεύνηση έξαρσης στον εξουσιοδοτημένο οργανισμό σας.'],provenance:[{source:'lira_outbreak_investigations'}],context:{plan:null,timeWindow:null}}
  const [events,reviews,actions]=await Promise.all([loadOutbreakInvestigationEvents(investigation.id),loadOutbreakCaseReviews(investigation.id),loadOutbreakActions(organizationId,investigation.id)])

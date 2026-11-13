@@ -1,20 +1,20 @@
 // The demo applications: one at every step of the pipeline, with languages, previous
 // employers, a scheduled interview and evaluated ones, dates set from today. Names are made up.
 import { CONSENTS, CONSENT_VERSION, DEMO_SIGNATURE } from './applicationModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Candidate, Interview } from './interviewsTypes'
 const day = (offset: number) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const at = (offset: number, time: string) => new Date(`${day(offset)}T${time}:00`).toISOString()
 const HR = 'Ελένη Γεωργίου', HEAD_NURSE = 'Μαρία Παπαδοπούλου', DIRECTOR = 'Νίκος Αλεξίου'
 const panel = (...names: [string, string?][]) => names.map(([name, role = 'evaluator']) => ({ employeeId: '', name, role }))
 
-const candidate = (id: string, code: string, offset: number, fields: AnyRecord): AnyRecord => ({
+const candidate = (id: string, code: string, offset: number, fields: Partial<Candidate>): Candidate => ({
   id, code, gender: '', fatherName: '', motherName: '', birthDate: '', birthPlace: '', nationality: 'Ελληνική', citizenship: 'Ελληνική', idNumber: '', idAuthority: '', idIssuedOn: '',
   address: '', area: '', postcode: '', phoneLandline: '', phoneMobile: '', email: '', requestedPosition: '', employmentType: 'full_time', militaryService: '', workPermit: null, practiceLicence: null, smoker: false,
   maritalStatus: '', children: '', educationLevel: '', education: [], itSkills: '', activities: '', whyUs: '', applicationReason: '', appliedOn: day(offset), consentGiven: true, consentAt: at(offset, '10:00'), consentText: 'Έντυπο συναίνεσης GDPR',
   status: 'new', decision: '', decisionOn: '', decisionByName: '', decisionNotes: '', employeeId: '', source: 'demo', notes: '', languages: [], employers: [], interviews: [],
   createdAt: at(offset, '10:00'), updatedAt: at(offset, '10:00'), ...fields,
 })
-const interview = (id: string, fields: AnyRecord): AnyRecord => ({ id, scheduledAt: '', location: 'Γραφείο Προσωπικού', status: 'scheduled', interviewers: [], scores: {}, overallRating: null, outcome: '', recommendation: '', strengths: '', weaknesses: '', salaryExpectation: '', offeredSalary: '', benefits: '', availableFrom: '', evaluatedAt: '', evaluatedByName: '', notes: '', source: 'demo', ...fields })
+const interview = (id: string, fields: Partial<Interview>): Interview => ({ id, scheduledAt: '', location: 'Γραφείο Προσωπικού', status: 'scheduled', interviewers: [], scores: {}, overallRating: null, outcome: '', recommendation: '', strengths: '', weaknesses: '', salaryExpectation: '', offeredSalary: '', benefits: '', availableFrom: '', evaluatedAt: '', evaluatedByName: '', notes: '', source: 'demo', ...fields })
 
 export function interviewsDemoState() {
   const state = demoCandidatesAndDivisions()

@@ -6,6 +6,7 @@ import { loadActiveClustersAsync } from '../surveillance/outbreakClusterService'
 import { buildLiraMetrics,buildPpsMetrics } from '../analysis/analysisAddonMetrics'
 import { keepPerCategory } from '../analysis/microbiologyLabels'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { LiraInvestigationRow } from '../analysis/analysisTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 // Χωρίς τύπους της βάσης: οι αναλύσεις καλούν RPC με προαιρετικά (null) ορίσματα, που ο database.types δηλώνει
@@ -101,7 +102,7 @@ async function loadAmrSusceptibility({organizationId='',from='',to='',department
 
 function mergeAmrRows(snapshots: AnyRecord[]){const merged: Record<string,{tested: number,resistant: number}>={};for(const snapshot of snapshots){for(const [organism,tested,resistant] of snapshot?.amrSusceptibility||[]){const current=merged[organism]||{tested:0,resistant:0};current.tested+=Number(tested)||0;current.resistant+=Number(resistant)||0;merged[organism]=current}}return Object.entries(merged).map(([organism,{tested,resistant}]): [string,number,number]=>[organism,tested,resistant]).sort((a,b)=>b[1]-a[1])}
 async function readAddonTable(organizationId: string | null | undefined,table: string,columns: string){const query=supabase.from(table).select(columns);const {data,error}=await (organizationId?query.eq('organization_id',organizationId):query);if(error)throw error;return data||[]}
-const ADDON_READS={pps:({organizationId,from,to}: AnyRecord)=>readAddonTable(organizationId,'point_prevalence_surveys','survey_date,patients_total,patients_with_hai,patients_on_antibiotics').then(rows=>buildPpsMetrics(rows.map((row: AnyRecord)=>({surveyDate:row.survey_date,patientsTotal:row.patients_total,patientsWithHai:row.patients_with_hai,patientsOnAntibiotics:row.patients_on_antibiotics})),{from,to})).catch(()=>null),lira:({organizationId,from,to}: AnyRecord)=>readAddonTable(organizationId,'lira_outbreak_investigations','status,organism,created_at,closed_at').then(rows=>buildLiraMetrics(rows,{from,to})).catch(()=>null)}
+const ADDON_READS={pps:({organizationId,from,to}: AnyRecord)=>readAddonTable(organizationId,'point_prevalence_surveys','survey_date,patients_total,patients_with_hai,patients_on_antibiotics').then(rows=>buildPpsMetrics(rows.map((row: AnyRecord)=>({surveyDate:row.survey_date,patientsTotal:row.patients_total,patientsWithHai:row.patients_with_hai,patientsOnAntibiotics:row.patients_on_antibiotics})),{from,to})).catch(()=>null),lira:({organizationId,from,to}: AnyRecord)=>readAddonTable(organizationId,'lira_outbreak_investigations','status,organism,created_at,closed_at').then(rows=>buildLiraMetrics(rows as unknown as LiraInvestigationRow[],{from,to})).catch(()=>null)}
 function withCrosstabs(domains: AnyRecord|null,crosstabs: unknown){if(!domains||!crosstabs||typeof crosstabs!=='object')return domains;const out={...domains};for(const [section,values] of Object.entries(crosstabs))if(out[section]&&values&&typeof values==='object')out[section]={...out[section],...values};return out}
 export const ANALYSIS_PARTS=['summary','domains','people','crosstab','qualityFood','microbiology','amr','clusters','pps','lira']
 // «consumption» is not among them: it is read only when the antimicrobials tab asks for it (the indicators' snapshot is heavy).

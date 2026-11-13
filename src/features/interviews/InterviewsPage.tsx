@@ -18,7 +18,7 @@ import { employmentLabel, filterCandidates, fmtDay, newCandidate, pipelineCounts
 import { candidatesExport } from './interviewsReports'
 import { registryMenu } from '../../core/export/registryExports'
 import { DivisionInterviewsPage, DivisionsPanel } from './InterviewDivisions'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Candidate } from './interviewsTypes'
 
 // Συνεντεύξεις: the applications, the pipeline at the top, the interviews to come.
 export function InterviewsPage() {
@@ -40,7 +40,7 @@ function InterviewsListPage() {
   const [position, setPosition] = useState(saved.position)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
-  const [dialog, setDialog] = useState<AnyRecord | null>(null)
+  const [dialog, setDialog] = useState<Candidate | null>(null)
   const [tablet, setTablet] = useState(false)
   const [divisionsView, setDivisionsView] = useState(false)
   const candidates = useMemo(() => state?.candidates || [], [state])
@@ -54,7 +54,7 @@ function InterviewsListPage() {
   if (divisionsView) return <Page fill className="interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'}><section className="surface registry-workspace workspace-column workspace-fill"><DivisionsPanel organizationId={organizationId} onBack={() => setDivisionsView(false)} /></section></Page>
   if (dialog) return <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id as string)}`) }} />
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
-  const open = (item: AnyRecord) => { registry.saveViewState({ query, status, position }); registry.openRecord(navigate, `/interviews/${encodeURIComponent(item.id)}`, item.id, rows.map(row => row.id)) }
+  const open = (item: Candidate) => { registry.saveViewState({ query, status, position }); registry.openRecord(navigate, `/interviews/${encodeURIComponent(item.id)}`, item.id, rows.map(row => row.id)) }
   const clear = () => { setQuery(''); setStatus('all'); setPosition('all') }
   const actions = <div className="row-actions">
     <ExportMenu {...registryMenu(() => candidatesExport(rows, language), { language, kind: en ? 'Interviews · candidates' : 'Συνεντεύξεις · υποψήφιοι', onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} disabled={!rows.length} />

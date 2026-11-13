@@ -1,5 +1,9 @@
 import { supabase } from '../../core/supabase/client'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Tables } from '../../core/supabase/database.types'
+import type { PatientDayPeriod, PatientDayPeriodInput } from './managementTypes'
+
+// A patient_day_periods row with its department's name.
+type PatientDayPeriodRow = Pick<Tables<'patient_day_periods'>, 'id' | 'period_start' | 'period_end' | 'department_id' | 'patient_days' | 'source' | 'review_status'> & { departments: { name: string } | null }
 
 function requireCloud(organizationId: string|null|undefined){
   if(!organizationId) throw new Error('Missing organization context.')
@@ -7,7 +11,7 @@ function requireCloud(organizationId: string|null|undefined){
   return supabase
 }
 
-function toRow(row: AnyRecord){
+function toRow(row: PatientDayPeriodRow): PatientDayPeriod{
   return {
     id:row.id,
     from:row.period_start,
@@ -29,7 +33,7 @@ export async function loadPatientDayPeriods(organizationId: string){
   return (data||[]).map(toRow)
 }
 
-export async function createPatientDayPeriod(organizationId: string,input: AnyRecord){
+export async function createPatientDayPeriod(organizationId: string,input: PatientDayPeriodInput){
   const supabase=requireCloud(organizationId)
   const {data:{user}}=await supabase.auth.getUser()
   const payload={organization_id:organizationId,department_id:input.scope==='department'?input.departmentId:null,period_start:input.from,period_end:input.to,patient_days:Number(input.value),source:'manual',review_status:'reviewable',created_by:user?.id||null,updated_by:user?.id||null}
@@ -38,7 +42,7 @@ export async function createPatientDayPeriod(organizationId: string,input: AnyRe
   return toRow(data)
 }
 
-export async function updatePatientDayPeriod(organizationId: string,id: string,input: AnyRecord){
+export async function updatePatientDayPeriod(organizationId: string,id: string,input: PatientDayPeriodInput){
   const supabase=requireCloud(organizationId)
   const {data:{user}}=await supabase.auth.getUser()
   const payload={department_id:input.scope==='department'?input.departmentId:null,period_start:input.from,period_end:input.to,patient_days:Number(input.value),updated_by:user?.id||null}
