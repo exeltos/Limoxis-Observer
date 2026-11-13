@@ -79,7 +79,7 @@ const sources = {
 }
 
 describe('Quality & food safety metrics', () => {
-  const q = buildQualityFoodMetrics(sources, range, today)
+  const q = buildQualityFoodMetrics({ ...sources, surveys: sources.surveys as Survey[] }, range, today)
 
   it('counts audit answers per standard as compliant over applicable, in the period only', () => {
     expect(q.audits).toBe(2)

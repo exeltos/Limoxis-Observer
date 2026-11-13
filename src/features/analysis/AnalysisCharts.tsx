@@ -1,6 +1,6 @@
 import { useEffect,useRef,useState,type ReactNode } from 'react'
 import './AnalysisCharts.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DomainMetrics } from './analysisTypes'
 
 // A chart row: [label, value, detail?] (the value can be '—' or a '3/12' ratio).
 export type ChartRow=readonly unknown[]
@@ -136,7 +136,7 @@ export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalL
 // One row per department (or hospital, `rowLabel`) with the headline figures
 // of every area, so units can be compared side by side; cells are shaded
 // within their column.
-export function Scoreboard({rows=[],columns:allColumns=[],rowLabel,en}: {rows?: AnyRecord[]; columns?: ScoreColumn[]; rowLabel?: string; en: boolean}){
+export function Scoreboard({rows=[],columns:allColumns=[],rowLabel,en}: {rows?: DomainMetrics[]; columns?: ScoreColumn[]; rowLabel?: string; en: boolean}){
   if(!rows.length)return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the period.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στην περίοδο.'}</div>
   const columns=allColumns.filter(column=>rows.some(row=>row[column.key]!=null&&row[column.key]!==''&&!Number.isNaN(Number(row[column.key]))))
   const peaks=columns.map(column=>Math.max(0,...rows.map(row=>Number(row[column.key])||0)))
