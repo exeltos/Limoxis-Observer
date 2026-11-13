@@ -4,7 +4,6 @@
 import { patientDemoData } from '../patients/patientDemoData'
 import { demoClinicalScaleDefinitions } from './clinicalScaleDemoDefinitions'
 import { calculateClinicalScale } from './clinicalScaleEngine'
-import type { AnyRecord } from '../../types/featureTypes'
 
 const SCENARIOS = {
   icu: [
@@ -36,7 +35,9 @@ const ASSESSORS = [
   ['Μαρία Κωνσταντίνου', 'Νοσηλευτής/τρια'],
 ]
 
-function scenarioFor(patient: AnyRecord) {
+// What the Demo's assessments read of a Demo patient.
+type DemoPatient = { id: string, recordId?: string, admissionId?: string, admissionDate?: string, department?: string }
+function scenarioFor(patient: DemoPatient) {
   const department = String(patient.department || '')
   if (department.includes('ΜΕΝΝ') || department.includes('Νεογν')) return SCENARIOS.neonatal
   if (department.includes('ΜΕΘ')) return SCENARIOS.icu
@@ -54,7 +55,7 @@ function isoAt(date: unknown, dayOffset: number, time: string) {
 
 export function buildDemoScaleAssessments() {
   const definitions = new Map(demoClinicalScaleDefinitions.map(definition => [definition.scale_key, definition]))
-  return (patientDemoData as AnyRecord[]).flatMap((patient, patientIndex) => {
+  return (patientDemoData as DemoPatient[]).flatMap((patient, patientIndex) => {
     if (!patient.admissionDate) return []
     return scenarioFor(patient).map((item, index) => {
       const definition = definitions.get(item.key)

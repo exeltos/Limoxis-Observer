@@ -18,7 +18,7 @@ import { updatePatient } from '../patients/patientsService'
 import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { ISOLATION_STATUS, clinicalTerm, clinicalValueLabel, timelineLabel } from './clinicalRecordLabels'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
-import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
+import { clinicalRiskFlags, scaleShortName, type FlagRow } from '../clinical-scales/ClinicalRiskFlags'
 import { AdmissionDeleteDialog, PatientDetailsEditor, useAdmissionLifecycle } from './ClinicalAdmissionDialogs'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
@@ -249,7 +249,7 @@ interface CanonicalSummaryProps {
   extraAttention?: AnyRecord[]
   epiItems?: AnyRecord[]
   samples: AnyRecord[]
-  scaleRows?: AnyRecord[]
+  scaleRows?: FlagRow[]
   patient: AnyRecord | null
   admission: AnyRecord | null
   record: AnyRecord | null

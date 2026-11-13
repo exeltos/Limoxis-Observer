@@ -1,6 +1,8 @@
-import type {AnyRecord} from '../../types/featureTypes'
+import type {ScaleValues} from './clinicalScaleEngine'
+// A record the values are read from (patient, admission, episode, vitals, labs): each module names them its own way.
+type Source=Record<string, unknown>
 
-const firstValue=(sources: (AnyRecord|null|undefined)[],keys: string[])=>{for(const source of sources){if(!source)continue;for(const key of keys){const value=source[key];if(value!==undefined&&value!==null&&value!=='')return value}}return undefined}
+const firstValue=(sources: (Source|null|undefined)[],keys: string[])=>{for(const source of sources){if(!source)continue;for(const key of keys){const value=source[key];if(value!==undefined&&value!==null&&value!=='')return value}}return undefined}
 
 const FIELD_SOURCES: Record<string, string[]>={
  temperature:['temperature','temperature_c','temp'],
@@ -24,13 +26,14 @@ const FIELD_SOURCES: Record<string, string[]>={
  pao2Fio2:['pao2Fio2','pao2_fio2_ratio']
 }
 
-export interface ClinicalScalePrefillSources { patient?: AnyRecord|null, admission?: AnyRecord|null, episode?: AnyRecord|null, clinicalData?: AnyRecord|null, latestLabs?: AnyRecord|null, latestVitals?: AnyRecord|null }
+export interface ClinicalScalePrefillSources { patient?: Source|null, admission?: Source|null, episode?: Source|null, clinicalData?: Source|null, latestLabs?: Source|null, latestVitals?: Source|null }
 export function clinicalScalePrefill(scaleKey: string,{patient,admission,episode,clinicalData,latestLabs,latestVitals}: ClinicalScalePrefillSources={}){
  const sources=[clinicalData,latestVitals,latestLabs,episode,admission,patient]
  const allowed=scaleKey==='sofa'?['pao2Fio2','platelets','bilirubin','map','gcs','creatinine','urineOutput24h']:scaleKey==='qsofa'?['respiratoryRate','systolicBp','gcs']:scaleKey==='apache-ii'?['temperature','map','heartRate','respiratoryRate','fio2','pao2','aado2','ph','sodium','potassium','creatinine','hematocrit','wbc','gcs']:[]
- return Object.fromEntries(allowed.flatMap(key=>{const value=firstValue(sources,FIELD_SOURCES[key]);return value===undefined?[]:[[key,value]]}))
+ // The measurements recorded (numbers or as typed).
+ return Object.fromEntries(allowed.flatMap(key=>{const value=firstValue(sources,FIELD_SOURCES[key]);return value===undefined?[]:[[key,value]]})) as ScaleValues
 }
 
-export function mergeClinicalScalePrefill(current: AnyRecord={},prefill: AnyRecord={}){
+export function mergeClinicalScalePrefill(current: ScaleValues={},prefill: ScaleValues={}): ScaleValues{
  return {...prefill,...Object.fromEntries(Object.entries(current).filter(([,value])=>value!==''&&value!==null&&value!==undefined))}
 }

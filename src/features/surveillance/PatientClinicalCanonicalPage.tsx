@@ -43,7 +43,7 @@ import { episodeFormSections } from './forms/formsRegistry'
 import { makeDeviceBundles } from './forms/deviceBundles'
 import { epiRows } from './forms/sections/epiQuestionnaireSection'
 import { ClinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
-import { loadLatestPatientRiskFlags } from '../clinical-scales/patientRiskFlagsService'
+import { loadLatestPatientRiskFlags, type RiskFlagRow } from '../clinical-scales/patientRiskFlagsService'
 import {
   AdmissionPicker,
   NewAdmissionDialog,
@@ -105,7 +105,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     [clinicalLibraries, setClinicalLibraries] = useState<AnyRecord>(demoLibrarySeed)
   // Demo has no cloud attachment store; keep documents per episode in memory.
   const [demoDocuments, setDemoDocuments] = useState<Record<string, AttachmentFile[]>>({})
-  const [riskFlagRows, setRiskFlagRows] = useState<Record<string, AnyRecord[]>>({})
+  const [riskFlagRows, setRiskFlagRows] = useState<Record<string, RiskFlagRow[]>>({})
   const [selectedAdmissionId, setSelectedAdmissionId] = useState(() =>
     patientMode ? location.state?.admissionId || '' : '',
   )
