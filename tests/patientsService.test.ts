@@ -119,7 +119,7 @@ describe('patientsService', () => {
 
   it('creates the first admission locally alongside a demo patient, since no DB trigger runs for it', async () => {
     const { record } = await createPatient('hospital-new', [], { patientCode: 'DEMO-1', firstName: 'Demo', lastName: 'Patient', departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31' }, { isDemo: true })
-    expect(record.admissionId).toBeTruthy()
+    expect((record as { admissionId?: string }).admissionId).toBeTruthy()
   })
 
   it('derives the demo roster admissions from each seed patient instead of hitting Supabase', async () => {
@@ -132,7 +132,7 @@ describe('patientsService', () => {
   it('surfaces the admission created for a brand new demo patient when its admissions are loaded', async () => {
     const { record } = await createPatient('hospital-new', [], { patientCode: 'DEMO-2', firstName: 'Demo', lastName: 'Two', departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31' }, { isDemo: true })
     const admissions = await loadAdmissions(record, { isDemo: true })
-    expect(admissions).toEqual([{ id: record.admissionId, departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31', dischargeDate: null, status: 'active', notes: null, caseNumber: '' }])
+    expect(admissions).toEqual([{ id: (record as { admissionId?: string }).admissionId, departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31', dischargeDate: null, status: 'active', notes: null, caseNumber: '' }])
   })
 
   it('keeps patients created in one organization out of another', async () => {
@@ -181,7 +181,7 @@ describe('patientsService', () => {
 
   it('carries a demo patient\'s birth weight/gestational age through an update patch', async () => {
     const updated = await updatePatient('hospital-new', { id: 'PT-DEMO', birthWeightGrams: 900 }, { birthWeightGrams: 1050 }, { isDemo: true })
-    expect(updated.birthWeightGrams).toBe(1050)
+    expect((updated as { birthWeightGrams?: number }).birthWeightGrams).toBe(1050)
   })
 
   it('does not create a partial admission when the atomic operation fails', async () => {

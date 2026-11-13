@@ -28,7 +28,7 @@ describe('possible duplicate patients', () => {
   })
 
   it('recognises the refusal of a record number another admission already has', () => {
-    const error = { code: '23505', message: 'ADMISSION_CASE_NUMBER_TAKEN' }
+    const error: { code: string, message: string, duplicateRecordNumber?: boolean } = { code: '23505', message: 'ADMISSION_CASE_NUMBER_TAKEN' }
     expect(markRecordNumberTaken(error)).toBe(true)
     expect(error.duplicateRecordNumber).toBe(true)
     expect(markRecordNumberTaken({ code: '23505', message: 'duplicate key value violates unique constraint "patients_organization_id_patient_code_key"' })).toBe(false)

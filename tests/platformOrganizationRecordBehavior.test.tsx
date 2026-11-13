@@ -20,11 +20,11 @@ vi.mock('../src/core/auth/AuthContext', async original => ({ ...(await original(
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => feedback, useOptionalFeedback: () => feedback }))
 vi.mock('../src/core/tenant/tenantService', async original => ({
   ...(await original()),
-  listOrganizationMembersDetailed: (...args) => service.listOrganizationMembersDetailed(...args),
-  manageOrganizationUser: (...args) => service.manageOrganizationUser(...args),
-  createOrganizationUser: (...args) => service.createOrganizationUser(...args),
-  updatePlatformOrganization: (...args) => service.updatePlatformOrganization(...args),
-  setPlatformOrganizationStatus: (...args) => service.setPlatformOrganizationStatus(...args),
+  listOrganizationMembersDetailed: (...args: Parameters<typeof service.listOrganizationMembersDetailed>) => service.listOrganizationMembersDetailed(...args),
+  manageOrganizationUser: (...args: Parameters<typeof service.manageOrganizationUser>) => service.manageOrganizationUser(...args),
+  createOrganizationUser: (...args: Parameters<typeof service.createOrganizationUser>) => service.createOrganizationUser(...args),
+  updatePlatformOrganization: (...args: Parameters<typeof service.updatePlatformOrganization>) => service.updatePlatformOrganization(...args),
+  setPlatformOrganizationStatus: (...args: Parameters<typeof service.setPlatformOrganizationStatus>) => service.setPlatformOrganizationStatus(...args),
 }))
 vi.mock('../src/features/employees/employeeService', async original => ({ ...(await original()), loadEmployeesAsync: vi.fn(async () => []) }))
 
@@ -119,7 +119,7 @@ describe('organization users', () => {
     openRecord('users')
     fireEvent.click((await screen.findByText(user.name)).closest('tr'))
     fireEvent.click(await screen.findByRole('button', { name: 'Επεξεργασία' }))
-    const role = screen.getAllByRole('combobox').find(select => select.value === 'department_user')
+    const role = screen.getAllByRole<HTMLSelectElement>('combobox').find(select => select.value === 'department_user')
     fireEvent.change(role, { target: { value: 'department_manager' } })
     fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση/ }))
     await waitFor(() => expect(service.manageOrganizationUser).toHaveBeenCalledWith(expect.objectContaining({ organizationId: 'org-1', userId: 'u-2', action: 'update', role: 'department_manager' })))

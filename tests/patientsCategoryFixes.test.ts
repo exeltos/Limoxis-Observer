@@ -14,7 +14,7 @@ describe('Patients category fixes', () => {
   it('demo offers clinical assessment tools, so "New assessment" is available', () => {
     expect(scales).toContain('isDemo?Promise.resolve(demoClinicalScaleDefinitions)')
     expect(scales).toContain('const patientKey=patient?.recordId||(isDemo?patient?.id:null)')
-    const icuAdult = buildClinicalScaleContext(demoClinicalScaleDefinitions, [], { age: 68, admission: { department_name: 'ΜΕΘ' } })
+    const icuAdult = buildClinicalScaleContext(demoClinicalScaleDefinitions as never, [], { age: 68, admission: { department_name: 'ΜΕΘ' } })
     expect(icuAdult.map(x => x.scale_key)).toEqual(expect.arrayContaining(['sofa', 'braden', 'gcs']))
   })
 
@@ -51,7 +51,7 @@ describe('Patients category fixes', () => {
 describe('surveillance review', () => {
   it('matches a surveillance episode to its patient only on real ids', () => {
     expect(episodeBelongsToPatient({ patientRecordId: 'R1', patientId: 'P1' }, { recordId: 'R2', id: 'P1' })).toBe(false)
-    expect(episodeBelongsToPatient({ patientId: 7 }, { id: '7' })).toBe(true)
+    expect(episodeBelongsToPatient({ patientId: 7 } as never, { id: '7' })).toBe(true)
     expect(episodeBelongsToPatient({}, {})).toBe(false)
   })
   it('«Create» of the Surveillance Center creates what the open tab lists, and the new laboratory sample keeps compact icon cards', () => {

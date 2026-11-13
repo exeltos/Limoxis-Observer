@@ -2,8 +2,9 @@
 // AWaRe shares of use and how many departments recorded that month.
 import { describe, expect, it } from 'vitest'
 import { ACCESS_TARGET, pharmacyConsumptionKpis } from '../src/features/pharmacy/pharmacyKpis'
+import type { DispensingRecord } from '../src/features/pharmacy/pharmacyTypes'
 
-const row = (period, productEn, grams, department = 'ΜΕΘ') => ({ periodStart: `${period}-01`, productEn, quantityGrams: grams, departmentEl: department })
+const row = (period, productEn, grams, department = 'ΜΕΘ') => ({ periodStart: `${period}-01`, productEn, quantityGrams: grams, departmentEl: department }) as DispensingRecord
 
 describe('pharmacyConsumptionKpis', () => {
   it('compares the latest month with the month before', () => {

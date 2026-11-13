@@ -16,8 +16,9 @@ let pending
 beforeEach(() => {
   pending = []
   globalThis.Image = class {
+    declare value: string
     set src(value) { this.value = value; pending.push(this) }
-  }
+  } as unknown as typeof Image
 })
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 

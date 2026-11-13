@@ -10,8 +10,8 @@ describe('phone table cards', () => {
     </table></div><table class="data-table"><thead><tr><th>Εκτός</th></tr></thead><tbody><tr><td>z</td></tr></tbody></table>`
     labelTableCells(document.body)
     const [first, second] = document.querySelectorAll('.content tbody tr')
-    expect([...first.children].map(td => td.dataset.label)).toEqual(['Κωδικός', 'Τμήμα', 'Κατάσταση'])
-    expect([...second.children].map(td => td.dataset.label)).toEqual(['Κωδικός', 'Κατάσταση'])
+    expect([...first.children].map(td => (td as HTMLElement).dataset.label)).toEqual(['Κωδικός', 'Τμήμα', 'Κατάσταση'])
+    expect([...second.children].map(td => (td as HTMLElement).dataset.label)).toEqual(['Κωδικός', 'Κατάσταση'])
     expect(document.querySelector('body>table td').hasAttribute('data-label')).toBe(false)
   })
 })

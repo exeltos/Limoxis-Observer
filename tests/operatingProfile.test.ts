@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import type { ProfileSource } from '../src/core/organization/operatingProfile'
 import { ADDONS, MODULES, missingDependencies, profileFor, disabledCapabilitiesFor, moduleEnabled, normalizeProfile, profileModules } from '../src/core/organization/operatingProfile'
 import { CAPABILITIES, ROLES, can, configureProfileAccess } from '../src/core/permissions/roles'
 import { navigationFor } from '../src/app/navigation'
@@ -11,8 +12,8 @@ const navKeys = () => navigationFor({ role: ROLES.HOSPITAL_ADMIN, hasAssignments
 
 describe('operating profile', () => {
   it('keeps everything on for existing organizations and outside an organization', () => {
-    expect(normalizeProfile({ id: 'o1' })).toEqual({ profile: 'full', addons: ['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'], modules: Object.keys(MODULES) })
-    expect(disabledCapabilitiesFor({ id: 'o1' }).size).toBe(0)
+    expect(normalizeProfile({ id: 'o1' } as ProfileSource)).toEqual({ profile: 'full', addons: ['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'], modules: Object.keys(MODULES) })
+    expect(disabledCapabilitiesFor({ id: 'o1' } as ProfileSource).size).toBe(0)
     expect(disabledCapabilitiesFor(null).size).toBe(0)
   })
 
@@ -87,7 +88,7 @@ describe('operating profile', () => {
     const basic = disabledCapabilitiesFor(org('basic', []))
     for (const cap of [CAPABILITIES.VIEW_LAB, CAPABILITIES.MANAGE_LAB_SAMPLES, CAPABILITIES.VIEW_SURVEILLANCE]) expect(basic.has(cap)).toBe(true)
     expect(basic.has(CAPABILITIES.VIEW_PATIENTS)).toBe(false)
-    const unlocked = disabledCapabilitiesFor({ id: 'o1', operating_profile: 'custom', enabled_addons: [], enabled_modules: ['patients', 'laboratory'] })
+    const unlocked = disabledCapabilitiesFor({ id: 'o1', operating_profile: 'custom', enabled_addons: [], enabled_modules: ['patients', 'laboratory'] } as ProfileSource)
     expect(unlocked.has(CAPABILITIES.VIEW_LAB)).toBe(false)
     const legacy = org('laboratory', [])
     expect(moduleEnabled(legacy, 'laboratory')).toBe(true)

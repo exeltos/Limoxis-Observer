@@ -100,7 +100,7 @@ describe('first load and record changes', () => {
     let resolveSecond
     const loader = vi.fn((org, dbId, id) => id === 'EMP-001'
       ? Promise.resolve([{ id: 'row-of-001' }])
-      : new Promise(resolve => { resolveSecond = resolve }))
+      : new Promise<{ id: string }[]>(resolve => { resolveSecond = resolve }))
     const { result, rerender } = renderHook(({ id }) => useEmployeeSubRecords(loader, 'org', `db-${id}`, id), { initialProps: { id: 'EMP-001' } })
     await waitFor(() => expect(result.current.data).toEqual([{ id: 'row-of-001' }]))
     rerender({ id: 'EMP-002' })

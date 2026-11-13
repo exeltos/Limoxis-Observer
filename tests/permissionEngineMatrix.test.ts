@@ -75,7 +75,7 @@ describe('system-only capabilities never leak into custom roles or add-ons', () 
     for (const capabilities of Object.values(addonCapabilityMap)) {
       for (const capability of capabilities) {
         expect(capabilityDefinition(capability).customRoleClass).not.toBe(CUSTOM_ROLE_CLASSES.SYSTEM_ONLY)
-        expect(capabilityDefinition(capability).addOnEligible).toBe(true)
+        expect((capabilityDefinition(capability) as { addOnEligible?: boolean }).addOnEligible).toBe(true)
       }
     }
     expect(Object.keys(addonCapabilityMap)).toEqual(expect.arrayContaining(Object.values(ADD_ON_CAPABILITIES)))
@@ -92,7 +92,7 @@ describe('system-only capabilities never leak into custom roles or add-ons', () 
   it('grants hospital_admin every non-platform, non-occupational-health capability at organization scope', () => {
     // Clinical surveillance work is the Infection Control team's (owner, 8/11/2026), as in the RLS policies.
     const hospitalAdminClinical = [CAPABILITIES.CREATE_SURVEILLANCE, CAPABILITIES.EDIT_SURVEILLANCE, CAPABILITIES.CLOSE_SURVEILLANCE, CAPABILITIES.REOPEN_SURVEILLANCE, CAPABILITIES.RECORD_CLINICAL_ASSESSMENT, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY, CAPABILITIES.REASSESS_SURVEILLANCE, CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME, CAPABILITIES.REVIEW_CLINICAL]
-    const hospitalAdminReserved = [CAPABILITIES.VIEW_PLATFORM, CAPABILITIES.MANAGE_PLATFORM, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, ...hospitalAdminClinical]
+    const hospitalAdminReserved: string[] = [CAPABILITIES.VIEW_PLATFORM, CAPABILITIES.MANAGE_PLATFORM, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, ...hospitalAdminClinical]
     for (const capability of allCapabilityIds) {
       if (hospitalAdminReserved.includes(capability)) {
         expect(can(ROLES.HOSPITAL_ADMIN, capability)).toBe(false)
@@ -128,7 +128,7 @@ describe('sensitive domain isolation', () => {
   it('allows hospital_admin sensitive hospital capabilities while platform_owner keeps platform scope', () => {
     // Occupational health is the one sensitive domain Hospital Admin does NOT
     // get automatically — see the dedicated test below.
-    const occupationalHealthCapabilities = new Set([CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
+    const occupationalHealthCapabilities = new Set<string>([CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
       // and the clinical surveillance work, which is the Infection Control team's (owner, 8/11/2026)
       CAPABILITIES.CREATE_SURVEILLANCE, CAPABILITIES.EDIT_SURVEILLANCE, CAPABILITIES.CLOSE_SURVEILLANCE, CAPABILITIES.REOPEN_SURVEILLANCE, CAPABILITIES.RECORD_CLINICAL_ASSESSMENT, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY, CAPABILITIES.REASSESS_SURVEILLANCE, CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME, CAPABILITIES.REVIEW_CLINICAL])
     for (const capability of sensitiveCapabilities) {
@@ -141,7 +141,7 @@ describe('sensitive domain isolation', () => {
 
   it('keeps occupational health limited to explicitly authorized system roles, excluding Hospital Admin', () => {
     for (const role of allRoleIds) {
-      if ([ROLES.PLATFORM_OWNER, ROLES.OCCUPATIONAL_PHYSICIAN, ROLES.DEMO].includes(role)) continue
+      if (([ROLES.PLATFORM_OWNER, ROLES.OCCUPATIONAL_PHYSICIAN, ROLES.DEMO] as string[]).includes(role)) continue
       expect(can(role, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
       expect(can(role, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)).toBe(false)
     }
