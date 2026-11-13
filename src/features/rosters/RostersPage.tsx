@@ -37,9 +37,8 @@ import {
 import { DEMAND, HOURS, LEAVES, REQUEST_CODE, SHIFTS, isExtra } from './rosterPageModel'
 import { RosterSheet } from './RosterSheet'
 import { RosterMyRequests, RosterPopovers, RosterRulesDialog } from './RosterPanels'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Assignments, RosterDay, RosterHistory } from './rosterRules'
-import type { Roster, RosterMember, RosterRequest } from './rosterService'
+import type { Assignments, CustomShift, DemandKind, RosterDay, RosterHistory, ShiftNeed } from './rosterRules'
+import type { Roster, RosterDepartment, RosterMember, RosterRequest } from './rosterService'
 import type { RosterCodes, RosterView } from './rosterPageModel'
 import './rosters.css'
 
@@ -118,7 +117,7 @@ export function RostersPage() {
     weeklyRestDays: tx('Ρεπό ανά εβδομάδα (μία φορά 3 και 1)', 'Days off a week (once 3 and 1)'),
     minWeekendOff: tx('Ολόκληρα Σ/Κ ρεπό, τουλάχιστον', 'Whole weekends off, at least'),
   }
-  const [departments, setDepartments] = useState<AnyRecord[]>([])
+  const [departments, setDepartments] = useState<RosterDepartment[]>([])
   const [departmentId, setDepartmentId] = useState('')
   const [offset, setOffset] = useState(1)
   const period = useMemo(() => rosterPeriod(new Date(), offset), [offset])
@@ -255,8 +254,8 @@ export function RostersPage() {
     setRoster(next)
     setDirty(true)
   }
-  const setMember = (employeeId: string, patch: AnyRecord) => update({ ...loaded, members: loaded.members.map(m => (m.employeeId === employeeId ? { ...m, ...patch } : m)) })
-  const setDemand = (kind: string, shift: string, value: unknown) => update({ ...loaded, demand: { ...loaded.demand, [kind]: { ...loaded.demand[kind], [shift]: Math.max(0, Math.min(20, Number(value) || 0)) } } })
+  const setMember = (employeeId: string, patch: Partial<RosterMember>) => update({ ...loaded, members: loaded.members.map(m => (m.employeeId === employeeId ? { ...m, ...patch } : m)) })
+  const setDemand = (kind: DemandKind, shift: string, value: unknown) => update({ ...loaded, demand: { ...loaded.demand, [kind]: { ...loaded.demand[kind], [shift]: Math.max(0, Math.min(20, Number(value) || 0)) } } })
   const setRule = (key: string, value: unknown) => update({ ...loaded, rules: { ...loaded.rules, [key]: Math.max(0, Math.min(14, Number(value) || 0)) } })
   // The department's other shifts (owner, 9/11/2026): added from the hospital's codes or typed in, with their own
   // people per weekday and weekend day (0 = only by hand).
@@ -269,8 +268,8 @@ export function RostersPage() {
     update({ ...loaded, demand: { ...loaded.demand, custom: [...custom, { code: key, label: `${from}–${to}`, weekday: 0, weekend: 0 }] } })
     setNewShift({ code: '', from: '', to: '' })
   }
-  const setOther = (code: string, patch: AnyRecord) => update({ ...loaded, demand: { ...loaded.demand, custom: (loaded.demand.custom || []).map((o: AnyRecord) => (o.code === code ? { ...o, ...patch } : o)) } })
-  const removeOther = (code: string) => update({ ...loaded, demand: { ...loaded.demand, custom: (loaded.demand.custom || []).filter((o: AnyRecord) => o.code !== code) } })
+  const setOther = (code: string, patch: Partial<CustomShift>) => update({ ...loaded, demand: { ...loaded.demand, custom: (loaded.demand.custom || []).map((o: CustomShift) => (o.code === code ? { ...o, ...patch } : o)) } })
+  const removeOther = (code: string) => update({ ...loaded, demand: { ...loaded.demand, custom: (loaded.demand.custom || []).filter((o: CustomShift) => o.code !== code) } })
   function setDayNeed(date: string, shift: string, value: string | null) {
     const overrides = { ...(loaded.demand.overrides || {}) }
     const own = { ...(overrides[date] || {}) }
@@ -406,7 +405,7 @@ export function RostersPage() {
   async function sendRequest() {
     if (!me || !ask.from || (ask.kind === 'swap' && !ask.swapEmployeeId)) return
     try {
-      const created = await createRosterRequest((tenant?.id as string), { departmentId: (department as AnyRecord).id, employeeId: me.employeeId, ...ask, to: ask.kind === 'swap' ? ask.from : ask.to || ask.from })
+      const created = await createRosterRequest((tenant?.id as string), { departmentId: (department as RosterDepartment).id, employeeId: me.employeeId, ...ask, to: ask.kind === 'swap' ? ask.from : ask.to || ask.from })
       setRequests(list => [created, ...list])
       setAsk({ kind: 'leave', from: '', to: '', swapEmployeeId: '', swapDate: '', note: '' })
       notify(tx('Το αίτημα στάλθηκε στον προϊστάμενο.', 'The request was sent to the head of the department.'), 'success')
@@ -428,7 +427,7 @@ export function RostersPage() {
   const nameOf = (id: string) => roster?.members.find(m => m.employeeId === id)?.name || '—'
   const codeAt = (id: string, date: string) => loaded.assignments[id]?.[date] || ''
   const countOf = (id: string, test: (code: string) => boolean) => days.filter(d => test(codeAt(id, d.date))).length
-  const usesI = Boolean(roster && (Number(roster.demand?.weekday?.I) || Number(roster.demand?.weekend?.I) || Object.values((roster.demand?.overrides || {}) as Record<string, AnyRecord>).some(o => Number(o.I)) || Object.values(roster.assignments || {}).some(row => Object.values(row || {}).includes('I'))))
+  const usesI = Boolean(roster && (Number(roster.demand?.weekday?.I) || Number(roster.demand?.weekend?.I) || Object.values((roster.demand?.overrides || {}) as Record<string, ShiftNeed>).some(o => Number(o.I)) || Object.values(roster.assignments || {}).some(row => Object.values(row || {}).includes('I'))))
   const shown = usesI ? SHIFTS : ['M', 'A', 'N']
   // The department's other shifts (owner, 9/11/2026): stored as kind:code («M:1»), shown by their own code.
   const others = customShifts(roster?.demand)

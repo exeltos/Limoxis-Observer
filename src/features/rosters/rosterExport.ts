@@ -6,12 +6,12 @@ import { XLSX_STYLE } from '../../core/export/xlsxExport'
 import { isShift, kindOf, type RosterDay } from './rosterEngine'
 import type { ReportDoc } from '../../core/export/reportDocument'
 import type { XlsxSheet } from '../../core/export/xlsxExport'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { RosterDepartment } from './rosterService'
 
 // What the page hands to the export (see the comment below).
 export interface RosterExportInput {
   en: boolean
-  department?: AnyRecord | null
+  department?: RosterDepartment | null
   period: { start: string, end: string }
   status?: string
   days: RosterDay[]

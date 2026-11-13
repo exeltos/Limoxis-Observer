@@ -1,7 +1,6 @@
 import { cloudClient } from '../../core/supabase/cloudContext'
 import type { TablesInsert, TablesUpdate } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Assignments, RosterDemand, RosterHistory } from './rosterRules'
+import type { Assignments, RosterDemand, RosterHistory, RosterRules } from './rosterRules'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadDepartments } from '../management/departmentsService'
 import { loadEmployeesAsync } from '../employees/employeeService'
@@ -9,9 +8,38 @@ import { addDays, seededRandom } from '../../core/data/demoSeed'
 import { generateRoster, periodDays } from './rosterEngine'
 
 // A roster as the page keeps it (camelCase, see fromRow), one of its people and a request of theirs.
-export type RosterMember = AnyRecord
-export interface Roster { id?: string, departmentId: string, periodStart: string, periodEnd: string, demand: RosterDemand, rules: AnyRecord, members: RosterMember[], assignments: Assignments, status: string, publishedAt?: string | null, changeLog: AnyRecord[], [key: string]: unknown }
-export type RosterRequest = AnyRecord
+export type RosterMember = {
+  employeeId: string
+  name: string
+  profession?: string
+  isHead?: boolean
+  // The head set by hand on the roster (wins over the permissions and the job position).
+  headSet?: boolean
+  userId?: string | null
+  inactiveInRegister?: boolean
+  active?: boolean
+  fixed?: Record<string, string>
+  wishes?: Record<string, string>
+  // The person's limits: shifts allowed, extra (fills gaps), no weekends, most nights, percent of a full post.
+  allowed?: string[]
+  extra?: boolean
+  noWeekends?: boolean
+  // A number, or empty in rosters saved before the field was cleared to undefined.
+  maxNights?: number | string | null
+  percent?: number
+}
+// The roster's own settings: the rules changed from the defaults and how the codes are written.
+export type RosterSettings = Partial<RosterRules> & { codes?: string }
+// A cell changed after publishing.
+export type RosterChange = { at: string, by: string, employeeId: string, date: string, from: string, to: string }
+export interface Roster { id?: string, departmentId: string, periodStart: string, periodEnd: string, demand: RosterDemand, rules: RosterSettings, members: RosterMember[], assignments: Assignments, status: string, publishedAt?: string | null, changeLog: RosterChange[], [key: string]: unknown }
+export interface RosterRequest { id: string, departmentId: string, employeeId: string, kind: string, from: string, to: string, swapEmployeeId: string, swapDate: string, note: string, status: string, decidedAt?: string | null, createdAt?: string }
+// A request as the person sends it (the id, status and dates of the decision come back).
+export type NewRosterRequest = Omit<RosterRequest, 'id' | 'status' | 'decidedAt' | 'createdAt'>
+// A department the roster can be made for (the Demo knows them by name).
+export type RosterDepartment = { id: string, name: string, is_active?: boolean | null }
+// What the roster reads of an employee of the register.
+type StaffRecord = { id?: string, dbId?: string, firstName?: string, lastName?: string, department?: string, departmentId?: string, profession?: string, position?: string, userId?: string | null, staffCategory?: string, employmentStatus?: string }
 export interface RosterPeriod { start: string, end: string }
 type OrganizationId = string | null | undefined
 
@@ -46,31 +74,31 @@ export function rosterPeriod(reference = new Date(), offset = 0): RosterPeriod {
   return { start: `${year}-${pad(month + 1)}-21`, end: `${endYear}-${pad(endMonth + 1)}-20` }
 }
 
-export async function loadRosterDepartments(organizationId: OrganizationId): Promise<AnyRecord[]> {
+export async function loadRosterDepartments(organizationId: OrganizationId): Promise<RosterDepartment[]> {
   if (isDemoDataEnvironment()) {
-    const employees: AnyRecord[] = await loadEmployeesAsync(organizationId)
+    const employees: StaffRecord[] = await loadEmployeesAsync(organizationId)
     const count = new Map<string, number>()
     for (const e of employees) if (e.department) count.set(e.department, (count.get(e.department) || 0) + 1)
     // The demo opens on the department with the most people (a roster needs several).
     return [...count.keys()].sort((a, b) => (count.get(b) as number) - (count.get(a) as number) || a.localeCompare(b, 'el')).map(name => ({ id: name, name }))
   }
-  return ((await loadDepartments(organizationId)) as AnyRecord[]).filter(row => row.is_active !== false)
+  return ((await loadDepartments(organizationId)) as RosterDepartment[]).filter(row => row.is_active !== false)
 }
 
 // The head of the department: their position says so (Προϊστάμενος/η, Head of Department).
 export const isDepartmentHead = (position: unknown) => /προϊστάμεν|head of department/i.test(String(position || ''))
 
 // A physician (staff category, or a professional category that says so): the medical service, not the ward rota.
-export const isPhysician = (e: AnyRecord | null | undefined) => e?.staffCategory === 'physician' || /ιατρ|physician|doctor/i.test(String(e?.profession || ''))
+export const isPhysician = (e: StaffRecord | null | undefined) => e?.staffCategory === 'physician' || /ιατρ|physician|doctor/i.test(String(e?.profession || ''))
 // Inactive or on leave in the register.
-export const notAtWork = (e: AnyRecord | null | undefined) => e?.employmentStatus === 'inactive' || e?.employmentStatus === 'leave'
+export const notAtWork = (e: StaffRecord | null | undefined) => e?.employmentStatus === 'inactive' || e?.employmentStatus === 'leave'
 
 // The head first, always; then everyone else in the order the manager set (owner, 8/11/2026).
 export const headsFirst = (members: RosterMember[]) => [...members.filter(m => m.isHead), ...members.filter(m => !m.isHead)]
 
 // The department's people, as roster members (name, profession, active, head).
-export async function loadDepartmentStaff(organizationId: OrganizationId, department: AnyRecord): Promise<RosterMember[]> {
-  const employees: AnyRecord[] = await loadEmployeesAsync(organizationId)
+export async function loadDepartmentStaff(organizationId: OrganizationId, department: RosterDepartment): Promise<RosterMember[]> {
+  const employees: StaffRecord[] = await loadEmployeesAsync(organizationId)
   const demo = isDemoDataEnvironment()
   return headsFirst(
     employees
@@ -78,7 +106,7 @@ export async function loadDepartmentStaff(organizationId: OrganizationId, depart
       // The medical service has its own rota: physicians are not in the department's shift roster (owner, 9/11/2026).
       .filter(e => !isPhysician(e))
       // Employees not at work in the register (inactive, on leave) come in out of the roster, below.
-      .map(e => ({ employeeId: e.dbId || e.id, name: `${e.lastName} ${e.firstName}`.trim(), profession: e.profession || '', isHead: isDepartmentHead(e.position), userId: e.userId || null, inactiveInRegister: notAtWork(e), active: !notAtWork(e), fixed: {}, wishes: {} })),
+      .map(e => ({ employeeId: (e.dbId || e.id) as string, name: `${e.lastName} ${e.firstName}`.trim(), profession: e.profession || '', isHead: isDepartmentHead(e.position), userId: e.userId || null, inactiveInRegister: notAtWork(e), active: !notAtWork(e), fixed: {}, wishes: {} })),
   )
 }
 
@@ -117,18 +145,21 @@ export async function loadRosterHistory(organizationId: string, departmentId: st
   return { history, dates: last }
 }
 
-const fromRow = (row: AnyRecord): Roster => ({
+// A row of department_rosters; its json columns hold the shapes above.
+type RosterRow = { id: string, department_id: string, period_start: string, period_end: string, demand: unknown, rules: unknown, members: unknown, assignments: unknown, status: string | null, published_at: string | null, change_log: unknown }
+// Its json columns, read as the shapes they are saved in.
+const fromRow = (row: RosterRow): Roster => ({
   id: row.id,
   departmentId: row.department_id,
   periodStart: row.period_start,
   periodEnd: row.period_end,
-  demand: row.demand,
-  rules: row.rules || {},
-  members: row.members || [],
-  assignments: row.assignments || {},
+  demand: row.demand as RosterDemand,
+  rules: (row.rules || {}) as RosterSettings,
+  members: (row.members || []) as RosterMember[],
+  assignments: (row.assignments || {}) as Assignments,
   status: row.status || 'draft',
   publishedAt: row.published_at || null,
-  changeLog: row.change_log || [],
+  changeLog: (row.change_log || []) as RosterChange[],
 })
 const ROSTER_COLUMNS = 'id,department_id,period_start,period_end,demand,rules,members,assignments,status,published_at,change_log'
 
@@ -195,7 +226,7 @@ export async function deleteRoster(organizationId: string, roster: Roster) {
 
 // The changes made to a published roster (owner, 8/11/2026): one line per cell that changed.
 export function rosterChanges(before: Assignments = {}, after: Assignments = {}, userName = '', at = new Date().toISOString()) {
-  const changes: AnyRecord[] = []
+  const changes: RosterChange[] = []
   const ids = new Set([...Object.keys(before || {}), ...Object.keys(after || {})])
   for (const id of ids) {
     const dates = new Set([...Object.keys(before?.[id] || {}), ...Object.keys(after?.[id] || {})])
@@ -229,7 +260,9 @@ const writeDemoRequests = (rows: RosterRequest[]) => {
   }
 }
 const REQUEST_COLUMNS = 'id,department_id,employee_id,kind,date_from,date_to,swap_employee_id,swap_date,note,status,decided_at,created_at'
-const requestFromRow = (row: AnyRecord): RosterRequest => ({
+// A row of roster_requests (the columns of REQUEST_COLUMNS).
+type RequestRow = { id: string, department_id: string, employee_id: string, kind: string, date_from: string, date_to: string | null, swap_employee_id: string | null, swap_date: string | null, note: string | null, status: string, decided_at: string | null, created_at: string }
+const requestFromRow = (row: RequestRow): RosterRequest => ({
   id: row.id,
   departmentId: row.department_id,
   employeeId: row.employee_id,
@@ -256,7 +289,7 @@ export async function loadRosterRequests(organizationId: string, departmentId: s
   return (data || []).map(requestFromRow)
 }
 
-export async function createRosterRequest(organizationId: string, request: RosterRequest): Promise<RosterRequest> {
+export async function createRosterRequest(organizationId: string, request: NewRosterRequest): Promise<RosterRequest> {
   if (isDemoDataEnvironment()) {
     const row = { ...request, id: `demo-${Date.now()}`, status: 'pending', createdAt: new Date().toISOString() }
     writeDemoRequests([row, ...(await demoRequests(organizationId))])
@@ -364,7 +397,7 @@ async function demoSeedRequests(organizationId: OrganizationId): Promise<RosterR
       const people = (await loadDepartmentStaff(organizationId, department)).filter(m => !m.isHead && m.active)
       if (people.length < 2) continue
       const at = (days: number, time = '09:00') => `${addDays(current.start, days)}T${time}:00.000Z`
-      const row = (n: number, kind: string, from: number, to: number, status: string, extra: AnyRecord = {}) => ({ id: `demo-request-${index + 1}-${n}`, departmentId: department.id, employeeId: people[n % people.length].employeeId, kind, from: addDays(current.start, from), to: addDays(current.start, to), swapEmployeeId: '', swapDate: '', note: '', status, decidedAt: status === 'pending' ? null : at(-6, '11:00'), createdAt: at(-9 + n), ...extra })
+      const row = (n: number, kind: string, from: number, to: number, status: string, extra: Partial<RosterRequest> = {}) => ({ id: `demo-request-${index + 1}-${n}`, departmentId: department.id, employeeId: people[n % people.length].employeeId, kind, from: addDays(current.start, from), to: addDays(current.start, to), swapEmployeeId: '', swapDate: '', note: '', status, decidedAt: status === 'pending' ? null : at(-6, '11:00'), createdAt: at(-9 + n), ...extra })
       rows.push(
         row(0, 'leave', 6 + index, 8 + index, 'approved', { note: 'Οικογενειακός λόγος.' }),
         row(1, 'wish', 12, 12, 'pending', { note: 'Γάμος στην οικογένεια.' }),

@@ -1,7 +1,7 @@
 // What the roster page and its parts (RosterSheet, RosterPanels) share.
 import type { Dispatch, SetStateAction } from 'react'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
-import type { RosterDay, RosterHistory, RosterRules, RosterViolation } from './rosterRules'
+import type { Translate } from '../../types/featureTypes'
+import type { CustomShift, DemandKind, RosterDay, RosterHistory, RosterRules, RosterViolation } from './rosterRules'
 import type { Roster, RosterMember, RosterRequest } from './rosterService'
 
 // At least two people on every shift by default (owner, 8/11/2026); more on a shift is fine.
@@ -60,11 +60,11 @@ export interface RosterView {
   targets: Record<string, number>
   me: RosterMember | null
   update: (next: Roster) => void
-  setMember: (employeeId: string, patch: AnyRecord) => void
-  setDemand: (kind: string, shift: string, value: unknown) => void
+  setMember: (employeeId: string, patch: Partial<RosterMember>) => void
+  setDemand: (kind: DemandKind, shift: string, value: unknown) => void
   setRule: (key: string, value: unknown) => void
   addOther: (code: unknown, from: string, to: string) => void
-  setOther: (code: string, patch: AnyRecord) => void
+  setOther: (code: string, patch: Partial<CustomShift>) => void
   removeOther: (code: string) => void
   setDayNeed: (date: string, shift: string, value: string | null) => void
   setCode: (employeeId: string, date: string, code: string) => void
@@ -78,7 +78,7 @@ export interface RosterView {
   codeAt: (id: string, date: string) => string
   countOf: (id: string, test: (code: string) => boolean) => number
   shown: string[]
-  others: AnyRecord[]
+  others: CustomShift[]
   shortOf: (code: string) => string
   labelOf: (code: string) => string
   cellClass: (code: string) => string
