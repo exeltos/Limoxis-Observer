@@ -2,6 +2,8 @@ import {describe,expect,it} from 'vitest'
 import {withPassages} from '../src/features/lira/LiraAssistantLauncher'
 import { readSource } from './helpers/readSource'
 
+type Guidance = Extract<ReturnType<typeof withPassages>, { title: string }>
+
 describe('LIRA keyless hybrid retrieval',()=>{
  const sql=readSource('supabase/migrations/20261012192152_lira_hybrid_retrieval.sql')
  const edge=readSource('supabase/functions/lira-ai-gateway/index.ts')
@@ -32,9 +34,9 @@ describe('LIRA keyless hybrid retrieval',()=>{
  })
  it('turns a question the data modules did not recognise into a guidance answer',()=>{
   const passages=[{chunkId:'c1',authority:'CDC',label:'C. difficile',excerpt:'Use a sporicidal agent.'}]
-  const generic=withPassages({generic:true,title:'Αξιολόγηση LIRA',points:['signal'],provenance:[{source:'x'}]},passages,false)
+  const generic=withPassages({generic:true,title:'Αξιολόγηση LIRA',points:['signal'],provenance:[{source:'x'}]},passages,false) as Guidance
   expect(generic.title).toBe('Από τις οδηγίες');expect(generic.points).toEqual([]);expect(generic.passages).toBe(passages)
-  const specific=withPassages({title:'CLABSI',points:['3']},passages,false)
+  const specific=withPassages({title:'CLABSI',points:['3']},passages,false) as Guidance
   expect(specific.title).toBe('CLABSI');expect(specific.points).toEqual(['3']);expect(specific.passages).toBe(passages)
  })
 })

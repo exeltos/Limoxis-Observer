@@ -1,9 +1,10 @@
 import { describe,it,expect,vi,beforeEach } from 'vitest'
 import { readSource } from './helpers/readSource'
+import type { LibraryTuple } from '../src/features/management/managementData'
 
 const calls=[]
 vi.mock('../src/core/supabase/client',()=>{
-  const chain=(table,op,payload)=>{const c={is:()=>c,eq:()=>c,order:()=>c,select:()=>c,single:async()=>({data:{id:'g1',library_key:'notifiableDiseases',code:'ND-HEPA',name_el:payload?.name_el,name_en:payload?.name_en,metadata:{system:true},source_authority:'X',source_version:'current',is_active:payload?.is_active??true},error:null}),then:(res)=>res({data:[],error:null})};calls.push({table,op,payload});return c}
+  const chain=(table,op,payload?)=>{const c={is:()=>c,eq:()=>c,order:()=>c,select:()=>c,single:async()=>({data:{id:'g1',library_key:'notifiableDiseases',code:'ND-HEPA',name_el:payload?.name_el,name_en:payload?.name_en,metadata:{system:true},source_authority:'X',source_version:'current',is_active:payload?.is_active??true},error:null}),then:(res)=>res({data:[],error:null})};calls.push({table,op,payload});return c}
   return {supabase:{from:table=>({update:payload=>chain(table,'update',payload),select:()=>chain(table,'select')})}}
 })
 vi.mock('../src/core/data/dataEnvironment',()=>({isDemoDataEnvironment:()=>true}))
@@ -19,7 +20,7 @@ beforeEach(()=>{calls.length=0})
 
 describe('library rows can be deactivated by the platform owner',()=>{
   it('updateGlobalLibraryItem writes is_active through the audited update path',async()=>{
-    const row=['Ιογενής ηπατίτιδα Α','Viral hepatitis A',{id:'g1',system:true}]
+    const row: LibraryTuple=['Ιογενής ηπατίτιδα Α','Viral hepatitis A',{id:'g1',system:true}]
     const saved=await updateGlobalLibraryItem(row,{nameEl:row[0],nameEn:row[1],isActive:false})
     expect(calls[0]).toMatchObject({table:'master_library_items',op:'update',payload:{is_active:false,name_el:row[0]}})
     expect(saved[2].active).toBe(false)

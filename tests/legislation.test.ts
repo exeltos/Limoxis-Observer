@@ -5,10 +5,11 @@ import { capaSourceInfo } from '../src/features/quality/capaSources'
 import { matchedKeywords, newCandidates, normalize, parseFeed, parsePage } from '../supabase/functions/_shared/legislationWatch.ts'
 import { legislationDigestEmail, legislationUpdateEmail } from '../supabase/functions/_shared/legislationEmail.ts'
 import { readSource } from './helpers/readSource'
+import type { LegislationRow, LegislationSource, LegislationVersion, TextSnapshot } from '../src/features/legislation/legislationModel'
 
 const TODAY = '2026-10-18'
 const requirement = (id, text) => ({ id, text })
-const version = (textId, n, requirements, changed, extra = {}) => ({ textId, version: n, snapshot: { code: 'LEG-001', title: 'Απόβλητα', kind: 'ministerial_decision', reference: 'ΦΕΚ Β΄ 1537/2012', requirements }, changeNote: extra.note || '', changedRequirements: changed, publishedAt: `2026-0${n}-01T09:00:00Z` })
+const version = (textId, n, requirements, changed, extra: { note?: string } = {}): LegislationVersion => ({ textId, version: n, snapshot: { code: 'LEG-001', title: 'Απόβλητα', kind: 'ministerial_decision', reference: 'ΦΕΚ Β΄ 1537/2012', requirements }, changeNote: extra.note || '', changedRequirements: changed, publishedAt: `2026-0${n}-01T09:00:00Z` }) as LegislationVersion
 const V1 = [requirement('a', 'Σχέδιο διαχείρισης'), requirement('b', 'Διαλογή στην πηγή'), requirement('c', 'Μητρώο αποβλήτων')]
 const V2 = [V1[0], V1[1], requirement('c', 'Μητρώο αποβλήτων και ΗΜΑ'), requirement('d', 'Εκπαίδευση προσωπικού')]
 const history = [version('t1', 1, V1, ['a', 'b', 'c']), version('t1', 2, V2, ['c', 'd'], { note: 'ΗΜΑ' })]
@@ -16,7 +17,7 @@ const history = [version('t1', 1, V1, ['a', 'b', 'c']), version('t1', 2, V2, ['c
 describe('Legislation: the hospital register', () => {
   it('a text the hospital has not decided on is new; one updated after its review asks for a review of what changed', () => {
     expect(buildRegister(history, [], TODAY)[0].state).toBe('new')
-    const reviewed = { textId: 't1', applicable: true, acceptedVersion: 1, compliance: { a: { status: 'compliant' }, b: { status: 'compliant' }, c: { status: 'compliant' } } }
+    const reviewed = { textId: 't1', applicable: true, acceptedVersion: 1, compliance: { a: { status: 'compliant' }, b: { status: 'compliant' }, c: { status: 'compliant' } } } as unknown as LegislationRow
     const [entry] = buildRegister(history, [reviewed], TODAY)
     expect(entry.state).toBe('update')
     expect([...entry.changed]).toEqual(['c', 'd'])
@@ -58,14 +59,14 @@ describe('Legislation: the platform library', () => {
     expect(hasUnpublished(unpublishedChanges({ ...last, topics: [] }, { ...last, topics: [] }))).toBe(false)
     const changed = unpublishedChanges({ ...last, title: 'Νέος', requirements: [...last.requirements.slice(0, 3), requirement('e', 'Νέα')] }, last)
     expect(changed).toMatchObject({ fields: ['title'], requirements: ['e'], removed: ['d'] })
-    expect(unpublishedChanges({ requirements: V1 }, null).isNew).toBe(true)
-    expect(textProblems({ title: 'Απόβλητα', reference: '', requirements: [requirement('a', '')] })).toEqual(['στοιχεία δημοσίευσης (π.χ. ΦΕΚ)', 'διατύπωση σε κάθε απαίτηση'])
+    expect(unpublishedChanges({ requirements: V1 } as TextSnapshot, null).isNew).toBe(true)
+    expect(textProblems({ title: 'Απόβλητα', reference: '', requirements: [requirement('a', '')] } as TextSnapshot)).toEqual(['στοιχεία δημοσίευσης (π.χ. ΦΕΚ)', 'διατύπωση σε κάθε απαίτηση'])
     expect(nextLegislationCode(['LEG-009', 'LEG-010'])).toBe('LEG-011')
   })
 
   it('starts a text from what the check found, and tells how a source is doing', () => {
-    expect(textFromCandidate({ title: 'Κοινή Υπουργική Απόφαση 87338/2026 - ΦΕΚ Β 6275/16-10-2026', url: 'https://x' })).toMatchObject({ reference: 'ΦΕΚ Β 6275/16-10-2026', url: 'https://x' })
-    expect([sourceHealth({ active: true, lastCheckedAt: 'x', consecutiveFailures: 0 }), sourceHealth({ active: true, lastCheckedAt: 'x', consecutiveFailures: 2 }), sourceHealth({ active: true, lastCheckedAt: '' }), sourceHealth({ active: false })]).toEqual(['ok', 'failing', 'waiting', 'inactive'])
+    expect(textFromCandidate({ title: 'Κοινή Υπουργική Απόφαση 87338/2026 - ΦΕΚ Β 6275/16-10-2026', url: 'https://x' } as never)).toMatchObject({ reference: 'ΦΕΚ Β 6275/16-10-2026', url: 'https://x' })
+    expect([sourceHealth({ active: true, lastCheckedAt: 'x', consecutiveFailures: 0 } as LegislationSource), sourceHealth({ active: true, lastCheckedAt: 'x', consecutiveFailures: 2 } as LegislationSource), sourceHealth({ active: true, lastCheckedAt: '' } as LegislationSource), sourceHealth({ active: false } as LegislationSource)]).toEqual(['ok', 'failing', 'waiting', 'inactive'])
   })
 })
 

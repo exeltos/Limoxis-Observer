@@ -1,5 +1,6 @@
 import { describe,expect,it } from 'vitest'
 import { calculateDeviceDays,calculateHaiRate,compareHaiRates,inferHaiType } from '../src/features/lira/liraHaiMetrics'
+import type { LiraTimeWindow } from '../src/features/lira/liraTime'
 
 const data={
  haiClassifications:[
@@ -22,17 +23,17 @@ describe('LIRA device-associated HAI metrics',()=>{
  })
 
  it('calculates inclusive device-days within a requested window',()=>{
-  const days=calculateDeviceDays(data.devices,'clabsi',{department:'ΜΕΘ',window:{start:'2026-09-01',end:'2026-09-05'},today:'2026-09-05'})
+  const days=calculateDeviceDays(data.devices,'clabsi',{department:'ΜΕΘ',window:{start:'2026-09-01',end:'2026-09-05'} as LiraTimeWindow,today:'2026-09-05'})
   expect(days).toBe(5)
  })
 
  it('calculates CLABSI per 1000 central-line days',()=>{
-  const metric=calculateHaiRate(data,'clabsi',{department:'ΜΕΘ',window:{start:'2026-09-01',end:'2026-09-10'},today:'2026-09-10'})
+  const metric=calculateHaiRate(data,'clabsi',{department:'ΜΕΘ',window:{start:'2026-09-01',end:'2026-09-10'} as LiraTimeWindow,today:'2026-09-10'})
   expect(metric).toMatchObject({events:1,deviceDays:10,rate:100,normalized:true})
  })
 
  it('uses the correct device denominator for CAUTI',()=>{
-  const metric=calculateHaiRate(data,'cauti',{department:'ΜΕΘ',window:{start:'2026-09-01',end:'2026-09-05'},today:'2026-09-05'})
+  const metric=calculateHaiRate(data,'cauti',{department:'ΜΕΘ',window:{start:'2026-09-01',end:'2026-09-05'} as LiraTimeWindow,today:'2026-09-05'})
   expect(metric.denominatorLabel).toBe('urinary-catheter days')
   expect(metric.deviceDays).toBe(5)
  })

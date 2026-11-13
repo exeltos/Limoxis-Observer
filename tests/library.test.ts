@@ -4,6 +4,7 @@ import { blankDraft, canManageHospitalLibrary, filterGuidelines, filterNews, gui
 import { dueSources, EXCERPT_LIMIT, MAX_ITEMS_PER_CHECK, newsRows } from '../supabase/functions/_shared/libraryNews.ts'
 import { parseFeed } from '../supabase/functions/_shared/legislationWatch.ts'
 import { readSource } from './helpers/readSource'
+import type { LibraryNews, NewsSettings } from '../src/features/library/libraryTypes'
 
 const read = file => readSource(file)
 const migration = read('supabase/migrations/20261203200000_library.sql')
@@ -89,8 +90,8 @@ describe('library model', () => {
   it('validates the form', () => {
     expect(validateDraft(blankDraft('link'))).toMatchObject({ name: 'required', url: 'url', descriptionEl: 'required' })
     expect(validateDraft({ ...blankDraft('link'), name: 'ECDC', url: 'https://www.ecdc.europa.eu', descriptionEl: 'Ευρωπαϊκή επιτήρηση' })).toEqual({})
-    expect(validateDraft({ ...blankDraft('link'), name: 'ECDC', url: 'https://www.ecdc.europa.eu', descriptionEl: 'x', news: { enabled: true, url: 'feed' } }).newsUrl).toBe('url')
-    expect(validateDraft({ ...blankDraft('clinical_guide', 'hospital'), name: 'Σήψη', file: { name: 'sepsis.pdf' } })).toEqual({})
+    expect(validateDraft({ ...blankDraft('link'), name: 'ECDC', url: 'https://www.ecdc.europa.eu', descriptionEl: 'x', news: { enabled: true, url: 'feed' } as NewsSettings }).newsUrl).toBe('url')
+    expect(validateDraft({ ...blankDraft('clinical_guide', 'hospital'), name: 'Σήψη', file: { name: 'sepsis.pdf' } as File })).toEqual({})
     expect(validateDraft({ ...blankDraft('guideline'), name: 'Οδηγία', url: 'https://example.org', year: '21' }).year).toBe('year')
   })
 
@@ -100,7 +101,7 @@ describe('library model', () => {
   })
 
   it('counts and filters the news; a source is «not answering» after 3 failures', () => {
-    const news = [{ id: 'a', sourceAbbreviation: 'ECDC', publishedAt: '2026-10-19T10:00:00Z' }, { id: 'b', sourceAbbreviation: 'ΕΟΔΥ', publishedAt: '2026-10-17T10:00:00Z' }, { id: 'c', organizationId: 'org-1', publishedAt: '2026-10-12T10:00:00Z' }]
+    const news = [{ id: 'a', sourceAbbreviation: 'ECDC', publishedAt: '2026-10-19T10:00:00Z' }, { id: 'b', sourceAbbreviation: 'ΕΟΔΥ', publishedAt: '2026-10-17T10:00:00Z' }, { id: 'c', organizationId: 'org-1', publishedAt: '2026-10-12T10:00:00Z' }] as LibraryNews[]
     expect(newsCounts(news, new Set(['a']))).toEqual({ all: 3, greek: 1, international: 1, hospital: 1, unread: 2 })
     expect(filterNews(news, 'all').map(item => item.id)).toEqual(['a', 'b', 'c'])
     expect(filterNews(news, 'unread', new Set(['a'])).map(item => item.id)).toEqual(['b', 'c'])
@@ -119,7 +120,7 @@ describe('library news ingestion (library-news-ingest)', () => {
       { id: 'due', kind: 'rss', interval_hours: 2, last_checked_at: '2026-10-20T09:59:00Z' },
       { id: 'daily', kind: 'page', interval_hours: 24, last_checked_at: '2026-10-20T00:00:00Z' },
       { id: 'off', kind: 'rss', interval_hours: 2, last_checked_at: null, active: false },
-    ]
+    ] as never
     expect(dueSources(sources, now).map(source => source.id)).toEqual(['new', 'due'])
   })
 
