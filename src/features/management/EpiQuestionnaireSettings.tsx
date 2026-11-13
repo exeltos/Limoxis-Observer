@@ -10,12 +10,10 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { ROLES } from '../../core/permissions/systemRoleMatrix'
 import { EPI_QUESTION_COUNT, EPI_CORE_KEYS, applyEpiSettings, epiDefinitionVersion, epiText } from '../surveillance/epiQuestionnaire/epiQuestionnaireModel'
 import { fill } from '../surveillance/epiQuestionnaire/epiQuestionnaireText'
-import { loadEpiSettings, saveEpiSetting as saveEpiSettingJs } from '../surveillance/epiQuestionnaire/epiQuestionnaireService'
+import { loadEpiSettings, saveEpiSetting } from '../surveillance/epiQuestionnaire/epiQuestionnaireService'
 import '../surveillance/epiQuestionnaire/epiQuestionnaire.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EpiSetting, EpiSettingPatch } from '../surveillance/epiQuestionnaire/epiQuestionnaireTypes'
 
-// Το JS της Επιτήρησης δίνει στο `current` τύπο null (από την προεπιλογή του)· εδώ η πραγματική υπογραφή.
-const saveEpiSetting = saveEpiSettingJs as (organizationId: string | undefined, questionKey: string, patch: AnyRecord, current: AnyRecord | null, options: { isDemo?: boolean }) => Promise<AnyRecord>
 type EpiRow = ReturnType<typeof applyEpiSettings>[number] & { index: number }
 type WordingDraft = { labelEl: string, labelEn: string, helpEl: string, helpEn: string, windowDays: number | null }
 
@@ -43,7 +41,7 @@ export function EpiQuestionnaireRegistryCells({ version }: { version: number }) 
 
 export function useEpiSettings() {
   const { tenant, isDemo } = useTenant()
-  const [settings, setSettings] = useState<AnyRecord[]>([])
+  const [settings, setSettings] = useState<EpiSetting[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     let alive = true
@@ -62,7 +60,7 @@ export function useEpiSettings() {
   return { settings, setSettings, loading, version: epiDefinitionVersion(settings) }
 }
 
-function WordingDialog({ question, setting, nextVersion, onClose, onSave }: { question: EpiRow, setting: AnyRecord | null, nextVersion: number, onClose: () => void, onSave: (patch: WordingDraft) => void }) {
+function WordingDialog({ question, setting, nextVersion, onClose, onSave }: { question: EpiRow, setting: EpiSetting | null, nextVersion: number, onClose: () => void, onSave: (patch: WordingDraft) => void }) {
   const { t } = useLanguage()
   const [draft, setDraft] = useState({
     labelEl: setting?.labelEl || question.label.el,
@@ -112,7 +110,7 @@ export function EpiQuestionnaireSettings({ onBack }: { onBack?: () => void }) {
   const canEdit = canEditSettings(role)
   const rows = useMemo(() => applyEpiSettings(settings).map((question, index) => ({ ...question, index })), [settings])
   const windowWords = (days: number | null | undefined) => (days == null ? t('epiQuestionnaire.settings.anytime') : days === 2 ? fill(t('epiQuestionnaire.settings.hours'), { n: 48 }) : fill(t('epiQuestionnaire.settings.days'), { n: days }))
-  async function persist(question: EpiRow, patch: AnyRecord) {
+  async function persist(question: EpiRow, patch: EpiSettingPatch) {
     const current = settings.find(row => row.questionKey === question.key) || null
     try {
       const saved = await saveEpiSetting(tenant?.id, question.key, patch, current, { isDemo })

@@ -31,7 +31,7 @@ describe('Management Center announcement persistence',()=>{
   expect(panel).toContain('if(isDemo)')
   expect(panel).toContain('createAnnouncement(tenant!.id,payload)')
   expect(panel).toContain('updateAnnouncement(tenant!.id,payload)')
-  expect(panel).toContain('removeAnnouncement(tenant!.id,a.id)')
+  expect(panel).toContain('removeAnnouncement(tenant!.id,a.id as string)')
   expect(context).toContain("if(!isDemo)return")
   expect(context).toContain('loadAnnouncements(tenant.id)')
  })

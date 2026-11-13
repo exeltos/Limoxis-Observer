@@ -1,5 +1,5 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DepartmentChoice, PrevalenceSurvey, PrevalenceSurveyDraft } from './managementTypes'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -18,7 +18,7 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const todayIso = () => hospitalToday()
-type SurveyDraft = Record<string, string>
+type SurveyDraft = Record<keyof PrevalenceSurveyDraft, string>
 const emptyDraft: SurveyDraft = { surveyDate: todayIso(), departmentId: '', departmentEl: '', patientsTotal: '', patientsWithHai: '', patientsOnAntibiotics: '', responsibleName: '', notes: '' }
 
 export function PrevalenceSurveyPanel() {
@@ -28,10 +28,10 @@ export function PrevalenceSurveyPanel() {
   const { role, tenant, isDemo } = useTenant()
   const isPlatformOwner = role === ROLES.PLATFORM_OWNER
   const fmt = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(`${value}T12:00:00`)) : '—'
-  const [rows, setRows] = useState<AnyRecord[]>([])
+  const [rows, setRows] = useState<PrevalenceSurvey[]>([])
   // The responsible column only when it says something (not the same name on every row).
   const showResponsible = new Set(rows.map(row => row.responsibleName || '')).size > 1
-  const [departments, setDepartments] = useState<AnyRecord[]>([])
+  const [departments, setDepartments] = useState<DepartmentChoice[]>([])
   const [loading, setLoading] = useState(false)
   const [editor, setEditor] = useState(false)
   const [draft, setDraft] = useState<SurveyDraft>(emptyDraft)
@@ -75,7 +75,7 @@ export function PrevalenceSurveyPanel() {
     }
   }
 
-  function departmentName(row: AnyRecord) {
+  function departmentName(row: PrevalenceSurvey) {
     const match = departments.find(item => item.id === row.departmentId)
     return en ? (match?.nameEn || row.departmentEl) : (row.departmentEl || match?.name)
   }
@@ -118,8 +118,8 @@ export function PrevalenceSurveyPanel() {
   )
 }
 
-function SurveyDialog({ en, draft, setDraft, departments, language, onClose, onSave }: { en: boolean, draft: SurveyDraft, setDraft: Dispatch<SetStateAction<SurveyDraft>>, departments: AnyRecord[], language: string, onClose: () => void, onSave: () => void }) {
-  const countField = (key: string, label: string) => (
+function SurveyDialog({ en, draft, setDraft, departments, language, onClose, onSave }: { en: boolean, draft: SurveyDraft, setDraft: Dispatch<SetStateAction<SurveyDraft>>, departments: DepartmentChoice[], language: string, onClose: () => void, onSave: () => void }) {
+  const countField = (key: keyof SurveyDraft, label: string) => (
     <label><span>{label}</span><input type="number" min="0" value={draft[key]} onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))} /></label>
   )
   return (

@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { cloudClient } from '../../core/supabase/cloudContext'
 import type { Tables } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PrevalenceSurvey, PrevalenceSurveyDraft } from './managementTypes'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadPrevalenceSurveyLocal, savePrevalenceSurveyLocal } from './prevalenceSurveyStore'
 
@@ -18,7 +18,7 @@ async function currentUserId() {
   return id
 }
 
-function mapRow(row: Tables<'point_prevalence_surveys'>, departmentName: string|undefined) {
+function mapRow(row: Tables<'point_prevalence_surveys'>, departmentName: string|undefined): PrevalenceSurvey {
   return {
     id: row.id,
     surveyDate: row.survey_date,
@@ -48,7 +48,7 @@ export async function loadPrevalenceSurveyHistory(organizationId: string | undef
   return (data || []).map(row => mapRow(row, byId.get(row.department_id)))
 }
 
-export async function savePrevalenceSurvey(organizationId: string | undefined, record: AnyRecord) {
+export async function savePrevalenceSurvey(organizationId: string | undefined, record: PrevalenceSurveyDraft) {
   if (isDemoDataEnvironment()) {
     const rows = loadPrevalenceSurveyLocal()
     const saved = { id: `PPS-${Date.now()}`, ...record, createdAt: new Date().toISOString(), createdById: 'demo-user' }

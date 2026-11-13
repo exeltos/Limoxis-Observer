@@ -1,17 +1,23 @@
 import { supabase } from '../../core/supabase/client'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Json, Tables } from '../../core/supabase/database.types'
+import type { HaiCriteriaGroup } from '../surveillance/surveillanceListTypes'
+import type { HaiCriteriaLibraryItem } from './managementTypes'
+
+type HaiCriteriaRow = Pick<Tables<'master_library_items'>, 'id' | 'organization_id' | 'code' | 'name_el' | 'name_en' | 'source_authority' | 'metadata' | 'is_active'>
+// The metadata column: the criteria groups and whether the set is a system one.
+const metaOf = (row: HaiCriteriaRow) => row.metadata as { groups?: HaiCriteriaGroup[], system?: boolean } | null
 
 function requireCloud() { if (!supabase) throw new Error('Supabase is not configured.'); return supabase }
 
-function mapRow(row: AnyRecord) {
+function mapRow(row: HaiCriteriaRow): HaiCriteriaLibraryItem {
   return {
     id: row.id,
     criteriaKey: row.code,
     labelEl: row.name_el,
     labelEn: row.name_en || row.name_el,
     source: row.source_authority || '',
-    groups: Array.isArray(row.metadata?.groups) ? row.metadata.groups : [],
-    system: Boolean(row.metadata?.system),
+    groups: Array.isArray(metaOf(row)?.groups) ? metaOf(row)!.groups! : [],
+    system: Boolean(metaOf(row)?.system),
     organizationId: row.organization_id || null,
   }
 }
@@ -39,14 +45,14 @@ export async function loadGlobalHaiCriteriaLibraryItems() {
   return (data || []).map(mapRow)
 }
 
-export async function updateGlobalHaiCriteriaLibraryItem(item: AnyRecord) {
+export async function updateGlobalHaiCriteriaLibraryItem(item: HaiCriteriaLibraryItem) {
   const supabase = requireCloud()
   if (!item?.id) throw new Error('Library item id is required.')
   const payload = {
     name_el: item.labelEl,
     name_en: item.labelEn || item.labelEl,
     source_authority: item.source || '',
-    metadata: { system: true, locked: true, groups: item.groups || [] },
+    metadata: { system: true, locked: true, groups: (item.groups || []) as unknown as Json },
   }
   const { data, error } = await supabase.from('master_library_items').update(payload).is('organization_id', null).eq('id', item.id).select(COLUMNS).single()
   if (error) throw error

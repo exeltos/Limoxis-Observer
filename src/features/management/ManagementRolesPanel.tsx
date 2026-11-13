@@ -17,11 +17,11 @@ import { createCustomRole,deactivateCustomRole,loadCustomRoles,updateCustomRole 
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import type { Dispatch,SetStateAction } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { CapabilityDefinition } from '../../core/permissions/types'
 
 type Pair = string[]
-type RoleRow = AnyRecord & { id: string, name: string, capabilities: string[] }
+// A role of the list: a custom role as loadCustomRoles returns it (and the Demo's own), or a system role (system).
+type RoleRow = { id: string, name: string, description?: string | null, is_active?: boolean | null, system?: boolean, capabilities: string[] }
 type RoleDraft = { mode: string, id: string|null, name: string, capabilities: string[] }
 type Permission = CapabilityDefinition & { id: string }
 const domainLabels: Record<string,Pair>={
@@ -31,7 +31,7 @@ const scopeLabels: Record<string,Pair>={self:['Μόνο ο ίδιος','Self'],d
 const actionLabels: Record<string,Pair>={view:['Προβολή','View'],finalize:['Οριστικοποίηση','Finalize'],review:['Ανασκόπηση','Review'],request:['Αίτημα','Request'],reassess:['Επανεκτίμηση','Reassess'],send:['Αποστολή','Send'],create:['Δημιουργία','Create'],edit:['Επεξεργασία','Edit'],delete:['Διαγραφή','Delete'],manage:['Διαχείριση','Manage'],record:['Καταχώριση','Record'],execute:['Εκτέλεση','Execute'],approve:['Έγκριση','Approve'],publish:['Δημοσίευση','Publish'],archive:['Αρχειοθέτηση','Archive'],close:['Κλείσιμο','Close'],reopen:['Επαναφορά','Reopen'],validate:['Επικύρωση','Validate'],communicate:['Επικοινωνία','Communicate'],classify:['Ταξινόμηση','Classify'],submit:['Υποβολή','Submit'],supersede:['Αντικατάσταση','Supersede'],attach:['Επισύναψη','Attach'],print:['Εκτύπωση','Print'],export:['Εξαγωγή','Export'],assign:['Ανάθεση','Assign'],complete:['Ολοκλήρωση','Complete'],report:['Αναφορά','Report'],void:['Ακύρωση','Void']}
 const groupLabel=(value: string,en: boolean)=>domainLabels[value]?.[en?1:0]||value
 const scopeLabel=(value: string,en: boolean)=>scopeLabels[value]?.[en?1:0]||value||'—'
-const actionLabel=(item: AnyRecord|null|undefined,en: boolean)=>actionLabels[item?.actionType]?.[en?1:0]||(en?'Other':'Άλλο')
+const actionLabel=(item: Pick<CapabilityDefinition,'actionType'>|null|undefined,en: boolean)=>actionLabels[item?.actionType as string]?.[en?1:0]||(en?'Other':'Άλλο')
 // The Demo's own custom roles (owner, 9/11/2026: every screen of the Demo has data), in the shape loadCustomRoles returns.
 const demoCustomRoles=(en: boolean): RoleRow[]=>[
  {id:'custom-demo-kitchen',name:en?'Kitchen manager':'Υπεύθυνος/η κουζίνας',description:'',is_active:true,capabilities:['view_kitchen','record_kitchen','manage_kitchen','view_documents','report_incident']},
