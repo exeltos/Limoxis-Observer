@@ -4,7 +4,8 @@ import { loadSnapshot } from '../../core/data/repository'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadManagementLibraries } from './managementCloudService'
 import { demoLibrarySeed } from './managementData'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryTuple } from './managementData'
+import type { LibraryMeta } from './managementTypes'
 
 // One way for every screen to read the central libraries (Management >
 // Libraries): the organization's rows in the cloud, or the demo seed plus the
@@ -12,10 +13,12 @@ import type { AnyRecord } from '../../types/featureTypes'
 // Greek name, which is what records store. Departments come as {id,name,nameEn,
 // departmentType}; in the demo a department's id is its name.
 
-export interface LibraryItem {id: string|null,value: string,code: string|null,el: string,en: string,system: boolean,meta: AnyRecord}
+export interface LibraryItem {id: string|null,value: string,code: string|null,el: string,en: string,system: boolean,meta: LibraryMeta}
 export interface LibraryDepartment {id: string,name: string,nameEn: string,departmentType: string}
 export interface LibrariesData {libraries: Record<string,LibraryItem[]>,departments: LibraryDepartment[]}
-type RawRow = AnyRecord|null|undefined
+type RawRow = LibraryTuple|null|undefined
+// What the label, option and lookup helpers read: a library item, or the same shape built by a caller.
+export type LibraryOptionSource = {id?: string|null,value?: string|null,code?: string|null,el?: string,en?: string|null}
 
 const CACHE_MS=30_000
 const cache=new Map<string,{at: number,promise: Promise<LibrariesData>}>()
@@ -28,11 +31,11 @@ function demoLibraries(){
  return {...structuredClone(demoLibrarySeed),...(stored&&typeof stored==='object'?stored:{})}
 }
 
-function shape(raw: AnyRecord|null|undefined,demo: boolean): LibrariesData{
+function shape(raw: Record<string, unknown>|null|undefined,demo: boolean): LibrariesData{
  const libraries: Record<string,LibraryItem[]>={}
  for(const [key,rows] of Object.entries(raw||{})){
   if(!Array.isArray(rows)||key==='departments')continue
-  libraries[key]=rows.filter(Array.isArray).filter(row=>row?.[2]?.active!==false).map(toItem).filter(item=>item.value)
+  libraries[key]=(rows as RawRow[]).filter(Array.isArray).filter(row=>row?.[2]?.active!==false).map(toItem).filter(item=>item.value)
  }
  const departments=((raw?.departments||[]) as RawRow[]).filter(Array.isArray).filter(row=>row?.[2]?.active!==false).map(row=>toDepartment(row,demo)).filter(dep=>dep.name)
  return {libraries,departments}
@@ -74,16 +77,17 @@ export function useDepartments(){
  return {departments,loading,error,reload}
 }
 
-export const libraryLabel=(item: LibraryItem|AnyRecord|null|undefined,language='el')=>item?(language==='en'?item.en||item.el:item.el):''
+// Library items always carry the Greek name (el), so the label is text.
+export const libraryLabel=(item: LibraryOptionSource|null|undefined,language='el')=>(item?(language==='en'?item.en||item.el:item.el):'') as string
 
 // SearchableSelect / MultiSelect options from a library: the label in the
 // screen's language, the other language as the description, both searchable.
 // Rows of a library, or the same shape built by a caller (e.g. a vaccine list with `value` set).
-export function libraryOptions(items: readonly (LibraryItem|AnyRecord)[]=[],language='el',{getValue=(item: AnyRecord): string|null=>item.value}: {getValue?: (item: AnyRecord)=>string|null}={}){
+export function libraryOptions<T extends LibraryOptionSource>(items: readonly T[]=[],language='el',{getValue=(item: T): string|null=>item.value as string|null}: {getValue?: (item: T)=>string|null}={}){
  return items.map(item=>{const label=libraryLabel(item,language),other=language==='en'?item.el:item.en;return {value:getValue(item),label,description:other&&other!==label?other:undefined,keywords:`${item.el} ${item.en} ${item.code||''}`}})
 }
 
-export function findLibraryItem(items: readonly (LibraryItem|AnyRecord)[]=[],value: unknown){
+export function findLibraryItem<T extends LibraryOptionSource>(items: readonly T[]=[],value: unknown){
  const text=String(value??'').trim().toLocaleLowerCase('el')
  if(!text)return null
  return items.find(item=>[item.id,item.value,item.code,item.el,item.en].some(x=>String(x||'').trim().toLocaleLowerCase('el')===text))||null

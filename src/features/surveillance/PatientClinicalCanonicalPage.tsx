@@ -103,7 +103,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
   const [patients, setPatients] = useState<RecordPatient[]>([]),
     [episodes, setEpisodes] = useState<ClinicalCase[]>([]),
     [admissions, setAdmissions] = useState<RecordAdmission[]>([]),
-    [clinicalLibraries, setClinicalLibraries] = useState<ClinicalLibraries>(demoLibrarySeed)
+    [clinicalLibraries, setClinicalLibraries] = useState<ClinicalLibraries>(demoLibrarySeed as ClinicalLibraries)
   // Demo has no cloud attachment store; keep documents per episode in memory.
   const [demoDocuments, setDemoDocuments] = useState<Record<string, AttachmentFile[]>>({})
   const [riskFlagRows, setRiskFlagRows] = useState<Record<string, RiskFlagRow[]>>({})
@@ -319,7 +319,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
           : demoLibrarySeed,
       ])
       setAdmissions(admissionRows)
-      if (libraries) setClinicalLibraries(libraries)
+      if (libraries) setClinicalLibraries(libraries as ClinicalLibraries)
     } catch (err) {
       setError((err as Error)?.message || t('actionFailed'))
     } finally {

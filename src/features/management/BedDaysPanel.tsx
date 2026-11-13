@@ -15,10 +15,14 @@ import { loadDepartments, setDepartmentPatientDays } from './departmentsService'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { createPatientDayPeriod, loadPatientDayPeriods, removePatientDayPeriod, updatePatientDayPeriod } from './patientDayPeriodsCloudService'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PatientDayPeriod } from './managementTypes'
 import type { LanguageContextValue } from '../../core/i18n/languageTypes'
 
-type Period = { key: string, from: string, to: string, hospital: AnyRecord|null, departments: AnyRecord[] }
+type Period = { key: string, from: string, to: string, hospital: PatientDayPeriod|null, departments: PatientDayPeriod[] }
+// A line of the list: a year's heading, or one of its periods.
+type YearRow = { heading: string, count: number, key?: undefined } | (Period & { heading?: undefined })
+// A line of a period: the whole hospital, then each department.
+type PeriodLine = { id: string, value?: number | null, kind?: string, label?: string, departmentEl?: string, departmentEn?: string }
 type Dept = { id: string, name: string, nameEn: string, tracked: boolean, separate?: boolean }
 type Draft = { duration: string, year: number, month: number, quarter: number, from: string, to: string, values: Record<string,string>, separate: string[] }
 type Editor = { mode: string, base: Period|null, draft: Draft }
@@ -29,7 +33,7 @@ type PeriodKind = { kind: string, year?: number, month?: number, quarter?: numbe
 // a quarter, a year or any range of days.
 const HOSPITAL='hospital'
 // The demo rows name the department (the demo departments use the name as id); the cloud rows carry its id.
-const deptKey=(row: AnyRecord)=>row.departmentId||row.departmentEl
+const deptKey=(row: PatientDayPeriod)=>row.departmentId||row.departmentEl
 const pad=(n: number)=>String(n).padStart(2,'0')
 const lastDay=(y: number,m: number)=>new Date(Date.UTC(y,m,0)).getUTCDate()
 const iso=(y: number,m: number,d: number)=>`${y}-${pad(m)}-${pad(d)}`
@@ -44,14 +48,14 @@ export function periodKind(from: string|null|undefined,to: string|null|undefined
   if((fm-1)%3===0&&tm===fm+2)return {kind:'quarter',year:fy,quarter:(fm-1)/3+1}
   return {kind:'custom'}
 }
-export function periodRange(draft: AnyRecord){
+export function periodRange(draft: Pick<Draft, 'duration' | 'year' | 'month' | 'quarter' | 'from' | 'to'>){
   const y=Number(draft.year)
   if(draft.duration==='month'){const m=Number(draft.month);return {from:iso(y,m,1),to:iso(y,m,lastDay(y,m))}}
   if(draft.duration==='quarter'){const m=(Number(draft.quarter)-1)*3+1;return {from:iso(y,m,1),to:iso(y,m+2,lastDay(y,m+2))}}
   if(draft.duration==='year')return {from:iso(y,1,1),to:iso(y,12,31)}
   return {from:draft.from,to:draft.to}
 }
-export function groupPeriods(rows: AnyRecord[]){
+export function groupPeriods(rows: PatientDayPeriod[]){
   const map=new Map<string,Period>()
   for(const row of rows){const key=`${row.from}|${row.to}`;if(!map.has(key))map.set(key,{key,from:row.from,to:row.to,hospital:null,departments:[]});const group=map.get(key)!;if(row.scope===HOSPITAL)group.hospital=row;else group.departments.push(row)}
   return [...map.values()].sort((a,b)=>b.from.localeCompare(a.from)||b.to.localeCompare(a.to))
@@ -60,11 +64,11 @@ function previousMonth(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()
 
 export function BedDaysPanel(){
   const {language,locale,t}=useLanguage(); const {notify,confirm}=useFeedback(); const {tenant,isDemo}=useTenant();
-  const [rows,setRows]=useState<AnyRecord[]>(isDemo?demoPatientDayPeriods:[]); const [departments,setDepartments]=useState<Dept[]>(isDemo?demoLibrarySeed.departments.map(([el,en])=>({id:el,name:el,nameEn:en,tracked:true})):[]); const [loading,setLoading]=useState(!isDemo); const [editor,setEditor]=useState<Editor|null>(null); const [selectedKey,setSelectedKey]=useState<string|null>(null); const [busy,setBusy]=useState(false); const [filters,setFilters]=useState({from:'',to:'',department:'all'});
+  const [rows,setRows]=useState<PatientDayPeriod[]>(isDemo?demoPatientDayPeriods:[]); const [departments,setDepartments]=useState<Dept[]>(isDemo?demoLibrarySeed.departments.map(([el,en])=>({id:el,name:el,nameEn:en,tracked:true})):[]); const [loading,setLoading]=useState(!isDemo); const [editor,setEditor]=useState<Editor|null>(null); const [selectedKey,setSelectedKey]=useState<string|null>(null); const [busy,setBusy]=useState(false); const [filters,setFilters]=useState({from:'',to:'',department:'all'});
   const fmt=(v: string|null|undefined)=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—';
   const monthName=(m: number|undefined)=>t(`bedDaysPanel.m${m}`)
   const periodLabel=(from: string,to: string)=>{const p=periodKind(from,to);if(p.kind==='month')return `${monthName(p.month)} ${p.year}`;if(p.kind==='quarter')return `${t(`bedDaysPanel.q${p.quarter}`)} ${p.year}`;if(p.kind==='year')return String(p.year);if(from&&to&&from.slice(0,7)===to.slice(0,7)&&from.endsWith('-01')){const [y,m]=parts(from);return `${monthName(m)} ${y} · ${t('bedDaysPanel.until')} ${new Intl.DateTimeFormat(locale,{day:'numeric',month:'numeric'}).format(new Date(`${to}T12:00:00`))}`}return `${fmt(from)} – ${fmt(to)}`}
-  const deptName=(row: AnyRecord)=>language==='el'?row.departmentEl:(row.departmentEn||row.departmentEl)
+  const deptName=(row: Pick<PeriodLine, 'departmentEl' | 'departmentEn'>)=>language==='el'?row.departmentEl:(row.departmentEn||row.departmentEl)
   const num=(v: unknown)=>Number(v).toLocaleString(locale)
   const periods=useMemo(()=>groupPeriods(rows),[rows])
   const filtered=useMemo(()=>periods.filter(p=>{if(filters.from&&p.to<filters.from)return false;if(filters.to&&p.from>filters.to)return false;if(filters.department!=='all'&&!p.departments.some(d=>deptKey(d)===filters.department))return false;return true}),[periods,filters])
@@ -72,7 +76,7 @@ export function BedDaysPanel(){
   // By year (owner, 8/11/2026): this year open, the earlier ones closed, each a click away.
   const [openYears,setOpenYears]=useState(()=>new Set([String(new Date().getFullYear())]))
   const toggleYear=(year: string)=>setOpenYears(current=>{const next=new Set(current);if(next.has(year))next.delete(year);else next.add(year);return next})
-  const yearRows=useMemo(()=>{const years=new Map<string,Period[]>();for(const period of filtered){const year=String(period.from).slice(0,4);if(!years.has(year))years.set(year,[]);years.get(year)!.push(period)}return [...years].sort((a,b)=>b[0].localeCompare(a[0])).flatMap(([year,list]): AnyRecord[]=>[{heading:year,count:list.length},...(openYears.has(year)?list:[])])},[filtered,openYears])
+  const yearRows=useMemo(()=>{const years=new Map<string,Period[]>();for(const period of filtered){const year=String(period.from).slice(0,4);if(!years.has(year))years.set(year,[]);years.get(year)!.push(period)}return [...years].sort((a,b)=>b[0].localeCompare(a[0])).flatMap(([year,list]): YearRow[]=>[{heading:year,count:list.length},...(openYears.has(year)?list:[])])},[filtered,openYears])
 
   useEffect(()=>{if(isDemo){setRows(demoPatientDayPeriods);setDepartments(demoLibrarySeed.departments.map(([el,en])=>({id:el,name:el,nameEn:en,tracked:true})));setLoading(false);return}if(!tenant?.id)return;let active=true;setLoading(true);Promise.all([loadPatientDayPeriods(tenant.id),loadDepartments(tenant.id)]).then(([periods,depts])=>{if(active){setRows(periods);setDepartments(depts.map(d=>({id:d.id,name:d.name,nameEn:d.name,separate:Boolean(d.patient_days_separate),tracked:Boolean(d.patient_days_tracked)})))}}).catch(error=>{if(active)notify(error?.message||t('managementPanel.loadFailed'),'error')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[isDemo,tenant?.id,notify,t])
 
@@ -116,7 +120,7 @@ export function BedDaysPanel(){
   if(selected)return <section className="management-section management-scroll-section"><EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} eyebrow={t('patientDays')} title={periodLabel(selected.from,selected.to)} subtitle={`${fmt(selected.from)} – ${fmt(selected.to)}`} onBack={()=>setSelectedKey(null)} backLabel={t('patientDays')}
     headerActions={<div className="row-actions"><Button recordMenu variant="secondary" onClick={()=>openEdit(selected)}><Pencil size={15}/>{t('bedDaysPanel.editPeriodMenu')}</Button><Button recordMenu variant="secondary" onClick={()=>removePeriod(selected)}><Trash2 size={15}/>{t('bedDaysPanel.deletePeriod')}</Button></div>}>
     <RecordTabPanel title={t('bedDaysPanel.periodTitle')}><RegistryTable bare sortable={false} wrapperClassName="bed-days-table-wrap" columns={[{key:'department',label:t('department')},{key:'value',label:<span className="bed-days-num-head">{t('patientDays')}</span>,className:'bed-days-num'}]}
-      rows={[{id:'__total',label:t('wholeHospital'),value:selected.hospital?.value,kind:'bed-days-total'},...selected.departments]} rowKey={row=>row.id} rowProps={row=>({className:row.kind||undefined})}
+      rows={[{id:'__total',label:t('wholeHospital'),value:selected.hospital?.value,kind:'bed-days-total'},...selected.departments] as PeriodLine[]} rowKey={row=>row.id} rowProps={row=>({className:row.kind||undefined})}
       renderRow={row=><><td>{row.kind?row.label:deptName(row)}</td><td className="bed-days-num">{row.value==null?'—':num(row.value)}</td></>}/></RecordTabPanel>
   </EntityRecordShell></section>
 
@@ -124,9 +128,9 @@ export function BedDaysPanel(){
   wrapperClassName="bed-days-table-wrap" className="bed-days-list-table" sortable={false}
   columns={[{key:'period',label:t('period')},{key:'hospital',label:t('wholeHospital')},{key:'departments',label:t('bedDaysPanel.separateLabel')}]}
   rows={yearRows}
-  rowKey={row=>row.heading?`y-${row.heading}`:row.key}
-  rowProps={row=>row.heading?{className:'bed-days-year-row'}:({className:'clickable-row',onClick:()=>setSelectedKey(row.key)})}
-  renderRow={row=>row.heading?<td colSpan={3}><button type="button" className="bed-days-year-toggle" aria-expanded={openYears.has(row.heading)} onClick={()=>toggleYear(row.heading)}>{openYears.has(row.heading)?<ChevronDown size={15} aria-hidden="true"/>:<ChevronRight size={15} aria-hidden="true"/>}<strong>{row.heading}</strong><span>{t('bedDaysPanel.periodsCount').replace('{n}',row.count)}</span></button></td>:<><td><strong>{periodLabel(row.from,row.to)}</strong></td><td><strong>{row.hospital?num(row.hospital.value):'—'}</strong></td><td>{row.departments.length?row.departments.map((d: AnyRecord)=>`${deptName(d)} ${num(d.value)}`).join(' · '):'—'}</td></>}
+  rowKey={row=>row.heading?`y-${row.heading}`:(row as Period).key}
+  rowProps={row=>row.heading?{className:'bed-days-year-row'}:({className:'clickable-row',onClick:()=>setSelectedKey((row as Period).key)})}
+  renderRow={row=>row.heading?<td colSpan={3}><button type="button" className="bed-days-year-toggle" aria-expanded={openYears.has(row.heading)} onClick={()=>toggleYear(row.heading)}>{openYears.has(row.heading)?<ChevronDown size={15} aria-hidden="true"/>:<ChevronRight size={15} aria-hidden="true"/>}<strong>{row.heading}</strong><span>{t('bedDaysPanel.periodsCount').replace('{n}',String(row.count))}</span></button></td>:<><td><strong>{periodLabel((row as Period).from,(row as Period).to)}</strong></td><td><strong>{(row as Period).hospital?num((row as Period).hospital!.value):'—'}</strong></td><td>{(row as Period).departments.length?(row as Period).departments.map(d=>`${deptName(d)} ${num(d.value)}`).join(' · '):'—'}</td></>}
 />{!loading&&filtered.length===0&&<div className="inline-empty">{t('noPatientDaysFound')}</div>}</div></section>
 }
 

@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { demoLibrarySeed, type LibraryTuple } from './managementData'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DepartmentLibraryRow, ExternalReference, ExternalReferenceDraft, ExternalReferenceRow, IndicatorDefinitionRow, LibraryItemRow, LibraryMeta, ManagedIndicatorDefinition, ManagedIndicatorDefinitionDraft } from './managementTypes'
 import type { Json } from '../../core/supabase/database.types'
 
 export type { LibraryTuple }
@@ -17,17 +17,19 @@ const assertCloud=(organizationId: string|null|undefined)=>{
 
 const isUuid=(value: unknown)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''))
 
-const toLibraryTuple=(row: AnyRecord): LibraryTuple=>[
+// The metadata column is a json object (system, locked, jobDescription…).
+const metaOf=(row: LibraryItemRow)=>row.metadata as LibraryMeta|null
+const toLibraryTuple=(row: LibraryItemRow): LibraryTuple=>[
   row.name_el,
   row.name_en||row.name_el,
-  {id:row.id,active:row.is_active!==false,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null,...(row.category?{category:row.category}:{}),...(row.metadata?.jobDescription?{jobDescription:row.metadata.jobDescription}:{})},
+  {id:row.id,active:row.is_active!==false,system:Boolean(metaOf(row)?.system),locked:Boolean(metaOf(row)?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null,...(row.category?{category:row.category}:{}),...(metaOf(row)?.jobDescription?{jobDescription:metaOf(row)!.jobDescription}:{})},
 ]
 
 // departments.department_type drives neonatal/paediatric logic (clinical scale
 // recommendations, NICU/PICU context); the check constraint allows these values.
 export const DEPARTMENT_TYPES=Object.freeze(['general','icu','nicu','picu'])
 export const departmentTypeValue=(value: string|null|undefined)=>value&&DEPARTMENT_TYPES.includes(value)?value:'general'
-const departmentTuple=(row: AnyRecord): LibraryTuple=>[row.name,row.name,{id:row.id,system:false,locked:false,source:'Hospital',version:'local',code:row.code||null,departmentType:departmentTypeValue(row.department_type)}]
+const departmentTuple=(row: DepartmentLibraryRow): LibraryTuple=>[row.name,row.name,{id:row.id,system:false,locked:false,source:'Hospital',version:'local',code:row.code||null,departmentType:departmentTypeValue(row.department_type)}]
 
 export async function loadManagementLibraries(organizationId: string): Promise<LibraryMap>{
   const supabase=assertCloud(organizationId)
@@ -74,7 +76,7 @@ export async function updateManagementLibraryItem(organizationId: string,library
     return departmentTuple(data)
   }
   const system=Boolean(row?.[2]?.system)
-  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:system?'Limoxis System':(row?.[2]?.source||'Hospital'),source_version:system?(row?.[2]?.version||'current'):'local',metadata:{system,locked:system,...(row?.[2]?.jobDescription?{jobDescription:row[2].jobDescription}:{})}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:system?'Limoxis System':(row?.[2]?.source||'Hospital'),source_version:system?(row?.[2]?.version||'current'):'local',metadata:{system,locked:system,...(row?.[2]?.jobDescription?{jobDescription:row[2].jobDescription as Json}:{})}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
   if(error) throw error
   return toLibraryTuple(data)
 }
@@ -84,7 +86,7 @@ export async function saveJobDescription(organizationId: string,row: LibraryRow,
   const supabase=assertCloud(organizationId);const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
   const {data:current,error:loadError}=await supabase.from('master_library_items').select('metadata').eq('organization_id',organizationId).eq('id',id).single()
   if(loadError) throw loadError
-  const {data,error}=await supabase.from('master_library_items').update({metadata:{...((current?.metadata||{}) as AnyRecord),jobDescription}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  const {data,error}=await supabase.from('master_library_items').update({metadata:{...((current?.metadata||{}) as Record<string, Json>),jobDescription}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
   if(error) throw error
   return toLibraryTuple(data)
 }
@@ -141,9 +143,9 @@ export async function loadGlobalExternalReferences(){
   return (data||[]).map(toExternalReference)
 }
 
-export async function saveGlobalExternalReference(item: AnyRecord){
+export async function saveGlobalExternalReference(item: ExternalReferenceDraft){
   const supabase=requireCloud()
-  const payload={organization_id:null,source_key:item.sourceKey||item.id,authority:item.authority,title:item.label||item.authority,source_url:item.url||null,version_label:item.version||null,checked_at:new Date().toISOString(),status:item.status||'approved',metadata:{scope:item.scope||'',scope_en:item.scopeEn||item.scope||'',version_en:item.versionEn||item.version||''}}
+  const payload={organization_id:null,source_key:(item.sourceKey||item.id) as string,authority:item.authority as string,title:(item.label||item.authority) as string,source_url:item.url||null,version_label:item.version||null,checked_at:new Date().toISOString(),status:item.status||'approved',metadata:{scope:item.scope||'',scope_en:item.scopeEn||item.scope||'',version_en:item.versionEn||item.version||''}}
   const existingId=isUuid(item.id)?item.id:null
   const query=existingId?supabase.from('external_reference_versions').update(payload).is('organization_id',null).eq('id',existingId):supabase.from('external_reference_versions').insert(payload)
   const {data,error}=await query.select('id,organization_id,source_key,authority,title,source_url,version_label,checked_at,status,metadata').single()
@@ -151,10 +153,10 @@ export async function saveGlobalExternalReference(item: AnyRecord){
   return toExternalReference(data)
 }
 
-export async function removeGlobalExternalReference(item: AnyRecord){
+export async function removeGlobalExternalReference(item: ExternalReferenceDraft){
   const supabase=requireCloud()
   if(!isUuid(item?.id))return
-  const {error}=await supabase.from('external_reference_versions').delete().is('organization_id',null).eq('id',item.id)
+  const {error}=await supabase.from('external_reference_versions').delete().is('organization_id',null).eq('id',item.id as string)
   if(error) throw error
 }
 
@@ -189,8 +191,9 @@ export async function deactivateCustomRole(organizationId: string,roleId: string
   const {error}=await supabase.from('custom_roles').update({is_active:false}).eq('organization_id',organizationId).eq('id',roleId);if(error)throw error
 }
 
-const toExternalReference=(row: AnyRecord)=>({
-  id:row.id,label:row.title,authority:row.authority,version:row.version_label||'',versionEn:row.metadata?.version_en||row.version_label||'',status:row.status||'approved',scope:row.metadata?.scope||'',scopeEn:row.metadata?.scope_en||row.metadata?.scope||'',sourceKey:row.source_key,url:row.source_url||'',checkedAt:row.checked_at||null,isGlobal:row.organization_id==null,organizationId:row.organization_id||null,
+const referenceMeta=(row: ExternalReferenceRow)=>row.metadata as {scope?: string,scope_en?: string,version_en?: string}|null
+const toExternalReference=(row: ExternalReferenceRow): ExternalReference=>({
+  id:row.id,label:row.title,authority:row.authority,version:row.version_label||'',versionEn:referenceMeta(row)?.version_en||row.version_label||'',status:row.status||'approved',scope:referenceMeta(row)?.scope||'',scopeEn:referenceMeta(row)?.scope_en||referenceMeta(row)?.scope||'',sourceKey:row.source_key,url:row.source_url||'',checkedAt:row.checked_at||null,isGlobal:row.organization_id==null,organizationId:row.organization_id||null,
 })
 
 export async function loadExternalReferences(organizationId: string|null|undefined){
@@ -199,10 +202,10 @@ export async function loadExternalReferences(organizationId: string|null|undefin
   return (data||[]).map(toExternalReference)
 }
 
-export async function updateExternalReference(organizationId: string,item: AnyRecord){
+export async function updateExternalReference(organizationId: string,item: ExternalReferenceDraft){
   const supabase=assertCloud(organizationId)
   const targetOrganization=item.isGlobal?null:organizationId
-  const payload={organization_id:targetOrganization,source_key:item.sourceKey||item.id,authority:item.authority,title:item.label||item.authority,source_url:item.url||null,version_label:item.version||null,checked_at:new Date().toISOString(),status:item.status||'approved',metadata:{scope:item.scope||'',scope_en:item.scopeEn||item.scope||'',version_en:item.versionEn||item.version||''}}
+  const payload={organization_id:targetOrganization,source_key:(item.sourceKey||item.id) as string,authority:item.authority as string,title:(item.label||item.authority) as string,source_url:item.url||null,version_label:item.version||null,checked_at:new Date().toISOString(),status:item.status||'approved',metadata:{scope:item.scope||'',scope_en:item.scopeEn||item.scope||'',version_en:item.versionEn||item.version||''}}
   const existingId=isUuid(item.id)?item.id:null
   let query
   if(existingId){query=supabase.from('external_reference_versions').update(payload).eq('id',existingId);query=item.isGlobal?query.is('organization_id',null):query.eq('organization_id',organizationId)}
@@ -211,15 +214,15 @@ export async function updateExternalReference(organizationId: string,item: AnyRe
   return toExternalReference(data)
 }
 
-export async function removeExternalReference(organizationId: string,item: AnyRecord){
+export async function removeExternalReference(organizationId: string,item: ExternalReferenceDraft){
   const supabase=assertCloud(organizationId)
   if(!isUuid(item?.id))return
-  let query=supabase.from('external_reference_versions').delete().eq('id',item.id)
+  let query=supabase.from('external_reference_versions').delete().eq('id',item.id as string)
   query=item.isGlobal?query.is('organization_id',null):query.eq('organization_id',organizationId)
   const {error}=await query;if(error)throw error
 }
 
-const toIndicatorDefinition=(row: AnyRecord)=>({id:row.id,organizationId:row.organization_id||null,system:row.organization_id==null,key:row.indicator_key,version:row.version,titleEl:row.title_el,titleEn:row.title_en,category:row.category,numeratorDefinition:row.numerator_definition||{},denominatorDefinition:row.denominator_definition||{},multiplier:Number(row.multiplier||1),unit:row.unit||'',sourceAuthority:row.source_authority||'',effectiveFrom:row.effective_from||'',effectiveTo:row.effective_to||'',status:row.status||'draft'})
+const toIndicatorDefinition=(row: IndicatorDefinitionRow): ManagedIndicatorDefinition=>({id:row.id,organizationId:row.organization_id||null,system:row.organization_id==null,key:row.indicator_key,version:row.version,titleEl:row.title_el,titleEn:row.title_en,category:row.category,numeratorDefinition:row.numerator_definition||{},denominatorDefinition:row.denominator_definition||{},multiplier:Number(row.multiplier||1),unit:row.unit||'',sourceAuthority:row.source_authority||'',effectiveFrom:row.effective_from||'',effectiveTo:row.effective_to||'',status:row.status||'draft'})
 
 export async function loadIndicatorDefinitions(organizationId: string){
   const supabase=assertCloud(organizationId)
@@ -227,19 +230,19 @@ export async function loadIndicatorDefinitions(organizationId: string){
   return (data||[]).map(toIndicatorDefinition)
 }
 
-export async function saveIndicatorDefinition(organizationId: string,item: AnyRecord){
+export async function saveIndicatorDefinition(organizationId: string,item: ManagedIndicatorDefinitionDraft){
   const supabase=assertCloud(organizationId)
   const {data:userData}=await supabase.auth.getUser();const actor=userData?.user?.id||null
   const payload={organization_id:item.system?null:organizationId,indicator_key:String(item.key||'').trim(),version:String(item.version||'1.0').trim(),title_el:String(item.titleEl||'').trim(),title_en:String(item.titleEn||item.titleEl||'').trim(),category:String(item.category||'general').trim(),numerator_definition:item.numeratorDefinition||{},denominator_definition:item.denominatorDefinition||{},multiplier:Number(item.multiplier||1),unit:item.unit||null,source_authority:item.sourceAuthority||null,effective_from:item.effectiveFrom||null,effective_to:item.effectiveTo||null,status:item.status||'draft',created_by:actor}
-  let query=isUuid(item.id)?supabase.from('indicator_definitions').update(payload).eq('id',item.id):supabase.from('indicator_definitions').insert(payload)
+  let query=isUuid(item.id)?supabase.from('indicator_definitions').update(payload).eq('id',item.id as string):supabase.from('indicator_definitions').insert(payload)
   query=item.system&&isUuid(item.id)?query.is('organization_id',null):query
   const {data,error}=await query.select('id,organization_id,indicator_key,version,title_el,title_en,category,numerator_definition,denominator_definition,multiplier,unit,source_authority,effective_from,effective_to,status').single();if(error)throw error
   return toIndicatorDefinition(data)
 }
 
-export async function removeIndicatorDefinition(organizationId: string,item: AnyRecord){
+export async function removeIndicatorDefinition(organizationId: string,item: ManagedIndicatorDefinitionDraft){
   const supabase=assertCloud(organizationId);if(!isUuid(item?.id))return
-  let query=supabase.from('indicator_definitions').delete().eq('id',item.id)
+  let query=supabase.from('indicator_definitions').delete().eq('id',item.id as string)
   query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
   const {error}=await query;if(error)throw error
 }
