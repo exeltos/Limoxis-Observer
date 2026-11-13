@@ -6,10 +6,10 @@ import { hospitalToday } from '../../../core/dates/hospitalDate'
 // its last events, a supplier's approval from its latest evaluation.
 
 import { evaluationMonths, evaluationResult, evaluationTotal } from './supplierTemplates'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { Certification, Equipment, EquipmentEvent, EquipmentFilters, EquipmentRow, EquipmentStatus, EvaluationResultFields, EvaluationTemplate, EventDraft, Nonconformity, ProgrammeField, ProgrammeState, Score, Supplier, SupplierFilters, SupplierRow, SupplierStatus } from './resourceTypes'
 
-const pick = (list: AnyRecord[], value: string | null | undefined, language: string) => list.find((item: AnyRecord) => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
-const toneOf = (list: AnyRecord[], value: string | null | undefined) => list.find((item: AnyRecord) => item.value === value)?.tone || 'neutral'
+const pick = (list: { value: string, label: string[] }[], value: string | null | undefined, language: string) => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
+const toneOf = (list: { value: string, tone?: string }[], value: string | null | undefined) => list.find(item => item.value === value)?.tone || 'neutral'
 export const todayIso = () => hospitalToday()
 export const DUE_SOON_DAYS = 30
 export const EXPIRY_SOON_DAYS = 60
@@ -35,7 +35,7 @@ export const criticalityTone = (value: string | null | undefined) => toneOf(CRIT
 // --- Equipment -----------------------------------------------------------------------
 
 // The programme a device follows: each check with its interval in months.
-export const PROGRAMME = [
+export const PROGRAMME: { kind: string, field: ProgrammeField, label: string[] }[] = [
   { kind: 'maintenance', field: 'maintenanceMonths', label: ['Προληπτική συντήρηση', 'Preventive maintenance'] },
   { kind: 'calibration', field: 'calibrationMonths', label: ['Διακρίβωση', 'Calibration'] },
   { kind: 'safety', field: 'safetyMonths', label: ['Ηλεκτρολογικός έλεγχος ασφάλειας', 'Electrical safety test'] },
@@ -57,8 +57,8 @@ export const EVENT_RESULTS = [
 // The result of a failure that still lets the device work, and of a repair that did not fix it.
 const RESULT_LABEL_FOR: Record<string, Record<string, string[]>> = { failure: { fail: ['Λειτουργεί με περιορισμό', 'Works with limits'] }, repair: { fail: ['Δεν αποκαταστάθηκε', 'Not fixed'] } }
 export const eventKindLabel = (value: string | null | undefined, language: string) => pick(EVENT_KINDS, value, language)
-export const eventResultLabel = (event: AnyRecord, language: string) => RESULT_LABEL_FOR[event?.kind]?.[event?.result]?.[language === 'en' ? 1 : 0] || pick(EVENT_RESULTS, event?.result, language)
-export const eventResultTone = (event: AnyRecord) => (event?.kind === 'failure' && event?.result === 'fail' ? 'warning' : toneOf(EVENT_RESULTS, event?.result))
+export const eventResultLabel = (event: Pick<EventDraft, 'kind' | 'result'>, language: string) => RESULT_LABEL_FOR[event?.kind]?.[event?.result]?.[language === 'en' ? 1 : 0] || pick(EVENT_RESULTS, event?.result, language)
+export const eventResultTone = (event: Pick<EventDraft, 'kind' | 'result'>) => (event?.kind === 'failure' && event?.result === 'fail' ? 'warning' : toneOf(EVENT_RESULTS, event?.result))
 export const resultsFor = (kind: string) => EVENT_KINDS.find(item => item.value === kind)?.results || ['pass']
 
 export const EQUIPMENT_STATES = [
@@ -78,10 +78,10 @@ export const DUE_STATES = [
 export const dueStateLabel = (value: string | null | undefined, language: string) => pick(DUE_STATES, value, language)
 export const dueStateTone = (value: string | null | undefined) => toneOf(DUE_STATES, value)
 
-const byDate = (a: AnyRecord, b: AnyRecord) => String(a.happenedOn || '').localeCompare(String(b.happenedOn || '')) || String(a.recordedAt || '').localeCompare(String(b.recordedAt || ''))
+const byDate = (a: EquipmentEvent, b: EquipmentEvent) => String(a.happenedOn || '').localeCompare(String(b.happenedOn || '')) || String(a.recordedAt || '').localeCompare(String(b.recordedAt || ''))
 
 // What a result says about whether the device works: down, up, or nothing.
-function serviceEffect(event: AnyRecord) {
+function serviceEffect(event: EquipmentEvent) {
   if (event.kind === 'failure') return event.result === 'out_of_service' ? 'down' : null
   if (event.kind === 'repair') return event.result === 'returned' ? 'up' : 'down'
   return event.result === 'fail' ? 'down' : 'up'
@@ -89,7 +89,7 @@ function serviceEffect(event: AnyRecord) {
 
 // One programme check of a device: when it was last done, when it is due next.
 // A device never checked is due from its installation (or now).
-export function programmeState(equipment: AnyRecord, events: AnyRecord[], step: { kind: string, field: string }, today = todayIso()) {
+export function programmeState(equipment: Equipment, events: EquipmentEvent[], step: { kind: string, field: ProgrammeField }, today = todayIso()): ProgrammeState {
   const months = Number(equipment?.[step.field]) || 0
   const done = events.filter(event => event.kind === step.kind && event.result === 'pass').sort(byDate)
   const last = done[done.length - 1] || null
@@ -101,7 +101,7 @@ export function programmeState(equipment: AnyRecord, events: AnyRecord[], step: 
 
 // A device as the lists show it: its state, each check of its programme, the
 // earliest due date, and the open failure if it is out of service.
-export function equipmentStatus(equipment: AnyRecord, events: AnyRecord[] = [], today = todayIso()) {
+export function equipmentStatus(equipment: Equipment, events: EquipmentEvent[] = [], today = todayIso()): EquipmentStatus {
   const own = events.filter(event => event.equipmentId === equipment.id).sort(byDate)
   const programme = PROGRAMME.map(step => programmeState(equipment, own, step, today))
   const effects = own.map(event => ({ event, effect: serviceEffect(event) })).filter(item => item.effect)
@@ -115,11 +115,11 @@ export function equipmentStatus(equipment: AnyRecord, events: AnyRecord[] = [], 
   return { state, programme, next, due, downSince: down ? latest.event.happenedOn : '', downEvent: down ? latest.event : null, lastEvent: own[own.length - 1] || null, failures: failures.length, warrantyActive: Boolean(equipment.warrantyEndsOn && equipment.warrantyEndsOn >= today) }
 }
 
-export function withEquipmentStatus(equipment: AnyRecord[] = [], events: AnyRecord[] = [], today = todayIso()): AnyRecord[] {
+export function withEquipmentStatus(equipment: Equipment[] = [], events: EquipmentEvent[] = [], today = todayIso()): EquipmentRow[] {
   return equipment.map(item => ({ ...item, ...equipmentStatus(item, events, today), eventCount: events.filter(event => event.equipmentId === item.id).length }))
 }
 
-export function equipmentCounts(rows: AnyRecord[] = []) {
+export function equipmentCounts(rows: EquipmentRow[] = []) {
   const live = rows.filter(row => row.state !== 'retired')
   return {
     total: live.length,
@@ -130,8 +130,8 @@ export function equipmentCounts(rows: AnyRecord[] = []) {
   }
 }
 
-export const NO_EQUIPMENT_FILTERS = { query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }
-export function filterEquipment(rows: AnyRecord[] = [], filters: AnyRecord = NO_EQUIPMENT_FILTERS) {
+export const NO_EQUIPMENT_FILTERS: EquipmentFilters = { query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }
+export function filterEquipment(rows: EquipmentRow[] = [], filters: EquipmentFilters = NO_EQUIPMENT_FILTERS) {
   const q = String(filters.query || '').trim().toLocaleLowerCase('el')
   const quick = filters.quick
   return rows
@@ -144,7 +144,7 @@ export function filterEquipment(rows: AnyRecord[] = [], filters: AnyRecord = NO_
     // What needs attention first: out of service, overdue, due soon; then by the next due date.
     .sort((a, b) => rank(a) - rank(b) || String(a.next?.nextDue || '9999').localeCompare(String(b.next?.nextDue || '9999')) || String(a.code).localeCompare(String(b.code)))
 }
-const rank = (row: AnyRecord) => (row.state === 'out_of_service' ? 0 : row.due === 'overdue' ? 1 : row.due === 'dueSoon' ? 2 : row.state === 'retired' ? 4 : 3)
+const rank = (row: EquipmentRow) => (row.state === 'out_of_service' ? 0 : row.due === 'overdue' ? 1 : row.due === 'dueSoon' ? 2 : row.state === 'retired' ? 4 : 3)
 
 export function nextCode(prefix: string, codes: string[] = [], width = 4) {
   const used = codes.map(code => String(code || '').match(new RegExp(`^${prefix}-(\\d+)$`))?.[1]).filter(Boolean).map(Number)
@@ -153,11 +153,11 @@ export function nextCode(prefix: string, codes: string[] = [], width = 4) {
 export const nextEquipmentCode = (codes: string[]) => nextCode('EQ', codes, 4)
 export const nextSupplierCode = (codes: string[]) => nextCode('SUP', codes, 3)
 
-export function newEquipment(): AnyRecord {
+export function newEquipment(): Equipment {
   return { id: '', code: '', name: '', equipmentType: '', departmentId: '', location: '', manufacturer: '', model: '', serialNumber: '', inventoryNumber: '', supplierId: '', criticality: 'medium', status: 'in_service', installedOn: '', warrantyEndsOn: '', maintenanceMonths: 12, calibrationMonths: '', safetyMonths: 12, notes: '' }
 }
 
-export function equipmentProblems(equipment: AnyRecord, language = 'el') {
+export function equipmentProblems(equipment: Equipment, language = 'el') {
   const en = language === 'en'
   const problems = []
   if (String(equipment.name || '').trim().length < 2) problems.push(en ? 'a name' : 'όνομα')
@@ -169,7 +169,7 @@ export function newEvent(kind = 'maintenance', today = todayIso()) {
   return { kind, happenedOn: today, result: resultsFor(kind)[0], performedBy: '', description: '', certificate: '' }
 }
 
-export function eventProblems(event: AnyRecord, language = 'el') {
+export function eventProblems(event: EventDraft, language = 'el') {
   const en = language === 'en'
   const problems = []
   if (!event.happenedOn) problems.push(en ? 'the date' : 'ημερομηνία')
@@ -238,7 +238,7 @@ export const approvalTone = (value: string | null | undefined) => toneOf(APPROVA
 // The evaluation's score: the points given over the points possible, as a %,
 // each criterion counted by its weight (1 unless the evaluation says otherwise).
 // A criterion left blank does not count.
-export function evaluationScore(scores: AnyRecord = {}, weights: AnyRecord = {}) {
+export function evaluationScore(scores: Record<string, Score> = {}, weights: Record<string, number> = {}) {
   const given = CRITERIA.map(item => ({ value: Number(scores?.[item.key]), weight: Number(weights?.[item.key]) > 0 ? Number(weights[item.key]) : 1 })).filter(item => item.value >= 1 && item.value <= 5)
   if (!given.length) return null
   const total = given.reduce((sum, item) => sum + item.weight, 0)
@@ -255,7 +255,7 @@ export const severityTone = (value: string | null | undefined) => toneOf(NONCONF
 
 export const CERTIFICATION_TYPES = ['ISO 9001', 'ISO 13485', 'ISO 14001', 'ISO 45001', 'ISO 22000 / HACCP', 'ISO 15189 / ISO 17025', 'CE', 'CE-IVD', 'Βεβαίωση ΔΥ8δ/1348/04', 'Άδεια ΕΟΦ', 'Άδεια λειτουργίας', 'Σύμβαση', 'Δήλωση συμμόρφωσης', 'Τεχνικές προδιαγραφές', 'Άλλο']
 
-export function certificationState(certification: AnyRecord, today = todayIso()) {
+export function certificationState(certification: Pick<Partial<Certification>, 'expiresOn'> | null | undefined, today = todayIso()) {
   if (!certification?.expiresOn) return 'none'
   const days = daysBetween(today, certification.expiresOn)
   return days < 0 ? 'expired' : days <= EXPIRY_SOON_DAYS ? 'expiring' : 'valid'
@@ -269,42 +269,42 @@ export const CERTIFICATION_STATES = [
 export const certificationStateLabel = (value: string | null | undefined, language: string) => pick(CERTIFICATION_STATES, value, language)
 export const certificationStateTone = (value: string | null | undefined) => toneOf(CERTIFICATION_STATES, value)
 
-const latestOf = (items: AnyRecord[] = [], field: string) => [...items].sort((a, b) => String(b[field] || '').localeCompare(String(a[field] || '')))[0] || null
+const latestOf = <T extends object>(items: T[] = [], field: keyof T) => [...items].sort((a, b) => String(b[field] || '').localeCompare(String(a[field] || '')))[0] || null
 
 // A supplier as the lists show it: its approval from the latest scored evaluation
 // (else the decision recorded on the supplier), when the next evaluation is due
 // (the latest one plus the frequency of the supplier or of its template), its
 // certificates and open nonconformities.
-const legacyScore = (evaluation: AnyRecord) => evaluationScore(evaluation.scores, evaluation.weights)
-export const evaluationPercent = (evaluation: AnyRecord) => evaluationTotal(evaluation, legacyScore)
-export const evaluationApproval = (evaluation: AnyRecord) => evaluationResult(evaluation, legacyScore)
+const legacyScore = (evaluation: EvaluationResultFields) => evaluationScore(evaluation.scores, evaluation.weights)
+export const evaluationPercent = (evaluation: EvaluationResultFields) => evaluationTotal(evaluation, legacyScore)
+export const evaluationApproval = (evaluation: EvaluationResultFields) => evaluationResult(evaluation, legacyScore)
 
-export function supplierStatus(supplier: AnyRecord, today = todayIso(), templates: AnyRecord[] = []) {
+export function supplierStatus(supplier: Supplier, today = todayIso(), templates: EvaluationTemplate[] = []): SupplierStatus {
   const evaluations = supplier.evaluations || []
   const latest = latestOf(evaluations, 'evaluatedOn')
-  const scored = latestOf(evaluations.filter((item: AnyRecord) => evaluationPercent(item) != null), 'evaluatedOn')
+  const scored = latestOf(evaluations.filter(item => evaluationPercent(item) != null), 'evaluatedOn')
   const score = scored ? evaluationPercent(scored) : null
   const approval = scored ? evaluationApproval(scored) : supplier.approvalStatus || 'unevaluated'
   const months = evaluationMonths(supplier, latest, templates)
   const nextEvaluation = latest ? addMonths(latest.evaluatedOn, months) : ''
   const evaluationDue = supplier.status !== 'inactive' && (!latest || nextEvaluation < today)
-  const certificates = (supplier.certifications || []).map((item: AnyRecord) => ({ ...item, state: certificationState(item, today) }))
-  const open = (supplier.nonconformities || []).filter((item: AnyRecord) => item.status !== 'closed')
+  const certificates = (supplier.certifications || []).map(item => ({ ...item, state: certificationState(item, today) }))
+  const open = (supplier.nonconformities || []).filter(item => item.status !== 'closed')
   const contractDays = supplier.contractEndsOn ? daysBetween(today, supplier.contractEndsOn) : null
   return {
     approval, score, latestEvaluation: latest, scoredEvaluation: scored, evaluationDue, evaluationMonths: months,
     nextEvaluation,
-    expiredCertificates: certificates.filter((item: AnyRecord) => item.state === 'expired').length,
-    expiringCertificates: certificates.filter((item: AnyRecord) => item.state === 'expiring').length,
+    expiredCertificates: certificates.filter(item => item.state === 'expired').length,
+    expiringCertificates: certificates.filter(item => item.state === 'expiring').length,
     openNonconformities: open.length,
-    majorOpen: open.filter((item: AnyRecord) => item.severity === 'major').length,
+    majorOpen: open.filter(item => item.severity === 'major').length,
     contractState: contractDays == null ? 'none' : contractDays < 0 ? 'expired' : contractDays <= EXPIRY_SOON_DAYS ? 'expiring' : 'valid',
   }
 }
 
-export const withSupplierStatus = (suppliers: AnyRecord[] = [], equipment: AnyRecord[] = [], today = todayIso(), templates: AnyRecord[] = []): AnyRecord[] => suppliers.map(item => ({ ...item, ...supplierStatus(item, today, templates), equipmentCount: equipment.filter(device => device.supplierId === item.id).length }))
+export const withSupplierStatus = (suppliers: Supplier[] = [], equipment: Pick<Equipment, 'supplierId'>[] = [], today = todayIso(), templates: EvaluationTemplate[] = []): SupplierRow[] => suppliers.map(item => ({ ...item, ...supplierStatus(item, today, templates), equipmentCount: equipment.filter(device => device.supplierId === item.id).length }))
 
-export function supplierCounts(rows: AnyRecord[] = []) {
+export function supplierCounts(rows: SupplierRow[] = []) {
   const live = rows.filter(row => row.status !== 'inactive')
   return {
     total: live.length,
@@ -316,8 +316,8 @@ export function supplierCounts(rows: AnyRecord[] = []) {
   }
 }
 
-export const NO_SUPPLIER_FILTERS = { query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }
-export function filterSuppliers(rows: AnyRecord[] = [], filters: AnyRecord = NO_SUPPLIER_FILTERS) {
+export const NO_SUPPLIER_FILTERS: SupplierFilters = { query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }
+export function filterSuppliers(rows: SupplierRow[] = [], filters: SupplierFilters = NO_SUPPLIER_FILTERS) {
   const q = String(filters.query || '').trim().toLocaleLowerCase('el')
   const quick = filters.quick
   return rows
@@ -329,12 +329,12 @@ export function filterSuppliers(rows: AnyRecord[] = [], filters: AnyRecord = NO_
     .filter(row => !quick || (quick === 'approved' ? row.approval === 'approved' : quick === 'attention' ? row.approval === 'conditional' || row.approval === 'rejected' : quick === 'evaluationDue' ? row.evaluationDue : quick === 'certificates' ? row.expiredCertificates || row.expiringCertificates : quick === 'nonconformities' ? row.openNonconformities > 0 : true))
     .sort((a, b) => supplierRank(a) - supplierRank(b) || String(a.name).localeCompare(String(b.name), 'el'))
 }
-const supplierRank = (row: AnyRecord) => (row.approval === 'rejected' || row.majorOpen ? 0 : row.approval === 'conditional' || row.openNonconformities || row.expiredCertificates ? 1 : row.evaluationDue ? 2 : 3)
+const supplierRank = (row: SupplierRow) => (row.approval === 'rejected' || row.majorOpen ? 0 : row.approval === 'conditional' || row.openNonconformities || row.expiredCertificates ? 1 : row.evaluationDue ? 2 : 3)
 
-export function newSupplier(): AnyRecord {
+export function newSupplier(): Supplier {
   return { id: '', code: '', name: '', legalName: '', category: 'products', criticality: 'medium', status: 'active', taxId: '', contactName: '', phone: '', email: '', address: '', city: '', country: '', website: '', products: '', contractEndsOn: '', approvalStatus: '', evaluationMonths: '', notes: '', departmentIds: [], certifications: [], evaluations: [], nonconformities: [], contacts: [] }
 }
-export function supplierProblems(supplier: AnyRecord, language = 'el') {
+export function supplierProblems(supplier: Supplier, language = 'el') {
   const en = language === 'en'
   const problems = []
   if (String(supplier.name || '').trim().length < 2) problems.push(en ? 'a name' : 'επωνυμία')
@@ -361,7 +361,7 @@ export const newNonconformity = (today = todayIso()) => ({ id: itemId('nc'), dat
 // --- Corrective actions ------------------------------------------------------------------
 
 // The prefill of a corrective action opened from a failure or a supplier nonconformity.
-export function equipmentCapaSource(equipment: AnyRecord, event: AnyRecord, language = 'el') {
+export function equipmentCapaSource(equipment: Equipment, event: EquipmentEvent | null, language = 'el') {
   const en = language === 'en'
   const what = [equipment.name, equipment.model].filter(Boolean).join(' ')
   return {
@@ -370,7 +370,7 @@ export function equipmentCapaSource(equipment: AnyRecord, event: AnyRecord, lang
     description: [en ? `Device ${equipment.code} «${what}»${equipment.serialNumber ? `, S/N ${equipment.serialNumber}` : ''}.` : `Εξοπλισμός ${equipment.code} «${what}»${equipment.serialNumber ? `, S/N ${equipment.serialNumber}` : ''}.`, event ? `${event.happenedOn}: ${event.description || eventKindLabel(event.kind, language)}` : ''].filter(Boolean).join('\n'),
   }
 }
-export function supplierCapaSource(supplier: AnyRecord, nonconformity: AnyRecord, language = 'el') {
+export function supplierCapaSource(supplier: Pick<Supplier, 'code' | 'name'>, nonconformity: Nonconformity | null, language = 'el') {
   const en = language === 'en'
   return {
     source: 'other', sourceId: `SUP:${supplier.code}`,
@@ -381,7 +381,7 @@ export function supplierCapaSource(supplier: AnyRecord, nonconformity: AnyRecord
 
 // --- Exports ---------------------------------------------------------------------------
 
-export function equipmentExport(rows: AnyRecord[] = [], language = 'el') {
+export function equipmentExport(rows: EquipmentRow[] = [], language = 'el') {
   const en = language === 'en'
   return {
     name: en ? 'equipment' : 'eksoplismos',
@@ -390,7 +390,7 @@ export function equipmentExport(rows: AnyRecord[] = [], language = 'el') {
   }
 }
 
-export function suppliersExport(rows: AnyRecord[] = [], language = 'el') {
+export function suppliersExport(rows: SupplierRow[] = [], language = 'el') {
   const en = language === 'en'
   return {
     name: en ? 'suppliers' : 'promitheftes',

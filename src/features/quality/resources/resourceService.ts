@@ -8,7 +8,8 @@ import { demoResources } from './resourceDemoData'
 import { diffChildRows, rowId } from '../qualityRelations'
 import { CERTIFICATION_FIELDS, CONTACT_FIELDS, CRITERION_FIELDS, EVALUATION_FIELDS, NONCONFORMITY_FIELDS, SCORE_FIELDS, SUPPLIER_SELECT, TEMPLATE_SELECT, certificationRows, contactRows, criterionRows, evaluationRows, nonconformityRows, scoreRows, supplierListsFromRow, templateChanged, templateFromRow, templateRow } from './supplierRelations'
 import { presetTemplates } from './supplierTemplates'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { Tables } from '../../../core/supabase/database.types'
+import type { Certification, Equipment, EquipmentEvent, EvaluationTemplate, EventDraft, NumberInput, ResourceState, Supplier, SupplierDbRow } from './resourceTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
@@ -24,12 +25,12 @@ const anyTable = configuredClient as unknown as SupabaseClient
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
 const localId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-const must = ({ data, error }: AnyRecord) => { if (error) throw error; return data }
+const must = <T>({ data, error }: { data: T, error: unknown }): NonNullable<T> => { if (error) throw error; return data as NonNullable<T> }
 const KEYS = { suppliers: 'quality_local_suppliers', equipment: 'quality_local_equipment', events: 'quality_local_equipment_events', templates: 'quality_local_supplier_templates' }
 const text = (value: unknown) => { const kept = String(value ?? '').trim(); return kept || null }
-const months = (value: number) => (Number(value) >= 1 ? Math.round(Number(value)) : null)
+const months = (value: NumberInput) => (Number(value) >= 1 ? Math.round(Number(value)) : null)
 
-function local() {
+function local(): ResourceState {
   const equipment = loadSnapshot(KEYS.equipment, null)
   // A browser that kept the demo from before the templates gets the preset ones.
   if (Array.isArray(equipment)) return { suppliers: loadSnapshot(KEYS.suppliers, []), equipment, events: loadSnapshot(KEYS.events, []), templates: loadSnapshot(KEYS.templates, null) || presetTemplates('tpl-demo') }
@@ -40,47 +41,47 @@ function local() {
 // The demo suppliers and equipment as they are in this browser (the Analysis demo reads them).
 export const loadResourcesLocal = () => local()
 // The demo's acceptance of a renewed certificate: the certificate takes the new values.
-export function replaceCertificationLocal(supplierId: string, certificationId: string, values: AnyRecord) {
+export function replaceCertificationLocal(supplierId: string, certificationId: string, values: Partial<Certification>) {
   const state = local()
-  state.suppliers = state.suppliers.map((item: AnyRecord) => (item.id !== supplierId ? item : { ...item, certifications: (item.certifications || []).map((cert: AnyRecord) => (cert.id === certificationId ? { ...cert, ...values } : cert)) }))
+  state.suppliers = state.suppliers.map(item => (item.id !== supplierId ? item : { ...item, certifications: (item.certifications || []).map(cert => (cert.id === certificationId ? { ...cert, ...values } : cert)) }))
   saveLocal(state)
 }
-function saveLocal(state: AnyRecord) {
-  for (const [field, key] of Object.entries(KEYS)) saveSnapshot(key, state[field])
+function saveLocal(state: ResourceState) {
+  for (const [field, key] of Object.entries(KEYS)) saveSnapshot(key, state[field as keyof ResourceState])
 }
 
 // --- Cloud shapes -----------------------------------------------------------------------
 
-const toSupplier = (row: AnyRecord) => ({
+const toSupplier = (row: SupplierDbRow): Supplier => ({
   id: row.id, code: row.code, name: row.name, legalName: row.legal_name || '', category: row.category, criticality: row.criticality, status: row.status,
   taxId: row.tax_id || '', contactName: row.contact_name || '', phone: row.phone || '', email: row.email || '', address: row.address || '', city: row.city || '', country: row.country || '', website: row.website || '', products: row.products || '',
   contractEndsOn: row.contract_ends_on || '', approvalStatus: row.approval_status || '', evaluationMonths: row.evaluation_months || '', notes: row.notes || '', departmentIds: row.department_ids || [],
   ...supplierListsFromRow(row),
   createdAt: row.created_at, updatedAt: row.updated_at,
 })
-const supplierRow = (organizationId: string | null | undefined, supplier: AnyRecord) => ({
+const supplierRow = (organizationId: string | null | undefined, supplier: Supplier) => ({
   organization_id: organizationId as string, name: supplier.name.trim(), legal_name: text(supplier.legalName), category: supplier.category || 'products', criticality: supplier.criticality || 'medium', status: supplier.status || 'active',
   tax_id: text(supplier.taxId), contact_name: text(supplier.contactName), phone: text(supplier.phone), email: text(supplier.email), address: text(supplier.address), city: text(supplier.city), country: text(supplier.country), website: text(supplier.website), products: text(supplier.products),
   contract_ends_on: supplier.contractEndsOn || null, approval_status: supplier.approvalStatus || null, evaluation_months: months(supplier.evaluationMonths), notes: text(supplier.notes),
   department_ids: (supplier.departmentIds || []).filter(isUuid),
 })
-const toEquipment = (row: AnyRecord) => ({
+const toEquipment = (row: Tables<'quality_equipment'>): Equipment => ({
   id: row.id, code: row.code, name: row.name, equipmentType: row.equipment_type || '', departmentId: row.department_id || '', location: row.location || '',
   manufacturer: row.manufacturer || '', model: row.model || '', serialNumber: row.serial_number || '', inventoryNumber: row.inventory_number || '', supplierId: row.supplier_id || '',
   criticality: row.criticality, status: row.status, installedOn: row.installed_on || '', warrantyEndsOn: row.warranty_ends_on || '',
   maintenanceMonths: row.maintenance_months || '', calibrationMonths: row.calibration_months || '', safetyMonths: row.safety_months || '', notes: row.notes || '',
   createdAt: row.created_at, updatedAt: row.updated_at,
 })
-const equipmentRow = (organizationId: string | null | undefined, equipment: AnyRecord) => ({
+const equipmentRow = (organizationId: string | null | undefined, equipment: Equipment) => ({
   organization_id: organizationId as string, name: equipment.name.trim(), equipment_type: text(equipment.equipmentType), department_id: isUuid(equipment.departmentId) ? equipment.departmentId : null, location: text(equipment.location),
   manufacturer: text(equipment.manufacturer), model: text(equipment.model), serial_number: text(equipment.serialNumber), inventory_number: text(equipment.inventoryNumber), supplier_id: isUuid(equipment.supplierId) ? equipment.supplierId : null,
   criticality: equipment.criticality || 'medium', status: equipment.status || 'in_service', installed_on: equipment.installedOn || null, warranty_ends_on: equipment.warrantyEndsOn || null,
   maintenance_months: months(equipment.maintenanceMonths), calibration_months: months(equipment.calibrationMonths), safety_months: months(equipment.safetyMonths), notes: text(equipment.notes),
 })
-const toEvent = (row: AnyRecord) => ({ id: row.id, equipmentId: row.equipment_id, kind: row.kind, happenedOn: row.happened_on, result: row.result, performedBy: row.performed_by || '', description: row.description || '', certificate: row.certificate || '', capaCode: row.capa_code || '', recordedAt: row.recorded_at })
+const toEvent = (row: Tables<'quality_equipment_events'>): EquipmentEvent => ({ id: row.id, equipmentId: row.equipment_id, kind: row.kind, happenedOn: row.happened_on, result: row.result, performedBy: row.performed_by || '', description: row.description || '', certificate: row.certificate || '', capaCode: row.capa_code || '', recordedAt: row.recorded_at })
 
-async function selectAll(build: () => { range: (from: number, to: number) => PromiseLike<{ data: AnyRecord[] | null, error: unknown }> }) {
-  const all: AnyRecord[] = []
+async function selectAll<T>(build: () => { range: (from: number, to: number) => PromiseLike<{ data: T[] | null, error: unknown }> }) {
+  const all: T[] = []
   for (let from = 0; ; from += 1000) {
     const page = must(await build().range(from, from + 999)) || []
     all.push(...page)
@@ -130,13 +131,13 @@ export async function loadTemplates(organizationId: string | null | undefined) {
 
 // Saves a template and its criteria in order. A change of name, thresholds, scale or
 // criteria raises its version (the evaluations keep the version they were made on).
-export async function saveTemplate(organizationId: string | null | undefined, template: AnyRecord, before: AnyRecord | null = null) {
+export async function saveTemplate(organizationId: string | null | undefined, template: EvaluationTemplate, before: EvaluationTemplate | null = null) {
   const version = (Number(before?.version) || Number(template.version) || 1) + (templateChanged(before, template) ? 1 : 0)
   if (isLocal()) {
     const state = local()
     const next = { ...template, id: template.id || localId('tpl'), version, passThreshold: Number(template.passThreshold), conditionalThreshold: Number(template.conditionalThreshold), frequencyMonths: Math.round(Number(template.frequencyMonths)), scoreScale: Number(template.scoreScale) === 10 ? 10 : 5,
-      criteria: (template.criteria || []).filter((item: AnyRecord) => String(item.label || '').trim()).map((item: AnyRecord) => ({ ...item, label: String(item.label).trim(), weight: Number(item.weight), id: item.id || localId('crit') })) }
-    state.templates = template.id ? state.templates.map((item: AnyRecord) => (item.id === template.id ? next : item)) : [...state.templates, next]
+      criteria: (template.criteria || []).filter(item => String(item.label || '').trim()).map(item => ({ ...item, label: String(item.label).trim(), weight: Number(item.weight), id: item.id || localId('crit') })) }
+    state.templates = template.id ? state.templates.map(item => (item.id === template.id ? next : item)) : [...state.templates, next]
     saveLocal(state)
     return next
   }
@@ -152,18 +153,18 @@ export async function saveTemplate(organizationId: string | null | undefined, te
 export async function removeTemplate(organizationId: string | null | undefined, id: string) {
   if (isLocal()) {
     const state = local()
-    state.templates = state.templates.filter((item: AnyRecord) => item.id !== id)
+    state.templates = state.templates.filter(item => item.id !== id)
     saveLocal(state)
     return
   }
   must(await supabase.from('quality_supplier_eval_templates').delete().eq('id', id).eq('organization_id', organizationId as string))
 }
 
-export async function saveSupplier(organizationId: string | null | undefined, supplier: AnyRecord) {
+export async function saveSupplier(organizationId: string | null | undefined, supplier: Supplier) {
   if (isLocal()) {
     const state = local()
-    const next = { ...supplier, id: supplier.id || localId('sup'), code: supplier.code || nextSupplierCode(state.suppliers.map((item: AnyRecord) => item.code)) }
-    state.suppliers = supplier.id ? state.suppliers.map((item: AnyRecord) => (item.id === supplier.id ? next : item)) : [...state.suppliers, next]
+    const next = { ...supplier, id: supplier.id || localId('sup'), code: supplier.code || nextSupplierCode(state.suppliers.map(item => item.code)) }
+    state.suppliers = supplier.id ? state.suppliers.map(item => (item.id === supplier.id ? next : item)) : [...state.suppliers, next]
     saveLocal(state)
     return next
   }
@@ -171,7 +172,7 @@ export async function saveSupplier(organizationId: string | null | undefined, su
   if (isUuid(id)) must(await supabase.from('quality_suppliers').update(supplierRow(organizationId, supplier)).eq('id', id).eq('organization_id', organizationId as string).select('id').single())
   else {
     const codes = must(await supabase.from('quality_suppliers').select('code').eq('organization_id', organizationId as string)) || []
-    id = must(await supabase.from('quality_suppliers').insert({ ...supplierRow(organizationId, supplier), code: nextSupplierCode(codes.map((item: AnyRecord) => item.code)) }).select('id').single()).id
+    id = must(await supabase.from('quality_suppliers').insert({ ...supplierRow(organizationId, supplier), code: nextSupplierCode(codes.map(item => item.code)) }).select('id').single()).id
   }
   await saveSupplierLists(organizationId, id, supplier)
   return toSupplier(must(await supabase.from('quality_suppliers').select(SUPPLIER_SELECT).eq('id', id).eq('organization_id', organizationId as string).single()))
@@ -179,33 +180,33 @@ export async function saveSupplier(organizationId: string | null | undefined, su
 
 // Writes the stored rows of a parent the way `rows` says: removes the ones no
 // longer there, writes the new and the changed ones.
-async function syncRows(organizationId: string | null | undefined, table: string, parentColumn: string, parentIds: string[], rows: AnyRecord[], fields: string[]) {
+async function syncRows(organizationId: string | null | undefined, table: string, parentColumn: string, parentIds: string[], rows: Record<string, unknown>[], fields: string[]) {
   if (!parentIds.length && !rows.length) return
   const existing = parentIds.length ? must(await anyTable.from(table).select(['id', parentColumn, ...fields].join(',')).eq('organization_id', organizationId as string).in(parentColumn, parentIds)) || [] : []
-  const { upsert, remove } = diffChildRows(existing, rows as never[], [parentColumn, ...fields] as never[]) as { upsert: AnyRecord[], remove: string[] }
+  const { upsert, remove } = diffChildRows(existing, rows as never[], [parentColumn, ...fields] as never[]) as { upsert: Record<string, unknown>[], remove: string[] }
   if (remove.length) must(await anyTable.from(table).delete().eq('organization_id', organizationId as string).in('id', remove))
   if (upsert.length) must(await anyTable.from(table).upsert(upsert.map(row => ({ ...row, organization_id: organizationId as string }))))
 }
 
 // A supplier's certifications, evaluations with their scores, and nonconformities.
-async function saveSupplierLists(organizationId: string | null | undefined, supplierId: string, supplier: AnyRecord) {
-  const withParent = (rows: AnyRecord[]) => rows.map((row: AnyRecord) => ({ ...row, supplier_id: supplierId }))
+async function saveSupplierLists(organizationId: string | null | undefined, supplierId: string, supplier: Supplier) {
+  const withParent = <T extends object>(rows: T[]) => rows.map((row: T) => ({ ...row, supplier_id: supplierId }))
   await syncRows(organizationId, 'quality_supplier_certifications', 'supplier_id', [supplierId], withParent(certificationRows(supplier.certifications)), CERTIFICATION_FIELDS)
   await syncRows(organizationId, 'quality_supplier_nonconformities', 'supplier_id', [supplierId], withParent(nonconformityRows(supplier.nonconformities)), NONCONFORMITY_FIELDS)
   if (Array.isArray(supplier.contacts)) await syncRows(organizationId, 'quality_supplier_contacts', 'supplier_id', [supplierId], withParent(contactRows(supplier.contacts)), CONTACT_FIELDS)
-  const evaluations = (supplier.evaluations || []).map((item: AnyRecord) => ({ ...item, id: rowId(item.id) }))
+  const evaluations = (supplier.evaluations || []).map(item => ({ ...item, id: rowId(item.id) }))
   const rows = withParent(evaluationRows(evaluations))
   await syncRows(organizationId, 'quality_supplier_evaluations', 'supplier_id', [supplierId], rows, EVALUATION_FIELDS)
-  const ids = rows.map((row: AnyRecord) => row.id)
+  const ids = rows.map(row => row.id)
   const stored = ids.length ? must(await supabase.from('quality_supplier_evaluation_scores').select('id,evaluation_id,criterion,criterion_id,criterion_label').eq('organization_id', organizationId as string).in('evaluation_id', ids)) || [] : []
-  const scores = evaluations.filter((item: AnyRecord) => ids.includes(item.id)).flatMap((item: AnyRecord) => scoreRows(item, stored.filter((row: AnyRecord) => row.evaluation_id === item.id)).map((row: AnyRecord) => ({ ...row, evaluation_id: item.id })))
+  const scores = evaluations.filter(item => ids.includes(item.id)).flatMap(item => scoreRows(item, stored.filter(row => row.evaluation_id === item.id)).map(row => ({ ...row, evaluation_id: item.id })))
   await syncRows(organizationId, 'quality_supplier_evaluation_scores', 'evaluation_id', ids, scores, SCORE_FIELDS)
 }
 
 export async function removeSupplier(organizationId: string | null | undefined, id: string) {
   if (isLocal()) {
     const state = local()
-    state.suppliers = state.suppliers.filter((item: AnyRecord) => item.id !== id)
+    state.suppliers = state.suppliers.filter(item => item.id !== id)
     state.equipment = state.equipment.map(item => (item.supplierId === id ? { ...item, supplierId: '' } : item))
     saveLocal(state)
     return
@@ -213,7 +214,7 @@ export async function removeSupplier(organizationId: string | null | undefined, 
   must(await supabase.from('quality_suppliers').delete().eq('id', id).eq('organization_id', organizationId as string))
 }
 
-export async function saveEquipment(organizationId: string | null | undefined, equipment: AnyRecord) {
+export async function saveEquipment(organizationId: string | null | undefined, equipment: Equipment) {
   if (isLocal()) {
     const state = local()
     const next = { ...equipment, id: equipment.id || localId('eq'), code: equipment.code || nextEquipmentCode(state.equipment.map(item => item.code)) }
@@ -223,21 +224,21 @@ export async function saveEquipment(organizationId: string | null | undefined, e
   }
   if (isUuid(equipment.id)) return toEquipment(must(await supabase.from('quality_equipment').update(equipmentRow(organizationId, equipment)).eq('id', equipment.id).eq('organization_id', organizationId as string).select('*').single()))
   const codes = must(await supabase.from('quality_equipment').select('code').eq('organization_id', organizationId as string)) || []
-  return toEquipment(must(await supabase.from('quality_equipment').insert({ ...equipmentRow(organizationId, equipment), code: nextEquipmentCode(codes.map((item: AnyRecord) => item.code)) }).select('*').single()))
+  return toEquipment(must(await supabase.from('quality_equipment').insert({ ...equipmentRow(organizationId, equipment), code: nextEquipmentCode(codes.map(item => item.code)) }).select('*').single()))
 }
 
 export async function removeEquipment(organizationId: string | null | undefined, id: string) {
   if (isLocal()) {
     const state = local()
     state.equipment = state.equipment.filter(item => item.id !== id)
-    state.events = state.events.filter((item: AnyRecord) => item.equipmentId !== id)
+    state.events = state.events.filter(item => item.equipmentId !== id)
     saveLocal(state)
     return
   }
   must(await supabase.from('quality_equipment').delete().eq('id', id).eq('organization_id', organizationId as string))
 }
 
-export async function addEvent(organizationId: string | null | undefined, equipmentId: string, event: AnyRecord) {
+export async function addEvent(organizationId: string | null | undefined, equipmentId: string, event: EventDraft) {
   const entry = { kind: event.kind, happenedOn: event.happenedOn, result: event.result, performedBy: text(event.performedBy) || '', description: text(event.description) || '', certificate: text(event.certificate) || '', capaCode: text(event.capaCode) || '' }
   if (isLocal()) {
     const state = local()
@@ -252,7 +253,7 @@ export async function addEvent(organizationId: string | null | undefined, equipm
 export async function removeEvent(organizationId: string | null | undefined, id: string) {
   if (isLocal()) {
     const state = local()
-    state.events = state.events.filter((item: AnyRecord) => item.id !== id)
+    state.events = state.events.filter(item => item.id !== id)
     saveLocal(state)
     return
   }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode, type Ref } from 'react'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
 import { useSortedPaging, withSort } from '../useSortedPaging'
@@ -14,7 +14,8 @@ import { loadResources } from './resourceService'
 import { formatPercent } from './supplierTemplates'
 import { APPROVALS, CRITICALITY, DUE_STATES, EQUIPMENT_STATES, SUPPLIER_CATEGORIES, approvalLabel, approvalTone, criticalityLabel, criticalityTone, dueStateLabel, dueStateTone, equipmentStateLabel, equipmentStateTone, eventKindLabel, filterEquipment, filterSuppliers, supplierCategoryLabel, withEquipmentStatus, withSupplierStatus } from './resourceModel'
 import './resources.css'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { useRegistryMemory } from '../../../core/navigation/useRegistryMemory'
+import type { EquipmentFilters, EquipmentRow, ResourceState, SupplierFilters, SupplierRow, SupplierStatus } from './resourceTypes'
 
 // Who may do what with equipment and suppliers.
 export function useResourceAccess() {
@@ -35,9 +36,9 @@ export function useResourceAccess() {
 export function useResources(enabled = true) {
   const { tenant } = useTenant()
   const { language } = useLanguage()
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const { departments } = useDepartments()
   const access = useResourceAccess()
-  const [data, setData] = useState<{ suppliers: AnyRecord[], equipment: AnyRecord[], events: AnyRecord[], templates: AnyRecord[] }>({ suppliers: [], equipment: [], events: [], templates: [] })
+  const [data, setData] = useState<ResourceState>({ suppliers: [], equipment: [], events: [], templates: [] })
   const [loading, setLoading] = useState(enabled)
   const reload = useCallback(() => {
     if (!enabled) { setLoading(false); return Promise.resolve() }
@@ -54,40 +55,40 @@ export function useResources(enabled = true) {
     // A department reads the suppliers assigned to it (the database returns only those; the demo filters here).
     const suppliers = access.canViewAll ? data.suppliers : data.suppliers.filter(item => (item.departmentIds || []).some((id: string) => own.has(id)))
     const supplierNames = new Map(data.suppliers.map(item => [item.id, item.name]))
-    const devices = withEquipmentStatus(equipment, data.events).map((item): AnyRecord => { const department = names.get(item.departmentId); return { ...item, department: department?.name || (item.departmentId && !/^[0-9a-f-]{36}$/.test(item.departmentId) ? item.departmentId : ''), departmentEn: department?.nameEn || department?.name || '', supplierName: supplierNames.get(item.supplierId) || '' } })
+    const devices = withEquipmentStatus(equipment, data.events).map((item): EquipmentRow => { const department = names.get(item.departmentId); return { ...item, department: department?.name || (item.departmentId && !/^[0-9a-f-]{36}$/.test(item.departmentId) ? item.departmentId : ''), departmentEn: department?.nameEn || department?.name || '', supplierName: supplierNames.get(item.supplierId) || '' } })
     return { equipment: devices, suppliers: withSupplierStatus(suppliers, equipment, undefined, data.templates || []), events: data.events, templates: data.templates || [] }
   }, [data, departments, scoped, ownKey, access.canViewAll])
   return { ...rows, loading, reload, departments, language }
 }
 
-interface ResourceListProps {
+interface ResourceListProps<F, R> {
   list: ReturnType<typeof useResources>
-  registry?: AnyRecord | null
-  filters: AnyRecord
-  setFilters: (update: (current: AnyRecord) => AnyRecord) => void
-  onOpen: (row: AnyRecord, sorted: AnyRecord[]) => void
+  registry?: ReturnType<typeof useRegistryMemory> | null
+  filters: F
+  setFilters: (update: (current: F) => F) => void
+  onOpen: (row: R, sorted: R[]) => void
   filterEnd?: ReactNode
 }
 
-const NEXT_LABEL = (row: AnyRecord, language: string) => row.next ? `${eventKindLabel(row.next.kind, language)} · ${formatDay(row.next.nextDue, language)}` : '—'
+const NEXT_LABEL = (row: EquipmentRow, language: string) => row.next ? `${eventKindLabel(row.next.kind, language)} · ${formatDay(row.next.nextDue, language)}` : '—'
 
-export function EquipmentList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null, showDepartment = true }: ResourceListProps & { showDepartment?: boolean }) {
+export function EquipmentList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null, showDepartment = true }: ResourceListProps<EquipmentFilters, EquipmentRow> & { showDepartment?: boolean }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const set = (key: string, value: unknown) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterEquipment(list.equipment, filters), [list.equipment, filters])
-  const sortBy = { code: (row: AnyRecord) => row.code, criticality: (row: AnyRecord) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[row.criticality] || 0, device: (row: AnyRecord) => row.name, department: (row: AnyRecord) => (en ? row.departmentEn : row.department), next: (row: AnyRecord) => row.next?.nextDue || null, programme: (row: AnyRecord) => row.due, status: (row: AnyRecord) => row.state }
+  const sortBy = { code: (row: EquipmentRow) => row.code, criticality: (row: EquipmentRow) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[row.criticality] || 0, device: (row: EquipmentRow) => row.name, department: (row: EquipmentRow) => (en ? row.departmentEn : row.department), next: (row: EquipmentRow) => row.next?.nextDue || null, programme: (row: EquipmentRow) => row.due, status: (row: EquipmentRow) => row.state }
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
-  const usedDepartments = useMemo(() => { const ids = new Set(list.equipment.map((item: AnyRecord) => item.departmentId).filter(Boolean)); return list.departments.filter((item: AnyRecord) => ids.has(item.id || item.name)) }, [list.equipment, list.departments])
-  const advanced = ['department', 'state', 'due', 'criticality'].filter(key => filters[key] !== 'all').length
+  const usedDepartments = useMemo(() => { const ids = new Set(list.equipment.map(item => item.departmentId).filter(Boolean)); return list.departments.filter(item => ids.has(item.id || item.name)) }, [list.equipment, list.departments])
+  const advanced = (['department', 'state', 'due', 'criticality'] as const).filter(key => filters[key] !== 'all').length
   return <>
     <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search device, serial number, location…' : 'Αναζήτηση εξοπλισμού, σειριακού αριθμού, θέσης…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))} end={filterEnd}>
-      {showDepartment && usedDepartments.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={filters.department} onChange={value => set('department', value)}><option value="all">{t('all')}</option>{usedDepartments.map((item: AnyRecord) => <option key={item.id || item.name} value={item.id || item.name}>{en ? item.nameEn || item.name : item.name}</option>)}</FilterSelect>}
+      {showDepartment && usedDepartments.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={filters.department} onChange={value => set('department', value)}><option value="all">{t('all')}</option>{usedDepartments.map(item => <option key={item.id || item.name} value={item.id || item.name}>{en ? item.nameEn || item.name : item.name}</option>)}</FilterSelect>}
       <FilterSelect label={t('status')} value={filters.state} onChange={value => set('state', value)}><option value="all">{en ? 'In use' : 'Σε χρήση'}</option>{EQUIPMENT_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Programme' : 'Πρόγραμμα'} value={filters.due} onChange={value => set('due', value)}><option value="all">{t('all')}</option>{DUE_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
-    <div className="scroll-table" ref={registry?.scrollRef}>
+    <div className="scroll-table" ref={registry?.scrollRef as Ref<HTMLDivElement> | undefined}>
       <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.equipment.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))}
         columns={withSort([{ key: 'code', label: t('code') }, { key: 'criticality', label: en ? 'Criticality' : 'Κρισιμότητα' }, { key: 'device', label: en ? 'Device' : 'Εξοπλισμός' }, ...(showDepartment ? [{ key: 'department', label: en ? 'Department' : 'Τμήμα' }] : []), { key: 'next', label: en ? 'Next check' : 'Επόμενος έλεγχος' }, { key: 'programme', label: en ? 'Programme' : 'Πρόγραμμα' }, { key: 'status', label: t('status') }], sortBy)}
         emptyTitle={en ? 'No equipment' : 'Δεν υπάρχει εξοπλισμός'} emptyText={en ? 'Register the devices whose maintenance and calibration you follow.' : 'Καταχωρίστε τον εξοπλισμό του οποίου παρακολουθείτε τη συντήρηση και τη διακρίβωση.'}
@@ -106,16 +107,16 @@ export function EquipmentList({ list, registry = null, filters, setFilters, onOp
   </>
 }
 
-export function SuppliersList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }: ResourceListProps) {
+export function SuppliersList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }: ResourceListProps<SupplierFilters, SupplierRow>) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   // The certificates to renew by e-mail open from «Δημιουργία» of the Quality Center (with the evaluation templates).
   const end = filterEnd
   const set = (key: string, value: unknown) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSuppliers(list.suppliers, filters), [list.suppliers, filters])
-  const sortBy = { code: (row: AnyRecord) => row.code, criticality: (row: AnyRecord) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[row.criticality] || 0, supplier: (row: AnyRecord) => row.name, evaluation: (row: AnyRecord) => row.latestEvaluation?.evaluatedOn || null, attention: (row: AnyRecord) => supplierNotes(row, language).length, approval: (row: AnyRecord) => row.approval }
+  const sortBy = { code: (row: SupplierRow) => row.code, criticality: (row: SupplierRow) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[row.criticality] || 0, supplier: (row: SupplierRow) => row.name, evaluation: (row: SupplierRow) => row.latestEvaluation?.evaluatedOn || null, attention: (row: SupplierRow) => supplierNotes(row, language).length, approval: (row: SupplierRow) => row.approval }
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
-  const advanced = ['category', 'approval', 'criticality'].filter(key => filters[key] !== 'all').length + (filters.status !== 'active' ? 1 : 0)
+  const advanced = (['category', 'approval', 'criticality'] as const).filter(key => filters[key] !== 'all').length + (filters.status !== 'active' ? 1 : 0)
   return <>
     <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search supplier, tax ID, products…' : 'Αναζήτηση προμηθευτή, ΑΦΜ, προϊόντων…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))} end={end}>
       <FilterSelect label={en ? 'Category' : 'Κατηγορία'} value={filters.category} onChange={value => set('category', value)}><option value="all">{t('all')}</option>{SUPPLIER_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -123,7 +124,7 @@ export function SuppliersList({ list, registry = null, filters, setFilters, onOp
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="active">{en ? 'Active' : 'Ενεργοί'}</option><option value="inactive">{en ? 'Inactive' : 'Ανενεργοί'}</option><option value="all">{t('all')}</option></FilterSelect>
     </FilterBar>
-    <div className="scroll-table" ref={registry?.scrollRef}>
+    <div className="scroll-table" ref={registry?.scrollRef as Ref<HTMLDivElement> | undefined}>
       <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.suppliers.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))}
         columns={withSort([{ key: 'code', label: t('code') }, { key: 'criticality', label: en ? 'Criticality' : 'Κρισιμότητα' }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'evaluation', label: en ? 'Latest evaluation' : 'Τελευταία αξιολόγηση' }, { key: 'attention', label: en ? 'Needs attention' : 'Χρειάζεται προσοχή' }, { key: 'approval', label: en ? 'Approval' : 'Έγκριση' }], sortBy)}
         emptyTitle={en ? 'No suppliers' : 'Δεν υπάρχουν προμηθευτές'} emptyText={en ? 'Register the external providers whose products and services affect care.' : 'Καταχωρίστε τους εξωτερικούς παρόχους των οποίων τα προϊόντα και οι υπηρεσίες επηρεάζουν τη φροντίδα.'}
@@ -142,7 +143,7 @@ export function SuppliersList({ list, registry = null, filters, setFilters, onOp
 }
 
 // The short notes the supplier list shows: open nonconformities, certificates, the contract.
-export function supplierNotes(row: AnyRecord, language = 'el') {
+export function supplierNotes(row: SupplierStatus, language = 'el') {
   const en = language === 'en'
   return [
     row.openNonconformities > 0 && { key: 'nc', tone: row.majorOpen ? 'danger' : 'warning', label: en ? `${row.openNonconformities} open nonconformit${row.openNonconformities === 1 ? 'y' : 'ies'}` : `${row.openNonconformities} ανοιχτ${row.openNonconformities === 1 ? 'ή' : 'ές'} μη συμμόρφωσ${row.openNonconformities === 1 ? 'η' : 'εις'}` },

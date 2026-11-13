@@ -1,6 +1,6 @@
 import { applyTemplate, presetTemplates } from './supplierTemplates'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { Equipment, EquipmentEvent, Evaluation, EvaluationCriterion, EvaluationTemplate, ResourceState } from './resourceTypes'
 
 // The demo's suppliers and equipment: dates are set from today, so the figures
 // always show something overdue, something due soon and a device out of service.
@@ -11,14 +11,14 @@ const day = (offset: number, from = hospitalToday()) => { const date = new Date(
 const scores = (quality: number, delivery: number, specs: number, documents: number, support: number, price: number) => ({ quality, delivery, specs, documents, support, price })
 
 // An evaluation on one of the demo's templates, a score per criterion in order.
-function onTemplate(templates: AnyRecord[], key: string, id: string, offset: number, values: AnyRecord, extra: AnyRecord = {}) {
-  const template = templates.find((item: AnyRecord) => item.id === `tpl-demo-${key}`)
-  const evaluation = { ...applyTemplate({ id, evaluatedOn: day(offset), evaluator: 'Υπεύθυνος Ποιότητας', notes: '', source: 'app' }, template as AnyRecord), ...extra }
-  evaluation.criteria = evaluation.criteria.map((item: AnyRecord, index: number) => ({ ...item, score: values[index] ?? '' }))
+function onTemplate(templates: EvaluationTemplate[], key: string, id: string, offset: number, values: number[], extra: Partial<Evaluation> = {}) {
+  const template = templates.find(item => item.id === `tpl-demo-${key}`)
+  const evaluation = { ...applyTemplate({ id, evaluatedOn: day(offset), evaluator: 'Υπεύθυνος Ποιότητας', notes: '', source: 'app' }, template as EvaluationTemplate), ...extra }
+  evaluation.criteria = (evaluation.criteria as EvaluationCriterion[]).map((item, index: number) => ({ ...item, score: values[index] ?? '' }))
   return evaluation
 }
 
-export function demoResources() {
+export function demoResources(): ResourceState {
   const templates = presetTemplates('tpl-demo')
   const suppliers = [
     { id: 'sup-demo-1', departmentIds: ['Χειρουργική'], code: 'SUP-001', name: 'Ιατροτεχνική Θεσσαλίας Α.Ε.', category: 'medical_devices', criticality: 'high', status: 'active', taxId: '099999001', contactName: 'Τμήμα εξυπηρέτησης', phone: '2410 000001', email: 'service@example.com', address: 'Λάρισα', website: '', products: 'Απινιδωτές, monitors, αντλίες έγχυσης· τεχνική υποστήριξη', contractEndsOn: day(240), notes: '',
@@ -55,7 +55,7 @@ export function demoResources() {
       nonconformities: [] },
   ].map(item => ({ city: '', country: '', legalName: '', approvalStatus: '', evaluationMonths: '', contacts: [], ...item }))
 
-  const device = (id: string, code: string, name: string, equipmentType: string, departmentId: string, extra: AnyRecord = {}) => ({ id, code, name, equipmentType, departmentId, location: '', manufacturer: '', model: '', serialNumber: '', inventoryNumber: '', supplierId: 'sup-demo-1', criticality: 'medium', status: 'in_service', installedOn: day(-1400), warrantyEndsOn: '', maintenanceMonths: 12, calibrationMonths: '', safetyMonths: 12, notes: '', ...extra })
+  const device = (id: string, code: string, name: string, equipmentType: string, departmentId: string, extra: Partial<Equipment> = {}) => ({ id, code, name, equipmentType, departmentId, location: '', manufacturer: '', model: '', serialNumber: '', inventoryNumber: '', supplierId: 'sup-demo-1', criticality: 'medium', status: 'in_service', installedOn: day(-1400), warrantyEndsOn: '', maintenanceMonths: 12, calibrationMonths: '', safetyMonths: 12, notes: '', ...extra })
   const equipment = [
     device('eq-demo-1', 'EQ-0001', 'Απινιδωτής', 'Απινιδωτής', 'ΜΕΘ', { manufacturer: 'Κατασκευαστής Α', model: 'D-300', serialNumber: 'DF30-11872', inventoryNumber: 'ΑΠ-1021', location: 'Σταθμός νοσηλευτών', criticality: 'high', maintenanceMonths: 6, safetyMonths: 12 }),
     device('eq-demo-2', 'EQ-0002', 'Απινιδωτής', 'Απινιδωτής', 'ΤΕΠ', { manufacturer: 'Κατασκευαστής Α', model: 'D-300', serialNumber: 'DF30-11990', inventoryNumber: 'ΑΠ-1022', location: 'Αίθουσα ανάνηψης', criticality: 'high', maintenanceMonths: 6, safetyMonths: 12 }),
@@ -71,7 +71,7 @@ export function demoResources() {
     device('eq-demo-12', 'EQ-0012', 'Αναρροφητήρας', 'Αναρροφητήρας', 'ΜΕΘ', { status: 'retired', criticality: 'medium', notes: 'Αντικαταστάθηκε από το EQ-0007.' }),
   ]
 
-  const event = (id: string, equipmentId: string, kind: string, offset: number, result = 'pass', extra: AnyRecord = {}) => ({ id, equipmentId, kind, happenedOn: day(offset), result, performedBy: 'Βιοϊατρική Συντήρηση Ο.Ε.', description: '', certificate: '', capaCode: '', recordedAt: `${day(offset)}T10:00:00Z`, ...extra })
+  const event = (id: string, equipmentId: string, kind: string, offset: number, result = 'pass', extra: Partial<EquipmentEvent> = {}) => ({ id, equipmentId, kind, happenedOn: day(offset), result, performedBy: 'Βιοϊατρική Συντήρηση Ο.Ε.', description: '', certificate: '', capaCode: '', recordedAt: `${day(offset)}T10:00:00Z`, ...extra })
   const events = [
     event('ev-1', 'eq-demo-1', 'maintenance', -150), event('ev-2', 'eq-demo-1', 'safety', -150),
     event('ev-3', 'eq-demo-2', 'maintenance', -200), event('ev-4', 'eq-demo-2', 'safety', -200),
