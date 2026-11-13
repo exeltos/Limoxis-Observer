@@ -31,7 +31,7 @@ prints as a clinical document, not as the screen.
 Rules for a builder: labels are the screen's own labels (never raw keys), values in words
 (S/I/R as «Ευαίσθητο / Ανθεκτικό»), only what the user can see (permission flags decide
 the sections), no JSX in values. Builders are pure and unit-tested
-(`tests/recordReportPrint.test.jsx`).
+(`tests/recordReportPrint.test.tsx`).
 
 ## Done
 

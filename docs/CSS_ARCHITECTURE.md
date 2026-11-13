@@ -32,12 +32,12 @@ imported by their components and load with them.
 - `npm run audit:dead-selectors` (after the build, part of `npm run check`)
   fails when a rule's selectors require a class or id that no code sets — not
   in the built app or libraries, and not as the stem of a dynamically built
-  name. `node tools/check-dead-selectors.mjs --write` removes such rules.
+  name. `node tools/check-dead-selectors.ts --write` removes such rules.
 - Do not add `!important` to win against another rule; raise specificity or
   put the rule in the right section instead.
 - Ομάδες pills/chips/tabs: ποτέ δεύτερη σειρά. `flex-wrap:nowrap`, τα στοιχεία
   συρρικνώνονται (`min-width:0`, αποκοπή με «…»)· οι καρτέλες κυλούν οριζόντια.
-  Τα `.registry-totals` και `.analysis-figures` το ελέγχει `tests/pillRowsNoWrap.test.js`.
+  Τα `.registry-totals` και `.analysis-figures` το ελέγχει `tests/pillRowsNoWrap.test.ts`.
 
 ## Visual regression check
 

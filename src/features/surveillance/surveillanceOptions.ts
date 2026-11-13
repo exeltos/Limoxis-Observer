@@ -1,4 +1,3 @@
-import type { AnyRecord } from '../../types/featureTypes'
 import type { SpecimenItem } from './surveillanceListTypes'
 // The option lists of the surveillance and patient screens, in one place.
 // Records keep storing the same codes as before; only the labels and the way
@@ -56,9 +55,9 @@ export const SUSPECTED_SOURCES=['bloodstream','urinary','respiratory','surgicalS
 export const suspectedSourceOptions=(t: (key: string) => string)=>SUSPECTED_SOURCES.map(value=>({value,label:value==='other'?t('other'):t(`clinicalRecords.${value}`)}))
 
 // Departments from useDepartments(), as SearchableSelect options.
-// AnyRecord: several screens still hand their departments untyped, and a SearchableSelect option needs a value and a label.
-export const departmentLabel=(department: AnyRecord,language='el')=>department?(language==='en'?department.nameEn||department.name:department.name):''
-export function departmentOptions(departments: AnyRecord[]=[],language='el'){
+type DepartmentChoice={id: string,name: string,nameEn?: string}
+export const departmentLabel=(department: DepartmentChoice | null | undefined,language='el')=>department?(language==='en'?department.nameEn||department.name:department.name):''
+export function departmentOptions(departments: DepartmentChoice[]=[],language='el'){
   return departments.map(department=>{const label=departmentLabel(department,language),other=language==='en'?department.name:department.nameEn;return {value:department.id,label,description:other&&other!==label?other:undefined,keywords:`${department.name} ${department.nameEn||''}`}})
 }
 
