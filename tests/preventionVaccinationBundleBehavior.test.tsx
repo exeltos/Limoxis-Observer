@@ -17,7 +17,7 @@ vi.mock('../src/core/auth/AuthContext', () => ({
 // Simulates a role that may view occupational health but not manage it.
 let denyManageOccupationalHealth = false
 vi.mock('../src/core/permissions/roles', async importOriginal => {
-  const actual = await importOriginal()
+  const actual = await importOriginal<typeof import('../src/core/permissions/roles')>()
   return {
     ...actual,
     can: (role, capability, ...rest) => (denyManageOccupationalHealth && capability === actual.CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH ? false : actual.can(role, capability, ...rest)),
@@ -73,7 +73,7 @@ async function renderOnDemo(path, element, routePath, seed, extraRoutes = []) {
   return api
 }
 
-const tableRows = () => [...document.querySelectorAll('tbody tr')]
+const tableRows = () => [...document.querySelectorAll<HTMLElement>('tbody tr')]
 const rowOf = text => tableRows().find(row => within(row).queryByText(text))
 
 async function openVaccinations() {
@@ -84,7 +84,7 @@ async function openVaccinations() {
 // A vaccination (new or existing) is a page of its own: its body is the former dialog's content.
 async function findVaccinationPage() {
   await waitFor(() => expect(document.querySelector('.vaccination-page-body')).not.toBeNull(), { timeout: 5000 })
-  return document.querySelector('.vaccination-page-body')
+  return document.querySelector<HTMLElement>('.vaccination-page-body')
 }
 
 beforeEach(() => {
@@ -111,7 +111,7 @@ describe('staff vaccinations as a native Prevention tab', () => {
     expect(vaccinationService.loadAllVaccinationsAsync).toHaveBeenCalled()
     expect(rowOf('Παπαδοπούλου Μαρία')).toHaveTextContent('Εποχική γρίπη')
     expect(rowOf('Αντωνίου Γεώργιος')).toHaveTextContent('Ηπατίτιδα Β')
-    const workspace = document.querySelector('.registry-workspace.prevention-workspace')
+    const workspace = document.querySelector<HTMLElement>('.registry-workspace.prevention-workspace')
     expect(workspace.querySelector('.filter-system')).not.toBeNull()
     expect(within(workspace).getByPlaceholderText('Αναζήτηση εργαζομένου…')).toBeInTheDocument()
     expect(workspace.querySelector('.registry-pagination')).not.toBeNull()
@@ -150,7 +150,7 @@ describe('new vaccination: individual and bulk entry', () => {
     const modes = within(dialog).getByRole('radiogroup', { name: 'Τρόπος καταχώρησης' })
     expect(within(modes).getByRole('radio', { name: /Μεμονωμένα/ })).toBeInTheDocument()
     expect(within(modes).getByRole('radio', { name: /Μαζικός εμβολιασμός/ })).toBeInTheDocument()
-    const picker = within(dialog).getByRole('combobox', { name: 'Επιλέξτε εργαζόμενο' })
+    const picker = within(dialog).getByRole<HTMLInputElement>('combobox', { name: 'Επιλέξτε εργαζόμενο' })
     fireEvent.click(picker)
     fireEvent.click(within(dialog).getByRole('option', { name: /Παπαδοπούλου Μαρία/ }))
     expect(picker.value).toContain('Παπαδοπούλου Μαρία')
@@ -199,7 +199,7 @@ describe('new vaccination: individual and bulk entry', () => {
     fireEvent.blur(date)
     fireEvent.click(within(dialog).getByRole('button', { name: /Αποθήκευση 2 εμβολιασμών/ }))
     await waitFor(() => expect(vaccinationService.createVaccinationsBulkAsync).toHaveBeenCalledTimes(1))
-    const [, employees, draft] = vaccinationService.createVaccinationsBulkAsync.mock.calls[0]
+    const [, employees, draft] = vi.mocked(vaccinationService.createVaccinationsBulkAsync).mock.calls[0]
     expect(employees.map(employee => employee.id).sort()).toEqual(['EMP-001', 'EMP-002'])
     expect(draft).toMatchObject({ vaccine: 'Εποχική γρίπη', date: '2026-10-01' })
     expect(await screen.findByText('Αποθηκεύτηκαν 2 εμβολιασμοί.')).toBeInTheDocument()
@@ -214,7 +214,7 @@ describe('vaccination record of an inactive employee', () => {
     await openVaccinations()
     fireEvent.click(rowOf('Αντωνίου Γεώργιος'))
     const dialog = await findVaccinationPage()
-    const person = dialog.querySelector('.record-view-stack .lo-section-header')
+    const person = dialog.querySelector<HTMLElement>('.record-view-stack .lo-section-header')
     expect(within(person).getByText('Αντωνίου Γεώργιος')).toBeInTheDocument()
     expect(person).toHaveTextContent('EMP-004')
   })
@@ -266,8 +266,8 @@ describe('bundle deviation follow-up actions', () => {
   it('offers a follow-up for every deviation and records it through the dialog', async () => {
     let labels
     await renderOnDemo('/prevention/bundles/BND-T1', <PreventionRecordPage/>, '/prevention/:recordType/:recordId', () => { labels = seedTwoDeviations() })
-    await waitFor(() => expect(document.querySelectorAll('.bundle-record-finding')).toHaveLength(2), { timeout: 5000 })
-    const findings = [...document.querySelectorAll('.bundle-record-finding')]
+    await waitFor(() => expect(document.querySelectorAll<HTMLElement>('.bundle-record-finding')).toHaveLength(2), { timeout: 5000 })
+    const findings = [...document.querySelectorAll<HTMLElement>('.bundle-record-finding')]
     findings.forEach((finding, index) => {
       expect(finding).toHaveTextContent(labels[index])
       expect(within(finding).getByRole('button', { name: 'Επανέλεγχος' })).toBeInTheDocument()
@@ -282,13 +282,13 @@ describe('bundle deviation follow-up actions', () => {
     fireEvent.blur(date)
     fireEvent.click(within(dialog).getByRole('button', { name: /Αποθήκευση επανελέγχου/ }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    const reviewed = document.querySelectorAll('.bundle-record-finding')[1]
+    const reviewed = document.querySelectorAll<HTMLElement>('.bundle-record-finding')[1]
     expect(reviewed).toHaveTextContent('Διορθώθηκε')
     expect(within(reviewed).getByText('Διορθώθηκε')).toHaveClass('status-badge', 'lo-tone-success')
-    expect(within(document.querySelectorAll('.bundle-record-finding')[0]).getByText('Προς επανέλεγχο')).toHaveClass('status-badge', 'lo-tone-warning')
+    expect(within(document.querySelectorAll<HTMLElement>('.bundle-record-finding')[0]).getByText('Προς επανέλεγχο')).toHaveClass('status-badge', 'lo-tone-warning')
     expect(reviewed).toHaveTextContent('Επανέλεγχος από: Platform Owner')
     expect(within(reviewed).getByRole('button', { name: 'Επεξεργασία επανελέγχου' })).toBeInTheDocument()
-    expect(within(document.querySelectorAll('.bundle-record-finding')[0]).getByRole('button', { name: 'Επανέλεγχος' })).toBeInTheDocument()
+    expect(within(document.querySelectorAll<HTMLElement>('.bundle-record-finding')[0]).getByRole('button', { name: 'Επανέλεγχος' })).toBeInTheDocument()
   })
 })
 
@@ -297,7 +297,7 @@ describe('bundle deviation follow-up actions', () => {
 // together with the status, date and comment.
 describe('bundle follow-up dialog', () => {
   function renderDialog(onSave) {
-    render(<LanguageProvider><BundleFollowUpDialog item={{ id: 'oral_care', label: 'Στοματική φροντίδα' }} onClose={() => {}} onSave={onSave}/></LanguageProvider>)
+    render(<LanguageProvider><BundleFollowUpDialog item={{ id: 'oral_care', label: 'Στοματική φροντίδα' } as { label: string }} onClose={() => {}} onSave={onSave}/></LanguageProvider>)
     return screen.getByRole('dialog')
   }
 
@@ -345,7 +345,7 @@ describe('bundle follow-up persistence (cloud)', () => {
   let stored
   let service
   function builder(table) {
-    const query = { table, op: 'select', payload: null, filters: [] }
+    const query: { table: string, op: string, payload: unknown, filters: unknown[][], single?: boolean } = { table, op: 'select', payload: null, filters: [] }
     queries.push(query)
     const chain = {
       select() { return chain },

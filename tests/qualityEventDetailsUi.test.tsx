@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { chooseOption } from './selectHelpers'
+import type { AnyRecord } from '../src/types/featureTypes'
 
 vi.mock('../src/features/employees/useEmployeesData', () => ({ useEmployeesData: () => ({ data: [{ id: 'e1', firstName: 'Άννα', lastName: 'Μάρκου', employmentStatus: 'active' }] }) }))
 vi.mock('../src/features/management/useLibraries', async original => ({ ...(await original()), useLibraries: () => ({ libraries: { incidentCategories: [] } }) }))
@@ -18,7 +19,7 @@ describe('incident event details on screen', () => {
   })
 
   it('edits the fall block and asks for the employee only for an injured employee', () => {
-    let record = { eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'patient' } }
+    let record: AnyRecord = { eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'patient' } }
     const { rerender } = render(<IncidentEventFields record={record} onChange={next => { record = next }} language="en" />)
     chooseOption(document.body, /Injured person|Who was injured|person/i, 'Employee')
     expect(record.fall.injuredPersonType).toBe('employee')
@@ -42,7 +43,7 @@ describe('incident event details on screen', () => {
     expect(container).toHaveTextContent('Μπλε κωδικός')
     expect(container).toHaveTextContent('ΚΑΡΠΑ, Οξυγόνο')
     cleanup()
-    const doc = render(<QualityRecordDocument recordType="incidents" record={record} language="el" t={value => value} />).container
+    const doc = render(<QualityRecordDocument recordType="incidents" record={record} language="el" t={value => value} {...{} as { documentRef: never }} />).container
     expect(doc).toHaveTextContent('Επιτυχής')
     expect(doc).toHaveTextContent('ΜΕΘ')
   })

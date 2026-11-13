@@ -3,9 +3,10 @@ import { SCALES, cleanAnswers, isQuestionShown, scaleOf, sectionLabel, departmen
 import { filterSurveys, surveyCounts } from '../src/features/quality/surveys/SurveysPanel'
 import { formSections, missingAnswers } from '../src/features/quality/surveys/SurveyForm'
 import { qualityTabOf } from '../src/features/quality/qualityReturnSection'
+import type { Survey, SurveyListItem, SurveyQuestion } from '../src/features/quality/surveys/surveyTypes'
 
 const rating = (id, extra = {}) => ({ id, type: 'rating', label: id, required: true, options: [], ...extra })
-const survey = { code: 'SRV-2026-01', title: 'Τεστ', satisfiedTarget: 80, questions: [rating('food'), rating('care'), { id: 'recommend', type: 'nps', label: 'NPS', required: true, options: [] }, { id: 'clean', type: 'yesno', label: 'Yes', required: false, options: [] }, { id: 'areas', type: 'multiple', label: 'Areas', required: false, options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] }, { id: 'note', type: 'text', label: 'Note', required: false, options: [] }] }
+const survey = { code: 'SRV-2026-01', title: 'Τεστ', satisfiedTarget: 80, questions: [rating('food'), rating('care'), { id: 'recommend', type: 'nps', label: 'NPS', required: true, options: [] }, { id: 'clean', type: 'yesno', label: 'Yes', required: false, options: [] }, { id: 'areas', type: 'multiple', label: 'Areas', required: false, options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] }, { id: 'note', type: 'text', label: 'Note', required: false, options: [] }] } as Survey
 const response = (id, answers, extra = {}) => ({ id, answers, departmentId: 'd1', department: 'ΜΕΘ', channel: 'link', submittedAt: '2026-09-10T10:00:00Z', ...extra })
 
 describe('Satisfaction surveys: the answers kept', () => {
@@ -18,15 +19,15 @@ describe('Satisfaction surveys: the answers kept', () => {
   })
 
   it('says what a survey needs before it opens, and numbers surveys within the year', () => {
-    expect(surveyProblems({ title: '', questions: [] })).toHaveLength(3)
-    expect(surveyProblems({ title: 'x', departmentIds: ['d1'], questions: [{ id: 'q', type: 'single', label: 'q', options: [{ value: 'a', label: 'A' }] }] })).toHaveLength(1)
+    expect(surveyProblems({ title: '', questions: [] } as Survey)).toHaveLength(3)
+    expect(surveyProblems({ title: 'x', departmentIds: ['d1'], questions: [{ id: 'q', type: 'single', label: 'q', options: [{ value: 'a', label: 'A' }] }] } as Survey)).toHaveLength(1)
     // A survey is always about a department: without one it cannot open.
     expect(surveyProblems(surveyFromTemplate('inpatient'))).toEqual(['Το τμήμα που αφορά'])
     expect(surveyProblems({ ...surveyFromTemplate('inpatient'), departmentIds: ['d1'] })).toEqual([])
     expect(nextSurveyCode(['SRV-2026-01', 'SRV-2026-03', 'SRV-2025-09'], 2026)).toBe('SRV-2026-04')
-    expect(isSurveyOpen({ status: 'open', opensOn: '2026-01-01', closesOn: '2026-12-31' }, '2026-06-01')).toBe(true)
-    expect(isSurveyOpen({ status: 'open', closesOn: '2026-05-31' }, '2026-06-01')).toBe(false)
-    expect(isSurveyOpen({ status: 'draft' }, '2026-06-01')).toBe(false)
+    expect(isSurveyOpen({ status: 'open', opensOn: '2026-01-01', closesOn: '2026-12-31' } as Survey, '2026-06-01')).toBe(true)
+    expect(isSurveyOpen({ status: 'open', closesOn: '2026-05-31' } as Survey, '2026-06-01')).toBe(false)
+    expect(isSurveyOpen({ status: 'draft' } as Survey, '2026-06-01')).toBe(false)
   })
 })
 
@@ -67,7 +68,7 @@ describe('Satisfaction surveys in the Quality Center', () => {
   it('counts and filters the list, and remembers the Surveys view', () => {
     const today = new Date().toISOString().slice(0, 10)
     const soon = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10)
-    const surveys = [{ id: '1', code: 'SRV-1', title: 'Α', status: 'open', closesOn: soon, responseCount: 10, recentCount: 3 }, { id: '2', code: 'SRV-2', title: 'Β', status: 'draft', responseCount: 0, recentCount: 0 }, { id: '3', code: 'SRV-3', title: 'Γ', status: 'closed', opensOn: today, responseCount: 5, recentCount: 0 }]
+    const surveys = [{ id: '1', code: 'SRV-1', title: 'Α', status: 'open', closesOn: soon, responseCount: 10, recentCount: 3 }, { id: '2', code: 'SRV-2', title: 'Β', status: 'draft', responseCount: 0, recentCount: 0 }, { id: '3', code: 'SRV-3', title: 'Γ', status: 'closed', opensOn: today, responseCount: 5, recentCount: 0 }] as SurveyListItem[]
     expect(surveyCounts(surveys)).toEqual({ open: 1, recent: 3, responses: 15, closing: 1, drafts: 1 })
     const base = { query: '', audience: 'all', status: 'all', quick: null }
     expect(filterSurveys(surveys, base).map(item => item.id)[0]).toBe('1')
@@ -100,8 +101,8 @@ describe('Satisfaction surveys: sections, scales and follow-up questions', () =>
   })
 
   it('words a rating by its scale, and names a section by the survey’s own title first', () => {
-    expect(scaleOf({ scale: 'speed' })[0][0]).toBe('Αργή')
-    expect(scaleOf({})).toBe(SCALES[0].steps)
+    expect(scaleOf({ scale: 'speed' } as SurveyQuestion)[0][0]).toBe('Αργή')
+    expect(scaleOf({} as SurveyQuestion)).toBe(SCALES[0].steps)
     expect(sectionLabel('meals', 'el', [{ key: 'meals', label: 'Πρωινό', labelEn: 'Breakfast' }])).toBe('Πρωινό')
     expect(sectionLabel('meals', 'en', [{ key: 'meals', label: 'Πρωινό', labelEn: 'Breakfast' }])).toBe('Breakfast')
     const sections = formSections(surveyFromTemplate('kitchen'), { diet: false })

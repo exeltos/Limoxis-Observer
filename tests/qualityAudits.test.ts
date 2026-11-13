@@ -4,6 +4,8 @@ import { checklistScore as controlsScore } from '../src/features/controls/contro
 import { checklistScore } from '../src/core/checklist/checklistScore'
 import { qualityAudits } from '../src/features/quality/qualityDemoData'
 import { deviationQueue } from '../src/features/quality/qualityDeviations'
+import type { ControlRecord } from '../src/features/controls/controlTypes'
+import type { LibraryDepartment } from '../src/features/management/useLibraries'
 import { readSource } from './helpers/readSource'
 
 const migration = readSource('supabase/migrations/20261104100000_quality_audit_checklists.sql')
@@ -11,8 +13,8 @@ const service = readSource('src/features/quality/qualityService.js')
 
 describe('Quality audits (phase 3)', () => {
   it('uses a control that is a checklist as the audit template', () => {
-    const control = { id: 'c1', status: 'active', responseConfig: { mode: 'checklist', checklist: [{ id: 'a', el: 'Σήμανση', en: 'Sign' }, { id: 'b', el: 'ΜΑΠ', en: 'PPE', required: false }] } }
-    expect(checklistTemplates([control, { id: 'c2', responseConfig: { mode: 'numeric' } }]).map(item => item.id)).toEqual(['c1'])
+    const control: ControlRecord = { id: 'c1', status: 'active', responseConfig: { mode: 'checklist', checklist: [{ id: 'a', el: 'Σήμανση', en: 'Sign' }, { id: 'b', el: 'ΜΑΠ', en: 'PPE', required: false }] } } as never
+    expect(checklistTemplates([control, { id: 'c2', responseConfig: { mode: 'numeric' } } as never]).map(item => item.id)).toEqual(['c1'])
     expect(auditChecklistFromControl(control)).toEqual([{ id: 'a', item: 'Σήμανση', itemEn: 'Sign', required: true, answer: '', note: '' }, { id: 'b', item: 'ΜΑΠ', itemEn: 'PPE', required: false, answer: '', note: '' }])
   })
 
@@ -70,7 +72,7 @@ describe('audit programme grid', async () => {
       { id: 'b', department: 'ΜΕΘ', plannedDate: '2026-09-01', status: 'planned' },
       { id: 'c', department: '', plannedDate: '2026-12-03', status: 'planned' },
       { id: 'd', department: 'ΤΕΠ', plannedDate: '2025-05-01', status: 'completed' },
-    ], 2026, [{ id: 'd1', name: 'ΜΕΘ' }, { id: 'd2', name: 'Χειρουργική' }], today)
+    ], 2026, [{ id: 'd1', name: 'ΜΕΘ' }, { id: 'd2', name: 'Χειρουργική' }] as LibraryDepartment[], today)
     const icu = matrix.rows.find(row => row.key === 'ΜΕΘ')
     expect(icu.months[2].map(cell => cell.audit.id)).toEqual(['a'])
     expect(icu.months[8][0].state).toBe('late')

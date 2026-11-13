@@ -15,7 +15,7 @@ describe('reports inbox', () => {
 
   it('finds a report by its reporter, and keeps anonymous ones nameless', () => {
     const rows = registerRows([report('A', '2026-10-20', { reportedBy: 'Μαρία Π.' }), report('B', '2026-10-20', { anonymous: true, reportedBy: 'Μαρία Π.' })])
-    expect(rows.find(row => row.id === 'B').reporter).toBe('')
+    expect((rows.find(row => row.id === 'B') as { reporter?: string }).reporter).toBe('')
     expect(filterRegister(rows, { query: 'μαρία' }).map(row => row.id)).toEqual(['A'])
   })
 

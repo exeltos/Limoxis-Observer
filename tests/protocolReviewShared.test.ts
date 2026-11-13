@@ -3,6 +3,7 @@ import {
   clinicalSourceTerms, draftPrompt, evaluateProtocol, extractProtocolReferences, fold, hasTextLayer, headingOf, legislationKeys,
   newFindings, parseDraft, splitProtocolSections, textCitesClinicalSource,
 } from '../supabase/functions/_shared/protocolReview.ts'
+import type { Finding, ProtocolDoc } from '../supabase/functions/_shared/protocolReview.ts'
 
 const SAMPLE = `ΠΡΩΤΟΚΟΛΛΟ ΑΝΤΙΜΕΤΩΠΙΣΗΣ ΣΗΨΗΣ
 1. Σκοπός
@@ -78,7 +79,7 @@ describe('protocol text: references', () => {
     expect(legislationKeys({ code: 'LEG-005', reference: 'Ν. 3850/2010 · ΦΕΚ Α΄ 84/02.06.2010' })).toEqual(expect.arrayContaining(['law:3850/2010', 'fek:α:84/2010']))
     expect(legislationKeys({ reference: 'Κανονισμός (ΕΕ) 2016/679 · Ν. 4624/2019 (ΦΕΚ Α΄ 137/2019)' })).toEqual(expect.arrayContaining(['eu:2016/679', 'law:4624/2019', 'alias:gdpr']))
     expect(legislationKeys({ reference: 'ΕΛΟΤ EN ISO 9001:2015' })).toEqual(['iso:9001'])
-    expect(evaluateProtocol({ doc: { id: 'd', status: 'published', effective_date: '2025-01-01' }, text: 'Σύμφωνα με τον ΓΚΠΔ.', today: '2026-10-19', legislationChanges: [{ text: { id: 'g' }, keys: ['alias:gdpr'], triggerKey: 'g:v2', changedAt: '2026-02-01', summary: 'x', excerpt: '' }] })).toHaveLength(1)
+    expect(evaluateProtocol({ doc: { id: 'd', status: 'published', effective_date: '2025-01-01' } as ProtocolDoc, text: 'Σύμφωνα με τον ΓΚΠΔ.', today: '2026-10-19', legislationChanges: [{ text: { id: 'g' }, keys: ['alias:gdpr'], triggerKey: 'g:v2', changedAt: '2026-02-01', summary: 'x', excerpt: '' }] })).toHaveLength(1)
   })
 })
 
@@ -153,7 +154,7 @@ describe('comparison', () => {
       { reason: 'source_changed', source_ref: 'clinical:s1', trigger_key: 'clinical:h2' },
       { reason: 'source_changed', source_ref: 'clinical:s2', trigger_key: 'clinical:h9' },
       { reason: 'source_changed', source_ref: 'clinical:s2', trigger_key: 'clinical:h10' },
-    ]
+    ] as Finding[]
     const existing = [
       { document_id: 'd1', reason: 'stale', source_ref: '', trigger_key: 'stale:2020-05-01', status: 'rejected' },
       { document_id: 'd1', reason: 'source_changed', source_ref: 'clinical:s1', trigger_key: 'clinical:h1', status: 'snoozed' },

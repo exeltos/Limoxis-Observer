@@ -37,7 +37,7 @@ describe('Platform users', () => {
     expect(platformUserState({ status: 'invited', invitation: 'expired' })).toBe('expired')
     expect(platformUserState({ status: 'invited', invitation: 'pending' })).toBe('pending')
     expect(invitationState({ accepted_at: null, revoked_at: null, expires_at: '2000-01-01' })).toBe('expired')
-    expect(invitationState({ accepted_at: '2026-10-01' })).toBe('accepted')
+    expect(invitationState({ accepted_at: '2026-10-01' } as never)).toBe('accepted')
   })
   it('gives each Demo the state of its first invitation', () => {
     const demo = { organization_id: 'org-2', contact_email: 'DVERGAS@icloud.com' }

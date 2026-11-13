@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import type { AnyRecord } from '../src/types/featureTypes'
 import { BLUE_CODE_INTERVENTIONS, EVENT_TYPES, INJURY_SUBCATEGORIES, OBSTETRIC_SUBCATEGORIES, SHARP_TOOLS, TRANSFER_TARGETS, detailBlocks, incidentDetailFacts, incidentDetailRows, incidentDetailsFromRow, keptDetails } from '../src/features/quality/incidentDetails'
 import { analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, isUuid, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from '../src/features/quality/qualityRelations'
 import { evaluationFromRow, nonconformityRows, scoreRows, supplierListsFromRow, certificationRows, evaluationRows } from '../src/features/quality/resources/supplierRelations'
 import { evaluationScore } from '../src/features/quality/resources/resourceModel'
+import type { Certification, Evaluation, EvaluationDbRow, StoredScoreRow, SupplierDbRow } from '../src/features/quality/resources/resourceTypes'
 import { CAPA_TYPES } from '../src/features/quality/qualityVocabulary'
 import { qualityCapas, qualityIncidents } from '../src/features/quality/qualityDemoData'
 import { readSource } from './helpers/readSource'
@@ -140,12 +142,12 @@ describe('child row changes', () => {
 
 describe('supplier lists as rows', () => {
   it('keeps one score row per criterion scored, with its weight', () => {
-    const stored = [{ id: 'kept-id', criterion: 'quality' }]
+    const stored = [{ id: 'kept-id', criterion: 'quality' }] as StoredScoreRow[]
     const rows = scoreRows({ scores: { quality: 5, delivery: '', specs: 4, documents: 6, support: 3, price: 2 }, weights: { specs: 2 } }, stored)
     expect(rows.map(row => row.criterion)).toEqual(['quality', 'specs', 'support', 'price'])
     expect(rows[0].id).toBe('kept-id')
     expect(rows[1]).toMatchObject({ weight: 2, score: 4 })
-    const evaluation = evaluationFromRow({ id: 'e', evaluated_on: '2026-01-10', evaluator: null, notes: null, scores: rows.map(row => ({ ...row, weight: String(row.weight) })) })
+    const evaluation = evaluationFromRow({ id: 'e', evaluated_on: '2026-01-10', evaluator: null, notes: null, scores: rows.map(row => ({ ...row, weight: String(row.weight) })) } as EvaluationDbRow) as AnyRecord
     expect(evaluation.scores).toMatchObject({ quality: 5, delivery: '', specs: 4, support: 3, price: 2 })
     expect(evaluation.weights).toEqual({ specs: 2 })
     expect(evaluationScore(evaluation.scores, evaluation.weights)).toBe(Math.round((5 + 8 + 3 + 2) / (5 * 5) * 100))
@@ -153,15 +155,15 @@ describe('supplier lists as rows', () => {
   })
 
   it('maps certifications and nonconformities to their columns and back', () => {
-    const certs = certificationRows([{ id: 'c1', type: 'ISO 9001', number: '', issuer: 'Φορέας', expiresOn: '' }, { id: 'c2', type: ' ' }])
+    const certs = certificationRows([{ id: 'c1', type: 'ISO 9001', number: '', issuer: 'Φορέας', expiresOn: '' }, { id: 'c2', type: ' ' } as Certification])
     expect(certs).toHaveLength(1)
     expect(certs[0]).toMatchObject({ certificate_type: 'ISO 9001', certificate_number: null, issuer: 'Φορέας', expires_on: null })
     const ncs = nonconformityRows([{ id: 'n1', date: '2026-05-01', description: 'Καθυστέρηση', severity: 'minor', status: 'open', capaCode: '', closedOn: '2026-06-01' }])
     expect(ncs[0]).toMatchObject({ occurred_on: '2026-05-01', status: 'open', closed_on: null, capa_code: null })
-    const evaluations = evaluationRows([{ id: 'e1', evaluatedOn: '2026-01-10', evaluator: ' ΥΠ ', notes: '' }, { id: 'e2', evaluatedOn: '' }])
+    const evaluations = evaluationRows([{ id: 'e1', evaluatedOn: '2026-01-10', evaluator: ' ΥΠ ', notes: '' }, { id: 'e2', evaluatedOn: '' } as Evaluation])
     expect(evaluations).toHaveLength(1)
     expect(evaluations[0]).toMatchObject({ evaluated_on: '2026-01-10', evaluator: 'ΥΠ', notes: null })
-    const lists = supplierListsFromRow({ certifications: certs.map(row => ({ ...row, created_at: '2026-01-01' })), nonconformities: ncs, evaluations: [] })
+    const lists = supplierListsFromRow({ certifications: certs.map(row => ({ ...row, created_at: '2026-01-01' })), nonconformities: ncs, evaluations: [] } as SupplierDbRow)
     expect(lists.certifications[0]).toMatchObject({ type: 'ISO 9001', number: '', issuer: 'Φορέας', expiresOn: '' })
     expect(lists.nonconformities[0]).toMatchObject({ date: '2026-05-01', description: 'Καθυστέρηση', closedOn: '' })
   })

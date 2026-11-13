@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const queries=[]
 
 function query(table){
-  const operation={table}
+  const operation:{table:string,select?:string,payload?:unknown}={table}
   queries.push(operation)
   return {
     select(columns='*'){

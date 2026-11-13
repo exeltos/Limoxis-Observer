@@ -13,7 +13,7 @@ vi.mock('../src/core/auth/AuthContext', () => ({
 let queries
 let respond
 function builder(table) {
-  const query = { table, op: 'select', payload: null, filters: [] }
+  const query: { table: string, op: string, payload: unknown, filters: unknown[][], single?: boolean } = { table, op: 'select', payload: null, filters: [] }
   queries.push(query)
   const chain = {
     select() { return chain },
@@ -33,7 +33,7 @@ function builder(table) {
 let centralDepartments = []
 let centralLibraries = {}
 vi.mock('../src/features/management/useLibraries', async importOriginal => {
-  const actual = await importOriginal()
+  const actual = await importOriginal<object>()
   return {
     ...actual,
     useLibraries: () => ({ libraries: centralLibraries, departments: centralDepartments, loading: false, error: '' }),
@@ -59,7 +59,7 @@ const wasteTypes = [{ id: 'wt-1', el: 'ΕΑΑΜ', en: 'Hazardous infectious' }, 
 const wrap = node => <LanguageProvider>{node}</LanguageProvider>
 // Lists are SearchableSelects: a combobox named by its field title whose
 // listbox opens on click; the input shows the chosen option's label.
-const combo = name => screen.getByRole('combobox', { name })
+const combo = name => screen.getByRole<HTMLInputElement>('combobox', { name })
 const listOf = name => screen.getByRole('listbox', { name, hidden: true })
 const optionLabels = name => {
   fireEvent.click(combo(name))
@@ -75,7 +75,7 @@ const pick = (name, label) => {
 }
 const clear = name => fireEvent.click(combo(name).closest('.searchable-select').querySelector('.searchable-select-clear'))
 const fieldInput = labelText => screen.getByText(labelText).closest('label').querySelector('input')
-const button = name => screen.getByRole('button', { name })
+const button = name => screen.getByRole<HTMLButtonElement>('button', { name })
 
 beforeEach(() => {
   window.localStorage.clear()
@@ -93,20 +93,20 @@ afterEach(() => {
 describe('antiseptic editor: whole-hospital scope', () => {
   it('lists the whole-hospital scope alongside the departments (Greek and English)', async () => {
     expect(HOSPITAL_SCOPE).toBe('__hospital__')
-    const { unmount } = render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={vi.fn()} onCancel={vi.fn()}/>))
+    const { unmount } = render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={vi.fn()} {...{ onCancel: vi.fn() }}/>))
     expect(combo('Εύρος / Τμήμα *')).toHaveProperty('placeholder', 'Επιλέξτε εύρος')
     expect(optionLabels('Εύρος / Τμήμα *')).toEqual(['Όλο το νοσοκομείο', 'Παθολογική', 'Χειρουργική'])
     unmount()
 
     await loadLanguage('en')
     window.localStorage.setItem('limoxis.language', 'en')
-    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={vi.fn()} onCancel={vi.fn()}/>))
+    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={vi.fn()} {...{ onCancel: vi.fn() }}/>))
     expect(optionLabels('Scope / department *')[0]).toBe('Whole hospital')
   })
 
   it('saves a whole-hospital record with departmentScope hospital', async () => {
     const onSave = vi.fn()
-    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={onSave} onCancel={vi.fn()}/>))
+    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={onSave} {...{ onCancel: vi.fn() }}/>))
     pick('Εύρος / Τμήμα *', 'Όλο το νοσοκομείο')
     await act(async () => { fireEvent.click(button('Αποθήκευση κατανάλωσης')) })
     expect(onSave).toHaveBeenCalledTimes(1)
@@ -115,7 +115,7 @@ describe('antiseptic editor: whole-hospital scope', () => {
 
   it('saves a department record with departmentScope department', async () => {
     const onSave = vi.fn()
-    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={onSave} onCancel={vi.fn()}/>))
+    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={onSave} {...{ onCancel: vi.fn() }}/>))
     pick('Εύρος / Τμήμα *', 'Χειρουργική')
     await act(async () => { fireEvent.click(button('Αποθήκευση κατανάλωσης')) })
     expect(onSave.mock.calls[0][0]).toMatchObject({ departmentScope: 'department', departmentEl: 'Χειρουργική', departmentEn: 'Surgery' })
@@ -124,7 +124,7 @@ describe('antiseptic editor: whole-hospital scope', () => {
   it('offers the central departments, keeps the Greek name and the loaded English name', async () => {
     centralDepartments = [{ id: 'dep-1', name: 'Παθολογική', nameEn: 'Internal Medicine' }, { id: 'dep-3', name: 'ΤΕΠ', nameEn: 'Emergency Department' }]
     const onSave = vi.fn()
-    render(wrap(<AntisepticEntryEditor departments={[...departments, { id: 'dep-ed', el: 'ΤΕΠ', en: 'ED' }]} products={products} onSave={onSave} onCancel={vi.fn()}/>))
+    render(wrap(<AntisepticEntryEditor departments={[...departments, { id: 'dep-ed', el: 'ΤΕΠ', en: 'ED' }]} products={products} onSave={onSave} {...{ onCancel: vi.fn() }}/>))
     expect(optionLabels('Εύρος / Τμήμα *')).toEqual(['Όλο το νοσοκομείο', 'Παθολογική', 'ΤΕΠ'])
     pick('Εύρος / Τμήμα *', 'ΤΕΠ')
     await act(async () => { fireEvent.click(button('Αποθήκευση κατανάλωσης')) })
@@ -132,7 +132,7 @@ describe('antiseptic editor: whole-hospital scope', () => {
   })
 
   it('keeps showing a stored department the library no longer has', () => {
-    render(wrap(<AntisepticEntryEditor departments={departments} products={products} initialRecord={{ id: 'ANT-1', period: '2026-08', departmentScope: 'department', departmentEl: 'Παλιό τμήμα', product: 'Χλωρεξιδίνη', antisepticItemId: 'prod-2', litres: 2, method: 'pharmacy_issue' }} onSave={vi.fn()} onCancel={vi.fn()}/>))
+    render(wrap(<AntisepticEntryEditor departments={departments} products={products} initialRecord={{ id: 'ANT-1', period: '2026-08', departmentScope: 'department', departmentEl: 'Παλιό τμήμα', product: 'Χλωρεξιδίνη', antisepticItemId: 'prod-2', litres: 2, method: 'pharmacy_issue' }} onSave={vi.fn()} {...{ onCancel: vi.fn() }}/>))
     expect(combo('Εύρος / Τμήμα *').value).toBe('Παλιό τμήμα')
     expect(combo('Προϊόν *').value).toBe('Χλωρεξιδίνη')
   })
@@ -158,7 +158,7 @@ describe('antiseptic editor: product hydration and save readiness', () => {
   })
 
   it('keeps Save disabled without a product', () => {
-    render(wrap(<AntisepticEntryEditor departments={departments} products={[]} onSave={vi.fn()} onCancel={vi.fn()}/>))
+    render(wrap(<AntisepticEntryEditor departments={departments} products={[]} onSave={vi.fn()} {...{ onCancel: vi.fn() }}/>))
     pick('Εύρος / Τμήμα *', 'Παθολογική')
     expect(combo('Προϊόν *').value).toBe('')
     expect(button('Αποθήκευση κατανάλωσης').disabled).toBe(true)
@@ -167,7 +167,7 @@ describe('antiseptic editor: product hydration and save readiness', () => {
   it('takes the products from the central antiseptics library, keeping the loaded ids', async () => {
     centralLibraries = { antiseptics: [{ value: 'Χλωρεξιδίνη', code: 'ANT-CHX', el: 'Χλωρεξιδίνη', en: 'Chlorhexidine', meta: {} }, { value: 'Ιωδιούχος ποβιδόνη', code: 'ANT-PVP', el: 'Ιωδιούχος ποβιδόνη', en: 'Povidone-iodine', meta: { id: 'lib-pvp' } }] }
     const onSave = vi.fn()
-    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={onSave} onCancel={vi.fn()}/>))
+    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={onSave} {...{ onCancel: vi.fn() }}/>))
     expect(optionLabels('Προϊόν *')).toEqual(['Χλωρεξιδίνη', 'Ιωδιούχος ποβιδόνη'])
     expect(combo('Προϊόν *').value).toBe('Χλωρεξιδίνη')
     pick('Εύρος / Τμήμα *', 'Παθολογική')
@@ -176,7 +176,7 @@ describe('antiseptic editor: product hydration and save readiness', () => {
   })
 
   it('enables Save only with period and department once a product is selected', () => {
-    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={vi.fn()} onCancel={vi.fn()}/>))
+    render(wrap(<AntisepticEntryEditor departments={departments} products={products} onSave={vi.fn()} {...{ onCancel: vi.fn() }}/>))
     const save = button('Αποθήκευση κατανάλωσης')
     expect(save.disabled).toBe(true) // no department yet
     pick('Εύρος / Τμήμα *', 'Παθολογική')
@@ -249,17 +249,17 @@ function fillWastePeriod(container, start = '2026-08-01', end = '2026-08-31') {
 // empty department is not auto-filled when departments arrive later.
 describe('waste editor: blank defaults for a new record', () => {
   it('does not preselect the period dates or the department', () => {
-    const { container } = render(wrap(<WasteEntryEditor departments={departments} wasteTypes={wasteTypes} onSave={vi.fn()} onCancel={vi.fn()}/>))
+    const { container } = render(wrap(<WasteEntryEditor departments={departments} wasteTypes={wasteTypes} onSave={vi.fn()} {...{ onCancel: vi.fn() }}/>))
     expect(combo('Τμήμα *').value).toBe('')
     expect(combo('Τμήμα *')).toHaveProperty('placeholder', 'Επιλέξτε τμήμα')
     expect(optionLabels('Τμήμα *')).toEqual(['Παθολογική', 'Χειρουργική'])
-    for (const input of container.querySelectorAll('.waste-date-field input')) expect(input.value).toBe('')
+    for (const input of container.querySelectorAll<HTMLInputElement>('.waste-date-field input')) expect(input.value).toBe('')
   })
 
   it('shows the English empty department option', async () => {
     await loadLanguage('en')
     window.localStorage.setItem('limoxis.language', 'en')
-    render(wrap(<WasteEntryEditor departments={departments} wasteTypes={wasteTypes} onSave={vi.fn()} onCancel={vi.fn()}/>))
+    render(wrap(<WasteEntryEditor departments={departments} wasteTypes={wasteTypes} onSave={vi.fn()} {...{ onCancel: vi.fn() }}/>))
     expect(combo('Department *').value).toBe('')
     expect(combo('Department *')).toHaveProperty('placeholder', 'Select department')
     expect(optionLabels('Department *')).toEqual(['Internal Medicine', 'Surgery'])
@@ -295,7 +295,7 @@ describe('waste editor: waste type hydration', () => {
   it('takes the categories from the central wasteTypes library and saves the chosen one', async () => {
     centralLibraries = { wasteTypes: [{ value: 'Αστικά', code: 'WASTE-MUN', el: 'Αστικά', en: 'Municipal', meta: {} }, { value: 'ΜΕΑ', code: 'WASTE-MEA', el: 'ΜΕΑ', en: 'Hazardous medical', meta: { id: 'lib-mea' } }] }
     const onSave = vi.fn()
-    const { container } = render(wrap(<WasteEntryEditor departments={departments} wasteTypes={wasteTypes} onSave={onSave} onCancel={vi.fn()}/>))
+    const { container } = render(wrap(<WasteEntryEditor departments={departments} wasteTypes={wasteTypes} onSave={onSave} {...{ onCancel: vi.fn() }}/>))
     expect(optionLabels('Κατηγορία αποβλήτου *')).toEqual(['Αστικά', 'ΜΕΑ'])
     pick('Κατηγορία αποβλήτου *', 'ΜΕΑ')
     fillWastePeriod(container)
@@ -312,7 +312,7 @@ describe('waste editor: waste type hydration', () => {
 // empty on the first render (or the department list is empty for a fixed department).
 describe('waste editor: save readiness', () => {
   it('enables Save only when every required field is valid', () => {
-    const { container } = render(wrap(<WasteEntryEditor departments={departments} wasteTypes={wasteTypes} onSave={vi.fn()} onCancel={vi.fn()}/>))
+    const { container } = render(wrap(<WasteEntryEditor departments={departments} wasteTypes={wasteTypes} onSave={vi.fn()} {...{ onCancel: vi.fn() }}/>))
     const save = button(WASTE_SAVE)
     fillWastePeriod(container)
     fireEvent.change(fieldInput('Περιέκτες'), { target: { value: '0' } })

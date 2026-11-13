@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 let queries
 let respond
 function builder(table) {
-  const query = { table, op: 'select', payload: null, filters: [], options: null }
+  const query: { table: string, op: string, payload: unknown, filters: unknown[][], options: unknown, columns?: unknown, single?: boolean } = { table, op: 'select', payload: null, filters: [], options: null }
   queries.push(query)
   const chain = {
     select(columns) { query.columns = columns; return chain },
@@ -122,7 +122,7 @@ describe('saving a supplier', () => {
       if (query.op === 'select' && query.table === 'quality_suppliers' && query.single) return { data: { id: SUPPLIER, code: 'SUP-001', name: 'Π', certifications: [], evaluations: [], nonconformities: [] }, error: null }
       return { data: query.single ? { id: SUPPLIER } : [], error: null }
     }
-    await saveSupplier(ORG, { id: SUPPLIER, name: 'Προμηθευτής', certifications: [{ id: 'cert-1', type: 'ISO 9001', number: '', issuer: '', expiresOn: '' }], evaluations: [{ id: 'ev-1', evaluatedOn: '2026-01-10', evaluator: '', scores: { quality: 5, delivery: 4, specs: '', documents: '', support: '', price: '' }, notes: '' }], nonconformities: [] })
+    await saveSupplier(ORG, { id: SUPPLIER, name: 'Προμηθευτής', certifications: [{ id: 'cert-1', type: 'ISO 9001', number: '', issuer: '', expiresOn: '' }], evaluations: [{ id: 'ev-1', evaluatedOn: '2026-01-10', evaluator: '', scores: { quality: 5, delivery: 4, specs: '', documents: '', support: '', price: '' }, notes: '' }], nonconformities: [] } as never)
     expect(writes('quality_suppliers', 'update')[0].payload).not.toHaveProperty('certifications')
     expect(writes('quality_supplier_certifications', 'upsert')[0].payload[0]).toMatchObject({ supplier_id: SUPPLIER, certificate_type: 'ISO 9001' })
     const [evaluation] = writes('quality_supplier_evaluations', 'upsert')

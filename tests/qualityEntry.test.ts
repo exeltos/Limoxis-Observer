@@ -48,7 +48,7 @@ describe('Quality center entry and tabs', () => {
       [{ id: 'CAPA-1', title: 'Late', status: 'open', dueDate: past }, { id: 'CAPA-2', title: 'Done', status: 'completed', dueDate: past }, { id: 'CAPA-3', title: 'On time', status: 'open', dueDate: future }],
     )
     expect(rows.map(row => row.kind)).toContain('finding')
-    expect(rows.filter(isOverdueAction).map(row => row.id)).toEqual(['CAPA-1'])
+    expect(rows.filter(isOverdueAction).map(row => (row as { id?: string }).id)).toEqual(['CAPA-1'])
     const base = { query: '', kind: 'all', status: 'all', department: 'all', quick: null }
     expect(filterActions(rows, { ...base, quick: 'overdue' }, false).map(row => row.id)).toEqual(['CAPA-1'])
     expect(filterActions(rows, { ...base, kind: 'finding' }, false).map(row => row.id)).toEqual(['FND-1'])

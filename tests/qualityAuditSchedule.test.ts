@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { auditCoverage, missingNextAudits } from '../src/features/quality/audits/auditModel'
+import type { AuditTemplate } from '../src/features/quality/audits/auditTypes'
 
 const audit = (department, status, day, extra = {}) => ({ id: `${department}-${day}`, department, status, auditType: 'internal', standard: 'iso9001', plannedDate: day, completedDate: status === 'completed' ? day : null, ...extra })
 
@@ -46,7 +47,7 @@ describe('one audit for several standards', () => {
   it('joins the questionnaires, tags each answer with its standard and scores each standard', async () => {
     const { questionsForStandards, auditScore } = await import('../src/features/quality/audits/auditModel')
     const q = (id, chapterRef) => ({ id, question: `Ερώτηση ${id}`, chapterRef, clauseRef: `${chapterRef}.1`, position: Number(id.slice(1)) })
-    const rows = questionsForStandards([{ standard: 'iso9001', questions: [q('a1', '7'), q('a2', '8')] }, { standard: 'iso15224', questions: [q('b1', '7')] }])
+    const rows = questionsForStandards([{ standard: 'iso9001', questions: [q('a1', '7'), q('a2', '8')] } as AuditTemplate, { standard: 'iso15224', questions: [q('b1', '7')] } as AuditTemplate])
     expect(rows.map(row => row.standard)).toEqual(['iso9001', 'iso9001', 'iso15224'])
     expect(new Set(rows.map(row => row.id)).size).toBe(3)
     const score = auditScore(rows.map((row, index) => ({ ...row, answer: index === 2 ? 'no' : 'yes' })))

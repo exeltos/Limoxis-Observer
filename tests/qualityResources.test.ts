@@ -3,11 +3,12 @@ import { addMonths, approvalFor, equipmentCapaSource, equipmentCounts, equipment
 import { demoResources } from '../src/features/quality/resources/resourceDemoData'
 import { qualityTabOf } from '../src/features/quality/qualityReturnSection'
 import { capaSourceInfo } from '../src/features/quality/capaSources'
+import type { EquipmentEvent, EventDraft, Nonconformity, Supplier } from '../src/features/quality/resources/resourceTypes'
 import { readSource } from './helpers/readSource'
 
 const TODAY = '2026-10-18'
 const device = (extra = {}) => ({ ...newEquipment(), id: 'eq1', code: 'EQ-0001', name: 'Απινιδωτής', maintenanceMonths: 6, calibrationMonths: '', safetyMonths: 12, installedOn: '2024-01-10', ...extra })
-const event = (kind, happenedOn, result = 'pass', extra = {}) => ({ id: `${kind}-${happenedOn}`, equipmentId: 'eq1', kind, happenedOn, result, recordedAt: `${happenedOn}T10:00:00Z`, ...extra })
+const event = (kind, happenedOn, result = 'pass', extra = {}) => ({ id: `${kind}-${happenedOn}`, equipmentId: 'eq1', kind, happenedOn, result, recordedAt: `${happenedOn}T10:00:00Z`, ...extra }) as EquipmentEvent
 
 describe('Equipment: the programme', () => {
   it('adds months to a date, keeping the end of a short month', () => {
@@ -53,15 +54,15 @@ describe('Equipment: the programme', () => {
 
   it('asks for a name, a sensible interval and a description of a failure; numbers devices', () => {
     expect(equipmentProblems(device({ name: '', maintenanceMonths: 200 }))).toEqual(['όνομα', 'προληπτική συντήρηση κάθε 1–120 μήνες'])
-    expect(eventProblems({ kind: 'failure', happenedOn: '2026-10-01', result: 'out_of_service', description: '' })).toEqual(['περιγραφή της βλάβης'])
-    expect(eventProblems({ kind: 'maintenance', happenedOn: '2026-10-01', result: 'returned' })).toEqual(['αποτέλεσμα'])
+    expect(eventProblems({ kind: 'failure', happenedOn: '2026-10-01', result: 'out_of_service', description: '' } as EventDraft)).toEqual(['περιγραφή της βλάβης'])
+    expect(eventProblems({ kind: 'maintenance', happenedOn: '2026-10-01', result: 'returned' } as EventDraft)).toEqual(['αποτέλεσμα'])
     expect(nextEquipmentCode(['EQ-0009', 'EQ-0012', 'X-1'])).toBe('EQ-0013')
     expect(nextSupplierCode([])).toBe('SUP-001')
   })
 })
 
 describe('Suppliers: evaluation and approval', () => {
-  const supplier = (extra = {}) => ({ id: 's1', code: 'SUP-001', name: 'Προμηθευτής', category: 'consumables', criticality: 'high', status: 'active', certifications: [], evaluations: [], nonconformities: [], ...extra })
+  const supplier = (extra = {}) => ({ id: 's1', code: 'SUP-001', name: 'Προμηθευτής', category: 'consumables', criticality: 'high', status: 'active', certifications: [], evaluations: [], nonconformities: [], ...extra }) as Supplier
 
   it('scores the six criteria as a share of the points, and approves from it', () => {
     expect(evaluationScore({ quality: 5, delivery: 4, specs: 5, documents: 4, support: 5, price: 3 })).toBe(87)
@@ -94,7 +95,7 @@ describe('Suppliers: evaluation and approval', () => {
 describe('Corrective actions and the Center', () => {
   it('a failure and a supplier nonconformity open a corrective action that names them', () => {
     expect(equipmentCapaSource(device({ departmentId: 'ΜΕΘ', model: 'D-300' }), event('failure', '2026-10-01', 'out_of_service', { description: 'Δεν φορτίζει' }))).toMatchObject({ sourceId: 'EQ:EQ-0001', departmentId: 'ΜΕΘ', title: 'Βλάβη: Απινιδωτής D-300' })
-    expect(supplierCapaSource({ code: 'SUP-002', name: 'Αναλώσιμα' }, { date: '2026-09-01', severity: 'major', description: 'Σχισμένα γάντια' }, 'en').sourceId).toBe('SUP:SUP-002')
+    expect(supplierCapaSource({ code: 'SUP-002', name: 'Αναλώσιμα' }, { date: '2026-09-01', severity: 'major', description: 'Σχισμένα γάντια' } as Nonconformity, 'en').sourceId).toBe('SUP:SUP-002')
     // The action list names them and opens them (one map of sources for every screen).
     expect(capaSourceInfo('EQ:EQ-0001')).toMatchObject({ kind: 'equipment', code: 'EQ-0001', path: '/quality/equipment/EQ-0001' })
     expect(capaSourceInfo('SUP:SUP-002')).toMatchObject({ kind: 'supplier', code: 'SUP-002', path: '/quality/suppliers/SUP-002' })

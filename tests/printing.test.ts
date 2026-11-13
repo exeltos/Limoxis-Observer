@@ -31,10 +31,10 @@ describe('printElement',()=>{
  it('copies the element and the stylesheets into a window that prints itself',async()=>{
   const written=[];let printed=false
   const win={document:{open(){},write:html=>written.push(html),close(){}},focus(){},print:()=>{printed=true}}
-  globalThis.window={open:()=>win}
-  globalThis.document={title:'App',baseURI:'https://example.test/',documentElement:{lang:'el'},querySelectorAll:()=>[{outerHTML:'<link rel="stylesheet" href="/assets/app.css">'}]}
+  globalThis.window={open:()=>win} as never
+  globalThis.document={title:'App',baseURI:'https://example.test/',documentElement:{lang:'el'},querySelectorAll:()=>[{outerHTML:'<link rel="stylesheet" href="/assets/app.css">'}]} as never
   const {printElement}=await import('../src/design-system/printElement')
-  const ok=printElement({outerHTML:'<div class="report">12</div>'},{title:'GCS <b>',heading:['Αναφορά','Ιωαννίδη · PT-1']})
+  const ok=printElement({outerHTML:'<div class="report">12</div>'} as never,{title:'GCS <b>',heading:['Αναφορά','Ιωαννίδη · PT-1']})
   expect(ok).toBe(true)
   expect(written[0]).toContain('<link rel="stylesheet" href="/assets/app.css">')
   expect(written[0]).toContain('<div class="report">12</div>')

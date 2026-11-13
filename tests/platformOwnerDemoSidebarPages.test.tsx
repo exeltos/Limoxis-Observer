@@ -10,6 +10,7 @@
 // slip through.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
+import type { ComponentType } from 'react'
 import { cleanup, render, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
@@ -26,7 +27,7 @@ vi.mock('../src/core/auth/AuthContext', () => ({
 
 afterEach(() => cleanup())
 
-const pages = [
+const pages: [string, () => Promise<ComponentType>][] = [
   ['Dashboard', () => import('../src/features/dashboard/DashboardPage').then(m => m.DashboardPage)],
   ['Patients', () => import('../src/features/patients/PatientsPage').then(m => m.PatientsPage)],
   ['Laboratory', () => import('../src/features/laboratory/LaboratoryPage').then(m => m.LaboratoryPage)],
