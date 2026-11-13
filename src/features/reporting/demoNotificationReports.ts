@@ -10,8 +10,11 @@ import { historyCases } from '../surveillance/demoInfectionHistory'
 import { notifiableFindings } from './notifiableFindings'
 import { eodyEntry } from './eodyCatalogue'
 import { hospitalDate } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ReportSample } from './reportingTypes'
 import type { NotificationReport } from './notificationReportsService'
+
+// Στενή όψη ενός περιστατικού ιστορικού (demoInfectionHistory), όσο το διαβάζει αυτό το fixture.
+type HistoryCase = { id: string, hai?: string[], resistance?: string, sampleId?: string, startedAt: string, patientId: string }
 
 // [date, patient, disease, status]
 const CLINICAL: Array<[string, string, string, string]> = [
@@ -29,16 +32,16 @@ const REPORTED_RESISTANCE = ['MDR', 'XDR', 'VRE', 'MRSA']
 export function demoNotificationReports(today = new Date()) {
   if (isEmptyPreview()) return []
   const reference = (date: string, number: number) => `ΕΟΔΥ-${date.slice(0, 4)}-${String(number).padStart(4, '0')}`
-  const report = (key: string, date: string, patientRecordId: string, code: string, status: string, number: number, extra: AnyRecord = {}): NotificationReport => ({
+  const report = (key: string, date: string, patientRecordId: string, code: string, status: string, number: number, extra: Partial<NotificationReport> = {}): NotificationReport => ({
     id: key, findingKey: key, status, notifiedAt: status === 'notified' ? addDays(date, 2) : '', reference: status === 'notified' ? reference(date, number) : '',
     notes: '', updatedAt: `${status === 'notified' ? addDays(date, 2) : date}T10:00:00Z`, sampleId: '', patientRecordId,
     disease: eodyEntry(code)?.el || '', diseaseCode: code, createdAt: `${date}T09:30:00Z`, ...extra,
   })
-  const findings = notifiableFindings(laboratorySamples as AnyRecord[], [])
+  const findings = notifiableFindings(laboratorySamples as unknown as ReportSample[], [])
   const reportedSamples = new Set(findings.map(finding => finding.sample.id))
   const authored = [
-    ...(historyCases as AnyRecord[])
-      .filter(item => item.hai?.[0] === 'confirmed' && REPORTED_RESISTANCE.includes(item.resistance) && !reportedSamples.has(item.sampleId))
+    ...(historyCases as unknown as HistoryCase[])
+      .filter(item => item.hai?.[0] === 'confirmed' && REPORTED_RESISTANCE.includes(item.resistance || '') && !reportedSamples.has(item.sampleId || ''))
       .map((item, index) => report(`clinical|demo-hai-${item.id}`, item.startedAt, item.patientId, 'hai', 'notified', 210 + index)),
     ...CLINICAL.map(([date, patient, code, status], index) => report(`clinical|demo-${index + 2}`, date, patient, code, status, 160 + index)),
   ]
