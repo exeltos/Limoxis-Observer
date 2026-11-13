@@ -15,7 +15,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function BrokenScreen() {
+function BrokenScreen(): never {
   throw new Error('render failed')
 }
 
@@ -47,7 +47,7 @@ describe('AppErrorBoundary', () => {
   it('explains blocked browser storage instead of a generic crash', () => {
     document.documentElement.lang = 'en'
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    function StorageBlocked() {
+    function StorageBlocked(): never {
       const cause = new Error("Failed to read the 'localStorage' property from 'Window': Access is denied for this document.")
       cause.name = 'SecurityError'
       throw Object.assign(new Error('Local data could not be read.'), { cause })
