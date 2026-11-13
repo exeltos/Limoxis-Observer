@@ -2,7 +2,7 @@ import { findLibraryItem, libraryLabel } from '../management/useLibraries'
 import { demoLibrarySeed } from '../management/managementData'
 import { isOdipyCategory, odipyGroupOf, odipyLabel } from './odipyCategories'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CategoryItem, QualityDraft, VocabularyEntry } from './qualityTypes'
 
 // The closed vocabularies of the Quality Center, written once: the create
 // form, the report form, the record sheet, the registry and the exports read
@@ -40,12 +40,12 @@ export const IMPACTS = [
   { value: 'death', label: ['Θάνατος', 'Death'] },
 ]
 const LEGACY_IMPACT: Record<string, string> = { minor: 'mild', major: 'severe' }
-export const harmLevel = (value: string) => LEGACY_IMPACT[value] || value || 'none'
+export const harmLevel = (value: string | undefined) => LEGACY_IMPACT[value as string] || value || 'none'
 
 // A sentinel event (JCI): death or severe harm. It needs a root cause analysis
 // within 45 days of being known.
 export const SENTINEL_RCA_DAYS = 45
-export const isSentinelHarm = (impact: string) => ['severe', 'death'].includes(harmLevel(impact))
+export const isSentinelHarm = (impact: string | undefined) => ['severe', 'death'].includes(harmLevel(impact))
 export function rcaDueDate(date: string) {
   const day = new Date(`${String(date || '').slice(0, 10) || hospitalToday()}T12:00:00Z`)
   day.setUTCDate(day.getUTCDate() + SENTINEL_RCA_DAYS)
@@ -112,7 +112,7 @@ export const EFFECTIVENESS = [
 // The incident categories every hospital starts with (the library baseline,
 // Management > Libraries). Records keep the short key (clinical, medication…);
 // the library row carries it as code INC-<KEY>.
-export const DEFAULT_INCIDENT_CATEGORIES = (demoLibrarySeed.incidentCategories || []).map(([el, en, meta]) => [String((meta as AnyRecord).code).slice(4).toLowerCase(), el, en] as string[])
+export const DEFAULT_INCIDENT_CATEGORIES = (demoLibrarySeed.incidentCategories || []).map(([el, en, meta]) => [String(meta.code).slice(4).toLowerCase(), el, en] as string[])
 
 // Which kind of report each baseline category belongs to. A category a
 // hospital adds itself is offered under every kind.
@@ -122,30 +122,30 @@ const CATEGORY_KIND: Record<string, string> = {
   complaint: 'complaint', complaintcare: 'complaint', complaintcommunication: 'complaint', complaintwaiting: 'complaint', complainthygiene: 'complaint',
 }
 // A category of the ΟΔΙΠΥ form: patient care, patient safety and clinical outcomes are clinical, the rest are not.
-const odipyKind = (key: string) => { const group = odipyGroupOf(key); return !group || !isOdipyCategory(key) ? null : ['care', 'safety', 'outcome'].includes(group.key) ? 'clinical' : 'nonClinical' }
-export const categoryKind = (key: string) => odipyKind(key) || CATEGORY_KIND[String(key || '').toLowerCase()] || null
+const odipyKind = (key: string | undefined) => { const group = odipyGroupOf(key); return !group || !isOdipyCategory(key) ? null : ['care', 'safety', 'outcome'].includes(group.key) ? 'clinical' : 'nonClinical' }
+export const categoryKind = (key: string | undefined) => odipyKind(key) || CATEGORY_KIND[String(key || '').toLowerCase()] || null
 // The kind an older record has, from its category (records before kinds existed).
-export const reportKindOf = (record: AnyRecord) => record?.reportKind || categoryKind(record?.category) || 'clinical'
+export const reportKindOf = (record: QualityDraft | null | undefined) => record?.reportKind || categoryKind(record?.category) || 'clinical'
 
 export const incidentCategoryCode = (key: string) => `INC-${String(key || '').toUpperCase()}`
 
 // What a record stores for a chosen library item: the short key of a baseline
 // category, or the name of a category the hospital added.
-export function incidentCategoryValue(item: AnyRecord) {
+export function incidentCategoryValue(item: CategoryItem | null | undefined) {
   const code = String(item?.code || '')
   return code.startsWith('INC-') ? code.slice(4).toLowerCase() : item?.value || ''
 }
 
 // The library's categories as SearchableSelect options; the built-in list
 // stands in until the library has loaded (or when it is empty).
-export function incidentCategoryOptions(items: AnyRecord[] = [], language = 'el', kind: string | null = null) {
+export function incidentCategoryOptions(items: CategoryItem[] = [], language = 'el', kind: string | null = null) {
   const source = items.length ? items : DEFAULT_INCIDENT_CATEGORIES.map(([key, el, en]) => ({ value: el, code: incidentCategoryCode(key), el, en }))
   return source
     .map(item => ({ value: incidentCategoryValue(item), label: libraryLabel(item, language), keywords: `${item.el} ${item.en}` }))
     .filter(option => !kind || kind === 'report' || !categoryKind(option.value) || categoryKind(option.value) === kind)
 }
 
-export function incidentCategoryLabel(value: string, items: AnyRecord[] = [], language = 'el') {
+export function incidentCategoryLabel(value: string | undefined, items: CategoryItem[] = [], language = 'el') {
   if (!value) return ''
   if (isOdipyCategory(value)) return odipyLabel(value, language)
   const item = findLibraryItem(items, incidentCategoryCode(value)) || findLibraryItem(items, value)
@@ -155,9 +155,9 @@ export function incidentCategoryLabel(value: string, items: AnyRecord[] = [], la
 }
 
 // [{value,label}] for ModeSwitch / SearchableSelect from one of the lists above.
-export const vocabularyOptions = (list: AnyRecord[], language = 'el') => list.map((item: AnyRecord) => ({ value: item.value, label: pick(item.label, language) }))
-export const vocabularyLabel = (list: AnyRecord[], value: string, language = 'el') => {
-  const item = list.find((entry: AnyRecord) => entry.value === value) || (list === IMPACTS ? list.find((entry: AnyRecord) => entry.value === harmLevel(value)) : null)
+export const vocabularyOptions = (list: VocabularyEntry[], language = 'el') => list.map((item: VocabularyEntry) => ({ value: item.value, label: pick(item.label, language) }))
+export const vocabularyLabel = (list: VocabularyEntry[], value: string | undefined, language = 'el') => {
+  const item = list.find((entry: VocabularyEntry) => entry.value === value) || (list === IMPACTS ? list.find((entry: VocabularyEntry) => entry.value === harmLevel(value)) : null)
   return item ? pick(item.label, language) : value || ''
 }
 export const severityOptions = (t: (value: string) => string) => SEVERITIES.map(value => ({ value, label: t(value) }))
@@ -175,20 +175,20 @@ export const severityTone = (value: string) => (value === 'critical' ? 'danger' 
 // A record's code as the screen shows it. A corrective action is stored as
 // CAPA-…; in Greek it reads ΔΕ-… (Διορθωτική Ενέργεια). The stored code, the
 // links and the search stay the same.
-export function qualityCode(record: AnyRecord, language = 'el') {
+export function qualityCode(record: QualityDraft | null | undefined, language = 'el') {
   const code = String(record?.displayId || record?.id || record?.code || '')
   return language === 'en' ? code : code.replace(/^CAPA-/, 'ΔΕ-')
 }
 
 // The bare number of a record brought over from FileMaker: it is kept in the data and the history, not shown.
-export const isLegacyRecordNumber = (id: string) => /^\d+$/.test(String(id ?? '').trim())
-export const visibleSourceId = (id: string) => (isLegacyRecordNumber(id) ? '' : id)
+export const isLegacyRecordNumber = (id: string | undefined) => /^\d+$/.test(String(id ?? '').trim())
+export const visibleSourceId = (id: string | undefined) => (isLegacyRecordNumber(id) ? '' : id)
 
 // A finding or deviation about a person (staff behaviour, an altercation): its printout gets the «Έλαβε γνώση» box.
-export const concernsPerson = (record: AnyRecord) => ['staff_behaviour', 'dispute'].includes(record?.deviationKind)
+export const concernsPerson = (record: QualityDraft | null | undefined) => ['staff_behaviour', 'dispute'].includes(record?.deviationKind as string)
 
 // Who a report says it came from: the name, or the kind of private report.
-export function reporterText(record: AnyRecord, en: boolean) {
+export function reporterText(record: QualityDraft | null | undefined, en: boolean) {
   if (record?.privacy === 'confidential') return en ? 'Confidential report' : 'Εμπιστευτική αναφορά'
   if (record?.anonymous) return en ? 'Anonymous report' : 'Ανώνυμη αναφορά'
   return record?.reportedBy || ''
