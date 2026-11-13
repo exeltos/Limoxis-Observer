@@ -10,14 +10,18 @@
 // is avoided), each person's shifts near their target (weekdays minus leave), nights and weekends shared evenly.
 // The days before the period (`history`, the end of the previous roster) count for streaks and rest.
 
-import type { AnyRecord } from '../../types/featureTypes'
 
 // A day of the period.
 export interface RosterDay { date: string, weekday: number, weekend: boolean }
 // Each person's codes by date: { employeeId: { '2026-11-21': 'M' } }.
 export type Assignments = Record<string, Record<string, string>>
 // The people each shift needs (weekday / weekend defaults, a day's own numbers, the other shifts).
-export type RosterDemand = AnyRecord
+// (Type aliases, not interfaces: they are stored as json.)
+export type ShiftNeed = Record<string, number>
+export type DemandKind = 'weekday' | 'weekend'
+// Another shift of the department («M:1», 07:00–19:00): its people on weekdays and weekends.
+export type CustomShift = { code: string, label: string, weekday?: number, weekend?: number }
+export type RosterDemand = { weekday?: ShiftNeed, weekend?: ShiftNeed, overrides?: Record<string, ShiftNeed>, custom?: CustomShift[] }
 export type RosterRules = typeof DEFAULT_RULES & { longStretchExceptions?: number, [key: string]: unknown }
 // A person as the rules read them: id, limits, fixed codes and wishes.
 export interface RosterEmployee { id: string, name?: string, active?: boolean, fixed?: Record<string, string>, wishes?: Record<string, string>, allowed?: string[], extra?: boolean, noWeekends?: boolean, maxNights?: unknown, percent?: unknown }
@@ -108,8 +112,8 @@ export function demandFor(demand: RosterDemand | null | undefined, day: RosterDa
   return need
 }
 // The department's other shifts: [{ code: 'M:1', label, weekday, weekend }].
-export const customShifts = (demand: RosterDemand | null | undefined): AnyRecord[] => (Array.isArray(demand?.custom) ? demand.custom.filter((shift: AnyRecord) => isShift(shift?.code) && String(shift.code).includes(':')) : [])
-export const customNeed = (shift: AnyRecord, day: RosterDay) => Math.max(0, Number(day.weekend ? shift.weekend : shift.weekday) || 0)
+export const customShifts = (demand: RosterDemand | null | undefined): CustomShift[] => (Array.isArray(demand?.custom) ? demand.custom.filter((shift: CustomShift) => isShift(shift?.code) && String(shift.code).includes(':')) : [])
+export const customNeed = (shift: CustomShift, day: RosterDay) => Math.max(0, Number(day.weekend ? shift.weekend : shift.weekday) || 0)
 // The same roster in kinds only (what the rules read).
 const asKinds = (assignments: Assignments | null | undefined): Assignments => Object.fromEntries(Object.entries(assignments || {}).map(([id, row]) => [id, Object.fromEntries(Object.entries(row || {}).map(([date, code]) => [date, kindOf(code)]))]))
 

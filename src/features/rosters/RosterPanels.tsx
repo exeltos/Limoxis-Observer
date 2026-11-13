@@ -78,7 +78,7 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
             {SHIFTS.map(s => (
               <div key={s} className="roster-demand-row">
                 <span>{CODES[s].label}</span>
-                {['weekday', 'weekend'].map(kind => (
+                {(['weekday', 'weekend'] as const).map(kind => (
                   <input key={kind} type="number" min="0" max="20" aria-label={`${CODES[s].label} ${kind === 'weekday' ? tx('καθημερινή', 'weekday') : tx('Σαββατοκύριακο', 'weekend')}`} value={roster.demand?.[kind]?.[s] ?? 0} onChange={event => setDemand(kind, s, event.target.value)} />
                 ))}
               </div>
@@ -100,7 +100,7 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
               <div key={o.code} className="roster-other">
                 <i className={`code-${kindOf(o.code)}`}>{o.code.split(':')[1]}</i>
                 <span>{o.label} · {CODES[kindOf(o.code)]?.name}</span>
-                {['weekday', 'weekend'].map(kind => (
+                {(['weekday', 'weekend'] as const).map(kind => (
                   <input key={kind} type="number" min="0" max="20" aria-label={`${o.code.split(':')[1]} ${kind === 'weekday' ? tx('καθημερινή', 'weekday') : tx('Σαββατοκύριακο', 'weekend')}`} value={o[kind] ?? 0} onChange={event => setOther(o.code, { [kind]: Math.max(0, Math.min(20, Number(event.target.value) || 0)) })} />
                 ))}
                 <button type="button" className="roster-other-remove" aria-label={tx(`Αφαίρεση βάρδιας ${o.code.split(':')[1]}`, `Remove shift ${o.code.split(':')[1]}`)} onClick={() => removeOther(o.code)}>×</button>
