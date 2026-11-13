@@ -1,4 +1,11 @@
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, EmployeeDepartment, EmployeeDraft, EmployeeOption } from './employeeTypes'
+
+// One row of the file as it will be saved: the employee's values, the existing employee it updates and why it is skipped.
+// The employees already there (by code) and a library row ([el, en, …]).
+type ImportExisting = Pick<Employee, 'id'> & Partial<Employee>
+type ImportLibraryRow = EmployeeOption | string[]
+export type EmployeeImportItem = { line: number, code: string, name: string, value: EmployeeDraft, current: ImportExisting | null, action: string, errors: string[], warnings: string[] }
+export type EmployeeImportPlan = { missingColumns: string[], items: EmployeeImportItem[], counts: Record<string, number> }
 // Staff import from a spreadsheet: one row per employee, matched to the
 // hospital's departments, professional categories and job positions. Rows
 // whose code already exists update that employee (when asked); everything is
@@ -61,21 +68,21 @@ function normalizeStatus(value: unknown){
 }
 
 // departments: [{id,name,nameEn}]; professions/positions: library rows [el,en,...].
-export function planEmployeeImport(rows: unknown[][],{existing=[],departments=[],professions=[],positions=[],updateExisting=false,en=false}: {existing?: AnyRecord[],departments?: AnyRecord[],professions?: AnyRecord[],positions?: AnyRecord[],updateExisting?: boolean,en?: boolean}={}){
+export function planEmployeeImport(rows: unknown[][],{existing=[],departments=[],professions=[],positions=[],updateExisting=false,en=false}: {existing?: ImportExisting[],departments?: EmployeeDepartment[],professions?: ImportLibraryRow[],positions?: ImportLibraryRow[],updateExisting?: boolean,en?: boolean}={}): EmployeeImportPlan{
  const [header=[],...body]=rows
  const columns=mapHeaders(header)
  const missingColumns=REQUIRED.filter(key=>columns[key]==null).map(key=>IMPORT_COLUMNS.find(c=>c[0]===key)![en?2:1])
  if(missingColumns.length)return {missingColumns,items:[],counts:{create:0,update:0,skip:0,error:0}}
  const byCode=new Map(existing.map(employee=>[norm(employee.id||employee.employeeCode),employee]))
- const departmentBy=new Map<string, AnyRecord>();for(const d of departments){departmentBy.set(norm(d.name),d);if(d.nameEn)departmentBy.set(norm(d.nameEn),d)}
- const libraryBy=(list: AnyRecord[])=>{const map=new Map();for(const row of list){if(row?.[0])map.set(norm(row[0]),row);if(row?.[1])map.set(norm(row[1]),row)}return map}
+ const departmentBy=new Map<string, EmployeeDepartment>();for(const d of departments){departmentBy.set(norm(d.name),d);if(d.nameEn)departmentBy.set(norm(d.nameEn),d)}
+ const libraryBy=(list: ImportLibraryRow[])=>{const map=new Map<string, ImportLibraryRow>();for(const row of list){if(row?.[0])map.set(norm(row[0]),row);if(row?.[1])map.set(norm(row[1]),row)}return map}
  const professionBy=libraryBy(professions),positionBy=libraryBy(positions)
  const seen=new Set()
  const cell=(row: unknown[],key: string)=>columns[key]==null?'':String(row[columns[key]]??'').trim()
  const items=body.map((row: unknown[],index: number)=>{
   const line=index+2,errors: string[]=[],warnings: string[]=[]
   const code=cell(row,'code')
-  const value: AnyRecord={id:code,employeeCode:code,firstName:cell(row,'firstName'),lastName:cell(row,'lastName'),fatherName:cell(row,'fatherName'),email:cell(row,'email'),phone:cell(row,'phone')}
+  const value: EmployeeDraft={id:code,employeeCode:code,firstName:cell(row,'firstName'),lastName:cell(row,'lastName'),fatherName:cell(row,'fatherName'),email:cell(row,'email'),phone:cell(row,'phone')}
   for(const key of REQUIRED)if(!cell(row,key))errors.push(en?`${IMPORT_COLUMNS.find(c=>c[0]===key)![2]} is empty`:`Κενό: ${IMPORT_COLUMNS.find(c=>c[0]===key)![1]}`)
   if(code&&seen.has(norm(code)))errors.push(en?'Code repeated in the file':'Ο κωδικός επαναλαμβάνεται στο αρχείο')
   if(code)seen.add(norm(code))
@@ -91,7 +98,7 @@ export function planEmployeeImport(rows: unknown[][],{existing=[],departments=[]
   const status=normalizeStatus(cell(row,'status'))
   if(status==null)errors.push(en?`Unknown status “${cell(row,'status')}”`:`Άγνωστη κατάσταση «${cell(row,'status')}»`)
   value.employmentStatus=status||'active'
-  for(const key of ['hireDate','birthDate']){
+  for(const key of ['hireDate','birthDate'] as const){
    const date=normalizeDate(cell(row,key))
    if(date==null)errors.push(en?`Unreadable date “${cell(row,key)}”`:`Μη αναγνωρίσιμη ημερομηνία «${cell(row,key)}»`)
    value[key]=date||''

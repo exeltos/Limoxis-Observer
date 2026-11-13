@@ -4,7 +4,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { creatableManagementRoles } from '../management/managementRoles'
 import { needsDepartment } from '../platform/bulkAccountsModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, EmployeeDepartment, SignedInProfile, SignedInUser } from './employeeTypes'
 
 // The account side of the employee record (EmployeeRecordPage): «My profile» without a linked
 // employee, and the dialog that gives an employee a user account.
@@ -38,7 +38,7 @@ export function UnlinkedProfileTab({ tab, platformOwner, language }: { tab: stri
   )
 }
 
-export function SelfAccountSummary({ profile, user, role, membership, tenant, language }: { profile: AnyRecord | null | undefined, user: AnyRecord | null | undefined, role: string | null | undefined, membership: AnyRecord | null | undefined, tenant: AnyRecord | null | undefined, language: string }) {
+export function SelfAccountSummary({ profile, user, role, membership, tenant, language }: { profile: SignedInProfile | null | undefined, user: SignedInUser | null | undefined, role: string | null | undefined, membership: { status?: string | null } | null | undefined, tenant: { name?: string | null, organization_name?: string | null } | null | undefined, language: string }) {
   const en = language === 'en'
   const fullName =
     profile?.fullName || profile?.full_name || user?.user_metadata?.full_name || user?.email || '—'
@@ -106,7 +106,7 @@ export function SelfAccountSummary({ profile, user, role, membership, tenant, la
 
 // The role is always chosen (no default); a department role also needs the department
 // it sees, which starts from the employee's own.
-export function EmployeeAccountDialog({ employee, departments = [], language, saving, onClose, onCreate }: { employee: AnyRecord, departments?: AnyRecord[], language: string, saving: boolean, onClose: () => void, onCreate: (account: { role: string, departmentId: string | null, email: string, phone: string, jobTitle: string }) => unknown }) {
+export function EmployeeAccountDialog({ employee, departments = [], language, saving, onClose, onCreate }: { employee: Employee, departments?: EmployeeDepartment[], language: string, saving: boolean, onClose: () => void, onCreate: (account: { role: string, departmentId: string | null, email: string, phone: string, jobTitle: string }) => unknown }) {
   const en = language === 'en'
   const [email, setEmail] = useState(employee.email || ''),
     [phone, setPhone] = useState(employee.phone || ''),

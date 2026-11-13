@@ -6,13 +6,15 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { JOB_DESCRIPTION_FIELDS,acknowledgePosition,acknowledgementState,emptyJobDescription,hasJobDescription,loadPositionAcknowledgements,positionRow } from './jobDescription'
 import './jobDescription.css'
 import { employeeReportHead,useRecordTabExport } from './employeeTabExport'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, EmployeeOption, JobDescription, PositionAcknowledgement } from './employeeTypes'
+import type { ExportItem } from '../../design-system/ExportMenu'
+import type { ReportFact } from '../../core/export/reportDocument'
 
 // Edit a position's job description (Management > Libraries > Job positions).
-export function JobDescriptionDialog({row,language,onClose,onSave,saving=false}: {row: AnyRecord|null|undefined,language: string,onClose: ()=>void,onSave: (draft: AnyRecord)=>unknown,saving?: boolean}){
+export function JobDescriptionDialog({row,language,onClose,onSave,saving=false}: {row: EmployeeOption|null|undefined,language: string,onClose: ()=>void,onSave: (draft: JobDescription)=>unknown,saving?: boolean}){
  const en=language==='en'
- const current=row?.[2]?.jobDescription||emptyJobDescription()
- const [draft,setDraft]=useState<AnyRecord>(()=>({...emptyJobDescription(),...current}))
+ const current: JobDescription=(row?.[2]?.jobDescription as JobDescription|undefined)||emptyJobDescription()
+ const [draft,setDraft]=useState<JobDescription>(()=>({...emptyJobDescription(),...current}))
  const changed=JOB_DESCRIPTION_FIELDS.some(([key])=>String(draft[key]||'')!==String(current[key]||''))
  return <ObserverDialog width="wide" eyebrow={en?'Job description':'Περιγραφή θέσης'} title={row?.[en?1:0]||row?.[0]} subtitle={current.version?(en?`Version ${current.version} · saving creates version ${current.version+1}; staff will be asked to accept it again.`:`Έκδοση ${current.version} · η αποθήκευση δημιουργεί την έκδοση ${current.version+1} και το προσωπικό θα κληθεί να την αποδεχτεί ξανά.`):(en?'Staff in this position will be asked to accept it.':'Το προσωπικό της θέσης θα κληθεί να την αποδεχτεί.')} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(draft)} disabled={!changed||saving||!hasJobDescription(draft)} saveLabel={en?'Save new version':'Αποθήκευση νέας έκδοσης'}/>}>
   <div className="job-description-form">
@@ -23,12 +25,12 @@ export function JobDescriptionDialog({row,language,onClose,onSave,saving=false}:
 
 // Employee record > Position: the description of the employee's position and
 // the employee's acceptance of the current version.
-export function EmployeePositionTab({employee,positions=[],language,organizationId,canAcknowledge,actorName,onExportItems}: {employee: AnyRecord,positions?: AnyRecord[],language: string,organizationId: string|null|undefined,canAcknowledge?: boolean,actorName?: string,onExportItems?: (items: AnyRecord[])=>void}){
+export function EmployeePositionTab({employee,positions=[],language,organizationId,canAcknowledge,actorName,onExportItems}: {employee: Employee,positions?: EmployeeOption[],language: string,organizationId: string|null|undefined,canAcknowledge?: boolean,actorName?: string,onExportItems?: (items: ExportItem[])=>void}){
  const en=language==='en'
  const {notify,notifyError}=useFeedback()
- const row=positionRow(positions,employee.position) as AnyRecord|null
- const jd: AnyRecord|null=row?.[2]?.jobDescription||null
- const [acks,setAcks]=useState<AnyRecord[]>([])
+ const row=positionRow(positions,employee.position)
+ const jd: JobDescription|null=(row?.[2]?.jobDescription as JobDescription|undefined)||null
+ const [acks,setAcks]=useState<PositionAcknowledgement[]>([])
  const [busy,setBusy]=useState(false)
  useEffect(()=>{let active=true;loadPositionAcknowledgements(organizationId,employee).then(rows=>{if(active)setAcks(rows)}).catch(()=>{if(active)setAcks([])});return()=>{active=false}},[organizationId,employee])
  const forPosition=useMemo(()=>acks.filter(a=>a.position===employee.position),[acks,employee.position])
@@ -38,20 +40,20 @@ export function EmployeePositionTab({employee,positions=[],language,organization
  const exportDialog=useRecordTabExport({onExportItems,id:'position',label:{el:'Περιγραφή θέσης',en:'Job description'},employee,language,excel:false,count:hasJobDescription(jd)?1:0,
   doc:()=>{const head=employeeReportHead(employee,language);const title=en?(row?.[1]||employee.positionEn||employee.position):employee.position
    return {language,kind:en?'Job description':'Περιγραφή θέσης εργασίας',code:head.code,title:`${title} · ${head.name}`,filename:`perigrafi-thesis-${employee.id}`,
-    meta:[...head.meta,[en?'Version':'Έκδοση',jd?.version?String(jd.version):''],[en?'Accepted':'Αποδοχή',latest?fmt(latest.acknowledgedAt):(en?'Not yet':'Εκκρεμεί')]].filter(([,v])=>v),
+    meta:([...head.meta,[en?'Version':'Έκδοση',jd?.version?String(jd.version):''],[en?'Accepted':'Αποδοχή',latest?fmt(latest.acknowledgedAt):(en?'Not yet':'Εκκρεμεί')]] as ReportFact[]).filter(([,v])=>v),
     sections:JOB_DESCRIPTION_FIELDS.filter(([key])=>String(jd?.[key]||'').trim()).map(([key,el,enLabel])=>key==='reportsTo'||key==='purpose'?{title:en?enLabel:el,text:jd?.[key]}:{title:en?enLabel:el,list:String(jd?.[key]).split('\n').map(line=>line.replace(/^\s*[-•*]\s*/,'').trim()).filter(Boolean)}),
     signatures:[{role:en?'Employee':'Εργαζόμενος',name:head.name},{role:en?'Supervisor':'Προϊστάμενος'}]}},
   table:()=>({headers:[],rows:[]})})
  async function accept(){
   setBusy(true)
-  try{const saved=await acknowledgePosition(organizationId,employee,{position:employee.position,version:jd?.version,actorName});setAcks(current=>[saved,...current]);notify(en?'Job description accepted.':'Η περιγραφή θέσης έγινε αποδεκτή.','success')}
+  try{const saved=await acknowledgePosition(organizationId,employee,{position:employee.position,version:jd?.version as number,actorName});setAcks(current=>[saved,...current]);notify(en?'Job description accepted.':'Η περιγραφή θέσης έγινε αποδεκτή.','success')}
   catch(error){notifyError(error,'save',{operation:'position_acknowledgement'})}
   finally{setBusy(false)}
  }
  if(!employee.position)return <div className="record-section">{exportDialog}<div className="inline-empty">{en?'No job position is set for this employee.':'Δεν έχει οριστεί θέση εργασίας για τον εργαζόμενο.'}</div></div>
  return <div className="record-section job-description-view">
   {exportDialog}
-  <div className="record-section-header"><div><span className="eyebrow">{en?'JOB POSITION':'ΘΕΣΗ ΕΡΓΑΣΙΑΣ'}</span><h3>{en?(row?.[1]||employee.positionEn||employee.position):employee.position}</h3>{jd?.version>0&&<p>{en?`Version ${jd?.version} · updated ${fmt(jd?.updatedAt)}`:`Έκδοση ${jd?.version} · ενημέρωση ${fmt(jd?.updatedAt)}`}{jd?.updatedBy?` · ${jd?.updatedBy}`:''}</p>}</div></div>
+  <div className="record-section-header"><div><span className="eyebrow">{en?'JOB POSITION':'ΘΕΣΗ ΕΡΓΑΣΙΑΣ'}</span><h3>{en?(row?.[1]||employee.positionEn||employee.position):employee.position}</h3>{(jd?.version ?? 0)>0&&<p>{en?`Version ${jd?.version} · updated ${fmt(jd?.updatedAt)}`:`Έκδοση ${jd?.version} · ενημέρωση ${fmt(jd?.updatedAt)}`}{jd?.updatedBy?` · ${jd?.updatedBy}`:''}</p>}</div></div>
   {state!=='none'&&<div className={`job-description-ack ${state}`}>
    {state==='acknowledged'?<CheckCircle2 size={18} aria-hidden="true"/>:<Clock3 size={18} aria-hidden="true"/>}
    <div><strong>{state==='acknowledged'?(en?'Accepted':'Αποδεκτή'):state==='outdated'?(en?'A new version needs to be accepted':'Νέα έκδοση προς αποδοχή'):(en?'Not accepted yet':'Εκκρεμεί αποδοχή')}</strong><small>{latest?(en?`Version ${latest.version} accepted ${fmt(latest.acknowledgedAt)}`:`Αποδοχή έκδοσης ${latest.version} στις ${fmt(latest.acknowledgedAt)}`):(en?'The employee has not accepted this job description.':'Ο εργαζόμενος δεν έχει αποδεχτεί την περιγραφή θέσης.')}</small></div>

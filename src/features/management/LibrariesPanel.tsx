@@ -71,7 +71,7 @@ export function LibrariesPanel({global=false,only=null,exclude=[],leadItems=[],e
   try{
    if(isDemo)persistDemo({...rows,positions:(rows.positions||[]).map(x=>x===jobRow?[x[0],x[1],{...(x[2]||{}),jobDescription}]:x)})
    else{const saved=await saveJobDescription(tenant!.id,jobRow,jobDescription);setRows(current=>({...current,positions:(current.positions||[]).map(x=>x===jobRow?saved:x)}))}
-   setJobRow(null);notify(t('librariesPanel.jobDescriptionSaved').replace('{version}',jobDescription.version),'success')
+   setJobRow(null);notify(t('librariesPanel.jobDescriptionSaved').replace('{version}',String(jobDescription.version)),'success')
   }catch(error){notify((error as Error)?.message||t('saveFailed'),'error')}
   finally{setJobSaving(false)}
  }

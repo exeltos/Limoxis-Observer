@@ -3,12 +3,12 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { cloudEnabled, loadEmployeesAsync } from './employeeService'
 import { cachedEmployees } from './employeesCache'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee } from './employeeTypes'
 
 export function useEmployeesData({ enabled = true }: { enabled?: boolean } = {}) {
   const { tenant } = useTenant()
   const organizationId = tenant?.id ?? null
-  const [data, setData] = useState<AnyRecord[]>([])
+  const [data, setData] = useState<Employee[]>([])
   const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState<unknown>(null)
 

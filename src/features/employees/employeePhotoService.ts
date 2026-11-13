@@ -2,7 +2,7 @@ import { supabase as configuredClient, type Cloud } from '../../core/supabase/cl
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { invalidateEmployeesCache } from './employeesCache'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee } from './employeeTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
@@ -42,7 +42,7 @@ export function employeePhotoPath(organizationId: string | null | undefined, emp
   return `${organizationId}/${PHOTO_FOLDER}/${employeeDbId}/${now}-photo.${ext}`
 }
 
-export function employeeInitials(employee: AnyRecord | null | undefined, language = 'el') {
+export function employeeInitials(employee: Partial<Employee> | null | undefined, language = 'el') {
   const first = language === 'el' ? employee?.firstName : employee?.firstNameEn || employee?.firstName
   const last = language === 'el' ? employee?.lastName : employee?.lastNameEn || employee?.lastName
   return `${String(first || '').trim()[0] || ''}${String(last || '').trim()[0] || ''}`.toUpperCase()
@@ -114,7 +114,7 @@ const readAsDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
   reader.readAsDataURL(blob)
 })
 
-async function saveDemoPhoto(employee: AnyRecord, photoPath: string | null) {
+async function saveDemoPhoto(employee: Employee, photoPath: string | null) {
   const { loadEmployees, saveEmployees } = await localStore()
   const rows = loadEmployees()
   saveEmployees(rows.map(row => (row.id === employee.id ? { ...row, photoPath } : row)))
@@ -149,12 +149,12 @@ export function forgetEmployeePhotoUrl(path: string) {
   urlCache.delete(path)
 }
 
-async function setPhotoPath(organizationId: string | null | undefined, employee: AnyRecord, photoPath: string | null) {
+async function setPhotoPath(organizationId: string | null | undefined, employee: Employee, photoPath: string | null) {
   const { data, error } = await supabase
     .from('employees')
     .update({ photo_path: photoPath })
     .eq('organization_id', organizationId as string)
-    .eq('id', employee.dbId)
+    .eq('id', employee.dbId as string)
     .select('photo_path,updated_at')
     .single()
   if (error) throw error
@@ -162,7 +162,7 @@ async function setPhotoPath(organizationId: string | null | undefined, employee:
   return { ...employee, photoPath: data?.photo_path || null, updatedAt: data?.updated_at || employee.updatedAt }
 }
 
-export async function uploadEmployeePhoto(organizationId: string | null | undefined, employee: AnyRecord, file: File) {
+export async function uploadEmployeePhoto(organizationId: string | null | undefined, employee: Employee, file: File) {
   const invalid = validatePhotoFile(file)
   if (invalid) throw new Error(invalid)
   const prepared = await preparePhoto(file)
@@ -186,7 +186,7 @@ export async function uploadEmployeePhoto(organizationId: string | null | undefi
   return updated
 }
 
-export async function removeEmployeePhoto(organizationId: string | null | undefined, employee: AnyRecord) {
+export async function removeEmployeePhoto(organizationId: string | null | undefined, employee: Employee) {
   if (isDemoDataEnvironment()) return saveDemoPhoto(employee, null)
   if (!cloudEnabled()) throw new Error('PRODUCTION_CLOUD_REQUIRED:employees.photo')
   if (!employee?.dbId) throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employees.photo')
