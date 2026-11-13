@@ -58,9 +58,12 @@ import { employeeScreeningLabel, priorityOptions, statusTone } from './surveilla
 import { surveillanceTabAccess } from './surveillanceTabAccess'
 import { EmployeeExposureSection } from './EmployeeExposureSection'
 import './employeeLabRequest.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeSurveillanceRecord, FollowupPatch, LoadedScreening, FollowupTimelineEntry, RequestEditorState, ScreeningSample } from './employeeSurveillanceTypes'
 import type { Handler, Setter } from './surveillanceTypes'
 import type { RecordNavigation } from '../../design-system/EntityRecordShell'
+
+// An entry of the record's history tab.
+type HistoryEvent = { at: string, title: string, detail?: string | null }
 
 // A staff screening opened from the «Εργαζόμενοι» list of the Surveillance
 // Center: a record page like the episode's (shared EntityRecordShell, DetailList,
@@ -81,14 +84,14 @@ export function EmployeeSurveillanceRecordPage() {
     pathForId: id => `/surveillance/staff/${id}`,
   })
   const fmt = (value: unknown) => formatDay(value, language)
-  const [record, setRecord] = useState<AnyRecord | null>(null)
-  const [samples, setSamples] = useState<AnyRecord[]>([])
+  const [record, setRecord] = useState<LoadedScreening | null>(null)
+  const [samples, setSamples] = useState<ScreeningSample[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('summary')
   const [followupOpen, setFollowupOpen] = useState(false)
-  const [requestEditor, setRequestEditor] = useState<AnyRecord | null>(null)
+  const [requestEditor, setRequestEditor] = useState<RequestEditorState | null>(null)
   const [requestSaving, setRequestSaving] = useState(false)
-  const recordRef = useRef<AnyRecord | null>(null)
+  const recordRef = useRef<LoadedScreening | null>(null)
   recordRef.current = record
   const organizationId = tenant?.id
   const { employees: allowed } = surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth })
@@ -99,7 +102,7 @@ export function EmployeeSurveillanceRecordPage() {
   const navigate = useNavigate()
 
   const loadSamples = useCallback(
-    async (row: AnyRecord | null) => {
+    async (row: EmployeeSurveillanceRecord | null) => {
       if (!row) return setSamples([])
       if (isDemo) return setSamples(demoLaboratorySamples.filter(sample => sample.employeeSurveillanceCase === row.id))
       if (!organizationId || !row.recordId) return setSamples([])
@@ -123,7 +126,7 @@ export function EmployeeSurveillanceRecordPage() {
           : organizationId
             ? await loadEmployeeSurveillanceRecords(organizationId)
             : []
-        const found = rows.find((row: AnyRecord) => String(row.recordId || row.id) === String(recordId)) || null
+        const found = rows.find((row: LoadedScreening) => String(row.recordId || row.id) === String(recordId)) || null
         if (!alive) return
         setRecord(found ? { ...found } : null)
         await loadSamples(found)
@@ -145,7 +148,7 @@ export function EmployeeSurveillanceRecordPage() {
   )
   const resultKnown = Boolean(
     record &&
-      (['negative', 'positive', 'cleared'].includes(record.resultStatus) ||
+      (['negative', 'positive', 'cleared'].includes(record.resultStatus ?? '') ||
         samples.some(sample => sample.result && (sample.finalizedAt || sample.resultStatus === 'validated'))),
   )
   const currentRecheck = record?.recheckDue || record?.recheckDate || ''
@@ -159,13 +162,13 @@ export function EmployeeSurveillanceRecordPage() {
     [t],
   )
 
-  async function saveFollowup(patch: AnyRecord) {
+  async function saveFollowup(patch: FollowupPatch) {
     if (!record) return
     const stamped = { ...patch, updatedAt: new Date().toISOString() }
     const updated = isDemo
       ? await Promise.resolve(updateEmployeeSurveillanceRecord(record.id, stamped))
       : await updateEmployeeSurveillanceFollowup(organizationId, record, patch)
-    setRecord({ ...updated })
+    setRecord({ ...updated! })
     setFollowupOpen(false)
     notify(L('Η παρακολούθηση αποθηκεύτηκε.', 'Follow-up saved.'), 'success')
   }
@@ -173,7 +176,7 @@ export function EmployeeSurveillanceRecordPage() {
     if (!requestEditor || requestSaving) return
     setRequestSaving(true)
     try {
-      await updateLaboratoryRequest(organizationId as string, requestEditor.sample.recordId, {
+      await updateLaboratoryRequest(organizationId as string, requestEditor.sample.recordId!, {
         source: requestEditor.source,
         priority: requestEditor.priority,
         sampleType: requestEditor.sampleType,
@@ -187,7 +190,7 @@ export function EmployeeSurveillanceRecordPage() {
       setRequestSaving(false)
     }
   }
-  async function cancelRequest(sample: AnyRecord) {
+  async function cancelRequest(sample: ScreeningSample) {
     const ok = await confirm({
       title: L('Ακύρωση αιτήματος εργαστηρίου', 'Cancel laboratory request'),
       message: L('Το εκκρεμές αίτημα θα ακυρωθεί.', 'The pending request will be cancelled.'),
@@ -196,14 +199,14 @@ export function EmployeeSurveillanceRecordPage() {
     })
     if (!ok) return
     try {
-      await cancelLaboratoryRequest(organizationId as string, sample.recordId)
+      await cancelLaboratoryRequest(organizationId as string, sample.recordId!)
       await loadSamples(recordRef.current)
       notify(L('Το αίτημα εργαστηρίου ακυρώθηκε.', 'Laboratory request cancelled.'), 'success')
     } catch (error) {
       notifyError(error, 'save', { operation: 'employee_laboratory_request_cancel' })
     }
   }
-  async function deleteRequest(sample: AnyRecord) {
+  async function deleteRequest(sample: ScreeningSample) {
     const ok = await confirm({
       title: L('Διαγραφή αιτήματος εργαστηρίου', 'Delete laboratory request'),
       message: L(
@@ -215,7 +218,7 @@ export function EmployeeSurveillanceRecordPage() {
     })
     if (!ok) return
     try {
-      await deleteLaboratoryRequest(organizationId as string, sample.recordId)
+      await deleteLaboratoryRequest(organizationId as string, sample.recordId!)
       await loadSamples(recordRef.current)
       notify(L('Το αίτημα εργαστηρίου διαγράφηκε.', 'Laboratory request deleted.'), 'success')
     } catch (error) {
@@ -293,7 +296,7 @@ export function EmployeeSurveillanceRecordPage() {
       <div key={sample.recordId || sample.id} className="employee-sample-row">
         {/* The sample opens its laboratory record (the source of the result) for those who may see it. */}
         {canOpenSample ? (
-          <button type="button" className="employee-sample-main employee-sample-open" onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id)}`)}>
+          <button type="button" className="employee-sample-main employee-sample-open" onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id!)}`)}>
             <strong className="employee-code-compact" title={sample.id}>{compactCode(sample.id)}</strong>
             <span>
               {sampleTypeLabel(sample.type, t)}
@@ -311,7 +314,7 @@ export function EmployeeSurveillanceRecordPage() {
         )}
         <div className="employee-lab-actions">
           <StatusBadge tone={sample.result === 'negative' ? 'success' : 'neutral'}>
-            {sample.result ? t(sample.result) : t(sample.status)}
+            {sample.result ? t(sample.result) : t(sample.status!)}
           </StatusBadge>
           {sample.organism && <small>{sample.organism}</small>}
           {actions.length > 0 && <OverflowMenu label={L('Ενέργειες αιτήματος εργαστηρίου', 'Laboratory request actions')} items={actions} />}
@@ -320,16 +323,16 @@ export function EmployeeSurveillanceRecordPage() {
     )
   })
 
-  const history = [
+  const history: HistoryEvent[] = [
     record.startedAt && { at: record.startedAt, title: L('Έναρξη ελέγχου', 'Screening started') },
     ...samples.flatMap(sample => [
       sample.collectedAt && { at: sample.collectedAt, title: `${L('Λήψη δείγματος', 'Sample collected')} · ${compactCode(sample.id)}` },
       (sample.resultedAt || sample.finalizedAt) && {
-        at: sample.resultedAt || sample.finalizedAt,
-        title: `${L('Αποτέλεσμα', 'Result')} · ${sample.result ? t(sample.result) : t(sample.status)}`,
+        at: (sample.resultedAt || sample.finalizedAt)!,
+        title: `${L('Αποτέλεσμα', 'Result')} · ${sample.result ? t(sample.result) : t(sample.status!)}`,
       },
     ]),
-    ...(record.timeline || []).map((entry: AnyRecord) => entry?.at && { at: entry.at, title: entry.type === 'employeeFollowupCorrected' ? L('Διόρθωση παρακολούθησης', 'Follow-up corrected') : L('Καταγραφή παρακολούθησης', 'Follow-up recorded'), detail: entry.detail }),
+    ...(record.timeline || []).map((entry: FollowupTimelineEntry) => entry?.at && { at: entry.at, title: entry.type === 'employeeFollowupCorrected' ? L('Διόρθωση παρακολούθησης', 'Follow-up corrected') : L('Καταγραφή παρακολούθησης', 'Follow-up recorded'), detail: entry.detail }),
   ]
     .filter(Boolean)
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
@@ -454,7 +457,7 @@ export function EmployeeSurveillanceRecordPage() {
       {
         id: 'samples',
         title: L('Εργαστηριακά αποτελέσματα', 'Laboratory results'),
-        list: samples.map(sample => [compactCode(sample.id), sampleTypeLabel(sample.type, t), sample.result ? t(sample.result) : t(sample.status), sample.organism].filter(Boolean).join(' · ')),
+        list: samples.map(sample => [compactCode(sample.id), sampleTypeLabel(sample.type, t), sample.result ? t(sample.result) : t(sample.status!), sample.organism].filter(Boolean).join(' · ')),
       },
       { id: 'documents', title: L('Έγγραφα', 'Documents'), documents: { organizationId: isDemo ? null : organizationId, entityType: 'employee_surveillance', entityId: record.recordId || record.id } },
       { id: 'history', title: L('Ιστορικό', 'History'), events: history.map(event => ({ when: fmt(event.at), sort: String(event.at), title: event.title, detail: event.detail })), keep: true },
@@ -514,7 +517,7 @@ export function EmployeeSurveillanceRecordPage() {
 }
 
 interface FollowupDialogProps {
-  record: AnyRecord
+  record: EmployeeSurveillanceRecord
   language: string
   fmtLabel: string
   onClose: Handler
@@ -638,10 +641,10 @@ function FollowupDialog({ record, language, fmtLabel, onClose, onSave }: Followu
 }
 
 interface RequestDialogProps {
-  editor: AnyRecord
+  editor: RequestEditorState
   saving: boolean
   language: string
-  onChange: Setter<AnyRecord | null>
+  onChange: Setter<RequestEditorState | null>
   onClose: Handler
   onSave: Handler
 }
@@ -670,21 +673,21 @@ function RequestDialog({ editor, saving, language, onChange, onClose, onSave }: 
             label={L('Ζητούμενος έλεγχος / υλικό', 'Requested examination / material')}
             options={REQUEST_MATERIALS.map(item => ({ value: item.id, label: en ? item.en : item.el }))}
             selected={splitMaterials(editor.source)}
-            onToggle={id => onChange((value: AnyRecord) => ({ ...value, source: toggleMaterial(value.source, id) }))}
+            onToggle={id => onChange(value => ({ ...value!, source: toggleMaterial(value!.source, id) }))}
           />
           {form.errorFor('source') && <span className="field-error">{form.errorFor('source')}</span>}
         </div>
         <ChoiceField
           label={L('Τύπος αιτήματος', 'Request type')}
           value={editor.sampleType}
-          onChange={value => onChange(v => ({ ...v, sampleType: value }))}
+          onChange={value => onChange(v => ({ ...v!, sampleType: value }))}
           options={[
             { value: 'surveillance', label: L('Επιτήρηση', 'Surveillance') },
             { value: 'screening', label: L('Προληπτικός έλεγχος', 'Screening') },
             { value: 'other', label: L('Άλλο', 'Other') },
           ]}
         />
-        <ChoiceField label={L('Προτεραιότητα', 'Priority')} value={editor.priority} onChange={value => onChange(v => ({ ...v, priority: value }))} options={priorityOptions(language)} />
+        <ChoiceField label={L('Προτεραιότητα', 'Priority')} value={editor.priority} onChange={value => onChange(v => ({ ...v!, priority: value }))} options={priorityOptions(language)} />
       </div>
     </ObserverDialog>
   )

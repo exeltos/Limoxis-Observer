@@ -21,11 +21,11 @@ import { updateEmployeeSurveillanceFollowup } from './employeeSurveillanceCloudS
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { EMPLOYEE_SCREENING_TYPES, priorityOptions } from './surveillanceOptions'
 import './employeeLabRequest.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeSurveillanceRecord, RequestEditorState, ScreeningSample } from './employeeSurveillanceTypes'
 import type { Handler } from './surveillanceTypes'
 
-export const isPositive = (row: AnyRecord) => ['positive', 'positive_recheck'].includes(row.resultStatus)
-export const hasFollowup = (row: AnyRecord) =>
+export const isPositive = (row: EmployeeSurveillanceRecord) => ['positive', 'positive_recheck'].includes(row.resultStatus ?? '')
+export const hasFollowup = (row: EmployeeSurveillanceRecord) =>
   Boolean(
     row.intervention ||
     row.interventionType ||
@@ -34,9 +34,9 @@ export const hasFollowup = (row: AnyRecord) =>
     row.noRecheck ||
     row.recheckDate,
   )
-export const hasPositiveHistory = (samples: AnyRecord[]) =>
+export const hasPositiveHistory = (samples: ScreeningSample[]) =>
   samples.some(
-    (sample: AnyRecord) =>
+    (sample: ScreeningSample) =>
       (sample.finalizedAt || sample.resultStatus === 'validated') && sample.result === 'positive',
   )
 export const compactCode = (value: unknown) => {
@@ -73,8 +73,8 @@ export function toggleMaterial(value: unknown, code: string) {
 }
 interface EmployeeSurveillanceRecordDialogProps {
   organizationId: string | null | undefined
-  record: AnyRecord
-  samples?: AnyRecord[]
+  record: EmployeeSurveillanceRecord
+  samples?: ScreeningSample[]
   canManage: boolean
   t: (key: string) => string
   language: string
@@ -113,7 +113,7 @@ export function EmployeeSurveillanceRecordDialog({
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState(record)
   const [resolvedSamples, setResolvedSamples] = useState(samples)
-  const [requestEditor, setRequestEditor] = useState<AnyRecord | null>(null)
+  const [requestEditor, setRequestEditor] = useState<RequestEditorState | null>(null)
   const [requestSaving, setRequestSaving] = useState(false)
   const [intervention, setIntervention] = useState(record.intervention || '')
   const [interventionType, setInterventionType] = useState(record.interventionType || '')
@@ -172,12 +172,12 @@ export function EmployeeSurveillanceRecordDialog({
     hasPositiveHistory(resolvedSamples)
   // Until the laboratory has a validated result, "no follow-up needed" is premature.
   const resultKnown =
-    ['negative', 'positive', 'cleared'].includes(selected.resultStatus) ||
+    ['negative', 'positive', 'cleared'].includes(selected.resultStatus ?? '') ||
     resolvedSamples.some(
       sample => sample.result && (sample.finalizedAt || sample.resultStatus === 'validated'),
     )
 
-  function loadFollowup(row: AnyRecord) {
+  function loadFollowup(row: EmployeeSurveillanceRecord) {
     setIntervention(row.intervention || '')
     setInterventionType(row.interventionType || '')
     setInterventionStart(row.interventionStart || '')
@@ -195,7 +195,7 @@ export function EmployeeSurveillanceRecordDialog({
     loadFollowup(selected)
     setEditMode(false)
   }
-  function editRequest(sample: AnyRecord) {
+  function editRequest(sample: ScreeningSample) {
     setRequestEditor({
       sample,
       source: sample.source || '',
@@ -250,7 +250,7 @@ export function EmployeeSurveillanceRecordDialog({
     if (!requestEditor || requestSaving) return
     setRequestSaving(true)
     try {
-      await updateLaboratoryRequest(organizationId as string, requestEditor.sample.recordId, {
+      await updateLaboratoryRequest(organizationId as string, requestEditor.sample.recordId!, {
         source: requestEditor.source,
         priority: requestEditor.priority,
         sampleType: requestEditor.sampleType,
@@ -265,7 +265,7 @@ export function EmployeeSurveillanceRecordDialog({
     }
   }
 
-  async function cancelRequest(sample: AnyRecord) {
+  async function cancelRequest(sample: ScreeningSample) {
     const ok = await confirm({
       title: en ? 'Cancel laboratory request' : 'Ακύρωση αιτήματος εργαστηρίου',
       message: en ? 'The pending request will be cancelled.' : 'Το εκκρεμές αίτημα θα ακυρωθεί.',
@@ -274,7 +274,7 @@ export function EmployeeSurveillanceRecordDialog({
     })
     if (!ok) return
     try {
-      await cancelLaboratoryRequest(organizationId as string, sample.recordId)
+      await cancelLaboratoryRequest(organizationId as string, sample.recordId!)
       await reloadSamples()
       notify(en ? 'Laboratory request cancelled.' : 'Το αίτημα εργαστηρίου ακυρώθηκε.', 'success')
     } catch (error) {
@@ -282,7 +282,7 @@ export function EmployeeSurveillanceRecordDialog({
     }
   }
 
-  async function deleteRequest(sample: AnyRecord) {
+  async function deleteRequest(sample: ScreeningSample) {
     const ok = await confirm({
       title: en ? 'Delete laboratory request' : 'Διαγραφή αιτήματος εργαστηρίου',
       message: en
@@ -293,7 +293,7 @@ export function EmployeeSurveillanceRecordDialog({
     })
     if (!ok) return
     try {
-      await deleteLaboratoryRequest(organizationId as string, sample.recordId)
+      await deleteLaboratoryRequest(organizationId as string, sample.recordId!)
       await reloadSamples()
       notify(en ? 'Laboratory request deleted.' : 'Το αίτημα εργαστηρίου διαγράφηκε.', 'success')
     } catch (error) {
@@ -431,7 +431,7 @@ export function EmployeeSurveillanceRecordDialog({
                   </div>
                   <div className="employee-lab-actions">
                     <StatusBadge tone={sample.result === 'negative' ? 'success' : 'neutral'}>
-                      {sample.result ? t(sample.result) : t(sample.status)}
+                      {sample.result ? t(sample.result) : t(sample.status!)}
                     </StatusBadge>
                     {sample.organism && <small>{sample.organism}</small>}
                     {actions.length > 0 && (
@@ -641,7 +641,7 @@ export function EmployeeSurveillanceRecordDialog({
                 }))}
                 selected={splitMaterials(requestEditor.source)}
                 onToggle={id =>
-                  setRequestEditor(v => ({ ...v, source: toggleMaterial(v!.source, id) }))
+                  setRequestEditor(v => ({ ...v!, source: toggleMaterial(v!.source, id) }))
                 }
               />
               {splitMaterials(requestEditor.source)
@@ -655,7 +655,7 @@ export function EmployeeSurveillanceRecordDialog({
             <ChoiceField
               label={en ? 'Request type' : 'Τύπος αιτήματος'}
               value={requestEditor.sampleType}
-              onChange={value => setRequestEditor(v => ({ ...v, sampleType: value }))}
+              onChange={value => setRequestEditor(v => ({ ...v!, sampleType: value }))}
               options={[
                 { value: 'surveillance', label: en ? 'Surveillance' : 'Επιτήρηση' },
                 { value: 'screening', label: en ? 'Screening' : 'Προληπτικός έλεγχος' },
@@ -665,7 +665,7 @@ export function EmployeeSurveillanceRecordDialog({
             <ChoiceField
               label={en ? 'Priority' : 'Προτεραιότητα'}
               value={requestEditor.priority}
-              onChange={value => setRequestEditor(v => ({ ...v, priority: value }))}
+              onChange={value => setRequestEditor(v => ({ ...v!, priority: value }))}
               options={priorityOptions(language)}
             />
           </div>

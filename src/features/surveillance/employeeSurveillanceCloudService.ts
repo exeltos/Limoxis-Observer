@@ -2,13 +2,16 @@ import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeSurveillanceBatchRow, EmployeeSurveillanceRecord, EmployeeSurveillanceRow, FollowupPatch, FollowupTimelineEntry, ScreeningDepartmentRow, ScreeningEmployee, ScreeningEmployeeRow } from './employeeSurveillanceTypes'
+
+// The new screening (one employee) and the batch (a department's employees) as the windows send them.
+interface ScreeningDraft { code?: string, batchId?: string | null, departmentId?: string | null, startedAt: string, screeningTypes?: string[], status?: string, resultStatus?: string, interventionStatus?: string, recheckDue?: string | null, notes?: string }
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
 
-function mapRecord(row: AnyRecord,employee: AnyRecord,department: AnyRecord){
+function mapRecord(row: EmployeeSurveillanceRow,employee: ScreeningEmployeeRow | undefined,department: ScreeningDepartmentRow | undefined){
   return {
     id:row.surveillance_code,
     recordId:row.id,
@@ -36,15 +39,16 @@ function mapRecord(row: AnyRecord,employee: AnyRecord,department: AnyRecord){
     noIntervention:Boolean(row.no_intervention),
     noRecheck:Boolean(row.no_recheck),
     correctionReason:row.correction_reason||'',
-    timeline:row.timeline||[],
+    // timeline is a JSON column holding the follow-up entries.
+    timeline:(row.timeline||[]) as FollowupTimelineEntry[],
     notes:row.notes||'',
     createdAt:row.created_at,
     updatedAt:row.updated_at,
   }
 }
 
-function mapBatch(row: AnyRecord,department: AnyRecord,records: AnyRecord[]){
-  const linked=(records||[]).filter((item: AnyRecord)=>item.batchId===row.id)
+function mapBatch(row: EmployeeSurveillanceBatchRow,department: ScreeningDepartmentRow | undefined,records: EmployeeSurveillanceRecord[]){
+  const linked=(records||[]).filter(item=>item.batchId===row.id)
   return {
     id:row.batch_code,
     recordId:row.id,
@@ -56,24 +60,24 @@ function mapBatch(row: AnyRecord,department: AnyRecord,records: AnyRecord[]){
     screeningTypes:row.screening_types||[],
     notes:row.notes||'',
     employeeCount:linked.length,
-    activeCount:linked.filter((item: AnyRecord)=>item.status==='active').length,
-    positiveCount:linked.filter((item: AnyRecord)=>item.resultStatus==='positive').length,
+    activeCount:linked.filter(item=>item.status==='active').length,
+    positiveCount:linked.filter(item=>item.resultStatus==='positive').length,
     records:linked,
     createdAt:row.created_at,
   }
 }
 
-async function hydrateRecords(rows: AnyRecord[]){
+async function hydrateRecords(rows: EmployeeSurveillanceRow[]){
   if(!rows?.length)return []
-  const employeeIds=[...new Set(rows.map((row: AnyRecord)=>row.employee_id))]
+  const employeeIds=[...new Set(rows.map(row=>row.employee_id))]
   const {data:employees,error}=await selectInChunks(employeeIds,ids=>supabase.from('employees').select('id,employee_code,first_name,first_name_en,last_name,last_name_en,department_id,department_name,department_name_en').in('id',ids))
   if(error)throw error
   const departmentIds=[...new Set((employees||[]).map(row=>row.department_id).filter(Boolean))]
   const departmentResult=await selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name').in('id',ids))
   if(departmentResult.error)throw departmentResult.error
-  return rows.map((row: AnyRecord)=>{
-    const employee=(employees||[]).find(item=>item.id===row.employee_id)
-    const department=(departmentResult.data||[]).find(item=>item.id===employee?.department_id)
+  return rows.map(row=>{
+    const employee=(employees||[]).find((item: ScreeningEmployeeRow)=>item.id===row.employee_id)
+    const department=(departmentResult.data||[]).find((item: ScreeningDepartmentRow)=>item.id===employee?.department_id)
     return mapRecord(row,employee,department)
   })
 }
@@ -91,7 +95,7 @@ export async function loadEmployeeSurveillanceRecordsForEmployee(organizationId:
   return hydrateRecords(await selectAllPages(()=>supabase.from('employee_surveillance_records').select('*').eq('organization_id',organizationId).eq('employee_id',employeeDbId).order('started_at',{ascending:false}).order('id',{ascending:true})))
 }
 
-async function loadEmployeeSurveillanceBatches(organizationId: string | null | undefined,records: AnyRecord[]=[]){
+async function loadEmployeeSurveillanceBatches(organizationId: string | null | undefined,records: EmployeeSurveillanceRecord[]=[]){
   assertCloud()
   if(!organizationId)return []
   const {data,error}=await supabase.from('employee_surveillance_batches').select('*').eq('organization_id',organizationId).order('started_at',{ascending:false})
@@ -99,16 +103,16 @@ async function loadEmployeeSurveillanceBatches(organizationId: string | null | u
   const departmentIds=[...new Set((data||[]).map(row=>row.department_id).filter(Boolean))]
   const departments=await selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name').in('id',ids))
   if(departments.error)throw departments.error
-  return (data||[]).map(row=>mapBatch(row,(departments.data||[]).find(item=>item.id===row.department_id),records))
+  return (data||[]).map(row=>mapBatch(row,(departments.data||[]).find((item: ScreeningDepartmentRow)=>item.id===row.department_id),records))
 }
 
 // employee_surveillance_records.intervention_status check: none|required|in_progress|completed.
 // "No intervention needed" is stored as no_intervention=true with intervention_status 'none'.
-const interventionStatuses=['none','required','in_progress','completed']
-export const interventionStatusDbValue=(value: string)=>interventionStatuses.includes(value)?value:value==='recorded'?'in_progress':'none'
-export const followupInterventionStatus=(patch: AnyRecord)=>patch?.noIntervention?'none':((patch?.intervention?.trim()||patch?.interventionType)?'in_progress':'none')
+const interventionStatuses: (string | undefined)[]=['none','required','in_progress','completed']
+export const interventionStatusDbValue=(value: string | undefined)=>interventionStatuses.includes(value)?value:value==='recorded'?'in_progress':'none'
+export const followupInterventionStatus=(patch: FollowupPatch | null | undefined)=>patch?.noIntervention?'none':((patch?.intervention?.trim()||patch?.interventionType)?'in_progress':'none')
 
-export async function createEmployeeSurveillanceRecord(organizationId: string | null | undefined,employeeDbId: string,draft: AnyRecord){
+export async function createEmployeeSurveillanceRecord(organizationId: string | null | undefined,employeeDbId: string,draft: ScreeningDraft){
   assertCloud()
   const actorId=await currentUserId()
   const code=draft.code||`ESUR-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
@@ -131,7 +135,7 @@ export async function createEmployeeSurveillanceRecord(organizationId: string | 
   return (await hydrateRecords([data]))[0]
 }
 
-export async function createEmployeeSurveillanceBatch(organizationId: string | null | undefined,employees: AnyRecord[],draft: AnyRecord){
+export async function createEmployeeSurveillanceBatch(organizationId: string | null | undefined,employees: ScreeningEmployee[],draft: ScreeningDraft){
   assertCloud()
   const actorId=await currentUserId()
   const batchCode=draft.code||`EBAT-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
@@ -145,10 +149,11 @@ export async function createEmployeeSurveillanceBatch(organizationId: string | n
     created_by:actorId,
   }).select('*').single()
   if(batchError)throw batchError
-  const payload=employees.map((employee: AnyRecord,index: number)=>({
+  const payload=employees.map((employee,index)=>({
     organization_id:organizationId as string,
     surveillance_code:`ESUR-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()+index).slice(-5)}`,
-    employee_id:employee.dbId,
+    // A cloud employee always carries its row id.
+    employee_id:employee.dbId as string,
     batch_id:batch.id,
     started_at:draft.startedAt,
     screening_types:draft.screeningTypes||[],
@@ -159,7 +164,7 @@ export async function createEmployeeSurveillanceBatch(organizationId: string | n
   return (await loadEmployeeSurveillanceBatches(organizationId,records)).find(item=>item.recordId===batch.id)
 }
 
-export async function updateEmployeeSurveillanceFollowup(organizationId: string | null | undefined,record: AnyRecord,patch: AnyRecord){
+export async function updateEmployeeSurveillanceFollowup(organizationId: string | null | undefined,record: EmployeeSurveillanceRecord,patch: FollowupPatch){
   assertCloud()
   const actorId=await currentUserId()
   const now=new Date().toISOString()
@@ -177,17 +182,17 @@ export async function updateEmployeeSurveillanceFollowup(organizationId: string 
     correction_reason:patch.correctionReason?.trim()||record.correctionReason||null,
     timeline:[timelineEntry,...(record.timeline||[])],
     updated_by:actorId,
-  }).eq('organization_id',organizationId as string).eq('id',record.recordId).select('*').single()
+  }).eq('organization_id',organizationId as string).eq('id',record.recordId!).select('*').single()
   if(error)throw error
   return (await hydrateRecords([data]))[0]
 }
 
-export function getEmployeeSurveillanceKpis(rows: AnyRecord[]){
+export function getEmployeeSurveillanceKpis(rows: EmployeeSurveillanceRecord[]){
   const today=hospitalToday()
   return {
-    active:(rows||[]).filter((row: AnyRecord)=>row.status==='active').length,
-    positive:(rows||[]).filter((row: AnyRecord)=>row.resultStatus==='positive').length,
-    needsIntervention:(rows||[]).filter((row: AnyRecord)=>['required','in_progress'].includes(row.interventionStatus)).length,
-    needsRecheck:(rows||[]).filter((row: AnyRecord)=>row.recheckDue&&row.recheckDue<=today&&row.status==='active').length,
+    active:(rows||[]).filter(row=>row.status==='active').length,
+    positive:(rows||[]).filter(row=>row.resultStatus==='positive').length,
+    needsIntervention:(rows||[]).filter(row=>['required','in_progress'].includes(row.interventionStatus ?? '')).length,
+    needsRecheck:(rows||[]).filter(row=>row.recheckDue&&row.recheckDue<=today&&row.status==='active').length,
   }
 }
