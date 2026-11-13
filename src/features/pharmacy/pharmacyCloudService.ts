@@ -4,7 +4,7 @@ import { pharmacyDepartments, antibioticLibrary, dddReferenceLibrary } from './p
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
 import { awareCategoryFor } from './whoAwareClassification'
 import { selectAllPages } from '../../core/data/inChunks'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DispensingDraft, DispensingRecord, DispensingRow, TherapyApproval } from './pharmacyTypes'
 
 // Supabase is configured and an organization is selected (and, for the types, organizationId is a string).
 function assertCloud(organizationId: string|null|undefined): asserts organizationId is string{
@@ -20,9 +20,9 @@ async function currentUserId(){
 }
 
 const monthLabel=(from: string|null|undefined,to: string|null|undefined)=>{if(!from)return '';const start=String(from).slice(0,7);const end=String(to||from).slice(0,7);return start===end?start:`${start} – ${end}`}
-const isHospitalRecord=(record: AnyRecord|null|undefined)=>record?.departmentScope==='hospital'
+const isHospitalRecord=(record: DispensingDraft|null|undefined)=>record?.departmentScope==='hospital'
 
-function mapRow(row: AnyRecord): AnyRecord{
+function mapRow(row: DispensingRow): DispensingRecord{
  const productEl=row.antibiotic_item?.name_el||''
  const productEn=row.antibiotic_item?.name_en||productEl
  const hospitalScope=!row.department_id
@@ -55,7 +55,7 @@ export async function loadDddReference(organizationId: string|null|undefined): P
  return Object.fromEntries([...shared,...own].map((row): [string, number]=>[row.antibiotic_code,Number(row.ddd_grams)]).filter(([,grams])=>grams>0))
 }
 
-export async function loadAntibioticDispensingRecords(organizationId: string|null|undefined): Promise<AnyRecord[]>{
+export async function loadAntibioticDispensingRecords(organizationId: string|null|undefined): Promise<DispensingRecord[]>{
  if(isDemoDataEnvironment())return loadAntibioticDispensingLocal()
  assertCloud(organizationId)
  const supabase=cloudClient()
@@ -68,15 +68,16 @@ export async function loadAntibioticDispensingRecords(organizationId: string|nul
 // like the total DDD of the database does): the numerator of the Access share indicator.
 export async function loadAccessDddTotal(organizationId: string|null|undefined,{from,to}:{from?:string|null,to?:string|null}={}){
  const [rows,ddd]=await Promise.all([loadAntibioticDispensingRecords(organizationId),loadDddReference(organizationId)])
- const inPeriod=(row: AnyRecord)=>(!to||String(row.periodStart||'')<=to)&&(!from||String(row.periodEnd||row.periodStart||'')>=from)
+ const inPeriod=(row: DispensingRecord)=>(!to||String(row.periodStart||'')<=to)&&(!from||String(row.periodEnd||row.periodStart||'')>=from)
  return Math.round(rows.filter(inPeriod).filter(row=>awareCategoryFor(row.productEn||row.product)==='access'&&Number(ddd[row.productCode])>0).reduce((sum,row)=>sum+(Number(row.quantityGrams)||0)/Number(ddd[row.productCode]),0)*100)/100
 }
 
-export async function saveAntibioticDispensingRecord(organizationId: string|null|undefined,record: AnyRecord,{existingId=null}:{existingId?:string|null}={}): Promise<AnyRecord|null>{
+export async function saveAntibioticDispensingRecord(organizationId: string|null|undefined,record: DispensingDraft,{existingId=null}:{existingId?:string|null}={}): Promise<DispensingRecord|null>{
  if(isDemoDataEnvironment()){
   const rows=loadAntibioticDispensingLocal()
   const id=existingId||`ABXD-${Date.now()}`
-  const saved={...record,id}
+  // The demo keeps the form as it was saved.
+  const saved={...record,id} as DispensingRecord
   const next=existingId?rows.map(row=>row.id===existingId?saved:row):[saved,...rows]
   saveAntibioticDispensingLocal(next)
   return saved
@@ -91,11 +92,12 @@ export async function saveAntibioticDispensingRecord(organizationId: string|null
  const product=support.products.find(x=>x.id===record.antibioticItemId||x.el===record.product)
  if(!product)throw new Error('Selected antibiotic is not available in the central library.')
  const keepRange=record.periodKind==='range'&&record.periodStart&&record.periodEnd
+ // With keepRange both dates are there (the ! below).
  const [year,month]=String(record.period||'').slice(0,7).split('-').map(Number)
  if(!keepRange&&(!year||!month))throw new Error('A valid month is required.')
- const periodStart=keepRange?record.periodStart:`${year}-${String(month).padStart(2,'0')}-01`
+ const periodStart=keepRange?record.periodStart!:`${year}-${String(month).padStart(2,'0')}-01`
  const lastDay=new Date(year,month,0).getDate()
- const periodEnd=keepRange?record.periodEnd:`${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
+ const periodEnd=keepRange?record.periodEnd!:`${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
  const payload={organization_id:organizationId,department_id:department?.id||null,period_start:periodStart,period_end:periodEnd,antibiotic_item_id:product.id,quantity_grams:Number(record.quantityGrams)||0,source:record.method||'manual',source_reference:record.referenceNumber||null,responsible_name:record.responsible||null,notes:record.notes||null,updated_by:userId,updated_at:new Date().toISOString()}
  let saved
  if(existingId){const {data,error}=await supabase.from('antibiotic_dispensing_periods').update(payload).eq('organization_id',organizationId).eq('id',existingId).select('*').single();if(error)throw error;saved=data}
@@ -107,10 +109,12 @@ export async function saveAntibioticDispensingRecord(organizationId: string|null
 // Antimicrobial therapies that needed stewardship approval (pending, approved,
 // rejected): the same therapies the surveillance record approves, as one list.
 const APPROVAL_STATES: string[]=['pending','approved','rejected']
-export async function loadTherapyApprovals(organizationId: string|null|undefined): Promise<AnyRecord[]>{
+// A therapy of a Demo surveillance case, as the list reads it.
+type DemoTherapy={id: string,antimicrobial: string,dose?: string,route?: string,indication?: string,startedAt?: string|null,approvalStatus: string,status?: string}
+export async function loadTherapyApprovals(organizationId: string|null|undefined): Promise<TherapyApproval[]>{
  if(isDemoDataEnvironment()){
   const {clinicalCases}=await import('../surveillance/clinicalDemoData')
-  return Object.values(clinicalCases as Record<string, AnyRecord>).flatMap(record=>((record.therapy||[]) as AnyRecord[]).filter(item=>APPROVAL_STATES.includes(item.approvalStatus)).map(item=>({id:item.id,caseId:record.id,patientCode:record.patientId||'',department:record.department||'',departmentEn:record.departmentEn||record.department||'',antimicrobial:item.antimicrobial,dose:item.dose||'',route:item.route||'',indication:item.indication||'',startedAt:item.startedAt||null,approvalStatus:item.approvalStatus,status:item.status||'active'})))
+  return Object.values(clinicalCases).flatMap(record=>((record.therapy||[]) as DemoTherapy[]).filter(item=>APPROVAL_STATES.includes(item.approvalStatus)).map(item=>({id:item.id,caseId:record.id,patientCode:record.patientId||'',department:record.department||'',departmentEn:record.departmentEn||record.department||'',antimicrobial:item.antimicrobial,dose:item.dose||'',route:item.route||'',indication:item.indication||'',startedAt:item.startedAt||null,approvalStatus:item.approvalStatus,status:item.status||'active'})))
    .sort((a,b)=>String(b.startedAt||'').localeCompare(String(a.startedAt||'')))
  }
  assertCloud(organizationId)
@@ -120,7 +124,7 @@ export async function loadTherapyApprovals(organizationId: string|null|undefined
 }
 
 // Approve or reject through the surveillance repository, as the surveillance record does.
-export async function decideTherapyApproval(organizationId: string|null|undefined,row: AnyRecord,approvalStatus: string,actor: unknown){
+export async function decideTherapyApproval(organizationId: string|null|undefined,row: TherapyApproval,approvalStatus: string,actor: unknown){
  const {createClinicalRepository}=await import('../surveillance/clinicalRepository')
  const repository=createClinicalRepository({isDemo:isDemoDataEnvironment(),organizationId,actor})
  return repository.updateTherapyApproval({id:row.caseId},row.id,approvalStatus)

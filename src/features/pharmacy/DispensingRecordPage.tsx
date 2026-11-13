@@ -18,7 +18,7 @@ import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord, type PharmacySupport } from './pharmacyCloudService'
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
 import { hospitalMonth } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DispensingDraft, DispensingRecord } from './pharmacyTypes'
 
 const BACK = '/pharmacy?tab=consumption'
 const monthNow = () => hospitalMonth()
@@ -37,15 +37,15 @@ export function DispensingRecordPage() {
   const canRecord = can(role, CAPABILITIES.RECORD_PHARMACY_CONSUMPTION, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const deleteItem = useRecordDelete()
   const [support, setSupport] = useState<PharmacySupport | null>(null)
-  const [initial, setInitial] = useState<AnyRecord | null>(null)
+  const [initial, setInitial] = useState<DispensingRecord | null>(null)
   const [missing, setMissing] = useState(false)
-  const [draft, setDraft] = useState<AnyRecord | null>(null)
+  const [draft, setDraft] = useState<DispensingDraft | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (!tenant?.id) return undefined
     let alive = true
-    Promise.all([loadPharmacySupportData(tenant.id), isNew ? Promise.resolve([] as AnyRecord[]) : loadAntibioticDispensingRecords(tenant.id)]).then(([supportData, rows]) => {
+    Promise.all([loadPharmacySupportData(tenant.id), isNew ? Promise.resolve([] as DispensingRecord[]) : loadAntibioticDispensingRecords(tenant.id)]).then(([supportData, rows]) => {
       if (!alive) return
       setSupport(supportData)
       if (isNew) {

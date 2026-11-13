@@ -22,12 +22,13 @@ import { PharmacyApprovals } from './PharmacyApprovals'
 import { therapyAccess } from './pharmacyAccess'
 import { PharmacyIndicators } from './PharmacyIndicators'
 import { ACCESS_TARGET, pharmacyConsumptionKpis } from './pharmacyKpis'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DispensingRecord } from './pharmacyTypes'
+import type { PharmacyIndicatorRows } from './PharmacyIndicators'
 
 // '2026-09' → 'Σεπτέμβριος 2026' / 'September 2026'
 const formatPeriod = (period: string | null | undefined, en: boolean, month: 'long' | 'short' = 'long') => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month, year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
 
-const monthOf = (row: AnyRecord) => String(row.periodStart || row.period || '').slice(0, 7)
+const monthOf = (row: DispensingRecord) => String(row.periodStart || row.period || '').slice(0, 7)
 const noFilters = (): Record<'query' | 'from' | 'to' | 'department', string> => ({ query: '', from: '', to: '', department: '' })
 
 // Φαρμακείο: three tabs. «Κατανάλωση» (dispensing periods, filtered by period and department),
@@ -56,14 +57,14 @@ export function PharmacyPage() {
   const [params, setParams] = useSearchParams()
   const tab = tabs.some(item => item.value === params.get('tab')) ? params.get('tab') || 'consumption' : 'consumption'
   const setTab = (next: string) => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); return copy }, { replace: true })
-  const [rows, setRows] = useState<AnyRecord[]>([])
+  const [rows, setRows] = useState<DispensingRecord[]>([])
   const [ddd, setDdd] = useState<Record<string, number>>({})
   // True until the first read ends: placeholders, not «no periods» and 0 figures.
   const [loading, setLoading] = useState(true)
   const [showNote, setShowNote] = useState(false)
   const [approvalCounts, setApprovalCounts] = useState({ loading: true, pending: 0, approved: 0, rejected: 0 })
   const [approvalStatus, setApprovalStatus] = useState('pending')
-  const [indicatorFigures, setIndicatorFigures] = useState<{ loading: boolean, rows: AnyRecord[], from: string, to: string }>({ loading: true, rows: [], from: '', to: '' })
+  const [indicatorFigures, setIndicatorFigures] = useState<PharmacyIndicatorRows>({ loading: true, rows: [], from: '', to: '' })
   const [filters, setFilters] = useState(noFilters)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
