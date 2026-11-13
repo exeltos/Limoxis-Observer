@@ -59,7 +59,7 @@ describe('Quality audits (phase 3)', () => {
   it('brings trainings that did not change practice into the register', () => {
     const items = deviationQueue({ trainings: [{ id: 'TRN-1', title: 'CLABSI', effectiveness: { result: 'partial', evaluatedAt: new Date().toISOString().slice(0, 10) } }, { id: 'TRN-2', title: 'OK', effectiveness: { result: 'effective', evaluatedAt: new Date().toISOString().slice(0, 10) } }] })
     expect(items.map(item => item.sourceId)).toEqual(['TRAINING:TRN-1'])
-    expect(deviationQueue({ trainings: [{ id: 'TRN-1', effectiveness: { result: 'partial', evaluatedAt: new Date().toISOString().slice(0, 10) } }], capas: [{ sourceId: 'TRAINING:TRN-1' }] })).toHaveLength(0)
+    expect(deviationQueue({ trainings: [{ id: 'TRN-1', effectiveness: { result: 'partial', evaluatedAt: new Date().toISOString().slice(0, 10) } } as never], capas: [{ sourceId: 'TRAINING:TRN-1' }] })).toHaveLength(0)
   })
 })
 

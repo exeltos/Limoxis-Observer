@@ -142,7 +142,7 @@ describe('phase 2: one register, kinds, WHO harm and sentinel', async () => {
   })
 
   it('puts reports and deviations without CAPA in one register with their source', () => {
-    const rows = registerRows([{ id: 'INC-1', title: 'A', date: '2026-10-02', status: 'reported', category: 'fall', sentinel: true }], [{ key: 'control:e1', kind: 'control', sourceId: 'CTRL-1#e1', title: 'Fridge', at: '2026-10-05T08:00:00Z', priority: 'high', path: '/controls/CTRL-1' }])
+    const rows = registerRows([{ id: 'INC-1', title: 'A', date: '2026-10-02', status: 'reported', category: 'fall', sentinel: true }], [{ key: 'control:e1', kind: 'control', sourceId: 'CTRL-1#e1', title: 'Fridge', at: '2026-10-05T08:00:00Z', priority: 'high', path: '/controls/CTRL-1' }] as never)
     expect(rows.map(row => row.source)).toEqual(['control', 'report'])
     expect(rows[0]).toMatchObject({ type: 'deviation', status: 'withoutCapa', code: 'CTRL-1' })
     expect(filterRegister(rows, { quick: 'sentinel' }).map(row => row.id)).toEqual(['INC-1'])

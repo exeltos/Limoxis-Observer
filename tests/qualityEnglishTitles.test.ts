@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { qualityAudits, qualityCapas, qualityFindings, qualityIncidents } from '../src/features/quality/qualityDemoData'
 import { mapRow } from '../src/features/quality/qualityService'
+import type { QualityDbRow } from '../src/features/quality/qualityTypes'
 import { objectiveTitle } from '../src/features/quality/review/QualityObjectives'
 import { readSource } from './helpers/readSource'
 
@@ -9,7 +10,7 @@ const source = path => readSource(new URL(`../${path}`, import.meta.url))
 
 describe('English titles of quality records', () => {
   it('reads title_en when present and falls back to the written title', () => {
-    const row = { id: '1', code: 'FND-1', title: 'Ελλιπής τεκμηρίωση', title_en: 'Incomplete documentation', description: 'Περιγραφή', description_en: 'Description' }
+    const row: QualityDbRow = { id: '1', code: 'FND-1', title: 'Ελλιπής τεκμηρίωση', title_en: 'Incomplete documentation', description: 'Περιγραφή', description_en: 'Description' } as never
     expect(mapRow('findings', row)).toMatchObject({ title: 'Ελλιπής τεκμηρίωση', titleEn: 'Incomplete documentation', descriptionEn: 'Description' })
     expect(mapRow('findings', { ...row, title_en: null, description_en: null })).toMatchObject({ titleEn: 'Ελλιπής τεκμηρίωση', descriptionEn: 'Περιγραφή' })
   })

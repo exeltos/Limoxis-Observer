@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { REVIEW_SECTIONS, formatObjectiveValue, newReviewFrom, objectiveState, sectionFacts, nextCode } from '../src/features/quality/review/reviewTemplate'
+import type { Review, ReviewFacts } from '../src/features/quality/review/reviewTypes'
 
 describe('management review', () => {
   it('has the sixteen sections of the minutes form', () => {
@@ -8,7 +9,7 @@ describe('management review', () => {
   })
 
   it('starts a new review from the previous one: participants, frequency, open actions, period', () => {
-    const previous = { reviewDate: '2026-08-26', frequencyDays: 90, participants: [{ name: 'Α' }, { name: 'Β' }], actions: [{ title: 'x', status: 'open' }, { title: 'y', status: 'done' }] }
+    const previous: Review = { reviewDate: '2026-08-26', frequencyDays: 90, participants: [{ name: 'Α' }, { name: 'Β' }], actions: [{ title: 'x', status: 'open' }, { title: 'y', status: 'done' }] } as never
     const next = newReviewFrom(previous, '2026-11-24')
     expect(next.periodFrom).toBe('2026-08-27')
     expect(next.nextReviewDate).toBe('2027-02-22')
@@ -19,7 +20,7 @@ describe('management review', () => {
 
   it('summarises the reports, corrective actions and audits of the period', () => {
     const period = { from: '2026-08-27', to: '2026-11-24' }
-    const data = { incidents: [{ date: '2026-09-01', status: 'closed', reportKind: 'complaint' }, { date: '2026-10-01', sentinel: true }, { date: '2026-01-01' }], capas: [{ status: 'open', dueDate: '2026-10-01', date: '2026-09-02' }], audits: [{ plannedDate: '2026-09-10', status: 'completed' }] }
+    const data: ReviewFacts = { incidents: [{ date: '2026-09-01', status: 'closed', reportKind: 'complaint' }, { date: '2026-10-01', sentinel: true }, { date: '2026-01-01' }], capas: [{ status: 'open', dueDate: '2026-10-01', date: '2026-09-02' }], audits: [{ plannedDate: '2026-09-10', status: 'completed' }] } as never
     expect(sectionFacts('incidents', data, period)[0]).toMatch(/^2 αναφορές.*1 έκλεισε, 1 συμβάν-φρουρός/)
     expect(sectionFacts('complaints', data, period)[0]).toMatch(/1 παράπονο και 0 προτάσεις/)
     expect(sectionFacts('capas', data, period)[0]).toMatch(/1 διορθωτική ενέργεια ανοίχτηκε.*1 ανοιχτή σήμερα, 1 εκπρόθεσμη/)

@@ -20,7 +20,7 @@ describe('incident event details', () => {
   it('records the blocks of the event type, and sharps after a sharp-object injury', () => {
     expect(detailBlocks({ eventType: 'death' })).toEqual([])
     expect(detailBlocks({ eventType: 'injury_fall_exposure' })).toEqual(['fall'])
-    expect(detailBlocks({ eventType: 'injury_fall_exposure', fall: { injurySubcategory: 'sharp_object' } })).toEqual(['fall', 'sharp'])
+    expect(detailBlocks({ eventType: 'injury_fall_exposure', fall: { injurySubcategory: 'sharp_object' } as never })).toEqual(['fall', 'sharp'])
     expect(detailBlocks({ eventType: 'blue_code' })).toEqual(['blueCode'])
     expect(detailBlocks({ eventType: 'obstetric' })).toEqual(['obstetric'])
   })
@@ -28,9 +28,9 @@ describe('incident event details', () => {
   it('writes one row per table: the blocks of the type with something filled in, nothing elsewhere', () => {
     const rows = incidentDetailRows({
       eventType: 'injury_fall_exposure',
-      fall: { injurySubcategory: 'sharp_object', injuredPersonType: 'employee', injuredEmployeeId: EMPLOYEE, examinedByDoctor: false, location: ' Θάλαμος 3 ' },
-      sharp: { tool: 'needle', bodySite: 'hands', bodySiteOther: 'left over', substance: 'Αίμα' },
-      blueCode: { outcome: 'successful' },
+      fall: { injurySubcategory: 'sharp_object', injuredPersonType: 'employee', injuredEmployeeId: EMPLOYEE, examinedByDoctor: false, location: ' Θάλαμος 3 ' } as never,
+      sharp: { tool: 'needle', bodySite: 'hands', bodySiteOther: 'left over', substance: 'Αίμα' } as never,
+      blueCode: { outcome: 'successful' } as never,
       obstetric: { subcategory: 'preeclampsia' },
     })
     expect(rows.quality_incident_falls).toMatchObject({ injury_subcategory: 'sharp_object', injured_person_type: 'employee', injured_employee_id: EMPLOYEE, examined_by_doctor: false, location: 'Θάλαμος 3', fall_type: null })
@@ -38,10 +38,10 @@ describe('incident event details', () => {
     expect(rows.quality_incident_blue_codes).toBeNull()
     expect(rows.quality_incident_obstetric).toBeNull()
     expect(incidentDetailRows({ eventType: 'obstetric', obstetric: { subcategory: '' } }).quality_incident_obstetric).toBeNull()
-    expect(incidentDetailRows({ eventType: 'blue_code', blueCode: { interventions: ['cpr', 'magic'] } }).quality_incident_blue_codes.interventions).toEqual(['cpr'])
+    expect(incidentDetailRows({ eventType: 'blue_code', blueCode: { interventions: ['cpr', 'magic'] } as never }).quality_incident_blue_codes.interventions).toEqual(['cpr'])
     // An employee only for an injured employee, and only one of the staff list.
-    expect(incidentDetailRows({ eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'patient', injuredEmployeeId: EMPLOYEE } }).quality_incident_falls.injured_employee_id).toBeNull()
-    expect(incidentDetailRows({ eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'employee', injuredEmployeeId: 'emp-demo-1' } }).quality_incident_falls.injured_employee_id).toBeNull()
+    expect(incidentDetailRows({ eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'patient', injuredEmployeeId: EMPLOYEE } as never }).quality_incident_falls.injured_employee_id).toBeNull()
+    expect(incidentDetailRows({ eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'employee', injuredEmployeeId: 'emp-demo-1' } as never }).quality_incident_falls.injured_employee_id).toBeNull()
   })
 
   it('reads the embedded rows back into the blocks, as an object or a one-row array', () => {
@@ -53,11 +53,11 @@ describe('incident event details', () => {
   })
 
   it('keeps only the blocks of the type when saved, and shows what is filled in', () => {
-    const kept = keptDetails({ eventType: 'obstetric', fall: { location: 'x' }, obstetric: { subcategory: 'haematoma' } })
+    const kept = keptDetails({ eventType: 'obstetric', fall: { location: 'x' } as never, obstetric: { subcategory: 'haematoma' } })
     expect(kept.fall).toBeNull()
     expect(kept.obstetric).toEqual({ subcategory: 'haematoma' })
     expect(incidentDetailFacts(kept, 'en')).toEqual([['Event type', 'Obstetric event'], ['Obstetric subcategory', 'Haematoma']])
-    const facts = incidentDetailFacts({ eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'employee', injuredEmployeeId: 'e1', examinedByDoctor: false } }, 'el', [{ id: 'e1', firstName: 'Άννα', lastName: 'Μάρκου' }])
+    const facts = incidentDetailFacts({ eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'employee', injuredEmployeeId: 'e1', examinedByDoctor: false } as never }, 'el', [{ id: 'e1', firstName: 'Άννα', lastName: 'Μάρκου' }])
     expect(facts).toContainEqual(['Ποιος τραυματίστηκε', 'Εργαζόμενος · Μάρκου Άννα'])
     expect(facts).toContainEqual(['Εξετάστηκε από ιατρό', 'Όχι'])
   })
@@ -81,7 +81,7 @@ describe('CAPA steps, root cause analysis and progress as rows', () => {
     expect(rows.map(row => row.position)).toEqual([1, 2])
     expect(rows[0]).toMatchObject({ title: 'Εκπαίδευση', owner_label: 'Α', due_date: '2026-10-01', done: true, done_at: '2026-10-02T10:00:00Z', done_by_label: 'Β' })
     expect(rows[1]).toMatchObject({ owner_label: null, due_date: null, done: false, done_at: null, done_by_label: null })
-    const back = subActionsFromRows([...rows].reverse())
+    const back = subActionsFromRows([...rows].reverse() as never)
     expect(back.map(step => step.title)).toEqual(['Εκπαίδευση', 'Έλεγχος'])
     expect(back[0]).toMatchObject({ owner: 'Α', dueDate: '2026-10-01', done: true, doneBy: 'Β' })
   })
@@ -112,7 +112,7 @@ describe('CAPA steps, root cause analysis and progress as rows', () => {
     expect(progressRow({ note: ' ' })).toBeNull()
     const row = progressRow({ date: '2026-10-01', note: ' Έγινε ', author: 'Α' })
     expect(row).toMatchObject({ entry_date: '2026-10-01', note: 'Έγινε', author_label: 'Α' })
-    expect(progressFromRows([{ id: 'a', entry_date: '2026-09-01', note: 'πρώτη' }, { id: 'b', entry_date: '2026-10-01', note: 'δεύτερη' }]).map(entry => entry.note)).toEqual(['δεύτερη', 'πρώτη'])
+    expect(progressFromRows([{ id: 'a', entry_date: '2026-09-01', note: 'πρώτη' }, { id: 'b', entry_date: '2026-10-01', note: 'δεύτερη' }] as never).map(entry => entry.note)).toEqual(['δεύτερη', 'πρώτη'])
   })
 })
 
@@ -123,7 +123,7 @@ describe('audit checklist as rows', () => {
     expect(rows).toHaveLength(2)
     expect(rows[0]).toMatchObject({ position: 1, item: 'Σήμανση', item_en: 'Sign', required: true, answer: 'yes', note: null, finding_id: null })
     expect(rows[1]).toMatchObject({ position: 2, item_en: null, required: false, answer: 'no', note: 'λείπουν', finding_id: findingId })
-    const back = checklistFromRows([{ ...rows[1], finding: { code: 'FND-1' } }, rows[0]])
+    const back = checklistFromRows([{ ...rows[1], finding: { code: 'FND-1' } }, rows[0]] as never)
     expect(back.map(row => row.item)).toEqual(['Σήμανση', 'ΜΑΠ'])
     expect(back[1]).toMatchObject({ itemEn: 'ΜΑΠ', findingId: 'FND-1', answer: 'no' })
     expect(back[0]).not.toHaveProperty('findingId')

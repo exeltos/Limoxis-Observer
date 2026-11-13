@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { isFinalizedQualityRecord, openStepsBlockingCapa, recordOwners, statusOptions, withIncidentClass, withOwnerAdded, withOwnerRemoved } from '../src/features/quality/qualityRecordRules'
+import type { CapaSubAction } from '../src/features/quality/qualityTypes'
 
 describe('quality record statuses', () => {
   it('each record type has its own statuses; audits are the default', () => {
@@ -36,11 +37,11 @@ describe('responsible people', () => {
 })
 
 describe('openStepsBlockingCapa', () => {
-  const steps = [{ done: true }, { done: false }, {}]
+  const steps: CapaSubAction[] = [{ done: true }, { done: false }, {}] as never
   it('counts open steps when a CAPA moves to verification or closes', () => {
     expect(openStepsBlockingCapa('capas', { status: 'closed', subActions: steps }, { status: 'inProgress' })).toBe(2)
     expect(openStepsBlockingCapa('capas', { status: 'verification', subActions: steps }, { status: 'open' })).toBe(2)
-    expect(openStepsBlockingCapa('capas', { status: 'closed', subActions: [{ done: true }] }, { status: 'open' })).toBe(0)
+    expect(openStepsBlockingCapa('capas', { status: 'closed', subActions: [{ done: true }] as never }, { status: 'open' })).toBe(0)
   })
 
   it('does not block other moves, a CAPA already there, or other record types', () => {

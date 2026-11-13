@@ -53,7 +53,7 @@ describe('saving a CAPA', () => {
 
   it('updates the CAPA without jsonb, then writes only the changed steps and removes the missing ones', async () => {
     stored.quality_capa_sub_actions = [{ id: STEP, position: 1, title: 'Παλιό', owner_label: null, due_date: null, done: false, done_at: null, done_by_label: null }, { id: 'gone', position: 2, title: 'Χ', owner_label: null, due_date: null, done: false, done_at: null, done_by_label: null }]
-    await saveQualityRecord('capas', ORG, { ...record, subActions: [{ id: STEP, title: 'Παλιό', owner: '', dueDate: '', done: false }, { id: 'sa-new', title: 'Νέο', owner: 'Α', dueDate: '2026-11-01', done: false }] })
+    await saveQualityRecord('capas', ORG, { ...record, subActions: [{ id: STEP, title: 'Παλιό', owner: '', dueDate: '', done: false }, { id: 'sa-new', title: 'Νέο', owner: 'Α', dueDate: '2026-11-01', done: false }] as never })
     const [update] = writes('quality_capa_actions', 'update')
     expect(update.payload).not.toHaveProperty('sub_actions')
     expect(update.payload).not.toHaveProperty('root_cause_analysis')
@@ -68,7 +68,7 @@ describe('saving a CAPA', () => {
   })
 
   it('writes a changed analysis: its row, then its whys and causes', async () => {
-    await saveQualityRecord('capas', ORG, { ...record, subActions: [], rootCauseAnalysis: { problem: 'Π', whys: ['α', '', 'γ'], causes: { people: ['p'] }, rootCause: 'ρ', updatedBy: 'Ε' } })
+    await saveQualityRecord('capas', ORG, { ...record, subActions: [], rootCauseAnalysis: { problem: 'Π', whys: ['α', '', 'γ'], causes: { people: ['p'] }, rootCause: 'ρ', updatedBy: 'Ε' } as never })
     const [analysis] = writes('quality_capa_root_cause_analyses', 'upsert')
     expect(analysis.payload).toMatchObject({ capa_id: CAPA, organization_id: ORG, problem_statement: 'Π', root_cause: 'ρ', updated_by_label: 'Ε' })
     expect(analysis.options).toEqual({ onConflict: 'capa_id' })
@@ -85,7 +85,7 @@ describe('saving a CAPA', () => {
 
 describe('reporting an incident', () => {
   it('inserts an anonymous report and its event details without reading them back', async () => {
-    const created = await createQualityRecord('incidents', ORG, { title: 'Πτώση', anonymous: true, eventType: 'injury_fall_exposure', fall: { fallType: 'slip', injurySubcategory: 'sharp_object' }, sharp: { tool: 'needle' }, blueCode: { outcome: 'successful' } }, 'user-1')
+    const created = await createQualityRecord('incidents', ORG, { title: 'Πτώση', anonymous: true, eventType: 'injury_fall_exposure', fall: { fallType: 'slip', injurySubcategory: 'sharp_object' } as never, sharp: { tool: 'needle' } as never, blueCode: { outcome: 'successful' } as never }, 'user-1')
     expect(created.anonymous).toBe(true)
     const [incident] = writes('quality_incidents', 'insert')
     expect(incident.payload).toMatchObject({ event_type: 'injury_fall_exposure', is_anonymous: true, reported_by: null })
@@ -97,7 +97,7 @@ describe('reporting an incident', () => {
   })
 
   it('on save, writes the blocks of the event type and removes the others', async () => {
-    await saveQualityRecord('incidents', ORG, { id: 'INC-1', title: 'Μ', status: 'reported', eventType: 'obstetric', obstetric: { subcategory: 'preeclampsia' }, fall: { fallType: 'slip' }, history: [] })
+    await saveQualityRecord('incidents', ORG, { id: 'INC-1', title: 'Μ', status: 'reported', eventType: 'obstetric', obstetric: { subcategory: 'preeclampsia' }, fall: { fallType: 'slip' } as never, history: [] })
     expect(writes('quality_incidents', 'update')[0].payload.event_type).toBe('obstetric')
     expect(writes('quality_incident_obstetric', 'upsert')[0].payload).toMatchObject({ subcategory: 'preeclampsia', incident_id: CAPA })
     expect(writes('quality_incident_falls', 'delete')).toHaveLength(1)

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { bundleSourceId, capaPrefill, controlSourceId, deviationQueue, overdueSubActions, sourcePath, subActionProgress } from '../src/features/quality/qualityDeviations'
+import type { CapaSubAction } from '../src/features/quality/qualityTypes'
 
 const now = new Date('2026-10-08T12:00:00Z')
 const control = {
@@ -40,7 +41,7 @@ describe('deviation queue', () => {
   })
 
   it('counts progress and overdue steps', () => {
-    const steps = [{ id: 1, done: true }, { id: 2, done: false, dueDate: '2026-10-01' }, { id: 3, done: false, dueDate: '2026-10-30' }]
+    const steps: CapaSubAction[] = [{ id: 1, done: true }, { id: 2, done: false, dueDate: '2026-10-01' }, { id: 3, done: false, dueDate: '2026-10-30' }] as never
     expect(subActionProgress(steps)).toEqual({ total: 3, done: 1, open: 2 })
     expect(overdueSubActions(steps, '2026-10-08').map((s) => s.id)).toEqual([2])
   })

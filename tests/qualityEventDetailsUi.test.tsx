@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { chooseOption } from './selectHelpers'
 import type { AnyRecord } from '../src/types/featureTypes'
+import type { QualityRecord } from '../src/features/quality/qualityTypes'
 
 vi.mock('../src/features/employees/useEmployeesData', () => ({ useEmployeesData: () => ({ data: [{ id: 'e1', firstName: 'Άννα', lastName: 'Μάρκου', employmentStatus: 'active' }] }) }))
 vi.mock('../src/features/management/useLibraries', async original => ({ ...(await original()), useLibraries: () => ({ libraries: { incidentCategories: [] } }) }))
@@ -30,7 +31,7 @@ describe('incident event details on screen', () => {
   })
 
   it('adds the sharps block after a sharp-object injury, and the blue code its interventions', () => {
-    render(<IncidentEventFields record={{ eventType: 'injury_fall_exposure', fall: { injurySubcategory: 'sharp_object' } }} onChange={() => {}} language="en" />)
+    render(<IncidentEventFields record={{ eventType: 'injury_fall_exposure', fall: { injurySubcategory: 'sharp_object' } as never }} onChange={() => {}} language="en" />)
     expect(screen.getByText('Contact duration')).toBeInTheDocument()
     cleanup()
     render(<IncidentEventFields record={{ eventType: 'blue_code' }} onChange={() => {}} language="en" />)
@@ -38,7 +39,7 @@ describe('incident event details on screen', () => {
   })
 
   it('shows the details filled in, on the record and in its PDF', () => {
-    const record = { id: 'INC-1', title: 'Πτώση', status: 'reported', reportKind: 'clinical', eventType: 'blue_code', blueCode: { interventions: ['cpr', 'oxygen'], outcome: 'successful', transferTo: 'icu' } }
+    const record: QualityRecord = { id: 'INC-1', title: 'Πτώση', status: 'reported', reportKind: 'clinical', eventType: 'blue_code', blueCode: { interventions: ['cpr', 'oxygen'], outcome: 'successful', transferTo: 'icu' } } as never
     const { container } = render(<IncidentEventSummary record={record} language="el" />)
     expect(container).toHaveTextContent('Μπλε κωδικός')
     expect(container).toHaveTextContent('ΚΑΡΠΑ, Οξυγόνο')
