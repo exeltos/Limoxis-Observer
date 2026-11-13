@@ -5,16 +5,16 @@
 import { supabase } from '../../core/supabase/client'
 import { DEMO_PUBLIC, isDemoToken, normalizeCode } from './applicationModel'
 import type { Json } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ApplicationInfo } from './applicationModel'
 
 const fail = (error: { message?: string } | null) => { throw new Error(error?.message || 'HR_APPLICATION_FAILED') }
 
-export async function loadApplicationLink(token: unknown): Promise<AnyRecord | null> {
+export async function loadApplicationLink(token: unknown): Promise<ApplicationInfo | null> {
   if (isDemoToken(token)) return { ...DEMO_PUBLIC }
   if (!supabase) throw new Error('HR_APPLICATION_NOT_AVAILABLE')
   const { data, error } = await supabase.rpc('hr_application_public', { p_token: normalizeCode(token) })
   if (error) fail(error)
-  return data as AnyRecord | null
+  return data as ApplicationInfo | null
 }
 
 export async function submitApplication(token: unknown, payload: Json) {

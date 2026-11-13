@@ -105,7 +105,7 @@ export async function loadDivisionInterviews(organizationId: string | null | und
   const candidates = await loadDivisionCandidates(organizationId)
   const today = hospitalToday()
   return (candidates || [])
-    .filter(candidate => !categories.length || categories.includes(candidate.professionalCategory))
-    .flatMap(candidate => (candidate.interviews || []).filter((item: { status: string, scheduledAt?: string | null }) => item.status === 'scheduled' && item.scheduledAt && hospitalDate(item.scheduledAt) >= today).map((item: { id: string, scheduledAt: string }) => ({ id: item.id, candidateId: candidate.id, name: candidate.fullName, position: candidate.requestedPosition, scheduledAt: item.scheduledAt })))
-    .sort((a: DivisionInterview, b: DivisionInterview) => String(a.scheduledAt).localeCompare(String(b.scheduledAt)))
+    .filter(candidate => !categories.length || categories.includes(candidate.professionalCategory as string))
+    .flatMap(candidate => (candidate.interviews || []).filter(item => item.status === 'scheduled' && item.scheduledAt && hospitalDate(item.scheduledAt) >= today).map((item): DivisionInterview => ({ id: item.id, candidateId: candidate.id, name: candidate.fullName as string, position: candidate.requestedPosition as string, scheduledAt: item.scheduledAt as string })))
+    .sort((a, b) => String(a.scheduledAt).localeCompare(String(b.scheduledAt)))
 }

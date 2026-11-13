@@ -22,13 +22,15 @@ import { demoLibrarySeed } from '../management/managementData'
 import { useInterviewsActor } from './InterviewsShared'
 import { PROFESSIONAL_CATEGORIES, CRITERIA, DECISIONS, EMPLOYMENT_TYPES, GENDERS, INTERVIEWER_ROLES, LANGUAGES, LEVELS, MARITAL, MILITARY, OUTCOMES, SCORES, candidateProblems, decisionProblems, employeeDraftFor, fmtRating, interviewProblems, matchingEmployees, newEducation, newEmployer, newLanguage, options, overallRating, ratingTone, todayKey } from './interviewsModel'
 import { decide, interviewsErrorMessage, markHired, saveCandidate, saveInterview } from './interviewsService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Candidate, CandidateEmployer, CandidateListKey, Interview, InterviewEmployee, Interviewer } from './interviewsTypes'
+// A department to hire into (the demo's library or the hospital's departments).
+type HireDepartment = { id: string, name: string, nameEn?: string | null }
 
 // What the dialogs of an application take; onSaved gets what the save returned (the id of a new application, the hired employee).
 interface DialogProps {
-  candidate: AnyRecord
+  candidate: Candidate
   organizationId: string | null
-  employees?: AnyRecord[]
+  employees?: InterviewEmployee[]
   onClose: () => void
   onSaved?: (result: unknown) => unknown
 }
@@ -57,12 +59,12 @@ const Text = ({ label, value, onChange, rows = 0, type = 'text' }: { label: stri
 
 // The application form («ΑΙΤΗΣΗ ΕΡΓΑΣΙΑΣ»): position, personal details, contact, the
 // rest of the form and the consent to the processing of personal data.
-export function CandidateDialog({ initial, organizationId, positions = [], onClose, onSaved }: { initial: AnyRecord, positions?: string[] } & Omit<DialogProps, 'candidate'>) {
+export function CandidateDialog({ initial, organizationId, positions = [], onClose, onSaved }: { initial: Candidate, positions?: string[] } & Omit<DialogProps, 'candidate'>) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState<AnyRecord>(() => structuredClone(initial))
+  const [draft, setDraft] = useState<Candidate>(() => structuredClone(initial))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
+  const set = (next: Partial<Candidate>) => setDraft(current => ({ ...current, ...next }))
   const problems = candidateProblems(draft, language)
   const save = () => run(async () => { const id = await saveCandidate(organizationId, draft); onClose(); return id }, en ? 'Application saved.' : 'Η αίτηση αποθηκεύτηκε.')
   return <FormPage title={initial.id ? `${en ? 'Application' : 'Αίτηση'} ${initial.code || ''}`.trim() : (en ? 'New application' : 'Νέα αίτηση εργασίας')} subtitle={en ? 'Personal data of a candidate: kept only with their consent and seen only by HR.' : 'Προσωπικά δεδομένα υποψηφίου: τηρούνται μόνο με τη συναίνεσή του και τα βλέπει μόνο το Γραφείο Προσωπικού.'} onClose={onClose}
@@ -122,12 +124,12 @@ export function CandidateDialog({ initial, organizationId, positions = [], onClo
 export function EducationDialog({ candidate, organizationId, onClose, onSaved }: DialogProps) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...structuredClone(candidate), education: candidate.education?.length ? structuredClone(candidate.education) : [newEducation()], languages: candidate.languages?.length ? structuredClone(candidate.languages) : [newLanguage()] }))
+  const [draft, setDraft] = useState<Candidate & Required<Pick<Candidate, CandidateListKey>>>(() => ({ ...structuredClone(candidate), education: candidate.education?.length ? structuredClone(candidate.education) : [newEducation()], languages: candidate.languages?.length ? structuredClone(candidate.languages) : [newLanguage()] }))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
-  const setRow = (key: string, index: number, next: AnyRecord) => setDraft(current => ({ ...current, [key]: current[key].map((row: AnyRecord, at: number) => (at === index ? { ...row, ...next } : row)) }))
-  const addRow = (key: string, row: AnyRecord) => setDraft(current => ({ ...current, [key]: [...current[key], row] }))
-  const removeRow = (key: string, index: number) => setDraft(current => ({ ...current, [key]: current[key].filter((_: unknown, at: number) => at !== index) }))
+  const set = (next: Partial<Candidate>) => setDraft(current => ({ ...current, ...next }))
+  const setRow = <K extends CandidateListKey>(key: K, index: number, next: Partial<NonNullable<Candidate[K]>[number]>) => setDraft(current => ({ ...current, [key]: (current[key] as NonNullable<Candidate[K]>[number][]).map((row, at) => (at === index ? { ...row, ...next } : row)) }))
+  const addRow = <K extends CandidateListKey>(key: K, row: NonNullable<Candidate[K]>[number]) => setDraft(current => ({ ...current, [key]: [...current[key], row] }))
+  const removeRow = (key: CandidateListKey, index: number) => setDraft(current => ({ ...current, [key]: (current[key] as unknown[]).filter((_, at) => at !== index) }))
   const levels = withEmpty(options(LEVELS, language))
   const save = () => run(async () => { await saveCandidate(organizationId, draft); onClose() })
   return <FormPage title={en ? 'Education and languages' : 'Εκπαίδευση και γλώσσες'} subtitle={candidate.fullName} onClose={onClose} footer={<DialogActions onSave={save} disabled={saving} />}>
@@ -137,7 +139,7 @@ export function EducationDialog({ candidate, organizationId, onClose, onSaved }:
     </FormGrid>
     <SectionHeader title={en ? 'Degrees and schools' : 'Πτυχία και σχολές'} actions={<Button variant="secondary" onClick={() => addRow('education', newEducation())}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>} />
     <div className="interviews-row-list">
-      {draft.education.map((row: AnyRecord, index: number) => <div className="interviews-row" key={index}>
+      {draft.education.map((row, index) => <div className="interviews-row" key={index}>
         <FormGrid columns={4}>
           <Text label={en ? 'Level' : 'Επίπεδο'} value={row.level} onChange={value => setRow('education', index, { level: value })} />
           <Text label={en ? 'School / department' : 'Σχολή / τμήμα'} value={row.school} onChange={value => setRow('education', index, { school: value })} />
@@ -149,7 +151,7 @@ export function EducationDialog({ candidate, organizationId, onClose, onSaved }:
     </div>
     <SectionHeader title={en ? 'Languages' : 'Ξένες γλώσσες'} actions={<Button variant="secondary" onClick={() => addRow('languages', newLanguage())}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>} />
     <div className="interviews-row-list">
-      {draft.languages.map((row: AnyRecord, index: number) => <div className="interviews-row" key={row.id || index}>
+      {draft.languages.map((row, index) => <div className="interviews-row" key={row.id || index}>
         <FormGrid columns={4}>
           <SearchableSelect label={en ? 'Language' : 'Γλώσσα'} value={row.language} allowCustom options={options(LANGUAGES, language)} onChange={value => setRow('languages', index, { language: value || '' })} {...selectText(en)} />
           <ChoiceField label={en ? 'Speaking' : 'Ομιλία'} value={row.speaking} options={levels} onChange={value => setRow('languages', index, { speaking: value })} />
@@ -166,9 +168,9 @@ export function EducationDialog({ candidate, organizationId, onClose, onSaved }:
 export function EmployersDialog({ candidate, organizationId, onClose, onSaved }: DialogProps) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [rows, setRows] = useState<AnyRecord[]>(() => (candidate.employers?.length ? structuredClone(candidate.employers) : [newEmployer()]))
+  const [rows, setRows] = useState<CandidateEmployer[]>(() => (candidate.employers?.length ? structuredClone(candidate.employers) : [newEmployer()]))
   const [saving, run] = useSave(onSaved)
-  const setRow = (index: number, next: AnyRecord) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next } : row)))
+  const setRow = (index: number, next: Partial<CandidateEmployer>) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next } : row)))
   const problems = candidateProblems({ ...candidate, employers: rows }, language)
   const save = () => run(async () => { await saveCandidate(organizationId, { ...candidate, employers: rows }); onClose() })
   return <FormPage title={en ? 'Previous employers' : 'Προϋπηρεσία'} subtitle={candidate.fullName} onClose={onClose}
@@ -193,11 +195,11 @@ export function EmployersDialog({ candidate, organizationId, onClose, onSaved }:
 // --- Interview -------------------------------------------------------------------------------
 
 // The panel: evaluators from the staff registry (or a name), and the HR office.
-function InterviewersEditor({ value, onChange, employees, language }: { value: AnyRecord[] | null | undefined, onChange: (value: AnyRecord[]) => void, employees: AnyRecord[], language: string }) {
+function InterviewersEditor({ value, onChange, employees, language }: { value: Interviewer[] | null | undefined, onChange: (value: Interviewer[]) => void, employees: InterviewEmployee[], language: string }) {
   const en = language === 'en'
   const rows = value || []
   const employeeOptions = employees.map(item => ({ value: String(item.dbId || item.id), label: `${item.lastName} ${item.firstName}`.trim(), description: [item.position || item.profession, item.department].filter(Boolean).join(' · ') }))
-  const setRow = (index: number, next: AnyRecord) => onChange(rows.map((row, at) => (at === index ? { ...row, ...next } : row)))
+  const setRow = (index: number, next: Partial<Interviewer>) => onChange(rows.map((row, at) => (at === index ? { ...row, ...next } : row)))
   return <>
     <SectionHeader title={en ? 'Interview panel' : 'Επιτροπή συνέντευξης'} subtitle={en ? 'Evaluator 1 / 2 and the HR office.' : 'Αξιολογητής 1 / 2 και Γραφείο Προσωπικού.'} actions={<Button variant="secondary" onClick={() => onChange([...rows, { employeeId: '', name: '', role: 'evaluator' }])}><Plus size={15} />{en ? 'Add member' : 'Προσθήκη μέλους'}</Button>} />
     <div className="interviews-row-list">
@@ -216,10 +218,10 @@ const splitStamp = (value: string | null | undefined) => { if (!value) return ['
 const joinStamp = (dayValue: string, time: string) => (dayValue ? new Date(`${dayValue}T${time || '09:00'}:00`).toISOString() : '')
 
 // Schedule (or move) an interview: day, time, place and the panel.
-export function ScheduleDialog({ candidate, initial, organizationId, employees = [], onClose, onSaved }: DialogProps & { initial: AnyRecord }) {
+export function ScheduleDialog({ candidate, initial, organizationId, employees = [], onClose, onSaved }: DialogProps & { initial: Interview }) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState<AnyRecord>(() => structuredClone(initial))
+  const [draft, setDraft] = useState<Interview>(() => structuredClone(initial))
   const [[dayValue, time], setWhen] = useState(() => splitStamp(initial.scheduledAt))
   const [saving, run] = useSave(onSaved)
   const entry = { ...draft, scheduledAt: joinStamp(dayValue, time), status: draft.status === 'completed' ? 'completed' : draft.status || 'scheduled' }
@@ -239,13 +241,13 @@ export function ScheduleDialog({ candidate, initial, organizationId, employees =
 
 // The evaluation of an interview: the score per criterion (1–5), the overall rating, the
 // recommendation, salary and availability.
-export function EvaluationDialog({ candidate, initial, organizationId, employees = [], onClose, onSaved }: DialogProps & { initial: AnyRecord }) {
+export function EvaluationDialog({ candidate, initial, organizationId, employees = [], onClose, onSaved }: DialogProps & { initial: Interview }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useInterviewsActor()
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...structuredClone(initial), scheduledAt: initial.scheduledAt || new Date().toISOString(), interviewers: initial.interviewers?.length ? structuredClone(initial.interviewers) : [{ employeeId: '', name: actor.name, role: 'hr' }] }))
+  const [draft, setDraft] = useState<Interview>(() => ({ ...structuredClone(initial), scheduledAt: initial.scheduledAt || new Date().toISOString(), interviewers: initial.interviewers?.length ? structuredClone(initial.interviewers) : [{ employeeId: '', name: actor.name, role: 'hr' }] }))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
+  const set = (next: Partial<Interview>) => setDraft(current => ({ ...current, ...next }))
   const rating = overallRating(draft.scores)
   const entry = { ...draft, status: 'completed', evaluatedByName: draft.evaluatedByName || actor.name }
   const problems = interviewProblems(entry, language, { evaluation: true })
@@ -259,7 +261,7 @@ export function EvaluationDialog({ candidate, initial, organizationId, employees
     <SectionHeader title={en ? 'Score per criterion' : 'Βαθμολογία ανά κριτήριο'} subtitle={en ? '1 poor · 3 good · 5 excellent. The overall rating is their mean.' : '1 ανεπαρκής · 3 καλή · 5 εξαιρετική. Η συνολική βαθμολογία είναι ο μέσος όρος.'} />
     <FormGrid columns={3}>
       {CRITERIA.map(([key, el, enText]) => <ChoiceField key={key} label={en ? enText : el} value={draft.scores?.[key] ? String(draft.scores[key]) : ''} options={scoreOptions}
-        onChange={value => set({ scores: Object.fromEntries(Object.entries({ ...draft.scores, [key]: value ? Number(value) : null }).filter(([, score]) => score != null)) })} />)}
+        onChange={value => set({ scores: Object.fromEntries(Object.entries({ ...draft.scores, [key]: value ? Number(value) : null }).filter(([, score]) => score != null)) as Record<string, number | string> })} />)}
     </FormGrid>
     <SectionHeader title={en ? 'Recommendation' : 'Πρόταση'} />
     <FormGrid columns={3}>
@@ -313,7 +315,7 @@ export function HireDialog({ candidate, organizationId, employees = [], onClose,
   const [mode, setMode] = useState(matches.length ? 'link' : 'create')
   const [linked, setLinked] = useState(matches[0] ? String(matches[0].dbId || matches[0].id) : '')
   const [draft, setDraft] = useState(() => employeeDraftFor(candidate))
-  const [departments, setDepartments] = useState<AnyRecord[]>([])
+  const [departments, setDepartments] = useState<HireDepartment[]>([])
   const [saving, run] = useSave(onSaved)
   const set = (next: Partial<typeof draft>) => setDraft(current => ({ ...current, ...next }))
   useEffect(() => {
@@ -327,12 +329,12 @@ export function HireDialog({ candidate, organizationId, employees = [], onClose,
   const duplicate = Boolean(code && employees.some(item => String(item.id || '').trim().toLowerCase() === code))
   const problems = mode === 'link' ? (linked ? [] : [en ? 'the employee' : 'τον εργαζόμενο']) : [!draft.employeeCode.trim() && (en ? 'employee code' : 'κωδικό εργαζομένου'), duplicate && (en ? 'a code not in use' : 'κωδικό που δεν χρησιμοποιείται'), !draft.lastName.trim() && (en ? 'last name' : 'επώνυμο'), !draft.firstName.trim() && (en ? 'first name' : 'όνομα'), !draft.department && (en ? 'department' : 'τμήμα')].filter(Boolean)
   const save = () => run(async () => {
-    let employee: AnyRecord | undefined = employees.find(item => String(item.dbId || item.id) === linked)
+    let employee: InterviewEmployee | undefined = employees.find(item => String(item.dbId || item.id) === linked)
     if (mode === 'create') {
       const department = departments.find(row => row.id === draft.department || row.name === draft.department)
-      employee = await createEmployeeAsync(organizationId, { ...draft, id: draft.employeeCode.trim(), employeeCode: draft.employeeCode.trim(), department: department?.name || draft.department, departmentId: isDemo ? null : department?.id || null, departmentEn: department?.nameEn || department?.name || draft.department, firstNameEn: draft.firstName, lastNameEn: draft.lastName })
+      employee = await createEmployeeAsync(organizationId, { ...draft, id: draft.employeeCode.trim(), employeeCode: draft.employeeCode.trim(), department: department?.name || draft.department, departmentId: isDemo ? null : department?.id || null, departmentEn: department?.nameEn || department?.name || draft.department, firstNameEn: draft.firstName, lastNameEn: draft.lastName }) as InterviewEmployee
     }
-    await markHired(organizationId, candidate, employee as AnyRecord)
+    await markHired(organizationId, candidate, employee as InterviewEmployee)
     onClose()
     return employee
   }, en ? 'The candidate was hired.' : 'Ο υποψήφιος προσλήφθηκε.')
