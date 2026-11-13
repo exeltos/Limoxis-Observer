@@ -55,13 +55,13 @@ describe('birth-weight-stratified CLABSI indicator metrics', () => {
   })
 
   it('computes a non-zero rate for the demo 751-1000g band from the seeded NICU case', () => {
-    const metrics = collectIndicatorMetrics()
+    const metrics = collectIndicatorMetrics() as Record<string, number>
     expect(metrics.clabsi_events_bw751_1000).toBeGreaterThan(0)
     expect(metrics.central_line_days_bw751_1000).toBeGreaterThan(0)
   })
 
   it('leaves other birth-weight bands at zero since no demo case falls in them', () => {
-    const metrics = collectIndicatorMetrics()
+    const metrics = collectIndicatorMetrics() as Record<string, number>
     expect(metrics.clabsi_events_le750).toBe(0)
     expect(metrics.clabsi_events_gt2500).toBe(0)
   })
