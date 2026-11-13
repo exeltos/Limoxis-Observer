@@ -10,7 +10,7 @@ const employee=readEmployeeRecordPageSource()
 const surveillance=readSplitSource('src/features/surveillance/SurveillanceCanonicalPage.jsx')
 const employeeDialog=readSource('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx')
 const analysis=readAnalysisPageSource()
-const parityAudit=readSource('tools/check-frontend-parity.mjs')
+const parityAudit=readSource('tools/check-frontend-parity.ts')
 const workflow=readSource('.github/workflows/ci.yml')
 
 describe('Demo uses canonical product UI',()=>{
@@ -23,7 +23,7 @@ describe('Demo uses canonical product UI',()=>{
     expect(users).toContain("if(isDemo){")
   })
 
-  // The chooser and the employee dialog are exercised in surveillanceCenter*.test.jsx.
+  // The chooser and the employee dialog are exercised in surveillanceCenter*.test.tsx.
   it('uses one employee-surveillance creation flow and one record dialog from both entry points',()=>{
     expect(employee).not.toContain('ProductionEmployeeSurveillanceFlow')
     expect(surveillance).not.toContain('ProductionEmployeeSurveillanceFlow')
