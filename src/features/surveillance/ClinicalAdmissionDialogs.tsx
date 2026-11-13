@@ -33,6 +33,7 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
 import type { ReactNode } from 'react'
+import type { Admission, Patient, PatientDepartment } from '../patients/patientTypes'
 
 interface PatientDetailsEditorProps {
   title: string
@@ -56,7 +57,7 @@ export function PatientDetailsEditor({
   onCancel,
   onSave,
 }: PatientDetailsEditorProps) {
-  const form = usePatientForm({ patient, departments })
+  const form = usePatientForm({ patient: patient as Patient, departments: departments as PatientDepartment[] })
   return (
     <>
       <SectionHeader
@@ -81,7 +82,7 @@ export function PatientDetailsEditor({
           form={form}
           t={t}
           language={language}
-          departments={departments}
+          departments={departments as PatientDepartment[]}
           className="patient-entry-grid-wide"
         />
       </div>
@@ -129,7 +130,7 @@ export function useAdmissionLifecycle({
     if (!patient || !admission) return
     try {
       setBusy(true)
-      await dischargeAdmission(tenantId, patient, admission, result, { isDemo })
+      await dischargeAdmission(tenantId, patient as Patient, admission as Admission, result, { isDemo })
       setKind(null)
       await onChanged?.()
       notify(t('saved'), 'success')
@@ -144,13 +145,13 @@ export function useAdmissionLifecycle({
     try {
       setBusy(true)
       if (kind === 'discharge')
-        await dischargeAdmission(tenantId, patient!, admission!, draft, { isDemo })
+        await dischargeAdmission(tenantId, patient as Patient, admission as Admission, draft, { isDemo })
       else {
         const dept = departments.find(x => x.id === draft.departmentId)
         await transferAdmission(
           tenantId,
-          patient!,
-          admission!,
+          patient as Patient,
+          admission as Admission,
           { ...draft, department: dept?.name || '' },
           { isDemo },
         )
@@ -271,7 +272,7 @@ export function AdmissionDeleteDialog({
   const { notify } = useFeedback()
   async function remove(reason: string) {
     try {
-      await deleteAdmission(tenantId, patient!, admission, reason, { isDemo })
+      await deleteAdmission(tenantId, patient as Patient, admission as Admission, reason, { isDemo })
       onClose()
       notify(t('clinicalRecords.admissionDeleted'), 'success')
       await onDeleted?.(admission)
@@ -349,8 +350,8 @@ export function NewAdmissionDialog({
       const discharged = activeAdmission
         ? await dischargeAdmission(
             tenantId,
-            patient,
-            activeAdmission,
+            patient as Patient,
+            activeAdmission as Admission,
             { date: draft.dischargeDate, reason: '' },
             { isDemo },
           )
@@ -358,7 +359,7 @@ export function NewAdmissionDialog({
       const dept = departments.find(x => x.id === draft.departmentId)
       const row = await createAdmission(
         tenantId,
-        patient,
+        patient as Patient,
         {
           departmentId: draft.departmentId,
           department: dept?.name || '',

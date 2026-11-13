@@ -8,6 +8,7 @@ import { FieldLabelText, FormSubmit, useFormValidation } from '../../../../desig
 import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { EODY_CATALOGUE, EODY_FOOTNOTES, deadlineWords, eodyEntry, eodyLabel } from '../../../reporting/eodyCatalogue'
 import { suggestPatientCode } from '../../../patients/patientsService'
+import type { Patient } from '../../../patients/patientTypes'
 import type { AnyRecord } from '../../../../types/featureTypes'
 import type { Handler } from '../../surveillanceTypes'
 
@@ -47,7 +48,7 @@ export function NewNotificationDialog({ patients = null, busy = false, onSave, o
   ])
   function chooseMode(value: string) {
     setMode(value)
-    if (value === 'new' && !draft.patientCode) set('patientCode', suggestPatientCode(patients || []))
+    if (value === 'new' && !draft.patientCode) set('patientCode', suggestPatientCode((patients || []) as unknown as Patient[]))
   }
   function save() {
     if (!askPatient) return onSave({ entry })

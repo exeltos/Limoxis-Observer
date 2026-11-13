@@ -1,7 +1,9 @@
 import { supabase, type Cloud } from '../../core/supabase/client'
 import { assertCloud } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
 import { clinicalCases } from '../surveillance/clinicalDemoData'
+
+// What the flags read of a surveillance episode (the surveillance module is not typed yet).
+type CaseLike = { status?: string, patientRecordId?: string, patientId?: string, resistance?: string, organism?: string, startedAt?: string | null, admissionDate?: string, samples?: ({ resistance?: string, organism?: string } | null)[], isolation?: { status?: string, startedAt?: string | null, precautions?: string[] } }
 
 // A patient's infection-prevention flags.
 export interface InfectionFlags {
@@ -9,7 +11,7 @@ export interface InfectionFlags {
   isolation: { since: string | null, precautions: string[] } | null
 }
 
-const caseDate = (row: AnyRecord | null | undefined) => String(row?.startedAt || row?.admissionDate || '')
+const caseDate = (row: CaseLike | null | undefined) => String(row?.startedAt || row?.admissionDate || '')
 
 // Infection-prevention flags per patient, derived from surveillance episodes:
 // - resistance: the most recent resistance classification (MDR, XDR, ESBL,
@@ -17,16 +19,16 @@ const caseDate = (row: AnyRecord | null | undefined) => String(row?.startedAt ||
 //   so a closed episode still flags the patient.
 // - isolation: an isolation that is currently in place.
 // Keyed by the patient's cloud record id, or by the patient code in the demo.
-export function infectionFlagsFromCases(cases: readonly AnyRecord[] = []): Record<string, InfectionFlags> {
+export function infectionFlagsFromCases(cases: readonly CaseLike[] = []): Record<string, InfectionFlags> {
   const out: Record<string, InfectionFlags> = {}
   const sorted = [...cases].filter(row => row && row.status !== 'cancelled').sort((a, b) => caseDate(b).localeCompare(caseDate(a)))
   for (const row of sorted) {
     const key = row.patientRecordId || row.patientId
     if (!key) continue
     const flags: InfectionFlags = out[key] ??= { resistance: null, isolation: null }
-    const resistance = row.resistance || row.samples?.find((sample: AnyRecord | null) => sample?.resistance)?.resistance || null
+    const resistance = row.resistance || row.samples?.find((sample) => sample?.resistance)?.resistance || null
     if (!flags.resistance && resistance) {
-      flags.resistance = { classification: resistance, organism: row.organism || row.samples?.find((sample: AnyRecord | null) => sample?.organism)?.organism || '', since: row.startedAt || null }
+      flags.resistance = { classification: resistance, organism: row.organism || row.samples?.find((sample) => sample?.organism)?.organism || '', since: row.startedAt || null }
     }
     if (!flags.isolation && row.isolation?.status === 'active') {
       flags.isolation = { since: row.isolation.startedAt || row.startedAt || null, precautions: row.isolation.precautions || [] }
@@ -36,7 +38,7 @@ export function infectionFlagsFromCases(cases: readonly AnyRecord[] = []): Recor
 }
 
 export async function loadPatientInfectionFlags(organizationId: string | null | undefined, { isDemo = false } = {}): Promise<Record<string, InfectionFlags>> {
-  if (isDemo) return infectionFlagsFromCases(Object.values(clinicalCases) as AnyRecord[])
+  if (isDemo) return infectionFlagsFromCases(Object.values(clinicalCases) as CaseLike[])
   if (!organizationId) return {}
   // One row per resistant or isolated patient from the database (patient_infection_flags,
   // 20261128500000), the rules above, instead of hydrating every episode.
