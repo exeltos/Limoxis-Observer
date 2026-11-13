@@ -12,8 +12,8 @@ import { Button } from '../../../design-system/Button'
 import { QUESTION_TYPES, SCALES, SURVEY_AUDIENCES, SURVEY_TEMPLATES, questionTypeLabel, sectionsOf, textOf } from './surveyModel'
 import { SurveyQuestion } from './SurveyForm'
 import '../../registers/registers.css'
-import type { AnyRecord } from '../../../types/featureTypes'
 import type { Survey, SurveyQuestion as SurveyQuestionRow } from './surveyModel'
+import type { SurveyAnswer, SurveyDepartment, SurveyEditing, SurveySection } from './surveyTypes'
 
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 const uid = (prefix: string) => `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
@@ -23,23 +23,23 @@ const audienceOptions = (en: boolean) => SURVEY_AUDIENCES.map(item => ({ value: 
 // The questionnaire and its settings, laid out like a register's definition:
 // the survey's details, then its sections with their questions; a question
 // opens in its own window, with a preview of how it is answered.
-export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasResponses, departments = [], language = 'el' }: { survey: Survey, onChange: (next: Survey) => void, onTemplate?: (key: string) => void, isNew?: boolean, locked?: boolean, hasResponses?: boolean, departments?: AnyRecord[], language?: string }) {
+export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasResponses, departments = [], language = 'el' }: { survey: Survey, onChange: (next: Survey) => void, onTemplate?: (key: string) => void, isNew?: boolean, locked?: boolean, hasResponses?: boolean, departments?: SurveyDepartment[], language?: string }) {
   const en = language === 'en'
-  const [editing, setEditing] = useState<AnyRecord | null>(null)
+  const [editing, setEditing] = useState<SurveyEditing | null>(null)
   const set = (next: Partial<Survey>) => onChange({ ...survey, ...next })
   const questions = survey.questions || []
   const sections = sectionsOf(survey)
-  const setSections = (next: AnyRecord[]) => set({ sections: next })
+  const setSections = (next: SurveySection[]) => set({ sections: next })
   const departmentOptions = departments.map(item => ({ value: item.id || item.name, label: en ? item.nameEn || item.name : item.name }))
 
-  function saveQuestion(question: SurveyQuestionRow, previousId: string) {
-    const exists = questions.some((item: AnyRecord) => item.id === previousId)
-    set({ sections, questions: exists ? questions.map((item: AnyRecord) => (item.id === previousId ? question : item)) : [...questions, question] })
+  function saveQuestion(question: SurveyQuestionRow, previousId: string | null) {
+    const exists = questions.some(item => item.id === previousId)
+    set({ sections, questions: exists ? questions.map(item => (item.id === previousId ? question : item)) : [...questions, question] })
     setEditing(null)
   }
-  function moveQuestion(question: AnyRecord, step: number) {
+  function moveQuestion(question: SurveyQuestionRow, step: number) {
     // Within its section: swap with the neighbour of the same section.
-    const same = questions.filter((item: AnyRecord) => (item.section || '') === (question.section || ''))
+    const same = questions.filter(item => (item.section || '') === (question.section || ''))
     const at = same.indexOf(question), other = same[at + step]
     if (!other) return
     const a = questions.indexOf(question), b = questions.indexOf(other)
@@ -47,8 +47,8 @@ export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasR
     set({ questions: next })
   }
   const addSection = () => { const key = uid('s'); setSections([...sections, { key, label: en ? 'New section' : 'Νέα ενότητα', labelEn: 'New section' }]) }
-  const unsectioned = questions.filter((question: AnyRecord) => !sections.some(section => section.key === question.section))
-  const groups = [...sections.map(section => ({ section, items: questions.filter((question: AnyRecord) => question.section === section.key) })), ...(unsectioned.length ? [{ section: null, items: unsectioned }] : [])]
+  const unsectioned = questions.filter(question => !sections.some(section => section.key === question.section))
+  const groups = [...sections.map(section => ({ section, items: questions.filter(question => question.section === section.key) })), ...(unsectioned.length ? [{ section: null, items: unsectioned }] : [])]
   const numberOf = (question: SurveyQuestionRow) => questions.indexOf(question) + 1
 
   return <div className="lo-form-cards survey-editor">
@@ -92,13 +92,13 @@ export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasR
               <Button variant="secondary" onClick={() => setEditing({ question: { id: '', section: section?.key || '', type: 'rating', scale: 'rating', label: '', labelEn: '', required: true, options: [] }, previousId: null })}><Plus size={14} />{en ? 'Question' : 'Ερώτηση'}</Button>
             </span>}
           </div>
-          {items.length ? <ul className="register-builder-list survey-editor-list">{items.map((question: AnyRecord, position: number) => <li key={question.id}>
+          {items.length ? <ul className="register-builder-list survey-editor-list">{items.map((question, position: number) => <li key={question.id}>
             <span className="survey-editor-number">{numberOf(question)}</span>
             <span className="survey-editor-text"><strong>{textOf(question, language) || (en ? 'No text yet' : 'Χωρίς κείμενο')}</strong><small>{questionMeta(question, questions, language)}</small></span>
             <span className="register-builder-tools">
               {!locked && <><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} disabled={!position} onClick={() => moveQuestion(question, -1)}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Down' : 'Κάτω'} disabled={position === items.length - 1} onClick={() => moveQuestion(question, 1)}><ArrowDown size={14} /></IconButton></>}
               <IconButton size="sm" label={locked ? (en ? 'View' : 'Προβολή') : (en ? 'Edit' : 'Επεξεργασία')} onClick={() => setEditing({ question, previousId: question.id })}>{locked ? <Eye size={14} /> : <Pencil size={14} />}</IconButton>
-              {!locked && <IconButton size="sm" tone="danger" label={en ? 'Remove question' : 'Αφαίρεση ερώτησης'} onClick={() => set({ questions: questions.filter((item: AnyRecord) => item.id !== question.id) })}><Trash2 size={14} /></IconButton>}
+              {!locked && <IconButton size="sm" tone="danger" label={en ? 'Remove question' : 'Αφαίρεση ερώτησης'} onClick={() => set({ questions: questions.filter(item => item.id !== question.id) })}><Trash2 size={14} /></IconButton>}
             </span>
           </li>)}</ul> : <p className="survey-editor-empty">{en ? 'No questions in this section yet.' : 'Δεν υπάρχουν ακόμη ερωτήσεις σε αυτή την ενότητα.'}</p>}
         </div>
@@ -110,33 +110,33 @@ export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasR
 }
 
 // What a question is, in one line: kind, scale, required, the answer it waits for.
-function questionMeta(question: AnyRecord, questions: AnyRecord, language: string) {
+function questionMeta(question: SurveyQuestionRow, questions: SurveyQuestionRow[], language: string) {
   const en = language === 'en'
   const scale = question.type === 'rating' ? SCALES.find(item => item.value === (question.scale || 'quality'))?.label[en ? 1 : 0] : ''
   const options = ['single', 'multiple'].includes(question.type) ? `${(question.options || []).length} ${en ? 'options' : 'επιλογές'}` : ''
-  const parent = question.showWhen?.question ? questions.find((item: AnyRecord) => item.id === question.showWhen.question) : null
-  const when = parent ? `${en ? 'when' : 'όταν'} «${textOf(parent, language).slice(0, 40)}» = ${answerText(parent, question.showWhen.value, language)}` : ''
+  const parent = question.showWhen?.question ? questions.find(item => item.id === question.showWhen!.question) : null
+  const when = parent ? `${en ? 'when' : 'όταν'} «${textOf(parent, language).slice(0, 40)}» = ${answerText(parent, question.showWhen!.value, language)}` : ''
   return [questionTypeLabel(question.type, language), scale, options, question.required ? (en ? 'required' : 'υποχρεωτική') : (en ? 'optional' : 'προαιρετική'), when].filter(Boolean).join(' · ')
 }
-const answerText = (question: AnyRecord, value: unknown, language: string) => (question?.type === 'yesno' ? (value ? (language === 'en' ? 'Yes' : 'Ναι') : (language === 'en' ? 'No' : 'Όχι')) : textOf((question?.options || []).find((item: AnyRecord) => item.value === value), language) || String(value ?? ''))
+const answerText = (question: SurveyQuestionRow, value: unknown, language: string) => (question?.type === 'yesno' ? (value ? (language === 'en' ? 'Yes' : 'Ναι') : (language === 'en' ? 'No' : 'Όχι')) : textOf((question?.options || []).find(item => item.value === value), language) || String(value ?? ''))
 
 function QuestionDialog({ question: initial, survey, locked, language, onCancel, onSave }: { question: SurveyQuestionRow, survey: Survey, locked?: boolean, language: string, onCancel: () => void, onSave: (question: SurveyQuestionRow) => void }) {
   const en = language === 'en'
   const [question, setQuestion] = useState<SurveyQuestionRow>(() => structuredClone(initial))
-  const [preview, setPreview] = useState<unknown>(undefined)
+  const [preview, setPreview] = useState<SurveyAnswer | undefined>(undefined)
   const set = (next: Partial<SurveyQuestionRow>) => setQuestion(current => ({ ...current, ...next }))
   const isChoice = ['single', 'multiple'].includes(question.type)
   // A question can follow a Yes/No or single-choice question asked before it.
-  const before = (survey.questions || []).filter((item: AnyRecord) => item.id !== initial.id && ['yesno', 'single'].includes(item.type))
-  const parent = before.find((item: AnyRecord) => item.id === question.showWhen?.question)
+  const before = (survey.questions || []).filter(item => item.id !== initial.id && ['yesno', 'single'].includes(item.type))
+  const parent = before.find(item => item.id === question.showWhen?.question)
   const options = (question.options || [])
-  const valid = Boolean(String(question.label).trim()) && (!isChoice || options.filter((item: AnyRecord) => String(item.label).trim()).length >= 2)
+  const valid = Boolean(String(question.label).trim()) && (!isChoice || options.filter(item => String(item.label).trim()).length >= 2)
   function finish() {
-    const others = (survey.questions || []).map((item: AnyRecord) => item.id).filter((id: string) => id !== initial.id)
+    const others = (survey.questions || []).map(item => item.id).filter((id: string) => id !== initial.id)
     const id = initial.id || uid('q')
     const clean: SurveyQuestionRow = {
       ...question, id: others.includes(id) ? uid('q') : id, label: question.label.trim(), labelEn: String(question.labelEn || '').trim(),
-      options: isChoice ? options.filter((item: AnyRecord) => String(item.label).trim()).map((item: AnyRecord) => ({ ...item, value: item.value || uid('o'), label: item.label.trim(), labelEn: String(item.labelEn || '').trim() })) : [],
+      options: isChoice ? options.filter(item => String(item.label).trim()).map(item => ({ ...item, value: item.value || uid('o'), label: item.label.trim(), labelEn: String(item.labelEn || '').trim() })) : [],
       // A question that appears on a condition cannot be required: the database would refuse the answers without it.
       required: question.showWhen?.question ? false : Boolean(question.required),
     }
@@ -152,27 +152,27 @@ function QuestionDialog({ question: initial, survey, locked, language, onCancel,
           <Field label={`${en ? 'Question' : 'Ερώτηση'} *`}><textarea rows={2} value={question.label} disabled={locked} onChange={event => set({ label: event.target.value })} /></Field>
           <FormGrid columns={2}>
             <SearchableSelect label={en ? 'Kind of answer' : 'Είδος απάντησης'} value={question.type} disabled={locked} options={QUESTION_TYPES.map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={type => type && set({ type, ...(type === 'rating' && !question.scale ? { scale: 'rating' } : {}), options: ['single', 'multiple'].includes(type) && !options.length ? [{ value: '', label: '', labelEn: '' }, { value: '', label: '', labelEn: '' }] : options })} {...selectText(en)} clearLabel="" />
-            <SearchableSelect label={en ? 'Section' : 'Ενότητα'} value={question.section || ''} disabled={locked} options={(survey.sections || []).map((item: AnyRecord) => ({ value: item.key, label: textOf(item, language) }))} onChange={section => set({ section: section || '' })} placeholder={en ? 'No section' : 'Χωρίς ενότητα'} {...selectText(en)} />
+            <SearchableSelect label={en ? 'Section' : 'Ενότητα'} value={question.section || ''} disabled={locked} options={(survey.sections || []).map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={section => set({ section: section || '' })} placeholder={en ? 'No section' : 'Χωρίς ενότητα'} {...selectText(en)} />
             {question.type === 'rating' && <SearchableSelect label={en ? 'Scale words' : 'Λέξεις κλίμακας'} value={question.scale || 'quality'} disabled={locked} options={SCALES.map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={scale => scale && set({ scale })} {...selectText(en)} clearLabel="" />}
             <YesNoField label={en ? 'Required' : 'Υποχρεωτική'} value={question.showWhen?.question ? false : Boolean(question.required)} onChange={value => !locked && !question.showWhen?.question && set({ required: value })} hint={question.showWhen?.question ? (en ? 'A question shown on a condition is optional.' : 'Ερώτηση υπό όρο είναι πάντα προαιρετική.') : ''} />
           </FormGrid>
         </FormCard>
         {isChoice && <FormCard wide title={en ? 'Options' : 'Επιλογές'} hint={en ? 'At least two.' : 'Τουλάχιστον δύο.'}>
-          <ul className="register-builder-list">{options.map((option: AnyRecord, index: number) => <li key={option.value || `new-${index}`}><span className="register-axis-fields">
-            <input aria-label={en ? 'Option' : 'Επιλογή'} placeholder={en ? 'Option' : 'Επιλογή'} value={option.label} disabled={locked} onChange={event => set({ options: options.map((item: AnyRecord, at: number) => (at === index ? { ...item, label: event.target.value } : item)) })} />
+          <ul className="register-builder-list">{options.map((option, index: number) => <li key={option.value || `new-${index}`}><span className="register-axis-fields">
+            <input aria-label={en ? 'Option' : 'Επιλογή'} placeholder={en ? 'Option' : 'Επιλογή'} value={option.label} disabled={locked} onChange={event => set({ options: options.map((item, at: number) => (at === index ? { ...item, label: event.target.value } : item)) })} />
           </span>{!locked && <span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} disabled={!index} onClick={() => set({ options: move(options, index, -1) })}><ArrowUp size={14} /></IconButton><IconButton size="sm" tone="danger" label={en ? 'Remove option' : 'Αφαίρεση επιλογής'} onClick={() => set({ options: options.filter((_: unknown, at: number) => at !== index) })}><Trash2 size={14} /></IconButton></span>}</li>)}</ul>
           {!locked && <Button variant="secondary" onClick={() => set({ options: [...options, { value: '', label: '', labelEn: '' }] })}><Plus size={15} />{en ? 'Option' : 'Επιλογή'}</Button>}
         </FormCard>}
         <FormCard wide title={en ? 'Shown when' : 'Εμφανίζεται όταν'} hint={en ? 'Leave empty for a question everyone answers.' : 'Αφήστε κενό για ερώτηση που απαντούν όλοι.'}>
           <FormGrid columns={2}>
-            <SearchableSelect label={en ? 'Another question' : 'Άλλη ερώτηση'} value={question.showWhen?.question || ''} disabled={locked} options={before.map((item: AnyRecord) => ({ value: item.id, label: textOf(item, language) }))} onChange={id => set({ showWhen: id ? { question: id, value: before.find((item: AnyRecord) => item.id === id)?.type === 'yesno' ? true : before.find((item: AnyRecord) => item.id === id)?.options?.[0]?.value } : null })} placeholder={en ? 'Always shown' : 'Εμφανίζεται πάντα'} {...selectText(en)} />
-            {parent && <SearchableSelect label={en ? 'Is answered' : 'Έχει απάντηση'} value={String(question.showWhen.value)} disabled={locked} options={parent.type === 'yesno' ? [{ value: 'true', label: en ? 'Yes' : 'Ναι' }, { value: 'false', label: en ? 'No' : 'Όχι' }] : (parent.options || []).map((item: AnyRecord) => ({ value: item.value, label: textOf(item, language) }))} onChange={value => value && set({ showWhen: { question: parent.id, value: parent.type === 'yesno' ? value === 'true' : value } })} {...selectText(en)} clearLabel="" />}
+            <SearchableSelect label={en ? 'Another question' : 'Άλλη ερώτηση'} value={question.showWhen?.question || ''} disabled={locked} options={before.map(item => ({ value: item.id, label: textOf(item, language) }))} onChange={id => set({ showWhen: id ? { question: id, value: before.find(item => item.id === id)?.type === 'yesno' ? true : before.find(item => item.id === id)?.options?.[0]?.value } : null })} placeholder={en ? 'Always shown' : 'Εμφανίζεται πάντα'} {...selectText(en)} />
+            {parent && <SearchableSelect label={en ? 'Is answered' : 'Έχει απάντηση'} value={String(question.showWhen!.value)} disabled={locked} options={parent.type === 'yesno' ? [{ value: 'true', label: en ? 'Yes' : 'Ναι' }, { value: 'false', label: en ? 'No' : 'Όχι' }] : (parent.options || []).map(item => ({ value: item.value, label: textOf(item, language) }))} onChange={value => value && set({ showWhen: { question: parent.id, value: parent.type === 'yesno' ? value === 'true' : value } })} {...selectText(en)} clearLabel="" />}
           </FormGrid>
         </FormCard>
       </div>
       <aside className="survey-question-preview" aria-label={en ? 'Preview' : 'Προεπισκόπηση'}>
         <span className="eyebrow"><Eye size={13} />{en ? 'As the respondent sees it' : 'Όπως το βλέπει ο ερωτώμενος'}</span>
-        <SurveyQuestion question={{ ...question, label: question.label || (en ? 'Your question' : 'Η ερώτησή σας'), labelEn: question.labelEn || question.label || 'Your question', options: options.filter((item: AnyRecord) => String(item.label).trim()).map((item: AnyRecord, index: number) => ({ ...item, value: item.value || `p${index}` })), required: question.showWhen?.question ? false : question.required }} value={preview} onChange={setPreview} language={language} />
+        <SurveyQuestion question={{ ...question, label: question.label || (en ? 'Your question' : 'Η ερώτησή σας'), labelEn: question.labelEn || question.label || 'Your question', options: options.filter(item => String(item.label).trim()).map((item, index: number) => ({ ...item, value: item.value || `p${index}` })), required: question.showWhen?.question ? false : question.required }} value={preview} onChange={setPreview} language={language} />
       </aside>
     </div>
   </ObserverDialog>
