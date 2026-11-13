@@ -7,11 +7,12 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { translate } from '../../core/i18n/LanguageContext'
 import { RESISTANCE_ALERT } from './clinicalRecordLabels'
 import { SAMPLE_TONES } from './ClinicalRecordViews'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { MicrobiologyResult } from './clinicalTypes'
+import type { TreeSample } from './surveillanceListTypes'
 import type { Handler } from './surveillanceTypes'
 
 interface SampleTreeProps {
-  samples?: AnyRecord[]
+  samples?: TreeSample[]
   linked: boolean
   onFollowUp: Handler
   onCreateFromSample: Handler
@@ -35,14 +36,14 @@ export function SampleTree({
   fmtDate,
 }: SampleTreeProps) {
   const codes = new Set(samples.map(x => String(x.id || '')))
-  const byDate = (a: AnyRecord, b: AnyRecord) =>
+  const byDate = (a: TreeSample, b: TreeSample) =>
     String(a.collectedAt || a.requestedAt || '').localeCompare(
       String(b.collectedAt || b.requestedAt || ''),
     )
   const roots = samples
     .filter(x => !sampleParentCode(x) || !codes.has(sampleParentCode(x)))
     .sort(byDate)
-  const render = (sample: AnyRecord, depth = 0) => {
+  const render = (sample: TreeSample, depth = 0) => {
     const children = samples
       .filter(x => sampleParentCode(x) === String(sample.id || ''))
       .sort(byDate)
@@ -76,7 +77,7 @@ export function SampleTree({
   return <>{roots.map(x => render(x, 0))}</>
 }
 interface SampleTreeRowProps {
-  sample: AnyRecord
+  sample: TreeSample
   linked: boolean
   depth?: number
   onFollowUp: Handler
@@ -101,7 +102,8 @@ export function SampleTreeRow({
   language,
   fmtDate,
 }: SampleTreeRowProps) {
-  const type = t(sample.sampleType || sample.type) || sample.sampleType || sample.type || '—'
+  // Every sample has its type.
+  const type = t((sample.sampleType || sample.type) as string) || sample.sampleType || sample.type || '—'
   const status = t(sample.result || sample.status || 'pending')
   const clean = (value: unknown) => {
     const text = String(value ?? '').trim()
@@ -110,10 +112,10 @@ export function SampleTreeRow({
   const organism = clean(
     sample.organism ||
       sample.microorganism ||
-      sample.microbiologyResults?.find((x: AnyRecord) => x.organism)?.organism,
+      sample.microbiologyResults?.find((x: MicrobiologyResult) => x.organism)?.organism,
   )
   const amr = clean(
-    sample.resistance || sample.amr || sample.microbiologyResults?.find((x: AnyRecord) => x.amr)?.amr,
+    sample.resistance || sample.amr || sample.microbiologyResults?.find((x: MicrobiologyResult) => x.amr)?.amr,
   )
   const tone = sampleTone(sample)
   const isNegative = tone === 'negative'

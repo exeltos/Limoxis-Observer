@@ -65,7 +65,8 @@ export {
   SURVEILLANCE_OUTCOMES,
 } from './clinicalRecordLabels'
 import { renderPatientRecordTab } from './PatientClinicalRecordTabs'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalCase, ClinicalCaseDraft, ClinicalTimelineEvent } from './clinicalTypes'
+import type { ClinicalLibraries, EpiEntry, NewSampleDraft, ProtocolRequest, RecordAdmission, RecordPatient, RecordSample, TimelineEntry } from './clinicalScreenTypes'
 import type { RecordNavigation } from '../../design-system/EntityRecordShell'
 import type { DateValue } from './surveillanceTypes'
 import type { AttachmentFile } from '../../design-system/AttachmentField'
@@ -73,12 +74,12 @@ import type { AttachmentFile } from '../../design-system/AttachmentField'
 // The former clinical assessments tab is now the scales section of the forms tab:
 // an old link or a stored tab name lands on the new tab.
 const legacyTab = (id: string) => (id === 'clinicalScales' ? 'episodeForms' : id)
-const deepLinkTab = (location: AnyRecord) => new URLSearchParams(location.search).get('tab')
+const deepLinkTab = (location: { search: string }) => new URLSearchParams(location.search).get('tab')
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 // /patients/:patientId carries the patient code, or the record id when the page is
 // reached from a surveillance row: both open the same patient.
-const isPatientKey = (row: AnyRecord, key: string | undefined) => String(row.id) === String(key) || String(row.recordId) === String(key)
+const isPatientKey = (row: RecordPatient, key: string | undefined) => String(row.id) === String(key) || String(row.recordId) === String(key)
 
 interface PatientClinicalCanonicalPageProps {
   patientMode?: boolean
@@ -98,11 +99,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     [isDemo, tenant?.id, actor],
   )
   // The organization's active departments, one shape for every dialog of the record.
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
-  const [patients, setPatients] = useState<AnyRecord[]>([]),
-    [episodes, setEpisodes] = useState<AnyRecord[]>([]),
-    [admissions, setAdmissions] = useState<AnyRecord[]>([]),
-    [clinicalLibraries, setClinicalLibraries] = useState<AnyRecord>(demoLibrarySeed)
+  const { departments } = useDepartments()
+  const [patients, setPatients] = useState<RecordPatient[]>([]),
+    [episodes, setEpisodes] = useState<ClinicalCase[]>([]),
+    [admissions, setAdmissions] = useState<RecordAdmission[]>([]),
+    [clinicalLibraries, setClinicalLibraries] = useState<ClinicalLibraries>(demoLibrarySeed)
   // Demo has no cloud attachment store; keep documents per episode in memory.
   const [demoDocuments, setDemoDocuments] = useState<Record<string, AttachmentFile[]>>({})
   const [riskFlagRows, setRiskFlagRows] = useState<Record<string, RiskFlagRow[]>>({})
@@ -115,7 +116,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     [loadedFor, setLoadedFor] = useState(''),
     [error, setError] = useState(''),
     [createOpen, setCreateOpen] = useState(false)
-  const [sampleToLink, setSampleToLink] = useState<AnyRecord | null>(null)
+  const [sampleToLink, setSampleToLink] = useState<RecordSample | null>(null)
   // A surveillance started with «new sample request»: its sample dialog opens as soon as it is created.
   const [askSampleFor, setAskSampleFor] = useState<string | null>(() => location.state?.askSampleFor || null)
   // "Open episode" from the worklist or the sample record: this page opens the
@@ -140,7 +141,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
   // Stage the surveillance tab opens on, e.g. when the summary sends the user to an overdue reassessment.
   const [journeyStage, setJourneyStage] = useState<string | null>(null)
   // N3: a qSOFA / SOFA prompt asks the surveillance tab to open the protocol picker.
-  const [protocolRequest, setProtocolRequest] = useState<AnyRecord | null>(null)
+  const [protocolRequest, setProtocolRequest] = useState<ProtocolRequest | null>(null)
   const has = (cap: string) =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const deleteItem = useRecordDelete()
@@ -180,7 +181,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
       null
     : null
   const admissionEpisodes = useMemo(
-    () => episodesForAdmission(episodes, selectedAdmission, { admissions }),
+    // patientRecordScope hands back the episodes it was given, filtered.
+    () => episodesForAdmission(episodes, selectedAdmission, { admissions }) as ClinicalCase[],
     [episodes, selectedAdmission, admissions],
   )
   const admissionSamples = useMemo(
@@ -194,11 +196,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     [patientMode, laboratory.rows, patient, admissions, episodes],
   )
   const outsideEpisodes = useMemo(
-    () => (patientMode ? episodesOutsideAdmissions(episodes, admissions) : []),
+    () => (patientMode ? episodesOutsideAdmissions(episodes, admissions) as ClinicalCase[] : []),
     [patientMode, episodes, admissions],
   )
   const outsideTimeline = useMemo(() => {
-    const rows = []
+    const rows: TimelineEntry[] = []
     for (const episode of outsideEpisodes)
       rows.push({ type: 'clinicalRecords.outsideEpisode', at: episode.startedAt, detail: [episode.reason, episode.department].filter(Boolean).join(' · ') })
     for (const sample of outsideSamples)
@@ -207,7 +209,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
         at: sample.collectedAt || sample.requestedAt,
         detail: [sample.typeLabel || sample.type, sample.source, sample.department, sample.organism].filter(Boolean).join(' · '),
       })
-    return rows.filter(row => row.at)
+    return rows.filter((row): row is ClinicalTimelineEvent => Boolean(row.at))
   }, [outsideSamples, outsideEpisodes])
   // History of an admission without surveillance: admission, clinical scales,
   // samples and discharge, so the tab is never empty for a hospitalised patient.
@@ -219,10 +221,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
       const day = hospitalDay(value)
       return day && (!from || day >= from) && day <= to
     }
-    const rows = [
+    const rows: TimelineEntry[] = [
       { type: 'clinicalRecords.timelineAdmission', at: selectedAdmission.admissionDate, detail: selectedAdmission.department },
     ]
-    const scales = patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []
+    const scales = patient ? riskFlagRows[String(patient.recordId)] || riskFlagRows[String(patient.id)] || [] : []
     for (const row of scales)
       if (within(row.assessed_at))
         rows.push({ type: 'clinicalRecords.timelineScale', at: row.assessed_at, detail: `${scaleShortName(row.scale_key)} ${row.score ?? '—'}` })
@@ -234,7 +236,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     }
     if (selectedAdmission.dischargeDate)
       rows.push({ type: 'clinicalRecords.timelineDischarge', at: selectedAdmission.dischargeDate, detail: selectedAdmission.department })
-    return rows.filter(row => row.at)
+    return rows.filter((row): row is ClinicalTimelineEvent => Boolean(row.at))
   }, [selectedAdmission, admissions, patient, riskFlagRows, admissionSamples])
   const record = patientMode
     ? selectedAdmission
@@ -283,14 +285,14 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
       const selectedPatient = patientMode
         ? roster.find(row => isPatientKey(row, patientId))
         : null
-      let rows: AnyRecord[] = []
+      let rows: ClinicalCase[] = []
       if (patientMode && selectedPatient) rows = await repository.loadForPatient(selectedPatient)
       else if (caseId) {
         const one = await repository.loadCase(caseId)
         rows = one ? [one] : []
       }
       if (cloud && !patientMode)
-        roster = await loadPatientsByKeys(tenant!.id, { recordIds: rows.map((row: AnyRecord) => row.patientRecordId) })
+        roster = await loadPatientsByKeys(tenant!.id, { recordIds: rows.map((row: ClinicalCase) => row.patientRecordId) })
       setPatients(roster)
       // Surveillance switched off by the operating profile: its episodes are hidden, not deleted.
       if (isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE)) rows = []
@@ -298,7 +300,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
       const current = preferred || selectedEpisodeId || caseId || rows[0]?.id || ''
       if (!patientMode)
         setSelectedEpisodeId(
-          rows.some((row: AnyRecord) => String(row.id) === String(current)) ? current : rows[0]?.id || '',
+          rows.some((row: ClinicalCase) => String(row.id) === String(current)) ? current : rows[0]?.id || '',
         )
       const patientForAdmissions =
         selectedPatient || roster.find(row => rows.some(ep => episodeBelongsToPatient(ep, row)))
@@ -374,7 +376,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     // «Delete» of a record of a form section: the item for its «…» menu, or null when not allowed.
     deleteItem,
     canDelete: (createdBy: string) => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy }),
-    scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
+    scaleRows: patient ? riskFlagRows[String(patient.recordId)] || riskFlagRows[String(patient.id)] || [] : [],
     returnPath: `${location.pathname}${location.search}`,
     // A scale saved or deleted in the forms tab refreshes the header chips at once.
     onScalesChanged: () =>
@@ -385,7 +387,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     fmtDate: (value: unknown) => formatDay(value, language),
     fmtDateTime: (value: unknown) => formatDateTime(value as DateValue, language),
     // A qSOFA / SOFA prompt of the scales section asks the surveillance tab for a protocol.
-    startProtocol: (prompt: AnyRecord) => {
+    startProtocol: (prompt: { kind?: string, assessmentId?: string | null } | null) => {
       const episode = admissionEpisodes.find(ep => ep.status === 'active') || formsEpisodes.find(ep => ep.status === 'active')
       if (episode) {
         setSelectedEpisodeId(episode.id)
@@ -399,7 +401,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
   // The epidemiological questionnaire of the selected episode: the header line and the safety signal.
   const epiEntry =
     record && forms.data.epiQuestionnaire?.value
-      ? epiRows(formsCtx, forms.data.epiQuestionnaire.value).find((item: AnyRecord) => String(item.episode.id) === String(record.id)) || null
+      ? epiRows(formsCtx, forms.data.epiQuestionnaire.value).find((item: EpiEntry) => String(item.episode.id) === String(record.id)) || null
       : null
   // The record's first read: the page placeholder, not a generic «patient record» page.
   // A reload after a save keeps the screen as it is, inside the open surveillance (owner, 8/11/2026); only the first
@@ -480,7 +482,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     setTab('summary')
   }
 
-  async function createEpisode(draft: AnyRecord, targetPatient: AnyRecord) {
+  async function createEpisode(draft: ClinicalCaseDraft & { sampleChoice?: RecordSample | 'new' | null }, targetPatient: RecordPatient) {
     const scopedDraft = selectedAdmission
       ? {
           ...draft,
@@ -524,7 +526,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     return created
   }
 
-  async function createAdmissionSample(draft: AnyRecord) {
+  async function createAdmissionSample(draft: NewSampleDraft) {
     if (!patient || creatingAdmissionSampleRef.current) return null
     // Outside the patient route (/surveillance/:id) there is no selected admission:
     // the episode's own department is used instead, so follow-up samples still save.
@@ -665,7 +667,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
             {record?.resistance && <StatusBadge tone="danger">{record.resistance}</StatusBadge>}
             {patient && (
               <ClinicalRiskFlags
-                rows={riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || []}
+                rows={riskFlagRows[String(patient.recordId)] || riskFlagRows[String(patient.id)] || []}
                 language={language}
                 compact
                 named

@@ -11,7 +11,7 @@ describe('Deviations: kind, causes, recurrence', () => {
     row('FND-1', { deviationKind: 'breakdown', causeCategories: ['equipment'], recurring: true, date: '2026-02-10' }),
     row('FND-2', { deviationKind: 'procedure', causeCategories: ['procedure', 'human_error'], recurring: false, status: 'open', hasCapa: false, date: '2026-05-04' }),
     row('FND-3', { date: '2025-12-01' }),
-  ]
+  ] as never[]
   it('filters by kind, cause, recurrence and dates', () => {
     expect(filterDeviations(rows, { ...ALL, deviationKind: 'procedure' }).map(r => r.code)).toEqual(['FND-2'])
     expect(filterDeviations(rows, { ...ALL, cause: 'human_error' }).map(r => r.code)).toEqual(['FND-2'])

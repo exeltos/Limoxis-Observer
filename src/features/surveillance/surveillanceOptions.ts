@@ -1,4 +1,5 @@
 import type { AnyRecord } from '../../types/featureTypes'
+import type { SpecimenItem } from './surveillanceListTypes'
 // The option lists of the surveillance and patient screens, in one place.
 // Records keep storing the same codes as before; only the labels and the way
 // the lists are offered (SearchableSelect / ModeSwitch / ChoiceChips) are shared.
@@ -38,11 +39,11 @@ const SPECIMEN_CODES: [string, RegExp][]=[
   ['woundCulture',/τραύμ|τραυμ|wound|πύον|pus/i],
 ]
 const ENVIRONMENTAL_SPECIMEN=/επιφάν|επιφαν|surface|αέρα|αερα|\bair\b|νερό|νερο|water|περιβάλλ|περιβαλλ|environment/i
-export function specimenCode(item: AnyRecord){
+export function specimenCode(item: SpecimenItem){
   const text=`${item?.el||''} ${item?.en||''} ${item?.code||''}`
   return SPECIMEN_CODES.find(([,pattern])=>pattern.test(text))?.[0]||'other'
 }
-export function patientSampleTypeOptions(items: AnyRecord[]=[],language='el',t=(key: string)=>key){
+export function patientSampleTypeOptions(items: SpecimenItem[]=[],language='el',t=(key: string)=>key){
   const specimens=items.filter(item=>!ENVIRONMENTAL_SPECIMEN.test(`${item.el} ${item.en}`)&&!/environment/i.test(String(item.meta?.source||'')))
   return PATIENT_SAMPLE_TYPES.map(code=>{
     const names=specimens.filter(item=>specimenCode(item)===code).map(item=>language==='en'?item.en||item.el:item.el)
@@ -55,6 +56,7 @@ export const SUSPECTED_SOURCES=['bloodstream','urinary','respiratory','surgicalS
 export const suspectedSourceOptions=(t: (key: string) => string)=>SUSPECTED_SOURCES.map(value=>({value,label:value==='other'?t('other'):t(`clinicalRecords.${value}`)}))
 
 // Departments from useDepartments(), as SearchableSelect options.
+// AnyRecord: several screens still hand their departments untyped, and a SearchableSelect option needs a value and a label.
 export const departmentLabel=(department: AnyRecord,language='el')=>department?(language==='en'?department.nameEn||department.name:department.name):''
 export function departmentOptions(departments: AnyRecord[]=[],language='el'){
   return departments.map(department=>{const label=departmentLabel(department,language),other=language==='en'?department.name:department.nameEn;return {value:department.id,label,description:other&&other!==label?other:undefined,keywords:`${department.name} ${department.nameEn||''}`}})
@@ -66,7 +68,8 @@ const STATUS_TONES: Record<string, string>={
   positive:'danger',positive_recheck:'danger',critical:'danger',rejected:'danger',
   withheld:'warning',pending:'warning',pending_lab:'warning',received:'warning',processing:'warning',needsFollowup:'warning',
 }
-export const statusTone=(status: string)=>STATUS_TONES[status]||'neutral'
+// A missing status has no tone (`as string` only satisfies the lookup).
+export const statusTone=(status: string | null | undefined)=>STATUS_TONES[status as string]||'neutral'
 
 // The texts of the shared list fields in the screen's language.
 export function listTexts(language='el'){

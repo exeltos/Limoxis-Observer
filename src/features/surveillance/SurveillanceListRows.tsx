@@ -13,18 +13,21 @@ import { EpiReminder } from './epiQuestionnaire/EpiQuestionnaireViews'
 import { epiPending } from './epiQuestionnaire/useEpiIndex'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { RefObject } from 'react'
+import type { ClinicalCaseLike, EpisodeSample } from './clinicalTypes'
+import type { EmployeeScreeningRow, EnvironmentalSampleRow, ListEmptyState, OpenProtocolRun, PatientListRow } from './surveillanceListTypes'
+import type { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import type { Handler } from './surveillanceTypes'
 import type { SortState } from '../../design-system/useTableSort'
 import type { EpiIndex } from './epiQuestionnaire/useEpiIndex'
 
 export const HIDDEN_CASE_STATUSES = new Set(['cancelled', 'voided', 'void'])
-export function groupByPatient(list: AnyRecord[]) {
-  const groups = new Map()
+export function groupByPatient<T extends ClinicalCaseLike>(list: T[]) {
+  const groups = new Map<string, T[]>()
   for (const item of list) {
     const key = String(item.patientRecordId || item.patientId || item.patient || item.id)
     if (!groups.has(key)) groups.set(key, [])
-    groups.get(key).push(item)
+    groups.get(key)!.push(item)
   }
   return [...groups.values()]
     .map(items => {
@@ -41,7 +44,7 @@ export function groupByPatient(list: AnyRecord[]) {
       const linkedSampleCount = new Set(
         ordered.flatMap(x =>
           (x.samples || [])
-            .map((sample: AnyRecord) => sample.recordId || sample.id)
+            .map((sample: EpisodeSample) => sample.recordId || sample.id)
             .filter(Boolean),
         ),
       ).size
@@ -61,28 +64,30 @@ export function groupByPatient(list: AnyRecord[]) {
         String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
     )
 }
+// The memory of the list (scroll, highlighted row, record order).
+type RegistryMemory = ReturnType<typeof useRegistryMemory>
 interface PatientRowsProps {
   sort: SortState | null
   onSort: Handler
   loading?: boolean
-  rows: AnyRecord[]
+  rows: PatientListRow[]
   showDepartment?: boolean
-  openRuns?: AnyRecord[]
+  openRuns?: OpenProtocolRun[]
   epiIndex?: EpiIndex | null
-  empty?: AnyRecord | null
-  registry: AnyRecord
+  empty?: ListEmptyState | null
+  registry: RegistryMemory
   t: (key: string) => string
   language: string
   fmt: (value: unknown) => string
   onOpen: Handler
 }
 export function PatientRows({ sort, onSort, loading = false, rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }: PatientRowsProps) {
-  const openRunOf = (x: AnyRecord) =>
+  const openRunOf = (x: PatientListRow) =>
     (x.episodes || [x])
-      .map((ep: AnyRecord) => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
+      .map((ep: ClinicalCaseLike) => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
       .find(Boolean)
   return (
-    <div className="scroll-table" ref={registry.scrollRef}>
+    <div className="scroll-table" ref={registry.scrollRef as RefObject<HTMLDivElement>}>
       <RegistryTable
         bare
         loading={loading}
@@ -103,7 +108,8 @@ export function PatientRows({ sort, onSort, loading = false, rows, showDepartmen
         onClearFilters={empty?.onClear}
         emptyIcon={empty?.icon}
         emptyAction={empty?.action}
-        rowKey={x => x.id}
+        // Every episode has its code.
+        rowKey={x => x.id as string}
         rowProps={x => {
           const rp = registry.rowProps(String(x.id), () => onOpen(x))
           return { ...rp, className: `${rp.className} clickable-row` }
@@ -122,8 +128,8 @@ export function PatientRows({ sort, onSort, loading = false, rows, showDepartmen
               <small>{(x.episodes || [x]).map(latestResistance).find(Boolean) || ''}</small>
             </td>
             <td>
-              <StatusBadge tone={statusTone(x.status)}>{t(x.status)}</StatusBadge>
-              {(x.episodes || [x]).some((ep: AnyRecord) => epiPending(epiIndex, ep)) && (
+              <StatusBadge tone={statusTone(x.status)}>{t(x.status as string)}</StatusBadge>
+              {(x.episodes || [x]).some((ep: ClinicalCaseLike) => epiPending(epiIndex, ep)) && (
                 <small className="epi-row-line"><EpiReminder /></small>
               )}
             </td>
@@ -138,20 +144,20 @@ interface EmployeeRowsProps {
   sort: SortState | null
   onSort: Handler
   loading?: boolean
-  rows: AnyRecord[]
-  empty?: AnyRecord | null
-  registry: AnyRecord
+  rows: EmployeeScreeningRow[]
+  empty?: ListEmptyState | null
+  registry: RegistryMemory
   language: string
   fmt: (value: unknown) => string
   t: (key: string) => string
   onOpen: Handler
 }
 export function EmployeeRows({ sort, onSort, loading = false, rows, empty, registry, language, fmt, t, onOpen }: EmployeeRowsProps) {
-  const rowId = (x: AnyRecord) => String(x.recordId || x.id)
+  const rowId = (x: EmployeeScreeningRow) => String(x.recordId || x.id)
   const { data: staffRows } = useEmployeesData()
   const inactiveCodes = useMemo(() => inactiveEmployeeCodes(staffRows || []), [staffRows])
   return (
-    <div className="scroll-table" ref={registry.scrollRef}>
+    <div className="scroll-table" ref={registry.scrollRef as RefObject<HTMLDivElement>}>
       <RegistryTable
         bare
         loading={loading}
@@ -197,22 +203,23 @@ export function EmployeeRows({ sort, onSort, loading = false, rows, empty, regis
 }
 export const POSITIVE_EMPLOYEE_RESULTS = ['positive', 'positive_recheck']
 export const CLOSED_EMPLOYEE_STATUSES = ['cancelled', 'voided', 'void']
-export function employeeFollowupState(row: AnyRecord) {
-  if (CLOSED_EMPLOYEE_STATUSES.includes(row.status)) return 'cancelled'
+// A status a screening has not been given yet is in none of the lists (`as string` only satisfies includes).
+export function employeeFollowupState(row: EmployeeScreeningRow) {
+  if (CLOSED_EMPLOYEE_STATUSES.includes(row.status as string)) return 'cancelled'
   const today = hospitalToday()
-  const positive = POSITIVE_EMPLOYEE_RESULTS.includes(row.resultStatus)
-  const interventionOpen = ['required', 'in_progress'].includes(row.interventionStatus)
+  const positive = POSITIVE_EMPLOYEE_RESULTS.includes(row.resultStatus as string)
+  const interventionOpen = ['required', 'in_progress'].includes(row.interventionStatus as string)
   const interventionMissing =
     !row.intervention &&
     !row.noIntervention &&
-    !['completed', 'recorded', 'in_progress'].includes(row.interventionStatus)
+    !['completed', 'recorded', 'in_progress'].includes(row.interventionStatus as string)
   const recheckMissing = !row.recheckDate && !row.recheckDue && !row.noRecheck
   const recheckDue = row.status === 'active' && row.recheckDue && String(row.recheckDue).slice(0, 10) <= today
   if ((positive && (interventionOpen || interventionMissing || recheckMissing)) || recheckDue) return 'needsFollowup'
   return row.status === 'active' ? 'active' : 'completed'
 }
 interface EmployeeStatusBadgeProps {
-  row: AnyRecord
+  row: EmployeeScreeningRow
   t: (key: string) => string
 }
 export function EmployeeStatusBadge({ row, t }: EmployeeStatusBadgeProps) {
@@ -221,26 +228,26 @@ export function EmployeeStatusBadge({ row, t }: EmployeeStatusBadgeProps) {
 }
 // One count of the row of cards above the list; with a quick key it filters the list, pressing it again shows everything.
 export const SAMPLE_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
-export function matchesEmployeeQuick(row: AnyRecord, quick: string) {
+export function matchesEmployeeQuick(row: EmployeeScreeningRow, quick: string) {
   const today = hospitalToday()
   if (quick === 'active') return row.status === 'active'
   if (quick === 'positive') return row.resultStatus === 'positive'
-  if (quick === 'intervention') return ['required', 'in_progress'].includes(row.interventionStatus)
-  if (quick === 'recheck') return Boolean(row.recheckDue) && row.recheckDue <= today && row.status === 'active'
+  if (quick === 'intervention') return ['required', 'in_progress'].includes(row.interventionStatus as string)
+  if (quick === 'recheck') return Boolean(row.recheckDue) && (row.recheckDue as string) <= today && row.status === 'active'
   return true
 }
-export function matchesEnvironmentQuick(row: AnyRecord, quick: string) {
-  if (quick === 'active') return SAMPLE_PENDING_STATUSES.includes(row.status)
-  if (quick === 'pending') return SAMPLE_PENDING_STATUSES.includes(row.status) && !row.result
+export function matchesEnvironmentQuick(row: EnvironmentalSampleRow, quick: string) {
+  if (quick === 'active') return SAMPLE_PENDING_STATUSES.includes(row.status as string)
+  if (quick === 'pending') return SAMPLE_PENDING_STATUSES.includes(row.status as string) && !row.result
   if (quick === 'outside') return environmentalNeedsAction(row)
   if (quick === 'critical') return Boolean(row.critical)
   return true
 }
-export function matchesQuick(x: AnyRecord, quick: string) {
+export function matchesQuick(x: ClinicalCaseLike, quick: string) {
   const active = x.status === 'active'
   if (quick === 'active') return active
   if (quick === 'due') return active && reviewState(x) === 'overdue'
-  if (quick === 'isolation') return active && Boolean(x.isolation) && !['ended', 'completed', 'closed'].includes(x.isolation.status)
+  if (quick === 'isolation') return active && Boolean(x.isolation) && !['ended', 'completed', 'closed'].includes(x.isolation!.status as string)
   if (quick === 'resistant') return active && Boolean(latestResistance(x))
   return true
 }

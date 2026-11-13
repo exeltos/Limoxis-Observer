@@ -63,7 +63,9 @@ import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleRevie
 import { SampleReviewWorklist, worklistTexts } from './SampleReviewWorklist'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
 import { EmployeeRows, groupByPatient, HIDDEN_CASE_STATUSES, matchesEmployeeQuick, matchesEnvironmentQuick, matchesQuick, PatientRows } from './SurveillanceListRows'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalCase } from './clinicalTypes'
+import type { LibraryDepartment } from '../management/useLibraries'
+import type { EmployeeScreeningRow, EnvironmentalResample, EnvironmentalSampleRow, NewEpisodeDraft, OpenProtocolRun, SurveillanceListRow, SurveillancePatient } from './surveillanceListTypes'
 
 const isEnvironmental = isEnvironmentalSample
 const SECTION_MODES: Record<string, string> = { episodes: 'patients', employees: 'employees', environmental: 'environmental' }
@@ -95,12 +97,12 @@ export function SurveillanceCanonicalPage() {
   const restoredMode = restored.mode === 'batches' ? 'employees' : restored.mode
   const section = useSectionTabs()
   const sectionMode = section ? SECTION_MODES[section.value] || null : null
-  const [patients, setPatients] = useState<AnyRecord[]>([]),
-    [cases, setCases] = useState<AnyRecord[]>([]),
-    [employeeRows, setEmployeeRows] = useState<AnyRecord[]>([]),
-    [environmentRows, setEnvironmentRows] = useState<AnyRecord[]>([]),
+  const [patients, setPatients] = useState<SurveillancePatient[]>([]),
+    [cases, setCases] = useState<ClinicalCase[]>([]),
+    [employeeRows, setEmployeeRows] = useState<EmployeeScreeningRow[]>([]),
+    [environmentRows, setEnvironmentRows] = useState<EnvironmentalSampleRow[]>([]),
     [loading, setLoading] = useState(true)
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const { departments }: { departments: LibraryDepartment[] } = useDepartments()
   const [quick, setQuick] = useState<string | null>(() =>
     new URLSearchParams(location.search).get('review') === '1' ? 'review' : null,
   )
@@ -112,8 +114,8 @@ export function SurveillanceCanonicalPage() {
     [page, setPage] = useState(restored.page || 1),
     [pageSize, setPageSize] = useState(restored.pageSize || 15),
     [creation, setCreation] = useState<string | null>(null),
-    [resample, setResample] = useState<AnyRecord | null>(null)
-  const [openRuns, setOpenRuns] = useState<AnyRecord[]>([])
+    [resample, setResample] = useState<EnvironmentalResample | null>(null)
+  const [openRuns, setOpenRuns] = useState<OpenProtocolRun[]>([])
   const epiIndex = useEpiIndex({ organizationId: tenant?.id, isDemo, enabled: canWriteEpi(role) })
   useEffect(() => {
     let alive = true
@@ -188,8 +190,8 @@ export function SurveillanceCanonicalPage() {
       } else if (tenant?.id) {
         const results = (await rest)!
         // A surveillance without a sample is not listed (owner, 8/11/2026): every surveillance starts from a sample.
-        const withSample = (row: AnyRecord) => (row.caseSampleCount ?? (row.samples || []).length) > 0
-        setCases(results[0].status === 'fulfilled' ? (results[0].value as AnyRecord[]).filter(withSample) : [])
+        const withSample = (row: ClinicalCase) => (row.caseSampleCount ?? (row.samples || []).length) > 0
+        setCases(results[0].status === 'fulfilled' ? (results[0].value as ClinicalCase[]).filter(withSample) : [])
         setEmployeeRows(results[1].status === 'fulfilled' ? results[1].value : [])
         // The environmental samples are read when the Environment tab is open (below), not with every Surveillance tab.
         if (environmentLoadedRef.current) await loadEnvironment()
@@ -228,7 +230,7 @@ export function SurveillanceCanonicalPage() {
   }, [mode])
 
   const fmt = (value: unknown) => formatDay(value, language)
-  const filtered = useMemo(() => {
+  const filtered = useMemo((): SurveillanceListRow[] => {
     const q = query.trim().toLowerCase()
     if (mode === 'patients')
       return groupByPatient(
@@ -247,7 +249,7 @@ export function SurveillanceCanonicalPage() {
           )
           .filter(x => inPeriod(x.startedAt, period))
           .filter(x =>
-            status === 'all' ? !HIDDEN_CASE_STATUSES.has(x.status) : x.status === status,
+            status === 'all' ? !HIDDEN_CASE_STATUSES.has(x.status as string) : x.status === status,
           ),
       )
     if (mode === 'employees')
@@ -324,7 +326,7 @@ export function SurveillanceCanonicalPage() {
     due = activeCases.filter(x => reviewState(x) === 'overdue').length,
     resistant = activeCases.filter(x => latestResistance(x)).length,
     isolation = activeCases.filter(
-      x => x.isolation && !['ended', 'completed', 'closed'].includes(x.isolation.status),
+      x => x.isolation && !['ended', 'completed', 'closed'].includes(x.isolation.status as string),
     ).length
   const employeeKpis = isDemo
     ? getDemoEmployeeSurveillanceKpis()
@@ -350,7 +352,7 @@ export function SurveillanceCanonicalPage() {
     navigate(`${location.pathname}${location.search}`, { replace: true, state: { ...location.state, resampleOf: undefined } })
   }, [resampleRequest, canEnvironment, environmentDepartmentOptions.length]) // eslint-disable-line react-hooks/exhaustive-deps
   const saveView = () => ({ mode, page: safePage, pageSize, query, department, status, period })
-  const openCase = (item: AnyRecord) =>
+  const openCase = (item: SurveillanceListRow) =>
     registry.openRecord(
       navigate,
       `/surveillance/${item.id}`,
@@ -358,7 +360,7 @@ export function SurveillanceCanonicalPage() {
       rows.map(x => String(x.id)),
       { returnState: { surveillanceView: saveView() } },
     )
-  const openEmployee = (item: AnyRecord) =>
+  const openEmployee = (item: SurveillanceListRow) =>
     registry.openRecord(
       navigate,
       `/surveillance/staff/${item.recordId || item.id}`,
@@ -420,7 +422,7 @@ export function SurveillanceCanonicalPage() {
       : []),
   ]
 
-  async function createPatient(draft: AnyRecord, patient: AnyRecord) {
+  async function createPatient(draft: NewEpisodeDraft, patient: SurveillancePatient) {
     // Here the patient's samples are not on hand: the surveillance opens and asks its sample right away (owner, 8/11/2026).
     const { sampleChoice = null, ...caseDraft } = draft
     const created = await clinical.createCase(patient, caseDraft)
@@ -431,7 +433,7 @@ export function SurveillanceCanonicalPage() {
   }
   interface CreateEnvironmentOptions {
     patientRecordId: string
-    draft: AnyRecord
+    draft: Parameters<typeof createLaboratorySample>[2]
   }
   async function createEnvironment({ patientRecordId, draft }: CreateEnvironmentOptions) {
     if (isDemo) return laboratoryRegistry.createSample({ patientRecordId, draft })

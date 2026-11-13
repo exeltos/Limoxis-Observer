@@ -8,26 +8,28 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { Field } from '../../design-system/Field'
 import { ReadOnlyField } from '../../design-system/ReadOnlyField'
 import { departmentOptions, listTexts, suspectedSourceOptions } from './surveillanceOptions'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { FormValidation } from '../../design-system/FormValidation'
+import type { LibraryDepartment } from '../management/useLibraries'
+import type { PatientDraft, StartDraft, SurveillancePatient } from './surveillanceListTypes'
 import type { Handler, Setter } from './surveillanceTypes'
 import type { ReactNode } from 'react'
 
 interface PatientSelectorProps {
   chooseExistingPatient: Handler
-  createdPatient: AnyRecord | null
-  departments: AnyRecord[]
+  createdPatient: SurveillancePatient | null
+  departments: LibraryDepartment[]
   isDemo: boolean
   language: string
-  patientDraft: AnyRecord
+  patientDraft: PatientDraft
   patientMode: string
-  patients: AnyRecord[]
+  patients: SurveillancePatient[]
   selectedPatientId: string
-  setCreatedPatient: Setter<AnyRecord | null>
+  setCreatedPatient: Setter<SurveillancePatient | null>
   setPatientDepartment: (value: string) => void
   setPatientField: (key: string, value: unknown) => void
   setPatientMode: Setter<string>
   setSelectedPatientId: Setter<string>
-  form: AnyRecord
+  form: FormValidation
   t: (key: string) => string
 }
 export function PatientSelector({
@@ -134,8 +136,8 @@ interface StartStepProps {
   contextDepartment: ReactNode
   language: string
   setStart: (key: string, value: unknown) => void
-  startDraft: AnyRecord
-  form: AnyRecord
+  startDraft: StartDraft
+  form: FormValidation
   t: (key: string) => string
 }
 export function StartStep({ contextDepartment, language, setStart, startDraft, form, t }: StartStepProps) {

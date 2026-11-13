@@ -8,7 +8,7 @@ import { loadQualityRecords } from './qualityService'
 import { actionsOfSource } from './capaSources'
 import { qualityStatusTone } from './qualityVocabulary'
 import './quality.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { QualityRecord } from './qualityTypes'
 
 // «Ενέργειες»: the corrective actions opened from this record (their source is `sourceId`, or starts with it when
 // `prefix`), each with its status and due date, opening the action. Nothing is shown while there is none.
@@ -16,7 +16,7 @@ export function LinkedActions({ sourceId, prefix = false, organizationId, return
   const { language, t } = useLanguage()
   const en = language === 'en'
   const { goTo } = useContextualNavigation('/quality')
-  const [capas, setCapas] = useState<AnyRecord[]>([])
+  const [capas, setCapas] = useState<QualityRecord[]>([])
   useEffect(() => {
     if (!sourceId) { setCapas([]); return undefined }
     let active = true

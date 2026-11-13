@@ -27,7 +27,7 @@ import { objectiveLevelText,objectiveMeasureSource,objectiveMeasureText,objectiv
 import { rememberQualitySection } from '../qualityReturnSection'
 import '../quality.css'
 import { LinkedActions } from '../LinkedActions'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ObjectiveHistoryPoint, PlatformIndicatorDef } from './reviewTypes'
 
 const tone=(state: string)=>({met:'success',missed:'danger'} as Record<string, string>)[state]||'info'
 
@@ -42,7 +42,7 @@ export function ObjectiveRecordPage(){
  useEffect(()=>{if(target_&&target_.id!==objectiveId)navigate(`/quality/objectives/${target_.id}`,{replace:true})},[target_,objectiveId,navigate])
  // The value month by month for the objective's year, up to the current month, only the months with a value:
  // from the register, from the platform's indicator or the values entered by the owner.
- const [history,setHistory]=useState<AnyRecord[]>([])
+ const [history,setHistory]=useState<ObjectiveHistoryPoint[]>([])
  useEffect(()=>{
   if(!tenant?.id||!target_){setHistory([]);return undefined}
   let live=true
@@ -64,9 +64,9 @@ export function ObjectiveRecordPage(){
  const {current,register,unit}=objective
  const monthly=objectiveSource(objective)==='monthly'
  const state=current.status,reach=targetReach(objective),sign=objective.direction==='lower'?'≤':'≥'
- const monthChange=history.length>1?Number(((history.at(-1) as AnyRecord).value-(history.at(-2) as AnyRecord).value).toFixed(2)):null
+ const monthChange=history.length>1?Number(((history.at(-1) as { value: number }).value-(history.at(-2) as { value: number }).value).toFixed(2)):null
  const value=formatObjectiveValue(current.value,unit,language),target=`${sign} ${formatObjectiveValue(objective.target,unit,language)}${objective.targetFromIndicator?(en?' (indicator)':' (από τον δείκτη)'):''}`
- const detail=[
+ const detail: { title: string, items: { label: string, value: string | number | undefined }[] }[]=[
   {title:en?'Measurement':'Μέτρηση',items:[
    {label:en?'Level':'Επίπεδο',value:objectiveLevelText(objective,language)},
    {label:en?'Measured by':'Μετριέται με',value:objectiveMeasureText(objective,language)},
@@ -75,7 +75,7 @@ export function ObjectiveRecordPage(){
    {label:en?'Year':'Έτος',value:objective.year},
   ]},
   {title:en?'Responsibility':'Ευθύνη',items:[
-   {label:en?'Owner':'Υπεύθυνος',value:roleTitleText(objective.ownerLabel,language)},
+   {label:en?'Owner':'Υπεύθυνος',value:roleTitleText(objective.ownerLabel,language) as string | undefined},
    {label:en?'Due':'Προθεσμία',value:formatDay(objective.dueDate,language)},
   ]},
  ]
@@ -88,7 +88,7 @@ export function ObjectiveRecordPage(){
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
  return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${en?'Quality objective':'Στόχος ποιότητας'} · ${objective.year}`} status={<><StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>{en&&auto.has(`${objective.id}:title`)&&objective.titleEn&&<AutoTranslatedMark/>}</>} onBack={back}
-  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{objective.platformIndicator?.definitionId&&<IconButton size="sm" label={en?'Open the indicator':'Άνοιγμα δείκτη'} onClick={()=>navigate(`/indicators/${objective.platformIndicator.definitionId}`)}><Gauge size={16}/></IconButton>}{canManage&&<Button recordMenu variant="secondary" onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={15}/>{en?'Edit':'Επεξεργασία'}</Button>}</>}>
+  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{objective.platformIndicator?.definitionId&&<IconButton size="sm" label={en?'Open the indicator':'Άνοιγμα δείκτη'} onClick={()=>navigate(`/indicators/${(objective.platformIndicator as PlatformIndicatorDef).definitionId}`)}><Gauge size={16}/></IconButton>}{canManage&&<Button recordMenu variant="secondary" onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={15}/>{en?'Edit':'Επεξεργασία'}</Button>}</>}>
   <section className="record-section">
    <div className="indicator-result-hero">
     <div className="indicator-result-value"><strong>{value}</strong></div>
@@ -102,7 +102,7 @@ export function ObjectiveRecordPage(){
    <Meter className="objective-record-meter" value={reach} tone={tone(state)} label={`${objectiveTitle(objective,language)}: ${value}`}/>
    <DetailList sections={detail}/>
    {monthly&&canManage&&monthsSoFar(objective.year)>0&&<div className="objective-month-entry"><small>{en?'Value of each month':'Τιμή κάθε μήνα'}</small>
-    <div className="objective-month-grid">{Array.from({length:monthsSoFar(objective.year)},(_,index)=>index+1).map(month=>{const saved=objective.months?.find((row: AnyRecord)=>Number(row.month.slice(5,7))===month);const label=new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'short'}).format(new Date(objective.year,month-1,1));return <label key={month} className="objective-month-cell"><span>{label}</span><input inputMode="decimal" aria-label={`${label} ${objective.year}`} value={drafts[month]??(saved?String(saved.value):'')} onChange={event=>setDrafts(current=>({...current,[month]:event.target.value}))} onBlur={()=>void saveMonth(month)}/></label>})}</div>
+    <div className="objective-month-grid">{Array.from({length:monthsSoFar(objective.year)},(_,index)=>index+1).map(month=>{const saved=objective.months?.find(row=>Number(row.month.slice(5,7))===month);const label=new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'short'}).format(new Date(objective.year,month-1,1));return <label key={month} className="objective-month-cell"><span>{label}</span><input inputMode="decimal" aria-label={`${label} ${objective.year}`} value={drafts[month]??(saved?String(saved.value):'')} onChange={event=>setDrafts(current=>({...current,[month]:event.target.value}))} onBlur={()=>void saveMonth(month)}/></label>})}</div>
    </div>}
    {history.length>0&&<>
     {history.length>1&&<div className="indicator-result-trend"><small>{en?'Value by month':'Τιμή ανά μήνα'}</small><Sparkline width={560} height={92} points={history.map(row=>row.value)} target={Number.isFinite(Number(objective.target))&&objective.target!==''?Number(objective.target):null} label={en?'Value by month':'Τιμή ανά μήνα'}/></div>}

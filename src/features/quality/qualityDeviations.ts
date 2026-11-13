@@ -6,13 +6,13 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 // one into a CAPA from this queue, prefilled.
 
 import { deviationActions } from '../controls/controlCriticality'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CapaSubAction, DeviationBundle, DeviationControl, DeviationItem, DeviationTraining, QualityDraft } from './qualityTypes'
 
 const DAY=24*60*60*1000
 const PRIORITY_BY_CRITICALITY: Record<string, string>={high:'high',medium:'medium',low:'low'}
 
-export function controlSourceId(control: AnyRecord,execution: AnyRecord){return `${control.id}#${execution.id}`}
-export function bundleSourceId(assessment: AnyRecord){return `BND-${assessment.id}`}
+export function controlSourceId(control: { id: string },execution: { id: string }){return `${control.id}#${execution.id}`}
+export function bundleSourceId(assessment: { id: string }){return `BND-${assessment.id}`}
 
 export function sourcePath(sourceId=''){
  const value=String(sourceId||'')
@@ -24,14 +24,14 @@ export function sourcePath(sourceId=''){
  return null
 }
 
-export function trainingSourceId(program: AnyRecord){return `TRAINING:${program.id}`}
+export function trainingSourceId(program: { id: string }){return `TRAINING:${program.id}`}
 
-export function deviationQueue({controls=[],bundles=[],trainings=[],capas=[],now=new Date(),days=90}: {controls?: AnyRecord[], bundles?: AnyRecord[], trainings?: AnyRecord[], capas?: AnyRecord[], now?: Date, days?: number}={}){
+export function deviationQueue({controls=[],bundles=[],trainings=[],capas=[],now=new Date(),days=90}: {controls?: DeviationControl[], bundles?: DeviationBundle[], trainings?: DeviationTraining[], capas?: QualityDraft[], now?: Date, days?: number}={}){
  const since=now.getTime()-days*DAY
  const linked=new Set(capas.filter(capa=>capa.lifecycleStatus!=='voided').map(capa=>capa.sourceId).filter(Boolean))
- const items: AnyRecord[]=[]
+ const items: DeviationItem[]=[]
  for(const control of controls){
-  for(const [department,assignment] of Object.entries<AnyRecord>(control.assignments||{})){
+  for(const [department,assignment] of Object.entries(control.assignments||{})){
    for(const execution of assignment?.history||[]){
     if(!execution.hasFinding||execution.status==='cancelled')continue
     const at=new Date(execution.at).getTime()
@@ -44,7 +44,7 @@ export function deviationQueue({controls=[],bundles=[],trainings=[],capas=[],now
      title:control.title,titleEn:control.titleEn||control.title,department,departmentId:assignment.departmentId||'',at:execution.at,
      detail:execution.value?`${execution.value}${unit}`:'',
      notes:execution.notes||'',
-     priority:PRIORITY_BY_CRITICALITY[control.responseConfig?.criticality]||'medium',
+     priority:PRIORITY_BY_CRITICALITY[control.responseConfig?.criticality as string]||'medium',
      deviationActions:deviationActions(control,department),
     })
    }
@@ -68,14 +68,14 @@ export function deviationQueue({controls=[],bundles=[],trainings=[],capas=[],now
  }
  for(const program of trainings){
   const value=program?.effectiveness||{}
-  if(!['partial','not_effective'].includes(value.result))continue
+  if(!['partial','not_effective'].includes(value.result as string))continue
   const at=new Date(value.evaluatedAt||program.dueDate||'').getTime()
   if(!Number.isFinite(at)||at<since)continue
   const sourceId=trainingSourceId(program)
   if(linked.has(sourceId))continue
   items.push({
    key:`training:${program.id}`,kind:'training',source:'training',sourceId,path:`/training/${program.id}`,
-   title:program.title,titleEn:program.titleEn||program.title,department:program.audience||'',departmentEn:program.audienceEn||program.audience||'',departmentId:'',at:value.evaluatedAt||program.dueDate,
+   title:program.title,titleEn:program.titleEn||program.title,department:program.audience||'',departmentEn:program.audienceEn||program.audience||'',departmentId:'',at:(value.evaluatedAt||program.dueDate) as string,
    detail:value.result,notes:[value.criterion,value.notes].filter(Boolean).join(' · '),
    priority:value.result==='not_effective'?'high':'medium',
    deviationActions:'',
@@ -85,7 +85,7 @@ export function deviationQueue({controls=[],bundles=[],trainings=[],capas=[],now
 }
 
 // What the CAPA create page receives for one queue item.
-export function capaPrefill(item: AnyRecord,language='el'){
+export function capaPrefill(item: DeviationItem,language='el'){
  const en=language==='en'
  const title=en?item.titleEn||item.title:item.title
  const lines=[
@@ -104,23 +104,23 @@ export function capaPrefill(item: AnyRecord,language='el'){
  return {source:item.kind==='training'?'other':item.source,sourceId:item.sourceId,departmentId:item.departmentId,title:en?`Corrective action: ${title}`:`Διορθωτική ενέργεια: ${title}`,description:lines.join('\n'),priority:item.priority,subActions}
 }
 
-export function newSubAction(title='',index=0){
+export function newSubAction(title='',index=0): CapaSubAction{
  return {id:`sa-${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2,6)}`,title,owner:'',dueDate:'',done:false,doneAt:null,doneBy:''}
 }
 
-export function subActionProgress(subActions: AnyRecord[]=[]){
+export function subActionProgress(subActions: Partial<CapaSubAction>[]=[]){
  const total=subActions.length
  const done=subActions.filter(item=>item.done).length
  return {total,done,open:total-done}
 }
 
-export function overdueSubActions(subActions: AnyRecord[]=[],today=hospitalToday()){
+export function overdueSubActions<T extends Partial<CapaSubAction>>(subActions: T[]=[],today=hospitalToday()){
  return subActions.filter(item=>!item.done&&item.dueDate&&item.dueDate<today)
 }
 
 // What a new CAPA opened from an incident or a finding starts with; a sentinel
 // event's is its root cause analysis, due by the RCA deadline.
-export function capaSourceFor(recordType: string,record: AnyRecord,language='el'){
+export function capaSourceFor(recordType: string,record: QualityDraft & { id: string },language='el'){
  const en=language==='en',code=record.displayId||record.id
  return {source:recordType==='incidents'?'incident':'finding',sourceId:record.id,departmentId:record.departmentId,department:record.department,departmentEn:record.departmentEn,priority:record.sentinel?'critical':record.severity,dueDate:record.sentinel?record.rcaDueDate:undefined,title:record.sentinel?(en?`Root cause analysis: ${code}`:`Ανάλυση ριζικής αιτίας: ${code}`):(en?'CAPA for ':'Διορθωτική ενέργεια για ')+code}
 }

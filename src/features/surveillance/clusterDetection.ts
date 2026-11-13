@@ -7,7 +7,26 @@
 // the tightest interval between cases rather than a fixed lookback from
 // query time). `lastEventDate` lets a caller judge staleness separately.
 import { isContaminationNote, isSkinFloraOrganism } from './skinFloraOrganisms'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClusterKey, ClusterRecord } from './surveillanceListTypes'
+
+// An isolate of a group, by date ('YYYY-MM-DD').
+interface ClusterItem {
+  date: string
+  resistance: string | null
+  patientId: string | null
+  sampleId: string | null
+}
+// The isolates of one organism in one department.
+interface ClusterGroup {
+  department: string
+  organism: string
+  items: ClusterItem[]
+}
+// The patients of a skin-flora window, each with their distinct samples.
+interface PatientSamples {
+  samples: Set<string>
+  items: ClusterItem[]
+}
 
 const DAY_MS = 86400000
 
@@ -22,12 +41,12 @@ function addDays(isoDate: string, days: number) {
 
 // Skin flora / contaminants (see skinFloraOrganisms.js) count only patients with 2+ distinct
 // positive samples inside the window, and the count is then of patients, not isolates.
-function skinFloraWindow(items: AnyRecord[], i: number, j: number) {
-  const perPatient = new Map()
-  items.slice(i, j + 1).forEach((item: AnyRecord, index: number) => {
+function skinFloraWindow(items: ClusterItem[], i: number, j: number) {
+  const perPatient = new Map<string, PatientSamples>()
+  items.slice(i, j + 1).forEach((item: ClusterItem, index: number) => {
     const patient = item.patientId || item.sampleId || `row-${index}`
     if (!perPatient.has(patient)) perPatient.set(patient, { samples: new Set(), items: [] })
-    const entry = perPatient.get(patient)
+    const entry = perPatient.get(patient)!
     entry.samples.add(item.sampleId || `row-${index}`)
     entry.items.push(item)
   })
@@ -41,14 +60,14 @@ interface DetectOrganismClustersOptions {
   threshold?: number
 }
 // records: [{organism, department, date /* 'YYYY-MM-DD' */, resistance?, patientId?, sampleId?}]
-export function detectOrganismClusters(records: AnyRecord[], { windowDays = 14, threshold = 3 }: DetectOrganismClustersOptions = {}) {
-  const groups = new Map()
+export function detectOrganismClusters(records: ClusterRecord[], { windowDays = 14, threshold = 3 }: DetectOrganismClustersOptions = {}) {
+  const groups = new Map<string, ClusterGroup>()
   for (const record of records || []) {
     if (!record?.organism || !record?.department || !record?.date) continue
     if (isContaminationNote(record.organism)) continue
     const key = `${record.department}|||${normalizeOrganism(record.organism)}`
     if (!groups.has(key)) groups.set(key, { department: record.department, organism: record.organism, items: [] })
-    groups.get(key).items.push({ date: String(record.date).slice(0, 10), resistance: record.resistance || null, patientId: record.patientId || null, sampleId: record.sampleId || null })
+    groups.get(key)!.items.push({ date: String(record.date).slice(0, 10), resistance: record.resistance || null, patientId: record.patientId || null, sampleId: record.sampleId || null })
   }
 
   const clusters = []
@@ -86,6 +105,6 @@ export function detectOrganismClusters(records: AnyRecord[], { windowDays = 14, 
   return clusters.sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate))
 }
 
-export function clusterAlertId(cluster: AnyRecord) {
+export function clusterAlertId(cluster: ClusterKey) {
   return `CLUSTER-${cluster.department}-${normalizeOrganism(cluster.organism)}-${cluster.firstDate}`.replace(/\s+/g, '_')
 }
