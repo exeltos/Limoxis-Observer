@@ -14,12 +14,12 @@ import {
   validatePhotoFile,
 } from './employeePhotoService'
 import './employeePhoto.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee } from './employeeTypes'
 
 // Signed URLs for the photos of the given employees (one request per batch).
 // Signed URLs expire after an hour: a page left open signs them again on a timer
 // and when it comes back into view, so its photos never turn into broken images.
-export function useEmployeePhotoUrls(rows: (AnyRecord | null | undefined)[]) {
+export function useEmployeePhotoUrls(rows: (Pick<Employee, 'id' | 'photoPath'> | null | undefined)[]) {
   const key = useMemo(() => [...new Set((rows || []).map(row => row?.photoPath).filter(Boolean))].sort().join('|'), [rows])
   const [urls, setUrls] = useState<Record<string, string>>({})
   useEffect(() => {
@@ -38,7 +38,7 @@ export function useEmployeePhotoUrls(rows: (AnyRecord | null | undefined)[]) {
 }
 
 // The employee's photo, or their initials when there is none (or it cannot load).
-export function EmployeeAvatar({ employee, url, size = 'sm', className = '' }: { employee: AnyRecord | null | undefined, url?: string, size?: string, className?: string }) {
+export function EmployeeAvatar({ employee, url, size = 'sm', className = '' }: { employee: Partial<Employee> | null | undefined, url?: string, size?: string, className?: string }) {
   const { t, language } = useLanguage()
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [url])
@@ -55,7 +55,7 @@ export function EmployeeAvatar({ employee, url, size = 'sm', className = '' }: {
 }
 
 // Record header avatar. Whoever may edit the employee opens the photo window from it.
-export function EmployeeHeaderPhoto({ employee, organizationId, canEdit = false, onChange }: { employee: AnyRecord, organizationId: string | null | undefined, canEdit?: boolean, onChange?: (employee: AnyRecord) => void }) {
+export function EmployeeHeaderPhoto({ employee, organizationId, canEdit = false, onChange }: { employee: Employee, organizationId: string | null | undefined, canEdit?: boolean, onChange?: (employee: Employee) => void }) {
   const { t } = useLanguage()
   const urls = useEmployeePhotoUrls(useMemo(() => [employee], [employee]))
   const url = employee?.photoPath ? urls[employee.photoPath] : ''
@@ -71,7 +71,7 @@ export function EmployeeHeaderPhoto({ employee, organizationId, canEdit = false,
   </>
 }
 
-export function EmployeePhotoDialog({ employee, url, organizationId, onClose, onChange }: { employee: AnyRecord, url?: string, organizationId: string | null | undefined, onClose?: () => void, onChange?: (employee: AnyRecord) => void }) {
+export function EmployeePhotoDialog({ employee, url, organizationId, onClose, onChange }: { employee: Employee, url?: string, organizationId: string | null | undefined, onClose?: () => void, onChange?: (employee: Employee) => void }) {
   const { t } = useLanguage()
   const { notify, confirm } = useFeedback()
   const fileRef = useRef<HTMLInputElement | null>(null)

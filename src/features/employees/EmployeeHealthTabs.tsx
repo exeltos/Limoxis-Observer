@@ -19,7 +19,11 @@ import {
   statusClass,
   label,
 } from './employeeRecordShared'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, EmployeeVaccination, ExposureIncident, OccupationalVisit } from './employeeTypes'
+
+// A line of the combined occupational health list: a visit, a vaccination or an exposure (raw).
+type HealthRaw = Partial<Omit<OccupationalVisit, 'date'>> & Partial<Omit<EmployeeVaccination, 'date'>> & Partial<ExposureIncident> & { date?: string | null }
+type HealthRow = { kind: string, id: string, date: string | null, title: string, detail: string, status: string, tone: string, raw: HealthRaw }
 
 // Occupational-health tabs of the employee record: health overview, visits,
 // vaccinations and exposure incidents.
@@ -44,13 +48,13 @@ export function EmployeeHealthTab({
   const vaccinations = useEmployeeSubRecords(loadVaccinationsAsync, organizationId, employee.dbId, employee.id)
   const exposures = useEmployeeSubRecords(loadExposureIncidentsAsync, organizationId, employee.dbId, employee.id)
   const [kind, setKind] = useState(KIND_FOR_SECTION[initialSection] || 'all')
-  const [selected, setSelected] = useState<AnyRecord | null>(null)
+  const [selected, setSelected] = useState<HealthRow | null>(null)
   const pick = (map: Record<string, string[]>, value: string) => map[value]?.[en ? 1 : 0] || value || '—'
   // Imported visits carry no fitness («pending» on a completed visit says nothing) and repeat the person's next
   // follow-up on every visit: the follow-up is shown on the latest visit only.
   const latestVisitId = useMemo(() => [...visits.data].sort((x, y) => String(y.date || '').localeCompare(String(x.date || '')))[0]?.id, [visits.data])
-  const visitDetail = (row: AnyRecord) => [row.fitStatus && !(row.fitStatus === 'pending' && row.status === 'completed') ? label(row.fitStatus, t) : '', row.followUpDate && row.id === latestVisitId && `${en ? 'Next check' : 'Επόμενος έλεγχος'} ${fmt(row.followUpDate)}`].filter(Boolean).join(' · ')
-  const all = useMemo(() => [
+  const visitDetail = (row: OccupationalVisit) => [row.fitStatus && !(row.fitStatus === 'pending' && row.status === 'completed') ? label(row.fitStatus, t) : '', row.followUpDate && row.id === latestVisitId && `${en ? 'Next check' : 'Επόμενος έλεγχος'} ${fmt(row.followUpDate)}`].filter(Boolean).join(' · ')
+  const all = useMemo((): HealthRow[] => [
     ...visits.data.map(row => ({ kind: 'visit', id: `v-${row.id}`, date: row.date, title: label(row.type, t), detail: visitDetail(row), status: label(row.status, t), tone: statusClass(row.status), raw: row })),
     ...vaccinations.data.map(row => ({ kind: 'vaccination', id: `x-${row.id}`, date: row.date, title: row.vaccine || '—', detail: [row.dose, row.validUntil && `${en ? 'Valid until' : 'Ισχύει έως'} ${fmt(row.validUntil)}`].filter(Boolean).join(' · '), status: label(row.status, t), tone: statusClass(row.status), raw: row })),
     ...exposures.data.map(row => ({ kind: 'exposure', id: `e-${row.id}`, date: row.incidentDate, title: pick(EXPOSURE_TYPES, row.exposureType), detail: pick(FOLLOW_UPS, row.followUpStatus), status: row.status === 'open' ? (en ? 'Open' : 'Ανοικτό') : (en ? 'Closed' : 'Κλειστό'), tone: row.status === 'open' ? 'temporary' : '', raw: row })),
@@ -62,9 +66,9 @@ export function EmployeeHealthTab({
   const failed = visits.error || vaccinations.error || exposures.error
   const exportDialog = useRecordTabExport({
     onExportItems, id: 'occupational', label: { el: 'Ιατρός Εργασίας', en: 'Occupational health' }, employee, language, count: registry.filtered.length,
-    table: () => ({ headers: en ? ['Date', 'Kind', 'Description', 'Details', 'Status'] : ['Ημερομηνία', 'Είδος', 'Περιγραφή', 'Λεπτομέρειες', 'Κατάσταση'], rows: registry.filtered.map((row: AnyRecord) => [fmt(row.date), kindLabel(row.kind), row.title, row.detail, row.status]) }),
+    table: () => ({ headers: en ? ['Date', 'Kind', 'Description', 'Details', 'Status'] : ['Ημερομηνία', 'Είδος', 'Περιγραφή', 'Λεπτομέρειες', 'Κατάσταση'], rows: registry.filtered.map(row => [fmt(row.date), kindLabel(row.kind), row.title, row.detail, row.status]) }),
   })
-  const open = (row: AnyRecord) => { if (row.kind === 'visit') navigate(`/occupational-health/visits/${encodeURIComponent(row.raw.id)}`); else setSelected(row) }
+  const open = (row: HealthRow) => { if (row.kind === 'visit') navigate(`/occupational-health/visits/${encodeURIComponent(row.raw.id as string)}`); else setSelected(row) }
   return (
     <section className="record-section record-secondary-registry employee-health-tab">
       {exportDialog}
@@ -103,7 +107,7 @@ export function EmployeeHealthTab({
                 </tr>
               </thead>
               <tbody>
-                {registry.paging.paged.map((row: AnyRecord) => (
+                {registry.paging.paged.map(row => (
                   <tr key={row.id} tabIndex={0} onClick={() => open(row)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(row) } }}>
                     <td>{fmt(row.date)}</td>
                     <td>{kindLabel(row.kind)}</td>
@@ -140,7 +144,7 @@ export function EmployeeHealthTab({
 }
 
 // What the occupational health tabs get from the record page.
-interface HealthTabProps { employee: AnyRecord, t: (key: string) => string, language: string, fmt: (value: unknown) => string, organizationId: string | null | undefined }
+interface HealthTabProps { employee: Employee, t: (key: string) => string, language: string, fmt: (value: unknown) => string, organizationId: string | null | undefined }
 export function EmployeeOccupationalTab({ employee, t, language, fmt, organizationId }: HealthTabProps) {
   const state = useEmployeeSubRecords(
     loadOccupationalVisitsAsync,
@@ -148,7 +152,7 @@ export function EmployeeOccupationalTab({ employee, t, language, fmt, organizati
     employee.dbId,
     employee.id,
   )
-  const [selected, setSelected] = useState<AnyRecord | null>(null)
+  const [selected, setSelected] = useState<OccupationalVisit | null>(null)
   const registry = useRegistryRows(state.data)
   const paging = registry.paging
   return (
@@ -186,7 +190,7 @@ export function EmployeeOccupationalTab({ employee, t, language, fmt, organizati
                   </tr>
                 </thead>
                 <tbody>
-                  {paging.paged.map((row: AnyRecord) => (
+                  {paging.paged.map(row => (
                     <tr
                       key={row.id}
                       tabIndex={0}
@@ -268,7 +272,7 @@ export function EmployeeVaccinationsTab({ employee, t, language, fmt, organizati
     employee.dbId,
     employee.id,
   )
-  const [selected, setSelected] = useState<AnyRecord | null>(null)
+  const [selected, setSelected] = useState<EmployeeVaccination | null>(null)
   const registry = useRegistryRows(state.data)
   const paging = registry.paging
   return (
@@ -306,7 +310,7 @@ export function EmployeeVaccinationsTab({ employee, t, language, fmt, organizati
                   </tr>
                 </thead>
                 <tbody>
-                  {paging.paged.map((row: AnyRecord) => (
+                  {paging.paged.map(row => (
                     <tr
                       key={row.id}
                       tabIndex={0}
@@ -390,7 +394,7 @@ export function EmployeeExposureIncidentsTab({ employee, language, fmt, organiza
     employee.dbId,
     employee.id,
   )
-  const [selected, setSelected] = useState<AnyRecord | null>(null)
+  const [selected, setSelected] = useState<ExposureIncident | null>(null)
   const registry = useRegistryRows(state.data)
   const paging = registry.paging
   const typeLabel = (value: string) =>
@@ -446,7 +450,7 @@ export function EmployeeExposureIncidentsTab({ employee, language, fmt, organiza
                   </tr>
                 </thead>
                 <tbody>
-                  {paging.paged.map((row: AnyRecord) => (
+                  {paging.paged.map(row => (
                     <tr
                       key={row.id}
                       tabIndex={0}

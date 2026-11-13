@@ -8,7 +8,7 @@ import {
   loadEmployeeHrOptionsAsync,
   updateEmployeeAsync,
 } from './employeeService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, EmployeeOption } from './employeeTypes'
 
 // The «Details» tab of the employee record (EmployeeRecordPage): the facts, edited in place.
 export function Details({
@@ -26,7 +26,7 @@ export function Details({
   reloadEmployees,
   onCodeChanged,
 }: {
-  employee: AnyRecord
+  employee: Employee
   t: (key: string) => string
   language: string
   fmt: (value: unknown) => string
@@ -51,7 +51,7 @@ export function Details({
     }
   }, [organizationId])
   const [saving, setSaving] = useState(false),
-    [record, setRecord] = useState<AnyRecord>({ ...employee })
+    [record, setRecord] = useState<Employee>({ ...employee })
   useEffect(() => setRecord({ ...employee }), [employee])
   const set = (key: string, value: unknown) => setRecord(current => ({ ...current, [key]: value }))
   const cancel = () => {
@@ -203,7 +203,7 @@ export function Details({
             setRecord(current => ({
               ...current,
               profession: value,
-              professionEn: professionOptions.find((row: AnyRecord) => (row?.[0] ?? row?.name) === value)?.[1] || value,
+              professionEn: professionOptions.find(row => (row?.[0] ?? row?.name) === value)?.[1] || value,
             }))
           }
         />
@@ -263,8 +263,7 @@ export function Details({
   )
 }
 
-// A library row ([el, en, …]) or a department ({ name, nameEn }).
-type Option = AnyRecord
+type Option = EmployeeOption
 interface InlineProps { editing: boolean, label: string, value: string | null | undefined, display?: ReactNode, onChange: (value: string) => void }
 function InlineDetail({ editing, label, value, display, onChange, type = 'text' }: InlineProps & { type?: string }) {
   if (editing && type === 'date')
@@ -289,8 +288,8 @@ function InlineDetail({ editing, label, value, display, onChange, type = 'text' 
 }
 // The hospital's list plus the values its employees already have (owner, 8/11/2026): a hospital whose list of job
 // positions is empty still offers the positions in use, and a new one can be typed.
-export function withEmployeeValues(options: Option[] = [], rows: AnyRecord[] = [], key: string, keyEn: string): Option[] {
-  const list: AnyRecord[] = Array.isArray(options) ? [...options] as AnyRecord[] : []
+export function withEmployeeValues(options: Option[] = [], rows: Partial<Employee>[] = [], key: 'profession' | 'position', keyEn: 'professionEn' | 'positionEn'): Option[] {
+  const list: Option[] = Array.isArray(options) ? [...options] : []
   const known = new Set(list.map(row => row?.[0] ?? row?.name))
   for (const row of rows || []) {
     const value = String(row?.[key] || '').trim()
@@ -304,7 +303,7 @@ export function withEmployeeValues(options: Option[] = [], rows: AnyRecord[] = [
 
 // allowCustom: a value that is not in the list (yet) is typed in, e.g. a job position the hospital's list does not have.
 function InlineSelect({ editing, label, value, display, options = [], language, onChange, allowCustom = false }: InlineProps & { options?: Option[], language: string, allowCustom?: boolean }) {
-  const rows: AnyRecord[] = Array.isArray(options) ? options as AnyRecord[] : [],
+  const rows: Option[] = Array.isArray(options) ? options : [],
     hasCurrent = rows.some(row => (row?.[0] ?? row?.name ?? '') === value)
   return (
     <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>

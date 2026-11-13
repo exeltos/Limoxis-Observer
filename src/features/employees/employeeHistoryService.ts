@@ -9,8 +9,8 @@ import {
   loadEvaluationsAsync,
   loadCertificatesAsync,
 } from './employeeSubRecordsService'
+import type { EmployeeHistoryEntry } from './employeeTypes'
 import { loadEmployeeSurveillanceRecords } from '../surveillance/employeeSurveillanceCloudService'
-import type { AnyRecord } from '../../types/featureTypes'
 
 function asDateTime(value: unknown){
   if(!value)return null
@@ -23,7 +23,7 @@ function detailKey(kind: string,detail: unknown){
   return value?`history_${kind}:${value}`:`history_${kind}`
 }
 
-export async function loadEmployeeHistoryAsync(organizationId: string|null|undefined,employeeDbId: string|null|undefined,employeeId: string){
+export async function loadEmployeeHistoryAsync(organizationId: string|null|undefined,employeeDbId: string|null|undefined,employeeId: string): Promise<EmployeeHistoryEntry[]>{
   if(isDemoDataEnvironment())return employeeHistoryDemo.filter(row=>row.employeeId===employeeId)
   if(!employeeDbId)return []
   if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_CLOUD_REQUIRED:employees.history')
@@ -41,17 +41,17 @@ export async function loadEmployeeHistoryAsync(organizationId: string|null|undef
 
   if(auditResult.error)throw auditResult.error
 
-  const admin=(auditResult.data||[]).map((row: AnyRecord)=>({
+  const admin=(auditResult.data||[]).map(row=>({
     id:`audit-${row.audit_id}`,
     action:row.action,
     at:row.occurred_at,
     actorName:row.actor_name||'',
     actorRole:row.actor_role||'',
-    changedFields:Array.isArray(row.changed_fields)?row.changed_fields:[],
+    changedFields:Array.isArray(row.changed_fields)?row.changed_fields as string[]:[],
     historyKind:'administrative',
   }))
 
-  const occupational=(visits||[]).map((row: AnyRecord)=>({
+  const occupational=(visits||[]).map(row=>({
     id:`occupational-${row.id}`,
     action:'update',
     at:asDateTime(row.createdAt||row.date),
@@ -60,7 +60,7 @@ export async function loadEmployeeHistoryAsync(organizationId: string|null|undef
     historyKind:'occupational',
   }))
 
-  const vaccinationRows=(vaccinations||[]).map((row: AnyRecord)=>({
+  const vaccinationRows=(vaccinations||[]).map(row=>({
     id:`vaccination-${row.id}`,
     action:'update',
     at:asDateTime(row.createdAt||row.date),
@@ -69,7 +69,7 @@ export async function loadEmployeeHistoryAsync(organizationId: string|null|undef
     historyKind:'vaccination',
   }))
 
-  const trainingRows=(training||[]).map((row: AnyRecord)=>({
+  const trainingRows=(training||[]).map(row=>({
     id:`training-${row.id}`,
     action:'update',
     at:asDateTime(row.completedDate||row.assignedDate||row.date),
@@ -79,7 +79,7 @@ export async function loadEmployeeHistoryAsync(organizationId: string|null|undef
   }))
 
   // A training's knowledge test is already the training's own line: only formal evaluations are listed here.
-  const evaluationRows=(evaluations||[]).filter((row: AnyRecord)=>row.source!=='training').map((row: AnyRecord)=>({
+  const evaluationRows=(evaluations||[]).filter(row=>row.source!=='training').map(row=>({
     id:`evaluation-${row.id}`,
     action:'update',
     at:asDateTime(row.date),
@@ -88,7 +88,7 @@ export async function loadEmployeeHistoryAsync(organizationId: string|null|undef
     historyKind:'evaluation',
   }))
 
-  const certificateRows=(certificates||[]).map((row: AnyRecord)=>({
+  const certificateRows=(certificates||[]).map(row=>({
     id:`certificate-${row.id}`,
     action:'update',
     at:asDateTime(row.issueDate),
@@ -98,8 +98,8 @@ export async function loadEmployeeHistoryAsync(organizationId: string|null|undef
   }))
 
   const surveillance=(surveillanceRows||[])
-    .filter((row: AnyRecord)=>row.employeeDbId===employeeDbId)
-    .map((row: AnyRecord)=>({
+    .filter(row=>row.employeeDbId===employeeDbId)
+    .map(row=>({
       id:`surveillance-${row.recordId||row.id}`,
       action:'update',
       at:asDateTime(row.createdAt||row.startedAt),
@@ -109,7 +109,7 @@ export async function loadEmployeeHistoryAsync(organizationId: string|null|undef
     }))
 
   const rows=[...admin,...occupational,...vaccinationRows,...trainingRows,...evaluationRows,...certificateRows,...surveillance]
-  const unique=new Map<string,AnyRecord>()
+  const unique=new Map<string,(typeof rows)[number]>()
   for(const row of rows){if(row.at&&!unique.has(row.id))unique.set(row.id,row)}
   return [...unique.values()].sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime())
 }

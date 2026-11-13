@@ -30,6 +30,7 @@ import { libraryOptions, useDepartments, useLibraries } from '../../management/u
 import { useMeetings } from './MeetingsPanel'
 import { loadQualityRecords } from '../qualityService'
 import { useEmployeesData } from '../../employees/useEmployeesData'
+import type { Employee } from '../../employees/employeeTypes'
 import { DocumentsWorkspace } from '../../../design-system/DocumentsWorkspace'
 import type { AttachmentFile } from '../../../design-system/AttachmentField'
 import { ModeSwitch } from '../../../design-system/ModeSwitch'
@@ -123,7 +124,7 @@ export function MeetingRecordPage() {
   // The attendance: the department's active employees, each present or absent.
   const { data: employees } = useEmployeesData()
   const staff = useMemo(() => (meeting ? (employees || []).filter(employee => (employee.employmentStatus || 'active') === 'active' && ((meeting.departmentId && employee.departmentId === meeting.departmentId) || (employee.department && employee.department === meeting.department))) : []).map(employee => ({ employeeId: employee.dbId || employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(), role: cleanRole(employee.position || employee.profession) })), [employees, meeting])
-  const employeeById = useMemo(() => new Map((employees || []).map(employee => [employee.dbId || employee.id, employee])), [employees])
+  const employeeById = useMemo(() => new Map<unknown, Employee>((employees || []).map(employee => [employee.dbId || employee.id, employee])), [employees])
   const [documents, setDocuments] = useState<AttachmentFile[]>([])
   // The corrective actions opened from decisions of department meetings.
   const [capas, setCapas] = useState<MeetingCapa[]>([])

@@ -27,7 +27,7 @@ import { EmployeeAvatar, useEmployeePhotoUrls } from './EmployeePhoto'
 import { STAFF_CATEGORIES, isStaffEmployee, staffCategoryLabel, staffCategoryOf } from './staffCategory'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { loadDepartments } from '../management/departmentsService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, OccupationalVisit } from './employeeTypes'
 
 export function EmployeesPage(){
   const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership,tenant,isDemo}=useTenant()
@@ -40,9 +40,9 @@ export function EmployeesPage(){
   const [excelMode,setExcelMode]=useState<boolean | null>(null)
   // The occupational physician sees each employee's latest completed visit and its fitness in the list.
   const showHealth=role===ROLES.OCCUPATIONAL_PHYSICIAN
-  const [visits,setVisits]=useState<AnyRecord[]>([])
+  const [visits,setVisits]=useState<OccupationalVisit[]>([])
   useEffect(()=>{if(!showHealth)return;let live=true;loadAllOccupationalVisitsAsync(tenant?.id).then(rows=>{if(live)setVisits(rows)}).catch(()=>{});return()=>{live=false}},[showHealth,tenant?.id])
-  const lastVisitOf=useMemo(()=>{const latest=new Map();for(const v of visits){if(v.status!=='completed')continue;const prev=latest.get(v.employeeId);if(!prev||String(v.date)>String(prev.date))latest.set(v.employeeId,v)}return (x: AnyRecord)=>latest.get(x.dbId)||latest.get(x.id)||null},[visits])
+  const lastVisitOf=useMemo(()=>{const latest=new Map<unknown,OccupationalVisit>();for(const v of visits){if(v.status!=='completed')continue;const prev=latest.get(v.employeeId);if(!prev||String(v.date)>String(prev.date))latest.set(v.employeeId,v)}return (x: Employee)=>latest.get(x.dbId)||latest.get(x.id)||null},[visits])
   const canImport=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,membership?.capabilities??[],membership?.customCapabilities??[])
   const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(15)
   // Every department of the hospital, also those without employees yet, and in alphabetical order (owner, 9/11/2026).
@@ -54,29 +54,29 @@ export function EmployeesPage(){
   const photoUrls=useEmployeePhotoUrls(useMemo(()=>rows.slice((page-1)*pageSize,page*pageSize),[rows,page,pageSize]))
   if(loading)return <RouteLoading/>
   if(error)return <div className="data-access-state error" role="alert"><span>{t('employeesLoadFailed')}</span><button type="button" onClick={reload}>{t('retry')}</button></div>
-  const displayName=(x: AnyRecord)=>language==='el'?`${x.lastName} ${x.firstName}`:`${x.firstNameEn} ${x.lastNameEn}`
+  const displayName=(x: Employee)=>language==='el'?`${x.lastName} ${x.firstName}`:`${x.firstNameEn} ${x.lastNameEn}`
   const scopedEmployees=employeeRows.filter(x=>canAccessRecord(x))
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
-  function openEmployee(row: AnyRecord){registry.saveViewState({query,department,status,category});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
+  function openEmployee(row: Employee){registry.saveViewState({query,department,status,category});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
   // The list as filtered (print / Excel), and the same people grouped by department (print / PDF / Excel).
   // Excel asks which fields the file has; the print and the PDF carry the fixed set below.
-  const unit=(x: AnyRecord)=>(language==='el'?x.department:x.departmentEn)||'—'
+  const unit=(x: Employee)=>(language==='el'?x.department:x.departmentEn)||'—'
   const excelFields=[
     {key:'name',label:t('name'),initial:true,value:displayName},
-    {key:'code',label:t('employeeCode'),initial:true,value:(x: AnyRecord)=>x.id},
+    {key:'code',label:t('employeeCode'),initial:true,value:(x: Employee)=>x.id},
     {key:'department',label:t('department'),initial:true,value:unit},
-    {key:'category',label:t('professionalCategory'),initial:true,value:(x: AnyRecord)=>(language==='el'?x.profession:x.professionEn)||'—'},
-    {key:'position',label:t('employeesRecords.exportPosition'),initial:false,value:(x: AnyRecord)=>(language==='el'?x.position:(x.positionEn||x.position))||''},
-    {key:'status',label:t('status'),initial:true,value:(x: AnyRecord)=>t(x.employmentStatus)},
-    {key:'staffCategory',label:t('employeesRecords.staffCategory'),initial:false,value:(x: AnyRecord)=>staffCategoryLabel(staffCategoryOf(x),language)},
-    {key:'mobile',label:t('employeesRecords.exportMobile'),initial:true,value:(x: AnyRecord)=>x.phone||''},
-    {key:'email',label:t('employeesRecords.exportEmail'),initial:false,value:(x: AnyRecord)=>x.email||''},
-    {key:'hrDepartment',label:t('employeesRecords.exportHrDepartment'),initial:false,value:(x: AnyRecord)=>x.hrDepartment||''},
-    {key:'directorate',label:t('employeesRecords.exportDirectorate'),initial:false,value:(x: AnyRecord)=>x.directorate||''},
-    {key:'hireDate',label:t('employeesRecords.exportHireDate'),initial:false,value:(x: AnyRecord)=>x.hireDate?String(x.hireDate).slice(0,10).split('-').reverse().join('/'):''},
+    {key:'category',label:t('professionalCategory'),initial:true,value:(x: Employee)=>(language==='el'?x.profession:x.professionEn)||'—'},
+    {key:'position',label:t('employeesRecords.exportPosition'),initial:false,value:(x: Employee)=>(language==='el'?x.position:(x.positionEn||x.position))||''},
+    {key:'status',label:t('status'),initial:true,value:(x: Employee)=>t(x.employmentStatus)},
+    {key:'staffCategory',label:t('employeesRecords.staffCategory'),initial:false,value:(x: Employee)=>staffCategoryLabel(staffCategoryOf(x),language)},
+    {key:'mobile',label:t('employeesRecords.exportMobile'),initial:true,value:(x: Employee)=>x.phone||''},
+    {key:'email',label:t('employeesRecords.exportEmail'),initial:false,value:(x: Employee)=>x.email||''},
+    {key:'hrDepartment',label:t('employeesRecords.exportHrDepartment'),initial:false,value:(x: Employee)=>x.hrDepartment||''},
+    {key:'directorate',label:t('employeesRecords.exportDirectorate'),initial:false,value:(x: Employee)=>x.directorate||''},
+    {key:'hireDate',label:t('employeesRecords.exportHireDate'),initial:false,value:(x: Employee)=>x.hireDate?String(x.hireDate).slice(0,10).split('-').reverse().join('/'):''},
   ]
   const printKeys=['name','code','department','category','mobile','status']
-  const tableOf=(keys: string[],list: AnyRecord[])=>{const used=excelFields.filter(field=>keys.includes(field.key));return {headers:used.map(field=>field.label),rows:list.map(x=>used.map(field=>field.value(x)))}}
+  const tableOf=(keys: string[],list: Employee[])=>{const used=excelFields.filter(field=>keys.includes(field.key));return {headers:used.map(field=>field.label),rows:list.map(x=>used.map(field=>field.value(x)))}}
   const departmentLabel=department==='all'?t('allDepartments'):department
   const byDepartment=()=>{const groups=new Map();for(const x of rows){const key=unit(x);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)}return [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],language==='en'?'en':'el'))}
   const listBuild=()=>({name:`${language==='en'?'employees':'ergazomenoi'}${department==='all'?'':`_${department}`}`,...tableOf(printKeys,rows)})
@@ -113,7 +113,7 @@ export function EmployeesPage(){
         <FilterSelect label={t('employeesRecords.staffCategory')} value={category} onChange={setCategory}><option value="all">{t('all')}</option>{STAFF_CATEGORIES.map(item=><option key={item.value} value={item.value}>{staffCategoryLabel(item.value,language)}</option>)}</FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef as RefObject<HTMLDivElement>}>
-        <table className="data-table sticky-table"><thead><tr><th>{t('name')}</th><th>{t('employeeCode')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th>{showHealth&&<th>{t('employeesRecords.lastVisit')}</th>}{showHealth&&<th>{t('employeesRecords.fitnessForWork')}</th>}<th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong>{!isStaffEmployee(x)&&<span className="status-badge">{staffCategoryLabel(staffCategoryOf(x),language)}</span>}<small>{x.email}</small></div></div></td><td className="nowrap-cell"><strong>{x.id}</strong></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td>{showHealth&&<td className="nowrap-cell">{lastVisitOf(x)?new Intl.DateTimeFormat(language==='en'?'en-GB':'el-GR').format(new Date(`${String(lastVisitOf(x).date).slice(0,10)}T12:00:00`)):'—'}</td>}{showHealth&&<td>{lastVisitOf(x)?fitnessLabel(lastVisitOf(x).fitStatus,language):'—'}</td>}<td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
+        <table className="data-table sticky-table"><thead><tr><th>{t('name')}</th><th>{t('employeeCode')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th>{showHealth&&<th>{t('employeesRecords.lastVisit')}</th>}{showHealth&&<th>{t('employeesRecords.fitnessForWork')}</th>}<th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong>{!isStaffEmployee(x)&&<span className="status-badge">{staffCategoryLabel(staffCategoryOf(x),language)}</span>}<small>{x.email}</small></div></div></td><td className="nowrap-cell"><strong>{x.id}</strong></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td>{showHealth&&<td className="nowrap-cell">{lastVisitOf(x)?new Intl.DateTimeFormat(language==='en'?'en-GB':'el-GR').format(new Date(`${String(lastVisitOf(x)?.date).slice(0,10)}T12:00:00`)):'—'}</td>}{showHealth&&<td>{lastVisitOf(x)?fitnessLabel(lastVisitOf(x)?.fitStatus,language):'—'}</td>}<td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
         {!rows.length&&(scopedEmployees.length
           ?<RegistryEmptyState filtered onClearFilters={clearFilters}/>
           :<RegistryEmptyState icon={Users} title={t('employeesEmptyTitle')} text={t('employeesEmptyDescription')} action={canImport?{label:t('create'),icon:Plus,onClick:()=>action(UI_ACTIONS.CREATE)}:null}/>)}
@@ -125,4 +125,4 @@ export function EmployeesPage(){
   </Page>
 }
 // Hired in the last 12 months (by the hire date, in Athens time as a calendar day).
-function isNewHire(row: AnyRecord){if(!row.hireDate)return false;const from=new Date();from.setFullYear(from.getFullYear()-1);return String(row.hireDate).slice(0,10)>=`${from.getFullYear()}-${String(from.getMonth()+1).padStart(2,'0')}-${String(from.getDate()).padStart(2,'0')}`}
+function isNewHire(row: Pick<Employee,'hireDate'>){if(!row.hireDate)return false;const from=new Date();from.setFullYear(from.getFullYear()-1);return String(row.hireDate).slice(0,10)>=`${from.getFullYear()}-${String(from.getMonth()+1).padStart(2,'0')}-${String(from.getDate()).padStart(2,'0')}`}

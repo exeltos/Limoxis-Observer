@@ -31,7 +31,9 @@ import {
 } from './employeeRecordShared'
 import './employeeRecordTabsRefinements.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { StoredAttachment } from '../../core/attachments/attachmentService'
+import type { EmployeeSurveillanceRecord, ScreeningSample } from '../surveillance/employeeSurveillanceTypes'
+import type { EmployeeHistoryEntry } from './employeeTypes'
 export {
   EmployeeHealthTab,
   EmployeeOccupationalTab,
@@ -56,15 +58,15 @@ export function EmployeeCertificatesTab({
       : [],
   )
   // The list of files for the print and the Excel (the files card keeps its own copy).
-  const [cloudFiles, setCloudFiles] = useState<AnyRecord[]>([])
+  const [cloudFiles, setCloudFiles] = useState<StoredAttachment[]>([])
   useEffect(() => {
     if (isDemo || !organizationId) return undefined
     let active = true
     loadAttachments(organizationId, 'employee-certificate', employee.dbId || employee.id).then(rows => { if (active) setCloudFiles(rows || []) }).catch(() => { if (active) setCloudFiles([]) })
     return () => { active = false }
   }, [isDemo, organizationId, employee.dbId, employee.id])
-  const files: AnyRecord[] = isDemo ? demoFiles : cloudFiles
-  const categoryText = (code: string) => employeeDocumentCategories[en ? 'en' : 'el'].find(([value]) => value === code)?.[1] || code || ''
+  const files: (AttachmentFile & { createdAt?: string })[] = isDemo ? demoFiles : cloudFiles
+  const categoryText = (code: string | undefined) => employeeDocumentCategories[en ? 'en' : 'el'].find(([value]) => value === code)?.[1] || code || ''
   const day = (value: string | number | null | undefined) => (value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(value)) : '')
   const exportDialog = useRecordTabExport({
     onExportItems, id: 'documents', label: { el: 'Έγγραφα', en: 'Documents' }, employee, language, count: files.length,
@@ -105,9 +107,9 @@ export function EmployeeSurveillanceTab({
   onExportItems,
 }: RecordTabProps & { t: (key: string) => string, fmt: (value: unknown) => string, version: number, onNew: () => void, readOnly?: boolean, isDemo?: boolean, organizationId?: string | null, canManageFollowup?: boolean }) {
   const demoRows = isDemo ? getEmployeeSurveillanceForEmployee(employee.id) : []
-  const [cloudRecords, setCloudRecords] = useState<AnyRecord[]>([])
-  const [cloudSamples, setCloudSamples] = useState<AnyRecord[]>([])
-  const [selected, setSelected] = useState<AnyRecord | null>(null)
+  const [cloudRecords, setCloudRecords] = useState<EmployeeSurveillanceRecord[]>([])
+  const [cloudSamples, setCloudSamples] = useState<ScreeningSample[]>([])
+  const [selected, setSelected] = useState<EmployeeSurveillanceRecord | null>(null)
   const [loading, setLoading] = useState(!isDemo)
   const [loadError, setLoadError] = useState<unknown>(null)
   const [reloadToken, setReloadToken] = useState(0)
@@ -123,8 +125,8 @@ export function EmployeeSurveillanceTab({
     // Only this employee's episodes, then only the samples linked to them.
     loadEmployeeSurveillanceRecordsForEmployee(organizationId, employee.dbId)
       .then(async rows => {
-        const records = rows.filter((row: AnyRecord) => row.employeeDbId === employee.dbId)
-        return [records, await loadEmployeeSurveillanceSamples(organizationId, records.map((row: AnyRecord) => row.recordId))]
+        const records = rows.filter(row => row.employeeDbId === employee.dbId)
+        return [records, await loadEmployeeSurveillanceSamples(organizationId, records.map(row => row.recordId))]
       })
       .then(([records, samples]) => {
         if (!active) return
@@ -150,7 +152,7 @@ export function EmployeeSurveillanceTab({
   const paging = registry.paging
   const exportDialog = useRecordTabExport({
     onExportItems, id: 'surveillance', label: { el: 'Επιτήρηση', en: 'Surveillance' }, employee, language, count: registry.filtered.length,
-    table: () => ({ headers: language === 'en' ? ['Episode', 'Start date', 'Screening', 'Status'] : ['Επεισόδιο', 'Έναρξη', 'Έλεγχος', 'Κατάσταση'], rows: registry.filtered.map((row: AnyRecord) => [compactEpisodeCode(row.id), fmt(row.startedAt), row.screeningTypes?.map((type: string) => label(type, t)).join(', ') || '', label(row.status, t)]) }),
+    table: () => ({ headers: language === 'en' ? ['Episode', 'Start date', 'Screening', 'Status'] : ['Επεισόδιο', 'Έναρξη', 'Έλεγχος', 'Κατάσταση'], rows: registry.filtered.map(row => [compactEpisodeCode(row.id), fmt(row.startedAt), row.screeningTypes?.map((type: string) => label(type, t)).join(', ') || '', label(row.status, t)]) }),
   })
   if (loadError)
     return (
@@ -180,9 +182,9 @@ export function EmployeeSurveillanceTab({
       ? demoLaboratorySamples.filter(sample => sample.employeeSurveillanceCase === selected.id)
       : cloudSamples.filter(sample => sample.employeeSurveillanceId === selected.recordId)
     : []
-  const saveDemoFollowup = (record: AnyRecord, patch: AnyRecord) =>
+  const saveDemoFollowup = (record: EmployeeSurveillanceRecord, patch: Partial<EmployeeSurveillanceRecord>) =>
     Promise.resolve(
-      updateEmployeeSurveillanceRecord(record.id, {
+      updateEmployeeSurveillanceRecord(record.id as string, {
         ...patch,
         updatedAt: new Date().toISOString(),
       }),
@@ -229,7 +231,7 @@ export function EmployeeSurveillanceTab({
                 </tr>
               </thead>
               <tbody>
-                {paging.paged.map((row: AnyRecord) => (
+                {paging.paged.map(row => (
                   <tr
                     key={row.id}
                     tabIndex={0}
@@ -249,7 +251,7 @@ export function EmployeeSurveillanceTab({
                     <td>{fmt(row.startedAt)}</td>
                     <td>{row.screeningTypes?.map((type: string) => label(type, t)).join(', ') || '—'}</td>
                     <td>
-                      <span className={`status-badge ${statusClass(row.status)}`}>
+                      <span className={`status-badge ${statusClass(row.status as string)}`}>
                         {label(row.status, t)}
                       </span>
                     </td>
@@ -280,7 +282,7 @@ export function EmployeeSurveillanceTab({
           fmt={fmt}
           onClose={() => setSelected(null)}
           onSaveFollowup={isDemo ? saveDemoFollowup : undefined}
-          onUpdated={(updated: AnyRecord) => {
+          onUpdated={(updated: EmployeeSurveillanceRecord) => {
             if (!isDemo)
               setCloudRecords(current =>
                 current.map(row => (row.recordId === updated.recordId ? updated : row)),
@@ -300,7 +302,7 @@ export function EmployeeHistoryTab({ employee, language, onExportItems }: Record
     employee.dbId,
     employee.id,
   )
-  const fallback: AnyRecord[] = []
+  const fallback: EmployeeHistoryEntry[] = []
   if (employee.createdAt)
     fallback.push({
       id: 'legacy-created',
@@ -384,20 +386,20 @@ export function EmployeeHistoryTab({ employee, language, onExportItems }: Record
     certificate: ['Έγγραφο / πιστοποίηση', 'Document / certification'],
     surveillance: ['Επιτήρηση', 'Surveillance'],
   }
-  const rowLabel = (row: AnyRecord) => kindLabels[row.historyKind]?.[language === 'en' ? 1 : 0] || eventLabel(row.action)
+  const rowLabel = (row: EmployeeHistoryEntry) => kindLabels[row.historyKind ?? '']?.[language === 'en' ? 1 : 0] || eventLabel(row.action)
   // Related records carry a day, not a time (their «12:00» is only a placeholder).
-  const formatRow = (row: AnyRecord) => (kindLabels[row.historyKind] ? formatDay(row.at) : format(row.at))
+  const formatRow = (row: EmployeeHistoryEntry) => (kindLabels[row.historyKind ?? ''] ? formatDay(row.at) : format(row.at))
   const formatDay = (value: string | null | undefined) => {
     const d = new Date(value || '')
     return Number.isNaN(d.getTime()) ? '—' : new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { dateStyle: 'medium' }).format(d)
   }
-  const actorLabel = (row: AnyRecord) =>
+  const actorLabel = (row: EmployeeHistoryEntry) =>
     row.actorName
       ? `${row.actorName}${row.actorRole ? ` · ${row.actorRole.replaceAll('_', ' ')}` : ''}`
       : '—'
   const exportDialog = useRecordTabExport({
     onExportItems, id: 'history', label: { el: 'Ιστορικό', en: 'History' }, employee, language, count: registry.filtered.length,
-    table: () => ({ headers: language === 'en' ? ['Event', 'Details', 'User', 'Date'] : ['Είδος', 'Περιγραφή', 'Χρήστης', 'Ημερομηνία'], rows: registry.filtered.map((row: AnyRecord) => [rowLabel(row), row.action === 'update' ? changedLabel(row.changedFields) : '', row.actorName ? actorLabel(row) : '', formatRow(row)]) }),
+    table: () => ({ headers: language === 'en' ? ['Event', 'Details', 'User', 'Date'] : ['Είδος', 'Περιγραφή', 'Χρήστης', 'Ημερομηνία'], rows: registry.filtered.map(row => [rowLabel(row), row.action === 'update' ? changedLabel(row.changedFields) : '', row.actorName ? actorLabel(row) : '', formatRow(row)]) }),
   })
   return (
     <section className="record-section record-secondary-registry">
@@ -434,7 +436,7 @@ export function EmployeeHistoryTab({ employee, language, onExportItems }: Record
                   </tr>
                 </thead>
                 <tbody>
-                  {paging.paged.map((row: AnyRecord) => (
+                  {paging.paged.map(row => (
                     <tr key={row.id}>
                       <td>
                         <strong>{rowLabel(row)}</strong>

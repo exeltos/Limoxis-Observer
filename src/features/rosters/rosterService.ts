@@ -39,7 +39,7 @@ export type NewRosterRequest = Omit<RosterRequest, 'id' | 'status' | 'decidedAt'
 // A department the roster can be made for (the Demo knows them by name).
 export type RosterDepartment = { id: string, name: string, is_active?: boolean | null }
 // What the roster reads of an employee of the register.
-type StaffRecord = { id?: string, dbId?: string, firstName?: string, lastName?: string, department?: string, departmentId?: string, profession?: string, position?: string, userId?: string | null, staffCategory?: string, employmentStatus?: string }
+type StaffRecord = { id?: string, dbId?: string, firstName?: string, lastName?: string, department?: string, departmentId?: string | null, profession?: string, position?: string, userId?: string | null, staffCategory?: string, employmentStatus?: string }
 export interface RosterPeriod { start: string, end: string }
 type OrganizationId = string | null | undefined
 

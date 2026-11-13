@@ -49,10 +49,11 @@ import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { EmployeeHeaderPhoto } from './EmployeePhoto'
 import { Details, withEmployeeValues } from './EmployeeDetails'
 import { EmployeeAccountDialog, SelfAccountSummary, UnlinkedProfileTab } from './EmployeeAccountViews'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, EmployeeDepartment, EmployeeOption, MembershipLink, SignedInProfile, SignedInUser } from './employeeTypes'
+import type { ExportItem } from '../../design-system/ExportMenu'
 
 // The Demo libraries as this page reads them (departments, categories, positions).
-const demoLibrarySeed = managementSeed as AnyRecord
+const demoLibrarySeed = managementSeed
 
 export function EmployeeRecordPage({ selfMode = false }) {
   const { employeeId } = useParams()
@@ -74,11 +75,11 @@ export function EmployeeRecordPage({ selfMode = false }) {
     selfMode,
     self: {
       employeeCode:
-        (membership as AnyRecord | null)?.employeeId ||
-        (membership as AnyRecord | null)?.employee_id ||
-        (membership as AnyRecord | null)?.profile?.employeeId ||
-        (profile as AnyRecord | null)?.employeeId ||
-        (profile as AnyRecord | null)?.employee_id ||
+        (membership as MembershipLink | null)?.employeeId ||
+        (membership as MembershipLink | null)?.employee_id ||
+        (membership as MembershipLink | null)?.profile?.employeeId ||
+        (profile as SignedInProfile | null)?.employeeId ||
+        (profile as SignedInProfile | null)?.employee_id ||
         null,
       userId: profile?.id || user?.id || null,
       email: profile?.email || user?.email || null,
@@ -86,11 +87,11 @@ export function EmployeeRecordPage({ selfMode = false }) {
   })
   const [accountOpen, setAccountOpen] = useState(false)
   // A tab can add its own items to the one «Εξαγωγή» of the page (e.g. the training history).
-  const [tabExports, setTabExports] = useState<AnyRecord[]>([])
+  const [tabExports, setTabExports] = useState<ExportItem[]>([])
   const [accountSaving, setAccountSaving] = useState(false)
-  const [departments, setDepartments] = useState<AnyRecord[]>([])
-  const [professionalCategories, setProfessionalCategories] = useState<AnyRecord[]>([])
-  const [positionOptions, setPositionOptions] = useState<AnyRecord[]>([])
+  const [departments, setDepartments] = useState<EmployeeDepartment[]>([])
+  const [professionalCategories, setProfessionalCategories] = useState<EmployeeOption[]>([])
+  const [positionOptions, setPositionOptions] = useState<EmployeeOption[]>([])
   const [surveillanceOpen, setSurveillanceOpen] = useState(false)
   const [surveillanceVersion, setSurveillanceVersion] = useState(0)
 
@@ -103,7 +104,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
     // already use for demo departments/libraries instead.
     if (isDemo) {
       setDepartments(
-        demoLibrarySeed.departments.map(([elName, enName]: string[]) => ({
+        demoLibrarySeed.departments.map(([elName, enName]) => ({
           id: elName,
           name: elName,
           nameEn: enName,
@@ -123,7 +124,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
       }
     }
     Promise.all([loadDepartments(tenant.id), loadManagementLibraries(tenant.id)])
-      .then(([departmentRows, libraries]: [AnyRecord[], AnyRecord]) => {
+      .then(([departmentRows, libraries]) => {
         if (!active) return
         setDepartments((departmentRows || []).filter(row => row.is_active !== false))
         setProfessionalCategories(libraries?.professionalCategories || [])
@@ -290,11 +291,11 @@ export function EmployeeRecordPage({ selfMode = false }) {
       </Page>
     )
   if (!employee) {
-    const platformOwner = Boolean(profile?.isPlatformOwner || (profile as AnyRecord | null)?.is_platform_owner)
+    const platformOwner = Boolean(profile?.isPlatformOwner || (profile as SignedInProfile | null)?.is_platform_owner)
     const fullName =
       profile?.fullName ||
-      (profile as AnyRecord | null)?.full_name ||
-      (user as AnyRecord | null)?.user_metadata?.full_name ||
+      (profile as SignedInProfile | null)?.full_name ||
+      (user as SignedInUser | null)?.user_metadata?.full_name ||
       user?.email ||
       '—'
     const email = profile?.contactEmail || profile?.email || user?.email || '—'
@@ -407,7 +408,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
       )
     }
   }
-  async function createAccount(values: AnyRecord) {
+  async function createAccount(values: Parameters<typeof createEmployeeAccountAsync>[2]) {
     if (selfReadOnly || !employee) return
     setAccountSaving(true)
     try {
@@ -432,13 +433,13 @@ export function EmployeeRecordPage({ selfMode = false }) {
       setAccountSaving(false)
     }
   }
-  const departmentOptions = departments.map(row => [row.name, row.nameEn || row.name])
+  const departmentOptions = departments.map(row => [row.name, row.nameEn || row.name] as EmployeeOption)
   // The employee's details as a printed sheet (the full employee file comes
   // with the shared document layout's next exports).
   function printEmployee(pdf?: boolean) {
     if (!employee) return
     const en = language === 'en'
-    const pick = (el: string, enValue: string) => (en ? enValue || el : el) || ''
+    const pick = (el: string | undefined, enValue: string | undefined) => (en ? enValue || el : el) || ''
     const ok = printReport({
       language,
       kind: en ? 'Employee details' : 'Στοιχεία εργαζομένου',
@@ -523,8 +524,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
             employee={employee}
             organizationId={tenant?.id}
             canEdit={canAdmin}
-            onChange={(next: AnyRecord) =>
-              setEmployeeRows((rows: AnyRecord[]) => rows.map((row: AnyRecord) => (row.id === next.id ? { ...row, ...next } : row)))
+            onChange={(next: Employee) =>
+              setEmployeeRows(rows => rows.map(row => (row.id === next.id ? { ...row, ...next } : row)))
             }
           />
         }
