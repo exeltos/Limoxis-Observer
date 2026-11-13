@@ -20,7 +20,7 @@ vi.mock('../src/features/quality/resources/ResourcesPanel', () => ({
   useResources: () => ({ suppliers: withSupplierStatus(demoResources().suppliers, []), equipment: [], events: [], templates: [], loading: false, reload: vi.fn(async () => {}) }),
 }))
 vi.mock('../src/features/quality/resources/supplierRenewalService', async original => {
-  const real = await original()
+  const real = await original<typeof import('../src/features/quality/resources/supplierRenewalService')>()
   return {
     ...real,
     loadCertificateRequests: vi.fn(async () => real.demoRequests()),

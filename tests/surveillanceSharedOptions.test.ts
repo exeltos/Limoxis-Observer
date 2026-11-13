@@ -7,7 +7,7 @@ import { readSource } from './helpers/readSource'
 import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = file => readSource(file)
-const item = ([el, en, meta = {}]) => ({ value: el, el, en, code: meta.code || null, meta })
+const item = ([el, en, meta = {}]: [string, string, { code?: string }?]) => ({ value: el, el, en, code: meta.code || null, meta })
 
 // Surveillance and patient screens read their option lists from one module and
 // the central libraries; the stored codes stay the ones indicators and analysis read.

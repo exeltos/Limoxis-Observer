@@ -20,7 +20,7 @@ function builder(table){
  return api
 }
 const rpc=vi.fn(async(name,args)=>{calls.rpc.push({name,args});return {data:name==='training_save_program'?'new-uuid':{},error:null}})
-vi.mock('../src/core/supabase/client',()=>({supabase:{from:table=>builder(table),rpc:(...args)=>rpc(...args)}}))
+vi.mock('../src/core/supabase/client',()=>({supabase:{from:table=>builder(table),rpc:(...args: Parameters<typeof rpc>)=>rpc(...args)}}))
 vi.mock('../src/core/config/env',()=>({hasSupabaseConfig:true}))
 
 const { configureDataEnvironment }=await import('../src/core/data/dataEnvironment')
@@ -99,6 +99,6 @@ describe('training service on the relational tables',()=>{
   expect(calls.rpc[1].args.p_requirement).not.toHaveProperty('dbId')
   expect(calls.rpc[2].args).toEqual({p_organization_id:'org-1',p_record_key:'TRA-9'})
   expect(calls.rpc[3].args.p_program).toMatchObject({title:'New',passScore:70,validMonths:24,trainerFeedbackTemplate:{id:'TRAINER-FEEDBACK-DEFAULT'}})
-  expect(created.dbId).toBe('new-uuid')
+  expect((created as { dbId?: string }).dbId).toBe('new-uuid')
  })
 })

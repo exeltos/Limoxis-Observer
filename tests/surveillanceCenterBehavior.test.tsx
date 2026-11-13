@@ -39,7 +39,7 @@ async function openCenter() {
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 200)) })
   await waitFor(() => expect(rowOf('Ελένη Παπαδοπούλου').length).toBeGreaterThan(0), { timeout: 5000 })
 }
-const patientRows = () => [...document.querySelectorAll('tbody tr')]
+const patientRows = () => [...document.querySelectorAll<HTMLElement>('tbody tr')]
 const rowOf = name => patientRows().filter(row => within(row).queryByText(name))
 
 beforeEach(() => {

@@ -177,9 +177,9 @@ describe('the record of a patient under surveillance', () => {
   it('marks an overdue review in the journey and offers a follow-up only for samples with a result', async () => {
     await openRecord('SUR-260041')
     fireEvent.click(screen.getByRole('tab', { name: /Επιτήρηση & Δείγματα/ }))
-    const episode = (await screen.findByText('Λοίμωξη αιματικής ροής')).closest('.sv-episode')
+    const episode = (await screen.findByText('Λοίμωξη αιματικής ροής')).closest<HTMLElement>('.sv-episode')
     expect(within(episode).getByText(/εκπρόθεσμη \d+ ημέρ/)).toBeInTheDocument()
-    const rowOf = code => screen.getByText(new RegExp(code)).closest('.sv-sample')
+    const rowOf = code => screen.getByText(new RegExp(code)).closest<HTMLElement>('.sv-sample')
     expect(
       within(rowOf('LAB-260771')).getByRole('button', { name: /Επανέλεγχος/ }),
     ).toBeInTheDocument()

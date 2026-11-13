@@ -5,6 +5,7 @@
 // column (payload, signs_symptoms, risk_factors, criteria_evidence, precautions,
 // calculation_snapshot) is written, and the screens read back what they did.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ClinicalCase, HaiClassification } from '../src/features/surveillance/clinicalTypes'
 
 const RETIRED = ['payload', 'signs_symptoms', 'risk_factors', 'criteria_evidence', 'precautions', 'calculation_snapshot', 'organisms']
 const CHILD_KEYS = {
@@ -31,9 +32,9 @@ function withEmbeds(row, select) {
 }
 
 function builder(table) {
-  const state = { op: 'select', filters: [], select: '*', single: false, range: null }
+  const state: { op: string, filters: [string, string, unknown][], select: string, single: boolean, range: number[] | null, payload?: Record<string, unknown> | Record<string, unknown>[] } = { op: 'select', filters: [], select: '*', single: false, range: null }
   const rows = () => (tables[table] ||= [])
-  const matches = row => state.filters.every(([kind, column, value]) => (kind === 'eq' ? row[column] === value : value.includes(row[column])))
+  const matches = row => state.filters.every(([kind, column, value]) => (kind === 'eq' ? row[column] === value : (value as unknown[]).includes(row[column])))
   function run() {
     if (state.op === 'insert') {
       const list = (Array.isArray(state.payload) ? state.payload : [state.payload]).map(item => ({ id: newId(), created_at: new Date().toISOString(), ...item }))
@@ -63,7 +64,7 @@ function builder(table) {
     range(from, to) { state.range = [from, to]; return chain },
     single() { state.single = true; return chain },
     maybeSingle() { state.single = true; return chain },
-    then(resolve, reject) { return Promise.resolve(run()).then(resolve, reject) },
+    then(resolve: (value: ReturnType<typeof run>) => unknown, reject?: (reason: unknown) => unknown) { return Promise.resolve(run()).then(resolve, reject) },
   }
   return chain
 }
@@ -104,13 +105,13 @@ describe('surveillance flow through the relational tables', () => {
     })
     expect(created).toMatchObject({ status: 'active', reviewDue: '2026-10-05', room: 'Κλίνη 4', reason: 'Πυρετός και θετική αιμοκαλλιέργεια', reasonEn: 'Fever and positive blood culture', suspectedSource: 'bloodstream', isolationDecision: null })
 
-    const record = { ...created, recordId: created.recordId }
+    const record = { ...created, recordId: (created as ClinicalCase).recordId }
     const assessment = await repo.saveAssessment(record, { assessmentType: 'initial', classification: 'under_investigation', signsSymptoms: ['Πυρετός', 'Ρίγος', ''], riskFactors: ['Κεντρικός φλεβικός καθετήρας'], summary: 'Αρχική' })
     expect(assessment).toMatchObject({ signsSymptoms: ['Πυρετός', 'Ρίγος'], riskFactors: ['Κεντρικός φλεβικός καθετήρας'] })
     expect(tables.clinical_assessment_findings.map(row => [row.kind, row.position, row.label])).toEqual([['sign', 1, 'Πυρετός'], ['sign', 2, 'Ρίγος'], ['risk_factor', 1, 'Κεντρικός φλεβικός καθετήρας']])
 
     const hai = await repo.saveHai(record, { status: 'probable', type: 'CLABSI', definitionSet: 'ECDC', criteriaEvidence: ['clabsi-1', 'clabsi-3'], criteriaMet: true })
-    expect(hai.criteriaEvidence).toEqual(['clabsi-1', 'clabsi-3'])
+    expect((hai as HaiClassification).criteriaEvidence).toEqual(['clabsi-1', 'clabsi-3'])
 
     const isolation = await repo.beginIsolation(record, { precautions: ['contact'], room: 'Θάλαμος 2', reason: 'KPC', reviewDue: '2026-10-06' })
     expect(isolation).toMatchObject({ precautions: ['contact'], status: 'active' })
@@ -119,7 +120,7 @@ describe('surveillance flow through the relational tables', () => {
 
     await repo.complete(record, { status: 'resolved', notes: 'Ίαση', date: '2026-10-12' })
 
-    const loaded = await repo.loadCase(created.recordId)
+    const loaded = await repo.loadCase((created as ClinicalCase).recordId)
     expect(loaded).toMatchObject({
       status: 'closed', reviewDue: '2026-10-05', room: 'Κλίνη 4', suspectedSource: 'bloodstream',
       assessment: { signsSymptoms: ['Πυρετός', 'Ρίγος'], riskFactors: ['Κεντρικός φλεβικός καθετήρας'] },
@@ -141,7 +142,7 @@ describe('surveillance flow through the relational tables', () => {
     const [caseRow] = tables.surveillance_cases
     expect(caseRow).toMatchObject({ isolation_required: false, isolation_decided_by: 'actor-1' })
     expect(tables.surveillance_events.map(row => [row.event_type, row.detail])).toEqual([['surveillance_start', 'created'], ['isolation_not_required', 'no']])
-    const loaded = await repo.loadCase(created.recordId)
+    const loaded = await repo.loadCase((created as ClinicalCase).recordId)
     expect(loaded.isolationDecision).toEqual({ required: false, decidedAt: caseRow.isolation_decided_at, by: 'actor-1' })
     expect(loaded.timeline.map(item => item.detail)).toEqual(expect.arrayContaining(['', 'no']))
   })

@@ -9,6 +9,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
+import type { WorkflowStep } from '../src/features/laboratory/LaboratorySampleSummary'
 
 let profile
 vi.mock('../src/core/auth/AuthContext', () => ({
@@ -105,7 +106,7 @@ describe('Sample progress numbering', () => {
     { id: 'communication', state: 'na' },
     { id: 'documents', state: 'next' },
     { id: 'final', state: 'pending' },
-  ]
+  ] as WorkflowStep[]
   it('numbers and counts only the steps that apply', () => {
     const progress = workflowProgress(steps)
     expect(progress.total).toBe(4)

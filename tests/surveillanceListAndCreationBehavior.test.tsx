@@ -35,7 +35,7 @@ function SampleRecord() {
   return <p>Καρτέλα δείγματος</p>
 }
 
-async function openCenter(entry = '/surveillance') {
+async function openCenter(entry: string | { pathname: string, state: unknown } = '/surveillance') {
   let api
   function Capture() {
     api = useTenant()
@@ -208,7 +208,7 @@ describe('New employee surveillance dialog', () => {
     await openCenter()
     await openCreation(/Εργαζόμενος/)
     const create = await screen.findByRole('button', { name: 'Δημιουργία ελέγχου' })
-    const body = document.querySelector('.employee-surveillance-body')
+    const body = document.querySelector<HTMLElement>('.employee-surveillance-body')
     expect(body).not.toBeNull()
     expect(within(body).getByText('Τύπος ελέγχου')).toBeInTheDocument()
     expect(body.contains(create)).toBe(false)

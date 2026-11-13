@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import type { ComponentProps, ComponentType } from 'react'
 
 let tenantState
 vi.mock('../src/core/tenant/TenantContext', () => ({ useTenant: () => tenantState }))
@@ -22,9 +23,11 @@ vi.mock('../src/features/management/managementCloudService', () => ({
 }))
 
 const { LanguageProvider, translate } = await import('../src/core/i18n/LanguageContext')
-const { EmployeeSurveillanceRecordDialog } = await import('../src/features/surveillance/EmployeeSurveillanceRecordDialog')
-const { NewSurveillanceFlow } = await import('../src/features/surveillance/NewSurveillanceFlow')
-const { EnvironmentalRegistry } = await import('../src/features/surveillance/EnvironmentalSurveillanceFlow')
+// The tests render each screen with only the props they exercise.
+type Loose<C extends ComponentType<never>> = ComponentType<Partial<ComponentProps<C>>>
+const { EmployeeSurveillanceRecordDialog } = await import('../src/features/surveillance/EmployeeSurveillanceRecordDialog') as { EmployeeSurveillanceRecordDialog: Loose<typeof import('../src/features/surveillance/EmployeeSurveillanceRecordDialog').EmployeeSurveillanceRecordDialog> }
+const { NewSurveillanceFlow } = await import('../src/features/surveillance/NewSurveillanceFlow') as { NewSurveillanceFlow: Loose<typeof import('../src/features/surveillance/NewSurveillanceFlow').NewSurveillanceFlow> }
+const { EnvironmentalRegistry } = await import('../src/features/surveillance/EnvironmentalSurveillanceFlow') as { EnvironmentalRegistry: Loose<typeof import('../src/features/surveillance/EnvironmentalSurveillanceFlow').EnvironmentalRegistry> }
 
 const t = key => translate(key, 'el')
 const fmt = value => String(value || '')
@@ -88,7 +91,7 @@ describe('employee screening record: laboratory request actions', () => {
 // Rule 2: inline patient creation requires a patient code outside demo (and trims
 // it); in demo the code may be left empty.
 describe('new surveillance: inline patient creation', () => {
-  async function fillNewPatient({ code } = {}) {
+  async function fillNewPatient({ code }: { code?: string } = {}) {
     const onCreate = vi.fn(async () => ({ id: 'SURV-1' }))
     render(<LanguageProvider><NewSurveillanceFlow onClose={() => {}} onCreate={onCreate}/></LanguageProvider>)
     fireEvent.click(screen.getByRole('radio', { name: t('newPatient') }))

@@ -7,6 +7,9 @@ import { demoResources } from '../src/features/quality/resources/resourceDemoDat
 import { buildCalendarEvents } from '../src/features/calendar/calendarEvents'
 import { readSource } from './helpers/readSource'
 
+type Legacy = Extract<ReturnType<typeof evaluationFromRow>, { scores: unknown }>
+type Templated = Extract<ReturnType<typeof evaluationFromRow>, { criteria: unknown }>
+
 const TODAY = '2026-10-18'
 const KITCHEN = presetTemplates('t').find(item => item.id === 't-kitchen')
 const uuid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
@@ -87,8 +90,8 @@ describe('Supplier evaluation templates', () => {
   it('checks a template before it is saved and reorders its criteria', () => {
     expect(templateProblems({ ...newTemplate(), name: 'Π', criteria: [{ label: '', weight: 0 }], passThreshold: 50, conditionalThreshold: 60, frequencyMonths: 0 })).toEqual(['όνομα', 'περιγραφή σε κάθε κριτήριο', 'βάρος πάνω από 0 σε κάθε κριτήριο', 'όριο «υπό όρους» όχι πάνω από το όριο έγκρισης', 'συχνότητα 1–60 μήνες'])
     expect(templateProblems(KITCHEN)).toEqual([])
-    expect(moveCriterion(['a', 'b', 'c'], 2, -1)).toEqual(['a', 'c', 'b'])
-    expect(moveCriterion(['a', 'b'], 0, -1)).toEqual(['a', 'b'])
+    expect(moveCriterion(['a', 'b', 'c'] as never, 2, -1)).toEqual(['a', 'c', 'b'])
+    expect(moveCriterion(['a', 'b'] as never, 0, -1)).toEqual(['a', 'b'])
   })
 })
 
@@ -109,8 +112,8 @@ describe('Suppliers on templates', () => {
     const legacy = { evaluatedOn: '2025-09-01', scores: { quality: 3, delivery: 2, specs: 3, documents: 3, support: 3, price: 3 } }
     expect(evaluationPercent(legacy)).toBe(57)
     expect(evaluationApproval(legacy)).toBe('rejected')
-    expect(evaluationFromRow({ id: 'e', evaluated_on: '2025-09-01', scores: [{ criterion: 'quality', score: 4, weight: '1.00' }] }).scores.quality).toBe(4)
-    expect(supplierCategoryLabel('catering')).toBe('Κουζίνα / τρόφιμα')
+    expect((evaluationFromRow({ id: 'e', evaluated_on: '2025-09-01', scores: [{ criterion: 'quality', score: 4, weight: '1.00' }] }) as Legacy).scores.quality).toBe(4)
+    expect(supplierCategoryLabel('catering', undefined)).toBe('Κουζίνα / τρόφιμα')
   })
 
   it('stores a template evaluation with its snapshot and a row per criterion with label and weight', () => {
@@ -123,7 +126,7 @@ describe('Suppliers on templates', () => {
     expect(scores).toHaveLength(9)
     expect(scores[0]).toMatchObject({ id: uuid(99), criterion: null, criterion_id: uuid(10), criterion_label: 'Ποιότητα προσφερόμενων προϊόντων / υπηρεσιών', weight: 1, score_scale: 5, score: 5, position: 0 })
     // Read back: the evaluation keeps the label and weight it was scored on.
-    const back = evaluationFromRow({ id: uuid(2), evaluated_on: TODAY, template_id: uuid(1), template_name: 'Προμηθευτής Κουζίνας', template_version: 3, pass_threshold: '70.00', conditional_threshold: '50.00', score_scale: 5, total_score: '82.40', criteria_scores: 'complete', scores: scores.map(item => ({ ...item, weight: String(item.weight) })) })
+    const back = evaluationFromRow({ id: uuid(2), evaluated_on: TODAY, template_id: uuid(1), template_name: 'Προμηθευτής Κουζίνας', template_version: 3, pass_threshold: '70.00', conditional_threshold: '50.00', score_scale: 5, total_score: '82.40', criteria_scores: 'complete', scores: scores.map(item => ({ ...item, weight: String(item.weight) })) }) as Templated
     expect(back).toMatchObject({ templateVersion: 3, passThreshold: 70 })
     expect(back.criteria[0]).toMatchObject({ label: 'Ποιότητα προσφερόμενων προϊόντων / υπηρεσιών', weight: 1, score: 5 })
     expect(evaluationTotal(back)).toBeCloseTo(82.2, 1)

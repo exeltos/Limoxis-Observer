@@ -1,6 +1,7 @@
 import { describe,expect,it } from 'vitest'
 import { trainingDemoState } from '../src/features/training/trainingData'
 import { answerValue,assignmentToRpc,changedRecords,fingerprints,programFromRow,programToRpc,requirementFromRow,requirementToRpc,trainingStateFromRows } from '../src/features/training/trainingMappers'
+import type { AnyRecord } from '../src/types/featureTypes'
 
 // The rows PostgREST returns for a state, column by column, as the migration
 // copies training_records (empty strings become NULL, arrays keep their order
@@ -9,7 +10,7 @@ const nul=v=>v===''||v===undefined?null:v
 const kind=v=>typeof v==='string'?'text':typeof v==='boolean'?'boolean':typeof v==='number'?'number':'options'
 function rowsFromState(state){
  const programId=key=>`p-${key}`,assignmentId=key=>`a-${key}`
- const certificateOf=new Map(state.certificates.map(c=>[c.assignmentId,c]))
+ const certificateOf=new Map<unknown,AnyRecord>(state.certificates.map(c=>[c.assignmentId,c]))
  const programs=state.programs.map(p=>({id:programId(p.id),program_key:p.id,title:p.title,title_en:nul(p.titleEn),category:nul(p.category),method:nul(p.method),owner:nul(p.owner),trainer:nul(p.trainer),audience:nul(p.audience),description:nul(p.description),start_date:nul(p.startDate),due_date:nul(p.dueDate),valid_months:p.validMonths??null,requires_assessment:Boolean(p.requiresAssessment),pass_score:p.passScore??null,status:p.status,department_id:null,
   feedback_template_key:p.trainerFeedbackTemplate?.id||null,feedback_title_el:nul(p.trainerFeedbackTemplate?.titleEl),feedback_title_en:nul(p.trainerFeedbackTemplate?.titleEn),created_at:'2026-01-01T00:00:00+00:00',updated_at:'2026-01-02T00:00:00+00:00',
   training_program_materials:(p.materials||[]).map((m,i)=>({material_key:m.id,position:i+1,title:m.title,material_type:nul(m.type),url:nul(m.url)})).reverse(),
@@ -92,7 +93,7 @@ describe('training mappers: the RPC input',()=>{
  it('sends only what changed since the load',()=>{
   const state=structuredClone(trainingDemoState),baseline=fingerprints(state)
   expect(changedRecords(state.programs,baseline.programs,programToRpc)).toEqual([])
-  const edited={...state.programs[1],title:'Changed'}
+  const edited: AnyRecord={...state.programs[1],title:'Changed'}
   const next=[state.programs[0],edited,...state.programs.slice(2),{id:'TRN-NEW',title:'New'}]
   expect(changedRecords(next,baseline.programs,programToRpc).map(p=>p.id)).toEqual([edited.id,'TRN-NEW'])
   // learner-owned fields and derived fields never make an assignment "changed"

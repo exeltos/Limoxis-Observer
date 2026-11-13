@@ -88,11 +88,11 @@ describe('Supplier certificate renewal: the queue by supplier', () => {
 
   it('sends one item per selected certificate without an item in progress, with the address of its supplier', () => {
     const rows = renewalQueue(suppliers, [request('r1', 's2', 'proposed', [item('i', 'c4', 'pending')])], { expiring: true, today: TODAY })
-    expect(sendItems(rows, ['c1', 'c4', 'c2'], { s1: ' New@Mail.gr ' })).toEqual([
+    expect(sendItems(rows, ['c1', 'c4', 'c2'] as never, { s1: ' New@Mail.gr ' })).toEqual([
       { certification_id: 'c1', recipient_email: 'new@mail.gr' },
       { certification_id: 'c2', recipient_email: 'new@mail.gr' },
     ])
-    expect(sendGroups(rows, ['c6', 'c1', 'c2', 'c4']).map(group => [group.supplierId, group.rows.map(row => row.key)])).toEqual([['s1', ['c6', 'c1', 'c2']]])
+    expect(sendGroups(rows, ['c6', 'c1', 'c2', 'c4'] as never).map(group => [group.supplierId, group.rows.map(row => row.key)])).toEqual([['s1', ['c6', 'c1', 'c2']]])
   })
 
   it('tells an open link from an expired one', () => {
@@ -180,7 +180,7 @@ describe('Supplier certificate renewal: the supplier form', () => {
 
 describe('Supplier certificate renewal: demo, database and e-mail', () => {
   it('the demo requests point at certificates of the demo suppliers, one request per supplier', () => {
-    const certs = new Map(demoResources().suppliers.flatMap(entry => entry.certifications.map(c => [c.id, entry.id])))
+    const certs = new Map(demoResources().suppliers.flatMap(entry => entry.certifications.map(c => [c.id, entry.id] as const)))
     for (const value of demoRequests()) for (const part of value.items) expect(certs.get(part.certificationId)).toBe(value.supplierId)
     expect(demoRequests().map(value => [value.supplierId, value.items.map(part => part.status)])).toEqual([['sup-demo-2', ['submitted', 'pending', 'pending']], ['sup-demo-7', ['pending', 'pending']]])
     expect(noResponseDays(demoRequests()[1])).toBe(10)
