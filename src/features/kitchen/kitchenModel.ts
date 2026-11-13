@@ -1,13 +1,15 @@
 // The kitchen (HACCP) model: vocabularies, new entries, stock per received batch,
 // FIFO, traceability, the verification queue and the overview. Pure functions.
 import { defrostStatus, itemStatus, pureeingStatus, receiptStatus, resolveLimits, thermalStatuses } from './kitchenLimits'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { KitchenBatch, KitchenBatchBalance, KitchenDayRecords, KitchenFifoRow, KitchenLabel, KitchenListKey, KitchenOption, KitchenProduct, KitchenProduction, KitchenProductionInput, KitchenReceiptCheck, KitchenReceiptInput, KitchenRows, KitchenSelectOption, KitchenSettings, KitchenStateInput, KitchenStockRow, KitchenWriteoffSource } from './kitchenTypes'
 
 const L = (el: string, en: string) => [el, en]
-const pick = (list: readonly AnyRecord[], value: unknown, language: string): string => list.find((item: AnyRecord) => item.value === value)?.label[language === 'en' ? 1 : 0] || value || '—'
+// A list of the state as given (an untyped state's rows stay untyped).
+const listOf = <S extends KitchenStateInput, K extends KitchenListKey>(state: S, key: K): KitchenRows<S, K>[] => state[key] || []
+const pick = (list: readonly KitchenOption[], value: unknown, language: string): string => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value as string || '—'
 
 export const CHECK_RESULTS = Object.freeze([{ value: 'compliant', label: L('Συμμόρφωση', 'Compliant') }, { value: 'noncompliant', label: L('Μη συμμόρφωση', 'Nonconforming') }])
-export const RECEIPT_CHECK_FIELDS = Object.freeze([
+export const RECEIPT_CHECK_FIELDS = Object.freeze<{ field: KitchenReceiptCheck, label: KitchenLabel }[]>([
   { field: 'temperatureCheck', label: L('Θερμοκρασία', 'Temperature') },
   { field: 'packagingCheck', label: L('Συσκευασία', 'Packaging') },
   { field: 'expiryCheck', label: L('Ημερομηνίες λήξης', 'Expiry dates') },
@@ -62,10 +64,10 @@ export const receiptResultLabel = (value: unknown, language: string) => pick(REC
 export const receiptResultTone = (value: unknown) => RECEIPT_RESULTS.find(item => item.value === value)?.tone || 'neutral'
 // A receipt by its people-readable name («Παραλαβή 20/10 · Προμηθευτής»); the code PAR-0007 stays secondary.
 export const shortDay = (value: unknown) => { const [, m, d] = String(value || '').slice(0, 10).split('-'); return m && d ? `${d}/${m}` : '' }
-export const receiptTitle = (row: AnyRecord, language = 'el') => `${language === 'en' ? 'Receipt' : 'Παραλαβή'} ${shortDay(row.receivedOn)}${row.supplierName ? ` · ${row.supplierName}` : ''}`.replace(/\s+/g, ' ').trim()
-export const weekdayOf = (date: string) => { const d = new Date(`${String(date).slice(0, 10)}T12:00:00`); return Number.isNaN(d.getTime()) ? null : ((d.getDay() + 6) % 7) + 1 }
+export const receiptTitle = (row: KitchenReceiptInput, language = 'el') => `${language === 'en' ? 'Receipt' : 'Παραλαβή'} ${shortDay(row.receivedOn)}${row.supplierName ? ` · ${row.supplierName}` : ''}`.replace(/\s+/g, ' ').trim()
+export const weekdayOf = (date: string | undefined) => { const d = new Date(`${String(date).slice(0, 10)}T12:00:00`); return Number.isNaN(d.getTime()) ? null : ((d.getDay() + 6) % 7) + 1 }
 export const weekdayLabel = (weekday: number | null, language = 'el') => (weekday != null && weekday >= 1 && weekday <= 7 ? (language === 'en' ? WEEKDAYS_EN : WEEKDAYS)[weekday - 1] : '—')
-export const options = (list: readonly AnyRecord[], language: string) => list.map((item: AnyRecord) => ({ value: item.value, label: item.label[language === 'en' ? 1 : 0] }))
+export const options = (list: readonly KitchenOption[], language: string): KitchenSelectOption[] => list.map(item => ({ value: item.value, label: item.label[language === 'en' ? 1 : 0] }))
 
 // --- Dates --------------------------------------------------------------------------------
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -81,7 +83,7 @@ export const dayOf = (value: unknown) => {
 export const addDays = (day: string, days: number) => { const d = new Date(`${day}T12:00:00`); d.setDate(d.getDate() + days); return todayKey(d) }
 export const daysBetween = (from: string, to: string) => Math.round((new Date(`${to}T12:00:00`).getTime() - new Date(`${from}T12:00:00`).getTime()) / 86400000)
 // A date and an HH:MM time as an ISO timestamp (local time).
-export const combine = (day: string, time: string) => (day ? new Date(`${day}T${time || '00:00'}:00`).toISOString() : '')
+export const combine = (day: string | undefined, time: string | undefined) => (day ? new Date(`${day}T${time || '00:00'}:00`).toISOString() : '')
 
 // --- New entries --------------------------------------------------------------------------
 
@@ -91,27 +93,27 @@ export const newReceipt = (now = new Date()) => ({ id: '', code: '', supplierId:
 export const newReceiptItem = () => ({ id: '', productId: '', productName: '', batchCode: '', expiryOn: '', quantity: '', unit: 'kg', storage: 'chilled', temperature: '', accepted: true, rejectionReason: '', notes: '' })
 export const newProduction = (day = todayKey()) => ({ id: '', productionDate: day, menuId: '', menuText: '', notes: '', disinfectionVegetables: false, disinfectionFruit: false, disinfectionAgent: '', disinfectionConcentrationPpm: '', disinfectionMinutes: '', disinfectionNotes: '', meals: [], source: 'app' })
 export const newMeal = () => ({ id: '', meal: 'lunch', diet: 'normal', dish: '', portions: '', notes: '' })
-export const newUsage = (production: AnyRecord | null = null) => ({ id: '', productionId: production?.id || '', receiptItemId: '', productId: '', productName: '', lotLabel: '', dishName: '', usedOn: production?.productionDate || todayKey(), quantity: '', unit: 'kg', notes: '', source: 'app' })
-export const newThermal = (production: AnyRecord | null = null, now = new Date()) => ({ id: '', productionId: production?.id || '', processDate: production?.productionDate || todayKey(now), processTime: nowTime(now), dishName: '', cookingTemp: '', chillTemp: '', chillMinutes: '', reheatTemp: '', fryingTemp: '', correctiveAction: '', notes: '', source: 'app' })
-export const newPureeing = (production: AnyRecord | null = null) => ({ id: '', productionId: production?.id || '', pureedOn: production?.productionDate || todayKey(), method: 'pureeing', productName: '', visualCheck: true, bladeCheck: true, correctiveAction: '', notes: '', source: 'app' })
+export const newUsage = (production: Partial<KitchenProduction> | null = null) => ({ id: '', productionId: production?.id || '', receiptItemId: '', productId: '', productName: '', lotLabel: '', dishName: '', usedOn: production?.productionDate || todayKey(), quantity: '', unit: 'kg', notes: '', source: 'app' })
+export const newThermal = (production: Partial<KitchenProduction> | null = null, now = new Date()) => ({ id: '', productionId: production?.id || '', processDate: production?.productionDate || todayKey(now), processTime: nowTime(now), dishName: '', cookingTemp: '', chillTemp: '', chillMinutes: '', reheatTemp: '', fryingTemp: '', correctiveAction: '', notes: '', source: 'app' })
+export const newPureeing = (production: Partial<KitchenProduction> | null = null) => ({ id: '', productionId: production?.id || '', pureedOn: production?.productionDate || todayKey(), method: 'pureeing', productName: '', visualCheck: true, bladeCheck: true, correctiveAction: '', notes: '', source: 'app' })
 export const newDefrost = (now = new Date()) => ({ id: '', productId: '', productName: '', receiptItemId: '', quantity: '', unit: 'kg', method: 'refrigerator', startDay: todayKey(now), startTime: nowTime(now), startTemp: '', endDay: '', endTime: '', endTemp: '', correctiveAction: '', notes: '', source: 'app' })
-export const newWriteoff = (item: AnyRecord) => ({ id: '', receiptItemId: item?.receiptItemId || item?.id || '', writtenOffOn: todayKey(), quantity: item?.remaining > 0 ? String(Math.round(item.remaining * 1000) / 1000) : '', reason: item?.expired ? 'expired' : 'spoiled', notes: '' })
+export const newWriteoff = (item: KitchenWriteoffSource) => ({ id: '', receiptItemId: item?.receiptItemId || item?.id || '', writtenOffOn: todayKey(), quantity: item?.remaining > 0 ? String(Math.round(item.remaining * 1000) / 1000) : '', reason: item?.expired ? 'expired' : 'spoiled', notes: '' })
 export const newProduct = () => ({ id: '', name: '', category: 'meat', storage: 'chilled', unit: 'kg', supplierId: '', supplierCode: '', lowStockQuantity: '', active: true, notes: '' })
 export const newMenu = () => ({ id: '', name: '', weekday: '', menuText: '', active: true, notes: '' })
 
 // --- Statuses of saved rows (the database marks them; the demo marks them here) ----------
 
-export function withStatuses(state: AnyRecord) {
+export function withStatuses<S extends KitchenStateInput>(state: S) {
   const limits = resolveLimits(state.limits)
-  const products = new Map<string, AnyRecord>((state.products || []).map((item: AnyRecord) => [item.id, item]))
-  const receipts = (state.receipts || []).map((receipt: AnyRecord) => {
-    const items = (receipt.items || []).map((item: AnyRecord) => { const storage = item.storage || products.get(item.productId)?.storage || ''; return { ...item, storage, temperatureStatus: itemStatus(limits, { ...item, storage }) } })
+  const products = new Map<string | undefined, Partial<KitchenProduct>>((state.products || []).map(item => [item.id, item]))
+  const receipts = (state.receipts || []).map(receipt => {
+    const items = (receipt.items || []).map(item => { const storage = item.storage || products.get(item.productId)?.storage || ''; return { ...item, storage, temperatureStatus: itemStatus(limits, { ...item, storage }) } })
     const { temperature, status, result } = receiptStatus(limits, receipt, items)
     return { ...receipt, items, temperatureStatus: temperature, limitStatus: status, result }
   })
-  const thermal = (state.thermal || []).map((entry: AnyRecord) => { const s = thermalStatuses(limits, entry); return { ...entry, cookingStatus: s.cooking, chillStatus: s.chill, reheatStatus: s.reheat, fryingStatus: s.frying, limitStatus: s.overall } })
-  const defrosting = (state.defrosting || []).map((entry: AnyRecord) => ({ ...entry, limitStatus: defrostStatus(limits, entry) }))
-  const pureeing = (state.pureeing || []).map((entry: AnyRecord) => ({ ...entry, limitStatus: pureeingStatus(entry) }))
+  const thermal = (state.thermal || []).map(entry => { const s = thermalStatuses(limits, entry); return { ...entry, cookingStatus: s.cooking, chillStatus: s.chill, reheatStatus: s.reheat, fryingStatus: s.frying, limitStatus: s.overall } })
+  const defrosting = (state.defrosting || []).map(entry => ({ ...entry, limitStatus: defrostStatus(limits, entry) }))
+  const pureeing = (state.pureeing || []).map(entry => ({ ...entry, limitStatus: pureeingStatus(entry) }))
   return { ...state, limits, receipts, thermal, defrosting, pureeing }
 }
 
@@ -121,19 +123,19 @@ export function withStatuses(state: AnyRecord) {
 // receipt or item adds no stock. Sorted FIFO: the oldest receipt first, then expiry.
 // In the cloud `state.balances` (kitchen_batch_balances) carries each batch's uses and
 // write-offs over its whole life, since the loaded uses cover a window only.
-export function stockRows(state: AnyRecord, today = todayKey()) {
-  const used = new Map(), uses = new Map(), off = new Map()
+export function stockRows(state: KitchenStateInput, today = todayKey()): KitchenStockRow[] {
+  const used = new Map<string, number>(), uses = new Map<string, number>(), off = new Map<string | undefined, number>()
   for (const row of state.usage || []) if (row.receiptItemId) { used.set(row.receiptItemId, (used.get(row.receiptItemId) || 0) + (Number(row.quantity) || 0)); uses.set(row.receiptItemId, (uses.get(row.receiptItemId) || 0) + 1) }
   for (const row of state.writeoffs || []) off.set(row.receiptItemId, (off.get(row.receiptItemId) || 0) + (Number(row.quantity) || 0))
-  const products = new Map<string, AnyRecord>((state.products || []).map((item: AnyRecord) => [item.id, item]))
-  const suppliers = new Map((state.suppliers || []).map((item: AnyRecord) => [item.id, item.name]))
+  const products = new Map<string | undefined, Partial<KitchenProduct>>((state.products || []).map(item => [item.id, item]))
+  const suppliers = new Map<string | undefined, string | undefined>((state.suppliers || []).map(item => [item.id, item.name]))
   const warn = Number(state.settings?.expiryWarningDays ?? 2)
-  const rows = []
+  const rows: KitchenStockRow[] = []
   for (const receipt of state.receipts || []) {
     for (const item of receipt.items || []) {
       const inStock = receipt.accepted !== false && item.accepted !== false
       const received = Number(item.quantity) || 0
-      const balance = state.balances?.[item.id]
+      const balance: KitchenBatchBalance | undefined = state.balances?.[item.id]
       const usedQty = round(balance ? balance.used : used.get(item.id) || 0), offQty = round(balance ? balance.writtenOff : off.get(item.id) || 0)
       const remaining = inStock ? round(received - usedQty - offQty) : 0
       const daysLeft = item.expiryOn ? daysBetween(today, item.expiryOn) : null
@@ -151,25 +153,25 @@ export function stockRows(state: AnyRecord, today = todayKey()) {
   return rows.sort(fifo)
 }
 const round = (n: number) => Math.round(n * 1000) / 1000
-export const fifo = (a: AnyRecord, b: AnyRecord) => String(a.receivedOn).localeCompare(String(b.receivedOn)) || String(a.expiryOn || '9999').localeCompare(String(b.expiryOn || '9999')) || String(a.receiptCode).localeCompare(String(b.receiptCode))
+export const fifo = (a: KitchenFifoRow, b: KitchenFifoRow) => String(a.receivedOn).localeCompare(String(b.receivedOn)) || String(a.expiryOn || '9999').localeCompare(String(b.expiryOn || '9999')) || String(a.receiptCode).localeCompare(String(b.receiptCode))
 
 // Batches a production may take from: in stock, something left, not expired on the day; FIFO.
-export function availableBatches(stock: AnyRecord[], day = todayKey(), productId = '') {
-  return stock.filter((row: AnyRecord) => row.inStock && row.remaining > 0.0005 && !(row.expiryOn && row.expiryOn < day) && (!productId || row.productId === productId)).sort(fifo)
+export function availableBatches<T extends KitchenBatch>(stock: readonly T[], day = todayKey(), productId = '') {
+  return stock.filter(row => row.inStock && (row.remaining as number) > 0.0005 && !(row.expiryOn && row.expiryOn < day) && (!productId || row.productId === productId)).sort(fifo)
 }
 // Why a batch cannot be used on a day (the database refuses the same): '' when it can.
-export function batchProblem(row: AnyRecord | null, day: string, quantity: unknown, language = 'el') {
+export function batchProblem(row: KitchenBatch | null, day: string, quantity: unknown, language = 'el') {
   const en = language === 'en'
   if (!row) return ''
   if (!row.inStock) return en ? 'The batch was rejected at receipt.' : 'Η παρτίδα απορρίφθηκε στην παραλαβή.'
   if (row.expiryOn && row.expiryOn < day) return en ? 'The batch has expired: it cannot be used.' : 'Η παρτίδα έχει λήξει: δεν χρησιμοποιείται.'
-  if (Number(quantity) > row.remaining + 0.0005) return en ? `Only ${fmtQty(row.remaining, language)} ${unitLabel(row.unit, language)} left in this batch.` : `Στην παρτίδα έχουν μείνει μόνο ${fmtQty(row.remaining, language)} ${unitLabel(row.unit, language)}.`
+  if (Number(quantity) > (row.remaining as number) + 0.0005) return en ? `Only ${fmtQty(row.remaining, language)} ${unitLabel(row.unit, language)} left in this batch.` : `Στην παρτίδα έχουν μείνει μόνο ${fmtQty(row.remaining, language)} ${unitLabel(row.unit, language)}.`
   return ''
 }
 // The older batch of the same product that FIFO would use first, when one exists.
-export function fifoAdvice(stock: AnyRecord[], row: AnyRecord | null, day: string) {
+export function fifoAdvice<T extends KitchenBatch>(stock: readonly T[], row: KitchenBatch | null, day: string) {
   if (!row) return null
-  const older = availableBatches(stock, day, row.productId).find((other: AnyRecord) => other.receiptItemId !== row.receiptItemId && fifo(other, row) < 0)
+  const older = availableBatches(stock, day, row.productId).find(other => other.receiptItemId !== row.receiptItemId && fifo(other, row) < 0)
   return older || null
 }
 export const fmtQty = (value: unknown, language = 'el') => (value == null || value === '' ? '—' : new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 3 }).format(Number(value)))
@@ -178,21 +180,21 @@ export const fmtTemp = (value: unknown, language = 'el') => (value == null || va
 // --- Traceability -------------------------------------------------------------------------
 
 // Forward: a batch → its receipt and supplier → where it was used (day, dish) → write-offs.
-export function traceBatch(state: AnyRecord, receiptItemId: string) {
+export function traceBatch<S extends KitchenStateInput>(state: S, receiptItemId: string) {
   const stock = stockRows(state).find(row => row.receiptItemId === receiptItemId) || null
-  const productions = new Map((state.productions || []).map((item: AnyRecord) => [item.id, item]))
-  const uses = (state.usage || []).filter((row: AnyRecord) => row.receiptItemId === receiptItemId).map((row: AnyRecord) => ({ ...row, production: productions.get(row.productionId) || null })).sort((a: AnyRecord, b: AnyRecord) => String(a.usedOn).localeCompare(String(b.usedOn)))
-  const writeoffs = (state.writeoffs || []).filter((row: AnyRecord) => row.receiptItemId === receiptItemId)
-  const days = [...new Set(uses.map((row: AnyRecord) => row.productionId).filter(Boolean))]
-  const thermal = (state.thermal || []).filter((row: AnyRecord) => days.includes(row.productionId))
+  const productions = new Map<string | undefined, KitchenRows<S, 'productions'>>(listOf(state, 'productions').map(item => [item.id, item]))
+  const uses = listOf(state, 'usage').filter(row => row.receiptItemId === receiptItemId).map(row => ({ ...row, production: productions.get(row.productionId) || null })).sort((a, b) => String(a.usedOn).localeCompare(String(b.usedOn)))
+  const writeoffs = listOf(state, 'writeoffs').filter(row => row.receiptItemId === receiptItemId)
+  const days: (string | undefined)[] = [...new Set(uses.map(row => row.productionId).filter(Boolean))]
+  const thermal = listOf(state, 'thermal').filter(row => days.includes(row.productionId))
   return { batch: stock, uses, writeoffs, thermal }
 }
 // Backward: a dish (by name, optionally on one day) → the batches used for it → their suppliers.
-export function traceDish(state: AnyRecord, dishName: string, day = '') {
+export function traceDish<S extends KitchenStateInput>(state: S, dishName: string | undefined, day = '') {
   const needle = normalize(dishName)
-  const stock = new Map(stockRows(state).map(row => [row.receiptItemId, row]))
-  const uses = (state.usage || []).filter((row: AnyRecord) => normalize(row.dishName) === needle && (!day || row.usedOn === day))
-  return uses.map((row: AnyRecord) => ({ ...row, batch: stock.get(row.receiptItemId) || null }))
+  const stock = new Map<string | undefined, KitchenStockRow>(stockRows(state).map(row => [row.receiptItemId, row]))
+  const uses = listOf(state, 'usage').filter(row => normalize(row.dishName) === needle && (!day || row.usedOn === day))
+  return uses.map(row => ({ ...row, batch: stock.get(row.receiptItemId) || null }))
 }
 export const normalize = (value: unknown) => String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
 
@@ -200,51 +202,51 @@ export const normalize = (value: unknown) => String(value || '').normalize('NFD'
 
 // What a day holds: its materials, heat parameters, pureeing, the defrosts that ended
 // that day and the receipts of the day; with the out-of-limits count.
-export function dayRecords(state: AnyRecord, production: AnyRecord) {
+export function dayRecords<S extends KitchenStateInput>(state: S, production: KitchenProductionInput | null | undefined): KitchenDayRecords<S> {
   if (!production) return { usage: [], thermal: [], pureeing: [], defrosting: [], receipts: [], outOfLimits: 0, total: 0 }
   const day = production.productionDate
-  const usage = (state.usage || []).filter((row: AnyRecord) => row.productionId === production.id)
-  const thermal = (state.thermal || []).filter((row: AnyRecord) => row.productionId === production.id)
-  const pureeing = (state.pureeing || []).filter((row: AnyRecord) => row.productionId === production.id)
-  const defrosting = (state.defrosting || []).filter((row: AnyRecord) => row.productionId === production.id || (!row.productionId && dayOf(row.endedAt || row.startedAt) === day))
-  const receipts = (state.receipts || []).filter((row: AnyRecord) => row.receivedOn === day)
+  const usage = listOf(state, 'usage').filter(row => row.productionId === production.id)
+  const thermal = listOf(state, 'thermal').filter(row => row.productionId === production.id)
+  const pureeing = listOf(state, 'pureeing').filter(row => row.productionId === production.id)
+  const defrosting = listOf(state, 'defrosting').filter(row => row.productionId === production.id || (!row.productionId && dayOf(row.endedAt || row.startedAt) === day))
+  const receipts = listOf(state, 'receipts').filter(row => row.receivedOn === day)
   const outOfLimits = [...thermal, ...pureeing, ...defrosting, ...receipts].filter(row => row.limitStatus === 'out').length
   return { usage, thermal, pureeing, defrosting, receipts, outOfLimits, total: usage.length + thermal.length + pureeing.length + defrosting.length + receipts.length }
 }
-export const productionForDay = (state: AnyRecord, day: string) => (state.productions || []).find((item: AnyRecord) => item.productionDate === day) || null
-export const menuForDay = (state: AnyRecord, day: string) => { const weekday = weekdayOf(day); return (state.menus || []).find((menu: AnyRecord) => menu.active !== false && Number(menu.weekday) === weekday) || null }
+export const productionForDay = <S extends KitchenStateInput>(state: S, day: string) => listOf(state, 'productions').find(item => item.productionDate === day) || null
+export const menuForDay = <S extends KitchenStateInput>(state: S, day: string) => { const weekday = weekdayOf(day); return listOf(state, 'menus').find(menu => menu.active !== false && Number(menu.weekday) === weekday) || null }
 
 // --- Verification (HACCP principle 6) ---------------------------------------------------------
 
 // The days whose records wait for the sign-off of the kitchen manager / quality office,
 // newest first; `since` limits the queue (imported history stays out of the daily queue).
-export function verificationQueue(state: AnyRecord, { today = todayKey(), since = addDays(today, -30) } = {}) {
-  return (state.productions || [])
-    .filter((item: AnyRecord) => !item.verifiedAt && item.productionDate <= today && (!since || item.productionDate >= since))
-    .map((item: AnyRecord) => { const records = dayRecords(state, item); return { production: item, ...records, pendingDefrosts: records.defrosting.filter((row: AnyRecord) => !row.verifiedAt).length } })
-    .filter((row: AnyRecord) => row.total > 0 || row.production.productionDate === today)
-    .sort((a: AnyRecord, b: AnyRecord) => b.production.productionDate.localeCompare(a.production.productionDate))
+export function verificationQueue<S extends KitchenStateInput>(state: S, { today = todayKey(), since = addDays(today, -30) } = {}) {
+  return listOf(state, 'productions')
+    .filter(item => !item.verifiedAt && item.productionDate <= today && (!since || item.productionDate >= since))
+    .map(item => { const records = dayRecords(state, item); return { production: item, ...records, pendingDefrosts: records.defrosting.filter(row => !row.verifiedAt).length } })
+    .filter(row => row.total > 0 || row.production.productionDate === today)
+    .sort((a, b) => b.production.productionDate.localeCompare(a.production.productionDate))
 }
 
 // --- Overview ------------------------------------------------------------------------------
 
-export function overview(state: AnyRecord, today = todayKey()) {
+export function overview<S extends KitchenStateInput>(state: S, today = todayKey()) {
   const stock = stockRows(state, today)
   const since = addDays(today, -30)
-  const recent = (row: AnyRecord) => dayOf(row.date) >= since
+  const recent = (row: { date?: string }) => dayOf(row.date) >= since
   const out = [
-    ...(state.receipts || []).filter((row: AnyRecord) => row.limitStatus === 'out').map((row: AnyRecord) => ({ kind: 'receipt', id: row.id, date: row.receivedOn, title: row.code, detail: row.supplierName, action: row.correctiveAction || row.qualityNotes, row })),
-    ...(state.thermal || []).filter((row: AnyRecord) => row.limitStatus === 'out').map((row: AnyRecord) => ({ kind: 'thermal', id: row.id, date: row.processDate, title: row.dishName, detail: '', action: row.correctiveAction, row })),
-    ...(state.defrosting || []).filter((row: AnyRecord) => row.limitStatus === 'out').map((row: AnyRecord) => ({ kind: 'defrost', id: row.id, date: dayOf(row.endedAt || row.startedAt), title: row.productName, detail: '', action: row.correctiveAction, row })),
-    ...(state.pureeing || []).filter((row: AnyRecord) => row.limitStatus === 'out').map((row: AnyRecord) => ({ kind: 'pureeing', id: row.id, date: row.pureedOn, title: row.productName, detail: '', action: row.correctiveAction, row })),
+    ...listOf(state, 'receipts').filter(row => row.limitStatus === 'out').map(row => ({ kind: 'receipt', id: row.id, date: row.receivedOn, title: row.code, detail: row.supplierName, action: row.correctiveAction || row.qualityNotes, row })),
+    ...listOf(state, 'thermal').filter(row => row.limitStatus === 'out').map(row => ({ kind: 'thermal', id: row.id, date: row.processDate, title: row.dishName, detail: '', action: row.correctiveAction, row })),
+    ...listOf(state, 'defrosting').filter(row => row.limitStatus === 'out').map(row => ({ kind: 'defrost', id: row.id, date: dayOf(row.endedAt || row.startedAt), title: row.productName, detail: '', action: row.correctiveAction, row })),
+    ...listOf(state, 'pureeing').filter(row => row.limitStatus === 'out').map(row => ({ kind: 'pureeing', id: row.id, date: row.pureedOn, title: row.productName, detail: '', action: row.correctiveAction, row })),
   ].sort((a, b) => String(b.date).localeCompare(String(a.date)))
   return {
     today,
     production: productionForDay(state, today),
-    receipts: (state.receipts || []).filter((row: AnyRecord) => row.receivedOn === today),
-    thermal: (state.thermal || []).filter((row: AnyRecord) => row.processDate === today),
-    defrosting: (state.defrosting || []).filter((row: AnyRecord) => dayOf(row.startedAt) === today || dayOf(row.endedAt) === today || (!row.endedAt && dayOf(row.startedAt) >= addDays(today, -3))),
-    pureeing: (state.pureeing || []).filter((row: AnyRecord) => row.pureedOn === today),
+    receipts: listOf(state, 'receipts').filter(row => row.receivedOn === today),
+    thermal: listOf(state, 'thermal').filter(row => row.processDate === today),
+    defrosting: listOf(state, 'defrosting').filter(row => dayOf(row.startedAt) === today || dayOf(row.endedAt) === today || (!row.endedAt && dayOf(row.startedAt) >= addDays(today, -3))),
+    pureeing: listOf(state, 'pureeing').filter(row => row.pureedOn === today),
     outOfLimits: out.filter(recent),
     outOfLimitsAll: state.outOfLimitsTotal ?? out.length,
     expiring: stock.filter(row => row.expiring || row.expired),
@@ -259,7 +261,7 @@ export function overview(state: AnyRecord, today = todayKey()) {
 // The kitchen in the shared calendar: planned production days (with their menu), the days
 // waiting for sign-off, out-of-limits entries without a corrective action, batches that
 // expire, and the yearly review of the HACCP plan.
-export function kitchenCalendarItems(state: AnyRecord, { today = todayKey(), language = 'el' } = {}) {
+export function kitchenCalendarItems<S extends KitchenStateInput>(state: S, { today = todayKey(), language = 'el' } = {}) {
   const en = language === 'en'
   const list = []
   for (const item of state.productions || []) {
@@ -278,7 +280,7 @@ export function kitchenCalendarItems(state: AnyRecord, { today = todayKey(), lan
   if (review) list.push({ id: 'kit-review', kind: 'kitchen', date: review, title: en ? 'HACCP plan review' : 'Ανασκόπηση σχεδίου HACCP', detail: en ? 'Hazards, CCPs and limits' : 'Κίνδυνοι, CCP και όρια', department: '', path: '/kitchen', state: review < today ? 'overdue' : 'due' })
   return list
 }
-export function haccpReviewDue(settings: AnyRecord) {
+export function haccpReviewDue(settings: Partial<KitchenSettings> | null | undefined) {
   if (!settings?.haccpLastReviewOn) return ''
   const d = new Date(`${settings.haccpLastReviewOn}T12:00:00`)
   d.setMonth(d.getMonth() + (Number(settings.haccpReviewMonths) || 12))
@@ -287,7 +289,7 @@ export function haccpReviewDue(settings: AnyRecord) {
 
 // --- Checks before saving ------------------------------------------------------------------
 
-export function receiptProblems(receipt: AnyRecord, language = 'el', status: string | null = null) {
+export function receiptProblems(receipt: KitchenReceiptInput, language = 'el', status: string | null = null) {
   const en = language === 'en'
   const problems = []
   if (!receipt.receivedOn) problems.push(en ? 'date' : 'ημερομηνία')
@@ -295,7 +297,7 @@ export function receiptProblems(receipt: AnyRecord, language = 'el', status: str
   for (const item of receipt.items || []) {
     if (!String(item.productName || '').trim()) { problems.push(en ? 'product of every line' : 'προϊόν σε κάθε γραμμή'); break }
   }
-  if ((receipt.items || []).some((item: AnyRecord) => item.accepted === false && !String(item.rejectionReason || '').trim())) problems.push(en ? 'reason of each rejected product' : 'αιτία για κάθε προϊόν που απορρίπτεται')
+  if ((receipt.items || []).some(item => item.accepted === false && !String(item.rejectionReason || '').trim())) problems.push(en ? 'reason of each rejected product' : 'αιτία για κάθε προϊόν που απορρίπτεται')
   if (status === 'out' && String(receipt.correctiveAction || '').trim().length < 3 && String(receipt.qualityNotes || '').trim().length < 3) problems.push(en ? 'note or corrective action for the nonconformity' : 'παρατήρηση ή διορθωτική ενέργεια για τη μη συμμόρφωση')
   return problems
 }

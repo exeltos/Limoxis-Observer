@@ -84,7 +84,7 @@ export function OverviewPanel({ state, summary, access, onOpenDay, onTab, onStoc
       </section>
       <section className="kitchen-card">
         <SectionHeader title={en ? 'Days to verify' : 'Ημέρες προς επαλήθευση'} subtitle={en ? 'Days waiting for the sign-off (30 days).' : 'Ημέρες που περιμένουν επαλήθευση (30 ημέρες).'} />
-        <RegistryTable className="kitchen-table" rows={queue.slice(0, 3).map((row: AnyRecord) => ({ ...row, id: row.production.id }))} rowKey={row => row.id} columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'out', label: en ? 'Out of limits' : 'Εκτός ορίων' }]}
+        <RegistryTable className="kitchen-table" rows={queue.slice(0, 3).map(row => ({ ...row, id: row.production.id }))} rowKey={row => row.id} columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'out', label: en ? 'Out of limits' : 'Εκτός ορίων' }]}
           emptyTitle={en ? 'Nothing to verify' : 'Τίποτα προς επαλήθευση'}
           rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpenDay(row.production.id) })}
           renderRow={row => <><td className="nowrap-cell"><strong>{fmtDay(row.production.productionDate)}</strong><small>{weekdayLabel(weekdayOf(row.production.productionDate), language)}</small></td><td>{row.total}</td><td>{row.outOfLimits ? <SignalBadge tone="danger">{row.outOfLimits}</SignalBadge> : '—'}</td></>} />

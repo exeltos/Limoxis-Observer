@@ -97,7 +97,7 @@ export interface QualityFoodSources {
   audits?: DomainMetrics[]
   findings?: DomainMetrics[]
   suppliers?: DomainMetrics[]
-  kitchen?: Record<string, DomainMetrics[]>
+  kitchen?: Partial<Record<'receipts' | 'productions' | 'thermal' | 'defrosting' | 'writeoffs', DomainMetrics[]>>
   surveys?: SurveyRow[]
   responses?: SurveyResponseRow[]
   assessments?: DomainMetrics[]

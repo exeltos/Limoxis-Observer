@@ -88,7 +88,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
     return Object.values(next).some(value => (Array.isArray(value) ? value.length : value)) ? next : null
   }, [draft.status, draft.traceSnapshot, scenario, receiptItemId, productId, productName, dishName])
   const { state, ready } = useKitchenTrace(loaded, organizationId, subject)
-  const [dishNames, setDishNames] = useState<AnyRecord[]>([])
+  const [dishNames, setDishNames] = useState<string[]>([])
   useEffect(() => { if (readOnly || scenario !== 'dish') return undefined; let active = true; loadKitchenDishNames(organizationId).then(names => { if (active) setDishNames(names) }).catch(() => {}); return () => { active = false } }, [readOnly, scenario, organizationId])
   const live = useMemo(() => recallTrace(state, draft), [state, draft])
   const trace = draft.status === 'completed' && draft.traceSnapshot?.batches ? draft.traceSnapshot : live
