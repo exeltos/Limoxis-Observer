@@ -18,7 +18,9 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import type { PatientDayPeriod } from './managementTypes'
 import type { LanguageContextValue } from '../../core/i18n/languageTypes'
 
-type Period = { key: string, from: string, to: string, hospital: PatientDayPeriod|null, departments: PatientDayPeriod[] }
+// What grouping reads of a row: its period and whether it is the hospital total.
+type PeriodRow = Pick<PatientDayPeriod, 'from' | 'to' | 'scope'>
+type Period<T extends PeriodRow = PatientDayPeriod> = { key: string, from: string, to: string, hospital: T|null, departments: T[] }
 // A line of the list: a year's heading, or one of its periods.
 type YearRow = { heading: string, count: number, key?: undefined } | (Period & { heading?: undefined })
 // A line of a period: the whole hospital, then each department.
@@ -48,15 +50,15 @@ export function periodKind(from: string|null|undefined,to: string|null|undefined
   if((fm-1)%3===0&&tm===fm+2)return {kind:'quarter',year:fy,quarter:(fm-1)/3+1}
   return {kind:'custom'}
 }
-export function periodRange(draft: Pick<Draft, 'duration' | 'year' | 'month' | 'quarter' | 'from' | 'to'>){
+export function periodRange(draft: Partial<Pick<Draft, 'duration' | 'year' | 'month' | 'quarter' | 'from' | 'to'>>){
   const y=Number(draft.year)
   if(draft.duration==='month'){const m=Number(draft.month);return {from:iso(y,m,1),to:iso(y,m,lastDay(y,m))}}
   if(draft.duration==='quarter'){const m=(Number(draft.quarter)-1)*3+1;return {from:iso(y,m,1),to:iso(y,m+2,lastDay(y,m+2))}}
   if(draft.duration==='year')return {from:iso(y,1,1),to:iso(y,12,31)}
   return {from:draft.from,to:draft.to}
 }
-export function groupPeriods(rows: PatientDayPeriod[]){
-  const map=new Map<string,Period>()
+export function groupPeriods<T extends PeriodRow>(rows: T[]){
+  const map=new Map<string,Period<T>>()
   for(const row of rows){const key=`${row.from}|${row.to}`;if(!map.has(key))map.set(key,{key,from:row.from,to:row.to,hospital:null,departments:[]});const group=map.get(key)!;if(row.scope===HOSPITAL)group.hospital=row;else group.departments.push(row)}
   return [...map.values()].sort((a,b)=>b.from.localeCompare(a.from)||b.to.localeCompare(a.to))
 }
