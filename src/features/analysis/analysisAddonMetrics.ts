@@ -3,18 +3,18 @@
 // builders feed demo (local stores) and production (RLS-scoped table reads), and
 // the result keeps the shape mergeDomainMetrics can add up across hospitals:
 // plain counters and [key, ...counts] rows — rates are derived when displayed.
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LiraInvestigationRow, PrevalenceSurveyRow } from './analysisTypes'
 
 // Διάστημα ημερομηνιών (yyyy-mm-dd), ανοιχτό όπου λείπει άκρο.
 export interface DateRange { from?: string | null; to?: string | null }
 const day = (value: unknown) => String(value || '').slice(0, 10)
 const month = (value: unknown) => String(value || '').slice(0, 7)
 const inRange = (value: unknown, range: DateRange | null | undefined) => { const d = day(value); if (!d) return true; return (!range?.from || d >= range.from) && (!range?.to || d <= range.to) }
-const tally = (rows: AnyRecord[], keyFn: (row: AnyRecord) => string | null | undefined) => { const out = new Map<string, number>(); for (const row of rows) { const key = keyFn(row); if (key == null || key === '') continue; out.set(key, (out.get(key) || 0) + 1) } return [...out.entries()].sort((a, b) => b[1] - a[1]) }
+const tally = <T>(rows: T[], keyFn: (row: T) => string | null | undefined) => { const out = new Map<string, number>(); for (const row of rows) { const key = keyFn(row); if (key == null || key === '') continue; out.set(key, (out.get(key) || 0) + 1) } return [...out.entries()].sort((a, b) => b[1] - a[1]) }
 const DAY_MS = 86400000
 
 // rows: { surveyDate, patientsTotal, patientsWithHai, patientsOnAntibiotics }
-export function buildPpsMetrics(rows: AnyRecord[] = [], range: DateRange = {}) {
+export function buildPpsMetrics(rows: PrevalenceSurveyRow[] = [], range: DateRange = {}) {
   const surveys = rows.filter(row => inRange(row.surveyDate, range))
   const byMonth = new Map<string, number[]>()
   for (const row of surveys) {
@@ -36,10 +36,10 @@ export function buildPpsMetrics(rows: AnyRecord[] = [], range: DateRange = {}) {
 }
 
 // rows: { status, organism, created_at, closed_at }; clusters: active outbreak clusters.
-export function buildLiraMetrics(rows: AnyRecord[] = [], range: DateRange = {}, clusters: unknown = 0) {
+export function buildLiraMetrics(rows: LiraInvestigationRow[] = [], range: DateRange = {}, clusters: unknown = 0) {
   const items = rows.filter(row => inRange(row.created_at, range))
   const closed = items.filter(row => row.status === 'closed')
-  const spans = closed.map(row => (Date.parse(row.closed_at) - Date.parse(row.created_at)) / DAY_MS).filter(value => Number.isFinite(value) && value >= 0)
+  const spans = closed.map(row => (Date.parse(row.closed_at || '') - Date.parse(row.created_at || '')) / DAY_MS).filter(value => Number.isFinite(value) && value >= 0)
   return {
     investigations: items.length,
     active: items.filter(row => row.status === 'active').length,

@@ -1,25 +1,25 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LiraBundleRow, LiraData, LiraHandHygieneRow, LiraRow } from './liraTypes'
 import type { LiraComparisonSpec, LiraTimeWindow } from './liraTime'
 const normalize=(value: unknown)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
-const departmentOf=(row: AnyRecord)=>row?.department||row?.departmentEl||row?.departmentEn||'—'
-const rowDate=(row: AnyRecord)=>row?.signalDate||row?.resultedAt||row?.collectedAt||row?.date||row?.startedAt||row?.dueDate||null
-const scoped=(rows: AnyRecord[]|undefined,department: string)=>(rows||[]).filter(row=>department==='all'||departmentOf(row)===department)
-const inWindow=(row: AnyRecord,window: LiraTimeWindow|null)=>{if(!window)return true;const value=rowDate(row);if(!value)return false;const date=String(value).slice(0,10);return date>=window.start&&date<=window.end}
-const windowed=(rows: AnyRecord[]|undefined,department: string,window: LiraTimeWindow|null)=>scoped(rows,department).filter(row=>inWindow(row,window))
-const weightedHand=(rows: AnyRecord[])=>{let n=0,c=0;for(const row of rows){const obs=Number(row.observations)||0;n+=obs;c+=obs*(Number(row.rate)||0)/100}return n?Math.round(c/n*100):null}
-const bundleRate=(rows: AnyRecord[])=>rows.length?Math.round(rows.filter(row=>row.allOrNone).length/rows.length*100):null
+const departmentOf=(row: LiraRow)=>row?.department||row?.departmentEl||row?.departmentEn||'—'
+const rowDate=(row: LiraRow)=>row?.signalDate||row?.resultedAt||row?.collectedAt||row?.date||row?.startedAt||row?.dueDate||null
+const scoped=<T extends LiraRow>(rows: T[]|undefined,department: string)=>(rows||[]).filter(row=>department==='all'||departmentOf(row)===department)
+const inWindow=(row: LiraRow,window: LiraTimeWindow|null)=>{if(!window)return true;const value=rowDate(row);if(!value)return false;const date=String(value).slice(0,10);return date>=window.start&&date<=window.end}
+const windowed=<T extends LiraRow>(rows: T[]|undefined,department: string,window: LiraTimeWindow|null)=>scoped(rows,department).filter(row=>inWindow(row,window))
+const weightedHand=(rows: LiraHandHygieneRow[])=>{let n=0,c=0;for(const row of rows){const obs=Number(row.observations)||0;n+=obs;c+=obs*(Number(row.rate)||0)/100}return n?Math.round(c/n*100):null}
+const bundleRate=(rows: LiraBundleRow[])=>rows.length?Math.round(rows.filter(row=>row.allOrNone).length/rows.length*100):null
 const openStatus=(value: unknown)=>!['closed','completed','cancelled','resolved'].includes(normalize(value))
 const overdue=(value: unknown,today: string)=>value&&String(value).slice(0,10)<today
 const fmt=(value: number)=>Number.isInteger(value)?String(value):Number(value).toFixed(1).replace(/\.0$/,'')
 
 interface OperationalOptions { department?: string; window?: LiraTimeWindow|null; today?: string; language?: string }
-function operationalMetrics(data: AnyRecord|null|undefined,{department='all',window=null,today}: OperationalOptions & {today: string}){
+function operationalMetrics(data: LiraData|null|undefined,{department='all',window=null,today}: OperationalOptions & {today: string}){
  const surveillance=windowed(data?.surveillance,department,window);const laboratory=windowed(data?.laboratory,department,window);const handRows=windowed(data?.handHygiene,department,window);const bundleRows=windowed(data?.bundles,department,window);const incidents=windowed(data?.qualityIncidents,department,window);const capas=windowed(data?.qualityCapas,department,window)
  return {active:surveillance.filter(row=>row.state==='active').length,overdueReviews:surveillance.filter(row=>row.reviewDue&&overdue(row.reviewDue,today)).length,criticalUncommunicated:laboratory.filter(row=>row.critical&&!(row.communications||[]).length).length,amr:laboratory.filter(row=>Boolean(row.resistance)).length,handHygiene:weightedHand(handRows),bundleCompliance:bundleRate(bundleRows),seriousIncidents:incidents.filter(row=>openStatus(row.status)&&['high','critical','major','severe'].includes(normalize(row.severity))).length,overdueCapas:capas.filter(row=>openStatus(row.status)&&overdue(row.dueDate,today)).length}
 }
 
-export function buildOperationalOverview(data: AnyRecord,{department='all',today=hospitalToday(),language='el'}: OperationalOptions={}){
+export function buildOperationalOverview(data: LiraData,{department='all',today=hospitalToday(),language='el'}: OperationalOptions={}){
  const en=language==='en';const metrics=operationalMetrics(data,{department,today});const {active,overdueReviews,criticalUncommunicated,amr,handHygiene:hand,bundleCompliance:bundles,seriousIncidents,overdueCapas}=metrics
  const signals: {priority: number; domain: string; title: string; detail: string}[]=[];const add=(priority: number,domain: string,title: string,detail: string)=>signals.push({priority,domain,title,detail})
  if(criticalUncommunicated)add(100,'laboratory',en?'Critical laboratory communication':'Γνωστοποίηση κρίσιμων εργαστηριακών',en?`${criticalUncommunicated} critical result(s) have no documented communication.`:`${criticalUncommunicated} κρίσιμα αποτελέσματα δεν έχουν τεκμηριωμένη γνωστοποίηση.`)
@@ -36,7 +36,7 @@ export function buildOperationalOverview(data: AnyRecord,{department='all',today
  return {title:en?'What needs attention?':'Τι χρειάζεται προσοχή;',subtitle:en?`Cross-domain operational view ${scope}.`:`Διατομεακή λειτουργική εικόνα ${scope}.`,points,signals,metrics}
 }
 
-export function compareOperationalOverview(data: AnyRecord,spec: LiraComparisonSpec,{department='all',today=hospitalToday(),language='el'}: OperationalOptions={}){
+export function compareOperationalOverview(data: LiraData,spec: LiraComparisonSpec,{department='all',today=hospitalToday(),language='el'}: OperationalOptions={}){
  const en=language==='en';const current=operationalMetrics(data,{department,window:spec.current,today});const reference=operationalMetrics(data,{department,window:spec.reference,today})
  const definitions: [keyof ReturnType<typeof operationalMetrics>,string,string][]=[['criticalUncommunicated',en?'critical results without documented communication':'κρίσιμα αποτελέσματα χωρίς τεκμηριωμένη γνωστοποίηση','higher'],['overdueReviews',en?'overdue surveillance reviews':'εκπρόθεσμες επανεκτιμήσεις επιτήρησης','higher'],['seriousIncidents',en?'serious open quality incidents':'σοβαρά ανοικτά συμβάντα ποιότητας','higher'],['overdueCapas',en?'overdue CAPA':'εκπρόθεσμες διορθωτικές ενέργειες','higher'],['amr','AMR / MDR-XDR','higher'],['handHygiene',en?'hand-hygiene compliance':'συμμόρφωση υγιεινής χεριών','lower'],['bundleCompliance',en?'bundle all-or-none compliance':'bundle all-or-none συμμόρφωση','lower']]
  const changes: {key: string; label: string; current: number; reference: number; delta: number; worsened: boolean; weight: number}[]=[]
@@ -47,7 +47,7 @@ export function compareOperationalOverview(data: AnyRecord,spec: LiraComparisonS
  return {title:en?'What changed?':'Τι άλλαξε;',subtitle:en?`${spec.current.label} versus ${spec.reference.label} across infection prevention and quality signals.`:`${spec.current.label} έναντι ${spec.reference.label} σε σήματα λοιμώξεων, πρόληψης και ποιότητας.`,points,changes,current,reference}
 }
 
-export function explainOperationalChange(data: AnyRecord,spec: LiraComparisonSpec,{department='all',today=hospitalToday(),language='el'}: OperationalOptions={}){
+export function explainOperationalChange(data: LiraData,spec: LiraComparisonSpec,{department='all',today=hospitalToday(),language='el'}: OperationalOptions={}){
  const en=language==='en';const comparison=compareOperationalOverview(data,spec,{department,today,language});const worse=comparison.changes.filter(change=>change.worsened).slice(0,4);const better=comparison.changes.filter(change=>!change.worsened).slice(0,2);const points=[]
  if(worse.length){points.push(en?'The strongest concurrent deterioration signals are:':'Τα ισχυρότερα παράλληλα σήματα επιδείνωσης είναι:');for(const change of worse){const unit=['handHygiene','bundleCompliance'].includes(change.key)?'%':'';points.push(`${change.label}: ${fmt(change.reference)}${unit} → ${fmt(change.current)}${unit}.`)}}
  else points.push(en?'The available matched-period records do not show a clear cross-domain deterioration signal.':'Οι διαθέσιμες εγγραφές των αντίστοιχων περιόδων δεν δείχνουν σαφές διατομεακό σήμα επιδείνωσης.')

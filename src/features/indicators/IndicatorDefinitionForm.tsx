@@ -5,7 +5,7 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { YesNoField } from '../../design-system/YesNoField'
 import { INDICATOR_METRICS,allowedIndicatorDenominators,indicatorMetricCombinationIsValid,indicatorMetricRule } from './indicatorDefinitionService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { IndicatorDefinition } from './indicatorTypes'
 
 const organismLabels={ecoli:['E. coli','E. coli'],proteus:['Proteus spp.','Proteus spp.'],acinetobacter:['Acinetobacter spp.','Acinetobacter spp.'],klebsiella:['Klebsiella spp.','Klebsiella spp.'],enterobacter:['Enterobacter spp.','Enterobacter spp.'],pseudomonas:['Pseudomonas spp.','Pseudomonas spp.'],saureus:['S. aureus','S. aureus'],enterococcus:['Enterococcus spp.','Enterococcus spp.']}
 const bacteremiaLabels=Object.fromEntries(Object.entries(organismLabels).map(([key,[el,en]])=>[`bacteremia_${key}`,[`Βακτηριαιμίες από ${el}`,`${en} bacteremia`]]))
@@ -27,13 +27,13 @@ export const indicatorMetricLabel=(key: string,language='el')=>metricLabels[key]
 // What a metric counts, in words: shown where the definition has no text of its own.
 export const metricWords=(key: string|null|undefined,language='el',part='numerator')=>key?(language==='en'?`${part==='numerator'?'Counted':'Taken as the base'}: ${indicatorMetricLabel(key,'en').toLowerCase()} in the period.`:`${part==='numerator'?'Μετριέται':'Βάση υπολογισμού'}: ${indicatorMetricLabel(key,'el').toLowerCase()} στην περίοδο.`):''
 
-export const createEmptyIndicatorDefinition=()=>({id:null,system:false,key:'',version:'1.0',titleEl:'',category:'surveillance',calculationType:'auto',numeratorMetric:'',denominatorMetric:'',numeratorDefinition:{description:''},denominatorDefinition:{description:''},multiplier:1,unit:'',targetValue:'',direction:'context',sourceAuthority:'',effectiveFrom:hospitalToday(),effectiveTo:'',status:'draft',visibleDepartmentIds:[]})
+export const createEmptyIndicatorDefinition=(): IndicatorDefinition=>({id:null,system:false,key:'',version:'1.0',titleEl:'',category:'surveillance',calculationType:'auto',numeratorMetric:'',denominatorMetric:'',numeratorDefinition:{description:''},denominatorDefinition:{description:''},multiplier:1,unit:'',targetValue:'',direction:'context',sourceAuthority:'',effectiveFrom:hospitalToday(),effectiveTo:'',status:'draft',visibleDepartmentIds:[]})
 
-export function indicatorDefinitionIsValid(v: AnyRecord|null|undefined){return Boolean(v?.key?.trim()&&v?.titleEl?.trim()&&v?.version?.trim()&&(v.calculationType!=='auto'||(v?.numeratorMetric?.trim()&&indicatorMetricCombinationIsValid(v.numeratorMetric,v.denominatorMetric||'')))&&(!v?.effectiveFrom||!v?.effectiveTo||v.effectiveTo>=v.effectiveFrom))}
+export function indicatorDefinitionIsValid(v: IndicatorDefinition|null|undefined){return Boolean(v?.key?.trim()&&v?.titleEl?.trim()&&v?.version?.trim()&&(v.calculationType!=='auto'||(v?.numeratorMetric?.trim()&&indicatorMetricCombinationIsValid(v.numeratorMetric,v.denominatorMetric||'')))&&(!v?.effectiveFrom||!v?.effectiveTo||v.effectiveTo>=v.effectiveFrom))}
 
-interface IndicatorDefinitionFormProps {value: AnyRecord|null,onChange: (next: AnyRecord)=>void,language?: string,readOnly?: boolean,showSystem?: boolean,lockKey?: boolean,hideKey?: boolean,departments?: {id: string,name: string}[]}
+interface IndicatorDefinitionFormProps {value: IndicatorDefinition|null,onChange: (next: IndicatorDefinition)=>void,language?: string,readOnly?: boolean,showSystem?: boolean,lockKey?: boolean,hideKey?: boolean,departments?: {id: string,name: string}[]}
 export function IndicatorDefinitionForm({value,onChange,language='el',readOnly=false,showSystem=false,lockKey=false,hideKey=false,departments=[]}: IndicatorDefinitionFormProps){
- const el=language==='el',v: AnyRecord=value||createEmptyIndicatorDefinition(),set=(key: string,next: unknown)=>onChange({...v,[key]:next}),automatic=v.calculationType==='auto'
+ const el=language==='el',v: IndicatorDefinition=value||createEmptyIndicatorDefinition(),set=(key: string,next: unknown)=>onChange({...v,[key]:next} as IndicatorDefinition),automatic=v.calculationType==='auto'
  const visibleDepartmentIds=v.visibleDepartmentIds||[]
  const denominatorOptions=automatic?allowedIndicatorDenominators(v.numeratorMetric):[]
  const ratioRule=automatic&&v.denominatorMetric?indicatorMetricRule(v.numeratorMetric):null

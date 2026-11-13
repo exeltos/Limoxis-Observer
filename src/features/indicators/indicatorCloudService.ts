@@ -3,7 +3,7 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadAccessDddTotal } from '../pharmacy/pharmacyCloudService'
 import { collectIndicatorMetrics } from './indicatorEngine'
 import { loadIndicatorDefinitionsLocal, loadIndicatorSnapshotsLocal, saveIndicatorSnapshotsLocal } from './indicatorStore'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CalculatedIndicatorOf, IndicatorCalculationInput, IndicatorDefinitionRow, IndicatorSnapshotRow, IndicatorTextDefinition, OperationalIndicator } from './indicatorTypes'
 
 export interface IndicatorPeriod { from?: string | null, to?: string | null, departmentId?: string | null }
 // The metric values of a period, by metric key (get_indicator_metric_snapshot or the demo engine).
@@ -24,11 +24,11 @@ export async function collectCloudIndicatorMetrics(organizationId: string|null|u
  return metrics
 }
 
-function mapOperationalDefinition(r: AnyRecord): AnyRecord{
- return {definitionId:r.id,id:r.indicator_key,version:r.version,titleEl:r.title_el,titleEn:r.title_en,category:r.category,numerator:r.numerator_metric,denominator:r.denominator_metric,multiplier:Number(r.multiplier||1),unit:r.unit||'',unitEn:r.unit_en||r.unit||'',source:r.source_authority||'',calculation:r.calculation_type||'auto',target:r.target_value==null?null:Number(r.target_value),direction:r.direction||'context',numeratorDefinition:r.numerator_definition||{},denominatorDefinition:r.denominator_definition||{},visibleDepartmentIds:Array.isArray(r.visible_department_ids)?r.visible_department_ids:[]}
+function mapOperationalDefinition(r: IndicatorDefinitionRow): OperationalIndicator{
+ return {definitionId:r.id,id:r.indicator_key,version:r.version,titleEl:r.title_el||'',titleEn:r.title_en||'',category:r.category||'',numerator:r.numerator_metric,denominator:r.denominator_metric,multiplier:Number(r.multiplier||1),unit:r.unit||'',unitEn:r.unit_en||r.unit||'',source:r.source_authority||'',calculation:r.calculation_type||'auto',target:r.target_value==null?null:Number(r.target_value),direction:r.direction||'context',numeratorDefinition:(r.numerator_definition||{}) as IndicatorTextDefinition,denominatorDefinition:(r.denominator_definition||{}) as IndicatorTextDefinition,visibleDepartmentIds:Array.isArray(r.visible_department_ids)?r.visible_department_ids:[]}
 }
 
-export async function loadOperationalIndicatorDefinitions(organizationId: string|null|undefined,{from,to}: IndicatorPeriod={}): Promise<AnyRecord[]>{
+export async function loadOperationalIndicatorDefinitions(organizationId: string|null|undefined,{from,to}: IndicatorPeriod={}): Promise<OperationalIndicator[]>{
  if(isDemoDataEnvironment()){
   const off=await loadDisabledIndicatorKeys(organizationId)
   return loadIndicatorDefinitionsLocal()
@@ -72,7 +72,7 @@ export async function saveIndicatorEnabled(organizationId: string|null|undefined
 // the restriction only applies once a specific department is being viewed
 // (either because the viewer is department-scoped, or an org admin picked
 // a department filter), so it mirrors what that department would see.
-export function visibleForDepartment(def: AnyRecord,departmentId: string|null|undefined): boolean{
+export function visibleForDepartment(def: Pick<OperationalIndicator,'visibleDepartmentIds'>,departmentId: string|null|undefined): boolean{
  return !def.visibleDepartmentIds?.length||!departmentId||def.visibleDepartmentIds.includes(departmentId)
 }
 
@@ -83,23 +83,23 @@ const NOT_MEASURED_WHEN_ZERO=new Set(['abhr_litres','antibiotic_ddd_total','awar
 // count is 0) means «not measured», not «none happened». The source's count is a metric of the same snapshot; when the snapshot does not
 // report it (the demo), nothing is withheld.
 const SOURCE_METRIC=(key: string|null|undefined)=>/^(bacteremia_|mdr_isolation_|mdro_bsi)/.test(key||'')?'microbiology_results_in_period':key==='audit_major_findings'?'audit_answers_applicable':null
-export function calculateCloudDefinition(def: AnyRecord,metrics: IndicatorMetrics): AnyRecord{
- const numerator=metricValue(metrics,def.numerator),denominator=def.denominator?metricValue(metrics,def.denominator):null
+export function calculateCloudDefinition<T extends IndicatorCalculationInput>(def: T,metrics: IndicatorMetrics): CalculatedIndicatorOf<T>{
+ const numerator=metricValue(metrics,def.numerator) as number|null,denominator=def.denominator?metricValue(metrics,def.denominator) as number|null:null
  let value: number|null=null
  if(def.calculation==='manual')value=Number.isFinite(Number(def.manualValue))?Number(def.manualValue):null
  // No value is not zero: a numerator the source never reported (or a quantity that reads 0 because nothing is recorded) means «not measured», never a result that meets the target.
- else if(numerator==null||(NOT_MEASURED_WHEN_ZERO.has(def.numerator)&&Number(numerator)===0)||(SOURCE_METRIC(def.numerator)&&Number(metrics[SOURCE_METRIC(def.numerator) as string])===0&&metrics[SOURCE_METRIC(def.numerator) as string]!=null))value=null
+ else if(numerator==null||(NOT_MEASURED_WHEN_ZERO.has(def.numerator||'')&&Number(numerator)===0)||(SOURCE_METRIC(def.numerator)&&Number(metrics[SOURCE_METRIC(def.numerator) as string])===0&&metrics[SOURCE_METRIC(def.numerator) as string]!=null))value=null
  else if(def.denominator)value=denominator?round(Number(numerator)/Number(denominator)*Number(def.multiplier||1),1):null
  else value=Number.isFinite(Number(numerator))?round(Number(numerator)*Number(def.multiplier||1),1):null
  const status=value==null||def.target==null?'context':def.direction==='higher'?(value>=def.target?'onTarget':'attention'):def.direction==='lower'?(value<=def.target?'onTarget':'attention'):'context'
  return {...def,value,numerator,denominator,status,evidence:def.calculation==='manual'?'manual':def.denominator?`${numerator??'—'} / ${denominator??'—'}`:`${numerator??'—'}`}
 }
 
-export async function loadIndicatorSnapshots(organizationId: string|null|undefined,{from,to,departmentId=null}: IndicatorPeriod={}): Promise<AnyRecord[]>{
+export async function loadIndicatorSnapshots(organizationId: string|null|undefined,{from,to,departmentId=null}: IndicatorPeriod={}): Promise<IndicatorSnapshotRow[]>{
  if(isDemoDataEnvironment()){
   return loadIndicatorSnapshotsLocal()
-   .filter(s=>!from||s.period_start>=from)
-   .filter(s=>!to||s.period_end<=to)
+   .filter(s=>!from||(s.period_start||'')>=from)
+   .filter(s=>!to||(s.period_end||'')<=to)
    .filter(s=>departmentId?s.department_id===departmentId:!s.department_id)
  }
  assertCloud(organizationId);let query=cloudClient().from('indicator_snapshots').select('*').eq('organization_id',organizationId).order('period_start',{ascending:true})

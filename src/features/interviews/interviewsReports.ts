@@ -1,18 +1,18 @@
 // Interview documents on the shared report layout (core/export/reportDocument.js) and the
 // Excel file of the list. Pure: each returns a document description or the rows.
 import { exportRegistry } from '../../core/export/registryExports'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Candidate, Interview, Interviewer } from './interviewsTypes'
 import { CRITERIA, SCORES, ageOn, decisionLabel, employmentLabel, fmtDay, fmtMoney, fmtRating, fmtStamp, interviewStatusLabel, interviewerRoleLabel, languageSkillsText, latestEvaluation, nextInterview, outcomeLabel, overallRating, statusLabel, yesNo } from './interviewsModel'
 
 const scoreText = (value: unknown, en: boolean) => { const found = SCORES.find(([score]) => score === Number(value)); return found ? `${found[0]} · ${found[en ? 2 : 1]}` : '—' }
 
 // The interview evaluation sheet: the candidate, the panel, the score per criterion,
 // the overall rating, the recommendation and the signatures of the evaluators.
-export function evaluationDocument(candidate: AnyRecord, interview: AnyRecord, { language = 'el' } = {}) {
+export function evaluationDocument(candidate: Candidate, interview: Interview, { language = 'el' } = {}) {
   const en = language === 'en'
   const L = (el: string, enText: string) => (en ? enText : el)
   const rating = interview.overallRating ?? overallRating(interview.scores)
-  const panel: AnyRecord[] = (interview.interviewers || []).filter((item: AnyRecord) => item.name)
+  const panel: Interviewer[] = (interview.interviewers || []).filter(item => item.name)
   return {
     language,
     kind: L('Φύλλο αξιολόγησης συνέντευξης', 'Interview evaluation sheet'),
@@ -27,9 +27,9 @@ export function evaluationDocument(candidate: AnyRecord, interview: AnyRecord, {
     sections: [
       { title: L('Υποψήφιος', 'Candidate'), facts: [
         [L('Ονοματεπώνυμο', 'Full name'), candidate.fullName], [L('Ηλικία', 'Age'), ageOn(candidate.birthDate) ?? '—'], [L('Τηλέφωνο', 'Phone'), candidate.phoneMobile || candidate.phoneLandline || '—'], [L('Email', 'Email'), candidate.email || '—'],
-        [L('Εκπαίδευση', 'Education'), [candidate.educationLevel, ...(candidate.education || []).map((row: AnyRecord) => [row.level, row.school, row.year].filter(Boolean).join(' · '))].filter(Boolean).join('\n') || '—'],
-        [L('Γλώσσες (ομιλία · ανάγνωση · γραφή)', 'Languages (speaking · reading · writing)'), (candidate.languages || []).map((row: AnyRecord) => languageSkillsText(row, language)).join('\n') || '—'],
-        [L('Προϋπηρεσία', 'Experience'), (candidate.employers || []).map((row: AnyRecord) => `${row.employer}${row.jobTitle ? ` (${row.jobTitle})` : ''}`).join(' · ') || '—']] },
+        [L('Εκπαίδευση', 'Education'), [candidate.educationLevel, ...(candidate.education || []).map(row => [row.level, row.school, row.year].filter(Boolean).join(' · '))].filter(Boolean).join('\n') || '—'],
+        [L('Γλώσσες (ομιλία · ανάγνωση · γραφή)', 'Languages (speaking · reading · writing)'), (candidate.languages || []).map(row => languageSkillsText(row, language)).join('\n') || '—'],
+        [L('Προϋπηρεσία', 'Experience'), (candidate.employers || []).map(row => `${row.employer}${row.jobTitle ? ` (${row.jobTitle})` : ''}`).join(' · ') || '—']] },
       { title: L('Επιτροπή συνέντευξης', 'Interview panel'), table: { columns: [L('Ονοματεπώνυμο', 'Name'), L('Ρόλος', 'Role')], rows: panel.map(item => [item.name, interviewerRoleLabel(item.role, language)]), empty: L('Χωρίς αξιολογητές.', 'No evaluators.') } },
       { title: L('Βαθμολογία ανά κριτήριο (1–5)', 'Score per criterion (1–5)'), table: { columns: [L('Κριτήριο', 'Criterion'), { text: L('Βαθμός', 'Score'), align: 'right' }],
         rows: CRITERIA.map(([key, el, enText]) => [en ? enText : el, { text: scoreText(interview.scores?.[key], en), align: 'right' }]),
@@ -47,12 +47,12 @@ export function evaluationDocument(candidate: AnyRecord, interview: AnyRecord, {
 }
 
 // The candidates list as Excel, as the list shows it.
-export function exportCandidates(rows: AnyRecord[], language = 'el') {
+export function exportCandidates(rows: Candidate[], language = 'el') {
   exportRegistry(candidatesExport(rows, language))
 }
 
 // The candidates list (name, headers, rows): Excel, print and PDF are made from it.
-export function candidatesExport(rows: AnyRecord[], language = 'el') {
+export function candidatesExport(rows: Candidate[], language = 'el') {
   const en = language === 'en'
   const L = (el: string, enText: string) => (en ? enText : el)
   return ({

@@ -3,13 +3,24 @@
 // supabase/migrations/20261129300000_hr_application_tablet.sql) and the payload that
 // hr_application_submit takes. Pure: the page and the tests read these.
 import { EMPLOYMENT_TYPES, GENDERS, LEVELS, MARITAL, MILITARY, PROFESSIONAL_CATEGORIES, todayKey } from './interviewsModel'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // [field, message] for one step; [step index, field, message] for the whole application.
 export type StepProblem = [string, string]
 export type ApplicationProblem = [number, string, string]
 // The texts of the consents the server sent, per language.
 export type ServerConsentTexts = Record<string, Record<string, string> | undefined> | null
+// The rows the candidate fills in on the tablet (dates as typed: ΗΗ/ΜΜ/ΕΕΕΕ, ΜΜ/ΕΕΕΕ).
+export type ApplicationEducationRow = { title: string, school: string, year: string }
+export type ApplicationLanguageRow = { language: string, speaking: string, reading: string, writing: string, certificate: boolean, certificateName: string }
+export type ApplicationEmployerRow = { employer: string, from: string, to: string, current: boolean, jobTitle: string, leavingReason: string }
+// The application while it is filled in (newApplication).
+export type ApplicationDraft = ReturnType<typeof newApplication>
+// What the checks and the clean-up accept: a draft filled in part (or restored from an earlier visit), its rows too.
+export type ApplicationDraftInput = Partial<Omit<ApplicationDraft, ApplicationListKey | 'consents'>> & { education?: Partial<ApplicationEducationRow>[], languages?: Partial<ApplicationLanguageRow>[], employers?: Partial<ApplicationEmployerRow>[], consents?: Record<string, unknown> }
+// The lists of the application, edited row by row.
+export type ApplicationListKey = 'education' | 'languages' | 'employers'
+// What a valid link says about itself (hr_application_public; the demo: DEMO_PUBLIC).
+export type ApplicationInfo = { organizationName?: string, logo?: string, position?: string, expiresAt?: string, consents?: ServerConsentTexts, demo?: boolean, professionalCategory?: string, employmentType?: string }
 
 export const APPLICATION_STEPS = Object.freeze([
   ['welcome', 'Καλωσόρισμα', 'Welcome'], ['personal', 'Προσωπικά στοιχεία', 'Personal details'], ['contact', 'Επικοινωνία', 'Contact'],
@@ -40,13 +51,13 @@ export const consentText = (consent: { key: string, text: Record<string, string>
 
 export const LIMITS = Object.freeze({ education: 10, languages: 12, employers: 15, short: 120, long: 2000, signature: 300000 })
 
-export const newEducationRow = () => ({ title: '', school: '', year: '' })
-export const newLanguageRow = (language = '') => ({ language, speaking: '', reading: '', writing: '', certificate: false, certificateName: '' })
-export const newEmployerRow = () => ({ employer: '', from: '', to: '', current: false, jobTitle: '', leavingReason: '' })
-export const newApplication = (position = ''): AnyRecord => ({ lastName: '', firstName: '', fatherName: '', motherName: '', birthDate: '', birthPlace: '', gender: '', nationality: '', maritalStatus: '', children: '', militaryService: '',
-  workPermit: null, practiceLicence: null, address: '', area: '', postcode: '', phoneMobile: '', phoneLandline: '', email: '', requestedPosition: position, professionalCategory: '', employmentType: '',
-  educationLevel: '', education: [newEducationRow()], languages: [newLanguageRow('el')], employers: [], itSkills: '', activities: '', whyUs: '',
-  consents: { gdpr: false, future: false, references: false, truth: false }, signature: '' })
+export const newEducationRow = (): ApplicationEducationRow => ({ title: '', school: '', year: '' })
+export const newLanguageRow = (language = ''): ApplicationLanguageRow => ({ language, speaking: '', reading: '', writing: '', certificate: false, certificateName: '' })
+export const newEmployerRow = (): ApplicationEmployerRow => ({ employer: '', from: '', to: '', current: false, jobTitle: '', leavingReason: '' })
+export const newApplication = (position = '') => ({ lastName: '', firstName: '', fatherName: '', motherName: '', birthDate: '', birthPlace: '', gender: '', nationality: '', maritalStatus: '', children: '', militaryService: '',
+  workPermit: null as boolean | null, practiceLicence: null as boolean | null, address: '', area: '', postcode: '', phoneMobile: '', phoneLandline: '', email: '', requestedPosition: position, professionalCategory: '', employmentType: '',
+  educationLevel: '', education: [newEducationRow()], languages: [newLanguageRow('el')], employers: [] as ApplicationEmployerRow[], itSkills: '', activities: '', whyUs: '',
+  consents: { gdpr: false, future: false, references: false, truth: false } as Record<string, boolean>, signature: '' })
 
 // Dates typed on the tablet: «ΗΗ/ΜΜ/ΕΕΕΕ» for the birth date, «ΜΜ/ΕΕΕΕ» for work periods.
 // '' when empty, null when it is not a date.
@@ -73,11 +84,11 @@ export const maskMonth = (raw: unknown) => { const d = String(raw || '').replace
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const filled = (value: unknown) => String(value ?? '').trim() !== ''
 const digits = (value: unknown) => String(value || '').replace(/\D/g, '')
-const rowFilled = (row: AnyRecord | null | undefined, keys: string[]) => keys.some(key => filled(row?.[key]))
+const rowFilled = <T extends object>(row: T | null | undefined, keys: (keyof T)[]) => keys.some(key => filled(row?.[key]))
 const ageAt = (iso: string, today: string) => { const [by, bm, bd] = iso.split('-').map(Number), [ty, tm, td] = today.split('-').map(Number); return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0) }
 
 // What a step still needs, as [field, message]; the page marks the field and says it.
-export function stepProblems(step: number | string, draft: AnyRecord, language = 'el', today = todayKey()): StepProblem[] {
+export function stepProblems(step: number | string, draft: ApplicationDraftInput, language = 'el', today = todayKey()): StepProblem[] {
   const en = language === 'en'
   const out: StepProblem[] = []
   const need = (field: string, el: string, enText: string) => out.push([field, en ? enText : el])
@@ -96,17 +107,17 @@ export function stepProblems(step: number | string, draft: AnyRecord, language =
     if (filled(draft.email) && !EMAIL.test(String(draft.email).trim())) need('email', 'Το email δεν είναι σωστό.', 'The email is not valid.')
     if (filled(draft.postcode) && !/^\d{3}\s?\d{2}$/.test(String(draft.postcode).trim())) need('postcode', 'Ο ταχυδρομικός κώδικας έχει 5 ψηφία.', 'The postcode has 5 digits.')
   }
-  if (key === 'education') (draft.education || []).forEach((row: AnyRecord, index: number) => {
+  if (key === 'education') (draft.education || []).forEach((row, index) => {
     if (!rowFilled(row, ['title', 'school', 'year'])) return
     if (!filled(row.title) && !filled(row.school)) need(`education.${index}.title`, 'Γράψτε τον τίτλο ή τη σχολή.', 'Enter the degree or the school.')
     if (filled(row.year) && !(/^\d{4}$/.test(String(row.year).trim()) && Number(row.year) >= 1950 && Number(row.year) <= Number(today.slice(0, 4)) + 6)) need(`education.${index}.year`, 'Το έτος γράφεται με 4 ψηφία.', 'The year has 4 digits.')
   })
-  if (key === 'languages') (draft.languages || []).forEach((row: AnyRecord, index: number) => {
-    const levels = ['speaking', 'reading', 'writing'].some(skill => filled(row[skill]))
+  if (key === 'languages') (draft.languages || []).forEach((row, index) => {
+    const levels = (['speaking', 'reading', 'writing'] as const).some(skill => filled(row[skill]))
     if (!filled(row.language) && (levels || row.certificate)) need(`languages.${index}.language`, 'Διαλέξτε τη γλώσσα.', 'Choose the language.')
     if (filled(row.language) && !levels) need(`languages.${index}.levels`, 'Διαλέξτε επίπεδο σε ομιλία, ανάγνωση ή γραφή.', 'Choose a level for speaking, reading or writing.')
   })
-  if (key === 'experience') (draft.employers || []).forEach((row: AnyRecord, index: number) => {
+  if (key === 'experience') (draft.employers || []).forEach((row, index) => {
     if (!rowFilled(row, ['employer', 'from', 'to', 'jobTitle', 'leavingReason'])) return
     if (!filled(row.employer)) need(`employers.${index}.employer`, 'Γράψτε τον εργοδότη.', 'Enter the employer.')
     const from = parseMonth(row.from), to = row.current ? '' : parseMonth(row.to)
@@ -122,10 +133,10 @@ export function stepProblems(step: number | string, draft: AnyRecord, language =
   return out
 }
 // Every step's problems, as [step index, field, message].
-export function applicationProblems(draft: AnyRecord, language = 'el', today = todayKey()): ApplicationProblem[] {
+export function applicationProblems(draft: ApplicationDraftInput, language = 'el', today = todayKey()): ApplicationProblem[] {
   return APPLICATION_STEPS.flatMap(([key], index) => (key === 'review' ? [] : stepProblems(key, draft, language, today).map(([field, message]): ApplicationProblem => [index, field, message])))
 }
-export const firstStepWithProblems = (draft: AnyRecord, language?: string, today?: string) => applicationProblems(draft, language, today)[0]?.[0] ?? -1
+export const firstStepWithProblems = (draft: ApplicationDraftInput, language?: string, today?: string) => applicationProblems(draft, language, today)[0]?.[0] ?? -1
 
 export const validSignature = (value: unknown) => typeof value === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value) && value.length <= LIMITS.signature
 // A line of text: no control characters, single spaces, cut; long text keeps its line breaks.
@@ -133,12 +144,12 @@ export const validSignature = (value: unknown) => typeof value === 'string' && /
 const cleanLine = (value: unknown, max: number = LIMITS.short) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max)
 // eslint-disable-next-line no-control-regex
 const cleanLong = (value: unknown, max: number = LIMITS.long) => String(value ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, max)
-const oneOf = (map: Record<string, unknown>, value: string) => (Object.hasOwn(map, value) ? value : '')
+const oneOf = (map: Record<string, unknown>, value: string | undefined) => (Object.hasOwn(map, value as string) ? value as string : '')
 const yesNoValue = (value: unknown) => (value === true || value === false ? value : null)
 
 // The payload for hr_application_submit: trimmed, limited, only known values. The
 // server checks the same again (private.hr_app_*).
-export function cleanApplication(draft: AnyRecord, { language = 'el' } = {}) {
+export function cleanApplication(draft: ApplicationDraftInput, { language = 'el' } = {}) {
   const children = String(draft.children ?? '').trim()
   return {
     language: language === 'en' ? 'en' : 'el', consentVersion: CONSENT_VERSION,
@@ -149,12 +160,12 @@ export function cleanApplication(draft: AnyRecord, { language = 'el' } = {}) {
     workPermit: yesNoValue(draft.workPermit), practiceLicence: yesNoValue(draft.practiceLicence),
     address: cleanLine(draft.address, 200), area: cleanLine(draft.area), postcode: cleanLine(draft.postcode, 12), phoneMobile: cleanLine(draft.phoneMobile, 40), phoneLandline: cleanLine(draft.phoneLandline, 40), email: cleanLine(draft.email, 160).toLowerCase(),
     requestedPosition: cleanLine(draft.requestedPosition, 160), professionalCategory: oneOf(PROFESSIONAL_CATEGORIES, draft.professionalCategory), employmentType: oneOf(EMPLOYMENT_TYPES, draft.employmentType), educationLevel: cleanLine(draft.educationLevel),
-    education: (draft.education || []).filter((row: AnyRecord) => filled(row.title) || filled(row.school)).slice(0, LIMITS.education)
-      .map((row: AnyRecord) => ({ title: cleanLine(row.title, 160), school: cleanLine(row.school, 160), year: /^\d{4}$/.test(String(row.year || '').trim()) ? String(row.year).trim() : '', completed: true })),
-    languages: (draft.languages || []).filter((row: AnyRecord) => filled(row.language)).slice(0, LIMITS.languages)
-      .map((row: AnyRecord) => ({ language: cleanLine(row.language, 40), speaking: oneOf(LEVELS, row.speaking), reading: oneOf(LEVELS, row.reading), writing: oneOf(LEVELS, row.writing), certificate: row.certificate === true, certificateName: row.certificate === true ? cleanLine(row.certificateName) : '' })),
-    employers: (draft.employers || []).filter((row: AnyRecord) => filled(row.employer)).slice(0, LIMITS.employers)
-      .map((row: AnyRecord) => ({ employer: cleanLine(row.employer, 160), fromOn: parseMonth(row.from) || '', toOn: row.current ? '' : parseMonth(row.to) || '', jobTitle: cleanLine(row.jobTitle), leavingReason: cleanLine(row.leavingReason, 300) })),
+    education: (draft.education || []).filter(row => filled(row.title) || filled(row.school)).slice(0, LIMITS.education)
+      .map(row => ({ title: cleanLine(row.title, 160), school: cleanLine(row.school, 160), year: /^\d{4}$/.test(String(row.year || '').trim()) ? String(row.year).trim() : '', completed: true })),
+    languages: (draft.languages || []).filter(row => filled(row.language)).slice(0, LIMITS.languages)
+      .map(row => ({ language: cleanLine(row.language, 40), speaking: oneOf(LEVELS, row.speaking), reading: oneOf(LEVELS, row.reading), writing: oneOf(LEVELS, row.writing), certificate: row.certificate === true, certificateName: row.certificate === true ? cleanLine(row.certificateName) : '' })),
+    employers: (draft.employers || []).filter(row => filled(row.employer)).slice(0, LIMITS.employers)
+      .map(row => ({ employer: cleanLine(row.employer, 160), fromOn: parseMonth(row.from) || '', toOn: row.current ? '' : parseMonth(row.to) || '', jobTitle: cleanLine(row.jobTitle), leavingReason: cleanLine(row.leavingReason, 300) })),
     itSkills: cleanLong(draft.itSkills), activities: cleanLong(draft.activities), whyUs: cleanLong(draft.whyUs),
     consents: Object.fromEntries(CONSENTS.map(consent => [consent.key, draft.consents?.[consent.key] === true])),
     signature: validSignature(draft.signature) ? draft.signature : '',

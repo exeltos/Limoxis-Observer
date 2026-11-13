@@ -4,7 +4,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { loadInterviews } from './interviewsService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Candidate, Division } from './interviewsTypes'
 import { statusLabel, statusTone } from './interviewsModel'
 import './interviews.css'
 
@@ -25,7 +25,7 @@ export function useInterviewsAccess() {
 // Every application with its languages, employers and interviews.
 export function useInterviews() {
   const { tenant } = useTenant()
-  const [state, setState] = useState<{ candidates: AnyRecord[], divisions?: AnyRecord[] } | null>(null)
+  const [state, setState] = useState<{ candidates: Candidate[], divisions?: Division[] } | null>(null)
   const [loading, setLoading] = useState(true)
   const reload = useCallback(() => {
     setLoading(true)

@@ -1,7 +1,7 @@
 import { addDays, seededRandom } from '../../core/data/demoSeed'
 import { emptyInPreview } from '../../core/preview/emptyPreview'
-import type { AnyRecord } from '../../types/featureTypes'
-const def=(id: string,fields: AnyRecord): AnyRecord=>({
+import type { IndicatorDefinitionRow, IndicatorSnapshotRow } from './indicatorTypes'
+const def=(id: string,fields: Partial<IndicatorDefinitionRow>): IndicatorDefinitionRow=>({
  id,
  organization_id:null,
  indicator_key:id,
@@ -87,9 +87,9 @@ const MANUAL_VALUES: Record<string, [number, number, number]>={
  'eody-reporting-completeness':[92,100,0],'eody-reporting-timeliness':[84,100,0],
 }
 const monthEnd=(month: string)=>new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10)
-const snapshot=(key: string,from: string,to: string,value: number): AnyRecord=>{const definition=indicatorDefinitionRows.find(row=>row.id===key) as AnyRecord,reviewed=`${addDays(to,5)}T10:00:00Z`;return {id:`snap-${key}-${from}-${to}`,organization_id:null,indicator_key:key,definition_id:key,department_id:null,period_start:from,period_end:to,numerator:null,denominator:null,value,unit:definition.unit,target_value:definition.target_value,direction:definition.direction,calculation_type:'manual',source_snapshot:{},status:'approved',calculated_at:reviewed,calculated_by:null,reviewed_at:reviewed,reviewed_by:'demo-user',notes:null,created_at:reviewed,updated_at:reviewed}}
-export const indicatorSnapshotRows=((): AnyRecord[]=>{
- const rows: AnyRecord[]=[],now=new Date(),last=new Date(Date.UTC(now.getFullYear(),now.getMonth(),0)).toISOString().slice(0,7)
+const snapshot=(key: string,from: string,to: string,value: number): IndicatorSnapshotRow=>{const definition=indicatorDefinitionRows.find(row=>row.id===key) as IndicatorDefinitionRow,reviewed=`${addDays(to,5)}T10:00:00Z`;return {id:`snap-${key}-${from}-${to}`,organization_id:null,indicator_key:key,definition_id:key,department_id:null,period_start:from,period_end:to,numerator:null,denominator:null,value,unit:definition.unit,target_value:definition.target_value,direction:definition.direction,calculation_type:'manual',source_snapshot:{},status:'approved',calculated_at:reviewed,calculated_by:null,reviewed_at:reviewed,reviewed_by:'demo-user',notes:null,created_at:reviewed,updated_at:reviewed}}
+export const indicatorSnapshotRows=((): IndicatorSnapshotRow[]=>{
+ const rows: IndicatorSnapshotRow[]=[],now=new Date(),last=new Date(Date.UTC(now.getFullYear(),now.getMonth(),0)).toISOString().slice(0,7)
  for(const [key,[min,max,decimals]] of Object.entries(MANUAL_VALUES)){
   const values=[]
   for(let index=0;;index++){
