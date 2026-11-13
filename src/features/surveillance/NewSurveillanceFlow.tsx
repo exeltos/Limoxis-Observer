@@ -13,17 +13,18 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryDepartment } from '../management/useLibraries'
+import type { PatientDraft, SampleOption, StartDraft, SurveillancePatient } from './surveillanceListTypes'
 import type { Handler } from './surveillanceTypes'
 
 interface NewSurveillanceFlowProps {
-  patient?: AnyRecord | null
-  patients?: AnyRecord[]
+  patient?: SurveillancePatient | null
+  patients?: SurveillancePatient[]
   onClose: Handler
   onCreate: Handler
   onPatientsChange: Handler
-  sample?: AnyRecord | null
-  sampleOptions?: AnyRecord[]
+  sample?: SampleOption | null
+  sampleOptions?: SampleOption[]
 }
 export function NewSurveillanceFlow({
   patient = null,
@@ -41,15 +42,15 @@ export function NewSurveillanceFlow({
   const { tenant, isDemo } = useTenant()
   const [patientMode, setPatientMode] = useState(patient ? 'fixed' : 'existing')
   const [selectedPatientId, setSelectedPatientId] = useState(patient?.id || '')
-  const [createdPatient, setCreatedPatient] = useState<AnyRecord | null>(null)
+  const [createdPatient, setCreatedPatient] = useState<SurveillancePatient | null>(null)
   const selectedPatient =
     patient || createdPatient || patients.find(x => x.id === selectedPatientId) || null
   // The organization's departments (Management > Libraries); the inline patient
   // keeps the department's id and its Greek / English names, as before.
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const { departments }: { departments: LibraryDepartment[] } = useDepartments()
   const firstDepartment = [selectedPatient?.department, selectedPatient?.departmentEn]
   const today = hospitalToday()
-  const [patientDraft, setPatientDraft] = useState({
+  const [patientDraft, setPatientDraft] = useState<PatientDraft>({
     patientCode: '',
     firstName: '',
     lastName: '',
@@ -69,7 +70,7 @@ export function NewSurveillanceFlow({
   const sampleFinding = sample
     ? [t(sample.type || 'other'), sample.organism, sample.resistance].filter(Boolean).join(' · ')
     : ''
-  const [startDraft, setStartDraft] = useState({
+  const [startDraft, setStartDraft] = useState<StartDraft>({
     startedAt: String(sample?.collectedAt || '').slice(0, 10) || today,
     reviewDue: '',
     room: '',
@@ -233,7 +234,7 @@ export function NewSurveillanceFlow({
     },
     !sample && { key: 'sample', label: t('svSampleField'), valid: Boolean(sampleChoice) },
   ])
-  const sampleLabel = (item: AnyRecord) => [t(item.type || item.sampleType || 'other'), String(item.collectedAt || item.requestedAt || '').slice(0, 10).split('-').reverse().join('/'), item.id, item.organism || (item.result ? t(item.result) : t('pending'))].filter(Boolean).join(' · ')
+  const sampleLabel = (item: SampleOption) => [t(item.type || item.sampleType || 'other'), String(item.collectedAt || item.requestedAt || '').slice(0, 10).split('-').reverse().join('/'), item.id, item.organism || (item.result ? t(item.result) : t('pending'))].filter(Boolean).join(' · ')
   return (
     <ObserverDialog
       width="standard"

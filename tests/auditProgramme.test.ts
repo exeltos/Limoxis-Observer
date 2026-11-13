@@ -211,7 +211,7 @@ describe('report and storage', () => {
     const [stored] = checklistRows([{ id: 'x', item: 'Q', answer: 'partial', findingClass: 'minor', clauseRef: '7.1', weight: 2 }])
     expect(stored).toMatchObject({ answer: null, result: 'partial', finding_class: 'minor', clause_ref: '7.1', weight: 2 })
     expect(checklistRows([{ item: 'Q', answer: 'no' }])[0]).toMatchObject({ answer: 'no', result: 'no' })
-    expect(checklistFromRows([{ id: 'x', item: 'Q', answer: null, result: 'partial', position: 1 }, { id: 'y', item: 'R', answer: 'yes', result: null, position: 2 }]).map(item => item.answer)).toEqual(['partial', 'yes'])
+    expect(checklistFromRows([{ id: 'x', item: 'Q', answer: null, result: 'partial', position: 1 }, { id: 'y', item: 'R', answer: 'yes', result: null, position: 2 }] as never).map(item => item.answer)).toEqual(['partial', 'yes'])
   })
 
   it('seeds the database demo with the same story and leaves organizations already seeded alone', () => {

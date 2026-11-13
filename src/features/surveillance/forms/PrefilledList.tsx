@@ -1,10 +1,10 @@
 import { Lock } from 'lucide-react'
 import { DetailList } from '../../../design-system/DetailList'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { DetailItemData } from '../../../design-system/DetailList'
 
 interface PrefilledListProps {
-  items?: AnyRecord[]
+  items?: (DetailItemData | null | false | undefined)[]
   className?: string
 }
 // The one «Προσυμπληρωμένα» block of every form opened from an episode: what the form

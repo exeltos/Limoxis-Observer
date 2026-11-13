@@ -6,7 +6,7 @@ import { AFFECTS, odipyGroupOf, odipyItem, odipyLabel } from './odipyCategories'
 import { ISHIKAWA_CATEGORIES, normalizeAnalysis } from './rootCauseAnalysis'
 import { glanceItems } from './QualityGlance'
 import { incidentDetailFacts } from './incidentDetails'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AuditChecklistItem, CapaProgressEntry, CapaSubAction, QualityRecord } from './qualityTypes'
 import type { ReactNode, RefObject } from 'react'
 
 const KIND: Record<string, string[]> = { incidents: ['Συμβάν', 'Incident'], findings: ['Εύρημα', 'Finding'], capas: ['Διορθωτική ενέργεια', 'Corrective action'], audits: ['Επιθεώρηση', 'Audit'] }
@@ -16,15 +16,15 @@ const ANSWER: Record<string, string[]> = { yes: ['Ναι', 'Yes'], no: ['Όχι'
 // stands, its details and texts, what follows it and its history. Rendered off
 // screen; its HTML is printed on the shared document layout (reportDocument),
 // which adds the hospital band, the signatures and the page footer.
-export function QualityRecordDocument({ recordType, record, linked = [], language, t: translate, documentRef }: { recordType: string, record: AnyRecord, linked?: AnyRecord[], language: string, t: (key: string) => string, documentRef: RefObject<HTMLDivElement> }) {
+export function QualityRecordDocument({ recordType, record, linked = [], language, t: translate, documentRef }: { recordType: string, record: QualityRecord, linked?: QualityRecord[], language: string, t: (key: string) => string, documentRef: RefObject<HTMLDivElement> }) {
   // Missing values (no priority, an event without a name) read as «—», never as an error.
-  const t = (value: string) => (value ? translate(value) : '—')
+  const t = (value: string | undefined) => (value ? translate(value) : '—')
   const en = language === 'en'
   const L = (el: string, enText: string) => (en ? enText : el)
-  const text = (el: string, enText?: string) => (en ? enText || el : el) || ''
-  const day = (value: string) => formatDay(value, language) || '—'
+  const text = (el: string | undefined, enText?: string) => (en ? enText || el : el) || ''
+  const day = (value: string | null | undefined) => formatDay(value, language) || '—'
   const { libraries } = useLibraries()
-  const figures: AnyRecord[] = glanceItems(recordType, record, { language, t, linked })
+  const figures = glanceItems(recordType, record, { language, t, linked })
   // Complaints and suggestions have no patient outcome: those rows are left out.
   const reachesPatient = ['clinical', 'nonClinical'].includes(reportKindOf(record))
   const voided = record.lifecycleStatus === 'voided'
@@ -78,7 +78,7 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
   const analysis = recordType === 'capas' && record.rootCauseAnalysis ? normalizeAnalysis(record.rootCauseAnalysis) : null
   const checklist = recordType === 'audits' ? record.checklist || [] : []
   // The whole audit trail, as in the History tab.
-  const history = [...(record.history || [])].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+  const history = [...(record.history || [])].sort((a, b) => new Date(b.at as string).getTime() - new Date(a.at as string).getTime())
   const linkedTitle = recordType === 'audits' ? L('Ευρήματα', 'Findings') : L('Διορθωτικές ενέργειες', 'Corrective actions')
 
   // An incident: the ΟΔΙΠΥ «Αναφορά Συμβάντος» — the report, the event, its description, the people involved,
@@ -138,16 +138,16 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
     {checklist.length > 0 && <>
       <h3>{L('Λίστα ελέγχου', 'Checklist')}</h3>
       <table><thead><tr><th>#</th><th>{L('Σημείο ελέγχου', 'Item')}</th><th>{L('Απάντηση', 'Answer')}</th><th>{L('Τι βρέθηκε', 'What was found')}</th><th>{L('Εύρημα', 'Finding')}</th></tr></thead>
-        <tbody>{checklist.map((row: AnyRecord, index: number) => <tr key={row.id || index}><td>{index + 1}</td><td>{text(row.item, row.itemEn)}</td><td>{row.answer ? ANSWER[row.answer]?.[en ? 1 : 0] : '—'}</td><td>{row.note || ''}</td><td>{row.findingId || ''}</td></tr>)}</tbody></table>
+        <tbody>{checklist.map((row: AuditChecklistItem, index: number) => <tr key={row.id || index}><td>{index + 1}</td><td>{text(row.item, row.itemEn)}</td><td>{row.answer ? ANSWER[row.answer]?.[en ? 1 : 0] : '—'}</td><td>{row.note || ''}</td><td>{row.findingId || ''}</td></tr>)}</tbody></table>
     </>}
     {steps.length > 0 && <>
       <h3>{L('Βήματα', 'Steps')}</h3>
       <table><thead><tr><th>{L('Βήμα', 'Step')}</th><th>{L('Υπεύθυνος', 'Owner')}</th><th>{L('Προθεσμία', 'Due')}</th><th>{L('Ολοκλήρωση', 'Done')}</th></tr></thead>
-        <tbody>{steps.map((step: AnyRecord, index: number) => <tr key={step.id || index}><td>{step.title}</td><td>{step.owner || '—'}</td><td>{day(step.dueDate)}</td><td>{step.done ? `✓ ${formatDay(step.doneAt, language) || ''}` : '—'}</td></tr>)}</tbody></table>
+        <tbody>{steps.map((step: CapaSubAction, index: number) => <tr key={step.id || index}><td>{step.title}</td><td>{step.owner || '—'}</td><td>{day(step.dueDate)}</td><td>{step.done ? `✓ ${formatDay(step.doneAt, language) || ''}` : '—'}</td></tr>)}</tbody></table>
     </>}
     {progress.length > 0 && <>
       <h3>{L('Πρόοδος', 'Progress')}</h3>
-      <table><tbody>{progress.map((entry: AnyRecord, index: number) => <tr key={entry.id || index}><td>{day(entry.date)}</td><td>{entry.note}</td><td>{entry.author || '—'}</td></tr>)}</tbody></table>
+      <table><tbody>{progress.map((entry: CapaProgressEntry, index: number) => <tr key={entry.id || index}><td>{day(entry.date)}</td><td>{entry.note}</td><td>{entry.author || '—'}</td></tr>)}</tbody></table>
     </>}
     {analysis && (analysis.problem || analysis.rootCause || analysis.whys.some(Boolean) || ISHIKAWA_CATEGORIES.some(([key]) => analysis.causes[key].length)) && <>
       <h3>{L('Ανάλυση αιτιών', 'Root cause analysis')}</h3>

@@ -4,7 +4,7 @@ import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FormsTabContext, useFormsTabState } from './FormSection'
 import { visibleEpisodeFormSections } from './formsRegistry'
 import './episodeForms.css'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { EpisodeFormsCtx, EpisodeFormsData } from './formTypes'
 
 // «Φόρμες & ερωτηματολόγια»: every form connected to the episode in one tab of collapsible
 // sections. The sections come from the registry (formsRegistry.js); this component only
@@ -15,8 +15,8 @@ import type { AnyRecord } from '../../../types/featureTypes'
 const SHEET_SECTIONS = new Set(['bundles', 'epiQuestionnaire'])
 
 interface EpisodeFormsTabProps {
-  ctx: AnyRecord
-  forms: AnyRecord
+  ctx: EpisodeFormsCtx
+  forms: { data?: EpisodeFormsData, reload?: (id: string) => unknown } | null | undefined
   openRequest?: { id: string, nonce: unknown } | null
   withoutAdmission?: boolean
 }

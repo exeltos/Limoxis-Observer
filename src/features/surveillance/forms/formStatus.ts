@@ -1,7 +1,7 @@
 import { deviceRuleKey } from '../../lira/liraHaiMetrics'
 import { hospitalDay } from '../patientRecordScope'
 import { hospitalDate, hospitalHour } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { BundleAssessment, BundleDevice } from './formTypes'
 
 // One vocabulary for every connected form of an episode: three plain words, never codes.
 export const FORM_STATUS = Object.freeze({ PENDING: 'pending', DONE: 'done', OVERDUE: 'overdue' })
@@ -34,23 +34,23 @@ export function shiftForHour(hour: number) {
 // The bundle a device type asks for: central line -> CLABSI, urinary catheter -> CAUTI,
 // mechanical ventilation -> VAP (a library that only has VAE accepts it).
 const BUNDLE_KEYS: Record<string, string[]> = { clabsi: ['CLABSI'], cauti: ['CAUTI'], vap: ['VAP', 'VAE'] }
-export function bundleKeysForDevice(device: AnyRecord) {
+export function bundleKeysForDevice(device: BundleDevice | null | undefined) {
   const text = `${device?.name || device?.type || ''} ${device?.nameEn || ''}`
   // An endotracheal tube is the airway of a ventilated patient.
   const key = deviceRuleKey(text) || (/ενδοτραχει|endotracheal|intubat/i.test(text) ? 'vap' : null)
   return key ? BUNDLE_KEYS[key] : []
 }
-export const isActiveDevice = (device: AnyRecord) => Boolean(device) && !device.removedAt && device.status !== 'removed'
+export const isActiveDevice = (device: BundleDevice) => Boolean(device) && !device.removedAt && device.status !== 'removed'
 
-function yesCount(row: AnyRecord) {
+function yesCount(row: BundleAssessment | null) {
   const answers = row?.answers && typeof row.answers === 'object' ? row.answers : {}
   const values = Object.values(answers)
   return { yes: values.filter(x => x === 'yes').length, applicable: values.filter(x => x === 'yes' || x === 'no').length }
 }
 
 interface BundleStatusForDeviceOptions {
-  device: AnyRecord
-  assessments?: AnyRecord[]
+  device: BundleDevice
+  assessments?: BundleAssessment[]
   today?: string
 }
 // Status of the daily check of one device. Computed, never stored: done = a completed check

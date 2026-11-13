@@ -2,8 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { ChevronDown } from 'lucide-react'
 import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
-import type { AnyRecord } from '../../../types/featureTypes'
 import type { ReactNode } from 'react'
+import type { OverflowItem } from '../../../design-system/OverflowMenu'
 import type { LucideIcon } from 'lucide-react'
 
 // Open / closed state of the sections lives in the tab, so a deep link or a header chip can
@@ -85,7 +85,7 @@ interface FormSectionProps {
   defaultOpen?: boolean
   needsAttention?: boolean
   // A list becomes the section's «⋯» menu; anything else is shown as it is (a button).
-  actions?: (AnyRecord | false | null | undefined)[] | ReactNode
+  actions?: (OverflowItem | false | null | undefined)[] | ReactNode
   children: ReactNode
 }
 export function FormSection({ id, title, icon: Icon, summary, defaultOpen = false, needsAttention = false, actions, children }: FormSectionProps) {

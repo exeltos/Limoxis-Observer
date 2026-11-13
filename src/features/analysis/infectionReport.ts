@@ -2,6 +2,7 @@ import { loadOperationalIndicatorDefinitions } from '../indicators/indicatorClou
 import { loadObjectives } from '../quality/review/reviewService'
 import { loadDossierIndicators, missingDataTable, platformIndicatorsTable } from '../quality/review/dossierIndicators'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { DossierIndicatorRow, Objective, PlatformIndicatorDef } from '../quality/review/reviewTypes'
 
 // The annual infections and microbiology report: the platform's indicators of infection surveillance, multidrug-resistant
 // isolations, bacteraemias, resistance, hand hygiene and care bundles and antimicrobial use, each with its value, the numerator and
@@ -20,12 +21,12 @@ export const infectionDefinitions = (definitions: AnyRecord[] | null | undefined
 
 export async function loadInfectionReportRows(organizationId: string, year: number | string) {
   const definitions = infectionDefinitions(await loadOperationalIndicatorDefinitions(organizationId).catch(() => []))
-  const [rows, objectives] = await Promise.all([loadDossierIndicators(organizationId, year, definitions), loadObjectives(organizationId).catch(() => [])])
+  const [rows, objectives] = await Promise.all([loadDossierIndicators(organizationId, year, definitions as PlatformIndicatorDef[]), loadObjectives(organizationId).catch(() => [])])
   // The hospital's own objective of the year, where it has one, is the target of the indicator it is measured by.
   return { rows, objectives: (objectives || []).filter((objective: AnyRecord) => Number(objective.year) === Number(year)) }
 }
 
-export function infectionReportDocument({ rows, objectives = [], year, language }: { rows: AnyRecord[]; objectives?: AnyRecord[]; year: number | string; language: string }) {
+export function infectionReportDocument({ rows, objectives = [], year, language }: { rows: DossierIndicatorRow[]; objectives?: Objective[]; year: number | string; language: string }) {
   const en = language === 'en'
   const sections = GROUPS.map(group => ({ group, list: rows.filter(row => group.match(row.def)) })).filter(({ list }) => list.length)
     .map(({ group, list }) => ({ title: en ? group.en : group.el, table: platformIndicatorsTable(list, objectives, language) }))

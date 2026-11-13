@@ -25,9 +25,13 @@ import { protocolCues, protocolStages, useEpisodeProtocols } from './protocols/u
 import { changeRecognitionTime, finishProtocolRun, recordProtocolStep, removeDemoProtocolRun, setProtocolWeight } from './protocols/protocolService'
 import { JourneyWindows } from './ClinicalJourneyWindows'
 import { JourneyCareStages } from './ClinicalJourneyCareStages'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalDevice, ClinicalEntryKind, ClinicalReassessment } from './clinicalTypes'
+import type { ClinicalEntry, ClinicalEntryRecord, ClinicalLibraries, ClinicalPermissions, ClinicalRecordRepository, DeviceBundles, EpiState, JourneyCase, ProtocolRequest, RecordAdmission, RecordPatient, SheetDetailProps } from './clinicalScreenTypes'
+import type { SheetAction } from './SurveillanceEpisodeSheet'
+import type { InlineDialogEntry as InlineForm } from '../../design-system/ObserverDialog'
 import type { Handler } from './surveillanceTypes'
 import type { ReactNode } from 'react'
+// `as string` below: an optional text of a record handed to a helper typed for text (t, stayDays …), which reads a missing one as before.
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
@@ -42,9 +46,9 @@ const SCREENING_QUESTIONS = [
   ['recentProcedure', 'recentInvasiveProcedure'],
 ]
 interface CanonicalJourneyProps {
-  record: AnyRecord
-  repository: AnyRecord
-  libraries?: AnyRecord
+  record: JourneyCase
+  repository: ClinicalRecordRepository
+  libraries?: ClinicalLibraries
   organizationId: string | null | undefined
   isDemo: boolean
   onLibraryAdded: Handler
@@ -53,27 +57,22 @@ interface CanonicalJourneyProps {
   language: string
   fmtDate: (value: unknown) => string
   fmtDateTime: (value: unknown) => string
-  permissions: AnyRecord
-  deviceBundles?: AnyRecord | null
+  permissions: ClinicalPermissions
+  deviceBundles?: DeviceBundles | null
   initialStage?: string | null
-  startProtocolRequest?: AnyRecord | null
+  startProtocolRequest?: ProtocolRequest | null
   onProtocolRequestHandled: Handler
   deleteItem?: Handler | null
-  patient?: AnyRecord | null
-  admission?: AnyRecord | null
+  patient?: RecordPatient | null
+  admission?: RecordAdmission | null
   askSample?: boolean
   onSampleAsked: Handler
   editing?: boolean
-  actionRequest?: AnyRecord | null
+  actionRequest?: SheetAction | null
   onActionHandled: Handler
 }
 // The epidemiological questionnaire of the episode, as the sheet holds it.
-export interface EpiState {
-  row: AnyRecord | null
-  settings: AnyRecord[]
-  ready: boolean
-  nonce: number
-}
+export type { EpiState }
 export function CanonicalJourney({
   record,
   repository,
@@ -103,10 +102,6 @@ export function CanonicalJourney({
   const { notify } = useFeedback()
   const { role } = useTenant()
   const copyText = (key: string) => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
-  interface SheetDetailProps {
-    label: string
-    value: ReactNode
-  }
   // Read-only value of the sheet, laid out like the form's field; an empty one says so (owner, 8/11/2026).
   const SheetDetail = ({ label, value }: SheetDetailProps) => (
     <Detail label={label} value={value || <em className="sheet-empty">{copyText('notFilled')}</em>} />
@@ -114,7 +109,7 @@ export function CanonicalJourney({
   const actor = useAuditActor()
   // N3: protocols started on the episode and the 48–72 h antimicrobial reviews.
   const protocols = useEpisodeProtocols(record, { organizationId, isDemo })
-  const [protocolPreset, setProtocolPreset] = useState<AnyRecord | null>(null)
+  const [protocolPreset, setProtocolPreset] = useState<ProtocolRequest | null>(null)
   const [stage, setStage] = useState(initialStage || 'samples')
   useEffect(() => {
     if (initialStage) setStage(initialStage)
@@ -152,23 +147,23 @@ export function CanonicalJourney({
   useEffect(() => {
     if (stage === 'hai' || stage === 'reassessment') signalDemoStep('clabsi_classification', stage)
   }, [stage])
-  const [bundleDevice, setBundleDevice] = useState<AnyRecord | null>(null),
+  const [bundleDevice, setBundleDevice] = useState<ClinicalDevice | null>(null),
     [formNonce, setFormNonce] = useState(0)
   const [dialog, setDialog] = useState<string | null>(null),
     [reason, setReason] = useState(''),
-    [entryDetail, setEntryDetail] = useState<AnyRecord | null>(null)
+    [entryDetail, setEntryDetail] = useState<ClinicalEntry | null>(null)
   const active = record.status === 'active'
   // «Delete» of an entry of the episode, for a «…» menu (null when the person may not delete it).
-  const ENTRY_TABLES: Record<string, [string, (row: AnyRecord) => unknown]> = {
-    assessment: ['clinical_assessments', (row: AnyRecord) => row.byId],
-    hai: ['hai_classifications', (row: AnyRecord) => row.classifiedBy],
-    isolation: ['isolation_episodes', (row: AnyRecord) => row.createdBy],
-    outcome: ['surveillance_outcomes', (row: AnyRecord) => row.recordedById],
-    therapy: ['antimicrobial_therapies', (row: AnyRecord) => row.createdBy],
-    reassessment: ['surveillance_reassessments', (row: AnyRecord) => row.byId],
-    device: ['surveillance_devices', (row: AnyRecord) => row.createdBy],
+  const ENTRY_TABLES: Record<ClinicalEntryKind, [string, (row: ClinicalEntryRecord) => unknown]> = {
+    assessment: ['clinical_assessments', (row: ClinicalEntryRecord) => row.byId],
+    hai: ['hai_classifications', (row: ClinicalEntryRecord) => row.classifiedBy],
+    isolation: ['isolation_episodes', (row: ClinicalEntryRecord) => row.createdBy],
+    outcome: ['surveillance_outcomes', (row: ClinicalEntryRecord) => row.recordedById],
+    therapy: ['antimicrobial_therapies', (row: ClinicalEntryRecord) => row.createdBy],
+    reassessment: ['surveillance_reassessments', (row: ClinicalEntryRecord) => row.byId],
+    device: ['surveillance_devices', (row: ClinicalEntryRecord) => row.createdBy],
   }
-  const entryDelete = (kind: string, row: AnyRecord, label: string) =>
+  const entryDelete = (kind: ClinicalEntryKind, row: ClinicalEntryRecord | null | undefined, label: string) =>
     row?.id && deleteItem
       ? deleteItem({
           createdBy: ENTRY_TABLES[kind][1](row),
@@ -221,8 +216,8 @@ export function CanonicalJourney({
   }
   // «Next» saves the form of the step when it was changed (owner, 8/11/2026): the inline form on show registers
   // itself here (InlineDialogContext), and moving to another step saves it first.
-  const pendingForm = useRef<AnyRecord | null>(null)
-  const inlineForms = { register: (entry: AnyRecord) => (pendingForm.current = entry), unregister: (entry: AnyRecord) => pendingForm.current === entry && (pendingForm.current = null) }
+  const pendingForm = useRef<InlineForm | null>(null)
+  const inlineForms = { register: (entry: InlineForm) => (pendingForm.current = entry), unregister: (entry: InlineForm) => pendingForm.current === entry && (pendingForm.current = null) }
   const sheetForm = (node: ReactNode) => <InlineDialogContext.Provider key={formNonce} value={inlineForms}>{node}</InlineDialogContext.Provider>
   // In «Edit sheet» every step opens with its form, no button to press first (owner, 8/11/2026): a new sample, HAI
   // assessment, device or therapy; the full questionnaire; the end of an active isolation.
@@ -364,7 +359,7 @@ export function CanonicalJourney({
                 onOpen={x => setEntryDetail({ kind: 'sample', row: x })}
                 renderRow={x => (
                   <>
-                    <td>{t(x.type) || x.type}</td>
+                    <td>{t(x.type as string) || x.type}</td>
                     <td>
                       <StateBadge
                         status={x.result || x.status || 'pending'}
@@ -487,7 +482,7 @@ export function CanonicalJourney({
                       {SCREENING_QUESTIONS.map(([id, key]) => (
                         <div key={id} className="sheet-answer">
                           <span>{copyText(key)}</span>
-                          <strong>{copyText(record.assessment.screening[id] || 'unknown')}</strong>
+                          <strong>{copyText(record.assessment!.screening![id] || 'unknown')}</strong>
                         </div>
                       ))}
                     </div>
@@ -585,7 +580,7 @@ export function CanonicalJourney({
               <div className="evidence-box">
                 <strong>
                   {record.haiClassification.type ? t(record.haiClassification.type) : '—'} ·{' '}
-                  {t(record.haiClassification.status)}
+                  {t(record.haiClassification.status as string)}
                 </strong>
                 <span>
                   {record.haiClassification.rationale ||
@@ -640,7 +635,7 @@ export function CanonicalJourney({
           >
             {record.reassessments?.length ? (
               <div className="clinical-timeline">
-                {record.reassessments.map((x: AnyRecord) => (
+                {record.reassessments.map((x: ClinicalReassessment) => (
                   <article
                     key={x.id}
                     className="clickable-entry"
@@ -655,7 +650,7 @@ export function CanonicalJourney({
                   >
                     <div>
                       <header>
-                        <strong>{t(x.status)}</strong>
+                        <strong>{t(x.status as string)}</strong>
                         <time>{fmtDate(x.date)}</time>
                       </header>
                       <p>{x.notes || '—'}</p>
@@ -704,7 +699,7 @@ export function CanonicalJourney({
           >
             {record.outcome ? (
               <div className="detail-grid">
-                <SheetDetail label={t('status')} value={t(record.outcome.status)} />
+                <SheetDetail label={t('status')} value={t(record.outcome.status as string)} />
                 <SheetDetail label={t('date')} value={fmtDate(record.outcome.date)} />
                 <SheetDetail label={t('notes')} value={record.outcome.notes} />
               </div>

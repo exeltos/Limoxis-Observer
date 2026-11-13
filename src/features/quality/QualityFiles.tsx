@@ -4,7 +4,7 @@ import { Button } from '../../design-system/Button'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { FormCard } from '../../design-system/FormCard'
 import { cloudAttachmentsEnabled,getAttachmentUrl,loadAttachments,uploadAttachment } from '../../core/attachments/attachmentService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { QualityAttachment, QualityRecord } from './qualityTypes'
 import type { FeedbackContextValue } from '../../core/feedback/feedbackTypes'
 
 // Files of a quality record: the line on its first tab, and the picker of the create form.
@@ -15,9 +15,9 @@ const fileSize=(bytes: number)=>bytes>=1048576?`${(bytes/1048576).toFixed(1)} MB
 
 // «Files (N)»: each name opens the file in a new tab; the button goes to the Documents tab, where they are added.
 const SHOWN_FILES=4
-export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,en}: { record: AnyRecord, recordType: string, organizationId: string | null | undefined, canAdd: boolean, onOpen: () => void, en: boolean }){
+export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,en}: { record: QualityRecord, recordType: string, organizationId: string | null | undefined, canAdd: boolean, onOpen: () => void, en: boolean }){
  const {notify}=useFeedback()
- const [loaded,setLoaded]=useState<AnyRecord | null>(null)
+ const [loaded,setLoaded]=useState<QualityAttachment[] | null>(null)
  const entityId=record.dbId||record.id
  useEffect(()=>{
   let active=true
@@ -25,8 +25,8 @@ export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,
   return()=>{active=false}
  },[organizationId,recordType,entityId])
  const files=loaded?.length?loaded:(record.attachments||[])
- const canView=(file: AnyRecord)=>Boolean(file.storagePath||file.dataUrl||file.objectUrl||file.url)
- async function view(file: AnyRecord){
+ const canView=(file: QualityAttachment)=>Boolean(file.storagePath||file.dataUrl||file.objectUrl||file.url)
+ async function view(file: QualityAttachment){
   const direct=file.dataUrl||file.objectUrl||file.url
   if(!file.storagePath){if(direct)window.open(direct,'_blank','noopener,noreferrer');return}
   const tab=window.open('about:blank','_blank')
@@ -43,7 +43,7 @@ export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,
   <Paperclip size={15} aria-hidden="true"/>
   <strong>{en?'Files':'Αρχεία'} ({files.length})</strong>
   <span className="quality-files-list">
-   {files.length?files.slice(0,SHOWN_FILES).map((file: AnyRecord,index: number)=>canView(file)
+   {files.length?files.slice(0,SHOWN_FILES).map((file: QualityAttachment,index: number)=>canView(file)
     ?<button type="button" key={file.id||index} title={en?`Open ${file.name}`:`Άνοιγμα: ${file.name}`} onClick={()=>view(file)}><Eye size={13} aria-hidden="true"/>{file.name}</button>
     :<em key={file.id||index}>{file.name}</em>)
     :(en?'No files attached.':'Δεν υπάρχουν επισυνάψεις.')}
@@ -63,7 +63,7 @@ export function usePendingFiles(notify: FeedbackContextValue['notify'],en: boole
  }
  const remove=(index: number)=>setFiles(current=>current.filter((_,at)=>at!==index))
  // Returns how many could not be attached.
- async function upload(organizationId: string | null | undefined,recordType: string,recordId: string){
+ async function upload(organizationId: string | null | undefined,recordType: string,recordId: string | undefined){
   let failed=0
   if(!files.length||!recordId||!cloudAttachmentsEnabled())return 0
   for(const file of files){

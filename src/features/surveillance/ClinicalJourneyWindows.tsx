@@ -10,41 +10,44 @@ import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { ProtocolPickerDialog } from './protocols/ProtocolViews'
 import { startProtocolRun } from './protocols/protocolService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalDevice, EpisodeSample } from './clinicalTypes'
+import type { ClinicalEntry, ClinicalLibraries, ClinicalPermissions, ClinicalRecordRepository, DeviceBundles, EpisodeProtocols, JourneyCase, ProtocolOptions, ProtocolRequest, RecordAdmission, RecordPatient } from './clinicalScreenTypes'
 import type { Handler, Setter } from './surveillanceTypes'
 import type { EpiState } from './ClinicalJourney'
+
+// `row.id as string`: a therapy of the record always has its id; the repository takes it as text.
 
 // What the screen hands to this part (one object, so the part reads like the code it came from).
 export interface JourneyWindowsScope {
   active: boolean
-  admission: AnyRecord | null
-  bundleDevice: AnyRecord | null
+  admission: RecordAdmission | null
+  bundleDevice: ClinicalDevice | null
   closeDialog: (() => void) | null
-  deviceBundles: AnyRecord | null
+  deviceBundles: DeviceBundles | null
   dialog: string | null
   entryDelete: Handler
-  entryDetail: AnyRecord | null
+  entryDetail: ClinicalEntry | null
   epi: EpiState
   fmtDate: (value: unknown) => string
   fmtDateTime: (value: unknown) => string
   isDemo: boolean
   language: string
-  libraries: AnyRecord
+  libraries: ClinicalLibraries
   onLibraryAdded: Handler
   organizationId: string | null | undefined
-  patient: AnyRecord | null
-  permissions: AnyRecord
-  protocolOptions: AnyRecord
-  protocolPreset: AnyRecord | null
-  protocols: AnyRecord
-  record: AnyRecord
-  repository: AnyRecord
+  patient: RecordPatient | null
+  permissions: ClinicalPermissions
+  protocolOptions: ProtocolOptions
+  protocolPreset: ProtocolRequest | null
+  protocols: EpisodeProtocols
+  record: JourneyCase
+  repository: ClinicalRecordRepository
   role: string | null
   run: Handler
   runProtocol: Handler
-  setBundleDevice: Setter<AnyRecord | null>
+  setBundleDevice: Setter<ClinicalDevice | null>
   setDialog: Setter<string | null>
-  setEntryDetail: Setter<AnyRecord | null>
+  setEntryDetail: Setter<ClinicalEntry | null>
   setEpi: Setter<EpiState>
   setFormNonce: Setter<number>
   setStage: Setter<string>
@@ -57,7 +60,7 @@ export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
     <>
       {dialog === 'bundle' && bundleDevice && deviceBundles && (
         <EpisodeBundleCheck
-          deviceBundles={deviceBundles}
+          deviceBundles={deviceBundles as Parameters<typeof EpisodeBundleCheck>[0]['deviceBundles']}
           device={bundleDevice}
           episode={record}
           onClose={() => {
@@ -73,7 +76,7 @@ export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
       {shownDialog === 'epi' && (
         <EpiQuestionnaireDialog
           inSheet
-          ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map((sample: AnyRecord) => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
+          ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map((sample: EpisodeSample) => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
           episode={record}
           row={epi.row}
           settings={epi.settings}
@@ -221,7 +224,7 @@ export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
                   setEntryDetail(null)
                   run(
                     () =>
-                      repository.finishTherapy(record, row.id, {
+                      repository.finishTherapy(record, row.id as string, {
                         endedAt: hospitalToday(),
                       }),
                     t('actionCompleted'),
@@ -235,7 +238,7 @@ export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
                   const row = entryDetail.row
                   setEntryDetail(null)
                   run(
-                    () => repository.updateTherapyApproval(record, row.id, 'approved'),
+                    () => repository.updateTherapyApproval(record, row.id as string, 'approved'),
                     t('actionCompleted'),
                   )
                 }
@@ -247,7 +250,7 @@ export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
                   const row = entryDetail.row
                   setEntryDetail(null)
                   run(
-                    () => repository.updateTherapyApproval(record, row.id, 'rejected'),
+                    () => repository.updateTherapyApproval(record, row.id as string, 'rejected'),
                     t('actionCompleted'),
                   )
                 }
@@ -259,7 +262,7 @@ export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
                   const row = entryDetail.row
                   setEntryDetail(null)
                   run(
-                    () => repository.recordAdministration(record, row.id, draft),
+                    () => repository.recordAdministration(record, row.id as string, draft),
                     t('actionCompleted'),
                   )
                 }

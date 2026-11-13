@@ -23,9 +23,11 @@ import {
   ISOLATION_STATUS,
   termLabel,
 } from './clinicalRecordLabels'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AntimicrobialTherapy, ClinicalCase, ClinicalLibraryRow, ClinicalReassessment, ClinicalTimelineEvent, EpisodeSample } from './clinicalTypes'
+import type { ClinicalLibraries, MenuEntry } from './clinicalScreenTypes'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
+// `as string` below: an optional text of a record handed to a helper typed for text (timelineLabel), which reads a missing one as before.
 
 // Read-only views of the clinical record: the timeline and the
 // final report of a completed episode.
@@ -40,7 +42,7 @@ interface StagePanelProps {
   icon: LucideIcon
   title: string
   action?: ReactNode
-  menu?: AnyRecord[]
+  menu?: MenuEntry[]
   children: ReactNode
 }
 export function StagePanel({ icon: Icon, title, action: shownAction, menu: shownMenu = [], children }: StagePanelProps) {
@@ -71,7 +73,7 @@ export function StagePanel({ icon: Icon, title, action: shownAction, menu: shown
 interface TagListProps {
   title: string
   items?: string[]
-  rows?: AnyRecord[]
+  rows?: ClinicalLibraryRow[]
   t: (key: string) => string
   language: string
 }
@@ -92,10 +94,10 @@ export function TagList({ title, items = [], rows = [], t, language }: TagListPr
 }
 // Who recorded it: the person's name, never their id (an unresolved id shows nothing).
 const UUID_TEXT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-export const personLabel = (x: AnyRecord) => x.actor || (UUID_TEXT.test(String(x.actorId || '')) ? '' : x.actorId || '')
+export const personLabel = (x: Pick<ClinicalTimelineEvent, 'actor' | 'actorId'>) => x.actor || (UUID_TEXT.test(String(x.actorId || '')) ? '' : x.actorId || '')
 
 interface TimelineProps {
-  record: AnyRecord
+  record: { timeline?: ClinicalTimelineEvent[] } | null
   t: (key: string) => string
   language: string
   fmtDateTime: (value: unknown) => string
@@ -111,7 +113,7 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }: 
     .map(x => ({
       at: x.at,
       // The detail may hold several stored values ("CLABSI · confirmed"): each is put into words.
-      title: [timelineLabel(x.type, language, t), x.detail ? String(x.detail).split(' · ').map(part => termLabel(part, t, language)).join(' · ') : ''].filter(Boolean).join(': '),
+      title: [timelineLabel(x.type as string, language, t), x.detail ? String(x.detail).split(' · ').map(part => termLabel(part, t, language)).join(' · ') : ''].filter(Boolean).join(': '),
       detail: null,
       meta: [personLabel(x), x.sampleId && `${tr('sample')}: ${x.sampleId}`],
     }))
@@ -126,11 +128,11 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }: 
   )
 }
 interface CompletedReportProps {
-  record: AnyRecord
+  record: ClinicalCase
   t: (key: string) => string
   fmtDate: (value: unknown) => string
   language?: string
-  libraries?: AnyRecord
+  libraries?: ClinicalLibraries
 }
 export function CompletedReport({
   record,
@@ -141,11 +143,11 @@ export function CompletedReport({
 }: CompletedReportProps) {
   const el = language !== 'en'
   const samples = record.samples || [],
-    positive = samples.filter((x: AnyRecord) => x.result === 'positive'),
+    positive = samples.filter((x: EpisodeSample) => x.result === 'positive'),
     therapy = record.therapy || [],
     reassessments = record.reassessments || []
-  const organism = positive.find((x: AnyRecord) => x.organism)?.organism || record.organism || '',
-    resistance = record.resistance || positive.find((x: AnyRecord) => x.resistance)?.resistance || ''
+  const organism = positive.find((x: EpisodeSample) => x.organism)?.organism || record.organism || '',
+    resistance = record.resistance || positive.find((x: EpisodeSample) => x.resistance)?.resistance || ''
   const start = record.startedAt,
     end = record.completedAt || record.outcome?.date
   const days =
@@ -326,7 +328,7 @@ export function CompletedReport({
         <Section icon={Pill} title={t('therapy')}>
           {therapy.length ? (
             <ul className="final-report-list">
-              {therapy.map((x: AnyRecord) => (
+              {therapy.map((x: AntimicrobialTherapy) => (
                 <li key={x.id}>
                   <strong>{x.antimicrobial}</strong>
                   {[x.dose, x.route].filter(Boolean).length > 0 && <span>{[x.dose, x.route].filter(Boolean).join(' · ')}</span>}
@@ -347,8 +349,8 @@ export function CompletedReport({
               <div>
                 <small>{t('status')}</small>
                 <strong>
-                  {ISOLATION_STATUS[iso.status]
-                    ? t(ISOLATION_STATUS[iso.status])
+                  {ISOLATION_STATUS[String(iso.status)]
+                    ? t(ISOLATION_STATUS[String(iso.status)])
                     : termLabel(iso.status, t, language)}
                 </strong>
               </div>
@@ -380,7 +382,7 @@ export function CompletedReport({
         <Section icon={RefreshCcw} title={t('reassessment')}>
           {reassessments.length ? (
             <ul className="final-report-list">
-              {reassessments.map((x: AnyRecord) => (
+              {reassessments.map((x: ClinicalReassessment) => (
                 <li key={x.id || x.date}>
                   <strong>{termLabel(x.status, t, language)}</strong>
                   {x.notes && <span>{x.notes}</span>}

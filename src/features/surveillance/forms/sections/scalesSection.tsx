@@ -10,16 +10,19 @@ import { FormSection } from '../FormSection'
 import { FORM_STATUS } from '../formStatus'
 import { episodeContext } from '../formPrefill'
 import { scaleTrend } from '../scaleTrend'
-import type { AnyRecord } from '../../../../types/featureTypes'
-import type { ScaleAssessment } from '../../../clinical-scales/clinicalScaleTypes'
+import type { PatientClinicalScalesPanelProps } from '../../../clinical-scales/PatientClinicalScalesPanel'
+import type { EpisodeFormSection, EpisodeFormsCtx, FormsEpisode, ScaleScoreRow, ScalesPanelContext } from '../formTypes'
+
+// A scale of the patient as the panel hands it back (its latest and previous assessment, its state).
+type ScaleContextItem = ScalesPanelContext['scaleContext'][number]
 
 // A scale appears when it has an assessment, or when the hospital requires it; the others
 // are reached from «New assessment», which lists every tool.
-const listed = (item: AnyRecord) => item.latest || item.availability === 'required'
-const statusOf = (item: AnyRecord) => (item.state === 'overdue' ? FORM_STATUS.OVERDUE : item.state === 'completed' || item.state === 'current' ? FORM_STATUS.DONE : FORM_STATUS.PENDING)
+const listed = (item: ScaleContextItem) => item.latest || item.availability === 'required'
+const statusOf = (item: ScaleContextItem) => (item.state === 'overdue' ? FORM_STATUS.OVERDUE : item.state === 'completed' || item.state === 'current' ? FORM_STATUS.DONE : FORM_STATUS.PENDING)
 interface ScaleLinesOptions {
-  scaleContext?: AnyRecord[]
-  ctx: AnyRecord
+  scaleContext?: ScaleContextItem[]
+  ctx: Pick<EpisodeFormsCtx, 'language' | 't' | 'fmtDate'>
 }
 // «Κλίμακες» rows as plain data (screen and printed report share it).
 export function scaleLines({ scaleContext = [], ctx }: ScaleLinesOptions) {
@@ -32,18 +35,18 @@ export function scaleLines({ scaleContext = [], ctx }: ScaleLinesOptions) {
 }
 
 interface ScalesSectionProps {
-  ctx: AnyRecord
+  ctx: EpisodeFormsCtx
 }
 function ScalesSection({ ctx }: ScalesSectionProps) {
   const { t } = useLanguage()
-  const [data, setData] = useState<AnyRecord>({ scaleContext: [], rows: [] })
+  const [data, setData] = useState<Pick<ScalesPanelContext, 'scaleContext' | 'rows'>>({ scaleContext: [], rows: [] })
   const [request, setRequest] = useState<{ nonce: unknown, definitionId?: string | null } | null>(null)
   const [showAll, setShowAll] = useState(false)
-  const [removeRequest, setRemoveRequest] = useState<{ nonce: unknown, row?: ScaleAssessment | null } | null>(null)
+  const [removeRequest, setRemoveRequest] = useState<PatientClinicalScalesPanelProps['removeRequest']>(null)
   // The scales (NEWS2, Braden, Morse…) are recorded by the clinical team and the ward nurses (owner, 8/11/2026), as the
   // RLS policy patient_scale_insert allows; the other roles see them only.
   const canRecord = ctx.has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT) || ctx.has(CAPABILITIES.MANAGE_ISOLATION) || ctx.has(CAPABILITIES.REQUEST_LAB_SAMPLES)
-  const onContext = useCallback((value: AnyRecord) => setData(value), [])
+  const onContext = useCallback((value: ScalesPanelContext) => setData(value), [])
   const lines = useMemo(() => scaleLines({ scaleContext: data.scaleContext, ctx }), [data.scaleContext, ctx])
   const base = episodeContext(ctx)
   const prefillItems = [
@@ -53,7 +56,7 @@ function ScalesSection({ ctx }: ScalesSectionProps) {
   ]
   const ask = (definitionId: string | null) => setRequest({ nonce: Date.now(), definitionId })
   const flagged = lines.filter(line => line.item.latest).slice(0, 4)
-  const summary = flagged.length ? flagged.map(line => `${scaleShortName(line.item.scale_key)} ${line.item.latest.score}`).join(' · ') : t('episodeForms.scales.none')
+  const summary = flagged.length ? flagged.map(line => `${scaleShortName(line.item.scale_key)} ${line.item.latest!.score}`).join(' · ') : t('episodeForms.scales.none')
   const overdue = lines.some(line => line.status === FORM_STATUS.OVERDUE)
   return (
     <FormSection
@@ -109,13 +112,14 @@ function ScalesSection({ ctx }: ScalesSectionProps) {
       </div>
       <PatientClinicalScalesPanel
         organizationId={ctx.organizationId}
-        patient={ctx.patient}
-        admission={ctx.admission}
+        // The panel reads only a few patient and admission fields; its props also accept extra ones.
+        patient={ctx.patient as PatientClinicalScalesPanelProps['patient']}
+        admission={ctx.admission as PatientClinicalScalesPanelProps['admission']}
         episode={ctx.record}
         isDemo={ctx.isDemo}
         language={ctx.language}
         canRecord={canRecord}
-        hasActiveEpisode={ctx.episodes.some((ep: AnyRecord) => ep.status === 'active')}
+        hasActiveEpisode={ctx.episodes.some((ep: FormsEpisode) => ep.status === 'active')}
         onStartProtocol={ctx.startProtocol}
         hideTable={!showAll}
         newRequest={request}
@@ -132,11 +136,11 @@ function ScalesSection({ ctx }: ScalesSectionProps) {
 export const scalesSection = {
   id: 'scales',
   order: 20,
-  canSee: (ctx: AnyRecord) => Boolean(ctx.patient) && (ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) || ctx.has(CAPABILITIES.VIEW_PATIENTS)),
+  canSee: (ctx: EpisodeFormsCtx) => Boolean(ctx.patient) && (ctx.has(CAPABILITIES.VIEW_SURVEILLANCE) || ctx.has(CAPABILITIES.VIEW_PATIENTS)),
   Component: ScalesSection,
   // The printed record lists the patient's latest score per scale (the page already read them for the header chips).
-  buildReport(ctx: AnyRecord) {
-    const latest = new Map()
+  buildReport(ctx: EpisodeFormsCtx) {
+    const latest = new Map<string | undefined, ScaleScoreRow>()
     for (const row of ctx.scaleRows || []) if (!latest.has(row.scale_key)) latest.set(row.scale_key, row)
     if (!latest.size) return null
     return {
@@ -147,4 +151,4 @@ export const scalesSection = {
       ),
     }
   },
-}
+} satisfies EpisodeFormSection

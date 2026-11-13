@@ -18,7 +18,7 @@ describe('FileMaker record number is not shown',()=>{
   })
 
   it('leaves the number out of the action register',()=>{
-    const rows=actionRows([{id:'FND-1',source:'manual',sourceId:'33331142',date:'2026-01-01'}],[])
+    const rows=actionRows([{id:'FND-1',source:'manual',sourceId:'33331142',date:'2026-01-01'} as never],[])
     expect(rows[0].sourceCode).toBe('')
   })
 
