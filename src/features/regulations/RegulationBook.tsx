@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom'
 import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, Maximize2, Search, X } from 'lucide-react'
 import { chaptersOf, searchContent, type RegulationChapter } from './regulationModel'
 import { sanitizeHtml } from './regulationHtml'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { RegulationContent } from './regulationModel'
+import type { RegulationMeta, SignatureSlot } from './regulationTypes'
 
 // A regulation read as a book: a cover, the page of the controlled document,
 // the contents with page numbers, then the chapters laid out on real pages. The
@@ -105,7 +106,7 @@ function paginate(measure: HTMLElement, chapters: RegulationChapter[], labels: {
   return { pages, sectionPage }
 }
 
-export function RegulationBook({ content, meta, language = 'el', initialSection = null }: { content: AnyRecord | null | undefined, meta: AnyRecord, language?: string, initialSection?: { chapterIndex: number, sectionIndex: number } | null }) {
+export function RegulationBook({ content, meta, language = 'el', initialSection = null }: { content: RegulationContent | null | undefined, meta: RegulationMeta, language?: string, initialSection?: { chapterIndex: number, sectionIndex: number } | null }) {
   const en = language === 'en'
   const labels = useMemo(() => ({ chapter: en ? 'CHAPTER' : 'ΚΕΦΑΛΑΙΟ' }), [en])
   const chapters = useMemo(() => chaptersOf(content), [content])
@@ -320,7 +321,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
 }
 
 interface TocEntry { level: number, chapterIndex: number, sectionIndex?: number, title: string }
-interface PageProps { index: number, side: string, front: number, total: number, meta: AnyRecord, en: boolean, tocEntries: TocEntry[], tocPerPage: number, pageOfSection: (chapterIndex: number, sectionIndex: number) => number, layout: Layout, chapters: RegulationChapter[], onJump: (page: number) => void }
+interface PageProps { index: number, side: string, front: number, total: number, meta: RegulationMeta, en: boolean, tocEntries: TocEntry[], tocPerPage: number, pageOfSection: (chapterIndex: number, sectionIndex: number) => number, layout: Layout, chapters: RegulationChapter[], onJump: (page: number) => void }
 function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pageOfSection, layout, chapters, onJump }: PageProps) {
   if (index === 0) return <article className={`reg-page reg-cover ${side}`}>
     <div className="reg-cover-rule" />
@@ -349,7 +350,7 @@ function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pag
         <tr><td>{en ? 'Status' : 'Κατάσταση'}</td><td>{meta.status}</td></tr>
         {meta.template && <tr><td>{en ? 'Based on' : 'Πρότυπο'}</td><td>{meta.template}</td></tr>}
       </tbody></table>
-      {meta.signatures?.length > 0 && <div className="reg-signatures">{meta.signatures.map((slot: AnyRecord) => <div key={slot.role} className={slot.name ? '' : 'is-empty'}>
+      {meta.signatures && meta.signatures.length > 0 && <div className="reg-signatures">{meta.signatures.map((slot: SignatureSlot) => <div key={slot.role} className={slot.name ? '' : 'is-empty'}>
         <small>{slot.label}</small>
         <span className="reg-signature-ink">{slot.image ? <img src={slot.image} alt="" /> : slot.name ? <em>{en ? 'Signed electronically' : 'Υπογράφηκε ηλεκτρονικά'}</em> : null}</span>
         <strong>{slot.name || (en ? 'Not signed' : 'Δεν έχει υπογραφεί')}</strong>
@@ -381,7 +382,7 @@ function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pag
   </article>
 }
 
-function Running({ meta, title }: { meta: AnyRecord, title?: string }) {
+function Running({ meta, title }: { meta: RegulationMeta, title?: string }) {
   return <div className="reg-running"><span>{title}</span><span>{[meta.organization, meta.edition ? `${meta.editionLabel} ${meta.edition}` : meta.status].filter(Boolean).join(' · ')}</span></div>
 }
 

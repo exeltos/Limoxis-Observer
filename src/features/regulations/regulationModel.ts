@@ -4,13 +4,13 @@
 // title, html }] }] }; `origin` names the template section a section came from,
 // so a new template version can be compared section by section.
 
-import type { AnyRecord } from '../../types/featureTypes'
+import type { RegulationSignature } from './regulationTypes'
 
 export interface RegulationSection { id: string, origin?: string | null, title: string, html: string, [key: string]: unknown }
 export interface RegulationChapter { id: string, title: string, sections: RegulationSection[], [key: string]: unknown }
 export interface RegulationContent { chapters: RegulationChapter[], [key: string]: unknown }
 // Content as it arrives (database JSON, a template, a draft being edited).
-type ContentLike = AnyRecord | null | undefined
+type ContentLike = { chapters?: unknown, [key: string]: unknown } | null | undefined
 
 export const REGULATION_CATEGORIES = [
   { value: 'infection', label: ['Πρόληψη λοιμώξεων', 'Infection prevention'] },
@@ -31,7 +31,7 @@ export const statusLabel = (value: unknown, language?: string) => REGULATION_STA
 export const statusTone = (value: unknown) => REGULATION_STATUSES.find(item => item.value === value)?.tone || 'neutral'
 
 // Where a regulation stands: never approved, in force, in force with a revision being written, or archived.
-export function regulationStatus(regulation: AnyRecord | null | undefined) {
+export function regulationStatus(regulation: { archived?: boolean, edition?: number, hasDraft?: boolean } | null | undefined) {
   if (regulation?.archived) return 'archived'
   if (!regulation?.edition) return 'draft'
   return regulation.hasDraft ? 'revision' : 'approved'
@@ -45,7 +45,7 @@ export const chaptersOf = (content: ContentLike): RegulationChapter[] => (Array.
 
 // A hospital's own copy of a template: {hospital} becomes its name, and every
 // section keeps the template section it came from.
-export function contentFromTemplate(template: AnyRecord | null | undefined, { hospital = '' }: { hospital?: string | null } = {}): RegulationContent {
+export function contentFromTemplate(template: { content?: ContentLike } | null | undefined, { hospital = '' }: { hospital?: string | null } = {}): RegulationContent {
   const name = escapeText(hospital || 'το νοσοκομείο')
   return {
     chapters: chaptersOf(template?.content).map(chapter => ({
@@ -72,11 +72,13 @@ export function contentStats(content: ContentLike) {
 }
 
 // Sections whose title or text holds every word of the query, with a short excerpt around the first.
+// A section that has every word searched, with a piece of its text.
+export type SearchHit = { chapterIndex: number, sectionIndex: number, chapter: string, title: string, excerpt: string }
 export function searchContent(content: ContentLike, query: unknown) {
   const words = String(query || '').toLocaleLowerCase('el').normalize('NFD').replace(/\p{M}/gu, '').split(/\s+/).filter(word => word.length > 1)
   if (!words.length) return []
   const fold = (text: string) => text.toLocaleLowerCase('el').normalize('NFD').replace(/\p{M}/gu, '')
-  const hits: AnyRecord[] = []
+  const hits: SearchHit[] = []
   chaptersOf(content).forEach((chapter, chapterIndex) => (chapter.sections || []).forEach((section, sectionIndex) => {
     const text = plainText(section.html)
     const haystack = fold(`${section.title} ${text}`)
@@ -100,11 +102,13 @@ const sameText = (a: unknown, b: unknown) => plainText(a) === plainText(b)
 // new sections, sections whose text changed and sections the template removed,
 // each with the hospital's own section beside it. Without the earlier version
 // the template is compared with the regulation itself.
+// A section the template added, changed or removed, with the hospital's own beside it.
+export type TemplateChange = { origin: string, kind: 'new' | 'changed' | 'removed', title: string, chapterId: string, chapterTitle: string, templateHtml: string, currentHtml?: string, previousHtml?: string }
 export function templateChanges({ base, latest, current }: { base?: ContentLike, latest: ContentLike, current: ContentLike }) {
   const before = base ? sectionsByOrigin(base) : null
   const after = sectionsByOrigin(latest)
   const own = sectionsByOrigin(current)
-  const changes: AnyRecord[] = []
+  const changes: TemplateChange[] = []
   for (const [origin, section] of after) {
     const old = before?.get(origin)
     const mine = own.get(origin)
@@ -117,7 +121,7 @@ export function templateChanges({ base, latest, current }: { base?: ContentLike,
 
 // Takes one template section into a draft: replaces the hospital's section that
 // came from it, or adds it to its chapter (making the chapter if needed).
-export function takeTemplateSection(draft: AnyRecord, latest: ContentLike, origin: string, { hospital = '' }: { hospital?: string | null } = {}) {
+export function takeTemplateSection(draft: RegulationContent, latest: ContentLike, origin: string, { hospital = '' }: { hospital?: string | null } = {}) {
   const source = sectionsByOrigin(contentFromTemplate({ content: latest }, { hospital })).get(origin)
   if (!source) return draft
   const chapters = structuredClone(chaptersOf(draft))
@@ -138,7 +142,7 @@ export function takeTemplateSection(draft: AnyRecord, latest: ContentLike, origi
 }
 
 // What a regulation needs before it can be approved.
-export function regulationProblems(regulation: AnyRecord | null | undefined, content: ContentLike, language = 'el') {
+export function regulationProblems(regulation: { title?: string } | null | undefined, content: ContentLike, language = 'el') {
   const en = language === 'en', problems: string[] = []
   if (!String(regulation?.title || '').trim()) problems.push(en ? 'A title' : 'Τίτλος')
   const chapters = chaptersOf(content)
@@ -151,11 +155,13 @@ export function regulationProblems(regulation: AnyRecord | null | undefined, con
 
 // The regulation of the earlier tool: chapters of sections of paragraphs and
 // list items, made into formatted text (consecutive items form one list).
-export function contentFromBlocks(chapters: AnyRecord[] = []): RegulationContent {
+// A chapter of the earlier tool: sections of paragraphs and list items.
+type BlockChapter = { title?: string, sections?: { title?: string, blocks?: { type?: string, text?: string }[] }[] }
+export function contentFromBlocks(chapters: BlockChapter[] = []): RegulationContent {
   return {
     chapters: chapters.map((chapter, chapterIndex) => ({
       id: `ch-${chapterIndex + 1}`, title: String(chapter.title || '').trim(),
-      sections: (chapter.sections || []).map((section: AnyRecord, sectionIndex: number) => {
+      sections: (chapter.sections || []).map((section, sectionIndex: number) => {
         let html = '', list: string[] = []
         const flush = () => { if (list.length) { html += `<ul>${list.map(item => `<li>${escapeText(item)}</li>`).join('')}</ul>`; list = [] } }
         for (const block of section.blocks || []) {
@@ -225,12 +231,12 @@ export const SIGNING_ROLES = [
 export const signingRoleLabel = (value: unknown, language?: string) => SIGNING_ROLES.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || ''
 
 // The latest signature of each role given for this revision of the draft.
-export function validSignatures(signatures: AnyRecord[] = [], revision?: number | null) {
+export function validSignatures(signatures: RegulationSignature[] = [], revision?: number | null) {
   return SIGNING_ROLES.map(role => [...signatures].filter(item => item.role === role.value && (revision == null || item.revision === revision)).sort((a, b) => String(b.signedAt).localeCompare(String(a.signedAt)))[0]).filter(Boolean)
 }
 
 // Signatures given for an earlier text: the role needs to sign again.
-export function staleSignatures(signatures: AnyRecord[] = [], revision?: number | null) {
+export function staleSignatures(signatures: RegulationSignature[] = [], revision?: number | null) {
   const valid = new Set(validSignatures(signatures, revision).map(item => item.role))
   return SIGNING_ROLES.map(role => role.value).filter(role => !valid.has(role) && signatures.some(item => item.role === role))
 }
