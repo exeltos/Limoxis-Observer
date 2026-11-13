@@ -1,5 +1,38 @@
 import { AMR_CATEGORY_SELECT, amrCalculationSnapshot } from '../laboratory/amrCalculation'
-import type { AnyRecord } from '../../types/featureTypes'
+import type {
+  AdministrationRow,
+  AmrClassification,
+  AmrRow,
+  AntimicrobialTherapy,
+  AssessmentFindingRow,
+  AssessmentRow,
+  ClinicalAssessment,
+  ClinicalCase,
+  ClinicalCaseRowBase,
+  ClinicalDevice,
+  ClinicalIsolation,
+  ClinicalOutcome,
+  ClinicalReassessment,
+  ClinicalTimelineEvent,
+  CaseDepartmentRow,
+  CasePatientRow,
+  CriticalCommunicationRow,
+  DeviceRow,
+  EpisodeSample,
+  HaiClassification,
+  HaiRow,
+  IsolationRowBase,
+  MicrobiologyResult,
+  MicrobiologyResultRow,
+  OutcomeRow,
+  ReassessmentRow,
+  RelatedLabRows,
+  SampleRow,
+  SurveillanceEventRow,
+  SusceptibilityRow,
+  TherapyAdministration,
+  TherapyRow,
+} from './clinicalTypes'
 
 // Rows of the surveillance tables as the records the screens read (clinicalCloudService.ts reads and writes them).
 
@@ -14,10 +47,13 @@ export function dateOnly(value: unknown): string | null
 export function dateOnly(value: unknown) {
   return value ? String(value).slice(0, 10) : null
 }
-const latest = (rows: AnyRecord[] = []) => rows[0] || null
+const latest = <T>(rows: T[] = []): T | null => rows[0] || null
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const byPosition = (a: AnyRecord, b: AnyRecord) => (a.position || 0) - (b.position || 0)
-export const textList = (list: AnyRecord[]) =>
+// A row of an embedded list, kept in its order.
+type Positioned = { position?: number | null }
+const byPosition = (a: Positioned, b: Positioned) => (a.position || 0) - (b.position || 0)
+// A list of a draft (anything that is not a list has no items).
+export const textList = (list: unknown) =>
   (Array.isArray(list) ? list : []).map(item => String(item ?? '').trim()).filter(Boolean)
 
 // The lists of a record are rows of their own, embedded in the record's query.
@@ -30,17 +66,17 @@ export const AMR_SELECT = `*,${AMR_CATEGORY_SELECT}`
 // A finding as the assessment lists it: its wording, and the value when one
 // was recorded (a fever reading, a date or detail). A risk factor answered
 // «no» is not listed.
-function findingText(row: AnyRecord) {
+function findingText(row: AssessmentFindingRow) {
   const value = row.value_text ?? (row.value_numeric != null ? String(row.value_numeric) : null)
   return value ? `${row.label}: ${value}` : row.label
 }
-const findingsOf = (row: AnyRecord, kinds: AnyRecord) =>
+const findingsOf = (row: AssessmentRow, kinds: string[]) =>
   [...(row.findings || [])]
     .filter(item => kinds.includes(item.kind) && item.value_boolean !== false)
     .sort((a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind) || byPosition(a, b))
     .map(findingText)
 
-export function mapAssessment(row: AnyRecord) {
+export function mapAssessment(row: AssessmentRow | null): ClinicalAssessment | null {
   if (!row) return null
   return {
     id: row.id,
@@ -55,7 +91,7 @@ export function mapAssessment(row: AnyRecord) {
   }
 }
 
-export function mapHai(row: AnyRecord) {
+export function mapHai(row: HaiRow | null): HaiClassification | null {
   if (!row) return null
   return {
     id: row.id,
@@ -71,7 +107,7 @@ export function mapHai(row: AnyRecord) {
   }
 }
 
-function mapAmr(row: AnyRecord) {
+function mapAmr(row: AmrRow | null): AmrClassification | null {
   if (!row) return null
   return {
     id: row.id,
@@ -87,11 +123,13 @@ function mapAmr(row: AnyRecord) {
 }
 
 interface MapMicrobiologyResultOptions {
-  amrRows?: AnyRecord[]
-  astRows?: AnyRecord[]
-  communications?: AnyRecord[]
+  amrRows?: AmrRow[]
+  astRows?: SusceptibilityRow[]
+  communications?: CriticalCommunicationRow[]
 }
-function mapMicrobiologyResult(row: AnyRecord, { amrRows = [], astRows = [], communications = [] }: MapMicrobiologyResultOptions = {}) {
+function mapMicrobiologyResult(row: MicrobiologyResultRow, options?: MapMicrobiologyResultOptions): MicrobiologyResult
+function mapMicrobiologyResult(row: MicrobiologyResultRow | null, options?: MapMicrobiologyResultOptions): MicrobiologyResult | null
+function mapMicrobiologyResult(row: MicrobiologyResultRow | null, { amrRows = [], astRows = [], communications = [] }: MapMicrobiologyResultOptions = {}): MicrobiologyResult | null {
   if (!row) return null
   return {
     id: row.id,
@@ -138,12 +176,12 @@ function mapMicrobiologyResult(row: AnyRecord, { amrRows = [], astRows = [], com
   }
 }
 
-export function mapSample(row: AnyRecord, related: AnyRecord = {}) {
+export function mapSample(row: SampleRow, related: RelatedLabRows = {}): EpisodeSample {
   const results = (related.results || [])
-    .filter((item: AnyRecord) => item.sample_id === row.id)
-    .map((item: AnyRecord) => mapMicrobiologyResult(item, related))
+    .filter((item: MicrobiologyResultRow) => item.sample_id === row.id)
+    .map((item: MicrobiologyResultRow) => mapMicrobiologyResult(item, related))
   const validated =
-    results.find((item: AnyRecord) => item.validationStatus === 'validated') || results[0] || null
+    results.find((item: MicrobiologyResult) => item.validationStatus === 'validated') || results[0] || null
   return {
     id: row.sample_code,
     recordId: row.id,
@@ -166,9 +204,9 @@ export function mapSample(row: AnyRecord, related: AnyRecord = {}) {
 
 // An isolation is active while its status is 'active' and it has not ended
 // (as patient_infection_flags and analysis_domain_metrics count it).
-const isolationActive = (row: AnyRecord) => row?.status === 'active' && !row.ended_at
+const isolationActive = (row: IsolationRowBase | null) => row?.status === 'active' && !row.ended_at
 
-export function mapIsolation(row: AnyRecord) {
+export function mapIsolation(row: IsolationRowBase | null): ClinicalIsolation | null {
   if (!row) return null
   return {
     id: row.id,
@@ -185,7 +223,7 @@ export function mapIsolation(row: AnyRecord) {
   }
 }
 
-export function mapAdministration(row: AnyRecord) {
+export function mapAdministration(row: AdministrationRow): TherapyAdministration {
   return {
     id: row.id,
     therapyId: row.therapy_id,
@@ -201,7 +239,7 @@ export function mapAdministration(row: AnyRecord) {
   }
 }
 
-export function mapTherapy(row: AnyRecord, administrations: AnyRecord[] = []) {
+export function mapTherapy(row: TherapyRow, administrations: AdministrationRow[] = []): AntimicrobialTherapy {
   return {
     id: row.id,
     antimicrobial: row.antimicrobial,
@@ -218,7 +256,7 @@ export function mapTherapy(row: AnyRecord, administrations: AnyRecord[] = []) {
   }
 }
 
-export function mapDevice(row: AnyRecord) {
+export function mapDevice(row: DeviceRow): ClinicalDevice {
   return {
     id: row.id,
     name: row.device_type,
@@ -266,7 +304,7 @@ export const reassessmentDecisionDbValue = (
   return allowed.includes(v) ? v : null
 }
 
-export function mapReassessment(row: AnyRecord) {
+export function mapReassessment(row: ReassessmentRow): ClinicalReassessment {
   return {
     id: row.id,
     date: dateOnly(row.reassessed_at),
@@ -280,7 +318,7 @@ export function mapReassessment(row: AnyRecord) {
   }
 }
 
-export function mapOutcome(row: AnyRecord) {
+export function mapOutcome(row: OutcomeRow | null): ClinicalOutcome | null {
   if (!row) return null
   return {
     id: row.id,
@@ -292,15 +330,15 @@ export function mapOutcome(row: AnyRecord) {
 }
 
 interface ClinicalTimelineOptions {
-  events?: AnyRecord[]
-  assessments?: AnyRecord[]
-  hai?: AnyRecord[]
-  samples?: AnyRecord[]
-  therapies?: AnyRecord[]
-  isolations?: AnyRecord[]
-  reassessments?: AnyRecord[]
-  outcomes?: AnyRecord[]
-  devices?: AnyRecord[]
+  events?: SurveillanceEventRow[]
+  assessments?: AssessmentRow[]
+  hai?: HaiRow[]
+  samples?: SampleRow[]
+  therapies?: TherapyRow[]
+  isolations?: IsolationRowBase[]
+  reassessments?: ReassessmentRow[]
+  outcomes?: OutcomeRow[]
+  devices?: DeviceRow[]
 }
 function clinicalTimeline({
   events = [],
@@ -312,7 +350,7 @@ function clinicalTimeline({
   reassessments = [],
   outcomes = [],
   devices = [],
-}: ClinicalTimelineOptions) {
+}: ClinicalTimelineOptions): ClinicalTimelineEvent[] {
   return [
     ...events.map(row => ({
       at: row.occurred_at || row.created_at,
@@ -375,20 +413,20 @@ function clinicalTimeline({
 }
 
 interface MapClinicalCaseOptions {
-  caseRow: AnyRecord
-  patient: AnyRecord
-  department: AnyRecord
-  events?: AnyRecord[]
-  assessments?: AnyRecord[]
-  hai?: AnyRecord[]
-  samples?: AnyRecord[]
-  relatedLab?: AnyRecord
-  therapies?: AnyRecord[]
-  therapyAdministrations?: AnyRecord[]
-  isolations?: AnyRecord[]
-  reassessments?: AnyRecord[]
-  outcomes?: AnyRecord[]
-  devices?: AnyRecord[]
+  caseRow: ClinicalCaseRowBase
+  patient?: CasePatientRow | null
+  department?: CaseDepartmentRow | null
+  events?: SurveillanceEventRow[]
+  assessments?: AssessmentRow[]
+  hai?: HaiRow[]
+  samples?: SampleRow[]
+  relatedLab?: RelatedLabRows
+  therapies?: TherapyRow[]
+  therapyAdministrations?: AdministrationRow[]
+  isolations?: IsolationRowBase[]
+  reassessments?: ReassessmentRow[]
+  outcomes?: OutcomeRow[]
+  devices?: DeviceRow[]
 }
 export function mapClinicalCase({
   caseRow,
@@ -405,7 +443,7 @@ export function mapClinicalCase({
   reassessments = [],
   outcomes = [],
   devices = [],
-}: MapClinicalCaseOptions) {
+}: MapClinicalCaseOptions): ClinicalCase {
   const caseAssessments = assessments.filter(row => row.surveillance_case_id === caseRow.id)
   const caseHai = hai.filter(row => row.surveillance_case_id === caseRow.id)
   const caseSamples = samples.filter(row => row.surveillance_case_id === caseRow.id)

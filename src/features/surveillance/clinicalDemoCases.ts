@@ -1,7 +1,7 @@
 // Τα αναλυτικά Demo επεισόδια επιτήρησης (ασθενείς, δείγματα, αγωγή, απομόνωση).
 // Το clinicalDemoData.ts προσθέτει το ιστορικό της χρονιάς και τις λειτουργίες.
-import type { AnyRecord } from '../../types/featureTypes'
-export const clinicalCases: Record<string, AnyRecord> = {
+import type { ClinicalCase } from './clinicalTypes'
+export const clinicalCases: Record<string, ClinicalCase> = {
   'SUR-260041': {
     id: 'SUR-260041',
     patientId: 'PT-260184',

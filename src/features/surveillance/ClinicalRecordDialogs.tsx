@@ -227,7 +227,7 @@ export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], o
 interface LibraryMultiSelectProps {
   label: string
   rows?: AnyRecord[]
-  selected?: AnyRecord[]
+  selected?: string[]
   onChange: Handler
   language: string
 }

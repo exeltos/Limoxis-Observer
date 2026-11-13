@@ -1,6 +1,7 @@
 import { clinicalCases } from './clinicalDemoData'
 import { deviceRuleKey } from '../lira/liraHaiMetrics'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalCase, HaiClassification } from './clinicalTypes'
 
 // clinicalDemoData stores hai classification types as descriptive keys
 // (bloodstreamInfection/urinaryTractInfection/ventilatorAssociatedPneumonia)
@@ -69,7 +70,7 @@ export function collectDeviceDaySources() {
     department: item.department,
   }))).concat(DEMO_DEVICE_CENSUS.filter(device => !device.bandId).map(({ bandId: _band, ...device }) => device))
   const haiClassifications = cases
-    .filter(item => item.haiClassification)
+    .filter((item): item is ClinicalCase & { haiClassification: HaiClassification } => Boolean(item.haiClassification))
     .map(item => ({
       haiType: HAI_TYPE_TO_RULE_KEY[item.haiClassification.type] || item.haiClassification.type,
       criteriaMet: item.haiClassification.criteriaMet,
