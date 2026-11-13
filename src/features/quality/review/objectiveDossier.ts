@@ -135,7 +135,7 @@ const percent = (value: number) => (value == null ? '—' : `${Math.round(value)
 // The whole file of one year, everything in it: the summary by level, the objectives of the hospital, the departments and
 // the committees (with the committees' annual plans), each objective with its months, the department registers' indicators for the year,
 // the satisfaction surveys and what the last management review decided.
-export function objectivesDossier({ objectives, committeeTargets = [], reviews, extras = null, year, language }: { objectives: ObjectiveView[], committeeTargets?: CommitteeTarget[], reviews: Review[], extras?: DossierExtras | null, year: number, language: string }): ReportDoc {
+export function objectivesDossier({ objectives, committeeTargets = [], reviews, extras = null, year, language }: { objectives: ObjectiveView[], committeeTargets?: CommitteeTarget[], histories?: Map<string, ObjectiveHistoryPoint[]>, reviews: Review[], extras?: DossierExtras | null, year: number, language: string }): ReportDoc {
   const en = language === 'en'
   const rows = (objectives || []).filter(objective => Number(objective.year) === Number(year))
   const plans = (committeeTargets || []).filter(item => Number(item.year) === Number(year))

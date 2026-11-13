@@ -119,6 +119,7 @@ export interface CommitteeTarget {
 // An objective with what useObjectives adds: its register, indicator or platform indicator, its months and its value today.
 export interface ObjectiveView extends Objective {
   kind?: undefined
+  committeeName?: undefined
   register?: Register
   indicator?: RegisterIndicator
   platformIndicator: PlatformIndicatorDef | null
@@ -131,7 +132,7 @@ export interface ObjectiveView extends Objective {
 }
 
 // A row of a committee's annual plan in the objectives' list.
-export interface PlanObjective extends CommitteeTarget { kind: 'plan', level?: string }
+export interface PlanObjective extends CommitteeTarget { kind: 'plan', level?: string, code?: undefined, titleEn?: undefined, current?: undefined }
 
 // A row of the objectives' list: an objective or a committee's plan item.
 export type ObjectiveListRow = ObjectiveView | PlanObjective
