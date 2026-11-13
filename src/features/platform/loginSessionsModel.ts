@@ -1,4 +1,4 @@
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LoginSession } from './platformTypes'
 // Sign-ins (Ιστορικό & Υγεία › Συνδέσεις): device, duration and status of a session, in words.
 
 // «Chrome · Windows», «Safari · iPhone» from the browser's user agent.
@@ -11,10 +11,10 @@ export function deviceLabel(userAgent: unknown,en=false){
 }
 
 // From the sign-in to the end (or to the last activity while it is still open).
-export function durationText(row: AnyRecord,now=Date.now(),en=false){
-  const start=new Date(row?.startedAt).getTime()
+export function durationText(row: Partial<Pick<LoginSession,'startedAt'|'endedAt'|'online'|'lastSeenAt'>>,now=Date.now(),en=false){
+  const start=new Date(row?.startedAt as string).getTime()
   const endValue=row?.endedAt||(row?.online?new Date(now).toISOString():row?.lastSeenAt)
-  const end=new Date(endValue).getTime()
+  const end=new Date(endValue as string).getTime()
   if(!Number.isFinite(start)||!Number.isFinite(end))return '—'
   const minutes=Math.max(0,Math.round((end-start)/60000))
   if(minutes<1)return en?'< 1 min':'< 1 λεπτό'
@@ -25,7 +25,7 @@ export function durationText(row: AnyRecord,now=Date.now(),en=false){
   return en?`${days} days`:`${days} ημέρες`
 }
 
-export function sessionStatus(row: AnyRecord,en=false){
+export function sessionStatus(row: Partial<Pick<LoginSession,'online'|'active'|'endedReason'>>,en=false){
   if(row?.online)return {tone:'good',label:en?'Online now':'Συνδεδεμένος τώρα'}
   if(row?.active)return {tone:'neutral',label:en?'Open (idle)':'Ανοιχτή (αδράνεια)'}
   if(row?.endedReason==='ended_by_owner')return {tone:'danger',label:en?'Ended by the Owner':'Τερματίστηκε από τον Ιδιοκτήτη'}

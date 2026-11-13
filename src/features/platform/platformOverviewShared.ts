@@ -1,18 +1,19 @@
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
+import type { OrganizationState, PlatformUserRef, SessionStart, UserIndex, UserRef } from './platformTypes'
 
 // Οι χρήστες της πλατφόρμας ανά χρήστη, γραμμή μέλους και όνομα σύνδεσης (buildUserIndex).
-export type UserIndex = { byUserId: Map<string, AnyRecord>, byMemberId: Map<string, AnyRecord>, byLogin: Map<string, AnyRecord> }
+export type { UserIndex }
 type RecordTargetOptions = { returnTo?: string, organizationIds?: Set<string> | null }
 // Shared by the Overview, the Organizations list and the organization record (Platform Owner):
 // the initials avatar, «πριν από …» times, the one status of an organization and the latest sign-in per user.
 
 // Two letters per organization: an abbreviation (Γ.Ν.) counts as one word, so «Γ.Ν. Κομοτηνής» is ΓΚ.
-export const initialsOf=(name: string)=>String(name||'').split(/\s+/).map(word=>word.replace(/[^\p{L}]/gu,'')).filter(Boolean).slice(0,2).map(word=>word[0]).join('').toLocaleUpperCase('el-GR')||'—'
+export const initialsOf=(name: string | null | undefined)=>String(name||'').split(/\s+/).map(word=>word.replace(/[^\p{L}]/gu,'')).filter(Boolean).slice(0,2).map(word=>word[0]).join('').toLocaleUpperCase('el-GR')||'—'
 
 export const sinceText=(value: string | null | undefined,tx: Translate)=>{if(!value)return tx('Καμία καταγραφή','No activity recorded');const minutes=Math.max(0,Math.round((Date.now()-new Date(value).getTime())/60000));if(minutes<1)return tx('μόλις τώρα','just now');if(minutes<60)return tx(`πριν από ${minutes} λεπτά`,`${minutes} min ago`);const hours=Math.round(minutes/60);if(hours<24)return tx(`πριν από ${hours} ώρες`,`${hours} h ago`);const days=Math.round(hours/24);if(days===1)return tx('χθες','yesterday');return tx(`πριν από ${days} ημέρες`,`${days} days ago`)}
 
 // [tone, label, key]: one status per organization (deletion, pause, inactive, admin pending, active).
-export function statusOf(tx: Translate,organization: AnyRecord,adminStatus?: string | null): [string,string,string]{
+export function statusOf(tx: Translate,organization: OrganizationState,adminStatus?: string | null): [string,string,string]{
   if(organization.deletion_scheduled_at)return ['danger',tx('Προς διαγραφή','Deletion scheduled'),'deletion']
   if(organization.status==='suspended'||organization.paused_at)return ['danger',tx('Σε παύση','Paused'),'paused']
   if(organization.status!=='active')return ['neutral',tx('Ανενεργός','Inactive'),'inactive']
@@ -21,8 +22,8 @@ export function statusOf(tx: Translate,organization: AnyRecord,adminStatus?: str
 }
 
 // The latest sign-in (session start) of each user, from listLoginSessions.
-export function latestSessionByUser(sessions: AnyRecord[]=[]){
-  const latest=new Map<string, AnyRecord>()
+export function latestSessionByUser<S extends SessionStart>(sessions: S[]=[]){
+  const latest=new Map<string, S>()
   for(const row of sessions){if(!row?.userId)continue;const current=latest.get(row.userId);if(!current||String(row.startedAt||'')>String(current.startedAt||''))latest.set(row.userId,row)}
   return latest
 }
@@ -36,10 +37,10 @@ export const athensTime=(value: unknown)=>{const p=athensParts(value);return p?`
 // Where a person or an organization shown on any owner screen leads. A user opens the record under the organization
 // the user belongs to (a Demo user: the Demo record, because a Demo is not in the organizations list); the Platform Owner
 // has no record. «returnTo» is the screen to come back to with Back (userReturnTo is the user record's own Back).
-export const userRecordPath=({organizationId,userId}: AnyRecord)=>organizationId&&userId?`/platform#organizations?organization=${organizationId}&tab=users&user=${userId}`:''
+export const userRecordPath=({organizationId,userId}: {organizationId?: string | null,userId?: string | null})=>organizationId&&userId?`/platform#organizations?organization=${organizationId}&tab=users&user=${userId}`:''
 export const organizationRecordPath=(organizationId: string | null | undefined)=>organizationId?`/platform#organizations?organization=${organizationId}&tab=details`:''
 
-export function userRecordTarget(user: AnyRecord | null | undefined,{returnTo='/platform#users',organizationIds=null}: RecordTargetOptions={}){
+export function userRecordTarget(user: PlatformUserRef | null | undefined,{returnTo='/platform#users',organizationIds=null}: RecordTargetOptions={}){
   const organizationId=user?.organization?.id
   if(!user?.userId||!organizationId||user.kind==='platform'||user.role==='platform_owner')return null
   const state={returnTo,userReturnTo:returnTo,fromUsers:true}
@@ -53,8 +54,8 @@ export function organizationRecordTarget(organizationId: string | null | undefin
 }
 
 // The platform users (listPlatformUsers) by user, by membership row and by username / e-mail, without the Platform Owner.
-export function buildUserIndex(users: (AnyRecord | null | undefined)[]=[]): UserIndex{
-  const byUserId=new Map<string, AnyRecord>(),byMemberId=new Map<string, AnyRecord>(),byLogin=new Map<string, AnyRecord>()
+export function buildUserIndex<U extends PlatformUserRef>(users: (U | null | undefined)[]=[]): UserIndex<U>{
+  const byUserId=new Map<string, U>(),byMemberId=new Map<string, U>(),byLogin=new Map<string, U>()
   for(const user of users){
     if(!user||user.kind==='platform'||user.role==='platform_owner'||!user.userId||!user.organization?.id)continue
     const current=byUserId.get(user.userId)
@@ -66,7 +67,7 @@ export function buildUserIndex(users: (AnyRecord | null | undefined)[]=[]): User
 }
 
 // {userId} | {memberId} | {identifier: username or e-mail} → the user with a record, or null (plain text then).
-export function findIndexedUser(index: UserIndex,{userId,memberId,identifier}: AnyRecord={}){
+export function findIndexedUser<U extends PlatformUserRef>(index: UserIndex<U>,{userId,memberId,identifier}: UserRef={}){
   if(userId&&index.byUserId.has(userId))return index.byUserId.get(userId)
   if(memberId&&index.byMemberId.has(String(memberId)))return index.byMemberId.get(String(memberId))
   const login=String(identifier||'').trim().toLowerCase()

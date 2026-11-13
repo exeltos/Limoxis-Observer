@@ -13,7 +13,7 @@ import { localModule, localRoute } from './HospitalDiagnosticsPanel'
 import { athensDateTime } from './platformOverviewShared'
 import { RecordLink } from './RecordLink'
 import { useRecordLinks, usePlatformUsers } from './useRecordLinks'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { OrganizationRuntimeEvent,PlatformOrganization,UserRef } from './platformTypes'
 
 const severityMeta: Record<string,{el: string,en: string,icon: LucideIcon}>={
   error:{el:'Αποτυχία',en:'Error',icon:XCircle},
@@ -25,10 +25,10 @@ const severityMeta: Record<string,{el: string,en: string,icon: LucideIcon}>={
 
 const fmtDate=athensDateTime
 
-export function PlatformHealthView({organizations=[],language='el',tabs=null}: {organizations?: AnyRecord[],language?: string,tabs?: ReactNode}){
+export function PlatformHealthView({organizations=[],language='el',tabs=null}: {organizations?: PlatformOrganization[],language?: string,tabs?: ReactNode}){
   const en=language==='en'
   const tx=(elText: string,enText: string)=>en?enText:elText
-  const [rows,setRows]=useState<AnyRecord[]>([])
+  const [rows,setRows]=useState<OrganizationRuntimeEvent[]>([])
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState<unknown>(null)
   const [organizationId,setOrganizationId]=useState('all')
@@ -41,7 +41,7 @@ export function PlatformHealthView({organizations=[],language='el',tabs=null}: {
   // The organization and the user of an event open their records; Back returns to these events.
   const users=usePlatformUsers()
   const {userOf,openUser,canOpenOrganization,openOrganization}=useRecordLinks({users,returnTo:'/platform/audit?view=events'})
-  const userLink=(ref: AnyRecord,label: string)=>{const person=userOf(ref);return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{label}</RecordLink>:label}
+  const userLink=(ref: UserRef,label: string)=>{const person=userOf(ref);return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{label}</RecordLink>:label}
   const organizationLink=(id: string,label: string)=>canOpenOrganization(id)?<RecordLink title={tx('Άνοιγμα καρτέλας οργανισμού','Open organization record')} onClick={()=>openOrganization(id)}>{label}</RecordLink>:label
 
   const load=useCallback(async()=>{

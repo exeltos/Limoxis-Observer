@@ -1,7 +1,7 @@
 // The audit trail in words (Ιστορικό & Υγεία › Ενέργειες & πρόσβαση, the user record's Δραστηριότητα): never a table
 // name or a UUID in the list. The technical identifier goes into the tooltip and the Excel export only.
 import { athensTime } from './platformOverviewShared'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AuditEvent,AuditGroup,AuditNames } from './platformTypes'
 
 const EVENTS: Record<string,[string,string]>={
   create:['Δημιουργία','Created'],insert:['Δημιουργία','Created'],update:['Ενημέρωση','Updated'],delete:['Διαγραφή','Deleted'],suspend:['Παύση','Suspended'],reactivate:['Επανενεργοποίηση','Reactivated'],reset_password:['Επαναφορά κωδικού','Password reset'],invite:['Πρόσκληση','Invited'],
@@ -43,8 +43,8 @@ export function entityLabel(value: unknown,en: boolean){
 
 // «Ενημέρωση εργαζομένων» ×15 in one row: identical consecutive events of one person on one kind of record,
 // each within `windowMinutes` of the one before. `rows` are newest first; so are the groups.
-export function groupAuditEvents(rows: AnyRecord[]=[],{windowMinutes=15}: {windowMinutes?: number}={}){
-  const groups: AnyRecord[]=[],gap=windowMinutes*60000
+export function groupAuditEvents(rows: AuditEvent[]=[],{windowMinutes=15}: {windowMinutes?: number}={}){
+  const groups: AuditGroup[]=[],gap=windowMinutes*60000
   for(const row of rows){
     const last=groups[groups.length-1],time=new Date(row.createdAt).getTime()
     if(last&&last.actorId===row.actorId&&last.eventType===row.eventType&&last.entityType===row.entityType&&last.organizationId===row.organizationId&&Number.isFinite(time)&&last.oldestTime-time<=gap&&last.oldestTime>=time){
@@ -57,8 +57,8 @@ export function groupAuditEvents(rows: AnyRecord[]=[],{windowMinutes=15}: {windo
 // One readable line for a group: action (+ count), the kind of record and its name when it is known, the time.
 // names: {organization(id), user({userId,memberId}), employee(id)} → name or ''. All optional.
 // Ονόματα για την περιγραφή: οργανισμός (id), χρήστης ({userId, memberId}), εργαζόμενος (id).
-export type AuditNames = { organization?: (id: string)=>string, user?: (ref: AnyRecord)=>string, employee?: (id: string)=>string }
-export function describeAuditGroup(group: AnyRecord,{en=false,names={}}: {en?: boolean,names?: AuditNames}={}){
+export type { AuditNames }
+export function describeAuditGroup(group: Pick<AuditGroup,'entityIds'|'entityType'|'eventType'|'count'|'from'|'to'>,{en=false,names={}}: {en?: boolean,names?: AuditNames}={}){
   const ids=[...new Set<string>(group.entityIds.filter(Boolean))]
   const one=ids.length===1?ids[0]:''
   let name=''
