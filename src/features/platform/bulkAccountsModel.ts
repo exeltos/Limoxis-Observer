@@ -1,4 +1,3 @@
-import type { AnyRecord } from '../../types/featureTypes'
 // N1 · «Εργαζόμενοι χωρίς λογαριασμό» (Platform Owner): the rules of the screen,
 // without React, so that they are unit tested. A row is one active employee of the
 // hospital with its account state (platform_employee_accounts). The owner selects
@@ -36,13 +35,94 @@ export const needsDepartment = (role: string | null | undefined) => DEPARTMENT_R
 
 // Ρόλος και τμήμα που διαλέγει ο Ιδιοκτήτης για κάθε εργαζόμενο (κλειδί: employeeId).
 export type RoleDraft = { role?: string, departmentId?: string | null }
-export type RoleDrafts = Record<string, RoleDraft>
-type RowsById = Map<string, AnyRecord>
+// A row whose role is cleared keeps its key with undefined (BulkAccountsPanel).
+export type RoleDrafts = Record<string, RoleDraft | undefined>
+type RowsById = Map<string, RosterRow>
+
+// One row of the RPC platform_employee_accounts (snake_case; the RPC returns Json).
+export type RawRosterRow = {
+  employee_id?: string
+  full_name?: string | null
+  profession_name?: string | null
+  department_id?: string | null
+  department_name?: string | null
+  email?: string | null
+  user_id?: string | null
+  username?: string | null
+  member_role?: string | null
+  account_state?: string | null
+  blocked_reason?: string | null
+  existing_user_id?: string | null
+  existing_name?: string | null
+  existing_is_demo?: boolean | null
+  existing_organizations?: string[] | null
+  item_status?: string | null
+  item_error?: string | null
+  item_role?: string | null
+  item_batch_id?: string | null
+  item_created_at?: string | null
+  send_count?: number | null
+  last_sent_at?: string | null
+  invitation_created_at?: string | null
+  invitation_expires_at?: string | null
+  invitation_accepted_at?: string | null
+  invitation_revoked_at?: string | null
+  invitation_opened?: boolean | null
+  email_status?: string | null
+  email_error?: string | null
+}
+// The account the e-mail already has in another organization.
+export type RosterExistingAccount = { userId: string, name: string, isDemo: boolean, organizations: string[] }
+// The row as the screen uses it (normalizeRosterRow).
+export type RosterRow = {
+  employeeId: string
+  name: string
+  profession: string
+  departmentId: string | null
+  departmentName: string
+  email: string
+  userId: string | null
+  username: string
+  memberRole: string | null
+  accountState: string
+  blockedReason: string | null
+  existing: RosterExistingAccount | null
+  itemStatus: string | null
+  itemError: string | null
+  itemRole: string | null
+  itemBatchId: string | null
+  itemCreatedAt: string | null
+  sendCount: number
+  lastSentAt: string | null
+  invitationCreatedAt: string | null
+  invitationExpiresAt: string | null
+  invitationAcceptedAt: string | null
+  invitationRevokedAt: string | null
+  invitationOpened: boolean
+  emailStatus: string | null
+  emailError: string | null
+}
+export type RosterDepartment = { id: string, name: string }
+// What loadEmployeeAccounts returns and the panel shows.
+export type Roster = { employees: RosterRow[], departments: RosterDepartment[] }
+// One person of a run (buildItems), as sent to the Edge Function.
+export type BulkItem = { employeeId: string, role: string, departmentId: string | null }
+// «Ορισμός ρόλου σε όλους τους επιλεγμένους».
+export type BulkRoleOptions = { role: string, replace?: boolean, scope?: string, departmentId?: string | null }
+// The confirmation (dryRun) of the Edge Function, or its simulation.
+export type BulkPreviewExisting = { employeeId: string, name: string, email?: string, role: string, existingName?: string, organizations?: string[] }
+export type BulkPreviewSkipped = { employeeId: string, name?: string | null, code: string }
+export type BulkEmailPreview = { to?: string, name: string, subject: string, replyTo?: string | null, html: string }
+export type BulkPreview = { ok?: boolean, expiresAt: string, existing: BulkPreviewExisting[], skipped: BulkPreviewSkipped[], emailPreview?: BulkEmailPreview | null }
+// The result of one person of a run or of «Ξαναστείλε».
+export type BulkResult = { employeeId?: string, status?: string, code?: string, username?: string | null }
+// The hospital the run is for (the record or the tenant).
+export type BulkOrganization = { id: string, name?: string, contact_email?: string | null, contact_phone?: string | null }
 
 // The RPC row (snake_case) as the screen uses it.
-export function normalizeRosterRow(raw: AnyRecord = {}) {
+export function normalizeRosterRow(raw: RawRosterRow = {}): RosterRow {
   return {
-    employeeId: raw.employee_id,
+    employeeId: raw.employee_id as string,
     name: raw.full_name || '—',
     profession: raw.profession_name || '',
     departmentId: raw.department_id || null,
@@ -79,7 +159,7 @@ export function normalizeRosterRow(raw: AnyRecord = {}) {
 }
 
 // Which chip a row belongs to.
-export function accountGroup(row: AnyRecord) {
+export function accountGroup(row: RosterRow) {
   if (row.accountState === 'none') return 'none'
   if (row.accountState === 'invited') return 'pending'
   if (row.accountState === 'active') return 'active'
@@ -89,12 +169,12 @@ export function accountGroup(row: AnyRecord) {
 // A row can be ticked: in «Χωρίς λογαριασμό» an employee with no account and a
 // usable e-mail; in «Έχει λογαριασμό – δεν ενεργοποίησε» a pending account
 // (for «Ξαναστείλε»), never a Hospital Admin's.
-export function rowSelectable(row: AnyRecord, filter: string) {
+export function rowSelectable(row: RosterRow, filter: string) {
   if (filter === 'pending') return row.accountState === 'invited' && row.memberRole !== 'hospital_admin'
   return row.accountState === 'none' && !row.blockedReason && !(row.existing && row.existing.isDemo)
 }
 
-export function chipCounts(rows: AnyRecord[]) {
+export function chipCounts(rows: RosterRow[]) {
   const counts: Record<string, number> = { none: 0, pending: 0, active: 0, all: rows.length }
   for (const row of rows) {
     const group = accountGroup(row)
@@ -104,14 +184,14 @@ export function chipCounts(rows: AnyRecord[]) {
 }
 
 // The latest run, for its chip «Δημιουργία <ημερομηνία>» and its result view.
-export function latestBatch(rows: AnyRecord[]) {
-  let latest = null
+export function latestBatch(rows: RosterRow[]) {
+  let latest: { id: string, createdAt: string } | null = null
   for (const row of rows) {
     if (!row.itemBatchId || !row.itemCreatedAt) continue
     if (!latest || row.itemCreatedAt > latest.createdAt) latest = { id: row.itemBatchId, createdAt: row.itemCreatedAt }
   }
   if (!latest) return null
-  return { ...latest, count: rows.filter((row: AnyRecord) => row.itemBatchId === latest.id).length }
+  return { ...latest, count: rows.filter((row: RosterRow) => row.itemBatchId === latest.id).length }
 }
 
 const fold = (value: unknown) =>
@@ -120,9 +200,9 @@ const fold = (value: unknown) =>
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
 
-export function filterRows(rows: AnyRecord[], { filter = 'none', batchId = null, query = '', departmentId = '', profession = '' } = {}) {
+export function filterRows(rows: RosterRow[], { filter = 'none', batchId = null, query = '', departmentId = '', profession = '' }: { filter?: string, batchId?: string | null, query?: string, departmentId?: string, profession?: string } = {}) {
   const q = fold(query.trim())
-  return rows.filter((row: AnyRecord) => {
+  return rows.filter((row: RosterRow) => {
     if (filter === 'batch') {
       if (row.itemBatchId !== batchId) return false
     } else if (filter !== 'all' && accountGroup(row) !== filter) return false
@@ -135,13 +215,13 @@ export function filterRows(rows: AnyRecord[], { filter = 'none', batchId = null,
 
 // A role chosen for one row: the department roles take the employee's own
 // department unless one was chosen; the other roles have no department.
-export function setRowRole(drafts: RoleDrafts, row: AnyRecord, role: string) {
+export function setRowRole(drafts: RoleDrafts, row: RosterRow, role: string) {
   const current = drafts[row.employeeId] || {}
   const departmentId = needsDepartment(role) ? current.departmentId || row.departmentId || null : null
   return { ...drafts, [row.employeeId]: { role, departmentId } }
 }
 
-export function setRowDepartment(drafts: RoleDrafts, row: AnyRecord, departmentId: string) {
+export function setRowDepartment(drafts: RoleDrafts, row: RosterRow, departmentId: string) {
   const current = drafts[row.employeeId] || {}
   return { ...drafts, [row.employeeId]: { ...current, departmentId: departmentId || null } }
 }
@@ -149,7 +229,7 @@ export function setRowDepartment(drafts: RoleDrafts, row: AnyRecord, departmentI
 // «Ορισμός ρόλου σε όλους τους επιλεγμένους»: only the selected rows without a
 // role, unless «Αντικατάσταση και όσων έχουν ήδη ρόλο» is ticked. scope 'own'
 // gives each department role the employee's own department, 'one' the chosen one.
-export function applyRoleToSelected(drafts: RoleDrafts, selectedIds: Iterable<string>, rowsById: RowsById, { role, replace = false, scope = 'own', departmentId = null }: AnyRecord) {
+export function applyRoleToSelected(drafts: RoleDrafts, selectedIds: Iterable<string>, rowsById: RowsById, { role, replace = false, scope = 'own', departmentId = null }: BulkRoleOptions) {
   const next: RoleDrafts = { ...drafts }
   for (const id of selectedIds) {
     const row = rowsById.get(id)
@@ -186,8 +266,9 @@ export function selectionSummary(selectedIds: Iterable<string>, drafts: RoleDraf
   return { selected, missingRole, missingDepartment, missingNames, ready: selected > 0 && selected <= MAX_RUN && !missingRole && !missingDepartment }
 }
 
-export function buildItems(selectedIds: Iterable<string>, drafts: RoleDrafts) {
-  return [...selectedIds].map(id => ({ employeeId: id, role: drafts[id].role, departmentId: needsDepartment(drafts[id].role) ? drafts[id].departmentId || null : null }))
+// Only for a ready selection (selectionSummary): every selected row has a role.
+export function buildItems(selectedIds: Iterable<string>, drafts: RoleDrafts): BulkItem[] {
+  return [...selectedIds].map(id => ({ employeeId: id, role: drafts[id]!.role as string, departmentId: needsDepartment(drafts[id]!.role) ? drafts[id]!.departmentId || null : null }))
 }
 
 export function chunk<T>(list: T[], size: number): T[][] {
@@ -202,7 +283,7 @@ export function chunk<T>(list: T[], size: number): T[][] {
 //   sent       created, e-mail sent or waiting, link still valid;
 //   expired    created, the link expired or was revoked without a newer one;
 //   failed     the creation failed (item_error), or the e-mail was rejected.
-export function resultStatus(row: AnyRecord, now = new Date()) {
+export function resultStatus(row: RosterRow, now = new Date()) {
   if (row.accountState === 'active') return row.itemStatus === 'linked_existing' ? 'linked' : 'activated'
   if (row.accountState === 'invited') {
     if (row.emailStatus === 'failed') return 'failed'
@@ -215,10 +296,10 @@ export function resultStatus(row: AnyRecord, now = new Date()) {
 
 // The order of the result view: what needs attention first.
 const RESULT_ORDER = ['failed', 'expired', 'sent', 'linked', 'activated', 'none']
-export const sortByResult = (rows: AnyRecord[], now = new Date()) =>
+export const sortByResult = (rows: RosterRow[], now = new Date()) =>
   [...rows].sort((a, b) => RESULT_ORDER.indexOf(resultStatus(a, now)) - RESULT_ORDER.indexOf(resultStatus(b, now)) || a.name.localeCompare(b.name, 'el'))
 
-export function resultTotals(rows: AnyRecord[], now = new Date()) {
+export function resultTotals(rows: RosterRow[], now = new Date()) {
   const totals = { createdOrLinked: 0, activated: 0, pending: 0, failed: 0 }
   for (const row of rows) {
     const status = resultStatus(row, now)
@@ -260,8 +341,8 @@ const REASONS: Record<string, [string, string]> = {
   ITEM_FAILED: ['δεν καταχωρίστηκε · δοκιμάστε ξανά', 'not recorded · try again'],
   AUTH_ERROR: ['σφάλμα δημιουργίας λογαριασμού', 'account creation error'],
 }
-export function reasonText(code: string, language = 'el') {
-  const entry = REASONS[code]
+export function reasonText(code: string | null | undefined, language = 'el') {
+  const entry = REASONS[code as string]
   if (entry) return entry[language === 'en' ? 1 : 0]
   return code ? String(code) : ''
 }

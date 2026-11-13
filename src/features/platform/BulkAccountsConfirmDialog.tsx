@@ -5,7 +5,7 @@ import { Button } from '../../design-system/Button'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { needsDepartment, reasonText } from './bulkAccountsModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { BulkItem, BulkOrganization, BulkPreview, RosterDepartment, RosterRow } from './bulkAccountsModel'
 
 const day = (value: string | null | undefined, language: string, withWeekday = false) =>
   value
@@ -24,14 +24,14 @@ const time = (value: string | null | undefined, language: string) =>
 // link's validity, e-mails that already have an account in another hospital (each
 // confirmed one by one, no second account), who is skipped, that only the
 // Platform Owner can do this, and the e-mail of the first recipient.
-export function BulkAccountsConfirmDialog({ organization, language, items, rowsById, departments, preview, confirmedExisting, onToggleExisting, running, progress, onBack, onConfirm }: { organization: AnyRecord, language: string, items: AnyRecord[], rowsById: Map<string, AnyRecord>, departments: AnyRecord[], preview: AnyRecord | null, confirmedExisting: Set<string>, onToggleExisting: (employeeId: string) => void, running: boolean, progress: AnyRecord | null, onBack: () => void, onConfirm: () => void }) {
+export function BulkAccountsConfirmDialog({ organization, language, items, rowsById, departments, preview, confirmedExisting, onToggleExisting, running, progress, onBack, onConfirm }: { organization: BulkOrganization, language: string, items: BulkItem[], rowsById: Map<string, RosterRow>, departments: RosterDepartment[], preview: BulkPreview | null, confirmedExisting: Set<string>, onToggleExisting: (employeeId: string) => void, running: boolean, progress: { done: number, total: number } | null, onBack: () => void, onConfirm: () => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const [fullEmail, setFullEmail] = useState(false)
-  const existingIds = new Set((preview?.existing || []).map((row: AnyRecord) => row.employeeId))
-  const skippedIds = new Set((preview?.skipped || []).map((row: AnyRecord) => row.employeeId))
-  const runItems = items.filter((item: AnyRecord) => !skippedIds.has(item.employeeId) && (!existingIds.has(item.employeeId) || confirmedExisting.has(item.employeeId)))
-  const byRole = new Map()
+  const existingIds = new Set((preview?.existing || []).map(row => row.employeeId))
+  const skippedIds = new Set((preview?.skipped || []).map(row => row.employeeId))
+  const runItems = items.filter((item: BulkItem) => !skippedIds.has(item.employeeId) && (!existingIds.has(item.employeeId) || confirmedExisting.has(item.employeeId)))
+  const byRole = new Map<string, { role: string, count: number, departments: string[] }>()
   for (const item of runItems) {
     const row = byRole.get(item.role) || { role: item.role, count: 0, departments: [] }
     row.count++
@@ -42,7 +42,7 @@ export function BulkAccountsConfirmDialog({ organization, language, items, rowsB
   const roles = [...byRole.values()].sort((a, b) => b.count - a.count)
   const count = runItems.length
   const email = preview?.emailPreview
-  const firstItem = email ? items.find((item: AnyRecord) => rowsById.get(item.employeeId)?.name === email.name) : null
+  const firstItem = email ? items.find((item: BulkItem) => rowsById.get(item.employeeId)?.name === email.name) : null
   return (
     <>
       <ObserverDialog
@@ -129,7 +129,7 @@ export function BulkAccountsConfirmDialog({ organization, language, items, rowsB
                       'Δεν φτιάχνεται δεύτερος λογαριασμός: ο ίδιος λογαριασμός αποκτά τον ρόλο και εδώ και λαμβάνει email ενημέρωσης χωρίς νέο κωδικό. Επιβεβαιώστε κάθε άτομο:',
                       'No second account is made: the same account gets the role here too and an e-mail notice, without a new password. Confirm each person:',
                     )}
-                    {preview.existing.map((row: AnyRecord) => (
+                    {preview.existing.map(row => (
                       <CheckboxField
                         key={row.employeeId}
                         className="bulk-accounts-existing"
@@ -150,7 +150,7 @@ export function BulkAccountsConfirmDialog({ organization, language, items, rowsB
                   <TriangleAlert size={16} />
                   <div>
                     <strong>{tx(`Παραλείπονται ${preview.skipped.length}`, `${preview.skipped.length} skipped`)}</strong>
-                    {preview.skipped.map((row: AnyRecord) => (
+                    {preview.skipped.map(row => (
                       <div key={row.employeeId}>
                         {row.name || '—'}: {reasonText(row.code, language)}
                       </div>
@@ -232,9 +232,9 @@ export function BulkAccountsConfirmDialog({ organization, language, items, rowsB
   )
 }
 
-function departmentName(item: AnyRecord, rowsById: Map<string, AnyRecord>, departments: AnyRecord[] | null | undefined) {
+function departmentName(item: Pick<BulkItem, 'employeeId' | 'departmentId'>, rowsById: Map<string, RosterRow>, departments: RosterDepartment[] | null | undefined) {
   if (!item.departmentId) return ''
   const own = rowsById.get(item.employeeId)
   if (own?.departmentId === item.departmentId) return own!.departmentName
-  return (departments || []).find((d: AnyRecord) => d.id === item.departmentId)?.name || [...rowsById.values()].find(row => row.departmentId === item.departmentId)?.departmentName || ''
+  return (departments || []).find((d: RosterDepartment) => d.id === item.departmentId)?.name || [...rowsById.values()].find(row => row.departmentId === item.departmentId)?.departmentName || ''
 }
