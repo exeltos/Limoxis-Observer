@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, ShieldCheck, Siren, Truck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -9,7 +9,7 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
-import { useKitchen, useKitchenAccess, type KitchenFilterProps } from './KitchenShared'
+import { useKitchen, useKitchenAccess, type KitchenDialog, type KitchenFilterProps, type KitchenFilters } from './KitchenShared'
 import { HaccpPanel, OverviewPanel, PlanPanel, ReceiptsPanel, SettingsDialog, StockPanel, TraceDialog, VerificationPanel } from './KitchenPanels'
 import { DefrostDialog, LimitsDialog, MenuDialog, ProductDialog, ProductionDialog, PureeingDialog, ReceiptDialog, StepDialog, ThermalDialog, UsageDialog, WriteoffDialog } from './KitchenDialogs'
 import { KITCHEN_PRIMARY_ACTION, addDays, categoryLabel, newProduction, newReceipt, overview, productionForDay, resolveKitchenLocation, stockRows, todayKey } from './kitchenModel'
@@ -17,7 +17,7 @@ import { dailyHaccpDocument, exportKitchenList, kitchenListExport, receiptsLogDo
 import { registryMenu } from '../../core/export/registryExports'
 import { RecallDialog, RecallPanel } from './KitchenRecall'
 import { drillSubject, newRecallDrill, recallSummary } from './kitchenRecallModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { KitchenListRow, KitchenRecallDrill, KitchenScreenState, KitchenStockRow } from './kitchenTypes'
 
 const initialFilters = () => ({
   receipts: { query: '', result: 'all', supplier: 'all', limits: 'all', from: '', to: '' },
@@ -42,19 +42,19 @@ export function KitchenPage() {
   useEffect(() => { if (params.get('tab') && wantsRewrite) setLocation(tab, view) }, [wantsRewrite, tab, view]) // eslint-disable-line react-hooks/exhaustive-deps
   const access = useKitchenAccess()
   const { state, loading, reload, organizationId, showSince } = useKitchen()
-  const [filters, setAllFilters] = useState<Record<string, AnyRecord>>(initialFilters)
+  const [filters, setAllFilters] = useState<Record<string, KitchenFilters>>(initialFilters)
   // The lists show the loaded window; a «From» date (or a longer verification period) before it reads further back.
   const today = todayKey()
   const wantSince = useMemo(() => (filters.verification.range === 'all' ? null : [addDays(today, -Number(filters.verification.range || 30)), ...['receipts', 'plan'].map(key => filters[key].from)].filter(Boolean).sort()[0]), [filters, today])
   useEffect(() => { showSince(wantSince) }, [wantSince, showSince])
   const filtersFor = (key: string): FilterPair => [filters[key], updater => setAllFilters(current => ({ ...current, [key]: typeof updater === 'function' ? updater(current[key]) : updater }))]
-  const [dialog, setDialog] = useState<AnyRecord | null>(null)
+  const [dialog, setDialog] = useState<KitchenDialog | null>(null)
   const [trace, setTrace] = useState<string | null>(null)
-  const [recallDraft, setRecall] = useState<AnyRecord | null>(null)
+  const [recallDraft, setRecall] = useState<KitchenRecallDrill | null>(null)
   // An address of the old Recall / Verification tabs scrolls to its section of the shared tab.
     const stock = useMemo(() => (state ? stockRows(state, today) : []), [state, today])
   const summary = useMemo(() => (state ? overview(state, today) : null), [state, today])
-  const dishes = useMemo(() => (state ? [...new Set([...state.thermal.map((row: AnyRecord) => row.dishName), ...state.productions.flatMap((row: AnyRecord) => (row.meals || []).map((meal: AnyRecord) => meal.dish))].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')).slice(0, 400) : []), [state])
+  const dishes = useMemo(() => (state ? [...new Set([...state.thermal.map(row => row.dishName), ...state.productions.flatMap(row => (row.meals || []).map(meal => meal.dish))].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')).slice(0, 400) : []), [state])
   const openDay = (id: string) => navigate(`/kitchen/days/${id}`)
   const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
 
@@ -63,13 +63,13 @@ export function KitchenPage() {
   // One export control per page: what the tab shows.
   const todayProduction = productionForDay(state, today) || [...state.productions].filter(item => item.productionDate <= today).sort((a, b) => b.productionDate.localeCompare(a.productionDate))[0]
   const [receiptFilters] = filtersFor('receipts')
-  const receiptsInView = state.receipts.filter((row: AnyRecord) => (!receiptFilters.from || row.receivedOn >= receiptFilters.from) && (!receiptFilters.to || row.receivedOn <= receiptFilters.to)).sort((a: AnyRecord, b: AnyRecord) => String(a.receivedOn).localeCompare(String(b.receivedOn)))
+  const receiptsInView = state.receipts.filter(row => (!receiptFilters.from || row.receivedOn >= receiptFilters.from) && (!receiptFilters.to || row.receivedOn <= receiptFilters.to)).sort((a, b) => String(a.receivedOn).localeCompare(String(b.receivedOn)))
   const logFrom = receiptFilters.from || addDays(today, -30), logTo = receiptFilters.to || today
-  const productRows = () => state.products.map((item: AnyRecord) => ({ ...item, supplierName: state.suppliers.find((s: AnyRecord) => s.id === item.supplierId)?.name || '', categoryLabel: categoryLabel(item.category, language) }))
+  const productRows = () => state.products.map(item => ({ ...item, supplierName: state.suppliers.find(s => s.id === item.supplierId)?.name || '', categoryLabel: categoryLabel(item.category, language) }))
   // A kitchen list: print, PDF and Excel from the same rows (rowsOf is read on click).
-  const kitchenListMenu = (kind: string, rowsOf: () => AnyRecord[], title: string) => registryMenu(() => kitchenListExport(kind, rowsOf(), language), { language, kind: en ? 'Kitchen' : 'Κουζίνα', title: `${en ? 'Kitchen' : 'Κουζίνα'} · ${title}`, onBlocked: blocked })
+  const kitchenListMenu = (kind: string, rowsOf: () => KitchenListRow[], title: string) => registryMenu(() => kitchenListExport(kind, rowsOf(), language), { language, kind: en ? 'Kitchen' : 'Κουζίνα', title: `${en ? 'Kitchen' : 'Κουζίνα'} · ${title}`, onBlocked: blocked })
   const dayDocument = todayProduction ? reportExports(() => dailyHaccpDocument(state, todayProduction, { language }), { word: true, onBlocked: blocked }) : {}
-  const exportsFor: Record<string, AnyRecord> = {
+  const exportsFor: Record<string, ComponentProps<typeof ExportMenu>> = {
     today: dayDocument,
     // The period lists of the records (heat, defrosting, pureeing, materials in use) are Excel files here: they are recorded in the production day.
     days: { ...dayDocument, items: [
@@ -77,15 +77,15 @@ export function KitchenPage() {
         ['thermal', en ? 'Heat treatments' : 'Θερμικές επεξεργασίες', () => state.thermal],
         ['defrosting', en ? 'Defrosting' : 'Αποψύξεις', () => state.defrosting],
         ['pureeing', en ? 'Pureeing' : 'Πολτοποιήσεις', () => state.pureeing],
-        ['usage', en ? 'Materials in use' : 'Υλικά σε χρήση', () => state.usage.map((row: AnyRecord) => ({ ...row, batch: stock.find(item => item.receiptItemId === row.receiptItemId) }))],
-      ] as [string, string, () => AnyRecord[]][]).flatMap(([kind, label, rowsOf]) => [
+        ['usage', en ? 'Materials in use' : 'Υλικά σε χρήση', () => state.usage.map(row => ({ ...row, batch: stock.find(item => item.receiptItemId === row.receiptItemId) }))],
+      ] as [string, string, () => KitchenListRow[]][]).flatMap(([kind, label, rowsOf]) => [
         { id: `p-${kind}`, kind: 'print', label: `${en ? 'Print' : 'Εκτύπωση'} · ${label}`, onClick: () => kitchenListMenu(kind, rowsOf, label).onPrint() },
         { id: `x-${kind}`, kind: 'excel', label: `Excel · ${label}`, onClick: () => exportKitchenList(kind, rowsOf(), language) },
       ]),
     ] },
-    storage: view === 'receipts' ? { ...reportExports(() => receiptsLogDocument(receiptsInView.filter((row: AnyRecord) => row.receivedOn >= logFrom && row.receivedOn <= logTo), { from: logFrom, to: logTo, language }), { onBlocked: blocked }), onExcel: () => exportKitchenList('receipts', receiptsInView, language) }
+    storage: view === 'receipts' ? { ...reportExports(() => receiptsLogDocument(receiptsInView.filter(row => row.receivedOn >= logFrom && row.receivedOn <= logTo), { from: logFrom, to: logTo, language }), { onBlocked: blocked }), onExcel: () => exportKitchenList('receipts', receiptsInView, language) }
       : view === 'products' ? kitchenListMenu('products', productRows, en ? 'Products' : 'Προϊόντα') : kitchenListMenu('stock', () => stock, en ? 'Stock' : 'Απόθεμα'),
-    safety: kitchenListMenu('recall', () => (state.recallDrills || []).map((row: AnyRecord) => ({ ...row, subject: drillSubject(row, state, language) })), en ? 'Recall drills' : 'Ασκήσεις ανάκλησης'),
+    safety: kitchenListMenu('recall', () => (state.recallDrills || []).map(row => ({ ...row, subject: drillSubject(row, state, language) })), en ? 'Recall drills' : 'Ασκήσεις ανάκλησης'),
     haccp: {},
   }
   const exportProps = exportsFor[tab] || {}
@@ -131,11 +131,11 @@ export function KitchenPage() {
   </Page>
 }
 
-type FilterPair = [AnyRecord, KitchenFilterProps['setFilters']]
+type FilterPair = [KitchenFilters, KitchenFilterProps['setFilters']]
 const pair = ([filters, setFilters]: FilterPair) => ({ filters, setFilters })
 
 // The dialogs of the kitchen, shared by the page and the records.
-interface KitchenDialogHostProps { dialog: AnyRecord | null; setDialog: (dialog: AnyRecord | null) => void; state: AnyRecord; stock: AnyRecord[]; dishes: string[]; organizationId: string | null; reload: () => Promise<unknown>; onOpenDay?: (id: string) => void }
+interface KitchenDialogHostProps { dialog: KitchenDialog | null; setDialog: (dialog: KitchenDialog | null) => void; state: KitchenScreenState; stock: KitchenStockRow[]; dishes: string[]; organizationId: string | null; reload: () => Promise<unknown>; onOpenDay?: (id: string) => void }
 export function KitchenDialogHost({ dialog, setDialog, state, stock, dishes, organizationId, reload, onOpenDay }: KitchenDialogHostProps) {
   if (!dialog) return null
   const close = () => setDialog(null)

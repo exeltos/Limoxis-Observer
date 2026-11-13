@@ -10,7 +10,7 @@ import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { kitchenSince, loadKitchen, loadKitchenDay, loadKitchenReceipt, loadKitchenTrace, mergeKitchenState } from './kitchenService'
 import { limitFor, limitText, statusLabel, statusTone } from './kitchenLimits'
 import './kitchen.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { KitchenDefrostDraft, KitchenHaccpStep, KitchenMenu, KitchenProduct, KitchenProduction, KitchenPureeing, KitchenReceipt, KitchenRecallDrill, KitchenScreenState, KitchenState, KitchenStockRow, KitchenThermal, KitchenUsage } from './kitchenTypes'
 import type { RegistryColumn } from '../../design-system/RegistryTable'
 import type { EmptyStateAction } from '../../design-system/RegistryEmptyState'
 import type { IconType } from '../../design-system/types'
@@ -32,35 +32,53 @@ export type KitchenAccess = ReturnType<typeof useKitchenAccess>
 
 // What the kitchen page gives its panels (KitchenPage: props and filtersFor).
 export interface KitchenPanelProps {
-  state: AnyRecord; access: KitchenAccess; reload: () => Promise<unknown>; organizationId: string | null; stock: AnyRecord[]
-  onDialog: (dialog: AnyRecord | null) => void; onOpenDay: (id: string) => void; onTrace: (receiptItemId: string | null) => void; onRecall: (drill: AnyRecord | null) => void
+  state: KitchenState; access: KitchenAccess; reload: () => Promise<unknown>; organizationId: string | null; stock: KitchenStockRow[]
+  onDialog: (dialog: KitchenDialog | null) => void; onOpenDay: (id: string) => void; onTrace: (receiptItemId: string | null) => void; onRecall: (drill: KitchenRecallDrill | null) => void
 }
-export interface KitchenFilterProps { filters: AnyRecord; setFilters: (next: AnyRecord | ((current: AnyRecord) => AnyRecord)) => void; switcher?: ReactNode }
+// The filters of a list (query, period, the selects): text values, 'all' when unfiltered.
+export type KitchenFilters = Record<string, string>
+export interface KitchenFilterProps { filters: KitchenFilters; setFilters: (next: KitchenFilters | ((current: KitchenFilters) => KitchenFilters)) => void; switcher?: ReactNode }
+// A dialog the kitchen page or a record opens (KitchenDialogHost): its type, and the record
+// it edits (initial: a new… draft of kitchenModel or a saved row) or the batch it withdraws from.
+export type KitchenDialog =
+  | { type: 'receipt'; initial: KitchenReceipt }
+  | { type: 'thermal'; initial: KitchenThermal }
+  | { type: 'defrost'; initial: KitchenDefrostDraft }
+  | { type: 'pureeing'; initial: KitchenPureeing }
+  | { type: 'usage'; initial: KitchenUsage }
+  | { type: 'writeoff'; batch: KitchenStockRow }
+  | { type: 'product'; initial: KitchenProduct }
+  | { type: 'menu'; initial: KitchenMenu }
+  | { type: 'step'; initial: Partial<KitchenHaccpStep> }
+  | { type: 'production'; initial: KitchenProduction }
+  | { type: 'limits' | 'settings' }
+// What a trace reads beyond the loaded state (loadKitchenTrace).
+export type KitchenTraceSubject = NonNullable<Parameters<typeof loadKitchenTrace>[1]>
 
 // The kitchen, with each entry's in / out of limits: the register from `since` on
 // (showSince(day) reads further back, showSince(null) the whole history), or one
 // receipt (receiptId) or production day (productionId) with what its page needs.
 export function useKitchen({ receiptId = null, productionId = null }: { receiptId?: string | null, productionId?: string | null } = {}) {
   const { tenant } = useTenant()
-  const [state, setState] = useState<AnyRecord | null>(null)
+  const [state, setState] = useState<KitchenScreenState | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
-  const [since, setSince] = useState(() => kitchenSince())
+  const [since, setSince] = useState<string | null>(() => kitchenSince())
   const reload = useCallback(() => {
     setLoading(true)
     const read = receiptId ? loadKitchenReceipt(tenant?.id, receiptId) : productionId ? loadKitchenDay(tenant?.id, productionId) : loadKitchen(tenant?.id, { since })
     return read.then(next => { setState(next); setFailed(false) }).catch(error => { console.error(error); setFailed(true) }).finally(() => setLoading(false))
   }, [tenant?.id, receiptId, productionId, since])
   useEffect(() => { void reload() }, [reload])
-  const showSince = useCallback((day: string) => setSince(current => (current && (day === null || (day && day < current)) ? day : current)), [])
+  const showSince = useCallback((day: string | null) => setSince(current => (current && (day === null || (day && day < current)) ? day : current)), [])
   return { state, loading, failed, reload, organizationId: tenant?.id || null, since, showSince }
 }
 
 // The state with what a trace needs beyond it (every use of the subject's batches),
 // read from the database; `ready` once it is there. The demo has it all already.
-export function useKitchenTrace(state: AnyRecord, organizationId: string | null | undefined, subject: AnyRecord | null | undefined) {
+export function useKitchenTrace<S extends KitchenState>(state: S, organizationId: string | null | undefined, subject: KitchenTraceSubject | null | undefined) {
   const key = subject ? JSON.stringify(subject) : ''
-  const [extra, setExtra] = useState<AnyRecord | null>(null)
+  const [extra, setExtra] = useState<{ key: string, rows: Awaited<ReturnType<typeof loadKitchenTrace>> } | null>(null)
   useEffect(() => {
     if (!key) return undefined
     let active = true
@@ -96,14 +114,16 @@ export function LiveLimit({ status, limits, limitKey, language, text = '' }: { s
   </div>
 }
 
-interface KitchenListProps {
-  rows: AnyRecord[]; query: string; onQueryChange: (query: string) => void; placeholder?: string; filters?: ReactNode; activeFilters?: number; onClear?: () => void
-  columns: RegistryColumn<AnyRecord>[]; renderRow: (row: AnyRecord) => ReactNode; rowProps?: (row: AnyRecord) => HTMLAttributes<HTMLTableRowElement> | null | undefined
+// A row of a kitchen list: its key is its id (a batch of the stock: its receipt item).
+export interface KitchenListItem { id?: string; receiptItemId?: string }
+interface KitchenListProps<T extends KitchenListItem> {
+  rows: T[]; query: string; onQueryChange: (query: string) => void; placeholder?: string; filters?: ReactNode; activeFilters?: number; onClear?: () => void
+  columns: RegistryColumn<T>[]; renderRow: (row: T) => ReactNode; rowProps?: (row: T) => HTMLAttributes<HTMLTableRowElement> | null | undefined
   empty?: boolean; emptyTitle?: ReactNode; emptyText?: ReactNode; emptyIcon?: IconType; emptyAction?: EmptyStateAction | null; end?: ReactNode; className?: string
 }
 
 // A kitchen list: search, filters, the table and pagination, as the registries.
-export function KitchenList({ rows, query, onQueryChange, placeholder, filters = null, activeFilters = 0, onClear, columns, renderRow, rowProps, empty, emptyTitle, emptyText, emptyIcon, emptyAction, end = null, className = '' }: KitchenListProps) {
+export function KitchenList<T extends KitchenListItem>({ rows, query, onQueryChange, placeholder, filters = null, activeFilters = 0, onClear, columns, renderRow, rowProps, empty, emptyTitle, emptyText, emptyIcon, emptyAction, end = null, className = '' }: KitchenListProps<T>) {
   const { language } = useLanguage()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
@@ -112,7 +132,7 @@ export function KitchenList({ rows, query, onQueryChange, placeholder, filters =
   return <>
     <FilterBar query={query} onQueryChange={onQueryChange} placeholder={placeholder} activeAdvancedCount={activeFilters} onClear={onClear} end={end}>{filters}</FilterBar>
     <div className="scroll-table">
-      <RegistryTable sortable={false} bare className={`kitchen-table ${className}`.trim()} rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id || row.receiptItemId} columns={columns} renderRow={renderRow} rowProps={rowProps}
+      <RegistryTable sortable={false} bare className={`kitchen-table ${className}`.trim()} rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => (row.id || row.receiptItemId) as string} columns={columns} renderRow={renderRow} rowProps={rowProps}
         empty={empty} emptyFiltered={empty && (Boolean(query) || activeFilters > 0)} onClearFilters={onClear} emptyTitle={emptyTitle} emptyText={emptyText} emptyIcon={emptyIcon} emptyAction={emptyAction} />
     </div>
     {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
