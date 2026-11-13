@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { deadlineText } from '../src/features/controls/controlProgress'
 import { filterControlRows } from '../src/features/controls/controlFilters'
+import type { ControlRow } from '../src/features/controls/controlTypes'
 import { dashboardTasks } from '../src/features/dashboard/dashboardTasks'
 import { readSource } from './helpers/readSource'
 
@@ -17,7 +18,7 @@ describe('a department records its controls of the day', () => {
   it('keeps the controls a department still owes today', () => {
     const daily = { id: 'A', title: 'A', category: '', frequency: { kind: 'daily', timesPerDay: 1, times: ['09:00'] }, assignments: { ΜΕΘ: { nextDueAt: '2026-10-27T19:59:00Z', history: [] } } }
     const monthly = { id: 'B', title: 'B', category: '', frequency: { kind: 'monthly', interval: 1 }, assignments: { ΜΕΘ: { nextDueAt: '2026-11-30T21:59:00Z', history: [] } } }
-    const rows = [{ item: daily, departments: ['ΜΕΘ'] }, { item: monthly, departments: ['ΜΕΘ'] }]
+    const rows: ControlRow[] = [{ item: daily, departments: ['ΜΕΘ'] }, { item: monthly, departments: ['ΜΕΘ'] }] as never
     expect(filterControlRows(rows, { status: 'today', now }).map((row) => row.item.id)).toEqual(['A'])
   })
 

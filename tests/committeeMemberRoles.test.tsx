@@ -154,7 +154,7 @@ describe('committee members list', () => {
   ]
 
   it('lists active members with role badges, specialty and responsibilities, and hides former members', () => {
-    render(<Members rows={rows} canManage={false} en={false} />)
+    render(<Members rows={rows} canManage={false} en={false} {...{} as { onAdd: never, onEdit: never, onEnd: never }} />)
     const body = screen.getAllByRole('rowgroup')[1]
     const lines = within(body).getAllByRole('row')
     expect(lines).toHaveLength(2)
@@ -169,7 +169,7 @@ describe('committee members list', () => {
   })
 
   it('shows former members on request, kept for history', () => {
-    render(<Members rows={rows} canManage={false} en />)
+    render(<Members rows={rows} canManage={false} en {...{} as { onAdd: never, onEdit: never, onEnd: never }} />)
     fireEvent.click(screen.getByLabelText('Show former members (1)'))
     expect(screen.getByText('Past person')).toBeInTheDocument()
     expect(screen.getByText('Past person').closest('tr')).toHaveClass('committee-member-inactive')
