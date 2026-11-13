@@ -2,10 +2,10 @@
 -- (εγκρίθηκε από τον ιδιοκτήτη 12/11/2026). Με τις δύο ώρες η «Ηλικία εισαγωγής
 -- σε ώρες» υπολογίζεται στην εφαρμογή (ρολόι Αθήνας)· χωρίς αυτές γράφεται με το
 -- χέρι, όπως στο FileMaker. Οι ώρες που ήρθαν από το FileMaker δεν αλλάζουν.
--- Προϋπόθεση: docs/sql/register_time_field_type.sql (νέος τύπος στον έλεγχο).
+-- Προϋπόθεση: docs/sql/done/register_time_field_type.sql (νέος τύπος στον έλεγχο).
 -- Οι δύο βοηθητικές συναρτήσεις τρέχουν με τα δικαιώματα του καλούντος και
 -- αρνούνται τους χρήστες της εφαρμογής· το revoke τους είναι στο
--- docs/sql/register_time_field_type.sql (το τρέχει ο ιδιοκτήτης).
+-- docs/sql/done/register_time_field_type.sql (το τρέχει ο ιδιοκτήτης).
 
 create or replace function private.register_column_sql(f public.department_register_fields)
 returns text

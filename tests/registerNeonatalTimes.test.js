@@ -7,7 +7,7 @@ import { readSource } from './helpers/readSource'
 const nicu = REGISTER_TEMPLATES.find(template => template.key === 'nicu')
 const fields = nicu.fields
 const migration = readSource('supabase/migrations/20261231490000_register_time_fields_nicu.sql')
-const ownerSql = readSource('docs/sql/register_time_field_type.sql')
+const ownerSql = readSource('docs/sql/done/register_time_field_type.sql')
 
 describe('NICU register: birth and admission times', () => {
   it('the template has the two times next to their dates and the hours after the age in days', () => {
