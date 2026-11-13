@@ -60,10 +60,10 @@ export function collectIndicatorMetrics(){
  const vaccinated=new Set(loadVaccinations().filter((x: { vaccine?: string, employeeId?: string })=>FLU_VACCINE_PATTERNS.some(pattern=>String(x.vaccine||'').toLowerCase().includes(pattern))).map((x: { vaccine?: string, employeeId?: string })=>x.employeeId))
  const mdroBsi=laboratorySamples.filter(x=>x.result==='positive'&&x.organism&&x.resistance&&String(x.source||x.type||'').toLowerCase().includes('blood')).length
  const patientDays=abhrEligible.reduce((s,x)=>s+Number(x.patientDays||0),0)
- const bacteremias=laboratorySamples.filter(x=>x.type==='bloodCulture'&&x.result==='positive'&&x.organism&&['validated','amended'].includes(x.resultStatus))
+ const bacteremias=laboratorySamples.filter(x=>x.type==='bloodCulture'&&x.result==='positive'&&x.organism&&['validated','amended'].includes(x.resultStatus as string))
  const bacteremiaByPathogen=Object.fromEntries(Object.entries(BACTEREMIA_PATHOGEN_PATTERNS).map(([key,pattern])=>[key,bacteremias.filter(x=>String(x.organism).toLowerCase().includes(pattern)).length]))
  const bacteremiaTotal=bacteremias.filter(x=>Object.values(BACTEREMIA_PATHOGEN_PATTERNS).some(pattern=>String(x.organism).toLowerCase().includes(pattern))).length
- const validatedIsolates=laboratorySamples.filter(x=>x.organism&&['validated','amended'].includes(x.resultStatus))
+ const validatedIsolates=laboratorySamples.filter(x=>x.organism&&['validated','amended'].includes(x.resultStatus as string))
  const amrByPathogen: Record<string, number>={}
  for(const [key,organismPattern] of Object.entries(REFERENCE_PATHOGEN_PATTERNS)){
   const antibioticPattern=AMR_REFERENCE_ANTIBIOTIC[key]

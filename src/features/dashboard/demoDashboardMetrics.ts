@@ -20,6 +20,7 @@ import { interviewsDemoState } from '../interviews/interviewsDemoData'
 import { OPEN_STATUSES as OPEN_CANDIDATE_STATUSES } from '../interviews/interviewsModel'
 import { hospitalDate } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { CommunicatedSample } from '../surveillance/surveillanceListTypes'
 
 // What the counts read of the Demo records of the other modules.
 type DepartmentRow = { department?: string | { name?: string | null } | null, department_id?: string | null }
@@ -57,7 +58,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     row =>
       inDepartment(row) &&
       row.subjectType !== 'environment' &&
-      !['completed', 'validated', 'cancelled', 'rejected'].includes(row.status),
+      !['completed', 'validated', 'cancelled', 'rejected'].includes(row.status as string),
   ).length
   const capas = loadQualityLocal('capas')
   const incidents = loadQualityLocal('incidents')
@@ -87,7 +88,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     newSamplesToday: s.dashboard?.newSamplesToday ?? 0,
     positiveLab: m.totalPositive,
     criticalUncommunicated: laboratorySamples.filter(
-      row => inDepartment(row) && row.critical && row.result === 'positive' && !isCommunicated(row),
+      row => inDepartment(row) && row.critical && row.result === 'positive' && !isCommunicated(row as CommunicatedSample),
     ).length,
     recentMdro: mdro,
     activeEmployees: s.employees,

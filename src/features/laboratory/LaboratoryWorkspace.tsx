@@ -52,17 +52,25 @@ import { LAB_RESULT_SCOPES, defaultLabScope, matchesLabScope, maskStaffSamples, 
 import { SampleReviewTag } from '../surveillance/SampleReviewWorklist'
 import './LaboratoryWorkspace.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { ComponentType, RefObject } from 'react'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { RefObject } from 'react'
+import type { Translate } from '../../types/featureTypes'
 import type { SubjectChoice } from '../../design-system/SubjectChoiceStep'
+import type { SearchableOption } from '../../design-system/SearchableSelect'
 import type { LabelLookup } from './LaboratorySampleViews'
 import type { Patient } from '../patients/patientTypes'
+import type { LibraryDepartment } from '../management/useLibraries'
+import type { ClinicalContext, ExtraSampleDraft, LabSample, TabExport } from './laboratoryTypes'
 
-// The patient dialog is still JavaScript: its props are typed from the defaults.
-const DuplicatePatientWindow = DuplicatePatientDialog as ComponentType<AnyRecord>
+// The new-sample form, every field as typed; and what it saves: the form, the questions' answers and the other samples of the visit.
+interface NewSampleForm { subjectType: string, subjectName: string, subjectNameEn: string, subjectCode: string, newPatient: boolean, departmentId: string, department: string, departmentEn: string, type: string, specimenTypeId: string, source: string, sourceEn: string, sourceCode: string, environmentType: string, anatomicalSite: string, collectedAt: string, priority: string, admissionScreening?: boolean }
+type NewSampleRequest = Omit<NewSampleForm, 'subjectName' | 'subjectNameEn'> & { subjectName?: string, subjectNameEn?: string, clinicalContext?: ClinicalContext, extraSamples?: ExtraSampleDraft[] }
+// What the form reads of an employee (the employees' list).
+interface LabEmployee { id: string, firstName?: string | null, lastName?: string | null, firstNameEn?: string | null, lastNameEn?: string | null, departmentId?: string | null, department?: string | null, departmentEn?: string | null, employmentStatus?: string | null }
+
+const DuplicatePatientWindow = DuplicatePatientDialog
 
 // Samples still on their way to a result (the «Pending» chip).
-const LAB_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
+const LAB_PENDING_STATUSES: unknown[] = ['requested', 'collected', 'received', 'processing']
 
 export function LaboratoryWorkspace() {
   const { t, language } = useLanguage()
@@ -86,7 +94,7 @@ export function LaboratoryWorkspace() {
   const [scope, setScope] = useState(saved.scope || defaultLabScope(role || actualRole))
   const [quick, setQuick] = useState(saved.quick || 'all')
   const [newOpen, setNewOpen] = useState(false)
-  const [patients, setPatients] = useState<AnyRecord[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   // Two categories: the samples and the notifiable diseases (only for the roles that see notifications).
@@ -98,7 +106,7 @@ export function LaboratoryWorkspace() {
   const [notifiableNew, setNotifiableNew] = useState(false)
   // The data checks and the EARS-Net export (formerly «Reporting & data quality» of the hospital overview), from «⋯».
   const [reportingPart, setReportingPart] = useState('')
-  const [duplicate, setDuplicate] = useState<{ draft: AnyRecord, matches: AnyRecord[] } | null>(null)
+  const [duplicate, setDuplicate] = useState<{ draft: NewSampleRequest, matches: Patient[] } | null>(null)
 
   useEffect(() => {
     if (!newOpen) return
@@ -111,7 +119,7 @@ export function LaboratoryWorkspace() {
   const fmt = (value: string | null | undefined) => formatDateTime(value, language)
   const departments = [...new Set(repositoryRows.map(sample => language === 'el' ? sample.department : sample.departmentEn).filter(Boolean))]
   const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
-  const surveillanceLabel = (sample: AnyRecord) => {
+  const surveillanceLabel = (sample: LabSample) => {
     const value = sample.surveillanceCase || sample.employeeSurveillanceCase || sample.employeeSurveillanceId || sample.environmentalSurveillanceCase || sample.environmentalBatchId
     if (!value) return '—'
     if (!isUuid(value)) return value
@@ -119,12 +127,12 @@ export function LaboratoryWorkspace() {
     if (sample.subjectType === 'environment') return language === 'el' ? 'Περιβαλλοντική επιτήρηση' : 'Environmental surveillance'
     return language === 'el' ? 'Ενεργή επιτήρηση' : 'Active surveillance'
   }
-  const sourceLabel = (sample: AnyRecord) => {
+  const sourceLabel = (sample: LabSample) => {
     const value = language === 'el' ? sample.source : sample.sourceEn
     if (!value) return '—'
     return sampleSourceLabel(value, language)
   }
-  const displaySampleCode = (sample: AnyRecord) => /^LAB-EMP-[0-9a-f-]{20,}$/i.test(sample.id) ? (language === 'el' ? 'Δείγμα εργαζομένου' : 'Employee sample') : sample.id
+  const displaySampleCode = (sample: LabSample) => /^LAB-EMP-[0-9a-f-]{20,}$/i.test(sample.id) ? (language === 'el' ? 'Δείγμα εργαζομένου' : 'Employee sample') : sample.id
   const rows = useMemo(() => repositoryRows
     .filter(sample => canAccessRecord(sample))
     .filter(sample => `${sample.id} ${sample.patient} ${sample.patientEn} ${sample.patientId} ${sample.organism ?? ''} ${sample.surveillanceCase ?? ''}`.toLowerCase().includes(query.toLowerCase()))
@@ -154,25 +162,25 @@ export function LaboratoryWorkspace() {
     type: sample => sampleTypeLabel(sample, t, language),
     source: sample => sourceLabel(sample),
     result: sample => labResultLabel(sample, t, language),
-    status: sample => LAB_STATUS_ORDER.indexOf(sample.status),
+    status: sample => LAB_STATUS_ORDER.indexOf(sample.status as string),
   }, { key: 'sample', dir: 'desc' })
   useEffect(() => { setPage(1) }, [sort])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const pagedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
 
-  async function createSample(draft: AnyRecord, confirmed = false) {
+  async function createSample(draft: NewSampleRequest, confirmed = false) {
     // A «new» patient who is already registered: use the existing one instead (or continue as new).
-    const found = draft.subjectType === 'patient' && draft.newPatient && !confirmed ? findPatientMatches(patients as unknown as Patient[], { fullName: draft.subjectName }) : []
+    const found = draft.subjectType === 'patient' && draft.newPatient && !confirmed ? findPatientMatches(patients, { fullName: draft.subjectName }) : []
     if (found.length) return setDuplicate({ draft, matches: found })
     setDuplicate(null)
     try {
-      let patient: AnyRecord | null | undefined = null
+      let patient: Patient | null | undefined = null
       if (draft.subjectType === 'patient') {
         patient = patients.find(item => item.id === draft.subjectCode)
         if (draft.newPatient && !isDemo) {
           const names = String(draft.subjectName || draft.subjectNameEn || '').trim().split(/\s+/)
-          const created = await createPatient(tenant?.id, patients as unknown as Patient[], {
+          const created = await createPatient(tenant?.id, patients, {
             patientCode: draft.subjectCode,
             firstName: names.shift() || '',
             lastName: names.join(' ') || '',
@@ -191,23 +199,23 @@ export function LaboratoryWorkspace() {
       await createRepositorySample({ patientRecordId: patient?.recordId || null, draft: { ...baseDraft, ...shared } })
       // The other samples of the same visit share the patient, department, time and priority; the questions follow only the cultures.
       for (const extra of extraSamples) {
-        const fields = { ...extra }
+        const fields: Partial<ExtraSampleDraft> = { ...extra }
         delete fields.choice; delete fields.id
         const { clinicalContext, ...withoutContext } = baseDraft
-        await createRepositorySample({ patientRecordId: patient?.recordId || null, draft: { ...withoutContext, ...fields, ...shared, ...(clinicalContext && (isCultureSampleType(fields.type) || clinicalContext.admissionScreening) ? { clinicalContext } : {}) } })
+        await createRepositorySample({ patientRecordId: patient?.recordId || null, draft: { ...withoutContext, ...fields, ...shared, ...(clinicalContext && (isCultureSampleType(fields.type as string) || clinicalContext.admissionScreening) ? { clinicalContext } : {}) } })
       }
       setNewOpen(false)
       notify(extraSamples.length ? t('labSampleFlow.createdMany').replace('{n}', String(extraSamples.length + 1)) : t('laboratoryRecords.sampleCreated'), 'success')
-    } catch (error) { notify((error as AnyRecord)?.message || t('actionFailed'), 'error') }
+    } catch (error) { notify((error as Error)?.message || t('actionFailed'), 'error') }
   }
 
-  function openSample(sample: AnyRecord) {
+  function openSample(sample: LabSample) {
     registry.saveViewState({ query, status, result, department, period, scope, quick })
     registry.openRecord(navigate, `/laboratory/${sample.id}`, sample.id, rows.map(item => item.id))
   }
 
   // «Εξαγωγή» of the Plates and Notifiable tabs sits in the page header (as in the Samples tab); each panel tells here what it shows now.
-  const tabExport = useRef<AnyRecord | null>(null)
+  const tabExport = useRef<TabExport | null>(null)
   const tabExportRun = (key: 'onPrint' | 'onPdf' | 'onExcel') => () => {
     const current = tabExport.current
     if (!current) return
@@ -228,10 +236,10 @@ export function LaboratoryWorkspace() {
   </Page>
 
   const duplicateDialog = duplicate && <DuplicatePatientWindow matches={duplicate.matches} onClose={() => setDuplicate(null)} onContinue={() => createSample(duplicate.draft, true)} actions={[
-    { key: 'use', label: t('patientDuplicate.useExisting'), onClick: (patient: AnyRecord) => createSample({ ...duplicate.draft, newPatient: false, subjectCode: patient.id, subjectName: patient.name, subjectNameEn: patient.nameEn || patient.name }, true) },
+    { key: 'use', label: t('patientDuplicate.useExisting'), onClick: (patient: Patient) => createSample({ ...duplicate.draft, newPatient: false, subjectCode: patient.id, subjectName: patient.name, subjectNameEn: patient.nameEn || patient.name }, true) },
   ]} />
   if (newOpen) return <>
-    <NewSampleCard scopedDepartmentIds={canRequestOnly ? membership?.departmentIds ?? [] : []} optionalQuestions={canRequestOnly} t={t} language={language} patients={patients} employees={employees} recentSamples={repositoryRows} onClose={() => setNewOpen(false)} onSave={createSample}/>
+    <NewSampleCard scopedDepartmentIds={canRequestOnly ? membership?.departmentIds ?? [] : []} optionalQuestions={canRequestOnly} t={t} language={language} patients={patients} employees={employees as LabEmployee[]} recentSamples={repositoryRows} onClose={() => setNewOpen(false)} onSave={createSample}/>
     {duplicateDialog}
   </>
   // «Export» of the list as it is shown now (after the filters): print, PDF and Excel on the shared layout.
@@ -276,7 +284,7 @@ export function LaboratoryWorkspace() {
         <td><strong className={sample.staffMasked ? 'lab-staff-masked' : undefined}>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample,t,language)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}{environmentalPlateText(sample, t) && <small>{environmentalPlateText(sample, t)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
         <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
-        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={labResultLabel(sample, t, language) === 'Εντός αποδεκτών ορίων' || labResultLabel(sample, t, language) === 'Within acceptable limits' ? 'negative' : sample.result}/> : <span>—</span>}{!OUTCOME_RESULTS.includes(sample.result) && !['rejected', 'cancelled'].includes(sample.status) && waitingHours(sample) != null && <small>{formatTurnaround(waitingHours(sample), language)}</small>}{sample.critical && <span className="lab-critical-mark" role="img" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'} aria-label={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}><AlertTriangle size={14} aria-hidden="true"/></span>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
+        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={labResultLabel(sample, t, language) === 'Εντός αποδεκτών ορίων' || labResultLabel(sample, t, language) === 'Within acceptable limits' ? 'negative' : sample.result}/> : <span>—</span>}{!OUTCOME_RESULTS.includes(sample.result) && !(['rejected', 'cancelled'] as unknown[]).includes(sample.status) && waitingHours(sample) != null && <small>{formatTurnaround(waitingHours(sample), language)}</small>}{sample.critical && <span className="lab-critical-mark" role="img" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'} aria-label={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}><AlertTriangle size={14} aria-hidden="true"/></span>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
         <td>{(status => <span className={`lab-status-text${status.tone === 'warning' ? ' is-pending' : ''}`}>{status.text}</span>)(labSampleStatus(sample, language))}</td>
       </>}/>
       </div>
@@ -288,33 +296,32 @@ export function LaboratoryWorkspace() {
 
 
 // The departments a user may choose: all, or only those in their scope.
-function allowedDepartmentsFor(scopedIds: string[], departments: AnyRecord[]) { return scopedIds.length ? departments.filter(item => scopedIds.includes(item.id)) : departments }
+function allowedDepartmentsFor(scopedIds: string[], departments: LibraryDepartment[]) { return scopedIds.length ? departments.filter(item => scopedIds.includes(item.id)) : departments }
 
-interface NewSampleCardProps { scopedDepartmentIds?: string[], optionalQuestions?: boolean, t: LabelLookup, language: string, patients: AnyRecord[], employees: AnyRecord[], recentSamples: AnyRecord[], onClose: () => void, onSave: (draft: AnyRecord) => unknown }
+interface NewSampleCardProps { scopedDepartmentIds?: string[], optionalQuestions?: boolean, t: LabelLookup, language: string, patients: Patient[], employees: LabEmployee[], recentSamples: LabSample[], onClose: () => void, onSave: (draft: NewSampleRequest) => unknown }
 function NewSampleCard({ scopedDepartmentIds = [], optionalQuestions = false, t, language, patients, employees, recentSamples, onClose, onSave }: NewSampleCardProps) {
   const en = language === 'en'
-  // useLibraries is still JavaScript: its lists are typed from the empty defaults.
-  const { libraries, departments } = useLibraries() as { libraries: AnyRecord, departments: AnyRecord[] }
+  const { libraries, departments } = useLibraries()
   const [typeChoice, setTypeChoice] = useState('')
   const [subjectType, setSubjectType] = useState('')
   const [patientMode, setPatientMode] = useState('')
-  const emptyDraft = (type: string): AnyRecord => ({ subjectType: type, subjectName: '', subjectNameEn: '', subjectCode: '', newPatient: false, departmentId: '', department: '', departmentEn: '', type: '', specimenTypeId: '', source: '', sourceEn: '', sourceCode: '', environmentType: '', anatomicalSite: '', collectedAt: '', priority: '' })
+  const emptyDraft = (type: string): NewSampleForm => ({ subjectType: type, subjectName: '', subjectNameEn: '', subjectCode: '', newPatient: false, departmentId: '', department: '', departmentEn: '', type: '', specimenTypeId: '', source: '', sourceEn: '', sourceCode: '', environmentType: '', anatomicalSite: '', collectedAt: '', priority: '' })
   const [draft, setDraft] = useState(emptyDraft(''))
-  const [extras, setExtras] = useState<AnyRecord[]>([])
+  const [extras, setExtras] = useState<ExtraSampleDraft[]>([])
   const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
   function switchSubject(type: string) { setSubjectType(type); setPatientMode(''); setExtras([]); setDraft(emptyDraft(type)) }
   function setDepartment(id: string) { const item = departments.find(value => value.id === id); setDraft(current => ({ ...current, departmentId: id, department: item?.name || '', departmentEn: item?.nameEn || item?.name || '' })) }
-  function choosePatient(id: string) { const patient = patients.find(item => item.id === id); if (patient) { const inScope = !scopedDepartmentIds.length || scopedDepartmentIds.includes(patient.departmentId); setDraft(current => ({ ...current, subjectName: patient.name, subjectNameEn: patient.nameEn, subjectCode: patient.id, departmentId: inScope ? patient.departmentId || '' : '', department: inScope ? patient.department || '' : '', departmentEn: inScope ? patient.departmentEn || '' : '', newPatient: false })) } }
+  function choosePatient(id: string) { const patient = patients.find(item => item.id === id); if (patient) { const inScope = !scopedDepartmentIds.length || scopedDepartmentIds.includes(patient.departmentId as string); setDraft(current => ({ ...current, subjectName: patient.name as string, subjectNameEn: patient.nameEn as string, subjectCode: patient.id, departmentId: inScope ? patient.departmentId || '' : '', department: inScope ? patient.department || '' : '', departmentEn: inScope ? patient.departmentEn || '' : '', newPatient: false })) } }
   function chooseEmployee(id: string) { const employee = employees.find(item => item.id === id); if (employee) setDraft(current => ({ ...current, subjectName: `${employee.lastName} ${employee.firstName}`, subjectNameEn: `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`, subjectCode: employee.id, departmentId: employee.departmentId || '', department: employee.department || '', departmentEn: employee.departmentEn || '' })) }
   const sourceFields = (code: string | null | undefined) => { const source = code ? sampleSourceCatalog[code] || { el: code, en: code } : null; return { sourceCode: code || '', source: source?.el || '', sourceEn: source?.en || '' } }
   function setType(value: string) { const option = typeOptions.find(item => item.value === value); setTypeChoice(option ? value : ''); setDraft(current => ({ ...current, type: option?.type || '', specimenTypeId: option?.specimenTypeId || '', ...sourceFields(option?.source), anatomicalSite: option?.type === current.type ? current.anatomicalSite : '' })) }
   function setSource(code: string) { setDraft(current => ({ ...current, ...sourceFields(code) })) }
-  const patchExtra = (id: string, patch: AnyRecord) => setExtras(current => current.map(item => item.id === id ? { ...item, ...patch } : item))
+  const patchExtra = (id: string, patch: Partial<ExtraSampleDraft>) => setExtras(current => current.map(item => item.id === id ? { ...item, ...patch } : item))
   const addExtra = () => setExtras(current => [...current, { id: `extra-${Date.now()}-${current.length}`, choice: '', type: '', specimenTypeId: '', sourceCode: '', source: '', sourceEn: '', anatomicalSite: '' }])
   const removeExtra = (id: string) => setExtras(current => current.filter(item => item.id !== id))
   function setExtraType(id: string, value: string) { const option = typeOptions.find(item => item.value === value); patchExtra(id, { choice: option ? value : '', type: option?.type || '', specimenTypeId: option?.specimenTypeId || '', ...sourceFields(option?.source), anatomicalSite: '' }) }
-  function setEnvType(code: string) { const item = (ENVIRONMENTAL_SAMPLE_TYPES as AnyRecord[]).find(value => value.id === code); setDraft(current => ({ ...current, environmentType: code || '', type: code ? 'environmental' : '', specimenTypeId: '', source: item?.el || '', sourceEn: item?.en || '' })) }
-  function setEmployeeSource(code: string) { const item = (EMPLOYEE_SCREENING_TYPES as AnyRecord[]).find(value => value.id === code); setDraft(current => ({ ...current, type: code ? 'surveillance' : '', specimenTypeId: '', sourceCode: code || '', source: item?.el || '', sourceEn: item?.en || '' })) }
+  function setEnvType(code: string) { const item = ENVIRONMENTAL_SAMPLE_TYPES.find(value => value.id === code); setDraft(current => ({ ...current, environmentType: code || '', type: code ? 'environmental' : '', specimenTypeId: '', source: item?.el || '', sourceEn: item?.en || '' })) }
+  function setEmployeeSource(code: string) { const item = EMPLOYEE_SCREENING_TYPES.find(value => value.id === code); setDraft(current => ({ ...current, type: code ? 'surveillance' : '', specimenTypeId: '', sourceCode: code || '', source: item?.el || '', sourceEn: item?.en || '' })) }
   const subjectReady = subjectType === 'patient' ? Boolean(patientMode) : Boolean(subjectType)
   // A department user has their own department filled in (and fixed when it is the only one).
   const ownDepartmentId = allowedDepartmentsFor(scopedDepartmentIds, departments).length === 1 ? scopedDepartmentIds.find(id => departments.some(item => item.id === id)) : ''
@@ -327,14 +334,14 @@ function NewSampleCard({ scopedDepartmentIds = [], optionalQuestions = false, t,
 
   const collectedDate = draft.collectedAt.slice(0, 10), collectedTime = draft.collectedAt.slice(11, 16)
   const setCollected = (date: string, time: string) => set('collectedAt', date ? `${date}T${time || '00:00'}` : '')
-  const patientOptions = patients.filter(item => item.status === 'active').map(patient => ({ value: patient.id, label: language === 'el' ? patient.name : patient.nameEn || patient.name, description: [patient.id, language === 'el' ? patient.department : patient.departmentEn || patient.department].filter(Boolean).join(' · ') }))
+  const patientOptions = patients.filter(item => item.status === 'active').map(patient => ({ value: patient.id, label: (language === 'el' ? patient.name : patient.nameEn || patient.name) as string, description: [patient.id, language === 'el' ? patient.department : patient.departmentEn || patient.department].filter(Boolean).join(' · ') }))
   const employeeOptions = employees.filter(item => item.employmentStatus === 'active').map(employee => ({ value: employee.id, label: language === 'el' ? `${employee.lastName} ${employee.firstName}` : `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`, description: [employee.id, language === 'el' ? employee.department : employee.departmentEn || employee.department].filter(Boolean).join(' · ') }))
   function choosePatientMode(mode: string) { setPatientMode(mode); setTypeChoice(''); setExtras([]); setDraft(current => ({ ...emptyDraft('patient'), newPatient: mode === 'new', collectedAt: current.collectedAt, priority: current.priority })) }
   const typeOptions = useMemo(() => patientSampleTypeOptions(libraries.sampleTypes, language, t), [libraries.sampleTypes, language, t])
   const allowedDepartments = allowedDepartmentsFor(scopedDepartmentIds, departments)
   const departmentChoices = allowedDepartments.map(item => ({ value: item.id, label: en ? item.nameEn || item.name : item.name, description: item.nameEn && item.nameEn !== item.name ? (en ? item.name : item.nameEn) : undefined, keywords: `${item.name} ${item.nameEn || ''}` }))
   const recentDepartments = [...new Set([...recentSamples].sort((a, b) => String(b.collectedAt || '').localeCompare(String(a.collectedAt || ''))).map(sample => sample.department).filter(Boolean))].map(name => departments.find(item => item.name === name)?.id).filter(Boolean)
-  const pointOptions = useMemo(() => libraryOptions([...(libraries.environmentalLocations || []), ...(libraries.surfacePoints || [])], language), [libraries.environmentalLocations, libraries.surfacePoints, language])
+  const pointOptions = useMemo(() => libraryOptions([...(libraries.environmentalLocations || []), ...(libraries.surfacePoints || [])], language) as SearchableOption[], [libraries.environmentalLocations, libraries.surfacePoints, language])
   const selectText = { emptyLabel: en ? 'No match' : 'Καμία αντιστοιχία', clearLabel: t('surveillanceList.clearSelection') }
   const selectablePatientSources = patientSampleSources(draft.type)
   const sourceLockedBySpecimen = Boolean(draft.sourceCode) && !selectablePatientSources.includes(draft.sourceCode)

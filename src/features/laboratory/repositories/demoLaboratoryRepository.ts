@@ -4,7 +4,7 @@ import { createDemoLabSample, getLabSample, laboratorySamples, updateLabSample }
 import { samplesAwaitingReview } from '../sampleReviewModel'
 import { normalizeLaboratorySample, normalizeLaboratorySamples } from '../model/laboratoryModel'
 import { defineLaboratoryRepository } from './laboratoryRepository'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { LabResult, LabSample, SamplePatch } from '../laboratoryTypes'
 
 function nextSampleCode() {
   return `LAB-${new Date().toISOString().slice(2, 10).replaceAll('-', '')}-${String(laboratorySamples.length + 1).padStart(3, '0')}`
@@ -48,7 +48,8 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
       return index >= 0
     },
     async update(sampleCode, patch) {
-      const sample = updateLabSample(sampleCode, current => ({ ...current, ...patch }))
+      // A receipt time given as a Date is kept as given in the Demo list.
+      const sample = updateLabSample(sampleCode, current => ({ ...current, ...patch }) as LabSample)
       return sample ? normalizeLaboratorySample(sample) : null
     },
     async updateStatus(sampleCode, status, patch = {}) {
@@ -57,8 +58,8 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
     async saveResult(sampleCode, draft) {
       const current = getLabSample(sampleCode)
       const previous = current ? normalizeLaboratorySample(current).microbiologyResults[0] : null
-      const result: AnyRecord = { ...draft, id: draft.id || previous?.id || `${sampleCode}-result`, resultStatus: draft.validationStatus || draft.resultStatus || 'draft', ast: draft.ast || previous?.ast || [], amr: draft.amr || previous?.amr || [], communications: draft.communications || previous?.communications || [] }
-      const patch: AnyRecord = { result: result.result, resultStatus: result.resultStatus, organism: result.organism, resistance: result.resistance ?? previous?.resistance ?? null, method: result.method, ast: result.ast, communications: result.communications, critical: result.critical, resultedAt: result.resultedAt || new Date().toISOString(), microbiologyResults: [result] }
+      const result: LabResult & { resultStatus: string } = { ...draft, id: draft.id || previous?.id || `${sampleCode}-result`, resultStatus: draft.validationStatus || draft.resultStatus || 'draft', ast: draft.ast || previous?.ast || [], amr: draft.amr || previous?.amr || [], communications: draft.communications || previous?.communications || [] }
+      const patch: SamplePatch = { result: result.result, resultStatus: result.resultStatus, organism: result.organism, resistance: result.resistance ?? previous?.resistance ?? null, method: result.method, ast: result.ast, communications: result.communications, critical: result.critical, resultedAt: result.resultedAt || new Date().toISOString(), microbiologyResults: [result] }
       if (['validated', 'amended'].includes(result.resultStatus)) patch.status = 'completed'
       return this.update(sampleCode, patch)
     },
@@ -68,7 +69,7 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
       const ast = [...(result?.ast || current?.ast || []), { ...draft, id: draft.id || `AST-${Date.now()}` }]
       return this.update(sampleCode, { ast, microbiologyResults: result ? [{ ...result, ast }] : [] })
     },
-    async saveAmr(sampleCode, resultId, draft) { const current=await this.get(sampleCode);if(!current)return null;const result=(current.microbiologyResults||[]).find((x: AnyRecord)=>x.id===resultId)||(current.microbiologyResults||[])[0];if(!result)return current;const amr=[...(result.amr||[]),{...draft,id:'AMR-'+Date.now(),classifiedAt:new Date().toISOString()}];return this.update(sampleCode,{microbiologyResults:(current.microbiologyResults||[]).map((x: AnyRecord)=>x.id===result.id?{...x,amr,resistance:draft.classification}:x),resistance:draft.classification}) },
+    async saveAmr(sampleCode, resultId, draft) { const current=await this.get(sampleCode);if(!current)return null;const result=(current.microbiologyResults||[]).find((x: LabResult)=>x.id===resultId)||(current.microbiologyResults||[])[0];if(!result)return current;const amr=[...(result.amr||[]),{...draft,id:'AMR-'+Date.now(),classifiedAt:new Date().toISOString()}];return this.update(sampleCode,{microbiologyResults:(current.microbiologyResults||[]).map((x: LabResult)=>x.id===result.id?{...x,amr,resistance:draft.classification}:x),resistance:draft.classification}) },
     async communicate(sampleCode, resultId, draft) {
       const current = getLabSample(sampleCode)
       const result = current ? normalizeLaboratorySample(current).microbiologyResults[0] : null
@@ -83,7 +84,7 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
     // «Προς έλεγχο»: the same decision as the production function, kept in the demo list.
     async listAwaitingReview() { return samplesAwaitingReview(normalizeLaboratorySamples(laboratorySamples)) },
     async review(sample, { status, reason = null, note = null, caseId = null }) {
-      const patch: AnyRecord = { surveillanceReviewStatus: status, surveillanceReviewReason: status === 'no_surveillance_needed' ? reason : null, surveillanceReviewNote: status === 'no_surveillance_needed' ? note || '' : '', surveillanceReviewedAt: new Date().toISOString(), surveillanceReviewedBy: actorName }
+      const patch: Partial<LabSample> = { surveillanceReviewStatus: status, surveillanceReviewReason: status === 'no_surveillance_needed' ? reason : null, surveillanceReviewNote: status === 'no_surveillance_needed' ? note || '' : '', surveillanceReviewedAt: new Date().toISOString(), surveillanceReviewedBy: actorName }
       if (status === 'episode_opened' && caseId) patch.surveillanceCase = caseId
       return Boolean(updateLabSample(sample.id, current => ({ ...current, ...patch })))
     },
