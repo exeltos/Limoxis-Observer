@@ -11,8 +11,17 @@ export interface AuthSession {
 }
 
 // Μια γραμμή του current_demo_access: οι ημερομηνίες και η κατάσταση του Demo ενός αξιολογητή.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- απάντηση jsonb του current_demo_access
-export type DemoAccess = Record<string, any>
+export interface DemoAccess {
+  organizationId: string
+  organizationName: string
+  label: string | null
+  validFrom: string
+  validUntil: string
+  status: string
+  organizationStatus: string
+  daysLeft: number | null
+  open: boolean
+}
 
 export interface Profile {
   id: string
