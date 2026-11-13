@@ -5,7 +5,7 @@
 //    παραγωγή από RPC ως JSON, οπότε το σχήμα τους δεν είναι γνωστό εδώ — όπως
 //    και το MetricRow (any[]) στο analysisPageModel.
 
-import type { Survey, SurveyQuestion, SurveyResponse } from '../quality/surveys/surveyTypes'
+import type { Survey, SurveyQuestion, SurveyResponseInput } from '../quality/surveys/surveyTypes'
 
 // --- 2) Συγκεντρωτικά (RPC JSON) ---
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- τα domain metrics είναι JSON από RPC (όπως το MetricRow)
@@ -90,7 +90,8 @@ export interface LiraInvestigationRow { status?: string, organism?: string, crea
 // Οι έρευνες ικανοποίησης έχουν ήδη τύπους στην ενότητα quality.
 export type SurveyQuestionRow = SurveyQuestion
 export type SurveyRow = Survey
-export type SurveyResponseRow = SurveyResponse
+// Οι απαντήσεις όπως τις δέχεται το άθροισμα της ικανοποίησης (SurveyResponseInput).
+export type SurveyResponseRow = SurveyResponseInput
 // Οι πηγές του «Ποιότητα & ασφάλεια τροφίμων» (ετερογενή δεδομένα από την ενότητα quality, ακόμη ατύπωτη).
 export interface QualityFoodSources {
   audits?: DomainMetrics[]
