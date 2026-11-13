@@ -5,7 +5,7 @@
 // FileMaker column names and `match` the beginnings of the FileMaker values,
 // so an export is imported without retyping. AMKA is never imported or kept.
 
-import type { AnyRecord } from '../../types/featureTypes'
+import type { IndicatorFilter, RegisterTemplate } from './registerTypes'
 
 const o = (value: string, label: string, labelEn: string, match?: string[]) => (match ? { value, label, labelEn, match } : { value, label, labelEn })
 const row = (key: string, label: string, labelEn: string, aliases?: string[], group?: string) => ({ key, label, labelEn, ...(aliases ? { aliases } : {}), ...(group ? { group } : {}) })
@@ -14,10 +14,10 @@ const yes = (key: string, label: string, labelEn: string, extra = {}) => ({ key,
 const days = (key: string, label: string, labelEn: string, extra = {}) => ({ key, type: 'number', unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label, labelEn, ...extra })
 const stay = (from: string, to: string) => ({ key: 'length_of_stay', type: 'computed', computed: 'days', from, to, unit: 'ημέρες', unitEn: 'days', label: 'Διάρκεια νοσηλείας', labelEn: 'Length of stay' })
 const count = (id: string, title: string, titleEn: string, extra = {}) => ({ id, title, titleEn, aggregation: 'count', filters: [], direction: 'context', ...extra })
-const share = (id: string, title: string, titleEn: string, filters: AnyRecord[], extra = {}) => ({ id, title, titleEn, aggregation: 'percent', filters, denominatorFilters: [], unit: '%', direction: 'context', ...extra })
+const share = (id: string, title: string, titleEn: string, filters: IndicatorFilter[], extra = {}) => ({ id, title, titleEn, aggregation: 'percent', filters, denominatorFilters: [], unit: '%', direction: 'context', ...extra })
 const average = (id: string, title: string, titleEn: string, field: string, extra = {}) => ({ id, title, titleEn, aggregation: 'mean', field, filters: [], direction: 'context', ...extra })
 
-const ICU = {
+const ICU: RegisterTemplate = {
   key: 'icu',
   kind: 'case',
   name: 'Μητρώο ασθενών ΜΕΘ',
@@ -72,7 +72,7 @@ const ICU = {
   ],
 }
 
-const OBSTETRICS = {
+const OBSTETRICS: RegisterTemplate = {
   key: 'obstetrics',
   kind: 'case',
   name: 'Μητρώο λεχωίδων Μαιευτικής',
@@ -102,7 +102,7 @@ const OBSTETRICS = {
   ],
 }
 
-const DELIVERY_ROOM = {
+const DELIVERY_ROOM: RegisterTemplate = {
   key: 'deliveryRoom',
   kind: 'sheet',
   name: 'Πράξεις Αίθουσας Τοκετών',
@@ -142,7 +142,7 @@ const DELIVERY_ROOM = {
   ],
 }
 
-const CATH_LAB = {
+const CATH_LAB: RegisterTemplate = {
   key: 'cathLab',
   kind: 'case',
   name: 'Πράξεις Αιμοδυναμικού',
@@ -179,7 +179,7 @@ const CATH_LAB = {
   ],
 }
 
-const CHEMOTHERAPY = {
+const CHEMOTHERAPY: RegisterTemplate = {
   key: 'chemotherapy',
   kind: 'case',
   name: 'Μητρώο ασθενών Χημειοθεραπείας',
@@ -216,7 +216,7 @@ const CHEMOTHERAPY = {
 // The ward codes 3Α / 3Β are the Surgical and Medical wards (the FileMaker
 // fractions), the diagnosis abbreviations become a list (ΟΑΓ = total knee,
 // ΟΑΙ = total hip arthroplasty, # = fracture), «ΑΜΦΩ» its own yes/no.
-const PHYSIOTHERAPY = {
+const PHYSIOTHERAPY: RegisterTemplate = {
   key: 'physiotherapy',
   kind: 'case',
   name: 'Μητρώο φυσικοθεραπειών',
@@ -250,7 +250,7 @@ const PHYSIOTHERAPY = {
 
 const SHIFTS = [{ key: 'morning', label: '07:00-15:00', labelEn: '07:00-15:00', aliases: ['07:00-15:00', '07:00-1'] }, { key: 'afternoon', label: '15:00-23:00', labelEn: '15:00-23:00', aliases: ['15:00-23:00', '15:00-2'] }, { key: 'night', label: '23:00-07:00', labelEn: '23:00-07:00', aliases: ['23:00-07:00', '23:00-0'] }]
 
-const EMERGENCY = {
+const EMERGENCY: RegisterTemplate = {
   key: 'emergency',
   kind: 'sheet',
   name: 'Δραστηριότητα ΤΕΠ ανά βάρδια',
@@ -292,7 +292,7 @@ const EMERGENCY = {
 
 // New: there is no usable FileMaker register for Paediatrics (test data only),
 // so it starts here with the corrections the other registers needed.
-const PAEDIATRICS = {
+const PAEDIATRICS: RegisterTemplate = {
   key: 'paediatrics',
   kind: 'case',
   name: 'Μητρώο νοσηλευομένων Παιδιατρικής',
@@ -343,4 +343,4 @@ const PAEDIATRICS = {
   ],
 }
 
-export const HOSPITAL_TEMPLATES: AnyRecord[] = [PAEDIATRICS, ICU, OBSTETRICS, DELIVERY_ROOM, CATH_LAB, CHEMOTHERAPY, EMERGENCY, PHYSIOTHERAPY]
+export const HOSPITAL_TEMPLATES: RegisterTemplate[] = [PAEDIATRICS, ICU, OBSTETRICS, DELIVERY_ROOM, CATH_LAB, CHEMOTHERAPY, EMERGENCY, PHYSIOTHERAPY]

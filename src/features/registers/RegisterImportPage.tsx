@@ -26,8 +26,7 @@ import './registers.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { ChangeEvent } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Register } from './registerTypes'
+import type { FieldOption, Register, RegisterEntry } from './registerTypes'
 
 const NEW = '__new__'
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -53,7 +52,7 @@ export function RegisterImportPage() {
   const { tenant } = useTenant()
   const access = useRegisterAccess()
   const [register, setRegister] = useState<Register | null>(null)
-  const [existing, setExisting] = useState<AnyRecord[]>([])
+  const [existing, setExisting] = useState<RegisterEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [step, setStep] = useState(0)
   const [file, setFile] = useState<string | null>(null)
@@ -91,7 +90,7 @@ export function RegisterImportPage() {
     for (const [key, values] of Object.entries(chosenValues)) {
       const field = register?.fields.find(item => item.key === key)
       if (!field) continue
-      const taken: string[] = (field.options || []).map((option: AnyRecord) => option.value)
+      const taken: string[] = (field.options || []).map((option: FieldOption) => option.value)
       for (const [value, option] of Object.entries(values)) if (option === NEW) { const id = keyFrom(value, taken); taken.push(id); result[key] = { ...(result[key] || {}), [value]: id } }
     }
     return result
@@ -119,7 +118,7 @@ export function RegisterImportPage() {
   const dateField = register.fields.find(field => field.key === register.settings?.entryDateField)
   // What the file does not bring: fields (or sheet rows) no column goes to.
   const missing = sheet ? (register.sheet.rows || []).filter(row => !mapping.includes(`row.${row.key}`)) : register.fields.filter(field => field.type !== 'computed' && !field.fromTemplate && !mapping.includes(field.key))
-  const hasDate = sheet ? mapping.includes('sheet.date') : mapping.includes(register.settings?.entryDateField)
+  const hasDate = sheet ? mapping.includes('sheet.date') : mapping.includes(register.settings?.entryDateField as string)
   const valid = [Boolean(table.headers.length), hasDate || (!sheet && Boolean(fallbackDate)), true, Boolean(plan?.items.length)]
   const steps = en ? ['File', 'Columns', 'Values', 'Check and import'] : ['Αρχείο', 'Στήλες', 'Τιμές', 'Έλεγχος και εισαγωγή']
 
@@ -151,13 +150,13 @@ export function RegisterImportPage() {
       let target = register
       // Options and fields the template gained since the register was made, and values FileMaker knew, join the register;
       // a gained field only when a column goes to it.
-      const gained = register!.fields.some(field => (field.fromTemplate && mapping.includes(field.key)) || (field.options || []).some((option: AnyRecord) => option.fromTemplate))
+      const gained = register!.fields.some(field => (field.fromTemplate && mapping.includes(field.key)) || (field.options || []).some((option: FieldOption) => option.fromTemplate))
       if ((Object.keys(newOptions).length || gained) && access.canDefine) {
-        const fields = register!.fields.filter(field => !field.fromTemplate || mapping.includes(field.key)).map(({ fromTemplate: _gained, ...field }) => ({ ...field, options: [...(field.options || []).map(({ fromTemplate: _fromTemplate, ...option }: AnyRecord) => option), ...Object.entries(newOptions[field.key] || {}).map(([label, value]) => ({ value, label, labelEn: label }))] }))
+        const fields = register!.fields.filter(field => !field.fromTemplate || mapping.includes(field.key)).map(({ fromTemplate: _gained, ...field }) => ({ ...field, options: [...(field.options || []).map(({ fromTemplate: _fromTemplate, ...option }: FieldOption) => option), ...Object.entries(newOptions[field.key] || {}).map(([label, value]) => ({ value, label, labelEn: label }))] }))
         target = await saveRegister(tenant?.id, { ...register!, fields }, { actor: auditActorFromAuth({ profile, user }).name, action: 'updated', definitionChanged: true })
       }
       if (replaced.length) await deleteEntries(tenant?.id, target!, replaced.map(entry => entry.id))
-      const done = await saveEntries(tenant?.id, target!, plan.items as { entry: AnyRecord }[], { onProgress: (count: number, total: number) => setProgress({ done: count, total }) })
+      const done = await saveEntries(tenant?.id, target!, plan.items, { onProgress: (count: number, total: number) => setProgress({ done: count, total }) })
       notify(en ? `${done} entries imported.` : `Εισήχθησαν ${done} καταχωρίσεις.`, 'success')
       back()
     } catch (error) {
@@ -189,7 +188,7 @@ export function RegisterImportPage() {
           {!sheet && <div className="register-import-options">
             <YesNoField label={en ? 'An empty yes/no cell means No' : 'Κενό σε ναι/όχι σημαίνει Όχι'} value={emptyIsNo} onChange={setEmptyIsNo} hint={en ? 'Unticked checkboxes leave the cell empty.' : 'Τα κουτάκια που δεν είναι τσεκαρισμένα αφήνουν κενό.'} />
             {register.undatedImport && <ManualDateField label={en ? `Recorded on, for patients without «${textOf(dateField, 'en')}»` : `Ημερομηνία καταγραφής, για όσους δεν έχουν «${textOf(dateField)}»`} value={fallbackDate} onChange={setFallbackDate} />}
-            {!register.undatedImport && !mapping.includes(register.settings?.entryDateField) && <ManualDateField label={en ? `Date for every case (no «${textOf(dateField, 'en')}» column)` : `Ημερομηνία για όλα (λείπει η στήλη «${textOf(dateField)}»)`} value={fallbackDate} onChange={setFallbackDate} />}
+            {!register.undatedImport && !mapping.includes(register.settings?.entryDateField as string) && <ManualDateField label={en ? `Date for every case (no «${textOf(dateField, 'en')}» column)` : `Ημερομηνία για όλα (λείπει η στήλη «${textOf(dateField)}»)`} value={fallbackDate} onChange={setFallbackDate} />}
           </div>}
           {existing.length > 0 && access.canDefine && <div className="register-import-options">
             <YesNoField label={en ? `Replace what is in the register (${existing.length})` : `Αντικατάσταση όσων υπάρχουν (${existing.length})`} value={replace} onChange={setReplace} hint={en ? 'The entries already in the register are deleted and the file takes their place. Closed periods stay.' : 'Οι καταχωρίσεις που υπάρχουν σβήνονται και τη θέση τους παίρνει το αρχείο. Οι κλεισμένες περίοδοι μένουν.'} />
@@ -200,7 +199,7 @@ export function RegisterImportPage() {
           {!Object.keys(lists).length && <FormCard wide title={en ? 'Values' : 'Τιμές'}><div className="inline-empty">{en ? 'No list columns to match.' : 'Δεν υπάρχουν στήλες λίστας για αντιστοίχιση.'}</div></FormCard>}
           {Object.entries(lists).map(([key, list]) => <FormCard key={key} wide title={textOf(list.field, language)} hint={en ? 'Each value of the file goes to a value of the register.' : 'Κάθε τιμή του αρχείου πηγαίνει σε τιμή του μητρώου.'}>
             <table className="data-table register-mapping"><thead><tr><th>{en ? 'In the file' : 'Στο αρχείο'}</th><th className="register-num">{en ? 'Rows' : 'Γραμμές'}</th><th>{en ? 'Becomes' : 'Γίνεται'}</th></tr></thead><tbody>
-              {list.values.map(item => <tr key={item.value}><td className="register-row-label">{item.value}</td><td className="register-num">{item.count}</td><td><SearchableSelect hideLabel label={item.value} value={chosenValues[key]?.[item.value] || ''} options={[...(list.field.options || []).map((option: AnyRecord) => ({ value: option.value, label: textOf(option, language) })), ...(key !== 'sheet.measure' && access.canDefine ? [{ value: NEW, label: en ? `New value «${item.value}»` : `Νέα τιμή «${item.value}»` }] : [])]} onChange={value => setValueMap(current => ({ ...current, [key]: { ...(current[key] || {}), [item.value]: value || '' } }))} placeholder={en ? 'Left empty' : 'Μένει κενό'} {...selectText(en)} /></td></tr>)}
+              {list.values.map(item => <tr key={item.value}><td className="register-row-label">{item.value}</td><td className="register-num">{item.count}</td><td><SearchableSelect hideLabel label={item.value} value={chosenValues[key]?.[item.value] || ''} options={[...(list.field.options || []).map((option: FieldOption) => ({ value: option.value, label: textOf(option, language) })), ...(key !== 'sheet.measure' && access.canDefine ? [{ value: NEW, label: en ? `New value «${item.value}»` : `Νέα τιμή «${item.value}»` }] : [])]} onChange={value => setValueMap(current => ({ ...current, [key]: { ...(current[key] || {}), [item.value]: value || '' } }))} placeholder={en ? 'Left empty' : 'Μένει κενό'} {...selectText(en)} /></td></tr>)}
             </tbody></table>
           </FormCard>)}
         </>}

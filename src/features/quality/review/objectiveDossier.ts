@@ -10,6 +10,7 @@ import { loadRegisterIndicators, missingDataTable, registerIndicatorSections } f
 import { loadResponses, loadSurveys } from '../surveys/surveyService'
 import { surveySummary } from '../surveys/surveyModel'
 import type { AnyRecord } from '../../../types/featureTypes'
+import type { RegisterEntry } from '../../registers/registerTypes'
 
 // The year's objectives as a file for the auditor (ISO 9001 §6.2 and §9.3): each objective with its owner and date, how it is measured,
 // its value and status (no months: a summary), then what the last management review decided.
@@ -22,7 +23,7 @@ export async function loadObjectiveHistories(organizationId: string | null | und
   const histories = new Map()
   const byRegister = new Map()
   for (const objective of objectives || []) if (objective.register && objective.indicator) byRegister.set(objective.register.id, objective.register)
-  const entries = new Map(await Promise.all([...byRegister.values()].map(async (register): Promise<[string, AnyRecord[]]> => [register.id, await loadEntries(organizationId, register.id, { register }).catch(() => [])])))
+  const entries = new Map(await Promise.all([...byRegister.values()].map(async (register): Promise<[string, RegisterEntry[]]> => [register.id, await loadEntries(organizationId, register.id, { register }).catch(() => [])])))
   const platformByYear = new Map()
   for (const objective of objectives || []) if (objective.platformIndicator) { const keys = platformByYear.get(objective.year) || new Set(); keys.add(objective.platformIndicator.id); platformByYear.set(objective.year, keys) }
   const platform = new Map()

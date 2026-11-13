@@ -1,6 +1,5 @@
 import { HOSPITAL_TEMPLATES } from './registerTemplatesHospital'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Register } from './registerTypes'
+import type { RegisterDraft, RegisterTemplate } from './registerTypes'
 
 // Ready-made registers from the FileMaker review (docs/quality/
 // DEPARTMENT_REGISTERS_FILEMAKER.md), with its corrections: weight in grams,
@@ -85,7 +84,7 @@ const NICU_INDICATORS = [
 
 const row = (key: string, label: string, labelEn: string, help = '', helpEn = '', aliases?: string[]) => ({ key, label, labelEn, ...(help ? { help, helpEn } : {}), ...(aliases ? { aliases } : {}) })
 
-export const REGISTER_TEMPLATES: AnyRecord[] = [
+export const REGISTER_TEMPLATES: RegisterTemplate[] = [
   {
     key: 'nicu',
     kind: 'case',
@@ -191,7 +190,7 @@ export const REGISTER_TEMPLATES: AnyRecord[] = [
 export const templateByKey = (key: string) => REGISTER_TEMPLATES.find(template => template.key === key)
 
 // A new register from a template: a deep copy so editing it never touches the template.
-export function registerFromTemplate(key: string, { department = '', departmentId = '', departmentEn = '' }: { department?: string, departmentId?: string, departmentEn?: string } = {}): Register {
+export function registerFromTemplate(key: string, { department = '', departmentId = '', departmentEn = '' }: { department?: string, departmentId?: string, departmentEn?: string } = {}): RegisterDraft {
   const template = templateByKey(key) || templateByKey('blankCase')!
   const copy = structuredClone(template)
   return {
@@ -206,7 +205,7 @@ export function registerFromTemplate(key: string, { department = '', departmentI
     department,
     departmentEn: departmentEn || department,
     fields: copy.fields || [],
-    sheet: copy.kind === 'sheet' ? copy.sheet : {},
+    sheet: copy.kind === 'sheet' ? copy.sheet! : {},
     indicators: copy.indicators || [],
     settings: { sections: copy.sections || [], identity: copy.identity || null, entryDateField: copy.entryDateField || '', breakdowns: copy.breakdowns || [], description: copy.description, descriptionEn: copy.descriptionEn },
   }

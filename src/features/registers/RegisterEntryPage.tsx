@@ -27,8 +27,7 @@ import { computeValues, derivedHours, fieldVisible, formatValue, gestationText, 
 import './registers.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import type { ReactNode } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Register } from './registerTypes'
+import type { EntryValue, EntryValues, FieldOption, Register, RegisterEntry, RegisterField, RegisterSection } from './registerTypes'
 
 // One case of a register (a neonate in the NICU): the identity the department
 // keeps, then the register's fields section by section. Computed fields
@@ -45,8 +44,8 @@ export function RegisterEntryPage() {
   const { tenant, isDemo } = useTenant()
   const access = useRegisterAccess()
   const [register, setRegister] = useState<Register | null>(null)
-  const [entry, setEntry] = useState<AnyRecord | null>(null)
-  const [values, setValues] = useState<AnyRecord>({})
+  const [entry, setEntry] = useState<RegisterEntry | null>(null)
+  const [values, setValues] = useState<EntryValues>({})
   const [identity, setIdentity] = useState<{ caseNumber: string, patientName: string }>({ caseNumber: '', patientName: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -78,7 +77,7 @@ export function RegisterEntryPage() {
   }, [tenant?.id, registerId, entryId, isNew]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const full = useMemo(() => (register ? computeValues(register.fields, values) : {}), [register, values])
-  const entryDate = (register && full[register.settings?.entryDateField]) || entry?.entryDate || ''
+  const entryDate = (register && full[register.settings?.entryDateField as string]) || entry?.entryDate || ''
   const check = useMemo(() => (register ? validateEntry(register.fields, values, language, entryDate) : { errors: {}, warnings: {}, valid: false }), [register, values, language, entryDate])
   // The index follows the scrolling: the section whose top is the last one above the fold.
   useEffect(() => {
@@ -100,9 +99,9 @@ export function RegisterEntryPage() {
   const canEdit = access.canRecord(register) && !entry?.locked
   const editable = canEdit && (isNew || editing)
   const showIdentity = Boolean(register.settings?.identity) && access.canSeeIdentity(register)
-  const set = (key: string, value: unknown) => setValues(current => ({ ...current, [key]: value }))
+  const set = (key: string, value: EntryValue) => setValues(current => ({ ...current, [key]: value }))
   const sections = register.settings?.sections?.length ? register.settings.sections : [{ key: '', label: en ? 'Details' : 'Στοιχεία' }]
-  const fieldsOf = (section: AnyRecord) => register.fields.filter(field => (field.section || '') === section.key || (!sections.some(item => item.key === field.section) && section === sections[0]))
+  const fieldsOf = (section: RegisterSection) => register.fields.filter(field => (field.section || '') === section.key || (!sections.some(item => item.key === field.section) && section === sections[0]))
 
   const shownSections = sections.map(section => ({ section, fields: fieldsOf(section).filter(field => fieldVisible(field, full)) })).filter(item => item.fields.length)
   const isBlank = (value: unknown) => value == null || value === '' || (Array.isArray(value) && !value.length)
@@ -116,7 +115,7 @@ export function RegisterEntryPage() {
   const theme = registerThemeKey(register)
   const ThemeIcon = themeIcon(theme)
   // The ICU keeps General and Cardiac surgery patients together: the choice is two cards at the top and colours the whole entry.
-  const categoryField: AnyRecord | null | undefined = theme === 'icu' ? register.fields.find(field => field.key === 'category' && field.type === 'choice') : null
+  const categoryField: RegisterField | null | undefined = theme === 'icu' ? register.fields.find(field => field.key === 'category' && field.type === 'choice') : null
   const marker = caseMarker(register, full, language)
   async function save() {
     setTried(true)
@@ -130,7 +129,7 @@ export function RegisterEntryPage() {
       await saveEntry(tenant?.id, register!, { ...(entry || {}), values: saved }, { identity: showIdentity ? identity : null, actorLabel: auditActorFromAuth({ profile, user }).name })
       notify(en ? 'Case saved.' : 'Το περιστατικό αποθηκεύτηκε.', 'success')
       if (isNew) back()
-      else { setEntry(current => ({ ...current, values: saved, identity: showIdentity ? identity : current!.identity })); setEditing(false); setTried(false) }
+      else { setEntry(current => ({ ...current!, values: saved, identity: showIdentity ? identity : current!.identity })); setEditing(false); setTried(false) }
     } catch (error) {
       console.error(error)
       notify(en ? 'The case could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση του περιστατικού.', 'error')
@@ -172,7 +171,7 @@ export function RegisterEntryPage() {
           {categoryField && <section className="register-entry-category" aria-label={textOf(categoryField, language)}>
             <span className="register-entry-category-label">{textOf(categoryField, language)}{categoryField.required ? ' *' : ''}</span>
             <div role="radiogroup" className="register-entry-category-cards">
-              {categoryField.options.map((option: AnyRecord) => { const choice = caseMarker(register, { category: option.value }, language); const OptionIcon = choice?.Icon; return <button key={option.value} type="button" role="radio" aria-checked={full.category === option.value} disabled={!editable} className={`is-${option.value}${full.category === option.value ? ' is-selected' : ''}`} onClick={() => set('category', option.value)}>{OptionIcon && <OptionIcon size={20} aria-hidden="true" />}<span>{textOf(option, language)}</span></button> })}
+              {categoryField.options!.map((option: FieldOption) => { const choice = caseMarker(register, { category: option.value }, language); const OptionIcon = choice?.Icon; return <button key={option.value} type="button" role="radio" aria-checked={full.category === option.value} disabled={!editable} className={`is-${option.value}${full.category === option.value ? ' is-selected' : ''}`} onClick={() => set('category', option.value)}>{OptionIcon && <OptionIcon size={20} aria-hidden="true" />}<span>{textOf(option, language)}</span></button> })}
             </div>
             {tried && check.errors.category && <span className="field-error">{check.errors.category}</span>}
           </section>}
@@ -188,7 +187,7 @@ export function RegisterEntryPage() {
             const info = sectionIndex[position]
             return <section key={section.key || 'main'} id={`register-section-${info.id}`} data-register-section={info.id} className="register-entry-section">
               <header><span className="register-entry-badge">{info.no}</span><h3>{info.label}</h3>{info.wrong > 0 ? <small className="is-wrong">{en ? `to correct ${info.wrong}` : `προς διόρθωση ${info.wrong}`}</small> : <small>{info.filled}/{info.total}</small>}</header>
-              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} entryValues={full} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={(value: unknown) => set(field.key, value)} entryValues={full} fields={register.fields} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
+              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} entryValues={full} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={(value: EntryValue) => set(field.key, value)} entryValues={full} fields={register.fields} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
             </section>
           })}
         </div>
@@ -198,28 +197,28 @@ export function RegisterEntryPage() {
 }
 
 // A field of a saved case, read-only: its label and value, compact.
-interface RegisterValueProps { field: AnyRecord, value: unknown, language: string, entryValues?: AnyRecord | null }
+interface RegisterValueProps { field: RegisterField, value: unknown, language: string, entryValues?: EntryValues | null }
 function RegisterValue({ field, value, language, entryValues = null }: RegisterValueProps) {
   const empty = value == null || value === '' || (Array.isArray(value) && !value.length)
   return <div className="register-value"><span className="lo-field-label">{textOf(field, language)}</span><strong>{empty ? '—' : formatValue(field, value, language, entryValues)}</strong></div>
 }
 
 // Notes about the FileMaker import belong to the register's definition, not to the form.
-const formHelp = (text: string) => (/filemaker|ίδιος κανόνας σε όλα τα μητρώα|the same rule in every register/i.test(text || '') ? '' : text)
+const formHelp = (text: string | undefined) => (/filemaker|ίδιος κανόνας σε όλα τα μητρώα|the same rule in every register/i.test(text || '') ? '' : text)
 
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
 // One field of a register, drawn with the shared controls.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a field's value: text, number, yes/no or a list
 type FieldValue = any
-interface RegisterFieldProps { field: AnyRecord, value: FieldValue, onChange: (value: unknown) => void, disabled?: boolean, error?: string, warning?: string, required?: boolean, language: string, cards?: boolean, action?: ReactNode, entryValues?: AnyRecord | null, fields?: AnyRecord[] }
+interface RegisterFieldProps { field: RegisterField, value: FieldValue, onChange: (value: EntryValue) => void, disabled?: boolean, error?: string, warning?: string, required?: boolean, language: string, cards?: boolean, action?: ReactNode, entryValues?: EntryValues | null, fields?: RegisterField[] }
 export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language, cards = false, action = null, entryValues = null, fields = [] }: RegisterFieldProps) {
   const en = language === 'en'
   const label = `${textOf(field, language)}${required ? ' *' : ''}`
   const help = formHelp(en ? field.helpEn || field.help : field.help)
   const hint = warning || help || ''
   const unit = en ? field.unitEn || field.unit : field.unit
-  const options: { value: string, label: string }[] = (field.options || []).map((option: AnyRecord) => ({ value: option.value, label: textOf(option, language) }))
+  const options: { value: string, label: string }[] = (field.options || []).map((option: FieldOption) => ({ value: option.value, label: textOf(option, language) }))
   if (field.type === 'computed') return <div className="field register-computed"><span className="lo-field-label">{textOf(field, language)}</span>{value == null ? <output className="is-pending">{en ? 'Calculated automatically' : 'Υπολογίζεται αυτόματα'}</output> : <output><Calculator size={14} />{formatValue(field, value, language, entryValues)}</output>}{help && <span className="field-hint">{help}</span>}</div>
   if (field.type === 'time') return <div className={`register-field ${error ? 'has-error' : ''}`}><TimeField label={label} value={value || ''} disabled={disabled} onChange={next => onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'date') return <div className={`register-field ${error ? 'has-error' : ''}`}><ManualDateField label={label} value={value || ''} disabled={disabled} onChange={next => onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
@@ -240,7 +239,7 @@ export function RegisterField({ field, value, onChange, disabled, error, warning
 }
 
 // Weeks + days typed as «37+4», stored as days.
-interface GestationFieldProps { label: string, value: unknown, onChange: (value: unknown) => void, disabled?: boolean, error?: string, hint?: string }
+interface GestationFieldProps { label: string, value: unknown, onChange: (value: EntryValue) => void, disabled?: boolean, error?: string, hint?: string }
 function GestationField({ label, value, onChange, disabled, error, hint }: GestationFieldProps) {
   const { language } = useLanguage()
   const en = language === 'en'

@@ -6,8 +6,8 @@
 // entry; this module translates between that shape and the rows.
 
 import { dailyStart } from './registerEngine'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Register } from './registerTypes'
+import type { AxisRow, DataRow, EntryDraft, EntryIdentity, EntryValue, EntryValues, FieldOption, FieldRow, FilterRow, IndicatorFilter, IndicatorRow, OptionRow, Register, RegisterDraft, RegisterEntry, RegisterRow, RegisterField, RegisterHistoryEvent, RegisterIndicator, SectionRow, SheetAxisItem } from './registerTypes'
+import { cellsOf } from './registerTypes'
 
 const TYPE_TO_DB: Record<string, string> = { yesNo: 'yes_no', multiChoice: 'multi_choice' }
 const TYPE_FROM_DB: Record<string, string> = { yes_no: 'yesNo', multi_choice: 'multiChoice' }
@@ -21,13 +21,13 @@ export const sheetColumn = (rowKey: string, measureKey: string) => `${rowKey}__$
 
 // --- Definition: rows → register -------------------------------------------------
 
-type DefinitionRows = { register: AnyRecord, sections?: AnyRecord[], fields?: AnyRecord[], options?: AnyRecord[], axes?: AnyRecord[], indicators?: AnyRecord[], filters?: AnyRecord[] }
+type DefinitionRows = { register: RegisterRow, sections?: SectionRow[], fields?: FieldRow[], options?: OptionRow[], axes?: AxisRow[], indicators?: IndicatorRow[], filters?: FilterRow[] }
 export function registerFromRows({ register, sections = [], fields = [], options = [], axes = [], indicators = [], filters = [] }: DefinitionRows): Register {
-  const byPosition = (a: AnyRecord, b: AnyRecord) => (a.position ?? 0) - (b.position ?? 0)
-  const optionsOf = (fieldId: string) => options.filter(row => row.field_id === fieldId && !row.archived).sort(byPosition).map(row => ({ value: row.value, label: row.label_el, labelEn: row.label_en || row.label_el, ...(row.match?.length ? { match: row.match } : {}) }))
-  const filtersOf = (indicatorId: string, part: string) => filters.filter(row => row.indicator_id === indicatorId && row.part === part).sort(byPosition).map(row => ({ field: row.field_key, op: row.op, ...(row.value == null ? {} : { value: ['gt', 'lt'].includes(row.op) ? Number(row.value) : row.value }) }))
-  const axis = (name: string) => axes.filter(row => row.axis === name && !row.archived).sort(byPosition).map(row => ({ key: row.key, label: row.label_el, labelEn: row.label_en || row.label_el, ...(row.help_el ? { help: row.help_el, helpEn: row.help_en || row.help_el } : {}), ...(row.group_key ? { group: row.group_key } : {}), ...(row.aliases?.length ? { aliases: row.aliases } : {}) }))
-  const department = register.departments || {}
+  const byPosition = (a: { position?: number | null }, b: { position?: number | null }) => (a.position ?? 0) - (b.position ?? 0)
+  const optionsOf = (fieldId: string): FieldOption[] => options.filter(row => row.field_id === fieldId && !row.archived).sort(byPosition).map(row => ({ value: row.value, label: row.label_el, labelEn: row.label_en || row.label_el, ...(row.match?.length ? { match: row.match } : {}) }))
+  const filtersOf = (indicatorId: string, part: string): IndicatorFilter[] => filters.filter(row => row.indicator_id === indicatorId && row.part === part).sort(byPosition).map(row => ({ field: row.field_key, op: row.op, ...(row.value == null ? {} : { value: ['gt', 'lt'].includes(row.op) ? Number(row.value) : row.value }) }))
+  const axis = (name: string): SheetAxisItem[] => axes.filter(row => row.axis === name && !row.archived).sort(byPosition).map(row => ({ key: row.key, label: row.label_el, labelEn: row.label_en || row.label_el, ...(row.help_el ? { help: row.help_el, helpEn: row.help_en || row.help_el } : {}), ...(row.group_key ? { group: row.group_key } : {}), ...(row.aliases?.length ? { aliases: row.aliases } : {}) }))
+  const department: { name?: string } = register.departments || {}
   return {
     id: register.id,
     code: register.code,
@@ -41,7 +41,8 @@ export function registerFromRows({ register, sections = [], fields = [], options
     departmentId: register.department_id || '',
     department: department.name || '',
     departmentEn: department.name || '',
-    history: register.history || [],
+    // history is a json column: the events saveRegister appends.
+    history: (register.history || []) as RegisterHistoryEvent[],
     updatedAt: register.updated_at,
     fields: fields.filter(row => !row.archived).sort(byPosition).map(row => fieldFromRow(row, optionsOf(row.id))),
     sheet: register.kind === 'sheet' ? { period: register.sheet_period || 'month', ...(register.daily_from ? { dailyFrom: String(register.daily_from).slice(0, 10) } : {}), rows: axis('row'), measures: axis('measure'), groups: axis('group') } : {},
@@ -57,10 +58,10 @@ export function registerFromRows({ register, sections = [], fields = [], options
   }
 }
 
-function fieldFromRow(row: AnyRecord, options: AnyRecord[]) {
+function fieldFromRow(row: FieldRow, options: FieldOption[]): RegisterField {
   const type = TYPE_FROM_DB[row.field_type] || row.field_type
-  const field: AnyRecord = { key: row.key, section: row.section_key || '', type, label: row.label_el, labelEn: row.label_en || row.label_el }
-  const add = (key: string, value: unknown) => { if (!blank(value) && !(Array.isArray(value) && !value.length)) field[key] = value }
+  const field: RegisterField = { key: row.key, section: row.section_key || '', type, label: row.label_el, labelEn: row.label_en || row.label_el }
+  const add = (key: keyof RegisterField, value: unknown) => { if (!blank(value) && !(Array.isArray(value) && !value.length)) Object.assign(field, { [key]: value }) }
   add('unit', row.unit_el); add('unitEn', row.unit_en)
   add('min', num(row.min_value)); add('max', num(row.max_value)); add('usualMin', num(row.usual_min)); add('usualMax', num(row.usual_max))
   if (row.required) field.required = true
@@ -70,15 +71,15 @@ function fieldFromRow(row: AnyRecord, options: AnyRecord[]) {
   add('help', row.help_el); add('helpEn', row.help_en)
   add('notBefore', row.not_before_key)
   if (row.show_when_key) field.showWhen = row.show_when_value == null ? { field: row.show_when_key } : { field: row.show_when_key, value: row.show_when_value === 'true' ? true : row.show_when_value === 'false' ? false : row.show_when_value }
-  if (type === 'computed') { field.computed = COMPUTED_FROM_DB[row.computed_kind] || row.computed_kind; field.from = row.computed_from; field.to = row.computed_to }
+  if (type === 'computed') { field.computed = COMPUTED_FROM_DB[row.computed_kind!] || row.computed_kind!; field.from = row.computed_from!; field.to = row.computed_to! }
   add('aliases', row.aliases)
   if (['choice', 'multiChoice'].includes(type)) field.options = options
   return field
 }
 
-function indicatorFromRow(row: AnyRecord, filters: AnyRecord[], denominatorFilters: AnyRecord[]) {
-  const indicator: AnyRecord = { id: row.key, title: row.title_el, titleEn: row.title_en || row.title_el, aggregation: row.aggregation, filters, denominatorFilters, direction: row.direction || 'context' }
-  const add = (key: string, value: unknown) => { if (!blank(value) && !(Array.isArray(value) && !value.length)) indicator[key] = value }
+function indicatorFromRow(row: IndicatorRow, filters: IndicatorFilter[], denominatorFilters: IndicatorFilter[]): RegisterIndicator {
+  const indicator: RegisterIndicator = { id: row.key, title: row.title_el, titleEn: row.title_en || row.title_el, aggregation: row.aggregation, filters, denominatorFilters, direction: row.direction || 'context' }
+  const add = (key: keyof RegisterIndicator, value: unknown) => { if (!blank(value) && !(Array.isArray(value) && !value.length)) Object.assign(indicator, { [key]: value }) }
   add('field', row.field_key); add('dateField', row.date_field_key); add('denominatorField', row.denominator_field_key); add('multiplier', num(row.multiplier))
   add('rows', row.sheet_rows); add('measure', row.sheet_measure); add('denominatorRows', row.denominator_rows); add('denominatorMeasure', row.denominator_measure)
   add('unit', row.unit_el); add('unitEn', row.unit_en); add('target', num(row.target)); add('threshold', num(row.threshold)); add('note', row.note_el); add('noteEn', row.note_en)
@@ -89,7 +90,7 @@ function indicatorFromRow(row: AnyRecord, filters: AnyRecord[], denominatorFilte
 
 // --- Definition: register → rows -------------------------------------------------
 
-export function registerRow(register: AnyRecord, organizationId: string) {
+export function registerRow(register: RegisterDraft, organizationId: string) {
   return {
     organization_id: organizationId,
     department_id: /^[0-9a-f-]{36}$/i.test(String(register.departmentId || '')) ? register.departmentId : null,
@@ -110,11 +111,11 @@ export function registerRow(register: AnyRecord, organizationId: string) {
   }
 }
 
-export function definitionRows(register: AnyRecord, organizationId: string, registerId: string) {
+export function definitionRows(register: RegisterDraft, organizationId: string, registerId: string) {
   const base = { organization_id: organizationId, register_id: registerId }
   const breakdowns = new Set<string>(register.settings?.breakdowns || [])
-  const sections: AnyRecord[] = (register.settings?.sections || []).map((section: AnyRecord, position: number) => ({ ...base, key: section.key, label_el: section.label, label_en: section.labelEn || section.label, position }))
-  const fields: AnyRecord[] = (register.fields || []).map((field: AnyRecord, position: number) => ({
+  const sections = (register.settings?.sections || []).map((section, position) => ({ ...base, key: section.key, label_el: section.label, label_en: section.labelEn || section.label, position }))
+  const fields = (register.fields || []).map((field, position) => ({
     ...base,
     key: field.key,
     section_key: field.section || null,
@@ -138,17 +139,17 @@ export function definitionRows(register: AnyRecord, organizationId: string, regi
     not_before_key: orNull(field.notBefore),
     show_when_key: field.showWhen?.field || null,
     show_when_value: field.showWhen && field.showWhen.value !== undefined ? String(field.showWhen.value) : null,
-    computed_kind: field.type === 'computed' ? COMPUTED_TO_DB[field.computed] || field.computed : null,
+    computed_kind: field.type === 'computed' ? COMPUTED_TO_DB[field.computed!] || field.computed : null,
     computed_from: field.type === 'computed' ? field.from : null,
     computed_to: field.type === 'computed' ? field.to : null,
     aliases: field.aliases || [],
     archived: false,
   }))
-  const options: AnyRecord[] = (register.fields || []).flatMap((field: AnyRecord) => (field.options || []).map((option: AnyRecord, position: number) => ({ ...base, fieldKey: field.key, value: option.value, label_el: option.label, label_en: option.labelEn || option.label, position, match: option.match || [], archived: false })))
+  const options = (register.fields || []).flatMap(field => (field.options || []).map((option, position) => ({ ...base, fieldKey: field.key, value: option.value, label_el: option.label, label_en: option.labelEn || option.label, position, match: option.match || [], archived: false })))
   const sheet = register.sheet || {}
-  const axis = (name: string, items: AnyRecord[] = []) => items.map((item, position) => ({ ...base, axis: name, key: item.key, label_el: item.label, label_en: item.labelEn || item.label, help_el: orNull(item.help), help_en: orNull(item.helpEn), group_key: orNull(item.group), position, aliases: item.aliases || [], archived: false }))
-  const axes: AnyRecord[] = register.kind === 'sheet' ? [...axis('row', sheet.rows), ...axis('measure', sheet.measures), ...axis('group', sheet.groups)] : []
-  const indicators: AnyRecord[] = (register.indicators || []).map((indicator: AnyRecord, position: number) => ({
+  const axis = (name: string, items: SheetAxisItem[] = []) => items.map((item, position) => ({ ...base, axis: name, key: item.key, label_el: item.label, label_en: item.labelEn || item.label, help_el: orNull(item.help), help_en: orNull(item.helpEn), group_key: orNull(item.group), position, aliases: item.aliases || [], archived: false }))
+  const axes = register.kind === 'sheet' ? [...axis('row', sheet.rows), ...axis('measure', sheet.measures), ...axis('group', sheet.groups)] : []
+  const indicators = (register.indicators || []).map((indicator, position) => ({
     ...base,
     key: indicator.id,
     position,
@@ -173,19 +174,19 @@ export function definitionRows(register: AnyRecord, organizationId: string, regi
     note_en: orNull(indicator.noteEn),
     archived: false,
   }))
-  const filters: AnyRecord[] = (register.indicators || []).flatMap((indicator: AnyRecord) => [...(indicator.filters || []).map((filter: AnyRecord, position: number) => ({ part: 'numerator', filter, position })), ...(indicator.denominatorFilters || []).map((filter: AnyRecord, position: number) => ({ part: 'denominator', filter, position }))].map(({ part, filter, position }) => ({ ...base, indicatorKey: indicator.id, part, position, field_key: filter.field, op: filter.op, value: filter.value === undefined || filter.value === null ? null : String(filter.value) })))
+  const filters = (register.indicators || []).flatMap(indicator => [...(indicator.filters || []).map((filter, position) => ({ part: 'numerator', filter, position })), ...(indicator.denominatorFilters || []).map((filter, position) => ({ part: 'denominator', filter, position }))].map(({ part, filter, position }) => ({ ...base, indicatorKey: indicator.id, part, position, field_key: filter.field, op: filter.op, value: filter.value === undefined || filter.value === null ? null : String(filter.value) })))
   return { sections, fields, options, axes, indicators, filters }
 }
 
 // --- Data: table rows ↔ entries ---------------------------------------------------
 
-export function entryFromRow(register: AnyRecord, row: AnyRecord, identity: AnyRecord | null = null) {
-  let values: AnyRecord
+export function entryFromRow(register: Register, row: DataRow, identity: EntryIdentity | null = null): RegisterEntry {
+  let values: EntryValues
   if (register.kind === 'sheet') {
     values = {}
     for (const sheetRow of register.sheet?.rows || []) for (const measure of register.sheet?.measures || []) {
       const cell = row[sheetColumn(sheetRow.key, measure.key)]
-      if (cell !== null && cell !== undefined) values[sheetRow.key] = { ...(values[sheetRow.key] || {}), [measure.key]: Number(cell) }
+      if (cell !== null && cell !== undefined) values[sheetRow.key] = { ...(cellsOf(values[sheetRow.key]) || {}), [measure.key]: Number(cell) }
     }
   } else {
     values = {}
@@ -199,13 +200,13 @@ export function entryFromRow(register: AnyRecord, row: AnyRecord, identity: AnyR
 }
 
 // The columns an entry writes (computed columns are filled by the database).
-export function rowFromEntry(register: AnyRecord, entry: AnyRecord, organizationId: string) {
-  const row: AnyRecord = { organization_id: organizationId, status: entry.status || 'complete' }
+export function rowFromEntry(register: Register, entry: EntryDraft, organizationId: string) {
+  const row: Record<string, EntryValue> = { organization_id: organizationId, status: entry.status || 'complete' }
   if (register.kind === 'sheet') {
     row.period_start = entry.periodStart
     row.entry_date = entry.periodStart
     for (const sheetRow of register.sheet?.rows || []) for (const measure of register.sheet?.measures || []) {
-      const cell = entry.values?.[sheetRow.key]?.[measure.key]
+      const cell = cellsOf(entry.values?.[sheetRow.key])?.[measure.key]
       row[sheetColumn(sheetRow.key, measure.key)] = blank(cell) ? null : Number(cell)
     }
     return row

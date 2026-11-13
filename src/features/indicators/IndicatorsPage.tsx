@@ -70,10 +70,10 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
   if(!withRegisters||!tenant?.id||!from||!to||to<from){setRegisterRows([]);return undefined}
   let live=true
   ;(async()=>{try{
-   const registers=(await loadRegisters(tenant.id)).filter((register: AnyRecord)=>register.status==='active')
+   const registers=(await loadRegisters(tenant.id)).filter(register=>register.status==='active')
    const period={from,to,key:`range:${from}:${to}`},out: AnyRecord[]=[]
    // The registers are read together, not one after the other.
-   const lists=await Promise.all(registers.map((register: AnyRecord)=>loadEntries(tenant.id,register.id,{register}).catch(()=>[])))
+   const lists=await Promise.all(registers.map(register=>loadEntries(tenant.id,register.id,{register}).catch(()=>[])))
    for(const [index,register] of registers.entries()){
     const entries=lists[index]
     for(const indicator of register.indicators||[]){

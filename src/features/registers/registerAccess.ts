@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES, ROLES } from '../../core/permissions/roles'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Register } from './registerTypes'
 
-type RegisterCheck = (register: AnyRecord | null | undefined) => boolean
+// What the checks read of a register (the meetings pass their department the same way).
+type RegisterScope = Partial<Pick<Register, 'departmentId' | 'department' | 'status'>>
+type RegisterCheck = (register: RegisterScope | null | undefined) => boolean
 export interface RegisterAccess { canDefine: boolean, seesAll: boolean, isMember: RegisterCheck, canSee: RegisterCheck, canRecord: RegisterCheck, canSeeIdentity: RegisterCheck, canReopen: RegisterCheck }
 
 // Who does what with a department register (as the database policies of
@@ -26,7 +28,7 @@ export function useRegisterAccess() {
   // The same object while the user and role stay the same: lists filtered with it
   // (and screens that report their rows back) would otherwise render without end.
   return useMemo((): RegisterAccess => {
-    const ownDepartments = departmentKey ? departmentKey.split('|') : []
+    const ownDepartments: (string | undefined)[] = departmentKey ? departmentKey.split('|') : []
     const isMember: RegisterCheck = register => Boolean(register) && (everyDepartment || ownDepartments.includes(register!.departmentId) || ownDepartments.includes(register!.department))
     return {
       canDefine,

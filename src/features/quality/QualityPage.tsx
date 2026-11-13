@@ -56,6 +56,7 @@ import { supplierEvaluationsSheet } from './resources/supplierEvaluationReport'
 import './quality.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { Register } from '../registers/registerTypes'
 
 // Intake and governance are deliberately separate:
 // Report (staff) → Quality assessment/classification → Incident and/or
@@ -212,7 +213,7 @@ export function QualityPage({section=''}: { section?: string }={}){
  const actionCount=actionCounts(actions)
  const auditCount=auditCounts(audits)
  const activeObjectives=objectives.objectives.filter(inObjectiveYear).filter(item=>(item.status||'active')==='active')
- const isStaleRegister=useCallback((item: AnyRecord)=>isStale(item,todayIso),[todayIso])
+ const isStaleRegister=useCallback((item: Register)=>isStale(item,todayIso),[todayIso])
  const staleRegisters=registerList.registers.filter(isStaleRegister).length
  const latestAssessment=[...riskList.items].sort((a,b)=>String(b.assessedOn||'').localeCompare(String(a.assessedOn||'')))[0]
  const latestRisks=latestAssessment?summarizeRisks(latestAssessment.risks||[]):null

@@ -14,11 +14,11 @@ import { useRegisterAccess } from './registerAccess'
 import { registerKindLabel, registerStatusLabel } from './registerText'
 import './registers.css'
 import { hospitalDate } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Register, RegisterIndicator } from './registerTypes'
 import type { Period } from './registerEngine'
 import type { ReactNode, RefObject } from 'react'
 
-export type RegisterList = { registers: AnyRecord[], loading: boolean }
+export type RegisterList = { registers: Register[], loading: boolean }
 type RegisterHealth = { breach: number, attention: number, onTarget: number, period: Period }
 
 // The registers a user may open: every register for Quality, the registers of
@@ -27,7 +27,7 @@ type RegisterHealth = { breach: number, attention: number, onTarget: number, per
 export function useRegisterList() {
   const { tenant } = useTenant()
   const access = useRegisterAccess()
-  const [registers, setRegisters] = useState<AnyRecord[]>([])
+  const [registers, setRegisters] = useState<Register[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     let active = true
@@ -43,7 +43,7 @@ export function useRegisterList() {
 // kept for the session, so the list shows «2 past the limit» without opening the register.
 const healthCache = new Map<string, RegisterHealth>()
 const lastFullMonth = () => { const date = new Date(`${hospitalDate().slice(0, 7)}-01T12:00:00Z`); date.setUTCMonth(date.getUTCMonth() - 1); return date.toISOString().slice(0, 7) }
-function useRegisterHealth(registers: AnyRecord[]) {
+function useRegisterHealth(registers: Register[]) {
   const { tenant } = useTenant()
   const [health, setHealth] = useState(() => new Map<string, RegisterHealth | undefined>())
   const signature = registers.map(register => `${register.id}:${register.entryCount}:${register.lastEntry}:${register.indicators?.length}`).join('|')
@@ -53,7 +53,7 @@ function useRegisterHealth(registers: AnyRecord[]) {
     ;(async () => {
       for (const register of registers) {
         if (!register.indicators?.length) continue
-        const key = `${tenant?.id}:${register.id}:${register.entryCount}:${register.lastEntry}:${period.key}:${JSON.stringify(register.indicators.map((item: AnyRecord) => [item.id, item.target, item.threshold, item.direction]))}`
+        const key = `${tenant?.id}:${register.id}:${register.entryCount}:${register.lastEntry}:${period.key}:${JSON.stringify(register.indicators.map((item: RegisterIndicator) => [item.id, item.target, item.threshold, item.direction]))}`
         if (!healthCache.has(key)) {
           try {
             const entries = await loadEntries(tenant?.id, register.id, { withIdentity: false, register })
@@ -72,7 +72,7 @@ function useRegisterHealth(registers: AnyRecord[]) {
 
 // filterEnd: content at the right of the filter row (the Quality Center's view switch).
 // only: a predicate the caller narrows the list with (registers without recent entries).
-interface RegistersPanelProps { list: RegisterList, only?: ((register: AnyRecord) => boolean) | null, onBeforeOpen?: () => void, filterEnd?: ReactNode, onRowsChange?: (rows: AnyRecord[]) => void }
+interface RegistersPanelProps { list: RegisterList, only?: ((register: Register) => boolean) | null, onBeforeOpen?: () => void, filterEnd?: ReactNode, onRowsChange?: (rows: Register[]) => void }
 export function RegistersPanel({ list, only = null, onBeforeOpen, filterEnd = null, onRowsChange }: RegistersPanelProps) {
   const { t, language } = useLanguage()
   const en = language === 'en'
@@ -90,7 +90,7 @@ export function RegistersPanel({ list, only = null, onBeforeOpen, filterEnd = nu
   // The Quality Center's «Download» exports what the filters leave on screen.
   useEffect(() => { onRowsChange?.(rows) }, [rows, onRowsChange])
   const health = useRegisterHealth(list.registers)
-  const open = (register: AnyRecord) => { onBeforeOpen?.(); registry.openRecord(navigate, `/registers/${register.id}`, register.id, rows.map(row => row.id)) }
+  const open = (register: Register) => { onBeforeOpen?.(); registry.openRecord(navigate, `/registers/${register.id}`, register.id, rows.map(row => row.id)) }
   return <>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search register or department' : 'Αναζήτηση μητρώου ή τμήματος'} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (kind !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setDepartment('all'); setKind('all') }} end={filterEnd}>
       <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(name => <option key={name} value={name}>{name}</option>)}</FilterSelect>

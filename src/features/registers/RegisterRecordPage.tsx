@@ -21,6 +21,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadEntries, loadRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
 import { computeValues, formatValue, isTreatmentRegister, textOf } from './registerEngine'
+import { cellsOf } from './registerTypes'
 import { registerStatusLabel } from './registerText'
 import { RegisterSheet, dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
@@ -28,8 +29,7 @@ import { RegisterIndicators } from './RegisterIndicators'
 import { RegisterBuilder } from './RegisterBuilder'
 import './registers.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { ExportApi, Register } from './registerTypes'
+import type { ExportApi, Register, RegisterEntry, RegisterField, SheetEntry } from './registerTypes'
 
 // One department register: its entries (cases, or the monthly sheet), its
 // indicators with the report, its definition and its history.
@@ -44,7 +44,7 @@ export function RegisterRecordPage() {
   const { goBack } = useContextualNavigation('/registers')
   const access = useRegisterAccess()
   const [register, setRegister] = useState<Register | null>(null)
-  const [entries, setEntries] = useState<AnyRecord[]>([])
+  const [entries, setEntries] = useState<RegisterEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState(() => location.state?.registerTab || 'entries')
   // «Set a target» in Indicators opens that indicator in Definition.
@@ -94,7 +94,7 @@ export function RegisterRecordPage() {
   const context = <span className="register-context">{en ? register.departmentEn : register.department}{!withIdentity && !sheet && <span className="register-privacy"><Lock size={13} />{en ? 'Names visible only to the department' : 'Τα ονόματα τα βλέπει μόνο το τμήμα'}</span>}</span>
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={(() => { const key = registerThemeKey(register); const Icon = key ? themeIcon(key) : sheet ? CalendarRange : ClipboardList; return <Icon size={19} /> })()} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
 >
-    {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
+    {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries as SheetEntry[]} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
     {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? (indicatorId: string) => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
     {tab === 'definition' && <RegisterBuilder entries={entries} register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={(next: Register | null) => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}
@@ -105,13 +105,13 @@ const historyTitle = (action: string, language: string) => ((language === 'en' ?
 
 // The columns of the case list: the date the case counts on, then the fields
 // marked `list` (or the first four).
-export function listFields(register: Register): AnyRecord[] {
+export function listFields(register: Register): RegisterField[] {
   const dateField = register.fields.find(field => field.key === register.settings?.entryDateField)
   const marked = register.fields.filter(field => field.list && field !== dateField)
   return [dateField, ...(marked.length ? marked : register.fields.filter(field => field !== dateField && field.type !== 'text').slice(0, 4))].filter(Boolean)
 }
 
-interface RegisterCasesProps { register: Register, entries: AnyRecord[], withIdentity: boolean, canRecord: boolean, loading: boolean }
+interface RegisterCasesProps { register: Register, entries: RegisterEntry[], withIdentity: boolean, canRecord: boolean, loading: boolean }
 function RegisterCases({ register, entries, withIdentity, canRecord, loading }: RegisterCasesProps) {
   const { language } = useLanguage()
   const en = language === 'en'
@@ -140,7 +140,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }: 
   const paged = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
   // The cases open in the list's order, so the case page steps to the previous and next one.
   const registry = useRegistryMemory(`register-cases-${register.id}`)
-  const open = (entry: AnyRecord) => registry.openRecord(navigate, `/registers/${register.id}/entries/${entry.id}`, entry.id, rows.map(item => item.id))
+  const open = (entry: RegisterEntry) => registry.openRecord(navigate, `/registers/${register.id}/entries/${entry.id}`, entry.id, rows.map(item => item.id))
   return <RecordTabPanel className="register-cases" title={en ? 'Cases' : 'Περιστατικά'} subtitle={withIdentity ? (en ? 'Your department’s cases. The case number and name stay inside the department.' : 'Τα περιστατικά του τμήματος. Αριθμός περιστατικού και όνομα μένουν στο τμήμα.') : (en ? 'The values the indicators read, without names.' : 'Οι τιμές που διαβάζουν οι δείκτες, χωρίς ονόματα.')}
     footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={(year !== 'all' ? 1 : 0) + (stay !== 'all' ? 1 : 0) + (state !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setYear('all'); setStay('all'); setState('all') }}>
@@ -163,12 +163,12 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }: 
 }
 
 // CSV for Excel: the values of every entry (no names, whoever exports).
-export function registerExport(register: Register, entries: AnyRecord[], { language = 'el' }: { language?: string, withIdentity?: boolean } = {}) {
+export function registerExport(register: Register, entries: RegisterEntry[], { language = 'el' }: { language?: string, withIdentity?: boolean } = {}) {
   const en = language === 'en'
   const title = en ? register.nameEn : register.name
   if (register.kind === 'sheet') {
     const rows = register.sheet.rows || [], measures = register.sheet.measures || []
-    return { name: `${register.code}_${title}`, headers: [en ? 'Month' : 'Μήνας', ...rows.flatMap(row => measures.map(measure => `${textOf(row, language)}${measures.length > 1 ? ` · ${textOf(measure, language)}` : ''}`))], rows: [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))).map(entry => [String(entry.periodStart).slice(0, 7), ...rows.flatMap(row => measures.map(measure => entry.values?.[row.key]?.[measure.key] ?? ''))]) }
+    return { name: `${register.code}_${title}`, headers: [en ? 'Month' : 'Μήνας', ...rows.flatMap(row => measures.map(measure => `${textOf(row, language)}${measures.length > 1 ? ` · ${textOf(measure, language)}` : ''}`))], rows: [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))).map(entry => [String(entry.periodStart).slice(0, 7), ...rows.flatMap(row => measures.map(measure => cellsOf(entry.values?.[row.key])?.[measure.key] ?? ''))]) }
   }
   const fields = register.fields.filter(field => field.type !== 'text')
   return { name: `${register.code}_${title}`, headers: ['#', ...fields.map(field => textOf(field, language))], rows: entries.map(entry => { const values = computeValues(register.fields, entry.values); return [String(entry.id).slice(-6).toUpperCase(), ...fields.map(field => { const value = values[field.key]; return value == null || value === '' ? '' : ['number', 'computed'].includes(field.type) ? Number(value) : formatValue(field, value, language) })] }) }
