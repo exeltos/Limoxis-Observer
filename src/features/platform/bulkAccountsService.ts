@@ -4,7 +4,12 @@ import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { previewCreateAccounts, previewEmail, previewEmployeeAccounts, previewResend } from '../../core/preview/bulkAccountsPreview'
 import { CHUNK_SIZE, RESEND_CHUNK_SIZE, chunk, normalizeRosterRow } from './bulkAccountsModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { BulkItem, BulkOrganization, BulkPreview, BulkResult, RawRosterRow, Roster, RosterDepartment, RosterRow } from './bulkAccountsModel'
+
+// What the RPC platform_employee_accounts returns (Json), or the preview's sample.
+type EmployeeAccountsPayload = { employees?: RawRosterRow[], departments?: RosterDepartment[] }
+// The body of a call to the Edge Function.
+type FunctionBody = Record<string, unknown>
 
 // N1 · bulk creation of accounts from the employee roster (the Platform Owner or the
 // hospital's own Hospital Admin; the RPC and the Edge Function refuse anyone else).
@@ -12,15 +17,15 @@ const FUNCTION = 'platform-bulk-create-accounts'
 // The owner's preview frame and the Demo run on sample people: nothing is sent.
 const simulated = () => isOwnerPreview() || isDemoDataEnvironment()
 
-export async function loadEmployeeAccounts(organizationId: string | null | undefined) {
-  const data = simulated()
+export async function loadEmployeeAccounts(organizationId: string | null | undefined): Promise<Roster> {
+  const data: EmployeeAccountsPayload = simulated()
     ? previewEmployeeAccounts(organizationId, { anyOrganization: isDemoDataEnvironment() })
     : await (async () => {
         if (!supabase) return { employees: [], departments: [] }
         const { data: result, error } = await supabase.rpc('platform_employee_accounts', { p_organization_id: organizationId as string })
         if (error) throw error
         return (result || {}) as Exclude<Json, null>
-      })() as AnyRecord
+      })() as EmployeeAccountsPayload
   return {
     employees: (data.employees || []).map(normalizeRosterRow),
     departments: data.departments || [],
@@ -29,17 +34,17 @@ export async function loadEmployeeAccounts(organizationId: string | null | undef
 
 // The confirmation (dryRun): people per role, who is skipped, e-mails that already
 // have an account in another hospital, the link's validity, the e-mail preview.
-export async function previewBulkAccounts(organization: AnyRecord, items: AnyRecord[], rows: AnyRecord[]) {
+export async function previewBulkAccounts(organization: BulkOrganization, items: BulkItem[], rows: RosterRow[]): Promise<BulkPreview> {
   if (simulated()) {
-    const byId = new Map(rows.map((row: AnyRecord) => [row.employeeId, row]))
+    const byId = new Map(rows.map((row: RosterRow) => [row.employeeId, row]))
     const existing = items
-      .map((item: AnyRecord) => byId.get(item.employeeId))
-      .filter((row): row is AnyRecord => Boolean(row?.existing))
-      .map((row: AnyRecord) => ({ employeeId: row.employeeId, name: row.name, email: row.email, role: items.find((item: AnyRecord) => item.employeeId === row.employeeId)!.role, existingName: row.existing.name, organizations: row.existing.organizations }))
+      .map((item: BulkItem) => byId.get(item.employeeId))
+      .filter((row): row is RosterRow & { existing: NonNullable<RosterRow['existing']> } => Boolean(row?.existing))
+      .map(row => ({ employeeId: row.employeeId, name: row.name, email: row.email, role: items.find((item: BulkItem) => item.employeeId === row.employeeId)!.role, existingName: row.existing.name, organizations: row.existing.organizations }))
     const expires = new Date()
     expires.setDate(expires.getDate() + 7)
     expires.setHours(23, 59, 0, 0)
-    const first = items.map((item: AnyRecord) => byId.get(item.employeeId)).find(row => row && !row.existing)
+    const first = items.map((item: BulkItem) => byId.get(item.employeeId)).find(row => row && !row.existing)
     return { ok: true, expiresAt: expires.toISOString(), existing, skipped: [], emailPreview: first ? { ...previewEmail(first.name, organization), to: first.email } : null }
   }
   return invokeAuthenticatedFunction(FUNCTION, { action: 'preview', organizationId: organization.id, items })
@@ -48,13 +53,13 @@ export async function previewBulkAccounts(organization: AnyRecord, items: AnyRec
 // The run, in chunks of 25 with one batchKey (a retry of a chunk returns the same
 // rows; the server never makes two accounts for one employee), then «finish»
 // (audit, summary to the hospital's administrators). onProgress(done, total).
-export async function createBulkAccounts(organizationId: string | null | undefined, items: AnyRecord[], { confirmExisting = [], onProgress }: { confirmExisting?: string[], onProgress?: (done: number, total: number) => void } = {}) {
+export async function createBulkAccounts(organizationId: string | null | undefined, items: BulkItem[], { confirmExisting = [], onProgress }: { confirmExisting?: string[], onProgress?: (done: number, total: number) => void } = {}): Promise<{ batchKey?: string, batchId?: string, results: BulkResult[], totals?: unknown }> {
   if (simulated()) {
     onProgress?.(items.length, items.length)
     return previewCreateAccounts(items, confirmExisting)
   }
   const batchKey = crypto.randomUUID()
-  const results: AnyRecord[] = []
+  const results: BulkResult[] = []
   let done = 0
   onProgress?.(0, items.length)
   for (const part of chunk(items, CHUNK_SIZE)) {
@@ -68,7 +73,7 @@ export async function createBulkAccounts(organizationId: string | null | undefin
 }
 
 // One retry after a network failure: the same batchKey and items give back the same rows.
-async function invokeWithRetry(body: AnyRecord) {
+async function invokeWithRetry(body: FunctionBody) {
   try {
     return await invokeAuthenticatedFunction(FUNCTION, body)
   } catch (error) {
@@ -78,9 +83,9 @@ async function invokeWithRetry(body: AnyRecord) {
 }
 
 // «Ξαναστείλε»: a new link (the old one stops working) for people who have not activated.
-export async function resendAccountAccess(organizationId: string | null | undefined, employeeIds: string[]) {
+export async function resendAccountAccess(organizationId: string | null | undefined, employeeIds: string[]): Promise<{ results: BulkResult[] }> {
   if (simulated()) return previewResend(employeeIds)
-  const results: AnyRecord[] = []
+  const results: BulkResult[] = []
   for (const part of chunk(employeeIds, RESEND_CHUNK_SIZE)) {
     const data = await invokeAuthenticatedFunction(FUNCTION, { action: 'resend', organizationId, employeeIds: part })
     results.push(...(data.results || []))

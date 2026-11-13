@@ -47,10 +47,7 @@ import { BulkAccountsConfirmDialog } from './BulkAccountsConfirmDialog'
 import '../../design-system/ChoiceChips.css'
 import './platformDeletion.css'
 import './bulkAccounts.css'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { RoleDraft, RoleDrafts } from './bulkAccountsModel'
-
-type Roster = { employees: AnyRecord[], departments: AnyRecord[] }
+import type { BulkItem, BulkOrganization, BulkPreview, BulkResult, BulkRoleOptions, RoleDraft, RoleDrafts, Roster, RosterDepartment, RosterRow } from './bulkAccountsModel'
 
 const shortDay = (value: string | null | undefined, language: string) => (value ? new Date(value).toLocaleDateString(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit' }) : '')
 const fullDay = (value: string | null | undefined, language: string) => (value ? new Date(value).toLocaleDateString(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
@@ -60,13 +57,13 @@ const clock = (value: string | null | undefined, language: string) => (value ? n
 // record › «Χρήστες & Ρόλοι». The roster with each employee's account state:
 // select, give a role (and department), confirm, create and send; then the result
 // per person and «Ξαναστείλε» for those who have not activated.
-export function BulkAccountsPanel({ organization, language = 'el', roster, loading, onReload, onAccountsChanged, onOpenEmployee }: { organization: AnyRecord | null, language?: string, roster: Roster | AnyRecord, loading?: boolean, onReload?: () => unknown, onAccountsChanged?: () => void, onOpenEmployee?: (employeeId: string) => void }) {
+export function BulkAccountsPanel({ organization, language = 'el', roster, loading, onReload, onAccountsChanged, onOpenEmployee }: { organization: BulkOrganization | null, language?: string, roster: Roster, loading?: boolean, onReload?: () => unknown, onAccountsChanged?: () => void, onOpenEmployee?: (employeeId: string) => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const { notify, notifyError } = useFeedback()
   const rows = roster.employees
   const departments = roster.departments
-  const rowsById = useMemo(() => new Map<string, AnyRecord>(rows.map((row: AnyRecord) => [row.employeeId, row])), [rows])
+  const rowsById = useMemo(() => new Map<string, RosterRow>(rows.map((row: RosterRow) => [row.employeeId, row])), [rows])
   const batch = useMemo(() => latestBatch(rows), [rows])
   const [filter, setFilter] = useState('none')
   const [query, setQuery] = useState('')
@@ -75,7 +72,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
   const [selected, setSelected] = useState(() => new Set<string>())
   const [drafts, setDrafts] = useState<RoleDrafts>({})
   const [bulkOpen, setBulkOpen] = useState(false)
-  const [confirm, setConfirm] = useState<AnyRecord | null>(null)
+  const [confirm, setConfirm] = useState<{ items: BulkItem[], preview: BulkPreview | null } | null>(null)
   const [confirmedExisting, setConfirmedExisting] = useState(() => new Set<string>())
   const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
@@ -83,20 +80,20 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
   const [lastRunAt, setLastRunAt] = useState<string | null>(null)
 
   const counts = useMemo(() => chipCounts(rows), [rows])
-  const professions = useMemo(() => [...new Set<string>(rows.map((row: AnyRecord) => row.profession).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [rows])
+  const professions = useMemo(() => [...new Set<string>(rows.map((row: RosterRow) => row.profession).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [rows])
   const visible = useMemo(() => {
     const list = filterRows(rows, { filter, batchId: batch?.id, query, departmentId: departmentFilter, profession: professionFilter })
     return filter === 'batch' || filter === 'pending' ? sortByResult(list) : list
   }, [rows, filter, batch, query, departmentFilter, professionFilter])
   const resultView = filter !== 'none'
-  const selectableVisible = visible.filter((row: AnyRecord) => rowSelectable(row, filter))
+  const selectableVisible = visible.filter((row: RosterRow) => rowSelectable(row, filter))
   const summary = selectionSummary(selected, drafts, rowsById)
-  const blockedVisible = visible.filter((row: AnyRecord) => row.accountState === 'none' && row.blockedReason).length
+  const blockedVisible = visible.filter((row: RosterRow) => row.accountState === 'none' && row.blockedReason).length
 
   // A change of view starts a new selection.
   useEffect(() => setSelected(new Set()), [filter])
 
-  const toggle = (row: AnyRecord) => {
+  const toggle = (row: RosterRow) => {
     if (!rowSelectable(row, filter)) return
     setSelected(current => {
       const next = new Set(current)
@@ -105,16 +102,16 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
       return next
     })
   }
-  const allChecked = selectableVisible.length > 0 && selectableVisible.every((row: AnyRecord) => selected.has(row.employeeId))
-  const someChecked = selectableVisible.some((row: AnyRecord) => selected.has(row.employeeId))
+  const allChecked = selectableVisible.length > 0 && selectableVisible.every((row: RosterRow) => selected.has(row.employeeId))
+  const someChecked = selectableVisible.some((row: RosterRow) => selected.has(row.employeeId))
   const toggleAll = () =>
     setSelected(current => {
       const next = new Set(current)
-      if (allChecked) selectableVisible.forEach((row: AnyRecord) => next.delete(row.employeeId))
-      else selectableVisible.slice(0, MAX_RUN).forEach((row: AnyRecord) => next.add(row.employeeId))
+      if (allChecked) selectableVisible.forEach((row: RosterRow) => next.delete(row.employeeId))
+      else selectableVisible.slice(0, MAX_RUN).forEach((row: RosterRow) => next.add(row.employeeId))
       return next
     })
-  const chooseRole = (row: AnyRecord, role: string) => {
+  const chooseRole = (row: RosterRow, role: string) => {
     setDrafts(current => (role ? setRowRole(current, row, role) : { ...current, [row.employeeId]: undefined }))
     if (role && rowSelectable(row, filter)) setSelected(current => new Set(current).add(row.employeeId))
   }
@@ -134,9 +131,9 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
 
   async function runCreate() {
     if (!confirm?.preview) return
-    const skipped = new Set((confirm.preview.skipped || []).map((row: AnyRecord) => row.employeeId))
-    const existing = new Set((confirm.preview.existing || []).map((row: AnyRecord) => row.employeeId))
-    const items = confirm.items.filter((item: AnyRecord) => !skipped.has(item.employeeId) && (!existing.has(item.employeeId) || confirmedExisting.has(item.employeeId)))
+    const skipped = new Set((confirm.preview.skipped || []).map(row => row.employeeId))
+    const existing = new Set((confirm.preview.existing || []).map(row => row.employeeId))
+    const items = confirm.items.filter((item: BulkItem) => !skipped.has(item.employeeId) && (!existing.has(item.employeeId) || confirmedExisting.has(item.employeeId)))
     if (!items.length) return
     setRunning(true)
     try {
@@ -168,7 +165,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
     if (!ids.length) return
     setResending(true)
     try {
-      const { results } = (await resendAccountAccess(organization!.id, ids)) as { results: AnyRecord[] }
+      const { results } = (await resendAccountAccess(organization!.id, ids)) as { results: BulkResult[] }
       const sent = results.filter(row => row.status === 'sent').length
       const refused = results.length - sent
       const reason = results.find(row => row.status !== 'sent')?.code
@@ -195,9 +192,9 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
     { id: 'active', label: tx('Ενεργός λογαριασμός', 'Active account'), count: counts.active },
     { id: 'all', label: tx('Όλοι οι εργαζόμενοι', 'All employees'), count: counts.all },
   ]
-  const batchRows = batch ? rows.filter((row: AnyRecord) => row.itemBatchId === batch.id) : []
+  const batchRows = batch ? rows.filter((row: RosterRow) => row.itemBatchId === batch.id) : []
   const totals = resultTotals(batchRows)
-  const linkedCount = batchRows.filter((row: AnyRecord) => row.itemStatus === 'linked_existing').length
+  const linkedCount = batchRows.filter((row: RosterRow) => row.itemStatus === 'linked_existing').length
   const pendingSelected = [...selected].map(id => rowsById.get(id)).filter(Boolean)
   const pendingExpired = pendingSelected.filter(row => resultStatus(row) === 'expired').length
 
@@ -225,7 +222,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
           </FilterSelect>
           <FilterSelect label={tx('Τμήμα', 'Department')} value={departmentFilter} onChange={setDepartmentFilter}>
             <option value="">{tx('Όλα', 'All')}</option>
-            {departments.map((department: AnyRecord) => <option key={department.id} value={department.id}>{department.name}</option>)}
+            {departments.map((department: RosterDepartment) => <option key={department.id} value={department.id}>{department.name}</option>)}
           </FilterSelect>
           <FilterSelect label={tx('Ειδικότητα', 'Profession')} value={professionFilter} onChange={setProfessionFilter}>
             <option value="">{tx('Όλες', 'All')}</option>
@@ -256,7 +253,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
             departments={departments}
             open={bulkOpen}
             onOpen={setBulkOpen}
-            onApply={(options: AnyRecord) => {
+            onApply={(options: BulkRoleOptions) => {
               setDrafts(current => applyRoleToSelected(current, selected, rowsById, options))
               setBulkOpen(false)
             }}
@@ -297,7 +294,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
                 </tr>
               </thead>
               <tbody>
-                {visible.map((row: AnyRecord) =>
+                {visible.map((row: RosterRow) =>
                   resultView ? (
                     <ResultRow key={row.employeeId} row={row} language={language} checkbox={filter === 'pending'} selected={selected.has(row.employeeId)} onToggle={() => toggle(row)} onResend={() => resend([row.employeeId])} resending={resending} onOpenEmployee={onOpenEmployee} />
                   ) : (
@@ -381,14 +378,14 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
   )
 }
 
-function resendReason(code: string, en: boolean) {
+function resendReason(code: string | undefined, en: boolean) {
   const map: Record<string, [string, string]> = {
     RESEND_DAILY_LIMIT: ['έως 3 φορές ανά 24 ώρες', 'at most 3 times per 24 hours'],
     RESEND_TOO_SOON: ['τουλάχιστον 10 λεπτά μετά το προηγούμενο', 'at least 10 minutes after the previous one'],
     NOT_PENDING: ['έχει ήδη ενεργοποιήσει', 'already activated'],
     INVALID_EMAIL: ['μη έγκυρο email', 'invalid e-mail'],
   }
-  return map[code]?.[en ? 1 : 0] || code || ''
+  return map[code as string]?.[en ? 1 : 0] || code || ''
 }
 
 function HeaderCheckbox({ checked, mixed, disabled, onChange, label }: { checked: boolean, mixed: boolean, disabled?: boolean, onChange: ChangeEventHandler<HTMLInputElement>, label: string }) {
@@ -399,7 +396,7 @@ function HeaderCheckbox({ checked, mixed, disabled, onChange, label }: { checked
   return <input ref={ref} type="checkbox" className="bulk-accounts-check" checked={checked} disabled={disabled} aria-label={label} onChange={onChange} />
 }
 
-function EmployeeName({ row, onOpenEmployee, title }: { row: AnyRecord, onOpenEmployee?: (employeeId: string) => void, title?: string }) {
+function EmployeeName({ row, onOpenEmployee, title }: { row: RosterRow, onOpenEmployee?: (employeeId: string) => void, title?: string }) {
   return onOpenEmployee ? (
     <button type="button" className="bulk-accounts-link" title={title} onClick={() => onOpenEmployee(row.employeeId)}>
       <strong>{row.name}</strong>
@@ -409,7 +406,7 @@ function EmployeeName({ row, onOpenEmployee, title }: { row: AnyRecord, onOpenEm
   )
 }
 
-function RosterRow({ row, language, departments, draft, selected, onToggle, onRole, onDepartment, onOpenEmployee }: { row: AnyRecord, language: string, departments: AnyRecord[], draft?: RoleDraft, selected: boolean, onToggle: () => void, onRole: (role: string) => void, onDepartment: (id: string) => void, onOpenEmployee?: (employeeId: string) => void }) {
+function RosterRow({ row, language, departments, draft, selected, onToggle, onRole, onDepartment, onOpenEmployee }: { row: RosterRow, language: string, departments: RosterDepartment[], draft?: RoleDraft, selected: boolean, onToggle: () => void, onRole: (role: string) => void, onDepartment: (id: string) => void, onOpenEmployee?: (employeeId: string) => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const blocked = row.accountState === 'none' && row.blockedReason
@@ -465,7 +462,7 @@ function RosterRow({ row, language, departments, draft, selected, onToggle, onRo
               <Building2 size={13} aria-hidden="true" />
               <select className={`bulk-accounts-select${draft?.departmentId ? '' : ' is-missing'}`} value={draft?.departmentId || ''} aria-label={tx(`Τμήμα: ${row.name}`, `Department: ${row.name}`)} onChange={event => onDepartment(event.target.value)}>
                 <option value="">{tx('Επιλέξτε τμήμα…', 'Choose department…')}</option>
-                {departments.map((department: AnyRecord) => (
+                {departments.map((department: RosterDepartment) => (
                   <option key={department.id} value={department.id}>
                     {department.name}
                   </option>
@@ -482,7 +479,7 @@ function RosterRow({ row, language, departments, draft, selected, onToggle, onRo
   )
 }
 
-function ResultRow({ row, language, checkbox, selected, onToggle, onResend, resending, onOpenEmployee }: { row: AnyRecord, language: string, checkbox: boolean, selected: boolean, onToggle: () => void, onResend: () => void, resending: boolean, onOpenEmployee?: (employeeId: string) => void }) {
+function ResultRow({ row, language, checkbox, selected, onToggle, onResend, resending, onOpenEmployee }: { row: RosterRow, language: string, checkbox: boolean, selected: boolean, onToggle: () => void, onResend: () => void, resending: boolean, onOpenEmployee?: (employeeId: string) => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const status = resultStatus(row)
@@ -552,7 +549,7 @@ function ResultRow({ row, language, checkbox, selected, onToggle, onResend, rese
 }
 
 // «Ορισμός ρόλου σε όλους τους επιλεγμένους» (n1-2).
-function BulkRoleBar({ language, selected, drafts, rowsById, departments, open, onOpen, onApply }: { language: string, selected: Set<string>, drafts: RoleDrafts, rowsById: Map<string, AnyRecord>, departments: AnyRecord[], open: boolean, onOpen: (open: boolean) => void, onApply: (options: AnyRecord) => void }) {
+function BulkRoleBar({ language, selected, drafts, rowsById, departments, open, onOpen, onApply }: { language: string, selected: Set<string>, drafts: RoleDrafts, rowsById: Map<string, RosterRow>, departments: RosterDepartment[], open: boolean, onOpen: (open: boolean) => void, onApply: (options: BulkRoleOptions) => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const [role, setRole] = useState('')
@@ -637,7 +634,7 @@ function BulkRoleBar({ language, selected, drafts, rowsById, departments, open, 
             {scope === 'one' ? (
               <select className="bulk-accounts-select" value={departmentId} aria-label={tx('Τμήμα για όλους', 'Department for all')} onChange={event => setDepartmentId(event.target.value)}>
                 <option value="">{tx('Επιλέξτε τμήμα…', 'Choose department…')}</option>
-                {departments.map((department: AnyRecord) => (
+                {departments.map((department: RosterDepartment) => (
                   <option key={department.id} value={department.id}>
                     {department.name}
                   </option>
