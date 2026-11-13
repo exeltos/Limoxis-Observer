@@ -2,10 +2,13 @@
 // The nightly protocol-review job writes them (protocol_update_suggestions);
 // a person accepts (a new revision), rejects (with a reason) or postpones them.
 
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { Tables } from '../../../core/supabase/database.types'
+import type { CalendarEvent } from '../../calendar/calendarEvents'
+import type { DocumentRecord } from '../documentTypes'
 
 // A suggestion as the screens use it (camelCase; see suggestionFromRow).
-export type ProtocolSuggestion = AnyRecord
+// A suggestion as the screens use it (camelCase; see suggestionFromRow).
+export type ProtocolSuggestion = { id: string, organizationId: string | null, documentId: string, reason: string, sourceKind?: string | null, sourceRef?: string, sourceLabel?: string, sourceUrl?: string, whatChanged?: string, affectedSections?: string[], details?: unknown, draftText?: string, draftCitation?: string, status: string, decidedAt?: string | null, rejectionReason?: string, snoozedUntil?: string, revisionDocumentId?: string | null, createdAt?: string | null }
 
 export const SUGGESTION_REASONS=['review_due','source_changed','stale']
 export const SUGGESTION_SECTIONS=['purpose','definitions','instructions','dosages','references']
@@ -25,18 +28,18 @@ const STATUS_LABELS: Labels={
  en:{open:'Open',snoozed:'Postponed',accepted:'Accepted',rejected:'Rejected'},
 }
 const lang=(language: unknown)=>language==='en'?'en':'el'
-export const suggestionReasonLabel=(reason: string,language='el')=>REASON_LABELS[lang(language)][reason]||reason
+export const suggestionReasonLabel=(reason: string|undefined,language='el')=>REASON_LABELS[lang(language)][reason||'']||reason
 export const suggestionSectionLabel=(section: string,language='el')=>SECTION_LABELS[lang(language)][section]||section
 export const suggestionStatusLabel=(status: string,language='el')=>STATUS_LABELS[lang(language)][status]||status
-export const suggestionReasonTone=(reason: string)=>reason==='review_due'?'danger':reason==='source_changed'?'warning':'info'
+export const suggestionReasonTone=(reason: string|undefined)=>reason==='review_due'?'danger':reason==='source_changed'?'warning':'info'
 
 const pad=(n: number)=>String(n).padStart(2,'0')
 export const todayKey=(date=new Date())=>`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`
 
-export function suggestionFromRow(row: AnyRecord|null|undefined): ProtocolSuggestion|null{
+export function suggestionFromRow(row: Partial<Tables<'protocol_update_suggestions'>>|null|undefined): ProtocolSuggestion|null{
  if(!row)return null
  return {
-  id:row.id,organizationId:row.organization_id||null,documentId:row.document_id,reason:row.reason,
+  id:row.id||'',organizationId:row.organization_id||null,documentId:row.document_id||'',reason:row.reason||'',
   sourceKind:row.source_kind||null,sourceRef:row.source_ref||'',sourceLabel:row.source_label||'',sourceUrl:row.source_url||'',
   whatChanged:row.what_changed||'',affectedSections:(row.affected_sections||[]).filter((s: string)=>SUGGESTION_SECTIONS.includes(s)),details:row.details||{},
   draftText:row.draft_text||'',draftCitation:row.draft_citation||'',status:row.status||'open',
@@ -52,10 +55,10 @@ export function effectiveStatus(suggestion: ProtocolSuggestion|null|undefined,to
 }
 export const isOpenSuggestion=(suggestion: ProtocolSuggestion|null|undefined,today?: string)=>effectiveStatus(suggestion,today)==='open'
 
-export const documentKey=(record: AnyRecord|null|undefined)=>record?.dbId||record?.id||null
+export const documentKey=(record: Pick<DocumentRecord,'dbId'|'id'>|null|undefined)=>record?.dbId||record?.id||null
 
 // The suggestions of one document version, open first, newest first.
-export function suggestionsForDocument(list: ProtocolSuggestion[]|null|undefined,record: AnyRecord|null|undefined,today=todayKey()){
+export function suggestionsForDocument(list: ProtocolSuggestion[]|null|undefined,record: Pick<DocumentRecord,'dbId'|'id'>|null|undefined,today=todayKey()){
  const key=documentKey(record)
  if(!key)return {open:[],snoozed:[]}
  const mine=(list||[]).filter(s=>s.documentId===key)
@@ -70,19 +73,19 @@ export function suggestionsForDocument(list: ProtocolSuggestion[]|null|undefined
 // A draft revision of this protocol already started for the suggestion (created
 // after it was found): accepting again links that draft instead of making
 // another, so a failed decision never leaves duplicate drafts behind.
-export function existingSuggestedRevision(documents: AnyRecord[]|null|undefined,record: AnyRecord|null|undefined,suggestion: ProtocolSuggestion|null|undefined){
+export function existingSuggestedRevision(documents: DocumentRecord[]|null|undefined,record: Pick<DocumentRecord,'dbId'|'id'>|null|undefined,suggestion: ProtocolSuggestion|null|undefined){
  const ids=new Set([record?.dbId,record?.id].filter(Boolean))
  if(!ids.size||!suggestion)return null
  const since=String(suggestion.createdAt||'')
  return (documents||[])
-  .filter(doc=>doc?.status==='draft'&&(ids.has(doc.revisionOfDbId)||ids.has(doc.revisionOfId))&&String(doc.createdAt||'')>=since)
+  .filter(doc=>doc?.status==='draft'&&(ids.has(doc.revisionOfDbId||'')||ids.has(doc.revisionOfId||''))&&String(doc.createdAt||'')>=since)
   .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0]||null
 }
 
 export function documentsWithOpenSuggestions(list: ProtocolSuggestion[]|null|undefined,today=todayKey()): Set<unknown>{
  return new Set((list||[]).filter(s=>isOpenSuggestion(s,today)).map(s=>s.documentId))
 }
-export const familyHasOpenSuggestion=(family: AnyRecord|null|undefined,keys: Set<unknown>|null|undefined)=>Boolean(keys?.size)&&(family?.versions||[]).some((version: AnyRecord)=>(keys as Set<unknown>).has(documentKey(version)))
+export const familyHasOpenSuggestion=(family: {versions?: DocumentRecord[]}|null|undefined,keys: Set<unknown>|null|undefined)=>Boolean(keys?.size)&&(family?.versions||[]).some((version: DocumentRecord)=>(keys as Set<unknown>).has(documentKey(version)))
 
 // The revision notes a new revision starts with: the reason, what changed, the
 // affected sections and, when asked, the drafted paragraph with its citation.
@@ -125,10 +128,10 @@ export function addDaysKey(day: string,days: number){
 // user owns, on today (or on the date it comes back, for a postponed one).
 // ownerId undefined lists every protocol (the Demo, whose documents have no
 // linked owner).
-export function suggestionCalendarItems(list: ProtocolSuggestion[]|null|undefined,documents: AnyRecord[]|null|undefined,{today=todayKey(),language='el',ownerId}: {today?: string,language?: string,ownerId?: string|null}={}){
+export function suggestionCalendarItems(list: ProtocolSuggestion[]|null|undefined,documents: DocumentRecord[]|null|undefined,{today=todayKey(),language='el',ownerId}: {today?: string,language?: string,ownerId?: string|null}={}){
  const en=lang(language)==='en'
  const byKey=new Map((documents||[]).map(doc=>[documentKey(doc),doc]))
- const out: AnyRecord[]=[]
+ const out: CalendarEvent[]=[]
  for(const s of list||[]){
   const doc=byKey.get(s.documentId)
   if(!doc)continue

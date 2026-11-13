@@ -13,19 +13,19 @@ import { createDocumentAsync,loadDocumentsAsync } from './documentService'
 import { DocumentForm,createEmptyDocumentDraft,documentDraftIsValid } from './DocumentForm'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DocumentDepartment, DocumentDraft, DocumentRecord } from './documentTypes'
 
 export function DocumentCreatePage(){
  const navigate=useNavigate();const {tenant,isDemo}=useTenant();const {language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const actor=useAuditActor()
- const [saving,setSaving]=useState(false),[departments,setDepartments]=useState<AnyRecord[]>([]),[existing,setExisting]=useState<AnyRecord[]>([])
- const [v,setV]=useState<AnyRecord>(createEmptyDocumentDraft)
+ const [saving,setSaving]=useState(false),[departments,setDepartments]=useState<DocumentDepartment[]>([]),[existing,setExisting]=useState<DocumentRecord[]>([])
+ const [v,setV]=useState<DocumentDraft>(createEmptyDocumentDraft)
  const valid=documentDraftIsValid(v)
  // loadDocumentsAsync/createDocumentAsync already branch on isDemoDataEnvironment()
  // internally, but loadDepartments (departmentsService.js) is a plain cloud
  // call with no demo awareness — calling it with tenant.id='demo-hospital'
  // (not a real UUID) fails with a Postgres 400. Use demoLibrarySeed instead,
  // the same fixture used for departments elsewhere in demo mode.
- useEffect(()=>{let active=true;const departmentsRequest=isDemo?Promise.resolve(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))):(tenant?.id?loadDepartments(tenant.id):Promise.resolve([]));if(!tenant?.id&&!isDemo)return;Promise.all([departmentsRequest,loadDocumentsAsync(tenant?.id)]).then(([departmentRows,documentRows])=>{if(!active)return;setDepartments(((departmentRows||[]) as AnyRecord[]).filter(x=>x.is_active!==false));setExisting(documentRows||[])}).catch(()=>{if(active){setDepartments([]);setExisting([])}});return()=>{active=false}},[isDemo,tenant?.id])
+ useEffect(()=>{let active=true;const departmentsRequest=isDemo?Promise.resolve(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))):(tenant?.id?loadDepartments(tenant.id):Promise.resolve([]));if(!tenant?.id&&!isDemo)return;Promise.all([departmentsRequest,loadDocumentsAsync(tenant?.id)]).then(([departmentRows,documentRows])=>{if(!active)return;setDepartments(((departmentRows||[]) as (DocumentDepartment&{is_active?: boolean|null})[]).filter(x=>x.is_active!==false));setExisting(documentRows||[])}).catch(()=>{if(active){setDepartments([]);setExisting([])}});return()=>{active=false}},[isDemo,tenant?.id])
  async function save(){if(!valid||saving)return;setSaving(true);try{const selected=departments.find(x=>x.id===v.departmentId);const record=await createDocumentAsync(tenant?.id,{...v,department:selected?.name||'',departmentId:selected?.id||null},actor,existing);notify(en?'Document created. Add files from the Files tab.':'Το έγγραφο δημιουργήθηκε. Τα αρχεία προστίθενται από την καρτέλα «Αρχεία».','success');navigate(`/documents/${record.id}`,{replace:true})}catch{notify(en?'The document could not be saved. No local fallback was used.':'Το έγγραφο δεν αποθηκεύτηκε. Δεν χρησιμοποιήθηκε τοπική εναλλακτική αποθήκευση.','danger')}finally{setSaving(false)}}
  return <Page><EntityRecordShell className="document-create-shell" avatar={<FilePlus2 size={19}/>} eyebrow={en?'Documents':'Έγγραφα'} title={en?'New document':'Νέο έγγραφο'} subtitle={en?'Create controlled document record':'Δημιουργία ελεγχόμενου εγγράφου'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/documents')}>
   <div className="record-section document-create-form">

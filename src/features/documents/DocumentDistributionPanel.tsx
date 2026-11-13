@@ -17,9 +17,11 @@ import {
 } from './acknowledgementLog'
 import './documentAcknowledgements.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import type { AnyRecord } from '../../types/featureTypes'
+import { type Ack, type AckMember, type Distribution } from './acknowledgementLog'
+import type { DocumentDepartment, DocumentRecord } from './documentTypes'
+import type { DemoEmployee } from './acknowledgementLog'
 
-interface DocumentDistributionPanelProps { record: AnyRecord, organizationId?: string | null, isDemo?: boolean, departments: AnyRecord[], canManage?: boolean, canPublish?: boolean, en: boolean }
+interface DocumentDistributionPanelProps { record: DocumentRecord, organizationId?: string | null, isDemo?: boolean, departments: DocumentDepartment[], canManage?: boolean, canPublish?: boolean, en: boolean }
 
 const fmtDateTime = (value: unknown, en: boolean) => {
   if (!value) return '—'
@@ -34,10 +36,10 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
   const { notify } = useFeedback()
   const linkPath = `${DOCUMENT_LINK_PREFIX}${record.id}`
   const canSend = canManage || canPublish
-  const [distribution, setDistribution] = useState<AnyRecord | null>(null)
+  const [distribution, setDistribution] = useState<Distribution | null>(null)
   const [loadingDistribution, setLoadingDistribution] = useState(!isDemo)
-  const [members, setMembers] = useState<AnyRecord[]>(() => (isDemo ? demoAcknowledgementMembers(employeeRows as AnyRecord[]) : []))
-  const [acks, setAcks] = useState<AnyRecord[]>([])
+  const [members, setMembers] = useState<AckMember[]>(() => (isDemo ? demoAcknowledgementMembers(employeeRows as DemoEmployee[]) : []))
+  const [acks, setAcks] = useState<Ack[]>([])
   const [membersComplete, setMembersComplete] = useState(true)
   const [loadingLog, setLoadingLog] = useState(false)
   const [sending, setSending] = useState(false)
@@ -63,7 +65,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
 
   useEffect(() => {
     if (isDemo) {
-      setDistribution((n.announcements as AnyRecord[]).find((a) => a.linkPath === linkPath) || demoSeed?.announcements[0] || null)
+      setDistribution((n.announcements as Distribution[]).find((a) => a.linkPath === linkPath) || demoSeed?.announcements[0] || null)
       setLoadingDistribution(false)
       return undefined
     }
@@ -71,7 +73,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
     let active = true
     setLoadingDistribution(true)
     loadAnnouncementByLinkPath(organizationId, linkPath)
-      .then((row) => { if (active) setDistribution(row) })
+      .then((row) => { if (active) setDistribution(row as Distribution | null) })
       .catch(() => { if (active) setDistribution(null) })
       .finally(() => { if (active) setLoadingDistribution(false) })
     return () => { active = false }
@@ -84,7 +86,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
     setLoadingLog(true)
     // Without the member list (database function not installed yet) fall back to
     // the acknowledgers with their profile names, as before.
-    const load: Promise<AnyRecord[]> = membersComplete ? loadAcknowledgements(organizationId, [distribution.id]) : loadAnnouncementAcknowledgers(organizationId as string, distribution.id)
+    const load: Promise<Ack[]> = membersComplete ? loadAcknowledgements(organizationId, [distribution.id]) : (loadAnnouncementAcknowledgers(organizationId as string, distribution.id) as Promise<Ack[]>)
     load
       .then((rows) => { if (active) setAcks(rows) })
       .catch(() => { if (active) setAcks([]) })
@@ -97,7 +99,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
   const professionOptions = useMemo(() => professionsOf(members), [members])
 
   const options = audienceMode === 'department'
-    ? departments.map((d: AnyRecord) => ({ id: d.id, label: d.name }))
+    ? departments.map((d: DocumentDepartment) => ({ id: d.id, label: d.name }))
     : audienceMode === 'role'
       ? roleOptions.map((key) => ({ id: key, label: roleLabel(key, en ? 'en' : 'el') }))
       : audienceMode === 'profession'
@@ -125,7 +127,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
         n.addAnnouncement(payload)
       } else {
         const created = await createAnnouncement(organizationId, payload)
-        setDistribution(created)
+        setDistribution(created as Distribution)
         await n.reloadAnnouncements()
       }
       notify(en ? 'Distribution notice sent.' : 'Η κοινοποίηση εστάλη.', 'success')
@@ -136,7 +138,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
     }
   }
 
-  function audienceLabel(item: AnyRecord | null | undefined) {
+  function audienceLabel(item: Distribution | null | undefined) {
     const values = item?.audienceValues || []
     if (item?.audienceType === 'department') return values.map((id: unknown) => departments.find((d) => d.id === id)?.name).filter(Boolean).join(', ') || (en ? 'Department(s)' : 'Τμήματα')
     if (item?.audienceType === 'role') return values.map((key: string) => roleLabel(key, en ? 'en' : 'el')).join(', ')
@@ -146,7 +148,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
 
   function exportCsv() {
     if (!distribution || !summary) return
-    const entry = { documentCode: record.id, documentTitle: record.title, version: record.version, sentAt: distribution.createdAt, summary }
+    const entry = { documentCode: record.id || '', documentTitle: record.title, version: record.version || '', sentAt: distribution.createdAt, summary }
     const rows = acknowledgementLogRows([entry], { departments, en })
     downloadCsv(`${record.id}_${en ? 'read-acknowledgements' : 'epivevaioseis-anagnosis'}.csv`,
       en ? ['Document', 'Title', 'Version', 'Sent', 'Person', 'Position', 'Department', 'Status', 'Read on'] : ['Έγγραφο', 'Τίτλος', 'Έκδοση', 'Απεστάλη', 'Άτομο', 'Θέση', 'Τμήμα', 'Κατάσταση', 'Διαβάστηκε'],
@@ -156,7 +158,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
   // Proof of distribution for this version on the shared document layout, with a line per person.
   function exportPdf(pdf: boolean) {
     if (!distribution || !summary) return
-    const entry = { documentCode: record.id, documentTitle: record.title, version: record.version, sentAt: distribution.createdAt, summary }
+    const entry = { documentCode: record.id || '', documentTitle: record.title, version: record.version || '', sentAt: distribution.createdAt, summary }
     const rows = acknowledgementLogRows([entry], { departments, en })
     const ok = printReport({
       language: en ? 'en' : 'el',
@@ -172,7 +174,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
-  const personName = (member: AnyRecord) => (en ? member.nameEn : '') || member.name || '—'
+  const personName = (member: AckMember) => (en ? member.nameEn : '') || member.name || '—'
 
   return <section className="record-section document-ack-panel">
     <div className="record-section-header"><div>
@@ -189,7 +191,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
               <span><strong>{en ? 'Sent' : 'Απεστάλη'}</strong>{fmtDateTime(distribution.createdAt, en)}</span>
               <span><strong>{en ? 'Audience' : 'Κοινό'}</strong>{audienceLabel(distribution)}</span>
             </div>
-            {!canSend && <div className="document-ack-meta"><span><strong>{en ? 'Your acknowledgement' : 'Η δική σας επιβεβαίωση'}</strong>{(n.visibleAnnouncements as AnyRecord[]).find((a) => a.id === distribution.id)?.acknowledged ? (en ? 'Confirmed' : 'Επιβεβαιώθηκε') : (en ? 'Pending' : 'Εκκρεμεί')}</span></div>}
+            {!canSend && <div className="document-ack-meta"><span><strong>{en ? 'Your acknowledgement' : 'Η δική σας επιβεβαίωση'}</strong>{(n.visibleAnnouncements as { id: string, acknowledged?: boolean }[]).find((a) => a.id === distribution.id)?.acknowledged ? (en ? 'Confirmed' : 'Επιβεβαιώθηκε') : (en ? 'Pending' : 'Εκκρεμεί')}</span></div>}
             {canSend && (loadingLog ? <TableSkeleton/> : <>
               <div className="document-ack-progress" aria-label={en ? 'Read acknowledgement progress' : 'Πρόοδος επιβεβαιώσεων'}>
                 <div className="document-ack-progress-figures">

@@ -4,7 +4,9 @@ import { useNotifications } from '../../core/notifications/NotificationContext'
 import { employeeRows } from '../employees/employeeDemoData'
 import { loadDocuments } from './documentStore'
 import { DOCUMENT_LINK_PREFIX, demoAcknowledgementMembers, demoDistributions, loadOrganizationAcknowledgementLog, summarizeDistributions } from './acknowledgementLog'
-import type { AnyRecord } from '../../types/featureTypes'
+import { type AcknowledgementLog, type AckMember, type DemoEmployee } from './acknowledgementLog'
+// A document announcement as the notification context keeps it (requiresAck, acknowledged).
+type DocAnnouncement = { id: string, title: string, linkPath?: string, createdAt?: string, requiresAck?: boolean, acknowledged?: boolean, acknowledgedAt?: string }
 import './documentAcknowledgements.css'
 
 const fmtDateTime = (value: unknown, en: boolean) => {
@@ -15,17 +17,17 @@ const fmtDateTime = (value: unknown, en: boolean) => {
 
 // Employee record: the protocols sent to this person for read acknowledgement,
 // which they have confirmed (and when) and which are still pending.
-export function EmployeeProtocolsTab({ employee, language, organizationId, isDemo, selfMode }: { employee: AnyRecord, language?: string, organizationId?: string | null, isDemo?: boolean, selfMode?: boolean }) {
+export function EmployeeProtocolsTab({ employee, language, organizationId, isDemo, selfMode }: { employee: { id?: string, userId?: string }, language?: string, organizationId?: string | null, isDemo?: boolean, selfMode?: boolean }) {
   const en = language === 'en'
   const navigate = useNavigate()
   const n = useNotifications()
-  const [log, setLog] = useState<AnyRecord | null>(null)
+  const [log, setLog] = useState<AcknowledgementLog | null>(null)
   const userId = isDemo ? employee.id : employee.userId
 
   useEffect(() => {
     if (selfMode) return undefined
     if (isDemo) {
-      const members = demoAcknowledgementMembers(employeeRows as AnyRecord[])
+      const members = demoAcknowledgementMembers(employeeRows as DemoEmployee[])
       const seed = demoDistributions(loadDocuments(), members)
       setLog({ ...seed, members, complete: true, documents: loadDocuments() })
       return undefined
@@ -38,15 +40,15 @@ export function EmployeeProtocolsTab({ employee, language, organizationId, isDem
     return () => { active = false }
   }, [selfMode, isDemo, organizationId, userId])
 
-  const rows = useMemo((): AnyRecord[] => {
+  const rows = useMemo(() => {
     if (selfMode) {
-      return (n.visibleAnnouncements as AnyRecord[]).filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX))
-        .map((a) => ({ id: a.id, documentId: String(a.linkPath).slice(DOCUMENT_LINK_PREFIX.length), title: a.title, sentAt: a.createdAt, acknowledgedAt: a.acknowledged ? (a.acknowledgedAt || true) : null }))
+      return (n.visibleAnnouncements as DocAnnouncement[]).filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX))
+        .map((a) => ({ id: a.id, documentId: String(a.linkPath).slice(DOCUMENT_LINK_PREFIX.length), title: a.title, code: '', version: '', sentAt: a.createdAt, acknowledgedAt: a.acknowledged ? (a.acknowledgedAt || true) : null }))
     }
     if (!log || !userId) return []
     return summarizeDistributions(log.announcements, log.complete ? log.members : [], log.acks, log.documents || []).flatMap((entry) => {
-      const read = entry.summary.acknowledged.find((member: AnyRecord) => String(member.userId) === String(userId))
-      const pending = entry.summary.pending.find((member: AnyRecord) => String(member.userId) === String(userId))
+      const read = entry.summary.acknowledged.find((member: AckMember) => String(member.userId) === String(userId))
+      const pending = entry.summary.pending.find((member: AckMember) => String(member.userId) === String(userId))
       if (!read && !pending) return []
       return [{ id: entry.announcement.id, documentId: entry.documentId, code: entry.documentCode, title: entry.documentTitle, version: entry.version, sentAt: entry.sentAt, acknowledgedAt: read?.acknowledgedAt || null }]
     })

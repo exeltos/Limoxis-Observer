@@ -20,10 +20,11 @@ import {
   DOCUMENT_LINK_PREFIX, acknowledgementLogRows, demoAcknowledgementMembers, demoDistributions,
   loadOrganizationAcknowledgementLog, memberDepartment, memberPosition, summarizeDistributions,
 } from './acknowledgementLog'
-import type { AnyRecord } from '../../types/featureTypes'
+import { type AcknowledgementLog, type AckMember, type DemoEmployee, type Distribution, type DistributionEntry } from './acknowledgementLog'
 import './documentAcknowledgements.css'
 
-type Entry = ReturnType<typeof summarizeDistributions>[number]
+// A document announcement as the notification context keeps it.
+type NotifAnnouncement = Distribution & { requiresAck?: boolean, acknowledged?: boolean, acknowledgedAt?: string }
 
 const fmtDay = (value: unknown, en: boolean) => {
   if (!value) return '—'
@@ -54,8 +55,8 @@ export function DocumentAcknowledgementsPage() {
   const organizationId = tenant?.id || null
   const { data: documents, loading: loadingDocuments } = useDocumentsData()
   const [view, setView] = useState('documents')
-  const [log, setLog] = useState<AnyRecord | null>(null)
-  const [departments, setDepartments] = useState<AnyRecord[]>([])
+  const [log, setLog] = useState<AcknowledgementLog | null>(null)
+  const [departments, setDepartments] = useState<{ id: string, name: string }[]>([])
 
   useEffect(() => {
     if (isDemo || !organizationId) return undefined
@@ -67,9 +68,9 @@ export function DocumentAcknowledgementsPage() {
   useEffect(() => {
     if (!canSeeAll) return undefined
     if (isDemo) {
-      const members = demoAcknowledgementMembers(employeeRows as AnyRecord[])
+      const members = demoAcknowledgementMembers(employeeRows as DemoEmployee[])
       const seed = demoDistributions(documents || [], members)
-      const sentInDemo = (n.announcements as AnyRecord[]).filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX) && !seed.announcements.some((s) => s.linkPath === a.linkPath))
+      const sentInDemo = (n.announcements as NotifAnnouncement[]).filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX) && !seed.announcements.some((s) => s.linkPath === a.linkPath))
       setLog({ announcements: [...sentInDemo, ...seed.announcements], acks: seed.acks, members, complete: true })
       return undefined
     }
@@ -83,7 +84,7 @@ export function DocumentAcknowledgementsPage() {
 
   const entries = useMemo(() => (log ? summarizeDistributions(log.announcements, log.complete ? log.members : [], log.acks, documents || []) : []), [log, documents])
   const people = useMemo(() => {
-    const byUser = new Map<unknown, { member: AnyRecord, read: Entry[], pending: Entry[] }>()
+    const byUser = new Map<unknown, { member: AckMember, read: DistributionEntry[], pending: DistributionEntry[] }>()
     for (const entry of entries) {
       for (const member of entry.summary.acknowledged) {
         const row = byUser.get(member.userId) || { member, read: [], pending: [] }
@@ -103,7 +104,7 @@ export function DocumentAcknowledgementsPage() {
     return { distributions: entries.length, rate: all ? Math.round((read / all) * 100) : 0, pending: all - read, complete: entries.filter((entry) => entry.summary.total && !entry.summary.pending.length).length }
   }, [entries])
 
-  const personName = (member: AnyRecord) => (en ? member.nameEn : '') || member.name || '—'
+  const personName = (member: AckMember) => (en ? member.nameEn : '') || member.name || '—'
 
   function exportCsv() {
     const rows = acknowledgementLogRows(entries, { departments, en })
@@ -136,7 +137,7 @@ export function DocumentAcknowledgementsPage() {
   const title = en ? 'Read acknowledgements' : 'Επιβεβαιώσεις ανάγνωσης'
 
   if (!canSeeAll) {
-    const mine = (n.visibleAnnouncements as AnyRecord[]).filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX))
+    const mine = (n.visibleAnnouncements as NotifAnnouncement[]).filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX))
     return <Page title={en ? 'My protocols to read' : 'Πρωτόκολλα προς ανάγνωση'} subtitle={en ? 'Documents sent to you for read acknowledgement.' : 'Έγγραφα που σας στάλθηκαν για επιβεβαίωση ανάγνωσης.'}>
       <section className="surface record-section"><table className="record-table"><thead><tr><th>{en ? 'Document' : 'Έγγραφο'}</th><th>{en ? 'Sent' : 'Απεστάλη'}</th><th>{en ? 'Status' : 'Κατάσταση'}</th></tr></thead>
         <tbody>{mine.map((a) => <tr key={a.id} className="clickable-row" onClick={() => navigate(a.linkPath)}><td>{a.title}</td><td>{fmtDay(a.createdAt, en)}</td><td><span className={`document-ack-status ${a.acknowledged ? 'acknowledged' : 'pending'}`}>{a.acknowledged ? (en ? 'Read' : 'Διαβάστηκε') : (en ? 'Pending' : 'Εκκρεμεί')}</span></td></tr>)}</tbody></table>

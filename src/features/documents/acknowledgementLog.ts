@@ -1,12 +1,19 @@
 import { supabase } from '../../core/supabase/client'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { cloudClient } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DocumentRecord } from './documentTypes'
 
 // A staff member of the audience, a distribution (announcement) and an acknowledgement.
-type Member = AnyRecord
-type Announcement = AnyRecord
-type Ack = AnyRecord
+// Someone a distribution can reach (with when they confirmed, once they did).
+export type AckMember = { userId: string, name: string, nameEn?: string, role: string, departmentIds?: string[], profession?: string, professionEn?: string, department?: string, departmentEn?: string, acknowledgedAt?: string }
+// A distribution: a required-acknowledgement announcement pointing at the document.
+export type Distribution = { id: string, title: string, audienceType: string, audienceValues: string[], linkPath: string, createdAt: string }
+// A confirmation of reading (the names come with acknowledgers the member list does not know).
+export type Ack = { announcementId?: string, userId: string, acknowledgedAt: string, name?: string, role?: string }
+// A department the log names members by.
+export type AckDepartment = { id: string, name: string }
+type Member = AckMember
+type Announcement = Distribution
 export interface AcknowledgementSummary { total: number, acknowledged: Member[], pending: Member[], rate: number }
 
 // Read-acknowledgement log for controlled documents: who a distribution was
@@ -63,7 +70,7 @@ export function professionsOf(members: Member[] | null | undefined) {
   return [...new Set((members || []).map((member) => String(member.profession || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
 }
 
-export function memberDepartment(member: Member, departments: AnyRecord[] = [], en = false) {
+export function memberDepartment(member: Member, departments: AckDepartment[] = [], en = false) {
   const named = (member.departmentIds || []).map((id: unknown) => departments.find((item) => String(item.id) === String(id))?.name).filter(Boolean)
   if (named.length) return named.join(', ')
   return (en ? member.departmentEn : member.department) || member.department || ''
@@ -74,8 +81,10 @@ export function memberPosition(member: Member, en = false) {
 }
 
 // Flat rows for the inspector export: one line per person per distribution.
-export function acknowledgementLogRows(entries: AnyRecord[] | null | undefined, { departments = [], en = false }: { departments?: AnyRecord[], en?: boolean } = {}) {
-  const rows: AnyRecord[] = []
+// One line of the inspector's export.
+export type AckLogRow = { documentCode: string, documentTitle: string, version: string, sentAt: string, name: string, position: string, department: string, status: string, acknowledgedAt?: string }
+export function acknowledgementLogRows(entries: Pick<DistributionEntry, 'documentCode' | 'documentTitle' | 'version' | 'sentAt' | 'summary'>[] | null | undefined, { departments = [], en = false }: { departments?: AckDepartment[], en?: boolean } = {}) {
+  const rows: AckLogRow[] = []
   for (const entry of entries || []) {
     const summary = entry.summary
     const base = { documentCode: entry.documentCode || '', documentTitle: entry.documentTitle || '', version: entry.version || '', sentAt: entry.sentAt || '' }
@@ -85,7 +94,9 @@ export function acknowledgementLogRows(entries: AnyRecord[] | null | undefined, 
   return rows
 }
 
-const mapMember = (row: AnyRecord): Member => ({
+// A row of document_acknowledgement_members.
+type MemberRow = { user_id: string, full_name: string | null, member_role: string | null, department_ids: string[] | null, profession: string | null, profession_en: string | null, employee_department: string | null, employee_department_en: string | null }
+const mapMember = (row: MemberRow): Member => ({
   userId: row.user_id,
   name: row.full_name || '',
   role: row.member_role || '',
@@ -96,7 +107,9 @@ const mapMember = (row: AnyRecord): Member => ({
   departmentEn: row.employee_department_en || row.employee_department || '',
 })
 
-const mapAnnouncement = (row: AnyRecord): Announcement => ({
+// A row of management_announcements (the columns read).
+type AnnouncementRow = { id: string, title: string, audience_type: string, audience_values: unknown, link_path: string | null, created_at: string }
+const mapAnnouncement = (row: AnnouncementRow): Announcement => ({
   id: row.id,
   title: row.title,
   audienceType: row.audience_type,
@@ -123,7 +136,7 @@ export async function loadAcknowledgements(organizationId: string | null | undef
 }
 
 // Every document distribution of the organization with its summary.
-export async function loadOrganizationAcknowledgementLog(organizationId: string | null | undefined): Promise<{ announcements?: Announcement[], acks?: Ack[], entries?: AnyRecord[], members: Member[], complete: boolean }> {
+export async function loadOrganizationAcknowledgementLog(organizationId: string | null | undefined): Promise<{ announcements?: Announcement[], acks?: Ack[], entries?: DistributionEntry[], members: Member[], complete: boolean }> {
   if (!supabase || !organizationId) return { entries: [], members: [], complete: false }
   const { data, error } = await cloudClient().from('management_announcements').select('id,title,audience_type,audience_values,link_path,created_at').eq('organization_id', organizationId).eq('requires_ack', true).like('link_path', `${DOCUMENT_LINK_PREFIX}%`).order('created_at', { ascending: false })
   if (error) throw error
@@ -137,7 +150,11 @@ export async function loadOrganizationAcknowledgementLog(organizationId: string 
 // Builds a summary per distribution from loaded announcements, members and
 // acknowledgements. When the member list is unavailable, acknowledgers are
 // still listed (with their names from the profile lookup) so nothing is lost.
-export function summarizeDistributions(announcements: Announcement[] | null | undefined, members: Member[] | null | undefined, acks: Ack[] | null | undefined, documents: AnyRecord[] = []) {
+// A distribution with its document and who has and has not read it.
+// The whole log the Owner's page builds its people from.
+export type AcknowledgementLog = { announcements?: Announcement[], acks?: Ack[], entries?: DistributionEntry[], members: Member[], complete: boolean, documents?: DocumentRecord[] }
+export type DistributionEntry = { announcement: Announcement, documentId: string, documentCode: string, documentTitle: string, version: string, sentAt: string, summary: AcknowledgementSummary }
+export function summarizeDistributions(announcements: Announcement[] | null | undefined, members: Member[] | null | undefined, acks: Ack[] | null | undefined, documents: DocumentRecord[] = []): DistributionEntry[] {
   const docById = new Map((documents || []).map((doc) => [String(doc.id), doc]))
   return (announcements || []).map((announcement) => {
     const documentId = String(announcement.linkPath || '').slice(DOCUMENT_LINK_PREFIX.length)
@@ -157,7 +174,9 @@ export function summarizeDistributions(announcements: Announcement[] | null | un
 
 // Demo: the seeded staff are the audience, published documents have been
 // distributed and most people have confirmed, so the log has something to show.
-export function demoAcknowledgementMembers(employees: AnyRecord[] = []): Member[] {
+// What the Demo's members are made of: its employees.
+export type DemoEmployee = { id: string, firstName?: string, lastName?: string, firstNameEn?: string, lastNameEn?: string, profession?: string, professionEn?: string, department?: string, departmentEn?: string }
+export function demoAcknowledgementMembers(employees: DemoEmployee[] = []): Member[] {
   const roleFor = (profession: string) => (/Ιατρ/.test(profession) ? 'doctor_reviewer' : /Νοσηλ/.test(profession) ? 'department_user' : /Διοικ/.test(profession) ? 'quality_manager' : 'staff_user')
   return employees.map((emp) => ({
     userId: emp.id,
@@ -172,7 +191,7 @@ export function demoAcknowledgementMembers(employees: AnyRecord[] = []): Member[
   }))
 }
 
-export function demoDistributions(documents: AnyRecord[] = [], members: Member[] = []) {
+export function demoDistributions(documents: DocumentRecord[] = [], members: Member[] = []) {
   const published = documents.filter((doc) => doc.status === 'published')
   const announcements: Announcement[] = [], acks: Ack[] = []
   published.forEach((doc, index) => {

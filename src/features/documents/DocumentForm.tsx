@@ -4,7 +4,7 @@ import { PROTOCOL_KINDS } from './protocolFields'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { REQUIRED_BY, MAX_RENEWAL_MONTHS } from './licenceFields'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DocumentDepartment, DocumentDraft } from './documentTypes'
 import './documentForm.css'
 
 export const DOCUMENT_TYPES: Record<string, Record<string, string>>={
@@ -12,10 +12,10 @@ export const DOCUMENT_TYPES: Record<string, Record<string, string>>={
  en:{policy:'Policy',procedure:'Procedure',instruction:'Instruction',form:'Form',protocol:'Protocol',licence:'Licence / certificate',other:'Other'},
 }
 
-export const createEmptyDocumentDraft=(): AnyRecord=>({title:'',type:'policy',version:'0.1',departmentId:null,audience:'all',effectiveDate:'',reviewDate:'',description:'',protocolKind:'',clinicalArea:'',renewalMonths:'',requiredBy:[]})
-export const documentDraftIsValid=(value: AnyRecord|null|undefined)=>Boolean(value?.title?.trim()&&value?.version?.trim()&&(!value?.effectiveDate||!value?.reviewDate||value.reviewDate>=value.effectiveDate))
+export const createEmptyDocumentDraft=(): DocumentDraft=>({title:'',type:'policy',version:'0.1',departmentId:null,audience:'all',effectiveDate:'',reviewDate:'',description:'',protocolKind:'',clinicalArea:'',renewalMonths:'',requiredBy:[]})
+export const documentDraftIsValid=(value: DocumentDraft|null|undefined)=>Boolean(value?.title?.trim()&&value?.version?.trim()&&(!value?.effectiveDate||!value?.reviewDate||value.reviewDate>=value.effectiveDate))
 
-export interface DocumentFormProps { value?: AnyRecord|null, onChange?: (next: AnyRecord)=>void, language?: string, departments?: AnyRecord[], ownerName?: string, showOwner?: boolean, showAttachmentHint?: boolean, autoFocus?: boolean, readOnly?: boolean, allowVersionEdit?: boolean }
+export interface DocumentFormProps { value?: DocumentDraft|null, onChange?: (next: DocumentDraft)=>void, language?: string, departments?: DocumentDepartment[], ownerName?: string, showOwner?: boolean, showAttachmentHint?: boolean, autoFocus?: boolean, readOnly?: boolean, allowVersionEdit?: boolean }
 export function DocumentForm({value,onChange,language='el',departments=[],ownerName='',showOwner=true,showAttachmentHint=false,autoFocus=false,readOnly=false,allowVersionEdit=false}: DocumentFormProps){
  const en=language==='en',v=value||createEmptyDocumentDraft(),set=(key: string,next: unknown)=>onChange?.({...v,[key]:next}),types=DOCUMENT_TYPES[language]||DOCUMENT_TYPES.el
  // One grid of three equal columns, labels above 40px controls, rows of the same height:
@@ -44,7 +44,7 @@ export function DocumentForm({value,onChange,language='el',departments=[],ownerN
 }
 
 // The document as read (Overview): the filled fields only; «Edit» opens the form.
-export function DocumentDetails({value,language='el',departments=[],ownerName=''}: {value?: AnyRecord|null,language?: string,departments?: AnyRecord[],ownerName?: string}){
+export function DocumentDetails({value,language='el',departments=[],ownerName=''}: {value?: DocumentDraft|null,language?: string,departments?: DocumentDepartment[],ownerName?: string}){
  const en=language==='en',v=value||createEmptyDocumentDraft(),types=DOCUMENT_TYPES[language]||DOCUMENT_TYPES.el,requiredLabels=REQUIRED_BY[language]||REQUIRED_BY.el
  const licence=v.type==='licence',protocol=v.type==='protocol'
  const day=(iso: unknown)=>iso?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(iso).slice(0,10)}T12:00:00`)):''
@@ -54,7 +54,7 @@ export function DocumentDetails({value,language='el',departments=[],ownerName=''
   {label:en?'Version':'Έκδοση',value:v.version},
   {label:en?'Department / scope':'Τμήμα / πεδίο εφαρμογής',value:department},
   {label:en?'Owner':'Υπεύθυνος',value:ownerName,hidden:!ownerName},
-  {label:en?'Protocol kind':'Είδος πρωτοκόλλου',value:(PROTOCOL_KINDS[language]||PROTOCOL_KINDS.el)[v.protocolKind]||v.protocolKind,hidden:!protocol||!v.protocolKind},
+  {label:en?'Protocol kind':'Είδος πρωτοκόλλου',value:(PROTOCOL_KINDS[language]||PROTOCOL_KINDS.el)[v.protocolKind as string]||v.protocolKind,hidden:!protocol||!v.protocolKind},
   {label:en?'Clinical area':'Κλινικό πεδίο',value:v.clinicalArea,hidden:!protocol||!v.clinicalArea},
   {label:en?'Renewal every':'Ανανέωση κάθε',value:`${v.renewalMonths} ${en?'months':'μήνες'}`,hidden:!licence||!v.renewalMonths},
   {label:en?'Required by':'Απαιτείται από',value:(v.requiredBy||[]).map((key: string)=>requiredLabels[key]||key).join(', '),hidden:!licence||!(v.requiredBy||[]).length},
