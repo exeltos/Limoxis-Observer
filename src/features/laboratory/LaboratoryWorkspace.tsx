@@ -56,6 +56,7 @@ import type { ComponentType, RefObject } from 'react'
 import type { AnyRecord, Translate } from '../../types/featureTypes'
 import type { SubjectChoice } from '../../design-system/SubjectChoiceStep'
 import type { LabelLookup } from './LaboratorySampleViews'
+import type { Patient } from '../patients/patientTypes'
 
 // The patient dialog is still JavaScript: its props are typed from the defaults.
 const DuplicatePatientWindow = DuplicatePatientDialog as ComponentType<AnyRecord>
@@ -162,7 +163,7 @@ export function LaboratoryWorkspace() {
 
   async function createSample(draft: AnyRecord, confirmed = false) {
     // A «new» patient who is already registered: use the existing one instead (or continue as new).
-    const found = draft.subjectType === 'patient' && draft.newPatient && !confirmed ? findPatientMatches(patients, { fullName: draft.subjectName }) : []
+    const found = draft.subjectType === 'patient' && draft.newPatient && !confirmed ? findPatientMatches(patients as unknown as Patient[], { fullName: draft.subjectName }) : []
     if (found.length) return setDuplicate({ draft, matches: found })
     setDuplicate(null)
     try {
@@ -171,7 +172,7 @@ export function LaboratoryWorkspace() {
         patient = patients.find(item => item.id === draft.subjectCode)
         if (draft.newPatient && !isDemo) {
           const names = String(draft.subjectName || draft.subjectNameEn || '').trim().split(/\s+/)
-          const created = await createPatient(tenant?.id, patients, {
+          const created = await createPatient(tenant?.id, patients as unknown as Patient[], {
             patientCode: draft.subjectCode,
             firstName: names.shift() || '',
             lastName: names.join(' ') || '',

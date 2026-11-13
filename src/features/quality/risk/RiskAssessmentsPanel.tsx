@@ -16,7 +16,7 @@ import { summarizeRisks,levelLabel,suggestPeriodLabel } from './riskModel'
 import { AssessmentStatusBadge,L,PERIOD_KINDS,fmtDate,returnedClass,txt,usePaged,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AssessmentListRow,AssessmentTextField,ImportFix,ImportPreview,RiskAssessment,RiskAssessmentDraft,RiskAssessmentHeader } from './riskTypes'
 
 const FIELD_LABELS: Record<string,string[]>={inherentScore:['Εγγενής βαθμός','Inherent score'],residualScore:['Υπολειπόμενος βαθμός','Residual score'],inherentLevel:['Εγγενής κατηγορία','Inherent level'],residualLevel:['Υπολειπόμενη κατηγορία','Residual level'],process:['Διεργασία','Process'],wording:['Λεκτικό','Wording']}
 
@@ -34,14 +34,14 @@ function RiskSplit({counts,en}: {counts: Record<string,number>,en: boolean}){
 }
 
 interface RiskAssessmentsPanelProps {
- list: {items: AnyRecord[],loading: boolean}
+ list: {items: RiskAssessment[],loading: boolean}
  organizationId: string|null|undefined
  en: boolean
  locale: string
  creating: boolean
  onCreatingChange: (open: boolean)=>void
  fileRef: Ref<HTMLInputElement>
- onRowsChange?: (rows: AnyRecord[])=>void
+ onRowsChange?: (rows: RiskAssessment[])=>void
  totals?: ReactNode
 }
 
@@ -51,19 +51,19 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
  const {notify}=useFeedback()
  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
  const setCreating=onCreatingChange
- const [preview,setPreview]=useState<AnyRecord | null>(null)
+ const [preview,setPreview]=useState<ImportPreview | null>(null)
  const [query,setQuery]=useState('')
  const {items,loading}=list
- const rows=useMemo(()=>{const q=query.trim().toLowerCase();return items.filter((a: AnyRecord)=>!q||`${a.periodLabel} ${a.title||''} ${a.titleEn||''} ${a.formCode||''} ${a.code}`.toLowerCase().includes(q)).map((a: AnyRecord)=>({a,s:summarizeRisks(a.risks||[])}))},[items,query])
+ const rows=useMemo(()=>{const q=query.trim().toLowerCase();return items.filter(a=>!q||`${a.periodLabel} ${a.title||''} ${a.titleEn||''} ${a.formCode||''} ${a.code}`.toLowerCase().includes(q)).map((a): AssessmentListRow=>({a,s:summarizeRisks(a.risks||[])}))},[items,query])
  // Back from an assessment returns to this tab.
  const assessmentRow=useReturnedRow('limoxis.quality.risk.returnedAssessment')
- const sortBy={period:({a}: AnyRecord)=>a.periodStart||a.periodLabel,title:({a}: AnyRecord)=>txt(a,'title',en),date:({a}: AnyRecord)=>a.assessedOn,risks:({s}: AnyRecord)=>s.total,veryHigh:({s}: AnyRecord)=>s.levels.residual.very_high,high:({s}: AnyRecord)=>s.levels.residual.high,residual:({s}: AnyRecord)=>s.averages.residual,status:({a}: AnyRecord)=>a.status}
+ const sortBy={period:({a}: AssessmentListRow)=>a.periodStart||a.periodLabel,title:({a}: AssessmentListRow)=>txt(a,'title',en),date:({a}: AssessmentListRow)=>a.assessedOn,risks:({s}: AssessmentListRow)=>s.total,veryHigh:({s}: AssessmentListRow)=>s.levels.residual.very_high,high:({s}: AssessmentListRow)=>s.levels.residual.high,residual:({s}: AssessmentListRow)=>s.averages.residual,status:({a}: AssessmentListRow)=>a.status}
  const {items:pageRows,pager,sort,onSort}=usePaged(rows,{en,resetOn:query,sortBy})
  // The page's «Download» exports what the search leaves on screen.
- useEffect(()=>{onRowsChange?.(rows.map(({a}: AnyRecord)=>a))},[rows,onRowsChange])
+ useEffect(()=>{onRowsChange?.(rows.map(({a})=>a))},[rows,onRowsChange])
  const open=(code: string)=>{rememberQualitySection('risks');assessmentRow.remember(code);navigate(`/quality/risks/${code}`)}
 
- async function create(draft: AnyRecord,carryFrom: AnyRecord|null){
+ async function create(draft: RiskAssessmentDraft,carryFrom: RiskAssessment|null){
   try{const created=await createRiskAssessment(organizationId,{...draft,history:[auditEvent('riskAssessmentCreated',{actor})]},{carryFrom});setCreating(false);open(created.code)}
   catch{notify(L(en,'Δεν ήταν δυνατή η δημιουργία της εκτίμησης.','Could not create the assessment.'),'error')}
  }
@@ -73,12 +73,12 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
   try{const parsed=await importRiskWorkbook(file);if(!parsed.risks.length){notify(L(en,'Δεν βρέθηκαν κίνδυνοι στο αρχείο (στήλη «ΔΙΕΡΓΑΣΙΑ»).','No risks were found in the file (a “ΔΙΕΡΓΑΣΙΑ” column).'),'error');return}setPreview({file:file.name,...parsed})}
   catch{notify(L(en,'Το αρχείο δεν είναι αρχείο Excel (.xlsx) που μπορεί να διαβαστεί.','The file is not a readable Excel (.xlsx) workbook.'),'error')}
  }
- async function confirmImport(draft: AnyRecord,initial: AnyRecord){
+ async function confirmImport(draft: RiskAssessmentDraft,initial: {initialLabel?: string,initialOn?: string}){
   if(!preview)return
   try{
    const history=[auditEvent('riskAssessmentImported',{actor,detail:{file:preview.file,risks:preview.risks.length,fixes:preview.fixes.length}})]
    const created=await createAssessmentSeries(organizationId,importPlan(preview,draft,initial),history)
-   setPreview(null);open((created.at(-1) as AnyRecord).code)
+   setPreview(null);open((created.at(-1) as RiskAssessmentHeader).code)
   }catch{notify(L(en,'Δεν ήταν δυνατή η εισαγωγή.','Could not import.'),'error')}
  }
 
@@ -100,11 +100,11 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
 // Header of an assessment (new, imported or edited). A new one may carry the
 // risks of an earlier assessment forward, to be reassessed for the new period.
 interface AssessmentDetailsDialogProps {
- initial?: AnyRecord
+ initial?: RiskAssessmentDraft
  en: boolean
- assessments?: AnyRecord[]
+ assessments?: RiskAssessment[]
  onClose: ()=>void
- onSave: (draft: AnyRecord,carryFrom: AnyRecord|null)=>void|Promise<void>
+ onSave: (draft: RiskAssessmentDraft,carryFrom: RiskAssessment|null)=>void|Promise<void>
  saveLabel?: string
  intro?: ReactNode
  children?: ReactNode
@@ -112,15 +112,15 @@ interface AssessmentDetailsDialogProps {
 
 export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSave,saveLabel,intro=null,children}: AssessmentDetailsDialogProps){
  const today=hospitalToday()
- const [draft,setDraft]=useState<AnyRecord>(()=>({title:L(en,'Εκτίμηση επικινδυνότητας','Risk assessment'),periodLabel:String(new Date().getFullYear()),periodKind:'annual',assessedOn:today,nextReviewOn:'',assessorLabel:'',formCode:'Ε.Δ.QUAL.050-02',scopeNote:'',...initial}))
+ const [draft,setDraft]=useState<RiskAssessmentDraft>(()=>({title:L(en,'Εκτίμηση επικινδυνότητας','Risk assessment'),periodLabel:String(new Date().getFullYear()),periodKind:'annual',assessedOn:today,nextReviewOn:'',assessorLabel:'',formCode:'Ε.Δ.QUAL.050-02',scopeNote:'',...initial}))
  const [carryId,setCarryId]=useState(assessments[0]?.id||'')
  const isNew=!initial?.id
  // On a new assessment the period label follows the type and the date, until it is typed by hand.
- const set=(key: string,value: unknown)=>setDraft((d: AnyRecord)=>{const next={...d,[key]:value}
+ const set=(key: keyof RiskAssessmentDraft,value: unknown)=>setDraft(d=>{const next={...d,[key]:value}
   if(isNew&&(key==='periodKind'||key==='assessedOn')&&String(d.periodLabel||'').trim()===suggestPeriodLabel(d.periodKind,d.assessedOn,en))next.periodLabel=suggestPeriodLabel(next.periodKind,next.assessedOn,en)
   return next})
  const carryFrom=assessments.find(a=>a.id===carryId)||null
- const field=(key: string,label: string,props: AnyRecord={},wide: boolean|string=false)=><label className={`risk-field${wide===true?' risk-field-wide':wide?` ${wide}`:''}`}><span>{label}</span><input value={draft[key]||''} onChange={e=>set(key,e.target.value)} {...props}/></label>
+ const field=(key: AssessmentTextField,label: string,props: {placeholder?: string,title?: string}={},wide: boolean|string=false)=><label className={`risk-field${wide===true?' risk-field-wide':wide?` ${wide}`:''}`}><span>{label}</span><input value={draft[key]||''} onChange={e=>set(key,e.target.value)} {...props}/></label>
  return <ObserverDialog width="standard" title={isNew?L(en,'Νέα εκτίμηση κινδύνου','New risk assessment'):L(en,'Στοιχεία εκτίμησης','Assessment details')} onClose={onClose}
   footer={<DialogActions onCancel={onClose} onSave={()=>onSave(draft,isNew&&!children?carryFrom:null)} disabled={!String(draft.title).trim()||!String(draft.periodLabel).trim()||!draft.assessedOn} saveLabel={saveLabel||(isNew?L(en,'Δημιουργία','Create'):undefined)}/>}>
   {intro}
@@ -140,24 +140,24 @@ export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSav
  </ObserverDialog>
 }
 
-function ImportPreviewDialog({preview,en,onClose,onConfirm}: {preview: AnyRecord,en: boolean,onClose: ()=>void,onConfirm: (draft: AnyRecord,initial: AnyRecord)=>void|Promise<void>}){
+function ImportPreviewDialog({preview,en,onClose,onConfirm}: {preview: ImportPreview,en: boolean,onClose: ()=>void,onConfirm: (draft: RiskAssessmentDraft,initial: {initialLabel: string,initialOn: string})=>void|Promise<void>}){
  const year=(preview.meta.assessedOn||'').slice(0,4)||String(new Date().getFullYear())
  const initial={title:preview.meta.title||L(en,'Εκτίμηση επικινδυνότητας','Risk assessment'),formCode:preview.meta.formCode||'',periodLabel:year,assessedOn:preview.meta.assessedOn||hospitalToday(),nextReviewOn:preview.meta.nextReviewOn||'',assessorLabel:preview.meta.assessor||''}
  // A file with a reassessment also creates the initial assessment, dated by its own period.
  const earlier=(preview.periods||[]).length>1?preview.periods[0]:null
  const [first,setFirst]=useState(()=>({initialLabel:String(earlier?.year||''),initialOn:earlier?.year?`${earlier.year}${initial.assessedOn.slice(4)}`:''}))
- const fixes=preview.fixes.filter((f: AnyRecord)=>f.field!=='wording')
+ const fixes=preview.fixes.filter(f=>f.field!=='wording')
  // One row per risk, all its corrections together.
- const byRisk: AnyRecord[]=Object.values(fixes.reduce((m: AnyRecord,f: AnyRecord)=>{(m[f.lineageKey]||=({key:f.lineageKey,items:[]})).items.push(f);return m},{}))
- const words: AnyRecord[]=Object.values(preview.fixes.filter((f: AnyRecord)=>f.field==='wording').reduce((m: AnyRecord,f: AnyRecord)=>{const k=`${f.before}→${f.after}`;m[k]||={...f,count:0};m[k].count++;return m},{}))
+ const byRisk: {key: string,items: ImportFix[]}[]=Object.values(fixes.reduce((m: Record<string,{key: string,items: ImportFix[]}>,f)=>{(m[f.lineageKey]||=({key:f.lineageKey,items:[]})).items.push(f);return m},{}))
+ const words: (ImportFix&{count: number})[]=Object.values(preview.fixes.filter(f=>f.field==='wording').reduce((m: Record<string,ImportFix&{count: number}>,f)=>{const k=`${f.before}→${f.after}`;m[k]||={...f,count:0};m[k].count++;return m},{}))
  const count=earlier?earlier.risks.length+preview.risks.length:preview.risks.length
  const opportunities=(preview.opportunities||[]).length
  const what=[L(en,`${count} κινδύνων`,`${count} risks`),opportunities&&L(en,`${opportunities} ${opportunities===1?'ευκαιρίας':'ευκαιριών'}`,`${opportunities} ${opportunities===1?'opportunity':'opportunities'}`)].filter(Boolean).join(L(en,' και ',' and '))
- const after=(f: AnyRecord)=>/Level$/.test(f.field)?levelLabel(f.after,en):String(f.after)
+ const after=(f: ImportFix)=>/Level$/.test(f.field)?levelLabel(f.after as string,en):String(f.after)
  // What the file holds comes first; the details of the new assessment follow; the corrections close.
  const intro=<section className="risk-import-summary">
   <h4><FileSpreadsheet size={15}/>{preview.file}</h4>
-  <ul className="risk-import-sheets">{preview.sheets.map((s: AnyRecord)=><li key={s.name}><strong>{s.name}</strong><span>{s.section==='opportunities'?L(en,`${s.count} ευκαιρίες`,`${s.count} opportunities`):L(en,`${s.count} κίνδυνοι`,`${s.count} risks`)}</span></li>)}</ul>
+  <ul className="risk-import-sheets">{preview.sheets.map(s=><li key={s.name}><strong>{s.name}</strong><span>{s.section==='opportunities'?L(en,`${s.count} ευκαιρίες`,`${s.count} opportunities`):L(en,`${s.count} κίνδυνοι`,`${s.count} risks`)}</span></li>)}</ul>
   {earlier&&<>
    <p className="risk-hint">{L(en,`Το αρχείο έχει αρχική αξιολόγηση και επαναξιολόγηση. Δημιουργούνται δύο εκτιμήσεις με τους ίδιους κωδικούς κινδύνων, ώστε να συγκρίνονται: η αρχική (${earlier.risks.length} κίνδυνοι) και η επαναξιολόγηση με τα στοιχεία παρακάτω (${preview.risks.length} κίνδυνοι).`,`The file holds an initial assessment and a reassessment. Two assessments are created with the same risk codes, so they can be compared: the initial one (${earlier.risks.length} risks) and the reassessment with the details below (${preview.risks.length} risks).`)}</p>
    <div className="risk-editor-grid">
@@ -166,13 +166,13 @@ function ImportPreviewDialog({preview,en,onClose,onConfirm}: {preview: AnyRecord
    </div>
   </>}
  </section>
- return <AssessmentDetailsDialog initial={initial} en={en} intro={intro} onClose={onClose} onSave={(draft: AnyRecord)=>onConfirm(draft,first)} saveLabel={earlier?L(en,'Εισαγωγή 2 εκτιμήσεων','Import 2 assessments'):L(en,`Εισαγωγή ${what}`,`Import ${what}`)}>
+ return <AssessmentDetailsDialog initial={initial} en={en} intro={intro} onClose={onClose} onSave={(draft: RiskAssessmentDraft)=>onConfirm(draft,first)} saveLabel={earlier?L(en,'Εισαγωγή 2 εκτιμήσεων','Import 2 assessments'):L(en,`Εισαγωγή ${what}`,`Import ${what}`)}>
   <section className="risk-import-preview">
    <h4>{L(en,`Διορθώσεις κατά την εισαγωγή (${preview.fixes.length})`,`Corrections on import (${preview.fixes.length})`)}</h4>
    {preview.fixes.length>0?<>
     <p className="risk-hint">{L(en,'Ο βαθμός και η κατηγορία υπολογίζονται από L × C με τις ζώνες NHS· οι διεργασίες ενοποιούνται και τα λεκτικά διορθώνονται.','Score and level are computed from L × C with the NHS bands; processes are unified and spelling is corrected.')}</p>
     {byRisk.length>0&&<table className="data-table risk-import-fixes"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Τι διορθώνεται','What is corrected')}</th></tr></thead><tbody>
-     {byRisk.map(r=><tr key={r.key}><td><strong>{r.key}</strong></td><td><ul>{r.items.map((f: AnyRecord,i: number)=><li key={i}><span>{FIELD_LABELS[f.field]?.[en?1:0]||f.field}:</span> <s>{String(f.before)}</s> → <strong>{after(f)}</strong></li>)}</ul></td></tr>)}
+     {byRisk.map(r=><tr key={r.key}><td><strong>{r.key}</strong></td><td><ul>{r.items.map((f,i: number)=><li key={i}><span>{FIELD_LABELS[f.field]?.[en?1:0]||f.field}:</span> <s>{String(f.before)}</s> → <strong>{after(f)}</strong></li>)}</ul></td></tr>)}
     </tbody></table>}
     {words.length>0&&<p className="risk-hint risk-import-words"><strong>{L(en,'Διόρθωση λεκτικών','Spelling corrections')}:</strong> {words.map(w=>`${w.before} → ${w.after}${w.count>1?` (${w.count})`:''}`).join(' · ')}</p>}
    </>:<p className="risk-hint">{L(en,'Όλοι οι βαθμοί και οι κατηγορίες του αρχείου συμφωνούν με τη μήτρα.','Every score and level of the file agrees with the matrix.')}</p>}

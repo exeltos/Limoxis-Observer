@@ -1,22 +1,22 @@
 import type { CSSProperties } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarRange, ChevronDown, Plus } from 'lucide-react'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { QualityAudit } from './auditTypes'
 
 const L = (en: boolean, el: string, english: string) => (en ? english : el)
 const DAY = 86400000
-const ACTIVE = (audit: AnyRecord) => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided' && audit.plannedDate && !audit.plannedMonthOnly && audit.department
+const ACTIVE = (audit: QualityAudit) => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided' && audit.plannedDate && !audit.plannedMonthOnly && audit.department
 
 // The audit round of one half of the year: the densest stretch of three working days (five calendar days)
 // holding at least three department audits. Returns the audits of that stretch, or none.
-export function roundOfHalf(audits: AnyRecord[], year: number, half: number) {
+export function roundOfHalf(audits: QualityAudit[], year: number, half: number) {
   const from = half === 0 ? `${year}-01-01` : `${year}-07-01`
   const to = half === 0 ? `${year}-06-30` : `${year}-12-31`
-  const list = audits.filter(ACTIVE).filter((audit: AnyRecord) => String(audit.plannedDate) >= from && String(audit.plannedDate) <= to).sort((a: AnyRecord, b: AnyRecord) => String(a.plannedDate).localeCompare(String(b.plannedDate)))
-  let best: AnyRecord[] = []
+  const list = audits.filter(ACTIVE).filter((audit: QualityAudit) => String(audit.plannedDate) >= from && String(audit.plannedDate) <= to).sort((a: QualityAudit, b: QualityAudit) => String(a.plannedDate).localeCompare(String(b.plannedDate)))
+  let best: QualityAudit[] = []
   for (const audit of list) {
     const start = Date.parse(`${audit.plannedDate}T12:00:00Z`)
-    const within = list.filter((item: AnyRecord) => { const at = Date.parse(`${item.plannedDate}T12:00:00Z`); return at >= start && at <= start + 4 * DAY })
+    const within = list.filter((item: QualityAudit) => { const at = Date.parse(`${item.plannedDate}T12:00:00Z`); return at >= start && at <= start + 4 * DAY })
     if (within.length > best.length) best = within
   }
   return best.length >= 3 ? best : []
@@ -24,7 +24,7 @@ export function roundOfHalf(audits: AnyRecord[], year: number, half: number) {
 
 // The year's two audit rounds on one slim line: when each runs and how many departments. A click on a
 // round opens the departments by day under the line; an empty half offers to plan a round.
-export function AuditRounds({ audits = [], year, language, onRound = null, onSelect = null }: { audits?: AnyRecord[], year: number, language: string, onRound?: (() => void) | null, onSelect?: ((half: number | null) => void) | null }) {
+export function AuditRounds({ audits = [], year, language, onRound = null, onSelect = null }: { audits?: QualityAudit[], year: number, language: string, onRound?: (() => void) | null, onSelect?: ((half: number | null) => void) | null }) {
   const en = language === 'en'
   const [open, setOpen] = useState<number | null>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -50,7 +50,7 @@ export function AuditRounds({ audits = [], year, language, onRound = null, onSel
     return days.length === 1 ? `${first.getUTCDate()} ${month.format(first)}` : `${first.getUTCDate()}–${last.getUTCDate()} ${month.format(last)}`
   }
   const shown = rounds.find(item => item.half === open && item.list.length)
-  const days = shown ? [...new Set(shown.list.map((audit: AnyRecord) => String(audit.plannedDate)))].sort() : []
+  const days = shown ? [...new Set(shown.list.map((audit: QualityAudit) => String(audit.plannedDate)))].sort() : []
   return <div className="audit-rounds" ref={box} role="group" aria-label={L(en, 'Κύκλοι επιθεώρησης', 'Audit rounds')}>
     <div className="audit-rounds-line">
       <span className="audit-rounds-label" title={L(en, 'Κάθε τμήμα επιθεωρείται δύο φορές τον χρόνο, σε κύκλο τριών ημερών.', 'Every department is audited twice a year, in a round of three days.')}><CalendarRange size={15} aria-hidden="true" />{L(en, 'Κύκλοι', 'Rounds')}</span>
@@ -60,16 +60,16 @@ export function AuditRounds({ audits = [], year, language, onRound = null, onSel
           <b>{name} {year}</b><span>{L(en, 'δεν έχει οριστεί', 'not set')}</span>
           {onRound && <button type="button" onClick={onRound}><Plus size={13} aria-hidden="true" />{L(en, 'Προγραμματισμός', 'Plan')}</button>}
         </span>
-        const done = list.every((audit: AnyRecord) => audit.status === 'completed')
-        const dates = [...new Set(list.map((audit: AnyRecord) => String(audit.plannedDate)))].sort()
+        const done = list.every((audit: QualityAudit) => audit.status === 'completed')
+        const dates = [...new Set(list.map((audit: QualityAudit) => String(audit.plannedDate)))].sort()
         return <button key={half} type="button" className={`audit-round-chip${done ? ' is-done' : ''}${open === half ? ' is-open' : ''}`} aria-expanded={open === half} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setAnchor({ left: Math.max(8, rect.left), bottom: window.innerHeight - rect.top + 6, maxHeight: Math.max(120, rect.top - 16) }); setOpen(open === half ? null : half); onSelect?.(open === half ? null : half) }}>
           <b>{name} {year}</b><span>{range(dates)} · {list.length} {L(en, 'τμήματα', 'departments')}</span>
           <em>{done ? L(en, 'Ολοκληρώθηκε', 'Completed') : L(en, 'Προγραμματισμένος', 'Planned')}</em><ChevronDown size={14} aria-hidden="true" />
         </button>
       })}
     </div>
-    {shown && <ul className="audit-round-days" style={anchor || undefined} role="region" aria-label={L(en, 'Ημέρες του κύκλου', 'Days of the round')}>{days.map(day => { const here = shown.list.filter((audit: AnyRecord) => String(audit.plannedDate) === day); return <li key={day}>
-      <span>{dayLabel(day)}</span><b>{here.length}</b><small>{here.slice(0, 8).map((audit: AnyRecord) => (en ? audit.departmentEn : audit.department) || audit.department).join(' · ')}{here.length > 8 ? ` · +${here.length - 8}` : ''}</small>
+    {shown && <ul className="audit-round-days" style={anchor || undefined} role="region" aria-label={L(en, 'Ημέρες του κύκλου', 'Days of the round')}>{days.map(day => { const here = shown.list.filter((audit: QualityAudit) => String(audit.plannedDate) === day); return <li key={day}>
+      <span>{dayLabel(day)}</span><b>{here.length}</b><small>{here.slice(0, 8).map((audit: QualityAudit) => (en ? audit.departmentEn : audit.department) || audit.department).join(' · ')}{here.length > 8 ? ` · +${here.length - 8}` : ''}</small>
     </li> })}</ul>}
   </div>
 }

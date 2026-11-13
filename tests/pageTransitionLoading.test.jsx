@@ -82,7 +82,7 @@ describe('page files', () => {
 
 describe('first load and record changes', () => {
   it('screens start in their loading state, not their empty state', () => {
-    expect(read('src/features/patients/PatientsPage.jsx')).toContain('const [loadedPatients,setPatients]=useState<AnyRecord[]|null>(null)')
+    expect(read('src/features/patients/PatientsPage.jsx')).toContain('const [loadedPatients,setPatients]=useState<Patient[]|null>(null)')
     expect(read('src/features/pharmacy/PharmacyPage.jsx')).toContain('const [loading, setLoading] = useState(true)')
     expect(read('src/features/indicators/IndicatorsPage.jsx')).toContain('const [loading,setLoading]=useState(true)')
     expect(read('src/features/prevention/PreventionPage.jsx')).toContain('[handLoading, setHandLoading] = useState(true)')

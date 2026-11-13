@@ -2,7 +2,8 @@ import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { cloudClient } from '../../core/supabase/cloudContext'
 import type { Database, Tables, TablesUpdate } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Admission, AdmissionDraft, Patient, PatientDepartment, PatientDraft } from './patientTypes'
+export type { Admission, Patient } from './patientTypes'
 import { patientDemoData, demoAdmissionsForPatient } from './patientDemoData'
 import { clinicalCases } from '../surveillance/clinicalDemoData'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
@@ -13,10 +14,10 @@ type PatientRow=Tables<'patients'> & { case_number?: string | null }
 type CreateAdmissionArgs=Database['public']['Functions']['create_patient_admission_numbered']['Args']
 interface DemoOption { isDemo?: boolean }
 
-function mapRow(row: PatientRow, departmentLabel?: string | null){
+function mapRow(row: PatientRow, departmentLabel?: string | null): Patient{
   const name=`${row.first_name||''} ${row.last_name||''}`.trim()
   return {
-    id: row.patient_code,
+    id: row.patient_code||'',
     recordId: row.id,
     firstName: row.first_name,
     lastName: row.last_name,
@@ -48,11 +49,11 @@ export function removeDemoPatient(code: string){
   const index=patientDemoData.findIndex(item=>item.id===code)
   if(index<0)return null
   const [patient]=patientDemoData.splice(index,1)
-  const cases=(Object.values(clinicalCases) as AnyRecord[]).filter(item=>item.patientId===patient.id)
+  const cases=(Object.values(clinicalCases) as { id: string, patientId?: string }[]).filter(item=>item.patientId===patient.id)
   for(const item of cases)delete (clinicalCases as Record<string, unknown>)[item.id]
   return {patient,cases}
 }
-export function restoreDemoPatient({patient,cases=[]}: { patient?: AnyRecord | null, cases?: AnyRecord[] }){
+export function restoreDemoPatient({patient,cases=[]}: { patient?: Patient | null, cases?: { id: string }[] }){
   if(patient&&!patientDemoData.some(item=>item.id===patient.id))patientDemoData.unshift(patient)
   for(const item of cases)(clinicalCases as Record<string, unknown>)[item.id]=item
 }
@@ -60,7 +61,7 @@ export function restoreDemoPatient({patient,cases=[]}: { patient?: AnyRecord | n
 // A write in production needs the hospital and the database; it never «succeeds» locally.
 function requireLive(organizationId: string | null | undefined){if(!organizationId||!supabase)throw new Error('NO_ORGANIZATION')}
 
-export async function loadPatients(organizationId: string | null | undefined, {isDemo=false,includeArchived=false}={}): Promise<AnyRecord[]>{
+export async function loadPatients(organizationId: string | null | undefined, {isDemo=false,includeArchived=false}={}): Promise<Patient[]>{
   if(isDemo) return structuredClone(patientDemoData)
   // Production never falls back to the demo patients: no hospital, no list.
   if(!organizationId || !supabase) return []
@@ -77,7 +78,7 @@ export async function loadPatients(organizationId: string | null | undefined, {i
 
 // Only the patients a record opens (by patient code or record id), in the
 // roster's shape, instead of the organization's whole roster.
-export async function loadPatientsByKeys(organizationId: string | null | undefined, {codes=[], recordIds=[]}: { codes?: unknown[], recordIds?: unknown[] }={}): Promise<AnyRecord[]>{
+export async function loadPatientsByKeys(organizationId: string | null | undefined, {codes=[], recordIds=[]}: { codes?: unknown[], recordIds?: unknown[] }={}): Promise<Patient[]>{
   const wantedCodes=[...new Set(codes.filter(Boolean).map(String))],wantedIds=[...new Set(recordIds.filter(Boolean).map(String))]
   if(!organizationId || !supabase || (!wantedCodes.length&&!wantedIds.length)) return []
   let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId).is('archived_at',null)
@@ -96,27 +97,27 @@ async function resolveDepartment(organizationId: string | null | undefined, depa
   return data
 }
 
-async function createInitialAdmission(organizationId: string | null | undefined,record: AnyRecord,draft: AnyRecord,{isDemo=false}: DemoOption={}){
+async function createInitialAdmission(organizationId: string | null | undefined,record: Patient,draft: PatientDraft,{isDemo=false}: DemoOption={}){
   if(!draft.admissionDate)return record
   // Best-effort: the patient is already saved, so an admission failure here must not fail the whole creation.
-  const admission=await createAdmission(organizationId,record,draft,{isDemo}).catch(()=>null)
+  const admission=await createAdmission(organizationId,record,draft as AdmissionDraft,{isDemo}).catch(()=>null)
   return admission?{...record,admissionId:admission.id}:record
 }
 
-export async function createPatient(organizationId: string | null | undefined, existing: AnyRecord[], draft: AnyRecord, {isDemo=false}: DemoOption={}){
+export async function createPatient(organizationId: string | null | undefined, existing: Patient[], draft: PatientDraft, {isDemo=false}: DemoOption={}){
   const patientCode=draft.patientCode
   if(!isDemo) requireLive(organizationId)
   if(isDemo){
     // No real "patients" row is inserted here, so the patients_create_initial_admission
     // DB trigger never runs — mirror it locally so the patient isn't left without an admission.
-    const record=await createInitialAdmission(organizationId,{id:patientCode,status:'active',...draft},draft,{isDemo})
+    const record=await createInitialAdmission(organizationId,{id:patientCode||'',status:'active',...draft},draft,{isDemo})
     return {record,list:[record,...existing]}
   }
   const department=await resolveDepartment(organizationId,draft.departmentId)
   const supabase=cloudClient()
   const {data,error}=await supabase.from('patients').insert({
     organization_id:organizationId as string,
-    patient_code:patientCode,
+    patient_code:patientCode as string,
     first_name:draft.firstName||null,
     last_name:draft.lastName||null,
     father_name:draft.fatherName||draft.patronymic||null,
@@ -140,7 +141,7 @@ export async function createPatient(organizationId: string | null | undefined, e
   return {record,list:[record,...existing]}
 }
 
-export async function updatePatient(organizationId: string | null | undefined, patient: AnyRecord, patch: AnyRecord, {isDemo=false}: DemoOption={}){
+export async function updatePatient(organizationId: string | null | undefined, patient: Patient, patch: PatientDraft, {isDemo=false}: DemoOption={}){
   if(!isDemo) requireLive(organizationId)
   if(isDemo) return {...patient,...patch,name:`${patch.firstName??patient.firstName??''} ${patch.lastName??patient.lastName??''}`.trim()}
   const supabase=cloudClient()
@@ -156,16 +157,16 @@ export async function updatePatient(organizationId: string | null | undefined, p
   if(patch.notes!==undefined)payload.notes=patch.notes||null
   const departmentLabel=patient.department
   // Refused when someone else saved the patient after it was loaded (src/core/data/recordVersion.js).
-  const data=await guardedSingle(expectVersion(supabase.from('patients').update(payload).eq('id',patient.recordId).eq('organization_id',organizationId as string),patient.updatedAt).select('*, department:departments(name)').single(),{table:'patients',updatedAt:patient.updatedAt})
+  const data=await guardedSingle(expectVersion(supabase.from('patients').update(payload).eq('id',patient.recordId as string).eq('organization_id',organizationId as string),patient.updatedAt).select('*, department:departments(name)').single(),{table:'patients',updatedAt:patient.updatedAt})
   const row=data as NonNullable<typeof data>
   return mapRow(row,row.department?.name||departmentLabel)
 }
 
-export async function archivePatient(organizationId: string | null | undefined, patient: AnyRecord, reason: string, {isDemo=false}: DemoOption={}){
+export async function archivePatient(organizationId: string | null | undefined, patient: Patient, reason: string, {isDemo=false}: DemoOption={}){
   if(!isDemo) requireLive(organizationId)
   if(isDemo) return
   const supabase=cloudClient()
-  const {error}=await supabase.rpc('archive_patient',{p_organization_id:organizationId as string,p_patient_id:patient.recordId,p_reason:reason})
+  const {error}=await supabase.rpc('archive_patient',{p_organization_id:organizationId as string,p_patient_id:patient.recordId as string,p_reason:reason})
   if(error) throw error
 }
 
@@ -176,9 +177,9 @@ export function markRecordNumberTaken(error: unknown){
   return true
 }
 
-function mapAdmission(row: AnyRecord, departmentLabel?: string | null, departmentType?: string | null){
+function mapAdmission(row: Partial<Tables<'patient_admissions'>> & { department_type?: string | null }, departmentLabel?: string | null, departmentType?: string | null): Admission{
   return {
-    id: row.id,
+    id: row.id as string,
     departmentId: row.department_id,
     department: departmentLabel||'',
     // read by clinical-scale recommendations (NICU/PICU/ICU context)
@@ -196,8 +197,8 @@ function mapAdmission(row: AnyRecord, departmentLabel?: string | null, departmen
   }
 }
 
-export async function loadAdmissions(patientOrRecordId: AnyRecord | string | null | undefined, {isDemo=false}: DemoOption={}){
-  if(isDemo) return demoAdmissionsForPatient(patientOrRecordId as AnyRecord | null)
+export async function loadAdmissions(patientOrRecordId: Patient | string | null | undefined, {isDemo=false}: DemoOption={}){
+  if(isDemo) return demoAdmissionsForPatient(patientOrRecordId as Patient | null)
   const patientRecordId=patientOrRecordId as string
   if(!patientRecordId || !supabase) return []
   const client=supabase
@@ -208,20 +209,20 @@ export async function loadAdmissions(patientOrRecordId: AnyRecord | string | nul
   if(!departmentIds.length) return rows.map(row=>mapAdmission(row,''))
   const {data:departments,error:departmentError}=await selectInChunks(departmentIds,ids=>client.from('departments').select('id,name,department_type').in('id',ids))
   if(departmentError) throw departmentError
-  const departmentById=new Map<string | null, AnyRecord>((departments??[]).map((department: AnyRecord)=>[department.id,department]))
+  const departmentById=new Map<string | null, PatientDepartment>((departments??[]).map((department: PatientDepartment)=>[department.id,department]))
   return rows.map(row=>mapAdmission(row,departmentById.get(row.department_id)?.name||'',departmentById.get(row.department_id)?.department_type))
 }
 
-export async function createAdmission(organizationId: string | null | undefined, patient: AnyRecord, draft: AnyRecord, {isDemo=false}: DemoOption={}){
+export async function createAdmission(organizationId: string | null | undefined, patient: Patient, draft: AdmissionDraft, {isDemo=false}: DemoOption={}){
   if(!isDemo){requireLive(organizationId);if(!patient.recordId)throw new Error('PATIENT_NOT_SAVED')}
   if(isDemo){
-    return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId||null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null,case_number:draft.caseNumber||null},draft.department)
+    return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId||null,admission_date:draft.admissionDate||undefined,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null,case_number:draft.caseNumber||null},draft.department)
   }
   const department=await resolveDepartment(organizationId,draft.departmentId)
   const supabase=cloudClient()
   const {data,error}=await supabase.rpc('create_patient_admission_numbered',{
     p_organization_id:organizationId,
-    p_patient_id:patient.recordId,
+    p_patient_id:patient.recordId as string,
     p_department_id:department?.id||null,
     p_admission_date:draft.admissionDate,
     p_case_number:draft.caseNumber||null,
@@ -233,21 +234,21 @@ export async function createAdmission(organizationId: string | null | undefined,
   return mapAdmission(data,department?.name||draft.department)
 }
 
-export async function dischargeAdmission(organizationId: string | null | undefined,patient: AnyRecord,admission: AnyRecord,draft: AnyRecord,{isDemo=false}: DemoOption={}){
+export async function dischargeAdmission(organizationId: string | null | undefined,patient: Patient,admission: Admission,draft: AdmissionDraft,{isDemo=false}: DemoOption={}){
   if(!isDemo) requireLive(organizationId)
   if(isDemo) return {...admission,status:'discharged',dischargeDate:draft.date,notes:draft.reason||admission.notes}
   const supabase=cloudClient()
-  const {data,error}=await supabase.rpc('close_patient_admission',{p_organization_id:organizationId as string,p_patient_id:patient.recordId,p_admission_id:admission.id,p_discharge_date:draft.date,p_reason:draft.reason||null})
+  const {data,error}=await supabase.rpc('close_patient_admission',{p_organization_id:organizationId as string,p_patient_id:patient.recordId as string,p_admission_id:admission.id,p_discharge_date:draft.date as string,p_reason:draft.reason||undefined})
   if(error) throw error
   return mapAdmission(data,admission.department)
 }
 
-export async function transferAdmission(organizationId: string | null | undefined,patient: AnyRecord,admission: AnyRecord,draft: AnyRecord,{isDemo=false}: DemoOption={}){
+export async function transferAdmission(organizationId: string | null | undefined,patient: Patient,admission: Admission,draft: AdmissionDraft,{isDemo=false}: DemoOption={}){
   if(!isDemo) requireLive(organizationId)
   if(isDemo) return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId,admission_date:draft.date,discharge_date:null,status:'active',notes:draft.reason||null},draft.department)
   const department=await resolveDepartment(organizationId,draft.departmentId)
   const supabase=cloudClient()
-  const {data,error}=await supabase.rpc('transfer_patient_admission',{p_organization_id:organizationId as string,p_patient_id:patient.recordId,p_admission_id:admission.id,p_to_department_id:draft.departmentId,p_transfer_date:draft.date,p_reason:draft.reason||null})
+  const {data,error}=await supabase.rpc('transfer_patient_admission',{p_organization_id:organizationId as string,p_patient_id:patient.recordId as string,p_admission_id:admission.id,p_to_department_id:draft.departmentId as string,p_transfer_date:draft.date as string,p_reason:draft.reason||undefined})
   if(error) throw error
   return mapAdmission(data,department?.name||draft.department)
 }
@@ -255,12 +256,12 @@ export async function transferAdmission(organizationId: string | null | undefine
 // Deletes one admission with a written reason (kept in the audit log). The
 // database refuses a patient's last admission and an admission that still holds
 // surveillance episodes; those errors come back as `code` for a clear message.
-export async function deleteAdmission(organizationId: string | null | undefined,patient: AnyRecord,admission: AnyRecord,reason: string,{isDemo=false}: DemoOption={}){
+export async function deleteAdmission(organizationId: string | null | undefined,patient: Patient,admission: Admission,reason: string,{isDemo=false}: DemoOption={}){
   if(!String(reason||'').trim())throw new Error('reason required')
   if(!isDemo) requireLive(organizationId)
   if(isDemo) return
   const supabase=cloudClient()
-  const {error}=await supabase.rpc('delete_patient_admission',{p_organization_id:organizationId as string,p_patient_id:patient.recordId,p_admission_id:admission.id,p_reason:reason.trim()})
+  const {error}=await supabase.rpc('delete_patient_admission',{p_organization_id:organizationId as string,p_patient_id:patient.recordId as string,p_admission_id:admission.id,p_reason:reason.trim()})
   if(!error)return
   const message=String(error.message||'')
   if(message.includes('only admission'))throw Object.assign(new Error(message),{code:'last_admission'})
@@ -269,7 +270,7 @@ export async function deleteAdmission(organizationId: string | null | undefined,
 }
 
 // The next patient code, from the most recent code that ends in a number (PT-260190 → PT-260191).
-export function suggestPatientCode(patients: AnyRecord[]=[]){
+export function suggestPatientCode(patients: Patient[]=[]){
   const parts=patients.map(item=>/^(\D*)(\d+)$/.exec(String(item.id||item.patientCode||'').trim())).filter(Boolean) as RegExpExecArray[]
   if(!parts.length)return ''
   const prefix=parts[0][1]
@@ -281,7 +282,7 @@ export function suggestPatientCode(patients: AnyRecord[]=[]){
 // Possible duplicates of a patient about to be created: the same last and first name (without
 // accents or case) with the same date of birth (or none given), or the same hospital record number.
 const foldName=(value: unknown)=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim()
-export function findPatientMatches(patients: AnyRecord[]=[],draft: AnyRecord={}){
+export function findPatientMatches(patients: Patient[]=[],draft: PatientDraft={}){
   const last=foldName(draft.lastName),first=foldName(draft.firstName),full=foldName(draft.fullName)
   const record=foldName(draft.hospitalRecordNumber),born=String(draft.dateOfBirth||'').slice(0,10)
   return patients.filter(patient=>{

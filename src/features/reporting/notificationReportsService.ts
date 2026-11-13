@@ -4,7 +4,7 @@ import { supabase } from '../../core/supabase/client'
 import { hospitalDate, hospitalToday } from '../../core/dates/hospitalDate'
 import { cloudClient } from '../../core/supabase/cloudContext'
 import type { Tables } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { NotificationFindingInput } from './reportingTypes'
 import type { EodyEntry } from './eodyCatalogue'
 
 type ReportRow=Pick<Tables<'notifiable_disease_reports'>,'id'|'finding_key'|'status'|'notified_at'|'reference'|'notes'|'updated_at'|'sample_id'|'patient_id'|'disease_label'|'disease_code'|'created_at'|'updated_by'>
@@ -43,7 +43,7 @@ export async function loadPatientNotificationReports(organizationId: string | nu
   return (data || []).map(row => ({ id: row.id, disease: row.disease_label || row.disease_code || '', status: row.status, notifiedAt: row.notified_at || '', createdAt: row.created_at || '' }))
 }
 
-export async function saveNotificationReport(organizationId: string | null | undefined, finding: AnyRecord, draft: ReportDraft, { isDemo = false } = {}): Promise<NotificationReport> {
+export async function saveNotificationReport(organizationId: string | null | undefined, finding: NotificationFindingInput, draft: ReportDraft, { isDemo = false } = {}): Promise<NotificationReport> {
   const report: NotificationReport = { id: finding.findingKey, sampleId: finding.sample?.recordId || '', patientRecordId: finding.patientRecordId || '', findingKey: finding.findingKey, status: draft.status, notifiedAt: draft.status === 'notified' ? (draft.notifiedAt || hospitalToday()) : '', reference: draft.reference || '', notes: draft.notes || '', updatedAt: new Date().toISOString() }
   if (isDemo) { demoReports.set(report.findingKey, report); return report }
   const supabase = cloudClient()

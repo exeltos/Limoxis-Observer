@@ -7,6 +7,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useDepartments } from '../management/useLibraries'
 import { createPatient } from '../patients/patientsService'
+import type { Patient } from '../patients/patientTypes'
 import { PatientSelector, StartStep } from './NewSurveillanceSteps'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { listTexts } from './surveillanceOptions'
@@ -118,7 +119,7 @@ export function NewSurveillanceFlow({
       lastNameEn = patientDraft.lastNameEn || patientDraft.lastName
     const { record: created, list } = await createPatient(
       tenant?.id,
-      patients,
+      patients as unknown as Patient[],
       {
         patientCode: patientDraft.patientCode.trim() || undefined,
         firstName,

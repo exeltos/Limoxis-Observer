@@ -4,10 +4,10 @@ import { MetricCard } from '../../../design-system/MetricCard'
 import { ChoiceChips } from '../../../design-system/ChoiceChips'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
-import { compareAssessments,levelForScore,periodName,periodOf,riskTrend,scored } from './riskModel'
+import { compareAssessments,levelForScore,periodName,periodOf,riskTrend,scored,type RiskSummary } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,fmtDate,returnedClass,txt,usePaged,type RiskFrame } from './riskUi'
 import { LevelCounts,num } from './RiskAnalysis'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ComparisonRow,Risk,RiskAssessment } from './riskTypes'
 
 const STATUS: Record<string,string[]>={improved:['Βελτιώθηκε','Improved','success'],worsened:['Χειροτέρεψε','Worsened','danger'],unchanged:['Αμετάβλητος','Unchanged','neutral'],new:['Νέος','New','warning'],removed:['Αφαιρέθηκε','Removed','neutral']}
 const label=(id: string,en: boolean)=>STATUS[id][en?1:0]
@@ -20,7 +20,7 @@ function Delta({value,lowerIsBetter=true,en}: {value: number|null|undefined,lowe
 }
 
 // What moved on a risk between the two periods: likelihood and/or consequence.
-function AxisChange({row,en}: {row: AnyRecord,en: boolean}){
+function AxisChange({row,en}: {row: ComparisonRow,en: boolean}){
  if(!row.previous||row.status==='new'||row.status==='removed')return <span className="risk-axis-none">—</span>
  const now=scored(row.risk).residual,then=scored(row.previous).residual
  const parts=([['L',then.l,now.l],['C',then.c,now.c]] as [string,number|null,number|null][]).filter(([,a,b])=>a!==b&&a!=null&&b!=null)
@@ -29,19 +29,19 @@ function AxisChange({row,en}: {row: AnyRecord,en: boolean}){
 }
 
 // The residual average and the high / very high count over every period.
-function TrendChart({trend,en,currentId}: {trend: AnyRecord[],en: boolean,currentId: string}){
+function TrendChart({trend,en,currentId}: {trend: ReturnType<typeof riskTrend>,en: boolean,currentId: string}){
  const W=640,H=200,P={l:34,r:34,t:16,b:34}
- const max=Math.max(1,...trend.map((p: AnyRecord)=>p.highOrAbove))
+ const max=Math.max(1,...trend.map(p=>p.highOrAbove))
  const x=(i: number)=>P.l+24+(trend.length===1?0:i*(W-P.l-P.r-48)/(trend.length-1))
  const yAvg=(v: number|null|undefined)=>P.t+(1-(v||0)/25)*(H-P.t-P.b)
  const yHigh=(v: number)=>P.t+(1-v/max)*(H-P.t-P.b)
- const line=(fn: (v: number)=>number,key: string)=>trend.map((p,i: number)=>`${i?'L':'M'}${x(i)},${fn(p[key])}`).join(' ')
+ const line=(fn: (v: number)=>number,key: 'highOrAbove'|'residualAverage')=>trend.map((p,i: number)=>`${i?'L':'M'}${x(i)},${fn(p[key] as number)}`).join(' ')
  return <figure className="risk-trend-chart">
   <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={L(en,'Πορεία του υπολειπόμενου κινδύνου','Course of the residual risk')}>
    {[0,5,10,15,20,25].map(v=><g key={v}><line x1={P.l} x2={W-P.r} y1={yAvg(v)} y2={yAvg(v)} className="grid"/><text x={P.l-6} y={yAvg(v)+3} textAnchor="end">{v}</text></g>)}
    <path d={line(yHigh,'highOrAbove')} className="line-high"/>
    <path d={line(yAvg,'residualAverage')} className="line-avg"/>
-   {trend.map((p: AnyRecord,i: number)=><g key={p.id} className={p.id===currentId?'is-current':''}>
+   {trend.map((p,i: number)=><g key={p.id} className={p.id===currentId?'is-current':''}>
     <circle cx={x(i)} cy={yHigh(p.highOrAbove)} r="4" className="dot-high"/>
     <circle cx={x(i)} cy={yAvg(p.residualAverage)} r="4.5" className="dot-avg"/>
     <text x={x(i)} y={yAvg(p.residualAverage)-9} textAnchor="middle" className="value">{num(p.residualAverage,en)}</text>
@@ -54,24 +54,24 @@ function TrendChart({trend,en,currentId}: {trend: AnyRecord[],en: boolean,curren
  </figure>
 }
 
-const byDateDesc=(a: AnyRecord,b: AnyRecord)=>String(b.assessedOn).localeCompare(String(a.assessedOn))
+const byDateDesc=(a: RiskAssessment,b: RiskAssessment)=>String(b.assessedOn).localeCompare(String(a.assessedOn))
 
 // Any two assessments side by side, ticked freely in the course table (2026
 // with 2024, a half-year with another), and the course over every period.
-export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=null,returned='',frame=defaultFrame}: {assessment: AnyRecord,assessments: AnyRecord[],en: boolean,locale: string,onOpen?: ((risk: AnyRecord,from: AnyRecord)=>void)|null,actions?: ReactNode,returned?: string,frame?: RiskFrame}){
- const all=useMemo(()=>[...(assessments.some((a: AnyRecord)=>a.id===assessment.id)?assessments:[assessment,...assessments])].sort(byDateDesc),[assessments,assessment])
+export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=null,returned='',frame=defaultFrame}: {assessment: RiskAssessment,assessments: RiskAssessment[],en: boolean,locale: string,onOpen?: ((risk: Risk,from: RiskAssessment)=>void)|null,actions?: ReactNode,returned?: string,frame?: RiskFrame}){
+ const all=useMemo(()=>[...(assessments.some(a=>a.id===assessment.id)?assessments:[assessment,...assessments])].sort(byDateDesc),[assessments,assessment])
  const fallback=all.find(a=>a.id===assessment.sourceAssessmentId)||all.find(a=>a.id!==assessment.id&&String(a.assessedOn)<String(assessment.assessedOn))||all.find(a=>a.id!==assessment.id)
  // The two periods ticked in the course table, last ticked last: the newer one
  // is compared with the older. Ticking a third drops the one ticked first.
- const [picked,setPicked]=useState<string[]>(()=>[fallback?.id,assessment.id].filter(Boolean))
+ const [picked,setPicked]=useState<string[]>(()=>[fallback?.id,assessment.id].filter(Boolean) as string[])
  const [show,setShow]=useState('all')
- const pair=(picked.map(id=>all.find(a=>a.id===id)).filter(Boolean) as AnyRecord[]).sort((a,b)=>String(a.assessedOn).localeCompare(String(b.assessedOn)))
+ const pair=(picked.map(id=>all.find(a=>a.id===id)).filter(Boolean) as RiskAssessment[]).sort((a,b)=>String(a.assessedOn).localeCompare(String(b.assessedOn)))
  const current=pair[1]||pair[0]||assessment
  const other=pair.length>1?pair[0]:all.find(a=>a.id!==current.id)
  const pick=(id: string)=>setPicked(list=>list.includes(id)?list:[list[list.length-1],id].filter(Boolean))
  const result=useMemo(()=>other?compareAssessments(current.risks||[],other.risks||[]):null,[current,other])
  const trend=useMemo(()=>riskTrend(all),[all])
- const nameOf=(a: AnyRecord)=>a.periodLabel||periodName(periodOf(a),en)
+ const nameOf=(a: RiskAssessment)=>a.periodLabel||periodName(periodOf(a),en)
  const rows=result?result.rows.filter(r=>show==='all'||r.status===show):[]
  const {items:pageRows,pager}=usePaged(rows,{en,resetOn:`${current.id}|${other?.id}|${show}`,startIndex:current.id===assessment.id?rows.findIndex(r=>r.risk.lineageKey===returned):-1})
  if(!result||!other)return frame(null,<div className="risk-comparison">
@@ -81,7 +81,7 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
  const cur=result.current,prev=result.previous
  const kpi=(icon: LucideIcon,value: ReactNode,name: string,delta: number|null,lower=true)=><MetricCard icon={icon} label={name} value={<span className="risk-kpi-value">{value}<Delta value={delta} lowerIsBetter={lower} en={en}/></span>}/>
  const avgDelta=cur.averages.residual!=null&&prev.averages.residual!=null?cur.averages.residual-prev.averages.residual:null
- const map=(a: AnyRecord,summary: AnyRecord)=><div className="risk-heatmap-cell">
+ const map=(a: RiskAssessment,summary: RiskSummary)=><div className="risk-heatmap-cell">
   <RiskHeatMap heat={summary.heat.residual} en={en} title={nameOf(a)} caption={fmtDate(a.assessedOn,locale)}/>
   <LevelCounts counts={summary.levels.residual} en={en}/>
  </div>

@@ -1,24 +1,24 @@
 import { isQuestionShown, scaleOf, sectionLabel, textOf } from './surveyModel'
 import './surveys.css'
-import type { AnyRecord } from '../../../types/featureTypes'
-import type { Survey, SurveyAnswers, SurveyQuestion as SurveyQuestionRow } from './surveyModel'
+import type { SurveyAnswers, SurveyQuestion as SurveyQuestionRow } from './surveyModel'
+import type { SurveyAnswer, SurveyContent, SurveyDepartment } from './surveyTypes'
 
 const isBlank = (value: unknown) => value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)
 
 // The sections of a questionnaire as they are answered: each with the questions
 // it shows for the answers given so far.
-export function formSections(survey: AnyRecord, answers: SurveyAnswers = {}) {
+export function formSections(survey: SurveyContent | null | undefined, answers: SurveyAnswers = {}) {
   const questions = (survey?.questions || []).filter((question: SurveyQuestionRow) => isQuestionShown(question, answers))
-  const keys: string[] = [...new Set<string>((survey?.questions || []).map((question: AnyRecord) => question.section || ''))]
-  return keys.map(key => ({ key, questions: questions.filter((question: AnyRecord) => (question.section || '') === key) })).filter(section => section.questions.length)
+  const keys: string[] = [...new Set<string>((survey?.questions || []).map(question => question.section || ''))]
+  return keys.map(key => ({ key, questions: questions.filter(question => (question.section || '') === key) })).filter(section => section.questions.length)
 }
 
 // The questions of a survey to answer: large targets for a phone or a tablet,
 // grouped by section. `only` limits it to one section (the public page goes one
 // section at a time). Used by the public link and by entry in the app.
-export function SurveyForm({ survey, answers, onChange, language = 'el', missing = [], only = null, departments = [], departmentId = '', onDepartment, askDepartment = false }: { survey: Survey, answers: SurveyAnswers, onChange: (answers: SurveyAnswers) => void, language?: string, missing?: string[], only?: string | null, departments?: AnyRecord[], departmentId?: string, onDepartment?: (id: string) => void, askDepartment?: boolean }) {
+export function SurveyForm({ survey, answers, onChange, language = 'el', missing = [], only = null, departments = [], departmentId = '', onDepartment, askDepartment = false }: { survey: SurveyContent, answers: SurveyAnswers, onChange: (answers: SurveyAnswers) => void, language?: string, missing?: string[], only?: string | null, departments?: SurveyDepartment[], departmentId?: string, onDepartment?: (id: string) => void, askDepartment?: boolean }) {
   const en = language === 'en'
-  const set = (id: string, value: unknown) => onChange({ ...answers, [id]: value })
+  const set = (id: string, value: SurveyAnswer | undefined) => onChange({ ...answers, [id]: value })
   const sections = formSections(survey, answers).filter(section => only == null || section.key === only)
   const titles = survey?.sections || []
   return <div className="survey-form">
@@ -31,15 +31,15 @@ export function SurveyForm({ survey, answers, onChange, language = 'el', missing
     </fieldset>}
     {sections.map(section => <section key={section.key || 'main'} className="survey-section">
       {section.key && only == null && <h2>{sectionLabel(section.key, language, titles)}</h2>}
-      {section.questions.map((question: AnyRecord) => <SurveyQuestion key={question.id} question={question} value={answers[question.id]} onChange={value => set(question.id, value)} language={language} missing={missing.includes(question.id)} />)}
+      {section.questions.map(question => <SurveyQuestion key={question.id} question={question} value={answers[question.id]} onChange={value => set(question.id, value)} language={language} missing={missing.includes(question.id)} />)}
     </section>)}
   </div>
 }
 
-export function SurveyQuestion({ question, value, onChange, language, missing = false }: { question: SurveyQuestionRow, value: unknown, onChange: (value: unknown) => void, language: string, missing?: boolean }) {
+export function SurveyQuestion({ question, value, onChange, language, missing = false }: { question: SurveyQuestionRow, value: SurveyAnswer | undefined, onChange: (value: SurveyAnswer | undefined) => void, language: string, missing?: boolean }) {
   const en = language === 'en'
   const label = textOf(question, language)
-  const choose = (option: unknown) => onChange(value === option && !question.required ? undefined : option)
+  const choose = (option: SurveyAnswer) => onChange(value === option && !question.required ? undefined : option)
   return <fieldset className={`survey-question ${missing ? 'is-missing' : ''}`}>
     <legend>{label}{question.required && <span className="survey-required" aria-hidden="true">*</span>}</legend>
     {question.type === 'rating' && <div className="survey-scale" role="radiogroup" aria-label={label}>
@@ -52,10 +52,10 @@ export function SurveyQuestion({ question, value, onChange, language, missing = 
       {([[true, en ? 'Yes' : 'Ναι'], [false, en ? 'No' : 'Όχι']] as [boolean, string][]).map(([option, text]) => <button key={text} type="button" role="radio" aria-checked={value === option} className={value === option ? 'active' : ''} onClick={() => choose(option)}><i className="survey-mark" aria-hidden="true" /><span>{text}</span></button>)}
     </div>}
     {question.type === 'single' && <div className="survey-choices" role="radiogroup" aria-label={label}>
-      {(question.options || []).map((option: AnyRecord) => <button key={option.value} type="button" role="radio" aria-checked={value === option.value} className={value === option.value ? 'active' : ''} onClick={() => choose(option.value)}><i className="survey-mark" aria-hidden="true" /><span>{textOf(option, language)}</span></button>)}
+      {(question.options || []).map(option => <button key={option.value} type="button" role="radio" aria-checked={value === option.value} className={value === option.value ? 'active' : ''} onClick={() => choose(option.value)}><i className="survey-mark" aria-hidden="true" /><span>{textOf(option, language)}</span></button>)}
     </div>}
     {question.type === 'multiple' && <div className="survey-choices is-multiple" role="group" aria-label={label}>
-      {(question.options || []).map((option: AnyRecord) => { const selected = Array.isArray(value) && value.includes(option.value); return <button key={option.value} type="button" aria-pressed={selected} className={selected ? 'active' : ''} onClick={() => onChange(selected ? value.filter(item => item !== option.value) : [...(Array.isArray(value) ? value : []), option.value])}><i className="survey-mark" aria-hidden="true" /><span>{textOf(option, language)}</span></button> })}
+      {(question.options || []).map(option => { const selected = Array.isArray(value) && value.includes(option.value); return <button key={option.value} type="button" aria-pressed={selected} className={selected ? 'active' : ''} onClick={() => onChange(selected ? value.filter(item => item !== option.value) : [...(Array.isArray(value) ? value : []), option.value])}><i className="survey-mark" aria-hidden="true" /><span>{textOf(option, language)}</span></button> })}
     </div>}
     {question.type === 'text' && <textarea rows={3} maxLength={2000} value={String(value || '')} aria-label={label} placeholder={en ? 'Write here…' : 'Γράψτε εδώ…'} onChange={event => onChange(event.target.value)} />}
     {missing && <small className="survey-missing">{en ? 'Please answer this question.' : 'Απαντήστε σε αυτή την ερώτηση.'}</small>}

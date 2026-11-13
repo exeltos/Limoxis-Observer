@@ -16,7 +16,7 @@ import { employeeName, employeeOptions } from '../../employees/peopleOptions'
 import { QualityDepartmentField, departmentRef } from '../QualityFields'
 import { AUDIT_BODIES, AUDIT_KINDS, AUDIT_STANDARDS, RISK_LEVELS, TEAM_ROLES, areaLabel, departmentArea, riskMonths, standardShort } from './auditStandards'
 import { competenceWarnings, independenceIssues, templateChapters } from './auditModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditDepartment, AuditTeamMember, AuditTemplate, AuditorCompetence, QualityAudit } from './auditTypes'
 import type { ReactNode } from 'react'
 import type { IconType } from '../../../design-system/types'
 
@@ -36,10 +36,10 @@ const select = (en: boolean) => ({ emptyLabel: L(en, 'Δεν βρέθηκε', 'N
 // questionnaire, chapters in scope), when (a day, or a month still to fix),
 // how often (by risk) and by whom (the team, with the independence and
 // competence checks). The new-audit form and the planning dialog share it.
-export function AuditPlanFields({ draft, setDraft, templates = [], competence, language, titleField = true, flat = false }: { draft: AnyRecord, setDraft: (update: (current: AnyRecord | null) => AnyRecord) => void, templates?: AnyRecord[], competence: AnyRecord, language: string, titleField?: boolean, flat?: boolean }) {
+export function AuditPlanFields({ draft, setDraft, templates = [], competence, language, titleField = true, flat = false }: { draft: QualityAudit, setDraft: (update: (current: QualityAudit | null) => QualityAudit) => void, templates?: AuditTemplate[], competence: AuditorCompetence, language: string, titleField?: boolean, flat?: boolean }) {
   const Card = flat ? FlatSection : FormCard
   const en = language === 'en'
-  const patch = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
+  const patch = (next: Partial<QualityAudit>) => setDraft(current => ({ ...current, ...next }))
   // Every active questionnaire: choosing one sets the standard (the basic one first, the library after it).
   const forStandard = templates.filter(item => item.active !== false).sort((a, b) => Number(b.key === 'core') - Number(a.key === 'core'))
   const questionnaire = templates.find(item => item.id === draft.templateId) || null
@@ -95,16 +95,16 @@ export function AuditPlanFields({ draft, setDraft, templates = [], competence, l
       </FormGrid>
     </Card>
     </MoreSection></div>
-    <AuditTeamField flat={flat} team={draft.team || []} department={{ id: draft.departmentId, name: draft.department }} competence={competence} language={language} onChange={(team: AnyRecord[]) => patch({ team, leadAuditor: team.find((member: AnyRecord) => member.role === 'lead')?.name || '' })} />
+    <AuditTeamField flat={flat} team={draft.team || []} department={{ id: draft.departmentId, name: draft.department }} competence={competence} language={language} onChange={(team: AuditTeamMember[]) => patch({ team, leadAuditor: team.find((member: AuditTeamMember) => member.role === 'lead')?.name || '' })} />
   </>
 }
 
 // The team: employees (picked from the staff) or external auditors (a typed
 // name), each with a role; one lead. Under it, the independence and competence checks.
-export function AuditTeamField({ team = [], department = {}, competence, language, onChange, flat = false }: { team?: AnyRecord[], department?: AnyRecord, competence: AnyRecord, language: string, onChange: (team: AnyRecord[]) => void, flat?: boolean }) {
+export function AuditTeamField({ team = [], department = {}, competence, language, onChange, flat = false }: { team?: AuditTeamMember[], department?: AuditDepartment, competence: AuditorCompetence, language: string, onChange: (team: AuditTeamMember[]) => void, flat?: boolean }) {
   const Card = flat ? FlatSection : FormCard
   const en = language === 'en'
-  const { data: staff = [] }: { data?: AnyRecord[] } = useEmployeesData()
+  const { data: staff = [] } = useEmployeesData()
   const { options, near } = useMemo(() => employeeOptions(staff as never[], language, [department.name].filter(Boolean) as never[]), [staff, language, department.name])
   const taken = new Set(team.map(member => String(member.employeeId || '')))
   const add = (value: string) => {
@@ -116,7 +116,7 @@ export function AuditTeamField({ team = [], department = {}, competence, languag
       : { id: null, role, employeeId: null, name: String(value).trim(), external: true, affiliation: '' }
     if (member.name) onChange([...team, member])
   }
-  const set = (index: number, next: AnyRecord) => onChange(team.map((member, at) => (at === index ? { ...member, ...next } : next.role === 'lead' && member.role === 'lead' ? { ...member, role: 'member' } : member)))
+  const set = (index: number, next: Partial<AuditTeamMember>) => onChange(team.map((member, at) => (at === index ? { ...member, ...next } : next.role === 'lead' && member.role === 'lead' ? { ...member, role: 'member' } : member)))
   const issues = independenceIssues(team, department)
   const untrained = competence ? competenceWarnings(team, competence) : []
   return <Card wide title={L(en, 'Ομάδα επιθεώρησης', 'Audit team')} icon={Users} hint={L(en, 'Εργαζόμενοι ή εξωτερικοί επιθεωρητές (πληκτρολογήστε το όνομα).', 'Employees, or external auditors (type the name).')}>

@@ -29,16 +29,17 @@ import {PatientInfectionFlags} from './PatientInfectionFlags'
 import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Patient, PatientDepartment, PatientFormDraft } from './patientTypes'
+import type { RiskFlagRow } from '../clinical-scales/patientRiskFlagsService'
 import type { InfectionFlags } from './patientInfectionFlagsService'
 
 // clinical-scales is still JavaScript: its default (rows=[]) would type the rows as never[].
-const ClinicalRiskText=ClinicalRiskTextJs as ComponentType<{ rows: AnyRecord[], language: string, max?: number }>
+const ClinicalRiskText=ClinicalRiskTextJs as ComponentType<{ rows: RiskFlagRow[], language: string, max?: number }>
 
 // The registry shows the patient first, as the episodes do, and the status as a badge.
 const PATIENT_STATUS_TONES: Record<string, string>={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral',noAdmission:'neutral'}
 // A patient with no admission is not «active»: the laboratory imports can create the person alone.
-const effectiveStatus=(p: AnyRecord)=>p.hasAdmission===false?'noAdmission':p.status
+const effectiveStatus=(p: Patient): string=>p.hasAdmission===false?'noAdmission':p.status||''
 
 export function PatientsPage(){
   const {t,language}=useLanguage()
@@ -49,7 +50,7 @@ export function PatientsPage(){
   const saved=registry.loadViewState({query:'',department:'all',status:'all',period:'all'})
   const [query,setQuery]=useState(saved.query)
   // null until the first load ends: the registry shows placeholders, not «no patients».
-  const [loadedPatients,setPatients]=useState<AnyRecord[]|null>(null)
+  const [loadedPatients,setPatients]=useState<Patient[]|null>(null)
   const patients=useMemo(()=>loadedPatients||[],[loadedPatients])
   const loading=loadedPatients===null
   const [department,setDepartment]=useState(saved.department)
@@ -57,17 +58,17 @@ export function PatientsPage(){
   const [period,setPeriod]=useState(saved.period||'all')
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(15)
-  const [riskFlags,setRiskFlags]=useState<Record<string, AnyRecord[]>>({})
+  const [riskFlags,setRiskFlags]=useState<Record<string, RiskFlagRow[]>>({})
   const [infectionFlags,setInfectionFlags]=useState<Record<string, InfectionFlags>>({})
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(isDemo?list.map(item=>({...item,hasAdmission:Boolean(item.admissionDate)})):list)}).catch(error=>{if(alive){setPatients([]);notify((error as Error|null)?.message||t('patientsLoadFailed'),'danger')}})
-    loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value as Record<string, AnyRecord[]>)}).catch(()=>{})
+    loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value)}).catch(()=>{})
     loadPatientInfectionFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setInfectionFlags(value)}).catch(()=>{})
     return ()=>{alive=false}
   },[tenant?.id,isDemo,notify,t])
   useEffect(()=>{setPage(1)},[query,department,status,period,pageSize])
-  const isolated=useCallback((p: AnyRecord)=>Boolean((infectionFlags[p.recordId]||infectionFlags[p.id])?.isolation),[infectionFlags])
+  const isolated=useCallback((p: Patient)=>Boolean((infectionFlags[p.recordId||'']||infectionFlags[p.id])?.isolation),[infectionFlags])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
     .filter(p=>canAccessRecord(p))
@@ -112,7 +113,7 @@ export function PatientsPage(){
         loading={loading}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,sortedRows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={(value: string)=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
+        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status||'')}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId||'']||infectionFlags[patient.id]} t={t} fmtDate={(value: string)=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId||'']||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}
         emptyFiltered={scopedPatients.length>0}
@@ -129,10 +130,10 @@ export function PatientsPage(){
 export type PatientForm=ReturnType<typeof usePatientForm>
 // The patient form's state and checks, shared by the «New patient» page and the
 // in-place edit of the patient record.
-export function usePatientForm({patient=null,departments=[],existingPatients=[]}: { patient?: AnyRecord | null, departments?: AnyRecord[], existingPatients?: AnyRecord[] }){
+export function usePatientForm({patient=null,departments=[],existingPatients=[]}: { patient?: Patient | null, departments?: PatientDepartment[], existingPatients?: Patient[] }){
   const {t,language}=useLanguage()
   const editing=Boolean(patient)
-  const [draft,setDraft]=useState<AnyRecord>(()=>({
+  const [draft,setDraft]=useState<PatientFormDraft>(()=>({
     patientCode:patient?.id||'',firstName:patient?.firstName||'',lastName:patient?.lastName||'',fatherName:patient?.fatherName||'',hospitalRecordNumber:patient?.hospitalRecordNumber||'',
     dateOfBirth:patient?.dateOfBirth||'',birthWeightGrams:patient?.birthWeightGrams||'',gestationalAgeWeeks:patient?.gestationalAgeWeeks||'',sex:patient?.sex||'',departmentId:patient?.departmentId||'',department:patient?.department||'',departmentEn:patient?.departmentEn||patient?.department||'',
     admissionDate:patient?.admissionDate||'',status:patient?.status||'active',notes:patient?.notes||''
@@ -180,7 +181,7 @@ export function usePatientForm({patient=null,departments=[],existingPatients=[]}
   return {editing,draft,set,setDepartment,validation,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate,invalid,payload}
 }
 
-export function PatientFormFields({form,t,language,departments=[],className=''}: { form: PatientForm, t: (key: string) => string, language: string, departments?: AnyRecord[], className?: string }){
+export function PatientFormFields({form,t,language,departments=[],className=''}: { form: PatientForm, t: (key: string) => string, language: string, departments?: PatientDepartment[], className?: string }){
   const {editing,draft,set,setDepartment,validation,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate}=form
   const lang=language==='el'?'el':'en'
   // Calculated age: the helper text under the date of birth.

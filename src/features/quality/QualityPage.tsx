@@ -134,8 +134,8 @@ export function QualityPage({section=''}: { section?: string }={}){
  const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'indicators')
  const [resourceView,setResourceView]=useState(()=>EQUIPMENT_SHOWN?(initial.tab==='resources'&&initial.view||'equipment'):'suppliers')
  useEffect(()=>{if(EQUIPMENT_SHOWN&&!suppliersOn&&resourceView==='suppliers')setResourceView('equipment')},[suppliersOn,resourceView])
- const [equipmentFilters,setEquipmentFilters]=useState<AnyRecord>(NO_EQUIPMENT_FILTERS)
- const [supplierFilters,setSupplierFilters]=useState<AnyRecord>(NO_SUPPLIER_FILTERS)
+ const [equipmentFilters,setEquipmentFilters]=useState(NO_EQUIPMENT_FILTERS)
+ const [supplierFilters,setSupplierFilters]=useState(NO_SUPPLIER_FILTERS)
  const [surveyFilters,setSurveyFilters]=useState<AnyRecord>({query:'',audience:'all',status:'all',quick:null})
  const registry=useRegistryMemory(`quality.${tab}`)
 
@@ -328,7 +328,7 @@ export function QualityPage({section=''}: { section?: string }={}){
   resources:(()=>{const kind=resourceView==='equipment'?'equipment':'suppliers';const rows=kind==='equipment'?visibleEquipment:visibleSuppliers;return <ExportMenu items={[
    {id:`${kind}-print`,kind:'print',label:kind==='equipment'?L('Εκτύπωση: εξοπλισμός','Print: equipment'):L('Εκτύπωση: προμηθευτές','Print: suppliers'),disabled:!rows.length,onClick:()=>setIncidentDialog(`${kind}-print`)},
    // The suppliers' evaluations on one sheet (the form «Αξιολόγηση εξωτερικών παρόχων»), the questions once per template.
-   ...(kind==='suppliers'?[{id:'suppliers-evaluations',kind:'print',label:L('Εκτύπωση: φύλλο αξιολόγησης προμηθευτών','Print: supplier evaluation sheet'),disabled:!rows.length,onClick:()=>{if(!printReport(supplierEvaluationsSheet(rows,resources.templates||[],{language}) as ReportDoc))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}]:[]),
+   ...(kind==='suppliers'?[{id:'suppliers-evaluations',kind:'print',label:L('Εκτύπωση: φύλλο αξιολόγησης προμηθευτών','Print: supplier evaluation sheet'),disabled:!rows.length,onClick:()=>{if(!printReport(supplierEvaluationsSheet(visibleSuppliers,resources.templates||[],{language}) as ReportDoc))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}]:[]),
    {id:`${kind}-excel`,kind:'excel',label:t('exportFields.menuLabel'),disabled:!rows.length,onClick:()=>setIncidentDialog(`${kind}-excel`)},
   ]}/>})(),
  })[tab]

@@ -23,6 +23,7 @@ import { AdmissionDeleteDialog, PatientDetailsEditor, useAdmissionLifecycle } fr
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler } from './surveillanceTypes'
 import type { ReactNode } from 'react'
+import type { Patient } from '../patients/patientTypes'
 export { Detail, NewAdmissionDialog, AdmissionPicker } from './ClinicalAdmissionDialogs'
 
 interface PatientDetailsSectionProps {
@@ -89,10 +90,10 @@ export function PatientDetailsSection({
         </Button>
       )}
       <PatientSummaryActions
-        patient={patient}
+        patient={patient as Patient}
         onEdit={compact ? () => setEditing(true) : undefined}
         onDeleted={onDeleted}
-        extraItems={extraMenuItems}
+        extraItems={extraMenuItems as never}
       />
     </>
   )
@@ -221,7 +222,7 @@ export function PatientDetailsSection({
           onSave={async draft => {
             setSavingPatient(true)
             try {
-              await updatePatient(tenantId, patient, draft, { isDemo })
+              await updatePatient(tenantId, patient as Patient, draft, { isDemo })
               setEditing(false)
               await onChanged?.()
               notify(t('saved'), 'success')
@@ -389,7 +390,7 @@ export function CanonicalSummary({
       })}
     </>
   ) : showPatientActions ? (
-    <PatientSummaryActions patient={patient} onDeleted={onDeleted} />
+    <PatientSummaryActions patient={patient as Patient} onDeleted={onDeleted} />
   ) : null
   // The samples shown under the surveillance, laboratory registry rows included.
   const recordSamples = samples || record?.samples || []

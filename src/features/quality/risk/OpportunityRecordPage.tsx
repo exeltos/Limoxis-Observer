@@ -11,7 +11,7 @@ import { OpportunityEditor } from './OpportunityEditor'
 import { DeleteConfirm,L } from './riskUi'
 import './riskAssessment.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { Opportunity,RiskAssessment } from './riskTypes'
 
 const EDITABLE=['draft','under_review']
 
@@ -26,22 +26,22 @@ export function OpportunityRecordPage(){
  const organizationId=tenant?.id
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
  const canManage=(!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER)||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
- const [assessment,setAssessment]=useState<AnyRecord | null>(null)
+ const [assessment,setAssessment]=useState<RiskAssessment | null>(null)
  const [loading,setLoading]=useState(true)
  const [saving,setSaving]=useState(false)
  const [confirming,setConfirming]=useState(false)
  useEffect(()=>{let active=true;setLoading(true);loadRiskAssessment(organizationId,assessmentCode as string).then(a=>{if(active)setAssessment(a)}).catch(()=>{if(active)setAssessment(null)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[organizationId,assessmentCode])
  const list=assessment?.opportunities||[]
  const isNew=opportunityId==='new'
- const index=list.findIndex((o: AnyRecord)=>o.id===opportunityId)
- const item: AnyRecord|undefined=isNew?{}:list[index]
+ const index=list.findIndex(o=>o.id===opportunityId)
+ const item: Opportunity|undefined=isNew?{}:list[index]
  const back=()=>navigate(`/quality/risks/${assessmentCode}`,{replace:true,state:location.state?.returnState||{riskTab:'opportunities'}})
 
  if(loading)return <Page title={L(en,'Ευκαιρία','Opportunity')}><TableSkeleton/></Page>
  if(!assessment||!item)return <Page title={L(en,'Ευκαιρία','Opportunity')}><div className="inline-empty">{L(en,'Η ευκαιρία δεν βρέθηκε.','The opportunity was not found.')}</div></Page>
  const canEdit=canManage&&EDITABLE.includes(assessment.status)
 
- async function save(draft: AnyRecord){
+ async function save(draft: Opportunity){
   if(!assessment)return
   setSaving(true)
   try{
@@ -52,7 +52,7 @@ export function OpportunityRecordPage(){
  async function remove(){
   setConfirming(false)
   if(!assessment||!item)return
-  try{await deleteOpportunity(organizationId,assessment.id,item.id);notify(L(en,'Η ευκαιρία διαγράφηκε.','The opportunity was deleted.'),'success');back()}
+  try{await deleteOpportunity(organizationId,assessment.id,item.id as string);notify(L(en,'Η ευκαιρία διαγράφηκε.','The opportunity was deleted.'),'success');back()}
   catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}
  }
  return <Page fill>

@@ -37,7 +37,7 @@ import { AssessmentStatusBadge,L,fmtDate,rememberRow,statusLabel,txt,useReturned
 import './riskAssessment.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AssessmentAction,HeatCell,IndicatorLink,IndicatorValueMap,Opportunity,QualityRecordLink,RegisterPreset,Risk,RiskAssessment,RiskAssessmentDraft,RiskViewState } from './riskTypes'
 
 const EDITABLE=['draft','under_review']
 
@@ -58,8 +58,8 @@ export function RiskAssessmentPage(){
  const organizationId=tenant?.id
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
  const canManage=(!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER)||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
- const [assessment,setAssessment]=useState<AnyRecord | null>(null)
- const [all,setAll]=useState<AnyRecord[]>([])
+ const [assessment,setAssessment]=useState<RiskAssessment | null>(null)
+ const [all,setAll]=useState<RiskAssessment[]>([])
  const [loading,setLoading]=useState(true)
  const location=useLocation()
  const navigate=useNavigate()
@@ -72,25 +72,25 @@ export function RiskAssessmentPage(){
  const preset=view.riskPreset||null
  const cell=preset?.cell||null
  const origin=view.riskOrigin||null
- const setView=(next: AnyRecord,push=false)=>navigate(`${location.pathname}${location.search}`,{replace:!push,state:{...view,riskPreset:null,riskOrigin:null,riskScroll:null,...next}})
+ const setView=(next: RiskViewState,push=false)=>navigate(`${location.pathname}${location.search}`,{replace:!push,state:{...view,riskPreset:null,riskOrigin:null,riskScroll:null,...next}})
  const setTab=(t: string)=>setView({riskTab:t})
  // The spot is also kept on the entry being left, for the browser's back button.
- const jump=(t: string,riskPreset: AnyRecord,mark: string)=>{const scroll=scrollerOf(bodyRef.current)?.scrollTop||0;navigate(`${location.pathname}${location.search}`,{replace:true,state:{...view,riskScroll:scroll}});setView({riskTab:t,riskPreset,riskOrigin:{tab,mark,scroll}},true)}
+ const jump=(t: string,riskPreset: RegisterPreset,mark: string)=>{const scroll=scrollerOf(bodyRef.current)?.scrollTop||0;navigate(`${location.pathname}${location.search}`,{replace:true,state:{...view,riskScroll:scroll}});setView({riskTab:t,riskPreset,riskOrigin:{tab,mark,scroll}},true)}
  const pendingScroll=useRef<number|null>(null)
  const returnToOrigin=()=>{pendingScroll.current=origin.scroll;setView({riskTab:origin.tab,riskMark:origin.mark||null})}
  // Back at the origin, once it has rendered: the same spot on the page.
  useLayoutEffect(()=>{const top=pendingScroll.current??view.riskScroll;if(top==null)return;const scroller=scrollerOf(bodyRef.current);if(scroller)scroller.scrollTop=top;pendingScroll.current=null},[tab,location.key,view.riskScroll])
- const [confirm,setConfirm]=useState<AnyRecord | null>(null)
+ const [confirm,setConfirm]=useState<{kind: string} | null>(null)
  const [approving,setApproving]=useState(false)
  const [detailsOpen,setDetailsOpen]=useState(false)
  const [creatingNext,setCreatingNext]=useState(false)
  const [saving,setSaving]=useState(false)
- const [indicatorValues,setIndicatorValues]=useState<Map<string,AnyRecord> | null>(null)
+ const [indicatorValues,setIndicatorValues]=useState<IndicatorValueMap | null>(null)
  const [linking,setLinking]=useState(false)
  // The incidents and findings the register sets beside each risk (12 months).
- const [practice,setPractice]=useState<{incidents: AnyRecord[],findings: AnyRecord[]}>({incidents:[],findings:[]})
+ const [practice,setPractice]=useState<{incidents: QualityRecordLink[],findings: QualityRecordLink[]}>({incidents:[],findings:[]})
  useEffect(()=>{let active=true;Promise.all([loadQualityRecords('incidents',organizationId).catch(()=>[]),loadQualityRecords('findings',organizationId).catch(()=>[])]).then(([incidents,findings])=>{if(active)setPractice({incidents,findings})});return()=>{active=false}},[organizationId])
- const evidenceOf=useCallback((risk: AnyRecord)=>riskEvidence(risk,practice),[practice])
+ const evidenceOf=useCallback((risk: Risk)=>riskEvidence(risk,practice),[practice])
  const reportRef=useRef<HTMLDivElement|null>(null)
  const bodyRef=useRef<HTMLDivElement|null>(null)
  // The risk and the opportunity last opened stay highlighted on the way back.
@@ -105,7 +105,7 @@ export function RiskAssessmentPage(){
  // The indicators of the Indicators module, with their 90-day values; the page works without them.
  useEffect(()=>{let active=true;loadIndicatorValues(organizationId).then(v=>{if(active)setIndicatorValues(v)}).catch(()=>{if(active)setIndicatorValues(new Map())});return()=>{active=false}},[organizationId])
  // A CAPA links back here with ?risk=R001: open that risk.
- useEffect(()=>{const key=search.get('risk');if(!key||!assessment)return;if((assessment.risks||[]).some((r: AnyRecord)=>r.lineageKey===key))navigate(`/quality/risks/${assessment.code}/${key}`,{replace:true});else setSearch(p=>{p.delete('risk');return p},{replace:true})},[assessment,search,setSearch,navigate])
+ useEffect(()=>{const key=search.get('risk');if(!key||!assessment)return;if((assessment.risks||[]).some(r=>r.lineageKey===key))navigate(`/quality/risks/${assessment.code}/${key}`,{replace:true});else setSearch(p=>{p.delete('risk');return p},{replace:true})},[assessment,search,setSearch,navigate])
 
  const risks=useMemo(()=>assessment?.risks||[],[assessment])
  const summary=useMemo(()=>summarizeRisks(risks),[risks])
@@ -116,26 +116,26 @@ export function RiskAssessmentPage(){
  if(!assessment)return <Page title={L(en,'Εκτίμηση κινδύνου','Risk assessment')}><div className="inline-empty">{L(en,'Η εκτίμηση δεν βρέθηκε.','The assessment was not found.')}</div></Page>
  const canEdit=canManage&&EDITABLE.includes(assessment.status)
 
- async function persistAssessment(change: AnyRecord,action: string){
+ async function persistAssessment(change: RiskAssessmentDraft,action: string){
   if(!assessment)return false
   setSaving(true)
-  try{const next={...assessment,...change,history:[...(assessment.history||[]),auditEvent(action,{actor})]};const saved=await saveRiskAssessment(organizationId,next);setAssessment(current=>({...current,...saved,risks:current?.risks,opportunities:current?.opportunities}));notify(L(en,'Η εκτίμηση ενημερώθηκε.','The assessment was updated.'),'success');return true}
+  try{const next={...assessment,...change,history:[...(assessment.history||[]),auditEvent(action,{actor})]};const saved=await saveRiskAssessment(organizationId,next);setAssessment(current=>({...current,...saved,risks:current?.risks,opportunities:current?.opportunities}) as RiskAssessment);notify(L(en,'Η εκτίμηση ενημερώθηκε.','The assessment was updated.'),'success');return true}
   catch{notify(L(en,'Δεν ήταν δυνατή η αποθήκευση.','Could not save.'),'error');return false}finally{setSaving(false)}
  }
  // Bulk linking: adds the confirmed indicators to each risk, keeping the ones it had.
- async function linkIndicators(changes: AnyRecord[]){
+ async function linkIndicators(changes: IndicatorLink[]){
   if(!assessment)return
   setSaving(true)
   try{
-   const saved: AnyRecord[]=[]
+   const saved: Risk[]=[]
    for(const {risk,keys} of changes)saved.push(await saveRisk(organizationId,assessment.id,{...risk,indicatorKeys:[...new Set([...(risk.indicatorKeys||[]),...keys])]}))
-   setAssessment(current=>({...current,risks:current?.risks.map((r: AnyRecord)=>saved.find(s=>s.id===r.id)||r)}))
+   setAssessment(current=>({...current,risks:current?.risks.map(r=>saved.find(s=>s.id===r.id)||r)}) as RiskAssessment)
    setLinking(false);notify(L(en,`Συνδέθηκαν δείκτες σε ${saved.length} κινδύνους.`,`Indicators linked to ${saved.length} risks.`),'success')
   }catch{notify(L(en,'Δεν ήταν δυνατή η σύνδεση των δεικτών.','Could not link the indicators.'),'error')}finally{setSaving(false)}
  }
- const openRisk=(risk: AnyRecord)=>{if((risks||[]).some((r: AnyRecord)=>r.lineageKey===risk.lineageKey)){riskRow.remember(risk.lineageKey);navigate(`/quality/risks/${assessment.code}/${risk.lineageKey}`,{state:{riskTab:tab,returnState:view}})}}
+ const openRisk=(risk: Risk)=>{if((risks||[]).some(r=>r.lineageKey===risk.lineageKey)){riskRow.remember(risk.lineageKey);navigate(`/quality/risks/${assessment.code}/${risk.lineageKey}`,{state:{riskTab:tab,returnState:view}})}}
  // The next period, with this assessment's risks carried over to be reassessed.
- async function createNext(draft: AnyRecord,carryFrom: AnyRecord|null){
+ async function createNext(draft: RiskAssessmentDraft,carryFrom: RiskAssessment|null){
   try{const created=await createRiskAssessment(organizationId,{...draft,history:[auditEvent('riskAssessmentCreated',{actor})]},{carryFrom});setCreatingNext(false);navigate(`/quality/risks/${created.code}`)}
   catch{notify(L(en,'Δεν ήταν δυνατή η δημιουργία της εκτίμησης.','Could not create the assessment.'),'error')}
  }
@@ -143,7 +143,7 @@ export function RiskAssessmentPage(){
  function exportCsv(){
   if(!assessment)return
   const headers=en?['Code','Section','Process','Applies to','Risk','Inherent L','Inherent C','Inherent score','Inherent level','Existing controls','Residual L','Residual C','Residual score','Residual level','Additional measures','Owner','Due date','Review frequency','Indicator','Target L','Target C','Target score','Target level','JCI','JCI reference','FMEA']:['Κωδικός','Ενότητα','Διεργασία','Τμήμα / αφορά','Κίνδυνος','Εγγενής L','Εγγενής C','Εγγενής βαθμός','Εγγενής κατηγορία','Προληπτικά μέτρα','Υπολειπόμενος L','Υπολειπόμενος C','Υπολειπόμενος βαθμός','Υπολειπόμενη κατηγορία','Πρόσθετα μέτρα','Υπεύθυνος','Προθεσμία','Συχνότητα ελέγχου','Δείκτης','Στόχος L','Στόχος C','Βαθμός στόχου','Κατηγορία στόχου','JCI','Αναφορά JCI','FMEA']
-  exportRegistry({name:`${en?'risk-assessment':'ektimisi-kindynou'}_${assessment.periodLabel}`,headers,rows:risks.map((r: AnyRecord)=>{const s=scored(r);return [r.lineageKey,r.section,txt(r,'process',en),txt(r,'scope',en),txt(r,'hazard',en),s.inherent.l,s.inherent.c,s.inherent.score,levelLabel(s.inherent.level,en),txt(r,'existingControls',en),s.residual.l,s.residual.c,s.residual.score,levelLabel(s.residual.level,en),txt(r,'additionalMeasures',en),txt(r,'owner',en),r.dueDate||'',txt(r,'reviewFrequency',en),r.indicator,s.target.l,s.target.c,s.target.score,levelLabel(s.target.level,en),r.jci,r.jciReference,r.prioritized?'✓':'']})})
+  exportRegistry({name:`${en?'risk-assessment':'ektimisi-kindynou'}_${assessment.periodLabel}`,headers,rows:risks.map(r=>{const s=scored(r);return [r.lineageKey,r.section,txt(r,'process',en),txt(r,'scope',en),txt(r,'hazard',en),s.inherent.l,s.inherent.c,s.inherent.score,levelLabel(s.inherent.level,en),txt(r,'existingControls',en),s.residual.l,s.residual.c,s.residual.score,levelLabel(s.residual.level,en),txt(r,'additionalMeasures',en),txt(r,'owner',en),r.dueDate||'',txt(r,'reviewFrequency',en),r.indicator,s.target.l,s.target.c,s.target.score,levelLabel(s.target.level,en),r.jci,r.jciReference,r.prioritized?'✓':'']})})
  }
  const print=()=>{if(!printElement(reportRef.current,{title:`${assessment.formCode||''} ${assessment.periodLabel}`.trim()}))notify(L(en,'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
 
@@ -155,7 +155,7 @@ export function RiskAssessmentPage(){
   assessment.status!=='draft'&&{id:'reopen',label:L(en,'Επαναφορά σε πρόχειρο','Back to draft'),icon:RotateCcw,onClick:()=>persistAssessment({status:'draft',approvedByLabel:'',approvedOn:null},'riskAssessmentReopened')},
   assessment.status==='approved'&&{id:'archive',label:L(en,'Αρχειοθέτηση','Archive'),icon:Archive,onClick:()=>persistAssessment({status:'archived'},'riskAssessmentArchived')},
   assessment.status==='draft'&&{id:'delete',label:L(en,'Διαγραφή εκτίμησης','Delete assessment'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>setConfirm({kind:'assessment'})},
- ].filter(Boolean) as AnyRecord[]:[]
+ ].filter(Boolean) as AssessmentAction[]:[]
  // Print, export and the status flow share one "…" menu.
  // Print / PDF / Excel in the one export control; the status flow in «…».
  const menuItems=statusItems
@@ -184,7 +184,7 @@ export function RiskAssessmentPage(){
   {origin&&<button type="button" className="risk-origin-back" onClick={returnToOrigin}><ArrowLeft size={14}/>{L(en,`Πίσω σε «${viewLabel(origin.tab)}»`,`Back to “${viewLabel(origin.tab)}”`)}</button>}
  </>
  // Two tabs hold two views each: Analysis and the period comparison; Details and the method.
- const pair=(first: ModeSwitchOption,second: ModeSwitchOption)=>(kpis: ReactNode,content: ReactNode,options?: AnyRecord)=>frame(kpis,<>{<div className="risk-subswitch"><ModeSwitch ariaLabel={L(en,'Προβολή','View')} value={tab} onChange={setTab} options={[first,second]}/></div>}{content}</>,options)
+ const pair=(first: ModeSwitchOption,second: ModeSwitchOption)=>(kpis: ReactNode,content: ReactNode,options?: {registry?: boolean,name?: string})=>frame(kpis,<>{<div className="risk-subswitch"><ModeSwitch ariaLabel={L(en,'Προβολή','View')} value={tab} onChange={setTab} options={[first,second]}/></div>}{content}</>,options)
  const analysisFrame=pair({value:'analysis',icon:BarChart3,label:L(en,'Ανάλυση','Analysis')},{value:'comparison',icon:GitCompareArrows,label:L(en,'Σύγκριση περιόδων','Period comparison')})
  const detailsFrame=pair({value:'details',icon:Info,label:L(en,'Στοιχεία','Details')},{value:'methodology',icon:BookOpen,label:L(en,'Μεθοδολογία','Method')})
  const frame=(kpis: ReactNode,content: ReactNode,{registry=false,name=''}: {registry?: boolean,name?: string}={})=><>
@@ -202,16 +202,16 @@ export function RiskAssessmentPage(){
   headerActions={<>{exportMenu}{createAction}</>}
   onBack={goBack} backLabel={origin?L(en,`Πίσω σε «${viewLabel(origin.tab)}»`,`Back to “${viewLabel(origin.tab)}”`):L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
    {tab==='register'&&<RiskRegister frame={frame} key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} indicatorValues={indicatorValues} returned={riskRow.returned} evidenceOf={evidenceOf}/>}
-   {tab==='analysis'&&<RiskAnalysis frame={analysisFrame} mark={view.riskMark||''} returned={riskRow.returned} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={(c: AnyRecord)=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
-   {tab==='comparison'&&<RiskComparison frame={analysisFrame} returned={riskRow.returned} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk: AnyRecord,from: AnyRecord)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
-   {tab==='opportunities'&&<RiskOpportunities frame={frame} returned={opportunityRow.returned} items={assessment.opportunities||[]} en={en} onOpen={(item: AnyRecord)=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}}/>}
+   {tab==='analysis'&&<RiskAnalysis frame={analysisFrame} mark={view.riskMark||''} returned={riskRow.returned} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={(c: HeatCell)=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
+   {tab==='comparison'&&<RiskComparison frame={analysisFrame} returned={riskRow.returned} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk: Risk,from: RiskAssessment)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
+   {tab==='opportunities'&&<RiskOpportunities frame={frame} returned={opportunityRow.returned} items={assessment.opportunities||[]} en={en} onOpen={(item: Opportunity)=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}}/>}
    {tab==='methodology'&&<RiskMethodology frame={detailsFrame} en={en} risks={risks} returned={view.riskMark||''} onJci={(jci: string)=>jump('register',{jci},`jci:${jci}`)} onPickFmea={()=>jump('register',{quick:'highOrAbove'},'fmea')}/>}
    {tab==='details'&&<RiskAssessmentDetails frame={detailsFrame} assessment={assessment} assessments={all} en={en} locale={locale} nextStep={nextStep} onOpenAssessment={(code: string)=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>
   {linking&&<LinkIndicatorsDialog risks={risks} values={indicatorValues||new Map()} en={en} saving={saving} onClose={()=>setLinking(false)} onSave={linkIndicators}/>}
   {creatingNext&&<AssessmentDetailsDialog en={en} assessments={[{...assessment,risks}]} initial={{title:assessment.title,formCode:assessment.formCode,periodKind:assessment.periodKind,assessorLabel:assessment.assessorLabel,scopeNote:assessment.scopeNote,periodLabel:suggestPeriodLabel(assessment.periodKind,hospitalToday(),en)}} onClose={()=>setCreatingNext(false)} onSave={createNext}/>}
-  {detailsOpen&&<AssessmentDetailsDialog initial={assessment} en={en} onClose={()=>setDetailsOpen(false)} onSave={async (draft: AnyRecord)=>{if(await persistAssessment(draft,'riskAssessmentUpdated'))setDetailsOpen(false)}}/>}
-  {approving&&<ApproveDialog en={en} onClose={()=>setApproving(false)} onSave={async ({by,on}: AnyRecord)=>{if(await persistAssessment({status:'approved',approvedByLabel:by,approvedOn:on},'riskAssessmentApproved'))setApproving(false)}}/>}
+  {detailsOpen&&<AssessmentDetailsDialog initial={assessment} en={en} onClose={()=>setDetailsOpen(false)} onSave={async (draft: RiskAssessmentDraft)=>{if(await persistAssessment(draft,'riskAssessmentUpdated'))setDetailsOpen(false)}}/>}
+  {approving&&<ApproveDialog en={en} onClose={()=>setApproving(false)} onSave={async ({by,on}: {by: string,on: string})=>{if(await persistAssessment({status:'approved',approvedByLabel:by,approvedOn:on},'riskAssessmentApproved'))setApproving(false)}}/>}
   {confirm&&<ObserverDialog width="compact" title={L(en,'Διαγραφή εκτίμησης','Delete assessment')} onClose={()=>setConfirm(null)} footer={<DialogActions onCancel={()=>setConfirm(null)} onSave={async()=>{setConfirm(null);await removeAssessment()}} saveLabel={L(en,'Διαγραφή','Delete')}/>}>
    <p>{L(en,`Θα διαγραφεί η εκτίμηση ${assessment.periodLabel} με ${risks.length} κινδύνους.`,`The ${assessment.periodLabel} assessment with ${risks.length} risks will be deleted.`)}</p>
   </ObserverDialog>}

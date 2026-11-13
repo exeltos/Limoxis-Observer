@@ -3,10 +3,10 @@
 // and year, exported as one row per antimicrobial test in the EARS-Net
 // (TESSy) variable layout.
 import { currentResults, isValidatedPositive, organismsOf, specimenOf, testsForOrganism } from './labResults'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AstTest, ReportPatient, ReportResult, ReportSample } from './reportingTypes'
 
 // An invasive isolate of an EARS-Net pathogen (one organism of a validated positive result).
-export interface EarsNetIsolate { sample: AnyRecord, result: AnyRecord, organism: string, tests: AnyRecord[], specimen: string, pathogen: string, patient: string, date: string, year: string }
+export interface EarsNetIsolate { sample: ReportSample, result: ReportResult, organism: string, tests: AstTest[], specimen: string, pathogen: string, patient: string, date: string, year: string }
 
 export const EARS_NET_PATHOGENS: Array<[string, RegExp, string]> = [
   ['ESCCOL', /escherichia\s+coli|^e\.\s*coli/i, 'Escherichia coli'],
@@ -40,7 +40,7 @@ export function earsNetPathogen(organism: unknown) {
   return EARS_NET_PATHOGENS.find(([, pattern]) => pattern.test(text))?.[0] || null
 }
 
-export function earsNetAntibiotic(test: AnyRecord = {}) {
+export function earsNetAntibiotic(test: AstTest = {} as AstTest) {
   const raw = String(test.code || '').toUpperCase().replace(/^ABX-/, '')
   const code = CODE_ALIASES[raw] || raw
   if (ANTIBIOTICS.some(([known]) => known === code)) return code
@@ -49,13 +49,13 @@ export function earsNetAntibiotic(test: AnyRecord = {}) {
 }
 
 // Blood cultures, and any sample whose type or source names CSF.
-export const earsNetSpecimen = (sample: AnyRecord) => specimenOf(sample) || null
+export const earsNetSpecimen = (sample: ReportSample) => specimenOf(sample) || null
 
 const dateOf = (value: unknown) => String(value || '').slice(0, 10)
-const patientKey = (sample: AnyRecord) => String(sample.subjectCode || sample.patientId || sample.subjectId || '').trim()
+const patientKey = (sample: ReportSample) => String(sample.subjectCode || sample.patientId || sample.subjectId || '').trim()
 
 // Every validated positive result of an invasive sample of an EARS-Net pathogen.
-export function earsNetIsolates(samples: AnyRecord[] = []): EarsNetIsolate[] {
+export function earsNetIsolates(samples: ReportSample[] = []): EarsNetIsolate[] {
   const isolates: EarsNetIsolate[] = []
   for (const sample of samples) {
     if ((sample.subjectType || 'patient') !== 'patient') continue
@@ -110,7 +110,7 @@ export function ageInYears(dateOfBirth: string | null | undefined, onDate: strin
 const GENDER: Record<string, string> = { male: 'M', m: 'M', female: 'F', f: 'F', other: 'O' }
 const UNIT_TYPE: Record<string, string> = { icu: 'ICU', nicu: 'ICU', picu: 'ICU' }
 
-function hospitalUnitType(patient: AnyRecord | undefined, sample: AnyRecord) {
+function hospitalUnitType(patient: ReportPatient | undefined, sample: ReportSample) {
   const type = String(patient?.departmentType || '').toLowerCase()
   if (UNIT_TYPE[type]) return UNIT_TYPE[type]
   const name = `${sample.department || ''} ${sample.departmentEn || ''}`
@@ -127,7 +127,7 @@ const MIC = /^\s*(<=|>=|≤|≥|<|>|=)?\s*([0-9]+(?:[.,][0-9]+)?)\s*$/
 const SIGNS: Record<string, string> = { '≤': '<=', '≥': '>=', '<=': '<=', '>=': '>=', '<': '<', '>': '>', '=': '=' }
 
 // MIC sign and value: the stored operator wins; otherwise it is read from the value ("≥16").
-export function micOf(test: AnyRecord = {}) {
+export function micOf(test: AstTest = {} as AstTest) {
   const match = MIC.exec(String(test.mic ?? '').replace(',', '.'))
   if (!match) return { sign: '', value: '' }
   return { sign: SIGNS[String(test.operator || '').trim()] || SIGNS[match[1]] || '=', value: match[2] }
@@ -135,7 +135,7 @@ export function micOf(test: AnyRecord = {}) {
 
 // Inpatient when the isolate falls within the patient's recorded admission;
 // unknown otherwise (admission is optional, so its absence proves nothing).
-export function patientTypeOf(patient: AnyRecord | null | undefined, date: string) {
+export function patientTypeOf(patient: ReportPatient | null | undefined, date: string) {
   const from = String(patient?.admissionDate || '').slice(0, 10), to = String(patient?.dischargeDate || '').slice(0, 10)
   return from && date >= from && (!to || date <= to) ? 'INPAT' : 'UNK'
 }
@@ -144,7 +144,7 @@ const EARS_NET_COLUMNS = ['RecordId', 'ReportingCountry', 'DataSource', 'DateUse
 
 // One row per (first isolate × tested antimicrobial). Tests without a known
 // EARS-Net antimicrobial code are reported separately so they can be mapped.
-export function buildEarsNetRows(samples: AnyRecord[], { patients = [], year, hospitalId = '', laboratoryCode = '', dataSource = '', salt = '' }: { patients?: AnyRecord[], year?: string | number | null, hospitalId?: string, laboratoryCode?: string, dataSource?: string, salt?: string } = {}) {
+export function buildEarsNetRows(samples: ReportSample[], { patients = [], year, hospitalId = '', laboratoryCode = '', dataSource = '', salt = '' }: { patients?: ReportPatient[], year?: string | number | null, hospitalId?: string, laboratoryCode?: string, dataSource?: string, salt?: string } = {}) {
   const byPatient = new Map(patients.map(patient => [String(patient.id || patient.patientCode || ''), patient]))
   const isolates = firstIsolates(earsNetIsolates(samples)).filter(isolate => !year || isolate.year === String(year))
   const rows: Array<Record<string, unknown>> = []; const unmapped = new Map<string, number>(); let withoutAst = 0

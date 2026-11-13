@@ -7,7 +7,7 @@ import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { loadPublicSurvey, submitPublicSurvey } from './surveyService'
 import { SurveyForm, formSections, missingAnswers } from './SurveyForm'
 import { cleanAnswers, sectionLabel } from './surveyModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { PublicSurvey, SurveyAnswers, SurveyQuestion } from './surveyTypes'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -22,8 +22,8 @@ export function SurveyRespondPage() {
   const en = language === 'en'
   const kiosk = params.get('kiosk') === '1'
   const fixedDepartment = params.get('d') || ''
-  const [state, setState] = useState<{ loading: boolean, data: AnyRecord | null, error: unknown }>({ loading: true, data: null, error: null })
-  const [answers, setAnswers] = useState<AnyRecord>({})
+  const [state, setState] = useState<{ loading: boolean, data: PublicSurvey | null, error: unknown }>({ loading: true, data: null, error: null })
+  const [answers, setAnswers] = useState<SurveyAnswers>({})
   const [departmentId, setDepartmentId] = useState(fixedDepartment)
   const [step, setStep] = useState(0)
   const [missing, setMissing] = useState<string[]>([])
@@ -43,7 +43,7 @@ export function SurveyRespondPage() {
     return () => clearTimeout(timer)
   }, [done, kiosk, restart])
   const survey = state.data
-  const sections = useMemo(() => formSections(survey as AnyRecord, answers), [survey, answers])
+  const sections = useMemo(() => formSections(survey, answers), [survey, answers])
 
   if (state.loading) return <Frame><RouteLoading /></Frame>
   if (state.error || !survey) return <Frame><Status icon={ShieldCheck} title={en ? 'This survey is not available' : 'Το ερωτηματολόγιο δεν είναι διαθέσιμο'} text={en ? 'It may not have opened yet. Check the link, or ask the staff of the department.' : 'Ίσως δεν έχει ανοίξει ακόμη. Ελέγξτε τον σύνδεσμο ή ρωτήστε το προσωπικό του τμήματος.'} /></Frame>
@@ -56,10 +56,10 @@ export function SurveyRespondPage() {
   const askDepartment = !fixedDepartment && departments.length > 1
   const last = Math.max(0, sections.length - 1)
   const current = sections[Math.min(step, last)]
-  const fixed = departments.find((item: AnyRecord) => item.id === fixedDepartment)
+  const fixed = departments.find(item => item.id === fixedDepartment)
   const scrollTop = () => top.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
   // A step goes on only when its required questions (and the department, on the first) are answered.
-  function check(questions: AnyRecord[], withDepartment: boolean) {
+  function check(questions: SurveyQuestion[], withDepartment: boolean) {
     const gaps = missingAnswers(questions, answers, { askDepartment: withDepartment && askDepartment, departmentId })
     setMissing(gaps)
     if (gaps.length) setTimeout(() => top.current?.parentElement?.querySelector('.is-missing')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0)
@@ -68,7 +68,7 @@ export function SurveyRespondPage() {
   function next() { if (!check(current?.questions || [], step === 0)) return; setStep(step + 1); scrollTop() }
   async function submit() {
     if (!survey) return
-    if (!check(survey.questions, true)) { const first = sections.findIndex(section => section.questions.some((question: AnyRecord) => missingAnswers([question], answers).length)); if (first >= 0) setStep(first); return }
+    if (!check(survey.questions, true)) { const first = sections.findIndex(section => section.questions.some(question => missingAnswers([question], answers).length)); if (first >= 0) setStep(first); return }
     const kept = cleanAnswers(survey.questions, answers)
     if (!kept) return
     setBusy(true)
@@ -79,7 +79,7 @@ export function SurveyRespondPage() {
   }
   const progress = sections.length ? Math.round(((Math.min(step, last) + 1) / sections.length) * 100) : 100
   // The department the form is about: fixed by the poster, the survey's only one, or the one chosen.
-  const department = fixed || (departments.length === 1 ? departments[0] : departments.find((item: AnyRecord) => item.id === departmentId))
+  const department = fixed || (departments.length === 1 ? departments[0] : departments.find(item => item.id === departmentId))
   return <Frame organization={survey.organizationName} language={language} onLanguage={() => setLanguage(en ? 'el' : 'en')} footer={en ? 'Anonymous: we do not ask for your name or any details.' : 'Ανώνυμα: δεν ζητάμε όνομα ούτε στοιχεία σας.'}>
     <article className="survey-sheet" ref={top}>
       <header className="survey-sheet-head">
