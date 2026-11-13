@@ -174,7 +174,7 @@ function loadKitchenConfig(organizationId: string | null | undefined, now = Date
 const rowsIn = <T extends KitchenTable>(table: T, organizationId: string | null | undefined, column: string, values: unknown[], order: [string][] = [['created_at'], ['id']], select = '*'): Promise<Partial<KitchenDbRow<T>>[]> => (values.length
   ? selectInChunks(values, chunk => supabase.from(table).select(select).eq('organization_id', organizationId as string).in(column, chunk).order(order[0][0]).order('id'), { order }).then(must)
   : Promise.resolve([]))
-const fromSince = <T extends KitchenTable>(table: T, organizationId: string | null | undefined, column: string, since: string, order = column) => selectAll<KitchenDbRow<T>>(() => {
+const fromSince = <T extends KitchenTable>(table: T, organizationId: string | null | undefined, column: string, since: string | null, order = column) => selectAll<KitchenDbRow<T>>(() => {
   const query = supabase.from(table).select('*').eq('organization_id', organizationId as string)
   return (since ? query.gte(column, since) : query).order(order).order('id')
 })
@@ -204,7 +204,7 @@ const outCount = (table: string, organizationId: string | null | undefined) => s
 
 // The kitchen screens' state, with each entry's in / out of limits. `since` (a day, or
 // null for the whole history) is where the day records start.
-export async function loadKitchen(organizationId: string | null | undefined, { since = kitchenSince() } = {}) {
+export async function loadKitchen(organizationId: string | null | undefined, { since = kitchenSince() }: { since?: string | null } = {}) {
   if (isLocal()) return withStatuses(local())
   if (!organizationId) return withStatuses({ ...EMPTY_STATE })
   const [config, balances, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, recallDrills, outOfLimitsTotal] = await Promise.all([

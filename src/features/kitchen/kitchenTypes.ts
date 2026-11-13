@@ -334,10 +334,10 @@ export interface KitchenRecallBatch {
 // A meal that served a traced dish.
 export interface KitchenRecallMeal { id?: string, meal?: string, diet?: string, dish?: string, portions: number }
 // Forward: a use of a traced batch.
-export interface KitchenRecallUse { id?: string, receiptItemId: string, productName?: string, batchCode: string, usedOn: string, productionId: string, dishName: string, quantity: number, unit: string, meals: KitchenRecallMeal[] }
-export interface KitchenRecallWriteoff { id?: string, receiptItemId: string, productName?: string, writtenOffOn?: string, quantity: number, reason?: string, notes: string }
+export interface KitchenRecallUse { id: string, receiptItemId: string, productName?: string, batchCode: string, usedOn: string, productionId: string, dishName: string, quantity: number, unit: string, meals: KitchenRecallMeal[] }
+export interface KitchenRecallWriteoff { id: string, receiptItemId: string, productName?: string, writtenOffOn?: string, quantity: number, reason?: string, notes: string }
 // Backward: another raw material of the same dishes.
-export interface KitchenRecallBackward { id?: string, dishName?: string, usedOn?: string, productName?: string, batchCode: string, supplierName: string, receiptCode: string, receiptItemId: string, quantity: number, unit: string, traced: boolean }
+export interface KitchenRecallBackward { id: string, dishName?: string, usedOn?: string, productName?: string, batchCode: string, supplierName: string, receiptCode: string, receiptItemId: string, quantity: number, unit: string, traced: boolean }
 // The mass balance and what was affected.
 export interface KitchenRecallTotals {
   unit: string
@@ -474,11 +474,14 @@ export interface KitchenStateInput {
 }
 // A state whose limits are resolved (withStatuses, loadKitchen): what the documents read.
 export interface KitchenResolvedStateInput extends KitchenStateInput { limits?: KitchenLimit[] }
+// The state the screens get (loadKitchen, loadKitchenReceipt, loadKitchenDay): every list, the limits resolved.
+export interface KitchenScreenState extends KitchenState { limits: KitchenLimit[] }
 // The forward trace of a batch (traceBatch): the batch, its uses, write-offs and the heat treatments of those days.
 export interface KitchenBatchTrace { batch: KitchenBatch | null, uses: Partial<KitchenUsage>[], writeoffs: Partial<KitchenWriteoff>[], thermal: Partial<KitchenThermal>[] }
 // A row of a kitchen list on its way to Excel / print (kitchenListExport): any of the lists' rows,
 // with what the screens add (a use's batch, a drill's subject, a product's category label).
-export type KitchenListRow = Partial<KitchenReceipt & KitchenStockRow & KitchenThermal & KitchenDefrost & KitchenPureeing & KitchenUsage & KitchenRecallDrill & KitchenProduct> & { batch?: KitchenBatch | null, subject?: string, categoryLabel?: string }
+// (`result` is a receipt's or a drill's.)
+export type KitchenListRow = Partial<Omit<KitchenReceipt & KitchenStockRow & KitchenThermal & KitchenDefrost & KitchenPureeing & KitchenUsage & KitchenRecallDrill & KitchenProduct, 'result'>> & { result?: string | null, batch?: KitchenBatch | null, subject?: string, categoryLabel?: string }
 // The rows of a list of the state a function was given, as given: a KitchenState gives
 // complete rows, a test's state the fields it has.
 export type KitchenRows<S extends KitchenStateInput, K extends KitchenListKey> = NonNullable<S[K]>[number]
