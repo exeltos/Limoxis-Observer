@@ -19,12 +19,11 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
-import { useDepartments } from '../../management/useLibraries'
+import { useDepartments, type LibraryDepartment } from '../../management/useLibraries'
 import { useMeetingGroups } from './MeetingsPanel'
 import { deleteMeetingGroup, saveMeetingGroup } from './meetingService'
-import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, newMeetingGroup, type Meeting, type MeetingGroup, type MeetingParticipant, type MeetingTopic } from './meetingModel'
+import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, newMeetingGroup, type Meeting, type MeetingCapa, type MeetingGroup, type MeetingParticipant, type MeetingTopic } from './meetingModel'
 import type { ReactNode } from 'react'
-import type { AnyRecord } from '../../../types/featureTypes'
 import { loadQualityRecords } from '../qualityService'
 import '../quality.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
@@ -36,7 +35,7 @@ const kindLabel = (kind: string, en: boolean) => (kind === 'extraordinary' ? (en
 const presentOf = (meeting: Meeting) => (meeting.participants || []).filter((person: MeetingParticipant) => person.attended !== false).length
 
 // Quality defines a department's meeting group: which department, how often it meets, who leads it.
-export function MeetingGroupDialog({ initial, departments, saving, onClose, onSave, language }: { initial: Partial<MeetingGroup>, departments: AnyRecord[], saving: boolean, onClose: () => void, onSave: (group: MeetingGroup) => void, language: string }) {
+export function MeetingGroupDialog({ initial, departments, saving, onClose, onSave, language }: { initial: Partial<MeetingGroup>, departments: LibraryDepartment[], saving: boolean, onClose: () => void, onSave: (group: MeetingGroup) => void, language: string }) {
   const en = language === 'en'
   const [v, setV] = useState(() => ({ ...newMeetingGroup(), ...initial }))
   const set = (next: Partial<MeetingGroup>) => setV(current => ({ ...current, ...next }))
@@ -86,13 +85,13 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
   const { tenant } = useTenant()
   const { goTo, goBack, restored } = useContextualNavigation(home)
   const data = useMeetingGroups()
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const { departments } = useDepartments()
   const [tab, setTab] = useState(restored?.tab || 'meetings')
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   // The corrective actions opened from the meetings' decisions.
-  const [capas, setCapas] = useState<AnyRecord[]>([])
-  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter((row: AnyRecord) => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
+  const [capas, setCapas] = useState<MeetingCapa[]>([])
+  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter((row: MeetingCapa) => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
   const group = data.groups.find(item => item.id === groupId) || null
   const today = hospitalToday()
   if (data.loading && !group) return <Page fill><TableSkeleton/></Page>

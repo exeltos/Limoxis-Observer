@@ -1,12 +1,11 @@
 import { supabase } from '../../../core/supabase/client'
 import { cloudClient } from '../../../core/supabase/cloudContext'
 import type { Tables, Json } from '../../../core/supabase/database.types'
-import type { AnyRecord } from '../../../types/featureTypes'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { isEmptyPreview } from '../../../core/preview/emptyPreview'
 import { seededRandom } from '../../../core/data/demoSeed'
-import { selfChecklist, selfFigures, type SelfAssessment, type SelfRow } from './selfAssessmentModel'
+import { selfChecklist, selfFigures, type SelfAssessment, type SelfRow, type SelfTemplate } from './selfAssessmentModel'
 import { hospitalDate } from '../../../core/dates/hospitalDate'
 
 // The self-assessments of departments (20261214100000_quality_self_assessments.sql). The
@@ -52,7 +51,7 @@ export async function loadSelfAssessments(organizationId: string | null | undefi
 }
 
 // One self-assessment per department, each with the questionnaire's questions for its area.
-export async function createSelfAssessments(organizationId: string | null | undefined, { template, departments, title, dueOn }: { template: AnyRecord, departments: { id: string, name: string }[], title: string, dueOn?: string }): Promise<SelfAssessment[]> {
+export async function createSelfAssessments(organizationId: string | null | undefined, { template, departments, title, dueOn }: { template: SelfTemplate, departments: { id: string, name: string }[], title: string, dueOn?: string }): Promise<SelfAssessment[]> {
   const made = (departments || []).map((department): SelfAssessment => {
     const checklist = selfChecklist(template, department.name)
     const figures = selfFigures(checklist)
@@ -103,7 +102,7 @@ const plusDays = (day: string, days: number) => new Date(Date.parse(`${day}T12:0
 async function demoSelfAssessments(organizationId: string | null | undefined): Promise<SelfAssessment[]> {
   if (isEmptyPreview()) return []
   const { SYSTEM_TEMPLATES } = await import('../audits/seed/index.js')
-  const template = SYSTEM_TEMPLATES.find((item: AnyRecord) => item.key === 'ward')
+  const template = SYSTEM_TEMPLATES.find(item => item.key === 'ward')
   if (!template) return []
   const recent = isoDay(-12)
   // [round, title, released on, due on, departments, status of each, share answered when in progress, quality]

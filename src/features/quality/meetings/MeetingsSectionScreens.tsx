@@ -18,15 +18,15 @@ import { useDepartments } from '../../management/useLibraries'
 import { ReviewsTable, reviewsExport, useReviews } from '../review/QualityObjectives'
 import '../quality.css'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
-import type { AnyRecord, Translate } from '../../../types/featureTypes'
+import type { Translate } from '../../../types/featureTypes'
 import type { RegistryExport } from '../../../core/export/registryExports'
-import type { MeetingGroup } from './meetingModel'
+import type { MeetingGroup, ReviewDecisions } from './meetingModel'
 
 // The department meetings and the management review, tabs of «Meetings &
 // decisions» beside the committees (they were the Quality Center's «Meetings» tab).
 // A review's decisions still open, and those past their due date.
-const openDecisions = (review: AnyRecord) => (review.actions || []).filter((action: AnyRecord) => action.status === 'open')
-const lateDecisions = (review: AnyRecord) => openDecisions(review).filter((action: AnyRecord) => action.dueDate && action.dueDate < hospitalToday())
+const openDecisions = (review: ReviewDecisions) => (review.actions || []).filter(action => action.status === 'open')
+const lateDecisions = (review: ReviewDecisions) => openDecisions(review).filter(action => action.dueDate && action.dueDate < hospitalToday())
 
 
 // The department meeting groups (one per department, defined by Quality): how often each meets,
@@ -40,7 +40,7 @@ export function DepartmentMeetingsScreen({ home = '/meetings?tab=departments', o
   const printList = (data: RegistryExport, title: string) => { if (!printRegistry(data, { language, kind: t('sidebarNav.meetingsDecisions'), title })) notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'Allow pop-ups to print.'), 'error') }
   const { goTo } = useContextualNavigation(home)
   const data = useMeetingGroups()
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const { departments } = useDepartments()
   const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -76,7 +76,7 @@ export function ManagementReviewsScreen() {
   const reviews = useReviews(tenant?.id)
   const [query, setQuery] = useState('')
   const [quick, setQuick] = useState<string | null>(null)
-  const visible = useMemo(() => { const q = query.trim().toLowerCase(); return (reviews.reviews as AnyRecord[]).filter(item => !q || `${item.code} ${item.reviewDate || ''}`.toLowerCase().includes(q)).filter(item => quick === 'open' ? openDecisions(item).length > 0 : quick === 'late' ? lateDecisions(item).length > 0 : true) }, [reviews.reviews, query, quick])
+  const visible = useMemo(() => { const q = query.trim().toLowerCase(); return reviews.reviews.filter(item => !q || `${item.code} ${item.reviewDate || ''}`.toLowerCase().includes(q)).filter(item => quick === 'open' ? openDecisions(item).length > 0 : quick === 'late' ? lateDecisions(item).length > 0 : true) }, [reviews.reviews, query, quick])
   return <Page fill className="registry-fill-page" title={t('sidebarNav.tabManagementReview')} subtitle={t('sidebarNav.managementReviewSubtitle')}
     actions={<div className="row-actions">
       <ExportMenu disabled={!visible.length} onPrint={() => printList(reviewsExport(visible, language), t('sidebarNav.tabManagementReview'))} onExcel={() => exportRegistry(reviewsExport(visible, language))} />
@@ -84,7 +84,7 @@ export function ManagementReviewsScreen() {
     </div>}>
     <section className="surface registry-workspace workspace-column workspace-fill">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση ανασκόπησης', 'Search review')} onClear={() => { setQuery(''); setQuick(null) }} />
-      <ReviewsTable rows={visible} loading={reviews.loading} onOpen={(review: AnyRecord) => navigate(`/quality/reviews/${review.id}`)} />
+      <ReviewsTable rows={visible} loading={reviews.loading} onOpen={review => navigate(`/quality/reviews/${review.id}`)} />
     </section>
   </Page>
 }

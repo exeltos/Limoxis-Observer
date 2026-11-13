@@ -1,9 +1,11 @@
 import { auditScore, needsClass, questionsForAudit } from '../audits/auditModel'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
 
 // One question of a self-assessment (a row of the audit questionnaire) with the department's answer.
-export interface SelfRow extends AnyRecord { id: string, answer?: string, note?: string, evidence?: string, critical?: boolean, chapterRef?: string, chapterTitle?: string, position?: number }
+// A type, not an interface, so that the checklist is stored as JSON as it is.
+export type SelfRow = { id: string, item?: string, answer?: string, note?: string, evidence?: string, critical?: boolean, clauseRef?: string, chapterRef?: string, chapterTitle?: string, guidance?: string, evidenceRequired?: string, position?: number }
+// The audit questionnaire a self-assessment is opened from: the type the audits take (auditModel).
+export type SelfTemplate = NonNullable<Parameters<typeof questionsForAudit>[0]>
 // A department's self-assessment (quality_self_assessments, or the Demo's copy in the browser).
 export interface SelfAssessment {
   id: string
@@ -38,7 +40,7 @@ export const selfStatusLabel = (value: string | null | undefined, language = 'el
 export const selfStatusTone = (value: string | null | undefined) => SELF_STATUSES.find(entry => entry.value === value)?.tone || 'neutral'
 
 // The rows of a self-assessment: the questionnaire's questions for the department's area.
-export const selfChecklist = (template: AnyRecord, departmentName = ''): SelfRow[] => questionsForAudit(template, { department: departmentName })
+export const selfChecklist = (template: SelfTemplate, departmentName = ''): SelfRow[] => questionsForAudit(template, { department: departmentName })
 
 const ANSWERS = ['yes', 'partial', 'no', 'na']
 // Answered rows, the share of all rows, and the compliance score of the answers given.

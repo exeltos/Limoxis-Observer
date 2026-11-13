@@ -1,10 +1,9 @@
 import { cloudClient } from '../../../core/supabase/cloudContext'
 import type { Tables } from '../../../core/supabase/database.types'
-import type { AnyRecord } from '../../../types/featureTypes'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
-import { addDays, nextMeetingCode, previousMonth, type Meeting, type MeetingDecision, type MeetingGroup, type MeetingParticipant, type MeetingTopic } from './meetingModel'
+import { addDays, nextMeetingCode, previousMonth, type Meeting, type MeetingDecision, type MeetingGroup, type MeetingParticipant, type MeetingTopic, type MeetingTraining } from './meetingModel'
 import { seededRandom } from '../../../core/data/demoSeed'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
 
@@ -72,8 +71,8 @@ const HISTORY_TOPICS: [string, string, string, string][] = [
   ['Φάρμακα υψηλού κινδύνου', 'Ο διπλός έλεγχος τηρείται στις περισσότερες χορηγήσεις.', 'Υπενθύμιση διπλού ελέγχου στις βάρδιες.', 'Αυτοέλεγχος διπλού ελέγχου ινσουλίνης και ηπαρίνης'],
 ]
 const monthDay = (year: number, month: number, day: number) => new Date(Date.UTC(year, month, Math.min(day, 28))).toISOString().slice(0, 10)
-function withHistory(recent: AnyRecord[], day: string): Meeting[] {
-  const rows: AnyRecord[] = [...recent]
+function withHistory(recent: Meeting[], day: string): Meeting[] {
+  const rows: Meeting[] = [...recent]
   for (const group of HISTORY_GROUPS) {
     const own = recent.filter(row => row.groupId === group.groupId).map(row => row.meetingDate).sort()
     const until = own.length ? addDays(own[0], -20) : addDays(day, -3)
@@ -200,7 +199,7 @@ export async function deleteMeeting(organizationId: string | null | undefined, m
 }
 
 // A training created for a meeting is linked back to it (the meeting then shows it, and whether it was done).
-export async function linkMeetingTraining(organizationId: string | null | undefined, { meetingId }: { meetingId: string }, program: AnyRecord) {
+export async function linkMeetingTraining(organizationId: string | null | undefined, { meetingId }: { meetingId: string }, program: MeetingTraining) {
   if (isLocal()) {
     const rows = local()
     saveSnapshot(LOCAL_KEY, rows.map(row => (row.id !== meetingId ? row : { ...row, trainingHeld: true, trainingProgramId: program.dbId || program.id, trainingProgramKey: program.id, trainingTitle: program.title || '', trainingStatus: program.status || 'active' })))

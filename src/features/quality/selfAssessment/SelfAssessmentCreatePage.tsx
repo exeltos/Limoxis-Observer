@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { AnyRecord } from '../../../types/featureTypes'
 import { Navigate } from 'react-router-dom'
 import { ClipboardCheck, Search } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
@@ -16,7 +15,7 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
-import { useDepartments } from '../../management/useLibraries'
+import { useDepartments, type LibraryDepartment } from '../../management/useLibraries'
 import { useAuditTemplates } from '../audits/useAuditTemplates'
 import { AUDIT_AREAS, areaLabel, departmentArea, standardShort } from '../audits/auditStandards'
 import { createSelfAssessments } from './selfAssessmentService'
@@ -38,7 +37,7 @@ export function SelfAssessmentCreatePage() {
   const { templates, loading } = useAuditTemplates(tenant?.id)
   const { departments } = useDepartments()
   // The ward checklist (a department's own checklist) first, then the standards' questionnaires.
-  const active = useMemo(() => (templates as AnyRecord[]).filter(item => item.active !== false && item.questions.length).sort((a, b) => Number(b.key === 'ward' || b.basedOn != null) - Number(a.key === 'ward' || a.basedOn != null)), [templates])
+  const active = useMemo(() => templates.filter(item => item.active !== false && item.questions.length).sort((a, b) => Number(b.key === 'ward' || b.basedOn != null) - Number(a.key === 'ward' || a.basedOn != null)), [templates])
   const [templateId, setTemplateId] = useState('')
   const [title, setTitle] = useState('')
   const [dueOn, setDueOn] = useState('')
@@ -52,7 +51,7 @@ export function SelfAssessmentCreatePage() {
     setTitle(`${L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} · ${first.title}`)
   }, [active, templateId, en])
   const template = active.find(item => item.id === templateId)
-  const all = useMemo(() => (departments as AnyRecord[]).map(item => ({ id: item.id || item.name, name: item.name || item.el || '', area: departmentArea(item.name || item.el || '') })).filter(item => item.name).sort((a, b) => a.name.localeCompare(b.name, 'el')), [departments])
+  const all = useMemo(() => (departments as (LibraryDepartment & { el?: string })[]).map(item => ({ id: item.id || item.name, name: item.name || item.el || '', area: departmentArea(item.name || item.el || '') })).filter(item => item.name).sort((a, b) => a.name.localeCompare(b.name, 'el')), [departments])
   const shown = all.filter(item => !search.trim() || item.name.toLowerCase().includes(search.trim().toLowerCase()))
   const areas = AUDIT_AREAS.map(area => ({ ...area, ids: all.filter(item => item.area === area.value).map(item => item.id) })).filter(area => area.ids.length)
   const toggle = (id: string) => setPicked(current => (current.includes(id) ? current.filter(item => item !== id) : [...current, id]))
