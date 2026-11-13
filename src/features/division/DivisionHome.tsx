@@ -12,8 +12,7 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { loadDivisionInterviews, loadDivisionOverview, type DivisionDepartment, type DivisionOverview } from './divisionService'
-import type { AnyRecord } from '../../types/featureTypes'
+import { loadDivisionInterviews, loadDivisionOverview, type DivisionDepartment, type DivisionInterview, type DivisionFigures, type DivisionOverview } from './divisionService'
 import { type AttentionItem, attentionItems, categoryName, monthGenitive, monthTitle, percentStatus, percentText, rosterPill } from './divisionModel'
 import { useMedia } from '../../app/useSidebarRail'
 import './division.css'
@@ -46,7 +45,7 @@ function useText() {
 }
 
 // The four key figures of the division (or of one department).
-export function DivisionKpis({ totals = {}, nextMonth, departmentCount, loading = false, error = false }: { totals?: AnyRecord, nextMonth?: string, departmentCount?: number, loading?: boolean, error?: boolean }) {
+export function DivisionKpis({ totals = {}, nextMonth, departmentCount, loading = false, error = false }: { totals?: DivisionFigures, nextMonth?: string, departmentCount?: number, loading?: boolean, error?: boolean }) {
   const { language, tr } = useText()
   const month = monthGenitive(nextMonth, language)
   const published = Number(totals.rosterPublished) || 0
@@ -127,7 +126,7 @@ export function DivisionHome({ weekCard = null }: { weekCard?: ReactNode }) {
   const attention = attentionItems(departments, data?.nextMonth, language)
   const [allAttention, setAllAttention] = useState(false)
   const categoryKey = (data?.division?.categories || []).join(',')
-  const [interviews, setInterviews] = useState<AnyRecord[] | null>(null)
+  const [interviews, setInterviews] = useState<DivisionInterview[] | null>(null)
   useEffect(() => {
     let active = true
     if (!data?.division) { setInterviews([]); return () => { active = false } }
