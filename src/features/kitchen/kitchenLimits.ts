@@ -1,4 +1,4 @@
-import type { AnyRecord } from '../../types/featureTypes'
+import type { KitchenDefrost, KitchenLimit, KitchenLimitCheck, KitchenLimitDefault, KitchenLimitRow, KitchenPureeing, KitchenReceiptCheck, KitchenReceiptInput, KitchenReceiptItem, KitchenStatus, KitchenThermal } from './kitchenTypes'
 // HACCP critical limits of the kitchen and the in / out of limits rule. The same
 // rule runs in the database (private.kitchen_check, 20261123110000_kitchen_module.sql),
 // which marks every saved entry; here it gives the live check while the entry is typed.
@@ -8,7 +8,7 @@ export const LIMIT_KEYS = Object.freeze(['receipt_chilled', 'receipt_frozen', 'r
 // The defaults: chilled receipt ≤ 5 °C, frozen ≤ −18 °C, hot food ≥ 63 °C, cooking core
 // ≥ 75 °C, chilling to ≤ 10 °C within 2 hours, reheating ≥ 75 °C, frying oil ≤ 180 °C,
 // defrosting ends at ≤ 5 °C within 72 hours.
-export const DEFAULT_LIMITS = Object.freeze([
+export const DEFAULT_LIMITS = Object.freeze<KitchenLimitDefault[]>([
   { limitKey: 'receipt_chilled', label: ['Παραλαβή ψυχόμενου', 'Chilled receipt'], minValue: null, maxValue: 5, withinMinutes: null },
   { limitKey: 'receipt_frozen', label: ['Παραλαβή κατεψυγμένου', 'Frozen receipt'], minValue: null, maxValue: -18, withinMinutes: null },
   { limitKey: 'receipt_hot', label: ['Παραλαβή ζεστού φαγητού', 'Hot food receipt'], minValue: 63, maxValue: null, withinMinutes: null },
@@ -22,19 +22,19 @@ export const DEFAULT_LIMITS = Object.freeze([
 const num = (value: unknown) => (value === '' || value == null || !Number.isFinite(Number(value)) ? null : Number(value))
 
 // The limits of a screen: the organization's rows (resolved) or nothing for the defaults.
-export type KitchenLimits = AnyRecord[] | null | undefined
+export type KitchenLimits = readonly KitchenLimitCheck[] | null | undefined
 
 // The organization's limits over the defaults (a saved row wins).
-export function resolveLimits(rows: AnyRecord[] = []) {
+export function resolveLimits(rows: readonly KitchenLimitRow[] = []): KitchenLimit[] {
   return DEFAULT_LIMITS.map(item => {
     const own = rows.find(row => row.limitKey === item.limitKey)
     return own ? { ...item, ...own, label: item.label, minValue: num(own.minValue), maxValue: num(own.maxValue), withinMinutes: num(own.withinMinutes), active: own.active !== false } : { ...item, active: true }
   })
 }
-export const limitFor = (limits: KitchenLimits, key: string): AnyRecord | undefined => (Array.isArray(limits) ? limits : resolveLimits()).find(item => item.limitKey === key) || resolveLimits().find(item => item.limitKey === key)
+export const limitFor = (limits: KitchenLimits, key: string): KitchenLimitCheck | undefined => (Array.isArray(limits) ? limits : resolveLimits()).find(item => item.limitKey === key) || resolveLimits().find(item => item.limitKey === key)
 
 // 'in', 'out', or null when nothing was measured (or the limit is switched off).
-export function checkLimit(limits: KitchenLimits, key: string, value: unknown, minutes: unknown = null) {
+export function checkLimit(limits: KitchenLimits, key: string, value: unknown, minutes: unknown = null): KitchenStatus {
   const v = num(value)
   if (v == null) return null
   const limit = limitFor(limits, key)
@@ -46,10 +46,10 @@ export function checkLimit(limits: KitchenLimits, key: string, value: unknown, m
   return 'in'
 }
 
-export const worstStatus = (...statuses: (string | null)[]) => (statuses.includes('out') ? 'out' : statuses.includes('in') ? 'in' : null)
+export const worstStatus = (...statuses: (string | null)[]): KitchenStatus => (statuses.includes('out') ? 'out' : statuses.includes('in') ? 'in' : null)
 
 // «≤ 5 °C», «≥ 75 °C», «≤ 10 °C σε 120′».
-export function limitText(limit: AnyRecord | null | undefined, language = 'el') {
+export function limitText(limit: KitchenLimitCheck | null | undefined, language = 'el') {
   if (!limit) return ''
   const en = language === 'en'
   const value = (n: number) => String(n).replace('.', en ? '.' : ',')
@@ -79,13 +79,13 @@ export function parseChill(text: string) {
 }
 
 // Frying: up to 120 °C the value is the food's core (cooking limit), above it the oil.
-export const fryingStatus = (limits: KitchenLimits, value: unknown) => {
+export const fryingStatus = (limits: KitchenLimits, value: unknown): KitchenStatus => {
   const v = num(value)
   if (v == null) return null
   return v <= 120 ? checkLimit(limits, 'cooking_core', v) : checkLimit(limits, 'frying_oil', v)
 }
 
-export function thermalStatuses(limits: KitchenLimits, entry: AnyRecord) {
+export function thermalStatuses(limits: KitchenLimits, entry: Partial<KitchenThermal>) {
   const cooking = checkLimit(limits, 'cooking_core', entry.cookingTemp)
   const chill = checkLimit(limits, 'chilling', entry.chillTemp, entry.chillMinutes)
   const reheat = checkLimit(limits, 'reheating', entry.reheatTemp)
@@ -93,31 +93,31 @@ export function thermalStatuses(limits: KitchenLimits, entry: AnyRecord) {
   return { cooking, chill, reheat, frying, overall: worstStatus(cooking, chill, reheat, frying) }
 }
 
-export const minutesBetween = (start: string, end: string) => {
+export const minutesBetween = (start: string | null | undefined, end: string | null | undefined) => {
   if (!start || !end) return null
   const a = new Date(start).getTime(), b = new Date(end).getTime()
   return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / 60000) : null
 }
-export const defrostStatus = (limits: KitchenLimits, entry: AnyRecord) => checkLimit(limits, 'defrost', entry.endTemp, minutesBetween(entry.startedAt, entry.endedAt))
+export const defrostStatus = (limits: KitchenLimits, entry: Partial<KitchenDefrost>) => checkLimit(limits, 'defrost', entry.endTemp, minutesBetween(entry.startedAt, entry.endedAt))
 
-export const pureeingStatus = (entry: AnyRecord) => (entry.visualCheck === false || entry.bladeCheck === false ? 'out' : entry.visualCheck || entry.bladeCheck ? 'in' : null)
+export const pureeingStatus = (entry: Partial<KitchenPureeing>): KitchenStatus => (entry.visualCheck === false || entry.bladeCheck === false ? 'out' : entry.visualCheck || entry.bladeCheck ? 'in' : null)
 
 const RECEIPT_TEMPERATURE_KEY: Record<string, string> = { chilled: 'receipt_chilled', frozen: 'receipt_frozen', hot: 'receipt_hot' }
-export const RECEIPT_CHECKS = Object.freeze(['temperatureCheck', 'packagingCheck', 'expiryCheck', 'vehicleCheck', 'codingCheck'])
+export const RECEIPT_CHECKS = Object.freeze<KitchenReceiptCheck[]>(['temperatureCheck', 'packagingCheck', 'expiryCheck', 'vehicleCheck', 'codingCheck'])
 
 // A receipt: its own temperature against the class's limit, the five checks and its
 // items (a rejected item or one out of limits makes the receipt nonconforming).
-export function receiptStatus(limits: KitchenLimits, receipt: AnyRecord, items: AnyRecord[] = receipt.items || []) {
-  const key = RECEIPT_TEMPERATURE_KEY[receipt.temperatureClass]
+export function receiptStatus(limits: KitchenLimits, receipt: KitchenReceiptInput, items: readonly Partial<KitchenReceiptItem>[] = receipt.items || []) {
+  const key = RECEIPT_TEMPERATURE_KEY[receipt.temperatureClass as string]
   const temperature = key ? checkLimit(limits, key, receipt.measuredTemperature) : null
-  const itemStatuses = items.map((item: AnyRecord) => itemStatus(limits, item))
-  const nonconforming = RECEIPT_CHECKS.some(field => receipt[field] === 'noncompliant') || temperature === 'out' || itemStatuses.includes('out') || items.some((item: AnyRecord) => item.accepted === false)
+  const itemStatuses = items.map(item => itemStatus(limits, item))
+  const nonconforming = RECEIPT_CHECKS.some(field => receipt[field] === 'noncompliant') || temperature === 'out' || itemStatuses.includes('out') || items.some(item => item.accepted === false)
   const anyCheck = RECEIPT_CHECKS.some(field => receipt[field]) || temperature != null || itemStatuses.some(Boolean)
-  const status = nonconforming ? 'out' : anyCheck ? 'in' : null
+  const status: KitchenStatus = nonconforming ? 'out' : anyCheck ? 'in' : null
   const result = receipt.accepted === false ? 'rejected' : receipt.accepted == null ? 'pending' : nonconforming ? 'accepted_with_remarks' : 'accepted'
   return { temperature, status, result }
 }
-export const itemStatus = (limits: KitchenLimits, item: AnyRecord) => (item.storage === 'frozen' ? checkLimit(limits, 'receipt_frozen', item.temperature) : item.storage === 'chilled' ? checkLimit(limits, 'receipt_chilled', item.temperature) : null)
+export const itemStatus = (limits: KitchenLimits, item: Partial<KitchenReceiptItem>): KitchenStatus => (item.storage === 'frozen' ? checkLimit(limits, 'receipt_frozen', item.temperature) : item.storage === 'chilled' ? checkLimit(limits, 'receipt_chilled', item.temperature) : null)
 
 // An entry made in the app out of limits needs a corrective action (the database refuses it otherwise).
 export const needsCorrectiveAction = (status: string | null, action: unknown) => status === 'out' && String(action || '').trim().length < 3

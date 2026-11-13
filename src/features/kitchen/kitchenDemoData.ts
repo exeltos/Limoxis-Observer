@@ -7,7 +7,7 @@ import { demoResources } from '../quality/resources/resourceDemoData'
 import { seededRandom } from '../../core/data/demoSeed'
 import { DEFAULT_LIMITS } from './kitchenLimits'
 import { drillFindings, recallTrace } from './kitchenRecallModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { KitchenDefrost, KitchenMenu, KitchenProduct, KitchenProduction, KitchenPureeing, KitchenReceipt, KitchenReceiptItem, KitchenState, KitchenStateInput, KitchenSupplier, KitchenThermal, KitchenUsage } from './kitchenTypes'
 
 const day = (offset: number) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const at = (offset: number, time: string) => new Date(`${day(offset)}T${time}:00`).toISOString()
@@ -55,7 +55,7 @@ const products = ([
   ['kp-9', 'Μήλα', 'fruit', 'ambient', 'kg', 'sup-demo-8', ''],
   ['kp-10', 'Πατάτες', 'vegetables', 'ambient', 'kg', 'sup-demo-8', ''],
 ] as [string, string, string, string, string, string, number | string][]).map(([id, name, category, storage, unit, supplierId, lowStockQuantity]) => ({ id, name, category, storage, unit, supplierId, supplierCode: '', lowStockQuantity, active: true, notes: '', source: 'demo' }))
-const product = (id: string) => products.find(item => item.id === id) as AnyRecord
+const product = (id: string) => products.find(item => item.id === id) as KitchenProduct
 
 const ok = { temperatureCheck: 'compliant', packagingCheck: 'compliant', expiryCheck: 'compliant', vehicleCheck: 'compliant', codingCheck: 'compliant' }
 const item = (id: string, productId: string, quantity: number, { batch = '', expiry = 4, temperature = '', accepted = true, rejectionReason = '', notes = '', base = 0 }: { batch?: string, expiry?: number | null, temperature?: number | string, accepted?: boolean, rejectionReason?: string, notes?: string, base?: number } = {}) => {
@@ -63,7 +63,7 @@ const item = (id: string, productId: string, quantity: number, { batch = '', exp
   return { id, productId, productName: p.name, batchCode: batch, lotLabel: '', expiryOn: expiry == null ? '' : day(base + expiry), quantity: String(quantity), unit: p.unit, storage: p.storage, temperature: temperature === '' ? '' : String(temperature), accepted, rejectionReason, notes }
 }
 
-export function kitchenDemoState() {
+export function kitchenDemoState(): KitchenState {
   const suppliers = [...demoResources().suppliers.filter(row => row.category === 'kitchen').map(row => ({ id: row.id, name: row.name, category: row.category, status: row.status })),
     { id: 'sup-demo-9', name: 'Κρεατεμπορική Θεσσαλίας Α.Ε.', category: 'kitchen', status: 'active' }]
   const receipts = [
@@ -114,7 +114,7 @@ export function kitchenDemoState() {
     [-2, 'kri-10', 9, 'Χοιρινή μπριζόλα σχάρας'], [-2, 'kri-7', 6, 'Σαλάτα εποχής'], [-1, 'kri-5', 12, 'Κοτόπουλο φούρνου με πατάτες'], [-1, 'kri-9', 15, 'Κοτόπουλο φούρνου με πατάτες'], [-1, 'kri-3', 8, 'Ρυζόγαλο'],
     [0, 'kri-11', 10, 'Μοσχάρι λεμονάτο με πουρέ'], [0, 'kri-9', 8, 'Πουρές'], [0, 'kri-12', 6, 'Γιαούρτι'],
   ] as [number, string, number, string][]).filter(([, , quantity]) => quantity > 0).map(([offset, receiptItemId, quantity, dishName], index) => {
-    const found = receipts.flatMap(receipt => receipt.items).find(row => row.id === receiptItemId) as AnyRecord
+    const found = receipts.flatMap(receipt => receipt.items).find(row => row.id === receiptItemId) as KitchenReceiptItem
     return { id: `ku-${index + 1}`, productionId: dayId(offset), receiptItemId, productId: found.productId, productName: found.productName, lotLabel: found.batchCode, dishName, usedOn: day(offset), quantity: String(quantity), unit: found.unit, notes: '', recordedByName: COOK, source: 'demo' }
   })
   const thermal = ([
@@ -154,10 +154,10 @@ const HISTORY_RECEIPTS: [string, string, [string, number, number | null, number 
   ['sup-demo-7', 'chilled', [['kp-6', 30, 6, 4], ['kp-7', 50, 18, 4]]],
   ['sup-demo-8', 'ambient', [['kp-10', 35, null, ''], ['kp-8', 12, null, '']]],
 ]
-function addKitchenHistory({ receipts, productions, usage, thermal, pureeing, defrosting, menus, suppliers, weekday }: AnyRecord) {
+function addKitchenHistory({ receipts, productions, usage, thermal, pureeing, defrosting, menus, suppliers, weekday }: { receipts: KitchenReceipt[], productions: KitchenProduction[], usage: KitchenUsage[], thermal: KitchenThermal[], pureeing: KitchenPureeing[], defrosting: KitchenDefrost[], menus: KitchenMenu[], suppliers: KitchenSupplier[], weekday: (offset: number) => number }) {
   const rand = seededRandom('kitchen-history')
   const first = -Math.round((new Date(`${day(0)}T12:00:00`).getTime() - new Date(`${HISTORY_START}T12:00:00`).getTime()) / 86400000)
-  const supplierName = (id: string) => suppliers.find((row: AnyRecord) => row.id === id)?.name || ''
+  const supplierName = (id: string) => suppliers.find(row => row.id === id)?.name || ''
   const perYear: Record<string, number> = {}
   const code = (offset: number) => { const year = day(offset).slice(0, 4); perYear[year] = (perYear[year] || 0) + 1; return `PAR-${year}-${String(perYear[year]).padStart(3, '0')}` }
   let out = 0
@@ -203,7 +203,7 @@ function addKitchenHistory({ receipts, productions, usage, thermal, pureeing, de
 
 // Two recall drills: a passed one this week (a supplier's chicken lot, traced in 95′) and
 // an older failed one (a dish, traced in 290′ against the 4-hour target).
-function recallDemoDrills(state: AnyRecord) {
+function recallDemoDrills(state: KitchenStateInput) {
   return [
     { id: 'krd-1', code: 'ANK-0001', drillDate: day(-220), startedAt: at(-220, '09:00'), finishedAt: at(-220, '13:50'), scenario: 'dish', triggerText: 'Κρούσμα γαστρεντερίτιδας σε δύο ασθενείς μετά το βραδινό· έλεγχος του ρυζόγαλου.', receiptItemId: '', productId: '', productName: '', dishName: 'Ρυζόγαλο', targetMinutes: '240', stockCounts: {},
       notified: 'Υπεύθυνος Ποιότητας, Επιτροπή Λοιμώξεων, προμηθευτής γάλακτος.', actions: 'Ιχνηλατήθηκαν οι παρτίδες γάλακτος· δεν βρέθηκαν οι μερίδες της πολτώδους δίαιτας στο πλάνο.', result: 'fail', lessons: 'Το πλάνο γευμάτων να γράφει πάντα τις μερίδες ανά δίαιτα· οι καταναλώσεις να καταχωρίζονται με την παρτίδα την ίδια ώρα.', conductedByName: MANAGER, status: 'completed', notes: '' },
