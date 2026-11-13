@@ -3,6 +3,7 @@ import { EMPLOYEE_SCREENING_TYPES, OTHER_EMPLOYEE_SCREENING } from './surveillan
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pick, seededRandom } from '../../core/data/demoSeed'
 import { emptyInPreview } from '../../core/preview/emptyPreview'
+import type { LabSample } from '../laboratory/laboratoryTypes'
 import type { EmployeeSurveillanceBatch, EmployeeSurveillanceRecord, LoadedScreening, ScreeningEmployee, ScreeningSample } from './employeeSurveillanceTypes'
 
 // A Demo screening always has its code, start date and status.
@@ -86,7 +87,7 @@ shiftDemoDatesInPlace([employeeSurveillanceRecords,employeeSurveillanceBatches,h
 emptyInPreview(employeeSurveillanceRecords)
 emptyInPreview(employeeSurveillanceBatches)
 emptyInPreview(historyScreeningSamples)
-laboratorySamples.push(...historyScreeningSamples)
+laboratorySamples.push(...historyScreeningSamples as LabSample[])
 
 // The screening types (one list, surveillanceOptions.js) as laboratory requests.
 export const employeeScreeningCatalog=[...EMPLOYEE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING].map(item=>({id:item.id,label:item.id,sampleType:'employeeScreening',sourceEl:item.el,sourceEn:item.en}))

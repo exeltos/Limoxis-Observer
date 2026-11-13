@@ -19,7 +19,7 @@ import { useRecordLinks,usePlatformUsers } from './useRecordLinks'
 import { useEndLoginSessions } from './useEndLoginSessions'
 import { deviceLabel,durationText,sessionStatus } from './loginSessionsModel'
 import './loginSessions.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LoginAttempt,LoginLock,LoginSession,UserRef } from './platformTypes'
 
 // One date format everywhere: dd/mm/yyyy, hh:mm in Athens time.
 const fmt=athensDateTime
@@ -35,9 +35,9 @@ export function PlatformLoginSessionsView({language='el',tabs=null}: {language?:
   const {confirm,notify,notifyError}=useFeedback()
   const [params]=useSearchParams()
   const [mode,setMode]=useState(()=>params.get('mode')==='attempts'?'attempts':'sessions')
-  const [sessions,setSessions]=useState<AnyRecord[]>([])
-  const [attempts,setAttempts]=useState<AnyRecord[]>([])
-  const [locks,setLocks]=useState<AnyRecord[]>([])
+  const [sessions,setSessions]=useState<LoginSession[]>([])
+  const [attempts,setAttempts]=useState<LoginAttempt[]>([])
+  const [locks,setLocks]=useState<LoginLock[]>([])
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState<unknown>(null)
   const [query,setQuery]=useState('')
@@ -49,7 +49,7 @@ export function PlatformLoginSessionsView({language='el',tabs=null}: {language?:
   // A name opens that user's record (not the Platform Owner, who has none); Back returns here, in the same view.
   const users=usePlatformUsers()
   const {userOf,openUser}=useRecordLinks({users,returnTo:`/platform/audit?view=sessions${mode==='attempts'?'&mode=attempts':''}`})
-  const userLink=(ref: AnyRecord,label: string)=>{const person=userOf(ref);return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{label}</RecordLink>:label}
+  const userLink=(ref: UserRef,label: string)=>{const person=userOf(ref);return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{label}</RecordLink>:label}
 
   const load=useCallback(async()=>{
     setLoading(true);setError(null)
@@ -85,14 +85,14 @@ export function PlatformLoginSessionsView({language='el',tabs=null}: {language?:
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize)),safePage=Math.min(page,totalPages),paged=list.slice((safePage-1)*pageSize,safePage*pageSize)
 
   const {menuItems:sessionMenuItems}=useEndLoginSessions({tx,en,onDone:load})
-  async function unlock(lock: AnyRecord){
+  async function unlock(lock: LoginLock){
     const ok=await confirm({title:tx('Ξεκλείδωμα','Unlock'),message:lock.kind==='ip'?tx(`Η IP ${lock.subject} μπορεί να δοκιμάσει ξανά σύνδεση αμέσως.`,`IP ${lock.subject} may try to sign in again right away.`):tx(`Ο λογαριασμός «${lock.subject}» μπορεί να συνδεθεί ξανά αμέσως.`,`The account “${lock.subject}” may sign in again right away.`),confirmLabel:tx('Ξεκλείδωμα','Unlock')})
     if(!ok)return
     try{await releaseLoginLock(lock.id);notify(tx('Ξεκλειδώθηκε.','Unlocked.'));await load()}
     catch(err){notifyError(err,'save',{operation:'platform_release_login_lock'})}
   }
 
-  const resultLabel=(row: AnyRecord)=>row.success?tx('Επιτυχία','Success'):row.reason==='locked'?tx('Κλειδωμένο','Locked'):row.reason==='unknown_user'?tx('Άγνωστος χρήστης','Unknown user'):tx('Λάθος κωδικός','Wrong password')
+  const resultLabel=(row: LoginAttempt)=>row.success?tx('Επιτυχία','Success'):row.reason==='locked'?tx('Κλειδωμένο','Locked'):row.reason==='unknown_user'?tx('Άγνωστος χρήστης','Unknown user'):tx('Λάθος κωδικός','Wrong password')
   const exportItems=[
     {id:'sessions',label:tx('Excel: συνδέσεις','Excel: sessions'),disabled:!filteredSessions.length,onClick:()=>exportRegistry({name:tx('syndeseis','sign-ins'),headers:[tx('Χρήστης','User'),tx('Όνομα χρήστη','Username'),tx('Οργανισμός','Organization'),'IP',tx('Τελευταία IP','Last IP'),tx('Συσκευή','Device'),tx('Έναρξη','Start'),tx('Τελευταία δραστηριότητα','Last activity'),tx('Λήξη','End'),tx('Διάρκεια','Duration'),tx('Κατάσταση','Status')],rows:filteredSessions.map(row=>[row.fullName,row.username,row.isPlatformOwner?tx('Ιδιοκτήτης Πλατφόρμας','Platform Owner'):row.organizations,row.ip,row.lastIp,deviceLabel(row.userAgent,en),fmt(row.startedAt),fmt(row.lastSeenAt),fmt(row.endedAt),durationText(row,now,en),sessionStatus(row,en).label])})},
     {id:'attempts',label:tx('Excel: προσπάθειες σύνδεσης','Excel: sign-in attempts'),disabled:!filteredAttempts.length,onClick:()=>exportRegistry({name:tx('prospatheies-syndesis','sign-in-attempts'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Όνομα χρήστη / email','Username / e-mail'),'IP',tx('Συσκευή','Device'),tx('Αποτέλεσμα','Result')],rows:filteredAttempts.map(row=>[fmt(row.createdAt),row.identifier,row.ip,deviceLabel(row.userAgent,en),resultLabel(row)])})},
@@ -128,7 +128,7 @@ export function PlatformLoginSessionsView({language='el',tabs=null}: {language?:
       {loading&&!list.length?<div className="inline-empty">{tx('Φόρτωση συνδέσεων…','Loading sign-ins…')}</div>:list.length?<>
         <div className="table-wrap scroll-table diagnostics-table-wrap">{mode==='sessions'
           ?<table className="data-table sticky-table diagnostics-table login-sessions-table"><thead><tr><th>{tx('Χρήστης','User')}</th><th>IP</th><th>{tx('Συσκευή','Device')}</th><th>{tx('Έναρξη','Start')}</th><th>{tx('Τελευταία δραστηριότητα','Last activity')}</th><th>{tx('Διάρκεια','Duration')}</th><th>{tx('Κατάσταση','Status')}</th><th><span className="lo-visually-hidden">{tx('Ενέργειες','Actions')}</span></th></tr></thead>
-            <tbody>{paged.map(row=>{const state=sessionStatus(row,en);return <tr key={row.sessionId}>
+            <tbody>{(paged as LoginSession[]).map(row=>{const state=sessionStatus(row,en);return <tr key={row.sessionId}>
               <td><strong>{row.isPlatformOwner?(row.fullName||row.username||'—'):userLink({userId:row.userId},row.fullName||row.username||'—')}</strong><small>{row.isPlatformOwner?tx('Ιδιοκτήτης Πλατφόρμας','Platform Owner'):(row.organizations||row.username||'—')}</small></td>
               <td><span className="login-ip">{row.ip||'—'}</span>{row.lastIp&&row.lastIp!==row.ip&&<small>{tx('τώρα','now')} {row.lastIp}</small>}</td>
               <td>{deviceLabel(row.userAgent,en)}</td>
@@ -139,7 +139,7 @@ export function PlatformLoginSessionsView({language='el',tabs=null}: {language?:
               <td className="login-actions">{row.active&&<OverflowMenu label={tx('Ενέργειες σύνδεσης','Session actions')} items={sessionMenuItems(row)}/>}</td>
             </tr>})}</tbody></table>
           :<table className="data-table sticky-table diagnostics-table"><thead><tr><th>{tx('Ημερομηνία / ώρα','Date / time')}</th><th>{tx('Όνομα χρήστη / email','Username / e-mail')}</th><th>IP</th><th>{tx('Συσκευή','Device')}</th><th>{tx('Αποτέλεσμα','Result')}</th></tr></thead>
-            <tbody>{paged.map(row=><tr key={row.id}><td className="login-when"><strong>{short(row.createdAt)}</strong></td><td>{userLink({identifier:row.identifier},row.identifier)}</td><td><span className="login-ip">{row.ip||'—'}</span></td><td>{deviceLabel(row.userAgent,en)}</td><td><span className={`login-status is-${row.success?'good':row.reason==='locked'?'danger':'warning'}`}>{resultLabel(row)}</span></td></tr>)}</tbody></table>}
+            <tbody>{(paged as LoginAttempt[]).map(row=><tr key={row.id}><td className="login-when"><strong>{short(row.createdAt)}</strong></td><td>{userLink({identifier:row.identifier},row.identifier)}</td><td><span className="login-ip">{row.ip||'—'}</span></td><td>{deviceLabel(row.userAgent,en)}</td><td><span className={`login-status is-${row.success?'good':row.reason==='locked'?'danger':'warning'}`}>{resultLabel(row)}</span></td></tr>)}</tbody></table>}
         </div>
         <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={list.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
       </>:error?null:<div className="registry-empty-state"><strong>{mode==='sessions'?tx('Δεν υπάρχουν συνδέσεις για τα επιλεγμένα φίλτρα.','No sessions match the selected filters.'):tx('Δεν υπάρχουν προσπάθειες σύνδεσης για τα επιλεγμένα φίλτρα.','No sign-in attempts match the selected filters.')}</strong></div>}

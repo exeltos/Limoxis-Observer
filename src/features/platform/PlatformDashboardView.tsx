@@ -7,29 +7,30 @@ import { ACTIVITY_DAYS, loadHospitalHealth } from './platformHealthService'
 import { loadOwnerWaitingCounts } from './platformAttentionService'
 import { initialsOf, sinceText, statusOf } from './platformOverviewShared'
 import './platformDashboard.css'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
 import type { HospitalHealth } from './platformHealthService'
+import type { OwnerWaitingCounts, PlatformDemo, PlatformMember, PlatformOrganization, PlatformUserRef } from './platformTypes'
 
-type Navigate = (to: string, options?: { state?: AnyRecord }) => void
-type DemoProgress = (demo: AnyRecord) => AnyRecord
+type Navigate = (to: string, options?: { state?: { returnTo: string } }) => void
+type DemoProgress = (demo: PlatformDemo) => { remaining: number }
 
 const DAY=86400000
 const daysUntil=(value: unknown)=>Math.ceil((new Date(`${String(value).slice(0,10)}T00:00:00`).getTime()-new Date(new Date().toDateString()).getTime())/DAY)
-const shortDate=(value: string)=>new Intl.DateTimeFormat('el-GR').format(new Date(value))
+const shortDate=(value: string | null | undefined)=>new Intl.DateTimeFormat('el-GR').format(new Date(value as string))
 const HOSPITAL_ROWS=8
 
 // What the Owner must act on this week: Demos that end and hospitals whose
 // deletion date is near or has passed (the same events the reminder e-mails cover).
-function ActionList({tx,demos,organizations,demoProgress,onOpenDemo,onNavigate,waiting}: {tx: Translate,demos: AnyRecord[],organizations: AnyRecord[],demoProgress?: DemoProgress,onOpenDemo?: (demo: AnyRecord)=>void,onNavigate: Navigate,waiting: AnyRecord|null}){
-  const counts=waiting||{}
+function ActionList({tx,demos,organizations,demoProgress,onOpenDemo,onNavigate,waiting}: {tx: Translate,demos: PlatformDemo[],organizations: PlatformOrganization[],demoProgress?: DemoProgress,onOpenDemo?: (demo: PlatformDemo)=>void,onNavigate: Navigate,waiting: OwnerWaitingCounts|null}){
+  const counts: Record<string,number>=waiting||{}
   const items=[
     counts.locked>0&&{key:'accounts-locked',order:-1,tone:'danger',icon:<Lock size={16}/>,title:tx('Κλειδωμένοι λογαριασμοί','Locked accounts'),go:tx('Νέος κωδικός','New password'),text:tx(`${counts.locked} ${counts.locked===1?'λογαριασμός κλειδώθηκε':'λογαριασμοί κλειδώθηκαν'} επειδή έληξε ο προσωρινός κωδικός`,`${counts.locked} ${counts.locked===1?'account was':'accounts were'} locked because the temporary password expired`),action:()=>onNavigate('/platform#users')},
     counts.waiting>0&&{key:'accounts-waiting',order:40,tone:'warning',icon:<KeyRound size={16}/>,title:tx('Δεν έχουν αλλάξει τον προσωρινό κωδικό','Temporary password not changed yet'),go:tx('Προβολή','View'),text:tx(`${counts.waiting} ${counts.waiting===1?'χρήστης':'χρήστες'}`,`${counts.waiting} ${counts.waiting===1?'user':'users'}`),action:()=>onNavigate('/platform#users')},
     counts.legislation>0&&{key:'legislation-review',order:50,tone:'warning',icon:<Inbox size={16}/>,title:tx('Νομοθεσία προς έλεγχο','Legislation to review'),go:tx('Έλεγχος','Review'),text:tx(`${counts.legislation} ${counts.legislation===1?'πρόταση περιμένει':'προτάσεις περιμένουν'} έλεγχο`,`${counts.legislation} ${counts.legislation===1?'proposal is':'proposals are'} waiting for review`),action:()=>onNavigate('/platform/legislation?view=review')},
-    ...organizations.filter((o: AnyRecord)=>o.deletion_scheduled_at&&daysUntil(o.deletion_scheduled_at)<=7).map((o: AnyRecord)=>{const days=daysUntil(o.deletion_scheduled_at);return {key:`org-${o.id}`,order:days,tone:'danger',icon:<Trash2 size={16}/>,title:o.name,go:tx('Προβολή','View'),
+    ...organizations.filter((o: PlatformOrganization)=>o.deletion_scheduled_at&&daysUntil(o.deletion_scheduled_at)<=7).map((o: PlatformOrganization)=>{const days=daysUntil(o.deletion_scheduled_at);return {key:`org-${o.id}`,order:days,tone:'danger',icon:<Trash2 size={16}/>,title:o.name,go:tx('Προβολή','View'),
       text:days<=0?tx('Έφτασε η ημερομηνία οριστικής διαγραφής','The deletion date has been reached'):days===1?tx(`Οριστική διαγραφή αύριο (${shortDate(o.deletion_scheduled_at)})`,`Permanent deletion tomorrow (${shortDate(o.deletion_scheduled_at)})`):tx(`Οριστική διαγραφή σε ${days} ημέρες (${shortDate(o.deletion_scheduled_at)})`,`Permanent deletion in ${days} days (${shortDate(o.deletion_scheduled_at)})`),
       action:()=>onNavigate(`/platform#organizations?organization=${o.id}&tab=offboarding`,{state:{returnTo:'/platform'}})}}),
-    ...demos.filter((d: AnyRecord)=>(demoProgress?demoProgress(d).remaining:daysUntil(d.valid_until))<=7).map((d: AnyRecord)=>{const days=daysUntil(d.valid_until);return {key:`demo-${d.id}`,order:days+0.5,tone:'warning',icon:<CalendarClock size={16}/>,title:d.label||d.organization?.name||'Demo',go:tx('Παράταση','Extend'),
+    ...demos.filter((d: PlatformDemo)=>(demoProgress?demoProgress(d).remaining:daysUntil(d.valid_until))<=7).map((d: PlatformDemo)=>{const days=daysUntil(d.valid_until);return {key:`demo-${d.id}`,order:days+0.5,tone:'warning',icon:<CalendarClock size={16}/>,title:d.label||d.organization?.name||'Demo',go:tx('Παράταση','Extend'),
       text:days<=0?tx('Το Demo λήγει σήμερα','The Demo ends today'):days===1?tx(`Το Demo λήγει αύριο (${shortDate(d.valid_until)})`,`The Demo ends tomorrow (${shortDate(d.valid_until)})`):tx(`Το Demo λήγει σε ${days} ημέρες (${shortDate(d.valid_until)})`,`The Demo ends in ${days} days (${shortDate(d.valid_until)})`),
       action:()=>onOpenDemo?onOpenDemo(d):onNavigate(`/platform#demo?demo=${d.id}`,{state:{returnTo:'/platform'}})}}),
   ].filter(Boolean).sort((a,b)=>a.order-b.order)
@@ -48,13 +49,13 @@ function Sparkline({tx,values}: {tx: Translate,values: number[]|null}){
 }
 
 // The hospitals of the platform: users, the activity of the last 14 days, last use and status; a row opens the organization.
-function HospitalsTable({tx,hospitals,members,health,onNavigate,onCreateOrganization}: {tx: Translate,hospitals: AnyRecord[],members: AnyRecord[],health: Record<string,HospitalHealth>|null,onNavigate: Navigate,onCreateOrganization?: ()=>void}){
-  const open=(o: AnyRecord)=>onNavigate(`/platform#organizations?organization=${o.id}&tab=details`,{state:{returnTo:'/platform'}})
+function HospitalsTable({tx,hospitals,members,health,onNavigate,onCreateOrganization}: {tx: Translate,hospitals: PlatformOrganization[],members: PlatformMember[],health: Record<string,HospitalHealth>|null,onNavigate: Navigate,onCreateOrganization?: ()=>void}){
+  const open=(o: PlatformOrganization)=>onNavigate(`/platform#organizations?organization=${o.id}&tab=details`,{state:{returnTo:'/platform'}})
   const shown=hospitals.slice(0,HOSPITAL_ROWS)
   return <section className="platform-dashboard-panel platform-overview-hospitals"><header><h3>{tx('Νοσοκομεία','Hospitals')}</h3><button type="button" className="platform-overview-link" onClick={()=>onNavigate('/platform#organizations')}>{hospitals.length>HOSPITAL_ROWS?tx(`Όλοι οι οργανισμοί (${hospitals.length})`,`All organizations (${hospitals.length})`):tx('Όλοι οι οργανισμοί','All organizations')}<ArrowRight size={14} aria-hidden="true"/></button></header>
     {shown.length?<div className="platform-overview-table-wrap"><table className="data-table platform-overview-table">
       <thead><tr><th>{tx('Οργανισμός','Organization')}</th><th>{tx('Χρήστες','Users')}</th><th>{tx(`Δραστηριότητα ${ACTIVITY_DAYS} ημ.`,`Activity, ${ACTIVITY_DAYS} days`)}</th><th>{tx('Τελευταία χρήση','Last use')}</th><th>{tx('Κατάσταση','Status')}</th></tr></thead>
-      <tbody>{shown.map((o: AnyRecord)=>{const people=members.filter((m: AnyRecord)=>m.organization_id===o.id),active=people.filter((m: AnyRecord)=>m.status==='active').length,item: Partial<HospitalHealth>=health?.[o.id]||{},[tone,label]=statusOf(tx,o,people.find((m: AnyRecord)=>m.role==='hospital_admin')?.status)
+      <tbody>{shown.map((o: PlatformOrganization)=>{const people=members.filter((m: PlatformMember)=>m.organization_id===o.id),active=people.filter((m: PlatformMember)=>m.status==='active').length,item: Partial<HospitalHealth>=health?.[o.id]||{},[tone,label]=statusOf(tx,o,people.find((m: PlatformMember)=>m.role==='hospital_admin')?.status)
         return <tr key={o.id} className="platform-owner-clickable-row platform-hospital-row" tabIndex={0} onClick={()=>open(o)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open(o)}}}>
           <td><div className="platform-overview-org"><span className="platform-overview-avatar" aria-hidden="true">{initialsOf(o.name)}</span><span><strong>{o.name}</strong><small>{[o.code,o.city].filter(Boolean).join(' · ')}</small></span></div></td>
           <td className="platform-overview-num">{active} / {people.length}</td>
@@ -67,14 +68,14 @@ function HospitalsTable({tx,hospitals,members,health,onNavigate,onCreateOrganiza
   </section>
 }
 
-export function PlatformDashboardView({tx,organizations,members=[],users=[],activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate,onCreateOrganization,onCreateDemo,liveSessions=null}: {tx: Translate,organizations: AnyRecord[],members?: AnyRecord[],users?: AnyRecord[],activeDemos: AnyRecord[],expiringDemos?: AnyRecord[],loadingStats?: boolean,demoProgress?: DemoProgress,onOpenDemo?: (demo: AnyRecord)=>void,onNavigate: Navigate,onCreateOrganization?: ()=>void,onCreateDemo?: ()=>void,liveSessions?: ReactNode}) {
-  const [health,setHealth]=useState<Record<string,HospitalHealth> | null>(null),[waiting,setWaiting]=useState<AnyRecord | null>(null)
+export function PlatformDashboardView({tx,organizations,members=[],users=[],activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate,onCreateOrganization,onCreateDemo,liveSessions=null}: {tx: Translate,organizations: PlatformOrganization[],members?: PlatformMember[],users?: PlatformUserRef[],activeDemos: PlatformDemo[],expiringDemos?: PlatformDemo[],loadingStats?: boolean,demoProgress?: DemoProgress,onOpenDemo?: (demo: PlatformDemo)=>void,onNavigate: Navigate,onCreateOrganization?: ()=>void,onCreateDemo?: ()=>void,liveSessions?: ReactNode}) {
+  const [health,setHealth]=useState<Record<string,HospitalHealth> | null>(null),[waiting,setWaiting]=useState<OwnerWaitingCounts | null>(null)
   useEffect(()=>{let active=true;loadOwnerWaitingCounts().then(data=>{if(active)setWaiting(data)}).catch(()=>{});return()=>{active=false}},[])
   useEffect(()=>{let active=true;loadHospitalHealth().then(data=>{if(active)setHealth(data||{})}).catch(()=>{if(active)setHealth({})});return()=>{active=false}},[])
-  const hospitals=(organizations||[]).filter((o: AnyRecord)=>!o.is_demo&&o.status!=='archived')
-  const activeCount=hospitals.filter((o: AnyRecord)=>o.status==='active'&&!o.paused_at).length,pausedCount=hospitals.filter((o: AnyRecord)=>o.status==='suspended'||o.paused_at).length
+  const hospitals=(organizations||[]).filter((o: PlatformOrganization)=>!o.is_demo&&o.status!=='archived')
+  const activeCount=hospitals.filter((o: PlatformOrganization)=>o.status==='active'&&!o.paused_at).length,pausedCount=hospitals.filter((o: PlatformOrganization)=>o.status==='suspended'||o.paused_at).length
   const people=new Map(users.filter(u=>u.kind!=='platform'&&u.userId).map(u=>[u.userId,u])),weekAgo=Date.now()-7*DAY,newThisWeek=[...people.values()].filter(u=>u.createdAt&&new Date(u.createdAt).getTime()>=weekAgo).length
-  const nearest=activeDemos.length?Math.min(...activeDemos.map((d: AnyRecord)=>demoProgress?demoProgress(d).remaining:daysUntil(d.valid_until))):null
+  const nearest=activeDemos.length?Math.min(...activeDemos.map((d: PlatformDemo)=>demoProgress?demoProgress(d).remaining:daysUntil(d.valid_until))):null
   const errors=health?Object.values(health).reduce((sum,item)=>sum+(item?.errors24h||0),0):null
   const totals=[
     {id:'organizations',label:tx('Οργανισμοί','Organizations'),value:hospitals.length,note:tx(`${activeCount} ενεργοί · ${pausedCount} σε παύση`,`${activeCount} active · ${pausedCount} paused`),to:'/platform#organizations'},

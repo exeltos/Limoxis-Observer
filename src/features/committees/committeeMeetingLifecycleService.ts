@@ -1,9 +1,9 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Committee, CommitteeMeeting } from './committeeTypes'
 
-export async function cancelCommitteeMeetingAsync(organizationId: string|null|undefined,committee: AnyRecord|null|undefined,meeting: AnyRecord|null|undefined,reason: unknown){
+export async function cancelCommitteeMeetingAsync(organizationId: string|null|undefined,committee: Pick<Committee,'dbId'>|null|undefined,meeting: CommitteeMeeting|null|undefined,reason: unknown){
   if(isDemoDataEnvironment())throw new Error('DEMO_COMMITTEE_MEETING_CANCELLATION_LOCAL_ONLY')
   if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_COMMITTEES_SUPABASE_REQUIRED:meeting.cancel')
   if(!organizationId)throw new Error('PRODUCTION_COMMITTEES_ORGANIZATION_REQUIRED:meeting.cancel')

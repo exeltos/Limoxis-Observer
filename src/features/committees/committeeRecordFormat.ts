@@ -31,7 +31,7 @@ export const workflowStatusClass = (status: string) =>
       : status === 'cancelled'
         ? 'danger'
         : ''
-export const frequencyLabel = (value: string, en: boolean) =>
+export const frequencyLabel = (value: string | undefined, en: boolean) =>
   ({
     monthly: en ? 'Monthly' : 'Μηνιαία',
     bimonthly: en ? 'Every two months' : 'Ανά δίμηνο',
@@ -39,15 +39,15 @@ export const frequencyLabel = (value: string, en: boolean) =>
     semiannual: en ? 'Semiannual' : 'Εξαμηνιαία',
     annual: en ? 'Annual' : 'Ετήσια',
     as_needed: en ? 'As needed' : 'Όποτε απαιτείται',
-  } as Record<string, string>)[value] ||
+  } as Record<string, string>)[value ?? ''] ||
   value ||
   '—'
-export const quorumLabel = (value: string, en: boolean) =>
+export const quorumLabel = (value: string | undefined, en: boolean) =>
   ({
     simple_majority: en ? 'Simple majority' : 'Απλή πλειοψηφία ενεργών μελών',
     two_thirds: '2/3',
     custom: en ? 'According to regulations' : 'Σύμφωνα με τον κανονισμό',
-  } as Record<string, string>)[value] ||
+  } as Record<string, string>)[value ?? ''] ||
   value ||
   '—'
 export const createTopic = () => ({

@@ -1,5 +1,5 @@
 import { zonedParts } from './controlDueRules'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PeriodProgress } from './controlTypes'
 // Wording of a period's progress: «3/4 σήμερα» and the message shown when the
 // required entries are complete.
 const PERIOD: Record<string, Record<string, string>> = {
@@ -12,13 +12,13 @@ const PERIOD_FOR: Record<string, Record<string, string>> = {
 }
 const lang = (language: string) => (language === 'en' ? 'en' : 'el')
 
-export function progressText(progress: AnyRecord | null | undefined, language = 'el') {
+export function progressText(progress: Pick<PeriodProgress, 'done' | 'required' | 'unit'> | null | undefined, language = 'el') {
   if (!progress) return ''
   return `${progress.done}/${progress.required} ${PERIOD[lang(language)][progress.unit] || PERIOD[lang(language)].day}`
 }
 
-export function progressCompleteMessage(progress: AnyRecord | null | undefined, language = 'el') {
-  const period = PERIOD_FOR[lang(language)][progress?.unit] || PERIOD_FOR[lang(language)].day
+export function progressCompleteMessage(progress: Partial<Pick<PeriodProgress, 'done' | 'required' | 'unit'>> | null | undefined, language = 'el') {
+  const period = PERIOD_FOR[lang(language)][progress?.unit as string] || PERIOD_FOR[lang(language)].day
   const count = `${progress?.done ?? 0}/${progress?.required ?? 1}`
   return lang(language) === 'en'
     ? `The required entries ${period} (${count}) are complete.`
@@ -33,7 +33,7 @@ export function deadlineText(nextDueAt: string | Date | null | undefined, langua
   const at = zonedParts(nextDueAt), today = zonedParts(now)
   const pad = (n: number) => String(n).padStart(2, '0')
   const time = `${pad(at.hour)}:${pad(at.minute)}`
-  const dayNumber = (p: AnyRecord) => Date.UTC(p.year, p.month - 1, p.day) / 86400000
+  const dayNumber = (p: { year: number, month: number, day: number }) => Date.UTC(p.year, p.month - 1, p.day) / 86400000
   const offset = dayNumber(at) - dayNumber(today)
   const date = `${pad(at.day)}/${pad(at.month)}/${at.year}`
   if (new Date(nextDueAt) < new Date(now)) return en ? `passed ${date}, ${time}` : `έληξε ${date}, ${time}`

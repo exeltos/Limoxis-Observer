@@ -3,7 +3,10 @@
 // with such a name is usually a department that should be added to the existing control instead.
 const STOP=new Set(['και','του','της','των','το','η','ο','τα','στο','στη','στα','σε','για','απο','με','the','of','and','for'])
 
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlRecord } from './controlTypes'
+
+// A control as the warning reads it (loadControlNames gives no dbId).
+type NamedControl = Pick<ControlRecord, 'id' | 'title' | 'status'> & { dbId?: string }
 
 export function nameTokens(title:unknown){
  return String(title||'')
@@ -24,7 +27,7 @@ function overlap(a:string[],b:string[]){
 
 // The existing controls whose name is the same or alike, the same ones first. Needs two words
 // (or the whole name) in common so that «Θερμοκρασία» alone does not flag every temperature control.
-export function similarControls(title:unknown,controls:AnyRecord[]=[],{selfId=''}:{selfId?:string}={}){
+export function similarControls<T extends NamedControl>(title:unknown,controls:T[]=[],{selfId=''}:{selfId?:string}={}){
  const tokens=nameTokens(title)
  if(tokens.join('').length<5)return []
  const key=tokens.slice().sort().join(' ')

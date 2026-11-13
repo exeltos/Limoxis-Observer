@@ -20,15 +20,19 @@ import { defrostStatus, fryingStatus, itemStatus, limitText, needsCorrectiveActi
 import { receiptTitle, DEFROST_METHODS, DIETS, MEALS, PRODUCT_CATEGORIES, PUREE_METHODS, RECEIPT_CHECK_FIELDS, CHECK_RESULTS, STORAGES, TEMPERATURE_CLASSES, UNITS, WEEKDAYS, WRITEOFF_REASONS, availableBatches, batchProblem, fifoAdvice, fmtQty, menuForDay, newReceiptItem, options, receiptProblems, receiptResultLabel, receiptResultTone, unitLabel } from './kitchenModel'
 import { defrostEntry, kitchenErrorMessage, saveEntry, saveProduction, saveReceipt, saveSimple, saveWriteoff, saveLimits } from './kitchenService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { KitchenDefrostDraft, KitchenHaccpStep, KitchenLimit, KitchenMeal, KitchenMenu, KitchenNumber, KitchenProduct, KitchenProduction, KitchenPureeing, KitchenReceipt, KitchenReceiptItem, KitchenScreenState, KitchenStockRow, KitchenThermal, KitchenUsage, KitchenWriteoff } from './kitchenTypes'
 
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 const day = (value: unknown) => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
 
 // What a kitchen dialog gets from its host (KitchenDialogHost): the kitchen, the organization
 // and what to do on close / save; a record dialog also gets the record (initial).
-interface KitchenDialogProps { state: AnyRecord; organizationId: string | null | undefined; onClose: () => void; onSaved?: (id?: string) => unknown }
-type KitchenRecordDialogProps = KitchenDialogProps & { initial: AnyRecord }
+interface KitchenDialogProps { state: KitchenScreenState; organizationId: string | null | undefined; onClose: () => void; onSaved?: (id?: string) => unknown }
+type KitchenRecordDialogProps<T> = KitchenDialogProps & { initial: T }
+// A critical limit in the limits form: its values as typed ('' when empty).
+type LimitDraft = Omit<KitchenLimit, 'minValue' | 'maxValue' | 'withinMinutes'> & { minValue: KitchenNumber, maxValue: KitchenNumber, withinMinutes: KitchenNumber }
+type KitchenHazard = 'hazardBiological' | 'hazardChemical' | 'hazardPhysical' | 'hazardAllergen'
+type KitchenStepText = 'hazards' | 'controlMeasure' | 'monitoring' | 'frequency' | 'correctiveAction' | 'verification' | 'records' | 'responsible'
 
 // Saves with the house feedback; the dialog closes only when the save went through.
 function useSave(onSaved?: (() => unknown) | null) {
@@ -50,25 +54,25 @@ function CorrectiveAction({ status, value, onChange, language }: { status?: stri
   </Field>
 }
 
-const productOptions = (products: AnyRecord[], en: boolean) => products.filter((item: AnyRecord) => item.active !== false).map((item: AnyRecord) => ({ value: item.id, label: item.name, description: [item.supplierCode, item.unit && unitLabel(item.unit, en ? 'en' : 'el')].filter(Boolean).join(' · ') }))
+const productOptions = (products: KitchenProduct[], en: boolean) => products.filter(item => item.active !== false).map(item => ({ value: item.id, label: item.name, description: [item.supplierCode, item.unit && unitLabel(item.unit, en ? 'en' : 'el')].filter(Boolean).join(' · ') }))
 
 // --- Receipt -------------------------------------------------------------------------------
 
 // A delivery: supplier, time, the five checks, its temperature and each product (batch,
 // expiry, quantity, temperature, accepted or rejected with the reason). Checked live.
-export function ReceiptDialog({ state, organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps) {
+export function ReceiptDialog({ state, organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps<KitchenReceipt>) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useKitchenActor()
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...initial, receiverName: initial.receiverName || actor.name, items: initial.items?.length ? initial.items : [newReceiptItem()] }))
+  const [draft, setDraft] = useState<KitchenReceipt>(() => ({ ...initial, receiverName: initial.receiverName || actor.name, items: initial.items?.length ? initial.items : [newReceiptItem()] }))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
-  const setItem = (index: number, next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, items: current.items.map((item: AnyRecord, at: number) => (at === index ? { ...item, ...next } : item)) }))
-  const live = receiptStatus(state.limits, draft, draft.items.filter((item: AnyRecord) => item.productName))
+  const set = (next: Partial<KitchenReceipt>) => setDraft(current => ({ ...current, ...next }))
+  const setItem = (index: number, next: Partial<KitchenReceiptItem>) => setDraft(current => ({ ...current, items: current.items.map((item, at: number) => (at === index ? { ...item, ...next } : item)) }))
+  const live = receiptStatus(state.limits, draft, draft.items.filter(item => item.productName))
   const problems = receiptProblems(draft, language, live.status)
   const suppliers = [...(state.suppliers || [])].sort((a, b) => (a.category === 'kitchen' ? 0 : 1) - (b.category === 'kitchen' ? 0 : 1) || a.name.localeCompare(b.name, 'el'))
   const classKey = ({ chilled: 'receipt_chilled', frozen: 'receipt_frozen', hot: 'receipt_hot' } as Record<string, string>)[draft.temperatureClass]
-  const save = () => run(async () => { await saveReceipt(organizationId, { ...draft, items: draft.items.filter((item: AnyRecord) => String(item.productName || '').trim()) }); onClose() }, en ? 'Receipt saved.' : 'Η παραλαβή αποθηκεύτηκε.')
+  const save = () => run(async () => { await saveReceipt(organizationId, { ...draft, items: draft.items.filter(item => String(item.productName || '').trim()) }); onClose() }, en ? 'Receipt saved.' : 'Η παραλαβή αποθηκεύτηκε.')
   return <ObserverDialog width="wide" title={initial.id ? receiptTitle(initial, language) : (en ? 'New receipt' : 'Νέα παραλαβή')} subtitle={en ? 'Receipt checks, temperature and the products received. Checked against the limits as you type.' : 'Έλεγχοι παραλαβής, θερμοκρασία και τα προϊόντα. Ελέγχονται με τα όρια καθώς γράφετε.'} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || problems.length > 0} saveLabel={initial.id ? (en ? 'Save' : 'Αποθήκευση') : (en ? 'Register receipt' : 'Καταχώριση παραλαβής')}>
       <span className="kitchen-dialog-result"><SignalBadge tone={receiptResultTone(live.result)}>{receiptResultLabel(live.result, language)}</SignalBadge>{problems.length > 0 && <small>{en ? 'Missing' : 'Λείπει'}: {problems.join(' · ')}</small>}</span>
@@ -94,10 +98,10 @@ export function ReceiptDialog({ state, organizationId, initial, onClose, onSaved
     <SectionHeader title={en ? 'Products' : 'Προϊόντα'} subtitle={en ? 'Each product is a batch in stock: batch, expiry, quantity and its temperature.' : 'Κάθε προϊόν είναι μια παρτίδα στο απόθεμα: παρτίδα, λήξη, ποσότητα και θερμοκρασία.'}
       actions={<Button variant="secondary" onClick={() => set({ items: [...draft.items, newReceiptItem()] })}><Plus size={15} />{en ? 'Product' : 'Προϊόν'}</Button>} />
     <div className="kitchen-item-list">
-      {draft.items.map((item: AnyRecord, index: number) => { const status = itemStatus(state.limits, item); return <div key={item.id || `new-${index}`} className={`kitchen-item-row ${item.accepted === false ? 'is-rejected' : ''}`}>
+      {draft.items.map((item, index: number) => { const status = itemStatus(state.limits, item); return <div key={item.id || `new-${index}`} className={`kitchen-item-row ${item.accepted === false ? 'is-rejected' : ''}`}>
         <FormGrid columns={3}>
           <SearchableSelect label={`${index + 1}. ${en ? 'Product *' : 'Προϊόν *'}`} value={item.productId || item.productName} allowCustom customLabel={value => `«${value}»`} options={productOptions(state.products || [], en)}
-            onChange={value => { const found = (state.products || []).find((p: AnyRecord) => p.id === value); setItem(index, found ? { productId: found.id, productName: found.name, unit: found.unit, storage: found.storage } : { productId: '', productName: value || '' }) }} {...selectText(en)} />
+            onChange={value => { const found = (state.products || []).find(p => p.id === value); setItem(index, found ? { productId: found.id, productName: found.name, unit: found.unit, storage: found.storage } : { productId: '', productName: value || '' }) }} {...selectText(en)} />
           <Field label={en ? 'Batch / lot' : 'Παρτίδα / κωδικοποίηση'}><input value={item.batchCode || ''} onChange={e => setItem(index, { batchCode: e.target.value })} /></Field>
           <ManualDateField label={en ? 'Expiry' : 'Λήξη'} value={item.expiryOn} onChange={value => setItem(index, { expiryOn: value })} optional />
           <Field label={en ? 'Quantity' : 'Ποσότητα'}><input inputMode="decimal" value={item.quantity ?? ''} onChange={e => setItem(index, { quantity: e.target.value.replace(',', '.') })} /></Field>
@@ -120,13 +124,13 @@ export function ReceiptDialog({ state, organizationId, initial, onClose, onSaved
 
 // --- Heat parameters ------------------------------------------------------------------------
 
-export function ThermalDialog({ state, organizationId, initial, dishes = [], onClose, onSaved }: KitchenRecordDialogProps & { dishes?: string[] }) {
+export function ThermalDialog({ state, organizationId, initial, dishes = [], onClose, onSaved }: KitchenRecordDialogProps<KitchenThermal> & { dishes?: string[] }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useKitchenActor()
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ recordedByName: actor.name, ...initial }))
+  const [draft, setDraft] = useState<KitchenThermal>(() => ({ recordedByName: actor.name, ...initial }))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<KitchenThermal>) => setDraft(current => ({ ...current, ...next }))
   const s = thermalStatuses(state.limits, draft)
   const missing = !String(draft.dishName || '').trim() || !draft.processDate || needsCorrectiveAction(s.overall, draft.correctiveAction)
   const num = (value: string) => value.replace(',', '.')
@@ -145,7 +149,7 @@ export function ThermalDialog({ state, organizationId, initial, dishes = [], onC
       <Field label={en ? 'Reheating (°C)' : 'Αναθέρμανση (°C)'}><input inputMode="decimal" value={draft.reheatTemp ?? ''} onChange={e => set({ reheatTemp: num(e.target.value) })} /></Field>
       <div className="kitchen-live-slot kitchen-span-2"><LiveLimit status={s.reheat} limits={state.limits} limitKey="reheating" language={language} /></div>
       <Field label={en ? 'Frying (°C)' : 'Τηγάνισμα (°C)'}><input inputMode="decimal" value={draft.fryingTemp ?? ''} onChange={e => set({ fryingTemp: num(e.target.value) })} /></Field>
-      <div className="kitchen-live-slot kitchen-span-2"><LiveLimit status={fryingStatus(state.limits, draft.fryingTemp)} limits={state.limits} language={language} text={en ? `Core ${limitText(state.limits.find((item: AnyRecord) => item.limitKey === 'cooking_core'), language)} (up to 120 °C) · oil ${limitText(state.limits.find((item: AnyRecord) => item.limitKey === 'frying_oil'), language)}` : `Πυρήνας ${limitText(state.limits.find((item: AnyRecord) => item.limitKey === 'cooking_core'), language)} (έως 120 °C) · λάδι ${limitText(state.limits.find((item: AnyRecord) => item.limitKey === 'frying_oil'), language)}`} /></div>
+      <div className="kitchen-live-slot kitchen-span-2"><LiveLimit status={fryingStatus(state.limits, draft.fryingTemp)} limits={state.limits} language={language} text={en ? `Core ${limitText(state.limits.find(item => item.limitKey === 'cooking_core'), language)} (up to 120 °C) · oil ${limitText(state.limits.find(item => item.limitKey === 'frying_oil'), language)}` : `Πυρήνας ${limitText(state.limits.find(item => item.limitKey === 'cooking_core'), language)} (έως 120 °C) · λάδι ${limitText(state.limits.find(item => item.limitKey === 'frying_oil'), language)}`} /></div>
     </FormGrid>
     <CorrectiveAction status={s.overall} value={draft.correctiveAction} onChange={value => set({ correctiveAction: value })} language={language} />
     <Field label={en ? 'Notes' : 'Σημειώσεις'}><textarea rows={2} value={draft.notes || ''} onChange={e => set({ notes: e.target.value })} /></Field>
@@ -154,13 +158,13 @@ export function ThermalDialog({ state, organizationId, initial, dishes = [], onC
 
 // --- Defrosting -----------------------------------------------------------------------------
 
-export function DefrostDialog({ state, organizationId, initial, stock = [], onClose, onSaved }: KitchenRecordDialogProps & { stock?: AnyRecord[] }) {
+export function DefrostDialog({ state, organizationId, initial, stock = [], onClose, onSaved }: KitchenRecordDialogProps<KitchenDefrostDraft> & { stock?: KitchenStockRow[] }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useKitchenActor()
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ recordedByName: actor.name, ...initial }))
+  const [draft, setDraft] = useState<KitchenDefrostDraft>(() => ({ recordedByName: actor.name, ...initial }))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<KitchenDefrostDraft>) => setDraft(current => ({ ...current, ...next }))
   const entry = defrostEntry(draft)
   const status = defrostStatus(state.limits, entry)
   const products = [...(state.products || [])].filter(item => item.active !== false).sort((a, b) => (a.storage === 'frozen' ? 0 : 1) - (b.storage === 'frozen' ? 0 : 1) || a.name.localeCompare(b.name, 'el'))
@@ -186,7 +190,7 @@ export function DefrostDialog({ state, organizationId, initial, stock = [], onCl
       <TimeField label={en ? 'End time' : 'Ώρα λήξης'} value={draft.endTime} onChange={value => set({ endTime: value })} />
       <Field label={en ? 'End temperature (°C)' : 'Θερμοκρασία λήξης (°C)'}><input inputMode="decimal" value={draft.endTemp ?? ''} onChange={e => set({ endTemp: e.target.value.replace(',', '.') })} /></Field>
     </FormGrid>
-    <LiveLimit status={status} limits={state.limits} limitKey="defrost" language={language} text={`${en ? 'Limit' : 'Όριο'} ${limitText(state.limits.find((item: AnyRecord) => item.limitKey === 'defrost'), language)}${hours != null ? ` · ${en ? 'duration' : 'διάρκεια'} ${String(hours).replace('.', en ? '.' : ',')} ${en ? 'h' : 'ώρες'}` : ''}`} />
+    <LiveLimit status={status} limits={state.limits} limitKey="defrost" language={language} text={`${en ? 'Limit' : 'Όριο'} ${limitText(state.limits.find(item => item.limitKey === 'defrost'), language)}${hours != null ? ` · ${en ? 'duration' : 'διάρκεια'} ${String(hours).replace('.', en ? '.' : ',')} ${en ? 'h' : 'ώρες'}` : ''}`} />
     <CorrectiveAction status={status} value={draft.correctiveAction} onChange={value => set({ correctiveAction: value })} language={language} />
     <Field label={en ? 'Notes' : 'Σημειώσεις'}><textarea rows={2} value={draft.notes || ''} onChange={e => set({ notes: e.target.value })} /></Field>
   </ObserverDialog>
@@ -194,13 +198,13 @@ export function DefrostDialog({ state, organizationId, initial, stock = [], onCl
 
 // --- Pureeing ----------------------------------------------------------------------------
 
-export function PureeingDialog({ organizationId, initial, dishes = [], onClose, onSaved }: KitchenRecordDialogProps & { dishes?: string[] }) {
+export function PureeingDialog({ organizationId, initial, dishes = [], onClose, onSaved }: KitchenRecordDialogProps<KitchenPureeing> & { dishes?: string[] }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useKitchenActor()
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ recordedByName: actor.name, ...initial }))
+  const [draft, setDraft] = useState<KitchenPureeing>(() => ({ recordedByName: actor.name, ...initial }))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<KitchenPureeing>) => setDraft(current => ({ ...current, ...next }))
   const status = pureeingStatus(draft)
   const missing = !String(draft.productName || '').trim() || !draft.pureedOn || needsCorrectiveAction(status, draft.correctiveAction)
   const save = () => run(async () => { await saveEntry(organizationId, 'kitchen_pureeing', draft); onClose() })
@@ -222,17 +226,17 @@ export function PureeingDialog({ organizationId, initial, dishes = [], onClose, 
 // --- Raw material used in a production ----------------------------------------------------
 
 // A batch picked from stock (FIFO first, expired ones blocked) into a day's production.
-export function UsageDialog({ organizationId, initial, stock, dishes = [], onClose, onSaved }: KitchenRecordDialogProps & { stock: AnyRecord[], dishes?: string[] }) {
+export function UsageDialog({ organizationId, initial, stock, dishes = [], onClose, onSaved }: KitchenRecordDialogProps<KitchenUsage> & { stock: KitchenStockRow[], dishes?: string[] }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useKitchenActor()
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ recordedByName: actor.name, ...initial }))
+  const [draft, setDraft] = useState<KitchenUsage>(() => ({ recordedByName: actor.name, ...initial }))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<KitchenUsage>) => setDraft(current => ({ ...current, ...next }))
   // The batch being edited counts its own quantity back.
-  const own = useMemo(() => (initial.id ? stock.map((row: AnyRecord) => (row.receiptItemId === initial.receiptItemId ? { ...row, remaining: row.remaining + (Number(initial.quantity) || 0) } : row)) : stock), [stock, initial.id, initial.receiptItemId, initial.quantity])
+  const own = useMemo(() => (initial.id ? stock.map(row => (row.receiptItemId === initial.receiptItemId ? { ...row, remaining: row.remaining + (Number(initial.quantity) || 0) } : row)) : stock), [stock, initial.id, initial.receiptItemId, initial.quantity])
   const batches = availableBatches(own, draft.usedOn)
-  const chosen = own.find((row: AnyRecord) => row.receiptItemId === draft.receiptItemId) || null
+  const chosen = own.find(row => row.receiptItemId === draft.receiptItemId) || null
   const problem = batchProblem(chosen, draft.usedOn, draft.quantity, language)
   const older = fifoAdvice(own, chosen, draft.usedOn)
   const missing = !chosen || !(Number(draft.quantity) > 0) || Boolean(problem)
@@ -241,7 +245,7 @@ export function UsageDialog({ organizationId, initial, stock, dishes = [], onClo
     footer={<DialogActions onSave={save} disabled={saving || missing} />}>
     <FormGrid columns={3}>
       <SearchableSelect className="kitchen-span-2" label={en ? 'Batch in stock *' : 'Παρτίδα από το απόθεμα *'} value={draft.receiptItemId}
-        options={batches.map((row: AnyRecord) => ({ value: row.receiptItemId, label: `${row.productName} · ${en ? 'received' : 'παραλαβή'} ${day(row.receivedOn)}`, description: [row.batchCode || row.lotLabel, `${en ? 'left' : 'υπόλοιπο'} ${fmtQty(row.remaining, language)} ${unitLabel(row.unit, language)}`, row.expiryOn && `${en ? 'expires' : 'λήξη'} ${day(row.expiryOn)}`, row.supplierName].filter(Boolean).join(' · '), keywords: [row.supplierName, row.receiptCode].join(' ') }))}
+        options={batches.map(row => ({ value: row.receiptItemId, label: `${row.productName} · ${en ? 'received' : 'παραλαβή'} ${day(row.receivedOn)}`, description: [row.batchCode || row.lotLabel, `${en ? 'left' : 'υπόλοιπο'} ${fmtQty(row.remaining, language)} ${unitLabel(row.unit, language)}`, row.expiryOn && `${en ? 'expires' : 'λήξη'} ${day(row.expiryOn)}`, row.supplierName].filter(Boolean).join(' · '), keywords: [row.supplierName, row.receiptCode].join(' ') }))}
         onChange={value => set({ receiptItemId: value || '' })} {...selectText(en)} />
       <ManualDateField label={en ? 'Day *' : 'Ημέρα *'} value={draft.usedOn} onChange={value => set({ usedOn: value })} />
       <Field label={`${en ? 'Quantity' : 'Ποσότητα'}${chosen ? ` (${unitLabel(chosen.unit, language)})` : ''} *`}><input inputMode="decimal" value={draft.quantity ?? ''} onChange={e => set({ quantity: e.target.value.replace(',', '.') })} /></Field>
@@ -258,13 +262,13 @@ export function UsageDialog({ organizationId, initial, stock, dishes = [], onClo
 
 // --- Withdraw / discard a batch ----------------------------------------------------------
 
-export function WriteoffDialog({ organizationId, batch, onClose, onSaved }: KitchenDialogProps & { batch: AnyRecord }) {
+export function WriteoffDialog({ organizationId, batch, onClose, onSaved }: KitchenDialogProps & { batch: KitchenStockRow }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useKitchenActor()
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ receiptItemId: batch.receiptItemId, writtenOffOn: hospitalToday(), quantity: batch.remaining > 0 ? String(batch.remaining) : '', reason: batch.expired ? 'expired' : 'spoiled', notes: '', recordedByName: actor.name }))
+  const [draft, setDraft] = useState<Omit<KitchenWriteoff, 'id'>>(() => ({ receiptItemId: batch.receiptItemId, writtenOffOn: hospitalToday(), quantity: batch.remaining > 0 ? String(batch.remaining) : '', reason: batch.expired ? 'expired' : 'spoiled', notes: '', recordedByName: actor.name }))
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<Omit<KitchenWriteoff, 'id'>>) => setDraft(current => ({ ...current, ...next }))
   const missing = !(Number(draft.quantity) > 0) || !draft.reason
   const save = () => run(async () => { await saveWriteoff(organizationId, draft); onClose() }, en ? 'Withdrawn from stock.' : 'Αποσύρθηκε από το απόθεμα.')
   return <ObserverDialog title={en ? 'Withdraw / discard' : 'Απόσυρση / απόρριψη'} subtitle={`${batch.productName} · ${batch.receiptCode} · ${en ? 'left' : 'υπόλοιπο'} ${fmtQty(batch.remaining, language)} ${unitLabel(batch.unit, language)}`} onClose={onClose}
@@ -280,12 +284,12 @@ export function WriteoffDialog({ organizationId, batch, onClose, onSaved }: Kitc
 
 // --- Catalogue, menus, production day ----------------------------------------------------
 
-export function ProductDialog({ state, organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps) {
+export function ProductDialog({ state, organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps<KitchenProduct>) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState<AnyRecord>(initial)
+  const [draft, setDraft] = useState<KitchenProduct>(initial)
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<KitchenProduct>) => setDraft(current => ({ ...current, ...next }))
   const save = () => run(async () => { await saveSimple(organizationId, 'kitchen_products', draft); onClose() })
   return <ObserverDialog title={initial.id ? (en ? 'Product' : 'Προϊόν') : (en ? 'New product' : 'Νέο προϊόν')} onClose={onClose} footer={<DialogActions onSave={save} disabled={saving || String(draft.name || '').trim().length < 2} />}>
     <FormGrid columns={3}>
@@ -293,7 +297,7 @@ export function ProductDialog({ state, organizationId, initial, onClose, onSaved
       <ChoiceField label={en ? 'Category' : 'Κατηγορία'} value={draft.category} options={options(PRODUCT_CATEGORIES, language)} onChange={value => set({ category: value })} />
       <ChoiceField label={en ? 'Storage' : 'Αποθήκευση'} value={draft.storage} options={options(STORAGES, language)} onChange={value => set({ storage: value })} />
       <ChoiceField label={en ? 'Unit' : 'Μονάδα'} value={draft.unit} options={options(UNITS, language)} onChange={value => set({ unit: value })} />
-      <SearchableSelect label={en ? 'Supplier' : 'Προμηθευτής'} value={draft.supplierId} options={(state.suppliers || []).map((item: AnyRecord) => ({ value: item.id, label: item.name }))} onChange={value => set({ supplierId: value || '' })} {...selectText(en)} />
+      <SearchableSelect label={en ? 'Supplier' : 'Προμηθευτής'} value={draft.supplierId} options={(state.suppliers || []).map(item => ({ value: item.id, label: item.name }))} onChange={value => set({ supplierId: value || '' })} {...selectText(en)} />
       <Field label={en ? 'Supplier code' : 'Κωδικός προμηθευτή'}><input value={draft.supplierCode || ''} onChange={e => set({ supplierCode: e.target.value })} /></Field>
       <Field label={en ? 'Low stock at' : 'Χαμηλό απόθεμα κάτω από'}><input inputMode="decimal" value={draft.lowStockQuantity ?? ''} onChange={e => set({ lowStockQuantity: e.target.value.replace(',', '.') })} /></Field>
       <CheckboxField label={en ? 'Active' : 'Ενεργό'} checked={draft.active !== false} onChange={checked => set({ active: checked })} />
@@ -302,12 +306,12 @@ export function ProductDialog({ state, organizationId, initial, onClose, onSaved
   </ObserverDialog>
 }
 
-export function MenuDialog({ organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps) {
+export function MenuDialog({ organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps<KitchenMenu>) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState<AnyRecord>(initial)
+  const [draft, setDraft] = useState<KitchenMenu>(initial)
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<KitchenMenu>) => setDraft(current => ({ ...current, ...next }))
   const save = () => run(async () => { await saveSimple(organizationId, 'kitchen_menus', draft); onClose() })
   return <ObserverDialog width="wide" title={initial.id ? (en ? 'Standard menu' : 'Τυπικό μενού') : (en ? 'New standard menu' : 'Νέο τυπικό μενού')} onClose={onClose} footer={<DialogActions onSave={save} disabled={saving || !String(draft.name || '').trim()} />}>
     <FormGrid columns={3}>
@@ -320,19 +324,19 @@ export function MenuDialog({ organizationId, initial, onClose, onSaved }: Kitche
 }
 
 // A production day: from the plan or the weekday's standard menu.
-export function ProductionDialog({ state, organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps) {
+export function ProductionDialog({ state, organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps<KitchenProduction>) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState<AnyRecord>(() => { const menu = initial.id ? null : menuForDay(state, initial.productionDate); return menu ? { ...initial, menuId: menu.id, menuText: menu.menuText } : initial })
+  const [draft, setDraft] = useState<KitchenProduction>(() => { const menu = initial.id ? null : menuForDay(state, initial.productionDate); return menu ? { ...initial, menuId: menu.id, menuText: menu.menuText } : initial })
   const [saving, run] = useSave()
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
-  const exists = !initial.id && (state.productions || []).some((item: AnyRecord) => item.productionDate === draft.productionDate)
+  const set = (next: Partial<KitchenProduction>) => setDraft(current => ({ ...current, ...next }))
+  const exists = !initial.id && (state.productions || []).some(item => item.productionDate === draft.productionDate)
   const save = () => run(async () => { const id = await saveProduction(organizationId, draft); await onSaved?.(id) })
   return <ObserverDialog width="wide" title={initial.id ? (en ? 'Production day' : 'Ημέρα παραγωγής') : (en ? 'Open production day' : 'Άνοιγμα ημέρας παραγωγής')} subtitle={en ? 'The day\'s menu starts from the standard menu of its weekday.' : 'Το μενού της ημέρας ξεκινά από το τυπικό μενού της ημέρας της εβδομάδας.'} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || !draft.productionDate} saveLabel={initial.id ? (en ? 'Save' : 'Αποθήκευση') : (en ? 'Open the day' : 'Άνοιγμα ημέρας')}>{exists && <span className="kitchen-dialog-result"><small>{en ? 'A production of this date exists already.' : 'Υπάρχει ήδη παραγωγή αυτής της ημερομηνίας.'}</small></span>}</DialogActions>}>
     <FormGrid columns={3}>
       <ManualDateField label={en ? 'Date *' : 'Ημερομηνία *'} value={draft.productionDate} onChange={value => { const menu = menuForDay(state, value); set({ productionDate: value, ...(menu && !initial.id ? { menuId: menu.id, menuText: menu.menuText } : {}) }) }} />
-      <ChoiceField label={en ? 'Standard menu' : 'Τυπικό μενού'} value={draft.menuId || ''} options={[{ value: '', label: en ? 'None' : 'Χωρίς' }, ...(state.menus || []).map((menu: AnyRecord) => ({ value: menu.id, label: menu.name }))]} onChange={value => { const menu = (state.menus || []).find((item: AnyRecord) => item.id === value); set({ menuId: value, ...(menu ? { menuText: menu.menuText } : {}) }) }} />
+      <ChoiceField label={en ? 'Standard menu' : 'Τυπικό μενού'} value={draft.menuId || ''} options={[{ value: '', label: en ? 'None' : 'Χωρίς' }, ...(state.menus || []).map(menu => ({ value: menu.id, label: menu.name }))]} onChange={value => { const menu = (state.menus || []).find(item => item.id === value); set({ menuId: value, ...(menu ? { menuText: menu.menuText } : {}) }) }} />
     </FormGrid>
     <FormGrid columns={2}>
       <Field label={en ? 'Daily menu' : 'Μενού ημέρας'}><textarea rows={8} value={draft.menuText || ''} onChange={e => set({ menuText: e.target.value })} /></Field>
@@ -341,11 +345,11 @@ export function ProductionDialog({ state, organizationId, initial, onClose, onSa
   </ObserverDialog>
 }
 
-export function MealDialog({ initial, onClose, onSave }: { initial: AnyRecord, onClose: () => void, onSave: (item: AnyRecord) => unknown }) {
+export function MealDialog({ initial, onClose, onSave }: { initial: KitchenMeal, onClose: () => void, onSave: (item: KitchenMeal) => unknown }) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState<AnyRecord>(initial)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const [draft, setDraft] = useState<KitchenMeal>(initial)
+  const set = (next: Partial<KitchenMeal>) => setDraft(current => ({ ...current, ...next }))
   return <ObserverDialog title={en ? 'Meal plan line' : 'Γραμμή πλάνου γευμάτων'} onClose={onClose} footer={<DialogActions onSave={() => onSave(draft)} disabled={!String(draft.dish || '').trim()} />}>
     <FormGrid columns={3}>
       <ChoiceField label={en ? 'Meal' : 'Γεύμα'} value={draft.meal} options={options(MEALS, language)} onChange={value => set({ meal: value })} />
@@ -362,13 +366,13 @@ export function MealDialog({ initial, onClose, onSave }: { initial: AnyRecord, o
 export function LimitsDialog({ state, organizationId, onClose, onSaved }: KitchenDialogProps) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [rows, setRows] = useState<AnyRecord[]>(() => state.limits.map((item: AnyRecord) => ({ ...item, minValue: item.minValue ?? '', maxValue: item.maxValue ?? '', withinMinutes: item.withinMinutes ?? '' })))
+  const [rows, setRows] = useState<LimitDraft[]>(() => state.limits.map(item => ({ ...item, minValue: item.minValue ?? '', maxValue: item.maxValue ?? '', withinMinutes: item.withinMinutes ?? '' })))
   const [saving, run] = useSave(onSaved)
-  const set = (key: string, next: AnyRecord) => setRows((current: AnyRecord[]) => current.map((item: AnyRecord) => (item.limitKey === key ? { ...item, ...next } : item)))
-  const invalid = rows.some((item: AnyRecord) => item.minValue === '' && item.maxValue === '')
-  const save = () => run(async () => { await saveLimits(organizationId, rows.map((item: AnyRecord) => ({ ...item, minValue: item.minValue === '' ? null : Number(item.minValue), maxValue: item.maxValue === '' ? null : Number(item.maxValue), withinMinutes: item.withinMinutes === '' ? null : Number(item.withinMinutes) }))); onClose() }, en ? 'Limits saved.' : 'Τα όρια αποθηκεύτηκαν.')
+  const set = (key: string, next: Partial<LimitDraft>) => setRows(current => current.map(item => (item.limitKey === key ? { ...item, ...next } : item)))
+  const invalid = rows.some(item => item.minValue === '' && item.maxValue === '')
+  const save = () => run(async () => { await saveLimits(organizationId, rows.map(item => ({ ...item, minValue: item.minValue === '' ? null : Number(item.minValue), maxValue: item.maxValue === '' ? null : Number(item.maxValue), withinMinutes: item.withinMinutes === '' ? null : Number(item.withinMinutes) }))); onClose() }, en ? 'Limits saved.' : 'Τα όρια αποθηκεύτηκαν.')
   return <ObserverDialog width="wide" title={en ? 'Critical limits' : 'Κρίσιμα όρια'} subtitle={en ? 'Every measurement is marked within / out of limits by these values.' : 'Κάθε μέτρηση χαρακτηρίζεται εντός / εκτός ορίων με αυτές τις τιμές.'} onClose={onClose} footer={<DialogActions onSave={save} disabled={saving || invalid} />}>
-    <div className="kitchen-item-list">{rows.map((item: AnyRecord) => <div key={item.limitKey} className="kitchen-item-row">
+    <div className="kitchen-item-list">{rows.map(item => <div key={item.limitKey} className="kitchen-item-row">
       <FormGrid columns={3}>
         <Field label={item.label[en ? 1 : 0]}><input value={limitText({ ...item, minValue: item.minValue === '' ? null : Number(item.minValue), maxValue: item.maxValue === '' ? null : Number(item.maxValue), withinMinutes: item.withinMinutes === '' ? null : Number(item.withinMinutes) }, language)} disabled /></Field>
         <Field label={en ? 'At least (°C)' : 'Τουλάχιστον (°C)'}><input inputMode="decimal" value={item.minValue} onChange={e => set(item.limitKey, { minValue: e.target.value.replace(',', '.') })} /></Field>
@@ -380,23 +384,23 @@ export function LimitsDialog({ state, organizationId, onClose, onSaved }: Kitche
   </ObserverDialog>
 }
 
-const HAZARDS: [string, string, string][] = [['hazardBiological', 'Βιολογικός', 'Biological'], ['hazardChemical', 'Χημικός', 'Chemical'], ['hazardPhysical', 'Φυσικός', 'Physical'], ['hazardAllergen', 'Αλλεργιογόνα', 'Allergens']]
-export function StepDialog({ state, organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps) {
+const HAZARDS: [KitchenHazard, string, string][] = [['hazardBiological', 'Βιολογικός', 'Biological'], ['hazardChemical', 'Χημικός', 'Chemical'], ['hazardPhysical', 'Φυσικός', 'Physical'], ['hazardAllergen', 'Αλλεργιογόνα', 'Allergens']]
+export function StepDialog({ state, organizationId, initial, onClose, onSaved }: KitchenRecordDialogProps<Partial<KitchenHaccpStep>>) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [draft, setDraft] = useState<AnyRecord>(initial)
+  const [draft, setDraft] = useState<Partial<KitchenHaccpStep>>(initial)
   const [saving, run] = useSave(onSaved)
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<KitchenHaccpStep>) => setDraft(current => ({ ...current, ...next }))
   const save = () => run(async () => { await saveSimple(organizationId, 'kitchen_haccp_steps', draft); onClose() })
-  const text = (field: string, label: string, rows = 2) => <Field label={label}><textarea rows={rows} value={draft[field] || ''} onChange={e => set({ [field]: e.target.value })} /></Field>
+  const text = (field: KitchenStepText, label: string, rows = 2) => <Field label={label}><textarea rows={rows} value={draft[field] || ''} onChange={e => set({ [field]: e.target.value })} /></Field>
   return <ObserverDialog width="wide" title={initial.id ? draft.name : (en ? 'New process step' : 'Νέο στάδιο διεργασίας')} subtitle={en ? 'Hazard analysis, the critical control point and its limit, monitoring, corrective action and verification.' : 'Ανάλυση κινδύνων, κρίσιμο σημείο ελέγχου και όριο, παρακολούθηση, διορθωτική ενέργεια και επαλήθευση.'} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || String(draft.name || '').trim().length < 2} />}>
     <FormGrid columns={3}>
       <Field label={en ? 'Step *' : 'Στάδιο *'}><input value={draft.name || ''} onChange={e => set({ name: e.target.value })} /></Field>
-      <ChoiceField label={en ? 'Critical limit' : 'Κρίσιμο όριο'} value={draft.limitKey || ''} options={[{ value: '', label: en ? 'None' : 'Χωρίς' }, ...state.limits.map((item: AnyRecord) => ({ value: item.limitKey, label: `${item.label[en ? 1 : 0]} (${limitText(item, language)})` }))]} onChange={value => set({ limitKey: value })} />
+      <ChoiceField label={en ? 'Critical limit' : 'Κρίσιμο όριο'} value={draft.limitKey || ''} options={[{ value: '', label: en ? 'None' : 'Χωρίς' }, ...state.limits.map(item => ({ value: item.limitKey, label: `${item.label[en ? 1 : 0]} (${limitText(item, language)})` }))]} onChange={value => set({ limitKey: value })} />
       <CheckboxField label={en ? 'Critical control point (CCP)' : 'Κρίσιμο σημείο ελέγχου (CCP)'} checked={Boolean(draft.isCcp)} onChange={checked => set({ isCcp: checked })} />
     </FormGrid>
-    <ChoiceChips label={en ? 'Hazards' : 'Κίνδυνοι'} options={HAZARDS.map(([value, el, enLabel]) => ({ value, label: en ? enLabel : el }))} selected={HAZARDS.map(([value]) => value).filter(value => draft[value])} onToggle={value => set({ [value]: !draft[value] })} />
+    <ChoiceChips label={en ? 'Hazards' : 'Κίνδυνοι'} options={HAZARDS.map(([value, el, enLabel]) => ({ value, label: en ? enLabel : el }))} selected={HAZARDS.map(([value]) => value).filter(value => draft[value])} onToggle={value => set({ [value]: !draft[value as KitchenHazard] })} />
     {text('hazards', en ? 'Hazard analysis' : 'Ανάλυση κινδύνων')}
     {text('controlMeasure', en ? 'Control measure' : 'Μέτρο ελέγχου')}
     <FormGrid columns={2}>{text('monitoring', en ? 'Monitoring (what, how)' : 'Παρακολούθηση (τι, πώς)')}{text('frequency', en ? 'Frequency' : 'Συχνότητα')}</FormGrid>

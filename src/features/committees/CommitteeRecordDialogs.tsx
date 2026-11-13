@@ -15,20 +15,21 @@ import {
 } from './committeeMemberRoles'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import type { ReactNode } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Committee, CommitteeDecision, CommitteeDecisionDraft, CommitteeMeeting, CommitteeMeetingDraft, CommitteeMember, CommitteeMemberDraft, CommitteePlanDraft, CommitteePlanItem, CommitteeStaffMember } from './committeeTypes'
+import type { IndicatorDefinition } from '../indicators/indicatorTypes'
 
 // What every dialog of the record gets.
-interface DialogProps {
+interface DialogProps<T> {
   busy: boolean
   onClose: () => void
-  onSave: (draft: AnyRecord) => unknown
+  onSave: (draft: T) => unknown
   en: boolean
 }
 type SetField = (key: string, value: unknown) => void
 
 // Dialogs opened from the committee record page (CommitteeRecordPage.jsx).
-export function CommitteeDetailsDialog({ record, busy, onClose, onSave, en }: DialogProps & { record: AnyRecord }) {
-  const [v, setV] = useState<AnyRecord>({
+export function CommitteeDetailsDialog({ record, busy, onClose, onSave, en }: DialogProps<Partial<Committee>> & { record: Committee }) {
+  const [v, setV] = useState({
     name: record.name || '',
     shortName: record.shortName || '',
     status: record.status || 'active',
@@ -142,7 +143,7 @@ export function ReasonDialog({
   onClose,
   onSave,
   en,
-}: Omit<DialogProps, 'onSave'> & { title: string, description: string, label: ReactNode, confirmLabel: ReactNode, onSave: (reason: string) => unknown, danger?: boolean }) {
+}: Omit<DialogProps<unknown>, 'onSave'> & { title: string, description: string, label: ReactNode, confirmLabel: ReactNode, onSave: (reason: string) => unknown, danger?: boolean }) {
   const [reason, setReason] = useState('')
   return (
     <ObserverDialog
@@ -174,8 +175,8 @@ export function ReasonDialog({
   )
 }
 
-export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamName = '' }: DialogProps & { staff: AnyRecord[], initial?: AnyRecord, teamName?: string }) {
-  const seed: AnyRecord = initial
+export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamName = '' }: DialogProps<CommitteeMemberDraft> & { staff: CommitteeStaffMember[], initial?: CommitteeMember, teamName?: string }) {
+  const seed: CommitteeMemberDraft = initial
     ? {
         ...initial,
         memberName: initial.name || '',
@@ -199,7 +200,8 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamNa
         inControlTeam: false,
         approvalRequired: false,
       }
-  const [v, setV] = useState<AnyRecord>(seed)
+  // Every member has a title (committee_members.title is required; the new member starts as «Μέλος»).
+  const [v, setV] = useState<CommitteeMemberDraft & { committeeTitle: string }>(seed as CommitteeMemberDraft & { committeeTitle: string })
   const set: SetField = (k, x) => setV(s => ({ ...s, [k]: x }))
   const normalize = (x: unknown) =>
     String(x || '')
@@ -363,8 +365,8 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamNa
 
 // The date first; the title, when left empty, is made from the type and the month («Τακτική συνεδρίαση Νοεμβρίου 2026»).
 // A committee with a working team (ΟΕΕ) also chooses who meets.
-export function NewMeetingDialog({ busy, onClose, onSave, en, teamName = '', hasTeam = false }: DialogProps & { teamName?: string, hasTeam?: boolean }) {
-  const [v, setV] = useState<AnyRecord>({
+export function NewMeetingDialog({ busy, onClose, onSave, en, teamName = '', hasTeam = false }: DialogProps<CommitteeMeetingDraft> & { teamName?: string, hasTeam?: boolean }) {
+  const [v, setV] = useState<CommitteeMeetingDraft>({
     title: '',
     meetingType: 'regular',
     composition: 'plenary',
@@ -446,9 +448,9 @@ export function NewMeetingDialog({ busy, onClose, onSave, en, teamName = '', has
 
 const GENITIVE_MONTHS: Record<string, string> = { ιανουάριος: 'Ιανουαρίου', φεβρουάριος: 'Φεβρουαρίου', μάρτιος: 'Μαρτίου', απρίλιος: 'Απριλίου', μάιος: 'Μαΐου', ιούνιος: 'Ιουνίου', ιούλιος: 'Ιουλίου', αύγουστος: 'Αυγούστου', σεπτέμβριος: 'Σεπτεμβρίου', οκτώβριος: 'Οκτωβρίου', νοέμβριος: 'Νοεμβρίου', δεκέμβριος: 'Δεκεμβρίου' }
 
-export function DecisionDialog({ initial, meetings, members = [], busy, onClose, onSave, en }: DialogProps & { initial?: AnyRecord, meetings: AnyRecord[], members?: AnyRecord[] }) {
+export function DecisionDialog({ initial, meetings, members = [], busy, onClose, onSave, en }: DialogProps<CommitteeDecisionDraft> & { initial?: CommitteeDecision, meetings: CommitteeMeeting[], members?: CommitteeMember[] }) {
   const matchedMember = initial?.ownerId ? members.find(m => m.userId === initial.ownerId) : null
-  const [v, setV] = useState<AnyRecord>(() => ({
+  const [v, setV] = useState<CommitteeDecisionDraft>(() => ({
     title: '',
     action: '',
     owner: '',
@@ -570,9 +572,9 @@ export function DecisionDialog({ initial, meetings, members = [], busy, onClose,
   )
 }
 
-export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps & { initial?: AnyRecord }) {
+export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps<CommitteePlanDraft> & { initial?: CommitteePlanItem }) {
   const { tenant } = useTenant()
-  const [v, setV] = useState<AnyRecord>(
+  const [v, setV] = useState<CommitteePlanDraft>(
     initial
       ? { ...initial, status: initial.status || 'open' }
       : {
@@ -585,7 +587,7 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps &
           status: 'open',
         },
   )
-  const [indicatorOptions, setIndicatorOptions] = useState<AnyRecord[]>([])
+  const [indicatorOptions, setIndicatorOptions] = useState<IndicatorDefinition[]>([])
   const set: SetField = (k, x) => setV(s => ({ ...s, [k]: x }))
   useEffect(() => {
     let active = true
@@ -608,7 +610,7 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps &
   }, [tenant?.id])
   const selectedIndicator =
     indicatorOptions.find(x =>
-      [x.titleEl, x.titleEn, x.key].filter(Boolean).includes(v.indicator),
+      [x.titleEl, x.titleEn, x.key].filter(Boolean).includes(v.indicator as string),
     ) || null
   const selectIndicator = (id: string) => {
     const item = indicatorOptions.find(x => x.id === id)
@@ -648,7 +650,7 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps &
           >
             <option value="">{en ? 'No indicator' : 'Χωρίς δείκτη'}</option>
             {indicatorOptions.map(item => (
-              <option key={item.id} value={item.id}>
+              <option key={item.id} value={item.id as string}>
                 {en ? item.titleEn || item.titleEl : item.titleEl}
               </option>
             ))}
@@ -692,8 +694,8 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps &
   )
 }
 
-export function FrameworkDialog({ record, busy, onClose, onSave, en }: DialogProps & { record: AnyRecord }) {
-  const [v, setV] = useState<AnyRecord>({
+export function FrameworkDialog({ record, busy, onClose, onSave, en }: DialogProps<Partial<Committee>> & { record: Committee }) {
+  const [v, setV] = useState({
     legalBasis: record.legalBasis || '',
     committeeRole: record.committeeRole || '',
     decisionNumber: record.decisionNumber || '',

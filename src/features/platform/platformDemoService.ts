@@ -1,6 +1,9 @@
 import { countryOrDefault } from '../../core/tenant/tenantService'
 import { invokeAuthenticatedFunction, supabase } from '../../core/supabase/client'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Database } from '../../core/supabase/database.types'
+import type { DemoCreatedEvaluator, DemoEvaluatorInput, DemoRecordDraft } from './platformDemoTypes'
+
+type OrganizationType = Database['public']['Enums']['organization_type']
 
 const demoSelect = 'id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,type,status,region,health_region,city,country,contact_email,contact_phone,bed_capacity,is_demo)'
 
@@ -22,13 +25,13 @@ export function demoDatesValid(validFrom: unknown, validUntil: unknown) {
   return String(validUntil).slice(0, 10) > String(validFrom).slice(0, 10)
 }
 
-export async function savePlatformDemoRecord(demo: AnyRecord, patch: AnyRecord) {
+export async function savePlatformDemoRecord(demo: { id?: string | null; organization_id?: string | null }, patch: DemoRecordDraft) {
   if (!supabase || !demo?.id || !demo?.organization_id) throw new Error('SUPABASE_NOT_CONFIGURED')
   if (!demoDatesValid(patch.validFrom, patch.validUntil)) throw new Error('DEMO_DATES_INVALID')
 
   const organizationPayload = {
     name: String(patch.label || '').trim(),
-    type: patch.type || 'hospital',
+    type: (patch.type || 'hospital') as OrganizationType,
     region: patch.region || null,
     health_region: patch.healthRegion || null,
     city: patch.city || null,
@@ -64,14 +67,14 @@ export async function savePlatformDemoRecord(demo: AnyRecord, patch: AnyRecord) 
 }
 
 // A fresh link for a Demo user to set a password and sign in (to pass on by hand).
-export async function getPlatformDemoAccessLink({ entitlementId, userId }: AnyRecord) {
+export async function getPlatformDemoAccessLink({ entitlementId, userId }: { entitlementId?: string | null; userId?: string | null }): Promise<string> {
   if (!supabase || !entitlementId || !userId) throw new Error('SUPABASE_NOT_CONFIGURED')
   const result = await invokeAuthenticatedFunction('create-demo-access', { action: 'access_link', entitlementId, userId })
   return result?.link || ''
 }
 
 // One more evaluator in an existing Demo (same rules as the wizard).
-export async function addPlatformDemoEvaluator({ entitlementId, evaluator }: AnyRecord) {
+export async function addPlatformDemoEvaluator({ entitlementId, evaluator }: { entitlementId?: string | null; evaluator: DemoEvaluatorInput }): Promise<{ evaluator?: DemoCreatedEvaluator } | null> {
   if (!supabase || !entitlementId) throw new Error('SUPABASE_NOT_CONFIGURED')
   return invokeAuthenticatedFunction('create-demo-access', { action: 'add_evaluator', entitlementId, evaluator })
 }

@@ -10,7 +10,10 @@ import { addPlatformDemoEvaluator, getPlatformDemoAccessLink } from './platformD
 import { DEMO_DEPARTMENTS, DEMO_DEPARTMENT_ROLES, DEMO_EVALUATOR_ROLES } from './DemoCreateWizard'
 import { AccessLinkDialog } from './DemoAccessLinkDialog'
 import './demoWizard.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DemoCreatedEvaluator, DemoEvaluatorInput } from './platformDemoTypes'
+
+// Ένα μέλος του Demo όπως το φέρνει η λίστα μελών του οργανισμού.
+type DemoMember = Awaited<ReturnType<typeof listOrganizationMembersDetailed>>[number]
 
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -18,14 +21,14 @@ const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // invitation, sends a password-reset email, adds or removes an evaluator.
 // With no users yet (e.g. the invitation failed when the Demo was created),
 // the contact person can be invited from here in one step.
-export function DemoEvaluatorsPanel({organizationId,entitlementId,language,maxUsers=5,disabled=false,contactName='',contactEmail=''}: {organizationId?: string|null,entitlementId?: string|null,language: string,maxUsers?: number,disabled?: boolean,contactName?: string,contactEmail?: string}){
+export function DemoEvaluatorsPanel({organizationId,entitlementId,language,maxUsers=5,disabled=false,contactName='',contactEmail=''}: {organizationId?: string|null,entitlementId?: string|null,language: string,maxUsers?: number,disabled?: boolean,contactName?: string|null,contactEmail?: string|null}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const {notify,notifyError,confirm}=useFeedback()
-  const [members,setMembers]=useState<AnyRecord[]>([])
+  const [members,setMembers]=useState<DemoMember[]>([])
   const [loading,setLoading]=useState(true)
   const [working,setWorking]=useState('')
   const [adding,setAdding]=useState(false)
-  const [created,setCreated]=useState<AnyRecord | null>(null)
+  const [created,setCreated]=useState<DemoCreatedEvaluator | null>(null)
   const [accessLink,setAccessLink]=useState<{name?: string,email?: string,link: string,emailSent?: boolean|null} | null>(null)
 
   const reload=useCallback(async()=>{
@@ -35,7 +38,7 @@ export function DemoEvaluatorsPanel({organizationId,entitlementId,language,maxUs
   },[organizationId,notifyError])
   useEffect(()=>{void reload()},[reload])
 
-  async function run(member: AnyRecord,action: string){
+  async function run(member: DemoMember,action: string){
     const labels=({
       resend_invitation:[tx('Επαναποστολή πρόσκλησης','Resend invitation'),tx(`Θα σταλεί νέα πρόσκληση στο ${member.email}.`,`A new invitation will be sent to ${member.email}.`),tx('Η πρόσκληση στάλθηκε.','Invitation sent.')],
       reset_password:[tx('Επαναφορά κωδικού','Reset password'),tx(`Θα σταλεί email ορισμού νέου κωδικού στο ${member.email}.`,`A password-reset email will be sent to ${member.email}.`),tx('Στάλθηκε email επαναφοράς κωδικού.','Password-reset email sent.')],
@@ -50,19 +53,19 @@ export function DemoEvaluatorsPanel({organizationId,entitlementId,language,maxUs
   }
 
   // A fresh sign-in link for the Owner to pass on when the email does not arrive.
-  async function showLink(member: AnyRecord){
+  async function showLink(member: DemoMember){
     setWorking(member.id)
     try{setAccessLink({name:member.name,email:member.email,link:await getPlatformDemoAccessLink({entitlementId,userId:member.userId})})}
     catch(error){notifyError(error,'load',{operation:'demo_access_link'})}
     finally{setWorking('')}
   }
 
-  async function add(evaluator: AnyRecord){
+  async function add(evaluator: DemoEvaluatorInput){
     setWorking('new')
     try{
       const result=await addPlatformDemoEvaluator({entitlementId,evaluator})
       setAdding(false)
-      const added=result?.evaluator||{}
+      const added: DemoCreatedEvaluator=result?.evaluator||{}
       if(added.temporaryPassword)setCreated(added)
       else if(added.accessLink)setAccessLink({name:added.fullName,email:added.email,link:added.accessLink,emailSent:added.emailSent})
       if(added.temporaryPassword||added.emailSent)notify(added.emailSent?tx(`Στάλθηκε πρόσκληση στο ${added.email}.`,`Invitation sent to ${added.email}.`):tx('Ο χρήστης προστέθηκε.','User added.'),'success',{operation:'demo_evaluator_add'})
@@ -107,7 +110,7 @@ export function DemoEvaluatorsPanel({organizationId,entitlementId,language,maxUs
   </section>
 }
 
-function AddEvaluatorDialog({language,working=false,takenEmails=[],onAdd,onClose}: {language: string,working?: boolean,takenEmails?: string[],onAdd?: (draft: AnyRecord)=>void,onClose?: ()=>void}){
+function AddEvaluatorDialog({language,working=false,takenEmails=[],onAdd,onClose}: {language: string,working?: boolean,takenEmails?: string[],onAdd?: (draft: DemoEvaluatorInput)=>void,onClose?: ()=>void}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const [draft,setDraft]=useState({fullName:'',email:'',role:'infection_control_lead',departmentCode:'ΜΕΘ',access:'invite'})
   const set=(key: string,value: string)=>setDraft(c=>({...c,[key]:value}))

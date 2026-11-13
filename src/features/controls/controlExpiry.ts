@@ -4,23 +4,31 @@
 // removed or replaced. The control definition sets how many days before expiry
 // an item starts to alert, and for how many days after expiry it keeps alerting.
 
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution, ControlRecord, ControlResponseConfig, ExpiryCatalogueItem, StructuredRow } from './controlTypes'
 
-type Rec = AnyRecord | null | undefined
-// An item on a department's expiry list (expiryItems).
-export type ExpiryItem = AnyRecord
+// A control as the expiry lists read it: its settings and its departments' entries.
+// The entries are read only for their date, status and rows.
+type ExpiryEntry = Pick<ControlExecution, 'id'> & Partial<Pick<ControlExecution, 'at' | 'status' | 'structuredData'>>
+type Rec<E extends ExpiryEntry = ExpiryEntry> = { responseConfig?: ControlResponseConfig | null, assignments?: Record<string, { history?: E[] }> } | null | undefined
+// A row of an entry, or an item of the control's list.
+type Row = StructuredRow | null | undefined
+// An item on a department's expiry list (expiryItems): its row, the entry it
+// came from (none for an item of the list), its state and whether it alerts.
+export interface ExpiryItem<E extends ExpiryEntry = ControlExecution> { key: string, department: string, execution: E | null, index: number, row: StructuredRow, source: string, state: string, days: number | null, alert: boolean }
+// A bell item for a control and department (expiryAlerts).
+export interface ExpiryAlert { id: string, type: string, title: string, message: string, to: string, count: number }
 
 export const DEFAULT_EXPIRY_BEFORE_DAYS=30
 export const DEFAULT_EXPIRY_AFTER_DAYS=7
 const DAY=86_400_000
 
 export function isExpiryControl(record:Rec){
- const response=record?.responseConfig||{}
+ const response:ControlResponseConfig=record?.responseConfig||{}
  return response.mode==='list'&&response.template==='medication_expiry'
 }
 
 export function expiryWindow(record:Rec){
- const response=record?.responseConfig||{}
+ const response:ControlResponseConfig=record?.responseConfig||{}
  const days=(value:unknown,fallback:number)=>{const n=Number(value);return value!==''&&value!=null&&Number.isFinite(n)&&n>=0?Math.round(n):fallback}
  return {before:days(response.expiryBeforeDays,DEFAULT_EXPIRY_BEFORE_DAYS),after:days(response.expiryAfterDays,DEFAULT_EXPIRY_AFTER_DAYS)}
 }
@@ -50,8 +58,8 @@ export function expiryState(expiry:unknown,{before,after}:{before:number,after:n
  return {state:'ok',days,alert:false}
 }
 
-const hasItem=(row:Rec)=>String(row?.item||'').trim()&&String(row?.expiry||'').trim()
-const itemKey=(row:Rec)=>String(row?.item||'').trim().toLocaleLowerCase('el')
+const hasItem=(row:Row)=>String(row?.item||'').trim()&&String(row?.expiry||'').trim()
+const itemKey=(row:Row)=>String(row?.item||'').trim().toLocaleLowerCase('el')
 
 // What a listed item is: tablet, ampoule, vial, … (stored as the key).
 export const ITEM_FORMS=[
@@ -73,15 +81,15 @@ export function formLabel(form:unknown,language='el'){
 // short-dated items): those rows are findings of that day, listed check by check
 // (state 'finding'). They are not stock on a list: they never count as expired or
 // expiring, never alert, and the next check does not start from them.
-export function expiryItems(record:Rec,departments:string[]|null|undefined,now:Date|string|number=new Date()){
+export function expiryItems<E extends ExpiryEntry>(record:Rec<E>,departments:string[]|null|undefined,now:Date|string|number=new Date()){
  const window=expiryWindow(record)
- const items:ExpiryItem[]=[]
+ const items:ExpiryItem<E>[]=[]
  for(const department of departments||[]){
-  const history:AnyRecord[]=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime())
+  const history:E[]=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime())
   if(recordsFindingsOnly(record,department)){
    for(const execution of history){
     if(execution.status==='cancelled')continue
-    ;(execution.structuredData?.rows||[]).forEach((row:AnyRecord,index:number)=>{
+    ;(execution.structuredData?.rows||[]).forEach((row:StructuredRow,index:number)=>{
      if(!String(row?.item||'').trim())return
      items.push({key:`${department}|${execution.id}|${index}`,department,execution,index,row,source:'finding',state:'finding',days:daysToExpiry(row.expiry,now),alert:false})
     })
@@ -91,7 +99,7 @@ export function expiryItems(record:Rec,departments:string[]|null|undefined,now:D
   const recorded=new Set<string>()
   for(const execution of history){
    if(execution.status==='cancelled')continue
-   const rows:AnyRecord[]=execution.structuredData?.rows||[]
+   const rows:StructuredRow[]=execution.structuredData?.rows||[]
    rows.forEach((row,index)=>{
     if(!hasItem(row)||row.removedAt||recorded.has(itemKey(row)))return
     items.push({key:`${department}|${execution.id}|${index}`,department,execution,index,row,source:'entry',...expiryState(row.expiry,window,now)})
@@ -107,8 +115,8 @@ export function expiryItems(record:Rec,departments:string[]|null|undefined,now:D
 }
 
 // Items on lists first, soonest expiry first; then the findings, latest check first.
-export function compareExpiryItems(a:ExpiryItem,b:ExpiryItem){
- const finding=(x:ExpiryItem)=>x.state==='finding'?1:0
+export function compareExpiryItems(a:ExpiryItem<ExpiryEntry>,b:ExpiryItem<ExpiryEntry>){
+ const finding=(x:ExpiryItem<ExpiryEntry>)=>x.state==='finding'?1:0
  return finding(a)-finding(b)||(finding(a)?new Date(b.execution?.at||0).getTime()-new Date(a.execution?.at||0).getTime():(a.days??Infinity)-(b.days??Infinity))
 }
 
@@ -121,13 +129,13 @@ export function catalogueItem({item='',quantity='',form='',expiry='',note='',not
  return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),quantity:String(quantity??'').trim(),form:String(form||''),expiry:String(expiry||''),note:String(note||''),noteEn:String(noteEn||''),departments:[...departments],category:String(category||''),ingredient:String(ingredient||'').trim()}
 }
 // Fewer than expected were found: both numbers are known and the count is short.
-export function quantityShort(row:Rec){
+export function quantityShort(row:Row){
  const expected=Number(String(row?.expected??'').replace(',','.')),found=Number(String(row?.quantity??'').replace(',','.'))
  return String(row?.expected??'').trim()!==''&&String(row?.quantity??'').trim()!==''&&Number.isFinite(expected)&&Number.isFinite(found)&&found<expected
 }
-export function expiryCatalogue(record:Rec):AnyRecord[]{
+export function expiryCatalogue(record:Rec):ExpiryCatalogueItem[]{
  const list=record?.responseConfig?.expiryCatalogue
- return Array.isArray(list)?list.filter((entry:AnyRecord)=>String(entry?.item||'').trim()).map((entry:AnyRecord)=>({...entry,form:entry.form||entry.unit||''})):[]
+ return Array.isArray(list)?list.filter((entry:ExpiryCatalogueItem)=>String(entry?.item||'').trim()).map((entry:ExpiryCatalogueItem)=>({...entry,form:entry.form||entry.unit||''})):[]
 }
 export function catalogueForDepartment(record:Rec,department:string){
  return expiryCatalogue(record).filter(entry=>!entry.departments?.length||entry.departments.includes(department))
@@ -152,8 +160,8 @@ export function parseCatalogueLines(text:unknown){
 export function prefilledExpiryRows(record:Rec,department:string){
  // Without a list each check starts empty: the last check's findings are not carried over.
  if(recordsFindingsOnly(record,department))return []
- const latest=new Map<string,AnyRecord>()
- const history:AnyRecord[]=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime())
+ const latest=new Map<string,StructuredRow>()
+ const history:ExpiryEntry[]=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime())
  for(const execution of history){
   if(execution.status==='cancelled')continue
   for(const row of execution.structuredData?.rows||[]){const key=itemKey(row);if(key&&!latest.has(key))latest.set(key,row)}
@@ -161,8 +169,8 @@ export function prefilledExpiryRows(record:Rec,department:string){
  const listed=catalogueForDepartment(record,department)
  const listedKeys=new Set(listed.map(itemKey))
  const added=[...latest.values()].filter(row=>!row.removedAt&&!listedKeys.has(itemKey(row)))
- const toRow=(base:AnyRecord,last:AnyRecord|undefined,expected:unknown)=>{
-  const from=last?(last.removedAt?{}:last):base
+ const toRow=(base:StructuredRow|ExpiryCatalogueItem,last:StructuredRow|undefined,expected:unknown)=>{
+  const from:StructuredRow=last?(last.removedAt?{}:last):base
   const values={quantity:String(from.quantity||''),lot:String(from.lot||''),expiry:String(from.expiry||'')}
   // previous: what the row held when the entry opened, for the change form.
   // expected: the list's quantity, which the found quantity is compared with.
@@ -171,7 +179,7 @@ export function prefilledExpiryRows(record:Rec,department:string){
  return [...listed.map(entry=>toRow(entry,latest.get(itemKey(entry)),entry.quantity)),...added.map(row=>toRow(row,row,row.expected))]
 }
 
-export function expiryCounts(items:ExpiryItem[]){
+export function expiryCounts(items:Pick<ExpiryItem,'state'|'alert'>[]){
  return {
   expired:items.filter(item=>item.state==='expired').length,
   expiring:items.filter(item=>item.state==='expiring').length,
@@ -181,7 +189,7 @@ export function expiryCounts(items:ExpiryItem[]){
 
 // The finding an item's expiry date implies, for rows left without one: a code
 // ('expired' | 'expiring'), shown in the screen's language (controlVocabulary).
-export function impliedFinding(row:Rec,window:{before:number,after:number},now:Date|string|number=new Date()){
+export function impliedFinding(row:Row,window:{before:number,after:number},now:Date|string|number=new Date()){
  const {state}=expiryState(row?.expiry,window,now)
  if(state==='expired')return state
  if(quantityShort(row))return 'shortage'
@@ -190,15 +198,15 @@ export function impliedFinding(row:Rec,window:{before:number,after:number},now:D
 }
 
 // The entry's structured data with one row marked as removed or replaced.
-export function markRowRemoved(execution:AnyRecord,index:number,{actorName='',at=new Date().toISOString()}:{actorName?:string,at?:string}={}){
+export function markRowRemoved(execution:Pick<ControlExecution,'structuredData'>,index:number,{actorName='',at=new Date().toISOString()}:{actorName?:string,at?:string}={}){
  const structured=execution.structuredData||{rows:[]}
- return {...structured,rows:(structured.rows||[]).map((row:AnyRecord,i:number)=>i===index?{...row,removedAt:at,removedBy:actorName}:row)}
+ return {...structured,rows:(structured.rows||[]).map((row:StructuredRow,i:number)=>i===index?{...row,removedAt:at,removedBy:actorName}:row)}
 }
 
 // One bell item per control and department with items that alert today.
-export function expiryAlerts(programme:AnyRecord[]|null|undefined,{canSee=()=>true,language='el',now=new Date()}:{canSee?:(record:AnyRecord,department:string)=>boolean,language?:string,now?:Date}={}){
+export function expiryAlerts<R extends NonNullable<Rec> & Pick<ControlRecord,'id'|'departments'>>(programme:R[]|null|undefined,{canSee=()=>true,language='el',now=new Date()}:{canSee?:(record:R,department:string)=>boolean,language?:string,now?:Date}={}){
  const en=language==='en'
- const alerts:AnyRecord[]=[]
+ const alerts:ExpiryAlert[]=[]
  for(const record of programme||[]){
   if(!isExpiryControl(record))continue
   const visible:string[]=(record.departments||[]).filter((dep:string)=>canSee(record,dep))
@@ -222,4 +230,4 @@ export function expiryAlerts(programme:AnyRecord[]|null|undefined,{canSee=()=>tr
 
 // A note in the screen's language: the standard template notes also carry an English text,
 // which stays until someone edits the note.
-export const noteText=(row:Rec,language:string)=>language==='en'&&row?.noteEn?row.noteEn:String(row?.note||'')
+export const noteText=(row:Row,language:string)=>language==='en'&&row?.noteEn?row.noteEn:String(row?.note||'')

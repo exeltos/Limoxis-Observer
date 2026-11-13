@@ -13,7 +13,7 @@ import { selectInChunks } from '../../core/data/inChunks'
 import { kitchenDemoState } from './kitchenDemoData'
 import { addDays, batchProblem, combine, normalize, stockRows, todayKey, withStatuses } from './kitchenModel'
 import { defrostStatus, needsCorrectiveAction, pureeingStatus, receiptStatus, resolveLimits, thermalStatuses } from './kitchenLimits'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { KitchenBatchBalanceRow, KitchenDayEntry, KitchenDbRow, KitchenDefrostDraft, KitchenEntries, KitchenLimit, KitchenProductionInput, KitchenRecallDrill, KitchenReceiptInput, KitchenSettings, KitchenState, KitchenSupplierRow, KitchenTable, KitchenTableList, KitchenTraceSnapshot } from './kitchenTypes'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // The kitchen's tables are named by the caller (`table`): a client without the database types, as the
@@ -22,13 +22,24 @@ const supabase = configuredClient as unknown as SupabaseClient
 
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const LOCAL_KEY = 'kitchen_local_state'
-const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
+const isUuid = (value: unknown): value is string => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
 const localId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-const must = ({ data, error }: AnyRecord) => { if (error) throw error; return data }
+const must = <T>({ data, error }: { data: T | null, error: unknown }): T => { if (error) throw error; return data as T }
+// The first reads of a trace (a table's columns for the organization) and the filters they take.
+const traceRead = (table: KitchenTable, columns: string, organizationId: string) => supabase.from(table).select(columns).eq('organization_id', organizationId)
+type KitchenQuery = ReturnType<typeof traceRead>
+// What a trace reads first of the batches and uses: ids, names and the batch of a use.
+type LightRow = { id: string, product_name?: string | null, dish_name?: string | null, receipt_item_id?: string | null }
+// The values of an entry for a table: any of its fields, as typed or as read (toValue converts them).
+type KitchenEntryValues<T extends KitchenTable> = { [K in keyof KitchenEntries[T]]?: unknown }
+// The demo keeps each table's rows in one list of the state, found and replaced by id.
+type LocalRow = { id: string, productionId?: string, verifiedAt?: string | null, receiptItemId?: string }
+type LocalLists = Record<KitchenTableList, LocalRow[]>
 
 // --- Columns ----------------------------------------------------------------------------
 // camelCase field → [column, kind]; kind: t text, n number, b boolean, d date / time / timestamp, u uuid, j json.
-const COLUMNS: Record<string, Record<string, [string, string]>> = {
+type ColumnKind = 't' | 'n' | 'b' | 'd' | 'u' | 'j'
+const COLUMNS: Record<KitchenTable, Record<string, [string, ColumnKind]>> = {
   kitchen_settings: { expiryWarningDays: ['expiry_warning_days', 'n'], haccpReviewMonths: ['haccp_review_months', 'n'], haccpLastReviewOn: ['haccp_last_review_on', 'd'], haccpDocumentId: ['haccp_document_id', 'u'], haccpTeam: ['haccp_team', 't'], recallDrillMonths: ['recall_drill_months', 'n'], notes: ['notes', 't'] },
   kitchen_limits: { limitKey: ['limit_key', 't'], label: ['label', 't'], minValue: ['min_value', 'n'], maxValue: ['max_value', 'n'], withinMinutes: ['within_minutes', 'n'], unit: ['unit', 't'], active: ['active', 'b'], notes: ['notes', 't'] },
   kitchen_haccp_steps: { position: ['position', 'n'], stepKey: ['step_key', 't'], name: ['name', 't'], hazardBiological: ['hazard_biological', 'b'], hazardChemical: ['hazard_chemical', 'b'], hazardPhysical: ['hazard_physical', 'b'], hazardAllergen: ['hazard_allergen', 'b'], hazards: ['hazards', 't'], isCcp: ['is_ccp', 'b'], controlMeasure: ['control_measure', 't'], limitKey: ['limit_key', 't'], monitoring: ['monitoring', 't'], frequency: ['frequency', 't'], correctiveAction: ['corrective_action', 't'], verification: ['verification', 't'], records: ['records', 't'], responsible: ['responsible', 't'], active: ['active', 'b'] },
@@ -53,7 +64,7 @@ const COLUMNS: Record<string, Record<string, [string, string]>> = {
     tracedWithinTarget: ['traced_within_target', 'b'], traceSnapshot: ['trace_snapshot', 'j'], notified: ['notified', 't'], actions: ['actions', 't'], result: ['result', 't'], lessons: ['lessons', 't'], conductedByEmployeeId: ['conducted_by_employee_id', 'u'], conductedByName: ['conducted_by_name', 't'], status: ['status', 't'], notes: ['notes', 't'] },
 }
 // Read-only columns the database fills (statuses, sign-off, codes).
-const READ_ONLY: Record<string, Record<string, string>> = {
+const READ_ONLY: Partial<Record<KitchenTable, Record<string, string>>> = {
   kitchen_receipts: { temperatureStatus: 'temperature_status', result: 'result', limitStatus: 'limit_status' },
   kitchen_receipt_items: { temperatureStatus: 'temperature_status' },
   kitchen_thermal_processes: { cookingStatus: 'cooking_status', chillStatus: 'chill_status', reheatStatus: 'reheat_status', fryingStatus: 'frying_status', limitStatus: 'limit_status' },
@@ -71,13 +82,15 @@ const toValue = (kind: string, value: unknown) => {
   if (kind === 't') { const text = String(value).trim(); return text || null }
   return value
 }
-export function toRow(table: string, entry: AnyRecord) {
-  const row: AnyRecord = {}
+export function toRow<T extends KitchenTable>(table: T, entry: KitchenEntryValues<T>): Record<string, unknown>
+export function toRow(table: KitchenTable, entry: Record<string, unknown>) {
+  const row: Record<string, unknown> = {}
   for (const [field, [column, kind]] of Object.entries(COLUMNS[table])) if (field in entry) row[column] = toValue(kind, entry[field])
   return row
 }
-export function fromRow(table: string, row: AnyRecord) {
-  const entry: AnyRecord = { id: row.id, createdAt: row.created_at, updatedAt: row.updated_at }
+export function fromRow<T extends KitchenTable>(table: T, row: Partial<KitchenDbRow<T>>): KitchenEntries[T]
+export function fromRow(table: KitchenTable, row: Record<string, unknown>) {
+  const entry: Record<string, unknown> = { id: row.id, createdAt: row.created_at, updatedAt: row.updated_at }
   for (const [field, [column, kind]] of Object.entries(COLUMNS[table])) {
     const value = row[column]
     entry[field] = kind === 'j' ? value ?? null : kind === 'b' ? (value == null ? null : Boolean(value)) : value == null ? '' : kind === 'd' && /time$/.test(column) && typeof value === 'string' && /^\d{2}:\d{2}/.test(value) ? value.slice(0, 5) : value
@@ -86,31 +99,32 @@ export function fromRow(table: string, row: AnyRecord) {
   return entry
 }
 
-async function selectAll(build: () => AnyRecord) {
-  const all: AnyRecord[] = []
+// The rows are those of the table the caller names (R): the client is untyped.
+async function selectAll<R>(build: () => { range: (from: number, to: number) => PromiseLike<{ data: unknown, error: unknown }> }) {
+  const all: R[] = []
   for (let from = 0; ; from += 1000) {
-    const page = must(await build().range(from, from + 999)) || []
+    const page = must(await build().range(from, from + 999)) as R[] | null || []
     all.push(...page)
     if (page.length < 1000) return all
   }
 }
-const byOrg = (table: string, organizationId: string | null | undefined, order = 'created_at') => selectAll(() => supabase.from(table).select('*').eq('organization_id', organizationId as string).order(order).order('id'))
+const byOrg = <T extends KitchenTable>(table: T, organizationId: string | null | undefined, order = 'created_at') => selectAll<KitchenDbRow<T>>(() => supabase.from(table).select('*').eq('organization_id', organizationId as string).order(order).order('id'))
 
 // --- Local (demo) ---------------------------------------------------------------------------
 
-function local() {
+function local(): KitchenState {
   const saved = loadSnapshot(LOCAL_KEY, null)
   if (saved && Array.isArray(saved.receipts)) return Array.isArray(saved.recallDrills) ? saved : { ...saved, recallDrills: isEmptyPreview() ? [] : kitchenDemoState().recallDrills }
   const seed = kitchenDemoState()
   // Empty-hospital preview: the kitchen's settings, limits and HACCP steps, no records.
-  const state = isEmptyPreview() ? Object.fromEntries(Object.entries(seed).map(([key, value]) => [key, Array.isArray(value) && !['limits', 'steps'].includes(key) ? [] : value])) : seed
+  const state = isEmptyPreview() ? Object.fromEntries(Object.entries(seed).map(([key, value]) => [key, Array.isArray(value) && !['limits', 'steps'].includes(key) ? [] : value])) as KitchenState : seed
   saveSnapshot(LOCAL_KEY, state)
   return state
 }
-const saveLocal = (state: AnyRecord) => saveSnapshot(LOCAL_KEY, state)
+const saveLocal = (state: KitchenState) => saveSnapshot(LOCAL_KEY, state)
 // The demo kitchen as it is in this browser (the Analysis demo reads it).
 export const loadKitchenLocal = () => local()
-const upsertIn = (list: AnyRecord[], entry: AnyRecord) => (list.some((item: AnyRecord) => item.id === entry.id) ? list.map((item: AnyRecord) => (item.id === entry.id ? entry : item)) : [...list, entry])
+const upsertIn = <T extends { id?: string }>(list: T[], entry: T) => (list.some(item => item.id === entry.id) ? list.map(item => (item.id === entry.id ? entry : item)) : [...list, entry])
 
 export class KitchenRuleError extends Error { code: string; constructor(code: string) { super(code); this.code = code } }
 
@@ -133,8 +147,8 @@ export const kitchenSince = (today = todayKey()) => addDays(today, -KITCHEN_WIND
 const CONFIG_TABLES = new Set(['kitchen_settings', 'kitchen_limits', 'kitchen_haccp_steps', 'kitchen_products', 'kitchen_menus'])
 const configCache = new Map()
 export function clearKitchenConfigCache(organizationId: string | null | undefined) { if (organizationId === undefined) configCache.clear(); else configCache.delete(organizationId) }
-const DEFAULT_SETTINGS = { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: '', haccpDocumentId: '', haccpTeam: '', recallDrillMonths: 12, notes: '' }
-const EMPTY_STATE = { settings: null, limits: [], steps: [], products: [], menus: [], receipts: [], writeoffs: [], productions: [], usage: [], thermal: [], pureeing: [], defrosting: [], suppliers: [], recallDrills: [] }
+const DEFAULT_SETTINGS: KitchenSettings = { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: '', haccpDocumentId: '', haccpTeam: '', recallDrillMonths: 12, notes: '' }
+const EMPTY_STATE: KitchenState = { settings: null, limits: [], steps: [], products: [], menus: [], receipts: [], writeoffs: [], productions: [], usage: [], thermal: [], pureeing: [], defrosting: [], suppliers: [], recallDrills: [] }
 
 function loadKitchenConfig(organizationId: string | null | undefined, now = Date.now()) {
   const hit = configCache.get(organizationId)
@@ -142,7 +156,7 @@ function loadKitchenConfig(organizationId: string | null | undefined, now = Date
   const promise = Promise.all([
     supabase.from('kitchen_settings').select('*').eq('organization_id', organizationId as string).maybeSingle().then(must),
     byOrg('kitchen_limits', organizationId, 'limit_key'), byOrg('kitchen_haccp_steps', organizationId, 'position'), byOrg('kitchen_products', organizationId, 'name'), byOrg('kitchen_menus', organizationId, 'weekday'),
-    selectAll(() => supabase.from('quality_suppliers').select('id,name,category,status').eq('organization_id', organizationId as string).order('name').order('id')).catch(() => []),
+    selectAll<KitchenSupplierRow>(() => supabase.from('quality_suppliers').select('id,name,category,status').eq('organization_id', organizationId as string).order('name').order('id')).catch(() => []),
   ]).then(([settings, limits, steps, products, menus, suppliers]) => ({
     settings: settings ? fromRow('kitchen_settings', settings) : { ...DEFAULT_SETTINGS },
     limits: resolveLimits(limits.map(row => fromRow('kitchen_limits', row))),
@@ -157,52 +171,52 @@ function loadKitchenConfig(organizationId: string | null | undefined, now = Date
 }
 
 // Rows of a table whose `column` is one of `values` (in chunks), in the order given.
-const rowsIn = (table: string, organizationId: string | null | undefined, column: string, values: unknown[], order: [string][] = [['created_at'], ['id']], select = '*') => (values.length
+const rowsIn = <T extends KitchenTable>(table: T, organizationId: string | null | undefined, column: string, values: unknown[], order: [string][] = [['created_at'], ['id']], select = '*'): Promise<Partial<KitchenDbRow<T>>[]> => (values.length
   ? selectInChunks(values, chunk => supabase.from(table).select(select).eq('organization_id', organizationId as string).in(column, chunk).order(order[0][0]).order('id'), { order }).then(must)
   : Promise.resolve([]))
-const fromSince = (table: string, organizationId: string | null | undefined, column: string, since: string, order = column) => selectAll(() => {
+const fromSince = <T extends KitchenTable>(table: T, organizationId: string | null | undefined, column: string, since: string | null, order = column) => selectAll<KitchenDbRow<T>>(() => {
   const query = supabase.from(table).select('*').eq('organization_id', organizationId as string)
   return (since ? query.gte(column, since) : query).order(order).order('id')
 })
-const balancesOf = (rows: AnyRecord[]) => Object.fromEntries(rows.map((row: AnyRecord) => [row.receipt_item_id, { used: Number(row.used) || 0, uses: Number(row.uses) || 0, writtenOff: Number(row.written_off) || 0 }]))
-const receiptsWithItems = (receipts: AnyRecord[], items: AnyRecord[]) => {
-  const itemsBy = group(items.map((row: AnyRecord) => ({ ...fromRow('kitchen_receipt_items', row), receiptId: row.receipt_id })), 'receiptId')
-  return receipts.map((row: AnyRecord) => ({ ...fromRow('kitchen_receipts', row), items: itemsBy.get(row.id) || [] }))
+const balancesOf = (rows: Partial<KitchenBatchBalanceRow>[]) => Object.fromEntries(rows.map(row => [row.receipt_item_id, { used: Number(row.used) || 0, uses: Number(row.uses) || 0, writtenOff: Number(row.written_off) || 0 }]))
+const receiptsWithItems = (receipts: Partial<KitchenDbRow<'kitchen_receipts'>>[], items: Partial<KitchenDbRow<'kitchen_receipt_items'>>[]) => {
+  const itemsBy = group(items.map(row => ({ ...fromRow('kitchen_receipt_items', row), receiptId: row.receipt_id })), 'receiptId')
+  return receipts.map(row => ({ ...fromRow('kitchen_receipts', row), items: itemsBy.get(row.id) || [] }))
 }
-const productionsWithMeals = (productions: AnyRecord[], meals: AnyRecord[]): AnyRecord[] => {
-  const mealsBy = group(meals.map((row: AnyRecord) => ({ ...fromRow('kitchen_production_meals', row), productionId: row.production_id })), 'productionId')
-  return productions.map((row: AnyRecord) => ({ ...fromRow('kitchen_productions', row), meals: mealsBy.get(row.id) || [] }))
+const productionsWithMeals = (productions: Partial<KitchenDbRow<'kitchen_productions'>>[], meals: Partial<KitchenDbRow<'kitchen_production_meals'>>[]) => {
+  const mealsBy = group(meals.map(row => ({ ...fromRow('kitchen_production_meals', row), productionId: row.production_id })), 'productionId')
+  return productions.map(row => ({ ...fromRow('kitchen_productions', row), meals: mealsBy.get(row.id) || [] }))
 }
-const byReceivedOn = (a: AnyRecord, b: AnyRecord) => String(a.received_on).localeCompare(String(b.received_on)) || String(a.id).localeCompare(String(b.id))
+const byReceivedOn = (a: Partial<KitchenDbRow<'kitchen_receipts'>>, b: Partial<KitchenDbRow<'kitchen_receipts'>>) => String(a.received_on).localeCompare(String(b.received_on)) || String(a.id).localeCompare(String(b.id))
 // Receipts by id with all their products.
 async function loadReceiptRows(organizationId: string | null | undefined, ids: unknown[]) {
   const receipts = (await rowsIn('kitchen_receipts', organizationId, 'id', ids, [['received_on'], ['id']])).sort(byReceivedOn)
-  const items = await rowsIn('kitchen_receipt_items', organizationId, 'receipt_id', receipts.map((row: AnyRecord) => row.id), [['position'], ['id']])
+  const items = await rowsIn('kitchen_receipt_items', organizationId, 'receipt_id', receipts.map(row => row.id), [['position'], ['id']])
   return receiptsWithItems(receipts, items)
 }
 // Production days by id with their meals.
 async function loadProductionRows(organizationId: string | null | undefined, ids: unknown[]) {
   const productions = await rowsIn('kitchen_productions', organizationId, 'id', ids, [['production_date'], ['id']])
-  const meals = await rowsIn('kitchen_production_meals', organizationId, 'production_id', productions.map((row: AnyRecord) => row.id), [['position'], ['id']])
+  const meals = await rowsIn('kitchen_production_meals', organizationId, 'production_id', productions.map(row => row.id), [['position'], ['id']])
   return productionsWithMeals(productions, meals)
 }
 const outCount = (table: string, organizationId: string | null | undefined) => supabase.from(table).select('id', { count: 'exact', head: true }).eq('organization_id', organizationId as string).eq('limit_status', 'out').then(({ count, error }) => { if (error) throw error; return count || 0 })
 
 // The kitchen screens' state, with each entry's in / out of limits. `since` (a day, or
 // null for the whole history) is where the day records start.
-export async function loadKitchen(organizationId: string | null | undefined, { since = kitchenSince() } = {}) {
+export async function loadKitchen(organizationId: string | null | undefined, { since = kitchenSince() }: { since?: string | null } = {}) {
   if (isLocal()) return withStatuses(local())
   if (!organizationId) return withStatuses({ ...EMPTY_STATE })
   const [config, balances, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, recallDrills, outOfLimitsTotal] = await Promise.all([
     loadKitchenConfig(organizationId),
-    selectAll(() => supabase.rpc('kitchen_batch_balances', { p_organization_id: organizationId as string, p_since: since || null }).order('receipt_item_id')),
+    selectAll<KitchenBatchBalanceRow>(() => supabase.rpc('kitchen_batch_balances', { p_organization_id: organizationId as string, p_since: since || null }).order('receipt_item_id')),
     fromSince('kitchen_receipts', organizationId, 'received_on', since),
     byOrg('kitchen_stock_writeoffs', organizationId, 'written_off_on'),
     fromSince('kitchen_productions', organizationId, 'production_date', since),
     fromSince('kitchen_material_usage', organizationId, 'used_on', since),
     fromSince('kitchen_thermal_processes', organizationId, 'process_date', since),
     fromSince('kitchen_pureeing', organizationId, 'pureed_on', since),
-    selectAll(() => {
+    selectAll<KitchenDbRow<'kitchen_defrosting'>>(() => {
       const query = supabase.from('kitchen_defrosting').select('*').eq('organization_id', organizationId as string)
       return (since ? query.or(`started_at.gte.${since},ended_at.gte.${since}`) : query).order('started_at').order('id')
     }),
@@ -227,7 +241,7 @@ export async function loadKitchen(organizationId: string | null | undefined, { s
     thermal: thermal.map(row => fromRow('kitchen_thermal_processes', row)),
     pureeing: pureeing.map(row => fromRow('kitchen_pureeing', row)),
     defrosting: defrosting.map(row => fromRow('kitchen_defrosting', row)),
-    recallDrills: recallDrills.map(row => ({ ...fromRow('kitchen_recall_drills', row), stockCounts: row.trace_snapshot?.stockCounts || {} })),
+    recallDrills: recallDrills.map(row => ({ ...fromRow('kitchen_recall_drills', row), stockCounts: (row.trace_snapshot as KitchenTraceSnapshot | null)?.stockCounts || {} })),
     balances: balancesOf(balances),
     since: since || null,
     ...(outOfLimitsTotal == null ? {} : { outOfLimitsTotal }),
@@ -240,17 +254,17 @@ export async function loadKitchenReceipt(organizationId: string | null | undefin
   if (isLocal()) return withStatuses(local())
   if (!organizationId || !isUuid(receiptId)) return withStatuses({ ...EMPTY_STATE })
   const [config, receipts] = await Promise.all([loadKitchenConfig(organizationId), loadReceiptRows(organizationId, [receiptId])])
-  const itemIds = receipts.flatMap((row: AnyRecord) => row.items.map((item: AnyRecord) => item.id))
+  const itemIds = receipts.flatMap(row => row.items.map(item => item.id))
   const [usage, writeoffs] = await Promise.all([
     rowsIn('kitchen_material_usage', organizationId, 'receipt_item_id', itemIds, [['used_on'], ['id']]),
     rowsIn('kitchen_stock_writeoffs', organizationId, 'receipt_item_id', itemIds, [['written_off_on'], ['id']]),
   ])
-  const productionIds = [...new Set(usage.map((row: AnyRecord) => row.production_id).filter(Boolean))]
+  const productionIds = [...new Set(usage.map(row => row.production_id).filter(Boolean))]
   const [productions, thermal] = await Promise.all([
     loadProductionRows(organizationId, productionIds),
     rowsIn('kitchen_thermal_processes', organizationId, 'production_id', productionIds, [['process_date'], ['id']]),
   ])
-  return { ...EMPTY_STATE, ...config, receipts, writeoffs: writeoffs.map((row: AnyRecord) => fromRow('kitchen_stock_writeoffs', row)), productions, usage: usage.map((row: AnyRecord) => fromRow('kitchen_material_usage', row)), thermal: thermal.map((row: AnyRecord) => fromRow('kitchen_thermal_processes', row)) }
+  return { ...EMPTY_STATE, ...config, receipts, writeoffs: writeoffs.map(row => fromRow('kitchen_stock_writeoffs', row)), productions, usage: usage.map(row => fromRow('kitchen_material_usage', row)), thermal: thermal.map(row => fromRow('kitchen_thermal_processes', row)) }
 }
 
 // One production day (its record page): the day and its meals, what was recorded on it,
@@ -267,23 +281,23 @@ export async function loadKitchenDay(organizationId: string | null | undefined, 
     rowsIn('kitchen_material_usage', organizationId, 'production_id', [productionId], [['used_on'], ['id']]),
     rowsIn('kitchen_thermal_processes', organizationId, 'production_id', [productionId], [['process_date'], ['id']]),
     rowsIn('kitchen_pureeing', organizationId, 'production_id', [productionId], [['pureed_on'], ['id']]),
-    selectAll(() => supabase.from('kitchen_defrosting').select('*').eq('organization_id', organizationId as string).or(`production_id.eq.${productionId},${loose('started_at')},${loose('ended_at')}`).order('started_at').order('id')),
-    selectAll(() => supabase.from('kitchen_receipts').select('id,received_on').eq('organization_id', organizationId as string).eq('received_on', day).order('id')),
+    selectAll<KitchenDbRow<'kitchen_defrosting'>>(() => supabase.from('kitchen_defrosting').select('*').eq('organization_id', organizationId as string).or(`production_id.eq.${productionId},${loose('started_at')},${loose('ended_at')}`).order('started_at').order('id')),
+    selectAll<Pick<KitchenDbRow<'kitchen_receipts'>, 'id' | 'received_on'>>(() => supabase.from('kitchen_receipts').select('id,received_on').eq('organization_id', organizationId as string).eq('received_on', day).order('id')),
     byOrg('kitchen_stock_writeoffs', organizationId, 'written_off_on'),
   ])
   // The batches the day used may be older than the stock still on the shelf: the balances
   // start from the oldest of them.
-  const usedItems = await rowsIn('kitchen_receipt_items', organizationId, 'id', [...new Set(usage.map((row: AnyRecord) => row.receipt_item_id).filter(Boolean))], [['position'], ['id']], 'id,receipt_id,position')
-  const usedReceipts = await rowsIn('kitchen_receipts', organizationId, 'id', [...new Set(usedItems.map((row: AnyRecord) => row.receipt_id))], [['received_on'], ['id']], 'id,received_on')
-  const since = [day, ...usedReceipts.map((row: AnyRecord) => row.received_on)].filter(Boolean).sort()[0]
-  const balances = await selectAll(() => supabase.rpc('kitchen_batch_balances', { p_organization_id: organizationId as string, p_since: since }).order('receipt_item_id'))
-  const receipts = await loadReceiptRows(organizationId, [...new Set([...balances.map(row => row.receipt_id), ...dayReceipts.map(row => row.id), ...usedReceipts.map((row: AnyRecord) => row.id)])])
+  const usedItems = await rowsIn('kitchen_receipt_items', organizationId, 'id', [...new Set(usage.map(row => row.receipt_item_id).filter(Boolean))], [['position'], ['id']], 'id,receipt_id,position')
+  const usedReceipts = await rowsIn('kitchen_receipts', organizationId, 'id', [...new Set(usedItems.map(row => row.receipt_id))], [['received_on'], ['id']], 'id,received_on')
+  const since = [day, ...usedReceipts.map(row => row.received_on)].filter(Boolean).sort()[0]
+  const balances = await selectAll<KitchenBatchBalanceRow>(() => supabase.rpc('kitchen_batch_balances', { p_organization_id: organizationId as string, p_since: since }).order('receipt_item_id'))
+  const receipts = await loadReceiptRows(organizationId, [...new Set([...balances.map(row => row.receipt_id), ...dayReceipts.map(row => row.id), ...usedReceipts.map(row => row.id)])])
   return {
     ...EMPTY_STATE, ...config, receipts, productions,
     writeoffs: writeoffs.map(row => fromRow('kitchen_stock_writeoffs', row)),
-    usage: usage.map((row: AnyRecord) => fromRow('kitchen_material_usage', row)),
-    thermal: thermal.map((row: AnyRecord) => fromRow('kitchen_thermal_processes', row)),
-    pureeing: pureeing.map((row: AnyRecord) => fromRow('kitchen_pureeing', row)),
+    usage: usage.map(row => fromRow('kitchen_material_usage', row)),
+    thermal: thermal.map(row => fromRow('kitchen_thermal_processes', row)),
+    pureeing: pureeing.map(row => fromRow('kitchen_pureeing', row)),
     defrosting: defrosting.map(row => fromRow('kitchen_defrosting', row)),
     balances: balancesOf(balances),
   }
@@ -297,14 +311,14 @@ export async function loadKitchenTrace(organizationId: string | null | undefined
   if (isLocal() || !organizationId) return null
   const itemIds = new Set(receiptItemIds.filter(isUuid))
   const usageIds = new Set<string>()
-  const light = (table: string, columns: string, build = (query: AnyRecord) => query) => selectAll(() => build(supabase.from(table).select(columns).eq('organization_id', organizationId as string)).order('id'))
+  const light = (table: KitchenTable, columns: string, build = (query: KitchenQuery) => query) => selectAll<LightRow>(() => build(traceRead(table, columns, organizationId as string)).order('id'))
   if (isUuid(productId)) {
-    for (const row of await light('kitchen_receipt_items', 'id', (query: AnyRecord) => query.eq('product_id', productId))) itemIds.add(row.id)
-    for (const row of await light('kitchen_material_usage', 'id', (query: AnyRecord) => query.is('receipt_item_id', null).eq('product_id', productId))) usageIds.add(row.id)
+    for (const row of await light('kitchen_receipt_items', 'id', query => query.eq('product_id', productId))) itemIds.add(row.id)
+    for (const row of await light('kitchen_material_usage', 'id', query => query.is('receipt_item_id', null).eq('product_id', productId))) usageIds.add(row.id)
   } else if (normalize(productName)) {
     const name = normalize(productName)
     for (const row of await light('kitchen_receipt_items', 'id,product_name')) if (normalize(row.product_name) === name) itemIds.add(row.id)
-    for (const row of await light('kitchen_material_usage', 'id,product_name', (query: AnyRecord) => query.is('receipt_item_id', null))) if (normalize(row.product_name) === name) usageIds.add(row.id)
+    for (const row of await light('kitchen_material_usage', 'id,product_name', query => query.is('receipt_item_id', null))) if (normalize(row.product_name) === name) usageIds.add(row.id)
   }
   if (normalize(dishName)) {
     const dish = normalize(dishName)
@@ -320,60 +334,62 @@ export async function loadKitchenTrace(organizationId: string | null | undefined
   const allProductions = [...new Set(usage.map(row => row.production_id).filter(Boolean))]
   const items = await rowsIn('kitchen_receipt_items', organizationId, 'id', [...new Set([...itemIds, ...usage.map(row => row.receipt_item_id).filter(Boolean)])], [['position'], ['id']], 'id,receipt_id,position')
   const [receipts, productions, thermal] = await Promise.all([
-    loadReceiptRows(organizationId, [...new Set(items.map((row: AnyRecord) => row.receipt_id))]),
+    loadReceiptRows(organizationId, [...new Set(items.map(row => row.receipt_id))]),
     loadProductionRows(organizationId, allProductions),
     rowsIn('kitchen_thermal_processes', organizationId, 'production_id', allProductions, [['process_date'], ['id']]),
   ])
-  return { receipts, productions, usage: usage.map(row => fromRow('kitchen_material_usage', row)), thermal: thermal.map((row: AnyRecord) => fromRow('kitchen_thermal_processes', row)) }
+  return { receipts, productions, usage: usage.map(row => fromRow('kitchen_material_usage', row)), thermal: thermal.map(row => fromRow('kitchen_thermal_processes', row)) }
 }
 
 // Every dish name the materials were used for (the recall drill's dish list).
 export async function loadKitchenDishNames(organizationId: string | null | undefined) {
   if (isLocal() || !organizationId) return []
-  const rows = await selectAll(() => supabase.from('kitchen_material_usage').select('id,dish_name').eq('organization_id', organizationId as string).not('dish_name', 'is', null).order('id'))
+  const rows = await selectAll<Pick<KitchenDbRow<'kitchen_material_usage'>, 'id' | 'dish_name'>>(() => supabase.from('kitchen_material_usage').select('id,dish_name').eq('organization_id', organizationId as string).not('dish_name', 'is', null).order('id'))
   return [...new Set(rows.map(row => row.dish_name).filter(Boolean))]
 }
 
 // The loaded state with rows read for a trace (by id; the loaded rows stay).
-export function mergeKitchenState(state: AnyRecord, extra: AnyRecord) {
+// The lists a trace adds rows to (by id).
+type TraceLists = Partial<Record<'receipts' | 'productions' | 'usage' | 'thermal', { id?: string }[]>>
+export function mergeKitchenState<S extends TraceLists>(state: S, extra: TraceLists | null | undefined): S {
   if (!state || !extra) return state
-  const merged = { ...state }
-  for (const key of ['receipts', 'productions', 'usage', 'thermal']) {
-    const known = new Set((state[key] || []).map((row: AnyRecord) => row.id))
-    const added = (extra[key] || []).filter((row: AnyRecord) => !known.has(row.id))
+  const merged: TraceLists = { ...state }
+  for (const key of ['receipts', 'productions', 'usage', 'thermal'] as const) {
+    const known = new Set((state[key] || []).map(row => row.id))
+    const added = (extra[key] || []).filter(row => !known.has(row.id))
     if (added.length) merged[key] = [...(state[key] || []), ...added]
   }
-  return merged
+  return merged as S
 }
-const group = (rows: AnyRecord[], key: string) => { const map = new Map(); for (const row of rows) { const list = map.get(row[key]) || []; list.push(row); map.set(row[key], list) } return map }
+const group = <T extends Record<string, unknown>>(rows: T[], key: keyof T) => { const map = new Map<unknown, T[]>(); for (const row of rows) { const list = map.get(row[key]) || []; list.push(row); map.set(row[key], list) } return map }
 
-async function writeRow(table: string, organizationId: string | null | undefined, entry: AnyRecord, extra = {}) {
+async function writeRow<T extends KitchenTable>(table: T, organizationId: string | null | undefined, entry: KitchenEntryValues<T> & { id?: unknown }, extra = {}): Promise<KitchenDbRow<T>> {
   if (CONFIG_TABLES.has(table)) clearKitchenConfigCache(organizationId)
   const row = { ...toRow(table, entry), ...extra }
   if (isUuid(entry.id)) return must(await supabase.from(table).update(row).eq('id', entry.id).eq('organization_id', organizationId as string).select('*').single())
   return must(await supabase.from(table).insert({ ...row, organization_id: organizationId as string }).select('*').single())
 }
 // The child rows of a parent as `rows` lists them: removes the others, writes these.
-async function syncChildren(table: string, organizationId: string | null | undefined, parentColumn: string, parentId: string, rows: AnyRecord[]) {
-  const existing = must(await supabase.from(table).select('id').eq('organization_id', organizationId as string).eq(parentColumn, parentId)) || []
-  const keep = new Set(rows.filter((row: AnyRecord) => isUuid(row.id)).map((row: AnyRecord) => row.id))
-  const remove = existing.map((row: AnyRecord) => row.id).filter((id: string) => !keep.has(id))
+async function syncChildren<T extends KitchenTable>(table: T, organizationId: string | null | undefined, parentColumn: string, parentId: string, rows: readonly (KitchenEntryValues<T> & { id?: unknown })[]) {
+  const existing: { id: string }[] = must(await supabase.from(table).select('id').eq('organization_id', organizationId as string).eq(parentColumn, parentId)) || []
+  const keep = new Set(rows.filter(row => isUuid(row.id)).map(row => row.id))
+  const remove = existing.map(row => row.id).filter((id: string) => !keep.has(id))
   if (remove.length) must(await supabase.from(table).delete().eq('organization_id', organizationId as string).in('id', remove))
   for (const [index, row] of rows.entries()) await writeRow(table, organizationId, { ...row, position: index }, { [parentColumn]: parentId })
 }
 
 // A receipt with its products. Returns the saved receipt id.
-export async function saveReceipt(organizationId: string | null | undefined, receipt: AnyRecord) {
+export async function saveReceipt(organizationId: string | null | undefined, receipt: KitchenReceiptInput) {
   if (isLocal()) {
-    const state = local()
+    const state = local(), lists: LocalLists = state
     const limits = resolveLimits(state.limits)
-    const items = (receipt.items || []).map((item: AnyRecord) => ({ ...item, id: item.id || localId('kri') }))
+    const items = (receipt.items || []).map(item => ({ ...item, id: item.id || localId('kri') }))
     const { status } = receiptStatus(limits, receipt, items)
     if (status === 'out' && needsCorrectiveAction(status, receipt.correctiveAction) && needsCorrectiveAction(status, receipt.qualityNotes)) throw new KitchenRuleError('KITCHEN_CORRECTIVE_ACTION_REQUIRED')
     // As the database numbers them: only the PAR-0001 codes count (the history's PAR-2025-001 do not).
-    const code = receipt.code || `PAR-${String(Math.max(0, ...state.receipts.map((item: AnyRecord) => Number(String(item.code).match(/^PAR-(\d+)$/)?.[1]) || 0)) + 1).padStart(4, '0')}`
+    const code = receipt.code || `PAR-${String(Math.max(0, ...state.receipts.map(item => Number(String(item.code).match(/^PAR-(\d+)$/)?.[1]) || 0)) + 1).padStart(4, '0')}`
     const next = { ...receipt, id: receipt.id || localId('kr'), code, items, source: receipt.source || 'app' }
-    state.receipts = upsertIn(state.receipts, next)
+    lists.receipts = upsertIn<LocalRow>(lists.receipts, next)
     saveLocal(state)
     return next.id
   }
@@ -384,37 +400,39 @@ export async function saveReceipt(organizationId: string | null | undefined, rec
 
 export async function removeEntry(organizationId: string | null | undefined, table: string, id: string) {
   if (isLocal()) {
-    const state = local()
+    const state = local(), lists: LocalLists = state
     const field = LOCAL_FIELD[table]
-    state[field] = state[field].filter((item: AnyRecord) => item.id !== id)
-    if (table === 'kitchen_receipts') { const ids = new Set(); for (const r of state.receipts) for (const i of r.items || []) ids.add(i.id); state.usage = state.usage.map((u: AnyRecord) => (u.receiptItemId && !ids.has(u.receiptItemId) ? { ...u, receiptItemId: '' } : u)); state.writeoffs = state.writeoffs.filter((w: AnyRecord) => ids.has(w.receiptItemId)) }
+    lists[field] = lists[field].filter(item => item.id !== id)
+    if (table === 'kitchen_receipts') { const ids = new Set<string>(); for (const r of state.receipts) for (const i of r.items || []) ids.add(i.id); state.usage = state.usage.map(u => (u.receiptItemId && !ids.has(u.receiptItemId) ? { ...u, receiptItemId: '' } : u)); state.writeoffs = state.writeoffs.filter(w => ids.has(w.receiptItemId)) }
     saveLocal(state)
     return
   }
   if (CONFIG_TABLES.has(table)) clearKitchenConfigCache(organizationId)
   must(await supabase.from(table).delete().eq('id', id).eq('organization_id', organizationId as string))
 }
-const LOCAL_FIELD: Record<string, string> = { kitchen_receipts: 'receipts', kitchen_material_usage: 'usage', kitchen_thermal_processes: 'thermal', kitchen_pureeing: 'pureeing', kitchen_defrosting: 'defrosting', kitchen_productions: 'productions', kitchen_products: 'products', kitchen_menus: 'menus', kitchen_haccp_steps: 'steps', kitchen_stock_writeoffs: 'writeoffs', kitchen_recall_drills: 'recallDrills' }
+// Who signs off: the signed-in user and their employee record.
+type KitchenActor = { id?: string | null, name?: string, employeeId?: string }
+const LOCAL_FIELD: Record<string, KitchenTableList> = { kitchen_receipts: 'receipts', kitchen_material_usage: 'usage', kitchen_thermal_processes: 'thermal', kitchen_pureeing: 'pureeing', kitchen_defrosting: 'defrosting', kitchen_productions: 'productions', kitchen_products: 'products', kitchen_menus: 'menus', kitchen_haccp_steps: 'steps', kitchen_stock_writeoffs: 'writeoffs', kitchen_recall_drills: 'recallDrills' }
 
-const locked = (state: AnyRecord, productionId: string) => Boolean(productionId && state.productions.find((item: AnyRecord) => item.id === productionId)?.verifiedAt)
+const locked = (state: KitchenState, productionId: string | undefined) => Boolean(productionId && state.productions.find(item => item.id === productionId)?.verifiedAt)
 
 // One entry of a production day or of the defrost list, with the database's rules.
-export async function saveEntry(organizationId: string | null | undefined, table: string, entry: AnyRecord) {
+export async function saveEntry(organizationId: string | null | undefined, table: 'kitchen_material_usage' | 'kitchen_thermal_processes' | 'kitchen_pureeing' | 'kitchen_defrosting', entry: KitchenDayEntry) {
   if (isLocal()) {
-    const state = local()
+    const state = local(), lists: LocalLists = state
     const limits = resolveLimits(state.limits)
-    if (['kitchen_material_usage', 'kitchen_thermal_processes', 'kitchen_pureeing'].includes(table) && (locked(state, entry.productionId) || locked(state, state[LOCAL_FIELD[table]].find((item: AnyRecord) => item.id === entry.id)?.productionId))) throw new KitchenRuleError('KITCHEN_DAY_VERIFIED')
+    if (['kitchen_material_usage', 'kitchen_thermal_processes', 'kitchen_pureeing'].includes(table) && (locked(state, entry.productionId) || locked(state, lists[LOCAL_FIELD[table]].find(item => item.id === entry.id)?.productionId))) throw new KitchenRuleError('KITCHEN_DAY_VERIFIED')
     const status = table === 'kitchen_thermal_processes' ? thermalStatuses(limits, entry).overall : table === 'kitchen_pureeing' ? pureeingStatus(entry) : table === 'kitchen_defrosting' ? defrostStatus(limits, entry) : null
     if (needsCorrectiveAction(status, entry.correctiveAction) && (entry.source || 'app') === 'app') throw new KitchenRuleError('KITCHEN_CORRECTIVE_ACTION_REQUIRED')
-    if (table === 'kitchen_defrosting') { const before = state.defrosting.find((item: AnyRecord) => item.id === entry.id); if (before?.verifiedAt) throw new KitchenRuleError('KITCHEN_RECORD_VERIFIED') }
+    if (table === 'kitchen_defrosting') { const before = state.defrosting.find(item => item.id === entry.id); if (before?.verifiedAt) throw new KitchenRuleError('KITCHEN_RECORD_VERIFIED') }
     if (table === 'kitchen_material_usage' && entry.receiptItemId) {
-      const stock = stockRows({ ...state, usage: state.usage.filter((item: AnyRecord) => item.id !== entry.id) }).find((row: AnyRecord) => row.receiptItemId === entry.receiptItemId)
-      const problem = stock ? batchProblem(stock, entry.usedOn, entry.quantity) : ''
-      if (problem) throw new KitchenRuleError(!stock?.inStock ? 'KITCHEN_BATCH_REJECTED' : stock?.expiryOn && stock.expiryOn < entry.usedOn ? 'KITCHEN_BATCH_EXPIRED' : 'KITCHEN_STOCK_INSUFFICIENT')
+      const stock = stockRows({ ...state, usage: state.usage.filter(item => item.id !== entry.id) }).find(row => row.receiptItemId === entry.receiptItemId)
+      const problem = stock ? batchProblem(stock, entry.usedOn as string, entry.quantity) : ''
+      if (problem) throw new KitchenRuleError(!stock?.inStock ? 'KITCHEN_BATCH_REJECTED' : stock?.expiryOn && stock.expiryOn < (entry.usedOn as string) ? 'KITCHEN_BATCH_EXPIRED' : 'KITCHEN_STOCK_INSUFFICIENT')
     }
     const next = { ...entry, id: entry.id || localId('ke'), source: entry.source || 'app' }
     const field = LOCAL_FIELD[table]
-    state[field] = upsertIn(state[field], next)
+    lists[field] = upsertIn<LocalRow>(lists[field], next)
     saveLocal(state)
     return next.id
   }
@@ -422,15 +440,15 @@ export async function saveEntry(organizationId: string | null | undefined, table
 }
 
 // A defrost's start / end as timestamps from the form's day and time.
-export const defrostEntry = (draft: AnyRecord) => ({ ...draft, startedAt: combine(draft.startDay, draft.startTime), endedAt: draft.endDay ? combine(draft.endDay, draft.endTime) : '' })
+export const defrostEntry = (draft: Partial<KitchenDefrostDraft>) => ({ ...draft, startedAt: combine(draft.startDay, draft.startTime), endedAt: draft.endDay ? combine(draft.endDay, draft.endTime) : '' })
 
-export async function saveProduction(organizationId: string | null | undefined, production: AnyRecord) {
+export async function saveProduction(organizationId: string | null | undefined, production: KitchenProductionInput) {
   if (isLocal()) {
-    const state = local()
-    const before = state.productions.find((item: AnyRecord) => item.id === production.id)
+    const state = local(), lists: LocalLists = state
+    const before = state.productions.find(item => item.id === production.id)
     if (before?.verifiedAt) throw new KitchenRuleError('KITCHEN_RECORD_VERIFIED')
-    const next = { ...production, id: production.id || localId('kp'), meals: (production.meals || []).map((meal: AnyRecord) => ({ ...meal, id: meal.id || localId('km') })), source: production.source || 'app' }
-    state.productions = upsertIn(state.productions, next)
+    const next = { ...production, id: production.id || localId('kp'), meals: (production.meals || []).map(meal => ({ ...meal, id: meal.id || localId('km') })), source: production.source || 'app' }
+    lists.productions = upsertIn<LocalRow>(lists.productions, next)
     saveLocal(state)
     return next.id
   }
@@ -440,12 +458,12 @@ export async function saveProduction(organizationId: string | null | undefined, 
 }
 
 // The HACCP sign-off of a day or a defrost (who and when); reopening needs a reason.
-export async function signOff(organizationId: string | null | undefined, table: string, id: string, { actor, notes = '' }: AnyRecord) {
+export async function signOff(organizationId: string | null | undefined, table: string, id: string, { actor, notes = '' }: { actor?: KitchenActor | null, notes?: string }) {
   const stamp = { verifiedAt: new Date().toISOString(), verifiedByName: actor?.name || '', verifiedByEmployeeId: actor?.employeeId || '', reopenReason: '', ...(table === 'kitchen_productions' ? { verificationNotes: notes } : {}) }
   if (isLocal()) {
-    const state = local()
+    const state = local(), lists: LocalLists = state
     const field = LOCAL_FIELD[table]
-    state[field] = state[field].map((item: AnyRecord) => (item.id === id ? { ...item, ...stamp } : item))
+    lists[field] = lists[field].map(item => (item.id === id ? { ...item, ...stamp } : item))
     saveLocal(state)
     return
   }
@@ -454,19 +472,19 @@ export async function signOff(organizationId: string | null | undefined, table: 
 export async function reopen(organizationId: string | null | undefined, table: string, id: string, reason: string) {
   if (String(reason || '').trim().length < 3) throw new KitchenRuleError('KITCHEN_REOPEN_REASON_REQUIRED')
   if (isLocal()) {
-    const state = local()
+    const state = local(), lists: LocalLists = state
     const field = LOCAL_FIELD[table]
-    state[field] = state[field].map((item: AnyRecord) => (item.id === id ? { ...item, verifiedAt: null, verifiedByName: null, verifiedByEmployeeId: null, reopenReason: reason } : item))
+    lists[field] = lists[field].map(item => (item.id === id ? { ...item, verifiedAt: null, verifiedByName: null, verifiedByEmployeeId: null, reopenReason: reason } : item))
     saveLocal(state)
     return
   }
   must(await supabase.from(table).update({ verified_at: null, verified_by: null, verified_by_employee_id: null, verified_by_name: null, reopen_reason: reason }).eq('id', id).eq('organization_id', organizationId as string))
 }
 
-export async function saveWriteoff(organizationId: string | null | undefined, writeoff: AnyRecord) {
+export async function saveWriteoff(organizationId: string | null | undefined, writeoff: Partial<KitchenEntries['kitchen_stock_writeoffs']>) {
   if (isLocal()) {
-    const state = local()
-    state.writeoffs = upsertIn(state.writeoffs, { ...writeoff, id: writeoff.id || localId('kw') })
+    const state = local(), lists: LocalLists = state
+    lists.writeoffs = upsertIn<LocalRow>(lists.writeoffs, { ...writeoff, id: writeoff.id || localId('kw') })
     saveLocal(state)
     return
   }
@@ -474,27 +492,27 @@ export async function saveWriteoff(organizationId: string | null | undefined, wr
 }
 
 // A recall drill (Άσκηση ανάκλησης). Returns the saved drill (with its code).
-export async function saveRecallDrill(organizationId: string | null | undefined, drill: AnyRecord) {
+export async function saveRecallDrill(organizationId: string | null | undefined, drill: Partial<KitchenRecallDrill>) {
   if (isLocal()) {
-    const state = local()
+    const state = local(), lists: LocalLists = state
     const list = state.recallDrills || []
-    const code = drill.code || `ANK-${String(Math.max(0, ...list.map((item: AnyRecord) => Number(String(item.code).replace(/\D/g, '')) || 0)) + 1).padStart(4, '0')}`
+    const code = drill.code || `ANK-${String(Math.max(0, ...list.map(item => Number(String(item.code).replace(/\D/g, '')) || 0)) + 1).padStart(4, '0')}`
     const next = { ...drill, id: drill.id || localId('krd'), code, updatedAt: new Date().toISOString() }
-    state.recallDrills = upsertIn(list, next)
+    lists.recallDrills = upsertIn<LocalRow>(list, next)
     saveLocal(state)
     return next
   }
   const saved = await writeRow('kitchen_recall_drills', organizationId, { ...drill, code: drill.code || '' }, drill.code ? {} : { code: '' })
-  return { ...fromRow('kitchen_recall_drills', saved), stockCounts: saved.trace_snapshot?.stockCounts || {} }
+  return { ...fromRow('kitchen_recall_drills', saved), stockCounts: (saved.trace_snapshot as KitchenTraceSnapshot | null)?.stockCounts || {} }
 }
 
 // Catalogue, menus, HACCP steps: one row each.
-export async function saveSimple(organizationId: string | null | undefined, table: string, entry: AnyRecord) {
+export async function saveSimple<T extends 'kitchen_products' | 'kitchen_menus' | 'kitchen_haccp_steps'>(organizationId: string | null | undefined, table: T, entry: Partial<KitchenEntries[T]>) {
   if (isLocal()) {
-    const state = local()
+    const state = local(), lists: LocalLists = state
     const field = LOCAL_FIELD[table]
     const next = { ...entry, id: entry.id || localId('kx') }
-    state[field] = upsertIn(state[field], next)
+    lists[field] = upsertIn<LocalRow>(lists[field], next)
     saveLocal(state)
     return next.id
   }
@@ -502,21 +520,21 @@ export async function saveSimple(organizationId: string | null | undefined, tabl
 }
 
 // The organization's critical limits and settings.
-export async function saveLimits(organizationId: string | null | undefined, limits: AnyRecord[]) {
+export async function saveLimits(organizationId: string | null | undefined, limits: Partial<KitchenLimit>[]) {
   if (isLocal()) {
     const state = local()
-    state.limits = limits.map((item: AnyRecord) => ({ limitKey: item.limitKey, minValue: item.minValue, maxValue: item.maxValue, withinMinutes: item.withinMinutes, active: item.active !== false }))
+    state.limits = limits.map(item => ({ limitKey: item.limitKey, minValue: item.minValue, maxValue: item.maxValue, withinMinutes: item.withinMinutes, active: item.active !== false }))
     saveLocal(state)
     return
   }
   clearKitchenConfigCache(organizationId)
-  const rows = limits.map((item: AnyRecord) => ({ ...toRow('kitchen_limits', { ...item, label: item.label?.[0] || item.limitKey }), organization_id: organizationId as string }))
+  const rows = limits.map(item => ({ ...toRow('kitchen_limits', { ...item, label: item.label?.[0] || item.limitKey }), organization_id: organizationId as string }))
   must(await supabase.from('kitchen_limits').upsert(rows, { onConflict: 'organization_id,limit_key' }))
 }
-export async function saveSettings(organizationId: string | null | undefined, settings: AnyRecord) {
+export async function saveSettings(organizationId: string | null | undefined, settings: Partial<KitchenSettings>) {
   if (isLocal()) {
     const state = local()
-    state.settings = { ...state.settings, ...settings }
+    state.settings = { ...state.settings, ...settings } as KitchenSettings
     saveLocal(state)
     return
   }
@@ -527,7 +545,7 @@ export async function saveSettings(organizationId: string | null | undefined, se
 // The message for an error of a kitchen rule (database or demo).
 export function kitchenErrorMessage(error: unknown, language = 'el') {
   const en = language === 'en'
-  const text = `${(error as AnyRecord | null)?.code || ''} ${(error as AnyRecord | null)?.message || ''}`
+  const text = `${(error as { code?: unknown } | null)?.code || ''} ${(error as { message?: unknown } | null)?.message || ''}`
   const known = [
     ['KITCHEN_CORRECTIVE_ACTION_REQUIRED', en ? 'An entry out of limits needs a corrective action.' : 'Μια καταχώριση εκτός ορίων χρειάζεται διορθωτική ενέργεια.'],
     ['KITCHEN_BATCH_EXPIRED', en ? 'The batch has expired and cannot be used.' : 'Η παρτίδα έχει λήξει και δεν χρησιμοποιείται.'],

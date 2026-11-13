@@ -12,12 +12,14 @@ import { BulkAccountsPanel } from './BulkAccountsPanel'
 import { ActiveUsersDialog } from './ActiveUsersDialog'
 import { latestSessionByUser } from './platformOverviewShared'
 import { USER_STATE_BADGE, UserNameCell, lastSignInContent, userStateLabel } from './PlatformUserCells'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { OrganizationRecordContext, Setter } from './platformOrganizationShared'
+import type { OrganizationMember, OrganizationUsersContext } from './platformOrganizationShared'
+
+// A total beside the search: filter key, label, count, tone and whether it shows at zero.
+type TotalRow = [string, string, number, string?, boolean?]
 
 // «Χρήστες» of an organization record: the accounts, or the employee roster with who has no
 // account yet. The state and the actions stay in PlatformOrganizationRecord (ctx).
-export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationRecordContext & { setUserFilter: Setter<string> } }) {
+export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersContext }) {
   const { startMode = '', filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, onlineUserIds, orgUserState, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions = [], setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserFilter, setUserPageSize, setUserQuery, setUsersView, tx, userFilter, userPageSize, userQuery, userTotalPages, users, usersView } = ctx
   // «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο»: accounts active at once,
   // with a temporary password the owner hands over (ActiveUsersDialog).
@@ -25,9 +27,9 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationRecordC
   // The latest sign-in of each user (last 90 days): when and from which IP.
   const latest = latestSessionByUser(sessions)
   // The totals beside the search, as on «Χρήστες πλατφόρμας»: each one filters the list; a second click clears it.
-  const counts = users.reduce((acc: AnyRecord, user: AnyRecord) => { const state = orgUserState(user); if (state === 'active') acc.active += 1; if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; if (onlineUserIds.has(user.userId)) acc.online += 1; return acc }, { active: 0, invited: 0, inactive: 0, online: 0 })
+  const counts = users.reduce((acc: Record<string, number>, user: OrganizationMember) => { const state = orgUserState(user); if (state === 'active') acc.active += 1; if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; if (onlineUserIds.has(user.userId)) acc.online += 1; return acc }, { active: 0, invited: 0, inactive: 0, online: 0 })
   const toggleFilter = (key: string) => setUserFilter(current => (current === key ? 'all' : key))
-  const totals = [['active', tx('ενεργοί', 'active'), counts.active, undefined, true], ['online', tx('συνδεδεμένοι τώρα', 'online now'), counts.online, 'good'], ['invited', tx('εκκρεμείς προσκλήσεις', 'pending invitations'), counts.invited, 'warning'], ['inactive', tx('ανενεργοί', 'inactive'), counts.inactive, 'danger']].map(([key, label, value, tone, always]) => ({ key, label, value, always, tone: value ? tone : undefined, active: userFilter === key, onClick: () => toggleFilter(key) }))
+  const totals = ([['active', tx('ενεργοί', 'active'), counts.active, undefined, true], ['online', tx('συνδεδεμένοι τώρα', 'online now'), counts.online, 'good'], ['invited', tx('εκκρεμείς προσκλήσεις', 'pending invitations'), counts.invited, 'warning'], ['inactive', tx('ανενεργοί', 'inactive'), counts.inactive, 'danger']] satisfies TotalRow[]).map(([key, label, value, tone, always]) => ({ key, label, value, always, tone: value ? tone : undefined, active: userFilter === key, onClick: () => toggleFilter(key) }))
   // Short labels with the count as a small number; the full text stays as the name and tooltip.
   const viewSwitch = (
     <ModeSwitch
@@ -60,7 +62,7 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationRecordC
                             tx('Ρόλος', 'Role'),
                             tx('Κατάσταση', 'Status'),
                           ],
-                          rows: users.map((user: AnyRecord) => [
+                          rows: users.map((user: OrganizationMember) => [
                             user.name,
                             user.username,
                             user.email,
@@ -144,7 +146,7 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationRecordC
                         </tr>
                       </thead>
                       <tbody>
-                        {pagedUsers.map((user: AnyRecord) => (
+                        {pagedUsers.map((user: OrganizationMember) => (
                           <tr
                             key={user.userId}
                             tabIndex={0}

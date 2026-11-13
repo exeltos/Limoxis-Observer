@@ -22,7 +22,7 @@ import { BALANCE_TOLERANCE, RECALL_RESULTS, RECALL_SCENARIOS, drillFindings, dri
 import { kitchenErrorMessage, loadKitchenDishNames, removeEntry, saveRecallDrill, saveWriteoff } from './kitchenService'
 import { recallDrillDocument } from './kitchenReports'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { KitchenRecallBatch, KitchenRecallDrill, KitchenState } from './kitchenTypes'
 
 const fmtDay = (value: unknown) => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -35,24 +35,24 @@ const qty = (value: unknown, unit: string, language: string) => `${fmtQty(value,
 export function RecallPanel({ state, filters, setFilters, onRecall, switcher = null }: Pick<KitchenPanelProps, 'state' | 'onRecall'> & KitchenFilterProps) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const set = (key: string, value: unknown) => setFilters((current: AnyRecord) => ({ ...current, [key]: value }))
+  const set = (key: string, value: string) => setFilters(current => ({ ...current, [key]: value }))
   const summary = recallSummary(state)
-  const rows = (state.recallDrills || []).map((row: AnyRecord) => ({ ...row, subject: drillSubject(row, state, language) }))
-    .filter((row: AnyRecord) => (filters.result === 'all' || (filters.result === 'draft' ? row.status !== 'completed' : row.result === filters.result)) && (filters.scenario === 'all' || row.scenario === filters.scenario) && matches(filters.query, row.code, row.subject, row.triggerText, row.conductedByName))
-    .sort((a: AnyRecord, b: AnyRecord) => String(b.drillDate).localeCompare(String(a.drillDate)) || String(b.code).localeCompare(String(a.code)))
+  const rows = (state.recallDrills || []).map(row => ({ ...row, subject: drillSubject(row, state, language) }))
+    .filter(row => (filters.result === 'all' || (filters.result === 'draft' ? row.status !== 'completed' : row.result === filters.result)) && (filters.scenario === 'all' || row.scenario === filters.scenario) && matches(filters.query, row.code, row.subject, row.triggerText, row.conductedByName))
+    .sort((a, b) => String(b.drillDate).localeCompare(String(a.drillDate)) || String(b.code).localeCompare(String(a.code)))
   const active = (filters.result !== 'all' ? 1 : 0) + (filters.scenario !== 'all' ? 1 : 0)
   return <>
     {summary.overdue && <div className="kitchen-recall-warning" role="status"><AlertTriangle size={15} />{summary.last ? (en ? `No recall drill since ${fmtDay(summary.last.drillDate)}: one is due every ${summary.months} months.` : `Καμία άσκηση ανάκλησης από ${fmtDay(summary.last.drillDate)}: προβλέπεται κάθε ${summary.months} μήνες.`) : (en ? 'No recall drill recorded: HACCP asks that the recall procedure is tested.' : 'Δεν έχει γίνει άσκηση ανάκλησης: το HACCP ζητά η διαδικασία ανάκλησης να δοκιμάζεται.')}</div>}
     <KitchenList end={switcher} rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search code, product, dish, trigger…' : 'Αναζήτηση κωδικού, προϊόντος, πιάτου, αφορμής…'} activeFilters={active}
-      onClear={() => setFilters((current: AnyRecord) => ({ ...current, query: '', result: 'all', scenario: 'all' }))}
+      onClear={() => setFilters(current => ({ ...current, query: '', result: 'all', scenario: 'all' }))}
       filters={<>
         <FilterSelect label={en ? 'Result' : 'Αποτέλεσμα'} value={filters.result} onChange={value => set('result', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{RECALL_RESULTS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}<option value="draft">{en ? 'In progress' : 'Σε εξέλιξη'}</option></FilterSelect>
         <FilterSelect label={en ? 'Scenario' : 'Σενάριο'} value={filters.scenario} onChange={value => set('scenario', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{RECALL_SCENARIOS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       </>}
       columns={[{ key: 'code', label: en ? 'Drill' : 'Άσκηση' }, { key: 'subject', label: en ? 'Scenario · subject' : 'Σενάριο · αντικείμενο' }, { key: 'time', label: en ? 'Time to trace' : 'Χρόνος ιχνηλάτησης' }, { key: 'balance', label: en ? 'Mass balance' : 'Ισοζύγιο μάζας' }, { key: 'affected', label: en ? 'Affected' : 'Επηρεαζόμενα' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }]}
       empty={!rows.length} emptyTitle={en ? 'No recall drills' : 'Δεν υπάρχουν ασκήσεις ανάκλησης'} emptyText={en ? 'A drill starts from a supplier\'s lot, a product or a dish and traces where it went and where it came from, against the time target.' : 'Η άσκηση ξεκινά από παρτίδα προμηθευτή, προϊόν ή πιάτο και ιχνηλατεί πού πήγε και από πού ήρθε, με στόχο χρόνου.'}
-      rowProps={(row: AnyRecord) => ({ className: 'registry-row-clickable', onClick: () => onRecall(row) })}
-      renderRow={(row: AnyRecord) => { const minutes = row.status === 'completed' && row.elapsedMinutes !== '' ? Number(row.elapsedMinutes) : elapsedMinutes(row.startedAt, row.finishedAt); const inTime = withinTarget(minutes, row.targetMinutes); return <>
+      rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onRecall(row) })}
+      renderRow={row => { const minutes = row.status === 'completed' && row.elapsedMinutes !== '' ? Number(row.elapsedMinutes) : elapsedMinutes(row.startedAt, row.finishedAt); const inTime = withinTarget(minutes, row.targetMinutes); return <>
         <td className="nowrap-cell"><strong>{fmtDay(row.drillDate)}</strong><small>{row.code || '—'}</small></td>
         <td><strong>{row.subject}</strong><small>{recallScenarioLabel(row.scenario, language)}{row.triggerText ? ` · ${row.triggerText}` : ''}</small></td>
         <td className="nowrap-cell">{fmtDuration(minutes, language)}<small>{inTime == null ? '' : inTime ? (en ? 'within target' : 'εντός στόχου') : <SignalBadge tone="danger">{en ? 'over target' : 'εκτός στόχου'}</SignalBadge>}</small></td>
@@ -68,18 +68,18 @@ export function RecallPanel({ state, filters, setFilters, onRecall, switcher = n
 // A drill: scenario and subject, the running clock from the start, the forward and
 // backward trace with the mass balance worked out at once, then whom it notified, what
 // was done, the lessons and the result. A completed drill shows the trace as it was found.
-export function RecallDialog({ state: loaded, organizationId, access, initial, onClose, onSaved }: { state: AnyRecord, organizationId: string | null | undefined, access: KitchenAccess, initial: AnyRecord, onClose: () => void, onSaved?: () => unknown }) {
+export function RecallDialog({ state: loaded, organizationId, access, initial, onClose, onSaved }: { state: KitchenState, organizationId: string | null | undefined, access: KitchenAccess, initial: KitchenRecallDrill, onClose: () => void, onSaved?: () => unknown }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { confirm, notify } = useFeedback()
   const actor = useKitchenActor()
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...initial, conductedByName: initial.conductedByName || actor.name, stockCounts: initial.stockCounts || {} }))
+  const [draft, setDraft] = useState<KitchenRecallDrill>(() => ({ ...initial, conductedByName: initial.conductedByName || actor.name, stockCounts: initial.stockCounts || {} }))
   const [saving, setSaving] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const readOnly = draft.status === 'completed' || !access.canRecord
   const running = !readOnly && !draft.finishedAt
   useEffect(() => { if (!running) return undefined; const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer) }, [running])
-  const set = (next: AnyRecord) => setDraft((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<KitchenRecallDrill>) => setDraft(current => ({ ...current, ...next }))
   // The drill traces the whole history of its subject, not only the loaded window.
   const { scenario, receiptItemId, productId, productName, dishName } = draft
   const subject = useMemo(() => {
@@ -88,7 +88,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
     return Object.values(next).some(value => (Array.isArray(value) ? value.length : value)) ? next : null
   }, [draft.status, draft.traceSnapshot, scenario, receiptItemId, productId, productName, dishName])
   const { state, ready } = useKitchenTrace(loaded, organizationId, subject)
-  const [dishNames, setDishNames] = useState<AnyRecord[]>([])
+  const [dishNames, setDishNames] = useState<string[]>([])
   useEffect(() => { if (readOnly || scenario !== 'dish') return undefined; let active = true; loadKitchenDishNames(organizationId).then(names => { if (active) setDishNames(names) }).catch(() => {}); return () => { active = false } }, [readOnly, scenario, organizationId])
   const live = useMemo(() => recallTrace(state, draft), [state, draft])
   const trace = draft.status === 'completed' && draft.traceSnapshot?.batches ? draft.traceSnapshot : live
@@ -99,7 +99,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
   const inTime = withinTarget(minutes, target)
   const suggestion = suggestedResult(trace, minutes, target)
   const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
-  const dishes = useMemo(() => [...new Set([...(state.usage || []).map((row: AnyRecord) => row.dishName), ...dishNames].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [state.usage, dishNames])
+  const dishes = useMemo(() => [...new Set([...(state.usage || []).map(row => row.dishName), ...dishNames].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [state.usage, dishNames])
   const lots = stock.filter(row => row.inStock || row.receiptItemId === draft.receiptItemId).sort((a, b) => String(b.receivedOn).localeCompare(String(a.receivedOn)))
 
   async function save(complete: boolean) {
@@ -119,7 +119,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
     try { await removeEntry(organizationId, 'kitchen_recall_drills', draft.id); await onSaved?.(); onClose() } catch (error) { console.error(error); notify(kitchenErrorMessage(error, language), 'error') }
   }
   // A real recall, not the drill: the remaining stock of a batch is written off with reason «Ανάκληση».
-  async function realRecall(batch: AnyRecord) {
+  async function realRecall(batch: KitchenRecallBatch) {
     if (!await confirm({ title: en ? 'Real recall: withdraw stock' : 'Πραγματική ανάκληση: απόσυρση αποθέματος', message: en ? `This is NOT part of the drill: ${fmtQty(batch.remaining, language)} ${unitLabel(batch.unit, language)} of ${batch.productName} (${batch.batchCode || batch.receiptCode}) leave the stock with reason «Recall».` : `Αυτό ΔΕΝ είναι μέρος της άσκησης: ${fmtQty(batch.remaining, language)} ${unitLabel(batch.unit, language)} από «${batch.productName}» (${batch.batchCode || batch.receiptCode}) φεύγουν από το απόθεμα με αιτία «Ανάκληση».`, confirmLabel: en ? 'Withdraw' : 'Απόσυρση', danger: true })) return
     try {
       await saveWriteoff(organizationId, { receiptItemId: batch.receiptItemId, writtenOffOn: hospitalToday(), quantity: String(batch.remaining), reason: 'recall', notes: `${en ? 'Recall' : 'Ανάκληση'}${draft.code ? ` · ${draft.code}` : ''}${draft.triggerText ? ` · ${draft.triggerText}` : ''}`, recordedByName: actor.name })
@@ -148,8 +148,8 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
         <ChoiceField label={en ? 'Scenario *' : 'Σενάριο *'} value={draft.scenario} options={options(RECALL_SCENARIOS, language)} onChange={scenarioChange} />
         {draft.scenario === 'supplier_lot' && <SearchableSelect label={en ? 'Lot *' : 'Παρτίδα *'} value={draft.receiptItemId} options={lots.map(row => ({ value: row.receiptItemId, label: `${row.productName} · ${row.batchCode || row.lotLabel || '—'}`, description: [row.supplierName, row.receiptCode, fmtDay(row.receivedOn)].filter(Boolean).join(' · ') }))}
           onChange={value => { const found = stock.find(row => row.receiptItemId === value); set({ receiptItemId: value || '', productId: found?.productId || '', productName: found?.productName || '', stockCounts: {} }) }} {...selectText(en)} />}
-        {draft.scenario === 'product' && <SearchableSelect label={en ? 'Product *' : 'Προϊόν *'} value={draft.productId || draft.productName} allowCustom customLabel={value => `«${value}»`} options={(state.products || []).map((item: AnyRecord) => ({ value: item.id, label: item.name }))}
-          onChange={value => { const found = (state.products || []).find((item: AnyRecord) => item.id === value); set(found ? { productId: found.id, productName: found.name, stockCounts: {} } : { productId: '', productName: value || '', stockCounts: {} }) }} {...selectText(en)} />}
+        {draft.scenario === 'product' && <SearchableSelect label={en ? 'Product *' : 'Προϊόν *'} value={draft.productId || draft.productName} allowCustom customLabel={value => `«${value}»`} options={(state.products || []).map(item => ({ value: item.id, label: item.name }))}
+          onChange={value => { const found = (state.products || []).find(item => item.id === value); set(found ? { productId: found.id, productName: found.name, stockCounts: {} } : { productId: '', productName: value || '', stockCounts: {} }) }} {...selectText(en)} />}
         {draft.scenario === 'dish' && <SearchableSelect label={en ? 'Dish *' : 'Πιάτο *'} value={draft.dishName} allowCustom customLabel={value => `«${value}»`} options={dishes.map(dish => ({ value: dish, label: dish }))} onChange={value => set({ dishName: value || '', stockCounts: {} })} {...selectText(en)} />}
         <Field label={en ? 'Target (minutes) *' : 'Στόχος (λεπτά) *'} hint={en ? 'Usually 240 (4 hours).' : 'Συνήθως 240 (4 ώρες).'}><input inputMode="numeric" value={draft.targetMinutes ?? ''} onChange={e => set({ targetMinutes: e.target.value.replace(/\D/g, '') })} /></Field>
         <ManualDateField label={en ? 'Date' : 'Ημερομηνία'} value={draft.drillDate} onChange={value => set({ drillDate: value })} />
@@ -180,7 +180,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
         <td>{row.productName}<small>{row.batchCode || '—'}</small></td>
         <td>{row.dishName || '—'}</td>
         <td className="nowrap-cell">{qty(row.quantity, row.unit, language)}</td>
-        <td>{(row.meals || []).length ? (row.meals || []).map((meal: AnyRecord) => <small key={meal.id || `${meal.meal}-${meal.diet}`}>{mealLabel(meal.meal, language)} · {dietLabel(meal.diet, language)} · {meal.portions || '—'} {en ? 'portions' : 'μερίδες'}</small>) : <span className="kitchen-muted">{en ? 'No meal in the plan' : 'Χωρίς γεύμα στο πλάνο'}</span>}</td>
+        <td>{(row.meals || []).length ? (row.meals || []).map(meal => <small key={meal.id || `${meal.meal}-${meal.diet}`}>{mealLabel(meal.meal, language)} · {dietLabel(meal.diet, language)} · {meal.portions || '—'} {en ? 'portions' : 'μερίδες'}</small>) : <span className="kitchen-muted">{en ? 'No meal in the plan' : 'Χωρίς γεύμα στο πλάνο'}</span>}</td>
       </>} />
 
     <SectionHeader title={en ? 'Where it came from (backward)' : 'Από πού ήρθε (πίσω)'} subtitle={draft.scenario === 'dish' ? (en ? 'The batches the dish was made from, with their supplier.' : 'Οι παρτίδες από τις οποίες φτιάχτηκε το πιάτο, με τον προμηθευτή τους.') : (en ? 'The other raw materials of the same dishes on the same days.' : 'Οι άλλες πρώτες ύλες των ίδιων πιάτων τις ίδιες ημέρες.')} />
@@ -205,9 +205,9 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
         <FormGrid columns={3}><ChoiceField label={en ? 'Result *' : 'Αποτέλεσμα *'} value={draft.result} placeholder={recallResultLabel(suggestion, language)} options={options(RECALL_RESULTS, language)} onChange={value => set({ result: value })} /></FormGrid>
       </>}
 
-    {access.canRecord && live.batches.some((batch: AnyRecord) => batch.remaining > 0.0005) && <section className="kitchen-recall-real">
+    {access.canRecord && live.batches.some(batch => batch.remaining > 0.0005) && <section className="kitchen-recall-real">
       <SectionHeader title={en ? 'Real recall (not the drill)' : 'Πραγματική ανάκληση (όχι άσκηση)'} subtitle={en ? 'Only when the recall is real: the remaining stock leaves the stock with reason «Recall».' : 'Μόνο όταν η ανάκληση είναι πραγματική: το υπόλοιπο φεύγει από το απόθεμα με αιτία «Ανάκληση».'} />
-      <div className="kitchen-notes">{live.batches.filter((batch: AnyRecord) => batch.remaining > 0.0005).map((batch: AnyRecord) => <Button key={batch.receiptItemId} variant="secondary" onClick={() => realRecall(batch)}><Undo2 size={15} />{batch.productName} · {batch.batchCode || batch.receiptCode} · {qty(batch.remaining, batch.unit, language)}</Button>)}</div>
+      <div className="kitchen-notes">{live.batches.filter(batch => batch.remaining > 0.0005).map(batch => <Button key={batch.receiptItemId} variant="secondary" onClick={() => realRecall(batch)}><Undo2 size={15} />{batch.productName} · {batch.batchCode || batch.receiptCode} · {qty(batch.remaining, batch.unit, language)}</Button>)}</div>
     </section>}
   </ObserverDialog>
 }

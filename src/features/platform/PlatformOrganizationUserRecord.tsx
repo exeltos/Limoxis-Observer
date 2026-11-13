@@ -24,8 +24,8 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ROLES } from './platformOrganizationShared'
 import './platformDashboard.css'
 import './loginSessions.css'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { OrganizationRecordContext, Setter } from './platformOrganizationShared'
+import type { LoginAttempts, LoginSession, AuditEvent, UserRef } from './platformTypes'
+import type { OrganizationEmployee, OrganizationUserContext } from './platformOrganizationShared'
 
 // dd/mm/yyyy, hh:mm in Athens time, as on every owner list.
 const short = athensDateTime
@@ -34,15 +34,15 @@ const hhmm = athensTime
 // The record of one user of the organization (opened from «Χρήστες πλατφόρμας» or from the organization's
 // «Χρήστες»): Στοιχεία (with the account's security), Συνδέσεις and Δραστηριότητα. The state and the
 // actions stay in PlatformOrganizationRecord (ctx).
-export function PlatformOrganizationUserRecord({ ctx }: { ctx: OrganizationRecordContext & { setUserDraft: Setter<AnyRecord>, setEmployeeLinkDrafts: Setter<AnyRecord> } }) {
+export function PlatformOrganizationUserRecord({ ctx }: { ctx: OrganizationUserContext }) {
   const { deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, loadSessions, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, sessions = [], setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working } = ctx
   const en = language === 'en'
   const { confirm, notify, notifyError } = useFeedback()
   // The employee picker is a searchable list (a hospital has hundreds of employees); built once, not on every render.
-  const employeePickerOptions = useMemo(() => employeeOptions.map((employee: AnyRecord) => ({ value: employee.dbId, label: `${employee.lastName} ${employee.firstName}`, description: [employee.id, employee.department].filter(Boolean).join(' · ') })), [employeeOptions])
+  const employeePickerOptions = useMemo(() => employeeOptions.map((employee: OrganizationEmployee) => ({ value: employee.dbId, label: `${employee.lastName} ${employee.firstName}`, description: [employee.id, employee.department].filter(Boolean).join(' · ') })), [employeeOptions])
   const [tab, setTab] = useState('details')
   const [reissueOpen, setReissueOpen] = useState(false)
-  const [signIns, setSignIns] = useState<{ attempts: AnyRecord[], locks: AnyRecord[] }>({ attempts: [], locks: [] })
+  const [signIns, setSignIns] = useState<LoginAttempts>({ attempts: [], locks: [] })
   const [now, setNow] = useState(() => Date.now())
   const loadSignIns = useCallback(async () => {
     try {
@@ -56,10 +56,10 @@ export function PlatformOrganizationUserRecord({ ctx }: { ctx: OrganizationRecor
     void loadSignIns()
   }, [loadSignIns])
   const userSessions = useMemo(
-    () => sessions.filter((row: AnyRecord) => row.userId === selectedUser.userId).sort((a: AnyRecord, b: AnyRecord) => String(b.startedAt).localeCompare(String(a.startedAt))),
+    () => sessions.filter((row: LoginSession) => row.userId === selectedUser.userId).sort((a: LoginSession, b: LoginSession) => String(b.startedAt).localeCompare(String(a.startedAt))),
     [sessions, selectedUser.userId],
   )
-  const online = userSessions.some((row: AnyRecord) => row.online)
+  const online = userSessions.some((row: LoginSession) => row.online)
   const lock = activeAccountLock(signIns.locks, selectedUser, now)
   const failures = failedAttempts24h(signIns.attempts, selectedUser, now)
   const { endSessions, menuItems: sessionMenuItems } = useEndLoginSessions({ tx, en, onDone: loadSessions })
@@ -80,7 +80,7 @@ export function PlatformOrganizationUserRecord({ ctx }: { ctx: OrganizationRecor
     }
   }
   // Δραστηριότητα: what this user did, from the audit trail (loaded when the tab opens).
-  const [events, setEvents] = useState<AnyRecord | null>(null)
+  const [events, setEvents] = useState<AuditEvent[] | null>(null)
   const [eventPage, setEventPage] = useState(1)
   const [eventPageSize, setEventPageSize] = useState(15)
   const [sessionPage, setSessionPage] = useState(1)
@@ -94,8 +94,8 @@ export function PlatformOrganizationUserRecord({ ctx }: { ctx: OrganizationRecor
     return () => { active = false }
   }, [tab, events])
   // Identical consecutive actions within 15 minutes are one row with a count; newest first.
-  const userEvents = useMemo(() => groupAuditEvents((events || []).filter((row: AnyRecord) => row.actorId === selectedUser.userId).sort((a: AnyRecord, b: AnyRecord) => String(b.createdAt).localeCompare(String(a.createdAt)))), [events, selectedUser.userId])
-  const eventNames = { organization: (id: string) => (id === organization.id ? organization.name : ''), user: (ref: AnyRecord) => (ref.userId === selectedUser.userId || ref.memberId === selectedUser.id ? selectedUser.name : ''), employee: (id: string) => { const found = (ctx.employees || []).find((employee: AnyRecord) => employee.dbId === id); return found ? `${found.lastName} ${found.firstName}` : '' } }
+  const userEvents = useMemo(() => groupAuditEvents((events || []).filter((row: AuditEvent) => row.actorId === selectedUser.userId).sort((a: AuditEvent, b: AuditEvent) => String(b.createdAt).localeCompare(String(a.createdAt)))), [events, selectedUser.userId])
+  const eventNames = { organization: (id: string) => (id === organization.id ? organization.name : ''), user: (ref: UserRef) => (ref.userId === selectedUser.userId || ref.memberId === selectedUser.id ? selectedUser.name : ''), employee: (id: string) => { const found = (ctx.employees || []).find((employee: OrganizationEmployee) => employee.dbId === id); return found ? `${found.lastName} ${found.firstName}` : '' } }
   const eventPages = Math.max(1, Math.ceil(userEvents.length / eventPageSize)), safeEventPage = Math.min(eventPage, eventPages)
   const pagedEvents = userEvents.slice((safeEventPage - 1) * eventPageSize, safeEventPage * eventPageSize)
   const sessionPages = Math.max(1, Math.ceil(userSessions.length / sessionPageSize)), safeSessionPage = Math.min(sessionPage, sessionPages)
@@ -346,7 +346,7 @@ export function PlatformOrganizationUserRecord({ ctx }: { ctx: OrganizationRecor
                     </tr>
                   </thead>
                   <tbody>
-                    {pagedSessions.map((row: AnyRecord) => {
+                    {pagedSessions.map((row: LoginSession) => {
                       const state = sessionStatus(row, en)
                       return (
                         <tr key={row.sessionId}>

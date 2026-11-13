@@ -8,22 +8,34 @@
 // previous entry set. Extra entries never count.
 import { executionMarks, isDailyFrequency, isWeekdaysOnly, periodUnit, requiredPerPeriod, slotDeadline, slotStarts, zonedInstant, zonedParts } from './controlDueRules'
 import { assignmentProgress } from './controlScheduling'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { ControlRow } from './controlTypes'
+import type { ControlExecution, ControlFrequency, ControlRecord, ControlRow } from './controlTypes'
 
 type Instant = Date | string | number
+// The counts of a period: due, done (counted: never more than due), on time,
+// late and missed, and the rates (null when nothing was due or done).
+export interface AdherenceCounts { expected: number, performed: number, counted: number, onTime: number, late: number, missed: number, rate: number | null, onTimeRate: number | null }
+// The totals of several lines (the programme's leave out the late ones).
+export type AdherenceTotals = Omit<AdherenceCounts, 'late'> & { late?: number }
+// A day (or week) short of its entries, with the set times missed.
+export interface MissedDay { day: string, missing: number, times?: string[], week?: boolean }
 // A line of the adherence report (control × department) with its counts.
-export type AdherenceLine = AnyRecord
+export interface AdherenceLine extends AdherenceCounts { item: ControlRecord, department: string, frequency: ControlFrequency, missedDays?: MissedDay[] }
+// The head of a group: a control, or a department named as one.
+export type GroupHead = Pick<ControlRecord, 'id' | 'title'> & Partial<Omit<ControlRecord, 'id' | 'title'>>
+// An entry as the history is counted.
+type HistoryEntry = Pick<ControlExecution, 'at'> & Partial<Pick<ControlExecution, 'status' | 'cancelledAt' | 'isExtra' | 'responseData'>>
 type Counts = Map<string, { performed: number, onTime: number }>
 type LocalDay = { year: number, month: number, day: number }
-interface LineGroup extends AnyRecord { key: string, lines: AdherenceLine[] }
+// A line as the groups add it up.
+type GroupedLine = Pick<AdherenceLine, 'department' | 'expected' | 'performed' | 'onTime' | 'missed'> & { item: GroupHead }
+interface LineGroup<L extends GroupedLine = AdherenceLine> { key: string, lines: L[], item: GroupHead, department?: string }
 // A control (or a department) with its lines and their totals.
-export interface AdherenceGroup extends AnyRecord { key: string, lines: AdherenceLine[], totals: AnyRecord }
+export interface AdherenceGroup<L extends GroupedLine = AdherenceLine> extends LineGroup<L> { totals: AdherenceCounts }
 
 const HOUR = 3600000, DAY = 24 * HOUR
 
 // Length of one scheduled slot in milliseconds.
-export function slotLength(frequency: AnyRecord = {}) {
+export function slotLength(frequency: ControlFrequency = {}) {
   const interval = Math.max(1, Number(frequency.interval) || 1)
   if (frequency.kind === 'daily') {
     const perDay = Math.max(1, (frequency.times || []).filter(Boolean).length || Number(frequency.timesPerDay) || 1)
@@ -38,7 +50,7 @@ export function slotLength(frequency: AnyRecord = {}) {
 // A monthly (weekly, yearly) control counts a whole calendar period it covers even though the nominal month (30.44 days) is a
 // little longer than 30 or 31 days: a calendar month expects 1, a year 12 (not 11), a quarter 3.
 const SLACK = 0.05
-export function expectedOccurrences(frequency: AnyRecord, from: Instant, to: Instant) {
+export function expectedOccurrences(frequency: ControlFrequency, from: Instant, to: Instant) {
   const span = new Date(to).getTime() - new Date(from).getTime()
   if (!(span > 0)) return 0
   if (isWeekdaysOnly(frequency)) return Math.floor(weekdayTime(from, to) / slotLength(frequency))
@@ -60,7 +72,7 @@ function weekdayTime(from: Instant, to: Instant) {
 }
 
 // Counted and on-time executions of one assignment's history within [start, end].
-export function countAdherence(history: AnyRecord[], frequency: AnyRecord, start: Date, end: Date) {
+export function countAdherence(history: HistoryEntry[], frequency: ControlFrequency, start: Date, end: Date) {
   const marks = executionMarks(history, frequency).filter((mark) => mark.counted && new Date(mark.at) >= start && new Date(mark.at) <= end)
   return { performed: marks.length, onTime: marks.filter((mark) => mark.onTime).length }
 }
@@ -68,7 +80,7 @@ export function countAdherence(history: AnyRecord[], frequency: AnyRecord, start
 // One assignment (control × department) over [from, to]. `counts`
 // ({ performed, onTime }) comes from the database (control_adherence_counts,
 // which applies the same start, end and grace); without it the history is counted.
-export function assignmentAdherence({ frequency, history = [], startedAt = null, counts = null }: { frequency: AnyRecord, history?: AnyRecord[], startedAt?: string | null, counts?: { performed: number, onTime: number } | null }, { from, to, now = new Date() }: { from: Instant, to: Instant, now?: Instant }) {
+export function assignmentAdherence({ frequency, history = [], startedAt = null, counts = null }: { frequency: ControlFrequency, history?: HistoryEntry[], startedAt?: string | null, counts?: { performed: number, onTime: number } | null }, { from, to, now = new Date() }: { from: Instant, to: Instant, now?: Instant }) {
   const start = new Date(Math.max(new Date(from).getTime(), startedAt ? new Date(startedAt).getTime() : -Infinity))
   const end = new Date(Math.min(new Date(to).getTime(), new Date(now).getTime()))
   const expected = expectedOccurrences(frequency, start, end)
@@ -105,7 +117,7 @@ export function programmeAdherence(rows: ControlRow[] | null | undefined, period
 }
 
 // The totals of adherence lines (worst line first).
-function adherenceTotals(lines: AdherenceLine[]) {
+function adherenceTotals(lines: AdherenceLine[]): AdherenceTotals {
   lines.sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101) || String(a.item.title).localeCompare(String(b.item.title), 'el'))
   const expected = lines.reduce((sum, line) => sum + line.expected, 0)
   const counted = lines.reduce((sum, line) => sum + Math.min(line.performed, line.expected), 0)
@@ -125,7 +137,7 @@ function adherenceTotals(lines: AdherenceLine[]) {
 // Today: the entries a daily control asks for today and how many are done
 // (weekly, monthly and yearly controls have no share of a day; a weekdays-only
 // control asks nothing at the weekend). null when the day asks nothing.
-export function todayProgress(item: AnyRecord, department: string, now: Instant = new Date()) {
+export function todayProgress(item: ControlRecord, department: string, now: Instant = new Date()) {
   const assignment = item.assignments?.[department]
   if (!assignment || assignment.status === 'paused') return null
   const frequency = assignment.frequency || item.frequency || {}
@@ -260,24 +272,24 @@ export const adherenceTone = (rate: number | null | undefined) => (rate == null 
 
 // The adherence rows grouped by control (worst first): each group carries the
 // control's totals across its departments, counted like the programme totals.
-export function groupAdherenceLines(lines: AdherenceLine[] = []) {
+export function groupAdherenceLines<L extends GroupedLine>(lines: L[] = []) {
   return groupLinesBy(lines, (line) => line.item.id, (line) => ({ item: line.item }))
 }
 
 // The same rows grouped by department (worst first): each group carries the
 // department's totals and its controls.
-export function groupAdherenceByDepartment(lines: AdherenceLine[] = []) {
+export function groupAdherenceByDepartment<L extends GroupedLine>(lines: L[] = []) {
   return groupLinesBy(lines, (line) => line.department, (line) => ({ department: line.department, item: { id: line.department, title: line.department } }))
 }
 
-function groupLinesBy(lines: AdherenceLine[], keyOf: (line: AdherenceLine) => string, headOf: (line: AdherenceLine) => AnyRecord) {
-  const groups = new Map<string, LineGroup>()
+function groupLinesBy<L extends GroupedLine>(lines: L[], keyOf: (line: L) => string, headOf: (line: L) => { item: GroupHead, department?: string }) {
+  const groups = new Map<string, LineGroup<L>>()
   for (const line of lines) {
     const key = keyOf(line)
     if (!groups.has(key)) groups.set(key, { ...headOf(line), key, lines: [] })
     groups.get(key)!.lines.push(line)
   }
-  return [...groups.values()].map((group): AdherenceGroup => {
+  return [...groups.values()].map((group): AdherenceGroup<L> => {
     const expected = group.lines.reduce((sum, line) => sum + line.expected, 0)
     const counted = group.lines.reduce((sum, line) => sum + Math.min(line.performed, line.expected), 0)
     const performed = group.lines.reduce((sum, line) => sum + line.performed, 0)
@@ -303,7 +315,7 @@ const nextDay = (d: LocalDay): LocalDay => { const n = new Date(Date.UTC(d.year,
 
 // The regular entries of a history per local day (Athens): Map('YYYY-MM-DD' →
 // minutes after midnight of each entry).
-export function entryDaysFromHistory(history: AnyRecord[] = []) {
+export function entryDaysFromHistory(history: Partial<HistoryEntry>[] = []) {
   const days = new Map<string, number[]>()
   for (const row of history) {
     if (!row?.at || row.status === 'cancelled' || row.cancelledAt || row.isExtra || row.responseData?.isExtra) continue
@@ -320,7 +332,7 @@ const hhmm = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2
 
 // The set times a day's entries did not cover: each entry is paired with the
 // nearest free set time; the set times left over were missed.
-export function uncoveredTimes(frequency: AnyRecord = {}, minutes: number[] = []) {
+export function uncoveredTimes(frequency: ControlFrequency = {}, minutes: number[] = []) {
   const slots = slotStarts(frequency).map((at) => ({ at, taken: false }))
   const pairs: { entry: number, slot: { at: number, taken: boolean }, distance: number }[] = []
   for (const entry of minutes) for (const slot of slots) pairs.push({ entry, slot, distance: Math.abs(entry - slot.at) })
@@ -341,7 +353,7 @@ const entriesOf = (value: unknown) => (Array.isArray(value) ? value.length : Num
 // [{ day: 'YYYY-MM-DD', missing, times?, week? }], oldest first. Only whole
 // days (weeks) that have ended count; monthly and yearly controls name no days.
 // entryDays: Map(day → minutes[] or a count).
-export function missedDays(frequency: AnyRecord = {}, entryDays: Map<string, number[] | number> = new Map(), { from, to }: { from: Instant, to: Instant }, startedAt: Instant | null = null) {
+export function missedDays(frequency: ControlFrequency = {}, entryDays: Map<string, number[] | number> = new Map(), { from, to }: { from: Instant, to: Instant }, startedAt: Instant | null = null) {
   const unit = periodUnit(frequency)
   if (unit !== 'day' && unit !== 'week') return []
   // «Every N days» is none of the two: it names no day (the days between its executions are not missed).
@@ -350,7 +362,7 @@ export function missedDays(frequency: AnyRecord = {}, entryDays: Map<string, num
   const end = new Date(to).getTime()
   const required = unit === 'day' ? requiredPerPeriod(frequency) : 1
   const length = unit === 'day' ? 1 : 7
-  const out: AnyRecord[] = []
+  const out: MissedDay[] = []
   let d: LocalDay = zonedParts(start)
   d = { year: d.year, month: d.month, day: d.day }
   if (unit === 'week') { const weekday = (new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay() + 6) % 7; if (weekday) for (let i = weekday; i < 7; i += 1) d = nextDay(d) }

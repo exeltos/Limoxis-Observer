@@ -11,22 +11,22 @@ import { useLibraries } from '../management/useLibraries'
 import { ExpiryBadge,formOptions,useItemOptions } from './ControlExpiryEntry'
 import { CARPA_TEMPLATES } from './carpaTemplate'
 import { ITEM_CATEGORIES,catalogueItem,formKey,noteText,parseCatalogueLines } from './controlExpiry'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ExpiryCatalogueItem } from './controlTypes'
 
 // The medicines and supplies an expiry check goes through, one row each: name,
 // quantity, form (tablet, vial, …), expiry date, note and the departments that
 // keep it (none chosen = all). Rows can also be pasted from a spreadsheet.
 // defaultDepartments: what a new row starts with (a department's own control: that department).
-interface ControlExpiryCatalogueDialogProps { items: AnyRecord[], departments: string[], defaultDepartments?: string[], window: { before: number, after: number }, onClose: () => void, onSave: (items: AnyRecord[]) => void, language: string }
+interface ControlExpiryCatalogueDialogProps { items: ExpiryCatalogueItem[], departments: string[], defaultDepartments?: string[], window: { before: number, after: number }, onClose: () => void, onSave: (items: ExpiryCatalogueItem[]) => void, language: string }
 export function ControlExpiryCatalogueDialog({items,departments,defaultDepartments=[],window,onClose,onSave,language}:ControlExpiryCatalogueDialogProps){
  const en=language==='en'
  const {libraries}=useLibraries()
  const itemOptions=useItemOptions(libraries,[],language)
  const forms=formOptions(libraries,language)
- const fresh=(row:AnyRecord={})=>catalogueItem({...row,departments:row.departments?.length?row.departments:defaultDepartments})
- const [rows,setRows]=useState<AnyRecord[]>(()=>items.length?items.map(item=>({...item,departments:item.departments?.length?item.departments:[...defaultDepartments]})):[fresh()])
+ const fresh=(row:Partial<ExpiryCatalogueItem>={})=>catalogueItem({...row,departments:row.departments?.length?row.departments:defaultDepartments})
+ const [rows,setRows]=useState<ExpiryCatalogueItem[]>(()=>items.length?items.map(item=>({...item,departments:item.departments?.length?item.departments:[...defaultDepartments]})):[fresh()])
  const [pasteOpen,setPasteOpen]=useState(false),[pasted,setPasted]=useState('')
- const update=(id:string,patch:AnyRecord)=>setRows(current=>current.map(row=>row.id===id?{...row,...patch}:row))
+ const update=(id:string|undefined,patch:Partial<ExpiryCatalogueItem>)=>setRows(current=>current.map(row=>row.id===id?{...row,...patch}:row))
  const addRow=()=>setRows(current=>[...current,fresh()])
  const pastedRows=parseCatalogueLines(pasted)
  const addPasted=()=>{if(!pastedRows.length)return;setRows(current=>[...current.filter(row=>row.item.trim()),...pastedRows.map(row=>fresh(row))]);setPasted('');setPasteOpen(false)}
@@ -52,7 +52,7 @@ export function ControlExpiryCatalogueDialog({items,departments,defaultDepartmen
    <label className="field"><span className="lo-field-label">{en?'One item per line: name, expected quantity, form, expiry, note, type (medicine/supply), active substance (columns copied from Excel)':'Ένα υλικό ανά γραμμή: ονομασία, προβλεπόμενη ποσότητα, είδος, λήξη, παρατήρηση, κατηγορία (φάρμακο/υλικό), δραστική ουσία (στήλες αντιγραμμένες από Excel)'}</span><textarea autoFocus value={pasted} onChange={e=>setPasted(e.target.value)} placeholder={'Adrenaline 1mg/ml\t10\tΦύσιγγα\t31/12/2026\nΦυσιολογικός ορός 0,9% 500ml\t24\tΦιάλη\t30/06/2027'}/></label>
    <Button variant="secondary" disabled={!pastedRows.length} onClick={addPasted}><Plus size={15}/>{en?` Add ${pastedRows.length||''} rows`:` Προσθήκη ${pastedRows.length||''} γραμμών`}</Button>
   </div>}
-  <RegistryTable className="control-exec-table control-catalogue-table" wrapperClassName="control-exec-table-wrap control-catalogue-wrap" columns={[{key:'item',label:en?'Name':'Ονομασία'},{key:'category',label:en?'Type':'Κατηγορία'},{key:'ingredient',label:en?'Active substance':'Δραστική ουσία'},{key:'quantity',label:en?'Expected qty':'Προβλεπ. ποσ.'},{key:'form',label:en?'Form':'Είδος'},{key:'expiry',label:en?'Expiry date':'Λήξη'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'note',label:en?'Note':'Παρατήρηση'},{key:'departments',label:en?'Departments':'Τμήματα'},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'}]} rows={rows} rowKey={row=>row.id} renderRow={row=><>
+  <RegistryTable className="control-exec-table control-catalogue-table" wrapperClassName="control-exec-table-wrap control-catalogue-wrap" columns={[{key:'item',label:en?'Name':'Ονομασία'},{key:'category',label:en?'Type':'Κατηγορία'},{key:'ingredient',label:en?'Active substance':'Δραστική ουσία'},{key:'quantity',label:en?'Expected qty':'Προβλεπ. ποσ.'},{key:'form',label:en?'Form':'Είδος'},{key:'expiry',label:en?'Expiry date':'Λήξη'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'note',label:en?'Note':'Παρατήρηση'},{key:'departments',label:en?'Departments':'Τμήματα'},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'}]} rows={rows} rowKey={row=>row.id as string} renderRow={row=><>
    <td><SearchableSelect hideLabel label={en?'Name':'Ονομασία'} value={row.item} options={itemOptions.options} onChange={v=>update(row.id,{item:v})} allowCustom placeholder={en?'Search the library or type':'Αναζήτηση στη βιβλιοθήκη ή πληκτρολόγηση'} emptyLabel={en?'No match':'Καμία αντιστοιχία'} customLabel={text=>en?`Use «${text}»`:`Χρήση «${text}»`}/></td>
    <td><SearchableSelect hideLabel label={en?'Type':'Κατηγορία'} value={row.category||''} options={ITEM_CATEGORIES.map(([key,el,enLabel])=>({value:key,label:en?enLabel:el}))} onChange={v=>update(row.id,{category:v})} placeholder="—" emptyLabel={en?'No match':'Καμία αντιστοιχία'} clearLabel={en?'Clear':'Καθαρισμός'}/></td>
    <td><input aria-label={en?'Active substance':'Δραστική ουσία'} value={row.ingredient||''} onChange={e=>update(row.id,{ingredient:e.target.value})}/></td>

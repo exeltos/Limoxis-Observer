@@ -2,11 +2,14 @@ import { CheckSquare, ChevronRight, ListChecks, Square } from 'lucide-react'
 import { formatDay } from '../../core/i18n/formatDay'
 import { RateMeter } from './ControlAdherencePanel'
 import { DEFAULT_PERIOD, isToday, periodShort } from './controlAdherence'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DepartmentCard } from './controlDepartmentCards'
+
+// What a card shows of a department.
+type CardView = Pick<DepartmentCard, 'department' | 'controls' | 'overdue' | 'todayDone' | 'todayRequired' | 'lastAt' | 'rate'>
 
 // The adherence a card shows under its numbers: of the chosen period, or done today.
 // The missed executions, with their dates, are in «Adherence».
-function CardFigures({ figures, period, language }: { figures: AnyRecord, period: string, language: string }) {
+function CardFigures({ figures, period, language }: { figures: { rate?: number | null }, period: string, language: string }) {
   const en = language === 'en'
   return <>
     <span className="control-department-card-rate"><span>{isToday(period) ? (en ? 'Done today' : 'Έγιναν σήμερα') : `${en ? 'Adherence' : 'Τήρηση'} · ${periodShort(period, language)}`}</span><RateMeter rate={figures.rate} /></span>
@@ -19,15 +22,15 @@ const todayText = (done: number, required: number) => (required ? `${done}/${req
 // rows of cards). The first card opens the whole list; any other opens the
 // list of that department's controls. `single`: the one card of a department
 // above its own list (a department manager), wide and not a link.
-interface ControlDepartmentCardsProps { cards?: AnyRecord[], total?: number, overdue?: number, totals?: AnyRecord | null, period?: string, loading?: boolean, language?: string, onOpen?: (department: string | null) => void, single?: boolean, picking?: boolean, hidden?: Set<string> | null, onToggle?: (department: string) => void, hiddenCount?: number, onShowAll?: () => void, closedCount?: number }
+interface ControlDepartmentCardsProps { cards?: CardView[], total?: number, overdue?: number, totals?: { rate?: number | null } | null, period?: string, loading?: boolean, language?: string, onOpen?: (department: string | null) => void, single?: boolean, picking?: boolean, hidden?: Set<string> | null, onToggle?: (department: string) => void, hiddenCount?: number, onShowAll?: () => void, closedCount?: number }
 export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, totals = null, period = DEFAULT_PERIOD, loading = false, language = 'el', onOpen, single = false, picking = false, hidden = null, onToggle, hiddenCount = 0, onShowAll, closedCount = 0 }: ControlDepartmentCardsProps) {
   const en = language === 'en'
-  const numbers = (card: AnyRecord) => <span className="control-department-card-numbers">
+  const numbers = (card: CardView) => <span className="control-department-card-numbers">
     <span><b>{card.controls}</b>{en ? 'controls' : 'έλεγχοι'}</span>
     <span className={card.overdue ? 'is-late' : ''}><b>{card.overdue}</b>{en ? 'overdue' : 'εκπρόθεσμοι'}</span>
     <span><b>{todayText(card.todayDone, card.todayRequired)}</b>{en ? 'today' : 'σήμερα'}</span>
   </span>
-  const foot = (card: AnyRecord) => <span className="control-department-card-foot">{card.lastAt ? `${en ? 'Last entry' : 'Τελευταία καταγραφή'}: ${formatDay(card.lastAt, language)}` : en ? 'No entry yet' : 'Καμία καταγραφή ακόμη'}</span>
+  const foot = (card: CardView) => <span className="control-department-card-foot">{card.lastAt ? `${en ? 'Last entry' : 'Τελευταία καταγραφή'}: ${formatDay(card.lastAt, language)}` : en ? 'No entry yet' : 'Καμία καταγραφή ακόμη'}</span>
   if (single) {
     const card = cards[0]
     if (!card) return null

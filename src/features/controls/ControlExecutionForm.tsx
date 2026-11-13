@@ -33,17 +33,20 @@ import { ControlExpiryEntry } from './ControlExpiryEntry'
 import { ControlDeviationActions,ControlEvidenceLinks,ControlEvidencePicker } from './ControlEvidence'
 import { ownerText,personLabel } from '../employees/peopleOptions'
 import './controlExecution.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution, ControlRecord, PeriodProgress, SavedDraft, StructuredRow } from './controlTypes'
+import type { ExportItem } from '../../design-system/ExportMenu'
+import type { ExecutionPayload } from './controlCloudService'
+import type { LibrariesData } from '../management/useLibraries'
 
 // One way to record a control, as a page (a new entry) or a dialog (correcting
 // an entry): the same fields, findings and checks either way.
-interface ControlExecutionOptions { organizationId:string|null|undefined, record:AnyRecord, department:string, initialExecution?:AnyRecord|null, onDraftSaved?:(draft:AnyRecord)=>void }
+interface ControlExecutionOptions { organizationId:string|null|undefined, record:ControlRecord, department:string, initialExecution?:ControlExecution|null, onDraftSaved?:(draft:SavedDraft)=>void }
 function useControlExecution({organizationId,record,department,initialExecution,onDraftSaved}:ControlExecutionOptions){
  const {profile,user}=useAuth()
  const {language}=useLanguage();const en=language==='en'
  const {confirm,notify}=useFeedback()
  // useLibraries (Management) is still JavaScript: its libraries are read by name here.
- const {libraries}=useLibraries() as unknown as {libraries:Record<string,AnyRecord[]>}
+ const {libraries}=useLibraries() as unknown as Pick<LibrariesData,'libraries'>
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const assignment=getAssignment(record,department)
  const response=assignmentResponse(record,department)||{mode:'text',label:'Αποτέλεσμα'}
@@ -56,7 +59,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const [notes,setNotes]=useState(initialExecution?.notes||savedDraft?.notes||'')
  const [resultText,setResultText]=useState(initialExecution?.resultText||savedDraft?.resultText||'')
  const [checkedPoints,setCheckedPoints]=useState(initialExecution?.checkedPoints||savedDraft?.checkedPoints||'')
- const [rows,setRows]=useState<AnyRecord[]>(()=>{
+ const [rows,setRows]=useState<StructuredRow[]>(()=>{
   // A saved entry keeps its own rows, even none: only a new entry starts from the list.
   if(Array.isArray(initialExecution?.structuredData?.rows))return initialExecution.structuredData.rows
   const stored=savedDraft?.rows
@@ -81,7 +84,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const checklistValid=mode!=='checklist'||rows.every(row=>row.required===false||row.answer)
  const valid=(structured?true:String(value).trim().length>0)&&expiryRowsValid&&checklistValid&&(!evidenceRequired||evidence.length>0)
  // Earlier entries of this department, latest first: what was recorded last.
- const history:AnyRecord[]=(assignment?.history||[]).filter((h:AnyRecord)=>h.status!=='cancelled'&&h.id!==initialExecution?.id)
+ const history:ControlExecution[]=(assignment?.history||[]).filter((h:ControlExecution)=>h.status!=='cancelled'&&h.id!==initialExecution?.id)
  const setRow=(index:number,key:string,next:unknown)=>setRows(current=>current.map((r,i)=>i===index?{...r,[key]:next}:r))
  const addRow=()=>setRows(current=>[...current,emptyStructuredRow(response.template)])
  async function removeRow(index:number){
@@ -110,7 +113,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
 
 type ExecutionState = ReturnType<typeof useControlExecution>
 
-function LastEntry({state,record}:{state:ExecutionState,record:AnyRecord}){
+function LastEntry({state,record}:{state:ExecutionState,record:ControlRecord}){
  const {en,language,history,mode,response}=state
  const last=history[0]
  if(!last||mode==='list')return null
@@ -137,13 +140,13 @@ function ResultField({state}:{state:ExecutionState}){
 
 function ChecklistEntry({state}:{state:ExecutionState}){
  const {language,rows,setRow,setRows}=state
- return <ChecklistAnswers rows={rows as ChecklistRow[]} language={language} onRowChange={setRow} onRowsChange={next=>setRows(()=>next)}/>
+ return <ChecklistAnswers rows={rows as ChecklistRow[]} language={language} onRowChange={setRow} onRowsChange={next=>setRows(()=>next as StructuredRow[])}/>
 }
 
 function FindingsList({state}:{state:ExecutionState}){
  const {en,rows,setRow,addRow,removeRow,history}=state
  // Items recorded before in this department are suggested first.
- const known=[...new Set<string>(history.flatMap(h=>(h.structuredData?.rows||[]).map((r:AnyRecord)=>String(r.item||'').trim())).filter(Boolean))]
+ const known=[...new Set<string>(history.flatMap(h=>(h.structuredData?.rows||[]).map((r:StructuredRow)=>String(r.item||'').trim())).filter(Boolean))]
  return <section className="control-exec-findings">
   <SectionHeader title={en?'Findings list':'Λίστα ευρημάτων'} subtitle={en?'Add a row only when there is something to record.':'Προσθέστε γραμμή μόνο όταν υπάρχει κάτι προς καταγραφή.'} actions={<Button variant="secondary" onClick={addRow}><Plus size={15}/> {en?'Add row':'Προσθήκη γραμμής'}</Button>}/>
   <RegistryTable className="control-exec-table" wrapperClassName="control-exec-table-wrap" columns={[{key:'item',label:en?'Item':'Στοιχείο'},{key:'finding',label:en?'Finding':'Εύρημα'},{key:'action',label:en?'Action':'Ενέργεια'},{key:'remove',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'}]} rows={rows} rowKey={(_,i)=>i} renderRow={(r,i)=><>
@@ -156,7 +159,7 @@ function FindingsList({state}:{state:ExecutionState}){
  </section>
 }
 
-function ExecutionFields({state,record,department}:{state:ExecutionState,record:AnyRecord,department:string}){
+function ExecutionFields({state,record,department}:{state:ExecutionState,record:ControlRecord,department:string}){
  const {en,language,mode,expiryControl,allOk,setAllOk,rows,setRow,addRow,removeRow,setRows,libraries,history,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,hasFinding,isEditing,evidence,setEvidence,evidenceRequired}=state
  const guidance=[[en?'Goal':'Στόχος',record.goal],[en?'Acceptance criteria':'Κριτήρια αποδοχής',record.acceptanceCriteria],[en?'Instructions':'Οδηγίες',record.description],[en?'Guidance notes':'Σημειώσεις καθοδήγησης',record.guideNotes]].filter(([,text])=>text)
  return <>
@@ -183,7 +186,7 @@ function ExecutionFields({state,record,department}:{state:ExecutionState,record:
 
 // An extra entry («Έκτακτη καταχώρηση») once the period's required entries
 // are done: only with its reason, recorded as such and not counted.
-export function ControlExtraEntryDialog({language,progress,onClose,onConfirm}:{language:string,progress:AnyRecord|null,onClose:()=>void,onConfirm:(reason:string)=>void}){
+export function ControlExtraEntryDialog({language,progress,onClose,onConfirm}:{language:string,progress:PeriodProgress|null,onClose:()=>void,onConfirm:(reason:string)=>void}){
  const en=language==='en'
  const [reason,setReason]=useState('')
  return <ObserverDialog width="compact" className="control-extra-card" eyebrow={en?'Extra entry':'Έκτακτη καταχώρηση'} title={en?'Record an extra entry':'Καταχώρηση πέρα από τις απαιτούμενες'} subtitle={progressCompleteMessage(progress,language)} onClose={onClose} footer={<DialogActions onSave={()=>{if(reason.trim())onConfirm(reason.trim())}} disabled={!reason.trim()} saveLabel={en?'Continue':'Συνέχεια'}/>}>
@@ -192,7 +195,7 @@ export function ControlExtraEntryDialog({language,progress,onClose,onConfirm}:{l
  </ObserverDialog>
 }
 
-interface ControlExecutionEditorProps { organizationId:string|null|undefined, record:AnyRecord, department:string, onSave?:(payload:AnyRecord)=>unknown, onDraftSaved?:(draft:AnyRecord)=>void, onExportChange?:((items:AnyRecord[]|null)=>void)|null }
+interface ControlExecutionEditorProps { organizationId:string|null|undefined, record:ControlRecord, department:string, onSave?:(payload:ExecutionPayload)=>unknown, onDraftSaved?:(draft:SavedDraft)=>void, onExportChange?:((items:ExportItem[]|null)=>void)|null }
 export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved,onExportChange}:ControlExecutionEditorProps){
  const state=useControlExecution({organizationId,record,department,onDraftSaved})
  const {en,language,actor,assignment,structured,expiryControl,hasFinding,valid,draftSaved,draftSaving,persistDraft,payload,printDraft,value,notes,rows}=state
@@ -239,7 +242,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
 }
 
 // Correcting a saved entry: the same fields in a dialog, with a confirmation.
-interface ControlExecutionModalProps { organizationId:string|null|undefined, record:AnyRecord, department:string, onClose:()=>void, onSave:(payload:AnyRecord)=>unknown, initialExecution:AnyRecord }
+interface ControlExecutionModalProps { organizationId:string|null|undefined, record:ControlRecord, department:string, onClose:()=>void, onSave:(payload:ExecutionPayload)=>unknown, initialExecution:ControlExecution }
 export function ControlExecutionModal({organizationId,record,department,onClose,onSave,initialExecution}:ControlExecutionModalProps){
  const state=useControlExecution({organizationId,record,department,initialExecution})
  const {en,language,actor,structured,valid,payload,printDraft}=state
@@ -249,7 +252,7 @@ export function ControlExecutionModal({organizationId,record,department,onClose,
   <DialogActions onCancel={onClose} onSave={()=>{if(valid&&confirmed)onSave(payload())}} disabled={!confirmed||!valid} saveLabel={en?'Save changes':'Αποθήκευση αλλαγών'}/>
  </>}>
   <div className="control-exec-main"><ExecutionFields state={state} record={record} department={department}/></div>
-  {initialExecution?.evidence?.length>0&&<div className="control-evidence-existing"><span className="lo-field-label">{en?'Evidence':'Τεκμήρια'}</span><ControlEvidenceLinks evidence={initialExecution.evidence} language={language}/></div>}
+  {(initialExecution?.evidence?.length as number)>0&&<div className="control-evidence-existing"><span className="lo-field-label">{en?'Evidence':'Τεκμήρια'}</span><ControlEvidenceLinks evidence={initialExecution.evidence} language={language}/></div>}
   <small className="control-exec-hint">{en?`Edited by ${actor.name}`:`Επεξεργασία από ${actor.name}`}</small>
  </ObserverDialog>
 }

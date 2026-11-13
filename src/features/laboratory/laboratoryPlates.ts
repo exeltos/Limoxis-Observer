@@ -4,10 +4,10 @@
 // Pure: the plates tab and the tests read it.
 import { sampleProgress } from './laboratorySampleProgress'
 import { isOutsideLimit } from './environmentalLimit'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { LaboratoryRepository } from './repositories/laboratoryRepository'
+import type { LabResult, LabSample, PartialError } from './laboratoryTypes'
 
-type Sample = AnyRecord | null | undefined
+type Sample = Partial<LabSample> | null | undefined
 
 const CLOSED_STATUSES: unknown[] = ['cancelled', 'rejected', 'voided']
 const clean = (value: unknown) => String(value ?? '').trim()
@@ -28,19 +28,19 @@ export function plateKey(sample: Sample) {
 // Waiting for the laboratory to receive it: not received yet and not rejected or cancelled.
 export const needsReceipt = (sample: Sample) => Boolean(sample) && !CLOSED_STATUSES.includes(sample?.status) && !sampleProgress(sample).received
 
-const byPosition = (a: AnyRecord, b: AnyRecord) => {
+const byPosition = (a: LabSample, b: LabSample) => {
   const x = Number(a.environmentalPosition)
   const y = Number(b.environmentalPosition)
   if (Number.isFinite(x) && Number.isFinite(y) && x !== y) return x - y
   return clean(a.environmentalPosition).localeCompare(clean(b.environmentalPosition), 'el', { numeric: true })
 }
 
-export const isOutsideLimits = (sample: Sample) => (sample?.microbiologyResults || []).some((result: AnyRecord) => isOutsideLimit(result))
+export const isOutsideLimits = (sample: Sample) => (sample?.microbiologyResults || []).some((result: LabResult) => isOutsideLimit(result))
 
 // status: 'awaiting' (something still to receive) · 'processing' · 'completed' (every open position done) · 'rejected'.
-export interface CulturePlate { key: string, plate: string, batchId: string, department: string, departmentEn: string, collectedAt: string | null, samples: AnyRecord[], awaiting: AnyRecord[], outside: AnyRecord[], status: string, counts: { total: number, awaiting: number, outside: number, done: number } }
-export function groupPlates(samples: AnyRecord[] = []): CulturePlate[] {
-  const groups = new Map<string, AnyRecord[]>()
+export interface CulturePlate { key: string, plate: string, batchId: string, department: string, departmentEn: string, collectedAt: string | null, samples: LabSample[], awaiting: LabSample[], outside: LabSample[], status: string, counts: { total: number, awaiting: number, outside: number, done: number } }
+export function groupPlates(samples: LabSample[] = []): CulturePlate[] {
+  const groups = new Map<string, LabSample[]>()
   for (const sample of samples) {
     const key = plateKey(sample)
     if (!key) continue
@@ -75,7 +75,7 @@ export function groupPlates(samples: AnyRecord[] = []): CulturePlate[] {
 
 // «Παραλαβή τρυβλίου»: every position still waiting is received like a single sample is (it starts processing).
 // Returns how many positions were received; stops at the first failure and says how far it got.
-export async function receivePlate(repository: Pick<LaboratoryRepository, 'updateStatus'>, plate: { awaiting: AnyRecord[] }, now = new Date()) {
+export async function receivePlate(repository: Pick<LaboratoryRepository, 'updateStatus'>, plate: { awaiting: LabSample[] }, now = new Date()) {
   let received = 0
   try {
     for (const sample of plate.awaiting) {
@@ -83,7 +83,7 @@ export async function receivePlate(repository: Pick<LaboratoryRepository, 'updat
       received += 1
     }
   } catch (error) {
-    (error as AnyRecord).received = received
+    (error as PartialError).received = received
     throw error
   }
   return received
@@ -91,9 +91,9 @@ export async function receivePlate(repository: Pick<LaboratoryRepository, 'updat
 
 // What a plate position is «about»: the sampled point of a department plate, or, on a staff-check plate, the employee and the swab.
 const SWAB: Record<string, { el: string, en: string }> = { handSwab: { el: 'Επίχρισμα χεριών', en: 'Hand swab' }, nasalSwab: { el: 'Ρινικό επίχρισμα', en: 'Nasal swab' } }
-export function platePointLabel(sample: AnyRecord, language = 'el'): { title: string, detail: string, masked?: boolean } {
+export function platePointLabel(sample: Partial<LabSample>, language = 'el'): { title: string, detail: string, masked?: boolean } {
   if (isStaffSample(sample)) {
-    const swab = SWAB[sample.source]?.[language === 'en' ? 'en' : 'el'] || ''
+    const swab = SWAB[sample.source as string]?.[language === 'en' ? 'en' : 'el'] || ''
     return { title: clean(sample.subjectName) || '—', detail: [swab, clean(sample.subjectCode) && `${language === 'en' ? 'Employee' : 'Κωδ. εργαζομένου'} ${clean(sample.subjectCode)}`].filter(Boolean).join(' · '), masked: Boolean(sample.staffMasked) }
   }
   return { title: [sample.location, sample.point].filter(Boolean).join(' · ') || '—', detail: '' }
@@ -101,7 +101,7 @@ export function platePointLabel(sample: AnyRecord, language = 'el'): { title: st
 
 // The point of a position as text for a print or an export: a staff-check position shows the employee's name only to those who may see it
 // (and only when the print asks for names); otherwise the swab and the employee code.
-export function platePointText(sample: AnyRecord, language = 'el', withNames = true) {
+export function platePointText(sample: Partial<LabSample>, language = 'el', withNames = true) {
   const point = platePointLabel(sample, language)
   if (isStaffSample(sample) && (point.masked || !withNames)) return point.detail || '—'
   return [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · ') || '—'

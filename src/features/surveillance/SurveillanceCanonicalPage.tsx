@@ -65,7 +65,7 @@ import { latestOrganism, latestResistance, reviewState } from './surveillanceLis
 import { EmployeeRows, groupByPatient, HIDDEN_CASE_STATUSES, matchesEmployeeQuick, matchesEnvironmentQuick, matchesQuick, PatientRows } from './SurveillanceListRows'
 import type { ClinicalCase } from './clinicalTypes'
 import type { LibraryDepartment } from '../management/useLibraries'
-import type { EmployeeScreeningRow, EnvironmentalResample, EnvironmentalSampleRow, NewEpisodeDraft, OpenProtocolRun, SurveillanceListRow, SurveillancePatient } from './surveillanceListTypes'
+import type { EmployeeScreeningRow, EnvironmentalResample, EnvironmentalSampleRow, NewEpisodeDraft, OpenProtocolRun, ReviewSample, SurveillanceListRow, SurveillancePatient } from './surveillanceListTypes'
 
 const isEnvironmental = isEnvironmentalSample
 const SECTION_MODES: Record<string, string> = { episodes: 'patients', employees: 'employees', environmental: 'environmental' }
@@ -186,7 +186,7 @@ export function SurveillanceCanonicalPage() {
       if (isDemo) {
         setCases(demoSurveillanceList())
         setEmployeeRows(employeeSurveillanceRecords.map(x => ({ ...x })))
-        setEnvironmentRows(laboratoryRegistry.rows.filter(isEnvironmental))
+        setEnvironmentRows(laboratoryRegistry.rows.filter(isEnvironmental) as EnvironmentalSampleRow[])
       } else if (tenant?.id) {
         const results = (await rest)!
         // A surveillance without a sample is not listed (owner, 8/11/2026): every surveillance starts from a sample.
@@ -585,7 +585,7 @@ export function SurveillanceCanonicalPage() {
         {showWorklist ? (
           awaitingReview.loading ? <TableSkeleton /> : (
             <SampleReviewWorklist
-              rows={reviewRows}
+              rows={reviewRows as ReviewSample[]}
               empty={{ title: worklistTexts(language).emptyTitle, text: worklistTexts(language).emptyText }}
               language={language}
               t={t}

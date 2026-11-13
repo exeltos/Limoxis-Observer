@@ -1,7 +1,7 @@
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { OwnerWaitingCounts,PlatformAttentionItem } from './platformTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
@@ -13,7 +13,7 @@ const daysUntil=(value: unknown)=>Math.ceil((new Date(`${String(value).slice(0,1
 // Demos (below), Demos ending within 7 days and organizations whose deletion
 // date is within 7 days or has passed (the same events the nightly reminder
 // e-mails cover).
-export async function loadPlatformAttentionItems(language='el'){
+export async function loadPlatformAttentionItems(language='el'): Promise<PlatformAttentionItem[]>{
   if(!hasSupabaseConfig||!supabase)return []
   const en=language==='en'
   const [{data:demos,error:demoError},{data:orgs,error:orgError}]=await Promise.all([
@@ -25,7 +25,7 @@ export async function loadPlatformAttentionItems(language='el'){
   const ending=(demos||[]).filter(d=>daysUntil(d.valid_until)<=7).length
   const due=(orgs||[]).filter(o=>new Date(o.deletion_scheduled_at as string).getTime()<=Date.now()).length
   const soon=(orgs||[]).filter(o=>new Date(o.deletion_scheduled_at as string).getTime()>Date.now()&&daysUntil(o.deletion_scheduled_at)<=7).length
-  const items: AnyRecord[]=[...await loadDemoActivityItems(en).catch(()=>[])]
+  const items: PlatformAttentionItem[]=[...await loadDemoActivityItems(en).catch(()=>[])]
   if(due)items.push({id:'PLATFORM-deletion-due',title:en?'Organizations that reached their deletion date':'Οργανισμοί που έφτασαν στην ημερομηνία διαγραφής',count:due,to:'/platform#organizations',type:'task',source:'supabase'})
   if(soon)items.push({id:'PLATFORM-deletion-soon',title:en?'Organization deletions within 7 days':'Διαγραφές οργανισμών εντός 7 ημερών',count:soon,to:'/platform#organizations',type:'task',source:'supabase'})
   if(ending)items.push({id:'PLATFORM-demo-ending',title:en?'Demos ending within 7 days':'Demo που λήγουν εντός 7 ημερών',count:ending,to:'/platform#demo',type:'task',source:'supabase'})
@@ -67,10 +67,10 @@ export async function loadDemoActivityItems(en=false){
 
 // What waits for the owner on the Overview besides the demos and deletions (owner, 12/11/2026): legislation proposals to
 // review, accounts that have not yet changed their temporary password, and accounts locked because it expired.
-export async function loadOwnerWaitingCounts(){
+export async function loadOwnerWaitingCounts(): Promise<OwnerWaitingCounts>{
   if(isOwnerPreview())return {legislation:22,waiting:3,locked:1}
   if(!hasSupabaseConfig||!supabase)return {legislation:0,waiting:0,locked:0}
-  const count=(query: PromiseLike<AnyRecord>)=>query.then(({count:total,error}: AnyRecord)=>error?0:(total||0))
+  const count=(query: PromiseLike<{count: number | null,error: unknown}>)=>query.then(({count:total,error})=>error?0:(total||0))
   const [legislation,waiting,locked]=await Promise.all([
     count(supabase.from('legislation_candidates').select('id',{count:'exact',head:true}).eq('status','pending')),
     count(supabase.from('profiles').select('id',{count:'exact',head:true}).eq('must_change_password',true).is('temporary_password_locked_at',null)),

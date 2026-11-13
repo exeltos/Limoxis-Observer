@@ -4,16 +4,17 @@
 // and the findings of an expiry check. Records store the Greek library name (or
 // a code), never the label the screen happened to show.
 import { DEFAULT_EXPIRY_AFTER_DAYS,DEFAULT_EXPIRY_BEFORE_DAYS } from './controlExpiry'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlResponseConfig } from './controlTypes'
+import type { LibraryOptionSource } from '../management/useLibraries'
 
 // An item of a library list (control types, answers): its code, value and names.
-type LibraryItem = AnyRecord
+type LibraryItem = LibraryOptionSource
 
 const COMPLIANT='Συμμορφώνεται',NON_COMPLIANT='Μη συμμόρφωση'
 
 // The result format a control type starts with. Keyed by library code; the
 // names cover control types typed before the library existed.
-const PRESET_BY_CODE:Record<string,AnyRecord>={
+const PRESET_BY_CODE:Record<string,ControlResponseConfig>={
  'CTRL-TEMP':{mode:'numeric',label:'Θερμοκρασία',unit:'°C',min:'',max:''},
  'CTRL-EXPIRY':{mode:'list',label:'Ευρήματα',template:'medication_expiry',expiryBeforeDays:DEFAULT_EXPIRY_BEFORE_DAYS,expiryAfterDays:DEFAULT_EXPIRY_AFTER_DAYS},
  'CTRL-ENV':{mode:'list',label:'Δείγματα / ευρήματα',template:'generic_findings'},
@@ -51,7 +52,7 @@ const ANSWER_EL=Object.fromEntries(Object.entries(ANSWER_EN).map(([el,en])=>[en,
 export const canonicalAnswer=(value:unknown)=>ANSWER_EL[String(value||'')]||String(value||'')
 
 // The status choices of a control: [{value,finding}] in the order shown.
-export function choiceOptions(response:AnyRecord|null|undefined={},answerItems:LibraryItem[]=[]){
+export function choiceOptions(response:Pick<ControlResponseConfig,'options'|'reportOn'>|null|undefined={},answerItems:LibraryItem[]=[]){
  const options=(Array.isArray(response?.options)&&response.options.length?response.options:[COMPLIANT,NON_COMPLIANT]).map(canonicalAnswer).filter(Boolean)
  const reportOn=Array.isArray(response?.reportOn)?new Set(response.reportOn.map(canonicalAnswer)):null
  const codeOf=(value:string)=>answerItems.find(item=>item.value===value)?.code||null
@@ -62,7 +63,7 @@ export function answerLabel(value:unknown,language='el',answerItems:LibraryItem[
  if(language!=='en')return text
  return answerItems.find(item=>item.value===text)?.en||ANSWER_EN[text]||text
 }
-export function isFindingAnswer(response:AnyRecord|null|undefined,value:unknown,answerItems:LibraryItem[]=[]){
+export function isFindingAnswer(response:Pick<ControlResponseConfig,'options'|'reportOn'>|null|undefined,value:unknown,answerItems:LibraryItem[]=[]){
  const text=canonicalAnswer(value)
  return Boolean(text)&&choiceOptions(response,answerItems).some(option=>option.value===text&&option.finding)
 }
@@ -82,7 +83,7 @@ export function expiryFindingLabel(value:unknown,language='el'){
  return code?EXPIRY_FINDING_LABEL[code][language==='en'?1:0]:''
 }
 // What a row's finding says, with the free text of «Other».
-export function rowFindingText(row:AnyRecord|null|undefined,language='el'){
+export function rowFindingText(row:{finding?:string,findingOther?:string}|null|undefined,language='el'){
  const code=expiryFindingCode(row?.finding)
  if(code==='other')return String(row?.findingOther||'').trim()||(EXPIRY_FINDINGS.includes(String(row?.finding))?expiryFindingLabel(code,language):String(row?.finding||''))
  return expiryFindingLabel(code,language)

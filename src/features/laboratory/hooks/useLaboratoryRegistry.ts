@@ -4,9 +4,9 @@ import { useLaboratoryRepository } from './useLaboratoryRepository'
 import { hospitalDate } from '../../../core/dates/hospitalDate'
 import type { Readiness } from '../../../core/data/repositoryResult'
 import type { LaboratoryScope } from '../repositories/laboratoryRepository'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { LabSample, SampleDraft } from '../laboratoryTypes'
 
-interface RegistryState { rows: AnyRecord[], loading: boolean, error: unknown, readiness: Readiness, missingConfiguration: string[] }
+interface RegistryState { rows: LabSample[], loading: boolean, error: unknown, readiness: Readiness, missingConfiguration: string[] }
 const initialState: RegistryState = { rows: [], loading: true, error: null, readiness: READINESS.READY, missingConfiguration: [] }
 
 // enabled:false skips the read (a screen that loads the samples itself and
@@ -40,7 +40,7 @@ export function useLaboratoryRegistry({ enabled = true, scope = null, recent = f
 
   useEffect(() => { if (enabled) void reload() }, [reload, enabled])
 
-  const createSample = useCallback(async (input: { patientRecordId?: string | null, draft: AnyRecord }) => {
+  const createSample = useCallback(async (input: { patientRecordId?: string | null, draft: SampleDraft }) => {
     const created = await repository.create(input)
     await reload()
     return created

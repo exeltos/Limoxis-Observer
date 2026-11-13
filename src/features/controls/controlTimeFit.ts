@@ -4,21 +4,23 @@
 // hour that catches the most entries in its window; it is offered only when
 // it catches clearly more than the time set now.
 import { CONTROL_TIME_ZONE, isDailyFrequency, slotMargin, slotStarts, slotWindowMinutes, zonedParts } from './controlDueRules'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { ControlRow } from './controlTypes'
+import type { ControlAssignment, ControlExecution, ControlFrequency, ControlRecord, ControlRow } from './controlTypes'
+
+// An entry as the times are read from it.
+type TimedEntry = Pick<ControlExecution, 'at'> & Partial<Pick<ControlExecution, 'status' | 'cancelledAt' | 'isExtra' | 'responseData'>>
 
 const DAY_MINUTES = 1440
 export const TIME_FIT_DAYS = 30
 
 export const hhmm = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
 
-const hasSetTimes = (frequency: AnyRecord = {}) => (frequency.times || []).some((t: unknown) => /^\d{1,2}:\d{2}$/.test(String(t || '').trim()))
+const hasSetTimes = (frequency: ControlFrequency = {}) => (frequency.times || []).some((t: unknown) => /^\d{1,2}:\d{2}$/.test(String(t || '').trim()))
 
-const regular = (row: AnyRecord) => row && row.at && row.status !== 'cancelled' && !row.cancelledAt && !row.isExtra && !row.responseData?.isExtra
+const regular = (row: TimedEntry) => row && row.at && row.status !== 'cancelled' && !row.cancelledAt && !row.isExtra && !row.responseData?.isExtra
 
 // The entries of a history in [from, to], as minutes after midnight per slot
 // (the k-th entry of a day is slot k), as control_execution_times does.
-export function minutesBySlot(history: AnyRecord[] = [], from: Date | string, to: Date | string, timeZone = CONTROL_TIME_ZONE) {
+export function minutesBySlot(history: TimedEntry[] = [], from: Date | string, to: Date | string, timeZone = CONTROL_TIME_ZONE) {
   const start = new Date(from).getTime(), end = new Date(to).getTime()
   const rows = history.filter(regular).filter((row) => { const t = new Date(row.at).getTime(); return t >= start && t <= end }).sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
   const slots: number[][] = []
@@ -36,7 +38,7 @@ export function minutesBySlot(history: AnyRecord[] = [], from: Date | string, to
 const inWindow = (minutes: number, { open, close }: { open: number, close: number }) => minutes >= open && minutes <= Math.min(close, DAY_MINUTES)
 
 // Entries of the required slots that fall in their windows.
-export function fitCount(frequency: AnyRecord, slots: number[][] = []) {
+export function fitCount(frequency: ControlFrequency, slots: number[][] = []) {
   return slotStarts(frequency).reduce((sum, _, i) => sum + (slots[i] || []).filter((m) => inWindow(m, slotWindowMinutes(frequency, i))).length, 0)
 }
 
@@ -49,7 +51,7 @@ export function typicalTime(minutes: number[] = []) {
 }
 
 // The set times that fit the entries best, or the current ones.
-export function proposeTimes(frequency: AnyRecord = {}, slots: number[][] = []) {
+export function proposeTimes(frequency: ControlFrequency = {}, slots: number[][] = []) {
   const current = slotStarts(frequency)
   const margin = slotMargin(frequency)
   const proposed = current.map((start, i) => {
@@ -70,7 +72,7 @@ export function proposeTimes(frequency: AnyRecord = {}, slots: number[][] = []) 
 // One line per department of a daily control with set times.
 // rows: [{ item, departments }]; timesByAssignment: Map(assignment id → slots)
 // from the database, or null to read each assignment's history.
-export type TimeFitLine = AnyRecord
+export interface TimeFitLine { item: ControlRecord, department: string, assignment: ControlAssignment, frequency: ControlFrequency, entries: number, current: string[], typical: (string | null)[], proposed: string[], changed: boolean, rateNow: number | null, rateProposed: number | null }
 export function timeFitLines(rows: ControlRow[] = [], timesByAssignment: Map<string, number[][]> | null = null, { from, to }: { from?: Date | string, to?: Date | string } = {}) {
   const lines: TimeFitLine[] = []
   for (const { item, departments } of rows) {

@@ -44,7 +44,19 @@ import { completeControlExecution,deleteControlDefinition,loadControlByCode,load
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { LinkedActions as LinkedActionsJs } from '../quality/LinkedActions'
 import './controlRecord.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlActor, ControlDraft, ControlExecution, PeriodProgress } from './controlTypes'
+import type { ExecutionPayload } from './controlCloudService'
+import type { AdherenceLine, MissedDay } from './controlAdherence'
+import type { RecordWindow } from './controlScheduling'
+
+// An entry of the history, with its department.
+type HistoryRow = ControlExecution & { department: string, missed?: false }
+// A missed execution shown between the entries.
+type MissedRow = { id: string, missed: true, department: string, at: string, miss: MissedDay }
+// What a failed save says: the period is complete (with its count), or the entry is outside its window.
+type SaveError = { code?: string, progress?: PeriodProgress | null, message?: string } | null
+// The department a membership names in older records.
+type MembershipDepartment = { department?: string } | null
 import type { ControlRecord } from './controlTypes'
 import type { ExportItem } from '../../design-system/ExportMenu'
 import type { RecordNavigation } from '../../design-system/EntityRecordShell'
@@ -68,11 +80,11 @@ export function ControlRecordPage(){
  const [tabFor,setTabFor]=useState(controlId)
 
  const [expiryExport,setExpiryExport]=useState<ExportItem[]|null>(null)
- const [entryExport,setEntryExport]=useState<AnyRecord[]|null>(null)
+ const [entryExport,setEntryExport]=useState<ExportItem[]|null>(null)
  const [listDepartment,setListDepartment]=useState<string|null>(null)
- const [cancelExecution,setCancelExecution]=useState<AnyRecord|null>(null)
- const [deleteExecution,setDeleteExecution]=useState<AnyRecord|null>(null)
- const [editExecution,setEditExecution]=useState<AnyRecord|null>(null)
+ const [cancelExecution,setCancelExecution]=useState<HistoryRow|null>(null)
+ const [deleteExecution,setDeleteExecution]=useState<HistoryRow|null>(null)
+ const [editExecution,setEditExecution]=useState<HistoryRow|null>(null)
  const [record,setRecord]=useState<ControlRecord|null>(null)
  const [loading,setLoading]=useState(true)
  const [historyPage,setHistoryPage]=useState(1)
@@ -86,10 +98,10 @@ export function ControlRecordPage(){
  const [withMissed,setWithMissed]=useState(false)
  // The order of the executions (newest first by default): the arrow of the date column; the database orders the whole list.
  const [historyOrder,setHistoryOrder]=useState<'asc'|'desc'>('desc')
- const [missedOf,setMissedOf]=useState<{lines:AnyRecord[],title:string}|null>(null)
+ const [missedOf,setMissedOf]=useState<{lines:AdherenceLine[],title:string}|null>(null)
  // Moving to another control starts on its own tab and on the first page of its history.
  if(tabFor!==controlId){setTabFor(controlId);setTab(searchParams.get('tab')||'');setHistoryPage(1)}
- const ownDepartment=membership?.previewDepartment||membership?.departmentName||(membership as AnyRecord|null)?.department||''
+ const ownDepartment=membership?.previewDepartment||membership?.departmentName||(membership as MembershipDepartment)?.department||''
  const executing=searchParams.get('execute')==='1'
  const editing=searchParams.get('edit')==='1'
  const recordNavigation=useRecordSequenceNavigation({registry:'controls',currentId:controlId,pathForId:id=>`/controls/${id}`})
@@ -105,7 +117,7 @@ export function ControlRecordPage(){
 
  // The executions tab reads one page at a time from the database (a control
  // done daily for years has thousands of entries); it reloads with the record.
- const [historyData,setHistoryData]=useState<{key:string,rows:AnyRecord[],total:number}>({key:'',rows:[],total:0})
+ const [historyData,setHistoryData]=useState<{key:string,rows:ControlExecution[],total:number}>({key:'',rows:[],total:0})
  // One department or all of them (the «Department» choice above the table).
  const historyAssignmentIds=useMemo(()=>record?record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null})).filter(dep=>historyDepartment==='all'||dep===historyDepartment).map(dep=>record.assignments?.[dep]?.dbId).filter(Boolean):[],[record,canAccessRecord,historyDepartment])
  const historyFrom=useMemo(()=>periodRange(period,new Date()).from.toISOString().slice(0,13),[period])
@@ -141,7 +153,7 @@ export function ControlRecordPage(){
  const canExecute=Boolean(department)&&canExecuteDepartment(department)
  // A department records a daily control with set times only inside its window (1 hour before to its margin after);
  // only the hospital administrator and the platform owner record at any time.
- const windowOf=(dep:string):AnyRecord=>canRecordAnytime(role)?{gated:false}:recordWindow(record,dep)
+ const windowOf=(dep:string):RecordWindow=>canRecordAnytime(role)?{gated:false}:recordWindow(record,dep)
  const heldBack=(dep:string)=>{const win=windowOf(dep);return win.gated&&win.state!=='open'}
  const clock=(d:Date|null|undefined)=>d?`${String(zonedParts(d).hour).padStart(2,'0')}:${String(zonedParts(d).minute).padStart(2,'0')}`:''
  const heldText=(dep:string)=>{const win=windowOf(dep);return win.state==='before'?(en?`From ${clock(win.opens)}`:`Από ${clock(win.opens)}`):(en?'Closed':'Έκλεισε')}
@@ -151,7 +163,7 @@ export function ControlRecordPage(){
  const hasDraft=assignments.some(x=>Boolean(x.assignment?.hasDraft))
  const sourceLabel=record.createdByScope==='platform'?'Platform Owner':record.createdByScope==='hospital_admin'?(en?'Hospital Administrator':'Διαχειριστής Νοσοκομείου'):record.createdByScope==='quality'?(en?'Quality Manager':'Υπεύθυνος Ποιότητας'):(record.createdByScope==='department'?(en?'Department manager':'Προϊστάμενος Τμήματος'):(en?'Infection Control Lead':'Προϊστάμενος Λοιμώξεων'))
  const historyLoaded=!historyAssignmentIds.length||historyData.key===historyKey
- const historyRows=assignments.flatMap(({department:dep,assignment:current})=>(historyLoaded?historyData.rows:[]).filter(h=>h.assignmentId===current?.dbId).map((h):AnyRecord=>({...h,department:dep}))).sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime())
+ const historyRows=assignments.flatMap(({department:dep,assignment:current})=>(historyLoaded?historyData.rows:[]).filter(h=>h.assignmentId===current?.dbId).map((h):HistoryRow=>({...h,department:dep}))).sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime())
  const historyTotal=historyLoaded?historyData.total:0
  const historyTotalPages=Math.max(1,Math.ceil(historyTotal/historyPageSize))
  const historySafePage=Math.min(historyPage,historyTotalPages)
@@ -163,7 +175,7 @@ export function ControlRecordPage(){
  const lineOf=(dep:string)=>adherence.lines.find(line=>line.department===dep)
  const hhmm=(minutes:number)=>`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`
  // The set time an entry belongs to (the nearest) and whether it fell inside that time's window.
- const timeOfEntry=(h:AnyRecord)=>{
+ const timeOfEntry=(h:HistoryRow)=>{
   const f=assignmentFrequency(record,h.department)
   if(f?.kind!=='daily'||!(f.times||[]).some(Boolean))return null
   const starts=slotStarts(f),p=zonedParts(h.at),m=p.hour*60+p.minute
@@ -187,13 +199,13 @@ export function ControlRecordPage(){
    const texts=[record.goal&&[en?'Goal':'Στόχος',record.goal],record.acceptanceCriteria&&[en?'Acceptance criteria':'Κριτήρια αποδοχής',record.acceptanceCriteria],[en?'Instructions':'Οδηγίες',record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.')],record.guideNotes&&[en?'Guidance notes':'Σημειώσεις καθοδήγησης',record.guideNotes],deviationActions(record,visibleDepartments[0])&&[en?'Actions on deviation':'Ενέργειες σε απόκλιση',deviationActions(record,visibleDepartments[0])]].filter(Boolean)
    const periodName=periodShort(period,language)
    return {
-    language,kind:en?'Control':'Έλεγχος',title,code:record.code,
+    language,kind:en?'Control':'Έλεγχος',title,code:(record as {code?:string}).code,
     meta:[[en?'Control type':'Είδος ελέγχου',record.category||'—'],[en?'Criticality':'Κρισιμότητα',criticalityLabel(controlCriticality(record),language)],[en?'Evidence':'Τεκμήριο',requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')],[en?'Responsible':'Υπεύθυνος',ownerText(record,language)||'—'],[en?'Frequency':'Συχνότητα',controlFrequencyLabel(record,visibleDepartments,language)],...(!differentSchedules?[[en?'Execution times':'Ώρες εκτέλεσης',timesWithWindows(assignmentFrequency(record,visibleDepartments[0]))||'—']]:[]),[en?'Period':'Περίοδος',periodName]],
     sections:[
      {title:en?'Goal and instructions':'Στόχος και οδηγίες',facts:texts,factColumns:1},
      {title:`${en?'Departments':'Τμήματα'} · ${periodName}`,table:{columns:[en?'Department':'Τμήμα',en?'Responsible':'Υπεύθυνος',en?'Schedule':'Πρόγραμμα',en?'Done':'Έγιναν',en?'Missed':'Χάθηκαν',en?'Adherence':'Τήρηση',en?'Last entry':'Τελευταία καταχώρηση'],rows:assignments.map(({department:dep,assignment:current})=>{const line=lineOf(dep);return [dep,personLabel(record.assignees?.[dep],language)||ownerText(record,language)||'—',[frequencyLabel(assignmentFrequency(record,dep),language),timesWithWindows(assignmentFrequency(record,dep))].filter(Boolean).join(' · '),line?`${Math.min(line.performed,line.expected)} / ${line.expected}`:'—',line?String(line.missed):'—',line?.rate==null?'—':`${line.rate}%`,current?.lastCompletedAt?fmt(current.lastCompletedAt):'—']})}},
      {title:`${en?'Executions':'Εκτελέσεις'} · ${periodName}`,note:(loaded.total||0)>(loaded.rows||[]).length?(en?`The first ${PRINT_LIMIT} of ${loaded.total}.`:`Οι πρώτες ${PRINT_LIMIT} από ${loaded.total}.`):undefined,
-      table:{columns:[en?'Date / time':'Ημερομηνία / ώρα',en?'Department':'Τμήμα',en?'Result':'Αποτέλεσμα',en?'Recorded by':'Καταχώρησε',en?'Notes':'Σημειώσεις'],rows:executions.length?executions.map(h=>{const row:AnyRecord={...h,department:departmentOf.get(h.assignmentId)||''};return [fmt(row.at),row.department,[row.isExtra?(en?'Extra':'Έκτακτη'):'',structuredSummary(row,{record,language}),row.resultText].filter(Boolean).join(' · '),row.by||'—',row.notes||'']}):[[{text:en?'No executions in the period.':'Δεν υπάρχουν εκτελέσεις στην περίοδο.',colSpan:5}]]}},
+      table:{columns:[en?'Date / time':'Ημερομηνία / ώρα',en?'Department':'Τμήμα',en?'Result':'Αποτέλεσμα',en?'Recorded by':'Καταχώρησε',en?'Notes':'Σημειώσεις'],rows:executions.length?executions.map(h=>{const row:HistoryRow={...h,department:departmentOf.get(h.assignmentId as string)||''};return [fmt(row.at),row.department,[row.isExtra?(en?'Extra':'Έκτακτη'):'',structuredSummary(row,{record,language}),row.resultText].filter(Boolean).join(' · '),row.by||'—',row.notes||'']}):[[{text:en?'No executions in the period.':'Δεν υπάρχουν εκτελέσεις στην περίοδο.',colSpan:5}]]}},
     ],
     signatures:[en?'Checked by':'Ελέγχθηκε από'],
    } as ReportDoc
@@ -201,7 +213,7 @@ export function ControlRecordPage(){
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
  // The missed executions as rows between the entries of the page, newest first.
- const missedRows=withMissed&&historyLoaded?adherence.lines.filter(line=>historyDepartment==='all'||line.department===historyDepartment).flatMap(line=>(line.missedDays||[]).flatMap((miss:AnyRecord)=>{
+ const missedRows=withMissed&&historyLoaded?adherence.lines.filter(line=>historyDepartment==='all'||line.department===historyDepartment).flatMap(line=>(line.missedDays||[]).flatMap((miss:MissedDay):MissedRow[]=>{
   const [y,mo,d]=miss.day.split('-').map(Number)
   const times=miss.times?.length?miss.times:[null]
   return times.map((time:string|null)=>{const minutes=time?Number(time.slice(0,2))*60+Number(time.slice(3,5)):23*60+59;return {id:`missed|${line.department}|${miss.day}|${time||''}`,missed:true,department:line.department,at:zonedInstant(y,mo,d,minutes).toISOString(),miss:{...miss,times:time?[time]:[]}}})
@@ -214,8 +226,8 @@ export function ControlRecordPage(){
  const expiry=expiryControl?expiryCounts(expiryItems(record,visibleDepartments)):{expired:0,expiring:0,alerting:0}
  // A control opens on its details; links from the expiry lists and alerts ask for ?tab=expiry.
  const currentTab=tab==='expiry'&&!expiryControl?'details':tab||'details'
- const isDeletedExecution=(h:AnyRecord)=>h.status==='cancelled'&&String(h.cancellationReason||'').startsWith('[DELETE]')
- const cancellationText=(h:AnyRecord)=>String(h.cancellationReason||'').replace(/^\[DELETE\]\s*/,'')
+ const isDeletedExecution=(h:Pick<ControlExecution,'status'|'cancellationReason'>)=>h.status==='cancelled'&&String(h.cancellationReason||'').startsWith('[DELETE]')
+ const cancellationText=(h:Pick<ControlExecution,'cancellationReason'>)=>String(h.cancellationReason||'').replace(/^\[DELETE\]\s*/,'')
 
  const removeDefinition=async()=>{
   const deleting=canDeleteDraft
@@ -228,11 +240,11 @@ export function ControlRecordPage(){
    navigate('/controls')
   }catch(error){notifyError(error,deleting?'delete':'save',{operation:deleting?'control_definition_delete':'control_definition_archive'})}
  }
- const saveDefinition=async(draft:AnyRecord)=>{
+ const saveDefinition=async(draft:ControlDraft)=>{
   try{await saveControlDefinition(tenant!.id,{...record,...draft},{actorName:actor.name,createdByScope:record.createdByScope,createdForDepartment:record.createdForDepartment});await reload();navigate(recordUrl,{replace:true});notify(en?'Changes saved.':'Οι αλλαγές αποθηκεύτηκαν.','success')}
   catch(error){notifyError(error,'save',{operation:'control_definition_update'})}
  }
- const saveExecution=async(payload:AnyRecord)=>{
+ const saveExecution=async(payload:ExecutionPayload)=>{
   try{
    await completeControlExecution(tenant!.id,record,department,payload)
    await reload()
@@ -243,30 +255,30 @@ export function ControlRecordPage(){
    navigate(returnTo||recordUrl,{replace:true})
   }catch(error){
    // Someone else completed the period meanwhile: say so and show the new count.
-   if((error as AnyRecord)?.code==='control_period_complete'){await reload();notify(progressCompleteMessage((error as AnyRecord).progress||assignmentProgress(record,department),language),'warning');return}
-   if(/control_outside_window/.test(String((error as AnyRecord)?.message||''))){await reload();notify(en?'This control can be recorded only inside the window of its time. Contact the hospital administrator.':'Ο έλεγχος καταχωρείται μόνο μέσα στο παράθυρο της ώρας του. Επικοινωνήστε με τον Διαχειριστή.','warning');return}
+   if((error as SaveError)?.code==='control_period_complete'){await reload();notify(progressCompleteMessage((error as SaveError)!.progress||assignmentProgress(record,department),language),'warning');return}
+   if(/control_outside_window/.test(String((error as SaveError)?.message||''))){await reload();notify(en?'This control can be recorded only inside the window of its time. Contact the hospital administrator.':'Ο έλεγχος καταχωρείται μόνο μέσα στο παράθυρο της ώρας του. Επικοινωνήστε με τον Διαχειριστή.','warning');return}
    notifyError(error,'save',{operation:'control_execution_create'});throw error
   }
  }
- const editExistingExecution=async(payload:AnyRecord)=>{
+ const editExistingExecution=async(payload:ExecutionPayload)=>{
   const dep=editExecution?.department||department
   try{await updateControlExecution(tenant!.id,record,dep,editExecution!,payload);setEditExecution(null);await reload();notify(en?'Entry updated.':'Η καταχώρηση ενημερώθηκε.','success')}
   catch(error){notifyError(error,'save',{operation:'control_execution_update'})}
  }
- const voidExecution=async(payload:AnyRecord)=>{
+ const voidExecution=async(payload:{reason:string,actor:ControlActor})=>{
   const dep=cancelExecution?.department||department
   try{await voidControlExecution(tenant!.id,record,dep,cancelExecution!,payload);setCancelExecution(null);await reload();notify(en?'Entry voided.':'Η καταχώρηση αναιρέθηκε.','success')}
   catch(error){notifyError(error,'save',{operation:'control_execution_void'})}
  }
- const deleteExecutionEntry=async(payload:AnyRecord)=>{
+ const deleteExecutionEntry=async(payload:{reason:string,actor:ControlActor})=>{
   const dep=deleteExecution?.department||department
   try{await voidControlExecution(tenant!.id,record,dep,deleteExecution!,{...payload,reason:`[DELETE] ${payload.reason.trim()}`});setDeleteExecution(null);await reload();notify(en?'Entry deleted.':'Η καταχώρηση διαγράφηκε.','success')}
   catch(error){notifyError(error,'save',{operation:'control_execution_delete'})}
  }
 
- const historyActions=(h:AnyRecord)=>{
+ const historyActions=(h:HistoryRow)=>{
   return [
-   h.structuredData?.rows?.length>0?{id:'entry-form',label:isExpiryControl(record)?(en?'Print change form':'Εκτύπωση εντύπου αλλαγών'):(en?'Print entry form':'Εκτύπωση εντύπου καταχώρησης'),icon:FileText,onClick:()=>printControlForm({record,department:h.department,execution:h})}:null,
+   (h.structuredData?.rows?.length as number)>0?{id:'entry-form',label:isExpiryControl(record)?(en?'Print change form':'Εκτύπωση εντύπου αλλαγών'):(en?'Print entry form':'Εκτύπωση εντύπου καταχώρησης'),icon:FileText,onClick:()=>printControlForm({record,department:h.department,execution:h})}:null,
    canEditHistory(h)?{id:'edit',label:en?'Edit entry':'Επεξεργασία καταχώρησης',icon:Pencil,onClick:()=>setEditExecution(h)}:null,
    canDeleteHistory(h)?{id:'delete',label:en?'Delete entry':'Διαγραφή καταχώρησης',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>setDeleteExecution(h)}:null,
    canCancelHistory(h)?{id:'void',label:en?'Void entry':'Αναίρεση καταχώρησης',icon:RotateCcw,onClick:()=>setCancelExecution(h)}:null,
@@ -290,7 +302,7 @@ export function ControlRecordPage(){
   {canExecute&&visibleDepartments.length===1&&recordTab&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>navigate(`${recordUrl}?edit=1`)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
-  <ExportMenu menuWidth={expiryExport?440:220} ownPrint onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
+  <ExportMenu menuWidth={expiryExport?440:220} ownPrint onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record as unknown as Record<string,unknown>,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
  </>
  const subtitle=visibleDepartments.length===1?visibleDepartments[0]:`${visibleDepartments.length} ${en?'departments':'τμήματα'}`
 

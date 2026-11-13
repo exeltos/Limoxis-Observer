@@ -138,7 +138,7 @@ describe('period progress and marks', () => {
     expect(onTime([at('08:30'), at('16:00'), at('21:00')], three)).toEqual([true, false, false])
   })
   it('uses the database count for the current period and the history once the period moved on', () => {
-    const record = { frequency: daily4, assignments: { ΜΕΘ: { nextDueAt: '2026-10-19T16:00:00Z', progress: { start: '2026-10-18T21:00:00.000Z', required: 4, done: 4, extra: 0 }, history: [] } } }
+    const record = { frequency: daily4, assignments: { ΜΕΘ: { nextDueAt: '2026-10-19T16:00:00Z', progress: { start: '2026-10-18T21:00:00.000Z', required: 4, done: 4, extra: 0 }, history: [] } } } as never
     expect(assignmentProgress(record, 'ΜΕΘ', now)).toMatchObject({ done: 4, complete: true, unit: 'day' })
     expect(isControlDue(record, 'ΜΕΘ', now)).toBe(false)
     expect(assignmentProgress(record, 'ΜΕΘ', new Date('2026-10-20T06:00:00Z'))).toMatchObject({ done: 0, complete: false })

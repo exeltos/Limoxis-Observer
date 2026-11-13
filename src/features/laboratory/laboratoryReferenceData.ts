@@ -1,9 +1,11 @@
 import { ENVIRONMENTAL_SAMPLE_TYPES } from '../surveillance/environmentalSurveillanceData'
 import { EMPLOYEE_SCREENING_TYPES as SURVEILLANCE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING,SAMPLE_PRIORITIES } from '../surveillance/surveillanceOptions'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryMeta } from '../management/managementTypes'
 
-// A reference item: {id, el, en} and what a list needs.
-type ReferenceItem = AnyRecord
+// A reference item: {id, el, en} (a list may add more, e.g. the i18n label key).
+type ReferenceItem = { id: string, el: string, en: string }
+// A sample type of Management > Libraries (a library item, or the same shape built by a caller).
+type SpecimenItem = { id?: string | null, value: string, code?: string | null, el: string, en?: string | null, meta?: LibraryMeta | null }
 // Laboratory reference lists, one item shape everywhere: {id, el, en} (plus
 // what a list needs, e.g. the i18n label key or the sources of a sample type).
 export const sampleSourceCatalog: Record<string, {label: string, el: string, en: string}>={
@@ -38,10 +40,10 @@ export const patientSampleSources=(type: string|null|undefined)=>PATIENT_SAMPLE_
 const ENVIRONMENTAL_LIBRARY_CODES=new Set(['SAMPLE-SURFACE','SAMPLE-WATER'])
 const RESPIRATORY_LIBRARY_CODES=new Set(['SAMPLE-SPUTUM','SAMPLE-BAL','SAMPLE-BRONCHIAL-SECRETIONS','SAMPLE-NASAL-SWAB','SAMPLE-THROAT-SWAB','SAMPLE-NASOPHARYNGEAL','SAMPLE-RESPIRATORY'])
 const WOUND_LIBRARY_CODES=new Set(['SAMPLE-WOUND','SAMPLE-WOUND-MATERIAL','SAMPLE-PUS','SAMPLE-DRAINAGE','SAMPLE-SUTURE'])
-const itemText=(item: ReferenceItem|null|undefined)=>`${item?.code||''} ${item?.el||''} ${item?.en||''} ${item?.value||''}`.toLocaleLowerCase('el')
-const environmentalLibraryItem=(item: ReferenceItem|null|undefined)=>ENVIRONMENTAL_LIBRARY_CODES.has(String(item?.code||'').toUpperCase())||/(επιφάν|surface|νερό|water)/i.test(itemText(item))
+const itemText=(item: Partial<SpecimenItem>|null|undefined)=>`${item?.code||''} ${item?.el||''} ${item?.en||''} ${item?.value||''}`.toLocaleLowerCase('el')
+const environmentalLibraryItem=(item: Partial<SpecimenItem>|null|undefined)=>ENVIRONMENTAL_LIBRARY_CODES.has(String(item?.code||'').toUpperCase())||/(επιφάν|surface|νερό|water)/i.test(itemText(item))
 
-export function technicalPatientSampleType(item: ReferenceItem={}){
+export function technicalPatientSampleType(item: Partial<SpecimenItem>={}){
   const code=String(item.code||'').toUpperCase()
   const text=itemText(item)
   if(code==='SAMPLE-BLOOD'||/(^|\s)(αίμα|αιμα|blood)(\s|$)/i.test(text))return 'bloodCulture'
@@ -51,7 +53,7 @@ export function technicalPatientSampleType(item: ReferenceItem={}){
   return 'specimen'
 }
 
-function defaultSourceForSpecimen(item: ReferenceItem,type: string){
+function defaultSourceForSpecimen(item: SpecimenItem,type: string){
   const code=String(item.code||'').toUpperCase()
   const text=itemText(item)
   if(code==='SAMPLE-SPUTUM'||/πτύελ|πτυελ|sputum/i.test(text))return 'sputum'
@@ -66,7 +68,7 @@ function defaultSourceForSpecimen(item: ReferenceItem,type: string){
 // Surface/water stay in environmental surveillance; no synthetic «Other» item
 // is offered for patient samples. The technical type remains separate so
 // existing indicators continue to work.
-export function patientSampleTypeOptions(items: ReferenceItem[]=[],language='el',t: (key: string)=>string=key=>key){
+export function patientSampleTypeOptions(items: SpecimenItem[]=[],language='el',t: (key: string)=>string=key=>key){
   const clinical=items.filter(item=>!environmentalLibraryItem(item))
   const mapped=clinical.map(item=>{
     const type=technicalPatientSampleType(item)
@@ -94,5 +96,5 @@ export const LAB_PRIORITIES=SAMPLE_PRIORITIES.map(item=>item.value)
 const sampleSourceAliases: Record<string, ReferenceItem>=Object.fromEntries(([...EMPLOYEE_SCREENING_TYPES,...ENVIRONMENTAL_SAMPLE_TYPES] as ReferenceItem[]).filter(item=>!(item.id in sampleSourceCatalog)).map((item: ReferenceItem)=>[item.id,item]))
 export function sampleSourceLabel(value: unknown,language='el'){const lang=language==='en'?'en':'el';const parts=String(value||'').split(',').map(item=>item.trim()).filter(Boolean);return parts.length?parts.map(item=>{const row=sampleSourceAliases[item]||sampleSourceCatalog[item];return row?.[lang]||row?.el||item}).join(', '):''}
 
-export const referenceOptions=(items: ReferenceItem[],language='el')=>items.map(item=>({value:item.id,label:language==='en'?item.en:item.el,keywords:`${item.el} ${item.en}`}))
-export const referenceLabel=(items: ReferenceItem[],id: string|null|undefined,language='el')=>{const item=items.find(row=>row.id===id);return item?(language==='en'?item.en:item.el):id||'—'}
+export const referenceOptions=(items: readonly ReferenceItem[],language='el')=>items.map(item=>({value:item.id,label:language==='en'?item.en:item.el,keywords:`${item.el} ${item.en}`}))
+export const referenceLabel=(items: readonly ReferenceItem[],id: string|null|undefined,language='el')=>{const item=items.find(row=>row.id===id);return item?(language==='en'?item.en:item.el):id||'—'}

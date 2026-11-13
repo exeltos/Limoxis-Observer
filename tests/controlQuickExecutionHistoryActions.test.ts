@@ -7,7 +7,7 @@ const cancellation=readSource(new URL('../src/features/controls/ControlCancellat
 
 describe('control quick execution and history actions',()=>{
  it('opens the control on a row click, with no execute button in the row (the execution is entered from the control)',()=>{
-  expect(registry).toContain("function openControl(item:AnyRecord,tab='')")
+  expect(registry).toContain("function openControl(item:Pick<ControlRecord,'id'>,tab='')")
   expect(registry).toContain("registry.openRecord(navigate,`/controls/${item.id}${tab?`?tab=${tab}`:''}`")
   expect(registry).toContain('onClick={()=>openControl(item)}')
   expect(registry).not.toContain('function quickExecute')

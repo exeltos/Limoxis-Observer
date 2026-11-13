@@ -15,10 +15,11 @@ import { findLibraryItem, libraryOptions } from '../management/useLibraries'
 import { organismsOf, resultDraftChecks, resultToSave } from './laboratorySampleProgress'
 import { AMR_CLASSES, COMMUNICATION_CHANNELS, METHODS, RESULT_VALUES } from './laboratorySampleFormat'
 import { referenceOptions } from './laboratoryReferenceData'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { LabelLookup } from './LaboratorySampleViews'
-
-type Save = (draft: AnyRecord) => unknown
+import type { SearchableOption } from '../../design-system/SearchableSelect'
+import type { SelectOption } from '../../design-system/types'
+import type { LibraryItem } from '../management/useLibraries'
+import type { AmrDraft, AstDraft, CommunicationDraft, EnvironmentalStandard, LabResult, ResultDraft, ResultForm } from './laboratoryTypes'
 
 // Dialogs of the laboratory sample record: result, AST, AMR classification and
 // critical-result communication.
@@ -26,7 +27,7 @@ type Save = (draft: AnyRecord) => unknown
 // A titled choice of two to four exclusive answers (result, S/I/R, AMR class,
 // priority): the shared mode switch with the field title, as tall as the
 // other controls of the row (the yes/no field's geometry).
-function makeDraft(result: AnyRecord | null | undefined) {
+function makeDraft(result: LabResult | null | undefined): ResultForm {
   return {
     id: result?.id || null,
     result: result?.result || '',
@@ -54,16 +55,16 @@ export function ResultDialog({
   t: LabelLookup
   tx: LabelLookup
   language: string
-  result?: AnyRecord | null
+  result?: LabResult | null
   isEnvironmental: boolean
-  standard?: AnyRecord | null
-  libraries?: AnyRecord | null
+  standard?: EnvironmentalStandard | null
+  libraries?: Record<string, LibraryItem[]> | null
   canValidate: boolean
   onClose: () => void
-  onSave: Save
+  onSave: (draft: ResultDraft) => unknown
 }) {
-  const [draft, setDraft] = useState<AnyRecord>(() => makeDraft(result))
-  const library = libraryOptions(libraries?.microorganisms, language)
+  const [draft, setDraft] = useState<ResultForm>(() => makeDraft(result))
+  const library = libraryOptions(libraries?.microorganisms, language) as SelectOption[]
   // Organisms recorded earlier that the library no longer lists stay choosable.
   const options = [
     ...library,
@@ -198,15 +199,15 @@ export function AstDialog({
 }: {
   tx: LabelLookup
   language: string
-  libraries?: AnyRecord | null
+  libraries?: Record<string, LibraryItem[]> | null
   organisms: string[]
   initialOrganism?: string | null
   defaultVersion?: string
   onClose: () => void
-  onSave: Save
+  onSave: (draft: AstDraft) => unknown
 }) {
   const antibiotics = libraries?.antibiotics || [],
-    [draft, setDraft] = useState<AnyRecord>({
+    [draft, setDraft] = useState({
       organism: initialOrganism || organisms[0] || '',
       drug: '',
       code: '',
@@ -256,7 +257,7 @@ export function AstDialog({
           {...form.field('drug')}
           value={draft.drug}
           onChange={choose}
-          options={libraryOptions(antibiotics, language)}
+          options={libraryOptions(antibiotics, language) as SearchableOption[]}
           placeholder={tx('chooseAntibiotic')}
           emptyLabel={noMatch}
           clearLabel={language === 'el' ? 'Καθαρισμός' : 'Clear'}
@@ -295,8 +296,8 @@ export function AstDialog({
   )
 }
 
-export function AmrDialog({ tx, language, organism, initialClassification = '', onClose, onSave }: { tx: LabelLookup, language: string, organism?: string | null, initialClassification?: string, onClose: () => void, onSave: Save }) {
-  const [draft, setDraft] = useState<AnyRecord>({
+export function AmrDialog({ tx, language, organism, initialClassification = '', onClose, onSave }: { tx: LabelLookup, language: string, organism?: string | null, initialClassification?: string, onClose: () => void, onSave: (draft: AmrDraft) => unknown }) {
+  const [draft, setDraft] = useState({
     classification: initialClassification,
     definitionSource: 'Magiorakos et al.',
     definitionVersion: '2012',
@@ -360,11 +361,11 @@ export function AmrDialog({ tx, language, organism, initialClassification = '', 
   )
 }
 
-export function CommunicationDialog({ tx, onClose, onSave }: { tx: LabelLookup, onClose: () => void, onSave: Save }) {
+export function CommunicationDialog({ tx, onClose, onSave }: { tx: LabelLookup, onClose: () => void, onSave: (draft: CommunicationDraft) => unknown }) {
   const { language } = useLanguage()
   const now = new Date(),
     localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const [draft, setDraft] = useState<AnyRecord>({
+  const [draft, setDraft] = useState({
     recipientName: '',
     recipientRole: '',
     recipientDepartment: '',

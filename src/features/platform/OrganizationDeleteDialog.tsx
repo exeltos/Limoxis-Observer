@@ -5,32 +5,34 @@ import { Button } from '../../design-system/Button'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { deletePlatformOrganizations,getOrganizationDeletionImpact } from '../../core/tenant/tenantService'
 import './platformDeletion.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DeletionImpactRow, DeletionTarget, OrganizationDeletionOutcome, OrganizationDeletionResult } from './platformDemoTypes'
+
+type DeletionTotals={records: number,files: number,bytes: number,accountsDeleted: number}
 
 const fmtNumber=(value: unknown,language: string)=>new Intl.NumberFormat(language==='en'?'en-GB':'el-GR').format(Number(value)||0)
 function fmtBytes(bytes: unknown,language: string){const n=Number(bytes)||0;if(n<1024)return `${fmtNumber(n,language)} B`;const units=['KB','MB','GB','TB'];let v=n/1024,i=0;while(v>=1024&&i<units.length-1){v/=1024;i++}return `${new Intl.NumberFormat(language==='en'?'en-GB':'el-GR',{maximumFractionDigits:1}).format(v)} ${units[i]}`}
 
 // One organization: type its code. Several (Demo only): type "ΔΙΑΓΡΑΦΗ <count>" / "DELETE <count>".
-export function deletionPhrase(organizations: AnyRecord[],language: string){return organizations.length>1?`${language==='en'?'DELETE':'ΔΙΑΓΡΑΦΗ'} ${organizations.length}`:String(organizations[0]?.code||'')}
-export function deletionPhraseMatches(value: unknown,organizations: AnyRecord[],language: string){const typed=String(value||'').trim().replace(/\s+/g,' ').toLocaleUpperCase('el-GR');return Boolean(typed)&&typed===deletionPhrase(organizations,language).toLocaleUpperCase('el-GR')}
+export function deletionPhrase(organizations: Pick<DeletionTarget,'code'>[],language: string){return organizations.length>1?`${language==='en'?'DELETE':'ΔΙΑΓΡΑΦΗ'} ${organizations.length}`:String(organizations[0]?.code||'')}
+export function deletionPhraseMatches(value: unknown,organizations: Pick<DeletionTarget,'code'>[],language: string){const typed=String(value||'').trim().replace(/\s+/g,' ').toLocaleUpperCase('el-GR');return Boolean(typed)&&typed===deletionPhrase(organizations,language).toLocaleUpperCase('el-GR')}
 
 // Permanent deletion of one organization (Demo or real) or of several Demo at
 // once. Shows what will be removed, refuses what the server would refuse (a
 // real organization that is not suspended), and asks for the confirmation
 // phrase and the Platform Owner's password.
-export function OrganizationDeleteDialog({organizations,language='el',onClose,onDeleted}: {organizations: AnyRecord[],language?: string,onClose: ()=>void,onDeleted?: (ids: string[],result: AnyRecord)=>unknown}){
+export function OrganizationDeleteDialog({organizations,language='el',onClose,onDeleted}: {organizations: DeletionTarget[],language?: string,onClose: ()=>void,onDeleted?: (ids: string[],result: OrganizationDeletionResult)=>unknown}){
   const en=language==='en',tx=(el: string,enText: string)=>en?enText:el
   const {notify,notifyError}=useFeedback()
-  const ids=useMemo(()=>organizations.map((o: AnyRecord)=>o.id).filter(Boolean),[organizations])
-  const [impact,setImpact]=useState<AnyRecord | null>(null),[impactError,setImpactError]=useState('')
+  const ids=useMemo(()=>organizations.map((o: DeletionTarget)=>o.id).filter(Boolean),[organizations])
+  const [impact,setImpact]=useState<DeletionImpactRow[] | null>(null),[impactError,setImpactError]=useState('')
   const [confirmation,setConfirmation]=useState(''),[password,setPassword]=useState(''),[working,setWorking]=useState(false)
-  useEffect(()=>{let active=true;setImpact(null);setImpactError('');getOrganizationDeletionImpact(ids).then(rows=>{if(active)setImpact(rows)}).catch(error=>{if(active)setImpactError(error?.message||'error')});return()=>{active=false}},[ids])
+  useEffect(()=>{let active=true;setImpact(null);setImpactError('');getOrganizationDeletionImpact(ids).then(rows=>{if(active)setImpact(rows as DeletionImpactRow[])}).catch(error=>{if(active)setImpactError(error?.message||'error')});return()=>{active=false}},[ids])
 
   const many=organizations.length>1
-  const allDemo=organizations.every((o: AnyRecord)=>o.is_demo)
+  const allDemo=organizations.every((o: DeletionTarget)=>o.is_demo)
   const rows=impact||[]
-  const blocked=rows.filter((r: AnyRecord)=>(r.blockers||[]).length)
-  const totals=rows.reduce((a: AnyRecord,r: AnyRecord)=>({records:a.records+(Number(r.records)||0),files:a.files+(Number(r.files)||0),bytes:a.bytes+(Number(r.bytes)||0),accountsDeleted:a.accountsDeleted+(Number(r.accountsDeleted)||0)}),{records:0,files:0,bytes:0,accountsDeleted:0})
+  const blocked=rows.filter((r: DeletionImpactRow)=>(r.blockers||[]).length)
+  const totals=rows.reduce((a: DeletionTotals,r: DeletionImpactRow)=>({records:a.records+(Number(r.records)||0),files:a.files+(Number(r.files)||0),bytes:a.bytes+(Number(r.bytes)||0),accountsDeleted:a.accountsDeleted+(Number(r.accountsDeleted)||0)}),{records:0,files:0,bytes:0,accountsDeleted:0})
   const phrase=deletionPhrase(organizations,language)
   const ready=Boolean(impact)&&!blocked.length&&deletionPhraseMatches(confirmation,organizations,language)&&Boolean(password)&&(!many||allDemo)
   const blockerLabel=(b: string)=>b==='not_suspended'?tx('Θέσε πρώτα τον οργανισμό σε παύση.','Suspend the organization first.'):b==='has_children'?tx('Έχει θυγατρικούς οργανισμούς.','Has child organizations.'):b
@@ -39,11 +41,11 @@ export function OrganizationDeleteDialog({organizations,language='el',onClose,on
     if(!ready||working)return
     setWorking(true)
     try{
-      const result=await deletePlatformOrganizations({organizationIds:ids,password,confirmation:confirmation.trim()})
+      const result: OrganizationDeletionResult=await deletePlatformOrganizations({organizationIds:ids,password,confirmation:confirmation.trim()})
       const results=Array.isArray(result?.results)?result.results:[]
-      const failed=results.filter((r: AnyRecord)=>!r.ok)
-      const deletedIds=results.filter((r: AnyRecord)=>r.ok).map((r: AnyRecord)=>r.organizationId)
-      if(failed.length)notify(tx(`Διαγράφηκαν ${deletedIds.length}. Δεν διαγράφηκαν: ${failed.map((r: AnyRecord)=>`${r.name||r.code} (${r.error})`).join(', ')}`,`Deleted ${deletedIds.length}. Not deleted: ${failed.map((r: AnyRecord)=>`${r.name||r.code} (${r.error})`).join(', ')}`),'warning',{operation:'platform_organization_delete'})
+      const failed=results.filter((r: OrganizationDeletionOutcome)=>!r.ok)
+      const deletedIds=results.filter((r: OrganizationDeletionOutcome)=>r.ok).map((r: OrganizationDeletionOutcome)=>r.organizationId)
+      if(failed.length)notify(tx(`Διαγράφηκαν ${deletedIds.length}. Δεν διαγράφηκαν: ${failed.map((r: OrganizationDeletionOutcome)=>`${r.name||r.code} (${r.error})`).join(', ')}`,`Deleted ${deletedIds.length}. Not deleted: ${failed.map((r: OrganizationDeletionOutcome)=>`${r.name||r.code} (${r.error})`).join(', ')}`),'warning',{operation:'platform_organization_delete'})
       else notify(many?tx(`Διαγράφηκαν οριστικά ${deletedIds.length} Demo.`,`${deletedIds.length} Demo permanently deleted.`):allDemo?tx('Το Demo και όλα τα σχετικά δεδομένα διαγράφηκαν οριστικά.','The Demo and all related data were permanently deleted.'):tx('Ο οργανισμός και τα σχετικά δεδομένα διαγράφηκαν οριστικά.','The organization and related data were permanently deleted.'),'success',{operation:'platform_organization_delete'})
       await onDeleted?.(deletedIds,result)
     }catch(error){notifyError(error,'delete',{operation:'platform_organization_delete'});setWorking(false)}
@@ -55,7 +57,7 @@ export function OrganizationDeleteDialog({organizations,language='el',onClose,on
   return <ObserverDialog width="wide" className="organization-delete-dialog" eyebrow={allDemo?tx('Κρίσιμη ενέργεια','Critical action'):tx('Κρίσιμη ενέργεια · Πραγματικός οργανισμός','Critical action · Real organization')} title={title} subtitle={subtitle} onClose={()=>!working&&onClose?.()} footer={<><Button variant="danger" className="button-destructive" loading={working} disabled={!ready} onClick={submit}><Trash2 size={15}/>{many?tx(`Οριστική διαγραφή ${organizations.length} Demo`,`Permanently delete ${organizations.length} Demo`):tx('Οριστική διαγραφή','Delete permanently')}</Button></>}>
     <div className="organization-delete-impact">
       <table className="data-table"><thead><tr><th>{allDemo?'Demo':tx('Οργανισμός','Organization')}</th><th>{tx('Εγγραφές','Records')}</th><th>{tx('Αρχεία','Files')}</th><th>{tx('Λογαριασμοί που διαγράφονται','Accounts deleted')}</th></tr></thead>
-        <tbody>{impact?rows.map((r: AnyRecord)=><tr key={r.organizationId} className={(r.blockers||[]).length?'is-blocked':''}><td><strong>{r.name}</strong><small>{r.code}{(r.blockers||[]).length?<> · <b className="organization-delete-blocker">{r.blockers.map(blockerLabel).join(' ')}</b></>:null}</small></td><td>{fmtNumber(r.records,language)}{Number(r.systemRecords)>0&&<small>{tx(`+ ${fmtNumber(r.systemRecords,language)} βιβλιοθήκες συστήματος`,`+ ${fmtNumber(r.systemRecords,language)} system library rows`)}</small>}</td><td>{fmtNumber(r.files,language)}{Number(r.files)>0&&<small>{fmtBytes(r.bytes,language)}</small>}</td><td>{fmtNumber(r.accountsDeleted,language)} {tx('από','of')} {fmtNumber(r.members,language)}{Number(r.accountsKept)>0&&<small>{Number(r.accountsKept)===1?tx('1 μέλος και άλλου οργανισμού — διατηρείται','1 also belongs elsewhere — kept'):tx(`${fmtNumber(r.accountsKept,language)} μέλη και άλλου οργανισμού — διατηρούνται`,`${fmtNumber(r.accountsKept,language)} also belong elsewhere — kept`)}</small>}</td></tr>):<tr><td colSpan={4} className="organization-delete-loading">{impactError?tx('Δεν ήταν δυνατός ο υπολογισμός των επιπτώσεων. Η διαγραφή δεν είναι διαθέσιμη.','Could not work out what would be deleted. Deletion is unavailable.'):tx('Υπολογισμός επιπτώσεων…','Working out what will be deleted…')}</td></tr>}</tbody>
+        <tbody>{impact?rows.map((r: DeletionImpactRow)=><tr key={r.organizationId} className={(r.blockers||[]).length?'is-blocked':''}><td><strong>{r.name}</strong><small>{r.code}{(r.blockers||[]).length?<> · <b className="organization-delete-blocker">{r.blockers.map(blockerLabel).join(' ')}</b></>:null}</small></td><td>{fmtNumber(r.records,language)}{Number(r.systemRecords)>0&&<small>{tx(`+ ${fmtNumber(r.systemRecords,language)} βιβλιοθήκες συστήματος`,`+ ${fmtNumber(r.systemRecords,language)} system library rows`)}</small>}</td><td>{fmtNumber(r.files,language)}{Number(r.files)>0&&<small>{fmtBytes(r.bytes,language)}</small>}</td><td>{fmtNumber(r.accountsDeleted,language)} {tx('από','of')} {fmtNumber(r.members,language)}{Number(r.accountsKept)>0&&<small>{Number(r.accountsKept)===1?tx('1 μέλος και άλλου οργανισμού — διατηρείται','1 also belongs elsewhere — kept'):tx(`${fmtNumber(r.accountsKept,language)} μέλη και άλλου οργανισμού — διατηρούνται`,`${fmtNumber(r.accountsKept,language)} also belong elsewhere — kept`)}</small>}</td></tr>):<tr><td colSpan={4} className="organization-delete-loading">{impactError?tx('Δεν ήταν δυνατός ο υπολογισμός των επιπτώσεων. Η διαγραφή δεν είναι διαθέσιμη.','Could not work out what would be deleted. Deletion is unavailable.'):tx('Υπολογισμός επιπτώσεων…','Working out what will be deleted…')}</td></tr>}</tbody>
         {impact&&many&&<tfoot><tr><td>{tx('Σύνολο','Total')}</td><td>{fmtNumber(totals.records,language)}</td><td>{fmtNumber(totals.files,language)}<small>{fmtBytes(totals.bytes,language)}</small></td><td>{fmtNumber(totals.accountsDeleted,language)}</td></tr></tfoot>}
       </table>
     </div>

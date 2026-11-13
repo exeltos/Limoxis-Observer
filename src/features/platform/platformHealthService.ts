@@ -14,10 +14,13 @@ const supabase = configuredClient as Cloud
 
 const DAY_MS = 24 * 60 * 60 * 1000
 export const ACTIVITY_DAYS = 14
-import type { AnyRecord } from '../../types/featureTypes'
+import type { HospitalHealth } from './platformTypes'
 
 // Η υγεία ενός νοσοκομείου στην Επισκόπηση.
-export type HospitalHealth = { lastActivityAt: string | null, errors24h: number, activity: number[] | null }
+export type { HospitalHealth }
+// The rows read: an operational event (platform_runtime_events) and a recorded change (system_audit_log).
+type HealthEventRow = { organization_id?: string | null, severity?: string | null, occurred_at: string }
+type HealthAuditRow = { organization_id?: string | null, created_at: string }
 
 const later = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b ? a : b)
 const athensDay = (value: number | string) => hospitalDate(value)
@@ -29,7 +32,7 @@ export function activityDays(now = Date.now()) {
 
 // { [organizationId]: { lastActivityAt, errors24h, activity } } from the rows read;
 // activity holds one count per day of activityDays(now), or null when the recent rows could not be read.
-export function hospitalHealthOf({ events = [], audit = [], recent = [], now = Date.now() }: { events?: AnyRecord[], audit?: AnyRecord[], recent?: AnyRecord[] | null, now?: number } = {}) {
+export function hospitalHealthOf({ events = [], audit = [], recent = [], now = Date.now() }: { events?: HealthEventRow[], audit?: HealthAuditRow[], recent?: HealthAuditRow[] | null, now?: number } = {}) {
   const since = new Date(now - DAY_MS).toISOString()
   const days = activityDays(now)
   const dayIndex = new Map(days.map((day, index) => [day, index]))

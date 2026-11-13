@@ -6,8 +6,7 @@
 import { assignmentStatus, frequencyLabel, isControlDue } from './controlScheduling'
 import { controlCriticality, criticalityLabel } from './controlCriticality'
 import { ownerText } from '../employees/peopleOptions'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { ControlAssignment, ControlRow } from './controlTypes'
+import type { ControlAssignment, ControlRecord, ControlRow } from './controlTypes'
 
 const ALL = 'all'
 
@@ -24,8 +23,8 @@ export function scopeControlRows(rows: ControlRow[] = [], { department = ALL, fr
 
 // What the search box reads: the name, code, type, responsible, place and, since the
 // list has no filters for them, the frequency and criticality as the user reads them (both languages).
-export function controlSearchText(item: AnyRecord) {
-  const labels = ['el', 'en'].flatMap((language) => [...new Set([item.frequency, ...Object.values<AnyRecord>(item.assignments || {}).map((assignment: AnyRecord) => assignment?.frequency)].filter(Boolean).map((f) => frequencyLabel(f, language))), criticalityLabel(controlCriticality(item), language)])
+export function controlSearchText(item: ControlRecord) {
+  const labels = ['el', 'en'].flatMap((language) => [...new Set([item.frequency, ...Object.values<ControlAssignment>(item.assignments || {}).map((assignment: ControlAssignment) => assignment?.frequency)].filter(Boolean).map((f) => frequencyLabel(f, language))), criticalityLabel(controlCriticality(item), language)])
   return `${item.id} ${item.title} ${item.titleEn || ''} ${item.category} ${ownerText(item)} ${item.location || ''} ${item.equipment || ''} ${labels.join(' ')}`.toLowerCase()
 }
 
