@@ -8,6 +8,7 @@ import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { CAPABILITIES, ROLES, can } from '../src/core/permissions/roles'
 import { navigationFor } from '../src/app/navigation'
 import { buildCalendarEvents } from '../src/features/calendar/calendarEvents'
+import type { AnyRecord } from '../src/types/featureTypes'
 import { readSource } from './helpers/readSource'
 
 const limits = resolveLimits()
@@ -89,7 +90,7 @@ describe('Kitchen critical limits', () => {
 })
 
 describe('Kitchen stock, FIFO and traceability', () => {
-  const state = withStatuses(kitchenDemoState())
+  const state = withStatuses(kitchenDemoState()) as AnyRecord
   const today = todayKey()
   const stock = stockRows(state, today)
 
@@ -171,7 +172,7 @@ describe('Kitchen access', () => {
 
   it('has the same role lists in the database helper', () => {
     const sql = readSource('supabase/migrations/20261123110000_kitchen_module.sql')
-    for (const [key, roles] of [['view_kitchen', ['hospital_admin', 'infection_control_lead', 'quality_manager']], ['record_kitchen', ['hospital_admin', 'quality_manager']], ['manage_kitchen', ['hospital_admin', 'quality_manager']]]) {
+    for (const [key, roles] of [['view_kitchen', ['hospital_admin', 'infection_control_lead', 'quality_manager']], ['record_kitchen', ['hospital_admin', 'quality_manager']], ['manage_kitchen', ['hospital_admin', 'quality_manager']]] as [string, string[]][]) {
       const listed = sql.match(new RegExp(`when '${key}' then om\\.role in \\(([^)]*)\\)`))[1].match(/'[a-z_]+'/g).map(item => item.slice(1, -1))
       expect(listed.sort()).toEqual(roles.sort())
     }

@@ -33,7 +33,7 @@ describe('AMR resistance-per-pathogen metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 3
     // Demo seed (2025-01 … 2026-08): twenty Klebsiella pneumoniae isolates tested
     // against meropenem; the eleven KPC isolates (incl. the seeded ICU cluster used by
     // outbreakClusterService's tests) are resistant, the ESBL ones susceptible.
-    const metrics = collectIndicatorMetrics()
+    const metrics: Record<string, unknown> = collectIndicatorMetrics()
     expect(metrics.amr_tested_klebsiella).toBe(20)
     expect(metrics.amr_resistant_klebsiella).toBe(11)
   })
@@ -41,21 +41,21 @@ describe('AMR resistance-per-pathogen metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 3
   it('does not test the demo Pseudomonas isolate against meropenem (not in its recorded AST panel)', () => {
     // The seeded ICU isolate (LAB-260826-018) has no meropenem on its panel and is
     // not counted; the six other Pseudomonas isolates of the history are, three of them resistant.
-    const metrics = collectIndicatorMetrics()
+    const metrics: Record<string, unknown> = collectIndicatorMetrics()
     expect(metrics.amr_tested_pseudomonas).toBe(6)
     expect(metrics.amr_resistant_pseudomonas).toBe(3)
   })
 
   it('excludes unvalidated draft results from AMR counts', () => {
     laboratorySamples.unshift({ id: 'LAB-TEST-AMR-DRAFT', organism: 'Escherichia coli', resultStatus: 'draft', ast: [{ drug: 'Ceftriaxone', sir: 'R' }] })
-    const metrics = collectIndicatorMetrics()
+    const metrics: Record<string, unknown> = collectIndicatorMetrics()
     // Only the twenty validated E. coli isolates of the demo history are counted.
     expect(metrics.amr_tested_ecoli).toBe(20)
   })
 
   it('counts a susceptible reference-antibiotic result as tested but not resistant', () => {
     laboratorySamples.unshift({ id: 'LAB-TEST-AMR-SUSCEPTIBLE', organism: 'Enterococcus faecium', resultStatus: 'validated', ast: [{ drug: 'Vancomycin', sir: 'S' }] })
-    const metrics = collectIndicatorMetrics()
+    const metrics: Record<string, unknown> = collectIndicatorMetrics()
     // Seven Enterococcus isolates of the demo history (one VRE) plus this one.
     expect(metrics.amr_tested_enterococcus).toBe(8)
     expect(metrics.amr_resistant_enterococcus).toBe(1)

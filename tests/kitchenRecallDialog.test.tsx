@@ -5,6 +5,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
+import type { ComponentProps, ComponentType } from 'react'
+import type { RecallDialog as RecallDialogComponent, RecallPanel as RecallPanelComponent } from '../src/features/kitchen/KitchenRecall'
 
 const feedback = { notify: vi.fn(), notifyError: vi.fn(), confirm: vi.fn(async () => true) }
 vi.mock('../src/core/supabase/client', () => ({ supabase: { rpc: vi.fn(), from: vi.fn() } }))
@@ -12,7 +14,7 @@ vi.mock('../src/core/tenant/TenantContext', () => ({ useTenant: () => ({ tenant:
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => feedback, useOptionalFeedback: () => feedback }))
 vi.mock('../src/core/audit/useAuditActor', () => ({ useAuditActor: () => ({ id: 'u-actor', name: 'Ελένη Γεωργίου' }) }))
 
-const { RecallDialog, RecallPanel } = await import('../src/features/kitchen/KitchenRecall')
+const { RecallDialog, RecallPanel } = await import('../src/features/kitchen/KitchenRecall') as { RecallDialog: typeof RecallDialogComponent, RecallPanel: ComponentType<ComponentProps<typeof RecallPanelComponent> & { access: object }> }
 const { kitchenDemoState } = await import('../src/features/kitchen/kitchenDemoData')
 const { newRecallDrill } = await import('../src/features/kitchen/kitchenRecallModel')
 

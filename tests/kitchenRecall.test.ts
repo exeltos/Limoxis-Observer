@@ -72,7 +72,7 @@ describe('Kitchen mock recall drill', () => {
     expect(recallProblems({ ...drill, receiptItemId: 'kri-1' }, 'en', { completing: true })).toEqual(['who was notified', 'actions', 'result'])
     const findings = drillFindings({ ...drill, receiptItemId: 'kri-1', finishedAt: '2026-10-19T09:35:00Z' }, recallTrace(state, { scenario: 'supplier_lot', receiptItemId: 'kri-1' }))
     expect(findings).toMatchObject({ elapsedMinutes: 95, tracedWithinTarget: true, accountedPercent: 100, batchesCount: 1, affectedDays: 3 })
-    expect(findings.traceSnapshot.batches).toHaveLength(1)
+    expect((findings.traceSnapshot as { batches?: unknown[] }).batches).toHaveLength(1)
   })
 
   it('shows the last drill and warns when none was done within the interval', () => {
@@ -107,7 +107,7 @@ describe('Kitchen recall drill storage', () => {
   it('numbers and keeps a drill in the demo', async () => {
     const before = await loadKitchen(null)
     expect(before.recallDrills).toHaveLength(2)
-    const saved = await saveRecallDrill(null, { ...newRecallDrill(), receiptItemId: 'kri-3' })
+    const saved = await saveRecallDrill(null, { ...newRecallDrill(), receiptItemId: 'kri-3' }) as { id: string, code: string }
     expect(saved.code).toBe('ANK-0003')
     const after = await loadKitchen(null)
     expect(after.recallDrills.find(row => row.id === saved.id)).toMatchObject({ code: 'ANK-0003', status: 'draft' })

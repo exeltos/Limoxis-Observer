@@ -26,13 +26,13 @@ describe('MDR/XDR/PDR isolation event metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 3
 
   it('counts cases under active isolation with an MDR/XDR/PDR classification', () => {
     const expectedTotal = surveillanceDemoData.filter(x => x.isolation && ['MDR', 'XDR', 'PDR'].includes(x.resistance)).length
-    const metrics = collectIndicatorMetrics()
+    const metrics: Record<string, unknown> = collectIndicatorMetrics()
     expect(metrics.mdr_isolation_total).toBe(expectedTotal)
     expect(metrics.mdr_isolation_total).toBeGreaterThan(0)
   })
 
   it('attributes the demo Klebsiella and Acinetobacter MDR/XDR isolations to their own pathogen counters', () => {
-    const metrics = collectIndicatorMetrics()
+    const metrics: Record<string, unknown> = collectIndicatorMetrics()
     // Demo seed's history (2025-01 … 2026-08): eight KPC Klebsiella and four XDR
     // Acinetobacter isolation cases.
     expect(metrics.mdr_isolation_klebsiella).toBe(8)
