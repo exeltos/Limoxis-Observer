@@ -21,7 +21,7 @@ import { LaboratoryStatus, labSampleStatus } from './LaboratoryStatus'
 import { groupPlates, isStaffSample, platePointLabel, platePointText, receivePlate } from './laboratoryPlates'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import type { MutableRefObject } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EnvironmentalStandard, LabResult, LabSample, PartialError, TabExport } from './laboratoryTypes'
 import type { CulturePlate } from './laboratoryPlates'
 import type { LaboratoryRepository } from './repositories/laboratoryRepository'
 import type { LabelLookup } from './LaboratorySampleViews'
@@ -36,7 +36,7 @@ const STATUS_TONE: Record<string, string> = { awaiting: 'warning', processing: '
 // A plate's results at a glance, in the three words of the laboratory: how many positions are Θετικό, otherwise «Εντός αποδεκτών
 // ορίων» when some grew within the acceptable limits, otherwise «Αρνητικό» once the plate is done.
 function PlateResults({ plate, language }: { plate: CulturePlate, language: string }) {
-  const results: AnyRecord[] = plate.samples.flatMap(sample => sample.microbiologyResults || [])
+  const results: LabResult[] = plate.samples.flatMap(sample => sample.microbiologyResults || [])
   const positive = results.filter(result => environmentalResultWord(result, 'el') === 'Θετικό').length
   const within = results.filter(result => environmentalResultWord(result, 'el') === 'Εντός αποδεκτών ορίων').length
   if (positive) return <StatusBadge tone="danger">{language === 'en' ? `${positive} positive` : `${positive} θετικά`}</StatusBadge>
@@ -60,7 +60,7 @@ function plateExportRows(plates: CulturePlate[], departmentOf: DepartmentOf, t: 
       platePointText(sample, language, withNames),
       plate.collectedAt ? formatDay(plate.collectedAt, language) : '',
       labSampleStatus(sample, language).text || '',
-      result ? environmentalResultWord(result, language) || t(result.result) : '',
+      result ? environmentalResultWord(result, language) || t(result.result as string) : '',
       result?.cfuCount ?? '',
       result?.cfuLimit ?? '',
       result?.organism || '',
@@ -68,7 +68,7 @@ function plateExportRows(plates: CulturePlate[], departmentOf: DepartmentOf, t: 
   }))
 }
 
-interface PlatesPanelProps { samples?: AnyRecord[], loading?: boolean, canManage?: boolean, repository?: LaboratoryRepository, reload?: () => unknown, exportRef?: MutableRefObject<AnyRecord | null> }
+interface PlatesPanelProps { samples?: LabSample[], loading?: boolean, canManage?: boolean, repository?: LaboratoryRepository, reload?: () => unknown, exportRef?: MutableRefObject<TabExport | null> }
 export function PlatesPanel({ samples = [], loading = false, canManage = false, repository, reload, exportRef }: PlatesPanelProps) {
   const { t, language } = useLanguage()
   const en = language === 'en'
@@ -182,7 +182,7 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
   const { notify } = useFeedback()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
-  const [standards, setStandards] = useState<AnyRecord[]>([])
+  const [standards, setStandards] = useState<EnvironmentalStandard[]>([])
   useEffect(() => {
     let alive = true
     repository?.loadStandards?.().then(rows => { if (alive) setStandards(rows || []) }).catch(() => {})
@@ -206,7 +206,7 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
       const received = await receivePlate(repository as LaboratoryRepository, plate)
       notify(t('labPlates.receivedN').replace('{n}', String(received)).replace('{plate}', plate.plate), 'success')
     } catch (error) {
-      notify(t('labPlates.receivePartial').replace('{n}', String((error as AnyRecord).received || 0)).replace('{total}', String(plate.awaiting.length)).replace('{error}', (error as AnyRecord)?.message || t('actionFailed')), 'danger')
+      notify(t('labPlates.receivePartial').replace('{n}', String((error as PartialError).received || 0)).replace('{total}', String(plate.awaiting.length)).replace('{error}', (error as PartialError)?.message || t('actionFailed')), 'danger')
     } finally {
       await reload?.()
       setBusy(false)
@@ -250,7 +250,7 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
                 <td>
                   {result ? (
                     <>
-                      <strong>{environmentalResultWord(result, language) || t(result.result)}</strong>
+                      <strong>{environmentalResultWord(result, language) || t(result.result as string)}</strong>
                       <small>{[result.organism || (result.result === 'positive' ? (en ? 'Organism not recorded' : 'Δεν έχει καταχωριστεί μικροοργανισμός') : ''), result.cfuCount != null && `${result.cfuCount} CFU`, resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
                     </>
                   ) : (
