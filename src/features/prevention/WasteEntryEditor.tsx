@@ -13,10 +13,11 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
 import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
 import type { PreventionDraft, WasteMeasurement } from './preventionTypes'
-import type { WastePatientDays, WasteSupport } from './wasteCloudService'
+import type { WastePatientDays } from './wasteCloudService'
+import type { PreventionLibraryItem } from './PreventionFields'
 import type { PreventionDepartment } from './preventionCloud'
 
-interface WasteEntryEditorProps { onSave?: (record: PreventionDraft<WasteMeasurement>) => unknown; fixedDepartment?: string; initialRecord?: WasteMeasurement | null; departments?: PreventionDepartment[]; wasteTypes?: WasteSupport['wasteTypes']; findPatientDays?: (departmentId: string, from: string | null | undefined, to: string | null | undefined) => Promise<WastePatientDays | null>; readOnly?: boolean }
+interface WasteEntryEditorProps { onSave?: (record: PreventionDraft<WasteMeasurement>) => unknown; fixedDepartment?: string; initialRecord?: WasteMeasurement | null; departments?: PreventionDepartment[]; wasteTypes?: PreventionLibraryItem[]; findPatientDays?: (departmentId: string, from: string | null | undefined, to: string | null | undefined) => Promise<WastePatientDays | null>; readOnly?: boolean }
 
 export function WasteEntryEditor({
   onSave,

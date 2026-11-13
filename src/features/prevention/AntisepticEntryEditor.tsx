@@ -12,7 +12,7 @@ import { ANTISEPTIC_METHODS, antisepticPeriodBounds, antisepticPeriodKind, antis
 import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AntisepticRecord, PreventionDraft } from './preventionTypes'
-import type { AntisepticSupport } from './antisepticCloudService'
+import type { PreventionLibraryItem } from './PreventionFields'
 import type { PreventionDepartment } from './preventionCloud'
 
 export const HOSPITAL_SCOPE = '__hospital__'
@@ -28,7 +28,7 @@ export function AntisepticEntryEditor({
   departments = [],
   products: loadedProducts = [],
   findPatientDays,
-}: { onSave: (record: PreventionDraft<AntisepticRecord>) => unknown; fixedDepartment?: string; initialRecord?: AntisepticRecord | null; departments?: PreventionDepartment[]; products?: AntisepticSupport['products']; findPatientDays?: (departmentId: string | null, from: string, to: string) => Promise<number | null> }) {
+}: { onSave: (record: PreventionDraft<AntisepticRecord>) => unknown; fixedDepartment?: string; initialRecord?: AntisepticRecord | null; departments?: PreventionDepartment[]; products?: PreventionLibraryItem[]; findPatientDays?: (departmentId: string | null, from: string, to: string) => Promise<number | null> }) {
   // Products from the central antiseptics library (the screen's list until it loads).
   const products = usePreventionLibrary('antiseptics', loadedProducts)
   const { profile, user } = useAuth()

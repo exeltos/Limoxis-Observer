@@ -4,7 +4,12 @@
 export const HAND_HYGIENE_TARGET = 80
 // Alcohol-based hand rub use, L per 1.000 patient days (owner's target, 28/10/2026).
 export const ABHR_TARGET = 20
-import type { AntisepticRecord, BundleAssessment, HandHygieneSession, PreventionRecord, WasteMeasurement } from './preventionTypes'
+import type { BundleAssessment, HandHygieneSession, PreventionRecord } from './preventionTypes'
+
+// What the key figures read of each record (the tabs' rows have more).
+type MonthlyRow = Pick<PreventionRecord, 'period' | 'periodStart' | 'date' | 'departmentEl'> & { patientDays?: number | string | null }
+type WasteKpiRow = MonthlyRow & { weight?: number | string }
+type AntisepticKpiRow = MonthlyRow & { litres?: number | string, indicatorEligible?: boolean }
 
 const DAY = 86400000
 const inLastDays = (value: unknown, days: number, now: number) => {
@@ -20,13 +25,13 @@ const round1 = (value: number | null) => (value == null ? null : Math.round(valu
 const sum = <T>(rows: T[], key: keyof T) => rows.reduce((total: number, row) => total + (Number(row[key]) || 0), 0)
 
 // WHO method: pooled compliant actions over all observed opportunities.
-export function handHygieneKpis(rows: HandHygieneSession[] = [], { now = Date.now() }: { now?: number } = {}) {
+export function handHygieneKpis(rows: Pick<HandHygieneSession, 'date' | 'departmentEl' | 'observations' | 'compliant'>[] = [], { now = Date.now() }: { now?: number } = {}) {
   const recent = rows.filter(row => inLastDays(row.date, 30, now))
-  const rate = (list: HandHygieneSession[]) => {
+  const rate = (list: typeof rows) => {
     const opportunities = sum(list, 'observations')
     return opportunities ? round1((sum(list, 'compliant') / opportunities) * 100) : null
   }
-  const byDepartment = new Map<string | undefined, HandHygieneSession[]>()
+  const byDepartment = new Map<string | undefined, typeof rows>()
   for (const row of recent) byDepartment.set(row.departmentEl, [...(byDepartment.get(row.departmentEl) || []), row])
   const below = [...byDepartment.values()].filter(list => {
     const value = rate(list)
@@ -38,7 +43,7 @@ export function handHygieneKpis(rows: HandHygieneSession[] = [], { now = Date.no
 }
 
 // The latest month with records against the month before: total and per 1.000 patient days.
-function monthly<T extends WasteMeasurement | AntisepticRecord>(rows: T[], valueKey: keyof T, eligible: (row: T) => boolean = () => true) {
+function monthly<T extends MonthlyRow>(rows: T[], valueKey: keyof T, eligible: (row: T) => boolean = () => true) {
   const months = [...new Set(rows.map(monthOf).filter(Boolean))].sort()
   const month = months.at(-1) || null
   if (!month) return { month: null, current: null, before: null, allDepartments: 0 }
@@ -60,12 +65,12 @@ function monthly<T extends WasteMeasurement | AntisepticRecord>(rows: T[], value
   }
 }
 
-export const wasteKpis = (rows: WasteMeasurement[] = []) => monthly(rows, 'weight')
+export const wasteKpis = (rows: WasteKpiRow[] = []) => monthly(rows, 'weight')
 // Only alcohol-based hand rubs count towards the ABHR indicator.
-export const antisepticKpis = (rows: AntisepticRecord[] = []) => monthly(rows, 'litres', row => row.indicatorEligible !== false)
+export const antisepticKpis = (rows: AntisepticKpiRow[] = []) => monthly(rows, 'litres', row => row.indicatorEligible !== false)
 
 // All-or-none compliance over the last 30 days.
-export function bundleKpis(rows: BundleAssessment[] = [], { now = Date.now() }: { now?: number } = {}) {
+export function bundleKpis(rows: Pick<BundleAssessment, 'date' | 'allOrNone' | 'failedCount' | 'findings'>[] = [], { now = Date.now() }: { now?: number } = {}) {
   const recent = rows.filter(row => inLastDays(row.date, 30, now))
   const full = recent.filter(row => row.allOrNone).length
   return {
