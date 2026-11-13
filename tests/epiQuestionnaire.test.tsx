@@ -26,11 +26,12 @@ import { canWriteEpi, rowLine } from '../src/features/surveillance/epiQuestionna
 import { epiQuestionnaireSection, epiRows } from '../src/features/surveillance/forms/sections/epiQuestionnaireSection'
 import { loadEpiQuestionnaires, saveEpiCoreAnswers, saveEpiQuestionnaire } from '../src/features/surveillance/epiQuestionnaire/epiQuestionnaireService'
 import { readSource } from './helpers/readSource'
+import type { EpiSectionValue, EpisodeFormsCtx } from '../src/features/surveillance/forms/formTypes'
 
 const t = key => translate(key, 'el')
 const yes = (detail = '') => ({ a: 'yes', detail })
 const record = { id: 'SUR-T1', startedAt: '2026-10-18', admissionDate: '2026-10-15', department: 'ΜΕΘ', samples: [{ collectedAt: '2026-10-18T08:00:00' }], therapy: [{ antimicrobial: 'Meropenem', startedAt: '2026-10-16' }], devices: [{ name: 'Κεντρικός καθετήρας', status: 'active' }] }
-const ctx = { isDemo: true, organizationId: 'org', language: 'el', t, role: 'infection_control_lead', has: () => true, patient: { id: 'PT-1', name: 'Α Β' }, admission: null, record, episodes: [record], samples: [], fmtDate: value => String(value).slice(0, 10), fmtDateTime: String }
+const ctx: EpisodeFormsCtx = { isDemo: true, organizationId: 'org', language: 'el', t, role: 'infection_control_lead', has: () => true, patient: { id: 'PT-1', name: 'Α Β' }, admission: null, record, episodes: [record], samples: [], fmtDate: value => String(value).slice(0, 10), fmtDateTime: String } as never
 
 describe('epidemiological questionnaire model', () => {
   it('has 11 questions, 3 core, with the design wording', () => {
@@ -147,7 +148,7 @@ describe('epidemiological questionnaire section', () => {
   })
 
   it('shows «Ολοκληρώθηκε» once the core is answered and prints origin, risk factors and answers in words', () => {
-    const value = { rows: { 'SUR-T1': { answers: { antibiotics_90d: yes('Meropenem'), icu_stay: yes(), transfer_from_facility: { a: 'unknown' } }, definitionVersion: 2, updatedAt: '2026-10-19T10:00:00Z' } }, settings: [] }
+    const value: EpiSectionValue = { rows: { 'SUR-T1': { answers: { antibiotics_90d: yes('Meropenem'), icu_stay: yes(), transfer_from_facility: { a: 'unknown' } }, definitionVersion: 2, updatedAt: '2026-10-19T10:00:00Z' } }, settings: [] } as never
     const [item] = epiRows(ctx, value)
     expect(item.summary).toMatchObject({ status: 'done', factorCount: 2, signal: true })
     expect(rowLine(item.summary, t)).toContain('2 παράγοντες κινδύνου')

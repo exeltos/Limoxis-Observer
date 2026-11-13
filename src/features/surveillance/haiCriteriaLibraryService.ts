@@ -1,12 +1,16 @@
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { HAI_CRITERIA_SETS, type HaiCriteriaSets } from './haiCriteriaDefinitions'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Tables } from '../../core/supabase/database.types'
+import type { HaiCriteriaGroup } from './surveillanceListTypes'
+
+// The master_library_items columns a criteria set is read from; its metadata (a Json column) holds the groups.
+type CriteriaSetRow = Pick<Tables<'master_library_items'>, 'name_el' | 'name_en' | 'source_authority'> & { metadata: { groups?: HaiCriteriaGroup[] } | null }
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
-function rowToCriteriaSet(row: AnyRecord) {
+function rowToCriteriaSet(row: CriteriaSetRow) {
   return {
     labelEl: row.name_el,
     labelEn: row.name_en || row.name_el,
@@ -30,7 +34,7 @@ export async function loadHaiCriteriaSets(organizationId: string | null | undefi
   if (error) throw error
   const sets: HaiCriteriaSets = {}
   for (const row of data || []) {
-    if (row.code) sets[row.code] = rowToCriteriaSet(row)
+    if (row.code) sets[row.code] = rowToCriteriaSet(row as CriteriaSetRow)
   }
   return Object.keys(sets).length ? sets : HAI_CRITERIA_SETS
 }

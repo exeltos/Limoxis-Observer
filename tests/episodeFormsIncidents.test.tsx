@@ -7,11 +7,12 @@ import { LanguageProvider, translate } from '../src/core/i18n/LanguageContext'
 import { incidentRows, incidentsSection } from '../src/features/surveillance/forms/sections/incidentsSection'
 import { incidentSource } from '../src/features/surveillance/forms/formPrefill'
 import { incidentPrefill } from '../src/features/quality/IncidentReportPage'
+import type { EpisodeFormsCtx } from '../src/features/surveillance/forms/formTypes'
 
 const t = key => translate(key, 'el')
 const fmtDate = value => String(value).slice(0, 10).split('-').reverse().join('/')
 const record = { id: 'SUR-260041', recordId: 'case-uuid', startedAt: '2026-08-24', departmentId: 'dep-1', department: 'ΜΕΘ' }
-const ctx = {
+const ctx: EpisodeFormsCtx = {
   isDemo: false,
   language: 'el',
   t,
@@ -22,7 +23,7 @@ const ctx = {
   episodes: [record],
   fmtDate,
   goTo: vi.fn(),
-}
+} as never
 const incident = { id: 'INC-1', displayId: 'ΣΥΜ-031', title: 'Αποσύνδεση κεντρικού καθετήρα', department: 'ΜΕΘ', status: 'underReview', date: '2026-10-19' }
 
 describe('incident report from an episode', () => {
