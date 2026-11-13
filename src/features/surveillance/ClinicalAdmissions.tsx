@@ -20,28 +20,34 @@ import { ISOLATION_STATUS, clinicalTerm, clinicalValueLabel, timelineLabel } fro
 import { isAwaitingResult, summaryAttention } from './recordAttention'
 import { clinicalRiskFlags, scaleShortName, type FlagRow } from '../clinical-scales/ClinicalRiskFlags'
 import { AdmissionDeleteDialog, PatientDetailsEditor, useAdmissionLifecycle } from './ClinicalAdmissionDialogs'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryDepartment } from '../management/useLibraries'
+import type { AttentionItem } from '../../design-system/AttentionList'
+import type { DetailItemData } from '../../design-system/DetailList'
+import type { OverflowItem } from '../../design-system/OverflowMenu'
+import type { AntimicrobialTherapy, ClinicalCase } from './clinicalTypes'
+import type { RecordAdmission, RecordPatient, RecordSample } from './clinicalScreenTypes'
 import type { Handler } from './surveillanceTypes'
 import type { ReactNode } from 'react'
 import type { Patient } from '../patients/patientTypes'
 export { Detail, NewAdmissionDialog, AdmissionPicker } from './ClinicalAdmissionDialogs'
+// `as string` below: an optional text of a record handed to a helper typed for text (t, stayDays …), which reads a missing one as before.
 
 interface PatientDetailsSectionProps {
-  patient: AnyRecord
+  patient: RecordPatient
   tenantId: string | null | undefined
   isDemo: boolean
-  departments: AnyRecord[]
+  departments: LibraryDepartment[]
   t: (key: string) => string
   language: string
   fmtDate: (value: unknown) => string
   onChanged: Handler
   onDeleted: Handler
   stayFields?: ReactNode[][] | null
-  leadingActions?: AnyRecord[] | null
-  extraMenuItems?: AnyRecord[]
+  leadingActions?: ReactNode
+  extraMenuItems?: OverflowItem[]
   bare?: boolean
   compact?: boolean
-  extraItems?: AnyRecord[]
+  extraItems?: DetailItemData[]
   title?: string | null
 }
 // Admissions of the clinical record: patient admissions home, admission summary
@@ -247,16 +253,16 @@ export function PatientDetailsSection({
 interface CanonicalSummaryProps {
   onOpenStage?: Handler
   onOpenHistory: Handler
-  extraAttention?: AnyRecord[]
-  epiItems?: AnyRecord[]
-  samples: AnyRecord[]
+  extraAttention?: (AttentionItem & { stage?: string })[]
+  epiItems?: DetailItemData[]
+  samples: RecordSample[]
   scaleRows?: FlagRow[]
-  patient: AnyRecord | null
-  admission: AnyRecord | null
-  record: AnyRecord | null
+  patient: RecordPatient | null
+  admission: RecordAdmission | null
+  record: ClinicalCase | null
   tenantId: string | null | undefined
   isDemo: boolean
-  departments: AnyRecord[]
+  departments: LibraryDepartment[]
   canEdit: boolean
   canDelete: boolean
   showPatientActions: boolean
@@ -308,7 +314,7 @@ export function CanonicalSummary({
     ? admission.admissionDate
     : patient?.admissionDate || record?.admissionDate
   const dischargedAt = admission?.dischargeDate || null
-  const days = stayDays(admittedAt, dischargedAt)
+  const days = stayDays(admittedAt as string, dischargedAt as string)
   const daysLabel =
     days == null
       ? '—'
@@ -339,14 +345,14 @@ export function CanonicalSummary({
         ],
         [t('admissionDate'), fmtDate(admittedAt)],
       ]
-  const badge = (text: string, tone?: string) =>
+  const badge = (text: string | null | undefined, tone?: string) =>
     text ? <StatusBadge tone={tone}>{text}</StatusBadge> : '—'
   const hai = record?.haiClassification
   const haiValue = hai ? (
     <>
       {hai.type ? t(hai.type) : null}
       {hai.type ? ' ' : null}
-      {badge(t(hai.status), hai.status === 'confirmed' ? 'danger' : 'temporary')}
+      {badge(t(hai.status as string), hai.status === 'confirmed' ? 'danger' : 'temporary')}
     </>
   ) : (
     '—'
@@ -364,7 +370,7 @@ export function CanonicalSummary({
   const isolationValue = record?.isolation
     ? record.isolation.status === 'active'
       ? badge(t('clinicalRecords.isolationInPlace'), 'temporary')
-      : badge(t(ISOLATION_STATUS[record.isolation.status] || record.isolation.status))
+      : badge(t(ISOLATION_STATUS[String(record.isolation.status)] || record.isolation.status as string))
     : t('no')
   const lifecycle = useAdmissionLifecycle({
     patient,
@@ -409,16 +415,16 @@ export function CanonicalSummary({
   ) : (
     t('clinicalRecords.notDocumentedYet')
   )
-  const pendingTherapy = (record?.therapy || []).filter((x: AnyRecord) => x.approvalStatus === 'pending')
+  const pendingTherapy = (record?.therapy || []).filter((x: AntimicrobialTherapy) => x.approvalStatus === 'pending')
   const therapyValue = record?.therapy?.length ? (
     <>
-      {record.therapy.map((x: AnyRecord) => x.antimicrobial).join(', ')}
+      {record.therapy.map((x: AntimicrobialTherapy) => x.antimicrobial).join(', ')}
       {pendingTherapy.length ? (
         <>
           {' '}
           {badge(
             record.therapy.length > 1
-              ? `${pendingTherapy.map((x: AnyRecord) => x.antimicrobial).join(', ')}: ${t('clinicalRecords.awaitingApproval')}`
+              ? `${pendingTherapy.map((x: AntimicrobialTherapy) => x.antimicrobial).join(', ')}: ${t('clinicalRecords.awaitingApproval')}`
               : t('clinicalRecords.awaitingApproval'),
             'warning',
           )}
@@ -517,7 +523,7 @@ export function CanonicalSummary({
                     <li key={`${event.at}-${index}`}>
                       <b>{fmtDate(event.at)}</b>
                       <span>
-                        {[timelineLabel(event.type, language, t), event.detail ? clinicalValueLabel(event.detail, language, t) : '', event.actor || '']
+                        {[timelineLabel(event.type as string, language, t), event.detail ? clinicalValueLabel(event.detail, language, t) : '', event.actor || '']
                           .filter(Boolean)
                           .map((part, partIndex) => (
                             <Fragment key={partIndex}>{partIndex ? ' · ' : ''}<span>{part}</span></Fragment>
