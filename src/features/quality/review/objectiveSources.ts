@@ -5,6 +5,7 @@ import { loadCommittees } from '../../committees/committeeData'
 import { loadDepartments } from '../../management/departmentsService'
 import { demoLibrarySeed } from '../../management/managementData'
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadOperationalIndicatorDefinitions } from '../../indicators/indicatorCloudService'
+import type { OperationalIndicator } from '../../indicators/indicatorTypes'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../../types/featureTypes'
 
@@ -51,7 +52,7 @@ export async function platformValuesForYears(organizationId: string | null | und
   for (const year of years) {
     if (year > new Date().getFullYear()) { byYear.set(year, new Map()); continue }
     const metrics = await collectCloudIndicatorMetrics(organizationId, { from: `${year}-01-01`, to: yearEnd(year) } as AnyRecord).catch(() => null)
-    byYear.set(year, new Map(metrics ? definitions.map((def: AnyRecord) => [def.id, calculateCloudDefinition(def, metrics).value]) : []))
+    byYear.set(year, new Map(metrics ? definitions.map((def: AnyRecord) => [def.id, calculateCloudDefinition(def as unknown as OperationalIndicator, metrics).value]) : []))
   }
   return byYear
 }
@@ -62,7 +63,7 @@ export async function platformMonthlyValues(organizationId: string | null | unde
   const months = []
   for (let month = 1; month <= monthsSoFar(year); month += 1) {
     const metrics = await collectCloudIndicatorMetrics(organizationId, { from: monthStart(year, month), to: monthEnd(year, month) } as AnyRecord).catch(() => null)
-    months.push({ month, values: new Map(metrics ? wanted.map((def: AnyRecord) => [def.id, calculateCloudDefinition(def, metrics).value]) : []) })
+    months.push({ month, values: new Map(metrics ? wanted.map((def: AnyRecord) => [def.id, calculateCloudDefinition(def as unknown as OperationalIndicator, metrics).value]) : []) })
   }
   return months
 }

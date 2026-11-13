@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../core/export/reportDocument'
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadIndicatorSnapshots } from '../../indicators/indicatorCloudService'
+import type { OperationalIndicator } from '../../indicators/indicatorTypes'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, textOf as registerText } from '../../registers/registerEngine'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
@@ -57,7 +58,7 @@ export function dossierIndicatorResult(def: AnyRecord, metrics: AnyRecord | null
     const numerator = Number(metrics?.ssi_episodes ?? 0)
     return { value: null, numerator, denominator: null, evidence: null, ssi: numerator, missing: 'surgical_procedures' }
   }
-  const result = calculateCloudDefinition(def, metrics || {})
+  const result = calculateCloudDefinition(def as unknown as OperationalIndicator, metrics || {})
   if (SOURCE_METRICS.has(def.numerator) && !Number(result.numerator)) return { value: null, numerator: result.numerator, evidence: null, missing: 'antibiotic_ddd_total' }
   if (def.denominator && !Number(result.denominator)) return { value: null, numerator: result.numerator, denominator: result.denominator, evidence: null, missing: missingKey(def.denominator) }
   return { value: result.value, numerator: result.numerator, denominator: result.denominator, evidence: def.denominator ? [result.numerator ?? 0, result.denominator] : null, missing: result.value == null ? (result.numerator == null ? 'source' : missingKey(def.numerator)) : null }

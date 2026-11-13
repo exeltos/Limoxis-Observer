@@ -61,7 +61,7 @@ export function useObjectives(organizationId: string | null | undefined, { enabl
         // Without a target of its own, a linked objective takes the target set in the indicator's definition.
         const source = indicator || platformIndicator
         const fromIndicator = (objective.target === '' || objective.target == null) && source && source.target != null && source.target !== ''
-        const effective = fromIndicator ? { ...objective, target: Number(source.target), direction: ['higher', 'lower'].includes(source.direction) ? source.direction : objective.direction, targetFromIndicator: true } : objective
+        const effective = fromIndicator ? { ...objective, target: Number(source.target), direction: ['higher', 'lower'].includes(source.direction||'') ? source.direction : objective.direction, targetFromIndicator: true } : objective
         const department = names.departments.find(item => item.id === objective.departmentId)
         const committee = names.committees.find(item => item.id === objective.committeeId)
         return { ...effective, register, indicator, platformIndicator, months, department, committee, level: objectiveLevel(objective), current: { value, status: objectiveState(effective, value) } }
