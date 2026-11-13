@@ -1,13 +1,16 @@
 import { filterLiraData } from './liraAnalysis'
 import { filterLiraDataByWindow,inferLiraTimeWindow,type LiraComparisonSpec,type LiraTimeWindow } from './liraTime'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LiraData } from './liraTypes'
 
-export function resolveLiraTimeScope(question: string,{data,plan,language='el',today=hospitalToday(),previousTimeWindow=null}: AnyRecord={}){
+// Επιλογές του εύρους μιας ερώτησης: δεδομένα, σχέδιο (τμήμα, ημέρες), προηγούμενο παράθυρο.
+export interface LiraTimeScopeOptions { data?: LiraData, plan?: { department?: string, periodDays?: number } | null, language?: string, today?: string, previousTimeWindow?: LiraTimeWindow | null }
+
+export function resolveLiraTimeScope(question: string,{data,plan,language='el',today=hospitalToday(),previousTimeWindow=null}: LiraTimeScopeOptions={}){
  const explicit=inferLiraTimeWindow(question,{today})
  const short=String(question||'').trim().split(/\s+/).filter(Boolean).length<=8
  const timeWindow=explicit||(short?previousTimeWindow:null)
- let scoped: AnyRecord=filterLiraData(data,{department:plan?.department||'all',periodDays:timeWindow?0:(plan?.periodDays||0),language,today})
+ let scoped: LiraData=filterLiraData(data as LiraData,{department:plan?.department||'all',periodDays:timeWindow?0:(plan?.periodDays||0),language,today})
  if(timeWindow)scoped=filterLiraDataByWindow(scoped,timeWindow)
  return {data:scoped,timeWindow,explicit:Boolean(explicit)}
 }
@@ -15,7 +18,7 @@ export function resolveLiraTimeScope(question: string,{data,plan,language='el',t
 
 const iso=(date: Date)=>date.toISOString().slice(0,10)
 const utc=(value: string)=>new Date(`${value}T12:00:00Z`)
-export function buildMatchedComparisonSpec(timeWindow: LiraTimeWindow|null,{today=hospitalToday(),language='el'}: AnyRecord={}): LiraComparisonSpec|null{
+export function buildMatchedComparisonSpec(timeWindow: LiraTimeWindow|null,{today=hospitalToday(),language='el'}: {today?: string, language?: string}={}): LiraComparisonSpec|null{
  const en=language==='en'
  const current=timeWindow||{start:today,end:today,label:en?'today':'σήμερα'}
  const start=utc(current.start),end=utc(current.end)
