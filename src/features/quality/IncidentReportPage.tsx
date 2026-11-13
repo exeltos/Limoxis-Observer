@@ -28,7 +28,7 @@ import { QualityDepartmentField, QualityOwnerField, QualityVisiblePersonField, d
 import { PrefilledList } from '../surveillance/forms/PrefilledList'
 import './quality.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { IncidentReportDraft, QualityRecord, ReportPrefillState } from './qualityTypes'
 
 const today = () => hospitalToday()
 const MAX_FILES = 10
@@ -52,7 +52,7 @@ export function emptyIncidentReport() {
 
 // A report may start from another workflow (episode/control). It is still a
 // report first; its source only pre-fills context for Quality to assess later.
-export function incidentPrefill(state: AnyRecord, language = 'el') {
+export function incidentPrefill(state: ReportPrefillState | null | undefined, language = 'el') {
   const en = language === 'en'
   const episode = state?.episodeSource
   if (episode) return {
@@ -95,11 +95,11 @@ export function IncidentReportPage() {
   const fromEpisode = location.state?.episodeSource || null
   const [files, setFiles] = useState<File[]>([])
   const fileInput = useRef<HTMLInputElement>(null)
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...emptyIncidentReport(), ...(incidentPrefill(location.state, language) || {}) }))
+  const [draft, setDraft] = useState<IncidentReportDraft>(() => ({ ...emptyIncidentReport(), ...(incidentPrefill(location.state, language) || {}) }))
   const [saving, setSaving] = useState(false)
-  const [sent, setSent] = useState<AnyRecord | null>(null)
+  const [sent, setSent] = useState<QualityRecord | null>(null)
   const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
-  const patch = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
+  const patch = (next: Partial<IncidentReportDraft>) => setDraft(current => ({ ...current, ...next }))
 
   const self = useMemo(() => resolveSelfEmployee({ employeeRows, membership, profile, user, isDemo }), [employeeRows, membership, profile, user, isDemo])
   useEffect(() => {

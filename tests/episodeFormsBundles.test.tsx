@@ -18,6 +18,7 @@ import { buildBundlePrefill } from '../src/features/surveillance/forms/formPrefi
 import { bundleRowsFor, bundlesSection } from '../src/features/surveillance/forms/sections/bundlesSection'
 import { makeDeviceBundles } from '../src/features/surveillance/forms/deviceBundles'
 import { episodeFormSections, registerEpisodeFormSection } from '../src/features/surveillance/forms/formsRegistry'
+import type { EpisodeFormsCtx } from '../src/features/surveillance/forms/formTypes'
 
 const today = '2026-10-20'
 const line = { id: 'D1', name: 'Κεντρικός φλεβικός καθετήρας', insertedAt: '2026-10-15', status: 'active' }
@@ -59,7 +60,7 @@ describe('device bundle status', () => {
 })
 
 describe('bundle prefill and rows', () => {
-  const ctx = {
+  const ctx: EpisodeFormsCtx = {
     language: 'el',
     patient: { id: 'PT-1', name: 'Ελένη Παπαδοπούλου', recordId: 'uuid-p' },
     admission: { id: 'ADM-1', admissionDate: '2026-10-15', department: 'ΜΕΘ' },
@@ -67,7 +68,7 @@ describe('bundle prefill and rows', () => {
     fmtDate: value => String(value).slice(0, 10),
     has: () => true,
     episodes: [{ id: 'SUR-1', recordId: 'uuid-c', departmentId: 'dep-1', department: 'ΜΕΘ', startedAt: '2026-10-15', devices: [line, foley, { id: 'D3', name: 'Τραχειοστομία' }, { ...line, id: 'D4', removedAt: '2026-10-17', status: 'removed' }] }],
-  }
+  } as never
   it('fills patient, episode, device, day and bundle from the device row', () => {
     const info = bundleStatusForDevice({ device: line, assessments: [], today })
     const prefill = buildBundlePrefill({ ctx, device: line, episode: ctx.episodes[0], info, now: new Date('2026-10-20T09:00:00Z') })
@@ -91,7 +92,7 @@ describe('forms registry', () => {
     expect(episodeFormSections().map(item => item.id).slice(0, 2)).toEqual(['bundles', 'scales'])
     registerEpisodeFormSection({ id: 'zz-test', order: 999, Component: () => null })
     expect(episodeFormSections().at(-1).id).toBe('zz-test')
-    expect(() => registerEpisodeFormSection({ id: 'broken' })).toThrow()
+    expect(() => registerEpisodeFormSection({ id: 'broken' } as never)).toThrow()
   })
 })
 

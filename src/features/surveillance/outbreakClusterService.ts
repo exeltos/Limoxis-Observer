@@ -2,7 +2,7 @@ import { supabase as configuredClient, type Cloud } from '../../core/supabase/cl
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { detectOrganismClusters } from './clusterDetection'
 import { ENVIRONMENTAL_SAMPLE_TYPES, isSkinFloraOrganism } from './skinFloraOrganisms'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClusterLabSample, OrganismClusterRow } from './surveillanceListTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
@@ -10,12 +10,12 @@ const supabase = configuredClient as Cloud
 export const CLUSTER_WINDOW_DAYS = 14
 export const CLUSTER_THRESHOLD = 3
 
-export function demoClusterRecords(laboratorySamples: AnyRecord[]) {
+export function demoClusterRecords(laboratorySamples: ClusterLabSample[]) {
   return laboratorySamples
     // Patients only, as in the database: no environmental sample, no sample without a patient.
-    .filter((x: AnyRecord) => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus) && x.organism && x.patientId && !ENVIRONMENTAL_SAMPLE_TYPES.includes(x.sampleType))
-    .map((x: AnyRecord) => ({ organism: x.organism.trim(), department: x.department, resistance: x.resistance || null, date: String(x.resultedAt || '').slice(0, 10), patientId: x.patientId || null, sampleId: x.id || null }))
-    .filter((x: AnyRecord) => x.date)
+    .filter((x: ClusterLabSample): x is ClusterLabSample & { organism: string } => Boolean(x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus as string) && x.organism && x.patientId && !ENVIRONMENTAL_SAMPLE_TYPES.includes(x.sampleType as string)))
+    .map(x => ({ organism: x.organism.trim(), department: x.department, resistance: x.resistance || null, date: String(x.resultedAt || '').slice(0, 10), patientId: x.patientId || null, sampleId: x.id || null }))
+    .filter(x => x.date)
 }
 
 interface CollectDemoOrganismClustersOptions {
@@ -28,7 +28,7 @@ export async function collectDemoOrganismClusters({ windowDays = CLUSTER_WINDOW_
   return detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays, threshold })
 }
 
-function mapCloudCluster(row: AnyRecord) {
+function mapCloudCluster(row: OrganismClusterRow) {
   return {
     department: row.department_name,
     organism: row.organism,

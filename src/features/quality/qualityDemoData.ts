@@ -2,18 +2,18 @@ import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { programmeAudits, programmeCapas, programmeFindings } from './audits/auditDemoData'
 import { DEMO_HISTORY_MONTHS, DEMO_WARDS, addDays, between, dayInMonth, pick, seededRandom } from '../../core/data/demoSeed'
-import type { AnyRecord } from '../../types/featureTypes'
-export const qualityIncidents: AnyRecord[]=[
+import type { AuditChecklistItem, CapaProgressEntry, IncidentFall, QualityDraft, QualityRecord } from './qualityTypes'
+export const qualityIncidents: QualityRecord[]=[
   {id:'INC-260827-004',title:'Καθυστέρηση εφαρμογής μέτρων απομόνωσης',titleEn:'Delay in applying isolation precautions',department:'ΜΕΘ',departmentEn:'ICU',date:'2026-08-27',severity:'high',status:'underReview',reportedBy:'Ν. Παπαδόπουλος',owner:'Υπεύθυνος Ποιότητας',description:'Καταγράφηκε καθυστέρηση στην εφαρμογή των απαιτούμενων μέτρων μετά από κρίσιμο εργαστηριακό αποτέλεσμα.',descriptionEn:'A delay was recorded in applying required precautions after a critical laboratory result.',linkedPatient:'PT-260184',linkedSurveillance:'SUR-260041',attachments:[],history:[{at:'2026-08-27T06:20:00+03:00',action:'incidentReported',actor:'Ν. Παπαδόπουλος'}]},
   {id:'INC-260826-009',title:'Αστοχία σήμανσης περιέκτη αποβλήτων',titleEn:'Waste container labelling failure',department:'Χειρουργική',departmentEn:'Surgery',date:'2026-08-26',severity:'medium',status:'closed',reportedBy:'Μ. Ιωάννου',owner:'Υπεύθυνος Ποιότητας',description:'Εντοπίστηκε λανθασμένη σήμανση σε περιέκτη αποβλήτων.',descriptionEn:'Incorrect labelling was identified on a waste container.',attachments:[],history:[{at:'2026-08-26T15:40:00+03:00',action:'incidentClosed',actor:'Υπεύθυνος Ποιότητας'}]},
 ]
-export const qualityFindings: AnyRecord[]=[
+export const qualityFindings: QualityRecord[]=[
   {id:'FND-2608-012',title:'Μη πλήρης τεκμηρίωση επιβεβαίωσης με επανάληψη (read-back)',titleEn:'Incomplete read-back documentation',source:'audit',sourceId:'AUD-2608-003',department:'ΜΕΘ',departmentEn:'ICU',date:'2026-08-25',severity:'medium',status:'open',owner:'Υπεύθυνος ΜΕΘ',description:'Σε δείγμα κρίσιμης επικοινωνίας δεν τεκμηριώθηκε πλήρως η επιβεβαίωση με επανάληψη (read-back).',descriptionEn:'Read-back confirmation was not fully documented in a sampled critical communication.',attachments:[],history:[{at:'2026-08-25T12:10:00+03:00',action:'findingCreated',actor:'Υπεύθυνος Ποιότητας'}]},
 ]
-export const qualityCapas: AnyRecord[]=[
+export const qualityCapas: QualityRecord[]=[
   {id:'CAPA-2608-006',title:'Επανεκπαίδευση στη διαχείριση κρίσιμων αποτελεσμάτων',titleEn:'Retraining on critical result management',sourceType:'finding',sourceId:'FND-2608-012',department:'ΜΕΘ',departmentEn:'ICU',owner:'Προϊστάμενος Εργαστηρίου',dueDate:'2026-09-10',status:'inProgress',priority:'high',actionType:'corrective',description:'Στοχευμένη επανεκπαίδευση και έλεγχος τεκμηρίωσης επιβεβαίωσης με επανάληψη.',descriptionEn:'Targeted retraining and verification of read-back documentation.',effectivenessDue:'2026-10-10',effectivenessStatus:'pending',attachments:[],history:[{at:'2026-08-26T09:30:00+03:00',action:'capaAssigned',actor:'Υπεύθυνος Ποιότητας'}]},
 ]
-export const qualityAudits: AnyRecord[]=[
+export const qualityAudits: QualityRecord[]=[
   {id:'AUD-2608-003',title:'Επιθεώρηση επικοινωνίας κρίσιμων εργαστηριακών αποτελεσμάτων',titleEn:'Critical laboratory communication audit',department:'ΜΕΘ',departmentEn:'ICU',auditType:'internal',plannedDate:'2026-08-25',completedDate:'2026-08-25',status:'completed',leadAuditor:'Υπεύθυνος Ποιότητας',scope:'Δειγματοληπτικός έλεγχος της επικοινωνίας κρίσιμων αποτελεσμάτων.',scopeEn:'Sample audit of critical-result communications.',findingIds:['FND-2608-012'],attachments:[],history:[{at:'2026-08-25T13:00:00+03:00',action:'auditCompleted',actor:'Υπεύθυνος Ποιότητας'}]},
   {id:'AUD-2609-001',title:'Επιθεώρηση συμμόρφωσης μέτρων απομόνωσης',titleEn:'Isolation precautions compliance audit',department:'ΜΕΘ',departmentEn:'ICU',auditType:'internal',plannedDate:'2026-09-05',completedDate:null,status:'planned',leadAuditor:'Υπεύθυνος Ποιότητας',scope:'Έλεγχος εφαρμογής μέτρων απομόνωσης σε ενεργές επιτηρήσεις.',scopeEn:'Review of μέτρων απομόνωσης in active surveillance episodes.',findingIds:[],attachments:[],history:[]},
 ]
@@ -76,7 +76,7 @@ qualityFindings.push(
   ['FND-2603-006','material',['material'],false,'Ομάδα επιθεώρησης',''],
   ['FND-2606-010','procedure',['procedure','human_error'],true,'Νοσηλευτής/τρια Λοιμώξεων','Δεν υπάρχει καθημερινός έλεγχος ανάγκης του καθετήρα.'],
   ['FND-2607-011','breakdown',['equipment','supplier'],false,'Διευθυντής ΤΕΠ','Καθυστέρηση στην προμήθεια νέων περιεκτών.'],
-].forEach(([id,deviationKind,causeCategories,recurring,reportedBy,rootCause])=>Object.assign(qualityFindings.find(item=>item.id===id) as AnyRecord,{deviationKind,causeCategories,recurring,reportedBy,rootCause}))
+].forEach(([id,deviationKind,causeCategories,recurring,reportedBy,rootCause])=>Object.assign(qualityFindings.find(item=>item.id===id) as QualityRecord,{deviationKind,causeCategories,recurring,reportedBy,rootCause}))
 const capa=(id: string,sourceType: string,sourceId: string,department: string,owner: string,dueDate: string,status: string,priority: string,actionType: string,title: string,titleEn: string,description: string,descriptionEn: string,effectivenessDue: string,effectivenessStatus: string,assignedAt: string)=>({id,title,titleEn,sourceType,sourceId,department,departmentEn:DEPT_EN[department],owner,dueDate,status,priority,actionType,description,descriptionEn,effectivenessDue,effectivenessStatus,attachments:[],history:[{at:`${assignedAt}T09:30:00+03:00`,action:'capaAssigned',actor:'Υπεύθυνος Ποιότητας'}]})
 qualityCapas.push(
  capa('CAPA-2510-001','finding','FND-2510-002','ΜΕΘ','Προϊστάμενος ΜΕΘ','2025-11-15','closed','high','corrective','Υποχρεωτικό πεδίο ημερομηνίας τοποθέτησης CVC','Mandatory CVC insertion-date field','Ενσωμάτωση στο φύλλο νοσηλείας και έλεγχος σε 4 εβδομάδες.','Added to the care sheet and rechecked after 4 weeks.','2026-01-15','effective','2025-10-15'),
@@ -199,7 +199,7 @@ qualityIncidents.push(
 // Phase 3: audits carry their checklist; each «No» has its finding, and the
 // year has a programme of audits.
 const auditRow=(id: string,item: string,itemEn: string,answer='',note='',findingId?: string)=>({id,item,itemEn,required:true,answer,note,...(findingId?{findingId}:{})})
-const AUDIT_CHECKLIST: Record<string, AnyRecord[]>={
+const AUDIT_CHECKLIST: Record<string, AuditChecklistItem[]>={
  'AUD-2606-002':[auditRow('hh-1','Διαθέσιμο αλκοολούχο αντισηπτικό στο σημείο φροντίδας','Hand rub at the point of care','yes'),auditRow('hh-2','Υγιεινή χεριών πριν από επαφή με τον ασθενή (Moment 1)','Hand hygiene before patient contact (Moment 1)','yes'),auditRow('hh-3','Υγιεινή χεριών πριν από άσηπτο χειρισμό (Moment 2)','Hand hygiene before an aseptic task (Moment 2)','no','Συμμόρφωση 62% στη δειγματοληψία','FND-2606-008'),auditRow('hh-4','Χωρίς κοσμήματα και με κοντά νύχια','No jewellery, short nails','yes'),auditRow('hh-5','Αφίσα 5 στιγμών σε κάθε θάλαμο','5 Moments poster in every room','na')],
  'AUD-2608-003':[auditRow('lab-1','Κρίσιμα αποτελέσματα κοινοποιούνται εντός 30 λεπτών','Critical results communicated within 30 minutes','yes'),auditRow('lab-2','Τεκμηρίωση επιβεβαίωσης με επανάληψη (read-back)','Read-back documented','no','Λείπει σε 4 από 10 περιπτώσεις','FND-2608-012'),auditRow('lab-3','Καταγραφή ονόματος παραλήπτη','Recipient name recorded','yes')],
  'AUD-2609-001':[auditRow('iso-1','Σήμανση απομόνωσης στην πόρτα','Isolation sign on the door'),auditRow('iso-2','Διαθέσιμα ΜΑΠ στην είσοδο του θαλάμου','PPE available at the room entrance'),auditRow('iso-3','Αποκλειστικός εξοπλισμός (στηθοσκόπιο, πιεσόμετρο)','Dedicated equipment (stethoscope, cuff)'),auditRow('iso-4','Ενημέρωση επισκεπτών για τους κανόνες','Visitors told the rules'),auditRow('iso-5','Καθημερινή απολύμανση επιφανειών υψηλής επαφής','Daily disinfection of high-touch surfaces')],
@@ -213,26 +213,27 @@ qualityAudits.push(
 // Event types and their details (20261116100000_quality_relational.sql): a
 // patient's fall with a fracture and a staff needlestick; progress notes on
 // two corrective actions under way.
-const fallDetail=(detail: AnyRecord)=>({fallType:'',floorCondition:'',bedRails:'',location:'',examinedByDoctor:null,doctorInstructions:'',injuryCategory:'injury',injurySubcategory:'fall',injuredPersonType:'patient',injuredEmployeeId:'',injuryDescription:'',...detail})
-const EVENT_DETAILS: Record<string, AnyRecord>={
+const fallDetail=(detail: Partial<IncidentFall>)=>({fallType:'',floorCondition:'',bedRails:'',location:'',examinedByDoctor:null,doctorInstructions:'',injuryCategory:'injury',injurySubcategory:'fall',injuredPersonType:'patient',injuredEmployeeId:'',injuryDescription:'',...detail})
+const EVENT_DETAILS: Record<string, QualityDraft>={
  'INC-251008-003':{eventType:'injury_fall_exposure',fall:fallDetail({fallType:'slip',floorCondition:'wet',bedRails:'not_applicable',location:'Μπάνιο θαλάμου',examinedByDoctor:true,doctorInstructions:'Ακτινογραφία καρπού, ακινητοποίηση με νάρθηκα, ορθοπαιδική εκτίμηση.',injuryDescription:'Κάταγμα κερκίδας αριστερού χεριού.'})},
  'INC-260304-012':{eventType:'injury_fall_exposure',fall:fallDetail({location:'Αίθουσα διαλογής',examinedByDoctor:true,doctorInstructions:'Ορολογικός έλεγχος πηγής και εργαζόμενου, προφύλαξη μετά από έκθεση.',injurySubcategory:'sharp_object',injuredPersonType:'employee',injuryDescription:'Νυγμός στον δείκτη του δεξιού χεριού.'}),sharp:{tool:'disposable_needle',toolState:'used',bodySite:'hands',bodySiteOther:'',firstUser:'',contactDuration:'Στιγμιαία',exposedBodyPart:'Δέρμα δακτύλου',substance:'Αίμα'}},
 }
 for(const record of qualityIncidents)Object.assign(record,{eventType:'',fall:null,sharp:null,blueCode:null,obstetric:null},EVENT_DETAILS[record.id]||{})
-const CAPA_PROGRESS: Record<string, AnyRecord[]>={
+const CAPA_PROGRESS: Record<string, CapaProgressEntry[]>={
  'CAPA-2606-008':[{id:'pr-2606-008-2',date:'2026-07-08',note:'Η λίστα ελέγχου εφαρμόζεται στις πρωινές επισκέψεις· εκκρεμεί η εκπαίδευση της νυχτερινής βάρδιας.',author:'Προϊστάμενος Χειρουργικής',createdAt:'2026-07-08T13:00:00+03:00'},{id:'pr-2606-008-1',date:'2026-06-26',note:'Εγκρίθηκε το πρωτόκολλο αφαίρεσης από νοσηλευτή.',author:'Υπεύθυνος Ποιότητας',createdAt:'2026-06-26T10:00:00+03:00'}],
  'CAPA-2608-010':[{id:'pr-2608-010-1',date:'2026-08-28',note:'Ξεκίνησε η καθημερινή αξιολόγηση VIP score σε όλους τους θαλάμους.',author:'Υπεύθυνος Ποιότητας',createdAt:'2026-08-28T12:00:00+03:00'}],
 }
 for(const capa of qualityCapas)capa.progress=CAPA_PROGRESS[capa.id]||[]
 // The audit programme of the year (standards, teams, answers, findings, a CAPA).
 qualityAudits.push(...programmeAudits)
-qualityFindings.push(...programmeFindings)
+// A finding of an audit not yet completed comes without a date (null); the screens read it with a fallback.
+qualityFindings.push(...programmeFindings as unknown as QualityRecord[])
 qualityCapas.push(...programmeCapas)
 shiftDemoDatesInPlace([qualityIncidents,qualityFindings,qualityCapas,qualityAudits])
 
 for(const record of qualityIncidents){
- record.reportKind ||= record.category==='complaint'?'complaint':['equipment','process','staff','facility','security','other'].includes(record.category)?'nonClinical':'clinical'
- record.sentinel = record.incidentClass==='harmful'&&['severe','death','major'].includes(record.impact)
+ record.reportKind ||= record.category==='complaint'?'complaint':['equipment','process','staff','facility','security','other'].includes(record.category as string)?'nonClinical':'clinical'
+ record.sentinel = record.incidentClass==='harmful'&&['severe','death','major'].includes(record.impact as string)
  if(record.sentinel&&!record.rcaDueDate){const due=new Date(`${record.date}T12:00:00Z`);due.setUTCDate(due.getUTCDate()+45);record.rcaDueDate=due.toISOString().slice(0,10)}
 }
 

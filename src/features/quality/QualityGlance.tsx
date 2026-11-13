@@ -6,23 +6,24 @@ import { auditCompliance } from './qualityAudit'
 import { analysisProgress } from './rootCauseAnalysis'
 import { subActionProgress } from './qualityDeviations'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { RecordMetric } from '../../design-system/RecordMetricStrip'
+import type { QualityDraft, QualityRecord } from './qualityTypes'
 
 // A record «at a glance»: the three or four figures that say where it stands,
 // above its details. What is late or harmful is coloured; progress is a bar.
 
-const isClosed=(record: AnyRecord)=>['closed','completed','cancelled'].includes(record?.status)||record?.lifecycleStatus==='voided'
+const isClosed=(record: QualityDraft)=>['closed','completed','cancelled'].includes(record?.status as string)||record?.lifecycleStatus==='voided'
 const dayMs=86400000
 const today=()=>hospitalToday()
 // Whole days from today to a date (negative: in the past).
-export function daysUntil(date: string,now=today()){
+export function daysUntil(date: string | null | undefined,now=today()){
   if(!date)return null
   return Math.round((Date.parse(`${String(date).slice(0,10)}T12:00:00Z`)-Date.parse(`${now}T12:00:00Z`))/dayMs)
 }
 const plural=(count: number,en: boolean,one: string,many: string,oneEn: string,manyEn: string)=>en?(count===1?oneEn:manyEn):(count===1?one:many)
 
 // A deadline: how many days are left, or how late it is.
-function deadline(label: string,date: string,{en,language,done=false,doneText}: AnyRecord){
+function deadline(label: string,date: string | undefined,{en,language,done=false,doneText}: {en: boolean, language: string, done?: boolean, doneText?: string}): RecordMetric{
   const days=daysUntil(date)
   if(done)return {id:label,label,value:doneText,tone:'success',note:formatDay(date,language)||undefined}
   if(days==null)return {id:label,label,value:'—',note:en?'No date set':'Χωρίς ημερομηνία'}
@@ -31,23 +32,23 @@ function deadline(label: string,date: string,{en,language,done=false,doneText}: 
 }
 
 // The corrective actions (or findings) that follow a record: how many are done.
-function followUps(label: string,rows: AnyRecord[],{en,open,noneText}: AnyRecord){
+function followUps(label: string,rows: QualityDraft[],{en,open,noneText}: {en: boolean, open: boolean, noneText: string}): RecordMetric{
   const done=rows.filter(isClosed).length
   if(!rows.length)return {id:label,label,value:0,tone:open?'warning':undefined,note:noneText}
   return {id:label,label,value:`${done}/${rows.length}`,meter:done*100/rows.length,tone:done===rows.length?'success':undefined,note:en?'completed':'ολοκληρωμένες'}
 }
 
-function age(label: string,date: string,{en,language,open}: AnyRecord){
+function age(label: string,date: string | undefined,{en,language,open}: {en: boolean, language: string, open: boolean}): RecordMetric | null{
   const days=daysUntil(date)
   if(days==null)return null
   const since=-days
   return {id:label,label,value:Math.max(0,since),unit:plural(since,en,'ημέρα','ημέρες','day','days'),note:`${open?(en?'Open · since':'Ανοιχτό · από'):(en?'Since':'Από')} ${formatDay(date,language)}`}
 }
 
-export function glanceItems(recordType: string,record: AnyRecord,{language,t,linked=[]}: AnyRecord){
+export function glanceItems(recordType: string,record: QualityRecord,{language,t,linked=[]}: {language: string, t: (key: string) => string, linked?: QualityRecord[]}): RecordMetric[]{
   const en=language==='en'
   const open=!isClosed(record)
-  const severityTone=['high','critical'].includes(record.severity)?'danger':undefined
+  const severityTone=['high','critical'].includes(record.severity as string)?'danger':undefined
   if(recordType==='incidents'){
     const kind=reportKindOf(record)
     const reaches=['clinical','nonClinical'].includes(kind)
@@ -55,18 +56,18 @@ export function glanceItems(recordType: string,record: AnyRecord,{language,t,lin
     const harm=harmLevel(record.impact)
     return [
       reaches&&record.incidentClass?{id:'harm',label:en?'Outcome for the patient':'Έκβαση για τον ασθενή',value:harmful?vocabularyLabel(IMPACTS,harm,language):vocabularyLabel(INCIDENT_CLASSES,record.incidentClass||'nearMiss',language),tone:harmful?(['severe','death'].includes(harm)?'danger':'warning'):undefined,note:harmful?(en?'Harm (WHO)':'Βλάβη (WHO)'):undefined}
-       :record.severity?{id:'severity',label:t('severity'),value:t(record.severity),tone:severityTone}:null,
+       :record.severity?{id:'severity',label:t('severity'),value:t(record.severity as string),tone:severityTone}:null,
       age(en?'Since the event':'Από το συμβάν',record.date,{en,language,open}),
       followUps(en?'Corrective actions':'Διορθωτικές ενέργειες',linked,{en,open:open&&kind!=='suggestion',noneText:en?'None yet':'Καμία ακόμη'}),
-      record.sentinel?deadline(en?'Root cause analysis':'Ανάλυση ριζικής αιτίας',record.rcaDueDate,{en,language,done:!open,doneText:en?'Closed':'Έκλεισε'}):{id:'severity',label:t('severity'),value:t(record.severity),tone:severityTone},
-    ].filter(Boolean).filter((item,index,list)=>list.findIndex(other=>other.id===item.id)===index)
+      record.sentinel?deadline(en?'Root cause analysis':'Ανάλυση ριζικής αιτίας',record.rcaDueDate,{en,language,done:!open,doneText:en?'Closed':'Έκλεισε'}):{id:'severity',label:t('severity'),value:t(record.severity as string),tone:severityTone},
+    ].filter(Boolean).filter((item,index,list)=>list.findIndex(other=>other.id===item.id)===index) as RecordMetric[]
   }
   if(recordType==='findings')return [
-    {id:'severity',label:t('severity'),value:t(record.severity),tone:severityTone},
+    {id:'severity',label:t('severity'),value:t(record.severity as string),tone:severityTone},
     age(en?'Since it was found':'Από τον εντοπισμό',record.date,{en,language,open}),
     followUps(en?'Corrective actions':'Διορθωτικές ενέργειες',linked,{en,open,noneText:en?'None yet':'Καμία ακόμη'}),
     {id:'source',label:en?'Source':'Πηγή',value:vocabularyLabel(FINDING_SOURCES,record.source||'manual',language),note:visibleSourceId(record.sourceId)||undefined},
-  ].filter(Boolean)
+  ].filter(Boolean) as RecordMetric[]
   if(recordType==='capas'){
     const steps=subActionProgress(record.subActions||[])
     const causes=analysisProgress(record.rootCauseAnalysis)
@@ -85,7 +86,7 @@ export function glanceItems(recordType: string,record: AnyRecord,{language,t,lin
     const until=daysUntil(record.plannedDate)
     return [
       {id:'compliance',label:en?'Compliance':'Συμμόρφωση',value:score.rate==null?'—':`${score.rate}%`,meter:score.rate,tone:score.rate==null?undefined:meterTone(score.rate),primary:true,note:total?`${score.yes} ${en?'yes':'ναι'} · ${score.no} ${en?'no':'όχι'}${score.unanswered?` · ${score.unanswered} ${en?'unanswered':'αναπάντητα'}`:''}`:(en?'No checklist yet':'Χωρίς λίστα ελέγχου')},
-      {id:'findings',label:en?'Findings':'Ευρήματα',value:linked.length,tone:linked.some((row: AnyRecord)=>!isClosed(row))?'warning':undefined,note:linked.length?`${linked.filter((row: AnyRecord)=>!isClosed(row)).length} ${en?'open':'ανοιχτά'}`:(score.no?(en?'Create them from the checklist':'Δημιουργούνται από τη λίστα ελέγχου'):undefined)},
+      {id:'findings',label:en?'Findings':'Ευρήματα',value:linked.length,tone:linked.some((row: QualityRecord)=>!isClosed(row))?'warning':undefined,note:linked.length?`${linked.filter((row: QualityRecord)=>!isClosed(row)).length} ${en?'open':'ανοιχτά'}`:(score.no?(en?'Create them from the checklist':'Δημιουργούνται από τη λίστα ελέγχου'):undefined)},
       {id:'date',label:record.completedDate?(en?'Completed':'Ολοκληρώθηκε'):(en?'Planned':'Προγραμματισμένη'),value:formatDay(date,language)||'—',note:!record.completedDate&&until!=null?(until<0?(en?`${-until} days ago`:`πριν από ${-until} ημέρες`):until===0?(en?'Today':'Σήμερα'):(en?`in ${until} days`:`σε ${until} ημέρες`)):undefined,tone:!record.completedDate&&open&&until!=null&&until<0?'danger':undefined},
     ]
   }
@@ -93,7 +94,7 @@ export function glanceItems(recordType: string,record: AnyRecord,{language,t,lin
 }
 
 // An incident «at a glance» as one line under the title (the figures of the other records are still boxes).
-export function incidentSummary(record: AnyRecord,{language,t}: AnyRecord){
+export function incidentSummary(record: QualityRecord,{language,t}: {language: string, t: (key: string) => string}){
   const en=language==='en'
   const kind=reportKindOf(record)
   const open=!isClosed(record)
@@ -102,7 +103,7 @@ export function incidentSummary(record: AnyRecord,{language,t}: AnyRecord){
     const harmful=record.incidentClass==='harmful'
     items.push({text:harmful?`${vocabularyLabel(IMPACTS,harmLevel(record.impact),language)} (WHO)`:vocabularyLabel(INCIDENT_CLASSES,record.incidentClass||'nearMiss',language),tone:harmful?'danger':undefined})
   }
-  items.push({text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined})
+  items.push({text:`${t('severity')}: ${t(record.severity as string)}`,tone:['high','critical'].includes(record.severity as string)?'danger':undefined})
   if(record.sentinel)items.push({text:'Sentinel',tone:'danger'})
   const since=-Number(daysUntil(record.date))
   if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτό ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστό')})
@@ -116,10 +117,10 @@ export function incidentSummary(record: AnyRecord,{language,t}: AnyRecord){
 }
 
 // A finding «at a glance» as one line under the title.
-export function findingSummary(record: AnyRecord,{language,t,linked=[]}: AnyRecord){
+export function findingSummary(record: QualityRecord,{language,t,linked=[]}: {language: string, t: (key: string) => string, linked?: QualityRecord[]}){
   const en=language==='en'
   const open=!isClosed(record)
-  const items: {text: string, tone?: string}[]=[{text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined}]
+  const items: {text: string, tone?: string}[]=[{text:`${t('severity')}: ${t(record.severity as string)}`,tone:['high','critical'].includes(record.severity as string)?'danger':undefined}]
   const since=-Number(daysUntil(record.date))
   if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτή ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστή')})
   const done=linked.filter(isClosed).length
@@ -129,7 +130,7 @@ export function findingSummary(record: AnyRecord,{language,t,linked=[]}: AnyReco
 }
 
 // A corrective action «at a glance» as one line under the title.
-export function capaSummary(record: AnyRecord,{language}: AnyRecord){
+export function capaSummary(record: QualityRecord,{language}: {language: string}){
   const en=language==='en'
   const open=!isClosed(record)
   const steps=subActionProgress(record.subActions||[])
@@ -144,14 +145,14 @@ export function capaSummary(record: AnyRecord,{language}: AnyRecord){
 }
 
 // An audit «at a glance» as one line under the title.
-export function auditSummary(record: AnyRecord,{language,linked=[]}: AnyRecord){
+export function auditSummary(record: QualityRecord,{language,linked=[]}: {language: string, linked?: QualityRecord[]}){
   const en=language==='en'
   const score=auditCompliance(record)
   const total=(record.checklist||[]).length
   const items=[]
   if(score.rate!=null)items.push({text:en?`compliance ${score.rate}% (${score.yes} yes · ${score.no} no)`:`συμμόρφωση ${score.rate}% (${score.yes} ναι · ${score.no} όχι)`,tone:score.rate<70?'danger':undefined})
   else items.push({text:total?(en?`${total} questions, none answered`:`${total} ερωτήσεις, καμία δεν απαντήθηκε`):(en?'no questionnaire answers yet':'χωρίς απαντήσεις ερωτηματολογίου')})
-  const open=linked.filter((row: AnyRecord)=>!isClosed(row)).length
+  const open=linked.filter((row: QualityRecord)=>!isClosed(row)).length
   items.push(linked.length?{text:en?`${linked.length} ${plural(linked.length,en,'εύρημα','ευρήματα','finding','findings')} (${open} open)`:`${linked.length} ${plural(linked.length,en,'εύρημα','ευρήματα','finding','findings')} (${open} ανοιχτά)`,tone:open?'danger':undefined}:{text:en?'no findings':'χωρίς ευρήματα'})
   if(record.completedDate)items.push({text:en?`completed ${formatDay(record.completedDate,language)}`:`ολοκληρώθηκε ${formatDay(record.completedDate,language)}`})
   else{
@@ -162,7 +163,7 @@ export function auditSummary(record: AnyRecord,{language,linked=[]}: AnyRecord){
   return items
 }
 
-export function QualityGlance({recordType,record,language,t,linked}: { recordType: string, record: AnyRecord, language: string, t: Translate, linked: AnyRecord[] }){
+export function QualityGlance({recordType,record,language,t,linked}: { recordType: string, record: QualityRecord, language: string, t: (key: string) => string, linked: QualityRecord[] }){
   if(recordType==='capas')return <p className="quality-summary-line quality-record-line">{capaSummary(record,{language}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   if(recordType==='audits')return <p className="quality-summary-line quality-record-line">{auditSummary(record,{language,linked}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   if(recordType==='findings')return <p className="quality-summary-line quality-record-line">{findingSummary(record,{language,t,linked}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>

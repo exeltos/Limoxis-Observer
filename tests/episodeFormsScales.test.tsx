@@ -9,6 +9,7 @@ import { higherIsWorse, scaleTrend } from '../src/features/surveillance/forms/sc
 import { scalesSection } from '../src/features/surveillance/forms/sections/scalesSection'
 import { AuthProvider } from '../src/core/auth/AuthContext'
 import { FeedbackProvider } from '../src/core/feedback/FeedbackContext'
+import type { EpisodeFormsCtx } from '../src/features/surveillance/forms/formTypes'
 
 const t = key => translate(key, 'el')
 const fmtDate = value => String(value).slice(0, 10).split('-').reverse().join('/')
@@ -28,7 +29,7 @@ describe('scale trend in words', () => {
 })
 
 describe('scales section', () => {
-  const ctx = {
+  const ctx: EpisodeFormsCtx = {
     organizationId: null,
     isDemo: true,
     language: 'el',
@@ -42,7 +43,7 @@ describe('scales section', () => {
     fmtDate,
     fmtDateTime: value => `${fmtDate(value)} 08:30`,
     startProtocol: () => {},
-  }
+  } as never
   it('lists the latest score per scale with one «Νέα βαθμολόγηση» action each and keeps the full history behind a link', async () => {
     const Section = scalesSection.Component as ComponentType<{ ctx: object, section: object }>
     render(
