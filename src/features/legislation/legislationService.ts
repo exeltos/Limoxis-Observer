@@ -2,9 +2,9 @@ import { cloudClient } from '../../core/supabase/cloudContext'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
-import { nextLegislationCode, unpublishedChanges, type LegislationVersion } from './legislationModel'
+import { nextLegislationCode, unpublishedChanges, type LegislationCandidate, type LegislationRow, type LegislationSource, type LegislationSourceDraft, type LegislationText, type LegislationVersion, type TextSnapshot } from './legislationModel'
 import { demoLegislation, type LegislationState } from './legislationDemoData'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Json, Tables } from '../../core/supabase/database.types'
 
 // Legislation (20261112100000_legislation.sql). Hospitals read the published
 // versions and keep their own register; the Platform Owner keeps the working
@@ -30,9 +30,9 @@ function local(): LegislationState {
 function saveLocal(state: LegislationState) { for (const [field, key] of Object.entries(KEYS)) saveSnapshot(key, state[field as keyof LegislationState]) }
 
 // One page of a query: .range() and the awaited result.
-interface PagedQuery { range: (from: number, to: number) => PromiseLike<{ data: AnyRecord[] | null, error: unknown }> }
-async function selectAll(build: () => PagedQuery): Promise<AnyRecord[]> {
-  const all: AnyRecord[] = []
+interface PagedQuery<Row> { range: (from: number, to: number) => PromiseLike<{ data: Row[] | null, error: unknown }> }
+async function selectAll<Row>(build: () => PagedQuery<Row>): Promise<Row[]> {
+  const all: Row[] = []
   for (let from = 0; ; from += 1000) {
     const page = must(await build().range(from, from + 999)) || []
     all.push(...page)
@@ -42,17 +42,21 @@ async function selectAll(build: () => PagedQuery): Promise<AnyRecord[]> {
 
 // --- Shapes --------------------------------------------------------------------------------
 
-const toVersion = (row: AnyRecord): LegislationVersion => ({ textId: row.text_id, version: row.version, snapshot: row.snapshot || {}, changeNote: row.change_note || '', changedRequirements: row.changed_requirements || [], publishedAt: row.published_at })
-const toRow = (row: AnyRecord): AnyRecord => ({ id: row.id, textId: row.text_id, applicable: row.applicable, acceptedVersion: row.accepted_version || 0, responsible: row.responsible || '', compliance: row.compliance || {}, nextReviewOn: row.next_review_on || '', notes: row.notes || '', reviewedAt: row.reviewed_at || '' })
-const toText = (row: AnyRecord): AnyRecord => ({ id: row.id, code: row.code, title: row.title, titleEn: row.title_en || '', kind: row.kind, reference: row.reference || '', issuer: row.issuer || '', issuedOn: row.issued_on || '', topics: row.topics || [], summary: row.summary || '', url: row.url || '', status: row.status, requirements: Array.isArray(row.requirements) ? row.requirements : [], version: row.version || 0, publishedAt: row.published_at || '', updatedAt: row.updated_at })
-const textRow = (item: AnyRecord) => ({ title: item.title.trim(), title_en: text(item.titleEn), kind: item.kind, reference: text(item.reference), issuer: text(item.issuer), issued_on: item.issuedOn || null, topics: item.topics || [], summary: text(item.summary), url: text(item.url), status: item.status || 'in_force', requirements: (item.requirements || []).map((requirement: AnyRecord) => ({ id: requirement.id, text: String(requirement.text || '').trim(), ...(requirement.guidance ? { guidance: requirement.guidance } : {}) })) })
-const toCandidate = (row: AnyRecord): AnyRecord => ({ id: row.id, sourceId: row.source_id || '', sourceName: row.legislation_sources?.name || '', title: row.title, url: row.url || '', excerpt: row.excerpt || '', publishedHint: row.published_hint || '', matchedKeywords: row.matched_keywords || [], status: row.status, linkedTextId: row.linked_text_id || '', note: row.note || '', detectedAt: row.detected_at, reviewedAt: row.reviewed_at || '' })
-const toSource = (row: AnyRecord): AnyRecord => ({ id: row.id, name: row.name, url: row.url, kind: row.kind, keywords: row.keywords || [], active: row.active, lastCheckedAt: row.last_checked_at || '', lastStatus: row.last_status, lastError: row.last_error || '', consecutiveFailures: row.consecutive_failures || 0 })
+// The rows as read; snapshot, requirements and compliance are json columns of the shapes above.
+type VersionRow = Pick<Tables<'legislation_text_versions'>, 'text_id' | 'version' | 'snapshot' | 'change_note' | 'changed_requirements' | 'published_at'>
+type CandidateRow = Tables<'legislation_candidates'> & { legislation_sources?: { name: string } | null }
+type SourceRow = Pick<Tables<'legislation_sources'>, 'id' | 'name' | 'url' | 'kind' | 'keywords' | 'active' | 'last_checked_at' | 'last_status' | 'last_error' | 'consecutive_failures'>
+const toVersion = (row: VersionRow): LegislationVersion => ({ textId: row.text_id, version: row.version, snapshot: (row.snapshot || {}) as TextSnapshot, changeNote: row.change_note || '', changedRequirements: row.changed_requirements || [], publishedAt: row.published_at })
+const toRow = (row: Tables<'organization_legislation'>): LegislationRow => ({ id: row.id, textId: row.text_id, applicable: row.applicable, acceptedVersion: row.accepted_version || 0, responsible: row.responsible || '', compliance: (row.compliance || {}) as LegislationRow['compliance'], nextReviewOn: row.next_review_on || '', notes: row.notes || '', reviewedAt: row.reviewed_at || '' })
+const toText = (row: Tables<'legislation_texts'>): LegislationText => ({ id: row.id, code: row.code, title: row.title, titleEn: row.title_en || '', kind: row.kind, reference: row.reference || '', issuer: row.issuer || '', issuedOn: row.issued_on || '', topics: row.topics || [], summary: row.summary || '', url: row.url || '', status: row.status, requirements: (Array.isArray(row.requirements) ? row.requirements : []) as LegislationText['requirements'], version: row.version || 0, publishedAt: row.published_at || '', updatedAt: row.updated_at })
+const textRow = (item: LegislationText) => ({ title: item.title.trim(), title_en: text(item.titleEn), kind: item.kind, reference: text(item.reference), issuer: text(item.issuer), issued_on: item.issuedOn || null, topics: item.topics || [], summary: text(item.summary), url: text(item.url), status: item.status || 'in_force', requirements: (item.requirements || []).map(requirement => ({ id: requirement.id, text: String(requirement.text || '').trim(), ...(requirement.guidance ? { guidance: requirement.guidance } : {}) })) })
+const toCandidate = (row: CandidateRow): LegislationCandidate => ({ id: row.id, sourceId: row.source_id || '', sourceName: row.legislation_sources?.name || '', title: row.title, url: row.url || '', excerpt: row.excerpt || '', publishedHint: row.published_hint || '', matchedKeywords: row.matched_keywords || [], status: row.status, linkedTextId: row.linked_text_id || '', note: row.note || '', detectedAt: row.detected_at, reviewedAt: row.reviewed_at || '' })
+const toSource = (row: SourceRow): LegislationSource => ({ id: row.id, name: row.name, url: row.url, kind: row.kind, keywords: row.keywords || [], active: row.active, lastCheckedAt: row.last_checked_at || '', lastStatus: row.last_status, lastError: row.last_error || '', consecutiveFailures: row.consecutive_failures || 0 })
 
 // --- The hospital's register -------------------------------------------------------------------
 
 // Every published version (the register works out each text's latest and what changed) and the hospital's rows.
-export async function loadRegister(organizationId: string | null | undefined): Promise<{ versions: LegislationVersion[], rows: AnyRecord[] }> {
+export async function loadRegister(organizationId: string | null | undefined): Promise<{ versions: LegislationVersion[], rows: LegislationRow[] }> {
   if (isLocal()) { const state = local(); return { versions: state.versions, rows: state.rows } }
   const [versions, rows] = await Promise.all([
     selectAll(() => cloudClient().from('legislation_text_versions').select('text_id,version,snapshot,change_note,changed_requirements,published_at').order('text_id').order('version')),
@@ -61,7 +65,7 @@ export async function loadRegister(organizationId: string | null | undefined): P
   return { versions: versions.map(toVersion), rows: rows.map(toRow) }
 }
 
-export async function saveRegisterRow(organizationId: string, row: AnyRecord, { reviewed = false }: { reviewed?: boolean } = {}): Promise<AnyRecord> {
+export async function saveRegisterRow(organizationId: string, row: LegislationRow, { reviewed = false }: { reviewed?: boolean } = {}): Promise<LegislationRow> {
   const now = new Date().toISOString()
   if (isLocal()) {
     const state = local()
@@ -70,13 +74,13 @@ export async function saveRegisterRow(organizationId: string, row: AnyRecord, { 
     saveLocal(state)
     return saved
   }
-  const payload = { organization_id: organizationId, text_id: row.textId, applicable: row.applicable !== false, accepted_version: row.acceptedVersion || 0, responsible: text(row.responsible), compliance: row.compliance || {}, next_review_on: row.nextReviewOn || null, notes: text(row.notes), ...(reviewed ? { reviewed_at: now, reviewed_by: (await cloudClient().auth.getUser()).data?.user?.id || null } : {}) }
+  const payload = { organization_id: organizationId, text_id: row.textId, applicable: row.applicable !== false, accepted_version: row.acceptedVersion || 0, responsible: text(row.responsible), compliance: (row.compliance || {}) as Json, next_review_on: row.nextReviewOn || null, notes: text(row.notes), ...(reviewed ? { reviewed_at: now, reviewed_by: (await cloudClient().auth.getUser()).data?.user?.id || null } : {}) }
   return toRow(must(await cloudClient().from('organization_legislation').upsert(payload, { onConflict: 'organization_id,text_id' }).select('*').single()))
 }
 
 // --- The Platform Owner's library ----------------------------------------------------------------
 
-export async function loadLibrary(): Promise<{ texts: AnyRecord[], versions: LegislationVersion[] }> {
+export async function loadLibrary(): Promise<{ texts: LegislationText[], versions: LegislationVersion[] }> {
   if (isLocal()) { const state = local(); return { texts: state.library, versions: state.versions } }
   const [texts, versions] = await Promise.all([
     selectAll(() => cloudClient().from('legislation_texts').select('*').order('code')),
@@ -85,7 +89,7 @@ export async function loadLibrary(): Promise<{ texts: AnyRecord[], versions: Leg
   return { texts: texts.map(toText), versions: versions.map(toVersion) }
 }
 
-export async function saveText(item: AnyRecord): Promise<AnyRecord> {
+export async function saveText(item: LegislationText): Promise<LegislationText> {
   if (isLocal()) {
     const state = local()
     const saved = { ...item, id: item.id || localId('leg'), code: item.code || nextLegislationCode(state.library.map(entry => entry.code)), version: item.version || 0 }
@@ -117,7 +121,7 @@ export async function publishText(id: string, changeNote: string | null | undefi
     const history = state.versions.filter(entry => entry.textId === id).sort((a, b) => a.version - b.version)
     const changes = unpublishedChanges(item, history.at(-1)?.snapshot)
     const version = (item.version || 0) + 1
-    const snapshot = Object.fromEntries(Object.entries(item).filter(([key]) => !['id', 'version', 'publishedAt'].includes(key)))
+    const snapshot = Object.fromEntries(Object.entries(item).filter(([key]) => !['id', 'version', 'publishedAt'].includes(key))) as TextSnapshot
     state.versions = [...state.versions, { textId: id, version, snapshot: structuredClone(snapshot), changeNote: String(changeNote || '').trim(), changedRequirements: changes.requirements, publishedAt: new Date().toISOString() }]
     state.library = state.library.map(entry => (entry.id === id ? { ...entry, version, publishedAt: new Date().toISOString() } : entry))
     saveLocal(state)
@@ -126,12 +130,12 @@ export async function publishText(id: string, changeNote: string | null | undefi
   return must(await cloudClient().rpc('legislation_publish', { p_text_id: id, p_change_note: (String(changeNote || '').trim() || null) as string }))
 }
 
-export async function loadCandidates(): Promise<AnyRecord[]> {
+export async function loadCandidates(): Promise<LegislationCandidate[]> {
   if (isLocal()) return local().candidates
   return (must(await cloudClient().from('legislation_candidates').select('*,legislation_sources(name)').order('detected_at', { ascending: false }).limit(500)) || []).map(toCandidate)
 }
 
-export async function setCandidate(id: string, patch: AnyRecord) {
+export async function setCandidate(id: string, patch: Pick<LegislationCandidate, 'status' | 'linkedTextId' | 'note'>) {
   const fields = { status: patch.status, linkedTextId: patch.linkedTextId || '', note: patch.note || '' }
   if (isLocal()) {
     const state = local()
@@ -142,13 +146,14 @@ export async function setCandidate(id: string, patch: AnyRecord) {
   must(await cloudClient().from('legislation_candidates').update({ status: fields.status, linked_text_id: isUuid(fields.linkedTextId) ? fields.linkedTextId : null, note: text(fields.note), reviewed_at: new Date().toISOString(), reviewed_by: (await cloudClient().auth.getUser()).data?.user?.id || null }).eq('id', id))
 }
 
-export async function loadSources(): Promise<AnyRecord[]> {
+export async function loadSources(): Promise<LegislationSource[]> {
   if (isLocal()) return local().sources
   return (must(await cloudClient().from('legislation_sources').select('id,name,url,kind,keywords,active,last_checked_at,last_status,last_error,consecutive_failures').order('created_at')) || []).map(toSource)
 }
 
-export async function saveSource(source: AnyRecord): Promise<AnyRecord> {
-  const fields = { name: source.name.trim(), url: source.url.trim(), kind: source.kind, keywords: (source.keywords || []).map((item: unknown) => String(item).trim()).filter(Boolean), active: source.active !== false }
+export async function saveSource(source: LegislationSourceDraft): Promise<LegislationSource> {
+  // The form checks the name and the address before it saves.
+  const fields = { name: source.name!.trim(), url: source.url!.trim(), kind: source.kind as string, keywords: (source.keywords || []).map(item => String(item).trim()).filter(Boolean), active: source.active !== false }
   if (isLocal()) {
     const state = local()
     const saved = { ...source, ...fields, id: source.id || localId('ls'), lastCheckedAt: source.lastCheckedAt || '', consecutiveFailures: source.consecutiveFailures || 0 }
@@ -156,7 +161,7 @@ export async function saveSource(source: AnyRecord): Promise<AnyRecord> {
     saveLocal(state)
     return saved
   }
-  if (isUuid(source.id)) return toSource(must(await cloudClient().from('legislation_sources').update(fields).eq('id', source.id).select('*').single()))
+  if (isUuid(source.id)) return toSource(must(await cloudClient().from('legislation_sources').update(fields).eq('id', source.id as string).select('*').single()))
   return toSource(must(await cloudClient().from('legislation_sources').insert(fields).select('*').single()))
 }
 

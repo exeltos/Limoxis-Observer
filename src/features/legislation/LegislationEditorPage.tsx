@@ -22,7 +22,7 @@ import { loadLibrary, publishText, removeText, saveText, setCandidate } from './
 import { KINDS, TEXT_STATUSES, TOPICS, hasUnpublished, newText, requirementId, textFromCandidate, textProblems, textStatusLabel, textStatusTone, unpublishedChanges } from './legislationModel'
 import './legislation.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LegislationRequirement, LegislationText } from './legislationModel'
 import type { LegislationVersion } from './legislationModel'
 
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -41,9 +41,9 @@ export function LegislationEditorPage() {
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
   const candidate = location.state?.candidate || null
-  const [library, setLibrary] = useState<{ texts: AnyRecord[], versions: LegislationVersion[] } | null>(null)
+  const [library, setLibrary] = useState<{ texts: LegislationText[], versions: LegislationVersion[] } | null>(null)
   // null while loading, false when the text does not exist.
-  const [draft, setDraft] = useState<AnyRecord | null | false>(null)
+  const [draft, setDraft] = useState<LegislationText | null | false>(null)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState<{ note: string } | null>(null)
 
@@ -64,20 +64,20 @@ export function LegislationEditorPage() {
   if (!library || draft === null) return <Page fill><TableSkeleton/></Page>
   if (draft === false) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Text not found' : 'Το κείμενο δεν βρέθηκε'}</strong></div></Page>
 
-  const set = (next: AnyRecord) => setDraft(current => ({ ...(current as AnyRecord), ...next }))
-  const setRequirement = (index: number, next: AnyRecord) => setDraft(current => ({ ...(current as AnyRecord), requirements: (current as AnyRecord).requirements.map((item: AnyRecord, at: number) => (at === index ? { ...item, ...next } : item)) }))
-  const move = (index: number, step: number) => setDraft(current => { const list = [...(current as AnyRecord).requirements]; const [item] = list.splice(index, 1); list.splice(index + step, 0, item); return { ...(current as AnyRecord), requirements: list } })
+  const set = (next: Partial<LegislationText>) => setDraft(current => ({ ...(current as LegislationText), ...next }))
+  const setRequirement = (index: number, next: Partial<LegislationRequirement>) => setDraft(current => ({ ...(current as LegislationText), requirements: (current as LegislationText).requirements.map((item: LegislationRequirement, at: number) => (at === index ? { ...item, ...next } : item)) }))
+  const move = (index: number, step: number) => setDraft(current => { const list = [...(current as LegislationText).requirements]; const [item] = list.splice(index, 1); list.splice(index + step, 0, item); return { ...(current as LegislationText), requirements: list } })
   const saved = library.texts.find(item => item.id === draft.id)
   const changes = unpublishedChanges(draft, lastSnapshot)
   const savedChanges = saved ? unpublishedChanges(saved, lastSnapshot) : null
   const dirty = !saved || JSON.stringify({ ...saved, updatedAt: null }) !== JSON.stringify({ ...draft, updatedAt: null })
 
-  async function save({ quiet = false }: { quiet?: boolean } = {}): Promise<AnyRecord | null> {
+  async function save({ quiet = false }: { quiet?: boolean } = {}): Promise<LegislationText | null> {
     if (!draft) return null // (loaded: the page returned above otherwise)
     if (String(draft.title || '').trim().length < 3) { notify(en ? 'Give the text a title.' : 'Δώστε τίτλο στο κείμενο.', 'error'); return null }
     setSaving(true)
     try {
-      const next = await saveText({ ...draft, requirements: draft.requirements.filter((item: AnyRecord) => String(item.text || '').trim()) })
+      const next = await saveText({ ...draft, requirements: draft.requirements.filter((item: LegislationRequirement) => String(item.text || '').trim()) })
       if (candidate) await setCandidate(candidate.id, { status: 'linked', linkedTextId: next.id }).catch(() => {})
       const data = await loadLibrary()
       setLibrary(data)
@@ -104,7 +104,7 @@ export function LegislationEditorPage() {
       notify(en ? `Version ${version} published: the hospitals are e-mailed.` : `Η έκδοση ${version} δημοσιεύτηκε: στάλθηκε email στα νοσοκομεία.`, 'success')
       const data = await loadLibrary()
       setLibrary(data)
-      setDraft(structuredClone(data.texts.find(item => item.id === stored.id)) as AnyRecord)
+      setDraft(structuredClone(data.texts.find(item => item.id === stored.id)) as LegislationText)
     } catch (error) { console.error(error); notify(en ? 'Could not publish.' : 'Δεν ήταν δυνατή η δημοσίευση.', 'error') } finally { setSaving(false) }
   }
   async function remove() {
@@ -142,18 +142,18 @@ export function LegislationEditorPage() {
           <Field label={en ? 'Summary (what it asks of a hospital)' : 'Περίληψη (τι ζητά από ένα νοσοκομείο)'}><textarea rows={3} value={draft.summary} onChange={e => set({ summary: e.target.value })} /></Field>
         </FormCard>
         <FormCard wide title={en ? `Requirements ${draft.requirements.length}` : `Απαιτήσεις ${draft.requirements.length}`} hint={en ? 'Each one is a point a hospital assesses. Changing its wording puts it back to review in every hospital.' : 'Κάθε απαίτηση είναι ένα σημείο που αξιολογεί το νοσοκομείο. Αν αλλάξει η διατύπωσή της, ξαναμπαίνει σε επανεξέταση σε κάθε νοσοκομείο.'}>
-          <ol className="leg-requirements leg-requirements-edit">{draft.requirements.map((item: AnyRecord, index: number) => <li key={item.id} className={changes.requirements.includes(item.id) && draft.version ? 'is-changed' : ''}>
+          <ol className="leg-requirements leg-requirements-edit">{draft.requirements.map((item: LegislationRequirement, index: number) => <li key={item.id} className={changes.requirements.includes(item.id) && draft.version ? 'is-changed' : ''}>
             <div className="leg-requirement-row">
               <textarea rows={2} value={item.text} onChange={e => setRequirement(index, { text: e.target.value })} aria-label={`${en ? 'Requirement' : 'Απαίτηση'} ${index + 1}`} placeholder={en ? 'What the hospital must have or do' : 'Τι πρέπει να έχει ή να κάνει το νοσοκομείο'} />
               <div className="row-actions">
                 <IconButton size="sm" label={en ? 'Up' : 'Πάνω'} disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp size={14} /></IconButton>
                 <IconButton size="sm" label={en ? 'Down' : 'Κάτω'} disabled={index === draft.requirements.length - 1} onClick={() => move(index, 1)}><ArrowDown size={14} /></IconButton>
-                <IconButton size="sm" tone="danger" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => setDraft(current => ({ ...(current as AnyRecord), requirements: (current as AnyRecord).requirements.filter((_: unknown, at: number) => at !== index) }))}><Trash2 size={14} /></IconButton>
+                <IconButton size="sm" tone="danger" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => setDraft(current => ({ ...(current as LegislationText), requirements: (current as LegislationText).requirements.filter((_: unknown, at: number) => at !== index) }))}><Trash2 size={14} /></IconButton>
               </div>
             </div>
             <input className="leg-guidance-input" value={item.guidance || ''} onChange={e => setRequirement(index, { guidance: e.target.value })} placeholder={en ? 'Guidance for the hospital (optional): article, what counts as evidence' : 'Οδηγία για το νοσοκομείο (προαιρετικό): άρθρο, τι αποτελεί τεκμήριο'} />
           </li>)}</ol>
-          <Button variant="secondary" onClick={() => setDraft(current => ({ ...(current as AnyRecord), requirements: [...(current as AnyRecord).requirements, { id: requirementId(), text: '' }] }))}><Plus size={15} />{en ? 'Requirement' : 'Απαίτηση'}</Button>
+          <Button variant="secondary" onClick={() => setDraft(current => ({ ...(current as LegislationText), requirements: [...(current as LegislationText).requirements, { id: requirementId(), text: '' }] }))}><Plus size={15} />{en ? 'Requirement' : 'Απαίτηση'}</Button>
         </FormCard>
       </div>
     </RecordTabPanel>
