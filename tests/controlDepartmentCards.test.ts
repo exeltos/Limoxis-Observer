@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { controlRates, departmentCards } from '../src/features/controls/controlDepartmentCards'
+import type { ControlRow } from '../src/features/controls/controlTypes'
 
 const now = new Date('2026-10-26T10:00:00Z')
 const item = (id, assignments) => ({ id, title: id, frequency: { kind: 'daily', timesPerDay: 1 }, assignments })
 
 describe('department cards on the Controls page', () => {
-  const rows = [
+  const rows: ControlRow[] = [
     { item: item('A', { ΜΕΘ: { nextDueAt: '2026-10-25T08:00:00Z', lastCompletedAt: '2026-10-24T08:00:00Z' }, ΤΕΠ: { nextDueAt: '2026-11-20T08:00:00Z', lastCompletedAt: '2026-10-26T07:00:00Z' } }), departments: ['ΜΕΘ', 'ΤΕΠ'] },
     { item: item('B', { ΜΕΘ: { nextDueAt: '2026-11-20T08:00:00Z', summary: { lastPerformedAt: '2026-10-26T09:00:00Z' } } }), departments: ['ΜΕΘ'] },
-  ]
+  ] as never
   const lines = [
     { item: rows[0].item, department: 'ΜΕΘ', expected: 10, performed: 8 },
     { item: rows[0].item, department: 'ΤΕΠ', expected: 10, performed: 12 },

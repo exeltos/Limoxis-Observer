@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { committeeMinutesReport } from '../src/features/committees/CommitteeMinutesDocument'
 import { buildReportHtml } from '../src/core/export/reportDocument'
+import type { ReportBranding } from '../src/core/organization/branding'
 
 describe('Committee minutes as a document (PDF export)', () => {
   it('lists the meeting, attendance, topics with decisions, notes and approvals', () => {
@@ -12,7 +13,7 @@ describe('Committee minutes as a document (PDF export)', () => {
       approvals: [{ id: 'a1', approverName: 'Σπύρος Βασιλείου', status: 'approved', decidedAt: '2026-08-14T10:00:00Z' }],
     }
     const doc = committeeMinutesReport({ committeeName: 'Επιτροπή Νοσοκομειακών Λοιμώξεων', minutes, en: false })
-    const text = buildReportHtml(doc, { branding: { name: 'Demo Hospital' } })
+    const text = buildReportHtml(doc, { branding: { name: 'Demo Hospital' } as ReportBranding })
     for (const part of ['Επιτροπή Νοσοκομειακών Λοιμώξεων', 'Μηνιαία συνεδρίαση ΕΝΛ', '8/2026', 'Αίθουσα Διοίκησης', 'Κώστας Σταθόπουλος', 'Παρών/ούσα', 'Δικαιολογημένη απουσία', 'Δείκτες ΛΣΦΥ', 'Συνεχίζεται η επιτήρηση στη ΜΕΘ.', 'Επόμενη συνεδρίαση τον Σεπτέμβριο.', 'Σπύρος Βασιλείου', 'Εγκρίθηκε'])
       expect(text).toContain(part)
     // An empty topic is left out.

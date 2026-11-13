@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ADHERENCE_PERIODS, assignmentAdherence, expectedOccurrences, missedDays, periodAdherence, periodRange, periodShort, programmeAdherence, slotLength, todayProgress } from '../src/features/controls/controlAdherence'
+import type { ControlRow } from '../src/features/controls/controlTypes'
 
 const day = 86400000
 const now = new Date('2026-10-08T12:00:00Z')
@@ -50,7 +51,7 @@ describe('control programme adherence', () => {
   })
 
   it('totals the programme and lists the weakest assignments first', () => {
-    const item = (id, frequency, assignments) => ({ item: { id, title: id, frequency, assignments }, departments: Object.keys(assignments) })
+    const item = (id, frequency, assignments): ControlRow => ({ item: { id, title: id, frequency, assignments }, departments: Object.keys(assignments) }) as never
     const rows = [
       item('A', { kind: 'weekly', interval: 1 }, { ICU: { history: [{ at: ago(1) }, { at: ago(8) }, { at: ago(15) }, { at: ago(22) }] } }),
       item('B', { kind: 'weekly', interval: 1 }, { ED: { history: [{ at: ago(3) }] } }),
@@ -63,10 +64,10 @@ describe('control programme adherence', () => {
   it('offers fixed reporting periods', () => {
     const range = periodRange('year', now)
     expect(range.from.toISOString()).toBe('2025-12-31T22:00:00.000Z') // 1/1/2026 00:00 Athens
-    expect(Math.round((now - periodRange('90d', now).from) / day)).toBe(90)
+    expect(Math.round(((now as unknown as number) - (periodRange('90d', now).from as unknown as number)) / day)).toBe(90)
   })
   it('uses the counts from the database instead of the loaded history', () => {
-    const rows = [{ item: { id: 'A', title: 'A', frequency: { kind: 'weekly', interval: 1 }, assignments: { ICU: { dbId: 'asg-1', history: [] } } }, departments: ['ICU'] }]
+    const rows: ControlRow[] = [{ item: { id: 'A', title: 'A', frequency: { kind: 'weekly', interval: 1 }, assignments: { ICU: { dbId: 'asg-1', history: [] } } }, departments: ['ICU'] }] as never
     const { totals } = programmeAdherence(rows, { from: ago(28), to: now, now }, new Map([['asg-1', { performed: 3, onTime: 2 }]]))
     expect(totals).toMatchObject({ expected: 4, performed: 3, onTime: 2, missed: 1, rate: 75 })
   })
@@ -87,7 +88,7 @@ describe('reports end on the last day with entries', () => {
 describe('the page period', () => {
   const now = new Date('2026-10-27T10:30:00Z') // Tuesday, 12:30 Athens
   const daily2 = { kind: 'daily', timesPerDay: 2, times: ['08:00', '16:00'] }
-  const row = (frequency, history, extra = {}) => ({ item: { id: 'A', title: 'A', frequency, assignments: { ΜΕΘ: { frequency, history, ...extra } } }, departments: ['ΜΕΘ'] })
+  const row = (frequency, history, extra = {}): ControlRow => ({ item: { id: 'A', title: 'A', frequency, assignments: { ΜΕΘ: { frequency, history, ...extra } } }, departments: ['ΜΕΘ'] }) as never
   it('starts «today» at midnight in Athens and offers a day, month, quarter, half-year or year, stepped back', () => {
     expect(ADHERENCE_PERIODS).toEqual(['day', 'month', 'quarter', 'half', 'year'])
     expect(periodRange('today', now).from.toISOString()).toBe('2026-10-26T22:00:00.000Z')

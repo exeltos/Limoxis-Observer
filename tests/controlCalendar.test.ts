@@ -75,7 +75,7 @@ describe('calendar year summary and grouping', () => {
   it('names a control shared by several departments once', async () => {
     const { groupCalendarLines } = await import('../src/features/controls/controlCalendar')
     const a = { id: 'a' }, b = { id: 'b' }
-    const groups = groupCalendarLines([{ item: a, department: 'ΜΕΘ' }, { item: a, department: 'Χειρουργική' }, { item: b, department: 'ΜΕΘ' }])
+    const groups = groupCalendarLines([{ item: a, department: 'ΜΕΘ' }, { item: a, department: 'Χειρουργική' }, { item: b, department: 'ΜΕΘ' }] as never)
     expect(groups.map((g) => [g.item.id, g.lines.length])).toEqual([['a', 2], ['b', 1]])
   })
   it('takes the month counts from the database when it has them', () => {

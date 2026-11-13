@@ -11,7 +11,7 @@ let access = null
 vi.mock('../src/core/supabase/client', () => ({ supabase: { rpc: vi.fn(), functions: { invoke: vi.fn(async () => ({})) } } }))
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => ({ notifyError: vi.fn(), notify: vi.fn() }), useOptionalFeedback: () => null }))
 vi.mock('../src/features/committees/committeeExternalApprovalService', async (original) => {
-  const real = await original()
+  const real = await original<typeof import('../src/features/committees/committeeExternalApprovalService')>()
   return {
     ...real,
     loadExternalMinutesAsync: vi.fn(async () => access),
