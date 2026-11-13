@@ -9,16 +9,17 @@ import { ChoiceChips } from '../../../design-system/ChoiceChips'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { REVIEW_DECISIONS, REVIEW_REASONS, reviewTone } from './therapyReview'
 import { dayTime, fill } from './ProtocolViews'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AntimicrobialTherapy, ClinicalCaseLike, EpisodeSample } from '../clinicalTypes'
+import type { ReviewWindow } from './protocolTypes'
 import type { Handler } from '../surveillanceTypes'
 
 const DECISION_ICONS: Record<string, LucideIcon> = { continue: CirclePlay, deescalate: TrendingDown, iv_to_oral: Pill, stop: CircleStop }
 const r = (key: string) => `sepsis.review.${key}`
 
 interface TherapyReviewCardProps {
-  record: AnyRecord
-  therapy: AnyRecord
-  window: AnyRecord
+  record: ClinicalCaseLike | null | undefined
+  therapy: AntimicrobialTherapy
+  window: ReviewWindow
   t: (key: string) => string
   actorName: string
   canReview: boolean
@@ -36,7 +37,7 @@ export function TherapyReviewCard({ record, therapy, window, t, actorName, canRe
   const latest = window.latest
   const formOpen = canReview && (editing || ['due', 'overdue'].includes(window.state))
   const stateLabel = fill(t(r(`state_${window.state}`)), { hours: window.reviewedHours ?? window.hours })
-  const organisms = (record?.samples || []).filter((sample: AnyRecord) => sample.organism)
+  const organisms = (record?.samples || []).filter((sample: EpisodeSample) => sample.organism)
   const toggle = (value: string) => setReasons(current => (current.includes(value) ? current.filter(item => item !== value) : [...current, value]))
   async function save() {
     if (!decision || !reasons.length) {
@@ -93,7 +94,7 @@ export function TherapyReviewCard({ record, therapy, window, t, actorName, canRe
         <div>
           <strong>{t(r('microbiology'))}:</strong>{' '}
           {organisms.length
-            ? organisms.map((sample: AnyRecord) => [sample.id, sample.organism, sample.resistance].filter(Boolean).join(' · ')).join(' — ')
+            ? organisms.map((sample: EpisodeSample) => [sample.id, sample.organism, sample.resistance].filter(Boolean).join(' · ')).join(' — ')
             : t(r('noMicrobiology'))}
         </div>
       </div>

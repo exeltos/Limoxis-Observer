@@ -1,4 +1,5 @@
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AntimicrobialTherapy } from '../clinicalTypes'
+import type { ReviewWindow, TherapyReview } from './protocolTypes'
 // The 48–72 h review of an antimicrobial therapy («antibiotic time-out»): the
 // card appears 48 hours after the start, stays until a decision is recorded and
 // is overdue after 72 hours (CDC Core Elements 2019; SSC 2021: daily assessment
@@ -10,7 +11,7 @@ export const REVIEW_DECISIONS = Object.freeze(['continue', 'deescalate', 'iv_to_
 export const REVIEW_REASONS = Object.freeze(['susceptibility', 'negative_cultures', 'clinical_improvement', 'no_infection', 'course_complete', 'adverse_event', 'oral_route_possible', 'no_improvement'])
 
 // A date without a time (the demo, older entries) counts from the start of that day.
-export function therapyStart(therapy: AnyRecord) {
+export function therapyStart(therapy: AntimicrobialTherapy | null | undefined) {
   const value = therapy?.startedAt
   if (!value) return null
   const text = String(value)
@@ -19,7 +20,7 @@ export function therapyStart(therapy: AnyRecord) {
 }
 
 const HOUR = 3600000
-export function reviewWindow(therapy: AnyRecord, reviews: AnyRecord[] = [], now = new Date()) {
+export function reviewWindow(therapy: AntimicrobialTherapy, reviews: TherapyReview[] = [], now = new Date()): ReviewWindow | null {
   const start = therapyStart(therapy)
   if (!start) return null
   const own = reviews.filter(row => String(row.therapyId) === String(therapy.id)).sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime())
@@ -41,4 +42,4 @@ export function reviewWindow(therapy: AnyRecord, reviews: AnyRecord[] = [], now 
 export const reviewTone = (state: string) => ({ reviewed: 'success', reviewedLate: 'warning', due: 'warning', overdue: 'danger' } as Record<string, string>)[state] || 'neutral'
 
 // Which therapies show a review card: in the window, overdue, or already reviewed.
-export const showsReviewCard = (window: AnyRecord | null | undefined) => Boolean(window && ['due', 'overdue', 'reviewed', 'reviewedLate'].includes(window.state))
+export const showsReviewCard = (window: Pick<ReviewWindow, 'state'> | null | undefined) => Boolean(window && ['due', 'overdue', 'reviewed', 'reviewedLate'].includes(window.state))
