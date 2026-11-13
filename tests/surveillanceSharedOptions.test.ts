@@ -3,11 +3,12 @@ import { EMPLOYEE_SCREENING_TYPES, PATIENT_SAMPLE_TYPES, SAMPLE_PRIORITIES, empl
 import { employeeScreeningCatalog } from '../src/features/surveillance/employeeSurveillanceData'
 import { ENVIRONMENTAL_SAMPLE_TYPES, ENVIRONMENTAL_TYPES, isEnvironmentalSample } from '../src/features/surveillance/environmentalSurveillanceData'
 import { demoLibrarySeed } from '../src/features/management/managementData'
+import type { SpecimenItem } from '../src/features/surveillance/surveillanceListTypes'
 import { readSource } from './helpers/readSource'
 import { readSplitSource } from './helpers/surveillanceSplitSource'
 
 const read = file => readSource(file)
-const item = ([el, en, meta = {}]: [string, string, { code?: string }?]) => ({ value: el, el, en, code: meta.code || null, meta })
+const item = ([el, en, meta = {}]: [string, string, { code?: string }?]): SpecimenItem => ({ value: el, el, en, code: meta.code || null, meta }) as never
 
 // Surveillance and patient screens read their option lists from one module and
 // the central libraries; the stored codes stay the ones indicators and analysis read.

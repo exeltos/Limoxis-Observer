@@ -17,7 +17,7 @@ describe('production surveillance journey stages',()=>{
       assessment:{date:'2026-09-12'},
       devices:[{id:'d1',name:'Central line'}],
       samples:[{organism:'K. pneumoniae'}],
-      haiClassification:{status:'confirmed'},
+      haiClassification:{status:'confirmed'} as never,
       isolation:{status:'active'},
       therapy:[{antimicrobial:'Meropenem'}],
       reassessments:[{date:'2026-09-13'}],

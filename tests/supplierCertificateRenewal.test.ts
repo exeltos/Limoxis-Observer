@@ -3,15 +3,16 @@ import { accessComplete, filterRenewals, isSuperseded, latestItemByCertificate, 
 import { demoRequests, demoSupplierAccess, isDemoAccessToken } from '../src/features/quality/resources/supplierRenewalService'
 import { demoResources } from '../src/features/quality/resources/resourceDemoData'
 import { ADD_ON_CAPABILITIES, CAPABILITIES, ROLES, can, isCustomRoleEligible } from '../src/core/permissions/roles'
+import type { CertificateRequest, RequestItem, Supplier, SupplierAccess } from '../src/features/quality/resources/resourceTypes'
 import { readSource } from './helpers/readSource'
 
 const TODAY = '2026-10-19'
 const NOW = new Date('2026-10-19T12:00:00Z')
 const read = path => readSource(path)
-const supplier = (id, extra = {}) => ({ id, code: id.toUpperCase(), name: `Supplier ${id}`, status: 'active', email: '', contacts: [], certifications: [], ...extra })
+const supplier = (id, extra = {}): Supplier => ({ id, code: id.toUpperCase(), name: `Supplier ${id}`, status: 'active', email: '', contacts: [], certifications: [], ...extra }) as never
 const cert = (id, expiresOn, extra = {}) => ({ id, type: 'CE', title: '', number: `N-${id}`, issuer: 'Body', expiresOn, ...extra })
-const item = (id, certificationId, status, extra = {}) => ({ id, certificationId, status, submittedAt: '', ...extra })
-const request = (id, supplierId, status, items, extra = {}) => ({ id, supplierId, status, requestedAt: '2026-10-01T10:00:00Z', recipientEmail: 'a@b.gr', tokenExpiresAt: '', firstSentAt: '', items, ...extra })
+const item = (id, certificationId, status, extra = {}): RequestItem => ({ id, certificationId, status, submittedAt: '', ...extra }) as never
+const request = (id, supplierId, status, items, extra = {}): CertificateRequest => ({ id, supplierId, status, requestedAt: '2026-10-01T10:00:00Z', recipientEmail: 'a@b.gr', tokenExpiresAt: '', firstSentAt: '', items, ...extra }) as never
 
 describe('Supplier certificate renewal: the queue by supplier', () => {
   const suppliers = [
@@ -97,14 +98,14 @@ describe('Supplier certificate renewal: the queue by supplier', () => {
 
   it('tells an open link from an expired one', () => {
     expect(linkState(null, NOW)).toBe('none')
-    expect(linkState({ status: 'sent', tokenExpiresAt: '2026-10-25T00:00:00Z' }, NOW)).toBe('open')
-    expect(linkState({ status: 'sent', tokenExpiresAt: '2026-10-18T00:00:00Z' }, NOW)).toBe('expired')
-    expect(linkState({ status: 'closed' }, NOW)).toBe('closed')
+    expect(linkState({ status: 'sent', tokenExpiresAt: '2026-10-25T00:00:00Z' } as never, NOW)).toBe('open')
+    expect(linkState({ status: 'sent', tokenExpiresAt: '2026-10-18T00:00:00Z' } as never, NOW)).toBe('expired')
+    expect(linkState({ status: 'closed' } as never, NOW)).toBe('closed')
   })
 
   it('reads a request row with its items, submissions and files', () => {
     const value = requestFromRow({ id: 'r', supplier_id: 's', recipient_email: 'a@b.gr', status: 'sent', requested_at: '2026-10-01', sent_at: '2026-10-02', send_count: 2, reminder_count: 1, send_history: [{ kind: 'send' }, { kind: 'reminder' }],
-      items: [{ id: 'i', request_id: 'r', certification_id: 'c', status: 'submitted', certificate_snapshot: { certificate_type: 'ISO 9001' }, certificate_type: 'ISO 9001', certificate_number: 'X-2', issuer: 'TÜV', issued_on: '2026-09-01', expires_on: '2029-09-01', note: 'n', attachment: { id: 'f', file_name: 'iso.pdf', storage_path: 'o/quality_supplier/s/1-iso.pdf', mime_type: 'application/pdf', size_bytes: 100 } }] })
+      items: [{ id: 'i', request_id: 'r', certification_id: 'c', status: 'submitted', certificate_snapshot: { certificate_type: 'ISO 9001' }, certificate_type: 'ISO 9001', certificate_number: 'X-2', issuer: 'TÜV', issued_on: '2026-09-01', expires_on: '2029-09-01', note: 'n', attachment: { id: 'f', file_name: 'iso.pdf', storage_path: 'o/quality_supplier/s/1-iso.pdf', mime_type: 'application/pdf', size_bytes: 100 } }] } as never)
     expect(value).toMatchObject({ supplierId: 's', sendCount: 2, reminderCount: 1, firstSentAt: '2026-10-02', history: [{ kind: 'send' }, { kind: 'reminder' }] })
     expect(value.items[0]).toMatchObject({ certificationId: 'c', supplierId: 's', submitted: { number: 'X-2', issuer: 'TÜV', expiresOn: '2029-09-01' }, attachment: { name: 'iso.pdf', storagePath: 'o/quality_supplier/s/1-iso.pdf' } })
   })
@@ -157,10 +158,10 @@ describe('Supplier certificate renewal: the supplier form', () => {
     expect(submissionProblemText(['type', 'fileSize'], 'en')).toEqual(['certificate type', 'a file up to 10 MB'])
   })
   it('knows what is left on the link', () => {
-    const access = { status: 'sent', items: [{ id: 'a', status: 'submitted' }, { id: 'b', status: 'pending' }] }
+    const access: SupplierAccess = { status: 'sent', items: [{ id: 'a', status: 'submitted' }, { id: 'b', status: 'pending' }] } as never
     expect(pendingItems(access).map(entry => entry.id)).toEqual(['b'])
     expect(accessComplete(access)).toBe(false)
-    expect(accessComplete({ ...access, items: [{ id: 'a', status: 'submitted' }] })).toBe(true)
+    expect(accessComplete({ ...access, items: [{ id: 'a', status: 'submitted' }] as never })).toBe(true)
     expect(accessComplete({ status: 'closed', items: [] })).toBe(true)
   })
   it('explains the answers of the edge function', () => {
