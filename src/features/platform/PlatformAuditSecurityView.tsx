@@ -14,17 +14,17 @@ import { athensDateTime } from './platformOverviewShared'
 import { describeAuditGroup,entityLabel,eventLabel,groupAuditEvents } from './auditTrailModel'
 import { RecordLink } from './RecordLink'
 import { useRecordLinks,usePlatformUsers } from './useRecordLinks'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AuditEvent,PlatformOrganization,UserRef } from './platformTypes'
 
 // dd/mm/yyyy, hh:mm in Athens time, as on every owner list.
 export const fmtDate=athensDateTime
 
 export { eventLabel,entityLabel }
 
-export function PlatformAuditSecurityView({organizations=[],language='el',tabs=null}: {organizations?: AnyRecord[],language?: string,tabs?: ReactNode}){
+export function PlatformAuditSecurityView({organizations=[],language='el',tabs=null}: {organizations?: PlatformOrganization[],language?: string,tabs?: ReactNode}){
   const en=language==='en'
   const tx=(elText: string,enText: string)=>en?enText:elText
-  const [rows,setRows]=useState<AnyRecord[]>([])
+  const [rows,setRows]=useState<AuditEvent[]>([])
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState<unknown>(null)
   const [query,setQuery]=useState('')
@@ -36,10 +36,10 @@ export function PlatformAuditSecurityView({organizations=[],language='el',tabs=n
   // The person who acted, the organization and the user or organization an action was about open their records; Back returns here.
   const users=usePlatformUsers()
   const {userOf,openUser,canOpenOrganization,openOrganization}=useRecordLinks({users})
-  const userLink=(ref: AnyRecord,label: string)=>{const person=userOf(ref);return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{label}</RecordLink>:label}
+  const userLink=(ref: UserRef,label: string)=>{const person=userOf(ref);return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{label}</RecordLink>:label}
   const organizationLink=(id: string,label: string)=>canOpenOrganization(id)?<RecordLink title={tx('Άνοιγμα καρτέλας οργανισμού','Open organization record')} onClick={()=>openOrganization(id)}>{label}</RecordLink>:label
-  const names={organization:(id: string)=>organizationMap.get(id)?.name||'',user:(ref: AnyRecord)=>userOf(ref)?.name||''}
-  const entityLink=(row: AnyRecord,label=entityLabel(row.entityType,en))=>{if(row.entityType==='organization')return organizationLink(row.entityId,label);if(row.entityType==='organization_member'||row.entityType==='profile')return userLink({userId:row.entityId,memberId:row.entityId},label);return label}
+  const names={organization:(id: string)=>organizationMap.get(id)?.name||'',user:(ref: UserRef)=>userOf(ref)?.name||''}
+  const entityLink=(row: AuditEvent,label=entityLabel(row.entityType,en))=>{if(row.entityType==='organization')return organizationLink(row.entityId,label);if(row.entityType==='organization_member'||row.entityType==='profile')return userLink({userId:row.entityId,memberId:row.entityId},label);return label}
 
   const load=useCallback(async()=>{
     setLoading(true);setError(null)

@@ -14,7 +14,7 @@ import { useEndLoginSessions } from './useEndLoginSessions'
 import { athensDateTime } from './platformOverviewShared'
 import { RecordLink } from './RecordLink'
 import './loginSessions.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LoginSession,RuntimeEventRow } from './platformTypes'
 
 type Labels = Record<string,{el: string,en: string}>
 
@@ -36,11 +36,11 @@ const shortTime=athensDateTime
 
 // «Δραστηριότητα» of an organization record (owner, 9/11/2026): Συμβάντα (technical and operational events, no
 // clinical content) or Συνδέσεις (the sign-ins of its users, with the same «⋯» as Ιστορικό & Υγεία › Συνδέσεις).
-export function HospitalDiagnosticsPanel({organization,language='el',sessions=[],loadingSessions=false,onReloadSessions,knownUserIds=null,onOpenUser}: {organization: AnyRecord|null,language?: string,sessions?: AnyRecord[],loadingSessions?: boolean,onReloadSessions?: ()=>unknown,knownUserIds?: Set<string>|null,onOpenUser?: (userId: string)=>void}){
+export function HospitalDiagnosticsPanel({organization,language='el',sessions=[],loadingSessions=false,onReloadSessions,knownUserIds=null,onOpenUser}: {organization: {id?: string | null}|null,language?: string,sessions?: Partial<LoginSession>[],loadingSessions?: boolean,onReloadSessions?: ()=>unknown,knownUserIds?: Set<string>|null,onOpenUser?: (userId: string)=>void}){
  const en=language==='en',tx=(elText: string,enText: string)=>en?enText:elText,{notifyError}=useFeedback()
  // A user of this organization opens that user's record; Back returns to this tab.
- const userLink=(userId: string,label: string)=>userId&&onOpenUser&&knownUserIds?.has(userId)?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>onOpenUser(userId)}>{label}</RecordLink>:label
- const [rows,setRows]=useState<AnyRecord[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState<unknown>(null),[severity,setSeverity]=useState('all'),[module,setModule]=useState('all'),[query,setQuery]=useState(''),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
+ const userLink=(userId: string | null | undefined,label: string)=>userId&&onOpenUser&&knownUserIds?.has(userId)?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>onOpenUser(userId)}>{label}</RecordLink>:label
+ const [rows,setRows]=useState<RuntimeEventRow[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState<unknown>(null),[severity,setSeverity]=useState('all'),[module,setModule]=useState('all'),[query,setQuery]=useState(''),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
  const [mode,setMode]=useState('events'),[sessionStatusFilter,setSessionStatusFilter]=useState('all'),[now,setNow]=useState(()=>Date.now())
  const {menuItems:sessionMenuItems}=useEndLoginSessions({tx,en,onDone:async()=>{await onReloadSessions?.();setNow(Date.now())}})
  const load=useCallback(async()=>{if(!organization?.id){setRows([]);setLoading(false);return}setLoading(true);setError(null);try{setRows(await listRuntimeEvents(organization.id,{limit:500}))}catch(err){setError(err);notifyError(err,'load',{operation:'platform_diagnostics_load'})}finally{setLoading(false)}},[organization?.id,notifyError])

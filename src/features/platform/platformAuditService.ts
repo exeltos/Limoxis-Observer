@@ -1,12 +1,12 @@
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AuditEvent,AuditMetadata,LoginAttempts,LoginSession } from './platformTypes'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isOwnerPreview,previewAuditEvents,previewLoginAttempts,previewLoginLocks,previewLoginSessions } from '../../core/preview/ownerPreview'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
-export async function listPlatformAuditEvents({limit=500}={}){
+export async function listPlatformAuditEvents({limit=500}={}): Promise<AuditEvent[]>{
   if(isOwnerPreview())return previewAuditEvents()
   if(!hasSupabaseConfig||!supabase)return []
   const safeLimit=Math.min(Math.max(Number(limit)||500,1),1000)
@@ -18,7 +18,7 @@ export async function listPlatformAuditEvents({limit=500}={}){
   if(error)throw error
   const rows=data||[]
   const actorIds=[...new Set(rows.map(row=>row.actor_user_id).filter(Boolean))]
-  let actors: Record<string,AnyRecord>={}
+  let actors: Record<string,{full_name: string | null,username: string | null}>={}
   if(actorIds.length){
     const {data:profiles}=await supabase.from('profiles').select('id,full_name,username').in('id',actorIds)
     actors=Object.fromEntries((profiles||[]).map(profile=>[profile.id,profile]))
@@ -32,13 +32,13 @@ export async function listPlatformAuditEvents({limit=500}={}){
     eventType:row.event_type||'',
     entityType:row.entity_type||'',
     entityId:row.entity_id||'',
-    metadata:row.metadata&&typeof row.metadata==='object'?row.metadata:{},
+    metadata:(row.metadata&&typeof row.metadata==='object'?row.metadata:{}) as AuditMetadata,
     createdAt:row.created_at,
   }))
 }
 
 // Sign-ins (Ιστορικό & Υγεία › Συνδέσεις). Readable only by the Platform Owner (RLS + RPC checks).
-export async function listLoginSessions({days=30}={}){
+export async function listLoginSessions({days=30}={}): Promise<LoginSession[]>{
   if(isOwnerPreview())return previewLoginSessions()
   if(!hasSupabaseConfig||!supabase)return []
   const {data,error}=await supabase.rpc('platform_login_sessions_list',{p_days:days,p_limit:2000})
@@ -46,7 +46,7 @@ export async function listLoginSessions({days=30}={}){
   return (data||[]).map(row=>({sessionId:row.session_id,userId:row.user_id,fullName:row.full_name||'',username:row.username||'',email:row.email||'',isPlatformOwner:Boolean(row.is_platform_owner),organizations:row.organizations||'',ip:row.ip||'',lastIp:row.last_ip||'',userAgent:row.user_agent||'',startedAt:row.started_at,lastSeenAt:row.last_seen_at,endedAt:row.ended_at,endedReason:row.ended_reason||'',active:Boolean(row.active),online:Boolean(row.online)}))
 }
 
-export async function listLoginAttempts({days=30}={}){
+export async function listLoginAttempts({days=30}={}): Promise<LoginAttempts>{
   if(isOwnerPreview())return {attempts:previewLoginAttempts(),locks:previewLoginLocks()}
   if(!hasSupabaseConfig||!supabase)return {attempts:[],locks:[]}
   const since=new Date(Date.now()-days*86400000).toISOString()
