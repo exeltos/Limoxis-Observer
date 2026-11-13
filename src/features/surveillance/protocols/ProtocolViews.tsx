@@ -1,7 +1,7 @@
 // The protocol section of a surveillance episode (approved design n3-2): picker,
 // recognition clock, timeline, the bundle steps with their timing, recording a
 // step, changing the recognition time, completing / closing, and the history.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ComponentProps } from 'react'
 import { Droplet, Droplets, FlaskConical, HeartPulse, History, Info, Pencil, Pill, Syringe, Timer, TriangleAlert } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
@@ -13,11 +13,12 @@ import { StagePanel } from '../ClinicalRecordViews'
 import { CLINICAL_PROTOCOLS, HOUR_ONE_MINUTES, pendingSteps, protocolByKey, stepOf, visibleSteps } from './protocolCatalogue'
 import { formatElapsed, minutesBetween, runSummary, timelineScale } from './protocolTiming'
 import './protocols.css'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ClinicalCaseLike } from '../clinicalTypes'
+import type { FillVars, NumberedStepItem, OpenProtocolRun, ProtocolRun, ProtocolRunEvent, ProtocolRunLike, ProtocolStartRequest } from './protocolTypes'
 import type { DateValue, Handler } from '../surveillanceTypes'
 import type { LucideIcon } from 'lucide-react'
 
-export const fill = (text: string, vars: AnyRecord = {}) => String(text || '').replace(/\{(\w+)\}/g, (_, key) => (vars[key] ?? ''))
+export const fill = (text: string, vars: FillVars = {}) => String(text || '').replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? ''))
 const STEP_ICONS: Record<string, LucideIcon> = { lactate: FlaskConical, cultures: Droplets, antibiotic: Pill, fluids: Droplet, vasopressor: Syringe }
 const pad = (n: number) => String(n).padStart(2, '0')
 export const clockTime = (value: DateValue) => {
@@ -55,13 +56,13 @@ export function useNow(active = true) {
   return now
 }
 
-const protocolText = (t: (key: string) => string, key: string, field: string) => t(`sepsis.protocols.${key}.${field}`)
+const protocolText = (t: (key: string) => string, key: string | undefined, field: string) => t(`sepsis.protocols.${key}.${field}`)
 const stepText = (t: (key: string) => string, key: string, field: string) => t(`sepsis.steps.${key}.${field}`)
 
 interface ProtocolPickerDialogProps {
   t: (key: string) => string
-  runs?: AnyRecord[]
-  preset?: AnyRecord | null
+  runs?: ProtocolRunLike[]
+  preset?: ProtocolStartRequest | null
   onClose?: Handler | null
   onStart: Handler
 }
@@ -148,21 +149,21 @@ function Disclaimer({ t }: DisclaimerProps) {
 const STATE_KEY = (code: string) => `sepsis.state_${code}`
 
 interface ProtocolPanelProps {
-  run: AnyRecord
-  record: AnyRecord
+  run: ProtocolRun
+  record: ClinicalCaseLike | null | undefined
   t: (key: string) => string
   language: string
   canRecord: boolean
   onRecordStep: Handler
   onChangeTime: Handler
   onFinish: Handler
-  menu?: AnyRecord[]
+  menu?: ComponentProps<typeof StagePanel>['menu']
 }
 // The section of a started protocol.
 export function ProtocolPanel({ run, record, t, language, canRecord, onRecordStep, onChangeTime, onFinish, menu = [] }: ProtocolPanelProps) {
   const open = run.status === 'open'
   const now = useNow(open)
-  const [stepDialog, setStepDialog] = useState<AnyRecord | null>(null)
+  const [stepDialog, setStepDialog] = useState<{ key: string, choose?: boolean } | null>(null)
   const [timeDialog, setTimeDialog] = useState(false)
   const [closeDialog, setCloseDialog] = useState(false)
   const summary = useMemo(() => runSummary(run, now), [run, now])
@@ -228,7 +229,7 @@ export function ProtocolPanel({ run, record, t, language, canRecord, onRecordSte
             {t('sepsis.history')} · {t('sepsis.auditNote')}
           </summary>
           <ul className="sp-history">
-            {(run.events || []).map((event: AnyRecord, index: number) => (
+            {(run.events || []).map((event: ProtocolRunEvent, index: number) => (
               <li key={event.id || index}>
                 <span>{dayTime(event.at)}</span>
                 <strong>{t(`sepsis.event_${event.type}`)}</strong>
@@ -294,8 +295,8 @@ export function ProtocolPanel({ run, record, t, language, canRecord, onRecordSte
 interface ProtocolTimelineProps {
   t: (key: string) => string
   language: string
-  run: AnyRecord
-  items: AnyRecord[]
+  run: ProtocolRun
+  items: NumberedStepItem[]
   scale: number
   now: Date
 }
@@ -345,8 +346,8 @@ function ProtocolTimeline({ t, language, run, items, scale, now }: ProtocolTimel
 }
 
 interface BundleStepProps {
-  item: AnyRecord
-  run: AnyRecord
+  item: NumberedStepItem
+  run: ProtocolRun
   t: (key: string) => string
   language: string
   editable: boolean
@@ -453,10 +454,10 @@ function BundleStep({ item, run, t, language, editable, onOpen }: BundleStepProp
 
 interface StepDialogProps {
   t: (key: string) => string
-  run: AnyRecord
-  record: AnyRecord
+  run: ProtocolRun
+  record: ClinicalCaseLike | null | undefined
   initialKey: string
-  choose: AnyRecord
+  choose?: boolean
   onClose?: Handler | null
   onSave: Handler
 }
@@ -489,7 +490,8 @@ function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }: Ste
     ...(step.canSkip ? [{ value: 'not_indicated', label: t('sepsis.stepNotIndicated') }] : []),
     ...(recorded && recorded.status !== 'pending' ? [{ value: 'pending', label: t('sepsis.stepPending') }] : []),
   ]
-  const therapies = (record?.therapy || []).map((item: AnyRecord) => ({ value: item.id, label: [item.antimicrobial, item.dose, item.route].filter(Boolean).join(' · ') }))
+  // A therapy on the episode always has its id.
+  const therapies = (record?.therapy || []).map(item => ({ value: item.id as string, label: [item.antimicrobial, item.dose, item.route].filter(Boolean).join(' · ') }))
   async function save() {
     if (!valid || busy) return
     setBusy(true)
@@ -547,14 +549,14 @@ function StepDialog({ t, run, record, initialKey, choose, onClose, onSave }: Ste
 
 interface ChangeTimeDialogProps {
   t: (key: string) => string
-  run: AnyRecord
+  run: ProtocolRun
   onClose?: Handler | null
   onSave: Handler
 }
 function ChangeTimeDialog({ t, run, onClose, onSave }: ChangeTimeDialogProps) {
   const [date, setDate] = useState(localDate(run.recognizedAt))
   const [time, setTime] = useState(clockTime(run.recognizedAt))
-  const [weight, setWeight] = useState(run.weightKg ?? '')
+  const [weight, setWeight] = useState<number | string>(run.weightKg ?? '')
   const [reason, setReason] = useState('')
   const recognizedAt = combine(date, time)
   const changedTime = recognizedAt && new Date(recognizedAt).getTime() !== new Date(run.recognizedAt).getTime()
@@ -607,7 +609,7 @@ function ReasonOnlyDialog({ title, label, hint, onClose, onSave }: ReasonOnlyDia
 }
 
 interface ProtocolBadgeProps {
-  entry?: AnyRecord | null
+  entry?: OpenProtocolRun | null
   t: (key: string) => string
   language: string
   now?: Date

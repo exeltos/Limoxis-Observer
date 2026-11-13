@@ -6,7 +6,7 @@
 //   n  grey   not indicated (with a reason), or a follow-up not due yet
 import { HOUR_ONE_MINUTES, stepOf, visibleSteps, type ProtocolStep } from './protocolCatalogue'
 import type { DateValue } from '../surveillanceTypes'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ProtocolRunLike, StepState } from './protocolTypes'
 
 const ms = (value: DateValue) => {
   if (!value) return NaN
@@ -14,7 +14,7 @@ const ms = (value: DateValue) => {
 }
 export const minutesBetween = (from: DateValue, to: DateValue) => (Number.isFinite(ms(from)) && Number.isFinite(ms(to)) ? Math.round((ms(to) - ms(from)) / 60000) : null)
 
-export function stepState(run: AnyRecord, step: ProtocolStep, now: DateValue = new Date()) {
+export function stepState(run: ProtocolRunLike, step: ProtocolStep, now: DateValue = new Date()): StepState {
   const recorded = stepOf(run, step.key)
   const zero = run?.recognizedAt
   const elapsed = minutesBetween(zero, now)
@@ -43,12 +43,12 @@ export function stepState(run: AnyRecord, step: ProtocolStep, now: DateValue = n
   return { tone: 'r', code: 'overdue', minutes: null }
 }
 
-export function runSummary(run: AnyRecord, now: DateValue = new Date()) {
+export function runSummary(run: ProtocolRunLike, now: DateValue = new Date()) {
   const steps = visibleSteps(run).map(step => ({ step, recorded: stepOf(run, step.key), state: stepState(run, step, now) }))
   const main = steps.filter(item => !item.step.followUp)
   const elapsed = minutesBetween(run?.recognizedAt, run?.status === 'open' ? now : run?.completedAt || now)
   const late = main.filter(item => item.state.tone === 'r')
-  const pending = main.filter(item => !['done', 'not_indicated'].includes(item.recorded?.status))
+  const pending = main.filter(item => !['done', 'not_indicated'].includes(item.recorded?.status ?? ''))
   const onTime = main.every(item => ['g', 'n'].includes(item.state.tone))
   return { steps, elapsed, late, pending, onTime, tone: run?.status === 'open' ? (late.length ? 'r' : pending.length ? 'a' : 'g') : onTime ? 'g' : 'r' }
 }
@@ -68,7 +68,7 @@ export function formatElapsed(minutes: number | null | undefined, language = 'el
 
 // Timeline scale: 0–90 minutes, widened in steps of 30 minutes once the run
 // goes past it (at most 6 hours).
-export function timelineScale(run: AnyRecord, now = new Date()) {
+export function timelineScale(run: ProtocolRunLike, now = new Date()) {
   const steps = visibleSteps(run)
   const doneMinutes = steps.map(step => minutesBetween(run?.recognizedAt, stepOf(run, step.key)?.doneAt)).filter(value => value != null)
   const elapsed = minutesBetween(run?.recognizedAt, run?.status === 'open' ? now : run?.completedAt || now) || 0
