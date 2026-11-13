@@ -1,7 +1,9 @@
 import { complianceOf } from './audits/auditModel'
 import { checklistRows } from '../controls/controlStructured'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AuditAnswer, ProgrammeCell, ProgrammeRow, QualityAudit } from './audits/auditTypes'
+import type { ControlRecord } from '../controls/controlTypes'
+import type { LibraryDepartment } from '../management/useLibraries'
 
 // An audit (ISO 9001 §9.2, JCI QPS): a planned date, a scope, and a checklist
 // answered Yes / No / N/A. Its checklist comes from a control that is a
@@ -10,10 +12,10 @@ import type { AnyRecord } from '../../types/featureTypes'
 // and a finding gets its corrective action.
 
 // The controls whose answer is a checklist: the audit templates.
-export const checklistTemplates = (controls: AnyRecord[] = []) => controls.filter(control => control?.responseConfig?.mode === 'checklist' && (control.responseConfig.checklist || []).length && control.status !== 'archived')
+export const checklistTemplates = (controls: ControlRecord[] = []) => controls.filter(control => control?.responseConfig?.mode === 'checklist' && (control.responseConfig.checklist || []).length && control.status !== 'archived')
 
-export function auditChecklistFromControl(control: AnyRecord) {
-  return checklistRows(control).map((row: AnyRecord, index: number) => ({ ...row, id: row.id || `item-${index + 1}` }))
+export function auditChecklistFromControl(control: ControlRecord) {
+  return checklistRows(control).map((row: AuditAnswer, index: number) => ({ ...row, id: row.id || `item-${index + 1}` }))
 }
 
 // One item per line, for an audit without a template.
@@ -26,10 +28,10 @@ export function auditChecklistFromText(text = '') {
 export const auditCompliance = complianceOf
 
 // The «No» and «Partial» answers that have no finding yet.
-export const pendingFindings = (rows: AnyRecord[] = []) => rows.filter(row => (row.answer === 'no' || row.answer === 'partial') && !row.findingId)
+export const pendingFindings = (rows: AuditAnswer[] = []) => rows.filter(row => (row.answer === 'no' || row.answer === 'partial') && !row.findingId)
 
 // What each new finding of an audit is created with.
-export function findingDraftFromRow(audit: AnyRecord, row: AnyRecord, language = 'el') {
+export function findingDraftFromRow(audit: QualityAudit, row: AuditAnswer, language = 'el') {
   const en = language === 'en'
   const text = en ? row.itemEn || row.item : row.item
   return {
@@ -48,8 +50,8 @@ export function findingDraftFromRow(audit: AnyRecord, row: AnyRecord, language =
 }
 
 // The audit programme of a year: the audits of each month, by planned date.
-export function auditProgramme(audits: AnyRecord[] = [], year = new Date().getFullYear()) {
-  const months = Array.from({ length: 12 }, (_, month) => ({ month, audits: [] as AnyRecord[] }))
+export function auditProgramme(audits: QualityAudit[] = [], year = new Date().getFullYear()) {
+  const months = Array.from({ length: 12 }, (_, month) => ({ month, audits: [] as QualityAudit[] }))
   for (const audit of audits) {
     const day = String(audit.plannedDate || audit.completedDate || '')
     if (!day.startsWith(String(year))) continue
@@ -61,7 +63,7 @@ export function auditProgramme(audits: AnyRecord[] = [], year = new Date().getFu
 
 // Where an audit stands on the programme: done, under way, late (its planned
 // date has passed), planned, or cancelled.
-export function auditState(audit: AnyRecord, today = hospitalToday()) {
+export function auditState(audit: QualityAudit, today = hospitalToday()) {
   if (audit.status === 'cancelled' || audit.lifecycleStatus === 'voided') return 'cancelled'
   if (audit.status === 'completed') return 'done'
   if (audit.plannedDate && audit.plannedDate < today) return 'late'
@@ -73,10 +75,10 @@ export function auditState(audit: AnyRecord, today = hospitalToday()) {
 // departments, then any other an audit names, then «whole organization» for
 // audits without one), twelve months each. `covered` says whether the
 // department has an audit that year; `totals` counts the audits by state.
-export function auditMatrix(audits: AnyRecord[] = [], year = new Date().getFullYear(), departments: AnyRecord[] = [], today = hospitalToday()) {
+export function auditMatrix(audits: QualityAudit[] = [], year = new Date().getFullYear(), departments: LibraryDepartment[] = [], today = hospitalToday()) {
   const inYear = audits.filter(audit => String(audit.plannedDate || audit.completedDate || '').startsWith(String(year)))
   const rows = new Map()
-  const row = (key: string, name: string, nameEn: string, id = '') => {
+  const row = (key: string, name: string, nameEn: string | undefined, id = ''): ProgrammeRow => {
     if (!rows.has(key)) rows.set(key, { key, name, nameEn: nameEn || name, id, months: Array.from({ length: 12 }, () => []), count: 0 })
     return rows.get(key)
   }
@@ -91,7 +93,7 @@ export function auditMatrix(audits: AnyRecord[] = [], year = new Date().getFullY
     target.count += 1
     totals[state] += 1
   }
-  for (const entry of rows.values()) for (const cell of entry.months) cell.sort((a: AnyRecord, b: AnyRecord) => String(a.audit.plannedDate).localeCompare(String(b.audit.plannedDate)))
-  const list = [...rows.values()].sort((a, b) => Number(a.key === '') - Number(b.key === '') || a.name.localeCompare(b.name, 'el'))
+  for (const entry of rows.values()) for (const cell of entry.months) cell.sort((a: ProgrammeCell, b: ProgrammeCell) => String(a.audit.plannedDate).localeCompare(String(b.audit.plannedDate)))
+  const list: ProgrammeRow[] = [...rows.values()].sort((a, b) => Number(a.key === '') - Number(b.key === '') || a.name.localeCompare(b.name, 'el'))
   return { rows: list.map(entry => ({ ...entry, covered: entry.count > 0 })), totals, total: inYear.length }
 }

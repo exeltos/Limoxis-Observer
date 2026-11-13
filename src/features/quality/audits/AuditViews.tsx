@@ -14,7 +14,7 @@ import { useAuditTemplates } from './useAuditTemplates'
 import { FINDING_CLASSES, findingClassTone, standardLabel, standardShort } from './auditStandards'
 import { auditDashboard, auditReadiness, clauseCoverage } from './auditModel'
 import './audits.css'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditFinding, ComplianceBar, QualityAudit } from './auditTypes'
 
 const L = (en: boolean, el: string, english: string) => (en ? english : el)
 const thisYear = () => new Date().getFullYear()
@@ -23,11 +23,11 @@ const thisYear = () => new Date().getFullYear()
 // across, the departments audited for it down; a cell is the chapter's
 // compliance where it was audited, «planned» where an audit to come covers it,
 // a gap otherwise. Chapters no department covered are named above the grid.
-export function AuditCoverage({ audits = [], language }: { audits?: AnyRecord[], language: string }) {
+export function AuditCoverage({ audits = [], language }: { audits?: QualityAudit[], language: string }) {
   const en = language === 'en'
   const { tenant } = useTenant()
   const { templates } = useAuditTemplates(tenant?.id)
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const { departments } = useDepartments()
   const [year, setYear] = useState(thisYear)
   const standards = useMemo(() => [...new Set(templates.map(item => item.standard))], [templates])
   const used = [...new Set(audits.map(audit => audit.standard).filter(Boolean))]
@@ -70,13 +70,13 @@ export function AuditCoverage({ audits = [], language }: { audits?: AnyRecord[],
 
 // The audit dashboard: the year's compliance by standard, department and
 // chapter, the trend of the last twelve months and the open findings by class.
-export function AuditDashboard({ audits = [], findings = [], language }: { audits?: AnyRecord[], findings?: AnyRecord[], language: string }) {
+export function AuditDashboard({ audits = [], findings = [], language }: { audits?: QualityAudit[], findings?: AuditFinding[], language: string }) {
   const en = language === 'en'
   const [year, setYear] = useState(thisYear)
   const used = [...new Set(audits.map(audit => audit.standard).filter(Boolean))]
   const [standard, setStandard] = useState(() => used.includes('jci') ? 'jci' : used[0] || '')
   const data = useMemo(() => auditDashboard(audits, findings, { year, standard }), [audits, findings, year, standard])
-  const bars = (items: AnyRecord[], labelOf: (item: AnyRecord) => string) => items.length ? <ul className="audit-bars">{items.map((item: AnyRecord) => <li key={item.key ?? item.ref}><span>{labelOf(item)}</span><Meter value={item.rate} tone={meterTone(item.rate)} label={`${labelOf(item)} ${item.rate ?? '—'}%`} /><strong>{item.rate == null ? '—' : `${item.rate}%`}</strong>{item.audits != null && <small>{item.audits}</small>}</li>)}</ul> : <p className="inline-empty">{L(en, 'Δεν υπάρχουν ολοκληρωμένες απαντήσεις.', 'No answers yet.')}</p>
+  const bars = (items: ComplianceBar[], labelOf: (item: ComplianceBar) => string) => items.length ? <ul className="audit-bars">{items.map((item: ComplianceBar) => <li key={item.key ?? item.ref}><span>{labelOf(item)}</span><Meter value={item.rate} tone={meterTone(item.rate)} label={`${labelOf(item)} ${item.rate ?? '—'}%`} /><strong>{item.rate == null ? '—' : `${item.rate}%`}</strong>{item.audits != null && <small>{item.audits}</small>}</li>)}</ul> : <p className="inline-empty">{L(en, 'Δεν υπάρχουν ολοκληρωμένες απαντήσεις.', 'No answers yet.')}</p>
   const monthName = (value: string) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short' }).format(new Date(`${value}-15T12:00:00Z`)).replace('.', '')
   return <div className="audit-view">
     <div className="audit-view-head">
@@ -91,9 +91,9 @@ export function AuditDashboard({ audits = [], findings = [], language }: { audit
       { id: 'overdue', label: L(en, 'Εκπρόθεσμα', 'Overdue'), value: data.overdueFindings, tone: data.overdueFindings ? 'danger' : undefined },
     ]} />
     <div className="audit-dashboard-grid">
-      <section className="audit-panel"><SectionHeader title={L(en, 'Συμμόρφωση ανά πρότυπο', 'Compliance by standard')} />{bars(data.byStandard, (item: AnyRecord) => standardShort(item.key) || L(en, 'Χωρίς πρότυπο', 'No standard'))}</section>
-      <section className="audit-panel"><SectionHeader title={L(en, 'Συμμόρφωση ανά τμήμα', 'Compliance by department')} />{bars(data.byDepartment, (item: AnyRecord) => item.key || L(en, 'Όλος ο οργανισμός', 'Whole organization'))}</section>
-      <section className="audit-panel"><SectionHeader title={L(en, 'Συμμόρφωση ανά κεφάλαιο', 'Compliance by chapter')} actions={<FilterSelect label={L(en, 'Πρότυπο', 'Standard')} value={data.standard} onChange={setStandard}>{(used.length ? used : ['iso9001']).map(value => <option key={value} value={value}>{standardShort(value)}</option>)}</FilterSelect>} />{bars(data.byChapter, (item: AnyRecord) => [item.ref, item.title].filter(Boolean).join(' · '))}</section>
+      <section className="audit-panel"><SectionHeader title={L(en, 'Συμμόρφωση ανά πρότυπο', 'Compliance by standard')} />{bars(data.byStandard, (item: ComplianceBar) => standardShort(item.key) || L(en, 'Χωρίς πρότυπο', 'No standard'))}</section>
+      <section className="audit-panel"><SectionHeader title={L(en, 'Συμμόρφωση ανά τμήμα', 'Compliance by department')} />{bars(data.byDepartment, (item: ComplianceBar) => item.key || L(en, 'Όλος ο οργανισμός', 'Whole organization'))}</section>
+      <section className="audit-panel"><SectionHeader title={L(en, 'Συμμόρφωση ανά κεφάλαιο', 'Compliance by chapter')} actions={<FilterSelect label={L(en, 'Πρότυπο', 'Standard')} value={data.standard} onChange={setStandard}>{(used.length ? used : ['iso9001']).map(value => <option key={value} value={value}>{standardShort(value)}</option>)}</FilterSelect>} />{bars(data.byChapter, (item: ComplianceBar) => [item.ref, item.title].filter(Boolean).join(' · '))}</section>
       <section className="audit-panel"><SectionHeader title={L(en, 'Τάση 12 μηνών', '12-month trend')} subtitle={L(en, 'Μέση συμμόρφωση των επιθεωρήσεων που ολοκληρώθηκαν κάθε μήνα', 'Average compliance of the audits completed each month')} />
         <Sparkline points={data.trend.map(item => item.rate)} target={90} width={320} height={60} label={L(en, 'Τάση συμμόρφωσης', 'Compliance trend')} />
         <ol className="audit-trend">{data.trend.map(item => <li key={item.month} className={item.rate == null ? 'is-empty' : `is-${meterTone(item.rate)}`}><small>{monthName(item.month)}</small><strong>{item.rate == null ? '—' : `${item.rate}%`}</strong></li>)}</ol>
@@ -108,7 +108,7 @@ export function AuditDashboard({ audits = [], findings = [], language }: { audit
 // Readiness: every standard in one table (the latest audit of each department
 // that covered it), what is still missing, and the detail (clause coverage and
 // the dashboard) folded under it.
-export function AuditReadiness({ audits = [], findings = [], language, onOpenFinding, onOpenAudit }: { audits?: AnyRecord[], findings?: AnyRecord[], language: string, onOpenFinding: ((finding: AnyRecord) => void) | null, onOpenAudit: (audit: AnyRecord) => void }) {
+export function AuditReadiness({ audits = [], findings = [], language, onOpenFinding, onOpenAudit }: { audits?: QualityAudit[], findings?: AuditFinding[], language: string, onOpenFinding: ((finding: AuditFinding) => void) | null, onOpenAudit: (audit: QualityAudit) => void }) {
   const en = language === 'en'
   const data = useMemo(() => auditReadiness(audits, findings), [audits, findings])
   const { missing } = data

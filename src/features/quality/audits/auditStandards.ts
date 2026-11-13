@@ -1,4 +1,4 @@
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditDepartment } from './auditTypes'
 // The closed vocabularies of the audit programme: the standards, the answer
 // scale, the finding classes, the kinds of audit, the team roles, the risk
 // levels that set how often a department is audited, and the hospital areas a
@@ -15,8 +15,8 @@ export const AUDIT_STANDARDS = [
   { value: 'jci', label: ['JCI (πρότυπα νοσοκομείων)', 'JCI (hospital standards)'], short: 'JCI' },
   { value: 'other', label: ['Άλλο / εσωτερικά κριτήρια', 'Other / internal criteria'], short: 'Άλλο' },
 ]
-export const standardLabel = (value: string, language = 'el') => { const item = AUDIT_STANDARDS.find(entry => entry.value === value); return item ? pick(item.label, language) : value || '' }
-export const standardShort = (value: string) => AUDIT_STANDARDS.find(entry => entry.value === value)?.short || value || ''
+export const standardLabel = (value: string | undefined, language = 'el') => { const item = AUDIT_STANDARDS.find(entry => entry.value === value); return item ? pick(item.label, language) : value || '' }
+export const standardShort = (value: string | undefined) => AUDIT_STANDARDS.find(entry => entry.value === value)?.short || value || ''
 
 // One select per question. The stored values are the checklist's (yes / no /
 // na) plus «partial», so the audits made before the programme keep their answers.
@@ -37,7 +37,7 @@ export const FINDING_CLASSES = [
   { value: 'observation', label: ['Παρατήρηση', 'Observation'], severity: 'low', days: 90 },
   { value: 'opportunity', label: ['Ευκαιρία βελτίωσης', 'Opportunity for improvement'], severity: 'low', days: 90 },
 ]
-export const findingClassLabel = (value: string, language = 'el') => { const item = FINDING_CLASSES.find(entry => entry.value === value); return item ? pick(item.label, language) : '' }
+export const findingClassLabel = (value: string | undefined, language = 'el') => { const item = FINDING_CLASSES.find(entry => entry.value === value); return item ? pick(item.label, language) : '' }
 export const findingClassTone = (value: string) => ({ major: 'danger', minor: 'warning', observation: 'info', opportunity: 'neutral' } as Record<string, string>)[value] || 'neutral'
 
 export const AUDIT_KINDS = [
@@ -92,7 +92,7 @@ const AREA_PATTERNS: [string, RegExp][] = [
   ['management', /διοίκ|διοικ|ποιότητ|ποιοτητ|διεύθυνσ|διευθυνσ|γραμματ|λογιστ|οικονομ|προμηθ|management|quality|admin/i],
   ['support', /τεχνικ|αποθήκ|αποθηκ|πλυντ|ιματισ|καθαρι|φύλαξ|φυλαξ|μεταφορ|πληροφορ|technical|laundry|store|it\b/i],
 ]
-export function departmentArea(department: AnyRecord | string) {
+export function departmentArea(department: AuditDepartment | string) {
   const name = typeof department === 'string' ? department : department?.name || ''
   for (const [area, pattern] of AREA_PATTERNS) if (pattern.test(name)) return area
   return 'clinical'

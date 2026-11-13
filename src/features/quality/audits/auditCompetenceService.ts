@@ -1,7 +1,7 @@
 import { supabase as configuredClient, type Cloud } from '../../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { loadCertificates } from '../../employees/employeeRecordsService'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditorCertificate, AuditorCompetence } from './auditTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
@@ -12,9 +12,9 @@ const supabase = configuredClient as Cloud
 
 const AUDITOR_FILTER = 'title.ilike.%επιθεωρ%,title.ilike.%auditor%,title_en.ilike.%auditor%'
 
-export async function loadAuditorCompetence(organizationId: string | null | undefined) {
+export async function loadAuditorCompetence(organizationId: string | null | undefined): Promise<AuditorCompetence> {
   if (isDemoDataEnvironment()) {
-    const certificates = (loadCertificates() || []).map((item: AnyRecord) => ({ employeeId: item.employeeId, title: item.titleEl || item.title || '', titleEn: item.titleEn || '', validUntil: item.validUntil || '' }))
+    const certificates = (loadCertificates() || []).map((item: AuditorCertificate & { titleEl?: string }) => ({ employeeId: item.employeeId, title: item.titleEl || item.title || '', titleEn: item.titleEn || '', validUntil: item.validUntil || '' }))
     return { certificates, assignments: [], programs: [] }
   }
   if (!supabase || !organizationId) return { certificates: [], assignments: [], programs: [] }

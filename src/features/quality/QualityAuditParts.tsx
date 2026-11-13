@@ -14,11 +14,12 @@ import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, aud
 import { standardShort } from './audits/auditStandards'
 import { AuditRounds, roundOfHalf } from './audits/AuditRounds'
 import { hospitalDate } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AuditAnswer, ProgrammeCell, ProgrammeRow, QualityAudit } from './audits/auditTypes'
+import type { ControlRecord } from '../controls/controlTypes'
 
 // The controls that are checklists, offered as audit checklists.
 function useChecklistTemplates(organizationId: string | null | undefined) {
-  const [templates, setTemplates] = useState<AnyRecord[]>([])
+  const [templates, setTemplates] = useState<ControlRecord[]>([])
   useEffect(() => {
     let active = true
     loadControlProgramme(organizationId, { summary: false }).then(controls => { if (active) setTemplates(checklistTemplates(controls)) }).catch(() => { if (active) setTemplates([]) })
@@ -28,12 +29,12 @@ function useChecklistTemplates(organizationId: string | null | undefined) {
 }
 
 // New audit: the checklist from a control that is a checklist, or typed here.
-export function AuditChecklistSource({ draft, setDraft, organizationId, language }: { draft: AnyRecord, setDraft: (update: (current: AnyRecord | null) => AnyRecord) => void, organizationId: string | null | undefined, language: string }) {
+export function AuditChecklistSource({ draft, setDraft, organizationId, language }: { draft: QualityAudit, setDraft: (update: (current: QualityAudit | null) => QualityAudit) => void, organizationId: string | null | undefined, language: string }) {
   const en = language === 'en'
   const templates = useChecklistTemplates(organizationId)
   const [mode, setMode] = useState(draft.checklistSource === 'manual' ? 'manual' : 'template')
   const [text, setText] = useState('')
-  const templateId = String(draft.checklistSource || '').startsWith('control:') ? draft.checklistSource.slice(8) : ''
+  const templateId = String(draft.checklistSource || '').startsWith('control:') ? (draft.checklistSource as string).slice(8) : ''
   const options = useMemo(() => templates.map(control => ({ value: String(control.id), label: en ? control.titleEn || control.title : control.title, description: `${control.responseConfig.checklist.length} ${en ? 'items' : 'σημεία'}` })), [templates, en])
   const chooseTemplate = (id: string) => {
     const control = templates.find(item => String(item.id) === id)
@@ -45,7 +46,7 @@ export function AuditChecklistSource({ draft, setDraft, organizationId, language
     {mode === 'template'
       ? <SearchableSelect label={en ? 'Checklist' : 'Λίστα ελέγχου'} value={templateId} options={options} onChange={chooseTemplate} placeholder={templates.length ? (en ? 'Choose a checklist' : 'Επιλέξτε λίστα') : en ? 'No checklist in Controls yet' : 'Δεν υπάρχει ακόμη λίστα ελέγχου στους Ελέγχους'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} clearLabel={en ? 'Clear' : 'Καθαρισμός'} />
       : <Field label={en ? 'Items, one per line' : 'Σημεία, ένα ανά γραμμή'}><textarea rows={5} value={text} onChange={event => typeItems(event.target.value)} placeholder={en ? 'e.g. Hand rub available at the bedside' : 'π.χ. Διαθέσιμο αντισηπτικό δίπλα στην κλίνη'} /></Field>}
-    {draft.checklist?.length > 0 && <ol className="quality-audit-preview">{draft.checklist.slice(0, 6).map((row: AnyRecord) => <li key={row.id}>{en ? row.itemEn || row.item : row.item}</li>)}{draft.checklist.length > 6 && <li className="is-more">{en ? `and ${draft.checklist.length - 6} more` : `και ${draft.checklist.length - 6} ακόμη`}</li>}</ol>}
+    {(draft.checklist?.length as number) > 0 && <ol className="quality-audit-preview">{(draft.checklist as AuditAnswer[]).slice(0, 6).map((row: AuditAnswer) => <li key={row.id}>{en ? row.itemEn || row.item : row.item}</li>)}{(draft.checklist as AuditAnswer[]).length > 6 && <li className="is-more">{en ? `and ${(draft.checklist as AuditAnswer[]).length - 6} more` : `και ${(draft.checklist as AuditAnswer[]).length - 6} ακόμη`}</li>}</ol>}
   </FormCard>
 }
 
@@ -56,9 +57,9 @@ const STATE_ORDER = ['done', 'running', 'late', 'planned', 'cancelled']
 // audit is a chip coloured by where it stands (done with its compliance, late,
 // planned); a department without an audit this year is flagged; an empty cell
 // plans a new audit for that department and month.
-export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, onRound = null, onPrint = null }: { audits?: AnyRecord[], language: string, onOpen: (audit: AnyRecord) => void, onPlan?: ((source: AnyRecord) => void) | null, onRound?: (() => void) | null, onPrint?: ((list: AnyRecord[]) => void) | null }) {
+export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, onRound = null, onPrint = null }: { audits?: QualityAudit[], language: string, onOpen: (audit: QualityAudit) => void, onPlan?: ((source: QualityAudit) => void) | null, onRound?: (() => void) | null, onPrint?: ((list: QualityAudit[]) => void) | null }) {
   const en = language === 'en'
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const { departments } = useDepartments()
   const now = new Date()
   const todayIso = hospitalDate(now)
   const [year, setYear] = useState(() => String(now.getFullYear()))
@@ -73,25 +74,25 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
   const uncovered = matrix.rows.filter(row => row.key && !row.covered)
   const rows = scope === 'all' ? matrix.rows : matrix.rows.filter(row => row.covered)
   const done = matrix.totals.done, active = matrix.total - matrix.totals.cancelled
-  const plan = (row: AnyRecord, month: number) => onPlan?.({ department: row.name, departmentEn: row.nameEn, departmentId: row.id, plannedDate: `${year}-${String(month + 1).padStart(2, '0')}-15` })
+  const plan = (row: ProgrammeRow, month: number) => onPlan?.({ department: row.name, departmentEn: row.nameEn, departmentId: row.id, plannedDate: `${year}-${String(month + 1).padStart(2, '0')}-15` })
   const cycleAudits = useMemo(() => (cycle === null ? [] : roundOfHalf(audits, Number(year), cycle)), [audits, year, cycle])
-  const cycleIds = useMemo(() => new Set(cycleAudits.map((audit: AnyRecord) => audit.id)), [cycleAudits])
-  const cycleMonths = useMemo(() => new Set(cycleAudits.map((audit: AnyRecord) => Number(String(audit.plannedDate).slice(5, 7)) - 1)), [cycleAudits])
+  const cycleIds = useMemo(() => new Set(cycleAudits.map((audit: QualityAudit) => audit.id)), [cycleAudits])
+  const cycleMonths = useMemo(() => new Set(cycleAudits.map((audit: QualityAudit) => Number(String(audit.plannedDate).slice(5, 7)) - 1)), [cycleAudits])
   // What the print menu prints: the audits done in the year, in the spring or the autumn round, for the ticked departments or all.
   const printOf = (half: number | null) => audits.filter(audit => audit.status === 'completed' && (audit.checklist || []).length && String(audit.completedDate || audit.plannedDate).startsWith(String(year)) && (half === null || (Number(String(audit.completedDate || audit.plannedDate).slice(5, 7)) <= 6) === (half === 0)) && (!picked.length || picked.includes(String(audit.department || '').trim())))
   const printItems = ([[null, en ? `Whole ${year}` : `Όλο το ${year}`], [0, `${en ? 'Spring' : 'Άνοιξη'} ${year}`], [1, `${en ? 'Autumn' : 'Φθινόπωρο'} ${year}`]] as [number | null, string][]).map(([half, name]) => { const list = printOf(half); return { id: `print-${half}`, kind: 'print', label: `${name} · ${list.length} ${en ? 'audits' : 'επιθεωρήσεις'}`, disabled: !list.length, onClick: () => onPrint?.(list) } })
   const byDepartment = useMemo(() => {
-    const map = new Map<string, AnyRecord[]>()
+    const map = new Map<string, QualityAudit[]>()
     audits.forEach(audit => { const key = String(audit.department || '').trim(); if (key) map.set(key, [...(map.get(key) || []), audit]) })
     return map
   }, [audits])
-  const detail = (row: AnyRecord) => {
-    const list = (byDepartment.get(row.key) || []).filter((audit: AnyRecord) => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided')
-    const last = list.filter((audit: AnyRecord) => audit.status === 'completed').sort((a: AnyRecord, b: AnyRecord) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))[0]
-    const next = list.filter((audit: AnyRecord) => ['planned', 'in_progress', 'inProgress'].includes(audit.status)).sort((a: AnyRecord, b: AnyRecord) => String(a.plannedDate).localeCompare(String(b.plannedDate)))[0]
-    return { last, next, inCycle: list.find((audit: AnyRecord) => cycleIds.has(audit.id)), inYear: row.months.flat().filter((cell: AnyRecord) => cell.state === 'done').length }
+  const detail = (row: ProgrammeRow) => {
+    const list = (byDepartment.get(row.key) || []).filter((audit: QualityAudit) => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided')
+    const last = list.filter((audit: QualityAudit) => audit.status === 'completed').sort((a: QualityAudit, b: QualityAudit) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))[0]
+    const next = list.filter((audit: QualityAudit) => ['planned', 'in_progress', 'inProgress'].includes(audit.status as string)).sort((a: QualityAudit, b: QualityAudit) => String(a.plannedDate).localeCompare(String(b.plannedDate)))[0]
+    return { last, next, inCycle: list.find((audit: QualityAudit) => cycleIds.has(audit.id)), inYear: row.months.flat().filter((cell: ProgrammeCell) => cell.state === 'done').length }
   }
-  const when = (audit: AnyRecord) => (audit.plannedMonthOnly ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(audit.plannedDate).slice(0, 7)}-15T12:00:00Z`)) : formatDay(audit.plannedDate, language))
+  const when = (audit: QualityAudit) => (audit.plannedMonthOnly ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(audit.plannedDate).slice(0, 7)}-15T12:00:00Z`)) : formatDay(audit.plannedDate, language))
   return <div className="quality-programme">
     <div className="quality-programme-summary">
      {/* Back to any earlier year; forward up to next year, to plan it. */}
@@ -123,7 +124,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
        {rows.map(row => {
         const { last, next, inCycle, inYear } = detail(row)
         const open = inCycle || next || last
-        const late = next && !next.plannedMonthOnly && next.plannedDate < todayIso
+        const late = next && !next.plannedMonthOnly && (next.plannedDate as string) < todayIso
         const score = last ? auditCompliance(last) : null
         return <tr key={row.key || 'org'} className={`${row.key && !row.covered ? 'is-gap' : ''}${open ? ' is-clickable' : ''}`.trim()} onClick={open ? () => onOpen?.(open) : undefined}>
          {onPrint && <td className="quality-programme-pick" onClick={event => event.stopPropagation()}>{row.key ? <CheckboxField ariaLabel={`${en ? 'Select' : 'Επιλογή'} ${en ? row.nameEn : row.name}`} label="" checked={picked.includes(row.key)} onChange={on => setPicked(on ? [...picked, row.key] : picked.filter(key => key !== row.key))} /> : null}</td>}
@@ -132,7 +133,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
          <td className={`nowrap-cell${last ? ' is-link' : ''}`} onClick={last ? event => { event.stopPropagation(); onOpen?.(last) } : undefined}>{last ? <span className="quality-programme-last">{formatDay(last.completedDate || last.plannedDate, language)}{score?.rate != null && <small className={`quality-programme-rate is-${score.rate >= 90 ? 'success' : score.rate >= 75 ? 'warning' : 'danger'}`}>{score.rate}%</small>}</span> : '—'}</td>
          <td className={`nowrap-cell${late ? ' quality-overdue' : ''}`}>{next ? <>{when(next)}{late && <small>{en ? 'Overdue' : 'Εκπρόθεσμη'}</small>}</> : (onPlan && row.key ? <button type="button" className="quality-programme-plan" onClick={event => { event.stopPropagation(); plan(row, Number(year) === now.getFullYear() ? Math.min(11, now.getMonth() + 1) : 0) }}><Plus size={13} aria-hidden="true" />{en ? 'Plan' : 'Προγραμματισμός'}</button> : <span className="quality-overdue-text">{en ? 'none planned' : 'δεν υπάρχει'}</span>)}</td>
          <td className={inYear >= 2 ? '' : 'quality-overdue-text'}><span className="quality-programme-count">{[0, 1].map(at => <i key={at} className={at < inYear ? 'is-on' : undefined} aria-hidden="true" />)}<strong>{inYear}/2</strong></span></td>
-         <td><span className="quality-programme-months">{row.months.map((cell: AnyRecord[], month: number) => <span key={month} role={cell.length ? 'button' : undefined} tabIndex={cell.length ? 0 : undefined} aria-label={cell.length ? `${monthName(month, 'long')} · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : undefined} onClick={cell.length ? event => { event.stopPropagation(); onOpen?.(cell[0].audit) } : undefined} onKeyDown={cell.length ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onOpen?.(cell[0].audit) } } : undefined} className={`quality-programme-dot${cell.length ? ` is-${cell[0].state}` : ' is-empty'}${month === currentMonth ? ' is-now' : ''}${cycleMonths.has(month) && cell.some((item: AnyRecord) => cycleIds.has(item.audit.id)) ? ' is-cycle' : ''}`} title={`${monthName(month, 'long')}${cell.length ? ` · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : ''}`} />)}</span></td>
+         <td><span className="quality-programme-months">{row.months.map((cell: ProgrammeCell[], month: number) => <span key={month} role={cell.length ? 'button' : undefined} tabIndex={cell.length ? 0 : undefined} aria-label={cell.length ? `${monthName(month, 'long')} · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : undefined} onClick={cell.length ? event => { event.stopPropagation(); onOpen?.(cell[0].audit) } : undefined} onKeyDown={cell.length ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onOpen?.(cell[0].audit) } } : undefined} className={`quality-programme-dot${cell.length ? ` is-${cell[0].state}` : ' is-empty'}${month === currentMonth ? ' is-now' : ''}${cycleMonths.has(month) && cell.some((item: ProgrammeCell) => cycleIds.has(item.audit.id)) ? ' is-cycle' : ''}`} title={`${monthName(month, 'long')}${cell.length ? ` · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : ''}`} />)}</span></td>
          <td>{open?.leadAuditor || '—'}</td>
         </tr>
        })}
