@@ -235,7 +235,7 @@ export async function loadQualityRecords(section: string,organizationId: string 
 
 // The incidents linked to an episode (its surveillance cases, or its admission), newest first.
 // Only what the user may already read comes back (the policies of quality_incidents decide).
-export async function loadLinkedIncidents(organizationId: string | null | undefined,{caseIds=[],admissionId=null,patientCode=''}={}){
+export async function loadLinkedIncidents(organizationId: string | null | undefined,{caseIds=[],admissionId=null,patientCode=''}: {caseIds?: (string | null | undefined)[],admissionId?: string | null,patientCode?: string}={}){
   const cases=[...new Set(caseIds.map(String).filter(Boolean))]
   if(isDemoDataEnvironment())return loadQualityLocal('incidents').filter((row: AnyRecord)=>cases.includes(String(row.linkedSurveillance||''))||(patientCode&&String(row.linkedPatient||'')===String(patientCode))).map((row: AnyRecord)=>structuredClone(row))
   assertReady(organizationId)

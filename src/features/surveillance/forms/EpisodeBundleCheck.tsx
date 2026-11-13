@@ -5,13 +5,14 @@ import { ObserverDialog } from '../../../design-system/ObserverDialog'
 import { RouteLoading } from '../../../design-system/RouteLoading'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useOptionalFeedback } from '../../../core/feedback/FeedbackContext'
-import type { AnyRecord } from '../../../types/featureTypes'
 import type { Handler } from '../surveillanceTypes'
+import type { DeviceBundles } from './deviceBundles'
+import type { BundleDevice, FormsEpisode } from './formTypes'
 
 interface EpisodeBundleCheckProps {
-  deviceBundles: AnyRecord
-  device: AnyRecord
-  episode: AnyRecord
+  deviceBundles: DeviceBundles
+  device: BundleDevice
+  episode: FormsEpisode | null | undefined
   onClose: Handler
   onSaved: Handler
 }
@@ -21,7 +22,7 @@ export function EpisodeBundleCheck({ deviceBundles, device, episode, onClose, on
   const { t } = useLanguage()
   const notify = useOptionalFeedback()?.notify
   const organizationId = deviceBundles?.organizationId
-  const [support, setSupport] = useState<AnyRecord | null>(null)
+  const [support, setSupport] = useState<Awaited<ReturnType<typeof loadBundleSupportData>> | null>(null)
   useEffect(() => {
     let alive = true
     loadBundleSupportData(organizationId)
@@ -45,7 +46,7 @@ export function EpisodeBundleCheck({ deviceBundles, device, episode, onClose, on
           departments={support.departments}
           templates={support.templates}
           prefill={prefill}
-          onSave={async (payload: AnyRecord) => {
+          onSave={async (payload: Parameters<typeof saveBundleAssessment>[1]) => {
             try {
               await saveBundleAssessment(organizationId, payload, { existingId: null })
               notify?.(t('actionCompleted'), 'success')

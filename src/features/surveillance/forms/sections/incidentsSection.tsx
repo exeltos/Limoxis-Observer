@@ -7,13 +7,14 @@ import { FormEmpty, FormRow, FormRows } from '../FormRow'
 import { FormSection } from '../FormSection'
 import { FORM_STATUS } from '../formStatus'
 import { incidentSource } from '../formPrefill'
-import type { AnyRecord } from '../../../../types/featureTypes'
+import type { EpisodeFormSection, EpisodeFormsCtx, FormSectionState, FormsEpisode, LinkedIncident } from '../formTypes'
 
-const episodeIds = (ctx: AnyRecord) => (ctx.episodes || []).map((episode: AnyRecord) => episode.recordId || episode.id)
-const incidentTitle = (row: AnyRecord, language: string) => (language === 'en' ? row.titleEn || row.title : row.title) || row.id
-const isClosed = (row: AnyRecord) => row.status === 'closed' || row.lifecycleStatus === 'voided'
+const episodeIds = (ctx: EpisodeFormsCtx) => (ctx.episodes || []).map((episode: FormsEpisode) => episode.recordId || episode.id)
+const incidentTitle = (row: LinkedIncident, language: string) => (language === 'en' ? row.titleEn || row.title : row.title) || row.id
+// `row.status!` below: quality_incidents.status is not null (the type is loose for the demo rows).
+const isClosed = (row: LinkedIncident) => row.status === 'closed' || row.lifecycleStatus === 'voided'
 
-export function incidentRows(ctx: AnyRecord, rows: AnyRecord[] = []) {
+export function incidentRows(ctx: Pick<EpisodeFormsCtx, 'language'>, rows: LinkedIncident[] = []) {
   return rows.map(row => ({
     key: row.id,
     row,
@@ -25,8 +26,8 @@ export function incidentRows(ctx: AnyRecord, rows: AnyRecord[] = []) {
 }
 
 interface IncidentsSectionProps {
-  ctx: AnyRecord
-  section: AnyRecord
+  ctx: EpisodeFormsCtx
+  section: FormSectionState<LinkedIncident[]>
 }
 function IncidentsSection({ ctx, section }: IncidentsSectionProps) {
   const { t } = useLanguage()
@@ -54,7 +55,7 @@ function IncidentsSection({ ctx, section }: IncidentsSectionProps) {
               title={item.title}
               detail={[item.code, ctx.language === 'en' ? item.row.departmentEn || item.row.department : item.row.department].filter(Boolean).join(' · ')}
               status={item.done ? FORM_STATUS.DONE : FORM_STATUS.PENDING}
-              statusDetail={t(item.row.status)}
+              statusDetail={t(item.row.status!)}
               date={item.date ? fmtDate(item.date) : ''}
               dateLabel={item.date ? t('episodeForms.incidents.date') : ''}
               action={{ label: t('episodeForms.open'), onClick: () => ctx.goTo(`/quality/incidents/${item.row.id}`, { returnTab: 'episodeForms' }) }}
@@ -70,21 +71,21 @@ export const incidentsSection = {
   id: 'incidents',
   order: 40,
   // Whoever can report an incident or read Quality; the list shows only what the policies let them read.
-  canSee: (ctx: AnyRecord) => (ctx.has(CAPABILITIES.REPORT_INCIDENT) || ctx.has(CAPABILITIES.VIEW_QUALITY)) && Boolean(ctx.record || ctx.admission),
-  load: (ctx: AnyRecord) =>
+  canSee: (ctx: EpisodeFormsCtx) => (ctx.has(CAPABILITIES.REPORT_INCIDENT) || ctx.has(CAPABILITIES.VIEW_QUALITY)) && Boolean(ctx.record || ctx.admission),
+  load: (ctx: EpisodeFormsCtx) =>
     loadLinkedIncidents(ctx.organizationId, {
       caseIds: episodeIds(ctx),
       admissionId: ctx.isDemo ? null : ctx.admission?.id || null,
       patientCode: ctx.patient?.id || '',
     }),
   Component: IncidentsSection,
-  buildReport(ctx: AnyRecord, section: AnyRecord) {
+  buildReport(ctx: EpisodeFormsCtx, section: FormSectionState<LinkedIncident[]>) {
     const rows = incidentRows(ctx, section.value || [])
     if (!rows.length) return null
     return {
       id: 'incidents',
       title: ctx.t('episodeForms.incidents.title'),
-      list: rows.map(item => [item.code, item.title, item.date && ctx.fmtDate(item.date), ctx.t(item.row.status)].filter(Boolean).join(' · ')),
+      list: rows.map(item => [item.code, item.title, item.date && ctx.fmtDate(item.date), ctx.t(item.row.status!)].filter(Boolean).join(' · ')),
     }
   },
-}
+} satisfies EpisodeFormSection<LinkedIncident[]>
