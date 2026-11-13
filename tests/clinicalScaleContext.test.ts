@@ -1,7 +1,8 @@
 import {describe,expect,it} from 'vitest'
 import {buildClinicalScaleContext,isClinicalScaleEligible,patientAgeExactYears,patientAgeYears} from '../src/features/clinical-scales/clinicalScaleContext'
+import type { ScaleAssessment, ScaleDefinition } from '../src/features/clinical-scales/clinicalScaleTypes'
 
-const def=(extra={})=>({id:'scale-1',name_el:'SOFA',status:'active',settings:[],orgSetting:{enabled:true,availability:'required',reassessment_hours:24},...extra})
+const def=(extra={})=>({id:'scale-1',name_el:'SOFA',status:'active',settings:[],orgSetting:{enabled:true,availability:'required',reassessment_hours:24},...extra}) as ScaleDefinition
 
 describe('clinical scale patient context',()=>{
  it('calculates age without rounding before the birthday',()=>expect(patientAgeYears('2008-12-01',new Date('2026-09-23T12:00:00Z'))).toBe(17))
@@ -15,7 +16,7 @@ describe('clinical scale patient context',()=>{
   const rows=[
    {id:'a2',scale_definition_id:'scale-1',score:9,assessed_at:'2026-09-22T10:00:00Z'},
    {id:'a1',scale_definition_id:'scale-1',score:6,assessed_at:'2026-09-21T10:00:00Z'}
-  ]
+  ] as ScaleAssessment[]
   const result=buildClinicalScaleContext([def()],rows,{age:70},new Date('2026-09-23T12:00:00Z'))[0]
   expect(result.state).toBe('overdue')
   expect(result.delta).toBe(3)

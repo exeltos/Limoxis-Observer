@@ -2,11 +2,12 @@
 // Supabase double: what each operation writes, to which table, scoped how, and
 // by whom. Replaces source-text assertions that pinned the service's formatting.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ClinicalCase } from '../src/features/surveillance/clinicalTypes'
 
 let queries
 let respond
 function builder(table) {
-  const query = { table, op: 'select', payload: null, filters: [] }
+  const query: { table: string, op: string, payload: unknown, filters: unknown[][], single?: boolean } = { table, op: 'select', payload: null, filters: [] }
   queries.push(query)
   const chain = {
     select() { return chain },
@@ -26,13 +27,13 @@ vi.mock('../src/core/supabase/client', () => ({
   supabase: { from: table => builder(table), rpc: async (name, args) => { rpcCalls.push({ name, args }); return rpcRespond(name, args) }, auth: { getUser: async () => ({ data: { user: { id: 'actor-1' } }, error: null }) } },
 }))
 let rpcCalls = []
-let rpcRespond = () => ({ data: [{ id: 'case-new' }], error: null })
+let rpcRespond: (name?: string, args?: unknown) => { data: unknown, error: Error | null } = () => ({ data: [{ id: 'case-new' }], error: null })
 
 const service = await import('../src/features/surveillance/clinicalCloudService')
 
 const writes = (table, op) => queries.filter(q => q.table === table && q.op === op)
 const filter = (query, column) => query.filters.find(([, name]) => name === column)?.[2]
-const record = { recordId: 'case-1', patientRecordId: 'pat-1', departmentId: 'dep-1' }
+const record = { recordId: 'case-1', patientRecordId: 'pat-1', departmentId: 'dep-1' } as ClinicalCase
 
 beforeEach(() => {
   queries = []

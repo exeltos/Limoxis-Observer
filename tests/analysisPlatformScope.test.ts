@@ -42,7 +42,7 @@ describe('Platform analysis over "all hospitals"', () => {
     const tx = el => el
     const board = buildSectionModel('overview', snapshot, tx).charts[0]
     expect(board.title).toBe('Σύγκριση νοσοκομείων')
-    expect(board.rowLabel).toBe('Νοσοκομείο')
+    expect((board as { rowLabel?: string }).rowLabel).toBe('Νοσοκομείο')
     expect(board.rows.map(row => row.name)).toEqual(['Γ.Ν. Β', 'Γ.Ν. Α'])
   })
 

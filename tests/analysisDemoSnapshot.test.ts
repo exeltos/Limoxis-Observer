@@ -88,7 +88,7 @@ describe('collectAnalysisDemoSnapshot computes from the same demo fixtures every
       const afterPending = collectAnalysisDemoSnapshot().summary.antimicrobial
       expect(afterPending.total).toBe(before.total + 1)
       expect(afterPending.pending).toBe(before.pending + 1)
-      clinicalCases[caseId].therapy[0].administrations.push({ id: 'ADM-TEST', status: 'administered' })
+      clinicalCases[caseId].therapy[0].administrations.push({ id: 'ADM-TEST', status: 'administered' } as never)
       expect(collectAnalysisDemoSnapshot().summary.antimicrobial.administrations).toBe(before.administrations + 1)
     } finally {
       clinicalCases[caseId].therapy = clinicalCases[caseId].therapy.filter(x => x.id !== 'TX-TEST-PENDING')

@@ -130,9 +130,9 @@ describe('the line list on Μικροβιολογία & AMR', () => {
 
 describe('the CSV export carries the same labels', () => {
   it('writes translated organism, resistance and specimen cells', () => {
-    downloadCsv.mockClear()
+    vi.mocked(downloadCsv).mockClear()
     exportNationalRowsCsv(ROWS.slice(3, 6), el, 'list')
-    const [, , rows] = downloadCsv.mock.calls[0]
+    const [, , rows] = vi.mocked(downloadCsv).mock.calls[0]
     expect(rows.map(row => [row[0], row[1], row[4]])).toEqual([
       ['Χωρίς ταυτοποίηση', 'Δεν ελέγχθηκε', 'Καλλιέργεια ούρων'],
       ['Χωρίς ταυτοποίηση', 'Δεν ελέγχθηκε', 'Περιβαλλοντικό δείγμα (επιφάνεια)'],
