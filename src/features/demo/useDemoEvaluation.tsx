@@ -1,11 +1,10 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 import { useLocation } from 'react-router-dom'
 import { readSessionJson, readSessionValue, removeSessionValue, writeSessionJson, writeSessionValue } from '../../core/storage/browserStorage'
 import { lazyPage, type LazyPage } from '../../core/errors/chunkRecovery'
 import { DEMO_ALL_SCENARIOS, demoScenarioDoneCount, demoScenariosForRole, demoStepsComplete, type DemoScenario } from './demoScenarios'
 import { DEMO_SCENARIO_EVENT, DEMO_STEP_EVENT, demoScenarioForPath, nextDemoScenario } from './demoScenarioSignals'
 import { hasExtendedDemoSchema, loadMyDemoApplicationRequests, loadMyDemoProgress, loadMyDemoRatings, rateDemoEvaluationStep, requestDemoApplication, setDemoEvaluationStep, submitDemoScenarioFeedback, type DemoRating } from './demoEvaluationService'
-import type { AnyRecord } from '../../types/featureTypes'
 
 const ACTIVE_KEY='lo.demo.activeScenario'
 const STEPS_KEY='lo.demo.scenarioSteps'
@@ -13,14 +12,15 @@ const STARTED_KEY='lo.demo.scenarioStarted' // { scenario: started at (ms) }, fo
 const TOUR_KEY='lo.demo.tour' // the scenario whose guided tour is on
 // The evaluation's windows and the tours load when a Demo evaluation is on, never for a hospital.
 // Each window has its own boundary: one that is still loading must not hide the others.
-const alone=(Lazy: LazyPage)=>function Alone(props: AnyRecord){return <Suspense fallback={null}><Lazy {...props}/></Suspense>}
-const DemoGuideDialog=alone(lazyPage(()=>import('./DemoGuideDialog').then(({DemoGuideDialog})=>({DemoGuideDialog})),'DemoGuideDialog'))
-const DemoApplicationDialog=alone(lazyPage(()=>import('./DemoApplicationDialog'),'DemoApplicationDialog'))
-const DemoActiveScenario=alone(lazyPage(()=>import('./DemoScenarioCards'),'DemoActiveScenario'))
-const DemoScenarioRating=alone(lazyPage(()=>import('./DemoScenarioCards'),'DemoScenarioRating'))
-const DemoStepSpotlight=alone(lazyPage(()=>import('./DemoStepSpotlight'),'DemoStepSpotlight'))
-const DemoGuidedTour=alone(lazyPage(()=>import('./DemoGuidedTour'),'DemoGuidedTour'))
-const DemoWelcome=alone(lazyPage(()=>import('./DemoWelcome'),'DemoWelcome'))
+// The window's own props, from its module (the lazy page itself takes any).
+const alone=<P extends object>(Lazy: LazyPage)=>function Alone(props: P){return <Suspense fallback={null}><Lazy {...props}/></Suspense>}
+const DemoGuideDialog=alone<ComponentProps<typeof import('./DemoGuideDialog')['DemoGuideDialog']>>(lazyPage(()=>import('./DemoGuideDialog').then(({DemoGuideDialog})=>({DemoGuideDialog})),'DemoGuideDialog'))
+const DemoApplicationDialog=alone<ComponentProps<typeof import('./DemoApplicationDialog')['DemoApplicationDialog']>>(lazyPage(()=>import('./DemoApplicationDialog'),'DemoApplicationDialog'))
+const DemoActiveScenario=alone<ComponentProps<typeof import('./DemoScenarioCards')['DemoActiveScenario']>>(lazyPage(()=>import('./DemoScenarioCards'),'DemoActiveScenario'))
+const DemoScenarioRating=alone<ComponentProps<typeof import('./DemoScenarioCards')['DemoScenarioRating']>>(lazyPage(()=>import('./DemoScenarioCards'),'DemoScenarioRating'))
+const DemoStepSpotlight=alone<ComponentProps<typeof import('./DemoStepSpotlight')['DemoStepSpotlight']>>(lazyPage(()=>import('./DemoStepSpotlight'),'DemoStepSpotlight'))
+const DemoGuidedTour=alone<ComponentProps<typeof import('./DemoGuidedTour')['DemoGuidedTour']>>(lazyPage(()=>import('./DemoGuidedTour'),'DemoGuidedTour'))
+const DemoWelcome=alone<ComponentProps<typeof import('./DemoWelcome')['DemoWelcome']>>(lazyPage(()=>import('./DemoWelcome'),'DemoWelcome'))
 const OVERALL='guide_opened' // as OVERALL_RATING in DemoGuideDialog
 const scenarioByKey=(key: string|null|undefined): DemoScenario|null=>DEMO_ALL_SCENARIOS.find(scenario=>scenario.key===key)||null
 

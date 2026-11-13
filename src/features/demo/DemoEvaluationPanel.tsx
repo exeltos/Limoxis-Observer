@@ -6,12 +6,12 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { demoScenariosForEvaluator } from './demoScenarios'
 import { loadDemoEvaluationOverview, updateDemoApplicationRequestStatus } from './demoEvaluationService'
 import './demoEvaluation.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DemoApplicationRequest, DemoEvaluatorRow, DemoProgressRow } from './demoEvaluationService'
 
 const fmt=(value: string|null|undefined,en: boolean)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit', hourCycle: 'h23'}):''
 
 // The questionnaire beside a scenario's rating: ease, clarity and the time it took.
-function QuestionnaireDetails({row,en}:{row: AnyRecord,en: boolean}){
+function QuestionnaireDetails({row,en}:{row: DemoProgressRow,en: boolean}){
   const tx=(el: string,enText: string)=>en?enText:el
   const minutes=row.duration_seconds!=null?Math.max(1,Math.round(row.duration_seconds/60)):null
   const parts=[row.ease&&`${tx('Ευκολία','Ease')} ${row.ease}/5`,row.clarity&&`${tx('Σαφήνεια','Clarity')} ${row.clarity}/5`,minutes&&tx(`${minutes}′`,`${minutes} min`)].filter(Boolean)
@@ -23,7 +23,7 @@ function QuestionnaireDetails({row,en}:{row: AnyRecord,en: boolean}){
 export function DemoEvaluationPanel({organizationId,language='el',onInterestChange}:{organizationId: string|null|undefined,language?: string,onInterestChange?: (interested: boolean)=>void}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const {notifyError}=useFeedback();const {user}=useAuth()
-  const [state,setState]=useState<{loading: boolean,progress: AnyRecord[],requests: AnyRecord[],names: Record<string, string>}>({loading:true,progress:[],requests:[],names:{}})
+  const [state,setState]=useState<{loading: boolean,progress: DemoEvaluatorRow[],requests: DemoApplicationRequest[],names: Record<string, string>}>({loading:true,progress:[],requests:[],names:{}})
   const reload=useCallback(async()=>{
     if(!organizationId){setState({loading:false,progress:[],requests:[],names:{}});return}
     try{
@@ -36,7 +36,7 @@ export function DemoEvaluationPanel({organizationId,language='el',onInterestChan
   },[organizationId,notifyError,onInterestChange])
   useEffect(()=>{void reload()},[reload])
 
-  async function changeStatus(request: AnyRecord,status: string){try{await updateDemoApplicationRequestStatus(request.id,status,user?.id);await reload()}catch(error){notifyError(error,'save',{operation:'demo_application_status'})}}
+  async function changeStatus(request: DemoApplicationRequest,status: string){try{await updateDemoApplicationRequestStatus(request.id,status,user?.id);await reload()}catch(error){notifyError(error,'save',{operation:'demo_application_status'})}}
 
   const evaluators: string[]=[...new Set(state.progress.map(row=>row.user_id))]
   const statusLabel={new:tx('Νέο','New'),contacted:tx('Έγινε επικοινωνία','Contacted'),closed:tx('Ολοκληρώθηκε','Closed')}
@@ -50,7 +50,7 @@ export function DemoEvaluationPanel({organizationId,language='el',onInterestChan
         <span>{[request.contact_email,request.contact_phone].filter(Boolean).join(' · ')}</span>
         {request.message&&<p>{request.message}</p>}
       </div>)}
-      {evaluators.length?evaluators.map(userId=>{const rows=state.progress.filter(row=>row.user_id===userId);const done: Record<string, string>=Object.fromEntries(rows.filter(row=>row.completed_at).map(row=>[row.step_key,row.completed_at]));const rated: Record<string, AnyRecord>=Object.fromEntries(rows.filter(row=>row.rating).map(row=>[row.step_key,row]));const overall=rated.guide_opened;const scenarios=demoScenariosForEvaluator(rows.map(row=>row.step_key));const last=rows.map(row=>row.updated_at).sort().at(-1)
+      {evaluators.length?evaluators.map(userId=>{const rows=state.progress.filter(row=>row.user_id===userId);const done: Record<string, string>=Object.fromEntries(rows.filter(row=>row.completed_at).map(row=>[row.step_key,row.completed_at!]));const rated: Record<string, DemoProgressRow>=Object.fromEntries(rows.filter(row=>row.rating).map(row=>[row.step_key,row]));const overall=rated.guide_opened;const scenarios=demoScenariosForEvaluator(rows.map(row=>row.step_key));const last=rows.map(row=>row.updated_at).sort().at(-1)
         return <div key={userId} className="demo-evaluation-evaluator">
           <div className="demo-evaluation-evaluator-head"><strong>{state.names[userId]||tx('Αξιολογητής','Evaluator')}</strong><small>{tx(`${scenarios.filter(s=>done[s.key]).length} από ${scenarios.length} σενάρια`,`${scenarios.filter(s=>done[s.key]).length} of ${scenarios.length} scenarios`)}{last?` · ${tx('τελευταία κίνηση','last activity')} ${fmt(last,en)}`:''}</small>{overall&&<span className="demo-rating-value" title={overall.rating_comment||''}><Star size={13}/>{tx('Συνολικά','Overall')} {overall.rating}/5</span>}</div>
           {overall?.rating_comment&&<q className="demo-evaluation-overall-comment">{overall.rating_comment}</q>}
