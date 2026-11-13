@@ -20,8 +20,8 @@ import { FormSection, FormsTabProvider } from './forms/FormSection'
 import { FORM_STATUS, athensToday } from './forms/formStatus'
 import { hospitalDay } from './patientRecordScope'
 import './forms/episodeForms.css'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { ExposureIncident } from '../occupational-health/exposureIncidentService'
+import type { ClinicalCase } from './clinicalTypes'
 import type { EmployeeSurveillanceRecord, ScreeningEmployee } from './employeeSurveillanceTypes'
 import type { Handler } from './surveillanceTypes'
 
@@ -51,8 +51,7 @@ async function episodeOptions({ isDemo, organizationId, language }: EpisodeOptio
   const rows = isDemo ? Object.values(clinicalCases) : await loadClinicalCases(organizationId, { summary: true })
   const en = language === 'en'
   // The patient and the episode in words (name, code, department, start date), never an internal id.
-  // A Demo case or a cloud episode: the episodes' own shape, kept by the episode screens.
-  return rows.map((row: AnyRecord) => {
+  return rows.map((row: ClinicalCase) => {
     const name = en ? row.patientEn || row.patient : row.patient
     return {
       value: isDemo ? row.id : row.recordId || row.id,
