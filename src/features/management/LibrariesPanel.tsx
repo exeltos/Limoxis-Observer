@@ -20,7 +20,6 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useSortedPaging } from '../quality/useSortedPaging'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { LibraryMap, LibraryTuple } from './managementCloudService'
@@ -66,7 +65,7 @@ export function LibrariesPanel({global=false,only=null,exclude=[],leadItems=[],e
  useEffect(()=>{invalidateLibraries(global?undefined:tenant?.id)},[rows,global,tenant?.id])
  function persistDemo(next: LibraryMap){setRows(next);saveSnapshot('management_libraries',next)}
  const [jobRow,setJobRow]=useState<LibraryRow|null>(null);const [jobSaving,setJobSaving]=useState(false)
- async function saveJob(draft: AnyRecord){
+ async function saveJob(draft: Record<string, unknown>){
   const jobDescription=nextJobDescription(jobRow?.[2]?.jobDescription,draft,profile?.fullName||user?.email||'')
   setJobSaving(true)
   try{

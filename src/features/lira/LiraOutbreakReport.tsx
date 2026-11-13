@@ -1,10 +1,10 @@
 import {forwardRef} from 'react'
 import {buildOutbreakClosureReadiness,latestCaseReviews} from './liraOutbreakClosure'
-import type { AnyRecord } from '../../types/featureTypes'
-const statusLabel=(s: string,en: boolean)=>({draft:en?'Draft':'Πρόχειρη',active:en?'Active':'Ενεργή',closed:en?'Closed':'Κλειστή'} as Record<string,string>)[s]||s
-const actionStatusLabel=(s: string,en: boolean)=>({open:en?'Open':'Ανοικτή',in_progress:en?'In progress':'Σε εξέλιξη',verification:en?'Verification':'Σε επαλήθευση',closed:en?'Closed':'Κλειστή'} as Record<string,string>)[s]||s
-const classificationLabel=(c: string,en: boolean)=>({suspected:en?'Suspected':'Πιθανό',probable:en?'Probable':'Πιθανολογούμενο',confirmed:en?'Confirmed':'Επιβεβαιωμένο',excluded:en?'Excluded':'Αποκλεισμένο'} as Record<string,string>)[c]||c
-interface LiraOutbreakReportProps { investigation: AnyRecord; lineList: AnyRecord|null; timeline: AnyRecord[]; reviews: AnyRecord[]; actions: AnyRecord[]; events: AnyRecord[]; language?: string }
+import type { OutbreakActionLike, OutbreakCaseReviewLike, OutbreakEventLike, OutbreakInvestigationLike, OutbreakLineListLike, OutbreakTimelineLike } from './liraTypes'
+const statusLabel=(s: string|null|undefined,en: boolean)=>({draft:en?'Draft':'Πρόχειρη',active:en?'Active':'Ενεργή',closed:en?'Closed':'Κλειστή'} as Record<string,string>)[s||'']||s
+const actionStatusLabel=(s: string|null|undefined,en: boolean)=>({open:en?'Open':'Ανοικτή',in_progress:en?'In progress':'Σε εξέλιξη',verification:en?'Verification':'Σε επαλήθευση',closed:en?'Closed':'Κλειστή'} as Record<string,string>)[s||'']||s
+const classificationLabel=(c: string|null|undefined,en: boolean)=>({suspected:en?'Suspected':'Πιθανό',probable:en?'Probable':'Πιθανολογούμενο',confirmed:en?'Confirmed':'Επιβεβαιωμένο',excluded:en?'Excluded':'Αποκλεισμένο'} as Record<string,string>)[c||'']||c
+interface LiraOutbreakReportProps { investigation: OutbreakInvestigationLike; lineList: OutbreakLineListLike|null; timeline: OutbreakTimelineLike[]; reviews: OutbreakCaseReviewLike[]; actions: OutbreakActionLike[]; events: OutbreakEventLike[]; language?: string }
 export const LiraOutbreakReport=forwardRef<HTMLElement,LiraOutbreakReportProps>(function LiraOutbreakReport({investigation,lineList,timeline,reviews,actions,events,language='el'},ref){
  const en=language==='en',closure=buildOutbreakClosureReadiness({lineList,caseReviews:reviews,actions,events}),latest=latestCaseReviews(reviews),closureEvent=[...events].reverse().find(e=>e.event_type==='decision'&&e.payload?.action==='closure_review')
  return <article ref={ref} className="analysis-print-frame"><div className="analysis-report"><div className="analysis-section-title"><div><h2>{en?'Outbreak Investigation Report':'Αναφορά Διερεύνησης Πιθανής Έξαρσης'}</h2><p>{investigation.title} · {investigation.organism||'—'} · {investigation.scope_from||'—'} → {investigation.scope_to||'—'}</p></div><div className="analysis-report-badges"><span className="status-badge">{statusLabel(investigation.status,en)}</span></div></div>

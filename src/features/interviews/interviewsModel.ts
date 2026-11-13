@@ -1,8 +1,9 @@
 // Συνεντεύξεις υποψηφίων: the pipeline of an application, the interview evaluation and
 // the decision. Pure: the screens, the service and the reports read these.
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Candidate, CandidateDecision, CandidateLanguage, Interview, InterviewEmployee, UpcomingInterview } from './interviewsTypes'
 
 type LabelMap = Record<string, string[]> // the labels of each value: [Greek, English]
+export type SkillKey = 'speaking' | 'reading' | 'writing'
 
 export const STATUSES = Object.freeze(['new', 'screening', 'interview_scheduled', 'interviewed', 'offer', 'hired', 'rejected', 'withdrawn'])
 export const OPEN_STATUSES = Object.freeze(['new', 'screening', 'interview_scheduled', 'interviewed', 'offer'])
@@ -20,7 +21,7 @@ export const GENDERS: LabelMap = { male: ['Άνδρας', 'Male'], female: ['Γ�
 export const MILITARY: LabelMap = { done: ['Εκπληρωμένη', 'Completed'], exempt: ['Απαλλαγή', 'Exempt'], not_done: ['Εκκρεμεί', 'Not completed'], not_applicable: ['Δεν αφορά', 'Not applicable'] }
 export const MARITAL: LabelMap = { single: ['Άγαμος/η', 'Single'], married: ['Έγγαμος/η', 'Married'], divorced: ['Διαζευγμένος/η', 'Divorced'], widowed: ['Χήρος/α', 'Widowed'], other: ['Άλλο', 'Other'] }
 // A language is rated in three skills, each on the same scale (FileMaker: ΕΥΧ = ευχερώς, ΜΕΤΡ = μετρίως).
-export const LANGUAGE_SKILLS = Object.freeze([['speaking', 'Ομιλία', 'Speaking'], ['reading', 'Ανάγνωση', 'Reading'], ['writing', 'Γραφή', 'Writing']])
+export const LANGUAGE_SKILLS = Object.freeze([['speaking', 'Ομιλία', 'Speaking'], ['reading', 'Ανάγνωση', 'Reading'], ['writing', 'Γραφή', 'Writing']] as [SkillKey, string, string][])
 export const LEVELS: LabelMap = { fluent: ['Άριστα (ευχερώς)', 'Excellent (fluent)'], very_good: ['Πολύ καλά', 'Very good'], good: ['Καλά', 'Good'], fair: ['Μέτρια', 'Fair'], basic: ['Βασικά', 'Basic'] }
 export const LANGUAGES: LabelMap = { el: ['Ελληνικά', 'Greek'], en: ['Αγγλικά', 'English'], fr: ['Γαλλικά', 'French'], de: ['Γερμανικά', 'German'], it: ['Ιταλικά', 'Italian'], es: ['Ισπανικά', 'Spanish'], sq: ['Αλβανικά', 'Albanian'], ru: ['Ρωσικά', 'Russian'], bg: ['Βουλγαρικά', 'Bulgarian'], ro: ['Ρουμανικά', 'Romanian'], ar: ['Αραβικά', 'Arabic'] }
 export const INTERVIEW_STATUSES: LabelMap = { scheduled: ['Προγραμματισμένη', 'Scheduled'], completed: ['Ολοκληρώθηκε', 'Completed'], cancelled: ['Ακυρώθηκε', 'Cancelled'] }
@@ -49,9 +50,9 @@ export const militaryLabel = (value: Value, language = 'el') => pick(MILITARY, v
 export const maritalLabel = (value: Value, language = 'el') => pick(MARITAL, value, language)
 export const levelLabel = (value: Value, language = 'el') => pick(LEVELS, value, language)
 export const languageLabel = (value: Value, language = 'el') => pick(LANGUAGES, value, language)
-export const certificateLabel = (row: AnyRecord | null | undefined, language = 'el') => (row?.certificate ? [language === 'en' ? 'Certificate' : 'Πιστοποιητικό', row.certificateName].filter(Boolean).join(': ') : row?.certificate === false ? (language === 'en' ? 'No certificate' : 'Χωρίς πιστοποιητικό') : '')
+export const certificateLabel = (row: Pick<Partial<CandidateLanguage>, 'certificate' | 'certificateName'> | null | undefined, language = 'el') => (row?.certificate ? [language === 'en' ? 'Certificate' : 'Πιστοποιητικό', row.certificateName].filter(Boolean).join(': ') : row?.certificate === false ? (language === 'en' ? 'No certificate' : 'Χωρίς πιστοποιητικό') : '')
 // «Αγγλικά — Ομιλία: Άριστα (ευχερώς) · Ανάγνωση: Καλά · Γραφή: Καλά · Πιστοποιητικό: B2»
-export function languageSkillsText(row: AnyRecord | null | undefined, language = 'el') {
+export function languageSkillsText(row: Partial<CandidateLanguage> | null | undefined, language = 'el') {
   const skills = LANGUAGE_SKILLS.filter(([key]) => row?.[key]).map(([key, el, en]) => `${language === 'en' ? en : el}: ${levelLabel(row?.[key], language)}`)
   return `${languageLabel(row?.language, language)} — ${[...skills, certificateLabel(row, language)].filter(Boolean).join(' · ') || '—'}`
 }
@@ -89,15 +90,15 @@ export const ratingTone = (value: number | null | undefined) => (value == null ?
 export const fmtRating = (value: unknown, language = 'el') => (value == null || value === '' ? '—' : `${Number(value).toLocaleString(language === 'en' ? 'en-GB' : 'el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5`)
 
 // How many applications are at each step of the pipeline.
-export function pipelineCounts(candidates: AnyRecord[] = []): Record<string, number> {
+export function pipelineCounts(candidates: Candidate[] = []): Record<string, number> {
   const counts: Record<string, number> = Object.fromEntries(STATUSES.map(status => [status, 0]))
   for (const item of candidates) if (item.status in counts) counts[item.status] += 1
   return { ...counts, total: candidates.length, open: OPEN_STATUSES.reduce((sum, status) => sum + counts[status], 0) }
 }
-export const positionsOf = (candidates: AnyRecord[]) => [...new Set(candidates.map(item => String(item.requestedPosition || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
+export const positionsOf = (candidates: Candidate[]) => [...new Set(candidates.map(item => String(item.requestedPosition || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
 
 const fold = (value: unknown) => String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-export function filterCandidates(candidates: AnyRecord[] = [], { query = '', status = 'all', position = 'all', source = 'all' }: { query?: string, status?: string, position?: string, source?: string } = {}) {
+export function filterCandidates(candidates: Candidate[] = [], { query = '', status = 'all', position = 'all', source = 'all' }: { query?: string, status?: string, position?: string, source?: string } = {}) {
   const needle = fold(query).trim()
   return candidates.filter(item => (status === 'all' || (status === 'open' ? OPEN_STATUSES.includes(item.status) : item.status === status))
     && (position === 'all' || String(item.requestedPosition || '').trim() === position)
@@ -106,16 +107,16 @@ export function filterCandidates(candidates: AnyRecord[] = [], { query = '', sta
 }
 
 // An application's interviews in order, the next one to come and the latest evaluated.
-export const sortedInterviews = (candidate: AnyRecord | null | undefined): AnyRecord[] => [...(candidate?.interviews || [])].sort((a, b) => String(a.scheduledAt || a.evaluatedAt || a.createdAt || '').localeCompare(String(b.scheduledAt || b.evaluatedAt || b.createdAt || '')))
-export function nextInterview(candidate: AnyRecord | null | undefined, now = new Date().toISOString()) {
+export const sortedInterviews = (candidate: Candidate | null | undefined): Interview[] => [...(candidate?.interviews || [])].sort((a, b) => String(a.scheduledAt || a.evaluatedAt || a.createdAt || '').localeCompare(String(b.scheduledAt || b.evaluatedAt || b.createdAt || '')))
+export function nextInterview(candidate: Candidate | null | undefined, now = new Date().toISOString()) {
   return sortedInterviews(candidate).find(item => item.status === 'scheduled' && item.scheduledAt && item.scheduledAt >= now.slice(0, 16)) || sortedInterviews(candidate).find(item => item.status === 'scheduled') || null
 }
-export function latestEvaluation(candidate: AnyRecord | null | undefined) {
+export function latestEvaluation(candidate: Candidate | null | undefined) {
   return [...sortedInterviews(candidate)].reverse().find(item => item.status === 'completed') || null
 }
 // The interviews to come, across all applications.
-export function upcomingInterviews(candidates: AnyRecord[] = [], now = new Date().toISOString()) {
-  return candidates.flatMap(candidate => (candidate.interviews || []).filter((item: AnyRecord) => item.status === 'scheduled' && item.scheduledAt && item.scheduledAt >= now.slice(0, 10)).map((item: AnyRecord) => ({ ...item, candidate })))
+export function upcomingInterviews(candidates: Candidate[] = [], now = new Date().toISOString()): UpcomingInterview[] {
+  return candidates.flatMap(candidate => (candidate.interviews || []).filter(item => item.status === 'scheduled' && item.scheduledAt && item.scheduledAt >= now.slice(0, 10)).map(item => ({ ...item, candidate })))
     .sort((a, b) => String(a.scheduledAt).localeCompare(String(b.scheduledAt)))
 }
 
@@ -123,11 +124,11 @@ export function upcomingInterviews(candidates: AnyRecord[] = [], now = new Date(
 const RANK: Record<string, number> = { new: 0, screening: 1, interview_scheduled: 2, interviewed: 3, offer: 4, hired: 5, rejected: 5, withdrawn: 5 }
 export const statusAfterSchedule = (current: string) => (RANK[current] < RANK.interview_scheduled ? 'interview_scheduled' : current)
 export const statusAfterEvaluation = (current: string) => (RANK[current] < RANK.interviewed ? 'interviewed' : current)
-export const statusAfterDecision = (decision: string, current: string) => (current === 'hired' ? 'hired' : decision === 'hire' ? 'offer' : decision === 'reject' ? 'rejected' : decision === 'reserve' ? (RANK[current] < RANK.interviewed ? current : 'interviewed') : current)
+export const statusAfterDecision = (decision: string | undefined, current: string) => (current === 'hired' ? 'hired' : decision === 'hire' ? 'offer' : decision === 'reject' ? 'rejected' : decision === 'reserve' ? (RANK[current] < RANK.interviewed ? current : 'interviewed') : current)
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // What is missing before an application can be saved.
-export function candidateProblems(candidate: AnyRecord, language = 'el', today = todayKey()) {
+export function candidateProblems(candidate: Candidate, language = 'el', today = todayKey()) {
   const en = language === 'en'
   const out: string[] = []
   if (!String(candidate.fullName || '').trim()) out.push(en ? 'full name' : 'ονοματεπώνυμο')
@@ -139,18 +140,18 @@ export function candidateProblems(candidate: AnyRecord, language = 'el', today =
   return out
 }
 // A scheduled interview needs its date and time; an evaluation scores and an outcome.
-export function interviewProblems(interview: AnyRecord, language = 'el', { evaluation = false } = {}) {
+export function interviewProblems(interview: Interview, language = 'el', { evaluation = false } = {}) {
   const en = language === 'en'
   const out: string[] = []
   if (!evaluation && !interview.scheduledAt) out.push(en ? 'date and time' : 'ημερομηνία και ώρα')
   if (evaluation) {
     if (overallRating(interview.scores) == null) out.push(en ? 'at least one score' : 'τουλάχιστον μία βαθμολογία')
     if (!interview.outcome) out.push(en ? 'the recommendation' : 'την πρόταση')
-    if (!(interview.interviewers || []).some((item: AnyRecord) => String(item.name || '').trim())) out.push(en ? 'an evaluator' : 'αξιολογητή')
+    if (!(interview.interviewers || []).some(item => String(item.name || '').trim())) out.push(en ? 'an evaluator' : 'αξιολογητή')
   }
   return out
 }
-export function decisionProblems(draft: AnyRecord, language = 'el') {
+export function decisionProblems(draft: CandidateDecision, language = 'el') {
   const en = language === 'en'
   const out: string[] = []
   if (!draft.decision) out.push(en ? 'the decision' : 'την απόφαση')
@@ -159,14 +160,14 @@ export function decisionProblems(draft: AnyRecord, language = 'el') {
   return out
 }
 
-export const newCandidate = (today = todayKey()): AnyRecord => ({ id: '', code: '', fullName: '', gender: '', fatherName: '', motherName: '', birthDate: '', birthPlace: '', nationality: '', citizenship: '', idNumber: '', idAuthority: '', idIssuedOn: '',
+export const newCandidate = (today = todayKey()): Candidate => ({ id: '', code: '', fullName: '', gender: '', fatherName: '', motherName: '', birthDate: '', birthPlace: '', nationality: '', citizenship: '', idNumber: '', idAuthority: '', idIssuedOn: '',
   address: '', area: '', postcode: '', phoneLandline: '', phoneMobile: '', email: '', requestedPosition: '', employmentType: '', militaryService: '', workPermit: null, practiceLicence: null, smoker: null,
   maritalStatus: '', children: '', educationLevel: '', education: [], itSkills: '', activities: '', whyUs: '', applicationReason: '', appliedOn: today, consentGiven: false, consentAt: '', consentText: '',
   status: 'new', decision: '', decisionOn: '', decisionByName: '', decisionNotes: '', employeeId: '', source: 'app', notes: '', languages: [], employers: [], interviews: [] })
 export const newEducation = () => ({ level: '', school: '', title: '', year: '', completed: true })
 export const newLanguage = () => ({ id: '', language: '', reading: '', writing: '', speaking: '', certificate: null, certificateName: '' })
 export const newEmployer = () => ({ id: '', employer: '', fromOn: '', toOn: '', jobTitle: '', salary: '', leavingReason: '' })
-export const newInterview = (candidateId: string): AnyRecord => ({ id: '', candidateId, scheduledAt: '', location: '', status: 'scheduled', interviewers: [], scores: {}, overallRating: null, outcome: '', recommendation: '', strengths: '', weaknesses: '', salaryExpectation: '', offeredSalary: '', benefits: '', availableFrom: '', evaluatedAt: '', evaluatedByName: '', notes: '', source: 'app' })
+export const newInterview = (candidateId: string): Interview => ({ id: '', candidateId, scheduledAt: '', location: '', status: 'scheduled', interviewers: [], scores: {}, overallRating: null, outcome: '', recommendation: '', strengths: '', weaknesses: '', salaryExpectation: '', offeredSalary: '', benefits: '', availableFrom: '', evaluatedAt: '', evaluatedByName: '', notes: '', source: 'app' })
 
 // The employee a hired candidate becomes: «ΕΠΩΝΥΜΟ ΟΝΟΜΑ» as the registry writes it.
 export function splitFullName(fullName: unknown) {
@@ -174,12 +175,12 @@ export function splitFullName(fullName: unknown) {
   if (parts.length < 2) return { lastName: parts[0] || '', firstName: '' }
   return { lastName: parts[0], firstName: parts.slice(1).join(' ') }
 }
-export function employeeDraftFor(candidate: AnyRecord, today = todayKey()) {
+export function employeeDraftFor(candidate: Candidate, today = todayKey()) {
   const { firstName, lastName } = splitFullName(candidate.fullName)
   return { employeeCode: '', firstName, lastName, fatherName: candidate.fatherName || '', email: candidate.email || '', phone: candidate.phoneMobile || candidate.phoneLandline || '', birthDate: candidate.birthDate || '', position: candidate.requestedPosition || '', department: '', profession: '', employmentStatus: 'active', hireDate: today }
 }
 // An employee already in the registry with the candidate's name (either order) or email.
-export function matchingEmployees(candidate: AnyRecord, employees: AnyRecord[] = []) {
+export function matchingEmployees<T extends Pick<InterviewEmployee, 'firstName' | 'lastName' | 'email'>>(candidate: Candidate, employees: T[] = []) {
   const name = fold(candidate.fullName).replace(/\s+/g, ' ').trim()
   const email = fold(candidate.email).trim()
   return employees.filter(item => {

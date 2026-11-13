@@ -2,12 +2,12 @@ import { demoOffsetDays, shiftDemoMonth } from '../../core/data/demoClock'
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { DEMO_WARDS, demoMonthlyPatientDays, lastDayOfMonth, pad2 } from '../../core/data/demoSeed'
 import { EODY_CATALOGUE, EODY_SOURCE, EODY_SOURCE_VERSION } from '../reporting/eodyCatalogue'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EnvironmentalStandard, LibraryMeta, PatientDayPeriod } from './managementTypes'
 
 // Εγγραφή βιβλιοθήκης όπως τη δείχνουν οι οθόνες: [ελληνικά, αγγλικά, στοιχεία].
-export type LibraryTuple = [string, string, AnyRecord]
+export type LibraryTuple = [string, string, LibraryMeta]
 // Οι βιβλιοθήκες του Demo: όλες λίστες εγγραφών, εκτός από τα πρωτόκολλα περιβάλλοντος (αντικείμενα).
-export type LibrarySeed = Record<'departments'|'positions'|'professionalCategories'|'microorganisms'|'antibiotics'|'deviceTypes'|'surveillanceDefinitions'|'advancedAntibiotics'|'notifiableDiseases'|'sampleTypes'|'controlTypes'|'measurementUnits'|'incidentCategories'|'controlAnswers'|'itemForms'|'medicinesSupplies'|'equipment'|'environmentalLocations'|'surfacePoints'|'documentTypes', LibraryTuple[]> & { environmentalStandards: AnyRecord[] }
+export type LibrarySeed = Record<'departments'|'positions'|'professionalCategories'|'microorganisms'|'antibiotics'|'deviceTypes'|'surveillanceDefinitions'|'advancedAntibiotics'|'notifiableDiseases'|'sampleTypes'|'controlTypes'|'measurementUnits'|'incidentCategories'|'controlAnswers'|'itemForms'|'medicinesSupplies'|'equipment'|'environmentalLocations'|'surfacePoints'|'documentTypes', LibraryTuple[]> & { environmentalStandards: EnvironmentalStandard[] }
 const SYS=(source: string,version='current')=>({system:true,locked:true,source,version})
 const LOCAL=()=>({system:false,locked:false,source:'Hospital',version:'local'})
 
@@ -306,7 +306,7 @@ const WARD_EN: Record<string,string>={ΜΕΘ:'ICU',Παθολογική:'Interna
 // rates exist for every month. Values come from the same table Prevention uses.
 export const demoPatientDayPeriods = (() => {
   const shift = Math.round(demoOffsetDays() / 30.4375)
-  const today = new Date(), rows: AnyRecord[] = []
+  const today = new Date(), rows: PatientDayPeriod[] = []
   // From January 2025 on (owner, 9/11/2026), at least thirteen months.
   const since2025 = Math.max(12, (today.getFullYear() - 2025) * 12 + today.getMonth())
   for (let back = since2025; back >= 0; back--) {

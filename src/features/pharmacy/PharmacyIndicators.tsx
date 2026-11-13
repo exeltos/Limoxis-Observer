@@ -40,7 +40,7 @@ export function PharmacyIndicators({ organizationId, en, onRows, totals = null }
       const [metrics, definitions, snapshots] = await Promise.all([collectCloudIndicatorMetrics(organizationId, { from, to }), loadOperationalIndicatorDefinitions(organizationId, { from, to }), loadIndicatorSnapshots(organizationId, {})])
       const rows = definitions.filter((def: IndicatorDefinition) => def.category === 'pharmacy').map((def: IndicatorDefinition) => calculateCloudDefinition(def, metrics || {}))
       const keys = new Set(rows.map((row: IndicatorRow) => row.id))
-      setState({ loading: false, rows, history: (snapshots || []).filter((s: IndicatorSnapshot) => keys.has(s.indicator_key) && s.status === 'approved').sort((a: IndicatorSnapshot, b: IndicatorSnapshot) => String(b.period_start).localeCompare(String(a.period_start))) })
+      setState({ loading: false, rows, history: (snapshots || []).filter((s: IndicatorSnapshot) => keys.has(s.indicator_key||'') && s.status === 'approved').sort((a: IndicatorSnapshot, b: IndicatorSnapshot) => String(b.period_start).localeCompare(String(a.period_start))) })
     } catch (error) {
       setState({ loading: false, rows: [], history: [] })
       notifyError(error, 'load', { operation: 'pharmacy_indicators_load' })
@@ -86,7 +86,7 @@ export function PharmacyIndicators({ organizationId, en, onRows, totals = null }
     {Boolean(state.history.length) && <div className="scroll-table" tabIndex={0} role="region" aria-label={en ? 'Approved results' : 'Εγκεκριμένα αποτελέσματα'}>
       <table className="data-table sticky-table">
         <thead><tr><th>{en ? 'Approved results by period' : 'Εγκεκριμένα αποτελέσματα ανά περίοδο'}</th><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Result' : 'Αποτέλεσμα'}</th><th>{en ? 'Numerator / denominator' : 'Αριθμητής / παρονομαστής'}</th></tr></thead>
-        <tbody>{state.history.map(s => <tr key={s.id}><td>{titleOf(s.indicator_key)}</td><td>{fmtDay(s.period_start)} – {fmtDay(s.period_end)}</td><td><strong>{fmtNumber(s.value, en)}</strong> {s.unit || ''}</td><td>{s.denominator == null ? fmtNumber(s.numerator, en) : `${fmtNumber(s.numerator, en)} / ${fmtNumber(s.denominator, en)}`}</td></tr>)}</tbody>
+        <tbody>{state.history.map(s => <tr key={s.id}><td>{titleOf(s.indicator_key||'')}</td><td>{fmtDay(s.period_start)} – {fmtDay(s.period_end)}</td><td><strong>{fmtNumber(s.value, en)}</strong> {s.unit || ''}</td><td>{s.denominator == null ? fmtNumber(s.numerator, en) : `${fmtNumber(s.numerator, en)} / ${fmtNumber(s.denominator, en)}`}</td></tr>)}</tbody>
       </table>
     </div>}
   </>

@@ -25,6 +25,7 @@ import { loadCommittees } from '../committees/committeeData'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { TARGETS,executiveKpis,judgedByTarget,filtersToQuery,parseFilters,periodRange,previousRange,indicatorRates,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
+import type { OperationalIndicator } from '../indicators/indicatorTypes'
 import { loadObjectives } from '../quality/review/reviewService'
 import { loadExecutiveParts,loadGovernanceStatus,loadPatientDayDepartments,separateMdrPatients } from './executiveService'
 import { departmentGrid,departmentProfile,patientDaysIn,rateMeasures,separateHai,summaryHighlights,yearAgoRange } from './executiveInsights'
@@ -129,7 +130,7 @@ export function ExecutiveDashboardPage(){
  // Hand hygiene, bundles and training: the value of the platform's indicators for the period (the same as in «Δείκτες & Στόχοι»).
  const [rates,setRates]=useState<{now: AnyRecord,before: AnyRecord,key: string}>({now:{},before:{},key:''})
  const ratesKey=[organizationId,range.from,range.to,previous?.from,previous?.to,department,previousDepartment].join('|')
- useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;(async()=>{const definitions=await loadOperationalIndicatorDefinitions(organizationId).catch(()=>[]);const at=async(period: DayRange|null,departmentId: string)=>{if(!period)return {};const metrics=await collectCloudIndicatorMetrics(organizationId,{from:period.from,to:period.to,departmentId:departmentId||null}).catch(()=>null);return metrics?indicatorRates(definitions,(def: AnyRecord)=>calculateCloudDefinition(def,metrics).value):{}};const [now,before]=await Promise.all([at(range,department),at(previous,previousDepartment)]);if(live)setRates({now,before,key:ratesKey})})();return()=>{live=false}},[isDemo,organizationId,range,previous,department,previousDepartment,ratesKey])
+ useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;(async()=>{const definitions=await loadOperationalIndicatorDefinitions(organizationId).catch(()=>[]);const at=async(period: DayRange|null,departmentId: string)=>{if(!period)return {};const metrics=await collectCloudIndicatorMetrics(organizationId,{from:period.from,to:period.to,departmentId:departmentId||null}).catch(()=>null);return metrics?indicatorRates(definitions,(def: AnyRecord)=>calculateCloudDefinition(def as unknown as OperationalIndicator,metrics).value):{}};const [now,before]=await Promise.all([at(range,department),at(previous,previousDepartment)]);if(live)setRates({now,before,key:ratesKey})})();return()=>{live=false}},[isDemo,organizationId,range,previous,department,previousDepartment,ratesKey])
  const snapshot=useMemo(()=>snapshotOf(current),[current])
  const governance=ready(current.governance)?current.governance.data as AnyRecord:null
  const previousSnapshot=useMemo(()=>(previous&&['domains','people','qualityFood','microbiology'].every(key=>ready(before[key]))?snapshotOf(before):null),[previous,before])

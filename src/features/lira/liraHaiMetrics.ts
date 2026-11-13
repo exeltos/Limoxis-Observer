@@ -1,9 +1,9 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LiraDeviceRow, LiraHaiRow } from './liraTypes'
 import type { LiraTimeWindow } from './liraTime'
 const normalize=(value: unknown)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/ς/g,'σ')
 const dayMs=86400000
-const utcDay=(value: string)=>{const date=new Date(value);return Number.isFinite(date.getTime())?new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate())):null}
+const utcDay=(value: string|null|undefined)=>{const date=new Date(value as string);return Number.isFinite(date.getTime())?new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate())):null}
 const rangeDay=(value: string)=>utcDay(`${value}T00:00:00Z`)
 
 interface HaiDeviceRule { hai: string[]; device: string[]; denominator: string }
@@ -19,11 +19,14 @@ const matchesHai=(value: unknown,type: string)=>HAI_DEVICE_RULES[type]?.hai.some
 const matchesDevice=(value: unknown,type: string)=>HAI_DEVICE_RULES[type]?.device.some(term=>normalize(value).includes(normalize(term)))
 // Device-day denominator key for a free-text device name (EL or EN), e.g. 'Ουροκαθετήρας (Foley)' -> 'cauti'.
 export function deviceRuleKey(value: unknown){for(const type of ['clabsi','cauti','vap'])if(matchesDevice(value,type))return type;return null}
-const inWindow=(value: string,window: LiraTimeWindow|null)=>{if(!window)return true;const date=utcDay(value);return date&&date>=rangeDay(window.start)!&&date<=rangeDay(window.end)!}
+const inWindow=(value: string|null|undefined,window: LiraTimeWindow|null)=>{if(!window)return true;const date=utcDay(value);return date&&date>=rangeDay(window.start)!&&date<=rangeDay(window.end)!}
 
 // Επιλογές των δεικτών ΛΣΦΥ: διάστημα, τμήμα, ημέρα αναφοράς.
+// Ό,τι χρειάζονται οι δείκτες ΛΣΦΥ: ταξινομήσεις και συσκευές (ταιριάζουν και οι πηγές ημερών συσκευής).
+type HaiRateDevice = Pick<LiraDeviceRow,'department'|'deviceType'|'insertedAt'|'removedAt'>
+export interface HaiRateData { haiClassifications?: Pick<LiraHaiRow,'department'|'haiType'|'criteriaMet'|'classifiedAt'>[], devices?: HaiRateDevice[] }
 export interface HaiRateOptions { window?: LiraTimeWindow|null; department?: string; today?: string }
-export function calculateDeviceDays(devices: AnyRecord[]|null|undefined,type: string,{window=null,department='all',today=hospitalToday()}: HaiRateOptions={}){
+export function calculateDeviceDays(devices: HaiRateDevice[]|null|undefined,type: string,{window=null,department='all',today=hospitalToday()}: HaiRateOptions={}){
  const rule=HAI_DEVICE_RULES[type];if(!rule)return 0
  const windowStart=window?rangeDay(window.start):null;const windowEnd=window?rangeDay(window.end):rangeDay(today);let total=0
  for(const row of devices||[]){if(department!=='all'&&row.department!==department)continue;if(!matchesDevice(row.deviceType,type))continue
@@ -33,14 +36,14 @@ export function calculateDeviceDays(devices: AnyRecord[]|null|undefined,type: st
  return total
 }
 
-export function calculateHaiRate(data: AnyRecord|null|undefined,type: string,{window=null,department='all',today=hospitalToday()}: HaiRateOptions={}){
+export function calculateHaiRate(data: HaiRateData|null|undefined,type: string,{window=null,department='all',today=hospitalToday()}: HaiRateOptions={}){
  const rule=HAI_DEVICE_RULES[type];if(!rule)return null
- const events=(data?.haiClassifications||[]).filter((row: AnyRecord)=>(department==='all'||row.department===department)&&matchesHai(row.haiType,type)&&row.criteriaMet!==false&&inWindow(row.classifiedAt,window))
+ const events=(data?.haiClassifications||[]).filter(row=>(department==='all'||row.department===department)&&matchesHai(row.haiType,type)&&row.criteriaMet!==false&&inWindow(row.classifiedAt,window))
  const deviceDays=calculateDeviceDays(data?.devices,type,{window,department,today});const rate=deviceDays>0?Math.round(events.length/deviceDays*1000*100)/100:null
  return {type,events:events.length,deviceDays,rate,unit:` / 1,000 ${rule.denominator}`,denominatorLabel:rule.denominator,normalized:deviceDays>0}
 }
 
-export function compareHaiRates(data: AnyRecord,type: string,current: LiraTimeWindow,reference: LiraTimeWindow,{department='all',today=hospitalToday(),language='el'}: HaiRateOptions&{language?: string}={}){
+export function compareHaiRates(data: HaiRateData,type: string,current: LiraTimeWindow,reference: LiraTimeWindow,{department='all',today=hospitalToday(),language='el'}: HaiRateOptions&{language?: string}={}){
  const en=language==='en';const a=calculateHaiRate(data,type,{window:current,department,today})!;const b=calculateHaiRate(data,type,{window:reference,department,today})!;const points=[]
  points.push(`${current.label}: ${a.rate??'—'}${a.unit} (${a.events}/${a.deviceDays}) · ${reference.label}: ${b.rate??'—'}${b.unit} (${b.events}/${b.deviceDays}).`)
  if(a.rate!=null&&b.rate!=null){const delta=Math.round((a.rate-b.rate)*100)/100;points.push(en?`Rate difference: ${delta>0?'+':''}${delta} per 1,000 ${a.denominatorLabel}.`:`Διαφορά δείκτη: ${delta>0?'+':''}${delta} ανά 1.000 ${a.denominatorLabel}.`)}

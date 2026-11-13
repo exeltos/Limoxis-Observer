@@ -9,7 +9,8 @@ import { BarList,ChartCard,Scoreboard,TrendChart } from './AnalysisCharts'
 import { ScopeComparison } from './AnalysisPanels'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import type { MetricRow } from './analysisPageModel'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
+import type { DomainMetrics } from './analysisTypes'
 
 // What analysis_training_metrics returns (counts and [key, ...counts] rows).
 interface TrainingDetails { assignments: number; completed: number; overdue: number; programs: number; completedInPeriod: number; trainees: number; personHours: number; averageHoursPerTrainee: number|null; missingDurationCompletions: number; hoursCoverage: number|null; byDepartment: MetricRow[]; hoursByDepartment: MetricRow[]; byProgram: MetricRow[]; byEmployee: MetricRow[]; byProfession: MetricRow[]; monthlyHours: MetricRow[] }
@@ -71,16 +72,16 @@ export function TrainingAnalyticsReport({organizationId='',range,departmentId=''
  },[organizationId,rangeFrom,rangeTo,departmentId,compareFrom,compareTo])
 
  const rows=kpiRows(details,tx,en),compareRows=compare?kpiRows(compare,tx,en):[]
- const hoursByDepartment=useMemo(()=>new Map<string,AnyRecord>((details.hoursByDepartment||[]).map(([name,completed,trainees,hours,avg])=>[name,{completed:n(completed),trainees:n(trainees),hours:n(hours),avg:n(avg)}])),[details.hoursByDepartment])
+ const hoursByDepartment=useMemo(()=>new Map<string,DomainMetrics>((details.hoursByDepartment||[]).map(([name,completed,trainees,hours,avg])=>[name,{completed:n(completed),trainees:n(trainees),hours:n(hours),avg:n(avg)}])),[details.hoursByDepartment])
  const departmentRows=useMemo(()=>(details.byDepartment||[]).map(([name,assigned,completed])=>{const h=hoursByDepartment.get(name)||{};return {key:name,name,assigned:n(assigned),completed:n(completed),completion:pct(completed,assigned),trainees:h.trainees??0,hours:h.hours??0,avgHours:h.avg??0}}),[details.byDepartment,hoursByDepartment])
  const programRows=useMemo(()=>details.byProgram||[],[details.byProgram])
  // «Αναλυτικά ανά εκπαίδευση» (owner, 8/11/2026: not every session): one row per training (BLS-AED held eight times is one
  // row), the most person-hours first; the Excel keeps every session.
- const programGroups=useMemo(()=>{const groups=new Map<string,AnyRecord>();for(const [,title,,assigned,completed,,trainees,hours,overdue] of programRows){const key=String(title||'—').trim();const group=groups.get(key)||{title:key,sessions:0,assigned:0,completed:0,trainees:0,hours:0,overdue:0};group.sessions+=1;group.assigned+=n(assigned);group.completed+=n(completed);group.trainees+=n(trainees);group.hours+=n(hours);group.overdue+=n(overdue);groups.set(key,group)}return [...groups.values()].sort((a,b)=>b.hours-a.hours||a.title.localeCompare(b.title,'el'))},[programRows])
+ const programGroups=useMemo(()=>{const groups=new Map<string,DomainMetrics>();for(const [,title,,assigned,completed,,trainees,hours,overdue] of programRows){const key=String(title||'—').trim();const group=groups.get(key)||{title:key,sessions:0,assigned:0,completed:0,trainees:0,hours:0,overdue:0};group.sessions+=1;group.assigned+=n(assigned);group.completed+=n(completed);group.trainees+=n(trainees);group.hours+=n(hours);group.overdue+=n(overdue);groups.set(key,group)}return [...groups.values()].sort((a,b)=>b.hours-a.hours||a.title.localeCompare(b.title,'el'))},[programRows])
  const employeeRows=useMemo(()=>details.byEmployee||[],[details.byEmployee])
  const filteredEmployees=useMemo(()=>{const q=employeeQuery.trim().toLocaleLowerCase('el');if(!q)return employeeRows;return employeeRows.filter(([,name,department,profession])=>`${name} ${department} ${profession}`.toLocaleLowerCase('el').includes(q))},[employeeRows,employeeQuery])
  // One bar per kind of training (BLS-AED held eight times is one bar), with how many people were trained in it.
- const topPrograms=useMemo(()=>{const groups=new Map<string,AnyRecord>();for(const [,title,,,,,trainees,hours] of programRows){if(!title)continue;const key=String(title).trim();const group=groups.get(key)||{hours:0,trainees:0};group.hours+=n(hours);group.trainees+=n(trainees);groups.set(key,group)}return [...groups.entries()].map(([title,group])=>[`${title} · ${Math.round(group.trainees)} ${tx('συμμετοχές','participations')}`,Math.round(group.hours*10)/10]).sort((a: MetricRow,b: MetricRow)=>b[1]-a[1]).slice(0,12)},[programRows]) // eslint-disable-line react-hooks/exhaustive-deps
+ const topPrograms=useMemo(()=>{const groups=new Map<string,DomainMetrics>();for(const [,title,,,,,trainees,hours] of programRows){if(!title)continue;const key=String(title).trim();const group=groups.get(key)||{hours:0,trainees:0};group.hours+=n(hours);group.trainees+=n(trainees);groups.set(key,group)}return [...groups.entries()].map(([title,group])=>[`${title} · ${Math.round(group.trainees)} ${tx('συμμετοχές','participations')}`,Math.round(group.hours*10)/10]).sort((a: MetricRow,b: MetricRow)=>b[1]-a[1]).slice(0,12)},[programRows]) // eslint-disable-line react-hooks/exhaustive-deps
  // No names here: how many employees are in each band of training hours.
  const hourBands=useMemo(()=>{const bands: [string,number,number][]=[[tx('Έως 5 ώρες','Up to 5 hours'),0,5],[tx('5–10 ώρες','5–10 hours'),5,10],[tx('10–20 ώρες','10–20 hours'),10,20],[tx('Πάνω από 20 ώρες','Over 20 hours'),20,Infinity]];return bands.map(([label,from,to])=>[label,employeeRows.filter(([,name,,,,,,hours])=>name&&n(hours)>from&&n(hours)<=to).length]).filter((row: MetricRow)=>row[1]>0)},[employeeRows]) // eslint-disable-line react-hooks/exhaustive-deps
  const professionHours=(details.byProfession||[]).map(([profession,,,hours])=>[profession,n(hours)]).slice(0,12)

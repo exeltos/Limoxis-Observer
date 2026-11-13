@@ -10,7 +10,7 @@ import { applicationPath, formatCode } from './applicationModel'
 import { cancelApplicationLink, createApplicationLink, interviewsErrorMessage } from './interviewsService'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { EMPLOYMENT_TYPES, PROFESSIONAL_CATEGORIES, categoryLabel, employmentLabel, fmtStamp } from './interviewsModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ApplicationLink } from './interviewsTypes'
 
 // The QR code is drawn in the browser: the link is never sent elsewhere to draw it.
 function LinkQr({ text, label }: { text: string, label: string }) {
@@ -36,7 +36,7 @@ export function ApplicationLinkDialog({ organizationId, positions = [], onClose 
   const [position, setPosition] = useState('')
   const [category, setCategory] = useState('')
   const [employment, setEmployment] = useState('')
-  const [link, setLink] = useState<AnyRecord | null>(null)
+  const [link, setLink] = useState<ApplicationLink | null>(null)
   const [busy, setBusy] = useState(false)
   const url = link ? `${window.location.origin}${applicationPath(link.token)}` : ''
   async function create() {
