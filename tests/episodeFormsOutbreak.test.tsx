@@ -6,10 +6,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { LanguageProvider, translate } from '../src/core/i18n/LanguageContext'
 import { outbreakSection, outbreakText } from '../src/features/surveillance/forms/sections/outbreakSection'
 import { loadPatientOutbreakLinks } from '../src/features/lira/liraPatientLinks'
+import type { EpisodeFormsCtx } from '../src/features/surveillance/forms/formTypes'
 
 const t = key => translate(key, 'el')
 const link = { id: 'inv-1', title: 'Klebsiella pneumoniae CPE', status: 'active', department: 'ΜΕΘ', departmentEn: 'ICU', from: '2026-10-05', cases: 4 }
-const ctx = { role: 'infection_control_lead', language: 'el', t, has: () => true, patient: { id: 'PT-260184', recordId: 'p1' }, goTo: vi.fn() }
+const ctx: EpisodeFormsCtx = { role: 'infection_control_lead', language: 'el', t, has: () => true, patient: { id: 'PT-260184', recordId: 'p1' }, goTo: vi.fn() } as never
 
 describe('«Συνδέεται με έξαρση»', () => {
   it('is visible to the roles that read the outbreak investigations and to no one else', () => {
