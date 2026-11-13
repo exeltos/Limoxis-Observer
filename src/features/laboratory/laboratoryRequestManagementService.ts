@@ -1,6 +1,6 @@
 import { cloudClient } from '../../core/supabase/cloudContext'
 import type { TablesUpdate } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LabSample } from './laboratoryTypes'
 
 async function currentUserId(){const supabase=cloudClient();const {data,error}=await supabase.auth.getUser();if(error)throw error;const id=data?.user?.id;if(!id)throw new Error('Authenticated user is required.');return id}
 
@@ -15,7 +15,7 @@ async function assertEditableRequest(organizationId: string,sampleRecordId: stri
   return sample
 }
 
-export async function updateLaboratoryRequest(organizationId: string,sampleRecordId: string,patch: AnyRecord={}){
+export async function updateLaboratoryRequest(organizationId: string,sampleRecordId: string,patch: {source?: string|null,priority?: string|null,sampleType?: string|null}={}){
   await assertEditableRequest(organizationId,sampleRecordId)
   const supabase=cloudClient()
   const actorId=await currentUserId()
@@ -45,6 +45,6 @@ export async function deleteLaboratoryRequest(organizationId: string,sampleRecor
   return true
 }
 
-export function laboratoryRequestEditable(sample: AnyRecord|null|undefined){
+export function laboratoryRequestEditable(sample: Pick<LabSample,'recordId'|'status'|'receivedAt'|'finalizedAt'|'result'>|null|undefined){
   return Boolean(sample?.recordId&&sample.status==='requested'&&!sample.receivedAt&&!sample.finalizedAt&&!sample.result)
 }

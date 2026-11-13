@@ -4,9 +4,9 @@
 // patient with no episode and no decision yet shows in the worklist; negatives never do
 // (they stay in the list as the denominators of the indicators).
 import { ROLES } from '../../core/permissions/roles'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LabSample } from './laboratoryTypes'
 
-type Sample = AnyRecord | null | undefined
+type Sample = Partial<LabSample> | null | undefined
 
 export const REVIEW_STATUS = Object.freeze({ EPISODE_OPENED: 'episode_opened', NO_SURVEILLANCE: 'no_surveillance_needed' })
 
@@ -34,7 +34,7 @@ export function isAlertSample(sample: Sample) {
 // A patient sample with no episode and no decision.
 export function needsSurveillanceReview(sample: Sample) {
   if (!sample || (sample.subjectType && sample.subjectType !== 'patient')) return false
-  if (['rejected', 'cancelled'].includes(sample.status)) return false
+  if ((['rejected', 'cancelled'] as unknown[]).includes(sample.status)) return false
   if (sample.surveillanceCase || sample.surveillanceCaseId) return false
   if (sample.surveillanceReviewStatus) return false
   // A follow-up code (`<sample>-R<n>`) is requested from an episode: it already has one.
@@ -42,7 +42,7 @@ export function needsSurveillanceReview(sample: Sample) {
   return isAlertSample(sample)
 }
 
-export const samplesAwaitingReview = (samples: AnyRecord[] = []) => samples.filter(needsSurveillanceReview)
+export const samplesAwaitingReview = <T extends Partial<LabSample>>(samples: T[] = []) => samples.filter(needsSurveillanceReview)
 
 // The plain-word tag after a decision; '' while the sample is undecided or has no decision.
 export function reviewTag(sample: Sample, language = 'el') {
@@ -62,7 +62,7 @@ export const matchesLabScope = (sample: Sample, scope: string) => scope !== LAB_
 
 // «Άνοιγμα επεισοδίου»: the patient record opens on its surveillance tab with the new-episode
 // flow already started for this sample (the page links the sample once the episode exists).
-export function sampleEpisodeTarget(sample: AnyRecord) {
+export function sampleEpisodeTarget(sample: Pick<LabSample, 'id' | 'recordId' | 'type' | 'source' | 'organism' | 'resistance' | 'collectedAt' | 'requestedAt' | 'patientId' | 'subjectCode'>) {
   return {
     path: `/patients/${encodeURIComponent(sample.patientId || sample.subjectCode || '')}`,
     state: {
@@ -80,7 +80,7 @@ export function sampleEpisodeTarget(sample: AnyRecord) {
 export const STAFF_NAME_ROLES: readonly string[] = Object.freeze([ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD])
 export const canSeeStaffNames = (role: string | null | undefined) => STAFF_NAME_ROLES.includes(role as string) || role === ROLES.PLATFORM_OWNER
 export const STAFF_NAME_MASK = '●●●●●●● ●●●●●●●'
-export const maskStaffSample = <T extends AnyRecord | null | undefined>(sample: T): T => (sample?.subjectType === 'employee'
+export const maskStaffSample = <T extends Partial<LabSample> | null | undefined>(sample: T): T => (sample?.subjectType === 'employee'
   ? { ...sample, patient: STAFF_NAME_MASK, patientEn: STAFF_NAME_MASK, subjectName: STAFF_NAME_MASK, subjectNameEn: STAFF_NAME_MASK, staffMasked: true } as T
   : sample)
-export const maskStaffSamples = <T extends AnyRecord | null | undefined>(rows: T[], role: string | null | undefined): T[] => (canSeeStaffNames(role) || !rows.some(row => row?.subjectType === 'employee') ? rows : rows.map(maskStaffSample))
+export const maskStaffSamples = <T extends Partial<LabSample> | null | undefined>(rows: T[], role: string | null | undefined): T[] => (canSeeStaffNames(role) || !rows.some(row => row?.subjectType === 'employee') ? rows : rows.map(maskStaffSample))

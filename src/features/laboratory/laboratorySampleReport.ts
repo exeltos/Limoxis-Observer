@@ -4,20 +4,24 @@ import { sampleSummaryFields } from './LaboratorySampleSummary'
 import { labHistoryEvents } from './LaboratorySampleViews'
 import { methodLabel } from './laboratorySampleFormat'
 import { sampleTypeLabel } from './laboratoryCloudService'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
+import type { AmrClassification, AstResult, CriticalCommunication, EnvironmentalStandard, LabResult, LabSample } from './laboratoryTypes'
 import type { ReportDocuments } from '../../design-system/recordReport'
 
 // The printed report of a laboratory sample: the description RecordReportPrint lays out
 // as a document (patient/sample details, progress, microbiology result with the
 // antibiogram per organism in words, documents, history). Labels come from the same
 // helpers as the screen; nothing is printed as a raw key.
-interface LaboratorySampleReportInput { sample: AnyRecord, steps?: AnyRecord[], progress?: AnyRecord | null, isEnvironmental?: boolean, standard?: AnyRecord | null, language?: string, t: (key: string) => string, tx: (key: string) => string, fmt: (value: string | null | undefined) => string, statusWord?: string, documents?: ReportDocuments | null }
+// A step of the sample's progress and what the report reads of the progress (sampleProgress).
+interface ReportStep { label: string, state: string, meta?: string }
+interface ReportProgress { result?: LabResult | null, ast?: AstResult[], amr?: AmrClassification[], communications?: CriticalCommunication[], organisms?: string[] }
+interface LaboratorySampleReportInput { sample: LabSample, steps?: ReportStep[], progress?: ReportProgress | null, isEnvironmental?: boolean, standard?: EnvironmentalStandard | null, language?: string, t: (key: string) => string, tx: (key: string) => string, fmt: (value: string | null | undefined) => string, statusWord?: string, documents?: ReportDocuments | null }
 export function buildLaboratorySampleReport({ sample, steps = [], progress, isEnvironmental = false, standard = null, language = 'el', t, tx, fmt, statusWord = '', documents = null }: LaboratorySampleReportInput) {
   const en = language === 'en'
   const L: Translate = (el, enText) => (en ? enText : el)
-  const { result, ast = [], amr = [], communications = [], organisms = [] }: AnyRecord = progress || {}
+  const { result, ast = [], amr = [], communications = [], organisms = [] }: ReportProgress = progress || {}
   const fields = sampleSummaryFields({ sample, t, language, fmt }).filter(field => !field.hidden)
-  const stateWord = (step: AnyRecord) => (step.state === 'done' ? L('Ολοκληρώθηκε', 'Completed') : step.state === 'na' ? L('Δεν απαιτείται', 'Not required') : L('Εκκρεμεί', 'Pending'))
+  const stateWord = (step: ReportStep) => (step.state === 'done' ? L('Ολοκληρώθηκε', 'Completed') : step.state === 'na' ? L('Δεν απαιτείται', 'Not required') : L('Εκκρεμεί', 'Pending'))
   const hasLimit = standard?.limitCfu != null && standard?.limitCfu !== ''
   const cfu = result ? (result.result === 'negative' && result.cfuCount == null ? '0' : result.cfuCount) : ''
   // A result without an outcome yet (an empty draft) prints as «not entered».
@@ -34,15 +38,15 @@ export function buildLaboratorySampleReport({ sample, steps = [], progress, isEn
       ].filter(Boolean)
     : []
   const isolates = organisms.map((name: string) => {
-    const tagged = ast.filter((row: AnyRecord) => row.organism === name)
-    const current = amr.filter((row: AnyRecord) => row.organism === name).slice(-1)[0] || null
+    const tagged = ast.filter((row: AstResult) => row.organism === name)
+    const current = amr.filter((row: AmrClassification) => row.organism === name).slice(-1)[0] || null
     return {
       title: name,
       pairs: current ? [[tx('amrTitle'), [current.classification, [current.definitionSource, current.definitionVersion].filter(Boolean).join(' ')].filter(Boolean).join(' · ')], [L('Αιτιολόγηση', 'Rationale'), current.rationale]] : [],
-      table: tagged.map((row: AnyRecord) => [`${row.drug}${row.mic != null && row.mic !== '' ? ` (MIC ${row.operator || ''}${row.mic})` : row.zone != null ? ` (${row.zone} mm)` : ''}`, sirWord(row.sir, en)]),
+      table: tagged.map((row: AstResult) => [`${row.drug}${row.mic != null && row.mic !== '' ? ` (MIC ${row.operator || ''}${row.mic})` : row.zone != null ? ` (${row.zone} mm)` : ''}`, sirWord(row.sir, en)]),
     }
   })
-  const communicationLines = communications.map((row: AnyRecord) => [row.to || row.recipientName, [row.recipientRole, row.recipientDepartment].filter(Boolean).join(', '), row.at && fmt(row.at), row.method && t(row.method), row.readBack && t('laboratoryRecords.readBack')].filter(Boolean).join(' · '))
+  const communicationLines = communications.map((row: CriticalCommunication) => [row.to || row.recipientName, [row.recipientRole, row.recipientDepartment].filter(Boolean).join(', '), row.at && fmt(row.at), row.method && t(row.method), row.readBack && t('laboratoryRecords.readBack')].filter(Boolean).join(' · '))
   const events = labHistoryEvents(sample, t, tx).map(event => ({ when: fmt(event.at), sort: String(event.at), title: event.title, by: event.by }))
   const specimenTitle = sampleTypeLabel(sample, t, language)
 
@@ -59,7 +63,7 @@ export function buildLaboratorySampleReport({ sample, steps = [], progress, isEn
       result?.result && `${t('result')}: ${t(result.result)}${organisms.length ? ` (${organisms.join(', ')})` : ''}.`,
     ].filter(Boolean).join(' '),
     sections: [
-      { id: 'sample', title: L('Στοιχεία δείγματος', 'Sample details'), pairs: fields.map(field => [field.label, [field.value, field.meta].filter(value => typeof value === 'string' && value && value !== '—').join(' · ')]).concat([[tx('rejectReason'), sample.status === 'rejected' ? sample.rejectionReason : '']]) },
+      { id: 'sample', title: L('Στοιχεία δείγματος', 'Sample details'), pairs: fields.map(field => [field.label, [field.value, field.meta].filter(value => typeof value === 'string' && value && value !== '—').join(' · ')]).concat([[tx('rejectReason'), sample.status === 'rejected' ? sample.rejectionReason as string : '']]) },
       { id: 'progress', title: L('Πρόοδος δείγματος', 'Sample progress'), list: steps.map(step => `${step.label}: ${stateWord(step)}${step.meta && step.state === 'done' ? ` · ${step.meta}` : ''}`) },
       { id: 'result', title: L('Μικροβιολογικό αποτέλεσμα', 'Microbiology result'), pairs: resultPairs, items: isolates, keep: true, emptyText: tx('noResult') },
       { id: 'communication', title: tx('communicationTitle'), list: communicationLines },

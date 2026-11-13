@@ -4,8 +4,8 @@ import { supabase } from '../../core/supabase/client'
 import { computeTurnaroundHours } from './model/laboratoryModel'
 import { cloudClient, currentUserId } from '../../core/supabase/cloudContext'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { TablesUpdate } from '../../core/supabase/database.types'
+import type { AmrClassificationRow, ClinicalContext, AmrDraft, AstDraft, CommunicationDraft, CommunicationRow, EnvironmentalStandard, LabResult, LabSample, LaboratorySampleListRow, LaboratorySampleRow, MicrobiologyResultListRow, MicrobiologyResultRow, ResultDraft, SampleDepartmentRow, SampleDraft, SamplePatch, SamplePatientRow, SpecimenRow, SusceptibilityRow } from './laboratoryTypes'
+import type { Json, TablesUpdate } from '../../core/supabase/database.types'
 import { ENVIRONMENTAL_TYPES } from '../surveillance/environmentalSurveillanceData'
 import { AMR_CATEGORY_SELECT, amrCalculationColumns, amrCalculationSnapshot, amrCategoryRows } from './amrCalculation'
 import { hospitalToday } from '../../core/dates/hospitalDate'
@@ -15,7 +15,7 @@ const environmentalTypes=['water','surface','environment','environmental','room'
 // The environmental types with a sampling standard (shared with Surveillance).
 export const ENVIRONMENTAL_CATEGORIES=ENVIRONMENTAL_TYPES
 const environmentalCategories=new Set(ENVIRONMENTAL_CATEGORIES)
-const specimenLabel=(specimen: AnyRecord|null|undefined,language='el'): string=>specimen?(language==='en'?(specimen.nameEn||specimen.name_en||specimen.nameEl||specimen.name_el):(specimen.nameEl||specimen.name_el||specimen.nameEn||specimen.name_en))||'':''
+const specimenLabel=(specimen: SpecimenRow|null|undefined,language='el'): string=>specimen?(language==='en'?(specimen.nameEn||specimen.name_en||specimen.nameEl||specimen.name_el):(specimen.nameEl||specimen.name_el||specimen.nameEn||specimen.name_en))||'':''
 // Patient samples display the concrete specimen from the central Sample types
 // library. The technical sample_type is retained separately for indicators.
 export function sampleTypeLabel(value: unknown,t: (key: string)=>string,language='el'){
@@ -29,7 +29,9 @@ export function sampleTypeLabel(value: unknown,t: (key: string)=>string,language
 }
 export function environmentalMethodLabel(method: string|null|undefined,t: (key: string)=>string){return method?t(`environmentalStandards.${method}`):''}
 
-function mapMicrobiology(row: AnyRecord|null|undefined,ast: AnyRecord[]=[],communications: AnyRecord[]=[],amr: AnyRecord[]=[]){
+// A result row with its tests, calls and classifications (a row is always given; null only without one).
+function mapMicrobiology(row: MicrobiologyResultRow,ast?: SusceptibilityRow[]|null,communications?: CommunicationRow[]|null,amr?: AmrClassificationRow[]|null): LabResult
+function mapMicrobiology(row: MicrobiologyResultRow|null|undefined,ast: SusceptibilityRow[]|null=[],communications: CommunicationRow[]|null=[],amr: AmrClassificationRow[]|null=[]): LabResult|null{
   if(!row)return null
   const classification=(amr||[]).find(item=>item.microbiology_result_id===row.id)
   return {
@@ -57,7 +59,7 @@ function mapMicrobiology(row: AnyRecord|null|undefined,ast: AnyRecord[]=[],commu
   }
 }
 
-function mapSample(row: AnyRecord,patient: AnyRecord|null|undefined,department: AnyRecord|null|undefined,microbiology: (AnyRecord|null)[]=[],specimenType: AnyRecord|null=null){
+function mapSample(row: LaboratorySampleListRow,patient: SamplePatientRow|null|undefined,department: SampleDepartmentRow|null|undefined,microbiology: LabResult[]=[],specimenType: SpecimenRow|null=null){
   const result=microbiology[0]||null
   const patientName=patient?`${patient.first_name||''} ${patient.last_name||''}`.trim():''
   const inferredType=patient?'patient':environmentalTypes.some(value=>String(row.sample_type||'').toLowerCase().includes(value))?'environment':'other'
@@ -91,7 +93,7 @@ function mapSample(row: AnyRecord,patient: AnyRecord|null|undefined,department: 
     department:department?.name||'',
     departmentEn:department?.name||'',
     surveillanceCase:row.surveillance_case_id||null,
-    clinicalContext:row.clinical_context||null,
+    clinicalContext:(row.clinical_context||null) as ClinicalContext|null,
     type:row.sample_type,
     specimenTypeId:row.specimen_type_id||mappedSpecimen?.id||null,
     specimenType:mappedSpecimen,
@@ -148,7 +150,10 @@ function relatedRows(organizationId: string,table: string,select: string,column:
   })
 }
 
-async function hydrateSamples(rows: AnyRecord[]){
+// A sample as the database gives it (its row id and status always present).
+export type CloudLabSample=ReturnType<typeof mapSample>
+
+async function hydrateSamples(rows: LaboratorySampleRow[]): Promise<CloudLabSample[]>{
   if(!rows?.length)return []
   const organizationId=rows[0].organization_id
   const patientIds=[...new Set(rows.map(row=>row.patient_id).filter(Boolean))]
@@ -195,16 +200,16 @@ async function hydrateSamples(rows: AnyRecord[]){
 // The paged reads below stay for a database without it yet.
 // `since` (YYYY-MM-DD): the lighter list (laboratory_sample_list_lean, 20261231220500) of the samples since then and the
 // older ones not finished yet, without the clinical context and the empty fields; null reads every sample, still light.
-export async function loadLaboratorySamples(organizationId: string|null|undefined,{environmental=false,since=undefined}: {environmental?: boolean,since?: string|null}={}): Promise<AnyRecord[]>{
+export async function loadLaboratorySamples(organizationId: string|null|undefined,{environmental=false,since=undefined}: {environmental?: boolean,since?: string|null}={}): Promise<CloudLabSample[]>{
   const supabase=cloudClient()
   if(!organizationId)return []
   if(typeof supabase.rpc==='function'){
     if(since!==undefined){
       const lean=await supabase.rpc('laboratory_sample_list_lean',{p_organization_id:organizationId,p_environmental:environmental,p_since:since as string})
-      if(!lean?.error&&Array.isArray(lean?.data))return (lean.data as AnyRecord[]).map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map((item: AnyRecord)=>mapMicrobiology(item,item.ast,item.communications,item.amr)),row.specimen_type))
+      if(!lean?.error&&Array.isArray(lean?.data))return (lean.data as unknown as LaboratorySampleListRow[]).map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map((item: MicrobiologyResultListRow)=>mapMicrobiology(item,item.ast,item.communications,item.amr)),row.specimen_type))
     }
     const listed=await supabase.rpc('laboratory_sample_list',{p_organization_id:organizationId,p_environmental:environmental})
-    if(!listed?.error&&Array.isArray(listed?.data))return (listed.data as AnyRecord[]).map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map((item: AnyRecord)=>mapMicrobiology(item,item.ast,item.communications,item.amr)),row.specimen_type))
+    if(!listed?.error&&Array.isArray(listed?.data))return (listed.data as unknown as LaboratorySampleListRow[]).map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map((item: MicrobiologyResultListRow)=>mapMicrobiology(item,item.ast,item.communications,item.amr)),row.specimen_type))
   }
   const rows=await selectAllPages(()=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false}).order('id',{ascending:true}))
   return hydrateSamples(rows)
@@ -241,9 +246,9 @@ export async function loadSamplesAwaitingReview(organizationId: string|null|unde
 // may write it (the update policy of laboratory_samples is limited to laboratory roles):
 // status 'episode_opened' (with caseId, also links the sample to the episode) or
 // 'no_surveillance_needed' (with a reason code and an optional note).
-export async function reviewLaboratorySample(organizationId: string,sampleRecordId: string,{status,reason=null,note=null,caseId=null}: {status: string,reason?: string|null,note?: string|null,caseId?: string|null}){
+export async function reviewLaboratorySample(organizationId: string,sampleRecordId: string|null|undefined,{status,reason=null,note=null,caseId=null}: {status: string,reason?: string|null,note?: string|null,caseId?: string|null}){
   const supabase=cloudClient()
-  const {error}=await supabase.rpc('review_laboratory_sample',{p_organization_id:organizationId,p_sample_id:sampleRecordId,p_status:status,p_reason:reason as string,p_note:note as string,p_case_id:caseId as string})
+  const {error}=await supabase.rpc('review_laboratory_sample',{p_organization_id:organizationId,p_sample_id:sampleRecordId as string,p_status:status,p_reason:reason as string,p_note:note as string,p_case_id:caseId as string})
   if(error)throw error
   return true
 }
@@ -282,7 +287,7 @@ export async function loadLaboratorySample(organizationId: string,sampleCode: st
   return (await hydrateSamples([data]))[0]
 }
 
-export async function createLaboratorySample(organizationId: string,patientRecordId: string|null|undefined,draft: AnyRecord){
+export async function createLaboratorySample(organizationId: string,patientRecordId: string|null|undefined,draft: SampleDraft){
   const supabase=cloudClient()
   const actorId=await currentUserId()
   const code=draft.sampleCode||`LAB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
@@ -297,7 +302,7 @@ export async function createLaboratorySample(organizationId: string,patientRecor
     subject_name:draft.subjectName||null,
     subject_code:draft.subjectCode||null,
     sample_code:code,
-    sample_type:draft.type,
+    sample_type:draft.type as string,
     specimen_type_id:draft.specimenTypeId||null,
     source_site:draft.source||null,
     environmental_method:draft.environmentalMethod||null,
@@ -312,7 +317,7 @@ export async function createLaboratorySample(organizationId: string,patientRecor
     received_at:iso(draft.receivedAt),
     status:draft.collectedAt?'collected':'requested',
     priority:draft.priority||'routine',
-    clinical_context:draft.clinicalContext&&Object.keys(draft.clinicalContext).length?draft.clinicalContext:null,
+    clinical_context:draft.clinicalContext&&Object.keys(draft.clinicalContext).length?draft.clinicalContext as Json:null,
     created_by:actorId,
   }).select('*').single()
   if(error)throw error
@@ -335,7 +340,7 @@ export async function deleteLaboratorySample(organizationId: string,sampleRecord
     ...(amrIds.length?[{table:'amr_classification_categories',match:{amr_classification_id:amrIds}}]:[]),
     {table:'amr_classifications',match:{microbiology_result_id:microIds}},
   ]:[]
-  await binCloudRows(organizationId,{module:'clinical',kind:'laboratory_samples',...describeDeleted('Δείγμα εργαστηρίου',{...(sample||{}),code:sample?.sample_code||(sample as AnyRecord|null)?.code}),parts:[...childParts,{table:'microbiology_results',match:{sample_id:sampleRecordId}},{table:'laboratory_samples',match:{id:sampleRecordId}}]})
+  await binCloudRows(organizationId,{module:'clinical',kind:'laboratory_samples',...describeDeleted('Δείγμα εργαστηρίου',{...(sample||{}),code:sample?.sample_code||(sample as {code?: string}|null)?.code}),parts:[...childParts,{table:'microbiology_results',match:{sample_id:sampleRecordId}},{table:'laboratory_samples',match:{id:sampleRecordId}}]})
   if(microIds.length){
     for(const table of ['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications']){const {error}=await (supabase as unknown as SupabaseClient).from(table).delete().eq('organization_id',organizationId).in('microbiology_result_id',microIds);if(error)throw error}
     const {error}=await supabase.from('microbiology_results').delete().eq('organization_id',organizationId).in('id',microIds);if(error)throw error
@@ -344,7 +349,7 @@ export async function deleteLaboratorySample(organizationId: string,sampleRecord
   return true
 }
 
-export async function updateLaboratorySampleStatus(organizationId: string,sampleRecordId: string,status: string,patch: AnyRecord={}){
+export async function updateLaboratorySampleStatus(organizationId: string,sampleRecordId: string,status: string,patch: SamplePatch={}){
   const supabase=cloudClient()
   const actorId=await currentUserId()
   const payload: TablesUpdate<'laboratory_samples'>={status,updated_by:actorId,updated_at:new Date().toISOString()}
@@ -356,7 +361,7 @@ export async function updateLaboratorySampleStatus(organizationId: string,sample
   if(error)throw error
 }
 
-export async function saveMicrobiologyResult(organizationId: string,sampleRecordId: string,draft: AnyRecord){
+export async function saveMicrobiologyResult(organizationId: string,sampleRecordId: string,draft: ResultDraft){
   const supabase=cloudClient()
   const actorId=await currentUserId()
   const now=new Date().toISOString()
@@ -388,15 +393,16 @@ export async function saveMicrobiologyResult(organizationId: string,sampleRecord
   return data
 }
 
-export async function addAstResult(organizationId: string,microbiologyResultId: string,draft: AnyRecord){
+export async function addAstResult(organizationId: string,microbiologyResultId: string,draft: AstDraft){
   const supabase=cloudClient()
   const actorId=await currentUserId()
-  const {data,error}=await supabase.from('antimicrobial_susceptibility_results').insert({organization_id:organizationId,microbiology_result_id:microbiologyResultId,organism:draft.organism||null,antimicrobial_code:draft.code||null,antimicrobial_name:draft.drug,method:draft.method||'MIC',mic_value:draft.mic||null,mic_operator:draft.operator||null,zone_diameter_mm:draft.zone||null,sir_category:draft.sir||'S',breakpoint_standard:draft.standard||'EUCAST',breakpoint_version:draft.version,technical_uncertainty:Boolean(draft.technicalUncertainty),notes:draft.notes||null,created_by:actorId}).select('*').single()
+  // The MIC comes as typed in the window; the database reads the text as a number.
+  const {data,error}=await supabase.from('antimicrobial_susceptibility_results').insert({organization_id:organizationId,microbiology_result_id:microbiologyResultId,organism:draft.organism||null,antimicrobial_code:draft.code||null,antimicrobial_name:draft.drug,method:draft.method||'MIC',mic_value:(draft.mic||null) as number|null,mic_operator:draft.operator||null,zone_diameter_mm:draft.zone||null,sir_category:draft.sir||'S',breakpoint_standard:draft.standard||'EUCAST',breakpoint_version:draft.version as string,technical_uncertainty:Boolean(draft.technicalUncertainty),notes:draft.notes||null,created_by:actorId}).select('*').single()
   if(error)throw error
   return data
 }
 
-export async function saveAmrClassification(organizationId: string,microbiologyResultId: string,draft: AnyRecord){
+export async function saveAmrClassification(organizationId: string,microbiologyResultId: string,draft: AmrDraft){
   const supabase=cloudClient()
   const actorId=await currentUserId()
   const now=new Date().toISOString()
@@ -412,7 +418,7 @@ export async function saveAmrClassification(organizationId: string,microbiologyR
   return data
 }
 
-export async function communicateCriticalResult(organizationId: string,microbiologyResultId: string,draft: AnyRecord){
+export async function communicateCriticalResult(organizationId: string,microbiologyResultId: string,draft: CommunicationDraft){
   const supabase=cloudClient()
   const actorId=await currentUserId()
   const communicatedAt=iso(draft.at||new Date()) as string
@@ -446,23 +452,23 @@ export async function reopenLaboratorySample(organizationId: string,sampleRecord
   if(error)throw error
 }
 
-export async function loadEnvironmentalStandards(organizationId: string|null|undefined): Promise<AnyRecord[]>{
+export async function loadEnvironmentalStandards(organizationId: string|null|undefined): Promise<EnvironmentalStandard[]>{
   const supabase=cloudClient()
   if(!organizationId)return []
   const {data,error}=await supabase.from('environmental_standards').select('payload').eq('organization_id',organizationId)
   if(error)throw error
-  return (data||[]).map(row=>row.payload) as AnyRecord[]
+  return (data||[]).map(row=>row.payload) as EnvironmentalStandard[]
 }
 
-export function resolveEnvironmentalStandard(standards: AnyRecord[]|null|undefined,category: string,method?: string|null){
+export function resolveEnvironmentalStandard(standards: EnvironmentalStandard[]|null|undefined,category: string|null|undefined,method?: string|null){
   const list=standards||[]
   return list.find(item=>item.active&&item.subjectType===category&&item.sourceCode===method)
     || list.find(item=>item.active&&item.subjectType===category)
     || null
 }
 
-const pendingSampleStatuses=['requested','collected','received','processing']
-export function getEnvironmentalKpis(rows: AnyRecord[]|null|undefined){
+const pendingSampleStatuses: unknown[]=['requested','collected','received','processing']
+export function getEnvironmentalKpis(rows: Pick<LabSample,'status'|'result'|'critical'>[]|null|undefined){
   return {
     active:(rows||[]).filter(row=>pendingSampleStatuses.includes(row.status)).length,
     pendingLab:(rows||[]).filter(row=>pendingSampleStatuses.includes(row.status)&&!row.result).length,
@@ -471,17 +477,19 @@ export function getEnvironmentalKpis(rows: AnyRecord[]|null|undefined){
   }
 }
 
-export function getLaboratoryKpis(rows: AnyRecord[]|null|undefined){
+// What the totals read of a sample.
+type KpiSample=Pick<LabSample,'requestedAt'|'collectedAt'|'resultedAt'|'status'|'result'|'resistance'|'critical'|'microbiologyResults'>
+export function getLaboratoryKpis(rows: KpiSample[]|null|undefined){
   const today=hospitalToday()
   const turnaroundHours=(rows||[]).map(computeTurnaroundHours).filter(hours=>hours!=null)
   return {
     today:(rows||[]).filter(row=>String(row.requestedAt||row.collectedAt||'').slice(0,10)===today).length,
-    pending:(rows||[]).filter(row=>['requested','collected','received','processing'].includes(row.status)).length,
+    pending:(rows||[]).filter(row=>(['requested','collected','received','processing'] as unknown[]).includes(row.status)).length,
     positive:(rows||[]).filter(row=>row.result==='positive').length,
     // Positives of the last 30 days: what is happening now, beside «today» and «pending».
     positive30:(rows||[]).filter(row=>row.result==='positive'&&Date.now()-new Date(row.collectedAt||row.requestedAt||0).getTime()<=30*86400000).length,
     amr:(rows||[]).filter(row=>Boolean(row.resistance)).length,
-    critical:(rows||[]).filter(row=>row.critical&&!(row.microbiologyResults||[]).some((result: AnyRecord)=>result.communications?.length)).length,
+    critical:(rows||[]).filter(row=>row.critical&&!(row.microbiologyResults||[]).some((result: LabResult)=>result.communications?.length)).length,
     avgTatHours:turnaroundHours.length?turnaroundHours.reduce((sum,hours)=>sum+hours,0)/turnaroundHours.length:null,
   }
 }

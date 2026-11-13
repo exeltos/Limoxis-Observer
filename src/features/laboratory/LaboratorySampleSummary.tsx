@@ -10,7 +10,7 @@ import { sampleSourceLabel } from './laboratoryReferenceData'
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { IconType } from '../../design-system/types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LabResult, LabSample, SampleExtras } from './laboratoryTypes'
 import type { LabelLookup } from './LaboratorySampleViews'
 
 type DateFormat = (value: string | null | undefined) => string
@@ -19,7 +19,7 @@ export interface SampleSummaryField { id: string, label: string, value?: ReactNo
 // A step of the sample's progress (workflowStates adds `state`).
 export interface WorkflowStep { id: string, label: string, state: string, meta?: string, hint?: string, action?: { label: string, onClick: () => void, icon?: IconType } | null }
 
-function subjectLabel(subjectType: string, language: string) {
+function subjectLabel(subjectType: string | null | undefined, language: string) {
   if (subjectType === 'employee') return language === 'en' ? 'Employee' : 'Εργαζόμενος'
   if (subjectType === 'environment') return language === 'en' ? 'Sampling point / location' : 'Σημείο / χώρος δειγματοληψίας'
   return language === 'en' ? 'Patient' : 'Ασθενής'
@@ -29,7 +29,7 @@ function subjectLabel(subjectType: string, language: string) {
 // organisms and AMR live exclusively on the Result tab so the two never
 // duplicate each other. Actions sit behind the card's ⋯ menu, matching the
 // record cards in Prevention, Quality and Controls.
-export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banners, extras }: { sample: AnyRecord, t: LabelLookup, language: string, fmt: DateFormat, menu?: ReactNode, banners?: ReactNode, extras?: AnyRecord }) {
+export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banners, extras }: { sample: LabSample, t: LabelLookup, language: string, fmt: DateFormat, menu?: ReactNode, banners?: ReactNode, extras?: SampleExtras }) {
   const en = language === 'en'
   const fields = sampleSummaryFields({ sample, t, language, fmt, extras })
   return <section className="lab-record-card lab-summary-card">
@@ -41,11 +41,11 @@ export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banner
 }
 
 // The outcome at a glance (full detail stays on the Result tab): outcome, organism, count, critical communication.
-export function resultSummarySections(sample: AnyRecord, t: LabelLookup, language = 'el') {
+export function resultSummarySections(sample: LabSample, t: LabelLookup, language = 'el') {
   if (!OUTCOME_RESULTS.includes(sample.result)) return []
-  const communicated = (sample.microbiologyResults || []).some((result: AnyRecord) => (result.communications || []).length > 0)
+  const communicated = (sample.microbiologyResults || []).some((result: LabResult) => (result.communications || []).length > 0)
   const items = [
-    { key: 'outcome', label: t('result'), value: (sample.subjectType && sample.subjectType !== 'patient' && environmentalResultWord(sample.microbiologyResults?.[0], language)) || t(sample.result) },
+    { key: 'outcome', label: t('result'), value: (sample.subjectType && sample.subjectType !== 'patient' && environmentalResultWord(sample.microbiologyResults?.[0], language)) || t(sample.result as string) },
     (sample.organism || sample.result === 'positive') && { key: 'organism', label: t('organism'), value: sample.organism || t('laboratoryRecords.organismNotRecorded') },
     sample.cfuCount != null && { key: 'cfu', label: 'CFU', value: sample.cfuLimit != null ? `${sample.cfuCount} / ${sample.cfuLimit}` : String(sample.cfuCount) },
     sample.critical && { key: 'critical', label: t('criticalResult'), value: communicated ? t('communicated') : t('laboratoryRecords.uncommunicatedCritical') },
@@ -66,9 +66,9 @@ export function sampleSummarySections(fields: SampleSummaryField[], language: st
 }
 
 // The sample's own identity and logistics as label/value fields (the card and the printed report).
-export function sampleSummaryFields({ sample, t, language, fmt, extras = {} }: { sample: AnyRecord, t: LabelLookup, language: string, fmt: DateFormat, extras?: AnyRecord }): SampleSummaryField[] {
+export function sampleSummaryFields({ sample, t, language, fmt, extras = {} }: { sample: Partial<LabSample>, t: LabelLookup, language: string, fmt: DateFormat, extras?: SampleExtras }): SampleSummaryField[] {
   const en = language === 'en'
-  const isEnvironmental = sample.subjectType === 'environment' || (ENVIRONMENTAL_CATEGORIES as readonly string[]).includes(sample.type)
+  const isEnvironmental = sample.subjectType === 'environment' || (ENVIRONMENTAL_CATEGORIES as readonly unknown[]).includes(sample.type)
   const rawSurveillance = sample.surveillanceCase || sample.employeeSurveillanceId || sample.environmentalBatchId || ''
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(rawSurveillance))
   const surveillance = !rawSurveillance ? '' : isUuid ? (en ? 'Linked record' : 'Συνδεδεμένη εγγραφή') : rawSurveillance
@@ -124,10 +124,10 @@ export function LaboratoryWorkflow({ steps, language, closedNote }: { steps: Wor
 }
 
 // The samples that belong together: taken at the same time from the same patient, or the other points of the same plate.
-export function LaboratoryRelatedSamples({ related, hrefFor, t, language, sample }: { related: { visit: AnyRecord[], plate: AnyRecord[] }, hrefFor: (sample: AnyRecord) => string, t: LabelLookup, language: string, sample: AnyRecord }) {
+export function LaboratoryRelatedSamples({ related, hrefFor, t, language, sample }: { related: { visit: LabSample[], plate: LabSample[] }, hrefFor: (sample: LabSample) => string, t: LabelLookup, language: string, sample: LabSample }) {
   const groups = [
     related.visit.length > 0 && { key: 'visit', title: t('labSampleFlow.sameVisit'), hint: t('labSampleFlow.sameVisitHint'), items: related.visit },
-    related.plate.length > 0 && { key: 'plate', title: t('labSampleFlow.samePlate').replace('{plate}', sample.environmentalPlate), hint: t('labSampleFlow.samePlateHint'), items: related.plate },
+    related.plate.length > 0 && { key: 'plate', title: t('labSampleFlow.samePlate').replace('{plate}', sample.environmentalPlate as string), hint: t('labSampleFlow.samePlateHint'), items: related.plate },
   ].filter(Boolean)
   if (!groups.length) return null
   return <section className="lab-record-card lab-related-card">

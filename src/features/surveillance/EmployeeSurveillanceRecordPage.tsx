@@ -104,11 +104,11 @@ export function EmployeeSurveillanceRecordPage() {
   const loadSamples = useCallback(
     async (row: EmployeeSurveillanceRecord | null) => {
       if (!row) return setSamples([])
-      if (isDemo) return setSamples(demoLaboratorySamples.filter(sample => sample.employeeSurveillanceCase === row.id))
+      if (isDemo) return setSamples(demoLaboratorySamples.filter(sample => sample.employeeSurveillanceCase === row.id) as ScreeningSample[])
       if (!organizationId || !row.recordId) return setSamples([])
       try {
         const rows = await loadEmployeeSurveillanceSamples(organizationId, [row.recordId])
-        setSamples((rows || []).filter(sample => sample.employeeSurveillanceId === row.recordId))
+        setSamples((rows || []).filter(sample => sample.employeeSurveillanceId === row.recordId) as ScreeningSample[])
       } catch (error) {
         setSamples([])
         notifyError(error, 'load', { operation: 'employee_surveillance_laboratory_load' })

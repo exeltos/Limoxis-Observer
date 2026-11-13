@@ -66,6 +66,7 @@ export {
 } from './clinicalRecordLabels'
 import { renderPatientRecordTab } from './PatientClinicalRecordTabs'
 import type { ClinicalCase, ClinicalCaseDraft, ClinicalTimelineEvent } from './clinicalTypes'
+import type { LabSample, SampleDraft } from '../laboratory/laboratoryTypes'
 import type { ClinicalLibraries, EpiEntry, NewSampleDraft, ProtocolRequest, RecordAdmission, RecordPatient, RecordSample, TimelineEntry } from './clinicalScreenTypes'
 import type { RecordNavigation } from '../../design-system/EntityRecordShell'
 import type { DateValue } from './surveillanceTypes'
@@ -73,6 +74,8 @@ import type { AttachmentFile } from '../../design-system/AttachmentField'
 
 // The former clinical assessments tab is now the scales section of the forms tab:
 // an old link or a stored tab name lands on the new tab.
+// A laboratory row read as an episode's sample (the laboratory keeps nulls where the episode view leaves fields out).
+type LabRow = RecordSample & LabSample
 const legacyTab = (id: string) => (id === 'clinicalScales' ? 'episodeForms' : id)
 const deepLinkTab = (location: { search: string }) => new URLSearchParams(location.search).get('tab')
 
@@ -186,13 +189,13 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
     [episodes, selectedAdmission, admissions],
   )
   const admissionSamples = useMemo(
-    () => samplesForAdmission(laboratory.rows || [], patient, selectedAdmission, { admissions, episodes }),
+    () => samplesForAdmission((laboratory.rows || []) as LabRow[], patient, selectedAdmission, { admissions, episodes }),
     [laboratory.rows, selectedAdmission, patient, admissions, episodes],
   )
   // Samples and episodes of the patient that belong to none of their admissions
   // (e.g. dated before an imported admission): shown apart, never hidden.
   const outsideSamples = useMemo(
-    () => (patientMode ? samplesOutsideAdmissions(laboratory.rows || [], patient, admissions, { episodes }) : []),
+    () => (patientMode ? samplesOutsideAdmissions((laboratory.rows || []) as LabRow[], patient, admissions, { episodes }) : []),
     [patientMode, laboratory.rows, patient, admissions, episodes],
   )
   const outsideEpisodes = useMemo(
@@ -248,7 +251,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
   // Episode route (/surveillance/:id): the episode's own samples plus any laboratory
   // rows recorded for it afterwards (e.g. a follow-up sample), so new entries show up.
   const recordSamples = useMemo(
-    () => (patientMode ? [] : samplesForEpisode(record, laboratory.rows || [])),
+    () => (patientMode ? [] : samplesForEpisode(record, (laboratory.rows || []) as LabRow[])),
     [patientMode, record, laboratory.rows],
   )
   // A patient opened from the surveillance list arrives by its episode (/surveillance/:caseId
@@ -550,7 +553,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }: PatientCli
           subjectName: patient.name,
           subjectNameEn: patient.nameEn || patient.name,
           subjectCode: patient.id,
-        },
+        } as SampleDraft,
       })
       notify(
         translate('copy.clinicalRecordCopy.sampleRecorded', language === 'el' ? 'el' : 'en'),

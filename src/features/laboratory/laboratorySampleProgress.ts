@@ -2,21 +2,21 @@
 // susceptibility testing → critical-result communication → documents →
 // finalized), and the checks on a microbiology result before it is saved.
 
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AstResult, CriticalCommunication, EnvironmentalStandard, LabResult, LabSample, ResultForm } from './laboratoryTypes'
 
-export const organismsOf = (result: AnyRecord | null | undefined) => String(result?.organism || '').split(',').map(name => name.trim()).filter(Boolean)
+export const organismsOf = (result: Pick<LabResult, 'organism'> | null | undefined) => String(result?.organism || '').split(',').map(name => name.trim()).filter(Boolean)
 
-export function sampleProgress(sample: AnyRecord | null | undefined) {
-  const result: AnyRecord | null = sample?.microbiologyResults?.[0] || null
-  const ast: AnyRecord[] = result?.ast || []
-  const communications: AnyRecord[] = result?.communications || []
+export function sampleProgress(sample: Partial<LabSample> | null | undefined) {
+  const result: LabResult | null = sample?.microbiologyResults?.[0] || null
+  const ast: AstResult[] = result?.ast || []
+  const communications: CriticalCommunication[] = result?.communications || []
   const organisms = organismsOf(result)
   const hasAst = (name: string) => ast.some(row => row.organism === name)
 
   const finalized = Boolean(sample?.finalizedAt)
   const rejected = sample?.status === 'rejected'
-  const received = Boolean(sample && (sample.receivedAt || ['processing', 'completed'].includes(sample.status)))
-  const resultValidated = Boolean(result && ['validated', 'amended'].includes(result.resultStatus))
+  const received = Boolean(sample && (sample.receivedAt || (['processing', 'completed'] as unknown[]).includes(sample.status)))
+  const resultValidated = Boolean(result && (['validated', 'amended'] as unknown[]).includes(result.resultStatus))
   // Every organism of a positive result needs its own susceptibility test.
   const astRequired = result?.result === 'positive' && organisms.length > 0
   const astComplete = !astRequired || organisms.every(hasAst)
@@ -49,7 +49,7 @@ export function sampleProgress(sample: AnyRecord | null | undefined) {
 
 // Each workflow step is 'na' (not required), 'done', 'next' (the first one
 // still open) or 'todo'.
-export function workflowStates<T extends AnyRecord>(steps: T[]): (T & { state: string })[] {
+export function workflowStates<T extends { na?: boolean, done?: boolean }>(steps: T[]): (T & { state: string })[] {
   let nextAssigned = false
   return steps.map(step => {
     if (step.na) return { ...step, state: 'na' }
@@ -63,7 +63,7 @@ export function workflowStates<T extends AnyRecord>(steps: T[]): (T & { state: s
 // A result can be saved once it has an outcome (and, for an environmental
 // positive, a CFU count); every positive result (clinical or from a culture plate)
 // needs at least one organism before it can be validated.
-export function resultDraftChecks(draft: AnyRecord, isEnvironmental: boolean) {
+export function resultDraftChecks(draft: Pick<ResultForm, 'result' | 'organisms' | 'cfuCount'>, isEnvironmental: boolean) {
   return {
     complete: Boolean(draft.result) && (!isEnvironmental || draft.result === 'negative' || draft.cfuCount !== ''),
     needsOrganism: draft.result === 'positive' && !draft.organisms.length,
@@ -72,7 +72,7 @@ export function resultDraftChecks(draft: AnyRecord, isEnvironmental: boolean) {
 
 // The result as saved. For an environmental sample, a negative counts 0 CFU
 // and the count is compared with the standard's limit (within when ≤ limit).
-export function resultToSave(draft: AnyRecord, validationStatus: string, { isEnvironmental = false, standard = null }: { isEnvironmental?: boolean, standard?: AnyRecord | null } = {}) {
+export function resultToSave<T extends Pick<ResultForm, 'result' | 'organisms' | 'cfuCount'>>(draft: T, validationStatus: string, { isEnvironmental = false, standard = null }: { isEnvironmental?: boolean, standard?: Pick<EnvironmentalStandard, 'limitCfu'> | null } = {}) {
   const hasLimit = standard?.limitCfu != null && standard?.limitCfu !== ''
   const cfu = isEnvironmental ? (draft.result === 'negative' ? 0 : draft.cfuCount === '' ? null : Number(draft.cfuCount)) : null
   const limit = isEnvironmental && hasLimit ? Number(standard?.limitCfu) : null

@@ -129,7 +129,7 @@ export function EmployeeSurveillanceRecordDialog({
     try {
       const rows = await loadEmployeeSurveillanceSamples(organizationId, [record.recordId])
       setResolvedSamples(
-        (rows || []).filter(sample => sample.employeeSurveillanceId === record.recordId),
+        (rows || []).filter(sample => sample.employeeSurveillanceId === record.recordId) as ScreeningSample[],
       )
     } catch (error) {
       notifyError(error, 'load', { operation: 'employee_surveillance_laboratory_load' })
@@ -151,7 +151,7 @@ export function EmployeeSurveillanceRecordDialog({
       .then(rows => {
         if (alive)
           setResolvedSamples(
-            (rows || []).filter(sample => sample.employeeSurveillanceId === record.recordId),
+            (rows || []).filter(sample => sample.employeeSurveillanceId === record.recordId) as ScreeningSample[],
           )
       })
       .catch(error => {
