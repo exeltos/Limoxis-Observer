@@ -3,9 +3,11 @@ import { EMPLOYEE_SCREENING_TYPES, OTHER_EMPLOYEE_SCREENING } from './surveillan
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pick, seededRandom } from '../../core/data/demoSeed'
 import { emptyInPreview } from '../../core/preview/emptyPreview'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeSurveillanceBatch, EmployeeSurveillanceRecord, LoadedScreening, ScreeningEmployee, ScreeningSample } from './employeeSurveillanceTypes'
 
-export const employeeSurveillanceRecords: AnyRecord[]=[
+// A Demo screening always has its code, start date and status.
+type DemoScreening = LoadedScreening
+export const employeeSurveillanceRecords: DemoScreening[]=[
   {
     id:'ESUR-260801',
     subjectType:'employee',
@@ -29,24 +31,28 @@ export const employeeSurveillanceRecords: AnyRecord[]=[
   {id:'ESUR-260521',subjectType:'employee',employeeId:'EMP-007',employeeName:'Βασιλείου Χρήστος',employeeNameEn:'Christos Vasileiou',department:'Αποστείρωση',departmentEn:'CSSD',startedAt:'2026-05-21',screeningTypes:['handSwab'],batchId:null,status:'completed',sampleIds:['LAB-EMP-007'],timeline:[]},
 ]
 
-export const employeeSurveillanceBatches: AnyRecord[]=[]
+export const employeeSurveillanceBatches: EmployeeSurveillanceBatch[]=[]
 
 // The screenings of the earlier months (authored from the first history month, so the Demo shows the whole of
 // 2025): one a month, seeded by month, and two department batches — the ICU after its MRSA cases (one nurse a
 // carrier: decolonisation and a negative recheck) and the Surgery department. Their samples go to the Laboratory.
+// A history sample: the screening fields these records read, plus the laboratory's own.
+type HistorySample = ScreeningSample & Record<string, unknown>
+// A change to a Demo screening: its new fields, or a function of the record that returns them.
+type EmployeeSurveillancePatch = Partial<EmployeeSurveillanceRecord> | ((record: EmployeeSurveillanceRecord) => Partial<EmployeeSurveillanceRecord>)
 const DEMO_STAFF: string[][]=[
   ['EMP-001','Παπαδοπούλου Μαρία','Maria Papadopoulou','ΜΕΘ','ICU'],['EMP-002','Δημητρίου Νικόλαος','Nikolaos Dimitriou','Παθολογική','Internal Medicine'],
   ['EMP-003','Κωνσταντίνου Ελένη','Eleni Konstantinou','Χειρουργική','Surgery'],['EMP-004','Αντωνίου Γεώργιος','Georgios Antoniou','Εργαστήριο','Laboratory'],
   ['EMP-005','Μάρκου Ανδρέας','Andreas Markou','ΤΕΠ','ED'],['EMP-006','Οικονόμου Σοφία','Sofia Oikonomou','Καρδιολογική','Cardiology'],
   ['EMP-007','Βασιλείου Χρήστος','Christos Vasileiou','Αποστείρωση','CSSD'],['EMP-008','Σταθάτου Δήμητρα','Dimitra Stathatou','Ποιότητα','Quality'],
 ]
-const historyScreeningSamples: AnyRecord[]=[]
-function historyScreeningSample(id: string,[employeeId,name,nameEn,department,departmentEn]: string[],typeId: string,date: string,caseId: string,extra: AnyRecord={}){
+const historyScreeningSamples: HistorySample[]=[]
+function historyScreeningSample(id: string,[employeeId,name,nameEn,department,departmentEn]: string[],typeId: string,date: string,caseId: string,extra: Partial<HistorySample>={}){
   const type=EMPLOYEE_SCREENING_TYPES.find(item=>item.id===typeId),positive=Boolean(extra.organism),resultDay=positive?addDays(date,2):date
   historyScreeningSamples.push({id,subjectType:'employee',patient:name,patientEn:nameEn,patientId:employeeId,department,departmentEn,type:'employeeScreening',source:type!.el,sourceEn:type!.en,collectedAt:`${date}T08:45:00+03:00`,receivedAt:`${date}T09:30:00+03:00`,status:'completed',priority:'routine',organism:null,result:positive?'positive':'negative',resultStatus:'validated',resultedAt:`${resultDay}T15:00:00+03:00`,validatedAt:`${resultDay}T15:20:00+03:00`,validatedBy:'Demo Microbiology',resistance:null,critical:false,employeeSurveillanceCase:caseId,ast:[],communications:[],attachments:[],timeline:[{at:`${date}T09:30:00+03:00`,type:'sampleReceived',actor:'Εργαστήριο'},{at:`${resultDay}T15:20:00+03:00`,type:'resultValidated',actor:'Demo Microbiology'}],...extra})
   return id
 }
-function historyScreening(id: string,staff: string[],typeIds: string[],date: string,batchId: string | null=null,extra: AnyRecord={}){
+function historyScreening(id: string,staff: string[],typeIds: string[],date: string,batchId: string | null=null,extra: Partial<EmployeeSurveillanceRecord>={}){
   const [employeeId,employeeName,employeeNameEn,department,departmentEn]=staff
   const sampleIds=typeIds.map((typeId: string,index: number)=>historyScreeningSample(`LAB-EMP-${id.slice(5)}-${index+1}`,staff,typeId,date,id))
   const record={id,subjectType:'employee',employeeId,employeeName,employeeNameEn,department,departmentEn,startedAt:date,screeningTypes:[...typeIds],batchId,status:'completed',sampleIds,timeline:[],...extra}
@@ -63,15 +69,15 @@ const DEMO_BATCHES: [string,string,string,string,string[],string[]][]=[
 ]
 for(const [batchId,date,department,departmentEn,employeeIds,typeIds] of DEMO_BATCHES){
   const records=employeeIds.map((employeeId: string,index: number)=>historyScreening(`ESUR-${date.slice(2).replaceAll('-','')}-${index+1}`,DEMO_STAFF.find(staff=>staff[0]===employeeId)!,typeIds,date,batchId))
-  employeeSurveillanceBatches.push({id:batchId,subjectType:'employee_batch',department,departmentEn,startedAt:date,screeningTypes:[...typeIds],employeeIds:[...employeeIds],surveillanceIds:records.map((record: AnyRecord)=>record.id),status:'completed',createdBy:'Ομάδα ελέγχου λοιμώξεων',createdById:'demo',createdAt:`${date}T08:30:00+03:00`,updatedBy:'Ομάδα ελέγχου λοιμώξεων',updatedById:'demo',updatedAt:`${addDays(date,14)}T12:00:00+03:00`})
+  employeeSurveillanceBatches.push({id:batchId,subjectType:'employee_batch',department,departmentEn,startedAt:date,screeningTypes:[...typeIds],employeeIds:[...employeeIds],surveillanceIds:records.map(record=>record.id),status:'completed',createdBy:'Ομάδα ελέγχου λοιμώξεων',createdById:'demo',createdAt:`${date}T08:30:00+03:00`,updatedBy:'Ομάδα ελέγχου λοιμώξεων',updatedById:'demo',updatedAt:`${addDays(date,14)}T12:00:00+03:00`})
 }
 // The ICU nurse carrying MRSA: nasal mupirocin and chlorhexidine for five days, negative recheck a week later.
 {
-  const carrier=employeeSurveillanceRecords.find(record=>record.id==='ESUR-250318-1')!,sample=historyScreeningSamples.find(item=>item.id===carrier.sampleIds[0])!
+  const carrier=employeeSurveillanceRecords.find(record=>record.id==='ESUR-250318-1')!,sample=historyScreeningSamples.find(item=>item.id===carrier.sampleIds![0])!
   const intervention={interventionType:'Αποαποικισμός MRSA',interventionDetails:'Ρινική αλοιφή μουπιροσίνης 2%, 3 φορές την ημέρα, και λουτρό χλωρεξιδίνης για 5 ημέρες.',interventionStart:'2025-03-21',interventionEnd:'2025-03-25'}
-  Object.assign(sample,{result:'positive',resultedAt:'2025-03-20T15:00:00+03:00',validatedAt:'2025-03-20T15:20:00+03:00',timeline:[sample.timeline[0],{at:'2025-03-20T15:20:00+03:00',type:'resultValidated',actor:'Demo Microbiology'}],organism:'Staphylococcus aureus',resistance:'MRSA',ast:[{drug:'Oxacillin',sir:'R',mic:'>2',method:'MIC',standard:'EUCAST',version:'16.0'},{drug:'Mupirocin',sir:'S',mic:'≤1',method:'MIC',standard:'EUCAST',version:'16.0'}],...intervention})
+  Object.assign(sample,{result:'positive',resultedAt:'2025-03-20T15:00:00+03:00',validatedAt:'2025-03-20T15:20:00+03:00',timeline:[sample.timeline![0],{at:'2025-03-20T15:20:00+03:00',type:'resultValidated',actor:'Demo Microbiology'}],organism:'Staphylococcus aureus',resistance:'MRSA',ast:[{drug:'Oxacillin',sir:'R',mic:'>2',method:'MIC',standard:'EUCAST',version:'16.0'},{drug:'Mupirocin',sir:'S',mic:'≤1',method:'MIC',standard:'EUCAST',version:'16.0'}],...intervention})
   const recheckId=historyScreeningSample('LAB-EMP-250318-1R',DEMO_STAFF[0],'nasalSwab','2025-04-01',carrier.id,{isRecheck:true})
-  Object.assign(carrier,{intervention:intervention.interventionDetails,interventionType:intervention.interventionType,interventionStart:intervention.interventionStart,interventionEnd:intervention.interventionEnd,recheckDate:'2025-04-01',recheckSampleIds:[recheckId],sampleIds:[...carrier.sampleIds,recheckId]})
+  Object.assign(carrier,{intervention:intervention.interventionDetails,interventionType:intervention.interventionType,interventionStart:intervention.interventionStart,interventionEnd:intervention.interventionEnd,recheckDate:'2025-04-01',recheckSampleIds:[recheckId],sampleIds:[...carrier.sampleIds!,recheckId]})
 }
 employeeSurveillanceRecords.sort((a,b)=>b.startedAt.localeCompare(a.startedAt))
 // Dates follow today (src/core/data/demoClock.js); the Laboratory's own samples have already moved.
@@ -98,7 +104,7 @@ export function getEmployeeSurveillanceForEmployee(employeeId: string){
   return employeeSurveillanceRecords.filter(x=>x.employeeId===employeeId)
 }
 interface CreateEmployeeSurveillanceOptions {
-  employee: AnyRecord
+  employee: ScreeningEmployee
   screeningTypes: string[]
   startedAt: string
   notes?: string
@@ -184,11 +190,11 @@ export function createEmployeeSurveillance({employee,screeningTypes,startedAt,no
   return record
 }
 interface CreateEmployeeSurveillanceBatchOptions {
-  employees: AnyRecord[]
+  employees: ScreeningEmployee[]
   screeningTypes: string[]
   startedAt: string
-  department: AnyRecord
-  departmentEn: AnyRecord
+  department?: string
+  departmentEn?: string
   notes?: string
   createdBy?: string
   createdById?: string
@@ -203,7 +209,7 @@ export function createEmployeeSurveillanceBatch({employees,screeningTypes,starte
     departmentEn,
     startedAt,
     screeningTypes:[...screeningTypes],
-    employeeIds:employees.map(x=>x.id),
+    employeeIds:employees.map(x=>x.id!),
     surveillanceIds:records.map(x=>x.id),
     status:'active',
     createdBy,
@@ -225,10 +231,10 @@ export function removeDemoEmployeeSurveillance(id: string){
   const index=employeeSurveillanceRecords.findIndex(item=>item.id===id)
   return index<0?null:employeeSurveillanceRecords.splice(index,1)[0]
 }
-export function restoreDemoEmployeeSurveillance(row: AnyRecord){
+export function restoreDemoEmployeeSurveillance(row: DemoScreening | null | undefined){
   if(row&&!employeeSurveillanceRecords.some(item=>item.id===row.id))employeeSurveillanceRecords.unshift(row)
 }
-export function updateEmployeeSurveillanceRecord(id: string,patch: AnyRecord){
+export function updateEmployeeSurveillanceRecord(id: string,patch: EmployeeSurveillancePatch){
   const record=getEmployeeSurveillanceRecord(id)
   if(!record)return null
   Object.assign(record,typeof patch==='function'?patch({...record}):patch)
@@ -282,8 +288,8 @@ export function getEmployeeSurveillanceKpis(){
   syncEmployeeSurveillanceFromLab()
   return {
     active:employeeSurveillanceRecords.filter(x=>x.status==='active').length,
-    positive:employeeSurveillanceRecords.filter(x=>['positive','positive_recheck'].includes(x.resultStatus)).length,
-    needsIntervention:employeeSurveillanceRecords.filter(x=>['positive','positive_recheck'].includes(x.resultStatus)&&!x.intervention&&!x.noIntervention).length,
-    needsRecheck:employeeSurveillanceRecords.filter(x=>['positive','positive_recheck'].includes(x.resultStatus)&&!x.recheckDate&&!x.noRecheck).length,
+    positive:employeeSurveillanceRecords.filter(x=>['positive','positive_recheck'].includes(x.resultStatus ?? '')).length,
+    needsIntervention:employeeSurveillanceRecords.filter(x=>['positive','positive_recheck'].includes(x.resultStatus ?? '')&&!x.intervention&&!x.noIntervention).length,
+    needsRecheck:employeeSurveillanceRecords.filter(x=>['positive','positive_recheck'].includes(x.resultStatus ?? '')&&!x.recheckDate&&!x.noRecheck).length,
   }
 }

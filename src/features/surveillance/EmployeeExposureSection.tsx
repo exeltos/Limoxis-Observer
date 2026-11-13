@@ -21,6 +21,8 @@ import { FORM_STATUS, athensToday } from './forms/formStatus'
 import { hospitalDay } from './patientRecordScope'
 import './forms/episodeForms.css'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { ExposureIncident } from '../occupational-health/exposureIncidentService'
+import type { EmployeeSurveillanceRecord, ScreeningEmployee } from './employeeSurveillanceTypes'
 import type { Handler } from './surveillanceTypes'
 
 interface CanSeeExposureOptions {
@@ -34,7 +36,7 @@ interface CanSeeExposureOptions {
 // permission): the same roles the database lets read occupational_exposure_incidents.
 export const canSeeExposure = ({ isDemo, role, has }: CanSeeExposureOptions) => isDemo || role === ROLES.OCCUPATIONAL_PHYSICIAN || has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
 
-export function exposureStatus(row: AnyRecord, today = athensToday()) {
+export function exposureStatus(row: Pick<ExposureIncident, 'followUpStatus' | 'status' | 'followUpDueAt'>, today = athensToday()) {
   if (['completed', 'closed'].includes(row.followUpStatus) || row.status === 'closed') return FORM_STATUS.DONE
   const due = row.followUpDueAt ? hospitalDay(row.followUpDueAt) : ''
   return due && due < today ? FORM_STATUS.OVERDUE : FORM_STATUS.PENDING
@@ -49,6 +51,7 @@ async function episodeOptions({ isDemo, organizationId, language }: EpisodeOptio
   const rows = isDemo ? Object.values(clinicalCases) : await loadClinicalCases(organizationId, { summary: true })
   const en = language === 'en'
   // The patient and the episode in words (name, code, department, start date), never an internal id.
+  // A Demo case or a cloud episode: the episodes' own shape, kept by the episode screens.
   return rows.map((row: AnyRecord) => {
     const name = en ? row.patientEn || row.patient : row.patient
     return {
@@ -60,9 +63,11 @@ async function episodeOptions({ isDemo, organizationId, language }: EpisodeOptio
   })
 }
 
+// The new exposure as the editor keeps it (the occupational-health editor owns its fields).
+type ExposureDraft = Record<string, unknown>
 interface ExposureSectionBodyProps {
-  record: AnyRecord
-  department: AnyRecord
+  record: EmployeeSurveillanceRecord
+  department: string | undefined
 }
 function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
   const { t, language } = useLanguage()
@@ -70,10 +75,10 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
   const { notify } = useFeedback()
   const { tenant, isDemo, role, membership } = useTenant()
   const has = useCallback((cap: string) => can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? []), [role, membership])
-  const { data: employeeRows = [] }: { data?: AnyRecord[] } = useEmployeesData()
-  const [rows, setRows] = useState<AnyRecord[]>([])
-  const [editor, setEditor] = useState<AnyRecord | null>(null)
-  const [detail, setDetail] = useState<AnyRecord | null>(null)
+  const { data: employeeRows = [] }: { data?: ScreeningEmployee[] } = useEmployeesData()
+  const [rows, setRows] = useState<ExposureIncident[]>([])
+  const [editor, setEditor] = useState<ExposureDraft | null>(null)
+  const [detail, setDetail] = useState<ExposureIncident | null>(null)
   const [caseOptions, setCaseOptions] = useState<{ value: string, label: string }[]>([])
   const recordKey = record.recordId || record.id
   const canLinkEpisode = has(CAPABILITIES.VIEW_SURVEILLANCE)
@@ -96,7 +101,7 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
     setEditor({ ...EMPTY_EXPOSURE_INCIDENT, employeeId: employee?.id || record.employeeId, employeeSurveillanceRecordId: recordKey, sourceCaseId: '' })
     if (canLinkEpisode && !caseOptions.length) setCaseOptions(await episodeOptions({ isDemo, organizationId: tenant?.id, language }).catch(() => []))
   }
-  async function save(draft: AnyRecord) {
+  async function save(draft: ExposureDraft) {
     try {
       await createExposureIncidentAsync(tenant?.id, employee, draft)
       notify(t('episodeForms.exposure.saved'), 'success')
@@ -189,8 +194,8 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
 }
 
 interface EmployeeExposureSectionProps {
-  record: AnyRecord
-  department: AnyRecord
+  record: EmployeeSurveillanceRecord
+  department: string | undefined
 }
 export function EmployeeExposureSection({ record, department }: EmployeeExposureSectionProps) {
   const { isDemo, role, membership } = useTenant()
