@@ -1,13 +1,14 @@
 import { describe,expect,it } from 'vitest'
 import { trainingDemoState } from '../src/features/training/trainingData'
 import { answerIsCorrect,applyReview,applySubmission,manualReviewQuestions,scoreReview,scoreSubmission } from '../src/features/training/trainingScoring'
+import type { TrainingState } from '../src/features/training/trainingData'
 
 const sc={id:'Q1',type:'single_choice',points:2,required:true,options:[{id:'A',correct:false},{id:'B',correct:true}]}
 const mc={id:'Q2',type:'multiple_choice',points:2,required:true,options:[{id:'A',correct:true},{id:'B',correct:true},{id:'C',correct:false}]}
 const tf={id:'Q3',type:'true_false',points:1,required:true,options:[],correctBoolean:false}
 const ft={id:'Q4',type:'free_text',points:5,required:true,options:[],manualReview:true}
 const program={id:'TRN-T',title:'T',requiresAssessment:true,passScore:60,validMonths:12,assessmentQuestions:[sc,mc,tf,ft],feedbackResponses:[]}
-const state=()=>({programs:[structuredClone(program)],assignments:[{id:'TRA-T',programId:'TRN-T',employeeId:'EMP-9',status:'assigned',attendanceResponse:'sent',accessToken:'TRN-ACCESS-x'}],certificates:[],requirements:[],emailOutbox:[],history:[]})
+const state=()=>({programs:[structuredClone(program)],assignments:[{id:'TRA-T',programId:'TRN-T',employeeId:'EMP-9',status:'assigned',attendanceResponse:'sent',accessToken:'TRN-ACCESS-x'}],certificates:[],requirements:[],emailOutbox:[],history:[]} as unknown as TrainingState)
 
 describe('training scoring (same rules as the database)',()=>{
  it('scores each question type like private.training_answer_correct',()=>{
@@ -57,7 +58,7 @@ describe('training learner and manager path (local mirror of the RPCs)',()=>{
  })
 
  it('a fully automatic assessment completes at once and issues the certificate when passed',()=>{
-  const auto={...state(),programs:[{...program,assessmentQuestions:[sc,mc,tf]}]}
+  const auto={...state(),programs:[{...program,assessmentQuestions:[sc,mc,tf]}]} as unknown as TrainingState
   const passed=applySubmission(auto,'TRA-T',{answers:{Q1:'B',Q2:['A','B'],Q3:false},now:'2026-10-18T09:00:00.000Z'})
   expect(passed.assignments[0]).toMatchObject({status:'completed',assessmentReviewStatus:'not_required',score:100,competent:true,certificateId:'CERT-TRA-T'})
   expect(passed.certificates).toHaveLength(1)

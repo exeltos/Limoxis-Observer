@@ -1,8 +1,9 @@
 import { escapeHtml, printReport } from '../../core/export/reportDocument'
 import { getReportBranding } from '../../core/organization/branding'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { TrainingCertificate, TrainingProgram } from './trainingTypes'
 
-interface CertificateInput { certificate?: AnyRecord | null, program?: AnyRecord | null, participantName?: string | null, en?: boolean }
+// The certificate, or an attempt shown as one (with the date the training was completed).
+interface CertificateInput { certificate?: (Partial<TrainingCertificate> & { completedDate?: string | null }) | null, program?: Partial<TrainingProgram> | null, participantName?: string | null, en?: boolean }
 
 const fmt = (v: unknown, en: boolean) => {
   if (!v) return '—'

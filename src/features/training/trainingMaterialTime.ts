@@ -1,5 +1,7 @@
 import { cloudClient } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
+// A file of the programme as the learner's link sees it, and the time counted on it.
+export type AccessFile = { id: string, fileName?: string, mimeType?: string, activeSeconds?: number }
+export type TrackedTime = { activeSeconds?: number, [key: string]: unknown }
 
 // Time a participant spends on the files of a programme (the personal link; migration
 // 20261231180000_training_material_time.sql). The page counts ACTIVE seconds only: the tab
@@ -28,16 +30,16 @@ export function createActiveTimer({ now = () => Date.now(), idleAfter = IDLE_AFT
   }
 }
 
-export async function loadAccessFiles(token: string): Promise<AnyRecord[]> {
+export async function loadAccessFiles(token: string): Promise<AccessFile[]> {
   const { data, error } = await cloudClient().rpc('training_access_files', { p_token: token })
   if (error) throw error
-  return Array.isArray(data) ? data as AnyRecord[] : []
+  return Array.isArray(data) ? data as AccessFile[] : []
 }
 
 export async function trackMaterialTime(token: string, attachmentId: string, seconds: number, page: number | null = null) {
   const { data, error } = await cloudClient().rpc('training_track_time', { p_token: token, p_attachment_id: attachmentId, p_seconds: seconds, p_page: page as number })
   if (error) throw error
-  return data as AnyRecord | null
+  return data as TrackedTime | null
 }
 
 // A short-lived link to the file (the training-material-url function checks the token).

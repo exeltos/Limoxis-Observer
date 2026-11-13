@@ -24,7 +24,11 @@ import { competenceMatrix,newRequirement,retrainingPlan } from './trainingCompet
 import './trainingCompetence.css'
 import { isStaffEmployee } from '../employees/staffCategory'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { TrainingEmployee, TrainingProgram, TrainingRequirement } from './trainingTypes'
+import type { ExportItem } from '../../design-system/ExportMenu'
+import type { LibraryTuple } from '../management/managementData'
+// The figures of the competence view for the page's cards: coverage, counts by state, people, plan, department.
+export type CompetenceSummary = { rate: number | null, valid: number, expiring: number, expired: number, missing: number, people: number, plan: number, department: string }
 import type { ReactNode } from 'react'
 import type { TrainingState } from './trainingData'
 import type { CompetenceCell } from './trainingCompetence'
@@ -38,7 +42,7 @@ export function renewalText(months: unknown,en: boolean){
  return en?`Every ${m} months`:`Κάθε ${m} μήνες`
 }
 // The programmes of a requirement, each title once with how many sessions carry it: «BLS-AED (19)».
-export function programTitlesText(programIds: string[]|null|undefined,programs: AnyRecord[]){
+export function programTitlesText(programIds: string[]|null|undefined,programs: Pick<TrainingProgram,'id'|'title'>[]){
  const counts=new Map<string, {title: string, n: number}>()
  for(const id of programIds||[]){const title=String(programs.find(p=>p.id===id)?.title||id).trim();const key=title.toLocaleUpperCase('el');const seen=counts.get(key);counts.set(key,{title:seen?.title||title,n:(seen?.n||0)+1})}
  return [...counts.values()].map(x=>x.n>1?`${x.title} (${x.n})`:x.title).join(' · ')
@@ -50,19 +54,19 @@ const stateText=(state: string,en: boolean)=>({valid:en?'Valid':'Σε ισχύ',
 // professional category and department), who is covered, and who has to be
 // trained and by when.
 // onSummaryChange: the figures for the page's cards; onExportChange: its «Export» items for the page's top bar.
-interface TrainingCompetencePanelProps { state: TrainingState, employees?: AnyRecord[], departments?: AnyRecord[], language: string, locale: string, canManage: boolean, busy: boolean, onSaveRequirement: (requirement: AnyRecord)=>Promise<unknown>, onDeleteRequirement: (requirement: AnyRecord)=>unknown, onSummaryChange?: (summary: AnyRecord)=>void, onExportChange?: (items: AnyRecord[]|null)=>void, monthly?: ReactNode, monthlyCount?: number|null }
+interface TrainingCompetencePanelProps { state: TrainingState, employees?: TrainingEmployee[], departments?: { id?: string, name?: string }[], language: string, locale: string, canManage: boolean, busy: boolean, onSaveRequirement: (requirement: TrainingRequirement)=>Promise<unknown>, onDeleteRequirement: (requirement: TrainingRequirement)=>unknown, onSummaryChange?: (summary: CompetenceSummary)=>void, onExportChange?: (items: ExportItem[]|null)=>void, monthly?: ReactNode, monthlyCount?: number|null }
 export function TrainingCompetencePanel({state,employees=[],departments=[],language,locale,canManage,busy,onSaveRequirement,onDeleteRequirement,onSummaryChange,onExportChange,monthly=null,monthlyCount=null}: TrainingCompetencePanelProps){
  const en=language==='en'
  const {tenant,isDemo}=useTenant()
  const {notify}=useFeedback()
- const [positionOptions,setPositionOptions]=useState<unknown[][]>([])
- useEffect(()=>{let active=true;if(isDemo){setPositionOptions((demoLibrarySeed as AnyRecord).positions||[]);return()=>{active=false}}if(!tenant?.id)return()=>{active=false};loadManagementLibraries(tenant.id).then(libraries=>{if(active)setPositionOptions((libraries as AnyRecord|null)?.positions||[])}).catch(()=>{if(active)setPositionOptions([])});return()=>{active=false}},[isDemo,tenant?.id])
+ const [positionOptions,setPositionOptions]=useState<LibraryTuple[]>([])
+ useEffect(()=>{let active=true;if(isDemo){setPositionOptions(demoLibrarySeed.positions||[]);return()=>{active=false}}if(!tenant?.id)return()=>{active=false};loadManagementLibraries(tenant.id).then(libraries=>{if(active)setPositionOptions(libraries?.positions||[])}).catch(()=>{if(active)setPositionOptions([])});return()=>{active=false}},[isDemo,tenant?.id])
  const {t}=useLanguage()
  const [dialog,setDialog]=useState<string|null>(null)
  const [view,setView]=useState('matrix')
  const [department,setDepartment]=useState('all')
  const [query,setQuery]=useState(''),[stateFilter,setStateFilter]=useState(''),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(PAGE)
- const [editing,setEditing]=useState<AnyRecord|null>(null)
+ const [editing,setEditing]=useState<TrainingRequirement|null>(null)
  const today=hospitalToday()
  const activeEmployees=useMemo(()=>employees.filter(e=>isStaffEmployee(e)&&(!e.employmentStatus||String(e.employmentStatus).toLowerCase()==='active')),[employees])
  const scoped=useMemo(()=>activeEmployees.filter(e=>department==='all'||e.department===department),[activeEmployees,department])
@@ -70,7 +74,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  const plan=useMemo(()=>retrainingPlan(matrix,{today}),[matrix,today])
  // The search (name) and a state picked from the totals narrow what the matrix and the list show; the printouts keep it all.
  const q=query.trim().toLocaleLowerCase('el')
- const matchName=(e: AnyRecord)=>!q||[e.lastName,e.firstName,e.lastNameEn,e.firstNameEn,e.department,e.profession].filter(Boolean).join(' ').toLocaleLowerCase('el').includes(q)
+ const matchName=(e: TrainingEmployee)=>!q||[e.lastName,e.firstName,e.lastNameEn,e.firstNameEn,e.department,e.profession].filter(Boolean).join(' ').toLocaleLowerCase('el').includes(q)
  const shownRows=useMemo(()=>matrix.rows.filter(row=>matchName(row.employee)&&(!stateFilter||row.cells.some(cell=>cell?.state===stateFilter))),[matrix,q,stateFilter]) // eslint-disable-line react-hooks/exhaustive-deps
  const shownPlan=useMemo(()=>plan.filter(item=>matchName(item.employee)&&(!stateFilter||item.state===stateFilter)),[plan,q,stateFilter]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{setPage(1)},[q,stateFilter,department,view])
@@ -81,9 +85,9 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  const positions=useMemo(()=>[...new Set([...positionOptions.map(row=>row?.[0]),...activeEmployees.map(e=>e.position)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,language)),[positionOptions,activeEmployees,language])
  const departmentNames=useMemo(()=>[...new Set([...departments.map(d=>d.name),...activeEmployees.map(e=>e.department)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,language)),[departments,activeEmployees,language])
  const fmt=(v: string)=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'
- const name=(e: AnyRecord)=>en?[e.firstNameEn||e.firstName,e.lastNameEn||e.lastName].filter(Boolean).join(' '):[e.lastName,e.firstName].filter(Boolean).join(' ')
+ const name=(e: TrainingEmployee)=>en?[e.firstNameEn||e.firstName,e.lastNameEn||e.lastName].filter(Boolean).join(' '):[e.lastName,e.firstName].filter(Boolean).join(' ')
  // Who a requirement covers, in words: «Όλο το προσωπικό» when it names no category, position or department.
- const appliesText=(r: AnyRecord)=>{const parts=[(r.professions||[]).join(', '),(r.positions||[]).join(', '),(r.departments||[]).join(', ')].filter(Boolean);return parts.length?parts.join(' · '):(en?'All staff':'Όλο το προσωπικό')}
+ const appliesText=(r: TrainingRequirement)=>{const parts=[(r.professions||[]).join(', '),(r.positions||[]).join(', '),(r.departments||[]).join(', ')].filter(Boolean);return parts.length?parts.join(' · '):(en?'All staff':'Όλο το προσωπικό')}
 
  function matrixExport(){
   return ({name:en?'training-competence':'eparkeia-ekpaideusis',
@@ -151,8 +155,8 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  </div>
 }
 
-function RequirementDialog({value,programs,professions,positions=[],departments,en,busy,onClose,onSave}: {value: AnyRecord,programs: AnyRecord[],professions: string[],positions?: string[],departments: string[],en: boolean,busy: boolean,onClose: ()=>void,onSave: (requirement: AnyRecord)=>unknown}){
- const [draft,setDraft]=useState<AnyRecord>(value)
+function RequirementDialog({value,programs,professions,positions=[],departments,en,busy,onClose,onSave}: {value: TrainingRequirement,programs: TrainingProgram[],professions: string[],positions?: string[],departments: string[],en: boolean,busy: boolean,onClose: ()=>void,onSave: (requirement: TrainingRequirement)=>unknown}){
+ const [draft,setDraft]=useState<TrainingRequirement>(value)
  const set=(k: string,v: unknown)=>setDraft(d=>({...d,[k]:v}))
  const valid=draft.title.trim()&&draft.programIds.length>0
  // A title held by many sessions (e.g. 19 × «BLS-AED») is one choice that picks all of them.

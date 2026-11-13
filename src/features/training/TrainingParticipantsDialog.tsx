@@ -7,14 +7,16 @@ import { SaveButton } from '../../design-system/SaveButton'
 import { IconButton } from '../../design-system/IconButton'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { TrainingEmployee } from './trainingTypes'
+// A person entered by hand (outside the staff register).
+type ManualEntry = { id?: string, name: string, department: string, email: string }
 
 const emptyManual={name:'',department:'',email:''}
 const makeManualId=()=>`MAN-${Date.now()}-${Math.random().toString(36).slice(2,7)}`
 
-interface TrainingParticipantsDialogProps { employees?: AnyRecord[], alreadyAssignedIds?: unknown[], departments?: AnyRecord[], onClose: ()=>void, onSave: (selection: {selected: AnyRecord[], manualEntries: AnyRecord[]})=>unknown, busy?: boolean, en?: boolean }
+interface TrainingParticipantsDialogProps { employees?: TrainingEmployee[], alreadyAssignedIds?: unknown[], departments?: { id?: string, name?: string, label?: string }[], onClose: ()=>void, onSave: (selection: {selected: TrainingEmployee[], manualEntries: ManualEntry[]})=>unknown, busy?: boolean, en?: boolean }
 export function TrainingParticipantsDialog({employees=[],alreadyAssignedIds=[],departments=[],onClose,onSave,busy=false,en=false}: TrainingParticipantsDialogProps){
- const [mode,setMode]=useState(employees.length?'registry':'manual'),[ids,setIds]=useState<unknown[]>([]),[query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[manualDraft,setManualDraft]=useState(emptyManual),[manualEntries,setManualEntries]=useState<AnyRecord[]>([])
+ const [mode,setMode]=useState(employees.length?'registry':'manual'),[ids,setIds]=useState<string[]>([]),[query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[manualDraft,setManualDraft]=useState(emptyManual),[manualEntries,setManualEntries]=useState<ManualEntry[]>([])
  const assignedSet=useMemo(()=>new Set((alreadyAssignedIds||[]).map(String)),[alreadyAssignedIds])
  const departmentNames=useMemo(()=>[...new Set(employees.map(x=>x.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el')),[employees])
  const visible=useMemo(()=>employees.filter(x=>(department==='all'||x.department===department)&&`${x.firstName||''} ${x.lastName||''} ${x.id||''} ${x.employeeCode||''} ${x.email||''} ${x.department||''}`.toLowerCase().includes(query.toLowerCase())),[employees,department,query])
@@ -57,7 +59,7 @@ export function TrainingParticipantsDialog({employees=[],alreadyAssignedIds=[],d
       wrapperClassName="scroll-table training-manual-table-wrap"
       columns={[{key:'participant',label:en?'Participant':'Συμμετέχων'},{key:'department',label:en?'Department / organization':'Τμήμα / φορέας'},{key:'email',label:'Email'},{key:'actions',label:''}]}
       rows={manualEntries}
-      rowKey={item=>item.id}
+      rowKey={item=>item.id as string}
       renderRow={item=><><td><strong>{item.name}</strong></td><td>{item.department||'—'}</td><td>{item.email||'—'}</td><td className="open-record-cell"><IconButton tone="danger" size="sm" label={en?'Remove':'Αφαίρεση'} onClick={()=>setManualEntries(rows=>rows.filter(x=>x.id!==item.id))}><Trash2 size={14}/></IconButton></td></>}
      />:<div className="registry-empty-state"><UserRoundPlus size={24}/><strong>{en?'No manual participants yet.':'Δεν έχουν προστεθεί χειροκίνητοι συμμετέχοντες.'}</strong><span>{en?'Complete the fields above and add participants to the list.':'Συμπληρώστε τα πεδία και προσθέστε συμμετέχοντες στη λίστα.'}</span></div>}</div>
    </section>}

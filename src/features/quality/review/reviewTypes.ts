@@ -198,7 +198,7 @@ export interface FactSupplier { status?: string, evaluations?: (Parameters<typeo
 export interface FactEquipmentEvent { happenedOn?: string, kind: string, result?: string }
 export interface FactRiskAssessment { status?: string, assessedOn?: string, code?: string, title?: string, risks?: NonNullable<Parameters<typeof summarizeRisks>[0]>, opportunities?: Record<string, unknown>[] }
 export interface FactTrainingProgram { status?: string, startDate?: string, dueDate?: string }
-export interface FactTrainingAssignment { status?: string, completedDate?: string }
+export interface FactTrainingAssignment { status?: string, completedDate?: string | null }
 export interface FactDocument { status: string, type?: string, reviewDate?: string }
 
 export interface ReviewFacts {
