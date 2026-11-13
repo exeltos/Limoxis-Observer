@@ -2,7 +2,7 @@
 // Moving between screens never shows "something else" first: the shell stays,
 // a page file already fetched renders at once, a screen whose first load has not
 // ended shows placeholders (never its empty state or 0 figures), and a record
-// page never shows the previous record. See tools/capture-page-transitions.mjs.
+// page never shows the previous record. See tools/capture-page-transitions.ts.
 import { Suspense } from 'react'
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'

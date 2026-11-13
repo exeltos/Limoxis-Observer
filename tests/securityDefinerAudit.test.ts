@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { auditSecurityDefiner, exposure, functionBody, replayMigrations, signature, splitStatements } from '../tools/check-security-definer.mjs'
+import { auditSecurityDefiner, exposure, functionBody, replayMigrations, signature, splitStatements } from '../tools/check-security-definer.ts'
 
 const fnSql = (name, { definer = true, trigger = false, body = 'select auth.uid() is not null', args = 'p_org uuid' } = {}) => `
 create or replace function public.${name}(${args}) returns ${trigger ? 'trigger' : 'boolean'}

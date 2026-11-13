@@ -13,7 +13,7 @@ describe('migration integrity',()=>{
   })
 
   // Later migrations are no longer named after a release, so the package version
-  // (which tests/platformHardening.test.js keeps equal to APP_VERSION) may be newer.
+  // (which tests/platformHardening.test.ts keeps equal to APP_VERSION) may be newer.
   it('keeps the package version at or after the latest versioned release migration',()=>{
     const versioned=migrations.filter(name=>/_v0(\d{2})(\d+)_[^.]+\.sql$/.test(name))
     expect(versioned.length).toBeGreaterThan(0)

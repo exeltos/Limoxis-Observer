@@ -3,7 +3,7 @@
 // Platform Owner uses "Είσοδος Demo" (enterPlatformDemo()) — that flow
 // sets isDemo=true and tenant=demo-hospital but KEEPS role=PLATFORM_OWNER
 // (not ROLES.DEMO), which is a different combination than a normal demo
-// account login. tests/platformOwnerDemoSurveillanceCrash.test.jsx already
+// account login. tests/platformOwnerDemoSurveillanceCrash.test.tsx already
 // caught a real crash there (surveillanceDemoData used `state` instead of
 // `status`). This sweeps every other page reachable from the Platform
 // Owner's sidebar the same way, so a similar mismatch elsewhere doesn't

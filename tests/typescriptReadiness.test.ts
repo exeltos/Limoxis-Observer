@@ -30,7 +30,7 @@ describe('TypeScript, step 1: the tests and the tools follow a file that changes
     const core = files(new URL('../src/core', import.meta.url).pathname).filter(name => /\.(js|jsx|ts|tsx)$/.test(name))
     expect(core.length).toBeGreaterThan(80)
     expect(core.filter(name => /\.jsx?$/.test(name))).toEqual([])
-    expect(readSource('package.json')).toContain('node --import ./tools/ts/register.mjs tools/check-product-permissions.mjs')
+    expect(readSource('package.json')).toContain('node --import ./tools/ts/register.ts tools/check-product-permissions.ts')
     expect(readSource('src/core/supabase/client.ts')).toContain('createClient<Database>(')
   })
   it('the database types exist without the per-register dynamic tables', () => {
@@ -40,7 +40,7 @@ describe('TypeScript, step 1: the tests and the tools follow a file that changes
     expect(types).not.toMatch(/^ {6}register_[a-z]+_[0-9a-f]{8}: \{$/m)
   })
   it('the audit tools read the source through the same resolution', () => {
-    expect(readSource('tools/readSource.mjs')).toContain("export const SOURCE_FILE = /\\.(js|jsx|ts|tsx)$/")
-    expect(readSource('tools/check-react-hooks-smoke.mjs')).toContain('SOURCE_FILE')
+    expect(readSource('tools/readSource.ts')).toContain("export const SOURCE_FILE = /\\.(js|jsx|ts|tsx)$/")
+    expect(readSource('tools/check-react-hooks-smoke.ts')).toContain('SOURCE_FILE')
   })
 })

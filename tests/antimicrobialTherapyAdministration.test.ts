@@ -28,7 +28,7 @@ describe('Antimicrobial therapy: "plan" (order) and "administration" are now sep
   })
 
   // The service side (and per-therapy administration history) is exercised in
-  // clinicalCloudServiceBehavior.test.js.
+  // clinicalCloudServiceBehavior.test.ts.
   it('finally wires up approval_status instead of always writing "not_required"', () => {
     expect(repository).toContain("draft.isAdvancedAntibiotic?'pending':(draft.approvalStatus||'not_required')")
   })
