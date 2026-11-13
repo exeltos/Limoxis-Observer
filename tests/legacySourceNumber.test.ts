@@ -40,7 +40,7 @@ describe('printed finding document',()=>{
     const record={id:'FND-261009-331142',title:'Εύρημα',titleEn:'Finding',severity:'medium',date:'2026-10-09',status:'open',source:'manual',sourceId:'33331142',history:[],lifecycleStatus:'active'}
     const t=value=>value
     for(const language of ['el','en']){
-      const html=renderToStaticMarkup(createElement(QualityRecordDocument,{recordType:'findings',record,linked:[],language,t}))
+      const html=renderToStaticMarkup(createElement(QualityRecordDocument,{recordType:'findings',record,linked:[],language,t} as never))
       expect(html).not.toContain('33331142')
       expect(html).toContain(language==='en'?'Manual entry':'Χειροκίνητη καταχώρηση')
       expect(JSON.stringify(glanceItems('findings',record,{language,t,linked:[]}))).not.toContain('33331142')

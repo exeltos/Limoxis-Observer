@@ -41,7 +41,7 @@ async function openSample(id = 'LAB-260827-001') {
   act(() => { api.enterSampleDemo() })
   await waitFor(() => expect(screen.queryAllByRole('tab').length).toBeGreaterThan(0), { timeout: 5000 })
 }
-const body = () => document.querySelector('.entity-record-body')
+const body = () => document.querySelector<HTMLElement>('.entity-record-body')
 const openTab = name => fireEvent.click(screen.getByRole('tab', { name }))
 const menuItems = () => screen.getAllByRole('menuitem').map(item => item.textContent.trim())
 const openMenu = button => { fireEvent.click(button); return menuItems() }
@@ -79,7 +79,7 @@ describe('laboratory record layout', () => {
     expect(openMenu(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))).toEqual(['Επεξεργασία αποτελέσματος', 'Απόρριψη δείγματος', 'Διαγραφή'])
     closeMenu()
     expect(within(body()).queryByRole('button', { name: 'Εξαγωγή' })).not.toBeInTheDocument()
-    const header = document.querySelector('.entity-record-header')
+    const header = document.querySelector<HTMLElement>('.entity-record-header')
     expect(openMenu(within(header).getByRole('button', { name: 'Εξαγωγή' }))).toEqual(['Εκτύπωση', 'JSON'])
     closeMenu()
   })
@@ -95,9 +95,9 @@ describe('laboratory record layout', () => {
 
   it('walks the user through the workflow with the next step as the primary action', async () => {
     await openSample()
-    const workflow = body().querySelector('.lab-workflow-card')
+    const workflow = body().querySelector<HTMLElement>('.lab-workflow-card')
     for (const step of ['Παραλαβή', 'Αποτέλεσμα', 'Αντιβιόγραμμα', 'Επικοινωνία κρίσιμου', 'Έλεγχος εγγράφων', 'Οριστικοποίηση']) expect(within(workflow).getByText(step)).toBeInTheDocument()
-    const next = workflow.querySelector('.lab-workflow-next')
+    const next = workflow.querySelector<HTMLElement>('.lab-workflow-next')
     expect(next).toHaveTextContent('Klebsiella pneumoniae')
     fireEvent.click(within(next).getByRole('button', { name: 'Προσθήκη αντιβιογράμματος' }))
     expect(await screen.findByRole('dialog')).toHaveClass('observer-dialog')
@@ -109,7 +109,7 @@ describe('laboratory record dialogs', () => {
     await openSample()
     openTab('Μικροβιολογικό αποτέλεσμα')
     const [resultMenu, isolateMenu, communicationMenu] = within(body()).getAllByRole('button', { name: 'Περισσότερες ενέργειες' })
-    for (const [menu, item] of [[resultMenu, 'Επεξεργασία αποτελέσματος'], [isolateMenu, 'Προσθήκη αντιβιογράμματος'], [isolateMenu, 'Ταξινόμηση AMR'], [communicationMenu, 'Καταγραφή επικοινωνίας']]) {
+    for (const [menu, item] of [[resultMenu, 'Επεξεργασία αποτελέσματος'], [isolateMenu, 'Προσθήκη αντιβιογράμματος'], [isolateMenu, 'Ταξινόμηση AMR'], [communicationMenu, 'Καταγραφή επικοινωνίας']] as [HTMLElement, string][]) {
       fireEvent.click(menu)
       fireEvent.click(screen.getByRole('menuitem', { name: item }))
       const dialog = await screen.findByRole('dialog')
@@ -168,7 +168,7 @@ describe('AMR classification badge', () => {
     window.addEventListener(DEMO_STEP_EVENT, listener)
     await openSample()
     openTab('Μικροβιολογικό αποτέλεσμα')
-    const isolate = () => body().querySelector('.lab-isolate-card')
+    const isolate = () => body().querySelector<HTMLElement>('.lab-isolate-card')
     expect(isolate()).toHaveAttribute('data-demo-step', 'microbiology_mdro:amr')
     expect(isolate().querySelector('.status-badge')).toBeNull()
     fireEvent.click(within(isolate()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))

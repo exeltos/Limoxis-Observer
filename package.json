@@ -31,7 +31,7 @@
     "audit:english-parity": "node tools/check-english-parity.mjs",
     "audit:help-coverage": "node --import ./tools/ts/register.mjs tools/check-help-manual-coverage.mjs",
     "report:english-ui": "node tools/report-english-ui-risk.mjs",
-    "test:lira": "vitest run tests/liraQuestionModel.test.js tests/liraHaiMetrics.test.js tests/liraOperationalOverview.test.js tests/liraPhase1Core.test.js tests/liraKnowledgeFoundation.test.js tests/liraClinicalCurriculum.test.js tests/liraDemoReadiness.test.js tests/liraLauncherLoading.test.js tests/liraKnowledgeWorkflow.test.js tests/liraKnowledgeIngestion.test.js tests/liraGateway.test.js tests/liraProviderSettings.test.js tests/liraProviderRuntime.test.js tests/liraRagRuntime.test.js",
+    "test:lira": "vitest run tests/liraQuestionModel.test.js tests/liraHaiMetrics.test.ts tests/liraOperationalOverview.test.js tests/liraPhase1Core.test.js tests/liraKnowledgeFoundation.test.ts tests/liraClinicalCurriculum.test.js tests/liraDemoReadiness.test.ts tests/liraLauncherLoading.test.ts tests/liraKnowledgeWorkflow.test.ts tests/liraKnowledgeIngestion.test.js tests/liraGateway.test.ts tests/liraProviderSettings.test.js tests/liraProviderRuntime.test.js tests/liraRagRuntime.test.js",
     "audit:dead-selectors": "node tools/check-dead-selectors.mjs",
     "manual:pdf": "node --import ./tools/ts/register.mjs tools/build-manual-pdf.mjs",
     "typecheck:strict": "tsc -p tsconfig.strict.json",

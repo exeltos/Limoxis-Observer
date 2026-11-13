@@ -15,7 +15,7 @@ describe('lifecycle reminders', () => {
   it('lists Demo endings and deletions of the next 7 days on the Platform Center, most urgent first', () => {
     const nav = []
     const opened = []
-    render(<PlatformDashboardView tx={tx} activeOrganizations={3} loadingStats={false} onNavigate={to => nav.push(to)} onOpenDemo={d => opened.push(d.id)}
+    render(<PlatformDashboardView tx={tx} {...{ activeOrganizations: 3 }} loadingStats={false} onNavigate={to => nav.push(to)} onOpenDemo={d => opened.push(d.id)}
       organizations={[{ id: 'o1', name: 'Νοσοκομείο Α', deletion_scheduled_at: iso(-0.2) }, { id: 'o2', name: 'Νοσοκομείο Β', deletion_scheduled_at: iso(1) }, { id: 'o3', name: 'Νοσοκομείο Γ', deletion_scheduled_at: iso(20) }]}
       activeDemos={[]} expiringDemos={[{ id: 'd1', label: 'Demo Χ', valid_until: iso(6).slice(0, 10) }, { id: 'd2', label: 'Demo Ψ', valid_until: iso(12).slice(0, 10) }]}/>)
     expect(screen.getByText('Χρειάζονται ενέργεια')).toBeInTheDocument()
