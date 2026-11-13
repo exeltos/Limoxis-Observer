@@ -55,7 +55,7 @@ export function buildLiraAnalysis(data: LiraData,language='el',{today=hospitalTo
  const highIncidents=qualityIncidents.filter(x=>['high','critical'].includes(x.severity||'')&&x.status!=='closed')
  const overdueCapa=qualityCapas.filter(x=>x.status!=='completed'&&x.dueDate&&day(x.dueDate)!<today)
  const signals: LiraSignal[]=[]
- const evidence=(source: string,id: string,date: unknown)=>({source,id,date:day(date)})
+ const evidence=(source: string,id: string|undefined,date: unknown)=>({source,id,date:day(date)})
  const icu=en?'ICU':'ΜΕΘ'
  const icuAmr=amrSurv.filter(x=>String(x.department||'').toLocaleLowerCase('el-GR').includes('μεθ')||String(x.department||'').toLowerCase().includes('icu'))
  if(icuAmr.length)signals.push({id:'amr-concentration',severity:'high',domain:en?'Surveillance / AMR':'Επιτήρηση / AMR',department:icu,title:en?'Resistant-organism records requiring epidemiological review in ICU':'Εγγραφές ανθεκτικών μικροοργανισμών που απαιτούν επιδημιολογική αξιολόγηση στη ΜΕΘ',summary:en?`${icuAmr.length} active resistant-organism surveillance record(s) are present in ICU; no cluster threshold is inferred.`:`${icuAmr.length} ενεργές εγγραφές επιτήρησης ανθεκτικών μικροοργανισμών υπάρχουν στη ΜΕΘ· δεν συνάγεται όριο cluster.`,evidence:icuAmr.map(x=>evidence('surveillance_cases',x.id,x.startedAt)),to:'/surveillance'})

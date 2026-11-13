@@ -7,7 +7,8 @@ import type { OutbreakLineRow } from './liraOutbreakInvestigation'
 
 // Τα κοινά πεδία κάθε γραμμής: ημερομηνία σήματος, τμήμα, ασθενής.
 export interface LiraRow {
-  id: string
+  // Οι γραμμές του εργαστηρίου ταυτοποιούνται με το resultId· οι υπόλοιπες με id.
+  id?: string
   department?: string | null
   departmentEl?: string | null
   departmentEn?: string | null
@@ -91,7 +92,8 @@ export interface OutbreakEventStamp { event_type?: string, created_at?: string }
 export interface OutbreakEventLike { id?: string, event_type?: string, created_at?: string, payload?: { action?: string, text?: string, to?: string } | null }
 // Ένα γεγονός του χρονολογίου, όσο το δείχνει η αναφορά.
 export interface OutbreakTimelineLike { date?: string | null, type?: string, department?: string | null, label?: string | null }
-export interface OutbreakLineListLike { rows?: OutbreakLineRow[], summary?: { uniquePatients?: number } }
+// Η λίστα κρουσμάτων όπως τη διαβάζουν η ετοιμότητα κλεισίματος και ο βοηθός: μόνο το κλειδί κάθε γραμμής.
+export interface OutbreakLineListLike { rows?: Pick<OutbreakLineRow, 'recordKey'>[], summary?: { uniquePatients?: number } }
 
 // Ένα σήμα της ανάλυσης LIRA και η τεκμηρίωσή του (πηγή, εγγραφή, ημερομηνία).
 export interface LiraEvidence { source: string, id: string | undefined, date: string | null }

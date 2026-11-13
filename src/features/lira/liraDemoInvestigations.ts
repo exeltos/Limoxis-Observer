@@ -4,7 +4,6 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { addDays } from '../../core/data/demoSeed'
-import type { OutbreakLineListLike } from './liraTypes'
 import type { OutbreakLineRow } from './liraOutbreakInvestigation'
 
 // Όσα διαβάζονται από μια demo διερεύνηση για τις αξιολογήσεις περιστατικών.
@@ -127,7 +126,7 @@ const reviewDay = (investigation: DemoInvestigationRef, index: number) => {
   const last = investigation.closed_at && addDays(String(investigation.closed_at).slice(0, 10), -1)
   return last && day > last ? last : day
 }
-export function demoOutbreakCaseReviews(investigation: DemoInvestigationRef | null | undefined, lineList: OutbreakLineListLike | null | undefined) {
+export function demoOutbreakCaseReviews(investigation: DemoInvestigationRef | null | undefined, lineList: { rows?: OutbreakLineRow[] } | null | undefined) {
   if (!investigation?.demoEvents || investigation.status === 'draft') return []
   const rows = lineList?.rows || []
   const reviewed = investigation.status === 'active' ? rows.slice(0, Math.ceil(rows.length / 2)) : rows

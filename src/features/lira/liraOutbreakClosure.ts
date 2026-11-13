@@ -1,11 +1,10 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { OutbreakActionLike, OutbreakCaseReviewLike, OutbreakEventStamp, OutbreakLineListLike } from './liraTypes'
-import type { OutbreakLineRow } from './liraOutbreakInvestigation'
 // Τα τεκμήρια μιας διερεύνησης: γραμμική λίστα, αξιολογήσεις, διορθωτικές ενέργειες, ιστορικό.
 export interface OutbreakEvidence { lineList?: OutbreakLineListLike|null; caseReviews?: OutbreakCaseReviewLike[]; actions?: OutbreakActionLike[]; events?: OutbreakEventStamp[] }
 export function latestCaseReviews(reviews: OutbreakCaseReviewLike[]=[]){const map=new Map<string|undefined,OutbreakCaseReviewLike>();for(const review of reviews){const prev=map.get(review.record_key);if(!prev||String(review.reviewed_at||'')>=String(prev.reviewed_at||''))map.set(review.record_key,review)}return [...map.values()]}
 export function buildOutbreakClosureReadiness({lineList,caseReviews=[],actions=[],events=[],today=hospitalToday()}: OutbreakEvidence&{today?: string}={}){
- const rows=lineList?.rows||[],latest=latestCaseReviews(caseReviews),reviewed=new Set(latest.map(x=>x.record_key)),unreviewed=rows.filter((x: OutbreakLineRow)=>!reviewed.has(x.recordKey)).length
+ const rows=lineList?.rows||[],latest=latestCaseReviews(caseReviews),reviewed=new Set(latest.map(x=>x.record_key)),unreviewed=rows.filter(x=>!reviewed.has(x.recordKey)).length
  const openActions=actions.filter(x=>x.status!=='closed'),overdueActions=openActions.filter(x=>x.due_date&&x.due_date<today)
  const hypotheses=events.filter(x=>x.event_type==='hypothesis'),decisions=events.filter(x=>x.event_type==='decision')
  const unresolvedHypotheses=hypotheses.filter(h=>!decisions.some(d=>d.created_at!>=h.created_at!))
