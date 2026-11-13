@@ -3,7 +3,7 @@
 // and trend come from the same calculation the Indicators page uses.
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadOperationalIndicatorDefinitions } from '../../indicators/indicatorCloudService'
 import { hospitalDate } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { IndicatorValue,RiskDraft } from './riskTypes'
 
 const fold = (value: unknown) => String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
@@ -29,7 +29,7 @@ const RULES: [RegExp, string[]][] = [
 
 // Indicators to propose for a risk, among those the organization has; the
 // ones already linked are left out.
-export function suggestIndicators(risk: AnyRecord, available: string[] = [], limit = 3) {
+export function suggestIndicators(risk: RiskDraft, available: string[] = [], limit = 3) {
   const have = new Set(available)
   const linked = new Set(risk.indicatorKeys || [])
   const text = fold([risk.hazard, risk.process, risk.scope, risk.indicator].join(' '))
@@ -52,7 +52,7 @@ export async function loadIndicatorValues(organizationId: string | null | undefi
     collectCloudIndicatorMetrics(organizationId, { from, to }),
     collectCloudIndicatorMetrics(organizationId, { from: prevFrom, to: prevTo }),
   ])
-  const values = new Map<string, AnyRecord>()
+  const values = new Map<string, IndicatorValue>()
   for (const def of definitions) {
     const now90 = calculateCloudDefinition(def, current), before = calculateCloudDefinition(def, previous)
     values.set(def.id, { key: def.id, titleEl: def.titleEl, titleEn: def.titleEn || def.titleEl, category: def.category, unit: def.unit, unitEn: def.unitEn, target: def.target, direction: def.direction, value: now90.value, previous: before.value, status: now90.status, trend: indicatorTrend(now90.value, before.value, def.direction) })

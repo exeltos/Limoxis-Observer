@@ -13,24 +13,24 @@ import { loadRiskAssessments } from './riskService'
 import { consequenceLabel,jciLabel,levelLabel,likelihoodLabel,parseMeasures,riskEvidenceRows,riskLineage,riskWarnings,scored,sectionLabel,warningLabel } from './riskModel'
 import { L,LevelChip,recordActions,txt } from './riskUi'
 import { IndicatorChip } from './RiskIndicatorsUi'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { IndicatorValueMap,QualityRecordLink,Risk,RiskAssessment,RiskStage } from './riskTypes'
 
-const STAGES: string[][]=[['inherent','Εγγενής','Inherent'],['residual','Υπολειπόμενος','Residual'],['target','Στόχος','Target']]
+const STAGES: [RiskStage,string,string][]=[['inherent','Εγγενής','Inherent'],['residual','Υπολειπόμενος','Residual'],['target','Στόχος','Target']]
 
 // One risk as a record: a summary line and its values (no form), what happened
 // in practice, the corrective actions opened from it and its course over the
 // periods. Editing opens the form from the record's «⋯».
 interface RiskRecordViewProps {
- risk: AnyRecord
- assessment: AnyRecord
+ risk: Risk
+ assessment: RiskAssessment
  organizationId: string|null|undefined
  en: boolean
  canEdit: boolean
- indicatorValues?: Map<string,AnyRecord>|null
+ indicatorValues?: IndicatorValueMap|null
  onBack: ()=>void
  onEdit: ()=>void
  onDelete?: (()=>void)|null
- onCreateCapa?: ((risk: AnyRecord)=>void)|null
+ onCreateCapa?: ((risk: Risk)=>void)|null
  onMove?: ((key: string)=>void|Promise<void>)|null
 }
 
@@ -39,8 +39,8 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
  const {t}=useLanguage()
  const {goTo}=useContextualNavigation('/quality')
  const [tab,setTab]=useState('details')
- const [practice,setPractice]=useState<{incidents: AnyRecord[],findings: AnyRecord[],capas: AnyRecord[]}>({incidents:[],findings:[],capas:[]})
- const [assessments,setAssessments]=useState<AnyRecord[]>([])
+ const [practice,setPractice]=useState<{incidents: QualityRecordLink[],findings: QualityRecordLink[],capas: QualityRecordLink[]}>({incidents:[],findings:[],capas:[]})
+ const [assessments,setAssessments]=useState<RiskAssessment[]>([])
  useEffect(()=>{let active=true
   Promise.all(['incidents','findings','capas'].map(section=>loadQualityRecords(section,organizationId).catch(()=>[]))).then(([incidents,findings,capas])=>{if(active)setPractice({incidents,findings,capas})})
   loadRiskAssessments(organizationId).then(list=>{if(active)setAssessments(list)}).catch(()=>{if(active)setAssessments([])})
@@ -58,8 +58,8 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
  const index=keys.indexOf(risk.lineageKey)
  const recordNavigation=onMove&&index>=0&&keys.length>1?{position:index+1,total:keys.length,hasPrevious:index>0,hasNext:index<keys.length-1,previous:()=>index>0&&onMove(keys[index-1]),next:()=>index<keys.length-1&&onMove(keys[index+1])}:null
  const measures=(value: string)=>{const list=parseMeasures(value);return list.length?<ol className="risk-view-measures">{list.map((item,index)=><li key={index}>{item}</li>)}</ol>:''}
- const axes=(kind: string)=>s[kind].score?`${s[kind].l} × ${s[kind].c} · ${likelihoodLabel(s[kind].l,en)} / ${consequenceLabel(s[kind].c,en)}`:''
- const open=(type: string,row: AnyRecord)=>goTo(`/quality/${type}/${row.id}`,{returnTo:`/quality/risks/${assessment.code}/${risk.lineageKey}`})
+ const axes=(kind: RiskStage)=>s[kind].score?`${s[kind].l} × ${s[kind].c} · ${likelihoodLabel(s[kind].l,en)} / ${consequenceLabel(s[kind].c,en)}`:''
+ const open=(type: string,row: QualityRecordLink)=>goTo(`/quality/${type}/${row.id}`,{returnTo:`/quality/risks/${assessment.code}/${risk.lineageKey}`})
  const tabs=[
   {id:'details',label:L(en,'Στοιχεία','Details'),icon:ShieldAlert},
   {id:'practice',label:L(en,`Στην πράξη (${evidence.incidents.length+evidence.findings.length})`,`In practice (${evidence.incidents.length+evidence.findings.length})`),icon:Activity},
@@ -97,7 +97,7 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
    ].filter(item=>item.value)},
   ]}/>
  </div>
- const list=(rows: AnyRecord[],type: string,empty: string)=>rows.length?<ul className="risk-view-list">{rows.map((row: AnyRecord)=><li key={row.id}><button type="button" onClick={()=>open(type,row)}>
+ const list=(rows: QualityRecordLink[],type: string,empty: string)=>rows.length?<ul className="risk-view-list">{rows.map(row=><li key={row.id}><button type="button" onClick={()=>open(type,row)}>
   <span><strong>{row.displayId||row.id}</strong> · {(en?row.titleEn:row.title)||row.title}</span>
   <small>{[formatDay(row.date,language),(en?row.departmentEn:row.department)||row.department].filter(Boolean).join(' · ')}</small>
  </button></li>)}</ul>:<p className="risk-view-none">{empty}</p>

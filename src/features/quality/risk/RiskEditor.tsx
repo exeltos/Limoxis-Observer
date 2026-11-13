@@ -9,29 +9,29 @@ import { YesNoField } from '../../../design-system/YesNoField'
 import { CONSEQUENCE,JCI_CHAPTERS,LIKELIHOOD,SECTIONS,joinMeasures,levelInfo,parseMeasures,riskWarnings,scored,warningLabel,type RiskScore } from './riskModel'
 import { AxisSelect,L,LevelChip,recordActions,txt } from './riskUi'
 import { IndicatorPicker } from './RiskIndicatorsUi'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { IndicatorValueMap,RiskDraft,RiskStage,RiskTextField } from './riskTypes'
 
-const STAGES: string[][]=[['inherent','Εγγενής κίνδυνος','Inherent risk','Χωρίς κανένα μέτρο','Before any control'],['residual','Υπολειπόμενος κίνδυνος','Residual risk','Με τα μέτρα που ήδη λαμβάνονται','With the controls already in place'],['target','Κίνδυνος-στόχος','Target risk','Μετά τα πρόσθετα μέτρα','After the additional measures']]
+const STAGES: [RiskStage,string,string,string,string][]=[['inherent','Εγγενής κίνδυνος','Inherent risk','Χωρίς κανένα μέτρο','Before any control'],['residual','Υπολειπόμενος κίνδυνος','Residual risk','Με τα μέτρα που ήδη λαμβάνονται','With the controls already in place'],['target','Κίνδυνος-στόχος','Target risk','Μετά τα πρόσθετα μέτρα','After the additional measures']]
 
 // One risk of an assessment, on its own page. The score, level and warnings update as L and C change.
 interface RiskEditorProps {
- risk: AnyRecord
+ risk: RiskDraft
  processes?: string[]
  en: boolean
  readOnly?: boolean
  onClose: ()=>void
- onSave: (draft: AnyRecord)=>void|Promise<void>
+ onSave: (draft: RiskDraft)=>void|Promise<void>
  onDelete?: (()=>void)|null
- onCreateCapa?: ((risk: AnyRecord)=>void)|null
+ onCreateCapa?: ((risk: RiskDraft)=>void)|null
  saving?: boolean
- indicatorValues?: Map<string,AnyRecord>|null
+ indicatorValues?: IndicatorValueMap|null
  assessmentLabel?: string
  startEditing?: boolean
  onCancel?: (()=>void)|null
 }
 
 export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,onDelete=null,onCreateCapa=null,saving=false,indicatorValues=null,assessmentLabel='',startEditing=false,onCancel=null}: RiskEditorProps){
- const [draft,setDraft]=useState<AnyRecord>(()=>({section:'clinical',...risk,process:txt(risk,'process',en),scope:txt(risk,'scope',en),hazard:txt(risk,'hazard',en),existingControls:txt(risk,'existingControls',en),additionalMeasures:txt(risk,'additionalMeasures',en),owner:txt(risk,'owner',en),reviewFrequency:txt(risk,'reviewFrequency',en)}))
+ const [draft,setDraft]=useState<RiskDraft>(()=>({section:'clinical',...risk,process:txt(risk,'process',en),scope:txt(risk,'scope',en),hazard:txt(risk,'hazard',en),existingControls:txt(risk,'existingControls',en),additionalMeasures:txt(risk,'additionalMeasures',en),owner:txt(risk,'owner',en),reviewFrequency:txt(risk,'reviewFrequency',en)}))
  const set=(key: string,value: unknown)=>setDraft(current=>({...current,[key]:value}))
  const isNew=!risk?.id
  const [editing,setEditing]=useState((isNew||startEditing)&&!readOnly)
@@ -44,8 +44,8 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
  const warnings=useMemo(()=>riskWarnings(draft),[draft])
  const residualLevel=levelInfo(s.residual.level)
  const valid=Boolean(String(draft.hazard||'').trim())&&s.inherent.score&&s.residual.score
- const field=(key: string,label: string,props: AnyRecord={})=><label className="risk-field"><span>{label}</span><input value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)} {...props}/></label>
- const area=(key: string,label: string,rows=3,hint='')=><label className="risk-field risk-field-wide"><span>{label}{hint&&<small>{hint}</small>}</span><textarea rows={rows} value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)}/></label>
+ const field=(key: RiskTextField,label: string,props: {placeholder?: string}={})=><label className="risk-field"><span>{label}</span><input value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)} {...props}/></label>
+ const area=(key: RiskTextField,label: string,rows=3,hint='')=><label className="risk-field risk-field-wide"><span>{label}{hint&&<small>{hint}</small>}</span><textarea rows={rows} value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)}/></label>
  const short=String(draft.hazard||'').trim()
  const title=short?(short.length>90?`${short.slice(0,88)}…`:short):L(en,'Νέος κίνδυνος','New risk')
  const sectionLabel=SECTIONS.find(x=>x.id===draft.section)
@@ -104,7 +104,7 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
 const STAGE_LABELS=Object.fromEntries(STAGES.map(([kind,...rest])=>[kind,rest]))
 
 // One stage of the assessment: L and C on one line, with the resulting level.
-function ScoreRow({kind,draft,s,en,readOnly,set}: {kind: string,draft: AnyRecord,s: Record<string,RiskScore>,en: boolean,readOnly: boolean,set: (key: string,value: unknown)=>void}){
+function ScoreRow({kind,draft,s,en,readOnly,set}: {kind: RiskStage,draft: RiskDraft,s: Record<RiskStage,RiskScore>,en: boolean,readOnly: boolean,set: (key: string,value: unknown)=>void}){
  const [el,enLabel,hintEl,hintEn]=STAGE_LABELS[kind]
  return <div className={`risk-stage risk-stage-${kind}`}>
   <header><strong>{en?enLabel:el}</strong><small>{en?hintEn:hintEl}</small></header>
@@ -115,7 +115,7 @@ function ScoreRow({kind,draft,s,en,readOnly,set}: {kind: string,draft: AnyRecord
 }
 
 // Measures as a numbered list, kept as one line each. Enter adds the next one.
-export function MeasureList({title,hint,value,onChange,en,disabled}: {title: string,hint?: string,value: string,onChange: (value: string)=>void,en: boolean,disabled?: boolean}){
+export function MeasureList({title,hint,value,onChange,en,disabled}: {title: string,hint?: string,value: string|undefined,onChange: (value: string)=>void,en: boolean,disabled?: boolean}){
  const [items,setItems]=useState(()=>{const list=parseMeasures(value);return list.length?list:['']})
  const refs=useRef<(HTMLTextAreaElement|null)[]>([])
  // Each item is as tall as its text.

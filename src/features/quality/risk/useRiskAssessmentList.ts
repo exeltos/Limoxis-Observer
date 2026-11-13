@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadRiskAssessments } from './riskService'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { RiskAssessment } from './riskTypes'
 
 // The organization's assessments, shared by the Quality Center's summary strip and the list.
 export function useRiskAssessmentList(organizationId: string | null | undefined, enabled = true) {
-  const [items, setItems] = useState<AnyRecord[]>([])
+  const [items, setItems] = useState<RiskAssessment[]>([])
   const [loading, setLoading] = useState(true)
   const [version, setVersion] = useState(0)
   useEffect(() => {

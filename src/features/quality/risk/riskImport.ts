@@ -12,7 +12,7 @@
 // corrected is listed in `fixes` so the user sees what changed before importing.
 import { readWorkbookSheets } from '../../../core/import/spreadsheetImport'
 import { levelForScore, riskScore, suggestJci } from './riskModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ImportedRisk,ImportFix,ImportPeriod,ImportPlanItem,ImportSheet,ImportSheetUse,Opportunity,ParsedRiskWorkbook,RiskAssessmentDraft,RiskStage,ScoreSlot,SheetValue } from './riskTypes'
 
 // Every sheet of the workbook, rows kept in place (row n is rows[n-1]).
 export const readWorkbook=readWorkbookSheets
@@ -28,7 +28,7 @@ function excelDate(value: unknown){
  const iso=String(value||'').match(/\d{4}-\d{2}-\d{2}/);return iso?iso[0]:null
 }
 const LEVEL_FROM_TEXT: [RegExp,string][]=[[/^πυ|πολυ/,'very_high'],[/^υ|υψηλ/,'high'],[/^μ|μετρ/,'moderate'],[/^χ|χαμηλ/,'low']]
-const typedLevel=(text: string)=>{const t=fold(text);return (LEVEL_FROM_TEXT.find(([p])=>p.test(t))||[])[1]||''}
+const typedLevel=(text: SheetValue)=>{const t=fold(text);return (LEVEL_FROM_TEXT.find(([p])=>p.test(t))||[])[1]||''}
 
 // The same process written three ways (ΑΣΘΕΝΗ / ΑΣΘΕΝΟΥΣ / ΑΣΘΕΝΩΝ) is one process.
 const PROCESS_ALIASES: [RegExp,string][]=[[/^ασφαλεια ασθεν(η|ους|ων)$/,'ΑΣΦΑΛΕΙΑ ΑΣΘΕΝΩΝ'],[/^ταυτοποιηση ασθεν(η|ους|ων)$/,'ΤΑΥΤΟΠΟΙΗΣΗ ΑΣΘΕΝΩΝ']]
@@ -38,8 +38,8 @@ export function normalizeProcess(value: unknown){
  return text===text.toLowerCase()||/[a-zα-ω]/.test(text)?text.toLocaleUpperCase('el-GR').normalize('NFD').replace(/[\u0300-\u036f]/g,''):text
 }
 
-function findLabel(sheets: AnyRecord[],pattern: RegExp){
- for(const sheet of sheets)for(const row of sheet.rows)for(let i=0;i<row.length;i++)if(row[i]!=null&&pattern.test(fold(row[i]))){const next=row.slice(i+1).find((v: unknown)=>v!=null&&String(v).trim());if(next!=null)return next}
+function findLabel(sheets: ImportSheet[],pattern: RegExp){
+ for(const sheet of sheets)for(const row of sheet.rows)for(let i=0;i<row.length;i++)if(row[i]!=null&&pattern.test(fold(row[i]))){const next=row.slice(i+1).find(v=>v!=null&&String(v).trim());if(next!=null)return next}
  return null
 }
 
@@ -70,11 +70,11 @@ export const correctWording=(value: unknown)=>wordingChanges(value).text
 // before the «Προληπτικά μέτρα» column and residual after it; a header with
 // «ΕΠΑΝΑΞΙΟΛΟΓΗΣΗ» (any spelling) belongs to the reassessment.
 const REASSESS=/επ[αε]ναξ/
-function sheetColumns(header: AnyRecord[]){
+function sheetColumns(header: SheetValue[]){
  const find=(pattern: RegExp)=>header.findIndex(v=>v!=null&&pattern.test(fold(v)))
  const process=find(/^διεργασια/),scope=find(/τμημα|αφορα/),hazard=find(/πιθανο ρισκο|κινδυνος/),controls=find(/^προληπτικα μετρα/)
  const measures=find(/προσθετα μετρα/),owner=find(/^υπευθυνος/),frequency=find(/^συχνοτητα/),indicator=find(/^δεικτης/)
- const scores: Record<string,Record<string,AnyRecord>>={inherent:{},residual:{}},years: Record<string,number[]>={initial:[],reassessment:[]}
+ const scores: Record<string,Record<string,ScoreSlot>>={inherent:{},residual:{}},years: Record<string,number[]>={initial:[],reassessment:[]}
  header.forEach((v,i: number)=>{
   const t=fold(v);const kind=/^πιθανοτητα/.test(t)?'l':/κλιμακα|συνεπεια/.test(t)?'c':/^αποτελεσμα/.test(t)?'result':/^κατηγορια/.test(t)?'level':null
   if(!kind||i<=hazard)return
@@ -90,22 +90,22 @@ function sheetColumns(header: AnyRecord[]){
  return {process,scope,hazard,controls,measures,owner,frequency,indicator,scores,twoPeriods,years}
 }
 
-function readRisk(row: AnyRecord,cols: AnyRecord,period: string,lineageKey: string,section: string){
+function readRisk(row: SheetValue[],cols: ReturnType<typeof sheetColumns>,period: 'initial'|'reassessment',lineageKey: string,section: string){
  const at=(i: number)=>i>=0?row[i]:null
  const col=(phase: string,kind: string)=>{const slot=cols.scores[phase][kind]||{};return slot[period]??slot.initial??-1}
- const words: AnyRecord[]=[]
+ const words: ImportFix[]=[]
  const text=(field: string,value: unknown)=>{const {text:fixed,changes}=wordingChanges(clean(value));for(const [before,after] of changes)words.push({lineageKey,field:'wording',before,after});return fixed}
  const L0=at(col('inherent','l')),C0=at(col('inherent','c'))
  if(!isAxis(L0)||!isAxis(C0)||!clean(at(cols.hazard)))return null
  const rawProcess=clean(at(cols.process)),process=normalizeProcess(correctWording(rawProcess)),hazard=text('hazard',at(cols.hazard))
  const L1=at(col('residual','l')),C1=at(col('residual','c'))
- const risk: AnyRecord={lineageKey,section,process,scope:text('scope',at(cols.scope)),hazard,inherentL:num(L0),inherentC:num(C0),existingControls:text('existingControls',at(cols.controls)),
+ const risk: ImportedRisk={lineageKey,section,process,scope:text('scope',at(cols.scope)),hazard,inherentL:num(L0),inherentC:num(C0),existingControls:text('existingControls',at(cols.controls)),
   residualL:isAxis(L1)?num(L1):null,residualC:isAxis(C1)?num(C1):null,additionalMeasures:notApplicable(text('additionalMeasures',at(cols.measures))),owner:notApplicable(text('owner',at(cols.owner))),
   reviewFrequency:text('reviewFrequency',at(cols.frequency)),indicator:clean(at(cols.indicator)),targetL:null,targetC:null,jci:suggestJci(hazard,process),jciReference:'',prioritized:false,notes:'',consequenceRationale:'',dueDate:null}
- const fixes: AnyRecord[]=[]
+ const fixes: ImportFix[]=[]
  if(process!==rawProcess.replace(/\s+/g,' '))fixes.push({lineageKey,field:'process',before:rawProcess,after:process})
  fixes.push(...words)
- for(const kind of ['inherent','residual']){
+ for(const kind of ['inherent','residual'] as RiskStage[]){
   const score=riskScore(risk[`${kind}L`],risk[`${kind}C`]);if(!score)continue
   const typed=num(at(col(kind,'result')));if(typed!=null&&typed!==score)fixes.push({lineageKey,field:`${kind}Score`,before:typed,after:score})
   const level=at(col(kind,'level')),typedL=typedLevel(level),actual=levelForScore(score);if(typedL&&typedL!==actual)fixes.push({lineageKey,field:`${kind}Level`,before:clean(level),after:actual})
@@ -115,25 +115,25 @@ function readRisk(row: AnyRecord,cols: AnyRecord,period: string,lineageKey: stri
 
 // The result: `periods` holds one entry per period found (oldest first), each
 // with its risks and fixes; `risks` / `fixes` are those of the latest period.
-export function parseRiskWorkbook(sheets: AnyRecord[]){
- const riskSheets: AnyRecord[]=[],opportunities: AnyRecord[]=[],used: AnyRecord[]=[]
+export function parseRiskWorkbook(sheets: ImportSheet[]): ParsedRiskWorkbook{
+ const riskSheets: {sheet: ImportSheet,cols: ReturnType<typeof sheetColumns>,rows: SheetValue[][],section: string}[]=[],opportunities: Opportunity[]=[],used: ImportSheetUse[]=[]
  for(const sheet of sheets){
-  const headerIndex=sheet.rows.findIndex((row: AnyRecord)=>row.some((v: unknown)=>/^διεργασια/.test(fold(v)))&&row.some((v: unknown)=>/πιθανο ρισκο|κινδυνος/.test(fold(v))))
+  const headerIndex=sheet.rows.findIndex(row=>row.some(v=>/^διεργασια/.test(fold(v)))&&row.some(v=>/πιθανο ρισκο|κινδυνος/.test(fold(v))))
   if(headerIndex>=0){riskSheets.push({sheet,cols:sheetColumns(sheet.rows[headerIndex]),rows:sheet.rows.slice(headerIndex+1),section:/γενικ/.test(fold(sheet.name))?'general':'clinical'});continue}
-  const oppHeader=sheet.rows.findIndex((row: AnyRecord)=>row.some((v: unknown)=>/^δραστηριοτητα/.test(fold(v)))&&row.some((v: unknown)=>/ευκαιρ/.test(fold(v))))
+  const oppHeader=sheet.rows.findIndex(row=>row.some(v=>/^δραστηριοτητα/.test(fold(v)))&&row.some(v=>/ευκαιρ/.test(fold(v))))
   if(oppHeader>=0){
-   const base=sheet.rows[oppHeader].findIndex((v: unknown)=>/^δραστηριοτητα/.test(fold(v)))
+   const base=sheet.rows[oppHeader].findIndex(v=>/^δραστηριοτητα/.test(fold(v)))
    const before=opportunities.length
    for(const row of sheet.rows.slice(oppHeader+1)){const cell=(k: number)=>correctWording(clean(row[base+k]));if(!cell(0))continue;opportunities.push({activity:cell(0),opportunity:cell(1),rating:cell(2),actionPlan:cell(3),timeframe:cell(4),owner:cell(5),effectiveness:cell(6)})}
    if(opportunities.length>before)used.push({name:sheet.name,section:'opportunities',count:opportunities.length-before})
   }
  }
  const twoPeriods=riskSheets.some(s=>s.cols.twoPeriods)
- const periodKeys=twoPeriods?['initial','reassessment']:['initial']
+ const periodKeys: ('initial'|'reassessment')[]=twoPeriods?['initial','reassessment']:['initial']
  // One lineage key per row, shared by the periods: a risk added at the
  // reassessment («Νέος Κίνδυνος» in the initial columns) gets the next key and
  // appears in that period only.
- const periods=periodKeys.map((key): AnyRecord=>({key,risks:[],fixes:[]}))
+ const periods=periodKeys.map((key): ImportPeriod=>({key,risks:[],fixes:[]}))
  let next=0
  for(const {sheet,cols,rows,section} of riskSheets){
   let count=0
@@ -148,19 +148,19 @@ export function parseRiskWorkbook(sheets: AnyRecord[]){
   if(count)used.splice(used.filter(u=>u.section!=='opportunities').length,0,{name:sheet.name,section,count})
  }
  for(const period of periods){const years=riskSheets.flatMap(s=>s.cols.years[period.key]);period.year=years.length?(period.key==='initial'?Math.min(...years):Math.max(...years)):null}
- const formCell=sheets.flatMap((s: AnyRecord)=>s.rows.flat()).find(v=>/[Α-ΩA-Z]\.[Α-ΩA-Z.]*\d{2,}/.test(String(v||'')))
+ const formCell=sheets.flatMap(s=>s.rows.flat()).find(v=>/[Α-ΩA-Z]\.[Α-ΩA-Z.]*\d{2,}/.test(String(v||'')))
  const formCode=String(formCell||'').match(/[Α-ΩA-Z]\.[Α-ΩA-Z.]*\d{2,}(-\d{2,})?/)?.[0]||''
  const meta={formCode,title:clean(formCell||'').replace(formCode,'').replace(/^[\s-]+/,''),assessedOn:excelDate(findLabel(sheets,/^ημερομηνια αξιολογησης/)),nextReviewOn:excelDate(findLabel(sheets,/^ημερομηνια επομενης/)),assessor:clean(findLabel(sheets,/^υπευθυνος αξιολογησης/)).replace(/\s+/g,' ')}
- const latest=periods.at(-1) as AnyRecord
+ const latest=periods.at(-1) as ImportPeriod
  return {meta,periods,risks:latest.risks,opportunities,fixes:latest.fixes,sheets:used}
 }
 
 // What an import creates: one assessment per period, oldest first. The latest
 // takes the header the user confirmed and the opportunities; an earlier one
 // takes its own period label and date and is due for review on the latest's date.
-export function importPlan(parsed: AnyRecord,header: AnyRecord,{initialLabel,initialOn}: {initialLabel?: string,initialOn?: string}={}){
+export function importPlan(parsed: {periods?: ImportPeriod[],risks: ImportedRisk[],opportunities: Opportunity[]},header: RiskAssessmentDraft,{initialLabel,initialOn}: {initialLabel?: string,initialOn?: string}={}){
  const periods=parsed.periods||[{key:'initial',risks:parsed.risks}]
- return periods.map((period: AnyRecord,i: number)=>{
+ return periods.map((period: Pick<ImportPeriod,'risks'|'year'>,i: number): ImportPlanItem=>{
   const latest=i===periods.length-1
   const own=latest?header:{...header,periodLabel:initialLabel||String(period.year||''),assessedOn:initialOn,nextReviewOn:header.assessedOn}
   return {header:{...own,title:header.title},risks:period.risks,opportunities:latest?parsed.opportunities:[]}
