@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { REVIEW_SECTIONS, sectionFacts } from '../src/features/quality/review/reviewTemplate'
+import type { Meeting, MeetingGroup } from '../src/features/quality/meetings/meetingModel'
+import type { Review } from '../src/features/quality/review/reviewTypes'
 
 const period = { from: '2026-07-01', to: '2026-09-30' }
 
@@ -23,8 +25,8 @@ describe('management review: facts from the other screens', () => {
   })
 
   it('reports the department meetings and the committees of the period', () => {
-    const meetingGroups = [{ id: 'g1', departmentId: 'd1', frequencyDays: 90 }, { id: 'g2', departmentId: 'd2', frequencyDays: 30 }]
-    const meetings = [{ groupId: 'g1', departmentId: 'd1', meetingDate: '2026-09-01', trainingHeld: true }]
+    const meetingGroups: MeetingGroup[] = [{ id: 'g1', departmentId: 'd1', frequencyDays: 90 }, { id: 'g2', departmentId: 'd2', frequencyDays: 30 }] as never
+    const meetings: Meeting[] = [{ groupId: 'g1', departmentId: 'd1', meetingDate: '2026-09-01', trainingHeld: true }] as never
     const committees = [{ status: 'active', meetings: [{ date: '2026-08-05', status: 'finalized' }], decisions: [{ status: 'open', dueDate: '2026-09-01' }] }]
     const lines = sectionFacts('processes', { meetingGroups, meetings, committees }, period)
     expect(lines[0]).toContain('συναντήθηκε 1 από 2 τμήματα, 1 είναι εκπρόθεσμο')
@@ -36,7 +38,7 @@ describe('management review: facts from the other screens', () => {
     const incidents = [{ date: '2026-08-01', status: 'closed', sentinel: true }, { date: '2026-08-02', status: 'open' }]
     expect(sectionFacts('incidents', { incidents }, period)[0]).toContain('2 αναφορές στην περίοδο 1/7/2026–30/9/2026· 1 έκλεισε, 1 συμβάν-φρουρός.')
     expect(sectionFacts('incidents', { incidents }, period, 'en')[0]).toContain('2 reports in the period (1/7/2026–30/9/2026); 1 closed, 1 sentinel event.')
-    const previous = { actions: [{ status: 'done' }, { status: 'open' }] }
+    const previous: Pick<Review, 'actions'> = { actions: [{ status: 'done' }, { status: 'open' }] } as never
     expect(sectionFacts('previousActions', { previous }, period)[0]).toBe('Από τις 2 ενέργειες της προηγούμενης ανασκόπησης ολοκληρώθηκε 1· 1 παραμένει ανοιχτή.')
     expect(sectionFacts('previousActions', { previous }, period, 'en')[0]).toBe('1 of 2 actions of the previous review is done; 1 remains open.')
   })
