@@ -8,6 +8,7 @@ import { TABS, TAB_MODULES, analysisGroups } from '../src/features/analysis/anal
 import { indicatorDefinitionRows } from '../src/features/indicators/indicatorDemoData'
 import { collectIndicatorMetrics } from '../src/features/indicators/indicatorEngine'
 import { satisfactionCounts, surveySummary } from '../src/features/quality/surveys/surveyModel'
+import type { Survey } from '../src/features/quality/surveys/surveyTypes'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { readSource } from './helpers/readSource'
 
@@ -129,7 +130,7 @@ describe('Quality & food safety metrics', () => {
   })
 
   it('reuses the survey model’s scoring', () => {
-    const survey = sources.surveys[0], responses = sources.responses.slice(0, 2)
+    const survey = sources.surveys[0] as Survey, responses = sources.responses.slice(0, 2)
     const counts = satisfactionCounts(survey, responses)
     expect(counts).toEqual({ answered: 3, satisfied: 2 })
     expect(surveySummary(survey, responses).satisfied).toBe(66.7)

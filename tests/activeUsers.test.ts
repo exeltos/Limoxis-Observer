@@ -17,18 +17,21 @@ import {
   syntheticEmail,
   validateActiveUsersRequest,
 } from '../supabase/functions/_shared/activeUsers.ts'
+import type { PlanContext } from '../supabase/functions/_shared/activeUsers.ts'
 import { strongPassword } from '../supabase/functions/_shared/bulkAccounts.ts'
 import { accountReadyEmail } from '../supabase/functions/_shared/accountCreatedEmail.ts'
 import { isValidMobile as clientIsValidMobile, normalizeMobile as clientNormalizeMobile, splitNames } from '../src/features/platform/activeUsersModel'
 import { checkPerson, errorText, mapHeaders, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel'
 import { readSource } from './helpers/readSource'
 
+type ValidRequest = Extract<ReturnType<typeof validateActiveUsersRequest>, { ok: true }>
+
 const root = path.resolve(__dirname, '..')
 const read = file => readSource(path.join(root, file))
 const ORG = '11111111-0000-4000-8000-000000000001'
 const DEP = '22222222-0000-4000-8000-000000000002'
 const departments = [{ id: DEP, name: 'ΜΕΘ', name_en: 'ICU', is_active: true }, { id: '33333333-0000-4000-8000-000000000003', name: 'Παλιό', is_active: false }]
-const emptyCtx = () => ({ departments, existingEmails: new Set(), takenUsernames: new Set(), employeesByCode: new Map() })
+const emptyCtx = (): PlanContext => ({ departments, existingEmails: new Set(), takenUsernames: new Set(), employeesByCode: new Map() })
 
 describe('temporary password', () => {
   it('is strong, 14 characters, without ambiguous characters', () => {
@@ -66,7 +69,7 @@ describe('server request', () => {
         { fullName: 'Χωρίς στοιχεία', role: 'laboratory' },
         { fullName: 'Ψεύτικο', email: 'a@b.invalid', role: 'laboratory' },
       ],
-    })
+    }) as ValidRequest
     expect(result.ok).toBe(true)
     expect(result.dryRun).toBe(true)
     const [first, second, third, fourth, fifth] = result.rows
@@ -218,12 +221,12 @@ describe('mobile number as the temporary password', () => {
   })
 
   it('needs the number only when it is the password, and checks it when it is given', () => {
-    const server = users => validateActiveUsersRequest({ organizationId: ORG, passwordMode: 'phone', users }).rows.map(row => row.errors)
+    const server = users => (validateActiveUsersRequest({ organizationId: ORG, passwordMode: 'phone', users }) as ValidRequest).rows.map(row => row.errors)
     expect(server([{ ...base }])).toEqual([['PHONE_REQUIRED']])
     expect(server([{ ...base, phone: '12345' }])).toEqual([['PHONE_INVALID']])
     expect(server([{ ...base, phone: '+30 6912345678' }])).toEqual([[]])
-    expect(validateActiveUsersRequest({ organizationId: ORG, users: [{ ...base }] }).rows[0].errors).toEqual([])
-    expect(validateActiveUsersRequest({ organizationId: ORG, users: [{ ...base, phone: '12' }] }).rows[0].errors).toEqual(['PHONE_INVALID'])
+    expect((validateActiveUsersRequest({ organizationId: ORG, users: [{ ...base }] }) as ValidRequest).rows[0].errors).toEqual([])
+    expect((validateActiveUsersRequest({ organizationId: ORG, users: [{ ...base, phone: '12' }] }) as ValidRequest).rows[0].errors).toEqual(['PHONE_INVALID'])
     expect(checkPerson({ ...base, line: 1, passwordMode: 'phone' }, departments).errors).toContain('PHONE_REQUIRED')
     expect(checkPerson({ ...base, line: 1, passwordMode: 'phone', phone: '69 1234 5678' }, departments)).toMatchObject({ phone: '6912345678', passwordMode: 'phone', errors: [] })
     expect(requestUser(checkPerson({ ...base, line: 1, passwordMode: 'phone', phone: '6912345678' }, departments))).toMatchObject({ phone: '6912345678', passwordMode: 'phone' })
@@ -239,7 +242,7 @@ describe('division director', () => {
   const DEP2 = '44444444-0000-4000-8000-000000000004'
   const DIV = '55555555-0000-4000-8000-000000000005'
   const deps = [...departments, { id: DEP2, name: 'Χειρουργική', name_en: 'Surgery', is_active: true }]
-  const ctx = () => ({ ...emptyCtx(), departments: deps, divisions: [{ id: DIV, name: 'Νοσηλευτική Υπηρεσία' }] })
+  const ctx = (): PlanContext => ({ ...emptyCtx(), departments: deps, divisions: [{ id: DIV, name: 'Νοσηλευτική Υπηρεσία' }] })
   const row = user => ({ user: { line: 1, fullName: 'Α Β', email: '', username: 'ab12345', role: 'division_director', roleText: 'x', departmentId: null, departmentName: '', employeeCode: '', phone: '', passwordMode: 'random', divisionId: null, divisionName: '', departmentIds: [], departmentNames: [], ...user }, errors: [] })
 
   it('needs a division and the departments they will see', () => {

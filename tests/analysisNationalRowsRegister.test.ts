@@ -70,7 +70,7 @@ describe('collectAnalysisDemoSnapshot computes nationalRows (was previously hard
 
   it('a resistant demo isolate (Klebsiella, MDR, from the fixture) appears in the line list', () => {
     const snapshot = collectAnalysisDemoSnapshot()
-    const resistantRows = snapshot.microbiology.nationalRows.filter(([, resistanceClass]) => ['MDR', 'XDR', 'PDR'].includes(resistanceClass))
+    const resistantRows = snapshot.microbiology.nationalRows.filter(([, resistanceClass]) => ['MDR', 'XDR', 'PDR'].includes(resistanceClass as string))
     expect(resistantRows.length).toBeGreaterThan(0)
   })
 })

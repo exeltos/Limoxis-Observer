@@ -24,7 +24,7 @@ describe('Where an action came from', () => {
     ]
     expect(actionsOfSource(capas, 'DM:DM-1#', { prefix: true }).map(row => row.id)).toEqual(['C1'])
     const rows = actionRows([], capas)
-    expect(rows.find(row => row.id === 'C3')).toMatchObject({ sourceKind: 'committee', sourceCode: 'COM-2', sourcePath: '/committees/COM-2?minutes=M' })
+    expect(rows.find(row => (row as { id?: string }).id === 'C3')).toMatchObject({ sourceKind: 'committee', sourceCode: 'COM-2', sourcePath: '/committees/COM-2?minutes=M' })
     const filters = { query: '', kind: 'all', status: 'all', department: 'all', quick: null, source: 'meeting' }
     expect(filterActions(rows, filters, false).map(row => row.id).sort()).toEqual(['C1', 'C2'])
   })

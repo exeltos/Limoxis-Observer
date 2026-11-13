@@ -105,7 +105,7 @@ describe('add-on analysis sections', () => {
     ], {})
     const model = buildSectionModel('pps', { domains: { pps } }, tx, key => key)
     expect(model.kpis[0][1]).toBe('8%')
-    expect(model.charts[0].points).toEqual([['2026-03', 10], ['2026-06', 8]])
+    expect((model.charts[0] as { points?: unknown }).points).toEqual([['2026-03', 10], ['2026-06', 8]])
   })
   it('summarizes LIRA investigations with average closing time', async () => {
     const { buildLiraMetrics } = await import('../src/features/analysis/analysisAddonMetrics')
