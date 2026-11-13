@@ -15,6 +15,8 @@ export type ApplicationLanguageRow = { language: string, speaking: string, readi
 export type ApplicationEmployerRow = { employer: string, from: string, to: string, current: boolean, jobTitle: string, leavingReason: string }
 // The application while it is filled in (newApplication).
 export type ApplicationDraft = ReturnType<typeof newApplication>
+// What the checks and the clean-up accept: a draft filled in part (or restored from an earlier visit), its rows too.
+export type ApplicationDraftInput = Partial<Omit<ApplicationDraft, ApplicationListKey | 'consents'>> & { education?: Partial<ApplicationEducationRow>[], languages?: Partial<ApplicationLanguageRow>[], employers?: Partial<ApplicationEmployerRow>[], consents?: Record<string, unknown> }
 // The lists of the application, edited row by row.
 export type ApplicationListKey = 'education' | 'languages' | 'employers'
 // What a valid link says about itself (hr_application_public; the demo: DEMO_PUBLIC).
@@ -86,7 +88,7 @@ const rowFilled = <T extends object>(row: T | null | undefined, keys: (keyof T)[
 const ageAt = (iso: string, today: string) => { const [by, bm, bd] = iso.split('-').map(Number), [ty, tm, td] = today.split('-').map(Number); return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0) }
 
 // What a step still needs, as [field, message]; the page marks the field and says it.
-export function stepProblems(step: number | string, draft: ApplicationDraft, language = 'el', today = todayKey()): StepProblem[] {
+export function stepProblems(step: number | string, draft: ApplicationDraftInput, language = 'el', today = todayKey()): StepProblem[] {
   const en = language === 'en'
   const out: StepProblem[] = []
   const need = (field: string, el: string, enText: string) => out.push([field, en ? enText : el])
@@ -131,10 +133,10 @@ export function stepProblems(step: number | string, draft: ApplicationDraft, lan
   return out
 }
 // Every step's problems, as [step index, field, message].
-export function applicationProblems(draft: ApplicationDraft, language = 'el', today = todayKey()): ApplicationProblem[] {
+export function applicationProblems(draft: ApplicationDraftInput, language = 'el', today = todayKey()): ApplicationProblem[] {
   return APPLICATION_STEPS.flatMap(([key], index) => (key === 'review' ? [] : stepProblems(key, draft, language, today).map(([field, message]): ApplicationProblem => [index, field, message])))
 }
-export const firstStepWithProblems = (draft: ApplicationDraft, language?: string, today?: string) => applicationProblems(draft, language, today)[0]?.[0] ?? -1
+export const firstStepWithProblems = (draft: ApplicationDraftInput, language?: string, today?: string) => applicationProblems(draft, language, today)[0]?.[0] ?? -1
 
 export const validSignature = (value: unknown) => typeof value === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value) && value.length <= LIMITS.signature
 // A line of text: no control characters, single spaces, cut; long text keeps its line breaks.
@@ -142,12 +144,12 @@ export const validSignature = (value: unknown) => typeof value === 'string' && /
 const cleanLine = (value: unknown, max: number = LIMITS.short) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max)
 // eslint-disable-next-line no-control-regex
 const cleanLong = (value: unknown, max: number = LIMITS.long) => String(value ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, max)
-const oneOf = (map: Record<string, unknown>, value: string) => (Object.hasOwn(map, value) ? value : '')
+const oneOf = (map: Record<string, unknown>, value: string | undefined) => (Object.hasOwn(map, value as string) ? value as string : '')
 const yesNoValue = (value: unknown) => (value === true || value === false ? value : null)
 
 // The payload for hr_application_submit: trimmed, limited, only known values. The
 // server checks the same again (private.hr_app_*).
-export function cleanApplication(draft: ApplicationDraft, { language = 'el' } = {}) {
+export function cleanApplication(draft: ApplicationDraftInput, { language = 'el' } = {}) {
   const children = String(draft.children ?? '').trim()
   return {
     language: language === 'en' ? 'en' : 'el', consentVersion: CONSENT_VERSION,

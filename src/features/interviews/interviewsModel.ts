@@ -50,9 +50,9 @@ export const militaryLabel = (value: Value, language = 'el') => pick(MILITARY, v
 export const maritalLabel = (value: Value, language = 'el') => pick(MARITAL, value, language)
 export const levelLabel = (value: Value, language = 'el') => pick(LEVELS, value, language)
 export const languageLabel = (value: Value, language = 'el') => pick(LANGUAGES, value, language)
-export const certificateLabel = (row: CandidateLanguage | null | undefined, language = 'el') => (row?.certificate ? [language === 'en' ? 'Certificate' : 'Πιστοποιητικό', row.certificateName].filter(Boolean).join(': ') : row?.certificate === false ? (language === 'en' ? 'No certificate' : 'Χωρίς πιστοποιητικό') : '')
+export const certificateLabel = (row: Pick<Partial<CandidateLanguage>, 'certificate' | 'certificateName'> | null | undefined, language = 'el') => (row?.certificate ? [language === 'en' ? 'Certificate' : 'Πιστοποιητικό', row.certificateName].filter(Boolean).join(': ') : row?.certificate === false ? (language === 'en' ? 'No certificate' : 'Χωρίς πιστοποιητικό') : '')
 // «Αγγλικά — Ομιλία: Άριστα (ευχερώς) · Ανάγνωση: Καλά · Γραφή: Καλά · Πιστοποιητικό: B2»
-export function languageSkillsText(row: CandidateLanguage | null | undefined, language = 'el') {
+export function languageSkillsText(row: Partial<CandidateLanguage> | null | undefined, language = 'el') {
   const skills = LANGUAGE_SKILLS.filter(([key]) => row?.[key]).map(([key, el, en]) => `${language === 'en' ? en : el}: ${levelLabel(row?.[key], language)}`)
   return `${languageLabel(row?.language, language)} — ${[...skills, certificateLabel(row, language)].filter(Boolean).join(' · ') || '—'}`
 }
