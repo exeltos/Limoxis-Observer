@@ -7,7 +7,7 @@ const service=readSplitSource('src/features/surveillance/clinicalCloudService.js
 const page=readPatientClinicalRecordSource()
 const repository=readSource('src/features/surveillance/clinicalRepository.js')
 
-// What each operation writes is exercised in clinicalCloudServiceBehavior.test.js.
+// What each operation writes is exercised in clinicalCloudServiceBehavior.test.ts.
 describe('clinical cloud service',()=>{
   it('loads surveillance cases from Supabase and hydrates canonical clinical domains',()=>{
     for(const table of ['surveillance_cases','surveillance_events','clinical_assessments','hai_classifications','laboratory_samples','microbiology_results','amr_classifications','antimicrobial_susceptibility_results','critical_result_communications','antimicrobial_therapies','isolation_episodes','surveillance_reassessments','surveillance_outcomes','surveillance_devices']){
