@@ -55,7 +55,7 @@ jobs:
 
   visual:
     # Compares the computed style of every element on every main screen between
-    # the pull request and its base branch (see tools/visual-regression.mjs).
+    # the pull request and its base branch (see tools/visual-regression.ts).
     # Intended visual changes: add the `visual-change` label to the PR; it
     # tolerates only the Compare step, never the accessibility check.
     if: github.event_name == 'pull_request'
@@ -83,7 +83,7 @@ jobs:
         run: npm run build
 
       - name: Accessibility (WCAG 2.1 AA)
-        run: node tools/check-accessibility.mjs --dist dist
+        run: node tools/check-accessibility.ts --dist dist
 
       - name: Build base branch
         run: |
@@ -95,7 +95,7 @@ jobs:
       - name: Compare
         id: compare
         continue-on-error: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change') }}
-        run: node tools/visual-regression.mjs --base dist-base --head dist --out visual-report
+        run: node tools/visual-regression.ts --base dist-base --head dist --out visual-report
 
       - name: Upload screenshots of changed states
         if: always() && steps.compare.outcome == 'failure'

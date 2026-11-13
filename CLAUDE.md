@@ -22,16 +22,16 @@
 | SECURITY DEFINER συνάρτηση | `npm run audit:security-definer` |
 | Μενού / διαδρομές | `npm run audit:navigation` |
 | CSS | `npm run audit:dead-css` και, μετά το build, `npm run audit:dead-selectors` |
-| Προσβασιμότητα | `npm run build` και `CHROMIUM_PATH=/opt/pw-browsers/chromium node tools/check-accessibility.mjs --dist dist` |
+| Προσβασιμότητα | `npm run build` και `CHROMIUM_PATH=/opt/pw-browsers/chromium node tools/check-accessibility.ts --dist dist` |
 | JS/JSX | `npx eslint <αρχεία> --max-warnings 0` |
 
 Αν ένα τεστ λήξει (5 s) ενώ τρέχουν πολλές διεργασίες, ξανατρέξε μόνο εκείνο το αρχείο πριν υποθέσεις σφάλμα.
 
 ## Κανόνες του repo
-- Τα τεστ και τα εργαλεία διαβάζουν πηγαίο κώδικα με `readSource` (`tests/helpers/readSource.ts`, `tools/readSource.mjs`), όχι με `fs.readFileSync`: βρίσκει το αρχείο και όταν αλλάξει σε `.ts/.tsx`. Ημερομηνία «σήμερα» μόνο με `hospitalToday()`/`hospitalDate()` (`src/core/dates/hospitalDate.ts`).
+- Τα τεστ και τα εργαλεία διαβάζουν πηγαίο κώδικα με `readSource` (`tests/helpers/readSource.ts`, `tools/readSource.ts`), όχι με `fs.readFileSync`: βρίσκει το αρχείο και όταν αλλάξει σε `.ts/.tsx`. Ημερομηνία «σήμερα» μόνο με `hospitalToday()`/`hospitalDate()` (`src/core/dates/hospitalDate.ts`).
 - **Μην αναμορφώνεις αρχεία συνολικά** (Prettier/format): πολλά τεστ ελέγχουν κυριολεκτικά το κείμενο του πηγαίου κώδικα. Κράτα τις αλλαγές μικρές και στο ύφος του κώδικα γύρω τους.
 - Κάθε ορατό κείμενο έχει ελληνικά και αγγλικά. Τα ονόματα ρόλων έχουν μία πηγή: `src/core/permissions/roleLabels.js`.
-- **Μενού «⋯» εγγραφής:** πάντα πάνω δεξιά στην κάρτα της εγγραφής (Επεξεργασία, Διόρθωση, Απόρριψη, Διαγραφή μαζί), ποτέ στην κεφαλίδα. Το `EntityRecordShell` το βάζει εκεί αυτόματα για τα `headerActions` τύπου Επεξεργασία/Διαγραφή· ο έλεγχος είναι στο `tests/recordMenuPlacement.test.js`.
+- **Μενού «⋯» εγγραφής:** πάντα πάνω δεξιά στην κάρτα της εγγραφής (Επεξεργασία, Διόρθωση, Απόρριψη, Διαγραφή μαζί), ποτέ στην κεφαλίδα. Το `EntityRecordShell` το βάζει εκεί αυτόματα για τα `headerActions` τύπου Επεξεργασία/Διαγραφή· ο έλεγχος είναι στο `tests/recordMenuPlacement.test.ts`.
 - **Κέντρο βοήθειας:** κάθε αλλαγή που προσθέτει ή αλλάζει κάτι ορατό (οθόνη, φόρμα, ρόλο, ροή, κουμπί) ενημερώνει στο ίδιο PR το Κέντρο βοήθειας (`src/core/help`: `helpManual.js` και `helpManualEn.js`, `helpPlatform.js`, `helpGuide.js`) στα ελληνικά και στα αγγλικά και τρέχει `npm run audit:help-coverage`. Η διάταξή του ελέγχεται σε υπολογιστή και ταμπλέτα (όχι σε κινητό)· για να το δεις, φτιάξε προσωρινή σελίδα που το ανοίγει με ψεύτικο tenant (δεν μπαίνει στο repo).
 - Νέα ενότητα ή καρτέλα: καταχώριση στο μενού/διαδρομές, εγγραφή στο `helpGuide.js` (what/users/analysis/start), module και capability στο `operatingProfile.js`.
 - Η ασφάλεια ζει στη βάση: κάθε πίνακας έχει `organization_id` και RLS. Η απόκρυψη στο UI είναι μόνο διευκόλυνση. Τα κλειδωμένα modules κόβονται και στη βάση (restrictive πολιτικές `<πίνακας>_module_gate`).
@@ -41,7 +41,7 @@
 ## Βάση και server — τι κάνεις μόνος και τι όχι
 - **Migrations:** όνομα `YYYYMMDDHHMMSS_περιγραφή.sql` στο `supabase/migrations`, εφαρμογή με το Supabase MCP (`apply_migration`). Χρησιμοποίησε `create`/`create or replace`.
 - **Δεν εκτελούνται από τον agent** (το MCP κολλά ή το σύστημα το μπλοκάρει): `drop`, `revoke`, `delete`, `ALTER POLICY` σε υπάρχοντες πίνακες. Γράψε το SQL σε αρχείο και ζήτα από τον ιδιοκτήτη να το τρέξει στο SQL Editor· μετά επιβεβαίωσε με ερώτημα μόνο ανάγνωσης. Ποτέ δεν τα παρακάμπτεις.
-- **Edge functions:** αλλαγή κώδικα και τεστ γίνονται κανονικά· η ανάρτηση (`deploy_edge_function`) γίνεται μόνο με ρητό ΟΚ του ιδιοκτήτη. Νέο function: πρόσθεσε `verify_jwt` στο `supabase/config.toml` και έλεγξε το `tests/platformHardening.test.js`.
+- **Edge functions:** αλλαγή κώδικα και τεστ γίνονται κανονικά· η ανάρτηση (`deploy_edge_function`) γίνεται μόνο με ρητό ΟΚ του ιδιοκτήτη. Νέο function: πρόσθεσε `verify_jwt` στο `supabase/config.toml` και έλεγξε το `tests/platformHardening.test.ts`.
 - Δεν σβήνονται δεδομένα παραγωγής χωρίς έγκριση. Κρατάμε τα 4 demo νοσοκομεία.
 - Δοκιμές email: μόνο στο demo «ΤΕΣΤ ΒΕΡΓΑΣ» και στη διεύθυνση του ιδιοκτήτη (abotfilo@gmail.com ή abotfilo+κάτι@gmail.com). Ποτέ σε πραγματικούς προμηθευτές ή χρήστες.
 - Στις δοκιμές RLS χρησιμοποίησε συναλλαγή που ακυρώνεται (`begin; … rollback;`) και `set local role authenticated` με `request.jwt.claims`.
