@@ -21,6 +21,7 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { ComponentType, MutableRefObject } from 'react'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { LabelLookup } from './LaboratorySampleViews'
+import type { Patient } from '../patients/patientTypes'
 
 // The notification and patient dialogs are still JavaScript: their props are typed from the defaults.
 const NewNotificationPicker = NewNotificationDialog as ComponentType<AnyRecord>
@@ -135,14 +136,14 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   // «Δημιουργία δήλωσης»: a new patient is registered first, then the pending report is made and opened.
   async function createReport({ entry, patient, newPatient }: ReportRequest, confirmed = false) {
     // A «new» patient who is already registered: the notification goes to the existing one (or continue as new).
-    const found = newPatient && !confirmed ? findPatientMatches(known, newPatient) : []
+    const found = newPatient && !confirmed ? findPatientMatches(known as unknown as Patient[], newPatient) : []
     if (found.length) return setDuplicate({ entry, newPatient, matches: found })
     setDuplicate(null)
     setBusy(true)
     try {
       let target = patient as AnyRecord
       if (newPatient) {
-        const created = await createPatient(organizationId, known, { ...newPatient, admissionDate: hospitalToday(), status: 'active' }, { isDemo })
+        const created = await createPatient(organizationId, known as unknown as Patient[], { ...newPatient, admissionDate: hospitalToday(), status: 'active' }, { isDemo })
         target = { ...created.record, name: created.record.name || [newPatient.lastName, newPatient.firstName].join(' ') }
         setAdded(current => [...current, target])
       }

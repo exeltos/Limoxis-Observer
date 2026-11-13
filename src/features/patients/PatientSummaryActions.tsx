@@ -9,11 +9,15 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { archivePatient, removeDemoPatient } from './patientsService'
 import { useState } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ReactNode } from 'react'
+import type { IconType } from '../../design-system/types'
+import type { Patient } from './patientTypes'
+// An item of the record's «⋯» menu.
+type RecordMenuItem = { id: string, label?: string, icon?: IconType, onClick?: () => void, separatorBefore?: boolean, danger?: boolean, disabled?: boolean, children?: ReactNode }
 
 // Edit opens the patient details in place (onEdit, given by the patient record);
 // without onEdit the item is not offered.
-export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}: { patient: AnyRecord | null | undefined, onEdit?: (() => void) | null, onDeleted?: (() => void) | null, extraItems?: AnyRecord[] }){
+export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}: { patient: Patient | null | undefined, onEdit?: (() => void) | null, onDeleted?: (() => void) | null, extraItems?: (RecordMenuItem | null)[] }){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const {tenant,isDemo,role,membership}=useTenant()
@@ -21,7 +25,7 @@ export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}: 
   const deleteItem=useRecordDelete()
   const has=(cap: string)=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
   if(!patient)return null
-  const withLabel=(item: AnyRecord | null,label: string)=>item?{...item,label}:null
+  const withLabel=(item: RecordMenuItem | null,label: string)=>item?{...item,label}:null
   const patientLabel=language==='en'?(patient.nameEn||patient.name):patient.name
 
   const items=[
@@ -39,7 +43,7 @@ export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}: 
 
   async function remove(reason: string){
     try{
-      await archivePatient(tenant?.id,patient as AnyRecord,reason,{isDemo})
+      await archivePatient(tenant?.id,patient!,reason,{isDemo})
       setDeleting(false)
       notify(t('archived'),'success')
       onDeleted?.()

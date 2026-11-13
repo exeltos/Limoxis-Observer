@@ -126,7 +126,7 @@ describe('patient discharge', () => {
   it('records the discharge only from the confirmation step, with the reason in the admission notes', () => {
     const source = readSplitSource('src/features/surveillance/ClinicalAdmissions.jsx')
     expect(source).toContain('onConfirm={confirmDischarge}')
-    expect(source).toContain('await dischargeAdmission(tenantId, patient, admission, result, { isDemo })')
+    expect(source).toContain('await dischargeAdmission(tenantId, patient as Patient, admission as Admission, result, { isDemo })')
     expect(read('supabase/migrations/20260918104000_patient_admission_lifecycle.sql')).toContain("'Discharge: '||trim(p_reason)")
   })
 })
