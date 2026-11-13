@@ -24,7 +24,7 @@ import { canReviewSamples } from '../laboratory/sampleReviewModel'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { lazyPage } from '../../core/errors/chunkRecovery'
 import { RouteLoading } from '../../design-system/RouteLoading'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { NotificationItem } from '../../core/notifications/notificationTypes'
 
 // The Division Director's home (its departments, rosters and interviews): its own chunk.
 const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome')
@@ -34,7 +34,9 @@ type Metrics=Record<string, number | undefined>
 // [label, value, capability, metric key]
 type KpiRow=[string, number | string, string | undefined, string]
 type Tone='danger' | 'warning' | 'info'
-interface TodoItem { key: string, title: string, count: number | null, to: string | null, tone: Tone, task?: AnyRecord }
+interface TodoItem { key: string, title: string, count: number | null, to: string | null, tone: Tone, task?: NotificationItem }
+// What the home reads of an objective (still an open record in the Quality module): its year, status and where it stands now.
+type ObjectiveState = { year?: number | string, status?: string, current?: { status?: string } }
 
 const n=(v: unknown)=>Number.isFinite(Number(v))?Number(v):'—'
 function roleKpis(role: string | null,m: Metrics,english: boolean,unread: number): KpiRow[]{
@@ -145,7 +147,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}: { 
   // The objectives off course, for whoever has «Indicators & objectives» in the menu.
   const objectivesOn=showKpis&&!department&&menuPaths.has('/quality/measures')
   const objectiveList=useObjectives(tenant?.id,{enabled:objectivesOn})
-  const missedObjectives=objectivesOn?objectiveList.objectives.filter((item: AnyRecord)=>Number(item.year)===new Date().getFullYear()&&(item.status||'active')==='active'&&item.current.status==='missed').length:0
+  const missedObjectives=objectivesOn?objectiveList.objectives.filter((item: ObjectiveState)=>Number(item.year)===new Date().getFullYear()&&(item.status||'active')==='active'&&item.current!.status==='missed').length:0
   // «Επόμενες 7 ημέρες»: the calendar's events of the coming week the user may see.
   const mayDo=(capability: string)=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
   const calendarKinds=calendarKindsFor(mayDo)
@@ -162,7 +164,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}: { 
    if(reviewCard&&!awaitingReview.loading&&awaitingReview.rows.length)add({key:'review',title:tr('Θετικά δείγματα προς έλεγχο','Positive samples to review'),count:awaitingReview.rows.length,to:'/surveillance?tab=episodes&review=1',tone:'danger'})
    for(const item of decisions)add({key:item.key,title:item.title,count:item.count,to:item.to,tone:item.urgent?'danger':'warning'})
    // The role's tasks (dashboardTasks: «LIVE-<role>-<metric>») first, with their fuller titles; a tile counting the same metric adds nothing.
-   const metricOf=(task: AnyRecord)=>String(task.id||'').startsWith('LIVE-')?String(task.id).split('-').slice(2).join('-'):task.id
+   const metricOf=(task: NotificationItem)=>String(task.id||'').startsWith('LIVE-')?String(task.id).split('-').slice(2).join('-'):task.id
    if(!adminHome)for(const task of tasks){const key=metricOf(task);add({key,title:task.title,count:task.count??null,to:task.to||null,tone:TILE_TARGETS[key]||'info',task})}
    if(!adminHome&&showKpis)for(const [label,value,,key] of roleRows){const tone=TILE_TARGETS[key];const to=ROLE_TILE_SCREENS[String(role)]?.[key]??TILES[key]?.[1];if(tone&&Number(value)>0)add({key,title:label,count:Number(value),to:to&&canOpen(to)?to:null,tone})}
    if(missedObjectives>0)add({key:'objectives',title:tr('Στόχοι που δεν επιτυγχάνονται','Objectives not met'),count:missedObjectives,to:'/quality/measures',tone:'warning'})
