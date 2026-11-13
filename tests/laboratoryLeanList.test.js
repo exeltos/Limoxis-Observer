@@ -16,4 +16,11 @@ describe('the laboratory list, lighter', () => {
     expect(workspace).toContain('useLaboratoryRegistry({ recent: !isDemo })')
     expect(workspace).toContain("t('laboratoryRecords.olderSamples')")
   })
+  it('«the last 12 months» counts by the date the sample was taken, not the date it was entered (FileMaker import)', () => {
+    const sql = readSource('supabase/migrations/20261231500000_laboratory_recent_by_collection_date.sql')
+    expect(sql).toContain("and (p_since is null or coalesce(l.collected_at, l.requested_at, l.created_at) >= p_since or l.status not in ('completed', 'validated', 'cancelled', 'rejected'))")
+    expect(sql).not.toContain('or l.created_at >= p_since')
+    expect(sql).toContain('json_strip_nulls(json_agg(')
+    expect(sql).not.toContain("'clinical_context'")
+  })
 })
