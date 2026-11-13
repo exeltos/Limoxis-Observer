@@ -7,6 +7,7 @@
 // hospital builds its own without a code change.
 
 import type { AnyRecord } from '../../types/featureTypes'
+import { hospitalInstant } from '../../core/dates/hospitalDate'
 
 // A period of a report: its first and last day and a key «month:2026-11».
 export type Period = { from: string, to: string, key: string }
@@ -16,6 +17,7 @@ export type LabelledOption = { value: string, label: string[] }
 export const FIELD_TYPES = [
   { value: 'number', label: ['Αριθμός', 'Number'] },
   { value: 'date', label: ['Ημερομηνία', 'Date'] },
+  { value: 'time', label: ['Ώρα', 'Time'] },
   { value: 'yesNo', label: ['Ναι / Όχι', 'Yes / No'] },
   { value: 'choice', label: ['Λίστα (μία επιλογή)', 'List (one choice)'] },
   { value: 'multiChoice', label: ['Λίστα (πολλές επιλογές)', 'List (several)'] },
@@ -94,9 +96,33 @@ export function parseGestation(text: unknown) {
   return days > 6 ? null : Number(match[1]) * 7 + days
 }
 
+// Age in hours from the times: an age-in-days field from «birth_date» to «admission_date» reads the times «birth_time»
+// and «admission_time» when the register has them, and fills the number field «admission_age_hours». With both times
+// typed the hours are calculated (Athens clock); without them the hours stay as typed (or as FileMaker gave them).
+export function hoursField(fields: AnyRecord[] = [], key: string): AnyRecord | null {
+  for (const field of fields) {
+    if (field.type !== 'computed' || field.computed !== 'ageDays' || !/_date$/.test(field.from || '') || !/_date$/.test(field.to || '')) continue
+    const fromTime = field.from.replace(/_date$/, '_time'), toTime = field.to.replace(/_date$/, '_time'), hours = field.to.replace(/_date$/, '_age_hours')
+    const has = (name: string, type: string) => fields.some(item => item.key === name && item.type === type)
+    if (key === hours && has(fromTime, 'time') && has(toTime, 'time') && has(hours, 'number')) return { from: field.from, fromTime, to: field.to, toTime, hours }
+  }
+  return null
+}
+export function derivedHours(fields: AnyRecord[] = [], values: AnyRecord = {}): AnyRecord {
+  const derived: AnyRecord = {}
+  for (const field of fields) {
+    const rule = field.type === 'number' ? hoursField(fields, field.key) : null
+    if (!rule) continue
+    const from = hospitalInstant(values[rule.from], values[rule.fromTime]), to = hospitalInstant(values[rule.to], values[rule.toTime])
+    if (from == null || to == null || to < from) continue
+    derived[rule.hours] = Math.round((to - from) / 360000) / 10
+  }
+  return derived
+}
+
 // The values of an entry with its computed fields filled in.
 export function computeValues(fields: AnyRecord[] = [], values: AnyRecord = {}): AnyRecord {
-  const next: AnyRecord = { ...values }
+  const next: AnyRecord = { ...values, ...derivedHours(fields, values) }
   for (const field of fields) {
     if (field.type !== 'computed') continue
     const from = next[field.from], to = field.to ? next[field.to] : null
@@ -142,10 +168,19 @@ export function validateEntry(fields: AnyRecord[] = [], values: AnyRecord = {}, 
       else if (field.usualMin !== undefined && field.usualMin !== '' && number < Number(field.usualMin)) warnings[field.key] = en ? 'Unusually low, please check' : 'Ασυνήθιστα χαμηλό, ελέγξτε'
       else if (field.usualMax !== undefined && field.usualMax !== '' && number > Number(field.usualMax)) warnings[field.key] = en ? 'Unusually high, please check' : 'Ασυνήθιστα υψηλό, ελέγξτε'
     }
+    if (field.type === 'time' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(value))) { errors[field.key] = en ? 'Time as hh:mm' : 'Ώρα ως ωω:λλ'; continue }
     if (field.type === 'date' && field.notBefore && !isBlank(full[field.notBefore])) {
       const before = fields.find(item => item.key === field.notBefore)
       if ((daysBetween(full[field.notBefore], value) ?? 0) < 0) errors[field.key] = en ? `Not before «${textOf(before, 'en')}»` : `Όχι πριν από «${textOf(before)}»`
     }
+  }
+  // The admission time cannot come before the birth time (same rule as the dates, to the minute).
+  for (const field of fields) {
+    const rule = field.type === 'number' ? hoursField(fields, field.key) : null
+    if (!rule || errors[rule.toTime] || errors[rule.to]) continue
+    const from = hospitalInstant(full[rule.from], full[rule.fromTime]), to = hospitalInstant(full[rule.to], full[rule.toTime])
+    const before = fields.find(item => item.key === rule.fromTime)
+    if (from != null && to != null && to < from) errors[rule.toTime] = en ? `Not before «${textOf(before, 'en')}»` : `Όχι πριν από «${textOf(before)}»`
   }
   return { errors, warnings, valid: Object.keys(errors).length === 0 }
 }
@@ -171,6 +206,7 @@ export function formatValue(field: AnyRecord, value: unknown, language = 'el', e
   if (field.type === 'choice') return textOf((field.options || []).find((option: AnyRecord) => option.value === value), language) || String(value)
   if (field.type === 'multiChoice') return (Array.isArray(value) ? value : [value]).map(item => textOf((field.options || []).find((option: AnyRecord) => option.value === item), language) || item).join(', ')
   if (field.type === 'gestation') return `${gestationText(value)} ${en ? 'wk' : 'εβδ.'}`
+  if (field.type === 'time') return String(value).slice(0, 5)
   if (field.type === 'date') { const [y, m, d] = String(value).slice(0, 10).split('-'); return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : String(value) }
   if (field.type === 'number' || field.type === 'computed') {
     const unit = en ? field.unitEn || field.unit : field.unit
