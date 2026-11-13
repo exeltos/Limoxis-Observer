@@ -30,7 +30,7 @@ describe('employee photo service', () => {
     expect(photo.validatePhotoFile(imageFile('image/webp'))).toBeNull()
     expect(photo.validatePhotoFile(imageFile('image/gif'))).toBe('PHOTO_TYPE')
     expect(photo.validatePhotoFile(imageFile('application/pdf'))).toBe('PHOTO_TYPE')
-    expect(photo.validatePhotoFile({ type: 'image/png', size: photo.PHOTO_MAX_BYTES + 1 })).toBe('PHOTO_TOO_LARGE')
+    expect(photo.validatePhotoFile({ type: 'image/png', size: photo.PHOTO_MAX_BYTES + 1 } as File)).toBe('PHOTO_TOO_LARGE')
     expect(photo.validatePhotoFile(null)).toBe('PHOTO_MISSING')
   })
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { EODY_CATALOGUE, EODY_FOOTNOTES, deadlineStatusText, deadlineWords, eodyEntry, eodyEntryByName } from '../src/features/reporting/eodyCatalogue'
 import { NOTIFIABLE_RULE_LIST, catalogueEntryFor, notifiableRuleFor } from '../src/features/reporting/notifiableFindings'
 import { demoLibrarySeed } from '../src/features/management/managementData'
+import type { ReportSample } from '../src/features/reporting/reportingTypes'
 
 // Counted by hand from docs/reference/eody-katalogos-nosimaton-2022.pdf (Υ.Α. Δ1α/Γ.Π.οικ. 16711/2022).
 describe('ΕΟΔΥ catalogue of notifiable diseases', () => {
@@ -63,7 +64,7 @@ describe('laboratory rules against the catalogue', () => {
   })
 
   it('maps clear organisms to their catalogue disease', () => {
-    const ruleOf = organism => notifiableRuleFor({ type: 'other' }, { organism })?.id
+    const ruleOf = organism => notifiableRuleFor({ type: 'other' } as ReportSample, { organism })?.id
     expect(ruleOf('Bacillus anthracis')).toBe('anthrax')
     expect(ruleOf('Francisella tularensis')).toBe('tularaemia')
     expect(ruleOf('Coxiella burnetii')).toBe('q_fever')
@@ -82,8 +83,8 @@ describe('laboratory rules against the catalogue', () => {
   })
 
   it('takes the deadline of a finding from the catalogue, meningitis for CSF isolates', () => {
-    expect(catalogueEntryFor(notifiableRuleFor({ type: 'other' }, { organism: 'Vibrio cholerae' }), 'OTHER').deadline).toBe('immediate')
-    const pneumococcus = notifiableRuleFor({ type: 'other', source: 'CSF' }, { organism: 'Streptococcus pneumoniae' })
+    expect(catalogueEntryFor(notifiableRuleFor({ type: 'other' } as ReportSample, { organism: 'Vibrio cholerae' }), 'OTHER').deadline).toBe('immediate')
+    const pneumococcus = notifiableRuleFor({ type: 'other', source: 'CSF' } as ReportSample, { organism: 'Streptococcus pneumoniae' })
     expect(catalogueEntryFor(pneumococcus, 'CSF').id).toBe('meningitis')
     expect(catalogueEntryFor(pneumococcus, 'BLOOD')).toBeNull()
   })

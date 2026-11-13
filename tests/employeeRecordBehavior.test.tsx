@@ -43,8 +43,8 @@ async function openEmployee({ path = '/employees/EMP-001', selfMode = false, pre
   await waitFor(() => expect(screen.queryAllByRole('tab').length).toBeGreaterThan(0), { timeout: 5000 })
   return selfMode ? api : api
 }
-const body = () => document.querySelector('.entity-record-body')
-const openRow = async text => fireEvent.click((await within(body()).findByText(text)).closest('tr'))
+const body = () => document.querySelector<HTMLElement>('.entity-record-body')
+const openRow = async text => fireEvent.click((await within(body()).findByText(text)).closest('tr') as HTMLElement)
 const openTab = name => fireEvent.click(screen.getByRole('tab', { name: new RegExp(name) }))
 const tabNames = () => screen.getAllByRole('tab').map(tab => tab.textContent.trim())
 

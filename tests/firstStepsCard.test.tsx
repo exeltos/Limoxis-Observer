@@ -4,9 +4,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { FirstStepsCard } from '../src/features/dashboard/FirstStepsCard'
+import type { FirstStep } from '../src/features/dashboard/FirstStepsCard'
 
 afterEach(() => { cleanup(); window.localStorage.clear() })
-const steps = [{ id: 'departments', done: true, to: '/a' }, { id: 'users', done: false, to: '/management?tab=users' }]
+const steps: FirstStep[] = [{ id: 'departments', done: true, to: '/a' }, { id: 'users', done: false, to: '/management?tab=users' }]
 
 describe('FirstStepsCard', () => {
   it('starts collapsed with its progress and opens to the steps still to do', () => {

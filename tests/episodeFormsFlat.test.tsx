@@ -17,7 +17,7 @@ describe('forms tab sections', () => {
     render(
       <LanguageProvider>
         <FormsTabContext.Provider value={flat}>
-          <FormSection id="scales" title="Κλίμακες" actions={[{ id: 'new', label: 'Νέα αξιολόγηση', onClick: add }]}>
+          <FormSection id="scales" title="Κλίμακες" icon={undefined as never} actions={[{ id: 'new', label: 'Νέα αξιολόγηση', onClick: add }]}>
             <FormRows label="Κλίμακες">
               <FormRow title="Braden" action={{ label: 'Νέα βαθμολόγηση', onClick: open }} />
             </FormRows>
@@ -27,7 +27,7 @@ describe('forms tab sections', () => {
     )
     expect(screen.queryByRole('button', { name: 'Νέα βαθμολόγηση' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Νέα αξιολόγηση' })).toBeNull()
-    expect(document.querySelector('[data-section="scales"] .episode-form-section-body').hidden).toBe(false)
+    expect(document.querySelector<HTMLElement>('[data-section="scales"] .episode-form-section-body').hidden).toBe(false)
     fireEvent.click(screen.getByText('Braden'))
     expect(open).toHaveBeenCalledTimes(1)
     fireEvent.click(document.querySelector('[data-section="scales"] .episode-form-section-actions button'))

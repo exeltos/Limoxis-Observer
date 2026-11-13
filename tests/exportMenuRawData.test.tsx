@@ -3,12 +3,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import type { TenantContextValue } from '../src/core/tenant/tenantTypes'
 
 const tenant = { role: 'hospital_admin' }
 const { ExportMenu } = await import('../src/design-system/ExportMenu')
 const { LanguageProvider } = await import('../src/core/i18n/LanguageContext')
 const { TenantContext } = await import('../src/core/tenant/TenantContext')
-const wrap = ui => render(<LanguageProvider><TenantContext.Provider value={{ ...tenant }}>{ui}</TenantContext.Provider></LanguageProvider>)
+const wrap = ui => render(<LanguageProvider><TenantContext.Provider value={{ ...tenant } as TenantContextValue}>{ui}</TenantContext.Provider></LanguageProvider>)
 
 afterEach(cleanup)
 const options = () => {

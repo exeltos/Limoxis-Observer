@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
+import type { ComponentType } from 'react'
 import { LanguageProvider, translate } from '../src/core/i18n/LanguageContext'
 import { higherIsWorse, scaleTrend } from '../src/features/surveillance/forms/scaleTrend'
 import { scalesSection } from '../src/features/surveillance/forms/sections/scalesSection'
@@ -11,7 +12,7 @@ import { FeedbackProvider } from '../src/core/feedback/FeedbackContext'
 
 const t = key => translate(key, 'el')
 const fmtDate = value => String(value).slice(0, 10).split('-').reverse().join('/')
-const item = (scale_key, latest, previous) => ({ scale_key, latest: { score: latest, assessed_at: '2026-10-20T08:30:00' }, previous: previous == null ? null : { score: previous, assessed_at: '2026-10-17T08:00:00' }, delta: previous == null ? null : latest - previous })
+const item = (scale_key: string, latest: number, previous?: number) => ({ scale_key, latest: { score: latest, assessed_at: '2026-10-20T08:30:00' }, previous: previous == null ? null : { score: previous, assessed_at: '2026-10-17T08:00:00' }, delta: previous == null ? null : latest - previous })
 
 describe('scale trend in words', () => {
   it('says first, unchanged, rising and falling, and whether that is worse or better', () => {
@@ -43,7 +44,7 @@ describe('scales section', () => {
     startProtocol: () => {},
   }
   it('lists the latest score per scale with one «Νέα βαθμολόγηση» action each and keeps the full history behind a link', async () => {
-    const Section = scalesSection.Component
+    const Section = scalesSection.Component as ComponentType<{ ctx: object, section: object }>
     render(
       <MemoryRouter>
         <LanguageProvider>

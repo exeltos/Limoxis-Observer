@@ -15,7 +15,7 @@ describe('environmental recording sheet', () => {
     const doc = environmentalSheetDocument({ t, department: 'ΜΕΘ', date: '25/10/2026', typeLabel: 'Επιφάνεια', methodLabel: 'Επίχρισμα', code: 'ENVB-1', points: [{ location: 'ΜΕΘ', point: 'Κλίνη 4', plate: 'Α', position: '1' }, { location: 'ΜΕΘ', point: 'Κλίνη 5', plate: 'Α', position: '2' }] })
     const table = doc.sections[0].table
     expect(table.columns).toEqual(['#', 'Χώρος', 'Σημείο', 'Τρυβλίο', 'Θέση', 'Σημειώσεις'])
-    expect(table.rows.map(row => [row[0], row[2], row[3].text, row[4].text])).toEqual([['1', 'Κλίνη 4', 'Α', '1'], ['2', 'Κλίνη 5', 'Α', '2']])
+    expect(table.rows.map(row => [row[0], row[2], (row[3] as { text?: string }).text, (row[4] as { text?: string }).text])).toEqual([['1', 'Κλίνη 4', 'Α', '1'], ['2', 'Κλίνη 5', 'Α', '2']])
     expect(doc.signatures).toEqual(['Δειγματολήπτης', 'Παραλαβή'])
     expect(doc.meta.map(([label]) => label)).toEqual(['Τμήμα', 'Ημερομηνία', 'Τύπος', 'Μέθοδος'])
   })

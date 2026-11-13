@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { acknowledgementLogRows, acknowledgementSummary, demoAcknowledgementMembers, demoDistributions, inAudience, professionsOf, summarizeDistributions, usersWithProfessions } from '../src/features/documents/acknowledgementLog'
+import type { Distribution } from '../src/features/documents/acknowledgementLog'
+import type { DocumentRecord } from '../src/features/documents/documentTypes'
 import { readSource } from './helpers/readSource'
 
 const members = [
@@ -11,14 +13,14 @@ const members = [
 
 describe('document read-acknowledgement log', () => {
   it('matches the audience rules of the announcement read policy', () => {
-    expect(members.filter((m) => inAudience(m, { audienceType: 'all' })).length).toBe(4)
-    expect(members.filter((m) => inAudience(m, { audienceType: 'department', audienceValues: ['icu'] })).map((m) => m.userId)).toEqual(['u1', 'u3'])
-    expect(members.filter((m) => inAudience(m, { audienceType: 'role', audienceValues: ['quality_manager'] })).map((m) => m.userId)).toEqual(['u4'])
-    expect(members.filter((m) => inAudience(m, { audienceType: 'user', audienceValues: ['u2'] })).map((m) => m.userId)).toEqual(['u2'])
+    expect(members.filter((m) => inAudience(m, { audienceType: 'all' } as Distribution)).length).toBe(4)
+    expect(members.filter((m) => inAudience(m, { audienceType: 'department', audienceValues: ['icu'] } as Distribution)).map((m) => m.userId)).toEqual(['u1', 'u3'])
+    expect(members.filter((m) => inAudience(m, { audienceType: 'role', audienceValues: ['quality_manager'] } as Distribution)).map((m) => m.userId)).toEqual(['u4'])
+    expect(members.filter((m) => inAudience(m, { audienceType: 'user', audienceValues: ['u2'] } as Distribution)).map((m) => m.userId)).toEqual(['u2'])
   })
 
   it('splits the audience into acknowledged (in reading order) and pending, with a rate', () => {
-    const summary = acknowledgementSummary(members, { audienceType: 'department', audienceValues: ['icu'] }, [
+    const summary = acknowledgementSummary(members, { audienceType: 'department', audienceValues: ['icu'] } as Distribution, [
       { userId: 'u3', acknowledgedAt: '2026-10-02T10:00:00Z' },
     ])
     expect(summary.total).toBe(2)
@@ -29,7 +31,7 @@ describe('document read-acknowledgement log', () => {
   })
 
   it('keeps acknowledgements of people who left the audience or are unknown', () => {
-    const summary = acknowledgementSummary(members, { audienceType: 'department', audienceValues: ['icu'] }, [
+    const summary = acknowledgementSummary(members, { audienceType: 'department', audienceValues: ['icu'] } as Distribution, [
       { userId: 'u2', acknowledgedAt: '2026-10-01T09:00:00Z' },
       { userId: 'ghost', name: 'Παλιός χρήστης', acknowledgedAt: '2026-10-01T08:00:00Z' },
     ])
@@ -45,10 +47,10 @@ describe('document read-acknowledgement log', () => {
 
   it('builds one inspector row per person per distribution', () => {
     const entries = summarizeDistributions(
-      [{ id: 'a1', audienceType: 'all', audienceValues: [], linkPath: '/documents/DOC-001', createdAt: '2026-10-01T08:00:00Z' }],
+      [{ id: 'a1', audienceType: 'all', audienceValues: [], linkPath: '/documents/DOC-001', createdAt: '2026-10-01T08:00:00Z' } as Distribution],
       members,
       [{ announcementId: 'a1', userId: 'u1', acknowledgedAt: '2026-10-01T12:00:00Z' }],
-      [{ id: 'DOC-001', title: 'Υγιεινή χεριών', version: '2.0' }],
+      [{ id: 'DOC-001', title: 'Υγιεινή χεριών', version: '2.0' } as DocumentRecord],
     )
     expect(entries[0].documentTitle).toBe('Υγιεινή χεριών')
     const rows = acknowledgementLogRows(entries)
@@ -59,7 +61,7 @@ describe('document read-acknowledgement log', () => {
 
   it('seeds the demo with distributed published documents and mostly confirmed staff', () => {
     const staff = demoAcknowledgementMembers([{ id: 'E1', firstName: 'Α', lastName: 'Β', profession: 'Νοσηλευτικό προσωπικό' }, { id: 'E2', firstName: 'Γ', lastName: 'Δ', profession: 'Ιατρικό προσωπικό' }, { id: 'E3', firstName: 'Ε', lastName: 'Ζ' }])
-    const { announcements, acks } = demoDistributions([{ id: 'DOC-1', status: 'published', title: 'Τ', publishedAt: '2026-01-01T00:00:00Z' }, { id: 'DOC-2', status: 'draft' }], staff)
+    const { announcements, acks } = demoDistributions([{ id: 'DOC-1', status: 'published', title: 'Τ', publishedAt: '2026-01-01T00:00:00Z' } as DocumentRecord, { id: 'DOC-2', status: 'draft' } as DocumentRecord], staff)
     expect(announcements).toHaveLength(1)
     expect(acks.length).toBeGreaterThan(0)
     expect(acks.length).toBeLessThan(staff.length)

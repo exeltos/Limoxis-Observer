@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { controlRanking, delta, executiveKpis, filtersToQuery, parseFilters, periodRange, previousRange, redFlags, shiftMonths, visibleFor, withDeltas } from '../src/features/executive/executiveModel'
+import type { RedFlag } from '../src/features/executive/executiveModel'
 import { readSource } from './helpers/readSource'
 
 vi.mock('../src/core/supabase/client', () => ({ supabase: null }))
@@ -105,7 +106,7 @@ describe('executive dashboard measures', () => {
     expect(ids).toEqual(expect.arrayContaining(['incidents', 'mdro', 'clusters', 'handHygiene', 'capaOverdue', 'isolationReviews', 'documentReviews', 'trainingOverdue']))
     expect(ids).not.toContain('bundles')
     expect(ids).not.toContain('minutesPending')
-    expect(flags.findIndex(flag => flag.severity === 'warning')).toBeGreaterThan(flags.findLastIndex(flag => flag.severity === 'danger'))
+    expect(flags.findIndex(flag => flag.severity === 'warning')).toBeGreaterThan((flags as RedFlag[] & { findLastIndex(predicate: (flag: RedFlag) => boolean): number }).findLastIndex(flag => flag.severity === 'danger'))
     expect(flags.find(flag => flag.id === 'handHygiene').text).toEqual(['Συμμόρφωση στην υγιεινή χεριών: 72%', 'Hand hygiene compliance: 72%'])
     expect(redFlags(executiveKpis(snapshot), snapshot, module => module !== 'laboratory' && module !== 'surveillance').map(flag => flag.id)).not.toContain('clusters')
   })
