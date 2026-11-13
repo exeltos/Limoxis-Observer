@@ -1,5 +1,5 @@
 import { hospitalDate } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalLibraryRow, TherapyDraft } from './clinicalTypes'
 // The antimicrobial therapy dialog: empty rows, and which antibiotics are
 // restricted (advanced) and must go to stewardship approval.
 
@@ -9,13 +9,13 @@ export function newTherapyRow(today = new Date()) {
 
 // Library rows are [greekName, englishName, meta]; a restricted antibiotic is
 // recognised by either name, since the dialog stores the name shown to the user.
-export function advancedAntibioticNames(libraryRows: AnyRecord[] = []) {
+export function advancedAntibioticNames(libraryRows: ClinicalLibraryRow[] = []) {
   return new Set(libraryRows.flatMap(row => [row[0], row[1]]))
 }
 
 // The rows to save: those with an antibiotic chosen, each flagged for
 // stewardship when the antibiotic is restricted.
-export function therapiesToSave(rows: AnyRecord[] = [], advancedNames = new Set()) {
+export function therapiesToSave(rows: TherapyDraft[] = [], advancedNames: Set<string | undefined> = new Set()) {
   return rows
     .filter(row => row.antimicrobial)
     .map(row => {

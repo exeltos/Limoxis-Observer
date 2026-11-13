@@ -44,7 +44,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   const s = snapshot.summary
   const m = snapshot.microbiology
   const cases = Object.values(clinicalCases).filter(inDepartment)
-  const isolations: Isolation[] = cases.map(item => item.isolation).filter(item => item && !Array.isArray(item))
+  const isolations: Isolation[] = cases.map(item => item.isolation).filter((item): item is Isolation => Boolean(item && !Array.isArray(item)))
   const overdueControls = loadControlAssignmentsLocal().filter(
     row =>
       inDepartment(row) && isOpen(row.status) && row.next_due_at && new Date(row.next_due_at) < now,
