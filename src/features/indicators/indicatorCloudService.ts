@@ -25,7 +25,7 @@ export async function collectCloudIndicatorMetrics(organizationId: string|null|u
 }
 
 function mapOperationalDefinition(r: IndicatorDefinitionRow): OperationalIndicator{
- return {definitionId:r.id,id:r.indicator_key,version:r.version,titleEl:r.title_el,titleEn:r.title_en,category:r.category,numerator:r.numerator_metric,denominator:r.denominator_metric,multiplier:Number(r.multiplier||1),unit:r.unit||'',unitEn:r.unit_en||r.unit||'',source:r.source_authority||'',calculation:r.calculation_type||'auto',target:r.target_value==null?null:Number(r.target_value),direction:r.direction||'context',numeratorDefinition:(r.numerator_definition||{}) as IndicatorTextDefinition,denominatorDefinition:(r.denominator_definition||{}) as IndicatorTextDefinition,visibleDepartmentIds:Array.isArray(r.visible_department_ids)?r.visible_department_ids:[]}
+ return {definitionId:r.id,id:r.indicator_key,version:r.version,titleEl:r.title_el||'',titleEn:r.title_en||'',category:r.category||'',numerator:r.numerator_metric,denominator:r.denominator_metric,multiplier:Number(r.multiplier||1),unit:r.unit||'',unitEn:r.unit_en||r.unit||'',source:r.source_authority||'',calculation:r.calculation_type||'auto',target:r.target_value==null?null:Number(r.target_value),direction:r.direction||'context',numeratorDefinition:(r.numerator_definition||{}) as IndicatorTextDefinition,denominatorDefinition:(r.denominator_definition||{}) as IndicatorTextDefinition,visibleDepartmentIds:Array.isArray(r.visible_department_ids)?r.visible_department_ids:[]}
 }
 
 export async function loadOperationalIndicatorDefinitions(organizationId: string|null|undefined,{from,to}: IndicatorPeriod={}): Promise<OperationalIndicator[]>{

@@ -97,9 +97,9 @@ export interface OperationalIndicator {
   definitionId: string
   id: string
   version?: string | null
-  titleEl?: string | null
-  titleEn?: string | null
-  category?: string | null
+  titleEl: string
+  titleEn: string
+  category: string
   numerator?: string | null
   denominator?: string | null
   multiplier: number
