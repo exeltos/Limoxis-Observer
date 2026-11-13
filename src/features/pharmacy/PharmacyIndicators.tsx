@@ -10,7 +10,10 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadIndicatorSnapshots, loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+// The pharmacy's indicators as the indicators module calculates them, and their approved snapshots.
+type IndicatorRow = ReturnType<typeof calculateCloudDefinition>
+type IndicatorDefinition = Awaited<ReturnType<typeof loadOperationalIndicatorDefinitions>>[number]
+type IndicatorSnapshot = Awaited<ReturnType<typeof loadIndicatorSnapshots>>[number]
 
 const yearStart = () => `${new Date().getFullYear()}-01-01`
 const today = () => hospitalToday()
@@ -20,7 +23,7 @@ const STATUS: Record<string, [string, string, string]> = { onTarget: ['Εντό�
 
 // «Δείκτες»: the pharmacy indicators of the Indicators module (DDD per 100 patient-days, WHO AWaRe Access share…),
 // calculated by the same engine for the chosen period, with their approved results over time.
-export interface PharmacyIndicatorRows { loading: boolean, rows: AnyRecord[], from: string, to: string }
+export interface PharmacyIndicatorRows { loading: boolean, rows: IndicatorRow[], from: string, to: string }
 interface PharmacyIndicatorsProps { organizationId: string | null | undefined, en: boolean, onRows?: (value: PharmacyIndicatorRows) => void, totals?: ReactNode }
 
 export function PharmacyIndicators({ organizationId, en, onRows, totals = null }: PharmacyIndicatorsProps) {
@@ -28,16 +31,16 @@ export function PharmacyIndicators({ organizationId, en, onRows, totals = null }
   const { notifyError } = useFeedback()
   const [from, setFrom] = useState(yearStart)
   const [to, setTo] = useState(today)
-  const [state, setState] = useState<{ loading: boolean, rows: AnyRecord[], history: AnyRecord[] }>({ loading: true, rows: [], history: [] })
+  const [state, setState] = useState<{ loading: boolean, rows: IndicatorRow[], history: IndicatorSnapshot[] }>({ loading: true, rows: [], history: [] })
 
   const calculate = useCallback(async () => {
     if (!organizationId || !from || !to || to < from) { setState(current => ({ ...current, loading: false })); return }
     setState(current => ({ ...current, loading: true }))
     try {
       const [metrics, definitions, snapshots] = await Promise.all([collectCloudIndicatorMetrics(organizationId, { from, to }), loadOperationalIndicatorDefinitions(organizationId, { from, to }), loadIndicatorSnapshots(organizationId, {})])
-      const rows = definitions.filter((def: AnyRecord) => def.category === 'pharmacy').map((def: AnyRecord) => calculateCloudDefinition(def, metrics || {}))
-      const keys = new Set(rows.map((row: AnyRecord) => row.id))
-      setState({ loading: false, rows, history: (snapshots || []).filter((s: AnyRecord) => keys.has(s.indicator_key) && s.status === 'approved').sort((a: AnyRecord, b: AnyRecord) => String(b.period_start).localeCompare(String(a.period_start))) })
+      const rows = definitions.filter((def: IndicatorDefinition) => def.category === 'pharmacy').map((def: IndicatorDefinition) => calculateCloudDefinition(def, metrics || {}))
+      const keys = new Set(rows.map((row: IndicatorRow) => row.id))
+      setState({ loading: false, rows, history: (snapshots || []).filter((s: IndicatorSnapshot) => keys.has(s.indicator_key) && s.status === 'approved').sort((a: IndicatorSnapshot, b: IndicatorSnapshot) => String(b.period_start).localeCompare(String(a.period_start))) })
     } catch (error) {
       setState({ loading: false, rows: [], history: [] })
       notifyError(error, 'load', { operation: 'pharmacy_indicators_load' })
@@ -52,7 +55,7 @@ export function PharmacyIndicators({ organizationId, en, onRows, totals = null }
     target: row => (row.target == null ? null : Number(row.target)),
     status: row => row.status,
   })
-  const title = (row: AnyRecord) => (en ? row.titleEn || row.titleEl : row.titleEl)
+  const title = (row: IndicatorRow) => (en ? row.titleEn || row.titleEl : row.titleEl)
   const titleOf = (key: string) => { const row = state.rows.find(item => item.id === key); return row ? title(row) : key }
   return <>
     <FilterBar end={totals} onClear={() => { setFrom(yearStart()); setTo(today()) }} activeAdvancedCount={(from !== yearStart() ? 1 : 0) + (to !== today() ? 1 : 0)}>

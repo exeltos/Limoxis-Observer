@@ -12,7 +12,7 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { decideTherapyApproval, loadTherapyApprovals } from './pharmacyCloudService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { TherapyApproval } from './pharmacyTypes'
 
 const STATUS: Record<string, [string, string, string]> = { pending: ['Σε αναμονή', 'Pending', 'warning'], approved: ['Εγκρίθηκε', 'Approved', 'success'], rejected: ['Απορρίφθηκε', 'Rejected', 'danger'] }
 const fmtDay = (value: unknown) => { const [y, m, d] = String(value || '').slice(0, 10).split('-'); return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : '—' }
@@ -26,7 +26,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
   const navigate = useNavigate()
   const actor = useAuditActor()
   const { notify, notifyError } = useFeedback()
-  const [rows, setRows] = useState<AnyRecord[]>([])
+  const [rows, setRows] = useState<TherapyApproval[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState('')
   const [query, setQuery] = useState('')
@@ -41,7 +41,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
   }, [organizationId, notifyError])
   useEffect(() => { void reload() }, [reload])
 
-  async function decide(row: AnyRecord, next: string) {
+  async function decide(row: TherapyApproval, next: string) {
     setBusyId(row.id)
     try {
       await decideTherapyApproval(organizationId, row, next, actor)
