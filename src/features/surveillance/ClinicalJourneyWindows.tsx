@@ -57,7 +57,7 @@ export function JourneyWindows({ j }: { j: JourneyWindowsScope }) {
     <>
       {dialog === 'bundle' && bundleDevice && deviceBundles && (
         <EpisodeBundleCheck
-          deviceBundles={deviceBundles}
+          deviceBundles={deviceBundles as Parameters<typeof EpisodeBundleCheck>[0]['deviceBundles']}
           device={bundleDevice}
           episode={record}
           onClose={() => {

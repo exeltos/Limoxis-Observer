@@ -219,7 +219,7 @@ export function renderPatientRecordTab(tabId: string, j: PatientRecordTabScope) 
           }}
         />
       )}
-      {tabId === 'episodeForms' && <EpisodeFormsTab ctx={formsCtx} forms={forms} openRequest={formsOpenRequest} />}
+      {tabId === 'episodeForms' && <EpisodeFormsTab ctx={formsCtx as Parameters<typeof EpisodeFormsTab>[0]['ctx']} forms={forms} openRequest={formsOpenRequest} />}
       {/* Documents belong to the surveillance when there is one, else to the
           admission itself, so they can be added before any surveillance. */}
       {tabId === 'documents' && documentsScope && (

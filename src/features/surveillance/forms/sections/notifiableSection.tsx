@@ -20,27 +20,27 @@ import { FormSection } from '../FormSection'
 import { PrefilledList } from '../PrefilledList'
 import { FORM_STATUS } from '../formStatus'
 import { episodeContext } from '../formPrefill'
-import type { AnyRecord } from '../../../../types/featureTypes'
 import type { Handler } from '../../surveillanceTypes'
+import type { EpisodeFormSection, EpisodeFormsCtx, FormSectionState, NotifiableReport, NotifiableRow } from '../formTypes'
 import type { AttachmentFile } from '../../../../design-system/AttachmentField'
 import type { EodyEntry } from '../../../reporting/eodyCatalogue'
-import type { NotificationReport } from '../../../reporting/notificationReportsService'
 
 // The roles the database lets read and write notifiable disease reports (RLS of
 // notifiable_disease_reports). Everyone else does not even learn that a report exists.
 export const NOTIFIABLE_ROLES = Object.freeze([ROLES.PLATFORM_OWNER, ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.LABORATORY])
 // The EODY page that lists the blank notification forms (Word), per disease.
 export const EODY_FORMS_URL = 'https://www.eody.gov.gr/el/symvanta-dimosias-ygeias/epidimiologiki-epitirisi/systimata-epitirisis/systima-ypoxreotikis-dilosis.html'
-export const canSeeNotifiable = (ctx: AnyRecord) =>
-  NOTIFIABLE_ROLES.includes(ctx.role) && (!isProfileDisabled(CAPABILITIES.VIEW_LAB) || !isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE))
+export const canSeeNotifiable = (ctx: Pick<EpisodeFormsCtx, 'role'>) =>
+  (NOTIFIABLE_ROLES as readonly (string | null | undefined)[]).includes(ctx.role) && (!isProfileDisabled(CAPABILITIES.VIEW_LAB) || !isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE))
 
 // One row per notifiable laboratory finding of the record's samples, and one per clinical
 // notification that carries no finding. Pure: the screen and the printed report share it.
-export function notifiableRows(ctx: AnyRecord, reports: AnyRecord[] = []) {
+export function notifiableRows(ctx: Pick<EpisodeFormsCtx, 'language' | 't' | 'samples'>, reports: NotifiableReport[] = []) {
   const en = ctx.language === 'en'
-  const findings = notifiableFindings(ctx.samples || [], reports as unknown as NotificationReport[])
-  const seen = new Set(findings.map(finding => finding.findingKey))
-  const rows: AnyRecord[] = findings.map(finding => ({
+  // The episode's samples and the loaded reports carry the fields the reporting helper's types require.
+  const findings = notifiableFindings((ctx.samples || []) as Parameters<typeof notifiableFindings>[0], reports as Parameters<typeof notifiableFindings>[1])
+  const seen = new Set<string | undefined>(findings.map(finding => finding.findingKey))
+  const rows: NotifiableRow[] = findings.map(finding => ({
     key: finding.findingKey,
     finding,
     report: finding.report,
@@ -61,7 +61,7 @@ export function notifiableRows(ctx: AnyRecord, reports: AnyRecord[] = []) {
 // «Διαγραφή» of a saved notification (to the recycle bin). A laboratory finding that has no report
 // yet is only a signal derived from a validated result: it has nothing to delete (it can be set to
 // «Δεν απαιτείται»). null when the person may not delete it.
-export function notifiableDeleteItem(ctx: AnyRecord, row: AnyRecord, t: (key: string) => string, onDone: Handler) {
+export function notifiableDeleteItem(ctx: Pick<EpisodeFormsCtx, 'deleteItem'>, row: NotifiableRow, t: (key: string) => string, onDone: Handler) {
   if (!row?.report) return null
   return ctx.deleteItem?.({
     createdBy: row.report.updatedBy,
@@ -70,16 +70,18 @@ export function notifiableDeleteItem(ctx: AnyRecord, row: AnyRecord, t: (key: st
     label: row.title,
     detail: t('episodeForms.notifiable.title'),
     demo: async () => {
-      const removed = removeDemoNotificationReport(row.report.findingKey || row.report.id)
+      const removed = removeDemoNotificationReport(row.report!.findingKey || row.report!.id!)
       if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'notifiable_disease_reports', label: row.title, detail: t('episodeForms.notifiable.title'), store: 'notification_reports', row: removed })
     },
     onDone,
   }) || null
 }
 
+// What the notification window reads of the record (the laboratory gives the same).
+type NotifiableDialogCtx = Pick<EpisodeFormsCtx, 'isDemo' | 'organizationId' | 'deleteItem' | 'patient' | 'record' | 'language' | 'admission' | 'fmtDate' | 't'>
 interface NotifiableDialogProps {
-  ctx: AnyRecord
-  row: AnyRecord
+  ctx: NotifiableDialogCtx
+  row: NotifiableRow
   onClose: Handler
   onSaved: Handler
 }
@@ -98,7 +100,7 @@ export function NotifiableDialog({ ctx, row, onClose, onSaved }: NotifiableDialo
     try {
       const options = { isDemo: ctx.isDemo }
       if (row.finding) await saveNotificationReport(ctx.organizationId, { ...row.finding, patientRecordId: base.patientRecordId }, draft, options)
-      else await updateNotificationReport(ctx.organizationId, row.report.id, draft, options)
+      else await updateNotificationReport(ctx.organizationId, row.report!.id!, draft, options)
       notify(t('episodeForms.notifiable.saved'), 'success')
       onSaved()
     } catch (error) {
@@ -171,22 +173,22 @@ export function NotifiableDialog({ ctx, row, onClose, onSaved }: NotifiableDialo
 }
 
 interface NotifiableSectionProps {
-  ctx: AnyRecord
-  section: AnyRecord
+  ctx: EpisodeFormsCtx
+  section: FormSectionState<NotifiableReport[]>
   reload: Handler
 }
 function NotifiableSection({ ctx, section, reload }: NotifiableSectionProps) {
   const { t, language } = useLanguage()
   const { fmtDate } = ctx
   const { notify } = useFeedback()
-  const [openRow, setOpenRow] = useState<AnyRecord | null>(null)
+  const [openRow, setOpenRow] = useState<NotifiableRow | null>(null)
   const [picking, setPicking] = useState(false)
   const [creating, setCreating] = useState(false)
   const base = episodeContext(ctx)
   async function createReport(entry: EodyEntry) {
     setCreating(true)
     try {
-      await createClinicalNotificationReport(ctx.organizationId, { patientRecordId: base.patientRecordId || (ctx.isDemo ? ctx.patient?.id : ''), departmentId: base.departmentId, entry }, { isDemo: ctx.isDemo })
+      await createClinicalNotificationReport(ctx.organizationId, { patientRecordId: base.patientRecordId || (ctx.isDemo ? ctx.patient?.id : '')!, departmentId: base.departmentId, entry }, { isDemo: ctx.isDemo })
       notify(t('episodeForms.notifiable.saved'), 'success')
       setPicking(false)
       reload()
@@ -256,16 +258,16 @@ export const notifiableSection = {
   order: 30,
   // Also shown for a patient without an admission (a notifiable report may be all there is).
   withoutAdmission: true,
-  canSee: (ctx: AnyRecord) => canSeeNotifiable(ctx) && Boolean(ctx.patient || ctx.record),
-  load: (ctx: AnyRecord) =>
+  canSee: (ctx: EpisodeFormsCtx) => canSeeNotifiable(ctx) && Boolean(ctx.patient || ctx.record),
+  load: (ctx: EpisodeFormsCtx) =>
     loadRecordNotificationReports(
       ctx.organizationId,
       // The demo has no record ids: its patients and samples are found by their codes.
-      { sampleRecordIds: (ctx.samples || []).map((sample: AnyRecord) => sample.recordId || (ctx.isDemo ? sample.id : null)).filter(Boolean), patientRecordId: ctx.patient?.recordId || (ctx.isDemo ? ctx.patient?.id : null) || null },
+      { sampleRecordIds: (ctx.samples || []).map(sample => sample.recordId || (ctx.isDemo ? sample.id : null)).filter(Boolean), patientRecordId: ctx.patient?.recordId || (ctx.isDemo ? ctx.patient?.id : null) || null },
       { isDemo: ctx.isDemo },
     ),
   Component: NotifiableSection,
-  buildReport(ctx: AnyRecord, section: AnyRecord) {
+  buildReport(ctx: EpisodeFormsCtx, section: FormSectionState<NotifiableReport[]>) {
     const rows = notifiableRows(ctx, section.value || [])
     if (!rows.length) return null
     return {
@@ -282,4 +284,4 @@ export const notifiableSection = {
       ),
     }
   },
-}
+} satisfies EpisodeFormSection<NotifiableReport[]>
