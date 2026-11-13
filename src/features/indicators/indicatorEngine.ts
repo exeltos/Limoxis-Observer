@@ -14,7 +14,6 @@ import { collectDemoQualityFood } from '../analysis/analysisDomains'
 import { qualityFoodIndicatorMetrics } from '../analysis/analysisQualityFood'
 import { foodSatisfactionMetrics } from '../analysis/foodSatisfaction'
 import { loadSurveysLocal } from '../quality/surveys/surveyService'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // calculateHaiRate (still JS) returns null only for an unknown infection type; these are known.
 type HaiRate = NonNullable<ReturnType<typeof calculateHaiRate>>
@@ -58,7 +57,7 @@ export function collectIndicatorMetrics(){
  const abhrEligible=antisepticRows.filter(x=>x.indicatorEligible)
  const training=loadTrainingState(); const assignments=training.assignments||[]
  const employees=loadEmployees(); const activeStaff=employees.filter(x=>x.employmentStatus==='active')
- const vaccinated=new Set(loadVaccinations().filter((x: AnyRecord)=>FLU_VACCINE_PATTERNS.some(pattern=>String(x.vaccine||'').toLowerCase().includes(pattern))).map((x: AnyRecord)=>x.employeeId))
+ const vaccinated=new Set(loadVaccinations().filter((x: { vaccine?: string, employeeId?: string })=>FLU_VACCINE_PATTERNS.some(pattern=>String(x.vaccine||'').toLowerCase().includes(pattern))).map((x: { vaccine?: string, employeeId?: string })=>x.employeeId))
  const mdroBsi=laboratorySamples.filter(x=>x.result==='positive'&&x.organism&&x.resistance&&String(x.source||x.type||'').toLowerCase().includes('blood')).length
  const patientDays=abhrEligible.reduce((s,x)=>s+Number(x.patientDays||0),0)
  const bacteremias=laboratorySamples.filter(x=>x.type==='bloodCulture'&&x.result==='positive'&&x.organism&&['validated','amended'].includes(x.resultStatus))
@@ -107,7 +106,7 @@ export function collectIndicatorMetrics(){
   bundle_all_or_none_pass:bundleRows.filter(x=>x.allOrNone).length,
   bundle_executions:bundleRows.length,
   abhr_litres:round(abhrEligible.reduce((s,x)=>s+Number(x.litres||0),0),1),
-  training_completed:assignments.filter((x: AnyRecord)=>x.status==='completed').length,
+  training_completed:assignments.filter((x: { status?: string })=>x.status==='completed').length,
   training_assignments:assignments.length,
   active_staff:activeStaff.length,
   active_staff_with_vaccination:activeStaff.filter(x=>vaccinated.has(x.id)).length,
