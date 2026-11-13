@@ -9,7 +9,8 @@ import { satisfactionCounts } from '../quality/surveys/surveyModel'
 import { normalizeOpportunity, scored } from '../quality/risk/riskModel'
 import { FINDING_CLASSES, standardShort } from '../quality/audits/auditStandards'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
+import type { DomainMetrics, QualityFoodSources, SurveyResponseRow } from './analysisTypes'
 import type { DateRange } from './analysisAddonMetrics'
 
 const day = (value: unknown) => String(value || '').slice(0, 10)
@@ -27,7 +28,7 @@ const RISK_LEVELS = ['very_high', 'high', 'moderate', 'low']
 
 // The risk assessment in force at the end of the period: the latest one assessed
 // by then, a submitted one before a draft (same rule as the server).
-export function assessmentInForce(assessments: AnyRecord[] = [], to: string | null | undefined = '') {
+export function assessmentInForce(assessments: DomainMetrics[] = [], to: string | null | undefined = '') {
   const eligible = assessments.filter(item => item.assessedOn && (!to || day(item.assessedOn) <= to) && item.lifecycleStatus !== 'voided')
   return eligible.sort((a, b) => Number(a.status === 'draft') - Number(b.status === 'draft') || String(b.assessedOn).localeCompare(String(a.assessedOn)))[0] || null
 }
@@ -36,16 +37,16 @@ export function assessmentInForce(assessments: AnyRecord[] = [], to: string | nu
 // thermal, defrosting, writeoffs } (with limitStatus), surveys, responses,
 // assessments } in the app's shape. today: the day the state counts from
 // (certificates, past production days).
-export function buildQualityFoodMetrics(sources: AnyRecord = {}, range: DateRange = {}, today = hospitalToday()) {
-  const { audits = [], findings = [], suppliers = [], kitchen = {}, surveys = [], responses = [], assessments = [] }: Record<string, AnyRecord[]> & { kitchen?: Record<string, AnyRecord[]> } = sources
+export function buildQualityFoodMetrics(sources: QualityFoodSources = {}, range: DateRange = {}, today = hospitalToday()) {
+  const { audits = [], findings = [], suppliers = [], kitchen = {}, surveys = [], responses = [], assessments = [] }: QualityFoodSources = sources
 
   // Audits completed in the period and their answers per standard.
   const done = audits.filter(item => item.status === 'completed' && item.lifecycleStatus !== 'voided' && inRange(item.completedDate, range))
   const planned = audits.filter(item => !['completed', 'cancelled'].includes(item.status) && item.lifecycleStatus !== 'voided' && inRange(item.plannedDate, range))
   const standards = new Map<string, number[]>()
   for (const item of done) {
-    const answers = (item.checklist || []).filter((row: AnyRecord) => APPLICABLE.has(row.answer))
-    add(standards, item.standard || 'other', [answers.length, answers.filter((row: AnyRecord) => row.answer === 'yes').length])
+    const answers = (item.checklist || []).filter((row: DomainMetrics) => APPLICABLE.has(row.answer))
+    add(standards, item.standard || 'other', [answers.length, answers.filter((row: DomainMetrics) => row.answer === 'yes').length])
   }
   const openFindings = findings.filter(item => item.source === 'audit' && item.lifecycleStatus !== 'voided' && !CLOSED_FINDING.has(item.status))
   const findingClasses = new Map<string, number[]>()
@@ -53,13 +54,13 @@ export function buildQualityFoodMetrics(sources: AnyRecord = {}, range: DateRang
 
   // Suppliers: the active ones, their evaluations of the period, certificates now.
   const active = suppliers.filter(item => (item.status || 'active') === 'active')
-  const evaluations = active.flatMap(item => (item.evaluations || []).filter((row: AnyRecord) => inRange(row.evaluatedOn, range)).map((row: AnyRecord) => ({ supplierId: item.id, score: evaluationPercent(row), result: evaluationApproval(row) })))
+  const evaluations = active.flatMap(item => (item.evaluations || []).filter((row: DomainMetrics) => inRange(row.evaluatedOn, range)).map((row: DomainMetrics) => ({ supplierId: item.id, score: evaluationPercent(row), result: evaluationApproval(row) })))
   const scoredEvaluations = evaluations.filter(row => row.score != null)
   const results = new Map<string, number[]>()
   for (const row of scoredEvaluations) if (['approved', 'conditional', 'rejected'].includes(row.result)) add(results, row.result, [1])
-  const certificates: AnyRecord[] = active.flatMap(item => item.certifications || []).filter((row: AnyRecord) => row.expiresOn)
+  const certificates: DomainMetrics[] = active.flatMap(item => item.certifications || []).filter((row: DomainMetrics) => row.expiresOn)
   const soon = addDays(today, EXPIRY_SOON_DAYS)
-  const nonconformities: AnyRecord[] = active.flatMap(item => item.nonconformities || [])
+  const nonconformities: DomainMetrics[] = active.flatMap(item => item.nonconformities || [])
 
   // Kitchen (HACCP): records of the period and their in / out of limits status.
   const receipts = (kitchen.receipts || []).filter(row => inRange(row.receivedOn, range))
@@ -83,7 +84,7 @@ export function buildQualityFoodMetrics(sources: AnyRecord = {}, range: DateRang
     answered += counts.answered; satisfied += counts.satisfied
     if (survey.audience === 'patients') { patientAnswered += counts.answered; patientSatisfied += counts.satisfied }
     add(bySurvey, survey.title || survey.code || '—', [own.length, counts.answered, counts.satisfied])
-    const months = new Map<string, AnyRecord[]>()
+    const months = new Map<string, SurveyResponseRow[]>()
     for (const row of own) { const key = month(row.submittedAt); if (!months.has(key)) months.set(key, []); months.get(key)!.push(row) }
     for (const [key, list] of months) { const c = satisfactionCounts(survey, list); add(satisfactionMonths, key, [c.answered, c.satisfied]) }
   }
@@ -135,12 +136,12 @@ export function buildQualityFoodMetrics(sources: AnyRecord = {}, range: DateRang
     risksByLevel: rows(levels),
     risksHigh: (levels.get('high')?.[0] || 0) + (levels.get('very_high')?.[0] || 0),
     opportunities: opportunities.length,
-    opportunitiesOpen: opportunities.filter((row: AnyRecord) => !row.effectivenessStatus || row.effectivenessStatus === 'pending').length,
+    opportunitiesOpen: opportunities.filter((row: DomainMetrics) => !row.effectivenessStatus || row.effectivenessStatus === 'pending').length,
   }
 }
 
 // The indicator metrics (private.indicator_metric_snapshot keys) from the same shape.
-export function qualityFoodIndicatorMetrics(q: AnyRecord = {}) {
+export function qualityFoodIndicatorMetrics(q: DomainMetrics = {}) {
   return {
     audit_answers_compliant: q.answersCompliant ?? 0,
     audit_answers_applicable: q.answersApplicable ?? 0,
@@ -164,11 +165,11 @@ const LABELS: Record<string, string[]> = {
   very_high: ['Πολύ υψηλός', 'Very high'], high: ['Υψηλός', 'High'], moderate: ['Μέτριος', 'Moderate'], low: ['Χαμηλός', 'Low'],
   expired: ['Λήξη', 'Expired'], spoiled: ['Αλλοίωση', 'Spoiled'], damaged: ['Φθορά', 'Damaged'], temperature: ['Θερμοκρασία', 'Temperature'], recall: ['Ανάκληση', 'Recall'], other: ['Άλλο', 'Other'],
   unclassified: ['Χωρίς κατηγορία', 'Unclassified'],
-  ...Object.fromEntries(FINDING_CLASSES.map((item: AnyRecord) => [item.value, item.label])),
+  ...Object.fromEntries(FINDING_CLASSES.map((item: DomainMetrics) => [item.value, item.label])),
 }
 
 // KPI tiles and charts of the section.
-export function qualityFoodSection(q: AnyRecord = {}, tx: Translate) {
+export function qualityFoodSection(q: DomainMetrics = {}, tx: Translate) {
   const en = tx('el', 'en') === 'en'
   const label = (key: string) => { const pair = LABELS[key]; return pair ? pair[en ? 1 : 0] : key }
   const named = (list: unknown[][] | undefined) => (list || []).map(([key, ...values]) => [label(key as string), ...values])

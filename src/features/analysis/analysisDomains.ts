@@ -22,17 +22,18 @@ import { loadResourcesLocal } from '../quality/resources/resourceService'
 import { loadSurveysLocal } from '../quality/surveys/surveyService'
 import { loadRiskAssessmentsLocal } from '../quality/risk/riskService'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
 import type { DateRange } from './analysisAddonMetrics'
 import type { MetricRow } from './analysisPageModel'
+import type { AnalysisEmployeeRow, AnalysisSnapshot, BundleRow, CaseRow, CommitteeRow, ControlAssignmentRow, ControlDefinitionRow, ControlExecutionRow, DeviceRow, DocumentRow, DomainMetrics, ExposureRow, HandHygieneRow, IncidentRow, LiraInvestigationRow, MeetingRow, PrevalenceSurveyRow, TherapyRow, TrainingAssignmentRow, VaccinationRow, VisitRow, WasteRow, WhoObservationRow } from './analysisTypes'
 
 const day = (value: unknown) => String(value || '').slice(0, 10)
 const month = (value: unknown) => String(value || '').slice(0, 7)
 const inRange = (value: unknown, range: DateRange | null | undefined) => { const d = day(value); if (!d) return true; return (!range?.from || d >= range.from) && (!range?.to || d <= range.to) }
 // Hand hygiene: a month resting on fewer opportunities than this is marked «few observations».
 const FEW_HH_OPPORTUNITIES = 20
-function tally(rows: AnyRecord[], keyFn: (row: AnyRecord) => string | null | undefined): [string, number][] { const out = new Map<string, number>(); for (const row of rows) { const key = keyFn(row); if (key == null || key === '') continue; out.set(key, (out.get(key) || 0) + 1) } return [...out.entries()].sort((a, b) => b[1] - a[1]) }
-function sums(rows: AnyRecord[], keyFn: (row: AnyRecord) => string | null | undefined, valueFns: ((row: AnyRecord) => unknown)[]): [string, ...number[]][] { const out = new Map<string, number[]>(); for (const row of rows) { const key = keyFn(row); if (!key) continue; const current = out.get(key) || valueFns.map(() => 0); valueFns.forEach((fn, index) => { current[index] += Number(fn(row)) || 0 }); out.set(key, current) } return [...out.entries()].map(([key, values]: MetricRow) => [key, ...values]) }
+function tally<T>(rows: T[], keyFn: (row: T) => string | null | undefined): [string, number][] { const out = new Map<string, number>(); for (const row of rows) { const key = keyFn(row); if (key == null || key === '') continue; out.set(key, (out.get(key) || 0) + 1) } return [...out.entries()].sort((a, b) => b[1] - a[1]) }
+function sums<T>(rows: T[], keyFn: (row: T) => string | null | undefined, valueFns: ((row: T) => unknown)[]): [string, ...number[]][] { const out = new Map<string, number[]>(); for (const row of rows) { const key = keyFn(row); if (!key) continue; const current = out.get(key) || valueFns.map(() => 0); valueFns.forEach((fn, index) => { current[index] += Number(fn(row)) || 0 }); out.set(key, current) } return [...out.entries()].map(([key, values]: MetricRow) => [key, ...values]) }
 const CLOSED_QUALITY = new Set(['closed', 'resolved', 'completed', 'verified'])
 // CLABSI / CAUTI / VAP: an HAI of the matching type in a patient with the matching device.
 const DEVICE_HAI: [string, string[], RegExp][] = [
@@ -40,58 +41,58 @@ const DEVICE_HAI: [string, string[], RegExp][] = [
   ['CAUTI', ['urinaryTractInfection'], /urinary|foley|ουροκαθ/i],
   ['VAP', ['pneumonia', 'ventilatorAssociatedPneumonia'], /endotracheal|ventilat|tracheost|ενδοτραχ|αναπνευστ|τραχειοστ/i],
 ]
-function deviceAssociation(item: AnyRecord) {
-  const names = (item.devices || []).map((device: AnyRecord) => `${device.nameEn || ''} ${device.name || ''} ${device.type || ''}`).join(' ')
+function deviceAssociation(item: CaseRow) {
+  const names = (item.devices || []).map((device: DeviceRow) => `${device.nameEn || ''} ${device.name || ''} ${device.type || ''}`).join(' ')
   const match = DEVICE_HAI.find(([, types, pattern]: MetricRow) => types.includes(item.haiClassification?.type) && pattern.test(names))
   return match ? match[0] : null
 }
 
 // Employees whose latest visit has a follow-up date already past (a later visit means the follow-up was done).
-export function overdueFollowUps(visits: AnyRecord[], today: string) {
-  const latest = new Map<string, AnyRecord>()
-  for (const row of visits) { const known = latest.get(row.employeeId); if (!known || String(row.date || '') > String(known.date || '')) latest.set(row.employeeId, row) }
+export function overdueFollowUps(visits: VisitRow[], today: string) {
+  const latest = new Map<string, VisitRow>()
+  for (const row of visits) { const known = latest.get(row.employeeId || ''); if (!known || String(row.date || '') > String(known.date || '')) latest.set(row.employeeId || '', row) }
   return [...latest.values()].filter(row => row.followUpDate && row.followUpDate < today).length
 }
 
 export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clusters: unknown = 0) {
   const today = hospitalToday()
-  const cases = (Object.values(clinicalCases) as AnyRecord[]).filter(item => item.lifecycleStatus !== 'voided' && item.status !== 'cancelled' && inRange(item.startedAt, range))
-  const dept = (item: AnyRecord) => (en ? item.departmentEn : item.department) || item.department || '—'
+  const cases = (Object.values(clinicalCases) as CaseRow[]).filter(item => item.lifecycleStatus !== 'voided' && item.status !== 'cancelled' && inRange(item.startedAt, range))
+  const dept = (item: CaseRow) => (en ? item.departmentEn : item.department) || item.department || '—'
   const hai = cases.filter(item => item.haiClassification)
-  const devices: AnyRecord[] = cases.flatMap(item => (item.devices || []).filter((device: AnyRecord) => !device.removedAt && (device.status || 'active') === 'active'))
-  const therapies: AnyRecord[] = cases.flatMap(item => item.therapy || [])
-  const hh = (loadHandHygieneLocal() as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
-  const hhItems: AnyRecord[] = hh.flatMap(row => row.whoObservations || [])
-  const weight = (item: AnyRecord) => Math.max(1, Number(item.professionalsCount) || 1)
-  const bundles = (loadBundlesLocal() as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
+  const devices: DeviceRow[] = cases.flatMap(item => (item.devices || []).filter((device: DeviceRow) => !device.removedAt && (device.status || 'active') === 'active'))
+  const therapies: TherapyRow[] = cases.flatMap(item => item.therapy || [])
+  const hh = (loadHandHygieneLocal() as HandHygieneRow[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
+  const hhItems: WhoObservationRow[] = hh.flatMap(row => row.whoObservations || [])
+  const weight = (item: WhoObservationRow) => Math.max(1, Number(item.professionalsCount) || 1)
+  const bundles = (loadBundlesLocal() as BundleRow[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
   const scored = bundles.filter(row => row.score != null)
-  const waste = (loadWasteLocal() as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.periodEnd || row.date, range))
-  const executions = (loadControlExecutionsLocal() as AnyRecord[]).filter(row => !row.cancelled_at && inRange(row.performed_at, range))
-  const assignments = loadControlAssignmentsLocal() as AnyRecord[]
-  const incidents = (loadQualityLocal('incidents') as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
-  const capas = (loadQualityLocal('capas') as AnyRecord[]).filter(row => row.lifecycleStatus !== 'voided')
-  const avg = (rows: AnyRecord[]) => rows.length ? Math.round(rows.reduce((sum, row) => sum + Number(row.score || 0), 0) / rows.length * 10) / 10 : null
+  const waste = (loadWasteLocal() as WasteRow[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.periodEnd || row.date, range))
+  const executions = (loadControlExecutionsLocal() as ControlExecutionRow[]).filter(row => !row.cancelled_at && inRange(row.performed_at, range))
+  const assignments = loadControlAssignmentsLocal() as ControlAssignmentRow[]
+  const incidents = (loadQualityLocal('incidents') as IncidentRow[]).filter(row => row.lifecycleStatus !== 'voided' && inRange(row.date, range))
+  const capas = (loadQualityLocal('capas') as IncidentRow[]).filter(row => row.lifecycleStatus !== 'voided')
+  const avg = (rows: BundleRow[]) => rows.length ? Math.round(rows.reduce((sum, row) => sum + Number(row.score || 0), 0) / rows.length * 10) / 10 : null
   const byBundle = [...new Set(bundles.map(row => row.bundle))].map(key => { const rows = bundles.filter(row => row.bundle === key); return [key, rows.length, avg(rows.filter(row => row.score != null))] })
   const byBundleDepartment = [...new Set(bundles.map(row => (en ? row.departmentEn : row.departmentEl)))].map(key => { const rows = bundles.filter(row => (en ? row.departmentEn : row.departmentEl) === key); return [key, rows.length, avg(rows.filter(row => row.score != null))] })
   return {
     surveillance: {
       total: cases.length,
       active: cases.filter(item => item.status === 'active').length,
-      closed: cases.filter(item => ['completed', 'closed'].includes(item.status)).length,
-      haiConfirmed: hai.filter(item => item.haiClassification.status === 'confirmed').length,
-      haiProbable: hai.filter(item => ['probable', 'suspected'].includes(item.haiClassification.status)).length,
-      byHaiType: tally(hai, item => item.haiClassification.type || '—'),
-      byCaseStatus: tally(hai, item => item.haiClassification.status || '—'),
+      closed: cases.filter(item => ['completed', 'closed'].includes(item.status||'')).length,
+      haiConfirmed: hai.filter(item => item.haiClassification?.status === 'confirmed').length,
+      haiProbable: hai.filter(item => ['probable', 'suspected'].includes(item.haiClassification?.status||'')).length,
+      byHaiType: tally(hai, item => item.haiClassification?.type || '—'),
+      byCaseStatus: tally(hai, item => item.haiClassification?.status || '—'),
       byDepartment: tally(cases, dept),
       monthly: tally(cases, item => month(item.startedAt)).sort((a, b) => a[0].localeCompare(b[0])),
-      outcomes: tally(cases.filter(item => item.outcome), item => item.outcome.status || '—'),
+      outcomes: tally(cases.filter(item => item.outcome), item => item.outcome?.status || '—'),
       isolationActive: cases.filter(item => item.status === 'active' && item.isolation?.status === 'active').length,
       isolationReviewOverdue: cases.filter(item => item.status === 'active' && item.isolation?.status === 'active' && item.reviewDue && day(item.reviewDue) < today).length,
       devicesActive: devices.length,
       byDevice: tally(devices, device => (en ? device.nameEn : device.name) || device.name || device.type || '—'),
       // Cross-tabulations as [row, column, count] cells.
-      haiByDepartment: hai.map(item => [dept(item), item.haiClassification.type || '—', 1]),
-      organismByHaiType: hai.filter(item => item.organism).map(item => [item.organism, item.haiClassification.type || '—', 1]),
+      haiByDepartment: hai.map(item => [dept(item), item.haiClassification?.type || '—', 1]),
+      organismByHaiType: hai.filter(item => item.organism).map(item => [item.organism, item.haiClassification?.type || '—', 1]),
       deviceAssociated: hai.map(item => [dept(item), deviceAssociation(item)]).filter(([, kind]: MetricRow) => kind).map(([key, kind]: MetricRow) => [key, kind, 1]),
     },
     handHygiene: {
@@ -99,7 +100,7 @@ export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clus
       observations: hh.reduce((sum, row) => sum + (Number(row.observations) || 0), 0),
       compliant: hh.reduce((sum, row) => sum + (Number(row.compliant) || 0), 0),
       byDepartment: sums(hh, row => (en ? row.departmentEn : row.departmentEl), [row => row.observations, row => row.compliant]),
-      byCategory: sums(hhItems, item => item.professionalCategory || '—', [weight, item => (['HR', 'HW'].includes(item.action) ? weight(item) : 0)]),
+      byCategory: sums(hhItems, item => item.professionalCategory || '—', [weight, item => (['HR', 'HW'].includes(item.action||'') ? weight(item) : 0)]),
       monthly: sums(hh, row => month(row.date), [row => row.observations, row => row.compliant]).sort((a, b) => a[0].localeCompare(b[0])),
     },
     bundles: { assessments: bundles.length, averageScore: avg(scored), byBundle, byDepartment: byBundleDepartment },
@@ -116,58 +117,58 @@ export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clus
       overdueAssignments: assignments.filter(row => (row.status || 'active') === 'active' && row.next_due_at && row.next_due_at < new Date().toISOString()).length,
       byDepartment: sums(executions, row => row.department_id || '—', [() => 1, row => (row.has_finding ? 1 : 0)]),
       monthly: tally(executions, row => month(row.performed_at)).sort((a, b) => a[0].localeCompare(b[0])),
-      findingsByControl: (() => { const titles = new Map((loadControlDefinitionsLocal() as AnyRecord[]).map(row => [row.id, (en ? row.titleEn || row.title_en : null) || row.title])); return executions.filter(row => row.has_finding).map(row => [titles.get(row.control_id || row.control_definition_id) || '—', row.department_id || '—', 1]) })(),
+      findingsByControl: (() => { const titles = new Map((loadControlDefinitionsLocal() as ControlDefinitionRow[]).map(row => [row.id, (en ? row.titleEn || row.title_en : null) || row.title])); return executions.filter(row => row.has_finding).map(row => [titles.get(row.control_id || row.control_definition_id) || '—', row.department_id || '—', 1]) })(),
     },
     quality: {
       incidents: incidents.length,
-      openIncidents: incidents.filter(row => !CLOSED_QUALITY.has(row.status)).length,
+      openIncidents: incidents.filter(row => !CLOSED_QUALITY.has(row.status||'')).length,
       harm: incidents.filter(row => row.harmOccurred || row.harm_occurred).length,
       bySeverity: tally(incidents, row => row.severity || '—'),
       byStatus: tally(incidents, row => row.status || '—'),
-      capaOpen: capas.filter(row => !CLOSED_QUALITY.has(row.status)).length,
-      capaOverdue: capas.filter(row => !CLOSED_QUALITY.has(row.status) && row.dueDate && row.dueDate < today).length,
+      capaOpen: capas.filter(row => !CLOSED_QUALITY.has(row.status||'')).length,
+      capaOverdue: capas.filter(row => !CLOSED_QUALITY.has(row.status||'') && row.dueDate && row.dueDate < today).length,
       monthly: tally(incidents, row => month(row.date)).sort((a, b) => a[0].localeCompare(b[0])),
       severityByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα'), row.severity || '—', 1]),
       byCategory: tally(incidents, row => row.category || '—'),
       categoryByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα'), row.category || '—', 1]),
     },
     workforce: (() => {
-      const active = (employeeRows as AnyRecord[]).filter(row => (row.employmentStatus || 'active') === 'active')
+      const active = (employeeRows as unknown as AnalysisEmployeeRow[]).filter(row => (row.employmentStatus || 'active') === 'active')
       const ids = new Set(active.map(row => row.id))
-      const valid = (employeeVaccinations as AnyRecord[]).filter(row => ids.has(row.employeeId) && (!row.validUntil || row.validUntil >= today))
-      const visits = (loadOccupationalVisits() as AnyRecord[]).filter(row => ids.has(row.employeeId) && inRange(row.date, range))
-      const byVaccine = new Map<string, Set<string>>(); for (const row of valid) { const set = byVaccine.get(row.vaccine) || new Set(); set.add(row.employeeId); byVaccine.set(row.vaccine, set) }
+      const valid = (employeeVaccinations as unknown as VaccinationRow[]).filter(row => ids.has(row.employeeId) && (!row.validUntil || row.validUntil >= today))
+      const visits = (loadOccupationalVisits() as VisitRow[]).filter(row => ids.has(row.employeeId) && inRange(row.date, range))
+      const byVaccine = new Map<string, Set<string>>(); for (const row of valid) { const set = byVaccine.get(row.vaccine||'') || new Set(); set.add(row.employeeId||''); byVaccine.set(row.vaccine||'', set) }
       return {
         activeEmployees: active.length,
         vaccinatedEmployees: new Set(valid.map(row => row.employeeId)).size,
         byVaccine: [...byVaccine.entries()].map(([key, set]: MetricRow) => [key, set.size]).sort((a, b) => b[1] - a[1]),
         visits: visits.length,
         byVisitType: tally(visits, row => row.type || '—'),
-        followUpsDue: overdueFollowUps((loadOccupationalVisits() as AnyRecord[]).filter(row => ids.has(row.employeeId) && row.status !== 'cancelled'), today),
+        followUpsDue: overdueFollowUps((loadOccupationalVisits() as VisitRow[]).filter(row => ids.has(row.employeeId) && row.status !== 'cancelled'), today),
         byDepartment: tally(active, row => (en ? row.departmentEn : row.department) || '—'),
-        exposuresByType: tally((employeeExposureIncidents as AnyRecord[]).filter(row => inRange(row.incidentDate, range)), row => row.exposureType || '—'),
+        exposuresByType: tally((employeeExposureIncidents as unknown as ExposureRow[]).filter(row => inRange(row.incidentDate, range)), row => row.exposureType || '—'),
       }
     })(),
     training: (() => {
-      const rows: AnyRecord[] = (loadTrainingState().assignments || []).filter((row: AnyRecord) => inRange(row.assignedDate, range))
-      const status = (row: AnyRecord) => row.computedStatus || row.status
+      const rows: TrainingAssignmentRow[] = (loadTrainingState().assignments || []).filter((row: TrainingAssignmentRow) => inRange(row.assignedDate, range))
+      const status = (row: TrainingAssignmentRow) => row.computedStatus || row.status
       const scored = rows.filter(row => row.score != null && row.score !== '')
       return {
         assignments: rows.length,
         completed: rows.filter(row => status(row) === 'completed').length,
-        overdue: rows.filter(row => !['completed', 'cancelled'].includes(status(row)) && row.dueDate && row.dueDate < today).length,
+        overdue: rows.filter(row => !['completed', 'cancelled'].includes(status(row)||'') && row.dueDate && row.dueDate < today).length,
         averageScore: scored.length ? Math.round(scored.reduce((sum, row) => sum + Number(row.score), 0) / scored.length * 10) / 10 : null,
         byDepartment: sums(rows, row => row.department || '—', [() => 1, row => (status(row) === 'completed' ? 1 : 0)]),
       }
     })(),
     governance: (() => {
-      const docs = (loadDocuments() as AnyRecord[]).filter(row => !['archived', 'superseded'].includes(row.status))
-      const committees = loadCommittees() as AnyRecord[]
-      const meetings: AnyRecord[] = committees.flatMap(row => row.meetings || []).filter((row: AnyRecord) => inRange(row.date, range) && row.status !== 'cancelled')
+      const docs = (loadDocuments() as DocumentRow[]).filter(row => !['archived', 'superseded'].includes(row.status||''))
+      const committees = loadCommittees() as unknown as CommitteeRow[]
+      const meetings: MeetingRow[] = committees.flatMap(row => row.meetings || []).filter((row: MeetingRow) => inRange(row.date, range) && row.status !== 'cancelled')
       return {
         documents: docs.length,
-        published: docs.filter(row => ['published', 'approved'].includes(row.status)).length,
-        reviewOverdue: docs.filter(row => ['published', 'approved'].includes(row.status) && row.reviewDate && row.reviewDate < today).length,
+        published: docs.filter(row => ['published', 'approved'].includes(row.status||'')).length,
+        reviewOverdue: docs.filter(row => ['published', 'approved'].includes(row.status||'') && row.reviewDate && row.reviewDate < today).length,
         byType: tally(docs, row => row.type || '—'),
         byStatus: tally(docs, row => row.status || '—'),
         committees: committees.filter(row => (row.status || 'active') === 'active').length,
@@ -176,17 +177,17 @@ export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clus
         minutesPending: meetings.filter(row => row.status !== 'finalized' && row.date && row.date < today).length,
       }
     })(),
-    pps: buildPpsMetrics(loadPrevalenceSurveyLocal() as AnyRecord[], range),
+    pps: buildPpsMetrics(loadPrevalenceSurveyLocal() as PrevalenceSurveyRow[], range),
     qualityFood: collectDemoQualityFood(range, today),
-    lira: buildLiraMetrics(liraDemoInvestigations, range, clusters),
+    lira: buildLiraMetrics(liraDemoInvestigations as unknown as LiraInvestigationRow[], range, clusters),
     antimicrobial: {
       total: therapies.length,
       active: therapies.filter(row => (row.status || 'active') === 'active' && !row.endedAt).length,
       pending: therapies.filter(row => row.approvalStatus === 'pending' || row.approved === false).length,
       byAgent: tally(therapies, row => row.antimicrobial || '—').slice(0, 10),
       byApproval: tally(therapies, row => row.approvalStatus || (row.approved === true ? 'approved' : row.approved === false ? 'pending' : 'not_required')),
-      byAgentDepartment: cases.flatMap(item => (item.therapy || []).map((row: AnyRecord) => [row.antimicrobial || '—', dept(item), 1])),
-      byAgentOrganism: cases.filter(item => item.organism).flatMap(item => (item.therapy || []).map((row: AnyRecord) => [row.antimicrobial || '—', item.organism, 1])),
+      byAgentDepartment: cases.flatMap(item => (item.therapy || []).map((row: TherapyRow) => [row.antimicrobial || '—', dept(item), 1])),
+      byAgentOrganism: cases.filter(item => item.organism).flatMap(item => (item.therapy || []).map((row: TherapyRow) => [row.antimicrobial || '—', item.organism, 1])),
     },
   }
 }
@@ -230,10 +231,10 @@ const fmtPct = (value: number | null) => (value == null ? '—' : `${String(valu
 
 // One row per department with its surveillance, HAI, cultures, resistant
 // isolates and compliance (hand hygiene, bundles) for the overview.
-function departmentScoreboard(snapshot: AnyRecord | null | undefined) {
+function departmentScoreboard(snapshot: AnalysisSnapshot | null | undefined) {
   const d = snapshot?.domains || {}, s = d.surveillance || {}, hh = d.handHygiene || {}, b = d.bundles || {}
   const micro = snapshot?.microbiology || {}
-  const rows = new Map<string, AnyRecord>()
+  const rows = new Map<string, DomainMetrics>()
   const at = (name: string) => { if (!rows.has(name)) rows.set(name, { name }); return rows.get(name)! }
   for (const [name, n] of s.byDepartment || []) at(name).episodes = n
   for (const [name, , n] of s.haiByDepartment || []) at(name).hai = (at(name).hai || 0) + n
@@ -245,7 +246,7 @@ function departmentScoreboard(snapshot: AnyRecord | null | undefined) {
 }
 
 // What each Analysis section shows: KPI tiles and charts built from the metrics.
-export function buildSectionModel(tab: string, snapshot: AnyRecord | null | undefined, tx: Translate, t?: (key: string) => string) {
+export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null | undefined, tx: Translate, t?: (key: string) => string) {
   const en = tx('el', 'en') === 'en'
   const label = (key: string) => { const pair = LABELS[key]; if (pair) return en ? pair[1] : pair[0]; const translated = typeof t === 'function' ? t(key) : key; return translated || key }
   const named = (rows: MetricRow[] | undefined) => (rows || []).map(([key, ...values]: MetricRow) => [label(key), ...values])
@@ -269,7 +270,7 @@ export function buildSectionModel(tab: string, snapshot: AnyRecord | null | unde
         [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : ''],
       ],
       charts: [
-        { type: 'scoreboard', wide: true, ...(byHospital ? { title: tx('Σύγκριση νοσοκομείων', 'Hospitals side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε νοσοκομείου για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each hospital\'s headline figures for the period; shading marks the highest in each column.'), rowLabel: tx('Νοσοκομείο', 'Hospital'), rows: (snapshot.hospitals || []).map((row: AnyRecord) => ({ ...row, key: row.organizationId })).sort((a: AnyRecord, b: AnyRecord) => b.episodes + b.positives - (a.episodes + a.positives)) } : { title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot) }), columns: [
+        { type: 'scoreboard', wide: true, ...(byHospital ? { title: tx('Σύγκριση νοσοκομείων', 'Hospitals side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε νοσοκομείου για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each hospital\'s headline figures for the period; shading marks the highest in each column.'), rowLabel: tx('Νοσοκομείο', 'Hospital'), rows: (snapshot.hospitals || []).map((row: DomainMetrics) => ({ ...row, key: row.organizationId })).sort((a: DomainMetrics, b: DomainMetrics) => b.episodes + b.positives - (a.episodes + a.positives)) } : { title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot) }), columns: [
           { key: 'episodes', label: tx('Επιτηρήσεις', 'Surveillance') },
           { key: 'hai', label: tx('ΛΣΦΥ', 'HAI'), tone: 'warn' },
           { key: 'positives', label: tx('Θετικές καλλιέργειες', 'Positive cultures') },
