@@ -32,7 +32,7 @@ import {
 import './employeeRecordTabsRefinements.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import type { StoredAttachment } from '../../core/attachments/attachmentService'
-import type { EmployeeSurveillanceRecord, ScreeningSample } from '../surveillance/employeeSurveillanceTypes'
+import type { EmployeeSurveillanceRecord } from '../surveillance/employeeSurveillanceTypes'
 import type { EmployeeHistoryEntry } from './employeeTypes'
 export {
   EmployeeHealthTab,
@@ -108,7 +108,7 @@ export function EmployeeSurveillanceTab({
 }: RecordTabProps & { t: (key: string) => string, fmt: (value: unknown) => string, version: number, onNew: () => void, readOnly?: boolean, isDemo?: boolean, organizationId?: string | null, canManageFollowup?: boolean }) {
   const demoRows = isDemo ? getEmployeeSurveillanceForEmployee(employee.id) : []
   const [cloudRecords, setCloudRecords] = useState<EmployeeSurveillanceRecord[]>([])
-  const [cloudSamples, setCloudSamples] = useState<ScreeningSample[]>([])
+  const [cloudSamples, setCloudSamples] = useState<Awaited<ReturnType<typeof loadEmployeeSurveillanceSamples>>>([])
   const [selected, setSelected] = useState<EmployeeSurveillanceRecord | null>(null)
   const [loading, setLoading] = useState(!isDemo)
   const [loadError, setLoadError] = useState<unknown>(null)
@@ -126,7 +126,7 @@ export function EmployeeSurveillanceTab({
     loadEmployeeSurveillanceRecordsForEmployee(organizationId, employee.dbId)
       .then(async rows => {
         const records = rows.filter(row => row.employeeDbId === employee.dbId)
-        return [records, await loadEmployeeSurveillanceSamples(organizationId, records.map(row => row.recordId))]
+        return [records, await loadEmployeeSurveillanceSamples(organizationId, records.map(row => row.recordId))] as const
       })
       .then(([records, samples]) => {
         if (!active) return
