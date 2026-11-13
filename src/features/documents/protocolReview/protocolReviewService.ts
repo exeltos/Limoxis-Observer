@@ -6,7 +6,7 @@ import { DEMO_PROTOCOL_SUGGESTIONS } from './protocolReviewDemoData'
 import { decisionProblem, suggestionFromRow, todayKey, type ProtocolSuggestion } from './protocolReviewModel'
 import { cloudClient } from '../../../core/supabase/cloudContext'
 import type { Database } from '../../../core/supabase/database.types'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { Tables } from '../../../core/supabase/database.types'
 
 // Protocol update suggestions: read under the documents' RLS, decided through
 // protocol_suggestion_decide (audited). The Demo keeps them in its snapshot.
@@ -20,13 +20,14 @@ function production(organizationId: string|null|undefined,operation: string): or
  return true
 }
 
-const loadLocal=(): AnyRecord[]=>{const rows=loadSnapshot(TABLE,structuredClone(DEMO_PROTOCOL_SUGGESTIONS));return Array.isArray(rows)?rows:[]}
+type SuggestionRow=Tables<'protocol_update_suggestions'>
+const loadLocal=(): SuggestionRow[]=>{const rows=loadSnapshot(TABLE,structuredClone(DEMO_PROTOCOL_SUGGESTIONS));return Array.isArray(rows)?rows:[]}
 
 // Open and postponed suggestions of the organisation (decided ones stay in the
 // table and the audit log, not on screen).
 export async function loadProtocolSuggestionsAsync(organizationId: string|null|undefined): Promise<ProtocolSuggestion[]>{
  if(!production(organizationId,'load'))return loadLocal().filter(row=>['open','snoozed'].includes(row.status)).map(suggestionFromRow) as ProtocolSuggestion[]
- const rows: AnyRecord[]=[]
+ const rows: Partial<SuggestionRow>[]=[]
  for(let from=0;;from+=1000){
   const {data,error}=await cloudClient().from(TABLE).select(COLUMNS).eq('organization_id',organizationId).in('status',['open','snoozed']).order('created_at',{ascending:false}).range(from,from+999)
   if(error){if(error.code==='42501'||error.code==='42P01')return [];throw error}
@@ -53,5 +54,5 @@ export async function decideProtocolSuggestionAsync(organizationId: string|null|
  // The generated types mark the optional arguments as non-null; the function takes null for them.
  const {data,error}=await cloudClient().rpc('protocol_suggestion_decide',{p_suggestion_id:suggestion.id,p_decision:decision,p_reason:decision==='rejected'?String(reason).trim():null,p_snooze_until:decision==='snoozed'?snoozeUntil:null,p_revision_document_id:decision==='accepted'?revisionDocumentId:null} as Database['public']['Functions']['protocol_suggestion_decide']['Args'])
  if(error)throw error
- return suggestionFromRow(data as AnyRecord|null)
+ return suggestionFromRow(data as SuggestionRow|null)
 }

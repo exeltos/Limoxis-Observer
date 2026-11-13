@@ -24,7 +24,7 @@ import { documentTypeSummary } from './licenceFields'
 import { ProtocolSuggestionFilter,ProtocolSuggestionMarker,useOpenSuggestionKeys } from './protocolReview/ProtocolSuggestionFilter'
 import { familyHasOpenSuggestion } from './protocolReview/protocolReviewModel'
 import { hospitalDate } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DocumentRecord } from './documentTypes'
 
 type Family=ReturnType<typeof groupDocumentFamilies>[number]
 
@@ -38,7 +38,7 @@ export function DocumentsPage(){
  const [suggested,setSuggested]=useState('all'),suggestionKeys=useOpenSuggestionKeys()
  const reviewCutoff=useMemo(()=>hospitalDate(new Date(Date.now()+30*86400000)),[])
  const isReviewDue=useMemo(()=>(family: Family)=>{const x=family.activePublished;return Boolean(x?.reviewDate&&x.reviewDate<=reviewCutoff)},[reviewCutoff])
- const filtered=useMemo(()=>families.filter(family=>{const x=family.current,searchText=`${family.root?.id||''} ${family.versions.map((v: AnyRecord)=>v.id).join(' ')} ${x?.title||''} ${x?.owner||''} ${x?.department||''} ${x?.clinicalArea||''}`.toLowerCase();return (status==='all'||(status==='current'?!['archived','superseded'].includes(x?.status):x?.status===status))&&(type==='all'||x?.type===type)&&(!reviewDueOnly||isReviewDue(family))&&(suggested==='all'||familyHasOpenSuggestion(family,suggestionKeys))&&searchText.includes(query.toLowerCase())}),[families,query,status,type,reviewDueOnly,isReviewDue,suggested,suggestionKeys])
+ const filtered=useMemo(()=>families.filter(family=>{const x=family.current,searchText=`${family.root?.id||''} ${family.versions.map((v: DocumentRecord)=>v.id).join(' ')} ${x?.title||''} ${x?.owner||''} ${x?.department||''} ${x?.clinicalArea||''}`.toLowerCase();return (status==='all'||(status==='current'?!['archived','superseded'].includes(x?.status):x?.status===status))&&(type==='all'||x?.type===type)&&(!reviewDueOnly||isReviewDue(family))&&(suggested==='all'||familyHasOpenSuggestion(family,suggestionKeys))&&searchText.includes(query.toLowerCase())}),[families,query,status,type,reviewDueOnly,isReviewDue,suggested,suggestionKeys])
  const sortAccessors=useMemo((): Record<string, (family: Family)=>unknown>=>({code:family=>family.root?.id||family.current?.id||'',title:family=>family.current?.title||'',type:family=>typeLabels[family.current?.type]||family.current?.type||'',owner:family=>family.current?.owner||'',department:family=>family.current?.department||'',review:family=>(family.activePublished||family.current)?.reviewDate||'',status:family=>statusLabels[family.current?.status]||family.current?.status||'',updatedAt:family=>family.current?.updatedAt||''}),[typeLabels,statusLabels])
  const sorted=useMemo(()=>{const list=[...filtered];if(sort.key==='version'){list.sort((a,b)=>compareDocumentVersions(a.current,b.current));if(sort.dir==='desc')list.reverse();return list}const get=sortAccessors[sort.key]||sortAccessors.updatedAt;list.sort((a,b)=>String(get(a)).localeCompare(String(get(b)),language));if(sort.dir==='desc')list.reverse();return list},[filtered,sort,language,sortAccessors])
  function toggleSort(key: string){setSort(current=>current.key===key?{key,dir:current.dir==='asc'?'desc':'asc'}:{key,dir:'asc'})}

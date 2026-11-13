@@ -40,7 +40,8 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { ProtocolReviewPanel } from './protocolReview/ProtocolReviewPanel'
 import { useProtocolSuggestions } from './protocolReview/useProtocolSuggestions'
 import { existingSuggestedRevision, type ProtocolSuggestion } from './protocolReview/protocolReviewModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DocumentDepartment, DocumentDraft, DocumentHistoryEvent, DocumentRecord } from './documentTypes'
+import type { ReportFact } from '../../core/export/reportDocument'
 
 // A header command kept beside «Export» (not moved into the record's «…»).
 const HeaderAction = ({ children }: { children: ReactNode, utility?: boolean, tone?: string }) => children
@@ -70,7 +71,7 @@ const labels: Record<string, { types: Record<string, string>, statuses: Record<s
   },
 }
 
-const toDraft = (record: AnyRecord | null | undefined): AnyRecord => ({
+const toDraft = (record: DocumentRecord | null | undefined): DocumentDraft => ({
   title: record?.title || '',
   type: record?.type || 'policy',
   version: record?.version || '0.1',
@@ -86,7 +87,7 @@ const toDraft = (record: AnyRecord | null | undefined): AnyRecord => ({
   requiredBy: record?.requiredBy || [],
 })
 
-function formatHistoryAction(item: AnyRecord, en: boolean, statusLabels: Record<string, string>) {
+function formatHistoryAction(item: DocumentHistoryEvent, en: boolean, statusLabels: Record<string, string>) {
   if (item.action === 'created') return en ? 'Created' : 'Δημιουργία'
   if (item.action === 'updated') return en ? 'Updated' : 'Ενημέρωση'
   if (item.action === 'deleted') return en ? 'Deleted' : 'Διαγραφή'
@@ -131,9 +132,9 @@ export function DocumentRecordPage() {
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState(() => searchParams.get('tab') || 'overview')
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState<AnyRecord | null>(null)
+  const [draft, setDraft] = useState<DocumentDraft | null>(null)
   const [busy, setBusy] = useState(false)
-  const [departments, setDepartments] = useState<AnyRecord[]>([])
+  const [departments, setDepartments] = useState<DocumentDepartment[]>([])
   const [ownerName, setOwnerName] = useState('')
 
   const record = useMemo(() => rows.find((x) => x.id === documentId) || null, [rows, documentId])
@@ -167,7 +168,7 @@ export function DocumentRecordPage() {
     let active = true
     if (!organizationId) return undefined
     // The Demo hospital has no cloud departments (see DocumentCreatePage).
-    const request: Promise<AnyRecord[]> = isDemo ? Promise.resolve(demoLibrarySeed.departments.map(([name, nameEn]) => ({ id: name, name, nameEn }))) : loadDepartments(organizationId)
+    const request: Promise<(DocumentDepartment & { is_active?: boolean | null })[]> = isDemo ? Promise.resolve(demoLibrarySeed.departments.map(([name, nameEn]) => ({ id: name, name, nameEn }))) : loadDepartments(organizationId)
     request
       .then((data) => { if (active) setDepartments((data || []).filter((x) => x.is_active !== false)) })
       .catch(() => { if (active) setDepartments([]) })
@@ -346,7 +347,7 @@ export function DocumentRecordPage() {
     }
   }
 
-  const attachments = async (next: AnyRecord[]) => {
+  const attachments = async (next: NonNullable<DocumentRecord['attachments']>) => {
     if (!isDemo) return
     await run(() => updateDocumentAsync(organizationId, record, { attachments: next }, actor), en ? 'Attachments updated.' : 'Τα συνημμένα ενημερώθηκαν.')
   }
@@ -367,9 +368,9 @@ export function DocumentRecordPage() {
       meta: [[en ? 'Code' : 'Κωδικός', record.id], [en ? 'Version' : 'Έκδοση', record.version], [en ? 'Type' : 'Τύπος', typeLabels[record.type] || record.type], [en ? 'Status' : 'Κατάσταση', statusLabels[record.status] || record.status], [en ? 'Department / scope' : 'Τμήμα / πεδίο εφαρμογής', department], [en ? 'Document owner' : 'Υπεύθυνος εγγράφου', ownerName], [en ? 'Effective date' : 'Ημερομηνία ισχύος', formatDay(record.effectiveDate, language)], [en ? 'Review date' : 'Ημερομηνία επανεξέτασης', formatDay(record.reviewDate, language)]],
       sections: [
         record.description && { title: en ? 'Description' : 'Περιγραφή', text: record.description },
-        { title: en ? 'Controlled version' : 'Ελεγχόμενη έκδοση', facts: [[en ? 'Version state' : 'Κατάσταση έκδοσης', versionState], [en ? 'Revision reason' : 'Λόγος αναθεώρησης', record.revisionReason], [en ? 'Approved' : 'Έγκριση', record.approvedAt ? `${formatDateTime(record.approvedAt, en)} · ${approvalEvent?.actor || '—'}` : ''], [en ? 'Published' : 'Δημοσίευση', record.publishedAt ? `${formatDateTime(record.publishedAt, en)} · ${publishEvent?.actor || '—'}` : '']] },
-        { title: en ? 'Files & attachments' : 'Αρχεία & συνημμένα', list: (record.attachments || []).map((file: AnyRecord) => file.name || file.fileName || file.id), note: (record.attachments || []).length ? '' : (en ? 'No attachments.' : 'Χωρίς συνημμένα.') },
-        { title: en ? 'Version & lifecycle history' : 'Ιστορικό εκδόσεων & κύκλου ζωής', table: { columns: [en ? 'Version' : 'Έκδοση', en ? 'Action' : 'Ενέργεια', en ? 'When' : 'Πότε', en ? 'By' : 'Από'], rows: family.flatMap((version) => (version.history || []).map((item: AnyRecord) => [`v${version.version || '—'} · ${statusLabels[version.status] || version.status}`, formatHistoryAction(item, en, statusLabels), formatDateTime(item.at, en), item.actor || '—'])) } },
+        { title: en ? 'Controlled version' : 'Ελεγχόμενη έκδοση', facts: [[en ? 'Version state' : 'Κατάσταση έκδοσης', versionState], [en ? 'Revision reason' : 'Λόγος αναθεώρησης', record.revisionReason], [en ? 'Approved' : 'Έγκριση', record.approvedAt ? `${formatDateTime(record.approvedAt, en)} · ${approvalEvent?.actor || '—'}` : ''], [en ? 'Published' : 'Δημοσίευση', record.publishedAt ? `${formatDateTime(record.publishedAt, en)} · ${publishEvent?.actor || '—'}` : '']] as ReportFact[] },
+        { title: en ? 'Files & attachments' : 'Αρχεία & συνημμένα', list: (record.attachments || []).map(file => file.name || file.fileName || file.id), note: (record.attachments || []).length ? '' : (en ? 'No attachments.' : 'Χωρίς συνημμένα.') },
+        { title: en ? 'Version & lifecycle history' : 'Ιστορικό εκδόσεων & κύκλου ζωής', table: { columns: [en ? 'Version' : 'Έκδοση', en ? 'Action' : 'Ενέργεια', en ? 'When' : 'Πότε', en ? 'By' : 'Από'], rows: family.flatMap((version) => (version.history || []).map((item: DocumentHistoryEvent) => [`v${version.version || '—'} · ${statusLabels[version.status] || version.status}`, formatHistoryAction(item, en, statusLabels), formatDateTime(item.at, en), item.actor || '—'])) } },
       ].filter(Boolean),
       signatures: [en ? 'Prepared by' : 'Συντάχθηκε', en ? 'Reviewed by' : 'Ελέγχθηκε', en ? 'Approved by' : 'Εγκρίθηκε'],
       filename: `${record.id}_${record.title}_v${record.version || '—'}`,
@@ -462,7 +463,7 @@ export function DocumentRecordPage() {
             {version.revisionReason && <div className="timeline-line"><strong>{en ? 'Revision reason' : 'Λόγος αναθεώρησης'}</strong><span>{version.revisionReason}</span></div>}
             {(version.history || []).length === 0
               ? <div className="inline-empty">{en ? 'No audit events for this revision.' : 'Δεν υπάρχουν audit events για αυτή την έκδοση.'}</div>
-              : (version.history || []).map((item: AnyRecord, index: number) => <div key={`${item.at}-${index}`} className="timeline-line"><strong>{formatHistoryAction(item, en, statusLabels)}</strong><span>{formatDateTime(item.at, en)} · {item.actor}</span></div>)}
+              : (version.history || []).map((item: DocumentHistoryEvent, index: number) => <div key={`${item.at}-${index}`} className="timeline-line"><strong>{formatHistoryAction(item, en, statusLabels)}</strong><span>{formatDateTime(item.at, en)} · {item.actor}</span></div>)}
           </div>
         </details>)}</div>}
     </section>}
