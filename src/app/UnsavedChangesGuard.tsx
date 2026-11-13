@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useFeedback } from '../core/feedback/FeedbackContext'
-import type { AnyRecord } from '../types/featureTypes'
+// The element an input event comes from (a search box is told by its type, class or placeholder).
+type EditedElement = HTMLElement & Partial<Pick<HTMLInputElement, 'type' | 'placeholder'>>
 
 // Typing into a screen's fields marks it as having unsaved changes until the next
 // successful save (any "success" notification) or the next screen. While it does,
@@ -9,7 +10,7 @@ import type { AnyRecord } from '../types/featureTypes'
 // Search boxes, filters, pagination and dialogs (which guard themselves) do not count.
 const SAVED_EVENT = 'limoxis:saved'
 const IGNORED = '.filter-primary-row, .filter-popover, .filter-search, .registry-pagination, [role=search], .observer-dialog, .confirm-dialog'
-const isSearchField = (el: AnyRecord | null | undefined) => el?.type === 'search' || /search|αναζήτ/i.test(`${el?.className || ''} ${el?.placeholder || ''}`)
+const isSearchField = (el: EditedElement | null | undefined) => el?.type === 'search' || /search|αναζήτ/i.test(`${el?.className || ''} ${el?.placeholder || ''}`)
 
 export function UnsavedChangesGuard({ language }: { language: string }) {
   const { pathname } = useLocation()
@@ -22,7 +23,7 @@ export function UnsavedChangesGuard({ language }: { language: string }) {
   useEffect(() => {
     const en = language === 'en'
     const markDirty = (event: Event) => {
-      const el = event.target as AnyRecord | null
+      const el = event.target as EditedElement | null
       if (!el?.closest?.('.content') || el.closest(IGNORED) || isSearchField(el)) return
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable) dirty.current = true
     }

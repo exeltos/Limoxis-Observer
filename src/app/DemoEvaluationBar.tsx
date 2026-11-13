@@ -4,7 +4,8 @@ import { DEMO_SCENARIOS } from '../features/demo/demoScenarios'
 import { BrandMark } from '../design-system/BrandMark'
 import './demoEvaluationBar.css'
 import type { ReactNode } from 'react'
-import type { AnyRecord, Translate } from '../types/featureTypes'
+import type { Translate } from '../types/featureTypes'
+import type { DemoAccess } from '../core/auth/authTypes'
 
 const DEMO_BODY_CLASS='lo-demo-organization'
 const formatDate=(value: string|null|undefined,language: string)=>{if(!value)return '';const date=new Date(`${value}T00:00:00`);return Number.isNaN(date.getTime())?value:date.toLocaleDateString(language==='en'?'en-GB':'el-GR')}
@@ -15,7 +16,7 @@ const formatDate=(value: string|null|undefined,language: string)=>{if(!value)ret
 // the page under it keeps its place.
 interface DemoEvaluationBarProps {
   tenant?: { name?: string | null } | null
-  access?: AnyRecord | null
+  access?: DemoAccess | null
   isPlatformOwner?: boolean
   language: string
   previewOpen?: boolean
@@ -59,7 +60,7 @@ export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previe
 }
 
 // Shown to an evaluator whose Demo expired or was paused: the data is closed.
-export function DemoClosedScreen({access,language,onLogout}: { access: AnyRecord | null | undefined, language: string, onLogout: () => void }){
+export function DemoClosedScreen({access,language,onLogout}: { access: DemoAccess | null | undefined, language: string, onLogout: () => void }){
   const en=language==='en';const tx: Translate=(el,enText)=>en?enText:el
   const paused=access?.status==='paused'||(access?.organizationStatus&&access.organizationStatus!=='active')
   return <div className="demo-closed-screen">

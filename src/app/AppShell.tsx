@@ -2,7 +2,6 @@ import '../features/platform/platformFocus.css'
 import { BrandMark } from '../design-system/BrandMark'
 import { Suspense, useEffect, useState, type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import type { AnyRecord } from '../types/featureTypes'
 import { lazyPage } from '../core/errors/chunkRecovery'
 import { ScreenErrorBoundary } from '../core/errors/AppErrorBoundary'
 import { UnsavedChangesGuard } from './UnsavedChangesGuard'
@@ -38,6 +37,8 @@ import { resetScreenGuides } from '../features/demo/screenGuideService'
 import { screenGuidesOn } from '../features/demo/screenGuideSettings'
 import { PlatformAnnouncementGate } from '../features/platform/PlatformAnnouncementGate'
 import { hospitalToday } from '../core/dates/hospitalDate'
+// What a feedback message tells the platform's log (FeedbackContext sends it as «limoxis:feedback»).
+type FeedbackDetail = { message?: string, severity?: string, eventType?: string, operation?: string | null, diagnosticCode?: string | null }
 
 // The help manual (EL/EN content for every role) is only needed once the user
 // opens it, so it loads on demand instead of shipping with the first paint.
@@ -65,7 +66,7 @@ function ContentArea({ children }: { children?: ReactNode }){
 export function AppShell(){
   const helpPreviewMode=typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('helpPreview')==='1'&&window.self!==window.top
   const {language,setLanguage,t}=useLanguage(); const {tenant,loading:tenantLoading,memberships,membership,role,isDemo,enterPlatformDemo,setTenantByMembership,returnToPlatform,actualRole,canRolePreview,isRolePreview,rolePreview,startRolePreview,updateRolePreviewDepartment,updateRolePreviewDivision,stopRolePreview,reloadMemberships}=useTenant(); const {profile,user,logout}=useAuth(); const notifications=useNotifications(); const {confirm,notifyError}=useFeedback(); const navigate=useNavigate(); const location=useLocation(); const [helpOpen,setHelpOpen]=useState(false);const [screenGuideReset,setScreenGuideReset]=useState(0);const [helpRequested,setHelpRequested]=useState(false);useEffect(()=>{if(helpOpen)setHelpRequested(true)},[helpOpen]); const [notificationOpen,setNotificationOpen]=useState(false); const [birthdayOpen,setBirthdayOpen]=useState(false); const [briefingOpen,setBriefingOpen]=useState(false); const [previewOpen,setPreviewOpen]=useState(false);  const [accountOpen,setAccountOpen]=useState(false)
-  useEffect(()=>{if(helpPreviewMode||!tenant?.id||isDemo)return;const handleFeedback=(event: Event)=>{const detail=(event as CustomEvent<AnyRecord>)?.detail||{};if(!detail.message)return;void recordRuntimeEvent({organizationId:tenant.id,severity:detail.severity||'info',eventType:detail.eventType||'ui_feedback',route:window.location.pathname,operation:detail.operation||null,userMessage:detail.message,diagnosticCode:detail.diagnosticCode||null}).catch(()=>{})};window.addEventListener('limoxis:feedback',handleFeedback);return ()=>window.removeEventListener('limoxis:feedback',handleFeedback)},[tenant?.id,isDemo,helpPreviewMode])
+  useEffect(()=>{if(helpPreviewMode||!tenant?.id||isDemo)return;const handleFeedback=(event: Event)=>{const detail: FeedbackDetail=(event as CustomEvent<FeedbackDetail>)?.detail||{};if(!detail.message)return;void recordRuntimeEvent({organizationId:tenant.id,severity:detail.severity||'info',eventType:detail.eventType||'ui_feedback',route:window.location.pathname,operation:detail.operation||null,userMessage:detail.message,diagnosticCode:detail.diagnosticCode||null}).catch(()=>{})};window.addEventListener('limoxis:feedback',handleFeedback);return ()=>window.removeEventListener('limoxis:feedback',handleFeedback)},[tenant?.id,isDemo,helpPreviewMode])
   useEffect(()=>{if(helpPreviewMode||!profile)return;const key=profile?.id||profile?.email||'user';const birthdayKey=`limoxis.birthday.seen.${key}.${hospitalToday()}`;const briefingKey=`limoxis.briefing.seen.${key}`;const birthdaySeen=readSessionValue(birthdayKey)==='1';const briefingSeen=readSessionValue(briefingKey)==='1';if(notifications.birthday.length&&!birthdaySeen)setBirthdayOpen(true);else if(!briefingSeen)setBriefingOpen(true)},[profile,notifications.birthday.length,helpPreviewMode])
   function closeBirthday(){const key=profile?.id||profile?.email||'user';writeSessionValue(`limoxis.birthday.seen.${key}.${hospitalToday()}`,'1');setBirthdayOpen(false);const briefingSeen=readSessionValue(`limoxis.briefing.seen.${key}`)==='1';if(!briefingSeen)window.setTimeout(()=>setBriefingOpen(true),180)}
   function closeBriefing(){const key=profile?.id||profile?.email||'user';writeSessionValue(`limoxis.briefing.seen.${key}`,'1');setBriefingOpen(false)}
