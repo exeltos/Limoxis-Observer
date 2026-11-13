@@ -5,10 +5,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
+import type { ProtocolSuggestion } from '../src/features/documents/protocolReview/protocolReviewModel'
 import { ProtocolSuggestionDialog } from '../src/features/documents/protocolReview/ProtocolSuggestionDialog'
 
 afterEach(cleanup)
-const suggestion = { id: 's1', reason: 'guideline_updated', whatChanged: 'Demo change', draftText: 'Demo wording', affectedSections: [] }
+const suggestion = { id: 's1', reason: 'guideline_updated', whatChanged: 'Demo change', draftText: 'Demo wording', affectedSections: [] } as ProtocolSuggestion
 const show = decision => render(<LanguageProvider><ProtocolSuggestionDialog suggestion={suggestion} initialDecision={decision} canRevise /></LanguageProvider>)
 
 describe('protocol suggestion dialog', () => {

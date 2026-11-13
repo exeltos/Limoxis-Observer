@@ -151,7 +151,7 @@ describe('phase 2: one register, kinds, WHO harm and sentinel', async () => {
   })
 
   it('shows where an incident stands: reported, assessed, CAPA, effective, closed', () => {
-    const status = (record, capas) => incidentFlow(record, capas).map(step => step.status)
+    const status = (record, capas?) => incidentFlow(record, capas).map(step => step.status)
     expect(status({ status: 'reported' })).toEqual(['done', 'current', 'todo', 'todo', 'todo'])
     expect(status({ status: 'underReview' }, [{ effectivenessStatus: 'pending' }])).toEqual(['done', 'done', 'done', 'current', 'todo'])
     expect(status({ status: 'closed' }, [{ effectivenessStatus: 'effective' }])).toEqual(['done', 'done', 'done', 'done', 'done'])

@@ -26,7 +26,7 @@ describe('demo hand-hygiene seed data uses the canonical WHO moment ids and prof
     expect(used).toEqual(expect.arrayContaining(['moment1', 'moment4']))
   })
   it('uses professionalCategory values that exist in WHO_PROFESSIONS, each with an English translation', () => {
-    const known = new Map(WHO_PROFESSIONS)
+    const known = new Map(WHO_PROFESSIONS as [string, string][])
     for (const item of observations) expect(known.get(item.professionalCategory), item.professionalCategory).toBeTruthy()
   })
 })

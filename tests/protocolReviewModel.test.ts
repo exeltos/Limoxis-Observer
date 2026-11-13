@@ -5,6 +5,8 @@ import {
 } from '../src/features/documents/protocolReview/protocolReviewModel'
 import { decideProtocolSuggestionAsync, loadProtocolSuggestionsAsync } from '../src/features/documents/protocolReview/protocolReviewService'
 import { DEMO_PROTOCOL_SUGGESTIONS } from '../src/features/documents/protocolReview/protocolReviewDemoData'
+import type { ProtocolSuggestion } from '../src/features/documents/protocolReview/protocolReviewModel'
+import type { DocumentRecord } from '../src/features/documents/documentTypes'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { buildCalendarEvents } from '../src/features/calendar/calendarEvents'
 import { readSource } from './helpers/readSource'
@@ -25,9 +27,9 @@ describe('protocol update suggestions: model', () => {
   })
 
   it('treats a postponed suggestion as open from its date', () => {
-    expect(effectiveStatus({ status: 'snoozed', snoozedUntil: '2026-11-01' }, '2026-10-19')).toBe('snoozed')
-    expect(effectiveStatus({ status: 'snoozed', snoozedUntil: '2026-10-19' }, '2026-10-19')).toBe('open')
-    expect(effectiveStatus({ status: 'rejected' }, '2026-10-19')).toBe('rejected')
+    expect(effectiveStatus({ status: 'snoozed', snoozedUntil: '2026-11-01' } as ProtocolSuggestion, '2026-10-19')).toBe('snoozed')
+    expect(effectiveStatus({ status: 'snoozed', snoozedUntil: '2026-10-19' } as ProtocolSuggestion, '2026-10-19')).toBe('open')
+    expect(effectiveStatus({ status: 'rejected' } as ProtocolSuggestion, '2026-10-19')).toBe('rejected')
   })
 
   it('groups the suggestions of one document version and of a family', () => {
@@ -37,9 +39,9 @@ describe('protocol update suggestions: model', () => {
     expect(mine.snoozed.map(s => s.id)).toEqual(['s2'])
     const keys = documentsWithOpenSuggestions(list, '2026-10-19')
     expect([...keys].sort()).toEqual(['d1', 'd2'])
-    expect(familyHasOpenSuggestion({ versions: [{ id: 'DOC-9', dbId: 'd9' }, { id: 'DOC-1', dbId: 'd1' }] }, keys)).toBe(true)
-    expect(familyHasOpenSuggestion({ versions: [{ id: 'DOC-9', dbId: 'd9' }] }, keys)).toBe(false)
-    expect(familyHasOpenSuggestion({ versions: [{ id: 'DOC-008' }] }, new Set(['DOC-008']))).toBe(true)
+    expect(familyHasOpenSuggestion({ versions: [{ id: 'DOC-9', dbId: 'd9' }, { id: 'DOC-1', dbId: 'd1' }] } as never, keys)).toBe(true)
+    expect(familyHasOpenSuggestion({ versions: [{ id: 'DOC-9', dbId: 'd9' }] } as never, keys)).toBe(false)
+    expect(familyHasOpenSuggestion({ versions: [{ id: 'DOC-008' }] } as never, new Set(['DOC-008']))).toBe(true)
   })
 
   it('prefills the revision notes with the reason, the change and the draft with its citation', () => {
@@ -67,7 +69,7 @@ describe('protocol update suggestions: model', () => {
   })
 
   it('puts open suggestions of the user\'s own protocols in the calendar', () => {
-    const documents = [{ id: 'DOC-1', dbId: 'd1', title: 'Π1', ownerId: 'u1', department: 'ΜΕΘ' }, { id: 'DOC-2', dbId: 'd2', title: 'Π2', ownerId: 'u2' }]
+    const documents = [{ id: 'DOC-1', dbId: 'd1', title: 'Π1', ownerId: 'u1', department: 'ΜΕΘ' }, { id: 'DOC-2', dbId: 'd2', title: 'Π2', ownerId: 'u2' }] as DocumentRecord[]
     const list = [suggestionFromRow(row()), suggestionFromRow(row({ id: 's3', document_id: 'd2' })), suggestionFromRow(row({ id: 's4', status: 'snoozed', snoozed_until: '2026-11-02' }))]
     const items = suggestionCalendarItems(list, documents, { today: '2026-10-19', ownerId: 'u1' })
     expect(items.map(i => [i.id, i.date, i.state])).toEqual([['psug:s1', '2026-10-19', 'due'], ['psug:s4', '2026-11-02', 'planned']])
@@ -112,16 +114,16 @@ describe('protocol update suggestions: demo service', () => {
 describe('accepting a suggestion twice', () => {
   it('reuses the draft revision started for the suggestion instead of creating another', () => {
     const record = { id: 'DOC-1', dbId: 'd1', status: 'published' }
-    const suggestion = { id: 's1', documentId: 'd1', createdAt: '2026-10-10T02:00:00Z' }
+    const suggestion = { id: 's1', documentId: 'd1', createdAt: '2026-10-10T02:00:00Z' } as ProtocolSuggestion
     const docs = [
       { id: 'DOC-2', dbId: 'd2', status: 'draft', revisionOfDbId: 'd1', createdAt: '2026-10-01T00:00:00Z' },
       { id: 'DOC-3', dbId: 'd3', status: 'draft', revisionOfDbId: 'd1', createdAt: '2026-10-12T09:00:00Z' },
       { id: 'DOC-4', dbId: 'd4', status: 'draft', revisionOfDbId: 'other', createdAt: '2026-10-13T09:00:00Z' },
       { id: 'DOC-5', dbId: 'd5', status: 'published', revisionOfDbId: 'd1', createdAt: '2026-10-14T09:00:00Z' },
-    ]
+    ] as DocumentRecord[]
     expect(existingSuggestedRevision(docs, record, suggestion)?.dbId).toBe('d3')
     expect(existingSuggestedRevision(docs.slice(0, 1), record, suggestion)).toBe(null)
-    expect(existingSuggestedRevision([{ id: 'DOC-6', status: 'draft', revisionOfId: 'DOC-1', createdAt: '2026-10-11T00:00:00Z' }], { id: 'DOC-1' }, suggestion)?.id).toBe('DOC-6')
+    expect(existingSuggestedRevision([{ id: 'DOC-6', status: 'draft', revisionOfId: 'DOC-1', createdAt: '2026-10-11T00:00:00Z' }] as DocumentRecord[], { id: 'DOC-1' }, suggestion)?.id).toBe('DOC-6')
   })
 })
 

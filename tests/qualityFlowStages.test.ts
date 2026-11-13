@@ -32,7 +32,7 @@ describe('Quality: the stage of a report in its flow', () => {
     expect(incidentStage({ status: 'underReview' }, capas)).toBe('action')
     expect(incidentFlow({ status: 'underReview' }, capas).find(step => step.id === 'closed').status).toBe('todo')
     const rows = registerRows([{ id: 'INC-1', status: 'reported', lifecycleStatus: 'voided' }], [], [])
-    expect(rows[0].stage).toBe('voided')
+    expect((rows[0] as { stage?: string }).stage).toBe('voided')
     expect(registerCounts(rows)).toMatchObject({ open: 0, stages: { toAssess: 0 } })
   })
 
@@ -55,9 +55,9 @@ describe('Quality: actions with their source, audits with their figures', async 
       [{ id: 'FND-1', title: 'Handled', status: 'open' }, { id: 'FND-2', title: 'Waiting', status: 'open' }],
       [{ id: 'CAPA-1', title: 'Fix', status: 'open', sourceId: 'FND-1' }, { id: 'CAPA-2', title: 'From control', status: 'open', sourceId: 'CTRL-9#e1' }],
     )
-    expect(rows.filter(row => row.kind === 'finding').map(row => row.id)).toEqual(['FND-2'])
-    expect(rows.find(row => row.id === 'CAPA-1')).toMatchObject({ sourceKind: 'finding', sourceTitle: 'Handled' })
-    expect(rows.find(row => row.id === 'CAPA-2')).toMatchObject({ sourceKind: 'control', sourceCode: 'CTRL-9' })
+    expect(rows.filter(row => row.kind === 'finding').map(row => (row as { id?: string }).id)).toEqual(['FND-2'])
+    expect(rows.find(row => (row as { id?: string }).id === 'CAPA-1')).toMatchObject({ sourceKind: 'finding', sourceTitle: 'Handled' })
+    expect(rows.find(row => (row as { id?: string }).id === 'CAPA-2')).toMatchObject({ sourceKind: 'control', sourceCode: 'CTRL-9' })
     expect(actionCounts(rows)).toMatchObject({ open: 2, orphans: 1 })
     // Searching the source's code finds the action.
     expect(filterActions(rows, { ...base, query: 'ctrl-9' }, false).map(row => row.id)).toEqual(['CAPA-2'])

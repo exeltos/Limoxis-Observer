@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 let queries
 let respond
 function builder(table) {
-  const query = { table, op: 'select', payload: null, filters: [], options: null }
+  const query: { table: string, op: string, payload: unknown, filters: unknown[][], options: unknown, columns?: unknown, single?: boolean } = { table, op: 'select', payload: null, filters: [], options: null }
   queries.push(query)
   const chain = {
     select(columns) { query.columns = columns; return chain },

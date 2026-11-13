@@ -7,7 +7,7 @@ vi.mock('../src/features/management/useLibraries', async original => ({ ...(awai
 const { QualityRecordDocument } = await import('../src/features/quality/QualityRecordDocument')
 
 const t = value => value
-const draw = (recordType, record) => render(<QualityRecordDocument recordType={recordType} record={{ id: 'X-1', title: 'Τίτλος', status: 'open', ...record }} language="el" t={t} />).container
+const draw = (recordType, record) => render(<QualityRecordDocument recordType={recordType} record={{ id: 'X-1', title: 'Τίτλος', status: 'open', ...record }} language="el" t={t} {...{} as { documentRef: never }} />).container
 
 afterEach(cleanup)
 

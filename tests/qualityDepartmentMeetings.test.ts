@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { carriedDecisions, departmentMeetingStatus, latestMeetings, meetingAccess, newMeetingFor, nextMeetingCode, previousMonth } from '../src/features/quality/meetings/meetingModel'
+import type { Meeting } from '../src/features/quality/meetings/meetingModel'
 
-const meeting = (id, departmentId, meetingDate, decisions = [], extra = {}) => ({ id, code: id, departmentId, department: departmentId, meetingDate, nextMeetingDate: '', status: 'final', decisions, participants: [], ...extra })
+const meeting = (id, departmentId, meetingDate, decisions = [], extra = {}) => ({ id, code: id, departmentId, department: departmentId, meetingDate, nextMeetingDate: '', status: 'final', decisions, participants: [], ...extra }) as Meeting
 
 describe('Department meetings', () => {
   it('numbers meetings within the department and reviews the month before', () => {

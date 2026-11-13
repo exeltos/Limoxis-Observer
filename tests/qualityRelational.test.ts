@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { AnyRecord } from '../src/types/featureTypes'
 import { BLUE_CODE_INTERVENTIONS, EVENT_TYPES, INJURY_SUBCATEGORIES, OBSTETRIC_SUBCATEGORIES, SHARP_TOOLS, TRANSFER_TARGETS, detailBlocks, incidentDetailFacts, incidentDetailRows, incidentDetailsFromRow, keptDetails } from '../src/features/quality/incidentDetails'
 import { analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, isUuid, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from '../src/features/quality/qualityRelations'
 import { evaluationFromRow, nonconformityRows, scoreRows, supplierListsFromRow, certificationRows, evaluationRows } from '../src/features/quality/resources/supplierRelations'
@@ -145,7 +146,7 @@ describe('supplier lists as rows', () => {
     expect(rows.map(row => row.criterion)).toEqual(['quality', 'specs', 'support', 'price'])
     expect(rows[0].id).toBe('kept-id')
     expect(rows[1]).toMatchObject({ weight: 2, score: 4 })
-    const evaluation = evaluationFromRow({ id: 'e', evaluated_on: '2026-01-10', evaluator: null, notes: null, scores: rows.map(row => ({ ...row, weight: String(row.weight) })) })
+    const evaluation = evaluationFromRow({ id: 'e', evaluated_on: '2026-01-10', evaluator: null, notes: null, scores: rows.map(row => ({ ...row, weight: String(row.weight) })) }) as AnyRecord
     expect(evaluation.scores).toMatchObject({ quality: 5, delivery: '', specs: 4, support: 3, price: 2 })
     expect(evaluation.weights).toEqual({ specs: 2 })
     expect(evaluationScore(evaluation.scores, evaluation.weights)).toBe(Math.round((5 + 8 + 3 + 2) / (5 * 5) * 100))
