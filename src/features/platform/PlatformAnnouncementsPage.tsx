@@ -34,7 +34,8 @@ import {
 } from './platformAnnouncementsService'
 import './platformAnnouncements.css'
 import './platformSettings.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AnnouncementForm, AnnouncementOrganization, ListedAnnouncement } from './platformAnnouncementTypes'
+import type { PlatformSettings } from './platformSettingsService'
 
 // Settings › Announcements (owner, 8/11/2026): the platform owner's announcements and product promotions to the
 // hospital administrators — which hospitals, which period, once or at every visit, and who has seen each. The form
@@ -47,8 +48,8 @@ const fmt = (value: string | null | undefined) => (value ? new Date(value).toLoc
 // The two shortcuts of the «Where it shows» list: every registered hospital, every demo.
 const ALL_HOSPITALS = '__all_hospitals__'
 const ALL_DEMOS = '__all_demos__'
-const EMPTY = { kind: 'announcement', titleEl: '', titleEn: '', bodyEl: '', bodyEn: '', ctaLabelEl: '', ctaUrl: '', imageUrl: '', attachmentPath: '', attachmentName: '', attachmentType: '', imagePosition: 'top', documentPath: '', documentName: '', documentType: '', showInDemo: false, startsAt: '', endsAt: '', audience: [], frequency: 'once', status: 'active' }
-const SORT = { title: (row: AnyRecord) => row.titleEl, kind: (row: AnyRecord) => row.kind, period: (row: AnyRecord) => day(row.startsAt), seen: (row: AnyRecord) => row.seenCount, status: (row: AnyRecord) => row.status }
+const EMPTY: AnnouncementForm = { kind: 'announcement', titleEl: '', titleEn: '', bodyEl: '', bodyEn: '', ctaLabelEl: '', ctaUrl: '', imageUrl: '', attachmentPath: '', attachmentName: '', attachmentType: '', imagePosition: 'top', documentPath: '', documentName: '', documentType: '', showInDemo: false, startsAt: '', endsAt: '', audience: [], frequency: 'once', status: 'active' }
+const SORT = { title: (row: ListedAnnouncement) => row.titleEl, kind: (row: ListedAnnouncement) => row.kind, period: (row: ListedAnnouncement) => day(row.startsAt), seen: (row: ListedAnnouncement) => row.seenCount, status: (row: ListedAnnouncement) => row.status }
 
 export function PlatformAnnouncementsPage() {
   const { user } = useAuth()
@@ -57,21 +58,21 @@ export function PlatformAnnouncementsPage() {
   const { notify, notifyError, confirm } = useFeedback()
   const en = language === 'en'
   const tx = (elText: string, enText: string) => (en ? enText : elText)
-  const [rows, setRows] = useState<AnyRecord[]>([])
+  const [rows, setRows] = useState<ListedAnnouncement[]>([])
   const [loading, setLoading] = useState(true)
   const location = useLocation()
   // «Νέα ανακοίνωση» of the Overview's quick actions opens the form at once.
-  const [draft, setDraft] = useState<AnyRecord | null>(() => (location.state?.newAnnouncement ? { ...EMPTY } : null))
+  const [draft, setDraft] = useState<AnnouncementForm | null>(() => (location.state?.newAnnouncement ? { ...EMPTY } : null))
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [preview, setPreview] = useState<AnyRecord | null>(null)
-  const [settings, setSettings] = useState<AnyRecord | null>(null)
-  const [maintenance, setMaintenance] = useState<AnyRecord | null>(null)
+  const [preview, setPreview] = useState<AnnouncementForm | null>(null)
+  const [settings, setSettings] = useState<PlatformSettings | null>(null)
+  const [maintenance, setMaintenance] = useState<PlatformSettings | null>(null)
   const imageInput = useRef<HTMLInputElement>(null)
   const documentInput = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   // Hospitals and demo hospitals together (owner, 12/11/2026): one list to choose from, a demo marked «Demo».
-  const [targets, setTargets] = useState<AnyRecord[]>([])
+  const [targets, setTargets] = useState<AnnouncementOrganization[]>([])
   useEffect(() => {
     let alive = true
     loadAnnouncementTargets().then(list => alive && setTargets(list)).catch(() => {})
@@ -79,12 +80,12 @@ export function PlatformAnnouncementsPage() {
   }, [])
   const organizations = useMemo(() => {
     const own = memberships.map(item => item.organization).filter((org): org is NonNullable<typeof org> => Boolean(org?.id))
-    const byId = new Map<string, AnyRecord>([...own, ...targets].map(org => [org.id, org]))
+    const byId = new Map<string, AnnouncementOrganization>([...own, ...targets].map(org => [org.id, org]))
     // Hospitals first, then the demos; each group by name.
-    const isDemo = (org: AnyRecord) => Boolean(org.is_demo || org.mode === 'demo')
+    const isDemo = (org: AnnouncementOrganization) => Boolean(org.is_demo || org.mode === 'demo')
     return [...byId.values()].sort((a, b) => Number(isDemo(a)) - Number(isDemo(b)) || String(a.name || '').localeCompare(String(b.name || ''), 'el'))
   }, [memberships, targets])
-  const everyone = (item: AnyRecord) => item.allHospitals && item.showInDemo && !item.audience.length
+  const everyone = (item: AnnouncementForm) => item.allHospitals && item.showInDemo && !item.audience.length
   const orgName = (id: string) => organizations.find(org => org.id === id)?.name || id
   const reload = useCallback(() => {
     setLoading(true)
@@ -106,7 +107,7 @@ export function PlatformAnnouncementsPage() {
     if (location.state?.newAnnouncement) navigate(location.pathname, { replace: true, state: null })
   }, [location.state, location.pathname, navigate])
   const paging = useSortedPaging(rows, rows.length, SORT)
-  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
+  const set = <K extends keyof AnnouncementForm>(key: K, value: AnnouncementForm[K]) => setDraft(current => ({ ...current!, [key]: value }))
   const valid = draft && draft.titleEl.trim() && draft.bodyEl.trim() && (!draft.endsAt || !draft.startsAt || draft.endsAt >= draft.startsAt)
   async function save() {
     if (!valid) return
@@ -122,17 +123,17 @@ export function PlatformAnnouncementsPage() {
       setSaving(false)
     }
   }
-  async function toggle(row: AnyRecord) {
+  async function toggle(row: AnnouncementForm) {
     try {
       const next = row.status === 'active' ? 'stopped' : 'active'
-      await setPlatformAnnouncementStatus(row.id, next)
-      setDraft(current => (current?.id === row.id ? { ...current, status: next } : current))
+      await setPlatformAnnouncementStatus(row.id!, next)
+      setDraft(current => (current?.id === row.id ? { ...current!, status: next } : current))
       await reload()
     } catch (error) {
       notifyError(error, 'save', { operation: 'platform_announcement_status' })
     }
   }
-  async function remove(row: AnyRecord) {
+  async function remove(row: AnnouncementForm) {
     const ok = await confirm({
       title: tx('Διαγραφή ανακοίνωσης', 'Delete announcement'),
       message: tx('Η ανακοίνωση και το ποιοι την είδαν διαγράφονται οριστικά.', 'The announcement and who saw it are deleted for good.'),
@@ -141,7 +142,7 @@ export function PlatformAnnouncementsPage() {
     })
     if (!ok) return
     try {
-      await deletePlatformAnnouncement(row.id)
+      await deletePlatformAnnouncement(row.id!)
       setDraft(null)
       await reload()
     } catch (error) {
@@ -149,14 +150,14 @@ export function PlatformAnnouncementsPage() {
     }
   }
   // The image and the attached file (PDF, Word, PowerPoint, Excel) are two separate uploads.
-  const upload = (upload: (file: File) => Promise<AnyRecord>, patch: AnyRecord) => async (event: ChangeEvent<HTMLInputElement>) => {
+  const upload = (upload: (file: File) => Promise<Partial<AnnouncementForm>>, patch: Partial<AnnouncementForm>) => async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
     setUploading(true)
     try {
       const uploaded = await upload(file)
-      setDraft(current => ({ ...current, ...uploaded, ...patch }))
+      setDraft(current => ({ ...current!, ...uploaded, ...patch }))
     } catch (error) {
       if ((error as Error)?.message === 'ATTACHMENT_TOO_LARGE') notify(tx('Το αρχείο ξεπερνά τα 10 MB.', 'The file is over 10 MB.'), 'warning')
       else notifyError(error, 'save', { operation: 'platform_announcement_upload' })
@@ -166,8 +167,8 @@ export function PlatformAnnouncementsPage() {
   }
   const attachImage = upload(uploadAnnouncementAttachment, { imageUrl: '' })
   const attachDocument = upload(uploadAnnouncementDocument, {})
-  const edit = (row: AnyRecord) => setDraft({ ...EMPTY, ...row, startsAt: day(row.startsAt), endsAt: day(row.endsAt) })
-  const openRowProps = (row: AnyRecord) => ({
+  const edit = (row: ListedAnnouncement) => setDraft({ ...EMPTY, ...row, startsAt: day(row.startsAt), endsAt: day(row.endsAt) })
+  const openRowProps = (row: ListedAnnouncement) => ({
     className: 'registry-row-clickable',
     tabIndex: 0,
     onClick: () => edit(row),
@@ -179,7 +180,7 @@ export function PlatformAnnouncementsPage() {
     },
   })
 
-  if (maintenance) return <MaintenanceEditor settings={maintenance} language={language} onBack={() => setMaintenance(null)} onSaved={(value: AnyRecord) => { setSettings(value); setMaintenance(null) }} />
+  if (maintenance) return <MaintenanceEditor settings={maintenance} language={language} onBack={() => setMaintenance(null)} onSaved={(value: PlatformSettings) => { setSettings(value); setMaintenance(null) }} />
 
   if (draft) {
     const stopped = draft.status !== 'active'
@@ -190,8 +191,8 @@ export function PlatformAnnouncementsPage() {
         actions={[
           { id: 'preview', placement: 'secondary', icon: <Eye size={16} />, label: tx('Προεπισκόπηση', 'Preview'), disabled: !valid, onClick: () => setPreview(draft) },
           { id: 'publish', placement: 'primary', icon: <Save size={16} />, label: saving ? tx('Δημοσίευση…', 'Publishing…') : tx('Δημοσίευση', 'Publish'), disabled: !valid || uploading || saving, onClick: save },
-          draft.id && { id: 'toggle', placement: 'menu', icon: stopped ? <Play size={16} /> : <Pause size={16} />, title: stopped ? tx('Επανενεργοποίηση', 'Resume') : tx('Διακοπή', 'Stop'), onClick: () => toggle(draft) },
-          draft.id && { id: 'delete', placement: 'menu', danger: true, icon: <Trash2 size={16} />, title: tx('Διαγραφή', 'Delete'), onClick: () => remove(draft) },
+          !!draft.id && { id: 'toggle', placement: 'menu', icon: stopped ? <Play size={16} /> : <Pause size={16} />, title: stopped ? tx('Επανενεργοποίηση', 'Resume') : tx('Διακοπή', 'Stop'), onClick: () => toggle(draft) },
+          !!draft.id && { id: 'delete', placement: 'menu', danger: true, icon: <Trash2 size={16} />, title: tx('Διαγραφή', 'Delete'), onClick: () => remove(draft) },
         ]}
       />
     )
@@ -271,7 +272,7 @@ export function PlatformAnnouncementsPage() {
                     <span className="platform-announcement-attached">
                       <Paperclip size={15} aria-hidden="true" />
                       {draft.attachmentName || draft.imageUrl}
-                      <button type="button" aria-label={tx('Αφαίρεση εικόνας', 'Remove the image')} onClick={() => setDraft(current => ({ ...current, attachmentPath: '', attachmentName: '', attachmentType: '', imageUrl: '' }))}>
+                      <button type="button" aria-label={tx('Αφαίρεση εικόνας', 'Remove the image')} onClick={() => setDraft(current => ({ ...current!, attachmentPath: '', attachmentName: '', attachmentType: '', imageUrl: '' }))}>
                         <X size={14} aria-hidden="true" />
                       </button>
                     </span>
@@ -304,7 +305,7 @@ export function PlatformAnnouncementsPage() {
                     <span className="platform-announcement-attached">
                       <Paperclip size={15} aria-hidden="true" />
                       {draft.documentName}
-                      <button type="button" aria-label={tx('Αφαίρεση αρχείου', 'Remove the file')} onClick={() => setDraft(current => ({ ...current, documentPath: '', documentName: '', documentType: '' }))}>
+                      <button type="button" aria-label={tx('Αφαίρεση αρχείου', 'Remove the file')} onClick={() => setDraft(current => ({ ...current!, documentPath: '', documentName: '', documentType: '' }))}>
                         <X size={14} aria-hidden="true" />
                       </button>
                     </span>
@@ -390,11 +391,11 @@ export function PlatformAnnouncementsPage() {
 
 // The maintenance message (platform_settings): on / off, the language being written and the text, with the band as it
 // will show. A single language is enough; without a translation the available text is shown.
-function MaintenanceEditor({ settings, language, onBack, onSaved }: { settings: AnyRecord, language: string, onBack: () => void, onSaved: (settings: AnyRecord) => void }) {
+function MaintenanceEditor({ settings, language, onBack, onSaved }: { settings: PlatformSettings, language: string, onBack: () => void, onSaved: (settings: PlatformSettings) => void }) {
   const en = language === 'en'
   const tx = (elText: string, enText: string) => (en ? enText : elText)
   const { notify, notifyError } = useFeedback()
-  const [draft, setDraft] = useState<AnyRecord>(settings)
+  const [draft, setDraft] = useState<PlatformSettings>(settings)
   const [noticeLanguage, setNoticeLanguage] = useState(() => (en ? (settings.maintenanceNoticeEn || !settings.maintenanceNoticeEl ? 'en' : 'el') : (settings.maintenanceNoticeEl || !settings.maintenanceNoticeEn ? 'el' : 'en')))
   const [saving, setSaving] = useState(false)
   const key = noticeLanguage === 'en' ? 'maintenanceNoticeEn' : 'maintenanceNoticeEl'
