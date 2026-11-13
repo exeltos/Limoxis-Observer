@@ -17,7 +17,7 @@ describe('department cards on the Controls page', () => {
   ]
 
   it('counts each department\'s controls, overdue ones, adherence and latest entry, overdue departments first', () => {
-    const cards = departmentCards(rows, lines, now)
+    const cards = departmentCards(rows, lines as never, now)
     expect(cards.map((c) => c.department)).toEqual(['ΜΕΘ', 'ΤΕΠ'])
     expect(cards[0]).toMatchObject({ controls: 2, overdue: 1, rate: 90, lastAt: '2026-10-26T09:00:00Z' })
     // More done than due counts as 100%, never above.

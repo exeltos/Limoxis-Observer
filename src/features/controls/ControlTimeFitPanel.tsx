@@ -12,11 +12,11 @@ import { periodRange } from './controlAdherence'
 import { TIME_FIT_DAYS, timeFitLines } from './controlTimeFit'
 import { loadControlExecutionTimes, saveDepartmentTimes } from './controlCloudService'
 import './controlAdherence.css'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { ControlRow } from './controlTypes'
+import type { ControlRecord, ControlRow } from './controlTypes'
+import type { TimeFitLine } from './controlTimeFit'
 
 // The report the page reads once and the tab shows (useControlTimeFitReport).
-export interface TimeFitReport { lines: AnyRecord[], loading: boolean, failed: boolean, exportCsv: () => void, exportPrint: (pdf?: boolean) => void, until: Date | string | null }
+export interface TimeFitReport { lines: TimeFitLine[], loading: boolean, failed: boolean, exportCsv: () => void, exportPrint: (pdf?: boolean) => void, until: Date | string | null }
 
 const timesText = (times: string[]) => times.join(', ')
 
@@ -39,10 +39,10 @@ export function useControlTimeFitReport(rows: ControlRow[], organizationId: stri
   }, [organizationId, key, nowIso, refreshKey])
   const current = state.key === key ? state : { times: null, failed: false, loaded: false }
   const lines = useMemo(() => (current.failed || !current.loaded ? [] : timeFitLines(rows, current.times, periodRange('30d', now ? new Date(now) : new Date()))), [rows, current.times, current.failed, current.loaded, now])
-  const title = (item: AnyRecord) => (en ? item.titleEn || item.title : item.title)
+  const title = (item: Pick<ControlRecord, 'title' | 'titleEn'>) => (en ? item.titleEn || item.title : item.title)
   const pct = (value: number | null | undefined) => (value == null ? '—' : `${value}%`)
   const columns = [en ? 'Department' : 'Τμήμα', en ? 'Control' : 'Έλεγχος', en ? 'Set times' : 'Ώρες τώρα', en ? 'Usually done' : 'Γίνεται συνήθως', en ? 'Proposal' : 'Πρόταση', en ? 'On time now' : 'Στην ώρα τους τώρα', en ? 'With the proposal' : 'Με την πρόταση']
-  const cells = (line: AnyRecord) => [line.department, title(line.item), timesText(line.current), line.typical.map((t: string | null) => t || '—').join(', '), line.changed ? timesText(line.proposed) : (en ? 'No change' : 'Χωρίς αλλαγή'), pct(line.rateNow), pct(line.rateProposed)]
+  const cells = (line: TimeFitLine) => [line.department, title(line.item), timesText(line.current), line.typical.map((t: string | null) => t || '—').join(', '), line.changed ? timesText(line.proposed) : (en ? 'No change' : 'Χωρίς αλλαγή'), pct(line.rateNow), pct(line.rateProposed)]
   function exportCsv() {
     downloadCsv(en ? 'control-times.csv' : 'ores-elegxon.csv', columns, lines.map(cells))
   }
@@ -64,7 +64,7 @@ export const timeFitNote = (language: string) => language === 'en'
   ? `For each daily control: its set times, the usual time of each entry in the last ${TIME_FIT_DAYS} days and the full hours that would catch the most entries in their window (1 hour before to 2 hours after when once a day, ±1 hour when more often). A proposal is shown only when it is clearly better. Agree it with the department before changing it.`
   : `Για κάθε ημερήσιο έλεγχο: οι ώρες του, η συνήθης ώρα κάθε καταγραφής τις τελευταίες ${TIME_FIT_DAYS} ημέρες και οι ακέραιες ώρες που θα έπιαναν τις περισσότερες καταγραφές μέσα στο περιθώριο (1 ώρα πριν έως 2 μετά όταν γίνεται μία φορά, ±1 ώρα όταν γίνεται συχνότερα). Πρόταση εμφανίζεται μόνο όταν είναι σαφώς καλύτερη. Συμφωνήστε την με το τμήμα πριν την αλλαγή.`
 
-interface ControlTimeFitPanelProps { report: TimeFitReport, organizationId: string | null | undefined, language: string, canChange: boolean, onChanged?: () => void, onOpen?: (item: AnyRecord) => void }
+interface ControlTimeFitPanelProps { report: TimeFitReport, organizationId: string | null | undefined, language: string, canChange: boolean, onChanged?: () => void, onOpen?: (item: ControlRecord) => void }
 export function ControlTimeFitPanel({ report, organizationId, language, canChange, onChanged, onOpen }: ControlTimeFitPanelProps) {
   const en = language === 'en'
   const { confirm, notify, notifyError } = useFeedback()
@@ -76,7 +76,7 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
   const scoped = lines
   const changes = scoped.filter((line) => line.changed)
   const shown = onlyChanges ? changes : scoped
-  const title = (item: AnyRecord) => (en ? item.titleEn || item.title : item.title)
+  const title = (item: Pick<ControlRecord, 'title' | 'titleEn'>) => (en ? item.titleEn || item.title : item.title)
   // The arrows in the headers sort the whole list; then the page is cut.
   const { sorted: sortedLines, sort, onSort } = useTableSort(shown, {
     control: (line) => title(line.item),
@@ -89,7 +89,7 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
   useEffect(() => setPage(1), [sort])
   const totalPages = Math.max(1, Math.ceil(shown.length / pageSize)), safePage = Math.min(page, totalPages)
   const paged = sortedLines.slice((safePage - 1) * pageSize, safePage * pageSize)
-  async function change(line: AnyRecord) {
+  async function change(line: TimeFitLine) {
     const ok = await confirm({
       title: en ? 'Change the times' : 'Αλλαγή ωρών',
       message: en ? `${title(line.item)} in ${line.department}: ${timesText(line.current)} → ${timesText(line.proposed)}. The adherence of the past is counted again with the new times.` : `«${title(line.item)}» στο τμήμα ${line.department}: ${timesText(line.current)} → ${timesText(line.proposed)}. Η τήρηση και των προηγούμενων ημερών θα μετρηθεί με τις νέες ώρες.`,

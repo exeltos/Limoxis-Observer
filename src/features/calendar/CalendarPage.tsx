@@ -20,6 +20,7 @@ import { loadControlCalendarMonths } from '../controls/controlCloudService'
 import { calendarKindsFor,useCalendarSources } from './useCalendarSources'
 import { type CalendarEvent,CALENDAR_KINDS,buildCalendarEvents,calendarFilterLabel,calendarFilterOf,calendarFiltersFor,calendarKindLabel,controlExecutionEvents,dayKey,monthGrid,parseCalendarFilter } from './calendarEvents'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { CalendarMonthCount } from '../controls/controlCloudService'
 import './calendar.css'
 
 const WEEKDAYS={el:['Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ','Κυρ'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']}
@@ -56,7 +57,7 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  const picked=useMemo(()=>parseCalendarFilter(filterParam),[filterParam])
  const isOn=useCallback((filter: string)=>!picked||picked.has(filter),[picked])
  // The controls' done, late and missed executions of the shown year (counted in the database; null in the demo).
- const [controlMonths,setControlMonths]=useState<{ year: number | null, months: Map<string, AnyRecord[]> | null }>({year:null,months:null})
+ const [controlMonths,setControlMonths]=useState<{ year: number | null, months: Map<string, CalendarMonthCount[]> | null }>({year:null,months:null})
  const [department,setDepartment]=useState('all')
  // A module line in a day cell narrows that day's panel to the module.
  const [panelKind,setPanelKind]=useState<string|null>(null)

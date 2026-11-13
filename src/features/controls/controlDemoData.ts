@@ -2,7 +2,7 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { seededRandom } from '../../core/data/demoSeed'
 import { nextDueAfterExecution,periodBounds } from './controlDueRules'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlAssignmentRow, ControlDefinitionRow, ControlDraftRow, ControlExecutionRow } from './controlTypes'
 const iso=(offsetHours:number)=>{
  const d=new Date()
  d.setTime(d.getTime()+offsetHours*60*60*1000)
@@ -49,8 +49,8 @@ const definition2={
 // today so the list shows items that expire soon and a couple already expired.
 function demoExpiryCatalogue(){
  const on=(days:number)=>{const d=new Date();d.setDate(d.getDate()+days);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
- return [['Adrenaline 1mg/ml',10,'ampoule',-6,''],['Atropine 0.5mg/ml',6,'ampoule',12,''],['Amiodarone 150mg/3ml',4,'ampoule',75,''],['Φυσιολογικός ορός 0,9% 500ml',24,'bottle',160,''],['Ηπαρίνη 5.000 IU/ml',8,'vial',25,'Στο ψυγείο'],['Midazolam 5mg/ml',5,'ampoule',-2,'Ελεγχόμενο'],['Παρακεταμόλη 500mg',40,'tablet',210,''],['Σύριγγες 10ml',120,'piece',400,''],['Χλωρεξιδίνη 2% διάλυμα',12,'flacon',48,''],['Naloxone 0.4mg/ml',3,'ampoule',19,'Τροχήλατο ανάνηψης']]
-  .map(([item,quantity,form,days,note]:(string|number)[],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days as number),note,departments:[],category:form==='piece'?'supply':'medicine'}))
+ return ([['Adrenaline 1mg/ml',10,'ampoule',-6,''],['Atropine 0.5mg/ml',6,'ampoule',12,''],['Amiodarone 150mg/3ml',4,'ampoule',75,''],['Φυσιολογικός ορός 0,9% 500ml',24,'bottle',160,''],['Ηπαρίνη 5.000 IU/ml',8,'vial',25,'Στο ψυγείο'],['Midazolam 5mg/ml',5,'ampoule',-2,'Ελεγχόμενο'],['Παρακεταμόλη 500mg',40,'tablet',210,''],['Σύριγγες 10ml',120,'piece',400,''],['Χλωρεξιδίνη 2% διάλυμα',12,'flacon',48,''],['Naloxone 0.4mg/ml',3,'ampoule',19,'Τροχήλατο ανάνηψης']] as [string,number,string,number,string][])
+  .map(([item,quantity,form,days,note],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days),note,departments:[],category:form==='piece'?'supply':'medicine'}))
 }
 const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'list',template:'medication_expiry',label:'Ευρήματα',expiryBeforeDays:30,expiryAfterDays:7,expiryCatalogue:demoExpiryCatalogue(),__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
 // A weekly checklist audit: every item is answered Yes / No / N/A and the
@@ -71,7 +71,7 @@ const definition4={...definition2,created_at:iso(-24*58),id:'ctrl-def-audit',cod
 const definition5={...definition1,id:'ctrl-def-hand-rub',code:'CTRL-DEMO-0005',title:'Έλεγχος διαθεσιμότητας αλκοολούχου αντισηπτικού',category:'Υγιεινή χεριών',description:'Έλεγχος ότι κάθε σημείο φροντίδας έχει αντισηπτικό σε επάρκεια, σε κάθε βάρδια.',response_config:{mode:'choice',options:['Συμμορφώνεται','Μη συμμόρφωση'],label:'Κατάσταση',criticality:'medium',__meta:{titleEn:'Alcohol hand rub availability check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control',createdForDepartment:null,createdByName:'',updatedByName:''}},frequency_config:{kind:'daily',timesPerDay:4,times:['07:00','11:00','15:00','19:00'],interval:1},created_at:iso(-24*41)}
 // The monthly culture sampling programme: it is not part of the Controls, its annual plan is in the environmental surveillance.
 const definition6={...definition2,id:'ctrl-def-cultures',code:'CTRL-DEMO-0006',title:'Καλλιέργειες επιφανειών',category:'Περιβαλλοντικός μικροβιολογικός έλεγχος',description:'Μηνιαία δειγματοληψία επιφανειών για καλλιέργεια.',frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
-export const controlDefinitionRows:AnyRecord[]=[definition1,definition2,definition3,definition4,definition5,definition6]
+export const controlDefinitionRows:ControlDefinitionRow[]=[definition1,definition2,definition3,definition4,definition5,definition6]
 
 const assignment1={
  id:'ctrl-asg-fridge-icu',
@@ -110,9 +110,9 @@ const assignment4={id:'ctrl-asg-expiry-internal',control_id:definition3.id,organ
 const assignment5={id:'ctrl-asg-disinfect-ed',control_id:definition2.id,organization_id:'demo-hospital',department_id:'ΤΕΠ',department:departmentRow('ΤΕΠ'),status:'scheduled',last_completed_at:iso(-24*9),next_due_at:iso(-24*2)}
 const assignment6={id:'ctrl-asg-audit-icu',control_id:definition4.id,organization_id:'demo-hospital',department_id:'ΜΕΘ',department:departmentRow('ΜΕΘ'),status:'scheduled',last_completed_at:iso(-24*6-2),next_due_at:iso(-2)}
 const assignment7={id:'ctrl-asg-audit-internal',control_id:definition4.id,organization_id:'demo-hospital',department_id:'Παθολογική',department:departmentRow('Παθολογική'),status:'scheduled',last_completed_at:iso(-24*3),next_due_at:iso(24*4)}
-export const controlAssignmentRows:AnyRecord[]=[assignment1,assignment2,assignment3,assignment4,assignment5,assignment6,assignment7]
+export const controlAssignmentRows:ControlAssignmentRow[]=[assignment1,assignment2,assignment3,assignment4,assignment5,assignment6,assignment7]
 
-export const controlExecutionRows:AnyRecord[]=[
+export const controlExecutionRows:ControlExecutionRow[]=[
  {
   id:'ctrl-exec-fridge-icu-1',
   assignment_id:assignment1.id,
@@ -193,7 +193,7 @@ export const controlExecutionRows:AnyRecord[]=[
 
 // Demo history: a month of routine executions behind the recent ones above, with
 // a few missed and one late slot, so programme adherence has something to show.
-const historyRun=(assignment:AnyRecord,definition:AnyRecord,department:string,actorName:string,days:number[],{missed=[],late={}}:{missed?:number[],late?:Record<number,number>}={})=>days.filter(day=>!missed.includes(day)).map(day=>{
+const historyRun=(assignment:ControlAssignmentRow,definition:ControlDefinitionRow,department:string,actorName:string,days:number[],{missed=[],late={}}:{missed?:number[],late?:Record<number,number>}={})=>days.filter(day=>!missed.includes(day)).map(day=>{
  const at=iso(-24*day-3),lateHours=late[day]||0
  return {id:`ctrl-exec-${assignment.id}-d${day}`,assignment_id:assignment.id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:definition.response_config?.mode==='numeric'?'4.6':'',response_data:{structuredData:null,actorName,actorEmail:'',previousLastCompletedAt:null,previousNextDueAt:iso(-24*day-3-lateHours)},notes:'',has_finding:false,performed_at:at,performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''}
 })
@@ -208,8 +208,8 @@ controlExecutionRows.push(
 // (the Demo shows the whole of 2025), with the occasional finding, so the Controls and
 // Analysis screens show trends.
 const HISTORY_DAYS=Math.ceil((Date.now()-Date.UTC(2025,0,1))/86_400_000)
-const newAssignment=(id:string,definition:AnyRecord,department:string,lastDays:number,intervalDays:number)=>({id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,department:departmentRow(department),status:'scheduled',last_completed_at:iso(-24*lastDays-3),next_due_at:iso(24*(intervalDays-lastDays)+6)})
-const programmeAssignments:[AnyRecord,AnyRecord,string,string,number,number?][]=[
+const newAssignment=(id:string,definition:ControlDefinitionRow,department:string,lastDays:number,intervalDays:number)=>({id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,department:departmentRow(department),status:'scheduled',last_completed_at:iso(-24*lastDays-3),next_due_at:iso(24*(intervalDays-lastDays)+6)})
+const programmeAssignments:[ControlAssignmentRow,ControlDefinitionRow,string,string,number,number?][]=[
  [newAssignment('ctrl-asg-disinfect-icu',definition2,'ΜΕΘ',2,7),definition2,'ΜΕΘ','Ελένη Παπαδοπούλου',7],
  [newAssignment('ctrl-asg-disinfect-internal',definition2,'Παθολογική',4,7),definition2,'Παθολογική','Νίκος Δημητρίου',7],
  [newAssignment('ctrl-asg-disinfect-cardio',definition2,'Καρδιολογική',1,7),definition2,'Καρδιολογική','Σοφία Οικονόμου',7],
@@ -231,7 +231,7 @@ const OK_VALUE:Record<string,string>={[definition2.id]:'Συμμορφώνετα
 // The medicines and supplies each ward listed at its latest expiry check:
 // dates relative to today, so some expire soon and a few have already expired.
 const dayFromNow=(days:number)=>{const d=new Date();d.setDate(d.getDate()+days);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-const EXPIRY_STOCK=[['Adrenaline 1mg/ml',10,'AD2291'],['Atropine 0.5mg/ml',6,'AT1170'],['Amiodarone 150mg/3ml',4,'AM8812'],['Φυσιολογικός ορός 0,9% 500ml',24,'NS4410'],['Ηπαρίνη 5.000 IU/ml',8,'HP3307'],['Midazolam 5mg/ml',5,'MZ6620'],['Σύριγγες 10ml',120,'SY0912'],['Ουροκαθετήρας Foley 14Fr',15,'FL1402'],['Χλωρεξιδίνη 2% διάλυμα',12,'CH2205'],['Naloxone 0.4mg/ml',3,'NX0418']]
+const EXPIRY_STOCK:[string,number,string][]=[['Adrenaline 1mg/ml',10,'AD2291'],['Atropine 0.5mg/ml',6,'AT1170'],['Amiodarone 150mg/3ml',4,'AM8812'],['Φυσιολογικός ορός 0,9% 500ml',24,'NS4410'],['Ηπαρίνη 5.000 IU/ml',8,'HP3307'],['Midazolam 5mg/ml',5,'MZ6620'],['Σύριγγες 10ml',120,'SY0912'],['Ουροκαθετήρας Foley 14Fr',15,'FL1402'],['Χλωρεξιδίνη 2% διάλυμα',12,'CH2205'],['Naloxone 0.4mg/ml',3,'NX0418']]
 const expiryRows=(seed:string)=>{
  const rand=seededRandom(`expiry|${seed}`)
  const offsets=[-12,-3,5,11,19,26,48,95,160,240]
@@ -240,7 +240,7 @@ const expiryRows=(seed:string)=>{
 }
 for(const [assignment,definition,department,actorName,interval,firstDay] of programmeAssignments){
  const rand=seededRandom(`controls|${assignment.id}`)
- const lastDay=Math.round((Date.now()-new Date(assignment.last_completed_at).getTime())/86_400_000)
+ const lastDay=Math.round((Date.now()-new Date(assignment.last_completed_at as string).getTime())/86_400_000)
  for(let day=firstDay??lastDay;day<=HISTORY_DAYS;day+=interval){
   const finding=rand()<(definition.id===definition3.id?0.16:0.09)
   const stock=definition.id===definition3.id&&day===(firstDay??lastDay)?{rows:expiryRows(assignment.id)}:null
@@ -249,7 +249,7 @@ for(const [assignment,definition,department,actorName,interval,firstDay] of prog
 }
 
 // The weekly ward audits since 1 January 2025: most items pass, now and then one does not.
-for(const [assignment,department,actorName,lastDay] of [[assignment6,'ΜΕΘ','Ελένη Παπαδοπούλου',6],[assignment7,'Παθολογική','Νίκος Δημητρίου',3]] as [AnyRecord,string,string,number][]){
+for(const [assignment,department,actorName,lastDay] of [[assignment6,'ΜΕΘ','Ελένη Παπαδοπούλου',6],[assignment7,'Παθολογική','Νίκος Δημητρίου',3]] as [ControlAssignmentRow,string,string,number][]){
  const rand=seededRandom(`audit|${assignment.id}`)
  for(let week=0;lastDay+week*7<=HISTORY_DAYS;week++){
   const day=lastDay+week*7
@@ -274,7 +274,8 @@ for(const [assignment,department,actorName,lastDay] of [[assignment6,'ΜΕΘ','�
  }
 }
 
-export const controlDraftRows:AnyRecord[]=[{id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{rows:[{item:'Adrenaline 1mg/ml',quantity:'6',lot:'AD2291',expiry:'2026-10-15',finding:'Κοντόληκτο',findingOther:''}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}]
+const draft1={id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{rows:[{item:'Adrenaline 1mg/ml',quantity:'6',lot:'AD2291',expiry:'2026-10-15',finding:'Κοντόληκτο',findingOther:''}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}
+export const controlDraftRows:ControlDraftRow[]=[draft1]
 
 
 // Every demo assignment's last entry and next due date follow from its entries
@@ -284,9 +285,9 @@ for(const assignment of controlAssignmentRows){
  const entries=controlExecutionRows.filter(row=>row.assignment_id===assignment.id&&row.status!=='cancelled'&&!row.is_extra&&row.performed_at).map(row=>row.performed_at).sort()
  if(!definition||!entries.length)continue
  const last=entries[entries.length-1]
- const {start,end}=periodBounds(definition.frequency_config,new Date(last))
+ const {start,end}=periodBounds(definition.frequency_config!,new Date(last))
  assignment.last_completed_at=last
- assignment.next_due_at=nextDueAfterExecution(definition.frequency_config,new Date(last),entries.filter(at=>new Date(at)>=start&&new Date(at)<end).length)
+ assignment.next_due_at=nextDueAfterExecution(definition.frequency_config!,new Date(last),entries.filter(at=>new Date(at)>=start&&new Date(at)<end).length)
 }
 // Empty-hospital preview (?helpEmpty=1): no sample records.
 emptyInPreview(controlDefinitionRows)

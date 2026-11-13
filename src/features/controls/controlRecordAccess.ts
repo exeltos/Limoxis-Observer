@@ -2,7 +2,11 @@
 // on, and the record's overall status across the user's departments.
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { assignmentProgress, assignmentStatus, getAssignment, isControlDue } from './controlScheduling'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution, ControlRecord } from './controlTypes'
+import type { ScheduleItem } from './controlScheduling'
+
+// A control as the permissions read it: who created it, its status and its departments' assignments.
+type AccessRecord = ScheduleItem & Partial<Pick<ControlRecord, 'createdByScope'>>
 
 // The department the record opens on: the one asked for in the link, else the
 // user's own, else the first one the user can see. Only visible ones qualify.
@@ -13,7 +17,7 @@ export function pickControlDepartment(visibleDepartments: string[] = [], request
 }
 
 // Overdue in any department wins, then due soon, otherwise scheduled.
-export function controlOverallStatus(record: AnyRecord, departments: string[] = []) {
+export function controlOverallStatus(record: ScheduleItem, departments: string[] = []) {
   const states = departments.map(department => assignmentStatus(record, department))
   if (states.includes('overdue')) return 'overdue'
   if (states.includes('dueSoon')) return 'dueSoon'
@@ -22,7 +26,7 @@ export function controlOverallStatus(record: AnyRecord, departments: string[] = 
 
 // allDepartmentsVisible: every department the control is assigned to is one
 // the user can access (a department manager's own departments).
-interface ControlRecordPermissionsOptions { role: string | null | undefined, membership?: AnyRecord | null, record: AnyRecord, actorId?: string | null, allDepartmentsVisible?: boolean }
+interface ControlRecordPermissionsOptions { role: string | null | undefined, membership?: { capabilities?: string[] | null, customCapabilities?: string[] | null } | null, record: AccessRecord, actorId?: string | null, allDepartmentsVisible?: boolean }
 export function controlRecordPermissions({ role, membership, record, actorId, allDepartmentsVisible = false }: ControlRecordPermissionsOptions) {
   const addOns = membership?.capabilities ?? []
   const custom = membership?.customCapabilities ?? []
@@ -53,8 +57,8 @@ export function controlRecordPermissions({ role, membership, record, actorId, al
 
   // Only completed executions can be voided or corrected. A correction is open
   // to control managers, or to the person who carried the execution out.
-  const canVoidHistory = (entry: AnyRecord) => entry.status === 'completed' && canVoidExecution
-  const canEditHistory = (entry: AnyRecord) => entry.status === 'completed' && canEditExecution && (canManageControls || entry.actorId === actorId)
+  const canVoidHistory = (entry: Pick<ControlExecution, 'status'>) => entry.status === 'completed' && canVoidExecution
+  const canEditHistory = (entry: Pick<ControlExecution, 'status' | 'actorId'>) => entry.status === 'completed' && canEditExecution && (canManageControls || entry.actorId === actorId)
 
   return {
     canManageControls,

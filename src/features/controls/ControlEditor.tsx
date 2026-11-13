@@ -8,6 +8,7 @@ import { IconButton } from '../../design-system/IconButton'
 import { FormSubmit,useFormValidation } from '../../design-system/FormValidation'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
+import type { SearchableOption } from '../../design-system/SearchableSelect'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { Field } from '../../design-system/Field'
@@ -30,24 +31,26 @@ import { answerLabel,categoryPreset,choiceOptions } from './controlVocabulary'
 import { employeeOptions,personFromEmployee } from '../employees/peopleOptions'
 import { slotMargin } from './controlDueRules'
 import './controlEditor.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ChecklistItem, ControlDraft, ControlRecord, ControlResponseConfig } from './controlTypes'
+import type { LibrariesData } from '../management/useLibraries'
+import type { BundleLibraryTemplate } from '../management/managementTypes'
 
 // The libraries and departments (Management, still JavaScript): what this form reads of them.
-type Libraries = { libraries: Record<string, AnyRecord[]>, departments: AnyRecord[], loading: boolean, error: string }
-// The form's draft: the control's fields, its departments by name.
-interface ControlDraft extends AnyRecord { departments: string[] }
+type Libraries = LibrariesData & { loading: boolean, error: string }
+// An employee as this form reads it (the employees module is typed separately).
+type EditorEmployee = { id?: string, dbId?: string | null, [key: string]: unknown }
 
-const pickPolicy=(config:AnyRecord|null|undefined)=>Object.fromEntries(['criticality','requiresEvidence','deviationActions'].filter(key=>config?.[key]!==undefined).map(key=>[key,config![key]]))
+const pickPolicy=(config:ControlResponseConfig|null|undefined)=>Object.fromEntries((['criticality','requiresEvidence','deviationActions'] as const).filter(key=>config?.[key]!==undefined).map(key=>[key,config![key]]))
 const newItemId=()=>`chk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`
 const FREQUENCIES=['daily','weekly','monthly','yearly','custom']
 
 // Bundle templates, whose elements a checklist can start from.
 function useBundleTemplates(){
  const {tenant}=useTenant()
- const [templates,setTemplates]=useState<AnyRecord[]>([])
+ const [templates,setTemplates]=useState<BundleLibraryTemplate[]>([])
  useEffect(()=>{
   let active=true
-  if(isDemoDataEnvironment()){setTemplates(loadBundleLibrary().filter((x:AnyRecord)=>x.status!=='retired'));return()=>{active=false}}
+  if(isDemoDataEnvironment()){setTemplates(loadBundleLibrary().filter((x:BundleLibraryTemplate)=>x.status!=='retired'));return()=>{active=false}}
   if(!tenant?.id)return()=>{active=false}
   loadBundleTemplates(tenant.id).then(rows=>{if(active)setTemplates(rows.filter(x=>x.status!=='retired'))}).catch(()=>{if(active)setTemplates([])})
   return()=>{active=false}
@@ -59,13 +62,13 @@ function useBundleTemplates(){
 // from the libraries (Management > Libraries): control types, units, status
 // answers, positions, people, locations and equipment; a value the library does
 // not have yet can still be typed.
-interface ControlEditorProps { initial?:AnyRecord|null, onCancel:()=>void, onSave:(draft:AnyRecord)=>void, departmentOnly?:boolean, fixedDepartment?:string, usedCategories?:string[], existingControls?:AnyRecord[] }
+interface ControlEditorProps { initial?:ControlRecord|null, onCancel:()=>void, onSave:(draft:ControlDraft)=>void, departmentOnly?:boolean, fixedDepartment?:string, usedCategories?:string[], existingControls?:Pick<ControlRecord,'id'|'title'|'status'>[] }
 export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment='',usedCategories=[],existingControls=[]}:ControlEditorProps){
  const {language}=useLanguage();const en=language==='en'
  const {libraries,departments:departmentRows,loading:departmentsLoading,error:departmentsError}=useLibraries() as unknown as Libraries
- const {data:employees}=useEmployeesData() as unknown as {data:AnyRecord[]}
+ const {data:employees}=useEmployeesData() as unknown as {data:EditorEmployee[]}
  const bundleTemplates=useBundleTemplates()
- const [draft,setDraft]=useState<ControlDraft>(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries<AnyRecord>(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency])),departmentResponses:Object.fromEntries(Object.entries<AnyRecord>(initial.assignments||{}).filter(([,a])=>a?.responseOverride).map(([department,a])=>[department,a.responseOverride]))})):{departmentFrequencies:{},departmentResponses:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
+ const [draft,setDraft]=useState<ControlDraft>(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency])),departmentResponses:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.responseOverride).map(([department,a])=>[department,a.responseOverride]))})):{departmentFrequencies:{},departmentResponses:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
  const [tab,setTab]=useState('details')
  // The margin after a time is rarely changed: its field opens from a link.
@@ -81,7 +84,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const mode=response.mode||'text'
  const count=Math.max(1,Number(draft.frequency.timesPerDay)||1)
  const times=Array.from({length:count},(_,i)=>draft.frequency.times?.[i]||`${String(Math.min(23,8+i*4)).padStart(2,'0')}:00`)
- const checklist:AnyRecord[]=response.checklist||[]
+ const checklist:ChecklistItem[]=response.checklist||[]
  const options=choiceOptions(response,lib('controlAnswers'))
  // A new control needs a responsible position or person. Controls brought in
  // without one (the FileMaker import) can still be edited and saved as they are.
@@ -118,13 +121,13 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  function setOptions(values:string[]){const current=new Set(options.filter(x=>x.finding).map(x=>x.value));setDraft(d=>({...d,responseConfig:{...d.responseConfig,options:values,reportOn:values.filter(v=>current.has(v))}}))}
  function toggleFinding(value:string){const current=options.filter(x=>x.finding).map(x=>x.value);setR('reportOn',current.includes(value)?current.filter(x=>x!==value):[...current,value])}
  function addAnswer(value:unknown){const text=String(value||'').trim();if(!text||options.some(x=>x.value===text))return;setOptions([...options.map(x=>x.value),text]);setNewAnswer('')}
- const setChecklist=(next:AnyRecord[])=>setR('checklist',next)
- function importBundle(id:string){const template=bundleTemplates.find(x=>String(x.id)===String(id));if(!template)return;const existing=new Set(checklist.map(x=>x.el));setChecklist([...checklist.filter(x=>String(x.el||'').trim()),...(template.elements||[]).filter((el:AnyRecord)=>!existing.has(el.labelEl)).map((el:AnyRecord)=>({id:newItemId(),el:el.labelEl,en:el.labelEn||el.labelEl,required:el.required!==false}))])}
+ const setChecklist=(next:ChecklistItem[])=>setR('checklist',next)
+ function importBundle(id:string){const template=bundleTemplates.find(x=>String(x.id)===String(id));if(!template)return;const existing=new Set(checklist.map(x=>x.el));setChecklist([...checklist.filter(x=>String(x.el||'').trim()),...(template.elements||[]).filter(el=>!existing.has(el.labelEl)).map(el=>({id:newItemId(),el:el.labelEl,en:el.labelEn||el.labelEl,required:el.required!==false}))])}
  function submit(){if(!valid)return;onSave({...draft,titleEn:draft.titleEn||draft.title,responseConfig:mode==='checklist'?{...response,checklist:checklist.filter(x=>String(x.el||'').trim())}:response,frequency:{...draft.frequency,timesPerDay:count,times:draft.frequency.kind==='daily'?times:[]}})}
 
  const title=initial?(en?'Edit control':'Επεξεργασία ελέγχου'):(en?'New control':'Νέος έλεγχος')
  const freqLabel:Record<string,string>={daily:en?'Daily':'Ημερήσια',weekly:en?'Weekly':'Εβδομαδιαία',monthly:en?'Monthly / every N months':'Μηνιαία / ανά Χ μήνες',yearly:en?'Yearly':'Ετήσια',custom:en?'Every N days':'Κάθε Χ ημέρες'}
- const intervalUnit=({weekly:en?'weeks':'εβδομάδες',monthly:en?'months':'μήνες',yearly:en?'years':'έτη',custom:en?'days':'ημέρες'} as Record<string,string>)[draft.frequency.kind]
+ const intervalUnit=({weekly:en?'weeks':'εβδομάδες',monthly:en?'months':'μήνες',yearly:en?'years':'έτη',custom:en?'days':'ημέρες'} as Record<string,string>)[draft.frequency.kind as string]
  const multiText={searchPlaceholder:en?'Search…':'Αναζήτηση…',emptyLabel:en?'No match':'Καμία αντιστοιχία',selectAllLabel:en?'Select all':'Επιλογή όλων',clearAllLabel:en?'Clear all':'Αποεπιλογή όλων'}
  const selectText={emptyLabel:en?'No match':'Καμία αντιστοιχία',clearLabel:en?'Clear':'Καθαρισμός',customLabel:(text:string)=>en?`Use «${text}»`:`Χρήση «${text}»`}
 
@@ -138,10 +141,10 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <header><strong>{en?'What is checked':'Τι ελέγχεται'}</strong><span>{en?'Name, type, where it applies and who is responsible':'Ονομασία, είδος, πού εφαρμόζεται και ποιος είναι υπεύθυνος'}</span></header>
      <div className="control-editor-grid identity">
       <Field label={en?'Control name':'Ονομασία ελέγχου'} {...form.field('title')}><input autoFocus value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Medication refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου φαρμάκων'}/></Field>
-      <SearchableSelect label={en?'Control type':'Είδος ελέγχου'} {...form.field('category')} value={draft.category} options={typeOptions} onChange={changeCategory} allowCustom placeholder={en?'Choose or type':'Επιλέξτε ή γράψτε'} {...selectText}/>
+      <SearchableSelect label={en?'Control type':'Είδος ελέγχου'} {...form.field('category')} value={draft.category} options={typeOptions as SearchableOption[]} onChange={changeCategory} allowCustom placeholder={en?'Choose or type':'Επιλέξτε ή γράψτε'} {...selectText}/>
       <SearchableSelect label={en?'Location':'Χώρος'} value={draft.location||''} options={[]} onChange={v=>set('location',v)} allowCustom placeholder={en?'Optional, e.g. Nurses station':'Προαιρετικό, π.χ. Σταθμός νοσηλευτών'} {...selectText}/>
-      <SearchableSelect label={en?'Equipment / point':'Εξοπλισμός / σημείο'} value={draft.equipment||''} options={equipmentOptions} onChange={v=>set('equipment',v)} allowCustom placeholder={en?'Optional, e.g. Medication refrigerator':'Προαιρετικό, π.χ. Ψυγείο φαρμάκων'} {...selectText}/>
-      <SearchableSelect label={en?'Responsible position':'Θέση ευθύνης'} {...form.field('owner')} required={false} value={draft.owner||''} options={positionOptions} onChange={v=>set('owner',v)} allowCustom placeholder={en?'e.g. Head of Department':'π.χ. Προϊστάμενος/η Τμήματος'} {...selectText}/>
+      <SearchableSelect label={en?'Equipment / point':'Εξοπλισμός / σημείο'} value={draft.equipment||''} options={equipmentOptions as SearchableOption[]} onChange={v=>set('equipment',v)} allowCustom placeholder={en?'Optional, e.g. Medication refrigerator':'Προαιρετικό, π.χ. Ψυγείο φαρμάκων'} {...selectText}/>
+      <SearchableSelect label={en?'Responsible position':'Θέση ευθύνης'} {...form.field('owner')} required={false} value={draft.owner||''} options={positionOptions as SearchableOption[]} onChange={v=>set('owner',v)} allowCustom placeholder={en?'e.g. Head of Department':'π.χ. Προϊστάμενος/η Τμήματος'} {...selectText}/>
       <SearchableSelect label={en?'Responsible person':'Υπεύθυνο πρόσωπο'} value={draft.ownerPerson?.employeeId||''} options={people.options} recentValues={people.near} recentLabel={en?'In the chosen departments':'Στα επιλεγμένα τμήματα'} onChange={id=>set('ownerPerson',personFromEmployee(employeeById(id)))} placeholder={en?'Search staff…':'Αναζήτηση προσωπικού…'} {...selectText}/>
      </div>
      {!hasOwner&&!ownerRequired&&<small className="control-editor-hint">{en?'No one is responsible yet: choose a position or a person when you know it.':'Δεν έχει οριστεί υπεύθυνος: επιλέξτε θέση ή πρόσωπο όταν είναι γνωστό.'}</small>}
@@ -177,7 +180,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <div className="control-editor-grid">
       {mode!=='list'&&mode!=='checklist'&&<Field label={en?'Field label':'Ετικέτα πεδίου'}><input value={response.label||''} onChange={e=>setR('label',e.target.value)} placeholder={en?'e.g. Temperature':'π.χ. Θερμοκρασία'}/></Field>}
       {mode==='numeric'&&<>
-       <SearchableSelect label={en?'Unit':'Μονάδα μέτρησης'} value={response.unit||''} options={libraryOptions(lib('measurementUnits'),language)} onChange={v=>setR('unit',v)} allowCustom placeholder="°C" {...selectText}/>
+       <SearchableSelect label={en?'Unit':'Μονάδα μέτρησης'} value={response.unit||''} options={libraryOptions(lib('measurementUnits'),language) as SearchableOption[]} onChange={v=>setR('unit',v)} allowCustom placeholder="°C" {...selectText}/>
        <Field label={en?'Minimum acceptable':'Ελάχιστο αποδεκτό'}><input type="number" step="any" value={response.min??''} onChange={e=>setR('min',e.target.value===''?'':Number(e.target.value))}/></Field>
        <Field label={en?'Maximum acceptable':'Μέγιστο αποδεκτό'}><input type="number" step="any" value={response.max??''} onChange={e=>setR('max',e.target.value===''?'':Number(e.target.value))}/></Field>
       </>}
@@ -199,11 +202,11 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
        <Button variant="secondary" onClick={()=>setChecklist([...checklist,{id:newItemId(),el:'',en:'',required:true}])}><Plus size={15}/> {en?'Add item':'Προσθήκη σημείου'}</Button>
       </div>
       {checklist.length===0&&<div className="inline-empty"><strong>{en?'No items yet':'Δεν υπάρχουν σημεία'}</strong><span>{en?'Add the items to check one by one, or start from a bundle template.':'Προσθέστε τα σημεία ελέγχου ένα-ένα ή ξεκινήστε από πρότυπο δέσμης μέτρων.'}</span></div>}
-      <ol className="control-editor-checklist-items">{checklist.map((item:AnyRecord,index:number)=><li key={item.id||index}>
+      <ol className="control-editor-checklist-items">{checklist.map((item:ChecklistItem,index:number)=><li key={item.id||index}>
        <span className="control-editor-checklist-number">{index+1}</span>
-       <input aria-label={`${en?'Item':'Σημείο'} ${index+1}`} value={en?item.en||item.el:item.el} onChange={e=>setChecklist(checklist.map((x:AnyRecord)=>x===item?{...x,[en?'en':'el']:e.target.value,...(!en||!x.el?{el:x.el||e.target.value}:{})}:x))} placeholder={en?'e.g. Hand rub available at the point of care':'π.χ. Διαθέσιμο αντισηπτικό στο σημείο φροντίδας'}/>
+       <input aria-label={`${en?'Item':'Σημείο'} ${index+1}`} value={en?item.en||item.el:item.el} onChange={e=>setChecklist(checklist.map((x:ChecklistItem)=>x===item?{...x,[en?'en':'el']:e.target.value,...(!en||!x.el?{el:x.el||e.target.value}:{})}:x))} placeholder={en?'e.g. Hand rub available at the point of care':'π.χ. Διαθέσιμο αντισηπτικό στο σημείο φροντίδας'}/>
        <ChoiceChips className="control-editor-required" options={[{value:'required',label:en?'Required':'Υποχρεωτικό'}]} selected={item.required!==false?['required']:[]} onToggle={()=>setChecklist(checklist.map(x=>x===item?{...x,required:x.required===false}:x))}/>
-       <IconButton size="sm" tone="danger" label={en?'Remove item':'Αφαίρεση σημείου'} onClick={()=>setChecklist(checklist.filter((x:AnyRecord)=>x!==item))}><Trash2 size={14}/></IconButton>
+       <IconButton size="sm" tone="danger" label={en?'Remove item':'Αφαίρεση σημείου'} onClick={()=>setChecklist(checklist.filter((x:ChecklistItem)=>x!==item))}><Trash2 size={14}/></IconButton>
       </li>)}</ol>
      </div>}
     </section>
