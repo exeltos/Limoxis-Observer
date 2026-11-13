@@ -1,12 +1,11 @@
 import { hospitalToday } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
 
 // A decision, a participant and a topic of a meeting, the meeting itself and its group,
 // as the screens use them (camelCase, from the quality_department_meeting* tables or the Demo).
-export interface MeetingDecision extends AnyRecord { id: string, position?: number, topicId?: string, title: string, ownerLabel: string, dueDate: string, status: string, capaId: string, carriedFrom: string }
-export interface MeetingParticipant extends AnyRecord { id?: string, position?: number, employeeId?: string, name: string, role: string, attended: boolean }
-export interface MeetingTopic extends AnyRecord { id: string, subject: string, discussion: string, conclusion: string }
-export interface Meeting extends AnyRecord {
+export interface MeetingDecision { id: string, position?: number, topicId?: string, title: string, ownerLabel: string, dueDate: string, status: string, capaId: string, carriedFrom: string }
+export interface MeetingParticipant { id?: string, position?: number, employeeId?: string, name: string, role: string, attended: boolean }
+export interface MeetingTopic { id: string, subject: string, discussion: string, conclusion: string }
+export interface Meeting {
   id: string
   code: string
   groupId: string
@@ -27,8 +26,23 @@ export interface Meeting extends AnyRecord {
   participants: MeetingParticipant[]
   topics?: MeetingTopic[]
   trainingHeld?: boolean
+  // The training held for the meeting (training_programs), if one was created from it.
+  trainingProgramId?: string
+  trainingProgramKey?: string
+  trainingTitle?: string
+  trainingStatus?: string
 }
-export interface MeetingGroup extends AnyRecord { id: string, departmentId: string, department?: string, departmentEn?: string, name: string, frequencyDays: number, durationHours: number | string, managerLabel: string, active: boolean }
+export interface MeetingGroup { id: string, departmentId: string, department?: string, departmentEn?: string, name: string, frequencyDays: number, durationHours: number | string, managerLabel: string, active: boolean }
+// Where a meeting belongs: a meeting, or a department's place in one (id, or name in the Demo).
+export interface MeetingPlace { departmentId?: string, department?: string }
+// A department as the screens pass it (useDepartments()).
+export interface MeetingDepartment { id?: string, name?: string, nameEn?: string }
+// A corrective action, as far as a meeting reads it (its source is «DM:<code>#<decision>»).
+export interface MeetingCapa { id: string, code?: string, status: string, sourceId?: string | null }
+// A management review, as far as the meetings' tab reads it: its code, date and decisions (actions).
+export interface ReviewDecisions { code?: string, reviewDate?: string | null, actions?: { status?: string, dueDate?: string | null }[] }
+// The training program created for a meeting, as the training screen hands it back (dbId: its row in training_programs).
+export interface MeetingTraining { id: string, dbId?: string, title?: string, status?: string }
 // useRegisterAccess(): who sees every department, and whether a record is of the member's own.
 interface MeetingRegisterAccess { seesAll: boolean, isMember: (record: { departmentId?: string, department?: string }) => boolean }
 // Department meetings (Quality Center, phase 5): one meeting of a department,
@@ -64,11 +78,11 @@ export function nextMeetingCode(codes: string[] = [], year = new Date().getFullY
 export function previousMeeting(meetings: Meeting[] = [], departmentKey: string, date = '9999-12-31', exceptId: string | null = null) {
   return meetings.filter(meeting => meetingDepartmentKey(meeting) === departmentKey && meeting.id !== exceptId && String(meeting.meetingDate) <= String(date)).sort((a, b) => String(b.meetingDate).localeCompare(String(a.meetingDate)))[0] || null
 }
-export const meetingDepartmentKey = (meeting: AnyRecord | null | undefined) => meeting?.departmentId || meeting?.department || ''
+export const meetingDepartmentKey = (meeting: MeetingPlace | null | undefined) => meeting?.departmentId || meeting?.department || ''
 
 // A new meeting of a department: a month after its previous one (if it set
 // the next date), reviewing the month before, with the previous open decisions.
-export function newMeetingFor(department: AnyRecord | null | undefined, meetings: Meeting[] = [], day = today(), group: MeetingGroup | null = null): Meeting {
+export function newMeetingFor(department: MeetingDepartment | null | undefined, meetings: Meeting[] = [], day = today(), group: MeetingGroup | null = null): Meeting {
   const key = department?.id || department?.name || ''
   const previous = group ? meetings.filter(meeting => meetingInGroup(meeting, group) && String(meeting.meetingDate) <= String(day)).sort((a, b) => String(b.meetingDate).localeCompare(String(a.meetingDate)))[0] || null : previousMeeting(meetings, key)
   return {
@@ -107,10 +121,10 @@ export const latestMeetings = (meetings: Meeting[] = []) => departmentMeetingSta
 // Who may see and write a meeting: Quality sees every department; a member of
 // the department sees and writes its own. `access` is useRegisterAccess().
 export function meetingAccess(access: MeetingRegisterAccess, canManageQuality: boolean) {
-  const member = (meeting: AnyRecord | null | undefined) => access.isMember({ departmentId: meeting?.departmentId, department: meeting?.department })
+  const member = (meeting: MeetingPlace | null | undefined) => access.isMember({ departmentId: meeting?.departmentId, department: meeting?.department })
   return {
-    canSee: (meeting: AnyRecord | null | undefined) => access.seesAll || member(meeting),
-    canWrite: (meeting: AnyRecord | null | undefined) => Boolean(meeting) && (canManageQuality || member(meeting)),
+    canSee: (meeting: MeetingPlace | null | undefined) => access.seesAll || member(meeting),
+    canWrite: (meeting: MeetingPlace | null | undefined) => Boolean(meeting) && (canManageQuality || member(meeting)),
     canCreateCapa: () => canManageQuality,
   }
 }
@@ -138,4 +152,4 @@ export function groupStatus(group: MeetingGroup, meetings: Meeting[] = [], day =
 export const newMeetingGroup = (): MeetingGroup => ({ id: '', departmentId: '', name: '', frequencyDays: 90, durationHours: '', managerLabel: '', active: true })
 
 // The corrective actions opened from a meeting's decisions (their source is «DM:<meeting code>#<decision id>»).
-export const meetingCapas = (capas: AnyRecord[] = [], meeting: Meeting) => capas.filter(capa => String(capa.sourceId || '').startsWith(`DM:${meeting.code}#`))
+export const meetingCapas = <T extends MeetingCapa>(capas: T[] = [], meeting: Meeting) => capas.filter(capa => String(capa.sourceId || '').startsWith(`DM:${meeting.code}#`))

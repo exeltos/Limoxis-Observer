@@ -11,16 +11,16 @@ import temos from './temos.js'
 import jci from './jci.js'
 import ward from './ward.js'
 import core from './core.js'
-import type { AnyRecord } from '../../../../types/featureTypes'
+import type { AuditTemplate, QuestionnaireSeed, SeedOptions } from '../auditTypes'
 
-export const QUESTIONNAIRE_SEEDS = [core, iso9001, iso15224, haccp, iso15189, temos, jci, ward]
+export const QUESTIONNAIRE_SEEDS = [core, iso9001, iso15224, haccp, iso15189, temos, jci, ward] as QuestionnaireSeed[]
 
 export const seedDescription = (title: string) => `Βοήθημα επιθεώρησης για το ${title}: ερωτήσεις διατυπωμένες με δικά μας λόγια, με αναφορά στο άρθρο ή το κεφάλαιο. Δεν αποτελεί το κείμενο του προτύπου, που παραμένει η πηγή αναφοράς. Επεξεργάσιμο: δημιουργήστε αντίγραφο για το νοσοκομείο σας και προσαρμόστε το.`
 
 // A seed as a template with its questions in order.
-export function templateFromSeed(seed: AnyRecord) {
+export function templateFromSeed(seed: QuestionnaireSeed): AuditTemplate {
   let position = 0
-  const questions = seed.chapters.flatMap((chapter: AnyRecord) => chapter.questions.map(([clauseRef, question, evidence, guidance, options]: [string, string, string?, string?, AnyRecord?]) => {
+  const questions = seed.chapters.flatMap(chapter => chapter.questions.map(([clauseRef, question, evidence, guidance, options]: [string, string, string?, string?, (SeedOptions | null)?]) => {
     position += 1
     return {
       id: `${seed.key}-${position}`,

@@ -8,20 +8,20 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { decideProtocolSuggestionAsync } from './protocolReviewService'
 import { suggestionReasonLabel,suggestionReasonTone,suggestionSectionLabel,suggestionsForDocument } from './protocolReviewModel'
 import { ProtocolSuggestionDialog } from './ProtocolSuggestionDialog'
-import type { AnyRecord } from '../../../types/featureTypes'
 import type { ProtocolSuggestion } from './protocolReviewModel'
+import type { DocumentRecord } from '../documentTypes'
 import './protocolReview.css'
 
 interface ProtocolReviewPanelProps {
- record?: AnyRecord|null
+ record?: DocumentRecord|null
  suggestions?: ProtocolSuggestion[]|null
  organizationId?: string|null
  actor?: {id?: string|null}|null
  canDecide?: boolean
  canRevise?: boolean
  language?: string
- onStartRevision?: (notes: string, suggestion: ProtocolSuggestion)=>Promise<AnyRecord|null|undefined>|AnyRecord|null|undefined
- onChanged?: (revision: AnyRecord|null)=>unknown
+ onStartRevision?: (notes: string, suggestion: ProtocolSuggestion)=>Promise<DocumentRecord|null|undefined>|DocumentRecord|null|undefined
+ onChanged?: (revision: DocumentRecord|null)=>unknown
 }
 
 // «Προτείνεται ανανέωση»: the open suggestions of this protocol version, from
@@ -33,7 +33,7 @@ export function ProtocolReviewPanel({record,suggestions,organizationId,actor,can
  const [dialog,setDialog]=useState<{suggestion: ProtocolSuggestion, decision: string}|null>(null)
  const [busy,setBusy]=useState(false)
  // The revision made for a suggestion whose decision then failed: a retry links it, never a second draft.
- const started=useRef(new Map<unknown, AnyRecord>())
+ const started=useRef(new Map<unknown, DocumentRecord>())
  const {open,snoozed}=useMemo(()=>suggestionsForDocument(suggestions,record),[suggestions,record])
  if(record?.type!=='protocol'||(!open.length&&!snoozed.length))return null
 
@@ -77,7 +77,7 @@ export function ProtocolReviewPanel({record,suggestions,organizationId,actor,can
     </div>
     <p className="protocol-review-change">{suggestion.whatChanged}</p>
     {suggestion.sourceLabel&&<p className="protocol-review-source"><strong>{en?'Source':'Πηγή'}:</strong> {suggestion.sourceUrl?<a href={suggestion.sourceUrl} target="_blank" rel="noreferrer">{suggestion.sourceLabel}<ExternalLink size={12} aria-hidden="true"/></a>:suggestion.sourceLabel}</p>}
-    {suggestion.affectedSections.length>0&&<div className="protocol-review-sections"><span className="lo-field-label">{en?'Affected sections':'Ενότητες που επηρεάζονται'}</span>{suggestion.affectedSections.map((section: string)=><StatusBadge key={section} tone="neutral">{suggestionSectionLabel(section,language)}</StatusBadge>)}</div>}
+    {(suggestion.affectedSections||[]).length>0&&<div className="protocol-review-sections"><span className="lo-field-label">{en?'Affected sections':'Ενότητες που επηρεάζονται'}</span>{(suggestion.affectedSections||[]).map((section: string)=><StatusBadge key={section} tone="neutral">{suggestionSectionLabel(section,language)}</StatusBadge>)}</div>}
     {suggestion.draftText&&<blockquote className="protocol-review-draft">
      <span className="lo-field-label">{en?'Proposed wording':'Προτεινόμενη διατύπωση'}</span>
      <p>{suggestion.draftText}</p>

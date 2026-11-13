@@ -5,7 +5,11 @@
 // the document's effective date and its expiry is the review date, so the
 // expiry shows wherever review dates already appear (calendar, «review due»).
 import { protocolSummary } from './protocolFields'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Tables } from '../../core/supabase/database.types'
+import type { DocumentRecord } from './documentTypes'
+
+// A document, a draft or a patch of one (the fields it has).
+type DocumentLike = Partial<DocumentRecord>
 
 export const LICENCE_TYPE='licence'
 
@@ -16,7 +20,7 @@ export const REQUIRED_BY: Record<string, Record<string, string>>={
 const REQUIRED_KEYS=Object.keys(REQUIRED_BY.el)
 export const MAX_RENEWAL_MONTHS=240
 
-export const isLicence=(value: AnyRecord|null|undefined): value is AnyRecord=>value?.type===LICENCE_TYPE
+export const isLicence=(value: DocumentLike|null|undefined): value is DocumentLike=>value?.type===LICENCE_TYPE
 
 const months=(value: unknown)=>{
  if(value===''||value==null)return null
@@ -26,13 +30,13 @@ const months=(value: unknown)=>{
 const requiredList=(value: unknown)=>[...new Set((Array.isArray(value)?value:[]).map(item=>String(item||'').trim()).filter(item=>REQUIRED_KEYS.includes(item)))]
  .sort((a,b)=>REQUIRED_KEYS.indexOf(a)-REQUIRED_KEYS.indexOf(b))
 
-export function licenceFieldsFromRow(row: AnyRecord|null|undefined){
+export function licenceFieldsFromRow(row: Partial<Pick<Tables<'controlled_documents'>, 'renewal_months' | 'required_by'>>|null|undefined){
  return {renewalMonths:row?.renewal_months??'',requiredBy:requiredList(row?.required_by)}
 }
 
 // Columns written for a draft or patch. Another type clears both fields; a value
 // outside the database checks is dropped rather than rejected.
-export function licenceFieldsToRow(draft: AnyRecord|null|undefined){
+export function licenceFieldsToRow(draft: DocumentLike|null|undefined){
  if(!isLicence(draft))return {renewal_months:null,required_by:null}
  const required=requiredList(draft.requiredBy)
  return {renewal_months:months(draft.renewalMonths),required_by:required.length?required:null}
@@ -51,7 +55,7 @@ export function renewalLabel(value: unknown,language='el'){
  return en?`Renewal every ${n} month${n===1?'':'s'}`:`Ανανέωση κάθε ${n} ${n===1?'μήνα':'μήνες'}`
 }
 
-export function licenceSummary(value: AnyRecord|null|undefined,language='el'){
+export function licenceSummary(value: DocumentLike|null|undefined,language='el'){
  if(!isLicence(value))return ''
  const labels=REQUIRED_BY[language]||REQUIRED_BY.el
  const required=requiredList(value.requiredBy).map(key=>labels[key]).join(', ')
@@ -59,4 +63,4 @@ export function licenceSummary(value: AnyRecord|null|undefined,language='el'){
 }
 
 // The line under the type in the documents list: protocol kind/area or licence renewal.
-export const documentTypeSummary=(value: AnyRecord|null|undefined,language='el')=>protocolSummary(value,language)||licenceSummary(value,language)
+export const documentTypeSummary=(value: DocumentLike|null|undefined,language='el')=>protocolSummary(value,language)||licenceSummary(value,language)

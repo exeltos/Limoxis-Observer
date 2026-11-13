@@ -11,7 +11,7 @@ import {
   susceptibilitySummary,
 } from './demoInfectionHistory'
 import { clinicalCases } from './clinicalDemoCases'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalCase, ClinicalTimelineEvent, EpisodeSample, AntimicrobialTherapy, ClinicalReassessment } from './clinicalTypes'
 
 export { clinicalCases }
 
@@ -220,8 +220,10 @@ for (const row of surveillanceDemoData) {
 
 // Records written without a history get one derived from what they contain, so
 // the History tab of every Demo record tells its story like a live record does.
-const recordHistory = (item: AnyRecord) =>
-  [
+// An entry of the derived history, or nothing where the record has none.
+type HistoryItem = ClinicalTimelineEvent | '' | null | undefined
+const recordHistory = (item: ClinicalCase) =>
+  ([
     { at: item.startedAt, type: 'surveillance_start', actor: item.assessment?.assessedBy },
     item.assessment && {
       at: item.assessment.date,
@@ -229,7 +231,7 @@ const recordHistory = (item: AnyRecord) =>
       actor: item.assessment.assessedBy,
       detail: item.assessment.classification,
     },
-    ...(item.samples || []).flatMap((sample: AnyRecord) => [
+    ...(item.samples || []).flatMap((sample: EpisodeSample) => [
       { at: sample.collectedAt, type: 'sample_collected', sampleId: sample.id },
       sample.resultedAt && {
         at: sample.resultedAt,
@@ -240,20 +242,20 @@ const recordHistory = (item: AnyRecord) =>
         sampleId: sample.id,
       },
     ]),
-    ...(item.therapy || []).map((therapy: AnyRecord) => ({
+    ...(item.therapy || []).map((therapy: AntimicrobialTherapy) => ({
       at: therapy.startedAt,
       type: 'therapy_started',
       detail: therapy.antimicrobial,
     })),
     item.isolation?.startedAt && { at: item.isolation.startedAt, type: 'isolation_started' },
-    ...(item.reassessments || []).map((review: AnyRecord) => ({
+    ...(item.reassessments || []).map((review: ClinicalReassessment) => ({
       at: review.date || review.at,
       type: 'reassessment',
       actor: review.by,
       detail: review.status,
     })),
     item.completedAt && { at: item.completedAt, type: 'surveillance_closed' },
-  ].filter(event => event?.at)
+  ] as HistoryItem[]).filter((event): event is ClinicalTimelineEvent => Boolean(event?.at))
 for (const item of Object.values(clinicalCases))
   if (!item.timeline?.length) item.timeline = recordHistory(item)
 
@@ -271,7 +273,7 @@ export function demoSurveillanceList() {
       startedAt: item.startedAt,
       reviewDue: item.reviewDue,
       status: item.status,
-      organism: item.organism || item.samples?.find((sample: AnyRecord) => sample.organism)?.organism || null,
+      organism: item.organism || item.samples?.find((sample: EpisodeSample) => sample.organism)?.organism || null,
       resistance: item.resistance || null,
       isolation: item.isolation ? { ...item.isolation } : null,
       samples: item.samples || [],
@@ -285,10 +287,10 @@ export function getClinicalCase(caseId: string) {
 export function findCasesByPatient(patientId: string) {
   return Object.values(clinicalCases)
     .filter(item => item.patientId === patientId && item.lifecycleStatus !== 'voided')
-    .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+    .sort((a, b) => new Date(b.startedAt as string).getTime() - new Date(a.startedAt as string).getTime())
 }
 
-export function createClinicalSurveillance(data: AnyRecord) {
+export function createClinicalSurveillance(data: Omit<ClinicalCase, 'id'>) {
   const now = new Date().toISOString()
   const numericIds = Object.keys(clinicalCases)
     .map(id => Number(String(id).replace(/\D/g, '')))

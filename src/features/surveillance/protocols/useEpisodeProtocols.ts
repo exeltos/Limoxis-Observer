@@ -3,15 +3,20 @@ import { loadProtocolRuns, loadTherapyReviews } from './protocolService'
 import { pendingSteps, protocolByKey } from './protocolCatalogue'
 import { formatElapsed, minutesBetween, runSummary } from './protocolTiming'
 import { reviewWindow } from './therapyReview'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ClinicalCaseLike } from '../clinicalTypes'
+import type { ProtocolRun, TherapyReview } from './protocolTypes'
 
+interface EpisodeProtocolsOptions {
+  organizationId?: string | null
+  isDemo?: boolean
+}
 // Protocol runs and antimicrobial reviews of one episode. A database without the
 // N3 tables yet (migration pending) leaves the episode as it was: no protocols.
-export function useEpisodeProtocols(record: AnyRecord, { organizationId, isDemo }: AnyRecord) {
-  const [runs, setRuns] = useState<AnyRecord[]>([])
-  const [reviews, setReviews] = useState<AnyRecord[]>([])
+export function useEpisodeProtocols(record: ClinicalCaseLike | null | undefined, { organizationId, isDemo }: EpisodeProtocolsOptions) {
+  const [runs, setRuns] = useState<ProtocolRun[]>([])
+  const [reviews, setReviews] = useState<TherapyReview[]>([])
   const therapies = record?.therapy
-  const therapyKey = (therapies || []).map((item: AnyRecord) => item.id).join(',')
+  const therapyKey = (therapies || []).map(item => item.id).join(',')
   const recordId = record?.id
   const reload = useCallback(async () => {
     if (!record) return
@@ -36,8 +41,8 @@ const dayMonth = (value: string | number | Date) => {
 }
 
 // Tabs of the started protocols (after the clinical assessment).
-export function protocolStages(runs: AnyRecord[], t: (key: string) => string, language: string, now = new Date()) {
-  return runs.map((run: AnyRecord) => ({
+export function protocolStages(runs: ProtocolRun[], t: (key: string) => string, language: string, now = new Date()) {
+  return runs.map(run => ({
     id: `protocol:${run.id}`,
     protocol: true,
     locked: false,
@@ -57,10 +62,10 @@ interface ProtocolCuesOptions {
 }
 // «Χρειάζεται προσοχή» cues: an open protocol with a pending step, and therapies
 // in (or past) their 48–72 h review window.
-export function protocolCues(runs: AnyRecord[], record: AnyRecord, reviews: AnyRecord[], t: (key: string) => string, { canProtocol, canTherapy, now = new Date() }: ProtocolCuesOptions = {}) {
+export function protocolCues(runs: ProtocolRun[], record: ClinicalCaseLike | null | undefined, reviews: TherapyReview[], t: (key: string) => string, { canProtocol, canTherapy, now = new Date() }: ProtocolCuesOptions = {}) {
   const cues = []
   if (canProtocol)
-    for (const run of runs.filter((item: AnyRecord) => item.status === 'open' && protocolByKey(item.protocolKey))) {
+    for (const run of runs.filter(item => item.status === 'open' && protocolByKey(item.protocolKey))) {
       const pending = pendingSteps(run)
       const summary = runSummary(run, now)
       const short = t(`sepsis.protocols.${run.protocolKey}.short`)

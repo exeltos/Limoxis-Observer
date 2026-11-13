@@ -1,6 +1,9 @@
 import { SYSTEM_TEMPLATES } from './seed/index.js'
 import { questionsForAudit } from './auditModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditAnswer, AuditMeeting, AuditTeamMember, AuditTemplate } from './auditTypes'
+
+// What a demo audit is written with (audit() below).
+interface DemoAudit { key: string, department?: string, title: string, titleEn: string, type?: string, planned: string, completed?: string | null, status: string, scope?: string[], team?: AuditTeamMember[], risk?: string, monthOnly?: boolean, overrides?: Record<string, Partial<AuditAnswer>>, unanswered?: number, opening?: AuditMeeting | null, closing?: AuditMeeting | null, conclusion?: string, representative?: string, followUpOf?: string }
 
 // The demo's audit programme for the year: audits on the six standards across
 // the wards, done, under way and planned, with their teams, meetings, answers,
@@ -16,9 +19,9 @@ const external = (id: string, name: string, affiliation: string, role = 'member'
 // Every answer is «Συμμορφώνεται» except the few the story is about (by clause),
 // and one in every fifteen is «Δεν εφαρμόζεται».
 // An override names a clause («7.5.3») or its n-th question («IPSG.3#2»).
-function answered(rows: AnyRecord[], overrides: AnyRecord = {}, { unanswered = 0 }: { unanswered?: number } = {}) {
+function answered(rows: ReturnType<typeof questionsForAudit>, overrides: Record<string, Partial<AuditAnswer>> = {}, { unanswered = 0 }: { unanswered?: number } = {}) {
   const seen: Record<string, number> = {}
-  return rows.map((row: AnyRecord, index: number) => {
+  return rows.map((row, index: number) => {
     seen[row.clauseRef] = (seen[row.clauseRef] || 0) + 1
     const key = [`${row.clauseRef}#${seen[row.clauseRef]}`, seen[row.clauseRef] === 1 ? row.clauseRef : null].find(ref => ref && overrides[ref])
     if (key) return { ...row, ...overrides[key] }
@@ -27,10 +30,10 @@ function answered(rows: AnyRecord[], overrides: AnyRecord = {}, { unanswered = 0
   })
 }
 
-function audit(code: string, { key, department = '', title, titleEn, type = 'internal', planned, completed = null, status, scope = [], team = [], risk = 'medium', monthOnly = false, overrides = {}, unanswered = 0, opening = null, closing = null, conclusion = '', representative = '', followUpOf = '' }: AnyRecord) {
-  const questionnaire = template(key) as AnyRecord
+function audit(code: string, { key, department = '', title, titleEn, type = 'internal', planned, completed = null, status, scope = [], team = [], risk = 'medium', monthOnly = false, overrides = {}, unanswered = 0, opening = null, closing = null, conclusion = '', representative = '', followUpOf = '' }: DemoAudit) {
+  const questionnaire = template(key) as AuditTemplate
   const rows = status === 'planned' ? [] : answered(questionsForAudit(questionnaire, { department, scope }), overrides, { unanswered })
-  const leadMember = team.find((item: AnyRecord) => item.role === 'lead')
+  const leadMember = team.find((item: AuditTeamMember) => item.role === 'lead')
   return {
     id: code, title, titleEn, department, departmentEn: DEPT_EN[department] ?? department, departmentId: '', auditType: type,
     plannedDate: planned, completedDate: completed, status, leadAuditor: leadMember?.name || '', leadAuditorId: null,
@@ -112,10 +115,10 @@ const FINDING_EN: Record<string, string[]> = {
   'FND-2609-108': ['JCI PCI.8 · Contact isolation signage', 'Incomplete contact isolation signage in one room.'],
   'FND-2609-109': ['JCI MMU.6 · Barcode scanning at administration', 'Barcode scanning at medication administration is proposed.'],
 }
-const finding = (id: string, auditId: string, itemRef: string, findingClass: string, severity: string, status: string, title: string, description: string, owner: string, dueDate: string, extra: AnyRecord = {}) => {
-  const source = programmeAudits.find(item => item.id === auditId) as AnyRecord
+const finding = (id: string, auditId: string, itemRef: string, findingClass: string, severity: string, status: string, title: string, description: string, owner: string, dueDate: string, extra: Record<string, unknown> = {}) => {
+  const source = programmeAudits.find(item => item.id === auditId) as typeof programmeAudits[number]
   const [itemClause, nth = 1] = itemRef.split('#')
-  const row = source.checklist.filter((item: AnyRecord) => item.clauseRef === itemClause)[Number(nth) - 1]
+  const row = source.checklist.filter(item => item.clauseRef === itemClause)[Number(nth) - 1]
   return { id, title, titleEn: FINDING_EN[id]?.[0] || title, source: 'audit', sourceId: auditId, department: source.department, departmentEn: source.departmentEn, departmentId: '', date: source.completedDate, severity, status, owner, owners: [owner], description, descriptionEn: FINDING_EN[id]?.[1] || description, attachments: [], history: [{ at: `${source.completedDate}T15:30:00+03:00`, action: 'findingCreated', actor: 'Σταθάτου Δήμητρα' }],
     findingClass, auditItemId: row?.id || null, clauseRef: itemClause, standard: source.standard, dueDate, verificationStatus: 'pending', verifiedOn: '', verifiedBy: '', verificationNote: '', followUpAuditId: '', ...extra }
 }
@@ -143,6 +146,6 @@ export const programmeCapas = [
 
 // The answers that became findings point at them (the demo keeps codes).
 for (const item of programmeFindings) {
-  const source = programmeAudits.find(entry => entry.id === item.sourceId) as AnyRecord
+  const source = programmeAudits.find(entry => entry.id === item.sourceId) as typeof programmeAudits[number]
   source.findingIds.push(item.id)
 }

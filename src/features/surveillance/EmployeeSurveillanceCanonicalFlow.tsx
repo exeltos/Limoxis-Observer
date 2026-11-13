@@ -22,11 +22,12 @@ import { employeeScreeningOptions, listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
 import { isStaffEmployee } from '../employees/staffCategory'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { FormValidation } from '../../design-system/FormValidation'
+import type { ScreeningEmployee } from './employeeSurveillanceTypes'
 import type { Handler } from './surveillanceTypes'
 
 interface EmployeeSurveillanceCanonicalFlowProps {
-  employee?: AnyRecord | null
+  employee?: ScreeningEmployee | null
   onClose: Handler
   onCreated: Handler
 }
@@ -37,7 +38,7 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     { tenant, isDemo } = useTenant(),
     { language, t } = useLanguage(),
     { notify, notifyError } = useFeedback(),
-    { data: employeeRows = [] }: { data?: AnyRecord[] } = useEmployeesData()
+    { data: employeeRows = [] }: { data?: ScreeningEmployee[] } = useEmployeesData()
   const [department, setDepartment] = useState('all'),
     [selectedIds, setSelectedIds] = useState<string[]>([]),
     [date, setDate] = useState(hospitalToday()),
@@ -63,12 +64,12 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
         department === 'all' ||
         (language === 'el' ? row.department : row.departmentEn) === department,
     ),
-    chosen = employee ? [employee] : activeEmployees.filter(row => selectedIds.includes(row.id))
+    chosen = employee ? [employee] : activeEmployees.filter(row => selectedIds.includes(row.id!))
   const toggleType = (id: string) =>
       setTypes(current =>
         current.includes(id) ? current.filter(item => item !== id) : [...current, id],
       ),
-    employeeLabel = (row: AnyRecord) =>
+    employeeLabel = (row: ScreeningEmployee) =>
       [
         language === 'el' ? `${row.lastName} ${row.firstName}` : `${row.firstNameEn} ${row.lastNameEn}`,
         language === 'el' ? row.department : row.departmentEn,
@@ -80,8 +81,8 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     employeeOptions = (
       employee
         ? [employee]
-        : activeEmployees.filter(row => visible.includes(row) || selectedIds.includes(row.id))
-    ).map(row => ({ value: row.id, label: employeeLabel(row) }))
+        : activeEmployees.filter(row => visible.includes(row) || selectedIds.includes(row.id!))
+    ).map(row => ({ value: row.id!, label: employeeLabel(row) }))
   async function save() {
     if (saving || !date || !types.length) return
     setSaving(true)
@@ -216,7 +217,7 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
           label={en ? 'Employees' : 'Εργαζόμενοι'}
           {...(employee ? {} : form.field('employees'))}
           options={employeeOptions}
-          selected={employee ? [employee.id] : selectedIds}
+          selected={employee ? [employee.id!] : selectedIds}
           onChange={setSelectedIds}
           disabled={Boolean(employee)}
           placeholder={en ? 'Select employees' : 'Επιλέξτε εργαζόμενους'}
@@ -248,7 +249,7 @@ interface ScreeningTypesProps {
   types: string[]
   toggle: Handler
   en: boolean
-  fieldProps: AnyRecord
+  fieldProps: ReturnType<FormValidation['field']>
 }
 function ScreeningTypes({ types, toggle, en, fieldProps }: ScreeningTypesProps) {
   return (

@@ -4,7 +4,8 @@
 // evaluations and the signatures. Pure: returns the document description.
 import { CRITERIA, SCORE_STEPS, approvalLabel, certificationState, evaluationApproval, evaluationPercent, supplierCategoryLabel } from './resourceModel'
 import { evaluationSheetRows, formatPercent, isTemplateEvaluation } from './supplierTemplates'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ReportSection } from '../../../core/export/reportDocument'
+import type { Evaluation, EvaluationCriterion, EvaluationResultFields, EvaluationTemplate, Supplier, SupplierSheetRow, Thresholds } from './resourceTypes'
 
 const day = (value: unknown) => {
   if (!value) return '—'
@@ -14,10 +15,10 @@ const day = (value: unknown) => {
 const comma = (value: unknown, language: string) => (language === 'en' ? String(value) : String(value).replace('.', ','))
 
 // The criteria of an earlier (six fixed criteria) evaluation, as template-like rows.
-const legacyCriteria = (evaluation: AnyRecord, language: string) => CRITERIA.map((item, index) => ({ criterionId: item.key, label: item.label[language === 'en' ? 1 : 0], weight: Number(evaluation.weights?.[item.key]) > 0 ? Number(evaluation.weights[item.key]) : 1, position: index, score: evaluation.scores?.[item.key] ?? '' }))
+const legacyCriteria = (evaluation: EvaluationResultFields, language: string) => CRITERIA.map((item, index) => ({ criterionId: item.key, label: item.label[language === 'en' ? 1 : 0], weight: Number(evaluation.weights?.[item.key]) > 0 ? Number((evaluation.weights as Record<string, number>)[item.key]) : 1, position: index, score: evaluation.scores?.[item.key] ?? '' }))
 
 // The thresholds as the form says them: approved from x% (y / scale), and «conditional» only when it is a band.
-export function thresholdText(sheet: AnyRecord, language = 'el') {
+export function thresholdText(sheet: Thresholds, language = 'el') {
   const en = language === 'en'
   const scale = Number(sheet?.scoreScale) || 5
   const pass = Number(sheet?.passThreshold ?? 80), conditional = Number(sheet?.conditionalThreshold ?? 60)
@@ -26,26 +27,26 @@ export function thresholdText(sheet: AnyRecord, language = 'el') {
 }
 
 // The question of each criterion (the template's guidance), found by the criterion or its label.
-const withQuestions = (criteria: AnyRecord[] = [], template: AnyRecord | null) => criteria.map(item => {
-  const own = (template?.criteria || []).find((entry: AnyRecord) => entry.id === item.criterionId) || (template?.criteria || []).find((entry: AnyRecord) => String(entry.label).trim() === String(item.label).trim())
+const withQuestions = (criteria: EvaluationCriterion[] = [], template: EvaluationTemplate | null) => criteria.map(item => {
+  const own = (template?.criteria || []).find(entry => entry.id === item.criterionId) || (template?.criteria || []).find(entry => String(entry.label).trim() === String(item.label).trim())
   return { ...item, description: item.description || own?.description || '' }
 })
-const templateOf = (templates: AnyRecord[] = [], evaluation: AnyRecord) => templates.find(item => item.id === evaluation?.templateId) || templates.find(item => item.name === evaluation?.templateName) || null
+const templateOf = (templates: EvaluationTemplate[] = [], evaluation: Pick<Evaluation, 'templateId' | 'templateName'> | null) => templates.find(item => item.id === evaluation?.templateId) || templates.find(item => item.name === evaluation?.templateName) || null
 
-export function supplierEvaluationDocument(supplier: AnyRecord, evaluation: AnyRecord, { language = 'el', nextEvaluation = '', months = 12, templates = [] }: { language?: string, nextEvaluation?: string, months?: number, templates?: AnyRecord[] } = {}) {
+export function supplierEvaluationDocument(supplier: Pick<Supplier, 'name' | 'code' | 'legalName' | 'category' | 'taxId' | 'city' | 'evaluations' | 'certifications' | 'nonconformities'>, evaluation: Evaluation | null, { language = 'el', nextEvaluation = '', months = 12, templates = [] }: { language?: string, nextEvaluation?: string, months?: number, templates?: EvaluationTemplate[] } = {}) {
   const en = language === 'en'
   const template = templateOf(templates, evaluation)
   // An evaluation without its scores per criterion prints the criteria (and questions) of its template.
-  const base: AnyRecord | null = evaluation && (isTemplateEvaluation(evaluation) ? evaluation : { ...evaluation, criteria: legacyCriteria(evaluation, language), scoreScale: 5 })
-  const sheet: AnyRecord | null = base && { ...base, criteria: withQuestions(base.criteria?.length ? base.criteria : (template?.criteria || []).map((item: AnyRecord, index: number) => ({ criterionId: item.id, label: item.label, weight: item.weight, position: index, score: '' })), template) }
+  const base: Evaluation | null = evaluation && (isTemplateEvaluation(evaluation) ? evaluation : { ...evaluation, criteria: legacyCriteria(evaluation, language), scoreScale: 5 })
+  const sheet: (Evaluation & { criteria: EvaluationCriterion[] }) | null = base && { ...base, criteria: withQuestions(base.criteria?.length ? base.criteria : (template?.criteria || []).map((item, index: number) => ({ criterionId: item.id, label: item.label, weight: item.weight, position: index, score: '' })), template) }
   const score = evaluation ? evaluationPercent(evaluation) : null
   const result = evaluation ? evaluationApproval(evaluation) : 'unevaluated'
   const scale = Number(sheet?.scoreScale) || 5
   const partial = sheet && (sheet.criteriaScores === 'partial' || sheet.criteriaScores === 'not_recorded')
-  const weights = (sheet?.criteria || []).reduce((sum: number, item: AnyRecord) => sum + Number(item.weight || 0), 0)
+  const weights = (sheet?.criteria || []).reduce((sum: number, item) => sum + Number(item.weight || 0), 0)
   const history = [...(supplier.evaluations || [])].sort((a, b) => String(b.evaluatedOn).localeCompare(String(a.evaluatedOn)))
   const certificates = supplier.certifications || []
-  const open = (supplier.nonconformities || []).filter((item: AnyRecord) => item.status !== 'closed')
+  const open = (supplier.nonconformities || []).filter(item => item.status !== 'closed')
   const L = (el: string, enText: string) => (en ? enText : el)
   return {
     language,
@@ -71,7 +72,7 @@ export function supplierEvaluationDocument(supplier: AnyRecord, evaluation: AnyR
         table: {
           // Each criterion with the question it is scored on under it.
           columns: [{ text: '#', width: '5%' }, { text: L('Κριτήριο / ερώτηση', 'Criterion / question'), width: '55%' }, { text: L('Βάρος', 'Weight'), align: 'right', width: '10%' }, { text: L('Βαθμός', 'Score'), align: 'right', width: '14%' }, { text: L('Σταθμισμένοι πόντοι', 'Weighted points'), align: 'right', width: '16%' }],
-          rows: sheet ? evaluationSheetRows(sheet, language).map((row: AnyRecord, index: number) => [row[0], sheet.criteria[index]?.description ? `${row[1]} — ${sheet.criteria[index].description}` : row[1], { text: row[2], align: 'right' }, { text: row[3], align: 'right' }, { text: row[4], align: 'right' }]) : [],
+          rows: sheet ? evaluationSheetRows(sheet, language).map((row, index: number) => [row[0], sheet.criteria[index]?.description ? `${row[1]} — ${sheet.criteria[index].description}` : row[1], { text: row[2], align: 'right' }, { text: row[3], align: 'right' }, { text: row[4], align: 'right' }]) : [],
           foot: sheet ? ['', L('Σύνολο', 'Total'), { text: comma(Math.round(weights * 1000) / 1000, language), align: 'right' }, '', { text: formatPercent(score, language), align: 'right' }] : null,
           empty: L('Δεν υπάρχει αξιολόγηση.', 'No evaluation yet.'),
         },
@@ -89,8 +90,8 @@ export function supplierEvaluationDocument(supplier: AnyRecord, evaluation: AnyR
         title: L('Πιστοποιητικά και μη συμμορφώσεις', 'Certificates and nonconformities'),
         facts: [
           [L('Πιστοποιητικά / έγγραφα', 'Certificates / documents'), String(certificates.length)],
-          [L('Σε ισχύ', 'Valid'), String(certificates.filter((item: AnyRecord) => ['valid', 'expiring', 'none'].includes(certificationState(item))).length)],
-          [L('Ληγμένα', 'Expired'), String(certificates.filter((item: AnyRecord) => certificationState(item) === 'expired').length)],
+          [L('Σε ισχύ', 'Valid'), String(certificates.filter(item => ['valid', 'expiring', 'none'].includes(certificationState(item))).length)],
+          [L('Ληγμένα', 'Expired'), String(certificates.filter(item => certificationState(item) === 'expired').length)],
           [L('Ανοιχτές μη συμμορφώσεις', 'Open nonconformities'), String(open.length)],
         ],
       },
@@ -102,11 +103,11 @@ export function supplierEvaluationDocument(supplier: AnyRecord, evaluation: AnyR
 
 // All the suppliers' evaluations on one sheet, as the hospital's form «Αξιολόγηση εξωτερικών παρόχων»: per template,
 // its criteria and questions once, then a line per supplier with the score of each criterion, the mean, the result.
-export function supplierEvaluationsSheet(suppliers: AnyRecord[] = [], templates: AnyRecord[] = [], { language = 'el', title }: { language?: string, title?: string } = {}) {
+export function supplierEvaluationsSheet(suppliers: SupplierSheetRow['supplier'][] = [], templates: EvaluationTemplate[] = [], { language = 'el', title }: { language?: string, title?: string } = {}) {
   const en = language === 'en'
   const L = (el: string, enText: string) => (en ? enText : el)
-  const latest = (supplier: AnyRecord) => [...(supplier.evaluations || [])].sort((a, b) => String(b.evaluatedOn).localeCompare(String(a.evaluatedOn)))[0] || null
-  const groups = new Map<string, AnyRecord>()
+  const latest = (supplier: SupplierSheetRow['supplier']) => [...(supplier.evaluations || [])].sort((a, b) => String(b.evaluatedOn).localeCompare(String(a.evaluatedOn)))[0] || null
+  const groups = new Map<string, { template: EvaluationTemplate | null, rows: SupplierSheetRow[] }>()
   for (const supplier of suppliers) {
     const evaluation = latest(supplier)
     const template = templateOf(templates, evaluation) || templates.find(item => (item.categories || []).includes(supplier.category)) || null
@@ -116,22 +117,22 @@ export function supplierEvaluationsSheet(suppliers: AnyRecord[] = [], templates:
   }
   const scale = 5
   const legend = SCORE_STEPS.map(step => `${step.value} = ${step.label[en ? 1 : 0]}`).join(' · ')
-  const sections: AnyRecord[] = []
+  const sections: ReportSection[] = []
   for (const { template, rows } of [...groups.values()].sort((a, b) => String(a.template?.name || 'ω').localeCompare(String(b.template?.name || 'ω'), 'el'))) {
     const criteria = template?.criteria || []
     sections.push({
       title: `${template?.name || L('Χωρίς πρότυπο', 'No template')} · ${rows.length}`,
-      text: criteria.map((item: AnyRecord, index: number) => `${index + 1}. ${item.label}${item.description ? ` — ${item.description}` : ''}${item.optional ? L(' (προαιρετικό)', ' (optional)') : ''}`).join('\n'),
+      text: criteria.map((item, index: number) => `${index + 1}. ${item.label}${item.description ? ` — ${item.description}` : ''}${item.optional ? L(' (προαιρετικό)', ' (optional)') : ''}`).join('\n'),
       note: template ? thresholdText({ ...template, scoreScale: template.scoreScale || scale }, language) : '',
       table: {
         columns: [{ text: L('Προμηθευτής', 'Supplier'), width: '22%' }, { text: L('Ημερομηνία', 'Date'), width: '9%', align: 'center' },
-          ...criteria.map((_: AnyRecord, index: number) => ({ text: String(index + 1), align: 'center' })),
+          ...criteria.map((_, index: number) => ({ text: String(index + 1), align: 'center' })),
           { text: L('Μέση βαθμολογία', 'Mean score'), align: 'center', width: '9%' }, { text: L('Εγκεκριμένος', 'Approved'), width: '10%' }],
-        rows: rows.sort((a: AnyRecord, b: AnyRecord) => String(a.supplier.name).localeCompare(String(b.supplier.name), 'el')).map(({ supplier, evaluation }: AnyRecord) => {
+        rows: rows.sort((a, b) => String(a.supplier.name).localeCompare(String(b.supplier.name), 'el')).map(({ supplier, evaluation }) => {
           const percent = evaluation ? evaluationPercent(evaluation) : null
-          const byCriterion = (criterion: AnyRecord) => (evaluation?.criteria || []).find((item: AnyRecord) => item.criterionId === criterion.id || String(item.label).trim() === String(criterion.label).trim())
+          const byCriterion = (criterion: { id: string, label: string }) => (evaluation?.criteria || []).find(item => item.criterionId === criterion.id || String(item.label).trim() === String(criterion.label).trim())
           return [supplier.name, { text: day(evaluation?.evaluatedOn), align: 'center' },
-            ...criteria.map((criterion: AnyRecord) => { const value = byCriterion(criterion)?.score; return { text: value === '' || value == null ? '' : String(value), align: 'center' } }),
+            ...criteria.map(criterion => { const value = byCriterion(criterion)?.score; return { text: value === '' || value == null ? '' : String(value), align: 'center' } }),
             { text: percent == null ? '—' : comma(Math.round(percent * scale) / 100, language), align: 'center' },
             evaluation ? approvalLabel(evaluationApproval(evaluation), language) : L('Δεν αξιολογήθηκε', 'Not evaluated')]
         }),

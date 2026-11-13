@@ -35,9 +35,8 @@ import type { AttachmentFile } from '../../../design-system/AttachmentField'
 import { ModeSwitch } from '../../../design-system/ModeSwitch'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { deleteMeeting, saveMeeting } from './meetingService'
-import { MEETING_KINDS, addDays, decisionStatusLabel, newMeetingFor, previousMonth, type Meeting, type MeetingDecision, type MeetingParticipant, type MeetingTopic } from './meetingModel'
+import { MEETING_KINDS, addDays, decisionStatusLabel, newMeetingFor, previousMonth, type Meeting, type MeetingCapa, type MeetingDecision, type MeetingParticipant, type MeetingTopic } from './meetingModel'
 import type { ReactNode } from 'react'
-import type { AnyRecord } from '../../../types/featureTypes'
 import '../quality.css'
 import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
@@ -66,13 +65,13 @@ function downloadMinutes(meeting: Meeting, organizationName: string) {
 
 // Earlier meetings kept their topics as lines of the agenda: they open as topics.
 const withTopics = (meeting: Meeting): OpenMeeting => ({ ...meeting, topics: meeting.topics?.length ? meeting.topics : String(meeting.agenda || '').split(/\n+/).map(line => line.trim()).filter(Boolean).map(subject => ({ id: newId('dmt'), subject, discussion: '', conclusion: '' })) })
-const trainingStatusText = (status: string, en: boolean) => ({ completed: en ? 'Training done' : 'Η εκπαίδευση έγινε', cancelled: en ? 'Training cancelled' : 'Η εκπαίδευση ακυρώθηκε' })[status] || (en ? 'Training created' : 'Η εκπαίδευση δημιουργήθηκε')
+const trainingStatusText = (status: string | undefined = '', en: boolean) => ({ completed: en ? 'Training done' : 'Η εκπαίδευση έγινε', cancelled: en ? 'Training cancelled' : 'Η εκπαίδευση ακυρώθηκε' })[status] || (en ? 'Training created' : 'Η εκπαίδευση δημιουργήθηκε')
 
 // The profession as the people register keeps it («190 ΝΟΣΗΛΕΥΤΗΣ/ΤΡΙΑ 2ΕΤΟΥΣ»): without the code and the years.
 // Topics and decisions get an id at once, so a decision can point to the topic it came out of.
 // The record shell keeps a `utility` action visible in the header (tone primary: the main one, last).
 // The open meeting always has its topics (withTopics).
-type OpenMeeting = Meeting & { topics: MeetingTopic[] }
+type OpenMeeting = Meeting & { topics: MeetingTopic[], staffFilled?: boolean }
 const HeaderAction = ({ children }: { children?: ReactNode; tone?: string; utility?: boolean }) => children
 const newId = (prefix: string) => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`)
 const cleanRole = (text: unknown) => String(text || '').replace(/^\s*\d+\s*/, '').replace(/\s+\d+\s*(ΕΤΟΥΣ|ΕΤΩΝ|ΕΤΙΑΣ)\s*$/i, '').trim()
@@ -92,10 +91,10 @@ export function MeetingRecordPage() {
   const { user, profile } = useAuth()
   const { goBack, goTo } = useContextualNavigation('/meetings?tab=departments')
   const list = useMeetings()
-  const { departments, loading: departmentsLoading }: { departments: AnyRecord[], loading: boolean } = useDepartments()
+  const { departments, loading: departmentsLoading } = useDepartments()
   // Topics from the hospital's library (Management > Libraries > Committee and meeting topics).
-  const { libraries }: { libraries: AnyRecord } = useLibraries()
-  const topicOptions = useMemo(() => libraryOptions(libraries.committeeTopics || [], language).map(option => ({ ...option, description: [option.description, (libraries.committeeTopics || []).find((item: AnyRecord) => item.value === option.value)?.meta?.category].filter(Boolean).join(' · ') || undefined })), [libraries.committeeTopics, language])
+  const { libraries } = useLibraries()
+  const topicOptions = useMemo(() => libraryOptions(libraries.committeeTopics || [], language).map(option => ({ ...option, description: [option.description, (libraries.committeeTopics || []).find(item => item.value === option.value)?.meta?.category].filter(Boolean).join(' · ') || undefined })), [libraries.committeeTopics, language])
   const topicLabels = useMemo(() => topicOptions.map(option => option.label), [topicOptions])
   const [meeting, setMeetingValue] = useState<OpenMeeting | null | false>(null)
   // Every change after the load works on the open meeting (null while loading, false when not found).
@@ -122,13 +121,13 @@ export function MeetingRecordPage() {
   }, [list.loading, list.meetings, list.all, meetingId, isNew, meeting, ownDepartments, departmentsLoading, location.state, en, setMeeting])
 
   // The attendance: the department's active employees, each present or absent.
-  const { data: employees }: { data: AnyRecord[] | null | undefined } = useEmployeesData()
+  const { data: employees } = useEmployeesData()
   const staff = useMemo(() => (meeting ? (employees || []).filter(employee => (employee.employmentStatus || 'active') === 'active' && ((meeting.departmentId && employee.departmentId === meeting.departmentId) || (employee.department && employee.department === meeting.department))) : []).map(employee => ({ employeeId: employee.dbId || employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(), role: cleanRole(employee.position || employee.profession) })), [employees, meeting])
   const employeeById = useMemo(() => new Map((employees || []).map(employee => [employee.dbId || employee.id, employee])), [employees])
   const [documents, setDocuments] = useState<AttachmentFile[]>([])
   // The corrective actions opened from decisions of department meetings.
-  const [capas, setCapas] = useState<AnyRecord[]>([])
-  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter((row: AnyRecord) => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
+  const [capas, setCapas] = useState<MeetingCapa[]>([])
+  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter((row: MeetingCapa) => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
   useEffect(() => {
     // A new meeting starts with every active employee of the department present; the head marks who was absent.
     if (!isNew || !meeting || meeting.staffFilled || !staff.length) return

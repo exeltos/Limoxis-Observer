@@ -1,4 +1,4 @@
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ProtocolRunLike } from './protocolTypes'
 // The clinical protocols a surveillance episode can start. Data, not screens:
 // a new protocol is a new entry here (key, steps, timing) plus its strings in
 // the `sepsis` namespace of stringsEl / stringsEn. The database stores only the
@@ -28,7 +28,7 @@ export interface ProtocolStep {
   mlPerKg?: number
   followUp?: boolean
   windowMinutes?: number[]
-  when?: (run: AnyRecord) => boolean
+  when?: (run: ProtocolRunLike) => boolean
   emphasis?: boolean
 }
 export interface ClinicalProtocol {
@@ -51,7 +51,7 @@ const REPEAT_LACTATE: ProtocolStep = {
   canSkip: true,
   followUp: true,
   windowMinutes: [120, 240],
-  when: (run: AnyRecord) => Number(String(stepOf(run, 'lactate')?.value || '').replace(',', '.')) > 2,
+  when: (run: ProtocolRunLike) => Number(String(stepOf(run, 'lactate')?.value || '').replace(',', '.')) > 2,
 }
 
 export const CLINICAL_PROTOCOLS: readonly ClinicalProtocol[] = Object.freeze([
@@ -72,15 +72,15 @@ export const CLINICAL_PROTOCOLS: readonly ClinicalProtocol[] = Object.freeze([
   },
 ])
 
-export const protocolByKey = (key: string) => CLINICAL_PROTOCOLS.find(item => item.key === key) || null
+export const protocolByKey = (key: string | null | undefined) => CLINICAL_PROTOCOLS.find(item => item.key === key) || null
 
-export function stepOf(run: AnyRecord, key: string) {
-  return (run?.steps || []).find((step: AnyRecord) => step.key === key) || null
+export function stepOf(run: ProtocolRunLike | null | undefined, key: string) {
+  return (run?.steps || []).find(step => step.key === key) || null
 }
 
 // The steps a run shows now: the protocol's steps, without the follow-ups whose
 // condition does not hold yet.
-export function visibleSteps(run: AnyRecord) {
+export function visibleSteps(run: ProtocolRunLike) {
   const protocol = protocolByKey(run?.protocolKey)
   if (!protocol) return []
   return protocol.steps.filter(step => !step.followUp || step.when?.(run) || stepOf(run, step.key))
@@ -88,6 +88,6 @@ export function visibleSteps(run: AnyRecord) {
 
 // The steps that count for completion: every visible main step done or
 // recorded «not indicated».
-export function pendingSteps(run: AnyRecord) {
-  return visibleSteps(run).filter(step => !step.followUp && !['done', 'not_indicated'].includes(stepOf(run, step.key)?.status))
+export function pendingSteps(run: ProtocolRunLike) {
+  return visibleSteps(run).filter(step => !step.followUp && !['done', 'not_indicated'].includes(stepOf(run, step.key)?.status ?? ''))
 }

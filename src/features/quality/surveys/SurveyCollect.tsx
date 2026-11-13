@@ -6,11 +6,11 @@ import { Button } from '../../../design-system/Button'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { printElement } from '../../../design-system/printElement'
 import { isSurveyOpen, textOf } from './surveyModel'
-import type { AnyRecord } from '../../../types/featureTypes'
 import type { Survey } from './surveyModel'
+import type { SurveyDepartment, SurveyPoster } from './surveyTypes'
 
 // The public address of a survey; ?d= fixes the department, ?kiosk=1 a tablet.
-export function surveyLink(survey: AnyRecord, { departmentId = '', kiosk = false } = {}) {
+export function surveyLink(survey: Pick<Survey, 'publicToken'>, { departmentId = '', kiosk = false } = {}) {
   const base = `${window.location.origin}/survey/${encodeURIComponent(survey.publicToken || '')}`
   const query = new URLSearchParams()
   if (departmentId) query.set('d', departmentId)
@@ -35,15 +35,15 @@ export function QrCode({ text, size = 180, label }: { text: string, size?: numbe
 // How a survey's answers come in: one QR code for the survey, which patients
 // scan with their phone; optionally one poster per department, so the answer
 // is recorded for that department without asking; and a tablet at the ward.
-export function SurveyCollect({ survey, departments = [], language = 'el', canOpen = false, onOpen, printAll = 0 }: { survey: Survey, departments?: AnyRecord[], language?: string, canOpen?: boolean, onOpen?: () => void, printAll?: number }) {
+export function SurveyCollect({ survey, departments = [], language = 'el', canOpen = false, onOpen, printAll = 0 }: { survey: Survey, departments?: SurveyDepartment[], language?: string, canOpen?: boolean, onOpen?: () => void, printAll?: number }) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const sheet = useRef(null)
-  const [printing, setPrinting] = useState<AnyRecord | null>(null)
+  const [printing, setPrinting] = useState<SurveyPoster[] | null>(null)
   const title = textOf(survey, language)
   const open = isSurveyOpen(survey)
   const covered = survey.departmentIds?.length ? departments.filter(item => survey.departmentIds.includes(item.id || item.name)) : []
-  const nameOf = (item: AnyRecord) => (en ? item.nameEn || item.name : item.name)
+  const nameOf = (item: SurveyDepartment) => (en ? item.nameEn || item.name : item.name)
   const copy = async (text: string) => {
     try { await navigator.clipboard.writeText(text); notify(en ? 'Link copied.' : 'Ο σύνδεσμος αντιγράφηκε.', 'success') } catch { notify(text, 'info') }
   }
@@ -53,10 +53,10 @@ export function SurveyCollect({ survey, departments = [], language = 'el', canOp
     printElement(sheet.current, { title: `${survey.code} ${title}` })
     setPrinting(null)
   }, [printing, survey.code, title])
-  const posterOf = (item: AnyRecord) => ({ id: item.id || item.name, name: nameOf(item) })
+  const posterOf = (item: SurveyDepartment): SurveyPoster => ({ id: item.id || item.name, name: nameOf(item) })
   // «Export › Print» in the record's header: every poster of the survey.
   const lastPrint = useRef(printAll)
-  const allPosters = useRef<{ id: string, name: string }[]>([])
+  const allPosters = useRef<SurveyPoster[]>([])
   allPosters.current = covered.map(posterOf)
   useEffect(() => {
     if (printAll === lastPrint.current) return
@@ -104,7 +104,7 @@ export function SurveyCollect({ survey, departments = [], language = 'el', canOp
       </li> })}</ul>
     </section>}
     {printing && <div className="survey-print-stage" aria-hidden="true"><div className="survey-posters" ref={sheet}>
-      {printing.map((target: AnyRecord) => <article key={target.id || 'all'} className="survey-poster">
+      {printing.map(target => <article key={target.id || 'all'} className="survey-poster">
         <header><span>{target.name}</span><strong>{title}</strong></header>
         <QrCode text={surveyLink(survey, { departmentId: target.id })} size={260} label={target.name} />
         <p>{en ? 'Scan with your phone camera. Anonymous, about 3 minutes.' : 'Σκανάρετε με την κάμερα του κινητού σας. Ανώνυμα, περίπου 3 λεπτά.'}</p>

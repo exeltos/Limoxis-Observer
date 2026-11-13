@@ -7,34 +7,34 @@ import { RegistryTable } from '../../../design-system/RegistryTable'
 import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from './riskModel'
 import { L,LevelChip,defaultFrame,returnedClass,txt,usePaged,type RiskFrame } from './riskUi'
 import { IndicatorBadge } from './RiskIndicatorsUi'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { HeatCell,IndicatorValueMap,RegisterPreset,RegisterRow,Risk,RiskEvidenceCount,ScoredRisk } from './riskTypes'
 
 // What each KPI card of the register keeps.
-const QUICK: Record<string,(x: AnyRecord)=>boolean>={highOrAbove:(x: AnyRecord)=>['high','very_high'].includes(x.s.residual.level),veryHigh:(x: AnyRecord)=>x.s.residual.level==='very_high',high:(x: AnyRecord)=>x.s.residual.level==='high',noPlan:(x: AnyRecord)=>x.warnings.some((w: AnyRecord)=>w.id==='action_plan_required'),noTarget:(x: AnyRecord)=>!x.s.target.score,noIndicator:(x: AnyRecord)=>!(x.risk.indicatorKeys||[]).length,
+const QUICK: Record<string,(x: ScoredRisk)=>boolean>={highOrAbove:(x: ScoredRisk)=>['high','very_high'].includes(x.s.residual.level as string),veryHigh:(x: ScoredRisk)=>x.s.residual.level==='very_high',high:(x: ScoredRisk)=>x.s.residual.level==='high',noPlan:(x: ScoredRisk)=>x.warnings.some(w=>w.id==='action_plan_required'),noTarget:(x: ScoredRisk)=>!x.s.target.score,noIndicator:(x: ScoredRisk)=>!(x.risk.indicatorKeys||[]).length,
  // High or very high after the measures, with no owner or no due date for the plan.
- noOwnerDue:(x: AnyRecord)=>['high','very_high'].includes(x.s.residual.level)&&(!String(x.risk.owner||'').trim()||!x.risk.dueDate)}
+ noOwnerDue:(x: ScoredRisk)=>['high','very_high'].includes(x.s.residual.level as string)&&(!String(x.risk.owner||'').trim()||!x.risk.dueDate)}
 
 // The register: every risk of the assessment with its three scores.
 // What happened in practice in the last twelve months: the incidents of the
 // risk's departments and the audit findings of its JCI chapter.
-function RiskEvidence({evidence,en}: {evidence?: AnyRecord|null,en: boolean}){
+function RiskEvidence({evidence,en}: {evidence?: RiskEvidenceCount|null,en: boolean}){
  if(!evidence||(!evidence.incidents&&!evidence.findings))return null
  const parts=[evidence.incidents&&L(en,`${evidence.incidents} ${evidence.incidents===1?'συμβάν':'συμβάντα'}`,`${evidence.incidents} ${evidence.incidents===1?'incident':'incidents'}`),evidence.findings&&L(en,`${evidence.findings} ${evidence.findings===1?'εύρημα':'ευρήματα'}`,`${evidence.findings} ${evidence.findings===1?'finding':'findings'}`)].filter(Boolean)
  return <span className="risk-evidence" title={L(en,'Τους τελευταίους 12 μήνες','In the last 12 months')}>{L(en,'12μ','12m')}: {parts.join(' · ')}</span>
 }
 
 interface RiskRegisterProps {
- risks: AnyRecord[]
+ risks: Risk[]
  en: boolean
- onOpen: (risk: AnyRecord)=>void
- cell?: AnyRecord|null
+ onOpen: (risk: Risk)=>void
+ cell?: HeatCell|null
  onClearCell?: ()=>void
  actions?: ReactNode
- indicatorValues?: Map<string,AnyRecord>|null
+ indicatorValues?: IndicatorValueMap|null
  returned?: string
- preset?: AnyRecord|null
+ preset?: RegisterPreset|null
  frame?: RiskFrame
- evidenceOf?: ((risk: AnyRecord)=>AnyRecord)|null
+ evidenceOf?: ((risk: Risk)=>RiskEvidenceCount)|null
 }
 
 export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indicatorValues=null,returned='',preset=null,frame=defaultFrame,evidenceOf=null}: RiskRegisterProps){
@@ -50,27 +50,27 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
  const processes=useMemo(()=>[...new Set(risks.map(r=>txt(r,'process',en)).filter(Boolean))].sort(),[risks,en])
  const all=useMemo(()=>risks.map(risk=>({risk,s:scored(risk),warnings:riskWarnings(risk)})),[risks])
  const counts=useMemo(()=>Object.fromEntries(Object.entries(QUICK).map(([id,test])=>[id,all.filter(test).length])),[all])
- const rows=useMemo(()=>all.filter(x=>!quick||QUICK[quick](x)).filter(({risk,s,warnings}: AnyRecord)=>{
+ const rows=useMemo(()=>all.filter(x=>!quick||QUICK[quick](x)).filter(({risk,s,warnings})=>{
   const text=`${risk.lineageKey} ${txt(risk,'process',en)} ${txt(risk,'scope',en)} ${txt(risk,'hazard',en)} ${txt(risk,'owner',en)} ${risk.indicator||''}`.toLowerCase()
   if(query&&!text.includes(query.toLowerCase()))return false
   if(section!=='all'&&risk.section!==section)return false
   if(process!=='all'&&txt(risk,'process',en)!==process)return false
   if(level!=='all'&&s.residual.level!==level)return false
   if(jci!=='all'&&risk.jci!==jci)return false
-  if(flag==='warnings'&&!warnings.some((w: AnyRecord)=>w.tone!=='info'))return false
+  if(flag==='warnings'&&!warnings.some(w=>w.tone!=='info'))return false
   if(flag==='prioritized'&&!risk.prioritized)return false
-  if(flag==='noTarget'&&!QUICK.noTarget({risk,s}))return false
-  if(flag==='noIndicator'&&!QUICK.noIndicator({risk}))return false
+  if(flag==='noTarget'&&!QUICK.noTarget({risk,s} as ScoredRisk))return false
+  if(flag==='noIndicator'&&!QUICK.noIndicator({risk} as ScoredRisk))return false
   if(cell&&(s[cell.kind].l!==cell.l||s[cell.kind].c!==cell.c))return false
   return true
  }),[all,quick,en,query,section,process,level,jci,flag,cell])
  // Rows of the two sections, each under its own heading.
- const ordered=useMemo(()=>SECTIONS.flatMap(x=>rows.filter((r: AnyRecord)=>(r.risk.section||'clinical')===x.id)),[rows])
+ const ordered=useMemo(()=>SECTIONS.flatMap(x=>rows.filter(r=>(r.risk.section||'clinical')===x.id)),[rows])
  const {items:pageRows,pager}=usePaged(ordered,{en,resetOn:JSON.stringify([query,section,process,level,jci,flag,quick,cell]),startIndex:ordered.findIndex(r=>r.risk.lineageKey===returned)})
  const sectionTotals=useMemo(()=>Object.fromEntries(SECTIONS.map(x=>[x.id,ordered.filter(r=>(r.risk.section||'clinical')===x.id).length])),[ordered])
  const groups=SECTIONS.map(x=>({section:x,rows:pageRows.filter(r=>(r.risk.section||'clinical')===x.id)})).filter(g=>g.rows.length)
  // The table's rows: each section's heading, then its risks.
- const tableRows: AnyRecord[]=groups.flatMap(({section:g,rows:list})=>[{heading:g},...list])
+ const tableRows: RegisterRow[]=groups.flatMap(({section:g,rows:list})=>[{heading:g},...list])
  const active=Number(section!=='all')+Number(process!=='all')+Number(level!=='all')+Number(jci!=='all')+Number(flag!=='all')
  // The totals beside the search: each one filters the register, a second click clears it.
  const total=(id: string,label: string)=>({key:id,value:counts[id],label,active:quick===id,onClick:()=>toggleQuick(id)})
@@ -104,7 +104,7 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
      <td className="risk-hazard"><span className="risk-hazard-text">{txt(row.risk,'hazard',en)}</span>
       <small className="risk-hazard-where">{[txt(row.risk,'process',en),txt(row.risk,'scope',en)].filter(Boolean).join(' · ')||'—'}</small>
       {(row.risk.jci||(row.risk.indicatorKeys||[]).length>0||evidenceOf)&&<small className="risk-hazard-meta">{row.risk.jci&&<span>JCI {row.risk.jci}</span>}{(row.risk.indicatorKeys||[]).length>0&&<IndicatorBadge keys={row.risk.indicatorKeys||[]} values={indicatorValues} en={en}/>}{evidenceOf&&<RiskEvidence evidence={evidenceOf(row.risk)} en={en}/>}</small>}
-      {row.warnings.filter((w: AnyRecord)=>w.tone!=='info').slice(0,2).map((w: AnyRecord)=><small key={w.id} className="risk-row-warning"><AlertTriangle size={12}/>{warningLabel(w.id,en)}</small>)}</td>
+      {row.warnings.filter(w=>w.tone!=='info').slice(0,2).map(w=><small key={w.id} className="risk-row-warning"><AlertTriangle size={12}/>{warningLabel(w.id,en)}</small>)}</td>
      <td><LevelChip score={row.s.inherent.score} level={row.s.inherent.level} en={en} compact/></td>
      <td className="risk-step"><LevelChip score={row.s.residual.score} level={row.s.residual.level} en={en}/></td>
      <td className="risk-step"><LevelChip score={row.s.target.score} level={row.s.target.level} en={en} compact/></td>

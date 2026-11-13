@@ -2,7 +2,7 @@ import { useState,type ReactNode } from 'react'
 import { LEVELS,jciLabel,levelForScore,scored,sectionLabel,type RiskSummary } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,returnedClass,txt,type RiskFrame } from './riskUi'
 import { RiskIndicatorTable } from './RiskIndicatorsUi'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { HeatCell,IndicatorValueMap,Risk,RiskGroupRow,RiskStage } from './riskTypes'
 
 const pct=(n: number,total: number)=>total?Math.round(n/total*100):0
 // Greek decimals use a comma.
@@ -30,15 +30,15 @@ export function RiskKpis({summary,en}: {summary: RiskSummary,en: boolean}){
  return <div className="risk-kpis">{items.map(([label,value,tone])=><div key={label} className={`risk-kpi${tone?` risk-kpi-${tone}`:''}`}><strong>{value}</strong><span>{label}</span></div>)}<p className="risk-kpi-note">{L(en,`${high} από ${summary.total} κινδύνους παραμένουν υψηλοί ή πολύ υψηλοί με τα υφιστάμενα μέτρα.`,`${high} of ${summary.total} risks stay high or very high with the existing controls.`)}</p></div>
 }
 
-function GroupTable({rows,en,label,labelFor=(x: string)=>x}: {rows: AnyRecord[],en: boolean,label: string,labelFor?: (key: string)=>string}){
+function GroupTable({rows,en,label,labelFor=(x: string)=>x}: {rows: RiskGroupRow[],en: boolean,label: string,labelFor?: (key: string)=>string}){
  return <table className="data-table risk-group-table"><thead><tr><th>{label}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Μέσος εγγενής','Avg. inherent')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Μέγιστος υπολειπόμενος','Max. residual')}</th><th>{L(en,'Υψηλοί / πολύ υψηλοί','High / very high')}</th></tr></thead><tbody>
-  {rows.map((g: AnyRecord)=><tr key={g.key}><td>{labelFor(g.key)}</td><td>{g.count}</td><td>{num(g.inherentAvg,en)}</td><td>{num(g.residualAvg,en)}</td><td><LevelChip score={g.residualMax} en={en}/></td><td>{g.highOrAbove||'—'}</td></tr>)}
+  {rows.map(g=><tr key={g.key}><td>{labelFor(g.key)}</td><td>{g.count}</td><td>{num(g.inherentAvg,en)}</td><td>{num(g.residualAvg,en)}</td><td><LevelChip score={g.residualMax} en={en}/></td><td>{g.highOrAbove||'—'}</td></tr>)}
  </tbody></table>
 }
 
-export function RiskList({risks,en,empty,onOpen,returned=''}: {risks: AnyRecord[],en: boolean,empty: string,onOpen?: ((risk: AnyRecord)=>void)|null,returned?: string}){
+export function RiskList({risks,en,empty,onOpen,returned=''}: {risks: Risk[],en: boolean,empty: string,onOpen?: ((risk: Risk)=>void)|null,returned?: string}){
  if(!risks.length)return <p className="risk-empty-note">{empty}</p>
- return <ol className="risk-list">{risks.map((risk: AnyRecord)=>{const s=scored(risk);return <li key={risk.id||risk.lineageKey}><button type="button" className={returnedClass(returned,risk.lineageKey).trim()||undefined} onClick={()=>onOpen?.(risk)} disabled={!onOpen}>
+ return <ol className="risk-list">{risks.map(risk=>{const s=scored(risk);return <li key={risk.id||risk.lineageKey}><button type="button" className={returnedClass(returned,risk.lineageKey).trim()||undefined} onClick={()=>onOpen?.(risk)} disabled={!onOpen}>
   <LevelChip score={s.residual.score} level={s.residual.level} en={en} compact/><span><strong>{risk.lineageKey} · {txt(risk,'hazard',en)}</strong><small>{[txt(risk,'process',en),txt(risk,'scope',en),txt(risk,'owner',en)].filter(Boolean).join(' · ')}</small></span>
  </button></li>})}</ol>
 }
@@ -55,10 +55,10 @@ const GROUPS=[['process','Ανά διεργασία','By process'],['jci','Αν�
 interface RiskAnalysisProps {
  summary: RiskSummary
  en: boolean
- onCell: (cell: AnyRecord)=>void
- onOpen: (risk: AnyRecord)=>void
- risks?: AnyRecord[]
- indicatorValues?: Map<string,AnyRecord>|null
+ onCell: (cell: HeatCell)=>void
+ onOpen: (risk: Risk)=>void
+ risks?: Risk[]
+ indicatorValues?: IndicatorValueMap|null
  actions?: ReactNode
  returned?: string
  mark?: string
@@ -69,7 +69,7 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
  const [group,setGroup]=useState('process')
  // The heat-map cell the user came back from stays marked.
  const [mk,ml,mc]=String(mark).split(':'),marked=mk&&ml&&mc&&['inherent','residual','target'].includes(mk)?{kind:mk,l:Number(ml),c:Number(mc)}:null
- const map=(kind: string,title: string,caption: string,extra: AnyRecord={})=><div className="risk-heatmap-cell">
+ const map=(kind: RiskStage,title: string,caption: string,extra: {emptyNote?: string}={})=><div className="risk-heatmap-cell">
   <RiskHeatMap heat={summary.heat[kind]} en={en} title={title} caption={caption} onCell={(c: {l: number,c: number})=>onCell({...c,kind})} active={marked?.kind===kind?marked:null} {...extra}/>
   <LevelCounts counts={summary.levels[kind]} en={en}/>
  </div>

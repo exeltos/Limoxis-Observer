@@ -24,6 +24,7 @@ import type { AnyRecord } from '../../../../types/featureTypes'
 import type { Handler } from '../../surveillanceTypes'
 import type { AttachmentFile } from '../../../../design-system/AttachmentField'
 import type { EodyEntry } from '../../../reporting/eodyCatalogue'
+import type { NotificationReport } from '../../../reporting/notificationReportsService'
 
 // The roles the database lets read and write notifiable disease reports (RLS of
 // notifiable_disease_reports). Everyone else does not even learn that a report exists.
@@ -37,7 +38,7 @@ export const canSeeNotifiable = (ctx: AnyRecord) =>
 // notification that carries no finding. Pure: the screen and the printed report share it.
 export function notifiableRows(ctx: AnyRecord, reports: AnyRecord[] = []) {
   const en = ctx.language === 'en'
-  const findings = notifiableFindings(ctx.samples || [], reports)
+  const findings = notifiableFindings(ctx.samples || [], reports as unknown as NotificationReport[])
   const seen = new Set(findings.map(finding => finding.findingKey))
   const rows: AnyRecord[] = findings.map(finding => ({
     key: finding.findingKey,

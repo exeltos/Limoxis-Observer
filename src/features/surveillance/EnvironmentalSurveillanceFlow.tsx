@@ -37,7 +37,7 @@ import { listTexts } from './surveillanceOptions'
 import './surveillanceRegistry.css'
 import './surveillanceEntryCard.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CreatedSampling, DepartmentOption, EnvironmentalInitial, EnvironmentalResult, EnvironmentalSample, RegistryEmpty, SamplingPointRow, SheetPoint } from './environmentTypes'
 import type { Handler } from './surveillanceTypes'
 import type { LucideIcon } from 'lucide-react'
 import type { MutableRefObject, RefObject } from 'react'
@@ -51,33 +51,36 @@ const sourceByType: Record<string, string[]> = {
   air: ['activeAir', 'passiveAir', 'airSampling', 'other'],
   water: ['tapWater', 'showerWater', 'waterSampling', 'other'],
 }
-const inProgressStatuses = ['requested', 'collected', 'received', 'processing']
-const closedStatuses = ['cancelled', 'rejected', 'voided']
+// Looked up with a sample's status, which a row may lack.
+const inProgressStatuses: readonly (string | undefined)[] = ['requested', 'collected', 'received', 'processing']
+const closedStatuses: readonly (string | undefined)[] = ['cancelled', 'rejected', 'voided']
 
 // A result outside the acceptable limits is not "done": the point needs action
 // (remediation and a new sampling), whatever the laboratory status says.
-export const environmentalNeedsAction = (row: AnyRecord) =>
+export const environmentalNeedsAction = (row: EnvironmentalSample | null | undefined) =>
   !closedStatuses.includes(row?.status) &&
-  (row?.microbiologyResults || []).some((result: AnyRecord) => isOutsideLimit(result))
+  (row?.microbiologyResults || []).some((result: EnvironmentalResult) => isOutsideLimit(result))
 
 // The registry status shown for an environmental sample, with its badge tone.
-export function environmentalStatusDisplay(row: AnyRecord, t: (key: string) => string) {
+// (A laboratory sample always has a status: laboratory_samples.status is not null.)
+export function environmentalStatusDisplay(row: EnvironmentalSample, t: (key: string) => string) {
   if (environmentalNeedsAction(row))
     return { label: t('surveillanceList.actionNeeded'), tone: 'warning' }
-  if (inProgressStatuses.includes(row?.status)) return { label: t(row.status), tone: 'info' }
-  return { label: t(row?.status), tone: '' }
+  if (inProgressStatuses.includes(row?.status)) return { label: t(row.status as string), tone: 'info' }
+  return { label: t(row?.status as string), tone: '' }
 }
 
 // Prefill for a new sampling at the same point as an earlier sample.
-export function environmentalResampleInitial(row: AnyRecord, departmentOptions: AnyRecord[] = []) {
+export function environmentalResampleInitial(row: EnvironmentalSample, departmentOptions: DepartmentOption[] = []): EnvironmentalInitial {
   const department = departmentOptions.find(
     item =>
       (row.departmentId && item.value === row.departmentId) ||
       (row.department && item.label === row.department) ||
       (row.departmentEn && item.labelEn === row.departmentEn),
   )
-  const type = environmentalSubjectCatalog.some(item => item.id === row.type) ? row.type : 'surface'
-  const method = (sourceByType[type] || []).includes(row.environmentalMethod)
+  // The sample's own type only when it is one of the catalog (checked here), and its method only when it is one of that type's.
+  const type = environmentalSubjectCatalog.some(item => item.id === row.type) ? row.type as string : 'surface'
+  const method = (sourceByType[type] || []).includes(row.environmentalMethod as string)
     ? row.environmentalMethod
     : environmentalSubjectCatalog.find(item => item.id === type)?.defaultSource || 'other'
   return {
@@ -92,8 +95,8 @@ export function environmentalResampleInitial(row: AnyRecord, departmentOptions: 
 
 interface EnvironmentalSurveillanceFlowProps {
   isDemo: boolean
-  departmentOptions?: AnyRecord[]
-  initial?: AnyRecord | null
+  departmentOptions?: DepartmentOption[]
+  initial?: EnvironmentalInitial | null
   createSample: Handler
   onClose: Handler
   onCreated: Handler
@@ -120,8 +123,8 @@ export function EnvironmentalSurveillanceFlow({
     ),
     [plate, setPlate] = useState(''),
     [position, setPosition] = useState(''),
-    [batchRows, setBatchRows] = useState<AnyRecord[]>([{ id: 1, location: '', point: '', plate: '', position: '' }]),
-    [created, setCreated] = useState<AnyRecord | null>(null),
+    [batchRows, setBatchRows] = useState<SamplingPointRow[]>([{ id: 1, location: '', point: '', plate: '', position: '' }]),
+    [created, setCreated] = useState<CreatedSampling | null>(null),
     [saving, setSaving] = useState(false)
   // Surfaces, rooms and air are sampled on culture plates: the plate and the spot on it are required (water goes in a bottle).
   const needsPlate = subjectType !== 'water'
@@ -248,9 +251,9 @@ export function EnvironmentalSurveillanceFlow({
     ? [{ location: location.trim(), point: point.trim(), plate: plate.trim(), position: position.trim() }].filter(item => item.location || item.point)
     : batchRows.filter(row => row.location.trim() || row.point.trim()).map(row => ({ location: row.location.trim(), point: row.point.trim(), plate: row.plate.trim(), position: row.position.trim() }))
   // The recording sheet is exported like every other document (Εξαγωγή: print, PDF, Word).
-  const sheetExports = (points: AnyRecord[], code = '') =>
+  const sheetExports = (points: SheetPoint[], code = '') =>
     reportExports(() => sheetFor(points, code), { word: true, onBlocked: () => notify(t('clinicalRecords.envPopupBlocked'), 'error') })
-  function sheetFor(points: AnyRecord[], code = '') {
+  function sheetFor(points: SheetPoint[], code = '') {
     const dep = departmentOptions.find(item => item.value === departmentValue)
     return environmentalSheetDocument({
       language,
@@ -303,7 +306,7 @@ export function EnvironmentalSurveillanceFlow({
       ) : null}
       {created ? (
         <ul className="environmental-created-list" aria-label={t('clinicalRecords.envSheetPoints')}>
-          {created.points.map((item: AnyRecord, index: number) => (
+          {created.points.map((item: SheetPoint, index: number) => (
             <li key={`${item.code}-${index}`}>
               <span>{String(index + 1).padStart(2, '0')}</span>
               <strong>{[item.location, item.point].filter(Boolean).join(' · ')}</strong>
@@ -460,7 +463,7 @@ export function EnvironmentalSurveillanceFlow({
                   emptyLabel=""
                   onChange={v => updateRow(row.id, 'point', v)}
                 />
-                {['plate', 'position'].map(key => {
+                {(['plate', 'position'] as const).map(key => {
                   const fieldKey = `${key}-${row.id}`
                   const invalid = Boolean(form.errorFor(fieldKey))
                   return (
@@ -507,10 +510,10 @@ export function EnvironmentalSurveillanceFlow({
 
 interface EnvironmentalRegistryProps {
   loading?: boolean
-  rows: AnyRecord[]
+  rows: EnvironmentalSample[]
   // Passed by the Surveillance page, not read here.
-  summaryRows?: AnyRecord[]
-  empty?: AnyRecord | null
+  summaryRows?: EnvironmentalSample[]
+  empty?: RegistryEmpty | null
   t: (key: string) => string
   language: string
   fmt: (value: unknown) => string
@@ -544,7 +547,7 @@ export function EnvironmentalRegistry({
     { key: 'result', label: t('result'), sortable: true },
     { key: 'status', label: t('status'), sortable: true },
   ]
-  const departmentName = (row: AnyRecord) => (language === 'el' ? row.department : row.departmentEn)
+  const departmentName = (row: EnvironmentalSample) => (language === 'el' ? row.department : row.departmentEn)
   return (
     <section className="environmental-registry workspace-fill">
       <div className="scroll-table" ref={scrollRef as RefObject<HTMLDivElement>}>
@@ -556,7 +559,8 @@ export function EnvironmentalRegistry({
         onSort={onSort}
         columns={columns}
         rows={rows}
-        rowKey={row => row.code || row.id}
+        // Every laboratory sample has an id.
+        rowKey={row => (row.code || row.id) as string}
         emptyTitle={empty?.title}
         emptyText={empty?.text}
         emptyFiltered={Boolean(empty?.filtered)}
@@ -620,7 +624,7 @@ export function EnvironmentalRegistry({
 }
 
 interface EnvironmentalStatusCellProps {
-  row: AnyRecord
+  row: EnvironmentalSample
   t: (key: string) => string
 }
 function EnvironmentalStatusCell({ row, t }: EnvironmentalStatusCellProps) {

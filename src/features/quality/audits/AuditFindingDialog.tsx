@@ -8,21 +8,21 @@ import { RecordDetailsGrid } from '../../../design-system/RecordDetailsGrid'
 import { QualityPersonField } from '../QualityFields'
 import { FINDING_CLASSES, resultLabel, standardShort } from './auditStandards'
 import { classesFor, findingDraftFromAnswer } from './auditModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditAnswer, FindingDialogValues, QualityAudit } from './auditTypes'
 
 const L = (en: boolean, el: string, english: string) => (en ? english : el)
 
 // One answer → a quality finding (class, owner, due date) and, when ticked, its
 // corrective action with its own owner and due date. Both point back at the
 // audit; the answer keeps the finding's code. Closes with the × only.
-export function AuditFindingDialog({ row, audit, language, saving, onClose, onCreate }: { row: AnyRecord, audit: AnyRecord, language: string, saving: boolean, onClose: () => void, onCreate: (values: AnyRecord) => Promise<void> }) {
+export function AuditFindingDialog({ row, audit, language, saving, onClose, onCreate }: { row: AuditAnswer, audit: QualityAudit, language: string, saving: boolean, onClose: () => void, onCreate: (values: FindingDialogValues) => Promise<void> }) {
   const en = language === 'en'
-  const classes = classesFor(row.answer)
-  const [values, setValues] = useState(() => {
+  const classes = classesFor(row.answer as string)
+  const [values, setValues] = useState((): FindingDialogValues => {
     const draft = findingDraftFromAnswer(audit, row, { language })
     return { findingClass: row.findingClass || classes[0] || 'minor', owner: '', dueDate: draft.dueDate, withCapa: row.findingClass === 'major', capaOwner: '', capaDueDate: draft.dueDate }
   })
-  const set = (next: AnyRecord) => setValues(current => {
+  const set = (next: Partial<FindingDialogValues>) => setValues(current => {
     const merged = { ...current, ...next }
     if (next.findingClass) { const due = findingDraftFromAnswer(audit, { ...row, findingClass: next.findingClass }, { language }).dueDate; merged.dueDate = due; merged.capaDueDate = due }
     return merged
@@ -37,10 +37,10 @@ export function AuditFindingDialog({ row, audit, language, saving, onClose, onCr
     ]} />
     <FormGrid columns={3}>
       <ChoiceField label={L(en, 'Κατάταξη', 'Class')} value={values.findingClass} options={FINDING_CLASSES.filter(item => classes.includes(item.value)).map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={findingClass => set({ findingClass })} />
-      <QualityPersonField label={L(en, 'Υπεύθυνος ευρήματος', 'Finding owner')} name={values.owner} department={audit.department} onChange={({ name }: AnyRecord) => set({ owner: name })} />
+      <QualityPersonField label={L(en, 'Υπεύθυνος ευρήματος', 'Finding owner')} name={values.owner} department={audit.department} onChange={({ name }) => set({ owner: name })} />
       <ManualDateField label={L(en, 'Προθεσμία', 'Due date')} value={values.dueDate} onChange={dueDate => set({ dueDate })} />
       <CheckboxField label={L(en, 'Άνοιγμα διορθωτικής ενέργειας', 'Open a corrective action (CAPA)')} checked={values.withCapa} onChange={withCapa => set({ withCapa })} />
-      {values.withCapa && <QualityPersonField label={L(en, 'Υπεύθυνος διορθωτικής ενέργειας', 'CAPA owner')} name={values.capaOwner || values.owner} department={audit.department} onChange={({ name }: AnyRecord) => set({ capaOwner: name })} />}
+      {values.withCapa && <QualityPersonField label={L(en, 'Υπεύθυνος διορθωτικής ενέργειας', 'CAPA owner')} name={values.capaOwner || values.owner} department={audit.department} onChange={({ name }) => set({ capaOwner: name })} />}
       {values.withCapa && <ManualDateField label={L(en, 'Προθεσμία διορθωτικής ενέργειας', 'CAPA due date')} value={values.capaDueDate} onChange={capaDueDate => set({ capaDueDate })} />}
     </FormGrid>
   </ObserverDialog>

@@ -15,7 +15,7 @@ describe('ManualDateField', () => {
   it('commits a valid typed date', () => {
     let saved = ''
     render(<Field onChange={value => { saved = value }} />)
-    const input = screen.getByPlaceholderText('ηη/μμ/εεεε')
+    const input = screen.getByPlaceholderText<HTMLInputElement>('ηη/μμ/εεεε')
     fireEvent.change(input, { target: { value: '20/02/2026' } })
     fireEvent.blur(input)
     expect(saved).toBe('2026-02-20')
@@ -25,7 +25,7 @@ describe('ManualDateField', () => {
   it('reverts the displayed text to the last valid value instead of silently keeping garbage on screen', () => {
     let saved = null
     render(<Field onChange={value => { saved = value }} />)
-    const input = screen.getByPlaceholderText('ηη/μμ/εεεε')
+    const input = screen.getByPlaceholderText<HTMLInputElement>('ηη/μμ/εεεε')
     fireEvent.change(input, { target: { value: 'not a date' } })
     fireEvent.blur(input)
     expect(saved).toBeNull()

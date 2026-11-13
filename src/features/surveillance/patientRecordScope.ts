@@ -1,7 +1,7 @@
 // Which surveillance episodes and laboratory samples belong to a patient, to
 // one admission of that patient, or to one surveillance episode.
 import { hospitalDay } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AdmissionStay, ClinicalCaseLike, ClinicalPatient, EpisodeSample } from './clinicalTypes'
 
 const sameId = (a: unknown, b: unknown) => String(a) === String(b)
 
@@ -19,7 +19,7 @@ function dayBefore(date: string) {
 // The last day of an admission: its discharge day. A stay closed without one
 // (the FileMaker import has none) ends the day before the patient's next
 // admission; an active stay, or the latest one, stays open. '' means open.
-export function admissionWindowEnd(admission: AnyRecord, admissions: AnyRecord[] = []) {
+export function admissionWindowEnd(admission: AdmissionStay | null, admissions: AdmissionStay[] = []) {
   if (!admission) return ''
   if (admission.dischargeDate) return day(admission.dischargeDate)
   if (admission.status === 'active') return ''
@@ -34,26 +34,26 @@ export function admissionWindowEnd(admission: AnyRecord, admissions: AnyRecord[]
 
 // Inside the admission's dates: from the admission day up to its last day
 // (inclusive), or open-ended.
-function withinAdmission(date: string, admission: AnyRecord, admissions: AnyRecord[]) {
+function withinAdmission(date: string, admission: AdmissionStay, admissions: AdmissionStay[]) {
   const end = admissionWindowEnd(admission, admissions)
   return date >= day(admission.admissionDate) && (!end || date <= end)
 }
 
 // A row without a department is not excluded by the department.
-function sameDepartment(row: AnyRecord, admission: AnyRecord) {
+function sameDepartment(row: { departmentId?: string | null }, admission: AdmissionStay) {
   return !admission.departmentId || !row.departmentId || sameId(row.departmentId, admission.departmentId)
 }
 
 // An episode belongs to a patient by the patient record id when both carry one,
 // otherwise by the patient id. Missing ids never match.
-export function episodeBelongsToPatient(episode: AnyRecord, patient: AnyRecord) {
+export function episodeBelongsToPatient(episode: ClinicalCaseLike | null, patient: ClinicalPatient | null) {
   if (!episode || !patient) return false
   if (episode.patientRecordId && patient.recordId) return sameId(episode.patientRecordId, patient.recordId)
   return Boolean(episode.patientId && patient.id) && sameId(episode.patientId, patient.id)
 }
 
 interface EpisodesForAdmissionOptions {
-  admissions?: AnyRecord[]
+  admissions?: AdmissionStay[]
 }
 // Cancelled episodes are never shown. Without an admission, every other episode
 // is. With one, an episode linked to an admission must be linked to this one;
@@ -62,7 +62,7 @@ interface EpisodesForAdmissionOptions {
 // department), like a sample without a date, so it is never hidden from every admission.
 // `admissions` (all of the patient's) closes a discharged stay without a
 // discharge date at the next admission.
-export function episodesForAdmission(episodes: AnyRecord[] = [], admission: AnyRecord | null = null, { admissions = [] }: EpisodesForAdmissionOptions = {}) {
+export function episodesForAdmission<T extends ClinicalCaseLike>(episodes: T[] = [], admission: AdmissionStay | null = null, { admissions = [] }: EpisodesForAdmissionOptions = {}) {
   const visible = episodes.filter(episode => episode.status !== 'cancelled')
   if (!admission) return visible
   return visible.filter(episode => {
@@ -73,13 +73,13 @@ export function episodesForAdmission(episodes: AnyRecord[] = [], admission: AnyR
 }
 
 // The patient's episodes (not cancelled) that belong to none of their admissions.
-export function episodesOutsideAdmissions(episodes: AnyRecord[] = [], admissions: AnyRecord[] = []) {
+export function episodesOutsideAdmissions<T extends ClinicalCaseLike>(episodes: T[] = [], admissions: AdmissionStay[] = []) {
   return episodesForAdmission(episodes).filter(
     episode => !admissions.some(admission => episodesForAdmission([episode], admission, { admissions }).length),
   )
 }
 
-function samplePatient(sample: AnyRecord, patient: AnyRecord) {
+function samplePatient(sample: EpisodeSample, patient: ClinicalPatient) {
   return patient.recordId && sample.patientRecordId
     ? sameId(sample.patientRecordId, patient.recordId)
     : String(sample.patientId || '') === String(patient.id || '')
@@ -103,11 +103,11 @@ function sourceFromText(value: string) {
   return SOURCE_PATTERNS.find(([, pattern]) => pattern.test(text))?.[0] || ''
 }
 
-function sampleSource(sample: AnyRecord) {
-  return SAMPLE_SOURCE[sample?.sampleType || sample?.type] || sourceFromText(`${sample?.source || ''} ${sample?.type || ''}`)
+function sampleSource(sample: EpisodeSample) {
+  return SAMPLE_SOURCE[String(sample?.sampleType || sample?.type)] || sourceFromText(`${sample?.source || ''} ${sample?.type || ''}`)
 }
 
-function episodeSource(episode: AnyRecord) {
+function episodeSource(episode: ClinicalCaseLike) {
   const stored = String(episode?.suspectedSource || '')
   if (stored && stored !== 'other') return stored
   return sourceFromText(`${episode?.reason || ''} ${episode?.reasonEn || ''}`)
@@ -121,12 +121,15 @@ function daysApart(a: string | null | undefined, b: string | null | undefined) {
   return Math.abs(left - right) / 86400000
 }
 
-function sampleMatchesEpisodeList(sample: AnyRecord, episode: AnyRecord) {
+function sampleMatchesEpisodeList(sample: EpisodeSample, episode: ClinicalCaseLike) {
   const ids = [sample?.id, sample?.recordId].filter(Boolean).map(String)
-  return (episode?.samples || []).some((row: AnyRecord) =>
+  return (episode?.samples || []).some((row: EpisodeSample) =>
     [row?.id, row?.recordId].filter(Boolean).some(value => ids.includes(String(value))),
   )
 }
+
+// An episode a sample could belong to, and how well it fits.
+interface SampleCandidate<T> { episode: T, score: number, distance: number, compatible: boolean }
 
 // Imported/LIS samples can belong to the same admission as an existing surveillance
 // episode but have no surveillance_case_id. For the patient folder we still want the
@@ -134,7 +137,7 @@ function sampleMatchesEpisodeList(sample: AnyRecord, episode: AnyRecord) {
 // always authoritative; only missing links are inferred, from the same admission, by
 // clinical source and then by the closest date. A specific source is never silently
 // attached to an incompatible specific source when several episodes exist.
-export function inferredEpisodeForSample(sample: AnyRecord, episodes: AnyRecord[] = []) {
+export function inferredEpisodeForSample<T extends ClinicalCaseLike>(sample: EpisodeSample | null, episodes: T[] = []) {
   if (!sample) return null
   const visible = episodes.filter(episode => episode && episode.status !== 'cancelled')
   const caseId = String(
@@ -154,7 +157,7 @@ export function inferredEpisodeForSample(sample: AnyRecord, episodes: AnyRecord[
   const sampleKind = sampleSource(sample)
   const sampleDate = day(sample.collectedAt || sample.requestedAt || sample.resultedAt)
   const candidates = visible
-    .map(episode => {
+    .map((episode): SampleCandidate<T> | null => {
       const kind = episodeSource(episode)
       const generic = !kind || !episode.suspectedSource || episode.suspectedSource === 'other'
       const compatible = !sampleKind || !kind || kind === sampleKind
@@ -171,7 +174,7 @@ export function inferredEpisodeForSample(sample: AnyRecord, episodes: AnyRecord[
         compatible,
       }
     })
-    .filter(Boolean)
+    .filter((candidate): candidate is SampleCandidate<T> => Boolean(candidate))
     .sort((a, b) => b.score - a.score || a.distance - b.distance)
 
   if (candidates.length) return candidates[0].episode
@@ -181,7 +184,7 @@ export function inferredEpisodeForSample(sample: AnyRecord, episodes: AnyRecord[
   return visible.length === 1 ? visible[0] : null
 }
 
-function withInferredSurveillance(sample: AnyRecord, episodes: AnyRecord[]) {
+function withInferredSurveillance<S extends EpisodeSample>(sample: S, episodes: ClinicalCaseLike[]) {
   if (
     sample.surveillanceCase ||
     sample.surveillanceCaseId ||
@@ -196,16 +199,16 @@ function withInferredSurveillance(sample: AnyRecord, episodes: AnyRecord[]) {
 }
 
 // The admission of the episode a sample is linked to, or ''.
-function linkedAdmissionId(sample: AnyRecord, episodes: AnyRecord[]) {
+function linkedAdmissionId(sample: EpisodeSample, episodes: ClinicalCaseLike[]) {
   const caseId = String(sample.surveillanceCase || sample.surveillanceCaseId || '')
   if (!caseId) return ''
-  const episode = episodes.find((row: AnyRecord) => sameId(row.id, caseId) || (row.recordId && sameId(row.recordId, caseId)))
+  const episode = episodes.find((row: ClinicalCaseLike) => sameId(row.id, caseId) || (row.recordId && sameId(row.recordId, caseId)))
   return episode?.admissionId ? String(episode.admissionId) : ''
 }
 
 interface SamplesForAdmissionOptions {
-  admissions?: AnyRecord[]
-  episodes?: AnyRecord[]
+  admissions?: AdmissionStay[]
+  episodes?: ClinicalCaseLike[]
 }
 // The patient's samples of the admission. A sample of an episode linked to an
 // admission belongs to that admission, whatever its date; any other sample
@@ -213,7 +216,7 @@ interface SamplesForAdmissionOptions {
 // stay without a discharge date), in its department. A sample without a
 // collection or request date is kept. Missing legacy/LIS case links are enriched
 // in-memory so the patient folder can display them under the matching surveillance.
-export function samplesForAdmission(samples: AnyRecord[] = [], patient: AnyRecord | null, admission: AnyRecord | null, { admissions = [], episodes = [] }: SamplesForAdmissionOptions = {}) {
+export function samplesForAdmission<S extends EpisodeSample>(samples: S[] = [], patient: ClinicalPatient | null, admission: AdmissionStay | null, { admissions = [], episodes = [] }: SamplesForAdmissionOptions = {}) {
   if (!patient || !admission) return []
   const scopedEpisodes = episodesForAdmission(episodes, admission, { admissions })
   return samples
@@ -228,11 +231,11 @@ export function samplesForAdmission(samples: AnyRecord[] = [], patient: AnyRecor
 }
 
 interface SamplesOutsideAdmissionsOptions {
-  episodes?: AnyRecord[]
+  episodes?: ClinicalCaseLike[]
 }
 // The patient's samples that belong to none of their admissions, so the record
 // never hides them.
-export function samplesOutsideAdmissions(samples: AnyRecord[] = [], patient: AnyRecord | null, admissions: AnyRecord[] = [], { episodes = [] }: SamplesOutsideAdmissionsOptions = {}) {
+export function samplesOutsideAdmissions<S extends EpisodeSample>(samples: S[] = [], patient: ClinicalPatient | null, admissions: AdmissionStay[] = [], { episodes = [] }: SamplesOutsideAdmissionsOptions = {}) {
   if (!patient) return []
   return samples.filter(
     sample =>
@@ -243,10 +246,10 @@ export function samplesOutsideAdmissions(samples: AnyRecord[] = [], patient: Any
 
 // The episode's own samples, plus laboratory rows recorded for it afterwards:
 // rows linked to the episode, and follow-ups of its samples (code `<sample>-R<n>`).
-export function samplesForEpisode(episode: AnyRecord | null, laboratoryRows: AnyRecord[] = []) {
+export function samplesForEpisode<S extends EpisodeSample>(episode: ClinicalCaseLike | null, laboratoryRows: S[] = []) {
   if (!episode) return []
   const base = episode.samples || []
-  const ids = new Set(base.map((sample: AnyRecord) => String(sample.id || '')))
+  const ids = new Set(base.map((sample: EpisodeSample) => String(sample.id || '')))
   const extra = laboratoryRows
     .filter(sample => {
       const code = String(sample.id || '')
@@ -270,12 +273,12 @@ export function stayDays(from: string, to: string, today = new Date()) {
 }
 
 // A follow-up sample is coded `<parent>-R<n>`; returns the parent's code, or ''.
-export function sampleParentCode(sample: AnyRecord) {
+export function sampleParentCode(sample: EpisodeSample | null) {
   const code = String(sample?.id || '')
   return /-R\d+$/.test(code) ? code.replace(/-R\d+$/, '') : ''
 }
 
-export function sampleTone(sample: AnyRecord) {
+export function sampleTone(sample: EpisodeSample) {
   const result = String(sample.result || '').toLowerCase()
   if (result === 'positive') return 'positive'
   if (result === 'negative') return 'negative'

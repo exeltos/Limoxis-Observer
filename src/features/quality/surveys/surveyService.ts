@@ -4,7 +4,8 @@ import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { cleanAnswers, isSurveyOpen, nextSurveyCode, surveyFromTemplate, type Survey, type SurveyQuestion, type SurveyResponse } from './surveyModel'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { Tables } from '../../../core/supabase/database.types'
+import type { PublicSurvey, SurveyAnswers, SurveyDepartment, SurveyListItem, SurveySection } from './surveyTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
@@ -18,13 +19,13 @@ const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const isUuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
 const localId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 const localToken = () => Array.from({ length: 36 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
-const must = ({ data, error }: AnyRecord) => { if (error) throw error; return data }
+const must = <T,>({ data, error }: { data: T, error: unknown }) => { if (error) throw error; return data }
 const SURVEYS_KEY = 'quality_local_surveys'
 const RESPONSES_KEY = 'quality_local_survey_responses'
 
 // --- Demo -------------------------------------------------------------------------
 
-const DEMO_DEPARTMENTS = [
+const DEMO_DEPARTMENTS: SurveyDepartment[] = [
   { id: 'Παθολογική', name: 'Παθολογική', nameEn: 'Internal medicine' },
   { id: 'Χειρουργική', name: 'Χειρουργική', nameEn: 'Surgery' },
   { id: 'Μαιευτική', name: 'Μαιευτική', nameEn: 'Obstetrics' },
@@ -43,15 +44,15 @@ function seeded(seed: number) { let state = seed; return () => { state = (state 
 const addDays = (day: string, days: number) => { const date = new Date(`${day}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
 
 function demoAnswers(questions: SurveyQuestion[], random: () => number, mood: number) {
-  const answers: AnyRecord = {}
+  const answers: SurveyAnswers = {}
   for (const question of questions) {
     // Food and quiet score lower in the demo, so a question falls below target.
     const bias = ['food', 'quiet', 'admission_wait', 'wait', 'workload', 'food_quality', 'visiting_hours'].includes(question.id) ? -0.8 : 0
     if (question.type === 'rating') answers[question.id] = Math.max(1, Math.min(5, Math.round(4.35 + mood + bias + (random() - 0.5) * 2)))
     else if (question.type === 'nps') answers[question.id] = Math.max(0, Math.min(10, Math.round(8 + mood * 2 + (random() - 0.5) * 4)))
     else if (question.type === 'yesno') answers[question.id] = random() < (question.id === 'hand_hygiene' ? 0.78 : question.id === 'technical' ? 0.18 : 0.9)
-    else if (question.type === 'single' && random() < 0.85) answers[question.id] = question.options[Math.floor(random() * question.options.length)].value
-    else if (question.type === 'multiple') { const picked = (question.options || []).filter(() => random() < 0.3).map((item: AnyRecord) => item.value); if (picked.length) answers[question.id] = picked }
+    else if (question.type === 'single' && random() < 0.85) answers[question.id] = question.options![Math.floor(random() * question.options!.length)].value
+    else if (question.type === 'multiple') { const picked = (question.options || []).filter(() => random() < 0.3).map(item => item.value); if (picked.length) answers[question.id] = picked }
     else if (question.type === 'text' && random() < 0.22) { const list = DEMO_COMMENTS[question.id] || DEMO_COMMENTS.improve; answers[question.id] = list[Math.floor(random() * list.length)] }
   }
   if (answers.technical === false) delete answers.technical_fix
@@ -106,7 +107,9 @@ function demoHistory(year: number, today: string, random: () => number) {
   return { surveys, responses }
 }
 
-function local() {
+// The demo's surveys and responses.
+type SurveyState = { surveys: Survey[], responses: SurveyResponse[] }
+function local(): SurveyState {
   const surveys = loadSnapshot(SURVEYS_KEY, null)
   if (Array.isArray(surveys)) return { surveys, responses: loadSnapshot(RESPONSES_KEY, []) }
   const state = demoState()
@@ -115,21 +118,21 @@ function local() {
 }
 // The demo surveys and responses as they are in this browser (the Analysis demo reads them).
 export const loadSurveysLocal = () => local()
-function saveLocal(state: AnyRecord) {
+function saveLocal(state: SurveyState) {
   saveSnapshot(SURVEYS_KEY, state.surveys)
   saveSnapshot(RESPONSES_KEY, state.responses)
 }
-const named = (response: AnyRecord) => { const department = DEMO_DEPARTMENTS.find(item => item.id === response.departmentId); return { ...response, department: department?.name || response.departmentId || '', departmentEn: department?.nameEn || department?.name || response.departmentId || '' } }
+const named = (response: SurveyResponse): SurveyResponse => { const department = DEMO_DEPARTMENTS.find(item => item.id === response.departmentId); return { ...response, department: department?.name || response.departmentId || '', departmentEn: department?.nameEn || department?.name || response.departmentId || '' } }
 
 // --- Cloud --------------------------------------------------------------------------
 
-const toSurvey = (row: AnyRecord) => ({
+const toSurvey = (row: Tables<'quality_surveys'>): Survey => ({
   id: row.id, code: row.code, title: row.title, titleEn: row.title_en || '', description: row.description || '', descriptionEn: row.description_en || '',
-  audience: row.audience, templateKey: row.template_key || '', departmentIds: row.department_ids || [], sections: Array.isArray(row.sections) ? row.sections : [], questions: Array.isArray(row.questions) ? row.questions : [],
+  audience: row.audience, templateKey: row.template_key || '', departmentIds: row.department_ids || [], sections: Array.isArray(row.sections) ? row.sections as SurveySection[] : [], questions: Array.isArray(row.questions) ? row.questions as SurveyQuestion[] : [],
   status: row.status, opensOn: row.opens_on || '', closesOn: row.closes_on || '', targetResponses: row.target_responses || '', satisfiedTarget: Number(row.satisfied_target ?? 80),
   publicToken: row.public_token || '', createdAt: row.created_at, updatedAt: row.updated_at,
 })
-const toRow = (organizationId: string | null | undefined, survey: AnyRecord) => ({
+const toRow = (organizationId: string | null | undefined, survey: Survey) => ({
   organization_id: organizationId as string, title: survey.title.trim(), title_en: survey.titleEn || null, description: survey.description || null, description_en: survey.descriptionEn || null,
   audience: survey.audience, template_key: survey.templateKey || null, department_ids: (survey.departmentIds || []).filter(isUuid), sections: survey.sections || [], questions: survey.questions || [],
   status: survey.status || 'draft', opens_on: survey.opensOn || null, closes_on: survey.closesOn || null, target_responses: Number(survey.targetResponses) || null, satisfied_target: Number(survey.satisfiedTarget) || 80,
@@ -137,17 +140,17 @@ const toRow = (organizationId: string | null | undefined, survey: AnyRecord) => 
 
 async function departmentNames(organizationId: string | null | undefined) {
   const rows = must(await supabase.from('departments').select('id,name').eq('organization_id', organizationId as string)) || []
-  return new Map(rows.map((row: AnyRecord) => [row.id, row.name]))
+  return new Map<string | null, string>(rows.map(row => [row.id, row.name]))
 }
 
 // --- API ----------------------------------------------------------------------------
 
 // The surveys the user may see, with how many responses each has (all, and in the last 30 days).
-export async function loadSurveys(organizationId: string | null | undefined) {
+export async function loadSurveys(organizationId: string | null | undefined): Promise<SurveyListItem[]> {
   const since = new Date(Date.now() - 30 * 86400000).toISOString()
   if (isLocal()) {
     const state = local()
-    return state.surveys.map(survey => { const own = state.responses.filter((response: AnyRecord) => response.surveyId === survey.id); return { ...survey, responseCount: own.length, recentCount: own.filter((response: AnyRecord) => response.submittedAt >= since).length } })
+    return state.surveys.map(survey => { const own = state.responses.filter(response => response.surveyId === survey.id); return { ...survey, responseCount: own.length, recentCount: own.filter(response => response.submittedAt >= since).length } })
   }
   // The surveys and every survey's counts in two reads side by side
   // (quality_survey_response_counts, 20261201110000), not two counts per survey.
@@ -158,9 +161,9 @@ export async function loadSurveys(organizationId: string | null | undefined) {
   const rows = must(surveyRows) || []
   if (!counted?.error && Array.isArray(counted?.data)) {
     const counts = new Map(counted.data.map(item => [item.survey_id, item]))
-    return rows.map((row: AnyRecord) => ({ ...toSurvey(row), responseCount: Number(counts.get(row.id)?.total || 0), recentCount: Number(counts.get(row.id)?.recent || 0) }))
+    return rows.map(row => ({ ...toSurvey(row), responseCount: Number(counts.get(row.id)?.total || 0), recentCount: Number(counts.get(row.id)?.recent || 0) }))
   }
-  return Promise.all(rows.map(async (row: AnyRecord) => {
+  return Promise.all(rows.map(async row => {
     const [all, recent] = await Promise.all([
       supabase.from('quality_survey_responses').select('id', { count: 'exact', head: true }).eq('survey_id', row.id),
       supabase.from('quality_survey_responses').select('id', { count: 'exact', head: true }).eq('survey_id', row.id).gte('submitted_at', since),
@@ -169,7 +172,7 @@ export async function loadSurveys(organizationId: string | null | undefined) {
   }))
 }
 
-export async function loadSurvey(organizationId: string | null | undefined, id: string) {
+export async function loadSurvey(organizationId: string | null | undefined, id: string): Promise<Survey | null> {
   if (isLocal()) return local().surveys.find(survey => survey.id === id || survey.code === id) || null
   // By id, or by its code (a corrective action keeps the survey's code).
   const row = must(await supabase.from('quality_surveys').select('*').eq(isUuid(id) ? 'id' : 'code', id).eq('organization_id', organizationId as string).maybeSingle())
@@ -177,8 +180,8 @@ export async function loadSurvey(organizationId: string | null | undefined, id: 
 }
 
 // The responses the user may read (Quality all, a department its own).
-export async function loadResponses(organizationId: string | null | undefined, surveyId: string) {
-  if (isLocal()) return local().responses.filter((response: AnyRecord) => response.surveyId === surveyId).map(named).sort((a: AnyRecord, b: AnyRecord) => String(b.submittedAt).localeCompare(String(a.submittedAt)))
+export async function loadResponses(organizationId: string | null | undefined, surveyId: string): Promise<SurveyResponse[]> {
+  if (isLocal()) return local().responses.filter(response => response.surveyId === surveyId).map(named).sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))
   const [rows, names] = await Promise.all([(async () => {
     const all = []
     for (let from = 0; ; from += 1000) {
@@ -187,10 +190,10 @@ export async function loadResponses(organizationId: string | null | undefined, s
       if (page.length < 1000) return all
     }
   })(), departmentNames(organizationId)])
-  return rows.map(row => ({ id: row.id, surveyId: row.survey_id, departmentId: row.department_id || '', department: names.get(row.department_id) || '', departmentEn: names.get(row.department_id) || '', channel: row.channel, answers: row.answers || {}, submittedAt: row.submitted_at }))
+  return rows.map(row => ({ id: row.id, surveyId: row.survey_id, departmentId: row.department_id || '', department: names.get(row.department_id) || '', departmentEn: names.get(row.department_id) || '', channel: row.channel, answers: (row.answers || {}) as SurveyAnswers, submittedAt: row.submitted_at }))
 }
 
-export async function saveSurvey(organizationId: string | null | undefined, survey: AnyRecord) {
+export async function saveSurvey(organizationId: string | null | undefined, survey: Survey): Promise<Survey | null> {
   const year = Number(String(survey.opensOn || new Date().toISOString()).slice(0, 4)) || new Date().getFullYear()
   if (isLocal()) {
     const state = local()
@@ -204,15 +207,15 @@ export async function saveSurvey(organizationId: string | null | undefined, surv
     return loadSurvey(organizationId, survey.id)
   }
   const codes = must(await supabase.from('quality_surveys').select('code').eq('organization_id', organizationId as string)) || []
-  const row = must(await supabase.from('quality_surveys').insert({ ...toRow(organizationId, survey), code: nextSurveyCode(codes.map((item: AnyRecord) => item.code), year) }).select('*').single())
-  return toSurvey(row)
+  const row = must(await supabase.from('quality_surveys').insert({ ...toRow(organizationId, survey), code: nextSurveyCode(codes.map(item => item.code), year) }).select('*').single())
+  return toSurvey(row!)
 }
 
 export async function deleteSurvey(organizationId: string | null | undefined, id: string) {
   if (isLocal()) {
     const state = local()
     state.surveys = state.surveys.filter(survey => survey.id !== id)
-    state.responses = state.responses.filter((response: AnyRecord) => response.surveyId !== id)
+    state.responses = state.responses.filter(response => response.surveyId !== id)
     saveLocal(state)
     return
   }
@@ -220,12 +223,12 @@ export async function deleteSurvey(organizationId: string | null | undefined, id
 }
 
 // A response entered in the app: on a tablet at the ward, or typed in from paper.
-export async function addResponse(organizationId: string | null | undefined, survey: AnyRecord, { departmentId = '', channel = 'tablet', answers = {} }) {
+export async function addResponse(organizationId: string | null | undefined, survey: Survey, { departmentId = '', channel = 'tablet', answers = {} }: { departmentId?: string, channel?: string, answers?: SurveyAnswers }) {
   const kept = cleanAnswers(survey.questions, answers)
   if (!kept) throw new Error('SURVEY_ANSWERS_INVALID')
   if (isLocal()) {
     const state = local()
-    const response = { id: localId('srvr'), surveyId: survey.id, departmentId, channel, answers: kept, submittedAt: new Date().toISOString() }
+    const response: SurveyResponse = { id: localId('srvr'), surveyId: survey.id, departmentId, channel, answers: kept, submittedAt: new Date().toISOString() }
     state.responses = [response, ...state.responses]
     saveLocal(state)
     return named(response)
@@ -236,7 +239,7 @@ export async function addResponse(organizationId: string | null | undefined, sur
 export async function deleteResponse(organizationId: string | null | undefined, id: string) {
   if (isLocal()) {
     const state = local()
-    state.responses = state.responses.filter((response: AnyRecord) => response.id !== id)
+    state.responses = state.responses.filter(response => response.id !== id)
     saveLocal(state)
     return
   }
@@ -245,7 +248,7 @@ export async function deleteResponse(organizationId: string | null | undefined, 
 
 // --- Public link (no account) -----------------------------------------------------
 
-export async function loadPublicSurvey(token: string) {
+export async function loadPublicSurvey(token: string): Promise<PublicSurvey> {
   if (isLocal()) {
     const survey = local().surveys.find(item => item.publicToken === token && item.status !== 'draft')
     if (!survey) throw new Error('SURVEY_NOT_AVAILABLE')
@@ -253,10 +256,10 @@ export async function loadPublicSurvey(token: string) {
     return { open, title: survey.title, titleEn: survey.titleEn, description: survey.description, descriptionEn: survey.descriptionEn, audience: survey.audience, organizationName: 'Demo Hospital', sections: survey.sections || [], questions: open ? survey.questions : [], departments: open ? DEMO_DEPARTMENTS.filter(item => survey.departmentIds?.includes(item.id)) : [] }
   }
   if (!supabase) throw new Error('SURVEY_NOT_AVAILABLE')
-  return must(await supabase.rpc('survey_public', { p_token: token }))
+  return must(await supabase.rpc('survey_public', { p_token: token })) as unknown as PublicSurvey
 }
 
-export async function submitPublicSurvey(token: string, departmentId: string, answers: AnyRecord) {
+export async function submitPublicSurvey(token: string, departmentId: string, answers: SurveyAnswers) {
   if (isLocal()) {
     const state = local()
     const survey = state.surveys.find(item => item.publicToken === token)

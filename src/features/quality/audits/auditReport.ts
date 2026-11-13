@@ -1,11 +1,11 @@
-import type { ReportDoc } from '../../../core/export/reportDocument'
+import type { ReportCell, ReportDoc, ReportSection } from '../../../core/export/reportDocument'
 // The audit report on the shared layout (core/export/reportDocument.js): scope,
 // team, meetings, the result per chapter, the answers that were not
 // «Συμμορφώνεται», the findings, the conclusion and the signatures of the lead
 // auditor and the auditee; and the answers as an Excel (.csv) file. Pure.
 import { AUDIT_KINDS, TEAM_ROLES, findingClassLabel, resultLabel, riskMonths, standardLabel, standardShort } from './auditStandards'
 import { auditScore } from './auditModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditAnswer, AuditChapterScore, AuditFinding, AuditScore, AuditTeamMember, QualityAudit } from './auditTypes'
 
 const day = (value: unknown) => {
   if (!value) return '—'
@@ -14,37 +14,39 @@ const day = (value: unknown) => {
 }
 const month = (value: unknown, language: string) => (value ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(value).slice(0, 7)}-15T12:00:00Z`)) : '—')
 const pct = (value: number | null | undefined) => (value == null ? '—' : `${value}%`)
-const label = (list: AnyRecord[], value: string, en: boolean) => list.find((item: AnyRecord) => item.value === value)?.label[en ? 1 : 0] || value || ''
+const label = (list: { value: string, label: string[] }[], value: string | undefined, en: boolean) => list.find(item => item.value === value)?.label[en ? 1 : 0] || value || ''
 
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c])
 const RESULT_COLOR: Record<string, string> = { yes: '#18794e', partial: '#b5720b', no: '#b42318', na: '#667085' }
 // A thin stacked bar of the four results: width follows the number of answers.
-const resultBar = (o: AnyRecord, en: boolean) => {
+const resultBar = (o: AuditScore['overall'], en: boolean) => {
   const total = o.yes + o.partial + o.no + o.na
   if (!total) return ''
   const names: Record<string, string> = { yes: en ? 'Conforms' : 'Συμμορφώνεται', partial: en ? 'Partial' : 'Μερική', no: en ? 'Nonconformity' : 'Μη συμμόρφωση', na: en ? 'N/A' : 'Δ.Ε.' }
-  const segs = ['yes', 'partial', 'no', 'na'].filter(key => o[key] > 0).map(key => `<span style="display:block;float:left;height:12px;width:${(o[key] * 100 / total).toFixed(2)}%;background:${RESULT_COLOR[key]}"></span>`).join('')
-  const legend = ['yes', 'partial', 'no', 'na'].map(key => `<span style="margin-right:14px;white-space:nowrap"><b style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${RESULT_COLOR[key]};margin-right:4px"></b>${esc(names[key])} <b>${o[key]}</b></span>`).join('')
+  const segs = (['yes', 'partial', 'no', 'na'] as const).filter(key => o[key] > 0).map(key => `<span style="display:block;float:left;height:12px;width:${(o[key] * 100 / total).toFixed(2)}%;background:${RESULT_COLOR[key]}"></span>`).join('')
+  const legend = (['yes', 'partial', 'no', 'na'] as const).map(key => `<span style="margin-right:14px;white-space:nowrap"><b style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${RESULT_COLOR[key]};margin-right:4px"></b>${esc(names[key])} <b>${o[key]}</b></span>`).join('')
   return `<div style="overflow:hidden;border-radius:6px;background:#eef1f4;height:12px">${segs}</div><p style="margin:6px 0 0;font-size:11px;color:#475467">${legend}</p>`
 }
 const rateBar = (rate: number | null) => (rate == null ? '' : `<span style="display:inline-block;width:90px;height:8px;border-radius:4px;background:#eef1f4;vertical-align:middle"><span style="display:block;height:8px;border-radius:4px;width:${Math.max(0, Math.min(100, rate))}%;background:${rate >= 90 ? '#18794e' : rate >= 75 ? '#b5720b' : '#b42318'}"></span></span>`)
-const resultCell = (answer: string, language: string) => ({ html: `<b style="color:${RESULT_COLOR[answer] || '#667085'}">${esc(resultLabel(answer, language) || '—')}</b>` })
+// How the audited departments answered one question of the questionnaire.
+interface QuestionTally { row: AuditAnswer, yes: number, partial: number, no: number, na: number, order: number }
+const resultCell = (answer: string | undefined, language: string) => ({ html: `<b style="color:${RESULT_COLOR[answer as string] || '#667085'}">${esc(resultLabel(answer, language) || '—')}</b>` })
 
-export function auditReportDocument(audit: AnyRecord, findings: AnyRecord[] = [], { language = 'el' } = {}): ReportDoc {
+export function auditReportDocument(audit: QualityAudit, findings: AuditFinding[] = [], { language = 'el' } = {}): ReportDoc {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const rows = audit.checklist || []
   const score = auditScore(rows)
   const team = audit.team || []
-  const lead = team.find((member: AnyRecord) => member.role === 'lead')?.name || audit.leadAuditor || ''
+  const lead = team.find((member: AuditTeamMember) => member.role === 'lead')?.name || audit.leadAuditor || ''
   const own = findings.filter(finding => finding.sourceId === audit.id)
-  const notMet = rows.filter((row: AnyRecord) => (row.answer === 'partial' || row.answer === 'no') || Boolean(row.findingClass))
+  const notMet = rows.filter((row: AuditAnswer) => (row.answer === 'partial' || row.answer === 'no') || Boolean(row.findingClass))
   return {
     language,
     kind: L('Έκθεση επιθεώρησης', 'Audit report'),
     title: en ? audit.titleEn || audit.title : audit.title,
     code: audit.displayId || audit.id,
-    subtitle: [[audit.standard, ...(audit.standards || []).filter((value: string) => value !== audit.standard)].map((value: string) => standardLabel(value, language)).filter(Boolean).join(' + '), audit.templateTitle && `${audit.templateTitle}${audit.templateVersion ? ` · ${L('έκδοση', 'version')} ${audit.templateVersion}` : ''}`].filter(Boolean).join(' · '),
+    subtitle: [[audit.standard, ...(audit.standards || []).filter((value: string) => value !== audit.standard)].map((value: string | undefined) => standardLabel(value, language)).filter(Boolean).join(' + '), audit.templateTitle && `${audit.templateTitle}${audit.templateVersion ? ` · ${L('έκδοση', 'version')} ${audit.templateVersion}` : ''}`].filter(Boolean).join(' · '),
     meta: [
       [L('Τμήμα', 'Department'), (en ? audit.departmentEn : audit.department) || L('Όλος ο οργανισμός', 'Whole organization')],
       [L('Είδος', 'Kind'), label(AUDIT_KINDS, audit.auditType || 'internal', en)],
@@ -65,7 +67,7 @@ export function auditReportDocument(audit: AnyRecord, findings: AnyRecord[] = []
       { title: L('Πεδίο και κριτήρια', 'Scope and criteria'), text: [en ? audit.scopeEn || audit.scope : audit.scope, audit.clausesScope?.length ? `${L('Κεφάλαια / άρθρα', 'Chapters / clauses')}: ${audit.clausesScope.join(', ')}` : L('Όλο το ερωτηματολόγιο για την περιοχή του τμήματος.', 'The whole questionnaire for the department’s area.'), L('Τα ερωτήματα είναι βοήθημα επιθεώρησης με αναφορά στο άρθρο· δεν αποτελούν το κείμενο του προτύπου.', 'The questions are an audit aid with the clause reference; not the text of the standard.')].filter(Boolean).join('\n') },
       {
         title: L('Ομάδα επιθεώρησης', 'Audit team'),
-        table: { columns: [L('Όνομα', 'Name'), L('Ρόλος', 'Role'), L('Ιδιότητα', 'Capacity')], rows: team.map((member: AnyRecord) => [member.name, label(TEAM_ROLES, member.role, en), member.external ? [L('Εξωτερικός', 'External'), member.affiliation].filter(Boolean).join(' · ') : member.department || L('Εργαζόμενος', 'Employee')]), empty: lead ? `${lead} (${L('επικεφαλής', 'lead')})` : L('Δεν ορίστηκε ομάδα.', 'No team set.') },
+        table: { columns: [L('Όνομα', 'Name'), L('Ρόλος', 'Role'), L('Ιδιότητα', 'Capacity')], rows: team.map((member: AuditTeamMember) => [member.name, label(TEAM_ROLES, member.role, en), member.external ? [L('Εξωτερικός', 'External'), member.affiliation].filter(Boolean).join(' · ') : member.department || L('Εργαζόμενος', 'Employee')]), empty: lead ? `${lead} (${L('επικεφαλής', 'lead')})` : L('Δεν ορίστηκε ομάδα.', 'No team set.') },
       },
       {
         title: L('Συσκέψεις', 'Meetings'),
@@ -94,7 +96,7 @@ export function auditReportDocument(audit: AnyRecord, findings: AnyRecord[] = []
       },
       {
         title: L('Διαπιστώσεις', 'Observations and nonconformities'),
-        table: { columns: [L('Άρθρο', 'Clause'), L('Ερώτηση', 'Question'), L('Αποτέλεσμα', 'Result'), L('Κατάταξη', 'Class'), L('Διαπίστωση / τεκμήρια', 'Found / evidence')], rows: notMet.map((row: AnyRecord) => [row.clauseRef || '—', row.item, resultLabel(row.answer, language), findingClassLabel(row.findingClass, language) || '—', [row.note, row.evidence].filter(Boolean).join(' — ') || '—']), empty: L('Όλες οι απαντήσεις συμμορφώνονται.', 'Every answer conforms.') },
+        table: { columns: [L('Άρθρο', 'Clause'), L('Ερώτηση', 'Question'), L('Αποτέλεσμα', 'Result'), L('Κατάταξη', 'Class'), L('Διαπίστωση / τεκμήρια', 'Found / evidence')], rows: notMet.map((row: AuditAnswer) => [row.clauseRef || '—', row.item, resultLabel(row.answer, language), findingClassLabel(row.findingClass, language) || '—', [row.note, row.evidence].filter(Boolean).join(' — ') || '—']), empty: L('Όλες οι απαντήσεις συμμορφώνονται.', 'Every answer conforms.') },
       },
       {
         title: L('Ευρήματα και διορθωτικές ενέργειες', 'Findings and corrective actions'),
@@ -102,7 +104,7 @@ export function auditReportDocument(audit: AnyRecord, findings: AnyRecord[] = []
       },
       {
         title: L('Προτεινόμενες ενέργειες', 'Recommended actions'),
-        list: notMet.filter((row: AnyRecord) => row.answer === 'no' || row.answer === 'partial').map((row: AnyRecord) => `${row.clauseRef ? `${row.clauseRef} — ` : ''}${row.item}${row.note ? ` (${row.note})` : ''}`),
+        list: notMet.filter((row: AuditAnswer) => row.answer === 'no' || row.answer === 'partial').map((row: AuditAnswer) => `${row.clauseRef ? `${row.clauseRef} — ` : ''}${row.item}${row.note ? ` (${row.note})` : ''}`),
         note: L('Κάθε διαπίστωση καταχωρείται ως εύρημα με υπεύθυνο και προθεσμία, και ακολουθεί η παρακολούθηση μέχρι το κλείσιμο.', 'Each deviation is raised as a finding with an owner and a due date, and followed until it is closed.'),
       },
       { title: L('Συμπέρασμα', 'Conclusion'), text: audit.conclusion || '—' },
@@ -110,7 +112,7 @@ export function auditReportDocument(audit: AnyRecord, findings: AnyRecord[] = []
         title: L('Παράρτημα: πλήρες ερωτηματολόγιο', 'Appendix: the full questionnaire'),
         table: {
           columns: [L('Άρθρο', 'Clause'), L('Ερώτηση', 'Question'), L('Αποτέλεσμα', 'Result'), L('Σχόλιο', 'Comment')],
-          rows: rows.map((row: AnyRecord) => [row.clauseRef || '—', row.item, resultCell(row.answer, language), [row.note, row.evidence].filter(Boolean).join(' — ') || '']),
+          rows: rows.map((row: AuditAnswer) => [row.clauseRef || '—', row.item, resultCell(row.answer, language), [row.note, row.evidence].filter(Boolean).join(' — ') || '']),
           empty: L('Δεν υπάρχουν απαντήσεις.', 'No answers.'),
         },
       },
@@ -121,7 +123,7 @@ export function auditReportDocument(audit: AnyRecord, findings: AnyRecord[] = []
 }
 
 // The summary in words: what was audited, how it came out, where the deviations are.
-function summaryText(audit: AnyRecord, score: AnyRecord, own: AnyRecord[], notMet: AnyRecord[], en: boolean) {
+function summaryText(audit: QualityAudit, score: AuditScore, own: AuditFinding[], notMet: AuditAnswer[], en: boolean) {
   const L = (el: string, english: string) => (en ? english : el)
   const o = score.overall
   const dept = (en ? audit.departmentEn : audit.department) || L('ο οργανισμός', 'the organization')
@@ -130,21 +132,21 @@ function summaryText(audit: AnyRecord, score: AnyRecord, own: AnyRecord[], notMe
     o.rate == null ? L('Δεν υπάρχουν ακόμη απαντήσεις.', 'There are no answers yet.') : L(`Η συνολική συμμόρφωση είναι ${o.rate}%: ${o.yes} συμμορφώνονται, ${o.partial} με μερική συμμόρφωση, ${o.no} μη συμμορφώσεις και ${o.na} δεν εφαρμόζονται.`, `Overall compliance is ${o.rate}%: ${o.yes} conform, ${o.partial} partially, ${o.no} nonconformities and ${o.na} not applicable.`),
   ]
   if (score.criticalFailed > 0) lines.push(L(`Προσοχή: ${score.criticalFailed} κρίσιμες ερωτήσεις δεν συμμορφώνονται.`, `Attention: ${score.criticalFailed} critical questions do not conform.`))
-  const low = score.chapters.filter((chapter: AnyRecord) => chapter.rate != null && chapter.rate < 100)
-  if (low.length) lines.push(L(`Οι αποκλίσεις βρίσκονται σε ${low.length} από ${score.chapters.length} κεφάλαια: ${low.slice(0, 4).map((chapter: AnyRecord) => chapter.ref || chapter.title).join(', ')}${low.length > 4 ? '…' : ''}.`, `Deviations are in ${low.length} of ${score.chapters.length} chapters: ${low.slice(0, 4).map((chapter: AnyRecord) => chapter.ref || chapter.title).join(', ')}${low.length > 4 ? '…' : ''}.`))
+  const low = score.chapters.filter((chapter: AuditChapterScore) => chapter.rate != null && chapter.rate < 100)
+  if (low.length) lines.push(L(`Οι αποκλίσεις βρίσκονται σε ${low.length} από ${score.chapters.length} κεφάλαια: ${low.slice(0, 4).map((chapter: AuditChapterScore) => chapter.ref || chapter.title).join(', ')}${low.length > 4 ? '…' : ''}.`, `Deviations are in ${low.length} of ${score.chapters.length} chapters: ${low.slice(0, 4).map((chapter: AuditChapterScore) => chapter.ref || chapter.title).join(', ')}${low.length > 4 ? '…' : ''}.`))
   else if (o.total) lines.push(L('Δεν εντοπίστηκε απόκλιση σε κανένα κεφάλαιο.', 'No deviation was found in any chapter.'))
-  if (own.length) lines.push(L(`Καταγράφηκαν ${own.length} ευρήματα (${own.filter((finding: AnyRecord) => finding.status === 'closed').length} κλειστά).`, `${own.length} findings were raised (${own.filter((finding: AnyRecord) => finding.status === 'closed').length} closed).`))
+  if (own.length) lines.push(L(`Καταγράφηκαν ${own.length} ευρήματα (${own.filter((finding: AuditFinding) => finding.status === 'closed').length} κλειστά).`, `${own.length} findings were raised (${own.filter((finding: AuditFinding) => finding.status === 'closed').length} closed).`))
   else if (notMet.length) lines.push(L(`Υπάρχουν ${notMet.length} διαπιστώσεις προς καταχώρηση ως ευρήματα.`, `${notMet.length} deviations are to be raised as findings.`))
   return lines.join('\n')
 }
-const chapterName = (chapter: AnyRecord) => [chapter.ref, chapter.title].filter(Boolean).join(' · ') || '—'
-const strengths = (score: AnyRecord, en: boolean) => score.chapters.filter((chapter: AnyRecord) => chapter.rate === 100).map((chapter: AnyRecord) => `${chapterName(chapter)} — 100% (${chapter.total} ${en ? 'questions' : 'ερωτήσεις'})`)
-const weaknesses = (score: AnyRecord, en: boolean) => score.chapters.filter((chapter: AnyRecord) => chapter.rate != null && chapter.rate < 100).sort((a: AnyRecord, b: AnyRecord) => a.rate - b.rate).map((chapter: AnyRecord) => `${chapterName(chapter)} — ${chapter.rate}% (${chapter.partial} ${en ? 'partial' : 'μερική'}, ${chapter.no} ${en ? 'nonconformity' : 'μη συμμόρφωση'})`)
+const chapterName = (chapter: AuditChapterScore) => [chapter.ref, chapter.title].filter(Boolean).join(' · ') || '—'
+const strengths = (score: AuditScore, en: boolean) => score.chapters.filter((chapter: AuditChapterScore) => chapter.rate === 100).map((chapter: AuditChapterScore) => `${chapterName(chapter)} — 100% (${chapter.total} ${en ? 'questions' : 'ερωτήσεις'})`)
+const weaknesses = (score: AuditScore, en: boolean) => score.chapters.filter((chapter: AuditChapterScore) => chapter.rate != null && chapter.rate < 100).sort((a: AuditChapterScore, b: AuditChapterScore) => (a.rate as number) - (b.rate as number)).map((chapter: AuditChapterScore) => `${chapterName(chapter)} — ${chapter.rate}% (${chapter.partial} ${en ? 'partial' : 'μερική'}, ${chapter.no} ${en ? 'nonconformity' : 'μη συμμόρφωση'})`)
 
 // The reports of many audits in one short document: an overview table, then only the
 // departments with a deviation (the chapters that fell short and the deviations), and a
 // line with the departments without any. Each audit's own report is the long one.
-export function auditDetailedBatchDocument(audits: AnyRecord[] = [], findings: AnyRecord[] = [], { language = 'el' } = {}): ReportDoc {
+export function auditDetailedBatchDocument(audits: QualityAudit[] = [], findings: AuditFinding[] = [], { language = 'el' } = {}): ReportDoc {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const list = audits.filter(audit => audit.status === 'completed' && (audit.checklist || []).length)
@@ -153,7 +155,7 @@ export function auditDetailedBatchDocument(audits: AnyRecord[] = [], findings: A
   const rated = scored.filter(item => item.score.overall.rate != null)
   const average = rated.length ? Math.round(rated.reduce((sum, item) => sum + (item.score.overall.rate as number), 0) / rated.length) : null
   const dates = list.map(audit => String(audit.completedDate || audit.plannedDate).slice(0, 10)).sort()
-  const sections: AnyRecord[] = [{
+  const sections: ReportSection[] = [{
     title: L('Συνολική εικόνα', 'Overview'),
     table: {
       columns: [L('Τμήμα', 'Department'), L('Ημερομηνία', 'Date'), L('Κωδικός', 'Code'), { text: L('Μερικές', 'Partial'), align: 'right' }, { text: L('Μη συμμ.', 'Noncon.'), align: 'right' }, { text: L('Ευρήματα', 'Findings'), align: 'right' }, { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }],
@@ -166,28 +168,28 @@ export function auditDetailedBatchDocument(audits: AnyRecord[] = [], findings: A
   const clean: string[] = []
   for (const { audit, score } of scored) {
     const name = (en ? audit.departmentEn : audit.department) || audit.department || L('Όλος ο οργανισμός', 'Whole organization')
-    const deviations = (audit.checklist || []).filter((row: AnyRecord) => row.answer === 'partial' || row.answer === 'no')
+    const deviations = (audit.checklist || []).filter((row: AuditAnswer) => row.answer === 'partial' || row.answer === 'no')
     if (!deviations.length) { clean.push(name); continue }
     sections.push({
       title: `${name} · ${audit.displayId || audit.id} · ${day(audit.completedDate)} — ${pct(score.overall.rate)}`,
       keepTogether: true,
       tables: [
         { columns: [L('Κεφάλαιο', 'Chapter'), { text: L('Μερική', 'Partial'), align: 'right' }, { text: L('Μη συμμ.', 'Noncon.'), align: 'right' }, { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }], rows: score.chapters.filter(chapter => chapter.rate != null && chapter.rate < 100).map(chapter => [chapterName(chapter), { text: String(chapter.partial), align: 'right' }, { text: String(chapter.no), align: 'right' }, { text: pct(chapter.rate), align: 'right' }]) },
-        { columns: [L('Άρθρο', 'Clause'), L('Ερώτηση', 'Question'), L('Αποτέλεσμα', 'Result'), L('Σχόλιο', 'Comment')], rows: deviations.map((row: AnyRecord) => [row.clauseRef || '—', row.item, resultCell(row.answer, language), row.note || '']) },
+        { columns: [L('Άρθρο', 'Clause'), L('Ερώτηση', 'Question'), L('Αποτέλεσμα', 'Result'), L('Σχόλιο', 'Comment')], rows: deviations.map((row: AuditAnswer) => [row.clauseRef || '—', row.item, resultCell(row.answer, language), row.note || '']) },
       ],
     })
   }
   if (clean.length) sections.push({ title: L('Χωρίς αποκλίσεις', 'No deviations'), text: clean.join(' · ') })
   // The questionnaire at the end: every question once, with how the audited departments answered it.
-  const questions = new Map<string, AnyRecord>()
+  const questions = new Map<string, QuestionTally>()
   for (const { audit } of scored) for (const row of audit.checklist || []) {
     const key = row.templateQuestionId || `${row.clauseRef}|${row.item}`
     if (!questions.has(key)) questions.set(key, { row, yes: 0, partial: 0, no: 0, na: 0, order: questions.size })
-    const entry = questions.get(key) as AnyRecord
-    if (entry[row.answer] !== undefined) entry[row.answer] += 1
+    const entry = questions.get(key) as QuestionTally & Record<string, number>
+    if (entry[row.answer as string] !== undefined) entry[row.answer as string] += 1
   }
   if (questions.size) {
-    const rowsOut: AnyRecord[][] = []
+    const rowsOut: ReportCell[][] = []
     let chapter: string | null = null
     for (const entry of [...questions.values()].sort((x, y) => (x.row.position || 0) - (y.row.position || 0) || x.order - y.order)) {
       const name = [entry.row.chapterRef, entry.row.chapterTitle].filter(Boolean).join(' · ')
@@ -216,23 +218,23 @@ export function auditDetailedBatchDocument(audits: AnyRecord[] = [], findings: A
 }
 
 // The answers, one row per question (Excel opens the .csv).
-export function auditAnswersExport(audit: AnyRecord, language = 'el') {
+export function auditAnswersExport(audit: QualityAudit, language = 'el') {
   const en = language === 'en'
   return {
     name: `${audit.displayId || audit.id}_${en ? 'answers' : 'apantiseis'}`,
     headers: en ? ['#', 'Chapter', 'Clause', 'Question', 'Weight', 'Critical', 'Result', 'Class', 'Comment', 'Evidence examined', 'Finding'] : ['#', 'Κεφάλαιο', 'Άρθρο', 'Ερώτηση', 'Βάρος', 'Κρίσιμη', 'Αποτέλεσμα', 'Κατάταξη', 'Σχόλιο', 'Τεκμήρια που εξετάστηκαν', 'Εύρημα'],
-    rows: (audit.checklist || []).map((row: AnyRecord, index: number) => [index + 1, [row.chapterRef, row.chapterTitle].filter(Boolean).join(' · '), row.clauseRef || '', row.item, row.weight || 1, row.critical ? (en ? 'Yes' : 'Ναι') : '', resultLabel(row.answer, language), findingClassLabel(row.findingClass, language), row.note || '', row.evidence || '', row.findingId || '']),
+    rows: (audit.checklist || []).map((row: AuditAnswer, index: number) => [index + 1, [row.chapterRef, row.chapterTitle].filter(Boolean).join(' · '), row.clauseRef || '', row.item, row.weight || 1, row.critical ? (en ? 'Yes' : 'Ναι') : '', resultLabel(row.answer, language), findingClassLabel(row.findingClass, language), row.note || '', row.evidence || '', row.findingId || '']),
   }
 }
 
 // The report of an audit round: every department audited in the period, day by
 // day, with its compliance and findings, and the totals. For the Quality
 // manager to hand over after the round; each department's own report is on its audit.
-export function auditRoundReportDocument(audits: AnyRecord[] = [], findings: AnyRecord[] = [], { language = 'el', from = '', to = '' } = {}) {
+export function auditRoundReportDocument(audits: QualityAudit[] = [], findings: AuditFinding[] = [], { language = 'el', from = '', to = '' } = {}) {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const inRound = audits.filter(audit => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided' && !audit.plannedMonthOnly && (!from || String(audit.completedDate || audit.plannedDate) >= from) && (!to || String(audit.completedDate || audit.plannedDate) <= to))
-  const dayOf = (audit: AnyRecord) => String(audit.completedDate || audit.plannedDate || '').slice(0, 10)
+  const dayOf = (audit: QualityAudit) => String(audit.completedDate || audit.plannedDate || '').slice(0, 10)
   const days = [...new Set(inRound.map(dayOf))].sort()
   const scored = inRound.map(audit => ({ audit, score: auditScore(audit.checklist || []) }))
   const rates = scored.map(item => item.score.overall.rate).filter(rate => rate != null)
@@ -273,13 +275,13 @@ export function auditRoundReportDocument(audits: AnyRecord[] = [], findings: Any
 
 // One report with a section per department: each of its audits (date, compliance) and their findings.
 // For a single department when the list is filtered to it, or for all of them at once (a mass print).
-export function auditDepartmentsReportDocument(audits: AnyRecord[] = [], findings: AnyRecord[] = [], { language = 'el' } = {}) {
+export function auditDepartmentsReportDocument(audits: QualityAudit[] = [], findings: AuditFinding[] = [], { language = 'el' } = {}) {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const live = audits.filter(audit => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided')
   const names = [...new Set(live.map(audit => (en ? audit.departmentEn : audit.department) || audit.department || ''))].sort((a, b) => a.localeCompare(b, 'el'))
-  const status = (audit: AnyRecord) => (audit.status === 'completed' ? L('Ολοκληρώθηκε', 'Completed') : audit.status === 'planned' ? L('Προγραμματισμένη', 'Planned') : L('Σε εξέλιξη', 'In progress'))
-  const when = (audit: AnyRecord) => (audit.plannedMonthOnly ? month(audit.plannedDate, language) : day(audit.completedDate || audit.plannedDate))
+  const status = (audit: QualityAudit) => (audit.status === 'completed' ? L('Ολοκληρώθηκε', 'Completed') : audit.status === 'planned' ? L('Προγραμματισμένη', 'Planned') : L('Σε εξέλιξη', 'In progress'))
+  const when = (audit: QualityAudit) => (audit.plannedMonthOnly ? month(audit.plannedDate, language) : day(audit.completedDate || audit.plannedDate))
   const ids = new Set(live.map(audit => audit.id))
   const own = findings.filter(finding => ids.has(finding.sourceId))
   return {
@@ -318,14 +320,14 @@ export function auditDepartmentsReportDocument(audits: AnyRecord[] = [], finding
 }
 
 // The findings of the audits, one row per finding (Excel opens the .csv).
-export function auditFindingsExport(audits: AnyRecord[] = [], findings: AnyRecord[] = [], language = 'el') {
+export function auditFindingsExport(audits: QualityAudit[] = [], findings: AuditFinding[] = [], language = 'el') {
   const en = language === 'en'
   const byId = new Map(audits.map(audit => [audit.id, audit]))
   return {
     name: en ? 'audit-findings' : 'efimata-epitheoriseon',
     headers: en ? ['Audit', 'Department', 'Date', 'Finding', 'Class', 'Title', 'Owner', 'Due', 'Status'] : ['Επιθεώρηση', 'Τμήμα', 'Ημερομηνία', 'Εύρημα', 'Κατάταξη', 'Τίτλος', 'Υπεύθυνος', 'Προθεσμία', 'Κατάσταση'],
     rows: findings.filter(finding => byId.has(finding.sourceId)).map(finding => {
-      const audit = byId.get(finding.sourceId) as AnyRecord
+      const audit = byId.get(finding.sourceId) as QualityAudit
       return [audit.displayId || audit.id, (en ? audit.departmentEn : audit.department) || audit.department || '', day(audit.completedDate || audit.plannedDate), finding.displayId || finding.id, findingClassLabel(finding.findingClass, language) || '', en ? finding.titleEn || finding.title : finding.title, (finding.owners || []).join(', ') || finding.owner || '', day(finding.dueDate), finding.status === 'closed' ? (en ? 'Closed' : 'Κλειστό') : (en ? 'Open' : 'Ανοιχτό')]
     }),
   }

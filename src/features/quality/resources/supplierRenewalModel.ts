@@ -1,5 +1,5 @@
 import { certificationState, daysBetween, todayIso } from './resourceModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AttachmentDbRow, CertificateRequest, CertificateRequestDbRow, CertificateSnapshot, Certification, RenewalGroup, RenewalGroupBase, RenewalQueueRow, RenewalSendGroup, RenewalSubmission, RequestItem, RequestItemDbRow, RequestItemWithRequest, SendHistoryEntry, Supplier, SupplierAccess } from './resourceTypes'
 
 // Renewal of expired supplier certificates by e-mail
 // (20261129100000_quality_supplier_certificate_request_items.sql): one request (one
@@ -7,8 +7,8 @@ import type { AnyRecord } from '../../../types/featureTypes'
 // certificates to renew grouped by supplier, the states, who may send, and the
 // checks of the supplier's form. Pure functions.
 
-const pick = (list: AnyRecord[], value: string | null | undefined, language: string) => list.find((item: AnyRecord) => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
-const toneOf = (list: AnyRecord[], value: string | null | undefined) => list.find((item: AnyRecord) => item.value === value)?.tone || 'neutral'
+const pick = (list: { value: string, label: string[] }[], value: string | null | undefined, language: string) => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
+const toneOf = (list: { value: string, tone?: string }[], value: string | null | undefined) => list.find(item => item.value === value)?.tone || 'neutral'
 
 // The request (the supplier's e-mail).
 export const REQUEST_STATUSES = [
@@ -20,7 +20,7 @@ export const REQUEST_STATUSES = [
 export const requestStatusLabel = (value: string | null | undefined, language: string) => pick(REQUEST_STATUSES, value, language)
 export const requestStatusTone = (value: string | null | undefined) => toneOf(REQUEST_STATUSES, value)
 export const OPEN_REQUEST_STATUSES = ['proposed', 'sent']
-export const isOpenRequest = (request: AnyRecord) => OPEN_REQUEST_STATUSES.includes(request?.status)
+export const isOpenRequest = (request: Pick<CertificateRequest, 'status'> | null | undefined) => OPEN_REQUEST_STATUSES.includes(request?.status as string)
 
 // One certificate of a request.
 export const ITEM_STATUSES = [
@@ -34,7 +34,7 @@ export const itemStatusLabel = (value: string | null | undefined, language: stri
 export const itemStatusTone = (value: string | null | undefined) => toneOf(ITEM_STATUSES, value)
 // A certificate in progress: it has at most one such item.
 export const OPEN_ITEM_STATUSES = ['pending', 'submitted']
-export const isOpenItem = (item: AnyRecord) => OPEN_ITEM_STATUSES.includes(item?.status)
+export const isOpenItem = (item: Pick<RequestItem, 'status'> | null | undefined) => OPEN_ITEM_STATUSES.includes(item?.status as string)
 
 // A sent request with nothing submitted after this many days has no answer yet.
 export const NO_RESPONSE_DAYS = 7
@@ -48,32 +48,32 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const isEmail = (value: unknown) => EMAIL.test(String(value || '').trim())
 
 // The addresses a request can go to: the supplier's e-mail, then its contacts'.
-export function recipientsFor(supplier: AnyRecord = {}) {
-  const all = [supplier.email, ...(supplier.contacts || []).map((item: AnyRecord) => item.email)].map(value => String(value || '').trim().toLowerCase()).filter(isEmail)
+export function recipientsFor(supplier: Partial<Pick<Supplier, 'email' | 'contacts'>> = {}) {
+  const all = [supplier.email, ...(supplier.contacts || []).map(item => item.email)].map(value => String(value || '').trim().toLowerCase()).filter(isEmail)
   return [...new Set(all)]
 }
 
-const attachmentFrom = (row: AnyRecord) => (row ? { id: row.id, name: row.file_name, storagePath: row.storage_path, type: row.mime_type || '', size: row.size_bytes || 0 } : null)
-export const itemFromRow = (row: AnyRecord) => ({
-  id: row.id, requestId: row.request_id, supplierId: row.supplier_id, certificationId: row.certification_id, status: row.status, snapshot: row.certificate_snapshot || {},
+const attachmentFrom = (row: AttachmentDbRow | null | undefined) => (row ? { id: row.id, name: row.file_name, storagePath: row.storage_path, type: row.mime_type || '', size: row.size_bytes || 0 } : null)
+export const itemFromRow = (row: RequestItemDbRow): RequestItem => ({
+  id: row.id, requestId: row.request_id, supplierId: row.supplier_id, certificationId: row.certification_id, status: row.status, snapshot: (row.certificate_snapshot || {}) as CertificateSnapshot,
   submittedAt: row.submitted_at || '',
   submitted: { type: row.certificate_type || '', number: row.certificate_number || '', issuer: row.issuer || '', issuedOn: row.issued_on || '', expiresOn: row.expires_on || '', note: row.note || '' },
-  attachment: attachmentFrom(row.attachment), reviewedAt: row.reviewed_at || '', reviewComment: row.review_comment || '', previous: row.previous_values || null, history: row.history || [], updatedAt: row.updated_at || '',
+  attachment: attachmentFrom(row.attachment), reviewedAt: row.reviewed_at || '', reviewComment: row.review_comment || '', previous: (row.previous_values || null) as CertificateSnapshot | null, history: (row.history || []) as Record<string, string>[], updatedAt: row.updated_at || '',
 })
-export const requestFromRow = (row: AnyRecord) => ({
+export const requestFromRow = (row: CertificateRequestDbRow): CertificateRequest => ({
   id: row.id, supplierId: row.supplier_id, recipientEmail: row.recipient_email || '', status: row.status,
   requestedAt: row.requested_at || row.created_at || '', approvedAt: row.approved_at || '', sentAt: row.sent_at || '', firstSentAt: row.first_sent_at || row.sent_at || '',
-  sendCount: row.send_count || 0, reminderCount: row.reminder_count || 0, lastReminderAt: row.last_reminder_at || '', history: row.send_history || [],
+  sendCount: row.send_count || 0, reminderCount: row.reminder_count || 0, lastReminderAt: row.last_reminder_at || '', history: (row.send_history || []) as unknown as SendHistoryEntry[],
   tokenExpiresAt: row.token_expires_at || '', reviewComment: row.review_comment || '', updatedAt: row.updated_at || '',
-  items: (row.items || []).map((item: AnyRecord) => itemFromRow({ ...item, supplier_id: item.supplier_id || row.supplier_id })),
+  items: (row.items || []).map(item => itemFromRow({ ...item, supplier_id: item.supplier_id || row.supplier_id })),
 })
 
 // Every item of every request, with its request.
-export const requestItems = (requests: AnyRecord[] = []) => requests.flatMap(request => (request.items || []).map((item: AnyRecord) => ({ ...item, request })))
+export const requestItems = (requests: CertificateRequest[] = []): RequestItemWithRequest[] => requests.flatMap(request => (request.items || []).map(item => ({ ...item, request })))
 
 // The latest item of each certificate (one in progress first).
-export function latestItemByCertificate(requests: AnyRecord[] = []) {
-  const map = new Map()
+export function latestItemByCertificate(requests: CertificateRequest[] = []) {
+  const map = new Map<string, RequestItemWithRequest>()
   for (const item of requestItems(requests)) {
     const current = map.get(item.certificationId)
     const newer = !current || String(item.request.requestedAt) > String(current.request.requestedAt)
@@ -84,15 +84,15 @@ export function latestItemByCertificate(requests: AnyRecord[] = []) {
 
 // Days since a sent request went out with nothing submitted on it yet (null when it
 // is answered, not sent, or younger than NO_RESPONSE_DAYS).
-export function noResponseDays(request: AnyRecord, now = new Date()) {
+export function noResponseDays(request: CertificateRequest | null, now = new Date()) {
   if (!request || request.status !== 'sent' || !request.firstSentAt) return null
-  if ((request.items || []).some((item: AnyRecord) => item.submittedAt || ['submitted', 'accepted'].includes(item.status))) return null
+  if ((request.items || []).some(item => item.submittedAt || ['submitted', 'accepted'].includes(item.status))) return null
   const days = Math.floor((now.getTime() - new Date(request.firstSentAt).getTime()) / 86400000)
   return days >= NO_RESPONSE_DAYS ? days : null
 }
 
 // Whether the link of a request is still usable by the supplier.
-export function linkState(request: AnyRecord, now = new Date()) {
+export function linkState(request: CertificateRequest | null, now = new Date()) {
   if (!request) return 'none'
   if (request.status !== 'sent') return request.status
   return request.tokenExpiresAt && new Date(request.tokenExpiresAt) < now ? 'expired' : 'open'
@@ -105,14 +105,14 @@ export function linkState(request: AnyRecord, now = new Date()) {
 // An ISO certificate is replaced by a later one of the same standard (an old version
 // of a renewed certificate is not to be renewed); other kinds can coexist (many CE).
 const SUPERSEDING_TYPES = ['ISO 9001', 'ISO 13485', 'ISO 14001', 'ISO 45001', 'ISO 22000 / HACCP', 'ISO 15189 / ISO 17025']
-export function isSuperseded(certification: AnyRecord, certifications: AnyRecord[] = []) {
+export function isSuperseded(certification: Certification, certifications: Certification[] = []) {
   if (!SUPERSEDING_TYPES.includes(certification?.type) || !certification.expiresOn) return false
   return certifications.some(other => other !== certification && other.type === certification.type && String(other.expiresOn || '') > String(certification.expiresOn))
 }
 
-export function renewalQueue(suppliers: AnyRecord[] = [], requests: AnyRecord[] = [], { expiring = false, today = todayIso() } = {}) {
+export function renewalQueue(suppliers: Supplier[] = [], requests: CertificateRequest[] = [], { expiring = false, today = todayIso() } = {}) {
   const latest = latestItemByCertificate(requests)
-  const rows = []
+  const rows: RenewalQueueRow[] = []
   for (const supplier of suppliers) {
     if (supplier.status === 'inactive') continue
     const recipients = recipientsFor(supplier)
@@ -136,31 +136,31 @@ export function renewalQueue(suppliers: AnyRecord[] = [], requests: AnyRecord[] 
 
 // The queue by supplier: one row per supplier with its certificates and its request in
 // progress (a sent one before a proposed one), most overdue first.
-export function renewalGroups(rows: AnyRecord[] = [], now = new Date()) {
-  const map = new Map()
+export function renewalGroups(rows: RenewalQueueRow[] = [], now = new Date()): RenewalGroup[] {
+  const map = new Map<string, RenewalGroupBase>()
   for (const row of rows) {
     const group = map.get(row.supplierId) || { key: row.supplierId, supplierId: row.supplierId, supplierCode: row.supplierCode, supplierName: row.supplierName, recipients: row.recipients, rows: [], requests: [] }
     group.rows.push(row)
-    if (row.request && isOpenItem(row.item) && !group.requests.some((item: AnyRecord) => item.id === row.request.id)) group.requests.push(row.request)
+    if (row.request && isOpenItem(row.item) && !group.requests.some(item => item.id === row.request!.id)) group.requests.push(row.request)
     map.set(row.supplierId, group)
   }
   return [...map.values()].map(group => {
-    const requests = group.requests.sort((a: AnyRecord, b: AnyRecord) => (a.status === 'sent' ? 0 : 1) - (b.status === 'sent' ? 0 : 1) || String(b.requestedAt).localeCompare(String(a.requestedAt)))
+    const requests = group.requests.sort((a, b) => (a.status === 'sent' ? 0 : 1) - (b.status === 'sent' ? 0 : 1) || String(b.requestedAt).localeCompare(String(a.requestedAt)))
     const request = requests[0] || null
-    const selectable = group.rows.filter((row: AnyRecord) => row.selectable)
+    const selectable = group.rows.filter(row => row.selectable)
     return {
       ...group, requests, request, selectable, recipient: request?.recipientEmail || group.recipients[0] || '',
-      days: Math.min(...group.rows.map((row: AnyRecord) => row.days ?? 0)), expired: group.rows.filter((row: AnyRecord) => row.state === 'expired').length,
-      submitted: group.rows.filter((row: AnyRecord) => row.item?.status === 'submitted').length, noResponse: noResponseDays(request, now), link: linkState(request, now),
+      days: Math.min(...group.rows.map(row => row.days ?? 0)), expired: group.rows.filter(row => row.state === 'expired').length,
+      submitted: group.rows.filter(row => row.item?.status === 'submitted').length, noResponse: noResponseDays(request, now), link: linkState(request, now),
     }
   }).sort((a, b) => a.days - b.days || a.supplierName.localeCompare(b.supplierName, 'el'))
 }
 
 // request: all | none (something to send) | proposed | sent | no_response | submitted.
-export function filterRenewals(groups: AnyRecord[] = [], { query = '', state = 'all', request = 'all' } = {}) {
+export function filterRenewals(groups: RenewalGroup[] = [], { query = '', state = 'all', request = 'all' } = {}) {
   const needle = String(query || '').trim().toLocaleLowerCase('el')
-  return groups.map(group => (state === 'all' ? group : { ...group, rows: group.rows.filter((row: AnyRecord) => row.state === state || isOpenItem(row.item)) }))
-    .map((group): AnyRecord => ({ ...group, selectable: group.rows.filter((row: AnyRecord) => row.selectable) }))
+  return groups.map(group => (state === 'all' ? group : { ...group, rows: group.rows.filter(row => row.state === state || isOpenItem(row.item)) }))
+    .map((group): RenewalGroup => ({ ...group, selectable: group.rows.filter(row => row.selectable) }))
     .filter(group => {
       if (!group.rows.length) return false
       if (request === 'none' && !group.selectable.length) return false
@@ -168,16 +168,16 @@ export function filterRenewals(groups: AnyRecord[] = [], { query = '', state = '
       if (request === 'submitted' && !group.submitted) return false
       if (['proposed', 'sent'].includes(request) && group.request?.status !== request) return false
       if (!needle) return true
-      return [group.supplierName, group.supplierCode, group.recipient, ...group.rows.flatMap((row: AnyRecord) => [row.certification.type, row.certification.title, row.certification.number])].some(value => String(value || '').toLocaleLowerCase('el').includes(needle))
+      return [group.supplierName, group.supplierCode, group.recipient, ...group.rows.flatMap(row => [row.certification.type, row.certification.title, row.certification.number])].some(value => String(value || '').toLocaleLowerCase('el').includes(needle))
     })
 }
 
-export function renewalCounts(groups: AnyRecord[] = [], requests: AnyRecord[] = [], now = new Date()) {
+export function renewalCounts(groups: RenewalGroup[] = [], requests: CertificateRequest[] = [], now = new Date()) {
   const rows = groups.flatMap(group => group.rows)
   const sent = requests.filter(item => item.status === 'sent')
   return {
     expired: rows.filter(row => row.state === 'expired').length,
-    suppliers: groups.filter(group => group.rows.some((row: AnyRecord) => row.state === 'expired')).length,
+    suppliers: groups.filter(group => group.rows.some(row => row.state === 'expired')).length,
     toSend: groups.filter(group => group.selectable.length && group.recipients.length).length,
     noEmail: groups.filter(group => !group.recipients.length && group.selectable.length).length,
     proposed: requests.filter(item => item.status === 'proposed').length,
@@ -190,15 +190,15 @@ export function renewalCounts(groups: AnyRecord[] = [], requests: AnyRecord[] = 
 // The items the approval sends: one per selected certificate without an item in
 // progress, with the address of its supplier (as typed in the approval, else the
 // supplier's). The database puts a supplier's certificates into one request.
-export function sendItems(rows: AnyRecord[] = [], selected: AnyRecord[] = [], recipients: AnyRecord = {}) {
+export function sendItems(rows: RenewalQueueRow[] = [], selected: string[] = [], recipients: Record<string, string> = {}) {
   const keys = new Set(selected)
   return rows.filter(row => keys.has(row.key) && row.selectable).map(row => ({ certification_id: row.certification.id, recipient_email: String(recipients[row.supplierId] ?? row.recipient).trim().toLowerCase() }))
 }
 
 // The selected certificates by supplier, for the approval (one e-mail each).
-export function sendGroups(rows: AnyRecord[] = [], selected: AnyRecord[] = []) {
+export function sendGroups(rows: RenewalQueueRow[] = [], selected: string[] = []) {
   const keys = new Set(selected)
-  const map = new Map()
+  const map = new Map<string, RenewalSendGroup>()
   for (const row of rows) {
     if (!keys.has(row.key) || !row.selectable) continue
     const group = map.get(row.supplierId) || { supplierId: row.supplierId, supplierName: row.supplierName, recipient: row.recipient, recipients: row.recipients, rows: [] }
@@ -217,14 +217,14 @@ export function renewalPermissions({ owner = false, canSend = false, canManage =
 }
 
 // The supplier's form for one certificate: what is missing or wrong (codes, with their text).
-export function submissionProblems(form: AnyRecord = {}, file: { size: number, type?: string } | null = null, today = todayIso()) {
+export function submissionProblems(form: Partial<RenewalSubmission> = {}, file: { size: number, type?: string } | null = null, today = todayIso()) {
   const problems: string[] = []
   const day = (value: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))
   if (!String(form.type || '').trim()) problems.push('type')
   if (!String(form.number || '').trim()) problems.push('number')
   if (!day(form.expiresOn)) problems.push('expiresOn')
-  else if (form.expiresOn <= today) problems.push('expiresFuture')
-  if (form.issuedOn && (!day(form.issuedOn) || form.issuedOn > today || (day(form.expiresOn) && form.issuedOn >= form.expiresOn))) problems.push('issuedOn')
+  else if ((form.expiresOn as string) <= today) problems.push('expiresFuture')
+  if (form.issuedOn && (!day(form.issuedOn) || form.issuedOn > today || (day(form.expiresOn) && form.issuedOn >= (form.expiresOn as string)))) problems.push('issuedOn')
   if (!file) problems.push('file')
   else if (file.size > MAX_FILE_BYTES) problems.push('fileSize')
   else if (file.type && !FILE_TYPES.includes(file.type)) problems.push('fileType')
@@ -243,8 +243,8 @@ export const SUBMISSION_PROBLEMS: Record<string, string[]> = {
 export const submissionProblemText = (codes: string[], language = 'el') => codes.map((code: string) => SUBMISSION_PROBLEMS[code]?.[language === 'en' ? 1 : 0] || code)
 
 // The public page: the certificates still to submit, and whether anything is left.
-export const pendingItems = (access: AnyRecord) => (access?.items || []).filter((item: AnyRecord) => item.status === 'pending')
-export const accessComplete = (access: AnyRecord) => Boolean(access) && (access.status === 'closed' || ((access.items || []).length > 0 && !pendingItems(access).length))
+export const pendingItems = (access: SupplierAccess) => (access?.items || []).filter(item => item.status === 'pending')
+export const accessComplete = (access: SupplierAccess) => Boolean(access) && (access.status === 'closed' || ((access.items || []).length > 0 && !pendingItems(access).length))
 
 // What the supplier's page says for an error code of the edge function.
 export function submitErrorMessage(code: string, language = 'el') {

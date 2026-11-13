@@ -2,7 +2,7 @@ import { supabase as configuredClient, type Cloud } from '../../../core/supabase
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { diffChildRows, isUuid, rowId } from '../qualityRelations'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditQuestion, AuditTemplate, AuditTemplateDraft, AuditTemplateRow, TemplateChapter } from './auditTypes'
 import type { TablesInsert } from '../../../core/supabase/database.types'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
@@ -13,14 +13,14 @@ const supabase = configuredClient as Cloud
 // demo keeps its copies in the browser, next to the library from the seed.
 
 const LOCAL_KEY = 'quality_local_audit_templates'
-const must = ({ data, error }: AnyRecord) => { if (error) throw error; return data }
+const must = <T>({ data, error }: { data: T, error: unknown }): NonNullable<T> => { if (error) throw error; return data as NonNullable<T> }
 const text = (value: unknown) => { const kept = String(value ?? '').trim(); return kept || null }
 const localId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 // The questions by their template (the composite key to the template's hospital is a second link).
 const SELECT = '*,questions:quality_audit_template_questions!quality_audit_template_questions_template_id_fkey(*)'
 export const QUESTION_FIELDS = ['position', 'chapter_ref', 'chapter_title', 'clause_ref', 'question', 'guidance', 'evidence', 'weight', 'critical', 'areas']
 
-export const templateFromRow = (row: AnyRecord) => ({
+export const templateFromRow = (row: AuditTemplateRow): AuditTemplate => ({
   id: row.id,
   organizationId: row.organization_id || null,
   isSystem: Boolean(row.is_system),
@@ -51,7 +51,7 @@ export const templateFromRow = (row: AnyRecord) => ({
   })),
 })
 
-const templateRow = (organizationId: string | null | undefined, template: AnyRecord) => ({
+const templateRow = (organizationId: string | null | undefined, template: AuditTemplateDraft) => ({
   organization_id: template.isSystem ? null : organizationId,
   is_system: Boolean(template.isSystem),
   based_on: isUuid(template.basedOn) ? template.basedOn : null,
@@ -67,7 +67,7 @@ const templateRow = (organizationId: string | null | undefined, template: AnyRec
 })
 
 // The questions in order; a question without text is not kept.
-export function questionRows(questions: AnyRecord[] = []) {
+export function questionRows(questions: AuditQuestion[] = []) {
   return questions.filter(item => String(item?.question || '').trim()).map((item, index) => ({
     id: rowId(item.id),
     position: index + 1,
@@ -84,9 +84,9 @@ export function questionRows(questions: AnyRecord[] = []) {
 }
 
 // What a change of a questionnaire raises its version for.
-export function templateChanged(before: AnyRecord | null | undefined, after: AnyRecord) {
+export function templateChanged(before: AuditTemplateDraft | null | undefined, after: AuditTemplateDraft) {
   if (!before) return false
-  const strip = (template: AnyRecord) => JSON.stringify({ title: template.title, standard: template.standard, scope: template.scope, departmentTypes: template.departmentTypes, questions: questionRows(template.questions).map(({ id: _id, ...rest }) => rest) })
+  const strip = (template: AuditTemplateDraft) => JSON.stringify({ title: template.title, standard: template.standard, scope: template.scope, departmentTypes: template.departmentTypes, questions: questionRows(template.questions).map(({ id: _id, ...rest }) => rest) })
   return strip(before) !== strip(after)
 }
 
@@ -95,13 +95,13 @@ async function systemTemplates() {
   return structuredClone(SYSTEM_TEMPLATES)
 }
 
-function localCopies() {
+function localCopies(): AuditTemplate[] {
   const rows = loadSnapshot(LOCAL_KEY, [])
   return Array.isArray(rows) ? rows : []
 }
 
 // The library and the hospital's copies: the hospital's first, then the platform's.
-export async function loadAuditTemplates(organizationId: string | null | undefined) {
+export async function loadAuditTemplates(organizationId: string | null | undefined): Promise<AuditTemplate[]> {
   if (isDemoDataEnvironment()) return [...localCopies(), ...(await systemTemplates())]
   if (!supabase) return []
   const query = supabase.from('quality_audit_templates').select(SELECT).order('is_system').order('title')
@@ -111,15 +111,15 @@ export async function loadAuditTemplates(organizationId: string | null | undefin
 
 // Saves a hospital's questionnaire (or, for the Platform Owner, one of the
 // library) with its questions; a change raises its version.
-export async function saveAuditTemplate(organizationId: string | null | undefined, template: AnyRecord, before: AnyRecord | null = null) {
+export async function saveAuditTemplate(organizationId: string | null | undefined, template: AuditTemplateDraft, before: AuditTemplateDraft | null = null) {
   const version = (Number(before?.version) || Number(template.version) || 1) + (templateChanged(before, template) ? 1 : 0)
   if (isDemoDataEnvironment()) {
     const rows = localCopies()
-    const next = { ...template, isSystem: false, id: template.id && !String(template.id).startsWith('system-') ? template.id : localId('aqt'), version, questions: (template.questions || []).filter((item: AnyRecord) => String(item.question || '').trim()).map((item: AnyRecord, index: number) => ({ ...item, id: item.id || localId('aqq'), position: index + 1 })) }
+    const next = { ...template, isSystem: false, id: template.id && !String(template.id).startsWith('system-') ? template.id : localId('aqt'), version, questions: (template.questions || []).filter((item: AuditQuestion) => String(item.question || '').trim()).map((item: AuditQuestion, index: number) => ({ ...item, id: item.id || localId('aqq'), position: index + 1 })) }
     saveSnapshot(LOCAL_KEY, rows.some(item => item.id === next.id) ? rows.map(item => (item.id === next.id ? next : item)) : [next, ...rows])
     return next
   }
-  let id = template.id
+  let id = template.id as string
   if (isUuid(id)) must(await supabase.from('quality_audit_templates').update({ ...templateRow(organizationId, template), version }).eq('id', id).select('id').single())
   else id = must(await supabase.from('quality_audit_templates').insert({ ...templateRow(organizationId, template), version: 1 }).select('id').single()).id
   const owner = template.isSystem ? null : organizationId
@@ -131,7 +131,7 @@ export async function saveAuditTemplate(organizationId: string | null | undefine
 }
 
 // A hospital's own copy of a questionnaire of the library, to edit.
-export function copyOfTemplate(template: AnyRecord, language = 'el') {
+export function copyOfTemplate(template: AuditTemplateDraft, language = 'el') {
   return {
     ...structuredClone(template),
     id: null,
@@ -140,7 +140,7 @@ export function copyOfTemplate(template: AnyRecord, language = 'el') {
     title: `${template.title} ${language === 'en' ? '(hospital copy)' : '(αντίγραφο νοσοκομείου)'}`,
     version: 1,
     source: 'app',
-    questions: (template.questions || []).map((item: AnyRecord) => ({ ...item, id: null })),
+    questions: (template.questions || []).map((item: AuditQuestion) => ({ ...item, id: null })),
   }
 }
 
@@ -149,5 +149,6 @@ export async function removeAuditTemplate(organizationId: string | null | undefi
   must(await supabase.from('quality_audit_templates').delete().eq('id', id).eq('organization_id', organizationId as string))
 }
 
-export const newQuestion = (chapter: AnyRecord = {}) => ({ id: null, chapterRef: chapter.ref || '', chapterTitle: chapter.title || '', clauseRef: chapter.ref || '', question: '', guidance: '', evidence: '', weight: 1, critical: false, areas: [] })
-export const newAuditTemplate = () => ({ id: null, isSystem: false, basedOn: null, key: '', standard: 'other', standardVersion: '', title: '', description: '', scope: '', departmentTypes: [], active: true, version: 1, source: 'app', questions: [] })
+export const newQuestion = (chapter: Partial<TemplateChapter> = {}) => ({ id: null, chapterRef: chapter.ref || '', chapterTitle: chapter.title || '', clauseRef: chapter.ref || '', question: '', guidance: '', evidence: '', weight: 1, critical: false, areas: [] })
+export const newAuditTemplate = (): AuditTemplateDraft => ({
+ id: null, isSystem: false, basedOn: null, key: '', standard: 'other', standardVersion: '', title: '', description: '', scope: '', departmentTypes: [], active: true, version: 1, source: 'app', questions: [] })

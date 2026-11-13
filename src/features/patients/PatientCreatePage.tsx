@@ -12,7 +12,7 @@ import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { createPatient,findPatientMatches,loadPatients } from './patientsService'
 import { DuplicatePatientDialog } from './DuplicatePatientDialog'
 import { PatientFormFields,usePatientForm } from './PatientsPage'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Patient } from './patientTypes'
 
 // «New patient» is a page of its own (like «New employee»), not a window over
 // the registry: Back returns to the list, Save opens the new patient's record.
@@ -21,10 +21,10 @@ export function PatientCreatePage(){
   const {notify}=useFeedback()
   const navigate=useNavigate()
   const {tenant,isDemo}=useTenant()
-  const [patients,setPatients]=useState<AnyRecord[]>([])
+  const [patients,setPatients]=useState<Patient[]>([])
   const {departments,error:departmentsError}=useDepartments()
   const [saving,setSaving]=useState(false)
-  const [matches,setMatches]=useState<AnyRecord[]>([])
+  const [matches,setMatches]=useState<Patient[]>([])
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(()=>{})
@@ -45,7 +45,7 @@ export function PatientCreatePage(){
       signalDemoScenario('patient_admission')
       navigate(`/patients/${record.id}`,{replace:true})
     }catch(error){
-      const failure=error as AnyRecord|null
+      const failure=error as { duplicateRecordNumber?: boolean, duplicateCode?: boolean, message?: string }|null
       notify(failure?.duplicateRecordNumber?t('recordNumberTaken'):failure?.duplicateCode?t('patientCodeDuplicate'):(failure?.message||t('patientSaveFailed')),'danger')
     }finally{setSaving(false)}
   }

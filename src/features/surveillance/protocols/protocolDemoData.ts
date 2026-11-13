@@ -5,12 +5,12 @@
 import { emptyInPreview } from '../../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../../core/data/demoClock'
 import { historyCases } from '../demoInfectionHistory'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { DemoTherapyReview, ProtocolRun } from './protocolTypes'
 
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60000).toISOString()
 const atMinute = (zero: string, minute: number) => new Date(new Date(zero).getTime() + minute * 60000).toISOString()
 
-function hourOneRun() {
+function hourOneRun(): ProtocolRun {
   const zero = minutesAgo(72)
   const step = (key: string, minute: number, value: string, by = 'Μ. Κωνσταντίνου') => ({ key, status: 'done', doneAt: atMinute(zero, minute), value, notIndicatedReason: '', therapyId: null, recordedByName: by, recordedAt: atMinute(zero, minute + 2) })
   return {
@@ -46,7 +46,7 @@ function hourOneRun() {
 // for the patients who died, the plain bundle for the others. Written in the Demo's authored frame and
 // moved to today like the episodes themselves.
 const RUN_STAFF = [['Δρ. Κ. Μαργαρίτης', 'Μ. Κωνσταντίνου'], ['Δρ. Ε. Λαμπράκη', 'Α. Νικολάου'], ['Δρ. Σ. Καλλέργης', 'Δ. Παπαδάκη']]
-function historyRun(item: AnyRecord, index: number) {
+function historyRun(item: (typeof historyCases)[number], index: number): ProtocolRun {
   const shock = item.outcome === 'deceased' || item.critical
   const zero = `${item.startedAt}T05:${String(10 + (index % 5) * 8).padStart(2, '0')}:00.000Z`
   const [doctor, nurse] = RUN_STAFF[index % RUN_STAFF.length]
@@ -86,10 +86,10 @@ function historyRun(item: AnyRecord, index: number) {
 }
 const historyRuns = shiftDemoDatesInPlace(historyCases.filter(item => item.hai?.[1] === 'bloodstreamInfection' && !item.birthWeightGrams).map(historyRun))
 
-export const demoProtocolRuns: AnyRecord[] = emptyInPreview([hourOneRun(), ...historyRuns])
+export const demoProtocolRuns: ProtocolRun[] = emptyInPreview([hourOneRun(), ...historyRuns])
 
 // A review already recorded for the colistin of SUR-260036 (60 hours after its start).
-export const demoTherapyReviews: AnyRecord[] = emptyInPreview([
+export const demoTherapyReviews: DemoTherapyReview[] = emptyInPreview([
   {
     id: 'REVW-260172-1',
     therapyId: 'TX-260172',

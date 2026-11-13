@@ -1,8 +1,8 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { historyCases } from '../surveillance/demoInfectionHistory'
-import type { AnyRecord } from '../../types/featureTypes'
-export const patientDemoData: AnyRecord[] = [
+import type { Admission, Patient } from './patientTypes'
+export const patientDemoData: Patient[] = [
   { id:'PT-260190', firstName:'Νεογέννητο', lastName:'Ιωαννίδη', sex:'female', patronymic:'', firstNameEn:'Neonate', lastNameEn:'Ioannidi', patronymicEn:'', name:'Νεογέννητο Ιωαννίδη', nameEn:'Neonate Ioannidi', dateOfBirth:'2026-08-20', birthWeightGrams:980, gestationalAgeWeeks:27, department:'Νεογνολογική / ΜΕΝΝ', departmentEn:'Neonatal / NICU', admissionDate:'2026-08-20', status:'active' },
   { id:'PT-260184', firstName:'Ελένη', lastName:'Παπαδοπούλου', dateOfBirth:'1958-04-11', sex:'female', patronymic:'', firstNameEn:'Eleni', lastNameEn:'Papadopoulou', patronymicEn:'', name:'Ελένη Παπαδοπούλου', nameEn:'Eleni Papadopoulou', department:'ΜΕΘ', departmentEn:'ICU', admissionDate:'2026-08-24', status:'active' },
   { id:'PT-260179', firstName:'Νικόλαος', lastName:'Γεωργίου', dateOfBirth:'1949-09-02', sex:'male', patronymic:'', firstNameEn:'Nikolaos', lastNameEn:'Georgiou', patronymicEn:'', name:'Νικόλαος Γεωργίου', nameEn:'Nikolaos Georgiou', department:'Παθολογική', departmentEn:'Internal Medicine', admissionDate:'2026-08-21', status:'active' },
@@ -21,7 +21,7 @@ export const patientDemoData: AnyRecord[] = [
 ]
 
 // The patients of the year's other surveillance episodes (demoInfectionHistory.js).
-for(const item of historyCases as AnyRecord[]){
+for(const item of historyCases as { patientId: string, patient: string, patientEn: string, sex?: string, department?: string, departmentEn?: string, admissionDate?: string, dateOfBirth?: string, birthWeightGrams?: number, gestationalAgeWeeks?: number, completedAt?: string, outcome?: string }[]){
   const [firstName,...rest]=item.patient.split(' '),[firstNameEn,...restEn]=item.patientEn.split(' ')
   patientDemoData.push({id:item.patientId,firstName,lastName:rest.join(' '),sex:item.sex,patronymic:'',firstNameEn,lastNameEn:restEn.join(' '),patronymicEn:'',name:item.patient,nameEn:item.patientEn,dateOfBirth:item.dateOfBirth,...(item.birthWeightGrams?{birthWeightGrams:item.birthWeightGrams,gestationalAgeWeeks:item.gestationalAgeWeeks}:{}),department:item.department,departmentEn:item.departmentEn,admissionDate:item.admissionDate,...(item.completedAt?{dischargeDate:item.completedAt,status:item.outcome==='transferred'?'transferred':'discharged'}:{status:'active'})})
 }
@@ -29,7 +29,7 @@ for(const item of historyCases as AnyRecord[]){
 // A patient registered for a sample before any admission: the record without an admission is shown in the demo too.
 patientDemoData.push({ id:'PT-260232', firstName:'Γεώργιος', lastName:'Ραφαηλίδης', dateOfBirth:'1971-03-09', sex:'male', patronymic:'', firstNameEn:'Georgios', lastNameEn:'Rafailidis', patronymicEn:'', name:'Γεώργιος Ραφαηλίδης', nameEn:'Georgios Rafailidis', department:'Παθολογική', departmentEn:'Internal Medicine', status:'active' })
 
-export function demoAdmissionsForPatient(patient: AnyRecord | null | undefined){
+export function demoAdmissionsForPatient(patient: Patient | null | undefined): Admission[]{
   if(!patient?.admissionDate)return []
   return [{
     id: patient.admissionId||`ADM-${patient.id}`,
