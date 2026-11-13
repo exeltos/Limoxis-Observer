@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEPARTMENT_TYPES, departmentTypeValue } from '../src/features/management/managementCloudService'
 import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
 import { readSource } from './helpers/readSource'
+import type { ScaleDefinition } from '../src/features/clinical-scales/clinicalScaleTypes'
 
 const migration = readSource(new URL('../supabase/migrations/20260921150000_pediatric_neonatal_support.sql', import.meta.url))
 const panel = readSource(new URL('../src/features/management/LibrariesPanel.jsx', import.meta.url))
@@ -23,8 +24,8 @@ describe('department type (general / ICU / NICU / PICU)', () => {
 
   it('reaches clinical-scale recommendations through the admission', () => {
     expect(patients).toContain("select('id,name,department_type')")
-    const nicuScale = { id: 'n1', scale_key: 'nicu-scale', status: 'approved', populations: ['neonatal'], settings: ['nicu'] }
-    const [row] = buildClinicalScaleContext([nicuScale], [], { age: 0.01, admission: { department: 'Νεογνολογική', department_type: 'nicu' } })
+    const nicuScale: ScaleDefinition = { id: 'n1', scale_key: 'nicu-scale', status: 'approved', populations: ['neonatal'], settings: ['nicu'] } as never
+    const [row] = buildClinicalScaleContext([nicuScale], [], { age: 0.01, admission: { department: 'Νεογνολογική', department_type: 'nicu' } as never })
     expect(row?.recommended).toBe(true)
   })
 })

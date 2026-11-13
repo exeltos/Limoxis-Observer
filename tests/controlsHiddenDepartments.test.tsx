@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { ControlDepartmentCards } from '../src/features/controls/ControlDepartmentCards'
 import { readSource } from './helpers/readSource'
+import type { ControlRow } from '../src/features/controls/controlTypes'
 
 const card = (department) => ({ department, controls: 2, overdue: 0, todayDone: 0, todayRequired: 0, rate: 90, lastAt: null })
 
@@ -39,10 +40,10 @@ describe('Controls: Today on a weekend', () => {
     const { weekendClosedDepartments } = await import('../src/features/controls/controlDepartmentCards')
     const weekdays = { kind: 'daily', times: ['09:00'], weekdaysOnly: true }
     const everyDay = { kind: 'daily', times: ['09:00'] }
-    const rows = [
+    const rows: ControlRow[] = [
       { item: { frequency: everyDay, assignments: { 'Απεικονίσεις': { frequency: weekdays }, 'ΜΕΘ': { frequency: everyDay } } }, departments: ['Απεικονίσεις', 'ΜΕΘ'] },
       { item: { frequency: { kind: 'weekly' }, assignments: {} }, departments: ['Απεικονίσεις'] },
-    ]
+    ] as never
     expect([...weekendClosedDepartments(rows, new Date('2026-11-07T10:00:00Z'))]).toEqual(['Απεικονίσεις'])
     expect(weekendClosedDepartments(rows, new Date('2026-11-09T10:00:00Z')).size).toBe(0)
   })

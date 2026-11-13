@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readSource } from './helpers/readSource'
+import type { Meeting, MeetingGroup } from '../src/features/quality/meetings/meetingModel'
 
 const read = path => readSource(new URL(`../${path}`, import.meta.url))
 
@@ -44,8 +45,8 @@ describe('department meetings: topics and training', () => {
 
 describe('department meeting groups', async () => {
   const { groupStatus, frequencyLabel, meetingInGroup, newMeetingFor } = await import('../src/features/quality/meetings/meetingModel')
-  const group = { id: 'g1', departmentId: 'd1', frequencyDays: 90, active: true }
-  const meeting = (id, meetingDate, extra = {}) => ({ id, meetingDate, departmentId: 'd1', groupId: 'g1', decisions: [], ...extra })
+  const group = { id: 'g1', departmentId: 'd1', frequencyDays: 90, active: true } as MeetingGroup
+  const meeting = (id, meetingDate, extra = {}): Meeting => ({ id, meetingDate, departmentId: 'd1', groupId: 'g1', decisions: [], ...extra }) as never
 
   it('dates the next meeting from the last one and the frequency', () => {
     const status = groupStatus(group, [meeting('m1', '2026-01-10'), meeting('m2', '2026-04-01')], '2026-05-01')
@@ -56,8 +57,8 @@ describe('department meeting groups', async () => {
   })
 
   it('keeps a meeting recorded before the groups in its department’s group', () => {
-    expect(meetingInGroup({ departmentId: 'd1' }, group)).toBe(true)
-    expect(meetingInGroup({ departmentId: 'd1', groupId: 'g2' }, group)).toBe(false)
+    expect(meetingInGroup({ departmentId: 'd1' } as Meeting, group)).toBe(true)
+    expect(meetingInGroup({ departmentId: 'd1', groupId: 'g2' } as Meeting, group)).toBe(false)
   })
 
   it('names the frequency and starts a new meeting in the group', () => {

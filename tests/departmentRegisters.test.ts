@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { apacheMortality, breakdown, computeIndicator, sheetCoverage, computeValues, daysBetween, fieldVisible, formatValue, gestationText, indicatorReport, keyFrom, monthlySeries, parseGestation, periodLabel, periodOf, shiftPeriod, validateEntry } from '../src/features/registers/registerEngine'
 import { REGISTER_TEMPLATES, registerFromTemplate } from '../src/features/registers/registerTemplates'
 import { demoRegisterEntries, demoRegisters } from '../src/features/registers/registerDemoData'
+import type { Register, RegisterDraft, RegisterEntry, RegisterField } from '../src/features/registers/registerTypes'
 
-const nicu = registerFromTemplate('nicu')
+const nicu = registerFromTemplate('nicu') as Register
 const indicator = id => nicu.indicators.find(item => item.id === id)
 const entry = (values, extra = {}) => ({ id: Math.random().toString(36), entryDate: values.admission_date, values, ...extra })
 const march = periodOf('month', '2026-03-10')
@@ -38,7 +39,7 @@ describe('department register fields', () => {
     expect(apacheMortality(35, false)).toBe(85)
     expect(apacheMortality(50, true)).toBe(88)
     expect(apacheMortality(12, null)).toBeNull()
-    const fields = [{ key: 'score', type: 'number' }, { key: 'postop', type: 'yesNo' }, { key: 'mortality', type: 'computed', computed: 'apacheII', from: 'score', to: 'postop' }]
+    const fields = [{ key: 'score', type: 'number' }, { key: 'postop', type: 'yesNo' }, { key: 'mortality', type: 'computed', computed: 'apacheII', from: 'score', to: 'postop' }] as RegisterField[]
     expect(computeValues(fields, { score: 22, postop: false }).mortality).toBe(40)
   })
 
@@ -107,11 +108,11 @@ describe('department register indicators', () => {
 })
 
 describe('monthly sheets', () => {
-  const emergency = registerFromTemplate('emergency')
-  const sheetEntries = [
+  const emergency = registerFromTemplate('emergency') as Register
+  const sheetEntries: RegisterEntry[] = [
     { id: 'a', periodStart: '2026-01-01', entryDate: '2026-01-01', values: { surgical: { morning: 90, night: 10 }, urgent: { morning: 45, night: 5 }, admissions: { morning: 0, afternoon: '' } } },
     { id: 'b', periodStart: '2026-02-01', entryDate: '2026-02-01', values: { surgical: { morning: 80, afternoon: 20 } } },
-  ]
+  ] as never
   const q1 = periodOf('quarter', '2026-02-10')
   const of = id => emergency.indicators.find(item => item.id === id)
 
@@ -123,7 +124,7 @@ describe('monthly sheets', () => {
 
   it('computes the share of a measure (a shift) and of a row', () => {
     expect(computeIndicator(emergency, of('night_share'), sheetEntries, q1).value).toBe(6)
-    const ophthalmology = registerFromTemplate('ophthalmology')
+    const ophthalmology = registerFromTemplate('ophthalmology') as Register
     const cataracts = ophthalmology.indicators.find(item => item.id === 'cataract_share')
     expect(computeIndicator(ophthalmology, cataracts, [{ id: 'c', periodStart: '2026-01-01', entryDate: '2026-01-01', values: { cataract: { count: 30 }, vitrectomy: { count: 10 } } }], q1).value).toBe(75)
   })
@@ -184,19 +185,19 @@ describe('the ICU register', () => {
   })
   it('is recognised by its name too, and never mistaken for the NICU', async () => {
     const { registerThemeKey } = await import('../src/features/registers/registerThemes')
-    expect(registerThemeKey({ name: 'Μητρώο ασθενών ΜΕΘ', nameEn: '', department: '' })).toBe('icu')
-    expect(registerThemeKey({ name: 'Μητρώο νεογνών ΜΕΝΝ', nameEn: '', department: '' })).toBe('nicu')
-    expect(registerThemeKey({ name: '', nameEn: 'NICU register', department: '' })).toBe('nicu')
-    expect(registerThemeKey({ name: 'Μέθοδοι', nameEn: '', department: 'Παθολογική' })).toBe('')
+    expect(registerThemeKey({ name: 'Μητρώο ασθενών ΜΕΘ', nameEn: '', department: '' } as Register)).toBe('icu')
+    expect(registerThemeKey({ name: 'Μητρώο νεογνών ΜΕΝΝ', nameEn: '', department: '' } as Register)).toBe('nicu')
+    expect(registerThemeKey({ name: '', nameEn: 'NICU register', department: '' } as Register)).toBe('nicu')
+    expect(registerThemeKey({ name: 'Μέθοδοι', nameEn: '', department: 'Παθολογική' } as Register)).toBe('')
   })
 })
 
 describe('SMR', () => {
   it('divides the deaths by the deaths the APACHE II risks add up to', () => {
-    const icu = registerFromTemplate('icu')
+    const icu = registerFromTemplate('icu') as Register
     const smr = icu.indicators.find(item => item.id === 'smr')
     const risk = apacheMortality(30, true) / 100
-    const stay = outcome => ({ values: { admission_date: '2026-03-01', discharge_date: '2026-03-10', apache_score: 30, apache_postop: true, outcome } })
+    const stay = (outcome): RegisterEntry => ({ values: { admission_date: '2026-03-01', discharge_date: '2026-03-10', apache_score: 30, apache_postop: true, outcome } }) as never
     const result = computeIndicator(icu, smr, [stay('death'), stay('transfer_ward')], periodOf('month', '2026-03-10'))
     expect(result.numerator).toBe(1)
     expect(result.denominator).toBe(Number((2 * risk).toFixed(2)))
@@ -204,9 +205,9 @@ describe('SMR', () => {
     expect(result.small).toBe(true)
   })
   it('counts the pressure ulcers of the month of discharge', () => {
-    const icu = registerFromTemplate('icu')
+    const icu = registerFromTemplate('icu') as Register
     const ulcers = icu.indicators.find(item => item.id === 'pressure_ulcers')
-    const row = { values: { admission_date: '2026-02-20', discharge_date: '2026-03-04', pressure_ulcer: true } }
+    const row: RegisterEntry = { values: { admission_date: '2026-02-20', discharge_date: '2026-03-04', pressure_ulcer: true } } as never
     expect(computeIndicator(icu, ulcers, [row], periodOf('month', '2026-03-10')).numerator).toBe(1)
     expect(computeIndicator(icu, ulcers, [row], periodOf('month', '2026-02-10')).n).toBe(0)
   })
@@ -217,7 +218,7 @@ describe('the paediatrics register', () => {
     const register = demoRegisters().find(item => item.templateKey === 'paediatrics')
     const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
     expect(own.length).toBeGreaterThan(300)
-    expect(own.every(item => ['infant', 'toddler', 'child', 'adolescent'].includes(item.values.age_group))).toBe(true)
+    expect(own.every(item => ['infant', 'toddler', 'child', 'adolescent'].includes(item.values.age_group as string))).toBe(true)
     const report = indicatorReport(register, own, periodOf('year', '2026-03-10'))
     for (const key of ['hai_rate', 'falls_rate', 'phlebitis_rate', 'isolation', 'mean_los']) expect(report.find(row => row.indicator.id === key).current.value).not.toBeNull()
     const rate = report.find(row => row.indicator.id === 'hai_rate').current
@@ -230,7 +231,7 @@ describe('the obstetrics register', () => {
     const { registerThemeKey } = await import('../src/features/registers/registerThemes')
     const register = demoRegisters().find(item => item.templateKey === 'obstetrics')
     expect(registerThemeKey(register)).toBe('obstetrics')
-    expect(registerThemeKey({ name: 'Πράξεις Αίθουσας Τοκετών', nameEn: '', department: 'Μαιευτική', kind: 'sheet' })).toBe('deliveryroom')
+    expect(registerThemeKey({ name: 'Πράξεις Αίθουσας Τοκετών', nameEn: '', department: 'Μαιευτική', kind: 'sheet' } as Register)).toBe('deliveryroom')
     const cs = register.indicators.find(item => item.id === 'cs_rate')
     expect([cs.target, cs.threshold, cs.direction]).toEqual([55, 65, 'lower'])
     const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
@@ -240,11 +241,11 @@ describe('the obstetrics register', () => {
 })
 
 describe('daily sheets', () => {
-  const endoscopy = registerFromTemplate('endoscopy')
+  const endoscopy = registerFromTemplate('endoscopy') as Register
   const find = id => endoscopy.indicators.find(item => item.id === id)
-  const day = (periodStart, gastroscopy, ercp = 0) => ({ periodStart, values: { gastroscopy: { count: gastroscopy }, ercp: { count: ercp } } })
+  const day = (periodStart, gastroscopy, ercp = 0): RegisterEntry => ({ periodStart, values: { gastroscopy: { count: gastroscopy }, ercp: { count: ercp } } }) as never
   it('reads the mean per day and the days recorded from the daily sheets only', () => {
-    const entries = [{ periodStart: '2026-10-01', values: { gastroscopy: { count: 90 } } }, day('2026-11-02', 4), day('2026-11-03', 6, 1)]
+    const entries: RegisterEntry[] = [{ periodStart: '2026-10-01', values: { gastroscopy: { count: 90 } } }, day('2026-11-02', 4), day('2026-11-03', 6, 1)] as never
     expect(computeIndicator(endoscopy, find('daily_mean'), entries, periodOf('month', '2026-11-10')).value).toBe(5.5)
     expect(computeIndicator(endoscopy, find('days_recorded'), entries, periodOf('month', '2026-11-10')).value).toBe(2)
     // A month recorded as one total has no day to average: nothing, not a wrong number.
@@ -258,7 +259,7 @@ describe('daily sheets', () => {
   })
   it('keeps the daily-only mark when the definition goes to the database and back', async () => {
     const { registerFromRows, registerRow, definitionRows } = await import('../src/features/registers/registerCloud')
-    const rows = definitionRows(endoscopy, 'org-1')
+    const rows = (definitionRows as (register: RegisterDraft, organizationId: string) => ReturnType<typeof definitionRows>)(endoscopy, 'org-1')
     expect(rows.indicators.find(row => row.key === 'daily_mean').daily_only).toBe(true)
     expect(rows.indicators.find(row => row.key === 'total').daily_only).toBe(false)
     expect(typeof registerFromRows).toBe('function')
@@ -275,9 +276,9 @@ describe('the day a sheet starts being daily', () => {
     expect(dailyStart('2026-10-31')).toBe('2026-10-31')
   })
   it('splits a month at the start: its single total before, the days from it', () => {
-    const ed = { ...registerFromTemplate('emergency'), sheet: { ...registerFromTemplate('emergency').sheet, dailyFrom: '2026-10-31' } }
+    const ed = { ...registerFromTemplate('emergency'), sheet: { ...registerFromTemplate('emergency').sheet, dailyFrom: '2026-10-31' } } as Register
     const total = ed.indicators.find(item => item.id === 'total')
-    const entries = [{ periodStart: '2026-10-01', values: { surgical: { morning: 100 } } }, { periodStart: '2026-10-31', values: { surgical: { morning: 5 } } }]
+    const entries: RegisterEntry[] = [{ periodStart: '2026-10-01', values: { surgical: { morning: 100 } } }, { periodStart: '2026-10-31', values: { surgical: { morning: 5 } } }] as never
     expect(computeIndicator(ed, total, entries, periodOf('month', '2026-10-10')).value).toBe(105)
     // The month is cut by the start: no coverage line, rather than a wrong one.
     expect(sheetCoverage(entries, periodOf('month', '2026-10-10'), '2026-10-31', '2026-10-31')).toBeNull()
@@ -307,7 +308,7 @@ describe('database shape', () => {
         axes: rows.axes,
         indicators: rows.indicators.map(row => ({ ...row, id: indicatorId.get(row.key) })),
         filters: rows.filters.map(({ indicatorKey, ...row }) => ({ ...row, indicator_id: indicatorId.get(indicatorKey) })),
-      })
+      } as never)
       expect(back.fields).toEqual(register.fields)
       expect(back.indicators.map(item => ({ ...item, rows: item.rows || [] }))).toEqual(register.indicators.map(item => ({ ...item, filters: item.filters || [], denominatorFilters: item.denominatorFilters || [], rows: item.rows || [] })))
       if (register.kind === 'sheet') expect(back.sheet.rows).toEqual(register.sheet.rows)
@@ -327,12 +328,12 @@ describe('database shape', () => {
 })
 
 describe('how much of a period a sheet has', () => {
-  const entries = [{ periodStart: '2026-01-01' }, { periodStart: '2026-03-01' }]
+  const entries = [{ periodStart: '2026-01-01' }, { periodStart: '2026-03-01' }] as RegisterEntry[]
   it('counts the months of the period that have passed', () => {
     expect(sheetCoverage(entries, periodOf('quarter', '2026-03-10'), '2026-05-10', '2026-11')).toEqual({ unit: 'month', recorded: 2, expected: 3 })
   })
   it('counts days once the daily sheets start, up to today', () => {
-    expect(sheetCoverage([{ periodStart: '2026-11-01' }, { periodStart: '2026-11-03' }], periodOf('month', '2026-11-10'), '2026-11-05', '2026-11')).toEqual({ unit: 'day', recorded: 2, expected: 5 })
+    expect(sheetCoverage([{ periodStart: '2026-11-01' }, { periodStart: '2026-11-03' }] as RegisterEntry[], periodOf('month', '2026-11-10'), '2026-11-05', '2026-11')).toEqual({ unit: 'day', recorded: 2, expected: 5 })
   })
   it('says nothing for a period that mixes months and days, or has not started', () => {
     expect(sheetCoverage(entries, periodOf('year', '2026-11-10'), '2026-12-05', '2026-11')).toBeNull()
@@ -341,12 +342,12 @@ describe('how much of a period a sheet has', () => {
 })
 
 describe('the cath lab register', () => {
-  const cath = registerFromTemplate('cathLab')
+  const cath = registerFromTemplate('cathLab') as Register
   const row = (values, date = '2026-03-10') => ({ id: Math.random().toString(36), entryDate: date, values: { date, ...values } })
   it('has its own look, in three sections', async () => {
     const { registerThemeKey } = await import('../src/features/registers/registerThemes')
     expect(registerThemeKey(cath)).toBe('cathlab')
-    expect(registerThemeKey({ name: 'Πράξεις Αιμοδυναμικού', kind: 'case' })).toBe('cathlab')
+    expect(registerThemeKey({ name: 'Πράξεις Αιμοδυναμικού', kind: 'case' } as Register)).toBe('cathlab')
     expect(cath.settings.sections.map(item => item.key)).toEqual(['procedure', 'patient', 'outcome'])
     expect(cath.fields.every(field => cath.settings.sections.some(item => item.key === field.section))).toBe(true)
   })
@@ -379,7 +380,7 @@ describe('the cath lab register', () => {
 })
 
 describe('the chemotherapy register', () => {
-  const chemo = registerFromTemplate('chemotherapy')
+  const chemo = registerFromTemplate('chemotherapy') as Register
   const active = chemo.indicators.find(item => item.id === 'active_patients')
   const patient = (start, end = '', extra = {}) => ({ id: Math.random().toString(36), entryDate: start || '2026-10-19', values: { start_date: start, end_date: end, ...extra } })
   it('counts the patients on treatment on the last day of the period, not the ones recorded in it', () => {
@@ -407,9 +408,9 @@ describe('the chemotherapy register', () => {
 })
 
 describe('the daily sheets of the ophthalmology, emergency and delivery room', () => {
-  const day = (periodStart, values) => ({ periodStart, entryDate: periodStart, values })
+  const day = (periodStart, values): RegisterEntry => ({ periodStart, entryDate: periodStart, values }) as never
   it('reads the mean per day and the admissions share', () => {
-    const emergency = registerFromTemplate('emergency')
+    const emergency = registerFromTemplate('emergency') as Register
     const cells = (surgical, admissions) => ({ surgical: { morning: surgical, afternoon: 0, night: 0 }, admissions: { morning: admissions, afternoon: 0, night: 0 } })
     const entries = [day('2026-11-02', cells(40, 8)), day('2026-11-03', cells(60, 12))]
     emergency.sheet = { ...emergency.sheet, dailyFrom: '2026-11-01' }
