@@ -4,12 +4,12 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { TEMPORARY_PASSWORD_DAYS, isValidMobile, normalizeMobile } from './activeUsersModel'
 import { reissueTemporaryPassword } from './activeUsersService'
+import type { ReissueResult } from './activeUsersService'
 import './activeUsers.css'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // «Νέος προσωρινός κωδικός»: for a person who never changed the first password (or whose 7 days ran out
 // and the account was locked). The password is shown once; the person changes it at the next sign-in.
-export function ReissuePasswordDialog({ organizationId, user, onClose, onDone }: { organizationId: string, user: AnyRecord, onClose: () => void, onDone?: () => void }) {
+export function ReissuePasswordDialog({ organizationId, user, onClose, onDone }: { organizationId: string, user: { userId?: string | null, name?: string | null }, onClose: () => void, onDone?: () => void }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const tx = (el: string, english: string) => (en ? english : el)
@@ -17,7 +17,7 @@ export function ReissuePasswordDialog({ organizationId, user, onClose, onDone }:
   const [mode, setMode] = useState('random')
   const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState<AnyRecord | null>(null)
+  const [result, setResult] = useState<ReissueResult | null>(null)
   const phoneOk = mode !== 'phone' || isValidMobile(phone)
   async function submit() {
     setBusy(true)

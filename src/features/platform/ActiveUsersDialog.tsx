@@ -13,9 +13,15 @@ import { TEMPORARY_PASSWORD_DAYS, checkPerson, errorText, isDivisionRole, mergeV
 import { loadDivisions } from '../interviews/interviewsService'
 import { createActiveUsers, previewActiveUsers } from './activeUsersService'
 import './activeUsers.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CheckedPerson, CreatedActiveUser, DepartmentChoice, FilePlan, PreviewPerson } from './activeUsersModel'
 
-const EMPTY: AnyRecord = { fullName: '', email: '', username: '', role: 'department_user', departmentId: '', employeeCode: '', phone: '', passwordMode: 'random', divisionName: '', departmentIds: [] }
+// Η φόρμα «Νέος ενεργός χρήστης».
+type ActiveUserDraft = { fullName: string, email: string, username: string, role: string, departmentId: string, employeeCode: string, phone: string, passwordMode: string, divisionName: string, departmentIds: string[] }
+// Ο οργανισμός και οι διευθύνσεις του, όσο τα διαβάζει το παράθυρο.
+type ActiveUsersOrganization = { id: string, name?: string | null, code?: string | null }
+type DivisionOption = { name: string, departments?: string[] }
+
+const EMPTY: ActiveUserDraft = { fullName: '', email: '', username: '', role: 'department_user', departmentId: '', employeeCode: '', phone: '', passwordMode: 'random', divisionName: '', departmentIds: [] }
 // Names offered for a new division; the hospital's own divisions come first.
 const DIVISION_SUGGESTIONS = ['Νοσηλευτική Υπηρεσία', 'Διεύθυνση Λειτουργιών', 'Ιατρική Υπηρεσία', 'Διοικητική Υπηρεσία']
 
@@ -23,21 +29,21 @@ const DIVISION_SUGGESTIONS = ['Νοσηλευτική Υπηρεσία', 'Διε
 // Platform Owner only, in the hospital's record › «Χρήστες & Ρόλοι». The accounts are
 // created active with a temporary password, shown once here and in the Excel of the
 // results; the user changes it at the first sign-in. The welcome e-mail never carries it.
-export function ActiveUsersDialog({ mode = 'single', organization, departments = [], language = 'el', onClose, onCreated }: { mode?: string, organization: AnyRecord, departments?: AnyRecord[], language?: string, onClose: () => void, onCreated?: () => void }) {
+export function ActiveUsersDialog({ mode = 'single', organization, departments = [], language = 'el', onClose, onCreated }: { mode?: string, organization: ActiveUsersOrganization, departments?: DepartmentChoice[], language?: string, onClose: () => void, onCreated?: () => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const { confirm, notifyError } = useFeedback()
-  const [draft, setDraft] = useState<AnyRecord>(EMPTY)
+  const [draft, setDraft] = useState<ActiveUserDraft>(EMPTY)
   const [fileName, setFileName] = useState('')
   const [readError, setReadError] = useState('')
-  const [plan, setPlan] = useState<AnyRecord | null>(null)
-  const [people, setPeople] = useState<AnyRecord[] | null>(null)
+  const [plan, setPlan] = useState<FilePlan | null>(null)
+  const [people, setPeople] = useState<PreviewPerson[] | null>(null)
   const [checking, setChecking] = useState(false)
-  const [progress, setProgress] = useState<AnyRecord | null>(null)
-  const [results, setResults] = useState<AnyRecord[] | null>(null)
+  const [progress, setProgress] = useState<{ done: number, total: number } | null>(null)
+  const [results, setResults] = useState<CreatedActiveUser[] | null>(null)
   const [downloaded, setDownloaded] = useState(false)
   const [singleError, setSingleError] = useState('')
-  const [divisions, setDivisions] = useState<AnyRecord[]>([])
+  const [divisions, setDivisions] = useState<DivisionOption[]>([])
   const [fileRows, setFileRows] = useState<unknown[][] | null>(null)
   const [passwordMode, setPasswordMode] = useState('random')
 
@@ -54,14 +60,14 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   ]
 
   const counts = useMemo(() => (people ? previewCounts(people) : { ok: 0, error: 0 }), [people])
-  const ready = people ? people.filter((person: AnyRecord) => person.status === 'ok') : []
-  const created = results ? results.filter((row: AnyRecord) => row.status === 'created') : []
+  const ready = people ? people.filter((person: PreviewPerson) => person.status === 'ok') : []
+  const created = results ? results.filter((row: CreatedActiveUser) => row.status === 'created') : []
   const busy = checking || Boolean(progress)
 
-  async function verify(list: AnyRecord[]) {
+  async function verify(list: CheckedPerson[]) {
     setChecking(true)
     try {
-      const clean = list.filter((person: AnyRecord) => !person.errors.length)
+      const clean = list.filter((person: CheckedPerson) => !person.errors.length)
       const verdicts = clean.length ? await previewActiveUsers(organization.id, clean) : []
       const merged = mergeVerdicts(list, verdicts)
       setPeople(merged)
@@ -103,7 +109,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
     if (!next.missingColumns.length && next.people.length) await verify(next.people)
   }
 
-  async function run(list: AnyRecord[]) {
+  async function run(list: CheckedPerson[]) {
     setProgress({ done: 0, total: list.length })
     try {
       const rows = await createActiveUsers(organization.id, list, { onProgress: (done, total: number) => setProgress({ done, total }) })
@@ -213,7 +219,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((row: AnyRecord) => (
+                  {results.map((row: CreatedActiveUser) => (
                     <tr key={row.line} className={row.status === 'created' ? '' : 'active-users-row-error'}>
                       <td>
                         <strong>{row.fullName}</strong>
@@ -385,7 +391,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                 )}
               </p>
             )}
-            {plan?.missingColumns.length > 0 && (
+            {plan && plan.missingColumns.length > 0 && (
               <p className="active-users-error" role="alert">
                 <AlertTriangle size={15} />
                 {tx(`Λείπουν στήλες: ${plan!.missingColumns.join(', ')}`, `Missing columns: ${plan!.missingColumns.join(', ')}`)}
@@ -422,7 +428,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                       </tr>
                     </thead>
                     <tbody>
-                      {people.map((person: AnyRecord) => (
+                      {people.map((person: PreviewPerson) => (
                         <tr key={person.line} className={person.status === 'ok' ? '' : 'active-users-row-error'}>
                           <td>{person.line}</td>
                           <td>{person.fullName || '—'}</td>
