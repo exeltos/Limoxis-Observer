@@ -27,7 +27,7 @@ describe('questionnaire library', () => {
   it('covers the clauses and chapters each standard is audited by', () => {
     const chapters = key => [...new Set(template(key).questions.map(item => item.chapterRef))]
     expect(chapters('iso9001')).toEqual(['4', '5', '6', '7', '8', '9', '10'])
-    expect(chapters('iso15224').filter(ref => ref.startsWith('ΧΠ-'))).toHaveLength(11)
+    expect(chapters('iso15224').filter(ref => (ref as string).startsWith('ΧΠ-'))).toHaveLength(11)
     expect(chapters('jci')).toEqual(expect.arrayContaining(['IPSG', 'ACC', 'PCC', 'AOP', 'MMU', 'PFE', 'QPS', 'PCI', 'GLD', 'FMS', 'SQE', 'MOI']))
     expect(chapters('iso15189')).toEqual(expect.arrayContaining(['7.2', '7.3', '7.4']))
     expect(template('haccp').questions.filter(item => item.chapterRef === 'HACCP').map(item => item.clauseRef)).toEqual(expect.arrayContaining(['Αρχή 1', 'Αρχή 2', 'Αρχή 3', 'Αρχή 4', 'Αρχή 5', 'Αρχή 6', 'Αρχή 7']))
@@ -187,8 +187,8 @@ describe('report and storage', () => {
     const audit = programmeAudits.find(item => item.standard === 'jci')
     const doc = auditReportDocument({ ...audit, displayId: audit.id }, programmeFindings)
     expect(doc.sections.map(section => section.title)).toEqual(['Σύνοψη', 'Πεδίο και κριτήρια', 'Ομάδα επιθεώρησης', 'Συσκέψεις', 'Αποτελέσματα ανά κεφάλαιο', 'Δυνατά σημεία και σημεία βελτίωσης', 'Διαπιστώσεις', 'Ευρήματα και διορθωτικές ενέργειες', 'Προτεινόμενες ενέργειες', 'Συμπέρασμα', 'Παράρτημα: πλήρες ερωτηματολόγιο'])
-    expect(doc.signatures.map(item => item.role)).toEqual(['Επικεφαλής επιθεωρητής', 'Εκπρόσωπος επιθεωρούμενου'])
-    expect(doc.sections[4].table.rows.map(cells => cells[0].split(' · ')[0])).toEqual(['IPSG', 'COP', 'MMU', 'PCI'])
+    expect(doc.signatures.map(item => (item as { role: string }).role)).toEqual(['Επικεφαλής επιθεωρητής', 'Εκπρόσωπος επιθεωρούμενου'])
+    expect(doc.sections[4].table.rows.map(cells => (cells[0] as string).split(' · ')[0])).toEqual(['IPSG', 'COP', 'MMU', 'PCI'])
     expect(doc.sections[0].text).toContain('συμμόρφωση')
     expect(doc.sections[0].html).toContain('background:#18794e')
     expect(doc.sections.at(-1).table.rows).toHaveLength(audit.checklist.length)

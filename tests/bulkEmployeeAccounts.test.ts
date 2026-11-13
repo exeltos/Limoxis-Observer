@@ -49,16 +49,16 @@ describe('bulk request validation', () => {
   it('needs an organization, a batch key (except the dry run) and 1–25 people per call', () => {
     expect(validateBulkRequest({})).toEqual({ ok: false, code: 'ORGANIZATION_REQUIRED' })
     expect(validateBulkRequest({ organizationId: ORG, items: [{ employeeId: E1, role: 'pharmacy' }] })).toEqual({ ok: false, code: 'BATCH_KEY_REQUIRED' })
-    expect(validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [] }).code).toBe('ITEMS_REQUIRED')
+    expect((validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [] }) as { code?: string }).code).toBe('ITEMS_REQUIRED')
     const many = Array.from({ length: 26 }, (_, i) => ({ employeeId: `11111111-1111-4111-8111-${String(i).padStart(12, '0')}`, role: 'pharmacy' }))
-    expect(validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: many }).code).toBe('TOO_MANY_ITEMS')
+    expect((validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: many }) as { code?: string }).code).toBe('TOO_MANY_ITEMS')
     expect(validateBulkRequest({ organizationId: ORG, dryRun: true, items: many }).ok).toBe(true)
   })
 
   it('refuses the Hospital Admin role, unknown roles and the same employee twice', () => {
-    expect(validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [{ employeeId: E1, role: 'hospital_admin' }] }).code).toBe('ROLE_NOT_ALLOWED')
-    expect(validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [{ employeeId: E1, role: 'root' }] }).code).toBe('ROLE_NOT_ALLOWED')
-    expect(validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [{ employeeId: E1, role: 'pharmacy' }, { employeeId: E1.toUpperCase(), role: 'laboratory' }] }).code).toBe('DUPLICATE_EMPLOYEE')
+    expect((validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [{ employeeId: E1, role: 'hospital_admin' }] }) as { code?: string }).code).toBe('ROLE_NOT_ALLOWED')
+    expect((validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [{ employeeId: E1, role: 'root' }] }) as { code?: string }).code).toBe('ROLE_NOT_ALLOWED')
+    expect((validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [{ employeeId: E1, role: 'pharmacy' }, { employeeId: E1.toUpperCase(), role: 'laboratory' }] }) as { code?: string }).code).toBe('DUPLICATE_EMPLOYEE')
     const ok = validateBulkRequest({ organizationId: ORG, batchKey: KEY, items: [{ employeeId: E1, role: 'department_user', departmentId: E2 }], confirmExisting: [E1, 'x'] })
     expect(ok).toEqual({ ok: true, request: { organizationId: ORG, batchKey: KEY, dryRun: false, items: [{ employeeId: E1, role: 'department_user', departmentId: E2 }], confirmExisting: [E1] } })
   })

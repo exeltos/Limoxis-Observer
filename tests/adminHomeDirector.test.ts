@@ -7,8 +7,8 @@ const today = new Date(2026, 9, 20)
 
 describe('one period for Executive and Analysis', () => {
   it('maps the shared period both ways, the current year by default', () => {
-    expect(analysisPeriodOf({ period: 'year' }, today)).toEqual({ year: '2026', periodType: 'year', periodSlot: '1' })
-    expect(analysisPeriodOf({ period: '3m' }, today)).toEqual({ year: '2026', periodType: 'year', periodSlot: '1' })
+    expect(analysisPeriodOf({ period: 'year' } as never, today)).toEqual({ year: '2026', periodType: 'year', periodSlot: '1' })
+    expect(analysisPeriodOf({ period: '3m' } as never, today)).toEqual({ year: '2026', periodType: 'year', periodSlot: '1' })
     expect(analysisPeriodOf({ period: 'custom', from: '2026-04-01', to: '2026-06-30' }, today)).toEqual({ year: '2026', periodType: 'quarter', periodSlot: '2' })
     expect(sharedPeriodOfAnalysis('2026', 'year', '1', today)).toEqual({ period: 'year', from: '', to: '' })
     expect(sharedPeriodOfAnalysis('2025', 'year', '1', today)).toEqual({ period: 'custom', from: '2025-01-01', to: '2025-12-31' })

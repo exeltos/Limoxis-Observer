@@ -3,6 +3,7 @@ import { clinicalRiskFlags } from '../src/features/clinical-scales/ClinicalRiskF
 import { createPatientScaleAssessment, loadPatientScaleAssessments } from '../src/features/clinical-scales/patientClinicalScalesService'
 import { loadLatestPatientRiskFlags } from '../src/features/clinical-scales/patientRiskFlagsService'
 import { readSource } from './helpers/readSource'
+import type { ScaleDefinition } from '../src/features/clinical-scales/clinicalScaleTypes'
 
 // User-reported: clinical-scale risk flags were not visible anywhere.
 describe('clinical-scale risk flags are visible and correctly toned', () => {
@@ -17,8 +18,8 @@ describe('clinical-scale risk flags are visible and correctly toned', () => {
   })
 
   it('keeps demo assessments for the session and feeds them to the registry flags', async () => {
-    const definition = { id: 'd', scale_key: 'morse', version: 'MFS', name_el: 'Morse', name_en: 'Morse' }
-    await createPatientScaleAssessment(null, 'PT-TEST', 'ADM-1', definition, { score: 50, risk: 'high', parts: {} }, {}, { isDemo: true })
+    const definition = { id: 'd', scale_key: 'morse', version: 'MFS', name_el: 'Morse', name_en: 'Morse' } as ScaleDefinition
+    await createPatientScaleAssessment(null, 'PT-TEST', 'ADM-1', definition, { score: 50, risk: 'high', parts: {} } as never, {}, { isDemo: true })
     expect((await loadPatientScaleAssessments(null, 'PT-TEST', 'ADM-1', { isDemo: true }))[0].score).toBe(50)
     expect((await loadLatestPatientRiskFlags(null, { isDemo: true }))['PT-TEST'][0].scale_key).toBe('morse')
   })
