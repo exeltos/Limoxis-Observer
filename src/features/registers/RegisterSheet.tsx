@@ -23,19 +23,18 @@ import { DAILY_SHEETS_FROM, dailyStart, periodLabel, periodOf, shiftPeriod, text
 import { registerThemeKey } from './registerThemes'
 import { hospitalMonth, hospitalToday } from '../../core/dates/hospitalDate'
 import type { KeyboardEvent, RefObject } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { ExportApi, Register } from './registerTypes'
+import type { ExportApi, Register, SheetAxisItem, SheetEntry, SheetValues } from './registerTypes'
 
 const thisMonth = () => hospitalMonth()
 const blank = (value: unknown) => value === undefined || value === null || value === ''
 const monthShift = (month: string, by: number) => shiftPeriod(periodOf('month', `${month}-01`), by).from.slice(0, 7)
 // The sum of a row's measures in one month's values (null: nothing recorded).
-const rowSum = (values: AnyRecord | null | undefined, row: string, measures: AnyRecord[]): number | null => { const cells = measures.map(measure => values?.[row]?.[measure.key]).filter(cell => !blank(cell)); return cells.length ? cells.reduce((sum, cell) => sum + Number(cell), 0) : null }
+const rowSum = (values: SheetValues | null | undefined, row: string, measures: SheetAxisItem[]): number | null => { const cells = measures.map(measure => values?.[row]?.[measure.key]).filter(cell => !blank(cell)); return cells.length ? cells.reduce((sum, cell) => sum + Number(cell), 0) : null }
 
 // What a row looked like before this month: the previous month, and whether
 // today's value is far from the usual (more than half away from the average of
 // the three months before; rows that usually count fewer than 5 are not judged).
-export function rowContext(row: string, measures: AnyRecord[], valuesOf: (month: string) => AnyRecord | undefined, month: string, current: number | null) {
+export function rowContext(row: string, measures: SheetAxisItem[], valuesOf: (month: string) => SheetValues | undefined, month: string, current: number | null) {
   const previous = rowSum(valuesOf(monthShift(month, -1)), row, measures)
   const before = [1, 2, 3].map(back => rowSum(valuesOf(monthShift(month, -back)), row, measures)).filter((value): value is number => value != null)
   const average = before.length ? before.reduce((sum, value) => sum + value, 0) / before.length : null
@@ -52,13 +51,13 @@ const lastWorkingDay = (day: string) => { let current = day; for (let step = 0; 
 const dayShift = (day: string, by: number) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + by); return date.toISOString().slice(0, 10) }
 const daysOf = (month: string) => { const [y, m] = month.split('-').map(Number); return Array.from({ length: new Date(Date.UTC(y, m, 0)).getUTCDate() }, (_, index) => `${month}-${String(index + 1).padStart(2, '0')}`) }
 // The values of several entries added together, row by row and measure by measure.
-const sumValues = (list: AnyRecord[]) => list.reduce<AnyRecord>((total, values) => { for (const [row, cells] of Object.entries(values || {})) { total[row] = total[row] || {}; for (const [measure, cell] of Object.entries(cells || {})) if (!blank(cell)) total[row][measure] = (total[row][measure] || 0) + Number(cell) } return total }, {})
+const sumValues = (list: SheetValues[]) => list.reduce<SheetValues>((total, values) => { for (const [row, cells] of Object.entries(values || {})) { total[row] = total[row] || {}; for (const [measure, cell] of Object.entries(cells || {})) if (!blank(cell)) total[row][measure] = (total[row][measure] || 0) + Number(cell) } return total }, {})
 // Sheets are recorded day by day from November 2026; the months before keep their one monthly total.
 export { DAILY_SHEETS_FROM }
 export const dailyFromOf = (register: Register) => dailyStart(register.sheet?.dailyFrom)
 
 // newDayTick: «New day» in the record's header (each press opens today's entry).
-interface RegisterSheetProps { register: Register, entries: AnyRecord[], onSaved?: () => void | Promise<void>, newDayTick?: number, onExportApi?: ((api: ExportApi | null) => void) | null }
+interface RegisterSheetProps { register: Register, entries: SheetEntry[], onSaved?: () => void | Promise<void>, newDayTick?: number, onExportApi?: ((api: ExportApi | null) => void) | null }
 export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onExportApi = null }: RegisterSheetProps) {
   const { language } = useLanguage()
   const en = language === 'en'
@@ -80,7 +79,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const periodStart = legacy ? `${month}-01` : day
   const monthEntries = useMemo(() => entries.filter(item => String(item.periodStart).startsWith(month)), [entries, month])
   const entry = entries.find(item => item.periodStart === periodStart) || null
-  const [values, setValues] = useState<AnyRecord>({})
+  const [values, setValues] = useState<SheetValues>({})
   const [saving, setSaving] = useState(false)
   useEffect(() => setValues(structuredClone(entry?.values || {})), [entry?.id, periodStart]) // eslint-disable-line react-hooks/exhaustive-deps
   const rows = register.sheet?.rows || []
@@ -102,7 +101,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const grand = rows.reduce((sum, row) => sum + (rowTotal(row.key) || 0), 0)
   const dirty = JSON.stringify(values) !== JSON.stringify(entry?.values || {})
   // What a row usually is: by month for the month and the earlier monthly totals, by day for a day.
-  const valuesByMonth = useMemo(() => { const byMonth = new Map<string, AnyRecord[]>(); for (const item of entries) { const key = String(item.periodStart).slice(0, 7); byMonth.set(key, [...(byMonth.get(key) || []), item.values || {}]) } return new Map([...byMonth].map(([key, list]) => [key, sumValues(list)])) }, [entries])
+  const valuesByMonth = useMemo(() => { const byMonth = new Map<string, SheetValues[]>(); for (const item of entries) { const key = String(item.periodStart).slice(0, 7); byMonth.set(key, [...(byMonth.get(key) || []), item.values || {}]) } return new Map([...byMonth].map(([key, list]) => [key, sumValues(list)])) }, [entries])
   const valuesByDay = useMemo(() => new Map(entries.map(item => [String(item.periodStart), item.values || {}])), [entries])
   const dayContext = (row: string, current: number | null) => {
     const previous = rowSum(valuesByDay.get(dayShift(day, -1)), row, measures)
@@ -181,7 +180,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
     access.canRecord(register) && { id: 'import', label: en ? 'Import from file' : 'Εισαγωγή από αρχείο', icon: Upload, onClick: () => navigate(`/registers/${register.id}/import`) },
   ].filter(Boolean)
   // Under the fields: the total of what is on screen, the one before it, the month so far and how much is filled.
-  const entryTotal = (item: AnyRecord) => rows.reduce((sum, row) => sum + (rowSum(item, row.key, measures) || 0), 0)
+  const entryTotal = (item: SheetValues) => rows.reduce((sum, row) => sum + (rowSum(item, row.key, measures) || 0), 0)
   const monthSoFar = monthEntries.reduce((sum, item) => sum + (item.periodStart === periodStart ? 0 : entryTotal(item.values)), 0) + (isDay ? grand : 0)
   const previousLabel = byDay ? (en ? 'previous day' : 'προηγ. ημέρα') : (en ? 'previous month' : 'προηγ. μήνας')
   const subtitle = view === 'list'
@@ -225,7 +224,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
 
 // All the entries as a list, like the cases of a register: the day (or, before the daily
 // sheets, the month's total), the total and the rows filled. Newest first.
-interface SheetDaysProps { innerRef: RefObject<HTMLDivElement>, register: Register, entries: AnyRecord[], dailyFrom: string, language: string, onOpen: (day: string) => void }
+interface SheetDaysProps { innerRef: RefObject<HTMLDivElement>, register: Register, entries: SheetEntry[], dailyFrom: string, language: string, onOpen: (day: string) => void }
 function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen }: SheetDaysProps) {
   const en = language === 'en'
   const rows = register.sheet?.rows || []
@@ -236,7 +235,7 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen }:
   const [month, setMonth] = useState('all')
   const years = [...new Set(entries.map(item => String(item.periodStart).slice(0, 4)))].sort().reverse()
   const monthName = (number: number) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, number - 1, 1)))
-  const totalOf = (item: AnyRecord) => rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
+  const totalOf = (item: SheetEntry) => rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
   // Each entry against the one recorded before it.
   const olderTotal = new Map<string, number>(); { const ascending = [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))); ascending.forEach((item, index) => { if (index > 0) olderTotal.set(String(item.periodStart), totalOf(ascending[index - 1])) }) }
   const sorted = [...entries]
@@ -288,14 +287,14 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen }:
 }
 
 // The year: one column per month, one row per sheet row (sum of measures).
-interface SheetYearProps { innerRef: RefObject<HTMLDivElement>, register: Register, entries: AnyRecord[], year: string, selected: string, onSelect: (day: string) => void }
+interface SheetYearProps { innerRef: RefObject<HTMLDivElement>, register: Register, entries: SheetEntry[], year: string, selected: string, onSelect: (day: string) => void }
 function SheetYear({ innerRef, register, entries, year, selected, onSelect }: SheetYearProps) {
   const { language } = useLanguage()
   const en = language === 'en'
   const months = useMemo(() => Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}-01`), [year])
   // A month's column adds up its days (or holds its earlier monthly total).
   const byMonth = new Map(months.map(first => { const list = entries.filter(entry => String(entry.periodStart).startsWith(first.slice(0, 7))); return [first, list.length ? { values: sumValues(list.map(entry => entry.values)) } : null] }))
-  const cell = (entry: AnyRecord | null | undefined, row: string) => {
+  const cell = (entry: { values: SheetValues } | null | undefined, row: string) => {
     if (!entry) return null
     const cells = (register.sheet?.measures || []).map(measure => entry.values?.[row]?.[measure.key]).filter(value => !blank(value))
     return cells.length ? cells.reduce((sum, value) => sum + Number(value), 0) : null

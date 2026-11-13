@@ -19,6 +19,7 @@ import { formatObjectiveValue, objectiveState, objectiveValueText, reviewStatusL
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { QualityPersonField } from '../QualityFields'
 import type { AnyRecord } from '../../../types/featureTypes'
+import type { Register, RegisterEntry } from '../../registers/registerTypes'
 
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -45,8 +46,8 @@ export function useObjectives(organizationId: string | null | undefined, { enabl
       setLevels(names)
       setCommitteeTargets(plans)
       // The registers the objectives read, together; the platform's indicators once per year.
-      const linked = [...new Set(rows.map((row: AnyRecord) => row.registerId).filter(Boolean))].map(id => allRegisters.find(item => item.id === id)).filter(Boolean) as AnyRecord[]
-      const entriesBy = new Map(await Promise.all(linked.map(async register => [register.id, await loadEntries(organizationId, register.id, { register }).catch(() => [])] as [string, AnyRecord[]])))
+      const linked = [...new Set(rows.map((row: AnyRecord) => row.registerId).filter(Boolean))].map(id => allRegisters.find(item => item.id === id)).filter(Boolean) as Register[]
+      const entriesBy = new Map(await Promise.all(linked.map(async register => [register.id, await loadEntries(organizationId, register.id, { register }).catch(() => [])] as [string, RegisterEntry[]])))
       const platformYears = [...new Set<number>(rows.filter((row: AnyRecord) => !row.registerId && row.platformIndicatorKey).map((row: AnyRecord) => Number(row.year)))]
       const platform = await platformValuesForYears(organizationId, allDefinitions, platformYears)
       setObjectives(rows.map((objective: AnyRecord) => {
@@ -54,7 +55,7 @@ export function useObjectives(organizationId: string | null | undefined, { enabl
         const indicator = register?.indicators.find(item => item.id === objective.indicatorKey)
         const platformIndicator = !register && objective.platformIndicatorKey ? allDefinitions.find(def => def.id === objective.platformIndicatorKey) || null : null
         const months = allValues.filter((row: AnyRecord) => row.objectiveId === objective.id && row.month.startsWith(`${objective.year}-`)).sort((a: AnyRecord, b: AnyRecord) => a.month.localeCompare(b.month))
-        const value = indicator ? computeIndicator(register as AnyRecord, indicator, entriesBy.get((register as AnyRecord).id) || [], periodOf('year', `${objective.year}-06-01`)).value
+        const value = indicator ? computeIndicator(register as Register, indicator, entriesBy.get((register as Register).id) || [], periodOf('year', `${objective.year}-06-01`)).value
           : platformIndicator ? platform.get(Number(objective.year))?.get(platformIndicator.id) ?? null
             : months.length ? monthlyMean(months) : toNumber(objective.reportedValue)
         // Without a target of its own, a linked objective takes the target set in the indicator's definition.

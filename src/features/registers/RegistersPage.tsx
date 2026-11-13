@@ -13,7 +13,9 @@ import { useRegisterAccess } from './registerAccess'
 import { EquipmentList, useResources } from '../quality/resources/ResourcesPanel'
 import { NO_EQUIPMENT_FILTERS } from '../quality/resources/resourceModel'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Register } from './registerTypes'
+
+type EquipmentListProps = Parameters<typeof EquipmentList>[0]
 
 // The department's registers (NICU neonates, monthly procedure sheets) and its
 // meetings and its equipment: what a department records, outside the Quality Center.
@@ -30,7 +32,7 @@ export function RegistersPage() {
   // The figures above the list; «no entry for 45+ days» narrows the list to those registers.
   const [staleOnly, setStaleOnly] = useState(false)
   const todayIso = hospitalToday()
-  const isQuiet = useCallback((register: AnyRecord) => isStaleRegister(register, todayIso), [todayIso])
+  const isQuiet = useCallback((register: Register) => isStaleRegister(register, todayIso), [todayIso])
   const active = list.registers.filter(register => register.status === 'active')
   const entries = list.registers.reduce((sum, register) => sum + (Number(register.entryCount) || 0), 0)
   const indicators = list.registers.reduce((sum, register) => sum + (register.indicators?.length || 0), 0)
@@ -49,7 +51,7 @@ export function RegistersPage() {
     </FigureCards>}
     <section className="surface registry-workspace workspace-column workspace-fill registers-workspace">
       {view === 'registers' && <RegistersPanel list={list} only={staleOnly ? isQuiet : null} filterEnd={viewSwitch} />}
-      {view === 'equipment' && <EquipmentList list={equipment} filters={equipmentFilters} setFilters={setEquipmentFilters as unknown as (update: (current: AnyRecord) => AnyRecord) => void} filterEnd={viewSwitch as unknown as null} onOpen={(row: AnyRecord) => goTo(`/quality/equipment/${row.id}`)} />}
+      {view === 'equipment' && <EquipmentList list={equipment} filters={equipmentFilters} setFilters={setEquipmentFilters as unknown as EquipmentListProps['setFilters']} filterEnd={viewSwitch as unknown as null} onOpen={row => goTo(`/quality/equipment/${row.id}`)} />}
     </section>
   </Page>
 }

@@ -21,8 +21,7 @@ import { AGGREGATIONS, dailyStart, COMPUTED_KINDS, FIELD_TYPES, FILTER_OPS, filt
 import { saveRegister } from './registerService'
 import { registerStatusLabel } from './registerText'
 import type { ReactNode } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Register } from './registerTypes'
+import type { FieldOption, IndicatorFilter, Register, RegisterEntry, RegisterField, RegisterIndicator, RegisterSection, RegisterSettings, SheetAxisItem, ShowWhen } from './registerTypes'
 
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 const move = <T,>(list: T[], index: number, step: number) => { const next = [...list]; const target = index + step; if (target < 0 || target >= next.length) return list; [next[index], next[target]] = [next[target], next[index]]; return next }
@@ -31,7 +30,15 @@ const move = <T,>(list: T[], index: number, step: number) => { const next = [...
 // or rows and measures (sheet), and the indicators. Each new field becomes a
 // column of the register's table; a field taken out is archived with its data.
 // A saved field keeps its key and type, so the data already recorded keeps its meaning.
-interface RegisterBuilderProps { register: Register, entries?: AnyRecord[], canEdit: boolean, entryCount: number, openIndicator?: string | null, onSaved?: (register: Register | null) => void }
+// A field carries whether it is split in the reports until applied (then kept in settings.breakdowns);
+// in its editor «Always shown» is an empty showWhen, left out when applied.
+type AppliedField = RegisterField & { breakdown?: boolean }
+type FieldDraft = Omit<AppliedField, 'showWhen'> & { showWhen?: ShowWhen | '' }
+// A sheet row or measure in its editor (a new one gets its key when applied).
+type AxisDraft = Omit<SheetAxisItem, 'key'> & { key?: string }
+// What is open under its row: a field or an indicator, with the key it had (null: new).
+type Editing = { kind: 'field', field: AppliedField, previousKey: string | null } | { kind: 'indicator', indicator: RegisterIndicator, previousId: string | null }
+interface RegisterBuilderProps { register: Register, entries?: RegisterEntry[], canEdit: boolean, entryCount: number, openIndicator?: string | null, onSaved?: (register: Register | null) => void }
 export function RegisterBuilder({ register, entries = [], canEdit, entryCount, openIndicator = null, onSaved }: RegisterBuilderProps) {
   const { language } = useLanguage()
   const en = language === 'en'
@@ -40,7 +47,7 @@ export function RegisterBuilder({ register, entries = [], canEdit, entryCount, o
   const { tenant } = useTenant()
   const [draft, setDraft] = useState(() => structuredClone(register))
   const [saving, setSaving] = useState(false)
-  const [editing, setEditing] = useState<AnyRecord | null>(null)
+  const [editing, setEditing] = useState<Editing | null>(null)
   // The sections of the fields: the first one is open, the others fold, so 35 fields are not one long list.
   const [expanded, setExpanded] = useState(() => new Set<string>([register.settings?.sections?.[0]?.key || 'main']))
   const toggleSection = (key: string) => setExpanded(current => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next })
@@ -52,10 +59,10 @@ export function RegisterBuilder({ register, entries = [], canEdit, entryCount, o
     if (indicator && canEdit) { setPart('indicators'); setEditing({ kind: 'indicator', indicator, previousId: indicator.id }) }
   }, [openIndicator]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => setDraft(structuredClone(register)), [register])
-  const savedKeys = useMemo(() => new Set(register.fields.map(field => field.key)), [register])
+  const savedKeys = useMemo(() => new Set<string | null>(register.fields.map(field => field.key)), [register])
   const dirty = JSON.stringify(draft) !== JSON.stringify(register)
-  const patch = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
-  const setSettings = (next: AnyRecord) => setDraft(current => ({ ...current, settings: { ...current.settings, ...next } }))
+  const patch = (next: Partial<Register>) => setDraft(current => ({ ...current, ...next }))
+  const setSettings = (next: RegisterSettings) => setDraft(current => ({ ...current, settings: { ...current.settings, ...next } }))
   const sections = draft.settings?.sections?.length ? draft.settings.sections : [{ key: 'main', label: en ? 'Details' : 'Στοιχεία', labelEn: 'Details' }]
   const dateFields = draft.fields.filter(field => field.type === 'date')
 
@@ -70,7 +77,7 @@ export function RegisterBuilder({ register, entries = [], canEdit, entryCount, o
       notify(en ? 'The definition could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση του ορισμού.', 'error')
     } finally { setSaving(false) }
   }
-  function upsertField(field: AnyRecord, previousKey: string | null) {
+  function upsertField(field: AppliedField, previousKey: string | null) {
     setDraft(current => {
       const exists = current.fields.some(item => item.key === previousKey)
       const fields = exists ? current.fields.map(item => (item.key === previousKey ? field : item)) : [...current.fields, field]
@@ -81,7 +88,7 @@ export function RegisterBuilder({ register, entries = [], canEdit, entryCount, o
     })
     setEditing(null)
   }
-  function upsertIndicator(indicator: AnyRecord, previousId: string | null) {
+  function upsertIndicator(indicator: RegisterIndicator, previousId: string | null) {
     setDraft(current => ({ ...current, indicators: current.indicators.some(item => item.id === previousId) ? current.indicators.map(item => (item.id === previousId ? indicator : item)) : [...current.indicators, indicator] }))
     setEditing(null)
   }
@@ -143,7 +150,7 @@ export function RegisterBuilder({ register, entries = [], canEdit, entryCount, o
           const open = editing?.kind === 'indicator' && editing.previousId === indicator.id
           const judged = indicator.direction === 'higher' || indicator.direction === 'lower'
           return <Fragment key={indicator.id}><tr className={open ? 'is-editing' : undefined}>
-            <td><strong>{textOf(indicator, language)}</strong><small>{[indicator.field && textOf(draft.fields.find(field => field.key === indicator.field), language), ...(indicator.filters || []).map((filter: AnyRecord) => filterText(draft, filter, language))].filter(Boolean).join(' · ')}</small></td>
+            <td><strong>{textOf(indicator, language)}</strong><small>{[indicator.field && textOf(draft.fields.find(field => field.key === indicator.field), language), ...(indicator.filters || []).map((filter: IndicatorFilter) => filterText(draft, filter, language))].filter(Boolean).join(' · ')}</small></td>
             <td>{optionLabel(AGGREGATIONS, indicator.aggregation, language)}</td>
             {draft.kind === 'case' && <td className="register-builder-detail">{textOf(draft.fields.find(field => field.key === (indicator.dateField || draft.settings?.entryDateField)), language) || '—'}</td>}
             <td>{indicator.direction === 'higher' ? (en ? 'Higher' : 'Υψηλότερο') : indicator.direction === 'lower' ? (en ? 'Lower' : 'Χαμηλότερο') : <span className="register-muted">{en ? 'No target' : 'Χωρίς στόχο'}</span>}</td>
@@ -160,7 +167,7 @@ export function RegisterBuilder({ register, entries = [], canEdit, entryCount, o
 }
 
 // What each row usually is per day: the mean of the last 30 daily entries (null before the daily sheets start).
-function usualPerDay(register: Register, entries: AnyRecord[]) {
+function usualPerDay(register: Register, entries: RegisterEntry[]) {
   if (register.kind !== 'sheet') return null
   const dailyFrom = dailyStart(register.sheet?.dailyFrom)
   const days = entries.filter(entry => String(entry.periodStart) >= dailyFrom).sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart))).slice(0, 30)
@@ -171,16 +178,16 @@ function usualPerDay(register: Register, entries: AnyRecord[]) {
 }
 
 // The rows (or measures) of a sheet as a table, like the fields: each one is edited under its row.
-interface AxisEditorProps { title: string, items?: AnyRecord[], canEdit: boolean, language: string, groups?: AnyRecord[], usual?: Map<string, number | null> | null, onChange: (items: AnyRecord[]) => void }
+interface AxisEditorProps { title: string, items?: SheetAxisItem[], canEdit: boolean, language: string, groups?: SheetAxisItem[], usual?: Map<string, number | null> | null, onChange: (items: SheetAxisItem[]) => void }
 function AxisEditor({ title, items = [], canEdit, language, groups, usual = null, onChange }: AxisEditorProps) {
   const en = language === 'en'
-  const [editing, setEditing] = useState<{ index: number | null, item: AnyRecord } | null>(null)
+  const [editing, setEditing] = useState<{ index: number | null, item: AxisDraft } | null>(null)
   const withGroups = (groups?.length ?? 0) > 0
   const columns = (withGroups ? 2 : 1) + (usual ? 1 : 0) + (canEdit ? 1 : 0)
-  function apply(next: AnyRecord) {
+  function apply(next: AxisDraft) {
     const label = next.label.trim()
     const item = { ...next, label, labelEn: (next.labelEn || '').trim() || label }
-    onChange(editing!.index == null ? [...items, { ...item, key: keyFrom(label || `row ${items.length + 1}`, items.map(row => row.key)) }] : items.map((row, position) => (position === editing!.index ? item : row)))
+    onChange(editing!.index == null ? [...items, { ...item, key: keyFrom(label || `row ${items.length + 1}`, items.map(row => row.key)) }] : items.map((row, position) => (position === editing!.index ? item as SheetAxisItem : row)))
     setEditing(null)
   }
   const editor = <AxisItemEditor item={editing?.item} title={title} groups={groups} language={language} onCancel={() => setEditing(null)} onApply={apply} />
@@ -199,11 +206,11 @@ function AxisEditor({ title, items = [], canEdit, language, groups, usual = null
   </div>
 }
 
-interface AxisItemEditorProps { item?: AnyRecord, title: string, groups?: AnyRecord[], language: string, onCancel: () => void, onApply: (item: AnyRecord) => void }
+interface AxisItemEditorProps { item?: AxisDraft, title: string, groups?: SheetAxisItem[], language: string, onCancel: () => void, onApply: (item: AxisDraft) => void }
 function AxisItemEditor({ item: initial, title, groups, language, onCancel, onApply }: AxisItemEditorProps) {
   const en = language === 'en'
-  const [item, setItem] = useState<AnyRecord>(initial || { label: '', labelEn: '', group: '' })
-  const set = (next: AnyRecord) => setItem(current => ({ ...current, ...next }))
+  const [item, setItem] = useState<AxisDraft>(initial || { label: '', labelEn: '', group: '' })
+  const set = (next: Partial<AxisDraft>) => setItem(current => ({ ...current, ...next }))
   return <EditorPanel title={initial?.key ? `${en ? 'Edit' : 'Επεξεργασία'} · ${title}` : `${en ? 'New' : 'Νέα'} · ${title}`} onCancel={onCancel} onApply={() => onApply(item)} disabled={!item.label.trim()}>
     <FormGrid columns={groups?.length ? 2 : 1}>
       <Field label={`${en ? 'Name' : 'Όνομα'} *`}><input value={item.label} onChange={event => set({ label: event.target.value })} /></Field>
@@ -225,12 +232,12 @@ function EditorPanel({ title, subtitle, onCancel, onApply, disabled, children }:
   </section>
 }
 
-interface FieldEditorProps { field: AnyRecord, register: Register, sections: AnyRecord[], locked: boolean, onCancel: () => void, onSave: (field: AnyRecord) => void }
+interface FieldEditorProps { field: FieldDraft, register: Register, sections: RegisterSection[], locked: boolean, onCancel: () => void, onSave: (field: AppliedField) => void }
 function FieldEditor({ field: initial, register, sections, locked, onCancel, onSave }: FieldEditorProps) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [field, setField] = useState<AnyRecord>(() => structuredClone(initial))
-  const set = (next: AnyRecord) => setField(current => ({ ...current, ...next }))
+  const [field, setField] = useState<FieldDraft>(() => structuredClone(initial))
+  const set = (next: Partial<FieldDraft>) => setField(current => ({ ...current, ...next }))
   const others = register.fields.filter(item => item.key !== initial.key)
   const dates = others.filter(item => item.type === 'date')
   const numbers = others.filter(item => item.type === 'number')
@@ -239,11 +246,12 @@ function FieldEditor({ field: initial, register, sections, locked, onCancel, onS
   const valid = Boolean(field.label.trim()) && (field.type !== 'computed' || (field.computed && field.from && field.to)) && (!isList || (field.options || []).length > 0 || field.provisional)
   function finish() {
     const key = locked ? field.key : field.key || keyFrom(field.labelEn || field.label, others.map(item => item.key))
-    const options = isList ? (field.options || []).filter((option: AnyRecord) => option.label.trim()).map((option: AnyRecord) => ({ ...option, value: option.value || keyFrom(option.labelEn || option.label, (field.options || []).map((item: AnyRecord) => item.value).filter(Boolean)) })) : undefined
+    const options = isList ? (field.options || []).filter((option: FieldOption) => option.label.trim()).map((option: FieldOption) => ({ ...option, value: option.value || keyFrom(option.labelEn || option.label, (field.options || []).map((item: FieldOption) => item.value).filter(Boolean)) })) : undefined
     const clean = Object.fromEntries(Object.entries({ ...field, key, options, labelEn: field.labelEn || field.label }).filter(([, value]) => value !== '' && value !== undefined && value !== null && value !== false))
-    onSave(clean)
+    // The empty values are left out: what stays is still the field.
+    onSave(clean as unknown as AppliedField)
   }
-  const number = (label: string, name: string) => <Field label={label}><input inputMode="decimal" value={field[name] ?? ''} onChange={event => set({ [name]: event.target.value === '' ? '' : Number(event.target.value.replace(',', '.')) })} /></Field>
+  const number = (label: string, name: 'min' | 'max' | 'usualMin' | 'usualMax') => <Field label={label}><input inputMode="decimal" value={field[name] ?? ''} onChange={event => set({ [name]: event.target.value === '' ? '' : Number(event.target.value.replace(',', '.')) })} /></Field>
   return <EditorPanel title={initial.key ? (en ? 'Edit field' : 'Επεξεργασία πεδίου') : (en ? 'New field' : 'Νέο πεδίο')} subtitle={locked ? (en ? `Column ${field.key}: its type stays as recorded.` : `Στήλη ${field.key}: ο τύπος της μένει όπως καταγράφηκε.`) : ''} onCancel={onCancel} onApply={finish} disabled={!valid}>
     <div className="lo-form-cards">
       <FormCard wide title={en ? 'Field' : 'Πεδίο'}>
@@ -278,31 +286,31 @@ function FieldEditor({ field: initial, register, sections, locked, onCancel, onS
       </FormCard>}
       {field.type === 'date' && <FormCard wide title={en ? 'Rule' : 'Κανόνας'}><SearchableSelect label={en ? 'Not before' : 'Όχι πριν από'} value={field.notBefore || ''} options={dates.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ notBefore: value || '' })} {...selectText(en)} /></FormCard>}
       {isList && <FormCard wide title={en ? 'Values' : 'Τιμές'} hint={en ? '«Import as» lists how each value began in the imported file.' : 'Στο «Εισαγωγή ως» γράφετε πώς ξεκινά η τιμή στο αρχείο εισαγωγής (π.χ. ΔΙΑΚΟΜΙΔΗ), χωρισμένα με κόμμα.'}>
-        <ul className="register-builder-list">{(field.options || []).map((option: AnyRecord, index: number) => <li key={option.value || index}><span className="register-axis-fields">
-          <input aria-label={en ? 'Value' : 'Τιμή'} value={option.label} onChange={event => set({ options: field.options.map((item: AnyRecord, position: number) => (position === index ? { ...item, label: event.target.value } : item)) })} />
-          <input aria-label={en ? 'Import as' : 'Εισαγωγή ως'} placeholder={en ? 'Import as' : 'Εισαγωγή ως'} value={(option.match || []).join(', ')} onChange={event => set({ options: field.options.map((item: AnyRecord, position: number) => (position === index ? { ...item, match: event.target.value.split(',').map(text => text.trim()).filter(Boolean) } : item)) })} />
-        </span><span className="register-builder-tools"><IconButton size="sm" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ options: field.options.filter((_: AnyRecord, position: number) => position !== index) })}><Archive size={14} /></IconButton></span></li>)}</ul>
+        <ul className="register-builder-list">{(field.options || []).map((option: FieldOption, index: number) => <li key={option.value || index}><span className="register-axis-fields">
+          <input aria-label={en ? 'Value' : 'Τιμή'} value={option.label} onChange={event => set({ options: field.options!.map((item: FieldOption, position: number) => (position === index ? { ...item, label: event.target.value } : item)) })} />
+          <input aria-label={en ? 'Import as' : 'Εισαγωγή ως'} placeholder={en ? 'Import as' : 'Εισαγωγή ως'} value={(option.match || []).join(', ')} onChange={event => set({ options: field.options!.map((item: FieldOption, position: number) => (position === index ? { ...item, match: event.target.value.split(',').map(text => text.trim()).filter(Boolean) } : item)) })} />
+        </span><span className="register-builder-tools"><IconButton size="sm" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ options: field.options!.filter((_: FieldOption, position: number) => position !== index) })}><Archive size={14} /></IconButton></span></li>)}</ul>
         <Button variant="secondary" onClick={() => set({ options: [...(field.options || []), { value: '', label: '', labelEn: '' }] })}><Plus size={15} />{en ? 'Value' : 'Τιμή'}</Button>
       </FormCard>}
       {field.type !== 'computed' && <FormCard wide title={en ? 'Shown when' : 'Εμφανίζεται όταν'}>
-        <SearchableSelect label={en ? 'Another field has a value' : 'Άλλο πεδίο έχει τιμή'} value={field.showWhen?.field || ''} options={others.filter(item => item.type !== 'computed').map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ showWhen: value ? { field: value } : '' })} placeholder={en ? 'Always shown' : 'Εμφανίζεται πάντα'} {...selectText(en)} />
+        <SearchableSelect label={en ? 'Another field has a value' : 'Άλλο πεδίο έχει τιμή'} value={(field.showWhen || undefined)?.field || ''} options={others.filter(item => item.type !== 'computed').map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ showWhen: value ? { field: value } : '' })} placeholder={en ? 'Always shown' : 'Εμφανίζεται πάντα'} {...selectText(en)} />
       </FormCard>}
     </div>
   </EditorPanel>
 }
 
-interface FilterRowsProps { register: Register, filters?: AnyRecord[], onChange: (filters: AnyRecord[]) => void, language: string }
+interface FilterRowsProps { register: Register, filters?: IndicatorFilter[], onChange: (filters: IndicatorFilter[]) => void, language: string }
 function FilterRows({ register, filters = [], onChange, language }: FilterRowsProps) {
   const en = language === 'en'
   const fields = register.fields.filter(field => field.type !== 'text')
-  const set = (index: number, next: AnyRecord) => onChange(filters.map((filter, position) => (position === index ? { ...filter, ...next } : filter)))
+  const set = (index: number, next: Partial<IndicatorFilter>) => onChange(filters.map((filter, position) => (position === index ? { ...filter, ...next } : filter)))
   return <div className="register-filter-rows">
     {filters.map((filter, index) => {
       const field = fields.find(item => item.key === filter.field)
       return <div key={index} className="register-filter-row">
         <SearchableSelect hideLabel label={en ? 'Field' : 'Πεδίο'} value={filter.field} options={fields.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set(index, { field: value, value: undefined })} {...selectText(en)} />
         <SearchableSelect hideLabel label={en ? 'Condition' : 'Συνθήκη'} value={filter.op} options={optionsOf(FILTER_OPS, language)} onChange={value => set(index, { op: value })} {...selectText(en)} clearLabel="" />
-        {filter.op === 'eq' && field?.options ? <SearchableSelect hideLabel label={en ? 'Value' : 'Τιμή'} value={filter.value || ''} options={field.options.map((option: AnyRecord) => ({ value: option.value, label: textOf(option, language) }))} onChange={value => set(index, { value })} {...selectText(en)} /> : ['gt', 'lt', 'eq'].includes(filter.op) ? <input aria-label={en ? 'Value' : 'Τιμή'} value={filter.value ?? ''} onChange={event => set(index, { value: filter.op === 'eq' ? event.target.value : Number(event.target.value) })} /> : <span />}
+        {filter.op === 'eq' && field?.options ? <SearchableSelect<string | number> hideLabel label={en ? 'Value' : 'Τιμή'} value={filter.value || ''} options={field.options.map((option: FieldOption) => ({ value: option.value, label: textOf(option, language) }))} onChange={value => set(index, { value })} {...selectText(en)} /> : ['gt', 'lt', 'eq'].includes(filter.op) ? <input aria-label={en ? 'Value' : 'Τιμή'} value={filter.value ?? ''} onChange={event => set(index, { value: filter.op === 'eq' ? event.target.value : Number(event.target.value) })} /> : <span />}
         <IconButton size="sm" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => onChange(filters.filter((_, position) => position !== index))}><Archive size={14} /></IconButton>
       </div>
     })}
@@ -310,12 +318,12 @@ function FilterRows({ register, filters = [], onChange, language }: FilterRowsPr
   </div>
 }
 
-interface IndicatorEditorProps { indicator: AnyRecord, register: Register, onCancel: () => void, onSave: (indicator: AnyRecord) => void }
+interface IndicatorEditorProps { indicator: RegisterIndicator, register: Register, onCancel: () => void, onSave: (indicator: RegisterIndicator) => void }
 function IndicatorEditor({ indicator: initial, register, onCancel, onSave }: IndicatorEditorProps) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const [indicator, setIndicator] = useState<AnyRecord>(() => structuredClone(initial))
-  const set = (next: AnyRecord) => setIndicator(current => ({ ...current, ...next }))
+  const [indicator, setIndicator] = useState<RegisterIndicator>(() => structuredClone(initial))
+  const set = (next: Partial<RegisterIndicator>) => setIndicator(current => ({ ...current, ...next }))
   const sheet = register.kind === 'sheet'
   const numeric = register.fields.filter(field => ['number', 'computed', 'gestation'].includes(field.type))
   const dates = register.fields.filter(field => field.type === 'date')
@@ -327,7 +335,8 @@ function IndicatorEditor({ indicator: initial, register, onCancel, onSave }: Ind
   function finish() {
     const id = initial.id || keyFrom(indicator.titleEn || indicator.title, register.indicators.map(item => item.id))
     const clean = Object.fromEntries(Object.entries({ ...indicator, id, titleEn: indicator.titleEn || indicator.title, unit: indicator.aggregation === 'percent' ? '%' : indicator.unit }).filter(([, value]) => value !== '' && value !== undefined && value !== null))
-    onSave(clean)
+    // The empty values are left out: what stays is still the indicator.
+    onSave(clean as unknown as RegisterIndicator)
   }
   return <EditorPanel title={initial.id ? (en ? 'Edit indicator' : 'Επεξεργασία δείκτη') : (en ? 'New indicator' : 'Νέος δείκτης')} onCancel={onCancel} onApply={finish} disabled={!valid}>
     <div className="lo-form-cards">
@@ -340,9 +349,9 @@ function IndicatorEditor({ indicator: initial, register, onCancel, onSave }: Ind
         {!sheet && <SearchableSelect label={en ? 'Counts in the period of' : 'Μετράει στην περίοδο της'} value={indicator.dateField || ''} options={dates.map(field => ({ value: field.key, label: textOf(field, language) }))} onChange={value => set({ dateField: value || '' })} placeholder={en ? 'The register’s date' : 'Ημερομηνίας του μητρώου'} {...selectText(en)} />}
       </FormCard>
       {sheet ? <FormCard wide title={en ? 'What is counted' : 'Τι μετράει'}>
-        <ChoiceChips label={en ? 'Rows (none = all)' : 'Γραμμές (καμία = όλες)'} options={rows} selected={indicator.rows || []} onToggle={value => set({ rows: (indicator.rows || []).includes(value) ? indicator.rows.filter((item: string) => item !== value) : [...(indicator.rows || []), value] })} />
+        <ChoiceChips label={en ? 'Rows (none = all)' : 'Γραμμές (καμία = όλες)'} options={rows} selected={indicator.rows || []} onToggle={value => set({ rows: (indicator.rows || []).includes(value) ? indicator.rows!.filter((item: string) => item !== value) : [...(indicator.rows || []), value] })} />
         {measures.length > 1 && <SearchableSelect label={en ? 'Measure (empty = all)' : 'Στήλη (κενό = όλες)'} value={indicator.measure || ''} options={measures} onChange={value => set({ measure: value || '' })} {...selectText(en)} />}
-        {indicator.aggregation === 'percent' && <ChoiceChips label={en ? 'Out of rows (none = all)' : 'Επί των γραμμών (καμία = όλες)'} options={rows} selected={indicator.denominatorRows || []} onToggle={value => set({ denominatorRows: (indicator.denominatorRows || []).includes(value) ? indicator.denominatorRows.filter((item: string) => item !== value) : [...(indicator.denominatorRows || []), value] })} />}
+        {indicator.aggregation === 'percent' && <ChoiceChips label={en ? 'Out of rows (none = all)' : 'Επί των γραμμών (καμία = όλες)'} options={rows} selected={indicator.denominatorRows || []} onToggle={value => set({ denominatorRows: (indicator.denominatorRows || []).includes(value) ? indicator.denominatorRows!.filter((item: string) => item !== value) : [...(indicator.denominatorRows || []), value] })} />}
         {['mean', 'count'].includes(indicator.aggregation) && <YesNoField label={en ? 'Only from the daily sheets' : 'Μόνο από τα ημερήσια φύλλα'} value={Boolean(indicator.dailyOnly)} onChange={value => set({ dailyOnly: value })} hint={en ? 'Months recorded as a single total are left out.' : 'Οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.'} />}
       </FormCard> : <FormCard wide title={en ? 'Which cases' : 'Ποια περιστατικά'} hint={en ? 'No condition = every case of the period.' : 'Χωρίς συνθήκη = όλα τα περιστατικά της περιόδου.'}>
         <FilterRows register={register} filters={indicator.filters || []} language={language} onChange={filters => set({ filters })} />

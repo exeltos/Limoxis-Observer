@@ -1,7 +1,6 @@
 import { registerFromTemplate } from './registerTemplates'
 import { hospitalMonth, hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Register } from './registerTypes'
+import type { EntryIdentity, EntryValues, Register, RegisterEntry, RegisterField, RegisterIndicator } from './registerTypes'
 
 // Sample registers for the demo: the NICU (one card per neonate) and the
 // Endoscopy unit (a monthly sheet), fourteen months back from today so every
@@ -42,33 +41,33 @@ export const DEMO_DELIVERYROOM_ID = 'reg-demo-deliveryroom'
 export function demoRegisters() {
   const nicu: Register = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
   // Targets the Quality team set with the department, so the demo shows statuses.
-  const targets: Record<string, AnyRecord> = { mean_ventilator: { target: 5 }, mean_cpap: { target: 7 }, mortality: { target: 2, threshold: 4 }, readmissions: { target: 5, threshold: 8 }, late_infection_rate: { target: 5, threshold: 8 }, breast_milk: { target: 50, threshold: 35 } }
-  nicu.indicators = nicu.indicators.map((indicator: AnyRecord) => ({ ...indicator, ...(targets[indicator.id] || {}) }))
+  const targets: Record<string, Partial<RegisterIndicator>> = { mean_ventilator: { target: 5 }, mean_cpap: { target: 7 }, mortality: { target: 2, threshold: 4 }, readmissions: { target: 5, threshold: 8 }, late_infection_rate: { target: 5, threshold: 8 }, breast_milk: { target: 50, threshold: 35 } }
+  nicu.indicators = nicu.indicators.map((indicator: RegisterIndicator) => ({ ...indicator, ...(targets[indicator.id] || {}) }))
   const endoscopy: Register = { ...registerFromTemplate('endoscopy', { departmentId: 'Παθολογική', department: 'Παθολογική', departmentEn: 'Internal Medicine' }), id: DEMO_ENDOSCOPY_ID, code: 'REG-ENDO', name: 'Πράξεις Ενδοσκοπικού', nameEn: 'Endoscopy procedures' }
   // The demo shows the daily sheets: the earlier months are monthly totals, from the current month on it is one sheet per day.
   endoscopy.sheet = { ...endoscopy.sheet, dailyFrom: `${hospitalMonth()}-01` }
   const icu: Register = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
-  icu.indicators = icu.indicators.map((indicator: AnyRecord) => ({ ...indicator, ...(({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } } as Record<string, AnyRecord>)[indicator.id] || {}) }))
+  icu.indicators = icu.indicators.map((indicator: RegisterIndicator) => ({ ...indicator, ...(({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } } as Record<string, Partial<RegisterIndicator>>)[indicator.id] || {}) }))
   const paediatrics: Register = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
   const obstetrics: Register = { ...registerFromTemplate('obstetrics', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_OBSTETRICS_ID, code: 'REG-OBS' }
-  obstetrics.indicators = obstetrics.indicators.map((indicator: AnyRecord) => ({ ...indicator, ...(({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } } as Record<string, AnyRecord>)[indicator.id] || {}) }))
+  obstetrics.indicators = obstetrics.indicators.map((indicator: RegisterIndicator) => ({ ...indicator, ...(({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } } as Record<string, Partial<RegisterIndicator>>)[indicator.id] || {}) }))
   const emergency: Register = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
   emergency.sheet = { ...emergency.sheet, dailyFrom: `${hospitalMonth()}-01` }
   const cathLab: Register = { ...registerFromTemplate('cathLab', { departmentId: 'Αιμοδυναμικό', department: 'Αιμοδυναμικό', departmentEn: 'Cath lab' }), id: DEMO_CATHLAB_ID, code: 'REG-CATH' }
   const chemo: Register = { ...registerFromTemplate('chemotherapy', { departmentId: 'Χημειοθεραπεία', department: 'Χημειοθεραπεία', departmentEn: 'Chemotherapy' }), id: DEMO_CHEMO_ID, code: 'REG-CHEMO' }
-  chemo.fields = chemo.fields.map((field: AnyRecord) => (field.key === 'physician' ? { ...field, options: [{ value: 'dr_a', label: 'Παπαδόπουλος Γ.', labelEn: 'Papadopoulos G.' }, { value: 'dr_b', label: 'Νικολάου Μ.', labelEn: 'Nikolaou M.' }, { value: 'dr_c', label: 'Καραγιάννη Ε.', labelEn: 'Karagianni E.' }] } : field))
+  chemo.fields = chemo.fields.map((field: RegisterField) => (field.key === 'physician' ? { ...field, options: [{ value: 'dr_a', label: 'Παπαδόπουλος Γ.', labelEn: 'Papadopoulos G.' }, { value: 'dr_b', label: 'Νικολάου Μ.', labelEn: 'Nikolaou M.' }, { value: 'dr_c', label: 'Καραγιάννη Ε.', labelEn: 'Karagianni E.' }] } : field))
   const ophthalmology: Register = { ...registerFromTemplate('ophthalmology', { departmentId: 'Οφθαλμολογική', department: 'Οφθαλμολογική', departmentEn: 'Ophthalmology' }), id: DEMO_OPHTHALMOLOGY_ID, code: 'REG-OPH' }
   ophthalmology.sheet = { ...ophthalmology.sheet, dailyFrom: `${hospitalMonth()}-01` }
   const deliveryRoom: Register = { ...registerFromTemplate('deliveryRoom', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_DELIVERYROOM_ID, code: 'REG-DR' }
   deliveryRoom.sheet = { ...deliveryRoom.sheet, dailyFrom: `${hospitalMonth()}-01` }
-  deliveryRoom.indicators = deliveryRoom.indicators.map((indicator: AnyRecord) => ({ ...indicator, ...(({ cs_rate: { target: 55, threshold: 65 } } as Record<string, AnyRecord>)[indicator.id] || {}) }))
+  deliveryRoom.indicators = deliveryRoom.indicators.map((indicator: RegisterIndicator) => ({ ...indicator, ...(({ cs_rate: { target: 55, threshold: 65 } } as Record<string, Partial<RegisterIndicator>>)[indicator.id] || {}) }))
   return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab, chemo, ophthalmology, deliveryRoom].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = hospitalToday()) {
   const random = seeded(20261105)
-  const entries: AnyRecord[] = []
-  const identities: Record<string, AnyRecord> = {}
+  const entries: RegisterEntry[] = []
+  const identities: Record<string, EntryIdentity> = {}
   const [year, month] = today.split('-').map(Number)
   // From January 2025 on (owner, 9/11/2026: the Demo shows the whole of 2025), at least fourteen months.
   const historyBack = Math.max(13, (year - 2025) * 12 + month - 1)
@@ -169,7 +168,7 @@ export function demoRegisterEntries(today = hospitalToday()) {
       const discharge = addDays(admission, stay)
       const out = discharge <= today
       const death = out && icuRandom() < (cardiac ? 0.04 : 0.17) + apache / 400
-      const values: AnyRecord = {
+      const values: EntryValues = {
         admission_date: admission,
         category: cardiac ? 'cardiac' : 'general',
         age,

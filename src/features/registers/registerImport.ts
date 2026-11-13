@@ -1,14 +1,17 @@
 import { computeValues, parseGestation, textOf, validateEntry } from './registerEngine'
 import { templateByKey } from './registerTemplates'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { Register } from './registerTypes'
+import type { EntryDraft, EntryIdentity, EntryValues, FieldOption, Register, RegisterEntry, RegisterField, RegisterTemplate, SheetAxisItem, SheetCells } from './registerTypes'
 
 // A cell of the file (a spreadsheet reader gives text, numbers or dates).
 type Cell = unknown
 // The issues a dry run reports.
 type ImportIssue = { row: number | string, field: string, text: string }
 // The choices of the screen: { fieldKey: { sourceValue: optionValue|'' } } and the rest.
-export type ImportOptions = { valueMap?: Record<string, Record<string, string>>, emptyIsNo?: boolean, fallbackDate?: string, existing?: AnyRecord[], language?: string }
+export type ImportOptions = { valueMap?: Record<string, Record<string, string>>, emptyIsNo?: boolean, fallbackDate?: string, existing?: RegisterEntry[], language?: string }
+// A list the screen maps values for: a list field, or the sheet's measures («sheet.measure»).
+export type ImportListField = Omit<RegisterField, 'type'> & { type?: string }
+// An entry the import writes, with its case number and name and the line of the file it came from.
+export type ImportItem = { entry: EntryDraft, identity: EntryIdentity | null, line?: number }
 
 // Importing a register's history from a FileMaker export (.xlsx / .csv):
 // 1. columns are matched to the register's fields by the FileMaker names the
@@ -38,20 +41,20 @@ export function withTemplateHints(register: Register): Register {
   if (!template) return register
   const union = (a: string[] = [], b: string[] = []) => [...new Set([...(a || []), ...(b || [])])]
   // A FileMaker name the template moved to another field (or retired) leaves the register's copy.
-  const owner = new Map<string, string>((template.fields || []).flatMap((item: AnyRecord) => (item.aliases || []).map((alias: string) => [normalize(alias), item.key])))
+  const owner = new Map<string, string>((template.fields || []).flatMap((item: RegisterField) => (item.aliases || []).map((alias: string) => [normalize(alias), item.key])))
   const retired = new Set((template.retiredAliases || []).map(normalize))
-  const own = (field: AnyRecord) => (field.aliases || []).filter((alias: string) => !retired.has(normalize(alias)) && (owner.get(normalize(alias)) ?? field.key) === field.key)
-  const fields = (register.fields || []).map((field: AnyRecord) => {
-    const hint = (template.fields || []).find((item: AnyRecord) => item.key === field.key)
+  const own = (field: RegisterField) => (field.aliases || []).filter((alias: string) => !retired.has(normalize(alias)) && (owner.get(normalize(alias)) ?? field.key) === field.key)
+  const fields: RegisterField[] = (register.fields || []).map((field: RegisterField) => {
+    const hint = (template.fields || []).find((item: RegisterField) => item.key === field.key)
     if (!hint) return { ...field, aliases: own(field) }
-    const options = (field.options || []).map((option: AnyRecord) => { const known = (hint.options || []).find((item: AnyRecord) => item.value === option.value); return known?.match ? { ...option, match: union(option.match, known.match) } : option })
+    const options = (field.options || []).map((option: FieldOption) => { const known = (hint.options || []).find((item: FieldOption) => item.value === option.value); return known?.match ? { ...option, match: union(option.match, known.match) } : option })
     // Options the template gained after this register was made come along, marked so the import can add them to the register.
-    if (['choice', 'multiChoice'].includes(field.type)) for (const option of hint.options || []) if (!options.some((item: AnyRecord) => item.value === option.value)) options.push({ ...option, fromTemplate: true })
+    if (['choice', 'multiChoice'].includes(field.type)) for (const option of hint.options || []) if (!options.some((item: FieldOption) => item.value === option.value)) options.push({ ...option, fromTemplate: true })
     return { ...field, aliases: union(own(field), hint.aliases), options, repair: field.repair || template.importRepairs?.[field.key] }
   })
-  const sheet = register.sheet?.rows ? { ...register.sheet, rows: register.sheet.rows.map((row: AnyRecord) => { const hint = (template.sheet?.rows || []).find((item: AnyRecord) => item.key === row.key); return hint ? { ...row, aliases: union(row.aliases, hint.aliases) } : row }), measures: (register.sheet.measures || []).map((measure: AnyRecord) => { const hint = (template.sheet?.measures || []).find((item: AnyRecord) => item.key === measure.key); return hint ? { ...measure, aliases: union(measure.aliases, hint.aliases) } : measure }) } : register.sheet
+  const sheet = register.sheet?.rows ? { ...register.sheet, rows: register.sheet.rows.map((row: SheetAxisItem) => { const hint = (template.sheet?.rows || []).find((item: SheetAxisItem) => item.key === row.key); return hint ? { ...row, aliases: union(row.aliases, hint.aliases) } : row }), measures: (register.sheet.measures || []).map((measure: SheetAxisItem) => { const hint = (template.sheet?.measures || []).find((item: SheetAxisItem) => item.key === measure.key); return hint ? { ...measure, aliases: union(measure.aliases, hint.aliases) } : measure }) } : register.sheet
   // Fields the template gained since (a physician column) are offered too, marked, and join the register only when a column goes to them.
-  if (register.kind === 'case') for (const hint of template.fields || []) if (!fields.some((field: AnyRecord) => field.key === hint.key)) fields.push({ ...structuredClone(hint), fromTemplate: true })
+  if (register.kind === 'case') for (const hint of template.fields || []) if (!fields.some((field: RegisterField) => field.key === hint.key)) fields.push({ ...structuredClone(hint), fromTemplate: true })
   return { ...register, fields, sheet, entryDateFallbacks: register.entryDateFallbacks || template.entryDateFallbacks || [], undatedImport: register.undatedImport ?? Boolean(template.undatedImport) }
 }
 
@@ -96,7 +99,7 @@ function bestByWords(header: unknown, candidates: Candidate[]) {
 // identity.patientName, a field key, or (sheet) date / measure / a row key.
 export function suggestMapping(source: Register, headers: unknown[] = []) {
   const register = withTemplateHints(source)
-  const template = templateByKey(register.templateKey) || {}
+  const template: Partial<RegisterTemplate> = templateByKey(register.templateKey) || {}
   const identity = { ...(template.identity || {}), ...(register.settings?.identity || {}) }
   const candidates: Candidate[] = []
   const push = (target: string, names: unknown[]) => candidates.push({ target, names: names.filter(Boolean).map(normalize), words: names.filter(Boolean).map(wordsOf) })
@@ -147,10 +150,10 @@ function distance(a: string, b: string) {
 // The option a FileMaker value takes: the longest beginning (match) or label
 // it starts with; failing that, the same with the keyboard left on English,
 // doubled letters collapsed (ΓΝΩΡΙΙΖΕ) or one letter wrong or missing (ΝΩΡΙΖΕ).
-export function suggestOption(field: AnyRecord, value: unknown) {
+export function suggestOption(field: { options?: FieldOption[] }, value: unknown) {
   const text = normalize(value)
   if (!text) return ''
-  const starts: { value: string, start: string }[] = (field.options || []).flatMap((option: AnyRecord) => [...(option.match || []), option.label, option.labelEn].filter(Boolean).map(normalize).filter(Boolean).map(start => ({ value: option.value, start })))
+  const starts: { value: string, start: string }[] = (field.options || []).flatMap((option: FieldOption) => [...(option.match || []), option.label, option.labelEn].filter(Boolean).map(normalize).filter(Boolean).map(start => ({ value: option.value, start })))
   const longest = (candidate: string) => { let best = '', length = 0; for (const { value: option, start } of starts) if (candidate.startsWith(start) && start.length > length) { best = option; length = start.length } return best }
   const exact = longest(text) || (asLookalike(text) && longest(asLookalike(text)!)) || (asGreekKeyboard(text) && longest(asGreekKeyboard(text)!)) || longest(collapse(text))
   if (exact) return exact
@@ -175,9 +178,9 @@ export const splitMulti = (value: unknown) => String(value ?? '').split(/\s*(?:&
 // The distinct values of every list column, with the suggested option.
 export function valueMappings(source: Register, headers: unknown[], rows: Cell[][], mapping: string[]) {
   const register = withTemplateHints(source)
-  const result: Record<string, { field: AnyRecord, values: { value: string, count: number, option: string }[] }> = {}
+  const result: Record<string, { field: ImportListField, values: { value: string, count: number, option: string }[] }> = {}
   mapping.forEach((target, column) => {
-    const field = register.fields?.find((item: AnyRecord) => item.key === target)
+    const field = register.fields?.find((item: RegisterField) => item.key === target)
     if (!field || !['choice', 'multiChoice'].includes(field.type)) return
     const counts = new Map<string, number>()
     for (const row of rows) {
@@ -192,9 +195,9 @@ export function valueMappings(source: Register, headers: unknown[], rows: Cell[]
     if (column >= 0) {
       const counts = new Map<string, number>()
       // Lines with numbers but no shift appear as «(empty)», to be given a shift or left out.
-      const filled = (row: Cell[]) => (register.sheet?.rows || []).some((item: AnyRecord) => { const index = mapping.indexOf(`row.${item.key}`); return index >= 0 && toNumber(row[index]) != null })
+      const filled = (row: Cell[]) => (register.sheet?.rows || []).some((item: SheetAxisItem) => { const index = mapping.indexOf(`row.${item.key}`); return index >= 0 && toNumber(row[index]) != null })
       for (const row of rows) { const cell = String(row[column] ?? '').trim() || (filled(row) ? EMPTY_VALUE : ''); if (cell) counts.set(cell, (counts.get(cell) || 0) + 1) }
-      const measures = { options: (register.sheet?.measures || []).map((measure: AnyRecord) => ({ value: measure.key, label: measure.label, labelEn: measure.labelEn, match: measure.aliases || [] })) }
+      const measures = { options: (register.sheet?.measures || []).map((measure: SheetAxisItem) => ({ value: measure.key, label: measure.label, labelEn: measure.labelEn, match: measure.aliases || [] })) }
       result['sheet.measure'] = { field: { key: 'sheet.measure', label: 'Στήλη', labelEn: 'Measure', ...measures }, values: [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, count, option: suggestOption(measures, value) })) }
     }
   }
@@ -265,8 +268,8 @@ export function toGestation(cell: Cell): number | null {
 // A value past the field's limits that FileMaker wrote twice (850850 → 850),
 // or, on a field marked repair: 'decimal', that lost its decimal point
 // (EuroSCORE 242 → 2.42). Anything else is returned as it is.
-export function repairNumber(field: AnyRecord, value: number) {
-  const fits = (number: number) => (field.min == null || number >= field.min) && (field.max == null || number <= field.max)
+export function repairNumber(field: RegisterField, value: number) {
+  const fits = (number: number) => (field.min == null || number >= Number(field.min)) && (field.max == null || number <= Number(field.max))
   if (fits(value)) return value
   const digits = String(Math.abs(value))
   if (Number.isInteger(value) && digits.length % 2 === 0 && digits.slice(0, digits.length / 2) === digits.slice(digits.length / 2)) {
@@ -293,18 +296,18 @@ export function planImport(source: Register, headers: unknown[], rows: Cell[][],
 
 function planCases(register: Register, headers: unknown[], rows: Cell[][], mapping: string[], { valueMap = {}, emptyIsNo = true, fallbackDate = '', existing = [], language = 'el' }: ImportOptions) {
   const en = language === 'en'
-  const items: AnyRecord[] = [], issues: ImportIssue[] = []
+  const items: ImportItem[] = [], issues: ImportIssue[] = []
   const skipped = { noDate: 0, test: 0, duplicate: 0 }
   const dateField = register.settings?.entryDateField
   const seen = new Set(existing.map(entry => `${entry.identity?.caseNumber || ''}|${entry.entryDate}`).filter(key => !key.startsWith('|')))
   const columnsOf = (target: string) => mapping.map((value, index) => (value === target ? index : -1)).filter(index => index >= 0)
   const nameColumns = columnsOf('identity.patientName')
   const caseColumn = columnsOf('identity.caseNumber')[0]
-  const mappedFields: { field: AnyRecord, column: number }[] = register.fields.filter((field: AnyRecord) => field.type !== 'computed').map((field: AnyRecord) => ({ field, column: mapping.indexOf(field.key) })).filter((item: AnyRecord) => item.column >= 0)
+  const mappedFields: { field: RegisterField, column: number }[] = register.fields.filter((field: RegisterField) => field.type !== 'computed').map((field: RegisterField) => ({ field, column: mapping.indexOf(field.key) })).filter(item => item.column >= 0)
   rows.forEach((row, index) => {
     const line = index + 2
-    const values: AnyRecord = {}
-    const note = (field: AnyRecord | null | undefined, text: string) => issues.push({ row: line, field: field ? textOf(field, language) : '', text })
+    const values: EntryValues = {}
+    const note = (field: RegisterField | null | undefined, text: string) => issues.push({ row: line, field: field ? textOf(field, language) : '', text })
     for (const { field, column } of mappedFields) {
       const cell = row[column]
       if (field.type === 'date') {
@@ -346,24 +349,24 @@ function planCases(register: Register, headers: unknown[], rows: Cell[][], mappi
     if (dateField && !values[dateField]) {
       // A case without its date takes the first other date it has (a neonate's discharge), noted.
       const stand = (register.entryDateFallbacks || []).find((key: string) => values[key])
-      if (stand) { values[dateField] = values[stand]; note(register.fields.find((item: AnyRecord) => item.key === dateField), en ? `No date: ${textOf(register.fields.find((item: AnyRecord) => item.key === stand), 'en')} used` : `Χωρίς ημερομηνία: χρησιμοποιήθηκε η «${textOf(register.fields.find((item: AnyRecord) => item.key === stand), 'el')}»`) }
+      if (stand) { values[dateField] = values[stand]; note(register.fields.find((item: RegisterField) => item.key === dateField), en ? `No date: ${textOf(register.fields.find((item: RegisterField) => item.key === stand), 'en')} used` : `Χωρίς ημερομηνία: χρησιμοποιήθηκε η «${textOf(register.fields.find((item: RegisterField) => item.key === stand), 'el')}»`) }
       // Registers kept without dates (active patients) count on the day recorded and leave their own date empty.
       else if (fallbackDate && !register.undatedImport) values[dateField] = fallbackDate
       else if (!fallbackDate) { skipped.noDate += 1; return }
     }
     // Limits: an impossible value is not imported (the rest of the case is).
-    const check = validateEntry(register.fields, values, language, values[dateField] || fallbackDate)
+    const check = validateEntry(register.fields, values, language, values[dateField!] || fallbackDate)
     for (const [key, text] of Object.entries(check.errors)) {
-      const field = register.fields.find((item: AnyRecord) => item.key === key)
+      const field = register.fields.find((item: RegisterField) => item.key === key)
       if (text === (en ? 'Required' : 'Υποχρεωτικό')) continue
       note(field, en ? `${values[key] ?? ''} — ${text}: left empty` : `${values[key] ?? ''} — ${text}: μένει κενό`)
       delete values[key]
     }
-    const entryDate = values[dateField] || fallbackDate
+    const entryDate = String(values[dateField!] || fallbackDate)
     const key = caseNumber ? `${caseNumber}|${entryDate}` : ''
     if (key && seen.has(key)) { skipped.duplicate += 1; return }
     if (key) seen.add(key)
-    items.push({ entry: { values: computeValues(register.fields, values), status: 'complete', ...(values[dateField] ? {} : { entryDate }) }, identity: caseNumber || patientName ? { caseNumber, patientName } : null, line })
+    items.push({ entry: { values: computeValues(register.fields, values), status: 'complete', ...(values[dateField!] ? {} : { entryDate }) }, identity: caseNumber || patientName ? { caseNumber, patientName } : null, line })
   })
   return { items, issues, skipped, counts: { rows: rows.length, ready: items.length } }
 }
@@ -374,7 +377,7 @@ function planSheet(register: Register, headers: unknown[], rows: Cell[][], mappi
   const skipped = { noDate: 0, summary: 0, existing: 0, noMeasure: 0 }
   const dateColumn = mapping.indexOf('sheet.date')
   const measureColumn = mapping.indexOf('sheet.measure')
-  const measures: AnyRecord[] = register.sheet?.measures || []
+  const measures: SheetAxisItem[] = register.sheet?.measures || []
   const rowColumns = mapping.map((target, column) => (String(target).startsWith('row.') ? { row: target.slice(4), column } : null)).filter(Boolean) as { row: string, column: number }[]
   // A daily value far above the usual is a summary row FileMaker kept among the days.
   const limits = new Map(rowColumns.map(({ row, column }) => {
@@ -382,7 +385,7 @@ function planSheet(register: Register, headers: unknown[], rows: Cell[][], mappi
     const median = numbers.length ? numbers[Math.floor(numbers.length / 2)] : 0
     return [row, Math.max(30, median * 10)]
   }))
-  const months = new Map<string, AnyRecord>()
+  const months = new Map<string, Record<string, SheetCells>>()
   rows.forEach((cells, index) => {
     const line = index + 2
     const day = toIsoDate(cells[dateColumn])
@@ -399,7 +402,7 @@ function planSheet(register: Register, headers: unknown[], rows: Cell[][], mappi
     const outliers = numbers.filter(item => item.value > limits.get(item.row)!)
     if (outliers.length) {
       skipped.summary += 1
-      const row = register.sheet.rows!.find((item: AnyRecord) => item.key === outliers[0].row)
+      const row = register.sheet.rows!.find((item: SheetAxisItem) => item.key === outliers[0].row)
       issues.push({ row: line, field: textOf(row, language), text: en ? `${outliers[0].value} on ${day}: looks like a summary row, not counted` : `${outliers[0].value} στις ${day}: μοιάζει με γραμμή συνόλου, δεν μετράει` })
       return
     }
@@ -407,12 +410,12 @@ function planSheet(register: Register, headers: unknown[], rows: Cell[][], mappi
     const month = months.get(periodStart) || {}
     for (const { row, value } of numbers) {
       if (value < 0) continue
-      month[row] = { ...(month[row] || {}), [measure]: (month[row]?.[measure] || 0) + Math.round(value) }
+      month[row] = { ...(month[row] || {}), [measure!]: (month[row]?.[measure!] || 0) + Math.round(value) }
     }
     months.set(periodStart, month)
   })
   const taken = new Set(existing.map(entry => entry.periodStart))
-  const items: AnyRecord[] = []
+  const items: ImportItem[] = []
   for (const [periodStart, values] of [...months.entries()].sort()) {
     if (taken.has(periodStart)) { skipped.existing += 1; issues.push({ row: '', field: '', text: en ? `${periodStart.slice(0, 7)} already recorded: kept as is` : `${periodStart.slice(0, 7)} υπάρχει ήδη: μένει ως έχει` }); continue }
     items.push({ entry: { periodStart, values, status: 'complete' }, identity: null })
