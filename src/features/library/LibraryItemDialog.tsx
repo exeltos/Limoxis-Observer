@@ -14,7 +14,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LIBRARY_TOPICS, LINK_GROUPS } from './libraryCatalogue'
 import { DESCRIPTION_LIMIT, EXCERPT_LIMIT, HOSPITAL_KINDS, INTERVALS, PLATFORM_KINDS, blankDraft, errorText, initials, intervalLabel, kindLabel, logoTone, validateDraft } from './libraryModel'
 import { saveAnnouncement, saveItem, saveSource, setItemStatus } from './libraryService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryDraft, LibraryEntry, LibrarySource, NewsSettings } from './libraryTypes'
 
 const ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
 const MAX_FILE = 10 * 1024 * 1024
@@ -23,24 +23,25 @@ const MAX_FILE = 10 * 1024 * 1024
 // Owner: what every hospital sees) or 'hospital' (Hospital Admin / Quality
 // Manager: only their hospital). `item` is an existing entry (a library item,
 // a news source or an announcement), or null for a new one of `kind`.
-interface LibraryItemDialogProps { scope: string, organizationId?: string | null, item?: AnyRecord | null, kind?: string, source?: AnyRecord | null, language: string, onClose?: () => void, onSaved?: () => void }
+interface LibraryItemDialogProps { scope: string, organizationId?: string | null, item?: LibraryEntry | null, kind?: string, source?: LibrarySource | null, language: string, onClose?: () => void, onSaved?: () => void }
 
 export function LibraryItemDialog({ scope, organizationId = null, item = null, kind = 'link', source = null, language, onClose, onSaved }: LibraryItemDialogProps) {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const { notify, notifyError, confirm } = useFeedback()
   const platform = scope === 'platform'
-  const [draft, setDraft] = useState<AnyRecord>(() => {
+  const [draft, setDraft] = useState<LibraryDraft>(() => {
     const base = blankDraft(item?.kind || kind, scope)
     if (!item) return base
     // A news source arrives as { ...source, kind: 'news_source', sourceKind: source.kind }.
-    if (item.kind === 'news_source') return { ...base, ...item, news: { ...base.news, keywords: (item.keywords || []).join(', ') }, sourceKind: item.sourceKind || 'rss' }
+    // (A news source has no year: the form's own stays.)
+    if (item.kind === 'news_source') return { ...base, ...item, news: { ...base.news, keywords: (item.keywords || []).join(', ') }, sourceKind: item.sourceKind || 'rss' } as LibraryDraft
     return { ...base, ...item, year: item.year ? String(item.year) : '', publishedAt: item.publishedAt ? String(item.publishedAt).slice(0, 10) : '', news: source ? { enabled: source.active !== false, id: source.id, url: source.url, kind: source.kind, intervalHours: source.intervalHours, keywords: (source.keywords || []).join(', ') } : base.news }
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
-  const set = (key: string, value: unknown) => setDraft(current => ({ ...current, [key]: value }))
-  const setNews = (key: string, value: unknown) => setDraft(current => ({ ...current, news: { ...current.news, [key]: value } }))
+  const set = <K extends keyof LibraryDraft>(key: K, value: LibraryDraft[K]) => setDraft(current => ({ ...current, [key]: value }))
+  const setNews = <K extends keyof NewsSettings>(key: K, value: NewsSettings[K]) => setDraft(current => ({ ...current, news: { ...current.news, [key]: value } }))
   const kinds = platform ? PLATFORM_KINDS : HOSPITAL_KINDS
   const k = draft.kind
   const isNew = !item?.id

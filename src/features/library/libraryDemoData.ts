@@ -1,6 +1,6 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { NEWS_SOURCES, PLATFORM_GUIDELINES, PLATFORM_LINKS, type NewsSourceSeed } from './libraryCatalogue'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryItem, LibraryNews } from './libraryTypes'
 
 // The Library in the preview and the Demo: the platform's real starting content
 // (libraryCatalogue.js), plus sample hospital additions and sample news, dated
@@ -44,6 +44,6 @@ emptyInPreview(hospitalItems)
 emptyInPreview(hospitalNews)
 emptyInPreview(sourceNews)
 
-export const demoLibraryItems = (): AnyRecord[] => [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES, ...hospitalItems].map((item: AnyRecord) => ({ ...item, tags: [...item.tags], updatedAt: item.updatedAt || ago(12) }))
-export const demoLibraryNews = (): AnyRecord[] => [...sourceNews, ...hospitalNews].map(item => ({ ...item }))
+export const demoLibraryItems = (): LibraryItem[] => [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES, ...hospitalItems].map((item: LibraryItem & { tags: string[] }) => ({ ...item, tags: [...item.tags], updatedAt: item.updatedAt || ago(12) }))
+export const demoLibraryNews = (): LibraryNews[] => [...sourceNews, ...hospitalNews].map(item => ({ ...item }))
 export const DEMO_LIBRARY_ORG = DEMO_ORG
