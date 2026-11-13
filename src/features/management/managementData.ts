@@ -2,7 +2,7 @@ import { demoOffsetDays, shiftDemoMonth } from '../../core/data/demoClock'
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { DEMO_WARDS, demoMonthlyPatientDays, lastDayOfMonth, pad2 } from '../../core/data/demoSeed'
 import { EODY_CATALOGUE, EODY_SOURCE, EODY_SOURCE_VERSION } from '../reporting/eodyCatalogue'
-import type { EnvironmentalStandard, LibraryMeta, PatientDayPeriod } from './managementTypes'
+import type { EnvironmentalStandard, ExternalReferenceDraft, LibraryMeta, PatientDayPeriod } from './managementTypes'
 
 // Εγγραφή βιβλιοθήκης όπως τη δείχνουν οι οθόνες: [ελληνικά, αγγλικά, στοιχεία].
 export type LibraryTuple = [string, string, LibraryMeta]
@@ -326,7 +326,7 @@ export const demoPatientDayPeriods = (() => {
   }
   return emptyInPreview(rows)
 })()
-export const externalSources=[
+export const externalSources: ExternalReferenceDraft[]=[
   {id:'eody',label:'ΕΟΔΥ — Επιτήρηση λοιμωδών νοσημάτων',authority:'ΕΟΔΥ',version:'Εθνική επιτήρηση και υποχρεωτική δήλωση',versionEn:'National surveillance and mandatory notification',status:'approved',scope:'Δηλούμενα νοσήματα, επιδημιολογική επιτήρηση και εθνικές οδηγίες',scopeEn:'Notifiable diseases, epidemiological surveillance and national guidance'},
   {id:'eucast',label:'EUCAST — Αντιμικροβιακή ευαισθησία',authority:'EUCAST',version:'Clinical breakpoints / τρέχουσα έκδοση',versionEn:'Clinical breakpoints / current version',status:'approved',scope:'Breakpoints, MIC και ερμηνεία αντιμικροβιακής ευαισθησίας',scopeEn:'Breakpoints, MIC and antimicrobial susceptibility interpretation'},
   {id:'who',label:'WHO — Infection Prevention & Control',authority:'WHO',version:'IPC Core Components / BPPL / AWaRe',versionEn:'IPC Core Components / BPPL / AWaRe',status:'approved',scope:'IPC, AMR, υγιεινή χεριών και antimicrobial stewardship',scopeEn:'IPC, AMR, hand hygiene and antimicrobial stewardship'},

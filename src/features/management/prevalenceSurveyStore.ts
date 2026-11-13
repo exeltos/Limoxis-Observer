@@ -1,10 +1,10 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PrevalenceSurvey } from './managementTypes'
 
 // Quarterly point-prevalence surveys, dated in the Demo's authored frame and
 // moved forward to today like the other Demo fixtures (src/core/data/demoClock.js).
-const seed = [
+const seed: PrevalenceSurvey[] = [
   { id: 'PPS-2502', surveyDate: '2025-02-12', departmentId: '', departmentEl: '', patientsTotal: 172, patientsWithHai: 15, patientsOnAntibiotics: 51, responsibleName: 'ΕΝΛ', notes: 'Αρχική μέτρηση επιπολασμού πριν την εντατικοποίηση των μέτρων IPC.', createdAt: '2025-02-12T10:00:00', createdById: 'demo-user' },
   { id: 'PPS-2505', surveyDate: '2025-05-14', departmentId: '', departmentEl: '', patientsTotal: 176, patientsWithHai: 14, patientsOnAntibiotics: 49, responsibleName: 'ΕΝΛ', notes: '', createdAt: '2025-05-14T10:00:00', createdById: 'demo-user' },
   { id: 'PPS-2508', surveyDate: '2025-08-13', departmentId: '', departmentEl: '', patientsTotal: 181, patientsWithHai: 13, patientsOnAntibiotics: 50, responsibleName: 'ΕΝΛ', notes: '', createdAt: '2025-08-13T10:00:00', createdById: 'demo-user' },
@@ -15,5 +15,5 @@ const seed = [
 ]
 shiftDemoDatesInPlace([seed])
 
-export function loadPrevalenceSurveyLocal() { const rows = loadSnapshot('management_prevalence_survey', structuredClone(seed)); return Array.isArray(rows) ? rows : structuredClone(seed) }
-export function savePrevalenceSurveyLocal(rows: AnyRecord[]) { return saveSnapshot('management_prevalence_survey', rows) }
+export function loadPrevalenceSurveyLocal(): PrevalenceSurvey[] { const rows = loadSnapshot('management_prevalence_survey', structuredClone(seed)); return Array.isArray(rows) ? rows : structuredClone(seed) }
+export function savePrevalenceSurveyLocal(rows: PrevalenceSurvey[]) { return saveSnapshot('management_prevalence_survey', rows) }

@@ -11,10 +11,12 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
 import { DEFAULT_TRAINER_FEEDBACK_TEMPLATE } from '../training/trainingFeedbackTemplate'
 import { EpiQuestionnaireRegistryCells,EpiQuestionnaireSettings,useEpiSettings } from './EpiQuestionnaireSettings'
-import type { AnyRecord } from '../../types/featureTypes'
 
-type Question = AnyRecord & { id: string, label: string, type: string, required: boolean, options: string[] }
-type Questionnaire = AnyRecord & { id: string, title: string, category: string, status: string, questions: Question[] }
+type Question = { id: string, label: string, type: string, required: boolean, options: string[] }
+type Questionnaire = { id: string, title: string, category: string, status: string, questions: Question[] }
+// A questionnaire as stored by an older version (titles and labels per language).
+type StoredQuestion = Partial<Question> & { labelEl?: string, labelEn?: string }
+type StoredQuestionnaire = Partial<Omit<Questionnaire, 'questions'>> & { titleEl?: string, titleEn?: string, questions?: StoredQuestion[] }
 type Editor = { kind: 'questionnaire', mode: string, draft: Questionnaire } | { kind: 'question', mode: string, questionnaireId: string, draft: Question }
 const EPI_ROW: Questionnaire={id:'epi-system',title:'',category:'surveillance',status:'active',questions:[]}
 const STORE='management_questionnaires_v1'
@@ -46,7 +48,7 @@ const seed=(): Questionnaire[]=>[
   {id:'ss-q4',label:'Σχόλια / προτάσεις',type:'text',required:false,options:[]},
  ]},
 ]
-function normalizeRow(row: AnyRecord): Questionnaire{return {...row,id:row.id,category:row.category,status:row.status,title:row.title||row.titleEl||row.titleEn||'',questions:(row.questions||[]).map((q: AnyRecord)=>({...q,label:q.label||q.labelEl||q.labelEn||'',options:Array.isArray(q.options)?q.options:[]}))}}
+function normalizeRow(row: StoredQuestionnaire): Questionnaire{return {...row,id:row.id,category:row.category,status:row.status,title:row.title||row.titleEl||row.titleEn||'',questions:(row.questions||[]).map(q=>({...q,label:q.label||q.labelEl||q.labelEn||'',options:Array.isArray(q.options)?q.options:[]}) as Question)} as Questionnaire}
 function load(){const rows=loadSnapshot(STORE,null);return Array.isArray(rows)&&rows.length?rows.map(normalizeRow):seed()}
 function categoryLabel(value: string,en: boolean){if(value==='training')return en?'Training':'Εκπαίδευση';if(value==='audit')return en?'Audit':'Έλεγχος';if(value==='quality')return en?'Quality':'Ποιότητα';if(value==='evaluation')return en?'Evaluation':'Αξιολόγηση';return en?'General':'Γενικό'}
 

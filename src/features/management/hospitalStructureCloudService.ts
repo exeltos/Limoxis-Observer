@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { cloudClient } from '../../core/supabase/cloudContext'
 import type { Tables } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { HospitalStructureDraft, HospitalStructureSnapshot } from './managementTypes'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadHospitalStructureLocal, saveHospitalStructureLocal } from './hospitalStructureStore'
 
@@ -18,7 +18,7 @@ async function currentUserId() {
   return id
 }
 
-function mapRow(row: Tables<'hospital_structure_snapshots'>) {
+function mapRow(row: Tables<'hospital_structure_snapshots'>): HospitalStructureSnapshot {
   return {
     id: row.id,
     effectiveDate: row.effective_date,
@@ -43,7 +43,7 @@ export async function loadHospitalStructureHistory(organizationId: string | unde
   return (data || []).map(mapRow)
 }
 
-export async function saveHospitalStructureSnapshot(organizationId: string | undefined, record: AnyRecord) {
+export async function saveHospitalStructureSnapshot(organizationId: string | undefined, record: HospitalStructureDraft) {
   if (isDemoDataEnvironment()) {
     const rows = loadHospitalStructureLocal()
     const saved = { id: `HSS-${Date.now()}`, ...record, createdAt: new Date().toISOString(), createdById: 'demo-user' }

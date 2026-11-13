@@ -1,5 +1,5 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { HospitalStructureSnapshot } from './managementTypes'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -15,7 +15,7 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 
 const todayIso = () => hospitalToday()
-type StructureDraft = Record<string, string>
+type StructureDraft = Record<'effectiveDate' | 'totalBeds' | 'icuBeds' | 'singleRooms' | 'infectionControlNurses' | 'infectiousDiseasePhysicians' | 'microbiologists' | 'notes', string>
 const emptyDraft: StructureDraft = { effectiveDate: todayIso(), totalBeds: '', icuBeds: '', singleRooms: '', infectionControlNurses: '', infectiousDiseasePhysicians: '', microbiologists: '', notes: '' }
 
 export function HospitalStructurePanel() {
@@ -25,7 +25,7 @@ export function HospitalStructurePanel() {
   const { role, tenant } = useTenant()
   const fmt = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(`${value}T12:00:00`)) : '—'
   const isPlatformOwner = role === ROLES.PLATFORM_OWNER
-  const [rows, setRows] = useState<AnyRecord[]>([])
+  const [rows, setRows] = useState<HospitalStructureSnapshot[]>([])
   const [loading, setLoading] = useState(false)
   const [editor, setEditor] = useState(false)
   const [draft, setDraft] = useState<StructureDraft>(emptyDraft)
@@ -107,7 +107,7 @@ export function BedsPerNurse({ beds, nurses, en }: { beds: unknown, nurses: unkn
 }
 
 function StructureDialog({ en, draft, setDraft, onClose, onSave }: { en: boolean, draft: StructureDraft, setDraft: Dispatch<SetStateAction<StructureDraft>>, onClose: () => void, onSave: () => void }) {
-  const field = (key: string, label: string) => (
+  const field = (key: keyof StructureDraft, label: string) => (
     <label><span>{label}</span><input type="number" min="0" value={draft[key]} onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))} /></label>
   )
   return (
