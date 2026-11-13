@@ -12,7 +12,8 @@ import { buildEarsNetRows, earsNetIsolates, EARS_NET_PATHOGENS, firstIsolates, t
 import { notifiableFindings, notificationStatus } from './notifiableFindings'
 import { deadlineStatusText, deadlineWords } from './eodyCatalogue'
 import { loadNotificationReports, saveNotificationReport } from './notificationReportsService'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
+import type { ReportPatient, ReportSample, ReportTenant } from './reportingTypes'
 import type { DataQualityCheck } from './dataQuality'
 import type { NotifiableFinding } from './notifiableFindings'
 import type { NotificationReport } from './notificationReportsService'
@@ -85,7 +86,7 @@ function Notifications({ findings, tx, en, onSave, unavailable }: { findings: No
   </section>
 }
 
-function EarsNetExport({ samples, patients, tenant, year, tx }: { samples: AnyRecord[], patients: AnyRecord[], tenant: AnyRecord | null | undefined, year: string | number, tx: Translate }) {
+function EarsNetExport({ samples, patients, tenant, year, tx }: { samples: ReportSample[], patients: ReportPatient[], tenant: ReportTenant | null | undefined, year: string | number, tx: Translate }) {
   const [hospitalId, setHospitalId] = useState(''), [laboratoryCode, setLaboratoryCode] = useState('')
   const all = useMemo(() => earsNetIsolates(samples).filter(isolate => isolate.year === String(year)), [samples, year])
   const first = useMemo(() => firstIsolates(all), [all])
@@ -113,10 +114,10 @@ function EarsNetExport({ samples, patients, tenant, year, tx }: { samples: AnyRe
 }
 
 // parts: which of the three to show (the laboratory shows the data checks and the EARS-Net export apart, in a dialog each).
-export function ReportingPanel({ tenant, isDemo, year, tx, en, parts = ['quality', 'notifications', 'ears'] }: { tenant: AnyRecord | null | undefined, isDemo: boolean, year: string | number, tx: Translate, en: boolean, parts?: string[] }) {
+export function ReportingPanel({ tenant, isDemo, year, tx, en, parts = ['quality', 'notifications', 'ears'] }: { tenant: ReportTenant | null | undefined, isDemo: boolean, year: string | number, tx: Translate, en: boolean, parts?: string[] }) {
   const repository = useLaboratoryRepository()
   const { notify } = useFeedback()
-  const [state, setState] = useState<{ loading: boolean, error: string, samples: AnyRecord[], patients: AnyRecord[], reports: NotificationReport[], reportsUnavailable: boolean }>({ loading: true, error: '', samples: [], patients: [], reports: [], reportsUnavailable: false })
+  const [state, setState] = useState<{ loading: boolean, error: string, samples: ReportSample[], patients: ReportPatient[], reports: NotificationReport[], reportsUnavailable: boolean }>({ loading: true, error: '', samples: [], patients: [], reports: [], reportsUnavailable: false })
   const load = useCallback(async () => {
     setState(value => ({ ...value, loading: true, error: '' }))
     try {
@@ -125,8 +126,8 @@ export function ReportingPanel({ tenant, isDemo, year, tx, en, parts = ['quality
         loadPatients(tenant?.id, { isDemo, includeArchived: true }).catch(() => []),
         loadNotificationReports(tenant?.id, { isDemo }).then((rows): { rows: NotificationReport[], unavailable?: boolean } => ({ rows }), () => ({ rows: [], unavailable: true })),
       ])
-      const samples = Array.isArray(listed) ? listed : (listed?.data || (listed as AnyRecord)?.rows || [])
-      setState({ loading: false, error: '', samples, patients, reports: reports.rows, reportsUnavailable: Boolean(reports.unavailable) })
+      const samples = (Array.isArray(listed) ? listed : (listed?.data || (listed as { rows?: unknown[] })?.rows || [])) as unknown as ReportSample[]
+      setState({ loading: false, error: '', samples, patients: patients as unknown as ReportPatient[], reports: reports.rows, reportsUnavailable: Boolean(reports.unavailable) })
     } catch (error) {
       setState(value => ({ ...value, loading: false, error: (error as Error | null)?.message || 'LOAD_FAILED' }))
     }
