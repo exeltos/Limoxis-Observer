@@ -12,7 +12,7 @@ vi.mock('../src/core/auth/AuthContext', () => ({
 }))
 let criteriaSets = null
 const loadHaiCriteriaSets = vi.fn(async () => criteriaSets)
-vi.mock('../src/features/surveillance/haiCriteriaLibraryService', () => ({ loadHaiCriteriaSets: (...args) => loadHaiCriteriaSets(...args) }))
+vi.mock('../src/features/surveillance/haiCriteriaLibraryService', () => ({ loadHaiCriteriaSets: (...args: Parameters<typeof loadHaiCriteriaSets>) => loadHaiCriteriaSets(...args) }))
 
 const { LanguageProvider, loadLanguage } = await import('../src/core/i18n/LanguageContext')
 const { FeedbackProvider } = await import('../src/core/feedback/FeedbackContext')
@@ -26,7 +26,7 @@ const { DEMO_STEP_EVENT } = await import('../src/features/demo/demoScenarioSigna
 const pristineCases = structuredClone(clinicalCases)
 const pristinePatients = structuredClone(patientDemoData)
 const pristineSamples = structuredClone(laboratorySamples)
-const body = () => document.querySelector('.entity-record-body')
+const body = () => document.querySelector<HTMLElement>('.entity-record-body')
 
 async function openRecord(path) {
   let api
@@ -64,7 +64,7 @@ const openEpisode = async (title = 'Λοίμωξη αιματικής ροής')
 }
 // The sheet reads until «Επεξεργασία φύλλου» of its «⋯»; every action of it is in that menu (owner, 8/11/2026).
 // The windows of the surveillance sheet open in it, under their step (owner, 8/11/2026).
-const sheetWindow = () => document.querySelector('.sheet-inline-forms .observer-dialog-inline')
+const sheetWindow = () => document.querySelector<HTMLElement>('.sheet-inline-forms .observer-dialog-inline')
 const sheetMenu = async item => {
   fireEvent.click(screen.getByRole('button', { name: /Ενέργειες επιτήρησης/ }))
   fireEvent.click(await screen.findByRole('menuitem', { name: item }))
@@ -75,7 +75,7 @@ const openStage = async name => {
   // The index steps are numbered (✓ once done): the label is the step's text after its number.
   const step = screen.getAllByRole('button').find(button => button.textContent.replace(/^\d+/, '').startsWith(name))
   fireEvent.click(step)
-  return document.querySelector(`[id^="sheet-${STAGE_IDS[name]}-"] .clinical-panel.full-panel`)
+  return document.querySelector<HTMLElement>(`[id^="sheet-${STAGE_IDS[name]}-"] .clinical-panel.full-panel`)
 }
 // Lists are SearchableSelect comboboxes: the options live in the listbox the
 // combobox controls (hidden until it opens), each with its label first.
@@ -106,7 +106,7 @@ afterEach(async () => {
 describe('patient profile', () => {
   it('names the patient once, in the header, with a neonate age in days and birth data in the summary', async () => {
     await openPatient()
-    const sheet = screen.getByText('Ασθενής & νοσηλεία').closest('section, article, div.record-section') || document.body
+    const sheet = screen.getByText('Ασθενής & νοσηλεία').closest<HTMLElement>('section, article, div.record-section') || document.body
     // The summary does not repeat the name the header already shows.
     expect(within(sheet).queryByText('Ιωαννίδη')).not.toBeInTheDocument()
     expect(screen.getAllByText(/Νεογέννητο Ιωαννίδη/).length).toBeGreaterThan(0)
@@ -147,7 +147,7 @@ describe('record arrows', () => {
     await waitFor(() => expect(api?.enterSampleDemo).toBeTypeOf('function'))
     act(() => { api.enterSampleDemo() })
     await screen.findByText('Ασθενής & νοσηλεία')
-    const nav = document.querySelector('.entity-record-sequence')
+    const nav = document.querySelector<HTMLElement>('.entity-record-sequence')
     expect(nav).toHaveTextContent('1/3')
     expect(within(nav).getByRole('button', { name: 'Προηγούμενη εγγραφή' })).toBeDisabled()
     fireEvent.click(within(nav).getByRole('button', { name: 'Επόμενη εγγραφή' }))
@@ -249,7 +249,7 @@ describe('surveillance tree and samples', () => {
     await openSurveillance()
     await openTab('Επιτήρηση & Δείγματα')
     expect(within(body()).getByText('Λοίμωξη αιματικής ροής')).toBeInTheDocument()
-    const parent = within(body()).getByText(/LAB-260771/).closest('.sv-sample-node')
+    const parent = within(body()).getByText(/LAB-260771/).closest<HTMLElement>('.sv-sample-node')
     fireEvent.click(within(parent).getByRole('button', { name: /Επανέλεγχος/ }))
     const followUp = screen.getByRole('dialog', { name: 'Αίτημα επανελέγχου δείγματος' })
     // A follow-up is a request to the laboratory, never sent empty: the site comes first.
@@ -262,7 +262,7 @@ describe('surveillance tree and samples', () => {
     for (const unknown of within(followUp).getAllByRole('radio', { name: 'Άγνωστο' })) fireEvent.click(unknown)
     fireEvent.click(within(followUp).getByRole('button', { name: /Αποστολή αιτήματος/ }))
     const child = await waitFor(() => {
-      const node = within(body()).getByText(/LAB-260771-R1/).closest('.sv-sample-node')
+      const node = within(body()).getByText(/LAB-260771-R1/).closest<HTMLElement>('.sv-sample-node')
       expect(node).toHaveClass('is-followup')
       return node
     })
@@ -276,10 +276,10 @@ describe('surveillance tree and samples', () => {
     laboratorySamples.unshift({ ...unlinked, id: 'LAB-NEG-1', result: 'negative' }, { ...unlinked, id: 'LAB-POS-1', result: 'positive', organism: 'Escherichia coli' })
     await openPatient('PT-260082')
     await openTab('Επιτήρηση & Δείγματα')
-    const negative = within(body()).getByText(/LAB-NEG-1/).closest('.sv-sample')
+    const negative = within(body()).getByText(/LAB-NEG-1/).closest<HTMLElement>('.sv-sample')
     expect(negative.querySelector('.sample-negative-note')).toHaveAttribute('title', 'Ένα αρνητικό αποτέλεσμα δεν μπορεί να ξεκινήσει επιτήρηση.')
     expect(within(negative).queryByRole('button', { name: /Έναρξη επιτήρησης/ })).not.toBeInTheDocument()
-    expect(within(within(body()).getByText(/LAB-POS-1/).closest('.sv-sample')).getByRole('button', { name: /Έναρξη επιτήρησης/ })).toBeInTheDocument()
+    expect(within(within(body()).getByText(/LAB-POS-1/).closest<HTMLElement>('.sv-sample')).getByRole('button', { name: /Έναρξη επιτήρησης/ })).toBeInTheDocument()
   })
 
   it('requests a sample from the episode: the laboratory records the collection and the result', async () => {
@@ -442,7 +442,7 @@ describe('surveillance episode record: header scale chips and printing', () => {
     expect(chip).toHaveClass('clinical-risk-flag')
     fireEvent.click(chip)
     expect(await screen.findByRole('tab', { name: /Φόρμες & ερωτηματολόγια/, selected: true })).toBeInTheDocument()
-    const scales = document.querySelector('[data-section="scales"]')
+    const scales = document.querySelector<HTMLElement>('[data-section="scales"]')
     expect(within(scales).getByRole('heading', { name: 'Κλίμακες' })).toBeInTheDocument()
     expect(await within(scales).findAllByText(/NEWS2/)).not.toHaveLength(0)
   })

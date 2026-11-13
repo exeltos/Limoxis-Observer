@@ -10,7 +10,7 @@ describe('the quality objectives file for the auditor', () => {
     const section = objectiveSection(objective(), history, 'el')
     expect(section.title).toContain('QO-2026-01')
     expect(section.table.rows).toHaveLength(3)
-    expect(section.table.rows[2][2].text).toBe('Επιτυγχάνεται')
+    expect((section.table.rows[2][2] as { text: string }).text).toBe('Επιτυγχάνεται')
     expect(historyChartHtml(objective(), history, 'el')).toContain('stroke-dasharray')
     expect(historyChartHtml(objective(), [history[0]], 'el')).toBe('')
   })

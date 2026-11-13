@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+import type { ReportBranding } from '../src/core/organization/branding'
 
 const addImageCalls = []
 const saveCalls = []
@@ -59,13 +60,13 @@ describe('exportElementAsPdf with the hospital header', () => {
     addImageCalls.length = 0
     saveCalls.length = 0
     const context = { drawImage: vi.fn(), scale: vi.fn(), fillText: vi.fn(), set fillStyle(v) {}, set font(v) {}, set textBaseline(v) {} }
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as never)
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,slice')
   })
 
   it('puts the header on every page and the content below it', async () => {
     const element = document.createElement('div')
-    await exportElementAsPdf({ element, filename: 'r', branding: { name: 'General Hospital', reportHeader: 'IPC committee', logo: '' } })
+    await exportElementAsPdf({ element, filename: 'r', branding: { name: 'General Hospital', reportHeader: 'IPC committee', logo: '' } as ReportBranding })
     expect(saveCalls).toHaveLength(1)
     // Content slices sit below the 16mm header band; each page also gets the header text image.
     const content = addImageCalls.filter(args => args[2] === 0)
@@ -77,7 +78,7 @@ describe('exportElementAsPdf with the hospital header', () => {
 
   it('leaves the header out when asked (certificates)', async () => {
     const element = document.createElement('div')
-    await exportElementAsPdf({ element, filename: 'c', header: false, branding: { name: 'General Hospital' } })
+    await exportElementAsPdf({ element, filename: 'c', header: false, branding: { name: 'General Hospital' } as ReportBranding })
     expect(addImageCalls.every(args => args[3] === 0)).toBe(true)
   })
 })

@@ -106,7 +106,7 @@ describe('role + scope access foundation', () => {
     expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.ARCHIVE_DOCUMENT)).toBe(true)
     expect(capabilityCatalogue[CAPABILITIES.SUBMIT_DOCUMENT_REVIEW].customRoleClass).toBe('standard')
     expect(capabilityCatalogue[CAPABILITIES.APPROVE_DOCUMENT].customRoleClass).toBe('restricted')
-    expect(capabilityCatalogue[CAPABILITIES.PUBLISH_DOCUMENT].governanceAction).toBe(true)
+    expect((capabilityCatalogue[CAPABILITIES.PUBLISH_DOCUMENT] as { governanceAction?: boolean }).governanceAction).toBe(true)
     expect(capabilityCatalogue[CAPABILITIES.PUBLISH_DOCUMENT].customRoleClass).toBe('restricted')
   })
 

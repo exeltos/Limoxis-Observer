@@ -67,7 +67,7 @@ describe('DetailList', () => {
 describe('patient discharge', () => {
   function Harness({ onConfirm, admissionDate = '2026-10-11' }) {
     const { t, language } = useLanguage()
-    return <AdmissionDischargeDialog patient={{ name: 'Νεογέννητο Ιωαννίδη' }} admission={{ admissionDate, department: 'ΜΕΘ' }} t={t} language={language} fmtDate={value => value} onClose={() => {}} onConfirm={onConfirm} />
+    return <AdmissionDischargeDialog patient={{ name: 'Νεογέννητο Ιωαννίδη' }} admission={{ admissionDate, department: 'ΜΕΘ' }} t={t} language={language} fmtDate={value => value as string} onClose={() => {}} onConfirm={onConfirm} />
   }
   const choose = async name => {
     fireEvent.focus(screen.getByRole('combobox'))
@@ -152,7 +152,7 @@ describe('patient forms use the shared validation', () => {
   it('«Επεξεργασία ασθενούς»: the calculated age is helper text under the date of birth, gestational age follows birth weight', () => {
     const born = new Date(Date.now() - 9 * 86400000).toISOString().slice(0, 10)
     const { container } = render(<LanguageProvider><Form patient={{ id: 'PT-1', firstName: 'Α', lastName: 'Β', sex: 'female', dateOfBirth: born, birthWeightGrams: 980, gestationalAgeWeeks: 27 }} /></LanguageProvider>)
-    const birth = container.querySelector('[data-field-key="dateOfBirth"]')
+    const birth = container.querySelector<HTMLElement>('[data-field-key="dateOfBirth"]')
     expect(within(birth).getByText(/Υπολογιζόμενη ηλικία/)).toHaveClass('field-hint')
     const keys = [...container.querySelectorAll('[data-field-key]')].map(node => node.getAttribute('data-field-key'))
     expect(keys.indexOf('gestationalAgeWeeks')).toBe(keys.indexOf('birthWeightGrams') + 1)
@@ -188,7 +188,7 @@ describe('patient with no admission', () => {
   it('says so in one line, offers «Νέα νοσηλεία» and counts what exists outside admissions', () => {
     const onNew = vi.fn()
     const t = key => ({ 'clinicalRecords.noAdmissionTitle': 'Δεν υπάρχει καταγεγραμμένη νοσηλεία για τον ασθενή.', 'clinicalRecords.newAdmission': 'Νέα νοσηλεία', 'clinicalRecords.nothingElseOnRecord': 'Δεν υπάρχει άλλη καταχώριση.', 'clinicalRecords.onRecordTitle': 'Τι υπάρχει', 'clinicalRecords.samplesCountLabel': 'Δείγματα' })[key] || key
-    render(<MemoryRouter><LanguageProvider><PatientWithoutAdmission patient={{ recordId: 'p1' }} isDemo canAdmit onNewAdmission={onNew} samplesCount={2} t={t} fmtDate={value => value} /></LanguageProvider></MemoryRouter>)
+    render(<MemoryRouter><LanguageProvider><PatientWithoutAdmission patient={{ recordId: 'p1' }} isDemo canAdmit onNewAdmission={onNew} samplesCount={2} t={t} {...{ fmtDate: value => value }} /></LanguageProvider></MemoryRouter>)
     expect(screen.getByText('Δεν υπάρχει καταγεγραμμένη νοσηλεία για τον ασθενή.')).toBeInTheDocument()
     expect(screen.getByText(/2 δείγματα/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Νέα νοσηλεία' }))
@@ -208,7 +208,7 @@ describe('no duplicate actions between visible buttons and the «…» menu', ()
     const { PatientDetailsSection } = await import('../src/features/surveillance/ClinicalAdmissions')
     function Section() {
       const { t, language } = useLang()
-      return <PatientDetailsSection patient={{ id: 'PT-1', firstName: 'Α', lastName: 'Β', sex: '', department: 'ΜΕΘ' }} tenantId="t1" isDemo departments={[]} t={t} language={language} fmtDate={value => value} extraMenuItems={[{ id: 'discharge', label: 'Εξιτήριο', onClick: () => {} }]} />
+      return <PatientDetailsSection patient={{ id: 'PT-1', firstName: 'Α', lastName: 'Β', sex: '', department: 'ΜΕΘ' }} tenantId="t1" isDemo departments={[]} t={t} language={language} fmtDate={value => value as string} extraMenuItems={[{ id: 'discharge', label: 'Εξιτήριο', onClick: () => {} }]} {...{} as { onChanged: never, onDeleted: never }} />
     }
     render(<Provider><Section /></Provider>)
     const visible = screen.getAllByRole('button').map(button => button.textContent.trim()).filter(Boolean)

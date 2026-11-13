@@ -17,8 +17,8 @@ const impactRows = [
 const getImpact = vi.fn(async () => impactRows)
 const deleteOrganizations = vi.fn(async ({ organizationIds }) => ({ ok: true, deleted: organizationIds.length, results: organizationIds.map(id => ({ organizationId: id, ok: true })) }))
 vi.mock('../src/core/tenant/tenantService', () => ({
-  getOrganizationDeletionImpact: (...args) => getImpact(...args),
-  deletePlatformOrganizations: (...args) => deleteOrganizations(...args),
+  getOrganizationDeletionImpact: (...args: Parameters<typeof getImpact>) => getImpact(...args),
+  deletePlatformOrganizations: (...args: Parameters<typeof deleteOrganizations>) => deleteOrganizations(...args),
 }))
 const notify = vi.fn()
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => ({ notify, notifyError: vi.fn() }), useOptionalFeedback: () => null }))

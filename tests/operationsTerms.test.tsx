@@ -31,7 +31,7 @@ describe('Operations terms (finding Ο9)', () => {
 
   it('the receipts list opens each row with the date, the code is the small text', () => {
     const filters = { query: '', result: 'all', supplier: 'all', limits: 'all', from: '', to: '' }
-    const { container } = wrap(<ReceiptsPanel state={state} access={access} filters={filters} setFilters={vi.fn()} />)
+    const { container } = wrap(<ReceiptsPanel state={state} access={access} filters={filters} setFilters={vi.fn()} {...{} as { onDialog: never }} />)
     const rows = [...container.querySelectorAll('tbody tr')]
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
@@ -42,7 +42,7 @@ describe('Operations terms (finding Ο9)', () => {
   })
 
   it('the recall drills list opens each row with the date, the code is the small text', () => {
-    const { container } = wrap(<RecallPanel state={state} access={access} filters={{ query: '', result: 'all', scenario: 'all' }} setFilters={vi.fn()} onRecall={vi.fn()} />)
+    const { container } = wrap(<RecallPanel state={state} {...{ access }} filters={{ query: '', result: 'all', scenario: 'all' }} setFilters={vi.fn()} onRecall={vi.fn()} />)
     const rows = [...container.querySelectorAll('tbody tr')]
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {

@@ -16,7 +16,7 @@ vi.mock('../src/core/config/env', () => ({
 vi.mock('../src/core/supabase/client', () => ({
   supabase: {
     from: table => {
-      const query = { table, filters: {} }
+      const query: { table: string, filters: Record<string, unknown>, columns?: unknown, order?: unknown[] } = { table, filters: {} }
       calls.push(query)
       const builder = {
         select: columns => { query.columns = columns; return builder },
