@@ -7,6 +7,7 @@ import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
+import type { DivisionDepartment } from '../src/features/division/divisionService'
 
 let language = 'el'
 vi.mock('../src/core/i18n/LanguageContext', () => ({ useLanguage: () => ({ language, t: key => key }), useOptionalLanguage: () => ({ language }) }))
@@ -17,13 +18,13 @@ vi.mock('../src/core/auth/AuthContext', () => ({
 // The home reads the tenant from a fixed object; the preview test uses the real provider.
 let mockTenant = null
 vi.mock('../src/core/tenant/TenantContext', async importOriginal => {
-  const actual = await importOriginal()
+  const actual = await importOriginal<typeof import('../src/core/tenant/TenantContext')>()
   return { ...actual, useTenant: () => mockTenant ?? actual.useTenant() }
 })
 let overview
 let interviews
 vi.mock('../src/features/division/divisionService', async importOriginal => {
-  const actual = await importOriginal()
+  const actual = await importOriginal<typeof import('../src/features/division/divisionService')>()
   return { ...actual, loadDivisionOverview: vi.fn(async () => overview), loadDivisionInterviews: vi.fn(async () => interviews) }
 })
 
@@ -31,7 +32,7 @@ const { DivisionHome, DivisionDepartmentView } = await import('../src/features/d
 const { TenantProvider, useTenant } = await import('../src/core/tenant/TenantContext')
 const { navigationFor } = await import('../src/app/navigation')
 const { CAPABILITIES, ROLES, can } = await import('../src/core/permissions/roles')
-const service = await vi.importActual('../src/features/division/divisionService')
+const service = await vi.importActual<typeof import('../src/features/division/divisionService')>('../src/features/division/divisionService')
 const { attentionItems, categoryName, rosterPill } = await import('../src/features/division/divisionModel')
 const { configureDataEnvironment } = await import('../src/core/data/dataEnvironment')
 
@@ -151,8 +152,8 @@ describe('division model and sample data', () => {
       expect(categoryName(key, 'en')).not.toBe(key)
       expect(categoryName(key, 'el')).not.toMatch(/\(/)
     }
-    expect(rosterPill({ rosterNextMonth: 'draft', uncoveredNights: 1 }, 'el')).toEqual(['Προσχέδιο · 1 νύχτα', 'warning'])
-    expect(rosterPill({ rosterNextMonth: 'draft', uncoveredNights: 0 }, 'en')).toEqual(['Draft', 'info'])
+    expect(rosterPill({ rosterNextMonth: 'draft', uncoveredNights: 1 } as DivisionDepartment, 'el')).toEqual(['Προσχέδιο · 1 νύχτα', 'warning'])
+    expect(rosterPill({ rosterNextMonth: 'draft', uncoveredNights: 0 } as DivisionDepartment, 'en')).toEqual(['Draft', 'info'])
     expect(attentionItems(departments, '2026-12', 'el')[0].tone).toBe('danger')
     expect(service.nextMonthOf('2026-12-03')).toBe('2027-01')
     expect(service.nextMonthOf('2026-11-12')).toBe('2026-12')

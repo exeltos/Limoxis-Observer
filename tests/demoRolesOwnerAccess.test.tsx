@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { DemoClosedScreen, DemoEvaluationBar } from '../src/app/DemoEvaluationBar'
 import { readSource } from './helpers/readSource'
+import type { DemoAccess } from '../src/core/auth/authTypes'
 
 const read = path => readSource(path)
 const migration = read('supabase/migrations/20261012120000_demo_roles_owner_demo_access.sql')
@@ -80,7 +81,7 @@ describe('Demo access enforcement', () => {
 describe('Demo bar and "Demo ended" screen', () => {
   it('shows the days left and opens the role preview', () => {
     const onPreviewRoles = vi.fn()
-    render(<DemoEvaluationBar tenant={{ name: 'Γενικό Νοσοκομείο Demo' }} access={{ daysLeft: 9, validUntil: '2026-10-22' }} isPlatformOwner={false} language="el" onPreviewRoles={onPreviewRoles} onExit={vi.fn()}/>)
+    render(<DemoEvaluationBar tenant={{ name: 'Γενικό Νοσοκομείο Demo' }} access={{ daysLeft: 9, validUntil: '2026-10-22' } as DemoAccess} isPlatformOwner={false} language="el" onPreviewRoles={onPreviewRoles} onExit={vi.fn()}/>)
     expect(screen.getByText('Απομένουν 9 ημέρες (έως 22/10/2026) · δοκιμαστικά δεδομένα')).toBeInTheDocument()
     expect(screen.queryByText('Έξοδος από Demo')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('Δείτε ως άλλος ρόλος'))
@@ -93,9 +94,9 @@ describe('Demo bar and "Demo ended" screen', () => {
     expect(onExit).toHaveBeenCalled()
   })
   it('tells an evaluator the Demo has ended or is paused', () => {
-    const { rerender } = render(<DemoClosedScreen access={{ status: 'active', validUntil: '2026-10-01', open: false }} language="el" onLogout={vi.fn()}/>)
+    const { rerender } = render(<DemoClosedScreen access={{ status: 'active', validUntil: '2026-10-01', open: false } as DemoAccess} language="el" onLogout={vi.fn()}/>)
     expect(screen.getByRole('heading', { name: 'Το Demo έληξε' })).toBeInTheDocument()
-    rerender(<DemoClosedScreen access={{ status: 'paused', open: false }} language="el" onLogout={vi.fn()}/>)
+    rerender(<DemoClosedScreen access={{ status: 'paused', open: false } as DemoAccess} language="el" onLogout={vi.fn()}/>)
     expect(screen.getByRole('heading', { name: 'Το Demo είναι σε παύση' })).toBeInTheDocument()
   })
 })

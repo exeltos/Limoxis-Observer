@@ -53,7 +53,7 @@ describe('scenarios of every role', () => {
   })
 
   it('opens record steps on the record only, never on its "new" form', () => {
-    const route = (key, id) => DEMO_ALL_SCENARIOS.find(scenario => scenario.key === key).steps.find(step => step.id === id).route
+    const route = (key, id) => DEMO_ALL_SCENARIOS.find(scenario => scenario.key === key).steps.find(step => step.id === id).route as RegExp
     expect(route('employee_record', 'open').test('/employees/EMP-001')).toBe(true)
     expect(route('employee_record', 'open').test('/employees/new')).toBe(false)
     expect(route('committee_minutes', 'open').test('/committees/CMT-1')).toBe(true)

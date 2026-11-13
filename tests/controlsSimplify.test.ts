@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { filterControlRows } from '../src/features/controls/controlFilters'
 import { readSource } from './helpers/readSource'
+import type { ControlRow } from '../src/features/controls/controlTypes'
 
 const page = readSource('src/features/controls/ControlsPage.jsx')
 const record = readSource('src/features/controls/ControlRecordPage.jsx')
 const editor = readSource('src/features/controls/ControlEditor.jsx')
 const expiry = readSource('src/features/controls/ControlExpiryPanel.jsx')
 
-const row = (id, extra = {}) => ({
+const row = (id, extra = {}): ControlRow => ({
   item: { id, title: id, category: 'Θερμοκρασίες', frequency: { kind: 'weekly', interval: 1 }, responseConfig: { criticality: 'high' }, ...extra },
   departments: ['ΜΕΘ'],
-})
+}) as never
 
 describe('controls list: department cards, key figures per tab, no filter popover', () => {
   it('opens on the department cards, with the key figures of the open tab under the tabs', () => {
