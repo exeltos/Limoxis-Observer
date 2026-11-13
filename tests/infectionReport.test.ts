@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { infectionDefinitions, infectionReportDocument } from '../src/features/analysis/infectionReport'
+import type { DossierIndicatorRow } from '../src/features/quality/review/reviewTypes'
 
 const def = (id, category, extra = {}) => ({ id, category, titleEl: id, titleEn: id, unit: '%', ...extra })
 
@@ -11,11 +12,11 @@ describe('the annual infections report', () => {
   })
 
   it('has a section per group and a last page of what is missing', () => {
-    const rows = [
+    const rows: DossierIndicatorRow[] = [
       { def: def('clabsi-per-1000-cvc-days', 'surveillance'), value: 8.7, numerator: 10, denominator: 1143, evidence: [10, 1143] },
       { def: def('mdr-isolation-ecoli', 'surveillance'), value: null, missing: 'manual' },
       { def: def('hh-compliance', 'prevention'), value: 79.1, evidence: [311, 393] },
-    ]
+    ] as never
     const doc = infectionReportDocument({ rows, year: 2026, language: 'el' })
     expect(doc.sections.map(section => section.title)).toEqual(['Λοιμώξεις συνδεόμενες με τη φροντίδα', 'Πολυανθεκτικά στελέχη (MDR)', 'Πρόληψη: υγιεινή χεριών και δέσμες μέτρων', 'Δεδομένα που λείπουν'])
     expect(doc.sections[0].table.rows[0][2]).toBe('10 / 1.143')
