@@ -3,7 +3,6 @@ import { CheckCircle2, Eye, EyeOff, Languages, ShieldCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../core/supabase/client'
 import { cloudClient } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
 import { Button } from '../../design-system/Button'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { BrandMark } from '../../design-system/BrandMark'
@@ -18,7 +17,13 @@ import './activation.css'
 //    the hospital, username, role and validity, and sets the password. No session.
 const accessToken = () => new URLSearchParams(window.location.search).get('access') || ''
 
-async function redeem(body: AnyRecord): Promise<AnyRecord> {
+// What redeem-access-token is asked and answers: the link's hospital, username, role and validity
+// («inspect»), or the account activated («activate»).
+type RedeemRequest = { action: 'inspect' | 'activate', token: string, password?: string }
+type RedeemResponse = { ok: boolean, activated?: boolean, organizationName?: string, username?: string, role?: string, roleLabel?: string, departmentName?: string | null, expiresAt?: string }
+// The account that was activated (its username, when the answer gives one).
+type Activated = { username?: string }
+async function redeem(body: RedeemRequest): Promise<RedeemResponse> {
   if (!supabase) throw new Error('ACCESS_NOT_AVAILABLE')
   const { data, error } = await supabase.functions.invoke('redeem-access-token', { body })
   if (!error && data?.ok) return data
@@ -38,8 +43,8 @@ const when = (value: string | null | undefined, greek: boolean) =>
 
 export function ActivateAccountPage(){
  const nav=useNavigate(),{language,setLanguage}=useLanguage(),greek=language==='el'
- const [password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[show,setShow]=useState(false),[error,setError]=useState(''),[done,setDone]=useState<AnyRecord|null>(null),[saving,setSaving]=useState(false)
- const [access]=useState(accessToken),[context,setContext]=useState<AnyRecord|null>(null),[linkError,setLinkError]=useState('')
+ const [password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[show,setShow]=useState(false),[error,setError]=useState(''),[done,setDone]=useState<Activated|null>(null),[saving,setSaving]=useState(false)
+ const [access]=useState(accessToken),[context,setContext]=useState<RedeemResponse|null>(null),[linkError,setLinkError]=useState('')
  const rules=passwordRules(password,confirmPassword),valid=Object.values(rules).every(Boolean),strength=passwordStrength(password,language)
  const accessMessage=(code: unknown)=>code==='TOO_MANY_ATTEMPTS'?(greek?'Πολλές προσπάθειες. Δοκιμάστε ξανά σε λίγα λεπτά.':'Too many attempts. Try again in a few minutes.'):code==='ORGANIZATION_PAUSED'?(greek?'Ο οργανισμός είναι σε παύση. Επικοινωνήστε με τον διαχειριστή.':'The organization is paused. Contact the administrator.'):code==='DEMO_CLOSED'?(greek?'Το Demo έχει λήξει ή είναι σε παύση.':'The Demo has ended or is paused.'):code==='WEAK_PASSWORD'?(greek?'Ο κωδικός δεν πληροί την πολιτική.':'The password does not meet the policy.'):(greek?'Ο σύνδεσμος δεν είναι πλέον ενεργός (έληξε ή χρησιμοποιήθηκε). Ζητήστε νέο από το νοσοκομείο.':'This link is no longer active (expired or already used). Ask the hospital for a new one.')
  useEffect(()=>{if(!access)return;let live=true;redeem({action:'inspect',token:access}).then(data=>{if(live)setContext(data)},err=>{if(live)setLinkError(accessMessage(err.message))});return()=>{live=false}// eslint-disable-next-line react-hooks/exhaustive-deps
