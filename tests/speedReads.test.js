@@ -54,7 +54,9 @@ describe('app shell reads', () => {
   it('surveillance reads the laboratory once, and the patient roster only for a new episode', () => {
     expect(surveillance).toContain('useLaboratoryRegistry({ enabled: isDemo })')
     expect(surveillance).toContain('loadClinicalCases(tenant.id, { summary: true })')
-    expect(surveillance).toContain('loadLaboratorySamples(tenant.id, { environmental: true })')
+    expect(surveillance).toContain('loadLaboratorySamples(tenant.id, { environmental: true, since: null })')
+    // The environmental samples are read only when the Environment tab opens.
+    expect(surveillance).toContain("if (mode === 'environmental' && !environmentLoaded) void loadEnvironment()")
     expect(surveillance).not.toContain('const roster = await loadPatients')
     expect(surveillance).toContain("if (creation !== 'patient') return")
   })

@@ -42,7 +42,6 @@
 @media(max-width:900px){.lab-samples .lab-sample-row{grid-template-columns:1fr}.lab-sample-n{padding-top:0}}
 .lab-create-shell .lab-create-flow{max-width:1180px;width:100%;margin:0 auto;padding:4px 0 24px}
 
-.lab-recent-note{margin:8px 0 0;font-size:12.5px;color:var(--lo-color-muted)}
 /* The list (owner, 8/11/2026): a critical finding is a red mark beside the result, the status is plain text. */
 .lab-critical-mark{display:inline-flex;align-items:center;margin-left:6px;color:#b42318;vertical-align:-2px}
 .lab-status-text{font-size:12.5px;color:var(--lo-color-text)}

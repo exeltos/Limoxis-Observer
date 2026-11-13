@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   Microscope,
@@ -154,6 +154,24 @@ export function SurveillanceCanonicalPage() {
     actualRole,
     canSeeSensitiveEmployeeHealth,
   })
+  // The environmental samples (the lighter list, every sample): only for who sees the Environment tab, once it is opened.
+  const [environmentLoaded, setEnvironmentLoaded] = useState(false)
+  const environmentLoadedRef = useRef(false)
+  const loadEnvironment = useCallback(async () => {
+    if (isDemo || !tenant?.id || !canEnvironment) return
+    try {
+      const rows = await loadLaboratorySamples(tenant.id, { environmental: true, since: null })
+      setEnvironmentRows(rows.filter(isEnvironmental))
+    } catch (error) {
+      notifyError(error, 'load', { operation: 'surveillance_environment_load' })
+    } finally {
+      environmentLoadedRef.current = true
+      setEnvironmentLoaded(true)
+    }
+  }, [isDemo, tenant?.id, canEnvironment, notifyError])
+  useEffect(() => {
+    if (mode === 'environmental' && !environmentLoaded) void loadEnvironment()
+  }, [mode, environmentLoaded, loadEnvironment])
   const load = useCallback(async () => {
     try {
       const rest =
@@ -161,7 +179,6 @@ export function SurveillanceCanonicalPage() {
           ? Promise.allSettled([
               loadClinicalCases(tenant.id, { summary: true }),
               loadEmployeeSurveillanceRecords(tenant.id),
-              loadLaboratorySamples(tenant.id, { environmental: true }),
             ])
           : null
       if (isDemo) {
@@ -174,9 +191,8 @@ export function SurveillanceCanonicalPage() {
         const withSample = (row: AnyRecord) => (row.caseSampleCount ?? (row.samples || []).length) > 0
         setCases(results[0].status === 'fulfilled' ? (results[0].value as AnyRecord[]).filter(withSample) : [])
         setEmployeeRows(results[1].status === 'fulfilled' ? results[1].value : [])
-        setEnvironmentRows(
-          results[2].status === 'fulfilled' ? results[2].value.filter(isEnvironmental) : [],
-        )
+        // The environmental samples are read when the Environment tab is open (below), not with every Surveillance tab.
+        if (environmentLoadedRef.current) await loadEnvironment()
         results
           .filter(x => x.status === 'rejected')
           .forEach(x => notifyError(x.reason, 'load', { operation: 'surveillance_canonical_load' }))
@@ -188,7 +204,7 @@ export function SurveillanceCanonicalPage() {
     } finally {
       setLoading(false)
     }
-  }, [tenant?.id, isDemo, laboratoryRegistry.rows, notifyError])
+  }, [tenant?.id, isDemo, laboratoryRegistry.rows, notifyError, loadEnvironment])
   useEffect(() => {
     void load()
   }, [load, canEmployees])
@@ -594,7 +610,7 @@ export function SurveillanceCanonicalPage() {
           <EmployeeRows loading={loading} rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} sort={sort} onSort={onSort} />
         ) : (
           <EnvironmentalRegistry
-            loading={loading}
+            loading={loading || (!isDemo && Boolean(tenant?.id) && canEnvironment && !environmentLoaded)}
             rows={rows}
             empty={empty}
             summaryRows={filtered}

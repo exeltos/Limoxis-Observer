@@ -4,7 +4,7 @@
 // back to the Demo datasets, cancelled episodes stay hidden by default, and
 // employee surveillance is offered only to roles allowed to see staff health.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 
@@ -60,11 +60,20 @@ describe('loading a production organization', () => {
     service.employees.mockRejectedValue(failure)
     openCenter()
     await waitFor(() => expect(screen.getByText('Άννα Αλεξίου')).toBeInTheDocument())
-    for (const load of Object.values(service)) expect(load.mock.calls[0][0]).toBe('org-1')
-    // The list reads one line per episode and only the environmental samples.
+    for (const load of [service.cases, service.employees, service.departments]) expect(load.mock.calls[0][0]).toBe('org-1')
+    // The list reads one line per episode; the environmental samples wait for the Environment tab.
     expect(service.cases).toHaveBeenCalledWith('org-1', { summary: true })
-    expect(service.samples).toHaveBeenCalledWith('org-1', { environmental: true })
+    expect(service.samples).not.toHaveBeenCalled()
     await waitFor(() => expect(notifyError).toHaveBeenCalledWith(failure, 'load', { operation: 'surveillance_canonical_load' }))
+  })
+
+  it('reads the environmental samples (the lighter list, every sample) once the Environment tab opens', async () => {
+    openCenter()
+    await waitFor(() => expect(screen.getByText('Άννα Αλεξίου')).toBeInTheDocument())
+    expect(service.samples).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('tab', { name: /Περιβάλλον/ }))
+    await waitFor(() => expect(service.samples).toHaveBeenCalledWith('org-1', { environmental: true, since: null }))
+    expect(service.samples).toHaveBeenCalledTimes(1)
   })
 
   it('shows an empty registry, never the Demo patients, when the episodes cannot be loaded', async () => {

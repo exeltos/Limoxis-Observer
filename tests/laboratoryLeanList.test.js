@@ -14,7 +14,10 @@ describe('the laboratory list, lighter', () => {
     expect(service).toContain("supabase.rpc('laboratory_sample_list_lean'")
     const workspace = readSource('src/features/laboratory/LaboratoryWorkspace.jsx')
     expect(workspace).toContain('useLaboratoryRegistry({ recent: !isDemo })')
-    expect(workspace).toContain("t('laboratoryRecords.olderSamples')")
+    // «All samples» in the period filter reads the older ones (owner, 13/11: no note under the list).
+    expect(workspace).toContain("<option value=\"older\">{t('laboratoryRecords.periodEverything')}</option>")
+    expect(workspace).toContain("useEffect(() => { if (period === 'older' && recentOnly) showOlder() }, [period, recentOnly, showOlder])")
+    expect(workspace).not.toContain('lab-recent-note')
   })
   it('«the last 12 months» counts by the date the sample was taken, not the date it was entered (FileMaker import)', () => {
     const sql = readSource('supabase/migrations/20261231500000_laboratory_recent_by_collection_date.sql')
