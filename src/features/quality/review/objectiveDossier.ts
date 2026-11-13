@@ -83,7 +83,7 @@ export async function loadDossierExtras(organizationId: string | null | undefine
   ])
   const inYear = (survey: Survey) => (!survey.opensOn || Number(survey.opensOn.slice(0, 4)) <= year) && (!survey.closesOn || Number(survey.closesOn.slice(0, 4)) >= year)
   const surveyRows = await Promise.all(surveys.filter((survey: Survey) => survey.status !== 'draft' && inYear(survey)).map(async (survey: Survey) => {
-    const responses = (await loadResponses(organizationId, survey.id).catch(() => [])).filter((row: SurveyResponse) => String(row.submittedAt || row.createdAt || '').startsWith(String(year)))
+    const responses = (await loadResponses(organizationId, survey.id).catch(() => [])).filter((row: SurveyResponse & { createdAt?: string }) => String(row.submittedAt || row.createdAt || '').startsWith(String(year)))
     return { survey, summary: surveySummary(survey, responses) }
   }))
   return { year, indicatorRows: [], registerRows, surveyRows }
@@ -130,7 +130,7 @@ export function objectivesListDoc({ rows, year, language }: { rows: ObjectiveLis
   }
 }
 const levelHeading = (level: string, en: boolean) => (en ? { hospital: 'Hospital objectives', department: 'Department objectives', committee: 'Committee objectives' } : { hospital: 'Στόχοι νοσοκομείου', department: 'Στόχοι τμημάτων', committee: 'Στόχοι επιτροπών' })[level]
-const percent = (value: number) => (value == null ? '—' : `${Math.round(value)}%`)
+const percent = (value: number | null) => (value == null ? '—' : `${Math.round(value)}%`)
 
 // The whole file of one year, everything in it: the summary by level, the objectives of the hospital, the departments and
 // the committees (with the committees' annual plans), each objective with its months, the department registers' indicators for the year,

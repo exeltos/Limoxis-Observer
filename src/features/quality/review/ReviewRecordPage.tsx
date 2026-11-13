@@ -125,7 +125,7 @@ export function ReviewRecordPage() {
     loadCommitteesFullAsync(orgId).then(committees => add({ committees: Array.isArray(committees) ? committees : [] })).catch(() => {})
     loadDocumentsAsync(orgId).then(documents => add({ documents: (Array.isArray(documents) ? documents : []) as FactDocument[] })).catch(() => {})
     Promise.all([loadMeetingGroups(orgId), loadMeetings(orgId)]).then(([meetingGroups, meetings]) => add({ meetingGroups, meetings })).catch(() => {})
-    loadSurveys(orgId).then(surveys => Promise.all(surveys.filter((survey: Survey) => survey.responseCount > 0).map((survey: Survey) => loadResponses(orgId, survey.id).then(responses => ({ survey, responses })).catch(() => ({ survey, responses: [] }))))).then(surveys => add({ surveys })).catch(() => {})
+    loadSurveys(orgId).then(surveys => Promise.all(surveys.filter((survey: Survey & { responseCount: number }) => survey.responseCount > 0).map((survey: Survey) => loadResponses(orgId, survey.id).then(responses => ({ survey, responses })).catch(() => ({ survey, responses: [] }))))).then(surveys => add({ surveys })).catch(() => {})
     return () => { active = false }
   }, [tenant?.id, reviewId, isNew])
 

@@ -2,6 +2,8 @@ import type { Tables } from '../../../core/supabase/database.types'
 import type { Register, RegisterIndicator } from '../../registers/registerTypes'
 import type { Meeting, MeetingGroup } from '../meetings/meetingModel'
 import type { Survey, SurveyResponse } from '../surveys/surveyModel'
+import type { certificationState, evaluationApproval } from '../resources/resourceModel'
+import type { summarizeRisks } from '../risk/riskModel'
 
 // The shapes the objectives and management review screens keep (reviewService translates them to and from
 // the database rows: quality_objectives, quality_objective_values and quality_management_review* in database.types).
@@ -190,9 +192,10 @@ export interface FactCommitteeMeeting { status?: string, date?: string }
 export interface FactCommitteeDecision { status: string, dueDate?: string }
 export interface FactCommittee { status?: string, meetings?: FactCommitteeMeeting[], decisions?: FactCommitteeDecision[] }
 export interface FactSupplierIssue { date?: string, status?: string }
-export interface FactSupplier { status?: string, evaluations?: { evaluatedOn?: string }[], certifications?: Record<string, unknown>[], nonconformities?: FactSupplierIssue[] }
+// Evaluations, certificates and risks in the shapes their own modules read them (resourceModel, riskModel).
+export interface FactSupplier { status?: string, evaluations?: (Parameters<typeof evaluationApproval>[0] & { evaluatedOn?: string })[], certifications?: NonNullable<Parameters<typeof certificationState>[0]>[], nonconformities?: FactSupplierIssue[] }
 export interface FactEquipmentEvent { happenedOn?: string, kind: string, result?: string }
-export interface FactRiskAssessment { status?: string, assessedOn?: string, code?: string, title?: string, risks?: Record<string, unknown>[], opportunities?: Record<string, unknown>[] }
+export interface FactRiskAssessment { status?: string, assessedOn?: string, code?: string, title?: string, risks?: NonNullable<Parameters<typeof summarizeRisks>[0]>, opportunities?: Record<string, unknown>[] }
 export interface FactTrainingProgram { status?: string, startDate?: string, dueDate?: string }
 export interface FactTrainingAssignment { status?: string, completedDate?: string }
 export interface FactDocument { status: string, type?: string, reviewDate?: string }
