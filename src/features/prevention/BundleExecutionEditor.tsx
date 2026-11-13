@@ -10,7 +10,8 @@ import { PreventionDepartmentField, selectTexts, usePreventionDepartments } from
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadBundleClinicalOptions } from './bundleCloudService'
 import { PrefilledList } from '../surveillance/forms/PrefilledList'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { BundleAssessment, BundleAssessmentDraft, BundleExecutionPrefill, BundleTemplate } from './preventionTypes'
+import type { BundleClinicalOptions } from './bundleCloudService'
 import type { PreventionDepartment } from './preventionCloud'
 
 function scoreFor(answers: Record<string, string> = {}) {
@@ -36,7 +37,7 @@ export function BundleExecutionEditor({
   departments = [],
   templates = [],
   prefill = null,
-}: { onSave?: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[]; templates?: AnyRecord[]; prefill?: AnyRecord | null }) {
+}: { onSave?: (record: BundleAssessmentDraft) => unknown; fixedDepartment?: string; initialRecord?: BundleAssessment | null; departments?: PreventionDepartment[]; templates?: BundleTemplate[]; prefill?: BundleExecutionPrefill | null }) {
   const { profile, user } = useAuth()
   const { tenant } = useTenant()
   const { language } = useLanguage()
@@ -44,11 +45,11 @@ export function BundleExecutionEditor({
   const actor = useMemo(() => controlActorFromAuth({ profile, user }), [profile, user])
   const [saving, setSaving] = useState(false)
   const [clinicalLoading, setClinicalLoading] = useState(false)
-  const [clinicalOptions, setClinicalOptions] = useState<{ patients: AnyRecord[]; devices: AnyRecord[] }>({ patients: [], devices: [] })
+  const [clinicalOptions, setClinicalOptions] = useState<BundleClinicalOptions>({ patients: [], devices: [] })
   // Opened from a device of an episode: the patient, episode, device, department and day
   // come from there (locked); the user chooses only date, shift and the bundle elements.
   const locked = Boolean(prefill?.surveillanceDeviceId) && !initialRecord
-  const [draft, setDraft] = useState<AnyRecord>(() =>
+  const [draft, setDraft] = useState<BundleAssessmentDraft>(() =>
     initialRecord
       ? JSON.parse(JSON.stringify(initialRecord))
       : {
@@ -85,7 +86,7 @@ export function BundleExecutionEditor({
     if (!locked || !departments.length) return
     const match =
       departments.find(item => prefill!.departmentId && String(item.id) === String(prefill!.departmentId)) ||
-      departments.find(item => [item.el, item.en].includes(prefill!.departmentName))
+      departments.find(item => [item.el, item.en].includes(prefill!.departmentName as string))
     if (match && match.el !== draft.departmentEl) setDraft(current => ({ ...current, departmentEl: match.el }))
   }, [locked, prefill, departments, draft.departmentEl])
   // The bundle of the device type, chosen as soon as the library is read.
@@ -131,7 +132,7 @@ export function BundleExecutionEditor({
   const note = (id: string, value: string) =>
     setDraft(current => ({ ...current, answerNotes: { ...current.answerNotes, [id]: value } }))
   const elementLabel = (id: string, fallback: string) => {
-    const raw = (template?.rawElements || []).find((item: AnyRecord) => item.id === id)
+    const raw = (template?.rawElements || []).find(item => item.id === id)
     if (!raw) return fallback
     return en
       ? raw.labelEn || raw.label_en || raw.labelEl || raw.label_el || fallback

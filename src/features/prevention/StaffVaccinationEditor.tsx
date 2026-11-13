@@ -8,17 +8,18 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { Field } from '../../design-system/Field'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
+import type { SearchableOption } from '../../design-system/SearchableSelect'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { libraryOptions } from '../management/useLibraries'
 import { selectTexts, usePreventionLibrary } from './PreventionFields'
 import '../occupational-health/OccupationalHealthPage.css'
 import type { ComponentProps } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionEmployee, StaffVaccinationDraft } from './preventionTypes'
 
 // What the editor shows and edits: the mode (individual / batch / edit / record), the vaccination
 // and the employees it is for.
-export interface VaccinationEditorValue { mode: string; draft: AnyRecord; selectedEmployeeIds: string[]; selectedEmployee?: AnyRecord | null; readOnly?: boolean }
+export interface VaccinationEditorValue { mode: string; draft: StaffVaccinationDraft; selectedEmployeeIds: string[]; selectedEmployee?: PreventionEmployee | null; readOnly?: boolean }
 
 export const EMPTY_VACCINATION = {
   vaccine: '',
@@ -64,7 +65,7 @@ export function StaffVaccinationEditor({
   onClose,
   onSave,
   onDelete,
-}: { asPage?: boolean; language: string; employees: AnyRecord[]; value: VaccinationEditorValue; canManage?: boolean; onChange: (value: VaccinationEditorValue) => void; onClose: () => void; onSave: (value: VaccinationEditorValue) => void; onDelete?: (value: VaccinationEditorValue) => void }) {
+}: { asPage?: boolean; language: string; employees: PreventionEmployee[]; value: VaccinationEditorValue; canManage?: boolean; onChange: (value: VaccinationEditorValue) => void; onClose: () => void; onSave: (value: VaccinationEditorValue) => void; onDelete?: (value: VaccinationEditorValue) => void }) {
   const en = language === 'en'
   const { mode, draft, selectedEmployeeIds } = value
   const readOnly = Boolean(value.readOnly)
@@ -76,8 +77,8 @@ export function StaffVaccinationEditor({
       ? `${selectedEmployee.firstNameEn || selectedEmployee.firstName} ${selectedEmployee.lastNameEn || selectedEmployee.lastName}`
       : `${selectedEmployee.lastName} ${selectedEmployee.firstName}`
   const vaccines = usePreventionLibrary('vaccines', VACCINES)
-  const fmtDate = (v: string) => formatDay(v, language)
-  const personName = (e: AnyRecord) =>
+  const fmtDate = (v: string | null | undefined) => formatDay(v, language)
+  const personName = (e: PreventionEmployee) =>
     en ? `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}` : `${e.lastName} ${e.firstName}`
   const employeeOptions = employees.map(e => ({
     value: e.id,
@@ -87,7 +88,7 @@ export function StaffVaccinationEditor({
   }))
   const valid =
     (mode === 'edit' || selectedEmployeeIds.length > 0) && draft.vaccine.trim() && draft.date
-  const patchDraft = (patch: AnyRecord) => onChange({ ...value, draft: { ...draft, ...patch } })
+  const patchDraft = (patch: Partial<StaffVaccinationDraft>) => onChange({ ...value, draft: { ...draft, ...patch } })
   const setMode = (next: string) => onChange({ ...value, mode: next, selectedEmployeeIds: [] })
   if (readOnly)
     return (
@@ -233,7 +234,7 @@ export function StaffVaccinationEditor({
               className="vaccination-vaccine-field"
               label={`${en ? 'Vaccine' : 'Εμβόλιο'} *`}
               value={draft.vaccine}
-              options={libraryOptions(vaccines.map(item => ({ ...item, value: item.el })), language)}
+              options={libraryOptions(vaccines.map(item => ({ ...item, value: item.el })), language) as SearchableOption[]}
               onChange={vaccine => patchDraft({ vaccine })}
               allowCustom
               placeholder={en ? 'Select or type vaccine' : 'Επιλέξτε ή γράψτε εμβόλιο'}

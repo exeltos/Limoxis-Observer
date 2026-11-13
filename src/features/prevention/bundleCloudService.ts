@@ -2,11 +2,12 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { bundleTemplateLibrary } from './preventionDemoData'
 import { loadBundlesLocal, saveBundlesLocal } from './preventionStore'
 import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { BundleAssessment, BundleAssessmentDraft, BundleAssessmentRow, BundleCriteria, BundleFinding, BundleFollowUp, BundleTemplate, BundleTemplateElement, BundleTemplateRow } from './preventionTypes'
+import type { Json } from '../../core/supabase/database.types'
 import { deletePreventionRecord, loadPreventionDepartments, sharedInFlight, type PreventionOrgId } from './preventionCloud'
 
-function mapTemplate(row: AnyRecord) {
-  const elements = Array.isArray(row.elements) ? row.elements : []
+function mapTemplate(row: BundleTemplateRow): BundleTemplate {
+  const elements = (Array.isArray(row.elements) ? row.elements : []) as unknown as BundleTemplateElement[]
   return {
     dbId: row.id,
     id: row.bundle_key,
@@ -21,16 +22,16 @@ function mapTemplate(row: AnyRecord) {
     source: row.source,
     sourceVersion: row.source_version,
     system: Boolean(row.is_system),
-    departments: Array.isArray(row.departments) ? row.departments : [],
+    departments: (Array.isArray(row.departments) ? row.departments : []) as string[],
     elements: elements.map(item => [
       item.id,
       item.labelEl || item.label_el || item.label || item.id,
-    ]),
+    ] as [string, string]),
     rawElements: elements,
   }
 }
-function mapAssessment(row: AnyRecord, templates: AnyRecord[] = []) {
-  const criteria = row.criteria && typeof row.criteria === 'object' ? row.criteria : {}
+function mapAssessment(row: BundleAssessmentRow, templates: BundleTemplate[] = []): BundleAssessment {
+  const criteria = (row.criteria && typeof row.criteria === 'object' ? row.criteria : {}) as BundleCriteria
   const evidence = Array.isArray(row.evidence) ? row.evidence : []
   const template =
     templates.find(x => x.bundleKey === row.bundle_key) || criteria.templateSnapshot || null
@@ -73,7 +74,7 @@ function mapAssessment(row: AnyRecord, templates: AnyRecord[] = []) {
     applicableCount,
     failedCount,
     allOrNone,
-    findings: evidence,
+    findings: evidence as BundleFinding[],
     owner: criteria.owner || '',
     status: row.status,
     lifecycleStatus:
@@ -84,11 +85,13 @@ function mapAssessment(row: AnyRecord, templates: AnyRecord[] = []) {
     updatedById: row.updated_by,
   }
 }
+// Τα τμήματα και η βιβλιοθήκη που χρειάζεται η φόρμα.
+export type BundleSupport = Awaited<ReturnType<typeof loadBundleSupportData>>
 export async function loadBundleSupportData(organizationId: PreventionOrgId) {
   if (isDemoDataEnvironment())
     return {
       departments: await loadPreventionDepartments(organizationId),
-      templates: bundleTemplateLibrary,
+      templates: bundleTemplateLibrary as BundleTemplate[],
     }
   assertCloud(organizationId)
   // The tab and its assessments ask at the same time: one read serves both.
@@ -112,6 +115,8 @@ export async function loadBundleSupportData(organizationId: PreventionOrgId) {
     templates: (templatesResult.data || []).map(mapTemplate),
   }
 }
+// Οι ασθενείς και οι συσκευές που μπορεί να αφορά μια αξιολόγηση.
+export type BundleClinicalOptions = Awaited<ReturnType<typeof loadBundleClinicalOptions>>
 export async function loadBundleClinicalOptions(organizationId: PreventionOrgId) {
   if (isDemoDataEnvironment()) return { patients: [], devices: [] }
   assertCloud(organizationId)
@@ -159,7 +164,7 @@ export async function loadBundleClinicalOptions(organizationId: PreventionOrgId)
   }))
   return { patients, devices }
 }
-export async function loadBundleAssessments(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
+export async function loadBundleAssessments(organizationId: PreventionOrgId): Promise<BundleAssessment[]> {
   if (isDemoDataEnvironment()) return loadBundlesLocal()
   assertCloud(organizationId)
   const support = await loadBundleSupportData(organizationId)
@@ -191,7 +196,7 @@ export async function loadEpisodeBundleAssessments(organizationId: PreventionOrg
   if (error) throw error
   return (data || []).map(row => mapAssessment(row, support.templates))
 }
-export async function saveBundleAssessment(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
+export async function saveBundleAssessment(organizationId: PreventionOrgId, record: BundleAssessmentDraft, { existingId = null }: { existingId?: string | null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadBundlesLocal()
     const id = existingId || `BND-${Date.now()}`
@@ -252,11 +257,11 @@ export async function saveBundleAssessment(organizationId: PreventionOrgId, reco
   const payload = {
     organization_id: organizationId as string,
     department_id: department.id,
-    bundle_key: template.bundleKey,
+    bundle_key: template.bundleKey as string,
     assessment_date: record.date,
     period_label: record.period || record.date || null,
     score,
-    criteria,
+    criteria: criteria as unknown as Json,
     evidence: findings,
     status: complete ? 'completed' : 'draft',
     patient_id: record.patientRecordId || record.patientId || null,
@@ -289,7 +294,7 @@ export async function saveBundleAssessment(organizationId: PreventionOrgId, reco
   const rows = await loadBundleAssessments(organizationId)
   return rows.find(x => x.id === saved.id) || null
 }
-export async function saveBundleFollowUp(organizationId: PreventionOrgId, assessmentId: string, itemId: string, followUp: AnyRecord) {
+export async function saveBundleFollowUp(organizationId: PreventionOrgId, assessmentId: string, itemId: string, followUp: BundleFollowUp) {
   if (!assessmentId || !itemId)
     throw new Error('Bundle assessment and follow-up item are required.')
   if (isDemoDataEnvironment()) {
@@ -313,12 +318,12 @@ export async function saveBundleFollowUp(organizationId: PreventionOrgId, assess
     .eq('id', assessmentId)
     .single()
   if (loadError) throw loadError
-  const criteria: AnyRecord = current?.criteria && typeof current.criteria === 'object' ? current.criteria : {}
+  const criteria = (current?.criteria && typeof current.criteria === 'object' ? current.criteria : {}) as BundleCriteria
   const followUps = { ...(criteria.followUps || {}), [itemId]: followUp }
   const { error: updateError } = await cloudClient()
     .from('prevention_bundle_assessments')
     .update({
-      criteria: { ...criteria, followUps },
+      criteria: { ...criteria, followUps } as unknown as Json,
       updated_by: userId,
       updated_at: new Date().toISOString(),
     })

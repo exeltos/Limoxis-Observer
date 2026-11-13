@@ -198,5 +198,5 @@ export const bundleTemplateLibrary = [
   },
 ].map(template => ({
   ...template,
-  elements: template.rawElements.map(item => [item.id, item.labelEl]),
+  elements: template.rawElements.map(item => [item.id, item.labelEl] as [string, string]),
 }))

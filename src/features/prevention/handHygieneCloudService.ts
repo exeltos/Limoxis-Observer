@@ -7,12 +7,12 @@ import {
 } from './whoHandHygieneStats'
 import { loadHandHygieneLocal, saveHandHygieneLocal } from './preventionStore'
 import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { HandHygieneSession, HandHygieneSessionRow, PreventionDraft, WhoObservation } from './preventionTypes'
 
-function mapSession(row: AnyRecord) {
+function mapSession(row: HandHygieneSessionRow): HandHygieneSession {
   const items = (row.observations_detail || [])
-    .sort((a: AnyRecord, b: AnyRecord) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((x: AnyRecord) => ({
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    .map(x => ({
       id: x.id,
       professionalsCount: x.professionals_count,
       professionalCategory: x.professional_category,
@@ -64,7 +64,7 @@ export function loadHandHygieneDepartments(organizationId: PreventionOrgId) {
   return loadPreventionDepartments(organizationId)
 }
 
-export async function loadHandHygieneSessions(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
+export async function loadHandHygieneSessions(organizationId: PreventionOrgId): Promise<HandHygieneSession[]> {
   if (isDemoDataEnvironment()) return loadHandHygieneLocal()
   assertCloud(organizationId)
   const { data, error } = await cloudClient()
@@ -77,7 +77,7 @@ export async function loadHandHygieneSessions(organizationId: PreventionOrgId): 
   return (data || []).map(mapSession)
 }
 
-export async function saveHandHygieneSession(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
+export async function saveHandHygieneSession(organizationId: PreventionOrgId, record: PreventionDraft<HandHygieneSession>, { existingId = null }: { existingId?: string | null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadHandHygieneLocal()
     const id = existingId || `HH-${Date.now()}`
@@ -94,7 +94,7 @@ export async function saveHandHygieneSession(organizationId: PreventionOrgId, re
     organizationId,
     record.departmentEl || record.session?.department || '',
   )
-  const items: AnyRecord[] = record.whoObservations || []
+  const items: WhoObservation[] = record.whoObservations || []
   if (!items.length) throw new Error('At least one WHO observation is required.')
   if (items.some(item => !normalizeWhoMoments(item).length))
     throw new Error('Each WHO opportunity requires at least one indication.')
@@ -102,7 +102,7 @@ export async function saveHandHygieneSession(organizationId: PreventionOrgId, re
   const payload = {
     organization_id: organizationId as string,
     department_id: department.id,
-    observation_date: record.date || record.session?.date,
+    observation_date: (record.date || record.session?.date) as string,
     professional_category: items[0]?.professionalCategory || null,
     observations: stats.opportunities,
     compliant_observations: stats.compliant,
@@ -151,7 +151,7 @@ export async function saveHandHygieneSession(organizationId: PreventionOrgId, re
       professionals_count: observationWeight(item),
       who_moment: moments[0],
       who_moments: moments,
-      action: item.action,
+      action: item.action as string,
       gloves: Boolean(item.gloves),
       notes: item.notes || null,
       sort_order: index,

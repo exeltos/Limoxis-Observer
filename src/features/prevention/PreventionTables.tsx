@@ -12,16 +12,17 @@ import { wasteCategoryTone, wastePeriodLabel } from './wasteVisuals'
 import type { RegistryTotal } from '../../design-system/RegistryTotals'
 import type { SortState } from '../../design-system/useTableSort'
 import type { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AntisepticRecord, BundleAssessment, HandHygieneSession, PreventionEmployee, PreventionRecord, WasteMeasurement } from './preventionTypes'
+import type { Vaccination } from '../occupational-health/vaccinationService'
 
 // What every tab's table gets from the page: its sorted rows, the sort, the registry memory
 // (highlighted row, scroll) and how to open a record.
-interface PreventionTableProps { sort?: SortState | null; onSort?: (key: string) => void; rows: AnyRecord[]; t: (key: string) => string; language: string; onOpen: (id: string) => void; registry: ReturnType<typeof useRegistryMemory> }
-type DatedTableProps = PreventionTableProps & { fmtDate: (value: string) => string }
+interface PreventionTableProps<T extends PreventionRecord = PreventionRecord> { sort?: SortState | null; onSort?: (key: string) => void; rows: T[]; t: (key: string) => string; language: string; onOpen: (id: string) => void; registry: ReturnType<typeof useRegistryMemory> }
+type DatedTableProps<T extends PreventionRecord> = PreventionTableProps<T> & { fmtDate: (value: string | null | undefined) => string }
 // The vaccinations open from the row itself, with its employee.
-type VaccinationTableProps = Omit<DatedTableProps, 'onOpen'> & { employeeMap: Record<string, AnyRecord>; onOpen: (row: AnyRecord) => void }
+type VaccinationTableProps = Omit<DatedTableProps<Vaccination>, 'onOpen'> & { employeeMap: Record<string, PreventionEmployee>; onOpen: (row: Vaccination) => void }
 // The rows of the tabs with key figures, as the page loaded them.
-interface KpiSource { rows: AnyRecord[]; loading?: boolean }
+interface KpiSource<T> { rows: T[]; loading?: boolean }
 
 // Numbers in the user's language (79,1% in Greek) and the antiseptic month
 // as MM/YYYY instead of the stored YYYY-MM.
@@ -30,7 +31,7 @@ const fmtNumber = (value: unknown, language: string) =>
     Number(value),
   )
 // Every prevention date as dd/mm/yyyy (two-digit day and month), like the other registries.
-export const dayLabel = (value: string, language: string) => {
+export const dayLabel = (value: string | null | undefined, language: string) => {
   const text = String(value || '').slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return formatDay(value, language)
   return new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${text}T12:00:00`))
@@ -45,7 +46,7 @@ export const tabIcons: Record<string, typeof ShieldCheck> = {
 }
 // The key figures of the open tab, with their period and target (preventionKpis.js): one line of totals beside the
 // search (owner, 8/11/2026: no cards); the period and the target are in the tooltip.
-export function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }: { tab: string; language: string; hand: KpiSource; waste: KpiSource; antiseptic: KpiSource; bundle: KpiSource }) {
+export function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }: { tab: string; language: string; hand: KpiSource<HandHygieneSession>; waste: KpiSource<WasteMeasurement>; antiseptic: KpiSource<AntisepticRecord>; bundle: KpiSource<BundleAssessment> }) {
   const en = language === 'en'
   const tr = (key: string, values: Record<string, string | number> = {}) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, String(value)), translate(`preventionKpis.${key}`, language))
   const fmt = (value: number | null | undefined) => (value == null ? null : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value))
@@ -118,7 +119,7 @@ function rowPropsWithOpen(registry: PreventionTableProps['registry'], id: string
   const rp = registry.rowProps(id)
   return { ...rp, className: `${rp.className} clickable-row`, onClick: () => onOpen(id) }
 }
-export function HandTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }: DatedTableProps) {
+export function HandTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }: DatedTableProps<HandHygieneSession>) {
   return (
     <RegistryTable
       bare
@@ -157,7 +158,7 @@ export function HandTable({ sort, onSort, rows, t, language, fmtDate, onOpen, re
     />
   )
 }
-export function WasteTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }: DatedTableProps) {
+export function WasteTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }: DatedTableProps<WasteMeasurement>) {
   return (
     <RegistryTable
       bare
@@ -209,7 +210,7 @@ export function WasteTable({ sort, onSort, rows, t, language, fmtDate, onOpen, r
 // The usual source (direct measurement) is not repeated on every row: the column appears only
 // when some record has another one.
 const DEFAULT_SOURCE = 'direct_measurement'
-export function AntisepticTable({ sort, onSort, rows, t, language, onOpen, registry }: PreventionTableProps) {
+export function AntisepticTable({ sort, onSort, rows, t, language, onOpen, registry }: PreventionTableProps<AntisepticRecord>) {
   const showSource = rows.some(x => x.method !== DEFAULT_SOURCE)
   return (
     <RegistryTable
@@ -267,7 +268,7 @@ export function AntisepticTable({ sort, onSort, rows, t, language, onOpen, regis
     />
   )
 }
-export function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }: PreventionTableProps) {
+export function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }: PreventionTableProps<BundleAssessment>) {
   return (
     <RegistryTable
       bare
@@ -320,7 +321,7 @@ export function BundleTable({ sort, onSort, rows, t, language, onOpen, registry 
   )
 }
 export function VaccinationTable({ sort, onSort, rows, t, language, fmtDate, employeeMap, onOpen, registry }: VaccinationTableProps) {
-  const name = (e: AnyRecord | undefined) =>
+  const name = (e: PreventionEmployee | undefined) =>
     !e
       ? '—'
       : language === 'el'

@@ -2,8 +2,8 @@ import { useMemo } from 'react'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useDepartments, useLibraries } from '../management/useLibraries'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { PreventionDepartment } from './preventionCloud'
+import type { LibraryDepartment, LibraryItem } from '../management/useLibraries'
 
 // The shared pieces of the Prevention editors: the department pick and the
 // lists (waste categories, antiseptics, vaccines) read from the central
@@ -20,7 +20,7 @@ export function selectTexts(en: boolean, { clear = false }: { clear?: boolean } 
 // department's Greek name, so a name the library no longer has stays shown.
 export function usePreventionDepartments(fallback: PreventionDepartment[] = [], current = ''): PreventionDepartment[] {
   // The central departments (useLibraries, JavaScript): {id, name, nameEn}.
-  const departments: AnyRecord[] = useDepartments().departments
+  const departments: LibraryDepartment[] = useDepartments().departments
   return useMemo(() => {
     const known = new Map(fallback.map(item => [item.el, item]))
     const rows = departments.length ? departments.map(dep => ({ ...known.get(dep.name), id: known.get(dep.name)?.id || dep.id, el: dep.name, en: dep.nameEn || known.get(dep.name)?.en || dep.name })) : fallback
@@ -43,9 +43,10 @@ export function PreventionDepartmentField({ label, value, onChange, departments 
 // already loaded (the cloud rows with their ids and metadata, or the demo's own
 // list) keep their id, so stored records still match; the local list is used
 // only while the library is empty.
-export function usePreventionLibrary(key: string, fallback: AnyRecord[] = []): AnyRecord[] {
+export interface PreventionLibraryItem { id: string, code?: string | null, el: string, en?: string | null, metadata?: unknown }
+export function usePreventionLibrary(key: string, fallback: PreventionLibraryItem[] = []): PreventionLibraryItem[] {
   const { libraries } = useLibraries()
-  const central: AnyRecord[] | undefined = (libraries as Record<string, AnyRecord[]> | undefined)?.[key]
+  const central: LibraryItem[] | undefined = (libraries as Record<string, LibraryItem[]> | undefined)?.[key]
   return useMemo(() => {
     if (!central?.length) return fallback
     return central.map(item => {
