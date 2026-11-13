@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { FileSignature,Mail } from 'lucide-react'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { EMAIL_PATTERN } from './committeeExternalApprovalService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ExternalApprover, ExternalApproverChoice } from './committeeTypes'
 
 // Before the minutes go for approval: each present voting member without an
 // account approves through a personal e-mail link or has signed on paper.
-export function ExternalApproversDialog({approvers,busy,en,onClose,onSubmit}: {approvers: AnyRecord[],busy: boolean,en: boolean,onClose: ()=>void,onSubmit: (choices: AnyRecord[])=>unknown}){
-  const [choices,setChoices]=useState<AnyRecord[]>(()=>approvers.map(a=>({...a,method:a.email?'email':'paper',email:a.email||''})))
-  const set=(memberId: string,patch: AnyRecord)=>setChoices(rows=>rows.map(r=>r.memberId===memberId?{...r,...patch}:r))
+export function ExternalApproversDialog({approvers,busy,en,onClose,onSubmit}: {approvers: ExternalApprover[],busy: boolean,en: boolean,onClose: ()=>void,onSubmit: (choices: ExternalApproverChoice[])=>unknown}){
+  const [choices,setChoices]=useState<ExternalApproverChoice[]>(()=>approvers.map(a=>({...a,method:a.email?'email':'paper',email:a.email||''})))
+  const set=(memberId: string,patch: Partial<ExternalApproverChoice>)=>setChoices(rows=>rows.map(r=>r.memberId===memberId?{...r,...patch}:r))
   const invalid=choices.some(c=>c.method==='email'&&!EMAIL_PATTERN.test(c.email.trim()))
   const emailCount=choices.filter(c=>c.method==='email').length,paperCount=choices.length-emailCount
   return <ObserverDialog className="external-approvers-dialog" width="wide" eyebrow={en?'Minutes approval':'Έγκριση πρακτικών'} title={en?'Members without an account':'Μέλη χωρίς λογαριασμό'}

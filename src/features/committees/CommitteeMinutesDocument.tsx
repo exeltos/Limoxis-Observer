@@ -1,6 +1,6 @@
 import { compositionLabel, controlTeamName, fmtDate, statusLabel } from './committeeRecordFormat'
 import type { ReportDoc } from '../../core/export/reportDocument'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CommitteeApproval, CommitteeAttendance, CommitteeMeeting, CommitteeTopic } from './committeeTypes'
 
 const ATTENDANCE: Record<string, string[]> = {
   present: ['Παρών/ούσα', 'Present'],
@@ -17,12 +17,12 @@ const APPROVAL: Record<string, string[]> = {
 // The minutes as a document on the shared layout (printReport / downloadReportWord):
 // the committee, the meeting, who attended, each topic with its decision, the
 // notes, the approvals and a signature line for the chair and the secretary.
-export function committeeMinutesReport({ committeeName = '', minutes, en }: { committeeName?: string, minutes: AnyRecord, en: boolean }): ReportDoc {
+export function committeeMinutesReport({ committeeName = '', minutes, en }: { committeeName?: string, minutes: Partial<CommitteeMeeting>, en: boolean }): ReportDoc {
   const L = (el: string, enText: string) => (en ? enText : el)
   const pick = (map: Record<string, string[]>, key: string) => (map[key] || [key, key])[en ? 1 : 0]
-  const attendance: AnyRecord[] = (minutes.attendanceRecords || []).filter((x: AnyRecord) => x.name)
-  const topics: AnyRecord[] = (minutes.topics || []).filter((t: AnyRecord) => t.subject || t.decision)
-  const approvals: AnyRecord[] = (minutes.approvals || []).filter((x: AnyRecord) => x.status !== 'cancelled')
+  const attendance: CommitteeAttendance[] = (minutes.attendanceRecords || []).filter(x => x.name)
+  const topics: CommitteeTopic[] = (minutes.topics || []).filter(t => t.subject || t.decision)
+  const approvals: CommitteeApproval[] = (minutes.approvals || []).filter(x => x.status !== 'cancelled')
   const team = minutes.composition === 'control_team'
   const time =
     minutes.time ||
@@ -47,7 +47,7 @@ export function committeeMinutesReport({ committeeName = '', minutes, en }: { co
       [L('Ημερομηνία', 'Date'), [fmtDate(minutes.date), time].filter(Boolean).join(' · ')],
       [L('Χώρος', 'Location'), minutes.location || '—'],
       [L('Σύνθεση', 'Who met'), compositionLabel(team ? 'control_team' : 'plenary', controlTeamName(committeeName, en), en)],
-      [L('Κατάσταση', 'Status'), statusLabel(minutes.status, en)],
+      [L('Κατάσταση', 'Status'), statusLabel(minutes.status as string, en)],
     ],
     sections: [
       {

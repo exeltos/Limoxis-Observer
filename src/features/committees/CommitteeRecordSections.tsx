@@ -23,20 +23,20 @@ import {
 } from './committeeRecordFormat'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { memberBadgeRoles, memberRoleLabel, sortMembersByRole } from './committeeMemberRoles'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Committee, CommitteeDecision, CommitteeHistoryEntry, CommitteeMeeting, CommitteeMember, CommitteePlanItem } from './committeeTypes'
 
 // The rows of a tab and what its buttons do.
-interface ListProps {
-  rows: AnyRecord[]
+interface ListProps<T> {
+  rows: T[]
   canManage?: boolean
   onAdd: () => void
-  onEdit: (row: AnyRecord) => void
+  onEdit: (row: T) => void
   en: boolean
 }
 
 // Tab sections of the committee record page (CommitteeRecordPage.jsx).
 // The mandate is often one long text with «•» between its points: one line per point.
-export function mandateList(text: string) {
+export function mandateList(text: string | undefined) {
   const points = String(text || '').split(/\s*[•▪]\s*|\n+/).map(point => point.trim()).filter(Boolean)
   if (points.length < 2) return text
   return <ul className="committee-mandate-list">{points.map((point, index) => <li key={index}>{point}</li>)}</ul>
@@ -54,10 +54,10 @@ export function Head({ title, subtitle, action }: { title: ReactNode, subtitle?:
   )
 }
 
-export function Overview({ record, members, en }: { record: AnyRecord, members: AnyRecord[], en: boolean }) {
+export function Overview({ record, members, en }: { record: Committee, members: CommitteeMember[], en: boolean }) {
   const meetings = record.meetings || []
   const next = [...meetings]
-    .filter(x => x.date >= todayIso() && !['finalized', 'cancelled'].includes(x.status))
+    .filter(x => (x.date ?? '') >= todayIso() && !['finalized', 'cancelled'].includes(x.status))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))[0]
   const checks = [
     {
@@ -133,7 +133,7 @@ export function Overview({ record, members, en }: { record: AnyRecord, members: 
   )
 }
 
-export function Members({ inactiveCodes, rows, canManage, onAdd, onEdit, onEnd, en, teamShort = '' }: ListProps & { inactiveCodes?: Set<string>, onEnd: (row: AnyRecord) => void, teamShort?: string }) {
+export function Members({ inactiveCodes, rows, canManage, onAdd, onEdit, onEnd, en, teamShort = '' }: ListProps<CommitteeMember> & { inactiveCodes?: Set<string>, onEnd: (row: CommitteeMember) => void, teamShort?: string }) {
   // Former members stay on record (attendance history points at them) but are
   // hidden from the list unless asked for.
   const [showFormer, setShowFormer] = useState(false)
@@ -267,7 +267,7 @@ export function Members({ inactiveCodes, rows, canManage, onAdd, onEdit, onEnd, 
   )
 }
 
-export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, en, teamName = '' }: { rows: AnyRecord[], canCreate: boolean, canCancel: boolean, onAdd: () => void, onOpen: (row: AnyRecord) => void, onCancel: (row: AnyRecord) => void, en: boolean, teamName?: string }) {
+export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, en, teamName = '' }: { rows: CommitteeMeeting[], canCreate: boolean, canCancel: boolean, onAdd: () => void, onOpen: (row: CommitteeMeeting) => void, onCancel: (row: CommitteeMeeting) => void, en: boolean, teamName?: string }) {
   return (
     <section className="record-section">
       <Head
@@ -379,7 +379,7 @@ export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, 
   )
 }
 
-export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }: ListProps & { onStatus: (row: AnyRecord, status: string) => void }) {
+export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }: ListProps<CommitteeDecision> & { onStatus: (row: CommitteeDecision, status: string) => void }) {
   return (
     <section className="record-section committee-decisions">
       <Head
@@ -479,7 +479,7 @@ export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }: List
   )
 }
 
-export function Plan({ rows, canManage, onAdd, onEdit, onDelete, en }: ListProps & { onDelete: (row: AnyRecord) => void }) {
+export function Plan({ rows, canManage, onAdd, onEdit, onDelete, en }: ListProps<CommitteePlanItem> & { onDelete: (row: CommitteePlanItem) => void }) {
   return (
     <section className="record-section">
       <Head
@@ -564,7 +564,7 @@ export function Plan({ rows, canManage, onAdd, onEdit, onDelete, en }: ListProps
   )
 }
 
-export function History({ rows, en }: { rows: AnyRecord[], en: boolean }) {
+export function History({ rows, en }: { rows: CommitteeHistoryEntry[], en: boolean }) {
   return (
     <section className="record-section">
       <Head title={en ? 'Committee history' : 'Ιστορικό επιτροπής'} />

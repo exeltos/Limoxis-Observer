@@ -104,7 +104,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     severeOpenIncidents: s.dashboard?.severeOpenIncidents ?? 0,
     overdueCapa: capas.filter((row: Capa) => isOpen(row.status) && row.dueDate && row.dueDate < today)
       .length,
-    upcomingMeetings: meetings.filter(row => row.date >= today && row.status !== 'cancelled')
+    upcomingMeetings: meetings.filter(row => (row.date ?? '') >= today && row.status !== 'cancelled')
       .length,
     pendingMinutes: meetings.filter(
       row => row.date && row.date <= today && !row.finalizedAt && row.status !== 'cancelled',

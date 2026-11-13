@@ -14,7 +14,7 @@ import { loadCommittees,nextCommitteeId,saveCommittees } from './committeeData'
 import { createCommitteeAsync,getNextCommitteeCodeAsync } from './committeeService'
 import { IPC_COMMITTEE_CATALOG,ipcCommitteeById } from './ipcCommitteeCatalog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Committee } from './committeeTypes'
 
 const frequencies=[['monthly','Μηνιαία','Monthly'],['bimonthly','Ανά δίμηνο','Every two months'],['quarterly','Τριμηνιαία','Quarterly'],['semiannual','Εξαμηνιαία','Semiannual'],['annual','Ετήσια','Annual'],['as_needed','Όποτε απαιτείται','As needed']]
 
@@ -30,7 +30,7 @@ export function CommitteeCreatePage(){
   try{
    const rows=loadCommittees(),id=(await getNextCommitteeCodeAsync(tenant?.id??null))||nextCommitteeId(rows),now=new Date().toISOString()
    const localRecord={id,name:draft.name.trim(),shortName:draft.shortName.trim(),status:'active',templateId:draft.templateId,structureKind:template.kind,isCoreCommittee:template.core,committeeRole:draft.committeeRole.trim(),mandate:draft.mandate.trim(),legalBasis:draft.legalBasis.trim(),officialRelation:template.relation,roleGuidance:template.roleGuidance||[],requiredFunctions:template.requiredFunctions,decisionNumber:draft.decisionNumber.trim(),termStart:draft.termStart,termEnd:draft.termEnd,meetingFrequency:draft.meetingFrequency,quorumRule:draft.quorumRule,notes:draft.notes.trim(),chair:'',secretary:'',memberRefs:[],members:[],meetings:[],decisions:[],annualPlan:[],documents:[],createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Δημιουργία',reason:draft.name.trim()}]}
-   let record: AnyRecord=localRecord
+   let record: Pick<Committee,'id'>=localRecord
    const cloud=await createCommitteeAsync(tenant?.id??null,localRecord)
    if(cloud)record=cloud;else saveCommittees([localRecord,...rows])
    notify(en?'Committee created. Continue with members and governance details.':'Η επιτροπή δημιουργήθηκε. Συνεχίστε με μέλη και στοιχεία διακυβέρνησης.','success')

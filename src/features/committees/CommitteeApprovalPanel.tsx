@@ -3,18 +3,18 @@ import { CheckCircle2,Clock3,FileSignature,Mail,MessageSquareWarning,Send,UserCh
 import { Button } from '../../design-system/Button'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CommitteeApproval } from './committeeTypes'
 
 const statusText=(status: string,en: boolean)=>({pending:en?'Pending':'Εκκρεμεί',approved:en?'Approved':'Εγκρίθηκε',rejected:en?'Changes requested':'Ζητήθηκαν διορθώσεις',cancelled:en?'Superseded':'Αντικαταστάθηκε'} as Record<string,string>)[status]||status
 const fmt=(value: string|null|undefined,en: boolean)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR'):'—'
 // How the member approves: inside the platform, by e-mail link, or on paper.
-function Method({item,en}: {item: AnyRecord,en: boolean}){
+function Method({item,en}: {item: CommitteeApproval,en: boolean}){
   if(item.method==='paper')return <span className="committee-approval-method"><span><FileSignature size={13}/>{en?'On paper':'Σε χαρτί'}</span></span>
   if(item.method==='email')return <span className="committee-approval-method"><span><Mail size={13}/>{en?'E-mail link':'Email'}</span><small>{item.email}</small></span>
   return <span className="committee-approval-method"><span><UserCheck size={13}/>{en?'Account':'Λογαριασμός'}</span></span>
 }
 
-export function CommitteeApprovalPanel({approvals=[],actorId,busy=false,canManage=false,onApprove,onRequestChanges,onExternalAction,en=false}: {approvals?: AnyRecord[],actorId?: string|null,busy?: boolean,canManage?: boolean,onApprove: (id: string)=>unknown,onRequestChanges: (id: string,comment: string)=>unknown,onExternalAction?: (id: string,action: string)=>unknown,en?: boolean}){
+export function CommitteeApprovalPanel({approvals=[],actorId,busy=false,canManage=false,onApprove,onRequestChanges,onExternalAction,en=false}: {approvals?: CommitteeApproval[],actorId?: string|null,busy?: boolean,canManage?: boolean,onApprove: (id: string)=>unknown,onRequestChanges: (id: string,comment: string)=>unknown,onExternalAction?: (id: string,action: string)=>unknown,en?: boolean}){
   const [changesOpen,setChangesOpen]=useState(false)
   const [comment,setComment]=useState('')
   const mine=useMemo(()=>approvals.find(x=>x.approverId===actorId&&x.status==='pending')||null,[approvals,actorId])
