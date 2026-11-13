@@ -20,14 +20,17 @@ import { SampleRequestDialog } from './ClinicalRecordDialogs'
 import { statusTone } from './surveillanceOptions'
 import { SurveillanceEpisodeSheet, type EpisodeEditDraft, type SheetAction } from './SurveillanceEpisodeSheet'
 import { SampleTree } from './SurveillanceSampleTree'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ClinicalCase, EpisodeSample } from './clinicalTypes'
+import type { ClinicalLibraries, ClinicalPermissions, ClinicalRecordRepository, DeviceBundles, NewSampleDraft, OpenProtocolRun, ProtocolRequest, RecordSample } from './clinicalScreenTypes'
 import type { Handler } from './surveillanceTypes'
+
+// `as string` below: an optional text of a record handed to a helper typed for text (t, statusTone, epiSummary), which reads a missing one as before.
 
 interface SurveillanceWorkspaceProps {
   initialStage?: string | null
-  samples?: AnyRecord[]
-  episodes: AnyRecord[]
-  selectedId: string
+  samples?: RecordSample[]
+  episodes: ClinicalCase[]
+  selectedId?: string
   onSelect: Handler
   onCreate: Handler
   onCreateFromSample: Handler
@@ -38,20 +41,20 @@ interface SurveillanceWorkspaceProps {
   onRemoveSample?: Handler
   askSampleFor?: string | null
   onSampleAsked: Handler
-  repository: AnyRecord
+  repository: ClinicalRecordRepository
   onReload: Handler
   onEpisodeDeleted: Handler
   t: (key: string) => string
   language: string
   fmtDate: (value: unknown) => string
   fmtDateTime: (value: unknown) => string
-  libraries?: AnyRecord
+  libraries?: ClinicalLibraries
   organizationId: string | null | undefined
   isDemo: boolean
   onLibraryAdded: Handler
-  permissions: AnyRecord
-  protocolRequest?: AnyRecord | null
-  deviceBundles?: AnyRecord | null
+  permissions: ClinicalPermissions
+  protocolRequest?: ProtocolRequest | null
+  deviceBundles?: DeviceBundles | null
 }
 // Surveillance workspace of the clinical record: the episode tree and its samples.
 export function SurveillanceWorkspace({
@@ -87,11 +90,11 @@ export function SurveillanceWorkspace({
 }: SurveillanceWorkspaceProps) {
   const { notify } = useFeedback()
   // N3: "Start protocol" (header or a qSOFA / SOFA prompt) and the open protocols for the badges.
-  const [startRequest, setStartRequest] = useState<AnyRecord | null>(null),
-    [openRuns, setOpenRuns] = useState<AnyRecord[]>([])
+  const [startRequest, setStartRequest] = useState<ProtocolRequest | null>(null),
+    [openRuns, setOpenRuns] = useState<OpenProtocolRun[]>([])
   const [sampleOpen, setSampleOpen] = useState(false),
-    [samplePrompt, setSamplePrompt] = useState<AnyRecord | null>(null),
-    [followUpParent, setFollowUpParent] = useState<AnyRecord | null>(null),
+    [samplePrompt, setSamplePrompt] = useState<RecordSample | null>(null),
+    [followUpParent, setFollowUpParent] = useState<RecordSample | null>(null),
     [detailId, setDetailId] = useState('')
   const [deleteOpen, setDeleteOpen] = useState(false),
     [deleteReason, setDeleteReason] = useState('')
@@ -105,7 +108,7 @@ export function SurveillanceWorkspace({
       suspectedSource: '',
     })
   const deleteItem = useRecordDelete()
-  const sampleMenu = (sample: AnyRecord) =>
+  const sampleMenu = (sample: RecordSample) =>
     [
       onOpenSample && {
         id: 'edit',
@@ -128,7 +131,7 @@ export function SurveillanceWorkspace({
     [sheetAction, setSheetAction] = useState<SheetAction | null>(null)
   useEffect(() => setSheetEditing(false), [detailId])
   const sheetActive = detailRecord?.status === 'active'
-  const canEditSheet = sheetActive && ['canAssess', 'canLab', 'canIsolation', 'canTherapy', 'canReassess', 'canOutcome'].some(key => permissions?.[key])
+  const canEditSheet = sheetActive && (['canAssess', 'canLab', 'canIsolation', 'canTherapy', 'canReassess', 'canOutcome'] as const).some(key => permissions?.[key])
   const askSheet = (stage: string, dialog: string) => {
     setSheetEditing(true)
     setSheetAction({ stage, dialog, nonce: Date.now() })
@@ -157,9 +160,9 @@ export function SurveillanceWorkspace({
     setDetailId(protocolRequest.episodeId)
     setStartRequest(protocolRequest)
   }, [protocolRequest])
-  const openRunFor = (ep: AnyRecord) =>
+  const openRunFor = (ep: ClinicalCase) =>
     openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id) || String(run.caseId) === String(ep.id))
-  async function saveSample(draft: AnyRecord) {
+  async function saveSample(draft: NewSampleDraft) {
     if (!onCreateSample) return
     const parent = followUpParent
     const siblings = parent
@@ -274,10 +277,10 @@ export function SurveillanceWorkspace({
           const listedIds = new Set(listed.map(x => String(x.id || '')))
           const linked = [
             ...listed,
-            ...(ep.samples || []).filter((x: AnyRecord) => !listedIds.has(String(x.id || ''))),
+            ...(ep.samples || []).filter((x: EpisodeSample) => !listedIds.has(String(x.id || ''))),
           ]
           const organism =
-            ep.samples?.find((x: AnyRecord) => x.organism)?.organism ||
+            ep.samples?.find((x: EpisodeSample) => x.organism)?.organism ||
             linked.find(x => x.organism)?.organism ||
             ''
           const resistance = ep.resistance || linked.find(x => x.resistance)?.resistance || ''
@@ -299,7 +302,7 @@ export function SurveillanceWorkspace({
                           language === 'el' ? 'el' : 'en',
                         )}
                     </strong>
-                    <StatusBadge tone={statusTone(ep.status)}>{t(ep.status)}</StatusBadge>
+                    <StatusBadge tone={statusTone(ep.status as string)}>{t(ep.status as string)}</StatusBadge>
                     <ProtocolBadge entry={openRunFor(ep)} t={t} language={language} />
                   </span>
                   <small>
@@ -334,7 +337,7 @@ export function SurveillanceWorkspace({
                     epiIndex.ready &&
                     epiIndex.rows[ep.recordId || ep.id] && (
                       <small className="epi-row-line">
-                        {rowLine(epiSummary({ row: epiIndex.rows[ep.recordId || ep.id], record: ep, admissionDate: ep.admissionDate, samples: linked }), t)}
+                        {rowLine(epiSummary({ row: epiIndex.rows[ep.recordId || ep.id], record: ep, admissionDate: ep.admissionDate as string, samples: linked }), t)}
                       </small>
                     )
                   )}
@@ -399,7 +402,7 @@ export function SurveillanceWorkspace({
                   ) === String(ep.id) ||
                   (Boolean(sample.surveillanceCase) &&
                     String(sample.surveillanceCase) === String(ep.recordId || '')) ||
-                  (ep.samples || []).some((x: AnyRecord) => x.id && String(x.id) === String(sample.id)),
+                  (ep.samples || []).some((x: EpisodeSample) => x.id && String(x.id) === String(sample.id)),
               ),
           )
           return unlinked.length ? (

@@ -1,7 +1,7 @@
 import { clinicalCases } from './clinicalDemoData'
 import { deviceRuleKey } from '../lira/liraHaiMetrics'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { ClinicalCase, HaiClassification } from './clinicalTypes'
+import type { ClinicalCase, ClinicalDevice, HaiClassification } from './clinicalTypes'
+import type { DeviceDaySources } from './surveillanceListTypes'
 
 // clinicalDemoData stores hai classification types as descriptive keys
 // (bloodstreamInfection/urinaryTractInfection/ventilatorAssociatedPneumonia)
@@ -29,7 +29,7 @@ export function birthWeightBandId(grams: unknown) {
   return BIRTH_WEIGHT_BANDS.find(band => (band.min == null || value >= band.min) && (band.max == null || value <= band.max))?.id || null
 }
 
-function canonicalDeviceType(device: AnyRecord) {
+function canonicalDeviceType(device: ClinicalDevice) {
   const text = `${device?.nameEn || device?.name || ''} ${device?.indicationEn || device?.indication || ''}`.toLowerCase()
   if (text.includes('central') && (text.includes('venous') || text.includes('line'))) return 'central line'
   if (text.includes('urinary') || text.includes('foley')) return 'urinary catheter'
@@ -63,7 +63,7 @@ const DEMO_DEVICE_CENSUS = [
 // using the same NHSN-style logic LIRA already relies on internally.
 export function collectDeviceDaySources() {
   const cases = Object.values(clinicalCases)
-  const devices = cases.flatMap(item => (item.devices || []).map((device: AnyRecord) => ({
+  const devices = cases.flatMap(item => (item.devices || []).map((device: ClinicalDevice) => ({
     deviceType: canonicalDeviceType(device),
     insertedAt: device.insertedAt,
     removedAt: device.removedAt || null,
@@ -85,7 +85,7 @@ export function collectDeviceDaySources() {
 // rates in the NICU can be stratified the way NHSN requires instead of
 // being pooled with the rest of the hospital's device-day sources.
 export function collectNeonatalDeviceDaySourcesByBand() {
-  const byBand: Record<string, { devices: AnyRecord[], haiClassifications: AnyRecord[] }> = Object.fromEntries(BIRTH_WEIGHT_BANDS.map(band => [band.id, { devices: [], haiClassifications: [] }]))
+  const byBand: Record<string, DeviceDaySources> = Object.fromEntries(BIRTH_WEIGHT_BANDS.map(band => [band.id, { devices: [], haiClassifications: [] }]))
   for (const item of Object.values(clinicalCases)) {
     if (!item.birthWeightGrams) continue
     const bandId = birthWeightBandId(item.birthWeightGrams)
@@ -117,6 +117,6 @@ export function countNeonatalCentralLineCasesMissingBirthWeight(cases = Object.v
     const birth = new Date(`${item.dateOfBirth}T12:00:00`)
     if (Number.isNaN(start.getTime()) || Number.isNaN(birth.getTime())) return false
     const ageDays = Math.floor((start.getTime() - birth.getTime()) / 86400000)
-    return ageDays >= 0 && ageDays <= 365 && (item.devices || []).some((device: AnyRecord) => canonicalDeviceType(device) === 'central line')
+    return ageDays >= 0 && ageDays <= 365 && (item.devices || []).some((device: ClinicalDevice) => canonicalDeviceType(device) === 'central line')
   }).length
 }

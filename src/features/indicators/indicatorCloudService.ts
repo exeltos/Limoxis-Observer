@@ -3,7 +3,7 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadAccessDddTotal } from '../pharmacy/pharmacyCloudService'
 import { collectIndicatorMetrics } from './indicatorEngine'
 import { loadIndicatorDefinitionsLocal, loadIndicatorSnapshotsLocal, saveIndicatorSnapshotsLocal } from './indicatorStore'
-import type { CalculatedIndicator, IndicatorDefinitionRow, IndicatorSnapshotRow, IndicatorTextDefinition, OperationalIndicator } from './indicatorTypes'
+import type { CalculatedIndicatorOf, IndicatorCalculationInput, IndicatorDefinitionRow, IndicatorSnapshotRow, IndicatorTextDefinition, OperationalIndicator } from './indicatorTypes'
 
 export interface IndicatorPeriod { from?: string | null, to?: string | null, departmentId?: string | null }
 // The metric values of a period, by metric key (get_indicator_metric_snapshot or the demo engine).
@@ -83,8 +83,8 @@ const NOT_MEASURED_WHEN_ZERO=new Set(['abhr_litres','antibiotic_ddd_total','awar
 // count is 0) means «not measured», not «none happened». The source's count is a metric of the same snapshot; when the snapshot does not
 // report it (the demo), nothing is withheld.
 const SOURCE_METRIC=(key: string|null|undefined)=>/^(bacteremia_|mdr_isolation_|mdro_bsi)/.test(key||'')?'microbiology_results_in_period':key==='audit_major_findings'?'audit_answers_applicable':null
-export function calculateCloudDefinition(def: OperationalIndicator,metrics: IndicatorMetrics): CalculatedIndicator{
- const numerator=metricValue(metrics,def.numerator),denominator=def.denominator?metricValue(metrics,def.denominator):null
+export function calculateCloudDefinition<T extends IndicatorCalculationInput>(def: T,metrics: IndicatorMetrics): CalculatedIndicatorOf<T>{
+ const numerator=metricValue(metrics,def.numerator) as number|null,denominator=def.denominator?metricValue(metrics,def.denominator) as number|null:null
  let value: number|null=null
  if(def.calculation==='manual')value=Number.isFinite(Number(def.manualValue))?Number(def.manualValue):null
  // No value is not zero: a numerator the source never reported (or a quantity that reads 0 because nothing is recorded) means «not measured», never a result that meets the target.

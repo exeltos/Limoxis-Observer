@@ -11,7 +11,7 @@ import { TimeField } from '../../design-system/TimeField'
 import { translate } from '../../core/i18n/LanguageContext'
 import { hospitalDay } from './patientRecordScope'
 import { hospitalNow } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { RecordAdmission, RecordPatient } from './clinicalScreenTypes'
 import type { Handler } from './surveillanceTypes'
 
 // «Εξιτήριο ασθενούς»: never saved by one click. Step 1 asks when and why,
@@ -32,7 +32,7 @@ export { hospitalNow }
 interface DischargeDateIssuesOptions {
   date: string
   time: string
-  admissionDate: string
+  admissionDate: string | null | undefined
   now?: { date: string, time: string }
 }
 // What keeps a discharge from being recorded: no date in the future (nor a time later
@@ -58,8 +58,8 @@ export function dischargeReasonText({ reason, time, note }: DischargeReasonTextO
 }
 
 interface AdmissionDischargeDialogProps {
-  patient: AnyRecord
-  admission: AnyRecord
+  patient: RecordPatient
+  admission: RecordAdmission
   t: (key: string) => string
   language: string
   fmtDate: (value: unknown) => string

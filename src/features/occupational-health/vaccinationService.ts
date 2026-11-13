@@ -2,7 +2,7 @@ import { binCloudRows,binLocalRow,describeDeleted } from '../../core/recycleBin/
 import { supabase } from '../../core/supabase/client'
 import { cloudClient } from '../../core/supabase/cloudContext'
 import type { Tables } from '../../core/supabase/database.types'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeRow } from './occupationalHealthTypes'
 import { selectAllPages } from '../../core/data/inChunks'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
@@ -50,7 +50,7 @@ export async function loadAllVaccinationsAsync(organizationId: string | null | u
   return data.map(fromRow)
 }
 
-export async function createVaccinationsBulkAsync(organizationId: string | null | undefined,employees: Array<AnyRecord | null | undefined> | null | undefined,draft: VaccinationDraft): Promise<Vaccination[]>{
+export async function createVaccinationsBulkAsync(organizationId: string | null | undefined,employees: Array<EmployeeRow | null | undefined> | null | undefined,draft: VaccinationDraft): Promise<Vaccination[]>{
   const selected=(employees||[]).filter(Boolean)
   if(!selected.length)throw new Error('VACCINATION_EMPLOYEE_REQUIRED')
   if(!draft?.vaccine?.trim())throw new Error('VACCINATION_VACCINE_REQUIRED')
@@ -79,7 +79,7 @@ export async function createVaccinationsBulkAsync(organizationId: string | null 
   if(selected.some(employee=>!employee.dbId))throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employee_vaccinations.create_bulk')
   const payload=selected.map(employee=>({
     organization_id:organizationId as string,
-    employee_id:employee.dbId,
+    employee_id:employee.dbId as string,
     vaccine_label_snapshot:String(draft.vaccine).trim(),
     dose:String(draft.dose||'').trim()||null,
     vaccination_date:draft.date as string,

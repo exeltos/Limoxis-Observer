@@ -9,33 +9,40 @@ import { StagePanel } from './ClinicalRecordViews'
 import { TherapyReviewCard } from './protocols/TherapyReviewCard'
 import { reviewWindow, showsReviewCard } from './protocols/therapyReview'
 import { createTherapyReview } from './protocols/protocolService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AuditActor } from '../../core/audit/actor'
+import type { AntimicrobialTherapy, ClinicalDevice } from './clinicalTypes'
+import type { ClinicalEntry, ClinicalPermissions, ClinicalRecordRepository, DeviceBundles, EpisodeProtocols, JourneyCase, ProtocolOptions, SheetDetailProps, SheetEdit } from './clinicalScreenTypes'
+
+// A device row; older demo devices keep the start as startedAt.
+type DeviceRow = ClinicalDevice & { startedAt?: string | null }
 import type { Handler, Setter } from './surveillanceTypes'
 import type { ComponentType, ReactNode } from 'react'
+// `as string` below: an optional text of a record handed to a helper typed for text (t), which reads a missing one as before.
+// `bundle!`: hasBundle is true only with a bundle.
 
 // What the screen hands to this part (one object, so the part reads like the code it came from).
 export interface JourneyCareStagesScope {
-  actor: AnyRecord | null
+  actor: AuditActor
   deleteItem: Handler | null
-  deviceBundles: AnyRecord | null
+  deviceBundles: DeviceBundles | null
   editing: boolean
   entryDelete: Handler
   fmtDate: (value: unknown) => string
   language: string
   now: Date
   organizationId: string | null | undefined
-  permissions: AnyRecord
-  protocolOptions: AnyRecord
-  protocols: AnyRecord
-  record: AnyRecord
-  repository: AnyRecord
+  permissions: ClinicalPermissions
+  protocolOptions: ProtocolOptions
+  protocols: EpisodeProtocols
+  record: JourneyCase
+  repository: ClinicalRecordRepository
   run: Handler
   runProtocol: Handler
-  setBundleDevice: Setter<AnyRecord | null>
+  setBundleDevice: Setter<ClinicalDevice | null>
   setDialog: Setter<string | null>
-  setEntryDetail: Setter<AnyRecord | null>
-  SheetDetail: ComponentType<{ label: string, value: ReactNode }>
-  sheetEdit: AnyRecord
+  setEntryDetail: Setter<ClinicalEntry | null>
+  SheetDetail: ComponentType<SheetDetailProps>
+  sheetEdit: SheetEdit
   sheetForm: (node: ReactNode) => ReactNode
   stage: string
   stageForms: Record<string, string | null>
@@ -91,7 +98,7 @@ export function JourneyCareStages({ j }: { j: JourneyCareStagesScope }) {
                   ...(deleteItem ? [{ key: 'menu', label: '' }] : []),
                 ]}
                 rows={record.devices}
-                renderRow={x => {
+                renderRow={(x: DeviceRow) => {
                   // The one place a bundle check starts: only a device still in place has one.
                   const bundle = deviceBundles && !x.removedAt && x.status !== 'removed' ? deviceBundles.info(x) : null
                   const hasBundle = Boolean(bundle?.bundleKeys.length)
@@ -107,8 +114,8 @@ export function JourneyCareStages({ j }: { j: JourneyCareStagesScope }) {
                       <td>
                         {hasBundle ? (
                           <>
-                            {bundle.bundleKeys[0]}
-                            <small className="entry-detail-note">{t(`episodeForms.status.${bundle.status}`)}</small>
+                            {bundle!.bundleKeys[0]}
+                            <small className="entry-detail-note">{t(`episodeForms.status.${bundle!.status}`)}</small>
                           </>
                         ) : (
                           '—'
@@ -119,7 +126,7 @@ export function JourneyCareStages({ j }: { j: JourneyCareStagesScope }) {
                       <td className="open-record-cell">
                         {editing && hasBundle && deviceBundles.canCheck && (
                           <Button
-                            variant={bundle.status === 'overdue' ? 'primary' : 'secondary'}
+                            variant={bundle!.status === 'overdue' ? 'primary' : 'secondary'}
                             onClick={() => {
                               // Opens under the device, on the sheet (owner, 8/11/2026).
                               setBundleDevice(x)
@@ -201,7 +208,7 @@ export function JourneyCareStages({ j }: { j: JourneyCareStagesScope }) {
           >
             {record.isolation ? (
               <div className="detail-grid">
-                <SheetDetail label={t('status')} value={t(record.isolation.status)} />
+                <SheetDetail label={t('status')} value={t(record.isolation.status as string)} />
                 <SheetDetail label={t('startDate')} value={fmtDate(record.isolation.startedAt)} />
                 <SheetDetail label={t('reason')} value={record.isolation.reason} />
                 <SheetDetail label={t('room')} value={record.isolation.room} />
@@ -290,7 +297,7 @@ export function JourneyCareStages({ j }: { j: JourneyCareStagesScope }) {
             ) : (
               <div className="inline-empty">{t('clinicalRecords.noTherapyRecorded')}</div>
             )}
-            {(record.therapy || []).map((therapy: AnyRecord) => {
+            {(record.therapy || []).map((therapy: AntimicrobialTherapy) => {
               const window = reviewWindow(therapy, protocols.reviews, now)
               return showsReviewCard(window) ? (
                 <TherapyReviewCard

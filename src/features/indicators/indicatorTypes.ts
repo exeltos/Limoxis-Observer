@@ -115,14 +115,27 @@ export interface OperationalIndicator {
   manualValue?: string
 }
 
-// Ο υπολογισμένος δείκτης (calculateCloudDefinition): numerator/denominator γίνονται αριθμοί.
-export interface CalculatedIndicator extends Omit<OperationalIndicator, 'numerator' | 'denominator'> {
-  numerator: number | null | undefined
-  denominator: number | null | undefined
+// Ό,τι χρειάζεται ο υπολογισμός ενός δείκτη (calculateCloudDefinition): τον δέχονται και
+// οι ορισμοί της Ποιότητας (PlatformIndicatorDef), που έχουν λιγότερα πεδία.
+export interface IndicatorCalculationInput {
+  numerator?: string | null
+  denominator?: string | null
+  multiplier?: number | null
+  calculation: string
+  manualValue?: string | number | null
+  target: number | null
+  direction: string
+}
+// Ο υπολογισμένος δείκτης: numerator/denominator γίνονται αριθμοί (κλειδί που δεν
+// αναφέρθηκε διαβάζεται όπως το null από όλους τους αναγνώστες).
+export type CalculatedIndicatorOf<T extends IndicatorCalculationInput> = Omit<T, 'numerator' | 'denominator'> & {
+  numerator: number | null
+  denominator: number | null
   value: number | null
   status: string
   evidence: string
 }
+export type CalculatedIndicator = CalculatedIndicatorOf<OperationalIndicator>
 
 // Η γραμμή της λίστας δεικτών (υπολογισμένος δείκτης ή δείκτης μητρώου).
 export interface IndicatorRow {

@@ -15,6 +15,8 @@ import { SimpleDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { listTexts, statusTone, suspectedSourceOptions } from './surveillanceOptions'
 import type { AnyRecord } from '../../types/featureTypes'
 import type { Handler, Setter } from './surveillanceTypes'
+import type { ClinicalCase } from './clinicalTypes'
+import type { ClinicalPermissions, ClinicalRecordRepository, DeviceBundles } from './clinicalScreenTypes'
 
 // What the screen hands to this part (one object, so the part reads like the code it came from).
 // The start fields of an episode being corrected.
@@ -39,8 +41,8 @@ export interface SurveillanceEpisodeSheetScope {
   deleteItem: Handler
   deleteOpen: boolean
   deleteReason: string
-  detailRecord: AnyRecord
-  deviceBundles: AnyRecord | null
+  detailRecord: ClinicalCase
+  deviceBundles: DeviceBundles | null
   editBusy: boolean
   editDraft: EpisodeEditDraft
   editOpen: boolean
@@ -55,9 +57,9 @@ export interface SurveillanceEpisodeSheetScope {
   onSampleAsked: Handler
   openEditEpisode: Handler
   organizationId: string | null | undefined
-  permissions: AnyRecord
+  permissions: ClinicalPermissions
   removeEpisode: Handler
-  repository: AnyRecord
+  repository: ClinicalRecordRepository
   saveEpisodeEdit: Handler
   setDeleteOpen: Setter<boolean>
   setDeleteReason: Setter<string>
@@ -128,7 +130,7 @@ export function SurveillanceEpisodeSheet({ j }: { j: SurveillanceEpisodeSheetSco
               </div>
             </div>
             <div className="episode-detail-actions">
-              <StatusBadge tone={statusTone(detailRecord.status)}>{t(detailRecord.status)}</StatusBadge>
+              <StatusBadge tone={statusTone(detailRecord.status as string)}>{t(detailRecord.status as string)}</StatusBadge>
               {sheetEditing && (
                 <Button className="sheet-done" variant="primary" onClick={() => setSheetEditing(false)}>
                   <Check size={15} />

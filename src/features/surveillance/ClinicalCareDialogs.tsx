@@ -23,12 +23,16 @@ import {
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { copy, NEW_ITEM, rowLabel } from './clinicalDialogText'
 import { SimpleDialog } from './ClinicalSimpleDialog'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { HaiCriteriaSets } from './haiCriteriaDefinitions'
+import type { ClinicalLibraryRow, OutcomeDraft } from './clinicalTypes'
+import type { HaiCriteriaGroup, HaiForm, IsolationForm, ReassessmentForm } from './clinicalScreenTypes'
+// The source and version of a definition are texts in the library row's free-form meta (`as string | undefined`).
+// `criteriaKey!`: a criteria set is found only for a key; `row!`: criteriaKeyOf reads a missing row as no key.
 import type { Handler, Setter } from './surveillanceTypes'
 
 interface HaiDialogProps {
   t: (key: string) => string
-  items?: AnyRecord[]
+  items?: ClinicalLibraryRow[]
   patientAgeDays?: number | null
   organizationId: string | null | undefined
   isDemo: boolean
@@ -48,7 +52,7 @@ export function HaiDialog({
 }: HaiDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
-  const [criteriaSets, setCriteriaSets] = useState<AnyRecord | null>(null)
+  const [criteriaSets, setCriteriaSets] = useState<HaiCriteriaSets | null>(null)
   useEffect(() => {
     let alive = true
     loadHaiCriteriaSets(organizationId)
@@ -99,11 +103,11 @@ export function HaiDialog({
     : staticDefaults
   const options = orderCriteriaForAge(withCriteriaKeys(items, defaults), ageDays)
   const first = options[0]
-  const [d, setD] = useState<AnyRecord>({
+  const [d, setD] = useState<HaiForm>({
     status: 'suspected',
     type: rowLabel(first, language),
-    definitionSet: first?.[2]?.source || 'ECDC',
-    definitionVersion: first?.[2]?.version || '',
+    definitionSet: (first?.[2]?.source as string | undefined) || 'ECDC',
+    definitionVersion: (first?.[2]?.version as string | undefined) || '',
     criteriaKey: criteriaKeyOf(first),
     criteriaEvidence: [],
     rationale: '',
@@ -129,9 +133,9 @@ export function HaiDialog({
     setD(x => ({
       ...x,
       type: value,
-      definitionSet: row?.[2]?.source || 'ECDC',
-      definitionVersion: row?.[2]?.version || '',
-      criteriaKey: criteriaKeyOf(row as AnyRecord),
+      definitionSet: (row?.[2]?.source as string | undefined) || 'ECDC',
+      definitionVersion: (row?.[2]?.version as string | undefined) || '',
+      criteriaKey: criteriaKeyOf(row!),
       criteriaEvidence: [],
     }))
   }
@@ -166,7 +170,7 @@ export function HaiDialog({
     ? haiCriteriaSetForType(d.criteriaKey, criteriaSets || undefined)
     : null
   const criteriaMet = criteriaSet
-    ? evaluateHaiCriteria(d.criteriaKey, d.criteriaEvidence, criteriaSets || undefined)
+    ? evaluateHaiCriteria(d.criteriaKey!, d.criteriaEvidence, criteriaSets || undefined)
     : null
   const ageWarning = criteriaAgeWarning(d.criteriaKey, ageDays)
   // A definition saved before the library had it is still listed, so the field shows it.
@@ -234,11 +238,11 @@ export function HaiDialog({
               ? `Απλοποιημένο checklist βάσει ${criteriaSet.source} — ενδεικτικό εργαλείο υποστήριξης, δεν υποκαθιστά την κλινική κρίση.`
               : `Simplified checklist based on ${criteriaSet.source} — an indicative decision-support aid, not a substitute for clinical judgement.`}
           </p>
-          {criteriaSet.groups.map((group: AnyRecord) => (
+          {criteriaSet.groups.map((group: HaiCriteriaGroup) => (
             <ChoiceChips
               key={group.id}
               className="hai-criteria-group"
-              options={group.items.map((item: AnyRecord) => ({
+              options={group.items.map((item: HaiCriteriaGroup['items'][number]) => ({
                 value: item.id,
                 label: language === 'el' ? item.textEl : item.textEn,
               }))}
@@ -264,8 +268,8 @@ export function HaiDialog({
 }
 interface TherapyDialogProps {
   t: (key: string) => string
-  antibiotics?: AnyRecord[]
-  advancedAntibiotics?: AnyRecord[]
+  antibiotics?: ClinicalLibraryRow[]
+  advancedAntibiotics?: ClinicalLibraryRow[]
   onClose?: Handler | null
   onSave: Handler
 }
@@ -370,7 +374,7 @@ interface IsolationDialogProps {
 export function IsolationDialog({ t, onClose, onSave }: IsolationDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
-  const [d, setD] = useState<AnyRecord>({
+  const [d, setD] = useState<IsolationForm>({
     precautions: ['contact'],
     room: '',
     reason: '',
@@ -448,7 +452,7 @@ interface ReassessmentDialogProps {
 export function ReassessmentDialog({ t, onClose, onSave }: ReassessmentDialogProps) {
   const { language } = useLanguage(),
     tr = copy(language)
-  const [d, setD] = useState<AnyRecord>({
+  const [d, setD] = useState<ReassessmentForm>({
     date: hospitalToday(),
     status: 'stable',
     decision: 'continueTreatment',
@@ -493,7 +497,7 @@ interface OutcomeDialogProps {
 }
 export function OutcomeDialog({ t, onClose, onSave }: OutcomeDialogProps) {
   const { language } = useLanguage()
-  const [d, setD] = useState<AnyRecord>({
+  const [d, setD] = useState<Required<OutcomeDraft>>({
     status: 'resolved',
     date: hospitalToday(),
     notes: '',

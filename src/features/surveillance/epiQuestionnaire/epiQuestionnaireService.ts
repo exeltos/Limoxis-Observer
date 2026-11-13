@@ -5,18 +5,21 @@
 import { supabase as configuredClient, type Cloud } from '../../../core/supabase/client'
 import { isEmptyPreview } from '../../../core/preview/emptyPreview'
 import { EPI_ANSWER, EPI_SOURCE, cleanAnswers, coreOnly, epiDefinitionVersion } from './epiQuestionnaireModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { Tables } from '../../../core/supabase/database.types'
+import type { EpiAnswers, EpiQuestionnaire, EpiSetting, EpiSettingPatch } from './epiQuestionnaireTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
 const COLUMNS = 'id,surveillance_case_id,definition_version,answers,prefilled,core_complete,answered_by,answered_at,updated_by,updated_at'
-const mapRow = (row: AnyRecord) => ({
+type QuestionnaireRow = Pick<Tables<'surveillance_case_questionnaires'>, 'id' | 'surveillance_case_id' | 'definition_version' | 'answers' | 'prefilled' | 'core_complete' | 'answered_by' | 'answered_at' | 'updated_by' | 'updated_at'>
+const mapRow = (row: QuestionnaireRow): EpiQuestionnaire => ({
   id: row.id,
   caseId: row.surveillance_case_id,
   definitionVersion: row.definition_version || 1,
-  answers: row.answers && typeof row.answers === 'object' ? row.answers : {},
-  prefilled: row.prefilled && typeof row.prefilled === 'object' ? row.prefilled : {},
+  // The Json columns hold the answers by question key (written by saveEpiQuestionnaire).
+  answers: (row.answers && typeof row.answers === 'object' ? row.answers : {}) as EpiAnswers,
+  prefilled: (row.prefilled && typeof row.prefilled === 'object' ? row.prefilled : {}) as EpiAnswers,
   coreComplete: Boolean(row.core_complete),
   answeredBy: row.answered_by || '',
   answeredAt: row.answered_at || '',
@@ -30,9 +33,9 @@ const unknown = () => ({ a: EPI_ANSWER.UNKNOWN, detail: '', src: EPI_SOURCE.MANU
 const stamp = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString()
 
 // Demo: a few episodes with answered and unanswered questionnaires (the others show «Ερωτηματολόγιο: εκκρεμεί»).
-function demoSeed() {
+function demoSeed(): Record<string, EpiQuestionnaire> {
   if (isEmptyPreview()) return {}
-  const row = (caseId: string, answers: AnyRecord, daysAgo: number, by: string) => ({ id: `EPQ-${caseId}`, caseId, definitionVersion: 1, answers, prefilled: {}, coreComplete: true, answeredBy: by, answeredAt: stamp(daysAgo), updatedBy: by, updatedAt: stamp(daysAgo) })
+  const row = (caseId: string, answers: EpiAnswers, daysAgo: number, by: string): EpiQuestionnaire => ({ id: `EPQ-${caseId}`, caseId, definitionVersion: 1, answers, prefilled: {}, coreComplete: true, answeredBy: by, answeredAt: stamp(daysAgo), updatedBy: by, updatedAt: stamp(daysAgo) })
   return {
     // Hospital origin, three risk factors: the full questionnaire, with prefilled lines.
     'SUR-260041': row('SUR-260041', {
@@ -59,18 +62,18 @@ function demoSeed() {
 const demoRows = new Map(Object.entries(demoSeed()))
 // The questionnaires of the year's other Demo episodes (epiQuestionnaireDemoHistory.js), added once on the first
 // demo read; loaded on demand so production never loads the Demo data.
-let demoHistorySeeded = null
+let demoHistorySeeded: Promise<void> | null = null
 const seedDemoHistory = () => (demoHistorySeeded ||= import('./epiQuestionnaireDemoHistory')
   .then(({ demoHistoryQuestionnaires }) => { for (const row of demoHistoryQuestionnaires()) if (!demoRows.has(row.caseId)) demoRows.set(row.caseId, row) })
   .catch(() => {}))
-const demoSettings = new Map()
+const demoSettings = new Map<string, EpiSetting>()
 // Demo: the bin takes a questionnaire out of the session list and puts it back on restore.
 export function removeDemoEpiQuestionnaire(caseId: string) {
   const row = demoRows.get(String(caseId))
   demoRows.delete(String(caseId))
   return row || null
 }
-export function restoreDemoEpiQuestionnaire(row: AnyRecord) {
+export function restoreDemoEpiQuestionnaire(row: EpiQuestionnaire | null | undefined) {
   if (row?.caseId) demoRows.set(String(row.caseId), row)
 }
 
@@ -80,12 +83,12 @@ interface LoadEpiQuestionnairesOptions {
   isDemo?: boolean
 }
 // { [caseKey]: row } for the given episodes (their ids as the page uses them: the demo code, the record id in production).
-export async function loadEpiQuestionnaires(organizationId: string | null | undefined, caseIds: string[] = [], { isDemo = false }: LoadEpiQuestionnairesOptions = {}) {
+export async function loadEpiQuestionnaires(organizationId: string | null | undefined, caseIds: string[] = [], { isDemo = false }: LoadEpiQuestionnairesOptions = {}): Promise<Record<string, EpiQuestionnaire>> {
   const ids = [...new Set((caseIds || []).filter(Boolean).map(String))]
   if (isDemo) await seedDemoHistory()
-  if (isDemo) return Object.fromEntries(ids.filter(id => demoRows.has(id)).map(id => [id, demoRows.get(id)]))
+  if (isDemo) return Object.fromEntries(ids.filter(id => demoRows.has(id)).map(id => [id, demoRows.get(id)!]))
   if (!needsCloud(organizationId) || !ids.length) return {}
-  const out: Record<string, AnyRecord> = {}
+  const out: Record<string, EpiQuestionnaire> = {}
   for (let index = 0; index < ids.length; index += 100) {
     const { data, error } = await supabase.from('surveillance_case_questionnaires').select(COLUMNS).eq('organization_id', organizationId as string).in('surveillance_case_id', ids.slice(index, index + 100))
     if (error) throw error
@@ -98,10 +101,10 @@ interface LoadAllEpiQuestionnairesOptions {
   isDemo?: boolean
 }
 // Every questionnaire of the hospital: the episode lists show «Ερωτηματολόγιο: εκκρεμεί» from it.
-export async function loadAllEpiQuestionnaires(organizationId: string | null | undefined, { isDemo = false }: LoadAllEpiQuestionnairesOptions = {}) {
+export async function loadAllEpiQuestionnaires(organizationId: string | null | undefined, { isDemo = false }: LoadAllEpiQuestionnairesOptions = {}): Promise<Record<string, EpiQuestionnaire>> {
   if (isDemo) { await seedDemoHistory(); return Object.fromEntries(demoRows) }
   if (!needsCloud(organizationId)) return {}
-  const out: Record<string, AnyRecord> = {}
+  const out: Record<string, EpiQuestionnaire> = {}
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase.from('surveillance_case_questionnaires').select(COLUMNS).eq('organization_id', organizationId as string).order('id').range(from, from + 999)
     if (error) throw error
@@ -115,18 +118,18 @@ interface SaveEpiQuestionnaireOptions4 {
   isDemo?: boolean
 }
 interface SaveEpiQuestionnaireOptions3 {
-  answers?: AnyRecord
-  prefilled?: AnyRecord
+  answers?: EpiAnswers | null
+  prefilled?: EpiAnswers
   definitionVersion?: number
   actorName?: string
 }
 // Saves the whole questionnaire of an episode (insert or update: one row per episode).
-export async function saveEpiQuestionnaire(organizationId: string | null | undefined, caseId: string, { answers, prefilled = {}, definitionVersion = 1, actorName = '' }: SaveEpiQuestionnaireOptions3 = {}, { isDemo = false }: SaveEpiQuestionnaireOptions4 = {}) {
+export async function saveEpiQuestionnaire(organizationId: string | null | undefined, caseId: string, { answers, prefilled = {}, definitionVersion = 1, actorName = '' }: SaveEpiQuestionnaireOptions3 = {}, { isDemo = false }: SaveEpiQuestionnaireOptions4 = {}): Promise<EpiQuestionnaire> {
   const clean = cleanAnswers(answers)
   if (isDemo) {
     const previous = demoRows.get(String(caseId))
     const core = ['antibiotics_90d', 'icu_stay', 'transfer_from_facility'].every(key => clean[key])
-    const row = { id: previous?.id || `EPQ-${caseId}`, caseId: String(caseId), definitionVersion, answers: clean, prefilled, coreComplete: core, answeredBy: previous?.answeredBy || actorName, answeredAt: previous?.answeredAt || new Date().toISOString(), updatedBy: actorName, updatedAt: new Date().toISOString() }
+    const row: EpiQuestionnaire = { id: previous?.id || `EPQ-${caseId}`, caseId: String(caseId), definitionVersion, answers: clean, prefilled, coreComplete: core, answeredBy: previous?.answeredBy || actorName, answeredAt: previous?.answeredAt || new Date().toISOString(), updatedBy: actorName, updatedAt: new Date().toISOString() }
     demoRows.set(String(caseId), row)
     return row
   }
@@ -141,7 +144,11 @@ export async function saveEpiQuestionnaire(organizationId: string | null | undef
 }
 
 // The mini version (sample request): merges ONLY the three core answers into the stored questionnaire.
-export async function saveEpiCoreAnswers(organizationId: string | null | undefined, caseId: string, core: AnyRecord, options: AnyRecord = {}) {
+interface SaveEpiCoreAnswersOptions {
+  isDemo?: boolean
+  actorName?: string
+}
+export async function saveEpiCoreAnswers(organizationId: string | null | undefined, caseId: string, core: EpiAnswers, options: SaveEpiCoreAnswersOptions = {}) {
   const existing = (await loadEpiQuestionnaires(organizationId, [caseId], options))[String(caseId)]
   const answers = { ...(existing?.answers || {}), ...coreOnly(core) }
   return saveEpiQuestionnaire(organizationId, caseId, { answers, prefilled: existing?.prefilled || {}, definitionVersion: existing?.definitionVersion || 1, actorName: options.actorName || '' }, options)
@@ -149,12 +156,13 @@ export async function saveEpiCoreAnswers(organizationId: string | null | undefin
 
 // ---- hospital settings ------------------------------------------------------------------------
 const SETTING_COLUMNS = 'id,question_key,label_el,label_en,help_el,help_en,window_days,is_active,version,updated_at'
-const mapSetting = (row: AnyRecord) => ({ id: row.id, questionKey: row.question_key, labelEl: row.label_el || '', labelEn: row.label_en || '', helpEl: row.help_el || '', helpEn: row.help_en || '', windowDays: row.window_days ?? null, isActive: row.is_active !== false, version: row.version || 1, updatedAt: row.updated_at || '' })
+type SettingRow = Pick<Tables<'epi_questionnaire_question_settings'>, 'id' | 'question_key' | 'label_el' | 'label_en' | 'help_el' | 'help_en' | 'window_days' | 'is_active' | 'version' | 'updated_at'>
+const mapSetting = (row: SettingRow): EpiSetting => ({ id: row.id, questionKey: row.question_key, labelEl: row.label_el || '', labelEn: row.label_en || '', helpEl: row.help_el || '', helpEn: row.help_en || '', windowDays: row.window_days ?? null, isActive: row.is_active !== false, version: row.version || 1, updatedAt: row.updated_at || '' })
 
 interface LoadEpiSettingsOptions {
   isDemo?: boolean
 }
-export async function loadEpiSettings(organizationId: string | null | undefined, { isDemo = false }: LoadEpiSettingsOptions = {}) {
+export async function loadEpiSettings(organizationId: string | null | undefined, { isDemo = false }: LoadEpiSettingsOptions = {}): Promise<EpiSetting[]> {
   if (isDemo) return [...demoSettings.values()]
   if (!needsCloud(organizationId)) return []
   const { data, error } = await supabase.from('epi_questionnaire_question_settings').select(SETTING_COLUMNS).eq('organization_id', organizationId as string)
@@ -166,7 +174,7 @@ interface SaveEpiSettingOptions {
   isDemo?: boolean
 }
 // Saves one question's settings; every save raises that question's version (and so the questionnaire's).
-export async function saveEpiSetting(organizationId: string | null | undefined, questionKey: string, patch: AnyRecord, current: AnyRecord | null = null, { isDemo = false }: SaveEpiSettingOptions = {}) {
+export async function saveEpiSetting(organizationId: string | null | undefined, questionKey: string, patch: EpiSettingPatch, current: EpiSetting | null = null, { isDemo = false }: SaveEpiSettingOptions = {}): Promise<EpiSetting> {
   const version = (current?.version || 0) + 1
   const body = { labelEl: patch.labelEl ?? current?.labelEl ?? '', labelEn: patch.labelEn ?? current?.labelEn ?? '', helpEl: patch.helpEl ?? current?.helpEl ?? '', helpEn: patch.helpEn ?? current?.helpEn ?? '', windowDays: patch.windowDays === undefined ? current?.windowDays ?? null : patch.windowDays, isActive: patch.isActive ?? current?.isActive ?? true }
   if (isDemo) {
