@@ -22,7 +22,7 @@ import { useRegulationAccess } from './regulationAccess'
 import { downloadRegulationWord } from './regulationDocument'
 import { RegulationBook } from './RegulationBook'
 import { RegulationEditor } from './RegulationEditor'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { RegulationTemplate } from './regulationTypes'
 import type { RegulationContent } from './regulationModel'
 import './regulations.css'
 
@@ -36,7 +36,7 @@ export function RegulationTemplatePage() {
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
   const { isPlatformOwner } = useRegulationAccess()
-  const [template, setTemplate] = useState<AnyRecord | null | false>(null)
+  const [template, setTemplate] = useState<RegulationTemplate | null | false>(null)
   const [dirty, setDirty] = useState(false)
   const [tab, setTab] = useState('edit')
   const [publishing, setPublishing] = useState<{ changeNote: string } | null>(null)
@@ -51,7 +51,7 @@ export function RegulationTemplatePage() {
   if (template === null) return <RouteLoading />
   if (template === false) return <Page title={en ? 'Template' : 'Πρότυπο'}><div className="data-access-state error" role="alert"><span>{en ? 'The template was not found.' : 'Το πρότυπο δεν βρέθηκε.'}</span><Button variant="secondary" onClick={goBack}>{en ? 'Back' : 'Πίσω'}</Button></div></Page>
 
-  const set = (changes: AnyRecord) => { setTemplate(current => ({ ...(current as AnyRecord), ...changes })); setDirty(true) }
+  const set = (changes: Partial<RegulationTemplate>) => { setTemplate(current => ({ ...(current as RegulationTemplate), ...changes })); setDirty(true) }
   const loaded = template
   const publish = async () => {
     if (!publishing) return
@@ -82,7 +82,7 @@ export function RegulationTemplatePage() {
         </FormGrid>
         <Field label={en ? 'Description' : 'Περιγραφή'}><textarea rows={2} value={template.description || ''} onChange={event => set({ description: event.target.value })} /></Field>
       </FormCard>
-      <RegulationEditor content={template.content} onChange={content => set({ content })} language={language} onConfirm={options => confirm({ ...options, danger: true })} />
+      <RegulationEditor content={template.content as RegulationContent} onChange={content => set({ content })} language={language} onConfirm={options => confirm({ ...options, danger: true })} />
     </RecordTabPanel>}
     {tab === 'preview' && <RecordTabPanel className="reg-read-panel" title={en ? 'As a hospital receives it' : 'Όπως το παραλαμβάνει ένα νοσοκομείο'}>
       <RegulationBook content={preview} meta={meta} language={language} />

@@ -6,14 +6,14 @@ import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialo
 import { formatDay } from '../../core/i18n/formatDay'
 import { SIGNING_ROLES, staleSignatures, validSignatures } from './regulationModel'
 import { SignaturePad } from './SignaturePad'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { RegulationSignature } from './regulationTypes'
 
 interface Signing { role: string, name: string, title: string, image: string | null }
 
 // The two signatures an edition needs: the hospital administrator's and the
 // infection control lead's. Each is given for the draft as it is saved; a
 // change to the text afterwards asks for it again.
-export function RegulationSignatures({ signatures = [], revision, signRoles = [], language = 'el', blocked = [], dirty = false, onSign, profileName = '' }: { signatures?: AnyRecord[], revision?: number | null, signRoles?: string[], language?: string, blocked?: string[], dirty?: boolean, onSign: (signing: Signing | null) => Promise<unknown> | unknown, profileName?: string }) {
+export function RegulationSignatures({ signatures = [], revision, signRoles = [], language = 'el', blocked = [], dirty = false, onSign, profileName = '' }: { signatures?: RegulationSignature[], revision?: number | null, signRoles?: string[], language?: string, blocked?: string[], dirty?: boolean, onSign: (signing: Signing | null) => Promise<unknown> | unknown, profileName?: string }) {
   const en = language === 'en'
   const valid = validSignatures(signatures, revision)
   const stale = staleSignatures(signatures, revision)

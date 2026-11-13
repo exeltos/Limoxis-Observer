@@ -17,10 +17,14 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { REGULATION_CATEGORIES, categoryLabel, regulationStatus, statusLabel, statusTone } from './regulationModel'
 import { createRegulation, loadRegulations, loadTemplate, loadTemplates } from './regulationService'
 import { useRegulationAccess } from './regulationAccess'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Regulation, RegulationTemplate } from './regulationTypes'
 import './regulations.css'
 
-interface ShelfState { loading: boolean, regulations: AnyRecord[], templates: AnyRecord[], error: unknown }
+interface ShelfState { loading: boolean, regulations: Regulation[], templates: RegulationTemplate[], error: unknown }
+// A new regulation being set up: the template it starts from ('' blank), its title and category.
+type NewRegulation = { templateKey: string, title: string, category: string }
+// A choice of the new regulation: a template, or the blank one.
+type TemplateChoice = Pick<RegulationTemplate, 'key' | 'title' | 'description' | 'category'> & Partial<Pick<RegulationTemplate, 'version' | 'sources'>>
 
 // The hospital's regulations as a shelf of books: each with its cover, edition
 // and state; the template it follows says when a newer version is out. Those
@@ -37,7 +41,7 @@ export function RegulationsPage() {
   const inSection = Boolean(useSectionTabs())
   const canSeeLegislation = isPlatformOwner || can(role, CAPABILITIES.VIEW_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const [state, setState] = useState<ShelfState>({ loading: true, regulations: [], templates: [], error: null })
-  const [creating, setCreating] = useState<AnyRecord | null>(null)
+  const [creating, setCreating] = useState<NewRegulation | null>(null)
 
   const reload = useCallback(async () => {
     try {
@@ -47,7 +51,7 @@ export function RegulationsPage() {
   }, [tenant?.id])
   useEffect(() => { void reload() }, [reload])
 
-  const templates = useMemo(() => new Map<unknown, AnyRecord>(state.templates.map(item => [item.key, item])), [state.templates])
+  const templates = useMemo(() => new Map<unknown, RegulationTemplate>(state.templates.map(item => [item.key, item])), [state.templates])
   const shelf = state.regulations.filter(item => !item.archived && (canManage || item.edition > 0))
   const archived = state.regulations.filter(item => item.archived)
 
@@ -104,7 +108,7 @@ export function RegulationsPage() {
       footer={<DialogActions onCancel={() => setCreating(null)} onSave={create} saveLabel={en ? 'Create the draft' : 'Δημιουργία προσχεδίου'} disabled={!String(creating.title || '').trim()} />}>
       <div className="reg-create">
         <div className="reg-create-templates" role="radiogroup" aria-label={en ? 'Template' : 'Πρότυπο'}>
-          {[...state.templates, { key: '', title: en ? 'Blank regulation' : 'Κενός κανονισμός', description: en ? 'Chapters and sections of your own.' : 'Δικά σας κεφάλαια και ενότητες.', category: 'other' } as AnyRecord].map(item => <button type="button" key={item.key || 'blank'} role="radio" aria-checked={creating.templateKey === item.key} className={creating.templateKey === item.key ? 'active' : ''}
+          {[...state.templates, { key: '', title: en ? 'Blank regulation' : 'Κενός κανονισμός', description: en ? 'Chapters and sections of your own.' : 'Δικά σας κεφάλαια και ενότητες.', category: 'other' } as TemplateChoice].map(item => <button type="button" key={item.key || 'blank'} role="radio" aria-checked={creating.templateKey === item.key} className={creating.templateKey === item.key ? 'active' : ''}
             onClick={() => setCreating(current => ({ ...current, templateKey: item.key, title: item.key ? item.title : '', category: item.category }))}>
             {item.key ? <BookOpen size={16} /> : <FilePlus2 size={16} />}
             <strong>{item.title}</strong>
@@ -113,8 +117,8 @@ export function RegulationsPage() {
           </button>)}
         </div>
         <div className="reg-create-fields">
-          <Field label={`${en ? 'Title' : 'Τίτλος'} *`}><input value={creating.title} onChange={event => setCreating(current => ({ ...current, title: event.target.value }))} /></Field>
-          <SearchableSelect label={en ? 'Category' : 'Κατηγορία'} value={creating.category} options={REGULATION_CATEGORIES.map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={value => value && setCreating(current => ({ ...current, category: value }))} placeholder="" emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} clearLabel="" />
+          <Field label={`${en ? 'Title' : 'Τίτλος'} *`}><input value={creating.title} onChange={event => setCreating(current => ({ ...current!, title: event.target.value }))} /></Field>
+          <SearchableSelect label={en ? 'Category' : 'Κατηγορία'} value={creating.category} options={REGULATION_CATEGORIES.map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={value => value && setCreating(current => ({ ...current!, category: value }))} placeholder="" emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} clearLabel="" />
         </div>
       </div>
     </ObserverDialog>}
