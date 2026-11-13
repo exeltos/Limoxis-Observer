@@ -28,10 +28,12 @@
 // day for daily and every-N-days controls, the week, the month or the year.
 // Extra entries («Έκτακτη καταχώρηση», is_extra) never count.
 
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution, ControlFrequency } from './controlTypes'
 
 // A control's schedule (frequency_config): kind, times, interval and the rest.
-type Frequency = AnyRecord
+type Frequency = ControlFrequency
+// An entry as the rules count it.
+type Entry = Pick<ControlExecution, 'at'> & Partial<Pick<ControlExecution, 'status' | 'cancelledAt' | 'isExtra'>> & { responseData?: { isExtra?: boolean } | null }
 // A local calendar day.
 type Day = { year: number, month: number, day: number }
 type Instant = Date | string | number
@@ -216,12 +218,12 @@ export function firstDue(frequency: Frequency = {}, now: Instant = new Date(), t
   return new Date(periodBounds(frequency, now, timeZone).end.getTime() - 1000).toISOString()
 }
 
-const regular = (row: AnyRecord | null | undefined) => row && row.status !== 'cancelled' && !row.cancelledAt && !row.isExtra && !row.responseData?.isExtra && row.at
+const regular = (row: Partial<Entry> | null | undefined) => row && row.status !== 'cancelled' && !row.cancelledAt && !row.isExtra && !row.responseData?.isExtra && row.at
 
 // How far the current period is: required, regular entries done, extra entries.
-export function periodProgress(frequency: Frequency = {}, history: AnyRecord[] = [], now: Instant = new Date(), timeZone = CONTROL_TIME_ZONE) {
+export function periodProgress(frequency: Frequency = {}, history: Partial<Entry>[] = [], now: Instant = new Date(), timeZone = CONTROL_TIME_ZONE) {
   const { unit, start, end } = periodBounds(frequency, now, timeZone)
-  const inPeriod = (row: AnyRecord) => row.at && new Date(row.at) >= start && new Date(row.at) < end && row.status !== 'cancelled' && !row.cancelledAt
+  const inPeriod = (row: Partial<Entry>) => row.at && new Date(row.at) >= start && new Date(row.at) < end && row.status !== 'cancelled' && !row.cancelledAt
   const rows = history.filter(inPeriod)
   const done = rows.filter(regular).length
   const required = requiredPerPeriod(frequency)
@@ -231,7 +233,7 @@ export function periodProgress(frequency: Frequency = {}, history: AnyRecord[] =
 // Each entry of an assignment's history marked as counted (one of the
 // period's required entries) and on time (by its deadline), as the database
 // does in private.control_execution_marks.
-export function executionMarks(history: AnyRecord[] = [], frequency: Frequency = {}, timeZone = CONTROL_TIME_ZONE) {
+export function executionMarks<T extends Entry>(history: T[] = [], frequency: Frequency = {}, timeZone = CONTROL_TIME_ZONE) {
   const rows = history.filter(regular).slice().sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
   const daily = isDailyFrequency(frequency)
   const required = requiredPerPeriod(frequency)

@@ -1,6 +1,12 @@
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { doneOf } from './ControlAdherencePanel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AdherenceTotals } from './controlAdherence'
+import type { TimeFitLine } from './controlTimeFit'
+
+// The expiry figures: items expired and expiring, departments with expired items of all.
+type ExpiryFigures = { expired?: number, expiring?: number, departments?: number, withExpired?: number }
+// The «Times» figures (timeFitSummary) while the report loads.
+type TimeFitFigures = Partial<ReturnType<typeof timeFitSummary>> & { loading?: boolean }
 
 // The programme counts as kept from 90% (the green of adherenceTone).
 export const ADHERENCE_TARGET = 90
@@ -9,7 +15,7 @@ export const ADHERENCE_TARGET = 90
 // The key figures of the open tab of «Controls», as totals beside the search and the period (owner, 7/11/2026: no cards
 // above the list). A count that filters the list (overdue, due soon) is a button.
 // expiry: { expired, expiring, departments, withExpired } · timeFit: { changes, rateNow, rateProposed, lines }
-interface ControlsKpisProps { view: string, language: string, loading: boolean, overdue: number, dueSoon: number, adherence: AnyRecord, expiry: AnyRecord, timeFit: AnyRecord, status: string, onStatus: (status: string) => void, expiryState?: string | null, onExpiryState: (state: string | null) => void }
+interface ControlsKpisProps { view: string, language: string, loading: boolean, overdue: number, dueSoon: number, adherence: AdherenceTotals, expiry: ExpiryFigures, timeFit: TimeFitFigures, status: string, onStatus: (status: string) => void, expiryState?: string | null, onExpiryState: (state: string | null) => void }
 export function ControlsKpis({ view, language, loading, overdue, dueSoon, adherence, expiry, timeFit, status, onStatus, expiryState = null, onExpiryState }: ControlsKpisProps) {
   const en = language === 'en'
   const tr = (el: string, english: string) => (en ? english : el)
@@ -44,8 +50,8 @@ export function ControlsKpis({ view, language, loading, overdue, dueSoon, adhere
 }
 
 // «Times»: the proposals and the on-time rate now and with them, weighted by entries.
-export function timeFitSummary(lines: AnyRecord[] = []) {
+export function timeFitSummary(lines: Pick<TimeFitLine, 'entries' | 'changed' | 'rateNow' | 'rateProposed'>[] = []) {
   const entries = lines.reduce((sum, line) => sum + line.entries, 0)
-  const rate = (key: string) => (entries ? Math.round(lines.reduce((sum, line) => sum + ((line[key] ?? 0) * line.entries) / 100, 0) / entries * 100) : null)
+  const rate = (key: 'rateNow' | 'rateProposed') => (entries ? Math.round(lines.reduce((sum, line) => sum + ((line[key] ?? 0) * line.entries) / 100, 0) / entries * 100) : null)
   return { lines: lines.length, changes: lines.filter((line) => line.changed).length, rateNow: rate('rateNow'), rateProposed: rate('rateProposed') }
 }

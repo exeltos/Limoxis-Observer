@@ -1,30 +1,33 @@
 // A department's own limits and deviation text. A control that several departments share keeps one
 // response_config; an assignment may carry what differs for its department (response_override):
 // min and max (an empty one means no limit there) and deviationActions.
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlRecord, ControlResponseConfig, ResponseOverride } from './controlTypes'
+
+// A control as these read it: its settings and its departments' own.
+type ResponseSource = { responseConfig?: ControlRecord['responseConfig'] | null } & { assignments?: Record<string, { responseOverride?: ResponseOverride | null }> }
 
 const numberText=(value:unknown)=>value===''||value==null?'':String(value).trim()
-const KEYS=['min','max','deviationActions']
+const KEYS=['min','max','deviationActions'] as const
 
-export function assignmentOverride(record:AnyRecord|null|undefined,department:string){
+export function assignmentOverride(record:ResponseSource|null|undefined,department:string){
  return record?.assignments?.[department]?.responseOverride||null
 }
 
 // The response settings that apply in a department: the control's, with the department's own on top.
-export function assignmentResponse(record:AnyRecord|null|undefined,department:string):AnyRecord{
- const base=record?.responseConfig||{}
+export function assignmentResponse(record:ResponseSource|null|undefined,department:string):ControlResponseConfig{
+ const base:ControlResponseConfig=record?.responseConfig||{}
  const own=assignmentOverride(record,department)
  if(!own)return base
- const merged={...base}
- for(const key of KEYS)if(own[key]!==undefined)merged[key]=own[key]
+ const merged:ControlResponseConfig={...base}
+ for(const key of KEYS)if(own[key]!==undefined)(merged as Record<string,unknown>)[key]=own[key]
  return merged
 }
 
 // What is saved for a department: only the keys that differ from the control's; null = the control's.
-export function cleanDepartmentResponse(own:AnyRecord|null|undefined,base:AnyRecord|null|undefined){
+export function cleanDepartmentResponse(own:ResponseOverride|null|undefined,base:ControlResponseConfig|null|undefined){
  if(!own||typeof own!=='object')return null
- const cleaned:AnyRecord={}
- for(const key of ['min','max']){
+ const cleaned:ResponseOverride={}
+ for(const key of ['min','max'] as const){
   if(own[key]===undefined)continue
   const value=numberText(own[key])
   if(value!==numberText(base?.[key]))cleaned[key]=value===''?'':Number(value)
@@ -37,7 +40,7 @@ export function cleanDepartmentResponse(own:AnyRecord|null|undefined,base:AnyRec
 }
 
 // «0–25 °C», «≥ 18 °C», «≤ 25 °C» or an empty text when the department has no limit.
-export function limitsText(response:AnyRecord|null|undefined){
+export function limitsText(response:Pick<ControlResponseConfig,'min'|'max'|'unit'>|null|undefined){
  const min=numberText(response?.min),max=numberText(response?.max)
  const unit=response?.unit?` ${response.unit}`:''
  if(min!==''&&max!=='')return `${min} – ${max}${unit}`
@@ -47,7 +50,7 @@ export function limitsText(response:AnyRecord|null|undefined){
 }
 
 // How many different limit/deviation settings the departments of a control have.
-export function responseVariants(record:AnyRecord|null|undefined,departments?:string[]|null){
+export function responseVariants(record:ResponseSource|null|undefined,departments?:string[]|null){
  const list=departments?.length?departments:Object.keys(record?.assignments||{})
  return new Set(list.map((department:string)=>{
   const response=assignmentResponse(record,department)

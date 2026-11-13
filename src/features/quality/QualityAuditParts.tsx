@@ -35,7 +35,7 @@ export function AuditChecklistSource({ draft, setDraft, organizationId, language
   const [mode, setMode] = useState(draft.checklistSource === 'manual' ? 'manual' : 'template')
   const [text, setText] = useState('')
   const templateId = String(draft.checklistSource || '').startsWith('control:') ? (draft.checklistSource as string).slice(8) : ''
-  const options = useMemo(() => templates.map(control => ({ value: String(control.id), label: en ? control.titleEn || control.title : control.title, description: `${control.responseConfig.checklist.length} ${en ? 'items' : 'σημεία'}` })), [templates, en])
+  const options = useMemo(() => templates.map(control => ({ value: String(control.id), label: en ? control.titleEn || control.title : control.title, description: `${control.responseConfig.checklist!.length} ${en ? 'items' : 'σημεία'}` })), [templates, en])
   const chooseTemplate = (id: string) => {
     const control = templates.find(item => String(item.id) === id)
     setDraft(current => ({ ...current, checklistSource: control ? `control:${control.id}` : '', checklist: control ? auditChecklistFromControl(control) : [] }))

@@ -34,6 +34,7 @@ import { ControlDeviationActions,ControlEvidenceLinks,ControlEvidencePicker } fr
 import { ownerText,personLabel } from '../employees/peopleOptions'
 import './controlExecution.css'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlRecord } from './controlTypes'
 
 // One way to record a control, as a page (a new entry) or a dialog (correcting
 // an entry): the same fields, findings and checks either way.
@@ -45,7 +46,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  // useLibraries (Management) is still JavaScript: its libraries are read by name here.
  const {libraries}=useLibraries() as unknown as {libraries:Record<string,AnyRecord[]>}
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
- const assignment=getAssignment(record,department)
+ const assignment=getAssignment(record as ControlRecord,department)
  const response=assignmentResponse(record,department)||{mode:'text',label:'Αποτέλεσμα'}
  const mode=response.mode||'text'
  const expiryControl=isExpiryControl(record)
@@ -92,7 +93,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  async function persistDraft(){
   if(draftSaving)return null
   setDraftSaving(true)
-  try{const draft=await saveControlDraft(organizationId,record,department,{value,notes,resultText,checkedPoints,rows,...(allOk?{allOk:true}:{})});setDraftSaved(true);onDraftSaved?.(draft);notify(en?'Draft saved.':'Η προσωρινή καταχώρηση αποθηκεύτηκε.','success');return draft}
+  try{const draft=await saveControlDraft(organizationId,record as ControlRecord,department,{value,notes,resultText,checkedPoints,rows,...(allOk?{allOk:true}:{})});setDraftSaved(true);onDraftSaved?.(draft);notify(en?'Draft saved.':'Η προσωρινή καταχώρηση αποθηκεύτηκε.','success');return draft}
   catch{notify(en?'The draft could not be saved.':'Δεν ήταν δυνατή η προσωρινή αποθήκευση.','error');return null}
   finally{setDraftSaving(false)}
  }

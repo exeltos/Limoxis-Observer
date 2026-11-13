@@ -14,18 +14,30 @@ import { loadControlAdherenceCounts, loadControlEntryTimes } from './controlClou
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { ControlMissedDialog } from './ControlMissedDialog'
 import './controlAdherence.css'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { ControlRow } from './controlTypes'
-import type { AdherenceGroup, AdherenceLine } from './controlAdherence'
+import type { RefObject } from 'react'
+import type { ControlAssignment, ControlExecution, ControlFrequency, ControlRow } from './controlTypes'
+import type { AdherenceGroup, AdherenceLine, AdherenceTotals, GroupHead, MissedDay } from './controlAdherence'
 
 type Instant = Date | string | null
 // The report the page reads once and the tab shows (useControlAdherenceReport).
-export interface AdherenceReport extends AnyRecord { lines: AdherenceLine[], totals: AnyRecord, trend: AnyRecord[], failed: boolean }
+export interface AdherenceReport { period: string, lines: AdherenceLine[], totals: AdherenceTotals, trend: TrendMonth[], reportRef: RefObject<HTMLDivElement>, exporting: boolean, exportCsv: () => void, exportPdf: (pdf?: boolean) => void, failed: boolean, loadFailedText: string, until: Instant }
+// A month of the trend: its key (YYYY-MM) and its totals.
+type TrendMonth = AdherenceTotals & { key: string }
+// A line or a group's totals, as a row of the table reads them.
+type FigureRow = AdherenceTotals & { late?: number, missedDays?: MissedDay[], frequency?: ControlFrequency, item?: GroupHead }
+// A row of the table: a control (or department) with its lines, or one of its lines.
+type TableEntry = { key: string, kind: 'group', group: AdherenceGroup } | { key: string, kind: 'single', group: AdherenceGroup } | { key: string, kind: 'member', line: AdherenceLine }
+// A control that stopped: no entry for a week or more, or none at all.
+type StoppedRow = { key: string, item: GroupHead, department: string, frequency: ControlFrequency, last: string | null, days: number | null }
+// A line as «Stopped» reads it: the control, its department and schedule.
+type StoppableLine = { item: GroupHead, department: string, frequency?: ControlFrequency }
+// A control's (or a department's) names.
+type Titled = { title: string, titleEn?: string }
 
 // What covered the programme (never more than was due), and the entries beyond it on their own.
-export const doneOf = (row: AnyRecord) => row.counted ?? Math.min(row.performed, row.expected)
-export const extraOf = (row: AnyRecord) => Math.max(0, row.performed - doneOf(row))
-const extraText = (row: AnyRecord, en: boolean) => (extraOf(row) ? (en ? `+${extraOf(row)} extra` : `+${extraOf(row)} επιπλέον`) : '')
+export const doneOf = (row: Pick<AdherenceTotals, 'performed' | 'expected'> & { counted?: number }) => row.counted ?? Math.min(row.performed, row.expected)
+export const extraOf = (row: Pick<AdherenceTotals, 'performed' | 'expected'> & { counted?: number }) => Math.max(0, row.performed - doneOf(row))
+const extraText = (row: Pick<AdherenceTotals, 'performed' | 'expected'> & { counted?: number }, en: boolean) => (extraOf(row) ? (en ? `+${extraOf(row)} extra` : `+${extraOf(row)} επιπλέον`) : '')
 
 const dayKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
@@ -102,14 +114,14 @@ export function useAdherenceLines(rows: ControlRow[], organizationId: string | n
     if (isToday(period)) return periodLines
     const range = periodRange(period, now ? new Date(now) : new Date())
     return periodLines.map((line) => {
-      const assignment = line.item.assignments?.[line.department] || {}
-      const days = entryDays === null ? (organizationId && !isDemoData() ? null : entryDaysFromHistory(assignment.history || [])) : entryDays.get(assignment.dbId) || new Map()
+      const assignment = line.item.assignments?.[line.department] || ({} as Partial<ControlAssignment>)
+      const days = entryDays === null ? (organizationId && !isDemoData() ? null : entryDaysFromHistory(assignment.history || [])) : entryDays.get(assignment.dbId as string) || new Map()
       if (!days) return line
       // Daily and weekly controls: «missed» is what the ended days (weeks)
       // missed, the same the dates show; not the nominal count of the period.
       const frequency = line.frequency || line.item.frequency
       const missed = missedDays(frequency, days, range, assignment.createdAt || line.item.createdAt)
-      const named = ['daily', 'weekly'].includes(frequency?.kind)
+      const named = ['daily', 'weekly'].includes(frequency?.kind as string)
       const count = named ? missed.reduce((sum, miss) => sum + miss.missing, 0) : line.missed
       // A rate rounded up to 100% never sits beside a missed execution.
       return { ...line, missedDays: missed, missed: count, rate: count && line.rate === 100 ? 99 : line.rate }
@@ -125,7 +137,7 @@ export function useControlAdherenceReport(rows: ControlRow[], tx: Record<string,
   const reportRef = useRef<HTMLDivElement>(null)
   const { lines, totals, failed } = useAdherenceLines(rows, organizationId, period, refreshKey, now)
   const trend = useMonthlyTrend(rows, organizationId, period, refreshKey, now)
-  const title = (item: AnyRecord) => (en ? item.titleEn || item.title : item.title)
+  const title = (item: Titled) => (en ? item.titleEn || item.title : item.title)
   const pct = (value: number | null | undefined) => (value == null ? '—' : `${value}%`)
 
   const loadFailedText = en ? 'The adherence could not be loaded. Try again.' : 'Δεν ήταν δυνατή η φόρτωση της τήρησης. Δοκιμάστε ξανά.'
@@ -140,7 +152,7 @@ export function useControlAdherenceReport(rows: ControlRow[], tx: Record<string,
   function exportPdf(pdf?: boolean) {
     if (failed) { notify(loadFailedText, 'danger'); return }
     const { from, to } = periodRange(period, now ? new Date(now) : new Date())
-    const numbers = (row: AnyRecord) => [{ text: String(row.expected), className: 'rd-num' }, { text: `${doneOf(row)}${extraOf(row) ? ` (${extraText(row, en)})` : ''}`, className: 'rd-num' }, { text: `${row.onTime}${row.late ? ` (${en ? `${row.late} late` : `${row.late} με καθυστέρηση`})` : ''}`, className: 'rd-num' }, { text: String(row.missed), className: row.missed ? 'rd-num rd-bad' : 'rd-num' }, { text: pct(row.rate), className: `rd-num ${({ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' } as Record<string, string>)[adherenceTone(row.rate)] || ''}` }]
+    const numbers = (row: FigureRow) => [{ text: String(row.expected), className: 'rd-num' }, { text: `${doneOf(row)}${extraOf(row) ? ` (${extraText(row, en)})` : ''}`, className: 'rd-num' }, { text: `${row.onTime}${row.late ? ` (${en ? `${row.late} late` : `${row.late} με καθυστέρηση`})` : ''}`, className: 'rd-num' }, { text: String(row.missed), className: row.missed ? 'rd-num rd-bad' : 'rd-num' }, { text: pct(row.rate), className: `rd-num ${({ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' } as Record<string, string>)[adherenceTone(row.rate)] || ''}` }]
     const tableRows = groupAdherenceLines(lines).flatMap((group) => group.lines.length === 1
       ? [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.lines[0].department} · ${group.item.category || ''}`)}</small>` }, linesFrequencyLabel(group.lines, group.item, language), ...numbers(group.lines[0])]]
       : [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.item.category || ''} · ${en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}`)}</small>` }, linesFrequencyLabel(group.lines, group.item, language), ...numbers(group.totals)],
@@ -181,7 +193,7 @@ const MONTHS: Record<string, string[]> = { el: ['Ιαν', 'Φεβ', 'Μαρ', '�
 const shortDay = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 
 // The adherence of each month: one bar per month, the rate above it.
-function AdherenceTrend({ months, language }: { months: AnyRecord[], language: string }) {
+function AdherenceTrend({ months, language }: { months: TrendMonth[], language: string }) {
   const en = language === 'en'
   if (!months.length) return null
   return <div className="control-adherence-trend" role="img" aria-label={en ? 'Adherence per month' : 'Τήρηση ανά μήνα'}>
@@ -194,9 +206,9 @@ function AdherenceTrend({ months, language }: { months: AnyRecord[], language: s
 }
 
 // «Missed: 3» and the days: the latest three, the rest counted; the count opens them all.
-function MissedCell({ row, language, onShow }: { row: AnyRecord, language: string, onShow?: () => void }) {
+function MissedCell({ row, language, onShow }: { row: FigureRow, language: string, onShow?: () => void }) {
   const en = language === 'en'
-  const days: AnyRecord[] = row.missedDays || []
+  const days: MissedDay[] = row.missedDays || []
   const latest = days.slice(-3).map((x) => shortDay(x.day))
   return <td className={row.missed ? 'control-adherence-missed' : ''}>
     {row.missed && onShow ? <button type="button" className="control-adherence-missed-link" title={en ? 'Dates and times' : 'Ημερομηνίες και ώρες'} onClick={(event) => { event.stopPropagation(); onShow() }}>{row.missed}</button> : row.missed}
@@ -206,11 +218,11 @@ function MissedCell({ row, language, onShow }: { row: AnyRecord, language: strin
 
 // «Why» a line sits under the 90% target (owner, 7/11/2026): nothing recorded, fewer times a day than set, the
 // weekends missed, or whole days (weeks) missed. null at or above the target.
-export function adherenceReason(line: AnyRecord) {
+export function adherenceReason(line: Pick<FigureRow, 'rate' | 'performed' | 'frequency' | 'missedDays'> & { item?: { frequency?: ControlFrequency } }) {
   if (line.rate == null || adherenceTone(line.rate) === 'good') return null
   if (!line.performed) return 'none'
-  const frequency = line.frequency || line.item?.frequency || {}
-  const days: AnyRecord[] = line.missedDays || []
+  const frequency: ControlFrequency = line.frequency || line.item?.frequency || {}
+  const days: MissedDay[] = line.missedDays || []
   if (frequency.kind === 'daily' && days.length) {
     const required = Number(frequency.timesPerDay || 1)
     if (required > 1 && days.filter((x) => x.missing < required).length >= days.length / 2) return 'perday'
@@ -226,19 +238,19 @@ const REASONS: Record<string, string[]> = {
 }
 export const reasonLabel = (reason: string | null, language: string) => (reason ? REASONS[reason][language === 'en' ? 0 : 1] : '')
 // A group (a department or a control in several): the most frequent reason of its lines under the target.
-function groupReason(lines: AnyRecord[]) {
+function groupReason(lines: AdherenceLine[]) {
   const counts = new Map<string, number>()
   for (const line of lines) { const reason = adherenceReason(line); if (reason) counts.set(reason, (counts.get(reason) || 0) + 1) }
   return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] || null
 }
 
-interface ControlAdherencePanelProps { report: AdherenceReport, tx: Record<string, string>, language: string, onOpen?: (item: AnyRecord) => void }
+interface ControlAdherencePanelProps { report: AdherenceReport, tx: Record<string, string>, language: string, onOpen?: (item: GroupHead) => void }
 export function ControlAdherencePanel({ report, tx, language, onOpen }: ControlAdherencePanelProps) {
   const en = language === 'en'
   const { lines, trend = [], reportRef, failed, loadFailedText, until } = report
   const departments = useMemo(() => new Set(lines.map((line) => line.department)).size, [lines])
   const [mode, setMode] = useState('')
-  const [missed, setMissed] = useState<{ lines: AnyRecord[], title: string } | null>(null)
+  const [missed, setMissed] = useState<{ lines: AdherenceLine[], title: string } | null>(null)
   // Per department, a department opens to its controls on a click.
   const [open, setOpen] = useState(() => new Set<string>())
   const toggle = (key: string) => setOpen((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next })
@@ -248,7 +260,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }: ControlA
   const stopped = useMemo(() => stoppedControls(lines, until || new Date()), [lines, until])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
-  const title = (item: AnyRecord) => (en ? item.titleEn || item.title : item.title)
+  const title = (item: Titled) => (en ? item.titleEn || item.title : item.title)
   const pct = (value: number | null | undefined) => (value == null ? '—' : `${value}%`)
   const groups = useMemo(() => (byDepartment ? groupAdherenceByDepartment(lines) : groupAdherenceLines(lines)), [lines, byDepartment])
   // The arrows in the headers sort the whole list of groups (worst first by default); then the page is cut.
@@ -264,17 +276,17 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }: ControlA
   const totalPages = Math.max(1, Math.ceil(groups.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const shown = sortedGroups.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const numbers = (row: AnyRecord, rowLines: AnyRecord[], label: string) => <>
+  const numbers = (row: FigureRow, rowLines: AdherenceLine[], label: string) => <>
     <td className="control-adherence-done"><b>{doneOf(row)}</b> {en ? 'of' : 'από'} {row.expected}{extraOf(row) > 0 && <small>{extraText(row, en)}</small>}</td>
-    <td>{pct(row.onTimeRate ?? (row.performed ? Math.round((row.onTime / row.performed) * 100) : null))}{row.late > 0 && <small>{en ? `${row.late} late` : `${row.late} με καθυστέρηση`}</small>}</td>
+    <td>{pct(row.onTimeRate ?? (row.performed ? Math.round((row.onTime / row.performed) * 100) : null))}{row.late! > 0 && <small>{en ? `${row.late} late` : `${row.late} με καθυστέρηση`}</small>}</td>
     <MissedCell row={row} language={language} onShow={() => setMissed({ lines: rowLines, title: label })} />
     <td><RateMeter rate={row.rate} /></td>
     <td className="control-adherence-reason">{adherenceReason(row) && reasonLabel(rowLines.length === 1 ? adherenceReason(rowLines[0]) : groupReason(rowLines), language)}</td>
   </>
-  const frequencyOf = (line: AnyRecord) => frequencyLabel(line.frequency || line.item.frequency, language)
-  const rowsOf = (group: AdherenceGroup): AnyRecord[] => {
-    if (byDepartment) return [{ key: `${group.key}-group`, kind: 'group', group }, ...(open.has(group.key) ? group.lines.map((line) => ({ key: `${group.key}-${line.item.id}`, kind: 'member', line })) : [])]
-    return group.lines.length === 1 ? [{ key: group.key, kind: 'single', group }] : [{ key: `${group.key}-group`, kind: 'group', group }, ...group.lines.map((line) => ({ key: `${line.item.id}-${line.department}`, kind: 'member', line }))]
+  const frequencyOf = (line: AdherenceLine) => frequencyLabel(line.frequency || line.item.frequency, language)
+  const rowsOf = (group: AdherenceGroup): TableEntry[] => {
+    if (byDepartment) return [{ key: `${group.key}-group`, kind: 'group', group }, ...(open.has(group.key) ? group.lines.map((line) => ({ key: `${group.key}-${line.item.id}`, kind: 'member' as const, line })) : [])]
+    return group.lines.length === 1 ? [{ key: group.key, kind: 'single', group }] : [{ key: `${group.key}-group`, kind: 'group', group }, ...group.lines.map((line) => ({ key: `${line.item.id}-${line.department}`, kind: 'member' as const, line }))]
   }
   return <div className="control-adherence" ref={reportRef}>
     <div className="control-adherence-toolbar">
@@ -300,7 +312,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }: ControlA
         : entry.kind === 'group'
         ? <tr className={`control-adherence-group${byDepartment ? ' is-department' : ''}`} onClick={byDepartment ? () => toggle(entry.group.key) : () => onOpen?.(entry.group.item)} aria-expanded={byDepartment ? open.has(entry.group.key) : undefined}>
             <td><strong>{byDepartment && (open.has(entry.group.key) ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronRight size={15} aria-hidden="true" />)}{byDepartment ? entry.group.department : title(entry.group.item)}</strong><small>{byDepartment ? (en ? `${entry.group.lines.length} ${entry.group.lines.length === 1 ? 'control' : 'controls'}` : `${entry.group.lines.length} ${entry.group.lines.length === 1 ? 'έλεγχος' : 'έλεγχοι'}`) : `${linesFrequencyLabel(entry.group.lines, entry.group.item, language)} · ${en ? `${entry.group.lines.length} ${entry.group.lines.length === 1 ? 'department' : 'departments'}` : `${entry.group.lines.length} ${entry.group.lines.length === 1 ? 'τμήμα' : 'τμήματα'}`}`}</small></td>
-            {numbers(entry.group.totals, entry.group.lines, byDepartment ? entry.group.department : title(entry.group.item))}
+            {numbers(entry.group.totals, entry.group.lines, byDepartment ? entry.group.department! : title(entry.group.item))}
           </tr>
         : <tr className="control-adherence-member" onClick={() => onOpen?.(entry.line.item)}>
             <td className="control-adherence-department">{byDepartment ? <>{title(entry.line.item)}<small>{frequencyOf(entry.line)}</small></> : entry.line.department}</td>
@@ -316,16 +328,16 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }: ControlA
 const STOPPED_DAYS = 7
 // The daily and weekly controls of the lines that have no entry for STOPPED_DAYS days or more (or none at all), per
 // department, the longest silence first.
-export function stoppedControls(lines: AdherenceLine[] = [], asOf: Date | string = new Date()) {
-  const seen = new Set<string>(), out: AnyRecord[] = []
+export function stoppedControls(lines: StoppableLine[] = [], asOf: Date | string = new Date()) {
+  const seen = new Set<string>(), out: StoppedRow[] = []
   for (const line of lines) {
     const key = `${line.item.id}|${line.department}`
     if (seen.has(key)) continue
     seen.add(key)
-    const assignment = line.item.assignments?.[line.department] || {}
+    const assignment = line.item.assignments?.[line.department] || ({} as Partial<ControlAssignment>)
     const frequency = line.frequency || assignment.frequency || line.item.frequency || {}
-    if (!['daily', 'weekly'].includes(frequency.kind) || assignment.status === 'paused') continue
-    const history: AnyRecord[] = (assignment.history || []).filter((row: AnyRecord) => row?.at && !row.cancelledAt && row.status !== 'cancelled')
+    if (!['daily', 'weekly'].includes(frequency.kind as string) || assignment.status === 'paused') continue
+    const history: ControlExecution[] = (assignment.history || []).filter((row: ControlExecution) => row?.at && !row.cancelledAt && row.status !== 'cancelled')
     const last = assignment.lastCompletedAt || history.map((row) => row.at).sort().pop() || null
     const days = last ? Math.floor((new Date(asOf).getTime() - new Date(last).getTime()) / 86400000) : null
     if (last && days! < STOPPED_DAYS) continue
@@ -334,7 +346,7 @@ export function stoppedControls(lines: AdherenceLine[] = [], asOf: Date | string
   return out.sort((a, b) => a.department.localeCompare(b.department, 'el') || (b.days ?? Infinity) - (a.days ?? Infinity))
 }
 
-function StoppedTable({ rows, language, onOpen }: { rows: AnyRecord[], language: string, onOpen?: (item: AnyRecord) => void }) {
+function StoppedTable({ rows, language, onOpen }: { rows: StoppedRow[], language: string, onOpen?: (item: GroupHead) => void }) {
   const en = language === 'en'
   return <RegistryTable className="control-adherence-table control-stopped-table"
     columns={[{ key: 'department', label: en ? 'Department' : 'Τμήμα' }, { key: 'control', label: en ? 'Control' : 'Έλεγχος' }, { key: 'last', label: en ? 'Last entry' : 'Τελευταία καταχώριση' }, { key: 'days', label: en ? 'Days without entry' : 'Ημέρες χωρίς καταχώριση' }]}

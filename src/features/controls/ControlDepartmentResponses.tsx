@@ -1,13 +1,13 @@
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { Field } from '../../design-system/Field'
 import { limitsText } from './controlResponse'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlResponseConfig, ResponseOverride, SelectText } from './controlTypes'
 
 // «Limits and actions per department» of a control that several departments share: by default every
 // department follows the control's limits and deviation text; a department can have its own.
 // compact: one department in the editor's «Departments» table, in two parts:
 // part 'summary' is the cell, part 'fields' its own limits/actions, full width under the row.
-interface ControlDepartmentResponsesProps { departments?: string[], base?: AnyRecord, numeric?: boolean, value?: Record<string, AnyRecord>, onChange: (value: Record<string, AnyRecord>) => void, en: boolean, selectText: AnyRecord, compact?: boolean, part?: string }
+interface ControlDepartmentResponsesProps { departments?: string[], base?: ControlResponseConfig, numeric?: boolean, value?: Record<string, ResponseOverride | null>, onChange: (value: Record<string, ResponseOverride | null>) => void, en: boolean, selectText: SelectText, compact?: boolean, part?: string }
 export function ControlDepartmentResponses({ departments = [], base = {}, numeric = false, value = {}, onChange, en, selectText, compact = false, part = 'summary' }: ControlDepartmentResponsesProps) {
   if (departments.length < 2 && !compact) return null
   const own = (department: string) => value[department] || null
@@ -20,7 +20,7 @@ export function ControlDepartmentResponses({ departments = [], base = {}, numeri
     delete next[department]
     onChange(next)
   }
-  const patch = (department: string, changes: AnyRecord) => onChange({ ...value, [department]: { ...own(department), ...changes } })
+  const patch = (department: string, changes: ResponseOverride) => onChange({ ...value, [department]: { ...own(department), ...changes } })
   const sameLabel = compact ? (en ? 'Same for all' : 'Όπως όλα') : (en ? 'Same as above' : 'Όπως παραπάνω')
   const baseSummary = [numeric && limitsText(base), base.deviationActions && (en ? 'with the actions above' : 'με τις ενέργειες παραπάνω')].filter(Boolean).join(' · ')
   if (compact && part === 'summary') {

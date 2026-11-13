@@ -5,7 +5,7 @@ import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialo
 import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel } from './controlScheduling'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AdherenceLine, MissedDay } from './controlAdherence'
 
 const WEEKDAYS = { el: ['Κυρ', 'Δευ', 'Τρι', 'Τετ', 'Πεμ', 'Παρ', 'Σαβ'], en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] }
 const dmy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
@@ -13,7 +13,7 @@ const plusDays = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:
 
 // One missed execution as people read it: «Τρι 21/10/2026» and its times,
 // or the week of a weekly control.
-export function missedText(miss: AnyRecord, language = 'el') {
+export function missedText(miss: MissedDay, language = 'el') {
   const en = language === 'en'
   if (miss.week) return { when: en ? `Week ${dmy(miss.day)} – ${dmy(plusDays(miss.day, 6))}` : `Εβδομάδα ${dmy(miss.day)} – ${dmy(plusDays(miss.day, 6))}`, times: en ? 'not done' : 'δεν έγινε' }
   const weekday = WEEKDAYS[en ? 'en' : 'el'][new Date(`${miss.day}T12:00:00Z`).getUTCDay()]
@@ -22,15 +22,15 @@ export function missedText(miss: AnyRecord, language = 'el') {
 
 // The missed executions of one or more lines (control × department) of the
 // adherence report, with their dates and times; printable.
-interface ControlMissedDialogProps { lines?: AnyRecord[], title?: string, language: string, onClose: () => void }
+interface ControlMissedDialogProps { lines?: AdherenceLine[], title?: string, language: string, onClose: () => void }
 export function ControlMissedDialog({ lines = [], title, language, onClose }: ControlMissedDialogProps) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const shown = lines.filter((line) => line.missed > 0)
-  const name = (item: AnyRecord) => (en ? item.titleEn || item.title : item.title)
+  const name = (item: AdherenceLine['item']) => (en ? item.titleEn || item.title : item.title)
   const total = shown.reduce((sum, line) => sum + line.missed, 0)
-  const head = (line: AnyRecord) => `${name(line.item)} · ${line.department}`
-  const keyOf = (line: AnyRecord) => `${line.item.id}|${line.department}`
+  const head = (line: AdherenceLine) => `${name(line.item)} · ${line.department}`
+  const keyOf = (line: AdherenceLine) => `${line.item.id}|${line.department}`
   // The controls ticked, to print only those.
   const [picked, setPicked] = useState(() => new Set())
   const pick = (key: string) => setPicked((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next })
@@ -41,7 +41,7 @@ export function ControlMissedDialog({ lines = [], title, language, onClose }: Co
       language, kind: en ? 'Controls' : 'Έλεγχοι',
       title: `${en ? 'Missed controls' : 'Χαμένοι έλεγχοι'} · ${list.length === 1 && shown.length > 1 ? head(list[0]) : title}`,
       meta: [[en ? 'Missed' : 'Χάθηκαν', String(list.reduce((sum, line) => sum + line.missed, 0))]],
-      sections: list.map((line) => ({ title: `${head(line)} (${line.missed})`, table: { columns: [en ? 'Date' : 'Ημερομηνία', en ? 'Missed times' : 'Ώρες που χάθηκαν'], rows: (line.missedDays || []).map((miss: AnyRecord) => { const text = missedText(miss, language); return [text.when, text.times] }), empty: en ? 'No dates for this frequency.' : 'Χωρίς ημερομηνίες για αυτή τη συχνότητα.' } })),
+      sections: list.map((line) => ({ title: `${head(line)} (${line.missed})`, table: { columns: [en ? 'Date' : 'Ημερομηνία', en ? 'Missed times' : 'Ώρες που χάθηκαν'], rows: (line.missedDays || []).map((miss: MissedDay) => { const text = missedText(miss, language); return [text.when, text.times] }), empty: en ? 'No dates for this frequency.' : 'Χωρίς ημερομηνίες για αυτή τη συχνότητα.' } })),
       signatures: [en ? 'Head of department' : 'Προϊστάμενος/η τμήματος', en ? 'Infection control' : 'Υπεύθυνος/η λοιμώξεων'],
       filename: en ? 'missed-controls' : 'xamenoi-elegxoi',
     })
@@ -51,7 +51,7 @@ export function ControlMissedDialog({ lines = [], title, language, onClose }: Co
     {shown.map((line) => <section key={`${line.item.id}|${line.department}`} className="control-missed-section">
       <header>{shown.length > 1 && <CheckboxField className="control-expiry-group-pick" label="" ariaLabel={en ? `Print «${head(line)}»` : `Εκτύπωση «${head(line)}»`} checked={picked.has(keyOf(line))} onChange={() => pick(keyOf(line))} />}<strong>{head(line)}</strong><small>{frequencyLabel(line.frequency || line.item.frequency, language)} · {en ? `${line.missed} missed` : `χάθηκαν ${line.missed}`}</small></header>
       {(line.missedDays || []).length
-        ? <ul>{line.missedDays.slice().reverse().map((miss: AnyRecord) => { const text = missedText(miss, language); return <li key={miss.day}><span>{text.when}</span><strong>{text.times}</strong></li> })}</ul>
+        ? <ul>{line.missedDays!.slice().reverse().map((miss: MissedDay) => { const text = missedText(miss, language); return <li key={miss.day}><span>{text.when}</span><strong>{text.times}</strong></li> })}</ul>
         : <p>{en ? 'The dates are named for daily and weekly controls.' : 'Οι ημερομηνίες φαίνονται για τους ημερήσιους και εβδομαδιαίους ελέγχους.'}</p>}
     </section>)}
   </ObserverDialog>

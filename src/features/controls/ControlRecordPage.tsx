@@ -45,6 +45,8 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { LinkedActions as LinkedActionsJs } from '../quality/LinkedActions'
 import './controlRecord.css'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution } from './controlTypes'
+import type { AdherenceLine } from './controlAdherence'
 import type { ControlRecord } from './controlTypes'
 import type { ExportItem } from '../../design-system/ExportMenu'
 import type { RecordNavigation } from '../../design-system/EntityRecordShell'
@@ -86,7 +88,7 @@ export function ControlRecordPage(){
  const [withMissed,setWithMissed]=useState(false)
  // The order of the executions (newest first by default): the arrow of the date column; the database orders the whole list.
  const [historyOrder,setHistoryOrder]=useState<'asc'|'desc'>('desc')
- const [missedOf,setMissedOf]=useState<{lines:AnyRecord[],title:string}|null>(null)
+ const [missedOf,setMissedOf]=useState<{lines:AdherenceLine[],title:string}|null>(null)
  // Moving to another control starts on its own tab and on the first page of its history.
  if(tabFor!==controlId){setTabFor(controlId);setTab(searchParams.get('tab')||'');setHistoryPage(1)}
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||(membership as AnyRecord|null)?.department||''
@@ -187,13 +189,13 @@ export function ControlRecordPage(){
    const texts=[record.goal&&[en?'Goal':'Στόχος',record.goal],record.acceptanceCriteria&&[en?'Acceptance criteria':'Κριτήρια αποδοχής',record.acceptanceCriteria],[en?'Instructions':'Οδηγίες',record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.')],record.guideNotes&&[en?'Guidance notes':'Σημειώσεις καθοδήγησης',record.guideNotes],deviationActions(record,visibleDepartments[0])&&[en?'Actions on deviation':'Ενέργειες σε απόκλιση',deviationActions(record,visibleDepartments[0])]].filter(Boolean)
    const periodName=periodShort(period,language)
    return {
-    language,kind:en?'Control':'Έλεγχος',title,code:record.code,
+    language,kind:en?'Control':'Έλεγχος',title,code:(record as {code?:string}).code,
     meta:[[en?'Control type':'Είδος ελέγχου',record.category||'—'],[en?'Criticality':'Κρισιμότητα',criticalityLabel(controlCriticality(record),language)],[en?'Evidence':'Τεκμήριο',requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')],[en?'Responsible':'Υπεύθυνος',ownerText(record,language)||'—'],[en?'Frequency':'Συχνότητα',controlFrequencyLabel(record,visibleDepartments,language)],...(!differentSchedules?[[en?'Execution times':'Ώρες εκτέλεσης',timesWithWindows(assignmentFrequency(record,visibleDepartments[0]))||'—']]:[]),[en?'Period':'Περίοδος',periodName]],
     sections:[
      {title:en?'Goal and instructions':'Στόχος και οδηγίες',facts:texts,factColumns:1},
      {title:`${en?'Departments':'Τμήματα'} · ${periodName}`,table:{columns:[en?'Department':'Τμήμα',en?'Responsible':'Υπεύθυνος',en?'Schedule':'Πρόγραμμα',en?'Done':'Έγιναν',en?'Missed':'Χάθηκαν',en?'Adherence':'Τήρηση',en?'Last entry':'Τελευταία καταχώρηση'],rows:assignments.map(({department:dep,assignment:current})=>{const line=lineOf(dep);return [dep,personLabel(record.assignees?.[dep],language)||ownerText(record,language)||'—',[frequencyLabel(assignmentFrequency(record,dep),language),timesWithWindows(assignmentFrequency(record,dep))].filter(Boolean).join(' · '),line?`${Math.min(line.performed,line.expected)} / ${line.expected}`:'—',line?String(line.missed):'—',line?.rate==null?'—':`${line.rate}%`,current?.lastCompletedAt?fmt(current.lastCompletedAt):'—']})}},
      {title:`${en?'Executions':'Εκτελέσεις'} · ${periodName}`,note:(loaded.total||0)>(loaded.rows||[]).length?(en?`The first ${PRINT_LIMIT} of ${loaded.total}.`:`Οι πρώτες ${PRINT_LIMIT} από ${loaded.total}.`):undefined,
-      table:{columns:[en?'Date / time':'Ημερομηνία / ώρα',en?'Department':'Τμήμα',en?'Result':'Αποτέλεσμα',en?'Recorded by':'Καταχώρησε',en?'Notes':'Σημειώσεις'],rows:executions.length?executions.map(h=>{const row:AnyRecord={...h,department:departmentOf.get(h.assignmentId)||''};return [fmt(row.at),row.department,[row.isExtra?(en?'Extra':'Έκτακτη'):'',structuredSummary(row,{record,language}),row.resultText].filter(Boolean).join(' · '),row.by||'—',row.notes||'']}):[[{text:en?'No executions in the period.':'Δεν υπάρχουν εκτελέσεις στην περίοδο.',colSpan:5}]]}},
+      table:{columns:[en?'Date / time':'Ημερομηνία / ώρα',en?'Department':'Τμήμα',en?'Result':'Αποτέλεσμα',en?'Recorded by':'Καταχώρησε',en?'Notes':'Σημειώσεις'],rows:executions.length?executions.map(h=>{const row:AnyRecord={...h,department:departmentOf.get(h.assignmentId as string)||''};return [fmt(row.at),row.department,[row.isExtra?(en?'Extra':'Έκτακτη'):'',structuredSummary(row,{record,language}),row.resultText].filter(Boolean).join(' · '),row.by||'—',row.notes||'']}):[[{text:en?'No executions in the period.':'Δεν υπάρχουν εκτελέσεις στην περίοδο.',colSpan:5}]]}},
     ],
     signatures:[en?'Checked by':'Ελέγχθηκε από'],
    } as ReportDoc
@@ -250,17 +252,17 @@ export function ControlRecordPage(){
  }
  const editExistingExecution=async(payload:AnyRecord)=>{
   const dep=editExecution?.department||department
-  try{await updateControlExecution(tenant!.id,record,dep,editExecution!,payload);setEditExecution(null);await reload();notify(en?'Entry updated.':'Η καταχώρηση ενημερώθηκε.','success')}
+  try{await updateControlExecution(tenant!.id,record,dep,editExecution! as ControlExecution,payload);setEditExecution(null);await reload();notify(en?'Entry updated.':'Η καταχώρηση ενημερώθηκε.','success')}
   catch(error){notifyError(error,'save',{operation:'control_execution_update'})}
  }
  const voidExecution=async(payload:AnyRecord)=>{
   const dep=cancelExecution?.department||department
-  try{await voidControlExecution(tenant!.id,record,dep,cancelExecution!,payload);setCancelExecution(null);await reload();notify(en?'Entry voided.':'Η καταχώρηση αναιρέθηκε.','success')}
+  try{await voidControlExecution(tenant!.id,record,dep,cancelExecution! as ControlExecution,payload);setCancelExecution(null);await reload();notify(en?'Entry voided.':'Η καταχώρηση αναιρέθηκε.','success')}
   catch(error){notifyError(error,'save',{operation:'control_execution_void'})}
  }
  const deleteExecutionEntry=async(payload:AnyRecord)=>{
   const dep=deleteExecution?.department||department
-  try{await voidControlExecution(tenant!.id,record,dep,deleteExecution!,{...payload,reason:`[DELETE] ${payload.reason.trim()}`});setDeleteExecution(null);await reload();notify(en?'Entry deleted.':'Η καταχώρηση διαγράφηκε.','success')}
+  try{await voidControlExecution(tenant!.id,record,dep,deleteExecution! as ControlExecution,{...payload,reason:`[DELETE] ${payload.reason.trim()}`});setDeleteExecution(null);await reload();notify(en?'Entry deleted.':'Η καταχώρηση διαγράφηκε.','success')}
   catch(error){notifyError(error,'save',{operation:'control_execution_delete'})}
  }
 
@@ -290,7 +292,7 @@ export function ControlRecordPage(){
   {canExecute&&visibleDepartments.length===1&&recordTab&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>navigate(`${recordUrl}?edit=1`)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
-  <ExportMenu menuWidth={expiryExport?440:220} ownPrint onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
+  <ExportMenu menuWidth={expiryExport?440:220} ownPrint onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record as unknown as Record<string,unknown>,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
  </>
  const subtitle=visibleDepartments.length===1?visibleDepartments[0]:`${visibleDepartments.length} ${en?'departments':'τμήματα'}`
 

@@ -1,11 +1,16 @@
 import { dueState,nextDeadlineAfter,periodBounds,periodProgress,slotDeadline,slotOpens,slotStarts,slotWindowMinutes,zonedParts } from './controlDueRules'
 import { ROLES } from '../../core/permissions/roles'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution, ControlFrequency, ControlRecord, CountedProgress, PeriodProgress } from './controlTypes'
 
-type Item = AnyRecord | null | undefined
+// When an entry may be recorded (recordWindow): not held to a window, or open, before or closed.
+export type RecordWindow = { gated: boolean, state?: string, opens?: Date | null, closes?: Date | null }
+// A control as the schedule reads it: its status, schedule and departments' assignments.
+type ScheduleAssignment = { frequency?: ControlFrequency | null, nextDueAt?: string | null, status?: string, hasDraft?: boolean, progress?: CountedProgress | null, history?: ControlExecution[] }
+export type ScheduleItem<A extends ScheduleAssignment = ScheduleAssignment> = Partial<Pick<ControlRecord, 'status' | 'frequency'>> & { assignments?: Record<string, A> }
+type Item<A extends ScheduleAssignment = ScheduleAssignment> = ScheduleItem<A> | null | undefined
 type Instant = Date | string | number
 
-export function frequencyLabel(f:AnyRecord={},language='el'){
+export function frequencyLabel(f:ControlFrequency={},language='el'){
  const en=language==='en'
  if(f.kind==='daily'){const label=Number(f.timesPerDay||1)>1?(en?`${f.timesPerDay} times / day`:`${f.timesPerDay} φορές / ημέρα`):(en?'Daily':'Καθημερινά');return f.weekdaysOnly===true?`${label} ${en?'(Mon–Fri)':'(Δευ–Παρ)'}`:label}
  if(f.kind==='weekly')return Number(f.interval||1)===1?(en?'Weekly':'Εβδομαδιαία'):(en?`Every ${f.interval} weeks`:`Κάθε ${f.interval} εβδομάδες`)
@@ -16,13 +21,13 @@ export function frequencyLabel(f:AnyRecord={},language='el'){
 
 const hhmm=(minutes:number)=>minutes>=1440?'23:59':`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`
 // A daily control's times with the window each counts as on time: «09:00 (08:00–11:00)».
-export function timesWithWindows(f:AnyRecord={}){
+export function timesWithWindows(f:ControlFrequency={}){
  const times=(f.times||[]).filter(Boolean)
  if(f.kind!=='daily'||!times.length)return times.join(' · ')
  return times.map((time:string,index:number)=>{const {open,close}=slotWindowMinutes(f,index);return `${time} (${hhmm(open)}–${hhmm(close)})`}).join(' · ')
 }
 // A schedule in a few words: a daily one by its times («07:00, 15:00 · Δευ–Παρ»), any other by its frequency.
-export function scheduleSummary(f:AnyRecord={},language='el'){
+export function scheduleSummary(f:ControlFrequency={},language='el'){
  const times=f.kind==='daily'?(f.times||[]).filter(Boolean):[]
  if(!times.length)return frequencyLabel(f,language)
  return `${times.join(', ')}${f.weekdaysOnly===true?(language==='en'?' · Mon–Fri':' · Δευ–Παρ'):''}`
@@ -41,7 +46,7 @@ export function controlFrequencyLabel(item:Item,departments?:string[]|null,langu
 }
 
 // The same for the lines of an adherence or calendar group (each line knows its own frequency).
-export function linesFrequencyLabel(lines:AnyRecord[]|null|undefined,item:Item,language='el'){
+export function linesFrequencyLabel(lines:{frequency?:ControlFrequency|null}[]|null|undefined,item:Item,language='el'){
  const frequencies=(lines||[]).map(line=>line.frequency||item?.frequency||{})
  if(new Set(frequencies.map(f=>JSON.stringify(f))).size>1)return language==='en'?'Varies by department':'Διαφέρει ανά τμήμα'
  return frequencyLabel(frequencies[0]||item?.frequency,language)
@@ -52,7 +57,7 @@ export function scheduleVariants(item:Item,departments:string[]=Object.keys(item
  return new Set(departments.map(department=>JSON.stringify(assignmentFrequency(item,department)))).size
 }
 
-export function getAssignment(item:Item,department:string):AnyRecord|null{
+export function getAssignment<A extends ScheduleAssignment>(item:Item<A>,department:string):A|null{
  if(!item)return null
  const assignments=item.assignments||{}
  return assignments[department]??Object.values(assignments)[0]??null
@@ -87,7 +92,7 @@ export function canRecordAnytime(role:string|null|undefined){return role===ROLES
 // is not offered: the department asks the infection control team. Other
 // frequencies, and controls without set times, are not held to a window.
 // → { gated:false } | { gated:true, state:'open'|'before'|'closed', opens, closes }
-export function recordWindow(item:Item,department:string,now:Instant=new Date()){
+export function recordWindow(item:Item,department:string,now:Instant=new Date()):RecordWindow{
  const frequency=assignmentFrequency(item,department)
  if(frequency?.kind!=='daily'||!(frequency.times||[]).some(Boolean))return {gated:false}
  const progress=assignmentProgress(item,department,now)
@@ -108,7 +113,7 @@ export function recordWindow(item:Item,department:string,now:Instant=new Date())
 // The current period's progress for one department: { required, done, extra,
 // complete }. The database counts it for the list (control_period_progress);
 // otherwise, and once the period has moved on, the loaded history is counted.
-export function assignmentProgress(item:Item,department:string,now:Instant=new Date()):AnyRecord|null{
+export function assignmentProgress(item:Item,department:string,now:Instant=new Date()):PeriodProgress|null{
  const assignment=getAssignment(item,department)
  if(!assignment)return null
  const frequency=assignmentFrequency(item,department)
@@ -119,7 +124,7 @@ export function assignmentProgress(item:Item,department:string,now:Instant=new D
 }
 
 // A step of the schedule: the next deadline after `fromDate`.
-export function calculateNextDue(itemOrFrequency:AnyRecord|null|undefined,fromDate:Instant=new Date()){
+export function calculateNextDue(itemOrFrequency:(ControlFrequency&{frequency?:ControlFrequency})|null|undefined,fromDate:Instant=new Date()){
  const f=itemOrFrequency?.frequency||itemOrFrequency||{}
  return nextDeadlineAfter(f,fromDate)
 }

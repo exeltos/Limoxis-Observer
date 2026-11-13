@@ -298,7 +298,7 @@ export interface DeviationItem {
 // What the deviation queue reads of the other modules' records: a control and
 // its executions by department, a bundle assessment, a training programme.
 export interface DeviationExecution { id: string, at: string, hasFinding?: boolean, status?: string, value?: unknown, notes?: string }
-export interface DeviationControl { id: string, title: string, titleEn?: string, assignments?: Record<string, { departmentId?: string, history?: DeviationExecution[] }>, responseConfig?: { unit?: string, criticality?: string } | null }
+export interface DeviationControl { id: string, title: string, titleEn?: string, assignments?: Record<string, { departmentId?: string, history?: DeviationExecution[], responseOverride?: { deviationActions?: string } | null }>, responseConfig?: { unit?: string, criticality?: string } | null }
 export interface DeviationBundle { id: string, status: string, date: string, failedCount: number, applicableCount?: number, templateTitle?: string, templateName?: string, departmentEl?: string, departmentEn?: string, departmentId?: string, generalNotes?: string }
 export interface DeviationTraining { id: string, title: string, titleEn?: string, audience?: string, audienceEn?: string, dueDate?: string, effectiveness?: { result?: string, evaluatedAt?: string, criterion?: string, notes?: string } | null }
 export interface DeviationSources { controls: DeviationControl[], bundles: DeviationBundle[], trainings: DeviationTraining[], capas: QualityRecord[] }

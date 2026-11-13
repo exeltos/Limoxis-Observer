@@ -5,8 +5,8 @@
 import { assignmentFrequency, assignmentStatus, getAssignment } from './controlScheduling'
 import { todayProgress } from './controlAdherence'
 import { isDailyFrequency, isWeekdaysOnly, zonedParts } from './controlDueRules'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { ControlRow } from './controlTypes'
+import type { AdherenceLine } from './controlAdherence'
 
 // «Today» on a Saturday or Sunday (owner, 7/11/2026): the departments whose daily controls all run Monday–Friday have
 // nothing to do and leave the view. Empty on working days.
@@ -27,8 +27,11 @@ export function weekendClosedDepartments(rows: ControlRow[] = [], now: Date = ne
 
 const latest = (values: (string | null | undefined)[]) => values.filter(Boolean).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null
 
-export type DepartmentCard = AnyRecord
-export function departmentCards(rows: ControlRow[] = [], adherenceLines: AnyRecord[] = [], now: Date = new Date(), language = 'el') {
+// A department's card: its controls, overdue ones, today's entries, last entry and adherence.
+export interface DepartmentCard { department: string, controls: number, overdue: number, todayDone: number, todayRequired: number, lastAt: string | null, expected: number, counted: number, missed: number, rate?: number | null }
+// The adherence of a line, as the cards and the rates add it up.
+type LineCounts = Pick<AdherenceLine, 'department' | 'expected' | 'performed' | 'missed'> & { item: { id: string } }
+export function departmentCards(rows: ControlRow[] = [], adherenceLines: LineCounts[] = [], now: Date = new Date(), language = 'el') {
   const cards = new Map<string, DepartmentCard>()
   for (const { item, departments } of rows) {
     for (const department of departments) {
@@ -56,7 +59,7 @@ export function departmentCards(rows: ControlRow[] = [], adherenceLines: AnyReco
 }
 
 // The adherence of each control over the departments the list shows (one bar per row).
-export function controlRates(adherenceLines: AnyRecord[] = []) {
+export function controlRates(adherenceLines: Pick<LineCounts, 'item' | 'expected' | 'performed'>[] = []) {
   const totals = new Map<string, { expected: number, counted: number }>()
   for (const line of adherenceLines) {
     const total = totals.get(line.item.id) || { expected: 0, counted: 0 }
