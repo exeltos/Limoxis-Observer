@@ -1,6 +1,6 @@
 import { FINDING_CLASSES, RESULT_VALUE, departmentArea, riskMonths, standardShort } from './auditStandards'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditAnswer, AuditDepartment, AuditFinding, AuditQuestion, AuditTeamMember, AuditTemplate, AuditTemplateDraft, AuditorAssignment, AuditorCertificate, AuditorProgram, QualityAudit, TemplateChapter } from './auditTypes'
 
 // The audit programme in pure functions: which questions an audit asks, how it
 // scores, which answers become findings, whether the team is independent and
@@ -18,7 +18,7 @@ const addMonths = (day: string, months: number) => { const date = new Date(`${St
 // A scope entry is a chapter («7», «IPSG», «ΧΠ-3») or a clause («7.1.5»): a
 // question is in scope when its chapter or clause is listed, or its clause is
 // under a listed clause (7.1 covers 7.1.5, not 7.10).
-export function inScope(question: AnyRecord, scope: string[] = []) {
+export function inScope(question: AuditQuestion, scope: string[] = []) {
   const list = (scope || []).map(text).filter(Boolean)
   if (!list.length) return true
   const clause = text(question.clauseRef), chapter = text(question.chapterRef)
@@ -27,7 +27,7 @@ export function inScope(question: AnyRecord, scope: string[] = []) {
 
 // A question applies to an area when it lists none or lists that area. An
 // audit of the whole organization (no department) asks every question.
-export function questionApplies(question: AnyRecord, area: string) {
+export function questionApplies(question: AuditQuestion, area: string) {
   if (!area) return true
   const areas = question.areas || []
   return !areas.length || areas.includes(area)
@@ -35,17 +35,17 @@ export function questionApplies(question: AnyRecord, area: string) {
 
 // The checklist an audit opens with: the template's questions for the
 // department's area and the clauses in scope, each an answer row.
-export function questionsForAudit(template: AnyRecord | null | undefined, { department = '', scope = [], allAreas = false }: { department?: string, scope?: string[], allAreas?: boolean } = {}) {
+export function questionsForAudit(template: AuditTemplate | null | undefined, { department = '', scope = [], allAreas = false }: { department?: string, scope?: string[], allAreas?: boolean } = {}) {
   const area = department && !allAreas ? departmentArea(department) : ''
   return (template?.questions || [])
-    .filter((question: AnyRecord) => questionApplies(question, area) && inScope(question, scope))
-    .sort((a: AnyRecord, b: AnyRecord) => (a.position || 0) - (b.position || 0))
-    .map((question: AnyRecord, index: number) => answerRow(question, index))
+    .filter((question: AuditQuestion) => questionApplies(question, area) && inScope(question, scope))
+    .sort((a: AuditQuestion, b: AuditQuestion) => (a.position || 0) - (b.position || 0))
+    .map((question: AuditQuestion, index: number) => answerRow(question, index))
 }
 
 // An audit that covers several standards: the questions of each standard's
 // questionnaire one after the other, each row tagged with its standard.
-export function questionsForStandards(templates: AnyRecord[] = [], options: AnyRecord = {}) {
+export function questionsForStandards(templates: (AuditTemplate | null | undefined)[] = [], options: { department?: string, scope?: string[], allAreas?: boolean } = {}) {
   const rows = []
   for (const template of templates.filter(Boolean)) {
     for (const row of questionsForAudit(template, options)) rows.push({ ...row, id: `q-${template.standard}-${row.templateQuestionId || rows.length + 1}`, standard: template.standard || '', position: rows.length + 1 })
@@ -55,9 +55,9 @@ export function questionsForStandards(templates: AnyRecord[] = [], options: AnyR
 
 // The key of a question's chapter: its standard and chapter (the same chapter
 // number means different things in two standards).
-export const chapterKey = (row: AnyRecord) => `${row.standard || ''}|${row.chapterRef || row.clauseRef?.split('.')[0] || ''}`
+export const chapterKey = (row: AuditAnswer) => `${row.standard || ''}|${row.chapterRef || row.clauseRef?.split('.')[0] || ''}`
 
-export function answerRow(question: AnyRecord, index = 0) {
+export function answerRow(question: AuditQuestion, index = 0) {
   return {
     id: `q-${question.id || index + 1}`,
     templateQuestionId: question.id || null,
@@ -87,7 +87,7 @@ export function adHocRow(item: string, { clauseRef = '', chapterRef = '', chapte
 }
 
 // The chapters of a template in order, for the scope picker and the coverage.
-export function templateChapters(template: AnyRecord | null | undefined) {
+export function templateChapters(template: Partial<AuditTemplateDraft> | null | undefined): TemplateChapter[] {
   const chapters = new Map()
   for (const question of template?.questions || []) {
     const key = question.chapterRef || '—'
@@ -104,11 +104,11 @@ export function templateChapters(template: AnyRecord | null | undefined) {
 // Weighted compliance: a conforming answer counts its weight, a partial one
 // half, a nonconformity nothing; «not applicable» and unanswered rows are left
 // out. Per chapter and overall, as a whole percentage.
-function tally(rows: AnyRecord[]) {
+function tally(rows: AuditAnswer[]) {
   let points = 0, weight = 0
   const counts = { yes: 0, partial: 0, no: 0, na: 0, unanswered: 0 }
   for (const row of rows) {
-    const value = RESULT_VALUE[row.answer]
+    const value = RESULT_VALUE[row.answer as string]
     if (row.answer === 'na') counts.na += 1
     else if (value === undefined) counts.unanswered += 1
     else {
@@ -122,7 +122,7 @@ function tally(rows: AnyRecord[]) {
   return { ...counts, applicable, answered: applicable + counts.na, total: rows.length, rate: weight ? round(points * 100 / weight) : null, points, weight }
 }
 
-export function auditScore(rows: AnyRecord[] = []) {
+export function auditScore(rows: AuditAnswer[] = []) {
   const chapters = new Map()
   const standards = new Map()
   for (const row of rows) {
@@ -142,17 +142,17 @@ export function auditScore(rows: AnyRecord[] = []) {
 }
 
 // The old shape the lists and the programme read (rate, applicable, yes).
-export const complianceOf = (record: AnyRecord) => {
+export const complianceOf = (record: QualityAudit) => {
   const { overall } = auditScore(record?.checklist || [])
   return { rate: overall.rate, applicable: overall.applicable, yes: overall.yes, no: overall.no, partial: overall.partial, unanswered: overall.unanswered }
 }
 
 // --- Findings -------------------------------------------------------------------------------
 
-export const needsClass = (row: AnyRecord) => row.answer === 'partial' || row.answer === 'no'
+export const needsClass = (row: AuditAnswer) => row.answer === 'partial' || row.answer === 'no'
 // The answers still to classify, and the classified ones still without a finding.
-export const unclassified = (rows: AnyRecord[] = []) => rows.filter(row => needsClass(row) && !row.findingClass)
-export const awaitingFinding = (rows: AnyRecord[] = []) => rows.filter(row => !row.findingId && ((needsClass(row) && row.findingClass) || (row.answer === 'yes' && ['observation', 'opportunity'].includes(row.findingClass))))
+export const unclassified = (rows: AuditAnswer[] = []) => rows.filter(row => needsClass(row) && !row.findingClass)
+export const awaitingFinding = (rows: AuditAnswer[] = []) => rows.filter(row => !row.findingId && ((needsClass(row) && row.findingClass) || (row.answer === 'yes' && ['observation', 'opportunity'].includes(row.findingClass as string))))
 // A class that suits the answer: a nonconformity is major or minor; a partial
 // one any of the four; a conforming answer only an observation or opportunity.
 export function classesFor(answer: string) {
@@ -162,11 +162,11 @@ export function classesFor(answer: string) {
   return []
 }
 
-const classOf = (value: string) => FINDING_CLASSES.find(entry => entry.value === value) || FINDING_CLASSES[1]
+const classOf = (value: string | undefined) => FINDING_CLASSES.find(entry => entry.value === value) || FINDING_CLASSES[1]
 
 // The finding an answer becomes: titled by its clause, classified, due by its
 // class, pointing back at the audit and the question.
-export function findingDraftFromAnswer(audit: AnyRecord, row: AnyRecord, { language = 'el', owner = '', dueDate = '' } = {}) {
+export function findingDraftFromAnswer(audit: QualityAudit, row: AuditAnswer, { language = 'el', owner = '', dueDate = '' } = {}) {
   const en = language === 'en'
   const cls = classOf(row.findingClass)
   const date = audit.completedDate || audit.closingMeeting?.date || today()
@@ -199,7 +199,7 @@ export function findingDraftFromAnswer(audit: AnyRecord, row: AnyRecord, { langu
 }
 
 // The CAPA a finding raises, with its owner and due date.
-export function capaDraftFromFinding(finding: AnyRecord, { owner = '', dueDate = '', language = 'el' } = {}) {
+export function capaDraftFromFinding(finding: AuditFinding, { owner = '', dueDate = '', language = 'el' } = {}) {
   const en = language === 'en'
   return {
     title: en ? `Corrective action: ${finding.titleEn || finding.title}` : `Διορθωτική ενέργεια: ${finding.title}`,
@@ -223,7 +223,7 @@ export function capaDraftFromFinding(finding: AnyRecord, { owner = '', dueDate =
 
 // --- The team -------------------------------------------------------------------------------
 
-const sameDepartment = (member: AnyRecord, department: AnyRecord) => {
+const sameDepartment = (member: AuditTeamMember, department: AuditDepartment) => {
   if (!member || member.external) return false
   if (member.departmentId && department.id) return String(member.departmentId) === String(department.id)
   return Boolean(member.department && department.name) && text(member.department).toLowerCase() === text(department.name).toLowerCase()
@@ -231,16 +231,16 @@ const sameDepartment = (member: AnyRecord, department: AnyRecord) => {
 
 // Independence: no one audits their own department. The lead auditor of their
 // own department blocks the audit; a team member there is a warning.
-export function independenceIssues(team: AnyRecord[] = [], department: AnyRecord = {}) {
+export function independenceIssues(team: AuditTeamMember[] = [], department: AuditDepartment = {}) {
   if (!department?.id && !department?.name) return []
   return team.filter(member => sameDepartment(member, department)).map(member => ({ member, level: member.role === 'lead' ? 'block' : 'warn' }))
 }
-export const independenceBlocks = (team: AnyRecord[], department: AnyRecord) => independenceIssues(team, department).some(issue => issue.level === 'block')
+export const independenceBlocks = (team: AuditTeamMember[], department: AuditDepartment) => independenceIssues(team, department).some(issue => issue.level === 'block')
 
 const AUDITOR = /επιθεωρ|auditor|ελεγκτ/i
 // Competence: an employee on the team should hold an auditor certificate still
 // valid, or have completed an auditor training. External auditors are not checked.
-export function competenceWarnings(team: AnyRecord[] = [], { certificates = [], assignments = [], programs = [] }: { certificates?: AnyRecord[], assignments?: AnyRecord[], programs?: AnyRecord[] } = {}, on = today()) {
+export function competenceWarnings(team: AuditTeamMember[] = [], { certificates = [], assignments = [], programs = [] }: { certificates?: AuditorCertificate[], assignments?: AuditorAssignment[], programs?: AuditorProgram[] } = {}, on = today()) {
   const auditorPrograms = new Set(programs.filter(program => AUDITOR.test(`${program.title || ''} ${program.titleEn || ''} ${program.category || ''}`)).map(program => program.id))
   return team.filter(member => member.employeeId && !member.external).filter(member => {
     const certified = certificates.some(item => item.employeeId === member.employeeId && AUDITOR.test(`${item.title || ''} ${item.titleEn || ''}`) && (!item.validUntil || item.validUntil >= on))
@@ -254,16 +254,16 @@ export function competenceWarnings(team: AnyRecord[] = [], { certificates = [], 
 export const nextAuditDate = (lastDate: string, riskLevel: string) => (lastDate ? addMonths(lastDate, riskMonths(riskLevel)) : '')
 
 // Without a planned next audit: the completed one's date plus its frequency (6 months unless set).
-export const followingAuditDate = (audit: AnyRecord) => (audit.status === 'completed' && audit.completedDate ? addMonths(audit.completedDate, audit.frequencyMonths || 6) : '')
+export const followingAuditDate = (audit: QualityAudit) => (audit.status === 'completed' && audit.completedDate ? addMonths(audit.completedDate, audit.frequencyMonths || 6) : '')
 
 // A department is audited twice a year (every 6 months unless its audit says
 // otherwise) and always has its next audit planned. The database does the same
 // when an audit is completed (quality_schedule_next_audit).
-const isLiveInternal = (audit: AnyRecord) => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled' && (audit.auditType || 'internal') === 'internal' && Boolean(audit.department)
-const isOpenAudit = (audit: AnyRecord) => audit.status === 'planned' || audit.status === 'in_progress'
+const isLiveInternal = (audit: QualityAudit) => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled' && (audit.auditType || 'internal') === 'internal' && Boolean(audit.department)
+const isOpenAudit = (audit: QualityAudit) => audit.status === 'planned' || audit.status === 'in_progress'
 
 // Per department: audits of the year (done or planned) and whether one is still planned.
-export function auditCoverage(audits: AnyRecord[] = [], year = today().slice(0, 4)) {
+export function auditCoverage(audits: QualityAudit[] = [], year = today().slice(0, 4)) {
   const byDepartment = new Map()
   audits.filter(isLiveInternal).forEach(audit => {
     const entry = byDepartment.get(audit.department) || { department: audit.department, inYear: 0, hasNext: false }
@@ -277,7 +277,7 @@ export function auditCoverage(audits: AnyRecord[] = [], year = today().slice(0, 
 
 // The next audit of every department that has none open: its last audit's
 // standard, questionnaire and lead auditor, a month (the 15th), never in the past.
-export function missingNextAudits(audits: AnyRecord[] = [], on = today()) {
+export function missingNextAudits(audits: QualityAudit[] = [], on = today()) {
   const latest = new Map()
   audits.filter(isLiveInternal).forEach(audit => {
     const key = `${audit.department}|${audit.standard || ''}`
@@ -300,7 +300,7 @@ export function missingNextAudits(audits: AnyRecord[] = [], on = today()) {
 // Clause coverage of a standard in a year: for each chapter of its
 // questionnaire and each department audited for it, whether the chapter was
 // audited (with its compliance), is planned, or is a gap.
-export function clauseCoverage(audits: AnyRecord[] = [], template: AnyRecord, year: string | number, departments: AnyRecord[] = []) {
+export function clauseCoverage(audits: QualityAudit[] = [], template: Partial<AuditTemplate>, year: string | number, departments: AuditDepartment[] = []) {
   const chapters = templateChapters(template)
   const inYear = audits.filter(audit => audit.standard === template?.standard && audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided' && String(audit.plannedDate || audit.completedDate || '').startsWith(String(year)))
   const names = new Map(departments.map(department => [department.name, department]))
@@ -308,7 +308,7 @@ export function clauseCoverage(audits: AnyRecord[] = [], template: AnyRecord, ye
   const rows = [...names.values()].map(department => {
     const own = inYear.filter(audit => (audit.department || '') === department.name)
     const cells = chapters.map(chapter => {
-      const answered = own.flatMap(audit => (audit.checklist || []).filter((row: AnyRecord) => (row.chapterRef || '') === chapter.ref && row.answer).map((row: AnyRecord) => ({ ...row, auditId: audit.id, date: audit.completedDate || audit.plannedDate })))
+      const answered = own.flatMap(audit => (audit.checklist || []).filter((row: AuditAnswer) => (row.chapterRef || '') === chapter.ref && row.answer).map((row: AuditAnswer) => ({ ...row, auditId: audit.id, date: audit.completedDate || audit.plannedDate })))
       if (answered.length) {
         const score = auditScore(answered).overall
         return { ref: chapter.ref, state: 'audited', rate: score.rate, answered: answered.length, last: answered.map(row => row.date).sort().at(-1) }
@@ -326,11 +326,11 @@ export function clauseCoverage(audits: AnyRecord[] = [], template: AnyRecord, ye
 
 const average = (list: (number | null)[]) => (list.length ? round(list.reduce((sum: number, value) => sum + (value ?? 0), 0) / list.length) : null)
 
-export function auditDashboard(audits: AnyRecord[] = [], findings: AnyRecord[] = [], { year = new Date().getFullYear(), standard = '' } = {}) {
+export function auditDashboard(audits: QualityAudit[] = [], findings: AuditFinding[] = [], { year = new Date().getFullYear(), standard = '' } = {}) {
   const live = audits.filter(audit => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided')
   const scored = live.map(audit => ({ audit, score: auditScore(audit.checklist || []) })).filter(entry => entry.score.overall.rate != null)
   const inYear = scored.filter(entry => String(entry.audit.completedDate || entry.audit.plannedDate || '').startsWith(String(year)))
-  const group = (list: AnyRecord[], key: (entry: AnyRecord) => string) => {
+  const group = (list: typeof inYear, key: (entry: typeof inYear[number]) => string | undefined) => {
     const map = new Map<string, (number | null)[]>()
     for (const entry of list) { const k = key(entry) || ''; if (!map.has(k)) map.set(k, []); map.get(k)?.push(entry.score.overall.rate) }
     return [...map.entries()].map(([k, rates]) => ({ key: k, audits: rates.length, rate: average(rates) })).sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101))
@@ -357,8 +357,8 @@ export function auditDashboard(audits: AnyRecord[] = [], findings: AnyRecord[] =
     standard: chosen,
     audits: inYear.length,
     rate: average(inYear.map(entry => entry.score.overall.rate)),
-    byStandard: group(inYear, (entry: AnyRecord) => entry.audit.standard),
-    byDepartment: group(inYear, (entry: AnyRecord) => entry.audit.department),
+    byStandard: group(inYear, entry => entry.audit.standard),
+    byDepartment: group(inYear, entry => entry.audit.department),
     byChapter: [...byChapter.values()].map(entry => ({ ref: entry.ref, title: entry.title, ...tally(entry.rows) })),
     trend,
     openFindings: open.length,
@@ -370,8 +370,8 @@ export function auditDashboard(audits: AnyRecord[] = [], findings: AnyRecord[] =
 
 // What the Management Review reads for a period: per standard the audits and
 // their average compliance, the findings by class and those still open.
-export function auditReviewSummary(audits: AnyRecord[] = [], findings: AnyRecord[] = [], inPeriod: (day: string) => boolean = () => true) {
-  const live = audits.filter(audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled' && inPeriod(audit.completedDate || audit.plannedDate))
+export function auditReviewSummary(audits: QualityAudit[] = [], findings: AuditFinding[] = [], inPeriod: (day: string) => boolean = () => true) {
+  const live = audits.filter(audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled' && inPeriod((audit.completedDate || audit.plannedDate) as string))
   const byStandard = new Map()
   for (const audit of live) {
     const key = audit.standard || 'other'
@@ -448,7 +448,7 @@ export function workingDays(start: string, count = 3) {
   }
   return days
 }
-export function spreadAuditRound(audits: AnyRecord[] = [], start: string, count = 3) {
+export function spreadAuditRound(audits: QualityAudit[] = [], start: string, count = 3) {
   const days = workingDays(start, count)
   const monthOf = String(start).slice(0, 7)
   const open = audits
@@ -460,11 +460,11 @@ export function spreadAuditRound(audits: AnyRecord[] = [], start: string, count 
 // An audit round to arrange: the days, and every department with the day it goes on (an index into
 // `days`) or none. The departments with a planned audit in the month of the first day start on a
 // day, spread evenly; the others start outside the round and can be added.
-export function roundPlan(audits: AnyRecord[] = [], departments: AnyRecord[] = [], start: string, count = 3) {
+export function roundPlan(audits: QualityAudit[] = [], departments: AuditDepartment[] = [], start: string, count = 3) {
   const days = workingDays(start, count)
   const { assignments } = spreadAuditRound(audits, start, count)
   const planned = new Map(assignments.map(item => [String(item.audit.department).trim(), item]))
-  const items = assignments.map(item => ({ key: `audit:${item.audit.id}`, auditId: item.audit.id, department: item.audit.department, departmentEn: item.audit.departmentEn || item.audit.department, departmentId: item.audit.departmentId || '', day: days.indexOf(item.plannedDate) as number | null }))
+  const items = assignments.map(item => ({ key: `audit:${item.audit.id}`, auditId: item.audit.id as string | null | undefined, department: item.audit.department, departmentEn: item.audit.departmentEn || item.audit.department, departmentId: item.audit.departmentId || '', day: days.indexOf(item.plannedDate) as number | null }))
   for (const department of departments) {
     if (planned.has(String(department.name).trim())) continue
     items.push({ key: `department:${department.id || department.name}`, auditId: null, department: department.name, departmentEn: department.nameEn || department.name, departmentId: department.id || '', day: null })
@@ -479,7 +479,7 @@ export function roundPlan(audits: AnyRecord[] = [], departments: AnyRecord[] = [
 // The standards a question counts for: the ones its clause reference names («JCI IPSG.1 · ISO 9001 8.5»,
 // as the basic questionnaire writes them), else its own standard, else the audit's.
 const TAGS: [string, RegExp][] = [['iso9001', /ISO ?9001/], ['jci', /\bJCI\b/], ['temos', /TEMOS/]]
-export function rowStandards(row: AnyRecord, audit: AnyRecord = {}) {
+export function rowStandards(row: AuditAnswer, audit: QualityAudit = {}) {
   const text = String(row.clauseRef || '')
   const tagged = TAGS.filter(([, pattern]) => pattern.test(text)).map(([value]) => value)
   if (tagged.length) return tagged
@@ -487,12 +487,12 @@ export function rowStandards(row: AnyRecord, audit: AnyRecord = {}) {
   return own ? [own] : []
 }
 export const READINESS_ORDER = ['iso9001', 'iso15224', 'jci', 'temos', 'iso15189', 'haccp']
-export function auditReadiness(audits: AnyRecord[] = [], findings: AnyRecord[] = [], on = today()) {
+export function auditReadiness(audits: QualityAudit[] = [], findings: AuditFinding[] = [], on = today()) {
   const year = on.slice(0, 4)
   const live = audits.filter(audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled')
   const completed = live.filter(audit => audit.status === 'completed').sort((a, b) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))
-  const standardsOf = (audit: AnyRecord) => {
-    const tagged = new Set((audit.checklist || []).flatMap((row: AnyRecord) => (row.standard || row.clauseRef ? rowStandards(row, audit) : [])).filter(Boolean))
+  const standardsOf = (audit: QualityAudit) => {
+    const tagged = new Set((audit.checklist || []).flatMap((row: AuditAnswer) => (row.standard || row.clauseRef ? rowStandards(row, audit) : [])).filter(Boolean))
     return tagged.size ? [...tagged] : [audit.standard, ...(audit.standards || [])].filter(Boolean)
   }
   const found = new Set(live.flatMap(standardsOf))
@@ -505,7 +505,8 @@ export function auditReadiness(audits: AnyRecord[] = [], findings: AnyRecord[] =
       const key = audit.department || ''
       if (!latest.has(key)) latest.set(key, audit)
     }
-    const answers = [...latest.values()].flatMap(audit => (audit.checklist || []).filter((row: AnyRecord) => rowStandards(row, audit).includes(standard)))
+    const answers = [...latest.values()].flatMap(audit => (audit.checklist || []).filter((row: AuditAnswer) => rowStandards(row, audit).includes(standard)))
+
     const score = auditScore(answers)
     const departments = [...latest.keys()]
     const thisYear = [...latest.values()].filter(audit => String(audit.completedDate || audit.plannedDate || '').startsWith(year)).length

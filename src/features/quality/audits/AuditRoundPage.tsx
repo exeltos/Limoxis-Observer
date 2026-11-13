@@ -18,7 +18,7 @@ import { useDepartments } from '../../management/useLibraries'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { useAuditTemplates } from './useAuditTemplates'
 import { roundPlan, workingDays } from './auditModel'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { AuditTemplate, QualityAudit, RoundAssignment, RoundItem } from './auditTypes'
 
 const L = (en: boolean, el: string, english: string) => (en ? english : el)
 const evenly = (keys: string[], days: number) => Object.fromEntries(keys.map((key: string, index: number) => [key, Math.min(days - 1, Math.floor(index * days / keys.length))]))
@@ -36,14 +36,14 @@ export function AuditRoundPage() {
   const { tenant, role, membership, actualRole, isRolePreview } = useTenant()
   const addOns = membership?.capabilities ?? [], custom = membership?.customCapabilities ?? []
   const canManage = (!isRolePreview && actualRole === ROLES.PLATFORM_OWNER) || can(role, CAPABILITIES.MANAGE_QUALITY, addOns, custom)
-  const [audits, setAudits] = useState<AnyRecord[] | null>(null)
+  const [audits, setAudits] = useState<QualityAudit[] | null>(null)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     let active = true
     loadQualityRecords('audits', tenant?.id).then(rows => { if (active) setAudits(rows) }).catch(() => { if (active) setAudits([]) })
     return () => { active = false }
   }, [tenant?.id])
-  const onApply = async (items: AnyRecord[], template: AnyRecord | null, days: number) => {
+  const onApply = async (items: RoundAssignment[], template: AuditTemplate | null, days: number) => {
     setSaving(true)
     try {
       const count = await applyAuditRound(tenant?.id, items, { template, userId: user?.id || null, days })
@@ -60,12 +60,12 @@ export function AuditRoundPage() {
   </EntityRecordShell></Page>
 }
 
-function AuditRoundForm({ audits, language, saving, onCancel, onApply }: { audits: AnyRecord[], language: string, saving: boolean, onCancel: () => void, onApply: (items: AnyRecord[], template: AnyRecord | null, days: number) => void }) {
+function AuditRoundForm({ audits, language, saving, onCancel, onApply }: { audits: QualityAudit[], language: string, saving: boolean, onCancel: () => void, onApply: (items: RoundAssignment[], template: AuditTemplate | null, days: number) => void }) {
   const en = language === 'en'
   const { tenant } = useTenant()
-  const { departments }: { departments: AnyRecord[] } = useDepartments()
+  const { departments } = useDepartments()
   const { templates } = useAuditTemplates(tenant?.id)
-  const firstOpen = useMemo(() => audits.filter((audit: AnyRecord) => audit.status === 'planned' && audit.lifecycleStatus !== 'voided' && audit.department && audit.plannedDate).map((audit: AnyRecord) => String(audit.plannedDate)).sort()[0] || '', [audits])
+  const firstOpen = useMemo(() => audits.filter((audit: QualityAudit) => audit.status === 'planned' && audit.lifecycleStatus !== 'voided' && audit.department && audit.plannedDate).map((audit: QualityAudit) => String(audit.plannedDate)).sort()[0] || '', [audits])
   const [start, setStart] = useState(() => (firstOpen ? workingDays(`${firstOpen.slice(0, 7)}-10`, 1)[0] : ''))
   const [count, setCount] = useState('3')
   const base = useMemo(() => (start ? roundPlan(audits, departments, start, Number(count)) : { days: [], items: [] }), [audits, departments, start, count])
@@ -95,7 +95,7 @@ function AuditRoundForm({ audits, language, saving, onCancel, onApply }: { audit
     onDrop: (event: DragEvent) => { event.preventDefault(); drop(target) },
     onClick: () => { if (picked) drop(target) },
   })
-  const chip = (item: AnyRecord) => <button type="button" key={item.key} draggable className={`audit-dept-chip${picked === item.key ? ' is-picked' : ''}${item.auditId ? '' : ' is-new'}`} aria-pressed={picked === item.key}
+  const chip = (item: RoundItem) => <button type="button" key={item.key} draggable className={`audit-dept-chip${picked === item.key ? ' is-picked' : ''}${item.auditId ? '' : ' is-new'}`} aria-pressed={picked === item.key}
     title={item.auditId ? item.department : `${item.department} · ${L(en, 'νέα επιθεώρηση', 'new audit')}`}
     onDragStart={event => { setDragging(item.key); event.dataTransfer.setData('text/plain', item.key); event.dataTransfer.effectAllowed = 'move' }}
     onDragEnd={() => { setDragging(null); setOver(null) }}

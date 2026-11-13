@@ -17,7 +17,7 @@ import { independenceBlocks } from './auditModel'
 import { AuditPlanFields } from './AuditPlanFields'
 import { useAuditTemplates, useAuditorCompetence } from './useAuditTemplates'
 import './audits.css'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { QualityAudit } from './auditTypes'
 
 const L = (en: boolean, el: string, english: string) => (en ? english : el)
 
@@ -36,15 +36,15 @@ export function AuditPlanPage() {
   const actor = useMemo(() => auditActorFromAuth({ profile, user }), [profile, user])
   const { templates } = useAuditTemplates(tenant?.id)
   const competence = useAuditorCompetence(tenant?.id)
-  const [record, setRecord] = useState<AnyRecord | null>(null)
-  const [draft, setDraft] = useState<AnyRecord | null>(null)
+  const [record, setRecord] = useState<QualityAudit | null>(null)
+  const [draft, setDraft] = useState<QualityAudit | null>(null)
   const [missing, setMissing] = useState(false)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     let active = true
     loadQualityRecords('audits', tenant?.id).then(rows => {
       if (!active) return
-      const found = rows.find((row: AnyRecord) => String(row.id) === String(recordId))
+      const found = rows.find((row: QualityAudit) => String(row.id) === String(recordId))
       if (found) { setRecord(found); setDraft(structuredClone(found)) } else setMissing(true)
     }).catch(() => { if (active) setMissing(true) })
     return () => { active = false }
