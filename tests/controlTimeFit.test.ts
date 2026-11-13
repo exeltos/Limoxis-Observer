@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { fitCount, minutesBySlot, proposeTimes, timeFitLines, typicalTime } from '../src/features/controls/controlTimeFit'
 import { zonedInstant } from '../src/features/controls/controlDueRules'
 import { readSource } from './helpers/readSource'
+import type { ControlRow } from '../src/features/controls/controlTypes'
 
 const h = (hour, minute = 0) => hour * 60 + minute
 const at = (day, hour, minute = 0) => ({ at: zonedInstant(2026, 10, day, h(hour, minute)).toISOString() })
@@ -23,7 +24,7 @@ describe('control times against practice', () => {
     expect(proposeTimes({ kind: 'daily', times: ['08:00'] }, [[h(8), h(8, 30), h(7, 30)]])).toEqual([h(8)])
   })
   it('offers a change only when it catches clearly more entries', () => {
-    const item = (times, history) => ({ item: { id: 'C', title: 'Ψυγείο', frequency: { kind: 'daily', times }, assignments: { ΜΕΘ: { dbId: 'a1', history } } }, departments: ['ΜΕΘ'] })
+    const item = (times, history): ControlRow => ({ item: { id: 'C', title: 'Ψυγείο', frequency: { kind: 'daily', times }, assignments: { ΜΕΘ: { dbId: 'a1', history } } }, departments: ['ΜΕΘ'] }) as never
     const days = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     const range = { from: '2026-10-01T00:00:00Z', to: '2026-10-31T00:00:00Z' }
     const [early] = timeFitLines([item(['09:00'], days.map((d) => at(d, 6, 30)))], null, range)
