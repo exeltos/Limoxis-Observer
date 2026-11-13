@@ -11,7 +11,7 @@ import { demoDatesValid } from './platformDemoService'
 import { AccessLinkDialog } from './DemoAccessLinkDialog'
 import './demoWizard.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DemoCreatedEvaluator, DemoCreationResult, DemoLinkedEvaluator, DemoEvaluatorInput, DemoSeedSummary, DemoWizardDraft } from './platformDemoTypes'
 
 export const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
 export const HEALTH_REGIONS=['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
@@ -26,14 +26,14 @@ const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const addDays=(isoDate: string,days: number)=>{const date=new Date(`${isoDate}T00:00:00Z`);if(Number.isNaN(date.getTime()))return '';date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)}
 const fmtDay=(value: string|null|undefined,en: boolean)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${value}T12:00:00`)):'—'
 
-export function emptyDemoWizardDraft(days=30){
+export function emptyDemoWizardDraft(days=30): DemoWizardDraft{
   const validFrom=hospitalToday()
   return {label:'',type:'hospital',region:'',healthRegion:'',city:'',country:'Ελλάδα',contactPhone:'',bedCapacity:'',contactName:'',contactEmail:'',validFrom,validUntil:addDays(validFrom,days),adminName:'',adminEmail:'',access:'invite'}
 }
 
 // The one user the Owner creates: the Demo's Hospital Admin (the contact
 // person unless someone else is named). The admin adds the rest inside the Demo.
-export function wizardAdmin(draft: AnyRecord){
+export function wizardAdmin(draft: Pick<DemoWizardDraft,'adminName'|'contactName'|'adminEmail'|'contactEmail'|'access'>): DemoEvaluatorInput{
   return {
     fullName:(draft.adminName||draft.contactName||'').trim(),
     email:(draft.adminEmail||draft.contactEmail||'').trim().toLowerCase(),
@@ -50,10 +50,10 @@ function demoContents(en: boolean){
     :['8 τμήματα, 48 ασθενείς με τις νοσηλείες τους','Επιτήρηση με ΛΣΦΥ, απομονώσεις, μικροβιολογικά και αντιβιογράμματα','Υγιεινή χεριών, δέσμες μέτρων, απόβλητα και αντισηπτικά','Επαναλαμβανόμενοι έλεγχοι με ευρήματα, εκπαιδεύσεις με πιστοποιητικά','Φαρμακείο DDD, συμβάντα ποιότητας και διορθωτικές ενέργειες, επιτροπές και έγγραφα','Επαγγελματική υγεία: εμβολιασμοί, επισκέψεις, εκθέσεις']
 }
 
-export function DemoCreateWizard({language,defaultDurationDays=30,maxUsers=5,saving=false,result=null,onSubmit,onClose,initialStep=0,initialDraft=null}: {language: string,defaultDurationDays?: number,maxUsers?: number,saving?: boolean,result?: AnyRecord|null,onSubmit?: (payload: AnyRecord)=>unknown,onClose: ()=>void,initialStep?: number,initialDraft?: AnyRecord|null}){
+export function DemoCreateWizard({language,defaultDurationDays=30,maxUsers=5,saving=false,result=null,onSubmit,onClose,initialStep=0,initialDraft=null}: {language: string,defaultDurationDays?: number,maxUsers?: number,saving?: boolean,result?: DemoCreationResult|null,onSubmit?: (payload: DemoWizardDraft&{evaluators: DemoEvaluatorInput[]})=>unknown,onClose: ()=>void,initialStep?: number,initialDraft?: DemoWizardDraft|null}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const [step,setStep]=useState(initialStep)
-  const [draft,setDraft]=useState<AnyRecord>(()=>initialDraft||emptyDemoWizardDraft(defaultDurationDays))
+  const [draft,setDraft]=useState<DemoWizardDraft>(()=>initialDraft||emptyDemoWizardDraft(defaultDurationDays))
   const set=(key: string,value: unknown)=>setDraft(c=>({...c,[key]:value}))
   const admin=wizardAdmin(draft)
   const stepValid=[
@@ -160,19 +160,19 @@ function DemoEmailPreview({language,name,label,validFrom,validUntil}: {language:
   </div>
 }
 
-function DemoCreatedDialog({language,result,onClose}: {language: string,result: AnyRecord,onClose: ()=>void}){
+function DemoCreatedDialog({language,result,onClose}: {language: string,result: DemoCreationResult,onClose: ()=>void}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
-  const [copied,setCopied]=useState('')
-  const [linkFor,setLinkFor]=useState<AnyRecord | null>(null)
+  const [copied,setCopied]=useState<string|undefined>('')
+  const [linkFor,setLinkFor]=useState<DemoLinkedEvaluator | null>(null)
   const users=result?.evaluators||[]
-  const copy=async (user: AnyRecord)=>{try{await navigator.clipboard?.writeText(`${user.username} / ${user.temporaryPassword}`);setCopied(user.username)}catch{setCopied('')}}
+  const copy=async (user: DemoCreatedEvaluator)=>{try{await navigator.clipboard?.writeText(`${user.username} / ${user.temporaryPassword}`);setCopied(user.username)}catch{setCopied('')}}
   return <ObserverDialog width="wide" className="demo-wizard-done" eyebrow={tx('Το Demo είναι έτοιμο','The Demo is ready')} title={result?.organization?.name||tx('Νέο Demo','New Demo')} subtitle={tx('Ο κωδικός εμφανίζεται μόνο τώρα. Δώστε τον στον πελάτη από κοντά.','The password is shown only now. Hand it to the customer in person.')} onClose={onClose} footer={<Button onClick={onClose}><Check size={15}/>{tx('Τέλος','Done')}</Button>}>
     <table className="demo-wizard-review-users">
       <thead><tr><th>{tx('Χρήστης','User')}</th><th>Username</th><th>{tx('Πρόσβαση','Access')}</th></tr></thead>
-      <tbody>{users.map((user: AnyRecord)=><tr key={user.username||user.email}>
+      <tbody>{users.map((user: DemoCreatedEvaluator)=><tr key={user.username||user.email}>
         <td><strong>{user.fullName}</strong><small>{roleLabel(user.role,language)}</small></td>
         <td>{user.username?<code>{user.username}</code>:<small>{user.email}</small>}</td>
-        <td>{user.temporaryPassword?<span className="demo-wizard-password"><code>{user.temporaryPassword}</code><Button variant="secondary" onClick={()=>copy(user)}><ClipboardCopy size={14}/>{copied===user.username?tx('Αντιγράφηκε','Copied'):tx('Αντιγραφή','Copy')}</Button></span>:user.error?<span className="demo-wizard-access is-error" role="alert"><Mail size={13}/>{tx('Ο χρήστης δεν δημιουργήθηκε','The user was not created')}: {user.error}</span>:<span className={`demo-wizard-access${user.emailSent?'':' is-error'}`}><Mail size={13}/>{user.emailSent?tx('Στάλθηκε πρόσκληση','Invitation sent'):tx('Η πρόσκληση δεν στάλθηκε','Invitation not sent')}{!user.emailSent&&user.emailError?`: ${user.emailError}`:''}{user.accessLink&&<Button variant="secondary" onClick={()=>setLinkFor(user)}><Link2 size={14}/>{tx('Σύνδεσμος','Link')}</Button>}</span>}</td>
+        <td>{user.temporaryPassword?<span className="demo-wizard-password"><code>{user.temporaryPassword}</code><Button variant="secondary" onClick={()=>copy(user)}><ClipboardCopy size={14}/>{copied===user.username?tx('Αντιγράφηκε','Copied'):tx('Αντιγραφή','Copy')}</Button></span>:user.error?<span className="demo-wizard-access is-error" role="alert"><Mail size={13}/>{tx('Ο χρήστης δεν δημιουργήθηκε','The user was not created')}: {user.error}</span>:<span className={`demo-wizard-access${user.emailSent?'':' is-error'}`}><Mail size={13}/>{user.emailSent?tx('Στάλθηκε πρόσκληση','Invitation sent'):tx('Η πρόσκληση δεν στάλθηκε','Invitation not sent')}{!user.emailSent&&user.emailError?`: ${user.emailError}`:''}{user.accessLink&&<Button variant="secondary" onClick={()=>setLinkFor(user as DemoLinkedEvaluator)}><Link2 size={14}/>{tx('Σύνδεσμος','Link')}</Button>}</span>}</td>
       </tr>)}</tbody>
     </table>
     {linkFor&&<AccessLinkDialog language={language} name={linkFor.fullName} email={linkFor.email} link={linkFor.accessLink} emailSent={linkFor.emailSent} onClose={()=>setLinkFor(null)}/>}
@@ -180,7 +180,7 @@ function DemoCreatedDialog({language,result,onClose}: {language: string,result: 
   </ObserverDialog>
 }
 
-function seedSummary(seed: AnyRecord,en: boolean){
+function seedSummary(seed: DemoSeedSummary,en: boolean){
   if(seed?.ok===false)return en?'The data could not be written; use "Reset data" on the Demo record.':'Τα δεδομένα δεν γράφτηκαν· χρησιμοποιήστε «Επαναφορά δεδομένων» στην καρτέλα του Demo.'
   return en?`Data: ${seed.patients??0} patients, ${seed.surveillanceCases??0} surveillance cases, ${seed.departments??0} departments.`:`Δεδομένα: ${seed.patients??0} ασθενείς, ${seed.surveillanceCases??0} περιστατικά επιτήρησης, ${seed.departments??0} τμήματα.`
 }
