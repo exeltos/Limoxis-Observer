@@ -184,9 +184,10 @@ export interface ReviewPeriod { from: string, to: string }
 // screen's model (a risk, an opportunity, a certificate) stay records of that model.
 
 export interface FactIncident { date?: string, status?: string, sentinel?: boolean, reportKind?: string }
-export interface FactCapa { id: string, dbId?: string, code?: string, sourceId?: string, status: string, dueDate?: string, date?: string, createdAt?: string }
-export interface FactFinding { date?: string, severity: string }
-export interface FactAudit { status?: string, completedDate?: string, plannedDate?: string }
+export interface FactCapa { id: string, dbId?: string, code?: string, sourceId?: string, status: string, dueDate?: string, date?: string, createdAt?: string | null }
+// An audit has no severity (the four sections are loaded in one loop).
+export interface FactFinding { date?: string, severity?: string }
+export interface FactAudit { status?: string, completedDate?: string | null, plannedDate?: string }
 export interface FactObjective { title: string, titleEn?: string, unit?: string, direction?: string, target: number | string, current?: { value: number | null, status: string } }
 export interface FactCommitteeMeeting { status?: string, date?: string }
 export interface FactCommitteeDecision { status: string, dueDate?: string }

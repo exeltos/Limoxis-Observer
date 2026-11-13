@@ -43,7 +43,7 @@ export function formatObjectiveValue(value: unknown, unit: string | undefined, l
 // An objective's value for lists and exports: a missing value is said to be «not measured», never left as a dash that reads like a zero.
 export const objectiveValueText = (value: unknown, unit: string | undefined, language = 'el') => (value == null || value === '' ? (language === 'en' ? 'Not measured' : 'Δεν μετριέται') : formatObjectiveValue(value, unit, language))
 export const addDays = (day: string, days: number) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
-const inPeriod = (day: string | undefined, period: ReviewPeriod) => { const value = String(day || '').slice(0, 10); return Boolean(value) && value >= period.from && value <= period.to }
+const inPeriod = (day: string | null | undefined, period: ReviewPeriod) => { const value = String(day || '').slice(0, 10); return Boolean(value) && value >= period.from && value <= period.to }
 const dmy = (day: string | undefined) => { const [y, m, d] = String(day || '').slice(0, 10).split('-'); return y ? `${Number(d)}/${Number(m)}/${y}` : '' }
 const count = <T,>(rows: T[], test: (row: T) => unknown) => rows.filter(test).length
 
@@ -108,7 +108,7 @@ export function sectionFacts(source: string, data: ReviewFacts = {}, period: Rev
     const opened = capas.filter((row) => inPeriod(row.date || row.createdAt, period))
     lines.push(en ? `${n(opened.length, 'corrective action', 'corrective actions')} opened in the period; ${open.length} open today, ${overdue.length} past their due date.` : `${n(opened.length, 'διορθωτική ενέργεια ανοίχτηκε', 'διορθωτικές ενέργειες ανοίχτηκαν')} στην περίοδο· ${n(open.length, 'ανοιχτή', 'ανοιχτές')} σήμερα, ${n(overdue.length, 'εκπρόθεσμη', 'εκπρόθεσμες')}.`)
     const findings = (data.findings || []).filter((row) => inPeriod(row.date, period))
-    if (findings.length) lines.push(en ? `${n(findings.length, 'finding', 'findings')} recorded, ${count(findings, (row) => ['high', 'critical'].includes(row.severity))} of high severity.` : `${n(findings.length, 'εύρημα', 'ευρήματα')}, ${count(findings, (row) => ['high', 'critical'].includes(row.severity))} υψηλής σοβαρότητας.`)
+    if (findings.length) lines.push(en ? `${n(findings.length, 'finding', 'findings')} recorded, ${count(findings, (row) => ['high', 'critical'].includes(row.severity as string))} of high severity.` : `${n(findings.length, 'εύρημα', 'ευρήματα')}, ${count(findings, (row) => ['high', 'critical'].includes(row.severity as string))} υψηλής σοβαρότητας.`)
   }
   if (source === 'audits') {
     const completed = count(audits, (row) => row.status === 'completed')
