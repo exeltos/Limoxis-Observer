@@ -1,4 +1,7 @@
-import type { AnyRecord } from '../../types/featureTypes'
+import type { FeedbackTemplate, TrainingProgram } from './trainingTypes'
+// A template as stored (an older version kept one label per question).
+type StoredTemplate = { id?: string, titleEl?: string, titleEn?: string, questions?: StoredQuestion[] }
+type StoredQuestion = { id?: string, label?: string, labelEl?: string, labelEn?: string } | null | undefined
 
 export const DEFAULT_TRAINER_FEEDBACK_TEMPLATE={
  id:'TRAINER-FEEDBACK-DEFAULT',
@@ -13,9 +16,9 @@ export const DEFAULT_TRAINER_FEEDBACK_TEMPLATE={
  ],
 }
 
-export function normalizeTrainerFeedbackTemplate(value: unknown={}){
- const source: AnyRecord=value&&typeof value==='object'?value:{}
- const questions: AnyRecord[]=Array.isArray(source.questions)?source.questions:DEFAULT_TRAINER_FEEDBACK_TEMPLATE.questions
+export function normalizeTrainerFeedbackTemplate(value: unknown={}): FeedbackTemplate{
+ const source: StoredTemplate=value&&typeof value==='object'?value:{}
+ const questions: StoredQuestion[]=Array.isArray(source.questions)?source.questions:DEFAULT_TRAINER_FEEDBACK_TEMPLATE.questions
  return {
   id:source.id||DEFAULT_TRAINER_FEEDBACK_TEMPLATE.id,
   titleEl:source.titleEl||DEFAULT_TRAINER_FEEDBACK_TEMPLATE.titleEl,
@@ -28,7 +31,7 @@ export function normalizeTrainerFeedbackTemplate(value: unknown={}){
  }
 }
 
-export function trainerFeedbackQuestionsForProgram(program: AnyRecord|null|undefined,language='el'){
+export function trainerFeedbackQuestionsForProgram(program: Pick<TrainingProgram,'trainerFeedbackTemplate'>|null|undefined,language='el'){
  const template=normalizeTrainerFeedbackTemplate(program?.trainerFeedbackTemplate||DEFAULT_TRAINER_FEEDBACK_TEMPLATE)
  return template.questions.map(q=>({id:q.id,label:language==='en'?(q.labelEn||q.labelEl):q.labelEl}))
 }

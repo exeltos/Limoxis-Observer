@@ -5,7 +5,7 @@
 // "not scheduled", so the plan says what still has to be organised.
 import { competenceMatrix } from './trainingCompetence'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CompetenceAssignment, CompetenceCertificate, CompetenceRequirement, PlanProgram, TrainingEmployee, TrainingProgram } from './trainingTypes'
 
 export const MONTHS: Record<'el'|'en', string[]>={
  el:['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'],
@@ -16,7 +16,7 @@ const day=(value: unknown)=>String(value||'').slice(0,10)
 const monthOf=(value: unknown)=>Number(day(value).slice(5,7))-1
 
 // Months (0-11) of `year` a programme runs in: start month to due month.
-export function programMonths(program: AnyRecord,year: number|string){
+export function programMonths(program: Partial<Pick<TrainingProgram,'startDate'|'dueDate'>>,year: number|string){
  const end=day(program.dueDate)
  const start=day(program.startDate)||end
  if(!end)return []
@@ -27,7 +27,7 @@ export function programMonths(program: AnyRecord,year: number|string){
  return months
 }
 
-function programPlanState(program: AnyRecord,openCount: number,today: string){
+function programPlanState(program: PlanProgram,openCount: number,today: string){
  if(program.status==='cancelled')return 'cancelled'
  if(program.status==='completed'||(!openCount&&program.status!=='planned'&&day(program.dueDate)<today))return 'done'
  if(day(program.dueDate)<today)return 'overdue'
@@ -35,7 +35,7 @@ function programPlanState(program: AnyRecord,openCount: number,today: string){
  return 'running'
 }
 
-export function annualTrainingPlan({programs=[],assignments=[],certificates=[],requirements=[],employees=[],year,today=hospitalToday()}: { programs?: AnyRecord[], assignments?: AnyRecord[], certificates?: AnyRecord[], requirements?: AnyRecord[], employees?: AnyRecord[], year?: number|string, today?: string }={}){
+export function annualTrainingPlan({programs=[],assignments=[],certificates=[],requirements=[],employees=[],year,today=hospitalToday()}: { programs?: PlanProgram[], assignments?: CompetenceAssignment[], certificates?: CompetenceCertificate[], requirements?: CompetenceRequirement[], employees?: TrainingEmployee[], year?: number|string, today?: string }={}){
  const y=Number(year)
  const rows=programs
   .filter(p=>p.status!=='cancelled')

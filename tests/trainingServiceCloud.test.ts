@@ -1,4 +1,5 @@
 import { beforeEach,describe,expect,it,vi } from 'vitest'
+import type { TrainingState } from '../src/features/training/trainingData'
 
 // The training service against the cloud (mocked PostgREST): reads the
 // training_* tables with embeds, sends only what changed, and writes through
@@ -79,7 +80,7 @@ describe('training service on the relational tables',()=>{
   await service.saveManagedTrainingStateAsync('org-1',state)
   expect(calls.rpc).toEqual([])
   const next={...state,programs:state.programs.map(p=>({...p,title:'Renamed'})),assignments:[...state.assignments,{id:'TRA-2',programId:'TRN-1',employeeId:'EMP-002',employeeName:'Ν. Δ.',status:'assigned',attendanceResponse:'not_sent',score:null}]}
-  await service.saveManagedTrainingStateAsync('org-1',next)
+  await service.saveManagedTrainingStateAsync('org-1',next as TrainingState)
   expect(calls.rpc).toHaveLength(1)
   const {name,args}=calls.rpc[0]
   expect(name).toBe('training_save_state')

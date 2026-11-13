@@ -5,7 +5,8 @@ import { loadTrainingState,saveTrainingState } from './trainingData'
 import { DEFAULT_TRAINER_FEEDBACK_TEMPLATE,normalizeTrainerFeedbackTemplate } from './trainingFeedbackTemplate'
 import { ASSIGNMENT_CALENDAR_SELECT,ASSIGNMENT_DETAIL_SELECT,ASSIGNMENT_SELECT,CERTIFICATE_CALENDAR_SELECT,CERTIFICATE_SELECT,HISTORY_SELECT,PROGRAM_CALENDAR_SELECT,PROGRAM_DETAIL_SELECT,PROGRAM_SELECT,REQUIREMENT_SELECT,TEMPLATE_SELECT,assignmentToRpc,changedRecords,fingerprints,leanTrainingStateFromRows,learnerOwnedAssignmentFields,programToRpc,requirementToRpc,templateFromRow,trainingStateFromRows } from './trainingMappers'
 import { applyReview } from './trainingScoring'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { TrainingRow } from './trainingMappers'
+import type { TrainingAssignment, TrainingParticipantInput, TrainingProgram, TrainingProgramDraft, TrainingRequirement } from './trainingTypes'
 import type { TrainingState } from './trainingData'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Json } from '../../core/supabase/database.types'
@@ -33,8 +34,8 @@ const PAGE=1000
 // Tables and columns given at run time: the untyped client.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a query of any training table
 type Query = any
-async function selectAll(table: string,columns: string,organizationId: string,order: [string, boolean][],filter: (query: Query)=>Query=query=>query): Promise<AnyRecord[]>{
-  const rows: AnyRecord[]=[]
+async function selectAll(table: string,columns: string,organizationId: string,order: [string, boolean][],filter: (query: Query)=>Query=query=>query): Promise<TrainingRow[]>{
+  const rows: TrainingRow[]=[]
   for(let from=0;;from+=PAGE){
     let query=filter((supabase as unknown as SupabaseClient).from(table).select(columns).eq('organization_id',organizationId))
     for(const [column,ascending] of order)query=query.order(column,{ascending})
@@ -109,28 +110,29 @@ async function loadTrainerFeedbackTemplateAsync(organizationId: string){
   return normalizeTrainerFeedbackTemplate(templateFromRow(data)||DEFAULT_TRAINER_FEEDBACK_TEMPLATE)
 }
 
-async function saveRecords(organizationId: string,{programs=[],assignments=[]}: {programs?: AnyRecord[],assignments?: AnyRecord[]}){
+async function saveRecords(organizationId: string,{programs=[],assignments=[]}: {programs?: Partial<TrainingProgram>[],assignments?: Partial<TrainingAssignment>[]}){
   if(!programs.length&&!assignments.length)return
   const {error}=await supabase.rpc('training_save_state',{p_organization_id:organizationId,p_programs:programs as Json,p_assignments:assignments as Json})
   if(error)throw error
 }
 
-export async function createTrainingProgramAsync(organizationId: string,draft: AnyRecord){
+export async function createTrainingProgramAsync(organizationId: string,draft: TrainingProgramDraft){
   const now=new Date().toISOString()
   const trainerFeedbackTemplate=isDemoDataEnvironment()?normalizeTrainerFeedbackTemplate(DEFAULT_TRAINER_FEEDBACK_TEMPLATE):await loadTrainerFeedbackTemplateAsync(organizationId)
-  const program={...draft,id:`TRN-${Date.now()}`,validMonths:Number(draft.validMonths)||null,durationHours:Number(draft.durationHours)>0?Number(draft.durationHours):null,cost:draft.cost===''||draft.cost==null||!(Number(draft.cost)>=0)?null:Number(draft.cost),passScore:draft.requiresAssessment?Number(draft.passScore)||0:null,materials:[],assessmentQuestions:[],trainerFeedbackTemplate,feedbackResponses:[],createdAt:now,updatedAt:now}
+  // The form fills every field of the programme (trainingProgramIsValid).
+  const program={...draft,id:`TRN-${Date.now()}`,validMonths:Number(draft.validMonths)||null,durationHours:Number(draft.durationHours)>0?Number(draft.durationHours):null,cost:draft.cost===''||draft.cost==null||!(Number(draft.cost)>=0)?null:Number(draft.cost),passScore:draft.requiresAssessment?Number(draft.passScore)||0:null,materials:[],assessmentQuestions:[],trainerFeedbackTemplate,feedbackResponses:[],createdAt:now,updatedAt:now} as TrainingProgram
   if(isDemoDataEnvironment()){
     const state=loadTrainingState();saveTrainingState({...state,programs:[program,...state.programs]});return program
   }
   requireProduction(organizationId,'create_program')
-  const {data,error}=await supabase.rpc('training_save_program',{p_organization_id:organizationId,p_program:programToRpc(program)})
+  const {data,error}=await supabase.rpc('training_save_program',{p_organization_id:organizationId,p_program:programToRpc(program) as Json})
   if(error)throw error
   return {...program,dbId:data}
 }
 
 // The people who attended a meeting where the training was held become the programme's participants.
 // people: [{ employeeCode, name, department, departmentId, email }]; one without an employeeCode is a person outside the register.
-export async function addTrainingParticipantsAsync(organizationId: string,program: AnyRecord,people: AnyRecord[]=[]){
+export async function addTrainingParticipantsAsync(organizationId: string,program: Pick<TrainingProgram,'id'|'dueDate'>,people: TrainingParticipantInput[]=[]){
   const now=new Date().toISOString(),stamp=Date.now()
   const rows=people.filter(person=>String(person.name||'').trim()).map((person,index)=>({id:`TRA-${stamp}-${index}-${person.employeeCode||'M'}`,programId:program.id,employeeId:person.employeeCode||'',employeeName:String(person.name).trim(),department:person.department||'',departmentId:person.departmentId||null,email:person.email||'',assignedDate:now.slice(0,10),dueDate:program.dueDate||'',status:'assigned',attendanceResponse:'not_sent',attendance:null,completionConfirmedAt:null,score:null,competent:null,certificateId:null,createdAt:now,...(person.employeeCode?{}:{manualEntry:true})}))
   if(!rows.length)return 0
@@ -149,7 +151,7 @@ export async function saveManagedTrainingStateAsync(organizationId: string,state
 }
 
 // Required-training rules are saved one at a time (not with the whole state).
-export async function saveTrainingRequirementAsync(organizationId: string,requirement: AnyRecord,state: TrainingState|null|undefined){
+export async function saveTrainingRequirementAsync(organizationId: string,requirement: TrainingRequirement,state: TrainingState|null|undefined){
   if(isDemoDataEnvironment()){const requirements=state?.requirements||[];const next=requirements.some(r=>r.id===requirement.id)?requirements.map(r=>r.id===requirement.id?requirement:r):[...requirements,requirement];return saveTrainingState({...state,requirements:next})}
   requireProduction(organizationId,'requirement_save')
   const {error}=await supabase.rpc('training_save_requirement',{p_organization_id:organizationId,p_requirement:requirementToRpc(requirement)})
