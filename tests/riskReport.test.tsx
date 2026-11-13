@@ -5,9 +5,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { RiskReport } from '../src/features/quality/risk/RiskReport'
 import { summarizeRisks } from '../src/features/quality/risk/riskModel'
+import type { Risk } from '../src/features/quality/risk/riskTypes'
 
 afterEach(cleanup)
-const risk = { id: 'r1', lineageKey: 'R001', section: 'clinical', hazard: 'Πτώση', inherentL: 4, inherentC: 4, residualL: 2, residualC: 3 }
+const risk: Risk = { id: 'r1', lineageKey: 'R001', section: 'clinical', hazard: 'Πτώση', inherentL: 4, inherentC: 4, residualL: 2, residualC: 3 } as never
 const report = assessment => render(<RiskReport assessment={{ periodLabel: '2026', assessedOn: '2026-10-06', status: 'draft', risks: [risk], opportunities: [], ...assessment }} summary={summarizeRisks([risk])} previous={null} organizationName="Νοσοκομείο" en={false} locale="el-GR"/>)
 
 describe('RiskReport', () => {

@@ -18,9 +18,9 @@ describe('EARS-Net', () => {
     expect(earsNetAntibiotic({ drug: 'Ceftazidime' })).toBe('CAZ')
     expect(earsNetAntibiotic({ drug: 'Piperacillin-tazobactam' })).toBe('TZP')
     expect(earsNetAntibiotic({ code: 'ABX-MEM', drug: '' })).toBe('MEM')
-    expect(earsNetSpecimen({ type: 'bloodCulture' })).toBe('BLOOD')
-    expect(earsNetSpecimen({ type: 'other', source: 'ΕΝΥ' })).toBe('CSF')
-    expect(earsNetSpecimen({ type: 'urineCulture' })).toBeNull()
+    expect(earsNetSpecimen({ type: 'bloodCulture' } as never)).toBe('BLOOD')
+    expect(earsNetSpecimen({ type: 'other', source: 'ΕΝΥ' } as never)).toBe('CSF')
+    expect(earsNetSpecimen({ type: 'urineCulture' } as never)).toBeNull()
   })
 
   it('keeps only the first isolate per patient, pathogen and year', () => {
@@ -59,19 +59,19 @@ describe('EARS-Net', () => {
 
 describe('ΕΟΔΥ notifiable findings', () => {
   it('matches notifiable organisms, with invasive and carbapenem conditions', () => {
-    expect(notifiableRuleFor({ type: 'bloodCulture' }, { organism: 'Neisseria meningitidis' })?.id).toBe('meningococcal')
-    expect(notifiableRuleFor({ type: 'other' }, { organism: 'Salmonella enterica serovar Typhi' })?.id).toBe('typhoid')
-    expect(notifiableRuleFor({ type: 'other' }, { organism: 'Salmonella enteritidis' })?.id).toBe('salmonellosis')
-    expect(notifiableRuleFor({ type: 'respiratorySample' }, { organism: 'Streptococcus pneumoniae' })).toBeNull()
-    expect(notifiableRuleFor({ type: 'bloodCulture' }, { organism: 'Streptococcus pneumoniae' })?.id).toBe('invasive_pneumococcal')
-    expect(notifiableRuleFor({ type: 'bloodCulture' }, { organism: 'Klebsiella pneumoniae', ast: [mem('S')] })).toBeNull()
-    expect(notifiableRuleFor({ type: 'bloodCulture' }, { organism: 'Klebsiella pneumoniae', ast: [mem('R')] })?.id).toBe('carbapenem_resistant_bacteraemia')
-    expect(notifiableRuleFor({ type: 'urineCulture' }, { organism: 'Klebsiella pneumoniae', ast: [mem('R')] })).toBeNull()
+    expect(notifiableRuleFor({ type: 'bloodCulture' } as never, { organism: 'Neisseria meningitidis' })?.id).toBe('meningococcal')
+    expect(notifiableRuleFor({ type: 'other' } as never, { organism: 'Salmonella enterica serovar Typhi' })?.id).toBe('typhoid')
+    expect(notifiableRuleFor({ type: 'other' } as never, { organism: 'Salmonella enteritidis' })?.id).toBe('salmonellosis')
+    expect(notifiableRuleFor({ type: 'respiratorySample' } as never, { organism: 'Streptococcus pneumoniae' })).toBeNull()
+    expect(notifiableRuleFor({ type: 'bloodCulture' } as never, { organism: 'Streptococcus pneumoniae' })?.id).toBe('invasive_pneumococcal')
+    expect(notifiableRuleFor({ type: 'bloodCulture' } as never, { organism: 'Klebsiella pneumoniae', ast: [mem('S')] })).toBeNull()
+    expect(notifiableRuleFor({ type: 'bloodCulture' } as never, { organism: 'Klebsiella pneumoniae', ast: [mem('R')] })?.id).toBe('carbapenem_resistant_bacteraemia')
+    expect(notifiableRuleFor({ type: 'urineCulture' } as never, { organism: 'Klebsiella pneumoniae', ast: [mem('R')] })).toBeNull()
   })
 
   it('lists validated patient findings with their saved report', () => {
     const samples = normalizeLaboratorySamples([blood('LAB-2', 'PT-2', 'Neisseria meningitidis', '2026-09-01'), { ...blood('LAB-3', 'PT-3', 'Neisseria meningitidis', '2026-09-02'), resultStatus: 'draft' }])
-    const [finding, ...rest] = notifiableFindings(samples, [{ findingKey: `LAB-2|LAB-2-result|meningococcal`, status: 'notified' }])
+    const [finding, ...rest] = notifiableFindings(samples, [{ findingKey: `LAB-2|LAB-2-result|meningococcal`, status: 'notified' } as never])
     expect(rest).toHaveLength(0)
     expect(finding.rule.id).toBe('meningococcal')
     expect(finding.report?.status).toBe('notified')
@@ -138,9 +138,9 @@ describe('review fixes', () => {
   })
 
   it('reports inpatient only within a recorded admission', () => {
-    expect(patientTypeOf({ admissionDate: '2026-08-01' }, '2026-08-10')).toBe('INPAT')
-    expect(patientTypeOf({ admissionDate: '2026-08-01', dischargeDate: '2026-08-05' }, '2026-08-10')).toBe('UNK')
-    expect(patientTypeOf({}, '2026-08-10')).toBe('UNK')
+    expect(patientTypeOf({ admissionDate: '2026-08-01' } as never, '2026-08-10')).toBe('INPAT')
+    expect(patientTypeOf({ admissionDate: '2026-08-01', dischargeDate: '2026-08-05' } as never, '2026-08-10')).toBe('UNK')
+    expect(patientTypeOf({} as never, '2026-08-10')).toBe('UNK')
   })
 
   it('splits polymicrobial results into one isolate per organism with its own tests', () => {
@@ -165,8 +165,8 @@ describe('review fixes', () => {
 
   it('limits carbapenem-resistant bacteraemia to blood and recognises codes behind Greek names', () => {
     const greekMem = { code: 'ABX-MEM', drug: 'Μεροπενέμη', sir: 'R' }
-    expect(notifiableRuleFor({ type: 'bloodCulture' }, { organism: 'Klebsiella pneumoniae', ast: [greekMem] })?.id).toBe('carbapenem_resistant_bacteraemia')
-    expect(notifiableRuleFor({ type: 'other', source: 'ΕΝΥ' }, { organism: 'Klebsiella pneumoniae', ast: [greekMem] })).toBeNull()
-    expect(notifiableRuleFor({ type: 'other', source: 'CSF' }, { organism: 'Streptococcus pneumoniae' })?.id).toBe('invasive_pneumococcal')
+    expect(notifiableRuleFor({ type: 'bloodCulture' } as never, { organism: 'Klebsiella pneumoniae', ast: [greekMem] })?.id).toBe('carbapenem_resistant_bacteraemia')
+    expect(notifiableRuleFor({ type: 'other', source: 'ΕΝΥ' } as never, { organism: 'Klebsiella pneumoniae', ast: [greekMem] })).toBeNull()
+    expect(notifiableRuleFor({ type: 'other', source: 'CSF' } as never, { organism: 'Streptococcus pneumoniae' })?.id).toBe('invasive_pneumococcal')
   })
 })

@@ -81,7 +81,7 @@ describe('periods', () => {
     expect(periodKey(counterpart({ kind: 'quarter', year: 2026, index: 1 }, 'previous'))).toBe('2025-Q4')
     expect(periodKey(counterpart({ kind: 'quarter', year: 2026, index: 3 }, 'lastYear'))).toBe('2025-Q3')
     expect(periodKey(counterpart({ kind: 'semester', year: 2026, index: 2 }, 'previous'))).toBe('2026-S1')
-    expect(periodKey(counterpart({ kind: 'annual', year: 2026 }, 'previous'))).toBe('2025')
+    expect(periodKey(counterpart({ kind: 'annual', year: 2026 } as never, 'previous'))).toBe('2025')
   })
   it('suggests a label for a new assessment', () => {
     expect(suggestPeriodLabel('quarter', '2026-10-13', false)).toBe("Δ' τρίμηνο 2026")

@@ -1,7 +1,8 @@
 import {describe,expect,it} from 'vitest'
 import {compareAssessments,levelForScore,riskScore,riskTrend,riskWarnings,scored,suggestJci,summarizeRisks} from '../src/features/quality/risk/riskModel'
+import type {Risk} from '../src/features/quality/risk/riskTypes'
 
-const risk=(over={})=>({code:'R1',process:'ΑΣΦΑΛΕΙΑ ΑΣΘΕΝΩΝ',scope:'ΜΕΘ',hazard:'Λοίμωξη',inherentL:4,inherentC:5,residualL:3,residualC:5,additionalMeasures:'Επανεκπαίδευση',owner:'Προϊστάμενος',targetL:2,targetC:5,...over})
+const risk=(over={}):Risk=>({code:'R1',process:'ΑΣΦΑΛΕΙΑ ΑΣΘΕΝΩΝ',scope:'ΜΕΘ',hazard:'Λοίμωξη',inherentL:4,inherentC:5,residualL:3,residualC:5,additionalMeasures:'Επανεκπαίδευση',owner:'Προϊστάμενος',targetL:2,targetC:5,...over}) as never
 
 describe('risk scoring (NHS 5×5)',()=>{
  it('multiplies likelihood by consequence and rejects values outside 1–5',()=>{
@@ -62,7 +63,7 @@ describe('comparison between periods',()=>{
   expect(result.rows.find(r=>r.key==='A')).toMatchObject({before:20,current:10,delta:-10,status:'improved'})
  })
  it('orders the trend by assessment date',()=>{
-  const trend=riskTrend([{id:'b',periodLabel:'2026-Α',assessedOn:'2026-04-01',risks:[risk()]},{id:'a',periodLabel:'2025-Β',assessedOn:'2025-10-01',risks:[risk({residualL:5,residualC:5})]}])
+  const trend=riskTrend([{id:'b',periodLabel:'2026-Α',assessedOn:'2026-04-01',risks:[risk()]},{id:'a',periodLabel:'2025-Β',assessedOn:'2025-10-01',risks:[risk({residualL:5,residualC:5})]}] as never)
   expect(trend.map(x=>[x.label,x.residualAverage,x.highOrAbove])).toEqual([['2025-Β',25,1],['2026-Α',15,1]])
  })
 })
@@ -109,7 +110,7 @@ describe('platform templates', () => {
     const loaded = { code: 'RSA-261013-124536', history: [{ action: 'riskAssessmentImported', detail: { template: 'QUAL-050-02' } }] }
     expect(visibleAssessments(seeded)).toHaveLength(2)
     expect(visibleAssessments([...seeded, loaded])).toEqual([loaded])
-    expect(templateCodeOf(loaded)).toBe('QUAL-050-02')
+    expect(templateCodeOf(loaded as never)).toBe('QUAL-050-02')
     expect(templateCodeOf(seeded[0])).toBe('')
   })
 })
