@@ -6,17 +6,16 @@ import { OrganizationIdentitySection } from './OrganizationIdentitySection'
 import { DetailList } from '../../design-system/DetailList'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { FormSection, GREEK_REGIONS, HEALTH_REGIONS, organizationTypeLabel, toDraft } from './platformOrganizationShared'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { OrganizationRecordContext, Setter } from './platformOrganizationShared'
+import type { OrganizationDetailsContext, OrganizationMember } from './platformOrganizationShared'
 
 // «Στοιχεία» of an organization record (owner, 9/11/2026): one totals line, then identity, location and contact
 // in one read-only card (Επεξεργασία opens the form), the screen lock and identity, and the Hospital Admin
 // invitation when there is none. The package lives in its own tab. The state and the actions stay in
 // PlatformOrganizationRecord (ctx).
-export function PlatformOrganizationDetailsTab({ ctx }: { ctx: OrganizationRecordContext & { setDraft: Setter<AnyRecord>, setRecord: Setter<AnyRecord>, setNewAdmin: Setter<AnyRecord> } }) {
+export function PlatformOrganizationDetailsTab({ ctx }: { ctx: OrganizationDetailsContext }) {
   const { admins, canSave, draft, editing, inviteAdmin, language, loadingUsers, newAdmin, onChanged, record, saveOrganization, saving, setDraft, setEditing, setNewAdmin, setRecord, tx, users, working } = ctx
-  const activeUsers = users.filter((user: AnyRecord) => user.status === 'active').length
-  const adminStatus = (admin: AnyRecord) => admin.status === 'active' ? ['success', tx('Ενεργός', 'Active')] : admin.status === 'disabled' ? ['danger', tx('Σε παύση', 'Suspended')] : ['warning', tx('Εκκρεμής', 'Pending')]
+  const activeUsers = users.filter((user: OrganizationMember) => user.status === 'active').length
+  const adminStatus = (admin: OrganizationMember) => admin.status === 'active' ? ['success', tx('Ενεργός', 'Active')] : admin.status === 'disabled' ? ['danger', tx('Σε παύση', 'Suspended')] : ['warning', tx('Εκκρεμής', 'Pending')]
   const country = record.country === 'GR' ? tx('Ελλάδα', 'Greece') : record.country
   const totals = [
     organizationTypeLabel(record.type, language),
@@ -24,7 +23,7 @@ export function PlatformOrganizationDetailsTab({ ctx }: { ctx: OrganizationRecor
     loadingUsers ? null : admins.length === 1 ? tx('1 Διαχειριστής Νοσοκομείου', '1 Hospital Admin') : tx(`${admins.length} Διαχειριστές Νοσοκομείου`, `${admins.length} Hospital Admins`),
     record.bed_capacity != null && record.bed_capacity !== '' ? tx(`${record.bed_capacity} κλίνες`, `${record.bed_capacity} beds`) : null,
   ].filter(Boolean)
-  const adminValue = loadingUsers ? '…' : admins.length ? admins.map((admin: AnyRecord) => { const [tone, label] = adminStatus(admin); return <span key={admin.userId} className="platform-org-admin">{admin.name}<StatusBadge tone={tone}>{label}</StatusBadge><small>{admin.email || admin.username || '—'}</small></span> }) : null
+  const adminValue = loadingUsers ? '…' : admins.length ? admins.map((admin: OrganizationMember) => { const [tone, label] = adminStatus(admin); return <span key={admin.userId} className="platform-org-admin">{admin.name}<StatusBadge tone={tone}>{label}</StatusBadge><small>{admin.email || admin.username || '—'}</small></span> }) : null
   return (
           <div className="platform-owner-details platform-organization-record-form">
             <p className="platform-org-totals">{totals.map((item, index) => <span key={index}>{item}</span>)}</p>

@@ -7,12 +7,15 @@ import { normalizeBranding,readLogoFile } from '../../core/organization/branding
 import { DEFAULT_IDLE_LOCK_MINUTES,IDLE_LOCK_OPTIONS } from '../../app/IdleLock'
 import { screenGuideChoice,screenGuideValue } from '../demo/screenGuideSettings'
 import './platformIdentity.css'
-import type { AnyRecord } from '../../types/featureTypes'
+
+// What the section reads of an organization, and the settings it saves back into the record.
+type IdentitySource = { id: string, idle_lock_minutes?: number | null, screen_guides_enabled?: boolean | null, branding?: unknown, is_demo?: boolean | null }
+export type OrganizationIdentityChanges = { idle_lock_minutes: number, screen_guides_enabled: boolean | null, branding: unknown }
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
-const settingsOf=(organization: AnyRecord)=>({
+const settingsOf=(organization: IdentitySource)=>({
  idleLockMinutes:organization?.idle_lock_minutes??DEFAULT_IDLE_LOCK_MINUTES,
  screenGuides:screenGuideChoice(organization?.screen_guides_enabled),
  ...normalizeBranding(organization?.branding),
@@ -21,7 +24,7 @@ const settingsOf=(organization: AnyRecord)=>({
 // Platform Owner, organization record: the hospital's screen lock and identity
 // (logo, report header), set up when onboarding it. The hospital admin can
 // change the same settings later in Management → Access.
-export function OrganizationIdentitySection({organization,language='el',onSaved}: {organization: AnyRecord,language?: string,onSaved?: (changes: AnyRecord)=>void}){
+export function OrganizationIdentitySection({organization,language='el',onSaved}: {organization: IdentitySource,language?: string,onSaved?: (changes: OrganizationIdentityChanges)=>void}){
  const tx=(el: string,en: string)=>language==='en'?en:el
  const {notify}=useFeedback()
  const saved=settingsOf(organization)

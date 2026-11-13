@@ -16,12 +16,28 @@ import { USER_STATE_BADGE, UserNameCell, lastSignInContent, userStateLabel } fro
 import './platformDeletion.css'
 import './platformDashboard.css'
 import './loginSessions.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LoginSession, PlatformUserRef } from './platformTypes'
+import type { OrganizationRecordRow } from './platformOrganizationShared'
+
+// A person of the list (listPlatformUsers, one row per membership): only the fields read, so a row of the preview fits too.
+export type PlatformUserRow = PlatformUserRef & {
+  id: string
+  userId: string
+  name: string
+  status?: string | null
+  invitation?: string | null
+  kind: string
+  organization?: { id?: string | null, name?: string | null, code?: string | null, is_demo?: boolean | null } | null
+}
+// A total beside the search: filter key, label, count, tone and whether it shows at zero.
+type TotalRow = [string, string, number, string?, boolean?]
+// Where a person stands is read from the membership status and the latest invitation.
+type UserStateSource = { status?: string | null, invitation?: string | null }
 
 const fmtDay = (value: string | null | undefined, language: string) => value ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR').format(new Date(value)) : '—'
 
 // Where a person stands: active, invitation pending or expired, or inactive.
-export function platformUserState(user: AnyRecord) {
+export function platformUserState(user: UserStateSource) {
   if (user.status === 'active') return 'active'
   if (user.status === 'invited') return user.invitation === 'expired' ? 'expired' : 'pending'
   return 'inactive'
@@ -31,12 +47,12 @@ export function platformUserState(user: AnyRecord) {
 // and where from (hospital, Demo or the platform itself), with where their
 // account stands, and when they last signed in. A row opens the user's record; «Νέος χρήστης» asks first
 // for the organization, then continues into that organization's own dialogs (onNewUser).
-export function PlatformUsersRegistry({ tabs = null, language = 'el', users = [], organizations = [], loading = false, onOpenUser, onNewUser }: { tabs?: ReactNode, language?: string, users?: AnyRecord[], organizations?: AnyRecord[], loading?: boolean, onOpenUser?: (user: AnyRecord) => void, onNewUser?: (organizationId: string, mode: string) => void }) {
+export function PlatformUsersRegistry({ tabs = null, language = 'el', users = [], organizations = [], loading = false, onOpenUser, onNewUser }: { tabs?: ReactNode, language?: string, users?: PlatformUserRow[], organizations?: OrganizationRecordRow[], loading?: boolean, onOpenUser?: (user: PlatformUserRow) => void, onNewUser?: (organizationId: string, mode: string) => void }) {
   const en = language === 'en', tx = (el: string, enText: string) => (en ? enText : el)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [page, setPage] = useState(1), [pageSize, setPageSize] = useState(15)
-  const [sessions, setSessions] = useState<AnyRecord[]>([])
+  const [sessions, setSessions] = useState<LoginSession[]>([])
   const [newMode, setNewMode] = useState(''), [newOrganizationId, setNewOrganizationId] = useState('')
   useEffect(() => { let active = true; listLoginSessions({ days: 90 }).then(rows => { if (active) setSessions(rows || []) }).catch(() => { if (active) setSessions([]) }); return () => { active = false } }, [])
   // The latest sign-in of each user, and who is signed in right now.
@@ -44,7 +60,7 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
   const onlineIds = useMemo(() => new Set(sessions.filter(row => row.online).map(row => row.userId)), [sessions])
   const kindLabel = (kind: string) => ({ hospital: tx('Νοσοκομείο', 'Hospital'), demo: 'Demo', platform: tx('Πλατφόρμα', 'Platform'), none: tx('Χωρίς οργανισμό', 'No organization') })[kind]
   const stateLabel = (state: string) => userStateLabel(tx, state)
-  const roleText = (user: AnyRecord) => user.role ? roleLabel(user.role, language) : '—'
+  const roleText = (user: PlatformUserRow) => user.role ? roleLabel(user.role, language) : '—'
   const sorted = useMemo(() => [...users].sort((a, b) => String(a.organization?.name || '~').localeCompare(String(b.organization?.name || '~'), 'el') || String(a.name).localeCompare(String(b.name), 'el')), [users])
   const counts = useMemo(() => sorted.reduce((acc, user) => { acc[user.kind] = (acc[user.kind] || 0) + 1; const state = platformUserState(user); if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; if (onlineIds.has(user.userId)) acc.online += 1; return acc }, { invited: 0, inactive: 0, online: 0 } as Record<string, number>), [sorted, onlineIds])
   const visible = useMemo(() => {
@@ -62,7 +78,7 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
   useEffect(() => setPage(1), [query, filter, pageSize])
   // The totals beside the search, as on Organizations (owner, 10/11/2026): each one filters the list; a second click clears it.
   const toggle = (key: string) => setFilter(current => (current === key ? 'all' : key))
-  const totals = [['hospital', tx('χρήστες νοσοκομείων', 'hospital users'), counts.hospital || 0, undefined, true], ['online', tx('συνδεδεμένοι τώρα', 'online now'), counts.online, 'good'], ['demo', 'Demo', counts.demo || 0], ['platform', tx('Ιδιοκτήτης', 'Owner'), counts.platform || 0], ['invited', tx('εκκρεμείς προσκλήσεις', 'pending invitations'), counts.invited, 'warning'], ['inactive', tx('ανενεργοί', 'inactive'), counts.inactive, 'danger'], ['none', tx('χωρίς οργανισμό', 'no organization'), counts.none || 0]].map(([key, label, value, tone, always]) => ({ key, label, value, always, tone: value ? tone : undefined, active: filter === key, onClick: () => toggle(key) }))
+  const totals = ([['hospital', tx('χρήστες νοσοκομείων', 'hospital users'), counts.hospital || 0, undefined, true], ['online', tx('συνδεδεμένοι τώρα', 'online now'), counts.online, 'good'], ['demo', 'Demo', counts.demo || 0], ['platform', tx('Ιδιοκτήτης', 'Owner'), counts.platform || 0], ['invited', tx('εκκρεμείς προσκλήσεις', 'pending invitations'), counts.invited, 'warning'], ['inactive', tx('ανενεργοί', 'inactive'), counts.inactive, 'danger'], ['none', tx('χωρίς οργανισμό', 'no organization'), counts.none || 0]] satisfies TotalRow[]).map(([key, label, value, tone, always]) => ({ key, label, value, always, tone: value ? tone : undefined, active: filter === key, onClick: () => toggle(key) }))
   function exportUsers() {
     exportRegistry({ name: tx('xristes', 'users'),
       headers: [tx('Ονοματεπώνυμο', 'Name'), 'Email', tx('Όνομα χρήστη', 'Username'), tx('Ρόλος', 'Role'), tx('Οργανισμός', 'Organization'), tx('Τύπος', 'Type'), tx('Κατάσταση', 'Status'), tx('Τελευταία σύνδεση', 'Last sign-in')],
@@ -70,11 +86,11 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
   }
   // A row is clickable only where a record exists: not the Platform Owner, nor an account without an organization.
   const knownOrganizationIds = useMemo(() => new Set(organizations.map(org => org.id)), [organizations])
-  const canOpen = (user: AnyRecord) => Boolean(userRecordTarget(user, { organizationIds: knownOrganizationIds }))
+  const canOpen = (user: PlatformUserRow) => Boolean(userRecordTarget(user, { organizationIds: knownOrganizationIds }))
   const productionOrganizations = useMemo(() => organizations.filter(org => !org.is_demo).sort((a, b) => String(a.name).localeCompare(String(b.name), 'el')), [organizations])
   const organizationOptions = useMemo(() => productionOrganizations.map(org => ({ value: org.id, label: org.name, description: org.code })), [productionOrganizations])
   const closeNew = () => { setNewMode(''); setNewOrganizationId('') }
-  const lastSignIn = (user: AnyRecord) => lastSignInContent(latest.get(user.userId), onlineIds.has(user.userId), tx)
+  const lastSignIn = (user: PlatformUserRow) => lastSignInContent(latest.get(user.userId), onlineIds.has(user.userId), tx)
   return <Page title={tx('Χρήστες πλατφόρμας', 'Platform users')}
     actions={<div className="row-actions">
       <ExportMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>

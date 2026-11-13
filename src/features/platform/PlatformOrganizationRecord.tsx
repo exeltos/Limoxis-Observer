@@ -10,7 +10,7 @@ import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialo
 
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
-import { createOrganizationUser, listOrganizationMembersDetailed, manageOrganizationUser, setPlatformOrganizationStatus, updatePlatformOrganization } from '../../core/tenant/tenantService'
+import { createOrganizationUser, listOrganizationMembersDetailed, manageOrganizationUser, setPlatformOrganizationStatus, updatePlatformOrganization, type OrganizationPatch } from '../../core/tenant/tenantService'
 import { HospitalDiagnosticsPanel } from './HospitalDiagnosticsPanel'
 import { OrganizationOffboardingPanel } from './OrganizationOffboardingPanel'
 import { OperatingProfileSection } from './OperatingProfileSection'
@@ -27,7 +27,9 @@ import { loadEmployeesAsync } from '../employees/employeeService'
 
 import { loadEmployeeAccounts } from './bulkAccountsService'
 import './activeUsers.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Roster } from './bulkAccountsModel'
+import type { LoginSession } from './platformTypes'
+import type { InvitationLinkView, NewAdminDraft, OrganizationEmployee, OrganizationMember, OrganizationRecordRow, OrganizationUserDraft } from './platformOrganizationShared'
 
 export function PlatformOrganizationRecord({
   organization,
@@ -45,14 +47,14 @@ export function PlatformOrganizationRecord({
   initialNew = '',
   onNewHandled,
 }: {
-  organization: AnyRecord
+  organization: OrganizationRecordRow
   language?: string
   initialTab?: string
   onTabChange?: (tab: string) => void
   onBack?: () => void
   onEnter?: () => void
-  onDelete?: (organization?: AnyRecord) => void
-  onChanged?: (organization: AnyRecord) => void
+  onDelete?: (organization?: OrganizationRecordRow) => void
+  onChanged?: (organization: OrganizationRecordRow) => void
   onOpenEmployee?: (employeeId: string) => void
   initialUserId?: string
   onUserChange?: (userId: string, backTab?: string) => void
@@ -62,16 +64,16 @@ export function PlatformOrganizationRecord({
   const en = language === 'en',
     tx = (elText: string, enText: string) => (en ? enText : elText)
   const { notify, notifyError, confirm } = useFeedback()
-  const [record, setRecord] = useState<AnyRecord>(organization)
-  const [draft, setDraft] = useState<AnyRecord>(() => toDraft(organization))
-  const [users, setUsers] = useState<AnyRecord[]>([])
-  const [employees, setEmployees] = useState<AnyRecord[]>([])
+  const [record, setRecord] = useState<OrganizationRecordRow>(organization)
+  const [draft, setDraft] = useState(() => toDraft(organization))
+  const [users, setUsers] = useState<OrganizationMember[]>([])
+  const [employees, setEmployees] = useState<OrganizationEmployee[]>([])
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [saving, setSaving] = useState(false)
   const [working, setWorking] = useState(false)
-  const [invitationLink, setInvitationLink] = useState<AnyRecord | null>(null)
-  const [employeeLinkDrafts, setEmployeeLinkDrafts] = useState<AnyRecord>({})
-  const [newAdmin, setNewAdmin] = useState<AnyRecord>({ name: '', email: '' })
+  const [invitationLink, setInvitationLink] = useState<InvitationLinkView | null>(null)
+  const [employeeLinkDrafts, setEmployeeLinkDrafts] = useState<Record<string, string>>({})
+  const [newAdmin, setNewAdmin] = useState<NewAdminDraft>({ name: '', email: '' })
   const [selectedUserId, setSelectedUserIdState] = useState(initialUserId)
   const setSelectedUserId = (id: string, backTab?: string) => {
     setSelectedUserIdState(id)
@@ -81,7 +83,7 @@ export function PlatformOrganizationRecord({
   const [startMode] = useState(initialTab === 'users' && (initialNew === 'single' || initialNew === 'file') ? initialNew : '')
   const [editing, setEditing] = useState(false)
   const [userEditing, setUserEditing] = useState(false)
-  const [userDraft, setUserDraft] = useState<AnyRecord>({
+  const [userDraft, setUserDraft] = useState<OrganizationUserDraft>({
     fullName: '',
     email: '',
     phone: '',
@@ -116,7 +118,7 @@ export function PlatformOrganizationRecord({
         loadEmployeesAsync(organization.id),
       ])
       setUsers(rows)
-      setEmployees(employeeRows)
+      setEmployees(employeeRows as OrganizationEmployee[])
       setEmployeeLinkDrafts(
         Object.fromEntries(
           rows.map(user => [
@@ -140,7 +142,7 @@ export function PlatformOrganizationRecord({
     loadUsers()
   }, [loadUsers])
   // The sign-ins of the last 90 days (Χρήστες › Τελευταία σύνδεση, Δραστηριότητα › Συνδέσεις); kept to this organization's users below.
-  const [allSessions, setAllSessions] = useState<AnyRecord[]>([])
+  const [allSessions, setAllSessions] = useState<LoginSession[]>([])
   const [loadingSessions, setLoadingSessions] = useState(true)
   const loadSessions = useCallback(async () => {
     setLoadingSessions(true)
@@ -161,7 +163,7 @@ export function PlatformOrganizationRecord({
   }, [allSessions, users])
   // «Χρήστες & Ρόλοι» › «Εργαζόμενοι χωρίς λογαριασμό» (N1, Platform Owner only).
   const [usersView, setUsersView] = useState('accounts')
-  const [roster, setRoster] = useState<{ employees: AnyRecord[], departments: AnyRecord[] }>({ employees: [], departments: [] })
+  const [roster, setRoster] = useState<Roster>({ employees: [], departments: [] })
   const [rosterLoading, setRosterLoading] = useState(false)
   const loadRoster = useCallback(async () => {
     setRosterLoading(true)
@@ -198,7 +200,7 @@ export function PlatformOrganizationRecord({
     [employees, selectedUser],
   )
   const onlineUserIds = useMemo(() => new Set(sessions.filter(row => row.online).map(row => row.userId)), [sessions])
-  const orgUserState = (user: AnyRecord) => platformUserState({ status: user.status, invitation: user.invitationStatus })
+  const orgUserState = (user: OrganizationMember) => platformUserState({ status: user.status, invitation: user.invitationStatus })
   const filteredUsers = useMemo(() => {
     const locale = language === 'el' ? 'el-GR' : 'en-US',
       query = userQuery.trim().toLocaleLowerCase(locale)
@@ -252,7 +254,7 @@ export function PlatformOrganizationRecord({
     if (!canSave || saving) return
     setSaving(true)
     try {
-      const next = await updatePlatformOrganization(record.id, draft)
+      const next = await updatePlatformOrganization(record.id, draft as OrganizationPatch)
       setRecord(next)
       setDraft(toDraft(next))
       onChanged?.(next)
@@ -431,7 +433,7 @@ export function PlatformOrganizationRecord({
       setWorking(false)
     }
   }
-  async function linkUserEmployee(user: AnyRecord) {
+  async function linkUserEmployee(user: OrganizationMember) {
     const employeeDbId = employeeLinkDrafts[user.userId] || ''
     if (!employeeDbId || working) return
     const employee = employees.find(item => item.dbId === employeeDbId)
@@ -469,7 +471,7 @@ export function PlatformOrganizationRecord({
     }
   }
   // The activation link of a pending invitation, for when the email does not arrive.
-  async function showInvitationLink(user: AnyRecord) {
+  async function showInvitationLink(user: OrganizationMember) {
     if (!user || working) return
     setWorking(true)
     try {
@@ -481,7 +483,7 @@ export function PlatformOrganizationRecord({
       setWorking(false)
     }
   }
-  async function resetUserAccess(user: AnyRecord) {
+  async function resetUserAccess(user: OrganizationMember) {
     if (!user || working) return
     const invited = user.status === 'invited'
     const ok = await confirm({

@@ -14,7 +14,14 @@ import { listLoginSessions } from './platformAuditService'
 import { initialsOf, latestSessionByUser, sinceText, statusOf } from './platformOverviewShared'
 import './platformLifecycle.css'
 import './platformDashboard.css'
-import type { AnyRecord, Translate } from '../../types/featureTypes'
+import type { Translate } from '../../types/featureTypes'
+import type { LoginSession, PlatformMember } from './platformTypes'
+import type { OrganizationRecordRow } from './platformOrganizationShared'
+
+// A membership row as the registry counts it (listPlatformOrganizationMembers), with the person.
+type RegistryMember = PlatformMember & { user_id: string }
+// Per organization: its members, the Hospital Admin's status and the latest sign-in of any member.
+type OrganizationFacts = { total: number, active: number, adminStatus: string | null | undefined, lastSession: LoginSession | null }
 
 // Οργανισμοί (owner, 9/11/2026): as the Overview's hospitals — initials, users active / all, the latest
 // sign-in of any of its users and one status; the totals beside the search filter by status.
@@ -31,22 +38,22 @@ export function PlatformOrganizationsRegistry({
   tx: Translate
   query: string
   onQueryChange: (query: string) => void
-  organizations: AnyRecord[]
-  members?: AnyRecord[]
+  organizations: OrganizationRecordRow[]
+  members?: RegistryMember[]
   onCreate?: () => void
-  onOpenOrganization: (organization: AnyRecord) => void
+  onOpenOrganization: (organization: OrganizationRecordRow) => void
   onSettings?: () => void
 }) {
   const language=tx('el','en')
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(15)
   const [statusFilter,setStatusFilter]=useState('')
-  const [sessions,setSessions]=useState<AnyRecord[]>([])
+  const [sessions,setSessions]=useState<LoginSession[]>([])
   useEffect(()=>{let active=true;listLoginSessions({days:90}).then(rows=>{if(active)setSessions(rows||[])}).catch(()=>{if(active)setSessions([])});return()=>{active=false}},[])
   // Per organization: its members, the Hospital Admin's status and the latest sign-in of any member.
-  const facts=useMemo(()=>{const latest=latestSessionByUser(sessions),byOrg: Record<string,AnyRecord>={};for(const m of members){const item=byOrg[m.organization_id]||(byOrg[m.organization_id]={total:0,active:0,adminStatus:'',lastSession:null});item.total+=1;if(m.status==='active')item.active+=1;if(m.role==='hospital_admin'&&!item.adminStatus)item.adminStatus=m.status;const session=latest.get(m.user_id);if(session&&(!item.lastSession||String(session.startedAt)>String(item.lastSession.startedAt)))item.lastSession=session}return byOrg},[members,sessions])
-  const factsOf=(org: AnyRecord)=>facts[org.id]||{total:0,active:0,adminStatus:'',lastSession:null}
-  const statusFor=(org: AnyRecord)=>statusOf(tx,org,factsOf(org).adminStatus)
+  const facts=useMemo(()=>{const latest=latestSessionByUser(sessions),byOrg: Record<string,OrganizationFacts>={};for(const m of members){const item=byOrg[m.organization_id]||(byOrg[m.organization_id]={total:0,active:0,adminStatus:'',lastSession:null});item.total+=1;if(m.status==='active')item.active+=1;if(m.role==='hospital_admin'&&!item.adminStatus)item.adminStatus=m.status;const session=latest.get(m.user_id);if(session&&(!item.lastSession||String(session.startedAt)>String(item.lastSession.startedAt)))item.lastSession=session}return byOrg},[members,sessions])
+  const factsOf=(org: OrganizationRecordRow): OrganizationFacts=>facts[org.id]||{total:0,active:0,adminStatus:'',lastSession:null}
+  const statusFor=(org: OrganizationRecordRow)=>statusOf(tx,org,factsOf(org).adminStatus)
   const countBy=(key: string)=>organizations.filter(org=>statusFor(org)[2]===key).length
   const shownOrganizations=statusFilter?organizations.filter(org=>statusFor(org)[2]===statusFilter):organizations
   const totalPages=Math.max(1,Math.ceil(shownOrganizations.length/pageSize))
@@ -56,9 +63,9 @@ export function PlatformOrganizationsRegistry({
   useEffect(()=>{if(page>totalPages)setPage(totalPages)},[page,totalPages])
   // Coming back from an organization record, its row stays highlighted.
   const [lastOpenedId,setLastOpenedId]=useState(()=>readSessionValue('limoxis.registry.platform-organizations.selected','')||'')
-  const openOrganization=(org: AnyRecord)=>{const id=String(org.id);writeSessionValue('limoxis.registry.platform-organizations.selected',id);setLastOpenedId(id);onOpenOrganization(org)}
+  const openOrganization=(org: OrganizationRecordRow)=>{const id=String(org.id);writeSessionValue('limoxis.registry.platform-organizations.selected',id);setLastOpenedId(id);onOpenOrganization(org)}
 
-  const lastSignIn=(session: AnyRecord)=>session?`${sinceText(session.startedAt,tx)} · ${session.fullName||session.username||'—'}`:'—'
+  const lastSignIn=(session: LoginSession | null)=>session?`${sinceText(session.startedAt,tx)} · ${session.fullName||session.username||'—'}`:'—'
   const toggleStatus=(key: string)=>setStatusFilter(current=>current===key?'':key)
   const totals=[
     {key:'active',value:countBy('active'),always:true,label:tx('ενεργοί','active'),active:statusFilter==='active',onClick:()=>toggleStatus('active')},
@@ -70,7 +77,7 @@ export function PlatformOrganizationsRegistry({
   function exportOrganizations(){
     exportRegistry({name:tx('organismoi','organizations'),
       headers:[tx('Οργανισμός','Organization'),tx('Κωδικός','Code'),tx('Πόλη','City'),tx('Περιφέρεια','Region'),tx('Ενεργοί χρήστες','Active users'),tx('Σύνολο χρηστών','All users'),tx('Τελευταία σύνδεση','Last sign-in'),tx('Χρήστης τελευταίας σύνδεσης','Last signed-in user'),tx('Κατάσταση','Status'),tx('Προφίλ λειτουργίας','Operating profile'),tx('Κλείδωμα οθόνης (λεπτά)','Screen lock (minutes)')],
-      rows:shownOrganizations.map((org: AnyRecord)=>{const item=factsOf(org);return [org.name,org.code,org.city||'',org.region||'',item.active,item.total,fmt(item.lastSession?.startedAt),item.lastSession?.fullName||item.lastSession?.username||'',statusFor(org)[1],org.operating_profile||'',org.idle_lock_minutes??'']})})
+      rows:shownOrganizations.map((org: OrganizationRecordRow)=>{const item=factsOf(org);return [org.name,org.code,org.city||'',org.region||'',item.active,item.total,fmt(item.lastSession?.startedAt),item.lastSession?.fullName||item.lastSession?.username||'',statusFor(org)[1],org.operating_profile||'',org.idle_lock_minutes??'']})})
   }
 
   return (
@@ -99,7 +106,7 @@ export function PlatformOrganizationsRegistry({
                     </tr>
                   </thead>
                   <tbody>
-                    {pagedOrganizations.map((org: AnyRecord) => {
+                    {pagedOrganizations.map((org: OrganizationRecordRow) => {
                       const item = factsOf(org), [tone, label] = statusFor(org)
                       return (
                       <tr
