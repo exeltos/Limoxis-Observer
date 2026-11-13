@@ -12,29 +12,34 @@ import { SignalBadge } from '../../design-system/StatusBadge'
 import { libraryOptions } from '../management/useLibraries'
 import { ITEM_CATEGORIES,ITEM_FORMS,expiryState,expiryWindow,formKey,formLabel,noteText,quantityShort } from './controlExpiry'
 import { EXPIRY_FINDINGS,expiryFindingCode,expiryFindingLabel } from './controlVocabulary'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution, ControlRecord, StructuredRow } from './controlTypes'
+import type { LibraryItem } from '../management/useLibraries'
+import type { SearchableOption } from '../../design-system/SearchableSelect'
+
+// The libraries the expiry entry reads (medicines and supplies, item forms).
+type Libraries = Record<string, LibraryItem[]> | null | undefined
 
 // Options for the item name: the medicines & supplies library, plus what this
 // department recorded before (suggested first).
-export function useItemOptions(libraries:AnyRecord|null|undefined,history:AnyRecord[]=[],language='el'){
+export function useItemOptions(libraries:Libraries,history:ControlExecution[]=[],language='el'){
  return useMemo(()=>{
   const base=libraryOptions(libraries?.medicinesSupplies||[],language)
   const known=new Set(base.map(x=>x.value))
-  const used=[...new Set(history.flatMap(h=>(h.structuredData?.rows||[]).map((r:AnyRecord)=>String(r.item||'').trim())).filter(Boolean))]
-  return {options:[...base,...used.filter(v=>!known.has(v)).map(v=>({value:v,label:v}))],recent:used}
+  const used=[...new Set(history.flatMap(h=>(h.structuredData?.rows||[]).map((r:StructuredRow)=>String(r.item||'').trim())).filter(Boolean))]
+  return {options:[...base,...used.filter(v=>!known.has(v)).map(v=>({value:v,label:v}))] as SearchableOption[],recent:used}
  },[libraries,history,language])
 }
 // Item forms: the itemForms library (stored as keys: tablet, vial, …).
-export function formOptions(libraries:AnyRecord|null|undefined,language='el'){
+export function formOptions(libraries:Libraries,language='el'){
  const items=libraries?.itemForms||[]
  return items.length
-  ?items.map((item:AnyRecord)=>({value:formKey(item.code||item.value),label:language==='en'?item.en:item.el}))
+  ?items.map((item:LibraryItem)=>({value:formKey(item.code||item.value),label:language==='en'?item.en:item.el}))
   :ITEM_FORMS.map(([key,el,en])=>({value:key,label:language==='en'?en:el}))
 }
 
 // The items of an expiry check: one item (a form) or a list (a table).
 // Each row shows how far it is from its expiry date as soon as the date is set.
-interface ControlExpiryEntryProps { record:AnyRecord, rows:AnyRecord[], setRow:(index:number,key:string,value:unknown)=>void, addRow:()=>void, removeRow:(index:number)=>void, keepFirstRow:()=>void, libraries:AnyRecord|null|undefined, history:AnyRecord[], department?:string, language:string }
+interface ControlExpiryEntryProps { record:ControlRecord, rows:StructuredRow[], setRow:(index:number,key:string,value:unknown)=>void, addRow:()=>void, removeRow:(index:number)=>void, keepFirstRow:()=>void, libraries:Libraries, history:ControlExecution[], department?:string, language:string }
 export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirstRow,libraries,history,language}:ControlExpiryEntryProps){
  const en=language==='en'
  const window=expiryWindow(record)
@@ -45,16 +50,16 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
  const findingOptions=EXPIRY_FINDINGS.map(code=>({value:code,label:expiryFindingLabel(code,language)}))
  const select={emptyLabel:en?'No match':'Καμία αντιστοιχία',customLabel:(text:string)=>en?`Use «${text}»`:`Χρήση «${text}»`}
  function changeMode(next:string){if(next==='single'&&rows.length>1)keepFirstRow();setMode(next)}
- const itemField=(row:AnyRecord,index:number,hideLabel?:boolean)=><SearchableSelect hideLabel={hideLabel} label={en?'Item / Medicine *':'Υλικό / Φάρμακο *'} value={row.item||''} options={items.options} recentValues={items.recent} recentLabel={en?'Recorded before':'Έχουν καταγραφεί'} onChange={v=>setRow(index,'item',v)} allowCustom placeholder={en?'Search the list or type':'Αναζήτηση στη λίστα ή πληκτρολόγηση'} {...select}/>
- const formField=(row:AnyRecord,index:number,hideLabel?:boolean)=><SearchableSelect hideLabel={hideLabel} label={en?'Form':'Είδος'} value={formKey(row.form)} options={forms} onChange={v=>setRow(index,'form',v)} placeholder="—" {...select} clearLabel={en?'Clear':'Καθαρισμός'}/>
- const findingField=(row:AnyRecord,index:number,hideLabel?:boolean)=><div className="control-finding-cell"><SearchableSelect hideLabel={hideLabel} label={en?'Finding':'Εύρημα'} value={expiryFindingCode(row.finding)} options={findingOptions} onChange={v=>setRow(index,'finding',v)} placeholder={en?'No finding':'Χωρίς εύρημα'} {...select} clearLabel={en?'Clear':'Καθαρισμός'}/>{expiryFindingCode(row.finding)==='other'&&<input className="control-finding-other" aria-label={en?'Describe the finding':'Περιγραφή ευρήματος'} value={row.findingOther||''} onChange={e=>setRow(index,'findingOther',e.target.value)} placeholder={en?'Describe the finding':'Συμπληρώστε το εύρημα'}/>}</div>
+ const itemField=(row:StructuredRow,index:number,hideLabel?:boolean)=><SearchableSelect hideLabel={hideLabel} label={en?'Item / Medicine *':'Υλικό / Φάρμακο *'} value={row.item||''} options={items.options} recentValues={items.recent} recentLabel={en?'Recorded before':'Έχουν καταγραφεί'} onChange={v=>setRow(index,'item',v)} allowCustom placeholder={en?'Search the list or type':'Αναζήτηση στη λίστα ή πληκτρολόγηση'} {...select}/>
+ const formField=(row:StructuredRow,index:number,hideLabel?:boolean)=><SearchableSelect hideLabel={hideLabel} label={en?'Form':'Είδος'} value={formKey(row.form)} options={forms} onChange={v=>setRow(index,'form',v)} placeholder="—" {...select} clearLabel={en?'Clear':'Καθαρισμός'}/>
+ const findingField=(row:StructuredRow,index:number,hideLabel?:boolean)=><div className="control-finding-cell"><SearchableSelect hideLabel={hideLabel} label={en?'Finding':'Εύρημα'} value={expiryFindingCode(row.finding)} options={findingOptions} onChange={v=>setRow(index,'finding',v)} placeholder={en?'No finding':'Χωρίς εύρημα'} {...select} clearLabel={en?'Clear':'Καθαρισμός'}/>{expiryFindingCode(row.finding)==='other'&&<input className="control-finding-other" aria-label={en?'Describe the finding':'Περιγραφή ευρήματος'} value={row.findingOther||''} onChange={e=>setRow(index,'findingOther',e.target.value)} placeholder={en?'Describe the finding':'Συμπληρώστε το εύρημα'}/>}</div>
  // The status of a date is the colour of its frame (expired red, expiring orange) and its tooltip.
- const dateTone=(row:AnyRecord)=>{const {state}=expiryState(row?.expiry,window);return state==='expired'?'control-expiry-date-expired':state==='expiring'?'control-expiry-date-expiring':''}
- const statusTitle=(row:AnyRecord)=>{const {state,days}=expiryState(row?.expiry,window);return state==='expired'?(en?`Expired ${-days!} days ago`:`Έληξε πριν ${-days!} ημ.`):state==='expiring'?(en?`Expires in ${days} days`:`Λήγει σε ${days} ημ.`):state==='ok'?(en?'In date':'Εντός'):undefined}
+ const dateTone=(row:StructuredRow)=>{const {state}=expiryState(row?.expiry,window);return state==='expired'?'control-expiry-date-expired':state==='expiring'?'control-expiry-date-expiring':''}
+ const statusTitle=(row:StructuredRow)=>{const {state,days}=expiryState(row?.expiry,window);return state==='expired'?(en?`Expired ${-days!} days ago`:`Έληξε πριν ${-days!} ημ.`):state==='expiring'?(en?`Expires in ${days} days`:`Λήγει σε ${days} ημ.`):state==='ok'?(en?'In date':'Εντός'):undefined}
  const columns=[
      {key:'item',label:en?'Item / Medicine':'Υλικό / Φάρμακο'},{key:'form',label:en?'Form':'Είδος'},{key:'expected',label:en?'Expected':'Προβλεπ.'},{key:'quantity',label:en?'Found':'Βρέθηκε'},{key:'expiry',label:en?'Expiry date':'Λήξη'},{key:'finding',label:en?'Finding':'Εύρημα'},{key:'note',label:en?'Item note':'Παρατήρηση υλικού'},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'},
     ]
- const renderEntry=(row:AnyRecord,index:number)=><>
+ const renderEntry=(row:StructuredRow,index:number)=><>
      <td>{row.fromCatalogue?<strong className="control-catalogue-item">{row.item}</strong>:itemField(row,index,true)}</td>
      <td>{row.fromCatalogue?<span className="control-catalogue-form">{formLabel(row.form,language)||'—'}</span>:formField(row,index,true)}</td>
      <td className="control-expiry-expected">{row.expected||'—'}</td>
@@ -68,8 +73,8 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
     </>
  // Medicines and supplies each get their own table once the list says which is which.
  const entries=rows.map((row,index)=>({row,index}))
- const groups:[string,{row:AnyRecord,index:number}[]][]=entries.some(entry=>entry.row.category)
-  ?([...ITEM_CATEGORIES.map(([key])=>[key,entries.filter(entry=>entry.row.category===key)]),['other',entries.filter(entry=>!ITEM_CATEGORIES.some(([key])=>key===entry.row.category))]] as [string,{row:AnyRecord,index:number}[]][]).filter(([,list])=>list.length)
+ const groups:[string,{row:StructuredRow,index:number}[]][]=entries.some(entry=>entry.row.category)
+  ?([...ITEM_CATEGORIES.map(([key])=>[key,entries.filter(entry=>entry.row.category===key)]),['other',entries.filter(entry=>!ITEM_CATEGORIES.some(([key])=>key===entry.row.category))]] as [string,{row:StructuredRow,index:number}[]][]).filter(([,list])=>list.length)
   :[['',entries]]
  return <section className="control-expiry-entry">
   <SectionHeader
@@ -98,7 +103,7 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
 
 export const categoryLabel=(key:string,language='el')=>{const match=ITEM_CATEGORIES.find(([k])=>k===key);return match?(language==='en'?match[2]:match[1]):(language==='en'?'Other items':'Λοιπά')}
 
-export function ExpiryBadge({row,window,language,now}:{row:AnyRecord|null|undefined,window:{before:number,after:number},language:string,now?:Date}){
+export function ExpiryBadge({row,window,language,now}:{row:StructuredRow|null|undefined,window:{before:number,after:number},language:string,now?:Date}){
  const en=language==='en'
  const {state,days}=expiryState(row?.expiry,window,now)
  if(state==='unknown')return <SignalBadge className="control-expiry-badge">—</SignalBadge>

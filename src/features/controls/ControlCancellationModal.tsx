@@ -6,9 +6,9 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlActor, ControlExecution } from './controlTypes'
 
-interface ControlCancellationModalProps { execution?: AnyRecord, onClose: () => void, onConfirm: (result: { reason: string, actor: AnyRecord }) => void, mode?: string }
+interface ControlCancellationModalProps { execution?: ControlExecution, onClose: () => void, onConfirm: (result: { reason: string, actor: ControlActor }) => void, mode?: string }
 export function ControlCancellationModal({onClose,onConfirm,mode='void'}:ControlCancellationModalProps){
  const {profile,user}=useAuth();const {language}=useLanguage();const en=language==='en';const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user]);const [reason,setReason]=useState('')
  const deleting=mode==='delete'

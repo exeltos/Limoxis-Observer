@@ -3,7 +3,8 @@
 // after), what was checked with no change, and signature boxes.
 import { expiryState,expiryWindow,formLabel } from './controlExpiry'
 import { rowFindingText } from './controlVocabulary'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution, ControlRecord, StructuredRow } from './controlTypes'
+import type { ExpiryItem } from './controlExpiry'
 
 const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'} as Record<string,string>)[c])
 const day=(value:unknown)=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:(value||'')}
@@ -11,7 +12,7 @@ const same=(a:unknown,b:unknown)=>String(a??'').trim()===String(b??'').trim()
 
 // What happened to one row at this check: a new lot or expiry is a replacement,
 // a new quantity an update, an item that was not on the list is new.
-export function expiryRowChange(row:AnyRecord|null|undefined){
+export function expiryRowChange(row:StructuredRow|null|undefined){
  const before=row?.previous
  if(row?.removedAt)return 'removed'
  if(!before)return row?.fromCatalogue?'unchanged':'new'
@@ -27,14 +28,14 @@ function beforeAfter(before:unknown,after:unknown,format:(value:unknown)=>unknow
  return `<span class="was">${esc(a||'—')}</span> → <strong>${esc(b||'—')}</strong>`
 }
 
-export function expiryChangeFormHtml({record,department,execution,actorName}:{record:AnyRecord,department:string,execution:AnyRecord|null|undefined,actorName?:string}){
- const rows:AnyRecord[]=(execution?.structuredData?.rows||[]).filter((row:AnyRecord)=>String(row?.item||'').trim())
+export function expiryChangeFormHtml({record,department,execution,actorName}:{record:Pick<ControlRecord,'id'|'title'|'responseConfig'>,department:string,execution:Partial<Pick<ControlExecution,'at'|'structuredData'|'notes'|'by'>>|null|undefined,actorName?:string}){
+ const rows:StructuredRow[]=(execution?.structuredData?.rows||[]).filter((row:StructuredRow)=>String(row?.item||'').trim())
  const window=expiryWindow(record)
  const at=new Date(execution?.at||Date.now())
  const changed=rows.filter(row=>expiryRowChange(row)!=='unchanged')
  const unchanged=rows.filter(row=>expiryRowChange(row)==='unchanged')
- const status=(row:AnyRecord)=>{const {state,days}=expiryState(row.expiry,window,at);return state==='expired'?`Ληγμένο (${-days!} ημ.)`:state==='expiring'?`Λήγει σε ${days} ημ.`:state==='ok'?'Εντός':'—'}
- const changeRows=changed.map(row=>{const before=row.previous||{};return `<tr class="${expiryRowChange(row)}"><td><strong>${esc(row.item)}</strong>${row.form?`<small>${esc(formLabel(row.form))}</small>`:''}</td><td>${beforeAfter(before.quantity,row.quantity)}</td><td>${beforeAfter(before.lot,row.lot)}</td><td>${beforeAfter(before.expiry,row.expiry,day)}</td><td>${esc(status(row))}</td><td><strong>${CHANGE_LABEL[expiryRowChange(row)]}</strong></td><td>${esc([rowFindingText(row),row.note].filter(Boolean).join(' · ')||'')}</td></tr>`}).join('')
+ const status=(row:StructuredRow)=>{const {state,days}=expiryState(row.expiry,window,at);return state==='expired'?`Ληγμένο (${-days!} ημ.)`:state==='expiring'?`Λήγει σε ${days} ημ.`:state==='ok'?'Εντός':'—'}
+ const changeRows=changed.map(row=>{const before:Partial<NonNullable<StructuredRow['previous']>>=row.previous||{};return `<tr class="${expiryRowChange(row)}"><td><strong>${esc(row.item)}</strong>${row.form?`<small>${esc(formLabel(row.form))}</small>`:''}</td><td>${beforeAfter(before.quantity,row.quantity)}</td><td>${beforeAfter(before.lot,row.lot)}</td><td>${beforeAfter(before.expiry,row.expiry,day)}</td><td>${esc(status(row))}</td><td><strong>${CHANGE_LABEL[expiryRowChange(row)]}</strong></td><td>${esc([rowFindingText(row),row.note].filter(Boolean).join(' · ')||'')}</td></tr>`}).join('')
  const sign=(label:string)=>`<div class="sign"><span>${label}</span><div class="line"></div><small>Ονοματεπώνυμο / Υπογραφή / Ημερομηνία</small></div>`
  return `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>${esc(record.title)} · ${esc(department)}</title><style>
 body{font-family:Arial,sans-serif;padding:28px;color:#17233a;font-size:12px}h1{font-size:18px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 8px}
@@ -59,9 +60,9 @@ ${unchanged.length?`<h2>Ελέγχθηκαν χωρίς αλλαγή (${unchange
 // The return and replacement request: the items that have expired or expire
 // soon, per department, for the pharmacy to take back and replace. Quantities to
 // return and to replace are left to fill in by hand, with signature boxes.
-export function expiryReturnFormHtml({title,items,actorName,now=new Date()}:{title:string,items:AnyRecord[],actorName?:string,now?:Date}){
+export function expiryReturnFormHtml({title,items,actorName,now=new Date()}:{title:string,items:ExpiryItem[],actorName?:string,now?:Date}){
  const departments=[...new Set(items.map(item=>item.department))]
- const status=(item:AnyRecord)=>item.state==='finding'?(rowFindingText(item.row)||'Εύρημα'):item.state==='expired'?`Ληγμένο (${-item.days} ημ.)`:`Λήγει σε ${item.days} ημ.`
+ const status=(item:ExpiryItem)=>item.state==='finding'?(rowFindingText(item.row)||'Εύρημα'):item.state==='expired'?`Ληγμένο (${-item.days!} ημ.)`:`Λήγει σε ${item.days} ημ.`
  const rows=items.map((item,index)=>`<tr class="${item.state}"><td>${index+1}</td><td><strong>${esc(item.row.item)}</strong>${item.row.form?`<small>${esc(formLabel(item.row.form))}</small>`:''}</td>${departments.length>1?`<td>${esc(item.department)}</td>`:''}<td>${esc(item.row.lot||'—')}</td><td>${esc(day(item.row.expiry))}</td><td>${esc(status(item))}</td><td>${esc(item.row.quantity||'')}</td><td class="fill"></td><td class="fill"></td><td>${esc(item.row.note||'')}</td></tr>`).join('')
  const sign=(label:string)=>`<div class="sign"><span>${label}</span><div class="line"></div><small>Ονοματεπώνυμο / Υπογραφή / Ημερομηνία</small></div>`
  return `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Επιστροφή και αντικατάσταση · ${esc(title)}</title><style>

@@ -14,24 +14,36 @@ import { compareExpiryItems,expiryCounts,expiryItems,expiryWindow,formLabel } fr
 import { expiryReturnFormHtml,printHtml } from './controlExpiryPrint'
 import { rowFindingText } from './controlVocabulary'
 import type { Dispatch, SetStateAction } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ControlExecution, ControlRecord } from './controlTypes'
+import type { ExpiryItem } from './controlExpiry'
 
 // An item of the expiry list with its control and window (ControlExpiryPanel).
-type Item = AnyRecord
-type ItemGroup = { key: string, head: AnyRecord, items: Item[] }
-type ItemEntry = { key: string, item: Item, members: Item[] }
+export type PanelItem = ExpiryItem & { record: ControlRecord, window: { before: number, after: number } }
+type Item = PanelItem
+// A group's head: expired, expiring soon, in date, or the findings of one check.
+type GroupHead = { kind: string, execution?: ControlExecution | null, department?: string }
+type ItemGroup = { key: string, head: GroupHead, items: Item[] }
+// An item as the lines of the table join it: its control, department, state and row.
+type EntryItem = Pick<PanelItem, 'key' | 'department' | 'state' | 'row'> & { record: Pick<ControlRecord, 'id'> }
+type ItemEntry<T extends EntryItem = Item> = { key: string, item: T, members: T[] }
+// A line of the table: an item with its departments, in its group.
+type TableEntry = ItemEntry & { departments: string[], group: string }
+// A row of the table: a group's title, an item (alone, or with its departments under it) or one of its departments.
+type TableRow = { kind: 'head', key: string, group: ItemGroup, open: boolean, count: number } | { kind: 'single', key: string, entry: TableEntry } | { kind: 'group', key: string, entry: TableEntry } | { kind: 'member', key: string, member: Item }
+// The prints and the sheet the page's «Export» menu calls.
+type PrintActions = { list: (pdf?: boolean) => void, returnForm: (pdf?: boolean) => void, excel: () => void }
 // The items the panel reports to the page's «Export» menu.
 export type ExpiryExport = ExportItem[]
 
 const normalize=(value:unknown)=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
 const day=(value:unknown):string=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:((value||'—') as string)}
-const controlTitle=(record:AnyRecord,language:string)=>language==='el'?record.title:record.titleEn||record.title
+const controlTitle=(record:Pick<ControlRecord,'title'|'titleEn'>,language:string)=>language==='el'?record.title:record.titleEn||record.title
 
 // The items in groups: expired, expiring soon, the findings check by check,
 // and the items in date (closed until opened).
 export function expiryGroups(items:Item[]){
  const out=new Map<string,ItemGroup>()
- const put=(key:string,head:AnyRecord,item:Item)=>{if(!out.has(key))out.set(key,{key,head,items:[]});out.get(key)!.items.push(item)}
+ const put=(key:string,head:GroupHead,item:Item)=>{if(!out.has(key))out.set(key,{key,head,items:[]});out.get(key)!.items.push(item)}
  for(const item of items){
   if(item.state==='finding')put(`finding|${item.department}|${item.execution?.id||''}`,{kind:'finding',execution:item.execution,department:item.department},item)
   else if(item.state==='expired')put('expired',{kind:'expired'},item)
@@ -45,7 +57,7 @@ export function expiryGroups(items:Item[]){
 const statusText=(item:Item,language:string)=>{
  const en=language==='en'
  if(item.state==='finding')return rowFindingText(item.row,language)||(en?'Finding':'Εύρημα')
- if(item.state==='expired')return en?`Expired ${-item.days} days ago`:`Έληξε πριν ${-item.days} ημ.`
+ if(item.state==='expired')return en?`Expired ${-item.days!} days ago`:`Έληξε πριν ${-item.days!} ημ.`
  if(item.state==='expiring')return en?`Expires in ${item.days} days`:`Λήγει σε ${item.days} ημ.`
  return en?'In date':'Εντός'
 }
@@ -54,8 +66,8 @@ const statusText=(item:Item,language:string)=>{
 // opens to its departments, each with its own «Removed». Columns with titles sort the list; by default the expired
 // first, then those expiring soon, the findings and those in date.
 const STATE_ORDER={expired:0,expiring:1,finding:2,ok:3}
-export function expiryEntries(items:Item[]){
- const out=new Map<string,ItemEntry>()
+export function expiryEntries<T extends EntryItem>(items:T[]){
+ const out=new Map<string,ItemEntry<T>>()
  for(const item of items){
   const key=[item.record.id,item.state,normalize(item.row.item),item.row.lot||'',item.row.expiry||'',item.state==='finding'?item.key:''].join('|')
   if(!out.has(key))out.set(key,{key,item,members:[]})
@@ -63,7 +75,7 @@ export function expiryEntries(items:Item[]){
  }
  return [...out.values()].map(entry=>({...entry,departments:[...new Set(entry.members.map(member=>member.department))]}))
 }
-interface ExpiryTableProps { items:Item[], canRemove?:(record:AnyRecord,department:string)=>boolean, onRemove?:(item:Item)=>void, showControl:boolean, showDepartment:boolean, language:string, locale:string, picked:Set<string>, onPick:(key:string)=>void }
+interface ExpiryTableProps { items:Item[], canRemove?:(record:ControlRecord,department:string)=>boolean, onRemove?:(item:Item)=>void, showControl:boolean, showDepartment:boolean, language:string, locale:string, picked:Set<string>, onPick:(key:string)=>void }
 function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,language,locale,picked,onPick}:ExpiryTableProps){
  const en=language==='en'
  const [opened,setOpened]=useState(()=>new Set<string>())
@@ -81,15 +93,15 @@ function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,langua
   expiry:entry=>entry.item.row.expiry||null,
   state:entry=>((STATE_ORDER as Record<string,number>)[entry.item.state]??4)*100000+(entry.item.days??0),
  })
- const title=(head:AnyRecord)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Check of':'Έλεγχος'} ${at(head.execution?.at)}${head.execution?.by?` · ${head.execution.by}`:''}${showDepartment?` · ${head.department}`:''}`
+ const title=(head:GroupHead)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Check of':'Έλεγχος'} ${at(head.execution?.at)}${head.execution?.by?` · ${head.execution.by}`:''}${showDepartment?` · ${head.department}`:''}`
  const details=(item:Item,single:boolean)=>[showControl&&controlTitle(item.record,language),item.row.lot&&`${en?'Lot':'Παρτίδα'} ${item.row.lot}`,formLabel(item.row.form,language),single&&item.row.quantity&&`${en?'Qty':'Ποσ.'} ${item.row.quantity}`,single&&item.row.note,item.state!=='finding'&&rowFindingText(item.row,language)].filter(Boolean).join(' · ')
  const status=(item:Item)=>item.state==='finding'?<span className="control-expiry-finding">{statusText(item,language)}</span>:<ExpiryBadge row={item.row} window={item.window} language={language}/>
  const action=(item:Item)=>item.execution&&item.state!=='finding'&&canRemove?.(item.record,item.department)?<Button variant="secondary" className="control-expiry-remove" title={en?'Removed / replaced: takes the item off the list':'Αφαιρέθηκε / αντικαταστάθηκε: βγαίνει από τη λίστα'} onClick={event=>{event.stopPropagation();onRemove!(item)}}><PackageX size={14} aria-hidden="true"/>{en?'Removed':'Αφαιρέθηκε'}</Button>:item.execution?<small>{at(item.execution.at)}</small>:<small className="control-expiry-from-list">{en?'From the list':'Από τη λίστα'}</small>
- const rows=groups.flatMap((group,index):AnyRecord[]=>{
+ const rows=groups.flatMap((group,index):TableRow[]=>{
   const closed=group.head.kind==='ok'||(group.head.kind==='finding'&&index>2)
   const open=closed?flipped.has(group.key):!flipped.has(group.key)
   const own=sorted.filter(entry=>entry.group===group.key)
-  return [{kind:'head',key:`head|${group.key}`,group,open,count:group.items.length},...(open?own.flatMap(entry=>entry.members.length===1?[{kind:'single',key:entry.key,entry}]:[{kind:'group',key:entry.key,entry},...(opened.has(entry.key)?entry.members.map(member=>({kind:'member',key:`${entry.key}|${member.key}`,member})):[])]):[])]
+  return [{kind:'head',key:`head|${group.key}`,group,open,count:group.items.length},...(open?own.flatMap((entry):TableRow[]=>entry.members.length===1?[{kind:'single',key:entry.key,entry}]:[{kind:'group',key:entry.key,entry},...(opened.has(entry.key)?entry.members.map(member=>({kind:'member' as const,key:`${entry.key}|${member.key}`,member})):[])]):[])]
  })
  return <RegistryTable sort={sort} onSort={onSort} className="control-expiry-table"
    columns={[{key:'item',label:en?'Item / Medicine':'Υλικό / Φάρμακο',sortable:true},...(showDepartment?[{key:'departments',label:en?'Departments':'Τμήματα',sortable:true}]:[]),{key:'expiry',label:en?'Expiry':'Λήξη',sortable:true},{key:'state',label:en?'Status':'Κατάσταση',sortable:true},{key:'action',label:'',ariaLabel:en?'Removed':'Αφαιρέθηκε'}]}
@@ -114,7 +126,7 @@ function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,langua
 // (expired, expiring soon, findings, in date) and printable. One department:
 // its grouped list straight away. «Removed» takes an item off the list.
 // sources: [{record,departments}]
-interface ControlExpiryPanelProps { sources:{record:AnyRecord,departments:string[]}[], canRemove?:(record:AnyRecord,department:string)=>boolean, onRemove?:(item:Item)=>void, query?:string, stateFilter?:string|null, actorName?:string, language:string, locale:string, onExportChange?:((api:ExpiryExport|null)=>void)|null }
+interface ControlExpiryPanelProps { sources:{record:ControlRecord,departments:string[]}[], canRemove?:(record:ControlRecord,department:string)=>boolean, onRemove?:(item:Item)=>void, query?:string, stateFilter?:string|null, actorName?:string, language:string, locale:string, onExportChange?:((api:ExpiryExport|null)=>void)|null }
 export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFilter=null,actorName='',language,locale,onExportChange}:ControlExpiryPanelProps){
  const en=language==='en'
  const {notify}=useFeedback()
@@ -141,7 +153,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFil
  // One «Export» per tab: the page's own menu (top bar or record header) offers the
  // return form; this panel only reports it, and draws its own menu when nobody takes it.
  // It reports two prints: the whole list (to sign) and the return form.
- const printRef=useRef<AnyRecord>({});printRef.current={list:(pdf=false)=>printList(several?'all':departmentOptions[0]||'all',listItems,'',pdf),returnForm:(pdf=false)=>printReturnForm(returnItems,pdf),excel:()=>exportList(searched)}
+ const printRef=useRef<PrintActions>({} as PrintActions);printRef.current={list:(pdf=false)=>printList(several?'all':departmentOptions[0]||'all',listItems,'',pdf),returnForm:(pdf=false)=>printReturnForm(returnItems,pdf),excel:()=>exportList(searched)}
  // The same list as the print (department and search as chosen), as a sheet.
  function exportList(list:Item[]){
   exportRegistry({name:en?'expiry-list':'lixeis',headers:[en?'Item / Medicine':'Υλικό / Φάρμακο',en?'Department':'Τμήμα',en?'Control':'Έλεγχος',en?'Quantity':'Ποσότητα',en?'Lot':'Παρτίδα',en?'Expiry date':'Ημερομηνία λήξης',en?'Status':'Κατάσταση'],rows:list.map(item=>[item.row.item,item.department,controlTitle(item.record,language),item.row.quantity||'',item.row.lot||'',day(item.row.expiry),statusText(item,language)])})
@@ -160,7 +172,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFil
   return()=>onExportChange(null)
  },[onExportChange,returnCount,listCount,pickedCount,en])
  const placeName=(place:string)=>place==='all'?(en?'All departments':'Όλα τα τμήματα'):place
- const groupName=(head:AnyRecord,place:string)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Findings of the check of':'Ευρήματα ελέγχου'} ${day(String(head.execution?.at||'').slice(0,10))}${head.execution?.by?` · ${head.execution.by}`:''}${place==='all'?` · ${head.department}`:''}`
+ const groupName=(head:GroupHead,place:string)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Findings of the check of':'Ευρήματα ελέγχου'} ${day(String(head.execution?.at||'').slice(0,10))}${head.execution?.by?` · ${head.execution.by}`:''}${place==='all'?` · ${head.department}`:''}`
  // The list of a department (all its groups, or one) on the shared document layout, to sign.
  function printList(place:string,list:Item[],part='',pdf=false){
   const columns=[en?'Item / Medicine':'Υλικό / Φάρμακο',...(place==='all'?[en?'Department':'Τμήμα']:[]),...(manyControls?[en?'Control':'Έλεγχος']:[]),en?'Quantity':'Ποσότητα',en?'Lot':'Παρτίδα',en?'Expiry date':'Ημερομηνία λήξης',en?'Status':'Κατάσταση']

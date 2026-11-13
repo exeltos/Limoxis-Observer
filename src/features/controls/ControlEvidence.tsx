@@ -5,7 +5,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import './controlEvidence.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EvidenceItem } from './controlTypes'
 
 const ACCEPT='image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt'
 const MAX_BYTES=15*1024*1024
@@ -44,11 +44,11 @@ export function ControlDeviationActions({text,language='el'}:{text:string,langua
 }
 
 // Evidence saved with an execution: opens a fresh signed link on click.
-export function ControlEvidenceLinks({evidence=[],language='el'}:{evidence?:AnyRecord[],language?:string}){
+export function ControlEvidenceLinks({evidence=[],language='el'}:{evidence?:EvidenceItem[],language?:string}){
  const {notify}=useFeedback()
  if(!evidence.length)return null
  const en=language==='en'
- async function open(item:AnyRecord){
+ async function open(item:EvidenceItem){
   if(!item.storagePath)return
   try{const url=await getAttachmentUrl(item.storagePath);if(url)window.open(url,'_blank','noopener,noreferrer')}
   catch{notify(en?'The file could not be opened.':'Δεν ήταν δυνατό το άνοιγμα του αρχείου.','error')}
