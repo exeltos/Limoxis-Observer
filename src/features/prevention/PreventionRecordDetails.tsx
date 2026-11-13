@@ -11,18 +11,18 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { normalizeWhoMoments, sessionHandHygieneStats } from './whoHandHygieneStats'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AntisepticRecord, BundleAssessment, BundleFinding, BundleTemplate, HandHygieneSession, HandHygieneSessionInfo, WhoObservation } from './preventionTypes'
 
 export const formatMonth = (value: string | null | undefined) => (value ? antisepticPeriodLabel(value) : '')
 
 // Prevention records share one layout: the context as a details sheet, the key
 // figures as a metric strip, then the record's own list under a section header.
-export function HandHygieneDetails({ record, language }: { record: AnyRecord; language: string }) {
+export function HandHygieneDetails({ record, language }: { record: HandHygieneSession; language: string }) {
   const en = language === 'en'
   const items = record.whoObservations || []
   const stats = sessionHandHygieneStats(record)
-  const session = record.session || {}
-  const actionLabel = (item: AnyRecord) =>
+  const session: HandHygieneSessionInfo = record.session || {}
+  const actionLabel = (item: WhoObservation) =>
     item.action === 'HR'
       ? en
         ? 'Alcohol-based hand rub'
@@ -34,7 +34,7 @@ export function HandHygieneDetails({ record, language }: { record: AnyRecord; la
         : en
           ? 'Not performed'
           : 'Δεν πραγματοποιήθηκε'
-  const profession = (item: AnyRecord) => {
+  const profession = (item: WhoObservation) => {
     const p = WHO_PROFESSIONS.find(([el]) => el === item.professionalCategory)
     return p ? (en ? p[1] : p[0]) : item.professionalCategory || '—'
   }
@@ -135,7 +135,7 @@ export function HandHygieneDetails({ record, language }: { record: AnyRecord; la
   )
 }
 
-export function AntisepticDetails({ record, language, locale }: { record: AnyRecord; language: string; locale: string }) {
+export function AntisepticDetails({ record, language, locale }: { record: AntisepticRecord; language: string; locale: string }) {
   const en = language === 'en'
   return (
     <div className="record-view-stack">
@@ -210,16 +210,16 @@ const SHIFT_LABELS: Record<string, [string, string]> = {
   evening: ['Απογευματινή', 'Evening'],
   night: ['Νυχτερινή', 'Night'],
 }
-function shiftLabel(value: string, en: boolean) {
-  const pair = SHIFT_LABELS[value]
+function shiftLabel(value: string | undefined, en: boolean) {
+  const pair = SHIFT_LABELS[value as string]
   return pair ? (en ? pair[1] : pair[0]) : value || '—'
 }
 // Corrected, still open, no longer applicable, or not reviewed yet.
 const FOLLOW_UP_TONES: Record<string, string> = { resolved: 'success', open: 'danger', not_applicable: 'neutral' }
 export const bundleFollowUpTone = (status: string | undefined) => FOLLOW_UP_TONES[status as string] || 'warning'
-export function BundleDetails({ record, language, canEdit, onFollowUp }: { record: AnyRecord; language: string; canEdit: boolean; onFollowUp: (item: AnyRecord) => void }) {
+export function BundleDetails({ record, language, canEdit, onFollowUp }: { record: BundleAssessment; language: string; canEdit: boolean; onFollowUp: (item: BundleFinding) => void }) {
   const en = language === 'en'
-  const template = record.templateSnapshot || {}
+  const template: Partial<BundleTemplate> = record.templateSnapshot || {}
   const elements: [string, string][] = template.elements || []
   const findings =
     record.findings ||
@@ -341,7 +341,7 @@ export function BundleDetails({ record, language, canEdit, onFollowUp }: { recor
                 : 'Επανελέγξτε κάθε απόκλιση και καταγράψτε αν διορθώθηκε, παραμένει ή δεν εφαρμόζεται πλέον.'
             }
           />
-          {findings.map((item: AnyRecord) => {
+          {findings.map((item: BundleFinding) => {
             const followUp = record.followUps?.[item.id]
             return (
               <div

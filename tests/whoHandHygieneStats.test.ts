@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { normalizeWhoMoments, observationWeight, sessionHandHygieneStats, whoStatsFromObservations } from '../src/features/prevention/whoHandHygieneStats'
+import type { WhoStats } from '../src/features/prevention/preventionTypes'
 
 describe('WHO hand hygiene statistics', () => {
   it('each professional observed together is a separate opportunity', () => {
@@ -29,7 +30,7 @@ describe('WHO hand hygiene statistics', () => {
 
 describe('sessionHandHygieneStats', () => {
   it('uses the stored statistics when present', () => {
-    const whoStats = { compliance: 80 }
+    const whoStats = { compliance: 80 } as WhoStats
     expect(sessionHandHygieneStats({ whoStats, whoObservations: [{ action: 'MISSED' }] })).toBe(whoStats)
   })
 

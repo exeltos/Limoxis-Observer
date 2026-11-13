@@ -15,7 +15,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { PreventionDepartmentField, selectTexts } from './PreventionFields'
 import { normalizeWhoMoments, whoStatsFromObservations } from './whoHandHygieneStats'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { HandHygieneSession, HandHygieneSessionInfo, PreventionDraft, WhoObservation } from './preventionTypes'
 import type { PreventionDepartment } from './preventionCloud'
 export const WHO_MOMENTS = [
   {
@@ -95,7 +95,7 @@ export function WhoHandHygieneEditor({
   fixedDepartment = '',
   initialRecord = null,
   departments = [],
-}: { onSave: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[] }) {
+}: { onSave: (record: PreventionDraft<HandHygieneSession>) => unknown; fixedDepartment?: string; initialRecord?: HandHygieneSession | null; departments?: PreventionDepartment[] }) {
   const { profile, user } = useAuth()
   const { tenant } = useTenant()
   const { language } = useLanguage()
@@ -104,7 +104,7 @@ export function WhoHandHygieneEditor({
   const { confirm, notify, notifyError } = useFeedback()
   const today = hospitalToday()
   const firstDepartment = fixedDepartment || initialRecord?.departmentEl || departments[0]?.el || ''
-  const [session, setSession] = useState<AnyRecord>(() =>
+  const [session, setSession] = useState<HandHygieneSessionInfo>(() =>
     initialRecord?.session
       ? {
           ...initialRecord.session,
@@ -122,11 +122,11 @@ export function WhoHandHygieneEditor({
           endTime: '',
         },
   )
-  const [current, setCurrent] = useState<AnyRecord>(blankObservation())
+  const [current, setCurrent] = useState<WhoObservation>(blankObservation())
   const [currentTouched, setCurrentTouched] = useState(false)
-  const [items, setItems] = useState<AnyRecord[]>(() =>
+  const [items, setItems] = useState<WhoObservation[]>(() =>
     initialRecord?.whoObservations
-      ? JSON.parse(JSON.stringify(initialRecord.whoObservations)).map((item: AnyRecord) => ({
+      ? JSON.parse(JSON.stringify(initialRecord.whoObservations)).map((item: WhoObservation) => ({
           ...item,
           moments: normalizeWhoMoments(item),
         }))

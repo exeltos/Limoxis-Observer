@@ -19,7 +19,7 @@ import {
   updateVaccinationAsync,
 } from '../occupational-health/vaccinationService'
 import { EMPTY_VACCINATION, StaffVaccinationEditor, type VaccinationEditorValue } from './StaffVaccinationEditor'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionEmployee } from './preventionTypes'
 import type { EmployeeRow } from '../occupational-health/occupationalHealthTypes'
 
 const BACK = '/prevention?tab=vaccinations'
@@ -34,7 +34,8 @@ export function VaccinationRecordPage() {
   const navigate = useNavigate()
   const { notify, notifyError, confirm } = useFeedback()
   const { role, membership, canAccessRecord, tenant } = useTenant()
-  const employeeRows: AnyRecord[] | null | undefined = useEmployeesData().data
+  // The employees service is not typed yet: the vaccination reads the fields PreventionEmployee declares.
+  const employeeRows = useEmployeesData().data as PreventionEmployee[] | null | undefined
   const canManage = can(role, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const [value, setValue] = useState<VaccinationEditorValue | null>(isNew ? { mode: 'individual', draft: { ...EMPTY_VACCINATION }, selectedEmployeeIds: [] } : null)
   const [missing, setMissing] = useState(false)
@@ -43,7 +44,7 @@ export function VaccinationRecordPage() {
   useEffect(() => {
     if (isNew || !tenant?.id) return undefined
     let alive = true
-    loadAllVaccinationsAsync(tenant.id).then((rows: AnyRecord[]) => {
+    loadAllVaccinationsAsync(tenant.id).then(rows => {
       if (!alive) return
       const row = (rows || []).find(item => String(item.id) === String(recordId))
       if (!row) return setMissing(true)
@@ -57,7 +58,7 @@ export function VaccinationRecordPage() {
   async function save(payload: VaccinationEditorValue) {
     try {
       if (payload.mode === 'edit') {
-        await updateVaccinationAsync(tenant!.id, payload.draft.id, payload.draft)
+        await updateVaccinationAsync(tenant!.id, payload.draft.id as string, payload.draft)
         notify(en ? 'Vaccination updated.' : t('vaccinationUpdated'), 'success')
       } else {
         const selected = (employeeRows || []).filter(item => payload.selectedEmployeeIds.includes(item.id))
@@ -78,7 +79,7 @@ export function VaccinationRecordPage() {
     })
     if (!ok) return
     try {
-      await deleteVaccinationAsync(tenant!.id, payload.draft.id)
+      await deleteVaccinationAsync(tenant!.id, payload.draft.id as string)
       notify(en ? 'Vaccination deleted.' : t('vaccinationDeleted'), 'success')
       navigate(BACK)
     } catch (error) {
@@ -101,7 +102,7 @@ export function VaccinationRecordPage() {
           asPage
           language={language}
           employees={employees}
-          value={{ ...value, selectedEmployee: employeeMap[value.draft?.employeeId] || value.selectedEmployee }}
+          value={{ ...value, selectedEmployee: employeeMap[value.draft?.employeeId as string] || value.selectedEmployee }}
           canManage={canManage}
           onChange={setValue}
           onClose={() => navigate(BACK)}

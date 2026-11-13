@@ -3,7 +3,7 @@ import { antisepticLibrary } from './preventionDemoData'
 import { antisepticPeriodBounds } from './antisepticMethods'
 import { loadAntisepticLocal, saveAntisepticLocal } from './preventionStore'
 import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AntisepticItemRef, AntisepticPeriodRow, AntisepticRecord, PreventionDraft } from './preventionTypes'
 import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments, type PreventionOrgId } from './preventionCloud'
 
 const monthLabel = (from: string | null, to: string | null) => {
@@ -12,14 +12,14 @@ const monthLabel = (from: string | null, to: string | null) => {
   const end = String(to || from).slice(0, 7)
   return start === end ? start : `${start} – ${end}`
 }
-const isAbhrItem = (item: AnyRecord | null | undefined) =>
-  Boolean(item && (item.metadata?.is_abhr === true || item.code === 'ANT-ABHR'))
-const isHospitalRecord = (record: AnyRecord | null | undefined) =>
+const isAbhrItem = (item: AntisepticItemRef | null | undefined) =>
+  Boolean(item && ((item.metadata as { is_abhr?: boolean } | null)?.is_abhr === true || item.code === 'ANT-ABHR'))
+const isHospitalRecord = (record: Partial<AntisepticRecord> | null | undefined) =>
   record?.departmentScope === 'hospital' ||
   record?.departmentEl === 'Όλο το νοσοκομείο' ||
   record?.departmentEn === 'Whole hospital'
 
-function mapRow(row: AnyRecord) {
+function mapRow(row: AntisepticPeriodRow): AntisepticRecord {
   const productEl = row.antiseptic_item?.name_el || ''
   const productEn = row.antiseptic_item?.name_en || productEl
   const patientDays = Number(row.patient_days) || 0
@@ -56,6 +56,8 @@ function mapRow(row: AnyRecord) {
   }
 }
 
+// Τα τμήματα και η βιβλιοθήκη που χρειάζεται η φόρμα.
+export type AntisepticSupport = Awaited<ReturnType<typeof loadAntisepticSupportData>>
 export async function loadAntisepticSupportData(organizationId: PreventionOrgId) {
   if (isDemoDataEnvironment())
     return {
@@ -101,7 +103,7 @@ export async function findPatientDaysForPeriod(organizationId: PreventionOrgId, 
     : null
 }
 
-export async function loadAntisepticRecords(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
+export async function loadAntisepticRecords(organizationId: PreventionOrgId): Promise<AntisepticRecord[]> {
   if (isDemoDataEnvironment()) return loadAntisepticLocal()
   assertCloud(organizationId)
   const { data, error } = await cloudClient()
@@ -116,7 +118,7 @@ export async function loadAntisepticRecords(organizationId: PreventionOrgId): Pr
   return (data || []).map(mapRow)
 }
 
-export async function saveAntisepticRecord(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
+export async function saveAntisepticRecord(organizationId: PreventionOrgId, record: PreventionDraft<AntisepticRecord>, { existingId = null }: { existingId?: string | null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadAntisepticLocal()
     const id = existingId || `ANT-${Date.now()}`

@@ -21,7 +21,11 @@ import { loadBundleAssessments, loadBundleSupportData } from './bundleCloudServi
 import { loadWasteMeasurements, loadWasteSupportData } from './wasteCloudService'
 import { readRegistryViewState, useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { AntisepticTable, BundleTable, HandTable, PreventionEmpty, PreventionKpis, VaccinationTable, WasteTable, dayLabel, fmtMonth, tabIcons } from './PreventionTables'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AntisepticRecord, BundleAssessment, HandHygieneSession, PreventionEmployee, PreventionTabRow, WasteMeasurement } from './preventionTypes'
+import type { Vaccination } from '../occupational-health/vaccinationService'
+import type { WasteSupport } from './wasteCloudService'
+import type { AntisepticSupport } from './antisepticCloudService'
+import type { BundleSupport } from './bundleCloudService'
 import type { PreventionDepartment } from './preventionCloud'
 
 const tabs: [string, string][] = [
@@ -62,7 +66,8 @@ export function PreventionPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { notifyError } = useFeedback()
   const { role, membership, canAccessRecord, tenant } = useTenant()
-  const employeeRows: AnyRecord[] = useEmployeesData().data
+  // The employees service is not typed yet: Prevention reads the fields PreventionEmployee declares.
+  const employeeRows = useEmployeesData().data as PreventionEmployee[]
   const addOns = useMemo(() => membership?.capabilities ?? [], [membership?.capabilities])
   const custom = useMemo(
     () => membership?.customCapabilities ?? [],
@@ -100,22 +105,22 @@ export function PreventionPage() {
   const [status, setStatus] = useState(savedView.status)
   const [page, setPage] = useState(1),
     [pageSize, setPageSize] = useState(15)
-  const [handRows, setHandRows] = useState<AnyRecord[]>([]),
+  const [handRows, setHandRows] = useState<HandHygieneSession[]>([]),
     [handDepartments, setHandDepartments] = useState<PreventionDepartment[]>([]),
     [handLoading, setHandLoading] = useState(true)
-  const [wasteRows, setWasteRows] = useState<AnyRecord[]>([]),
-    [wasteSupport, setWasteSupport] = useState<{ departments: PreventionDepartment[]; wasteTypes: AnyRecord[] }>({ departments: [], wasteTypes: [] }),
+  const [wasteRows, setWasteRows] = useState<WasteMeasurement[]>([]),
+    [wasteSupport, setWasteSupport] = useState<WasteSupport>({ departments: [], wasteTypes: [] }),
     [wasteLoading, setWasteLoading] = useState(true)
-  const [antisepticRows, setAntisepticRows] = useState<AnyRecord[]>([]),
-    [antisepticSupport, setAntisepticSupport] = useState<{ departments: PreventionDepartment[]; products: AnyRecord[] }>({ departments: [], products: [] }),
+  const [antisepticRows, setAntisepticRows] = useState<AntisepticRecord[]>([]),
+    [antisepticSupport, setAntisepticSupport] = useState<AntisepticSupport>({ departments: [], products: [] }),
     [antisepticLoading, setAntisepticLoading] = useState(true)
-  const [bundleRows, setBundleRows] = useState<AnyRecord[]>([]),
-    [bundleSupport, setBundleSupport] = useState<{ departments: PreventionDepartment[]; templates: AnyRecord[] }>({ departments: [], templates: [] }),
+  const [bundleRows, setBundleRows] = useState<BundleAssessment[]>([]),
+    [bundleSupport, setBundleSupport] = useState<BundleSupport>({ departments: [], templates: [] }),
     [bundleLoading, setBundleLoading] = useState(true)
-  const [vaccinationRows, setVaccinationRows] = useState<AnyRecord[]>([]),
+  const [vaccinationRows, setVaccinationRows] = useState<Vaccination[]>([]),
     [vaccinationLoading, setVaccinationLoading] = useState(true)
   const employeeMap = useMemo(() => {
-    const out: Record<string, AnyRecord> = {}
+    const out: Record<string, PreventionEmployee> = {}
     for (const x of employeeRows) {
       out[x.id] = x
       if (x.dbId) out[x.dbId] = x
@@ -124,7 +129,8 @@ export function PreventionPage() {
   }, [employeeRows])
   const createCapability = createCapabilities[tab]
   const canCreateRecord = Boolean(createCapability) && can(role, createCapability, addOns, custom)
-  const source =
+  // The open tab's rows; the list, sorting and filters read the fields of every tab.
+  const source = (
     tab === 'handHygiene'
       ? handRows
       : tab === 'waste'
@@ -134,6 +140,7 @@ export function PreventionPage() {
           : tab === 'bundles'
             ? bundleRows
             : vaccinationRows
+  ) as PreventionTabRow[]
   const departments = useMemo(() => {
     const support =
       tab === 'handHygiene'
@@ -163,10 +170,10 @@ export function PreventionPage() {
   const rows = useMemo(() => {
     if (tab === 'vaccinations')
       return source
-        .filter(x => Boolean(employeeMap[x.employeeId]))
-        .filter(x => canAccessRecord(employeeMap[x.employeeId]))
+        .filter(x => Boolean(employeeMap[x.employeeId as string]))
+        .filter(x => canAccessRecord(employeeMap[x.employeeId as string]))
         .filter(x => {
-          const e = employeeMap[x.employeeId]
+          const e = employeeMap[x.employeeId as string]
           const hay =
             `${e?.id ?? ''} ${e?.firstName ?? ''} ${e?.firstNameEn ?? ''} ${e?.lastName ?? ''} ${e?.lastNameEn ?? ''} ${x.vaccine ?? ''}`.toLowerCase()
           return hay.includes(query.toLowerCase())
@@ -174,8 +181,8 @@ export function PreventionPage() {
         .filter(x =>
           inDepartment(
             department,
-            employeeMap[x.employeeId]?.department,
-            employeeMap[x.employeeId]?.departmentEn,
+            employeeMap[x.employeeId as string]?.department,
+            employeeMap[x.employeeId as string]?.departmentEn,
           ),
         )
         .filter(x => status === 'all' || x.status === status)
@@ -362,8 +369,8 @@ export function PreventionPage() {
     reloadVaccinations,
   ])
   // The arrows in the headers sort the whole filtered list of the tab; the page is cut afterwards.
-  const departmentOf = (x: AnyRecord) => (language === 'el' ? x.departmentEl : x.departmentEn)
-  const sortAccessors: Record<string, (x: AnyRecord) => unknown> = {
+  const departmentOf = (x: PreventionTabRow) => (language === 'el' ? x.departmentEl : x.departmentEn)
+  const sortAccessors: Record<string, (x: PreventionTabRow) => unknown> = {
     date: x => x.date || x.period,
     department: departmentOf,
     profession: x => (x.profession ? t(x.profession) : ''),
@@ -386,7 +393,7 @@ export function PreventionPage() {
     score: x => (x.score == null ? null : Number(x.score)),
     allOrNone: x => (x.allOrNone ? 1 : 0),
     deviations: x => x.failedCount ?? x.findings?.length ?? 0,
-    employee: x => { const e = employeeMap[x.employeeId]; return e ? `${e.lastName ?? ''} ${e.firstName ?? ''}` : '' },
+    employee: x => { const e = employeeMap[x.employeeId as string]; return e ? `${e.lastName ?? ''} ${e.firstName ?? ''}` : '' },
     vaccine: x => x.vaccine,
     dose: x => x.dose,
     validUntil: x => x.validUntil,
@@ -397,7 +404,7 @@ export function PreventionPage() {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)),
     safePage = Math.min(page, totalPages),
     pagedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const fmtDate = (v: string) => dayLabel(v, language)
+  const fmtDate = (v: string | null | undefined) => dayLabel(v, language)
   const createLabel =
     tab === 'vaccinations'
       ? t('newVaccinationRecord')
@@ -426,7 +433,7 @@ export function PreventionPage() {
       { returnState: { tab: type } },
     )
   }
-  function openVaccinationRecord(row: AnyRecord) {
+  function openVaccinationRecord(row: Vaccination) {
     registry.saveViewState({ tab: 'vaccinations', query, department, period, product, method, status })
     registry.openRecord(navigate, `/prevention/vaccinations/${row.id}?fromTab=vaccinations`, row.id, rows.map(x => x.id), { returnState: { tab: 'vaccinations' } })
   }
@@ -611,7 +618,7 @@ export function PreventionPage() {
           )}{' '}
           {tab === 'vaccinations' && !loading && (
             <VaccinationTable
-              rows={pagedRows}
+              rows={pagedRows as Vaccination[]}
               sort={sort}
               onSort={onSort}
               t={t}

@@ -2,10 +2,10 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { wasteTypeLibrary } from './preventionDemoData'
 import { loadWasteLocal, saveWasteLocal } from './preventionStore'
 import { assertCloud, cloudClient, currentUserId } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDraft, WasteMeasurement, WasteMeasurementRow } from './preventionTypes'
 import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments, type PreventionOrgId } from './preventionCloud'
 
-function mapRow(row: AnyRecord) {
+function mapRow(row: WasteMeasurementRow): WasteMeasurement {
   const typeEl = row.waste_type?.name_el || ''
   const typeEn = row.waste_type?.name_en || typeEl
   const patientDays = Number(row.patient_days) || 0
@@ -42,6 +42,8 @@ function mapRow(row: AnyRecord) {
   }
 }
 
+// Τα τμήματα και η βιβλιοθήκη που χρειάζεται η φόρμα.
+export type WasteSupport = Awaited<ReturnType<typeof loadWasteSupportData>>
 export async function loadWasteSupportData(organizationId: PreventionOrgId) {
   if (isDemoDataEnvironment())
     return { departments: await loadPreventionDepartments(organizationId), wasteTypes: wasteTypeLibrary }
@@ -68,6 +70,8 @@ export async function loadWasteSupportData(organizationId: PreventionOrgId) {
   }
 }
 
+// Οι εγκεκριμένες ημέρες νοσηλείας του τμήματος για την περίοδο.
+export type WastePatientDays = NonNullable<Awaited<ReturnType<typeof findWastePatientDays>>>
 export async function findWastePatientDays(
   organizationId: PreventionOrgId,
   departmentId: string | null | undefined,
@@ -90,7 +94,7 @@ export async function findWastePatientDays(
     : null
 }
 
-export async function loadWasteMeasurements(organizationId: PreventionOrgId): Promise<AnyRecord[]> {
+export async function loadWasteMeasurements(organizationId: PreventionOrgId): Promise<WasteMeasurement[]> {
   if (isDemoDataEnvironment()) return loadWasteLocal()
   assertCloud(organizationId)
   const { data, error } = await cloudClient()
@@ -105,7 +109,7 @@ export async function loadWasteMeasurements(organizationId: PreventionOrgId): Pr
   return (data || []).map(mapRow)
 }
 
-export async function saveWasteMeasurement(organizationId: PreventionOrgId, record: AnyRecord, { existingId = null }: { existingId?: string | null } = {}) {
+export async function saveWasteMeasurement(organizationId: PreventionOrgId, record: PreventionDraft<WasteMeasurement>, { existingId = null }: { existingId?: string | null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadWasteLocal()
     const id = existingId || `WST-${Date.now()}`

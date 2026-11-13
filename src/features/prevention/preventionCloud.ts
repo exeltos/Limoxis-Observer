@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { assertCloud, cloudClient } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionRecord } from './preventionTypes'
 import { preventionDepartments } from './preventionDemoData'
 
 // What the four Prevention cloud services (hand hygiene, waste, antiseptics,
@@ -67,8 +67,8 @@ export async function findApprovedPatientDayRows(organizationId: PreventionOrgId
 // Deletes one record: a copy goes to the recycle bin first (the local row in
 // the demo, the cloud rows otherwise), child rows are removed before the record.
 // How a Prevention record is deleted: its table, the local (demo) table and the child rows that go with it.
-export interface PreventionDeleteSpec { table: string; localTable: string; label: string; loadLocal: () => AnyRecord[]; saveLocal: (rows: AnyRecord[]) => unknown; children?: { table: string; column: string }[] }
-export async function deletePreventionRecord(organizationId: PreventionOrgId, id: string | null | undefined, { table, localTable, label, loadLocal, saveLocal, children = [] }: PreventionDeleteSpec) {
+export interface PreventionDeleteSpec<T extends PreventionRecord> { table: string; localTable: string; label: string; loadLocal: () => T[]; saveLocal: (rows: T[]) => unknown; children?: { table: string; column: string }[] }
+export async function deletePreventionRecord<T extends PreventionRecord>(organizationId: PreventionOrgId, id: string | null | undefined, { table, localTable, label, loadLocal, saveLocal, children = [] }: PreventionDeleteSpec<T>) {
   if (!id) return
   const entry = { module: 'clinical', kind: table }
   if (isDemoDataEnvironment()) {

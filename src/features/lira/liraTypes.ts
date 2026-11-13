@@ -51,7 +51,7 @@ export interface LiraLabRow extends LiraRow {
   ast?: LiraAst[]
 }
 export interface LiraHandHygieneRow extends LiraRow { observations?: number, rate?: number }
-export interface LiraBundleRow extends LiraRow { bundle?: string | null, score?: number, failedCount?: number, allOrNone?: boolean }
+export interface LiraBundleRow extends LiraRow { bundle?: string | null, score?: number | null, failedCount?: number, allOrNone?: boolean }
 export interface LiraIncidentRow extends LiraRow { title?: string | null, severity?: string | null }
 export interface LiraCapaRow extends LiraRow { title?: string | null, priority?: string | null }
 export interface LiraPatientDayRow extends LiraRow { periodStart?: string | null, periodEnd?: string | null, patientDays?: number, source?: string | null, sourceReference?: string | null, reviewStatus?: string | null }

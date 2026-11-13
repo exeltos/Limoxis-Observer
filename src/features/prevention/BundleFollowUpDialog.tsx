@@ -5,9 +5,9 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { BundleFollowUp } from './preventionTypes'
 
-interface BundleFollowUpDialogProps { item?: { label?: string; note?: string } | null; value?: AnyRecord | null; onClose: () => void; onSave?: (followUp: AnyRecord) => void }
+interface BundleFollowUpDialogProps { item?: { label?: string; note?: string } | null; value?: BundleFollowUp | null; onClose: () => void; onSave?: (followUp: BundleFollowUp) => void }
 export function BundleFollowUpDialog({ item, value, onClose, onSave }: BundleFollowUpDialogProps) {
   const { language } = useLanguage()
   const en = language === 'en'

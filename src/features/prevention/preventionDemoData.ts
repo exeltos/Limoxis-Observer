@@ -12,12 +12,20 @@ import {
   seededRandom,
 } from '../../core/data/demoSeed'
 import { whoStatsFromObservations } from './whoHandHygieneStats'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { BundleTemplate, WhoObservation } from './preventionTypes'
 import { antisepticLibrary, bundleTemplateLibrary, preventionDepartments, wasteTypeLibrary } from './preventionDemoLibraries'
 
 export { antisepticLibrary, bundleTemplateLibrary, preventionDepartments, wasteTypeLibrary } from './preventionDemoLibraries'
 
-function handHygieneRow({ id, date, department, profession, observer, startTime, endTime, items }: AnyRecord) {
+// Ό,τι δέχονται οι κατασκευαστές των demo εγγραφών.
+type DemoDepartment = (typeof preventionDepartments)[number]
+interface HandHygieneDemoInput { id: string, date: string, department: DemoDepartment, profession: string, observer: string, startTime: string, endTime: string, items: WhoObservation[] }
+interface WasteDemoInput { id: string, periodStart: string, periodEnd: string, department: DemoDepartment, type: (typeof wasteTypeLibrary)[number], weight: number, containers: number, patientDays?: number | null, responsible: string, documentNumber: string, collectionCompany: string }
+interface AntisepticDemoInput { id: string, periodStart: string, periodEnd: string, department: DemoDepartment, product: (typeof antisepticLibrary)[number], litres: number, patientDays?: number | null, method: string, referenceNumber: string, responsible: string }
+interface BundleDemoLinks { surveillanceCaseId?: string, surveillanceDeviceId?: string, patientRecordId?: string, deviceDay?: number }
+interface BundleDemoInput { id: string, template: BundleTemplate, department: DemoDepartment, date: string, answers: Record<string, string>, shift: string, context: string, owner: string, links?: BundleDemoLinks }
+
+function handHygieneRow({ id, date, department, profession, observer, startTime, endTime, items }: HandHygieneDemoInput) {
   const stats = whoStatsFromObservations(items)
   return {
     id,
@@ -274,7 +282,7 @@ function wasteRow({
   responsible,
   documentNumber,
   collectionCompany,
-}: AnyRecord) {
+}: WasteDemoInput) {
   return {
     id,
     date: periodEnd,
@@ -358,7 +366,7 @@ function antisepticRow({
   method,
   referenceNumber,
   responsible,
-}: AnyRecord) {
+}: AntisepticDemoInput) {
   const eligible = Boolean(product.metadata?.is_abhr)
   return {
     id,
@@ -427,8 +435,8 @@ export const antisepticRows = [
   }),
 ]
 
-function bundleAssessmentRow({ id, template, department, date, answers, shift, context, owner, links = {} }: AnyRecord) {
-  const elementIds: string[] = template.rawElements.map((item: AnyRecord) => item.id)
+function bundleAssessmentRow({ id, template, department, date, answers, shift, context, owner, links = {} }: BundleDemoInput) {
+  const elementIds: string[] = template.rawElements.map(item => item.id)
   const applicable = elementIds
     .map(itemId => answers[itemId])
     .filter(x => x === 'yes' || x === 'no')
@@ -436,8 +444,8 @@ function bundleAssessmentRow({ id, template, department, date, answers, shift, c
   const score = applicable.length ? Math.round((yes / applicable.length) * 100) : null
   const failedCount = applicable.length - yes
   const findings = template.rawElements
-    .filter((item: AnyRecord) => answers[item.id] === 'no')
-    .map((item: AnyRecord) => ({ id: item.id, label: item.labelEl, note: '' }))
+    .filter(item => answers[item.id] === 'no')
+    .map(item => ({ id: item.id, label: item.labelEl, note: '' }))
   return {
     id,
     bundle: template.bundleKey,
@@ -609,7 +617,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
 })
 
 const monthPeriod = (month: string) => [`${month}-01`, `${month}-${pad2(lastDayOfMonth(month))}`]
-const hasMonthlyRow = (rows: AnyRecord[], department: AnyRecord, key: string, value: string, month: string) =>
+const hasMonthlyRow = <T extends { departmentEl: string, periodStart: string }>(rows: T[], department: DemoDepartment, key: keyof T, value: string, month: string) =>
   rows.some(
     row =>
       row.departmentEl === department.el && row[key] === value && row.periodStart.startsWith(month),
@@ -685,14 +693,14 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
 
 const [clabsi, vae, cauti, ssi] = bundleTemplateLibrary
 const ward = (id: string) => preventionDepartments.find(department => department.id === id)
-const BUNDLE_PLAN: [AnyRecord, string, string, number][] = [
+const BUNDLE_PLAN: [BundleTemplate, string, string, number][] = [
   [clabsi, 'dep-icu', 'Κεντρικός φλεβικός καθετήρας', 6],
   [vae, 'dep-icu', 'Μηχανικός αερισμός', 12],
   [cauti, 'dep-icu', 'Ουροκαθετήρας', 17],
   [cauti, 'dep-internal', 'Ουροκαθετήρας', 20],
   [ssi, 'dep-surgery', 'Χειρουργική επέμβαση', 9],
 ]
-const BUNDLE_EXTRA: [AnyRecord, string, string, number][] = [
+const BUNDLE_EXTRA: [BundleTemplate, string, string, number][] = [
   [clabsi, 'dep-surgery', 'Κεντρικός φλεβικός καθετήρας', 23],
   [ssi, 'dep-ortho', 'Χειρουργική επέμβαση', 14],
   [clabsi, 'dep-nicu', 'Κεντρικός φλεβικός καθετήρας', 25],
@@ -704,7 +712,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
     const rand = seededRandom(`bundle|${month}|${index}`)
     const reliability = 0.84 + (monthIndex - DEMO_HISTORY_LEAD) * 0.009
     const answers = Object.fromEntries(
-      template.rawElements.map((item: AnyRecord) => [
+      template.rawElements.map(item => [
         item.id,
         rand() < 0.05 ? 'na' : rand() < reliability ? 'yes' : 'no',
       ]),
@@ -713,7 +721,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
       bundleAssessmentRow({
         id: `BND-${month.replace('-', '').slice(2)}-${index + 1}`,
         template,
-        department: ward(departmentId),
+        department: ward(departmentId)!,
         date: dayInMonth(month, day),
         shift: ['morning', 'afternoon', 'night'][(monthIndex + index) % 3],
         context,

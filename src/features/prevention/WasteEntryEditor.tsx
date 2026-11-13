@@ -12,10 +12,12 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
 import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { PreventionDraft, WasteMeasurement } from './preventionTypes'
+import type { WastePatientDays } from './wasteCloudService'
+import type { PreventionLibraryItem } from './PreventionFields'
 import type { PreventionDepartment } from './preventionCloud'
 
-interface WasteEntryEditorProps { onSave?: (record: AnyRecord) => unknown; fixedDepartment?: string; initialRecord?: AnyRecord | null; departments?: PreventionDepartment[]; wasteTypes?: AnyRecord[]; findPatientDays?: (departmentId: string, from: string, to: string) => Promise<AnyRecord | null>; readOnly?: boolean }
+interface WasteEntryEditorProps { onSave?: (record: PreventionDraft<WasteMeasurement>) => unknown; fixedDepartment?: string; initialRecord?: WasteMeasurement | null; departments?: PreventionDepartment[]; wasteTypes?: PreventionLibraryItem[]; findPatientDays?: (departmentId: string, from: string | null | undefined, to: string | null | undefined) => Promise<WastePatientDays | null>; readOnly?: boolean }
 
 export function WasteEntryEditor({
   onSave,
@@ -37,7 +39,7 @@ export function WasteEntryEditor({
     initialRecord?.wasteType || initialRecord?.type || wasteTypes[0]?.el || ''
   const initialPeriodStart = initialRecord?.periodStart || initialRecord?.date || ''
   const initialPeriodEnd = initialRecord?.periodEnd || initialRecord?.date || ''
-  const [draft, setDraft] = useState<AnyRecord>(() =>
+  const [draft, setDraft] = useState<PreventionDraft<WasteMeasurement>>(() =>
     initialRecord
       ? {
           ...JSON.parse(JSON.stringify(initialRecord)),
@@ -61,7 +63,7 @@ export function WasteEntryEditor({
           notes: '',
         },
   )
-  const [suggestedPatientDays, setSuggestedPatientDays] = useState<AnyRecord | null>(null)
+  const [suggestedPatientDays, setSuggestedPatientDays] = useState<WastePatientDays | null>(null)
   const [saving, setSaving] = useState(false)
   const set = (key: string, value: unknown) => {
     if (!readOnly) setDraft(state => ({ ...state, [key]: value }))
@@ -427,9 +429,9 @@ export function WasteEntryEditor({
   )
 }
 
-function WasteRecordDetails({ record, language, locale }: { record: AnyRecord; language: string; locale: string }) {
+function WasteRecordDetails({ record, language, locale }: { record: PreventionDraft<WasteMeasurement>; language: string; locale: string }) {
   const en = language === 'en'
-  const fmtDate = (value: string) => formatDay(value, language)
+  const fmtDate = (value: string | null | undefined) => formatDay(value, language)
   const fmtNumber = (value: unknown, digits = 1) =>
     Number(value || 0).toLocaleString(locale, {
       maximumFractionDigits: digits,
