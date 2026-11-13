@@ -26,7 +26,7 @@ import { useLegislationAccess } from './legislationAccess'
 import { checkSourcesNow, loadCandidates, loadLibrary, loadRegister, loadSources, removeSource, saveSource, setCandidate } from './legislationService'
 import { KINDS, NO_FILTERS, REGISTER_STATES, TOPICS, buildRegister, candidateStatusLabel, candidateStatusTone, filterRegister, hasUnpublished, kindLabel, registerCounts, registerExport, registerStateLabel, registerStateTone, sourceHealth, sourceHealthLabel, sourceHealthTone, textStatusLabel, textStatusTone, unpublishedChanges } from './legislationModel'
 import './legislation.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LegislationCandidate, LegislationRow, LegislationSource, LegislationSourceDraft, LegislationText } from './legislationModel'
 import type { ComplianceSummary, LegislationVersion, RegisterEntry, RegisterFilters } from './legislationModel'
 
 // PlatformLegalTabs is still JS: its `counts = null` default would type the prop as null.
@@ -35,8 +35,8 @@ const PlatformLegalTabs = PlatformLegalTabsJs as (props: { active: string, count
 // The legislation that applies to the hospital and how it complies; for the
 // Platform Owner also the library every hospital reads, what the automatic
 // check of the sources found, and the sources themselves.
-interface LibraryState { loading: boolean, texts: AnyRecord[], versions: LegislationVersion[] }
-interface ItemsState { loading: boolean, items: AnyRecord[] }
+interface LibraryState { loading: boolean, texts: LegislationText[], versions: LegislationVersion[] }
+interface ItemsState<Item> { loading: boolean, items: Item[] }
 
 export function LegislationPage() {
   const navigate = useNavigate()
@@ -58,10 +58,10 @@ export function LegislationPage() {
   // The owner's «Νομοθεσία & πηγές»: the choice travels in the address (?view=), so the menu and old links open it.
   const ownerView = ownerRoute && requested !== 'register' ? (requested && ['review', 'sources'].includes(requested) ? requested : 'library') : null
   useEffect(() => { if (ownerView) setTab(ownerView) }, [ownerView])
-  const [register, setRegister] = useState<{ loading: boolean, versions: LegislationVersion[], rows: AnyRecord[] }>({ loading: true, versions: [], rows: [] })
+  const [register, setRegister] = useState<{ loading: boolean, versions: LegislationVersion[], rows: LegislationRow[] }>({ loading: true, versions: [], rows: [] })
   const [library, setLibrary] = useState<LibraryState>({ loading: true, texts: [], versions: [] })
-  const [candidates, setCandidates] = useState<ItemsState>({ loading: true, items: [] })
-  const [sources, setSources] = useState<ItemsState>({ loading: true, items: [] })
+  const [candidates, setCandidates] = useState<ItemsState<LegislationCandidate>>({ loading: true, items: [] })
+  const [sources, setSources] = useState<ItemsState<LegislationSource>>({ loading: true, items: [] })
   const [filters, setFilters] = useState(NO_FILTERS)
 
   const reloadRegister = useCallback(() => loadRegister(tenant?.id).then(data => setRegister({ loading: false, ...data })).catch(() => setRegister({ loading: false, versions: [], rows: [] })), [tenant?.id])
@@ -146,7 +146,7 @@ export function ComplianceBar({ summary, language }: { summary: ComplianceSummar
   </span>
 }
 
-function LibraryList({ library, language, onOpen }: { library: LibraryState, language: string, onOpen: (item: AnyRecord) => void }) {
+function LibraryList({ library, language, onOpen }: { library: LibraryState, language: string, onOpen: (item: LegislationText) => void }) {
   const en = language === 'en'
   const [query, setQuery] = useState('')
   const history = useMemo(() => { const map = new Map<string, LegislationVersion[]>(); for (const version of library.versions) { const list = map.get(version.textId) || []; list.push(version); map.set(version.textId, list) } return map }, [library.versions])
@@ -171,21 +171,21 @@ function LibraryList({ library, language, onOpen }: { library: LibraryState, lan
   </>
 }
 
-function ReviewList({ candidates, texts, language, onChanged, base }: { candidates: ItemsState, texts: AnyRecord[], language: string, onChanged: () => void, base: string }) {
+function ReviewList({ candidates, texts, language, onChanged, base }: { candidates: ItemsState<LegislationCandidate>, texts: LegislationText[], language: string, onChanged: () => void, base: string }) {
   const en = language === 'en'
   const navigate = useNavigate()
   const { notify } = useFeedback()
   const [status, setStatus] = useState('pending')
   const [query, setQuery] = useState('')
-  const [linking, setLinking] = useState<{ candidate: AnyRecord, textId: string } | null>(null)
+  const [linking, setLinking] = useState<{ candidate: LegislationCandidate, textId: string } | null>(null)
   const needle = query.trim().toLowerCase()
   const rows = candidates.items.filter(item => (status === 'all' || item.status === status) && (!needle || [item.title, item.sourceName, item.excerpt, ...(item.matchedKeywords || [])].join(' ').toLowerCase().includes(needle)))
   const paging = usePaging(rows, [status, query])
-  async function dismiss(item: AnyRecord) {
+  async function dismiss(item: LegislationCandidate) {
     try { await setCandidate(item.id, { status: 'dismissed' }); onChanged() } catch { notify(en ? 'Could not save.' : 'Δεν αποθηκεύτηκε.', 'error') }
   }
   // The row has no buttons: what can be done with a finding is in its «⋯».
-  const candidateMenu = (item: AnyRecord) => [
+  const candidateMenu = (item: LegislationCandidate) => [
     ...(item.url ? [{ id: 'open', label: en ? 'Open the source' : 'Άνοιγμα πηγής', icon: ExternalLink, onClick: () => window.open(item.url, '_blank', 'noopener,noreferrer') }] : []),
     ...(item.status === 'pending' ? [
       { id: 'new', label: en ? 'New text' : 'Νέο κείμενο', icon: FilePlus2, onClick: () => navigate(`${base}/library/new`, { state: { candidate: item } }) },
@@ -218,10 +218,10 @@ function ReviewList({ candidates, texts, language, onChanged, base }: { candidat
   </>
 }
 
-function SourcesList({ sources, language, onChanged }: { sources: ItemsState, language: string, onChanged: () => void }) {
+function SourcesList({ sources, language, onChanged }: { sources: ItemsState<LegislationSource>, language: string, onChanged: () => void }) {
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
-  const [editing, setEditing] = useState<AnyRecord | null>(null)
+  const [editing, setEditing] = useState<LegislationSourceDraft | null>(null)
   const [busy, setBusy] = useState(false)
   const paging = usePaging(sources.items, [])
   async function save() {
@@ -230,7 +230,7 @@ function SourcesList({ sources, language, onChanged }: { sources: ItemsState, la
     setBusy(true)
     try { await saveSource({ ...editing, keywords: String(editing.keywordsText || '').split(/[,\n]/) }); setEditing(null); onChanged() } catch { notify(en ? 'The source could not be saved.' : 'Η πηγή δεν αποθηκεύτηκε.', 'error') } finally { setBusy(false) }
   }
-  async function remove(source: AnyRecord) {
+  async function remove(source: LegislationSource) {
     if (!(await confirm({ title: en ? 'Delete source' : 'Διαγραφή πηγής', message: source.name, confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true }))) return
     try { await removeSource(source.id); onChanged() } catch { notify(en ? 'Could not delete.' : 'Δεν διαγράφηκε.', 'error') }
   }

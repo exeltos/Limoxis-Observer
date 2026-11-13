@@ -1,5 +1,4 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
 // Legislation (ISO 9001 §4.2, §6.1, §9.1.3; ISO 15189 §4.1): the platform's
 // library of texts that apply to hospitals and each hospital's register of how
 // it complies, requirement by requirement. A hospital reads only published
@@ -7,9 +6,23 @@ import type { AnyRecord } from '../../types/featureTypes'
 // without touching what the hospital already declared for the others.
 
 export interface LegislationOption { value: string, label: [string, string], tone?: string }
-export interface LegislationVersion { textId: string, version: number, snapshot: AnyRecord, changeNote: string, changedRequirements: string[], publishedAt: string }
+// A requirement of a text, and how the hospital marked it.
+export type LegislationRequirement = { id: string, text: string, guidance?: string }
+export type ComplianceMark = { status?: string, evidence?: string, note?: string, checkedOn?: string }
+// A text of the library (the Platform Owner's working copy; a hospital reads its published versions).
+export type LegislationText = { id: string, code: string, title: string, titleEn: string, kind: string, reference: string, issuer: string, issuedOn: string, topics: string[], summary: string, url: string, status: string, requirements: LegislationRequirement[], version: number, publishedAt: string, updatedAt?: string }
+// A published version keeps the text without its id, version and date.
+export type TextSnapshot = Omit<LegislationText, 'id' | 'version' | 'publishedAt'>
+// The hospital's row of a text: whether it applies, the version accepted, each requirement's compliance.
+export type LegislationRow = { id?: string, textId: string, applicable?: boolean, acceptedVersion: number, responsible: string, compliance: Record<string, ComplianceMark>, nextReviewOn: string, notes: string, reviewedAt?: string }
+// What the automatic check found, and the sources it reads.
+export type LegislationCandidate = { id: string, sourceId?: string, sourceName: string, title: string, url: string, excerpt: string, publishedHint?: string, matchedKeywords: string[], status: string, linkedTextId?: string, note?: string, detectedAt: string, reviewedAt?: string }
+// A source in its form (the keywords typed as one text).
+export type LegislationSourceDraft = Partial<LegislationSource> & { keywordsText?: string }
+export type LegislationSource = { id: string, name: string, url: string, kind: string, keywords: string[], active?: boolean, lastCheckedAt: string, lastStatus?: number | null, lastError?: string, consecutiveFailures: number }
+export interface LegislationVersion { textId: string, version: number, snapshot: TextSnapshot, changeNote: string, changedRequirements: string[], publishedAt: string }
 export interface ComplianceSummary { compliant: number, partial: number, non_compliant: number, not_applicable: number, unassessed: number, total: number, assessable: number, percent: number | null }
-export interface RegisterEntry { text: AnyRecord, row: AnyRecord | null, history: LegislationVersion[], state: string, summary: ComplianceSummary, changed: Set<string>, reviewLate: boolean, latestChange: string, hasUpdate: boolean }
+export interface RegisterEntry { text: TextSnapshot & Pick<LegislationText, 'id' | 'version' | 'publishedAt'>, row: LegislationRow | null, history: LegislationVersion[], state: string, summary: ComplianceSummary, changed: Set<string>, reviewLate: boolean, latestChange: string, hasUpdate: boolean }
 export interface RegisterFilters { query: string, topic: string, kind: string, state: string, quick: string | null }
 
 const pick = (list: LegislationOption[], value: string | null | undefined, language: string) => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
@@ -27,14 +40,14 @@ export const KINDS: LegislationOption[] = [
   { value: 'guideline', label: ['Οδηγία / κατευθυντήρια γραμμή', 'Guideline'] },
   { value: 'other', label: ['Άλλο', 'Other'] },
 ]
-export const kindLabel = (value: string, language: string) => pick(KINDS, value, language)
+export const kindLabel = (value: string | undefined, language: string) => pick(KINDS, value, language)
 
 export const TEXT_STATUSES: LegislationOption[] = [
   { value: 'in_force', label: ['Σε ισχύ', 'In force'], tone: 'success' },
   { value: 'amended', label: ['Τροποποιήθηκε', 'Amended'], tone: 'warning' },
   { value: 'repealed', label: ['Καταργήθηκε', 'Repealed'], tone: 'neutral' },
 ]
-export const textStatusLabel = (value: string, language: string) => pick(TEXT_STATUSES, value, language)
+export const textStatusLabel = (value: string | undefined, language: string) => pick(TEXT_STATUSES, value, language)
 export const textStatusTone = (value: string) => toneOf(TEXT_STATUSES, value)
 
 export const TOPICS: LegislationOption[] = [
@@ -95,7 +108,7 @@ export function changedSince(history: LegislationVersion[] = [], acceptedVersion
   return changed
 }
 
-export function complianceSummary(requirements: AnyRecord[] = [], compliance: AnyRecord = {}): ComplianceSummary {
+export function complianceSummary(requirements: LegislationRequirement[] = [], compliance: Record<string, ComplianceMark> = {}): ComplianceSummary {
   const counts: Record<'compliant' | 'partial' | 'non_compliant' | 'not_applicable' | 'unassessed', number> = { compliant: 0, partial: 0, non_compliant: 0, not_applicable: 0, unassessed: 0 }
   for (const requirement of requirements) {
     const status = compliance?.[requirement.id]?.status
@@ -108,9 +121,9 @@ export function complianceSummary(requirements: AnyRecord[] = [], compliance: An
 }
 
 // One text as the hospital's register shows it.
-export function registerEntry(history: LegislationVersion[], row: AnyRecord | null | undefined, today = todayIso()): RegisterEntry {
+export function registerEntry(history: LegislationVersion[], row: LegislationRow | null | undefined, today = todayIso()): RegisterEntry {
   const latest = history[history.length - 1]
-  const text: AnyRecord = { ...latest.snapshot, id: latest.textId, version: latest.version, publishedAt: latest.publishedAt }
+  const text: RegisterEntry['text'] = { ...latest.snapshot, id: latest.textId, version: latest.version, publishedAt: latest.publishedAt }
   const requirements = text.requirements || []
   const accepted = row?.acceptedVersion || 0
   const changed = row ? changedSince(history, accepted) : new Set<string>()
@@ -127,7 +140,7 @@ export function registerEntry(history: LegislationVersion[], row: AnyRecord | nu
   return { text, row: row || null, history, state, summary, changed, reviewLate, latestChange: latest.changeNote || '', hasUpdate: Boolean(row && row.applicable !== false && accepted < latest.version) }
 }
 
-export function buildRegister(versions: LegislationVersion[] = [], rows: AnyRecord[] = [], today = todayIso()): RegisterEntry[] {
+export function buildRegister(versions: LegislationVersion[] = [], rows: LegislationRow[] = [], today = todayIso()): RegisterEntry[] {
   const byText = latestVersions(versions)
   const rowsByText = new Map(rows.map(row => [row.textId, row]))
   return [...byText.values()].map(history => registerEntry(history, rowsByText.get(history[0].textId), today))
@@ -166,29 +179,29 @@ export const nextLegislationCode = (codes: unknown[] = []) => {
 }
 export const requirementId = () => `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 
-export function newText(): AnyRecord {
+export function newText(): LegislationText {
   return { id: '', code: '', title: '', titleEn: '', kind: 'ministerial_decision', reference: '', issuer: '', issuedOn: '', topics: [], summary: '', url: '', status: 'in_force', requirements: [], version: 0, publishedAt: '' }
 }
 
-export function textProblems(text: AnyRecord, language = 'el') {
+export function textProblems(text: TextSnapshot, language = 'el') {
   const en = language === 'en'
   const problems: string[] = []
   if (String(text.title || '').trim().length < 3) problems.push(en ? 'a title' : 'τίτλο')
   if (!String(text.reference || '').trim()) problems.push(en ? 'the reference (e.g. Government Gazette)' : 'στοιχεία δημοσίευσης (π.χ. ΦΕΚ)')
   if (!(text.requirements || []).length) problems.push(en ? 'at least one requirement' : 'τουλάχιστον μία απαίτηση')
-  if ((text.requirements || []).some((item: AnyRecord) => !String(item.text || '').trim())) problems.push(en ? 'the wording of every requirement' : 'διατύπωση σε κάθε απαίτηση')
+  if ((text.requirements || []).some((item: LegislationRequirement) => !String(item.text || '').trim())) problems.push(en ? 'the wording of every requirement' : 'διατύπωση σε κάθε απαίτηση')
   return problems
 }
 
 // What the working copy changed against the last published version.
 export interface UnpublishedChanges { isNew: boolean, fields: string[], requirements: string[], removed?: string[] }
-export function unpublishedChanges(text: AnyRecord, lastSnapshot: AnyRecord | null | undefined): UnpublishedChanges {
-  if (!lastSnapshot) return { isNew: true, fields: [], requirements: (text.requirements || []).map((item: AnyRecord) => item.id) }
-  const fields = ['title', 'titleEn', 'kind', 'reference', 'issuer', 'issuedOn', 'summary', 'url', 'status'].filter(key => String(text[key] || '') !== String(lastSnapshot[key] || ''))
+export function unpublishedChanges(text: TextSnapshot, lastSnapshot: TextSnapshot | null | undefined): UnpublishedChanges {
+  if (!lastSnapshot) return { isNew: true, fields: [], requirements: (text.requirements || []).map((item: LegislationRequirement) => item.id) }
+  const fields = ['title', 'titleEn', 'kind', 'reference', 'issuer', 'issuedOn', 'summary', 'url', 'status'].filter(key => String(text[key as keyof TextSnapshot] || '') !== String(lastSnapshot[key as keyof TextSnapshot] || ''))
   if ([...(text.topics || [])].sort().join('|') !== [...(lastSnapshot.topics || [])].sort().join('|')) fields.push('topics')
-  const previous = new Map<string, string>((lastSnapshot.requirements || []).map((item: AnyRecord) => [item.id, item.text]))
-  const requirements = (text.requirements || []).filter((item: AnyRecord) => previous.get(item.id) !== item.text).map((item: AnyRecord) => item.id)
-  const removed = [...previous.keys()].filter(id => !(text.requirements || []).some((item: AnyRecord) => item.id === id))
+  const previous = new Map<string, string>((lastSnapshot.requirements || []).map((item: LegislationRequirement) => [item.id, item.text]))
+  const requirements = (text.requirements || []).filter((item: LegislationRequirement) => previous.get(item.id) !== item.text).map((item: LegislationRequirement) => item.id)
+  const removed = [...previous.keys()].filter(id => !(text.requirements || []).some((item: LegislationRequirement) => item.id === id))
   return { isNew: false, fields, requirements, removed }
 }
 export const hasUnpublished = (changes: UnpublishedChanges) => changes.isNew || changes.fields.length > 0 || changes.requirements.length > 0 || (changes.removed || []).length > 0
@@ -202,7 +215,7 @@ export const candidateStatusLabel = (value: string, language: string) => pick(CA
 export const candidateStatusTone = (value: string) => toneOf(CANDIDATE_STATUSES, value)
 
 // A source's health, as the Sources view shows it.
-export function sourceHealth(source: AnyRecord) {
+export function sourceHealth(source: LegislationSource) {
   if (!source.active) return 'inactive'
   if (!source.lastCheckedAt) return 'waiting'
   if (source.consecutiveFailures >= 2) return 'failing'
@@ -220,14 +233,14 @@ export const sourceHealthLabel = (value: string, language: string) => pick(SOURC
 export const sourceHealthTone = (value: string) => toneOf(SOURCE_HEALTH, value)
 
 // The prefill of a library text started from a candidate.
-export function textFromCandidate(candidate: AnyRecord): AnyRecord {
+export function textFromCandidate(candidate: Pick<LegislationCandidate, 'title' | 'url' | 'excerpt'>): LegislationText {
   const title = String(candidate.title || '').trim()
   const reference = title.match(/ΦΕΚ\s+[ΑΒΓΔ΄']*\s*[\d/.-]+/i)?.[0] || ''
   return { ...newText(), title, reference, url: candidate.url || '', summary: candidate.excerpt || '' }
 }
 
 // The prefill of a corrective action opened from a requirement the hospital does not meet.
-export function legislationCapaSource(text: AnyRecord, requirement: AnyRecord, record: AnyRecord | null | undefined, language = 'el') {
+export function legislationCapaSource(text: Pick<LegislationText, 'code' | 'title' | 'reference'>, requirement: LegislationRequirement, record: ComplianceMark | null | undefined, language = 'el') {
   const en = language === 'en'
   return {
     source: 'other', sourceId: `LEG:${text.code}`,
