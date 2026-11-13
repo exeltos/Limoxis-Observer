@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
+import type { ComponentType } from 'react'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import {
   FORM_STATUS,
@@ -103,7 +104,7 @@ describe('bundles section', () => {
       goTo: () => {},
       episodes: [{ id: 'SUR-1', devices: [{ ...line, insertedAt: addDays(athensToday(), -5) }] }],
     }
-    const Section = bundlesSection.Component
+    const Section = bundlesSection.Component as ComponentType<{ ctx: object, section: object }>
     render(
       <MemoryRouter>
         <LanguageProvider>

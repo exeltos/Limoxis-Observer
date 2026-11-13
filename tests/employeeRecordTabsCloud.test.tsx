@@ -19,7 +19,7 @@ vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => feed
 vi.mock('../src/core/tenant/TenantContext', () => ({ useTenant: () => ({ role: 'hospital_admin', membership: { organizationId: 'org-1', capabilities: [] }, tenant: { id: 'org-1' }, isDemo: false }) }))
 vi.mock('../src/core/attachments/attachmentService', () => ({
   cloudAttachmentsEnabled: () => true,
-  loadAttachments: (...args) => loadAttachments(...args),
+  loadAttachments: (...args: Parameters<typeof loadAttachments>) => loadAttachments(...args),
   uploadAttachment: vi.fn(),
   updateAttachmentMetadata: vi.fn(),
   deleteAttachment: vi.fn(),

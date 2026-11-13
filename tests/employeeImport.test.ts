@@ -4,7 +4,7 @@ import { parseCsv,parseXlsx } from '../src/core/import/spreadsheetImport'
 import { mapHeaders,normalizeDate,planEmployeeImport } from '../src/features/employees/employeeImport'
 
 // A minimal .xlsx: stored (uncompressed) zip entries.
-function storedZip(files){
+function storedZip(files: Record<string, string>){
  const enc=new TextEncoder(),parts=[],central=[];let offset=0
  for(const [name,text] of Object.entries(files)){
   const n=enc.encode(name),d=enc.encode(text)

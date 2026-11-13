@@ -34,7 +34,7 @@ describe('edge functions · emails', () => {
       usernameReminderEmail({ fullName: hostile, username: hostile }),
       demoAccessEmail({ contactName: hostile, label: hostile, username: hostile, validFrom: '2026-10-01', validUntil: '2026-10-31', actionUrl: 'https://www.limoxis.com/login' }),
       committeeMinutesApprovalEmail({ committeeName: hostile, meetingTitle: hostile, actionUrl: 'https://www.limoxis.com/approve' }).html,
-    ].map(item => typeof item === 'string' ? item : item.html)
+    ].map(item => typeof item === 'string' ? item : (item as { html: string }).html)
     for (const body of html) {
       expect(body).not.toContain('<img src=x')
       expect(body).toContain('&lt;img src=x onerror=alert(1)&gt;')
@@ -53,7 +53,7 @@ describe('edge functions · emails', () => {
 function fakeAdmin({ ticketError = null, members = {}, owners = [], storageError = null } = {}) {
   const calls = []
   const query = (table) => {
-    const state = { table, filters: {} }
+    const state: { table: string, filters: Record<string, string>, insert?: unknown } = { table, filters: {} }
     const chain = {
       insert: (row) => { calls.push(['insert', table, row]); state.insert = row; return chain },
       select: () => chain,

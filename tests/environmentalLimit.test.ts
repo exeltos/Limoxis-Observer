@@ -27,8 +27,8 @@ describe('environmental limits', () => {
   })
 
   it('asks for action only on a result outside a known limit', () => {
-    expect(environmentalNeedsAction({ status: 'completed', microbiologyResults: [{ withinLimit: false }] })).toBe(false)
-    expect(environmentalNeedsAction({ status: 'completed', microbiologyResults: [{ withinLimit: false, cfuLimit: 100 }] })).toBe(true)
-    expect(environmentalNeedsAction({ status: 'cancelled', microbiologyResults: [{ withinLimit: false, cfuLimit: 100 }] })).toBe(false)
+    expect(environmentalNeedsAction({ status: 'completed', microbiologyResults: [{ withinLimit: false }] } as never)).toBe(false)
+    expect(environmentalNeedsAction({ status: 'completed', microbiologyResults: [{ withinLimit: false, cfuLimit: 100 }] } as never)).toBe(true)
+    expect(environmentalNeedsAction({ status: 'cancelled', microbiologyResults: [{ withinLimit: false, cfuLimit: 100 }] } as never)).toBe(false)
   })
 })

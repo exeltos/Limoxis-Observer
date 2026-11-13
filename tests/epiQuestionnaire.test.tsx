@@ -78,7 +78,7 @@ describe('epidemiological questionnaire model', () => {
     expect(answers.icu_stay.src).toBe('prefill')
     answers = setEpiAnswer(answers, 'icu_stay', { a: 'no' }, prefill.icu_stay)
     expect(answers.icu_stay.src).toBe('prefill_edited')
-    expect(setEpiAnswer({}, 'dialysis', { a: 'yes' }).dialysis.src).toBe('manual')
+    expect(setEpiAnswer({}, 'dialysis', { a: 'yes' }, undefined as never).dialysis.src).toBe('manual')
   })
 
   it('prefills the core answers from a culture entered before the episode (sample clinical context)', () => {

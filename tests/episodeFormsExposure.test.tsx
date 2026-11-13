@@ -8,6 +8,7 @@ import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { canSeeExposure, exposureStatus } from '../src/features/surveillance/EmployeeExposureSection'
 import { canOpenExposures, exposureSourceSection } from '../src/features/surveillance/forms/sections/exposureSourceSection'
 import { countSourceExposuresAsync, loadExposureIncidentsForRecordAsync } from '../src/features/occupational-health/exposureIncidentService'
+import type { ExposureIncident } from '../src/features/occupational-health/exposureIncidentService'
 import { exposureTypeLabel, followUpLabel } from '../src/features/occupational-health/ExposureIncidentEditor'
 
 const t = key => translate(key, 'el')
@@ -24,9 +25,9 @@ describe('staff exposure section', () => {
   })
 
   it('has a status in plain words from the follow-up', () => {
-    expect(exposureStatus({ followUpStatus: 'completed' }, '2026-10-20')).toBe('done')
-    expect(exposureStatus({ followUpStatus: 'pending', followUpDueAt: '2026-10-19' }, '2026-10-20')).toBe('overdue')
-    expect(exposureStatus({ followUpStatus: 'scheduled', followUpDueAt: '2026-10-25' }, '2026-10-20')).toBe('pending')
+    expect(exposureStatus({ followUpStatus: 'completed' } as ExposureIncident, '2026-10-20')).toBe('done')
+    expect(exposureStatus({ followUpStatus: 'pending', followUpDueAt: '2026-10-19' } as ExposureIncident, '2026-10-20')).toBe('overdue')
+    expect(exposureStatus({ followUpStatus: 'scheduled', followUpDueAt: '2026-10-25' } as ExposureIncident, '2026-10-20')).toBe('pending')
     expect(exposureTypeLabel('needlestick', false)).toBe('Τρύπημα βελόνας')
     expect(followUpLabel('completed', true)).toBe('Completed')
   })

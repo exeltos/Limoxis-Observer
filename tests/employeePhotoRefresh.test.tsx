@@ -9,7 +9,7 @@ let round = 0
 const employeePhotoUrls = vi.fn(async paths => Object.fromEntries(paths.map(path => [path, `https://signed.example/${path}?v=${++round}`])))
 vi.mock('../src/features/employees/employeePhotoService', () => ({
   PHOTO_ACCEPT: 'image/*', PHOTO_URL_REFRESH_MS: 46 * 60 * 1000,
-  employeePhotoUrls: (...args) => employeePhotoUrls(...args),
+  employeePhotoUrls: (...args: Parameters<typeof employeePhotoUrls>) => employeePhotoUrls(...args),
   employeeInitials: () => '', removeEmployeePhoto: vi.fn(), uploadEmployeePhoto: vi.fn(), validatePhotoFile: vi.fn(),
 }))
 const { useEmployeePhotoUrls } = await import('../src/features/employees/EmployeePhoto')
