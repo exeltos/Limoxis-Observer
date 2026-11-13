@@ -14,7 +14,7 @@ describe('neonates missing a birth weight are surfaced, not silently dropped', (
       { dateOfBirth: '2026-08-10', startedAt: '2026-08-24', devices: [] },
       { dateOfBirth: '1960-01-01', startedAt: '2026-08-24', devices: [centralLine] },
       { startedAt: '2026-08-24', devices: [centralLine] },
-    ]
+    ] as never
     expect(countNeonatalCentralLineCasesMissingBirthWeight(cases)).toBe(1)
   })
 

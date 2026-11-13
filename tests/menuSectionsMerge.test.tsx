@@ -8,6 +8,7 @@ import { navigationFor } from '../src/app/navigation'
 import { SidebarNavigation } from '../src/app/SidebarNavigation'
 import { calendarFilterOf, calendarFiltersFor, controlExecutionEvents, parseCalendarFilter } from '../src/features/calendar/calendarEvents'
 import { readSource } from './helpers/readSource'
+import type { CalendarEvent } from '../src/features/calendar/calendarEvents'
 
 const read = path => readSource(path)
 const ids = (section, role) => sectionTabsFor(section, { role }).map(tab => tab.id)
@@ -107,12 +108,12 @@ describe('one calendar', () => {
   })
 
   it('files every event under one chip', () => {
-    expect(calendarFilterOf({ kind: 'controls', id: 'ctrl:1' })).toBe('controls')
-    expect(calendarFilterOf({ kind: 'training', id: 'trn-due:1' })).toBe('training')
-    expect(calendarFilterOf({ kind: 'training', id: 'cert:1' })).toBe('expiries')
-    expect(calendarFilterOf({ kind: 'documents', id: 'doc:1', expiry: true })).toBe('expiries')
-    expect(calendarFilterOf({ kind: 'committees', id: 'mtg:1' })).toBe('meetings')
-    expect(calendarFilterOf({ kind: 'capa', id: 'capa:1' })).toBe('other')
+    expect(calendarFilterOf({ kind: 'controls', id: 'ctrl:1' } as CalendarEvent)).toBe('controls')
+    expect(calendarFilterOf({ kind: 'training', id: 'trn-due:1' } as CalendarEvent)).toBe('training')
+    expect(calendarFilterOf({ kind: 'training', id: 'cert:1' } as CalendarEvent)).toBe('expiries')
+    expect(calendarFilterOf({ kind: 'documents', id: 'doc:1', expiry: true } as CalendarEvent)).toBe('expiries')
+    expect(calendarFilterOf({ kind: 'committees', id: 'mtg:1' } as CalendarEvent)).toBe('meetings')
+    expect(calendarFilterOf({ kind: 'capa', id: 'capa:1' } as CalendarEvent)).toBe('other')
   })
 
   it('shows what the controls calendar showed: done, late and missed executions by day', () => {

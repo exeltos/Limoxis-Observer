@@ -8,6 +8,7 @@ import { formatElapsed, runSummary, stepState } from '../src/features/surveillan
 import { reviewWindow, showsReviewCard } from '../src/features/surveillance/protocols/therapyReview'
 import { protocolCues, protocolStages } from '../src/features/surveillance/protocols/useEpisodeProtocols'
 import { stringsEl } from '../src/core/i18n/stringsEl'
+import type { ProtocolRun, TherapyReview } from '../src/features/surveillance/protocols/protocolTypes'
 import { stringsEn } from '../src/core/i18n/stringsEn'
 import { readSource } from './helpers/readSource'
 import { readSplitSource } from './helpers/surveillanceSplitSource'
@@ -100,7 +101,7 @@ describe('protocols are data-driven and timed against the hour', () => {
   })
   it('a tab appears only for a started protocol, with the open protocol as a cue', () => {
     expect(protocolStages([], t, 'el')).toEqual([])
-    const run = { id: 'R1', protocolKey: 'sepsis_hour1', recognizedAt: ZERO, status: 'open', steps: [] }
+    const run = { id: 'R1', protocolKey: 'sepsis_hour1', recognizedAt: ZERO, status: 'open', steps: [] } as ProtocolRun
     const [tab] = protocolStages([run], t, 'el', new Date(at(ZERO, 42)))
     expect(tab).toMatchObject({ id: 'protocol:R1', label: 'Σήψη', meta: '1η ώρα · 42΄', protocol: true })
     const cues = protocolCues([run], { therapy: [] }, [], t, { canProtocol: true, canTherapy: true, now: new Date(at(ZERO, 42)) })
@@ -116,7 +117,7 @@ describe('48–72 h antimicrobial review', () => {
     expect(showsReviewCard(reviewWindow(therapy, [], hoursAfter(30)))).toBe(false)
     expect(reviewWindow(therapy, [], hoursAfter(52))).toMatchObject({ state: 'due', hours: 52 })
     expect(reviewWindow(therapy, [], hoursAfter(80)).state).toBe('overdue')
-    const review = { therapyId: 'T1', reviewedAt: hoursAfter(52).toISOString(), decision: 'deescalate', reasons: ['susceptibility'] }
+    const review = { therapyId: 'T1', reviewedAt: hoursAfter(52).toISOString(), decision: 'deescalate', reasons: ['susceptibility'] } as TherapyReview
     expect(reviewWindow(therapy, [review], hoursAfter(90))).toMatchObject({ state: 'reviewed', reviewedHours: 52 })
     expect(reviewWindow({ ...therapy, status: 'completed' }, [], hoursAfter(90)).state).toBe('closed')
   })
