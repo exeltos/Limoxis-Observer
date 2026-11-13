@@ -56,6 +56,7 @@ import { supplierEvaluationsSheet } from './resources/supplierEvaluationReport'
 import './quality.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { PlanObjective } from './review/reviewTypes'
 import type { Register } from '../registers/registerTypes'
 
 // Intake and governance are deliberately separate:
@@ -189,7 +190,7 @@ export function QualityPage({section=''}: { section?: string }={}){
  const inObjectiveYear=(item: AnyRecord)=>objectiveYear==='all'||String(item.year)===objectiveYear
  const isMissed=(item: AnyRecord)=>(item.status||'active')==='active'&&item.current.status==='missed'
  // All the hospital's objectives in one list: its own, the departments' and the committees' (with the committees' annual plans).
- const planRows=useMemo<AnyRecord[]>(()=>objectives.committeeTargets.map(item=>({...item,kind:'plan',level:'committee'})),[objectives.committeeTargets])
+ const planRows=useMemo<PlanObjective[]>(()=>objectives.committeeTargets.map(item=>({...item,kind:'plan',level:'committee'})),[objectives.committeeTargets])
  // The objectives' totals count what the year, level and search leave; each one sets the state filter.
  const setObjectiveState=(state: string)=>setObjectiveFilters(current=>({...current,state:current.state===state?'all':state}))
  const objectivesLoaded=!objectives.loading
