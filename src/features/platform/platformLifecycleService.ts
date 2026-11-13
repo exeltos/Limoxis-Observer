@@ -1,6 +1,6 @@
 import { supabase, invokeAuthenticatedFunction } from '../../core/supabase/client'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DeletionScheduleValues, DemoConversionInput, OrganizationExportResult } from './platformDemoTypes'
 
 // Demo lifecycle and organization offboarding (phase 5,
 // supabase/migrations/20261015120000_lifecycle_offboarding.sql).
@@ -18,18 +18,18 @@ export async function extendPlatformDemo(entitlementId: string, validUntil: stri
 }
 
 // A Demo becomes a customer in one transaction; its synthetic data is cleared first.
-export async function convertPlatformDemo(organizationId: string | null | undefined, { name, code, details = {} }: AnyRecord) {
+export async function convertPlatformDemo(organizationId: string | null | undefined, { name, code, details = {} }: DemoConversionInput) {
   const supabase = requireClient()
   const { data, error } = await supabase.rpc('platform_convert_demo_tx', { p_organization_id: organizationId as string, p_name: name, p_code: code, p_details: details })
   if (error) throw error
   return data
 }
 
-export async function exportOrganization(organizationId: string | null | undefined) {
+export async function exportOrganization(organizationId: string | null | undefined): Promise<OrganizationExportResult> {
   return invokeAuthenticatedFunction('platform-export-organization', { organizationId })
 }
 
-export async function organizationExportLink(exportId: string) {
+export async function organizationExportLink(exportId: string): Promise<string | null> {
   const data = await invokeAuthenticatedFunction('platform-export-organization', { exportId })
   return data?.url || null
 }
@@ -43,10 +43,10 @@ export async function listOrganizationExports(organizationId: string | null | un
   return data || []
 }
 
-export async function scheduleOrganizationDeletion(organizationId: string | null | undefined, { reason, exportWaivedReason = '' }: AnyRecord) {
+export async function scheduleOrganizationDeletion(organizationId: string | null | undefined, { reason, exportWaivedReason = '' }: DeletionScheduleValues) {
   const supabase = requireClient()
   const { data, error } = await supabase.rpc('platform_schedule_organization_deletion', {
-    p_organization_id: organizationId as string, p_reason: reason, p_export_waived_reason: exportWaivedReason || null,
+    p_organization_id: organizationId as string, p_reason: reason, p_export_waived_reason: (exportWaivedReason || null) as string, // null: χωρίς αιτιολογία (η βάση το δέχεται)
   })
   if (error) throw error
   return data

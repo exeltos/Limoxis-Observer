@@ -7,26 +7,26 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { cancelOrganizationDeletion, exportOrganization, listOrganizationExports, organizationExportLink, scheduleOrganizationDeletion } from './platformLifecycleService'
 import './platformLifecycle.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DeletionScheduleResult, DeletionScheduleValues, OffboardingOrganization, OrganizationExport, ScheduledDeletion } from './platformDemoTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
 const fmtDate=(value: string|Date|null|undefined,en: boolean)=>value?new Date(value).toLocaleDateString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—'
 const fmtDateTime=(value: string|null|undefined,en: boolean)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit', hourCycle: 'h23'}):'—'
-const fmtSize=(bytes: number)=>!bytes?'—':bytes<1024*1024?`${Math.max(1,Math.round(bytes/1024))} KB`:`${(bytes/1024/1024).toFixed(1)} MB`
+const fmtSize=(bytes: number|null)=>!bytes?'—':bytes<1024*1024?`${Math.max(1,Math.round(bytes/1024))} KB`:`${(bytes/1024/1024).toFixed(1)} MB`
 const RECENT_EXPORT_DAYS=30
 const isRecent=(value: string|null|undefined)=>value&&Date.now()-new Date(value).getTime()<RECENT_EXPORT_DAYS*86400000
-const openLink=(url: string)=>{if(!url)return;const a=document.createElement('a');a.href=url;a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}
+const openLink=(url: string|null)=>{if(!url)return;const a=document.createElement('a');a.href=url;a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}
 
 // Organization record, "Export & deletion": a full ZIP copy for the hand-over,
 // and deletion after a grace period (platform setting, default 30 days). The
 // deletion needs an export from the last 30 days, or a reason to go without
 // one; until the date the organization is closed, and it can be cancelled.
-export function OrganizationOffboardingPanel({organization,language='el',onChanged,onDeleteNow}: {organization: AnyRecord,language?: string,onChanged?: ()=>void,onDeleteNow?: ()=>void}){
+export function OrganizationOffboardingPanel({organization,language='el',onChanged,onDeleteNow}: {organization: OffboardingOrganization,language?: string,onChanged?: ()=>void,onDeleteNow?: ()=>void}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const {notify,notifyError,confirm}=useFeedback()
-  const [state,setState]=useState<{loading: boolean,exports: AnyRecord[],deletion: AnyRecord|null,graceDays: number}>({loading:true,exports:[],deletion:null,graceDays:30})
+  const [state,setState]=useState<{loading: boolean,exports: OrganizationExport[],deletion: ScheduledDeletion|null,graceDays: number}>({loading:true,exports:[],deletion:null,graceDays:30})
   const [working,setWorking]=useState('')
   const [scheduleOpen,setScheduleOpen]=useState(false)
   const reload=useCallback(async()=>{
@@ -37,14 +37,14 @@ export function OrganizationOffboardingPanel({organization,language='el',onChang
         supabase?supabase.from('organizations').select('deletion_scheduled_at,deletion_requested_at,deletion_reason,deletion_export_waived_reason').eq('id',organization.id).maybeSingle():{data:null},
         supabase?supabase.from('platform_settings').select('organization_deletion_grace_days').eq('id','global').maybeSingle():{data:null},
       ])
-      setState({loading:false,exports,deletion:org?.data?.deletion_scheduled_at?org.data:null,graceDays:Number(settings?.data?.organization_deletion_grace_days)||30})
+      setState({loading:false,exports,deletion:org?.data?.deletion_scheduled_at?org.data as ScheduledDeletion:null,graceDays:Number(settings?.data?.organization_deletion_grace_days)||30})
     }catch(error){setState(current=>({...current,loading:false}));notifyError(error,'load',{operation:'organization_offboarding_load'})}
   },[organization?.id,notifyError])
   useEffect(()=>{void reload()},[reload])
 
   async function createExport(){setWorking('export');try{const result=await exportOrganization(organization.id);notify(tx(`Το αντίγραφο δημιουργήθηκε: ${result.tables} πίνακες, ${result.rows} εγγραφές, ${result.files} αρχεία.`,`Export created: ${result.tables} tables, ${result.rows} rows, ${result.files} files.`),'success',{operation:'organization_export'});openLink(result.url);await reload()}catch(error){notifyError(error,'export',{operation:'organization_export'})}finally{setWorking('')}}
-  async function download(item: AnyRecord){setWorking(item.id);try{openLink(await organizationExportLink(item.id))}catch(error){notifyError(error,'export',{operation:'organization_export_download'})}finally{setWorking('')}}
-  async function schedule(values: AnyRecord){setWorking('schedule');try{const result=await scheduleOrganizationDeletion(organization.id,values) as AnyRecord|null;setScheduleOpen(false);notify(tx(`Η διαγραφή προγραμματίστηκε για τις ${fmtDate(result?.deletionScheduledAt,false)}. Οι χρήστες του οργανισμού δεν έχουν πια πρόσβαση.`,`Deletion scheduled for ${fmtDate(result?.deletionScheduledAt,true)}. The organization's users no longer have access.`),'success',{operation:'organization_deletion_schedule'});await reload();onChanged?.()}catch(error){notifyError(error,'save',{operation:'organization_deletion_schedule'})}finally{setWorking('')}}
+  async function download(item: OrganizationExport){setWorking(item.id);try{openLink(await organizationExportLink(item.id))}catch(error){notifyError(error,'export',{operation:'organization_export_download'})}finally{setWorking('')}}
+  async function schedule(values: DeletionScheduleValues){setWorking('schedule');try{const result=await scheduleOrganizationDeletion(organization.id,values) as DeletionScheduleResult|null;setScheduleOpen(false);notify(tx(`Η διαγραφή προγραμματίστηκε για τις ${fmtDate(result?.deletionScheduledAt,false)}. Οι χρήστες του οργανισμού δεν έχουν πια πρόσβαση.`,`Deletion scheduled for ${fmtDate(result?.deletionScheduledAt,true)}. The organization's users no longer have access.`),'success',{operation:'organization_deletion_schedule'});await reload();onChanged?.()}catch(error){notifyError(error,'save',{operation:'organization_deletion_schedule'})}finally{setWorking('')}}
   async function cancel(){const ok=await confirm({title:tx('Ακύρωση διαγραφής','Cancel deletion'),message:tx('Ο οργανισμός θα ενεργοποιηθεί ξανά και οι χρήστες του θα αποκτήσουν ξανά πρόσβαση.','The organization becomes active again and its users regain access.'),confirmLabel:tx('Ακύρωση διαγραφής','Cancel deletion')});if(!ok)return;setWorking('cancel');try{await cancelOrganizationDeletion(organization.id);notify(tx('Η διαγραφή ακυρώθηκε. Ο οργανισμός είναι ξανά ενεργός.','Deletion cancelled. The organization is active again.'),'success',{operation:'organization_deletion_cancel'});await reload();onChanged?.()}catch(error){notifyError(error,'save',{operation:'organization_deletion_cancel'})}finally{setWorking('')}}
 
   const recentExport=state.exports.find(item=>isRecent(item.created_at))||null
@@ -65,7 +65,7 @@ export function OrganizationOffboardingPanel({organization,language='el',onChang
   </section>
 }
 
-function ScheduleDeletionDialog({language,organization,graceDays,recentExport,working,onSchedule,onClose}: {language: string,organization: AnyRecord,graceDays: number,recentExport: AnyRecord|null|undefined,working: boolean,onSchedule: (values: AnyRecord)=>void,onClose: ()=>void}){
+function ScheduleDeletionDialog({language,organization,graceDays,recentExport,working,onSchedule,onClose}: {language: string,organization: OffboardingOrganization,graceDays: number,recentExport: OrganizationExport|null|undefined,working: boolean,onSchedule: (values: DeletionScheduleValues)=>void,onClose: ()=>void}){
   const en=language==='en';const tx=(el: string,enText: string)=>en?enText:el
   const [reason,setReason]=useState('')
   const [waived,setWaived]=useState('')
