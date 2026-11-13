@@ -10,7 +10,7 @@ const loads = []
 let access = null
 vi.mock('../src/core/supabase/client', () => ({ supabase: { rpc: vi.fn(), functions: { invoke: vi.fn(async () => ({})) } } }))
 vi.mock('../src/features/quality/resources/supplierRenewalService', async original => {
-  const real = await original()
+  const real = await original<typeof import('../src/features/quality/resources/supplierRenewalService')>()
   return {
     ...real,
     loadSupplierCertificateAccess: vi.fn(async token => { loads.push(token); if (real.isDemoAccessToken(token)) return real.demoSupplierAccess(); if (!access) throw new Error('SUPPLIER_CERTIFICATE_ACCESS_NOT_AVAILABLE'); return access }),

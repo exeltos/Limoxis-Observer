@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { checkRoster, datesBetween, demandFor, generateRoster, isShift, periodDays, shiftTargets } from '../src/features/rosters/rosterEngine'
+import type { RosterEmployee } from '../src/features/rosters/rosterEngine'
 
 // The department's shift roster (owner, 8/11/2026): rules and the automatic generator.
 const SHIFTS = ['M', 'I', 'A', 'N']
@@ -131,7 +132,7 @@ describe('checkRoster', () => {
 
 describe('a person’s own limits (owner, 8/11/2026)', () => {
   it('gives the head mornings only and someone else no nights', () => {
-    const staff = Array.from({ length: 11 }, (_, index) => ({ id: `p${index}`, active: true }))
+    const staff: RosterEmployee[] = Array.from({ length: 11 }, (_, index) => ({ id: `p${index}`, active: true }))
     staff[0].allowed = ['M']
     staff[1].allowed = ['M', 'A']
     const made = generateRoster({ days, employees: staff, demand, seed: 5 })
@@ -148,7 +149,7 @@ describe('a person’s own limits (owner, 8/11/2026)', () => {
 
 describe('supernumerary and other personal limits (owner, 8/11/2026)', () => {
   const p = periodDays('2026-11-21', '2026-12-20')
-  const staff = Array.from({ length: 9 }, (_, index) => ({ id: `s${index}`, active: true }))
+  const staff: RosterEmployee[] = Array.from({ length: 9 }, (_, index) => ({ id: `s${index}`, active: true }))
   staff[0] = { ...staff[0], extra: true, allowed: ['M'] }
   staff[1] = { ...staff[1], noWeekends: true }
   staff[2] = { ...staff[2], maxNights: 2 }
@@ -179,7 +180,7 @@ describe('days off around a leave (owner, 8/11/2026)', () => {
 describe('exactly two days off in every Monday-Sunday week (owner, 9/11/2026)', () => {
   it('gives every person two days off a week, a week of three and one at most once', () => {
     const p = periodDays('2026-11-21', '2026-12-20')
-    const staff = Array.from({ length: 12 }, (_, index) => ({ id: `w${index}`, active: true }))
+    const staff: RosterEmployee[] = Array.from({ length: 12 }, (_, index) => ({ id: `w${index}`, active: true }))
     staff[0] = { ...staff[0], extra: true, allowed: ['M'], noWeekends: true }
     const made = generateRoster({ days: p, employees: staff, demand: { weekday: { M: 2, A: 2, N: 2 }, weekend: { M: 2, A: 2, N: 2 } }, seed: 3 })
     const mondays = p.map((day, i) => (day.weekday === 1 && i + 6 < p.length ? i : -1)).filter((i) => i >= 0)

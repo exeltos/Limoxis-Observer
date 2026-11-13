@@ -12,7 +12,7 @@ function storage() {
 }
 
 function makeSupabaseMock(selectResponses) {
-  const selectColumns = {}
+  const selectColumns: Record<string, string> = {}
   function from(table) {
     const builder = {
       select(columns) { selectColumns[table] = columns; return builder },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LAB_RESULT_SCOPES, canReviewSamples, defaultLabScope, isAlertSample, matchesLabScope, needsSurveillanceReview, reviewTag, sampleEpisodeTarget, samplesAwaitingReview } from '../src/features/laboratory/sampleReviewModel'
 import { emptySampleRequest, missingRequestFields, sampleRequestPayload } from '../src/features/laboratory/sampleRequestForm'
+import type { SampleRequestQuestion } from '../src/features/laboratory/sampleRequestForm'
 import { createDemoLaboratoryRepository } from '../src/features/laboratory/repositories/demoLaboratoryRepository'
 import { createClinicalRepository } from '../src/features/surveillance/clinicalRepository'
 import { clinicalCases } from '../src/features/surveillance/clinicalDemoData'
@@ -97,7 +98,7 @@ describe('«Αίτημα δείγματος»', () => {
   })
 
   it('asks extra questions that are required', () => {
-    const questions = [{ key: 'fever', kind: 'choice', required: true, label: { el: 'Πυρετός', en: 'Fever' }, options: [] }]
+    const questions = [{ key: 'fever', kind: 'choice', required: true, label: { el: 'Πυρετός', en: 'Fever' }, options: [] }] as SampleRequestQuestion[]
     const draft = { ...emptySampleRequest({ questions }), source: 'Ούρα' }
     expect(missingRequestFields(draft, questions)).toEqual(['question:fever'])
     expect(missingRequestFields({ ...draft, requestQuestions: { fever: 'yes' } }, questions)).toEqual([])

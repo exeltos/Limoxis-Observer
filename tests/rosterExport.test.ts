@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { periodDays } from '../src/features/rosters/rosterEngine'
 import { rosterDocument, rosterSheet, rosterSummary } from '../src/features/rosters/rosterExport'
+import type { RosterExportInput } from '../src/features/rosters/rosterExport'
+import type { RosterDepartment } from '../src/features/rosters/rosterService'
 import { buildXlsx, XLSX_STYLE } from '../src/core/export/xlsxExport'
+import type { XlsxStyledCell } from '../src/core/export/xlsxExport'
 
 const days = periodDays('2026-11-21', '2026-11-27')
 const codes = { a: ['R', 'R', 'M', 'A', 'N', 'N', 'R'], b: ['M', 'M', 'R', 'R', 'A', 'I:11', 'L'] }
 const input = {
   en: false,
-  department: { name: 'ΜΕΘ' },
+  department: { name: 'ΜΕΘ' } as RosterDepartment,
   period: { start: '2026-11-21', end: '2026-11-27' },
   status: 'published',
   days,
@@ -20,7 +23,7 @@ const input = {
   targets: { a: 4, b: 4 },
   hours: 8,
   legend: [['4', 'Πρωί', '']],
-}
+} as RosterExportInput
 
 describe('roster export (owner, 9/11/2026)', () => {
   it('counts each person’s shifts by kind, days off and hours', () => {
@@ -43,7 +46,7 @@ describe('roster export (owner, 9/11/2026)', () => {
     const sheet = rosterSheet(input)
     expect(sheet.fit).toBe(true)
     expect(sheet.rows[0][5]).toEqual({ v: '20', s: XLSX_STYLE.night })
-    expect(sheet.rows.at(-1)[0].v).toBe('Νύχτα')
+    expect((sheet.rows.at(-1)[0] as XlsxStyledCell).v).toBe('Νύχτα')
     const text = new TextDecoder().decode(buildXlsx([sheet]))
     expect(text).toContain('fitToPage="1"')
     expect(text).toContain('xSplit="1"')

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { ageText, formatValue } from '../src/features/registers/registerEngine'
+import type { RegisterField } from '../src/features/registers/registerTypes'
 
-const ageField = { key: 'age_on_admission', type: 'computed', computed: 'ageDays', from: 'birth_date', to: 'admission_date', unit: 'ημέρες', unitEn: 'days' }
+const ageField = { key: 'age_on_admission', type: 'computed', computed: 'ageDays', from: 'birth_date', to: 'admission_date', unit: 'ημέρες', unitEn: 'days' } as RegisterField
 
 describe('Age on admission of a newborn', () => {
   it('shows the hours of the entry when the baby is under 3 days old', () => {
@@ -22,6 +23,6 @@ describe('Age on admission of a newborn', () => {
   it('formatValue applies it to the admission age and leaves other computed values alone', () => {
     expect(formatValue(ageField, 0, 'el', { admission_age_hours: 4 })).toBe('4 ώρες')
     expect(formatValue(ageField, 0, 'el')).toBe('κάτω από 1 ημέρα')
-    expect(formatValue({ key: 'length_of_stay', type: 'computed', computed: 'days', unit: 'ημέρες' }, 0, 'el')).toBe('0 ημέρες')
+    expect(formatValue({ key: 'length_of_stay', type: 'computed', computed: 'days', unit: 'ημέρες' } as RegisterField, 0, 'el')).toBe('0 ημέρες')
   })
 })

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { REGULATION_TEMPLATES } from '../src/features/regulations/regulationTemplates'
 import { applyFill, contentFromBlocks, contentFromTemplate, fillItems, nextRegulationCode, regulationProblems, regulationStatus, searchContent, staleSignatures, takeTemplateSection, templateChanges, textToHtml, validSignatures } from '../src/features/regulations/regulationModel'
 import { sanitizeHtml } from '../src/features/regulations/regulationHtml'
+import type { RegulationSignature } from '../src/features/regulations/regulationTypes'
 
 const content = { chapters: [{ id: 'c1', title: 'Γενικά', sections: [
   { id: 's1', origin: 's1', title: 'Σκοπός', html: '<p>Ο σκοπός.</p><p class="reg-fill">Συμπληρώστε: τη σύνθεση της ΕΝΛ.</p><p>Μέση.</p><p class="reg-fill">Συμπληρώστε: τους στόχους.</p>' },
@@ -35,7 +36,7 @@ describe('regulations', () => {
       { role: 'administrator', name: 'Α', revision: 2, signedAt: '2026-10-01T10:00:00Z' },
       { role: 'administrator', name: 'Β', revision: 3, signedAt: '2026-10-02T10:00:00Z' },
       { role: 'infection_lead', name: 'Γ', revision: 2, signedAt: '2026-10-01T11:00:00Z' },
-    ]
+    ] as RegulationSignature[]
     expect(validSignatures(signatures, 3).map(item => item.name)).toEqual(['Β'])
     expect(staleSignatures(signatures, 3)).toEqual(['infection_lead'])
     expect(validSignatures(signatures, 2).map(item => item.name)).toEqual(['Α', 'Γ'])

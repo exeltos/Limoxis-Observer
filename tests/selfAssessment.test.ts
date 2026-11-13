@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { filterSelf, isOverdue, selfChapters, selfCounts, selfFigures, selfGaps, selfStatusLabel } from '../src/features/quality/selfAssessment/selfAssessmentModel'
+import type { SelfAssessment } from '../src/features/quality/selfAssessment/selfAssessmentModel'
 import { readSource } from './helpers/readSource'
 
 const rows = [
@@ -22,7 +23,7 @@ describe('Self-assessment model', () => {
   })
 
   it('counts, filters and names the statuses', () => {
-    const items = [{ title: 'A', departmentName: 'ΜΕΘ', status: 'draft', dueOn: '' }, { title: 'B', departmentName: 'Χειρουργείο', status: 'released', dueOn: '2020-01-01' }, { title: 'C', departmentName: 'ΜΕΘ', status: 'submitted' }]
+    const items = [{ title: 'A', departmentName: 'ΜΕΘ', status: 'draft', dueOn: '' }, { title: 'B', departmentName: 'Χειρουργείο', status: 'released', dueOn: '2020-01-01' }, { title: 'C', departmentName: 'ΜΕΘ', status: 'submitted' }] as SelfAssessment[]
     expect(selfCounts(items)).toEqual({ total: 3, inProgress: 1, submitted: 1, drafts: 1, overdue: 1 })
     expect(isOverdue(items[1], '2026-10-28')).toBe(true)
     expect(isOverdue(items[0], '2026-10-28')).toBe(false)

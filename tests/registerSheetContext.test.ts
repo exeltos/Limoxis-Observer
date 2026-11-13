@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { rowContext } from '../src/features/registers/RegisterSheet'
+import type { SheetAxisItem } from '../src/features/registers/registerTypes'
 
-const measures = [{ key: 'n' }]
+const measures = [{ key: 'n' }] as SheetAxisItem[]
 const months = { '2026-06': { r: { n: 20 } }, '2026-07': { r: { n: 22 } }, '2026-08': { r: { n: 21 } }, '2025-09': { r: { n: 18 } } }
-const valuesOf = month => months[month]
+const valuesOf = (month: string) => months[month]
 
 describe('monthly sheet: what a row looked like before', () => {
   it('reads the previous month and the usual of the three months before', () => {

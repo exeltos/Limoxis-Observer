@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { rosterPeriod } from '../src/features/rosters/rosterService'
+import type { RosterMember } from '../src/features/rosters/rosterService'
 import { readSource } from './helpers/readSource'
 import { readEmployeeRecordPageSource } from './helpers/employeeRecordPageSource'
 
@@ -25,7 +26,7 @@ describe('roster members (owner, 8/11/2026)', () => {
     expect(isDepartmentHead('Προϊστάμενος/η Τμήματος')).toBe(true)
     expect(isDepartmentHead('Head of Department (Nursing)')).toBe(true)
     expect(isDepartmentHead('Νοσηλευτής/τρια ΜΕΘ')).toBe(false)
-    expect(headsFirst([{ name: 'a' }, { name: 'h', isHead: true }, { name: 'b' }]).map(m => m.name)).toEqual(['h', 'a', 'b'])
+    expect(headsFirst([{ name: 'a' }, { name: 'h', isHead: true }, { name: 'b' }] as RosterMember[]).map(m => m.name)).toEqual(['h', 'a', 'b'])
   })
 })
 

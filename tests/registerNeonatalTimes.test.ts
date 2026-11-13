@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { computeValues, derivedHours, formatValue, hoursField, validateEntry } from '../src/features/registers/registerEngine'
 import { hospitalInstant } from '../src/core/dates/hospitalDate'
 import { REGISTER_TEMPLATES } from '../src/features/registers/registerTemplates'
+import type { RegisterField } from '../src/features/registers/registerTypes'
 import { readSource } from './helpers/readSource'
 
 const nicu = REGISTER_TEMPLATES.find(template => template.key === 'nicu')
@@ -35,7 +36,7 @@ describe('NICU register: birth and admission times', () => {
   it('the age on admission shows the calculated hours', () => {
     const values = computeValues(fields, { birth_date: '2026-11-10', birth_time: '08:30', admission_date: '2026-11-10', admission_time: '14:00' })
     expect(formatValue(fields.find(field => field.key === 'age_on_admission'), values.age_on_admission, 'el', values)).toBe('5,5 ώρες')
-    expect(formatValue({ key: 'birth_time', type: 'time' }, '08:30:00', 'el')).toBe('08:30')
+    expect(formatValue({ key: 'birth_time', type: 'time' } as RegisterField, '08:30:00', 'el')).toBe('08:30')
   })
   it('refuses an admission before the birth and a time that is not hh:mm', () => {
     const base = { admission_date: '2026-11-10', birth_date: '2026-11-10' }

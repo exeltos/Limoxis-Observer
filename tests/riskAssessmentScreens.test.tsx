@@ -133,7 +133,7 @@ describe('risk assessment screens', () => {
     expect(residual).toBeEnabled()
     expect(screen.getByText('Προληπτικά μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
     // «Ακύρωση» drops the edits, the measure lists included, and returns to the record.
-    const measure = () => document.querySelector('.risk-measures textarea')
+    const measure = () => document.querySelector<HTMLTextAreaElement>('.risk-measures textarea')
     const before = measure().value
     fireEvent.change(measure(), { target: { value: 'Ακυρωμένο μέτρο' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ακύρωση' }))

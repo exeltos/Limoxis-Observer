@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { EMPTY_VALUE, planImport, repairNumber, suggestMapping, suggestOption, toGestation, toYesNo, valueMappings, withTemplateHints } from '../src/features/registers/registerImport'
 import { registerFromTemplate } from '../src/features/registers/registerTemplates'
+import type { Register, RegisterField } from '../src/features/registers/registerTypes'
 
 // A register created before the template learned its FileMaker names: no aliases, no option beginnings.
-const stale = key => { const fresh = registerFromTemplate(key, { department: 'X', departmentId: 'X' }); return { ...fresh, fields: fresh.fields.map(field => ({ ...field, aliases: [], options: (field.options || []).map(option => ({ ...option, match: [] })) })) } }
+const stale = (key: string): Register => { const fresh = registerFromTemplate(key, { department: 'X', departmentId: 'X' }); return { ...fresh, fields: fresh.fields.map(field => ({ ...field, aliases: [], options: (field.options || []).map(option => ({ ...option, match: [] })) })) } as Register }
 
 describe('Register import: what FileMaker exports really look like', () => {
   it('reads the template’s FileMaker names for a register made from an older copy', () => {
@@ -13,7 +14,7 @@ describe('Register import: what FileMaker exports really look like', () => {
   })
 
   it('matches list values typed with the keyboard on English, doubled or missing letters', () => {
-    const antenatal = withTemplateHints(registerFromTemplate('obstetrics')).fields.find(field => field.key === 'antenatal')
+    const antenatal = withTemplateHints(registerFromTemplate('obstetrics') as Register).fields.find(field => field.key === 'antenatal')
     expect(suggestOption(antenatal, 'DEN TO GNVRIZE')).toBe('not_aware')
     expect(suggestOption(antenatal, 'ΔΕΝ ΤΟ ΓΝΩΡΙΙΖΕ')).toBe('not_aware')
     expect(suggestOption(antenatal, 'ΔΕΝ ΤΟ ΝΩΡΙΖΕ')).toBe('not_aware')
@@ -24,15 +25,15 @@ describe('Register import: what FileMaker exports really look like', () => {
   })
 
   it('repairs a number written twice, and a lost decimal point only where the field allows it', () => {
-    expect(repairNumber({ min: 300, max: 6000 }, 850850)).toBe(850)
-    expect(repairNumber({ min: 300, max: 6000 }, 3320)).toBe(3320)
-    expect(repairNumber({ min: 0, max: 100 }, 242)).toBe(242)
-    expect(repairNumber({ min: 0, max: 100, repair: 'decimal' }, 242)).toBe(2.42)
-    expect(repairNumber({ min: 0, max: 100, repair: 'decimal' }, 1336)).toBe(13.36)
+    expect(repairNumber({ min: 300, max: 6000 } as RegisterField, 850850)).toBe(850)
+    expect(repairNumber({ min: 300, max: 6000 } as RegisterField, 3320)).toBe(3320)
+    expect(repairNumber({ min: 0, max: 100 } as RegisterField, 242)).toBe(242)
+    expect(repairNumber({ min: 0, max: 100, repair: 'decimal' } as RegisterField, 242)).toBe(2.42)
+    expect(repairNumber({ min: 0, max: 100, repair: 'decimal' } as RegisterField, 1336)).toBe(13.36)
   })
 
   it('counts a neonate without an admission date on its discharge date, and says so', () => {
-    const register = registerFromTemplate('nicu')
+    const register = registerFromTemplate('nicu') as Register
     const headers = ['ΑΡΙΘΜΟΣ ΠΕΡΙΣΤΑΤΙΚΟΥ', 'ΗΜΕΡΟΜΗΝΙΑ ΕΙΣΑΓΩΓΗΣ ΜΕΝΝ', 'ΗΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ ΑΠΟ ΤΗ ΜΕΝΝ', 'ΒΑΡΟΣ ΕΙΣΟΔΟΥ']
     const plan = planImport(register, headers, [['1', '', '2026-03-10', 900900], ['2', '2026-03-01', '2026-03-12', 3000]], suggestMapping(register, headers))
     expect(plan.counts.ready).toBe(2)
@@ -41,18 +42,18 @@ describe('Register import: what FileMaker exports really look like', () => {
   })
 
   it('offers lines without a shift as «(empty)», counted where the user puts them', () => {
-    const register = registerFromTemplate('emergency')
+    const register = registerFromTemplate('emergency') as Register
     const headers = ['Ημερομηνία', 'ΒΑΡΔΙΑ', 'ΧΕΙΡΟΥΡΓΕΙΑ']
     const rows = [['2026-03-01', '07:00-15:00', 4], ['2026-03-01', '', 2]]
     const mapping = suggestMapping(register, headers)
     expect(valueMappings(register, headers, rows, mapping)['sheet.measure'].values.map(item => item.value)).toContain(EMPTY_VALUE)
-    expect(planImport(register, headers, rows, mapping).skipped.noMeasure).toBe(1)
+    expect((planImport(register, headers, rows, mapping).skipped as { noMeasure?: number }).noMeasure).toBe(1)
     const placed = planImport(register, headers, rows, mapping, { valueMap: { 'sheet.measure': { [EMPTY_VALUE]: 'night' } } })
     expect(placed.items[0].entry.values.surgical).toEqual({ morning: 4, night: 2 })
   })
 
   it('finds a column by its words when FileMaker names it differently', () => {
-    const register = { kind: 'case', fields: [{ key: 'cpap_days', type: 'number', label: 'Ημέρες σε CPAP' }, { key: 'tpn_days', type: 'number', label: 'Ημέρες TPN' }, { key: 'central_line_days', type: 'number', label: 'Ημέρες φλεβικού καθετήρα' }], settings: {} }
+    const register = { kind: 'case', fields: [{ key: 'cpap_days', type: 'number', label: 'Ημέρες σε CPAP' }, { key: 'tpn_days', type: 'number', label: 'Ημέρες TPN' }, { key: 'central_line_days', type: 'number', label: 'Ημέρες φλεβικού καθετήρα' }], settings: {} } as Register
     expect(suggestMapping(register, ['ΔΙΑΡΚΕΙΑ ΣΤΟ CPAP', 'ΔΙΑΡΚΕΙΑ TPN', 'ΔΙΑΡΚΕΙΑ ΦΛΕΒΙΚΟΥ ΚΑΘΕΤΗΡΑ', 'ΦΕΡΕΙ PICC _ LINE'])).toEqual(['cpap_days', 'tpn_days', 'central_line_days', ''])
   })
 
@@ -83,18 +84,18 @@ describe('Register import: what FileMaker exports really look like', () => {
   })
 
   it('reads the delivery room’s shortened and mistyped row names', () => {
-    const register = registerFromTemplate('deliveryRoom')
+    const register = registerFromTemplate('deliveryRoom') as Register
     expect(suggestMapping(register, ['Πολυδ κύηση με φτ', 'Περίδεση', 'Τεκετοί εν τη πόλη'])).toEqual(['row.multiple_vaginal', 'row.cerclage', 'row.born_before_arrival'])
   })
   it('takes a FileMaker name off a field the template moved it from, and drops a retired one', () => {
-    const fresh = registerFromTemplate('nicu')
+    const fresh = registerFromTemplate('nicu') as Register
     const older = { ...fresh, fields: [...fresh.fields.filter(field => !['bottle_feeding', 'picc_days'].includes(field.key)), { key: 'bottle_start', section: 'stay', type: 'date', label: 'Έναρξη', aliases: ['ΑΠΟΚΛΕΙΣΤΙΚΗ ΣΙΤΙΣΗ ΜΕ BIBERON'] }].map(field => (field.key === 'hfov' ? { ...field, aliases: ['ΤΥΠΟΣ ΜΗΧΑΝΙΚΟΥ ΑΕΡΙΣΜΟΥ'] } : field)) }
     expect(suggestMapping(withTemplateHints(older), ['ΑΠΟΚΛΕΙΣΤΙΚΗ  ΣΙΤΙΣΗ ΜΕ BIBERON', 'ΦΕΡΕΙ PICC _ LINE', 'ΤΥΠΟΣ ΜΗΧΑΝΙΚΟΥ ΑΕΡΙΣΜΟΥ'])).toEqual(['bottle_feeding', 'picc_days', ''])
     expect(toYesNo('23/8/2026', true)).toBe(true)
   })
 
   it('records active chemotherapy patients without dates on the day of the import, start left empty', () => {
-    const register = withTemplateHints(registerFromTemplate('chemotherapy'))
+    const register = withTemplateHints(registerFromTemplate('chemotherapy') as Register)
     const headers = ['STATUS', 'ΑΙΤΙΑ ΕΙΣΑΓΩΓΗΣ', 'ΗΜΕΡΟΜΗΝΙΑ ΕΙΣΑΓΩΓΗΣ', 'ΦΥΛΟ']
     const plan = planImport(register, headers, [['ΕΝΕΡΓΟΣ', 'C50', '', 'Θήλυ']], suggestMapping(register, headers), { fallbackDate: '2026-10-17' })
     expect(plan.counts.ready).toBe(1)

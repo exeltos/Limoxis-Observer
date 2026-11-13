@@ -10,7 +10,7 @@ function client(calls, rows = {}) {
   const builder = table => {
     const call = { table, filters: [] }
     calls.push(call)
-    const chain = {}
+    const chain: Record<string, unknown> = {}
     for (const method of ['select', 'eq', 'neq', 'in', 'not', 'is', 'or', 'gte', 'lt', 'order', 'range', 'limit']) chain[method] = (...args) => { call.filters.push([method, ...args]); return chain }
     chain.maybeSingle = () => Promise.resolve({ data: null, error: null })
     chain.then = (resolve, reject) => Promise.resolve({ data: rows[table] || [], error: null }).then(resolve, reject)
