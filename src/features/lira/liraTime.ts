@@ -1,11 +1,12 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LiraData, LiraRow } from './liraTypes'
 
 // Χρονικό παράθυρο μιας ερώτησης («χθες», «Μάρτιος», «από 1/3 έως 5/3»).
 export interface LiraTimeWindow { start: string; end: string; label: string; kind?: string }
 // Δύο αντίστοιχες περίοδοι για σύγκριση (buildMatchedComparisonSpec). Οι αναλύσεις
-// τις δίνουν και ως επιλογές, γι' αυτό δέχονται και άλλα πεδία.
-export interface LiraComparisonSpec { current: LiraTimeWindow & AnyRecord; reference: LiraTimeWindow & AnyRecord }
+// τις δίνουν και ως επιλογές (from/to), γι' αυτό δέχονται και αυτά τα πεδία.
+export type LiraComparisonPeriod = LiraTimeWindow & { from?: string | null; to?: string | null }
+export interface LiraComparisonSpec { current: LiraComparisonPeriod; reference: LiraComparisonPeriod }
 const normalize = (value: unknown) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 const iso = (date: Date) => date.toISOString().slice(0, 10)
 const parseIso = (value: string) => {
@@ -99,11 +100,11 @@ export function inferLiraTimeWindow(question: unknown, { today = hospitalToday()
   return null
 }
 
-export function filterLiraDataByWindow(data: AnyRecord, window: LiraTimeWindow | null | undefined) {
+export function filterLiraDataByWindow(data: LiraData, window: LiraTimeWindow | null | undefined): LiraData {
   if (!data || !window) return data
 
-  const dateOf = (row: AnyRecord) => row?.signalDate || row?.resultedAt || row?.collectedAt || row?.date || row?.startedAt || row?.dueDate || null
-  const rows = (items: AnyRecord[] | undefined) => (items || []).filter(row => {
+  const dateOf = (row: LiraRow) => row?.signalDate || row?.resultedAt || row?.collectedAt || row?.date || row?.startedAt || row?.dueDate || null
+  const rows = <T extends LiraRow>(items: T[] | undefined) => (items || []).filter(row => {
     const value = dateOf(row)
     if (!value) return false
     const date = String(value).slice(0, 10)

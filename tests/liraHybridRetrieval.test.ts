@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest'
 import {withPassages} from '../src/features/lira/LiraAssistantLauncher'
 import { readSource } from './helpers/readSource'
 
-type Guidance = Extract<ReturnType<typeof withPassages>, { title: string }>
+type Guidance = ReturnType<typeof withPassages>
 
 describe('LIRA keyless hybrid retrieval',()=>{
  const sql=readSource('supabase/migrations/20261012192152_lira_hybrid_retrieval.sql')

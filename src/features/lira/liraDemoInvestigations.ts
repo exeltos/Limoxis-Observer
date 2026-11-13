@@ -4,7 +4,10 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { addDays } from '../../core/data/demoSeed'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { OutbreakLineRow } from './liraOutbreakInvestigation'
+
+// Όσα διαβάζονται από μια demo διερεύνηση για τις αξιολογήσεις περιστατικών.
+type DemoInvestigationRef = { id?: string, created_at?: string | null, closed_at?: string | null, demoEvents?: unknown, status?: string | null, department?: string | null }
 
 const rows: [string, string, string, string, string | null][] = [
   ['LIRA-INV-01', 'Klebsiella pneumoniae (KPC)', 'active', '2026-08-18T09:20:00Z', null],
@@ -118,16 +121,16 @@ emptyInPreview(liraDemoInvestigations)
 // The human case reviews of a Demo investigation, made from the cases its line list
 // finds: the ward's cases confirmed, the others excluded. An active investigation has
 // reviewed only its first half, so its closure still waits on the rest.
-const reviewDay = (investigation: AnyRecord, index: number) => {
+const reviewDay = (investigation: DemoInvestigationRef, index: number) => {
   const day = addDays(String(investigation.created_at).slice(0, 10), 1 + (index % 4))
   const last = investigation.closed_at && addDays(String(investigation.closed_at).slice(0, 10), -1)
   return last && day > last ? last : day
 }
-export function demoOutbreakCaseReviews(investigation: AnyRecord | null | undefined, lineList: AnyRecord | null | undefined) {
+export function demoOutbreakCaseReviews(investigation: DemoInvestigationRef | null | undefined, lineList: { rows?: OutbreakLineRow[] } | null | undefined) {
   if (!investigation?.demoEvents || investigation.status === 'draft') return []
   const rows = lineList?.rows || []
   const reviewed = investigation.status === 'active' ? rows.slice(0, Math.ceil(rows.length / 2)) : rows
-  return reviewed.map((row: AnyRecord, index: number) => {
+  return reviewed.map((row: OutbreakLineRow, index: number) => {
     const ward = row.department === investigation.department
     return {
       id: `${investigation.id}-REV-${index + 1}`,

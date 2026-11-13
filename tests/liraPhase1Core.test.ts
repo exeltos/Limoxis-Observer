@@ -5,8 +5,8 @@ import { readSource } from './helpers/readSource'
 describe('LIRA phase-1 core contracts',()=>{
  it('uses the governed patient-day period model and not the deprecated patient_days table',()=>{
   const source=readSource('src/features/lira/liraDataLayer.js')
-  expect(source).toContain("q('patient_day_periods'")
-  expect(source).not.toContain("q('patient_days'")
+  expect(source).toContain("db.from('patient_day_periods')")
+  expect(source).not.toContain("db.from('patient_days')")
   expect(source).toContain("provenance:{patientDays:'patient_day_periods'")
  })
 
@@ -14,7 +14,7 @@ describe('LIRA phase-1 core contracts',()=>{
   const source=readSource('src/features/lira/LiraAssistantLauncher.jsx')
   expect(source).toContain('previousPlan:previousContext?.plan||null')
   expect(source).toContain('previousTimeWindow:previousContext?.timeWindow||null')
-  expect(source).toContain('setConversationContext(deterministic.context)')
+  expect(source).toContain('setConversationContext(deterministic.context as LiraConversation)')
  })
 
  it('wires deterministic HAI and operational comparison engines into answers',()=>{
@@ -33,7 +33,7 @@ describe('LIRA phase-1 core contracts',()=>{
 
  it('keeps evidence provenance visible in the assistant response contract',()=>{
   const source=readSource('src/features/lira/LiraAssistantLauncher.jsx')
-  expect(source).toContain("item.provenance?.length>0")
+  expect(source).toContain("(item.provenance?.length??0)>0")
   expect(source).toContain("source:'hai_classifications'")
   expect(source).toContain("source:'surveillance_devices'")
  })
