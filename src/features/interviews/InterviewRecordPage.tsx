@@ -22,7 +22,7 @@ import { exportCandidates } from './interviewsReports'
 import { CONSENTS } from './applicationModel'
 import { decide, interviewsErrorMessage, loadCandidateSignature, removeCandidate, saveCandidateNotes } from './interviewsService'
 import { DivisionCandidatePage } from './InterviewDivisions'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Candidate, InterviewEmployee } from './interviewsTypes'
 
 
 
@@ -43,7 +43,8 @@ function InterviewRecordFull() {
   const access = useInterviewsAccess()
   const actor = useInterviewsActor()
   const { state, loading, reload, organizationId } = useInterviews()
-  const { data: employees } = useEmployeesData() as { data: AnyRecord[] }
+  // The employees service is not typed yet: Interviews read the fields InterviewEmployee declares.
+  const employees = useEmployeesData().data as InterviewEmployee[]
   const [dialog, setDialog] = useState<{ type: string, decision?: string } | null>(null)
   const [notes, setNotes] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -57,7 +58,7 @@ function InterviewRecordFull() {
   const common = { candidate, organizationId, onClose: close, onSaved: reload }
   async function remove() {
     if (!await confirm({ title: en ? 'Delete application' : 'Διαγραφή αίτησης', message: en ? 'The application, its languages and employers are deleted.' : 'Διαγράφονται η αίτηση, οι γλώσσες και η προϋπηρεσία της.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
-    try { await removeCandidate(organizationId, candidate?.id); notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success'); goBack() } catch (error) { notify(interviewsErrorMessage(error, language), 'error') }
+    try { await removeCandidate(organizationId, candidate?.id as string); notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success'); goBack() } catch (error) { notify(interviewsErrorMessage(error, language), 'error') }
   }
   async function run(work: () => Promise<unknown>) {
     setBusy(true)
@@ -117,7 +118,7 @@ function InterviewRecordFull() {
         {(candidate.source === 'tablet' || candidate.consentVersion) && <CandidateConsents candidate={candidate} organizationId={organizationId} en={en} language={language} />}
         <SectionHeader title={en ? 'Education & languages' : 'Εκπαίδευση & γλώσσες'} />
         <RecordDetailsGrid fields={filled([{ label: en ? 'Secondary education' : 'Βασική εκπαίδευση', value: candidate.educationLevel }, { label: en ? 'IT skills' : 'Γνώσεις πληροφορικής', value: candidate.itSkills, className: 'interviews-span-2' }])} />
-        <RegistryTable bare sortable={false} rows={candidate.education.map((row: AnyRecord, index: number) => ({ ...row, id: index }))} columns={[{ key: 'level', label: en ? 'Level' : 'Επίπεδο' }, { key: 'school', label: en ? 'School / department' : 'Σχολή / τμήμα' }, { key: 'title', label: en ? 'Degree' : 'Πτυχίο' }, { key: 'year', label: en ? 'Year' : 'Έτος' }]}
+        <RegistryTable bare sortable={false} rows={candidate.education.map((row, index) => ({ ...row, id: index }))} columns={[{ key: 'level', label: en ? 'Level' : 'Επίπεδο' }, { key: 'school', label: en ? 'School / department' : 'Σχολή / τμήμα' }, { key: 'title', label: en ? 'Degree' : 'Πτυχίο' }, { key: 'year', label: en ? 'Year' : 'Έτος' }]}
           emptyTitle={en ? 'No degrees recorded' : 'Δεν καταγράφηκαν πτυχία'} renderRow={row => <><td>{row.level || '—'}</td><td><strong>{row.school || '—'}</strong></td><td>{row.title || '—'}{row.completed === false && <small>{en ? 'In progress' : 'Σε εξέλιξη'}</small>}</td><td className="nowrap-cell">{row.year || '—'}</td></>} />
         <RegistryTable bare sortable={false} rows={candidate.languages} rowKey={row => row.id || row.language} columns={[{ key: 'language', label: en ? 'Language' : 'Γλώσσα' }, { key: 'speaking', label: en ? 'Speaking' : 'Ομιλία' }, { key: 'reading', label: en ? 'Reading' : 'Ανάγνωση' }, { key: 'writing', label: en ? 'Writing' : 'Γραφή' }, { key: 'certificate', label: en ? 'Certificate' : 'Πιστοποιητικό' }]}
           emptyTitle={en ? 'No languages recorded' : 'Δεν καταγράφηκαν γλώσσες'} renderRow={row => <><td><strong>{languageLabel(row.language, language)}</strong></td><td>{levelLabel(row.speaking, language) || '—'}</td><td>{levelLabel(row.reading, language) || '—'}</td><td>{levelLabel(row.writing, language) || '—'}</td><td>{certificateLabel(row, language) || '—'}</td></>} />
@@ -135,7 +136,7 @@ function InterviewRecordFull() {
 
 // The consents given on the tablet, each with the text the candidate read, and the
 // signature under them (loaded only here, not with the list).
-function CandidateConsents({ candidate, organizationId, en, language }: { candidate: AnyRecord, organizationId: string | null, en: boolean, language: string }) {
+function CandidateConsents({ candidate, organizationId, en, language }: { candidate: Candidate, organizationId: string | null, en: boolean, language: string }) {
   const [signature, setSignature] = useState('')
   useEffect(() => {
     let live = true

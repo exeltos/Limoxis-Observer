@@ -13,11 +13,13 @@ import { interviewsDemoState } from './interviewsDemoData'
 import { overallRating, statusAfterDecision, statusAfterEvaluation, statusAfterSchedule } from './interviewsModel'
 import { DIVISION_CANDIDATE_FIELDS } from './divisionsModel'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ApplicationLink, Candidate, CandidateDecision, CandidateEducation, CandidateEmployer, CandidateLanguage, Division, DivisionDraft, Interview } from './interviewsTypes'
 import type { TablesUpdate } from '../../core/supabase/database.types'
 
 // The demo state in the browser.
-interface LocalState { candidates: AnyRecord[], divisions?: AnyRecord[], opinions?: AnyRecord }
+interface LocalState { candidates: Candidate[], divisions?: Division[], opinions?: Record<string, unknown> }
+// A row of an hr_* table and an entry of the screens, field by field (COLUMNS maps one to the other).
+type HrRow = Record<string, unknown>
 type HrTable = keyof typeof COLUMNS
 // The screens pass the selected hospital (null before one is chosen).
 type OrgId = string | null | undefined
@@ -45,7 +47,7 @@ const COLUMNS: Record<'hr_candidates' | 'hr_candidate_languages' | 'hr_candidate
   hr_interviews: { scheduledAt: ['scheduled_at', 'd'], location: ['location', 't'], status: ['status', 't'], interviewers: ['interviewers', 'j'], scores: ['scores', 'j'], overallRating: ['overall_rating', 'n'], outcome: ['outcome', 't'], recommendation: ['recommendation', 't'],
     strengths: ['strengths', 't'], weaknesses: ['weaknesses', 't'], salaryExpectation: ['salary_expectation', 'n'], offeredSalary: ['offered_salary', 'n'], benefits: ['benefits', 't'], availableFrom: ['available_from', 'd'], evaluatedAt: ['evaluated_at', 'd'], evaluatedByName: ['evaluated_by_name', 't'], notes: ['notes', 't'], source: ['source', 't'] },
 }
-const JSON_DEFAULTS: AnyRecord = { education: [], interviewers: [], scores: {}, consentTexts: {} }
+const JSON_DEFAULTS: Record<string, unknown> = { education: [], interviewers: [], scores: {}, consentTexts: {} }
 
 const toValue = (kind: string, value: unknown, field: string) => {
   if (kind === 'j') return value == null || value === '' ? JSON_DEFAULTS[field] : value
@@ -56,13 +58,13 @@ const toValue = (kind: string, value: unknown, field: string) => {
   if (kind === 't') { const text = String(value).trim(); return text || null }
   return value
 }
-export function toRow(table: HrTable, entry: AnyRecord) {
-  const row: AnyRecord = {}
+export function toRow(table: HrTable, entry: HrRow) {
+  const row: HrRow = {}
   for (const [field, [column, kind]] of Object.entries(COLUMNS[table])) if (field in entry) row[column] = toValue(kind, entry[field], field)
   return row
 }
-export function fromRow(table: HrTable, row: AnyRecord) {
-  const entry: AnyRecord = { id: row.id, createdAt: row.created_at, updatedAt: row.updated_at }
+export function fromRow(table: HrTable, row: HrRow) {
+  const entry: HrRow = { id: row.id, createdAt: row.created_at, updatedAt: row.updated_at }
   for (const [field, [column, kind]] of Object.entries(COLUMNS[table])) {
     const value = row[column]
     entry[field] = kind === 'j' ? (value ?? JSON_DEFAULTS[field]) : kind === 'b' ? (value == null ? null : Boolean(value)) : value == null ? '' : value
@@ -70,8 +72,8 @@ export function fromRow(table: HrTable, row: AnyRecord) {
   return entry
 }
 
-async function selectAll(build: () => { range: (from: number, to: number) => PromiseLike<{ data: AnyRecord[] | null, error: unknown }> }) {
-  const all: AnyRecord[] = []
+async function selectAll(build: () => { range: (from: number, to: number) => PromiseLike<{ data: HrRow[] | null, error: unknown }> }) {
+  const all: HrRow[] = []
   for (let from = 0; ; from += 1000) {
     const page = must(await build().range(from, from + 999)) || []
     all.push(...page)
@@ -79,7 +81,7 @@ async function selectAll(build: () => { range: (from: number, to: number) => Pro
   }
 }
 const byOrg = (table: string, organizationId: OrgId, order = 'created_at') => selectAll(() => db().from(table).select('*').eq('organization_id', organizationId).order(order).order('id'))
-const group = (rows: AnyRecord[], key: string) => { const map = new Map<unknown, AnyRecord[]>(); for (const row of rows) { const list = map.get(row[key]) || []; list.push(row); map.set(row[key], list) } return map }
+const group = <T extends HrRow>(rows: T[], key: string) => { const map = new Map<unknown, T[]>(); for (const row of rows) { const list = map.get(row[key]) || []; list.push(row); map.set(row[key], list) } return map }
 
 // --- Local (demo) ---------------------------------------------------------------------------
 function local(): LocalState {
@@ -92,7 +94,7 @@ function local(): LocalState {
   return state
 }
 const saveLocal = (state: LocalState) => saveSnapshot(LOCAL_KEY, state)
-const updateLocalCandidate = (candidateId: string, change: (item: AnyRecord) => AnyRecord) => {
+const updateLocalCandidate = (candidateId: string, change: (item: Candidate) => Partial<Candidate>) => {
   const state = local()
   state.candidates = state.candidates.map(item => (item.id === candidateId ? { ...item, ...change(item), updatedAt: new Date().toISOString() } : item))
   saveLocal(state)
@@ -110,34 +112,35 @@ export async function loadInterviews(organizationId: OrgId): Promise<LocalState>
   const languagesBy = group(languages.map(row => ({ ...fromRow('hr_candidate_languages', row), candidateId: row.candidate_id })), 'candidateId')
   const employersBy = group(employers.map(row => ({ ...fromRow('hr_candidate_employers', row), candidateId: row.candidate_id })), 'candidateId')
   const interviewsBy = group(interviews.map(row => ({ ...fromRow('hr_interviews', row), candidateId: row.candidate_id })), 'candidateId')
-  return { candidates: candidates.map(row => ({ ...fromRow('hr_candidates', row), languages: languagesBy.get(row.id) || [], employers: employersBy.get(row.id) || [], interviews: interviewsBy.get(row.id) || [] })) }
+  // fromRow builds each entry field by field from COLUMNS: the shapes of interviewsTypes.
+  return { candidates: candidates.map(row => ({ ...fromRow('hr_candidates', row), languages: languagesBy.get(row.id) || [], employers: employersBy.get(row.id) || [], interviews: interviewsBy.get(row.id) || [] })) as unknown as Candidate[] }
 }
 
-async function writeRow(table: HrTable, organizationId: OrgId, entry: AnyRecord, extra: AnyRecord = {}): Promise<AnyRecord> {
+async function writeRow(table: HrTable, organizationId: OrgId, entry: HrRow, extra: HrRow = {}): Promise<HrRow & { id: string }> {
   const row = { ...toRow(table, entry), ...extra }
   if (isUuid(entry.id)) return must(await db().from(table).update(row).eq('id', entry.id).eq('organization_id', organizationId).select('*').single())
   return must(await db().from(table).insert({ ...row, organization_id: organizationId }).select('*').single())
 }
-async function syncChildren(table: HrTable, organizationId: OrgId, candidateId: string, rows: AnyRecord[]) {
-  const existing: AnyRecord[] = must(await db().from(table).select('id').eq('organization_id', organizationId).eq('candidate_id', candidateId)) || []
+async function syncChildren(table: HrTable, organizationId: OrgId, candidateId: string, rows: (CandidateLanguage | CandidateEmployer)[]) {
+  const existing: { id: string }[] = must(await db().from(table).select('id').eq('organization_id', organizationId).eq('candidate_id', candidateId)) || []
   const keep = new Set(rows.filter(row => isUuid(row.id)).map(row => row.id))
   const remove = existing.map(row => row.id).filter(id => !keep.has(id))
   if (remove.length) must(await db().from(table).delete().eq('organization_id', organizationId).in('id', remove))
   for (const [index, row] of rows.entries()) await writeRow(table, organizationId, { ...row, position: index }, { candidate_id: candidateId })
 }
-const cleanLanguages = (rows: AnyRecord[] | null | undefined) => (rows || []).filter(row => String(row.language || '').trim())
-const cleanEmployers = (rows: AnyRecord[] | null | undefined) => (rows || []).filter(row => String(row.employer || '').trim())
-const cleanEducation = (rows: AnyRecord[] | null | undefined) => (rows || []).filter(row => String(row.school || row.title || row.level || '').trim())
+const cleanLanguages = (rows: CandidateLanguage[] | null | undefined) => (rows || []).filter(row => String(row.language || '').trim())
+const cleanEmployers = (rows: CandidateEmployer[] | null | undefined) => (rows || []).filter(row => String(row.employer || '').trim())
+const cleanEducation = (rows: CandidateEducation[] | null | undefined) => (rows || []).filter(row => String(row.school || row.title || row.level || '').trim())
 
 // An application with its languages and previous employers. Returns its id.
-export async function saveCandidate(organizationId: OrgId, candidate: AnyRecord) {
-  const draft: AnyRecord = { ...candidate, education: cleanEducation(candidate.education), languages: cleanLanguages(candidate.languages), employers: cleanEmployers(candidate.employers) }
+export async function saveCandidate(organizationId: OrgId, candidate: Candidate) {
+  const draft = { ...candidate, education: cleanEducation(candidate.education), languages: cleanLanguages(candidate.languages), employers: cleanEmployers(candidate.employers) }
   if (draft.consentGiven && !draft.consentAt) draft.consentAt = new Date().toISOString()
   if (isLocal()) {
     const state = local()
     const code = draft.code || `ΥΠ-${String(Math.max(0, ...state.candidates.map(item => Number(String(item.code).replace(/\D/g, '')) || 0)) + 1).padStart(4, '0')}`
     const before = state.candidates.find(item => item.id === draft.id)
-    const next = { ...before, ...draft, id: draft.id || localId('cand'), code, interviews: before?.interviews || [], languages: draft.languages.map((row: AnyRecord) => ({ ...row, id: row.id || localId('lang') })), employers: draft.employers.map((row: AnyRecord) => ({ ...row, id: row.id || localId('emp') })), source: draft.source || 'app', updatedAt: new Date().toISOString(), createdAt: before?.createdAt || new Date().toISOString() }
+    const next = { ...before, ...draft, id: draft.id || localId('cand'), code, interviews: before?.interviews || [], languages: draft.languages.map(row => ({ ...row, id: row.id || localId('lang') })), employers: draft.employers.map(row => ({ ...row, id: row.id || localId('emp') })), source: draft.source || 'app', updatedAt: new Date().toISOString(), createdAt: before?.createdAt || new Date().toISOString() }
     state.candidates = before ? state.candidates.map(item => (item.id === next.id ? next : item)) : [...state.candidates, next]
     saveLocal(state)
     return next.id
@@ -150,13 +153,13 @@ export async function saveCandidate(organizationId: OrgId, candidate: AnyRecord)
 
 // An interview: scheduling it moves the application to «interview scheduled», an
 // evaluation (completed, with scores) to «interviewed».
-export async function saveInterview(organizationId: OrgId, candidate: AnyRecord, interview: AnyRecord, { actor }: { actor?: { name?: string } | null } = {}) {
+export async function saveInterview(organizationId: OrgId, candidate: Candidate, interview: Interview, { actor }: { actor?: { name?: string } | null } = {}) {
   const completed = interview.status === 'completed'
-  const entry: AnyRecord = { ...interview, overallRating: overallRating(interview.scores), ...(completed && !interview.evaluatedAt ? { evaluatedAt: new Date().toISOString(), evaluatedByName: interview.evaluatedByName || actor?.name || '' } : {}) }
+  const entry: Interview = { ...interview, overallRating: overallRating(interview.scores), ...(completed && !interview.evaluatedAt ? { evaluatedAt: new Date().toISOString(), evaluatedByName: interview.evaluatedByName || actor?.name || '' } : {}) }
   const status = completed ? statusAfterEvaluation(candidate.status) : interview.status === 'scheduled' ? statusAfterSchedule(candidate.status) : candidate.status
   if (isLocal()) {
     const next = { ...entry, id: entry.id || localId('int'), candidateId: candidate.id, source: entry.source || 'app' }
-    updateLocalCandidate(candidate.id, item => ({ status, interviews: (item.interviews || []).some((row: AnyRecord) => row.id === next.id) ? item.interviews.map((row: AnyRecord) => (row.id === next.id ? next : row)) : [...(item.interviews || []), next] }))
+    updateLocalCandidate(candidate.id, item => ({ status, interviews: (item.interviews || []).some(row => row.id === next.id) ? item.interviews!.map(row => (row.id === next.id ? next : row)) : [...(item.interviews || []), next] }))
     return next.id
   }
   const saved = await writeRow('hr_interviews', organizationId, entry, isUuid(entry.id) ? {} : { candidate_id: candidate.id })
@@ -166,14 +169,14 @@ export async function saveInterview(organizationId: OrgId, candidate: AnyRecord,
 
 // The decision on an application: hire (an offer until the employee is created),
 // reserve list or reject, with the date, who decided and the reason.
-export async function decide(organizationId: OrgId, candidate: AnyRecord, { decision, decisionOn, decisionByName, decisionNotes, status: forced }: AnyRecord) {
+export async function decide(organizationId: OrgId, candidate: Candidate, { decision, decisionOn, decisionByName, decisionNotes, status: forced }: CandidateDecision) {
   const change = { decision, decisionOn, decisionByName, decisionNotes, status: forced || statusAfterDecision(decision, candidate.status) }
   if (isLocal()) { updateLocalCandidate(candidate.id, () => change); return }
   must(await cloudClient().from('hr_candidates').update(toRow('hr_candidates', change) as TablesUpdate<'hr_candidates'>).eq('id', candidate.id).eq('organization_id', organizationId!))
 }
 
 // «Πρόσληψη»: the candidate is linked to the employee (created or found) and marked hired.
-export async function markHired(organizationId: OrgId, candidate: AnyRecord, employee: AnyRecord) {
+export async function markHired(organizationId: OrgId, candidate: Candidate, employee: { id: string, dbId?: string }) {
   const employeeId = isLocal() ? employee.id : employee.dbId
   const change = { status: 'hired', decision: 'hire', decisionOn: candidate.decisionOn || hospitalToday(), employeeId }
   if (isLocal()) { updateLocalCandidate(candidate.id, () => ({ ...change, employeeCode: employee.id })); return }
@@ -181,33 +184,33 @@ export async function markHired(organizationId: OrgId, candidate: AnyRecord, emp
 }
 
 // The signature under the consents of a tablet application (kept apart from the list).
-export async function loadCandidateSignature(organizationId: OrgId, candidate: AnyRecord | null | undefined) {
+export async function loadCandidateSignature(organizationId: OrgId, candidate: Candidate | null | undefined) {
   if (isLocal()) return candidate?.signature || ''
   if (!organizationId || !isUuid(candidate?.id)) return ''
-  const row = must(await cloudClient().from('hr_candidate_signatures').select('image, signed_at').eq('organization_id', organizationId!).eq('candidate_id', candidate?.id).maybeSingle())
+  const row = must(await cloudClient().from('hr_candidate_signatures').select('image, signed_at').eq('organization_id', organizationId!).eq('candidate_id', candidate?.id as string).maybeSingle())
   return row?.image || ''
 }
 
 // «Αίτηση από tablet»: a single-use link for one candidate (24 hours). The code comes back
 // once; the database keeps only its SHA-256. The demo gets the sample form («demo»).
-export async function createApplicationLink(organizationId: OrgId, position: unknown = '', { category = '', employment = '' } = {}) {
+export async function createApplicationLink(organizationId: OrgId, position: unknown = '', { category = '', employment = '' } = {}): Promise<ApplicationLink> {
   if (isLocal()) return { id: '', token: 'demo', position: String(position || '').trim(), professionalCategory: category, employmentType: employment, expiresAt: new Date(Date.now() + 864e5).toISOString() }
   const link = must(await db().rpc('hr_application_link_create', { p_organization_id: organizationId, p_position: String(position || '').trim() || null }))
   // The area and the type of employment are chosen here, before the tablet is handed over; the candidate does not fill them in.
   if (category || employment) must(await db().rpc('hr_application_link_set', { p_link_id: link.id, p_category: category || null, p_employment: employment || null }))
   return { ...link, professionalCategory: category, employmentType: employment }
 }
-export async function cancelApplicationLink(linkId: string) {
+export async function cancelApplicationLink(linkId: string | undefined) {
   if (isLocal() || !isUuid(linkId)) return
-  must(await cloudClient().rpc('hr_application_link_cancel', { p_link_id: linkId }))
+  must(await cloudClient().rpc('hr_application_link_cancel', { p_link_id: linkId as string }))
 }
 
 export async function removeCandidate(organizationId: OrgId, candidateId: string) {
   if (isLocal()) { const state = local(); state.candidates = state.candidates.filter(item => item.id !== candidateId); saveLocal(state); return }
   must(await cloudClient().from('hr_candidates').delete().eq('id', candidateId).eq('organization_id', organizationId!))
 }
-export async function removeInterview(organizationId: OrgId, candidate: AnyRecord, interviewId: string) {
-  if (isLocal()) { updateLocalCandidate(candidate.id, item => ({ interviews: (item.interviews || []).filter((row: AnyRecord) => row.id !== interviewId) })); return }
+export async function removeInterview(organizationId: OrgId, candidate: Candidate, interviewId: string) {
+  if (isLocal()) { updateLocalCandidate(candidate.id, item => ({ interviews: (item.interviews || []).filter(row => row.id !== interviewId) })); return }
   must(await cloudClient().from('hr_interviews').delete().eq('id', interviewId).eq('organization_id', organizationId!))
 }
 
@@ -215,13 +218,13 @@ export async function removeInterview(organizationId: OrgId, candidate: AnyRecor
 
 // The hospital's divisions with the professional categories that belong to each and the
 // users who direct it and the departments it covers: { divisions: [{ id, name, categories: [], members: [userId], departments: [departmentId] }] }.
-export async function loadDivisions(organizationId: OrgId): Promise<{ divisions: AnyRecord[] }> {
+export async function loadDivisions(organizationId: OrgId): Promise<{ divisions: Division[] }> {
   if (isLocal()) return { divisions: local().divisions || [] }
   if (!organizationId) return { divisions: [] }
   const [divisions, categories, members, departments] = await Promise.all([byOrg('hr_divisions', organizationId, 'name'), byOrg('hr_division_categories', organizationId, 'professional_category'), byOrg('hr_division_members', organizationId), byOrg('hr_division_departments', organizationId)])
-  return { divisions: divisions.map(row => ({ id: row.id, name: row.name, categories: categories.filter(item => item.division_id === row.id).map(item => item.professional_category), members: members.filter(item => item.division_id === row.id).map(item => item.user_id), departments: departments.filter(item => item.division_id === row.id).map(item => item.department_id) })) }
+  return { divisions: divisions.map(row => ({ id: row.id, name: row.name, categories: categories.filter(item => item.division_id === row.id).map(item => item.professional_category), members: members.filter(item => item.division_id === row.id).map(item => item.user_id), departments: departments.filter(item => item.division_id === row.id).map(item => item.department_id) })) as Division[] }
 }
-export async function saveDivision(organizationId: OrgId, division: AnyRecord) {
+export async function saveDivision(organizationId: OrgId, division: DivisionDraft) {
   const name = String(division.name || '').trim()
   if (isLocal()) {
     const state = local(), id = division.id || localId('div')
@@ -230,10 +233,10 @@ export async function saveDivision(organizationId: OrgId, division: AnyRecord) {
     saveLocal(state); return id
   }
   const row = isUuid(division.id)
-    ? must(await cloudClient().from('hr_divisions').update({ name }).eq('id', division.id).eq('organization_id', organizationId!).select('id').single())
+    ? must(await cloudClient().from('hr_divisions').update({ name }).eq('id', division.id as string).eq('organization_id', organizationId!).select('id').single())
     : must(await cloudClient().from('hr_divisions').insert({ organization_id: organizationId!, name }).select('id').single())
   const existing = must(await cloudClient().from('hr_division_categories').select('id, professional_category').eq('organization_id', organizationId!).eq('division_id', row.id)) || []
-  const wanted: string[] = [...new Set<string>((division.categories || []).map((item: unknown) => String(item).trim()).filter(Boolean))]
+  const wanted: string[] = [...new Set<string>((division.categories || []).map(item => String(item).trim()).filter(Boolean))]
   const remove = existing.filter(item => !wanted.includes(item.professional_category)).map(item => item.id)
   if (remove.length) must(await cloudClient().from('hr_division_categories').delete().eq('organization_id', organizationId!).in('id', remove))
   const add = wanted.filter(category => !existing.some(item => item.professional_category === category))
@@ -273,17 +276,17 @@ export async function loadDivisionDirectors(organizationId: OrgId) {
 }
 
 // What a Division Director reads: the candidates of the own division, professional data and CV only.
-export async function loadDivisionCandidates(organizationId: OrgId): Promise<AnyRecord[]> {
+export async function loadDivisionCandidates(organizationId: OrgId): Promise<Candidate[]> {
   if (isLocal()) {
     const state = local(), mapped = new Set((state.divisions || []).flatMap(item => item.categories || []))
-    return state.candidates.filter(item => mapped.has(item.professionalCategory)).map(item => Object.fromEntries(DIVISION_CANDIDATE_FIELDS.map(key => [key, item[key] ?? ''])))
+    return state.candidates.filter(item => mapped.has(item.professionalCategory as string)).map(item => Object.fromEntries(DIVISION_CANDIDATE_FIELDS.map(key => [key, item[key] ?? ''])) as Candidate)
   }
   if (!organizationId) return []
   return must(await db().rpc('hr_division_candidates', { p_organization_id: organizationId })) || []
 }
 
 // The notes written while the application is discussed with the candidate.
-export async function saveCandidateNotes(organizationId: OrgId, candidate: AnyRecord, notes: unknown) {
+export async function saveCandidateNotes(organizationId: OrgId, candidate: Candidate, notes: unknown) {
   const value = String(notes || '').trim() || null
   if (isLocal()) { updateLocalCandidate(candidate.id, () => ({ notes: value || '' })); return }
   must(await cloudClient().from('hr_candidates').update({ notes: value }).eq('id', candidate.id).eq('organization_id', organizationId!))
