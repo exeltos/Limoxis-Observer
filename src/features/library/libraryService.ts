@@ -4,7 +4,8 @@ import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { DEMO_LIBRARY_ORG, demoLibraryItems, demoLibraryNews, demoSources } from './libraryDemoData'
 import { keywordList } from './libraryModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Tables } from '../../core/supabase/database.types'
+import type { LibraryDraft, LibraryItem, LibraryNews, LibrarySource, NewsSettings, NewsSourceDraft } from './libraryTypes'
 
 // «Βιβλιοθήκη» (20261203200000_library.sql). Everyone reads the platform's
 // items and their own hospital's; the Platform Owner writes the platform's
@@ -21,10 +22,10 @@ const must = <T,>({ data, error }: { data: T, error: unknown }): NonNullable<T> 
 const text = (value: unknown) => { const kept = String(value ?? '').trim(); return kept || null }
 const KEYS: Record<keyof LocalLibrary, string> = { items: 'library_local_items', news: 'library_local_news', sources: 'library_local_sources' }
 
-interface LocalLibrary { items: AnyRecord[], news: AnyRecord[], sources: AnyRecord[] }
+interface LocalLibrary { items: LibraryItem[], news: LibraryNews[], sources: LibrarySource[] }
 function local(): LocalLibrary {
   const items = loadSnapshot(KEYS.items, null)
-  if (Array.isArray(items)) return { items, news: loadSnapshot(KEYS.news, []) as AnyRecord[], sources: loadSnapshot(KEYS.sources, []) as AnyRecord[] }
+  if (Array.isArray(items)) return { items, news: loadSnapshot(KEYS.news, []) as LibraryNews[], sources: loadSnapshot(KEYS.sources, []) as LibrarySource[] }
   const state = { items: demoLibraryItems(), news: demoLibraryNews(), sources: demoSources() }
   saveLocal(state)
   return state
@@ -33,16 +34,16 @@ function saveLocal(state: LocalLibrary) { for (const [field, key] of Object.entr
 
 // --- Shapes --------------------------------------------------------------------------------
 
-export const toItem = (row: AnyRecord): AnyRecord => ({ id: row.id, organizationId: row.organization_id || null, kind: row.kind, group: row.link_group, name: row.name, abbreviation: row.abbreviation || '', organisation: row.organisation || '', url: row.url || '', descriptionEl: row.description_el || '', descriptionEn: row.description_en || '', summaryEl: row.summary_el || '', summaryEn: row.summary_en || '', limoxisEl: row.limoxis_note_el || '', limoxisEn: row.limoxis_note_en || '', noteEl: row.note_el || '', noteEn: row.note_en || '', tags: row.tags || [], year: row.year || null, language: row.language || 'en', proposed: Boolean(row.is_proposed), status: row.status || 'published', filePath: row.file_path || '', fileName: row.file_name || '', fileType: row.file_type || '', sortOrder: row.sort_order ?? 100, createdAt: row.created_at, updatedAt: row.updated_at })
-export const itemRow = (item: AnyRecord, organizationId: string | null | undefined) => ({ organization_id: organizationId || null, kind: item.kind, link_group: organizationId ? 'hospital' : (item.group || 'international'), name: String(item.name).trim(), abbreviation: text(item.abbreviation), organisation: text(item.organisation), url: text(item.url), description_el: text(item.descriptionEl), description_en: text(item.descriptionEn), summary_el: text(item.summaryEl), summary_en: text(item.summaryEn), note_el: text(item.noteEl), note_en: text(item.noteEn), tags: item.tags || [], year: item.year ? Number(item.year) : null, language: item.language || 'el', is_proposed: organizationId ? false : Boolean(item.proposed), status: item.status || 'published' })
-export const toNews = (row: AnyRecord): AnyRecord => ({ id: row.id, sourceId: row.source_id || '', sourceName: row.library_sources?.name || '', sourceAbbreviation: row.library_sources?.abbreviation || '', organizationId: row.organization_id || null, title: row.title, url: row.url || '', excerpt: row.excerpt || '', publishedAt: row.published_at || '', detectedAt: row.detected_at })
-export const toSource = (row: AnyRecord): AnyRecord => ({ id: row.id, itemId: row.item_id || '', name: row.name, abbreviation: row.abbreviation || '', url: row.url, kind: row.kind, intervalHours: row.interval_hours || 2, keywords: row.keywords || [], active: row.active !== false, verified: Boolean(row.verified), lastCheckedAt: row.last_checked_at || '', lastOkAt: row.last_ok_at || '', lastError: row.last_error || '', consecutiveFailures: row.consecutive_failures || 0, createdAt: row.created_at })
+export const toItem = (row: Tables<'library_items'>): LibraryItem => ({ id: row.id, organizationId: row.organization_id || null, kind: row.kind, group: row.link_group, name: row.name, abbreviation: row.abbreviation || '', organisation: row.organisation || '', url: row.url || '', descriptionEl: row.description_el || '', descriptionEn: row.description_en || '', summaryEl: row.summary_el || '', summaryEn: row.summary_en || '', limoxisEl: row.limoxis_note_el || '', limoxisEn: row.limoxis_note_en || '', noteEl: row.note_el || '', noteEn: row.note_en || '', tags: row.tags || [], year: row.year || null, language: row.language || 'en', proposed: Boolean(row.is_proposed), status: row.status || 'published', filePath: row.file_path || '', fileName: row.file_name || '', fileType: row.file_type || '', sortOrder: row.sort_order ?? 100, createdAt: row.created_at, updatedAt: row.updated_at })
+export const itemRow = (item: LibraryDraft, organizationId: string | null | undefined) => ({ organization_id: organizationId || null, kind: item.kind, link_group: organizationId ? 'hospital' : (item.group || 'international'), name: String(item.name).trim(), abbreviation: text(item.abbreviation), organisation: text(item.organisation), url: text(item.url), description_el: text(item.descriptionEl), description_en: text(item.descriptionEn), summary_el: text(item.summaryEl), summary_en: text(item.summaryEn), note_el: text(item.noteEl), note_en: text(item.noteEn), tags: item.tags || [], year: item.year ? Number(item.year) : null, language: item.language || 'el', is_proposed: organizationId ? false : Boolean(item.proposed), status: item.status || 'published' })
+export const toNews = (row: Pick<Tables<'library_news'>, 'id' | 'source_id' | 'organization_id' | 'title' | 'url' | 'excerpt' | 'published_at' | 'detected_at'> & { library_sources?: { name: string, abbreviation: string | null } | null }): LibraryNews => ({ id: row.id, sourceId: row.source_id || '', sourceName: row.library_sources?.name || '', sourceAbbreviation: row.library_sources?.abbreviation || '', organizationId: row.organization_id || null, title: row.title, url: row.url || '', excerpt: row.excerpt || '', publishedAt: row.published_at || '', detectedAt: row.detected_at })
+export const toSource = (row: Tables<'library_sources'>): LibrarySource => ({ id: row.id, itemId: row.item_id || '', name: row.name, abbreviation: row.abbreviation || '', url: row.url, kind: row.kind, intervalHours: row.interval_hours || 2, keywords: row.keywords || [], active: row.active !== false, verified: Boolean(row.verified), lastCheckedAt: row.last_checked_at || '', lastOkAt: row.last_ok_at || '', lastError: row.last_error || '', consecutiveFailures: row.consecutive_failures || 0, createdAt: row.created_at })
 
 // --- Reading -------------------------------------------------------------------------------
 
 // The platform's items and the hospital's own (RLS returns exactly these); `all`
 // keeps archived ones too (the management screen).
-export async function loadLibrary(organizationId: string | null | undefined, { all = false, platformOnly = false }: { all?: boolean, platformOnly?: boolean } = {}): Promise<AnyRecord[]> {
+export async function loadLibrary(organizationId: string | null | undefined, { all = false, platformOnly = false }: { all?: boolean, platformOnly?: boolean } = {}): Promise<LibraryItem[]> {
   if (isLocal()) {
     const state = local()
     return state.items.filter(item => (all || item.status !== 'archived') && (!platformOnly || !item.organizationId))
@@ -53,20 +54,20 @@ export async function loadLibrary(organizationId: string | null | undefined, { a
   return (must(await query) || []).map(toItem)
 }
 
-export async function loadNews(organizationId: string | null | undefined): Promise<AnyRecord[]> {
+export async function loadNews(organizationId: string | null | undefined): Promise<LibraryNews[]> {
   if (isLocal()) return local().news
   let query = cloudClient().from('library_news').select('id,source_id,organization_id,title,url,excerpt,published_at,detected_at,library_sources(name,abbreviation)').order('published_at', { ascending: false, nullsFirst: false }).order('detected_at', { ascending: false }).limit(200)
   query = organizationId ? query.or(`organization_id.is.null,organization_id.eq.${organizationId}`) : query.is('organization_id', null)
   return (must(await query) || []).map(toNews)
 }
 
-export async function loadSources(): Promise<AnyRecord[]> {
+export async function loadSources(): Promise<LibrarySource[]> {
   if (isLocal()) return local().sources
   return (must(await cloudClient().from('library_sources').select('*').order('name')) || []).map(toSource)
 }
 
 // A short-lived link to a clinical guide's file (the bucket is private).
-export async function fileUrl(item: AnyRecord | null | undefined): Promise<string> {
+export async function fileUrl(item: LibraryItem | null | undefined): Promise<string> {
   if (!item?.filePath) return item?.url || ''
   if (isLocal()) return item.localFileUrl || item.url || ''
   const { data, error } = await cloudClient().storage.from(BUCKET).createSignedUrl(item.filePath, 300)
@@ -86,12 +87,12 @@ async function uploadFile(file: File, folder: string, itemId: string) {
 
 // Saves an item (and, for a link with «Αυτόματη λήψη νέων», its news source).
 // organizationId null = a platform item (Platform Owner).
-export async function saveItem(draft: AnyRecord, organizationId: string | null | undefined): Promise<AnyRecord> {
+export async function saveItem(draft: LibraryDraft, organizationId: string | null | undefined): Promise<LibraryItem> {
   const now = new Date().toISOString()
   if (isLocal()) {
     const state = local()
     const id = draft.id || localId('lib')
-    const saved: AnyRecord = { ...draft, id, organizationId: organizationId ? organizationId || DEMO_LIBRARY_ORG : null, group: organizationId ? 'hospital' : draft.group, year: draft.year ? Number(draft.year) : null, updatedAt: now, ...(draft.file ? { filePath: `local/${draft.file.name}`, fileName: draft.file.name, fileType: draft.file.type, localFileUrl: typeof URL !== 'undefined' && URL.createObjectURL ? URL.createObjectURL(draft.file) : '' } : {}) }
+    const saved: Partial<Omit<LibraryDraft, 'year'>> & LibraryItem = { ...draft, id, organizationId: organizationId ? organizationId || DEMO_LIBRARY_ORG : null, group: organizationId ? 'hospital' : draft.group, year: draft.year ? Number(draft.year) : null, updatedAt: now, ...(draft.file ? { filePath: `local/${draft.file.name}`, fileName: draft.file.name, fileType: draft.file.type, localFileUrl: typeof URL !== 'undefined' && URL.createObjectURL ? URL.createObjectURL(draft.file) : '' } : {}) }
     delete saved.file
     delete saved.news
     delete saved.scope
@@ -114,51 +115,51 @@ export async function saveItem(draft: AnyRecord, organizationId: string | null |
   return toItem(row)
 }
 
-function saveLocalSource(sources: AnyRecord[], draft: AnyRecord, itemId: string) {
-  const news = draft.news || {}
+function saveLocalSource(sources: LibrarySource[], draft: LibraryDraft, itemId: string) {
+  const news: Partial<NewsSettings> = draft.news || {}
   if (!news.enabled) return news.id ? sources.map(source => (source.id === news.id ? { ...source, active: false } : source)) : sources
-  const values = { itemId, name: `${draft.abbreviation || draft.name} · news`, abbreviation: draft.abbreviation || '', url: news.url.trim(), kind: news.kind, intervalHours: Number(news.intervalHours) || 2, keywords: keywordList(news.keywords), active: true }
+  const values = { itemId, name: `${draft.abbreviation || draft.name} · news`, abbreviation: draft.abbreviation || '', url: news.url!.trim(), kind: news.kind!, intervalHours: Number(news.intervalHours) || 2, keywords: keywordList(news.keywords), active: true }
   return news.id ? sources.map(source => (source.id === news.id ? { ...source, ...values } : source)) : [...sources, { id: localId('src'), verified: false, lastCheckedAt: '', lastOkAt: '', lastError: '', consecutiveFailures: 0, createdAt: new Date().toISOString(), ...values }]
 }
 
-async function saveSourceFor(draft: AnyRecord, itemId: string) {
-  const news = draft.news || {}
+async function saveSourceFor(draft: LibraryDraft, itemId: string) {
+  const news: Partial<NewsSettings> = draft.news || {}
   if (!news.enabled) {
     if (news.id) must(await cloudClient().from('library_sources').update({ active: false }).eq('id', news.id))
     return
   }
-  const values = { item_id: itemId, name: `${draft.abbreviation || draft.name} · news`, abbreviation: text(draft.abbreviation), url: news.url.trim(), kind: news.kind === 'page' ? 'page' : 'rss', interval_hours: Number(news.intervalHours) || 2, keywords: keywordList(news.keywords), active: true }
+  const values = { item_id: itemId, name: `${draft.abbreviation || draft.name} · news`, abbreviation: text(draft.abbreviation), url: news.url!.trim(), kind: news.kind === 'page' ? 'page' : 'rss', interval_hours: Number(news.intervalHours) || 2, keywords: keywordList(news.keywords), active: true }
   if (news.id) must(await cloudClient().from('library_sources').update(values).eq('id', news.id))
   else must(await cloudClient().from('library_sources').upsert(values, { onConflict: 'url' }))
 }
 
 // A news source on its own (type «Πηγή νέων»): Platform Owner.
-export async function saveSource(source: AnyRecord) {
+export async function saveSource(source: NewsSourceDraft) {
   if (isLocal()) {
     const state = local()
-    const values = { name: source.name.trim(), abbreviation: source.abbreviation || '', url: source.url.trim(), kind: source.kind, intervalHours: Number(source.intervalHours) || 2, keywords: keywordList(source.keywords), active: source.active !== false }
+    const values = { name: source.name.trim(), abbreviation: source.abbreviation || '', url: source.url!.trim(), kind: source.kind, intervalHours: Number(source.intervalHours) || 2, keywords: keywordList(source.keywords), active: source.active !== false }
     state.sources = source.id ? state.sources.map(item => (item.id === source.id ? { ...item, ...values } : item)) : [...state.sources, { id: localId('src'), itemId: '', verified: false, lastCheckedAt: '', lastOkAt: '', lastError: '', consecutiveFailures: 0, createdAt: new Date().toISOString(), ...values }]
     saveLocal(state)
     return
   }
-  const values = { name: source.name.trim(), abbreviation: text(source.abbreviation), url: source.url.trim(), kind: source.kind === 'page' ? 'page' : 'rss', interval_hours: Number(source.intervalHours) || 2, keywords: keywordList(source.keywords), active: source.active !== false }
+  const values = { name: source.name.trim(), abbreviation: text(source.abbreviation), url: source.url!.trim(), kind: source.kind === 'page' ? 'page' : 'rss', interval_hours: Number(source.intervalHours) || 2, keywords: keywordList(source.keywords), active: source.active !== false }
   if (source.id) must(await cloudClient().from('library_sources').update(values).eq('id', source.id))
   else must(await cloudClient().from('library_sources').insert(values))
 }
 
 // «Απόσυρση»: the item stops showing; it is kept, and can be published again.
-export async function setItemStatus(item: AnyRecord, status: string) {
+export async function setItemStatus(item: { id?: string }, status: string) {
   if (isLocal()) {
     const state = local()
     state.items = state.items.map(entry => (entry.id === item.id ? { ...entry, status, updatedAt: new Date().toISOString() } : entry))
     saveLocal(state)
     return
   }
-  must(await cloudClient().from('library_items').update({ status }).eq('id', item.id))
+  must(await cloudClient().from('library_items').update({ status }).eq('id', item.id as string))
 }
 
 // A hospital's own announcement in «Νέα».
-export async function saveAnnouncement(draft: AnyRecord, organizationId: string | null | undefined): Promise<AnyRecord> {
+export async function saveAnnouncement(draft: LibraryDraft, organizationId: string | null | undefined): Promise<LibraryNews> {
   const row = { title: String(draft.name).trim(), url: text(draft.url), excerpt: text(String(draft.excerpt || '').slice(0, 300)), published_at: draft.publishedAt ? new Date(`${draft.publishedAt}T12:00:00Z`).toISOString() : new Date().toISOString() }
   if (isLocal()) {
     const state = local()
@@ -171,12 +172,12 @@ export async function saveAnnouncement(draft: AnyRecord, organizationId: string 
   return toNews(must(await cloudClient().from('library_news').insert({ ...row, organization_id: organizationId, item_key: `hospital:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}` }).select('*').single()))
 }
 
-export async function removeAnnouncement(item: AnyRecord) {
+export async function removeAnnouncement(item: { id?: string }) {
   if (isLocal()) {
     const state = local()
     state.news = state.news.filter(entry => entry.id !== item.id)
     saveLocal(state)
     return
   }
-  must(await cloudClient().from('library_news').delete().eq('id', item.id))
+  must(await cloudClient().from('library_news').delete().eq('id', item.id as string))
 }

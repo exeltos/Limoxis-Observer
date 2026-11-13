@@ -23,7 +23,7 @@ import { fileUrl, loadLibrary, loadNews, loadSources } from './libraryService'
 import { DEMO_LIBRARY_ORG } from './libraryDemoData'
 import { LibraryItemDialog } from './LibraryItemDialog'
 import './library.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryEntry, LibraryItem, LibraryNews, LibrarySource } from './libraryTypes'
 
 const READ_KEY = 'limoxis.library.read'
 // Which news the viewer has opened: a per-browser convenience, never shared.
@@ -48,8 +48,8 @@ export function LibraryPage() {
   const canManage = canManageHospitalLibrary(isRolePreview ? role : (actualRole === ROLES.PLATFORM_OWNER ? ROLES.PLATFORM_OWNER : role))
   const requested = new URLSearchParams(location.search).get('tab')
   const [tab, setTab] = useState<string>(requested && LIBRARY_TABS.includes(requested) ? requested : 'links')
-  const [state, setState] = useState<{ loading: boolean, items: AnyRecord[], news: AnyRecord[], sources: AnyRecord[] }>({ loading: true, items: [], news: [], sources: [] })
-  const [editing, setEditing] = useState<{ item: AnyRecord | null, kind?: string } | null>(null)
+  const [state, setState] = useState<{ loading: boolean, items: LibraryItem[], news: LibraryNews[], sources: LibrarySource[] }>({ loading: true, items: [], news: [], sources: [] })
+  const [editing, setEditing] = useState<{ item: LibraryEntry | null, kind?: string } | null>(null)
   const autoTranslated = useAutoTranslated('library_items', state.items.filter(item => item.organizationId).map(item => item.id), { enabled: en && !isDemoDataEnvironment() })
 
   const reload = useCallback(() => {
@@ -62,7 +62,7 @@ export function LibraryPage() {
   // Which news the viewer has opened (this browser): the «Νέα» tab counts the unread ones (as the
   // «Μη αναγνωσμένα» filter does), the other tabs no count (a count on a tab means something needs attention).
   const [read, setRead] = useState(readSet)
-  const markRead = (item: AnyRecord) => setRead(current => { const next = new Set(current); next.add(item.id); rememberRead(next); return next })
+  const markRead = (item: LibraryNews) => setRead(current => { const next = new Set(current); next.add(item.id); rememberRead(next); return next })
   const unread = newsCounts(state.news, read).unread
   // The sources' check (when each was last read) is the platform owner's concern.
   const showSources = !isRolePreview && actualRole === ROLES.PLATFORM_OWNER
@@ -74,7 +74,7 @@ export function LibraryPage() {
   ]
   const addKind = tab === 'guidelines' ? 'guideline' : tab === 'clinical' ? 'clinical_guide' : tab === 'news' ? 'announcement' : 'link'
   const add = () => setEditing({ item: null, kind: addKind })
-  const edit = (item: AnyRecord) => setEditing({ item })
+  const edit = (item: LibraryEntry) => setEditing({ item })
   const actions = canManage ? <Button onClick={add}><Plus size={16} />{L('Προσθήκη', 'Add')}</Button> : null
 
   // The form of an entry is a page of its own: it takes the place of the lists.
@@ -91,7 +91,7 @@ export function LibraryPage() {
   </Page></AutoTranslatedContext.Provider>
 }
 
-function Logo({ item }: { item: AnyRecord }) {
+function Logo({ item }: { item: Pick<LibraryItem, 'abbreviation' | 'name' | 'organizationId' | 'group'> }) {
   const text = initials(item)
   return <span className={`lib-logo tone-${logoTone(item)}${text.length > 4 ? ' is-long' : ''}`} aria-hidden="true">{text}</span>
 }
@@ -102,9 +102,9 @@ function Chips({ options, value, onChange, label }: { options: ChipOption[], val
 }
 
 // The links as one list (a line per organisation), under the group headings.
-interface TabProps { items: AnyRecord[], loading: boolean, language: string, canManage: boolean, onAdd?: () => void, onEdit: (item: AnyRecord) => void }
+interface TabProps { items: LibraryItem[], loading: boolean, language: string, canManage: boolean, onAdd?: () => void, onEdit: (item: LibraryEntry) => void }
 
-function LinksTab({ items, sources, loading, language, canManage, onEdit }: TabProps & { sources: AnyRecord[] }) {
+function LinksTab({ items, sources, loading, language, canManage, onEdit }: TabProps & { sources: LibrarySource[] }) {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const [query, setQuery] = useState('')
@@ -126,7 +126,7 @@ function LinksTab({ items, sources, loading, language, canManage, onEdit }: TabP
   </>
 }
 
-function LinkRow({ item, language, news, onEdit }: { item: AnyRecord, language: string, news: boolean, onEdit: (() => void) | null }) {
+function LinkRow({ item, language, news, onEdit }: { item: LibraryItem, language: string, news: boolean, onEdit: (() => void) | null }) {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const description = (en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl || item.descriptionEn
@@ -134,7 +134,7 @@ function LinkRow({ item, language, news, onEdit }: { item: AnyRecord, language: 
   const auto = useContext(AutoTranslatedContext)
   const open = () => window.open(item.url, '_blank', 'noopener,noreferrer')
   return <tr className={`registry-row-clickable${item.proposed ? ' is-proposed' : ''}${item.group === 'archive' ? ' is-archived' : ''}`} tabIndex={0} onClick={event => { if (!(event.target as Element).closest('a,button')) open() }} onKeyDown={event => { if (event.key === 'Enter' && event.target === event.currentTarget) open() }}>
-    <td><div className="lib-link-name"><Logo item={item} /><div><a className="lib-card-title" href={item.url} {...external}>{item.name}</a><span className="lib-domain">{domainOf(item.url)}</span></div></div></td>
+    <td><div className="lib-link-name"><Logo item={item} /><div><a className="lib-card-title" href={item.url} {...external}>{item.name}</a><span className="lib-domain">{domainOf(item.url as string)}</span></div></div></td>
     <td className="lib-link-about">{description}{en && auto.has(`${item.id}:description_el`) && item.descriptionEn && <AutoTranslatedMark />}{note && <small>{note}</small>}</td>
     <td><div className="lib-tags">
       {(item.tags || []).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}
@@ -179,7 +179,7 @@ function GuidelinesTab({ items, loading, language, canManage, onAdd, onEdit }: T
   </div>
 }
 
-function GuidelineDrawer({ item, language, onClose, onEdit }: { item: AnyRecord, language: string, onClose: () => void, onEdit: (() => void) | null }) {
+function GuidelineDrawer({ item, language, onClose, onEdit }: { item: LibraryItem, language: string, onClose: () => void, onEdit: (() => void) | null }) {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
   const { notifyError } = useFeedback()
@@ -226,7 +226,7 @@ function ClinicalTab({ items, loading, language, canManage, onAdd, onEdit }: Tab
   const { notifyError } = useFeedback()
   const [query, setQuery] = useState('')
   const rows = useMemo(() => clinicalGuides(items, query, language), [items, query, language])
-  const open = async (item: AnyRecord) => { try { const url = await fileUrl(item); if (url) window.open(url, '_blank', 'noopener,noreferrer') } catch (error) { notifyError(error, 'load', { operation: 'library_file' }) } }
+  const open = async (item: LibraryItem) => { try { const url = await fileUrl(item); if (url) window.open(url, '_blank', 'noopener,noreferrer') } catch (error) { notifyError(error, 'load', { operation: 'library_file' }) } }
   return <>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση οδηγού…', 'Search guides…')} onClear={query ? () => setQuery('') : undefined} />
     <div className="scroll-table">
@@ -245,7 +245,7 @@ function ClinicalTab({ items, loading, language, canManage, onAdd, onEdit }: Tab
   </>
 }
 
-interface NewsTabProps { news: AnyRecord[], sources: AnyRecord[], showSources: boolean, read: Set<string>, onRead: (item: AnyRecord) => void, loading: boolean, language: string, canManage: boolean, onAdd: () => void, onEdit: (item: AnyRecord) => void }
+interface NewsTabProps { news: LibraryNews[], sources: LibrarySource[], showSources: boolean, read: Set<string>, onRead: (item: LibraryNews) => void, loading: boolean, language: string, canManage: boolean, onAdd: () => void, onEdit: (item: LibraryEntry) => void }
 
 function NewsTab({ news, sources, showSources, read, onRead, loading, language, canManage, onAdd, onEdit }: NewsTabProps) {
   const en = language === 'en'

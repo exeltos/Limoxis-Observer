@@ -1,5 +1,5 @@
 import { LIBRARY_TOPICS, LINK_GROUPS } from './libraryCatalogue'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryDraft, LibraryItem, LibraryNews, LibrarySource } from './libraryTypes'
 
 // «Βιβλιοθήκη» (Library): the rules of the screen, kept apart from React so they are tested on their own.
 
@@ -37,7 +37,7 @@ export const groupLabel = (value: string, language: string) => { const group = L
 export const topicLabel = (value: string, language: string) => { const topic = LIBRARY_TOPICS.find(item => item.value === value); return topic ? topic[language === 'en' ? 'en' : 'el'] : value }
 
 // The initials box of a card: the organisation's abbreviation, or the first letters of its name.
-export function initials(item: AnyRecord | null | undefined) {
+export function initials(item: Pick<LibraryItem, 'name' | 'abbreviation'> | null | undefined) {
   const given = String(item?.abbreviation || '').trim()
   if (given) return given.slice(0, 6)
   const words = String(item?.name || '').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(word => word.length > 2)
@@ -46,9 +46,9 @@ export function initials(item: AnyRecord | null | undefined) {
 
 // The colour family of the initials box, never the organisation's logo (trademarks).
 const TONES: Record<string, string> = { WHO: 'who', AWaRe: 'who', CDC: 'cdc', NHSN: 'cdc', EID: 'cdc', ECDC: 'ecdc', ΕΟΔΥ: 'gov', ΕΟΦ: 'gov' }
-export function logoTone(item: AnyRecord | null | undefined) {
+export function logoTone(item: Pick<LibraryItem, 'abbreviation' | 'organizationId' | 'group'> | null | undefined) {
   if (item?.organizationId) return 'hospital'
-  if (TONES[item?.abbreviation]) return TONES[item?.abbreviation]
+  if (TONES[item?.abbreviation as string]) return TONES[item?.abbreviation as string]
   if (item?.group === 'nursing') return 'nursing'
   if (item?.group === 'archive') return 'reference'
   return 'society'
@@ -58,29 +58,29 @@ export const domainOf = (url: string) => { try { const parsed = new URL(url); re
 export const isHttpUrl = (value: unknown) => /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(String(value || '').trim())
 
 const fold = (text: unknown) => String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('el').replace(/ς/g, 'σ')
-const haystack = (item: AnyRecord, language: string) => fold([item.name, item.abbreviation, item.organisation, item.url, item.descriptionEl, item.descriptionEn, ...(item.tags || []).map((tag: string) => topicLabel(tag, language)), ...(item.tags || [])].join(' '))
-export const matchesQuery = (item: AnyRecord, query: string, language: string) => !String(query || '').trim() || haystack(item, language).includes(fold(query.trim()))
+const haystack = (item: LibraryItem, language: string) => fold([item.name, item.abbreviation, item.organisation, item.url, item.descriptionEl, item.descriptionEn, ...(item.tags || []).map((tag: string) => topicLabel(tag, language)), ...(item.tags || [])].join(' '))
+export const matchesQuery = (item: LibraryItem, query: string, language: string) => !String(query || '').trim() || haystack(item, language).includes(fold(query.trim()))
 
 // The «Σύνδεσμοι» tab: the published links, grouped, with the hospital's own in their group.
-export function linkGroups(items: AnyRecord[], { query = '', group = 'all', language = 'el' }: { query?: string, group?: string, language?: string } = {}) {
+export function linkGroups(items: LibraryItem[], { query = '', group = 'all', language = 'el' }: { query?: string, group?: string, language?: string } = {}) {
   const links = items.filter(item => item.kind === 'link' && item.status !== 'archived' && matchesQuery(item, query, language))
-  const groupOf = (item: AnyRecord) => (item.organizationId ? 'hospital' : item.group)
+  const groupOf = (item: LibraryItem) => (item.organizationId ? 'hospital' : item.group)
   const counts = Object.fromEntries(LINK_GROUPS.map(entry => [entry.value, links.filter(item => groupOf(item) === entry.value).length]))
   const groups = LINK_GROUPS.map(entry => ({ ...entry, items: links.filter(item => groupOf(item) === entry.value && (group === 'all' || group === entry.value)).sort(bySortOrder) })).filter(entry => entry.items.length)
   return { groups, counts, total: links.length }
 }
-const bySortOrder = (a: AnyRecord, b: AnyRecord) => (a.sortOrder ?? 100) - (b.sortOrder ?? 100) || String(a.name).localeCompare(String(b.name), 'el')
+const bySortOrder = (a: LibraryItem, b: LibraryItem) => (a.sortOrder ?? 100) - (b.sortOrder ?? 100) || String(a.name).localeCompare(String(b.name), 'el')
 
 export interface GuidelineFilters { query: string, organisation: string, topic: string, year: string }
 export const NO_GUIDELINE_FILTERS: Readonly<GuidelineFilters> = Object.freeze({ query: '', organisation: 'all', topic: 'all', year: 'all' })
-export function guidelineOptions(items: AnyRecord[]): { organisations: string[], topics: string[], years: number[] } {
+export function guidelineOptions(items: LibraryItem[]): { organisations: string[], topics: string[], years: number[] } {
   const guidelines = items.filter(item => item.kind === 'guideline' && item.status !== 'archived')
   const organisations = [...new Set(guidelines.map(item => item.organisation).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
   const topics = [...new Set(guidelines.flatMap(item => item.tags || []))]
   const years = [...new Set(guidelines.map(item => item.year).filter(Boolean))].sort((a, b) => b - a)
   return { organisations, topics, years }
 }
-export function filterGuidelines(items: AnyRecord[], filters: Readonly<GuidelineFilters> = NO_GUIDELINE_FILTERS, language = 'el') {
+export function filterGuidelines(items: LibraryItem[], filters: Readonly<GuidelineFilters> = NO_GUIDELINE_FILTERS, language = 'el') {
   return items.filter(item => item.kind === 'guideline' && item.status !== 'archived'
     && matchesQuery(item, filters.query, language)
     && (filters.organisation === 'all' || item.organisation === filters.organisation)
@@ -88,29 +88,29 @@ export function filterGuidelines(items: AnyRecord[], filters: Readonly<Guideline
     && (filters.year === 'all' || String(item.year) === String(filters.year)))
     .sort((a, b) => (b.year || 0) - (a.year || 0) || bySortOrder(a, b))
 }
-export const clinicalGuides = (items: AnyRecord[], query = '', language = 'el') => items.filter(item => item.kind === 'clinical_guide' && item.status !== 'archived' && matchesQuery(item, query, language)).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')) || bySortOrder(a, b))
+export const clinicalGuides = (items: LibraryItem[], query = '', language = 'el') => items.filter(item => item.kind === 'clinical_guide' && item.status !== 'archived' && matchesQuery(item, query, language)).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')) || bySortOrder(a, b))
 
 export const bulletLines = (text: unknown) => String(text || '').split(/\n+/).map(line => line.replace(/^[-•·]\s*/, '').trim()).filter(Boolean)
 
 // --- News ----------------------------------------------------------------------------------
 
 const DAY = 86400000
-export const newsDate = (item: AnyRecord) => item.publishedAt || item.detectedAt || ''
-export const isRecentNews = (item: AnyRecord, now = Date.now()) => { const time = Date.parse(newsDate(item)); return Number.isFinite(time) && now - time < 3 * DAY }
+export const newsDate = (item: LibraryNews) => item.publishedAt || item.detectedAt || ''
+export const isRecentNews = (item: LibraryNews, now = Date.now()) => { const time = Date.parse(newsDate(item)); return Number.isFinite(time) && now - time < 3 * DAY }
 // Greek bodies and the hospital's own on one side, the international agencies on the other.
 const GREEK_SOURCES = new Set(['ΕΟΔΥ', 'ΕΕΕΛ', 'ΕΝΕ', 'ΕΟΦ', 'ΕΕΛ'])
-export const newsBucket = (item: AnyRecord) => (item.organizationId ? 'hospital' : GREEK_SOURCES.has(item.sourceAbbreviation) ? 'greek' : 'international')
+export const newsBucket = (item: LibraryNews) => (item.organizationId ? 'hospital' : GREEK_SOURCES.has(item.sourceAbbreviation as string) ? 'greek' : 'international')
 export const NEWS_FILTERS = Object.freeze(['all', 'greek', 'international', 'hospital', 'unread'])
-export function filterNews(items: AnyRecord[], filter = 'all', read: Set<string> = new Set()) {
+export function filterNews(items: LibraryNews[], filter = 'all', read: Set<string> = new Set()) {
   const sorted = [...items].sort((a, b) => String(newsDate(b)).localeCompare(String(newsDate(a))))
   if (filter === 'all') return sorted
   if (filter === 'unread') return sorted.filter(item => !read.has(item.id))
   return sorted.filter(item => newsBucket(item) === filter)
 }
-export const newsCounts = (items: AnyRecord[], read: Set<string> = new Set()): Record<string, number> => ({ all: items.length, greek: items.filter(item => newsBucket(item) === 'greek').length, international: items.filter(item => newsBucket(item) === 'international').length, hospital: items.filter(item => newsBucket(item) === 'hospital').length, unread: items.filter(item => !read.has(item.id)).length })
+export const newsCounts = (items: LibraryNews[], read: Set<string> = new Set()): Record<string, number> => ({ all: items.length, greek: items.filter(item => newsBucket(item) === 'greek').length, international: items.filter(item => newsBucket(item) === 'international').length, hospital: items.filter(item => newsBucket(item) === 'hospital').length, unread: items.filter(item => !read.has(item.id)).length })
 
 // A source's state in the «Αυτόματη ενημέρωση» panel: answering, not answering (3 failures in a row), not checked yet, off.
-export function sourceState(source: AnyRecord) {
+export function sourceState(source: Partial<LibrarySource>) {
   if (!source.active) return 'off'
   if ((source.consecutiveFailures || 0) >= 3) return 'failing'
   if (!source.lastOkAt) return 'unchecked'
@@ -127,22 +127,22 @@ export function sinceLabel(value: string | null | undefined, language: string, n
   if (days === 1) return en ? 'yesterday' : 'χθες'
   return en ? `${days} days ago` : `πριν ${days} ημέρες`
 }
-export function sourceStateLabel(source: AnyRecord, language: string, now = Date.now()) {
+export function sourceStateLabel(source: Partial<LibrarySource>, language: string, now = Date.now()) {
   const en = language === 'en'
   const state = sourceState(source)
   if (state === 'off') return en ? 'off' : 'ανενεργή'
   if (state === 'unchecked') return en ? 'not checked yet' : 'δεν ελέγχθηκε ακόμη'
-  if (state === 'failing') { const days = Math.max(1, Math.round((now - Date.parse(source.lastOkAt || source.createdAt || now)) / DAY)); return source.lastOkAt ? (en ? `not answering for ${days} days` : `δεν απαντά ${days} ημέρες`) : (en ? 'not answering' : 'δεν απαντά') }
+  if (state === 'failing') { const days = Math.max(1, Math.round((now - Date.parse(String(source.lastOkAt || source.createdAt || now))) / DAY)); return source.lastOkAt ? (en ? `not answering for ${days} days` : `δεν απαντά ${days} ημέρες`) : (en ? 'not answering' : 'δεν απαντά') }
   return sinceLabel(source.lastOkAt, language, now)
 }
 
 // --- The form --------------------------------------------------------------------------------
 
-export function blankDraft(kind = 'link', scope = 'platform'): AnyRecord {
+export function blankDraft(kind = 'link', scope = 'platform'): LibraryDraft {
   return { id: '', kind, scope, group: scope === 'hospital' ? 'hospital' : 'international', name: '', abbreviation: '', organisation: '', url: '', descriptionEl: '', descriptionEn: '', summaryEl: '', summaryEn: '', noteEl: '', noteEn: '', tags: [], year: '', language: 'el', proposed: false, status: 'published', file: null, filePath: '', fileName: '', excerpt: '', publishedAt: '', news: { enabled: false, id: '', url: '', kind: 'rss', intervalHours: 2, keywords: '' } }
 }
 
-export function validateDraft(draft: AnyRecord): Record<string, string> {
+export function validateDraft(draft: LibraryDraft): Record<string, string> {
   const errors: Record<string, string> = {}
   const name = String(draft.name || '').trim()
   if (name.length < 2) errors.name = 'required'
