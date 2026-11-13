@@ -15,7 +15,7 @@ import { ObjectiveFields,linkedTarget,newObjective,useObjectives } from './Quali
 import { saveObjective } from './reviewService'
 import { rememberQualitySection } from '../qualityReturnSection'
 import '../quality.css'
-import type { AnyRecord } from '../../../types/featureTypes'
+import type { ObjectiveDraft } from './reviewTypes'
 
 // /quality/objectives/new and /quality/objectives/:objectiveId/edit — a quality objective on a page of its own
 // (ISO 9001 §6.2: measurable, with an owner and a date).
@@ -30,11 +30,11 @@ export function ObjectiveCreatePage() {
   const prefill = useLocation().state?.prefill
   const { objectives, registers, definitions, levels, loading } = useObjectives(tenant?.id)
   const existing = objectiveId ? objectives.find(item => item.id === objectiveId) : null
-  const [objective, setObjective] = useState(() => ({ ...newObjective(), ...(prefill || {}) }))
+  const [objective, setObjective] = useState<ObjectiveDraft>(() => ({ ...newObjective(), ...(prefill || {}) }))
   // Editing: the form starts from the saved objective, without the values computed for display.
   useEffect(() => { if (existing) { const { register: _r, indicator: _i, current: _c, platformIndicator: _p, months: _m, department: _d, committee: _k, targetFromIndicator, ...clean } = existing; setObjective(targetFromIndicator ? { ...clean, target: '' } : clean) } }, [existing]) // eslint-disable-line @typescript-eslint/no-unused-vars
   const [saving, setSaving] = useState(false)
-  const set = (next: AnyRecord) => setObjective((current: AnyRecord) => ({ ...current, ...next }))
+  const set = (next: Partial<ObjectiveDraft>) => setObjective((current: ObjectiveDraft) => ({ ...current, ...next }))
   const valid = Boolean(objective.title?.trim()) && ((objective.target !== '' && objective.target != null) || linkedTarget(registers, objective, definitions) != null)
   const back = () => { if (!objectiveId) rememberQualitySection('indicators:objectives'); goBack() }
   async function save() {

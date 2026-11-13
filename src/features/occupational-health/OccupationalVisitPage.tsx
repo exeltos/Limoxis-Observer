@@ -24,7 +24,7 @@ import { EMPTY_OCCUPATIONAL_VISIT, FITNESS, VISIT_STATUSES, VISIT_TYPES, fitness
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import './OccupationalHealthPage.css'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { EmployeeRow, OccupationalVisit, OccupationalVisitDraft } from './occupationalHealthTypes'
 
 const fmtDay = (value: unknown, locale: string) => (value ? new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0, 10)}T12:00:00`)) : '—')
 
@@ -39,10 +39,10 @@ export function OccupationalVisitPage() {
   const en = language === 'en'
   const { notify, notifyError, confirm } = useFeedback()
   const { tenant, canAccessRecord, role, membership } = useTenant()
-  const { data: employeeRows }: { data: AnyRecord[] } = useEmployeesData()
-  const [visits, setVisits] = useState<AnyRecord[] | null>(null)
+  const { data: employeeRows } = useEmployeesData() as unknown as { data: EmployeeRow[] }
+  const [visits, setVisits] = useState<OccupationalVisit[] | null>(null)
   const [editing, setEditing] = useState(isNew)
-  const [draft, setDraft] = useState<AnyRecord>(() => ({ ...EMPTY_OCCUPATIONAL_VISIT }))
+  const [draft, setDraft] = useState<OccupationalVisitDraft>(() => ({ ...EMPTY_OCCUPATIONAL_VISIT }))
   const [saving, setSaving] = useState(false)
   const canManage = can(role, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   useEffect(() => {
@@ -50,15 +50,15 @@ export function OccupationalVisitPage() {
     loadAllOccupationalVisitsAsync(tenant?.id).then(rows => { if (live) setVisits(rows) }).catch(error => { console.error(error); if (live) setVisits([]) })
     return () => { live = false }
   }, [tenant?.id])
-  const employeeMap = useMemo(() => { const out: Record<string, AnyRecord> = {}; for (const item of employeeRows) { out[item.id] = item; if (item.dbId) out[item.dbId] = item } return out }, [employeeRows])
+  const employeeMap = useMemo(() => { const out: Record<string, EmployeeRow> = {}; for (const item of employeeRows) { out[item.id] = item; if (item.dbId) out[item.dbId] = item } return out }, [employeeRows])
   const visit = isNew ? null : visits?.find(item => String(item.id) === String(visitId)) || null
   const employee = visit ? employeeMap[visit.employeeId] : null
-  const nameOf = (item: AnyRecord | null | undefined) => (!item ? '—' : en ? `${item.firstNameEn || item.firstName} ${item.lastNameEn || item.lastName}` : `${item.lastName} ${item.firstName}`)
+  const nameOf = (item: EmployeeRow | null | undefined) => (!item ? '—' : en ? `${item.firstNameEn || item.firstName} ${item.lastNameEn || item.lastName}` : `${item.lastName} ${item.firstName}`)
 
   if (!isNew && visits === null) return <Page fill><TableSkeleton/></Page>
   if (!isNew && (!visit || (employee && !canAccessRecord(employee)))) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Visit not found' : 'Η επίσκεψη δεν βρέθηκε'}</strong></div></Page>
 
-  const patch = (next: AnyRecord) => setDraft(current => ({ ...current, ...next }))
+  const patch = (next: OccupationalVisitDraft) => setDraft(current => ({ ...current, ...next }))
   const startEdit = () => { setDraft({ ...EMPTY_OCCUPATIONAL_VISIT, ...visit, employeeId: visit?.employeeId }); setEditing(true) }
   const problems = visitProblems(draft, language)
   async function save() {
@@ -71,8 +71,8 @@ export function OccupationalVisitPage() {
         notify(visitSavedMessage(language), 'success')
         navigate(`/occupational-health/visits/${encodeURIComponent(created.id)}`, { replace: true })
       } else {
-        const updated = await updateOccupationalVisitAsync(tenant?.id, visit, draft)
-        setVisits(rows => (rows as AnyRecord[]).map(item => (item.id === updated.id ? updated : item)))
+        const updated = await updateOccupationalVisitAsync(tenant?.id, visit, draft) as OccupationalVisit
+        setVisits(rows => (rows as OccupationalVisit[]).map(item => (item.id === updated.id ? updated : item)))
         notify(visitSavedMessage(language), 'success')
         setEditing(false)
       }
@@ -80,7 +80,7 @@ export function OccupationalVisitPage() {
   }
   async function remove() {
     if (!await confirm({ title: en ? 'Delete visit' : 'Διαγραφή επίσκεψης', message: en ? 'The visit is deleted from the clinical record.' : 'Η επίσκεψη διαγράφεται από το κλινικό αρχείο.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
-    try { await deleteOccupationalVisitAsync(tenant?.id, visit?.id); notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success'); goBack() } catch (error) { notifyError(error, 'delete', { operation: 'occupational_visit_delete' }) }
+    try { await deleteOccupationalVisitAsync(tenant?.id, visit?.id ?? ''); notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success'); goBack() } catch (error) { notifyError(error, 'delete', { operation: 'occupational_visit_delete' }) }
   }
 
   if (editing) {

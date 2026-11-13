@@ -1,4 +1,3 @@
-import type { AnyRecord } from '../../types/featureTypes'
 // Root cause analysis of a CAPA: the problem, a 5 Whys chain, and an Ishikawa
 // (fishbone) diagram with the categories used in healthcare. The conclusion
 // is the root cause the corrective action has to remove.
@@ -23,7 +22,7 @@ function emptyAnalysis(): RootCauseAnalysis{
 export function normalizeAnalysis(input: unknown): RootCauseAnalysis{
  const base=emptyAnalysis()
  if(!input||typeof input!=='object')return base
- const value=input as AnyRecord
+ const value=input as Partial<RootCauseAnalysis>
  const whys=Array.isArray(value.whys)?value.whys.map(String):[]
  return {
   ...base,...value,

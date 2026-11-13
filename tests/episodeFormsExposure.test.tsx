@@ -10,11 +10,12 @@ import { canOpenExposures, exposureSourceSection } from '../src/features/surveil
 import { countSourceExposuresAsync, loadExposureIncidentsForRecordAsync } from '../src/features/occupational-health/exposureIncidentService'
 import type { ExposureIncident } from '../src/features/occupational-health/exposureIncidentService'
 import { exposureTypeLabel, followUpLabel } from '../src/features/occupational-health/ExposureIncidentEditor'
+import type { EpisodeFormsCtx } from '../src/features/surveillance/forms/formTypes'
 
 const t = key => translate(key, 'el')
 // The sample exposures live in the demo data environment.
 configureDataEnvironment({ mode: 'demo', demoAccountId: 'test' })
-const ctx = { role: 'infection_control_lead', isDemo: true, language: 'el', t, has: () => true, episodes: [{ id: 'SUR-260041' }], goTo: vi.fn() }
+const ctx: EpisodeFormsCtx = { role: 'infection_control_lead', isDemo: true, language: 'el', t, has: () => true, episodes: [{ id: 'SUR-260041' }], goTo: vi.fn() } as never
 
 describe('staff exposure section', () => {
   it('is for the occupational physician (or the manage-occupational-health permission), nobody else', () => {

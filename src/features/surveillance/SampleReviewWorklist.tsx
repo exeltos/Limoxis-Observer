@@ -11,7 +11,7 @@ import { formatDateTime } from '../../core/i18n/formatDay'
 import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { NO_SURVEILLANCE_REASONS, reasonLabel } from '../laboratory/sampleReviewModel'
 import './surveillanceRegistry.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ReviewSample } from './surveillanceListTypes'
 import type { Handler } from './surveillanceTypes'
 import type { LucideIcon } from 'lucide-react'
 
@@ -20,7 +20,7 @@ export const worklistTexts = (language: string) => language === 'en'
   : { title: 'Προς έλεγχο', emptyTitle: 'Δεν υπάρχουν δείγματα προς έλεγχο', emptyText: 'Τα νέα θετικά δείγματα χωρίς επεισόδιο εμφανίζονται εδώ μέχρι να ληφθεί απόφαση.', saved: 'Η απόφαση αποθηκεύτηκε.' }
 
 interface SampleReviewWorklistProps {
-  rows: AnyRecord[]
+  rows: ReviewSample[]
   empty?: { title?: string, text?: string, icon?: LucideIcon } | null
   language: string
   t: (key: string) => string
@@ -30,7 +30,7 @@ interface SampleReviewWorklistProps {
 }
 export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide }: SampleReviewWorklistProps) {
   const en = language === 'en'
-  const [deciding, setDeciding] = useState<AnyRecord | null>(null)
+  const [deciding, setDeciding] = useState<ReviewSample | null>(null)
   return (
     <div className="scroll-table sample-review-worklist">
       <RegistryTable
@@ -45,7 +45,8 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
         emptyTitle={empty?.title}
         emptyText={empty?.text}
         emptyIcon={empty?.icon || ClipboardCheck}
-        rowKey={sample => sample.recordId || sample.id}
+        // Every sample has its code.
+        rowKey={sample => (sample.recordId || sample.id) as string}
         renderRow={sample => (
           <>
             <td>
@@ -93,7 +94,7 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
 }
 
 interface NoSurveillanceDialogProps {
-  sample: AnyRecord
+  sample: ReviewSample
   language: string
   onClose: Handler
   onSave: Handler

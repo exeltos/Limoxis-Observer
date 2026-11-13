@@ -67,6 +67,8 @@ import { stageLabel } from './QualityReportRegister'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import './quality.css'
 import type { AnyRecord } from '../../types/featureTypes'
+import type { DetailItemData } from '../../design-system/DetailList'
+import type { CategoryItem, QualityDraft, QualityHistoryEntry, QualityRecord, RecordLink } from './qualityTypes'
 import type { IconType } from '../../design-system/types'
 
 const iconMap: Record<string, IconType>={incidents:AlertTriangle,findings:ShieldCheck,capas:CheckSquare2,audits:ClipboardCheck}
@@ -83,7 +85,7 @@ export function QualityRecordPage(){
   const {profile,user}=useAuth()
   const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
   const organizationId=tenant?.id
-  const [record,setRecord]=useState<AnyRecord | null>(null)
+  const [record,setRecord]=useState<QualityRecord | null>(null)
   const [loading,setLoading]=useState(true)
   const [tab,setTab]=useState(()=>restored?.tab||'details')
   // A tab opened by the flow's next step can open straight in edit mode.
@@ -126,10 +128,10 @@ export function QualityRecordPage(){
   useEffect(()=>{let active=true;setLoading(true);loadQualityRecord(recordType,organizationId,recordId).then(data=>{if(active)setRecord(data)}).catch(()=>{if(active)setRecord(null)}).finally(()=>{if(active){setLoadedFor(`${recordType}:${recordId}`);setLoading(false)}});return()=>{active=false}},[recordType,recordId,organizationId])
   // What follows the record: an incident's or a finding's CAPAs, an audit's
   // findings. The incident flow and the «at a glance» figures read them.
-  const [linked,setLinked]=useState<AnyRecord[]>([])
+  const [linked,setLinked]=useState<QualityRecord[]>([])
   const linkedSection=recordType==='audits'?'findings':['incidents','findings'].includes(recordType)?'capas':null
   // Reloads when the record changes too: an audit that just created its findings lists them.
-  useEffect(()=>{let active=true;if(!linkedSection||!record?.id){setLinked([]);return()=>{active=false}};loadQualityRecords(linkedSection,organizationId).then(rows=>{if(active)setLinked(rows.filter((x: AnyRecord)=>x.sourceId===record.id))}).catch(()=>{if(active)setLinked([])});return()=>{active=false}},[linkedSection,record?.id,record?.updatedAt,record?.history?.length,organizationId])
+  useEffect(()=>{let active=true;if(!linkedSection||!record?.id){setLinked([]);return()=>{active=false}};loadQualityRecords(linkedSection,organizationId).then(rows=>{if(active)setLinked(rows.filter((x: QualityRecord)=>x.sourceId===record.id))}).catch(()=>{if(active)setLinked([])});return()=>{active=false}},[linkedSection,record?.id,record?.updatedAt,record?.history?.length,organizationId])
   const linkedCapas=recordType==='incidents'?linked:[]
   const finalized=isFinalizedQualityRecord(record)
   const recordInScope=!record||canAccessRecord({...record,department:record.department})
@@ -160,14 +162,14 @@ export function QualityRecordPage(){
       {(incident||finding)&&(tab==='details'||tab==='assessment')?<div className="quality-record-layout">
         <QualityDetails key={`${tab}:${autoEdit}`} autoEdit={autoEdit} view={tab} recordType={recordType} record={record} linked={linked} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>
         <IncidentFlowPanel kind={finding?'finding':'incident'} steps={finding?findingFlow(record,linked):incidentFlow(record,linkedCapas)} record={record} capas={finding?linked:linkedCapas} language={language} t={t} activeTab={tab} canAct={canManage&&!finalized}
-          onSelect={(id: string)=>openTab(id)} onOpenCapa={(capa: AnyRecord)=>goTo(`/quality/capas/${capa.id}`,{returnTo:`/quality/${recordType}/${record.id}`,returnTab:tab})}
-          onStep={(next: AnyRecord)=>{if(next.id==='assess'||next.id==='close')openTab('assessment',true);else if(next.id==='capa')goTo('/quality/capas/new',{returnTo:`/quality/${recordType}/${record.id}`,returnTab:'details',state:{qualitySource:capaSourceFor(recordType,record,language)}});else if(next.capa)goTo(`/quality/capas/${next.capa.id}`,{returnTo:`/quality/${recordType}/${record.id}`,returnTab:'details'})}}/>
+          onSelect={(id: string)=>openTab(id)} onOpenCapa={capa=>goTo(`/quality/capas/${capa.id}`,{returnTo:`/quality/${recordType}/${record.id}`,returnTab:tab})}
+          onStep={next=>{if(next.id==='assess'||next.id==='close')openTab('assessment',true);else if(next.id==='capa')goTo('/quality/capas/new',{returnTo:`/quality/${recordType}/${record.id}`,returnTab:'details',state:{qualitySource:capaSourceFor(recordType,record,language)}});else if(next.capa)goTo(`/quality/capas/${next.capa.id}`,{returnTo:`/quality/${recordType}/${record.id}`,returnTab:'details'})}}/>
       </div>:(tab==='details'||tab==='assessment')&&<QualityDetails key={tab} view={tab} recordType={recordType} record={record} linked={linked} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId} extra={audit?<AuditPlanPanel record={record} setRecord={setRecord} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} notify={notify} actor={actor}/>:null}/>}
       {tab==='details'&&(incident||recordType==='findings'||recordType==='capas')&&<QualityFilesRow record={record} recordType={recordType} organizationId={organizationId} canAdd={!finalized&&(canAttach||canManage)} onOpen={()=>openTab(recordType==='capas'?'links':'documents')} en={language==='en'}/>}
       {tab==='rootCause'&&recordType==='capas'&&<div className="quality-record-stack"><QualityCapaRootCause record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/></div>}
       {tab==='steps'&&recordType==='capas'&&<div className="quality-record-stack"><QualityCapaSteps record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>
         <QualityCapaProgress record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language}/></div>}
-      {tab==='checklist'&&audit&&<AuditRunTab record={record} setRecord={setRecord} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} actor={actor} notify={notify} userId={profile?.id||user?.id}/>}
+      {tab==='checklist'&&audit&&<AuditRunTab record={record} setRecord={setRecord as Parameters<typeof AuditRunTab>[0]['setRecord']} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} actor={actor} notify={notify} userId={profile?.id||user?.id}/>}
       {tab==='links'&&<div className="quality-record-stack"><QualityLinks recordType={recordType} record={record} t={t} language={language} organizationId={organizationId}/>
       {recordType==='capas'&&<QualityDocuments recordType={recordType} record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage} organizationId={organizationId}/>}</div>}
       {tab==='documents'&&<QualityDocuments recordType={recordType} record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage} organizationId={organizationId}/>}
@@ -179,15 +181,15 @@ export function QualityRecordPage(){
 }
 
 // What an incident links to besides its corrective actions (those are in the panel beside it).
-const hasRecordLinks=(record: AnyRecord)=>Boolean((record.linkedPatient&&!/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(record.linkedPatient))||record.linkedSurveillance||record.sourceId||record.findingIds?.length)
+const hasRecordLinks=(record: QualityRecord)=>Boolean((record.linkedPatient&&!/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(record.linkedPatient))||record.linkedSurveillance||record.sourceId||record.findingIds?.length)
 const STAGE_TONE={toAssess:'warning',investigating:'info',action:'info',effectiveness:'info',toClose:'success',closed:'neutral',voided:'neutral'}
 
 // An incident as the platform's one list of values (sections, no boxes): what happened, who reported and owns it, and what was filled in.
-function IncidentReadDetails({record,categories,language,t}: { record: AnyRecord, categories: AnyRecord[], language: string, t: (key: string) => string }){
+function IncidentReadDetails({record,categories,language,t}: { record: QualityRecord, categories: CategoryItem[], language: string, t: (key: string) => string }){
   const en=language==='en'
   const {data:employeeRows}=useEmployeesData()
   const kind=reportKindOf(record)
-  const text=(value: string,valueEn?: string)=>language==='en'?(valueEn||value):value
+  const text=(value: string | undefined,valueEn?: string)=>language==='en'?(valueEn||value):value
   const facts=['clinical','nonClinical'].includes(kind)&&record.eventType?incidentDetailFacts(record,language,employeeRows||[]):[]
   return <DetailList className="quality-incident-details" sections={[
     {title:en?'Event':'Συμβάν',items:[
@@ -216,12 +218,12 @@ function IncidentReadDetails({record,categories,language,t}: { record: AnyRecord
 const VERIFICATION_OPTIONS=(en: boolean)=>[{value:'pending',label:en?'Pending':'Εκκρεμεί'},{value:'effective',label:en?'Effective':'Αποτελεσματική'},{value:'not_effective',label:en?'Not effective':'Μη αποτελεσματική'}]
 
 // A finding as the platform's one list of values (sections, no boxes); what is not filled in is not shown.
-function FindingReadDetails({record,language,t,linked=[]}: { record: AnyRecord, language: string, t: (key: string) => string, linked?: AnyRecord[] }){
+function FindingReadDetails({record,language,t,linked=[]}: { record: QualityRecord, language: string, t: (key: string) => string, linked?: QualityRecord[] }){
   const en=language==='en'
-  const text=(value: string,valueEn?: string)=>language==='en'?(valueEn||value):value
+  const text=(value: string | undefined,valueEn?: string)=>language==='en'?(valueEn||value):value
   const audit=record.source==='audit'||Boolean(record.findingClass)
   const verification=VERIFICATION_OPTIONS(en).find(item=>item.value===(record.verificationStatus||'pending'))?.label
-  const some=(items: AnyRecord[])=>items.filter((item: AnyRecord)=>item&&item.value)
+  const some=(items: DetailItemData[])=>items.filter((item: DetailItemData)=>item&&item.value)
   return <DetailList className="quality-incident-details" sections={[
     {title:en?'Deviation':'Απόκλιση',items:some([
       {label:t('department'),value:en?record.departmentEn||record.department:record.department},
@@ -243,7 +245,7 @@ function FindingReadDetails({record,language,t,linked=[]}: { record: AnyRecord, 
       {label:en?'Analysis of the causes':'Ανάλυση αιτιών',value:record.rootCause,wide:true},
     ])},
     audit?{title:en?'Standard and deadlines':'Πρότυπο και προθεσμίες',items:some([
-      {label:en?'Standard / clause':'Πρότυπο / άρθρο',value:record.clauseRef?[standardLabel(record.standard,language),record.clauseRef].filter(Boolean).join(' · '):''},
+      {label:en?'Standard / clause':'Πρότυπο / άρθρο',value:record.clauseRef?[standardLabel(record.standard as string,language),record.clauseRef].filter(Boolean).join(' · '):''},
       {label:t('dueDate'),value:record.dueDate?formatDay(record.dueDate,language):''},
       {label:en?'Effectiveness verified':'Επαλήθευση αποτελεσματικότητας',value:verification},
       {label:en?'Verified on':'Επαληθεύτηκε στις',value:record.verifiedOn?formatDay(record.verifiedOn,language):''},
@@ -255,14 +257,14 @@ function FindingReadDetails({record,language,t,linked=[]}: { record: AnyRecord, 
 }
 
 // A corrective action as the platform's one list of values; what is not filled in is not shown.
-function CapaReadDetails({record,language,t,onOpenSource}: { record: AnyRecord, language: string, t: (key: string) => string, onOpenSource: (path: string) => void }){
+function CapaReadDetails({record,language,t,onOpenSource}: { record: QualityRecord, language: string, t: (key: string) => string, onOpenSource: (path: string) => void }){
   const en=language==='en'
   // Where it came from, opening the source (a deviation, a report, a committee decision, a meeting…).
   const source=record.sourceId?capaSourceInfo(record.sourceId,record.sourceType):null
   const sourceText=source&&[sourceKindLabel(source.kind,language),source.code].filter(Boolean).join(' · ')
   const origin=!source||source.kind==='manual'?'':source.path?<button type="button" className="lo-detail-missing-link" onClick={()=>onOpenSource(source.path)}>{sourceText}</button>:sourceText
-  const text=(value: string,valueEn?: string)=>language==='en'?(valueEn||value):value
-  const some=(items: AnyRecord[])=>items.filter((item: AnyRecord)=>item&&item.value)
+  const text=(value: string | undefined,valueEn?: string)=>language==='en'?(valueEn||value):value
+  const some=(items: DetailItemData[])=>items.filter((item: DetailItemData)=>item&&item.value)
   return <DetailList className="quality-incident-details" sections={[
     {title:en?'Action':'Ενέργεια',items:some([
       {label:en?'Came from':'Προέλευση',value:origin},
@@ -281,19 +283,19 @@ function CapaReadDetails({record,language,t,onOpenSource}: { record: AnyRecord, 
 }
 
 // An audit as the platform's one list of values; the planning follows in the same card (AuditPlanPanel).
-function AuditReadDetails({record,language,t}: { record: AnyRecord, language: string, t: (key: string) => string }){
+function AuditReadDetails({record,language,t}: { record: QualityRecord, language: string, t: (key: string) => string }){
   const en=language==='en'
-  const text=(value: string,valueEn?: string)=>language==='en'?(valueEn||value):value
+  const text=(value: string | undefined,valueEn?: string)=>language==='en'?(valueEn||value):value
   return <DetailList className="quality-incident-details" sections={[
     {title:en?'Audit':'Επιθεώρηση',items:[
       {label:t('department'),value:en?record.departmentEn||record.department:record.department},
-      {label:t('leadAuditor'),value:roleTitleText(record.leadAuditor,language)},
+      {label:t('leadAuditor'),value:roleTitleText(record.leadAuditor,language) as string},
       {label:t('qualityRecords.auditScope'),value:text(record.scope,record.scopeEn),wide:true},
     ].filter(item=>item.value)},
   ]}/>
 }
 
-function QualityDetails({extra=null,autoEdit=false,view='details',recordType,record,linked=[],setRecord,t,language,canManage,notify,actor,finalized,onDeleted,organizationId}: { extra?: ReactNode, autoEdit?: boolean, view?: string, recordType: string, record: AnyRecord, linked?: AnyRecord[], setRecord: Dispatch<SetStateAction<AnyRecord | null>>, t: (key: string) => string, language: string, canManage: boolean, notify: FeedbackContextValue['notify'], actor: AuditActor, finalized: boolean, onDeleted: () => void, organizationId: string | null | undefined }){
+function QualityDetails({extra=null,autoEdit=false,view='details',recordType,record,linked=[],setRecord,t,language,canManage,notify,actor,finalized,onDeleted,organizationId}: { extra?: ReactNode, autoEdit?: boolean, view?: string, recordType: string, record: QualityRecord, linked?: QualityRecord[], setRecord: Dispatch<SetStateAction<QualityRecord | null>>, t: (key: string) => string, language: string, canManage: boolean, notify: FeedbackContextValue['notify'], actor: AuditActor, finalized: boolean, onDeleted: () => void, organizationId: string | null | undefined }){
   const {goTo}=useContextualNavigation('/quality')
   const en=language==='en'
   const assessment=view==='assessment'
@@ -315,9 +317,9 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
   const categories=libraries.incidentCategories||[]
   // The English text follows the written one while it is only its fallback copy.
   const set=(k: string,v: unknown)=>setDraft((x: AnyRecord)=>({...x,[k]:v,...((k==='title'||k==='description')&&x[`${k}En`]===x[k]?{[`${k}En`]:v}:{})}))
-  const patch=(next: AnyRecord)=>setDraft(x=>({...x,...next}))
+  const patch=(next: QualityDraft)=>setDraft(x=>({...x,...next}))
 
-  async function persist(next: AnyRecord){
+  async function persist(next: QualityDraft){
     setSaving(true)
     try{
       const saved=await saveQualityRecord(recordType,organizationId,next)
@@ -463,17 +465,17 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
   </div>
 }
 
-function QualityLinks({recordType,record,t,language,organizationId}: { recordType: string, record: AnyRecord, t: (key: string) => string, language: string, organizationId: string | null | undefined }){
+function QualityLinks({recordType,record,t,language,organizationId}: { recordType: string, record: QualityRecord, t: (key: string) => string, language: string, organizationId: string | null | undefined }){
   const {goTo}=useContextualNavigation('/quality')
-  const [related,setRelated]=useState<AnyRecord[]>([])
-  const [sourceRecord,setSourceRecord]=useState<AnyRecord | null>(null)
+  const [related,setRelated]=useState<(QualityRecord & { kind: string })[]>([])
+  const [sourceRecord,setSourceRecord]=useState<QualityRecord | null>(null)
   useEffect(()=>{
     let active=true
     if(recordType==='findings'){
-      loadQualityRecords('capas',organizationId).then(rows=>{if(active)setRelated(rows.filter((x: AnyRecord)=>x.sourceId===record.id).map(x=>({...x,kind:'capas'})))}).catch(()=>{if(active)setRelated([])})
+      loadQualityRecords('capas',organizationId).then(rows=>{if(active)setRelated(rows.filter((x: QualityRecord)=>x.sourceId===record.id).map(x=>({...x,kind:'capas'})))}).catch(()=>{if(active)setRelated([])})
     }else if(recordType==='audits'){
       // Its deviations, and any action opened from the audit itself.
-      Promise.all(['findings','capas'].map(section=>loadQualityRecords(section,organizationId).catch(()=>[]))).then(([findings,capas])=>{if(active)setRelated([...findings.filter((x: AnyRecord)=>x.sourceId===record.id).map(x=>({...x,kind:'findings'})),...capas.filter((x: AnyRecord)=>x.sourceId===record.id&&x.lifecycleStatus!=='voided').map(x=>({...x,kind:'capas'}))])})
+      Promise.all(['findings','capas'].map(section=>loadQualityRecords(section,organizationId).catch(()=>[]))).then(([findings,capas])=>{if(active)setRelated([...findings.filter((x: QualityRecord)=>x.sourceId===record.id).map(x=>({...x,kind:'findings'})),...capas.filter((x: QualityRecord)=>x.sourceId===record.id&&x.lifecycleStatus!=='voided').map(x=>({...x,kind:'capas'}))])})
     }else{
       setRelated([])
     }
@@ -484,18 +486,18 @@ function QualityLinks({recordType,record,t,language,organizationId}: { recordTyp
     setSourceRecord(null)
     if(!record.sourceId)return()=>{active=false}
     const section=record.sourceId.startsWith('INC-')?'incidents':record.sourceId.startsWith('FND-')?'findings':record.sourceId.startsWith('AUD-')?'audits':null
-    if(section)loadQualityRecords(section,organizationId).then(rows=>{if(active)setSourceRecord(rows.find((x: AnyRecord)=>x.id===record.sourceId)||null)}).catch(()=>{if(active)setSourceRecord(null)})
+    if(section)loadQualityRecords(section,organizationId).then(rows=>{if(active)setSourceRecord(rows.find((x: QualityRecord)=>x.id===record.sourceId)||null)}).catch(()=>{if(active)setSourceRecord(null)})
     return()=>{active=false}
   },[record.sourceId,organizationId])
   const sourceLabel=record.sourceId?.startsWith('INC-')?t('incident'):record.sourceId?.startsWith('FND-')?t('qualityRecords.finding'):record.sourceId?.startsWith('AUD-')?t('audit'):t('source')
-  const links: AnyRecord[]=[]
+  const links: RecordLink[]=[]
   // A production link holds the patient's record id, which has no page of its own (the patient page opens by code).
   if(record.linkedPatient&&!/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(record.linkedPatient))links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
   if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
   // The record it came from (one map for every kind of source): ours open with their title, the others on their page.
   const source=record.sourceId?capaSourceInfo(record.sourceId,record.sourceType):null
-  if(source&&/^(AUD|FND|INC)-/.test(record.sourceId))links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
-  else if(source?.path)links.push({label:sourceKindLabel(source.kind,language),id:source.code||record.sourceId,path:source.path})
+  if(source&&/^(AUD|FND|INC)-/.test(record.sourceId as string))links.push({label:sourceLabel,id:record.sourceId as string,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  else if(source?.path)links.push({label:sourceKindLabel(source.kind,language),id:source.code||record.sourceId as string,path:source.path})
   // A committee decision brought over without its meeting has no page to open.
   else if(source?.kind==='committee')links.push({label:sourceKindLabel('committee',language),id:language==='en'?'Committee decision (brought over without its meeting)':'Απόφαση επιτροπής (μεταφέρθηκε χωρίς τη συνεδρίαση)',external:true})
   // A bare number is the reference of an imported record (nothing to open).
@@ -507,14 +509,14 @@ function QualityLinks({recordType,record,t,language,organizationId}: { recordTyp
   const en=language==='en'
   return <div className="record-section"><div className="record-section-header"><h3>{recordType==='incidents'||recordType==='findings'?(en?'Links':'Συνδέσεις'):t('qualityRecords.linkedRecords')}</h3></div><div className="quality-link-list">
     {links.filter(link=>link.external).map(link=><div className="quality-link-static" key={`${link.label}-${link.id}`}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong></span></div>)}
-    {links.filter(link=>!link.external).map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
+    {links.filter(link=>!link.external).map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path as string)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
     {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/${x.kind}/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t(x.kind==='findings'?'qualityRecords.finding':'qualityRecords.capa')}</span><span className="quality-link-main"><strong>{qualityCode(x,language)}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}
     {!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}
   </div></div>
 }
 
-function QualityDocuments({record,recordType,setRecord,t,finalized,canAttach,canManage,organizationId}: { record: AnyRecord, recordType: string, setRecord: Dispatch<SetStateAction<AnyRecord | null>>, t: (key: string) => string, finalized: boolean, canAttach: boolean, canManage: boolean, organizationId: string | null | undefined }){
-  return <div className="record-section"><div className="record-section-header"><h3>{t('documents')}</h3></div><AttachmentField disabled={finalized||(!canAttach&&!canManage)} value={record.attachments||[]} onChange={attachments=>setRecord(r=>({...r,attachments}))} organizationId={organizationId} entityType={`quality_${recordType}`} entityId={record.dbId||record.id}/></div>
+function QualityDocuments({record,recordType,setRecord,t,finalized,canAttach,canManage,organizationId}: { record: QualityRecord, recordType: string, setRecord: Dispatch<SetStateAction<QualityRecord | null>>, t: (key: string) => string, finalized: boolean, canAttach: boolean, canManage: boolean, organizationId: string | null | undefined }){
+  return <div className="record-section"><div className="record-section-header"><h3>{t('documents')}</h3></div><AttachmentField disabled={finalized||(!canAttach&&!canManage)} value={record.attachments||[]} onChange={attachments=>setRecord(r=>({...r,attachments}) as QualityRecord)} organizationId={organizationId} entityType={`quality_${recordType}`} entityId={record.dbId||record.id}/></div>
 }
 
 // Where a source code (AUD-, FND-, INC-) opens.
@@ -527,9 +529,9 @@ function sourceRecordPath(id: string){
 // The history of a record: the action in words (imported records carry codes such as «source_reconciled»), and the actor
 // or the system note beside it in the language of the screen.
 const HISTORY_LABELS: Record<string, string[]>={source_reconciled:['Συμφωνία με το αρχείο πηγής','Reconciled with the source file'],recordImported:['Εισαγωγή εγγραφής','Record imported'],recordUpdated:['Ενημέρωση εγγραφής','Record updated'],recordCreated:['Δημιουργία εγγραφής','Record created']}
-const historyTitle=(entry: AnyRecord,t: (key: string) => string,en: boolean)=>{const text=entry.action?t(entry.action):'';return text&&text!==entry.action?text:(HISTORY_LABELS[entry.action]?.[en?1:0]||(en?'Change':'Αλλαγή'))}
+const historyTitle=(entry: QualityHistoryEntry,t: (key: string) => string,en: boolean)=>{const text=entry.action?t(entry.action):'';return text&&text!==entry.action?text:(HISTORY_LABELS[entry.action as string]?.[en?1:0]||(en?'Change':'Αλλαγή'))}
 const historyActor=(actor: unknown,en: boolean)=>String(actor||'').replace(/^Reconciliation (?:από|from)\s+/i,en?'Reconciled with the file ':'Συμφωνήθηκε με το αρχείο ')
-function QualityHistory({record,t,language}: { record: AnyRecord, t: (key: string) => string, language: string }){const en=language==='en';const imported=isLegacyRecordNumber(record.sourceId)&&record.createdAt?[{at:record.createdAt,title:en?`Imported from FileMaker #${String(record.sourceId).trim()}`:`Εισαγωγή από FileMaker #${String(record.sourceId).trim()}`,meta:[]}]:[];const events=[...(record.history||[])].sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime()).map(x=>({at:x.at,title:historyTitle(x,t,en),detail:[x.note,x.detail].find(value=>typeof value==='string'),meta:[historyActor(x.actor,en)]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={[...events,...imported]} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
+function QualityHistory({record,t,language}: { record: QualityRecord, t: (key: string) => string, language: string }){const en=language==='en';const imported=isLegacyRecordNumber(record.sourceId)&&record.createdAt?[{at:record.createdAt,title:en?`Imported from FileMaker #${String(record.sourceId).trim()}`:`Εισαγωγή από FileMaker #${String(record.sourceId).trim()}`,meta:[]}]:[];const events=[...(record.history||[])].sort((a,b)=>new Date(b.at as string).getTime()-new Date(a.at as string).getTime()).map(x=>({at:x.at,title:historyTitle(x,t,en),detail:[x.note,x.detail].find(value=>typeof value==='string'),meta:[historyActor(x.actor,en)]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={[...events,...imported]} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
 function Detail({label,value}: { label: string, value?: ReactNode }){if(!value&&value!==0)return null;return <div className="detail-item"><span className="lo-field-label">{label}</span><strong>{value||'—'}</strong></div>}
 // A longer text (people involved, causes, notes): a few lines, the full width of the form.
 function EditArea({label,value,onChange}: { label: string, value: string, onChange: (value: string) => void }){return <div className="detail-item editable quality-edit-wide"><Field label={label}><textarea rows={3} value={value||''} onChange={e=>onChange(e.target.value)}/></Field></div>}
@@ -537,7 +539,7 @@ function EditText({editing,label,value,onChange}: { editing: boolean, label: str
 function EditDate({editing,label,value,onChange,language}: { editing: boolean, label: string, value: string, onChange: (value: string) => void, language: string }){return editing?<div className="detail-item editable"><ManualDateField label={label} value={value||''} onChange={onChange}/></div>:<Detail label={label} value={formatDay(value,language)}/>}
 // Up to three answers: the mode switch; a longer list: a searchable list.
 function EditChoice({editing,label,value,onChange,options,display}: { editing: boolean, label: string, value: string, onChange: (value: string) => void, options: { value: string, label: string }[], display?: ReactNode }){
-  if(!editing)return <Detail label={label} value={display||options.find((x: AnyRecord)=>x.value===value)?.label||value}/>
+  if(!editing)return <Detail label={label} value={display||options.find(x=>x.value===value)?.label||value}/>
   return <div className="detail-item editable">{options.length<=3?<ChoiceField label={label} value={value} options={options} onChange={onChange}/>:<SearchableSelect label={label} value={value||''} options={options} onChange={v=>v&&onChange(v)} clearLabel=""/>}</div>
 }
-function EditOwners({editing,draft,patch,en,label}: { editing: boolean, draft: AnyRecord, patch: (next: AnyRecord) => void, en: boolean, label?: string }){const text=label||(en?'Responsible person(s)':'Υπεύθυνος / Υπεύθυνοι');return editing?<div className="detail-item editable quality-detail-owner"><QualityOwnerField record={draft} onChange={patch} label={text}/></div>:<Detail label={text} value={recordOwners(draft).join(', ')}/>}
+function EditOwners({editing,draft,patch,en,label}: { editing: boolean, draft: QualityDraft, patch: (next: QualityDraft) => void, en: boolean, label?: string }){const text=label||(en?'Responsible person(s)':'Υπεύθυνος / Υπεύθυνοι');return editing?<div className="detail-item editable quality-detail-owner"><QualityOwnerField record={draft} onChange={patch} label={text}/></div>:<Detail label={text} value={recordOwners(draft).join(', ')}/>}

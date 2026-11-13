@@ -1,12 +1,18 @@
-import type { AnyRecord } from '../../../types/featureTypes'
 // The trend of a clinical scale in words, against the previous assessment of the same scale:
 // «Ανεβαίνει κατά 3 από 17/10 · χειρότερα». Which way is worse depends on the scale (a higher
 // NEWS2 is worse, a lower Braden or GCS is worse); an unknown scale counts a higher score as worse.
-const LOWER_IS_WORSE = new Set(['braden', 'gcs', 'pediatric-gcs'])
-export const higherIsWorse = (scaleKey: string) => !LOWER_IS_WORSE.has(scaleKey)
+const LOWER_IS_WORSE = new Set<string | null | undefined>(['braden', 'gcs', 'pediatric-gcs'])
+export const higherIsWorse = (scaleKey: string | null | undefined) => !LOWER_IS_WORSE.has(scaleKey)
 
+// A scale of the patient with its latest and previous assessment (the scales panel's context).
+export interface ScaleTrendItem {
+  scale_key?: string | null
+  latest?: unknown
+  previous?: { assessed_at?: string | null } | null
+  delta?: number | null
+}
 interface ScaleTrendOptions {
-  item: AnyRecord
+  item: ScaleTrendItem | null | undefined
   t: (key: string) => string
   fmtDate: (value: unknown) => string
 }

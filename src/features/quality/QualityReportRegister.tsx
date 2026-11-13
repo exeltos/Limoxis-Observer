@@ -19,7 +19,9 @@ import { INCIDENT_STAGES } from './qualityRecordRules'
 import { daysUntil } from './QualityGlance'
 import { CAUSE_CATEGORIES,DEVIATION_KINDS,FINDING_SOURCES,REPORT_KINDS,causeCategoriesText,incidentCategoryLabel,vocabularyLabel } from './qualityVocabulary'
 import { roleTitleText } from '../../core/i18n/roleTitles'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { RefObject } from 'react'
+import type { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
+import type { CategoryItem, DeviationFilters, DeviationSources, QualityRecord, RegisterRow, ReportFilters, ReportRow } from './qualityTypes'
 import type { IconType } from '../../design-system/types'
 
 // The Quality Center separates three concepts:
@@ -43,7 +45,7 @@ export const STAGE_LABELS: Record<string, string[]>={
  closed:['Κλειστή','Closed'],
  voided:['Ακυρωμένη','Voided'],
 }
-export const stageLabel=(stage: string,language: string)=>STAGE_LABELS[stage]?.[language==='en'?1:0]||stage
+export const stageLabel=(stage: string | undefined,language: string)=>STAGE_LABELS[stage as string]?.[language==='en'?1:0]||stage
 const STAGE_TONE: Record<string, string>={toAssess:'warning',investigating:'info',action:'info',effectiveness:'info',toClose:'success',closed:'neutral',voided:'neutral'}
 
 export function StageTrack({stage,language}: { stage: string, language: string }){
@@ -57,15 +59,15 @@ export function StageTrack({stage,language}: { stage: string, language: string }
 // Automatic signals that may need a deviation/CAPA. They are not themselves
 // the deviation register and therefore no longer define the tab count.
 export function useDeviationQueue(organizationId: string | null | undefined,enabled=true){
- const [sources,setSources]=useState({controls:[],bundles:[],trainings:[],capas:[]})
+ const [sources,setSources]=useState<DeviationSources>({controls:[],bundles:[],trainings:[],capas:[]})
  const [loading,setLoading]=useState(enabled)
  useEffect(()=>{
   if(!enabled){setLoading(false);return}
   let active=true
   setLoading(true)
-  const safe=(promise: AnyRecord)=>promise.catch(()=>[])
+  const safe=(promise: Promise<unknown[]>)=>promise.catch(()=>[])
   Promise.all([safe(loadControlProgramme(organizationId,{summary:false,findingsSince:Date.now()-365*24*60*60*1000})),safe(loadBundleAssessments(organizationId)),safe(loadTrainingProgramsAsync(organizationId as string)),safe(loadQualityRecords('capas',organizationId))])
-   .then(([controls,bundles,trainings,capas])=>{if(active)setSources({controls,bundles,trainings,capas})})
+   .then(([controls,bundles,trainings,capas])=>{if(active)setSources({controls,bundles,trainings,capas} as DeviationSources)})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
  },[organizationId,enabled])
@@ -74,35 +76,35 @@ export function useDeviationQueue(organizationId: string | null | undefined,enab
 
 const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null,period:'all',origin:'all',dateFrom:'',dateTo:''}
 const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all',deviationKind:'all',cause:'all',recurring:'all',dateFrom:'',dateTo:'',quick:null}
-const departmentsOf=(rows: AnyRecord[],language: string)=>[...new Set(rows.map((row: AnyRecord)=>language==='en'?row.departmentEn:row.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
+const departmentsOf=(rows: RegisterRow[],language: string)=>[...new Set(rows.map((row: RegisterRow)=>language==='en'?row.departmentEn:row.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
 
-function useClassifiedRegister(incidents: AnyRecord[],capas: AnyRecord[],language: string,mode: string){
- const [filters,setFilters]=useState<AnyRecord>(REPORT_DEFAULTS)
- const set=(key: string,value: unknown)=>setFilters((current: AnyRecord)=>({...current,[key]:value}))
- const rows=useMemo(()=>registerRows(incidents,[],capas).filter(row=>mode==='reports'?row.kind==='report':row.kind!=='report'),[incidents,capas,mode])
+function useClassifiedRegister(incidents: QualityRecord[],capas: QualityRecord[],language: string,mode: string){
+ const [filters,setFilters]=useState<ReportFilters>(REPORT_DEFAULTS)
+ const set=(key: string,value: string | null)=>setFilters((current: ReportFilters)=>({...current,[key]:value}))
+ const rows=useMemo(()=>registerRows(incidents,[],capas).filter((row): row is ReportRow=>mode==='reports'?row.kind==='report':row.kind!=='report'),[incidents,capas,mode])
  // «Από / Έως» on the incident date; `base` is the list without the quick figure, for the totals beside the search.
- const inRange=(row: AnyRecord)=>{const day=String(row.date||'').slice(0,10);return (!filters.dateFrom||day>=filters.dateFrom)&&(!filters.dateTo||day<=filters.dateTo)}
+ const inRange=(row: RegisterRow)=>{const day=String(row.date||'').slice(0,10);return (!filters.dateFrom||day>=filters.dateFrom)&&(!filters.dateTo||day<=filters.dateTo)}
  const base=useMemo(()=>filterRegister(rows,{...filters,quick:null,language}).filter(inRange),[rows,filters,language]) // eslint-disable-line react-hooks/exhaustive-deps
  const filtered=useMemo(()=>filterRegister(rows,{...filters,language}).filter(inRange),[rows,filters,language]) // eslint-disable-line react-hooks/exhaustive-deps
  const counts=useMemo(()=>registerCounts(rows),[rows])
  const departments=useMemo(()=>departmentsOf(rows,language),[rows,language])
- const categories=useMemo(()=>[...new Set(rows.map(row=>row.category).filter(Boolean))],[rows])
+ const categories=useMemo(()=>[...new Set(rows.map(row=>row.category).filter(Boolean))] as string[],[rows])
  return {rows,base,filtered,counts,filters,set,clear:()=>setFilters(REPORT_DEFAULTS),departments,categories}
 }
 
 // Inbox: only neutral submissions that Quality has not classified yet.
-export function useReportRegister(incidents: AnyRecord[],capas: AnyRecord[],language: string){
+export function useReportRegister(incidents: QualityRecord[],capas: QualityRecord[],language: string){
  return useClassifiedRegister(incidents,capas,language,'reports')
 }
 
 // Classified quality incidents/complaints/suggestions live here after assessment.
-export function useIncidentRegister(incidents: AnyRecord[],capas: AnyRecord[],language: string){
+export function useIncidentRegister(incidents: QualityRecord[],capas: QualityRecord[],language: string){
  return useClassifiedRegister(incidents,capas,language,'incidents')
 }
 
-function findingRows(findings: AnyRecord[],capas: AnyRecord[]){
- const handled=new Set((capas||[]).filter((item: AnyRecord)=>item.sourceId).map((item: AnyRecord)=>item.sourceId))
- return (findings||[]).map((record: AnyRecord)=>({
+function findingRows(findings: QualityRecord[],capas: QualityRecord[]){
+ const handled=new Set((capas||[]).filter((item: QualityRecord)=>item.sourceId).map((item: QualityRecord)=>item.sourceId))
+ return (findings||[]).map((record: QualityRecord): RegisterRow=>({
   key:`finding:${record.id}`,
   type:'finding',
   source:record.source||'manual',
@@ -126,33 +128,33 @@ function findingRows(findings: AnyRecord[],capas: AnyRecord[]){
 }
 
 // The search and the filters of the deviations list (the automatic signals have no kind, causes or recurrence).
-export function filterDeviations(rows: AnyRecord[],filters: AnyRecord,language='el'){
+export function filterDeviations(rows: RegisterRow[],filters: DeviationFilters,language='el'){
  const text=String(filters.query||'').trim().toLowerCase()
- const day=(row: AnyRecord)=>String(row.date||'').slice(0,10)
+ const day=(row: RegisterRow)=>String(row.date||'').slice(0,10)
  return rows
-  .filter((row: AnyRecord)=>filters.scope==='all'||(filters.scope==='registry'?row.type==='finding':row.type==='deviation'))
-  .filter((row: AnyRecord)=>!text||`${row.code} ${row.title} ${row.titleEn} ${row.owner||''} ${row.department||''} ${row.item?.reportedBy||''}`.toLowerCase().includes(text))
-  .filter((row: AnyRecord)=>filters.source==='all'||row.source===filters.source)
-  .filter((row: AnyRecord)=>filters.status==='all'||(row.type==='finding'&&row.status===filters.status))
-  .filter((row: AnyRecord)=>filters.priority==='all'||row.severity===filters.priority)
-  .filter((row: AnyRecord)=>filters.department==='all'||(language==='en'?row.departmentEn:row.department)===filters.department)
-  .filter((row: AnyRecord)=>!filters.deviationKind||filters.deviationKind==='all'||row.deviationKind===filters.deviationKind)
-  .filter((row: AnyRecord)=>!filters.cause||filters.cause==='all'||(row.causeCategories||[]).includes(filters.cause))
-  .filter((row: AnyRecord)=>!filters.recurring||filters.recurring==='all'||(filters.recurring==='yes'?row.recurring===true:row.recurring===false))
-  .filter((row: AnyRecord)=>(!filters.dateFrom||day(row)>=filters.dateFrom)&&(!filters.dateTo||day(row)<=filters.dateTo))
-  .filter((row: AnyRecord)=>!filters.quick||(filters.quick==='withoutCapa'?row.type==='finding'&&row.status!=='closed'&&!row.hasCapa:true))
+  .filter((row: RegisterRow)=>filters.scope==='all'||(filters.scope==='registry'?row.type==='finding':row.type==='deviation'))
+  .filter((row: RegisterRow)=>!text||`${row.code} ${row.title} ${row.titleEn} ${row.owner||''} ${row.department||''} ${row.item?.reportedBy||''}`.toLowerCase().includes(text))
+  .filter((row: RegisterRow)=>filters.source==='all'||row.source===filters.source)
+  .filter((row: RegisterRow)=>filters.status==='all'||(row.type==='finding'&&row.status===filters.status))
+  .filter((row: RegisterRow)=>filters.priority==='all'||row.severity===filters.priority)
+  .filter((row: RegisterRow)=>filters.department==='all'||(language==='en'?row.departmentEn:row.department)===filters.department)
+  .filter((row: RegisterRow)=>!filters.deviationKind||filters.deviationKind==='all'||row.deviationKind===filters.deviationKind)
+  .filter((row: RegisterRow)=>!filters.cause||filters.cause==='all'||(row.causeCategories||[]).includes(filters.cause))
+  .filter((row: RegisterRow)=>!filters.recurring||filters.recurring==='all'||(filters.recurring==='yes'?row.recurring===true:row.recurring===false))
+  .filter((row: RegisterRow)=>(!filters.dateFrom||day(row)>=filters.dateFrom)&&(!filters.dateTo||day(row)<=filters.dateTo))
+  .filter((row: RegisterRow)=>!filters.quick||(filters.quick==='withoutCapa'?row.type==='finding'&&row.status!=='closed'&&!row.hasCapa:true))
 }
 
 // Real findings are the register. Automatic deviations are an additional
 // review queue, visible via the scope filter but not counted as existing
 // findings until Quality turns them into a governed record.
-export function useDeviations(sources: AnyRecord,language: string){
+export function useDeviations(sources: DeviationSources,language: string){
  const {tenant}=useTenant()
  const [days,setDays]=useState(90)
- const [filters,setFilters]=useState<AnyRecord>(DEVIATION_DEFAULTS)
- const [findings,setFindings]=useState<AnyRecord[]>([])
+ const [filters,setFilters]=useState<DeviationFilters>(DEVIATION_DEFAULTS)
+ const [findings,setFindings]=useState<QualityRecord[]>([])
  const [loading,setLoading]=useState(true)
- const set=(key: string,value: unknown)=>setFilters((current: AnyRecord)=>({...current,[key]:value}))
+ const set=(key: string,value: string | null)=>setFilters((current: DeviationFilters)=>({...current,[key]:value}))
  useEffect(()=>{
   let active=true
   if(!tenant?.id){setFindings([]);setLoading(false);return()=>{active=false}}
@@ -169,73 +171,73 @@ export function useDeviations(sources: AnyRecord,language: string){
  const counts=useMemo(()=>({
   total:registry.length,
   pending:pending.length,
-  open:registry.filter((row: AnyRecord)=>row.status==='open').length,
-  inProgress:registry.filter((row: AnyRecord)=>row.status==='inProgress').length,
-  closed:registry.filter((row: AnyRecord)=>row.status==='closed').length,
-  withoutCapa:registry.filter((row: AnyRecord)=>row.status!=='closed'&&!row.hasCapa).length,
-  high:registry.filter((row: AnyRecord)=>row.severity==='high'||row.severity==='critical').length,
+  open:registry.filter((row: RegisterRow)=>row.status==='open').length,
+  inProgress:registry.filter((row: RegisterRow)=>row.status==='inProgress').length,
+  closed:registry.filter((row: RegisterRow)=>row.status==='closed').length,
+  withoutCapa:registry.filter((row: RegisterRow)=>row.status!=='closed'&&!row.hasCapa).length,
+  high:registry.filter((row: RegisterRow)=>row.severity==='high'||row.severity==='critical').length,
   ...Object.fromEntries(['control','bundle','training'].map(source=>[source,pending.filter(row=>row.source===source).length])),
  }),[registry,pending])
  const departments=useMemo(()=>departmentsOf(rows,language),[rows,language])
  return {rows,registry,pending,base,filtered,counts,filters,set,clear:()=>{setFilters(DEVIATION_DEFAULTS);setDays(90)},days,setDays,departments,loading}
 }
 
-const kindText=(kind: string,language: string)=>vocabularyLabel(REPORT_KINDS,kind,language)
+const kindText=(kind: string | undefined,language: string)=>vocabularyLabel(REPORT_KINDS,kind,language)
 const findingSourceText=(source: string,language: string)=>vocabularyLabel(DEVIATION_SOURCES,source,language)||source
 
-export function reportRegisterExport(rows: AnyRecord[],{language,t,categories}: AnyRecord){
+export function reportRegisterExport(rows: RegisterRow[],{language,t,categories}: {language: string, t: (key: string) => string, categories: CategoryItem[]}){
  const en=language==='en'
  return {
   name:en?'reports':'anafores',
   headers:en?['Code','Date','Classification','Category','Title','Department','Responsible','Stage','Status','Sentinel','Description','People involved','Patient record no.','Room','Causes','Notes']:['Κωδικός','Ημερομηνία','Ταξινόμηση','Κατηγορία','Τίτλος','Τμήμα','Υπεύθυνος','Στάδιο','Κατάσταση','Sentinel','Περιγραφή','Εμπλεκόμενοι','Κωδικός ασθενή','Θάλαμος','Αίτια','Σημειώσεις'],
-  rows:rows.map((row: AnyRecord)=>{const r=row.record||{};return [row.code,row.date,kindText(row.kind,language),incidentCategoryLabel(row.category,categories,language),en?row.titleEn:row.title,en?row.departmentEn:row.department,row.owner,stageLabel(row.stage,language),t(row.status),row.sentinel?(en?'Yes':'Ναι'):'',(en?r.descriptionEn:r.description)||'',r.involvedPeople||'',r.patientReference||'',r.room||'',r.rootCause||'',r.notes||'']}),
+  rows:rows.map((row: RegisterRow)=>{const r: Partial<QualityRecord>=row.record||{};return [row.code,row.date,kindText(row.kind,language),incidentCategoryLabel(row.category,categories,language),en?row.titleEn:row.title,en?row.departmentEn:row.department,row.owner,stageLabel(row.stage,language),t(row.status),row.sentinel?(en?'Yes':'Ναι'):'',(en?r.descriptionEn:r.description)||'',r.involvedPeople||'',r.patientReference||'',r.room||'',r.rootCause||'',r.notes||'']}),
  }
 }
 
-export function deviationsExport(rows: AnyRecord[],{language,t}: AnyRecord){
+export function deviationsExport(rows: RegisterRow[],{language,t}: {language: string, t: (key: string) => string}){
  const en=language==='en'
  return {
   name:en?'deviations':'apokliseis',
   headers:en?['Code','Date','Kind','Source','Title','Department','Status','Priority','Responsible','Reported by','Recurring','Cause categories','Analysis of the causes','Description']:['Κωδικός','Ημερομηνία','Είδος','Πηγή','Τίτλος','Τμήμα','Κατάσταση','Προτεραιότητα','Υπεύθυνος','Αναφέρθηκε από','Επαναλαμβανόμενη','Κατηγορίες αιτιών','Ανάλυση αιτιών','Περιγραφή'],
-  rows:rows.map((row: AnyRecord)=>{const r=row.item||{};return [row.code,row.date,row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):'',findingSourceText(row.source,language),en?row.titleEn:row.title,en?row.departmentEn:row.department,row.type==='finding'?t(row.status):(en?'To assess':'Προς αξιολόγηση'),t(row.severity),row.owner||'',r.reportedBy||'',row.recurring==null?'':row.recurring?(en?'Yes':'Ναι'):(en?'No':'Όχι'),causeCategoriesText(row.causeCategories||[],language),r.rootCause||'',(en?r.descriptionEn:r.description)||r.description||'']}),
+  rows:rows.map((row: RegisterRow)=>{const r: Partial<QualityRecord>=row.item||{};return [row.code,row.date,row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):'',findingSourceText(row.source,language),en?row.titleEn:row.title,en?row.departmentEn:row.department,row.type==='finding'?t(row.status):(en?'To assess':'Προς αξιολόγηση'),t(row.severity as string),row.owner||'',r.reportedBy||'',row.recurring==null?'':row.recurring?(en?'Yes':'Ναι'):(en?'No':'Όχι'),causeCategoriesText(row.causeCategories||[],language),r.rootCause||'',(en?r.descriptionEn:r.description)||r.description||'']}),
  }
 }
 
 
-function ageText(row: AnyRecord,language: string){
+function ageText(row: RegisterRow,language: string){
  const days=-Number(daysUntil(row.date))
  if(row.stage==='closed'||!Number.isFinite(days)||days<0)return ''
  return language==='en'?`${days} ${days===1?'day':'days'} open`:`${days} ${days===1?'ημέρα':'ημέρες'} ανοιχτή`
 }
 
 const WAITING_DAYS=7
-const waitingDays=(row: AnyRecord)=>{const days=-Number(daysUntil(row.date));return row.stage==='closed'||row.stage==='voided'||!Number.isFinite(days)?null:Math.max(0,days)}
+const waitingDays=(row: RegisterRow)=>{const days=-Number(daysUntil(row.date));return row.stage==='closed'||row.stage==='voided'||!Number.isFinite(days)?null:Math.max(0,days)}
 const PERIOD_DAYS: Record<string, number>={today:0,'7d':7,'30d':30}
 const SEVERITY_RANK: Record<string, number>={critical:4,high:3,medium:2,low:1}
 // Open records first (sentinel events, then the more severe, then the newest), closed ones after.
 // Deviations: those still without a corrective action first, then the open ones by priority, closed ones last.
-const deviationOrder=(a: AnyRecord,b: AnyRecord)=>{
- const rank=(row: AnyRecord)=>row.type==='finding'&&row.status==='closed'?2:row.type==='finding'&&!row.hasCapa?0:1
- return rank(a)-rank(b)||(SEVERITY_RANK[b.severity]||0)-(SEVERITY_RANK[a.severity]||0)||String(b.date).localeCompare(String(a.date))
+const deviationOrder=(a: RegisterRow,b: RegisterRow)=>{
+ const rank=(row: RegisterRow)=>row.type==='finding'&&row.status==='closed'?2:row.type==='finding'&&!row.hasCapa?0:1
+ return rank(a)-rank(b)||(SEVERITY_RANK[b.severity as string]||0)-(SEVERITY_RANK[a.severity as string]||0)||String(b.date).localeCompare(String(a.date))
 }
-const openFirst=(a: AnyRecord,b: AnyRecord)=>{
- const closed=(row: AnyRecord)=>row.stage==='closed'||row.stage==='voided'?1:0
- return closed(a)-closed(b)||(b.sentinel?1:0)-(a.sentinel?1:0)||(SEVERITY_RANK[b.severity]||0)-(SEVERITY_RANK[a.severity]||0)||String(b.date).localeCompare(String(a.date))
+const openFirst=(a: RegisterRow,b: RegisterRow)=>{
+ const closed=(row: RegisterRow)=>row.stage==='closed'||row.stage==='voided'?1:0
+ return closed(a)-closed(b)||(b.sentinel?1:0)-(a.sentinel?1:0)||(SEVERITY_RANK[b.severity as string]||0)-(SEVERITY_RANK[a.severity as string]||0)||String(b.date).localeCompare(String(a.date))
 }
 
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
 // summary line and the usual filter popover instead of boxes and extra columns.
-export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false,totals=false}: { view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, categories: AnyRecord[], registry: AnyRecord, onOpenReport: (row: AnyRecord, items: AnyRecord[]) => void, inbox?: boolean, compact?: boolean, totals?: boolean }){
+export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false,totals=false}: { view: ReturnType<typeof useClassifiedRegister>, loading: boolean, language: string, t: (key: string) => string, categories: CategoryItem[], registry: ReturnType<typeof useRegistryMemory>, onOpenReport: (row: RegisterRow, items: RegisterRow[]) => void, inbox?: boolean, compact?: boolean, totals?: boolean }){
  const en=language==='en'
  const {filters,set}=view
  const quick=inbox?filters.quick:null
- const items=useMemo(()=>inbox?view.filtered.filter((row: AnyRecord)=>{
+ const items=useMemo(()=>inbox?view.filtered.filter((row: RegisterRow)=>{
   const age=-Number(daysUntil(row.date)),days=waitingDays(row)
   return (!quick||(days!=null&&(quick==='waiting'?days>=WAITING_DAYS:quick==='new'?days<WAITING_DAYS:true)))
    &&(filters.period==='all'||(Number.isFinite(age)&&age<=PERIOD_DAYS[filters.period]))
    &&(filters.origin==='all'||(filters.origin==='anonymous')===Boolean(row.anonymous))
  }):compact?[...view.filtered].sort(openFirst):view.filtered,[view.filtered,inbox,compact,quick,filters.period,filters.origin])
- const sortBy={code:(row: AnyRecord)=>row.code,title:(row: AnyRecord)=>(en?row.titleEn:row.title),kind:(row: AnyRecord)=>row.kind,department:(row: AnyRecord)=>(en?row.departmentEn:row.department),date:(row: AnyRecord)=>row.date,stage:(row: AnyRecord)=>row.stage,owner:(row: AnyRecord)=>row.owner,reporter:(row: AnyRecord)=>(row.anonymous?'':row.reporter)}
+ const sortBy={code:(row: RegisterRow)=>row.code,title:(row: RegisterRow)=>(en?row.titleEn:row.title),kind:(row: RegisterRow)=>row.kind,department:(row: RegisterRow)=>(en?row.departmentEn:row.department),date:(row: RegisterRow)=>row.date,stage:(row: RegisterRow)=>row.stage,owner:(row: RegisterRow)=>row.owner,reporter:(row: RegisterRow)=>(row.anonymous?'':row.reporter)}
  const paging=useSortedPaging(items,JSON.stringify(filters),sortBy)
  const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+Number(filters.period!=='all')+Number(filters.origin!=='all')+Number(filters.department!=='all')
  const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length+(filters.dateFrom?1:0)+(filters.dateTo?1:0)
@@ -261,9 +263,9 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  // The incident register's totals beside the search: all it shows, the open and the closed ones, the sentinel events.
  const base=view.base||view.filtered
  const toggle=(key: string)=>()=>set('quick',filters.quick===key?null:key)
- const isOpen=(row: AnyRecord)=>!['closed','voided'].includes(row.stage)
+ const isOpen=(row: RegisterRow)=>!['closed','voided'].includes(row.stage as string)
  // The inbox's totals beside the search (instead of cards above it): what waits, how long the oldest has waited.
- const waits=inbox?view.rows.map(waitingDays).filter((days: number)=>days!=null):[]
+ const waits=inbox?view.rows.map(waitingDays).filter((days: number | null)=>days!=null):[]
  const oldest=waits.length?Math.max(...waits):0
  const inboxTotals=inbox&&totals?<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
   {key:'toAssess',always:true,value:waits.length,label:en?'to assess':'προς αξιολόγηση',active:!filters.quick,onClick:()=>view.clear()},
@@ -273,59 +275,59 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const end=inbox?inboxTotals:totals?<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
   {key:'all',always:true,value:base.length,label:en?'incidents':'συμβάντα',active:!filters.quick,onClick:()=>set('quick',null)},
   {key:'open',value:base.filter(isOpen).length,label:en?'open':'ανοιχτά',active:filters.quick==='open',onClick:toggle('open')},
-  {key:'closed',value:base.filter((row: AnyRecord)=>row.stage==='closed').length,label:en?'closed':'κλειστά',active:filters.quick==='closed',onClick:toggle('closed')},
-  {key:'sentinel',value:base.filter((row: AnyRecord)=>row.sentinel&&isOpen(row)).length,label:'sentinel',active:filters.quick==='sentinel',onClick:toggle('sentinel')},
+  {key:'closed',value:base.filter((row: RegisterRow)=>row.stage==='closed').length,label:en?'closed':'κλειστά',active:filters.quick==='closed',onClick:toggle('closed')},
+  {key:'sentinel',value:base.filter((row: RegisterRow)=>row.sentinel&&isOpen(row)).length,label:'sentinel',active:filters.quick==='sentinel',onClick:toggle('sentinel')},
  ]}/>:null
  return <>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={inbox?(en?'Search code, title, department, reporter…':'Αναζήτηση σε κωδικό, τίτλο, τμήμα, αναφέροντα…'):(en?'Search…':'Αναζήτηση…')} activeAdvancedCount={advanced} onClear={view.clear} end={end}>
    {popover}
   </FilterBar>
-  <div className="scroll-table" ref={registry?.scrollRef}>
+  <div className="scroll-table" ref={registry?.scrollRef as RefObject<HTMLDivElement>}>
    <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
     columns={withSort(columns||[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}],sortBy)}
     emptyTitle={en?'No records':'Δεν υπάρχουν εγγραφές'} emptyText={en?'Reports appear in the inbox first; after Quality classifies them they move to the incident register.':'Οι νέες αναφορές εμφανίζονται πρώτα στο inbox· μετά την ταξινόμηση από την Ποιότητα μεταφέρονται στο μητρώο Συμβάντων.'}
     rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,paging.sorted)})}
-    renderRow={row=>{const Icon=KIND_ICON[row.kind]||FileWarning;return <>
+    renderRow={row=>{const Icon=KIND_ICON[row.kind as string]||FileWarning;return <>
      <td><strong>{row.code}</strong>{row.sentinel?<StatusBadge tone="danger" icon={AlertOctagon}>Sentinel</StatusBadge>:row.severity&&<small>{t(row.severity)}</small>}</td>
      <td>{en?row.titleEn:row.title}{row.category&&row.kind!=='report'&&<small>{incidentCategoryLabel(row.category,categories,language)}</small>}</td>
      {!inbox&&<td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>}
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}{ageText(row,language)&&<small>{ageText(row,language)}</small>}</td>
-     <td>{inbox?<StatusBadge tone={STAGE_TONE[row.stage]||'neutral'}>{stageLabel(row.stage,language)}</StatusBadge>:<StageTrack stage={row.stage} language={language}/>}</td>
-     <td>{inbox?(row.anonymous?(en?'Anonymous':'Ανώνυμη'):row.reporter||'—'):roleTitleText(row.owner,language)||'—'}</td>
+     <td>{inbox?<StatusBadge tone={STAGE_TONE[row.stage as string]||'neutral'}>{stageLabel(row.stage,language)}</StatusBadge>:<StageTrack stage={row.stage as string} language={language}/>}</td>
+     <td>{inbox?(row.anonymous?(en?'Anonymous':'Ανώνυμη'):row.reporter||'—'):(roleTitleText(row.owner,language) as string)||'—'}</td>
     </>}}/>
   </div>
   {items.length>0&&<RegistryPagination language={language} {...paging.props}/>}
  </>
 }
 
-export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}: { view: AnyRecord, loading: boolean, language: string, t: (key: string) => string, registry: AnyRecord, onOpenRow: (row: AnyRecord, rows: AnyRecord[]) => void, onCreateCapa: (prefill: AnyRecord) => void, onCreateFindingCapa: (finding: AnyRecord) => void }){
+export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}: { view: ReturnType<typeof useDeviations>, loading: boolean, language: string, t: (key: string) => string, registry: ReturnType<typeof useRegistryMemory>, onOpenRow: (row: RegisterRow, rows: RegisterRow[]) => void, onCreateCapa: (prefill: ReturnType<typeof capaPrefill>) => void, onCreateFindingCapa: (finding: QualityRecord) => void }){
  const en=language==='en'
  const {filters,set}=view
  const items=useMemo(()=>[...view.filtered].sort(deviationOrder),[view.filtered])
  const severityRank: Record<string, number>={critical:4,high:3,medium:2,low:1}
- const sortBy={code:(row: AnyRecord)=>row.code,title:(row: AnyRecord)=>(en?row.titleEn:row.title),source:(row: AnyRecord)=>row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):findingSourceText(row.source,language),department:(row: AnyRecord)=>(en?row.departmentEn:row.department),date:(row: AnyRecord)=>row.date,status:(row: AnyRecord)=>row.status,priority:(row: AnyRecord)=>severityRank[row.severity]||0}
+ const sortBy={code:(row: RegisterRow)=>row.code,title:(row: RegisterRow)=>(en?row.titleEn:row.title),source:(row: RegisterRow)=>row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):findingSourceText(row.source,language),department:(row: RegisterRow)=>(en?row.departmentEn:row.department),date:(row: RegisterRow)=>row.date,status:(row: RegisterRow)=>row.status,priority:(row: RegisterRow)=>severityRank[row.severity as string]||0}
  const paging=useSortedPaging(items,`${JSON.stringify(filters)}:${view.days}`,sortBy)
  const pendingView=filters.scope==='pending'
  const advanced=['source','department','priority','status','deviationKind','cause','recurring'].filter(key=>filters[key]&&filters[key]!=='all').length+(filters.dateFrom?1:0)+(filters.dateTo?1:0)+(view.days!==90?1:0)
  // Totals beside the search, counted on the list as filtered (without the status and quick figure); each one filters it.
- const base=view.base.filter((row: AnyRecord)=>row.type==='finding')
- const showRegistry=(extra: AnyRecord)=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
+ const base=view.base.filter((row: RegisterRow)=>row.type==='finding')
+ const showRegistry=(extra: Record<string, string | null>)=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
  const plain=!pendingView&&filters.status==='all'&&!filters.quick
  const totals=<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
   {key:'all',always:true,value:base.length,label:en?'deviations':'αποκλίσεις',active:plain,onClick:()=>showRegistry({})},
-  {key:'open',value:base.filter((row: AnyRecord)=>row.status==='open').length,label:en?'open':'ανοιχτές',active:!pendingView&&filters.status==='open',onClick:()=>showRegistry({status:filters.status==='open'?'all':'open'})},
-  {key:'progress',value:base.filter((row: AnyRecord)=>row.status==='inProgress').length,label:en?'in progress':'σε εξέλιξη',active:!pendingView&&filters.status==='inProgress',onClick:()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'})},
-  {key:'withoutCapa',value:base.filter((row: AnyRecord)=>row.status!=='closed'&&!row.hasCapa).length,label:en?'without action':'χωρίς ενέργεια',active:!pendingView&&filters.quick==='withoutCapa',onClick:()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'})},
+  {key:'open',value:base.filter((row: RegisterRow)=>row.status==='open').length,label:en?'open':'ανοιχτές',active:!pendingView&&filters.status==='open',onClick:()=>showRegistry({status:filters.status==='open'?'all':'open'})},
+  {key:'progress',value:base.filter((row: RegisterRow)=>row.status==='inProgress').length,label:en?'in progress':'σε εξέλιξη',active:!pendingView&&filters.status==='inProgress',onClick:()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'})},
+  {key:'withoutCapa',value:base.filter((row: RegisterRow)=>row.status!=='closed'&&!row.hasCapa).length,label:en?'without action':'χωρίς ενέργεια',active:!pendingView&&filters.quick==='withoutCapa',onClick:()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'})},
   {key:'pending',value:view.counts.pending,label:en?'automatic signals':'αυτόματα σήματα',active:pendingView,onClick:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
  ]}/>
  const statusTone=(status: string)=>status==='closed'?'success':status==='inProgress'?'info':'warning'
- const needsAction=(row: AnyRecord)=>row.type==='finding'&&!row.hasCapa&&row.status!=='closed'
+ const needsAction=(row: RegisterRow)=>row.type==='finding'&&!row.hasCapa&&row.status!=='closed'
  const showActions=pendingView||items.some(needsAction)
  return <>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search deviations…':'Αναζήτηση αποκλίσεων…'} activeAdvancedCount={advanced} onClear={view.clear} end={totals}>
-   <FilterSelect label={en?'Kind of deviation':'Είδος απόκλισης'} value={filters.deviationKind} onChange={(value: string)=>set('deviationKind',value)}><option value="all">{en?'All':'Όλα'}</option>{DEVIATION_KINDS.filter(item=>view.rows.some((row: AnyRecord)=>row.deviationKind===item.value)).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
-   <FilterSelect label={en?'Cause':'Αιτία'} value={filters.cause} onChange={(value: string)=>set('cause',value)}><option value="all">{en?'All':'Όλες'}</option>{CAUSE_CATEGORIES.filter(item=>view.rows.some((row: AnyRecord)=>(row.causeCategories||[]).includes(item.value))).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Kind of deviation':'Είδος απόκλισης'} value={filters.deviationKind} onChange={(value: string)=>set('deviationKind',value)}><option value="all">{en?'All':'Όλα'}</option>{DEVIATION_KINDS.filter(item=>view.rows.some((row: RegisterRow)=>row.deviationKind===item.value)).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Cause':'Αιτία'} value={filters.cause} onChange={(value: string)=>set('cause',value)}><option value="all">{en?'All':'Όλες'}</option>{CAUSE_CATEGORIES.filter(item=>view.rows.some((row: RegisterRow)=>(row.causeCategories||[]).includes(item.value))).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Recurring':'Επαναλαμβανόμενη'} value={filters.recurring} onChange={(value: string)=>set('recurring',value)}><option value="all">{en?'All':'Όλες'}</option><option value="yes">{en?'Yes':'Ναι'}</option><option value="no">{en?'No':'Όχι'}</option></FilterSelect>
    <FilterSelect label={en?'Source':'Πηγή'} value={filters.source} onChange={(value: string)=>set('source',value)}><option value="all">{en?'All':'Όλες'}</option>{DEVIATION_SOURCES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Status':'Κατάσταση'} value={filters.status} onChange={(value: string)=>set('status',value)}><option value="all">{en?'All':'Όλες'}</option><option value="open">{en?'Open':'Ανοιχτή'}</option><option value="inProgress">{en?'In progress':'Σε εξέλιξη'}</option><option value="closed">{en?'Closed':'Κλειστή'}</option></FilterSelect>
@@ -335,7 +337,7 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
    <FilterDate label={en?'To':'Έως'} value={filters.dateTo||''} onChange={(value: string)=>set('dateTo',value)}/>
    {pendingView&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map((value: number)=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
   </FilterBar>
-  <div className="scroll-table" ref={registry?.scrollRef}>
+  <div className="scroll-table" ref={registry?.scrollRef as RefObject<HTMLDivElement>}>
    <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
     columns={withSort([{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Kind / source':'Είδος / πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])],sortBy)}
     emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “Signals from other modules” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στα «Σήματα από άλλες ενότητες» μέχρι να τις εξετάσει η Ποιότητα.'}
@@ -347,11 +349,11 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}</td>
      <td>{row.type==='finding'?<StatusBadge tone={statusTone(row.status)}>{t(row.status)}</StatusBadge>:<StatusBadge tone="warning">{en?'To assess':'Προς αξιολόγηση'}</StatusBadge>}</td>
-     <td><StatusBadge tone={row.severity==='critical'?'danger':row.severity==='high'?'warning':'neutral'}>{t(row.severity)}</StatusBadge></td>
+     <td><StatusBadge tone={row.severity==='critical'?'danger':row.severity==='high'?'warning':'neutral'}>{t(row.severity as string)}</StatusBadge></td>
      {showActions&&<td className="quality-register-actions" onClick={event=>event.stopPropagation()}>
       <OverflowMenu label={en?'Actions':'Ενέργειες'} items={[
        row.type==='deviation'?{label:en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας',icon:Plus,onClick:()=>onCreateCapa(capaPrefill(row.item,language))}:null,
-       needsAction(row)?{label:en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας',icon:Plus,onClick:()=>onCreateFindingCapa(row.item)}:null,
+       needsAction(row)?{label:en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας',icon:Plus,onClick:()=>onCreateFindingCapa(row.item as QualityRecord)}:null,
       ]}/>
      </td>}
     </>}}/>

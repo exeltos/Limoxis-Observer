@@ -5,7 +5,7 @@ import { Meter } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
 import { subActionProgress } from './qualityDeviations'
 import { EFFECTIVENESS, qualityCode, qualityStatusTone, vocabularyLabel } from './qualityVocabulary'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { QualityRecord } from './qualityTypes'
 
 // The flow of an incident beside its details: reported → assessment → CAPA →
 // effectiveness → closed (qualityRecordRules.incidentFlow). A step opens the
@@ -21,47 +21,50 @@ const STEPS: Record<string, { label: string[], tab: string }> = {
 // A deviation (finding) goes through the same steps; only some words differ.
 const FINDING_REPORTED = ['Εντοπίστηκε', 'Found']
 
-const isDone = (capa: AnyRecord) => ['closed', 'completed', 'cancelled'].includes(capa.status)
+// A step of the flow (incidentFlow, findingFlow) and where it stands.
+type FlowStep = { id: string, status: string }
+
+const isDone = (capa: QualityRecord) => ['closed', 'completed', 'cancelled'].includes(capa.status)
 
 // What a step says under its name.
-function stepNote(id: string, status: string, { record, capas, language, t, kind = 'incident' }: AnyRecord) {
+function stepNote(id: string, status: string, { record, capas, language, t, kind = 'incident' }: { record: QualityRecord, capas: QualityRecord[], language: string, t: (key: string) => string, kind?: string }) {
   const en = language === 'en'
   if (kind === 'finding') {
     if (status === 'skipped') return en ? 'Not needed' : 'Δεν χρειάστηκε'
     if (id === 'reported') return [formatDay(record.date, language), record.reportedBy].filter(Boolean).join(' · ')
     if (id === 'assessment') {
       if (status !== 'done') return en ? 'Severity, causes, is an action needed' : 'Σοβαρότητα, αιτίες, αν χρειάζεται ενέργεια'
-      return [t(record.severity), record.correctiveActionNeeded === false ? (en ? 'No action needed' : 'Δεν απαιτείται ενέργεια') : record.correctiveActionNeeded === true ? (en ? 'Action needed' : 'Απαιτείται ενέργεια') : ''].filter(Boolean).join(' · ')
+      return [t(record.severity as string), record.correctiveActionNeeded === false ? (en ? 'No action needed' : 'Δεν απαιτείται ενέργεια') : record.correctiveActionNeeded === true ? (en ? 'Action needed' : 'Απαιτείται ενέργεια') : ''].filter(Boolean).join(' · ')
     }
     if (id === 'closed') return status === 'done' ? (en ? 'The deviation is closed' : 'Η απόκλιση έκλεισε') : ''
   }
   if (status === 'skipped') return en ? 'Not needed' : 'Δεν χρειάστηκε'
   if (id === 'reported') return [formatDay(record.date, language), record.privacy === 'confidential' ? (en ? 'Confidential' : 'Εμπιστευτικά') : record.anonymous ? (en ? 'Anonymous' : 'Ανώνυμα') : record.reportedBy].filter(Boolean).join(' · ')
-  if (id === 'assessment') return status === 'done' ? [t(record.severity), record.sentinel ? 'Sentinel' : ''].filter(Boolean).join(' · ') : en ? 'Severity, harm, root cause' : 'Σοβαρότητα, βλάβη, βασική αιτία'
+  if (id === 'assessment') return status === 'done' ? [t(record.severity as string), record.sentinel ? 'Sentinel' : ''].filter(Boolean).join(' · ') : en ? 'Severity, harm, root cause' : 'Σοβαρότητα, βλάβη, βασική αιτία'
   if (id === 'capa') return capas.length ? (en ? `${capas.filter(isDone).length}/${capas.length} completed` : `${capas.filter(isDone).length}/${capas.length} ολοκληρώθηκαν`) : record.sentinel ? (en ? 'Root cause analysis required' : 'Απαιτείται ανάλυση ριζικής αιτίας') : (en ? 'If the assessment calls for one' : 'Αν η αξιολόγηση το ζητά')
-  if (id === 'effectiveness' && status !== 'done' && capas.some((capa: AnyRecord) => !isDone(capa))) return en ? 'After the action is completed' : 'Μετά την ολοκλήρωση της ενέργειας'
+  if (id === 'effectiveness' && status !== 'done' && capas.some((capa: QualityRecord) => !isDone(capa))) return en ? 'After the action is completed' : 'Μετά την ολοκλήρωση της ενέργειας'
   if (id === 'effectiveness') return status === 'done' ? (en ? 'Effective' : 'Αποτελεσματική') : capas.length ? vocabularyLabel(EFFECTIVENESS, capas[0].effectivenessStatus || 'pending', language) : ''
   if (id === 'closed') return status === 'done' ? (en ? 'The incident is closed' : 'Το συμβάν έκλεισε') : ''
   return ''
 }
 
 // The next step for whoever manages Quality: its label and what it opens.
-export function nextIncidentStep(steps: AnyRecord[], { record, capas, en, kind = 'incident' }: AnyRecord) {
-  const current = steps.find((step: AnyRecord) => step.status === 'current')?.id
+export function nextIncidentStep(steps: FlowStep[], { record, capas, en, kind = 'incident' }: { record: QualityRecord, capas: QualityRecord[], en: boolean, kind?: string }) {
+  const current = steps.find((step: FlowStep) => step.status === 'current')?.id
   if (!current || record.status === 'closed') return null
   if (kind === 'finding') {
     if (current === 'assessment') return { id: 'assess', label: en ? 'Assess the deviation' : 'Αξιολόγηση απόκλισης' }
     if (current === 'capa') return { id: 'capa', label: en ? 'New corrective action' : 'Νέα διορθωτική ενέργεια', hint: en ? 'The assessment says an action is needed.' : 'Η αξιολόγηση ορίζει ότι χρειάζεται ενέργεια.' }
-    if (current === 'effectiveness') return { id: 'openCapa', label: en ? 'Open the corrective action' : 'Άνοιγμα διορθωτικής ενέργειας', capa: capas.find((capa: AnyRecord) => !isDone(capa)) || capas[0] }
+    if (current === 'effectiveness') return { id: 'openCapa', label: en ? 'Open the corrective action' : 'Άνοιγμα διορθωτικής ενέργειας', capa: capas.find((capa: QualityRecord) => !isDone(capa)) || capas[0] }
     return { id: 'close', label: en ? 'Close the deviation' : 'Κλείσιμο απόκλισης' }
   }
   if (current === 'assessment') return { id: 'assess', label: en ? 'Assess the incident' : 'Αξιολόγηση συμβάντος' }
   if (current === 'capa') return { id: 'capa', label: record.sentinel ? (en ? 'Open the root cause analysis' : 'Άνοιγμα ανάλυσης ριζικής αιτίας') : (en ? 'New corrective action' : 'Νέα διορθωτική ενέργεια'), hint: record.sentinel ? '' : (en ? 'Or close the incident if none is needed.' : 'Ή κλείστε το συμβάν, αν δεν χρειάζεται.') }
-  if (current === 'effectiveness') return { id: 'openCapa', label: en ? 'Open the corrective action' : 'Άνοιγμα διορθωτικής ενέργειας', capa: capas.find((capa: AnyRecord) => !isDone(capa)) || capas[0] }
+  if (current === 'effectiveness') return { id: 'openCapa', label: en ? 'Open the corrective action' : 'Άνοιγμα διορθωτικής ενέργειας', capa: capas.find((capa: QualityRecord) => !isDone(capa)) || capas[0] }
   return { id: 'close', label: en ? 'Close the incident' : 'Κλείσιμο συμβάντος' }
 }
 
-export function IncidentFlowPanel({ steps = [], record, capas = [], language = 'el', t, activeTab, canAct = false, kind = 'incident', onSelect, onStep, onOpenCapa }: { steps?: AnyRecord[], record: AnyRecord, capas?: AnyRecord[], language?: string, t: (key: string) => string, activeTab: string, canAct?: boolean, kind?: string, onSelect: (id: string) => void, onStep: (next: AnyRecord) => void, onOpenCapa: (capa: AnyRecord) => void }) {
+export function IncidentFlowPanel({ steps = [], record, capas = [], language = 'el', t, activeTab, canAct = false, kind = 'incident', onSelect, onStep, onOpenCapa }: { steps?: FlowStep[], record: QualityRecord, capas?: QualityRecord[], language?: string, t: (key: string) => string, activeTab: string, canAct?: boolean, kind?: string, onSelect: (id: string) => void, onStep: (next: NonNullable<ReturnType<typeof nextIncidentStep>>) => void, onOpenCapa: (capa: QualityRecord) => void }) {
   const en = language === 'en'
   const next = canAct ? nextIncidentStep(steps, { record, capas, en, kind }) : null
   return (

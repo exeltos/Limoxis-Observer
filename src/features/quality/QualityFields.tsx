@@ -8,7 +8,8 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadAcknowledgementMembers } from '../documents/acknowledgementLog'
 import { recordOwners } from './qualityRecordRules'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AckMember } from '../documents/acknowledgementLog'
+import type { QualityDraft, QualityPerson } from './qualityTypes'
 
 // The fields every Quality form shares: the department (from the central
 // departments) and the responsible people (employees, so the first one with an
@@ -17,12 +18,12 @@ import type { AnyRecord } from '../../types/featureTypes'
 const selectText = (en: boolean) => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
 // A record points at its department by id in the cloud and by name in the demo.
-export const departmentRef = (record: AnyRecord) => record?.departmentId || record?.department || ''
+export const departmentRef = (record: QualityDraft | null | undefined) => record?.departmentId || record?.department || ''
 
 export function QualityDepartmentField({ value, onChange, label, required = false }: { value: string, onChange: (department: { departmentId: string, department: string, departmentEn: string }) => void, label?: string, required?: boolean }) {
   const { language } = useLanguage()
   const en = language === 'en'
-  const { departments, loading }: { departments: AnyRecord[], loading: boolean } = useDepartments()
+  const { departments, loading } = useDepartments()
   const options = useMemo(() => departments.map(dep => ({ value: dep.id || dep.name, label: en ? dep.nameEn || dep.name : dep.name, keywords: `${dep.name} ${dep.nameEn}` })), [departments, en])
   const choose = (id: string) => {
     const dep = departments.find(item => (item.id || item.name) === id)
@@ -35,17 +36,17 @@ export function QualityDepartmentField({ value, onChange, label, required = fals
 // employee (positions written in earlier records), so nothing disappears.
 function usePeople(extraNames: string[] = [], departments: string[] = []) {
   const { language } = useLanguage()
-  const { data: staff = [] }: { data?: AnyRecord[] } = useEmployeesData()
+  const { data: staff = [] } = useEmployeesData()
   const members = useMemberDirectory()
   // A role that reads only its own staff row (the quality manager) still picks
   // anyone with an account, from the organization's member directory.
-  const employees = useMemo(() => {
+  const employees = useMemo((): QualityPerson[] => {
     const linked = new Set(staff.map(employee => employee.userId).filter(Boolean))
     return [...staff, ...members.filter(member => member.userId && !linked.has(member.userId)).map(member => ({ id: `user:${member.userId}`, dbId: `user:${member.userId}`, userId: member.userId, firstName: member.name, lastName: '', firstNameEn: member.name, lastNameEn: '', position: member.profession, positionEn: member.professionEn, department: member.department, employmentStatus: 'active' }))]
   }, [staff, members])
   return useMemo(() => {
     const { options, near } = employeeOptions(employees as never[], language, departments as never[])
-    const byName = new Map<string, AnyRecord>()
+    const byName = new Map<string, QualityPerson>()
     for (const employee of employees) for (const name of [employeeName(employee as never), employeeName(employee as never, 'en')]) if (name) byName.set(name, employee)
     const known = new Set(options.map(option => option.label))
     const custom = extraNames.filter(name => name && !byName.has(name) && !known.has(name)).map(name => ({ value: `name:${name}`, label: name }))
@@ -53,14 +54,14 @@ function usePeople(extraNames: string[] = [], departments: string[] = []) {
   }, [employees, language, extraNames, departments])
 }
 
-const idOf = (employee: AnyRecord) => String(employee.dbId || employee.id)
+const idOf = (employee: QualityPerson) => String(employee.dbId || employee.id)
 
 // The organization's active members with an account (cloud only; the demo has
 // its full staff list). Empty when the directory function is not available.
 function useMemberDirectory() {
   const { tenant, isDemo } = useTenant()
   const organizationId = tenant?.id || ''
-  const [members, setMembers] = useState<AnyRecord[]>([])
+  const [members, setMembers] = useState<AckMember[]>([])
   useEffect(() => {
     let active = true
     if (isDemo || isDemoDataEnvironment() || !organizationId) { setMembers([]); return () => { active = false } }
@@ -72,7 +73,7 @@ function useMemberDirectory() {
 
 // Several people: pick an employee or type a name (the staff list a role may
 // read can be short, e.g. only its own row), shown as removable chips.
-export function QualityOwnerField({ record, onChange, label }: { record: AnyRecord | null, onChange: (patch: AnyRecord) => void, label?: string }) {
+export function QualityOwnerField({ record, onChange, label }: { record: QualityDraft | null, onChange: (patch: Pick<QualityDraft, 'owners' | 'owner' | 'ownerId'>) => void, label?: string }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const names: string[] = recordOwners(record || {})
@@ -97,7 +98,7 @@ export function QualityOwnerField({ record, onChange, label }: { record: AnyReco
 }
 
 // One person with an account who may see a private report (their user id, not a name).
-export function QualityVisiblePersonField({ value, onChange, label }: { value: string, onChange: (userId: string) => void, label: string }) {
+export function QualityVisiblePersonField({ value, onChange, label }: { value: string | null | undefined, onChange: (userId: string) => void, label: string }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const people = usePeople()
@@ -108,12 +109,12 @@ export function QualityVisiblePersonField({ value, onChange, label }: { value: s
 }
 
 // One person (the lead auditor): an employee or a typed name.
-export function QualityPersonField({ name, onChange, label, department }: { name: string, onChange: (person: AnyRecord) => void, label: string, department?: string }) {
+export function QualityPersonField({ name, onChange, label, department }: { name: string, onChange: (person: { name: string, userId: string | null }) => void, label: string, department?: string }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const extra = useMemo(() => [name].filter(Boolean), [name])
   const people = usePeople(extra, [department].filter(Boolean))
-  const value = name ? (people.byName.has(name) ? idOf(people.byName.get(name) as AnyRecord) : `name:${name}`) : ''
+  const value = name ? (people.byName.has(name) ? idOf(people.byName.get(name) as QualityPerson) : `name:${name}`) : ''
   function change(id: string) {
     if (!id) return onChange?.({ name: '', userId: null })
     if (id.startsWith('name:')) return onChange?.({ name: id.slice(5), userId: null })

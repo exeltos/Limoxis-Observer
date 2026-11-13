@@ -4,6 +4,7 @@ import { ObserverDialog } from '../../../design-system/ObserverDialog'
 import { ModeSwitch } from '../../../design-system/ModeSwitch'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { FormSubmit, useFormValidation } from '../../../design-system/FormValidation'
+import type { FormValidation } from '../../../design-system/FormValidation'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { TenantContext } from '../../../core/tenant/TenantContext'
@@ -28,9 +29,9 @@ import { fill } from './epiQuestionnaireText'
 import { loadEpiQuestionnaires, loadEpiSettings, saveEpiCoreAnswers, saveEpiQuestionnaire } from './epiQuestionnaireService'
 import { athensToday } from '../forms/formStatus'
 import './epiQuestionnaire.css'
-import type { AnyRecord } from '../../../types/featureTypes'
 import type { Handler } from '../surveillanceTypes'
 import type { EpiAnswers } from './epiQuestionnaireModel'
+import type { EpiAdmission, EpiAnswer, EpiEpisode, EpiQuestion, EpiQuestionnaire, EpiQuestionnaireLike, EpiSample, EpiSetting } from './epiQuestionnaireTypes'
 
 const OPTIONS = (t: (key: string) => string) => [
   { value: EPI_ANSWER.YES, label: t('epiQuestionnaire.yes') },
@@ -39,11 +40,11 @@ const OPTIONS = (t: (key: string) => string) => [
 ]
 
 interface QuestionRowProps {
-  question: AnyRecord
-  entry: AnyRecord
-  suggestion: AnyRecord
-  onChange: Handler
-  form: AnyRecord
+  question: EpiQuestion
+  entry: EpiAnswer | undefined
+  suggestion: EpiAnswer | undefined
+  onChange: (change: EpiAnswer) => void
+  form: FormValidation
   withDetail?: boolean
   disabled?: boolean
   optional?: boolean
@@ -87,16 +88,25 @@ function QuestionRow({ question, entry, suggestion, onChange, form, withDetail =
   )
 }
 
-const stepOf = (question: AnyRecord, step: AnyRecord) => question.step === step.id
+const stepOf = (question: EpiQuestion, step: { id: number }) => question.step === step.id
 
 // The hospital's settings applied (wording, help, on / off) once per mount.
-const useEffectiveQuestions = (settings: AnyRecord[]) => useMemo(() => applyEpiSettings(settings || []), [settings])
+const useEffectiveQuestions = (settings: EpiSetting[]) => useMemo(() => applyEpiSettings(settings || []), [settings])
 
+// What the dialog reads of the screen that opens it (the patient sheet or the surveillance sheet).
+interface EpiDialogContext {
+  organizationId?: string | null
+  isDemo?: boolean
+  fmtDate?: Handler
+  patient?: { id?: string, name?: string, nameEn?: string } | null
+  admission?: EpiAdmission | null
+  samples?: EpiSample[] | null
+}
 interface EpiQuestionnaireDialogProps {
-  ctx: AnyRecord
-  episode: AnyRecord
-  row: AnyRecord | null
-  settings: AnyRecord[]
+  ctx: EpiDialogContext
+  episode: EpiEpisode
+  row: EpiQuestionnaireLike | null
+  settings: EpiSetting[]
   canEdit: boolean
   inSheet?: boolean
   onClose?: Handler | null
@@ -109,7 +119,7 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
   const questions = useEffectiveQuestions(settings)
   const shown = activeEpiQuestions(questions)
   const episodeSamples = useMemo(
-    () => (ctx.samples || []).filter((sample: AnyRecord) => [episode.id, episode.recordId].filter(Boolean).map(String).includes(String(sample.surveillanceCase || sample.surveillanceCaseId || ''))),
+    () => (ctx.samples || []).filter((sample: EpiSample) => [episode.id, episode.recordId].filter(Boolean).map(String).includes(String(sample.surveillanceCase || sample.surveillanceCaseId || ''))),
     [ctx.samples, episode],
   )
   const prefill = useMemo(
@@ -124,13 +134,14 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
     EPI_CORE_KEYS.map(key => ({ key: `question:${key}`, // The question's own «;» or «?» stays out of the «Συμπληρώστε: …» line.
  label: String(epiText(questions.find(question => question.key === key)?.label, language) || '').replace(/\s*[;?]+\s*$/, ''), valid: Boolean(answerOf(answers, key)) })),
   )
-  const patch = (key: string, change: AnyRecord) => setAnswers(current => setEpiAnswer(current, key, change, suggestions[key]))
+  const patch = (key: string, change: EpiAnswer) => setAnswers(current => setEpiAnswer(current, key, change, suggestions[key]))
   async function save() {
     setBusy(true)
     try {
       const saved = await saveEpiQuestionnaire(
         ctx.organizationId,
-        ctx.isDemo ? episode.id : episode.recordId || episode.id,
+        // An episode always has its id (the demo code) and, in production, its record id.
+        (ctx.isDemo ? episode.id : episode.recordId || episode.id) as string,
         { answers: cleanAnswers(answers), prefilled: suggestions, definitionVersion: epiDefinitionVersion(settings), actorName: '' },
         { isDemo: ctx.isDemo },
       )
@@ -168,7 +179,7 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
       <div className="epi-q-body" ref={form.scopeRef}>
         {!canEdit && <p className="field-hint">{t('epiQuestionnaire.readOnly')}</p>}
         {EPI_STEPS.map(step => {
-          const list = shown.filter((question: AnyRecord) => stepOf(question, step))
+          const list = shown.filter((question: EpiQuestion) => stepOf(question, step))
           if (!list.length) return null
           return (
             <section className="epi-q-section" key={step.id}>
@@ -180,7 +191,7 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
                 </div>
               </div>
               <ul className="epi-q-list">
-                {list.map((question: AnyRecord) => (
+                {list.map((question: EpiQuestion) => (
                   <QuestionRow key={question.key} question={question} entry={answers[question.key]} suggestion={suggestions[question.key]} form={form} disabled={!canEdit} onChange={change => patch(question.key, change)} />
                 ))}
               </ul>
@@ -193,9 +204,9 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, i
 }
 
 interface UseEpiMiniOptions {
-  episode?: AnyRecord | null
-  admission?: AnyRecord | null
-  samples?: AnyRecord[]
+  episode?: EpiEpisode | null
+  admission?: EpiAdmission | null
+  samples?: EpiSample[]
   enabled?: boolean
   optional?: boolean
 }
@@ -208,11 +219,12 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
   const { language } = useLanguage()
   // Optional: the mini version also renders in dialogs opened outside a tenant (tests, previews).
   const { tenant, isDemo } = useContext(TenantContext) || {}
-  const [settings, setSettings] = useState<AnyRecord[]>([])
+  const [settings, setSettings] = useState<EpiSetting[]>([])
   const questions = useEffectiveQuestions(settings)
   const core = useMemo(() => questions.filter(question => question.core), [questions])
   const [state, setState] = useState<{ answers: EpiAnswers, suggestions: EpiAnswers, loaded: boolean }>({ answers: {}, suggestions: {}, loaded: !episode })
-  const caseKey = episode ? (isDemo ? episode.id : episode.recordId || episode.id) : ''
+  // An episode always has its id (the demo code) and, in production, its record id.
+  const caseKey = (episode ? (isDemo ? episode.id : episode.recordId || episode.id) : '') as string
   useEffect(() => {
     if (!enabled) return undefined
     let alive = true
@@ -224,7 +236,7 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
       if (!alive) return
       setSettings(loadedSettings)
       if (!episode) return
-      const row = (rows as Record<string, AnyRecord>)[caseKey] || null
+      const row = (rows as Record<string, EpiQuestionnaire>)[caseKey] || null
       const prefill = buildEpiPrefill({ record: episode, admission, samples, today: athensToday() })
       const suggestions = { ...prefill, ...(row?.prefilled || {}) }
       setState({ answers: coreOnly(startingAnswers(row, prefill)), suggestions, loaded: true })
@@ -246,7 +258,7 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
     rules,
     optional,
     complete: isCoreComplete(state.answers),
-    patch: (key: string, change: AnyRecord) => setState(current => ({ ...current, answers: setEpiAnswer(current.answers, key, change, current.suggestions[key]) })),
+    patch: (key: string, change: EpiAnswer) => setState(current => ({ ...current, answers: setEpiAnswer(current.answers, key, change, current.suggestions[key]) })),
     // Writes the three answers to the episode's questionnaire (the same stored data as the full dialog).
     save: () => (episode ? saveEpiCoreAnswers(tenant?.id, caseKey, cleanAnswers(state.answers), { isDemo, actorName: '' }) : Promise.resolve(null)),
     // The sample's own copy (no episode yet).
@@ -254,9 +266,11 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
   }
 }
 
+// The mini version a form keeps (useEpiMini).
+export type EpiMini = ReturnType<typeof useEpiMini>
 interface EpiMiniQuestionsProps {
-  mini: AnyRecord
-  form: AnyRecord
+  mini: EpiMini
+  form: FormValidation
   episodeCode?: string
   className?: string
 }
@@ -276,7 +290,7 @@ export function EpiMiniQuestions({ mini, form, episodeCode = '', className = '' 
         <span>{episodeCode ? fill(t('epiQuestionnaire.miniFromEpisode'), { code: episodeCode }) : t('epiQuestionnaire.miniAtSample')}</span>
       </p>
       <ul className="epi-q-list">
-        {mini.core.map((question: AnyRecord) => (
+        {mini.core.map((question: EpiQuestion) => (
           <QuestionRow key={question.key} question={question} entry={mini.answers[question.key]} suggestion={mini.suggestions[question.key]} form={form} withDetail={false} optional={mini.optional} onChange={change => mini.patch(question.key, change)} />
         ))}
       </ul>

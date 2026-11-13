@@ -13,6 +13,7 @@ import { ROLES } from '../../core/permissions/systemRoleMatrix'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { createExposureIncidentAsync, loadExposureIncidentsForRecordAsync } from '../occupational-health/exposureIncidentService'
 import { EMPTY_EXPOSURE_INCIDENT, ExposureIncidentEditor, exposureTypeLabel, followUpLabel, sourceStatusLabel } from '../occupational-health/ExposureIncidentEditor'
+import type { EmployeeRow } from '../occupational-health/occupationalHealthTypes'
 import { loadClinicalCases } from './clinicalCloudService'
 import { clinicalCases } from './clinicalDemoData'
 import { FormEmpty, FormRow, FormRows } from './forms/FormRow'
@@ -20,8 +21,8 @@ import { FormSection, FormsTabProvider } from './forms/FormSection'
 import { FORM_STATUS, athensToday } from './forms/formStatus'
 import { hospitalDay } from './patientRecordScope'
 import './forms/episodeForms.css'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { ExposureIncident } from '../occupational-health/exposureIncidentService'
+import type { ClinicalCase } from './clinicalTypes'
 import type { EmployeeSurveillanceRecord, ScreeningEmployee } from './employeeSurveillanceTypes'
 import type { Handler } from './surveillanceTypes'
 
@@ -51,8 +52,7 @@ async function episodeOptions({ isDemo, organizationId, language }: EpisodeOptio
   const rows = isDemo ? Object.values(clinicalCases) : await loadClinicalCases(organizationId, { summary: true })
   const en = language === 'en'
   // The patient and the episode in words (name, code, department, start date), never an internal id.
-  // A Demo case or a cloud episode: the episodes' own shape, kept by the episode screens.
-  return rows.map((row: AnyRecord) => {
+  return rows.map((row: ClinicalCase) => {
     const name = en ? row.patientEn || row.patient : row.patient
     return {
       value: isDemo ? row.id : row.recordId || row.id,
@@ -103,7 +103,7 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
   }
   async function save(draft: ExposureDraft) {
     try {
-      await createExposureIncidentAsync(tenant?.id, employee, draft)
+      await createExposureIncidentAsync(tenant?.id, employee as unknown as EmployeeRow | null, draft)
       notify(t('episodeForms.exposure.saved'), 'success')
       setEditor(null)
       await reload()
@@ -156,7 +156,7 @@ function ExposureSectionBody({ record, department }: ExposureSectionBodyProps) {
       {editor && (
         <ExposureIncidentEditor
           language={language}
-          employees={employee ? [employee] : []}
+          employees={(employee ? [employee] : []) as unknown as EmployeeRow[]}
           draft={editor}
           onChange={setEditor}
           onClose={() => setEditor(null)}

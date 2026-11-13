@@ -30,15 +30,18 @@ import { AdmissionDischargeDialog } from './AdmissionDischargeDialog'
 import { formatDay } from '../../core/i18n/formatDay'
 import { departmentOptions, listTexts } from './surveillanceOptions'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { LibraryDepartment } from '../management/useLibraries'
+import type { OverflowItem } from '../../design-system/OverflowMenu'
+import type { RecordAdmission, RecordPatient } from './clinicalScreenTypes'
 import type { Handler } from './surveillanceTypes'
 import type { ReactNode } from 'react'
 import type { Admission, Patient, PatientDepartment } from '../patients/patientTypes'
+// `as string` below: an optional text of a record handed to a helper typed for text (t, stayDays …), which reads a missing one as before.
 
 interface PatientDetailsEditorProps {
   title: string
-  patient: AnyRecord
-  departments: AnyRecord[]
+  patient: RecordPatient
+  departments: LibraryDepartment[]
   t: (key: string) => string
   language: string
   saving: boolean
@@ -90,11 +93,11 @@ export function PatientDetailsEditor({
   )
 }
 interface UseAdmissionLifecycleOptions {
-  patient: AnyRecord | null
-  admission: AnyRecord | null
+  patient: RecordPatient | null
+  admission: RecordAdmission | null
   tenantId: string | null | undefined
   isDemo: boolean
-  departments: AnyRecord[]
+  departments: LibraryDepartment[]
   canEdit: boolean
   onChanged: Handler
   t: (key: string) => string
@@ -126,7 +129,7 @@ export function useAdmissionLifecycle({
     setKind(next)
   }
   // The discharge is recorded only from the confirmation step of its dialog.
-  async function confirmDischarge(result: AnyRecord) {
+  async function confirmDischarge(result: { date: string, reason: string, reasonCode: string, time: string, note: string }) {
     if (!patient || !admission) return
     try {
       setBusy(true)
@@ -249,8 +252,8 @@ export function useAdmissionLifecycle({
 }
 interface AdmissionDeleteDialogProps {
   open: boolean
-  patient: AnyRecord | null
-  admission: AnyRecord
+  patient: RecordPatient | null
+  admission: RecordAdmission
   tenantId: string | null | undefined
   isDemo: boolean
   t: (key: string) => string
@@ -278,9 +281,9 @@ export function AdmissionDeleteDialog({
       await onDeleted?.(admission)
     } catch (error) {
       notify(
-        (error as AnyRecord)?.code === 'last_admission'
+        (error as { code?: string })?.code === 'last_admission'
           ? t('clinicalRecords.lastAdmissionCannotBeDeleted')
-          : (error as AnyRecord)?.code === 'has_surveillance'
+          : (error as { code?: string })?.code === 'has_surveillance'
             ? t('clinicalRecords.admissionHasSurveillance')
             : (error as Error)?.message || t('actionFailed'),
         'danger',
@@ -313,11 +316,11 @@ export function Detail({ label, value }: DetailProps) {
 }
 
 interface NewAdmissionDialogProps {
-  patient: AnyRecord
-  activeAdmission: AnyRecord | null
+  patient: RecordPatient
+  activeAdmission: RecordAdmission | null
   tenantId: string | null | undefined
   isDemo: boolean
-  departments: AnyRecord[]
+  departments: LibraryDepartment[]
   t: (key: string) => string
   onClose: Handler
   onAdmitted: Handler
@@ -372,7 +375,7 @@ export function NewAdmissionDialog({
       await onAdmitted?.(row, discharged)
       notify(t('saved'), 'success')
     } catch (error) {
-      notify((error as AnyRecord)?.duplicateRecordNumber ? t('recordNumberTaken') : (error as Error)?.message || t('actionFailed'), 'danger')
+      notify((error as { duplicateRecordNumber?: boolean })?.duplicateRecordNumber ? t('recordNumberTaken') : (error as Error)?.message || t('actionFailed'), 'danger')
     } finally {
       setBusy(false)
     }
@@ -431,8 +434,8 @@ export function NewAdmissionDialog({
 }
 
 interface AdmissionPickerProps {
-  admissions: AnyRecord[]
-  selected: AnyRecord | null
+  admissions: RecordAdmission[]
+  selected: RecordAdmission | null
   onSelect: Handler
   onNew?: Handler | null
   t: (key: string) => string
@@ -441,14 +444,14 @@ interface AdmissionPickerProps {
 // The patient's admissions, always in view under the name: pick the one the
 // record shows, or start a new one.
 export function AdmissionPicker({ admissions, selected, onSelect, onNew, t, fmtDate }: AdmissionPickerProps) {
-  const items: AnyRecord[] = admissions.map(row => {
-    const days = stayDays(row.admissionDate, row.dischargeDate)
+  const items: OverflowItem[] = admissions.map(row => {
+    const days = stayDays(row.admissionDate as string, row.dischargeDate as string)
     return {
       id: row.id,
       current: String(row.id) === String(selected?.id),
       icon: String(row.id) === String(selected?.id) ? Check : CalendarDays,
       label: `${fmtDate(row.admissionDate)} – ${row.dischargeDate ? fmtDate(row.dischargeDate) : t('clinicalRecords.admissionOngoing')}`,
-      description: `${row.caseNumber ? `${t('recordNumberShort')} ${row.caseNumber} · ` : ''}${row.department || '—'} · ${days == null ? '—' : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}`} · ${t(row.status)}`,
+      description: `${row.caseNumber ? `${t('recordNumberShort')} ${row.caseNumber} · ` : ''}${row.department || '—'} · ${days == null ? '—' : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}`} · ${t(row.status as string)}`,
       onClick: () => onSelect(row.id),
     }
   })

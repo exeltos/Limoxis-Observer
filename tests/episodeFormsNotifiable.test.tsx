@@ -7,6 +7,7 @@ import { LanguageProvider, translate } from '../src/core/i18n/LanguageContext'
 import { FeedbackProvider } from '../src/core/feedback/FeedbackContext'
 import { canSeeNotifiable, notifiableRows, notifiableSection } from '../src/features/surveillance/forms/sections/notifiableSection'
 import { visibleEpisodeFormSections } from '../src/features/surveillance/forms/formsRegistry'
+import type { EpisodeFormsCtx } from '../src/features/surveillance/forms/formTypes'
 
 const t = key => translate(key, 'el')
 const sample = {
@@ -17,7 +18,7 @@ const sample = {
   collectedAt: '2026-10-15T08:25:00',
   microbiologyResults: [{ id: 'm1', result: 'positive', resultStatus: 'validated', organism: 'Neisseria meningitidis' }],
 }
-const ctx = {
+const ctx: EpisodeFormsCtx = {
   role: 'infection_control_lead',
   organizationId: null,
   isDemo: true,
@@ -31,7 +32,7 @@ const ctx = {
   samples: [sample],
   fmtDate: value => String(value).slice(0, 10).split('-').reverse().join('/'),
   fmtDateTime: value => String(value),
-}
+} as never
 
 describe('notifiable disease section', () => {
   it('is visible only to the roles the database lets read the reports', () => {

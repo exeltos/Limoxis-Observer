@@ -8,7 +8,7 @@ import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 import { DETAIL_TABLES, INCIDENT_DETAIL_SELECT, incidentDetailRows, incidentDetailsFromRow, keptDetails } from './incidentDetails'
 import { CHECKLIST_FIELDS, CHECKLIST_SELECT, ROOT_CAUSE_SELECT, TEAM_FIELDS, teamFromRows, teamRows, SUB_ACTION_FIELDS, analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, newRowId, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from './qualityRelations'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { AuditChecklistItem, AuditRoundItem, AuditRoundTemplate, CapaProgressEntry, ChildRow, IncidentDetailKey, QualityDbRow, QualityDraft, QualityRecord } from './qualityTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 // Untyped: a record's table is chosen at run time from its section (sectionConfig).
@@ -33,7 +33,7 @@ function assertReady(organizationId: string | null | undefined){
   if(!supabase) throw new Error('Supabase is not configured.')
   if(!organizationId) throw new Error('Organization is required.')
 }
-const must=({data,error}: AnyRecord)=>{if(error)throw error;return data}
+const must=<T>({data,error}: {data: T, error: unknown})=>{if(error)throw error;return data}
 
 function uiStatus(value: string){
   return ({under_review:'underReview',in_progress:'inProgress',not_effective:'notEffective'} as Record<string, string>)[value]||value||''
@@ -49,16 +49,16 @@ function compactCode(code=''){
   return value
 }
 
-function isUuid(value=''){
+function isUuid(value: unknown=''){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''))
 }
 
 // The responsible people's names: the owners list, or the single legacy owner.
-function ownerLabels(record: AnyRecord){
+function ownerLabels(record: QualityDraft){
   return record.owners?.length?record.owners:(record.owner?[record.owner]:[])
 }
 
-export function mapRow(section: string,row: AnyRecord){
+export function mapRow(section: string,row: QualityDbRow): QualityRecord{
   const department=row.department?.name||''
   const common={
     dbId:row.id,
@@ -208,14 +208,14 @@ export function mapRow(section: string,row: AnyRecord){
 }
 
 // The audit a record follows up is stored by id; the screens show its code.
-async function withFollowUpCodes(section: string,organizationId: string | null | undefined,rows: AnyRecord[]){
+async function withFollowUpCodes(section: string,organizationId: string | null | undefined,rows: QualityDbRow[]): Promise<QualityDbRow[]>{
   const column=section==='audits'?'follow_up_of':section==='findings'?'follow_up_audit_id':null
-  const ids=column?[...new Set(rows.map((row: AnyRecord)=>row[column]).filter(Boolean))]:[]
+  const ids=column?[...new Set(rows.map((row: QualityDbRow)=>row[column]).filter(Boolean))]:[]
   if(!ids.length)return rows
   const audits=must(await supabase.from('quality_audits').select('id,code').eq('organization_id',organizationId).in('id',ids))||[]
-  const codes=new Map(audits.map((item: AnyRecord)=>[item.id,item.code]))
+  const codes=new Map<unknown, string>(audits.map((item: {id: string, code: string})=>[item.id,item.code]))
   const key=section==='audits'?'follow_up_code':'follow_up_audit_code'
-  return rows.map((row: AnyRecord)=>(row[column as string]?{...row,[key]:codes.get(row[column as string])||''}:row))
+  return rows.map((row: QualityDbRow)=>(row[column as NonNullable<typeof column>]?{...row,[key]:codes.get(row[column as NonNullable<typeof column>])||''}:row))
 }
 
 export async function loadQualityRecords(section: string,organizationId: string | null | undefined){
@@ -230,14 +230,14 @@ export async function loadQualityRecords(section: string,organizationId: string 
     .eq('organization_id',organizationId)
     .order(config.date,{ascending:false,nullsFirst:false})
     .order('id'))
-  return (await withFollowUpCodes(section,organizationId,data||[])).map((row: AnyRecord)=>mapRow(section,row))
+  return (await withFollowUpCodes(section,organizationId,data||[])).map((row: QualityDbRow)=>mapRow(section,row))
 }
 
 // The incidents linked to an episode (its surveillance cases, or its admission), newest first.
 // Only what the user may already read comes back (the policies of quality_incidents decide).
-export async function loadLinkedIncidents(organizationId: string | null | undefined,{caseIds=[],admissionId=null,patientCode=''}={}){
+export async function loadLinkedIncidents(organizationId: string | null | undefined,{caseIds=[],admissionId=null,patientCode=''}: {caseIds?: (string | null | undefined)[],admissionId?: string | null,patientCode?: string}={}){
   const cases=[...new Set(caseIds.map(String).filter(Boolean))]
-  if(isDemoDataEnvironment())return loadQualityLocal('incidents').filter((row: AnyRecord)=>cases.includes(String(row.linkedSurveillance||''))||(patientCode&&String(row.linkedPatient||'')===String(patientCode))).map((row: AnyRecord)=>structuredClone(row))
+  if(isDemoDataEnvironment())return loadQualityLocal('incidents').filter((row: QualityRecord)=>cases.includes(String(row.linkedSurveillance||''))||(patientCode&&String(row.linkedPatient||'')===String(patientCode))).map((row: QualityRecord)=>structuredClone(row))
   assertReady(organizationId)
   const filters=[cases.length&&`linked_surveillance_id.in.(${cases.join(',')})`,admissionId&&`linked_admission_id.eq.${admissionId}`].filter(Boolean)
   if(!filters.length)return []
@@ -247,13 +247,13 @@ export async function loadLinkedIncidents(organizationId: string | null | undefi
 }
 
 export async function loadQualityRecord(section: string,organizationId: string | null | undefined,code: string){
-  if(isDemoDataEnvironment())return loadQualityLocal(section).find((item: AnyRecord)=>item.id===code)??null
+  if(isDemoDataEnvironment())return loadQualityLocal(section).find((item: QualityRecord)=>item.id===code)??null
   assertReady(organizationId)
   const config=sectionConfig[section]
   if(!config||!code) return null
   const {data,error}=await supabase
     .from(config.table)
-    .select(config.select)
+    .select<string, QualityDbRow>(config.select)
     .eq('organization_id',organizationId)
     .eq('code',code)
     .maybeSingle()
@@ -262,18 +262,18 @@ export async function loadQualityRecord(section: string,organizationId: string |
   return mapRow(section,(await withFollowUpCodes(section,organizationId,[data]))[0])
 }
 
-async function reloadById(section: string,organizationId: string | null | undefined,id: string){
+async function reloadById(section: string,organizationId: string | null | undefined,id: string | undefined){
   const config=sectionConfig[section]
-  const row=must(await supabase.from(config.table).select(config.select).eq('organization_id',organizationId).eq('id',id).single())
-  return mapRow(section,(await withFollowUpCodes(section,organizationId,[row]))[0])
+  const row=must(await supabase.from(config.table).select<string, QualityDbRow>(config.select).eq('organization_id',organizationId).eq('id',id).single())
+  return mapRow(section,(await withFollowUpCodes(section,organizationId,[row as QualityDbRow]))[0])
 }
 
 // --- The details in tables of their own ------------------------------------------------------
 
 // Writes the stored rows of a parent the way `rows` says: removes the ones no
 // longer there, writes the new and the changed ones.
-async function syncChildRows({table,parentColumn,parentId,organizationId,rows,fields}: {table: string, parentColumn: string, parentId: string, organizationId: string | null | undefined, rows: AnyRecord[], fields: string[]}){
-  const existing=must(await supabase.from(table).select(['id',...fields].join(',') as string).eq('organization_id',organizationId).eq(parentColumn,parentId))||[]
+async function syncChildRows({table,parentColumn,parentId,organizationId,rows,fields}: {table: string, parentColumn: string, parentId: string, organizationId: string | null | undefined, rows: ChildRow[], fields: string[]}){
+  const existing=must(await supabase.from(table).select<string, ChildRow>(['id',...fields].join(',') as string).eq('organization_id',organizationId).eq(parentColumn,parentId))||[]
   const {upsert,remove}=diffChildRows(existing,rows,fields)
   if(remove.length)must(await supabase.from(table).delete().eq('organization_id',organizationId).in('id',remove))
   if(upsert.length)must(await supabase.from(table).upsert(upsert.map(row=>({...row,organization_id:organizationId,[parentColumn]:parentId}))))
@@ -282,8 +282,8 @@ async function syncChildRows({table,parentColumn,parentId,organizationId,rows,fi
 // How private a staff report is: 'named' (default), 'confidential' (the reporter is kept but not shown)
 // or 'anonymous' (no reporter). The columns are sent only for a private report, so a named report
 // still saves before the privacy migration is applied.
-function reportPrivacy(draft: AnyRecord){return draft.privacy||(draft.anonymous?'anonymous':'named')}
-function reportPrivacyColumns(draft: AnyRecord){
+function reportPrivacy(draft: QualityDraft){return draft.privacy||(draft.anonymous?'anonymous':'named')}
+function reportPrivacyColumns(draft: QualityDraft){
   const privacy=reportPrivacy(draft)
   if(privacy==='named') return {}
   const visibility=draft.visibility||'admin'
@@ -293,9 +293,9 @@ function reportPrivacyColumns(draft: AnyRecord){
 // An incident's event details: one row per block its event type records; a
 // block the record had and no longer records is removed. A new report only
 // inserts (an anonymous reporter may not read the incident back).
-async function writeIncidentDetails(organizationId: string | null | undefined,incidentId: string,record: AnyRecord,{creating=false}: {creating?: boolean}={}){
+async function writeIncidentDetails(organizationId: string | null | undefined,incidentId: string,record: QualityDraft,{creating=false}: {creating?: boolean}={}){
   const rows=incidentDetailRows(record)
-  for(const [key,table] of Object.entries(DETAIL_TABLES)){
+  for(const [key,table] of Object.entries(DETAIL_TABLES) as [IncidentDetailKey, string][]){
     const row=rows[table]
     if(row){
       const payload={...row,incident_id:incidentId,organization_id:organizationId}
@@ -308,7 +308,7 @@ async function writeIncidentDetails(organizationId: string | null | undefined,in
 
 // A CAPA's steps, and its root cause analysis when it says something new: the
 // analysis row's time is when the analysis last changed.
-async function writeCapaDetails(organizationId: string | null | undefined,capaId: string,record: AnyRecord){
+async function writeCapaDetails(organizationId: string | null | undefined,capaId: string,record: QualityDraft){
   await syncChildRows({table:'quality_capa_sub_actions',parentColumn:'capa_id',parentId:capaId,organizationId,rows:subActionRows(record.subActions||[]),fields:SUB_ACTION_FIELDS})
   if(record.rootCauseAnalysis===undefined)return
   const stored=analysisFromRow(must(await supabase.from('quality_capa_root_cause_analyses').select('*,whys:quality_capa_root_cause_whys(*),factors:quality_capa_root_cause_factors(*)').eq('organization_id',organizationId).eq('capa_id',capaId).maybeSingle()))
@@ -316,17 +316,17 @@ async function writeCapaDetails(organizationId: string | null | undefined,capaId
   const rows=analysisRows(record.rootCauseAnalysis)
   if(!rows){must(await supabase.from('quality_capa_root_cause_analyses').delete().eq('organization_id',organizationId).eq('capa_id',capaId));return}
   must(await supabase.from('quality_capa_root_cause_analyses').upsert({...rows.analysis,capa_id:capaId,organization_id:organizationId},{onConflict:'capa_id'}))
-  for(const [table,list] of [['quality_capa_root_cause_whys',rows.whys],['quality_capa_root_cause_factors',rows.factors]] as [string, AnyRecord[]][]){
+  for(const [table,list] of [['quality_capa_root_cause_whys',rows.whys],['quality_capa_root_cause_factors',rows.factors]] as [string, Record<string, unknown>[]][]){
     must(await supabase.from(table).delete().eq('organization_id',organizationId).eq('capa_id',capaId))
-    if(list.length)must(await supabase.from(table).insert(list.map((row: AnyRecord)=>({...row,capa_id:capaId,organization_id:organizationId}))))
+    if(list.length)must(await supabase.from(table).insert(list.map((row: Record<string, unknown>)=>({...row,capa_id:capaId,organization_id:organizationId}))))
   }
 }
 
 // An audit's checklist; a «No» that became a finding points at it.
-async function writeAuditChecklist(organizationId: string | null | undefined,auditId: string,checklist: AnyRecord[]=[]){
+async function writeAuditChecklist(organizationId: string | null | undefined,auditId: string,checklist: AuditChecklistItem[]=[]){
   const codes=[...new Set(checklist.map(row=>row.findingId).filter(Boolean))]
   const findings=codes.length?must(await supabase.from('quality_findings').select('id,code').eq('organization_id',organizationId).in('code',codes))||[]:[]
-  const rows=checklistRows(checklist,new Map(findings.map((item: AnyRecord)=>[item.code,item.id])))
+  const rows=checklistRows(checklist,new Map(findings.map((item: {id: string, code: string})=>[item.code,item.id])))
   await syncChildRows({table:'quality_audit_checklist_items',parentColumn:'audit_id',parentId:auditId,organizationId,rows,fields:CHECKLIST_FIELDS})
 }
 
@@ -337,13 +337,13 @@ async function writeAuditTeam(organizationId: string | null | undefined,auditId:
 }
 
 // An audit code (AUD-…) as the audit's id, for the follow-up link.
-async function auditIdOf(organizationId: string | null | undefined,code: string){
+async function auditIdOf(organizationId: string | null | undefined,code: string | undefined){
   if(!code)return null
   const row=must(await supabase.from('quality_audits').select('id').eq('organization_id',organizationId).eq('code',code).maybeSingle())
   return row?.id||null
 }
 
-async function writeDetails(section: string,organizationId: string | null | undefined,id: string,record: AnyRecord,options: AnyRecord={}){
+async function writeDetails(section: string,organizationId: string | null | undefined,id: string,record: QualityDraft,options: {creating?: boolean}={}){
   if(section==='incidents')await writeIncidentDetails(organizationId,id,record,options)
   if(section==='capas')await writeCapaDetails(organizationId,id,record)
   if(section==='audits'){await writeAuditChecklist(organizationId,id,record.checklist||[]);await writeAuditTeam(organizationId,id,record.team)}
@@ -356,17 +356,17 @@ const auditTypePayload=(kind: string)=>{const value=['internal','external','cert
 // The programme fields of an audit and the audit fields of a finding.
 const STANDARD_VALUES=['iso9001','iso15224','haccp','iso15189','temos','jci','other']
 const CLASS_VALUES=['major','minor','observation','opportunity']
-function auditProgrammePayload(record: AnyRecord){
+function auditProgrammePayload(record: QualityDraft){
   return {
     template_id:isUuid(record.templateId)?record.templateId:null,
     template_title:record.templateTitle||null,
     template_version:Number(record.templateVersion)||null,
-    standard:STANDARD_VALUES.includes(record.standard)?record.standard:null,
+    standard:STANDARD_VALUES.includes(record.standard as string)?record.standard:null,
     standards:(record.standards||[]).filter((value: string)=>STANDARD_VALUES.includes(value)&&value!==record.standard),
     extra_template_ids:(record.extraTemplateIds||[]).filter(isUuid),
     clauses_scope:Array.isArray(record.clausesScope)?record.clausesScope:[],
     planned_month_only:Boolean(record.plannedMonthOnly),
-    risk_level:['low','medium','high'].includes(record.riskLevel)?record.riskLevel:null,
+    risk_level:['low','medium','high'].includes(record.riskLevel as string)?record.riskLevel:null,
     frequency_months:Number(record.frequencyMonths)>=1?Math.round(Number(record.frequencyMonths)):null,
     opening_meeting_on:record.openingMeeting?.date||null,
     opening_attendees:record.openingMeeting?.attendees||null,
@@ -374,15 +374,15 @@ function auditProgrammePayload(record: AnyRecord){
     closing_attendees:record.closingMeeting?.attendees||null,
     auditee_representative:record.auditeeRepresentative||null,
     conclusion:record.conclusion||null,
-    duration_days:Number(record.durationDays)>=0&&record.durationDays!==''&&record.durationDays!=null?Math.min(60,Math.round(Number(record.durationDays))):null,
-    audit_body:['internal','consultant','certification','other'].includes(record.auditBody)?record.auditBody:null,
+    duration_days:Number(record.durationDays)>=0&&String(record.durationDays)!==''&&record.durationDays!=null?Math.min(60,Math.round(Number(record.durationDays))):null,
+    audit_body:['internal','consultant','certification','other'].includes(record.auditBody as string)?record.auditBody:null,
     notes:record.notes||null,
     report_sent_on:record.reportSentOn||null,
     corrections_due_on:record.correctionsDueOn||null,
   }
 }
 // The deviation's kind, causes, recurrence and reporter as stored.
-const findingDetailsPayload=(record: AnyRecord)=>({
+const findingDetailsPayload=(record: QualityDraft)=>({
   deviation_kind:record.deviationKind||null,
   cause_categories:Array.isArray(record.causeCategories)?record.causeCategories:[],
   root_cause:String(record.rootCause||'').trim()||null,
@@ -393,21 +393,21 @@ const findingDetailsPayload=(record: AnyRecord)=>({
   assessed_at:record.assessedAt||null,
   assessed_by_label:String(record.assessedBy||'').trim()||null,
 })
-function findingAuditPayload(record: AnyRecord){
+function findingAuditPayload(record: QualityDraft){
   return {
-    finding_class:CLASS_VALUES.includes(record.findingClass)?record.findingClass:null,
+    finding_class:CLASS_VALUES.includes(record.findingClass as string)?record.findingClass:null,
     audit_item_id:isUuid(record.auditItemId)?record.auditItemId:null,
     clause_ref:record.clauseRef||null,
-    standard:STANDARD_VALUES.includes(record.standard)?record.standard:null,
+    standard:STANDARD_VALUES.includes(record.standard as string)?record.standard:null,
     due_date:record.dueDate||null,
-    verification_status:['pending','effective','not_effective'].includes(record.verificationStatus)?record.verificationStatus:'pending',
+    verification_status:['pending','effective','not_effective'].includes(record.verificationStatus as string)?record.verificationStatus:'pending',
     verified_on:record.verifiedOn||null,
     verified_by_label:record.verifiedBy||null,
     verification_note:record.verificationNote||null,
   }
 }
-const AUDIT_PROGRAMME_DEFAULTS=(draft: AnyRecord)=>({templateId:draft.templateId||null,templateTitle:draft.templateTitle||'',templateVersion:draft.templateVersion||null,standard:draft.standard||'',standards:draft.standards||[],clausesScope:draft.clausesScope||[],plannedMonthOnly:Boolean(draft.plannedMonthOnly),riskLevel:draft.riskLevel||'',frequencyMonths:draft.frequencyMonths||null,openingMeeting:draft.openingMeeting||{date:'',attendees:''},closingMeeting:draft.closingMeeting||{date:'',attendees:''},auditeeRepresentative:draft.auditeeRepresentative||'',conclusion:draft.conclusion||'',followUpOf:draft.followUpOf||'',origin:'app',durationDays:draft.durationDays??null,auditBody:draft.auditBody||'',notes:draft.notes||'',reportSentOn:draft.reportSentOn||'',correctionsDueOn:draft.correctionsDueOn||'',team:draft.team||[]})
-const AUDIT_FINDING_DEFAULTS=(draft: AnyRecord)=>({findingClass:draft.findingClass||'',auditItemId:draft.auditItemId||null,clauseRef:draft.clauseRef||'',standard:draft.standard||'',dueDate:draft.dueDate||'',verificationStatus:draft.verificationStatus||'pending',verifiedOn:'',verifiedBy:'',verificationNote:'',followUpAuditId:draft.followUpAuditId||''})
+const AUDIT_PROGRAMME_DEFAULTS=(draft: QualityDraft)=>({templateId:draft.templateId||null,templateTitle:draft.templateTitle||'',templateVersion:draft.templateVersion||null,standard:draft.standard||'',standards:draft.standards||[],clausesScope:draft.clausesScope||[],plannedMonthOnly:Boolean(draft.plannedMonthOnly),riskLevel:draft.riskLevel||'',frequencyMonths:draft.frequencyMonths||null,openingMeeting:draft.openingMeeting||{date:'',attendees:''},closingMeeting:draft.closingMeeting||{date:'',attendees:''},auditeeRepresentative:draft.auditeeRepresentative||'',conclusion:draft.conclusion||'',followUpOf:draft.followUpOf||'',origin:'app',durationDays:draft.durationDays??null,auditBody:draft.auditBody||'',notes:draft.notes||'',reportSentOn:draft.reportSentOn||'',correctionsDueOn:draft.correctionsDueOn||'',team:draft.team||[]})
+const AUDIT_FINDING_DEFAULTS=(draft: QualityDraft)=>({findingClass:draft.findingClass||'',auditItemId:draft.auditItemId||null,clauseRef:draft.clauseRef||'',standard:draft.standard||'',dueDate:draft.dueDate||'',verificationStatus:draft.verificationStatus||'pending',verifiedOn:'',verifiedBy:'',verificationNote:'',followUpAuditId:draft.followUpAuditId||''})
 
 // A code from the time to the second; several records made in the same second
 // (an audit's findings) take the next seconds, so no two codes are the same.
@@ -423,18 +423,19 @@ function codeFor(section: string){
 
 // The English title / description are stored only when they differ from the
 // written text (a record read back in English falls back to the written one).
-function englishColumns(record: AnyRecord,section: string){
-  const own=(en: boolean,el: string)=>{const text=String(en||'').trim();return text&&text!==String(el||'').trim()?text:null}
+function englishColumns(record: QualityDraft,section: string){
+  const own=(en: string | undefined,el: string | undefined)=>{const text=String(en||'').trim();return text&&text!==String(el||'').trim()?text:null}
   return {title_en:own(record.titleEn,record.title),...(section==='audits'?{}:{description_en:own(record.descriptionEn,record.description)})}
 }
 
-export async function createQualityRecord(section: string,organizationId: string | null | undefined,draft: AnyRecord,userId: string | null | undefined): Promise<AnyRecord>{
+export async function createQualityRecord(section: string,organizationId: string | null | undefined,draft: QualityDraft,userId: string | null | undefined): Promise<QualityRecord>{
   const code=codeFor(section)
   if(isDemoDataEnvironment()){
     // The demo keeps the department by name (its id is the name).
     const department=draft.department||draft.departmentId||''
-    const common={id:code,displayId:compactCode(code),title:draft.title||draft.titleEn||'',titleEn:draft.titleEn||draft.title||'',department,departmentEn:draft.departmentEn||department,departmentId:draft.departmentId||'',owner:ownerLabels(draft)[0]||'',owners:ownerLabels(draft),ownerId:draft.ownerId||null,lifecycleStatus:'active',attachments:[],history:draft.history||[]}
-    let record: AnyRecord=common
+    const common: Omit<QualityRecord, 'status'>={id:code,displayId:compactCode(code),title:draft.title||draft.titleEn||'',titleEn:draft.titleEn||draft.title||'',department,departmentEn:draft.departmentEn||department,departmentId:draft.departmentId||'',owner:ownerLabels(draft)[0]||'',owners:ownerLabels(draft),ownerId:draft.ownerId||null,lifecycleStatus:'active',attachments:[],history:draft.history||[]}
+    // Each section below sets the status.
+    let record=common as QualityRecord
     if(section==='incidents'){const details=keptDetails(draft);record={...common,severity:draft.severity||'',incidentClass:draft.incidentClass||'',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),linkedPatient:draft.linkedPatient||'',linkedSurveillance:draft.linkedSurveillance||'',linkedAdmission:draft.linkedAdmission||'',category:draft.category||'clinical',eventType:details.eventType,fall:details.fall,sharp:details.sharp,blueCode:details.blueCode,obstetric:details.obstetric,eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||hospitalToday(),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:reportPrivacy(draft)==='named'?draft.reportedByLabel||'':'',reportedById:reportPrivacy(draft)==='anonymous'?null:userId||null,anonymous:reportPrivacy(draft)==='anonymous',privacy:reportPrivacy(draft),visibility:draft.visibility||'',visibleTo:draft.visibleTo||null,reportKind:draft.reportKind||'clinical',sentinel:Boolean(draft.sentinel),rcaDueDate:draft.rcaDueDate||''}}
     if(section==='findings')record={...common,severity:draft.severity||'medium',date:draft.date||hospitalToday(),status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'manual',sourceId:draft.sourceId||'',...AUDIT_FINDING_DEFAULTS(draft)}
     if(section==='capas')record={...common,severity:draft.priority||'medium',priority:draft.priority||'medium',actionType:draft.actionType||'corrective',dueDate:draft.dueDate||'',effectivenessDue:draft.effectivenessDue||'',effectivenessStatus:draft.effectivenessStatus||'pending',status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'other',sourceId:draft.sourceId||'',subActions:draft.subActions||[],rootCauseAnalysis:null,progress:[]}
@@ -449,30 +450,31 @@ export async function createQualityRecord(section: string,organizationId: string
   if(!config) throw new Error('Unsupported quality record type.')
   // The id is chosen here, so the details can follow even an anonymous report.
   const id=newRowId()
-  let payload: AnyRecord={id,organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),...englishColumns(draft,section),department_id:isUuid(draft.departmentId)?draft.departmentId:null,history:draft.history||[],...(section==='audits'?{}:{owner_id:isUuid(draft.ownerId)?draft.ownerId:null}),owner_label:ownerLabels(draft)[0]||null,owner_labels:ownerLabels(draft)}
+  let payload: Record<string, unknown>={id,organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),...englishColumns(draft,section),department_id:isUuid(draft.departmentId)?draft.departmentId:null,history:draft.history||[],...(section==='audits'?{}:{owner_id:isUuid(draft.ownerId)?draft.ownerId:null}),owner_label:ownerLabels(draft)[0]||null,owner_labels:ownerLabels(draft)}
   if(section==='incidents') payload={...payload,occurred_at:`${draft.date||hospitalToday()}T12:00:00Z`,event_time:draft.eventTime||null,...(draft.incidentClass?{incident_class:draft.incidentClass}:{}),reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',linked_patient_id:isUuid(draft.linkedPatient)?draft.linkedPatient:null,linked_surveillance_id:isUuid(draft.linkedSurveillance)?draft.linkedSurveillance:null,linked_admission_id:isUuid(draft.linkedAdmission)?draft.linkedAdmission:null,event_type:draft.eventType||null,impact:draft.impact||'none',severity:draft.severity||null,status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:reportPrivacy(draft)==='anonymous'?null:userId||null,reported_by_label:reportPrivacy(draft)==='named'?draft.reportedByLabel||null:null,is_anonymous:reportPrivacy(draft)==='anonymous',...reportPrivacyColumns(draft),report_kind:draft.reportKind||'clinical',is_sentinel:Boolean(draft.sentinel),rca_due_date:draft.rcaDueDate||null}
   if(section==='findings') payload={...payload,identified_at:`${draft.date||hospitalToday()}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,...findingAuditPayload(draft),...findingDetailsPayload(draft),follow_up_audit_id:await auditIdOf(organizationId,draft.followUpAuditId)}
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending'}
-  if(section==='audits') payload={...payload,...auditTypePayload(draft.auditType),scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:isUuid(draft.leadAuditorId)?draft.leadAuditorId:null,lead_auditor_label:draft.leadAuditor||null,checklist_source:draft.checklistSource||null,...auditProgrammePayload(draft),follow_up_of:await auditIdOf(organizationId,draft.followUpOf)}
+  if(section==='audits') payload={...payload,...auditTypePayload(draft.auditType as string),scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:isUuid(draft.leadAuditorId)?draft.leadAuditorId:null,lead_auditor_label:draft.leadAuditor||null,checklist_source:draft.checklistSource||null,...auditProgrammePayload(draft),follow_up_of:await auditIdOf(organizationId,draft.followUpOf)}
 
   // An anonymous report carries no reporter, so the reporter may not read it
   // back: it is inserted without returning the row.
   if(section==='incidents'&&reportPrivacy(draft)==='anonymous'){
     must(await supabase.from(config.table).insert(payload))
     await writeIncidentDetails(organizationId,id,draft,{creating:true})
-    return {id:code,code,dbId:id,displayId:compactCode(code),anonymous:true}
+    // Only its code: the reporter may not read the report back (no status).
+    return {id:code,code,dbId:id,displayId:compactCode(code),anonymous:true} as QualityRecord
   }
   must(await supabase.from(config.table).insert(payload))
   await writeDetails(section,organizationId,id,{...draft,rootCauseAnalysis:undefined},{creating:true})
   return reloadById(section,organizationId,id)
 }
 
-function buildPersistPayload(section: string,record: AnyRecord){
+function buildPersistPayload(section: string,record: QualityDraft){
   const payload={
     title:(record.title||record.titleEn||'').trim(),
     ...englishColumns(record,section),
     department_id:isUuid(record.departmentId)?record.departmentId:null,
-    status:dbStatus(record.status),
+    status:dbStatus(record.status as string),
     // quality_audits has no owner_id: its person is the lead auditor.
     ...(section==='audits'?{}:{owner_id:isUuid(record.ownerId)?record.ownerId:null}),
     owner_label:ownerLabels(record)[0]||null,
@@ -528,10 +530,10 @@ function buildPersistPayload(section: string,record: AnyRecord){
     description:record.description||record.descriptionEn||null,
     due_date:record.dueDate||null,
     effectiveness_due:record.effectivenessDue||null,
-    effectiveness_status:dbStatus(record.effectivenessStatus)||'pending',
+    effectiveness_status:dbStatus(record.effectivenessStatus as string)||'pending',
   })
   if(section==='audits')Object.assign(payload,{
-    ...auditTypePayload(record.auditType),
+    ...auditTypePayload(record.auditType as string),
     scope:record.scope||record.scopeEn||null,
     planned_date:record.plannedDate||null,
     completed_date:record.completedDate||null,
@@ -543,11 +545,11 @@ function buildPersistPayload(section: string,record: AnyRecord){
   return payload
 }
 
-export async function saveQualityRecord(section: string,organizationId: string | null | undefined,record: AnyRecord){
+export async function saveQualityRecord(section: string,organizationId: string | null | undefined,record: QualityDraft): Promise<QualityRecord>{
   if(isDemoDataEnvironment()){
     const rows=loadQualityLocal(section)
-    const index=rows.findIndex((x: AnyRecord)=>x.id===record.id)
-    const saved={...(section==='incidents'?keptDetails(record):record),updatedAt:new Date().toISOString()}
+    const index=rows.findIndex((x: QualityRecord)=>x.id===record.id)
+    const saved={...(section==='incidents'?keptDetails(record):record),updatedAt:new Date().toISOString()} as QualityRecord
     if(index>=0)rows[index]=saved
     else rows.unshift(saved)
     saveQualityLocal(section,rows)
@@ -556,19 +558,19 @@ export async function saveQualityRecord(section: string,organizationId: string |
   assertReady(organizationId)
   const config=sectionConfig[section]
   if(!config) throw new Error('Unsupported quality record type.')
-  const payload: AnyRecord=buildPersistPayload(section,record)
+  const payload: Record<string, unknown>=buildPersistPayload(section,record)
   if(section==='audits')payload.follow_up_of=await auditIdOf(organizationId,record.followUpOf)
   if(section==='findings')payload.follow_up_audit_id=await auditIdOf(organizationId,record.followUpAuditId)
   // Refused when someone else saved the record after it was loaded (src/core/data/recordVersion.js).
   const data=await guardedSingle(expectVersion(supabase.from(config.table).update(payload).eq('organization_id',organizationId).eq('code',record.id),record.updatedAt).select('id').single(),{table:config.table,updatedAt:record.updatedAt})
-  await writeDetails(section,organizationId,(data as AnyRecord).id,record)
-  return reloadById(section,organizationId,(data as AnyRecord).id)
+  await writeDetails(section,organizationId,(data as {id: string}).id,record)
+  return reloadById(section,organizationId,(data as {id: string}).id)
 }
 
 // --- CAPA progress notes ---------------------------------------------------------------------
 
 // A dated note on how the CAPA is going; the newest first.
-export async function addCapaProgress(organizationId: string | null | undefined,record: AnyRecord,entry: AnyRecord){
+export async function addCapaProgress(organizationId: string | null | undefined,record: QualityRecord,entry: Partial<CapaProgressEntry>){
   const row=progressRow(entry)
   if(!row)throw new Error('A progress note needs some text.')
   if(isDemoDataEnvironment()){
@@ -580,8 +582,8 @@ export async function addCapaProgress(organizationId: string | null | undefined,
   return reloadById('capas',organizationId,record.dbId)
 }
 
-export async function removeCapaProgress(organizationId: string | null | undefined,record: AnyRecord,entryId: string){
-  if(isDemoDataEnvironment())return saveQualityRecord('capas',organizationId,{...record,progress:(record.progress||[]).filter((item: AnyRecord)=>item.id!==entryId)})
+export async function removeCapaProgress(organizationId: string | null | undefined,record: QualityRecord,entryId: string){
+  if(isDemoDataEnvironment())return saveQualityRecord('capas',organizationId,{...record,progress:(record.progress||[]).filter((item: CapaProgressEntry)=>item.id!==entryId)})
   assertReady(organizationId)
   must(await supabase.from('quality_capa_progress').delete().eq('organization_id',organizationId).eq('id',entryId))
   return reloadById('capas',organizationId,record.dbId)
@@ -591,7 +593,7 @@ export async function removeCapaProgress(organizationId: string | null | undefin
 // The next audit of every department that has none planned. In production the
 // database plans them (the same rule runs when an audit is completed); the demo
 // plans them on its own copy. Returns how many were planned.
-export async function fillAuditProgramme(organizationId: string | null | undefined,audits: AnyRecord[]=[],userId: string | null=null){
+export async function fillAuditProgramme(organizationId: string | null | undefined,audits: QualityRecord[]=[],userId: string | null=null){
   if(isDemoDataEnvironment()){
     const planned=missingNextAudits(audits)
     for(const audit of planned)await createQualityRecord('audits',organizationId,{...audit,id:undefined,code:undefined},userId)
@@ -608,11 +610,11 @@ export async function fillAuditProgramme(organizationId: string | null | undefin
 // Returns how many audits got a day.
 // An audit round arranged by hand: `items` are the departments with their day. An existing planned audit
 // gets the day; a department without one gets a new audit from the basic questionnaire. Returns how many.
-export async function applyAuditRound(organizationId: string | null | undefined,items: AnyRecord[]=[],{template=null,userId=null,days=3}: {template?: AnyRecord | null, userId?: string | null, days?: number}={}){
+export async function applyAuditRound(organizationId: string | null | undefined,items: AuditRoundItem[]=[],{template=null,userId=null,days=3}: {template?: AuditRoundTemplate | null, userId?: string | null, days?: number}={}){
   const existing=items.filter(item=>item.auditId),fresh=items.filter(item=>!item.auditId)
   if(isDemoDataEnvironment()){
     const dates=new Map(existing.map(item=>[item.auditId,item.plannedDate]))
-    saveQualityLocal('audits',loadQualityLocal('audits').map((row: AnyRecord)=>dates.has(row.id)?{...row,plannedDate:dates.get(row.id),plannedMonthOnly:false}:row))
+    saveQualityLocal('audits',loadQualityLocal('audits').map((row: QualityRecord)=>dates.has(row.id)?{...row,plannedDate:dates.get(row.id),plannedMonthOnly:false}:row))
   }else{
     assertReady(organizationId)
     for(const item of existing)must(await supabase.from('quality_audits').update({planned_date:item.plannedDate,planned_month_only:false}).eq('id',item.auditId).eq('organization_id',organizationId))
@@ -628,11 +630,11 @@ export async function applyAuditRound(organizationId: string | null | undefined,
   return items.length
 }
 
-export async function planAuditRound(organizationId: string | null | undefined,audits: AnyRecord[]=[],start: string,days=3){
+export async function planAuditRound(organizationId: string | null | undefined,audits: QualityRecord[]=[],start: string,days=3){
   if(isDemoDataEnvironment()){
     const {assignments}=spreadAuditRound(audits,start,days)
     const ids=new Map(assignments.map(item=>[item.audit.id,item.plannedDate]))
-    saveQualityLocal('audits',loadQualityLocal('audits').map((row: AnyRecord)=>ids.has(row.id)?{...row,plannedDate:ids.get(row.id),plannedMonthOnly:false}:row))
+    saveQualityLocal('audits',loadQualityLocal('audits').map((row: QualityRecord)=>ids.has(row.id)?{...row,plannedDate:ids.get(row.id),plannedMonthOnly:false}:row))
     return assignments.length
   }
   assertReady(organizationId)
