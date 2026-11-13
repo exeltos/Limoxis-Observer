@@ -2,7 +2,7 @@
 // the roster pill and what needs attention. Greek and English side by side; no raw key reaches the screen.
 import { PROFESSIONAL_CATEGORIES } from '../interviews/interviewsModel'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { DivisionDepartment } from './divisionService'
 
 const pick = (language: string, el: string, en: string) => (language === 'en' ? en : el)
 
@@ -23,7 +23,7 @@ export function monthTitle(month = hospitalToday().slice(0, 7), language = 'el')
 }
 
 // The roster of next month: [text, tone] for its pill.
-export function rosterPill(row: AnyRecord | null | undefined, language = 'el'): [string, string] {
+export function rosterPill(row: DivisionDepartment | null | undefined, language = 'el'): [string, string] {
   const nights = Number(row?.uncoveredNights) || 0
   if (row?.rosterNextMonth === 'published') return [pick(language, 'Δημοσιευμένο', 'Published'), 'success']
   if (row?.rosterNextMonth === 'draft') return nights ? [pick(language, `Προσχέδιο · ${nights} ${nights === 1 ? 'νύχτα' : 'νύχτες'}`, `Draft · ${nights} ${nights === 1 ? 'night' : 'nights'}`), 'warning'] : [pick(language, 'Προσχέδιο', 'Draft'), 'info']
@@ -42,7 +42,7 @@ export function percentStatus(value: unknown, target: number) {
 // «Χρειάζονται προσοχή»: a missing roster first, then requests waiting over 3 days, a draft with
 // uncovered nights and training that expires within 30 days.
 export interface AttentionItem { key: string, departmentId: string, tone: 'danger' | 'warning' | 'info', to: string, count?: number, title: string }
-export function attentionItems(departments: AnyRecord[] = [], nextMonth = '', language = 'el') {
+export function attentionItems(departments: DivisionDepartment[] = [], nextMonth = '', language = 'el') {
   const month = monthGenitive(nextMonth, language)
   const items: AttentionItem[] = []
   for (const row of departments) {

@@ -3,7 +3,6 @@
 // preview show sample figures; the empty preview (?helpEmpty=1) a division without departments.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '../../core/supabase/client'
-import type { AnyRecord } from '../../types/featureTypes'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { isEmptyPreview } from '../../core/preview/emptyPreview'
@@ -17,14 +16,18 @@ const untyped = () => supabase as unknown as SupabaseClient
 const must = ({ data, error }: { data: unknown, error: unknown }) => { if (error) throw error; return data }
 
 // The numbers of a department row; the percentages are 0–100 or null (no data: «—»).
-export const COUNT_KEYS = ['staff', 'staffOnLeave', 'staffNew30', 'uncoveredNights', 'pendingRequests', 'pendingRequestsOver3Days', 'trainingExpiring30', 'falls30', 'pressureUlcers30', 'incidentsOpen']
-export const PERCENT_KEYS = ['trainingPct', 'fluPct', 'handHygienePct']
+export const COUNT_KEYS = ['staff', 'staffOnLeave', 'staffNew30', 'uncoveredNights', 'pendingRequests', 'pendingRequestsOver3Days', 'trainingExpiring30', 'falls30', 'pressureUlcers30', 'incidentsOpen'] as const
+export const PERCENT_KEYS = ['trainingPct', 'fluPct', 'handHygienePct'] as const
 
 // A department row of division_overview (the keys above, its id, name and next month's roster state).
-export type DivisionDepartment = AnyRecord
+export type DivisionDepartment = { id: string, name: string, rosterNextMonth?: string | null } & Partial<Record<typeof COUNT_KEYS[number] | typeof PERCENT_KEYS[number], number | null>>
+// A division: its name and the professional categories it covers.
+export type Division = { id: string, name: string, categories?: string[] }
 export type DivisionTotals = Record<string, number | null>
+// The figures the cards show: a division's totals, or one department's own numbers.
+export type DivisionFigures = Partial<Record<typeof COUNT_KEYS[number] | typeof PERCENT_KEYS[number] | 'rosterPublished', number | null>>
 // The Division Director's screen: the divisions to pick from, the division, its departments and totals.
-export interface DivisionOverview { divisions: Array<{ id: string, name: string }>, division: AnyRecord | null, nextMonth: string, departments: DivisionDepartment[], totals: DivisionTotals }
+export interface DivisionOverview { divisions: Array<{ id: string, name: string }>, division: Division | null, nextMonth: string, departments: DivisionDepartment[], totals: DivisionTotals }
 
 // The month after today's (Europe/Athens): the roster the departments prepare now.
 export function nextMonthOf(today = hospitalToday()) {
@@ -82,25 +85,27 @@ function sampleOverview(divisionId: string | null): DivisionOverview {
 export async function loadDivisionOverview(organizationId: string | null | undefined, divisionId: string | null = null): Promise<DivisionOverview> {
   if (isSample()) return sampleOverview(divisionId)
   if (!organizationId) return { divisions: [], division: null, nextMonth: nextMonthOf(), departments: [], totals: totalsOf([]) }
-  const data = (must(await untyped().rpc('division_overview', { p_organization_id: organizationId, p_division_id: divisionId || null })) || {}) as AnyRecord
+  const data = (must(await untyped().rpc('division_overview', { p_organization_id: organizationId, p_division_id: divisionId || null })) || {}) as Partial<DivisionOverview>
   const departments = Array.isArray(data.departments) ? data.departments : []
   return { divisions: Array.isArray(data.divisions) ? data.divisions : [], division: data.division || null, nextMonth: data.nextMonth || nextMonthOf(), departments, totals: data.totals || totalsOf(departments) }
 }
 
 // The hospital's divisions with the departments each covers, for «Προβολή ως ρόλος»: in a hospital
 // the departments' ids (hr_division_departments), in the sample hospital their names.
-export async function loadDivisionChoices(organizationId: string | null | undefined) {
+export async function loadDivisionChoices(organizationId: string | null | undefined): Promise<Array<{ id: string, name: string, departmentIds: string[] }>> {
   const { divisions } = await loadDivisions(organizationId)
-  return (divisions || []).map((item: AnyRecord) => ({ id: item.id, name: item.name, departmentIds: isSample() ? [...(SAMPLE_DIVISION_DEPARTMENTS[item.id] || [])] : item.departments || [] }))
+  return (divisions || []).map(item => ({ id: item.id, name: item.name, departmentIds: isSample() ? [...(SAMPLE_DIVISION_DEPARTMENTS[item.id] || [])] : item.departments || [] }))
 }
 
 // «Επόμενες συνεντεύξεις»: the scheduled interviews of the division's candidates, the nearest first.
-export async function loadDivisionInterviews(organizationId: string | null | undefined, categories: string[] = []) {
+// An interview of the list (the candidates come from the Interviews module).
+export type DivisionInterview = { id: string, candidateId: string, name: string, position: string, scheduledAt: string }
+export async function loadDivisionInterviews(organizationId: string | null | undefined, categories: string[] = []): Promise<DivisionInterview[]> {
   if (isEmptyPreview()) return []
   const candidates = await loadDivisionCandidates(organizationId)
   const today = hospitalToday()
   return (candidates || [])
-    .filter((candidate: AnyRecord) => !categories.length || categories.includes(candidate.professionalCategory))
-    .flatMap((candidate: AnyRecord) => (candidate.interviews || []).filter((item: AnyRecord) => item.status === 'scheduled' && item.scheduledAt && hospitalDate(item.scheduledAt) >= today).map((item: AnyRecord) => ({ id: item.id, candidateId: candidate.id, name: candidate.fullName, position: candidate.requestedPosition, scheduledAt: item.scheduledAt })))
-    .sort((a: AnyRecord, b: AnyRecord) => String(a.scheduledAt).localeCompare(String(b.scheduledAt)))
+    .filter(candidate => !categories.length || categories.includes(candidate.professionalCategory))
+    .flatMap(candidate => (candidate.interviews || []).filter((item: { status: string, scheduledAt?: string | null }) => item.status === 'scheduled' && item.scheduledAt && hospitalDate(item.scheduledAt) >= today).map((item: { id: string, scheduledAt: string }) => ({ id: item.id, candidateId: candidate.id, name: candidate.fullName, position: candidate.requestedPosition, scheduledAt: item.scheduledAt })))
+    .sort((a: DivisionInterview, b: DivisionInterview) => String(a.scheduledAt).localeCompare(String(b.scheduledAt)))
 }
