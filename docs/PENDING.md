@@ -19,6 +19,11 @@
 - [x] Ο πίνακας `register_nicu_6c8688ab` (χειροκίνητο μητρώο στο «Γενικό Νοσοκομείο Demo») έμεινε ορφανός μετά την επαναφορά 12/11: ο ιδιοκτήτης τρέχει το `docs/sql/drop_orphan_register_demo.sql`. — έλεγχος 13/11: δεν υπάρχει πια.
 - [ ] Ένα demo «μία πηγή»: τα τοπικά `*DemoData.js` (μόνο για την προεπισκόπηση βοήθειας) να ευθυγραμμιστούν ή να αφαιρεθούν.
 
+## Σελίδα παρουσίασης (13/11/2026, κλάδος `claude/landing-page`)
+- [x] Δημόσια σελίδα στο «/» για όποιον δεν έχει συνδεθεί (`src/features/auth/LandingPage.tsx`, `landing.css`)· ο συνδεδεμένος πάει στην εφαρμογή, οι άλλες διαδρομές στο `/login` όπως πριν (`ProtectedRoute`). Το λογότυπο της σύνδεσης οδηγεί στη σελίδα.
+- [x] Στοιχεία επικοινωνίας από τη βάση (`public_contact()`), με αρχικές τιμές στον κώδικα· ο ιδιοκτήτης τα αλλάζει στο Οργανισμοί › Ρυθμίσεις › «Σελίδα παρουσίασης».
+- [ ] Εφαρμογή του `supabase/migrations/20261231510000_public_contact.sql` στη βάση (από τη συνεδρία-γονέα μετά τον έλεγχο). Χωρίς `revoke ... from public`: η συνάρτηση επιστρέφει μόνο τα 4 δημόσια πεδία.
+
 ## Β. Καθαρός κώδικας (12/11/2026)
 - [x] Ημερομηνίες: `src/core/dates/hospitalDate.js` (`hospitalDate`, `hospitalToday`, `hospitalMonth`, Ευρώπη/Αθήνα)· 141 «σήμερα» + 18 σημεία από το ρολόι. Τα υπόλοιπα `toISOString().slice(0,10)` είναι αριθμητική ημερομηνιών σε UTC πάνω σε 'YYYY-MM-DD' (σωστά). Το `tests/hospitalDate.test.js` απαγορεύει νέο `new Date().toISOString().slice(0,10)`. Οι διπλοί βοηθοί Αθήνας (`formStatus.js`, `patientRecordScope.js`, `platformHealthService.js`, `AdmissionDischargeDialog.jsx`) ενώθηκαν στο `src/core/dates/hospitalDate.ts` (`hospitalNow`, `hospitalHour`, `hospitalDay`) στο βήμα 3 του TypeScript.
 - [x] Πρώτη φόρτωση: χωρίς τον καθολικό κάδο `vendor` (μετέφερε pako/canvg/core-js/fflate/dompurify του PDF σε κάθε σελίδα)· 387 → 297 kB gzip.

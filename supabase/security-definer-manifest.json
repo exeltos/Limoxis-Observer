@@ -381,6 +381,13 @@
       "authenticated": true,
       "reason": "Schedules a real organization's deletion after the grace period and closes its access; needs a recent export or a waiver reason; Platform Owner only, audited."
     },
+    "public_contact": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "noCallerCheck": true,
+      "reason": "Company name, e-mail, phone and website on the public presentation page, before sign-in; returns only these four platform_settings fields and no organisation data."
+    },
     "public_login_notice": {
       "category": "public-token",
       "anon": true,

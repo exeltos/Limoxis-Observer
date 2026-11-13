@@ -17,6 +17,11 @@ export interface PlatformSettings {
   maintenanceNoticeEnabled: boolean
   maintenanceNoticeEl: string
   maintenanceNoticeEn: string
+  // Η δημόσια «Σελίδα παρουσίασης» (πριν τη σύνδεση): εταιρεία, email, τηλέφωνο, ιστοσελίδα.
+  publicName: string
+  publicEmail: string
+  publicPhone: string
+  publicWebsite: string
   updatedAt: string | null
 }
 // What updatePlatformSettings saves: the settings as edited (a number field holds the text typed in it until saved).
@@ -33,6 +38,10 @@ const fallback: PlatformSettings={
   maintenanceNoticeEnabled:false,
   maintenanceNoticeEl:'',
   maintenanceNoticeEn:'',
+  publicName:'',
+  publicEmail:'',
+  publicPhone:'',
+  publicWebsite:'',
   updatedAt:null,
 }
 
@@ -48,6 +57,10 @@ function mapRow(row: PlatformSettingsRow | null): PlatformSettings{
     maintenanceNoticeEnabled:Boolean(row.maintenance_notice_enabled),
     maintenanceNoticeEl:row.maintenance_notice_el||'',
     maintenanceNoticeEn:row.maintenance_notice_en||'',
+    publicName:row.public_name||'',
+    publicEmail:row.public_email||'',
+    publicPhone:row.public_phone||'',
+    publicWebsite:row.public_website||'',
     updatedAt:row.updated_at||null,
   }
 }
@@ -57,7 +70,7 @@ export async function getPlatformSettings(): Promise<PlatformSettings>{
   if(!hasSupabaseConfig||!supabase)return fallback
   const {data,error}=await supabase
     .from('platform_settings')
-    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,max_demo_users,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,updated_at')
+    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,max_demo_users,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,public_name,public_email,public_phone,public_website,updated_at')
     .eq('id','global')
     .single()
   if(error)throw error
@@ -76,12 +89,19 @@ export async function updatePlatformSettings(values: PlatformSettingsInput){
     maintenance_notice_enabled:Boolean(values.maintenanceNoticeEnabled),
     maintenance_notice_el:String(values.maintenanceNoticeEl||'').trim(),
     maintenance_notice_en:String(values.maintenanceNoticeEn||'').trim(),
+    // Σελίδα παρουσίασης: μόνο όταν η φόρμα τα έχει (ένα κενό πεδίο = η σελίδα δείχνει την αρχική τιμή του κώδικα).
+    ...('publicName' in values?{
+      public_name:String(values.publicName||'').trim()||null,
+      public_email:String(values.publicEmail||'').trim()||null,
+      public_phone:String(values.publicPhone||'').trim()||null,
+      public_website:String(values.publicWebsite||'').trim()||null,
+    }:{}),
   }
   const {data,error}=await supabase
     .from('platform_settings')
     .update(payload)
     .eq('id','global')
-    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,max_demo_users,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,updated_at')
+    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,max_demo_users,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,public_name,public_email,public_phone,public_website,updated_at')
     .single()
   if(error)throw error
   return mapRow(data)

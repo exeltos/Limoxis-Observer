@@ -10496,6 +10496,10 @@ export type Database = {
           maintenance_notice_enabled: boolean
           max_demo_users: number
           organization_deletion_grace_days: number
+          public_email: string | null
+          public_name: string | null
+          public_phone: string | null
+          public_website: string | null
           support_email: string | null
           updated_at: string
           updated_by: string | null
@@ -10509,6 +10513,10 @@ export type Database = {
           maintenance_notice_enabled?: boolean
           max_demo_users?: number
           organization_deletion_grace_days?: number
+          public_email?: string | null
+          public_name?: string | null
+          public_phone?: string | null
+          public_website?: string | null
           support_email?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -10522,6 +10530,10 @@ export type Database = {
           maintenance_notice_enabled?: boolean
           max_demo_users?: number
           organization_deletion_grace_days?: number
+          public_email?: string | null
+          public_name?: string | null
+          public_phone?: string | null
+          public_website?: string | null
           support_email?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -19017,6 +19029,15 @@ export type Database = {
           p_suggestion_id: string
         }
         Returns: Json
+      }
+      public_contact: {
+        Args: never
+        Returns: {
+          email: string
+          name: string
+          phone: string
+          website: string
+        }[]
       }
       public_login_notice: { Args: never; Returns: Json }
       purge_recycle_bin: { Args: never; Returns: number }

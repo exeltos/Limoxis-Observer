@@ -432,6 +432,13 @@ export const guideContent = {
       ],
     },
     {
+      q: l('Τι είναι η σελίδα που ανοίγει πριν τη σύνδεση;', 'What is the page that opens before signing in?'),
+      a: [
+        l('Είναι η Σελίδα παρουσίασης: όποιος ανοίγει την εφαρμογή χωρίς να έχει συνδεθεί βλέπει τι κάνει το Limoxis Observer (Λειτουργίες, Πώς δουλεύει) και τα στοιχεία επικοινωνίας της εταιρείας, σε ελληνικά ή αγγλικά (κουμπί EN/EL). Το κουμπί «Ζητήστε παρουσίαση» ανοίγει email προς την εταιρεία.', 'It is the Presentation page: anyone opening the app without signing in sees what Limoxis Observer does (Features, How it works) and the company’s contact details, in Greek or English (EN/EL button). The “Request a demo” button opens an email to the company.'),
+        l('Το «Σύνδεση» πάνω δεξιά ανοίγει τη σελίδα σύνδεσης· από εκεί, το λογότυπο σας επιστρέφει στη Σελίδα παρουσίασης. Όποιος έχει ήδη συνδεθεί πηγαίνει κατευθείαν στην εφαρμογή. Τα στοιχεία επικοινωνίας τα αλλάζει ο Ιδιοκτήτης πλατφόρμας.', '“Sign in” at the top right opens the sign-in page; from there the logo takes you back to the Presentation page. Anyone already signed in goes straight into the app. The contact details are changed by the Platform Owner.'),
+      ],
+    },
+    {
       q: l('Ξέχασα τον κωδικό μου.', 'I forgot my password.'),
       a: [
         l('Από τη σελίδα σύνδεσης χρησιμοποιήστε τον σύνδεσμο ανάκτησης πρόσβασης: οι οδηγίες στέλνονται μόνο στο email που είναι δηλωμένο στον λογαριασμό σας.', 'On the sign-in page use the account recovery link: instructions are sent only to the email registered to your account.'),

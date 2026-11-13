@@ -2,6 +2,10 @@
    editor of Announcements (owner, 10/11/2026). */
 .platform-settings-dialog{display:grid;gap:16px}
 .platform-settings-dialog .field input{height:40px}
+/* Ομάδα «Σελίδα παρουσίασης» στις Ρυθμίσεις οργανισμών. */
+.platform-settings-group{display:grid;gap:14px;margin:4px 0 0;padding:14px 0 0;border:0;border-top:1px solid var(--lo-color-border)}
+.platform-settings-group>legend{padding:0 0 4px;font-size:13px;font-weight:750;color:#24364a}
+.platform-settings-group>p{margin:-6px 0 0}
 .platform-settings-dialog .field-hint,.platform-settings-dialog .field-error{font-size:11.5px;line-height:1.45}
 .platform-settings-dialog .platform-settings-duration-control>span{font-size:12px}
 .platform-maintenance-banner.platform-settings-preview-banner{position:static;transform:none;width:100%;box-shadow:none;grid-template-columns:auto minmax(0,1fr);white-space:pre-wrap}
