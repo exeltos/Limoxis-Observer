@@ -34,7 +34,7 @@ describe('antibiotic consumption (DDD) metric (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 3
   })
 
   it('excludes a dispensing row for an antibiotic with no DDD reference value', () => {
-    antibioticDispensingRows.unshift({ id: 'ABXD-TEST', productCode: 'ABX-UNKNOWN', quantityGrams: 500 })
+    antibioticDispensingRows.unshift({ id: 'ABXD-TEST', productCode: 'ABX-UNKNOWN', quantityGrams: 500 } as (typeof antibioticDispensingRows)[number])
     const metrics = collectIndicatorMetrics()
     expect(metrics.antibiotic_ddd_total).toBe(30967.62)
   })

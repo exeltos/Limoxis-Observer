@@ -2,14 +2,16 @@ import { describe, expect, it, vi } from 'vitest'
 import { byColumn, chunkValues, selectAllPages, selectInChunks } from '../src/core/data/inChunks'
 
 const URL_LIMIT = 8000
+type FakeResult = { data: Record<string, unknown>[] | null, error: { status: number, message: string } | null }
+type FakeQuery = PromiseLike<FakeResult> & { select: (columns?: string) => FakeQuery, eq: () => FakeQuery, order: () => FakeQuery, in: (column: string, values: string[]) => FakeQuery, range: (from: number, to: number) => FakeQuery }
 const uuid = index => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`
 
 // A PostgREST-like query that records the URL it would send and fails like the
 // gateway when the URL is too long.
-function fakeTable(rows, requests) {
+function fakeTable(rows: Record<string, unknown>[], requests: number[]): () => FakeQuery {
   return () => {
-    const state = { column: null, values: [], from: 0, to: Infinity }
-    const query = {
+    const state: { column: string | null, values: string[], from: number, to: number } = { column: null, values: [], from: 0, to: Infinity }
+    const query: FakeQuery = {
       select: () => query,
       eq: () => query,
       order: () => query,
@@ -27,7 +29,7 @@ function fakeTable(rows, requests) {
         const url = `/rest/v1/table?select=*&${state.column}=in.(${state.values.join(',')})`
         requests.push(url.length)
         if (url.length > URL_LIMIT) return Promise.resolve({ data: null, error: { status: 400, message: 'URI too long' } }).then(resolve, reject)
-        const matched = rows.filter(row => state.values.includes(row[state.column]))
+        const matched = rows.filter(row => state.values.includes(row[state.column as string] as string))
         return Promise.resolve({ data: matched.slice(state.from, state.to + 1), error: null }).then(resolve, reject)
       },
     }
@@ -78,7 +80,7 @@ describe('reads filtered on many ids', () => {
   it('pages an organization-wide list until a short page', async () => {
     const rows = Array.from({ length: 2001 }, (_, index) => ({ id: index }))
     const ranges = []
-    const build = () => ({ range: (from, to) => { ranges.push([from, to]); return Promise.resolve({ data: rows.slice(from, to + 1), error: null }) } })
+    const build = () => ({ range: (from, to) => { ranges.push([from, to]); return Promise.resolve({ data: rows.slice(from, to + 1), error: null }) } }) as never
     expect(await selectAllPages(build)).toHaveLength(2001)
     expect(ranges).toEqual([[0, 999], [1000, 1999], [2000, 2999]])
   })
@@ -97,7 +99,7 @@ describe('selectInChunks whole-list read', () => {
     const all = [...ids, 'other-1', 'other-2'].map(id => ({ case_id: id }))
     let chunkCalls = 0
     let wholeCalls = 0
-    const page = rows => ({ range: (from, to) => Promise.resolve({ data: rows.slice(from, to + 1), error: null }) })
+    const page = rows => ({ range: (from, to) => Promise.resolve({ data: rows.slice(from, to + 1), error: null }) }) as never
     const result = await selectInChunks(ids, () => { chunkCalls += 1; return page([]) }, {
       column: 'case_id',
       whole: () => { wholeCalls += 1; return page(all) },
