@@ -12,7 +12,7 @@ describe('objectives on three levels, measured three ways', () => {
     expect(objectiveLevel({})).toBe('hospital')
   })
   it('is measured by a register, a platform indicator or a value per month', () => {
-    expect(objectiveSource({ registerId: 'r1', indicatorKey: 'los' })).toBe('register')
+    expect(objectiveSource({ registerId: 'r1', indicatorKey: 'los' } as never)).toBe('register')
     expect(objectiveSource({ platformIndicatorKey: 'who-hh' })).toBe('indicator')
     expect(objectiveSource({})).toBe('monthly')
     expect(monthlyMean([{ value: 90 }, { value: 93 }, { value: 88 }])).toBe(90.3)
