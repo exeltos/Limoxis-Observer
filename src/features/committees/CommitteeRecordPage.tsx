@@ -39,7 +39,8 @@ import { saveCommittees } from './committeeData'
 import { fmtDate, controlTeamName, controlTeamShort } from './committeeRecordFormat'
 import { committeeRecordActions, type CommitteeDialog, type CommitteeStep } from './committeeRecordActions'
 import type { RecordNavigation } from '../../design-system/EntityRecordShell'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Committee, CommitteeDecision, CommitteeDocument, CommitteeEmployee, CommitteeMeeting, CommitteeMember, CommitteePlanItem, CommitteeTopic } from './committeeTypes'
+import type { QualityRecord } from '../quality/qualityTypes'
 import {
   Head,
   Overview,
@@ -70,7 +71,7 @@ export function CommitteeRecordPage() {
   const { notify, notifyError, confirm } = useFeedback()
   const n = useNotifications()
   const { data: rows, setData: setRows, loading, error, reload } = useCommitteesData(committeeId)
-  const { data: employeeRows } = useEmployeesData() as { data: AnyRecord[] }
+  const { data: employeeRows } = useEmployeesData() as unknown as { data: CommitteeEmployee[] }
   const [tab, setTab] = useState('overview')
   const [dialog, setDialog] = useState<CommitteeDialog>(null)
   const [busy, setBusy] = useState(false)
@@ -90,7 +91,7 @@ export function CommitteeRecordPage() {
   const { goTo, restored } = useContextualNavigation('/meetings')
   // The corrective actions of the open minutes' decisions (read only while minutes are open).
   const canCreateCapa = can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
-  const [capas, setCapas] = useState<AnyRecord[]>([])
+  const [capas, setCapas] = useState<QualityRecord[]>([])
   useEffect(() => {
     if (!minutesId) return undefined
     let active = true
@@ -137,7 +138,7 @@ export function CommitteeRecordPage() {
       if (isDemo) {
         result = local?.()
         if (result) {
-          const nextRows = rows.map(x => (x.id === record?.id ? result as AnyRecord : x))
+          const nextRows = rows.map(x => (x.id === record?.id ? result as Committee : x))
           setRows(nextRows)
           saveCommittees(nextRows)
         }
@@ -181,14 +182,14 @@ export function CommitteeRecordPage() {
       </Page>
     )
 
-  const activeMembers: AnyRecord[] = (record.memberRefs || []).filter((x: AnyRecord) => x.active !== false)
-  const activePlan: AnyRecord[] = (record.annualPlan || []).filter((x: AnyRecord) => x.status !== 'cancelled')
+  const activeMembers: CommitteeMember[] = (record.memberRefs || []).filter(x => x.active !== false)
+  const activePlan: CommitteePlanItem[] = (record.annualPlan || []).filter(x => x.status !== 'cancelled')
   const tabs = [
     { id: 'overview', label: en ? 'Overview' : 'Σύνοψη', icon: CheckCircle2 },
     { id: 'members', label: `${en ? 'Members' : 'Μέλη'} ${activeMembers.length}`, icon: Users },
     { id: 'plan', label: `${en ? 'Annual plan' : 'Ετήσιο σχέδιο'}${activePlan.length ? ` ${activePlan.filter(x => x.status === 'completed').length}/${activePlan.length}` : ''}`, icon: Target },
     { id: 'meetings', label: `${en ? 'Meetings' : 'Συνεδριάσεις'} ${(record.meetings || []).length}`, icon: CalendarDays },
-    { id: 'decisions', label: `${en ? 'Decisions' : 'Αποφάσεις'} ${(record.decisions || []).filter((x: AnyRecord) => !['completed', 'closed', 'cancelled'].includes(x.status)).length}`, icon: ClipboardList },
+    { id: 'decisions', label: `${en ? 'Decisions' : 'Αποφάσεις'} ${(record.decisions || []).filter(x => !['completed', 'closed', 'cancelled'].includes(x.status)).length}`, icon: ClipboardList },
     { id: 'documents', label: en ? 'Documents' : 'Έγγραφα', icon: Paperclip },
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: FileClock },
   ]
@@ -238,13 +239,13 @@ export function CommitteeRecordPage() {
     </>
   )
 
-  const openedMeeting: AnyRecord | null = minutesId ? (record.meetings || []).find((x: AnyRecord) => x.id === minutesId) : null
+  const openedMeeting: CommitteeMeeting | null | undefined = minutesId ? (record.meetings || []).find(x => x.id === minutesId) : null
   // A decision of the minutes opens a corrective action of the Quality Center; it keeps the decision as its source.
-  const openDecisionCapa = (topic: AnyRecord) => {
+  const openDecisionCapa = (topic: CommitteeTopic) => {
     const decision = String(topic.decision || '').trim()
     const when = [fmtDate(openedMeeting?.date), openedMeeting?.minutesNo && `${en ? 'minutes' : 'πρακτικό'} ${openedMeeting?.minutesNo}`].filter(Boolean).join(', ')
     goTo('/quality/capas/new', { tab: 'topics', state: { qualitySource: {
-      source: 'other', sourceId: committeeDecisionSourceId(record.id, openedMeeting?.id, topic.id),
+      source: 'other', sourceId: committeeDecisionSourceId(record.id, openedMeeting?.id as string, topic.id as string),
       title: (decision.split('\n')[0] || topic.subject || '').slice(0, 120),
       description: [`${en ? 'Decision of' : 'Απόφαση'} ${record.name}${when ? ` (${when})` : ''}.`, topic.subject && `${en ? 'Topic' : 'Θέμα'}: ${topic.subject}`, decision].filter(Boolean).join('\n'),
       dueDate: topic.dueDate || '',
@@ -314,7 +315,7 @@ export function CommitteeRecordPage() {
         )}
         {tab === 'plan' && (
           <Plan
-            rows={(record.annualPlan || []).filter((x: AnyRecord) => x.status !== 'cancelled')}
+            rows={(record.annualPlan || []).filter(x => x.status !== 'cancelled')}
             canManage={canDecisions && !busy}
             onAdd={() => setDialog({ type: 'plan' })}
             onEdit={x => setDialog({ type: 'plan', value: x })}
@@ -354,14 +355,14 @@ export function CommitteeRecordPage() {
                   : 'Τα αρχεία αποθηκεύονται μέσω της ελεγχόμενης υπηρεσίας συνημμένων.'
               }
             />
-            {(record.documents || []).some((x: AnyRecord) => x.documentCode) && (
+            {(record.documents || []).some(x => x.documentCode) && (
               <ul
                 className="committee-linked-documents"
                 aria-label={en ? 'Linked controlled documents' : 'Συνδεδεμένα ελεγχόμενα έγγραφα'}
               >
-                {record.documents
-                  .filter((x: AnyRecord) => x.documentCode)
-                  .map((x: AnyRecord) => (
+                {(record.documents as CommitteeDocument[])
+                  .filter(x => x.documentCode)
+                  .map(x => (
                     <li key={x.id}>
                       <Link to={`/documents/${x.documentCode}`}>
                         <strong>{x.documentCode}</strong>
@@ -373,7 +374,7 @@ export function CommitteeRecordPage() {
             )}
             <AttachmentField
               disabled={!canDocuments}
-              value={(record.documents || []).filter((x: AnyRecord) => !x.documentCode)}
+              value={(record.documents || []).filter(x => !x.documentCode)}
               onChange={saveDemoDocuments}
               organizationId={organizationId}
               entityType="committee_document"
@@ -397,7 +398,7 @@ export function CommitteeRecordPage() {
         <MemberDialog
           teamName={controlTeamName(record.name, en)}
           staff={staff}
-          initial={dialog.value}
+          initial={dialog.value as CommitteeMember | undefined}
           busy={busy}
           onClose={() => setDialog(null)}
           onSave={dialog.value ? editMember : addMember}
@@ -443,7 +444,7 @@ export function CommitteeRecordPage() {
       )}
       {dialog?.type === 'decision' && (
         <DecisionDialog
-          initial={dialog.value}
+          initial={dialog.value as CommitteeDecision | undefined}
           meetings={record.meetings || []}
           members={activeMembers}
           busy={busy}
@@ -454,7 +455,7 @@ export function CommitteeRecordPage() {
       )}
       {dialog?.type === 'plan' && (
         <PlanDialog
-          initial={dialog.value}
+          initial={dialog.value as CommitteePlanItem | undefined}
           busy={busy}
           onClose={() => setDialog(null)}
           onSave={savePlan}

@@ -7,7 +7,7 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { decideExternalMinutesAsync,loadExternalMinutesAsync } from './committeeExternalApprovalService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ExternalMinutes } from './committeeTypes'
 import './minutesApproval.css'
 
 const day=(value: string|null|undefined,en: boolean)=>value?new Date(value).toLocaleDateString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—'
@@ -16,10 +16,10 @@ const day=(value: string|null|undefined,en: boolean)=>value?new Date(value).toLo
 // reads the minutes and approves them or asks for changes, once.
 export function MinutesApprovalPage(){
   const {token}=useParams(),[params]=useSearchParams(),{language}=useLanguage(),{notifyError}=useFeedback(),en=language==='en'
-  const [state,setState]=useState<{loading: boolean,data: AnyRecord|null,error: unknown}>({loading:true,data:null,error:null})
+  const [state,setState]=useState<{loading: boolean,data: ExternalMinutes|null,error: unknown}>({loading:true,data:null,error:null})
   const [mode,setMode]=useState(params.get('decision')==='changes'?'changes':'review')
   const [comment,setComment]=useState(''),[busy,setBusy]=useState(false),[done,setDone]=useState<string|null>(null)
-  const load=useCallback(async()=>{setState(s=>({...s,loading:true}));try{setState({loading:false,data:await loadExternalMinutesAsync(token as string) as AnyRecord|null,error:null})}catch(error){setState({loading:false,data:null,error})}},[token])
+  const load=useCallback(async()=>{setState(s=>({...s,loading:true}));try{setState({loading:false,data:await loadExternalMinutesAsync(token as string) as ExternalMinutes|null,error:null})}catch(error){setState({loading:false,data:null,error})}},[token])
   useEffect(()=>{void load()},[load])
 
   if(state.loading)return <Frame><RouteLoading/></Frame>
@@ -49,7 +49,7 @@ export function MinutesApprovalPage(){
       {m.quorumMet!=null&&<div><span>{en?'Quorum':'Απαρτία'}</span><strong>{m.quorumMet?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</strong></div>}
     </section>
     <section className="public-flow-section"><h2><FileText size={17}/>{en?'Topics and decisions':'Θέματα και αποφάσεις'}</h2>
-      {(m.topics||[]).length?<ol className="minutes-approval-topics">{m.topics.map((t: AnyRecord,i: number)=><li key={i}><strong>{t.subject}</strong>{t.decision&&<p>{t.decision}</p>}{t.action&&<small>{en?'Action':'Ενέργεια'}: {t.action}{t.owner?` · ${t.owner}`:''}{t.dueDate?` · ${day(t.dueDate,en)}`:''}</small>}</li>)}</ol>:<p>{en?'No topics recorded.':'Δεν καταγράφηκαν θέματα.'}</p>}
+      {(m.topics||[]).length?<ol className="minutes-approval-topics">{m.topics.map((t,i: number)=><li key={i}><strong>{t.subject}</strong>{t.decision&&<p>{t.decision}</p>}{t.action&&<small>{en?'Action':'Ενέργεια'}: {t.action}{t.owner?` · ${t.owner}`:''}{t.dueDate?` · ${day(t.dueDate,en)}`:''}</small>}</li>)}</ol>:<p>{en?'No topics recorded.':'Δεν καταγράφηκαν θέματα.'}</p>}
       {m.notes&&<div className="minutes-approval-notes"><span>{en?'General notes':'Γενικές σημειώσεις'}</span><p>{m.notes}</p></div>}
     </section>
     {(m.attendees||[]).length>0&&<section className="public-flow-section"><h2><Users size={17}/>{en?'Present':'Παρόντες'}</h2><p className="minutes-approval-attendees">{m.attendees.join(' · ')}</p></section>}

@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import type { Cloud } from '../../core/supabase/client'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CommitteeAttendance, CommitteeMember } from './committeeTypes'
 
 // Minutes approval by members without an account: the public page opened from
 // the e-mailed single-use link, and the secretariat's actions on a request.
@@ -20,12 +20,12 @@ export async function externalMinutesActionAsync(organizationId: string|null|und
 }
 
 // Present voting members who will need an e-mail link or a paper signature.
-export function membersWithoutAccount(attendanceRecords: AnyRecord[]=[],members: AnyRecord[]=[]){
-  const byKey=new Map<unknown,AnyRecord>(members.map(m=>[m.id,m]))
+export function membersWithoutAccount(attendanceRecords: CommitteeAttendance[]=[],members: CommitteeMember[]=[]){
+  const byKey=new Map<unknown,CommitteeMember>(members.map(m=>[m.id,m]))
   return attendanceRecords
     .filter(x=>x.status==='present'&&x.voting!==false)
     .map(x=>({record:x,member:byKey.get(x.memberId)||null}))
-    .filter((item): item is {record: AnyRecord,member: AnyRecord}=>Boolean(item.member&&!item.member.userId))
+    .filter((item): item is {record: CommitteeAttendance,member: CommitteeMember}=>Boolean(item.member&&!item.member.userId))
     .map(({record,member})=>({memberId:member.id,memberDbId:member.dbId||record.memberDbId||null,name:member.name||record.name,email:member.email||''}))
 }
 export const EMAIL_PATTERN=/^[^\s@]+@[^\s@]+\.[^\s@]+$/

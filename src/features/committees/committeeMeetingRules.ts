@@ -1,5 +1,5 @@
 // Attendance, quorum and the checks before the minutes of a meeting are finalized.
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CommitteeAttendance, CommitteeMeeting, CommitteeMember } from './committeeTypes'
 
 // Voting members needed for quorum. Simple majority is more than half of the
 // voting members; two thirds rounds up; a custom rule (set by the committee's
@@ -16,8 +16,8 @@ export function quorumRequired(rule: string | null | undefined, votingCount: num
 // from an earlier system, where only the names were kept). Members are voting
 // unless marked otherwise; attendees who are not members never vote, so they
 // count towards attendance but not towards quorum.
-export function attendanceFor(members: AnyRecord[], existing: AnyRecord[] = []): AnyRecord[] {
-  const recorded = new Map<unknown, AnyRecord>(existing.filter(row => row.memberId).map(row => [row.memberId, row]))
+export function attendanceFor(members: CommitteeMember[], existing: CommitteeAttendance[] = []): CommitteeAttendance[] {
+  const recorded = new Map<unknown, CommitteeAttendance>(existing.filter(row => row.memberId).map(row => [row.memberId, row]))
   const guests = existing.filter(row => !row.memberId && row.name).map(row => ({ ...row, voting: false }))
   return [...members.map(member => recorded.get(member.id) || {
     id: `ATT-${member.id}`,
@@ -34,7 +34,7 @@ export function attendanceFor(members: AnyRecord[], existing: AnyRecord[] = []):
 // custom, otherwise whether enough voting members were present. A meeting
 // without any voting member has no quorum. `attendance` counts everyone
 // present, voting or not.
-export function meetingQuorum(attendanceRecords: AnyRecord[] = [], rule: string | null = 'simple_majority') {
+export function meetingQuorum(attendanceRecords: Pick<CommitteeAttendance, 'voting' | 'status'>[] = [], rule: string | null = 'simple_majority') {
   const voting = attendanceRecords.filter(row => row.voting)
   const presentVoting = voting.filter(row => row.status === 'present').length
   const required = quorumRequired(rule || 'simple_majority', voting.length)
@@ -51,10 +51,10 @@ export function meetingQuorum(attendanceRecords: AnyRecord[] = [], rule: string 
 // 'no_attendance' (nobody recorded present), 'no_voting_members' (the committee
 // has no member with a vote), 'no_quorum' (quorum not met under a computable
 // rule), 'topic_without_decision' (a topic has no conclusion).
-export function finalizationBlocker(meeting: AnyRecord, { required, quorum, attendance, votingMembers }: { required: number | null, quorum: boolean | null, attendance: number, votingMembers?: number }) {
+export function finalizationBlocker(meeting: Pick<CommitteeMeeting, 'topics'>, { required, quorum, attendance, votingMembers }: { required: number | null, quorum: boolean | null, attendance: number, votingMembers?: number }) {
   if (!attendance) return 'no_attendance'
   if (votingMembers === 0) return 'no_voting_members'
   if (required !== null && !quorum) return 'no_quorum'
-  if ((meeting.topics || []).some((topic: AnyRecord) => topic.subject?.trim() && !topic.decision?.trim())) return 'topic_without_decision'
+  if ((meeting.topics || []).some(topic => topic.subject?.trim() && !topic.decision?.trim())) return 'topic_without_decision'
   return null
 }

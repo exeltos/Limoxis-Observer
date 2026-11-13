@@ -1,10 +1,10 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { shiftDemoDatesInPlace, shiftDemoMonthsInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays } from '../../core/data/demoSeed'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Committee, CommitteeMeeting } from './committeeTypes'
 // [agenda, notes of the meeting, decision, owner]
 type EarlyTopic = [string[], string, string, string]
-const seed: AnyRecord[]=[
+const seed: Committee[]=[
  {id:'COM-001',decisionNumber:'Απόφαση Δ.Σ. 31/18.12.2024',meetingFrequency:'monthly',quorumRule:'simple_majority',templateId:'enl',name:'Επιτροπή Νοσοκομειακών Λοιμώξεων',shortName:'ΕΝΛ',nameEn:'Hospital Infection Control Committee',shortNameEn:'HICC',type:'infection_control',status:'active',chair:'Δρ. Ελένη Παπαδοπούλου',secretary:'Μαρία Κωνσταντίνου',termStart:'2025-01-01',termEnd:'2026-12-31',committeeRole:'Κεντρικό θεσμικό όργανο του νοσοκομείου για την επιτήρηση, πρόληψη και τον έλεγχο των λοιμώξεων που συνδέονται με τη φροντίδα υγείας.',legalBasis:'ΥΑ Υ1.Γ.Π.114971/2014 · ισχύουσα πράξη συγκρότησης φορέα · WHO IPC Core Components',mandate:'Επιτήρηση, πρόληψη και έλεγχος λοιμώξεων, εφαρμογή μέτρων IPC και παρακολούθηση σχετικών δεικτών.',members:['Δρ. Ελένη Παπαδοπούλου','Μαρία Κωνσταντίνου','Γ. Νικολάου','Α. Δημητρίου'],memberRefs:[
   {id:'CM-SEED-1',inControlTeam:true,employeeId:'',name:'Δρ. Ελένη Παπαδοπούλου',department:'Ιατρική Υπηρεσία',profession:'Ιατρός',committeeTitle:'Πρόεδρος',responsibilities:'Συντονισμός της ΕΝΛ, έγκριση ημερήσιας διάταξης και εποπτεία εφαρμογής αποφάσεων.',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2025-01-01T00:00:00Z'},
   {id:'CM-SEED-2',inControlTeam:true,employeeId:'',name:'Μαρία Κωνσταντίνου',department:'Επιτήρηση Λοιμώξεων',profession:'Νοσηλευτής/τρια',committeeTitle:'ΝΕΛ / Γραμματέας',responsibilities:'Επιτήρηση ΛΣΦΥ, συλλογή και ανατροφοδότηση δεικτών, πρακτικά και παρακολούθηση ενεργειών.',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2025-01-01T00:00:00Z'},
@@ -105,7 +105,7 @@ earlyMonths.filter(month=>Number(month.slice(5,7))%2===1).forEach((month,i)=>{
 const member=(id: string,name: string,department: string,profession: string,committeeTitle: string,responsibilities: string)=>({id,employeeId:'',name,department,profession,committeeTitle,responsibilities,voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2025-01-01T00:00:00Z'})
 // A committee with its people [id, name, department, profession, title, responsibilities], how often it meets
 // (every … months, from month offset, on day), the topics of its meetings and its plan [title, indicator, baseline, target].
-type MoreCommittee = AnyRecord & { people: [string, string, string, string, string, string][], every: number, offset: number, day: string, topics: EarlyTopic[], plan: [string, string, string, string][] }
+type MoreCommittee = Omit<Committee, 'memberRefs' | 'meetings' | 'decisions' | 'annualPlan' | 'history'> & { people: [string, string, string, string, string, string][], every: number, offset: number, day: string, topics: EarlyTopic[], plan: [string, string, string, string][] }
 const MORE_COMMITTEES: MoreCommittee[]=[
  {id:'COM-003',decisionNumber:'Απόφαση Δ.Σ. 33/18.12.2024',meetingFrequency:'bimonthly',quorumRule:'simple_majority',templateId:'custom',name:'Επιτροπή Ποιότητας και Ασφάλειας Ασθενών',shortName:'ΕΠΑΑ',nameEn:'Quality and Patient Safety Committee',shortNameEn:'QPS',type:'custom',status:'active',chair:'Δρ. Κ. Αναστασίου',secretary:'Α. Δημητρίου',termStart:'2025-01-01',termEnd:'2026-12-31',
   committeeRole:'Εποπτεύει το σύστημα διαχείρισης ποιότητας, τα ανεπιθύμητα συμβάντα και την ασφάλεια των ασθενών.',legalBasis:'Ν. 4600/2019 · ISO 9001:2015 · ISO 15224:2016',mandate:'Ανασκόπηση συμβάντων, επιθεωρήσεων και δεικτών ποιότητας· έγκριση διορθωτικών ενεργειών.',
@@ -129,7 +129,7 @@ const MORE_COMMITTEES: MoreCommittee[]=[
 for(const {people,every,offset,day,topics,plan,...committee} of MORE_COMMITTEES){
  const short=committee.shortName
  const months=DEMO_HISTORY_MONTHS.filter(month=>(Number(month.slice(5,7))-1-offset+12)%every===0)
- const meetings: AnyRecord[]=months.map((month,i)=>{const [agenda,notes]=topics[i%topics.length];return pastMeeting(`-${committee.id}`,`ΠΡ-${short}`,month,day,people.length-(i%4===1?1:0),agenda,notes)})
+ const meetings: CommitteeMeeting[]=months.map((month,i)=>{const [agenda,notes]=topics[i%topics.length];return pastMeeting(`-${committee.id}`,`ΠΡ-${short}`,month,day,people.length-(i%4===1?1:0),agenda,notes)})
  const decisions=months.map((month,i)=>{const [,notes,title,owner]=topics[i%topics.length],recent=i>=months.length-2;return {id:`DEC-${committee.id}-${month}`,meetingId:`MTG-${month}-${committee.id}`,title,owner,dueDate:addDays(`${month}-${day}`,45),priority:i%3===0?'high':'medium',status:recent?(i===months.length-1?'open':'in_progress'):'completed',action:notes}})
  const last=months[months.length-1],[year,month]=last.split('-').map(Number),next=new Date(Date.UTC(year,month-1+every,1)).toISOString().slice(0,7)
  meetings.push({id:`MTG-${next}-${committee.id}`,date:`${next}-${day}`,title:`Τακτική συνεδρίαση ${MONTH_GENITIVE[Number(next.slice(5,7))-1]}`,status:'planned',attendance:0,quorum:null,minutesNo:'',agenda:topics[months.length%topics.length][0],notes:''})
@@ -141,15 +141,15 @@ for(const {people,every,offset,day,topics,plan,...committee} of MORE_COMMITTEES)
 // decision deadlines by days.
 shiftDemoMonthsInPlace(seed.map(committee=>committee.meetings))
 shiftDemoDatesInPlace(seed.map(committee=>committee.decisions))
-export function inferTemplate(r: AnyRecord){if(r.templateId)return r.templateId;const n=`${r.shortName||''} ${r.name||''}`.toLowerCase();if(n.includes('ενλ')||n.includes('νοσοκομειακών λοιμ'))return'enl';if(n.includes('αντιμικροβ')||n.includes('αντιβιο'))return'oekocha';return'custom'}
-function normalizeMeeting(meeting: AnyRecord){
- const topics=Array.isArray(meeting.topics)&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject: string,i: number)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0?(meeting.notes||''):'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))
+export function inferTemplate(r: Pick<Committee, 'templateId' | 'shortName' | 'name'> | { templateId?: string, shortName?: string, name?: string | null }){if(r.templateId)return r.templateId;const n=`${r.shortName||''} ${r.name||''}`.toLowerCase();if(n.includes('ενλ')||n.includes('νοσοκομειακών λοιμ'))return'enl';if(n.includes('αντιμικροβ')||n.includes('αντιβιο'))return'oekocha';return'custom'}
+function normalizeMeeting(meeting: CommitteeMeeting): CommitteeMeeting{
+ const topics=Array.isArray(meeting.topics)&&meeting.topics.length?meeting.topics:((meeting.agenda||[]) as string[]).map((subject: string,i: number)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0?(meeting.notes||''):'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))
  return {...meeting,topics,attendanceRecords:Array.isArray(meeting.attendanceRecords)?meeting.attendanceRecords:[],generalNotes:meeting.generalNotes??'',approvalState:meeting.approvalState??(meeting.status==='finalized'?'completed':'not_started')}
 }
-function normalizeRecord(r: AnyRecord){
+function normalizeRecord(r: Committee): Committee{
  const memberRefs=Array.isArray(r.memberRefs)&&r.memberRefs.length?r.memberRefs:(r.members||[]).map((name: string,i: number)=>({id:`LEGACY-${r.id}-${i}`,employeeId:'',name,department:'',profession:'',committeeTitle:name===r.chair?'Πρόεδρος':name===r.secretary?'Γραμματέας':'Μέλος',responsibilities:'',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:r.termStart?`${r.termStart}T00:00:00Z`:null}))
  return {...r,templateId:inferTemplate(r),memberRefs,meetings:(Array.isArray(r.meetings)?r.meetings:[]).map(normalizeMeeting),decisions:Array.isArray(r.decisions)?r.decisions:[],annualPlan:Array.isArray(r.annualPlan)?r.annualPlan:[],history:Array.isArray(r.history)?r.history:[]}
 }
-export function loadCommittees(): AnyRecord[]{const v=loadSnapshot('committees',structuredClone(seed));return (Array.isArray(v)?v:structuredClone(seed)).map(normalizeRecord)}
-export function saveCommittees(rows: AnyRecord[]){return saveSnapshot('committees',rows)}
+export function loadCommittees(): Committee[]{const v=loadSnapshot('committees',structuredClone(seed));return (Array.isArray(v)?v:structuredClone(seed)).map(normalizeRecord)}
+export function saveCommittees(rows: Committee[]){return saveSnapshot('committees',rows)}
 export function nextCommitteeId(rows: unknown[]){return `COM-${String(rows.length+1).padStart(3,'0')}`}

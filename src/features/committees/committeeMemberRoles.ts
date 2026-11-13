@@ -2,7 +2,10 @@
 // The Greek title as written in the official roster stays in `title`
 // (committeeTitle); the roles drive the badges, the ordering of the members
 // list and who is shown as chair.
-import type { AnyRecord } from '../../types/featureTypes'
+import type { CommitteeMember } from './committeeTypes'
+
+// What the roles of a member are read from: the stored roles, or the title.
+type MemberRoleSource = Pick<CommitteeMember, 'roles' | 'committeeTitle'>
 export const MEMBER_ROLES = [
   'chair',
   'vice_chair',
@@ -60,20 +63,20 @@ export function rolesFromTitle(title: unknown) {
 }
 
 // Stored roles, or for members saved before roles existed the ones their title implies.
-export const effectiveMemberRoles = (member: AnyRecord | null | undefined) =>
+export const effectiveMemberRoles = (member: MemberRoleSource | null | undefined) =>
   Array.isArray(member?.roles) && member.roles.length
     ? normalizeMemberRoles(member.roles)
     : rolesFromTitle(member?.committeeTitle)
 
-export const memberBadgeRoles = (member: AnyRecord | null | undefined) =>
+export const memberBadgeRoles = (member: MemberRoleSource | null | undefined) =>
   effectiveMemberRoles(member).filter(role => BADGE_ROLES.includes(role))
 
-const rank = (member: AnyRecord) =>
+const rank = (member: MemberRoleSource) =>
   Math.min(...effectiveMemberRoles(member).map(role => MEMBER_ROLES.indexOf(role)))
 
 // Chair first, then vice/deputy chair, coordinators, secretary, members;
 // active members before former ones; the original order otherwise.
-export function sortMembersByRole(rows: AnyRecord[] = []) {
+export function sortMembersByRole<T extends MemberRoleSource & Pick<CommitteeMember, 'active'>>(rows: T[] = []) {
   return rows
     .map((member, index) => ({ member, index }))
     .sort(
@@ -87,7 +90,7 @@ export function sortMembersByRole(rows: AnyRecord[] = []) {
 
 // Name of the active member holding a role; falls back to the title text
 // for members saved before roles existed.
-export function officerName(rows: AnyRecord[] = [], role: string, titlePattern?: RegExp | null) {
+export function officerName(rows: Pick<CommitteeMember, 'active' | 'roles' | 'name' | 'committeeTitle'>[] = [], role: string, titlePattern?: RegExp | null) {
   const active = rows.filter(x => x.active !== false)
   const byRole = active.find(x => Array.isArray(x.roles) && x.roles.includes(role))
   if (byRole) return byRole.name || ''

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadCommitteeRecordAsync, loadCommitteesAsync } from './committeeService'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Committee } from './committeeTypes'
 
 // With a committee code, only that committee is read (with every attendance
 // and decision row); without one, the list with its counts.
 export function useCommitteesData(committeeCode: string | null | undefined = null) {
   const { tenant } = useTenant()
   const organizationId = tenant?.id ?? null
-  const [data, setData] = useState<AnyRecord[]>([])
+  const [data, setData] = useState<Committee[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
 
