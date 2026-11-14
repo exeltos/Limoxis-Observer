@@ -6,12 +6,6 @@
 }
 /* color tokens: end */
 /* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
-.public-flow-question{border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:9px}
-:is(.platform-diagnostics-view,.training-participants-view,.training-assessment-view){
-  display:flex!important;
-  flex-direction:column!important;
-  gap:10px!important;
-}
 .training-assessment-registry .open-record-cell{white-space:nowrap!important}
 .training-participant-mode>button svg{color:var(--primary,var(--text-brand-284-2))}
 .training-participant-panel{flex-direction:column}
