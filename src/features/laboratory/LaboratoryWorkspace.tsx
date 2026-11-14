@@ -1,3 +1,4 @@
+import './laboratoryScreens.css'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { registryMenu } from '../../core/export/registryExports'
 import { useEffect, useMemo, useRef, useState } from 'react'

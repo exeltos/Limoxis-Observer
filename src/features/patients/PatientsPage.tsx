@@ -1,3 +1,4 @@
+import './patientsScreens.css'
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent, type Ref } from 'react'
 import { type LucideIcon, Activity, LogOut, Plus, ShieldAlert, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'

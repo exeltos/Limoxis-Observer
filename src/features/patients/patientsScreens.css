@@ -1,0 +1,12 @@
+/* color tokens: start */
+:root{
+  --border-warning-810:#f5d7a8;
+  --surface-warning-949:#fff4e5;
+}
+/* color tokens: end */
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.clinical-surface{padding:18px}
+.patient-isolation-flag{display:inline-flex;align-items:center;gap:4px;background:var(--surface-warning-949)!important;color:var(--text-warning-302)!important;border-color:var(--border-warning-810)!important}
+@media(max-width:700px){.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:1fr!important}}
+.patient-entry-grid>h3.patient-form-group{grid-column:1/-1;margin:6px 0 0;padding:0 0 4px;border-bottom:1px solid var(--lo-color-border);font-size:12px;font-weight:750;letter-spacing:.02em;color:var(--lo-color-muted)}
+.patient-entry-grid>h3.patient-form-group:first-child{margin-top:0}
