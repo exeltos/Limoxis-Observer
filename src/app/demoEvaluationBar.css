@@ -1,29 +1,29 @@
 /* Demo organization line (under the topbar, as in SurgiTrack) and the "Demo ended" screen. */
-.demo-evaluation-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 18px;background:#eef1f7;border-bottom:1px solid #dde3ee;color:#3d4b5e;font-size:12.5px}
-.demo-evaluation-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;background:#33406b;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.06em}
-.demo-evaluation-text{min-width:0;color:#4a586b}
+.demo-evaluation-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 18px;background:var(--surface-neutral-951-4);border-bottom:1px solid var(--border-brand-900-4);color:var(--text-neutral-304);font-size:12.5px}
+.demo-evaluation-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;background:var(--surface-brand-310);color:var(--text-inverse);font-size:10.5px;font-weight:800;letter-spacing:.06em}
+.demo-evaluation-text{min-width:0;color:var(--text-neutral-355)}
 .demo-evaluation-spacer{flex:1}
-.demo-evaluation-bar button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 13px;border:1px solid #33406b;border-radius:999px;background:#fff;color:#22304f;font-size:12px;font-weight:700;cursor:pointer}
-.demo-evaluation-bar button:hover{background:#f3f5fb}
-.demo-evaluation-bar button.active{background:#e3e8f5}
-.demo-evaluation-count{margin-left:2px;padding:1px 7px;border-radius:999px;background:#e3e8f5;color:#22304f;font-size:10.5px}
-.demo-evaluation-bar button.demo-evaluation-cta{background:#17506b;border-color:#17506b;color:#fff}
-.demo-evaluation-bar button.demo-evaluation-cta:hover{background:#113f55}
-.demo-evaluation-bar.is-ending{background:#fdf1e4;border-bottom-color:#f2d2ae}
-.demo-evaluation-bar.is-ending .demo-evaluation-text{color:#9a4508;font-weight:700}
+.demo-evaluation-bar button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 13px;border:1px solid var(--border-brand-310);border-radius:999px;background:var(--lo-color-surface);color:var(--text-brand-222-2);font-size:12px;font-weight:700;cursor:pointer}
+.demo-evaluation-bar button:hover{background:var(--surface-neutral-969-6)}
+.demo-evaluation-bar button.active{background:var(--surface-brand-925)}
+.demo-evaluation-count{margin-left:2px;padding:1px 7px;border-radius:999px;background:var(--surface-brand-925);color:var(--text-brand-222-2);font-size:10.5px}
+.demo-evaluation-bar button.demo-evaluation-cta{background:var(--surface-brand-255);border-color:var(--border-brand-255);color:var(--text-inverse)}
+.demo-evaluation-bar button.demo-evaluation-cta:hover{background:var(--surface-brand-200)}
+.demo-evaluation-bar.is-ending{background:var(--surface-warning-943);border-bottom-color:var(--border-warning-816-2)}
+.demo-evaluation-bar.is-ending .demo-evaluation-text{color:var(--text-warning-318);font-weight:700}
 .demo-evaluation-roles{position:relative;z-index:30}
-.demo-evaluation-roles .role-preview-popover{top:36px;color:var(--text,#24384d);font-size:12px}
+.demo-evaluation-roles .role-preview-popover{top:36px;color:var(--text,var(--text-brand-222-3));font-size:12px}
 @media(max-width:720px){.demo-evaluation-spacer{display:none}}
 
-.demo-closed-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--lo-surface-page,#f4f7fa)}
-.demo-closed-card{width:min(480px,100%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:30px 26px;background:#fff;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:16px;box-shadow:0 18px 44px rgba(17,42,63,.1)}
-.demo-closed-card h1{margin:6px 0 0;font-size:21px;color:#1d3247}
-.demo-closed-card p{margin:0;color:var(--lo-text-secondary,#5f6f7c);font-size:13px;line-height:1.55}
+.demo-closed-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--lo-surface-page,var(--surface-neutral-969))}
+.demo-closed-card{width:min(480px,100%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:30px 26px;background:var(--lo-color-surface);border:1px solid var(--lo-surface-border);border-radius:16px;box-shadow:0 18px 44px rgba(17,42,63,.1)}
+.demo-closed-card h1{margin:6px 0 0;font-size:21px;color:var(--text-brand-196)}
+.demo-closed-card p{margin:0;color:var(--lo-text-secondary);font-size:13px;line-height:1.55}
 .demo-closed-card button{margin-top:10px}
 
 /* Demo organization (class set on <body> by the Demo line): screens and charts
    stay as they are; a printout carries one quiet footer line. */
 @media print{
   body.lo-demo-organization .demo-evaluation-bar{display:none!important}
-  body.lo-demo-organization::after{content:'Demo · δοκιμαστικά δεδομένα';position:fixed;bottom:0;right:0;padding:2px 8px;color:#8a96a3;font:600 8.5px system-ui,sans-serif}
+  body.lo-demo-organization::after{content:'Demo · δοκιμαστικά δεδομένα';position:fixed;bottom:0;right:0;padding:2px 8px;color:var(--text-neutral-590);font:600 8.5px system-ui,sans-serif}
 }

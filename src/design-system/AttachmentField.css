@@ -6,10 +6,10 @@
   gap:8px;
   min-height:48px;
   margin-top:2px;
-  border:1px solid var(--lo-color-border,#dbe2e8);
+  border:1px solid var(--lo-color-border);
   border-radius:8px;
-  background:#f8fafb;
-  color:#526a7c;
+  background:var(--lo-surface-soft);
+  color:var(--text-neutral-404);
   font-size:12px;
   font-weight:600;
 }

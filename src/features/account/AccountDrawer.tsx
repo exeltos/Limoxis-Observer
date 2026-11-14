@@ -1,3 +1,4 @@
+import './account.css'
 import { useEffect, useState } from 'react'
 import { Eye, EyeOff, KeyRound, Mail, ShieldCheck, UserRound, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'

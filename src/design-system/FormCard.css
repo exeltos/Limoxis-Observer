@@ -11,7 +11,7 @@
 .lo-form-grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .lo-form-grid>.is-span{grid-column:1/-1}
 .lo-form-card .field{gap:5px;min-width:0}
-.lo-form-card :is(.field,.searchable-select) :is(input:not([type='checkbox']),textarea){width:100%;box-sizing:border-box;min-height:40px;padding:0 11px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px}
+.lo-form-card :is(.field,.searchable-select) :is(input:not([type='checkbox']),textarea){width:100%;box-sizing:border-box;min-height:40px;padding:0 11px;border:1px solid var(--lo-color-border-strong);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px}
 .lo-form-card .field>input:not([type='checkbox']),.lo-form-card .searchable-select .searchable-select-control>input{height:40px}
 .lo-form-card textarea{padding:9px 11px!important;line-height:1.45;resize:vertical}
 .lo-form-card .lo-mode-switch{margin:0}
