@@ -1,3 +1,4 @@
+import './employeesScreens.css'
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'

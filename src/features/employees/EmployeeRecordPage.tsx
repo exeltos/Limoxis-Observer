@@ -1,3 +1,4 @@
+import './employeesScreens.css'
 import { EmployeePositionTab } from './JobDescriptionViews'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'

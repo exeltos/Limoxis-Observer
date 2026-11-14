@@ -1,3 +1,9 @@
+/* color tokens: start */
+:root{
+  --text-brand-339:#40566d;
+  --text-neutral-467:#5d7891;
+}
+/* color tokens: end */
 .training-review-dialog .observer-dialog-body{
   padding:12px 14px 10px!important;
 }
@@ -68,9 +74,9 @@
   grid-template-columns:minmax(0,1fr) minmax(120px,.5fr);
   align-items:center;
   gap:10px;
-  border:1px solid var(--lo-color-border,#dbe2e8);
+  border:1px solid var(--lo-color-border);
   border-radius:9px;
-  background:var(--lo-color-surface-subtle,#f8fafc);
+  background:var(--lo-color-surface-subtle,var(--surface-soft));
   padding:7px 10px;
 }
 .training-answer-question{
@@ -84,14 +90,14 @@
 }
 .training-answer-question strong{
   display:block;
-  color:var(--lo-color-text,#17324d);
+  color:var(--lo-color-text);
   line-height:1.3;
   font-size:11.5px;
 }
 .training-answer-question small{
   display:block;
   margin-top:2px;
-  color:var(--lo-color-text-muted,#66788a);
+  color:var(--lo-color-text-muted,var(--text-neutral-471));
   font-size:9.5px;
 }
 .training-answer-index{
@@ -102,18 +108,18 @@
   width:20px;
   height:20px;
   border-radius:50%;
-  background:var(--lo-color-primary-soft,#edf6fb);
-  color:var(--lo-color-primary,#176998);
+  background:var(--lo-color-primary-soft);
+  color:var(--lo-color-primary);
   font-size:10px;
   font-weight:750;
 }
 .training-answer-value{
   justify-self:stretch;
-  border-left:1px solid var(--lo-color-border,#dbe2e8);
+  border-left:1px solid var(--lo-color-border);
   padding-left:10px;
   font-weight:650;
   font-size:11.5px;
-  color:var(--lo-color-text,#17324d);
+  color:var(--lo-color-text);
   overflow-wrap:anywhere;
 }
 .training-feedback-layout{
@@ -124,9 +130,9 @@
 }
 .training-feedback-scores,
 .training-feedback-comment{
-  border:1px solid var(--lo-color-border,#dbe2e8);
+  border:1px solid var(--lo-color-border);
   border-radius:9px;
-  background:var(--lo-color-surface-subtle,#f8fafc);
+  background:var(--lo-color-surface-subtle,var(--surface-soft));
   padding:9px 10px;
 }
 .training-feedback-scores>strong,
@@ -134,7 +140,7 @@
   display:block;
   margin-bottom:5px;
   font-size:10.5px;
-  color:var(--lo-color-text,#17324d);
+  color:var(--lo-color-text);
 }
 .training-feedback-grid{
   display:grid;
@@ -146,24 +152,24 @@
   justify-content:space-between;
   gap:10px;
   padding:3px 0;
-  border-bottom:1px solid var(--lo-color-border-subtle,#e9eef2);
+  border-bottom:1px solid var(--lo-color-border-subtle,var(--border-neutral-931));
 }
 .training-feedback-row:last-child{
   border-bottom:0;
 }
 .training-feedback-row span{
   font-size:10.5px;
-  color:var(--lo-color-text-secondary,#40566d);
+  color:var(--lo-color-text-secondary,var(--text-brand-339));
 }
 .training-feedback-row strong{
   white-space:nowrap;
   font-size:11px;
-  color:var(--lo-color-text,#17324d);
+  color:var(--lo-color-text);
 }
 .training-feedback-comment p{
   margin:0;
   font-size:10.5px;
-  color:var(--lo-color-text-secondary,#40566d);
+  color:var(--lo-color-text-secondary,var(--text-brand-339));
   white-space:pre-wrap;
 }
 .training-review-check{
@@ -175,9 +181,9 @@
   width:100%;
   margin:0;
   padding:8px 11px;
-  border:1px solid var(--lo-color-border,#dbe2e8);
+  border:1px solid var(--lo-color-border);
   border-radius:9px;
-  background:var(--lo-color-surface-subtle,#f8fafc);
+  background:var(--lo-color-surface-subtle,var(--surface-soft));
   cursor:pointer;
 }
 .training-review-check input[type='checkbox']{
@@ -192,7 +198,7 @@
   line-height:1.35;
   font-size:10.5px;
   font-weight:650;
-  color:var(--lo-color-text,#17324d);
+  color:var(--lo-color-text);
 }
 .training-review-check.is-reviewed{
   cursor:default;
@@ -204,7 +210,7 @@
   }
   .training-answer-value{
     border-left:0;
-    border-top:1px solid var(--lo-color-border,#dbe2e8);
+    border-top:1px solid var(--lo-color-border);
     padding:9px 0 0;
   }
 }
@@ -222,7 +228,7 @@
   display:block;
   margin:2px 0 0;
   font-size:11px;
-  color:var(--lo-color-text-muted,#5d7891);
+  color:var(--lo-color-text-muted,var(--text-neutral-467));
 }
 .training-review-finalize p{
   margin:0 0 8px;

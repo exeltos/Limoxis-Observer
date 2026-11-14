@@ -183,7 +183,6 @@
 .lo-icon-button-primary{color:var(--lo-color-primary);background:transparent}
 .lo-icon-button-danger{color:var(--lo-status-danger-fg);background:transparent}
 .lo-icon-button-success{color:var(--lo-status-success-fg);background:transparent}
-.lo-icon-button-neutral{background:transparent}
 .lo-icon-button-primary:hover{background:var(--lo-status-info-bg)}
 .lo-icon-button-danger:hover{background:var(--lo-status-danger-bg)}
 .lo-icon-button-success:hover{background:var(--lo-status-success-bg)}

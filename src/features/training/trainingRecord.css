@@ -13,7 +13,7 @@
 .training-reader-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center}
 .training-reader-frame{display:grid;gap:6px;margin-top:10px}
 .training-reader-status{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--lo-color-muted)}
-.training-reader-frame iframe{width:100%;height:70vh;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff}
+.training-reader-frame iframe{width:100%;height:70vh;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
 .training-reader-frame img{max-width:100%;border:1px solid var(--lo-color-border);border-radius:10px}
 /* The tabs of a programme are record-tab panels (title, one line, actions, a table edge to edge) like the other records. */
 .training-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}

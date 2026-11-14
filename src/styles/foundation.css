@@ -153,9 +153,7 @@
 
 /* v0.9.4 compact employee operational record */
 .employee-record-shell{min-height:0;height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:10px;overflow:hidden}
-.record-section{max-width:1180px}.record-section-header h3{font-size:18px!important;margin-top:3px!important}
-.employee-full-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}.detail-item{min-height:68px;border:1px solid var(--line);border-radius:10px;background:var(--surface-subtle)}.detail-item span{font-size:10px!important}.detail-item strong{margin-top:4px;display:block}
-@media(max-width:1050px){.employee-full-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}.page:has(.employee-record-shell)>.page-header{padding-bottom:10px!important}.page:has(.employee-record-shell)>.page-header h1{font-size:18px!important}
+.record-section{max-width:1180px}.record-section-header h3{font-size:18px!important;margin-top:3px!important}.detail-item{min-height:68px;border:1px solid var(--line);border-radius:10px;background:var(--surface-subtle)}.detail-item span{font-size:10px!important}.detail-item strong{margin-top:4px;display:block}.page:has(.employee-record-shell)>.page-header{padding-bottom:10px!important}.page:has(.employee-record-shell)>.page-header h1{font-size:18px!important}
 
 /* v0.9.5 employee inline editing, tabular records and attachment preview */
 .employee-inline-edit .detail-item.editable{background:var(--lo-color-surface);border-color:var(--border-brand-816);box-shadow:0 0 0 2px rgba(31,107,155,.05)}
@@ -1162,17 +1160,12 @@
 /* v0.25.10 — Committee record layout polish: readable identity fields + safe header actions */
 .record-section-header>div:first-child{min-width:0;flex:1 1 auto}
 .record-section-header>div:first-child p{max-width:860px;overflow-wrap:anywhere}
-
-.committee-overview .committee-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:10px;background:var(--lo-color-surface);overflow:hidden;margin-bottom:10px}
-.committee-overview .committee-detail-grid .detail-field{min-width:0;padding:12px 14px;border-right:1px solid var(--border-neutral-927);background:var(--lo-color-surface)}
 .committee-overview .committee-detail-grid .detail-field:last-child{border-right:0}
 .committee-overview .committee-detail-grid .detail-field span{display:block;margin:0 0 5px;color:var(--text-neutral-514-2);font-size:9px;font-weight:750;line-height:1.25}
 .committee-overview .committee-detail-grid .detail-field strong{display:block;color:var(--text-brand-233);font-size:12px;font-weight:750;line-height:1.45;overflow-wrap:anywhere}
 
 @media(max-width:900px){
  .record-section-header{align-items:flex-start!important;flex-wrap:wrap}
- .committee-overview .committee-detail-grid{grid-template-columns:1fr}
- .committee-overview .committee-detail-grid .detail-field{border-right:0;border-bottom:1px solid var(--border-neutral-927)}
  .committee-overview .committee-detail-grid .detail-field:last-child{border-bottom:0}
 }
 
@@ -3477,7 +3470,6 @@ button:disabled,
 /* Platform Owner users: same visual order as a canonical registry without a private stylesheet. */
 
 /* Assessment actions stay in one row at the end of each table row. */
-.training-assessment-registry .open-record-cell{white-space:nowrap!important}
 .training-assessment-registry .open-record-cell .record-actions{
   display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:4px!important;flex-wrap:nowrap!important
 }
@@ -3983,14 +3975,7 @@ button:disabled,
 /* --------------------------------------------------------------------------
    Employee locked details
    -------------------------------------------------------------------------- */
-.employee-details-overview .employee-full-grid{
-  display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  margin:0!important;
-}
 /* the section already spaces its blocks (gap), so the header adds no margin of its own */
-html:not(#lo-employee-details) body .employee-details-overview>.record-section-header{margin-bottom:0!important}
-html:not(#lo-employee-details) body .employee-details-overview>.employee-full-grid{margin-top:0!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit){
   grid-template-rows:none;
   column-gap:0!important;
@@ -4014,7 +3999,6 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:not(:nth-child(3n+1)){border-left:1px solid var(--border-neutral-929)!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item span{display:block!important;margin:0 0 5px!important;color:var(--text-neutral-551-2)!important;font-size:9.5px!important;font-weight:800!important;line-height:1.25!important;letter-spacing:.01em!important;text-transform:none!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item strong{display:block!important;margin:0!important;color:var(--text-brand-202)!important;font-size:13.5px!important;font-weight:700!important;line-height:1.35!important;overflow-wrap:anywhere!important}
-.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:has(strong:empty) strong::after{content:'—';color:var(--text-neutral-651);font-weight:600}
 
 .employee-details-overview>.source-truth-note{
   display:grid!important;
@@ -4047,7 +4031,6 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
   .employee-details-overview .employee-full-grid:not(.employee-inline-edit){grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:none!important}
   .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item{grid-column:auto!important;grid-row:auto!important;border-left:0!important;border-bottom:1px solid var(--border-faint)!important}
   .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(2n){border-left:1px solid var(--border-neutral-929)!important}
-  .employee-details-overview>.source-truth-note{grid-template-columns:34px minmax(0,1fr)!important}
   .employee-details-overview>.source-truth-note>.button{grid-column:2!important;justify-self:start!important;margin-top:6px!important}
 }
 @media(max-width:640px){

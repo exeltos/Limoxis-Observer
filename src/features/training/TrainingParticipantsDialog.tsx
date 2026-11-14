@@ -1,3 +1,4 @@
+import './trainingScreens.css'
 import { useMemo,useState } from 'react'
 import { Plus,Search,Trash2,UserRoundPlus,Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
