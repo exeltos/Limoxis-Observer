@@ -3,7 +3,6 @@ import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { FilterBar } from '../../design-system/FilterBar'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // Building blocks shared by the employee record tabs: section titles, empty and
 // loading states, paging, the registry filter and status labels.
@@ -43,7 +42,7 @@ export function State({ loading, error, language, onRetry }: { loading?: boolean
     )
   return null
 }
-function usePaged(rows: AnyRecord[]) {
+function usePaged<T>(rows: T[]) {
   const [page, setPage] = useState(1),
     [pageSize, setPageSize] = useState(15)
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)),
@@ -55,7 +54,7 @@ function usePaged(rows: AnyRecord[]) {
   return { page: safePage, pageSize, totalPages, paged, setPage, setPageSize }
 }
 // The paging of a tab's list (useRegistryRows).
-export type Paging = ReturnType<typeof usePaged> // page, pageSize, totalPages, paged and their setters
+export type Paging<T = unknown> = ReturnType<typeof usePaged<T>> // page, pageSize, totalPages, paged and their setters
 export function Pager({ paging, total, language }: { paging: Paging, total: number, language: string }) {
   if (!total) return null
   return (
@@ -88,10 +87,10 @@ export function RegistryFilter({ query, setQuery, language, end = null }: { quer
     />
   )
 }
-export function useRegistryRows(rows: AnyRecord[]) {
+export function useRegistryRows<T>(rows: T[]) {
   const [query, setQuery] = useState('')
   const filtered = query.trim()
-    ? rows.filter((row: AnyRecord) =>
+    ? rows.filter(row =>
         JSON.stringify(row).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
       )
     : rows

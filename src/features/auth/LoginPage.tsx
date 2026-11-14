@@ -75,13 +75,13 @@ export function LoginPage() {
   return (
     <div className="auth-layout login-layout">
       <section className="auth-brand-panel" aria-label="Limoxis Observer">
-        <div className="auth-brand">
+        <Link className="auth-brand" to="/" title={greek?'Σελίδα παρουσίασης':'Presentation page'}>
           <BrandMark size={42} tone="light" className="auth-logo-mark"/>
           <div>
             <strong>Limoxis Observer</strong>
             <span>{greek?'Πλατφόρμα λειτουργίας νοσοκομείου':'Hospital Operations Platform'}</span>
           </div>
-        </div>
+        </Link>
 
         <div className="auth-value">
           <span className="login-eyebrow">{greek?'ΕΝΙΑΙΑ ΠΛΑΤΦΟΡΜΑ ΝΟΣΟΚΟΜΕΙΟΥ':'UNIFIED HOSPITAL PLATFORM'}</span>
@@ -103,7 +103,7 @@ export function LoginPage() {
         </button>
 
         <div className="auth-form-column">
-        <div className="auth-mobile-brand"><BrandMark size={34}/><strong>Limoxis Observer</strong></div>
+        <Link className="auth-mobile-brand" to="/" title={greek?'Σελίδα παρουσίασης':'Presentation page'}><BrandMark size={34}/><strong>Limoxis Observer</strong></Link>
         {sessionEnded&&<div className="login-notice" role="status"><Info size={16}/><div><strong>{greek?'Η σύνδεσή σας τερματίστηκε':'Your session was ended'}</strong><p>{greek?'Για λόγους ασφαλείας η σύνδεση τερματίστηκε από τον Ιδιοκτήτη Πλατφόρμας ή έληξε. Συνδεθείτε ξανά.':'For security reasons the session was ended by the Platform Owner or expired. Please sign in again.'}</p></div></div>}
         {maintenance&&<div className="login-notice" role="status"><Info size={16}/><div><strong>{greek?'Ανακοίνωση':'Notice'}</strong><p>{maintenance}</p></div></div>}
         <form className="login-card" onSubmit={handleSubmit} aria-labelledby="login-title">

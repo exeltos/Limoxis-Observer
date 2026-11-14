@@ -4,12 +4,12 @@
 import { supabase as configuredClient, type Cloud } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, EmployeeOption, JobDescription, JobDescriptionField, PositionAcknowledgement } from './employeeTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 const supabase = configuredClient as Cloud
 
-export const JOB_DESCRIPTION_FIELDS=[
+export const JOB_DESCRIPTION_FIELDS: [JobDescriptionField, string, string][]=[
  ['purpose','Σκοπός θέσης','Purpose of the role'],
  ['reportsTo','Αναφέρεται σε','Reports to'],
  ['duties','Καθήκοντα','Duties'],
@@ -19,15 +19,15 @@ export const JOB_DESCRIPTION_FIELDS=[
 ]
 
 export function emptyJobDescription(){return {purpose:'',reportsTo:'',duties:'',responsibilities:'',qualifications:'',competencies:'',version:0,updatedAt:null,updatedBy:''}}
-export function hasJobDescription(jd: AnyRecord|null|undefined): jd is AnyRecord{return Boolean(jd&&JOB_DESCRIPTION_FIELDS.some(([key])=>String(jd[key]||'').trim()))}
-export function nextJobDescription(previous: AnyRecord|null|undefined,draft: AnyRecord,actorName=''): AnyRecord{
+export function hasJobDescription(jd: JobDescription|null|undefined): jd is JobDescription{return Boolean(jd&&JOB_DESCRIPTION_FIELDS.some(([key])=>String(jd[key]||'').trim()))}
+export function nextJobDescription(previous: { version?: unknown }|null|undefined,draft: JobDescription,actorName=''): JobDescription{
  return {...emptyJobDescription(),...draft,version:(Number(previous?.version)||0)+1,updatedAt:new Date().toISOString(),updatedBy:actorName}
 }
 
-export function positionRow(positions: AnyRecord[]=[],name=''){return positions.find(row=>row?.[0]===name)||null}
+export function positionRow(positions: EmployeeOption[]=[],name=''){return positions.find(row=>row?.[0]===name)||null}
 
 // Acknowledgement state of one employee for their position's description.
-export function acknowledgementState(jd: AnyRecord|null|undefined,acknowledgements: AnyRecord[]=[]){
+export function acknowledgementState<T extends Pick<PositionAcknowledgement,'version'|'acknowledgedAt'>>(jd: JobDescription|null|undefined,acknowledgements: T[]=[]){
  if(!hasJobDescription(jd))return {state:'none',latest:null}
  const latest=[...acknowledgements].sort((a,b)=>String(b.acknowledgedAt).localeCompare(String(a.acknowledgedAt)))[0]||null
  if(!latest)return {state:'pending',latest:null}
@@ -35,20 +35,20 @@ export function acknowledgementState(jd: AnyRecord|null|undefined,acknowledgemen
 }
 
 const DEMO_KEY='employee_position_acknowledgements'
-const fromRow=(row: AnyRecord)=>({id:row.id,employeeId:row.employee_id,position:row.position_name,version:row.description_version,acknowledgedAt:row.acknowledged_at,acknowledgedByName:row.acknowledged_by_name||''})
+const fromRow=(row: { id: string, employee_id: string, position_name: string, description_version: number, acknowledged_at: string, acknowledged_by_name: string|null }): PositionAcknowledgement=>({id:row.id,employeeId:row.employee_id,position:row.position_name,version:row.description_version,acknowledgedAt:row.acknowledged_at,acknowledgedByName:row.acknowledged_by_name||''})
 
-export async function loadPositionAcknowledgements(organizationId: string | null | undefined,employee: AnyRecord){
- if(isDemoDataEnvironment())return (loadSnapshot(DEMO_KEY,[])||[]).filter((a: AnyRecord)=>a.employeeId===employee.id)
+export async function loadPositionAcknowledgements(organizationId: string | null | undefined,employee: Pick<Employee,'id'|'dbId'>): Promise<PositionAcknowledgement[]>{
+ if(isDemoDataEnvironment())return (loadSnapshot(DEMO_KEY,[])||[]).filter((a: PositionAcknowledgement)=>a.employeeId===employee.id)
  if(!organizationId||!employee?.dbId)return []
  const {data,error}=await supabase.from('employee_position_acknowledgements').select('id,employee_id,position_name,description_version,acknowledged_at,acknowledged_by_name').eq('organization_id',organizationId).eq('employee_id',employee.dbId).order('acknowledged_at',{ascending:false})
  if(error)throw error
  return (data||[]).map(row=>({...fromRow(row),employeeId:employee.id}))
 }
 
-export async function acknowledgePosition(organizationId: string | null | undefined,employee: AnyRecord,{position,version,actorName}: AnyRecord){
+export async function acknowledgePosition(organizationId: string | null | undefined,employee: Pick<Employee,'id'|'dbId'>,{position,version,actorName}: {position: string,version: number,actorName?: string}){
  const record={employeeId:employee.id,position,version,acknowledgedAt:new Date().toISOString(),acknowledgedByName:actorName||''}
  if(isDemoDataEnvironment()){const rows=loadSnapshot(DEMO_KEY,[])||[];saveSnapshot(DEMO_KEY,[{...record,id:`ack-${Date.now().toString(36)}`},...rows]);return record}
- const {data,error}=await supabase.from('employee_position_acknowledgements').insert({organization_id:organizationId as string,employee_id:employee.dbId,position_name:position,description_version:version,acknowledged_by_name:actorName||null}).select('id,employee_id,position_name,description_version,acknowledged_at,acknowledged_by_name').single()
+ const {data,error}=await supabase.from('employee_position_acknowledgements').insert({organization_id:organizationId as string,employee_id:employee.dbId as string,position_name:position,description_version:version,acknowledged_by_name:actorName||null}).select('id,employee_id,position_name,description_version,acknowledged_at,acknowledged_by_name').single()
  if(error)throw error
  return {...fromRow(data),employeeId:employee.id}
 }

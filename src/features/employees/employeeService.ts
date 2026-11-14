@@ -7,8 +7,8 @@ import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 import { invalidateEmployeesCache } from './employeesCache'
 import { selectAllPages } from '../../core/data/inChunks'
 import { cloudClient } from '../../core/supabase/cloudContext'
-import type { AnyRecord } from '../../types/featureTypes'
-import type { TablesInsert } from '../../core/supabase/database.types'
+import type { Employee, EmployeeDraft } from './employeeTypes'
+import type { Tables, TablesInsert } from '../../core/supabase/database.types'
 // The demo store (and its seed data) loads only in the demo workspace.
 const localStore = () => import('./employeeStore')
 
@@ -28,18 +28,18 @@ function productionContext(organizationId: OrgId,operation: string): asserts org
   if(!organizationId)throw new Error(`PRODUCTION_ORGANIZATION_REQUIRED:${operation}`)
 }
 
-function fromRow(row: AnyRecord): AnyRecord {
+function fromRow(row: Partial<Tables<'employees'>>): Employee {
   return {
-    id: row.employee_code,
+    id: row.employee_code as string,
     dbId: row.id,
     userId: row.user_id || null,
     accountLinked: Boolean(row.user_id),
     departmentId: row.department_id || null,
     organizationId: row.organization_id || null,
-    firstName: row.first_name,
-    firstNameEn: row.first_name_en || row.first_name,
-    lastName: row.last_name,
-    lastNameEn: row.last_name_en || row.last_name,
+    firstName: row.first_name as string,
+    firstNameEn: (row.first_name_en || row.first_name) as string,
+    lastName: row.last_name as string,
+    lastNameEn: (row.last_name_en || row.last_name) as string,
     fatherName: row.father_name || '',
     fatherNameEn: row.father_name || '',
     department: row.department_name || '',
@@ -50,7 +50,7 @@ function fromRow(row: AnyRecord): AnyRecord {
     positionEn: row.position_name_en || row.position_name || '',
     hrDepartment: row.hr_department_name || '',
     directorate: row.directorate_name || '',
-    employmentStatus: row.employment_status,
+    employmentStatus: row.employment_status as string,
     staffCategory: row.staff_category || 'employee',
     email: row.email || '',
     phone: row.phone || '',
@@ -62,9 +62,9 @@ function fromRow(row: AnyRecord): AnyRecord {
   }
 }
 
-function toWriteRow(organizationId: OrgId, v: AnyRecord): AnyRecord {
+function toWriteRow(organizationId: OrgId, v: EmployeeDraft): Partial<TablesInsert<'employees'>> {
   return {
-    organization_id: organizationId,
+    organization_id: organizationId as string,
     employee_code: String(v.id||v.employeeCode||'').trim(),
     department_id: v.departmentId || null,
     first_name: v.firstName,
@@ -96,11 +96,11 @@ export function cloudEnabled() {
 // The HR department and directorate values this hospital already uses (a hospital without them has no such fields).
 export async function loadEmployeeHrOptionsAsync(organizationId: OrgId) {
   const rows = await loadEmployeesAsync(organizationId)
-  const unique = (key: string) => [...new Set(rows.map(row => String(row[key] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
+  const unique = (key: 'hrDepartment' | 'directorate') => [...new Set(rows.map(row => String(row[key] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
   return { hrDepartments: unique('hrDepartment'), directorates: unique('directorate') }
 }
 
-export async function loadEmployeesAsync(organizationId: OrgId): Promise<AnyRecord[]> {
+export async function loadEmployeesAsync(organizationId: OrgId): Promise<Employee[]> {
   if(isDemoDataEnvironment())return (await localStore()).loadEmployees()
   if(isOwnerPreview())return []
   productionContext(organizationId,'employees.load')
@@ -116,7 +116,7 @@ export async function loadEmployeesAsync(organizationId: OrgId): Promise<AnyReco
 
 // One employee record (the record page), not the register: by employee code,
 // or by database id once the record is open (a code change keeps finding it).
-export async function loadEmployeeRecordAsync(organizationId: OrgId, { code = null, dbId = null }: { code?: string | null, dbId?: string | null } = {}): Promise<AnyRecord[]> {
+export async function loadEmployeeRecordAsync(organizationId: OrgId, { code = null, dbId = null }: { code?: string | null, dbId?: string | null } = {}): Promise<Employee[]> {
   productionContext(organizationId,'employees.load_one')
   if (!code && !dbId) return []
   let query = cloudClient().from('employees').select(`${EMPLOYEE_COLUMNS},organization_id`).eq('organization_id', organizationId)
@@ -129,7 +129,7 @@ export async function loadEmployeeRecordAsync(organizationId: OrgId, { code = nu
 // The candidates for "My profile" (employee code, linked account or sign-in
 // e-mail, case-insensitive: a stray % or _ only widens the candidates);
 // resolveSelfEmployee picks among them in its own order.
-export async function loadSelfEmployeeCandidatesAsync(organizationId: OrgId, { employeeCode = null, userId = null, email = null }: { employeeCode?: string | null, userId?: string | null, email?: string | null } = {}): Promise<AnyRecord[]> {
+export async function loadSelfEmployeeCandidatesAsync(organizationId: OrgId, { employeeCode = null, userId = null, email = null }: { employeeCode?: string | null, userId?: string | null, email?: string | null } = {}): Promise<Employee[]> {
   productionContext(organizationId,'employees.load_self')
   const quoted = (value: unknown) => `"${String(value).replace(/["\\]/g, '')}"`
   const matches = [employeeCode && `employee_code.eq.${quoted(employeeCode)}`, userId && `user_id.eq.${userId}`, email && String(email).trim() && `email.ilike.${quoted(String(email).trim())}`].filter(Boolean)
@@ -147,7 +147,7 @@ export async function loadSelfEmployeeCandidatesAsync(organizationId: OrgId, { e
 // The birthday greeting needs names and birth dates of active employees only,
 // not the register (the bell used to read the whole employees table for it).
 const BIRTHDAY_COLUMNS = 'id,employee_code,first_name,first_name_en,last_name,last_name_en,employment_status,birth_date'
-export async function loadBirthdayEmployeesAsync(organizationId: OrgId): Promise<AnyRecord[]> {
+export async function loadBirthdayEmployeesAsync(organizationId: OrgId): Promise<Employee[]> {
   if(isDemoDataEnvironment())return (await localStore()).loadEmployees().filter(row=>row.employmentStatus==='active'&&row.birthDate)
   if(isOwnerPreview())return []
   productionContext(organizationId,'employees.birthdays')
@@ -161,7 +161,7 @@ export async function loadBirthdayEmployeesAsync(organizationId: OrgId): Promise
   return (data || []).map(fromRow)
 }
 
-export async function createEmployeeAsync(organizationId: OrgId, v: AnyRecord): Promise<AnyRecord> {
+export async function createEmployeeAsync(organizationId: OrgId, v: EmployeeDraft): Promise<Employee> {
   if(isDemoDataEnvironment()){
     const code=String(v.id||v.employeeCode||'').trim()
     const { loadEmployees: loadEmployeesLocal, saveEmployees: saveEmployeesLocal } = await localStore()
@@ -185,7 +185,7 @@ export async function createEmployeeAsync(organizationId: OrgId, v: AnyRecord): 
   return fromRow(data)
 }
 
-export async function updateEmployeeAsync(organizationId: OrgId, employeeDbId: string | null | undefined, v: AnyRecord, previousEmployeeCode: string | null=null): Promise<AnyRecord> {
+export async function updateEmployeeAsync(organizationId: OrgId, employeeDbId: string | null | undefined, v: EmployeeDraft, previousEmployeeCode: string | null=null): Promise<Employee> {
   const nextCode=String(v.id||v.employeeCode||'').trim()
   if(!nextCode)throw new Error('EMPLOYEE_CODE_REQUIRED')
   if(isDemoDataEnvironment()){
@@ -195,7 +195,7 @@ export async function updateEmployeeAsync(organizationId: OrgId, employeeDbId: s
     if(rows.some(row=>String(row.id||row.employeeCode||'').trim().toLowerCase()===nextCode.toLowerCase()&&String(row.id||row.employeeCode||'').trim().toLowerCase()!==currentCode.toLowerCase()))throw new Error('DUPLICATE_EMPLOYEE_CODE')
     const next=rows.map(row=>String(row.id||row.employeeCode||'').trim()===currentCode?{...row,...v,id:nextCode,employeeCode:nextCode}:row)
     saveEmployeesLocal(next)
-    return {...v,id:nextCode,employeeCode:nextCode}
+    return {...v,id:nextCode,employeeCode:nextCode} as Employee
   }
   productionContext(organizationId,'employees.update')
   if(!employeeDbId)throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employees.update')
@@ -212,14 +212,14 @@ export async function updateEmployeeAsync(organizationId: OrgId, employeeDbId: s
       .select(`${EMPLOYEE_COLUMNS},organization_id`)
       .single(),{table:'employees',updatedAt:loadedVersion})
     invalidateEmployeesCache(organizationId)
-    return fromRow(data as AnyRecord)
+    return fromRow(data as Partial<Tables<'employees'>>)
   }catch(error){
     if((error as { code?: string } | null)?.code==='23505')throw new Error('DUPLICATE_EMPLOYEE_CODE')
     throw error
   }
 }
 
-export async function createEmployeeAccountAsync(organizationId: OrgId,employee: AnyRecord,{role,departmentId=null,email,phone,jobTitle}: {role?: string,departmentId?: string|null,email?: string,phone?: string,jobTitle?: string}={}){
+export async function createEmployeeAccountAsync(organizationId: OrgId,employee: Employee,{role,departmentId=null,email,phone,jobTitle}: {role?: string,departmentId?: string|null,email?: string,phone?: string,jobTitle?: string}={}){
   if(isDemoDataEnvironment())throw new Error('DEMO_EMPLOYEE_ACCOUNT_NOT_AVAILABLE')
   productionContext(organizationId,'employees.account.create')
   if(!employee?.dbId)throw new Error('EMPLOYEE_DB_ID_REQUIRED')

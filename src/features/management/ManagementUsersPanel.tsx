@@ -142,7 +142,7 @@ function CreateUserView({tenantId,t,busy,isDemo,departments=[],onClose,onCreate}
  const [mode,setMode]=useState('existing'),[employees,setEmployees]=useState<AccountEmployee[]>([]),[employeesLoading,setEmployeesLoading]=useState(false),[form,setForm]=useState({fullName:'',role:'',departmentId:'',email:'',phone:'',jobTitle:'',employeeDbId:'',employeeCode:'',employmentStatus:'active',screenGuides:'default'})
  const set=(k: string,v: string)=>setForm(x=>({...x,[k]:v}))
  useEffect(()=>{
-  if(isDemo){setEmployees(demoEmployeeRows.map(row=>({id:row.id,user_id:null,employee_code:row.id,first_name:row.firstName,last_name:row.lastName,email:row.email,phone:row.phone,profession_name:row.profession,employment_status:row.employmentStatus,department_id:row.department||null})));setEmployeesLoading(false);return}
+  if(isDemo){setEmployees(demoEmployeeRows.map(row=>({id:row.id,user_id:null,employee_code:row.id,first_name:row.firstName,last_name:row.lastName,email:row.email,phone:row.phone as string,profession_name:row.profession,employment_status:row.employmentStatus,department_id:row.department||null})));setEmployeesLoading(false);return}
   if(!supabase||!tenantId)return
   let alive=true;setEmployeesLoading(true);cloudClient().from('employees').select('id,user_id,employee_code,first_name,last_name,email,phone,profession_name,employment_status,department_id').eq('organization_id',tenantId).order('last_name').then(({data,error})=>{if(alive){if(!error)setEmployees((data||[]).filter(x=>!x.user_id));setEmployeesLoading(false)}});return()=>{alive=false}
  },[tenantId,isDemo])

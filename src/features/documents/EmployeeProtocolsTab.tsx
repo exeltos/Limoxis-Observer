@@ -17,7 +17,7 @@ const fmtDateTime = (value: unknown, en: boolean) => {
 
 // Employee record: the protocols sent to this person for read acknowledgement,
 // which they have confirmed (and when) and which are still pending.
-export function EmployeeProtocolsTab({ employee, language, organizationId, isDemo, selfMode }: { employee: { id?: string, userId?: string }, language?: string, organizationId?: string | null, isDemo?: boolean, selfMode?: boolean }) {
+export function EmployeeProtocolsTab({ employee, language, organizationId, isDemo, selfMode }: { employee: { id?: string, userId?: string | null }, language?: string, organizationId?: string | null, isDemo?: boolean, selfMode?: boolean }) {
   const en = language === 'en'
   const navigate = useNavigate()
   const n = useNotifications()

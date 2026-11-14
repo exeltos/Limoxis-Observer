@@ -93,7 +93,7 @@ const PREVIEW_ACTIVITY: Record<string, [offsetDays: number, errors24h: number, a
 }
 export const previewHospitalHealth=(now=Date.now())=>Object.fromEntries(Object.entries(PREVIEW_ACTIVITY).map(([id,[offset,errors24h,activity]])=>[id,{lastActivityAt:new Date(now+offset*86400000).toISOString(),errors24h,activity}]))
 
-export const previewPlatformSettings=()=>({id:'global',supportEmail:'support@limoxis.example',defaultDemoDurationDays:30,demoAutoPurgeAfterDays:14,organizationDeletionGraceDays:30,maxDemoUsers:5,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:'',updatedAt:at(-15)})
+export const previewPlatformSettings=()=>({id:'global',supportEmail:'support@limoxis.example',defaultDemoDurationDays:30,demoAutoPurgeAfterDays:14,organizationDeletionGraceDays:30,maxDemoUsers:5,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:'',publicName:'Exeltos',publicEmail:'info@exeltos.com',publicPhone:'694 247 1022',publicWebsite:'https://exeltos.com/',updatedAt:at(-15)})
 
 // The owner's announcements to the hospital administrators, as loadPlatformAnnouncements returns them.
 export const previewPlatformAnnouncements=()=>[

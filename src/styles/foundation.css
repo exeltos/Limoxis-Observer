@@ -3467,6 +3467,10 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
 .sidebar nav .nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
 .sidebar nav .nav-item.active,.sidebar nav .nav-item.active-group{background:rgba(255,255,255,.14);color:#fff;font-weight:500;box-shadow:inset 3px 0 0 #6fb2dd}
 .sidebar nav .nav-item.active svg{opacity:1}
+/* Μετρητής δίπλα σε μια επιλογή του μενού (π.χ. νέα αιτήματα παρουσίασης στην κονσόλα)· στη στενή μπάρα, πάνω στο εικονίδιο. */
+.sidebar nav .nav-item .nav-count{flex:none;min-width:20px;height:20px;margin-left:auto;padding:0 6px;border-radius:999px;background:#e8a33d;color:#1d2733;font-size:11px;font-weight:800;line-height:20px;text-align:center}
+.app-shell.sidebar-rail .sidebar nav .nav-item:has(.nav-count){position:relative}
+.app-shell.sidebar-rail .sidebar nav .nav-item .nav-count{position:absolute;top:-4px;right:-5px;min-width:16px;height:16px;margin:0;padding:0 4px;font-size:10px;line-height:16px}
 .sidebar nav .nav-item:focus-visible{outline:2px solid rgba(255,255,255,.72);outline-offset:-2px}
 .sidebar nav .nav-item:disabled{opacity:.48;cursor:not-allowed}
 .sidebar-nav-section{display:flex;flex-direction:column;gap:1px}

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AnyRecord } from '../../types/featureTypes'
 
-export function useEmployeeSubRecords(loader: (organizationId: string | null | undefined, employeeDbId: string, employeeId: string) => Promise<AnyRecord[]>, organizationId: string | null | undefined, employeeDbId: string, employeeId: string) {
-  const [data, setData] = useState<AnyRecord[]>([])
+export function useEmployeeSubRecords<T>(loader: (organizationId: string | null | undefined, employeeDbId: string | null | undefined, employeeId: string) => Promise<T[]>, organizationId: string | null | undefined, employeeDbId: string | null | undefined, employeeId: string) {
+  const [data, setData] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
   // Whose rows are on hand: after a move to another employee the previous
@@ -31,7 +30,7 @@ export function useEmployeeSubRecords(loader: (organizationId: string | null | u
     setLoading(true)
     setError(null)
     loader(organizationId, employeeDbId, employeeId)
-      .then((rows: AnyRecord[]) => { if (!cancelled) { setData(rows || []); setLoadedKey(key) } })
+      .then((rows: T[]) => { if (!cancelled) { setData(rows || []); setLoadedKey(key) } })
       .catch((err: unknown) => { if (!cancelled) setError(err) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }

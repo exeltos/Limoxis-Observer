@@ -1,8 +1,8 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, dayInMonth } from '../../core/data/demoSeed'
-import type { AnyRecord } from '../../types/featureTypes'
-export const employeeRows: AnyRecord[] = [
+import type { Employee, EmployeeHistoryEntry } from './employeeTypes'
+export const employeeRows: Employee[] = [
   {id:'EMP-001',hrDepartment:'4260 Μ.Ε.Θ.',directorate:'10 ΝΟΣΗΛΕΥΤΙΚΗ ΔΙΕΥΘΥΝΣΗ',position:'Νοσηλευτής/τρια ΜΕΘ',positionEn:'ICU Nurse',firstName:'Μαρία',firstNameEn:'Maria',lastName:'Παπαδοπούλου',lastNameEn:'Papadopoulou',fatherName:'Ιωάννης',fatherNameEn:'Ioannis',department:'ΜΕΘ',departmentEn:'ICU',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'m.papadopoulou@example.org',phone:'210 555 0101',hireDate:'2019-03-18',birthDate:'1990-08-29'},
   {id:'EMP-002',position:'Επιμελητής Ιατρός',positionEn:'Consultant Physician',firstName:'Νικόλαος',firstNameEn:'Nikolaos',lastName:'Δημητρίου',lastNameEn:'Dimitriou',fatherName:'Αλέξανδρος',fatherNameEn:'Alexandros',department:'Παθολογική',departmentEn:'Internal Medicine',profession:'Ιατρικό προσωπικό',professionEn:'Medical staff',employmentStatus:'active',email:'n.dimitriou@example.org',phone:'210 555 0102',hireDate:'2021-09-01'},
   {id:'EMP-003',position:'Προϊστάμενος/η Τμήματος',positionEn:'Head of Department (Nursing)',firstName:'Ελένη',firstNameEn:'Eleni',lastName:'Κωνσταντίνου',lastNameEn:'Konstantinou',fatherName:'Δημήτριος',fatherNameEn:'Dimitrios',department:'Χειρουργική',departmentEn:'Surgery',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'e.konstantinou@example.org',phone:'210 555 0103',hireDate:'2017-01-12'},
@@ -102,7 +102,9 @@ export const employeeExposureIncidents = [
 ]
 
 // Administrative lifecycle of each demo employee record (History tab).
-export const employeeHistoryDemo = [
+// [employee, when, action, changed fields, who]
+type HistoryTuple = [string, string, string, string[], string]
+export const employeeHistoryDemo: EmployeeHistoryEntry[] = ([
   ['EMP-001','2019-03-18T09:00:00Z','insert',[],'Διαχειριστής Demo'],['EMP-001','2024-01-10T10:30:00Z','update',['department_name'],'Γραφείο Προσωπικού'],['EMP-001','2026-02-20T13:00:00Z','update',['email','phone'],'Γραφείο Προσωπικού'],
   ['EMP-002','2021-09-01T09:00:00Z','insert',[],'Διαχειριστής Demo'],['EMP-002','2025-05-12T11:00:00Z','update',['profession_name'],'Γραφείο Προσωπικού'],
   ['EMP-003','2017-01-12T09:00:00Z','insert',[],'Διαχειριστής Demo'],['EMP-003','2026-01-18T12:00:00Z','update',['user_id'],'Διαχειριστής Demo'],
@@ -111,7 +113,7 @@ export const employeeHistoryDemo = [
   ['EMP-006','2018-11-05T09:00:00Z','insert',[],'Διαχειριστής Demo'],['EMP-006','2025-12-05T10:00:00Z','update',['profession_name'],'Γραφείο Προσωπικού'],
   ['EMP-007','2016-04-14T09:00:00Z','insert',[],'Διαχειριστής Demo'],['EMP-007','2026-02-18T08:30:00Z','update',['email'],'Γραφείο Προσωπικού'],
   ['EMP-008','2022-01-17T09:00:00Z','insert',[],'Διαχειριστής Demo'],['EMP-008','2025-03-14T12:15:00Z','update',['hire_date'],'Γραφείο Προσωπικού'],
-].map(([employeeId,at,action,changedFields,actorName],i)=>({id:`EH-${i+1}`,employeeId,at,action,changedFields,actorName,actorRole:''}))
+] as HistoryTuple[]).map(([employeeId,at,action,changedFields,actorName],i)=>({id:`EH-${i+1}`,employeeId,at,action,changedFields,actorName,actorRole:''}))
 
 
 // Full-demo enrichment: broad role and department coverage.
@@ -228,7 +230,7 @@ employeeRows.filter(e=>e.employmentStatus==='active'&&Number(e.id.slice(4))>8).f
 })
 
 // The administrative trail of 2025–2026: contact details, department moves and accounts.
-const TRAIL=[[['phone'],'Γραφείο Προσωπικού'],[['email','phone'],'Γραφείο Προσωπικού'],[['user_id'],'Διαχειριστής Demo'],[['position'],'Γραφείο Προσωπικού'],[['department_name'],'Γραφείο Προσωπικού']]
+const TRAIL: [string[], string][]=[[['phone'],'Γραφείο Προσωπικού'],[['email','phone'],'Γραφείο Προσωπικού'],[['user_id'],'Διαχειριστής Demo'],[['position'],'Γραφείο Προσωπικού'],[['department_name'],'Γραφείο Προσωπικού']]
 employeeRows.filter(e=>Number(e.id.slice(4))>8).forEach((employee,index)=>{
  const date=dayInMonth(DEMO_HISTORY_MONTHS[(index*7+2)%DEMO_HISTORY_MONTHS.length],5+index%9)
  if(date<=employee.hireDate)return
@@ -238,8 +240,10 @@ employeeRows.filter(e=>Number(e.id.slice(4))>8).forEach((employee,index)=>{
 
 // Documents tab (demo): certifications, licences and training certificates.
 const LICENCE: Record<string, string[]>={'Νοσηλευτικό προσωπικό':['Άδεια άσκησης νοσηλευτικού επαγγέλματος','Nursing practice licence'],'Ιατρικό προσωπικό':['Άδεια άσκησης ιατρικού επαγγέλματος','Medical practice licence'],'Εργαστηριακό προσωπικό':['Άδεια άσκησης επαγγέλματος τεχνολόγου εργαστηρίων','Laboratory technologist licence'],'Διοικητικό προσωπικό':['Βεβαίωση προϋπηρεσίας','Employment certificate']}
+// The training certificates the Documents tab lists (from the Training module).
+type DemoTrainingCertificate={id: string,employeeId?: string,title?: string,issuedDate?: string|null,validUntil?: string|null}
 const fmtDay=(value: string|null|undefined)=>value?value.split('-').reverse().join('/'):''
-export function demoEmployeeDocuments(employee: AnyRecord,trainingCertificates: AnyRecord[]=[],en=false){
+export function demoEmployeeDocuments(employee: Employee,trainingCertificates: DemoTrainingCertificate[]=[],en=false){
   if(!employee)return []
   const certs=employeeCertificates.filter(x=>x.employeeId===employee.id).map(c=>({id:`DOC-${c.id}`,name:`${en?c.titleEn:c.titleEl} — ${c.certificateNumber}.pdf`,category:'certification',description:`${c.issuer} · ${en?'valid until':'ισχύει έως'} ${fmtDay(c.validUntil)}`}))
   const training=trainingCertificates.filter(x=>x.employeeId===employee.id).map(c=>({id:`DOC-${c.id}`,name:`${c.title} — ${c.id}.pdf`,category:'trainingCertificate',description:`${en?'Issued':'Έκδοση'} ${fmtDay(c.issuedDate)} · ${en?'valid until':'ισχύει έως'} ${fmtDay(c.validUntil)}`}))

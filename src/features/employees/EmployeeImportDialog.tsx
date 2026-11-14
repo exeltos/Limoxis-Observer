@@ -12,40 +12,41 @@ import { demoLibrarySeed } from '../management/managementData'
 import { createEmployeeAsync,updateEmployeeAsync } from './employeeService'
 import { planEmployeeImport,templateRows } from './employeeImport'
 import './employeeImport.css'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { Employee, EmployeeDepartment, EmployeeDraft, EmployeeOption } from './employeeTypes'
+import type { EmployeeImportItem, EmployeeImportPlan } from './employeeImport'
 
 const ACTION_TEXT: Record<string, string[]>={create:['Νέος','New'],update:['Ενημέρωση','Update'],skip:['Υπάρχει ήδη','Already exists'],error:['Σφάλμα','Error']}
 
 // An update keeps what the file leaves empty, so a sheet with only codes and
 // positions does not wipe e-mails or dates.
-const mergeUpdate=(current: AnyRecord,value: AnyRecord)=>{const next: AnyRecord={...current};for(const [key,v] of Object.entries(value))if(v!==''&&v!=null)next[key]=v;return next}
+const mergeUpdate=(current: Employee,value: EmployeeDraft)=>{const next: Record<string, unknown>={...current};for(const [key,v] of Object.entries(value))if(v!==''&&v!=null)next[key]=v;return next as EmployeeDraft}
 
 // The Management lists, as this dialog reads them (Demo seed or the hospital's libraries).
-const demoLibraries=demoLibrarySeed as AnyRecord
+const demoLibraries=demoLibrarySeed
 const errorMessage=(error: unknown)=>(error as { message?: string } | null)?.message
-export function EmployeeImportDialog({existing=[],language,onClose,onImported}: {existing?: AnyRecord[],language: string,onClose: ()=>void,onImported?: ()=>void}){
+export function EmployeeImportDialog({existing=[],language,onClose,onImported}: {existing?: Employee[],language: string,onClose: ()=>void,onImported?: ()=>void}){
  const en=language==='en'
  const {tenant,isDemo}=useTenant()
- const [reference,setReference]=useState<{departments: AnyRecord[],professions: AnyRecord[],positions: AnyRecord[]}>({departments:[],professions:[],positions:[]})
+ const [reference,setReference]=useState<{departments: EmployeeDepartment[],professions: EmployeeOption[],positions: EmployeeOption[]}>({departments:[],professions:[],positions:[]})
  const [rows,setRows]=useState<unknown[][] | null>(null)
  const [fileName,setFileName]=useState('')
  const [readError,setReadError]=useState('')
  const [updateExisting,setUpdateExisting]=useState(false)
- const [running,setRunning]=useState<AnyRecord | null>(null)
- const [result,setResult]=useState<AnyRecord | null>(null)
+ const [running,setRunning]=useState<{done: number,total: number} | null>(null)
+ const [result,setResult]=useState<{saved: number,failed: EmployeeImportItem[]} | null>(null)
 
  useEffect(()=>{
   let active=true
-  if(isDemo){setReference({departments:demoLibraries.departments.map(([name,nameEn]: string[])=>({id:name,name,nameEn})),professions:demoLibraries.professionalCategories||[],positions:demoLibraries.positions||[]});return()=>{active=false}}
+  if(isDemo){setReference({departments:demoLibraries.departments.map(([name,nameEn])=>({id:name,name,nameEn})),professions:demoLibraries.professionalCategories||[],positions:demoLibraries.positions||[]});return()=>{active=false}}
   if(!tenant?.id)return()=>{active=false}
-  Promise.all([loadDepartments(tenant.id),loadManagementLibraries(tenant.id)]).then(([departments,libraries]: [AnyRecord[],AnyRecord])=>{
-   if(active)setReference({departments:(departments||[]).filter(row=>row.is_active!==false).map(row=>({id:row.id,name:row.name,nameEn:row.name_en||row.nameEn||row.name})),professions:libraries?.professionalCategories||[],positions:libraries?.positions||[]})
+  Promise.all([loadDepartments(tenant.id),loadManagementLibraries(tenant.id)]).then(([departments,libraries])=>{
+   if(active)setReference({departments:(departments||[]).filter(row=>row.is_active!==false).map(row=>({id:row.id,name:row.name,nameEn:(row as {name_en?: string}).name_en||(row as {nameEn?: string}).nameEn||row.name})),professions:libraries?.professionalCategories||[],positions:libraries?.positions||[]})
   }).catch(()=>{})
   return()=>{active=false}
  },[isDemo,tenant?.id])
 
- const plan: AnyRecord|null=useMemo(()=>rows?planEmployeeImport(rows,{existing,...reference,updateExisting,en}):null,[rows,existing,reference,updateExisting,en])
- const toSave=plan?plan.items.filter((item: AnyRecord)=>item.action==='create'||item.action==='update'):[]
+ const plan: EmployeeImportPlan|null=useMemo(()=>rows?planEmployeeImport(rows,{existing,...reference,updateExisting,en}):null,[rows,existing,reference,updateExisting,en])
+ const toSave=plan?plan.items.filter(item=>item.action==='create'||item.action==='update'):[]
 
  async function pick(event: ChangeEvent<HTMLInputElement>){
   const file=event.target.files?.[0]
@@ -62,13 +63,13 @@ export function EmployeeImportDialog({existing=[],language,onClose,onImported}: 
  }
 
  async function run(){
-  const failed: AnyRecord[]=[]
+  const failed: EmployeeImportItem[]=[]
   let done=0
   setRunning({done:0,total:toSave.length})
   for(const item of toSave){
    try{
     if(item.action==='create')await createEmployeeAsync(tenant?.id??null,item.value)
-    else await updateEmployeeAsync(tenant?.id??null,item.current.dbId,mergeUpdate(item.current,item.value),item.current.id)
+    else await updateEmployeeAsync(tenant?.id??null,(item.current as Employee).dbId,mergeUpdate(item.current as Employee,item.value),(item.current as Employee).id)
    }catch(error){failed.push({...item,errors:[errorMessage(error)==='DUPLICATE_EMPLOYEE_CODE'?(en?'Code already exists':'Ο κωδικός υπάρχει ήδη'):(errorMessage(error)||String(error))]})}
    done+=1
    setRunning({done,total:toSave.length})
@@ -96,7 +97,7 @@ export function EmployeeImportDialog({existing=[],language,onClose,onImported}: 
    </div>
    {readError&&<p className="employee-import-error" role="alert"><AlertTriangle size={15}/>{readError}</p>}
    {!plan&&!readError&&<div className="employee-import-help"><FileSpreadsheet size={20}/><div><strong>{en?'Columns':'Στήλες'}</strong><span>{en?'Code, Last name, First name, Department and Professional category are required. Father name, Job position, Status, Email, Phone, Hire date and Birth date are optional. Download the template to start.':'Υποχρεωτικές: Κωδικός, Επώνυμο, Όνομα, Τμήμα, Επαγγελματική κατηγορία. Προαιρετικές: Πατρώνυμο, Θέση εργασίας, Κατάσταση, Email, Τηλέφωνο, Ημερομηνία πρόσληψης, Ημερομηνία γέννησης. Κατεβάστε το πρότυπο για να ξεκινήσετε.'}</span></div></div>}
-   {plan?.missingColumns.length>0&&<p className="employee-import-error" role="alert"><AlertTriangle size={15}/>{en?`Missing columns: ${plan?.missingColumns.join(', ')}`:`Λείπουν στήλες: ${plan?.missingColumns.join(', ')}`}</p>}
+   {(plan?.missingColumns.length ?? 0)>0&&<p className="employee-import-error" role="alert"><AlertTriangle size={15}/>{en?`Missing columns: ${plan?.missingColumns.join(', ')}`:`Λείπουν στήλες: ${plan?.missingColumns.join(', ')}`}</p>}
    {result&&<p className={`employee-import-result ${result.failed.length?'partial':''}`} role="status">{result.failed.length?<AlertTriangle size={16}/>:<CheckCircle2 size={16}/>}{en?`${result.saved} saved${result.failed.length?`, ${result.failed.length} failed`:''}.`:`Αποθηκεύτηκαν ${result.saved}${result.failed.length?`, απέτυχαν ${result.failed.length}`:''}.`}</p>}
    {plan&&!plan.missingColumns.length&&<>
     <div className="employee-import-summary">
@@ -108,7 +109,7 @@ export function EmployeeImportDialog({existing=[],language,onClose,onImported}: 
     </div>
     {!(result&&!result.failed.length)&&<div className="scroll-table employee-import-table"><table className="data-table sticky-table">
      <thead><tr><th>{en?'Row':'Γραμμή'}</th><th>{en?'Code':'Κωδικός'}</th><th>{en?'Name':'Ονοματεπώνυμο'}</th><th>{en?'Department · Position':'Τμήμα · Θέση'}</th><th>{en?'Result':'Αποτέλεσμα'}</th></tr></thead>
-     <tbody>{(result?result.failed:plan.items).map((item: AnyRecord)=><tr key={item.line} className={`employee-import-row ${result?'error':item.action}`}>
+     <tbody>{(result?result.failed:plan.items).map(item=><tr key={item.line} className={`employee-import-row ${result?'error':item.action}`}>
       <td>{item.line}</td><td>{item.code||'—'}</td><td>{item.name||'—'}</td>
       <td>{[item.value.department,item.value.position].filter(Boolean).join(' · ')||'—'}</td>
       <td><span className={`employee-import-badge ${result?'error':item.action}`}>{ACTION_TEXT[result?'error':item.action][en?1:0]}</span>{[...item.errors,...item.warnings].map((message: string)=><small key={message}>{message}</small>)}</td>

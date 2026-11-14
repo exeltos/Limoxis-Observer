@@ -3,41 +3,56 @@ import { ExcelFieldsDialog, pickColumns, tableFields } from '../../design-system
 import { printReport } from '../../core/export/reportDocument'
 import { exportRegistry } from '../../core/export/registryExports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import type { AnyRecord } from '../../types/featureTypes'
+import type { ExportItem } from '../../design-system/ExportMenu'
+import type { ReportCell, ReportDoc, ReportFact } from '../../core/export/reportDocument'
+import type { Employee } from './employeeTypes'
 
-const employeeName = (employee: AnyRecord, en: boolean) =>
+// What a tab hands to its print and Excel: the table it lists, or (doc) a printout of its own.
+interface RecordTabExport {
+  onExportItems?: (items: ExportItem[]) => void
+  id: string
+  label: { el: string, en: string }
+  employee: Employee
+  language: string
+  table: () => { headers: string[], rows: ReportCell[][] }
+  doc?: () => ReportDoc | null | undefined
+  count?: number
+  excel?: boolean
+}
+
+const employeeName = (employee: Employee, en: boolean) =>
   (en
     ? [employee.firstNameEn || employee.firstName, employee.lastNameEn || employee.lastName]
     : [employee.lastName, employee.firstName]
   ).filter(Boolean).join(' ') || employee.id
 
 // The heading of every printout of the record: who, code, department, profession.
-export function employeeReportHead(employee: AnyRecord, language: string) {
+export function employeeReportHead(employee: Employee, language: string) {
   const en = language === 'en'
   return {
     language,
     kind: en ? 'Employee record' : 'Καρτέλα εργαζομένου',
     code: employee.id,
     name: employeeName(employee, en),
-    meta: [
+    meta: ([
       [en ? 'Code' : 'Κωδικός', employee.id || ''],
       [en ? 'Department' : 'Τμήμα', (en ? employee.departmentEn : '') || employee.department || ''],
       [en ? 'Profession' : 'Ιδιότητα', (en ? employee.professionEn : '') || employee.profession || ''],
-    ].filter(([, value]) => value),
+    ] as ReportFact[]).filter(([, value]) => value),
   }
 }
 
 // What every tab of the employee record gets: the employee, the language and where its export items go.
 export interface RecordTabProps {
-  employee: AnyRecord
+  employee: Employee
   language: string
-  onExportItems?: (items: AnyRecord[]) => void
+  onExportItems?: (items: ExportItem[]) => void
 }
 
 // A tab's print and Excel, handed to the record's single «Εξαγωγή» (header) instead of a second menu in the tab.
 // table(): { headers, rows } of what the tab lists; doc() (optional) a printout of its own instead of that table.
 // Returns the Excel field dialog to render in the tab.
-export function useRecordTabExport({ onExportItems, id, label, employee, language, table, doc, count = 0, excel = true }: AnyRecord) {
+export function useRecordTabExport({ onExportItems, id, label, employee, language, table, doc, count = 0, excel = true }: RecordTabExport) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const [excelOpen, setExcelOpen] = useState(false)
@@ -53,7 +68,7 @@ export function useRecordTabExport({ onExportItems, id, label, employee, languag
       title: `${text} · ${head.name}`,
       filename: `${id}-${employee.id}`,
       meta: head.meta,
-      sections: [{ title: '', table: { columns: data.headers, rows: data.rows } }],
+      sections: [{ title: '', table: { columns: data?.headers, rows: data?.rows } }],
     })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }

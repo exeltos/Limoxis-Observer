@@ -1,0 +1,120 @@
+/* Δημόσια «Σελίδα παρουσίασης» (LandingPage.tsx): σκούρα κεντρική ενότητα στα χρώματα της σύνδεσης, φωτεινές ενότητες από κάτω. */
+.landing{--landing-ink:#172033;--landing-muted:#56677a;--landing-accent:#8fc7bd;--landing-navy:#16395f;--landing-blue:#1f6fa9;height:100dvh;overflow-y:auto;scroll-behavior:smooth;background:#f4f7fa;color:var(--landing-ink)}
+.landing-wrap{width:min(1180px,100%);margin:0 auto;padding:0 24px}
+
+/* Πάνω μπάρα */
+.landing-bar{position:sticky;top:0;z-index:10;background:rgba(16,45,77,.94);backdrop-filter:blur(10px);color:#fff}
+.landing-bar-inner{display:flex;align-items:center;gap:24px;min-height:68px}
+.landing-brand{display:inline-flex;align-items:center;gap:10px;color:inherit;text-decoration:none}
+.landing-brand-mark{flex:none;border-radius:11px}
+.landing-brand strong{display:block;font-size:16.5px;line-height:1.15}
+.landing-brand small{display:block;color:rgba(255,255,255,.7);font-size:11.5px}
+.landing-nav{display:flex;gap:22px;margin-left:auto}
+.landing-nav a{color:rgba(255,255,255,.82);font-size:14px;font-weight:600;text-decoration:none}
+.landing-nav a:hover{color:#fff}
+.landing-bar-actions{display:flex;align-items:center;gap:10px}
+.landing-lang,.landing-signin{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 14px;border-radius:10px;font:inherit;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer}
+.landing-lang{border:1px solid rgba(255,255,255,.24);background:transparent;color:#fff}
+.landing-signin{border:0;background:#fff;color:var(--landing-navy)}
+.landing-signin:hover{background:#e7f3f1}
+
+/* Κεντρική ενότητα */
+.landing-hero{position:relative;overflow:hidden;padding:72px 0 88px;background:radial-gradient(900px 560px at 88% -10%,rgba(84,150,210,.42),transparent 70%),radial-gradient(700px 480px at 10% 110%,rgba(143,199,189,.22),transparent 70%),linear-gradient(155deg,#102d4d 0%,#16395f 56%,#1a456c 100%);color:#fff}
+.landing-hero-inner{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:center;gap:56px}
+.landing-eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--landing-accent);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.landing-eyebrow::before{content:"";width:22px;height:2px;border-radius:2px;background:currentColor}
+.landing-hero h1{margin:18px 0;font-size:clamp(30px,3.6vw,46px);font-weight:800;line-height:1.12;letter-spacing:-.025em;text-wrap:balance}
+.landing-hero h1 em{display:block;color:var(--landing-accent);font-style:normal}
+.landing-lead{max-width:560px;margin:0;color:rgba(255,255,255,.8);font-size:17px;line-height:1.6}
+.landing-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.landing-btn{display:inline-flex;align-items:center;gap:9px;min-height:48px;padding:0 22px;border:1px solid transparent;border-radius:12px;font:inherit;font-size:15.5px;font-weight:700;text-decoration:none;cursor:pointer}
+.landing-btn-solid{background:var(--landing-navy);box-shadow:0 8px 22px rgba(22,57,95,.28);color:#fff}
+.landing-hero .landing-btn-solid{background:#fff;box-shadow:0 10px 28px rgba(0,0,0,.25);color:var(--landing-navy)}
+.landing-btn-outline{border-color:#c6d3df;background:#fff;color:var(--landing-navy)}
+.landing-btn:focus-visible,.landing-signin:focus-visible,.landing-lang:focus-visible,.landing-nav a:focus-visible,.landing-brand:focus-visible{outline:3px solid var(--landing-accent);outline-offset:2px}
+.landing-points{display:flex;flex-wrap:wrap;gap:10px 22px;margin:26px 0 0;padding:0;list-style:none;color:rgba(255,255,255,.88);font-size:14px}
+.landing-points li{display:inline-flex;align-items:center;gap:7px}
+.landing-points svg{color:var(--landing-accent)}
+
+/* Κάρτα «Παράδειγμα από την εφαρμογή» */
+.landing-preview{margin:0;padding:20px;border-radius:20px;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,.3);color:var(--landing-ink)}
+.landing-preview figcaption{display:flex;flex-direction:column;gap:2px}
+.landing-preview figcaption span{color:var(--landing-muted);font-size:12px;font-weight:600}
+.landing-preview figcaption b{font-size:15px}
+.landing-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0 12px}
+.landing-kpis div{display:grid;align-content:start;gap:4px;padding:12px;border-radius:12px;background:#f1f5f9}
+.landing-kpis small{color:var(--landing-muted);font-size:11.5px;font-weight:600;line-height:1.3}
+.landing-kpis b{color:var(--landing-navy);font-size:24px;line-height:1.1}
+.landing-kpis em{color:#1c7a5a;font-size:12px;font-style:normal;font-weight:700}
+.landing-rows{margin:0;padding:0;list-style:none}
+.landing-rows li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 4px;border-top:1px solid #edf1f4;font-size:13.5px;font-weight:600}
+.landing-badge{flex:none;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.landing-badge.ok{background:#e3f5ea;color:#1c6e3d}
+.landing-badge.info{background:#e3f0fb;color:#1f5f99}
+.landing-badge.warn{background:#fff1dc;color:#8f4f00}
+
+/* Ενότητες */
+.landing-section{padding:76px 0}
+.landing-section.alt{background:#fff}
+.landing-section h2{margin:0;font-size:clamp(26px,3vw,34px);font-weight:800;letter-spacing:-.02em}
+.landing-section-lead{max-width:640px;margin:10px 0 0;color:var(--landing-muted);font-size:16px;line-height:1.6}
+.landing-features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:34px}
+.landing-feature{padding:24px;border:1px solid #e1e8ef;border-radius:18px;background:#fff;box-shadow:0 2px 10px rgba(23,32,51,.05)}
+.landing-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#1f6fa9,#16395f);color:#fff}
+.landing-feature h3{margin:16px 0 8px;font-size:17px}
+.landing-feature p,.landing-steps p{margin:0;color:var(--landing-muted);font-size:14.5px;line-height:1.6}
+.landing-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin:30px 0 0;padding:0;list-style:none}
+.landing-steps li{display:grid;align-content:start;gap:8px;padding:22px;border-radius:18px;background:#f4f7fa}
+.landing-steps b{margin-top:6px;font-size:16px}
+
+/* Επικοινωνία */
+.landing-contact{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);align-items:center;gap:48px}
+.landing-contact-card{margin:0;padding:8px 24px;border:1px solid #e1e8ef;border-radius:18px;background:#fff;box-shadow:0 10px 30px rgba(23,32,51,.08)}
+.landing-contact-card>div{display:grid;gap:2px;padding:14px 0;border-bottom:1px solid #edf1f4}
+.landing-contact-card>div:last-child{border-bottom:0}
+.landing-contact-card dt{display:flex;align-items:center;gap:7px;color:var(--landing-muted);font-size:13px;font-weight:600}
+.landing-contact-card dd{margin:0;font-size:16.5px;font-weight:700;overflow-wrap:anywhere}
+.landing-contact-card a,.landing-foot a{color:var(--landing-blue);text-decoration:none}
+.landing-contact-card a:hover,.landing-foot a:hover{text-decoration:underline}
+.landing-foot{padding:24px 0;border-top:1px solid #e1e8ef;background:#fff;color:var(--landing-muted);font-size:13.5px}
+.landing-foot-inner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 24px}
+.landing-foot nav{display:flex;gap:18px}
+
+/* Φόρμα «Ζητήστε παρουσίαση» (DemoRequestDialog: ανοίγει πάνω από τη σελίδα) */
+.landing-request-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.landing-request-wide,.landing-request-error{grid-column:1/-1}
+.landing-request-form textarea{min-height:96px;resize:vertical}
+.landing-request-form .lo-checkbox-field a{color:#1f6fa9}
+.landing-request-trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.landing-request-error{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid #f1c7c7;border-radius:10px;background:#fdf1f1;color:#9b2c2c;font-size:13px;line-height:1.5}
+.landing-request-error svg{flex:none;margin-top:1px}
+.landing-request-error a{color:inherit;font-weight:700}
+.landing-request-done{display:grid;justify-items:center;gap:8px;padding:12px 8px 4px;text-align:center}
+.landing-request-done svg{color:#1c7a5a}
+.landing-request-done strong{font-size:17px}
+.landing-request-done p{max-width:40ch;margin:0;color:#56677a;font-size:14px;line-height:1.6}
+
+/* Ταμπλέτα και κινητό */
+@media (max-width:980px){
+  .landing-hero-inner,.landing-contact{grid-template-columns:minmax(0,1fr);gap:36px}
+  .landing-features,.landing-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:720px){
+  .landing-nav,.landing-brand small{display:none}
+  .landing-bar-actions{margin-left:auto}
+  .landing-hero{padding:44px 0 56px}
+  .landing-features,.landing-steps{grid-template-columns:minmax(0,1fr)}
+  .landing-section{padding:52px 0}
+  .landing-wrap{padding:0 16px}
+  .landing-cta>.landing-btn{flex:1 1 auto;justify-content:center}
+  .landing-kpis{gap:8px}
+  .landing-kpis div{padding:10px}
+  .landing-kpis b{font-size:20px}
+  .landing-request-form{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:420px){
+  .landing-bar-inner{gap:12px}
+  .landing-brand strong{font-size:15px}
+  .landing-lang,.landing-signin{padding:0 11px}
+}
+@media (prefers-reduced-motion:reduce){.landing{scroll-behavior:auto}}

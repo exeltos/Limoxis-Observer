@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
+import type { Employee } from '../src/features/employees/employeeTypes'
 
 const feedback = { notify: vi.fn(), notifyError: vi.fn(), confirm: vi.fn(async () => true) }
 const loadAttachments = vi.fn(async () => [])
@@ -36,7 +37,7 @@ vi.mock('../src/features/employees/employeeSubRecordsService', async original =>
 const { LanguageProvider } = await import('../src/core/i18n/LanguageContext')
 const { EmployeeCertificatesTab, EmployeeSurveillanceTab, EmployeeEvaluationsTab } = await import('../src/features/employees/EmployeeRecordTabs')
 
-const employee = { id: 'EMP-101', dbId: 'db-emp-1', organizationId: 'org-1', firstName: 'Άννα', lastName: 'Ιωάννου' }
+const employee = { id: 'EMP-101', dbId: 'db-emp-1', organizationId: 'org-1', firstName: 'Άννα', lastName: 'Ιωάννου' } as unknown as Employee
 const fmt = value => (value ? String(value).slice(0, 10) : '—')
 const t = key => key
 const mount = node => render(<MemoryRouter><LanguageProvider>{node}</LanguageProvider></MemoryRouter>)
