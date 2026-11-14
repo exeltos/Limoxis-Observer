@@ -3355,6 +3355,57 @@ export type Database = {
           },
         ]
       }
+      demo_requests: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          language: string
+          message: string | null
+          organization_name: string
+          phone: string | null
+          privacy_accepted_at: string
+          role_title: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          language?: string
+          message?: string | null
+          organization_name: string
+          phone?: string | null
+          privacy_accepted_at: string
+          role_title: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          language?: string
+          message?: string | null
+          organization_name?: string
+          phone?: string | null
+          privacy_accepted_at?: string
+          role_title?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       department_register_fields: {
         Row: {
           aliases: string[]
@@ -10496,6 +10547,10 @@ export type Database = {
           maintenance_notice_enabled: boolean
           max_demo_users: number
           organization_deletion_grace_days: number
+          public_email: string | null
+          public_name: string | null
+          public_phone: string | null
+          public_website: string | null
           support_email: string | null
           updated_at: string
           updated_by: string | null
@@ -10509,6 +10564,10 @@ export type Database = {
           maintenance_notice_enabled?: boolean
           max_demo_users?: number
           organization_deletion_grace_days?: number
+          public_email?: string | null
+          public_name?: string | null
+          public_phone?: string | null
+          public_website?: string | null
           support_email?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -10522,6 +10581,10 @@ export type Database = {
           maintenance_notice_enabled?: boolean
           max_demo_users?: number
           organization_deletion_grace_days?: number
+          public_email?: string | null
+          public_name?: string | null
+          public_phone?: string | null
+          public_website?: string | null
           support_email?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -19018,6 +19081,15 @@ export type Database = {
         }
         Returns: Json
       }
+      public_contact: {
+        Args: never
+        Returns: {
+          email: string
+          name: string
+          phone: string
+          website: string
+        }[]
+      }
       public_login_notice: { Args: never; Returns: Json }
       purge_recycle_bin: { Args: never; Returns: number }
       quality_fill_audit_programme: {
@@ -19328,6 +19400,20 @@ export type Database = {
       }
       submit_committee_minutes: {
         Args: { p_external?: Json; p_meeting_id: string }
+        Returns: Json
+      }
+      submit_demo_request: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_language?: string
+          p_message?: string
+          p_organization: string
+          p_phone?: string
+          p_privacy_accepted?: boolean
+          p_role: string
+          p_website?: string
+        }
         Returns: Json
       }
       surveillance_case_exposure_count: {

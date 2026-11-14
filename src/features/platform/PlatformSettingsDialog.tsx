@@ -7,12 +7,21 @@ import './platformSettings.css'
 
 // Each platform setting where it is used (owner, 10/11/2026): the Demo defaults on the Demo screen, the deletion grace
 // period and the support email on the Organizations screen, the maintenance message among the Announcements. The same
-// platform_settings row and the same save; a dialog changes only its own fields.
+// platform_settings row and the same save; a dialog changes only its own fields. Οι Ρυθμίσεις οργανισμών έχουν και την
+// ομάδα «Σελίδα παρουσίασης»: τα στοιχεία επικοινωνίας της δημόσιας σελίδας πριν τη σύνδεση.
 type Pair = [string,string]
 // The settings these dialogs change; a number field holds the text typed in it until saved.
 type SettingKey = 'defaultDemoDurationDays'|'maxDemoUsers'|'organizationDeletionGraceDays'|'supportEmail'
 type SettingsForm = Omit<PlatformSettings,SettingKey> & { [K in SettingKey]: PlatformSettings[K]|string }
 type SettingField = { key: SettingKey, min?: number, max?: number, email?: boolean, unit?: Pair, label: Pair, hint: Pair }
+type PublicField = { key: 'publicName'|'publicEmail'|'publicPhone'|'publicWebsite', type: 'text'|'email'|'tel'|'url', placeholder: string, label: Pair, hint: Pair }
+const PUBLIC_FIELDS: PublicField[]=[
+  {key:'publicName',type:'text',placeholder:'Exeltos',label:['Εταιρεία','Company'],hint:['Το όνομα στην ενότητα «Επικοινωνία» και στο κάτω μέρος της σελίδας.','The name in the “Contact” section and at the foot of the page.']},
+  {key:'publicEmail',type:'email',placeholder:'info@exeltos.com',label:['Email επικοινωνίας','Contact email'],hint:['Εδώ φτάνουν τα αιτήματα παρουσίασης και στέλνει το «Στείλτε email».','Where demo requests arrive and “Send an email” writes to.']},
+  {key:'publicPhone',type:'tel',placeholder:'694 247 1022',label:['Τηλέφωνο','Phone'],hint:['Όπως θα εμφανίζεται· χωρίς κωδικό χώρας μπαίνει το +30.','As it will be shown; without a country code +30 is added.']},
+  {key:'publicWebsite',type:'url',placeholder:'https://exeltos.com/',label:['Ιστοσελίδα','Website'],hint:['Ανοίγει σε νέα καρτέλα.','Opens in a new tab.']},
+]
+const validEmail=(value: unknown)=>!value||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())
 const KINDS: Record<string,SettingField[]>={
   demo:[
     {key:'defaultDemoDurationDays',min:1,max:365,unit:['ημέρες','days'],label:['Διάρκεια νέου Demo','New Demo duration'],hint:['Η λήξη που προτείνεται όταν δημιουργείτε Demo.','The end date suggested when you create a Demo.']},
@@ -33,8 +42,10 @@ export function PlatformSettingsDialog({kind,language='el',onClose,onSaved}: {ki
   const [error,setError]=useState<unknown>(null)
   const [saving,setSaving]=useState(false)
   useEffect(()=>{let active=true;getPlatformSettings().then(value=>{if(active)setSettings(value)}).catch(err=>{if(active)setError(err)});return()=>{active=false}},[])
-  const valid=(field: SettingField)=>{const value=settings?.[field.key];if(field.email)return !value||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());const number=Number(value);return number>=field.min!&&number<=field.max!}
-  const canSave=Boolean(settings)&&fields.every(valid)&&!saving
+  const valid=(field: SettingField)=>{const value=settings?.[field.key];if(field.email)return validEmail(value);const number=Number(value);return number>=field.min!&&number<=field.max!}
+  const publicFields=kind==='organizations'?PUBLIC_FIELDS:[]
+  const publicValid=(field: PublicField)=>field.type!=='email'||validEmail(settings?.[field.key])
+  const canSave=Boolean(settings)&&fields.every(valid)&&publicFields.every(publicValid)&&!saving
   async function save(){
     if(!canSave)return
     setSaving(true)
@@ -55,6 +66,15 @@ export function PlatformSettingsDialog({kind,language='el',onClose,onSaved}: {ki
         ?<input type="email" value={settings[field.key]||''} placeholder="support@example.org" onChange={event=>setSettings(current=>({...current!,[field.key]:event.target.value}))}/>
         :<div className="platform-settings-duration-control"><input type="number" min={field.min} max={field.max} value={settings[field.key]} onChange={event=>setSettings(current=>({...current!,[field.key]:event.target.value}))}/><span>{tx(...field.unit!)}</span></div>}
       <small className={valid(field)?'field-hint':'field-error'}>{valid(field)?tx(...field.hint):field.email?tx('Μη έγκυρο email.','Invalid email.'):tx(`Επιτρέπονται ${field.min}–${field.max}.`,`Allowed range is ${field.min}–${field.max}.`)}</small>
-    </label>)}</div>}
+    </label>)}
+    {publicFields.length>0&&<fieldset className="platform-settings-group">
+      <legend>{tx('Σελίδα παρουσίασης','Presentation page')}</legend>
+      <p className="field-hint">{tx('Η δημόσια σελίδα που βλέπει όποιος ανοίγει την εφαρμογή χωρίς σύνδεση. Ένα κενό πεδίο δείχνει την αρχική τιμή.','The public page anyone opening the app without signing in sees. An empty field shows the built-in value.')}</p>
+      {publicFields.map(field=><label key={field.key} className="field">
+        <span className="lo-field-label">{tx(...field.label)}</span>
+        <input type={field.type} value={settings[field.key]||''} placeholder={field.placeholder} onChange={event=>setSettings(current=>({...current!,[field.key]:event.target.value}))}/>
+        <small className={publicValid(field)?'field-hint':'field-error'}>{publicValid(field)?tx(...field.hint):tx('Μη έγκυρο email.','Invalid email.')}</small>
+      </label>)}
+    </fieldset>}</div>}
   </ObserverDialog>
 }
