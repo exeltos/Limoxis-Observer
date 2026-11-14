@@ -1,0 +1,2 @@
+/* Κονσόλα › Αιτήματα παρουσίασης: το μήνυμα στη λίστα σε μία γραμμή· ολόκληρο ανοίγει με το αίτημα. */
+.platform-demo-request-message{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

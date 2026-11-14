@@ -17,7 +17,7 @@ type SettingField = { key: SettingKey, min?: number, max?: number, email?: boole
 type PublicField = { key: 'publicName'|'publicEmail'|'publicPhone'|'publicWebsite', type: 'text'|'email'|'tel'|'url', placeholder: string, label: Pair, hint: Pair }
 const PUBLIC_FIELDS: PublicField[]=[
   {key:'publicName',type:'text',placeholder:'Exeltos',label:['Εταιρεία','Company'],hint:['Το όνομα στην ενότητα «Επικοινωνία» και στο κάτω μέρος της σελίδας.','The name in the “Contact” section and at the foot of the page.']},
-  {key:'publicEmail',type:'email',placeholder:'info@exeltos.com',label:['Email επικοινωνίας','Contact email'],hint:['Εδώ στέλνει το κουμπί «Ζητήστε παρουσίαση».','Where the “Request a demo” button writes to.']},
+  {key:'publicEmail',type:'email',placeholder:'info@exeltos.com',label:['Email επικοινωνίας','Contact email'],hint:['Εδώ φτάνουν τα αιτήματα παρουσίασης και στέλνει το «Στείλτε email».','Where demo requests arrive and “Send an email” writes to.']},
   {key:'publicPhone',type:'tel',placeholder:'694 247 1022',label:['Τηλέφωνο','Phone'],hint:['Όπως θα εμφανίζεται· χωρίς κωδικό χώρας μπαίνει το +30.','As it will be shown; without a country code +30 is added.']},
   {key:'publicWebsite',type:'url',placeholder:'https://exeltos.com/',label:['Ιστοσελίδα','Website'],hint:['Ανοίγει σε νέα καρτέλα.','Opens in a new tab.']},
 ]

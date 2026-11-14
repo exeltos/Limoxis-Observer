@@ -3355,6 +3355,57 @@ export type Database = {
           },
         ]
       }
+      demo_requests: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          language: string
+          message: string | null
+          organization_name: string
+          phone: string | null
+          privacy_accepted_at: string
+          role_title: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          language?: string
+          message?: string | null
+          organization_name: string
+          phone?: string | null
+          privacy_accepted_at: string
+          role_title: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          language?: string
+          message?: string | null
+          organization_name?: string
+          phone?: string | null
+          privacy_accepted_at?: string
+          role_title?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       department_register_fields: {
         Row: {
           aliases: string[]
@@ -19349,6 +19400,20 @@ export type Database = {
       }
       submit_committee_minutes: {
         Args: { p_external?: Json; p_meeting_id: string }
+        Returns: Json
+      }
+      submit_demo_request: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_language?: string
+          p_message?: string
+          p_organization: string
+          p_phone?: string
+          p_privacy_accepted?: boolean
+          p_role: string
+          p_website?: string
+        }
         Returns: Json
       }
       surveillance_case_exposure_count: {

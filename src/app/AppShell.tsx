@@ -8,7 +8,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, LoaderCircle, BarChart3, Bell, Bot, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Scale, ShieldCheck, Users, X } from 'lucide-react'
+import { ArrowLeft, LoaderCircle, BarChart3, Bell, Bot, Building2, ChevronDown, Database, Eye, FlaskConical, Inbox, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Scale, ShieldCheck, Users, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useSidebarRail } from './useSidebarRail'
@@ -88,6 +88,7 @@ export function AppShell(){
     {key:'platformNav.overview',label:'platformNav.menuOverview',path:'/platform',hash:'',icon:LayoutDashboard},
     {key:'platformNav.organizations',label:'platformNav.menuOrganizations',path:'/platform',hash:'organizations',icon:Building2},
     {key:'platformNav.demos',label:'platformNav.menuDemos',path:'/platform',hash:'demo',icon:FlaskConical},
+    {key:'platformNav.demoRequests',label:'platformNav.menuDemoRequests',path:'/platform/demo-requests',hash:'',icon:Inbox},
     {key:'platformNav.users',label:'platformNav.menuPlatformUsers',path:'/platform',hash:'users',icon:Users},
     {key:'platformNav.analysis',label:'platformNav.menuReports',path:'/platform',hash:'reports',icon:BarChart3,group:'monitoring'},
     {key:'platformNav.audit',label:'platformNav.menuAudit',path:'/platform/audit',hash:'',icon:ShieldCheck,group:'monitoring'},

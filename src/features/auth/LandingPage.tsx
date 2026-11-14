@@ -4,6 +4,7 @@ import { Activity, ArrowRight, BadgeCheck, Building2, CalendarDays, ChartColumn,
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { BrandMark } from '../../design-system/BrandMark'
 import { DEFAULT_PUBLIC_CONTACT, loadPublicContact, type PublicContact } from './publicContactService'
+import { DemoRequestDialog } from './DemoRequestDialog'
 import './landing.css'
 
 // Η δημόσια «Σελίδα παρουσίασης» (διαδρομή «/» για όποιον δεν έχει συνδεθεί): τι κάνει το Limoxis Observer και
@@ -116,7 +117,10 @@ const STEP_ICONS: LucideIcon[] = [Settings2, PenLine, ShieldCheck, ChartColumn]
 
 export function LandingPage() {
   const { language, setLanguage } = useLanguage()
-  const t = copy[language === 'en' ? 'en' : 'el']
+  const lang = language === 'en' ? 'en' : 'el'
+  const t = copy[lang]
+  // «Ζητήστε παρουσίαση» ανοίγει τη φόρμα· το «Στείλτε email» της Επικοινωνίας μένει mailto.
+  const [requestOpen, setRequestOpen] = useState(false)
   // Τα στοιχεία από την κονσόλα ιδιοκτήτη· οι αρχικές τιμές μέχρι να έρθουν (ή αν δεν έρθουν).
   const [contact, setContact] = useState<PublicContact>(DEFAULT_PUBLIC_CONTACT)
   useEffect(() => { let live = true; loadPublicContact().then(value => { if (live) setContact(value) }).catch(() => {}); return () => { live = false } }, [])
@@ -159,7 +163,7 @@ export function LandingPage() {
               <h1>{t.headline} <em>{t.headlineAccent}</em></h1>
               <p className="landing-lead">{t.lead}</p>
               <div className="landing-cta">
-                <a className="landing-btn landing-btn-solid" href={mailHref}>{t.cta}<ArrowRight size={18} aria-hidden="true"/></a>
+                <button type="button" className="landing-btn landing-btn-solid" onClick={() => setRequestOpen(true)}>{t.cta}<ArrowRight size={18} aria-hidden="true"/></button>
               </div>
               <ul className="landing-points">
                 {t.points.map(point => <li key={point}><BadgeCheck size={16} aria-hidden="true"/>{point}</li>)}
@@ -228,6 +232,7 @@ export function LandingPage() {
           <nav aria-label={t.legal}><Link to="/privacy">{t.privacy}</Link><Link to="/terms">{t.terms}</Link></nav>
         </div>
       </footer>
+      {requestOpen && <DemoRequestDialog language={lang} contactEmail={contact.email} onClose={() => setRequestOpen(false)}/>}
     </div>
   )
 }
