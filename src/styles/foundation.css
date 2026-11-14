@@ -553,10 +553,6 @@
 .prevention-entry-title{display:flex;align-items:center;gap:10px}
 .prevention-entry-title>svg{color:var(--primary,var(--text-brand-333-2))}
 .prevention-entry-title h3{margin:3px 0 0;font-size:18px}
-.prevention-entry-body{
-  overflow:auto;
-  padding:16px 20px 18px;
-}
 .prevention-entry-actor{
   display:grid;
   grid-template-columns:auto 1fr;
@@ -624,18 +620,12 @@
 .who-session-grid{padding:12px;border:1px solid var(--border-soft);border-radius:11px;background:var(--lo-surface-soft);margin-bottom:13px}
 .who-session-grid label,.who-opportunity-grid label{display:flex;flex-direction:column;gap:5px}
 .who-opportunity-editor{border:1px solid var(--border-brand-904);border-radius:11px;padding:13px;margin-bottom:12px}
-.who-live-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:12px}
 .who-live-summary>div{padding:9px 10px;border:1px solid var(--border-brand-904);border-radius:9px;background:var(--lo-color-surface);display:flex;flex-direction:column;gap:2px}
 .who-live-summary span{font-size:9.5px;color:var(--text-neutral-524)}.who-live-summary strong{font-size:16px;color:var(--text-brand-214)}
 .prevention-record-shell .record-section{min-height:0}
-@media(max-width:800px){.who-session-grid,.who-opportunity-grid{grid-template-columns:1fr 1fr}.who-live-summary{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:800px){.who-session-grid,.who-opportunity-grid{grid-template-columns:1fr 1fr}}
 
 /* WHO opportunity action + gloves polish v0.22.5 */
-.who-action-options{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:8px;
-}
 .who-action-option{
   min-height:54px;
   display:flex;
@@ -669,12 +659,6 @@
 .who-action-option strong{
   line-height:1.25;
 }
-.who-note-field{
-  justify-content:flex-end;
-}
-@media(max-width:800px){
- .who-action-options{grid-template-columns:1fr}
-}
 
 /* Top action uniformity + prevention row edit v0.22.6 */
 .prevention-row-action{width:48px;text-align:right}
@@ -691,7 +675,6 @@
 
 /* Waste monitoring workspace v0.22.9 */
 .waste-form-section{border:1px solid var(--border-soft);border-radius:11px;padding:12px;margin-bottom:11px;background:var(--lo-color-surface)}
-.waste-form-section-title{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
 .waste-form-section-title strong{font-size:12px;color:var(--text-brand-235-2)}.waste-form-section-title small{font-size:9.5px;color:var(--text-neutral-561)}
 .table-cell-unit{display:block;color:var(--text-neutral-575-2);font-size:8.5px;margin-top:1px}
 
@@ -730,7 +713,6 @@
 }
 
 /* Antiseptic consumption governance + indicator workspace v0.23.3 */
-.antiseptic-entry-card{width:min(850px,calc(100vw - 40px));max-height:calc(100vh - 36px)}
 .antiseptic-entry-card .prevention-entry-title p{margin:3px 0 0;color:var(--text-neutral-537);font-size:10.5px}
 .antiseptic-form-section{
   border:1px solid var(--border-soft);
@@ -739,10 +721,8 @@
   margin-bottom:11px;
   background:var(--lo-color-surface);
 }
-.antiseptic-form-heading{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
 .antiseptic-form-heading strong{font-size:12px;color:var(--text-brand-235-2)}
 .antiseptic-form-heading small{font-size:9.5px;color:var(--text-neutral-561)}
-.field-with-unit{display:flex;align-items:center;gap:7px}
 .field-with-unit input{flex:1;min-width:0}
 .field-with-unit>span{
   min-width:31px;
@@ -769,7 +749,6 @@
 .antiseptic-eligibility.eligible{background:var(--surface-neutral-949-5);border-color:var(--border-success-853);color:var(--text-success-339-2)}
 .antiseptic-eligibility.informative{background:var(--surface-neutral-969-10);color:var(--text-neutral-455-3)}
 .antiseptic-indicator-grid{align-items:stretch}
-.antiseptic-patient-days-field{display:flex;gap:6px}
 .antiseptic-patient-days-field input{flex:1;min-width:0}
 .antiseptic-patient-days-field button{
   border:1px solid var(--border-brand-855-2);
@@ -888,7 +867,6 @@
   color:var(--text-brand-339-5);
 }
 .antiseptic-record-meta-line b{font-size:9px;color:var(--text-neutral-584)}
-.antiseptic-trace-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
 .antiseptic-trace-grid>div{
   min-height:58px;
   padding:10px 11px;
@@ -915,7 +893,6 @@
 .antiseptic-governance-note span{font-size:9.5px;color:var(--text-neutral-500-3);line-height:1.35}
 @media(max-width:900px){
  .antiseptic-record-measurements{grid-template-columns:1fr 1fr}
- .antiseptic-trace-grid{grid-template-columns:1fr}
 }
 
 /* Clinical prevention bundles v0.23.4 */
@@ -934,12 +911,10 @@
 .bundle-summary-card{gap:7px;margin-bottom:10px}.bundle-summary-card>div{border:1px solid var(--border-brand-906);border-radius:9px;background:var(--surface-neutral-980);flex-direction:column}
 .bundle-general-notes{flex-direction:column}.bundle-general-notes textarea{border:1px solid var(--border-brand-880);border-radius:8px;padding:8px;font:inherit}
 .bundle-finding-count{color:var(--text-danger-447);font-weight:700}
-.bundle-answer{font-weight:600}.bundle-answer.is-yes{color:var(--text-success-300)}.bundle-answer.is-no{color:var(--text-danger-447)}
 .bundle-record-view{display:flex;flex-direction:column;gap:12px;max-width:1180px}.bundle-record-summary,.bundle-record-elements,.bundle-record-findings{border:1px solid var(--border-brand-904);border-radius:12px;background:var(--lo-color-surface);padding:15px 16px}
 .bundle-record-heading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.bundle-record-heading>div{display:flex;flex-direction:column;gap:2px}.bundle-record-heading>div>span{font-size:8.5px;font-weight:800;letter-spacing:.08em;color:var(--text-neutral-592-2)}.bundle-record-heading>div>strong{font-size:14px;color:var(--text-brand-229-6)}.bundle-record-heading>div>small{font-size:8.5px;color:var(--text-neutral-571-2)}
 .bundle-record-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.bundle-record-kpis>div{border:1px solid var(--border-brand-912-3);border-radius:9px;background:var(--surface-neutral-980);padding:10px}.bundle-record-kpis span{display:block;font-size:8.5px;color:var(--text-neutral-543-2)}.bundle-record-kpis strong{font-size:17px;color:var(--text-brand-261-5)}
-.bundle-record-meta{display:flex;gap:20px;flex-wrap:wrap;margin-top:11px;padding-top:10px;border-top:1px solid var(--border-faint)}.bundle-record-meta span{display:flex;gap:6px;font-size:9.5px;color:var(--text-brand-347-6)}.bundle-record-meta b{font-size:8.5px;color:var(--text-neutral-586)}
-.bundle-detail-list{display:flex;flex-direction:column;gap:6px}.bundle-detail-row{display:grid;grid-template-columns:24px minmax(0,1fr) 52px;gap:8px;align-items:center;border:1px solid var(--border-brand-916-3);border-radius:8px;padding:8px 9px;background:var(--surface-neutral-984)}.bundle-detail-row.passed{border-left:3px solid var(--border-success-551)}.bundle-detail-row.failed{border-left:3px solid var(--border-danger-608-2);background:var(--surface-neutral-988-2)}.bundle-detail-index{font-size:8px;color:var(--text-neutral-557)}.bundle-detail-row>strong{font-size:10px;color:var(--text-brand-294-2)}.bundle-detail-answer{font-size:9px;font-weight:800;text-align:right}.bundle-detail-row.passed .bundle-detail-answer{color:var(--text-success-339)}.bundle-detail-row.failed .bundle-detail-answer{color:var(--text-danger-465)}.bundle-detail-row>small{grid-column:2/-1;font-size:8.5px;color:var(--text-danger-469)}
+.bundle-record-meta{display:flex;gap:20px;flex-wrap:wrap;margin-top:11px;padding-top:10px;border-top:1px solid var(--border-faint)}.bundle-record-meta span{display:flex;gap:6px;font-size:9.5px;color:var(--text-brand-347-6)}.bundle-record-meta b{font-size:8.5px;color:var(--text-neutral-586)}.bundle-detail-row{display:grid;grid-template-columns:24px minmax(0,1fr) 52px;gap:8px;align-items:center;border:1px solid var(--border-brand-916-3);border-radius:8px;padding:8px 9px;background:var(--surface-neutral-984)}.bundle-detail-row.passed{border-left:3px solid var(--border-success-551)}.bundle-detail-row.failed{border-left:3px solid var(--border-danger-608-2);background:var(--surface-neutral-988-2)}.bundle-detail-index{font-size:8px;color:var(--text-neutral-557)}.bundle-detail-row>strong{font-size:10px;color:var(--text-brand-294-2)}.bundle-detail-row>small{grid-column:2/-1;font-size:8.5px;color:var(--text-danger-469)}
 .bundle-record-finding{border-left:3px solid var(--border-danger-608);background:var(--surface-neutral-986-4);border-radius:7px;padding:8px 10px;margin-top:6px;display:flex;flex-direction:column;gap:2px}.bundle-record-finding strong{font-size:10px;color:var(--text-danger-363)}.bundle-record-finding span{font-size:9px;color:var(--text-neutral-443-2)}
 @media(max-width:850px){.bundle-summary-card,.bundle-record-kpis{grid-template-columns:1fr 1fr}.bundle-element-row{grid-template-columns:1fr}.bundle-answer-group{justify-content:flex-start}}
 

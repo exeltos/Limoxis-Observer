@@ -1,3 +1,4 @@
+import './preventionScreens.css'
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'

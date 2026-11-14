@@ -44,6 +44,7 @@
   "src/features/platform/platformDeletion.css": 3,
   "src/features/platform/platformLifecycle.css": 5,
   "src/features/platform/platformSettings.css": 3,
+  "src/features/prevention/preventionScreens.css": 114,
   "src/features/quality/quality.css": 40,
   "src/features/quality/resources/resources.css": 8,
   "src/features/quality/risk/riskAssessment.css": 89,
@@ -59,11 +60,11 @@
   "src/features/training/trainingAnnualPlan.css": 4,
   "src/features/training/trainingRecord.css": 11,
   "src/features/training/trainingScreens.css": 137,
-  "src/styles/design-system.css": 434,
-  "src/styles/features.css": 2134,
+  "src/styles/design-system.css": 418,
+  "src/styles/features.css": 2064,
   "src/styles/foundation.css": 1364,
   "src/styles/print.css": 45,
   "src/styles/record-report.css": 4,
   "src/styles/responsive.css": 581,
-  "src/styles/workspaces.css": 282
+  "src/styles/workspaces.css": 254
 }

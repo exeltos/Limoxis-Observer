@@ -1,3 +1,4 @@
+import './preventionScreens.css'
 import { useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, ClipboardCheck, ClipboardList, Droplets, FileClock, FolderOpen, Pencil, Recycle, ShieldCheck, Trash2 } from 'lucide-react'
 import './preventionRecordMenu.css'
