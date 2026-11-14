@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import {useEffect,useMemo,useState} from 'react'
 import {Activity,BookOpen,Settings2} from 'lucide-react'
 import {RegistryTable} from '../../design-system/RegistryTable'

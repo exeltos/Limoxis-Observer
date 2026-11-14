@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useEffect,useState } from 'react'
 import { Plus,Trash2,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'

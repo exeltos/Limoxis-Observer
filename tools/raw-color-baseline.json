@@ -18,9 +18,6 @@
   "src/features/library/library.css": 12,
   "src/features/lira/liraPassages.css": 7,
   "src/features/lira/liraShell.css": 24,
-  "src/features/management/managementCenter.css": 65,
-  "src/features/management/outbreakInvestigations.css": 38,
-  "src/features/management/platformUpdateCenter.css": 71,
   "src/features/patients/DuplicatePatientDialog.css": 3,
   "src/features/platform/activeUsers.css": 17,
   "src/features/platform/bulkAccounts.css": 66,
@@ -56,7 +53,7 @@
   "src/features/training/trainingAnnualPlan.css": 20,
   "src/features/training/trainingCompetence.css": 11,
   "src/features/training/trainingRecord.css": 1,
-  "src/styles/features.css": 725,
+  "src/styles/features.css": 695,
   "src/styles/responsive.css": 60,
   "src/styles/workspaces.css": 56
 }

@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useEffect,useMemo,useState } from 'react'
 import { EodyDeadlineFilter,NotifiableDiseasesTable } from './NotifiableDiseasesTable'
 import { AlertTriangle,ChevronDown,ChevronRight,Search,Power,PowerOff,Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,BriefcaseBusiness,Ruler,ListChecks,Pill,Wrench,MapPin,Hand } from 'lucide-react'

@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useEffect,useRef,useState,type ChangeEvent } from 'react'
 import { Building2,ImagePlus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'

@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useMemo } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryTable } from '../../design-system/RegistryTable'
