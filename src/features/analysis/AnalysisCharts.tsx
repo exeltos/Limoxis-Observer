@@ -1,3 +1,4 @@
+import './analysisScreens.css'
 import { useEffect,useRef,useState,type ReactNode } from 'react'
 import './AnalysisCharts.css'
 import type { DomainMetrics } from './analysisTypes'

@@ -446,10 +446,7 @@
 
 /* Analytics keeps the canonical report, only aligns its shell. */
 .platform-analysis-page>.analysis-workspace{display:flex;flex-direction:column;overflow:hidden;border:0;border-radius:0;background:transparent}
-.platform-analysis-page .analysis-sticky{top:auto;z-index:1;flex:0 0 auto;border:0}
-.platform-analysis-page .analysis-tabs{overflow-x:auto;border-bottom:1px solid var(--lo-color-border);scrollbar-width:thin}
 .platform-analysis-page .analysis-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 0 0;background:transparent}
-.platform-analysis-page .analysis-report{margin:0;max-width:none}.platform-analysis-page .analysis-section-title{margin-bottom:10px}
 
 @media(max-width:1180px){
   .platform-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.platform-form-grid .field-wide{grid-column:1/-1}
@@ -584,12 +581,9 @@
 .analysis-print-trigger:hover{background:var(--lo-shell-control-hover);border-color:color-mix(in srgb,var(--lo-color-primary) 20%,var(--lo-color-border))}
 
 @media print{
-  .analysis-header .analysis-actions,.analysis-sticky{display:none!important}
-  .analysis-workspace,.analysis-scroll{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
   .analysis-report{max-width:none!important;margin:0!important;padding:0!important}
   .analysis-section-title{margin-bottom:14px!important;padding-bottom:8px!important;border-bottom:1px solid #d9e0e7!important}
   .analysis-chart-card{break-inside:avoid;page-break-inside:avoid;box-shadow:none!important}
-  .analysis-chart-grid{break-inside:auto}
 }
 
 
@@ -621,36 +615,12 @@
   background:color-mix(in srgb,var(--lo-color-primary) 9%,var(--lo-color-surface))!important;
   color:var(--lo-color-primary)!important;font-weight:800!important;
 }
-.platform-analysis-page .analysis-tabs button.active:after{
-  content:"";position:absolute;left:14%;right:14%;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--lo-color-primary);
-}
 @media(max-width:1350px){
-  .platform-analysis-page .analysis-tabs{grid-template-columns:repeat(7,minmax(0,1fr))}
   .platform-analysis-page .analysis-tabs button{border-bottom:1px solid var(--lo-color-border)!important}
-}
-@media(max-width:760px){
-  .platform-analysis-page .analysis-tabs button{white-space:normal!important;flex:0 0 150px!important}
 }
 
 
 /* Analytics tabs: fill the complete row, matching the application's tab language. */
-.platform-analysis-page .analysis-tabs{
-  display:flex!important;
-  width:100%!important;
-  max-width:none!important;
-  align-items:stretch!important;
-}
-.platform-analysis-page .analysis-tabs button{
-  width:auto!important;
-  min-width:0!important;
-  justify-content:center!important;
-}
-@media(max-width:1180px){
-  .platform-analysis-page .analysis-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
-}
-@media(max-width:760px){
-  .platform-analysis-page .analysis-tabs{display:flex!important;overflow-x:auto!important}
-}
 
 /* Reliable printable Analytics document. The application shell uses fixed-height/overflow
    workspaces on screen; print must explicitly release every ancestor constraint. */
@@ -677,7 +647,6 @@
     width:100%!important;max-width:none!important;height:auto!important;overflow:visible!important;
     margin:0!important;padding:0!important;color:#111827!important;background:#fff!important;
   }
-  .platform-analysis-page .analysis-report *{visibility:visible!important}
   .platform-analysis-page .analysis-section-title{display:block!important}
   .platform-analysis-page .analysis-chart-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
   .platform-analysis-page .analysis-chart-card{

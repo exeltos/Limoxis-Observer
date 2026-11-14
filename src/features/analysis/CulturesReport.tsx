@@ -1,3 +1,4 @@
+import './analysisScreens.css'
 import { useEffect,useMemo,useState } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { cloudClient } from '../../core/supabase/cloudContext'

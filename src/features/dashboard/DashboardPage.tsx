@@ -1,3 +1,4 @@
+import './dashboardScreens.css'
 import { SECTION_TABS,sectionTabsFor } from '../../core/navigation/sectionTabs'
 import { Suspense,useEffect,useMemo,useState } from 'react'
 import { type LucideIcon, Activity, ArrowRight, Award, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'

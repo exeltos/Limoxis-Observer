@@ -1,0 +1,34 @@
+/* color tokens: start */
+:root{
+  --border-brand-810-2:#bfd1de;
+  --border-brand-882:#d8e2ea;
+  --border-danger-847:#f3c1bd;
+  --border-success-820-2:#bfe3cc;
+  --border-warning-810:#f5d7a8;
+  --surface-danger-957:#fdeceb;
+  --surface-neutral-971-3:#f5f8fa;
+  --surface-neutral-982-3:#f8fbfd;
+  --surface-success-949:#ecf8f1;
+  --surface-warning-949:#fff4e5;
+  --text-brand-380-2:#48607a;
+  --text-danger:#b42318;
+  --text-neutral-357:#4a5f6c;
+  --text-subtle:#64748b;
+  --text-success-300-2:#1f7a45;
+  --text-warning-302:#9a5b00;
+}
+/* color tokens: end */
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.clinical-scale-picker-list{display:flex!important;flex-direction:column!important;gap:7px!important;padding-top:4px!important}
+.clinical-scale-picker-row:hover{border-color:var(--border-brand-810-2)!important;background:var(--surface-neutral-982-3)!important}
+@media(max-width:1000px){.clinical-scale-picker-row{align-items:flex-start!important;flex-direction:column!important}.clinical-scale-picker-row small{white-space:normal!important}}
+.clinical-risk-flags{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.patient-signal-tag{padding:1px 6px;border:1px solid var(--border-brand-882);border-radius:4px;font-size:11px;font-weight:600;color:var(--text-neutral-357);white-space:nowrap}
+.clinical-risk-flags.compact{flex-wrap:wrap!important}
+html body button.clinical-risk-flag{border:1px solid var(--border-brand-882)!important;background:var(--surface-neutral-971-3)!important;color:var(--text-brand-380-2)!important}
+html body .clinical-risk-flags.compact button.clinical-risk-flag{width:auto!important;height:22px!important;min-height:22px!important;padding:0 7px!important;gap:4px!important;font-size:11px!important}
+.clinical-risk-flag-scale{font-size:10.5px;font-weight:700;letter-spacing:.01em}
+html body button.clinical-risk-flag.risk-tone-active{border-color:var(--border-success-820-2)!important;background:var(--surface-success-949)!important;color:var(--text-success-300-2)!important}
+html body button.clinical-risk-flag.risk-tone-warning{border-color:var(--border-warning-810)!important;background:var(--surface-warning-949)!important;color:var(--text-warning-302)!important}
+html body button.clinical-risk-flag.risk-tone-danger{border-color:var(--border-danger-847)!important;background:var(--surface-danger-957)!important;color:var(--text-danger)!important}
+.clinical-assessment-registry>.section-toolbar .entry-detail-note{display:block;margin:4px 0 0;font-size:11px;line-height:1.4;color:var(--text-subtle)}

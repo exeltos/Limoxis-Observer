@@ -4,16 +4,12 @@
 
 /* ==== analysis-print ==== */
 /* Analytics final presentation — deliberately self-contained to avoid legacy override conflicts. */
-.platform-analysis-page .analysis-sticky{
-  position:relative!important;padding:0!important;background:transparent!important;
-}
 .platform-analysis-page .analysis-tabs.entity-record-tabs{flex-wrap:nowrap!important;align-items:stretch!important;
   overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin;
 }
 .platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:0 0 auto!important;white-space:nowrap!important;
 }
 @media(min-width:1900px){.platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:1 1 0!important;min-width:0!important;padding:0 8px!important}}
-.analysis-print-option-pdf{flex:0 0 auto!important;width:30px!important;min-width:30px!important;justify-content:center!important}
 
 /* Isolated print document: all visual rules are scoped to the frame itself. */
 .analysis-print-frame{width:1120px!important;max-width:1120px!important;margin:0!important;padding:0!important;background:#fff!important;color:#10233b!important;font-family:Arial,sans-serif!important}
@@ -28,7 +24,6 @@
 .analysis-print-frame .analysis-chart-card header,.analysis-print-frame .analysis-signal-card header{display:flex!important;justify-content:space-between!important;margin-bottom:10px!important}
 .analysis-print-frame .analysis-chart-card header strong,.analysis-print-frame .analysis-signal-card header strong{font-size:12px!important;color:#10233b!important}
 .analysis-print-frame .analysis-chart-card header span,.analysis-print-frame .analysis-signal-card header span{display:block!important;margin-top:3px!important;font-size:9px!important;color:#64748b!important}
-.analysis-print-frame .analysis-wide-card{grid-column:1/-1!important;margin-top:12px!important}
 .analysis-print-frame .analysis-summary-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
 .analysis-print-frame .analysis-summary-grid>div{padding:10px!important;border:1px solid #e2e8f0!important;border-radius:8px!important}
 .analysis-print-frame .analysis-summary-grid span{display:block!important;font-size:9px!important;color:#64748b!important}
@@ -48,11 +43,6 @@
 /* KPI cards — same full-width visual language as the rest of Limoxis cards. */
 
 /* ANALYTICS TABS — visible below filters, full-width, no clipping. */
-.platform-analysis-page .analysis-sticky{flex-direction:column!important;padding-bottom:0!important;
-}
-.platform-analysis-page .analysis-filter-toolbar{
- flex:0 0 auto!important;position:relative!important;z-index:1!important;
-}
 .platform-analysis-page .analysis-tabs.entity-record-tabs{
  flex:0 0 52px!important;position:relative!important;z-index:10!important;
  display:grid!important;grid-template-columns:repeat(13,minmax(0,1fr))!important;
@@ -75,9 +65,6 @@
 .platform-analysis-page .analysis-tabs.entity-record-tabs>button.active{
  color:var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 8%,var(--lo-color-surface))!important;
 }
-.platform-analysis-page .analysis-tabs.entity-record-tabs>button.active:after{
- content:"";position:absolute;left:8px;right:8px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--lo-color-primary);
-}
 @media(max-width:1500px){
  .platform-analysis-page .analysis-tabs.entity-record-tabs{
   display:flex!important;overflow-x:auto!important;overflow-y:hidden!important;
@@ -97,11 +84,6 @@
 }
 
 /* Definitive sticky layout: filter row + tabs row. */
-.platform-analysis-page .analysis-sticky{
- display:grid!important;grid-template-rows:auto 50px!important;row-gap:8px!important;
- height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
-}
-.platform-analysis-page .analysis-sticky>.analysis-filter-toolbar{grid-row:1!important;min-height:0!important}
 .platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs{
  grid-row:2!important;display:flex!important;position:relative!important;inset:auto!important;
  width:100%!important;height:50px!important;min-height:50px!important;max-height:50px!important;
@@ -113,16 +95,9 @@
  height:48px!important;min-height:48px!important;margin:0!important;padding:0 9px!important;overflow:hidden!important;
  border:0!important;border-right:1px solid var(--lo-color-border)!important;background:transparent!important;
 }
-.platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs>button:last-child{border-right:0!important}
-.platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs>button span{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs>button.active{background:color-mix(in srgb,var(--lo-color-primary) 8%,#fff)!important;color:var(--lo-color-primary)!important}
 
 
 /* Platform analytics: tabs are a dedicated workspace row, never clipped by the filter surface. */
-.platform-analysis-page .analysis-workspace>.analysis-sticky{
- display:block!important;flex:0 0 auto!important;height:auto!important;min-height:0!important;max-height:none!important;
- overflow:visible!important;
-}
 .platform-analysis-page .analysis-workspace>.analysis-tabs.entity-record-tabs{
  display:flex!important;position:relative!important;z-index:2!important;flex:0 0 50px!important;
  width:100%!important;height:50px!important;min-height:50px!important;max-height:50px!important;
@@ -134,20 +109,9 @@
  width:auto!important;height:48px!important;min-height:48px!important;margin:0!important;padding:0 9px!important;
  border:0!important;border-right:1px solid var(--lo-color-border)!important;background:transparent!important;
 }
-.platform-analysis-page .analysis-workspace>.analysis-tabs.entity-record-tabs>button:last-child{border-right:0!important}
-.platform-analysis-page .analysis-workspace>.analysis-tabs.entity-record-tabs>button span{
- display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-}
 
 
 /* Actual Platform Owner analytics root: AnalysisPage owns both classes. */
-.analysis-workspace{
- display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;
-}
-.analysis-workspace>.analysis-sticky{
- display:block!important;position:relative!important;
- margin:0!important;padding:14px 16px!important;background:var(--lo-color-surface)!important;
-}
 .analysis-workspace>.analysis-tabs.entity-record-tabs{visibility:visible!important;opacity:1!important;position:relative!important;z-index:20!important;overflow-x:auto!important;overflow-y:hidden!important;grid-template-columns:repeat(13,minmax(0,1fr))!important;box-shadow:none!important;
  margin:8px 0 0!important;padding:0 6px!important;
  background:var(--lo-color-surface)!important;
@@ -157,21 +121,9 @@
  font-size:10.5px!important;white-space:nowrap!important;box-shadow:none!important;line-height:1!important;
  background:transparent!important;font-weight:600!important;
 }
-.analysis-workspace>.analysis-tabs.entity-record-tabs>button:last-child{border-right:0!important}
 
 
 /* Platform Owner analytics — canonical platform tabs and a stable control rail. */
-.analysis-workspace>.analysis-header{
- flex:0 0 auto!important;height:auto!important;min-height:var(--platform-analysis-header-h)!important;
-}
-.analysis-workspace>.analysis-sticky{
- flex:0 0 auto!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
- border:1px solid var(--lo-color-border)!important;border-radius:12px!important;
-}
-.analysis-workspace .analysis-filter-toolbar{min-height:90px!important;align-items:stretch!important;
-}
-.analysis-workspace .analysis-filter-group{height:90px!important}
-.analysis-workspace .analysis-filter-group-placeholder{visibility:hidden!important}
 .analysis-workspace>.analysis-tabs.entity-record-tabs{align-items:stretch!important;
  border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;
 }
@@ -190,10 +142,6 @@
 }
 .analysis-workspace>.analysis-tabs.entity-record-tabs>button.active{
  border-bottom-color:#2582bd!important;background:transparent!important;color:#0b6097!important;font-weight:700!important;box-shadow:none!important;
-}
-.analysis-workspace>.analysis-tabs.entity-record-tabs>button.active:after{display:none!important}
-.analysis-workspace>.analysis-scroll{
- flex:1 1 auto!important;min-height:0!important;overflow:auto!important;padding-top:12px!important;
 }
 @media(max-width:1500px){
  .analysis-workspace>.analysis-tabs.entity-record-tabs{
@@ -217,9 +165,6 @@
 }
 .analysis-workspace>.analysis-tabs.entity-record-tabs>button{
  flex:0 0 auto!important;width:auto!important;min-width:0!important;padding:0 13px!important;
-}
-.analysis-workspace>.analysis-tabs.entity-record-tabs>button span{
- white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;
 }
 
 /* ==== tabs-unified ==== */
@@ -257,22 +202,15 @@ html:not(#lo-unified-tabs) body nav.canonical-tabs>button.canonical-tab>b.canoni
 .main-column:has(>.preview-banner) .laboratory-registry-page,
 .main-column:has(>.preview-banner) .controls-page{min-height:440px!important}
 /* Analysis filters never clip their last group (comparison) when they wrap. */
-.analysis-workspace .analysis-filter-toolbar{height:auto!important;max-height:none!important}
 /* Collapsed filter summary (short screens): one line with the active filters. */
-.analysis-filter-summary{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--lo-color-border,#dfe6ed);border-radius:12px;background:var(--lo-color-surface,#fff)}
-.analysis-filter-chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1}
 .analysis-filter-chips span{padding:4px 10px;border-radius:999px;background:#eef3f7;color:#24425c;font-size:12px;font-weight:650;white-space:nowrap}
 .analysis-filter-toggle{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--lo-color-border,#d8e1e9);border-radius:9px;background:#fff;color:#24425c;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;flex:none}
 .analysis-filter-toggle:hover{background:#f4f7fa}
-.analysis-filter-close{align-self:flex-end;margin-left:auto}
 /* Analysis on short screens: compact header and tabs so the results keep
    most of the height and scroll in their own area. */
 @media (max-height:900px) and (min-width:981px){
-  .analysis-workspace .analysis-header{min-height:0!important;padding-top:2px!important;padding-bottom:6px!important}
   .analysis-workspace .analysis-header .eyebrow,.analysis-workspace .analysis-header p{display:none!important}
-  .analysis-workspace .analysis-header h1{font-size:21px!important;margin:0!important;line-height:1.2!important}
   /* All module tabs stay visible: two compact rows instead of a hidden horizontal scroll. */
-  html:not(#lo-short) body .analysis-workspace>.analysis-tabs.entity-record-tabs,html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs{flex-wrap:wrap!important;overflow:visible!important;height:auto!important;max-height:none!important;margin-top:8px!important}
   html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs>button{flex:0 0 auto!important;width:auto!important;height:34px!important;min-height:34px!important;padding:0 11px!important;white-space:nowrap!important}
 }
 
@@ -474,16 +412,6 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
 /* Analysis follows the page layout of every other screen: same title size, no
    eyebrow, and the filter card inside the page gutters instead of edge to edge.
    On phones the filter groups grow with their stacked fields instead of overlapping. */
-html:not(#lo-analysis-page) body .analysis-workspace>.analysis-header h1{font-size:20px!important;font-weight:660!important;letter-spacing:-.02em!important;margin:0!important}
-html:not(#lo-analysis-page) body .analysis-workspace>.analysis-header .analysis-heading-row .eyebrow{display:none!important}
-html:not(#lo-analysis-page) body .analysis-workspace>.analysis-header{min-height:0!important;padding-bottom:14px!important}
-html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 var(--lo-layout-page-x)!important}
-@media (max-width:780px){
-  html:not(#lo-analysis-page) body .analysis-workspace .analysis-filter-toolbar{min-height:0!important}
-  html:not(#lo-analysis-page) body .analysis-workspace .analysis-filter-group{height:auto!important}
-  html:not(#lo-analysis-page) body .analysis-workspace .analysis-filter-group-placeholder{display:none!important}
-  html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 12px!important}
-}
 
 /* Phones: the role-preview banner keeps the role on one line and the exit
    control as a compact button beside it. */
@@ -507,11 +435,6 @@ html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 v
 }
 /* Analysis lines up with every other page: title and subtitle at the usual
    height, and the section tabs within the page margins instead of edge to edge. */
-@media (min-width:761px){
-  html:not(#lo-analysis-page):not(#lo-analysis-align) body .analysis-workspace>.analysis-header{padding-top:12px!important}
-  html:not(#lo-analysis-page):not(#lo-analysis-align) body .analysis-workspace>.analysis-header .analysis-heading-row p{display:block!important;margin:4px 0 0!important;font-size:13px!important;color:#5b7083!important}
-  html:not(#lo-analysis-page):not(#lo-analysis-align) body .analysis-workspace>.analysis-tabs{margin-left:30px!important;margin-right:30px!important;width:auto!important}
-}
 
 /* Surveillance lists on a tablet: the columns share the width instead of scrolling sideways, so no header is cut. */
 @media (min-width:641px) and (max-width:960px){

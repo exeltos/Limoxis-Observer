@@ -1,3 +1,4 @@
+import './clinicalScalesScreens.css'
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { Activity, FileText, Pencil, Plus, Trash2 } from 'lucide-react'

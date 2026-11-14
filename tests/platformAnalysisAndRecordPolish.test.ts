@@ -4,7 +4,8 @@ import { readSource } from './helpers/readSource'
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
-const analysisPrint=readSource('src/styles/responsive.css')
+// Οι κανόνες της Ανάλυσης φορτώνονται με τη σελίδα της (analysisScreens.css).
+const analysisPrint=readSource('src/styles/responsive.css')+readSource('src/features/analysis/analysisScreens.css')
 const ownerPolish=readSource('src/styles/design-system.css')
 
 describe('Analysis workspace layout and organization summary strip polish',()=>{

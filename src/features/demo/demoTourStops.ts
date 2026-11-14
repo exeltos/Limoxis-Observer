@@ -1,3 +1,4 @@
+import './demoScreens.css'
 // Guided-tour stops per Demo scenario (see demoScenarios.js and demoTours.js).
 // Each stop: { step, target: { sel, text?: [el, en] }, titleEl, titleEn, textEl, textEn, advance? }
 // `text` picks, among the elements matching `sel`, the first whose visible text

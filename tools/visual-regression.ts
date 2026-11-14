@@ -77,7 +77,8 @@ async function capture(page, port, s) {
   await page.waitForTimeout(700); await dismissBriefing(frame)
   const styles = await frame.evaluate(() => [...document.querySelectorAll('body *')].map(element => {
     const computed = getComputedStyle(element); const values = {}
-    for (let index = 0; index < computed.length; index++) values[computed[index]] = computed.getPropertyValue(computed[index])
+    // Custom properties (--token) are not drawn: their effect shows in the real properties.
+    for (let index = 0; index < computed.length; index++) if (!computed[index].startsWith('--')) values[computed[index]] = computed.getPropertyValue(computed[index])
     return [element.tagName + (typeof element.className === 'string' && element.className ? '.' + element.className.trim().split(/\s+/).join('.') : ''), values]
   }))
   const png = await page.screenshot({ animations: 'disabled', caret: 'hide' })
