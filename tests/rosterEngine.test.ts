@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { checkRoster, datesBetween, demandFor, generateRoster, isShift, periodDays, shiftTargets } from '../src/features/rosters/rosterEngine'
 import type { RosterEmployee } from '../src/features/rosters/rosterEngine'
 
 // The department's shift roster (owner, 8/11/2026): rules and the automatic generator.
+// The generator searches many rosters per test (up to ~3 s alone); under the full parallel suite in CI that passed the
+// default 5 s, so these tests get 30 s. They still run in full.
+vi.setConfig({ testTimeout: 30_000 })
 const SHIFTS = ['M', 'I', 'A', 'N']
 const days = periodDays('2026-10-21', '2026-11-20')
 const demand = { weekday: { M: 2, A: 2, N: 1 }, weekend: { M: 2, A: 2, N: 1 } }

@@ -6,6 +6,7 @@ import { newCandidates, parseFeed, parsePage } from '../_shared/legislationWatch
 import { supplierCertificateRenewalEmail, supplierCertificateSubmittedEmail } from '../_shared/supplierCertificateEmail.ts'
 import { runTranslations } from '../_shared/translateContent.ts'
 import { accountAccessAddedEmail, accountBatchSummaryEmail, accountCreatedEmail, accountReadyEmail } from '../_shared/accountCreatedEmail.ts'
+import { publicDemoRequestEmail } from '../_shared/publicDemoRequestEmail.ts'
 
 // Called by pg_cron (private.platform_dispatch_scheduled_tasks / platform_dispatch_task)
 // with the shared secret from Vault, never by a browser. Tasks:
@@ -17,8 +18,9 @@ import { accountAccessAddedEmail, accountBatchSummaryEmail, accountCreatedEmail,
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
 // Supplier certificate links are also sent here, so an approved request goes out even
 // when no browser drains the outbox (process-notification-outbox claims rows the same way).
-// So are the account e-mails of the bulk creation from the employee roster (N1).
-const MAILED=['platform_lifecycle_reminder','legislation_update','legislation_digest','supplier_certificate_renewal','supplier_certificate_submitted','account_created','account_access_added','account_batch_summary','account_ready']
+// So are the account e-mails of the bulk creation from the employee roster (N1), and the «Ζητήστε παρουσίαση»
+// requests of the public presentation page (public_demo_request: no organization, no browser to drain them).
+const MAILED=['platform_lifecycle_reminder','legislation_update','legislation_digest','supplier_certificate_renewal','supplier_certificate_submitted','account_created','account_access_added','account_batch_summary','account_ready','public_demo_request']
 const DIGEST_ENTITY='00000000-0000-0000-0000-00000000a11e'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin=any
@@ -90,6 +92,7 @@ function messageFor(type:string,p:Record<string,unknown>,actionUrl:string){
   if(type==='account_access_added')return accountAccessAddedEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),recipientName:String(p.recipientName||''),username:String(p.username||''),roleLabel:String(p.roleLabel||''),departmentName:String(p.departmentName||''),actionUrl})
   if(type==='account_ready')return accountReadyEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),recipientName:String(p.recipientName||''),username:String(p.username||''),roleLabel:String(p.roleLabel||''),departmentName:String(p.departmentName||''),actionUrl})
   if(type==='account_batch_summary')return accountBatchSummaryEmail({organizationName:String(p.organizationName||''),recipientName:String(p.recipientName||''),createdAt:typeof p.createdAt==='string'?p.createdAt:null,people:Array.isArray(p.people)?p.people:[],actionUrl})
+  if(type==='public_demo_request')return publicDemoRequestEmail({fullName:String(p.fullName||''),organizationName:String(p.organizationName||''),roleTitle:String(p.roleTitle||''),email:String(p.email||''),phone:String(p.phone||''),message:String(p.message||''),language:String(p.language||'el'),actionUrl})
   if(type==='legislation_update')return legislationUpdateEmail(p,actionUrl)
   if(type==='legislation_digest')return legislationDigestEmail(p as Parameters<typeof legislationDigestEmail>[0],actionUrl)
   return lifecycleReminderEmail({kind:String(p.kind||''),audience:String(p.audience||''),days:Number(p.days),name:String(p.name||''),code:String(p.code||''),date:String(p.date||''),recipientName:String(p.recipientName||''),actionUrl,language:p.language==='en'?'en':'el'})

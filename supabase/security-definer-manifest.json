@@ -381,6 +381,13 @@
       "authenticated": true,
       "reason": "Schedules a real organization's deletion after the grace period and closes its access; needs a recent export or a waiver reason; Platform Owner only, audited."
     },
+    "public_contact": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "noCallerCheck": true,
+      "reason": "Company name, e-mail, phone and website on the public presentation page, before sign-in; returns only these four platform_settings fields and no organisation data."
+    },
     "public_login_notice": {
       "category": "public-token",
       "anon": true,
@@ -584,6 +591,13 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Turns the automatic translation of a hospital's own texts on or off and sets its monthly limit of characters; checks itself that the caller is the Platform Owner or a Hospital Admin / Quality Manager of the organisation."
+    },
+    "submit_demo_request": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "noCallerCheck": true,
+      "reason": "«Request a demo» form of the public presentation page, before sign-in: validates lengths and e-mail, silently drops honeypot submissions, at most 3 per e-mail and 30 in total per hour; stores the request (readable only by the Platform Owner) and queues one e-mail to the presentation page's public_email."
     },
     "surveillance_case_exposure_count": {
       "category": "rpc",
