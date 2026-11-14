@@ -1,0 +1,41 @@
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.platform-demo-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:10px;background:var(--lo-color-primary-soft);color:var(--text-brand-382)}
+.platform-center-section{
+  margin:0;
+}
+.platform-center-section>.platform-section-heading{
+  min-height:70px;
+  padding:15px 17px;
+}
+.platform-record-edit-fieldset:disabled{opacity:1}
+.platform-demo-access-grid{grid-template-columns:minmax(260px,1.35fr) minmax(300px,1.65fr) minmax(170px,.8fr) minmax(170px,.8fr)!important}
+@media(max-width:1180px){.platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:760px){.platform-demo-access-grid{grid-template-columns:1fr!important}}
+.platform-form-section-actions{justify-content:flex-end;flex:0 0 auto}
+@media(max-width:760px){.platform-form-section-actions{flex-wrap:wrap}}
+.platform-record-edit-fieldset.is-editing input,
+.platform-record-edit-fieldset.is-editing select,
+.platform-record-edit-fieldset.is-editing textarea{pointer-events:auto}
+.platform-demo-create-dialog .platform-form-shell{padding-bottom:0!important}
+.platform-demo-create-dialog .platform-form-shell>.platform-form-section:last-child{margin-bottom:0!important}
+.platform-user-record-shell{width:100%;max-width:none}
+.platform-user-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.platform-user-record-link-row{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px;align-items:center}
+.platform-invitation-link-note{margin:0 0 10px;font-size:12.5px;line-height:1.5;color:var(--lo-color-muted)}
+.platform-invitation-link{width:100%;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--lo-color-text);background:var(--surface-neutral-969)}
+@media(max-width:760px){.platform-user-record-grid{grid-template-columns:1fr}.platform-user-record-link-row{grid-template-columns:1fr}}
+.platform-settings-page .platform-settings-duration-control{align-items:center;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);overflow:hidden;background:var(--lo-color-surface)}
+.platform-demo-record-form .platform-form-shell{max-width:none}
+.platform-demo-access-grid{display:grid;grid-template-columns:minmax(230px,1.25fr) minmax(300px,1.55fr) minmax(160px,.8fr) minmax(160px,.8fr);gap:11px 13px;align-items:start}
+@media(max-width:1180px){.platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.platform-demo-access-grid{grid-template-columns:1fr}}
+.diagnostics-table-wrap{margin-top:12px}
+.diagnostics-table thead th{white-space:nowrap;vertical-align:middle}
+.diagnostics-table tbody td{vertical-align:middle}
+.platform-form-section-actions{display:flex;gap:6px;align-items:center}
+.platform-settings-duration-control{display:flex;align-items:center;gap:8px}
+.platform-settings-duration-control input{max-width:150px}
+.platform-registry-shell>.platform-registry-card,.platform-registry-shell>.diagnostics-table-wrap{flex:1 1 auto;min-height:0}
+.platform-registry-shell>.diagnostics-table-wrap{overflow:auto}
+.platform-diagnostics-registry{overflow:hidden}
+.platform-settings-page .platform-settings-duration-control{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;max-width:260px}

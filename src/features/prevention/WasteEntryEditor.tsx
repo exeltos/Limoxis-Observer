@@ -1,3 +1,4 @@
+import './preventionScreens.css'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { DetailFields } from '../../design-system/DetailList'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'

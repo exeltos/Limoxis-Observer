@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'

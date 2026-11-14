@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import './platformDashboard.css'
 import { useCallback,useEffect,useMemo,useState,type ReactNode } from 'react'
 import { AlertTriangle,RefreshCw } from 'lucide-react'

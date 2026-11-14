@@ -1,3 +1,4 @@
+import './preventionScreens.css'
 import { useMemo, useState } from 'react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
