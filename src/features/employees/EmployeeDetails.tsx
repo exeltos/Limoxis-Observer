@@ -1,3 +1,4 @@
+import './employeesScreens.css'
 import { STAFF_CATEGORIES, staffCategoryLabel, staffCategoryOf } from './staffCategory'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '../../design-system/Button'

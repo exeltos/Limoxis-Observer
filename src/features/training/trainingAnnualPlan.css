@@ -1,3 +1,16 @@
+/* color tokens: start */
+:root{
+  --surface-brand-498:#3d7fc1;
+  --surface-brand-655:#7fa7cf;
+  --surface-brand-804:#b7cde3;
+  --surface-brand-941:#e6f0fa;
+  --surface-brand-969:#f1f7fd;
+  --surface-danger-647:#e0736a;
+  --surface-danger-918:#fbdcd9;
+  --surface-success-627:#7cc496;
+  --text-warning-271-2:#8a4b00;
+}
+/* color tokens: end */
 /* Training annual plan: programmes by month and retraining needs. */
 .training-plan{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
 .training-plan-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding:10px 14px;border-bottom:1px solid var(--lo-color-border);font-size:12px;color:var(--lo-color-muted)}
@@ -5,30 +18,30 @@
 .training-plan-toolbar strong{font-size:15px;color:var(--lo-color-text)}
 .training-plan-year{display:inline-flex;align-items:center;gap:6px}
 .training-plan-year strong{min-width:44px;text-align:center;font-size:16px}
-.training-plan-toolbar .training-plan-alert{display:inline-flex;gap:6px;border:0;font:inherit;align-items:center;padding:3px 10px;border-radius:999px;background:#fdeceb;color:#b42318;font-weight:700}
-.training-plan-toolbar .training-plan-alert strong{color:#b42318}
+.training-plan-toolbar .training-plan-alert{display:inline-flex;gap:6px;border:0;font:inherit;align-items:center;padding:3px 10px;border-radius:999px;background:var(--surface-danger-957);color:var(--text-danger);font-weight:700}
+.training-plan-toolbar .training-plan-alert strong{color:var(--text-danger)}
 .training-plan-toolbar button.training-plan-alert{cursor:pointer}
-.training-plan-toolbar button.training-plan-alert:hover{background:#fbdcd9}
+.training-plan-toolbar button.training-plan-alert:hover{background:var(--surface-danger-918)}
 .training-plan .scroll-table{flex:1 1 0;min-height:0;overflow:auto}
 .training-plan-table th:first-child,.training-plan-table td:first-child{min-width:240px}
 /* The registry shell pads every cell with !important; month cells must touch
    so a programme's bar reads as one span. */
 .training-plan .data-table .training-plan-month{width:52px;min-width:52px;padding-left:0!important;padding-right:0!important;text-align:center}
-.training-plan .data-table .training-plan-month.current{background:#f1f7fd!important}
+.training-plan .data-table .training-plan-month.current{background:var(--surface-brand-969)!important}
 .training-plan-row{cursor:pointer}
-.training-plan-bar{display:block;height:12px;background:#7fa7cf}
+.training-plan-bar{display:block;height:12px;background:var(--surface-brand-655)}
 .training-plan-bar.first{margin-left:6px;border-top-left-radius:6px;border-bottom-left-radius:6px}
 .training-plan-bar.last{margin-right:6px;border-top-right-radius:6px;border-bottom-right-radius:6px}
-.training-plan-bar.done{background:#7cc496}
-.training-plan-bar.running{background:#3d7fc1}
-.training-plan-bar.planned{background:#b7cde3}
-.training-plan-bar.overdue{background:#e0736a}
-.training-plan-state{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;background:#eef3f7;color:var(--lo-color-text)}
-.training-plan-state.done{background:#e7f5ec;color:#1d6b3a}
-.training-plan-state.running{background:#e6f0fa;color:#1f5a94}
-.training-plan-state.overdue{background:#fdeceb;color:#b42318}
-.training-plan-count{display:inline-block;min-width:24px;padding:2px 6px;border-radius:999px;background:#fff1dc;color:#8a4b00;font-weight:800;font-size:11px}
-.training-plan-need.uncovered td:first-child small{color:#b42318;font-weight:700}
+.training-plan-bar.done{background:var(--surface-success-627)}
+.training-plan-bar.running{background:var(--surface-brand-498)}
+.training-plan-bar.planned{background:var(--surface-brand-804)}
+.training-plan-bar.overdue{background:var(--surface-danger-647)}
+.training-plan-state{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;background:var(--surface-neutral-951);color:var(--lo-color-text)}
+.training-plan-state.done{background:var(--surface-success-933);color:var(--text-success)}
+.training-plan-state.running{background:var(--surface-brand-941);color:var(--text-brand-351)}
+.training-plan-state.overdue{background:var(--surface-danger-957);color:var(--text-danger)}
+.training-plan-count{display:inline-block;min-width:24px;padding:2px 6px;border-radius:999px;background:var(--surface-warning-931);color:var(--text-warning-271-2);font-weight:800;font-size:11px}
+.training-plan-need.uncovered td:first-child small{color:var(--text-danger);font-weight:700}
 .training-plan-empty{text-align:center;color:var(--lo-color-muted)}
 .training-plan-note{margin:0;padding:8px 14px;border-top:1px solid var(--lo-color-border);font-size:11px;color:var(--lo-color-muted)}
 .training-plan-summary{margin:0;color:var(--lo-color-muted)}

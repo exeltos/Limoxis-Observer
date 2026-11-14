@@ -1,3 +1,18 @@
+/* color tokens: start */
+:root{
+  --surface-accent-437:#6a4c93;
+  --surface-brand-324:#1b4f8a;
+  --surface-brand-333-2:#1f5f8b;
+  --surface-brand-359:#356982;
+  --surface-brand-392-2:#1a6fae;
+  --surface-danger-463:#a24a6b;
+  --surface-success-320:#2d7650;
+  --surface-success-335:#2e7d5b;
+  --surface-success-422:#3d9a69;
+  --surface-warning-331:#8a5a1f;
+  --surface-warning-496:#d39b2a;
+}
+/* color tokens: end */
 /* «Βιβλιοθήκη» (Library): links, guidelines, clinical guides and news for every user. */
 .lib-workspace{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .lib-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 14px 16px;display:grid;gap:16px;align-content:start}
@@ -10,16 +25,16 @@
 .lib-group>h3{margin:4px 0 0;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--lo-color-text)}
 .lib-group>h3 b{font-size:11px;font-weight:600;color:var(--lo-color-muted)}
 .lib-domain{display:block;margin-top:1px;font-size:11.5px;color:var(--lo-color-primary);overflow-wrap:anywhere}
-.lib-logo{display:grid;place-items:center;width:42px;height:42px;border-radius:10px;color:#fff;font-weight:800;font-size:12px;letter-spacing:.02em;background:#356982;overflow:hidden}
+.lib-logo{display:grid;place-items:center;width:42px;height:42px;border-radius:10px;color:var(--text-inverse);font-weight:800;font-size:12px;letter-spacing:.02em;background:var(--surface-brand-359);overflow:hidden}
 .lib-logo.is-long{font-size:10px}
-.lib-logo.tone-gov{background:#1f5f8b}
-.lib-logo.tone-who{background:#1a6fae}
-.lib-logo.tone-cdc{background:#1b4f8a}
-.lib-logo.tone-ecdc{background:#2e7d5b}
-.lib-logo.tone-society{background:#6a4c93}
-.lib-logo.tone-nursing{background:#a24a6b}
-.lib-logo.tone-reference{background:#8a5a1f}
-.lib-logo.tone-hospital{background:#2d7650}
+.lib-logo.tone-gov{background:var(--surface-brand-333-2)}
+.lib-logo.tone-who{background:var(--surface-brand-392-2)}
+.lib-logo.tone-cdc{background:var(--surface-brand-324)}
+.lib-logo.tone-ecdc{background:var(--surface-success-335)}
+.lib-logo.tone-society{background:var(--surface-accent-437)}
+.lib-logo.tone-nursing{background:var(--surface-danger-463)}
+.lib-logo.tone-reference{background:var(--surface-warning-331)}
+.lib-logo.tone-hospital{background:var(--surface-success-320)}
 .lib-tags{display:flex;flex-wrap:wrap;gap:5px}
 .lib-tag{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-muted);color:var(--lo-color-muted);font-size:10.5px;font-weight:600}
 .lib-tag.is-rss{border-color:var(--lo-status-warning-border);background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
@@ -61,8 +76,8 @@
 .lib-feeds>div{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--lo-color-border)}
 .lib-feeds>div:last-child{border-bottom:0}
 .lib-feeds>div>span:last-child{color:var(--lo-color-muted);text-align:right}
-.lib-dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:4px;background:#3d9a69}
-.lib-dot.is-failing{background:#d39b2a}
+.lib-dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:4px;background:var(--surface-success-422)}
+.lib-dot.is-failing{background:var(--surface-warning-496)}
 .lib-dot.is-unchecked,.lib-dot.is-off{background:var(--lo-color-border-strong)}
 .lib-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
 .lib-form .lib-span{grid-column:1/-1}

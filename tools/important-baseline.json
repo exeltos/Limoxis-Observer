@@ -33,6 +33,7 @@
   "src/features/documents/documentsScreens.css": 21,
   "src/features/employees/employeePhoto.css": 4,
   "src/features/employees/employeeRecordTabsRefinements.css": 93,
+  "src/features/employees/employeesScreens.css": 33,
   "src/features/executive/executive.css": 2,
   "src/features/indicators/indicatorsScreens.css": 2,
   "src/features/kitchen/kitchen.css": 3,
@@ -57,11 +58,12 @@
   "src/features/training/TrainingResultsReview.css": 37,
   "src/features/training/trainingAnnualPlan.css": 4,
   "src/features/training/trainingRecord.css": 11,
+  "src/features/training/trainingScreens.css": 140,
   "src/styles/design-system.css": 434,
-  "src/styles/features.css": 2270,
-  "src/styles/foundation.css": 1374,
+  "src/styles/features.css": 2128,
+  "src/styles/foundation.css": 1351,
   "src/styles/print.css": 45,
   "src/styles/record-report.css": 4,
   "src/styles/responsive.css": 581,
-  "src/styles/workspaces.css": 290
+  "src/styles/workspaces.css": 282
 }

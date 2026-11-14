@@ -1,3 +1,4 @@
+import './trainingScreens.css'
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Award,CheckCircle2,ClipboardCheck,FileText,ShieldCheck,Star } from 'lucide-react'
 import { useParams } from 'react-router-dom'

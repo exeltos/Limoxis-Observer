@@ -1,3 +1,4 @@
+import './employeesScreens.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeTrainingQuestion } from '../training/trainingAssessment'
 import { formatActiveTime, loadProgramMaterialTimes } from '../training/trainingMaterialTime'

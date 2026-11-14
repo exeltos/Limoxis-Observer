@@ -1,3 +1,4 @@
+import './employeesScreens.css'
 import { useEffect,useMemo,useState,type RefObject } from 'react'
 import { Plus,Upload,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'

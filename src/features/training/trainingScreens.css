@@ -1,0 +1,205 @@
+/* color tokens: start */
+:root{
+  --border-brand-896:#dbe5ee;
+  --shadow-brand-284:#174b7a;
+  --text-brand-284-2:#174b7a;
+}
+/* color tokens: end */
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.public-flow-question{border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:9px}
+:is(.platform-diagnostics-view,.training-participants-view,.training-assessment-view){
+  display:flex!important;
+  flex-direction:column!important;
+  gap:10px!important;
+}
+.training-assessment-registry .open-record-cell{white-space:nowrap!important}
+.training-participant-mode>button svg{color:var(--primary,var(--text-brand-284-2))}
+.training-participant-panel{flex-direction:column}
+.training-participant-filters select{background:var(--surface)}
+.training-participant-list-head{font-size:13px;color:var(--text-secondary,var(--text-neutral-510))}
+.training-participant-table tbody tr:hover{background:var(--surface-subtle,var(--surface-soft))}
+.training-participant-table .training-row-selected td:first-child{box-shadow:inset 3px 0 0 var(--primary,var(--shadow-brand-284))}
+.training-manual-table-wrap table{width:100%}
+.training-question-dialog{display:flex;flex-direction:column;gap:18px}
+.training-question-options-editor{display:flex;flex-direction:column;gap:8px}
+.training-question-options-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.training-question-option-row{display:grid;grid-template-columns:auto minmax(0,1fr) 36px;align-items:center;gap:9px}
+.training-true-false{display:block;padding:0;border:0!important;border:1px solid var(--border-subtle,var(--border-brand-896));border-radius:10px}
+.training-confirmation-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+@media(max-width:760px){.training-participant-mode,.training-participant-filters,.training-confirmation-summary{grid-template-columns:1fr}}
+.training-participants-table .training-select-col{width:46px!important;text-align:center!important}
+.training-public-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:4px}
+.training-public-details{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.training-public-section{margin:0!important}
+.training-public-section-title{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.training-public-section-title h2{margin:2px 0 0!important}
+.training-attestation{display:flex;align-items:flex-start;gap:12px;padding:15px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface-subtle,var(--surface-soft));cursor:pointer}
+@media(max-width:900px){.training-participant-filters{grid-template-columns:1fr!important}.training-manual-form-row{height:112px!important;grid-template-columns:1fr 1fr!important}.training-manual-add-cell{grid-column:2;justify-content:flex-end}.training-participant-manual{grid-template-rows:58px 112px minmax(0,1fr)!important}.training-public-details,.training-feedback-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.training-public-details,.training-feedback-grid{grid-template-columns:1fr}.training-public-header{gap:12px}.training-question-dialog .training-required-toggle span{white-space:normal!important}}
+.training-participant-panel-heading p{display:none!important}
+.training-participant-list-head{min-height:28px!important;gap:12px!important}
+.training-participant-table td:nth-child(3),.training-participant-table td:nth-child(5){overflow-wrap:anywhere!important;word-break:break-word!important}
+.training-manual-form-row{overflow:visible!important}
+.training-participant-panel>.training-participant-empty.compact{grid-row:auto!important}
+.training-participant-page{
+  height:100%!important;
+  min-height:0!important;
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+  gap:14px!important;
+  overflow:hidden!important;
+}
+.training-participant-page>.page-header .page-heading-copy h1{margin:0!important;
+  letter-spacing:-.015em!important}
+.training-participant-page-actions{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:nowrap!important}
+.training-participant-mode>button strong{line-height:1.1!important;
+  letter-spacing:-.005em!important}
+.training-participant-basket-summary{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+  margin:0!important;
+  border:1px solid var(--lo-color-border)!important;
+  background:var(--lo-color-surface)!important;
+  overflow:hidden!important;
+}
+.training-participant-stage{height:100%!important;min-height:0!important;overflow:hidden!important}
+.training-participant-panel{
+  height:100%!important;
+  min-height:0!important;
+  display:grid!important;
+  overflow:hidden!important;
+}
+.training-participant-panel-heading{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+  overflow:hidden!important;
+}
+.training-participant-panel-heading h3{margin:0!important;
+  letter-spacing:-.015em!important}
+.training-participant-filters{
+  display:grid!important;
+}
+.training-participant-list-head{
+  height:28px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  padding:0 3px!important;
+  overflow:hidden!important;
+}
+.training-participant-table td:nth-child(3),.training-participant-table td:nth-child(5){overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.training-participant-table tbody tr{cursor:pointer!important}
+.training-manual-form-row{
+  display:grid!important;
+  align-items:end!important;
+}
+.training-manual-add-cell{display:flex!important;align-items:flex-end!important}
+.training-manual-list-slot{height:100%!important;min-height:0!important;overflow:hidden!important}
+@media(max-width:1100px){.training-manual-add-cell{grid-column:2!important}}
+@media(max-width:760px){.training-participant-page>.page-header{align-items:flex-start!important}.training-participant-mode>button small{display:none!important}.training-participant-filters{height:auto!important;grid-template-columns:1fr!important}.training-participant-panel{grid-template-rows:52px auto 28px minmax(0,1fr)!important}.training-manual-form-row{grid-template-columns:1fr!important}.training-manual-add-cell{grid-column:auto!important}}
+.training-participant-page{
+  font-size:14px!important;
+  color:var(--lo-color-text)!important;
+}
+.training-participant-page>.page-header{
+  min-height:72px!important;
+  padding:2px 4px 4px!important;
+  gap:18px!important;
+}
+.training-participant-page>.page-header .page-heading-group{
+  gap:14px!important;
+  align-items:center!important;
+}
+.training-participant-page-actions .training-selection-count{
+  min-height:34px!important;
+  padding:0 13px!important;
+  font-size:12px!important;
+}
+.training-participant-panel{
+  grid-template-rows:58px 48px 30px minmax(0,1fr)!important;
+  gap:10px!important;
+}
+.training-participant-manual{
+  grid-template-rows:58px 82px minmax(0,1fr)!important;
+}
+.training-participant-panel-heading{
+  height:58px!important;
+  min-height:58px!important;
+}
+.training-selection-count{
+  min-height:32px!important;
+  padding:0 12px!important;
+  font-size:11.5px!important;
+}
+.training-participant-filters{
+  height:48px!important;
+  grid-template-columns:minmax(0,1fr) minmax(240px,320px)!important;
+  gap:12px!important;
+}
+.training-participant-search:focus-within{
+  border-color:color-mix(in srgb,var(--lo-color-primary) 55%,var(--lo-color-border))!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--lo-color-primary) 10%,transparent)!important;
+}
+.training-participant-search input::placeholder{
+  color:color-mix(in srgb,var(--lo-color-muted) 72%,transparent)!important;
+  opacity:1!important;
+}
+.training-participant-table thead th,
+.training-manual-table-wrap thead th{
+  height:44px!important;
+  padding:0 14px!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  letter-spacing:.045em!important;
+  color:var(--lo-color-muted)!important;
+}
+.training-participant-table tbody td,
+.training-manual-table-wrap tbody td{
+  padding:12px 14px!important;
+  font-size:13px!important;
+  line-height:1.35!important;
+}
+.training-participant-table tbody td strong,
+.training-manual-table-wrap tbody td strong{
+  font-size:13.5px!important;
+  font-weight:740!important;
+  color:var(--lo-color-text)!important;
+}
+.training-participant-table tbody td small,
+.training-manual-table-wrap tbody td small{
+  margin-top:3px!important;
+  font-size:10.5px!important;
+  line-height:1.25!important;
+  color:var(--lo-color-muted)!important;
+}
+.training-manual-form-row{
+  height:82px!important;
+  grid-template-columns:minmax(260px,1.3fr) minmax(220px,1fr) minmax(280px,1.15fr) 180px!important;
+  gap:12px!important;
+}
+.training-manual-add-cell{
+  height:46px!important;
+}
+@media(max-width:1100px){.training-participant-manual{grid-template-rows:58px auto minmax(0,1fr)!important}.training-manual-form-row{grid-template-columns:1fr 1fr!important;height:auto!important;min-height:150px!important}}
+.training-material-list{display:flex;flex-direction:column;gap:6px;margin:0 0 14px;padding:0;list-style:none}
+.training-material-list a{margin-left:auto;font-weight:700}
+.training-participants-registry .training-participants-table th,
+.training-participants-registry .training-participants-table td{
+  vertical-align:middle!important;
+}
+.training-participants-registry .training-participants-table th:first-child,
+.training-participants-registry .training-participants-table td:first-child{
+  width:46px!important;
+  padding-left:12px!important;
+  padding-right:6px!important;
+}
+.training-participants-registry .training-participants-table th:nth-child(2){width:40%!important}
+.training-participants-registry .training-participants-table th:nth-child(3){width:24%!important}
+.training-participants-registry .training-participants-table th:last-child{width:46px!important}
+.training-participants-registry .training-participants-table th.training-select-col{text-align:center!important}
+@media(max-width:980px){.training-participants-registry .training-participants-table th:nth-child(3),
+  .training-participants-registry .training-participants-table td:nth-child(3){display:none}}

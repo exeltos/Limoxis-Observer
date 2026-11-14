@@ -1,3 +1,4 @@
+import './trainingScreens.css'
 import {useMemo,useState} from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { Award, CheckCircle2, ClipboardCheck, Eye } from 'lucide-react'
