@@ -1,3 +1,8 @@
+/* color tokens: start */
+:root{
+  --border-warning-800:#f0d9a8;
+}
+/* color tokens: end */
 /* Satisfaction surveys: the questionnaire to answer (phone, tablet, paper entry),
    the results, the QR posters and the questionnaire editor. */
 
@@ -22,7 +27,7 @@
 .survey-scale>button:hover,.survey-choices>button:hover{border-color:var(--lo-color-primary)}
 .survey-scale>button.active,.survey-choices>button.active{border-color:var(--lo-color-primary);background:var(--lo-color-primary-soft);box-shadow:inset 0 0 0 1px var(--lo-color-primary);font-weight:650}
 .survey-scale>button:focus-visible,.survey-choices>button:focus-visible{outline:3px solid var(--lo-color-primary-soft);outline-offset:1px}
-.survey-mark{flex:0 0 auto;width:20px;height:20px;border:2px solid var(--lo-color-border-strong,#a9b7c4);border-radius:50%;background:var(--lo-color-surface);transition:border-color .12s,box-shadow .12s}
+.survey-mark{flex:0 0 auto;width:20px;height:20px;border:2px solid var(--lo-color-border-strong);border-radius:50%;background:var(--lo-color-surface);transition:border-color .12s,box-shadow .12s}
 .survey-choices.is-multiple .survey-mark{border-radius:6px}
 button.active>.survey-mark{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 4px var(--lo-color-surface);background:var(--lo-color-primary)}
 .survey-choices.is-multiple button.active>.survey-mark{box-shadow:none}
@@ -42,12 +47,12 @@ button.active>.survey-mark{border-color:var(--lo-color-primary);box-shadow:inset
 
 /* The public page of the link: the hospital on a coloured band, the sheet
    in the middle, one section at a time. */
-body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface-muted,#f3f6f9)}
+body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface-muted)}
 .survey-page{min-height:100vh;background:linear-gradient(var(--lo-color-primary) 0 168px,transparent 168px)}
 .survey-page-shell{display:grid;gap:14px;width:min(680px,100%);margin:0 auto;padding:18px 16px 40px}
-.survey-page-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;color:#fff}
+.survey-page-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;color:var(--text-inverse)}
 .survey-page-brand{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:.92}
-.survey-language{flex:0 0 auto;padding:7px 14px;border:1px solid rgba(255,255,255,.45);border-radius:999px;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:#fff;cursor:pointer}
+.survey-language{flex:0 0 auto;padding:7px 14px;border:1px solid rgba(255,255,255,.45);border-radius:999px;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:var(--text-inverse);cursor:pointer}
 .survey-language:hover{background:rgba(255,255,255,.12)}
 .survey-sheet{display:grid;gap:22px;padding:28px 28px 24px;border-radius:18px;background:var(--lo-color-surface);box-shadow:0 10px 30px rgba(15,34,51,.10),0 1px 3px rgba(15,34,51,.06)}
 .survey-sheet-head{display:grid;gap:8px}
@@ -58,7 +63,7 @@ body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface
 .survey-progress>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .survey-progress strong{font-size:17px;color:var(--lo-color-text)}
 .survey-progress small{flex:0 0 auto;font-size:12.5px;font-weight:600;color:var(--lo-color-muted)}
-.survey-progress>span{display:block;height:6px;border-radius:999px;background:var(--lo-color-surface-muted,#e8edf2);overflow:hidden}
+.survey-progress>span{display:block;height:6px;border-radius:999px;background:var(--lo-color-surface-muted);overflow:hidden}
 .survey-progress>span>i{display:block;height:100%;border-radius:inherit;background:var(--lo-color-primary);transition:width .25s}
 .survey-sheet-actions{display:flex;justify-content:space-between;gap:10px;padding-top:18px;border-top:1px solid var(--lo-color-border)}
 /* The app squeezes every button to 34px; on the public form they are for a finger. */
@@ -123,12 +128,12 @@ body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface
 
 /* Collection: the survey's QR code, then optional posters per department */
 .survey-collect{display:grid;gap:16px}
-.survey-collect-closed{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:1px solid var(--lo-color-warning-border,#f0d9a8);border-radius:12px;background:var(--lo-color-warning-soft,#fff8e8)}
+.survey-collect-closed{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:1px solid var(--lo-color-warning-border,var(--border-warning-800));border-radius:12px;background:var(--lo-color-warning-soft,var(--surface-warning-955))}
 .survey-collect-closed>div{display:grid;gap:3px}
 .survey-collect-closed strong{font-size:14px;color:var(--lo-color-text)}
 .survey-collect-closed span{font-size:12.5px;color:var(--lo-color-muted)}
 .survey-collect-main{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;padding:20px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
-.survey-collect-code{padding:10px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fff}
+.survey-collect-code{padding:10px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
 .survey-collect-code.is-off{opacity:.35}
 .survey-collect-how{display:grid;gap:12px;min-width:0}
 .survey-collect-how h3,.survey-collect-departments h3{margin:0;font-size:15px;color:var(--lo-color-text)}
@@ -145,7 +150,7 @@ body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface
 .survey-collect-departments>ul>li button{display:inline-flex;align-items:center;gap:4px}
 .survey-print-stage{position:fixed;left:-10000px;top:0;width:900px}
 .survey-posters{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.survey-poster{display:grid;justify-items:center;gap:14px;padding:28px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fff;text-align:center;break-inside:avoid;page-break-inside:avoid}
+.survey-poster{display:grid;justify-items:center;gap:14px;padding:28px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);text-align:center;break-inside:avoid;page-break-inside:avoid}
 .survey-poster>header{display:grid;gap:6px}
 .survey-poster>header span{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-primary)}
 .survey-poster>header strong{font-size:20px;color:var(--lo-color-text);line-height:1.3}
