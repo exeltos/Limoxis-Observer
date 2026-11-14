@@ -1,3 +1,4 @@
+import './controlsScreens.css'
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Building2, CalendarX2, ClipboardCheck, FileClock, ListChecks, LockKeyhole, PlayCircle, Pencil, FileText, RotateCcw, Trash2 } from 'lucide-react'
 import { useLocation,useNavigate,useParams,useSearchParams } from 'react-router-dom'

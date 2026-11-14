@@ -1,3 +1,4 @@
+import './controlsScreens.css'
 import { Fragment,useEffect,useMemo,useState } from 'react'
 import { Building2,ClipboardCheck,FileText,ListChecks,LockKeyhole,PauseCircle,Pencil,Plus,Trash2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'

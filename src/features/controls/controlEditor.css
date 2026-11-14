@@ -1,3 +1,9 @@
+/* color tokens: start */
+:root{
+  --border-warning-773:#f0d49a;
+  --surface-warning-951-2:#fff7e6;
+}
+/* color tokens: end */
 /* New / edit control (ControlEditor.jsx): cards in a grid that is two columns
    on a laptop and one on a portrait tablet; the record body scrolls. */
 .control-editor-body {
@@ -61,7 +67,7 @@
   box-sizing: border-box;
   min-height: 40px;
   padding: 0 11px;
-  border: 1px solid var(--lo-color-border-strong, #cad6df);
+  border: 1px solid var(--lo-color-border-strong);
   border-radius: 8px;
   background: var(--lo-color-surface);
   color: var(--lo-color-text);
@@ -162,7 +168,7 @@
 .control-editor-checklist-items > li > input {
   min-height: 40px;
   padding: 0 11px;
-  border: 1px solid var(--lo-color-border-strong, #cad6df);
+  border: 1px solid var(--lo-color-border-strong);
   border-radius: 8px;
   font: inherit;
   font-size: 13px;
@@ -198,12 +204,12 @@
   bottom: 0;
   z-index: 3;
   padding: 12px 0 8px;
-  background: var(--lo-color-surface, #fff);
+  background: var(--lo-color-surface);
 }
 /* A plain bar under a thin line, like the other forms: no shadow; the form scrolls under it. */
 .control-create-shell .control-editor-body > .control-editor-footer {
-  background: var(--lo-color-surface, #fff) !important;
-  border-top: 1px solid var(--lo-color-border, #dbe5ec);
+  background: var(--lo-color-surface) !important;
+  border-top: 1px solid var(--lo-color-border);
   box-shadow: none !important;
   margin: 0;
   padding: 14px 0 6px;
@@ -326,7 +332,7 @@
   gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--lo-color-border, #dbe5ec);
+  border-top: 1px solid var(--lo-color-border);
 }
 .control-department-schedule {
   display: grid;
@@ -349,7 +355,7 @@
   gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--lo-color-border, #dbe5ec);
+  border-top: 1px solid var(--lo-color-border);
 }
 .control-department-response {
   display: grid;
@@ -372,9 +378,9 @@
   gap: 2px;
   margin-top: 10px;
   padding: 9px 12px;
-  border: 1px solid var(--lo-color-warning-border, #f0d49a);
+  border: 1px solid var(--lo-color-warning-border, var(--border-warning-773));
   border-radius: 8px;
-  background: var(--lo-color-warning-soft, #fff7e6);
+  background: var(--lo-color-warning-soft, var(--surface-warning-951-2));
   font-size: 12.5px;
 }
 .control-editor-similar a {

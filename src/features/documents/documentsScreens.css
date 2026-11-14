@@ -1,0 +1,27 @@
+/* color tokens: start */
+:root{
+  --border-brand-845-2:#c8dce7;
+  --shadow-brand-486:#2284d6;
+  --surface-brand-965:#edf6ff;
+  --surface-brand-978:#f4f9ff;
+}
+/* color tokens: end */
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.timeline-line{border-left:2px solid var(--border-brand-845-2);display:flex;flex-direction:column;gap:4px}
+.timeline-line{padding:13px 14px!important;border-radius:10px}
+.record-table tr:last-child td{border-bottom:0}
+.document-distribution-composer{display:flex;flex-direction:column;gap:14px}
+.patient-surveillance-clean .record-table{
+  border-collapse:collapse!important;
+}
+.patient-surveillance-clean .record-table{width:100%!important;min-width:0!important;table-layout:fixed;margin:0!important}
+.patient-surveillance-clean .record-table td{vertical-align:middle!important;padding-top:10px!important;padding-bottom:10px!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.patient-surveillance-clean .record-table tbody tr.clickable-row:hover{background:var(--surface-brand-978)!important}
+.patient-surveillance-clean .record-table tbody tr.is-selected{background:var(--surface-brand-965)!important;box-shadow:inset 3px 0 0 var(--shadow-brand-486)!important}
+.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(1),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(1){width:14%!important}
+.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(2),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(2){width:14%!important}
+.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(3),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(3){width:23%!important}
+.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(4),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(4){width:19%!important}
+.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(5),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(5){width:13%!important}
+.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(6),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(6){width:17%!important}
+@media (max-width:860px){.patient-surveillance-clean .record-table th:nth-child(4),.patient-surveillance-clean .record-table td:nth-child(4){display:none!important}}

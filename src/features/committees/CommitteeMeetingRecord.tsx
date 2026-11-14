@@ -1,3 +1,4 @@
+import './committeesScreens.css'
 import { InactiveEmployeeBadge } from '../../design-system/InactiveEmployeeBadge'
 import { useState, type ReactNode } from 'react'
 import { CalendarDays, CheckSquare2, ClipboardList, NotebookPen, Plus, Send, Trash2, Users } from 'lucide-react'

@@ -1,3 +1,4 @@
+import './committeesScreens.css'
 import { useEffect, useState } from 'react'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { CheckboxField } from '../../design-system/CheckboxField'

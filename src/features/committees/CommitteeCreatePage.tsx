@@ -1,3 +1,4 @@
+import './committeesScreens.css'
 import { useState } from 'react'
 import { BookOpenCheck } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'

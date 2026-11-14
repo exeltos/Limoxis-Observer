@@ -1,3 +1,4 @@
+import './documentsScreens.css'
 import { useEffect, useMemo, useState } from 'react'
 import { BookOpenCheck, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'

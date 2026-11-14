@@ -1,3 +1,4 @@
+import './committeesScreens.css'
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Navigate,useSearchParams } from 'react-router-dom'
 import { CheckCircle2,ClipboardCheck,MapPin } from 'lucide-react'

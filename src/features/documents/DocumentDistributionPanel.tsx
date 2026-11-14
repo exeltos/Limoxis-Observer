@@ -1,3 +1,4 @@
+import './documentsScreens.css'
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Clock3, Send, Users } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'

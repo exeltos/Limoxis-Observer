@@ -1,3 +1,4 @@
+import './controlsScreens.css'
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { CheckCircle2, FileWarning, History, ListChecks, Plus, Save, Trash2 } from 'lucide-react'
