@@ -1,3 +1,4 @@
+import './analysisScreens.css'
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'

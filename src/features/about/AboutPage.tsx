@@ -1,3 +1,4 @@
+import './aboutScreens.css'
 import { Activity, Bell, BookOpenCheck, Database, HeartPulse, Layers3, ShieldCheck, Sparkles, Users, type LucideIcon } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { APP_VERSION, BUILD_ID } from '../../core/version'

@@ -1,3 +1,4 @@
+import './analysisScreens.css'
 // Presentational pieces of the Analysis page: filters, KPI strip, charts,
 // the microbiology line list and cluster alerts.
 import { ExportMenu } from '../../design-system/ExportMenu'

@@ -9,7 +9,8 @@ const page = readAnalysisPageSource()
 const service = readSource('src/features/platform/platformService.js')
 const demoSnapshot = readSource('src/features/analysis/analysisDemoSnapshot.js')
 const filterCss = readSource('src/styles/features.css')
-const tabsCss = readSource('src/styles/responsive.css')
+// Οι κανόνες της Ανάλυσης φορτώνονται με τη σελίδα της (analysisScreens.css).
+const tabsCss = readSource('src/styles/responsive.css') + readSource('src/features/analysis/analysisScreens.css')
 
 // `sample_type` is intentionally retained as a broad technical category for
 // indicator compatibility and clinical/environment/staff filtering. The user-

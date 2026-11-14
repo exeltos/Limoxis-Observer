@@ -1,12 +1,8 @@
 {
-  "src/features/analysis/AnalysisCharts.css": 43,
   "src/features/auth/activation.css": 10,
   "src/features/auth/authPages.css": 10,
   "src/features/auth/landing.css": 47,
   "src/features/calendar/calendar.css": 50,
-  "src/features/clinical-scales/clinicalScales.css": 62,
-  "src/features/dashboard/dashboard.css": 26,
-  "src/features/demo/demoEvaluation.css": 109,
   "src/features/division/division.css": 4,
   "src/features/employees/employeeImport.css": 24,
   "src/features/employees/employeePhoto.css": 6,
@@ -60,7 +56,7 @@
   "src/features/training/trainingAnnualPlan.css": 20,
   "src/features/training/trainingCompetence.css": 11,
   "src/features/training/trainingRecord.css": 1,
-  "src/styles/features.css": 742,
-  "src/styles/responsive.css": 64,
+  "src/styles/features.css": 725,
+  "src/styles/responsive.css": 60,
   "src/styles/workspaces.css": 56
 }

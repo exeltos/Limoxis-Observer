@@ -1,0 +1,17 @@
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.about-page{display:grid;gap:14px;overflow:auto;padding-bottom:20px}
+.about-version{display:flex;gap:7px;align-items:center;margin-top:18px;font-size:9px}
+.about-visual{display:grid;gap:7px}
+.about-product-window{padding:8px;border:1px solid var(--border-brand-884-4);border-radius:12px;background:var(--lo-color-surface);box-shadow:0 15px 35px rgba(47,76,98,.12)}
+.mini-top{height:18px;border-radius:6px 6px 2px 2px;background:var(--surface-neutral-949-3)}
+.mini-layout{display:grid;grid-template-columns:58px 1fr;gap:6px;margin-top:6px;height:145px}
+.mini-layout aside{border-radius:5px;background:var(--surface-brand-286)}
+.mini-layout main{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;align-content:start}
+.mini-layout main>section{grid-column:span 3;height:42px;border-radius:5px;background:var(--surface-neutral-969-2);border:1px solid var(--border-neutral-914)}
+.about-feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.about-feature-grid article{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--lo-color-surface)}
+.about-principles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.about-screens{padding:18px 20px;border:1px solid var(--line);border-radius:12px;background:var(--lo-color-surface)}
+.about-screen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}
+@media(max-width:900px){.about-feature-grid,.about-screen-grid{grid-template-columns:repeat(2,1fr)}.about-visual{display:none}}
+@media(max-width:620px){.about-feature-grid,.about-screen-grid,.about-principles{grid-template-columns:1fr}}

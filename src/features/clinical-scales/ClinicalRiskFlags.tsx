@@ -1,3 +1,4 @@
+import './clinicalScalesScreens.css'
 import {Activity,Brain,Footprints,HeartPulse,Baby,BedDouble,Stethoscope,type LucideIcon} from 'lucide-react'
 import type {ScaleAssessment} from './clinicalScaleTypes'
 // What the alerts read of an assessment.
