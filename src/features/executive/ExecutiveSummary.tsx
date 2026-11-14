@@ -1,7 +1,6 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
-import { measuresByArea, type DayRange, type ExecKpi } from './executiveModel'
+import { measuresByArea, type DayRange, type ExecKpi, type ExecSnapshot } from './executiveModel'
 import { assessmentOf, changeText, notStartedReason, sparkPoints, summaryHighlights, type Highlight } from './executiveInsights'
-import type { AnyRecord } from '../../types/featureTypes'
 const fmt = (value: number | null | undefined, unit: string | null | undefined, en: boolean) => (value == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)}${unit || ''}`)
 
 // This year (solid) and the comparison (dashed) by month, on one scale.
@@ -29,7 +28,7 @@ function Highlights({ title, items, tone }: { title: string, items: Highlight[],
 // «Σύνοψη» of the hospital overview (owner, 8/11/2026): what needs attention and what got better, then one table of every
 // measure by area (this period, the comparison, the change, the target, the months and the assessment) and, at the end,
 // the measures whose calculation has not started yet. The departments are compared in the «Τμήματα» tab.
-interface ExecutiveSummaryProps { kpis: ExecKpi[], snapshot: AnyRecord | null, previousSnapshot: AnyRecord | null | undefined, range: DayRange | null, compareLabel: string, against: string, currentLabel: string, onOpen: (item: ExecKpi) => (() => void) | null | undefined, language: string }
+interface ExecutiveSummaryProps { kpis: ExecKpi[], snapshot: ExecSnapshot | null, previousSnapshot: ExecSnapshot | null | undefined, range: DayRange | null, compareLabel: string, against: string, currentLabel: string, onOpen: (item: ExecKpi) => (() => void) | null | undefined, language: string }
 export function ExecutiveSummary({ kpis, snapshot, previousSnapshot, range, compareLabel, against, currentLabel, onOpen, language }: ExecutiveSummaryProps) {
   const en = language === 'en'
   const tx = (el: string, english: string) => (en ? english : el)

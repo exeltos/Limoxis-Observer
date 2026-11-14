@@ -11,7 +11,6 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { useResources } from '../quality/resources/ResourcesPanel'
 import { approvalLabel,approvalTone,certificationStateLabel,certificationStateTone,supplierCategoryLabel } from '../quality/resources/resourceModel'
 import { formatPercent } from '../quality/resources/supplierTemplates'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // /my-department/suppliers — the suppliers the Quality team assigned to the department, read only:
 // how each was last evaluated, when the next evaluation is due, and its certificates and when they expire.
@@ -28,7 +27,7 @@ export function DepartmentSuppliersPage(){
   <section className="surface registry-workspace workspace-column workspace-fill">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search supplier…':'Αναζήτηση προμηθευτή…'}/>
    {list.loading?<TableSkeleton/>:<div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{en?'Supplier':'Προμηθευτής'}</th><th>{en?'Last evaluation':'Τελευταία αξιολόγηση'}</th><th>{en?'Next evaluation':'Επόμενη αξιολόγηση'}</th><th>{en?'Certificates':'Πιστοποιητικά'}</th></tr></thead><tbody>
-    {rows.map(row=>{const certs=(row.certifications||[]).filter((item: AnyRecord)=>item.expiresOn).sort((a: AnyRecord,b: AnyRecord)=>String(a.expiresOn).localeCompare(String(b.expiresOn)))[0]
+    {rows.map(row=>{const certs=(row.certifications||[]).filter(item=>item.expiresOn).sort((a,b)=>String(a.expiresOn).localeCompare(String(b.expiresOn)))[0]
      return <tr key={row.id}>
       <td><strong>{row.name}</strong><small>{supplierCategoryLabel(row.category,language)}</small></td>
       <td>{row.latestEvaluation?<><StatusBadge tone={approvalTone(row.approval)}>{approvalLabel(row.approval,language)}{row.score!=null?` · ${formatPercent(row.score,language)}`:''}</StatusBadge><small>{formatDay(row.latestEvaluation.evaluatedOn,language)}{row.latestEvaluation.templateName?` · ${row.latestEvaluation.templateName}`:''}</small></>:<StatusBadge tone={approvalTone('unevaluated')}>{approvalLabel('unevaluated',language)}</StatusBadge>}</td>

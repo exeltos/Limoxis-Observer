@@ -19,7 +19,6 @@ import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { interviewsDemoState } from '../interviews/interviewsDemoData'
 import { OPEN_STATUSES as OPEN_CANDIDATE_STATUSES } from '../interviews/interviewsModel'
 import { hospitalDate } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { CommunicatedSample } from '../surveillance/surveillanceListTypes'
 
 // What the counts read of the Demo records of the other modules.
@@ -118,8 +117,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   // The administrator's home: suppliers, kitchen (last 30 days) and interviews.
   const monthAgo = hospitalDate(new Date(now.getTime() - 30 * 86400000))
   const food = collectDemoDomainMetrics({ from: monthAgo, to: today }, false, 0).qualityFood || {}
-  // The interviews' Demo candidates are open records until the interviews module has its types.
-  const candidates: AnyRecord[] = interviewsDemoState().candidates || []
+  const candidates = interviewsDemoState().candidates || []
   const nowIso = now.toISOString()
   Object.assign(metrics, {
     expiredCertificates: food.certificatesExpired ?? 0,
@@ -130,7 +128,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     kitchenUnverifiedDays: Math.max(0, (food.productionDays ?? 0) - (food.productionDaysVerified ?? 0)),
     openCandidates: candidates.filter(row => OPEN_CANDIDATE_STATUSES.includes(row.status)).length,
     newCandidates: candidates.filter(row => row.status === 'new').length,
-    upcomingInterviews: candidates.flatMap(row => row.interviews || []).filter(row => row.status === 'scheduled' && row.scheduledAt >= nowIso).length,
+    upcomingInterviews: candidates.flatMap(row => row.interviews || []).filter(row => row.status === 'scheduled' && (row.scheduledAt ?? '') >= nowIso).length,
   })
   metrics.pendingActions = pendingActionsOf(metrics)
   return { metrics, snapshot }

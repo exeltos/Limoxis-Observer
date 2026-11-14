@@ -1,8 +1,10 @@
 // «Εικόνα νοσοκομείου» · Σύνοψη (owner, 7/11/2026): what goes well, what gets worse and where to look.
 // Pure helpers over the Analysis snapshot ({domains, microbiology}): the same period a year before, the monthly
 // line of a measure, the sentences of «Τι άλλαξε» and the departments at a glance.
-import { pct, shiftMonths, type DayRange, type ExecKpi } from './executiveModel'
-import type { AnyRecord } from '../../types/featureTypes'
+import { pct, shiftMonths, type DayRange, type ExecKpi, type ExecSnapshot } from './executiveModel'
+
+// A period of patient days (patient_day_periods, management) as the rates read it.
+export type PatientDayPeriodLike = { departmentId?: string | null, scope?: string | null, from?: string | null, to?: string | null, value?: number | string | null }
 
 // A row of the Analysis snapshot: [name or month, figures…].
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the figures are numbers, strings or null, read as they come
@@ -19,9 +21,9 @@ const round1=(value: number|null)=>(value==null?null:Math.round(value*10)/10)
 
 // The monthly line of a measure, as values by calendar month (1–12), so this year and the last overlay.
 // null where the snapshot carries no monthly figures for that measure.
-export function monthlySeries(id: string,snapshot: AnyRecord|null={}): Map<number, number|null>|null{
+export function monthlySeries(id: string,snapshot: ExecSnapshot|null={}): Map<number, number|null>|null{
  const d=snapshot?.domains||{}
- const byMonth=(rows: Cells[]|null|undefined)=>{const out=new Map<number, Cells>();for(const row of rows||[]){const month=Number(String(row[0]||'').slice(5,7));if(month)out.set(month,row)}return out.size?out:null}
+ const byMonth=(rows: unknown)=>{const out=new Map<number, Cells>();for(const row of (rows||[]) as Cells[]){const month=Number(String(row[0]||'').slice(5,7));if(month)out.set(month,row)}return out.size?out:null}
  if(id==='handHygiene'){const rows=byMonth(d.handHygiene?.monthly);return rows&&new Map([...rows].map(([month,[,total,part]])=>[month,num(total)?round1(pct(part,total)):null]))}
  if(id==='hai'){const rows=byMonth(d.surveillance?.monthly);return rows&&new Map([...rows].map(([month,[,count]])=>[month,num(count)]))}
  if(id==='incidents'){const rows=byMonth(d.quality?.monthly);return rows&&new Map([...rows].map(([month,[,count]])=>[month,num(count)]))}
@@ -29,7 +31,7 @@ export function monthlySeries(id: string,snapshot: AnyRecord|null={}): Map<numbe
 }
 
 // The points of a sparkline: [{month, now, before}] over the months of the period (at most 12).
-export function sparkPoints(id: string,snapshot: AnyRecord|null,previousSnapshot: AnyRecord|null|undefined,range: DayRange|null|undefined){
+export function sparkPoints(id: string,snapshot: ExecSnapshot|null,previousSnapshot: ExecSnapshot|null|undefined,range: DayRange|null|undefined){
  const now=monthlySeries(id,snapshot),before=previousSnapshot?monthlySeries(id,previousSnapshot):null
  if(!now&&!before)return null
  const from=Number(String(range?.from||'').slice(5,7))||1,to=Number(String(range?.to||'').slice(5,7))||12
@@ -42,7 +44,7 @@ export function sparkPoints(id: string,snapshot: AnyRecord|null,previousSnapshot
 const fmt=(value: number|null|undefined,unit: string|null|undefined,en?: boolean)=>value==null?'—':`${new Intl.NumberFormat(en?'en-GB':'el-GR',{maximumFractionDigits:1}).format(value)}${unit||''}`
 
 // The department that pulls a measure down the most (lowest rate, or most cases).
-export function worstDepartment(id: string,snapshot: AnyRecord|null={}): {name: string,value: string}|null{
+export function worstDepartment(id: string,snapshot: ExecSnapshot|null={}): {name: string,value: string}|null{
  const d=snapshot?.domains||{}
  if(id==='handHygiene'){const rows=((d.handHygiene?.byDepartment||[]) as Cells[]).filter(([,total])=>Number(num(total))>=10).map(([name,total,part])=>[name,pct(part,total)]).sort((a,b)=>Number(a[1])-Number(b[1]));return rows[0]?{name:rows[0][0],value:`${fmt(rows[0][1],'%')}`}:null}
  if(id==='bundles'){const rows=((d.bundles?.byDepartment||[]) as Cells[]).filter(([,count,score])=>Number(num(count))>=3&&num(score)!=null).sort((a,b)=>a[2]-b[2]);return rows[0]?{name:rows[0][0],value:fmt(rows[0][2],'%')}:null}
@@ -53,20 +55,22 @@ export function worstDepartment(id: string,snapshot: AnyRecord|null={}): {name: 
 // «Χρειάζονται προσοχή» / «Βελτιώθηκαν» (owner, 8/11/2026): the measures that got worse or better against the
 // comparison, with both values, and the measures off target. A change counts only against a real figure of the
 // comparison: a count that was 0 there says nothing («19 από 0»). A rate counts in points, a count by its relative change.
-const realChange=(item: ExecKpi)=>item.value!=null&&item.delta&&item.delta.good!=null&&item.delta.previous!=null&&(item.unit==='%'||item.delta.previous!==0)
+// A measure with a real change against the comparison (its delta is there).
+type ChangedKpi = ExecKpi & { delta: NonNullable<ExecKpi['delta']> }
+const realChange=(item: ExecKpi): item is ChangedKpi=>item.value!=null&&item.delta&&item.delta.good!=null&&item.delta.previous!=null&&(item.unit==='%'||item.delta.previous!==0)||false
 export interface Highlight { id: string, good: boolean, up: boolean|null, tab?: string, text: string }
-export function summaryHighlights(kpis: ExecKpi[]=[],snapshot: AnyRecord|null={},{limit=5,en=false,against=''}: {limit?: number,en?: boolean,against?: string}={}): {attention: Highlight[],improved: Highlight[]}{
+export function summaryHighlights(kpis: ExecKpi[]=[],snapshot: ExecSnapshot|null={},{limit=5,en=false,against=''}: {limit?: number,en?: boolean,against?: string}={}): {attention: Highlight[],improved: Highlight[]}{
  const tx=(el: string,english: string)=>(en?english:el)
- const weight=(item: ExecKpi)=>item.unit==='%'?Math.abs(item.delta.diff):Math.min(100,Math.abs(item.delta.change??item.delta.diff*10))
- const versus=(item: ExecKpi)=>` (${against?`${against}: `:''}${fmt(item.delta.previous,item.unit,en)})`
- const line=(item: ExecKpi,good: boolean): Highlight=>{
+ const weight=(item: ChangedKpi)=>item.unit==='%'?Math.abs(item.delta.diff):Math.min(100,Math.abs(item.delta.change??item.delta.diff*10))
+ const versus=(item: ChangedKpi)=>` (${against?`${against}: `:''}${fmt(item.delta.previous,item.unit,en)})`
+ const line=(item: ChangedKpi,good: boolean): Highlight=>{
   const where=good?null:worstDepartment(item.id,snapshot)
   const whereText=where?tx(` — κυρίως ${where.name} (${where.value})`,` — mostly ${where.name} (${where.value})`):''
   return {id:item.id,good,up:item.delta.diff>0,tab:item.tab,text:`${tx(...item.label)}: ${fmt(item.value,item.unit,en)}${versus(item)}${whereText}`}
  }
  const changed=kpis.filter(realChange)
  const worse=changed.filter(item=>item.delta.good===false).sort((a,b)=>weight(b)-weight(a))
- const offTarget=kpis.filter(item=>item.value!=null&&item.status==='judged'&&item.tone==='danger'&&!worse.includes(item))
+ const offTarget=kpis.filter(item=>item.value!=null&&item.status==='judged'&&item.tone==='danger'&&!worse.includes(item as ChangedKpi))
   .map(item=>({id:item.id,good:false,up:null,tab:item.tab,text:tx(`${item.label[0]}: ${fmt(item.value,item.unit,en)} — εκτός στόχου (${item.target})`,`${item.label[1]}: ${fmt(item.value,item.unit,en)} — off target (${item.target})`)}))
  const better=changed.filter(item=>item.delta.good===true).sort((a,b)=>weight(b)-weight(a))
  return {attention:[...worse.map(item=>line(item,false)),...offTarget].slice(0,limit),improved:better.map(item=>line(item,true)).slice(0,limit)}
@@ -96,9 +100,9 @@ export function notStartedReason(item: ExecKpi,en=false){
 
 // «Σύγκριση τμημάτων»: per department, hand hygiene and bundles (%), HAI and incidents (counts) and the controls'
 // finding rate, with the value of the comparison. Only departments with at least one figure; the worst first.
-const sumCells=(cells: Cells[]|null|undefined)=>{const out=new Map<string, number>();for(const [name,,n] of cells||[])out.set(name,(out.get(name)||0)+(Number(n)||0));return out}
+const sumCells=(cells: unknown)=>{const out=new Map<string, number>();for(const [name,,n] of (cells||[]) as Cells[])out.set(name,(out.get(name)||0)+(Number(n)||0));return out}
 type Figures = Record<string, number|null>
-function departmentFigures(snapshot: AnyRecord|null|undefined={}){
+function departmentFigures(snapshot: ExecSnapshot|null|undefined={}){
  const d=snapshot?.domains||{},out=new Map<string, Figures>()
  const put=(name: string,key: string,value: number|null)=>{if(!name||name==='—'||value==null)return;if(!out.has(name))out.set(name,{});(out.get(name) as Figures)[key]=value}
  for(const [name,total,part] of (d.handHygiene?.byDepartment||[]) as Cells[])if(num(total))put(name,'handHygiene',round1(pct(part,total)))
@@ -122,7 +126,7 @@ export const GRID_COLUMNS: readonly GridColumn[]=Object.freeze([
 ])
 // tone: against the target where there is one (good / warning / danger), else a count of 0 is good and the most is danger.
 // only: the departments to compare; none given, every department with a clinical figure.
-export function departmentGrid(snapshot: AnyRecord|null|undefined,previousSnapshot: AnyRecord|null|undefined,targets: Record<string, unknown>={},only: string[]|null=[]): DepartmentGrid{
+export function departmentGrid(snapshot: ExecSnapshot|null|undefined,previousSnapshot: ExecSnapshot|null|undefined,targets: Record<string, unknown>={},only: string[]|null=[]): DepartmentGrid{
  // A department with only control findings (an office, the kitchen) is not compared: the wards are (owner, 8/11/2026).
  const keep=only?.length?new Set(only):null,clinical=(figures: Figures)=>Object.keys(figures).some(key=>key!=='controlFindings')
  const now=new Map([...departmentFigures(snapshot)].filter(([name,figures])=>keep?keep.has(name):clinical(figures))),before=previousSnapshot?departmentFigures(previousSnapshot):new Map<string, Figures>()
@@ -161,7 +165,7 @@ export function departmentProfile(grid: DepartmentGrid,name: string){
 // Patient days of the period (patient_day_periods): the hospital's own rows, or with `departmentId` that department's;
 // each period counts for the share of its days that falls in the range.
 const dayNumber=(value: unknown)=>Math.floor(Date.UTC(Number(String(value).slice(0,4)),Number(String(value).slice(5,7))-1,Number(String(value).slice(8,10)))/86400000)
-export function patientDaysIn(periods: AnyRecord[]|null=[],range: DayRange|null|undefined,departmentId: string|null=''){
+export function patientDaysIn(periods: PatientDayPeriodLike[]|null=[],range: DayRange|null|undefined,departmentId: string|null=''){
  if(!range?.from||!range?.to)return null
  const from=dayNumber(range.from),to=dayNumber(range.to)
  let total=0,any=false
@@ -176,7 +180,7 @@ export function patientDaysIn(periods: AnyRecord[]|null=[],range: DayRange|null|
  return any?Math.round(total):null
 }
 // The HAI of the departments counted apart from the hospital's total (Παιδιατρική…), left out of the hospital's rate.
-export function separateHai(snapshot: AnyRecord|null={},names: string[]=[]): number{
+export function separateHai(snapshot: ExecSnapshot|null={},names: string[]=[]): number{
  if(!names.length)return 0
  const wanted=new Set(names)
  return ((snapshot?.domains?.surveillance?.haiByDepartment||[]) as Cells[]).reduce((sum: number,[name,,n])=>sum+(wanted.has(name)?Number(n)||0:0),0)
