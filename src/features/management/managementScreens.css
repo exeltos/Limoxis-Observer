@@ -61,17 +61,6 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
   line-height:1.45!important;
 }
 .announcement-schedule-grid{align-items:end!important}
-:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) label:not(.observer-check):not(.check-option):not(.bundle-required-toggle):not(.who-action-option){
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  min-width:0;
-}
-:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input:not([type="checkbox"]):not([type="radio"]),select){
-  min-height:var(--lo-field-height);
-  padding:0 10px;
-}
-:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input,select,textarea)::placeholder{color:var(--text-neutral-651-2)}
 .entity-record-shell>.entity-record-body>.workspace-column.workspace-fill>.section-toolbar{
   flex:0 0 auto!important;
 }

@@ -1925,6 +1925,12 @@ select.announcement-control,.announcement-field select{
 }
 
 /* v0.26.91 — canonical form field contract */
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) label:not(.observer-check):not(.check-option):not(.bundle-required-toggle):not(.who-action-option){
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
 :where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) label>span:first-child{
   font-size:10.5px;
   line-height:1.25;
@@ -1943,6 +1949,10 @@ select.announcement-control,.announcement-field select{
   outline:0;
   transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
 }
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input:not([type="checkbox"]):not([type="radio"]),select){
+  min-height:var(--lo-field-height);
+  padding:0 10px;
+}
 :where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) textarea{
   min-height:72px;
   padding:9px 10px;
@@ -1953,6 +1963,7 @@ select.announcement-control,.announcement-field select{
   border-color:var(--lo-field-focus);
   box-shadow:0 0 0 3px var(--lo-field-focus-ring);
 }
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input,select,textarea)::placeholder{color:var(--text-neutral-651-2)}
 :where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input,select,textarea):disabled{
   background:var(--surface-neutral-967);
   color:var(--text-neutral-431-2);
