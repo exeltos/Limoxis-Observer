@@ -1,3 +1,4 @@
+import './indicatorsScreens.css'
 import { useEffect,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowDownRight,ArrowUpRight,Minus } from 'lucide-react'

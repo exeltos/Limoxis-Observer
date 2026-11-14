@@ -173,7 +173,7 @@
 /* ===== SOURCE: my-profile.css ===== */.my-profile-hero{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:20px}.my-profile-avatar,.my-profile-employee-icon,.my-profile-unlinked-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:44px;height:44px;border-radius:14px;background:var(--lo-color-surface-soft,#f6f8fb);color:var(--lo-color-primary)}.my-profile-avatar{font-size:13px;font-weight:800;letter-spacing:.04em}.my-profile-identity{min-width:0}.my-profile-identity>span{display:block;margin-bottom:4px;color:var(--lo-color-muted);font-size:10px;font-weight:800;letter-spacing:.08em}.my-profile-identity h2{margin:0;font-size:20px;line-height:1.25}.my-profile-identity p{margin:4px 0 0;color:var(--lo-color-text-muted);font-size:12px;overflow-wrap:anywhere}.my-profile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.my-profile-hero .my-profile-grid{grid-column:1/-1;width:100%;margin-top:8px}.my-profile-account-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.my-profile-value{min-width:0;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}.my-profile-value-label{display:flex;align-items:center;gap:7px;margin-bottom:6px;color:var(--lo-color-muted);font-size:10px;font-weight:800;letter-spacing:.025em;text-transform:uppercase}.my-profile-value strong{display:block;min-width:0;color:var(--lo-color-text);font-size:13px;line-height:1.4;overflow-wrap:anywhere}.my-profile-unlinked,.my-profile-tab-state{display:flex;align-items:flex-start;gap:14px;padding:16px;border:1px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface-soft,#f6f8fb)}.my-profile-unlinked-icon{width:40px;height:40px;font-size:11px;font-weight:800}@media(max-width:1050px){.my-profile-summary-grid,.my-profile-account-grid,.my-profile-employee-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.my-profile-hero{grid-template-columns:auto 1fr;padding:15px}.my-profile-hero>.status-badge{grid-column:2;justify-self:start}.my-profile-account-grid,.my-profile-summary-grid,.my-profile-employee-facts{grid-template-columns:1fr}}
 
 /* ===== SOURCE: control-editor-fullscreen.css ===== */
-.control-editor-page{max-width:none!important;width:100%!important}.control-create-shell{min-height:0}.control-time-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.control-time-field{width:170px;gap:4px!important}.control-time-field .field-label{font-size:9.5px!important;font-weight:700!important;color:#66778a!important}.control-time-field .time-field-control{position:relative;display:flex;align-items:center;height:36px;border:1px solid #d7dee7;border-radius:8px;background:#fff;overflow:hidden}.control-time-field .time-field-control input{width:100%;height:100%;padding:0 32px 0 9px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:11.5px!important;color:#33495f!important;appearance:none;-webkit-appearance:none}.control-time-field .time-field-control input::-webkit-calendar-picker-indicator{opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer}.control-time-field .time-field-control>svg{position:absolute;right:9px;pointer-events:none;color:#5d7891}.check-option{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;min-height:34px;padding:6px 9px;border:1px solid #e4e9ef;border-radius:8px;background:#fff;font-size:11px;color:#526376}.check-option input{width:auto!important;height:auto!important}.check-option.selected{background:#eef5fa;border-color:#c9ddea;color:#194a74}
+.control-editor-page{max-width:none!important;width:100%!important}.control-create-shell{min-height:0}.control-time-field{width:170px;gap:4px!important}.control-time-field .time-field-control{position:relative;display:flex;align-items:center;height:36px;border:1px solid #d7dee7;border-radius:8px;background:#fff;overflow:hidden}.control-time-field .time-field-control input{width:100%;height:100%;padding:0 32px 0 9px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:11.5px!important;color:#33495f!important;appearance:none;-webkit-appearance:none}.control-time-field .time-field-control>svg{position:absolute;right:9px;pointer-events:none;color:#5d7891}.check-option{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;min-height:34px;padding:6px 9px;border:1px solid #e4e9ef;border-radius:8px;background:#fff;font-size:11px;color:#526376}.check-option input{width:auto!important;height:auto!important}.check-option.selected{background:#eef5fa;border-color:#c9ddea;color:#194a74}
 
 /* WHO Hand Hygiene editor uses the application workspace instead of a centered modal.
    Sidebar and top header stay visible; only the main content area is replaced. */
@@ -964,11 +964,6 @@
 
 /* ===== SOURCE: control-record.css ===== */
 /* Controls: shared visual language with the rest of Limoxis Observer. */
-.controls-registry-page .controls-registry-workspace .controls-table th,
-.controls-registry-page .controls-registry-workspace .controls-table td{vertical-align:middle}
-.controls-registry-page .controls-table td:first-child strong{display:block;color:var(--lo-text-strong,#173650);font-weight:800}
-.controls-registry-page .controls-table td:first-child small{display:block;margin-top:3px;color:var(--lo-text-muted,#718696)}
-.controls-registry-page .control-status-stack{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 
 
 /* Execution history uses the same embedded-registry geometry as the rest of the app. */
@@ -985,13 +980,11 @@
 .control-execution-page-editor{display:grid;gap:18px;width:100%;max-width:none;margin:0;padding:20px 28px 28px;box-sizing:border-box}
 .control-execution-page-tools{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;width:100%;padding-top:2px}
 .control-execution-page-secondary-actions,.control-execution-page-primary-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.control-execution-page-editor .control-finding-banner{margin:0}
 
 @media(max-width:1000px){
  .control-execution-page-tools{align-items:stretch;flex-direction:column}
 }
 @media(max-width:680px){
- .control-execution-page-editor{padding:14px}
  .control-execution-page-secondary-actions,.control-execution-page-primary-actions{width:100%;flex-direction:column;align-items:stretch}
  .control-execution-page-secondary-actions button,.control-execution-page-primary-actions button{width:100%;justify-content:center}
 }
@@ -1000,46 +993,16 @@
 /* ===== SOURCE: committee-record.css ===== */
 /* Committee record-specific layout polish. Uses shared design-system tokens and actions. */
 
-.committee-overview-grid .committee-governance-watch{
-  align-self:start;
-  margin-top:0;
-}
-
 /* Committee creation: larger controls without wasting a full row per field. */
 .committee-create-grid{
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
   gap:14px 18px!important;
-}
-.committee-create-grid .committee-type-field{
-  grid-column:span 2!important;
-}
-.committee-create-grid .committee-name-field{
-  grid-column:span 2!important;
-}
-.committee-create-grid .committee-manual-textarea-row,
-.committee-create-grid .committee-notes-field{
-  grid-column:1 / -1!important;
-}
-.committee-create-grid .committee-manual-textarea-row{
-  display:flex!important;
-  gap:14px 18px!important;
-}
-.committee-create-grid .committee-manual-textarea-row>label{
-  flex:1 1 0!important;
-  min-width:0!important;
 }
 .committee-create-grid :is(input,select){
   min-height:44px!important;
 }
 .committee-create-grid textarea{
   min-height:76px!important;
-}
-.committee-create-grid .committee-notes-field textarea{
-  min-height:54px!important;
-}
-
-.committee-member-dialog-grid .committee-member-name-field{
-  grid-column:1 / -1;
 }
 
 .committee-member-dialog-grid .committee-member-name-field small{
@@ -1048,13 +1011,6 @@
   color:var(--lo-color-muted);
   font-size:11px;
   line-height:1.4;
-}
-
-.committee-member-options-row{
-  grid-column:1 / -1;
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
 }
 
 .committee-check-option{
@@ -1094,38 +1050,6 @@
   width:max-content;
   min-height:38px;
   margin:0 0 10px;
-}
-.committee-member-roles{
-  display:flex;
-  flex-wrap:wrap;
-  gap:4px;
-  margin-bottom:4px;
-}
-.committee-role-badge{
-  white-space:nowrap;
-}
-.committee-member-text{
-  min-width:180px;
-  max-width:340px;
-  white-space:pre-line;
-  font-size:12px;
-  line-height:1.45;
-}
-
-@media (max-width:980px){
-  .committee-create-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .committee-create-grid .committee-type-field,
-  .committee-create-grid .committee-name-field,
-  .committee-create-grid .committee-manual-textarea-row,
-  .committee-create-grid .committee-notes-field{grid-column:1 / -1!important}
-}
-
-@media (max-width:760px){
-  .committee-overview-grid .committee-governance-watch{margin-top:18px}
-  .committee-member-options-row{grid-template-columns:1fr}
-  .committee-create-grid{grid-template-columns:1fr!important}
-  .committee-create-grid>*{grid-column:1!important}
-  .committee-create-grid .committee-manual-textarea-row{flex-direction:column!important}
 }
 
 
@@ -2335,13 +2259,6 @@
 
 /* ===== SOURCE: control-fullwidth-alignment.css ===== */
 /* Controls: use the same full-width record/editor geometry as the rest of Limoxis Observer. */
-.control-create-shell>.entity-record-body,
-.control-record-shell>.entity-record-body{
-  width:100%!important;
-  max-width:none!important;
-  min-width:0!important;
-  box-sizing:border-box!important;
-}
 
 /* New/Edit control: two balanced columns instead of leaving an unused third column. */
 
@@ -2567,17 +2484,11 @@
   border:0!important;border-radius:8px!important;background:transparent!important;
   box-shadow:none!important;font-size:0!important;line-height:1!important;
 }
-.management-section .library-content .library-row-actions>.lo-icon-button-edit,
-.environmental-embedded .row-actions>.lo-icon-button-edit,
-.training-feedback-template-panel .record-actions>.lo-icon-button-edit{color:var(--lo-status-warning-fg)!important}
 .management-section .library-content .library-row-actions>.lo-icon-button-danger,
 .environmental-embedded .row-actions>.lo-icon-button-danger,
 .training-feedback-template-panel .record-actions>.lo-icon-button-danger{color:var(--lo-status-danger-fg)!important}
 .management-section .library-content .library-row-actions>.lo-icon-button-primary,
 .environmental-embedded .row-actions>.lo-icon-button-primary{color:var(--lo-color-primary)!important}
-.management-section .library-content .library-row-actions>.lo-icon-button-edit:hover:not(:disabled),
-.environmental-embedded .row-actions>.lo-icon-button-edit:hover:not(:disabled),
-.training-feedback-template-panel .record-actions>.lo-icon-button-edit:hover:not(:disabled){background:var(--lo-status-warning-bg)!important}
 .management-section .library-content .library-row-actions>.lo-icon-button-danger:hover:not(:disabled),
 .environmental-embedded .row-actions>.lo-icon-button-danger:hover:not(:disabled),
 .training-feedback-template-panel .record-actions>.lo-icon-button-danger:hover:not(:disabled){background:var(--lo-status-danger-bg)!important}
@@ -3318,9 +3229,6 @@ button{letter-spacing:0}
 .patient-surveillance-clean>.record-section>.record-section-header p{
   margin-top:2px!important;
 }
-.patient-surveillance-clean .record-table{
-  border-collapse:collapse!important;
-}
 .patient-surveillance-clean .record-table th{
   position:sticky!important;
   top:0!important;
@@ -3531,19 +3439,9 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 }
 .patient-surveillance-clean>.record-section>.record-section-header h3{margin:0!important;font-size:16px!important;font-weight:760!important;color:#173956!important}
 .patient-surveillance-clean>.record-section>.record-section-header p{margin:4px 0 0!important;max-width:980px!important;font-size:12.5px!important;line-height:1.42!important;color:#667f95!important}
-.patient-surveillance-clean .record-table{width:100%!important;min-width:0!important;table-layout:fixed!important;margin:0!important}
 .patient-surveillance-clean .record-table thead th{position:sticky!important;top:0!important;z-index:2!important;background:#f7fbff!important;color:#536f87!important;font-size:11.5px!important;text-transform:none!important;letter-spacing:0!important;border-bottom:1px solid #dfeaf4!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.patient-surveillance-clean .record-table td{vertical-align:middle!important;padding-top:10px!important;padding-bottom:10px!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .patient-surveillance-clean .record-table td small{display:block!important;margin-top:2px!important;color:#8296a8!important;font-size:10.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .patient-surveillance-clean .record-table tbody tr{transition:background .14s ease,box-shadow .14s ease!important}
-.patient-surveillance-clean .record-table tbody tr.clickable-row:hover{background:#f4f9ff!important}
-.patient-surveillance-clean .record-table tbody tr.is-selected{background:#edf6ff!important;box-shadow:inset 3px 0 0 #2284d6!important}
-.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(1),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(1){width:14%!important}
-.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(2),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(2){width:14%!important}
-.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(3),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(3){width:23%!important}
-.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(4),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(4){width:19%!important}
-.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(5),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(5){width:13%!important}
-.patient-surveillance-clean .surveillance-episodes-section .record-table th:nth-child(6),.patient-surveillance-clean .surveillance-episodes-section .record-table td:nth-child(6){width:17%!important}
 .patient-surveillance-clean .admission-samples-section::before,.patient-surveillance-clean .surveillance-episodes-section::before{display:block!important;height:3px!important;content:""!important}
 .patient-surveillance-clean .surveillance-episodes-section::before{background:#2c87d3!important}
 
@@ -3579,7 +3477,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
   .patient-surveillance-clean>.record-section>.record-section-header{align-items:flex-start!important;gap:10px!important}
   .episode-overlay.new-surveillance-flow-overlay{padding:8px!important}
   .episode-detail-card.new-surveillance-flow-card{width:calc(100vw - 16px)!important;height:calc(100vh - 16px)!important;max-height:calc(100vh - 16px)!important;border-radius:12px!important}
-  .patient-surveillance-clean .record-table th:nth-child(4),.patient-surveillance-clean .record-table td:nth-child(4){display:none!important}
   .new-surveillance-flow-card .flow-step-actions{flex-wrap:wrap!important}
 }
 
@@ -3678,9 +3575,6 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 .training-material-list li{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);font-size:12.5px;color:var(--lo-color-text)}
 .training-material-list span{padding:2px 8px;border-radius:999px;background:var(--lo-color-surface-subtle,#f2f5f8);color:var(--lo-color-text-muted);font-size:11px}
 .training-material-list a{margin-left:auto;font-weight:700}
-.committee-linked-documents{display:flex;flex-direction:column;gap:6px;margin:0 0 14px;padding:0;list-style:none}
-.committee-linked-documents a{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);font-size:12.5px;color:var(--lo-color-text);text-decoration:none}
-.committee-linked-documents a:hover{background:var(--lo-color-surface-subtle,#f5f8fa)}
 
 /* Clinical assessments tab: same header as the other record tabs (title + one-line notes). */
 
@@ -3688,7 +3582,6 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 .clinical-assessment-registry>.section-toolbar .entry-detail-note{display:block;margin:4px 0 0;font-size:11px;line-height:1.4;color:#64748b}
 
 /* Indicator record: the period result first (value, evidence, target, status). */
-.indicator-result{display:grid;gap:16px}
 /* In-place edit of the patient details: four columns like the read-only sheet,
    notes across the row, so the form fits without scrolling. */
 .patient-details-editor{padding:6px 2px 0}

@@ -1,3 +1,4 @@
+import './committeesScreens.css'
 import { inactiveEmployeeCodes } from '../../design-system/InactiveEmployeeBadge'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'

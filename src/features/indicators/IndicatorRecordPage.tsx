@@ -1,3 +1,4 @@
+import './indicatorsScreens.css'
 import { useEffect,useState } from 'react'
 import { BookOpen,Gauge,Pencil,Target,Trash2 } from 'lucide-react'
 import { useLocation,useNavigate,useParams } from 'react-router-dom'

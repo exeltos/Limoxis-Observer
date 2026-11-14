@@ -181,12 +181,10 @@
 .lo-icon-button:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 45%,transparent);outline-offset:2px}
 .lo-icon-button:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .lo-icon-button-primary{color:var(--lo-color-primary);background:transparent}
-.lo-icon-button-edit{color:var(--lo-status-warning-fg);background:transparent}
 .lo-icon-button-danger{color:var(--lo-status-danger-fg);background:transparent}
 .lo-icon-button-success{color:var(--lo-status-success-fg);background:transparent}
 .lo-icon-button-neutral{background:transparent}
 .lo-icon-button-primary:hover{background:var(--lo-status-info-bg)}
-.lo-icon-button-edit:hover{background:var(--lo-status-warning-bg)}
 .lo-icon-button-danger:hover{background:var(--lo-status-danger-bg)}
 .lo-icon-button-success:hover{background:var(--lo-status-success-bg)}
 .lo-icon-button-sm{width:30px;height:30px;border-radius:8px}
@@ -1066,10 +1064,6 @@
 .prevention-record-shell .who-choice-block:is(div,#lo-prevention-form){padding-top:8px!important}
 /* Aligned form rows: in every form grid, fields sit on one baseline and every
    control (text, select, date, time) is the same height, so the boxes line up. */
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):is(div,#lo-form-row){align-items:end}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.manual-date-native),select):is(input,select,#lo-form-row){height:40px;min-height:40px;box-sizing:border-box}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field,label,.field)>span:first-child:is(span,#lo-form-row){min-height:13px}
-:is(.entry-grid,.who-session-strip,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-control,.time-field-control):is(div,#lo-form-row){height:40px;min-height:40px;margin:0}
 /* Side panels start level with the form beside them. */
 .prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail,.who-insight-rail):is(aside,#lo-form-row){align-self:start!important;margin-top:0!important;padding-top:0!important;top:0!important}
 .prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail)>section:first-child:is(section,#lo-form-row){margin-top:0!important}
@@ -1079,9 +1073,7 @@
    hidden native picker out of the flow, so every box starts at the same line. */
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field):is(label,div,#lo-form-row){gap:0}
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field)>span:first-child:is(span,#lo-form-row){margin-bottom:6px}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) .manual-date-native:is(input,#lo-form-row){position:absolute;bottom:0;left:0}
 .manual-date-field{position:relative}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field):is(label,div,#lo-form-row){display:flex;flex-direction:column;grid-template-rows:none}
 /* ==== record view (RecordMetricStrip + RecordDetailsGrid sheet) ==== */
 .record-view-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
 .record-view-stack>section{display:flex;flex-direction:column;min-width:0}
@@ -1146,8 +1138,6 @@ td>.lo-meter{margin-top:5px}
 
 /* New control: one row of identity fields, the department chips scroll in a
    short box, so the page fits one screen. */
-.control-create-shell .control-time-grid .time-field>.lo-field-label:is(span,#lo-control-form){display:none!important}
-.control-create-shell :is(.control-policy-block,.control-guidance-block) textarea:is(textarea,#lo-control-form){min-height:64px!important;height:64px}
 /* A yes/no switch in a form row is as tall as the other controls. */
 /* Yes/no fields line up with the selects and inputs next to them. */
 /* A searchable or multi-value select inside a form row lines up with the inputs. */
@@ -1155,40 +1145,22 @@ td>.lo-meter{margin-top:5px}
 .entry-grid>.searchable-select>label .lo-field-label:is(span,#lo-form-row){display:block;margin-bottom:6px}
 .multi-select .multi-select-search>input:is(input,#lo-form-row){border:0!important;box-shadow:none!important;outline:0!important;min-height:34px;height:34px;background:transparent!important}
 /* Control record: the values on the card, then the departments table with all its rows; the whole tab scrolls, nothing is cut or framed. */
-.control-record-shell .control-record-view:is(div,#lo-record-sheet){flex:1;min-height:0;overflow:auto}
-.control-record-shell .control-record-departments:is(section,#lo-record-sheet){flex:none}
-.control-record-shell .control-record-departments>.scroll-table:is(div,#lo-record-sheet){flex:none;min-height:0;overflow:visible;border:0;border-radius:0;background:transparent}
-.control-record-shell>.entity-record-body:is(section,#lo-record-sheet){display:flex;flex-direction:column}
 /* Expiry entry: one item on one row; the status sits in a box as tall as the inputs. */
-.control-expiry-entry .control-expiry-single>.manual-date-field:is(div,#lo-control-form),.control-expiry-entry .control-expiry-single>label:is(label,#lo-control-form){margin:0!important}
-.control-execution-page-editor:has(.control-expiry-entry):is(div,#lo-control-form){gap:12px;padding-top:14px}
 /* Execution times wrap inside their column instead of running past the block. */
-.control-create-shell .control-time-grid>.time-field:is(div,label,#lo-control-form){min-width:0!important;width:auto!important}
-.control-create-shell .control-time-grid .time-field-control:is(div,#lo-control-form){min-width:0!important;width:100%!important}
-.control-create-shell .control-time-grid .time-field-control input:is(input,#lo-control-form){min-width:0!important;width:100%!important}
 /* Expiry entry page: the items table takes the free height and scrolls inside;
    details, notes, evidence and the actions stay on screen. */
-.control-execution-record-shell .control-execution-page-card:has(.control-expiry-entry):is(div,section,#lo-control-form){overflow:hidden!important;display:flex;flex-direction:column}
-.control-execution-page-editor:has(.control-expiry-entry):is(div,#lo-control-form#lo-control-form){display:flex!important;flex-direction:column;flex:1;min-height:0;height:100%}
-.control-execution-page-editor .control-expiry-entry:is(section,#lo-control-form){display:flex;flex-direction:column;flex:1;min-height:0}
 .control-execution-page-editor:has(.control-expiry-entry)>*:not(.control-execution-main-section){flex:none}
 /* Laptop screens (up to ~900px tall): the controls forms and entry pages tighten
    so the items table and the actions stay on screen without page scroll. */
 @media (max-height:900px){
- .control-execution-page-editor:has(.control-expiry-entry) .record-details-grid>.detail-item:is(div,#lo-record-sheet#lo-record-sheet){padding:6px 14px!important}
- .control-execution-page-editor:has(.control-expiry-entry) .record-details-grid>.detail-item>small{display:none}
- .control-execution-page-editor .control-expiry-entry .lo-section-header p:is(p,#lo-control-form){display:none}
  .control-execution-page-editor:has(.control-expiry-entry) .control-evidence-section:is(section,#lo-control-form){padding:8px 12px!important}
- .control-execution-page-editor:has(.control-expiry-entry) .control-evidence-heading small:is(small,p,#lo-control-form){display:none}
 }
 @media (max-width:1500px){
  .control-expiry-panel .record-tab-panel-header .lo-section-header-copy>p{display:none}
- .control-expiry-panel .record-tab-panel-header h3{white-space:nowrap}
 }
 /* A metric whose value is words (status · date): one smaller line, ellipsised, full text on hover. */
 .canonical-metric-card-text .canonical-metric-copy{min-width:0!important}
 .canonical-metric-card.canonical-metric-card-text .canonical-metric-copy>strong{font-size:13px!important;line-height:1.3!important;font-weight:700!important;letter-spacing:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;max-width:100%}
-.field-label-note{font-weight:500;color:var(--lo-color-muted);text-transform:none;letter-spacing:0}
 /* A record tab's save bar sits inside the card, its buttons at the right edge like the other forms. */
 .record-tab-panel>.inline-edit-footer{flex:0 0 auto;margin:0!important;padding:12px 16px 14px!important;border-top:1px solid var(--lo-color-border)!important;background:var(--lo-color-surface);position:sticky;bottom:0;z-index:2}
 /* Forms never save empty (design-system/FormValidation): «*» on a required
@@ -1209,8 +1181,6 @@ td>.lo-meter{margin-top:5px}
 /* A form grid with helper or error text under some fields: every field starts at
    the top of its row (not at its bottom), so a message under one field does not
    push its label and box above the others of the row. */
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint):is(div,#lo-form-row){align-items:start}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint)>:not(.lo-checkbox-field):is(div,label,#lo-form-row){align-self:start}
 :is(.field-with-message,.searchable-select,.lo-choice-chips)>:is(.field-error,.field-hint){display:block;margin-top:4px}
 /* A field with a message under it: the <label> holds the name and the control, the message follows it. */
 .field-with-message{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -1234,8 +1204,7 @@ td>.lo-meter{margin-top:5px}
 /* Automatic translation: a quiet tag beside an English text the system translated. */
 .auto-translated-mark{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border:1px dashed var(--lo-color-border);border-radius:999px;color:var(--lo-color-muted);font-size:11px;font-weight:600;line-height:18px;white-space:nowrap;vertical-align:middle}
 /* «Στόχος» column of the indicators list: the year's objective, the default target in grey, or the button to set one. */
-.indicator-registry td small{display:block}.indicator-target-default{color:var(--text-neutral-390);font-weight:700}.indicator-set-target{display:block;margin-top:2px;padding:0;border:0;background:none;color:var(--text-brand-386);font:inherit;font-size:12px;font-weight:600;cursor:pointer}.indicator-set-target:hover{text-decoration:underline}
-@media (hover:hover){.indicator-registry tr:not(:hover):not(:focus-within) .indicator-set-target{opacity:0}}
+.indicator-registry td small{display:block}
 
 .observer-dialog-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 /* Registry totals beside the search and filters (RegistryTotals). */

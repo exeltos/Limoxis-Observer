@@ -1,3 +1,4 @@
+import './indicatorsScreens.css'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
