@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, ClipboardCopy, FlaskConical, KeyRound, Link2, Mail, Users } from 'lucide-react'
 import { StepList } from '../../design-system/StepList'

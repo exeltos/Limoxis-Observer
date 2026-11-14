@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { readSessionValue, writeSessionValue } from '../../core/storage/browserStorage'
 import { useEffect,useMemo,useState,type ReactNode } from 'react'
 import { Plus,Settings,Trash2 } from 'lucide-react'

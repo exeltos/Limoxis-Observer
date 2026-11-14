@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useEffect,useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'

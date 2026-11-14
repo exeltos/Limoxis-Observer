@@ -67,7 +67,6 @@
 .platform-settings-page .field select:focus,
 .platform-settings-page .field textarea:focus{border-color:color-mix(in srgb,var(--lo-color-primary) 55%,var(--lo-color-border));box-shadow:0 0 0 3px color-mix(in srgb,var(--lo-color-primary) 10%,transparent)}
 .platform-settings-page .field-hint{font-size:9.75px;line-height:1.4;color:var(--lo-color-muted)}
-.platform-settings-page .platform-settings-duration-control{align-items:center;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);overflow:hidden;background:var(--lo-color-surface)}
 .platform-settings-page .platform-settings-duration-control span{padding:0 11px;border-left:1px solid var(--lo-color-border);color:var(--lo-color-muted);font-size:10.5px;font-weight:700;white-space:nowrap}
 .platform-settings-page .platform-settings-message-field{grid-column:1/-1}
 @media (max-width:900px){
@@ -2009,7 +2008,7 @@
 
 
 /* ===== FEATURE SOURCE: src/features/platform/platform-demo-record.css ===== */
-.platform-demo-record-form{padding:12px 14px 18px;overflow:auto}.platform-demo-record-form .platform-form-shell{max-width:none}.platform-demo-access-grid{display:grid;grid-template-columns:minmax(230px,1.25fr) minmax(300px,1.55fr) minmax(160px,.8fr) minmax(160px,.8fr);gap:11px 13px;align-items:start}.platform-demo-access-grid>.field,.platform-demo-access-grid>.manual-date-field{min-width:0}.platform-demo-access-grid .field>span{font-size:10px}.platform-demo-access-grid .field input{width:100%;min-height:38px;height:38px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);padding:0 10px;background:var(--lo-color-surface);font:inherit;font-size:11.5px;color:var(--lo-color-text)}@media(max-width:1180px){.platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.platform-demo-access-grid{grid-template-columns:1fr}}
+.platform-demo-record-form{padding:12px 14px 18px;overflow:auto}.platform-demo-access-grid>.field,.platform-demo-access-grid>.manual-date-field{min-width:0}.platform-demo-access-grid .field>span{font-size:10px}.platform-demo-access-grid .field input{width:100%;min-height:38px;height:38px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);padding:0 10px;background:var(--lo-color-surface);font:inherit;font-size:11.5px;color:var(--lo-color-text)}
 
 
 /* Clinical scales: only picker-specific styling lives here.
