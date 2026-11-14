@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { AlertTriangle, ChevronRight, Eye, Megaphone, Pause, Paperclip, Play, Plus, Save, Trash2, Wrench, X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'

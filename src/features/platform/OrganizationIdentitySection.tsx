@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useEffect,useRef,useState,type ChangeEvent } from 'react'
 import { Building2,GraduationCap,ImagePlus,Lock,Save,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'

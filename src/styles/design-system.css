@@ -286,9 +286,6 @@
   cursor:pointer;
 }
 .icon-button:hover,.section-report-actions button:hover{background:var(--lo-shell-control-hover)}
-.diagnostics-table-wrap{margin-top:12px}
-.diagnostics-table thead th{white-space:nowrap;vertical-align:middle}
-.diagnostics-table tbody td{vertical-align:middle}
 
 .platform-maintenance-banner{position:fixed;z-index:2000;left:50%;top:10px;transform:translateX(-50%);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;width:min(760px,calc(100vw - 32px));padding:10px 12px;border:1px solid var(--lo-status-warning-border);border-radius:var(--lo-radius-control);background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg);box-shadow:0 10px 28px color-mix(in srgb,var(--lo-color-text) 14%,transparent);font-size:11.5px;font-weight:650;line-height:1.45}
 .platform-maintenance-banner>svg{flex:0 0 auto}.platform-maintenance-banner button{width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}.platform-maintenance-banner button:hover{background:color-mix(in srgb,var(--lo-status-warning-fg) 10%,transparent)}
@@ -419,7 +416,6 @@
 .platform-form-section>header>div,.platform-form-section>header:not(:has(>div)){min-width:0}
 .platform-form-section>header strong{font-size:11.5px;color:var(--lo-color-text)}
 .platform-form-section>header span{display:block;margin-top:2px;font-size:9.75px;color:var(--lo-color-muted);line-height:1.4}
-.platform-form-section-actions{display:flex;gap:6px;align-items:center}
 .platform-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 11px;align-items:start}
 .platform-form-grid .field-wide{grid-column:span 2}.platform-form-grid .field{min-width:0}.platform-form-grid .field>span{font-size:9.75px}
 .platform-form-grid .field input,.platform-form-grid .field select,.platform-form-grid .field textarea{
@@ -432,8 +428,7 @@
 .platform-form-grid:has(>.manual-date-field){grid-template-columns:repeat(4,minmax(0,1fr))}
 .observer-dialog{max-height:min(86dvh,790px)}.observer-dialog .observer-dialog-body{min-height:0;overflow:auto}
 .platform-settings-page{max-width:1120px}
-.platform-settings-message-field{grid-column:auto}
-.platform-settings-duration-control{display:flex;align-items:center;gap:8px}.platform-settings-duration-control input{max-width:150px}.platform-settings-duration-control>span{font-size:10px;color:var(--lo-color-muted)}
+.platform-settings-message-field{grid-column:auto}.platform-settings-duration-control>span{font-size:10px;color:var(--lo-color-muted)}
 
 /* Demo progress styling without changing its behavior. */
 .platform-registry-card td>div[style*="width: 150px"],
@@ -462,8 +457,7 @@
 
 /* Registry screens are workspaces: tools stay fixed, only result areas scroll. */
 .page:has(.platform-registry-shell){overflow:hidden}
-.platform-registry-shell{height:100%;overflow:hidden}.platform-registry-shell>.platform-registry-card,.platform-registry-shell>.diagnostics-table-wrap{flex:1 1 auto;min-height:0}
-.platform-registry-shell>.diagnostics-table-wrap{overflow:auto}
+.platform-registry-shell{height:100%;overflow:hidden}
 .platform-settings-page{height:auto;overflow:auto;align-self:flex-start;width:100%}
 .platform-settings-page .platform-form-section{padding:14px 16px}.platform-settings-page .platform-governance{margin-top:2px}
 
@@ -550,7 +544,6 @@
 .platform-diagnostics-registry .filter-trigger:hover{background:var(--lo-shell-control-hover)}
 .platform-owner-record-shell .filter-trigger.active,
 .platform-diagnostics-registry .filter-trigger.active{border-color:color-mix(in srgb,var(--lo-color-primary) 30%,var(--lo-color-border));color:var(--lo-color-primary);background:color-mix(in srgb,var(--lo-color-primary) 5%,var(--lo-color-surface))}
-.platform-diagnostics-registry{overflow:hidden}
 .platform-diagnostics-registry>.filter-system{flex:0 0 auto}
 .platform-diagnostics-registry .filter-primary-row{flex-wrap:nowrap}
 .platform-diagnostics-registry .filter-search{min-width:120px}
@@ -651,7 +644,6 @@
   .platform-analysis-page svg{display:block!important;max-width:100%!important}
 }
 /* Demo duration: one bordered control with the unit inside, not a narrow input in a wide frame. */
-.platform-settings-page .platform-settings-duration-control{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;max-width:260px}
 .platform-settings-page .platform-settings-duration-control input{max-width:none!important;width:100%;border:0!important;border-radius:0!important;box-shadow:none!important;outline:0}
 .platform-settings-page .platform-settings-duration-control:focus-within{border-color:var(--border-brand-443)!important;box-shadow:0 0 0 3px rgba(37,130,189,.15)}
 

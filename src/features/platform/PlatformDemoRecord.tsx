@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useEffect,useState,type ReactNode } from 'react'
 import { Building2,DatabaseZap,FlaskConical,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle,Save,Trash2,X } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
