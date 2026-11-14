@@ -1,3 +1,4 @@
+import './trainingScreens.css'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Eye, FileText, PauseCircle, ShieldCheck, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'

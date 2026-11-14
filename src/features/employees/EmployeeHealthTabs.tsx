@@ -1,3 +1,4 @@
+import './employeesScreens.css'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'

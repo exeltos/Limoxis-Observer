@@ -33,12 +33,6 @@
   min-width:0!important;
   box-sizing:border-box!important;
 }
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):is(div,#lo-form-row){align-items:end}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.manual-date-native),select):is(input,select,#lo-form-row){height:40px;min-height:40px;box-sizing:border-box}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field,label,.field)>span:first-child:is(span,#lo-form-row){min-height:13px}
-:is(.entry-grid,.who-session-strip,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-control,.time-field-control):is(div,#lo-form-row){height:40px;min-height:40px;margin:0}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) .manual-date-native:is(input,#lo-form-row){position:absolute;bottom:0;left:0}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field):is(label,div,#lo-form-row){display:flex;flex-direction:column;grid-template-rows:none}
 .control-create-shell .control-time-grid .time-field>.lo-field-label:is(span,#lo-control-form){display:none!important}
 .control-create-shell :is(.control-policy-block,.control-guidance-block) textarea:is(textarea,#lo-control-form){min-height:64px!important;height:64px}
 .control-record-shell .control-record-view:is(div,#lo-record-sheet){flex:1;min-height:0;overflow:auto}
@@ -55,5 +49,3 @@
 .control-execution-page-editor .control-expiry-entry:is(section,#lo-control-form){display:flex;flex-direction:column;flex:1;min-height:0}
 @media (max-height:900px){.control-execution-page-editor:has(.control-expiry-entry) .record-details-grid>.detail-item:is(div,#lo-record-sheet#lo-record-sheet){padding:6px 14px!important}.control-execution-page-editor:has(.control-expiry-entry) .record-details-grid>.detail-item>small{display:none}.control-execution-page-editor .control-expiry-entry .lo-section-header p:is(p,#lo-control-form){display:none}.control-execution-page-editor:has(.control-expiry-entry) .control-evidence-heading small:is(small,p,#lo-control-form){display:none}}
 @media (max-width:1500px){.control-expiry-panel .record-tab-panel-header h3{white-space:nowrap}}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint):is(div,#lo-form-row){align-items:start}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint)>:not(.lo-checkbox-field):is(div,label,#lo-form-row){align-self:start}
