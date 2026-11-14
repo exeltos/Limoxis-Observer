@@ -1,3 +1,4 @@
+import './employeesScreens.css'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'

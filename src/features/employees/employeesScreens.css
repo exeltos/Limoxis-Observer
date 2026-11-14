@@ -1,0 +1,62 @@
+/* color tokens: start */
+:root{
+  --border-neutral-927:#e8edf1;
+  --border-neutral-931:#e9eef2;
+  --surface-subtle:#fbfcfd;
+  --text-brand-165:#17283d;
+  --text-brand-202:#173650;
+  --text-brand-316-2:#35536c;
+  --text-neutral-651:#98a7b4;
+}
+/* color tokens: end */
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.employee-full-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}
+@media(max-width:1050px){.employee-full-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+.committee-overview .committee-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:10px;background:var(--lo-color-surface);overflow:hidden;margin-bottom:10px}
+.committee-overview .committee-detail-grid .detail-field{min-width:0;padding:12px 14px;border-right:1px solid var(--border-neutral-927);background:var(--lo-color-surface)}
+@media(max-width:900px){.committee-overview .committee-detail-grid{grid-template-columns:1fr}.committee-overview .committee-detail-grid .detail-field{border-right:0;border-bottom:1px solid var(--border-neutral-927)}}
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(3n),
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(3n){border-right:0!important}
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid) :is(.detail-item,.detail-field)>strong{
+  display:block!important;
+  margin:0!important;
+  color:var(--text-brand-202)!important;
+  font-size:13px!important;
+  font-weight:700!important;
+  line-height:1.4!important;
+  overflow-wrap:anywhere!important;
+}
+.employee-details-overview .employee-full-grid{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  margin:0!important;
+}
+html:not(#lo-employee-details) body .employee-details-overview>.record-section-header{margin-bottom:0!important}
+html:not(#lo-employee-details) body .employee-details-overview>.employee-full-grid{margin-top:0!important}
+.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:has(strong:empty) strong::after{content:'—';color:var(--text-neutral-651);font-weight:600}
+@media(max-width:1100px){.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(3n),
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(3n){border-right:1px solid var(--border-neutral-931)!important}.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(2n),
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(2n){border-right:0!important}.employee-details-overview>.source-truth-note{grid-template-columns:34px minmax(0,1fr)!important}}
+.my-profile-hero{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:20px}
+.my-profile-avatar{font-size:13px;font-weight:800;letter-spacing:.04em}
+.my-profile-identity{min-width:0}
+.my-profile-hero .my-profile-grid{grid-column:1/-1;width:100%;margin-top:8px}
+.my-profile-value{min-width:0;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.my-profile-value-label{display:flex;align-items:center;gap:7px;margin-bottom:6px;color:var(--lo-color-muted);font-size:10px;font-weight:800;letter-spacing:.025em;text-transform:uppercase}
+.my-profile-unlinked-icon{width:40px;height:40px;font-size:11px;font-weight:800}
+@media(max-width:700px){.my-profile-hero{grid-template-columns:auto 1fr;padding:15px}}
+.entity-record-shell .record-secondary-registry > .scroll-table > .data-table tbody tr:last-child td{border-bottom:0!important}
+.entity-record-shell .record-secondary-registry > .scroll-table > .data-table tbody tr:hover td{background:var(--surface-subtle)!important}
+.entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(1),
+.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(1){width:32%!important}
+.employee-record-shell .employee-registry-empty strong{color:var(--text-brand-316-2)!important;font-size:13px!important;font-weight:650!important}
+.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field){
+  min-height:54px!important;
+  padding:9px 16px!important;
+}
+.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field):nth-child(3n){border-right:1px solid var(--border-neutral-931)!important}
+.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field):nth-child(4n){border-right:0!important}
+@media (max-width:1100px){.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field):nth-child(n){border-right:1px solid var(--border-neutral-931)!important}.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field):nth-child(2n){border-right:0!important}}
+.employees-registry-page .employee-registry-name{display:block;font-weight:700;color:var(--text-strong,var(--text-brand-165));line-height:1.25}
+.employee-create-form .employee-create-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start}
+@media(max-width:900px){.employee-create-form .employee-create-grid{grid-template-columns:1fr!important}}

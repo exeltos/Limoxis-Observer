@@ -184,7 +184,6 @@
 .lo-icon-button-edit{color:var(--lo-status-warning-fg);background:transparent}
 .lo-icon-button-danger{color:var(--lo-status-danger-fg);background:transparent}
 .lo-icon-button-success{color:var(--lo-status-success-fg);background:transparent}
-.lo-icon-button-neutral{background:transparent}
 .lo-icon-button-primary:hover{background:var(--lo-status-info-bg)}
 .lo-icon-button-edit:hover{background:var(--lo-status-warning-bg)}
 .lo-icon-button-danger:hover{background:var(--lo-status-danger-bg)}

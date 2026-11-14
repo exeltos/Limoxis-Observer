@@ -153,9 +153,7 @@
 
 /* v0.9.4 compact employee operational record */
 .employee-record-shell{min-height:0;height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:10px;overflow:hidden}
-.record-section{max-width:1180px}.record-section-header h3{font-size:18px!important;margin-top:3px!important}
-.employee-full-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}.detail-item{min-height:68px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd}.detail-item span{font-size:10px!important}.detail-item strong{margin-top:4px;display:block}.timeline-line{padding:13px 14px!important;border-radius:10px}
-@media(max-width:1050px){.employee-full-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}.page:has(.employee-record-shell)>.page-header{padding-bottom:10px!important}.page:has(.employee-record-shell)>.page-header h1{font-size:18px!important}
+.record-section{max-width:1180px}.record-section-header h3{font-size:18px!important;margin-top:3px!important}.detail-item{min-height:68px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd}.detail-item span{font-size:10px!important}.detail-item strong{margin-top:4px;display:block}.timeline-line{padding:13px 14px!important;border-radius:10px}.page:has(.employee-record-shell)>.page-header{padding-bottom:10px!important}.page:has(.employee-record-shell)>.page-header h1{font-size:18px!important}
 
 /* v0.9.5 employee inline editing, tabular records and attachment preview */
 .employee-inline-edit .detail-item.editable{background:#fff;border-color:#b9d3e7;box-shadow:0 0 0 2px rgba(31,107,155,.05)}
@@ -1176,17 +1174,12 @@
 /* v0.25.10 — Committee record layout polish: readable identity fields + safe header actions */
 .record-section-header>div:first-child{min-width:0;flex:1 1 auto}
 .record-section-header>div:first-child p{max-width:860px;overflow-wrap:anywhere}
-
-.committee-overview .committee-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;margin-bottom:10px}
-.committee-overview .committee-detail-grid .detail-field{min-width:0;padding:12px 14px;border-right:1px solid #e8edf1;background:#fff}
 .committee-overview .committee-detail-grid .detail-field:last-child{border-right:0}
 .committee-overview .committee-detail-grid .detail-field span{display:block;margin:0 0 5px;color:#738493;font-size:9px;font-weight:750;line-height:1.25}
 .committee-overview .committee-detail-grid .detail-field strong{display:block;color:#243f53;font-size:12px;font-weight:750;line-height:1.45;overflow-wrap:anywhere}
 
 @media(max-width:900px){
  .record-section-header{align-items:flex-start!important;flex-wrap:wrap}
- .committee-overview .committee-detail-grid{grid-template-columns:1fr}
- .committee-overview .committee-detail-grid .detail-field{border-right:0;border-bottom:1px solid #e8edf1}
  .committee-overview .committee-detail-grid .detail-field:last-child{border-bottom:0}
 }
 
@@ -1292,7 +1285,7 @@
 }
 
 /* Shared mobile self-service flow surface (QR, acknowledgements, lightweight external forms). */
-body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-flow-page{min-height:100vh;padding:28px 16px;display:grid;place-items:start center}.public-flow-shell{width:min(720px,100%);margin:auto}.public-flow-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:14px}.public-flow-card h1{font-size:22px;margin:0;color:#16273a}.public-flow-card>p{margin:0;color:var(--muted);line-height:1.6}.public-flow-wide{gap:18px}.public-flow-section{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:12px}.public-flow-section h2{display:flex;align-items:center;gap:8px;font-size:15px;margin:0;color:#2d4358}.public-flow-section>p{margin:0;color:var(--muted);font-size:12px}.public-flow-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf0f4;font-size:12px}.public-flow-row span{color:var(--muted)}.public-flow-question{border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:9px}.public-flow-question legend{padding:0 6px;font-size:12.5px;font-weight:750;color:#34495e}.public-flow-status{text-align:center;align-items:center;padding:38px 24px}.public-flow-status svg{color:var(--accent)}@media(max-width:640px){.public-flow-page{padding:16px 10px}.public-flow-card{padding:16px}.public-flow-card h1{font-size:19px}.public-flow-row{align-items:flex-start;flex-direction:column;gap:3px}}
+body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-flow-page{min-height:100vh;padding:28px 16px;display:grid;place-items:start center}.public-flow-shell{width:min(720px,100%);margin:auto}.public-flow-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:14px}.public-flow-card h1{font-size:22px;margin:0;color:#16273a}.public-flow-card>p{margin:0;color:var(--muted);line-height:1.6}.public-flow-wide{gap:18px}.public-flow-section{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:12px}.public-flow-section h2{display:flex;align-items:center;gap:8px;font-size:15px;margin:0;color:#2d4358}.public-flow-section>p{margin:0;color:var(--muted);font-size:12px}.public-flow-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf0f4;font-size:12px}.public-flow-row span{color:var(--muted)}.public-flow-question legend{padding:0 6px;font-size:12.5px;font-weight:750;color:#34495e}.public-flow-status{text-align:center;align-items:center;padding:38px 24px}.public-flow-status svg{color:var(--accent)}@media(max-width:640px){.public-flow-page{padding:16px 10px}.public-flow-card{padding:16px}.public-flow-card h1{font-size:19px}.public-flow-row{align-items:flex-start;flex-direction:column;gap:3px}}
 
 
 /* v0.26.4 canonical record workspace controls — shared, not feature-specific */
@@ -3671,11 +3664,6 @@ button:disabled,
   height:100%!important;
   overflow:hidden!important;
 }
-:is(.platform-diagnostics-view,.training-participants-view,.training-assessment-view){
-  display:flex!important;
-  flex-direction:column!important;
-  gap:10px!important;
-}
 :is(.platform-diagnostics-view,.training-participants-view,.training-assessment-view)>.registry-workspace{
   flex:1 1 0!important;
   min-height:0!important;
@@ -3716,7 +3704,6 @@ button:disabled,
 /* Platform Owner users: same visual order as a canonical registry without a private stylesheet. */
 
 /* Assessment actions stay in one row at the end of each table row. */
-.training-assessment-registry .open-record-cell{white-space:nowrap!important}
 .training-assessment-registry .open-record-cell .record-actions{
   display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:4px!important;flex-wrap:nowrap!important
 }
@@ -4074,8 +4061,6 @@ button:disabled,
   background:#fff!important;
   box-shadow:none!important;
 }
-.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(3n),
-.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(3n){border-right:0!important}
 .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid) :is(.detail-item,.detail-field)>span{
   display:block!important;
   margin:0 0 5px!important;
@@ -4085,15 +4070,6 @@ button:disabled,
   line-height:1.25!important;
   text-transform:none!important;
   letter-spacing:.01em!important;
-}
-.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid) :is(.detail-item,.detail-field)>strong{
-  display:block!important;
-  margin:0!important;
-  color:#173650!important;
-  font-size:13px!important;
-  font-weight:700!important;
-  line-height:1.4!important;
-  overflow-wrap:anywhere!important;
 }
 
 .canonical-detail-screen.record-general-tab-active :is(.quality-description,.record-description,.clinical-record-description){
@@ -4222,14 +4198,7 @@ button:disabled,
 /* --------------------------------------------------------------------------
    Employee locked details
    -------------------------------------------------------------------------- */
-.employee-details-overview .employee-full-grid{
-  display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  margin:0!important;
-}
 /* the section already spaces its blocks (gap), so the header adds no margin of its own */
-html:not(#lo-employee-details) body .employee-details-overview>.record-section-header{margin-bottom:0!important}
-html:not(#lo-employee-details) body .employee-details-overview>.employee-full-grid{margin-top:0!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit){
   grid-template-rows:none!important;
   column-gap:0!important;
@@ -4253,7 +4222,6 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:not(:nth-child(3n+1)){border-left:1px solid #e8edf2!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item span{display:block!important;margin:0 0 5px!important;color:#7c8d9d!important;font-size:9.5px!important;font-weight:800!important;line-height:1.25!important;letter-spacing:.01em!important;text-transform:none!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item strong{display:block!important;margin:0!important;color:#173650!important;font-size:13.5px!important;font-weight:700!important;line-height:1.35!important;overflow-wrap:anywhere!important}
-.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:has(strong:empty) strong::after{content:'—';color:#98a7b4;font-weight:600}
 
 .employee-details-overview>.source-truth-note{
   display:grid!important;
@@ -4277,16 +4245,11 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
 @media(max-width:1100px){
   .canonical-detail-screen :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip){grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(3n),
-  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(3n){border-right:1px solid #e9eef2!important}
-  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(2n),
-  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(2n){border-right:0!important}
   .canonical-detail-screen :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important}
   /* tablets: two fields per row, so the sheet uses the whole width */
   .employee-details-overview .employee-full-grid:not(.employee-inline-edit){grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:none!important}
   .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item{grid-column:auto!important;grid-row:auto!important;border-left:0!important;border-bottom:1px solid #edf1f4!important}
   .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(2n){border-left:1px solid #e8edf2!important}
-  .employee-details-overview>.source-truth-note{grid-template-columns:34px minmax(0,1fr)!important}
   .employee-details-overview>.source-truth-note>.button{grid-column:2!important;justify-self:start!important;margin-top:6px!important}
 }
 @media(max-width:640px){

@@ -1,3 +1,4 @@
+import './trainingScreens.css'
 import { useEffect,useMemo,useState } from 'react'
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'

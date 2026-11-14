@@ -1,3 +1,4 @@
+import './employeesScreens.css'
 import { useState } from 'react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { SearchableSelect } from '../../design-system/SearchableSelect'

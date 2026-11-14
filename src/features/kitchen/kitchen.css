@@ -1,34 +1,49 @@
+/* color tokens: start */
+:root{
+  --border-brand-914:#e2e8f0;
+  --border-danger-851-3:#f3c4bf;
+  --border-warning-767:#fde68a;
+  --surface-neutral-961:#f1f5f9;
+  --surface-neutral-982-2:#fff7f6;
+  --surface-warning-961:#fffbeb;
+  --text-brand-112:#0f172a;
+  --text-danger:#b42318;
+  --text-neutral-345:#475569;
+  --text-subtle:#64748b;
+  --text-warning-314:#92400e;
+}
+/* color tokens: end */
 /* Κουζίνα (HACCP): only what the shared Observer primitives do not cover. */
-.kitchen-live-check{display:flex;align-items:center;gap:8px;min-height:40px;font-size:13px;color:var(--color-text-secondary,#475569)}
+.kitchen-live-check{display:flex;align-items:center;gap:8px;min-height:40px;font-size:13px;color:var(--color-text-secondary,var(--text-neutral-345))}
 .kitchen-live-slot{display:flex;align-items:flex-end;min-height:62px}
 .kitchen-span-2{grid-column:span 2}
 .kitchen-span-3{grid-column:1/-1}
-.kitchen-muted{color:var(--color-text-secondary,#64748b);font-size:13px}
+.kitchen-muted{color:var(--color-text-secondary,var(--text-subtle));font-size:13px}
 .kitchen-dialog-result{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
-.kitchen-dialog-result small{color:var(--color-danger,#b42318);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kitchen-dialog-result small{color:var(--color-danger,var(--text-danger));font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kitchen-item-list{display:flex;flex-direction:column;gap:10px;margin:4px 0 12px}
-.kitchen-item-row{border:1px solid var(--color-border,#e2e8f0);border-radius:10px;padding:10px 12px}
-.kitchen-item-row.is-rejected{border-color:var(--color-danger-border,#f3c4bf);background:var(--color-danger-surface,#fff7f6)}
+.kitchen-item-row{border:1px solid var(--color-border,var(--border-brand-914));border-radius:10px;padding:10px 12px}
+.kitchen-item-row.is-rejected{border-color:var(--color-danger-border,var(--border-danger-851-3));background:var(--color-danger-surface,var(--surface-neutral-982-2))}
 .kitchen-item-accept{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
 .kitchen-batch-note{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
 .kitchen-notes{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}
 .kitchen-signoff{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
-.kitchen-signoff small{font-size:12px;color:var(--color-text-secondary,#64748b)}
-.kitchen-measure.is-out{color:var(--color-danger,#b42318);font-weight:600}
-.kitchen-unparsed{font-style:italic;color:var(--color-warning-text,#92400e)}
+.kitchen-signoff small{font-size:12px;color:var(--color-text-secondary,var(--text-subtle))}
+.kitchen-measure.is-out{color:var(--color-danger,var(--text-danger));font-weight:600}
+.kitchen-unparsed{font-style:italic;color:var(--color-warning-text,var(--text-warning-314))}
 .kitchen-action-text{display:block;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kitchen-text-cell{max-width:360px}
 .kitchen-menu-text{margin:0;white-space:pre-wrap;font:inherit;font-size:13px;line-height:1.5}
 .kitchen-menu-text.is-compact{max-height:6.2em;overflow:hidden}
 .kitchen-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:14px;overflow:auto}
 .kitchen-haccp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:14px;overflow:auto}
-.kitchen-card{border:1px solid var(--color-border,#e2e8f0);border-radius:12px;padding:12px 14px;min-width:0;background:var(--color-surface,#fff)}
+.kitchen-card{border:1px solid var(--color-border,var(--border-brand-914));border-radius:12px;padding:12px 14px;min-width:0;background:var(--color-surface,var(--lo-color-surface))}
 .kitchen-card-wide{grid-column:1/-1}
 .kitchen-card .kitchen-menu-text{margin:4px 0 10px}
 .kitchen-pad{padding:12px 16px}
 .kitchen-day-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.kitchen-day-menu>div{border:1px solid var(--color-border,#e2e8f0);border-radius:10px;padding:10px 12px}
-.kitchen-group-row td{background:var(--color-surface-muted,#f1f5f9)}
+.kitchen-day-menu>div{border:1px solid var(--color-border,var(--border-brand-914));border-radius:10px;padding:10px 12px}
+.kitchen-group-row td{background:var(--color-surface-muted,var(--surface-neutral-961))}
 .kitchen-group-row td small{margin-left:8px;display:inline}
 @media (max-width:1100px){.kitchen-overview,.kitchen-haccp,.kitchen-day-menu{grid-template-columns:1fr}}
 .registry-workspace :is(.kitchen-overview,.kitchen-haccp) .data-table.kitchen-table{min-width:0!important}
@@ -36,25 +51,25 @@
 .kitchen-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
 .kitchen-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
 .kitchen-record-shell .record-tab-panel-body{flex:1 1 auto}
-.kitchen-recall-clock{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--color-border,#e2e8f0);border-radius:10px;background:var(--color-surface-muted,#f1f5f9)}
+.kitchen-recall-clock{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--color-border,var(--border-brand-914));border-radius:10px;background:var(--color-surface-muted,var(--surface-neutral-961))}
 .kitchen-recall-clock strong{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.kitchen-recall-clock span{color:var(--color-text-secondary,#475569);font-size:13px;margin-right:auto}
-.kitchen-recall-clock.is-over strong{color:var(--color-danger,#b42318)}
-.kitchen-recall-warning{display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px 12px;border-radius:10px;font-size:13px;color:var(--color-warning-text,#92400e);background:var(--color-warning-surface,#fffbeb);border:1px solid var(--color-warning-border,#fde68a)}
+.kitchen-recall-clock span{color:var(--color-text-secondary,var(--text-neutral-345));font-size:13px;margin-right:auto}
+.kitchen-recall-clock.is-over strong{color:var(--color-danger,var(--text-danger))}
+.kitchen-recall-warning{display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px 12px;border-radius:10px;font-size:13px;color:var(--color-warning-text,var(--text-warning-314));background:var(--color-warning-surface,var(--surface-warning-961));border:1px solid var(--color-warning-border,var(--border-warning-767))}
 .kitchen-recall-count{width:96px}
-.kitchen-recall-real{margin-top:14px;padding:10px 12px;border:1px dashed var(--color-danger-border,#f3c4bf);border-radius:10px;background:var(--color-danger-surface,#fff7f6)}
+.kitchen-recall-real{margin-top:14px;padding:10px 12px;border:1px dashed var(--color-danger-border,var(--border-danger-851-3));border-radius:10px;background:var(--color-danger-surface,var(--surface-neutral-982-2))}
 /* In the kitchen workspace the overview and HACCP sections are not cards of their own: one frame (the
    workspace), the tables flush inside it, as in every other list of the app. */
 .kitchen-workspace .kitchen-card{border:0;border-radius:0;padding:0;background:transparent}
 .kitchen-workspace :is(.kitchen-overview,.kitchen-haccp){gap:22px 28px;padding:16px 18px}
 .kitchen-workspace .kitchen-card .scroll-table{border-width:1px 0!important;border-radius:0!important}
 /* Today: one line of what needs action, then today's day beside the out-of-limits and verification lists, without scrolling. */
-.kitchen-attention{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;font-size:13px;color:var(--color-text-secondary,#475569)}
+.kitchen-attention{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;font-size:13px;color:var(--color-text-secondary,var(--text-neutral-345))}
 .kitchen-attention>*{display:inline-flex;align-items:baseline;gap:6px;margin:0;padding:0;border:0;background:none;font:inherit;color:inherit}
 .kitchen-attention button{cursor:pointer}
-.kitchen-attention button:hover{color:var(--color-text,#0f172a);text-decoration:underline}
-.kitchen-attention strong{font-size:20px;font-variant-numeric:tabular-nums;color:var(--color-text,#0f172a)}
-.kitchen-attention .is-alert strong{color:var(--color-danger,#b42318)}
+.kitchen-attention button:hover{color:var(--color-text,var(--text-brand-112));text-decoration:underline}
+.kitchen-attention strong{font-size:20px;font-variant-numeric:tabular-nums;color:var(--color-text,var(--text-brand-112))}
+.kitchen-attention .is-alert strong{color:var(--color-danger,var(--text-danger))}
 .kitchen-overview-side{display:flex;flex-direction:column;gap:14px;min-width:0}
 .kitchen-workspace .kitchen-overview{align-items:start;gap:12px 28px;padding:12px 18px}
 .kitchen-safety{display:flex;flex-direction:column;gap:18px;padding:12px 18px;overflow:auto}

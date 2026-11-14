@@ -1,3 +1,4 @@
+import './trainingScreens.css'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
 import { useLocation,useNavigate,useParams } from 'react-router-dom'

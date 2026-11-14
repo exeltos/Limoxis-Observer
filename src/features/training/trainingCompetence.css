@@ -1,3 +1,15 @@
+/* color tokens: start */
+:root{
+  --shadow-danger-859:#f3c7c3;
+  --surface-danger-957:#fdeceb;
+  --surface-success-933:#e7f5ec;
+  --surface-warning-931:#fff1dc;
+  --text-danger:#b42318;
+  --text-neutral-751:#b5c0ca;
+  --text-success:#1d6b3a;
+  --text-warning-271-2:#8a4b00;
+}
+/* color tokens: end */
 /* Training competence: requirements, matrix and retraining plan. */
 .training-competence{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
 .training-competence-tools{display:flex;justify-content:flex-end;padding:8px 14px}
@@ -8,13 +20,13 @@
 /* The state is a coloured chip inside the cell (the registries' plain cell style owns the cell itself). */
 .data-table td.training-competence-cell{white-space:nowrap;text-align:center}
 .training-competence-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-weight:700}
-.training-competence-chip.valid{color:#1d6b3a;background:#e7f5ec}
-.training-competence-chip.expiring{color:#8a4b00;background:#fff1dc}
-.training-competence-chip.expired{color:#b42318;background:#fdeceb}
-.training-competence-chip.missing{color:#b42318;background:#fff;box-shadow:inset 0 0 0 1px #f3c7c3}
-.data-table td.training-competence-na{color:#b5c0ca;text-align:center}
+.training-competence-chip.valid{color:var(--text-success);background:var(--surface-success-933)}
+.training-competence-chip.expiring{color:var(--text-warning-271-2);background:var(--surface-warning-931)}
+.training-competence-chip.expired{color:var(--text-danger);background:var(--surface-danger-957)}
+.training-competence-chip.missing{color:var(--text-danger);background:var(--lo-color-surface);box-shadow:inset 0 0 0 1px var(--shadow-danger-859)}
+.data-table td.training-competence-na{color:var(--text-neutral-751);text-align:center}
 .training-competence-matrix th:not(:first-child) span,.training-competence-matrix th:not(:first-child) small{text-align:center}
-.training-competence-late{color:#b42318;font-weight:700}
+.training-competence-late{color:var(--text-danger);font-weight:700}
 .training-competence-rules{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
 .training-competence-rules-head{display:flex;justify-content:flex-end;padding:8px 14px}
 .data-table td.training-competence-nowrap{white-space:nowrap}
