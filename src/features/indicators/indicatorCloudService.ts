@@ -6,6 +6,8 @@ import { loadIndicatorDefinitionsLocal, loadIndicatorSnapshotsLocal, saveIndicat
 import type { CalculatedIndicatorOf, IndicatorCalculationInput, IndicatorDefinitionRow, IndicatorSnapshotRow, IndicatorTextDefinition, OperationalIndicator } from './indicatorTypes'
 
 export interface IndicatorPeriod { from?: string | null, to?: string | null, departmentId?: string | null }
+// background: waits behind the calculations someone is looking at; signal: dropped if aborted while still queued.
+export interface IndicatorMetricsOptions extends IndicatorPeriod { background?: boolean, signal?: AbortSignal }
 // The metric values of a period, by metric key (get_indicator_metric_snapshot or the demo engine).
 export type IndicatorMetrics = Record<string, number | null | undefined>
 
@@ -13,10 +15,31 @@ export type IndicatorMetrics = Record<string, number | null | undefined>
 function assertCloud(organizationId: string|null|undefined): asserts organizationId is string{cloudClient(organizationId)}
 const round=(value: unknown,digits=1)=>Number.isFinite(Number(value))?Number(Number(value).toFixed(digits)):null
 
-export async function collectCloudIndicatorMetrics(organizationId: string|null|undefined,{from,to,departmentId=null}: IndicatorPeriod={}): Promise<IndicatorMetrics>{
+// The snapshot reads a period's data across the hospital (~1 s on the current database server). A screen that needs
+// many periods (12 months, last year…) used to start them all at once and kept every other screen waiting; now at
+// most SNAPSHOT_SLOTS run together, the ones someone is looking at go first and an aborted one is dropped unstarted.
+const SNAPSHOT_SLOTS=2
+let snapshotsRunning=0
+const snapshotQueue: {run: ()=>void,background: boolean}[]=[]
+function nextSnapshot(){
+ while(snapshotsRunning<SNAPSHOT_SLOTS&&snapshotQueue.length){snapshotsRunning+=1;snapshotQueue.shift()!.run()}
+}
+function queueSnapshot<T>(task: ()=>PromiseLike<T>,{background=false,signal}: {background?: boolean,signal?: AbortSignal}={}): Promise<T>{
+ return new Promise<T>((resolve,reject)=>{
+  const entry={background,run:()=>{
+   if(signal?.aborted){snapshotsRunning-=1;reject(new DOMException('Aborted','AbortError'));nextSnapshot();return}
+   Promise.resolve(task()).then(resolve,reject).finally(()=>{snapshotsRunning-=1;nextSnapshot()})
+  }}
+  if(background)snapshotQueue.push(entry)
+  else{const first=snapshotQueue.findIndex(item=>item.background);snapshotQueue.splice(first<0?snapshotQueue.length:first,0,entry)}
+  nextSnapshot()
+ })
+}
+
+export async function collectCloudIndicatorMetrics(organizationId: string|null|undefined,{from,to,departmentId=null,background=false,signal}: IndicatorMetricsOptions={}): Promise<IndicatorMetrics>{
  if(isDemoDataEnvironment())return collectIndicatorMetrics()
  assertCloud(organizationId)
- const {data,error}=await cloudClient().rpc('get_indicator_metric_snapshot',{p_organization_id:organizationId,p_from:from as string,p_to:to as string,p_department_id:(departmentId||null) as string})
+ const {data,error}=await queueSnapshot(()=>cloudClient().rpc('get_indicator_metric_snapshot',{p_organization_id:organizationId,p_from:from as string,p_to:to as string,p_department_id:(departmentId||null) as string}),{background,signal})
  if(error)throw error
  // The database snapshot has no WHO AWaRe split: the Access DDD comes from the dispensing records.
  const metrics=(data||{}) as IndicatorMetrics

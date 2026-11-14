@@ -11,6 +11,7 @@ vi.mock('../src/features/indicators/indicatorCloudService', () => ({
 }))
 vi.mock('../src/features/quality/risk/riskService', () => ({ loadRiskAssessments: vi.fn(async () => []) }))
 const { IndicatorResultPanel } = await import('../src/features/indicators/IndicatorResultPanel')
+const service = await import('../src/features/indicators/indicatorCloudService')
 
 describe('IndicatorResultPanel', () => {
   afterEach(cleanup)
@@ -24,5 +25,14 @@ describe('IndicatorResultPanel', () => {
     expect(screen.getByText('1/10/2026 – 9/10/2026 · Όλο το νοσοκομείο')).toBeTruthy()
     expect(screen.getByText('1/9/2026 – 30/9/2026')).toBeTruthy()
     expect(screen.getAllByRole('row')).toHaveLength(2)
+  })
+
+  it('shows the period result without waiting for the comparisons and the 12 months (speed, 14/11/2026)', async () => {
+    vi.mocked(service.collectCloudIndicatorMetrics).mockClear()
+    vi.mocked(service.collectCloudIndicatorMetrics).mockImplementation(async (_org, options) => options?.background ? new Promise(() => {}) : { clabsi: 3, line_days: 1067 })
+    render(<MemoryRouter><IndicatorResultPanel organizationId="org" record={{ id: 'def-1', key: 'clabsi-rate' }} period={{ from: '2026-10-01', to: '2026-10-09' }} language="el"/></MemoryRouter>)
+    expect(await screen.findByText('2,8')).toBeTruthy()
+    expect(screen.getByText('Υπολογισμός τάσης…')).toBeTruthy()
+    expect(vi.mocked(service.collectCloudIndicatorMetrics).mock.calls.filter(([, options]) => options?.background)).toHaveLength(14)
   })
 })

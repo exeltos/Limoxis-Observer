@@ -31,7 +31,7 @@ const SNAPSHOT_STATUS: Record<string,[string,string]>={approved:['Εγκρίθη
 // The indicator's result for the period the user came from (the registry's
 // period, or this month so far), with its target, and the approved results kept
 // over time. Opening an indicator shows what it measures before how it is defined.
-interface IndicatorResultState {loading: boolean,result: CalculatedIndicator|null,previous?: number|null,lastYear?: number|null,series: (number|null)[],definition?: OperationalIndicator|null,history: IndicatorSnapshotRow[],error: boolean}
+interface IndicatorResultState {loading: boolean,comparing?: boolean,result: CalculatedIndicator|null,previous?: number|null,lastYear?: number|null,series: (number|null)[],definition?: OperationalIndicator|null,history: IndicatorSnapshotRow[],error: boolean}
 export function IndicatorResultPanel({organizationId,record,period,language}:{organizationId: string|null|undefined,record: Pick<IndicatorDefinition,'id'|'key'>|null,period?: {from?: string,to?: string,departmentId?: string|null}|null,language: string}){
  const el=language!=='en'
  const from=period?.from||monthStart(),to=period?.to||today(),departmentId=period?.departmentId||null
@@ -50,19 +50,25 @@ export function IndicatorResultPanel({organizationId,record,period,language}:{or
   if(!organizationId||!record)return()=>{active=false}
   setState(current=>({...current,loading:true}))
   const before=previousPeriod(from,to),yearAgo={from:shiftYear(from,-1),to:shiftYear(to,-1)},months=lastMonths(to)
-  const metricsFor=(range: {from: string,to: string})=>collectCloudIndicatorMetrics(organizationId,{from:range.from,to:range.to,departmentId}).catch(()=>null)
+  const aborter=new AbortController()
+  const metricsFor=(range: {from: string,to: string})=>collectCloudIndicatorMetrics(organizationId,{from:range.from,to:range.to,departmentId,background:true,signal:aborter.signal}).catch(()=>null)
+  // The period's result first; the comparisons and the 12 months follow, so the result does not wait for 14 more
+  // calculations (they queue in indicatorCloudService, a few at a time).
   Promise.all([
    collectCloudIndicatorMetrics(organizationId,{from,to,departmentId}),
    loadOperationalIndicatorDefinitions(organizationId,{from,to}),
    loadIndicatorSnapshots(organizationId,{departmentId}),
-   metricsFor(before),metricsFor(yearAgo),Promise.all(months.map(metricsFor)),
-  ]).then(([metrics,definitions,snapshots,beforeMetrics,yearAgoMetrics,monthMetrics])=>{
+  ]).then(([metrics,definitions,snapshots])=>{
    if(!active)return
    const definition=definitions.find(d=>d.definitionId===record.id)||definitions.find(d=>d.id===record.key)
    const valueOf=(data: IndicatorMetrics|null)=>(definition&&data?calculateCloudDefinition(definition,data).value:null)
-   setState({loading:false,error:false,definition,result:definition?calculateCloudDefinition(definition,metrics||{}):null,previous:valueOf(beforeMetrics),lastYear:valueOf(yearAgoMetrics),series:monthMetrics.map(valueOf),history:(snapshots||[]).filter(s=>s.indicator_key===record.key).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))})
+   setState({loading:false,comparing:Boolean(definition),error:false,definition,result:definition?calculateCloudDefinition(definition,metrics||{}):null,previous:null,lastYear:null,series:[],history:(snapshots||[]).filter(s=>s.indicator_key===record.key).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))})
+   if(!definition)return
+   Promise.all([metricsFor(before),metricsFor(yearAgo),Promise.all(months.map(metricsFor))]).then(([beforeMetrics,yearAgoMetrics,monthMetrics])=>{
+    if(active)setState(current=>({...current,comparing:false,previous:valueOf(beforeMetrics),lastYear:valueOf(yearAgoMetrics),series:monthMetrics.map(valueOf)}))
+   })
   }).catch(()=>{if(active)setState({loading:false,error:true,result:null,history:[]} as unknown as IndicatorResultState)})
-  return()=>{active=false}
+  return()=>{active=false;aborter.abort()}
  },[organizationId,record,from,to,departmentId])
  const result=state.result,unit=result?(el?result.unit:result.unitEn):''
  const status=STATUS[result?.status||'']||STATUS.context
@@ -80,11 +86,11 @@ export function IndicatorResultPanel({organizationId,record,period,language}:{or
        <span><small>{el?'Στόχος':'Target'}</small><b>{target}</b></span>
        <span><small>{el?'Κατάσταση':'Status'}</small><b className={result.status==='attention'?'is-late':result.status==='onTarget'?'is-good':undefined}>{result.target==null?(el?'Χωρίς στόχο':'No target'):status[el?0:1]}</b></span>
        {result.evidence&&state.definition?.calculation!=='manual'&&<span><small>{el?'Αριθμητής / παρονομαστής':'Numerator / denominator'}</small><b>{result.evidence}</b></span>}
-       <span><small>{el?'Έναντι προηγούμενης περιόδου':'Against the previous period'}</small><Change now={result.value} then={state.previous} direction={result.direction} el={el}/></span>
-       <span><small>{el?'Έναντι ίδιας περιόδου πέρσι':'Against the same period last year'}</small><Change now={result.value} then={state.lastYear} direction={result.direction} el={el}/></span>
+       <span><small>{el?'Έναντι προηγούμενης περιόδου':'Against the previous period'}</small>{state.comparing?<b>…</b>:<Change now={result.value} then={state.previous} direction={result.direction} el={el}/>}</span>
+       <span><small>{el?'Έναντι ίδιας περιόδου πέρσι':'Against the same period last year'}</small>{state.comparing?<b>…</b>:<Change now={result.value} then={state.lastYear} direction={result.direction} el={el}/>}</span>
       </div>
      </div>
-     <div className="indicator-result-trend"><small>{el?'Τελευταίοι 12 μήνες':'The last 12 months'}</small>{state.series.filter(value=>value!=null).length>1?<Sparkline width={560} height={92} points={state.series} target={result.target==null?null:Number(result.target)} label={el?'Τάση 12 μηνών':'12-month trend'}/>:<span className="indicator-result-empty">{el?'Δεν υπάρχουν αρκετά δεδομένα για τάση.':'Not enough data for a trend.'}</span>}</div>
+     <div className="indicator-result-trend"><small>{el?'Τελευταίοι 12 μήνες':'The last 12 months'}</small>{state.comparing?<span className="indicator-result-empty">{el?'Υπολογισμός τάσης…':'Calculating the trend…'}</span>:state.series.filter(value=>value!=null).length>1?<Sparkline width={560} height={92} points={state.series} target={result.target==null?null:Number(result.target)} label={el?'Τάση 12 μηνών':'12-month trend'}/>:<span className="indicator-result-empty">{el?'Δεν υπάρχουν αρκετά δεδομένα για τάση.':'Not enough data for a trend.'}</span>}</div>
      <p className="indicator-result-formula"><small>{el?'Πώς υπολογίζεται':'How it is calculated'}</small>{formulaText(state.definition,el)}</p>
     </>}
   </section>
