@@ -34,7 +34,6 @@
   .record-print-section-title{margin:0 0 10px;padding-bottom:5px;border-bottom:0.5pt solid var(--border-neutral-467);font-size:14px;color:var(--text-black);break-after:avoid}
   .entity-record-shell :is(.detail-grid,.detail-item,tr,.sv-sample-node,.lo-section-header){break-inside:avoid-page}
   .entity-record-shell [hidden]:is(.lo-more-section-body){display:block!important}
-  .entity-record-shell .summary-detail-note:not(#print-root){white-space:normal!important;overflow:visible!important}
   .record-print-footer:not(#print-root){display:block!important;margin:14px 0 0;padding-top:6px;border-top:0.5pt solid var(--border-neutral-467);font-size:9px;color:var(--text-black)}
   /* A printed record reads as a document, not the screen: the font of the shared documents (Arial), dark on white, no
      chips, badges or coloured boxes; the label column of its tables keeps a light shade (owner, 2/11/2026). */

@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { useEffect, useRef, useState } from 'react'
 import { Pencil, Trash2, XCircle } from 'lucide-react'
 import { ChoiceChips } from '../../design-system/ChoiceChips'

@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { Plus } from 'lucide-react'
 import { useContext, useState } from 'react'
 import { Button } from '../../design-system/Button'

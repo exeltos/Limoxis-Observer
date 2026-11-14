@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'

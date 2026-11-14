@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 // An open surveillance episode over the record (ClinicalSurveillanceWorkspace.tsx): header, «⋯» actions and the sheet.
 import { Activity, Check, HeartPulse, Microscope, Pencil, Stethoscope, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'

@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { createContext, useContext } from 'react'
 import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { RegistryTable } from '../../design-system/RegistryTable'

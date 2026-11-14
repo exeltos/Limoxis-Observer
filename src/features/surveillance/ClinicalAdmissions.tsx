@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { DueDate } from '../../design-system/DueDate'
 import { AttentionList } from '../../design-system/AttentionList'
 import { Fragment, useState } from 'react'

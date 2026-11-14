@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 // Dialogs of the clinical record, second part: HAI criteria, therapy, isolation, end, reassessment, outcome and reasons.
 import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'

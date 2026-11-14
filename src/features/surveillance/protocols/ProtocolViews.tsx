@@ -1,3 +1,4 @@
+import '../surveillanceScreens.css'
 // The protocol section of a surveillance episode (approved design n3-2): picker,
 // recognition clock, timeline, the bundle steps with their timing, recording a
 // step, changing the recognition time, completing / closing, and the history.

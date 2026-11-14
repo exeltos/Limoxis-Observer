@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 // The window every clinical record dialog is built on (title, fields, Save / Cancel, validation).
 import { Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'

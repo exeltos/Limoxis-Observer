@@ -1,9 +1,19 @@
+/* color tokens: start */
+:root{
+  --border-danger-824:#f0b4b4;
+  --border-success-725:#9fd3b4;
+  --border-warning-739:#efd08a;
+  --surface-danger-959:#fdecec;
+  --surface-success-941:#e9f7ef;
+  --text-success-271:#1f6b40;
+}
+/* color tokens: end */
 /* Surveillance › Culture programme. */
 .culture-programme{display:flex;flex-direction:column;gap:12px;padding:4px 0 16px}
 /* The page does not scroll as a whole (page-fill): the year table and the month view scroll inside, the header row stays. */
 .page-fill>.culture-programme{flex:1 1 0;min-height:0;padding-bottom:4px}
 .culture-programme .culture-year-wrap,.culture-programme .culture-month-view{flex:1 1 auto;min-height:0;overflow:auto}
-.culture-year thead th{position:sticky;top:0;z-index:1;background:var(--lo-color-surface-muted,#f6f9fb)}
+.culture-year thead th{position:sticky;top:0;z-index:1;background:var(--lo-color-surface-muted)}
 /* Twelve equal months, whatever a cell holds (two rounds stack, they do not widen their month). */
 .culture-year{table-layout:fixed;width:100%;min-width:900px}
 .culture-year th:first-child{width:260px}
@@ -12,32 +22,32 @@
 .culture-programme-period{display:inline-flex;align-items:center;gap:8px}
 .culture-programme-period strong{min-width:96px;text-align:center;font-size:14px}
 .culture-programme-figures{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font-size:13px;color:var(--lo-color-muted)}
-.culture-programme-figures b{font-size:15px;color:#1d3a52;font-variant-numeric:tabular-nums}
-.culture-programme-figures .is-bad b{color:#a32121}
-.culture-programme-figures .is-warn b{color:#8a5a00}
+.culture-programme-figures b{font-size:15px;color:var(--text-heading);font-variant-numeric:tabular-nums}
+.culture-programme-figures .is-bad b{color:var(--text-danger-384)}
+.culture-programme-figures .is-warn b{color:var(--text-warning-271)}
 .culture-year td small{display:block;font-size:11.5px;color:var(--lo-color-muted)}
 .culture-year th.culture-month{text-align:center}
 .culture-cell{text-align:center;vertical-align:middle}
 .culture-programme .data-table.culture-year td.culture-cell{padding-left:2px;padding-right:2px}
 .culture-cell .culture-round{display:block;margin:2px auto;width:max-content;max-width:100%}
-.culture-cell.is-missed span{color:#a32121;font-weight:700}
-.culture-cell.is-due span{color:#8a5a00;font-weight:800}
+.culture-cell.is-missed span{color:var(--text-danger-384);font-weight:700}
+.culture-cell.is-due span{color:var(--text-warning-271);font-weight:800}
 .culture-cell.is-planned span{color:var(--lo-color-muted)}
-.culture-round{display:inline-block;margin:1px;padding:2px 6px;border:1px solid #9fd3b4;border-radius:999px;background:#e9f7ef;color:#1f6b40;font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
-.culture-round.is-outside{border-color:#f0b4b4;background:#fdecec;color:#a32121}
-.culture-extra-head th{background:var(--lo-color-surface-muted,#f6f9fb);font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#5d7083}
+.culture-round{display:inline-block;margin:1px;padding:2px 6px;border:1px solid var(--border-success-725);border-radius:999px;background:var(--surface-success-941);color:var(--text-success-271);font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
+.culture-round.is-outside{border-color:var(--border-danger-824);background:var(--surface-danger-959);color:var(--text-danger-384)}
+.culture-extra-head th{background:var(--lo-color-surface-muted);font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-neutral-439)}
 .culture-legend{margin:8px 2px 0;font-size:12px;color:var(--lo-color-muted)}
 .culture-pending{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px}
 .culture-chip{display:inline-block;padding:2px 8px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);font:inherit;font-size:11.5px;text-align:left}
-.culture-chip.is-done{border-color:#9fd3b4;background:#e9f7ef;color:#1f6b40;cursor:pointer}
-.culture-chip.is-done.is-outside{border-color:#f0b4b4;background:#fdecec;color:#a32121}
-.culture-chip.is-missed{border-color:#f0b4b4;color:#a32121}
-.culture-chip.is-due{border-color:#efd08a;color:#8a5a00}
+.culture-chip.is-done{border-color:var(--border-success-725);background:var(--surface-success-941);color:var(--text-success-271);cursor:pointer}
+.culture-chip.is-done.is-outside{border-color:var(--border-danger-824);background:var(--surface-danger-959);color:var(--text-danger-384)}
+.culture-chip.is-missed{border-color:var(--border-danger-824);color:var(--text-danger-384)}
+.culture-chip.is-due{border-color:var(--border-warning-739);color:var(--text-warning-271)}
 .culture-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:8px}
-.culture-weekday{padding:4px;font-size:11px;font-weight:700;text-transform:uppercase;color:#5d7083;text-align:center}
+.culture-weekday{padding:4px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-neutral-439);text-align:center}
 .culture-day{min-height:76px;padding:4px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);display:flex;flex-direction:column;gap:3px}
 .culture-day.is-empty{border-style:dashed;background:transparent}
-.culture-day-number{font-size:11.5px;font-weight:700;color:#5d7083}
+.culture-day-number{font-size:11.5px;font-weight:700;color:var(--text-neutral-439)}
 .culture-results td small{display:block;font-size:11.5px;color:var(--lo-color-muted)}
 .culture-round small{font-weight:500;opacity:.8}
 /* Colonies / limit: the count, the slash and the limit in three fixed places, so every row lines up. */

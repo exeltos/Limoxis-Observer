@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 // Admission dialogs of the clinical record: the patient form in place, transfer / discharge, delete, new admission and the admission picker.
 import { Fragment, useState } from 'react'
 import { stayDays } from './patientRecordScope'

@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { Plus } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import type { Handler } from './surveillanceTypes'

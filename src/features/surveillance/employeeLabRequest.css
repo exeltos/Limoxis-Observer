@@ -1,3 +1,8 @@
+/* color tokens: start */
+:root{
+  --border-brand-392:#1f6fa9;
+}
+/* color tokens: end */
 /* Employee laboratory request editor: consistent spacing and material choices as chips. */
 .employee-lab-request-editor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px}
 .employee-lab-request-editor .entry-span-2{grid-column:1/-1}
@@ -7,4 +12,4 @@
 /* Employee screening: the sample opens its laboratory record */
 .employee-sample-open{all:unset;display:flex;flex-direction:column;align-items:flex-start;gap:2px;cursor:pointer;border-radius:6px}
 .employee-sample-open:hover strong{text-decoration:underline}
-.employee-sample-open:focus-visible{outline:2px solid var(--lo-color-focus,#1f6fa9);outline-offset:2px}
+.employee-sample-open:focus-visible{outline:2px solid var(--lo-color-focus,var(--border-brand-392));outline-offset:2px}

@@ -1,48 +1,65 @@
+/* color tokens: start */
+:root{
+  --border-brand-776:#b9c7d3;
+  --border-danger-478:#b3414a;
+  --border-neutral-763:#b9c3cc;
+  --border-success-422:#3d9a69;
+  --border-warning-496:#d39b2a;
+  --surface-brand-225:#173b5c;
+  --surface-danger-478:#b3414a;
+  --surface-neutral-763:#b9c3cc;
+  --surface-neutral-973-3:#f4f9fc;
+  --surface-success-422:#3d9a69;
+  --surface-warning-496:#d39b2a;
+  --text-brand-225-2:#173b5c;
+  --text-neutral-598-3:#8c99a5;
+}
+/* color tokens: end */
 /* N3 · Protocols (Hour-1 bundle) and the 48–72 h antimicrobial review, as the
    approved design (docs/design/n1-n3, n3-2 / n3-3 / n3-4). App tokens only. */
 .sp-stack{display:grid;gap:12px}
 .sp-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .sp-grow{flex:1 1 auto}
-.sp-muted{color:var(--lo-text-secondary,#5f6f7c)}
+.sp-muted{color:var(--lo-text-secondary)}
 .sp-small{font-size:var(--lo-text-sm,11.5px)}
-.sp-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-text-secondary,#5f6f7c)}
-.sp-card{background:var(--lo-card-bg,#fff);border:1px solid var(--lo-card-border,#dfe6ec);border-radius:var(--lo-card-radius,12px);padding:var(--lo-card-pad-standard,14px 15px)}
+.sp-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-text-secondary)}
+.sp-card{background:var(--lo-card-bg);border:1px solid var(--lo-card-border);border-radius:var(--lo-card-radius,12px);padding:var(--lo-card-pad-standard,14px 15px)}
 .sp-callout{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid var(--lo-status-info-border);background:var(--lo-status-info-bg);color:var(--lo-status-info-fg);font-size:12.5px;line-height:1.5}
 .sp-callout.ok{border-color:var(--lo-status-success-border);background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
 .sp-callout.warn{border-color:var(--lo-status-warning-border);background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
 .sp-callout svg{flex:none;margin-top:1px}
 
 /* Recognition clock */
-.sp-clock{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-radius:12px;background:#173b5c;color:#fff}
+.sp-clock{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-radius:12px;background:var(--surface-brand-225);color:var(--text-inverse)}
 .sp-clock .sp-big{display:block;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
 .sp-clock small{display:block;opacity:.75;font-size:11px}
 .sp-clock .sp-clock-end{text-align:right}
-.sp-clock .button-secondary{background:#fff;color:#173b5c;border-color:#fff}
+.sp-clock .button-secondary{background:var(--lo-color-surface);color:var(--text-brand-225-2);border-color:var(--border-neutral-1000)}
 
 /* Timeline */
 .sp-timeline-card{padding:10px 14px 4px}
 .sp-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--lo-text-secondary)}
 .sp-legend span{display:inline-flex;align-items:center;gap:6px}
 .sp-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
-.sp-legend .g,.sp-timeline .mk.g{background:#3d9a69}
-.sp-legend .a,.sp-timeline .mk.a{background:#d39b2a}
-.sp-legend .r,.sp-timeline .mk.r{background:#b3414a}
-.sp-legend .n,.sp-timeline .mk.n{background:#b9c3cc}
+.sp-legend .g,.sp-timeline .mk.g{background:var(--surface-success-422)}
+.sp-legend .a,.sp-timeline .mk.a{background:var(--surface-warning-496)}
+.sp-legend .r,.sp-timeline .mk.r{background:var(--surface-danger-478)}
+.sp-legend .n,.sp-timeline .mk.n{background:var(--surface-neutral-763)}
 .sp-timeline{position:relative;height:46px;margin:6px 4px 2px}
 .sp-timeline .axis{position:absolute;left:0;right:0;top:20px;height:6px;border-radius:3px}
 .sp-timeline .tick{position:absolute;top:30px;font-size:10.5px;color:var(--lo-text-secondary);transform:translateX(-50%)}
-.sp-timeline .hour{position:absolute;top:12px;width:2px;height:22px;background:#173b5c}
-.sp-timeline .mk{position:absolute;top:13px;width:20px;height:20px;border-radius:10px;transform:translateX(-50%);display:grid;place-items:center;color:#fff;font-size:10px;font-weight:800;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sp-timeline .hour{position:absolute;top:12px;width:2px;height:22px;background:var(--surface-brand-225)}
+.sp-timeline .mk{position:absolute;top:13px;width:20px;height:20px;border-radius:10px;transform:translateX(-50%);display:grid;place-items:center;color:var(--text-inverse);font-size:10px;font-weight:800;border:2px solid var(--border-neutral-1000);box-shadow:0 1px 3px rgba(0,0,0,.2)}
 
 /* Bundle steps */
 .sp-bundle{display:grid;gap:8px}
-.sp-bundle-item{display:grid;grid-template-columns:30px minmax(0,1fr) 150px 170px;gap:12px;align-items:center;padding:11px 14px;border:1px solid var(--lo-card-border,#dfe6ec);border-left-width:4px;border-radius:10px;background:var(--lo-card-bg,#fff);text-align:left;font:inherit;color:inherit;width:100%}
+.sp-bundle-item{display:grid;grid-template-columns:30px minmax(0,1fr) 150px 170px;gap:12px;align-items:center;padding:11px 14px;border:1px solid var(--lo-card-border);border-left-width:4px;border-radius:10px;background:var(--lo-card-bg);text-align:left;font:inherit;color:inherit;width:100%}
 button.sp-bundle-item{cursor:pointer}
 button.sp-bundle-item:hover{box-shadow:0 0 0 3px var(--lo-field-focus-ring,rgba(37,107,155,.15))}
-.sp-bundle-item.g{border-left-color:#3d9a69}
-.sp-bundle-item.a{border-left-color:#d39b2a}
-.sp-bundle-item.r{border-left-color:#b3414a}
-.sp-bundle-item.n{border-left-color:#b9c3cc;background:var(--lo-surface-soft,#fafbfc)}
+.sp-bundle-item.g{border-left-color:var(--border-success-422)}
+.sp-bundle-item.a{border-left-color:var(--border-warning-496)}
+.sp-bundle-item.r{border-left-color:var(--border-danger-478)}
+.sp-bundle-item.n{border-left-color:var(--border-neutral-763);background:var(--lo-surface-soft)}
 .sp-bundle-item.emphasis{box-shadow:inset 0 0 0 1px var(--lo-status-danger-border)}
 .sp-bundle-item strong{display:block;font-size:13.5px;color:var(--lo-text-strong)}
 .sp-bundle-item small{display:block;font-size:11.5px;color:var(--lo-text-secondary);line-height:1.4}
@@ -52,7 +69,7 @@ button.sp-bundle-item:hover{box-shadow:0 0 0 3px var(--lo-field-focus-ring,rgba(
 .sp-ico.g{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
 .sp-ico.a{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
 .sp-ico.r{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
-.sp-ico.n{background:#f1f4f6;color:#8c99a5}
+.sp-ico.n{background:var(--lo-status-neutral-bg);color:var(--text-neutral-598-3)}
 @media (max-width:900px){.sp-bundle-item{grid-template-columns:30px minmax(0,1fr) 120px}.sp-bundle-item>:last-child{grid-column:2/-1}}
 .sp-history{display:grid;gap:4px;margin:0;padding:0;list-style:none;font-size:12px}
 .sp-history li{display:flex;gap:8px;flex-wrap:wrap;color:var(--lo-text-secondary)}
@@ -61,17 +78,17 @@ button.sp-bundle-item:hover{box-shadow:0 0 0 3px var(--lo-field-focus-ring,rgba(
 
 /* Protocol picker */
 .sp-picker{display:grid;gap:8px}
-.sp-option{display:grid;gap:4px;padding:11px 12px;border:1px solid var(--lo-card-border);border-radius:10px;background:var(--lo-card-bg,#fff);font:inherit;font-size:12px;color:var(--lo-text-secondary);line-height:1.4;text-align:left;cursor:pointer}
+.sp-option{display:grid;gap:4px;padding:11px 12px;border:1px solid var(--lo-card-border);border-radius:10px;background:var(--lo-card-bg);font:inherit;font-size:12px;color:var(--lo-text-secondary);line-height:1.4;text-align:left;cursor:pointer}
 .sp-option strong{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--lo-text-strong)}
-.sp-option.on{border-color:var(--accent,#256b9b);box-shadow:0 0 0 3px var(--lo-field-focus-ring);background:#f4f9fc}
-.sp-radio{width:16px;height:16px;border-radius:8px;border:1.5px solid #b9c7d3;display:inline-block;flex:none}
-.sp-option.on .sp-radio{border:5px solid var(--accent,#256b9b)}
+.sp-option.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--lo-field-focus-ring);background:var(--surface-neutral-973-3)}
+.sp-radio{width:16px;height:16px;border-radius:8px;border:1.5px solid var(--border-brand-776);display:inline-block;flex:none}
+.sp-option.on .sp-radio{border:5px solid var(--accent)}
 .sp-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .sp-form-grid .span2{grid-column:1/-1}
 @media (max-width:700px){.sp-form-grid{grid-template-columns:1fr}}
 
 /* Antimicrobial review */
-.sp-review{display:grid;gap:12px;border-color:var(--accent,#256b9b)}
+.sp-review{display:grid;gap:12px;border-color:var(--accent)}
 .sp-review.danger{border-color:var(--lo-status-danger-border)}
 .sp-review.done{border-color:var(--lo-status-success-border)}
 .sp-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:6px}

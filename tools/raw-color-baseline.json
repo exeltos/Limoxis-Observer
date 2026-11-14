@@ -37,14 +37,7 @@
   "src/features/regulations/regulations.css": 134,
   "src/features/reporting/ReportingPanel.css": 36,
   "src/features/rosters/rosters.css": 116,
-  "src/features/surveillance/cultureProgramme.css": 26,
-  "src/features/surveillance/employeeLabRequest.css": 1,
-  "src/features/surveillance/epiQuestionnaire/epiQuestionnaire.css": 16,
-  "src/features/surveillance/forms/episodeForms.css": 22,
-  "src/features/surveillance/protocols/protocols.css": 31,
-  "src/features/surveillance/surveillanceEntryCard.css": 9,
-  "src/features/surveillance/surveillanceEpisode.css": 152,
-  "src/styles/features.css": 685,
+  "src/styles/features.css": 640,
   "src/styles/responsive.css": 60,
-  "src/styles/workspaces.css": 56
+  "src/styles/workspaces.css": 42
 }

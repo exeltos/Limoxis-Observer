@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { useState } from 'react'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'

@@ -1,3 +1,4 @@
+import '../../surveillanceScreens.css'
 import { useMemo, useState } from 'react'
 import { ExternalLink, Megaphone, Plus } from 'lucide-react'
 import { Button } from '../../../../design-system/Button'

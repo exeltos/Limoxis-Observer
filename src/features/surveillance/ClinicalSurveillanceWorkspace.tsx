@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { useEffect, useState } from 'react'
 import { Activity, CalendarClock, ChevronRight, Microscope, Pencil, PlayCircle } from 'lucide-react'
