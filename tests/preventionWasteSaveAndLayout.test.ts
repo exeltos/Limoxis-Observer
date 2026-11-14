@@ -2,7 +2,8 @@
 // and preventionVaccinationBundleBehavior; the layout (CSS) rules stay here.
 import {describe,expect,it} from 'vitest'
 import { readSource } from './helpers/readSource'
-const css=readSource('src/styles/workspaces.css')
+// Οι κανόνες της Πρόληψης φορτώνονται με τις σελίδες της (preventionScreens.css).
+const css=readSource('src/styles/workspaces.css')+readSource('src/features/prevention/preventionScreens.css')
 const occupational=readSource('src/features/occupational-health/OccupationalHealthPage.jsx')
 
 describe('prevention waste editor refinements',()=>{
