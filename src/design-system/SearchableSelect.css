@@ -14,9 +14,9 @@
   width: 100%;
   box-sizing: border-box;
   padding-right: 34px !important;
-  border: 1px solid #cad6df;
+  border: 1px solid var(--border-brand-833);
   border-radius: 8px;
-  background: #fff;
+  background: var(--lo-color-surface);
   font: inherit;
   cursor: pointer;
 }
@@ -24,7 +24,7 @@
 .searchable-select .searchable-select-clear {
   position: absolute;
   right: 10px;
-  color: #617386;
+  color: var(--text-neutral-453-2);
 }
 .searchable-select .searchable-select-chevron {
   pointer-events: none;
@@ -43,7 +43,7 @@
   cursor: pointer;
 }
 .searchable-select .searchable-select-clear:hover {
-  background: var(--lo-status-neutral-bg, #f1f4f7);
+  background: var(--lo-status-neutral-bg);
 }
 .searchable-select .searchable-select-list {
   position: absolute;
@@ -56,9 +56,9 @@
   padding: 4px;
   overflow: auto;
   list-style: none;
-  border: 1px solid var(--lo-color-border, #dce4eb);
+  border: 1px solid var(--lo-color-border);
   border-radius: 10px;
-  background: var(--lo-color-surface, #fff);
+  background: var(--lo-color-surface);
   box-shadow: 0 12px 30px rgba(17, 42, 63, 0.14);
 }
 .searchable-select .searchable-select-list[hidden] {
@@ -73,7 +73,7 @@
 }
 .searchable-select .searchable-select-option.active,
 .searchable-select .searchable-select-option:hover {
-  background: var(--lo-status-info-bg, #edf5fa);
+  background: var(--lo-status-info-bg);
 }
 .searchable-select .searchable-select-option[aria-selected='true'] {
   font-weight: 700;
@@ -82,12 +82,12 @@
   margin: 0;
   font-size: 13px;
   font-weight: inherit;
-  color: var(--lo-color-text, #22384c);
+  color: var(--lo-color-text);
 }
 .searchable-select .searchable-select-option-description,
 .searchable-select .searchable-select-empty {
   font-size: 11px;
-  color: var(--lo-color-text-muted, #617386);
+  color: var(--lo-color-text-muted, var(--text-neutral-453-2));
 }
 .searchable-select .searchable-select-empty {
   padding: 8px 10px;
@@ -98,20 +98,20 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--lo-color-muted, #617386);
+  color: var(--lo-color-muted);
 }
 .searchable-select .searchable-select-option.divider {
   margin-top: 4px;
-  border-top: 1px solid var(--lo-color-border, #dce4eb);
+  border-top: 1px solid var(--lo-color-border);
   border-radius: 0 0 7px 7px;
 }
 .searchable-select .searchable-select-option.custom .searchable-select-option-label {
-  color: var(--lo-color-primary, #1f5f8b);
+  color: var(--lo-color-primary);
   font-weight: 650;
 }
 .searchable-select .searchable-select-control > input:disabled {
-  background: var(--lo-color-surface-muted, #f4f7f9);
-  color: var(--lo-color-muted, #617386);
+  background: var(--lo-color-surface-muted);
+  color: var(--lo-color-muted);
 }
 .leg-status-filter,.registers-view-select,.reg-mode-select,.register-period-select{min-width:220px}
 /* Native selects and date fields are pressed to open: the hand, like the type-to-filter select. */

@@ -8,7 +8,7 @@
 .lo-checklist-text{display:grid;gap:6px;min-width:0}
 .lo-checklist-text>strong{font-size:13px;font-weight:600;line-height:1.35;color:var(--lo-color-text)}
 .lo-checklist-text em{color:var(--lo-status-danger-fg);font-style:normal}
-.lo-checklist-text>input{width:100%;box-sizing:border-box;min-height:40px;padding:0 11px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px}
+.lo-checklist-text>input{width:100%;box-sizing:border-box;min-height:40px;padding:0 11px;border:1px solid var(--lo-color-border-strong);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px}
 .lo-checklist-note{font-size:12.5px;color:var(--lo-status-danger-fg)}
 .lo-checklist-answer{margin:0;padding:0;border:0;min-width:0}
 .lo-checklist-yesno{margin:0!important}

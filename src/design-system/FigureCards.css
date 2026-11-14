@@ -6,7 +6,7 @@ div.lo-figure-cards>:is(button,span):has(>b,>strong):before{content:"";position:
 div.lo-figure-cards>:is(button,span):has(>b,>strong)>:is(b,strong){order:-1;font-size:19px;font-weight:760;line-height:1.1;letter-spacing:-.01em;color:var(--lo-metric-value);font-variant-numeric:tabular-nums}
 div.lo-figure-cards>button:has(>b,>strong){cursor:pointer}
 div.lo-figure-cards>button:has(>b,>strong):hover{border-color:color-mix(in srgb,var(--lo-color-primary) 55%,var(--lo-color-border));color:var(--lo-color-text);text-decoration:none}
-div.lo-figure-cards>button:has(>b,>strong):focus-visible{outline:2px solid var(--lo-field-focus,#5f93ad);outline-offset:2px}
+div.lo-figure-cards>button:has(>b,>strong):focus-visible{outline:2px solid var(--lo-field-focus);outline-offset:2px}
 div.lo-figure-cards>button.is-active:has(>b,>strong){border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 1px var(--lo-color-primary);background:color-mix(in srgb,var(--lo-color-primary) 6%,var(--lo-color-surface));color:var(--lo-color-text);text-decoration:none}
 div.lo-figure-cards>:is(.is-late,.is-alert):has(>b,>strong):before{background:var(--lo-status-danger-fg)}
 div.lo-figure-cards>:is(.is-late,.is-alert)>:is(b,strong){color:var(--lo-status-danger-fg)}

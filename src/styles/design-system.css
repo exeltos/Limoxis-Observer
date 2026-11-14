@@ -159,7 +159,7 @@
 .prevention-related-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .prevention-related-link{
   display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;
-  border:1px solid var(--lo-border-soft);border-radius:9px;background:#fff;font-weight:700;
+  border:1px solid var(--lo-border-soft);border-radius:9px;background:var(--lo-color-surface);font-weight:700;
 }
 @media (max-width:760px){.prevention-related-strip{align-items:stretch;flex-direction:column}.prevention-related-actions{justify-content:flex-start}}
 
@@ -270,7 +270,7 @@
 /* Destructive record actions stay visually quiet until confirmation. Solid danger is reserved for the confirmation dialog. */
 .lo-action-button-danger{color:var(--lo-status-danger-fg);background:var(--lo-color-surface);border-color:var(--lo-status-danger-border)}
 .lo-action-button-danger:hover:not(:disabled){background:var(--lo-status-danger-bg)}
-.button.button-destructive{color:#fff;background:var(--lo-status-danger-fg);border-color:var(--lo-status-danger-fg)}
+.button.button-destructive{color:var(--text-inverse);background:var(--lo-status-danger-fg);border-color:var(--lo-status-danger-fg)}
 .button.button-destructive:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-danger-fg) 86%,black)}
 .lo-action-button-success{color:var(--lo-status-success-fg);background:var(--lo-status-success-bg);border-color:var(--lo-status-success-border)}
 .lo-action-button-success:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-success-bg) 76%,white)}
@@ -297,8 +297,6 @@
 .platform-maintenance-banner>svg{flex:0 0 auto}.platform-maintenance-banner button{width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}.platform-maintenance-banner button:hover{background:color-mix(in srgb,var(--lo-status-warning-fg) 10%,transparent)}
 
 .login-briefing-dialog .observer-dialog-body{display:grid;gap:8px}
-.login-briefing-dialog .briefing-navigation-row{width:100%;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:8px 12px;border:0;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface);text-align:left;color:var(--lo-color-text);cursor:pointer}
-.login-briefing-dialog .briefing-navigation-row:hover{background:var(--lo-shell-control-hover)}
 .login-briefing-dialog .briefing-navigation-row>span{display:grid;gap:2px}.login-briefing-dialog .briefing-navigation-row small{color:var(--lo-color-muted)}
 
 /* Shared overflow action language: visible primary workflow, secondary tools behind a single ellipsis. */
@@ -311,7 +309,7 @@
 .lo-overflow-item:disabled{opacity:.45;cursor:not-allowed}
 .lo-overflow-separated{margin-top:5px;padding-top:5px;border-top:1px solid var(--lo-color-border)}
 .lo-overflow-item-danger{color:var(--lo-status-danger-fg)}
-.lo-overflow-item>span>small{display:block;margin-top:2px;color:var(--lo-color-text-muted,#4f6477);font-size:11px;font-weight:500}
+.lo-overflow-item>span>small{display:block;margin-top:2px;color:var(--lo-color-text-muted,var(--text-neutral-388));font-size:11px;font-weight:500}
 /* Items with a second line wrap instead of being cut. */
 .lo-overflow-item:has(>span>small)>span,.lo-overflow-item>span>small{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.35}
 .lo-overflow-item-current{background:var(--lo-shell-control-hover);color:var(--lo-color-primary)}
@@ -481,11 +479,11 @@
 
 /* Carry the same accent language into Platform registries and records. */
 .page:has(.platform-registry-shell)>.page-header:after,
-.platform-analysis-page>.page-header:after{content:"";display:block;width:42px;height:2px;margin-top:8px;border-radius:999px;background:linear-gradient(90deg,var(--lo-color-primary),#14b8a6)}
+.platform-analysis-page>.page-header:after{content:"";display:block;width:42px;height:2px;margin-top:8px;border-radius:999px;background:linear-gradient(90deg,var(--lo-color-primary),var(--surface-brand-400))}
 .platform-registry-card .data-table thead th,.platform-owner-users .data-table thead th{
   background:linear-gradient(180deg,color-mix(in srgb,var(--lo-color-primary) 7%,var(--lo-color-surface)),color-mix(in srgb,var(--lo-color-primary) 3%,var(--lo-color-surface)));
 }
-.platform-form-section>header{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--lo-color-primary) 70%,#14b8a6);padding-left:10px}
+.platform-form-section>header{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--lo-color-primary) 70%,var(--shadow-brand-400));padding-left:10px}
 
 
 /* Platform registry page header — consistent action placement */
@@ -504,7 +502,7 @@
 .page:has(.platform-registry-shell)>.page-header>div:last-child:not(:first-child){grid-area:actions;justify-self:end;align-self:start;display:flex;align-items:center;justify-content:flex-end;gap:7px;margin:0}
 
 /* Remove the detached accent dash from registry headers. */
-.page:has(.platform-registry-shell)>.page-header:after{content:none!important;display:none!important}
+.page:has(.platform-registry-shell)>.page-header:after{content:none!important;display:none}
 
 @media(max-width:760px){
   .page:has(.platform-registry-shell)>.page-header{grid-template-columns:1fr;grid-template-areas:"copy" "actions";row-gap:9px}
@@ -585,9 +583,9 @@
 
 @media print{
   .analysis-header .analysis-actions,.analysis-sticky{display:none!important}
-  .analysis-workspace,.analysis-scroll{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
+  .analysis-workspace,.analysis-scroll{height:auto!important;min-height:0!important;overflow:visible!important;background:var(--lo-color-surface)!important}
   .analysis-report{max-width:none!important;margin:0!important;padding:0!important}
-  .analysis-section-title{margin-bottom:14px!important;padding-bottom:8px!important;border-bottom:1px solid #d9e0e7!important}
+  .analysis-section-title{margin-bottom:14px!important;padding-bottom:8px!important;border-bottom:1px solid var(--border-brand-878-4)!important}
   .analysis-chart-card{break-inside:avoid;page-break-inside:avoid;box-shadow:none!important}
   .analysis-chart-grid{break-inside:auto}
 }
@@ -646,7 +644,7 @@
   justify-content:center!important;
 }
 @media(max-width:1180px){
-  .platform-analysis-page .analysis-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .platform-analysis-page .analysis-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 @media(max-width:760px){
   .platform-analysis-page .analysis-tabs{display:flex!important;overflow-x:auto!important}
@@ -668,28 +666,28 @@
     max-height:none!important;
     overflow:visible!important;
     transform:none!important;
-    background:#fff!important;
+    background:var(--lo-color-surface)!important;
   }
   .topbar,.sidebar,.preview-banner,.platform-analysis-page>.page-header,
   .platform-analysis-page .analysis-sticky,.analysis-actions,.analysis-print-popover{display:none!important}
   .platform-analysis-page .analysis-report{
     display:block!important;visibility:visible!important;opacity:1!important;
     width:100%!important;max-width:none!important;height:auto!important;overflow:visible!important;
-    margin:0!important;padding:0!important;color:#111827!important;background:#fff!important;
+    margin:0!important;padding:0!important;color:var(--text-brand-110)!important;background:var(--lo-color-surface)!important;
   }
   .platform-analysis-page .analysis-report *{visibility:visible!important}
   .platform-analysis-page .analysis-section-title{display:block!important}
-  .platform-analysis-page .analysis-chart-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .platform-analysis-page .analysis-chart-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important}
   .platform-analysis-page .analysis-chart-card{
     display:block!important;break-inside:avoid!important;page-break-inside:avoid!important;
-    border:1px solid #d9e0e7!important;background:#fff!important;box-shadow:none!important;
+    border:1px solid var(--border-brand-878-4)!important;background:var(--lo-color-surface)!important;box-shadow:none!important;
   }
   .platform-analysis-page svg{display:block!important;max-width:100%!important}
 }
 /* Demo duration: one bordered control with the unit inside, not a narrow input in a wide frame. */
 .platform-settings-page .platform-settings-duration-control{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;max-width:260px}
 .platform-settings-page .platform-settings-duration-control input{max-width:none!important;width:100%;border:0!important;border-radius:0!important;box-shadow:none!important;outline:0}
-.platform-settings-page .platform-settings-duration-control:focus-within{border-color:#2582bd!important;box-shadow:0 0 0 3px rgba(37,130,189,.15)}
+.platform-settings-page .platform-settings-duration-control:focus-within{border-color:var(--border-brand-443)!important;box-shadow:0 0 0 3px rgba(37,130,189,.15)}
 
 /* Owner registries: summary tiles and governance notes sit inside the card with the same inset as the filter bar. */
 .platform-registry-shell>.platform-governance{margin:14px 16px;width:auto}
@@ -782,10 +780,10 @@
   padding:0 18px!important;
   vertical-align:middle!important;
   text-align:left!important;
-  background:#f7f9fb!important;
+  background:var(--surface-muted)!important;
   border:0!important;
   border-bottom:1px solid var(--lo-color-border)!important;
-  color:#5b6e84!important;
+  color:var(--text-neutral-437-2)!important;
   font-size:10px!important;
   font-weight:800!important;
   line-height:1.2!important;
@@ -817,9 +815,9 @@
   padding:9px 18px!important;
   vertical-align:middle!important;
   border:0!important;
-  border-bottom:1px solid #edf1f4!important;
+  border-bottom:1px solid var(--border-faint)!important;
   background:transparent!important;
-  color:#314a67!important;
+  color:var(--text-brand-298)!important;
   font-size:11.5px!important;
   line-height:1.3!important;
 }
@@ -842,7 +840,7 @@
 .controls-surface .data-table tbody tr:hover td,
 .production-surveillance-workspace .data-table tbody tr:hover td,
 .record-tab-panel .data-table tbody tr:hover td{
-  background:#f8fafc!important;
+  background:var(--surface-soft)!important;
 }
 
 .registry-workspace .data-table td strong,
@@ -852,7 +850,7 @@
 .controls-surface .data-table td strong,
 .production-surveillance-workspace .data-table td strong,
 .record-tab-panel .data-table td strong{
-  color:#17395c!important;
+  color:var(--text-brand-225)!important;
   font-weight:750!important;
 }
 
@@ -864,7 +862,7 @@
 .production-surveillance-workspace .data-table td small,
 .record-tab-panel .data-table td small{
   margin-top:2px!important;
-  color:#606e7c!important;
+  color:var(--text-neutral-431-7)!important;
   font-size:10px!important;
 }
 
@@ -888,7 +886,7 @@
   border-top:1px solid var(--lo-color-border)!important;
   border-radius:0!important;
   background:var(--lo-color-surface)!important;
-  color:#66788d!important;
+  color:var(--text-neutral-476)!important;
   font-size:11.5px!important;
 }
 
@@ -906,7 +904,7 @@
 }
 .registry-pagination-controls label>span{
   margin:0!important;
-  color:#566b82!important;
+  color:var(--text-neutral-424)!important;
   font-size:11px!important;
   font-weight:750!important;
   white-space:nowrap!important;
@@ -921,7 +919,7 @@
   border:1px solid var(--lo-color-border)!important;
   border-radius:8px!important;
   background:var(--lo-color-surface)!important;
-  color:#314a67!important;
+  color:var(--text-brand-298)!important;
   font-size:11.5px!important;
 }
 .registry-pagination-controls button{
@@ -934,7 +932,7 @@
   border:1px solid var(--lo-color-border)!important;
   border-radius:8px!important;
   background:var(--lo-color-surface)!important;
-  color:#607a96!important;
+  color:var(--text-neutral-482-2)!important;
   display:grid!important;
   place-items:center!important;
   font-size:15px!important;
@@ -974,14 +972,14 @@
 
 
 /* Surveillance grouping: one divider before independent samples; follow-ups stay nested. */
-.surveillance-independent-samples{border-top:3px solid var(--lo-color-border-strong,#b9ccdc)}
+.surveillance-independent-samples{border-top:3px solid var(--lo-color-border-strong)}
 .surveillance-independent-samples>[data-sample-root]:first-child>.surveillance-tree-sample:first-child{border-top:0!important}
 .surveillance-sample-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;overflow:visible;min-width:286px;margin-left:auto}
 .surveillance-sample-actions>em{min-width:72px;text-align:center}
 .sample-followup-action{min-width:118px;justify-content:center}
 .sample-start-action{min-width:145px;justify-content:center}
-.clinical-stage-action{font-weight:700!important;border-color:var(--lo-color-primary,#2176a9)!important;color:var(--lo-color-primary,#17658f)!important;background:var(--lo-color-primary-soft,#eef7fc)!important;box-shadow:0 1px 2px rgba(15,56,82,.08)}
-.clinical-stage-action:hover{background:var(--lo-color-primary-soft-hover,#e2f2fa)!important}
+.clinical-stage-action{font-weight:700!important;border-color:var(--lo-color-primary)!important;color:var(--lo-color-primary)!important;background:var(--lo-color-primary-soft)!important;box-shadow:0 1px 2px rgba(15,56,82,.08)}
+.clinical-stage-action:hover{background:var(--lo-color-primary-soft-hover,var(--surface-brand-933-2))!important}
 
 /* Independent root samples align with surveillance episode rows; only follow-ups indent. */
 .surveillance-independent-samples .surveillance-tree-sample.is-unlinked:not(.is-followup)>span:first-child{padding-left:14px}
@@ -990,7 +988,7 @@
 .data-table td.nowrap-cell{white-space:nowrap}
 .canonical-metric-card-interactive:hover{border-color:color-mix(in srgb,var(--lo-color-primary) 45%,var(--lo-color-border))!important}
 .canonical-metric-card-interactive[aria-pressed="true"]{border-color:var(--lo-color-primary)!important;box-shadow:inset 0 0 0 1px var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 6%,var(--lo-color-surface))!important}
-.data-table td.indicator-result-cell.onTarget strong{color:#28754b!important}.data-table td.indicator-result-cell.attention strong{color:#a13d3d!important}.indicator-result-cell small.indicator-target{font-weight:700;color:#4a5f6c}.indicator-approval-none{color:#9aa7b1;font-weight:700}
+.data-table td.indicator-result-cell.onTarget strong{color:var(--text-success-308)!important}.data-table td.indicator-result-cell.attention strong{color:var(--text-danger-435)!important}.indicator-result-cell small.indicator-target{font-weight:700;color:var(--text-neutral-357)}.indicator-approval-none{color:var(--text-neutral-649);font-weight:700}
 .pharmacy-workspace.workspace-fill{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
 /* Pharmacy lists: the standard registry (one frame, the table flush inside it). */
 .pharmacy-workspace>.scroll-table{flex:1 1 0;min-height:0;overflow:auto}
@@ -1000,15 +998,9 @@
 /* Platform Center home: the brand stands where the breadcrumb is on inner pages. */
 
 /* Help Center › Manuals (Platform Owner): download or share the PDF manuals. */
-.manual-download-list{display:grid;gap:14px;max-width:820px}
-.manual-download-card{display:grid;gap:12px;padding:16px 18px;border:1px solid var(--lo-color-border,#dde3ec);border-radius:12px;background:#fff}
-.manual-download-head{display:flex;align-items:center;gap:12px;color:#1f5f93}
-.manual-download-head p{display:grid;gap:2px;margin:0;color:var(--lo-color-text,#172033)}
-.manual-download-head small{color:#64748b;font-size:11.5px}
-.manual-download-link{width:100%;height:34px;padding:0 10px;border:1px solid var(--lo-color-border,#dde3ec);border-radius:8px;background:#f7f9fb;font:inherit;font-size:12px;color:#334155}
-.manual-download-actions{display:flex;flex-wrap:wrap;gap:8px}
+.manual-download-head p{display:grid;gap:2px;margin:0;color:var(--lo-color-text)}
+.manual-download-head small{color:var(--text-subtle);font-size:11.5px}
 .manual-download-actions .button{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
-.manual-download-note{max-width:820px;margin-top:14px!important;font-size:12px}
 
 /* One field-title style everywhere: form labels (Field, TimeField, ManualDateField,
    FilterSelect) and read-only detail labels (RecordDetailsGrid, Detail) look the same.
@@ -1018,7 +1010,7 @@
   display:block!important;
   margin:0 0 6px!important;
   padding:0!important;
-  color:#607588!important;
+  color:var(--text-neutral-455)!important;
   font-size:10px!important;
   font-weight:750!important;
   line-height:1.3!important;
@@ -1029,10 +1021,10 @@
 
 /* One section heading for every record tab. :is(#lo-section-header-scope) only
    raises specificity so this wins over the older per-screen heading rules. */
-:is(.lo-section-header,#lo-section-header-scope){display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin-bottom:12px!important;padding-bottom:10px!important;border:0!important;border-bottom:1px solid #e5ebf0!important;background:none!important}
+:is(.lo-section-header,#lo-section-header-scope){display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin-bottom:12px!important;padding-bottom:10px!important;border:0!important;border-bottom:1px solid var(--border-brand-920)!important;background:none!important}
 :is(.lo-section-header,#lo-section-header-scope) .lo-section-header-copy{min-width:0}
-:is(.lo-section-header,#lo-section-header-scope) h3{margin:0!important;padding:0!important;border:0!important;color:#173650!important;font-size:16px!important;font-weight:750!important;line-height:1.3!important}
-:is(.lo-section-header,#lo-section-header-scope) p{margin:3px 0 0!important;color:#4f6477!important;font-size:11.5px!important;line-height:1.4!important}
+:is(.lo-section-header,#lo-section-header-scope) h3{margin:0!important;padding:0!important;border:0!important;color:var(--text-brand-202)!important;font-size:16px!important;font-weight:750!important;line-height:1.3!important}
+:is(.lo-section-header,#lo-section-header-scope) p{margin:3px 0 0!important;color:var(--text-neutral-388)!important;font-size:11.5px!important;line-height:1.4!important}
 :is(.lo-section-header-bare,#lo-section-header-scope).lo-section-header-bare{justify-content:flex-end!important}
 :is(.lo-section-header,#lo-section-header-scope) .lo-section-header-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;flex:none}
 
@@ -1053,7 +1045,7 @@
 .month-field-controls{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:8px}
 /* Prevention forms: every field title in the shared field-label style (no
    uppercase or oversized variants per editor). */
-:is(.prevention-record-shell,.vaccination-editor) :is(label,.field)>span:first-child:is(span,#lo-prevention-label){display:block!important;margin:0 0 6px!important;padding:0!important;color:#607588!important;font-size:10px!important;font-weight:750!important;line-height:1.3!important;letter-spacing:0!important;text-transform:none!important}
+:is(.prevention-record-shell,.vaccination-editor) :is(label,.field)>span:first-child:is(span,#lo-prevention-label){display:block!important;margin:0 0 6px!important;padding:0!important;color:var(--text-neutral-455)!important;font-size:10px!important;font-weight:750!important;line-height:1.3!important;letter-spacing:0!important;text-transform:none!important}
 /* Prevention editors fit one screen: tighter section spacing, the receipt
    fields of a waste measurement in one row. */
 .prevention-record-shell :is(.waste-form-section,.antiseptic-form-section,.who-smart-card):is(section,#lo-prevention-form){padding:14px 18px!important}
@@ -1093,18 +1085,18 @@
 /* ==== record view (RecordMetricStrip + RecordDetailsGrid sheet) ==== */
 .record-view-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
 .record-view-stack>section{display:flex;flex-direction:column;min-width:0}
-.record-metric-strip{display:grid;grid-template-columns:repeat(var(--metric-count,4),minmax(0,1fr));border:1px solid #e2e9ef;border-radius:11px;background:#fff;overflow:hidden}
-.record-metric{min-width:0;padding:12px 16px;border-right:1px solid #e8edf2}
+.record-metric-strip{display:grid;grid-template-columns:repeat(var(--metric-count,4),minmax(0,1fr));border:1px solid var(--border-brand-912);border-radius:11px;background:var(--lo-color-surface);overflow:hidden}
+.record-metric{min-width:0;padding:12px 16px;border-right:1px solid var(--border-neutral-929)}
 .record-metric:last-child{border-right:0}
 .record-metric>.lo-field-label:is(span,#lo-metric){margin-bottom:4px!important}
-.record-metric>strong{display:flex;align-items:baseline;gap:4px;color:#17395c;font-size:22px;font-weight:800;line-height:1.15}
-.record-metric>strong>small{font-size:11px;font-weight:700;color:#5b6e84}
-.record-metric>em{display:block;margin-top:3px;font-style:normal;font-size:11px;color:#4f6477}
-.record-metric.is-primary{background:#f1f7fb}
-.record-metric.is-primary>strong{color:#1f5f8b}
-.record-metric.is-danger>strong{color:#b42318}
-.record-metric.is-warning>strong{color:#9a5b00}
-.record-metric.is-success>strong{color:#1f7a4d}
+.record-metric>strong{display:flex;align-items:baseline;gap:4px;color:var(--text-brand-225);font-size:22px;font-weight:800;line-height:1.15}
+.record-metric>strong>small{font-size:11px;font-weight:700;color:var(--text-neutral-437-2)}
+.record-metric>em{display:block;margin-top:3px;font-style:normal;font-size:11px;color:var(--text-neutral-388)}
+.record-metric.is-primary{background:var(--surface-neutral-965-3)}
+.record-metric.is-primary>strong{color:var(--text-brand-333)}
+.record-metric.is-danger>strong{color:var(--text-danger)}
+.record-metric.is-warning>strong{color:var(--text-warning-302)}
+.record-metric.is-success>strong{color:var(--text-success-300)}
 .record-metric>.lo-meter{margin-top:7px}
 /* PeriodStepper.jsx: «‹ September 2026 ›», as tall as the other controls. */
 .lo-period-stepper{display:inline-flex;align-items:center;height:36px;box-sizing:border-box;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-sm,9px);background:var(--lo-color-surface);overflow:hidden}
@@ -1121,18 +1113,18 @@
 :is(.register-indicator-actions,.register-sheet-actions,.filter-end) .lo-icon-button{width:36px!important;min-width:36px!important}
 .filter-end{flex-wrap:nowrap}
 /* Mini charts (MiniCharts.jsx): a meter and a sparkline that sit inside cells and cards. */
-.lo-meter{display:block;width:100%;max-width:180px;height:6px;border-radius:999px;background:#e8eef3;overflow:hidden}
-.lo-meter>i{display:block;height:100%;border-radius:999px;background:#2a78d6}
-.lo-meter.is-success>i{background:#2f8a57}
-.lo-meter.is-warning>i{background:#d08a00}
-.lo-meter.is-danger>i{background:#c8372d}
+.lo-meter{display:block;width:100%;max-width:180px;height:6px;border-radius:999px;background:var(--surface-brand-931);overflow:hidden}
+.lo-meter>i{display:block;height:100%;border-radius:999px;background:var(--surface-brand-502)}
+.lo-meter.is-success>i{background:var(--surface-success-363-2)}
+.lo-meter.is-warning>i{background:var(--surface-warning-408)}
+.lo-meter.is-danger>i{background:var(--surface-danger-480)}
 td>.lo-meter{margin-top:5px}
 .lo-sparkline{display:block;overflow:visible}
-.lo-sparkline-target{stroke:#8a96a3;stroke-width:1;stroke-dasharray:3 3}
-.record-view-stack .record-details-grid:is(.detail-grid,#lo-record-sheet){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;margin:0!important;padding:0!important;border:1px solid #e2e9ef!important;border-radius:11px!important;background:#fff!important;overflow:hidden}
-.record-view-stack .record-details-grid>.detail-item:is(div,#lo-record-sheet){min-width:0;padding:10px 16px!important;border:0!important;border-right:1px solid #e8edf2!important;border-bottom:1px solid #e8edf2!important;background:transparent!important}
+.lo-sparkline-target{stroke:var(--fill-neutral-590);stroke-width:1;stroke-dasharray:3 3}
+.record-view-stack .record-details-grid:is(.detail-grid,#lo-record-sheet){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;margin:0!important;padding:0!important;border:1px solid var(--border-brand-912)!important;border-radius:11px!important;background:var(--lo-color-surface)!important;overflow:hidden}
+.record-view-stack .record-details-grid>.detail-item:is(div,#lo-record-sheet){min-width:0;padding:10px 16px!important;border:0!important;border-right:1px solid var(--border-neutral-929)!important;border-bottom:1px solid var(--border-neutral-929)!important;background:transparent!important}
 .record-view-stack .record-details-grid>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:0!important}
-.record-view-stack .record-details-grid>.detail-item>strong{display:block;color:#17395c;font-size:13px;font-weight:700;overflow-wrap:anywhere}
+.record-view-stack .record-details-grid>.detail-item>strong{display:block;color:var(--text-brand-225);font-size:13px;font-weight:700;overflow-wrap:anywhere}
 .record-view-stack .record-details-grid>.detail-item.is-wide:is(div,#lo-record-sheet){grid-column:1/-1;border-right:0!important}
 .record-view-stack .record-details-grid>.detail-item.is-wide>strong{font-weight:500;white-space:pre-wrap}
 @media(max-width:1000px){.record-view-stack .record-details-grid:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(2,minmax(0,1fr))!important}.record-metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -1143,13 +1135,13 @@ td>.lo-meter{margin-top:5px}
 .prevention-record-shell .record-view-stack>section:is(section,#lo-record-sheet){margin-right:0!important}
 .record-view-stack .record-details-grid>.detail-item:is(div,#lo-record-sheet){border-radius:0!important;box-shadow:none!important;margin:0!important}
 .record-view-stack .record-details-grid.record-details-cols-5:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(5,minmax(0,1fr))!important}
-.record-view-stack .record-details-cols-5>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid #e8edf2!important}
+.record-view-stack .record-details-cols-5>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid var(--border-neutral-929)!important}
 .record-view-stack .record-details-cols-5>.detail-item:nth-child(5n):is(div,#lo-record-sheet){border-right:0!important}
 /* Bundle results as compact rows (the record fits one screen). */
 .prevention-record-shell .record-view-stack .bundle-detail-row:is(div,#lo-record-sheet){min-height:40px!important;padding:6px 0!important}
 .prevention-record-shell .record-view-stack .bundle-detail-index:is(span,#lo-record-sheet){width:24px!important;height:24px!important}
 .record-view-stack .record-details-grid.record-details-cols-6:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(6,minmax(0,1fr))!important}
-.record-view-stack .record-details-cols-6>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid #e8edf2!important}
+.record-view-stack .record-details-cols-6>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid var(--border-neutral-929)!important}
 .record-view-stack .record-details-cols-6>.detail-item:nth-child(6n):is(div,#lo-record-sheet){border-right:0!important}
 
 /* New control: one row of identity fields, the department chips scroll in a
@@ -1196,24 +1188,24 @@ td>.lo-meter{margin-top:5px}
 /* A metric whose value is words (status · date): one smaller line, ellipsised, full text on hover. */
 .canonical-metric-card-text .canonical-metric-copy{min-width:0!important}
 .canonical-metric-card.canonical-metric-card-text .canonical-metric-copy>strong{font-size:13px!important;line-height:1.3!important;font-weight:700!important;letter-spacing:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;max-width:100%}
-.field-label-note{font-weight:500;color:var(--lo-color-muted,#6b7c8c);text-transform:none;letter-spacing:0}
+.field-label-note{font-weight:500;color:var(--lo-color-muted);text-transform:none;letter-spacing:0}
 /* A record tab's save bar sits inside the card, its buttons at the right edge like the other forms. */
-.record-tab-panel>.inline-edit-footer{flex:0 0 auto;margin:0!important;padding:12px 16px 14px!important;border-top:1px solid var(--lo-color-border,#e2e8ee)!important;background:var(--lo-color-surface,#fff);position:sticky;bottom:0;z-index:2}
+.record-tab-panel>.inline-edit-footer{flex:0 0 auto;margin:0!important;padding:12px 16px 14px!important;border-top:1px solid var(--lo-color-border)!important;background:var(--lo-color-surface);position:sticky;bottom:0;z-index:2}
 /* Forms never save empty (design-system/FormValidation): «*» on a required
    label; once the form was submitted, the missing field is marked and its
    message sits under it; beside the primary button (which looks disabled while
    something is missing) one line says what: «Συμπληρώστε: Τμήμα, Ημερομηνία». */
-.lo-required-mark::after{content:"\00a0*";color:#b33a3a;font-weight:800}
-[data-invalid="true"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.multi-select-button){border-color:#c24a4a!important;box-shadow:0 0 0 3px rgba(194,74,74,.1)!important}
-[data-invalid="true"] .lo-choice-chips-list>button{border-color:#d99494}
+.lo-required-mark::after{content:"\00a0*";color:var(--text-danger-465-4);font-weight:800}
+[data-invalid="true"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.multi-select-button){border-color:var(--border-danger-525)!important;box-shadow:0 0 0 3px rgba(194,74,74,.1)!important}
+[data-invalid="true"] .lo-choice-chips-list>button{border-color:var(--border-danger-716)}
 [data-invalid="true"]>.field-error{display:block;margin-top:2px;font-weight:650}
-.form-missing-summary{margin:0;flex:0 1 auto;min-width:0;text-align:right;font-size:11px;line-height:1.35;color:var(--lo-color-muted,#5f6f7c)}
-.form-missing-summary.is-attempted{color:#8a3434}
+.form-missing-summary{margin:0;flex:0 1 auto;min-width:0;text-align:right;font-size:11px;line-height:1.35;color:var(--lo-color-muted)}
+.form-missing-summary.is-attempted{color:var(--text-danger-373)}
 .form-missing-summary strong{font-weight:750}
 .button.is-blocked{opacity:.55;cursor:not-allowed}
 /* A read-only value in a form row (ReadOnlyField): as tall as an input, label above, helper below. */
 .lo-readonly-field{display:flex;flex-direction:column;gap:6px;min-width:0}
-.lo-readonly-field-value{box-sizing:border-box;min-height:var(--lo-field-height);display:flex;align-items:center;padding:0 10px;border:1px dashed var(--lo-field-border);border-radius:var(--lo-field-radius);background:#f4f7f9;color:#263b4d;font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lo-readonly-field-value{box-sizing:border-box;min-height:var(--lo-field-height);display:flex;align-items:center;padding:0 10px;border:1px dashed var(--lo-field-border);border-radius:var(--lo-field-radius);background:var(--surface-neutral-967);color:var(--text-brand-225-3);font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* A form grid with helper or error text under some fields: every field starts at
    the top of its row (not at its bottom), so a message under one field does not
    push its label and box above the others of the row. */
@@ -1225,24 +1217,24 @@ td>.lo-meter{margin-top:5px}
 .field-with-message-label{display:flex;flex-direction:column;gap:6px;min-width:0}
 /* «Περισσότερα»: the secondary rows of a summary, folded (MoreSection). */
 .lo-more-section{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-.lo-more-section-toggle{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;padding:4px 2px;border:0;background:transparent;color:var(--lo-color-primary,#1f5f8b);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.lo-more-section-toggle{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;padding:4px 2px;border:0;background:transparent;color:var(--lo-color-primary);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
 .lo-more-section-toggle>svg{transition:transform .15s ease}
 .lo-more-section.is-open .lo-more-section-toggle>svg{transform:rotate(180deg)}
-.lo-more-section-toggle:focus-visible{outline:2px solid var(--lo-field-focus,#5b8db4);outline-offset:2px;border-radius:6px}
+.lo-more-section-toggle:focus-visible{outline:2px solid var(--lo-field-focus);outline-offset:2px;border-radius:6px}
 
 /* The surveillance tree takes the height of its content when the «outside admissions» list follows it. */
 .entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel).surveillance-tree-section:has(+.record-tab-panel){flex:0 0 auto!important}
 .entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel).surveillance-tree-section:has(+.record-tab-panel)>:is(.record-tab-panel-body,#lo-record-tab-panel-body){flex:0 0 auto!important;overflow:visible!important}
 
 /* Attachment field with nothing attached: one line, the button on the right. */
-.attachment-empty-row{display:flex;align-items:center;gap:10px;padding:4px 2px;color:var(--lo-color-muted,#5f6f7c);font-size:13px}
+.attachment-empty-row{display:flex;align-items:center;gap:10px;padding:4px 2px;color:var(--lo-color-muted);font-size:13px}
 .attachment-empty-row>span{flex:1 1 auto}
 .observer-dialog:focus{outline:none}
 
 /* Automatic translation: a quiet tag beside an English text the system translated. */
 .auto-translated-mark{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border:1px dashed var(--lo-color-border);border-radius:999px;color:var(--lo-color-muted);font-size:11px;font-weight:600;line-height:18px;white-space:nowrap;vertical-align:middle}
 /* «Στόχος» column of the indicators list: the year's objective, the default target in grey, or the button to set one. */
-.indicator-registry td small{display:block}.indicator-target-default{color:#566471;font-weight:700}.indicator-set-target{display:block;margin-top:2px;padding:0;border:0;background:none;color:#1d5fa8;font:inherit;font-size:12px;font-weight:600;cursor:pointer}.indicator-set-target:hover{text-decoration:underline}
+.indicator-registry td small{display:block}.indicator-target-default{color:var(--text-neutral-390);font-weight:700}.indicator-set-target{display:block;margin-top:2px;padding:0;border:0;background:none;color:var(--text-brand-386);font:inherit;font-size:12px;font-weight:600;cursor:pointer}.indicator-set-target:hover{text-decoration:underline}
 @media (hover:hover){.indicator-registry tr:not(:hover):not(:focus-within) .indicator-set-target{opacity:0}}
 
 .observer-dialog-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -1261,9 +1253,9 @@ button.registry-total.is-active{border-color:var(--accent);background:var(--lo-c
 /* Choices of a printout (PrintOptionsDialog). */
 .print-options{display:grid;gap:12px}
 /* A total judged against its target (owner, 8/11/2026). */
-.registry-total.is-good strong{color:#1f7a45}
-.registry-total.is-warning strong{color:#8a5a00}
-.registry-total.is-danger strong{color:#a32121}
+.registry-total.is-good strong{color:var(--text-success-300-2)}
+.registry-total.is-warning strong{color:var(--text-warning-271)}
+.registry-total.is-danger strong{color:var(--text-danger-384)}
 
 /* The owner's console: every page title on the same line (owner, 12/11/2026). The header was as tall as its tallest action
    (a 34–40px button), so the title sat at 76, 82 or 85px depending on the page: the title block is now one height

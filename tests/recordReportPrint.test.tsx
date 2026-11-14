@@ -118,7 +118,13 @@ describe('RecordReportPrint', () => {
     expect(css).toContain('font:10pt/1.45 Arial,Helvetica,sans-serif')
     expect(css).toContain('.record-report-signatures')
     const palette = ['#fff', '#17324a', '#1d3a52', '#5d7083', '#8a5a00', '#cbd8e3', '#f2f6f9', '#e3e9ef']
-    expect(css.match(/#[0-9a-f]{3,6}\b/gi).every(color => palette.includes(color.toLowerCase()))).toBe(true)
+    // Τα χρώματα είναι μεταβλητές (src/styles/tokens.css): η τιμή κάθε μεταβλητής ανήκει στην παλέτα.
+    const tokens = Object.fromEntries([...read('src/styles/tokens.css').matchAll(/(--[\w-]+):(#[0-9a-f]{3,8});/gi)].map(([, name, value]) => [name, value.toLowerCase()]))
+    const full = (hex: string) => (hex.length === 4 ? `#${[...hex.slice(1)].map(c => c + c).join('')}` : hex)
+    const colors = [...css.matchAll(/var\((--(?:text|surface|border|shadow|fill)-[\w-]+)\)/g)].map(([, name]) => tokens[name])
+    expect(css.match(/#[0-9a-f]{3,6}\b/gi)).toBeNull()
+    expect(colors.length).toBeGreaterThan(0)
+    expect(colors.every(color => color && palette.map(full).includes(color))).toBe(true)
   })
 
   it('shows the demo mark as plain words and the logo only as a data URL', () => {

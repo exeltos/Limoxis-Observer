@@ -1,0 +1,18 @@
+/* Λογαριασμός χρήστη: φορτώνεται με το AccountDrawer/AccountPage (όχι στο κέλυφος). */
+.account-shell{max-width:980px;display:grid;gap:12px}
+.account-identity{display:flex;align-items:center;gap:13px;padding:16px 18px;background:var(--lo-color-surface);border:1px solid var(--line);border-radius:12px}
+.account-avatar{width:42px;height:42px;border-radius:11px;background:var(--lo-color-primary-soft);color:var(--text-brand-324);display:grid;place-items:center;flex:0 0 auto}
+.account-identity-main{min-width:0;flex:1}
+.account-info-grid section{display:flex;align-items:center;gap:11px;padding:13px 15px;border:1px solid var(--line);border-radius:11px;background:var(--lo-color-surface);color:var(--text-brand-380)}
+.account-security{border:1px solid var(--line);border-radius:12px;background:var(--lo-color-surface);padding:15px 16px}
+.account-message{margin-top:9px;padding:8px 10px;border-radius:8px;background:var(--surface-neutral-967-4);font-size:9.5px;color:var(--text-brand-369)}
+@media(max-width:480px){.account-identity{align-items:flex-start}}
+.account-drawer-layer{position:fixed;inset:0;z-index:1200;background:rgba(18,37,52,.18);display:flex;justify-content:flex-end;animation:accountFadeIn .16s ease-out}
+.account-drawer{width:min(430px,calc(100vw - 20px));height:100%;background:var(--surface-muted);border-left:1px solid var(--line);box-shadow:-18px 0 45px rgba(23,52,73,.14);display:grid;grid-template-rows:auto minmax(0,1fr);animation:accountSlideIn .22s ease-out}
+.account-drawer-header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 18px 14px;background:var(--lo-color-surface);border-bottom:1px solid var(--line)}
+.account-drawer-identity{display:flex;align-items:center;gap:12px;padding:14px;background:var(--lo-color-surface);border:1px solid var(--line);border-radius:12px}
+.account-drawer-identity .account-identity-main{flex:1}
+.account-drawer-info{display:flex;align-items:center;gap:11px;padding:12px 13px;background:var(--lo-color-surface);border:1px solid var(--line);border-radius:11px;color:var(--text-brand-380)}
+.account-drawer-security{display:grid;gap:11px;padding:14px;background:var(--lo-color-surface);border:1px solid var(--line);border-radius:12px}
+.account-drawer-security label>span{margin-bottom:5px}
+@media(max-width:560px){.account-drawer{width:100vw}.account-drawer-layer{background:var(--surface-muted)}.account-drawer-header{padding-top:max(16px,env(safe-area-inset-top))}}

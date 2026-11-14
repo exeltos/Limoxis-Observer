@@ -1,3 +1,4 @@
+import './helpCenter.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, CheckCircle2, FileDown, ChevronLeft, ChevronRight, GraduationCap, Info, Rocket, Search, ShieldCheck, Sparkles, Users, X } from 'lucide-react'
 import { APP_VERSION, BUILD_ID } from '../version'

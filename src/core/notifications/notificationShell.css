@@ -1,0 +1,33 @@
+/* Ειδοποιήσεις και ενημέρωση σύνδεσης: φορτώνεται με τα lazy παράθυρά τους (όχι στο κέλυφος). */
+.notification-popover{position:absolute;right:0;top:42px;width:390px;max-height:520px;z-index:80;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--lo-color-surface);box-shadow:0 18px 48px rgba(31,48,64,.18);overflow:hidden}
+.notification-list{overflow:auto}
+.notification-row{width:100%;display:grid;grid-template-columns:30px minmax(0,1fr) 14px;gap:8px;align-items:start;padding:10px 11px;border:0;border-bottom:1px solid var(--border-faint);background:var(--lo-color-surface);text-align:left;color:inherit}
+.notification-row:hover{background:var(--surface-soft)}
+.notification-row.unread{background:var(--surface-neutral-975-3)}
+.notification-type{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:var(--surface-neutral-949-4);color:var(--text-brand-351-2)}
+.notification-type.announcement{background:var(--surface-accent-959);color:var(--text-accent-478)}
+.notification-empty{padding:28px;text-align:center;font-size:9px;color:var(--muted)}
+@media(max-width:900px){.notification-popover{position:fixed;right:12px;left:12px;top:64px;width:auto}}
+.notification-empty{display:grid;justify-items:center;gap:4px}
+.birthday-popup-backdrop{z-index:120}
+.birthday-popup{width:min(500px,calc(100vw - 34px));display:grid;justify-items:center;text-align:center;padding:28px 30px;border:1px solid var(--border-warning-822);border-radius:16px;background:linear-gradient(145deg,var(--surface-neutral-986-3),var(--surface-warning-955));box-shadow:0 24px 70px rgba(53,45,21,.2);overflow:hidden;position:relative}
+.birthday-confetti{position:absolute;top:12px;left:18px;right:18px;color:var(--text-warning-508);letter-spacing:18px;font-size:15px;opacity:.65}
+.birthday-icon{width:58px;height:58px;display:grid;place-items:center;margin:8px 0 12px;border-radius:18px;background:var(--surface-warning-894);color:var(--text-warning-375)}
+.birthday-wish{margin-top:7px;font-size:9px;color:var(--text-warning-375-2)}
+.notification-close-v2:hover{background:var(--surface-neutral-957-2)!important}
+.notification-shortcuts-v2 button svg{flex:0 0 auto!important}
+.notification-list-v2{overflow:auto!important;background:var(--lo-surface-soft)!important}
+.notification-row-v2:hover{background:var(--surface-neutral-961-2)!important}
+.notification-type-v2.announcement{
+  background:var(--surface-neutral-961-5)!important;
+  color:var(--text-brand-455)!important;
+}
+.notification-chevron-v2{color:var(--text-brand-227-2)!important}
+.notification-empty-v2{
+  min-height:130px!important;
+  align-content:center!important;
+  background:var(--lo-surface-soft)!important;
+}
+@media(max-width:560px){.notification-shortcuts-v2{overflow-x:auto!important}}
+.login-briefing-dialog .briefing-navigation-row{width:100%;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:8px 12px;border:0;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface);text-align:left;color:var(--lo-color-text);cursor:pointer}
+.login-briefing-dialog .briefing-navigation-row:hover{background:var(--lo-shell-control-hover)}

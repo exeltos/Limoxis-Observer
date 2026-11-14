@@ -1,3 +1,4 @@
+import './liraShell.css'
 import { useEffect,useMemo,useState } from 'react'
 import { BrainCircuit,HelpCircle,Lightbulb,Maximize2,Minimize2,Send,Sparkles,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'

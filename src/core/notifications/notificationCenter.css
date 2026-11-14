@@ -1,8 +1,8 @@
 /* Inline decisions inside a notification row (acknowledge, accept, reject). */
 html body .notification-inline-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 html body .notification-inline-actions .button{min-height:30px!important;height:30px!important;padding:0 12px!important;font-size:12px!important;gap:6px;border-radius:8px}
-html body .notification-inline-actions .button.button-destructive{color:var(--danger,#b34f55)!important;border-color:color-mix(in srgb,var(--danger,#b34f55) 35%,transparent)!important;background:#fff!important}
-html body .notification-inline-actions .button.button-destructive:hover{background:color-mix(in srgb,var(--danger,#b34f55) 7%,#fff)!important}
+html body .notification-inline-actions .button.button-destructive{color:var(--danger)!important;border-color:color-mix(in srgb,var(--danger) 35%,transparent)!important;background:var(--lo-color-surface)!important}
+html body .notification-inline-actions .button.button-destructive:hover{background:color-mix(in srgb,var(--danger) 7%,var(--lo-color-surface))!important}
 .notification-row-v2.committee-membership-notification{cursor:default}
 html body .notification-row-v2.committee-membership-notification{align-items:start!important}
 
@@ -13,9 +13,9 @@ html body .login-briefing-dialog .committee-membership-notification strong{font-
 html body .login-briefing-dialog .committee-membership-notification small{font-size:12px!important;line-height:1.45!important;color:var(--lo-color-muted)!important}
 html body .login-briefing-dialog .briefing-navigation-row strong{font-size:13px!important}
 html body .login-briefing-dialog .briefing-navigation-row small{font-size:12px!important;line-height:1.45!important}
-html body .notification-inline-actions .button{display:inline-flex!important;width:auto!important;justify-content:center!important;align-items:center!important;grid-template-columns:none!important}
-html body .notification-inline-actions .button-secondary{border:1px solid var(--lo-color-border)!important;background:#fff!important;color:#1f3a52!important}
-html body .notification-inline-actions .button-secondary:hover{background:#f2f7fb!important}
+html body .notification-inline-actions .button{display:inline-flex!important;width:auto!important;justify-content:center!important;align-items:center!important;grid-template-columns:none}
+html body .notification-inline-actions .button-secondary{border:1px solid var(--lo-color-border)!important;background:var(--lo-color-surface)!important;color:var(--text-brand-222)!important}
+html body .notification-inline-actions .button-secondary:hover{background:var(--surface-neutral-967-3)!important}
 
 /* Login briefing, flat: a headline with a gentle motion, plain lists (no cards) and a rotating tip with a lightbulb. */
 @keyframes briefing-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -23,16 +23,16 @@ html body .notification-inline-actions .button-secondary:hover{background:#f2f7f
 @keyframes briefing-sparkle{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(12deg) scale(1.12)}}
 html body .login-briefing-dialog .briefing-hero{display:flex;align-items:center;gap:12px;margin:0;animation:briefing-rise .35s ease both}
 html body .login-briefing-dialog .briefing-hero p{margin:0;font-size:14px;font-weight:600;color:var(--lo-color-text)}
-html body .login-briefing-dialog .briefing-hero-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#e8f1fb;color:#1d5fa8}
+html body .login-briefing-dialog .briefing-hero-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--surface-brand-947);color:var(--text-brand-386)}
 html body .login-briefing-dialog .briefing-hero-icon svg{animation:briefing-sparkle 3.2s ease-in-out infinite}
 html body .login-briefing-dialog .briefing-flat{margin:4px 0 0;animation:briefing-rise .4s ease .08s both}
-html body .login-briefing-dialog .briefing-flat h3{margin:0 0 2px;font-size:13px;font-weight:700;color:#3b4a5a}
+html body .login-briefing-dialog .briefing-flat h3{margin:0 0 2px;font-size:13px;font-weight:700;color:var(--text-neutral-292)}
 html body .login-briefing-dialog .briefing-flat>.briefing-navigation-row,html body .login-briefing-dialog .briefing-flat>.committee-membership-notification{animation:briefing-rise .4s ease both}
 html body .login-briefing-dialog .briefing-flat>:nth-child(2){animation-delay:.12s}html body .login-briefing-dialog .briefing-flat>:nth-child(3){animation-delay:.18s}html body .login-briefing-dialog .briefing-flat>:nth-child(4){animation-delay:.24s}
-html body .login-briefing-dialog .briefing-tip{display:flex;align-items:center;gap:10px;margin:8px 0 0;padding:8px 12px;border-radius:14px;background:#fff8e6;animation:briefing-rise .4s ease .2s both}
-html body .login-briefing-dialog .briefing-tip-icon{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#fde9a8;color:#8a6100;animation:briefing-glow 2.8s ease-in-out infinite}
+html body .login-briefing-dialog .briefing-tip{display:flex;align-items:center;gap:10px;margin:8px 0 0;padding:8px 12px;border-radius:14px;background:var(--surface-warning-951);animation:briefing-rise .4s ease .2s both}
+html body .login-briefing-dialog .briefing-tip-icon{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--surface-warning-825);color:var(--text-warning-271-5);animation:briefing-glow 2.8s ease-in-out infinite}
 html body .login-briefing-dialog .briefing-tip-text{animation:briefing-rise .45s ease both}
-html body .login-briefing-dialog .briefing-tip-text strong{display:block;font-size:12px;color:#8a6100}
+html body .login-briefing-dialog .briefing-tip-text strong{display:block;font-size:12px;color:var(--text-warning-271-5)}
 html body .login-briefing-dialog .briefing-tip-text p{margin:2px 0 0;font-size:13px;line-height:1.5;color:var(--lo-color-text)}
 html body .login-briefing-dialog .briefing-footer-flat{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--lo-color-muted)}
 @media (prefers-reduced-motion:reduce){html body .login-briefing-dialog *{animation:none!important}}
