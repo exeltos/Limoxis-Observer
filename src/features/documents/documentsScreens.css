@@ -1,6 +1,5 @@
 /* color tokens: start */
 :root{
-  --border-brand-845-2:#c8dce7;
   --shadow-brand-486:#2284d6;
   --surface-brand-965:#edf6ff;
   --surface-brand-978:#f4f9ff;
@@ -14,7 +13,7 @@
 .patient-surveillance-clean .record-table{
   border-collapse:collapse!important;
 }
-.patient-surveillance-clean .record-table{width:100%!important;min-width:0!important;table-layout:fixed;margin:0!important}
+.patient-surveillance-clean .record-table{width:100%!important;min-width:0!important;table-layout:fixed!important;margin:0!important}
 .patient-surveillance-clean .record-table td{vertical-align:middle!important;padding-top:10px!important;padding-bottom:10px!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .patient-surveillance-clean .record-table tbody tr.clickable-row:hover{background:var(--surface-brand-978)!important}
 .patient-surveillance-clean .record-table tbody tr.is-selected{background:var(--surface-brand-965)!important;box-shadow:inset 3px 0 0 var(--shadow-brand-486)!important}

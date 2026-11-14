@@ -1,10 +1,3 @@
-/* color tokens: start */
-:root{
-  --surface-muted:#f7f9fb;
-  --text-brand-157:#16273a;
-  --text-brand-286-2:#34495e;
-}
-/* color tokens: end */
 /* Public page of the e-mailed minutes approval link */
 .minutes-approval-card .eyebrow{color:var(--muted)}
 .minutes-approval-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}

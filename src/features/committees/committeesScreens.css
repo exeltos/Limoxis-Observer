@@ -1,12 +1,3 @@
-/* color tokens: start */
-:root{
-  --border-brand-900-5:#dfe7ec;
-  --border-neutral-941:#edf1f3;
-  --border-neutral-947-5:#eff2f4;
-  --surface-neutral-971-3:#f5f8fa;
-  --surface-subtle:#fbfcfd;
-}
-/* color tokens: end */
 /* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
 .committee-member-inactive{opacity:.55}
 .committee-overview-grid{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:10px;align-items:start}

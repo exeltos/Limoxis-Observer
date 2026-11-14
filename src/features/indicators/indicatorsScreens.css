@@ -1,11 +1,3 @@
-/* color tokens: start */
-:root{
-  --border-brand-796-2:#b8cede;
-  --text-brand-386:#1d5fa8;
-  --text-neutral-390:#566471;
-  --text-success-308:#28754b;
-}
-/* color tokens: end */
 /* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
 .indicator-approval-pending{display:inline-flex;align-items:center;font-size:8.5px;font-weight:650;color:var(--muted)}
 .indicator-approval-approved{display:inline-flex;align-items:center;gap:4px;font-size:8.5px;font-weight:750;color:var(--text-success-308)}

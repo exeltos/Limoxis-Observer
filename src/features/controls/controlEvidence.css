@@ -1,9 +1,3 @@
-/* color tokens: start */
-:root{
-  --text-heading:#1d3a52;
-  --text-inverse:#ffffff;
-}
-/* color tokens: end */
 /* Control criticality, evidence and deviation actions. */
 /* A plain checkbox beside the criticality field, not a framed option tile. */
 .control-evidence-section{display:grid;gap:8px;margin-top:12px;padding:12px 14px;border:1px dashed var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface-muted)}

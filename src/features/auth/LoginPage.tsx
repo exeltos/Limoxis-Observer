@@ -1,3 +1,4 @@
+import './authPages.css'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { AlertCircle, ArrowRight, Building2, CheckCircle2, Eye, EyeOff, Info, Languages, Lock, ShieldCheck, User } from 'lucide-react'

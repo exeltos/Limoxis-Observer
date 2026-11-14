@@ -43,11 +43,11 @@
 }
 /* The round spinner (owner, 8/11/2026). Inside the app the one spinner is the screen's (AppShell: .content.is-loading);
    a page placeholder outside it (sign-in, public pages) shows its own. */
-.loading-spinner{color:var(--lo-color-primary,#1f5fa8);animation:loading-spin .9s linear infinite}
+.loading-spinner{color:var(--lo-color-primary);animation:loading-spin .9s linear infinite}
 @keyframes loading-spin{to{transform:rotate(360deg)}}
 .page-loading-own-spinner{align-self:center;margin-top:12vh}
 .content .page-loading-own-spinner{display:none}
 .content-loading-spinner{position:absolute;z-index:30;top:0;left:0;right:0;display:flex;justify-content:center;padding-top:min(22vh,180px);pointer-events:none;opacity:0;animation:loading-skeleton-in .2s ease-out .12s forwards}
-.content-loading-spinner .loading-spinner{padding:10px;box-sizing:content-box;border-radius:50%;background:var(--lo-color-surface,#fff);box-shadow:0 4px 18px rgba(16,40,70,.16)}
+.content-loading-spinner .loading-spinner{padding:10px;box-sizing:content-box;border-radius:50%;background:var(--lo-color-surface);box-shadow:0 4px 18px rgba(16,40,70,.16)}
 .content.is-loading{position:relative}
 .content.is-loading>:not(.content-loading-spinner){pointer-events:none;user-select:none;opacity:.28;transition:opacity .15s ease .12s}

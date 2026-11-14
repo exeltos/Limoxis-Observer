@@ -1,3 +1,4 @@
+import './account.css'
 import { useState } from 'react'
 import { Eye, EyeOff, KeyRound, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { Page } from '../../design-system/Page'
