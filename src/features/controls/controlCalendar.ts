@@ -22,7 +22,7 @@ type CalendarEntry = Pick<ControlExecution, 'at'> & Partial<Pick<ControlExecutio
 // A department's assignment as the calendar reads it.
 type CalendarAssignment = { dbId?: string, frequency?: ControlFrequency | null, history?: CalendarEntry[], createdAt?: string | null, nextDueAt?: string | null, status?: string }
 // The calendar page passes the records of its sources, as they come.
-export type CalendarControl = Partial<Pick<ControlRecord, 'id' | 'title' | 'frequency' | 'createdAt'>> & { assignments?: Record<string, CalendarAssignment> }
+export type CalendarControl = Partial<Pick<ControlRecord, 'id' | 'title' | 'titleEn' | 'category' | 'responseConfig' | 'frequency' | 'createdAt'>> & { assignments?: Record<string, CalendarAssignment> }
 export type CalendarLine = { item: CalendarControl, department: string, frequency: ControlFrequency | undefined, months: CalendarCell[] }
 
 const MAX_STEPS = 400

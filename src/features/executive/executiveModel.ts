@@ -3,10 +3,30 @@
 // and traffic light, the control ranking by department and the list of what
 // needs attention. The snapshot shape is the Analysis one
 // ({domains, microbiology, clusters}), so production and demo read the same.
-import type { AnyRecord } from '../../types/featureTypes'
-
+// The snapshot: each domain's figures (counts, and lists of [label, count, …] rows), the
+// microbiology figures and the active clusters. The Analysis assembles it from many reads.
+export type ExecFigures = Record<string, unknown>
+export type ExecSnapshot = { domains?: Record<string, ExecFigures>, microbiology?: ExecFigures, clusters?: unknown[] }
 // A headline measure (id, label, value, unit, target, tone, hint…) as measures() builds it.
-export interface ExecKpi extends AnyRecord { label: [string, string], hint?: [string, string], missing?: [string, string] | null }
+export interface ExecKpi {
+ id: string
+ label: [string, string]
+ hint?: [string, string]
+ missing?: [string, string] | null
+ value: number | null
+ unit?: string
+ target?: string
+ tone: string
+ alert?: string | null
+ status?: string
+ modules?: string[]
+ parts?: string[]
+ pointInTime?: boolean
+ better?: string
+ tab?: string
+ delta?: ReturnType<typeof delta>
+ separate?: boolean
+}
 export interface ExecFilters { period: string, from: string, to: string, department: string, compare: boolean }
 export interface DayRange { from: string, to: string }
 type Counted = [string, unknown]
@@ -72,10 +92,10 @@ export function filtersToQuery(filters: Partial<ExecFilters>){
 
 const num=(value: unknown): number|null=>{if(value==null||value==='')return null;const n=Number(value);return Number.isFinite(n)?n:null}
 export const pct=(part: unknown,whole: unknown)=>{const p=num(part),w=num(whole);return w?Math.round(Number(p)/w*1000)/10:null}
-const mdro=(micro: AnyRecord|null|undefined)=>((micro?.resistance||[]) as Counted[]).filter(([key])=>['MDR','XDR','PDR'].includes(key)).reduce((sum,[,n])=>sum+(Number(n)||0),0)
+const mdro=(micro: ExecFigures|null|undefined)=>((micro?.resistance||[]) as Counted[]).filter(([key])=>['MDR','XDR','PDR'].includes(key)).reduce((sum,[,n])=>sum+(Number(n)||0),0)
 // The one MDR count of every screen: patients with a multidrug-resistant isolate (the results where the patients are not known).
-export const mdroPatients=(micro: AnyRecord|null|undefined)=>Number.isFinite(Number(micro?.mdrPatients))&&micro?.mdrPatients!=null?Number(micro.mdrPatients):mdro(micro)
-const severe=(quality: AnyRecord|null|undefined)=>((quality?.bySeverity||[]) as Counted[]).filter(([key])=>['critical','high'].includes(key)).reduce((sum,[,n])=>sum+(Number(n)||0),0)
+export const mdroPatients=(micro: ExecFigures|null|undefined)=>Number.isFinite(Number(micro?.mdrPatients))&&micro?.mdrPatients!=null?Number(micro.mdrPatients):mdro(micro)
+const severe=(quality: ExecFigures|null|undefined)=>((quality?.bySeverity||[]) as Counted[]).filter(([key])=>['critical','high'].includes(key)).reduce((sum,[,n])=>sum+(Number(n)||0),0)
 
 // Change against the previous period. better: 'up' | 'down' — which way is good.
 export function delta(current: unknown,previous: unknown,better='up'){
@@ -98,10 +118,10 @@ export const TARGETS: Readonly<ExecTargets>=Object.freeze({handHygiene:80,bundle
 // hospital sets their targets as objectives on them. The values above stand while it has none.
 // (The demo's definitions use other keys than the hospital's.)
 export const TARGET_INDICATORS: Readonly<Record<string, string[]>>=Object.freeze({handHygiene:['hh-compliance','who-hh'],bundles:['bundle-compliance','bundle-all-or-none'],training:['training-completion','training']})
-export function targetsFromObjectives(objectives: AnyRecord[]|null|undefined,year=new Date().getFullYear()): ExecTargets{
+export function targetsFromObjectives(objectives: { platformIndicatorKey?: string|null, year?: number|string|null, status?: string|null, target?: unknown }[]|null|undefined,year=new Date().getFullYear()): ExecTargets{
  const targets: ExecTargets={...TARGETS}
  for(const [key,indicators] of Object.entries(TARGET_INDICATORS)){
-  const objective=(objectives||[]).find(item=>indicators.includes(item.platformIndicatorKey)&&Number(item.year)===Number(year)&&(item.status||'active')==='active'&&item.target!==''&&item.target!=null&&Number.isFinite(Number(item.target)))
+  const objective=(objectives||[]).find(item=>indicators.includes(item.platformIndicatorKey as string)&&Number(item.year)===Number(year)&&(item.status||'active')==='active'&&item.target!==''&&item.target!=null&&Number.isFinite(Number(item.target)))
   if(objective)targets[key]=Number(objective.target)
  }
  return targets
@@ -124,17 +144,17 @@ export function measuresByArea(kpis: ExecKpi[]){
   .filter(area=>area.rows.length)
   .sort((a,b)=>rank(a.rows[0])-rank(b.rows[0]))
 }
-export function indicatorRates(definitions: AnyRecord[]|null|undefined,calculate: (def: AnyRecord)=>unknown){
+export function indicatorRates<T extends { id: string }>(definitions: T[]|null|undefined,calculate: (def: T)=>unknown){
  const rates: Record<string, unknown>={}
  for(const [key,indicators] of Object.entries(TARGET_INDICATORS)){const def=(definitions||[]).find(item=>indicators.includes(item.id));rates[key]=def?calculate(def):null}
  return rates
 }
-export function executiveKpis(snapshot: AnyRecord|null={},governance: AnyRecord|null=null,targets: Readonly<ExecTargets>=TARGETS,rates: AnyRecord={}): ExecKpi[]{return judgedByTarget(measures(snapshot,governance,targets,rates))}
+export function executiveKpis(snapshot: ExecSnapshot|null={},governance: ExecFigures|null=null,targets: Readonly<ExecTargets>=TARGETS,rates: Record<string, unknown>={}): ExecKpi[]{return judgedByTarget(measures(snapshot,governance,targets,rates))}
 // The status is judged only against a target that is shown: a measure without one keeps its alert level (for «what needs
 // attention») but reads «Χωρίς στόχο»; a measure without data says so.
 export function judgedByTarget(items: ExecKpi[]): ExecKpi[]{return items.map(item=>item.value==null?{...item,tone:'neutral',alert:null,status:'missing'}:item.target?{...item,alert:item.tone,status:'judged'}:{...item,alert:item.tone,tone:'neutral',status:'noTarget'})}
-function measures(snapshot: AnyRecord|null={},governance: AnyRecord|null=null,targets: Readonly<ExecTargets>=TARGETS,rates: AnyRecord={}): ExecKpi[]{
- const TARGET=targets,rate=(key: string,own: number|null)=>Number.isFinite(rates?.[key])?rates[key]:own
+function measures(snapshot: ExecSnapshot|null={},governance: ExecFigures|null=null,targets: Readonly<ExecTargets>=TARGETS,rates: Record<string, unknown>={}): ExecKpi[]{
+ const TARGET=targets,rate=(key: string,own: number|null)=>Number.isFinite(rates?.[key])?rates[key] as number:own
  const d=snapshot?.domains||{},s=d.surveillance||{},hh=d.handHygiene||{},b=d.bundles||{},c=d.controls||{},q=d.quality||{},t=d.training||{},g=d.governance||{},f=d.qualityFood||{}
  const micro=snapshot?.microbiology||{}
  const hand=rate('handHygiene',pct(hh.compliant,hh.observations)),done=pct(c.completed,c.executions),trained=rate('training',pct(t.completed,t.assignments)),bundle=rate('bundles',num(b.averageScore))
@@ -169,7 +189,7 @@ export const visibleFor=(items: ExecKpi[],moduleEnabled: (module: string)=>boole
 // `minimum` executions are left out of the ranking).
 export interface RankedDepartment { name: string, executions: number, findings: number, rate: number }
 export function controlRanking(rows: unknown[][]|null=[],{limit=5,minimum=5}: {limit?: number,minimum?: number}={}): {best: RankedDepartment[],worst: RankedDepartment[]}{
- const ranked=(rows||[]).map(([name,executions,withFinding])=>({name:(typeof name==='object'?(name as AnyRecord|null)?.name:name) as string,executions:Number(executions)||0,findings:Number(withFinding)||0})).filter(row=>row.name&&row.name!=='—'&&row.executions>=minimum).map(row=>({...row,rate:pct(row.findings,row.executions) as number}))
+ const ranked=(rows||[]).map(([name,executions,withFinding])=>({name:(typeof name==='object'?(name as {name?: string}|null)?.name:name) as string,executions:Number(executions)||0,findings:Number(withFinding)||0})).filter(row=>row.name&&row.name!=='—'&&row.executions>=minimum).map(row=>({...row,rate:pct(row.findings,row.executions) as number}))
  const asc=[...ranked].sort((a,b)=>a.rate-b.rate||b.executions-a.executions)
  const best=asc.slice(0,limit),bestNames=new Set(best.map(row=>row.name))
  const worst=[...ranked].sort((a,b)=>b.rate-a.rate||b.executions-a.executions).filter(row=>!bestNames.has(row.name)&&row.rate>0).slice(0,limit)
@@ -180,7 +200,7 @@ export function controlRanking(rows: unknown[][]|null=[],{limit=5,minimum=5}: {l
 // not show (outbreak clusters, overdue isolation reviews, document reviews,
 // major audit findings, high risks), the most serious first.
 export interface RedFlag { id: string, severity: string, text: [string, string], detail: unknown, tab?: string }
-export function redFlags(kpis: ExecKpi[]=[],snapshot: AnyRecord|null={},moduleEnabled: (module: string)=>boolean=()=>true): RedFlag[]{
+export function redFlags(kpis: ExecKpi[]=[],snapshot: ExecSnapshot|null={},moduleEnabled: (module: string)=>boolean=()=>true): RedFlag[]{
  const d=snapshot?.domains||{},s=d.surveillance||{},g=d.governance||{},f=d.qualityFood||{},t=d.training||{}
  const on=(modules: string[])=>!modules.length||modules.some(module=>moduleEnabled(module))
  const fmt=(item: ExecKpi)=>item.value==null?'—':`${String(item.value).replace('.',',')}${item.unit||''}`

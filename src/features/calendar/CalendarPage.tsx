@@ -19,7 +19,6 @@ import { useAuditActor } from '../../core/audit/useAuditActor'
 import { loadControlCalendarMonths } from '../controls/controlCloudService'
 import { calendarKindsFor,useCalendarSources } from './useCalendarSources'
 import { type CalendarEvent,CALENDAR_KINDS,buildCalendarEvents,calendarFilterLabel,calendarFilterOf,calendarFiltersFor,calendarKindLabel,controlExecutionEvents,dayKey,monthGrid,parseCalendarFilter } from './calendarEvents'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { CalendarMonthCount } from '../controls/controlCloudService'
 import './calendar.css'
 
@@ -76,7 +75,7 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  const range=useMemo(()=>{const from=weeks[0][0],last=weeks[weeks.length-1][6];const horizon=dayKey(new Date(Date.now()+60*24*60*60*1000));return {from:from<today?from:today,to:last>horizon?last:horizon}},[weeks,today])
  const executions=useMemo(()=>{
   if(!sources?.controls?.length||controlMonths.year!==cursor.year)return []
-  const lines=programmeCalendar(sources.controls.map((item: AnyRecord)=>({item,departments:Object.keys(item.assignments||{})})),cursor.year,new Date(),controlMonths.months)
+  const lines=programmeCalendar(sources.controls.map(item=>({item,departments:Object.keys(item.assignments||{})})),cursor.year,new Date(),controlMonths.months)
   return controlExecutionEvents(lines,{year:cursor.year,month:cursor.month,today,language})
  },[sources,controlMonths,cursor,today,language])
  const allEvents=useMemo(()=>{

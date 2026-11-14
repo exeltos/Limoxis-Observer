@@ -13,7 +13,6 @@ import { withSupplierStatus } from '../quality/resources/resourceModel'
 import { loadKitchen } from '../kitchen/kitchenService'
 import { addDays, kitchenCalendarItems, todayKey } from '../kitchen/kitchenModel'
 import { CALENDAR_KINDS, type CalendarSources } from './calendarEvents'
-import type { AnyRecord } from '../../types/featureTypes'
 
 // What the calendar reads, for the Calendar and for the home's «Next 7 days»: each source only when the user may see it.
 export const KIND_CAPABILITY: Record<string, string>={controls:CAPABILITIES.VIEW_CONTROLS,cultures:CAPABILITIES.VIEW_CONTROLS,capa:CAPABILITIES.VIEW_QUALITY,audits:CAPABILITIES.VIEW_QUALITY,training:CAPABILITIES.VIEW_TRAINING,documents:CAPABILITIES.VIEW_DOCUMENTS,committees:CAPABILITIES.VIEW_COMMITTEES,suppliers:CAPABILITIES.VIEW_QUALITY,kitchen:CAPABILITIES.VIEW_KITCHEN}
@@ -35,7 +34,7 @@ export function useCalendarSources(organizationId: string | null | undefined,all
    safe('documents',()=>loadDocumentsAsync(organizationId),[]),
    safe('committees',()=>loadCommitteesAsync(organizationId),[]),
    // The department meeting groups: when each department's next meeting is due.
-   safe('committees',()=>Promise.all([loadMeetingGroups(organizationId),loadMeetings(organizationId)]).then(([groups,meetings])=>groups.map((group: AnyRecord)=>{const status=groupStatus(group as MeetingGroup,meetings,todayKey());return {group,nextDue:status.nextDue,upcoming:status.meetings.filter(meeting=>meeting.status==='draft'&&String(meeting.meetingDate)>=todayKey())}})),[]),
+   safe('committees',()=>Promise.all([loadMeetingGroups(organizationId),loadMeetings(organizationId)]).then(([groups,meetings])=>groups.map(group=>{const status=groupStatus(group as MeetingGroup,meetings,todayKey());return {group,nextDue:status.nextDue,upcoming:status.meetings.filter(meeting=>meeting.status==='draft'&&String(meeting.meetingDate)>=todayKey())}})),[]),
    safe('documents',()=>loadProtocolSuggestionsAsync(organizationId),[]),
    safe('suppliers',()=>loadSupplierSchedule(organizationId).then(({suppliers,templates})=>withSupplierStatus(suppliers,[],undefined,templates)),[]),
    // The kitchen's calendar items reach back 30 days (verification, out of limits) and forward (plan, expiry): only that window is read.

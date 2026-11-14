@@ -38,17 +38,21 @@ import './executive.css'
 import { Building2,Database } from 'lucide-react'
 import { IndicatorDataPanel, useIndicatorDataItems } from '../indicators/IndicatorDataPanel'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AnyRecord } from '../../types/featureTypes'
 import type { ReportDoc } from '../../core/export/reportDocument'
 import type { IconType } from '../../design-system/types'
-import type { DayRange, ExecFilters, ExecKpi } from './executiveModel'
+import type { DayRange, ExecFigures, ExecFilters, ExecKpi, ExecSnapshot } from './executiveModel'
+import type { PatientDayPeriodLike } from './executiveInsights'
 
 // A tab of the overview: [id, Greek, English, icon, the Analysis sections it shows] (analysisPageModel is still JS).
 type TabRow=[string,string,string,IconType,string[]]
-type Part={status:'loading'|'ready'|'error',data?: AnyRecord,error?: string}
+type Part={status:'loading'|'ready'|'error',data?: ExecFigures,error?: string}
 type Parts=Record<string,Part>
+// The comparison shown above the embedded Analysis (its label and title).
+type CompareInfo=Record<string,unknown>
+// A department of the microbiology figures (the filter's list).
+type FigureDepartment={id?: string,name?: string,organizationId?: string|null}
 // AnalysisPage is still JS: its `= null` defaults would type these props as null.
-const AnalysisPage=AnalysisPageJs as (props: {embedded?: boolean,externalRange?: DayRange|null,periodLabel?: string,initialTab?: string,department?: string,externalCompare?: AnyRecord|null})=>ReturnType<typeof AnalysisPageJs>
+const AnalysisPage=AnalysisPageJs as (props: {embedded?: boolean,externalRange?: DayRange|null,periodLabel?: string,initialTab?: string,department?: string,externalCompare?: CompareInfo|null})=>ReturnType<typeof AnalysisPageJs>
 
 const DATA_TAB=['data','Δεδομένα','Data',Database,[]] as TabRow
 // «Τμήματα» (owner, 7/11/2026): one department against the departments' average and the comparison.
@@ -64,19 +68,19 @@ function useParts(parts: Record<string,unknown>|null): Parts{
   if(!parts){setState({});return undefined}
   let active=true
   setState(Object.fromEntries(Object.keys(parts).map(key=>[key,{status:'loading'}])))
-  for(const [key,promise] of Object.entries(parts))Promise.resolve(promise).then(data=>{if(active)setState(prev=>({...prev,[key]:{status:'ready',data:data as AnyRecord}}))},(error: {message?: string}|null)=>{if(active)setState(prev=>({...prev,[key]:{status:'error',error:error?.message||'LOAD_FAILED'}}))})
+  for(const [key,promise] of Object.entries(parts))Promise.resolve(promise).then(data=>{if(active)setState(prev=>({...prev,[key]:{status:'ready',data:data as ExecFigures}}))},(error: {message?: string}|null)=>{if(active)setState(prev=>({...prev,[key]:{status:'error',error:error?.message||'LOAD_FAILED'}}))})
   return()=>{active=false}
  },[parts])
  return state
 }
 // Parts → the Analysis snapshot shape the model reads.
-function snapshotOf(state: Parts): AnyRecord{
+function snapshotOf(state: Parts): ExecSnapshot{
  const data=(key: string)=>(ready(state[key])?state[key].data:null)||{}
- return {domains:{...data('domains'),...data('people'),...data('qualityFood')},microbiology:ready(state.microbiology)?state.microbiology.data as AnyRecord:{},clusters:ready(state.clusters)?(state.clusters.data as unknown as unknown[])||[]:[]}
+ return {domains:{...data('domains'),...data('people'),...data('qualityFood')} as Record<string,ExecFigures>,microbiology:ready(state.microbiology)?state.microbiology.data as ExecFigures:{},clusters:ready(state.clusters)?(state.clusters.data as unknown as unknown[])||[]:[]}
 }
 function demoParts(range: DayRange,en: boolean): Record<string,unknown>{
- const base=(collectAnalysisDemoSnapshot as (options: {range?: DayRange|null})=>AnyRecord)({range}),domains=collectDemoDomainMetrics(range,en,base.clusters?.length||0)
- const today=hospitalToday(),decisions=loadCommittees().flatMap((item: AnyRecord)=>(item.decisions||[]) as AnyRecord[]).filter((item: AnyRecord)=>!['completed','closed','cancelled'].includes(item.status))
+ const base=collectAnalysisDemoSnapshot({range}),domains=collectDemoDomainMetrics(range,en,base.clusters?.length||0)
+ const today=hospitalToday(),decisions=loadCommittees().flatMap(item=>item.decisions||[]).filter(item=>!['completed','closed','cancelled'].includes(item.status))
  const {training,workforce,governance,qualityFood,...rest}=domains
  return {domains:rest,people:{training,workforce,governance},qualityFood:{qualityFood},microbiology:base.microbiology,clusters:base.clusters||[],governance:{openDecisions:decisions.length,overdueDecisions:decisions.filter(item=>item.dueDate&&item.dueDate<today).length}}
 }
@@ -128,14 +132,14 @@ export function ExecutiveDashboardPage(){
  const [targets,setTargets]=useState<Readonly<Record<string,number>>>(TARGETS)
  useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;loadObjectives(organizationId).then(rows=>{if(live)setTargets(targetsFromObjectives(rows))}).catch(()=>{});return()=>{live=false}},[isDemo,organizationId])
  // Hand hygiene, bundles and training: the value of the platform's indicators for the period (the same as in «Δείκτες & Στόχοι»).
- const [rates,setRates]=useState<{now: AnyRecord,before: AnyRecord,key: string}>({now:{},before:{},key:''})
+ const [rates,setRates]=useState<{now: Record<string,unknown>,before: Record<string,unknown>,key: string}>({now:{},before:{},key:''})
  const ratesKey=[organizationId,range.from,range.to,previous?.from,previous?.to,department,previousDepartment].join('|')
- useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;(async()=>{const definitions=await loadOperationalIndicatorDefinitions(organizationId).catch(()=>[]);const at=async(period: DayRange|null,departmentId: string)=>{if(!period)return {};const metrics=await collectCloudIndicatorMetrics(organizationId,{from:period.from,to:period.to,departmentId:departmentId||null}).catch(()=>null);return metrics?indicatorRates(definitions,(def: AnyRecord)=>calculateCloudDefinition(def as unknown as OperationalIndicator,metrics).value):{}};const [now,before]=await Promise.all([at(range,department),at(previous,previousDepartment)]);if(live)setRates({now,before,key:ratesKey})})();return()=>{live=false}},[isDemo,organizationId,range,previous,department,previousDepartment,ratesKey])
+ useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;(async()=>{const definitions=await loadOperationalIndicatorDefinitions(organizationId).catch(()=>[] as OperationalIndicator[]);const at=async(period: DayRange|null,departmentId: string)=>{if(!period)return {};const metrics=await collectCloudIndicatorMetrics(organizationId,{from:period.from,to:period.to,departmentId:departmentId||null}).catch(()=>null);return metrics?indicatorRates(definitions,def=>calculateCloudDefinition(def,metrics).value):{}};const [now,before]=await Promise.all([at(range,department),at(previous,previousDepartment)]);if(live)setRates({now,before,key:ratesKey})})();return()=>{live=false}},[isDemo,organizationId,range,previous,department,previousDepartment,ratesKey])
  const snapshot=useMemo(()=>snapshotOf(current),[current])
- const governance=ready(current.governance)?current.governance.data as AnyRecord:null
+ const governance=ready(current.governance)?current.governance.data as ExecFigures:null
  const previousSnapshot=useMemo(()=>(previous&&['domains','people','qualityFood','microbiology'].every(key=>ready(before[key]))?snapshotOf(before):null),[previous,before])
  // The hospital's patient days (Δεδομένα), for the rates per 1,000 patient days.
- const [dayPeriods,setDayPeriods]=useState<AnyRecord[]>([]),[dayPeriodsLoaded,setDayPeriodsLoaded]=useState(false)
+ const [dayPeriods,setDayPeriods]=useState<PatientDayPeriodLike[]>([]),[dayPeriodsLoaded,setDayPeriodsLoaded]=useState(false)
  useEffect(()=>{if(isDemo||!organizationId)return undefined;let live=true;loadPatientDayPeriods(organizationId).then(rows=>{if(live)setDayPeriods(rows)}).catch(()=>{}).finally(()=>{if(live)setDayPeriodsLoaded(true)});return()=>{live=false}},[isDemo,organizationId])
  // The departments counted apart from the hospital's patient days (Παιδιατρική…): their cases are left out of the
  // hospital's rates per 1,000 patient days (owner, 8/11/2026). A department chosen in the filters uses its own days.
@@ -143,13 +147,13 @@ export function ExecutiveDashboardPage(){
  const [separate,setSeparate]=useState<{key: string,names: string[],mdrNow: number,mdrBefore: number}>({key:'',names:[],mdrNow:0,mdrBefore:0})
  useEffect(()=>{if(isDemo||!organizationId)return undefined;let live=true;(async()=>{const all=await loadPatientDayDepartments(organizationId).catch(()=>[]),list=department?[]:all.filter(item=>item.separate);const [mdrNow,mdrBefore]=await Promise.all([separateMdrPatients(organizationId,range,list),separateMdrPatients(organizationId,previous,list)]);if(live)setSeparate({key:separateKey,names:list.map(item=>item.name),mdrNow,mdrBefore})})();return()=>{live=false}},[isDemo,organizationId,department,range,previous,separateKey])
  const kpis=useMemo(()=>{
-  const withRates=(items: ExecKpi[],period: DayRange|null,shot: AnyRecord,mdr: number)=>[...items,...judgedByTarget(rateMeasures(items,patientDaysIn(dayPeriods,period,department),{hai:separateHai(shot,separate.names),mdro:mdr,names:separate.names}))]
+  const withRates=(items: ExecKpi[],period: DayRange|null,shot: ExecSnapshot,mdr: number)=>[...items,...judgedByTarget(rateMeasures(items,patientDaysIn(dayPeriods,period,department),{hai:separateHai(shot,separate.names),mdro:mdr,names:separate.names}))]
   const now=withRates(executiveKpis(snapshot,governance,targets,rates.now),range,snapshot,separate.mdrNow)
   return visibleFor(withDeltas(now,previousSnapshot?withRates(executiveKpis(previousSnapshot,governance,targets,rates.before),previous,previousSnapshot,separate.mdrBefore):null),moduleEnabled)
  },[snapshot,governance,previousSnapshot,moduleEnabled,targets,rates,dayPeriods,range,previous,department,separate])
  // Everything shows at once after the load (owner, 8/11/2026): the parts, the indicator rates and the patient days.
  const loadingAny=PART_KEYS.some(key=>current[key]?.status==='loading')||((isDemo||Boolean(organizationId))&&rates.key!==ratesKey)||(!isDemo&&Boolean(organizationId)&&(!dayPeriodsLoaded||separate.key!==separateKey))
- const departments=useMemo(()=>((ready(current.microbiology)?current.microbiology.data?.departments||[]:[]) as AnyRecord[]).filter(item=>!item.organizationId||item.organizationId===organizationId),[current.microbiology,organizationId])
+ const departments=useMemo(()=>((ready(current.microbiology)?current.microbiology.data?.departments||[]:[]) as FigureDepartment[]).filter(item=>!item.organizationId||item.organizationId===organizationId),[current.microbiology,organizationId])
  const departmentName=department?(departments.find(item=>item.id===department)?.name||tx('Ένα τμήμα','One department')):tx('Όλα τα τμήματα','All departments')
  // «Αναλυτικά» opens the tab of this page that shows that Analysis section, with the same filters.
  const openAnalysis=(tab: string)=>userCan(CAPABILITIES.VIEW_ANALYSIS)?()=>{window.scrollTo?.(0,0);navigate({pathname:location.pathname,search:searchOf(filters,indicatorTabOf(tab))})}:undefined
@@ -202,7 +206,7 @@ export function ExecutiveDashboardPage(){
  const subTabs=activeSections.length>2?activeSections.map(id=>{const row=(TABS as [string,string,string,IconType][]).find(([key])=>key===id);return {value:id,label:row?(en?row[2]:row[1]):id,icon:row?.[3]}}):[]
  const shownSection=subTabs.some(item=>item.value===subSection)?subSection:subTabs[0]?.value||''
  const tabTitle=en?activeTab[2]:activeTab[1]
- const compareOf: Record<string,AnyRecord>={lastYear:{shortLabel:compareLabelText,title:tx(`Σύγκριση με την ίδια περίοδο του ${previousYear}`,`Compared with the same period of ${previousYear}`),subtitle:tx('Ίδιο εύρος, η ίδια περίοδος του προηγούμενου έτους.','Same scope, the same period a year before.'),currentLabel:periodLabel,compareLabel:previousLabel},previous:{shortLabel:tx('Προηγ. περίοδος','Previous period'),title:tx('Σύγκριση με την προηγούμενη περίοδο','Compared with the previous period'),subtitle:tx('Ίδιο εύρος, η ίσης διάρκειας περίοδος πριν.','Same scope, the period of equal length before.'),currentLabel:periodLabel,compareLabel:previousLabel},departments:{shortLabel:tx('Νοσοκομείο','Hospital'),title:tx('Τμήμα έναντι νοσοκομείου','Department against the hospital'),subtitle:tx('Ίδια περίοδος· το τμήμα και όλο το νοσοκομείο.','Same period; the department and the whole hospital.'),currentLabel:departmentName,compareLabel:tx('Όλο το νοσοκομείο','Whole hospital')}}
+ const compareOf: Record<string,CompareInfo>={lastYear:{shortLabel:compareLabelText,title:tx(`Σύγκριση με την ίδια περίοδο του ${previousYear}`,`Compared with the same period of ${previousYear}`),subtitle:tx('Ίδιο εύρος, η ίδια περίοδος του προηγούμενου έτους.','Same scope, the same period a year before.'),currentLabel:periodLabel,compareLabel:previousLabel},previous:{shortLabel:tx('Προηγ. περίοδος','Previous period'),title:tx('Σύγκριση με την προηγούμενη περίοδο','Compared with the previous period'),subtitle:tx('Ίδιο εύρος, η ίσης διάρκειας περίοδος πριν.','Same scope, the period of equal length before.'),currentLabel:periodLabel,compareLabel:previousLabel},departments:{shortLabel:tx('Νοσοκομείο','Hospital'),title:tx('Τμήμα έναντι νοσοκομείου','Department against the hospital'),subtitle:tx('Ίδια περίοδος· το τμήμα και όλο το νοσοκομείο.','Same period; the department and the whole hospital.'),currentLabel:departmentName,compareLabel:tx('Όλο το νοσοκομείο','Whole hospital')}}
  const analysisCompare=previous&&compareOf[compareMode]?{range:previous,departmentId:previousDepartment,...compareOf[compareMode]}:null
  // Period, department and comparison in «Φίλτρα» next to the export; the period reads under the title.
  const filterCount=(filters.period!=='year'?1:0)+(department?1:0)+(compareMode!=='lastYear'?1:0)
@@ -221,7 +225,7 @@ export function ExecutiveDashboardPage(){
   {activeTab[0]==='data'?<IndicatorDataPanel initial={query.get('item')}/>:<>
   {activeTab[0]==='departments'?<section ref={reportRef} className="exec-report">{loadingAny?<TableSkeleton rows={8}/>:<ExecutiveDepartments grid={grid} department={chosenDepartment} onDepartment={setChosenDepartment} compareLabel={compareLabelText} versus={versusText} language={language}/>}</section>:activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{subTabs.length>0&&!printing&&<CanonicalTabs className="exec-sub-tabs" value={shownSection} onChange={setSubSection} ariaLabel={tabTitle} items={subTabs}/>}{activeSections.map(id=><div key={`${id}:${compareMode}`} hidden={Boolean(shownSection)&&id!==shownSection&&!printing}><AnalysisPage embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/></div>)}</section>:<section ref={reportRef} className="exec-report">
    {printing&&<header className="exec-report-head"><div><strong>{reportLines[0]}</strong><span>{reportLines.slice(1).join(' · ')}</span></div>{isDemo&&<span className="status-badge temporary">{tx('ΔΕΔΟΜΕΝΑ DEMO','DEMO DATA')}</span>}</header>}
-   {loadingAny||(previous&&!previousSnapshot&&PART_KEYS.some(key=>before[key]?.status==='loading'))?<TableSkeleton rows={10}/>:<ExecutiveSummary kpis={kpis} snapshot={snapshot} previousSnapshot={previousSnapshot} range={range} compareLabel={compareLabelText} against={againstText} currentLabel={currentLabelText} onOpen={item=>openAnalysis(item.tab)} language={language}/>}
+   {loadingAny||(previous&&!previousSnapshot&&PART_KEYS.some(key=>before[key]?.status==='loading'))?<TableSkeleton rows={10}/>:<ExecutiveSummary kpis={kpis} snapshot={snapshot} previousSnapshot={previousSnapshot} range={range} compareLabel={compareLabelText} against={againstText} currentLabel={currentLabelText} onOpen={item=>openAnalysis(item.tab as string)} language={language}/>}
    <p className="exec-footnote"><Activity size={13} aria-hidden="true"/>{isDemo?tx('Συνθετικά δεδομένα αποκλειστικά για το Demo περιβάλλον.','Synthetic data for the Demo environment only.'):tx('Πραγματικά δεδομένα του νοσοκομείου· οι εκκρεμότητες (εκπρόθεσμα, ληγμένα, ανοιχτές αποφάσεις) αφορούν τη σημερινή κατάσταση.','Live hospital data; open items (overdue, expired, open decisions) reflect the state today.')}</p>
   </section>}
   </>}
