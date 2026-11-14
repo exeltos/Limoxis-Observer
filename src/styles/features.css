@@ -179,7 +179,7 @@
    Sidebar and top header stay visible; only the main content area is replaced. */
 
 
-/* ===== SOURCE: lira-assistant.css ===== */.lira-assistant-fab:hover{transform:translateX(0) translateY(-3px) rotate(-2deg) scale(1.04);box-shadow:0 20px 44px rgba(24,59,91,.3)}.lira-assistant-fab:focus-visible{transform:translateX(0)}.lira-assistant-fab.active{border-radius:50%;transform:translateX(0) rotate(3deg)}.lira-assistant-avatar svg:last-child{position:absolute;right:4px;top:4px;color:#dff7ff}.lira-assistant-identity>div:last-child{display:flex;flex-direction:column;min-width:0}.lira-assistant-identity strong{font-size:14px;color:var(--text)}.lira-assistant-identity span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lira-assistant-head-actions button{width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--text-soft);display:grid;place-items:center;cursor:pointer}.lira-assistant-head-actions button:hover{background:#edf4f8;color:var(--text)}.lira-assistant-body{flex:1 1 auto;min-height:0;overflow:auto;padding:16px;background:linear-gradient(180deg,#fff,#fbfcfe)}.lira-assistant-welcome,.lira-assistant-state{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 18px;color:var(--muted)}.lira-assistant-welcome strong,.lira-assistant-state strong{color:var(--text);font-size:17px;margin:9px 0 6px}.lira-assistant-panel.expanded .lira-assistant-welcome strong{font-size:22px}.lira-assistant-welcome>span,.lira-assistant-state>span{max-width:520px;font-size:12px;line-height:1.55}.lira-assistant-suggestions button{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text-soft);padding:7px 10px;font-size:11px;cursor:pointer}.lira-assistant-suggestions button:hover{background:#f3f8fb;color:var(--text)}.lira-assistant-answer>div:last-child{min-width:0;flex:1}.lira-assistant-answer strong{display:block;font-size:13px;color:var(--text);margin-bottom:3px}.lira-assistant-answer small{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-bottom:7px}.lira-assistant-answer-points p{margin:0 0 7px;padding:8px 10px;border-radius:10px;background:#f7f9fb;color:var(--text-soft);font-size:11px;line-height:1.45}.lira-assistant-panel.expanded .lira-assistant-answer-points p{font-size:12px;padding:10px 12px}.lira-assistant-composer textarea{resize:none;min-height:44px;max-height:150px;border:1px solid var(--line);border-radius:12px;padding:10px 11px;font:inherit;font-size:12px;outline:none}.lira-assistant-panel.expanded .lira-assistant-composer textarea{font-size:13px;min-height:58px}.lira-assistant-composer .button{width:42px;height:42px;padding:0;display:grid;place-items:center}.lira-assistant-composer small{grid-column:1/-1;color:var(--muted);font-size:9px;text-align:center}@keyframes liraBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-5px) rotate(5deg)}}@keyframes liraSpark{0%,100%{opacity:.65;transform:scale(.9) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(18deg)}}@keyframes liraTilt{0%,100%{transform:rotate(-2deg) translateY(0)}50%{transform:rotate(2deg) translateY(-3px)}}
+/* ===== SOURCE: lira-assistant.css ===== */.lira-assistant-fab:hover{transform:translateX(0) translateY(-3px) rotate(-2deg) scale(1.04);box-shadow:0 20px 44px rgba(24,59,91,.3)}.lira-assistant-fab:focus-visible{transform:translateX(0)}.lira-assistant-fab.active{border-radius:50%;transform:translateX(0) rotate(3deg)}.lira-assistant-fab-spark{position:absolute;right:8px;top:7px;color:#e8f8ff;animation:liraSpark 2.6s ease-in-out infinite}.lira-assistant-panel.expanded{inset:72px 28px 28px 272px;width:auto;height:auto;border-radius:20px;box-shadow:0 28px 80px rgba(18,39,63,.28);z-index:78}.lira-assistant-panel.expanded:before{content:"";position:fixed;inset:56px 0 0 248px;background:rgba(17,37,58,.08);backdrop-filter:blur(2px);z-index:-1;pointer-events:none}.lira-assistant-avatar svg:last-child{position:absolute;right:4px;top:4px;color:#dff7ff}.lira-assistant-identity>div:last-child{display:flex;flex-direction:column;min-width:0}.lira-assistant-identity strong{font-size:14px;color:var(--text)}.lira-assistant-identity span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lira-assistant-head-actions button{width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--text-soft);display:grid;place-items:center;cursor:pointer}.lira-assistant-head-actions button:hover{background:#edf4f8;color:var(--text)}.lira-assistant-body{flex:1 1 auto;min-height:0;overflow:auto;padding:16px;background:linear-gradient(180deg,#fff,#fbfcfe)}.lira-assistant-welcome,.lira-assistant-state{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 18px;color:var(--muted)}.lira-assistant-welcome strong,.lira-assistant-state strong{color:var(--text);font-size:17px;margin:9px 0 6px}.lira-assistant-panel.expanded .lira-assistant-welcome strong{font-size:22px}.lira-assistant-welcome>span,.lira-assistant-state>span{max-width:520px;font-size:12px;line-height:1.55}.lira-assistant-suggestions button{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text-soft);padding:7px 10px;font-size:11px;cursor:pointer}.lira-assistant-suggestions button:hover{background:#f3f8fb;color:var(--text)}.lira-assistant-answer>div:last-child{min-width:0;flex:1}.lira-assistant-answer strong{display:block;font-size:13px;color:var(--text);margin-bottom:3px}.lira-assistant-answer small{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-bottom:7px}.lira-assistant-answer-points p{margin:0 0 7px;padding:8px 10px;border-radius:10px;background:#f7f9fb;color:var(--text-soft);font-size:11px;line-height:1.45}.lira-assistant-panel.expanded .lira-assistant-answer-points p{font-size:12px;padding:10px 12px}.lira-assistant-composer textarea{resize:none;min-height:44px;max-height:150px;border:1px solid var(--line);border-radius:12px;padding:10px 11px;font:inherit;font-size:12px;outline:none}.lira-assistant-panel.expanded .lira-assistant-composer textarea{font-size:13px;min-height:58px}.lira-assistant-composer .button{width:42px;height:42px;padding:0;display:grid;place-items:center}.lira-assistant-composer small{grid-column:1/-1;color:var(--muted);font-size:9px;text-align:center}@keyframes liraBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-5px) rotate(5deg)}}@keyframes liraSpark{0%,100%{opacity:.65;transform:scale(.9) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(18deg)}}@keyframes liraTilt{0%,100%{transform:rotate(-2deg) translateY(0)}50%{transform:rotate(2deg) translateY(-3px)}}@media(max-width:900px){.lira-assistant-panel.expanded{inset:62px 16px 16px 16px}}@media(max-width:760px){.lira-assistant-panel.expanded{inset:54px 8px 8px 8px;border-radius:14px}}
 
 
 /* ===== SOURCE: training-workspace.css ===== */
@@ -3592,6 +3592,7 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 /* Limoxis Observer auth surface — authoritative login layout */
 .auth-layout{min-height:100vh;display:grid;grid-template-columns:minmax(440px,42%) minmax(0,58%);background:#f4f7fa}
 .auth-brand-panel{min-height:100vh;padding:36px 42px 34px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(155deg,#102d4d 0%,#16395f 56%,#1a456c 100%);color:#fff}
+.auth-brand{display:flex;align-items:center;gap:12px}
 /* Το λογότυπο της σύνδεσης οδηγεί στη σελίδα παρουσίασης («/»). */
 a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 .auth-brand strong,.auth-brand span{display:block}.auth-brand strong{font-size:15px}.auth-brand div>span{margin-top:3px;font-size:10.5px;color:rgba(255,255,255,.62)}
@@ -3601,7 +3602,7 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 .auth-trust span{display:flex;align-items:center;gap:7px;font-size:10.5px;color:rgba(255,255,255,.68)}
 .auth-form-panel{position:relative;min-width:0;display:grid;place-items:center;padding:56px;background:#f4f7fa;border:0;border-radius:0;box-shadow:none}
 .auth-language{position:absolute;top:24px;right:28px;height:34px;display:flex;align-items:center;gap:7px;padding:0 10px;border:1px solid #dbe3eb;border-radius:9px;background:#fff;color:#455a70;font-size:11px;font-weight:750;cursor:pointer}.login-heading>span{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#1f6fa9}.login-heading h2{margin:6px 0 6px;font-size:24px;line-height:1.2;color:#172033}.login-heading p{margin:0;font-size:12.5px;line-height:1.5;color:#718094}
-.login-card .field{gap:6px}.login-card .input{width:100%;height:42px;border:1px solid #d7e0e8;border-radius:9px;background:#fff;padding:0 12px;color:#172033;font-size:13px}.login-card .input:focus{border-color:#6e9fc4;box-shadow:0 0 0 3px rgba(31,111,169,.09)}
+.login-card .field{gap:6px}.login-card .field-label{font-size:11px;font-weight:750;color:#415368}.login-card .input{width:100%;height:42px;border:1px solid #d7e0e8;border-radius:9px;background:#fff;padding:0 12px;color:#172033;font-size:13px}.login-card .input:focus{border-color:#6e9fc4;box-shadow:0 0 0 3px rgba(31,111,169,.09)}
 .password-input-wrap{position:relative}.password-input-wrap .input{padding-right:42px}.password-visibility{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:grid;place-items:center;border:0;background:transparent;color:#718094;cursor:pointer;border-radius:7px}.password-visibility:hover{background:#f2f6f9;color:#315c80}
 .login-card .button{width:100%;height:42px;margin-top:2px;border-radius:9px}
 @media(max-width:980px){.auth-form-panel{min-height:100vh;padding:28px 20px}.auth-language{top:18px;right:18px}}
@@ -3610,6 +3611,7 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 
 /* Sign-in page (LoginPage: .auth-layout.login-layout) — split layout, brand panel + glass card.
    Scoped to .login-layout so the other auth pages keep the layout above. */
+.login-layout .auth-brand-panel::before{content:"";position:absolute;inset:-20%;z-index:-2;background:radial-gradient(38% 32% at 18% 22%,rgba(143,199,189,.24),transparent 70%),radial-gradient(44% 38% at 88% 28%,rgba(84,150,210,.26),transparent 72%),radial-gradient(52% 44% at 62% 98%,rgba(143,199,189,.16),transparent 72%);filter:blur(6px);animation:login-mesh 28s ease-in-out infinite alternate}
 @keyframes login-mesh{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(3%,-2%,0) scale(1.06)}100%{transform:translate3d(-2%,3%,0) scale(1.03)}}
 .login-layout .auth-brand div>span{opacity:1;color:var(--login-on-dark-muted);font-size:12px}
 .login-layout .auth-value h1{max-width:30ch;margin:16px 0;font-size:clamp(28px,1.6vw + 16px,40px);line-height:1.14;letter-spacing:-.028em;color:var(--login-on-dark);text-wrap:balance}
@@ -3623,6 +3625,7 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 .login-preview-kpis b{font-size:21px;line-height:1;letter-spacing:-.02em;color:var(--login-on-dark)}
 .login-preview-kpis em{font-size:11px;font-style:normal;font-weight:700;color:var(--login-accent)}
 .login-preview-rows span{height:7px;border-radius:4px;background:rgba(255,255,255,.09)}
+.login-preview-float{position:absolute;top:-16px;right:-14px;display:flex;align-items:center;gap:6px;padding:8px 13px 8px 10px;border-radius:999px;background:var(--lo-color-surface);color:var(--lo-color-text);font-size:12px;font-weight:700;box-shadow:0 14px 30px -8px rgba(3,14,28,.45);animation:login-float 7s ease-in-out infinite}
 .login-preview-float svg{color:var(--lo-status-success-fg)}
 @keyframes login-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 
@@ -3630,9 +3633,13 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 .login-layout .auth-language{top:24px;right:28px;height:36px;gap:7px;padding:0 13px;border:1px solid var(--lo-color-border);border-radius:999px;background:rgba(255,255,255,.78);color:var(--lo-shell-control-fg);font-size:12px;font-weight:700;backdrop-filter:blur(8px);transition:background-color .15s,border-color .15s}
 .login-layout .auth-language:focus-visible,.login-visibility:focus-visible,.login-forgot:focus-visible,.auth-footer a:focus-visible{outline:2px solid var(--lo-color-primary);outline-offset:2px}
 .login-layout .login-heading h2{margin:8px 0;font-size:28px;letter-spacing:-.022em;color:var(--lo-color-text)}
+.login-forgot{margin-left:auto;border-radius:4px;font-size:12px;font-weight:650;color:var(--lo-color-primary);text-decoration:none;text-align:right}
+.login-forgot:hover{color:var(--lo-color-primary-hover);text-decoration:underline}
 .login-input-icon{position:absolute;left:15px;color:var(--lo-color-muted);pointer-events:none;transition:color .15s}
 .login-input{width:100%;height:var(--login-control-h);padding:0 14px 0 46px;border:1px solid var(--lo-color-border-strong);border-radius:var(--login-radius);outline:0;background:var(--lo-color-surface);color:var(--lo-color-text);font-size:15px;transition:border-color .15s,box-shadow .15s}
+.login-input-wrap:focus-within .login-input-icon{color:var(--lo-color-primary)}
 .login-visibility{position:absolute;right:6px;width:38px;height:38px;display:grid;place-items:center;border:0;border-radius:9px;background:transparent;color:var(--lo-color-muted);cursor:pointer;transition:background-color .15s,color .15s}
+.login-error{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid var(--lo-status-danger-border);border-radius:var(--login-radius);background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg);font-size:13px;font-weight:550;line-height:1.45;animation:login-in .22s ease-out}
 .login-error svg{flex:none;margin-top:1px}
 @keyframes login-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 .login-submit{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;height:var(--login-control-h);margin-top:2px;padding:0 18px;border:1px solid transparent;border-radius:var(--login-radius);background:linear-gradient(180deg,var(--lo-color-primary) 0%,var(--lo-color-primary-hover) 100%);color:#fff;font-size:14.5px;font-weight:700;letter-spacing:.01em;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 12px 24px -12px rgba(31,92,135,.75);transition:transform .15s,box-shadow .15s,filter .15s}
@@ -3641,6 +3648,7 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 .login-submit:hover:not(:disabled) svg{transform:translateX(2px)}
 .login-submit:active:not(:disabled){transform:none}
 .login-setup-note svg{flex:none;margin-top:1px}
+.auth-mobile-brand{display:none;align-items:center;gap:10px;color:var(--login-navy-mid);font-size:16px}
 .login-notice svg{flex:none;margin-top:2px}
 .login-notice strong{display:block;font-size:12.5px}
 .login-notice p{margin:2px 0 0;font-size:13px;line-height:1.5}
@@ -3652,10 +3660,17 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 /* Sign-in: small laptops and tablets in landscape */
 
 /* Sign-in: tablets in portrait — hero band on top, card floating over its edge */
+@media (min-width:768px) and (max-width:1024px) and (orientation:portrait){
+  .login-layout .auth-brand{grid-area:brand}
+}
 
 /* Sign-in: phones — card only, brand mark above it */
+@media (max-width:767px){
+  .auth-mobile-brand{display:flex}
+}
 
 @media (prefers-reduced-motion:reduce){
+  .login-layout .auth-brand-panel::before,.login-preview-float,.login-error{animation:none}
   .login-input,.login-input-icon,.login-visibility,.login-submit,.login-submit svg,.login-layout .auth-language{transition:none}
   .login-submit:hover:not(:disabled),.login-submit:hover:not(:disabled) svg{transform:none}
 }

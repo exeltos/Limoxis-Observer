@@ -13,7 +13,7 @@ html body .login-briefing-dialog .committee-membership-notification strong{font-
 html body .login-briefing-dialog .committee-membership-notification small{font-size:12px!important;line-height:1.45!important;color:var(--lo-color-muted)!important}
 html body .login-briefing-dialog .briefing-navigation-row strong{font-size:13px!important}
 html body .login-briefing-dialog .briefing-navigation-row small{font-size:12px!important;line-height:1.45!important}
-html body .notification-inline-actions .button{display:inline-flex!important;width:auto!important;justify-content:center!important;align-items:center!important;grid-template-columns:none}
+html body .notification-inline-actions .button{display:inline-flex!important;width:auto!important;justify-content:center!important;align-items:center!important;grid-template-columns:none!important}
 html body .notification-inline-actions .button-secondary{border:1px solid var(--lo-color-border)!important;background:var(--lo-color-surface)!important;color:var(--text-brand-222)!important}
 html body .notification-inline-actions .button-secondary:hover{background:var(--surface-neutral-967-3)!important}
 

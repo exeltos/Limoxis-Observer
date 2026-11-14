@@ -25,7 +25,9 @@ describe('login page and public legal pages', () => {
     // Το CSS των σελίδων σύνδεσης φορτώνεται με τις σελίδες (src/features/auth/authPages.css).
     const loginCss = readSource('src/features/auth/authPages.css')
     expect(login).toContain("import './authPages.css'")
-    expect(loginCss).toContain('@media (prefers-reduced-motion:reduce)')
+    // Η μείωση κίνησης μένει στο κοινό CSS (ισχύει πριν φορτώσει η σελίδα).
+    const css = readSource('src/styles/features.css') + loginCss
+    expect(css).toMatch(/@media \(prefers-reduced-motion:reduce\)\{\s*\.login-layout \.auth-brand-panel::before,\.login-preview-float,\.login-error\{animation:none\}/)
     expect(loginCss).not.toContain('!important')
   })
   it('routes the legal pages publicly', () => {

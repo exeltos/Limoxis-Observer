@@ -1,7 +1,7 @@
 {
   "src/features/analysis/AnalysisCharts.css": 43,
   "src/features/auth/activation.css": 10,
-  "src/features/auth/authPages.css": 11,
+  "src/features/auth/authPages.css": 10,
   "src/features/auth/landing.css": 47,
   "src/features/calendar/calendar.css": 50,
   "src/features/clinical-scales/clinicalScales.css": 62,
@@ -31,7 +31,7 @@
   "src/features/legal/legal.css": 13,
   "src/features/library/library.css": 12,
   "src/features/lira/liraPassages.css": 7,
-  "src/features/lira/liraShell.css": 25,
+  "src/features/lira/liraShell.css": 24,
   "src/features/management/managementCenter.css": 65,
   "src/features/management/outbreakInvestigations.css": 38,
   "src/features/management/platformUpdateCenter.css": 71,
@@ -70,7 +70,7 @@
   "src/features/training/trainingAnnualPlan.css": 20,
   "src/features/training/trainingCompetence.css": 11,
   "src/features/training/trainingRecord.css": 1,
-  "src/styles/features.css": 747,
+  "src/styles/features.css": 749,
   "src/styles/responsive.css": 64,
   "src/styles/workspaces.css": 56
 }

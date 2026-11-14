@@ -108,7 +108,7 @@
   padding:28px!important;
   background:rgba(19,35,47,.30)!important;
   backdrop-filter:blur(7px)!important;
-  -webkit-backdrop-filter:blur(7px)!important;
+  -webkit-backdrop-filter:blur(7px);
   animation:helpPreviewBackdropIn .18s ease-out both!important;
 }
 .manual-live-floating{
@@ -129,7 +129,7 @@
   border:0!important;
   box-shadow:none!important;
   transform:scale(var(--help-float-scale,.78))!important;
-  transform-origin:center center!important;
+  transform-origin:center center;
   pointer-events:none!important;
   background:var(--lo-color-surface)!important;
 }
