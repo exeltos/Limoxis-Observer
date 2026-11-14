@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'

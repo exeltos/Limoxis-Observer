@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { RegistryTable } from '../../design-system/RegistryTable'

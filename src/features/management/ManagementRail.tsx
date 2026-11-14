@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useState,type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 

@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useMemo,useState } from 'react'
 import { ArrowDown,ArrowUp,ClipboardList,Eye,Pencil,Plus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
