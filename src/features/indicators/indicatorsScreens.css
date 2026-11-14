@@ -1,0 +1,21 @@
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.indicator-approval-pending{display:inline-flex;align-items:center;font-size:8.5px;font-weight:650;color:var(--muted)}
+.indicator-approval-approved{display:inline-flex;align-items:center;gap:4px;font-size:8.5px;font-weight:750;color:var(--text-success-308)}
+.indicator-create-form{display:grid;gap:12px}
+.indicator-create-form label{display:grid;gap:5px}
+.indicator-click-table tbody tr{cursor:pointer}
+.indicator-click-table tbody tr:focus{outline:2px solid var(--border-brand-796-2);outline-offset:-2px}
+.management-section .library-content .library-row-actions>.lo-icon-button-edit,
+.environmental-embedded .row-actions>.lo-icon-button-edit,
+.training-feedback-template-panel .record-actions>.lo-icon-button-edit{color:var(--lo-status-warning-fg)!important}
+.management-section .library-content .library-row-actions>.lo-icon-button-edit:hover:not(:disabled),
+.environmental-embedded .row-actions>.lo-icon-button-edit:hover:not(:disabled),
+.training-feedback-template-panel .record-actions>.lo-icon-button-edit:hover:not(:disabled){background:var(--lo-status-warning-bg)!important}
+.indicator-result{display:grid;gap:16px}
+.lo-icon-button-edit{color:var(--lo-status-warning-fg);background:transparent}
+.lo-icon-button-edit:hover{background:var(--lo-status-warning-bg)}
+.field-label-note{font-weight:500;color:var(--lo-color-muted);text-transform:none;letter-spacing:0}
+.indicator-target-default{color:var(--text-neutral-390);font-weight:700}
+.indicator-set-target{display:block;margin-top:2px;padding:0;border:0;background:none;color:var(--text-brand-386);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.indicator-set-target:hover{text-decoration:underline}
+@media (hover:hover){.indicator-registry tr:not(:hover):not(:focus-within) .indicator-set-target{opacity:0}}

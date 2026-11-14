@@ -1,3 +1,4 @@
+import './documentsScreens.css'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Archive, BookOpenCheck, CheckCircle2, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
 import './documentsList.css'

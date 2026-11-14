@@ -1,3 +1,4 @@
+import './committeesScreens.css'
 import { useMemo,useState } from 'react'
 import { CheckCircle2,Clock3,FileSignature,Mail,MessageSquareWarning,Send,UserCheck,XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'

@@ -1,8 +1,6 @@
 /* color tokens: start */
 :root{
   --border-brand-502:#2a78d6;
-  --border-brand-914-2:#e3e9ef;
-  --border-faint:#edf1f4;
   --border-neutral-659:#9aa8b6;
   --fill-brand-218:#1d3a52;
   --fill-brand-698:#9fb3c5;
@@ -10,19 +8,11 @@
   --fill-neutral-543:#7b8b9a;
   --fill-neutral-659:#9aa8b6;
   --fill-neutral-929:#e8edf2;
-  --surface-muted:#f7f9fb;
-  --surface-neutral-947:#eef2f5;
-  --surface-neutral-971:#f4f8fb;
   --text-brand-188:#16324a;
   --text-brand-225-4:#26394d;
-  --text-brand-286:#33495f;
-  --text-danger-384:#a32121;
-  --text-heading:#1d3a52;
   --text-neutral-382:#4f6274;
   --text-neutral-429:#5f6e7c;
   --text-neutral-655-2:#9aa8b4;
-  --text-success-300-2:#1f7a45;
-  --text-warning-271:#8a5a00;
 }
 /* color tokens: end */
 /* Analysis charts: recessive grid/axes, text in ink tokens, thin marks. */

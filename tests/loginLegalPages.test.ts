@@ -22,9 +22,12 @@ describe('login page and public legal pages', () => {
     expect(login).toContain('to="/forgot-access"')
     expect(login).toContain('id="login-error" className="login-error" role="alert"')
     expect(login).toContain('disabled={submitting||!hasSupabaseConfig}')
-    const css = readSource('src/styles/features.css')
-    const loginCss = css.slice(css.indexOf('.auth-layout.login-layout{'), css.indexOf('.training-material-list{'))
-    expect(loginCss).toContain('@media (prefers-reduced-motion:reduce)')
+    // Το CSS των σελίδων σύνδεσης φορτώνεται με τις σελίδες (src/features/auth/authPages.css).
+    const loginCss = readSource('src/features/auth/authPages.css')
+    expect(login).toContain("import './authPages.css'")
+    // Η μείωση κίνησης μένει στο κοινό CSS (ισχύει πριν φορτώσει η σελίδα).
+    const css = readSource('src/styles/features.css') + loginCss
+    expect(css).toMatch(/@media \(prefers-reduced-motion:reduce\)\{\s*\.login-layout \.auth-brand-panel::before,\.login-preview-float,\.login-error\{animation:none\}/)
     expect(loginCss).not.toContain('!important')
   })
   it('routes the legal pages publicly', () => {

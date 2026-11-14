@@ -127,7 +127,7 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-expiry-finding{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
 /* Record straight from the list (a department's control due today). */
 .controls-record-cell{width:130px;text-align:right}
-.controls-record-now{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;padding:4px 10px;border:0;border-radius:8px;background:var(--lo-color-primary);color:#fff;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.controls-record-now{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;padding:4px 10px;border:0;border-radius:8px;background:var(--lo-color-primary);color:var(--text-inverse);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
 .controls-record-now:hover,.controls-record-now:focus-visible{background:var(--lo-color-primary-hover,var(--lo-color-primary));outline:0}
 /* Not yet its time: the entry opens 1 hour before the set time. */
 .controls-record-now.is-waiting,.controls-record-now.is-waiting:hover{background:var(--lo-color-surface-muted);color:var(--lo-color-muted);cursor:not-allowed}
@@ -148,7 +148,7 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 /* The period of the reports: unit, then ‹ name › (ControlPeriodPicker). */
 .control-period-picker{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto}
 .control-period-step{display:inline-flex;align-items:center;gap:4px}
-.control-period-step strong{min-width:78px;text-align:center;font-size:13px;color:#1d3a52;white-space:nowrap}
+.control-period-step strong{min-width:78px;text-align:center;font-size:13px;color:var(--text-heading);white-space:nowrap}
 /* Totals and the period on one line beside the search (owner, 7/11/2026): the search gives way first. */
 .controls-registry-page .filter-primary-row>.filter-end{flex-wrap:nowrap}
 .controls-registry-page .filter-primary-row>.filter-search{flex:1 1 180px;min-width:160px}

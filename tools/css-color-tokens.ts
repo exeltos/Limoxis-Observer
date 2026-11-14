@@ -23,6 +23,7 @@ import { readSource } from './readSource.ts'
 
 const REGISTRY = 'tools/color-tokens.json'
 const BASELINE = 'tools/raw-color-baseline.json'
+const GLOBAL_TOKENS = 'src/styles/tokens.css'
 const START = '/* color tokens: start */'
 const END = '/* color tokens: end */'
 const HEX = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/g
@@ -120,7 +121,9 @@ function replaceIn(text, map, prop, used) {
 }
 
 function writeTokens(tokensFile, used, registry) {
-  const fresh = [...used].filter(name => registry.tokens[name])
+  // Όσες ορίζονται ήδη στο κοινό src/styles/tokens.css (φορτώνεται πάντα) δεν ξαναορίζονται.
+  const shared = tokensFile !== GLOBAL_TOKENS && fs.existsSync(GLOBAL_TOKENS) ? new Set([...fs.readFileSync(GLOBAL_TOKENS, 'utf8').matchAll(/(--[\w-]+):/g)].map(m => m[1])) : new Set()
+  const fresh = [...used].filter(name => registry.tokens[name] && !shared.has(name))
   let css = fs.existsSync(tokensFile) ? fs.readFileSync(tokensFile, 'utf8') : ''
   const existing = new Map()
   const start = css.indexOf(START)

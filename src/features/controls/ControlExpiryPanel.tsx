@@ -1,3 +1,4 @@
+import './controlsScreens.css'
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu, type ExportItem } from '../../design-system/ExportMenu'
 import { ChevronDown,ChevronRight,PackageX } from 'lucide-react'

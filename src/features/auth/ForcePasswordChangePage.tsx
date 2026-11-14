@@ -1,3 +1,4 @@
+import './authPages.css'
 import { useState, type FormEvent } from 'react'
 import { Eye, EyeOff, Languages, ShieldCheck } from 'lucide-react'
 import { Button } from '../../design-system/Button'

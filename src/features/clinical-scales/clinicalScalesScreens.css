@@ -5,17 +5,9 @@
   --border-danger-847:#f3c1bd;
   --border-success-820-2:#bfe3cc;
   --border-warning-810:#f5d7a8;
-  --surface-danger-957:#fdeceb;
-  --surface-neutral-971-3:#f5f8fa;
-  --surface-neutral-982-3:#f8fbfd;
   --surface-success-949:#ecf8f1;
   --surface-warning-949:#fff4e5;
   --text-brand-380-2:#48607a;
-  --text-danger:#b42318;
-  --text-neutral-357:#4a5f6c;
-  --text-subtle:#64748b;
-  --text-success-300-2:#1f7a45;
-  --text-warning-302:#9a5b00;
 }
 /* color tokens: end */
 /* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */

@@ -1,3 +1,4 @@
+import './controlsScreens.css'
 import { useRef } from 'react'
 import { FilePlus2,ListChecks,Paperclip,Trash2 } from 'lucide-react'
 import { getAttachmentUrl } from '../../core/attachments/attachmentService'

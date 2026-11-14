@@ -1,7 +1,8 @@
 import {describe,expect,it} from 'vitest'
 import { readSource } from './helpers/readSource'
 
-const css=readSource('src/styles/design-system.css')
+// Οι κανόνες της καρτέλας ελέγχου φορτώνονται με τις σελίδες των Ελέγχων (controlsScreens.css).
+const css=readSource('src/styles/design-system.css')+readSource('src/features/controls/controlsScreens.css')
 const form=readSource('src/features/controls/ControlExecutionForm.jsx')
 const record=readSource('src/features/controls/ControlRecordPage.jsx')
 

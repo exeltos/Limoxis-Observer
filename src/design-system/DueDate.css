@@ -1,6 +1,6 @@
-.due-date.overdue{display:inline-flex;flex-direction:column;gap:1px;color:#b42318;font-weight:700}
-.due-date.overdue small{font-size:10.5px;font-weight:600;color:#b42318}
-.detail-item .due-date.overdue small{font-size:10.5px!important;color:#b42318!important}
+.due-date.overdue{display:inline-flex;flex-direction:column;gap:1px;color:var(--text-danger);font-weight:700}
+.due-date.overdue small{font-size:10.5px;font-weight:600;color:var(--text-danger)}
+.detail-item .due-date.overdue small{font-size:10.5px!important;color:var(--text-danger)!important}
 .detail-item .due-date:not(.overdue){display:inline!important;margin:0!important;color:inherit!important;font-size:inherit!important;font-weight:inherit!important}
 /* Inside a line of text the overdue note follows the date instead of wrapping under it. */
 .sv-episode .due-date.overdue{display:inline-flex;flex-direction:row;align-items:baseline;gap:5px}

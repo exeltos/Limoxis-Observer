@@ -1,12 +1,3 @@
-/* color tokens: start */
-:root{
-  --border-brand-884-4:#d9e3ea;
-  --border-neutral-914:#e4eaee;
-  --surface-brand-286:#244e6e;
-  --surface-neutral-949-3:#eef3f6;
-  --surface-neutral-969-2:#f5f7f9;
-}
-/* color tokens: end */
 /* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
 .about-page{display:grid;gap:14px;overflow:auto;padding-bottom:20px}
 .about-version{display:flex;gap:7px;align-items:center;margin-top:18px;font-size:9px}

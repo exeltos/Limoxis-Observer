@@ -1,11 +1,12 @@
 # CSS architecture
 
-Global styles are five stylesheets imported by `src/main.jsx`, in this order.
+Global styles are the stylesheets imported by `src/main.tsx`, in this order.
 The order is the cascade order: later files, and later sections within a file,
 win over earlier ones at equal specificity.
 
 | File | Contents |
 |---|---|
+| `src/styles/tokens.css` | Μεταβλητές χρωμάτων (color tokens) του κελύφους και του design-system — δες «Χρώματα» παρακάτω |
 | `src/styles/foundation.css` | Design tokens (`theme`), base layout and core components (`core`), sidebar/back navigation (`design-system-navigation`) |
 | `src/styles/features.css` | Feature screens (`modules`, `modern`), registries (`registry`), patient record (`patient-record`), surveillance workflow (`surveillance-workflow-preview`), sign-in pages (`auth`) |
 | `src/styles/design-system.css` | Canonical shared patterns: `classic-rebase`, action buttons and dialogs (`design-system-actions`), Platform Owner screens (`platform-owner-polish`), canonical registry visuals |
@@ -18,6 +19,60 @@ section names are the stylesheets these files were consolidated from on
 
 Component-scoped stylesheets (`src/design-system/*.css`, feature `*.css`) are
 imported by their components and load with them.
+
+## Χρώματα (tokens)
+
+Κανένα χρώμα δεν γράφεται απευθείας (`#rrggbb`) σε κανόνα: κάθε χρώμα είναι μεταβλητή.
+
+- Υπάρχουσες μεταβλητές του `:root` (`--lo-color-*`, `--lo-surface-*`, `--lo-text-*`,
+  `--lo-status-*`) χρησιμοποιούνται όπου η τιμή είναι ακριβώς ίδια.
+- Οι υπόλοιπες έχουν όνομα ρόλου: `--<ρόλος>-<οικογένεια>-<φωτεινότητα>`, π.χ.
+  `--surface-neutral-976`, `--text-brand-218`, `--border-danger-810`.
+  Ρόλος: `text` (color), `surface` (background), `border` (border/outline), `shadow`,
+  `fill` (svg, accent-color, μεταβλητές τόνου). Οικογένεια: `neutral`, `brand`, `success`,
+  `warning`, `danger`, `accent`. Φωτεινότητα: 0 (μαύρο) – 1000 (λευκό). Τα πιο συχνά έχουν
+  λέξη ρόλου: `--text-inverse`, `--text-heading`, `--text-subtle`, `--text-danger`,
+  `--text-success`, `--surface-subtle`, `--surface-muted`, `--surface-soft`, `--border-soft`,
+  `--border-faint`.
+- Κάθε μεταβλητή κρατά το **ακριβές** χρώμα που αντικατέστησε (η όψη δεν αλλάζει). Δύο κοντινά
+  χρώματα είναι δύο μεταβλητές· η ενοποίησή τους είναι σχεδιαστική απόφαση, όχι καθάρισμα.
+- Τα ονόματα ζουν στο `tools/color-tokens.json` (ένα όνομα για κάθε ρόλο|χρώμα όλου του CSS),
+  ώστε το ίδιο χρώμα να παίρνει το ίδιο όνομα σε όποιο PR κι αν μετατραπεί.
+- Οι μεταβλητές του κελύφους/design-system ορίζονται στο `src/styles/tokens.css`. Οι
+  μεταβλητές μίας μόνο ενότητας ορίζονται σε μπλοκ `:root` στην αρχή του CSS της ενότητας
+  (φορτώνονται μαζί της).
+- Μετατροπή αρχείων: `node tools/css-color-tokens.ts --write --tokens <αρχείο-ορισμών.css> <αρχεία.css…>`.
+  Ένα `var(--lo-x, #hex)` όπου η `--lo-x` ορίζεται πάντα στο `:root` χάνει την περιττή εναλλακτική τιμή.
+- `npm run audit:raw-colors` (μέρος του `npm run check`): δεν επιτρέπει αύξηση των χρωμάτων
+  απευθείας ανά αρχείο (`tools/raw-color-baseline.json`)· όταν ένα αρχείο καθαρίζει,
+  χαμηλώνει το όριο με `node tools/css-color-tokens.ts --write-baseline`.
+
+## CSS φορτώνεται με τη σελίδα της ενότητας
+
+Το CSS που αφορά μία μόνο ενότητα ή σελίδα δεν μπαίνει στα κοινά αρχεία του `src/styles`
+(φορτώνονται πριν την πρώτη οθόνη) αλλά σε αρχείο της ενότητας, που το κάνει `import` η
+lazy σελίδα της (ή το lazy παράθυρο). Το Vite το φορτώνει μαζί με τη σελίδα.
+
+Η μεταφορά ενός κανόνα από τα κοινά αρχεία σε lazy αρχείο αλλάζει τη θέση του στο cascade:
+έρχεται μετά από όλο το κοινό CSS, και σε σειρά που εξαρτάται από το ποια σελίδα άνοιξε πρώτη
+σε σχέση με το CSS των άλλων ενοτήτων. Γι' αυτό μεταφέρεται μόνο κανόνας που:
+
+1. απαιτεί σε κάθε selector του μια class που χρησιμοποιείται **μόνο** στον κώδικα της
+   ενότητας (άρα τα στοιχεία του τα φτιάχνει μόνο κώδικας που φορτώνει και το CSS), και
+2. δεν «ισοπαλεί» με κανέναν κανόνα που έρχεται μετά από αυτόν στο κοινό CSS ή βρίσκεται σε CSS
+   άλλης ενότητας: ίδια (ή επικαλυπτόμενη) ιδιότητα, ίδιο `!important`, ίδια ειδικότητα και
+   πιθανό κοινό στοιχείο. «Πιθανό κοινό στοιχείο» κρίνεται από τον κώδικα: δύο διαφορετικές
+   class μπορεί να είναι στο ίδιο στοιχείο (π.χ. `time-field field control-time-field`) όταν
+   εμφανίζονται μαζί σε ένα `className`, όταν η μία περνά σε component που βάζει την άλλη, ή όταν
+   μια class φτιάχνεται από μεταβλητή (τότε θεωρείται ότι μπορεί να συνυπάρξει με οποιαδήποτε).
+
+Το νέο αρχείο γίνεται `import` πρώτο στη σελίδα, πριν από τα υπόλοιπα CSS της ενότητας, ώστε
+η σειρά τους να μένει όπως ήταν. Μετά από κάθε μεταφορά: σύγκριση computed styles και pixel όλων
+των οθονών της ενότητας (υπολογιστής 1440, ταμπλέτα 820) με το `main`.
+
+Ήδη έτσι: Κέντρο βοήθειας (`src/core/help/helpCenter.css`), σελίδες σύνδεσης
+(`src/features/auth/authPages.css`), ειδοποιήσεις (`src/core/notifications/notificationShell.css`),
+λογαριασμός (`src/features/account/account.css`), LIRA (`src/features/lira/liraShell.css`).
 
 ## Rules for changes
 
@@ -35,6 +90,11 @@ imported by their components and load with them.
   name. `node tools/check-dead-selectors.ts --write` removes such rules.
 - Do not add `!important` to win against another rule; raise specificity or
   put the rule in the right section instead.
+- Ένα `!important` φεύγει χωρίς έλεγχο οθονών μόνο όταν αποδεικνύεται ότι δεν αλλάζει ποτέ τον
+  νικητή: κάθε κανόνας χωρίς `!important` που μπορεί να πέσει στο ίδιο στοιχείο με σχετική
+  ιδιότητα χάνει ήδη από αυτόν (ειδικότητα ή σειρά), κάθε κανόνας με `!important` κερδίζει ήδη,
+  και κανένα inline style δεν τον αφορά. Στους κοινούς κανόνες του design-system αυτό σπάνια
+  ισχύει (επικαλύπτονται με όλο το CSS)· εκεί η αιτία (ειδικότητα/σειρά) διορθώνεται με το χέρι.
 - Ομάδες pills/chips/tabs: ποτέ δεύτερη σειρά. `flex-wrap:nowrap`, τα στοιχεία
   συρρικνώνονται (`min-width:0`, αποκοπή με «…»)· οι καρτέλες κυλούν οριζόντια.
   Τα `.registry-totals` και `.analysis-figures` το ελέγχει `tests/pillRowsNoWrap.test.ts`.

@@ -1,8 +1,8 @@
 .lo-form-page-body{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 20px 20px}
-.lo-form-page-footer{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;border-top:1px solid var(--color-border,#e2e8f0);background:var(--color-surface,#fff)}
+.lo-form-page-footer{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;border-top:1px solid var(--color-border,var(--border-brand-914));background:var(--color-surface,var(--lo-color-surface))}
 .lo-form-page-body>:is(.lo-form-grid,.interviews-row-list):has(+.lo-section-header){margin-bottom:22px}
 .lo-form-page-body>.lo-form-grid+.lo-form-grid{margin-top:14px}
 /* One height for every control, so the rows line up whatever the field is (text, list, date). */
 .lo-form-page-body .lo-form-grid{align-items:start}
 .lo-form-page-body .lo-form-grid :is(.field,.searchable-select,.manual-date-field,.time-field) :is(input:not([type=checkbox]):not([type=radio]),select){height:40px;min-height:40px;box-sizing:border-box}
-.lo-form-page-missing{margin-right:auto;color:var(--color-danger,#b42318);font-size:12px}
+.lo-form-page-missing{margin-right:auto;color:var(--color-danger,var(--text-danger));font-size:12px}

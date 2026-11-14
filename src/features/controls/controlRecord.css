@@ -26,12 +26,12 @@
 .control-record-shell .control-record-card .lo-section-header,.control-record-shell .control-record-card>header{margin-bottom:6px}
 .control-record-shell .control-record-guidance{margin-top:14px}
 .control-record-shell .control-record-dept-chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px}
-.control-record-shell .control-dept-chip{display:inline-flex;align-items:center;padding:3px 10px;border:1px solid var(--lo-color-border,#dbe5ec);border-radius:999px;background:var(--lo-color-surface-muted,#f4f8fb);color:var(--lo-color-text,#173650);font-size:12px;font-weight:600}
+.control-record-shell .control-dept-chip{display:inline-flex;align-items:center;padding:3px 10px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-muted);color:var(--lo-color-text);font-size:12px;font-weight:600}
 @media(max-width:900px){.control-record-shell .control-record-cards{grid-template-columns:1fr}}
 /* In the two narrow cards the values go one under the other, never squeezed in two columns. */
 .control-record-shell .control-record-cards .lo-detail-list{grid-template-columns:1fr}
 
 /* A control's own page: the filters (period, department, missed ones) sit in the «Filters» button. */
 .control-history-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
-.control-history-table tr.control-history-missed td{background:var(--lo-status-danger-bg,#fdf1f1)!important}
+.control-history-table tr.control-history-missed td{background:var(--lo-status-danger-bg)!important}
 .control-history-table tr.control-history-missed td:nth-child(4){color:var(--lo-status-danger-fg)}

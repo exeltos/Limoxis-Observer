@@ -3,18 +3,8 @@
   --border-neutral-947:#eef2f5;
   --surface-brand-700:#9fb3c6;
   --surface-brand-941-2:#e8f1f8;
-  --surface-danger-951:#fde8e8;
-  --surface-neutral-967-3:#f2f7fb;
-  --surface-warning-931:#fff1dc;
   --surface-warning-939:#fff4e0;
-  --text-brand-318:#0b6097;
-  --text-danger-384:#a32121;
-  --text-heading:#1d3a52;
-  --text-inverse:#ffffff;
   --text-neutral-429:#5f6e7c;
-  --text-success:#1d6b3a;
-  --text-warning-271:#8a5a00;
-  --text-warning-302-2:#9a4a00;
 }
 /* color tokens: end */
 /* Role home: KPI row, tasks + announcements (+ module status), then charts. The page itself does not scroll: the lists do. */
