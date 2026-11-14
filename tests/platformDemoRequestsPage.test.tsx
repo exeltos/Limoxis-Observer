@@ -43,6 +43,11 @@ describe('PlatformDemoRequestsPage', () => {
     const shell = readSource('src/app/AppShell.tsx')
     expect(shell.indexOf("key:'platformNav.demoRequests'")).toBeGreaterThan(shell.indexOf("key:'platformNav.demos'"))
     expect(shell).toContain("path:'/platform/demo-requests'")
+    // «Αιτήματα» στο μενού, με μετρητή των νέων· ο τίτλος της σελίδας μένει «Αιτήματα παρουσίασης».
+    expect(shell).toContain("count:newDemoRequests}")
+    expect(shell).toContain('{count&&<b className="nav-count">{count}</b>}')
+    expect(readSource('src/core/i18n/stringsEl.ts')).toContain("menuDemoRequests:'Αιτήματα',")
+    expect(readSource('src/core/i18n/stringsEn.ts')).toContain("menuDemoRequests:'Requests',")
     expect(readSource('src/app/App.tsx')).toContain('<Route path="platform/demo-requests" element={gate(CAPABILITIES.VIEW_PLATFORM,<PlatformDemoRequestsPage/>)}/>')
   })
 })

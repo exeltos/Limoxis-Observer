@@ -52,9 +52,21 @@ export async function listDemoRequests(): Promise<DemoRequest[]> {
   return (data || []).map(mapDemoRequest)
 }
 
+// Ο μετρητής «νέων» δίπλα στο «Αιτήματα» του μενού της κονσόλας. Η σελίδα στέλνει DEMO_REQUESTS_CHANGED όταν
+// αλλάζει μια κατάσταση, ώστε ο μετρητής να ενημερωθεί αμέσως.
+export const DEMO_REQUESTS_CHANGED = 'limoxis:demo-requests-changed'
+export async function countNewDemoRequests(): Promise<number> {
+  if (isOwnerPreview()) return PREVIEW.filter(row => row.status === 'new').length
+  if (!hasSupabaseConfig || !configuredClient) return 0
+  const { count, error } = await supabase.from('demo_requests').select('id', { count: 'exact', head: true }).eq('status', 'new')
+  if (error) return 0
+  return count || 0
+}
+
 export async function updateDemoRequestStatus(id: string, status: DemoRequestStatus): Promise<DemoRequest> {
   if (!hasSupabaseConfig || !configuredClient) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase.from('demo_requests').update({ status }).eq('id', id).select(COLUMNS).single()
   if (error) throw error
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(DEMO_REQUESTS_CHANGED))
   return mapDemoRequest(data)
 }
