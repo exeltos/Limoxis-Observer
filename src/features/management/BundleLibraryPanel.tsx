@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useEffect,useMemo,useState } from 'react'
 import { Check,Copy,LockKeyhole,Plus,RotateCcw,Trash2,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'

@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useState } from 'react'
 import { GraduationCap } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'

@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { PlatformUpdateCenter } from './PlatformUpdateCenter'
 import { PlatformLegalTabs } from '../platform/PlatformLegalTabs'
 import { useEffect,useMemo,useState } from 'react'

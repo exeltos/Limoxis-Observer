@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useCallback,useEffect,useState } from 'react'
 import { ArrowLeft,CirclePause,KeyRound,Link2,Plus,UserPlus,RotateCcw,ShieldCheck,Trash2,UserRound,UsersRound } from 'lucide-react'
 import { Button } from '../../design-system/Button'

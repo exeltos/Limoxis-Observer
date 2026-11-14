@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useEffect,useState } from 'react'
 import { Eye,KeyRound,Languages,Pencil,ShieldCheck,Unplug } from 'lucide-react'
 import { Button } from '../../design-system/Button'

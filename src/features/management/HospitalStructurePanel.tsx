@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import type { HospitalStructureSnapshot } from './managementTypes'
 import { Plus, Trash2 } from 'lucide-react'

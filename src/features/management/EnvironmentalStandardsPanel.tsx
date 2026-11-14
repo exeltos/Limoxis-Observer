@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useMemo, useState } from 'react'
 import { LockKeyhole, Pencil, Plus, ShieldCheck, Trash2, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'

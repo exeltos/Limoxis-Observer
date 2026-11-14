@@ -1,3 +1,4 @@
+import './managementScreens.css'
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { CheckCircle2,FilePlus2,Globe2,Pencil,RotateCcw } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'

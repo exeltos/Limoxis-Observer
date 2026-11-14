@@ -13,9 +13,6 @@
   "src/features/legal/legal.css": 13,
   "src/features/lira/liraPassages.css": 7,
   "src/features/lira/liraShell.css": 24,
-  "src/features/management/managementCenter.css": 65,
-  "src/features/management/outbreakInvestigations.css": 38,
-  "src/features/management/platformUpdateCenter.css": 71,
   "src/features/patients/DuplicatePatientDialog.css": 3,
   "src/features/platform/activeUsers.css": 17,
   "src/features/platform/bulkAccounts.css": 66,
@@ -47,7 +44,7 @@
   "src/features/surveillance/protocols/protocols.css": 31,
   "src/features/surveillance/surveillanceEntryCard.css": 9,
   "src/features/surveillance/surveillanceEpisode.css": 152,
-  "src/styles/features.css": 647,
+  "src/styles/features.css": 617,
   "src/styles/responsive.css": 60,
   "src/styles/workspaces.css": 56
 }
