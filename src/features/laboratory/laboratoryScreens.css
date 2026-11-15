@@ -1,0 +1,2 @@
+/* Κανόνες των οθονών της ενότητας (πριν στο κοινό CSS): φορτώνεται με τις σελίδες της ενότητας. */
+.lab-staff-masked{filter:blur(5px);user-select:none;pointer-events:none}

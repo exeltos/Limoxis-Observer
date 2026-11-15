@@ -1,3 +1,4 @@
+import './preventionScreens.css'
 // The Prevention registry's pieces: key figures, empty state and the table of each tab.
 import { ClipboardCheck, Droplets, Plus, Recycle, ShieldCheck } from 'lucide-react'
 import { RegistryTotals } from '../../design-system/RegistryTotals'

@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,CheckCircle2,Info,RefreshCw,ShieldAlert,XCircle,type LucideIcon } from 'lucide-react'
 import { IconButton } from '../../design-system/IconButton'

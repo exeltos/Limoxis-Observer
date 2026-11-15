@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import type { Translate } from '../../types/featureTypes'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { Roster } from './bulkAccountsModel'

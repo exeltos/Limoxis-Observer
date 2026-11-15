@@ -3,7 +3,8 @@
 import {describe,it,expect} from 'vitest'
 import { readSource } from './helpers/readSource'
 const service=readSource('src/features/occupational-health/vaccinationService.js')
-const css=readSource('src/styles/workspaces.css')
+// Οι κανόνες της Πρόληψης φορτώνονται με τις σελίδες της (preventionScreens.css).
+const css=readSource('src/styles/workspaces.css')+readSource('src/features/prevention/preventionScreens.css')
 
 describe('staff vaccination workflow',()=>{
  it('uses the production employee_vaccinations table',()=>{
