@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { Check, CheckCircle2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import type { ClinicalCaseLike, EpisodeSample } from './clinicalTypes'

@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 // The device, isolation and antimicrobial therapy steps of a surveillance episode's sheet (ClinicalJourney.tsx).
 import { BedDouble, Pill, Stethoscope } from 'lucide-react'
 import { Button } from '../../design-system/Button'

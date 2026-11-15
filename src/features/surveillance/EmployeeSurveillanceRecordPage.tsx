@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardList, FileClock, FolderOpen, Pencil, Trash2, UserRound, XCircle } from 'lucide-react'

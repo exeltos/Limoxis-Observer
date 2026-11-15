@@ -1,12 +1,73 @@
+/* color tokens: start */
+:root{
+  --border-brand-363:#1d5f9c;
+  --border-brand-531:#5b8db4;
+  --border-brand-586:#6e9fbd;
+  --border-brand-839:#cbd5e1;
+  --border-brand-851-2:#cfd8e3;
+  --border-brand-863:#c9dcef;
+  --border-brand-898-3:#dbe6ef;
+  --border-brand-908:#dfe7f0;
+  --border-brand-908-2:#dfe8f0;
+  --border-brand-918:#e3e9f1;
+  --border-brand-920-2:#e3ebf2;
+  --border-brand-929-2:#e7ecf3;
+  --border-brand-931:#e6eef5;
+  --border-brand-937:#e9eff5;
+  --border-neutral-947-2:#edf1f6;
+  --border-success-396:#1baf7a;
+  --border-success-402:#2f9e66;
+  --border-warning-439:#e0a100;
+  --border-warning-843:#f1e3bd;
+  --fill-brand-502:#2a78d6;
+  --fill-danger-555:#d64545;
+  --fill-neutral-657:#9aa8b5;
+  --fill-success-396:#1baf7a;
+  --fill-warning-465:#eda100;
+  --surface-brand-302:#174f83;
+  --surface-brand-363:#1d5f9c;
+  --surface-brand-898:#dbe6ef;
+  --surface-brand-920:#e3ebf2;
+  --surface-brand-929-2:#e7ecf3;
+  --surface-brand-941:#e6f0fa;
+  --surface-brand-959-2:#eef4fb;
+  --surface-brand-961-2:#eef5fc;
+  --surface-danger-959:#fdecec;
+  --surface-neutral-951-3:#eef2f7;
+  --surface-neutral-965:#f2f6fa;
+  --surface-neutral-969-5:#f2f7fc;
+  --surface-neutral-969-9:#f3fbf7;
+  --surface-neutral-982-5:#f7fbfe;
+  --surface-neutral-988:#fafcfe;
+  --surface-neutral-990:#fbfcfe;
+  --surface-success-402:#2f9e66;
+  --surface-success-555:#5cbf8a;
+  --text-brand-159:#14253d;
+  --text-brand-178:#1b2b40;
+  --text-brand-214-3:#123a5b;
+  --text-brand-216:#173a57;
+  --text-brand-296:#1d4f7a;
+  --text-brand-349-2:#1d5f95;
+  --text-brand-363:#1d5f9c;
+  --text-danger-427:#a8323d;
+  --text-neutral-408:#56677a;
+  --text-neutral-429-2:#5c6f7f;
+  --text-neutral-457:#5f768a;
+  --text-neutral-494-2:#6b7f91;
+  --text-neutral-622:#8aa0b3;
+  --text-warning-239:#7a5200;
+  --text-warning-314-2:#a06d00;
+}
+/* color tokens: end */
 /* The surveillance sheet opens over the page without the side menu, under the app's top bar, which stays (owner,
    8/11/2026); its title with the back arrow is a white box. */
-html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;z-index:150!important;display:block!important;padding:78px 24px 24px!important;background:#eef2f7!important;backdrop-filter:none!important;overflow:auto}
+html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;z-index:150!important;display:block!important;padding:78px 24px 24px!important;background:var(--surface-neutral-951-3)!important;backdrop-filter:none!important;overflow:auto}
 html body .surveillance-episode-page .episode-detail-card.new-surveillance-flow-card{width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;display:block!important;overflow:visible!important}
 /* The title with its back arrow in a white box, as on every record page. */
-html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:12px 18px!important;margin:0 0 12px!important;border:1px solid #e3e9f1!important;background:#fff!important}
+html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:12px 18px!important;margin:0 0 12px!important;border:1px solid var(--border-brand-918)!important;background:var(--lo-color-surface)!important}
 .surveillance-episode-page .episode-detail-header:is(header,#lo-sheet-view){border-radius:14px}
 .surveillance-episode-page .episode-detail-title{display:flex;align-items:center;gap:12px;min-width:0}
-html body .surveillance-episode-page .episode-detail-header h2{display:block!important;margin:2px 0 2px!important;font-size:18px!important;line-height:1.3!important;color:#173a57!important}
+html body .surveillance-episode-page .episode-detail-header h2{display:block!important;margin:2px 0 2px!important;font-size:18px!important;line-height:1.3!important;color:var(--text-brand-216)!important}
 html body .surveillance-episode-page .episode-detail-header p{font-size:12.5px!important}
 html body .surveillance-episode-page .episode-detail-scroll.progressive-surveillance-scroll{padding:0!important;background:transparent!important;overflow:visible!important}
 html body .surveillance-episode-page .clinical-data-hub{display:flex;flex-direction:column;gap:12px;max-width:none!important}
@@ -19,78 +80,78 @@ html body .surveillance-episode-page .tag-row{margin-bottom:8px!important}
 html body .surveillance-episode-page .clinical-panel{padding:16px 18px!important}
 html body .surveillance-episode-page .clinical-data-grid>.clinical-panel{padding:10px 14px!important}
 html body .surveillance-episode-page .clinical-data-hub{padding-top:10px!important;padding-bottom:8px!important}
-html body .surveillance-episode-page .clinical-panel .record-section-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:0 0 12px!important;margin:0 0 14px!important;border-bottom:1px solid #e6eef5!important}
+html body .surveillance-episode-page .clinical-panel .record-section-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:0 0 12px!important;margin:0 0 14px!important;border-bottom:1px solid var(--border-brand-931)!important}
 html body .surveillance-episode-page .clinical-panel .record-section-header>div{display:flex!important;align-items:center!important;gap:9px!important}
 html body .surveillance-episode-page .clinical-panel .record-section-header>div svg{color:var(--lo-color-primary)}
 html body .surveillance-episode-page .clinical-panel .record-section-header strong{font-size:15px!important}
 html body .surveillance-episode-page .detail-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))!important;gap:10px!important;margin-bottom:12px!important}
-html body .surveillance-episode-page .detail-item{padding:10px 12px!important;border:1px solid #e3ebf2!important;border-radius:10px!important;background:#fafcfe!important;min-width:0!important;min-height:0!important;height:auto!important}
-html body .surveillance-episode-page .detail-item span{display:block!important;margin-bottom:3px!important;font-size:11.5px!important;color:#5c6f7f!important}
+html body .surveillance-episode-page .detail-item{padding:10px 12px!important;border:1px solid var(--border-brand-920-2)!important;border-radius:10px!important;background:var(--surface-neutral-988)!important;min-width:0!important;min-height:0!important;height:auto!important}
+html body .surveillance-episode-page .detail-item span{display:block!important;margin-bottom:3px!important;font-size:11.5px!important;color:var(--text-neutral-429-2)!important}
 html body .surveillance-episode-page .detail-item strong{display:block!important;font-size:13.5px!important;overflow-wrap:anywhere!important}
 html body .surveillance-episode-page .clinical-summary{margin:8px 0 6px!important;font-size:13.5px!important;line-height:1.55!important}
 
 @media print{
-  html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;background:#eef2f7!important}
+  html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;background:var(--surface-neutral-951-3)!important}
 }
 
 /* Reassessment timeline: one readable row per entry. */
 html body .surveillance-episode-page .clinical-timeline{display:grid!important;gap:8px!important}
-html body .surveillance-episode-page .clinical-timeline article{display:block!important;padding:12px 14px!important;border:1px solid #e3ebf2!important;border-left:3px solid #6e9fbd!important;border-radius:10px!important;background:#fff!important;cursor:pointer}
-html body .surveillance-episode-page .clinical-timeline article:hover{background:#f7fbfe!important}
+html body .surveillance-episode-page .clinical-timeline article{display:block!important;padding:12px 14px!important;border:1px solid var(--border-brand-920-2)!important;border-left:3px solid var(--border-brand-586)!important;border-radius:10px!important;background:var(--lo-color-surface)!important;cursor:pointer}
+html body .surveillance-episode-page .clinical-timeline article:hover{background:var(--surface-neutral-982-5)!important}
 html body .surveillance-episode-page .clinical-timeline article>div{display:block!important;width:100%!important}
 html body .surveillance-episode-page .clinical-timeline header{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:12px!important;margin:0 0 4px!important;width:100%!important}
 html body .surveillance-episode-page .clinical-timeline header strong{font-size:13.5px!important;white-space:normal!important}
-html body .surveillance-episode-page .clinical-timeline time{font-size:12px!important;color:#5c6f7f!important;white-space:nowrap!important}
-html body .surveillance-episode-page .clinical-timeline p{margin:0!important;font-size:13px!important;line-height:1.5!important;color:#44576b!important}
+html body .surveillance-episode-page .clinical-timeline time{font-size:12px!important;color:var(--text-neutral-429-2)!important;white-space:nowrap!important}
+html body .surveillance-episode-page .clinical-timeline p{margin:0!important;font-size:13px!important;line-height:1.5!important;color:var(--text-brand-343)!important}
 
 /* ===== Surveillance & samples: episode cards with indented sample tree ===== */
 .sv-tree{display:grid;gap:12px;padding:14px 16px 16px}
-.sv-episode{--sv-accent:#2a78d6;border:1px solid #dbe6ef;border-left:4px solid var(--sv-accent);border-radius:12px;background:#fff;overflow:hidden}
-.sv-episode.sv-status-completed,.sv-episode.sv-status-closed{--sv-accent:#1baf7a}
-.sv-episode.sv-status-cancelled{--sv-accent:#9aa8b5}
+.sv-episode{--sv-accent:var(--fill-brand-502);border:1px solid var(--border-brand-898-3);border-left:4px solid var(--sv-accent);border-radius:12px;background:var(--lo-color-surface);overflow:hidden}
+.sv-episode.sv-status-completed,.sv-episode.sv-status-closed{--sv-accent:var(--fill-success-396)}
+.sv-episode.sv-status-cancelled{--sv-accent:var(--fill-neutral-657)}
 .sv-episode.is-selected{box-shadow:0 0 0 3px color-mix(in srgb,var(--sv-accent) 18%,transparent)}
-.sv-episode-head{width:100%;display:grid;grid-template-columns:36px minmax(0,1fr) auto 20px;align-items:center;gap:12px;padding:14px 16px;border:0;background:linear-gradient(90deg,color-mix(in srgb,var(--sv-accent) 6%,#fff),#fff 60%);text-align:left;font:inherit;color:inherit;cursor:pointer}
-.sv-episode-head:hover{background:color-mix(in srgb,var(--sv-accent) 9%,#fff)}
+.sv-episode-head{width:100%;display:grid;grid-template-columns:36px minmax(0,1fr) auto 20px;align-items:center;gap:12px;padding:14px 16px;border:0;background:linear-gradient(90deg,color-mix(in srgb,var(--sv-accent) 6%,var(--lo-color-surface)),var(--lo-color-surface) 60%);text-align:left;font:inherit;color:inherit;cursor:pointer}
+.sv-episode-head:hover{background:color-mix(in srgb,var(--sv-accent) 9%,var(--lo-color-surface))}
 .sv-episode-head:focus-visible{outline:2px solid color-mix(in srgb,var(--sv-accent) 45%,transparent);outline-offset:-2px}
-.sv-episode-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--sv-accent) 12%,#fff);color:var(--sv-accent)}
+.sv-episode-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--sv-accent) 12%,var(--lo-color-surface));color:var(--sv-accent)}
 .sv-episode-main{display:grid;gap:4px;min-width:0}
 .sv-episode-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.sv-episode-title strong{font-size:15px;color:#173a57}
-.sv-episode-main small{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:12.5px;color:#5f768a}
+.sv-episode-title strong{font-size:15px;color:var(--text-brand-216)}
+.sv-episode-main small{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:12.5px;color:var(--text-neutral-457)}
 .sv-episode-findings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.sv-sample-count{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:#eef3f7;color:#44576b;font-size:12px;font-weight:700}
-.sv-episode-open{color:#8aa0b3}
+.sv-sample-count{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:var(--surface-neutral-951);color:var(--text-brand-343);font-size:12px;font-weight:700}
+.sv-episode-open{color:var(--text-neutral-622)}
 .sv-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:12px;font-style:normal;font-weight:650;white-space:nowrap}
-.sv-chip-organism{background:#eef5fc;color:#1d5f95;font-style:italic}
-.sv-chip-danger{background:#fdecec;color:#b3261e;font-weight:800}
-.sv-chip-muted{background:#f1f4f7;color:#6b7f91}
+.sv-chip-organism{background:var(--surface-brand-961-2);color:var(--text-brand-349-2);font-style:italic}
+.sv-chip-danger{background:var(--surface-danger-959);color:var(--text-danger-410);font-weight:800}
+.sv-chip-muted{background:var(--surface-neutral-957);color:var(--text-neutral-494-2)}
 
 /* Sample tree: indented under the episode, a connector line shows the hierarchy. */
 .sv-samples{position:relative;display:grid;gap:8px;padding:4px 16px 14px 44px}
-.sv-samples::before{content:"";position:absolute;left:33px;top:0;bottom:22px;width:2px;background:#dbe6ef;border-radius:2px}
+.sv-samples::before{content:"";position:absolute;left:33px;top:0;bottom:22px;width:2px;background:var(--surface-brand-898);border-radius:2px}
 .sv-samples-flat{padding-left:16px}
 .sv-samples-flat::before{display:none}
 .sv-sample-node{position:relative;display:grid;gap:8px}
-.sv-samples:not(.sv-samples-flat)>.sv-sample-node::before{content:"";position:absolute;left:-11px;top:22px;width:11px;height:2px;background:#dbe6ef}
+.sv-samples:not(.sv-samples-flat)>.sv-sample-node::before{content:"";position:absolute;left:-11px;top:22px;width:11px;height:2px;background:var(--surface-brand-898)}
 .sv-sample-children{position:relative;display:grid;gap:8px;padding-left:34px}
-.sv-sample-children::before{content:"";position:absolute;left:17px;top:-8px;bottom:22px;width:2px;background:#e3ebf2;border-radius:2px}
-.sv-sample-children>.sv-sample-node::before{content:"";position:absolute;left:-17px;top:22px;width:17px;height:2px;background:#e3ebf2}
-.sv-sample{--tone:#eda100;display:grid;grid-template-columns:30px minmax(160px,1.1fr) minmax(0,1.6fr) auto;align-items:center;gap:12px;padding:9px 12px;border:1px solid #e3ebf2;border-left:3px solid var(--tone);border-radius:10px;background:#fbfcfe}
-.sv-sample.sv-tone-positive{--tone:#d64545}
-.sv-sample.sv-tone-negative{--tone:#1baf7a}
-.sv-sample.sv-tone-pending{--tone:#eda100}
-.sv-sample-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--tone) 12%,#fff);color:var(--tone)}
+.sv-sample-children::before{content:"";position:absolute;left:17px;top:-8px;bottom:22px;width:2px;background:var(--surface-brand-920);border-radius:2px}
+.sv-sample-children>.sv-sample-node::before{content:"";position:absolute;left:-17px;top:22px;width:17px;height:2px;background:var(--surface-brand-920)}
+.sv-sample{--tone:var(--fill-warning-465);display:grid;grid-template-columns:30px minmax(160px,1.1fr) minmax(0,1.6fr) auto;align-items:center;gap:12px;padding:9px 12px;border:1px solid var(--border-brand-920-2);border-left:3px solid var(--tone);border-radius:10px;background:var(--surface-neutral-990)}
+.sv-sample.sv-tone-positive{--tone:var(--fill-danger-555)}
+.sv-sample.sv-tone-negative{--tone:var(--fill-success-396)}
+.sv-sample.sv-tone-pending{--tone:var(--fill-warning-465)}
+.sv-sample-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--tone) 12%,var(--lo-color-surface));color:var(--tone)}
 .sv-sample-main{display:grid;gap:2px;min-width:0}
-.sv-sample-main strong{font-size:13px;color:#1f3a52}
-.sv-sample-main small{font-size:12px;color:#5c6f7f;overflow-wrap:anywhere}
+.sv-sample-main strong{font-size:13px;color:var(--text-brand-222)}
+.sv-sample-main small{font-size:12px;color:var(--text-neutral-429-2);overflow-wrap:anywhere}
 .sv-sample-result{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .sv-sample-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .sv-sample-actions .button{min-height:30px;height:30px;padding:0 11px;font-size:12px}
-.sv-sample-actions .sample-negative-note{font-size:12px;color:#5f768a;font-style:normal}
-.sv-unlinked{border:1px dashed #cfdce7;border-radius:12px;background:#fff}
-.sv-unlinked-heading{display:flex;align-items:center;gap:8px;padding:12px 16px 6px;color:#44576b}
-.sv-unlinked-heading strong{font-size:13.5px;color:#1f3a52}
-.sv-unlinked-heading span{padding:1px 8px;border-radius:999px;background:#eef3f7;font-size:12px;font-weight:700}
+.sv-sample-actions .sample-negative-note{font-size:12px;color:var(--text-neutral-457);font-style:normal}
+.sv-unlinked{border:1px dashed var(--border-brand-859);border-radius:12px;background:var(--lo-color-surface)}
+.sv-unlinked-heading{display:flex;align-items:center;gap:8px;padding:12px 16px 6px;color:var(--text-brand-343)}
+.sv-unlinked-heading strong{font-size:13.5px;color:var(--text-brand-222)}
+.sv-unlinked-heading span{padding:1px 8px;border-radius:999px;background:var(--surface-neutral-951);font-size:12px;font-weight:700}
 @media (max-width:980px){
   .sv-episode-head{grid-template-columns:36px minmax(0,1fr) 20px}
   .sv-episode-findings{grid-column:2/3;justify-content:flex-start}
@@ -100,29 +161,29 @@ html body .surveillance-episode-page .clinical-timeline p{margin:0!important;fon
 
 /* ===== Final report of a completed episode (full width, card per area) ===== */
 html body .surveillance-final-report.final-report-v2{max-width:none!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;display:grid;gap:14px}
-.final-report-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:18px 20px;border:1px solid #dbe6ef;border-left:4px solid #1baf7a;border-radius:12px;background:linear-gradient(90deg,#f3fbf7,#fff 55%)}
-.final-report-hero h2{margin:4px 0 4px;font-size:20px;color:#173a57}
-.final-report-hero p{margin:0;font-size:13px;color:#5f768a}
+.final-report-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:18px 20px;border:1px solid var(--border-brand-898-3);border-left:4px solid var(--border-success-396);border-radius:12px;background:linear-gradient(90deg,var(--surface-neutral-969-9),var(--lo-color-surface) 55%)}
+.final-report-hero h2{margin:4px 0 4px;font-size:20px;color:var(--text-brand-216)}
+.final-report-hero p{margin:0;font-size:13px;color:var(--text-neutral-457)}
 .final-report-hero-facts{display:grid;grid-template-columns:repeat(4,auto);gap:10px 26px}
-.final-report-hero-facts small,.final-report-facts small{display:block;font-size:11.5px;font-weight:650;color:#5c6f7f;margin-bottom:3px}
-.final-report-hero-facts strong{font-size:14px;color:#1f3a52}
+.final-report-hero-facts small,.final-report-facts small{display:block;font-size:11.5px;font-weight:650;color:var(--text-neutral-429-2);margin-bottom:3px}
+.final-report-hero-facts strong{font-size:14px;color:var(--text-brand-222)}
 .final-report-chips{display:flex;gap:6px;flex-wrap:wrap}
 .final-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.final-report-card{padding:16px 18px;border:1px solid #dfe8f0;border-radius:12px;background:#fff;min-width:0}
+.final-report-card{padding:16px 18px;border:1px solid var(--border-brand-908-2);border-radius:12px;background:var(--lo-color-surface);min-width:0}
 .final-report-card.wide{grid-column:1/-1}
-.final-report-card>header{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #e9eff5}
-.final-report-card>header h3{margin:0;font-size:15px;color:#173a57}
-.final-report-card-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#eef5fc;color:var(--lo-color-primary)}
-.final-report-card p{margin:10px 0 0;font-size:13.5px;line-height:1.55;color:#34485e}
+.final-report-card>header{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--border-brand-937)}
+.final-report-card>header h3{margin:0;font-size:15px;color:var(--text-brand-216)}
+.final-report-card-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--surface-brand-961-2);color:var(--lo-color-primary)}
+.final-report-card p{margin:10px 0 0;font-size:13.5px;line-height:1.55;color:var(--text-brand-286-3)}
 .final-report-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.final-report-facts>div{padding:10px 12px;border:1px solid #e3ebf2;border-radius:10px;background:#fafcfe}
-.final-report-facts strong{font-size:13.5px;color:#1f3a52;overflow-wrap:anywhere}
-.final-report-empty{margin:0!important;color:#5c6f7f!important;font-size:13px!important}
+.final-report-facts>div{padding:10px 12px;border:1px solid var(--border-brand-920-2);border-radius:10px;background:var(--surface-neutral-988)}
+.final-report-facts strong{font-size:13.5px;color:var(--text-brand-222);overflow-wrap:anywhere}
+.final-report-empty{margin:0!important;color:var(--text-neutral-429-2)!important;font-size:13px!important}
 .final-report-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.final-report-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 12px;border:1px solid #e3ebf2;border-radius:10px;background:#fafcfe}
-.final-report-list li strong{font-size:13.5px;color:#1f3a52}
-.final-report-list li span{grid-column:1;font-size:12.5px;color:#5f768a}
-.final-report-list li small{grid-column:2;grid-row:1;font-size:12px;color:#5c6f7f;white-space:nowrap}
+.final-report-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 12px;border:1px solid var(--border-brand-920-2);border-radius:10px;background:var(--surface-neutral-988)}
+.final-report-list li strong{font-size:13.5px;color:var(--text-brand-222)}
+.final-report-list li span{grid-column:1;font-size:12.5px;color:var(--text-neutral-457)}
+.final-report-list li small{grid-column:2;grid-row:1;font-size:12px;color:var(--text-neutral-429-2);white-space:nowrap}
 .final-report-card .clinical-data-hub{padding:0}
 @media (max-width:1100px){.final-report-hero{grid-template-columns:minmax(0,1fr)}.final-report-hero-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.final-report-grid{grid-template-columns:minmax(0,1fr)}}
 @media print{.final-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.final-report-card{break-inside:avoid}}
@@ -139,54 +200,54 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 /* The scale chips of the record header open the clinical scales (with their history). */
 .entity-record-header .clinical-risk-flag{cursor:pointer}
 .entity-record-header .clinical-risk-flag:hover{filter:brightness(.96);box-shadow:0 0 0 2px rgba(31,95,139,.12)}
-.entity-record-header .clinical-risk-flag:focus-visible{outline:2px solid #5b8db4;outline-offset:2px}
+.entity-record-header .clinical-risk-flag:focus-visible{outline:2px solid var(--border-brand-531);outline-offset:2px}
 /* The scales opened from a header chip: the scales panel (a record-tab layout that
    fills its parent) gets a body tall enough for its table and pager. */
 /* The record summary (ClinicalAdmissions CanonicalSummary): attention list, then two columns. */
 .record-summary-attention ul,.record-summary-events ul{margin:0;padding:0;list-style:none}
-.record-summary-link{padding:0;border:0;background:none;font:inherit;font-size:12px;font-weight:650;color:#1d4f7a;white-space:nowrap;cursor:pointer}
-.record-summary-link:hover{color:#123a5b;text-decoration:underline}
+.record-summary-link{padding:0;border:0;background:none;font:inherit;font-size:12px;font-weight:650;color:var(--text-brand-296);white-space:nowrap;cursor:pointer}
+.record-summary-link:hover{color:var(--text-brand-214-3);text-decoration:underline}
 .record-summary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:stretch}
 .record-summary-grid>.record-summary-card{margin:0;height:100%}
 .patient-record-shell .record-summary-card>.record-section-header{min-height:41px;align-items:center}
-.record-summary-events{margin-top:10px;padding-top:8px;border-top:1px solid var(--lo-color-border,#e3e8ee)}
-.record-summary-events h4{margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5f6f7d}
-.record-summary-events li{display:flex;gap:8px;padding:3px 0;font-size:12px;color:#172033}
+.record-summary-events{margin-top:10px;padding-top:8px;border-top:1px solid var(--lo-color-border)}
+.record-summary-events h4{margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-status-neutral-fg)}
+.record-summary-events li{display:flex;gap:8px;padding:3px 0;font-size:12px;color:var(--text-brand-145)}
 .record-summary-events li b{flex:none;font-weight:650}
 @media (max-width:1000px){.record-summary-grid{grid-template-columns:1fr}}
 
 /* The surveillance sheet (owner, 8/11/2026, design 2): a small index of the steps on the left, every section on one
    page on the right, one under the other, without cards. */
 .sheet-layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;align-items:start}
-.sheet-index{position:sticky;top:8px;display:flex;flex-direction:column;gap:2px;padding:10px;border:1px solid #e3e9f1;border-radius:12px;background:#fff}
-.sheet-index-step{display:flex;align-items:center;gap:9px;padding:6px 8px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:13px;color:#1b2b40;text-align:left;cursor:pointer}
-.sheet-index-step:hover:not(:disabled){background:#f2f6fa}
-.sheet-index-step.is-active{background:#1d5f9c;color:#fff;font-weight:600}
+.sheet-index{position:sticky;top:8px;display:flex;flex-direction:column;gap:2px;padding:10px;border:1px solid var(--border-brand-918);border-radius:12px;background:var(--lo-color-surface)}
+.sheet-index-step{display:flex;align-items:center;gap:9px;padding:6px 8px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:13px;color:var(--text-brand-178);text-align:left;cursor:pointer}
+.sheet-index-step:hover:not(:disabled){background:var(--surface-neutral-965)}
+.sheet-index-step.is-active{background:var(--surface-brand-363);color:var(--text-inverse);font-weight:600}
 .sheet-index-step.is-protocol span{color:var(--lo-status-danger-fg)}
 .sheet-index-step:disabled{opacity:.5;cursor:not-allowed}
-.episode-step-number{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid #cbd5e1;font-style:normal;font-size:11.5px;font-weight:700;color:#64748b;background:#fff}
-.tone-done .episode-step-number{background:#2f9e66;border-color:#2f9e66;color:#fff}
-.tone-due .episode-step-number{border-color:#e0a100;color:#a06d00}
-.sheet-index-step.is-active .episode-step-number{background:#fff;border-color:#fff;color:#1d5f9c}
-.sheet-progress{margin-top:8px;padding:8px 8px 2px;border-top:1px solid #edf1f6;font-size:11.5px;color:#64748b}
-.sheet-progress i{display:block;height:6px;margin-top:5px;border-radius:6px;background:#e7ecf3;overflow:hidden}
-.sheet-progress b{display:block;height:100%;background:linear-gradient(90deg,#2f9e66,#5cbf8a)}
-.sheet-body{min-width:0;border:1px solid #e3e9f1;border-radius:14px;background:#fff;overflow:hidden}
+.episode-step-number{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border-brand-839);font-style:normal;font-size:11.5px;font-weight:700;color:var(--text-subtle);background:var(--lo-color-surface)}
+.tone-done .episode-step-number{background:var(--surface-success-402);border-color:var(--border-success-402);color:var(--text-inverse)}
+.tone-due .episode-step-number{border-color:var(--border-warning-439);color:var(--text-warning-314-2)}
+.sheet-index-step.is-active .episode-step-number{background:var(--lo-color-surface);border-color:var(--border-neutral-1000);color:var(--text-brand-363)}
+.sheet-progress{margin-top:8px;padding:8px 8px 2px;border-top:1px solid var(--border-neutral-947-2);font-size:11.5px;color:var(--text-subtle)}
+.sheet-progress i{display:block;height:6px;margin-top:5px;border-radius:6px;background:var(--surface-brand-929-2);overflow:hidden}
+.sheet-progress b{display:block;height:100%;background:linear-gradient(90deg,var(--surface-success-402),var(--surface-success-555))}
+.sheet-body{min-width:0;border:1px solid var(--border-brand-918);border-radius:14px;background:var(--lo-color-surface);overflow:hidden}
 .sheet-body .clinical-data-grid{display:block}
 .sheet-anchor{scroll-margin-top:12px}
-.sheet-anchor+.sheet-anchor,.sheet-body .protocol-panel{border-top:1px solid #edf1f6}
+.sheet-anchor+.sheet-anchor,.sheet-body .protocol-panel{border-top:1px solid var(--border-neutral-947-2)}
 html body .surveillance-episode-page .sheet-body .clinical-panel{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;margin:0!important;padding:14px 22px!important}
 .sheet-body .clinical-panel>.record-section-header{border:0;padding:0 0 8px;margin:0}
 .sheet-body .clinical-panel>.record-section-header>div:first-child{display:flex;align-items:center;gap:10px}
-.sheet-body .clinical-panel>.record-section-header>div:first-child>svg{box-sizing:content-box;padding:6px;border-radius:8px;background:#eef4fb;color:#1d5f9c}
+.sheet-body .clinical-panel>.record-section-header>div:first-child>svg{box-sizing:content-box;padding:6px;border-radius:8px;background:var(--surface-brand-959-2);color:var(--text-brand-363)}
 .sheet-body .clinical-panel>.record-section-header strong{font-size:15px}
 @media (max-width:900px){.sheet-layout{grid-template-columns:1fr}.sheet-index{position:static;flex-direction:row;flex-wrap:wrap}.sheet-progress{display:none}}
-.sheet-attention{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 12px;border:1px solid #f1e3bd;border-radius:10px;background:#fff8e6;font-size:13px;color:#7a5200}
-.sheet-attention-item{border:0;border-radius:999px;padding:2px 10px;background:#fff;font:inherit;font-size:12.5px;color:#7a5200;cursor:pointer}
-.sheet-attention-item.tone-danger{color:#a8323d}
+.sheet-attention{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 12px;border:1px solid var(--border-warning-843);border-radius:10px;background:var(--surface-warning-951);font-size:13px;color:var(--text-warning-239)}
+.sheet-attention-item{border:0;border-radius:999px;padding:2px 10px;background:var(--lo-color-surface);font:inherit;font-size:12.5px;color:var(--text-warning-239);cursor:pointer}
+.sheet-attention-item.tone-danger{color:var(--text-danger-427)}
 .sheet-attention-item:hover{text-decoration:underline}
 .sheet-questions{display:flex;flex-direction:column}
-.sheet-question{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px dashed #e7ecf3}
+.sheet-question{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px dashed var(--border-brand-929-2)}
 .sheet-question:last-child{border-bottom:0}
 /* The sheet reads as one form, not a pile of boxes (owner, 8/11/2026): the values are plain «label / value» lines,
    the tables lose their frame, the notes are small grey text and the section header has no rule under it.
@@ -194,31 +255,31 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{border:0!import
 html body .surveillance-episode-page .sheet-body .record-section-header{border-bottom:0!important;padding-bottom:4px!important;margin-bottom:6px!important}
 html body .surveillance-episode-page .sheet-body .detail-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px 18px!important;margin:0 0 12px!important}
 html body .surveillance-episode-page .sheet-body .detail-item{border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important;min-height:0!important}
-html body .surveillance-episode-page .sheet-body .detail-item strong{display:block;min-height:20px;border-radius:9px;background:#f6f8fb;font-size:13.5px!important;font-weight:500!important;color:#14253d}
+html body .surveillance-episode-page .sheet-body .detail-item strong{display:block;min-height:20px;border-radius:9px;background:var(--surface-neutral-975);font-size:13.5px!important;font-weight:500!important;color:var(--text-brand-159)}
 html body .surveillance-episode-page .sheet-body :is(.table-wrap,.registry-table-wrap,.scroll-table){border:0!important;box-shadow:none!important;border-radius:0!important;background:transparent!important}
-html body .surveillance-episode-page .sheet-body .evidence-box{border:0!important;border-left:3px solid #c9dcef!important;border-radius:0!important;background:transparent!important;padding:2px 12px!important;margin:4px 0!important}
-html body .surveillance-episode-page .sheet-body .clinical-panel .inline-empty{min-height:0!important;padding:9px 12px!important;margin:0!important;background:#f6f8fb!important;border:0!important;text-align:left!important;font-size:13px!important;color:#56677a!important}
+html body .surveillance-episode-page .sheet-body .evidence-box{border:0!important;border-left:3px solid var(--border-brand-863)!important;border-radius:0!important;background:transparent!important;padding:2px 12px!important;margin:4px 0!important}
+html body .surveillance-episode-page .sheet-body .clinical-panel .inline-empty{min-height:0!important;padding:9px 12px!important;margin:0!important;background:var(--surface-neutral-975)!important;border:0!important;text-align:left!important;font-size:13px!important;color:var(--text-neutral-408)!important}
 .sheet-body .clinical-panel .inline-empty:is(div,#lo-sheet-view){display:block;border-radius:9px;font-style:italic}
 html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22px!important;min-height:0!important}
-.sheet-pager{display:flex;justify-content:space-between;gap:12px;padding:10px 22px 14px;border-top:1px solid #edf1f6}
-.sheet-pager-button{border:1px solid #cfd8e3;border-radius:9px;background:#fff;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;color:#1d5f9c;cursor:pointer}
-.sheet-pager-button:hover{background:#f2f7fc}
-.sheet-pager-button.is-next{margin-left:auto;background:#1d5f9c;border-color:#1d5f9c;color:#fff}
+.sheet-pager{display:flex;justify-content:space-between;gap:12px;padding:10px 22px 14px;border-top:1px solid var(--border-neutral-947-2)}
+.sheet-pager-button{border:1px solid var(--border-brand-851-2);border-radius:9px;background:var(--lo-color-surface);padding:7px 14px;font:inherit;font-size:13px;font-weight:600;color:var(--text-brand-363);cursor:pointer}
+.sheet-pager-button:hover{background:var(--surface-neutral-969-5)}
+.sheet-pager-button.is-next{margin-left:auto;background:var(--surface-brand-363);border-color:var(--border-brand-363);color:var(--text-inverse)}
 /* A form on the sheet (InlineDialogContext): the same fields and Save as the window, laid in the page. */
-.observer-dialog-inline{padding:12px 22px 14px;border-top:1px solid #edf1f6}
+.observer-dialog-inline{padding:12px 22px 14px;border-top:1px solid var(--border-neutral-947-2)}
 .observer-dialog-inline>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .observer-dialog-inline>header h3{margin:0;font-size:15px}
-.observer-dialog-inline>header p{margin:2px 0 0;font-size:12.5px;color:#64748b}
+.observer-dialog-inline>header p{margin:2px 0 0;font-size:12.5px;color:var(--text-subtle)}
 .observer-dialog-inline>header .eyebrow{display:none}
-.observer-dialog-inline>footer{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px dashed #e3e9f1}
+.observer-dialog-inline>footer{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border-brand-918)}
 .sheet-body>.clinical-data-grid>.sheet-anchor>.observer-dialog-inline:first-child{border-top:0}
 /* «Τέλος επεξεργασίας» beside the sheet's «⋯» (the header's other buttons are square icons). */
-.episode-detail-actions>button.sheet-done{width:auto;height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;background:var(--brand-700,#1d5f9c);border-color:transparent;color:#fff;font-weight:600;white-space:nowrap}
-.episode-detail-actions>button.sheet-done:hover{background:#174f83;color:#fff}
+.episode-detail-actions>button.sheet-done{width:auto;height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;background:var(--brand-700,var(--surface-brand-363));border-color:transparent;color:var(--text-inverse);font-weight:600;white-space:nowrap}
+.episode-detail-actions>button.sheet-done:hover{background:var(--surface-brand-302);color:var(--text-inverse)}
 /* The windows of the sheet (sample, device, HAI, therapy, protocol, a row's details) open under the step, in the page. */
 .sheet-inline-forms:empty{display:none}
-.sheet-inline-forms>.observer-dialog-inline{margin:0;background:transparent;border:0;border-top:1px solid #edf1f6;border-radius:0}
-.sheet-index-step.is-active:hover:not(:disabled){background:#174f83}
+.sheet-inline-forms>.observer-dialog-inline{margin:0;background:transparent;border:0;border-top:1px solid var(--border-neutral-947-2);border-radius:0}
+.sheet-index-step.is-active:hover:not(:disabled){background:var(--surface-brand-302)}
 /* One frame only (owner, 8/11/2026): on the sheet the form's body has no grey box of its own. */
 .sheet-body .observer-dialog-inline>.observer-dialog-body{padding:0!important;background:transparent!important}
 /* Aligned fields (owner, 8/11/2026): every label on the same line, the same gap to its control. The shared form-row
@@ -231,29 +292,29 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 .sheet-body .observer-dialog-inline.hai-dialog>.observer-dialog-body>.entry-grid{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.2fr)!important}
 /* The device / therapy rows: no card inside the form, a dashed line between rows. */
 .sheet-body .observer-dialog-inline .therapy-entry-card{border:0;border-radius:0;padding:0;background:none;box-shadow:none}
-.sheet-body .observer-dialog-inline .therapy-entry-card+.therapy-entry-card{border-top:1px dashed #dfe7f0;padding-top:12px}
+.sheet-body .observer-dialog-inline .therapy-entry-card+.therapy-entry-card{border-top:1px dashed var(--border-brand-908);padding-top:12px}
 .sheet-body .observer-dialog-inline .entry-grid:is(div,#lo-sheet-form){padding-top:0!important}
 /* No frame inside the sheet's one card (owner, 8/11/2026): a form on the sheet is flat, whatever window class it carries. */
-html body .surveillance-episode-page .sheet-body .observer-dialog-inline{box-shadow:none!important;border-radius:0!important;background:transparent!important;border:0!important;border-top:1px solid #edf1f6!important;max-width:none!important;width:auto!important;margin:0!important}
-.sheet-body .observer-dialog-inline>header h3{font-size:14px;color:#1d5f9c}
+html body .surveillance-episode-page .sheet-body .observer-dialog-inline{box-shadow:none!important;border-radius:0!important;background:transparent!important;border:0!important;border-top:1px solid var(--border-neutral-947-2)!important;max-width:none!important;width:auto!important;margin:0!important}
+.sheet-body .observer-dialog-inline>header h3{font-size:14px;color:var(--text-brand-363)}
 .sheet-anchor:empty{display:none}
 /* The 48–72 h review in the therapy step: a part of the step, not a card in the card (owner, 8/11/2026). */
-html body .surveillance-episode-page .sheet-body .sp-card.sp-review{border:0!important;border-top:1px solid #edf1f6!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;margin:10px 0 0!important;padding:12px 0 0!important}
+html body .surveillance-episode-page .sheet-body .sp-card.sp-review{border:0!important;border-top:1px solid var(--border-neutral-947-2)!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;margin:10px 0 0!important;padding:12px 0 0!important}
 /* The sheet read-only (owner, 8/11/2026): the same layout as its form, each value in a soft box instead of a field.
    The id in :is() gives these the weight of the page rules they refine, without !important. */
-.sheet-body .detail-item>.lo-field-label:is(span,#lo-sheet-view){display:block;height:16px;line-height:16px;margin:0 0 6px;font-size:11.5px;font-weight:600;color:#64748b}
-.sheet-body .sheet-empty{font-style:italic;color:#56677a;font-weight:400}
-.sheet-body .clinical-panel .clinical-summary:is(p,#lo-sheet-view){padding:9px 12px;border-radius:9px;background:#f6f8fb;margin:0 0 12px}
-.sheet-body .clinical-panel .tag-list-label:is(span,#lo-sheet-view){display:block;height:16px;line-height:16px;margin:0 0 6px;font-size:11.5px;font-weight:600;color:#64748b}
-.sheet-body .clinical-panel .tag-row:is(div,#lo-sheet-view){display:flex;flex-wrap:wrap;gap:6px;padding:7px 10px;border-radius:9px;background:#f6f8fb;margin:0 0 12px}
-.sheet-body .clinical-panel .clinical-tag:is(span,#lo-sheet-view){background:#e6f0fa;color:#1d5f9c;font-weight:600;font-size:12.5px;padding:3px 10px;border-radius:999px;border:0}
+.sheet-body .detail-item>.lo-field-label:is(span,#lo-sheet-view){display:block;height:16px;line-height:16px;margin:0 0 6px;font-size:11.5px;font-weight:600;color:var(--text-subtle)}
+.sheet-body .sheet-empty{font-style:italic;color:var(--text-neutral-408);font-weight:400}
+.sheet-body .clinical-panel .clinical-summary:is(p,#lo-sheet-view){padding:9px 12px;border-radius:9px;background:var(--surface-neutral-975);margin:0 0 12px}
+.sheet-body .clinical-panel .tag-list-label:is(span,#lo-sheet-view){display:block;height:16px;line-height:16px;margin:0 0 6px;font-size:11.5px;font-weight:600;color:var(--text-subtle)}
+.sheet-body .clinical-panel .tag-row:is(div,#lo-sheet-view){display:flex;flex-wrap:wrap;gap:6px;padding:7px 10px;border-radius:9px;background:var(--surface-neutral-975);margin:0 0 12px}
+.sheet-body .clinical-panel .clinical-tag:is(span,#lo-sheet-view){background:var(--surface-brand-941);color:var(--text-brand-363);font-weight:600;font-size:12.5px;padding:3px 10px;border-radius:999px;border:0}
 .sheet-body .sheet-answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;margin:0 0 12px}
-.sheet-body .sheet-answer{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-radius:9px;background:#f6f8fb}
+.sheet-body .sheet-answer{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-radius:9px;background:var(--surface-neutral-975)}
 .sheet-body .sheet-answer strong{font-weight:600}
 /* Lists (samples, devices, therapy): one soft row per entry, no grid lines. */
 .sheet-body [data-ui=registry-table] table:is(table,#lo-sheet-view){border-collapse:separate;border-spacing:0 6px}
 .sheet-body [data-ui=registry-table] thead th:is(th,#lo-sheet-view){background:transparent!important;border-bottom:0!important;padding:0 12px;height:auto}
-.sheet-body [data-ui=registry-table] tbody td:is(td,#lo-sheet-view){background:#f6f8fb;border:0;padding:10px 12px}
+.sheet-body [data-ui=registry-table] tbody td:is(td,#lo-sheet-view){background:var(--surface-neutral-975);border:0;padding:10px 12px}
 .sheet-body [data-ui=registry-table] tbody td:first-child:is(td,#lo-sheet-view){border-radius:9px 0 0 9px;font-weight:600}
 .sheet-body [data-ui=registry-table] tbody td:last-child:is(td,#lo-sheet-view){border-radius:0 9px 9px 0}
 .sheet-body .detail-grid>.detail-item:is(div,#lo-sheet-view){display:flex;flex-direction:column;gap:0}

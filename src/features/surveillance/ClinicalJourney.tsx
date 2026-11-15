@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { useEffect, useRef, useState } from 'react'
 import { Activity, AlertTriangle, ClipboardList, Microscope, RefreshCcw, ShieldCheck } from 'lucide-react'
 import { Button } from '../../design-system/Button'

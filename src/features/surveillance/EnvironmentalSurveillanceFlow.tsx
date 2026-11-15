@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { useState } from 'react'
 import { isOutsideLimit, limitAssessment } from '../laboratory/environmentalLimit'
 import {

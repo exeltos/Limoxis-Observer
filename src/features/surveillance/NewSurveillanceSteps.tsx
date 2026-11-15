@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 // The patient choice and start step of the new-surveillance flow (NewSurveillanceFlow
 // keeps their state). Assessment, samples and isolation are recorded later in the
 // episode's journey (ClinicalJourney).

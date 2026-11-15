@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 // The samples of the surveillance tab as a tree: each sample with its follow-up samples under it.
 import { sampleParentCode, sampleTone } from './patientRecordScope'
 import { Microscope, PlayCircle, RefreshCcw } from 'lucide-react'

@@ -1,3 +1,4 @@
+import './surveillanceScreens.css'
 import { useEffect, useMemo, useState } from 'react'
 import {
   admissionWindowEnd,

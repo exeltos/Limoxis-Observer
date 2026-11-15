@@ -1,3 +1,4 @@
+import '../surveillanceScreens.css'
 import { useEffect, useMemo, useRef } from 'react'
 import { EmptyState } from '../../../design-system/EmptyState'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
