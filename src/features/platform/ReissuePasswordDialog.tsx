@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useState } from 'react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { useFeedback } from '../../core/feedback/FeedbackContext'

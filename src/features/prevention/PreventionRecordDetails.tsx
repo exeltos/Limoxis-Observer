@@ -1,3 +1,4 @@
+import './preventionScreens.css'
 // The details sheet, key figures and own list of each Prevention record (hand hygiene, antiseptics, bundles).
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { ABHR_TARGET, HAND_HYGIENE_TARGET } from './preventionKpis'

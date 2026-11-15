@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Page } from '../../design-system/Page'

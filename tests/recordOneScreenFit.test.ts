@@ -9,7 +9,8 @@ const withoutImportant = css => css.replaceAll('!important', '')
 // content is short. Both are compacted to fit one screen, while the record
 // body keeps overflow:auto so longer records still scroll (never clip).
 const lab = readSource('src/features/laboratory/LaboratorySampleRecord.css')
-const modules = readSource('src/styles/features.css')
+// Οι κανόνες της εγγραφής Ποιότητας φορτώνονται με τις σελίδες της (qualityScreens.css).
+const modules = readSource('src/styles/features.css') + readSource('src/features/quality/qualityScreens.css')
 
 describe('Laboratory and Quality records fit one laptop screen', () => {
   it('lays the 12 incident fields out as 4 columns (3 rows) instead of the shared 3-column sheet', () => {

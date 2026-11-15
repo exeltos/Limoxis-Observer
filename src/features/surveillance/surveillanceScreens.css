@@ -176,7 +176,6 @@
 .patient-details-editor{padding:6px 2px 0}
 .patient-details-editor .patient-entry-grid-wide>.entry-span-2{grid-column:1/-1!important}
 .patient-details-editor .patient-entry-grid-wide textarea{min-height:64px!important;height:64px}
-@media(max-width:700px){.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:1fr!important}}
 .admission-picker-count{min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;border-radius:8px;background:var(--surface-brand-931-2);color:var(--text-brand-278);font-size:10px;font-style:normal;font-weight:750}
 .patient-no-admission-view{display:flex;flex-direction:column;min-width:0;padding:6px 14px 10px}
 .patient-no-admission-view .patient-summary-card.is-bare{margin:0;padding:0 0 6px}

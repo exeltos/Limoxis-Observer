@@ -142,7 +142,6 @@
 /* Control confirmation: one compact line, checkbox directly before the confirmation text. */
 
 /* Greek-first microcopy: technical abbreviations are allowed, interface jargon is not. */
-.table-cell-unit{opacity:.72}
 
 @media (max-width:980px){
   .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -286,9 +285,6 @@
   cursor:pointer;
 }
 .icon-button:hover,.section-report-actions button:hover{background:var(--lo-shell-control-hover)}
-.diagnostics-table-wrap{margin-top:12px}
-.diagnostics-table thead th{white-space:nowrap;vertical-align:middle}
-.diagnostics-table tbody td{vertical-align:middle}
 
 .platform-maintenance-banner{position:fixed;z-index:2000;left:50%;top:10px;transform:translateX(-50%);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;width:min(760px,calc(100vw - 32px));padding:10px 12px;border:1px solid var(--lo-status-warning-border);border-radius:var(--lo-radius-control);background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg);box-shadow:0 10px 28px color-mix(in srgb,var(--lo-color-text) 14%,transparent);font-size:11.5px;font-weight:650;line-height:1.45}
 .platform-maintenance-banner>svg{flex:0 0 auto}.platform-maintenance-banner button{width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}.platform-maintenance-banner button:hover{background:color-mix(in srgb,var(--lo-status-warning-fg) 10%,transparent)}
@@ -419,7 +415,6 @@
 .platform-form-section>header>div,.platform-form-section>header:not(:has(>div)){min-width:0}
 .platform-form-section>header strong{font-size:11.5px;color:var(--lo-color-text)}
 .platform-form-section>header span{display:block;margin-top:2px;font-size:9.75px;color:var(--lo-color-muted);line-height:1.4}
-.platform-form-section-actions{display:flex;gap:6px;align-items:center}
 .platform-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 11px;align-items:start}
 .platform-form-grid .field-wide{grid-column:span 2}.platform-form-grid .field{min-width:0}.platform-form-grid .field>span{font-size:9.75px}
 .platform-form-grid .field input,.platform-form-grid .field select,.platform-form-grid .field textarea{
@@ -432,8 +427,7 @@
 .platform-form-grid:has(>.manual-date-field){grid-template-columns:repeat(4,minmax(0,1fr))}
 .observer-dialog{max-height:min(86dvh,790px)}.observer-dialog .observer-dialog-body{min-height:0;overflow:auto}
 .platform-settings-page{max-width:1120px}
-.platform-settings-message-field{grid-column:auto}
-.platform-settings-duration-control{display:flex;align-items:center;gap:8px}.platform-settings-duration-control input{max-width:150px}.platform-settings-duration-control>span{font-size:10px;color:var(--lo-color-muted)}
+.platform-settings-message-field{grid-column:auto}.platform-settings-duration-control>span{font-size:10px;color:var(--lo-color-muted)}
 
 /* Demo progress styling without changing its behavior. */
 .platform-registry-card td>div[style*="width: 150px"],
@@ -462,8 +456,7 @@
 
 /* Registry screens are workspaces: tools stay fixed, only result areas scroll. */
 .page:has(.platform-registry-shell){overflow:hidden}
-.platform-registry-shell{height:100%;overflow:hidden}.platform-registry-shell>.platform-registry-card,.platform-registry-shell>.diagnostics-table-wrap{flex:1 1 auto;min-height:0}
-.platform-registry-shell>.diagnostics-table-wrap{overflow:auto}
+.platform-registry-shell{height:100%;overflow:hidden}
 .platform-settings-page{height:auto;overflow:auto;align-self:flex-start;width:100%}
 .platform-settings-page .platform-form-section{padding:14px 16px}.platform-settings-page .platform-governance{margin-top:2px}
 
@@ -550,7 +543,6 @@
 .platform-diagnostics-registry .filter-trigger:hover{background:var(--lo-shell-control-hover)}
 .platform-owner-record-shell .filter-trigger.active,
 .platform-diagnostics-registry .filter-trigger.active{border-color:color-mix(in srgb,var(--lo-color-primary) 30%,var(--lo-color-border));color:var(--lo-color-primary);background:color-mix(in srgb,var(--lo-color-primary) 5%,var(--lo-color-surface))}
-.platform-diagnostics-registry{overflow:hidden}
 .platform-diagnostics-registry>.filter-system{flex:0 0 auto}
 .platform-diagnostics-registry .filter-primary-row{flex-wrap:nowrap}
 .platform-diagnostics-registry .filter-search{min-width:120px}
@@ -651,7 +643,6 @@
   .platform-analysis-page svg{display:block!important;max-width:100%!important}
 }
 /* Demo duration: one bordered control with the unit inside, not a narrow input in a wide frame. */
-.platform-settings-page .platform-settings-duration-control{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;max-width:260px}
 .platform-settings-page .platform-settings-duration-control input{max-width:none!important;width:100%;border:0!important;border-radius:0!important;box-shadow:none!important;outline:0}
 .platform-settings-page .platform-settings-duration-control:focus-within{border-color:var(--border-brand-443)!important;box-shadow:0 0 0 3px rgba(37,130,189,.15)}
 
@@ -1012,18 +1003,12 @@
 .prevention-record-shell :is(.waste-form-section-title,.antiseptic-form-heading):is(div,#lo-prevention-form){margin-bottom:8px!important;padding-bottom:8px!important}
 .prevention-record-shell .entry-grid:is(.entry-grid,#lo-prevention-form){padding:4px 0 0!important;gap:10px 14px!important}
 .prevention-record-shell .waste-receipt-grid:is(.entry-grid,#lo-prevention-form){grid-template-columns:repeat(3,minmax(0,1fr))!important}
-.prevention-record-shell .waste-receipt-grid>label:last-child{grid-column:1/-1}
 .prevention-record-shell :is(.waste-smart-main,.waste-smart-layout,.antiseptic-entry-main,.antiseptic-entry-workspace):is(main,div,#lo-prevention-form){gap:12px!important}
-.prevention-record-shell .prevention-editor-page-actions:is(div,#lo-prevention-form){margin-top:8px!important;padding-top:10px!important}
 .prevention-record-shell .antiseptic-trace-grid:is(.entry-grid,#lo-prevention-form){grid-template-columns:repeat(2,minmax(0,1fr))!important}
-.prevention-record-shell .antiseptic-eligibility:is(div,#lo-prevention-form){margin-top:8px!important;padding:8px 12px!important}
 .prevention-record-shell .antiseptic-consumption-grid:is(.entry-grid,#lo-prevention-form){grid-template-columns:repeat(3,minmax(0,1fr))!important}
 /* WHO observation: number, category and note in one row; one compact session strip. */
-.prevention-record-shell .who-professional-row:is(div,#lo-prevention-form){display:grid!important;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr) minmax(0,1.6fr)!important;gap:12px!important}
 .prevention-record-shell .who-session-strip:is(div,#lo-prevention-form){margin:0!important;padding:0!important;border:0!important;background:transparent!important}
 .prevention-record-shell .who-session-panel:is(section,#lo-prevention-form){padding:12px 14px!important}
-.prevention-record-shell .who-observation-body:is(div,#lo-prevention-form){padding:12px 20px 14px!important;gap:10px!important}
-.prevention-record-shell .who-choice-block:is(div,#lo-prevention-form){padding-top:8px!important}
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):is(div,#lo-form-row){align-items:end}
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.manual-date-native),select):is(input,select,#lo-form-row){height:40px;min-height:40px;box-sizing:border-box}
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field,label,.field)>span:first-child:is(span,#lo-form-row){min-height:13px}
@@ -1033,8 +1018,6 @@
 /* Side panels start level with the form beside them. */
 .prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail,.who-insight-rail):is(aside,#lo-form-row){align-self:start!important;margin-top:0!important;padding-top:0!important;top:0!important}
 .prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail)>section:first-child:is(section,#lo-form-row){margin-top:0!important}
-.prevention-record-shell .waste-smart-measurement-grid:is(.entry-grid,#lo-form-row){align-items:end!important}
-.prevention-record-shell .waste-smart-measurement-grid>div:is(div,#lo-form-row){align-self:end!important}
 /* One label-to-box spacing (the title's own 6px margin) and the date field's
    hidden native picker out of the flow, so every box starts at the same line. */
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field):is(label,div,#lo-form-row){gap:0}
@@ -1094,13 +1077,10 @@ td>.lo-meter{margin-top:5px}
 .prevention-record-shell .prevention-record-card>.record-view-stack:is(div,#lo-record-sheet){padding:0!important}
 .prevention-record-shell .record-view-stack>section:is(section,#lo-record-sheet){margin-right:0!important}
 .record-view-stack .record-details-grid>.detail-item:is(div,#lo-record-sheet){border-radius:0!important;box-shadow:none!important;margin:0!important}
-.record-view-stack .record-details-grid.record-details-cols-5:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(5,minmax(0,1fr))!important}
 .record-view-stack .record-details-cols-5>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid var(--border-neutral-929)!important}
 .record-view-stack .record-details-cols-5>.detail-item:nth-child(5n):is(div,#lo-record-sheet){border-right:0!important}
 /* Bundle results as compact rows (the record fits one screen). */
 .prevention-record-shell .record-view-stack .bundle-detail-row:is(div,#lo-record-sheet){min-height:40px!important;padding:6px 0!important}
-.prevention-record-shell .record-view-stack .bundle-detail-index:is(span,#lo-record-sheet){width:24px!important;height:24px!important}
-.record-view-stack .record-details-grid.record-details-cols-6:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(6,minmax(0,1fr))!important}
 .record-view-stack .record-details-cols-6>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid var(--border-neutral-929)!important}
 .record-view-stack .record-details-cols-6>.detail-item:nth-child(6n):is(div,#lo-record-sheet){border-right:0!important}
 

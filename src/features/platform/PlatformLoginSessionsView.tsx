@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useCallback,useEffect,useMemo,useState,type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlertTriangle,LockKeyhole,RefreshCw,ShieldAlert } from 'lucide-react'

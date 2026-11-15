@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'

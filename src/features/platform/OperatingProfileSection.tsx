@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useEffect,useState,type Dispatch,type SetStateAction } from 'react'
 import { BarChart3,Check,Lock,LockOpen,Pencil,Save,TriangleAlert,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'

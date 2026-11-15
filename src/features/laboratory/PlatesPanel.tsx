@@ -1,3 +1,4 @@
+import './laboratoryScreens.css'
 import { useEffect, useMemo, useState } from 'react'
 import { environmentalResultWord, resultLimit } from './environmentalLimit'
 import { AlertTriangle, Clock3, FlaskConical, PackageCheck } from 'lucide-react'

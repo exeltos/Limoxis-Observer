@@ -1,3 +1,4 @@
+import './platformScreens.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, KeyRound, Link2, LogOut, MonitorSmartphone, PauseCircle, Pencil, PlayCircle, Save, Trash2, UserRound, X } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
