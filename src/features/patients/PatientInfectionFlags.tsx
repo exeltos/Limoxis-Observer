@@ -1,3 +1,4 @@
+import './patientsScreens.css'
 import { ShieldAlert } from 'lucide-react'
 import type { InfectionFlags } from './patientInfectionFlagsService'
 

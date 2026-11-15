@@ -8,12 +8,9 @@
   "src/features/interviews/apply/application.css": 63,
   "src/features/interviews/interviews.css": 22,
   "src/features/kitchen/kitchen.css": 26,
-  "src/features/laboratory/LaboratorySampleRecord.css": 50,
-  "src/features/laboratory/LaboratoryWorkspace.css": 13,
   "src/features/legal/legal.css": 13,
   "src/features/lira/liraPassages.css": 7,
   "src/features/lira/liraShell.css": 24,
-  "src/features/patients/DuplicatePatientDialog.css": 3,
   "src/features/quality/audits/audits.css": 20,
   "src/features/quality/quality.css": 67,
   "src/features/quality/resources/resources.css": 19,
@@ -33,7 +30,7 @@
   "src/features/surveillance/protocols/protocols.css": 31,
   "src/features/surveillance/surveillanceEntryCard.css": 9,
   "src/features/surveillance/surveillanceEpisode.css": 152,
-  "src/styles/features.css": 617,
+  "src/styles/features.css": 612,
   "src/styles/responsive.css": 60,
   "src/styles/workspaces.css": 56
 }
