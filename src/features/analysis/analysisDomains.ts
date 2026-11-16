@@ -91,8 +91,9 @@ export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clus
       devicesActive: devices.length,
       byDevice: tally(devices, device => (en ? device.nameEn : device.name) || device.name || device.type || '—'),
       // Cross-tabulations as [row, column, count] cells.
-      haiByDepartment: hai.map(item => [dept(item), item.haiClassification?.type || '—', 1]),
-      organismByHaiType: hai.filter(item => item.organism).map(item => [item.organism, item.haiClassification?.type || '—', 1]),
+      // Confirmed HAI only, as «Επιβεβαιωμένες ΛΣΦΥ» and every other HAI count (ECDC/ΕΟΔΥ; ιδιοκτήτης 16/11/2026).
+      haiByDepartment: hai.filter(item => item.haiClassification?.status === 'confirmed').map(item => [dept(item), item.haiClassification?.type || '—', 1]),
+      organismByHaiType: hai.filter(item => item.organism && item.haiClassification?.status === 'confirmed').map(item => [item.organism, item.haiClassification?.type || '—', 1]),
       deviceAssociated: hai.map(item => [dept(item), deviceAssociation(item)]).filter(([, kind]: MetricRow) => kind).map(([key, kind]: MetricRow) => [key, kind, 1]),
     },
     handHygiene: {
