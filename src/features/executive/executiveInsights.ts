@@ -66,20 +66,22 @@ export function summaryHighlights(kpis: ExecKpi[]=[],snapshot: ExecSnapshot|null
  const line=(item: ChangedKpi,good: boolean): Highlight=>{
   const where=good?null:worstDepartment(item.id,snapshot)
   const whereText=where?tx(` — κυρίως ${where.name} (${where.value})`,` — mostly ${where.name} (${where.value})`):''
-  return {id:item.id,good,up:item.delta.diff>0,tab:item.tab,text:`${tx(...item.label)}: ${fmt(item.value,item.unit,en)}${versus(item)}${whereText}`}
+  return {id:item.id,good,up:item.delta.diff>0,tab:item.tab,text:`${tx(...(item.longLabel||item.label))}: ${fmt(item.value,item.unit,en)}${versus(item)}${whereText}`}
  }
  const changed=kpis.filter(realChange)
  const worse=changed.filter(item=>item.delta.good===false).sort((a,b)=>weight(b)-weight(a))
  // A drop of a measure still on target is a warning (amber, «εντός στόχου»), after what is off target (red).
  const onTarget=(item: ExecKpi)=>item.status==='judged'&&item.tone==='good'
  const offTarget=kpis.filter(item=>item.value!=null&&item.status==='judged'&&item.tone==='danger'&&!worse.includes(item as ChangedKpi))
-  .map(item=>({id:item.id,good:false,up:null,tab:item.tab,level:'danger' as const,text:tx(`${item.label[0]}: ${fmt(item.value,item.unit,en)} — εκτός στόχου (${item.target})`,`${item.label[1]}: ${fmt(item.value,item.unit,en)} — off target (${item.target})`)}))
+  .map(item=>({id:item.id,good:false,up:null,tab:item.tab,level:'danger' as const,text:tx(`${(item.longLabel||item.label)[0]}: ${fmt(item.value,item.unit,en)} — εκτός στόχου (${item.target})`,`${(item.longLabel||item.label)[1]}: ${fmt(item.value,item.unit,en)} — off target (${item.target})`)}))
  const better=changed.filter(item=>item.delta.good===true).sort((a,b)=>weight(b)-weight(a))
  const drops=worse.map(item=>onTarget(item)?{...line(item,false),level:'warning' as const,text:`${line(item,false).text}${tx(' — εντός στόχου',' — on target')}`}:{...line(item,false),level:'danger' as const})
  // Overdue training is work to chase even when the completion rate is on target.
  const overdueTraining=Number(snapshot?.domains?.training?.overdue)||0
- const training=overdueTraining>0&&kpis.some(item=>item.id==='training'&&item.value!=null)&&!drops.some(item=>item.id==='training')
+ const training=overdueTraining>0&&kpis.some(item=>item.id==='training'&&item.value!=null)&&!drops.some(item=>item.id==='training')&&!offTarget.some(item=>item.id==='training')
   ?[{id:'trainingOverdue',good:false,up:null,tab:'people',level:'warning' as const,text:tx(`Εκπρόθεσμες εκπαιδεύσεις: ${overdueTraining}`,`Overdue training: ${overdueTraining}`)}]:[]
+ // Off target already: the overdue count goes on the same line, not on one of its own.
+ for(const item of offTarget)if(item.id==='training'&&overdueTraining>0)item.text+=tx(` · ${overdueTraining} εκπρόθεσμες`,` · ${overdueTraining} overdue`)
  const danger=[...drops.filter(item=>item.level==='danger'),...offTarget],warning=[...drops.filter(item=>item.level==='warning'),...training]
  return {attention:[...danger,...warning].slice(0,limit),improved:better.map(item=>line(item,true)).slice(0,limit)}
 }
@@ -203,6 +205,6 @@ export function rateMeasures(kpis: ExecKpi[]=[],patientDays: number|null|undefin
  const missing: [string, string]|null=patientDays?null:['λείπουν οι κλινοημέρες της περιόδου','the patient days of the period are missing']
  return [
   {id:'haiRate',modules:['surveillance'],parts:['domains'],label:['ΛΣΦΥ ανά 1.000 ημέρες νοσηλείας','HAI per 1,000 patient days'],value:per('hai'),missing,hint:[`${days} ημέρες νοσηλείας${apart[0]}`,`${days} patient days${apart[1]}`],tone:'neutral',better:'down',tab:'surveillance'},
-  {id:'mdroRate',modules:['laboratory'],parts:['microbiology'],label:['Πολυανθεκτικά ανά 1.000 ημέρες νοσηλείας','Multidrug-resistant per 1,000 patient days'],value:per('mdro'),missing,hint:[`${days} ημέρες νοσηλείας${apart[0]}`,`${days} patient days${apart[1]}`],tone:'neutral',better:'down',tab:'laboratory'},
+  {id:'mdroRate',modules:['laboratory'],parts:['microbiology'],label:['Ασθενείς με πολυανθεκτικό μικρόβιο ανά 1.000 ημέρες νοσηλείας','Patients with a multidrug-resistant organism per 1,000 patient days'],value:per('mdro'),missing,hint:[`${days} ημέρες νοσηλείας${apart[0]}`,`${days} patient days${apart[1]}`],tone:'neutral',better:'down',tab:'laboratory'},
  ]
 }

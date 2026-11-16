@@ -162,3 +162,14 @@ describe('open incidents are today\'s, whenever they happened (Codex #658)', () 
     expect(find({ openIncidents: 2 })).toMatchObject({ value: 2, pointInTime: false })
   })
 })
+
+describe('Σύνοψη: what is today\'s and what compares (ιδιοκτήτης 16/11/2026)', () => {
+  it('keeps training with today\'s state and explains the abbreviations', () => {
+    const k = executiveKpis({ domains: { training: { assignments: 10, completed: 5 }, surveillance: { haiConfirmed: 3 } }, microbiology: { totalPositive: 4, mdrPatients: 2 } } as never)
+    const byKey = Object.fromEntries(k.map((item) => [item.id, item]))
+    expect(byKey.training.pointInTime).toBe(true)
+    expect(byKey.hai.note?.[0]).toBe('Λοιμώξεις σχετιζόμενες με τη φροντίδα υγείας, επιβεβαιωμένες')
+    expect(byKey.mdro.label[0]).toBe('Ασθενείς με πολυανθεκτικό μικρόβιο')
+    expect(byKey.mdro.hint?.[0]).not.toMatch(/MDR/)
+  })
+})
