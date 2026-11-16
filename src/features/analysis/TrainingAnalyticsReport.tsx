@@ -8,6 +8,7 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { downloadCsv } from '../../core/export/csvExport'
 import { BarList,ChartCard,Scoreboard,TrendChart } from './AnalysisCharts'
 import { ScopeComparison } from './AnalysisPanels'
+import { targetTone } from './analysisDomains'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import type { MetricRow } from './analysisPageModel'
 import type { Translate } from '../../types/featureTypes'
@@ -30,11 +31,11 @@ function fmt(value: unknown,en: boolean,digits=1){
  return new Intl.NumberFormat(en?'en-GB':'el-GR',{maximumFractionDigits:digits}).format(number)
 }
 function fmtHours(value: unknown,en: boolean){return `${fmt(value,en,2)} ${en?'h':'ώρες'}`}
-function kpiRows(details: TrainingDetails,tx: Translate,en: boolean): MetricRow[]{
+function kpiRows(details: TrainingDetails,tx: Translate,en: boolean,target=90): MetricRow[]{
  const completion=pct(details.completed,details.assignments)
  const coverage=details.hoursCoverage==null?'—':`${fmt(details.hoursCoverage,en)}%`
  return [
-  [tx('Ολοκλήρωση εκπαιδεύσεων','Training completion'),completion==null?'—':`${fmt(completion,en)}%`,tx(`${details.completed||0} από ${details.assignments||0} αναθέσεις`,`${details.completed||0} of ${details.assignments||0} assignments`),completion!=null&&completion<80?'warning':'good'],
+  [tx('Ολοκλήρωση εκπαιδεύσεων','Training completion'),completion==null?'—':`${fmt(completion,en)}%`,tx(`${details.completed||0} από ${details.assignments||0} αναθέσεις · στόχος ≥ ${target}%`,`${details.completed||0} of ${details.assignments||0} assignments · target ≥ ${target}%`),targetTone(completion,target)],
   [tx('Ανθρωποώρες εκπαίδευσης','Training person-hours'),fmtHours(details.personHours,en),tx(`${details.completedInPeriod||0} ολοκληρώσεις · κάλυψη διάρκειας ${coverage}`,`${details.completedInPeriod||0} completions · duration coverage ${coverage}`),details.missingDurationCompletions?'warning':'good'],
   [tx('Ώρες ανά εκπαιδευόμενο','Hours per trainee'),fmtHours(details.averageHoursPerTrainee,en),tx(`${details.trainees||0} εκπαιδευόμενοι με ολοκλήρωση`,`${details.trainees||0} trainees with a completion`)],
   [tx('Εκπαιδευόμενοι','Trainees'),fmt(details.trainees,en,0),tx('διαφορετικοί εργαζόμενοι με ολοκλήρωση στην περίοδο','distinct employees with a completion in the period')],
@@ -57,7 +58,7 @@ function MoreRows({total,all,onToggle,tx}: {total: number; all: boolean; onToggl
  return <button type="button" className="analysis-matrix-more" onClick={onToggle}>{all?tx('Λιγότερα','Fewer'):tx(`+${total-SHOWN} ακόμα`,`+${total-SHOWN} more`)}</button>
 }
 
-export function TrainingAnalyticsReport({organizationId='',range,departmentId='',compareRange=null,compareLabel='',currentLabel='',tx,en=false}: {organizationId?: string; range?: DateRange|null; departmentId?: string; compareRange?: DateRange|null; compareLabel?: string; currentLabel?: string; tx: Translate; en?: boolean}){
+export function TrainingAnalyticsReport({organizationId='',range,departmentId='',compareRange=null,compareLabel='',currentLabel='',tx,en=false,target=90}: {organizationId?: string; range?: DateRange|null; departmentId?: string; compareRange?: DateRange|null; compareLabel?: string; currentLabel?: string; tx: Translate; en?: boolean; target?: number}){
  const [details,setDetails]=useState<TrainingDetails>(empty),[compare,setCompare]=useState<TrainingDetails|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[employeeQuery,setEmployeeQuery]=useState(''),[allPrograms,setAllPrograms]=useState(false),[allEmployees,setAllEmployees]=useState(false)
  const rangeFrom=range?.from||'',rangeTo=range?.to||'',compareFrom=compareRange?.from||'',compareTo=compareRange?.to||''
  useEffect(()=>{
@@ -72,7 +73,7 @@ export function TrainingAnalyticsReport({organizationId='',range,departmentId=''
   return()=>{live=false}
  },[organizationId,rangeFrom,rangeTo,departmentId,compareFrom,compareTo])
 
- const rows=kpiRows(details,tx,en),compareRows=compare?kpiRows(compare,tx,en):[]
+ const rows=kpiRows(details,tx,en,target),compareRows=compare?kpiRows(compare,tx,en,target):[]
  const hoursByDepartment=useMemo(()=>new Map<string,DomainMetrics>((details.hoursByDepartment||[]).map(([name,completed,trainees,hours,avg])=>[name,{completed:n(completed),trainees:n(trainees),hours:n(hours),avg:n(avg)}])),[details.hoursByDepartment])
  const departmentRows=useMemo(()=>(details.byDepartment||[]).map(([name,assigned,completed])=>{const h=hoursByDepartment.get(name)||{};return {key:name,name,assigned:n(assigned),completed:n(completed),completion:pct(completed,assigned),trainees:h.trainees??0,hours:h.hours??0,avgHours:h.avg??0}}),[details.byDepartment,hoursByDepartment])
  const programRows=useMemo(()=>details.byProgram||[],[details.byProgram])
