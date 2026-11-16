@@ -301,7 +301,7 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
       const classified = (s.byCaseStatus || []).reduce((sum: number, [, n]: MetricRow) => sum + (Number(n) || 0), 0)
       return {
       kpis: [
-        [tx('Επεισόδια περιόδου', 'Episodes in period'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
+        [tx('Επεισόδια επιτήρησης', 'Surveillance episodes'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
         [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), classified ? (s.haiConfirmed ?? 0) : '—', classified ? tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`) : tx('δεν γίνεται ταξινόμηση', 'not classified'), s.haiConfirmed ? 'warning' : ''],
         [tx('Ενεργές απομονώσεις', 'Active isolations'), s.isolationActive ?? 0, s.isolationReviewOverdue ? tx(`${s.isolationReviewOverdue} με εκπρόθεσμη επανεκτίμηση`, `${s.isolationReviewOverdue} with overdue review`) : tx('Χωρίς εκπρόθεσμες επανεκτιμήσεις', 'No overdue reviews'), s.isolationReviewOverdue ? 'danger' : ''],
         [tx('Ενεργές επεμβατικές συσκευές', 'Active invasive devices'), s.devicesActive ?? 0, tx('σε ενεργές επιτηρήσεις', 'in surveillance episodes')],
