@@ -15,7 +15,7 @@ interface HomeOptions { moduleEnabled?: (module: string) => boolean, canOpen?: (
 export const DECISION_ITEMS: readonly DecisionItem[] = Object.freeze([
   ['supplierRenewalsToApprove', 'Ανανεώσεις πιστοποιητικών προς έγκριση αποστολής', 'Certificate renewals awaiting approval to send', '/quality', 'suppliers'],
   ['supplierRenewalsToReview', 'Πιστοποιητικά προμηθευτών προς έλεγχο', 'Supplier certificates to review', '/quality', 'suppliers'],
-  ['expiredCertificates', 'Ληγμένα πιστοποιητικά προμηθευτών', 'Expired supplier certificates', '/quality', 'suppliers'],
+  ['expiredCertificates', 'Ληγμένα πιστοποιητικά χωρίς ανανέωση', 'Expired certificates not renewed', '/quality', 'suppliers'],
   ['criticalUncommunicated', 'Κρίσιμα εργαστηριακά αποτελέσματα χωρίς ενημέρωση', 'Critical laboratory results not communicated', '/laboratory', 'laboratory'],
   ['overdueControls', 'Εκπρόθεσμοι έλεγχοι', 'Overdue controls', '/controls', 'controls'],
   ['overdueCapa', 'Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue corrective actions', '/quality', 'quality'],
@@ -41,7 +41,7 @@ export const MODULE_ROWS: readonly ModuleRow[] = Object.freeze([
   ['laboratory', 'Εργαστήριο', 'Laboratory', '/laboratory', [['pendingSamples', 'εκκρεμή δείγματα', 'pending samples'], ['criticalUncommunicated', 'κρίσιμα χωρίς ενημέρωση', 'critical not communicated', 'danger']]],
   ['controls', 'Έλεγχοι', 'Controls', '/controls', [['overdueControls', 'εκπρόθεσμοι', 'overdue', 'danger']]],
   ['quality', 'Ποιότητα', 'Quality', '/quality', [['openIncidents', 'ανοιχτά συμβάντα', 'open incidents'], ['overdueCapa', 'εκπρόθεσμες διορθωτικές', 'overdue CAPA', 'danger']]],
-  ['suppliers', 'Προμηθευτές', 'Suppliers', '/quality', [['expiredCertificates', 'ληγμένα πιστοποιητικά', 'expired certificates', 'danger'], ['expiringCertificates', 'λήγουν σε 30 ημέρες', 'expire within 30 days', 'warning']]],
+  ['suppliers', 'Προμηθευτές', 'Suppliers', '/quality', [['expiredCertificates', 'ληγμένα πιστοποιητικά χωρίς ανανέωση', 'expired certificates not renewed', 'danger'], ['expiringCertificates', 'λήγουν σε 30 ημέρες', 'expire within 30 days', 'warning']]],
   ['kitchen', 'Κουζίνα', 'Kitchen', '/kitchen', [['kitchenOutOfLimits30d', 'εκτός ορίων (30 ημ.)', 'out of limits (30 d)', 'warning'], ['kitchenUnverifiedDays', 'ημέρες χωρίς επαλήθευση', 'days not verified', 'warning']]],
   ['pharmacy', 'Φαρμακείο', 'Pharmacy', '/pharmacy', [['pendingApprovals', 'εγκρίσεις σε αναμονή', 'approvals pending', 'warning'], ['antimicrobialTherapies', 'αντιμικροβιακές αγωγές', 'antimicrobial therapies']]],
   ['interviews', 'Συνεντεύξεις', 'Interviews', '/interviews', [['openCandidates', 'ανοιχτές αιτήσεις', 'open applications'], ['newCandidates', 'νέες', 'new', 'warning'], ['upcomingInterviews', 'προγραμματισμένες', 'scheduled']]],
