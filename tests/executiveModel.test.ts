@@ -154,3 +154,11 @@ describe('comparison only where it means something (ιδιοκτήτης 16/11/2
     expect(trainingNotComparable(null)).toEqual({})
   })
 })
+
+describe('open incidents are today\'s, whenever they happened (Codex #658)', () => {
+  it('uses the current open count and marks it «σήμερα»; without it, keeps the period figure and its comparison', () => {
+    const find = (quality: Record<string, number>) => executiveKpis({ domains: { quality } } as never).find((k) => k.id === 'incidents')!
+    expect(find({ openIncidents: 0, openIncidentsNow: 4 })).toMatchObject({ value: 4, pointInTime: true })
+    expect(find({ openIncidents: 2 })).toMatchObject({ value: 2, pointInTime: false })
+  })
+})

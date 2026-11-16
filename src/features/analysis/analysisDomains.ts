@@ -122,6 +122,7 @@ export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clus
     quality: {
       incidents: incidents.length,
       openIncidents: incidents.filter(row => !CLOSED_QUALITY.has(row.status||'')).length,
+      openIncidentsNow: (loadQualityLocal('incidents') as IncidentRow[]).filter(row => row.lifecycleStatus !== 'voided' && !CLOSED_QUALITY.has(row.status||'')).length,
       harm: incidents.filter(row => row.harmOccurred || row.harm_occurred).length,
       bySeverity: tally(incidents, row => row.severity || '—'),
       byStatus: tally(incidents, row => row.status || '—'),
