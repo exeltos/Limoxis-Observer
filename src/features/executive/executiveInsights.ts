@@ -77,7 +77,7 @@ export function summaryHighlights(kpis: ExecKpi[]=[],snapshot: ExecSnapshot|null
  const better=changed.filter(item=>item.delta.good===true).sort((a,b)=>weight(b)-weight(a))
  const drops=worse.map(item=>onTarget(item)?{...line(item,false),level:'warning' as const,text:`${line(item,false).text}${tx(' — εντός στόχου',' — on target')}`}:{...line(item,false),level:'danger' as const})
  // Overdue training is work to chase even when the completion rate is on target.
- const overdueTraining=Number(snapshot?.domains?.training?.overdue)||0
+ const overdueTraining=Number(snapshot?.domains?.training?.overdueNow??snapshot?.domains?.training?.overdue)||0
  const training=overdueTraining>0&&kpis.some(item=>item.id==='training'&&item.value!=null)&&!drops.some(item=>item.id==='training')&&!offTarget.some(item=>item.id==='training')
   ?[{id:'trainingOverdue',good:false,up:null,tab:'people',level:'warning' as const,text:tx(`Εκπρόθεσμες εκπαιδεύσεις: ${overdueTraining}`,`Overdue training: ${overdueTraining}`)}]:[]
  // Off target already: the overdue count goes on the same line, not on one of its own.
