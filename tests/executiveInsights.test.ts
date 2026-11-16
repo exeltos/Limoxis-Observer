@@ -85,3 +85,14 @@ describe('attention order (Εικόνα νοσοκομείου, ιδιοκτήτ
     expect(attention[2].text).toBe('Εκπρόθεσμες εκπαιδεύσεις: 117')
   })
 })
+
+describe('Σύνοψη: full names and today\'s training (ιδιοκτήτης 16/11/2026)', () => {
+  it('writes abbreviations out in full and puts overdue training on the off-target line', () => {
+    const kpis = [
+      { id: 'hai', label: ['ΛΣΦΥ', 'HAI'], longLabel: ['Λοιμώξεις σχετιζόμενες με τη φροντίδα υγείας (ΛΣΦΥ)', 'Healthcare-associated infections (HAI)'], value: 19, delta: { diff: 6, change: 46, good: false, previous: 13 } },
+      { id: 'training', label: ['Εκπαίδευση', 'Training'], unit: '%', value: 50, target: '≥ 90%', status: 'judged', tone: 'danger', pointInTime: true, delta: null },
+    ] as ExecKpi[]
+    const { attention } = summaryHighlights(kpis, { domains: { training: { overdue: 117 } } }, { against: '2025' })
+    expect(attention.map((s) => s.text)).toEqual(['Λοιμώξεις σχετιζόμενες με τη φροντίδα υγείας (ΛΣΦΥ): 19 (2025: 13)', 'Εκπαίδευση: 50% — εκτός στόχου (≥ 90%) · 117 εκπρόθεσμες'])
+  })
+})

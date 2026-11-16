@@ -162,3 +162,18 @@ describe('open incidents are today\'s, whenever they happened (Codex #658)', () 
     expect(find({ openIncidents: 2 })).toMatchObject({ value: 2, pointInTime: false })
   })
 })
+
+describe('Σύνοψη: what is today\'s and what compares (ιδιοκτήτης 16/11/2026)', () => {
+  it('keeps training with today\'s state and explains the abbreviations', () => {
+    const k = executiveKpis({ domains: { training: { assignments: 10, completed: 10, overdue: 0, dueNow: 200, completedDueNow: 150, overdueNow: 50 }, surveillance: { haiConfirmed: 3 } }, microbiology: { totalPositive: 4, mdrPatients: 2 } } as never)
+    const byKey = Object.fromEntries(k.map((item) => [item.id, item]))
+    // Everything due by today, whenever assigned (Codex #659): not the period's cohort, which can read 100%.
+    expect(byKey.training).toMatchObject({ pointInTime: true, value: 75 })
+    expect(byKey.training.hint?.[0]).toBe('50 εκπρόθεσμες · 200 με προθεσμία έως σήμερα')
+    const local = executiveKpis({ domains: { training: { assignments: 10, completed: 5 } } } as never).find((item) => item.id === 'training')
+    expect(local).toMatchObject({ pointInTime: false, value: 50 })
+    expect(byKey.hai.note?.[0]).toBe('Λοιμώξεις σχετιζόμενες με τη φροντίδα υγείας, επιβεβαιωμένες')
+    expect(byKey.mdro.label[0]).toBe('Ασθενείς με πολυανθεκτικό μικρόβιο')
+    expect(byKey.mdro.hint?.[0]).not.toMatch(/MDR/)
+  })
+})

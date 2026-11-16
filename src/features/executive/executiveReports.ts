@@ -24,7 +24,7 @@ export function boardReportDocument({ kpis, highlights = { attention: [], improv
     ...area.rows.map((item) => {
       const change = changeText(item, en), assessment = assessmentOf(item, en)
       const changeCell = { text: change.text, className: `rd-num ${change.good == null ? '' : change.good ? 'rd-good' : 'rd-bad'}`.trim() }
-      return [tx(...item.label), { text: fmt(item.value, item.unit, en), className: 'rd-num' }, ...(compared ? [{ text: fmt(item.delta?.previous, item.unit, en), className: 'rd-num' }, changeCell] : []), item.target || '—', { text: assessment.text, className: toneClass[assessment.tone] || '' }]
+      return [tx(...(item.longLabel || item.label)), { text: fmt(item.value, item.unit, en), className: 'rd-num' }, ...(compared ? [{ text: fmt(item.delta?.previous, item.unit, en), className: 'rd-num' }, changeCell] : []), item.target || '—', { text: assessment.text, className: toneClass[assessment.tone] || '' }]
     }),
   ])
   const sections: ReportSection[] = []

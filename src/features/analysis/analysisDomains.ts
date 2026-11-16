@@ -151,10 +151,16 @@ export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clus
       }
     })(),
     training: (() => {
-      const rows: TrainingAssignmentRow[] = (loadTrainingState().assignments || []).filter((row: TrainingAssignmentRow) => inRange(row.assignedDate, range))
+      const all: TrainingAssignmentRow[] = loadTrainingState().assignments || []
+      const rows = all.filter((row: TrainingAssignmentRow) => inRange(row.assignedDate, range))
       const status = (row: TrainingAssignmentRow) => row.computedStatus || row.status
       const scored = rows.filter(row => row.score != null && row.score !== '')
+      // Due by today, whenever assigned (as analysis_people_metrics): the «Κατάσταση σήμερα» card of the hospital overview.
+      const dueNow = all.filter(row => status(row) !== 'cancelled' && row.dueDate && row.dueDate <= today)
       return {
+        dueNow: dueNow.length,
+        completedDueNow: dueNow.filter(row => status(row) === 'completed').length,
+        overdueNow: dueNow.filter(row => status(row) !== 'completed' && (row.dueDate||'') < today).length,
         assignments: rows.length,
         completed: rows.filter(row => status(row) === 'completed').length,
         overdue: rows.filter(row => !['completed', 'cancelled'].includes(status(row)||'') && row.dueDate && row.dueDate < today).length,
