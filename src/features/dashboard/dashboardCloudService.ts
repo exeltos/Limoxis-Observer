@@ -3,6 +3,7 @@ import { supabase } from '../../core/supabase/client'
 import { cloudClient } from '../../core/supabase/cloudContext'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { hospitalDate, hospitalToday } from '../../core/dates/hospitalDate'
+import { readUserCache, writeUserCache } from '../../core/data/userCache'
 
 export type DashboardMetrics=Record<string, number>
 
@@ -30,8 +31,21 @@ export function loadDashboardMetrics(organizationId: string | null | undefined,{
   if(hit&&now-hit.at<SHARE_MS)return hit.promise
   const promise=readDashboardMetrics(organizationId,departmentIds)
   shared.set(key,{at:now,promise})
+  promise.then(metrics=>storedKey(key).then(stored=>{if(stored)writeUserCache(stored,metrics)})).catch(()=>{})
   promise.catch(()=>{if(shared.get(key)?.promise===promise)shared.delete(key)})
   return promise
+}
+
+// The home page's last counts for this user, hospital and scope (userCache): shown at once while the fresh ones load.
+async function storedKey(key: string): Promise<string | null> {
+  const session=await Promise.resolve(supabase?.auth?.getSession?.()).catch(()=>null)
+  const userId=session?.data?.session?.user?.id
+  return userId?`homeMetrics|${userId}|${key}`:null
+}
+export async function readStoredDashboardMetrics(organizationId: string | null | undefined,{departmentIds=null}: { departmentIds?: string[] | null }={}): Promise<DashboardMetrics | null>{
+  if(!hasSupabaseConfig||!supabase||!organizationId)return null
+  const stored=await storedKey(`${organizationId}|${departmentIds?.length?[...departmentIds].sort().join(','):'*'}`)
+  return stored?readUserCache<DashboardMetrics>(stored):null
 }
 
 // One call (dashboard_metrics, 20261127100000) returns every count; the

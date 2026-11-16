@@ -10,7 +10,7 @@ import { useNotifications } from '../../core/notifications/NotificationContext'
 import { CAPABILITIES, ROLES, can, isProfileDisabled } from '../../core/permissions/roles'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { loadDashboardMetrics, type DashboardMetrics } from './dashboardCloudService'
+import { loadDashboardMetrics, readStoredDashboardMetrics, type DashboardMetrics } from './dashboardCloudService'
 import { FirstStepsCard, firstSteps } from './FirstStepsCard'
 import { collectDemoDashboardMetrics } from './demoDashboardMetrics'
 import { DEPARTMENT_ROLES, pendingActionsOf } from './dashboardTasks'
@@ -119,13 +119,16 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}: { 
   const navigate=useNavigate()
   const menuPaths=useMemo(()=>new Set(navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)}).map(item=>item.to)),[role,membership])
   const [metrics,setMetrics]=useState<DashboardMetrics>({})
-  // 'loading' until the first read ends; 'error' when it failed, so a failed read never shows as «—».
+  // 'loading' until the first read ends; 'stale' while the last counts of this user show and the fresh ones load;
+  // 'error' when it failed, so a failed read never shows as «—» (the last counts stay, if there are any).
   const [metricsState,setMetricsState]=useState('loading')
   useEffect(()=>{
-    let active=true
+    let active=true,fresh=false,shownStored=false
     if(isDemo||!tenant?.id||divisionHome){setMetrics({});setMetricsState('ready');return()=>{active=false}}
     setMetricsState('loading')
-    loadDashboardMetrics(tenant.id,{departmentIds:DEPARTMENT_ROLES.has(String(role))?membership?.departmentIds:null}).then(data=>{if(active){setMetrics(data);setMetricsState('ready')}}).catch(()=>{if(active){setMetrics({});setMetricsState('error')}})
+    const scope={departmentIds:DEPARTMENT_ROLES.has(String(role))?membership?.departmentIds:null}
+    readStoredDashboardMetrics(tenant.id,scope).then(stored=>{if(active&&!fresh&&stored){shownStored=true;setMetrics(stored);setMetricsState('stale')}}).catch(()=>{})
+    loadDashboardMetrics(tenant.id,scope).then(data=>{fresh=true;if(active){setMetrics(data);setMetricsState('ready')}}).catch(()=>{fresh=true;if(active){if(!shownStored)setMetrics({});setMetricsState('error')}})
     return()=>{active=false}
   },[tenant?.id,isDemo,role,membership?.departmentIds,divisionHome])
   const demo=useMemo(()=>isDemo?collectDemoDashboardMetrics({department}):null,[isDemo,department])
@@ -189,6 +192,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}: { 
     <div className="dashboard-home">
       <Card className="dashboard-card dashboard-todo" id="dashboard-tasks" tabIndex={-1}>
         <CardHeader icon={ListChecks} title={tr('Για μένα σήμερα','For me today')} subtitle={todo.length?tr('Τα πιο επείγοντα πρώτα.','The most urgent first.'):tr('Τίποτα δεν περιμένει από εσάς.','Nothing is waiting for you.')}/>
+        {metricsState==='stale'&&<div className="inline-empty" role="status">{tr('Ενημερώνεται…','Updating…')}</div>}
         {metricsState==='error'&&<div className="inline-empty">{tr('Κάποιες εκκρεμότητες δεν φορτώθηκαν.','Some pending items did not load.')}</div>}
         {todo.length?<div className="task-list">{shownTodo.map(item=><button className="task-row" key={item.key} disabled={!item.to} onClick={()=>openTodo(item)}><span className={`priority ${item.tone==='danger'?'high':item.tone==='warning'?'medium':'low'}`}/><span className="task-copy"><strong>{item.title}</strong></span>{item.count!=null&&<b className={`task-count${item.tone==='danger'?' urgent':''}`}>{item.count}</b>}{item.to&&<ArrowRight size={17}/>}</button>)}</div>:metricsState!=='loading'&&<div className="inline-empty">{tr('Όλα είναι σε τάξη.','All is in order.')}</div>}
         {todo.length>TODO_FOLDED&&<button type="button" className="text-button dashboard-more" onClick={()=>setAllTodo(value=>!value)}>{allTodo?tr('Λιγότερα','Fewer'):tr(`Όλα (${todo.length})`,`All (${todo.length})`)}</button>}
