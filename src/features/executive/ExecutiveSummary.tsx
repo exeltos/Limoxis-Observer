@@ -25,19 +25,15 @@ export function ExecutiveSummary({ kpis, snapshot, previousSnapshot, compareLabe
   const compared = Boolean(previousSnapshot)
   const name = (item: ExecKpi) => <>{tx(...item.label)}{item.note && <small className="exec-measure-note">{tx(...item.note)}</small>}</>
   return <div className="exec-summary">
-    {(attention.length > 0 || improved.length > 0) && <div className="exec-highlights-row">
-      <Highlights title={tx('Χρειάζονται προσοχή', 'Need attention')} items={attention} tone="worse" />
-      {improved.length > 0 && <Highlights title={tx('Βελτιώθηκαν', 'Improved')} items={improved} tone="better" />}
-    </div>}
     {today.length > 0 && <section className="exec-today-panel" aria-labelledby="exec-today-title">
-      <h3 id="exec-today-title">{tx('Κατάσταση σήμερα', 'Status today')}</h3>
-      <p>{tx('Ό,τι εκκρεμεί αυτή τη στιγμή, όποτε κι αν ξεκίνησε. Δεν συγκρίνεται με προηγούμενη περίοδο.', 'What is pending right now, whenever it began. Not compared with an earlier period.')}</p>
+      <h3 id="exec-today-title">{tx('Κατάσταση σήμερα', 'Status today')} <small>{tx('ό,τι εκκρεμεί τώρα, όποτε κι αν ξεκίνησε · χωρίς σύγκριση', 'what is pending now, whenever it began · not compared')}</small></h3>
       <div className="exec-today-cards">{today.map((item) => {
-        const open = onOpen(item), sub = [item.hint ? tx(...item.hint) : '', item.target ? tx(`στόχος ${item.target}`, `target ${item.target}`) : ''].filter(Boolean).join(' · ')
+        const open = onOpen(item), sub = [item.hint ? tx(...item.hint).split(' · ')[0] : '', item.target && item.target !== '0' ? tx(`στόχος ${item.target}`, `target ${item.target}`) : ''].filter(Boolean).join(' · ')
         const body = <><strong>{fmt(item.value, item.unit, en)}</strong><span>{tx(...item.label)}</span>{sub && <small>{sub}</small>}</>
         return open ? <button key={item.id} type="button" className={`exec-today-card is-${item.tone}`} onClick={open}>{body}</button> : <div key={item.id} className={`exec-today-card is-${item.tone}`}>{body}</div>
       })}</div>
     </section>}
+    <div className="exec-summary-main">
     {areas.length > 0 && <section className="exec-scorecard" aria-labelledby="exec-period-title">
       <h3 id="exec-period-title" className="exec-scorecard-title">{compared ? tx(`Απόδοση περιόδου — ${currentLabel} έναντι ${against}`, `Period performance — ${currentLabel} against ${against}`) : tx('Απόδοση περιόδου', 'Period performance')}</h3>
       <table>
@@ -64,10 +60,13 @@ export function ExecutiveSummary({ kpis, snapshot, previousSnapshot, compareLabe
           })}
         </tbody>)}
       </table>
+      {empty.length > 0 && <p className="exec-empty-measures"><strong>{tx('Δεν υπολογίζεται ακόμη:', 'Not calculated yet:')}</strong> {empty.map((item) => `${tx(...item.label)} (${notStartedReason(item, en)})`).join(' · ')}</p>}
     </section>}
-    {empty.length > 0 && <section className="exec-empty-measures">
-      <h4>{tx('Ο υπολογισμός δεν έχει ξεκινήσει ακόμη', 'Not calculated yet')}</h4>
-      <p>{empty.map((item) => `${tx(...item.label)} (${notStartedReason(item, en)})`).join(' · ')}</p>
-    </section>}
+    {(attention.length > 0 || improved.length > 0) && <div className="exec-highlights-col">
+      <Highlights title={tx('Χρειάζονται προσοχή', 'Need attention')} items={attention} tone="worse" />
+      {improved.length > 0 && <Highlights title={tx('Βελτιώθηκαν', 'Improved')} items={improved} tone="better" />}
+    </div>}
+    </div>
+    {areas.length === 0 && empty.length > 0 && <p className="exec-empty-measures"><strong>{tx('Δεν υπολογίζεται ακόμη:', 'Not calculated yet:')}</strong> {empty.map((item) => `${tx(...item.label)} (${notStartedReason(item, en)})`).join(' · ')}</p>}
   </div>
 }
