@@ -64,7 +64,8 @@ export const helpManualEn: HelpBook={
   ['Indicator definition','Every indicator has a definition, unit, numerator, denominator, multiplier, target and direction.'],
   ['Automatic calculation','Where reliable source data exist, the indicator is calculated without duplicate manual entry.'],
   ['Drill-down','Each displayed value should be explainable through the source data that produced it.'],
-  ['Exporting reports','In Reports the Export menu has one Print and one PDF for the tab you are viewing. To export another section, open its tab first. The Summary also has the Board report.']
+  ['Exporting reports','In Reports the Export menu has one Print and one PDF for the tab you are viewing. To export another section, open its tab first. The Summary also has the Board report.'],
+  ['Comparison and «Need attention»','In «Summary», measures that count today (open incidents, CAPA, certificates, decisions, overdue controls) are marked «today» and are not compared with an earlier period. Training is not compared when the history has no pending items (shown as «—» with a note). «Need attention» lists first, in red, what is off target or got worse, then, in amber, drops that stay on target and overdue training.']
  ],steps:['Choose the reporting period and scope.','Review the value and target.','Open drill-down when investigation is required.'],preview:'indicators'},
  '/training':{title:'Training',summary:'Different workspaces for training administrators and employees.',audience:'Training administrators and employees',chapters:[
   ['For administrators','Create programmes, manage participants and attendance, publish material, assessments, results and certificates.'],

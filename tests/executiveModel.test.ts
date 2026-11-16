@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { controlRanking, delta, executiveKpis, filtersToQuery, parseFilters, periodRange, previousRange, redFlags, shiftMonths, visibleFor, withDeltas } from '../src/features/executive/executiveModel'
+import { controlRanking, delta, executiveKpis, filtersToQuery, parseFilters, periodRange, previousRange, redFlags, shiftMonths, trainingNotComparable, visibleFor, withDeltas } from '../src/features/executive/executiveModel'
 import type { RedFlag } from '../src/features/executive/executiveModel'
 import { readSource } from './helpers/readSource'
 
@@ -137,5 +137,20 @@ describe('executive dashboard reads', () => {
     for (const fn of ['analysis_domain_metrics', 'analysis_people_metrics', 'analysis_quality_food_metrics', 'analysis_crosstab_metrics', 'platform_report_summary', 'detect_organism_clusters']) expect(sql).toContain(fn)
     expect(sql).toContain("raise exception '%: role array not found exactly once (%)'")
     expect((sql.match(/'doctor_reviewer','hospital_director'\]::public\.app_role\[\]/g) || []).length).toBe(2)
+  })
+})
+
+describe('comparison only where it means something (ιδιοκτήτης 16/11/2026)', () => {
+  it('does not compare training with a history that has no pending items, and never compares a point-in-time count', () => {
+    const now = [{ id: 'training', value: 40, better: 'up' }, { id: 'incidents', value: 7, better: 'down', pointInTime: true }, { id: 'hai', value: 3, better: 'down' }] as never
+    const before = [{ id: 'training', value: 100 }, { id: 'incidents', value: 2 }, { id: 'hai', value: 5 }] as never
+    const note = trainingNotComparable({ domains: { training: { assignments: 50, completed: 50 } } } as never)
+    const [training, incidents, hai] = withDeltas(now, before, note)
+    expect(training.delta).toBeNull()
+    expect(training.compareNote?.[0]).toBe('το ιστορικό δεν έχει εκκρεμότητες')
+    expect(incidents.delta).toBeNull()
+    expect(hai.delta).not.toBeNull()
+    expect(trainingNotComparable({ domains: { training: { assignments: 50, completed: 30 } } } as never)).toEqual({})
+    expect(trainingNotComparable(null)).toEqual({})
   })
 })
