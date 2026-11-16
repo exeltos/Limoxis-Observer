@@ -3,6 +3,7 @@ import { appConfig, hasSupabaseConfig } from '../config/env'
 import { supabase } from '../supabase/client'
 import { signInWithPassword, signOut as remoteSignOut, touchLoginSession } from './authService'
 import { invalidateEmployeesCache } from '../../features/employees/employeesCache'
+import { clearUserCache } from '../data/userCache'
 import { loadCurrentDemoAccess } from '../tenant/tenantService'
 import { ROLES } from '../permissions/roles'
 import { OWNER_PREVIEW_USER,isOwnerPreview } from '../preview/ownerPreview'
@@ -130,6 +131,7 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   }, [])
   const logout = useCallback(async () => {
     invalidateEmployeesCache()
+    clearUserCache()
     if(listenerTimerRef.current){clearTimeout(listenerTimerRef.current);listenerTimerRef.current=null}
     if (authState.profile?.isDemo) {
       transitionRef.current+=1
@@ -152,6 +154,7 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
       if(alive||stopped)return
       stopped=true
       try{window.sessionStorage.setItem('limoxis.sessionEnded','1')}catch{/* storage unavailable */}
+      clearUserCache()
       try{await remoteSignOut()}catch{/* the session is already gone */}
       await hydrateSession(null)
     }
