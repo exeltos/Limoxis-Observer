@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 let userId = 'user-a'
-const rpc = vi.fn(async () => ({ data: { overdueControls: 3, openIncidents: 2 }, error: null }))
+const rpc = vi.fn(async (): Promise<{ data: Record<string, number>, error: null }> => ({ data: { overdueControls: 3, openIncidents: 2 }, error: null }))
 vi.mock('../src/core/config/env', () => ({ hasSupabaseConfig: true }))
 vi.mock('../src/core/supabase/client', () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: userId ? { user: { id: userId } } : null } }) } },
@@ -38,5 +38,29 @@ describe('home counts kept for the next visit', () => {
     await loadDashboardMetrics('org-1')
     await flush()
     expect(Object.keys(window.localStorage).filter(key => key.startsWith('limoxis.userCache'))).toEqual([])
+  })
+
+  it('does not keep counts under another user who signed in while they loaded', async () => {
+    let answer
+    rpc.mockImplementationOnce(() => new Promise(resolve => { answer = resolve }))
+    const loading = loadDashboardMetrics('org-1')
+    await flush()
+    userId = 'user-b'
+    answer({ data: { overdueControls: 9 }, error: null })
+    await loading
+    await flush()
+    expect(await readStoredDashboardMetrics('org-1')).toBeNull()
+    userId = 'user-a'
+    expect(await readStoredDashboardMetrics('org-1')).toBeNull()
+  })
+
+  it('keeps the last counts when a refresh comes back empty', async () => {
+    await loadDashboardMetrics('org-1')
+    await flush()
+    forgetDashboardMetrics()
+    rpc.mockImplementationOnce(async () => ({ data: {}, error: null }))
+    await loadDashboardMetrics('org-1')
+    await flush()
+    expect(await readStoredDashboardMetrics('org-1')).toEqual({ overdueControls: 3, openIncidents: 2 })
   })
 })

@@ -128,7 +128,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}: { 
     setMetricsState('loading')
     const scope={departmentIds:DEPARTMENT_ROLES.has(String(role))?membership?.departmentIds:null}
     readStoredDashboardMetrics(tenant.id,scope).then(stored=>{if(active&&!fresh&&stored){shownStored=true;setMetrics(stored);setMetricsState('stale')}}).catch(()=>{})
-    loadDashboardMetrics(tenant.id,scope).then(data=>{fresh=true;if(active){setMetrics(data);setMetricsState('ready')}}).catch(()=>{fresh=true;if(active){if(!shownStored)setMetrics({});setMetricsState('error')}})
+    loadDashboardMetrics(tenant.id,scope).then(data=>{fresh=true;if(!active)return;if(shownStored&&!Object.keys(data).length){setMetricsState('error');return}setMetrics(data);setMetricsState('ready')}).catch(()=>{fresh=true;if(active){if(!shownStored)setMetrics({});setMetricsState('error')}})
     return()=>{active=false}
   },[tenant?.id,isDemo,role,membership?.departmentIds,divisionHome])
   const demo=useMemo(()=>isDemo?collectDemoDashboardMetrics({department}):null,[isDemo,department])

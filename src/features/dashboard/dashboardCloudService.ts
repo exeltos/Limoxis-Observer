@@ -31,7 +31,14 @@ export function loadDashboardMetrics(organizationId: string | null | undefined,{
   if(hit&&now-hit.at<SHARE_MS)return hit.promise
   const promise=readDashboardMetrics(organizationId,departmentIds)
   shared.set(key,{at:now,promise})
-  promise.then(metrics=>storedKey(key).then(stored=>{if(stored)writeUserCache(stored,metrics)})).catch(()=>{})
+  // The user is read when the request starts: a sign-out or another user's sign-in before the answer arrives drops the
+  // write, so one user's counts never land under another's key. An empty answer (every count failed) is not kept.
+  const startedFor=storedKey(key)
+  promise.then(async metrics=>{
+    const before=await startedFor
+    if(!before||!Object.keys(metrics).length)return
+    if(await storedKey(key)===before)writeUserCache(before,metrics)
+  }).catch(()=>{})
   promise.catch(()=>{if(shared.get(key)?.promise===promise)shared.delete(key)})
   return promise
 }
