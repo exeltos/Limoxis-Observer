@@ -22,6 +22,7 @@ export interface ExecKpi {
  modules?: string[]
  parts?: string[]
  pointInTime?: boolean
+ compareNote?: [string, string]
  better?: string
  tab?: string
  delta?: ReturnType<typeof delta>
@@ -167,10 +168,10 @@ function measures(snapshot: ExecSnapshot|null={},governance: ExecFigures|null=nu
   {id:'handHygiene',modules:['prevention'],parts:['domains'],label:['Συμμόρφωση στην υγιεινή χεριών','Hand hygiene compliance'],value:hand,unit:'%',target:`≥ ${TARGET.handHygiene}%`,hint:[`στόχος ≥ ${TARGET.handHygiene}% · ${hh.observations??0} ευκαιρίες`,`target ≥ ${TARGET.handHygiene}% · ${hh.observations??0} opportunities`],tone:rateTone(hand,TARGET.handHygiene,70),better:'up',tab:'prevention'},
   {id:'bundles',modules:['prevention'],parts:['domains'],label:['Τήρηση δεσμών μέτρων','Bundle compliance'],value:bundle,unit:'%',target:`≥ ${TARGET.bundles}%`,hint:[`στόχος ≥ ${TARGET.bundles}% · ${b.assessments??0} αξιολογήσεις`,`target ≥ ${TARGET.bundles}% · ${b.assessments??0} assessments`],tone:rateTone(bundle,TARGET.bundles,80),better:'up',tab:'prevention'},
   {id:'overdueControls',modules:['controls'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμοι έλεγχοι','Overdue controls'],target:'0',value:num(c.overdueAssignments),hint:[`${done==null?'—':`${done}%`} ολοκληρωμένες · ${c.executions??0} εκτελέσεις`,`${done==null?'—':`${done}%`} completed · ${c.executions??0} executions`],tone:countTone(c.overdueAssignments,{warning:1,danger:10}),better:'down',tab:'controls'},
-  {id:'incidents',modules:['quality'],parts:['domains'],label:['Ανοιχτά συμβάντα','Open incidents'],value:num(q.openIncidents),hint:[`${severe(q)} σοβαρά / κρίσιμα · ${q.incidents??0} στην περίοδο`,`${severe(q)} severe / critical · ${q.incidents??0} in period`],tone:severe(q)?'danger':countTone(q.openIncidents),better:'down',tab:'quality'},
+  {id:'incidents',modules:['quality'],parts:['domains'],pointInTime:q.openIncidentsNow!=null,label:['Ανοιχτά συμβάντα','Open incidents'],value:num(q.openIncidentsNow??q.openIncidents),hint:[`${severe(q)} σοβαρά / κρίσιμα · ${q.incidents??0} στην περίοδο`,`${severe(q)} severe / critical · ${q.incidents??0} in period`],tone:severe(q)?'danger':countTone(q.openIncidents),better:'down',tab:'quality'},
   {id:'capaOverdue',modules:['quality'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμες διορθωτικές ενέργειες','Overdue corrective actions'],target:'0',value:num(q.capaOverdue),hint:[`${q.capaOpen??0} ανοιχτές διορθωτικές ενέργειες`,`${q.capaOpen??0} open corrective actions`],tone:countTone(q.capaOverdue,{warning:1,danger:5}),better:'down',tab:'quality'},
   {id:'training',modules:['training'],parts:['people'],label:['Ολοκλήρωση υποχρεωτικής εκπαίδευσης','Mandatory training completion'],value:trained,unit:'%',target:`≥ ${TARGET.training}%`,hint:[`${t.overdue??0} εκπρόθεσμες · ${t.assignments??0} αναθέσεις`,`${t.overdue??0} overdue · ${t.assignments??0} assignments`],tone:rateTone(trained,TARGET.training,70),better:'up',tab:'training'},
-  {id:'certificates',modules:['suppliers','kitchen'],parts:['qualityFood'],pointInTime:true,label:['Ληγμένα πιστοποιητικά προμηθευτών','Expired supplier certificates'],target:'0',value:num(f.certificatesExpired),hint:[`${f.certificatesExpiredSuppliers!=null?`σε ${f.certificatesExpiredSuppliers} προμηθευτές`:'προμηθευτών'} · ${f.certificatesExpiring??0} λήγουν σε 60 ημέρες`,`${f.certificatesExpiredSuppliers!=null?`at ${f.certificatesExpiredSuppliers} suppliers`:`suppliers'`} · ${f.certificatesExpiring??0} expire within 60 days`],tone:countTone(f.certificatesExpired,{warning:1,danger:10}),better:'down',tab:'qualityfood'},
+  {id:'certificates',modules:['suppliers','kitchen'],parts:['qualityFood'],pointInTime:true,label:['Ληγμένα πιστοποιητικά χωρίς ανανέωση','Expired certificates not renewed'],target:'0',value:num(f.certificatesExpired),hint:[`${f.certificatesExpiredSuppliers!=null?`σε ${f.certificatesExpiredSuppliers} προμηθευτές`:'προμηθευτών'} · ${f.certificatesExpiring??0} λήγουν σε 60 ημέρες`,`${f.certificatesExpiredSuppliers!=null?`at ${f.certificatesExpiredSuppliers} suppliers`:`suppliers'`} · ${f.certificatesExpiring??0} expire within 60 days`],tone:countTone(f.certificatesExpired,{warning:1,danger:10}),better:'down',tab:'qualityfood'},
   {id:'temperature',modules:['kitchen'],parts:['qualityFood'],label:['Μη συμμορφώσεις θερμοκρασίας','Temperature non-conformities'],value:f.thermalMeasured==null&&f.receipts==null?null:temperature,hint:[`${f.thermalMeasured??0} θερμικές μετρήσεις · ${f.receipts??0} παραλαβές`,`${f.thermalMeasured??0} thermal checks · ${f.receipts??0} receipts`],tone:countTone(temperature,{warning:1,danger:5}),better:'down',tab:'qualityfood'},
   {id:'decisions',modules:['governance'],parts:['governance'],pointInTime:true,label:['Ανοιχτές αποφάσεις επιτροπών','Open committee decisions'],value:num(governance?.openDecisions),hint:[`${governance?.overdueDecisions??0} εκπρόθεσμες · ${g.committees??0} επιτροπές`,`${governance?.overdueDecisions??0} overdue · ${g.committees??0} committees`],tone:countTone(governance?.overdueDecisions,{warning:1,danger:5}),better:'down',tab:'governance'},
  ]
@@ -178,9 +179,17 @@ function measures(snapshot: ExecSnapshot|null={},governance: ExecFigures|null=nu
 
 // Visible measures: of the modules that are on, with the change against the
 // previous period where the measure depends on the period.
-export function withDeltas(kpis: ExecKpi[],previousKpis: ExecKpi[]|null=null): ExecKpi[]{
+// `notComparable`: measures whose comparison period cannot be compared, with the reason shown instead of the change
+// (e.g. training history entered with its completions only: 100% by construction; ιδιοκτήτης 16/11/2026).
+export function withDeltas(kpis: ExecKpi[],previousKpis: ExecKpi[]|null=null,notComparable: Record<string, [string, string]>={}): ExecKpi[]{
  const before=new Map((previousKpis||[]).map(item=>[item.id,item.value]))
- return kpis.map(item=>({...item,delta:previousKpis&&!item.pointInTime?delta(item.value,before.get(item.id),item.better):null}))
+ return kpis.map(item=>notComparable[item.id]?{...item,delta:null,compareNote:notComparable[item.id]}:({...item,delta:previousKpis&&!item.pointInTime?delta(item.value,before.get(item.id),item.better):null}))
+}
+// The comparison period's training has no pending assignment at all: history entered with completions only.
+export function trainingNotComparable(previous: ExecSnapshot|null|undefined): Record<string, [string, string]>{
+ const t=previous?.domains?.training||{}
+ const assignments=Number(t.assignments)||0,completed=Number(t.completed)||0
+ return assignments>0&&completed>=assignments?{training:['το ιστορικό δεν έχει εκκρεμότητες','the history has no pending items']}:{}
 }
 export const visibleFor=(items: ExecKpi[],moduleEnabled: (module: string)=>boolean=()=>true)=>items.filter(item=>!item.modules?.length||item.modules.some((module: string)=>moduleEnabled(module)))
 

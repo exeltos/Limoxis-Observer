@@ -23,7 +23,7 @@ import { printReportLater } from '../../core/export/reportDocument'
 import { periodTag,readSharedPeriod,writeSharedPeriod } from '../analysis/sharedPeriod'
 import { loadCommittees } from '../committees/committeeData'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
-import { TARGETS,executiveKpis,judgedByTarget,filtersToQuery,parseFilters,periodRange,previousRange,indicatorRates,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
+import { TARGETS,executiveKpis,judgedByTarget,filtersToQuery,parseFilters,periodRange,previousRange,indicatorRates,targetsFromObjectives,trainingNotComparable,visibleFor,withDeltas } from './executiveModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import type { OperationalIndicator } from '../indicators/indicatorTypes'
 import { loadObjectives } from '../quality/review/reviewService'
@@ -149,7 +149,7 @@ export function ExecutiveDashboardPage(){
  const kpis=useMemo(()=>{
   const withRates=(items: ExecKpi[],period: DayRange|null,shot: ExecSnapshot,mdr: number)=>[...items,...judgedByTarget(rateMeasures(items,patientDaysIn(dayPeriods,period,department),{hai:separateHai(shot,separate.names),mdro:mdr,names:separate.names}))]
   const now=withRates(executiveKpis(snapshot,governance,targets,rates.now),range,snapshot,separate.mdrNow)
-  return visibleFor(withDeltas(now,previousSnapshot?withRates(executiveKpis(previousSnapshot,governance,targets,rates.before),previous,previousSnapshot,separate.mdrBefore):null),moduleEnabled)
+  return visibleFor(withDeltas(now,previousSnapshot?withRates(executiveKpis(previousSnapshot,governance,targets,rates.before),previous,previousSnapshot,separate.mdrBefore):null,trainingNotComparable(previousSnapshot)),moduleEnabled)
  },[snapshot,governance,previousSnapshot,moduleEnabled,targets,rates,dayPeriods,range,previous,department,separate])
  // Everything shows at once after the load (owner, 8/11/2026): the parts, the indicator rates and the patient days.
  const loadingAny=PART_KEYS.some(key=>current[key]?.status==='loading')||((isDemo||Boolean(organizationId))&&rates.key!==ratesKey)||(!isDemo&&Boolean(organizationId)&&(!dayPeriodsLoaded||separate.key!==separateKey))

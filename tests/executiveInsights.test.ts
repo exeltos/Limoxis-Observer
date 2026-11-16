@@ -71,3 +71,17 @@ describe('rates per 1,000 patient days', () => {
     expect(rateMeasures([{ id: 'hai', value: 1 } as never], null)[0].missing[0]).toBe('λείπουν οι κλινοημέρες της περιόδου')
   })
 })
+
+describe('attention order (Εικόνα νοσοκομείου, ιδιοκτήτης 16/11/2026)', () => {
+  it('puts what is off target first, then drops still on target in amber, then overdue training', () => {
+    const kpis = [
+      { id: 'handHygiene', label: ['Υγιεινή χεριών', 'Hand hygiene'], unit: '%', value: 85, target: '≥ 80%', status: 'judged', tone: 'good', delta: { diff: -5, change: -5.6, good: false, previous: 90 }, tab: 'prevention' },
+      { id: 'bundles', label: ['Δέσμες', 'Bundles'], unit: '%', value: 60, target: '≥ 90%', status: 'judged', tone: 'danger', delta: null },
+      { id: 'training', label: ['Εκπαίδευση', 'Training'], unit: '%', value: 40, delta: null, compareNote: ['το ιστορικό δεν έχει εκκρεμότητες', 'the history has no pending items'] },
+    ] as ExecKpi[]
+    const { attention } = summaryHighlights(kpis, { domains: { training: { overdue: 117 } } }, { against: '2025' })
+    expect(attention.map((s) => [s.id, s.level])).toEqual([['bundles', 'danger'], ['handHygiene', 'warning'], ['trainingOverdue', 'warning']])
+    expect(attention[1].text).toMatch(/— εντός στόχου$/)
+    expect(attention[2].text).toBe('Εκπρόθεσμες εκπαιδεύσεις: 117')
+  })
+})

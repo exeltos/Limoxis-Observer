@@ -2862,7 +2862,7 @@ a.auth-brand,a.auth-mobile-brand{color:inherit;text-decoration:none}
 .filter-active-chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;min-height:26px;padding:2px 8px;border:1px solid var(--lo-color-border,#d6e0e8);border-radius:999px;background:var(--lo-color-primary-soft,#e6f1f7);color:var(--lo-color-primary,#1f6f9b);font:inherit;font-size:11.5px;cursor:pointer}
 
 /* Sidebar: the entries inside an opened group wrap onto a second line instead of ending in «…». */
-.sidebar .sidebar-nav-children .nav-item>span{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.25}
+.sidebar .sidebar-nav-children .nav-item>span{white-space:normal!important;overflow-wrap:anywhere;overflow:visible!important;text-overflow:clip!important;line-height:1.25}
 .sidebar .sidebar-nav-children .nav-item{height:auto!important;min-height:34px;padding-top:6px!important;padding-bottom:6px!important}
 
 /* Notifiable disease report: link to the blank EODY forms */

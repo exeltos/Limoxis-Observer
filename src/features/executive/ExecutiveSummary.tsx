@@ -21,7 +21,7 @@ function Sparkline({ points, label }: { points: SparkPoint[], label: string }) {
 function Highlights({ title, items, tone }: { title: string, items: Highlight[], tone: string }) {
   return <section className={`exec-highlights exec-highlights-${tone}`}>
     <h3>{title} <small>{items.length}</small></h3>
-    <ul>{items.map((item) => <li key={item.id}>{item.up == null ? <i className={`exec-dot exec-dot-${tone === 'better' ? 'good' : 'danger'}`} aria-hidden="true" /> : item.up ? <ArrowUpRight size={15} aria-hidden="true" /> : <ArrowDownRight size={15} aria-hidden="true" />}<span>{item.text}</span></li>)}</ul>
+    <ul>{items.map((item) => <li key={item.id} className={item.level === 'warning' ? 'is-warning' : undefined}>{item.up == null ? <i className={`exec-dot exec-dot-${tone === 'better' ? 'good' : 'danger'}`} aria-hidden="true" /> : item.up ? <ArrowUpRight size={15} aria-hidden="true" /> : <ArrowDownRight size={15} aria-hidden="true" />}<span>{item.text}</span></li>)}</ul>
   </section>
 }
 
@@ -59,8 +59,8 @@ export function ExecutiveSummary({ kpis, snapshot, previousSnapshot, range, comp
             const points = sparkPoints(item.id, snapshot, previousSnapshot, range)
             return <tr key={item.id}>
               <th scope="row">{open ? <button type="button" className="exec-measure-link" onClick={open} title={tx(...(item.hint as [string, string]))}>{tx(...item.label)}</button> : <span title={tx(...(item.hint as [string, string]))}>{tx(...item.label)}</span>}</th>
-              <td className="exec-num exec-value">{fmt(item.value, item.unit, en)}</td>
-              {compared && <td className="exec-num">{fmt(item.delta?.previous, item.unit, en)}</td>}
+              <td className="exec-num exec-value">{fmt(item.value, item.unit, en)}{item.pointInTime && <small className="exec-today">{tx('σήμερα', 'today')}</small>}</td>
+              {compared && <td className="exec-num">{item.compareNote ? <span className="exec-compare-note">— <small>{tx(...item.compareNote)}</small></span> : fmt(item.delta?.previous, item.unit, en)}</td>}
               {compared && <td className={`exec-num${change.good == null ? '' : change.good ? ' is-better' : ' is-worse'}`}>{change.text}</td>}
               <td className="exec-num">{item.target || '—'}</td>
               <td className="exec-col-spark">{points && <Sparkline points={points} label={tx('Ανά μήνα: η περίοδος και η σύγκριση', 'By month: the period and the comparison')} />}</td>

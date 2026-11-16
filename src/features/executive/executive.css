@@ -81,6 +81,10 @@
 .exec-highlights li svg{flex:none;margin-top:2px}
 .exec-highlights li .exec-dot{flex:none;width:8px;height:8px;margin:6px 3px 0 3px}
 .exec-highlights-worse li{color:#a32121}
+.exec-highlights-worse li.is-warning{color:var(--lo-status-warning-fg)}
+.exec-highlights-worse li.is-warning .exec-dot{background:var(--lo-status-warning-fg)}
+.exec-today{display:block;font-size:11px;font-weight:500;color:var(--lo-color-muted)}
+.exec-compare-note small{display:block;font-size:11px;color:var(--lo-color-muted)}
 .exec-highlights-better li{color:#1f7a45}
 .exec-scorecard,.exec-dept-grid .exec-scorecard{padding:4px 8px 6px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
 .exec-scorecard table{width:100%;border-collapse:collapse;font-size:13px}

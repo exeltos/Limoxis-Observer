@@ -58,7 +58,7 @@ export function worstDepartment(id: string,snapshot: ExecSnapshot|null={}): {nam
 // A measure with a real change against the comparison (its delta is there).
 type ChangedKpi = ExecKpi & { delta: NonNullable<ExecKpi['delta']> }
 const realChange=(item: ExecKpi): item is ChangedKpi=>item.value!=null&&item.delta&&item.delta.good!=null&&item.delta.previous!=null&&(item.unit==='%'||item.delta.previous!==0)||false
-export interface Highlight { id: string, good: boolean, up: boolean|null, tab?: string, text: string }
+export interface Highlight { id: string, good: boolean, up: boolean|null, tab?: string, text: string, level?: 'danger'|'warning' }
 export function summaryHighlights(kpis: ExecKpi[]=[],snapshot: ExecSnapshot|null={},{limit=5,en=false,against=''}: {limit?: number,en?: boolean,against?: string}={}): {attention: Highlight[],improved: Highlight[]}{
  const tx=(el: string,english: string)=>(en?english:el)
  const weight=(item: ChangedKpi)=>item.unit==='%'?Math.abs(item.delta.diff):Math.min(100,Math.abs(item.delta.change??item.delta.diff*10))
@@ -70,10 +70,18 @@ export function summaryHighlights(kpis: ExecKpi[]=[],snapshot: ExecSnapshot|null
  }
  const changed=kpis.filter(realChange)
  const worse=changed.filter(item=>item.delta.good===false).sort((a,b)=>weight(b)-weight(a))
+ // A drop of a measure still on target is a warning (amber, «εντός στόχου»), after what is off target (red).
+ const onTarget=(item: ExecKpi)=>item.status==='judged'&&item.tone==='good'
  const offTarget=kpis.filter(item=>item.value!=null&&item.status==='judged'&&item.tone==='danger'&&!worse.includes(item as ChangedKpi))
-  .map(item=>({id:item.id,good:false,up:null,tab:item.tab,text:tx(`${item.label[0]}: ${fmt(item.value,item.unit,en)} — εκτός στόχου (${item.target})`,`${item.label[1]}: ${fmt(item.value,item.unit,en)} — off target (${item.target})`)}))
+  .map(item=>({id:item.id,good:false,up:null,tab:item.tab,level:'danger' as const,text:tx(`${item.label[0]}: ${fmt(item.value,item.unit,en)} — εκτός στόχου (${item.target})`,`${item.label[1]}: ${fmt(item.value,item.unit,en)} — off target (${item.target})`)}))
  const better=changed.filter(item=>item.delta.good===true).sort((a,b)=>weight(b)-weight(a))
- return {attention:[...worse.map(item=>line(item,false)),...offTarget].slice(0,limit),improved:better.map(item=>line(item,true)).slice(0,limit)}
+ const drops=worse.map(item=>onTarget(item)?{...line(item,false),level:'warning' as const,text:`${line(item,false).text}${tx(' — εντός στόχου',' — on target')}`}:{...line(item,false),level:'danger' as const})
+ // Overdue training is work to chase even when the completion rate is on target.
+ const overdueTraining=Number(snapshot?.domains?.training?.overdue)||0
+ const training=overdueTraining>0&&kpis.some(item=>item.id==='training'&&item.value!=null)&&!drops.some(item=>item.id==='training')
+  ?[{id:'trainingOverdue',good:false,up:null,tab:'people',level:'warning' as const,text:tx(`Εκπρόθεσμες εκπαιδεύσεις: ${overdueTraining}`,`Overdue training: ${overdueTraining}`)}]:[]
+ const danger=[...drops.filter(item=>item.level==='danger'),...offTarget],warning=[...drops.filter(item=>item.level==='warning'),...training]
+ return {attention:[...danger,...warning].slice(0,limit),improved:better.map(item=>line(item,true)).slice(0,limit)}
 }
 // The assessment of a measure: against its target where it has one, else against the comparison.
 export function assessmentOf(item: ExecKpi,en=false){

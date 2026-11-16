@@ -3103,7 +3103,7 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
   line-height:1.25;
   cursor:pointer;
 }
-.sidebar nav .nav-item>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar nav .nav-item>span{min-width:0;overflow-wrap:anywhere;white-space:normal}
 .sidebar nav .nav-item svg{flex:0 0 auto;color:currentColor;opacity:.85}
 .sidebar nav .nav-item:hover{background:rgba(255,255,255,.08);color:var(--text-inverse)}
 .sidebar nav .nav-item.active,.sidebar nav .nav-item.active-group{background:rgba(255,255,255,.14);color:var(--text-inverse);font-weight:500;box-shadow:inset 3px 0 0 var(--shadow-brand-651)}
