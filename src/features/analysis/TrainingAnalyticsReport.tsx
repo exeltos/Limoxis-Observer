@@ -40,7 +40,7 @@ function kpiRows(details: TrainingDetails,tx: Translate,en: boolean,target=90): 
   [tx('Ώρες ανά εκπαιδευόμενο','Hours per trainee'),fmtHours(details.averageHoursPerTrainee,en),tx(`${details.trainees||0} εκπαιδευόμενοι με ολοκλήρωση`,`${details.trainees||0} trainees with a completion`)],
   [tx('Εκπαιδευόμενοι','Trainees'),fmt(details.trainees,en,0),tx('διαφορετικοί εργαζόμενοι με ολοκλήρωση στην περίοδο','distinct employees with a completion in the period')],
   [tx('Εκπαιδεύσεις','Training programmes'),fmt(details.programs,en,0),tx('προγράμματα με ανάθεση στην περίοδο','programmes with an assignment in the period')],
-  [tx('Εκπρόθεσμες αναθέσεις','Overdue assignments'),fmt(details.overdue,en,0),tx('πέρασε η προθεσμία ολοκλήρωσης','past the completion due date'),details.overdue?'danger':'good'],
+  [tx('Εκπρόθεσμες αναθέσεις','Overdue assignments'),fmt(details.overdue,en,0),tx('πέρασε η προθεσμία ολοκλήρωσης','past the completion due date'),details.overdue?'danger':'good','now'],
  ]
 }
 function Kpis({rows}: {rows: MetricRow[]}){return <FiguresLine rows={rows}/>}
