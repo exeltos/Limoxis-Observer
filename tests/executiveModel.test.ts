@@ -177,3 +177,14 @@ describe('Σύνοψη: what is today\'s and what compares (ιδιοκτήτης
     expect(byKey.mdro.hint?.[0]).not.toMatch(/MDR/)
   })
 })
+
+describe('Β: one definition and the measures the hospital records (ιδιοκτήτης 16/11/2026)', () => {
+  it('adds hospital-acquired bacteremias only where the figures carry them, with a comparison', () => {
+    const now = executiveKpis({ domains: { surveillance: { total: 40, hospitalBacteremia: 13 } } } as never)
+    const before = executiveKpis({ domains: { surveillance: { total: 30, hospitalBacteremia: 8 } } } as never)
+    const row = withDeltas(now, before).find((item) => item.id === 'bacteremia')
+    expect(row).toMatchObject({ value: 13, label: ['Νοσοκομειακές βακτηριαιμίες', 'Hospital-acquired bacteremias'] })
+    expect(row?.delta).toMatchObject({ diff: 5, good: false, previous: 8 })
+    expect(executiveKpis({ domains: { surveillance: { total: 40 } } } as never).some((item) => item.id === 'bacteremia')).toBe(false)
+  })
+})

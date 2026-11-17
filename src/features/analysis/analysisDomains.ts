@@ -91,8 +91,9 @@ export function collectDemoDomainMetrics(range: DateRange = {}, en = false, clus
       devicesActive: devices.length,
       byDevice: tally(devices, device => (en ? device.nameEn : device.name) || device.name || device.type || '—'),
       // Cross-tabulations as [row, column, count] cells.
-      haiByDepartment: hai.map(item => [dept(item), item.haiClassification?.type || '—', 1]),
-      organismByHaiType: hai.filter(item => item.organism).map(item => [item.organism, item.haiClassification?.type || '—', 1]),
+      // Confirmed HAI only, as «Επιβεβαιωμένες ΛΣΦΥ» and every other HAI count (ECDC/ΕΟΔΥ; ιδιοκτήτης 16/11/2026).
+      haiByDepartment: hai.filter(item => item.haiClassification?.status === 'confirmed').map(item => [dept(item), item.haiClassification?.type || '—', 1]),
+      organismByHaiType: hai.filter(item => item.organism && item.haiClassification?.status === 'confirmed').map(item => [item.organism, item.haiClassification?.type || '—', 1]),
       deviceAssociated: hai.map(item => [dept(item), deviceAssociation(item)]).filter(([, kind]: MetricRow) => kind).map(([key, kind]: MetricRow) => [key, kind, 1]),
     },
     handHygiene: {
@@ -253,13 +254,21 @@ function departmentScoreboard(snapshot: AnalysisSnapshot | null | undefined) {
 }
 
 // What each Analysis section shows: KPI tiles and charts built from the metrics.
-export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null | undefined, tx: Translate, t?: (key: string) => string) {
+// The targets and the indicator values of the hospital overview (ιδιοκτήτης 16/11/2026): one target and one figure for
+// hand hygiene, bundles and training on every tab, as in «Σύνοψη». Without them, the platform's defaults.
+export interface SectionOptions { targets?: Readonly<Record<string, number>>, rates?: Record<string, unknown> }
+const DEFAULT_TARGETS: Readonly<Record<string, number>> = { handHygiene: 80, bundles: 90, training: 90 }
+// Green from the target, amber up to 10 points below, red further down: the same band everywhere.
+export const targetTone = (value: number | null | undefined, target: number) => (value == null ? 'neutral' : value >= target ? 'good' : value >= target - 10 ? 'warning' : 'danger')
+export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null | undefined, tx: Translate, t?: (key: string) => string, options: SectionOptions = {}) {
+  const target = { ...DEFAULT_TARGETS, ...(options.targets || {}) }
+  const override = (key: string) => { const value = options.rates?.[key]; return value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value) }
   const en = tx('el', 'en') === 'en'
   const label = (key: string) => { const pair = LABELS[key]; if (pair) return en ? pair[1] : pair[0]; const translated = typeof t === 'function' ? t(key) : key; return translated || key }
   const named = (rows: MetricRow[] | undefined) => (rows || []).map(([key, ...values]: MetricRow) => [label(key), ...values])
   const d = snapshot?.domains || {}, s = d.surveillance || {}, hh = d.handHygiene || {}, b = d.bundles || {}, w = d.waste || {}, c = d.controls || {}, q = d.quality || {}, a = d.antimicrobial || {}
   const micro = snapshot?.microbiology || {}
-  const hhRate = pct(hh.compliant, hh.observations)
+  const hhRate = override('handHygiene') ?? pct(hh.compliant, hh.observations), bundleScore = override('bundles') ?? b.averageScore
   // The rate with how many it rests on («· 52»), or how many out of how many («· 12/263»).
   const rateRowsWithTotal = (rows: MetricRow[] | undefined) => (rows || []).map(([key, total, part]: MetricRow) => [label(key), pct(part, total) ?? 0, String(total ?? 0)]).filter(([, value]: MetricRow) => value != null)
   const mdro = (micro.resistance || []).filter(([key]: MetricRow) => ['MDR', 'XDR', 'PDR'].includes(key)).reduce((sum: number, [, value]: MetricRow) => sum + (Number(value) || 0), 0)
@@ -272,8 +281,8 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
         [tx('Ενεργές επιτηρήσεις', 'Active surveillance'), s.active ?? 0, tx(`${s.total ?? 0} στην περίοδο`, `${s.total ?? 0} in period`)],
         [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), s.haiConfirmed ?? 0, tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`), (s.haiConfirmed ? 'warning' : '')],
         [tx('Θετικές καλλιέργειες', 'Positive cultures'), micro.totalPositive ?? 0, tx(`${mdro} MDR/XDR/PDR`, `${mdro} MDR/XDR/PDR`), (mdro ? 'danger' : '')],
-        [tx('Υγιεινή χεριών', 'Hand hygiene'), fmtPct(hhRate), tx(`${hh.observations ?? 0} ευκαιρίες`, `${hh.observations ?? 0} opportunities`), hhRate != null && hhRate < 80 ? 'warning' : 'good'],
-        [tx('Δέσμες μέτρων', 'Bundles'), fmtPct(b.averageScore), tx(`${b.assessments ?? 0} αξιολογήσεις`, `${b.assessments ?? 0} assessments`), b.averageScore != null && b.averageScore < 90 ? 'warning' : 'good'],
+        [tx('Υγιεινή χεριών', 'Hand hygiene'), fmtPct(hhRate), tx(`${hh.observations ?? 0} ευκαιρίες · στόχος ≥ ${target.handHygiene}%`, `${hh.observations ?? 0} opportunities · target ≥ ${target.handHygiene}%`), targetTone(hhRate, target.handHygiene)],
+        [tx('Δέσμες μέτρων', 'Bundles'), fmtPct(bundleScore), tx(`${b.assessments ?? 0} αξιολογήσεις · στόχος ≥ ${target.bundles}%`, `${b.assessments ?? 0} assessments · target ≥ ${target.bundles}%`), targetTone(bundleScore, target.bundles)],
         [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : ''],
       ],
       charts: [
@@ -300,7 +309,7 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
       const classified = (s.byCaseStatus || []).reduce((sum: number, [, n]: MetricRow) => sum + (Number(n) || 0), 0)
       return {
       kpis: [
-        [tx('Επεισόδια περιόδου', 'Episodes in period'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
+        [tx('Επεισόδια επιτήρησης', 'Surveillance episodes'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
         [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), classified ? (s.haiConfirmed ?? 0) : '—', classified ? tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`) : tx('δεν γίνεται ταξινόμηση', 'not classified'), s.haiConfirmed ? 'warning' : ''],
         [tx('Ενεργές απομονώσεις', 'Active isolations'), s.isolationActive ?? 0, s.isolationReviewOverdue ? tx(`${s.isolationReviewOverdue} με εκπρόθεσμη επανεκτίμηση`, `${s.isolationReviewOverdue} with overdue review`) : tx('Χωρίς εκπρόθεσμες επανεκτιμήσεις', 'No overdue reviews'), s.isolationReviewOverdue ? 'danger' : ''],
         [tx('Ενεργές επεμβατικές συσκευές', 'Active invasive devices'), s.devicesActive ?? 0, tx('σε ενεργές επιτηρήσεις', 'in surveillance episodes')],
@@ -352,8 +361,8 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
       const hasHandHygiene = (hh.observations ?? 0) > 0, nothingRecorded = !hasHandHygiene && !hasBundles && !hasWaste
       return {
       kpis: [
-        ...(hasBundles ? [[tx('Συμμόρφωση δεσμών μέτρων', 'Bundle compliance'), fmtPct(b.averageScore), tx(`${b.assessments ?? 0} αξιολογήσεις`, `${b.assessments ?? 0} assessments`), b.averageScore != null && b.averageScore < 90 ? 'warning' : 'good']] : []),
-        ...(hasHandHygiene ? [[tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`στόχος ≥ 80% · ${hh.sessions ?? 0} συνεδρίες`, `target ≥ 80% · ${hh.sessions ?? 0} sessions`), hhRate != null && hhRate < 80 ? 'warning' : 'good']] : []),
+        ...(hasBundles ? [[tx('Συμμόρφωση δεσμών μέτρων', 'Bundle compliance'), fmtPct(bundleScore), tx(`στόχος ≥ ${target.bundles}% · ${b.assessments ?? 0} αξιολογήσεις`, `target ≥ ${target.bundles}% · ${b.assessments ?? 0} assessments`), targetTone(bundleScore, target.bundles)]] : []),
+        ...(hasHandHygiene ? [[tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`στόχος ≥ ${target.handHygiene}% · ${hh.sessions ?? 0} συνεδρίες`, `target ≥ ${target.handHygiene}% · ${hh.sessions ?? 0} sessions`), targetTone(hhRate, target.handHygiene)]] : []),
         ...(hasHandHygiene ? [[tx('Ευκαιρίες υγιεινής χεριών', 'Hand hygiene opportunities'), hh.observations ?? 0, tx(`${hh.compliant ?? 0} με σωστή υγιεινή`, `${hh.compliant ?? 0} compliant`)]] : []),
         ...(hasWaste ? [[tx('Ιατρικά απόβλητα', 'Healthcare waste'), `${Number(w.totalKg ?? 0).toLocaleString(en ? 'en-US' : 'el-GR', { maximumFractionDigits: 1 })} kg`, w.patientDays ? tx(`${(w.totalKg / w.patientDays * 1000).toFixed(1).replace('.', ',')} kg / 1.000 ημέρες νοσηλείας`, `${(w.totalKg / w.patientDays * 1000).toFixed(1)} kg / 1,000 patient-days`) : tx(`${w.records ?? 0} καταγραφές`, `${w.records ?? 0} records`)]] : []),
       ],
@@ -418,7 +427,7 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
     case 'training': { const tr = d.training || {}; const rate = pct(tr.completed, tr.assignments); return {
       kpis: [
         ...((tr.assignments ?? 0) > 0 ? [
-          [tx('Ολοκλήρωση εκπαιδεύσεων', 'Training completion'), fmtPct(rate), tx(`${tr.completed ?? 0} από ${tr.assignments ?? 0} αναθέσεις`, `${tr.completed ?? 0} of ${tr.assignments ?? 0} assignments`), rate != null && rate < 80 ? 'warning' : 'good'],
+          [tx('Ολοκλήρωση εκπαιδεύσεων', 'Training completion'), fmtPct(rate), tx(`${tr.completed ?? 0} από ${tr.assignments ?? 0} αναθέσεις · στόχος ≥ ${target.training}%`, `${tr.completed ?? 0} of ${tr.assignments ?? 0} assignments · target ≥ ${target.training}%`), targetTone(rate, target.training)],
           [tx('Εκπρόθεσμες', 'Overdue'), tr.overdue ?? 0, tx('πέρασε η προθεσμία ολοκλήρωσης', 'past the completion due date'), tr.overdue ? 'danger' : ''],
           [tx('Μέση βαθμολογία', 'Average score'), tr.averageScore == null ? '—' : fmtPct(tr.averageScore), tx('στις αξιολογήσεις', 'in assessments')],
         ] : []),

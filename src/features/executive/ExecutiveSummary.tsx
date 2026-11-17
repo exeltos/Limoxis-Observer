@@ -20,7 +20,9 @@ export function ExecutiveSummary({ kpis, snapshot, previousSnapshot, compareLabe
   const shown = kpis.filter((item) => item.value != null)
   const today = shown.filter((item) => item.pointInTime)
   const areas = measuresByArea(shown.filter((item) => !item.pointInTime))
-  const empty = kpis.filter((item) => item.value == null)
+  // HAI not classified at all is said once, in «Χρειάζονται προσοχή»; not again here (nor its rate).
+  const unclassified = kpis.some((item) => item.id === 'hai' && item.value == null && item.missing)
+  const empty = kpis.filter((item) => item.value == null && !(unclassified && ['hai', 'haiRate'].includes(item.id)))
   const { attention, improved } = summaryHighlights(kpis, snapshot, { en, against })
   const compared = Boolean(previousSnapshot)
   const name = (item: ExecKpi) => <>{tx(...item.label)}{item.note && <small className="exec-measure-note">{tx(...item.note)}</small>}</>

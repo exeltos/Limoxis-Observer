@@ -96,3 +96,15 @@ describe('Σύνοψη: full names and today\'s training (ιδιοκτήτης 1
     expect(attention.map((s) => s.text)).toEqual(['Λοιμώξεις σχετιζόμενες με τη φροντίδα υγείας (ΛΣΦΥ): 19 (2025: 13)', 'Εκπαίδευση: 50% — εκτός στόχου (≥ 90%) · 117 εκπρόθεσμες'])
   })
 })
+
+describe('Β2: HAI not classified (ιδιοκτήτης 16/11/2026)', () => {
+  it('says it first in «Χρειάζονται προσοχή», with the number of episodes', () => {
+    const kpis = [
+      { id: 'hai', label: ['ΛΣΦΥ', 'HAI'], value: null, missing: ['Δεν γίνεται ταξινόμηση', 'Not classified'] },
+      { id: 'bundles', label: ['Δέσμες', 'Bundles'], unit: '%', value: 60, target: '≥ 90%', status: 'judged', tone: 'danger', delta: null },
+    ] as ExecKpi[]
+    const { attention } = summaryHighlights(kpis, { domains: { surveillance: { total: 464 } } }, { against: '2025' })
+    expect(attention[0]).toMatchObject({ id: 'haiUnclassified', level: 'warning', text: 'Η ΛΣΦΥ δεν υπολογίζεται: 464 επεισόδια επιτήρησης χωρίς ταξινόμηση' })
+    expect(attention[1].id).toBe('bundles')
+  })
+})

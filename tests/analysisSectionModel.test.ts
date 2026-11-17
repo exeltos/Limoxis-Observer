@@ -23,7 +23,9 @@ describe('Analysis section model', () => {
     const model = buildSectionModel('prevention', snapshot, tx)
     // Bundles with no assessment drop out of the figures: hand hygiene comes first.
     expect(model.kpis[0][1]).toBe('75%')
-    expect(model.kpis[0][3]).toBe('warning')
+    // One band everywhere (ιδιοκτήτης 16/11/2026): 75% against a target of 90% is more than 10 points below, so red.
+    expect(model.kpis[0][3]).toBe('danger')
+    expect(buildSectionModel('prevention', snapshot, tx, undefined, { targets: { bundles: 80 } }).kpis[0][3]).toBe('warning')
     // The rate with the opportunities it rests on.
     expect(model.charts.find(chart => chart.title === 'Υγιεινή χεριών ανά τμήμα').rows).toEqual([['ΜΕΘ', 80, '10']])
   })

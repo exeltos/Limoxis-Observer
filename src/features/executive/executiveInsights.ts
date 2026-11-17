@@ -82,8 +82,13 @@ export function summaryHighlights(kpis: ExecKpi[]=[],snapshot: ExecSnapshot|null
   ?[{id:'trainingOverdue',good:false,up:null,tab:'people',level:'warning' as const,text:tx(`Εκπρόθεσμες εκπαιδεύσεις: ${overdueTraining}`,`Overdue training: ${overdueTraining}`)}]:[]
  // Off target already: the overdue count goes on the same line, not on one of its own.
  for(const item of offTarget)if(item.id==='training'&&overdueTraining>0)item.text+=tx(` · ${overdueTraining} εκπρόθεσμες`,` · ${overdueTraining} overdue`)
+ // Surveillance episodes with no HAI classification: the HAI cannot be counted, which is itself work to do (ιδιοκτήτης 16/11/2026).
+ const hai=kpis.find(item=>item.id==='hai'),episodes=Number(snapshot?.domains?.surveillance?.total)||0
+ const unclassified=hai&&hai.value==null&&hai.missing&&episodes>0
+  ?[{id:'haiUnclassified',good:false,up:null,tab:'surveillance',level:'warning' as const,text:tx(`Η ΛΣΦΥ δεν υπολογίζεται: ${episodes} επεισόδια επιτήρησης χωρίς ταξινόμηση`,`HAI cannot be counted: ${episodes} surveillance episodes not classified`)}]:[]
  const danger=[...drops.filter(item=>item.level==='danger'),...offTarget],warning=[...drops.filter(item=>item.level==='warning'),...training]
- return {attention:[...danger,...warning].slice(0,limit),improved:better.map(item=>line(item,true)).slice(0,limit)}
+ // It heads the list: without it the HAI lines cannot exist at all.
+ return {attention:[...unclassified,...danger,...warning].slice(0,limit),improved:better.map(item=>line(item,true)).slice(0,limit)}
 }
 // The assessment of a measure: against its target where it has one, else against the comparison.
 export function assessmentOf(item: ExecKpi,en=false){
@@ -130,7 +135,7 @@ export const GRID_COLUMNS: readonly GridColumn[]=Object.freeze([
  {key:'handHygiene',label:['Υγιεινή χεριών','Hand hygiene'],unit:'%',better:'up',target:'handHygiene'},
  {key:'bundles',label:['Δέσμες μέτρων','Bundles'],unit:'%',better:'up',target:'bundles'},
  {key:'hai',label:['ΛΣΦΥ','HAI'],better:'down'},
- {key:'surveillance',label:['Περιστατικά επιτήρησης','Surveillance cases'],better:'down'},
+ {key:'surveillance',label:['Επεισόδια επιτήρησης','Surveillance episodes'],better:'down'},
  {key:'controlFindings',label:['Έλεγχοι με εύρημα','Controls with a finding'],unit:'%',better:'down'},
  {key:'incidents',label:['Συμβάντα','Incidents'],better:'down'},
 ])
