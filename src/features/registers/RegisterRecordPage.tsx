@@ -26,6 +26,7 @@ import { registerStatusLabel } from './registerText'
 import { RegisterSheet, dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
 import { RegisterIndicators } from './RegisterIndicators'
+import { LateInfectionReview } from './LateInfectionReview'
 import { RegisterBuilder } from './RegisterBuilder'
 import './registers.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
@@ -95,6 +96,7 @@ export function RegisterRecordPage() {
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={(() => { const key = registerThemeKey(register); const Icon = key ? themeIcon(key) : sheet ? CalendarRange : ClipboardList; return <Icon size={19} /> })()} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
 >
     {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries as SheetEntry[]} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
+    {tab === 'indicators' && register.templateKey === 'nicu' && <LateInfectionReview register={register} entries={entries} canDecide={access.canRecord(register)} onDecided={reload} />}
     {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? (indicatorId: string) => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
     {tab === 'definition' && <RegisterBuilder entries={entries} register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={(next: Register | null) => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}

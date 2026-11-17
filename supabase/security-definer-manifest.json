@@ -653,6 +653,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Home of the Division Director: per-department counts and percentages for one division (staff of the division's professional categories, next roster period status and uncovered nights, pending roster requests, training, influenza vaccination percentage only, hand hygiene, falls / pressure ulcers / open incidents); no employee rows. Callers: a Division Director for their own divisions only, or the organisation's Hospital Admin / the Platform Owner (role preview)."
+    },
+    "register_late_infection_candidates": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "ΜΕΝΝ: positive blood cultures of the register's department taken 72 hours or more after a neonate's admission, matched to the register's entries by surname and stay inside the database, returned without any name (entry, sample, date, organism, hours after admission, decision) for the NICU to confirm. Only for whoever may read the register (private.register_can_read); nothing when the laboratory module is locked."
     }
   }
 }

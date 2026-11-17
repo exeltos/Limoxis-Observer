@@ -321,3 +321,10 @@
 /* The «⋯» menu of the case sits at the top right of its card: the entry starts below it, not under it. */
 .register-form-page.register-entry-form{padding-top:26px}
 .register-indicator-missing{display:block;font-size:11.5px;color:var(--lo-status-warning-fg)}
+.register-late-review{margin:0 0 12px;padding:12px 16px;border:1px solid var(--lo-status-warning-border);border-left:4px solid var(--lo-status-warning-fg);border-radius:10px;background:var(--lo-status-warning-bg)}
+.register-late-review header{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+.register-late-review header small{font-size:12px;color:var(--lo-color-muted)}
+.register-late-review ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.register-late-review li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:8px;background:var(--lo-color-surface);font-size:13px}
+.register-late-actions{display:flex;gap:6px}
+.register-late-more{margin-top:8px;padding:0;font:inherit;font-size:12.5px;color:var(--lo-color-primary);background:none;border:0;cursor:pointer}

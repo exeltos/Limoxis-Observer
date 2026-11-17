@@ -372,3 +372,32 @@ export const saveEntries = (...args: Parameters<typeof saveEntriesNow>) => after
 export const deleteEntry = (...args: Parameters<typeof deleteEntryNow>) => afterWrite(deleteEntryNow(...args))
 export const deleteEntries = (...args: Parameters<typeof deleteEntriesNow>) => afterWrite(deleteEntriesNow(...args))
 export const setEntryLocked = (...args: Parameters<typeof setEntryLockedNow>) => afterWrite(setEntryLockedNow(...args))
+
+// ΜΕΝΝ Ν6 (ιδιοκτήτης 17/11/2026): positive blood cultures of the department taken 72 hours or more after a neonate's
+// admission, matched inside the database by surname and stay; no name comes back. The NICU confirms (the entry then
+// records a confirmed late-onset infection) or rejects; a rejected one is not suggested again. Nothing in the demo.
+export interface LateInfectionCandidate { entryId: string, sampleId: string, collectedAt: string, organism: string, hoursAfter: number, decision: 'confirmed' | 'rejected' | null }
+export async function loadLateInfectionCandidates(register: Register): Promise<LateInfectionCandidate[]> {
+  if (isLocal() || register.templateKey !== 'nicu') return []
+  const { data, error } = await supabase.rpc('register_late_infection_candidates', { p_register_id: register.id })
+  if (error) throw error
+  return groupLateInfectionRows((data || []) as LateInfectionRow[])
+}
+export interface LateInfectionRow { entry_id: string, sample_id: string, collected_at: string, organism: string | null, hours_after: number, decision: LateInfectionCandidate['decision'] }
+// One sample can carry several organisms (one row each): one line per sample, the organisms together.
+export function groupLateInfectionRows(rows: LateInfectionRow[]): LateInfectionCandidate[] {
+  const bySample = new Map<string, LateInfectionCandidate>()
+  for (const row of rows) {
+    const key = `${row.entry_id}|${row.sample_id}`
+    const known = bySample.get(key)
+    const organism = String(row.organism || '').trim()
+    if (known) { if (organism && !known.organism.split(', ').includes(organism)) known.organism = `${known.organism}, ${organism}` } else bySample.set(key, { entryId: row.entry_id, sampleId: row.sample_id, collectedAt: row.collected_at, organism, hoursAfter: Number(row.hours_after), decision: row.decision })
+  }
+  return [...bySample.values()]
+}
+export async function decideLateInfection(organizationId: OrgId, register: Register, entry: RegisterEntry, sampleId: string, decision: 'confirmed' | 'rejected') {
+  assertCloud(organizationId)
+  const { error } = await supabase.from('register_infection_reviews').upsert({ organization_id: organizationId, register_id: register.id, entry_id: entry.id, sample_id: sampleId, decision }, { onConflict: 'register_id,entry_id,sample_id' })
+  if (error) throw error
+  if (decision === 'confirmed' && entry.values?.late_infection !== true) await saveEntry(organizationId, register, { ...entry, values: { ...entry.values, late_infection: true } })
+}
