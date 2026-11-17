@@ -658,6 +658,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "ΜΕΝΝ: positive blood cultures of the register's department taken 72 hours or more after a neonate's admission, matched to the register's entries by surname and stay inside the database, returned without any name (entry, sample, date, organism, hours after admission, decision) for the NICU to confirm. Only for whoever may read the register (private.register_can_read); nothing when the laboratory module is locked."
+    },
+    "nicu_late_onset_flags": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Surveillance › «Προς έλεγχο»: which of the hospital's samples are a NICU neonate's positive blood culture taken 72 hours or more after admission (sample id and hours only; no name, nothing of the register), for the «Πιθανή όψιμη λοίμωξη · ΜΕΝΝ» tag. Callers: the Platform Owner or the roles that read every laboratory sample of the organisation (Hospital Admin, IPC Lead/Member, Doctor Reviewer, Laboratory); nothing when the laboratory module is locked."
     }
   }
 }

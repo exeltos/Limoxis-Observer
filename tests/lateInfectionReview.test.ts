@@ -22,3 +22,19 @@ describe('late-onset infection candidates', () => {
     expect(sql).not.toMatch(/returns table \([^)]*patient_name/)
   })
 })
+
+describe('Ν6β: the decision is taken in Surveillance › «Προς έλεγχο» (ιδιοκτήτης 17/11/2026)', () => {
+  it('tags the NICU late-onset samples in the worklist, and an opened episode records the infection in the register', async () => {
+    const { lateOnsetDay } = await import('../src/features/surveillance/lateOnsetFlags')
+    expect(lateOnsetDay(72)).toBe(4)
+    expect(lateOnsetDay(240)).toBe(11)
+    const worklist = readSource('src/features/surveillance/SampleReviewWorklist.tsx')
+    expect(worklist).toContain('Πιθανή όψιμη λοίμωξη · ΜΕΝΝ')
+    const sql = readSource('supabase/migrations/20261231594000_nicu_late_onset_surveillance.sql')
+    expect(sql).toContain('after update of surveillance_case_id on public.laboratory_samples')
+    expect(sql).toContain('set late_infection = true')
+    expect(sql).toContain('revoke execute on function public.nicu_late_onset_flags(uuid) from public, anon;')
+    // The register no longer shows its own review panel.
+    expect(readSource('src/features/registers/RegisterRecordPage.tsx')).not.toContain('LateInfectionReview')
+  })
+})

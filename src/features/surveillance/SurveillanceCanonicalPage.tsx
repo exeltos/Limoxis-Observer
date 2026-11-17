@@ -61,6 +61,7 @@ import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleReviewModel'
 import { SampleReviewWorklist, worklistTexts } from './SampleReviewWorklist'
+import { loadLateOnsetFlags } from './lateOnsetFlags'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
 import { EmployeeRows, groupByPatient, HIDDEN_CASE_STATUSES, matchesEmployeeQuick, matchesEnvironmentQuick, matchesQuick, PatientRows } from './SurveillanceListRows'
 import type { ClinicalCase } from './clinicalTypes'
@@ -139,6 +140,8 @@ export function SurveillanceCanonicalPage() {
   )
   const canReview = canReviewSamples(role || actualRole)
   const awaitingReview = useSamplesAwaitingReview({ enabled: canReview && Boolean(tenant?.id || isDemo) })
+  const [lateOnset, setLateOnset] = useState<Record<string, number>>({})
+  useEffect(() => { let live = true; loadLateOnsetFlags(tenant?.id, isDemo).then(flags => { if (live) setLateOnset(flags) }); return () => { live = false } }, [tenant?.id, isDemo])
   const reviewRows = useMemo(() => {
     const q = query.trim().toLowerCase()
     return awaitingReview.rows
@@ -586,6 +589,7 @@ export function SurveillanceCanonicalPage() {
           awaitingReview.loading ? <TableSkeleton /> : (
             <SampleReviewWorklist
               rows={reviewRows as ReviewSample[]}
+              lateOnset={lateOnset}
               empty={{ title: worklistTexts(language).emptyTitle, text: worklistTexts(language).emptyText }}
               language={language}
               t={t}

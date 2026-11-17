@@ -10,6 +10,7 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDateTime } from '../../core/i18n/formatDay'
 import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { NO_SURVEILLANCE_REASONS, reasonLabel } from '../laboratory/sampleReviewModel'
+import { lateOnsetDay } from './lateOnsetFlags'
 import './surveillanceRegistry.css'
 import type { ReviewSample } from './surveillanceListTypes'
 import type { Handler } from './surveillanceTypes'
@@ -27,8 +28,10 @@ interface SampleReviewWorklistProps {
   canOpenEpisode: boolean
   onOpenEpisode: Handler
   onDecide: Handler
+  // ΜΕΝΝ Ν6β: sample row id → hours after the neonate's admission (positive blood culture ≥ 72 h).
+  lateOnset?: Record<string, number>
 }
-export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide }: SampleReviewWorklistProps) {
+export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide, lateOnset = {} }: SampleReviewWorklistProps) {
   const en = language === 'en'
   const [deciding, setDeciding] = useState<ReviewSample | null>(null)
   return (
@@ -59,6 +62,7 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
             </td>
             <td>
               <strong>{sample.organism || (en ? 'Positive' : 'Θετικό')}</strong>
+              {sample.recordId && lateOnset[sample.recordId] != null && <StatusBadge tone="warning">{en ? `Possible late-onset infection · NICU (day ${lateOnsetDay(lateOnset[sample.recordId])})` : `Πιθανή όψιμη λοίμωξη · ΜΕΝΝ (${lateOnsetDay(lateOnset[sample.recordId])}η ημέρα)`}</StatusBadge>}
               <small>
                 {[sample.resistance, sample.critical ? (en ? 'Critical' : 'Κρίσιμο') : '', sample.type === 'bloodCulture' ? (en ? 'Blood culture' : 'Αιμοκαλλιέργεια') : ''].filter(Boolean).join(' · ')}
               </small>
