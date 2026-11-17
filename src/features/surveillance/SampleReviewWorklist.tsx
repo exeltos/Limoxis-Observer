@@ -30,8 +30,10 @@ interface SampleReviewWorklistProps {
   onDecide: Handler
   // ΜΕΝΝ Ν6β: sample row id → hours after the neonate's admission (positive blood culture ≥ 72 h).
   lateOnset?: Record<string, number>
+  // Read-only (the Platform Owner): the list and its tags, no decision.
+  readOnly?: boolean
 }
-export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide, lateOnset = {} }: SampleReviewWorklistProps) {
+export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide, lateOnset = {}, readOnly = false }: SampleReviewWorklistProps) {
   const en = language === 'en'
   const [deciding, setDeciding] = useState<ReviewSample | null>(null)
   return (
@@ -68,7 +70,7 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
               </small>
             </td>
             <td>
-              <span className="sample-review-actions">
+              {readOnly ? <small>{en ? 'Decided by infection control' : 'Αποφασίζει η ομάδα λοιμώξεων'}</small> : <span className="sample-review-actions">
                 {canOpenEpisode && (
                   <Button className="sample-review-open" variant="secondary" onClick={() => onOpenEpisode(sample)}>
                     <PlayCircle size={14} />
@@ -78,7 +80,7 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
                 <Button className="sample-review-dismiss" variant="ghost" onClick={() => setDeciding(sample)}>
                   {en ? 'No surveillance needed' : 'Δεν χρειάζεται επιτήρηση'}
                 </Button>
-              </span>
+              </span>}
             </td>
           </>
         )}
