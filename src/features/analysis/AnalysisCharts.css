@@ -150,5 +150,5 @@
 .analysis-figure-danger b{color:var(--text-danger-384)}
 .analysis-figure-warning b{color:var(--text-warning-271)}
 .analysis-figure-good b{color:var(--text-success-300-2)}
-.viz-bar-before{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--lo-color-muted)}
+.viz-bar-before{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;background:var(--text-heading);opacity:.75}
 .viz-bar-change{font-size:11px;font-weight:500;color:var(--lo-color-muted);white-space:nowrap}
