@@ -145,7 +145,7 @@ export function SurveillanceCanonicalPage() {
   const awaitingReview = useSamplesAwaitingReview({ enabled: canReview && Boolean(tenant?.id || isDemo) })
   const [lateOnset, setLateOnset] = useState<Record<string, number>>({})
   useEffect(() => { let live = true; loadLateOnsetFlags(tenant?.id, isDemo).then(flags => { if (live) setLateOnset(flags) }); return () => { live = false } }, [tenant?.id, isDemo])
-  // ΜΕΝΝ Ν6β: the flagged blood cultures show whatever their date (the list loads only the 300 most recent), first.
+  // NICU late-onset (N6b): the flagged blood cultures show whatever their date (the list loads only the 300 most recent), first.
   const [lateOnsetRows, setLateOnsetRows] = useState<typeof awaitingReview.rows>([])
   useEffect(() => {
     const known = new Set(awaitingReview.rows.map(row => row.recordId))
