@@ -62,6 +62,9 @@ import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaiting
 import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleReviewModel'
 import { SampleReviewWorklist, worklistTexts } from './SampleReviewWorklist'
 import { loadLateOnsetFlags } from './lateOnsetFlags'
+import { loadSamplesAwaitingReviewByIds } from '../laboratory/laboratoryCloudService'
+import { normalizeLaboratorySamples } from '../laboratory/model/laboratoryModel'
+import { samplesAwaitingReview } from '../laboratory/sampleReviewModel'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
 import { EmployeeRows, groupByPatient, HIDDEN_CASE_STATUSES, matchesEmployeeQuick, matchesEnvironmentQuick, matchesQuick, PatientRows } from './SurveillanceListRows'
 import type { ClinicalCase } from './clinicalTypes'
@@ -142,13 +145,27 @@ export function SurveillanceCanonicalPage() {
   const awaitingReview = useSamplesAwaitingReview({ enabled: canReview && Boolean(tenant?.id || isDemo) })
   const [lateOnset, setLateOnset] = useState<Record<string, number>>({})
   useEffect(() => { let live = true; loadLateOnsetFlags(tenant?.id, isDemo).then(flags => { if (live) setLateOnset(flags) }); return () => { live = false } }, [tenant?.id, isDemo])
+  // ΜΕΝΝ Ν6β: the flagged blood cultures show whatever their date (the list loads only the 300 most recent), first.
+  const [lateOnsetRows, setLateOnsetRows] = useState<typeof awaitingReview.rows>([])
+  useEffect(() => {
+    const known = new Set(awaitingReview.rows.map(row => row.recordId))
+    const missing = Object.keys(lateOnset).filter(id => !known.has(id))
+    if (!missing.length || isDemo) { setLateOnsetRows([]); return undefined }
+    let live = true
+    loadSamplesAwaitingReviewByIds(tenant?.id, missing)
+      .then(rows => { if (live) setLateOnsetRows(samplesAwaitingReview(normalizeLaboratorySamples(rows))) })
+      .catch(() => { if (live) setLateOnsetRows([]) })
+    return () => { live = false }
+  }, [lateOnset, awaitingReview.rows, tenant?.id, isDemo])
   const reviewRows = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return awaitingReview.rows
+    const merged = [...lateOnsetRows, ...awaitingReview.rows.filter(row => !lateOnsetRows.some(extra => extra.recordId === row.recordId))]
+    const flaggedFirst = [...merged].sort((a, b) => Number(lateOnset[String(b.recordId)] != null) - Number(lateOnset[String(a.recordId)] != null))
+    return flaggedFirst
       .filter(canAccessRecord)
       .filter(x => !q || `${x.patient || ''} ${x.patientEn || ''} ${x.patientId || ''} ${x.organism || ''} ${x.id || ''}`.toLowerCase().includes(q))
       .filter(x => department === 'all' || (language === 'el' ? x.department : x.departmentEn) === department)
-  }, [awaitingReview.rows, canAccessRecord, query, department, language])
+  }, [awaitingReview.rows, lateOnsetRows, lateOnset, canAccessRecord, query, department, language])
   const showWorklist = canReview && mode === 'patients' && quick === 'review'
   const platformOwnerNoTenant = !isDemo && actualRole === ROLES.PLATFORM_OWNER && !tenant?.id
   const productionOrganizations = (memberships || []).filter(

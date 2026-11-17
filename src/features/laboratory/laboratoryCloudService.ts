@@ -242,6 +242,20 @@ export async function loadSamplesAwaitingReview(organizationId: string|null|unde
   return hydrateSamples(unique)
 }
 
+// Named samples still awaiting a decision, beyond the 300 most recent (ΜΕΝΝ Ν6β: the late-onset blood cultures
+// of the NICU must show whatever their date): the same conditions as above, by row id.
+export async function loadSamplesAwaitingReviewByIds(organizationId: string|null|undefined,ids: string[]){
+  const supabase=cloudClient()
+  if(!organizationId||!ids.length)return []
+  const {data,error}=await supabase.from('laboratory_samples').select('*,microbiology_results!inner(id)')
+    .eq('organization_id',organizationId).eq('microbiology_results.result_status','positive')
+    .is('surveillance_case_id',null).is('surveillance_review_status',null).not('patient_id','is',null)
+    .in('id',ids.slice(0,300))
+  if(error)throw error
+  const unique=[...new Map((data||[]).map(({microbiology_results:_joined,...row})=>[row.id,row])).values()]
+  return hydrateSamples(unique)
+}
+
 // The infection-control decision on a sample. Only the review_laboratory_sample function
 // may write it (the update policy of laboratory_samples is limited to laboratory roles):
 // status 'episode_opened' (with caseId, also links the sample to the episode) or
