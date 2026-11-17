@@ -1,19 +1,15 @@
--- ΜΕΝΝ (ιδιοκτήτης 17/11/2026): νέοι δείκτες από ό,τι ήδη καταγράφει το μητρώο νεογνών, σε κάθε μητρώο ΜΕΝΝ
--- (ΙΑΣΩ και demo): διατήρηση μητρικού γάλακτος (όποιου είδους), πρόωρα, χαμηλό βάρος, αερισμός, CPAP, ομφαλικός,
--- διαδερμικός καθετήρας και PICC line χωριστά (ποσοστό και μέσες ημέρες), παρεντερική διατροφή, μεταφορές.
--- Νέο πεδίο «Ημέρες ομφαλικού καθετήρα» (umbilical_days) στη φόρμα, και οι όψιμες λοιμώξεις μετρούν πλέον όλες τις ημέρες
--- κεντρικού καθετήρα: διαδερμικός + PICC + ομφαλικός (NHSN/ECDC για νεογνά).
--- Μόνο insert/update· ό,τι υπάρχει ήδη δεν αγγίζεται (on conflict / not exists).
+-- ΜΕΝΝ (ιδιοκτήτης 17/11/2026), πρώτο μέρος: νέοι δείκτες από ό,τι ήδη καταγράφει το μητρώο νεογνών, σε κάθε μητρώο ΜΕΝΝ
+-- (ΙΑΣΩ και demo): πρόωρα, χαμηλό βάρος, αερισμός, CPAP, διαδερμικός καθετήρας και PICC line χωριστά (ποσοστό και μέσες
+-- ημέρες), παρεντερική διατροφή, μεταφορές· και το νέο πεδίο «Ημέρες ομφαλικού καθετήρα». Υπολογίζονται σωστά και από την
+-- προηγούμενη έκδοση της εφαρμογής. Όσα θέλουν τη νέα (a|b, a+b) είναι στο 20261231591000. Μόνο insert/update/add column.
 with regs as (select id, organization_id from public.department_registers where template_key = 'nicu'),
 defs(key, position, title_el, title_en, aggregation, field_key, date_field_key, unit_el, unit_en, direction) as (values
-  ('breast_milk_kept',14,'% που διατήρησαν μητρικό γάλα','% keeping breast milk','percent',null,'discharge_date','%','%','higher'),
   ('preterm_rate',15,'% πρόωρα (< 37 εβδομάδες)','% preterm (< 37 weeks)','percent',null,'discharge_date','%','%','context'),
   ('very_preterm_rate',16,'% πολύ πρόωρα (< 32 εβδομάδες)','% very preterm (< 32 weeks)','percent',null,'discharge_date','%','%','context'),
   ('lbw_rate',17,'% χαμηλό βάρος γέννησης (< 2.500 g)','% low birth weight (< 2,500 g)','percent',null,'discharge_date','%','%','context'),
   ('vlbw_rate',18,'% πολύ χαμηλό βάρος γέννησης (< 1.500 g)','% very low birth weight (< 1,500 g)','percent',null,'discharge_date','%','%','context'),
   ('ventilator_rate',19,'% σε μηχανικό αερισμό','% on mechanical ventilation','percent',null,'discharge_date','%','%','context'),
   ('cpap_rate',20,'% σε CPAP','% on CPAP','percent',null,'discharge_date','%','%','context'),
-  ('umbilical_rate',21,'% με ομφαλικό καθετήρα','% with an umbilical catheter','percent',null,'discharge_date','%','%','context'),
   ('central_line_rate',22,'% με διαδερμικό καθετήρα','% with a percutaneous central line','percent',null,'discharge_date','%','%','context'),
   ('mean_central_line',23,'Μέσες ημέρες διαδερμικού καθετήρα','Mean percutaneous central line days','mean','central_line_days','discharge_date','ημέρες','days','lower'),
   ('picc_rate',24,'% με PICC line','% with a PICC line','percent',null,'discharge_date','%','%','context'),
@@ -29,8 +25,6 @@ ins as (
   returning id, organization_id, register_id, key
 ),
 f(key, part, position, field_key, op, value) as (values
-  ('breast_milk_kept','numerator',0,'breast_milk','eq','kept|exclusive|mixed|unspecified'),
-  ('breast_milk_kept','denominator',0,'breast_milk','filled',null),
   ('preterm_rate','numerator',0,'gestation','lt','259'),
   ('preterm_rate','denominator',0,'gestation','filled',null),
   ('very_preterm_rate','numerator',0,'gestation','lt','224'),
@@ -41,8 +35,6 @@ f(key, part, position, field_key, op, value) as (values
   ('vlbw_rate','denominator',0,'birth_weight','filled',null),
   ('ventilator_rate','numerator',0,'ventilator_days','gt','0'),
   ('cpap_rate','numerator',0,'cpap_days','gt','0'),
-  ('umbilical_rate','numerator',0,'umbilical_catheter','eq','yes|venous|arterial|both|unspecified'),
-  ('umbilical_rate','denominator',0,'umbilical_catheter','filled',null),
   ('central_line_rate','numerator',0,'central_line_days','gt','0'),
   ('mean_central_line','numerator',0,'central_line_days','gt','0'),
   ('picc_rate','numerator',0,'picc_days','gt','0'),
@@ -53,10 +45,6 @@ f(key, part, position, field_key, op, value) as (values
 )
 insert into public.department_register_indicator_filters (organization_id, register_id, indicator_id, part, position, field_key, op, value)
 select ins.organization_id, ins.register_id, ins.id, f.part, f.position, f.field_key, f.op, f.value from ins join f on f.key = ins.key;
-
-update public.department_register_indicators i set denominator_field_key = 'central_line_days+picc_days+umbilical_days'
-where i.key = 'late_infection_rate' and i.denominator_field_key = 'central_line_days'
-  and i.register_id in (select id from public.department_registers where template_key = 'nicu');
 
 -- Το πεδίο «Ημέρες ομφαλικού καθετήρα», αμέσως μετά τον «Ομφαλικό καθετήρα», και η στήλη του στον πίνακα του μητρώου.
 do $field$
