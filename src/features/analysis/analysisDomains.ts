@@ -343,7 +343,7 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
       return {
       kpis: [
         [tx('Αντιμικροβιακές αγωγές', 'Antimicrobial therapies'), a.total ?? 0, tx(`${a.active ?? 0} ενεργές`, `${a.active ?? 0} active`)],
-        [tx('Σε αναμονή έγκρισης', 'Pending approval'), a.pending ?? 0, tx('αντιβιοτικά περιορισμένης χρήσης', 'restricted antibiotics'), a.pending ? 'warning' : '', 'now'],
+        [tx('Σε αναμονή έγκρισης', 'Pending approval'), a.pending ?? 0, tx('αντιβιοτικά περιορισμένης χρήσης', 'restricted antibiotics'), a.pending ? 'warning' : ''],
         [tx('Διαφορετικές ουσίες', 'Distinct agents'), (a.byAgent || []).length, tx('στην περίοδο', 'in the period')],
         ...(dddRate != null ? [[tx('DDD / 100 ασθενοημέρες', 'DDD / 100 patient days'), String(dddRate).replace('.', en ? '.' : ','), tx('από τη διάθεση του φαρμακείου', 'from pharmacy dispensing')]] : []),
         ...(access != null ? [[tx('Access (AWaRe)', 'Access (AWaRe)'), `${String(access).replace('.', en ? '.' : ',')}%`, tx('των DDD της περιόδου', 'of the period’s DDD')]] : []),

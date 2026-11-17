@@ -37,7 +37,8 @@ export function BarList({rows,en,max:limit=8,scale,suffix='',keepOrder=false,com
  const details=new Map((rows||[]).filter(row=>row?.[2]!=null).map(row=>[String(row[0]),row[2] as ReactNode]))
  const sorted=numericRows(rows),data=(keepOrder?sorted:[...sorted].sort((a,b)=>b[1]-a[1])).slice(0,limit)
  if(!data.length)return <EmptyChart en={en}/>
- const max=scale||Math.max(1,...data.map(([,v])=>v))
+ // One scale for both periods: a comparison value larger than every bar of the period still reads where it was.
+ const max=scale||Math.max(1,...data.map(([label,v])=>Math.max(v,before?.get(label)??0)))
  return <div className={`viz-bars${details.size?' has-detail':''}`} role="list">{data.map(([label,value])=><div className="viz-bar-row" role="listitem" key={label} title={`${label}: ${fmt(value,en)}${suffix}${details.has(label)?` · ${details.get(label)}`:''}`}>
   <span className="viz-bar-label">{label}</span>
   <span className="viz-bar-track"><i style={{width:`${Math.min(100,Math.max(value>0?2:0,value/max*100))}%`,background:MAGNITUDE}}/>{before?.has(label)&&<s className="viz-bar-before" title={`${compareLabel}: ${fmt(before.get(label) as number,en)}${suffix}`} style={{left:`${Math.min(100,(before.get(label) as number)/max*100)}%`}}/>}</span>
