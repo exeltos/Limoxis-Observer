@@ -358,6 +358,16 @@ export function indicatorNotRecorded(register: Register, indicator: RegisterIndi
     return sheetTotal(entries, indicator.rows, measures) == null
   }
   if (isActiveCensus(register, indicator)) return false
+  // A kind the register never records (ΙΑΣΩ ΜΕΝΝ 17/11/2026): «exclusive breast milk» where every entry says only «yes, type
+  // not recorded». Not a red 0%: «Δεν καταγράφεται», until the first entry records the kind.
+  const UNTYPED = new Set(['unspecified', 'kept', 'yes'])
+  for (const filter of indicator.filters || []) {
+    if (filter.op !== 'eq' || !filter.field) continue
+    const wanted = String(filter.value ?? '').split('|')
+    if (wanted.some(value => UNTYPED.has(value))) continue
+    const values = entries.map(entry => entry.values?.[filter.field])
+    if (values.some(value => UNTYPED.has(String(value))) && !values.some(value => wanted.includes(String(value)))) return true
+  }
   const need = new Set<string>([...(indicator.denominatorFilters || []).map((filter: IndicatorFilter) => filter.field), indicator.field].filter(Boolean))
   // A date-based count of a treatment register rests on the start dates (no one ended yet is a real 0, no dates at all is not).
   if (indicator.dateField) need.add(isTreatmentRegister(register) ? 'start_date' : indicator.dateField)
