@@ -433,19 +433,19 @@ describe('ΜΕΝΝ: more indicators from what is recorded (ιδιοκτήτης 
   const day = (id, values) => ({ id, registerId: nicu.id, entryDate: '2026-03-10', values: { admission_date: '2026-03-01', discharge_date: '2026-03-10', ...values } })
   const march = periodOf('month', '2026-03-01')
   const rows = [
-    day('a', { late_infection: true, central_line_days: 10, picc_days: 5, umbilical_days: 5, breast_milk: 'kept', umbilical_catheter: 'yes' }),
-    day('b', { late_infection: false, central_line_days: 0, picc_days: 20, breast_milk: 'none', umbilical_catheter: 'none' }),
+    day('a', { late_infection: true, central_line_days: 10, umbilical_days: 5, breast_milk: 'kept', umbilical_catheter: 'yes' }),
+    day('b', { late_infection: false, central_line_days: 25, breast_milk: 'none', umbilical_catheter: 'none' }),
     day('c', { breast_milk: 'exclusive' }),
   ] as unknown as RegisterEntry[]
-  it('counts late-onset infections over every central-line day: percutaneous, PICC and umbilical', () => {
+  it('counts late-onset infections over every central-line day: PICC (percutaneous) and umbilical', () => {
     const result = computeIndicator(nicu, indicator('late_infection_rate'), rows, march)
     expect([result.numerator, result.denominator, result.value]).toEqual([1, 40, 25])
     // «c» left the yes/no empty: it counts as «no», and says so.
     expect(result.missing).toBe(1)
   })
-  it('keeps PICC apart and counts breast milk kept of any kind', () => {
-    expect(computeIndicator(nicu, indicator('picc_rate'), rows, march)).toMatchObject({ numerator: 2, denominator: 3 })
-    expect(computeIndicator(nicu, indicator('central_line_rate'), rows, march)).toMatchObject({ numerator: 1, denominator: 3 })
+  it('counts PICC lines and breast milk kept of any kind', () => {
+    expect(computeIndicator(nicu, indicator('central_line_rate'), rows, march)).toMatchObject({ numerator: 2, denominator: 3 })
+    expect(nicu.indicators.some(item => item.id === 'picc_rate')).toBe(false)
     expect(computeIndicator(nicu, indicator('breast_milk_kept'), rows, march)).toMatchObject({ numerator: 2, denominator: 3 })
     expect(computeIndicator(nicu, indicator('umbilical_rate'), rows, march)).toMatchObject({ numerator: 1, denominator: 2 })
   })

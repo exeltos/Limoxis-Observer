@@ -1,6 +1,6 @@
 -- ΜΕΝΝ, δεύτερο μέρος (εφαρμόζεται μαζί με τον κώδικα που διαβάζει «a|b» και «a+b»): % που διατήρησαν μητρικό γάλα
 -- (όποιου είδους), % με ομφαλικό καθετήρα, και οι όψιμες λοιμώξεις ανά όλες τις ημέρες κεντρικού καθετήρα
--- (διαδερμικός + PICC + ομφαλικός, NHSN/ECDC για νεογνά).
+-- (PICC/διαδερμικός + ομφαλικός, NHSN/ECDC για νεογνά· το PICC ενώθηκε στο 20261231592000).
 with regs as (select id, organization_id from public.department_registers where template_key = 'nicu'),
 defs(key, position, title_el, title_en, aggregation, field_key, date_field_key, unit_el, unit_en, direction) as (values
   ('breast_milk_kept',14,'% που διατήρησαν μητρικό γάλα','% keeping breast milk','percent',null,'discharge_date','%','%','higher'),
@@ -22,6 +22,6 @@ f(key, part, position, field_key, op, value) as (values
 insert into public.department_register_indicator_filters (organization_id, register_id, indicator_id, part, position, field_key, op, value)
 select ins.organization_id, ins.register_id, ins.id, f.part, f.position, f.field_key, f.op, f.value from ins join f on f.key = ins.key;
 
-update public.department_register_indicators i set denominator_field_key = 'central_line_days+picc_days+umbilical_days'
+update public.department_register_indicators i set denominator_field_key = 'central_line_days+umbilical_days'
 where i.key = 'late_infection_rate' and i.denominator_field_key = 'central_line_days'
   and i.register_id in (select id from public.department_registers where template_key = 'nicu');
