@@ -71,7 +71,9 @@
 .active-users-list-wrap[hidden]{display:none}
 /* One fixed size on every tab (owner): the window does not grow or shrink when the tab changes; the list fills it and scrolls inside. */
 .active-users-dialog .observer-dialog-body{display:flex;flex-direction:column}
-.active-users-dialog .active-users{flex:none;height:min(560px,calc(86dvh - 220px));overflow:auto}
+/* Larger at the owner's request (18/11): wider for the list's columns and taller for more rows. */
+.observer-dialog.active-users-dialog{--lo-dialog-wide:1360px}
+.active-users-dialog .active-users{flex:none;height:min(720px,calc(100dvh - 250px));overflow:auto}
 .active-users-list .active-users-table{flex:1 1 auto;min-height:120px;max-height:none}
 .active-users-list-role{white-space:nowrap}
 .active-users-dialog .active-users>*{flex-shrink:0}
