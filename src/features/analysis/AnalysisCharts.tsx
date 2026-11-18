@@ -31,17 +31,22 @@ function EmptyChart({en}: {en: boolean}){return <div className="analysis-chart-e
 // Horizontal magnitude bars: one hue, value right-aligned, hover names the mark.
 // scale fixes the axis (e.g. 100 for percentages); suffix is appended to values.
 // Bars largest first (keepOrder keeps the given order); a row's third item is a detail beside the value («12/263»).
-export function BarList({rows,en,max:limit=8,scale,suffix='',keepOrder=false}: {rows?: readonly ChartRow[]|null; en: boolean; max?: number; scale?: number; suffix?: string; keepOrder?: boolean}){
+// With `compare` (the other period's rows): a thin line where each bar was then, and the difference beside the value.
+export function BarList({rows,en,max:limit=8,scale,suffix='',keepOrder=false,compare=null,compareLabel=''}: {rows?: readonly ChartRow[]|null; en: boolean; max?: number; scale?: number; suffix?: string; keepOrder?: boolean; compare?: readonly ChartRow[]|null; compareLabel?: string}){
+ const before=compare?new Map(numericRows(compare).map(([label,value])=>[label,value])):null
  const details=new Map((rows||[]).filter(row=>row?.[2]!=null).map(row=>[String(row[0]),row[2] as ReactNode]))
  const sorted=numericRows(rows),data=(keepOrder?sorted:[...sorted].sort((a,b)=>b[1]-a[1])).slice(0,limit)
  if(!data.length)return <EmptyChart en={en}/>
- const max=scale||Math.max(1,...data.map(([,v])=>v))
+ // One scale for both periods: a comparison value larger than every bar of the period still reads where it was.
+ const max=scale||Math.max(1,...data.map(([label,v])=>Math.max(v,before?.get(label)??0)))
  return <div className={`viz-bars${details.size?' has-detail':''}`} role="list">{data.map(([label,value])=><div className="viz-bar-row" role="listitem" key={label} title={`${label}: ${fmt(value,en)}${suffix}${details.has(label)?` · ${details.get(label)}`:''}`}>
   <span className="viz-bar-label">{label}</span>
-  <span className="viz-bar-track"><i style={{width:`${Math.min(100,Math.max(value>0?2:0,value/max*100))}%`,background:MAGNITUDE}}/></span>
-  <strong className="viz-bar-value">{fmt(value,en)}{suffix}{details.has(label)&&<small className="viz-bar-detail"> · {details.get(label)}</small>}</strong>
+  <span className="viz-bar-track"><i style={{width:`${Math.min(100,Math.max(value>0?2:0,value/max*100))}%`,background:MAGNITUDE}}/>{before?.has(label)&&<s className="viz-bar-before" title={`${compareLabel}: ${fmt(before.get(label) as number,en)}${suffix}`} style={{left:`${Math.min(100,(before.get(label) as number)/max*100)}%`}}/>}</span>
+  <strong className="viz-bar-value">{fmt(value,en)}{suffix}{details.has(label)&&<small className="viz-bar-detail"> · {details.get(label)}</small>}{before?.has(label)&&<small className="viz-bar-change">{barChange(value-(before.get(label) as number),suffix,en)}</small>}</strong>
  </div>)}</div>
 }
+
+function barChange(diff: number,suffix: string,en: boolean){const rounded=Math.round(diff*10)/10;if(!rounded)return ' · 0';return ` · ${rounded>0?'+':'−'}${fmt(Math.abs(rounded),en)}${suffix==='%'?(en?' pts':' μον.'):''}`}
 
 // Donut for part-to-whole: fixed categorical order, 2px surface gaps, legend
 // with value and share; hovering a slice or legend row shows it in the centre.

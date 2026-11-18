@@ -268,7 +268,8 @@ const matches = (filter: IndicatorFilter, values: EntryValues) => {
   switch (filter.op) {
     case 'yes': return value === true || value === 'yes'
     case 'no': return value === false || value === 'no'
-    case 'eq': return Array.isArray(value) ? (value as unknown[]).includes(filter.value) : String(value ?? '') === String(filter.value ?? '')
+    // «a|b|c»: any of the values (e.g. breast milk kept, of whatever kind).
+    case 'eq': { const wanted = String(filter.value ?? '').split('|'); return Array.isArray(value) ? (value as unknown[]).some(item => wanted.includes(String(item))) : wanted.includes(String(value ?? '')) }
     case 'filled': return !isBlank(value)
     case 'empty': return isBlank(value)
     case 'gt': return !isBlank(value) && Number(value) > Number(filter.value)
@@ -357,15 +358,28 @@ export function indicatorNotRecorded(register: Register, indicator: RegisterIndi
     return sheetTotal(entries, indicator.rows, measures) == null
   }
   if (isActiveCensus(register, indicator)) return false
-  const need = new Set<string>([...(indicator.denominatorFilters || []).map((filter: IndicatorFilter) => filter.field), indicator.field, indicator.denominatorField].filter(Boolean))
+  // A kind the register never records (ΙΑΣΩ ΜΕΝΝ 17/11/2026): «exclusive breast milk» where every entry says only «yes, type
+  // not recorded». Not a red 0%: «Δεν καταγράφεται», until the first entry records the kind.
+  const UNTYPED = new Set(['unspecified', 'kept', 'yes'])
+  for (const filter of indicator.filters || []) {
+    if (filter.op !== 'eq' || !filter.field) continue
+    const wanted = String(filter.value ?? '').split('|')
+    if (wanted.some(value => UNTYPED.has(value))) continue
+    const values = entries.map(entry => entry.values?.[filter.field])
+    if (values.some(value => UNTYPED.has(String(value))) && !values.some(value => wanted.includes(String(value)))) return true
+  }
+  const need = new Set<string>([...(indicator.denominatorFilters || []).map((filter: IndicatorFilter) => filter.field), indicator.field].filter(Boolean))
   // A date-based count of a treatment register rests on the start dates (no one ended yet is a real 0, no dates at all is not).
   if (indicator.dateField) need.add(isTreatmentRegister(register) ? 'start_date' : indicator.dateField)
-  if (!need.size) return false
+  if (!need.size && !indicator.denominatorField) return false
   const recorded = recordedFields(register, entries)
+  // Days summed from several fields («a+b»): recorded when any of them is.
+  const dayFields = String(indicator.denominatorField || '').split('+').filter(Boolean)
+  if (dayFields.length && !dayFields.some(key => recorded.has(key))) return true
   return [...need].some(key => !recorded.has(key))
 }
 
-export type IndicatorResult = { id: string, value: number | null, numerator: number | null, denominator: number | null, n: number, small: boolean, status?: string, notRecorded?: boolean }
+export type IndicatorResult = { id: string, value: number | null, numerator: number | null, denominator: number | null, n: number, small: boolean, status?: string, notRecorded?: boolean, missing?: number }
 export function computeIndicator(register: Register, indicator: RegisterIndicator, entries: RegisterEntry[] = [], period: Period): IndicatorResult {
   const result = computeIndicatorValue(register, indicator, entries, period)
   return indicatorNotRecorded(register, indicator, entries)
@@ -447,7 +461,9 @@ function computeIndicatorValue(register: Register, indicator: RegisterIndicator,
     }
     case 'rate': {
       const events = selected.length
-      const days = numbersOf(rows.filter(values => matchesAll(indicator.denominatorFilters, values)), indicator.denominatorField).reduce((sum, n) => sum + n, 0)
+      // Several day fields add up («central_line_days+picc_days»: all central-line days, ΜΕΝΝ 17/11/2026).
+      const base = rows.filter(values => matchesAll(indicator.denominatorFilters, values))
+      const days = String(indicator.denominatorField || '').split('+').filter(Boolean).reduce((sum, field) => sum + numbersOf(base, field).reduce((total, n) => total + n, 0), 0)
       result.numerator = events
       result.denominator = days
       result.value = days ? round((events / days) * (Number(indicator.multiplier) || 1000), 2) : null
@@ -455,6 +471,12 @@ function computeIndicatorValue(register: Register, indicator: RegisterIndicator,
     }
     default:
       break
+  }
+  // A yes/no the numerator asks about and nobody answered counts as «no»: said beside the value, «λείπει καταχώριση (N)».
+  const asked = (indicator.filters || []).find(filter => filter.op === 'yes' || filter.op === 'no')
+  if (asked && (indicator.aggregation === 'rate' || indicator.aggregation === 'percent' || indicator.aggregation === 'count')) {
+    const missing = rows.filter(values => isBlank(values[asked.field])).length
+    if (missing) result.missing = missing
   }
   return withStatus(result, indicator)
 }

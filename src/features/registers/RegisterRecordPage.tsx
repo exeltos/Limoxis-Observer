@@ -18,7 +18,7 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { formatDay } from '../../core/i18n/formatDay'
 import { registryMenu } from '../../core/export/registryExports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { loadEntries, loadRegister } from './registerService'
+import { loadEntries, loadLateInfectionCandidates, loadRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
 import { computeValues, formatValue, isTreatmentRegister, textOf } from './registerEngine'
 import { cellsOf } from './registerTypes'
@@ -43,6 +43,8 @@ export function RegisterRecordPage() {
   const navigate = useNavigate()
   const { goBack } = useContextualNavigation('/registers')
   const access = useRegisterAccess()
+  // ΜΕΝΝ Ν6β: how many positive blood cultures ≥ 72 h after admission still wait for a decision in Surveillance.
+  const [lateWaiting, setLateWaiting] = useState(0)
   const [register, setRegister] = useState<Register | null>(null)
   const [entries, setEntries] = useState<RegisterEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,6 +68,12 @@ export function RegisterRecordPage() {
       setRegister(null)
     } finally { setLoading(false) }
   }, [tenant?.id, registerId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!register || register.templateKey !== 'nicu') return undefined
+    let live = true
+    loadLateInfectionCandidates(register).then(rows => { if (live) setLateWaiting(rows.filter(row => !row.decision).length) }).catch(() => { if (live) setLateWaiting(0) })
+    return () => { live = false }
+  }, [register])
   useEffect(() => { void reload() }, [reload])
 
   if (loading && !register) return <Page fill><div className="inline-empty">{en ? 'Loading register…' : 'Φόρτωση μητρώου…'}</div></Page>
@@ -95,7 +103,7 @@ export function RegisterRecordPage() {
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={(() => { const key = registerThemeKey(register); const Icon = key ? themeIcon(key) : sheet ? CalendarRange : ClipboardList; return <Icon size={19} /> })()} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
 >
     {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries as SheetEntry[]} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
-    {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? (indicatorId: string) => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
+    {tab === 'indicators' && <RegisterIndicators notes={lateWaiting ? { late_infection_rate: en ? `${lateWaiting} blood cultures wait for a decision in Surveillance › To review` : `${lateWaiting} αιμοκαλλιέργειες περιμένουν απόφαση στην Επιτήρηση › Προς έλεγχο` } : undefined} register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? (indicatorId: string) => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
     {tab === 'definition' && <RegisterBuilder entries={entries} register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={(next: Register | null) => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}
   </EntityRecordShell></Page>

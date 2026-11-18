@@ -16,9 +16,10 @@ describe('pill rows stay on one line', () => {
     expect(block).not.toContain('flex-wrap:wrap')
   })
 
-  it('analysis figures do not wrap', () => {
+  // The figures became small cards with the comparison under each (ιδιοκτήτης 16/11/2026): an even grid, not a pill row.
+  it('analysis figures are an even grid of cards', () => {
     const block = rule('src/features/analysis/AnalysisCharts.css', '.analysis-figures')
-    expect(block).toContain('flex-wrap:nowrap')
+    expect(block).toContain('display:grid')
     expect(block).not.toContain('flex-wrap:wrap')
   })
 })

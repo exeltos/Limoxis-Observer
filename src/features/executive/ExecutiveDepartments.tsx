@@ -22,8 +22,8 @@ function DepartmentDetail({ grid, name, compareLabel, tx, en }: { grid: Departme
 
 // «Τμήματα» (owner, 7–8/11/2026): «Σύγκριση τμημάτων», the wards side by side; a click on a department opens its measures
 // right under it (the others move down), a second click closes them.
-interface ExecutiveDepartmentsProps { grid: DepartmentGrid, department: string, onDepartment: (name: string) => void, compareLabel: string, versus?: string, language: string }
-export function ExecutiveDepartments({ grid, department, onDepartment, compareLabel, versus = compareLabel.toLowerCase(), language }: ExecutiveDepartmentsProps) {
+interface ExecutiveDepartmentsProps { grid: DepartmentGrid, department: string, onDepartment: (name: string) => void, compareLabel: string, versus?: string, figureLabel?: string, language: string }
+export function ExecutiveDepartments({ grid, department, onDepartment, compareLabel, versus = compareLabel.toLowerCase(), figureLabel = compareLabel, language }: ExecutiveDepartmentsProps) {
   const en = language === 'en'
   const tx = (el: string, english: string) => (en ? english : el)
   if (grid.rows.length < 2) return <div className="exec-empty-measures"><h4>{tx('Η σύγκριση τμημάτων δεν έχει ξεκινήσει ακόμη', 'The comparison of departments has not started yet')}</h4><p>{tx('Ξεκινά μόλις υπάρξουν καταγραφές σε δύο τουλάχιστον τμήματα.', 'It starts once at least two departments have records.')}</p></div>
@@ -39,7 +39,7 @@ export function ExecutiveDepartments({ grid, department, onDepartment, compareLa
           return <Fragment key={row.name}>
             <tr className={isOpen ? 'is-chosen' : undefined}>
               <th scope="row"><button type="button" className="exec-measure-link exec-dept-toggle" aria-expanded={isOpen} onClick={() => onDepartment(isOpen ? '' : row.name)}>{isOpen ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}{row.name}</button></th>
-              {row.cells.map((cell) => <td key={cell.key} className={`exec-cell-${cell.tone}`} title={cell.previous != null ? `${compareLabel}: ${fmt(cell.previous, cell.unit, en)}` : undefined}>{fmt(cell.value, cell.unit, en)}{cell.trend && <span className={cell.good ? 'is-better' : 'is-worse'}>{cell.trend === 'up' ? ' ▲' : ' ▼'}</span>}</td>)}
+              {row.cells.map((cell) => <td key={cell.key} className={`exec-cell-${cell.tone}`} title={cell.previous != null ? `${compareLabel}: ${fmt(cell.previous, cell.unit, en)}` : undefined}>{fmt(cell.value, cell.unit, en)}{cell.trend && <span className={cell.good ? 'is-better' : 'is-worse'}>{cell.trend === 'up' ? ' ▲' : ' ▼'}</span>}{cell.previous != null && <small className="exec-cell-before">{figureLabel}: {fmt(cell.previous, cell.unit, en)}</small>}</td>)}
             </tr>
             {isOpen && <tr className="exec-dept-detail"><td colSpan={span}><DepartmentDetail grid={grid} name={row.name} compareLabel={compareLabel} tx={tx} en={en} /><small>{tx(`Σε σχέση με τον μέσο όρο των τμημάτων και ${versus}.`, `Against the departments' average and ${versus}.`)}</small></td></tr>}
           </Fragment>

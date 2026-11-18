@@ -278,12 +278,12 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
   switch (tab) {
     case 'overview': return {
       kpis: [
-        [tx('Ενεργές επιτηρήσεις', 'Active surveillance'), s.active ?? 0, tx(`${s.total ?? 0} στην περίοδο`, `${s.total ?? 0} in period`)],
+        [tx('Ενεργές επιτηρήσεις', 'Active surveillance'), s.active ?? 0, tx(`${s.total ?? 0} στην περίοδο`, `${s.total ?? 0} in period`), '', 'now'],
         [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), s.haiConfirmed ?? 0, tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`), (s.haiConfirmed ? 'warning' : '')],
         [tx('Θετικές καλλιέργειες', 'Positive cultures'), micro.totalPositive ?? 0, tx(`${mdro} MDR/XDR/PDR`, `${mdro} MDR/XDR/PDR`), (mdro ? 'danger' : '')],
         [tx('Υγιεινή χεριών', 'Hand hygiene'), fmtPct(hhRate), tx(`${hh.observations ?? 0} ευκαιρίες · στόχος ≥ ${target.handHygiene}%`, `${hh.observations ?? 0} opportunities · target ≥ ${target.handHygiene}%`), targetTone(hhRate, target.handHygiene)],
         [tx('Δέσμες μέτρων', 'Bundles'), fmtPct(bundleScore), tx(`${b.assessments ?? 0} αξιολογήσεις · στόχος ≥ ${target.bundles}%`, `${b.assessments ?? 0} assessments · target ≥ ${target.bundles}%`), targetTone(bundleScore, target.bundles)],
-        [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : ''],
+        [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : '', 'now'],
       ],
       charts: [
         { type: 'scoreboard', wide: true, ...(byHospital ? { title: tx('Σύγκριση νοσοκομείων', 'Hospitals side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε νοσοκομείου για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each hospital\'s headline figures for the period; shading marks the highest in each column.'), rowLabel: tx('Νοσοκομείο', 'Hospital'), rows: (snapshot.hospitals || []).map((row: DomainMetrics) => ({ ...row, key: row.organizationId })).sort((a: DomainMetrics, b: DomainMetrics) => b.episodes + b.positives - (a.episodes + a.positives)) } : { title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot) }), columns: [
@@ -311,8 +311,8 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
       kpis: [
         [tx('Επεισόδια επιτήρησης', 'Surveillance episodes'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
         [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), classified ? (s.haiConfirmed ?? 0) : '—', classified ? tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`) : tx('δεν γίνεται ταξινόμηση', 'not classified'), s.haiConfirmed ? 'warning' : ''],
-        [tx('Ενεργές απομονώσεις', 'Active isolations'), s.isolationActive ?? 0, s.isolationReviewOverdue ? tx(`${s.isolationReviewOverdue} με εκπρόθεσμη επανεκτίμηση`, `${s.isolationReviewOverdue} with overdue review`) : tx('Χωρίς εκπρόθεσμες επανεκτιμήσεις', 'No overdue reviews'), s.isolationReviewOverdue ? 'danger' : ''],
-        [tx('Ενεργές επεμβατικές συσκευές', 'Active invasive devices'), s.devicesActive ?? 0, tx('σε ενεργές επιτηρήσεις', 'in surveillance episodes')],
+        [tx('Ενεργές απομονώσεις', 'Active isolations'), s.isolationActive ?? 0, s.isolationReviewOverdue ? tx(`${s.isolationReviewOverdue} με εκπρόθεσμη επανεκτίμηση`, `${s.isolationReviewOverdue} with overdue review`) : tx('Χωρίς εκπρόθεσμες επανεκτιμήσεις', 'No overdue reviews'), s.isolationReviewOverdue ? 'danger' : '', 'now'],
+        [tx('Ενεργές επεμβατικές συσκευές', 'Active invasive devices'), s.devicesActive ?? 0, tx('σε ενεργές επιτηρήσεις', 'in surveillance episodes'), '', 'now'],
       ],
       charts: [
         { type: 'trend', title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
@@ -381,7 +381,7 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
         ...((c.executions ?? 0) || (c.overdueAssignments ?? 0) ? [
           [tx('Εκτελέσεις ελέγχων', 'Control executions'), c.executions ?? 0, tx(`${pct(c.completed, c.executions) ?? 0}% ολοκληρωμένες`, `${pct(c.completed, c.executions) ?? 0}% completed`)],
           [tx('Με εύρημα', 'With findings'), c.withFinding ?? 0, tx(`${pct(c.withFinding, c.executions) ?? 0}% των εκτελέσεων`, `${pct(c.withFinding, c.executions) ?? 0}% of executions`), c.withFinding ? 'warning' : ''],
-          [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : ''],
+          [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : '', 'now'],
         ] : []),
       ],
       charts: [
@@ -395,8 +395,8 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
         ...((q.incidents ?? 0) || (q.capaOpen ?? 0) || (q.capaOverdue ?? 0) ? [
           [tx('Συμβάντα', 'Incidents'), q.incidents ?? 0, tx(`${q.openIncidents ?? 0} ανοιχτά`, `${q.openIncidents ?? 0} open`)],
           [tx('Με βλάβη', 'With harm'), q.harm ?? 0, tx('συμβάντα με βλάβη ασθενούς', 'incidents with patient harm'), q.harm ? 'danger' : ''],
-          [tx('Ανοιχτές διορθωτικές ενέργειες', 'Open CAPA'), q.capaOpen ?? 0, tx('διορθωτικές / προληπτικές ενέργειες', 'corrective / preventive actions')],
-          [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : ''],
+          [tx('Ανοιχτές διορθωτικές ενέργειες', 'Open CAPA'), q.capaOpen ?? 0, tx('διορθωτικές / προληπτικές ενέργειες', 'corrective / preventive actions'), '', 'now'],
+          [tx('Εκπρόθεσμες ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : '', 'now'],
         ] : []),
       ],
       charts: [
@@ -428,7 +428,7 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
       kpis: [
         ...((tr.assignments ?? 0) > 0 ? [
           [tx('Ολοκλήρωση εκπαιδεύσεων', 'Training completion'), fmtPct(rate), tx(`${tr.completed ?? 0} από ${tr.assignments ?? 0} αναθέσεις · στόχος ≥ ${target.training}%`, `${tr.completed ?? 0} of ${tr.assignments ?? 0} assignments · target ≥ ${target.training}%`), targetTone(rate, target.training)],
-          [tx('Εκπρόθεσμες', 'Overdue'), tr.overdue ?? 0, tx('πέρασε η προθεσμία ολοκλήρωσης', 'past the completion due date'), tr.overdue ? 'danger' : ''],
+          [tx('Εκπρόθεσμες', 'Overdue'), tr.overdue ?? 0, tx('πέρασε η προθεσμία ολοκλήρωσης', 'past the completion due date'), tr.overdue ? 'danger' : '', 'now'],
           [tx('Μέση βαθμολογία', 'Average score'), tr.averageScore == null ? '—' : fmtPct(tr.averageScore), tx('στις αξιολογήσεις', 'in assessments')],
         ] : []),
       ],
@@ -441,7 +441,7 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
       kpis: [
         ...((g.documents ?? 0) || (g.meetings ?? 0) || (g.minutesPending ?? 0) ? [
           [tx('Ελεγχόμενα έγγραφα', 'Controlled documents'), g.documents ?? 0, tx(`${g.published ?? 0} σε ισχύ`, `${g.published ?? 0} in force`)],
-          [tx('Προς αναθεώρηση', 'Review overdue'), g.reviewOverdue ?? 0, tx('πέρασε η ημερομηνία επανεξέτασης', 'past the review date'), g.reviewOverdue ? 'warning' : ''],
+          [tx('Προς αναθεώρηση', 'Review overdue'), g.reviewOverdue ?? 0, tx('πέρασε η ημερομηνία επανεξέτασης', 'past the review date'), g.reviewOverdue ? 'warning' : '', 'now'],
           [tx('Συνεδριάσεις επιτροπών', 'Committee meetings'), g.meetings ?? 0, tx(`${g.committees ?? '—'} ενεργές επιτροπές`, `${g.committees ?? '—'} active committees`)],
           [tx('Εκκρεμή πρακτικά', 'Pending minutes'), g.minutesPending ?? 0, tx(`${g.minutesFinalized ?? 0} οριστικοποιημένα`, `${g.minutesFinalized ?? 0} finalized`), g.minutesPending ? 'warning' : ''],
         ] : []),
@@ -478,7 +478,7 @@ export function buildSectionModel(tab: string, snapshot: AnalysisSnapshot | null
       kpis: [
         [tx('Διερευνήσεις εξάρσεων', 'Outbreak investigations'), l.investigations ?? 0, tx(`${l.active ?? 0} ενεργές`, `${l.active ?? 0} active`), l.active ? 'warning' : ''],
         [tx('Ολοκληρωμένες', 'Closed'), l.closed ?? 0, averageDays == null ? tx('Χωρίς χρόνο ολοκλήρωσης', 'No closing time yet') : tx(`μέσος χρόνος ${String(averageDays).replace('.', ',')} ημέρες`, `average ${averageDays} days to close`)],
-        [tx('Ενεργές συρροές', 'Active clusters'), l.clusters ?? 0, tx('ανιχνευμένες από την επιτήρηση', 'detected by surveillance'), l.clusters ? 'danger' : ''],
+        [tx('Ενεργές συρροές', 'Active clusters'), l.clusters ?? 0, tx('ανιχνευμένες από την επιτήρηση', 'detected by surveillance'), l.clusters ? 'danger' : '', 'now'],
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Νέες διερευνήσεις ανά μήνα', 'New investigations by month'), subtitle: tx('Έναρξη διερεύνησης ανά μήνα.', 'Investigations opened per month.'), points: l.monthly || [] },

@@ -372,3 +372,26 @@ export const saveEntries = (...args: Parameters<typeof saveEntriesNow>) => after
 export const deleteEntry = (...args: Parameters<typeof deleteEntryNow>) => afterWrite(deleteEntryNow(...args))
 export const deleteEntries = (...args: Parameters<typeof deleteEntriesNow>) => afterWrite(deleteEntriesNow(...args))
 export const setEntryLocked = (...args: Parameters<typeof setEntryLockedNow>) => afterWrite(setEntryLockedNow(...args))
+
+// ΜΕΝΝ Ν6/Ν6β (ιδιοκτήτης 17/11/2026): positive blood cultures of the department taken 72 hours or more after a neonate's
+// admission, matched inside the database by surname and stay; no name comes back. The decision is taken in Surveillance ›
+// «Προς έλεγχο» (an episode opened records the late-onset infection on the entry); here only how many still wait.
+export interface LateInfectionCandidate { entryId: string, sampleId: string, collectedAt: string, organism: string, hoursAfter: number, decision: 'confirmed' | 'rejected' | null }
+export async function loadLateInfectionCandidates(register: Register): Promise<LateInfectionCandidate[]> {
+  if (isLocal() || register.templateKey !== 'nicu') return []
+  const { data, error } = await supabase.rpc('register_late_infection_candidates', { p_register_id: register.id })
+  if (error) throw error
+  return groupLateInfectionRows((data || []) as LateInfectionRow[])
+}
+export interface LateInfectionRow { entry_id: string, sample_id: string, collected_at: string, organism: string | null, hours_after: number, decision: LateInfectionCandidate['decision'] }
+// One sample can carry several organisms (one row each): one line per sample, the organisms together.
+export function groupLateInfectionRows(rows: LateInfectionRow[]): LateInfectionCandidate[] {
+  const bySample = new Map<string, LateInfectionCandidate>()
+  for (const row of rows) {
+    const key = `${row.entry_id}|${row.sample_id}`
+    const known = bySample.get(key)
+    const organism = String(row.organism || '').trim()
+    if (known) { if (organism && !known.organism.split(', ').includes(organism)) known.organism = `${known.organism}, ${organism}` } else bySample.set(key, { entryId: row.entry_id, sampleId: row.sample_id, collectedAt: row.collected_at, organism, hoursAfter: Number(row.hours_after), decision: row.decision })
+  }
+  return [...bySample.values()]
+}
