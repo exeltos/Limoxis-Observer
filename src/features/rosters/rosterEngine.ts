@@ -1,6 +1,6 @@
 // Monthly shift roster generator (pure, no I/O): builds a roster that keeps the rules of rosterRules.
 // The rules, the checker and the calendar helpers live in rosterRules; this module re-exports them.
-import { allowedOf, checkRoster, DEFAULT_RULES, customNeed, customShifts, defaultExtraCode, demandFor, fullWeeks, historyOf, isLeave, isShift, kindOf, maxNightsOf, mulberry32, personalOk, rowProblems, SHIFT_CODES, shiftTargets, weekendPairs, weekOff } from './rosterRules'
+import { allowedOf, checkRoster, DEFAULT_RULES, customNeed, customShifts, defaultExtraCode, demandFor, fullWeeks, historyOf, isLeave, isShift, kindOf, maxNightsOf, mulberry32, personalOk, rowProblems, SHIFT_CODES, shiftTargets, weekendPairs, weekOff, weeklyHoursLimit, weeklyHoursProblems } from './rosterRules'
 
 import type { Assignments, RosterDay, RosterDemand, RosterEmployee, RosterHistory, RosterRules, RosterViolation } from './rosterRules'
 
@@ -17,7 +17,11 @@ interface Staff {
   locked: boolean[]
   prefix: string[]
   wish: boolean[]
+  // A shift the person would like that day (owner, 18/11/2026), or ''.
+  wishShift: string[]
   wishWeight: number
+  // Weekly hours limit (0 = not checked).
+  hoursLimit: number
   target: number
   allowed: string[]
   reserved: boolean[]
@@ -50,8 +54,10 @@ function scoreOf(state: BuildState) {
     let weekendWork = 0
     const kinds: Record<string, number> = { M: 0, I: 0, A: 0, N: 0 }
     let weekendNights = 0
+    score += weeklyHoursProblems(s.codes, days, s.hoursLimit).length * 1000
     for (let i = 0; i < days.length; i += 1) {
       const code = s.codes[i]
+      if (s.wishShift[i] && !s.locked[i] && code !== s.wishShift[i]) score += s.wishWeight
       if (!isShift(code)) {
         if (s.extra && !s.locked[i] && code !== s.pattern[i]) score += 200
         if (code === 'R' && isShift(i === 0 ? s.prefix[s.prefix.length - 1] : s.codes[i - 1]) && isShift(s.codes[i + 1])) score += 60
@@ -163,7 +169,9 @@ function allowedBackward(s: Staff, i: number, code: string, r: RosterRules, days
     const prev = k >= 0 ? s.codes[k] : s.prefix[s.prefix.length + k]
     if (isShift(prev)) worked += 1
   }
-  return worked <= 7 - r.weeklyRestDays
+  if (worked > 7 - r.weeklyRestDays) return false
+  // Hours of the week so far (eight a shift): at most the limit and one more shift.
+  return !s.hoursLimit || worked * 8 <= s.hoursLimit + 8
 }
 
 export interface GenerateInput { days: RosterDay[], employees: RosterEmployee[] | null | undefined, demand: RosterDemand | null | undefined, rules?: Partial<RosterRules> | null, history?: RosterHistory, seed?: number, attempts?: number, iterations?: number }
@@ -212,7 +220,8 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
   const active = (employees || []).filter((employee) => employee.active !== false)
   const targets = shiftTargets(days, active, r.weeklyRestDays)
   const pairs = weekendPairs(days)
-  const weekendIdx = new Set(pairs.flat())
+  // Public holidays are shared out like the weekends (owner, 18/11/2026).
+  const weekendIdx = new Set([...pairs.flat(), ...days.flatMap((day, i) => (day.holiday ? [i] : []))])
   const staff = active.map((employee, order): Staff => {
     const fixed = employee.fixed || {}
     const wishes = employee.wishes || {}
@@ -229,6 +238,8 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
       locked: days.map((day) => Boolean(fixed[day.date])),
       prefix: historyOf(history, employee.id),
       wish: days.map((day) => wishes[day.date] === 'R'),
+      wishShift: days.map((day) => (isShift(wishes[day.date]) ? kindOf(wishes[day.date]) as string : '')),
+      hoursLimit: weeklyHoursLimit(employee, r),
       // Earlier in the list, higher priority for wishes.
       wishWeight: 250 + Math.max(0, active.length - order) * 4,
       target: targets[employee.id],

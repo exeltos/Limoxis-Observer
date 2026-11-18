@@ -1,6 +1,6 @@
 import { GripVertical } from 'lucide-react'
 import { demandFor, isShift, kindOf } from './rosterEngine'
-import { HOURS, isExtra, type RosterView } from './rosterPageModel'
+import { HOURS, isExtra, violationGroup, type RosterView } from './rosterPageModel'
 import type { RosterViolation } from './rosterRules'
 
 // The roster sheet: a row per person with their totals, the people on each shift under each day, the legend and the rules not kept.
@@ -21,10 +21,11 @@ export function RosterSheet({ view }: { view: RosterView }) {
                     </th>
                   ))}
                   {days.map(d => (
-                    <th key={d.date} className={d.weekend ? 'is-weekend' : ''}>
+                    <th key={d.date} className={`${d.weekend ? 'is-weekend' : ''}${d.holiday ? ' is-holiday' : ''}`} title={d.holiday || undefined}>
                       {weekdays[d.weekday]}
                       <br />
                       {d.date.slice(8, 10)}
+                      {d.holiday && <span className="roster-holiday-tag" aria-label={d.holiday}>{tx('ΑΡ', 'PH')}</span>}
                     </th>
                   ))}
                   {shown.map(s => <th key={s} className="roster-sum">{CODES[s].short}</th>)}
@@ -92,16 +93,20 @@ export function RosterSheet({ view }: { view: RosterView }) {
                       {days.map(d => {
                         const code = codeAt(m.employeeId, d.date)
                         const wish = m.wishes?.[d.date]
+                        // A wished day off ('R') or a wished shift; shifts the person must not work that day (owner, 18/11/2026).
+                        const wishText = wish ? (wish === 'R' ? tx('επιθυμία ρεπό', 'wishes a day off') : `${tx('επιθυμία', 'wishes')}: ${CODES[wish]?.name || wish}`) : ''
+                        const forbid = m.forbid?.[d.date] || []
+                        const forbidText = forbid.length ? `${tx('όχι', 'not')} ${forbid.map(kind => CODES[kind]?.name || kind).join(', ')} (${tx('υποχρεωτικό', 'mandatory')})` : ''
                         const manual = Boolean(m.fixed?.[d.date]) && isShift(code)
                         const bad = canEdit && violations.some(v => v.employeeId === m.employeeId && v.date === d.date)
                         return (
                           <td key={d.date} className={d.weekend ? 'is-weekend' : ''}>
                             <button
                               type="button"
-                              className={`roster-cell code-${cellClass(code)}${wish ? ' has-wish' : ''}${bad ? ' is-bad' : ''}${manual && canEdit ? ' is-manual' : ''}`}
+                              className={`roster-cell code-${cellClass(code)}${wish ? ' has-wish' : ''}${forbid.length ? ' has-forbid' : ''}${bad ? ' is-bad' : ''}${manual && canEdit ? ' is-manual' : ''}`}
                               disabled={!canEdit}
-                              aria-label={`${m.name} ${fmtDay(d.date)}: ${[labelOf(code) || tx('κενό', 'empty'), wish && tx('επιθυμία ρεπό', 'wishes a day off')].filter(Boolean).join(' · ')}`}
-                              title={[labelOf(code), wish && tx('επιθυμία ρεπό', 'wishes a day off'), manual && tx('ορίστηκε με το χέρι', 'set by hand')].filter(Boolean).join(' · ')}
+                              aria-label={`${m.name} ${fmtDay(d.date)}: ${[labelOf(code) || tx('κενό', 'empty'), wishText, forbidText].filter(Boolean).join(' · ')}`}
+                              title={[labelOf(code), wishText, forbidText, manual && tx('ορίστηκε με το χέρι', 'set by hand')].filter(Boolean).join(' · ')}
                               onClick={event => {
                                 const rect = event.currentTarget.getBoundingClientRect()
                                 setNeed(null)
@@ -109,7 +114,7 @@ export function RosterSheet({ view }: { view: RosterView }) {
                                 setCell({ employeeId: m.employeeId, date: d.date, top: Math.min(rect.bottom + 4, window.innerHeight - 380), left: Math.min(rect.left, window.innerWidth - 230) })
                               }}
                             >
-                              {code ? shortOf(code) : wish ? '★' : ''}
+                              {code ? shortOf(code) : wish ? (wish === 'R' ? '★' : `★${CODES[wish]?.short || ''}`) : ''}
                             </button>
                           </td>
                         )
@@ -177,7 +182,9 @@ export function RosterSheet({ view }: { view: RosterView }) {
             {others.map(o => <span key={o.code}><i className={`code-${kindOf(o.code)}`}>{shortOf(o.code)}</i>{o.label}</span>)}
             <span><i className="code-R">{CODES.R.short}</i>{CODES.R.label}</span>
             <span><i className="code-leave">{CODES.L.short}</i>{tx('Άδεια / αργία', 'Leave / holiday')}</span>
-            <span><i className="code-wish">★</i>{tx('Επιθυμία ρεπό', 'Wishes a day off')}</span>
+            <span><i className="code-wish">★</i>{tx('Επιθυμία ρεπό ή βάρδιας', 'Wishes a day off or a shift')}</span>
+            <span><i className="code-none roster-forbid-key" />{tx('Όχι βάρδια (υποχρεωτικό)', 'Not this shift (mandatory)')}</span>
+            {days.some(d => d.holiday) && <span><i className="code-none roster-holiday-key">{tx('ΑΡ', 'PH')}</i>{tx('Αργία', 'Public holiday')}</span>}
             {canEdit && <span><i className="code-none is-manual-key" />{tx('Ορίστηκε με το χέρι', 'Set by hand')}</span>}
           </div>
           {canEdit &&
@@ -185,20 +192,32 @@ export function RosterSheet({ view }: { view: RosterView }) {
             (violations.length === 0 ? (
               <p className="roster-ok">✓ {tx('Όλοι οι κανόνες τηρούνται.', 'Every rule is kept.')}</p>
             ) : (
-              <ul className="roster-violations">
-                {/* One line per rule: the first days and the people (their cells are framed red). */}
-                {Object.entries(violations.reduce((acc: Record<string, RosterViolation[]>, v) => ({ ...acc, [v.rule]: [...(acc[v.rule] || []), v] }), {})).map(([rule, list]) => {
-                  const dates = [...new Set(list.map(v => v.date).filter(Boolean))] as string[]
-                  const people = [...new Set(list.map(v => nameOf(v.employeeId as string)).filter(name => name !== '—'))]
+              <div className="roster-violation-groups">
+                {/* Three groups (owner, 18/11/2026): hard breaches, shifts short of people, recommendations. One line per
+                    rule: the first days and the people (their cells are framed red). */}
+                {([['hard', tx('Υποχρεωτικές παραβάσεις', 'Hard breaches')], ['coverage', tx('Ελλείψεις κάλυψης', 'Coverage gaps')], ['advice', tx('Συστάσεις', 'Recommendations')]] as const).map(([group, title]) => {
+                  const inGroup = violations.filter(v => violationGroup(v.rule) === group)
+                  if (!inGroup.length) return null
                   return (
-                    <li key={rule}>
-                      <strong>{RULE_TEXT[rule] || rule}</strong>
-                      {dates.length > 0 && ` · ${dates.slice(0, 6).map(fmtDay).join(', ')}${dates.length > 6 ? tx(` και ${dates.length - 6} ακόμη`, ` and ${dates.length - 6} more`) : ''}`}
-                      {people.length > 0 && ` · ${people.slice(0, 3).join(', ')}${people.length > 3 ? '…' : ''}`}
-                    </li>
+                    <div key={group} className={`roster-violation-group is-${group}`}>
+                      <strong>{title} ({inGroup.length})</strong>
+                      <ul className={`roster-violations is-${group}`}>
+                        {Object.entries(inGroup.reduce((acc: Record<string, RosterViolation[]>, v) => ({ ...acc, [v.rule]: [...(acc[v.rule] || []), v] }), {})).map(([rule, list]) => {
+                          const dates = [...new Set(list.map(v => v.date).filter(Boolean))] as string[]
+                          const people = [...new Set(list.map(v => nameOf(v.employeeId as string)).filter(name => name !== '—'))]
+                          return (
+                            <li key={rule}>
+                              <strong>{RULE_TEXT[rule] || rule}</strong>
+                              {dates.length > 0 && ` · ${dates.slice(0, 6).map(fmtDay).join(', ')}${dates.length > 6 ? tx(` και ${dates.length - 6} ακόμη`, ` and ${dates.length - 6} more`) : ''}`}
+                              {people.length > 0 && ` · ${people.slice(0, 3).join(', ')}${people.length > 3 ? '…' : ''}`}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
                   )
                 })}
-              </ul>
+              </div>
             ))}
         </section>
   )

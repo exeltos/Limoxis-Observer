@@ -19,12 +19,16 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { exportRegistry } from '../../../core/export/registryExports'
+import { downloadReportWord, printReportLater } from '../../../core/export/reportDocument'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { useDepartments } from '../../management/useLibraries'
-import { addResponse, deleteResponse, deleteSurvey, loadResponses, loadSurvey, saveSurvey } from './surveyService'
+import { addResponse, deleteResponse, deleteSurvey, loadEarlierResponses, loadResponses, loadSurvey, saveSurvey } from './surveyService'
 import { RESPONSE_CHANNELS, answerText, audienceLabel, channelLabel, filterResponses, responsesExport, surveyFromTemplate, surveyProblems, surveyStatusLabel, surveyStatusTone, textOf } from './surveyModel'
 import { SurveyResults, SurveyResultsLine } from './SurveyResults'
+import { SurveyPrintDialog } from './SurveyPrintDialog'
+import type { SurveyPrintChoice } from './SurveyPrintDialog'
+import { surveyDocument } from './surveyReport'
 import { SurveyCollect } from './SurveyCollect'
 import { SurveyEditor } from './SurveyEditor'
 import { SurveyForm, missingAnswers } from './SurveyForm'
@@ -63,6 +67,7 @@ export function SurveyRecordPage() {
   const [filters, setFilters] = useState(NO_FILTERS)
   const [entry, setEntry] = useState<SurveyEntry | null>(null)
   const [page, setPage] = useState(1)
+  const [printing, setPrinting] = useState(false)
 
   const reload = useCallback(async () => {
     if (isNew) { setSurvey(surveyFromTemplate(location.state?.template || 'wards', { hospital: tenant?.name || '' })); return }
@@ -84,7 +89,9 @@ export function SurveyRecordPage() {
   if (survey === null) return <Page fill><TableSkeleton/></Page>
   if (survey === false) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Questionnaire not found' : 'Το ερωτηματολόγιο δεν βρέθηκε'}</strong></div></Page>
 
-  const locked = !canManage
+  // «Ικανοποίηση Κουζίνας» is made from the other questionnaires: read only (no questions, collection, entry or deletion here).
+  const derived = Boolean(survey?.derived)
+  const locked = !canManage || derived
   const problems = surveyProblems(survey, language)
   async function persist(next: Survey, message?: string) {
     setSaving(true)
@@ -124,24 +131,40 @@ export function SurveyRecordPage() {
     navigate('/quality/capas/new', { state: { qualitySource: { source: 'other', sourceId: `SRV:${survey.code}`, title: en ? `Improve: ${textOf(result.question, 'en')}` : `Βελτίωση: ${textOf(result.question, 'el')}`, description: en ? `Survey ${survey.code} «${textOf(survey, 'en')}»: ${result.satisfied}% satisfied (target ${survey.satisfiedTarget}%), ${result.count} answers.` : `Έρευνα ${survey.code} «${survey.title}»: ${result.satisfied}% ικανοποιημένοι (στόχος ${survey.satisfiedTarget}%), ${result.count} απαντήσεις.` } } })
   }
   const exportResponses = () => exportRegistry(responsesExport(survey, shown, language))
+  // «Εκτύπωση / PDF» of the results: the screen's department, channel and search apply; the dates come from the dialog.
+  // A comparison also reads the hospital's earlier questionnaires of the same kind (e.g. last year's).
+  function printResults(choice: SurveyPrintChoice) {
+    if (!survey) return
+    const screen = { ...filters, from: '', to: '' }
+    const base = filterResponses(responses, screen)
+    const departmentName = (id: string) => { const item = departments.find(row => (row.id || row.name) === id); return item ? (en ? item.nameEn || item.name : item.name) : '' }
+    const words = [filters.department !== 'all' && `${en ? 'Department' : 'Τμήμα'}: ${departmentName(filters.department)}`, filters.channel !== 'all' && `${en ? 'Channel' : 'Τρόπος'}: ${channelLabel(filters.channel, language)}`, filters.query && `${en ? 'Search' : 'Αναζήτηση'}: ${filters.query}`].filter(Boolean) as string[]
+    const build = async () => surveyDocument({ survey, responses: base, earlier: choice.compare === 'none' ? [] : filterResponses(await loadEarlierResponses(tenant?.id, survey), screen), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, departments: (survey.departmentIds || []).map(departmentName).filter(Boolean), filters: words })
+    setPrinting(false)
+    const failed = (error: unknown) => { console.error(error); notify(en ? 'The document could not be prepared.' : 'Το έντυπο δεν ετοιμάστηκε.', 'error') }
+    if (choice.word) { build().then(doc => downloadReportWord(doc)).catch(failed); return }
+    if (!printReportLater(build, { language, onError: failed })) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  }
 
   // A new survey is one page (the questionnaire), without a strip of a single tab.
   const tabs = isNew ? [] : [
     { id: 'results', label: en ? 'Results' : 'Αποτελέσματα', icon: BarChart3 },
     { id: 'responses', label: en ? `Responses ${responses.length}` : `Απαντήσεις ${responses.length}`, icon: MessageSquareText },
-    { id: 'questionnaire', label: en ? `Questions ${survey.questions.length}` : `Ερωτήσεις ${survey.questions.length}`, icon: ClipboardList },
-    { id: 'collect', label: en ? 'Collection' : 'Συλλογή', icon: QrIcon },
+    ...(survey.derived ? [] : [
+      { id: 'questionnaire', label: en ? `Questions ${survey.questions.length}` : `Ερωτήσεις ${survey.questions.length}`, icon: ClipboardList },
+      { id: 'collect', label: en ? 'Collection' : 'Συλλογή', icon: QrIcon },
+    ]),
   ]
   // Header: export of the tab on screen and, for a draft, the main command; the record's «…» (close/reopen, delete) only on
   // the Questions tab, where the questionnaire itself is (owner, 6/11/2026).
   const headerActions = <div className="row-actions">
-    {!isNew && (tab === 'results' || tab === 'responses') && <ExportMenu onPrint={tab === 'results' ? () => window.print() : undefined} onExcel={exportResponses} />}
+    {!isNew && (tab === 'results' || tab === 'responses') && <ExportMenu ownPrint onPrint={tab === 'results' ? () => setPrinting(true) : undefined} onPdf={tab === 'results' ? () => setPrinting(true) : undefined} onExcel={exportResponses} />}
     {/* Collection: the posters of the QR codes, from the header like every other tab's export. */}
     {!isNew && tab === 'collect' && survey.departmentIds?.length > 0 && <ExportMenu items={[{ id: 'posters', kind: 'print', label: survey.departmentIds.length > 1 ? (en ? 'Print every poster' : 'Εκτύπωση όλων των αφισών') : (en ? 'Print the poster' : 'Εκτύπωση αφίσας'), onClick: () => setPrintPosters(value => value + 1) }]} />}
-    {!isNew && canManage && survey.status === 'draft' && <Button disabled={saving} onClick={openSurvey}><Play size={15} />{en ? 'Open the questionnaire' : 'Άνοιγμα ερωτηματολογίου'}</Button>}
-    {!isNew && canManage && tab === 'questionnaire' && survey.status === 'open' && <Button recordMenu disabled={saving} onClick={closeSurvey}><Lock size={15} />{en ? 'Close the questionnaire' : 'Κλείσιμο ερωτηματολογίου'}</Button>}
-    {!isNew && canManage && tab === 'questionnaire' && survey.status === 'closed' && <Button recordMenu disabled={saving} onClick={reopen}><RotateCcw size={15} />{en ? 'Reopen the questionnaire' : 'Επανάνοιγμα ερωτηματολογίου'}</Button>}
-    {!isNew && canManage && tab === 'questionnaire' && <IconButton tone="danger" label={en ? 'Delete questionnaire' : 'Διαγραφή ερωτηματολογίου'} onClick={remove}><Trash2 size={16} /></IconButton>}
+    {!isNew && canManage && !survey.derived && survey.status === 'draft' && <Button disabled={saving} onClick={openSurvey}><Play size={15} />{en ? 'Open the questionnaire' : 'Άνοιγμα ερωτηματολογίου'}</Button>}
+    {!isNew && canManage && !survey.derived && tab === 'questionnaire' && survey.status === 'open' && <Button recordMenu disabled={saving} onClick={closeSurvey}><Lock size={15} />{en ? 'Close the questionnaire' : 'Κλείσιμο ερωτηματολογίου'}</Button>}
+    {!isNew && canManage && !survey.derived && tab === 'questionnaire' && survey.status === 'closed' && <Button recordMenu disabled={saving} onClick={reopen}><RotateCcw size={15} />{en ? 'Reopen the questionnaire' : 'Επανάνοιγμα ερωτηματολογίου'}</Button>}
+    {!isNew && canManage && !survey.derived && tab === 'questionnaire' && <IconButton tone="danger" label={en ? 'Delete questionnaire' : 'Διαγραφή ερωτηματολογίου'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
   const departmentFilter = <>
     {covered.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={filters.department} onChange={value => setFilters(current => ({ ...current, department: value }))}><option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>{covered.map(item => <option key={item.id || item.name} value={item.id || item.name}>{en ? item.nameEn || item.name : item.name}</option>)}</FilterSelect>}
@@ -167,11 +190,11 @@ export function SurveyRecordPage() {
       {survey.code && <LinkedActions sourceId={`SRV:${survey.code}`} organizationId={tenant?.id} returnTab="results" />}
     </div></section>}
     {viewing && <ObserverDialog title={en ? 'Response' : 'Απάντηση'} subtitle={[formatDay(viewing.submittedAt, language), (en ? viewing.departmentEn : viewing.department) || '', channelLabel(viewing.channel, language)].filter(Boolean).join(' · ')} onClose={() => setViewing(null)}
-      footer={canManage && <Button variant="danger" onClick={() => removeResponse(viewing)}><Trash2 size={15} />{en ? 'Delete response' : 'Διαγραφή απάντησης'}</Button>}>
+      footer={canManage && !survey.derived && <Button variant="danger" onClick={() => removeResponse(viewing)}><Trash2 size={15} />{en ? 'Delete response' : 'Διαγραφή απάντησης'}</Button>}>
       <dl className="survey-response-answers">{survey.questions.filter(question => answerText(question, viewing.answers?.[question.id], language)).map(question => <div key={question.id}><dt>{textOf(question, language)}</dt><dd>{answerText(question, viewing.answers?.[question.id], language)}</dd></div>)}</dl>
     </ObserverDialog>}
     {tab === 'responses' && <RecordTabPanel title={en ? 'Responses' : 'Απαντήσεις'} subtitle={en ? 'Anonymous: no name or details are kept.' : 'Ανώνυμες: δεν κρατείται όνομα ούτε στοιχεία.'}
-      actions={<div className="row-actions">{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
+      actions={<div className="row-actions">{!survey.derived && entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
       footer={shown.length > pageSize && <RegistryPagination language={language} page={safePage} totalPages={pages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={() => {}} />}>
       {filterBar}
       <RegistryTable sortable={false} className="quality-table" rows={shown.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id}
@@ -193,6 +216,7 @@ export function SurveyRecordPage() {
     {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'How patients reach the questionnaire from their phone.' : 'Πώς φτάνουν οι ασθενείς στο ερωτηματολόγιο από το κινητό τους.'}>
       <SurveyCollect survey={survey} departments={departments} language={language} canOpen={canManage && !saving} onOpen={openSurvey} printAll={printPosters} />
     </RecordTabPanel>}
+    {printing && <SurveyPrintDialog language={language} from={filters.from} to={filters.to} onPrint={printResults} onClose={() => setPrinting(false)} />}
     {entry && <ResponseEntry survey={survey} entry={entry} setEntry={setEntry} departments={entryDepartments} language={language} onSaved={(response?: SurveyResponse | null) => { setResponses(current => (response ? [response, ...current] : current)); if (!response) void reload() }} tenantId={tenant?.id} />}
   </EntityRecordShell></Page>
 }

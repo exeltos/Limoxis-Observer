@@ -211,6 +211,9 @@ function normalize(state: unknown): TrainingState{
 }
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([trainingDemoState])
+// The demo shows every training type: internal, external, within a department.
+const DEMO_KINDS=['internal','internal','external','intra_department']
+trainingDemoState.programs.forEach((program,index)=>{if(!program.deliveryKind)program.deliveryKind=DEMO_KINDS[index%DEMO_KINDS.length]})
 export function loadTrainingState(){return normalize(loadSnapshot('training_local_state',structuredClone(trainingDemoState)))}
 export function saveTrainingState(state: unknown){const normalized=normalize(state);saveSnapshot('training_local_state',normalized);return normalized}
 export function findTrainingAccess(state: unknown,token: unknown){

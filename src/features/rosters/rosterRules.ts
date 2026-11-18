@@ -12,19 +12,24 @@
 
 
 // A day of the period.
-export interface RosterDay { date: string, weekday: number, weekend: boolean }
+// `holiday`: the name of a public holiday (rosterHolidays.markHolidays); such a day is also `weekend`.
+export interface RosterDay { date: string, weekday: number, weekend: boolean, holiday?: string }
 // Each person's codes by date: { employeeId: { '2026-11-21': 'M' } }.
 export type Assignments = Record<string, Record<string, string>>
 // The people each shift needs (weekday / weekend defaults, a day's own numbers, the other shifts).
 // (Type aliases, not interfaces: they are stored as json.)
 export type ShiftNeed = Record<string, number>
-export type DemandKind = 'weekday' | 'weekend'
+export type DemandKind = 'weekday' | 'weekend' | 'holiday'
 // Another shift of the department («M:1», 07:00–19:00): its people on weekdays and weekends.
 export type CustomShift = { code: string, label: string, weekday?: number, weekend?: number }
-export type RosterDemand = { weekday?: ShiftNeed, weekend?: ShiftNeed, overrides?: Record<string, ShiftNeed>, custom?: CustomShift[] }
+// `holiday`: the people of a public holiday (owner, 18/11/2026); without it a holiday takes the weekend numbers.
+export type RosterDemand = { weekday?: ShiftNeed, weekend?: ShiftNeed, holiday?: ShiftNeed, overrides?: Record<string, ShiftNeed>, custom?: CustomShift[] }
 export type RosterRules = typeof DEFAULT_RULES & { longStretchExceptions?: number, [key: string]: unknown }
 // A person as the rules read them: id, limits, fixed codes and wishes.
-export interface RosterEmployee { id: string, name?: string, active?: boolean, fixed?: Record<string, string>, wishes?: Record<string, string>, allowed?: string[], extra?: boolean, noWeekends?: boolean, maxNights?: unknown, percent?: unknown }
+// `noNights`: no night shifts (pregnancy, breastfeeding, a medical reason…) until a date or always; `forbid`: shifts the
+// person must not get on a date (hard); `wishes[date]`: 'R' (a day off) or a shift kind they would like (soft).
+export type NoNights = { reason?: string, until?: string }
+export interface RosterEmployee { id: string, name?: string, active?: boolean, fixed?: Record<string, string>, wishes?: Record<string, string>, allowed?: string[], extra?: boolean, noWeekends?: boolean, maxNights?: unknown, percent?: unknown, noNights?: NoNights | null, forbid?: Record<string, string[]> }
 export interface RosterViolation { rule: string, employeeId?: string, date?: string, detail?: string }
 export type RosterHistory = Record<string, string[]>
 
@@ -40,7 +45,10 @@ export const DEFAULT_RULES = {
   weeklyRestDays: 2,
   minWeekendOff: 1,
   forbidMorningToNight: true,
-  balanceTolerance: 2
+  balanceTolerance: 2,
+  // Hours a week (owner, 18/11/2026): on average over the full weeks of the period, and one week may have one more
+  // shift (the week with a single day off). 0 = not checked. Part-time: their share, rounded up to a whole shift.
+  maxWeeklyHours: 40
 }
 
 // The department's other shifts (owner, 9/11/2026) are stored with their kind: «M:1» is the hospital's shift 1
@@ -105,7 +113,8 @@ export function mulberry32(seed: number) {
 
 // The people each shift needs on a day: the day's own numbers when set, else the weekday / weekend defaults.
 export function demandFor(demand: RosterDemand | null | undefined, day: RosterDay): Record<string, number> {
-  const row = { ...((day.weekend ? demand?.weekend : demand?.weekday) || {}), ...(demand?.overrides?.[day.date] || {}) }
+  const base = day.holiday && demand?.holiday && Object.keys(demand.holiday).length ? demand.holiday : day.weekend ? demand?.weekend : demand?.weekday
+  const row = { ...(base || {}), ...(demand?.overrides?.[day.date] || {}) }
   const need: Record<string, number> = { M: Number(row.M) || 0, I: Number(row.I) || 0, A: Number(row.A) || 0, N: Number(row.N) || 0 }
   // The department's other shifts add their people to their kind.
   for (const shift of customShifts(demand)) need[kindOf(shift.code)] += customNeed(shift, day)
@@ -224,7 +233,49 @@ export const allowedOf = (employee: RosterEmployee | null | undefined): string[]
 // More of a person's limits: no weekends, at most so many nights in the period.
 export const maxNightsOf = (employee: RosterEmployee | null | undefined) => (Number.isFinite(Number(employee?.maxNights)) && employee?.maxNights !== '' && employee?.maxNights !== null && employee?.maxNights !== undefined ? Number(employee.maxNights) : Infinity)
 // May the person work `code` on `day` by their own limits?
-export const personalOk = (employee: RosterEmployee | null | undefined, allowed: string[], day: RosterDay, code: string) => !isShift(code) || (allowed.includes(code) && !(employee?.noWeekends && day.weekend))
+// Also the hard limits of the person (owner, 18/11/2026): no nights while «Χωρίς νύχτες» holds, no shift they must not get that day.
+export const noNightsOn = (employee: RosterEmployee | null | undefined, date: string) => Boolean(employee?.noNights?.reason && (!employee.noNights.until || date <= employee.noNights.until))
+// The mandatory ones alone («Χωρίς νύχτες», «Όχι βάρδια»): they hold even for a shift entered by hand.
+export const mandatoryOk = (employee: RosterEmployee | null | undefined, day: RosterDay, code: string) =>
+  !isShift(code) || (!(kindOf(code) === 'N' && noNightsOn(employee, day.date)) && !(employee?.forbid?.[day.date] || []).includes(kindOf(code) as string))
+export const personalOk = (employee: RosterEmployee | null | undefined, allowed: string[], day: RosterDay, code: string) =>
+  !isShift(code) || (allowed.includes(kindOf(code) as string) && !(employee?.noWeekends && day.weekend) && !(kindOf(code) === 'N' && noNightsOn(employee, day.date)) && !(employee?.forbid?.[day.date] || []).includes(kindOf(code) as string))
+
+// The hours of a shift: 8 for the four kinds; another shift of the department by its own times («07:00–19:00»).
+export function shiftHours(code: string | null | undefined, demand?: RosterDemand | null) {
+  if (!isShift(code)) return 0
+  const label = String(code).includes(':') ? customShifts(demand).find((shift) => shift.code === code)?.label || '' : ''
+  const match = label.match(/(\d{1,2}):(\d{2})\D+(\d{1,2}):(\d{2})/)
+  if (!match) return 8
+  const start = Number(match[1]) * 60 + Number(match[2])
+  let end = Number(match[3]) * 60 + Number(match[4])
+  if (end <= start) end += 24 * 60
+  return Math.round(((end - start) / 60) * 10) / 10
+}
+// A person's weekly hours (owner, 18/11/2026): the limit, their share for part-time rounded up to a whole shift; a
+// single week may hold one more shift. 0 when not checked.
+export function weeklyHoursLimit(employee: RosterEmployee | null | undefined, r: { maxWeeklyHours?: number }) {
+  const max = Number(r.maxWeeklyHours) || 0
+  if (max <= 0) return 0
+  const percent = Number(employee?.percent) > 0 && Number(employee?.percent) < 100 ? Number(employee?.percent) : 100
+  return Math.ceil((max * percent) / 100 / 8) * 8
+}
+// The full weeks whose hours break the limit: one week above limit + one shift, or all of them above it on average.
+export function weeklyHoursProblems(codes: string[], days: RosterDay[], limit: number, hoursOf: (code: string) => number = (code) => shiftHours(code)) {
+  if (limit <= 0) return [] as number[]
+  const problems: number[] = []
+  let total = 0
+  let weeks = 0
+  for (const start of fullWeeks(days)) {
+    if (start + 6 >= codes.length) continue
+    const hours = codes.slice(start, start + 7).reduce((sum, code) => sum + hoursOf(code), 0)
+    total += hours
+    weeks += 1
+    if (hours > limit + 8) problems.push(start + 6)
+  }
+  if (weeks && total / weeks > limit) problems.push(-1)
+  return problems
+}
 // A supernumerary person (the head of the department, owner 8/11/2026) is not counted in the shifts: mornings on
 // weekdays, and a shift only where the roster cannot be made otherwise.
 export const defaultExtraCode = (employee: RosterEmployee | null | undefined, day: RosterDay) => {
@@ -265,9 +316,13 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   for (const { employee, codes } of rows) {
     const allowed = allowedOf(employee)
     codes.forEach((code, i) => {
-      if (!personalOk(employee, allowed, days[i], code) && !employee.fixed?.[days[i].date]) violations.push({ rule: 'personal', employeeId: employee.id, date: days[i].date })
+      if (!personalOk(employee, allowed, days[i], code) && (!employee.fixed?.[days[i].date] || !mandatoryOk(employee, days[i], code))) violations.push({ rule: 'personal', employeeId: employee.id, date: days[i].date })
     })
     if (codes.filter((code) => code === 'N').length > maxNightsOf(employee)) violations.push({ rule: 'maxNights', employeeId: employee.id })
+    const real = days.map((day) => given?.[employee.id]?.[day.date] || '')
+    for (const index of weeklyHoursProblems(real, days, weeklyHoursLimit(employee, r), (code) => shiftHours(code, demand))) {
+      violations.push({ rule: 'weeklyHours', employeeId: employee.id, date: index >= 0 ? days[index].date : undefined })
+    }
     for (const problem of rowProblems(codes, historyOf(history, employee.id), days, r)) {
       violations.push({ rule: problem.rule, employeeId: employee.id, date: problem.index >= 0 ? days[problem.index].date : undefined })
     }
