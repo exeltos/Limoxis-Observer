@@ -321,3 +321,4 @@
 /* The «⋯» menu of the case sits at the top right of its card: the entry starts below it, not under it. */
 .register-form-page.register-entry-form{padding-top:26px}
 .register-indicator-missing{display:block;font-size:11.5px;color:var(--lo-status-warning-fg)}
+.register-print-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
