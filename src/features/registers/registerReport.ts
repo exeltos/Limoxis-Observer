@@ -159,7 +159,7 @@ export function entriesDocument({ register, headers, rows, language = 'el', from
       [en ? 'Register' : 'Μητρώο', name],
       [en ? 'Department' : 'Τμήμα', (en ? register.departmentEn || register.department : register.department) || '—'],
       [en ? 'Period' : 'Περίοδος', range],
-      [register.kind === 'sheet' ? (en ? 'Months' : 'Μήνες') : (en ? 'Entries' : 'Εγγραφές'), String(rows.length)],
+      [register.kind === 'sheet' ? (en ? 'Rows' : 'Γραμμές') : (en ? 'Entries' : 'Εγγραφές'), String(rows.length)],
       [en ? 'Layout' : 'Μορφή', detailLabel(detail, language)],
     ],
     sections: [{ table: { columns: headers, rows: rows.map(row => row.map(cell => (cell == null ? '' : typeof cell === 'number' ? { text: new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(cell), align: 'right' } : String(cell)))), empty: en ? 'No entry in the period.' : 'Καμία εγγραφή στην περίοδο.' } }],
@@ -170,8 +170,10 @@ export function entriesDocument({ register, headers, rows, language = 'el', from
 // The entries inside the dates (cases by their entry date, sheets by their month); all when no dates are given.
 export function entriesInRange(register: Register, entries: RegisterEntry[], from = '', to = '') {
   if (!from || !to) return entries
+  // As entriesInPeriod: a sheet total over several months goes only into a range that holds all of it.
   return entries.filter(entry => {
     const day = String((register.kind === 'sheet' ? entry.periodStart : entry.entryDate) || '').slice(0, 10)
-    return day >= from && day <= to
+    if (!day || day < from || day > to) return false
+    return register.kind !== 'sheet' || !entry.periodEnd || String(entry.periodEnd).slice(0, 10) <= to
   })
 }

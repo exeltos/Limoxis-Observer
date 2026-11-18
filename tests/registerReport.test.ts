@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { registerFromTemplate } from '../src/features/registers/registerTemplates'
 import { indicatorReport, periodOf } from '../src/features/registers/registerEngine'
 import { changeText, comparePeriod, comparisonFor, entriesDocument, entriesInRange, indicatorsDocument } from '../src/features/registers/registerReport'
-import { listFields, registerExport } from '../src/features/registers/RegisterRecordPage'
+import { listFields, registerExport, sheetPeriodText } from '../src/features/registers/RegisterRecordPage'
 import type { Register, RegisterEntry } from '../src/features/registers/registerTypes'
 
 const nicu = registerFromTemplate('nicu') as Register
@@ -52,5 +52,18 @@ describe('printed entries', () => {
     const doc = entriesDocument({ register: nicu, headers: summary.headers, rows: summary.rows, from: '2026-07-01', to: '2026-09-30' })
     expect(doc.title).toContain('01/07/2026 – 30/09/2026')
     expect(doc.orientation).toBe('landscape')
+  })
+
+  it('keeps the clinical text fields in the detailed print, the days of a daily sheet and only whole totals in a range', () => {
+    const chemo = registerFromTemplate('chemotherapy') as Register
+    expect(registerExport(chemo, [], { detail: 'full', print: true }).headers).toEqual(expect.arrayContaining(['Σχήμα', 'Διάγνωση (ICD-10)'.split(' (')[0]].map(label => expect.stringContaining(label))))
+    expect(registerExport(chemo, [], { detail: 'full' }).headers).not.toContain('Σχήμα')
+    expect(sheetPeriodText({ periodStart: '2026-11-12', periodEnd: '2026-11-12' } as RegisterEntry)).toBe('12/11/2026')
+    expect(sheetPeriodText({ periodStart: '2026-11-01', periodEnd: '2026-11-30' } as RegisterEntry)).toBe('11/2026')
+    expect(sheetPeriodText({ periodStart: '2026-01-01', periodEnd: '2026-02-28' } as RegisterEntry)).toBe('01/2026 – 02/2026')
+    const sheet = { ...nicu, kind: 'sheet' } as Register
+    const totals = [{ id: 'jan-feb', periodStart: '2026-01-01', periodEnd: '2026-02-28' }, { id: 'jan', periodStart: '2026-01-01', periodEnd: '2026-01-31' }] as unknown as RegisterEntry[]
+    expect(entriesInRange(sheet, totals, '2026-01-01', '2026-01-31').map(entry => entry.id)).toEqual(['jan'])
+    expect(entriesInRange(sheet, totals, '2026-01-01', '2026-02-28')).toHaveLength(2)
   })
 })

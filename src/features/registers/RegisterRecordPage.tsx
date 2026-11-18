@@ -96,7 +96,7 @@ export function RegisterRecordPage() {
   function printEntries({ detail, from, to, word }: RegisterPrintChoice) {
     if (!register) return
     const shown = entriesInRange(register, entries, from, to)
-    const exported = registerExport(register, shown, { language, detail })
+    const exported = registerExport(register, shown, { language, detail, print: true })
     const doc = entriesDocument({ register, headers: exported.headers, rows: exported.rows, language, from, to, detail })
     setEntriesPrint(false)
     if (word) { downloadReportWord(doc); return }
@@ -188,14 +188,26 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }: 
 
 // CSV for Excel: the values of every entry (no names, whoever exports).
 // detail: «Συνοπτική» keeps the columns of the list (fields marked «list»), «Αναλυτική» every field (owner, 18/11/2026).
-export function registerExport(register: Register, entries: RegisterEntry[], { language = 'el', detail = 'full' }: { language?: string, withIdentity?: boolean, detail?: string } = {}) {
+// print: the printed document (owner, 18/11/2026) — its «Αναλυτική» keeps the clinical text fields the Excel leaves out.
+// «12/11/2026» for a day, «11/2026» for a month, «01/2026 – 02/2026» for a total of several months.
+export function sheetPeriodText(entry: RegisterEntry) {
+  const start = String(entry.periodStart || '').slice(0, 10)
+  const end = String(entry.periodEnd || start).slice(0, 10)
+  const month = (day: string) => `${day.slice(5, 7)}/${day.slice(0, 4)}`
+  if (!start) return ''
+  if (start === end) return start.split('-').reverse().join('/')
+  return start.slice(0, 7) === end.slice(0, 7) ? month(start) : `${month(start)} – ${month(end)}`
+}
+
+export function registerExport(register: Register, entries: RegisterEntry[], { language = 'el', detail = 'full', print = false }: { language?: string, withIdentity?: boolean, detail?: string, print?: boolean } = {}) {
   const en = language === 'en'
   const title = en ? register.nameEn : register.name
   if (register.kind === 'sheet') {
     const rows = register.sheet.rows || [], measures = register.sheet.measures || []
-    return { name: `${register.code}_${title}`, headers: [en ? 'Month' : 'Μήνας', ...rows.flatMap(row => measures.map(measure => `${textOf(row, language)}${measures.length > 1 ? ` · ${textOf(measure, language)}` : ''}`))], rows: [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))).map(entry => [String(entry.periodStart).slice(0, 7), ...rows.flatMap(row => measures.map(measure => cellsOf(entry.values?.[row.key])?.[measure.key] ?? ''))]) }
+    // A daily sheet's day keeps its date; a month's total its month; a total over several months both ends.
+    return { name: `${register.code}_${title}`, headers: [en ? 'Period' : 'Περίοδος', ...rows.flatMap(row => measures.map(measure => `${textOf(row, language)}${measures.length > 1 ? ` · ${textOf(measure, language)}` : ''}`))], rows: [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))).map(entry => [sheetPeriodText(entry), ...rows.flatMap(row => measures.map(measure => cellsOf(entry.values?.[row.key])?.[measure.key] ?? ''))]) }
   }
-  const all = register.fields.filter(field => field.type !== 'text')
+  const all = register.fields.filter(field => print || field.type !== 'text')
   // The summary has the columns of the list on screen: the date the case counts on, then the marked fields.
   const fields = detail === 'summary' ? listFields(register) : all
   return { name: `${register.code}_${title}`, headers: ['#', ...fields.map(field => textOf(field, language))], rows: entries.map(entry => { const values = computeValues(register.fields, entry.values); return [String(entry.id).slice(-6).toUpperCase(), ...fields.map(field => { const value = values[field.key]; return value == null || value === '' ? '' : ['number', 'computed'].includes(field.type) ? Number(value) : formatValue(field, value, language) })] }) }
