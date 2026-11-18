@@ -23,6 +23,8 @@ export type PersonInput = {
   divisionName?: string
   departmentIds?: string[]
   divisionDepartments?: string
+  employeeId?: string | null
+  sendInvite?: boolean
 }
 // Το πρόσωπο μετά τον έλεγχο χωρίς βάση (checkPerson).
 export type CheckedPerson = {
@@ -39,6 +41,8 @@ export type CheckedPerson = {
   passwordMode: PasswordMode
   divisionName: string
   departmentIds: string[]
+  employeeId: string | null
+  sendInvite: boolean
   errors: string[]
 }
 // Η απάντηση του server για μία γραμμή του ελέγχου (dryRun).
@@ -52,6 +56,10 @@ export type CreatedActiveUser = Partial<CheckedPerson> & ActiveUserResult & { em
 // Όσα διαβάζει το Excel των αποτελεσμάτων.
 export type ResultSheetRow = { fullName?: string, username?: string, temporaryPassword?: string, temporaryPasswordExpiresAt?: string | null, role?: string | null, roleText?: string, divisionName?: string, departmentName?: string, email?: string, status?: string, code?: string | null }
 export type FilePlan = { missingColumns: string[], people: CheckedPerson[], tooMany: boolean }
+// «Από τη λίστα εργαζομένων»: one employee without an account, as the list shows it.
+export type EmployeeChoice = { employeeId: string, name: string, profession: string, departmentId: string | null, departmentName: string, email: string, phone: string }
+// What the owner chose for one employee of the list.
+export type EmployeePick = { role: string, departmentId?: string | null }
 
 export const DEPARTMENT_ROLES = Object.freeze(['department_manager', 'link_nurse', 'department_user'])
 export const ACTIVE_USERS_CHUNK = 25
@@ -183,20 +191,22 @@ export function checkPerson(raw: PersonInput, departments: DepartmentChoice[] = 
     passwordMode,
     divisionName,
     departmentIds: isDivisionRole(role) ? departmentIds : [],
+    employeeId: raw.employeeId || null,
+    sendInvite: raw.sendInvite !== false,
     errors,
   }
 }
 
-// The same e-mail or username twice: both rows are refused.
+// The same e-mail, username or employee, or the same name without a different employee code, twice: both rows are refused.
 export function markDuplicates(people: CheckedPerson[]) {
-  const keys = (person: CheckedPerson) => [person.email && `e:${person.email}`, person.username && `u:${person.username.toLowerCase()}`].filter(Boolean)
+  const keys = (person: CheckedPerson) => [person.email && `e:${person.email}`, person.username && `u:${person.username.toLowerCase()}`, person.employeeId && `i:${person.employeeId}`, person.fullName && `n:${fold(person.fullName)}|${person.employeeId || fold(person.employeeCode)}`].filter(Boolean)
   const count = new Map<string, number>()
   for (const person of people) for (const key of keys(person)) count.set(key, (count.get(key) || 0) + 1)
   return people.map((person: CheckedPerson) => (keys(person).some(key => (count.get(key) || 0) > 1) && !person.errors.includes('DUPLICATE_IN_FILE') ? { ...person, errors: [...person.errors, 'DUPLICATE_IN_FILE'] } : person))
 }
 
 // The rows of the file ([header, ...rows]) as people; empty rows are left out.
-export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[] = [], en = false, passwordMode = 'random'): FilePlan {
+export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[] = [], en = false, passwordMode = 'random', sendInvite = true): FilePlan {
   const [header = [], ...body] = rows
   const columns = mapHeaders(header)
   const missing = REQUIRED_COLUMNS.filter(key => columns[key] == null)
@@ -205,7 +215,7 @@ export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[]
   const cell = (row: unknown[], key: string) => (columns[key] == null ? '' : String(row[columns[key]] ?? '').trim())
   const filled = body.map((row, index) => ({ row, line: index + 2 })).filter(({ row }) => row.some(value => String(value ?? '').trim()))
   const people = filled.slice(0, MAX_FILE_ROWS).map(({ row, line }) =>
-    checkPerson({ line, fullName: cell(row, 'fullName'), email: cell(row, 'email'), username: cell(row, 'username'), role: cell(row, 'role'), department: cell(row, 'department'), employeeCode: cell(row, 'employeeCode'), phone: cell(row, 'phone'), passwordMode, divisionName: cell(row, 'division'), divisionDepartments: cell(row, 'divisionDepartments') }, departments),
+    checkPerson({ line, fullName: cell(row, 'fullName'), email: cell(row, 'email'), username: cell(row, 'username'), role: cell(row, 'role'), department: cell(row, 'department'), employeeCode: cell(row, 'employeeCode'), phone: cell(row, 'phone'), passwordMode, divisionName: cell(row, 'division'), divisionDepartments: cell(row, 'divisionDepartments'), sendInvite }, departments),
   )
   return { missingColumns: [], people: markDuplicates(people), tooMany: filled.length > MAX_FILE_ROWS }
 }
@@ -224,6 +234,8 @@ export const requestUser = (person: CheckedPerson) => ({
   passwordMode: person.passwordMode === 'phone' ? 'phone' : undefined,
   divisionName: person.divisionName || undefined,
   departmentIds: person.departmentIds?.length ? person.departmentIds : undefined,
+  employeeId: person.employeeId || undefined,
+  sendInvite: person.sendInvite !== false,
 })
 
 // The person with the server's verdict (the first error found locally wins).
@@ -256,6 +268,7 @@ const ERRORS: Record<string, [string, string]> = {
   USERNAME_TAKEN: ['Το όνομα χρήστη χρησιμοποιείται ήδη', 'The username is already taken'],
   EMPLOYEE_NOT_FOUND: ['Ο κωδικός εργαζομένου δεν βρέθηκε', 'Employee code not found'],
   EMPLOYEE_ALREADY_LINKED: ['Ο εργαζόμενος έχει ήδη λογαριασμό', 'The employee already has an account'],
+  NAME_TAKEN: ['Υπάρχει ήδη χρήστης με αυτό το όνομα', 'A user with this name already exists'],
   PHONE_REQUIRED: ['Ο κωδικός είναι το κινητό: λείπει ο αριθμός', 'The password is the mobile number: the number is missing'],
   PHONE_INVALID: ['Μη έγκυρο κινητό (10 ψηφία, ξεκινά από 69)', 'Invalid mobile number (10 digits starting with 69)'],
   DIVISION_REQUIRED: ['Ο ρόλος χρειάζεται διεύθυνση', 'The role needs a division'],
@@ -289,4 +302,32 @@ export function resultsSheet(results: ResultSheetRow[], en = false) {
       row.status === 'created' ? (en ? 'Created · active' : 'Δημιουργήθηκε · ενεργός') : errorText(row.code, en),
     ]),
   }
+}
+
+// The role suggested from the employee's profession: the laboratory's people get «Εργαστήριο»,
+// everybody else the role chosen for the selection. The owner can always change it.
+const LABORATORY_PROFESSIONS = ['μικροβιολογ', 'βιοπαθολογ', 'τεχνολογ', 'βιοχημικ', 'microbiolog', 'laborator', 'biochem']
+export function suggestRole(profession: unknown, fallback: string) {
+  const text = fold(profession)
+  return text && LABORATORY_PROFESSIONS.some(word => text.includes(word)) ? 'laboratory' : fallback
+}
+
+// The employees of the list as people to check and create (line = position in the list, from 1).
+export function planEmployees(choices: EmployeeChoice[], picks: Record<string, EmployeePick>, departments: DepartmentChoice[] = [], passwordMode = 'random', sendInvite = true): CheckedPerson[] {
+  const people = choices.map((choice, index) => {
+    const pick = picks[choice.employeeId] || { role: 'department_user' }
+    const departmentId = pick.departmentId || (choice.departmentId && departments.some(row => row.id === choice.departmentId) ? choice.departmentId : null)
+    return checkPerson({ line: index + 1, fullName: choice.name, email: choice.email, role: pick.role, departmentId, department: '', phone: choice.phone, passwordMode, employeeId: choice.employeeId, sendInvite }, departments)
+  })
+  // No e-mail: the username is made on the server; the employee link is the identity.
+  return markDuplicates(people.map(person => ({ ...person, errors: person.errors.filter(code => code !== 'EMAIL_OR_USERNAME_REQUIRED') })))
+}
+
+// The first problem of an employee row seen before the server: an existing user with the same name,
+// the mobile missing when it is the password, or a department role without a department.
+export function employeeIssue(person: CheckedPerson, memberNames: Set<string>) {
+  if (memberNames.has(fold(person.fullName))) return 'NAME_TAKEN'
+  if (person.errors.length) return person.errors[0]
+  if (needsDepartment(person.role) && !person.departmentId) return 'DEPARTMENT_REQUIRED'
+  return null
 }

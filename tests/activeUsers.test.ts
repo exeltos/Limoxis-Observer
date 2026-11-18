@@ -7,6 +7,7 @@ import {
   TEMPORARY_PASSWORD_ALPHABET,
   activeUserFailureCode,
   generateTemporaryPassword,
+  indexEmployees,
   matchDepartment as serverMatchDepartment,
   isValidMobile,
   normalizeMobile,
@@ -21,7 +22,7 @@ import type { PlanContext } from '../supabase/functions/_shared/activeUsers.ts'
 import { strongPassword } from '../supabase/functions/_shared/bulkAccounts.ts'
 import { accountReadyEmail } from '../supabase/functions/_shared/accountCreatedEmail.ts'
 import { isValidMobile as clientIsValidMobile, normalizeMobile as clientNormalizeMobile, splitNames } from '../src/features/platform/activeUsersModel'
-import { checkPerson, errorText, mapHeaders, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel'
+import { checkPerson, employeeIssue, errorText, mapHeaders, planEmployees, suggestRole, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel'
 import { readSource } from './helpers/readSource'
 
 type ValidRequest = Extract<ReturnType<typeof validateActiveUsersRequest>, { ok: true }>
@@ -304,5 +305,76 @@ describe('Νέος προσωρινός κωδικός (reissue) και φραγ
     for (const name of ['is_org_member', 'has_org_role', 'current_user_has_department_scope', 'current_user_has_capability']) expect(sql).toContain(`public.${name}`)
     expect(sql).toContain('private.password_change_pending()')
     expect(sql).not.toMatch(/\b(drop |delete from|alter policy)/i)
+  })
+})
+
+// «Ενεργοί με προσωρινό κωδικό»: one window with three tabs (one user, the employee list, Excel),
+// no duplicate people and the owner's choice of the invitation e-mail.
+describe('no duplicates and the employee list', () => {
+  const EMP = '44444444-0000-4000-8000-000000000004'
+  const EMP2 = '55555555-0000-4000-8000-000000000005'
+  const row = (user, errors = []) => ({ user: { line: 1, fullName: 'Μαρία Παπαδοπούλου', email: '', username: '', role: 'department_user', roleText: 'x', departmentId: null, departmentName: '', employeeCode: '', employeeId: null, sendInvite: true, ...user }, errors })
+  const ctxWith = () => {
+    const index = indexEmployees([
+      { id: EMP, employee_code: '1001', user_id: null, department_id: DEP, first_name: 'Μαρία', last_name: 'Παπαδοπούλου' },
+      { id: EMP2, employee_code: '1002', user_id: 'u2', department_id: DEP, first_name: 'Γιώργος', last_name: 'Νικολάου' },
+    ])
+    return { ...emptyCtx(), employeesByCode: index.byCode, employeesById: index.byId, employeesByName: index.byName, memberNames: new Set<string>() }
+  }
+
+  it('links the employee of the list and takes the department from it', () => {
+    expect(planActiveUser(row({ employeeId: EMP }), ctxWith())).toMatchObject({ code: null, employeeId: EMP, departmentId: DEP })
+    expect(planActiveUser(row({ employeeId: EMP2 }), ctxWith()).code).toBe('EMPLOYEE_ALREADY_LINKED')
+    expect(planActiveUser(row({ employeeId: '66666666-0000-4000-8000-000000000006' }), ctxWith()).code).toBe('EMPLOYEE_NOT_FOUND')
+  })
+
+  it('links by name when the code is missing and the name is one employee (either order)', () => {
+    expect(planActiveUser(row({ fullName: 'Παπαδοπουλου  Μαρια' }), ctxWith())).toMatchObject({ code: null, employeeId: EMP })
+    expect(planActiveUser(row({ fullName: 'Γιώργος Νικολάου', email: 'g@n.gr' }), ctxWith()).code).toBe('EMPLOYEE_ALREADY_LINKED')
+  })
+
+  it('refuses a second account for a name that is already a user, unless code and e-mail are typed', () => {
+    const ctx = ctxWith()
+    ctx.memberNames.add('μαρια παπαδοπουλου')
+    expect(planActiveUser(row({ employeeId: EMP }), ctx).code).toBe('NAME_TAKEN')
+    expect(planActiveUser(row({ email: 'm@p.gr' }), ctx).code).toBe('NAME_TAKEN')
+    expect(planActiveUser(row({ employeeCode: '1001', email: 'm@p.gr' }), ctx).code).toBe(null)
+  })
+
+  it('refuses the same name twice in one request unless the employee codes differ', () => {
+    const same = validateActiveUsersRequest({ organizationId: ORG, users: [{ fullName: 'Α Β', email: 'a@x.gr', role: 'laboratory' }, { fullName: 'α  β', email: 'b@x.gr', role: 'laboratory' }] }) as ValidRequest
+    expect(same.rows.map(item => item.errors)).toEqual([['DUPLICATE_IN_FILE'], ['DUPLICATE_IN_FILE']])
+    const coded = validateActiveUsersRequest({ organizationId: ORG, users: [{ fullName: 'Α Β', email: 'a@x.gr', role: 'laboratory', employeeCode: '1' }, { fullName: 'Α Β', email: 'b@x.gr', role: 'laboratory', employeeCode: '2' }] }) as ValidRequest
+    expect(coded.rows.map(item => item.errors)).toEqual([[], []])
+  })
+
+  it('needs no e-mail or username for an employee of the list and keeps the invitation choice', () => {
+    const request = validateActiveUsersRequest({ organizationId: ORG, users: [{ fullName: 'Α Β', role: 'laboratory', employeeId: EMP, sendInvite: false }, { fullName: 'Γ Δ', email: 'g@d.gr', role: 'laboratory' }] }) as ValidRequest
+    expect(request.rows[0].errors).toEqual([])
+    expect(request.rows[0].user).toMatchObject({ employeeId: EMP, sendInvite: false })
+    expect(request.rows[1].user.sendInvite).toBe(true)
+  })
+
+  it('plans the list on the screen: suggested role, issues and the request', () => {
+    expect(suggestRole('Μικροβιολόγος', 'department_user')).toBe('laboratory')
+    expect(suggestRole('Νοσηλεύτρια', 'link_nurse')).toBe('link_nurse')
+    const choices = [
+      { employeeId: EMP, name: 'Μαρία Παπαδοπούλου', profession: 'Νοσηλεύτρια', departmentId: DEP, departmentName: 'ΜΕΘ', email: '', phone: '' },
+      { employeeId: EMP2, name: 'Γιώργος Νικολάου', profession: 'Ιατρός', departmentId: null, departmentName: 'Άγνωστο', email: 'g@n.gr', phone: '6912345678' },
+    ]
+    const people = planEmployees(choices, { [EMP2]: { role: 'department_user' } }, [{ id: DEP, name: 'ΜΕΘ' }], 'random', false)
+    expect(people[0]).toMatchObject({ employeeId: EMP, departmentId: DEP, errors: [], sendInvite: false })
+    expect(employeeIssue(people[0], new Set())).toBe(null)
+    expect(employeeIssue(people[0], new Set(['μαρια παπαδοπουλου']))).toBe('NAME_TAKEN')
+    expect(employeeIssue(people[1], new Set())).toBe('DEPARTMENT_REQUIRED')
+    expect(employeeIssue(planEmployees(choices, {}, [{ id: DEP, name: 'ΜΕΘ' }], 'phone')[0], new Set())).toBe('PHONE_REQUIRED')
+    expect(requestUser(people[0])).toMatchObject({ employeeId: EMP, sendInvite: false })
+    expect(errorText('NAME_TAKEN')).toBe('Υπάρχει ήδη χρήστης με αυτό το όνομα')
+  })
+
+  it('sends the welcome e-mail only when the owner asked for it', () => {
+    const source = read('supabase/functions/platform-create-active-users/index.ts')
+    expect(source).toContain('const sendInvite=Boolean(realEmail)&&user.sendInvite')
+    expect(source).toContain('if(sendInvite){')
   })
 })

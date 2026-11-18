@@ -39,3 +39,34 @@
 .user-form-grid .active-users-note{font-size:13.5px;padding:12px 14px}
 @media (max-width:640px){.user-form-grid{grid-template-columns:minmax(0,1fr)}}
 .active-users-mode{max-width:340px;margin:0 0 4px}
+
+/* «Ενεργοί με προσωρινό κωδικό»: the three tabs, the employee list and the invitation option. */
+.active-users-tabs{width:100%}
+.active-users-list{display:flex;flex-direction:column;gap:8px;min-height:0}
+.active-users-list-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px}
+.active-users-list-filters .field{display:flex;flex-direction:column;gap:5px;min-width:180px}
+.active-users-list-filters .field>span{font-size:12.5px;font-weight:600;color:var(--lo-color-text)}
+.active-users-list-filters input{min-width:240px}
+.active-users-list-all{margin-left:auto}
+.active-users-list-count{margin:0;font-size:12px;color:var(--lo-color-muted)}
+.active-users-list .active-users-table{max-height:min(46vh,420px)}
+.active-users-list-check{width:34px;text-align:center}
+.active-users-row-selected td{background:var(--surface-neutral-976)}
+.active-users-row-blocked td{color:var(--lo-color-muted)}
+.active-users-row-blocked td strong{color:var(--lo-color-muted);font-weight:600}
+.active-users-list select.active-users-list-select{height:34px;min-height:34px;padding:0 8px;font-size:12.5px;max-width:220px}
+.active-users-list-missing{color:var(--text-warning-271-2);font-weight:600}
+.active-users-list-role{font-size:12.5px;color:var(--lo-color-muted)}
+.active-users-list-issue,.active-users-list-ok{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600}
+.active-users-list-issue{color:var(--text-warning-271-2)}
+.active-users-list-ok{color:var(--text-success)}
+.active-users-options{display:flex;flex-wrap:wrap;align-items:center;gap:10px 26px;padding:10px 14px;border-radius:10px;background:var(--surface-neutral-967)}
+.active-users-options-password{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--lo-color-text)}
+.active-users-options-password select{width:auto;min-width:200px}
+.active-users-invite{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:8px;width:auto;margin:0;text-align:left;font-size:13px;font-weight:600;color:var(--lo-color-text);cursor:pointer}
+.active-users-invite small{font-weight:400;color:var(--lo-color-muted)}
+.active-users-selected{margin-right:auto;font-size:13px;color:var(--lo-color-muted)}
+.active-users-selected.on{font-size:14px;font-weight:700;color:var(--text-brand-351)}
+.active-users-invite input{width:16px;height:16px;min-height:0;margin:0;flex:0 0 auto}
+.active-users-list-wrap{display:flex;flex-direction:column;min-height:0}
+.active-users-list-wrap[hidden]{display:none}

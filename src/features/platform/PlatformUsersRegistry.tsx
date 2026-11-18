@@ -8,7 +8,7 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
-import { FileUp, Mail, UserCheck, UserPlus } from 'lucide-react'
+import { Mail, UserCheck, UserPlus } from 'lucide-react'
 import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { listLoginSessions } from './platformAuditService'
@@ -96,9 +96,8 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
     actions={<div className="row-actions">
       <ExportMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>
       {onNewUser && <OverflowMenu label={tx('Νέος χρήστης', 'New user')} triggerTone="primary" width={280} trigger={<><UserPlus size={15} aria-hidden="true"/>{tx('Νέος χρήστης', 'New user')}</>} items={[
-        { id: 'active', label: tx('Ενεργός με προσωρινό κωδικό', 'Active, with a temporary password'), icon: UserCheck, onClick: () => setNewMode('single') },
+        { id: 'active', label: tx('Ενεργοί με προσωρινό κωδικό', 'Active, with a temporary password'), icon: UserCheck, onClick: () => setNewMode('single') },
         { id: 'invite', label: tx('Πρόσκληση με email', 'Invitation by e-mail'), icon: Mail, onClick: () => setNewMode('invite') },
-        { id: 'file', label: tx('Εισαγωγή από αρχείο (Excel/CSV)', 'Import from a file (Excel/CSV)'), icon: FileUp, separatorBefore: true, onClick: () => setNewMode('file') },
       ]}/>}
     </div>}>
     {tabs}

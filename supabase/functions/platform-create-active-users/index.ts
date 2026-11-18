@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serveWithCors } from '../_shared/cors.ts'
 import { ROLE_LABELS, generateUserName, setMemberDepartment, setMemberDepartments } from '../_shared/organizationAccount.ts'
-import { MAX_ACTIVE_USERS_PER_CALL, activeUserFailureCode, fold, TEMPORARY_PASSWORD_DAYS,generateTemporaryPassword,temporaryPasswordExpiry,DIVISION_ROLES, isDeliverable, isValidMobile, normalizeMobile, planActiveUser, syntheticEmail, validateActiveUsersRequest } from '../_shared/activeUsers.ts'
+import { MAX_ACTIVE_USERS_PER_CALL, activeUserFailureCode, fold, indexEmployees, TEMPORARY_PASSWORD_DAYS,generateTemporaryPassword,temporaryPasswordExpiry,DIVISION_ROLES, isDeliverable, isValidMobile, normalizeMobile, planActiveUser, syntheticEmail, validateActiveUsersRequest } from '../_shared/activeUsers.ts'
 import type { ActiveUserInput, DepartmentRow, EmployeeRow, PlanContext } from '../_shared/activeUsers.ts'
 
 // «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο» (Platform Owner only).
@@ -11,7 +11,7 @@ import type { ActiveUserInput, DepartmentRow, EmployeeRow, PlanContext } from '.
 // receives mail (@users.limoxis.invalid); username-login finds it by the username.
 // verify_jwt = true (config.toml); the caller is checked again here.
 //
-// POST { organizationId, users:[{fullName, email?, username?, role, departmentId?|departmentName?, employeeCode?, line?}], dryRun? }
+// POST { organizationId, users:[{fullName, email?, username?, role, departmentId?|departmentName?, employeeCode?|employeeId?, sendInvite?, line?}], dryRun? }
 //   dryRun   per person: ok, or the error code (nothing is written);
 //   create   up to 25 per call (the screen sends the file in chunks). Per person:
 //            Auth user (confirmed, temporary password) → profile (must_change_password)
@@ -36,7 +36,6 @@ type Row={user:ActiveUserInput,errors:string[]}
 async function loadContext(admin:Admin,organizationId:string,rows:Row[]):Promise<PlanContext>{
   const emails=[...new Set(rows.map(row=>row.user.email).filter(Boolean))]
   const usernames=[...new Set(rows.map(row=>row.user.username).filter(Boolean))]
-  const codes=[...new Set(rows.map(row=>row.user.employeeCode).filter(Boolean))]
   const [{data:departments,error:departmentError},{data:profiles,error:profileError},{data:divisions,error:divisionError}]=await Promise.all([
     admin.from('departments').select('id,name,is_active').eq('organization_id',organizationId),
     emails.length?admin.from('profiles').select('id,contact_email').in('contact_email',emails):Promise.resolve({data:[],error:null}),
@@ -48,13 +47,20 @@ async function loadContext(admin:Admin,organizationId:string,rows:Row[]):Promise
     const {data}=await admin.from('profiles').select('id').ilike('username',username.replace(/[\\%_]/g,ch=>`\\${ch}`)).limit(1)
     if(data?.length)takenUsernames.add(username.toLowerCase())
   }
-  const employeesByCode=new Map<string,EmployeeRow>()
-  if(codes.length){
-    const {data:employees,error}=await admin.from('employees').select('id,employee_code,user_id,department_id,employment_status').eq('organization_id',organizationId).in('employee_code',codes)
+  // Every employee of the hospital (by id, code and name) and the names of its users: no second account for the same person.
+  const {data:employees,error:employeeError}=await admin.from('employees').select('id,employee_code,user_id,department_id,employment_status,first_name,last_name').eq('organization_id',organizationId).limit(20000)
+  if(employeeError)throw new Error('CONTEXT_FAILED')
+  const index=indexEmployees((employees||[]) as EmployeeRow[])
+  const {data:members,error:memberError}=await admin.from('organization_members').select('user_id').eq('organization_id',organizationId).limit(20000)
+  if(memberError)throw new Error('CONTEXT_FAILED')
+  const memberNames=new Set<string>()
+  const memberIds=(members||[]).map((row:Admin)=>row.user_id).filter(Boolean)
+  for(let i=0;i<memberIds.length;i+=150){
+    const {data:names,error}=await admin.from('profiles').select('full_name').in('id',memberIds.slice(i,i+150))
     if(error)throw new Error('CONTEXT_FAILED')
-    for(const row of employees||[])employeesByCode.set(fold(row.employee_code),row)
+    for(const row of names||[])if(row.full_name)memberNames.add(fold(row.full_name))
   }
-  return {departments:(departments||[]) as DepartmentRow[],existingEmails:new Set((profiles||[]).map((row:Admin)=>String(row.contact_email||'').toLowerCase())),takenUsernames,employeesByCode,divisions:(divisions||[]) as {id:string,name:string}[]}
+  return {departments:(departments||[]) as DepartmentRow[],existingEmails:new Set((profiles||[]).map((row:Admin)=>String(row.contact_email||'').toLowerCase())),takenUsernames,employeesByCode:index.byCode,employeesById:index.byId,employeesByName:index.byName,memberNames,divisions:(divisions||[]) as {id:string,name:string}[]}
 }
 
 async function createOne(admin:Admin,org:Org,ctx:PlanContext,row:Row,caller:{id:string,name:string}){
@@ -66,6 +72,8 @@ async function createOne(admin:Admin,org:Org,ctx:PlanContext,row:Row,caller:{id:
   let username=user.username
   if(!username)username=await generateUserName(admin,user.fullName)
   const realEmail=user.email&&isDeliverable(user.email)?user.email:''
+  // «Αποστολή πρόσκλησης με email»: the welcome e-mail (without the password) only when the owner asked for it.
+  const sendInvite=Boolean(realEmail)&&user.sendInvite
   const authEmail=realEmail||syntheticEmail(username)
   // The owner's choice: the person's mobile number (changed at the first sign-in) or a random one.
   const temporaryPassword=user.passwordMode==='phone'?user.phone:generateTemporaryPassword()
@@ -111,18 +119,20 @@ async function createOne(admin:Admin,org:Org,ctx:PlanContext,row:Row,caller:{id:
       if(linkError||!linked?.length)throw new Error('EMPLOYEE_ALREADY_LINKED')
       employeeLinked=true
     }
-    if(realEmail){
+    if(sendInvite){
       const departmentName=plan.departmentId?ctx.departments.find(row=>row.id===plan.departmentId)?.name||'':''
       const payload={organizationName:org.name,organizationEmail:org.contact_email||'',organizationPhone:org.contact_phone||'',recipientName:user.fullName,username,roleLabel:ROLE_LABELS[role]||role,departmentName,path:'/login'}
       const {data:outbox,error:outboxError}=await admin.from('notification_outbox').insert({organization_id:org.id,recipient_user_id:userId,recipient_email:realEmail,notification_type:'account_ready',entity_type:'user',entity_id:userId,subject:`${org.name} · Ο λογαριασμός σας στο Limoxis Observer είναι έτοιμος`,payload,status:'pending'}).select('id').single()
       if(outboxError||!outbox)throw new Error('OUTBOX_FAILED')
       outboxId=outbox.id
     }
-    const {error:auditError}=await admin.from('system_audit_log').insert({...base,event_type:'organization.user.created_active',entity_type:'user',entity_id:userId,metadata:{role,department_id:plan.departmentId,division_id:plan.divisionId||createdDivisionId,department_ids:plan.departmentIds,employee_id:plan.employeeId,username,welcome_email:Boolean(realEmail),must_change_password:true,password_mode:user.passwordMode,temporary_password_expires_at:expiresAt,temporary_password_days:TEMPORARY_PASSWORD_DAYS}})
+    const {error:auditError}=await admin.from('system_audit_log').insert({...base,event_type:'organization.user.created_active',entity_type:'user',entity_id:userId,metadata:{role,department_id:plan.departmentId,division_id:plan.divisionId||createdDivisionId,department_ids:plan.departmentIds,employee_id:plan.employeeId,username,welcome_email:sendInvite,must_change_password:true,password_mode:user.passwordMode,temporary_password_expires_at:expiresAt,temporary_password_days:TEMPORARY_PASSWORD_DAYS}})
     if(auditError)throw new Error('AUDIT_FAILED')
     ctx.takenUsernames.add(username.toLowerCase())
     if(realEmail)ctx.existingEmails.add(realEmail)
-    return {line:user.line,status:'created',code:null,userId,username,email:realEmail,welcomeEmail:Boolean(realEmail),temporaryPassword,temporaryPasswordExpiresAt:expiresAt,passwordMode:user.passwordMode,divisionName:plan.newDivisionName||(ctx.divisions||[]).find(row=>row.id===plan.divisionId)?.name||null}
+    ctx.memberNames?.add(fold(user.fullName))
+    if(plan.employeeId){const linked=ctx.employeesById?.get(plan.employeeId);if(linked)linked.user_id=userId}
+    return {line:user.line,status:'created',code:null,userId,username,email:realEmail,welcomeEmail:sendInvite,temporaryPassword,temporaryPasswordExpiresAt:expiresAt,passwordMode:user.passwordMode,divisionName:plan.newDivisionName||(ctx.divisions||[]).find(row=>row.id===plan.divisionId)?.name||null}
   }catch(error){
     await undo()
     return {line:user.line,status:'failed',code:activeUserFailureCode(error)}

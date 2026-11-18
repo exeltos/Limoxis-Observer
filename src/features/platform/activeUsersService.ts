@@ -37,7 +37,7 @@ export async function createActiveUsers(organizationId: string | null | undefine
   onProgress?.(0, people.length)
   for (const part of chunk(people, ACTIVE_USERS_CHUNK)) {
     const rows: ActiveUserResult[] = simulated()
-      ? part.map((person: CheckedPerson) => ({ line: person.line, status: 'created', code: null, username: person.username || `${person.fullName.slice(0, 1).toUpperCase() || 'X'}U${10000 + done}`, temporaryPassword: samplePassword(), welcomeEmail: Boolean(person.email) }))
+      ? part.map((person: CheckedPerson) => ({ line: person.line, status: 'created', code: null, username: person.username || `${person.fullName.slice(0, 1).toUpperCase() || 'X'}U${10000 + done}`, temporaryPassword: samplePassword(), welcomeEmail: Boolean(person.email) && person.sendInvite !== false }))
       : (await invokeAuthenticatedFunction(FUNCTION, { organizationId, users: part.map(requestUser) })).results || []
     for (const row of rows) {
       const person: Partial<CheckedPerson> = byLine.get(row.line) || {}
