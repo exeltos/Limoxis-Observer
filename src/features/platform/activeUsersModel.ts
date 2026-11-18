@@ -307,6 +307,8 @@ export function resultsSheet(results: ResultSheetRow[], en = false) {
 // The role suggested from the employee's profession: the laboratory's people get «Εργαστήριο»,
 // everybody else the role chosen for the selection. The owner can always change it.
 const LABORATORY_PROFESSIONS = ['μικροβιολογ', 'βιοπαθολογ', 'τεχνολογ', 'βιοχημικ', 'microbiolog', 'laborator', 'biochem']
+// «Διευθυντής Διεύθυνσης» needs a division and its departments: given one by one or from Excel, not from the list.
+export const LIST_ROLES = (roles: readonly string[]) => roles.filter(role => !isDivisionRole(role))
 export function suggestRole(profession: unknown, fallback: string) {
   const text = fold(profession)
   return text && LABORATORY_PROFESSIONS.some(word => text.includes(word)) ? 'laboratory' : fallback
@@ -319,8 +321,9 @@ export function planEmployees(choices: EmployeeChoice[], picks: Record<string, E
     const departmentId = pick.departmentId || (choice.departmentId && departments.some(row => row.id === choice.departmentId) ? choice.departmentId : null)
     return checkPerson({ line: index + 1, fullName: choice.name, email: choice.email, role: pick.role, departmentId, department: '', phone: choice.phone, passwordMode, employeeId: choice.employeeId, sendInvite }, departments)
   })
-  // No e-mail: the username is made on the server; the employee link is the identity.
-  return markDuplicates(people.map(person => ({ ...person, errors: person.errors.filter(code => code !== 'EMAIL_OR_USERNAME_REQUIRED') })))
+  // No e-mail: the username is made on the server; the employee link is the identity. Duplicates are
+  // checked only among the people actually sent (markDuplicates at «Δημιουργία»), not the whole list.
+  return people.map(person => ({ ...person, errors: person.errors.filter(code => code !== 'EMAIL_OR_USERNAME_REQUIRED') }))
 }
 
 // The first problem of an employee row seen before the server: an existing user with the same name,

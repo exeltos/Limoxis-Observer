@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { Button } from '../../design-system/Button'
 import { ROLES } from './platformOrganizationShared'
-import { errorText, employeeIssue, fold, needsDepartment, planEmployees, suggestRole } from './activeUsersModel'
+import { LIST_ROLES, errorText, employeeIssue, fold, needsDepartment, planEmployees, suggestRole } from './activeUsersModel'
 import type { CheckedPerson, DepartmentChoice, EmployeeChoice, EmployeePick } from './activeUsersModel'
 
 // «Ενεργοί με προσωρινό κωδικό» › «Από τη λίστα εργαζομένων» (Platform Owner): the active
@@ -94,7 +94,7 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
         <label className="field">
           <span>{tx('Ρόλος για όσους επιλέξετε', 'Role for those you select')}</span>
           <select value={defaultRole} disabled={disabled} onChange={event => setDefaultRole(event.target.value)}>
-            {ROLES.map(role => <option key={role} value={role}>{roleLabel(role, language)}</option>)}
+            {LIST_ROLES(ROLES).map(role => <option key={role} value={role}>{roleLabel(role, language)}</option>)}
           </select>
         </label>
         <Button variant="secondary" className="active-users-list-all" disabled={disabled || !selectable.length} onClick={toggleAll}>
@@ -141,9 +141,10 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
                   <td className={passwordMode === 'phone' && !row.phone ? 'active-users-list-missing' : ''}>{row.phone || (passwordMode === 'phone' ? tx('λείπει', 'missing') : '—')}</td>
                   <td>{row.email || '—'}</td>
                   <td>
-                    {isSelected ? (
+                    {/* A ticked row keeps its role selector even while it has an issue, so that the owner can correct it. */}
+                    {isSelected || (selected.has(row.employeeId) && !serverIssues.get(row.employeeId)) || picks[row.employeeId]?.role ? (
                       <select className="active-users-list-select" value={role} disabled={disabled} aria-label={tx(`Ρόλος: ${row.name}`, `Role: ${row.name}`)} onChange={event => setPick(row.employeeId, { role: event.target.value })}>
-                        {ROLES.map(item => <option key={item} value={item}>{roleLabel(item, language)}</option>)}
+                        {LIST_ROLES(ROLES).map(item => <option key={item} value={item}>{roleLabel(item, language)}</option>)}
                       </select>
                     ) : <span className="active-users-list-role">{roleLabel(role, language)}</span>}
                   </td>

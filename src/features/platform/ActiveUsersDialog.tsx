@@ -10,7 +10,7 @@ import { roleLabel } from '../../core/permissions/roleLabels'
 import { readSpreadsheet } from '../../core/import/spreadsheetImport'
 import { downloadXlsx } from '../../core/export/xlsxExport'
 import { ROLES } from './platformOrganizationShared'
-import { TEMPORARY_PASSWORD_DAYS, checkPerson, errorText, fold, isDivisionRole, mergeVerdicts, needsDepartment, planFile, previewCounts, resultsSheet, templateSheet } from './activeUsersModel'
+import { TEMPORARY_PASSWORD_DAYS, checkPerson, errorText, fold, markDuplicates, isDivisionRole, mergeVerdicts, needsDepartment, planFile, previewCounts, resultsSheet, templateSheet } from './activeUsersModel'
 import { loadDivisions } from '../interviews/interviewsService'
 import { createActiveUsers, previewActiveUsers } from './activeUsersService'
 import { ActiveUsersEmployeeList } from './ActiveUsersEmployeeList'
@@ -155,12 +155,14 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   // «Από τη λίστα εργαζομένων»: the server checks the ticked people, creates those that pass and
   // shows the others as not created, with the reason (they are also greyed in the list).
   async function createFromList() {
-    const list = listState.people
+    // The same e-mail or name twice among the people sent: both are refused (not the whole list).
+    const list = markDuplicates(listState.people)
     if (!list.length) return
     setChecking(true)
     let merged: PreviewPerson[] | null = null
     try {
-      merged = mergeVerdicts(list, await previewActiveUsers(organization.id, list))
+      const clean = list.filter(person => !person.errors.length)
+      merged = mergeVerdicts(list, clean.length ? await previewActiveUsers(organization.id, clean) : [])
     } catch (error) {
       notifyError(error, 'load', { operation: 'platform_active_users_preview' })
     } finally {
@@ -208,7 +210,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
       {withPassword && (
         <div className="active-users-options-password">
           <span id="active-users-password-label">{tx('Προσωρινός κωδικός', 'Temporary password')}</span>
-          <select aria-labelledby="active-users-password-label" value={passwordMode} disabled={busy} onChange={event => setPasswordMode(event.target.value)}>
+          <select aria-labelledby="active-users-password-label" value={passwordMode} disabled={busy} onChange={event => void changeFileMode(event.target.value)}>
             {passwordOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>

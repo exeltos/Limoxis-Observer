@@ -22,7 +22,7 @@ import type { PlanContext } from '../supabase/functions/_shared/activeUsers.ts'
 import { strongPassword } from '../supabase/functions/_shared/bulkAccounts.ts'
 import { accountReadyEmail } from '../supabase/functions/_shared/accountCreatedEmail.ts'
 import { isValidMobile as clientIsValidMobile, normalizeMobile as clientNormalizeMobile, splitNames } from '../src/features/platform/activeUsersModel'
-import { checkPerson, employeeIssue, errorText, mapHeaders, planEmployees, suggestRole, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel'
+import { LIST_ROLES, checkPerson, employeeIssue, errorText, mapHeaders, markDuplicates, planEmployees, suggestRole, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel'
 import { readSource } from './helpers/readSource'
 
 type ValidRequest = Extract<ReturnType<typeof validateActiveUsersRequest>, { ok: true }>
@@ -370,6 +370,20 @@ describe('no duplicates and the employee list', () => {
     expect(employeeIssue(planEmployees(choices, {}, [{ id: DEP, name: 'ΜΕΘ' }], 'phone')[0], new Set())).toBe('PHONE_REQUIRED')
     expect(requestUser(people[0])).toMatchObject({ employeeId: EMP, sendInvite: false })
     expect(errorText('NAME_TAKEN')).toBe('Υπάρχει ήδη χρήστης με αυτό το όνομα')
+  })
+
+  it('checks duplicates among the people sent, not the whole list, and keeps the division role out of the list', () => {
+    const twins = [
+      { employeeId: EMP, name: 'Α Β', profession: '', departmentId: DEP, departmentName: 'ΜΕΘ', email: 'same@x.gr', phone: '' },
+      { employeeId: EMP2, name: 'Γ Δ', profession: '', departmentId: DEP, departmentName: 'ΜΕΘ', email: 'same@x.gr', phone: '' },
+    ]
+    const people = planEmployees(twins, {}, [{ id: DEP, name: 'ΜΕΘ' }])
+    expect(people.map(person => person.errors)).toEqual([[], []])
+    expect(markDuplicates(people).map(person => person.errors)).toEqual([['DUPLICATE_IN_FILE'], ['DUPLICATE_IN_FILE']])
+    expect(LIST_ROLES(['department_user', 'division_director', 'laboratory'])).toEqual(['department_user', 'laboratory'])
+    const dialog = read('src/features/platform/ActiveUsersDialog.tsx')
+    expect(dialog).toContain('const list = markDuplicates(listState.people)')
+    expect(dialog).not.toContain('onChange={event => setPasswordMode(event.target.value)}')
   })
 
   it('sends the welcome e-mail only when the owner asked for it', () => {
