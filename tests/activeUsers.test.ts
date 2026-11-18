@@ -386,6 +386,30 @@ describe('no duplicates and the employee list', () => {
     expect(dialog).not.toContain('onChange={event => setPasswordMode(event.target.value)}')
   })
 
+  it('accepts the owner\'s own temporary password only when it is strong, on the server and on the screen', () => {
+    const request = validateActiveUsersRequest({ organizationId: ORG, users: [
+      { fullName: 'Α Β', email: 'a@x.gr', role: 'laboratory', passwordMode: 'custom', password: 'Kalimera-2026' },
+      { fullName: 'Γ Δ', email: 'g@x.gr', role: 'laboratory', passwordMode: 'custom', password: 'short' },
+      { fullName: 'Ε Ζ', email: 'e@x.gr', role: 'laboratory', passwordMode: 'custom' },
+    ] }) as ValidRequest
+    expect(request.rows.map(row => row.errors)).toEqual([[], ['PASSWORD_WEAK'], ['PASSWORD_REQUIRED']])
+    expect(request.rows[0].user).toMatchObject({ passwordMode: 'custom', password: 'Kalimera-2026' })
+    expect(read('supabase/functions/platform-create-active-users/index.ts')).toContain("user.passwordMode==='custom'?user.password:")
+    const person = checkPerson({ fullName: 'Α Β', email: 'a@x.gr', role: 'laboratory', passwordMode: 'custom', password: 'Kalimera-2026' })
+    expect(person.errors).toEqual([])
+    expect(requestUser(person)).toMatchObject({ passwordMode: 'custom', password: 'Kalimera-2026' })
+    expect(checkPerson({ fullName: 'Α Β', email: 'a@x.gr', role: 'laboratory', passwordMode: 'custom', password: 'abc' }).errors).toEqual(['PASSWORD_WEAK'])
+    expect(requestUser(checkPerson({ fullName: 'Α Β', email: 'a@x.gr', role: 'laboratory', password: 'Kalimera-2026' })).password).toBeUndefined()
+    // Excel: a password per row, or the one typed in the window for an empty cell.
+    const plan = planFile([['Ονοματεπώνυμο', 'Email', 'Ρόλος', 'Προσωρινός κωδικός'], ['Α Β', 'a@x.gr', 'Εργαστήριο', 'Diko-mou-2026!'], ['Γ Δ', 'g@x.gr', 'Εργαστήριο', '']], [], false, 'custom', true, 'Koinos-2026!!')
+    expect(plan.people.map(row => row.password)).toEqual(['Diko-mou-2026!', 'Koinos-2026!!'])
+    expect(templateSheet().headers).toContain('Προσωρινός κωδικός')
+    // In the list a weak password typed for all does not grey every row (the create button waits instead).
+    const listed = planEmployees([{ employeeId: EMP, name: 'Α Β', profession: '', departmentId: DEP, departmentName: 'ΜΕΘ', email: '', phone: '' }], {}, [{ id: DEP, name: 'ΜΕΘ' }], 'custom', true, '')
+    expect(listed[0].errors).toEqual(['PASSWORD_REQUIRED'])
+    expect(employeeIssue(listed[0], new Set())).toBe(null)
+  })
+
   it('sends the welcome e-mail only when the owner asked for it', () => {
     const source = read('supabase/functions/platform-create-active-users/index.ts')
     expect(source).toContain('const sendInvite=Boolean(realEmail)&&user.sendInvite')

@@ -11,7 +11,9 @@ export const TEMPORARY_PASSWORD_DAYS=7
 export const temporaryPasswordExpiry=(now:Date=new Date())=>new Date(now.getTime()+TEMPORARY_PASSWORD_DAYS*86400000).toISOString()
 // The roles that see the departments of a division, chosen one by one (not a single department).
 export const DIVISION_ROLES=['division_director']
-export type PasswordMode='random'|'phone'
+export type PasswordMode='random'|'phone'|'custom'
+// «Τον ορίζω εγώ»: the owner's own temporary password must be as strong as the one the user sets later.
+export const strongTemporaryPassword=(p:unknown)=>typeof p==='string'&&p.length>=12&&p.length<=128&&/[A-Z]/.test(p)&&/[a-z]/.test(p)&&/\d/.test(p)&&/[^A-Za-z0-9]/.test(p)
 // A person with a username only gets an Auth address that never receives mail
 // (the reserved .invalid domain): no e-mail is ever sent to it.
 export const SYNTHETIC_EMAIL_DOMAIN='users.limoxis.invalid'
@@ -71,7 +73,7 @@ export function normalizeMobile(value:unknown):string{
 }
 export const isValidMobile=(value:unknown)=>/^69\d{8}$/.test(normalizeMobile(value))
 
-export type ActiveUserInput={line:number,fullName:string,email:string,username:string,role:string|null,roleText:string,departmentId:string|null,departmentName:string,employeeCode:string,phone:string,passwordMode:PasswordMode,divisionId:string|null,divisionName:string,departmentIds:string[],departmentNames:string[],employeeId:string|null,sendInvite:boolean}
+export type ActiveUserInput={line:number,fullName:string,email:string,username:string,role:string|null,roleText:string,departmentId:string|null,departmentName:string,employeeCode:string,phone:string,passwordMode:PasswordMode,password:string,divisionId:string|null,divisionName:string,departmentIds:string[],departmentNames:string[],employeeId:string|null,sendInvite:boolean}
 
 // One person of the request, with the errors that need no database.
 export function normalizeUserRow(raw:unknown,index:number):{user:ActiveUserInput,errors:string[]}{
@@ -88,7 +90,8 @@ export function normalizeUserRow(raw:unknown,index:number):{user:ActiveUserInput
     departmentName:text('departmentName'),
     employeeCode:text('employeeCode',60),
     phone:normalizeMobile(text('phone',40)),
-    passwordMode:r.passwordMode==='phone'?'phone':'random',
+    passwordMode:r.passwordMode==='phone'?'phone':r.passwordMode==='custom'?'custom':'random',
+    password:r.passwordMode==='custom'?String(r.password??'').slice(0,128):'',
     divisionId:isUuid(r.divisionId)?String(r.divisionId).toLowerCase():null,
     divisionName:text('divisionName',120).replace(/\s+/g,' '),
     departmentIds:Array.isArray(r.departmentIds)?[...new Set(r.departmentIds.filter(isUuid).map(id=>String(id).toLowerCase()))].slice(0,200):[],
@@ -110,6 +113,8 @@ export function normalizeUserRow(raw:unknown,index:number):{user:ActiveUserInput
   const phoneText=text('phone',40)
   if(user.passwordMode==='phone'&&!phoneText)errors.push('PHONE_REQUIRED')
   else if(phoneText&&!isValidMobile(phoneText))errors.push('PHONE_INVALID')
+  if(user.passwordMode==='custom'&&!user.password)errors.push('PASSWORD_REQUIRED')
+  else if(user.passwordMode==='custom'&&!strongTemporaryPassword(user.password))errors.push('PASSWORD_WEAK')
   return {user,errors}
 }
 
@@ -119,7 +124,7 @@ export function validateActiveUsersRequest(body:unknown):{ok:true,organizationId
   if(!isUuid(b.organizationId))return {ok:false,code:'ORGANIZATION_REQUIRED'}
   if(!Array.isArray(b.users)||!b.users.length)return {ok:false,code:'USERS_REQUIRED'}
   if(b.users.length>MAX_ACTIVE_USERS_PER_CALL)return {ok:false,code:'TOO_MANY_USERS'}
-  const requestMode=b.passwordMode==='phone'?'phone':'random'
+  const requestMode=b.passwordMode==='phone'?'phone':b.passwordMode==='custom'?'custom':'random'
   const rows=b.users.map((raw,index)=>normalizeUserRow(raw&&typeof raw==='object'&&(raw as Record<string,unknown>).passwordMode==null?{...(raw as object),passwordMode:requestMode}:raw,index))
   // The same e-mail, username, employee, or the same name without a different employee code, twice in one request: both rows are refused.
   const count=new Map<string,number>()

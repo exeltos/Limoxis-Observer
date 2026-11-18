@@ -13,11 +13,12 @@ import type { CheckedPerson, DepartmentChoice, EmployeeChoice, EmployeePick } fr
 // the server's verdict) is greyed and cannot be ticked.
 export type EmployeeListState = { people: CheckedPerson[], selectedCount: number }
 
-export function ActiveUsersEmployeeList({ employees, departments, memberNames, passwordMode, sendInvite, serverIssues, disabled, language, onChange }: {
+export function ActiveUsersEmployeeList({ employees, departments, memberNames, passwordMode, password, sendInvite, serverIssues, disabled, language, onChange }: {
   employees: EmployeeChoice[]
   departments: DepartmentChoice[]
   memberNames: Set<string>
   passwordMode: string
+  password: string
   sendInvite: boolean
   serverIssues: Map<string, string>
   disabled: boolean
@@ -35,7 +36,7 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
   const roleOf = (row: EmployeeChoice) => picks[row.employeeId]?.role || suggestRole(row.profession, defaultRole)
   const effectivePicks = useMemo(() => Object.fromEntries(employees.map(row => [row.employeeId, { role: picks[row.employeeId]?.role || suggestRole(row.profession, defaultRole), departmentId: picks[row.employeeId]?.departmentId || null }])), [employees, picks, defaultRole])
   // Every row checked as it would be sent, so that the issue is shown before anything is created.
-  const checked = useMemo(() => planEmployees(employees, effectivePicks, departments, passwordMode, sendInvite), [employees, effectivePicks, departments, passwordMode, sendInvite])
+  const checked = useMemo(() => planEmployees(employees, effectivePicks, departments, passwordMode, sendInvite, password), [employees, effectivePicks, departments, passwordMode, sendInvite, password])
   const issueOf = useMemo(() => {
     const map = new Map<string, string | null>()
     checked.forEach(person => map.set(person.employeeId as string, serverIssues.get(person.employeeId as string) || employeeIssue(person, memberNames)))
@@ -53,7 +54,7 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
   // The parent gets the ticked rows that pass the checks (a row with an issue is never sent),
   // again whenever a role, the password, the invitation or the server's verdict changes one.
   const currentPeople = checked.filter(person => selected.has(person.employeeId as string) && !issueOf.get(person.employeeId as string))
-  const signature = currentPeople.map(person => `${person.employeeId}:${person.role}:${person.departmentId}:${person.passwordMode}:${person.sendInvite}`).join('|')
+  const signature = currentPeople.map(person => `${person.employeeId}:${person.role}:${person.departmentId}:${person.passwordMode}:${person.password}:${person.sendInvite}`).join('|')
   useEffect(() => {
     onChange({ people: currentPeople, selectedCount: currentPeople.length })
     // eslint-disable-next-line react-hooks/exhaustive-deps

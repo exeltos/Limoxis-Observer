@@ -75,8 +75,8 @@ async function createOne(admin:Admin,org:Org,ctx:PlanContext,row:Row,caller:{id:
   // «Αποστολή πρόσκλησης με email»: the welcome e-mail (without the password) only when the owner asked for it.
   const sendInvite=Boolean(realEmail)&&user.sendInvite
   const authEmail=realEmail||syntheticEmail(username)
-  // The owner's choice: the person's mobile number (changed at the first sign-in) or a random one.
-  const temporaryPassword=user.passwordMode==='phone'?user.phone:generateTemporaryPassword()
+  // The owner's choice (changed at the first sign-in): their own password, the person's mobile number, or a random one.
+  const temporaryPassword=user.passwordMode==='custom'?user.password:user.passwordMode==='phone'?user.phone:generateTemporaryPassword()
   const expiresAt=temporaryPasswordExpiry()
   const {data:created,error:createError}=await admin.auth.admin.createUser({email:authEmail,password:temporaryPassword,email_confirm:true,user_metadata:{full_name:user.fullName,username,role,role_label:ROLE_LABELS[role]||role,organization_id:org.id,organization_name:org.name,invited_by:caller.name,is_platform_owner:false,created_active:true}})
   if(createError||!created?.user)return {line:user.line,status:'failed',code:activeUserFailureCode(createError)}

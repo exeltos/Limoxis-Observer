@@ -76,3 +76,9 @@
 .active-users-list-role{white-space:nowrap}
 .active-users-dialog .active-users>*{flex-shrink:0}
 .active-users-dialog .active-users>.active-users-list-wrap{flex-shrink:1}
+.active-users-options .active-users-custom-password{flex:none;width:240px;font-family:Consolas,Menlo,monospace}
+.active-users-options-password>span{white-space:nowrap}
+.active-users-options-password{flex-wrap:wrap}
+.active-users-options-password small{flex-basis:100%}
+.active-users-options-password small{font-size:11.5px;font-weight:400;color:var(--lo-color-muted)}
+.active-users-options-password small.active-users-password-weak{color:var(--text-danger)}

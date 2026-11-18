@@ -7,7 +7,9 @@ import { ROLE_LABELS, SYSTEM_ROLE_KEYS } from '../../core/permissions/roleLabels
 const ROLE_NAMES = ROLE_LABELS as Record<string, { el: string, en: string }>
 // Τμήμα όπως το δίνει η οθόνη ή η βάση: [{id, name, nameEn?}].
 export type DepartmentChoice = { id: string, name: string, nameEn?: string | null, is_active?: boolean | null }
-export type PasswordMode = 'random' | 'phone'
+export type PasswordMode = 'random' | 'phone' | 'custom'
+// «Τον ορίζω εγώ»: at least 12 characters with an upper- and lower-case letter, a digit and a symbol (as on the server).
+export const strongTemporaryPassword = (value: unknown) => typeof value === 'string' && value.length >= 12 && value.length <= 128 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value)
 // Ένα πρόσωπο όπως το δίνει η φόρμα ή μια γραμμή του αρχείου (πριν τον έλεγχο).
 export type PersonInput = {
   line?: number
@@ -20,6 +22,7 @@ export type PersonInput = {
   employeeCode?: string
   phone?: string
   passwordMode?: string
+  password?: string
   divisionName?: string
   departmentIds?: string[]
   divisionDepartments?: string
@@ -39,6 +42,7 @@ export type CheckedPerson = {
   employeeCode: string
   phone: string
   passwordMode: PasswordMode
+  password: string
   divisionName: string
   departmentIds: string[]
   employeeId: string | null
@@ -90,6 +94,8 @@ const COLUMNS: [string, string, string, string[]][] = [
   ['phone', 'Κινητό', 'Mobile', ['κινητο τηλεφωνο', 'τηλεφωνο', 'mobile phone', 'phone']],
   ['division', 'Διεύθυνση', 'Division', ['διευθυνση διευθυντη']],
   ['divisionDepartments', 'Τμήματα που βλέπει', 'Departments seen', ['τμηματα διευθυνσης', 'τμηματα διευθυντη']],
+  // Used with «Τον ορίζω εγώ»: a password per row; an empty cell takes the one typed in the window.
+  ['password', 'Προσωρινός κωδικός', 'Temporary password', ['password', 'κωδικος προσβασης']],
 ]
 const REQUIRED_COLUMNS = ['fullName', 'role']
 
@@ -119,14 +125,14 @@ export function templateSheet(en = false) {
     headers: COLUMNS.map(column => (en ? column[2] : column[1])),
     rows: en
       ? [
-          ['Maria Papadopoulou', 'm.papadopoulou@example.org', '', 'Department User', 'ICU', '1001', '6912345678', '', ''],
-          ['Georgios Nikolaou', '', 'GNikolaou', 'Laboratory', '', '', '', '', ''],
-          ['Eleni Ioannou', '', 'EIoannou', 'Division Director', '', '', '6987654321', 'Nursing Service', 'ICU; Surgery'],
+          ['Maria Papadopoulou', 'm.papadopoulou@example.org', '', 'Department User', 'ICU', '1001', '6912345678', '', '', ''],
+          ['Georgios Nikolaou', '', 'GNikolaou', 'Laboratory', '', '', '', '', '', ''],
+          ['Eleni Ioannou', '', 'EIoannou', 'Division Director', '', '', '6987654321', 'Nursing Service', 'ICU; Surgery', ''],
         ]
       : [
-          ['Μαρία Παπαδοπούλου', 'm.papadopoulou@example.org', '', 'Χρήστης Τμήματος', 'ΜΕΘ', '1001', '6912345678', '', ''],
-          ['Γεώργιος Νικολάου', '', 'GNikolaou', 'Εργαστήριο', '', '', '', '', ''],
-          ['Ελένη Ιωάννου', '', 'EIoannou', 'Διευθυντής Διεύθυνσης', '', '', '6987654321', 'Νοσηλευτική Υπηρεσία', 'ΜΕΘ; Χειρουργική'],
+          ['Μαρία Παπαδοπούλου', 'm.papadopoulou@example.org', '', 'Χρήστης Τμήματος', 'ΜΕΘ', '1001', '6912345678', '', '', ''],
+          ['Γεώργιος Νικολάου', '', 'GNikolaou', 'Εργαστήριο', '', '', '', '', '', ''],
+          ['Ελένη Ιωάννου', '', 'EIoannou', 'Διευθυντής Διεύθυνσης', '', '', '6987654321', 'Νοσηλευτική Υπηρεσία', 'ΜΕΘ; Χειρουργική', ''],
         ],
   }
 }
@@ -155,7 +161,8 @@ export function checkPerson(raw: PersonInput, departments: DepartmentChoice[] = 
   const employeeCode = String(raw.employeeCode ?? '').trim()
   const phoneText = String(raw.phone ?? '').trim()
   const phone = normalizeMobile(phoneText)
-  const passwordMode: PasswordMode = raw.passwordMode === 'phone' ? 'phone' : 'random'
+  const passwordMode: PasswordMode = raw.passwordMode === 'phone' ? 'phone' : raw.passwordMode === 'custom' ? 'custom' : 'random'
+  const password = passwordMode === 'custom' ? String(raw.password ?? '') : ''
   const divisionName = String(raw.divisionName ?? '').trim().replace(/\s+/g, ' ')
   // A division director: the departments chosen in the form (ids) or named in the file.
   const chosenIds = Array.isArray(raw.departmentIds) ? raw.departmentIds : []
@@ -177,6 +184,8 @@ export function checkPerson(raw: PersonInput, departments: DepartmentChoice[] = 
   else if (role && needsDepartment(role) && !department && !employeeCode) errors.push('DEPARTMENT_REQUIRED')
   if (passwordMode === 'phone' && !phoneText) errors.push('PHONE_REQUIRED')
   else if (phoneText && !isValidMobile(phoneText)) errors.push('PHONE_INVALID')
+  if (passwordMode === 'custom' && !password) errors.push('PASSWORD_REQUIRED')
+  else if (passwordMode === 'custom' && !strongTemporaryPassword(password)) errors.push('PASSWORD_WEAK')
   return {
     line: raw.line || 1,
     fullName,
@@ -189,6 +198,7 @@ export function checkPerson(raw: PersonInput, departments: DepartmentChoice[] = 
     employeeCode,
     phone,
     passwordMode,
+    password,
     divisionName,
     departmentIds: isDivisionRole(role) ? departmentIds : [],
     employeeId: raw.employeeId || null,
@@ -206,7 +216,7 @@ export function markDuplicates(people: CheckedPerson[]) {
 }
 
 // The rows of the file ([header, ...rows]) as people; empty rows are left out.
-export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[] = [], en = false, passwordMode = 'random', sendInvite = true): FilePlan {
+export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[] = [], en = false, passwordMode = 'random', sendInvite = true, password = ''): FilePlan {
   const [header = [], ...body] = rows
   const columns = mapHeaders(header)
   const missing = REQUIRED_COLUMNS.filter(key => columns[key] == null)
@@ -215,7 +225,7 @@ export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[]
   const cell = (row: unknown[], key: string) => (columns[key] == null ? '' : String(row[columns[key]] ?? '').trim())
   const filled = body.map((row, index) => ({ row, line: index + 2 })).filter(({ row }) => row.some(value => String(value ?? '').trim()))
   const people = filled.slice(0, MAX_FILE_ROWS).map(({ row, line }) =>
-    checkPerson({ line, fullName: cell(row, 'fullName'), email: cell(row, 'email'), username: cell(row, 'username'), role: cell(row, 'role'), department: cell(row, 'department'), employeeCode: cell(row, 'employeeCode'), phone: cell(row, 'phone'), passwordMode, divisionName: cell(row, 'division'), divisionDepartments: cell(row, 'divisionDepartments'), sendInvite }, departments),
+    checkPerson({ line, fullName: cell(row, 'fullName'), email: cell(row, 'email'), username: cell(row, 'username'), role: cell(row, 'role'), department: cell(row, 'department'), employeeCode: cell(row, 'employeeCode'), phone: cell(row, 'phone'), passwordMode, divisionName: cell(row, 'division'), divisionDepartments: cell(row, 'divisionDepartments'), sendInvite, password: cell(row, 'password') || password }, departments),
   )
   return { missingColumns: [], people: markDuplicates(people), tooMany: filled.length > MAX_FILE_ROWS }
 }
@@ -231,7 +241,8 @@ export const requestUser = (person: CheckedPerson) => ({
   departmentName: person.departmentId ? undefined : person.departmentName || undefined,
   employeeCode: person.employeeCode || undefined,
   phone: person.phone || undefined,
-  passwordMode: person.passwordMode === 'phone' ? 'phone' : undefined,
+  passwordMode: person.passwordMode === 'phone' || person.passwordMode === 'custom' ? person.passwordMode : undefined,
+  password: person.passwordMode === 'custom' ? person.password : undefined,
   divisionName: person.divisionName || undefined,
   departmentIds: person.departmentIds?.length ? person.departmentIds : undefined,
   employeeId: person.employeeId || undefined,
@@ -271,6 +282,8 @@ const ERRORS: Record<string, [string, string]> = {
   NAME_TAKEN: ['Υπάρχει ήδη χρήστης με αυτό το όνομα', 'A user with this name already exists'],
   PHONE_REQUIRED: ['Ο κωδικός είναι το κινητό: λείπει ο αριθμός', 'The password is the mobile number: the number is missing'],
   PHONE_INVALID: ['Μη έγκυρο κινητό (10 ψηφία, ξεκινά από 69)', 'Invalid mobile number (10 digits starting with 69)'],
+  PASSWORD_REQUIRED: ['Γράψτε τον κωδικό', 'Type the password'],
+  PASSWORD_WEAK: ['Ο κωδικός θέλει τουλάχιστον 12 χαρακτήρες, με κεφαλαίο, πεζό, αριθμό και σύμβολο', 'The password needs at least 12 characters with an upper- and lower-case letter, a digit and a symbol'],
   DIVISION_REQUIRED: ['Ο ρόλος χρειάζεται διεύθυνση', 'The role needs a division'],
   DIVISION_NOT_FOUND: ['Η διεύθυνση δεν βρέθηκε', 'Division not found'],
   DEPARTMENTS_REQUIRED: ['Επιλέξτε τα τμήματα που θα βλέπει', 'Choose the departments they will see'],
@@ -315,11 +328,11 @@ export function suggestRole(profession: unknown, fallback: string) {
 }
 
 // The employees of the list as people to check and create (line = position in the list, from 1).
-export function planEmployees(choices: EmployeeChoice[], picks: Record<string, EmployeePick>, departments: DepartmentChoice[] = [], passwordMode = 'random', sendInvite = true): CheckedPerson[] {
+export function planEmployees(choices: EmployeeChoice[], picks: Record<string, EmployeePick>, departments: DepartmentChoice[] = [], passwordMode = 'random', sendInvite = true, password = ''): CheckedPerson[] {
   const people = choices.map((choice, index) => {
     const pick = picks[choice.employeeId] || { role: 'department_user' }
     const departmentId = pick.departmentId || (choice.departmentId && departments.some(row => row.id === choice.departmentId) ? choice.departmentId : null)
-    return checkPerson({ line: index + 1, fullName: choice.name, email: choice.email, role: pick.role, departmentId, department: '', phone: choice.phone, passwordMode, employeeId: choice.employeeId, sendInvite }, departments)
+    return checkPerson({ line: index + 1, fullName: choice.name, email: choice.email, role: pick.role, departmentId, department: '', phone: choice.phone, passwordMode, password, employeeId: choice.employeeId, sendInvite }, departments)
   })
   // No e-mail: the username is made on the server; the employee link is the identity. Duplicates are
   // checked only among the people actually sent (markDuplicates at «Δημιουργία»), not the whole list.
@@ -330,7 +343,9 @@ export function planEmployees(choices: EmployeeChoice[], picks: Record<string, E
 // the mobile missing when it is the password, or a department role without a department.
 export function employeeIssue(person: CheckedPerson, memberNames: Set<string>) {
   if (memberNames.has(fold(person.fullName))) return 'NAME_TAKEN'
-  if (person.errors.length) return person.errors[0]
+  // The password typed for all is checked beside its field, not on every row.
+  const errors = person.errors.filter(code => code !== 'PASSWORD_REQUIRED' && code !== 'PASSWORD_WEAK')
+  if (errors.length) return errors[0]
   if (needsDepartment(person.role) && !person.departmentId) return 'DEPARTMENT_REQUIRED'
   return null
 }
