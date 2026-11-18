@@ -119,11 +119,11 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   // «Εκτύπωση / PDF» (owner, 18/11/2026): the shared document (real text, not a picture of the screen), after
   // the owner chooses the period to compare with.
   function exportPdf() { setPrintOpen(true) }
-  function printIndicators({ compare, from, to, word }: RegisterPrintChoice) {
+  function printIndicators({ compare, detail, from, to, word }: RegisterPrintChoice) {
     const other = comparePeriod(compare, period, { from, to })
     const inPeriod = entries.filter(entry => { const day = String(entry.entryDate || '').slice(0, 10); return day >= period.from && day <= period.to }).length
     const categoryLabel = category === 'all' ? '' : textOf(categories.find((option: FieldOption) => option.value === category) || { label: category }, language)
-    const doc = indicatorsDocument({ register, rows: report, period, language, entries: register.kind === 'case' ? inPeriod : undefined, department: en ? register.departmentEn || register.department : register.department, category: categoryLabel, notes, comparisons: other ? [comparisonFor(register, entries, other, language)] : [] })
+    const doc = indicatorsDocument({ register, rows: report, period, language, entries: register.kind === 'case' ? inPeriod : undefined, department: en ? register.departmentEn || register.department : register.department, category: categoryLabel, notes, comparisons: other ? [comparisonFor(register, entries, other, language)] : [], detail })
     setPrintOpen(false)
     if (word) { downloadReportWord(doc); return }
     if (!printReport(doc)) notifyError(new Error(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'), 'export', { operation: 'register_indicators_print' })

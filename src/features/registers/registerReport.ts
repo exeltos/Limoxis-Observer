@@ -23,7 +23,12 @@ export type IndicatorsDocumentInput = {
   notes?: Record<string, string>
   // The period the owner compares with (owner, 18/11/2026): none, or any period, each as a column with its results.
   comparisons?: ReportComparison[]
+  // «Συνοπτική»: indicator, value and comparisons; «Αναλυτική»: also numerator/denominator, target and assessment.
+  detail?: ReportDetail
 }
+export type ReportDetail = 'summary' | 'full'
+export const REPORT_DETAILS: ReportDetail[] = ['summary', 'full']
+export const detailLabel = (value: ReportDetail, language = 'el') => (language === 'en' ? { summary: 'Summary', full: 'Detailed' } : { summary: 'Συνοπτική', full: 'Αναλυτική' })[value]
 // One comparison column: its title (e.g. «2ο τρίμηνο 2026») and each indicator's result in that period.
 export type ReportComparison = { label: string, results: Record<string, IndicatorResult | undefined> }
 // The choices of the print dialog.
@@ -55,7 +60,7 @@ export function changeText(now: number | null | undefined, before: number | null
 export const targetText = (indicator: RegisterIndicator, language = 'el') =>
   indicator.target == null || indicator.target === '' ? '' : `${indicator.direction === 'higher' ? '≥' : '≤'} ${formatIndicatorValue(Number(indicator.target), indicator, language)}`
 
-function indicatorRow(row: ReportIndicatorRow, language: string, notes: Record<string, string>, comparisons: ReportComparison[]): ReportCell[] {
+function indicatorRow(row: ReportIndicatorRow, language: string, notes: Record<string, string>, comparisons: ReportComparison[], full: boolean): ReportCell[] {
   const { indicator, current } = row
   const ratio = current.numerator != null && current.denominator != null && ['percent', 'rate', 'smr'].includes(indicator.aggregation)
     ? `${current.numerator} / ${current.denominator}${indicator.aggregation === 'rate' ? (language === 'en' ? ' days' : ' ημ.') : ''}`
@@ -66,31 +71,35 @@ function indicatorRow(row: ReportIndicatorRow, language: string, notes: Record<s
   return [
     { html: name },
     { text: valueText(current, indicator, language), align: 'right' },
-    { text: ratio || '—', align: 'right', className: 'rd-muted' },
+    ...(full ? [{ text: ratio || '—', align: 'right', className: 'rd-muted' }] : []),
     ...comparisons.map(comparison => {
       const other = comparison.results[indicator.id]
       return { text: other ? [formatIndicatorValue(other.value, indicator, language), changeText(current.value, other.value, indicator, language)].filter(Boolean).join(' · ') : '—', align: 'right' }
     }),
-    targetText(indicator, language) || '—',
-    { text: status, className: STATUS_CLASS[current.status || ''] || '' },
+    ...(full ? [targetText(indicator, language) || '—', { text: status, className: STATUS_CLASS[current.status || ''] || '' }] : []),
   ]
 }
 
 // The indicators of a period as a document: those with a target or a direction first, then those for context.
-export function indicatorsDocument({ register, rows, period, language = 'el', entries, department, category, notes = {}, comparisons = [] }: IndicatorsDocumentInput): ReportDoc {
+export function indicatorsDocument({ register, rows, period, language = 'el', entries, department, category, notes = {}, comparisons = [], detail = 'full' }: IndicatorsDocumentInput): ReportDoc {
+  const full = detail === 'full'
   const en = language === 'en'
   const name = en ? register.nameEn || register.name : register.name
-  const columns = [
-    en ? 'Indicator' : 'Δείκτης', en ? 'Value' : 'Τιμή', en ? 'Numerator / denominator' : 'Αριθμητής / παρονομαστής',
-    ...comparisons.map(comparison => comparison.label),
-    en ? 'Target' : 'Στόχος', en ? 'Assessment' : 'Αξιολόγηση',
+  // Fixed widths, the same in every table of the document, so that the columns line up (owner, 18/11/2026).
+  const others: [string, number][] = [
+    [en ? 'Value' : 'Τιμή', 13],
+    ...(full ? [[en ? 'Numerator / denominator' : 'Αριθμητής / παρονομαστής', 13] as [string, number]] : []),
+    ...comparisons.map(comparison => [comparison.label, 15] as [string, number]),
+    ...(full ? [[en ? 'Target' : 'Στόχος', 12], [en ? 'Assessment' : 'Αξιολόγηση', 12]] as [string, number][] : []),
   ]
+  const nameWidth = Math.max(28, 100 - others.reduce((sum, [, width]) => sum + width, 0))
+  const columns: ReportCell[] = [{ text: en ? 'Indicator' : 'Δείκτης', width: `${nameWidth}%` }, ...others.map(([text, width]) => ({ text, width: `${width}%` }))]
   const withTarget = rows.filter(row => judged(row.indicator))
   const context = rows.filter(row => !judged(row.indicator))
   const count = (status: string) => rows.filter(row => row.current.status === status).length
   const sections: ReportSection[] = [
-    { title: en ? 'With a target or a direction' : 'Με στόχο ή κατεύθυνση', table: { columns, rows: withTarget.map(row => indicatorRow(row, language, notes, comparisons)), empty: en ? 'No indicator with a target.' : 'Κανένας δείκτης με στόχο.' } },
-    { title: en ? 'For context' : 'Πληροφοριακοί', table: { columns, rows: context.map(row => indicatorRow(row, language, notes, comparisons)), empty: en ? 'No indicator for context.' : 'Κανένας πληροφοριακός δείκτης.' } },
+    { title: en ? 'With a target or a direction' : 'Με στόχο ή κατεύθυνση', table: { columns, rows: withTarget.map(row => indicatorRow(row, language, notes, comparisons, full)), empty: en ? 'No indicator with a target.' : 'Κανένας δείκτης με στόχο.' } },
+    { title: en ? 'For context' : 'Πληροφοριακοί', table: { columns, rows: context.map(row => indicatorRow(row, language, notes, comparisons, full)), empty: en ? 'No indicator for context.' : 'Κανένας πληροφοριακός δείκτης.' } },
   ].filter(section => section.table.rows.length)
   sections.push({
     title: en ? 'How to read it' : 'Πώς διαβάζεται',
@@ -113,7 +122,7 @@ export function indicatorsDocument({ register, rows, period, language = 'el', en
       ...(category ? [[en ? 'Patients' : 'Ασθενείς', category] as [string, string]] : []),
       ...(entries != null ? [[en ? 'Entries in the period' : 'Εγγραφές περιόδου', String(entries)] as [string, string]] : []),
       [en ? 'Compared with' : 'Σύγκριση με', comparisons.length ? comparisons.map(comparison => comparison.label).join(' · ') : (en ? 'No comparison' : 'Χωρίς σύγκριση')],
-      [en ? 'Assessment' : 'Αξιολόγηση', en ? `${count('onTarget')} on target · ${count('attention')} below target · ${count('breach')} past the limit` : `${count('onTarget')} εντός στόχου · ${count('attention')} εκτός στόχου · ${count('breach')} πέρα από το όριο`],
+      ...(full ? [[en ? 'Assessment' : 'Αξιολόγηση', en ? `${count('onTarget')} on target · ${count('attention')} below target · ${count('breach')} past the limit` : `${count('onTarget')} εντός στόχου · ${count('attention')} εκτός στόχου · ${count('breach')} πέρα από το όριο`]] as [string, string][] : []),
     ],
     sections,
     signatures: en ? ['Prepared by', 'Reviewed by'] : ['Συντάχθηκε', 'Ελέγχθηκε'],
