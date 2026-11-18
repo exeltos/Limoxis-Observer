@@ -2,7 +2,7 @@ import { supabase as configuredClient, type Cloud } from '../../../core/supabase
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
-import { cleanAnswers, isSurveyOpen, nextSurveyCode, surveyFromTemplate, type Survey, type SurveyQuestion, type SurveyResponse } from './surveyModel'
+import { KITCHEN_VIEW_ID, cleanAnswers, isSurveyOpen, kitchenResponses, kitchenView, nextSurveyCode, surveyFromTemplate, type Survey, type SurveyQuestion, type SurveyResponse } from './surveyModel'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
 import type { Tables } from '../../../core/supabase/database.types'
 import type { PublicSurvey, SurveyAnswers, SurveyDepartment, SurveyListItem, SurveySection } from './surveyTypes'
@@ -146,7 +146,7 @@ async function departmentNames(organizationId: string | null | undefined) {
 // --- API ----------------------------------------------------------------------------
 
 // The surveys the user may see, with how many responses each has (all, and in the last 30 days).
-export async function loadSurveys(organizationId: string | null | undefined): Promise<SurveyListItem[]> {
+async function loadOwnSurveys(organizationId: string | null | undefined): Promise<SurveyListItem[]> {
   const since = new Date(Date.now() - 30 * 86400000).toISOString()
   if (isLocal()) {
     const state = local()
@@ -172,7 +172,15 @@ export async function loadSurveys(organizationId: string | null | undefined): Pr
   }))
 }
 
+// The questionnaires, with «Ικανοποίηση Κουζίνας» last when a patient questionnaire has «Φαγητό» questions (owner, 18/11/2026).
+export async function loadSurveys(organizationId: string | null | undefined): Promise<SurveyListItem[]> {
+  const own = await loadOwnSurveys(organizationId)
+  const kitchen = kitchenView(own)
+  return kitchen ? [...own, kitchen] : own
+}
+
 export async function loadSurvey(organizationId: string | null | undefined, id: string): Promise<Survey | null> {
+  if (id === KITCHEN_VIEW_ID) return kitchenView(await loadOwnSurveys(organizationId))
   if (isLocal()) return local().surveys.find(survey => survey.id === id || survey.code === id) || null
   // By id, or by its code (a corrective action keeps the survey's code).
   const row = must(await supabase.from('quality_surveys').select('*').eq(isUuid(id) ? 'id' : 'code', id).eq('organization_id', organizationId as string).maybeSingle())
@@ -181,6 +189,13 @@ export async function loadSurvey(organizationId: string | null | undefined, id: 
 
 // The responses the user may read (Quality all, a department its own).
 export async function loadResponses(organizationId: string | null | undefined, surveyId: string): Promise<SurveyResponse[]> {
+  if (surveyId === KITCHEN_VIEW_ID) {
+    const kitchen = kitchenView(await loadOwnSurveys(organizationId))
+    if (!kitchen) return []
+    const ids = kitchen.questions.map(question => question.id)
+    const all = (await Promise.all((kitchen.sources || []).map(id => loadResponses(organizationId, id)))).flat()
+    return kitchenResponses(all, ids).sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))
+  }
   if (isLocal()) return local().responses.filter(response => response.surveyId === surveyId).map(named).sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))
   const [rows, names] = await Promise.all([(async () => {
     const all = []
