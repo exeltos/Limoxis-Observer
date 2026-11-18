@@ -64,6 +64,9 @@ export interface Survey extends SurveyContent {
   publicToken: string
   createdAt?: string
   updatedAt?: string
+  // «Ικανοποίηση Κουζίνας» (owner, 18/11/2026): read-only, made from the «Φαγητό» answers of the patient questionnaires.
+  derived?: boolean
+  sources?: string[]
 }
 // A survey of the list, with how many responses it has (all, and in the last 30 days).
 export interface SurveyListItem extends Survey { responseCount: number, recentCount: number }

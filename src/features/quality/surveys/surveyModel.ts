@@ -419,3 +419,36 @@ export function answerText(question: SurveyQuestion, answer: unknown, language =
   if (question.type === 'multiple') return (Array.isArray(answer) ? answer : [answer]).map(item => textOf((question.options || []).find(option => option.value === item), language) || item).join(', ')
   return String(answer)
 }
+
+// «Ικανοποίηση Κουζίνας» (owner, 18/11/2026): the kitchen as a questionnaire of its own, made from the «Φαγητό»
+// questions of every patient questionnaire (a ward's, a maternity floor's). Read-only: its questions and answers
+// stay in their questionnaires; a questionnaire made from the kitchen template is listed as itself.
+export const KITCHEN_VIEW_ID = 'kitchen-satisfaction'
+export const isKitchenSource = (survey: Pick<Survey, 'audience' | 'templateKey' | 'questions'>) =>
+  survey.audience === 'patients' && survey.templateKey !== 'kitchen' && (survey.questions || []).some(question => question.section === 'food')
+export function kitchenView<T extends Survey & { responseCount?: number, recentCount?: number }>(surveys: T[] = []): (Survey & { responseCount: number, recentCount: number }) | null {
+  const sources = surveys.filter(isKitchenSource)
+  if (!sources.length) return null
+  const questions: SurveyQuestion[] = []
+  for (const survey of sources) for (const question of survey.questions) if (question.section === 'food' && !questions.some(item => item.id === question.id)) questions.push({ ...question, showWhen: null })
+  const opens = sources.map(survey => survey.opensOn).filter(Boolean).sort()[0] || ''
+  return {
+    id: KITCHEN_VIEW_ID, code: 'SRV-KITCHEN', templateKey: '', audience: 'patients',
+    title: 'Ικανοποίηση Κουζίνας', titleEn: 'Kitchen satisfaction',
+    description: 'Οι ερωτήσεις «Φαγητό» όλων των ερωτηματολογίων ασθενών, μαζί.', descriptionEn: 'The «Food» questions of every patient questionnaire, together.',
+    departmentIds: [...new Set(sources.flatMap(survey => survey.departmentIds || []))],
+    sections: [{ key: 'food', label: 'Φαγητό', labelEn: 'Food' }],
+    questions,
+    status: sources.some(survey => survey.status === 'open') ? 'open' : 'closed',
+    opensOn: opens, closesOn: '', targetResponses: '', satisfiedTarget: 80, publicToken: '',
+    derived: true, sources: sources.map(survey => survey.id),
+    responseCount: sources.reduce((sum, survey) => sum + (survey.responseCount || 0), 0),
+    recentCount: sources.reduce((sum, survey) => sum + (survey.recentCount || 0), 0),
+  }
+}
+// The responses of the kitchen view: each response's «Φαγητό» answers only; a response without one is left out.
+export function kitchenResponses<T extends { answers?: SurveyAnswers }>(responses: T[] = [], questionIds: string[]): T[] {
+  return responses
+    .map(response => ({ ...response, answers: Object.fromEntries(Object.entries(response.answers || {}).filter(([key, value]) => questionIds.includes(key) && value !== '' && value != null)) }))
+    .filter(response => Object.keys(response.answers).length > 0)
+}
