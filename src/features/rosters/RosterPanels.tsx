@@ -9,7 +9,7 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { customShifts, kindOf } from './rosterEngine'
 import { IASO_SHIFT_CODES } from './iasoShiftCodes'
 import { headsFirst } from './rosterService'
-import { LEAVES, RULE_FIELDS, SHIFTS, isExtra, type NeedMenu, type RosterView } from './rosterPageModel'
+import { LEAVES, NO_NIGHT_REASONS, RULE_FIELDS, SHIFTS, isExtra, type NeedMenu, type RosterView } from './rosterPageModel'
 
 // A member of the department’s staff: their requests and a new one (the «Τα αιτήματά μου» panel).
 export function RosterMyRequests({ view }: { view: RosterView }) {
@@ -75,11 +75,12 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
             <span />
             <b>{tx('Καθημ.', 'Weekday')}</b>
             <b>{tx('Σ/Κ', 'Weekend')}</b>
+            <b title={tx('Δημόσιες αργίες και η τοπική εορτή· αρχικά όσοι και τα Σ/Κ', 'Public holidays and the local feast; at first as many as on weekends')}>{tx('Αργίες', 'Holidays')}</b>
             {SHIFTS.map(s => (
               <div key={s} className="roster-demand-row">
                 <span>{CODES[s].label}</span>
-                {(['weekday', 'weekend'] as const).map(kind => (
-                  <input key={kind} type="number" min="0" max="20" aria-label={`${CODES[s].label} ${kind === 'weekday' ? tx('καθημερινή', 'weekday') : tx('Σαββατοκύριακο', 'weekend')}`} value={roster.demand?.[kind]?.[s] ?? 0} onChange={event => setDemand(kind, s, event.target.value)} />
+                {(['weekday', 'weekend', 'holiday'] as const).map(kind => (
+                  <input key={kind} type="number" min="0" max="20" aria-label={`${CODES[s].label} ${kind === 'weekday' ? tx('καθημερινή', 'weekday') : kind === 'weekend' ? tx('Σαββατοκύριακο', 'weekend') : tx('αργία', 'holiday')}`} value={(kind === 'holiday' ? roster.demand?.holiday?.[s] ?? roster.demand?.weekend?.[s] : roster.demand?.[kind]?.[s]) ?? 0} onChange={event => setDemand(kind, s, event.target.value)} />
                 ))}
               </div>
             ))}
@@ -144,6 +145,15 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
                 <input type="number" min="0" max="14" aria-label={RULE_LABELS[key]} value={rules[key] as number} onChange={event => setRule(key, event.target.value)} />
               </div>
             ))}
+            <div className="roster-rule">
+              <span>{tx('Μέγιστες ώρες εβδομάδας (μέσος όρος· 0 = χωρίς έλεγχο)', 'Most hours a week (on average; 0 = not checked)')}</span>
+              <input type="number" min="0" max="80" aria-label={tx('Μέγιστες ώρες εβδομάδας', 'Most hours a week')} value={rules.maxWeeklyHours} onChange={event => update({ ...roster, rules: { ...roster.rules, maxWeeklyHours: Math.max(0, Math.min(80, Number(event.target.value) || 0)) } })} />
+            </div>
+            <div className="roster-rule roster-rule-feast">
+              <span>{tx('Τοπική εορτή (ημέρα/μήνας και όνομα)', 'Local feast (day/month and name)')}</span>
+              <input aria-label={tx('Τοπική εορτή: ημέρα/μήνας', 'Local feast: day/month')} placeholder={tx('ΗΗ/ΜΜ', 'DD/MM')} maxLength={5} value={localFeastText(roster.rules?.localHoliday as { date?: string } | undefined)} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), date: localFeastDate(event.target.value) } } })} />
+              <input aria-label={tx('Τοπική εορτή: όνομα', 'Local feast: name')} placeholder={tx('π.χ. Αγίου Αχιλλίου', 'e.g. Saint Achillios')} maxLength={60} value={(roster.rules?.localHoliday as { name?: string } | undefined)?.name || ''} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), name: event.target.value } } })} />
+            </div>
             <p className="roster-muted">{tx('Πάντα: όχι απόγευμα → πρωί (11 ώρες ανάπαυση), όχι πρωί/ενδιάμεση → νύχτα· ίσες βάρδιες, νύχτες και Σ/Κ· ρεπό κατά προτίμηση ανά δύο. Με κλικ σε όνομα: ποιες βάρδιες κάνει το άτομο.', 'Always: no afternoon → morning (11 hours of rest), no morning/intermediate → night; even shifts, nights and weekends; days off preferably in pairs. Click a name: the shifts that person works.')}</p>
           </div>
         </section>
@@ -229,6 +239,18 @@ export function RosterPopovers({ view }: { view: RosterView }) {
                     <input type="number" min="0" max="31" placeholder="—" value={member.maxNights ?? ''} onChange={event => setMember(member.employeeId, { maxNights: event.target.value === '' ? undefined : Math.max(0, Math.min(31, Number(event.target.value) || 0)) })} />
                   </label>
                   <label className="roster-limit roster-limit-number">
+                    <span>{tx('Χωρίς νύχτες', 'No nights')}</span>
+                    <select aria-label={tx('Χωρίς νύχτες: λόγος', 'No nights: reason')} value={member.noNights?.reason || ''} onChange={event => setMember(member.employeeId, { noNights: event.target.value ? { ...(member.noNights || {}), reason: event.target.value } : null })}>
+                      <option value="">—</option>
+                      {NO_NIGHT_REASONS.map(reason => <option key={reason} value={reason}>{noNightReason(reason, tx)}</option>)}
+                    </select>
+                  </label>
+                  {member.noNights?.reason && (
+                    <div className="roster-limit roster-limit-date">
+                      <ManualDateField label={tx('Χωρίς νύχτες έως (κενό = πάντα)', 'No nights until (empty = always)')} value={member.noNights.until || ''} onChange={value => setMember(member.employeeId, { noNights: { ...(member.noNights || {}), until: value || undefined } })} optional />
+                    </div>
+                  )}
+                  <label className="roster-limit roster-limit-number">
                     <span>{tx('Απασχόληση %', 'Working time %')}</span>
                     <input type="number" min="10" max="100" step="5" placeholder="100" value={member.percent ?? ''} onChange={event => setMember(member.employeeId, { percent: event.target.value === '' ? undefined : Math.max(10, Math.min(100, Number(event.target.value) || 100)) })} />
                   </label>
@@ -261,4 +283,14 @@ export function RosterPopovers({ view }: { view: RosterView }) {
       )}
     </>
   )
+}
+
+// «Χωρίς νύχτες»: the reason in words.
+export const noNightReason = (reason: string, tx: (el: string, en: string) => string) => ({ pregnancy: tx('Εγκυμοσύνη', 'Pregnancy'), breastfeeding: tx('Θηλασμός', 'Breastfeeding'), medical: tx('Ιατρικός λόγος', 'Medical reason'), other: tx('Άλλο', 'Other') } as Record<string, string>)[reason] || reason
+// The local feast is kept as «MM-DD» and typed as «ΗΗ/ΜΜ».
+const localFeastText = (local: { date?: string } | undefined) => (local?.date ? local.date.split('-').reverse().join('/') : '')
+const localFeastDate = (text: string) => {
+  const match = text.match(/^(\d{1,2})\/(\d{1,2})$/)
+  if (!match) return text.replace(/[^\d/]/g, '')
+  return `${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`
 }

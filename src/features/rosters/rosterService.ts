@@ -6,6 +6,7 @@ import { loadDepartments } from '../management/departmentsService'
 import { loadEmployeesAsync } from '../employees/employeeService'
 import { addDays, seededRandom } from '../../core/data/demoSeed'
 import { generateRoster, periodDays } from './rosterEngine'
+import { markHolidays } from './rosterHolidays'
 
 // A roster as the page keeps it (camelCase, see fromRow), one of its people and a request of theirs.
 export type RosterMember = {
@@ -27,6 +28,9 @@ export type RosterMember = {
   // A number, or empty in rosters saved before the field was cleared to undefined.
   maxNights?: number | string | null
   percent?: number
+  // No nights (pregnancy, breastfeeding, a medical reason…) until a date or always; shifts they must not get on a date.
+  noNights?: { reason?: string, until?: string } | null
+  forbid?: Record<string, string[]>
 }
 // The roster's own settings: the rules changed from the defaults and how the codes are written.
 export type RosterSettings = Partial<RosterRules> & { codes?: string }
@@ -365,7 +369,7 @@ async function buildDemoRosters(organizationId: OrganizationId, departmentId: st
       return { ...m, fixed, wishes }
     })
   const engine = (list: RosterMember[]) => list.map(m => ({ id: m.employeeId, name: m.name, active: m.active !== false, fixed: m.fixed || {}, wishes: m.wishes || {}, extra: Boolean(m.isHead) }))
-  const make = (period: RosterPeriod, list: RosterMember[], history: RosterHistory) => generateRoster({ days: periodDays(period.start, period.end), employees: engine(list), demand, rules: {}, history, seed: seedOf(`roster|${departmentId}|${period.start}`), attempts: 1, iterations: 4000 }).assignments
+  const make = (period: RosterPeriod, list: RosterMember[], history: RosterHistory) => generateRoster({ days: markHolidays(periodDays(period.start, period.end)), employees: engine(list), demand, rules: {}, history, seed: seedOf(`roster|${departmentId}|${period.start}`), attempts: 1, iterations: 4000 }).assignments
 
   // The previous period: one person on three days of leave, published five days before it began.
   const previousDays = periodDays(previous.start, previous.end)

@@ -16,7 +16,7 @@
 .roster-panel-rules{display:grid;grid-template-columns:auto minmax(300px,1fr) minmax(340px,400px);align-items:start;gap:28px}
 .roster-col{display:grid;gap:8px;align-content:start}
 .roster-col-title{font-size:11.5px;color:#56677a}
-.roster-demand{display:grid;grid-template-columns:150px 56px 56px;gap:6px;align-items:center;font-size:12.5px}
+.roster-demand{display:grid;grid-template-columns:150px 56px 56px 56px;gap:6px;align-items:center;font-size:12.5px}
 .roster-demand>b{font-size:11.5px;color:#56677a;text-align:center}
 .roster-demand-row{display:contents}
 .roster-demand input,.roster-rule input{width:56px;height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;text-align:center;font:inherit}
@@ -98,7 +98,7 @@
 .roster-need-actions button.is-primary:hover{background:#174f83}
 @media (max-width:1180px){.roster-panel-rules{grid-template-columns:1fr}}
 @media (max-width:900px){.roster-tools{margin-left:0}}
-@media print{.roster-toolbar,.roster-panel,.roster-legend,.roster-violations,.roster-ok,.roster-inactive,.roster-grip,.roster-name input{display:none}.roster-sheet{border:0;padding:0}}
+@media print{.roster-toolbar,.roster-panel,.roster-legend,.roster-violations,.roster-violation-groups,.roster-ok,.roster-inactive,.roster-grip,.roster-name input{display:none}.roster-sheet{border:0;padding:0}}
 .roster-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#c24150;color:#fff;font-size:11px;font-weight:700}
 .roster-count.is-quiet{background:#e3e9f1;color:#1f3348}
 .roster-requests{flex-direction:column;align-items:stretch;gap:8px}
@@ -148,3 +148,22 @@ button.roster-name-text:hover{text-decoration:underline}
 .roster-other>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .roster-rules-dialog .roster-rule select{width:auto;max-width:220px;min-width:0}
 .roster-rules-dialog .roster-panel-rules{grid-template-columns:auto minmax(320px,1fr) minmax(330px,370px)}
+/* Public holidays on the sheet and the rules (owner, 18/11/2026). */
+.roster-grid thead th.is-holiday{color:var(--text-danger)}
+.roster-holiday-tag{display:block;font-size:9px;font-weight:800;line-height:1;letter-spacing:.02em;color:var(--text-danger)}
+.roster-rules-dialog .roster-rule-feast input:first-of-type{width:70px}
+.roster-rules-dialog .roster-rule-feast input:last-of-type{width:170px;text-align:left}
+.roster-limit-number select{height:30px;padding:0 6px;border:1px solid var(--lo-color-border);border-radius:7px;font:inherit;font-size:12.5px}
+.roster-limit-date{padding:2px 6px 6px}
+/* A shift the person must not work that day (hard) or would like (owner, 18/11/2026). */
+.roster-cell.has-forbid{box-shadow:inset 0 -3px 0 var(--text-danger)}
+/* The checks in three groups: hard breaches, shortages, recommendations. */
+.roster-violation-group{margin:10px 0 0}
+.roster-violation-group>strong{display:block;font-size:12.5px;margin-bottom:4px}
+.roster-violation-group.is-hard>strong{color:var(--text-danger)}
+.roster-violation-group.is-coverage>strong{color:var(--lo-status-warning-fg)}
+.roster-violation-group.is-advice>strong{color:var(--lo-color-muted)}
+.roster-violations.is-coverage{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+.roster-violations.is-advice{background:var(--surface-neutral-967);color:var(--lo-color-muted)}
+.roster-forbid-key{box-shadow:inset 0 -3px 0 var(--text-danger)}
+.roster-holiday-key{color:var(--text-danger);font-size:9px;font-weight:800}

@@ -14,6 +14,13 @@ export const RULE_FIELDS = ['maxConsecutive', 'maxConsecutiveNights', 'restAfter
 export const REQUEST_CODE: Record<string, string> = { leave: 'L', sick: 'S', unpaid: 'U', unavailable: 'R' }
 // The head is supernumerary unless set otherwise: not counted in the shifts, there only where the others are short.
 export const isExtra = (m: { extra?: unknown, isHead?: unknown }) => (typeof m.extra === 'boolean' ? m.extra : Boolean(m.isHead))
+// The checks of a roster in three groups (owner, 18/11/2026): hard breaches (red), shifts short of people, and
+// recommendations (a fair share, a weekend off).
+export const HARD_RULES = ['personal', 'maxNights', 'maxConsecutive', 'restHours', 'morningToNight', 'restAfterNight', 'nightsInRow', 'weeklyRest', 'weeklyHours']
+export type ViolationGroup = 'hard' | 'coverage' | 'advice'
+export const violationGroup = (rule: string): ViolationGroup => (rule === 'coverage' ? 'coverage' : HARD_RULES.includes(rule) ? 'hard' : 'advice')
+// «Χωρίς νύχτες»: why (owner, 18/11/2026).
+export const NO_NIGHT_REASONS = ['pregnancy', 'breastfeeding', 'medical', 'other']
 
 // The codes on the sheet: their short form, label and (for the shifts) name.
 export type RosterCodes = Record<string, { short: string, label: string, name?: string }>

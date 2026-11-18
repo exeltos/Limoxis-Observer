@@ -34,8 +34,9 @@ import {
   saveRoster,
   setRosterRequestStatus,
 } from './rosterService'
-import { DEMAND, HOURS, LEAVES, REQUEST_CODE, SHIFTS, isExtra } from './rosterPageModel'
+import { DEMAND, HOURS, LEAVES, REQUEST_CODE, SHIFTS, isExtra, violationGroup } from './rosterPageModel'
 import { RosterSheet } from './RosterSheet'
+import { markHolidays } from './rosterHolidays'
 import { RosterMyRequests, RosterPopovers, RosterRulesDialog } from './RosterPanels'
 import type { Assignments, CustomShift, DemandKind, RosterDay, RosterHistory, ShiftNeed } from './rosterRules'
 import type { Roster, RosterDepartment, RosterMember, RosterRequest } from './rosterService'
@@ -108,6 +109,7 @@ export function RostersPage() {
     balance: tx('Άνιση κατανομή βαρδιών', 'Uneven share of shifts'),
     personal: tx('Βάρδια που το άτομο δεν κάνει', 'A shift the person does not work'),
     maxNights: tx('Πάνω από τις νύχτες που ορίστηκαν για το άτομο', 'More nights than set for the person'),
+    weeklyHours: tx('Πάνω από τις ώρες εβδομάδας', 'More hours a week than allowed'),
   }
   const RULE_LABELS: Record<string, string> = {
     maxConsecutive: tx('Συνεχόμενες βάρδιες, έως (μία φορά +1)', 'Shifts in a row, at most (once +1)'),
@@ -122,7 +124,9 @@ export function RostersPage() {
   const [offset, setOffset] = useState(1)
   const period = useMemo(() => rosterPeriod(new Date(), offset), [offset])
   const previous = useMemo(() => rosterPeriod(new Date(), offset - 1), [offset])
-  const days = useMemo(() => periodDays(period.start, period.end), [period])
+  // Public holidays (and the hospital's local feast) count as weekend days (owner, 18/11/2026).
+  const localHoliday = roster?.rules?.localHoliday as { date?: string, name?: string } | undefined
+  const days = useMemo(() => markHolidays(periodDays(period.start, period.end), localHoliday, language), [period, localHoliday?.date, localHoliday?.name, language]) // eslint-disable-line react-hooks/exhaustive-deps
   const [savedAssignments, setSavedAssignments] = useState<Assignments>({})
   const [history, setHistory] = useState<{ history: RosterHistory, dates: string[] }>({ history: {}, dates: [] })
   const [requests, setRequests] = useState<RosterRequest[]>([])
@@ -134,7 +138,7 @@ export function RostersPage() {
   const [need, setNeed] = useState<{ date: string, shift: string, value: string, top: number, left: number } | null>(null)
   const [limits, setLimits] = useState<{ employeeId: string, top: number, left: number } | null>(null)
   const [panel, setPanel] = useState('')
-  const [leave, setLeave] = useState({ employeeId: '', code: 'L', from: '', to: '' })
+  const [leave, setLeave] = useState({ employeeId: '', code: 'L', from: '', to: '', shift: 'N' })
   const [ask, setAsk] = useState({ kind: 'leave', from: '', to: '', swapEmployeeId: '', swapDate: '', note: '' })
   const [dragId, setDragId] = useState<string | null>(null)
   const [newShift, setNewShift] = useState({ code: '', from: '', to: '' })
@@ -235,7 +239,7 @@ export function RostersPage() {
     void load()
   }, [load])
 
-  const engineEmployees = useMemo(() => (roster?.members || []).map(m => ({ id: m.employeeId, name: m.name, active: m.active !== false, fixed: m.fixed || {}, wishes: m.wishes || {}, allowed: m.allowed, extra: isExtra(m), noWeekends: Boolean(m.noWeekends), maxNights: m.maxNights, percent: m.percent })), [roster])
+  const engineEmployees = useMemo(() => (roster?.members || []).map(m => ({ id: m.employeeId, name: m.name, active: m.active !== false, fixed: m.fixed || {}, wishes: m.wishes || {}, allowed: m.allowed, extra: isExtra(m), noWeekends: Boolean(m.noWeekends), maxNights: m.maxNights, percent: m.percent, noNights: m.noNights || null, forbid: m.forbid || {} })), [roster])
   const rules = useMemo(() => ({ ...DEFAULT_RULES, ...(roster?.rules || {}) }), [roster])
   const violations = useMemo(
     () => (roster ? checkRoster({ days, employees: engineEmployees, assignments: roster.assignments, demand: roster.demand, rules, history: history.history }) : []),
@@ -255,7 +259,8 @@ export function RostersPage() {
     setDirty(true)
   }
   const setMember = (employeeId: string, patch: Partial<RosterMember>) => update({ ...loaded, members: loaded.members.map(m => (m.employeeId === employeeId ? { ...m, ...patch } : m)) })
-  const setDemand = (kind: DemandKind, shift: string, value: unknown) => update({ ...loaded, demand: { ...loaded.demand, [kind]: { ...loaded.demand[kind], [shift]: Math.max(0, Math.min(20, Number(value) || 0)) } } })
+  // A holiday's numbers start from the weekend's (owner, 18/11/2026), so a first change keeps the other shifts.
+  const setDemand = (kind: DemandKind, shift: string, value: unknown) => update({ ...loaded, demand: { ...loaded.demand, [kind]: { ...(kind === 'holiday' ? loaded.demand.holiday || loaded.demand.weekend : loaded.demand[kind]), [shift]: Math.max(0, Math.min(20, Number(value) || 0)) } } })
   const setRule = (key: string, value: unknown) => update({ ...loaded, rules: { ...loaded.rules, [key]: Math.max(0, Math.min(14, Number(value) || 0)) } })
   // The department's other shifts (owner, 9/11/2026): added from the hospital's codes or typed in, with their own
   // people per weekday and weekend day (0 = only by hand).
@@ -326,6 +331,22 @@ export function RostersPage() {
   function addLeave() {
     const dates = datesBetween(leave.from, leave.to, days)
     if (!leave.employeeId || !dates.length) return
+    // «Όχι βάρδια (υποχρεωτικό)» and «Επιθυμία βάρδιας» (owner, 18/11/2026): the shift the person must not or would like to work.
+    if (leave.code === 'forbid' || leave.code === 'wishShift') {
+      update({
+        ...loaded,
+        members: loaded.members.map(m => {
+          if (m.employeeId !== leave.employeeId) return m
+          if (leave.code === 'wishShift') return { ...m, wishes: { ...(m.wishes || {}), ...Object.fromEntries(dates.map(date => [date, leave.shift])) } }
+          const forbid = { ...(m.forbid || {}) }
+          for (const date of dates) forbid[date] = [...new Set([...(forbid[date] || []), leave.shift])]
+          return { ...m, forbid }
+        }),
+      })
+      setLeave(current => ({ ...current, from: '', to: '' }))
+      notify(tx(`Καταχωρίστηκαν ${dates.length} ημέρες.`, `${dates.length} days entered.`), 'success')
+      return
+    }
     const member = loaded.members.find(m => m.employeeId === leave.employeeId)
     const codes = Object.fromEntries(dates.map(date => [date, leave.code === 'wish' ? ((member as RosterMember).wishes?.[date] ? null : 'wish') : leave.code]).filter(([, code]) => code))
     update(withCodes(loaded, leave.employeeId, codes))
@@ -362,7 +383,12 @@ export function RostersPage() {
   }
   async function publish() {
     if (violations.length) {
-      const ok = await confirm({ title: tx('Δημοσίευση προγράμματος', 'Publish roster'), message: tx(`Το πρόγραμμα έχει ${violations.length} θέματα. Δημοσίευση παρ' όλα αυτά;`, `The roster has ${violations.length} issues. Publish anyway?`), confirmLabel: tx('Δημοσίευση', 'Publish') })
+      // Hard breaches apart from shortages and recommendations (owner, 18/11/2026).
+      const hard = violations.filter(v => violationGroup(v.rule) === 'hard').length
+      const short = violations.filter(v => violationGroup(v.rule) === 'coverage').length
+      const soft = violations.length - hard - short
+      const parts = [hard && tx(`${hard} υποχρεωτικές παραβάσεις`, `${hard} hard breaches`), short && tx(`${short} ελλείψεις κάλυψης`, `${short} coverage gaps`), soft && tx(`${soft} συστάσεις`, `${soft} recommendations`)].filter(Boolean).join(' · ')
+      const ok = await confirm({ title: tx('Δημοσίευση προγράμματος', 'Publish roster'), message: tx(`Το πρόγραμμα έχει ${parts}. Δημοσίευση παρ' όλα αυτά;`, `The roster has ${parts}. Publish anyway?`), confirmLabel: tx('Δημοσίευση', 'Publish'), danger: hard > 0 })
       if (!ok) return
     }
     await save({ ...loaded, status: 'published', publishedAt: new Date().toISOString() }, tx('Το πρόγραμμα δημοσιεύτηκε· το βλέπει όλο το τμήμα.', 'The roster was published; the whole department sees it.'))
@@ -449,6 +475,7 @@ export function RostersPage() {
       m.noWeekends ? tx('χωρίς Σ/Κ', 'no weekends') : '',
       m.maxNights !== undefined && m.maxNights !== null && m.maxNights !== '' ? `${tx('έως', 'max')} ${m.maxNights} ${CODES.N.short}` : '',
       Number(m.percent) > 0 && Number(m.percent) < 100 ? `${m.percent}%` : '',
+      m.noNights?.reason ? `${tx('χωρίς νύχτες', 'no nights')}${m.noNights.until ? ` ${tx('έως', 'until')} ${fmtDay(m.noNights.until)}` : ''}` : '',
     ].filter(Boolean).join(' · ')
   const toggle = (name: string) => setPanel(p => (p === name ? '' : name))
 
@@ -609,8 +636,17 @@ export function RostersPage() {
               {LEAVES.map(code => <option key={code} value={code}>{CODES[code].label}</option>)}
               <option value="R">{tx('Ρεπό (δεν μπορεί να εργαστεί)', 'Day off (cannot work)')}</option>
               <option value="wish">{tx('Επιθυμία ρεπό', 'Wishes days off')}</option>
+              <option value="forbid">{tx('Όχι βάρδια (υποχρεωτικό)', 'Not this shift (mandatory)')}</option>
+              <option value="wishShift">{tx('Επιθυμία βάρδιας', 'Wishes a shift')}</option>
             </select>
           </Field>
+          {(leave.code === 'forbid' || leave.code === 'wishShift') && (
+            <Field label={tx('Βάρδια', 'Shift')}>
+              <select value={leave.shift} onChange={event => setLeave(current => ({ ...current, shift: event.target.value }))}>
+                {SHIFTS.map(code => <option key={code} value={code}>{CODES[code].label}</option>)}
+              </select>
+            </Field>
+          )}
           <ManualDateField label={tx('Από', 'From')} value={leave.from} onChange={value => setLeave(current => ({ ...current, from: value }))} />
           <ManualDateField label={tx('Έως', 'Until')} value={leave.to} onChange={value => setLeave(current => ({ ...current, to: value }))} optional />
           <Button onClick={addLeave} disabled={!leave.employeeId || !leave.from}>{tx('Καταχώριση', 'Enter')}</Button>
