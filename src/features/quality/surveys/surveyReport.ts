@@ -119,7 +119,7 @@ export function surveyDocument({ survey, responses, earlier = [], period: chosen
     { text: en ? 'Value' : 'Τιμή', width: 13 },
     { text: en ? 'Chart' : 'Γράφημα', width: full ? 20 : 26 },
     ...(comparedPeriod ? [{ text: comparedLabel, width: 17 }] : []),
-    ...(full ? [{ text: en ? 'Answers' : 'Απαντήσεις', width: 10 }, { text: en ? 'Mean (1–5)' : 'Μέσος (1–5)', width: 10 }] : []),
+    ...(full ? [{ text: en ? 'Answers' : 'Απαντήσεις', width: 10 }, { text: en ? 'Mean' : 'Μέσος', width: 10 }] : []),
   ]
   const nameWidth = Math.max(28, 100 - others.reduce((sum, column) => sum + column.width, 0))
   const columnsFor = (first: string): ReportCell[] => [{ text: first, width: `${nameWidth}%` }, ...others.map(column => ({ text: column.text, width: `${column.width}%` }))]
