@@ -19,12 +19,16 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { exportRegistry } from '../../../core/export/registryExports'
+import { downloadReportWord, printReportLater } from '../../../core/export/reportDocument'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { useDepartments } from '../../management/useLibraries'
-import { addResponse, deleteResponse, deleteSurvey, loadResponses, loadSurvey, saveSurvey } from './surveyService'
+import { addResponse, deleteResponse, deleteSurvey, loadEarlierResponses, loadResponses, loadSurvey, saveSurvey } from './surveyService'
 import { RESPONSE_CHANNELS, answerText, audienceLabel, channelLabel, filterResponses, responsesExport, surveyFromTemplate, surveyProblems, surveyStatusLabel, surveyStatusTone, textOf } from './surveyModel'
 import { SurveyResults, SurveyResultsLine } from './SurveyResults'
+import { SurveyPrintDialog } from './SurveyPrintDialog'
+import type { SurveyPrintChoice } from './SurveyPrintDialog'
+import { surveyDocument } from './surveyReport'
 import { SurveyCollect } from './SurveyCollect'
 import { SurveyEditor } from './SurveyEditor'
 import { SurveyForm, missingAnswers } from './SurveyForm'
@@ -63,6 +67,7 @@ export function SurveyRecordPage() {
   const [filters, setFilters] = useState(NO_FILTERS)
   const [entry, setEntry] = useState<SurveyEntry | null>(null)
   const [page, setPage] = useState(1)
+  const [printing, setPrinting] = useState(false)
 
   const reload = useCallback(async () => {
     if (isNew) { setSurvey(surveyFromTemplate(location.state?.template || 'wards', { hospital: tenant?.name || '' })); return }
@@ -126,6 +131,20 @@ export function SurveyRecordPage() {
     navigate('/quality/capas/new', { state: { qualitySource: { source: 'other', sourceId: `SRV:${survey.code}`, title: en ? `Improve: ${textOf(result.question, 'en')}` : `Βελτίωση: ${textOf(result.question, 'el')}`, description: en ? `Survey ${survey.code} «${textOf(survey, 'en')}»: ${result.satisfied}% satisfied (target ${survey.satisfiedTarget}%), ${result.count} answers.` : `Έρευνα ${survey.code} «${survey.title}»: ${result.satisfied}% ικανοποιημένοι (στόχος ${survey.satisfiedTarget}%), ${result.count} απαντήσεις.` } } })
   }
   const exportResponses = () => exportRegistry(responsesExport(survey, shown, language))
+  // «Εκτύπωση / PDF» of the results: the screen's department, channel and search apply; the dates come from the dialog.
+  // A comparison also reads the hospital's earlier questionnaires of the same kind (e.g. last year's).
+  function printResults(choice: SurveyPrintChoice) {
+    if (!survey) return
+    const screen = { ...filters, from: '', to: '' }
+    const base = filterResponses(responses, screen)
+    const departmentName = (id: string) => { const item = departments.find(row => (row.id || row.name) === id); return item ? (en ? item.nameEn || item.name : item.name) : '' }
+    const words = [filters.department !== 'all' && `${en ? 'Department' : 'Τμήμα'}: ${departmentName(filters.department)}`, filters.channel !== 'all' && `${en ? 'Channel' : 'Τρόπος'}: ${channelLabel(filters.channel, language)}`, filters.query && `${en ? 'Search' : 'Αναζήτηση'}: ${filters.query}`].filter(Boolean) as string[]
+    const build = async () => surveyDocument({ survey, responses: base, earlier: choice.compare === 'none' ? [] : filterResponses(await loadEarlierResponses(tenant?.id, survey), screen), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, departments: (survey.departmentIds || []).map(departmentName).filter(Boolean), filters: words })
+    setPrinting(false)
+    const failed = (error: unknown) => { console.error(error); notify(en ? 'The document could not be prepared.' : 'Το έντυπο δεν ετοιμάστηκε.', 'error') }
+    if (choice.word) { build().then(doc => downloadReportWord(doc)).catch(failed); return }
+    if (!printReportLater(build, { language, onError: failed })) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  }
 
   // A new survey is one page (the questionnaire), without a strip of a single tab.
   const tabs = isNew ? [] : [
@@ -139,7 +158,7 @@ export function SurveyRecordPage() {
   // Header: export of the tab on screen and, for a draft, the main command; the record's «…» (close/reopen, delete) only on
   // the Questions tab, where the questionnaire itself is (owner, 6/11/2026).
   const headerActions = <div className="row-actions">
-    {!isNew && (tab === 'results' || tab === 'responses') && <ExportMenu onPrint={tab === 'results' ? () => window.print() : undefined} onExcel={exportResponses} />}
+    {!isNew && (tab === 'results' || tab === 'responses') && <ExportMenu ownPrint onPrint={tab === 'results' ? () => setPrinting(true) : undefined} onPdf={tab === 'results' ? () => setPrinting(true) : undefined} onExcel={exportResponses} />}
     {/* Collection: the posters of the QR codes, from the header like every other tab's export. */}
     {!isNew && tab === 'collect' && survey.departmentIds?.length > 0 && <ExportMenu items={[{ id: 'posters', kind: 'print', label: survey.departmentIds.length > 1 ? (en ? 'Print every poster' : 'Εκτύπωση όλων των αφισών') : (en ? 'Print the poster' : 'Εκτύπωση αφίσας'), onClick: () => setPrintPosters(value => value + 1) }]} />}
     {!isNew && canManage && !survey.derived && survey.status === 'draft' && <Button disabled={saving} onClick={openSurvey}><Play size={15} />{en ? 'Open the questionnaire' : 'Άνοιγμα ερωτηματολογίου'}</Button>}
@@ -197,6 +216,7 @@ export function SurveyRecordPage() {
     {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'How patients reach the questionnaire from their phone.' : 'Πώς φτάνουν οι ασθενείς στο ερωτηματολόγιο από το κινητό τους.'}>
       <SurveyCollect survey={survey} departments={departments} language={language} canOpen={canManage && !saving} onOpen={openSurvey} printAll={printPosters} />
     </RecordTabPanel>}
+    {printing && <SurveyPrintDialog language={language} from={filters.from} to={filters.to} onPrint={printResults} onClose={() => setPrinting(false)} />}
     {entry && <ResponseEntry survey={survey} entry={entry} setEntry={setEntry} departments={entryDepartments} language={language} onSaved={(response?: SurveyResponse | null) => { setResponses(current => (response ? [response, ...current] : current)); if (!response) void reload() }} tenantId={tenant?.id} />}
   </EntityRecordShell></Page>
 }
