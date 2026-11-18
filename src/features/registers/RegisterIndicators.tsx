@@ -12,7 +12,9 @@ import { KpiFigures } from '../../design-system/KpiCard'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { exportRegistry } from '../../core/export/registryExports'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { downloadReportWord, printReport } from '../../core/export/reportDocument'
+import { comparePeriod, comparisonFor, indicatorsDocument } from './registerReport'
+import { RegisterPrintDialog, type RegisterPrintChoice } from './RegisterPrintDialog'
 import { PERIODS, breakdown, isActiveCensus, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodLength, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey } from './registerThemes'
@@ -70,7 +72,8 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
     if (!days.some(day => day >= shown.from && day <= shown.to)) setMonth(latest.slice(0, 7))
   }, [allEntries]) // eslint-disable-line react-hooks/exhaustive-deps
   const [openId, setOpenId] = useState<string | null>(null)
-  const [exporting, setExporting] = useState(false)
+  const [exporting] = useState(false)
+  const [printOpen, setPrintOpen] = useState(false)
   // The cards above the table filter it by status; the search and the sort work on the shown rows.
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [sort, setSort] = useState<{ key: string | null, dir: string }>({ key: null, dir: 'asc' })
@@ -113,12 +116,17 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   function exportCsv() {
     exportRegistry({ name: `${register.code}_${period.from}_${period.to}`, headers: en ? ['Indicator', 'Value', 'Numerator', 'Denominator', 'Previous period', 'Same period last year', 'Target', 'Limit', 'Status'] : ['Δείκτης', 'Τιμή', 'Αριθμητής', 'Παρονομαστής', 'Προηγούμενη περίοδος', 'Ίδια περίοδος πέρσι', 'Στόχος', 'Όριο', 'Κατάσταση'], rows: report.map(({ indicator, current, previous, lastYear }) => [textOf(indicator, language), current.value ?? '', current.numerator ?? '', current.denominator ?? '', previous.value ?? '', lastYear.value ?? '', indicator.target ?? '', indicator.threshold ?? '', indicatorStatusLabel(current.status, language)]) })
   }
-  async function exportPdf() {
-    if (!reportRef.current) return
-    setExporting(true)
-    // The report's title shows in the file only: on screen the header and the period already say it.
-    await new Promise(resolve => setTimeout(resolve, 0))
-    try { await exportElementAsPdf({ element: reportRef.current, filename: `${register.code}_${period.from}_${period.to}` }) } catch (error) { notifyError(error, 'export', { operation: 'register_indicators_pdf' }) } finally { setExporting(false) }
+  // «Εκτύπωση / PDF» (owner, 18/11/2026): the shared document (real text, not a picture of the screen), after
+  // the owner chooses the period to compare with.
+  function exportPdf() { setPrintOpen(true) }
+  function printIndicators({ compare, from, to, word }: RegisterPrintChoice) {
+    const other = comparePeriod(compare, period, { from, to })
+    const inPeriod = entries.filter(entry => { const day = String(entry.entryDate || '').slice(0, 10); return day >= period.from && day <= period.to }).length
+    const categoryLabel = category === 'all' ? '' : textOf(categories.find((option: FieldOption) => option.value === category) || { label: category }, language)
+    const doc = indicatorsDocument({ register, rows: report, period, language, entries: register.kind === 'case' ? inPeriod : undefined, department: en ? register.departmentEn || register.department : register.department, category: categoryLabel, notes, comparisons: other ? [comparisonFor(register, entries, other, language)] : [] })
+    setPrintOpen(false)
+    if (word) { downloadReportWord(doc); return }
+    if (!printReport(doc)) notifyError(new Error(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'), 'export', { operation: 'register_indicators_print' })
   }
   // The record's header shows «Export ▾» for this tab too: the page gets the handlers.
   useEffect(() => { onExportApi?.({ excel: exportCsv, pdf: exportPdf, busy: exporting, disabled: !report.length }); return () => onExportApi?.(null) }, [report, exporting]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -145,6 +153,7 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
       {!open && report.length > 0 && !shown.length && <div className="inline-empty">{en ? 'No indicator in this group. Press the card again to see all.' : 'Κανένας δείκτης σε αυτή την ομάδα. Πατήστε ξανά την κάρτα για να δείτε όλους.'}</div>}
       {!report.length && <div className="inline-empty">{en ? 'This register has no indicators yet. Add them in «Definition».' : 'Το μητρώο δεν έχει ακόμη δείκτες. Προσθέστε τους στον «Ορισμό».'}</div>}
     </div>
+    {printOpen && <RegisterPrintDialog language={language} onPrint={printIndicators} onClose={() => setPrintOpen(false)} />}
   </RecordTabPanel>
 }
 
