@@ -114,3 +114,21 @@ describe('the screen', () => {
     expect(read('src/features/rosters/RosterSheet.tsx')).toContain("tx('Υποχρεωτικές παραβάσεις', 'Hard breaches')")
   })
 })
+
+describe('Roster Phase 1: review fixes', () => {
+  it('a mandatory restriction is reported even on a shift entered by hand', async () => {
+    const { mandatoryOk } = await import('../src/features/rosters/rosterRules')
+    const day = { date: '2026-12-25', weekend: false } as never
+    expect(mandatoryOk({ noNights: { reason: 'medical' } } as never, day, 'N')).toBe(false)
+    expect(mandatoryOk({ forbid: { '2026-12-25': ['M'] } } as never, day, 'M')).toBe(false)
+    expect(mandatoryOk({ forbid: { '2026-12-25': ['M'] } } as never, day, 'A')).toBe(true)
+    const rules = readSource('src/features/rosters/rosterRules.ts')
+    expect(rules).toContain('(!employee.fixed?.[days[i].date] || !mandatoryOk(employee, days[i], code))')
+  })
+  it('the local feast keeps «25/1» as typed and entering a restriction again removes it', () => {
+    const panels = readSource('src/features/rosters/RosterPanels.tsx')
+    expect(panels).toContain('done ? /^(\\d{1,2})\\/(\\d{1,2})$/ : /^(\\d{1,2})\\/(\\d{2})$/')
+    const page = readSource('src/features/rosters/RostersPage.tsx')
+    expect(page).toContain("const removing = leave.code === 'forbid' && dates.every(")
+  })
+})

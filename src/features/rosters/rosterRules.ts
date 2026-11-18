@@ -235,6 +235,9 @@ export const maxNightsOf = (employee: RosterEmployee | null | undefined) => (Num
 // May the person work `code` on `day` by their own limits?
 // Also the hard limits of the person (owner, 18/11/2026): no nights while «Χωρίς νύχτες» holds, no shift they must not get that day.
 export const noNightsOn = (employee: RosterEmployee | null | undefined, date: string) => Boolean(employee?.noNights?.reason && (!employee.noNights.until || date <= employee.noNights.until))
+// The mandatory ones alone («Χωρίς νύχτες», «Όχι βάρδια»): they hold even for a shift entered by hand.
+export const mandatoryOk = (employee: RosterEmployee | null | undefined, day: RosterDay, code: string) =>
+  !isShift(code) || (!(kindOf(code) === 'N' && noNightsOn(employee, day.date)) && !(employee?.forbid?.[day.date] || []).includes(kindOf(code) as string))
 export const personalOk = (employee: RosterEmployee | null | undefined, allowed: string[], day: RosterDay, code: string) =>
   !isShift(code) || (allowed.includes(kindOf(code) as string) && !(employee?.noWeekends && day.weekend) && !(kindOf(code) === 'N' && noNightsOn(employee, day.date)) && !(employee?.forbid?.[day.date] || []).includes(kindOf(code) as string))
 
@@ -313,7 +316,7 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   for (const { employee, codes } of rows) {
     const allowed = allowedOf(employee)
     codes.forEach((code, i) => {
-      if (!personalOk(employee, allowed, days[i], code) && !employee.fixed?.[days[i].date]) violations.push({ rule: 'personal', employeeId: employee.id, date: days[i].date })
+      if (!personalOk(employee, allowed, days[i], code) && (!employee.fixed?.[days[i].date] || !mandatoryOk(employee, days[i], code))) violations.push({ rule: 'personal', employeeId: employee.id, date: days[i].date })
     })
     if (codes.filter((code) => code === 'N').length > maxNightsOf(employee)) violations.push({ rule: 'maxNights', employeeId: employee.id })
     const real = days.map((day) => given?.[employee.id]?.[day.date] || '')

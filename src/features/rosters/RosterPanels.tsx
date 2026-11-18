@@ -151,7 +151,7 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
             </div>
             <div className="roster-rule roster-rule-feast">
               <span>{tx('Τοπική εορτή (ΗΗ/ΜΜ και όνομα)', 'Local feast (DD/MM and name)')}</span>
-              <input aria-label={tx('Τοπική εορτή: ημέρα/μήνας', 'Local feast: day/month')} placeholder={tx('ΗΗ/ΜΜ', 'DD/MM')} maxLength={5} value={localFeastText(roster.rules?.localHoliday as { date?: string } | undefined)} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), date: localFeastDate(event.target.value) } } })} />
+              <input aria-label={tx('Τοπική εορτή: ημέρα/μήνας', 'Local feast: day/month')} placeholder={tx('ΗΗ/ΜΜ', 'DD/MM')} maxLength={5} value={localFeastText(roster.rules?.localHoliday as { date?: string } | undefined)} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), date: localFeastDate(event.target.value) } } })} onBlur={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), date: localFeastDate(event.target.value, true) } } })} />
               <input aria-label={tx('Τοπική εορτή: όνομα', 'Local feast: name')} placeholder={tx('π.χ. Αγίου Αχιλλίου', 'e.g. Saint Achillios')} maxLength={60} value={(roster.rules?.localHoliday as { name?: string } | undefined)?.name || ''} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), name: event.target.value } } })} />
             </div>
             <p className="roster-muted">{tx('Πάντα: όχι απόγευμα → πρωί (11 ώρες ανάπαυση), όχι πρωί/ενδιάμεση → νύχτα· ίσες βάρδιες, νύχτες και Σ/Κ· ρεπό κατά προτίμηση ανά δύο. Με κλικ σε όνομα: ποιες βάρδιες κάνει το άτομο.', 'Always: no afternoon → morning (11 hours of rest), no morning/intermediate → night; even shifts, nights and weekends; days off preferably in pairs. Click a name: the shifts that person works.')}</p>
@@ -289,8 +289,10 @@ export function RosterPopovers({ view }: { view: RosterView }) {
 export const noNightReason = (reason: string, tx: (el: string, en: string) => string) => ({ pregnancy: tx('Εγκυμοσύνη', 'Pregnancy'), breastfeeding: tx('Θηλασμός', 'Breastfeeding'), medical: tx('Ιατρικός λόγος', 'Medical reason'), other: tx('Άλλο', 'Other') } as Record<string, string>)[reason] || reason
 // The local feast is kept as «MM-DD» and typed as «ΗΗ/ΜΜ».
 const localFeastText = (local: { date?: string } | undefined) => (local?.date ? local.date.split('-').reverse().join('/') : '')
-const localFeastDate = (text: string) => {
-  const match = text.match(/^(\d{1,2})\/(\d{1,2})$/)
+// While typing, the month is read only once it has two digits («25/1» stays as typed, so «25/12» is not cut to «25/01»);
+// on leaving the field a one-digit month counts too («5/3» → 03-05).
+const localFeastDate = (text: string, done = false) => {
+  const match = text.match(done ? /^(\d{1,2})\/(\d{1,2})$/ : /^(\d{1,2})\/(\d{2})$/)
   if (!match) return text.replace(/[^\d/]/g, '')
   return `${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`
 }

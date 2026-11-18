@@ -333,18 +333,24 @@ export function RostersPage() {
     if (!leave.employeeId || !dates.length) return
     // «Όχι βάρδια (υποχρεωτικό)» and «Επιθυμία βάρδιας» (owner, 18/11/2026): the shift the person must not or would like to work.
     if (leave.code === 'forbid' || leave.code === 'wishShift') {
+      // Entering again a «Όχι βάρδια» already there for every chosen day removes it (a restriction entered by mistake).
+      const current = loaded.members.find(m => m.employeeId === leave.employeeId)
+      const removing = leave.code === 'forbid' && dates.every(date => (current?.forbid?.[date] || []).includes(leave.shift))
       update({
         ...loaded,
         members: loaded.members.map(m => {
           if (m.employeeId !== leave.employeeId) return m
           if (leave.code === 'wishShift') return { ...m, wishes: { ...(m.wishes || {}), ...Object.fromEntries(dates.map(date => [date, leave.shift])) } }
           const forbid = { ...(m.forbid || {}) }
-          for (const date of dates) forbid[date] = [...new Set([...(forbid[date] || []), leave.shift])]
+          for (const date of dates) {
+            forbid[date] = removing ? (forbid[date] || []).filter(code => code !== leave.shift) : [...new Set([...(forbid[date] || []), leave.shift])]
+            if (!forbid[date].length) delete forbid[date]
+          }
           return { ...m, forbid }
         }),
       })
       setLeave(current => ({ ...current, from: '', to: '' }))
-      notify(tx(`Καταχωρίστηκαν ${dates.length} ημέρες.`, `${dates.length} days entered.`), 'success')
+      notify(removing ? tx(`Ο περιορισμός αφαιρέθηκε από ${dates.length} ημέρες.`, `The restriction was removed from ${dates.length} days.`) : tx(`Καταχωρίστηκαν ${dates.length} ημέρες.`, `${dates.length} days entered.`), 'success')
       return
     }
     const member = loaded.members.find(m => m.employeeId === leave.employeeId)
