@@ -143,3 +143,35 @@ export function comparisonFor(register: Register, entries: RegisterEntry[], peri
   const label = period.key.startsWith('custom:') ? periodDates(period) : periodLabel(period, language)
   return { label, results: Object.fromEntries((register.indicators || []).map(indicator => [indicator.id, computeIndicator(register, indicator, entries, period)])) }
 }
+
+// The entries of a register (or the months of a sheet) as a landscape document, for the period the owner chose.
+export function entriesDocument({ register, headers, rows, language = 'el', from = '', to = '', detail = 'summary' }: { register: Register, headers: string[], rows: unknown[][], language?: string, from?: string, to?: string, detail?: ReportDetail }): ReportDoc {
+  const en = language === 'en'
+  const name = en ? register.nameEn || register.name : register.name
+  const range = from && to ? periodDates({ from, to }) : (en ? 'All entries' : 'Όλες οι εγγραφές')
+  return {
+    language,
+    kind: register.kind === 'sheet' ? (en ? 'Register sheet' : 'Φύλλο μητρώου') : (en ? 'Register entries' : 'Εγγραφές μητρώου'),
+    title: `${name} · ${range}`,
+    code: register.code,
+    orientation: 'landscape',
+    meta: [
+      [en ? 'Register' : 'Μητρώο', name],
+      [en ? 'Department' : 'Τμήμα', (en ? register.departmentEn || register.department : register.department) || '—'],
+      [en ? 'Period' : 'Περίοδος', range],
+      [register.kind === 'sheet' ? (en ? 'Months' : 'Μήνες') : (en ? 'Entries' : 'Εγγραφές'), String(rows.length)],
+      [en ? 'Layout' : 'Μορφή', detailLabel(detail, language)],
+    ],
+    sections: [{ table: { columns: headers, rows: rows.map(row => row.map(cell => (cell == null ? '' : typeof cell === 'number' ? { text: new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(cell), align: 'right' } : String(cell)))), empty: en ? 'No entry in the period.' : 'Καμία εγγραφή στην περίοδο.' } }],
+    filename: `${register.code}_${from && to ? `${from}_${to}` : 'all'}`,
+  }
+}
+
+// The entries inside the dates (cases by their entry date, sheets by their month); all when no dates are given.
+export function entriesInRange(register: Register, entries: RegisterEntry[], from = '', to = '') {
+  if (!from || !to) return entries
+  return entries.filter(entry => {
+    const day = String((register.kind === 'sheet' ? entry.periodStart : entry.entryDate) || '').slice(0, 10)
+    return day >= from && day <= to
+  })
+}

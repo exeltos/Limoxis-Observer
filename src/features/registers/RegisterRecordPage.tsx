@@ -16,7 +16,10 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { formatDay } from '../../core/i18n/formatDay'
-import { registryMenu } from '../../core/export/registryExports'
+import { exportRegistry } from '../../core/export/registryExports'
+import { downloadReportWord, printReport } from '../../core/export/reportDocument'
+import { entriesDocument, entriesInRange } from './registerReport'
+import { RegisterPrintDialog, type RegisterPrintChoice } from './RegisterPrintDialog'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadEntries, loadLateInfectionCandidates, loadRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
@@ -48,6 +51,8 @@ export function RegisterRecordPage() {
   const [register, setRegister] = useState<Register | null>(null)
   const [entries, setEntries] = useState<RegisterEntry[]>([])
   const [loading, setLoading] = useState(true)
+  // «Εκτύπωση εγγραφών»: the period and the layout are asked first (owner, 18/11/2026).
+  const [entriesPrint, setEntriesPrint] = useState(false)
   const [tab, setTab] = useState(() => location.state?.registerTab || 'entries')
   // «Set a target» in Indicators opens that indicator in Definition.
   const [defineIndicator, setDefineIndicator] = useState<string | null>(null)
@@ -87,10 +92,20 @@ export function RegisterRecordPage() {
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: History },
   ]
   // The cases of the register: print, PDF and Excel from the same rows (owner, 2/11/2026).
-  const casesMenu = entries.length ? registryMenu(() => registerExport(register, entries, { language, withIdentity }), { language, kind: en ? 'Register' : 'Μητρώο', title: (en ? register.nameEn : register.name) || register.name, onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') }) : null
+  const casesMenu = entries.length ? { onPrint: () => setEntriesPrint(true), onPdf: () => setEntriesPrint(true), onExcel: () => exportRegistry(registerExport(register, entries, { language, withIdentity })) } : null
+  function printEntries({ detail, from, to, word }: RegisterPrintChoice) {
+    if (!register) return
+    const shown = entriesInRange(register, entries, from, to)
+    const exported = registerExport(register, shown, { language, detail })
+    const doc = entriesDocument({ register, headers: exported.headers, rows: exported.rows, language, from, to, detail })
+    setEntriesPrint(false)
+    if (word) { downloadReportWord(doc); return }
+    if (!printReport(doc)) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  }
   // The header on Entries and on Indicators: «Export ▾» (the entries, or the indicator report) and the primary action.
   const liveExport = tab === 'indicators' ? indicatorExport : sheet ? sheetExport : null
-  const exportMenu = tab === 'indicators' || sheet ? <ExportMenu disabled={!liveExport || liveExport.disabled} onExcel={liveExport?.excel} onPdf={liveExport?.pdf} pdfBusy={Boolean(liveExport?.busy)} /> : casesMenu && <ExportMenu {...casesMenu} />
+  // A sheet prints its months on the shared document too (the period and layout first); its Excel stays the sheet's own.
+  const exportMenu = tab === 'indicators' ? <ExportMenu disabled={!liveExport || liveExport.disabled} onExcel={liveExport?.excel} onPdf={liveExport?.pdf} pdfBusy={Boolean(liveExport?.busy)} /> : sheet ? <ExportMenu disabled={!entries.length} onExcel={liveExport?.excel} onPrint={() => setEntriesPrint(true)} onPdf={() => setEntriesPrint(true)} /> : casesMenu && <ExportMenu {...casesMenu} />
   const importButton = tab === 'entries' && !sheet && access.canRecord(register) && withIdentity && <ActionButton label={en ? 'Import from file' : 'Εισαγωγή από αρχείο'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>
   const beforeDaily = hospitalToday() < dailyFromOf(register)
   // «New day» opens today's sheet (from the first day of the daily sheets), also from the indicators tab.
@@ -106,6 +121,7 @@ export function RegisterRecordPage() {
     {tab === 'indicators' && <RegisterIndicators notes={lateWaiting ? { late_infection_rate: en ? `${lateWaiting} blood cultures wait for a decision in Surveillance › To review` : `${lateWaiting} αιμοκαλλιέργειες περιμένουν απόφαση στην Επιτήρηση › Προς έλεγχο` } : undefined} register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? (indicatorId: string) => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
     {tab === 'definition' && <RegisterBuilder entries={entries} register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={(next: Register | null) => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}
+    {entriesPrint && <RegisterPrintDialog mode="entries" language={language} onPrint={printEntries} onClose={() => setEntriesPrint(false)} />}
   </EntityRecordShell></Page>
 }
 
@@ -171,13 +187,16 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }: 
 }
 
 // CSV for Excel: the values of every entry (no names, whoever exports).
-export function registerExport(register: Register, entries: RegisterEntry[], { language = 'el' }: { language?: string, withIdentity?: boolean } = {}) {
+// detail: «Συνοπτική» keeps the columns of the list (fields marked «list»), «Αναλυτική» every field (owner, 18/11/2026).
+export function registerExport(register: Register, entries: RegisterEntry[], { language = 'el', detail = 'full' }: { language?: string, withIdentity?: boolean, detail?: string } = {}) {
   const en = language === 'en'
   const title = en ? register.nameEn : register.name
   if (register.kind === 'sheet') {
     const rows = register.sheet.rows || [], measures = register.sheet.measures || []
     return { name: `${register.code}_${title}`, headers: [en ? 'Month' : 'Μήνας', ...rows.flatMap(row => measures.map(measure => `${textOf(row, language)}${measures.length > 1 ? ` · ${textOf(measure, language)}` : ''}`))], rows: [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))).map(entry => [String(entry.periodStart).slice(0, 7), ...rows.flatMap(row => measures.map(measure => cellsOf(entry.values?.[row.key])?.[measure.key] ?? ''))]) }
   }
-  const fields = register.fields.filter(field => field.type !== 'text')
+  const all = register.fields.filter(field => field.type !== 'text')
+  // The summary has the columns of the list on screen: the date the case counts on, then the marked fields.
+  const fields = detail === 'summary' ? listFields(register) : all
   return { name: `${register.code}_${title}`, headers: ['#', ...fields.map(field => textOf(field, language))], rows: entries.map(entry => { const values = computeValues(register.fields, entry.values); return [String(entry.id).slice(-6).toUpperCase(), ...fields.map(field => { const value = values[field.key]; return value == null || value === '' ? '' : ['number', 'computed'].includes(field.type) ? Number(value) : formatValue(field, value, language) })] }) }
 }
