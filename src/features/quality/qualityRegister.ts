@@ -14,6 +14,13 @@ export const REGISTER_SOURCES = [
   { value: 'training', label: ['Εκπαίδευση', 'Training'] },
 ]
 
+// The order «newest first» (owner, 18/11): the day, then the time of the event, then when it was
+// recorded and its code, so that two reports of the same day never swap places.
+export function registerDateKey(row: { date?: string | null, code?: string | null, record?: { eventTime?: string | null, createdAt?: string | null } | null, item?: unknown }) {
+  const at = String((row.item as { at?: string } | undefined)?.at || '')
+  return [row.date || '', row.record?.eventTime || at.slice(11, 16), row.record?.createdAt || at, row.code || ''].join(' ')
+}
+
 // A report's stage reads the CAPAs that point to it (capa.sourceId).
 export function registerRows(incidents: QualityRecord[] = [], deviations: DeviationItem[] = [], capas: QualityDraft[] = []): RegisterRow[] {
   const reports = incidents.map((record): RegisterRow => ({
@@ -57,7 +64,7 @@ export function registerRows(incidents: QualityRecord[] = [], deviations: Deviat
     sentinel: false,
     item,
   }))
-  return [...reports, ...pending].sort((a, b) => String(b.date).localeCompare(String(a.date)))
+  return [...reports, ...pending].sort((a, b) => registerDateKey(b).localeCompare(registerDateKey(a)))
 }
 
 // The filters of the register; `quick` is a summary card (open, sentinel,

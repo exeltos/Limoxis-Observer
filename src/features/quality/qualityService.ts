@@ -545,6 +545,10 @@ function buildPersistPayload(section: string,record: QualityDraft){
   return payload
 }
 
+// «Διαγραφή» (Recycle Bin): the table of a section, and the Demo's removal from the session lists.
+export const qualityTable=(section: string)=>sectionConfig[section]?.table||''
+export function removeQualityRecordLocal(section: string,code: string){saveQualityLocal(section,loadQualityLocal(section).filter((row: QualityRecord)=>row.id!==code))}
+
 export async function saveQualityRecord(section: string,organizationId: string | null | undefined,record: QualityDraft): Promise<QualityRecord>{
   if(isDemoDataEnvironment()){
     const rows=loadQualityLocal(section)
