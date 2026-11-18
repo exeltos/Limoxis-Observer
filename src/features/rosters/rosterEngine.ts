@@ -109,7 +109,9 @@ function scoreOf(state: BuildState) {
     s.gap = shifts - s.target
     // Each person works their target (five days a week, two days off): below it costs most, above it is overtime.
     // More people on a shift than asked is fine (owner, 8/11/2026).
-    if (!s.extra) score += s.gap < 0 ? -s.gap * 40 : s.gap * 12
+    // Above the target (owner, 18/11/2026: the working days) a shift costs more than a third day off in a week, so
+    // the shifts nobody needs become days off; a short shift still costs far more.
+    if (!s.extra) score += s.gap < 0 ? -s.gap * 40 : s.gap * 50
     s.nights = nights
     s.weekendWork = weekendWork
     s.kinds = kinds
@@ -144,7 +146,8 @@ function scoreOf(state: BuildState) {
       // An intermediate costs as much as one more person on a morning or afternoon, so the search neither adds nor
       // removes them (owner, 9/11/2026: fewer intermediates, given only to people left over).
       if (shift === 'I' && need > 0) score += Math.min(have + extra, need) * 40 + Math.max(0, have + extra - need) * 1000
-      else score += have + extra < need ? (need - have - extra) * 300 : need === 0 ? (have + extra) * 1000 : Math.max(0, have - need)
+      // A night left short costs most (owner, 18/11/2026: the gaps are covered first, nights before the rest).
+      else score += have + extra < need ? (need - have - extra) * (shift === 'N' ? 600 : 300) : need === 0 ? (have + extra) * 1000 : Math.max(0, have - need)
       // People beyond the need are spread over the morning and the afternoon (owner, 9/11/2026: 3/3 rather than
       // 4/2): each further extra person on the same shift costs more. Nights stay in pairs before two days off.
       if ((shift === 'M' || shift === 'A') && need > 0 && have + extra > need) score += (have + extra - need) ** 2 * spreadWeight
@@ -683,6 +686,35 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
           score = bestMove.score
           changed = true
         }
+      }
+    }
+    if (!changed) break
+  }
+
+  // 6. Above the target (owner, 18/11/2026: the target is the working days): a shift on a day that has more people
+  //    than it needs becomes a day off (one, or two days together), where that improves the roster.
+  for (let round = 0; round < 4; round += 1) {
+    let changed = false
+    for (const s of regular) {
+      if (s.codes.filter(isShift).length <= s.target) continue
+      const spare = (i: number) => !s.locked[i] && isShift(s.codes[i]) && staff.filter((x) => x.codes[i] === s.codes[i]).length > dailyNeed[i][s.codes[i]]
+      let bestMove = null as Move | null
+      const tryMove = (apply: () => unknown) => {
+        const before = staff.map((o) => o.codes.slice())
+        apply()
+        const next = scoreOf(state)
+        if (next < score && (!bestMove || next < bestMove.score)) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
+        staff.forEach((o, k) => { o.codes = before[k] })
+      }
+      for (let i = 0; i < n; i += 1) {
+        if (!spare(i)) continue
+        tryMove(() => { s.codes[i] = 'R' })
+        if (i + 1 < n && spare(i + 1)) tryMove(() => { s.codes[i] = 'R'; s.codes[i + 1] = 'R' })
+      }
+      if (bestMove) {
+        staff.forEach((o, k) => { o.codes = (bestMove as Move).codes[k] })
+        score = bestMove.score
+        changed = true
       }
     }
     if (!changed) break

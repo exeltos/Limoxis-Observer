@@ -34,13 +34,15 @@ describe('periodDays and leave ranges', () => {
   it('takes the day’s own numbers over the defaults', () => {
     expect(demandFor({ ...demand, overrides: { '2026-10-21': { M: 4 } } }, days[0])).toEqual({ M: 4, I: 0, A: 2, N: 1 })
   })
-  it('sets each target to the days less two days off a week and the leave (owner, 9/11/2026)', () => {
+  it('sets each target to the working days (Monday–Friday, no holidays) less the leave on them (owner, 18/11/2026)', () => {
     const targets = shiftTargets(days, employees)
     expect(targets.n1).toBe(23)
-    // A week with five days of leave keeps its two days off: no work left in it.
-    expect(targets.n3).toBe(16)
-    // 21/11–20/12: four full weeks (5 each) and a two-day part week (no whole day off): 22.
-    expect(shiftTargets(periodDays('2026-11-21', '2026-12-20'), [{ id: 'x' }]).x).toBe(22)
+    // Leave Wednesday 11/11 – Tuesday 17/11 takes five working days.
+    expect(targets.n3).toBe(18)
+    // 21/11–20/12 starts on a Saturday: twenty working days, not 22.
+    expect(shiftTargets(periodDays('2026-11-21', '2026-12-20'), [{ id: 'x' }]).x).toBe(20)
+    // A public holiday on a weekday is not a working day.
+    expect(shiftTargets(periodDays('2026-12-21', '2027-01-20').map((day) => (day.date === '2026-12-25' ? { ...day, holiday: 'Χριστούγεννα', weekend: true } : day)), [{ id: 'x' }]).x).toBe(22)
   })
 })
 
@@ -189,9 +191,14 @@ describe('exactly two days off in every Monday-Sunday week (owner, 9/11/2026)', 
     const mondays = p.map((day, i) => (day.weekday === 1 && i + 6 < p.length ? i : -1)).filter((i) => i >= 0)
     for (const { id } of staff.slice(1)) {
       const weeks = mondays.map((monday) => p.slice(monday, monday + 7).filter((day) => made.assignments[id][day.date] === 'R').length)
-      expect(weeks.reduce((sum, count) => sum + count, 0)).toBe(2 * mondays.length)
-      expect(weeks.filter((count) => count !== 2).length).toBeLessThanOrEqual(2)
+      // The target is the working days (owner, 18/11/2026): twenty in 21/11–20/12, so the two days of the first
+      // weekend worked come back as days off inside the weeks (at most two weeks of three).
+      const total = weeks.reduce((sum, count) => sum + count, 0)
+      expect(total).toBeGreaterThanOrEqual(2 * mondays.length)
+      expect(total).toBeLessThanOrEqual(2 * mondays.length + 2)
+      expect(weeks.filter((count) => count !== 2).length).toBeLessThanOrEqual(3)
       expect(Math.min(...weeks)).toBeGreaterThanOrEqual(1)
+      expect(Object.values(made.assignments[id]).filter(isShift).length).toBeLessThanOrEqual(21)
     }
     expect(made.violations.filter((v) => v.rule !== 'coverage')).toEqual([])
   })

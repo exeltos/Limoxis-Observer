@@ -140,8 +140,9 @@ export function fullWeeks(days: RosterDay[]) {
 
 // Each person's target: the weekdays of the period minus their leave on weekdays (five days a week).
 export function shiftTargets(days: RosterDay[], employees: RosterEmployee[] | null | undefined, weeklyRestDays = DEFAULT_RULES.weeklyRestDays) {
-  // Each person's target follows the days off the roster keeps (owner, 9/11/2026): every Monday-Sunday week
-  // `weeklyRestDays` days off (a part week its whole share), the rest work, less leave.
+  // Each person's target is the working days of the period (owner, 18/11/2026): Monday–Friday that are not
+  // public holidays, less the leave on them; a period that starts on a Saturday adds nothing for that weekend.
+  // With more days off a week than two (longer shifts) the working days count in proportion (5 → 7 − days off).
   const segments: [number, number][] = []
   for (let i = 0, from = 0; i <= days.length; i += 1) {
     if (i === days.length || (i > from && days[i].weekday === 1)) {
@@ -154,10 +155,8 @@ export function shiftTargets(days: RosterDay[], employees: RosterEmployee[] | nu
     const fixed: Record<string, string> = employee.fixed || {}
     let work = 0
     for (const [from, to] of segments) {
-      const length = to - from
-      const quota = length === 7 ? weeklyRestDays : Math.floor((length * weeklyRestDays) / 7)
-      const leave = days.slice(from, to).filter((day) => isLeave(fixed[day.date])).length
-      work += Math.max(0, length - quota - leave)
+      const workdays = days.slice(from, to).filter((day) => !day.weekend && !day.holiday && !isLeave(fixed[day.date])).length
+      work += Math.max(0, Math.round((workdays * (7 - weeklyRestDays)) / 5))
     }
     // Part-time: a share of the full target.
     const percent = Number(employee.percent) > 0 && Number(employee.percent) < 100 ? Number(employee.percent) : 100
