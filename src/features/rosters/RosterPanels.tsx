@@ -146,11 +146,11 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
               </div>
             ))}
             <div className="roster-rule">
-              <span>{tx('Μέγιστες ώρες εβδομάδας (μέσος όρος· 0 = χωρίς έλεγχο)', 'Most hours a week (on average; 0 = not checked)')}</span>
+              <span>{tx('Μέγιστες ώρες εβδομάδας (0 = χωρίς έλεγχο)', 'Most hours a week (0 = not checked)')}</span>
               <input type="number" min="0" max="80" aria-label={tx('Μέγιστες ώρες εβδομάδας', 'Most hours a week')} value={rules.maxWeeklyHours} onChange={event => update({ ...roster, rules: { ...roster.rules, maxWeeklyHours: Math.max(0, Math.min(80, Number(event.target.value) || 0)) } })} />
             </div>
             <div className="roster-rule roster-rule-feast">
-              <span>{tx('Τοπική εορτή (ημέρα/μήνας και όνομα)', 'Local feast (day/month and name)')}</span>
+              <span>{tx('Τοπική εορτή (ΗΗ/ΜΜ και όνομα)', 'Local feast (DD/MM and name)')}</span>
               <input aria-label={tx('Τοπική εορτή: ημέρα/μήνας', 'Local feast: day/month')} placeholder={tx('ΗΗ/ΜΜ', 'DD/MM')} maxLength={5} value={localFeastText(roster.rules?.localHoliday as { date?: string } | undefined)} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), date: localFeastDate(event.target.value) } } })} />
               <input aria-label={tx('Τοπική εορτή: όνομα', 'Local feast: name')} placeholder={tx('π.χ. Αγίου Αχιλλίου', 'e.g. Saint Achillios')} maxLength={60} value={(roster.rules?.localHoliday as { name?: string } | undefined)?.name || ''} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), name: event.target.value } } })} />
             </div>

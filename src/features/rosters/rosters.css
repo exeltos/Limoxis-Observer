@@ -16,7 +16,7 @@
 .roster-panel-rules{display:grid;grid-template-columns:auto minmax(300px,1fr) minmax(340px,400px);align-items:start;gap:28px}
 .roster-col{display:grid;gap:8px;align-content:start}
 .roster-col-title{font-size:11.5px;color:#56677a}
-.roster-demand{display:grid;grid-template-columns:150px 56px 56px 56px;gap:6px;align-items:center;font-size:12.5px}
+.roster-demand{display:grid;grid-template-columns:minmax(96px,120px) 52px 52px 52px;gap:6px;align-items:center;font-size:12.5px}
 .roster-demand>b{font-size:11.5px;color:#56677a;text-align:center}
 .roster-demand-row{display:contents}
 .roster-demand input,.roster-rule input{width:56px;height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;text-align:center;font:inherit}
@@ -146,13 +146,18 @@ button.roster-name-text:hover{text-decoration:underline}
 .roster-rules-dialog .roster-other-new>.button{grid-column:1/-1}
 .roster-other-head b{font-size:11.5px;color:#56677a;text-align:center}
 .roster-other>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.roster-rules-dialog .roster-rule select{width:auto;max-width:220px;min-width:0}
+.roster-rules-dialog .roster-rule select{width:auto;max-width:180px;min-width:0}
+.roster-rules-dialog .roster-rule-list{min-width:0;grid-template-columns:minmax(0,1fr)}
+.roster-demand input{width:52px}
 .roster-rules-dialog .roster-panel-rules{grid-template-columns:auto minmax(320px,1fr) minmax(330px,370px)}
 /* Public holidays on the sheet and the rules (owner, 18/11/2026). */
 .roster-grid thead th.is-holiday{color:var(--text-danger)}
 .roster-holiday-tag{display:block;font-size:9px;font-weight:800;line-height:1;letter-spacing:.02em;color:var(--text-danger)}
+.roster-rules-dialog .roster-rule>span{flex:1 1 auto;min-width:0}
+.roster-rules-dialog .roster-rule-feast{flex-wrap:wrap;justify-content:flex-start;gap:8px}
+.roster-rules-dialog .roster-rule-feast>span{flex-basis:100%}
 .roster-rules-dialog .roster-rule-feast input:first-of-type{width:70px}
-.roster-rules-dialog .roster-rule-feast input:last-of-type{width:170px;text-align:left}
+.roster-rules-dialog .roster-rule-feast input:last-of-type{flex:1 1 140px;min-width:0;text-align:left}
 .roster-limit-number select{height:30px;padding:0 6px;border:1px solid var(--lo-color-border);border-radius:7px;font:inherit;font-size:12.5px}
 .roster-limit-date{padding:2px 6px 6px}
 /* A shift the person must not work that day (hard) or would like (owner, 18/11/2026). */
