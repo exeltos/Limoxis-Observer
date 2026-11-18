@@ -74,7 +74,7 @@
 .roster-need:hover:not(:disabled){background:#eef3f9}
 .roster-need:disabled{cursor:default}
 .roster-need.is-short{background:#fde8ea;color:#a8323d;font-weight:700}
-.roster-need-extra{margin-left:2px;font-size:9px;color:#7a8796}
+.roster-need-extra{margin-left:2px;font-size:9px;opacity:.75}
 .roster-need.is-own{text-decoration:underline dotted;text-underline-offset:2px;color:#1d5f9c}
 .roster-empty{padding:12px;color:#56677a;text-align:left}
 .roster-inactive{display:flex;flex-wrap:wrap;gap:12px;margin:10px 0 0;color:#56677a;font-size:12.5px}
