@@ -190,3 +190,5 @@ body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface
 .survey-response-answers>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding-bottom:8px;border-bottom:1px solid var(--lo-color-border)}
 .survey-response-answers dt{font-size:13px;color:var(--lo-color-muted)}
 .survey-response-answers dd{margin:0;font-size:13.5px;font-weight:600}
+/* «Εκτύπωση αποτελεσμάτων»: two dates side by side. */
+.survey-print-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}

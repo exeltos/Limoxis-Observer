@@ -187,6 +187,15 @@ export async function loadSurvey(organizationId: string | null | undefined, id: 
   return row ? toSurvey(row) : null
 }
 
+// For the comparison of a printed report (owner, 18/11/2026): the responses of the hospital's other questionnaires of the
+// same kind (same template and respondents), e.g. last year's ward questionnaire; the same question ids line up.
+// «Ικανοποίηση Κουζίνας» already holds every patient questionnaire, so it needs none.
+export async function loadEarlierResponses(organizationId: string | null | undefined, survey: Survey): Promise<SurveyResponse[]> {
+  if (survey.derived || !survey.templateKey || survey.templateKey === 'blank') return []
+  const others = (await loadOwnSurveys(organizationId)).filter(item => item.id !== survey.id && item.templateKey === survey.templateKey && item.audience === survey.audience)
+  return (await Promise.all(others.map(item => loadResponses(organizationId, item.id)))).flat()
+}
+
 // The responses the user may read (Quality all, a department its own).
 export async function loadResponses(organizationId: string | null | undefined, surveyId: string): Promise<SurveyResponse[]> {
   if (surveyId === KITCHEN_VIEW_ID) {
