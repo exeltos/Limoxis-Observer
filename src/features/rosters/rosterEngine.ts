@@ -1,6 +1,6 @@
 // Monthly shift roster generator (pure, no I/O): builds a roster that keeps the rules of rosterRules.
 // The rules, the checker and the calendar helpers live in rosterRules; this module re-exports them.
-import { allowedOf, checkRoster, DEFAULT_RULES, customNeed, customShifts, defaultExtraCode, demandFor, fullWeeks, historyOf, isLeave, isShift, kindOf, maxNightsOf, mulberry32, personalOk, rowProblems, SHIFT_CODES, shiftTargets, weekendPairs, weekOff, weeklyHoursLimit, weeklyHoursProblems } from './rosterRules'
+import { allowedOf, checkRoster, DEFAULT_RULES, customNeed, customShifts, defaultExtraCode, demandFor, fullWeeks, historyOf, isLeave, isShift, kindOf, maxNightsOf, mulberry32, personalOk, rowProblems, SHIFT_CODES, shiftHours, shiftTargets, weekendPairs, weekOff, weeklyHoursLimit, weeklyHoursProblems } from './rosterRules'
 
 import type { Assignments, RosterDay, RosterDemand, RosterEmployee, RosterHistory, RosterRules, RosterViolation } from './rosterRules'
 
@@ -22,6 +22,8 @@ interface Staff {
   wishWeight: number
   // Weekly hours limit (0 = not checked).
   hoursLimit: number
+  // The hours of each kind of shift on each day (8, or the department's own shift of that kind, e.g. 12).
+  hours: Record<string, number>[]
   target: number
   allowed: string[]
   reserved: boolean[]
@@ -54,7 +56,7 @@ function scoreOf(state: BuildState) {
     let weekendWork = 0
     const kinds: Record<string, number> = { M: 0, I: 0, A: 0, N: 0 }
     let weekendNights = 0
-    score += weeklyHoursProblems(s.codes, days, s.hoursLimit).length * 1000
+    score += weeklyHoursProblems(s.codes, days, s.hoursLimit, (code, i) => (isShift(code) ? s.hours[i][code] ?? 8 : 0)).length * 1000
     for (let i = 0; i < days.length; i += 1) {
       const code = s.codes[i]
       if (s.wishShift[i] && !s.locked[i] && code !== s.wishShift[i]) score += s.wishWeight
@@ -170,8 +172,15 @@ function allowedBackward(s: Staff, i: number, code: string, r: RosterRules, days
     if (isShift(prev)) worked += 1
   }
   if (worked > 7 - r.weeklyRestDays) return false
-  // Hours of the week so far (eight a shift): at most the limit and one more shift.
-  return !s.hoursLimit || worked * 8 <= s.hoursLimit + 8
+  // Hours of the week so far, each shift by its real hours (owner, 18/11/2026): at most the limit and one more shift.
+  if (!s.hoursLimit) return true
+  let hours = s.hours[i][code] ?? 8
+  for (let back = 1; back <= sinceMonday; back += 1) {
+    const k = i - back
+    const prev = k >= 0 ? s.codes[k] : s.prefix[s.prefix.length + k]
+    if (isShift(prev)) hours += k >= 0 ? s.hours[k][prev] ?? 8 : 8
+  }
+  return hours <= s.hoursLimit + 8
 }
 
 export interface GenerateInput { days: RosterDay[], employees: RosterEmployee[] | null | undefined, demand: RosterDemand | null | undefined, rules?: Partial<RosterRules> | null, history?: RosterHistory, seed?: number, attempts?: number, iterations?: number }
@@ -181,9 +190,17 @@ export function generateRoster({ days, employees, demand, rules, history = {}, s
   // The rules work on kinds; the department's other shifts set by hand come back afterwards.
   const byKind = (employees || []).map((employee) => ({ ...employee, fixed: Object.fromEntries(Object.entries(employee.fixed || {}).map(([date, code]) => [date, kindOf(code)])) }))
   const kindHistory: RosterHistory = Object.fromEntries(Object.entries(history || {}).map(([id, row]) => [id, (row || []).map(kindOf)]))
+  // Each shift by its real hours (owner, 18/11/2026): a kind's hours on a day are those of the shifts that ask for
+  // it (12 for a department of 07:00–19:00 / 19:00–07:00). Longer shifts mean fewer of them a week: more days off.
+  const hours = kindHoursOf(days, demand)
+  let weighted = 0
+  let count = 0
+  days.forEach((day, i) => { const need = demandFor(demand, day); for (const kind of SHIFT_CODES) { weighted += hours[i][kind] * need[kind]; count += need[kind] } })
+  const average = count ? weighted / count : 8
+  const build: RosterRules = average > 8 ? { ...r, weeklyRestDays: Math.max(r.weeklyRestDays, 7 - Math.max(1, Math.floor((Number(r.maxWeeklyHours) || 40) / average))) } : r
   let best: RosterResult | null = null
   for (let attempt = 0; attempt < Math.max(1, attempts); attempt += 1) {
-    const result = buildRoster({ days, employees: byKind, demand, r, history: kindHistory, random: mulberry32(Math.floor(seeds() * 4294967296)), iterations })
+    const result = buildRoster({ days, employees: byKind, demand, r: build, check: r, hours, history: kindHistory, random: mulberry32(Math.floor(seeds() * 4294967296)), iterations })
     if (!best || result.score < best.score) best = result
     if (result.violations.length === 0) break
   }
@@ -215,7 +232,23 @@ export function generateRoster({ days, employees, demand, rules, history = {}, s
   return { ...found, assignments, violations: checkRoster({ days, employees, assignments, demand, rules: r, history }) }
 }
 
-function buildRoster({ days, employees, demand, r, history, random, iterations }: { days: RosterDay[], employees: RosterEmployee[], demand: RosterDemand | null | undefined, r: RosterRules, history: RosterHistory, random: () => number, iterations: number }): RosterResult {
+// The hours of each kind on each day: the department's own shifts of the kind by their times, the rest eight.
+function kindHoursOf(days: RosterDay[], demand: RosterDemand | null | undefined): Record<string, number>[] {
+  const custom = customShifts(demand)
+  return days.map((day) => {
+    const need = demandFor(demand, day)
+    const row: Record<string, number> = { M: 8, I: 8, A: 8, N: 8 }
+    for (const kind of SHIFT_CODES) {
+      const own = custom.filter((shift) => kindOf(shift.code) === kind && customNeed(shift, day) > 0)
+      if (!own.length || !need[kind]) continue
+      const ownNeed = own.reduce((sum, shift) => sum + customNeed(shift, day), 0)
+      row[kind] = (own.reduce((sum, shift) => sum + customNeed(shift, day) * shiftHours(shift.code, demand), 0) + Math.max(0, need[kind] - ownNeed) * 8) / need[kind]
+    }
+    return row
+  })
+}
+
+function buildRoster({ days, employees, demand, r, check = r, hours, history, random, iterations }: { days: RosterDay[], employees: RosterEmployee[], demand: RosterDemand | null | undefined, r: RosterRules, check?: RosterRules, hours?: Record<string, number>[], history: RosterHistory, random: () => number, iterations: number }): RosterResult {
   const n = days.length
   const active = (employees || []).filter((employee) => employee.active !== false)
   const targets = shiftTargets(days, active, r.weeklyRestDays)
@@ -240,6 +273,7 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
       wish: days.map((day) => wishes[day.date] === 'R'),
       wishShift: days.map((day) => (isShift(wishes[day.date]) ? kindOf(wishes[day.date]) as string : '')),
       hoursLimit: weeklyHoursLimit(employee, r),
+      hours: hours || days.map(() => ({ M: 8, I: 8, A: 8, N: 8 })),
       // Earlier in the list, higher priority for wishes.
       wishWeight: 250 + Math.max(0, active.length - order) * 4,
       target: targets[employee.id],
@@ -382,6 +416,14 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
         for (const d of pick.days) if (d > 0 && !pick.days.includes(d - 1) && !restLike(s.codes[d - 1])) restStarts[d] += 1
         pick.days.forEach(rest)
         need -= pick.days.length
+      }
+      // Longer shifts (owner, 18/11/2026): a week holds more than two days off; the others go to the free days that
+      // cost least and keep the stretches of work short.
+      while (need > 0) {
+        const options = freeDays.filter((i) => !s.codes[i] && stretchOk([i]) < 2).sort((a, b) => cost(a) - cost(b))
+        if (!options.length) break
+        rest(options[0])
+        need -= 1
       }
     }
   }
@@ -661,6 +703,6 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
     for (const s of staff) if (isShift(s.codes[i])) count[s.codes[i]] += 1
     coverage[day.date] = count
   })
-  const violations = checkRoster({ days, employees, assignments, demand, rules: r, history })
+  const violations = checkRoster({ days, employees, assignments, demand, rules: check, history })
   return { assignments, coverage, violations, totals, score }
 }

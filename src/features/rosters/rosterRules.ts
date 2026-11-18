@@ -261,14 +261,14 @@ export function weeklyHoursLimit(employee: RosterEmployee | null | undefined, r:
   return Math.ceil((max * percent) / 100 / 8) * 8
 }
 // The full weeks whose hours break the limit: one week above limit + one shift, or all of them above it on average.
-export function weeklyHoursProblems(codes: string[], days: RosterDay[], limit: number, hoursOf: (code: string) => number = (code) => shiftHours(code)) {
+export function weeklyHoursProblems(codes: string[], days: RosterDay[], limit: number, hoursOf: (code: string, index: number) => number = (code) => shiftHours(code)) {
   if (limit <= 0) return [] as number[]
   const problems: number[] = []
   let total = 0
   let weeks = 0
   for (const start of fullWeeks(days)) {
     if (start + 6 >= codes.length) continue
-    const hours = codes.slice(start, start + 7).reduce((sum, code) => sum + hoursOf(code), 0)
+    const hours = codes.slice(start, start + 7).reduce((sum, code, x) => sum + hoursOf(code, start + x), 0)
     total += hours
     weeks += 1
     if (hours > limit + 8) problems.push(start + 6)
