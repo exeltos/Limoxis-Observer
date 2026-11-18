@@ -255,6 +255,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
       )}
       onClose={busy ? undefined : () => void close()}
       width="wide"
+      className="active-users-dialog"
       footer={footer}
     >
       <div className="active-users">
