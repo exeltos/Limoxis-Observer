@@ -74,7 +74,8 @@ export const helpManualEn: HelpBook={
  '/training':{title:'Training',summary:'Different workspaces for training administrators and employees.',audience:'Training administrators and employees',chapters:[
   ['For administrators','Create programmes, manage participants and attendance, publish material, assessments, results and certificates.'],
   ['For employees','Employees see their own assigned and completed training and available certificates.'],
-  ['Evidence','Attendance, completion and competence are retained as controlled evidence.']
+  ['Evidence','Attendance, completion and competence are retained as controlled evidence.'],
+  ['Type and organising department','The Programmes list shows for each programme its Type (Internal, External, Intra-departmental), as set in the form, and the Department that organised or planned it: the “Organizer / owner”; when a person is named there, their department is shown. Filters has Type and Organising department.']
  ],steps:['Open the programme or assignment.','Perform the action available to your role.','Review completion, results and certificates.'],preview:'training'},
  '/meetings':{title:'Meetings & decisions',summary:'Committees, department meetings and the management review in one section with tabs: meetings, minutes, decisions and action follow-up.',audience:'Committee Secretariat and authorized members',chapters:[
   ['Membership','Members and committee roles have validity periods and history.'],
