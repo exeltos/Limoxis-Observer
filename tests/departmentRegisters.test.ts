@@ -454,11 +454,14 @@ describe('ΜΕΝΝ: more indicators from what is recorded (ιδιοκτήτης 
 describe('Ν5: a kind the register never records (ιδιοκτήτης 17/11/2026)', () => {
   const march = periodOf('month', '2026-03-01')
   const at = (id, breast_milk) => ({ id, registerId: nicu.id, entryDate: '2026-03-10', values: { admission_date: '2026-03-01', discharge_date: '2026-03-10', breast_milk } })
+  // The exclusive-milk indicator left the template (owner, 18/11/2026); the engine rule is kept and tested on its definition.
+  const exclusive = { ...indicator('breast_milk_kept'), id: 'breast_milk', filters: [{ field: 'breast_milk', op: 'eq', value: 'exclusive' }] }
   it('says «not recorded» for exclusive breast milk while every entry says only «yes», and counts once one records it', () => {
     const untyped = [at('a', 'kept'), at('b', 'none')] as unknown as RegisterEntry[]
-    expect(computeIndicator(nicu, indicator('breast_milk'), untyped, march).notRecorded).toBe(true)
+    expect(computeIndicator(nicu, exclusive, untyped, march).notRecorded).toBe(true)
     expect(computeIndicator(nicu, indicator('no_breast_milk'), untyped, march).notRecorded).toBeFalsy()
     const typed = [...untyped, at('c', 'exclusive')] as unknown as RegisterEntry[]
-    expect(computeIndicator(nicu, indicator('breast_milk'), typed, march)).toMatchObject({ numerator: 1, denominator: 3 })
+    expect(computeIndicator(nicu, exclusive, typed, march)).toMatchObject({ numerator: 1, denominator: 3 })
+    expect(indicator('breast_milk')).toBeUndefined()
   })
 })

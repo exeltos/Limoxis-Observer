@@ -15,6 +15,8 @@ import { useTenant } from '../../core/tenant/TenantContext'
 //   onDone       reloads the screen after the move
 export interface RecordDeleteOptions {
   createdBy?: unknown
+  // The screen's own rule when it differs from canDeleteRecord (e.g. Quality: whoever manages quality).
+  allowed?: boolean
   table: string
   id: unknown
   label?: string
@@ -30,8 +32,8 @@ export function useRecordDelete() {
   const { notify, notifyError, confirm } = useFeedback()
   const en = language === 'en'
   return useCallback(
-    ({ createdBy, table, id, label, detail = '', demo = null, onDone = null }: RecordDeleteOptions) => {
-      if (!canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy })) return null
+    ({ createdBy, allowed, table, id, label, detail = '', demo = null, onDone = null }: RecordDeleteOptions) => {
+      if (!(allowed ?? canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy }))) return null
       return {
         id: `delete-${table}-${id}`,
         label: en ? 'Delete' : 'Διαγραφή',

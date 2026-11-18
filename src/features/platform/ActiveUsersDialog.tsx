@@ -3,33 +3,38 @@ import { AlertTriangle, CheckCircle2, FileSpreadsheet, KeyRound, Upload } from '
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { MultiSelect } from '../../design-system/MultiSelect'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { readSpreadsheet } from '../../core/import/spreadsheetImport'
 import { downloadXlsx } from '../../core/export/xlsxExport'
 import { ROLES } from './platformOrganizationShared'
-import { TEMPORARY_PASSWORD_DAYS, checkPerson, errorText, isDivisionRole, mergeVerdicts, needsDepartment, planFile, previewCounts, resultsSheet, templateSheet } from './activeUsersModel'
+import { TEMPORARY_PASSWORD_DAYS, checkPerson, errorText, fold, markDuplicates, strongTemporaryPassword, isDivisionRole, mergeVerdicts, needsDepartment, planFile, previewCounts, resultsSheet, templateSheet } from './activeUsersModel'
 import { loadDivisions } from '../interviews/interviewsService'
 import { createActiveUsers, previewActiveUsers } from './activeUsersService'
+import { ActiveUsersEmployeeList } from './ActiveUsersEmployeeList'
+import type { EmployeeListState } from './ActiveUsersEmployeeList'
+import type { RosterRow } from './bulkAccountsModel'
 import './activeUsers.css'
 import type { CheckedPerson, CreatedActiveUser, DepartmentChoice, FilePlan, PreviewPerson } from './activeUsersModel'
 
 // Η φόρμα «Νέος ενεργός χρήστης».
-type ActiveUserDraft = { fullName: string, email: string, username: string, role: string, departmentId: string, employeeCode: string, phone: string, passwordMode: string, divisionName: string, departmentIds: string[] }
+type ActiveUserDraft = { fullName: string, email: string, username: string, role: string, departmentId: string, employeeCode: string, phone: string, passwordMode: string, password: string, divisionName: string, departmentIds: string[] }
 // Ο οργανισμός και οι διευθύνσεις του, όσο τα διαβάζει το παράθυρο.
 type ActiveUsersOrganization = { id: string, name?: string | null, code?: string | null }
 type DivisionOption = { name: string, departments?: string[] }
 
-const EMPTY: ActiveUserDraft = { fullName: '', email: '', username: '', role: 'department_user', departmentId: '', employeeCode: '', phone: '', passwordMode: 'random', divisionName: '', departmentIds: [] }
+const EMPTY: ActiveUserDraft = { fullName: '', email: '', username: '', role: 'department_user', departmentId: '', employeeCode: '', phone: '', passwordMode: 'random', password: '', divisionName: '', departmentIds: [] }
 // Names offered for a new division; the hospital's own divisions come first.
 const DIVISION_SUGGESTIONS = ['Νοσηλευτική Υπηρεσία', 'Διεύθυνση Λειτουργιών', 'Ιατρική Υπηρεσία', 'Διοικητική Υπηρεσία']
 
-// «Νέος ενεργός χρήστης» (mode single) and «Εισαγωγή χρηστών από αρχείο» (mode file),
-// Platform Owner only, in the hospital's record › «Χρήστες & Ρόλοι». The accounts are
-// created active with a temporary password, shown once here and in the Excel of the
-// results; the user changes it at the first sign-in. The welcome e-mail never carries it.
-export function ActiveUsersDialog({ mode = 'single', organization, departments = [], language = 'el', onClose, onCreated }: { mode?: string, organization: ActiveUsersOrganization, departments?: DepartmentChoice[], language?: string, onClose: () => void, onCreated?: () => void }) {
+// «Ενεργοί με προσωρινό κωδικό» (Platform Owner only, in the hospital's record › «Χρήστες & Ρόλοι»),
+// with three tabs: «Ένας χρήστης» (single), «Από τη λίστα εργαζομένων» (list) and «Από Excel» (file).
+// The accounts are created active with a temporary password per person, shown once here and in the
+// Excel of the results; the user changes it at the first sign-in. «Αποστολή πρόσκλησης με email»
+// sends the welcome e-mail, which never carries the password.
+export function ActiveUsersDialog({ mode = 'single', organization, departments = [], roster = [], memberNames = [], language = 'el', onClose, onCreated }: { mode?: string, organization: ActiveUsersOrganization, departments?: DepartmentChoice[], roster?: RosterRow[], memberNames?: string[], language?: string, onClose: () => void, onCreated?: () => void }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
   const { confirm, notifyError } = useFeedback()
@@ -46,6 +51,15 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   const [divisions, setDivisions] = useState<DivisionOption[]>([])
   const [fileRows, setFileRows] = useState<unknown[][] | null>(null)
   const [passwordMode, setPasswordMode] = useState('random')
+  // «Τον ορίζω εγώ» in the list and Excel tabs: one password for those sent (a file column can give one per row).
+  const [customPassword, setCustomPassword] = useState('')
+  const [tab, setTab] = useState(mode === 'file' || mode === 'list' ? mode : 'single')
+  const [sendInvite, setSendInvite] = useState(true)
+  const [listState, setListState] = useState<EmployeeListState>({ people: [], selectedCount: 0 })
+  const [listIssues, setListIssues] = useState<Map<string, string>>(new Map())
+  // The employees of the list: active, without an account.
+  const employees = useMemo(() => roster.filter(row => row.accountState === 'none').map(row => ({ employeeId: row.employeeId, name: row.name, profession: row.profession, departmentId: row.departmentId, departmentName: row.departmentName, email: row.email, phone: row.phone || '' })), [roster])
+  const memberNameSet = useMemo(() => new Set(memberNames.map(name => fold(name)).filter(Boolean)), [memberNames])
 
   // The hospital's divisions, to choose from (a name that is not there yet creates a new one).
   useEffect(() => {
@@ -57,7 +71,11 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   const passwordOptions = [
     { value: 'random', label: tx('Τυχαίος (προτείνεται)', 'Random (recommended)') },
     { value: 'phone', label: tx('Το κινητό του χρήστη', "The user's mobile number") },
+    { value: 'custom', label: tx('Τον ορίζω εγώ', 'I set it myself') },
   ]
+  // «Τον ορίζω εγώ» in the list tab: nothing is created until the password typed for all is strong enough.
+  const customPasswordMissing = passwordMode === 'custom' && !strongTemporaryPassword(customPassword)
+  const passwordRule = tx('Τουλάχιστον 12 χαρακτήρες, με κεφαλαίο, πεζό, αριθμό και σύμβολο.', 'At least 12 characters with an upper- and lower-case letter, a digit and a symbol.')
 
   const counts = useMemo(() => (people ? previewCounts(people) : { ok: 0, error: 0 }), [people])
   const ready = people ? people.filter((person: PreviewPerson) => person.status === 'ok') : []
@@ -91,7 +109,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
     try {
       const rows = await readSpreadsheet(file)
       setFileRows(rows)
-      const next = planFile(rows, departments, en, passwordMode)
+      const next = planFile(rows, departments, en, passwordMode, sendInvite, customPassword)
       setPlan(next)
       if (!next.missingColumns.length && next.people.length) await verify(next.people)
     } catch (error) {
@@ -100,20 +118,21 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   }
 
   // The password of the file's users can be changed after the file is chosen: the rows are read again.
-  async function changeFileMode(mode: string) {
+  async function changeFileMode(mode: string, password = customPassword) {
     setPasswordMode(mode)
     if (!fileRows) return
-    const next = planFile(fileRows, departments, en, mode)
+    const next = planFile(fileRows, departments, en, mode, sendInvite, password)
     setPlan(next)
     setPeople(null)
     if (!next.missingColumns.length && next.people.length) await verify(next.people)
   }
 
-  async function run(list: CheckedPerson[]) {
+  // refused: people the server's check turned down, shown in the results as not created.
+  async function run(list: CheckedPerson[], refused: CreatedActiveUser[] = []) {
     setProgress({ done: 0, total: list.length })
     try {
-      const rows = await createActiveUsers(organization.id, list, { onProgress: (done, total: number) => setProgress({ done, total }) })
-      setResults(rows)
+      const rows = list.length ? await createActiveUsers(organization.id, list.map(person => ({ ...person, sendInvite })), { onProgress: (done, total: number) => setProgress({ done, total }) }) : []
+      setResults([...rows, ...refused])
       if (rows.some(row => row.status === 'created')) onCreated?.()
     } catch (error) {
       notifyError(error, 'save', { operation: 'platform_active_users_create' })
@@ -139,6 +158,28 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
     await run([verdict])
   }
 
+  // «Από τη λίστα εργαζομένων»: the server checks the ticked people, creates those that pass and
+  // shows the others as not created, with the reason (they are also greyed in the list).
+  async function createFromList() {
+    // The same e-mail or name twice among the people sent: both are refused (not the whole list).
+    const list = markDuplicates(listState.people)
+    if (!list.length) return
+    setChecking(true)
+    let merged: PreviewPerson[] | null = null
+    try {
+      const clean = list.filter(person => !person.errors.length)
+      merged = mergeVerdicts(list, clean.length ? await previewActiveUsers(organization.id, clean) : [])
+    } catch (error) {
+      notifyError(error, 'load', { operation: 'platform_active_users_preview' })
+    } finally {
+      setChecking(false)
+    }
+    if (!merged) return
+    const refused = merged.filter(person => person.status !== 'ok')
+    if (refused.length) setListIssues(current => new Map([...current, ...refused.map(person => [person.employeeId as string, person.code || 'AUTH_ERROR'] as [string, string])]))
+    await run(merged.filter(person => person.status === 'ok'), refused.map(person => ({ ...person, status: 'failed', code: person.code })))
+  }
+
   function download() {
     downloadXlsx(`${organization.code || 'organization'}-${tx('energoi-xristes', 'active-users')}.xlsx`, [resultsSheet(results || [], en)])
     setDownloaded(true)
@@ -158,11 +199,62 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
     onClose()
   }
 
+  // «Αποστολή πρόσκλησης με email»: the welcome e-mail (without the password) to those with an e-mail.
+  const withEmail = (tab === 'list' ? listState.people : tab === 'file' ? ready : []).filter(person => person.email).length
+  const total = tab === 'list' ? listState.people.length : tab === 'file' ? ready.length : 0
+  const inviteBox = (
+    <label className="observer-check active-users-invite">
+      <input type="checkbox" checked={sendInvite} disabled={busy} onChange={event => setSendInvite(event.target.checked)} />
+      <span>
+        {tx('Αποστολή πρόσκλησης με email', 'Send an invitation by e-mail')}
+        {tab !== 'single' && total > 0 && <small>{tx(` (σε όσους έχουν email: ${withEmail} από ${total})`, ` (to those with an e-mail: ${withEmail} of ${total})`)}</small>}
+      </span>
+    </label>
+  )
+  // The owner's own password: shown as typed (they hand it over), kept only in this window.
+  const customPasswordInput = (
+    <input
+      className="active-users-custom-password"
+      value={customPassword}
+      disabled={busy}
+      autoComplete="new-password"
+      spellCheck={false}
+      aria-label={tx('Κωδικός για όλους', 'Password for all')}
+      placeholder={tx('Κωδικός για όλους', 'Password for all')}
+      title={passwordRule}
+      onChange={event => setCustomPassword(event.target.value)}
+      onBlur={event => { if (tab === 'file') void changeFileMode('custom', event.target.value) }}
+    />
+  )
+  const invitationOptions = (withPassword: boolean) => (
+    <div className="active-users-options">
+      {withPassword && (
+        <div className="active-users-options-password">
+          <span id="active-users-password-label">{tx('Προσωρινός κωδικός', 'Temporary password')}</span>
+          <select aria-labelledby="active-users-password-label" value={passwordMode} disabled={busy} onChange={event => void changeFileMode(event.target.value)}>
+            {passwordOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+          {passwordMode === 'custom' && customPasswordInput}
+          {passwordMode === 'custom' && <small className={customPassword && customPasswordMissing ? 'active-users-password-weak' : ''}>{passwordRule}</small>}
+        </div>
+      )}
+      {inviteBox}
+    </div>
+  )
+
   const footer = results ? (
     <DialogActions>
       <ExportMenu items={[{ id: 'accounts', kind: 'excel', label: tx('Excel: λογαριασμοί και προσωρινοί κωδικοί', 'Excel: accounts and temporary passwords'), disabled: !created.length, onClick: download }]} />
     </DialogActions>
-  ) : mode === 'single' ? (
+  ) : tab === 'list' ? (
+    <DialogActions
+      onSave={() => void createFromList()}
+      disabled={busy || !listState.selectedCount || customPasswordMissing}
+      saveLabel={progress ? tx(`Δημιουργία ${progress.done}/${progress.total}…`, `Creating ${progress.done}/${progress.total}…`) : checking ? tx('Έλεγχος…', 'Checking…') : listState.selectedCount === 1 ? tx('Δημιουργία 1 χρήστη', 'Create 1 user') : tx(`Δημιουργία ${listState.selectedCount} χρηστών`, `Create ${listState.selectedCount} users`)}
+    >
+      <span className={`active-users-selected${listState.selectedCount ? ' on' : ''}`}>{tx(`Επιλεγμένοι: ${listState.selectedCount}`, `Selected: ${listState.selectedCount}`)}</span>
+    </DialogActions>
+  ) : tab === 'single' ? (
     <DialogActions
       onSave={() => void createSingle()}
       disabled={busy || !draft.fullName.trim() || (!draft.email.trim() && !draft.username.trim())}
@@ -179,16 +271,36 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   return (
     <ObserverDialog
       eyebrow={tx('ΧΡΗΣΤΕΣ & ΡΟΛΟΙ', 'USERS & ROLES')}
-      title={mode === 'single' ? tx('Νέος ενεργός χρήστης', 'New active user') : tx('Εισαγωγή χρηστών από αρχείο', 'Import users from a file')}
+      title={tx('Ενεργοί χρήστες με προσωρινό κωδικό', 'Active users with a temporary password')}
       subtitle={tx(
         `${organization.name}: ο λογαριασμός ενεργοποιείται αμέσως με προσωρινό κωδικό, που αλλάζει υποχρεωτικά στην πρώτη σύνδεση.`,
         `${organization.name}: the account is active at once with a temporary password, which must be changed at the first sign-in.`,
       )}
       onClose={busy ? undefined : () => void close()}
       width="wide"
+      className="active-users-dialog"
       footer={footer}
     >
       <div className="active-users">
+        {!results && (
+          <CanonicalTabs
+            className="active-users-tabs"
+            ariaLabel={tx('Τρόπος δημιουργίας', 'How to create')}
+            value={tab}
+            onChange={value => { if (!busy) setTab(String(value)) }}
+            items={[
+              { value: 'single', label: tx('Ένας χρήστης', 'One user') },
+              { value: 'list', label: tx('Από τη λίστα εργαζομένων', 'From the employee list') },
+              { value: 'file', label: tx('Από Excel', 'From Excel') },
+            ]}
+          />
+        )}
+        {/* The list stays mounted while another tab is open, so that the ticked people are kept. */}
+        {!results && (
+          <div className="active-users-list-wrap" hidden={tab !== 'list'}>
+            <ActiveUsersEmployeeList employees={employees} departments={departments} memberNames={memberNameSet} passwordMode={passwordMode} password={customPassword} sendInvite={sendInvite} serverIssues={listIssues} onIssueFixed={id => setListIssues(current => { if (!current.has(id)) return current; const next = new Map(current); next.delete(id); return next })} disabled={busy} language={language} onChange={setListState} />
+          </div>
+        )}
         {results ? (
           <>
             <p className={`active-users-banner ${created.length === results.length ? 'ok' : 'partial'}`} role="status">
@@ -241,7 +353,9 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
               </table>
             </div>
           </>
-        ) : mode === 'single' ? (
+        ) : tab === 'list' ? (
+          employees.length > 0 && invitationOptions(true)
+        ) : tab === 'single' ? (
           <div className="user-form-grid">
             <label className="field">
               <span>{tx('Ονοματεπώνυμο', 'Full name')} *</span>
@@ -340,10 +454,18 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
               </select>
               <small>{tx(`Αλλάζει υποχρεωτικά στην πρώτη σύνδεση· λήγει σε ${TEMPORARY_PASSWORD_DAYS} ημέρες αν δεν γίνει σύνδεση.`, `Must be changed at the first sign-in; expires in ${TEMPORARY_PASSWORD_DAYS} days if nobody signs in.`)}</small>
             </label>
+            {draft.passwordMode === 'custom' && (
+              <label className="field">
+                <span>{tx('Κωδικός', 'Password')} *</span>
+                <input value={draft.password} autoComplete="new-password" spellCheck={false} onChange={e => setDraft(x => ({ ...x, password: e.target.value }))} />
+                <small>{passwordRule}</small>
+              </label>
+            )}
+            <div className="user-form-wide">{inviteBox}</div>
             <p className="active-users-note user-form-wide">
               {tx(
-                'Χωρίς email ο χρήστης συνδέεται με το όνομα χρήστη και δεν λαμβάνει email. Με email λαμβάνει μήνυμα καλωσορίσματος χωρίς τον κωδικό.',
-                'Without e-mail the user signs in with the username and receives no e-mail. With e-mail they get a welcome message without the password.',
+                'Χωρίς email ο χρήστης συνδέεται με το όνομα χρήστη και δεν λαμβάνει email. Με την πρόσκληση λαμβάνει μήνυμα καλωσορίσματος χωρίς τον κωδικό.',
+                'Without e-mail the user signs in with the username and receives no e-mail. With the invitation they get a welcome message without the password.',
               )}
             </p>
             {singleError && (
@@ -364,8 +486,10 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                   </option>
                 ))}
               </select>
-              <small>{passwordMode === 'phone' ? tx('Κάθε χρήστης χρειάζεται κινητό στη στήλη «Κινητό».', 'Every user needs a mobile number in the «Mobile» column.') : tx(`Λήγει σε ${TEMPORARY_PASSWORD_DAYS} ημέρες αν δεν γίνει σύνδεση.`, `Expires in ${TEMPORARY_PASSWORD_DAYS} days if nobody signs in.`)}</small>
+              {passwordMode === 'custom' && customPasswordInput}
+              <small>{passwordMode === 'custom' ? tx(`Ο ίδιος κωδικός για όλους, εκτός αν η στήλη «Προσωρινός κωδικός» του αρχείου δίνει άλλον. ${passwordRule}`, `The same password for all, unless the file's «Temporary password» column gives another. ${passwordRule}`) : passwordMode === 'phone' ? tx('Κάθε χρήστης χρειάζεται κινητό στη στήλη «Κινητό».', 'Every user needs a mobile number in the «Mobile» column.') : tx(`Λήγει σε ${TEMPORARY_PASSWORD_DAYS} ημέρες αν δεν γίνει σύνδεση.`, `Expires in ${TEMPORARY_PASSWORD_DAYS} days if nobody signs in.`)}</small>
             </label>
+            {inviteBox}
             <div className="active-users-file">
               <label className="active-users-pick">
                 <Upload size={16} />

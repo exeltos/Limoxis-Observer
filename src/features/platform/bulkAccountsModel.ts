@@ -47,6 +47,7 @@ export type RawRosterRow = {
   department_id?: string | null
   department_name?: string | null
   email?: string | null
+  phone?: string | null
   user_id?: string | null
   username?: string | null
   member_role?: string | null
@@ -81,6 +82,7 @@ export type RosterRow = {
   departmentId: string | null
   departmentName: string
   email: string
+  phone: string
   userId: string | null
   username: string
   memberRole: string | null
@@ -128,6 +130,7 @@ export function normalizeRosterRow(raw: RawRosterRow = {}): RosterRow {
     departmentId: raw.department_id || null,
     departmentName: raw.department_name || '',
     email: raw.email || '',
+    phone: raw.phone || '',
     userId: raw.user_id || null,
     username: raw.username || '',
     memberRole: raw.member_role || null,

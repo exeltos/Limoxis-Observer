@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileUp, Mail, ShieldCheck, UserCheck, UserPlus } from 'lucide-react'
+import { Mail, ShieldCheck, UserCheck, UserPlus } from 'lucide-react'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -78,14 +78,14 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersCo
                     },
                   ]}
                 />
-                {/* One «Νέος χρήστης ▾» (owner, 9/11/2026): active with a temporary password, an e-mail invitation, or a file. */}
+                {/* One «Νέος χρήστης ▾» (owner): active with a temporary password (one user, from the employee list or from Excel, in one window) or an e-mail invitation. */}
                 <OverflowMenu
                   label={tx('Νέος χρήστης', 'New user')}
                   triggerTone="primary"
                   width={280}
                   trigger={<><UserPlus size={15} aria-hidden="true" />{tx('Νέος χρήστης', 'New user')}</>}
                   items={[
-                    { id: 'active', label: tx('Ενεργός με προσωρινό κωδικό', 'Active, with a temporary password'), icon: UserCheck, onClick: () => setActiveUsersMode('single') },
+                    { id: 'active', label: tx('Ενεργοί με προσωρινό κωδικό', 'Active, with a temporary password'), icon: UserCheck, onClick: () => setActiveUsersMode('single') },
                     {
                       id: 'invite',
                       label: tx('Πρόσκληση με email', 'Invitation by e-mail'),
@@ -95,7 +95,6 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersCo
                         setCreateUserOpen(true)
                       },
                     },
-                    { id: 'file', label: tx('Εισαγωγή από αρχείο (Excel/CSV)', 'Import from a file (Excel/CSV)'), icon: FileUp, separatorBefore: true, onClick: () => setActiveUsersMode('file') },
                   ]}
                 />
               </div>
@@ -203,6 +202,8 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersCo
                 mode={activeUsersMode}
                 organization={record}
                 departments={roster.departments || []}
+                roster={roster.employees || []}
+                memberNames={users.map((user: OrganizationMember) => user.name).filter(Boolean)}
                 language={language}
                 onClose={() => setActiveUsersMode('')}
                 onCreated={() => {

@@ -39,3 +39,52 @@
 .user-form-grid .active-users-note{font-size:13.5px;padding:12px 14px}
 @media (max-width:640px){.user-form-grid{grid-template-columns:minmax(0,1fr)}}
 .active-users-mode{max-width:340px;margin:0 0 4px}
+
+/* «Ενεργοί με προσωρινό κωδικό»: the three tabs, the employee list and the invitation option. */
+.active-users-tabs{width:100%}
+.active-users-list{display:flex;flex:1 1 auto;flex-direction:column;gap:8px;min-height:0}
+.active-users-list-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px}
+.active-users-list-filters .field{display:flex;flex-direction:column;gap:5px;min-width:180px}
+.active-users-list-filters .field>span{font-size:12.5px;font-weight:600;color:var(--lo-color-text)}
+.active-users-list-filters input{min-width:240px}
+.active-users-list-all{margin-left:auto}
+.active-users-list-count{margin:0;font-size:12px;color:var(--lo-color-muted)}
+.active-users-list-check{width:34px;text-align:center}
+.active-users-row-selected td{background:var(--surface-neutral-976)}
+.active-users-row-blocked td{color:var(--lo-color-muted)}
+.active-users-row-blocked td strong{color:var(--lo-color-muted);font-weight:600}
+.active-users-list select.active-users-list-select{height:34px;min-height:34px;padding:0 8px;font-size:12.5px;min-width:170px;max-width:220px}
+.active-users-list-missing{color:var(--text-warning-271-2);font-weight:600}
+.active-users-list-role{font-size:12.5px;color:var(--lo-color-muted)}
+.active-users-list-issue,.active-users-list-ok{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600}
+.active-users-list-issue{color:var(--text-warning-271-2)}
+.active-users-list-ok{color:var(--text-success)}
+.active-users-options{display:flex;flex-wrap:wrap;align-items:center;gap:10px 26px;padding:10px 14px;border-radius:10px;background:var(--surface-neutral-967)}
+.active-users-options-password{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--lo-color-text)}
+.active-users-options-password select{width:auto;min-width:200px}
+.active-users-invite{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:8px;width:auto;margin:0;text-align:left;font-size:13px;font-weight:600;color:var(--lo-color-text);cursor:pointer}
+.active-users-invite small{font-weight:400;color:var(--lo-color-muted)}
+.active-users-selected{margin-right:auto;font-size:13px;color:var(--lo-color-muted)}
+.active-users-selected.on{font-size:14px;font-weight:700;color:var(--text-brand-351)}
+.active-users-invite input{width:16px;height:16px;min-height:0;margin:0;flex:0 0 auto}
+.active-users-list-wrap{display:flex;flex:1 1 auto;flex-direction:column;min-height:0}
+.active-users-list-wrap[hidden]{display:none}
+/* One fixed size on every tab (owner): the window does not grow or shrink when the tab changes; the list fills it and scrolls inside. */
+.active-users-dialog .observer-dialog-body{display:flex;flex-direction:column}
+/* Larger at the owner's request (18/11): wider for the list's columns and taller for more rows. */
+.observer-dialog.active-users-dialog{--lo-dialog-wide:1360px}
+.active-users-dialog .active-users{flex:none;height:min(720px,calc(100dvh - 250px));overflow:auto}
+.active-users-list .active-users-table{flex:1 1 auto;min-height:120px;max-height:none}
+.active-users-list-role{white-space:nowrap}
+.active-users-dialog .active-users>*{flex-shrink:0}
+.active-users-dialog .active-users>.active-users-list-wrap{flex-shrink:1}
+.active-users-options .active-users-custom-password{flex:none;width:240px;font-family:Consolas,Menlo,monospace}
+.active-users-options-password>span{white-space:nowrap}
+.active-users-options-password{flex-wrap:wrap}
+.active-users-options-password small{flex-basis:100%}
+.active-users-options-password small{font-size:11.5px;font-weight:400;color:var(--lo-color-muted)}
+.active-users-options-password small.active-users-password-weak{color:var(--text-danger)}
+.active-users-list .active-users-list-username{height:34px;min-height:34px;width:150px;padding:0 8px;font-size:12.5px;font-family:Consolas,Menlo,monospace}
+.active-users-list-contact{overflow-wrap:anywhere}
+.active-users-list-contact small{display:block;margin-top:2px;font-size:11.5px;color:var(--lo-color-muted)}
+.active-users-list-contact small.active-users-list-missing{color:var(--text-warning-271-2)}

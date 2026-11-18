@@ -11,7 +11,9 @@ export const TEMPORARY_PASSWORD_DAYS=7
 export const temporaryPasswordExpiry=(now:Date=new Date())=>new Date(now.getTime()+TEMPORARY_PASSWORD_DAYS*86400000).toISOString()
 // The roles that see the departments of a division, chosen one by one (not a single department).
 export const DIVISION_ROLES=['division_director']
-export type PasswordMode='random'|'phone'
+export type PasswordMode='random'|'phone'|'custom'
+// «Τον ορίζω εγώ»: the owner's own temporary password must be as strong as the one the user sets later.
+export const strongTemporaryPassword=(p:unknown)=>typeof p==='string'&&p.length>=12&&p.length<=128&&/[A-Z]/.test(p)&&/[a-z]/.test(p)&&/\d/.test(p)&&/[^A-Za-z0-9]/.test(p)
 // A person with a username only gets an Auth address that never receives mail
 // (the reserved .invalid domain): no e-mail is ever sent to it.
 export const SYNTHETIC_EMAIL_DOMAIN='users.limoxis.invalid'
@@ -71,7 +73,7 @@ export function normalizeMobile(value:unknown):string{
 }
 export const isValidMobile=(value:unknown)=>/^69\d{8}$/.test(normalizeMobile(value))
 
-export type ActiveUserInput={line:number,fullName:string,email:string,username:string,role:string|null,roleText:string,departmentId:string|null,departmentName:string,employeeCode:string,phone:string,passwordMode:PasswordMode,divisionId:string|null,divisionName:string,departmentIds:string[],departmentNames:string[]}
+export type ActiveUserInput={line:number,fullName:string,email:string,username:string,role:string|null,roleText:string,departmentId:string|null,departmentName:string,employeeCode:string,phone:string,passwordMode:PasswordMode,password:string,divisionId:string|null,divisionName:string,departmentIds:string[],departmentNames:string[],employeeId:string|null,sendInvite:boolean}
 
 // One person of the request, with the errors that need no database.
 export function normalizeUserRow(raw:unknown,index:number):{user:ActiveUserInput,errors:string[]}{
@@ -88,15 +90,21 @@ export function normalizeUserRow(raw:unknown,index:number):{user:ActiveUserInput
     departmentName:text('departmentName'),
     employeeCode:text('employeeCode',60),
     phone:normalizeMobile(text('phone',40)),
-    passwordMode:r.passwordMode==='phone'?'phone':'random',
+    passwordMode:r.passwordMode==='phone'?'phone':r.passwordMode==='custom'?'custom':'random',
+    password:r.passwordMode==='custom'?String(r.password??'').slice(0,128):'',
     divisionId:isUuid(r.divisionId)?String(r.divisionId).toLowerCase():null,
     divisionName:text('divisionName',120).replace(/\s+/g,' '),
     departmentIds:Array.isArray(r.departmentIds)?[...new Set(r.departmentIds.filter(isUuid).map(id=>String(id).toLowerCase()))].slice(0,200):[],
     departmentNames:Array.isArray(r.departmentNames)?[...new Set(r.departmentNames.map(name=>String(name??'').trim().slice(0,200)).filter(Boolean))].slice(0,200):[],
+    // «Από τη λίστα εργαζομένων»: the employee the account is for.
+    employeeId:isUuid(r.employeeId)?String(r.employeeId).toLowerCase():null,
+    // «Αποστολή πρόσκλησης με email»: on unless the owner turned it off.
+    sendInvite:r.sendInvite!==false,
   }
   const errors:string[]=[]
   if(!user.fullName)errors.push('FULL_NAME_REQUIRED')
-  if(!user.email&&!user.username)errors.push('EMAIL_OR_USERNAME_REQUIRED')
+  // An employee of the list without e-mail gets a username made from the name.
+  if(!user.email&&!user.username&&!user.employeeId)errors.push('EMAIL_OR_USERNAME_REQUIRED')
   if(user.email&&!isDeliverable(user.email))errors.push('INVALID_EMAIL')
   if(user.username&&!isValidUsername(user.username))errors.push('INVALID_USERNAME')
   if(!user.roleText)errors.push('ROLE_REQUIRED')
@@ -105,6 +113,8 @@ export function normalizeUserRow(raw:unknown,index:number):{user:ActiveUserInput
   const phoneText=text('phone',40)
   if(user.passwordMode==='phone'&&!phoneText)errors.push('PHONE_REQUIRED')
   else if(phoneText&&!isValidMobile(phoneText))errors.push('PHONE_INVALID')
+  if(user.passwordMode==='custom'&&!user.password)errors.push('PASSWORD_REQUIRED')
+  else if(user.passwordMode==='custom'&&!strongTemporaryPassword(user.password))errors.push('PASSWORD_WEAK')
   return {user,errors}
 }
 
@@ -114,20 +124,38 @@ export function validateActiveUsersRequest(body:unknown):{ok:true,organizationId
   if(!isUuid(b.organizationId))return {ok:false,code:'ORGANIZATION_REQUIRED'}
   if(!Array.isArray(b.users)||!b.users.length)return {ok:false,code:'USERS_REQUIRED'}
   if(b.users.length>MAX_ACTIVE_USERS_PER_CALL)return {ok:false,code:'TOO_MANY_USERS'}
-  const requestMode=b.passwordMode==='phone'?'phone':'random'
+  const requestMode=b.passwordMode==='phone'?'phone':b.passwordMode==='custom'?'custom':'random'
   const rows=b.users.map((raw,index)=>normalizeUserRow(raw&&typeof raw==='object'&&(raw as Record<string,unknown>).passwordMode==null?{...(raw as object),passwordMode:requestMode}:raw,index))
-  // The same e-mail or username twice in one request: both rows are refused.
+  // The same e-mail, username, employee, or the same name without a different employee code, twice in one request: both rows are refused.
   const count=new Map<string,number>()
-  const keys=(user:ActiveUserInput)=>[user.email&&`e:${user.email}`,user.username&&`u:${user.username.toLowerCase()}`].filter(Boolean) as string[]
+  const keys=(user:ActiveUserInput)=>[user.email&&`e:${user.email}`,user.username&&`u:${user.username.toLowerCase()}`,user.employeeId&&`i:${user.employeeId}`,user.fullName&&`n:${fold(user.fullName)}|${user.employeeId||fold(user.employeeCode)}`].filter(Boolean) as string[]
   for(const {user} of rows)for(const key of keys(user))count.set(key,(count.get(key)||0)+1)
   for(const row of rows)if(keys(row.user).some(key=>(count.get(key)||0)>1))row.errors.push('DUPLICATE_IN_FILE')
   return {ok:true,organizationId:String(b.organizationId),dryRun:b.dryRun===true,rows}
 }
 
 export type DepartmentRow={id:string,name:string,name_en?:string|null,is_active?:boolean|null}
-export type EmployeeRow={id:string,employee_code:string|null,user_id:string|null,department_id:string|null,employment_status?:string|null}
+export type EmployeeRow={id:string,employee_code:string|null,user_id:string|null,department_id:string|null,employment_status?:string|null,first_name?:string|null,last_name?:string|null}
 export type DivisionRow={id:string,name:string}
-export type PlanContext={departments:DepartmentRow[],existingEmails:Set<string>,takenUsernames:Set<string>,employeesByCode:Map<string,EmployeeRow>,divisions?:DivisionRow[]}
+// employeesById / employeesByName / memberNames: optional, so that older callers keep working.
+export type PlanContext={departments:DepartmentRow[],existingEmails:Set<string>,takenUsernames:Set<string>,employeesByCode:Map<string,EmployeeRow>,divisions?:DivisionRow[],employeesById?:Map<string,EmployeeRow>,employeesByName?:Map<string,EmployeeRow[]>,memberNames?:Set<string>}
+
+// The keys an employee is found by from a full name: «Όνομα Επώνυμο» and «Επώνυμο Όνομα».
+export function employeeNameKeys(row:{first_name?:string|null,last_name?:string|null}){
+  const first=fold(row.first_name),last=fold(row.last_name)
+  if(!first||!last)return [] as string[]
+  return [...new Set([`${first} ${last}`,`${last} ${first}`])]
+}
+// The employees by id and by name, for the plan.
+export function indexEmployees(rows:EmployeeRow[]){
+  const byId=new Map<string,EmployeeRow>(),byCode=new Map<string,EmployeeRow>(),byName=new Map<string,EmployeeRow[]>()
+  for(const row of rows){
+    byId.set(row.id,row)
+    if(row.employee_code)byCode.set(fold(row.employee_code),row)
+    for(const key of employeeNameKeys(row))byName.set(key,[...(byName.get(key)||[]),row])
+  }
+  return {byId,byCode,byName}
+}
 
 // The department by id, else by its Greek or English name (any case or accents); active only.
 export function matchDepartment(departments:DepartmentRow[],{departmentId,departmentName}:{departmentId?:string|null,departmentName?:string|null}){
@@ -147,11 +175,26 @@ export function planActiveUser(row:{user:ActiveUserInput,errors:string[]},ctx:Pl
   if(user.email&&ctx.existingEmails.has(user.email))return {code:'ACCOUNT_EXISTS',...none}
   if(user.username&&ctx.takenUsernames.has(user.username.toLowerCase()))return {code:'USERNAME_TAKEN',...none}
   let employee:EmployeeRow|null=null
-  if(user.employeeCode){
+  const explicitEmployee=Boolean(user.employeeId||user.employeeCode)
+  if(user.employeeId){
+    employee=ctx.employeesById?.get(user.employeeId)||null
+    if(!employee)return {code:'EMPLOYEE_NOT_FOUND',...none}
+    if(employee.user_id)return {code:'EMPLOYEE_ALREADY_LINKED',...none}
+  }else if(user.employeeCode){
     employee=ctx.employeesByCode.get(fold(user.employeeCode))||null
     if(!employee)return {code:'EMPLOYEE_NOT_FOUND',...none}
     if(employee.user_id)return {code:'EMPLOYEE_ALREADY_LINKED',...none}
+  }else{
+    // No code: a name that matches exactly one employee is that employee (one account per employee).
+    const matches=ctx.employeesByName?.get(fold(user.fullName))||[]
+    if(matches.length===1){
+      if(matches[0].user_id)return {code:'EMPLOYEE_ALREADY_LINKED',...none}
+      employee=matches[0]
+    }
   }
+  // A user of the hospital with the same name: refused, unless the owner typed the employee code and an e-mail or username of their own.
+  const typedIdentity=Boolean(user.employeeCode&&!user.employeeId&&(user.email||user.username))
+  if(ctx.memberNames?.has(fold(user.fullName))&&!(explicitEmployee&&typedIdentity))return {code:'NAME_TAKEN',...none}
   if(DIVISION_ROLES.includes(String(user.role))){
     // A division director: the division (existing, or a new one by its name) and the departments they will see.
     const wantsDepartments=user.departmentIds.length>0||user.departmentNames.length>0

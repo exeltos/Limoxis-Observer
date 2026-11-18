@@ -14,7 +14,7 @@ import { loadBundleAssessments } from '../prevention/bundleCloudService'
 import { loadTrainingProgramsAsync } from '../training/trainingService'
 import { loadQualityRecords } from './qualityService'
 import { capaPrefill,deviationQueue } from './qualityDeviations'
-import { REGISTER_SOURCES,filterRegister,registerCounts,registerRows } from './qualityRegister'
+import { REGISTER_SOURCES,filterRegister,registerCounts,registerDateKey,registerRows } from './qualityRegister'
 import { INCIDENT_STAGES } from './qualityRecordRules'
 import { daysUntil } from './QualityGlance'
 import { CAUSE_CATEGORIES,DEVIATION_KINDS,FINDING_SOURCES,REPORT_KINDS,causeCategoriesText,incidentCategoryLabel,vocabularyLabel } from './qualityVocabulary'
@@ -237,8 +237,9 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
    &&(filters.period==='all'||(Number.isFinite(age)&&age<=PERIOD_DAYS[filters.period]))
    &&(filters.origin==='all'||(filters.origin==='anonymous')===Boolean(row.anonymous))
  }):compact?[...view.filtered].sort(openFirst):view.filtered,[view.filtered,inbox,compact,quick,filters.period,filters.origin])
- const sortBy={code:(row: RegisterRow)=>row.code,title:(row: RegisterRow)=>(en?row.titleEn:row.title),kind:(row: RegisterRow)=>row.kind,department:(row: RegisterRow)=>(en?row.departmentEn:row.department),date:(row: RegisterRow)=>row.date,stage:(row: RegisterRow)=>row.stage,owner:(row: RegisterRow)=>row.owner,reporter:(row: RegisterRow)=>(row.anonymous?'':row.reporter)}
- const paging=useSortedPaging(items,JSON.stringify(filters),sortBy)
+ const sortBy={code:(row: RegisterRow)=>row.code,title:(row: RegisterRow)=>(en?row.titleEn:row.title),kind:(row: RegisterRow)=>row.kind,department:(row: RegisterRow)=>(en?row.departmentEn:row.department),date:(row: RegisterRow)=>registerDateKey(row),stage:(row: RegisterRow)=>row.stage,owner:(row: RegisterRow)=>row.owner,reporter:(row: RegisterRow)=>(row.anonymous?'':row.reporter)}
+ // Always newest first on opening (day, time, then code); a header click sorts otherwise until the next visit.
+ const paging=useSortedPaging(items,JSON.stringify(filters),sortBy,{key:'date',dir:'desc'})
  const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+Number(filters.period!=='all')+Number(filters.origin!=='all')+Number(filters.department!=='all')
  const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length+(filters.dateFrom?1:0)+(filters.dateTo?1:0)
  const columns=inbox
@@ -306,7 +307,7 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
  const {filters,set}=view
  const items=useMemo(()=>[...view.filtered].sort(deviationOrder),[view.filtered])
  const severityRank: Record<string, number>={critical:4,high:3,medium:2,low:1}
- const sortBy={code:(row: RegisterRow)=>row.code,title:(row: RegisterRow)=>(en?row.titleEn:row.title),source:(row: RegisterRow)=>row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):findingSourceText(row.source,language),department:(row: RegisterRow)=>(en?row.departmentEn:row.department),date:(row: RegisterRow)=>row.date,status:(row: RegisterRow)=>row.status,priority:(row: RegisterRow)=>severityRank[row.severity as string]||0}
+ const sortBy={code:(row: RegisterRow)=>row.code,title:(row: RegisterRow)=>(en?row.titleEn:row.title),source:(row: RegisterRow)=>row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):findingSourceText(row.source,language),department:(row: RegisterRow)=>(en?row.departmentEn:row.department),date:(row: RegisterRow)=>registerDateKey(row),status:(row: RegisterRow)=>row.status,priority:(row: RegisterRow)=>severityRank[row.severity as string]||0}
  const paging=useSortedPaging(items,`${JSON.stringify(filters)}:${view.days}`,sortBy)
  const pendingView=filters.scope==='pending'
  const advanced=['source','department','priority','status','deviationKind','cause','recurring'].filter(key=>filters[key]&&filters[key]!=='all').length+(filters.dateFrom?1:0)+(filters.dateTo?1:0)+(view.days!==90?1:0)

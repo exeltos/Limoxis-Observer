@@ -36,7 +36,8 @@ import { AFFECTS,isOdipyCategory,odipyGroupOf,odipyGroupOptions,odipyItem,odipyI
 import { CAPA_TYPES, CAUSE_CATEGORIES, DEVIATION_KINDS, EFFECTIVENESS, causeCategoriesText, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, concernsPerson, isLegacyRecordNumber, visibleSourceId, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
-import { loadQualityRecord, loadQualityRecords, saveQualityRecord } from './qualityService'
+import { loadQualityRecord, loadQualityRecords, qualityTable, removeQualityRecordLocal, saveQualityRecord } from './qualityService'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -296,9 +297,12 @@ function AuditReadDetails({record,language,t}: { record: QualityRecord, language
   ]}/>
 }
 
+// The kind of record as the Recycle Bin names it.
+const QUALITY_KIND_LABEL: Record<string, [string, string]>={incidents:['Συμβάν','Incident'],findings:['Εύρημα','Finding'],capas:['Διορθωτική ενέργεια','Corrective action'],audits:['Επιθεώρηση','Audit']}
 function QualityDetails({extra=null,autoEdit=false,view='details',recordType,record,linked=[],setRecord,t,language,canManage,notify,actor,finalized,onDeleted,organizationId}: { extra?: ReactNode, autoEdit?: boolean, view?: string, recordType: string, record: QualityRecord, linked?: QualityRecord[], setRecord: Dispatch<SetStateAction<QualityRecord | null>>, t: (key: string) => string, language: string, canManage: boolean, notify: FeedbackContextValue['notify'], actor: AuditActor, finalized: boolean, onDeleted: () => void, organizationId: string | null | undefined }){
   const {goTo}=useContextualNavigation('/quality')
   const en=language==='en'
+  const recordDelete=useRecordDelete()
   const assessment=view==='assessment'
   const [editing,setEditing]=useState(()=>autoEdit&&canManage&&!finalized)
   const incidentRead=recordType==='incidents'&&view==='details'&&!editing
@@ -378,6 +382,8 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
   const actionItems=editing?[]:[
     canManage&&{id:'edit',label:finalized?(en?'Correct record':'Διόρθωση εγγραφής'):t('edit'),icon:finalized?RotateCcw:Pencil,onClick:beginEdit},
     canManage&&{id:'void',label:en?'Void record':'Ακύρωση εγγραφής',icon:Trash2,tone:'danger',separatorBefore:true,onClick:requestVoid},
+    // «Διαγραφή» (owner, 18/11): to the Recycle Bin with what hangs from it, 30 days to restore; Quality only (bin_delete checks the same).
+    recordDelete({allowed:canManage,table:qualityTable(recordType),id:record.dbId,label:[record.displayId,en?record.titleEn||record.title:record.title].filter(Boolean).join(' · '),detail:(QUALITY_KIND_LABEL[recordType]||['',''])[en?1:0],demo:()=>removeQualityRecordLocal(recordType,record.id),onDone:onDeleted}),
   ].filter(Boolean)
   return <div className={`record-section quality-record-details ${editing?'is-editing':'is-viewing'}`}>
     <div className="record-section-header"><h3>{assessment?(en?'Assessment':'Αξιολόγηση'):t('details')}</h3>{actionItems.length>0&&<OverflowMenu items={actionItems}/>}</div>
