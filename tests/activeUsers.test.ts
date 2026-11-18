@@ -410,6 +410,17 @@ describe('no duplicates and the employee list', () => {
     expect(employeeIssue(listed[0], new Set())).toBe(null)
   })
 
+  it('lets the owner give a username to an employee of the list, or leaves it to the system', () => {
+    const choice = { employeeId: EMP, name: 'Α Β', profession: '', departmentId: DEP, departmentName: 'ΜΕΘ', email: '', phone: '' }
+    const typed = planEmployees([choice], { [EMP]: { role: 'department_user', username: 'MPapadopoulou' } }, [{ id: DEP, name: 'ΜΕΘ' }])[0]
+    expect(typed).toMatchObject({ username: 'MPapadopoulou', errors: [] })
+    expect(requestUser(typed).username).toBe('MPapadopoulou')
+    const automatic = planEmployees([choice], {}, [{ id: DEP, name: 'ΜΕΘ' }])[0]
+    expect(requestUser(automatic).username).toBeUndefined()
+    const wrong = planEmployees([choice], { [EMP]: { role: 'department_user', username: 'Μαρία' } }, [{ id: DEP, name: 'ΜΕΘ' }])[0]
+    expect(employeeIssue(wrong, new Set())).toBe('INVALID_USERNAME')
+  })
+
   it('sends the welcome e-mail only when the owner asked for it', () => {
     const source = read('supabase/functions/platform-create-active-users/index.ts')
     expect(source).toContain('const sendInvite=Boolean(realEmail)&&user.sendInvite')

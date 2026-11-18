@@ -82,3 +82,7 @@
 .active-users-options-password small{flex-basis:100%}
 .active-users-options-password small{font-size:11.5px;font-weight:400;color:var(--lo-color-muted)}
 .active-users-options-password small.active-users-password-weak{color:var(--text-danger)}
+.active-users-list .active-users-list-username{height:34px;min-height:34px;width:150px;padding:0 8px;font-size:12.5px;font-family:Consolas,Menlo,monospace}
+.active-users-list-contact{overflow-wrap:anywhere}
+.active-users-list-contact small{display:block;margin-top:2px;font-size:11.5px;color:var(--lo-color-muted)}
+.active-users-list-contact small.active-users-list-missing{color:var(--text-warning-271-2)}

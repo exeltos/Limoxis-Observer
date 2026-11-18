@@ -63,7 +63,7 @@ export type FilePlan = { missingColumns: string[], people: CheckedPerson[], tooM
 // «Από τη λίστα εργαζομένων»: one employee without an account, as the list shows it.
 export type EmployeeChoice = { employeeId: string, name: string, profession: string, departmentId: string | null, departmentName: string, email: string, phone: string }
 // What the owner chose for one employee of the list.
-export type EmployeePick = { role: string, departmentId?: string | null }
+export type EmployeePick = { role: string, departmentId?: string | null, username?: string }
 
 export const DEPARTMENT_ROLES = Object.freeze(['department_manager', 'link_nurse', 'department_user'])
 export const ACTIVE_USERS_CHUNK = 25
@@ -332,7 +332,7 @@ export function planEmployees(choices: EmployeeChoice[], picks: Record<string, E
   const people = choices.map((choice, index) => {
     const pick = picks[choice.employeeId] || { role: 'department_user' }
     const departmentId = pick.departmentId || (choice.departmentId && departments.some(row => row.id === choice.departmentId) ? choice.departmentId : null)
-    return checkPerson({ line: index + 1, fullName: choice.name, email: choice.email, role: pick.role, departmentId, department: '', phone: choice.phone, passwordMode, password, employeeId: choice.employeeId, sendInvite }, departments)
+    return checkPerson({ line: index + 1, fullName: choice.name, email: choice.email, role: pick.role, departmentId, department: '', username: pick.username || '', phone: choice.phone, passwordMode, password, employeeId: choice.employeeId, sendInvite }, departments)
   })
   // No e-mail: the username is made on the server; the employee link is the identity. Duplicates are
   // checked only among the people actually sent (markDuplicates at «Δημιουργία»), not the whole list.

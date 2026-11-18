@@ -13,7 +13,7 @@ import type { CheckedPerson, DepartmentChoice, EmployeeChoice, EmployeePick } fr
 // the server's verdict) is greyed and cannot be ticked.
 export type EmployeeListState = { people: CheckedPerson[], selectedCount: number }
 
-export function ActiveUsersEmployeeList({ employees, departments, memberNames, passwordMode, password, sendInvite, serverIssues, disabled, language, onChange }: {
+export function ActiveUsersEmployeeList({ employees, departments, memberNames, passwordMode, password, sendInvite, serverIssues, disabled, language, onChange, onIssueFixed }: {
   employees: EmployeeChoice[]
   departments: DepartmentChoice[]
   memberNames: Set<string>
@@ -24,6 +24,7 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
   disabled: boolean
   language: string
   onChange: (state: EmployeeListState) => void
+  onIssueFixed?: (employeeId: string) => void
 }) {
   const en = language === 'en'
   const tx = (el: string, enText: string) => (en ? enText : el)
@@ -34,7 +35,7 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const roleOf = (row: EmployeeChoice) => picks[row.employeeId]?.role || suggestRole(row.profession, defaultRole)
-  const effectivePicks = useMemo(() => Object.fromEntries(employees.map(row => [row.employeeId, { role: picks[row.employeeId]?.role || suggestRole(row.profession, defaultRole), departmentId: picks[row.employeeId]?.departmentId || null }])), [employees, picks, defaultRole])
+  const effectivePicks = useMemo(() => Object.fromEntries(employees.map(row => [row.employeeId, { role: picks[row.employeeId]?.role || suggestRole(row.profession, defaultRole), departmentId: picks[row.employeeId]?.departmentId || null, username: picks[row.employeeId]?.username || '' }])), [employees, picks, defaultRole])
   // Every row checked as it would be sent, so that the issue is shown before anything is created.
   const checked = useMemo(() => planEmployees(employees, effectivePicks, departments, passwordMode, sendInvite, password), [employees, effectivePicks, departments, passwordMode, sendInvite, password])
   const issueOf = useMemo(() => {
@@ -54,7 +55,7 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
   // The parent gets the ticked rows that pass the checks (a row with an issue is never sent),
   // again whenever a role, the password, the invitation or the server's verdict changes one.
   const currentPeople = checked.filter(person => selected.has(person.employeeId as string) && !issueOf.get(person.employeeId as string))
-  const signature = currentPeople.map(person => `${person.employeeId}:${person.role}:${person.departmentId}:${person.passwordMode}:${person.password}:${person.sendInvite}`).join('|')
+  const signature = currentPeople.map(person => `${person.employeeId}:${person.role}:${person.departmentId}:${person.username}:${person.passwordMode}:${person.password}:${person.sendInvite}`).join('|')
   useEffect(() => {
     onChange({ people: currentPeople, selectedCount: currentPeople.length })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,7 +73,9 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
     else selectable.forEach(row => next.add(row.employeeId))
     setSelected(next)
   }
-  const setPick = (id: string, change: Partial<EmployeePick>) => setPicks(current => ({ ...current, [id]: { role: current[id]?.role || effectivePicks[id]?.role || defaultRole, departmentId: current[id]?.departmentId || null, ...change } }))
+  const setPick = (id: string, change: Partial<EmployeePick>) => setPicks(current => ({ ...current, [id]: { ...current[id], role: current[id]?.role || effectivePicks[id]?.role || defaultRole, departmentId: current[id]?.departmentId || null, ...change } }))
+  // A username typed for a row clears the server's earlier verdict on it (e.g. «already taken»).
+  const setUsername = (id: string, username: string) => { setPick(id, { username }); onIssueFixed?.(id) }
 
   if (!employees.length) {
     return <p className="active-users-note">{tx('Όλοι οι ενεργοί εργαζόμενοι έχουν ήδη λογαριασμό, ή η λίστα εργαζομένων του νοσοκομείου είναι κενή.', 'Every active employee already has an account, or the hospital’s employee list is empty.')}</p>
@@ -110,8 +113,8 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
               <th className="active-users-list-check" aria-label={tx('Επιλογή', 'Select')} />
               <th>{tx('Εργαζόμενος', 'Employee')}</th>
               <th>{tx('Τμήμα', 'Department')}</th>
-              <th>{tx('Κινητό', 'Mobile')}</th>
-              <th>Email</th>
+              <th>{tx('Email · κινητό', 'Email · mobile')}</th>
+              <th>{tx('Όνομα χρήστη', 'Username')}</th>
               <th>{tx('Ρόλος', 'Role')}</th>
               <th>{tx('Έλεγχος', 'Check')}</th>
             </tr>
@@ -139,8 +142,16 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
                       </select>
                     ) : (departments.find(item => item.id === (effectivePicks[row.employeeId]?.departmentId || row.departmentId))?.name || row.departmentName || '—')}
                   </td>
-                  <td className={passwordMode === 'phone' && !row.phone ? 'active-users-list-missing' : ''}>{row.phone || (passwordMode === 'phone' ? tx('λείπει', 'missing') : '—')}</td>
-                  <td>{row.email || '—'}</td>
+                  <td className="active-users-list-contact">
+                    {row.email || '—'}
+                    <small className={passwordMode === 'phone' && !row.phone ? 'active-users-list-missing' : ''}>{row.phone || (passwordMode === 'phone' ? tx('Κινητό: λείπει', 'Mobile: missing') : '')}</small>
+                  </td>
+                  <td>
+                    {/* Optional: empty means the system makes one (initials and five digits). */}
+                    {selected.has(row.employeeId) ? (
+                      <input className="active-users-list-username" value={picks[row.employeeId]?.username || ''} disabled={disabled} placeholder={tx('Αυτόματα', 'Automatic')} autoComplete="off" spellCheck={false} aria-label={tx(`Όνομα χρήστη: ${row.name}`, `Username: ${row.name}`)} onChange={event => setUsername(row.employeeId, event.target.value.trim())} />
+                    ) : <span className="active-users-list-role">{tx('Αυτόματα', 'Automatic')}</span>}
+                  </td>
                   <td>
                     {/* A ticked row keeps its role selector even while it has an issue, so that the owner can correct it. */}
                     {isSelected || (selected.has(row.employeeId) && !serverIssues.get(row.employeeId)) || picks[row.employeeId]?.role ? (

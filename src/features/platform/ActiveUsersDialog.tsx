@@ -298,7 +298,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
         {/* The list stays mounted while another tab is open, so that the ticked people are kept. */}
         {!results && (
           <div className="active-users-list-wrap" hidden={tab !== 'list'}>
-            <ActiveUsersEmployeeList employees={employees} departments={departments} memberNames={memberNameSet} passwordMode={passwordMode} password={customPassword} sendInvite={sendInvite} serverIssues={listIssues} disabled={busy} language={language} onChange={setListState} />
+            <ActiveUsersEmployeeList employees={employees} departments={departments} memberNames={memberNameSet} passwordMode={passwordMode} password={customPassword} sendInvite={sendInvite} serverIssues={listIssues} onIssueFixed={id => setListIssues(current => { if (!current.has(id)) return current; const next = new Map(current); next.delete(id); return next })} disabled={busy} language={language} onChange={setListState} />
           </div>
         )}
         {results ? (
