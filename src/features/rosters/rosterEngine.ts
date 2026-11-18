@@ -193,11 +193,12 @@ export function generateRoster({ days, employees, demand, rules, history = {}, s
   // Each shift by its real hours (owner, 18/11/2026): a kind's hours on a day are those of the shifts that ask for
   // it (12 for a department of 07:00–19:00 / 19:00–07:00). Longer shifts mean fewer of them a week: more days off.
   const hours = kindHoursOf(days, demand)
-  let weighted = 0
-  let count = 0
-  days.forEach((day, i) => { const need = demandFor(demand, day); for (const kind of SHIFT_CODES) { weighted += hours[i][kind] * need[kind]; count += need[kind] } })
-  const average = count ? weighted / count : 8
-  const build: RosterRules = average > 8 ? { ...r, weeklyRestDays: Math.max(r.weeklyRestDays, 7 - Math.max(1, Math.floor((Number(r.maxWeeklyHours) || 40) / average))) } : r
+  // The extra days off follow the shortest shift asked for, so that a department mixing 8- and 12-hour shifts keeps
+  // its 8-hour people at five shifts (the hours checks limit the rest); none when the weekly limit is off (0).
+  let shortest = Infinity
+  days.forEach((day, i) => { const need = demandFor(demand, day); for (const kind of SHIFT_CODES) if (need[kind] > 0) shortest = Math.min(shortest, hours[i][kind]) })
+  const limit = Number(r.maxWeeklyHours) || 0
+  const build: RosterRules = limit > 0 && Number.isFinite(shortest) && shortest > 8 ? { ...r, weeklyRestDays: Math.max(r.weeklyRestDays, 7 - Math.max(1, Math.floor(limit / shortest))) } : r
   let best: RosterResult | null = null
   for (let attempt = 0; attempt < Math.max(1, attempts); attempt += 1) {
     const result = buildRoster({ days, employees: byKind, demand, r: build, check: r, hours, history: kindHistory, random: mulberry32(Math.floor(seeds() * 4294967296)), iterations })

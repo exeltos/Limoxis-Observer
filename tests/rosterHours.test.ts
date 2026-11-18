@@ -34,6 +34,20 @@ describe('twelve-hour shifts', () => {
     expect(Math.max(...shifts)).toBeGreaterThanOrEqual(19)
   })
 
+  it('a department mixing 8- and 12-hour shifts keeps its 8-hour people at five a week', () => {
+    // Five plain mornings and one twelve-hour afternoon a day; seven people work mornings only.
+    const mixed = { weekday: { M: 5, A: 0, N: 0 }, weekend: { M: 5, A: 0, N: 0 }, custom: [{ code: 'A:1', label: '07:00–19:00', weekday: 1, weekend: 1 }] }
+    const staff = people(10).map((person, k) => (k < 7 ? { ...person, allowed: ['M'] } : person))
+    const made = generateRoster({ days, employees: staff, demand: mixed, rules: { maxWeeklyHours: 40 }, seed: 7, attempts: 1, iterations: 6000 })
+    const mornings = staff.slice(0, 7).map((person) => days.filter((day) => made.assignments[person.id][day.date] === 'M').length)
+    expect(Math.min(...mornings)).toBeGreaterThanOrEqual(19)
+  })
+
+  it('no extra days off when the weekly limit is off', () => {
+    const engine = readSource('src/features/rosters/rosterEngine.ts')
+    expect(engine).toContain('limit > 0 && Number.isFinite(shortest) && shortest > 8')
+  })
+
   it('the engine reads the real hours while it builds, not eight a shift', () => {
     const engine = readSource('src/features/rosters/rosterEngine.ts')
     expect(engine).toContain('const hours = kindHoursOf(days, demand)')
