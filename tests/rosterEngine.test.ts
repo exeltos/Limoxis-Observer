@@ -91,7 +91,7 @@ describe('generateRoster', () => {
     const withI = { weekday: { M: 2, I: 1, A: 2, N: 1 }, weekend: { M: 2, A: 2, N: 1 } }
     const staff = Array.from({ length: 11 }, (_, index) => ({ id: `i${index}`, active: true }))
     const made = generateRoster({ days, employees: staff, demand: withI, seed: 3 })
-    expect(made.violations.filter((v) => v.rule !== 'weekendOff')).toEqual([])
+    expect(made.violations.filter((v) => !['weekendOff', 'shortRestAfterNights'].includes(v.rule))).toEqual([])
     for (const day of days) {
       if (day.weekend) expect(made.coverage[day.date].I).toBe(0)
       else expect(made.coverage[day.date].I).toBeLessThanOrEqual(1)
@@ -109,8 +109,13 @@ describe('checkRoster', () => {
   it('flags three nights, a shift right after a night and only one day off after two nights', () => {
     expect(check('NNNRR')).toContain('nightsInRow')
     expect(check('NMRR')).toContain('restAfterNight')
-    expect(check('NNRMR')).toContain('restAfterNight')
+    // After two nights one day off is allowed rarely (owner, 18/11/2026): a recommendation, not a breach.
+    expect(check('NNRMR')).toContain('shortRestAfterNights')
+    expect(check('NNRMR')).not.toContain('restAfterNight')
     expect(check('NNRRM')).not.toContain('restAfterNight')
+    // After one night two days off.
+    expect(check('NRMR')).toContain('restAfterNight')
+    expect(check('NRRM')).toEqual([])
   })
   it('flags afternoon then morning, and morning then night', () => {
     expect(check('AMRR')).toContain('restHours')
@@ -200,7 +205,8 @@ describe('exactly two days off in every Monday-Sunday week (owner, 9/11/2026)', 
       expect(Math.min(...weeks)).toBeGreaterThanOrEqual(1)
       expect(Object.values(made.assignments[id]).filter(isShift).length).toBeLessThanOrEqual(21)
     }
-    expect(made.violations.filter((v) => v.rule !== 'coverage')).toEqual([])
+    // One day off after two nights is allowed rarely (owner, 18/11/2026).
+    expect(made.violations.filter((v) => !['coverage', 'shortRestAfterNights'].includes(v.rule))).toEqual([])
   })
 })
 

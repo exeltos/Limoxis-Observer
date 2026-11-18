@@ -40,7 +40,8 @@ const DAY_MS = 86400000
 export const DEFAULT_RULES = {
   maxConsecutive: 5,
   maxConsecutiveNights: 2,
-  restAfterNight: 1,
+  // After a night two days off (owner, 18/11/2026); after two nights two, rarely one when nothing else works.
+  restAfterNight: 2,
   restAfterTwoNights: 2,
   weeklyRestDays: 2,
   minWeekendOff: 1,
@@ -173,6 +174,8 @@ export function rowProblems(codes: string[], prefix: string[], days: RosterDay[]
   let streak = 0
   let nights = 0
   let restNeeded = 0
+  let afterTwo = false
+  let restTaken = 0
   // One stretch of a single extra shift (six in a row) is allowed once in a roster (owner, 9/11/2026).
   let exceptions = Number.isFinite(r.longStretchExceptions) ? r.longStretchExceptions as number : 1
   for (let k = 0; k < all.length; k += 1) {
@@ -198,12 +201,18 @@ export function rowProblems(codes: string[], prefix: string[], days: RosterDay[]
     }
     if (nights > 0) {
       restNeeded = nights >= 2 ? r.restAfterTwoNights : r.restAfterNight
+      afterTwo = nights >= 2
+      restTaken = 0
       nights = 0
     }
     if (isShift(code)) {
-      if (restNeeded > 0 && inside) problems.push({ rule: 'restAfterNight', index })
+      // One day off after two nights (when two are asked) is a recommendation, not a breach (owner, 18/11/2026).
+      if (restNeeded > 0 && inside) problems.push({ rule: afterTwo && restTaken >= 1 && restNeeded === 1 ? 'shortRestAfterNights' : 'restAfterNight', index })
       restNeeded = 0
-    } else if (restNeeded > 0) restNeeded -= 1
+    } else if (restNeeded > 0) {
+      restNeeded -= 1
+      restTaken += 1
+    }
   }
   if (r.weeklyRestDays > 0) {
     // Two days off a week; a week may have one more and another one less (owner, 9/11/2026), never fewer than one,
@@ -296,7 +305,7 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   for (const shift of customShifts(demand).filter((shift) => kindOf(shift.code) !== 'I')) {
     days.forEach((day) => {
       const need = customNeed(shift, day)
-      const have = active0.filter((employee) => given?.[employee.id]?.[day.date] === shift.code).length
+      const have = active0.filter((employee) => !employee.extra && given?.[employee.id]?.[day.date] === shift.code).length
       if (have < need && active0.some((employee) => isShift(given?.[employee.id]?.[day.date]))) violations.push({ rule: 'coverage', date: day.date, detail: `${shift.code} ${have}/${need}` })
     })
   }
@@ -308,7 +317,8 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   days.forEach((day, i) => {
     const need = demandFor(demand, day)
     for (const shift of SHIFT_CODES.filter((code) => code !== 'I')) {
-      const have = rows.filter((row) => row.codes[i] === shift).length
+      // The supernumerary is not counted (owner, 18/11/2026): the shift needs its people besides them.
+      const have = rows.filter((row) => !row.employee.extra && row.codes[i] === shift).length
       if (have < need[shift]) violations.push({ rule: 'coverage', date: day.date, detail: `${shift} ${have}/${need[shift]}` })
     }
   })

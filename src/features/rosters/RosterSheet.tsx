@@ -143,8 +143,8 @@ export function RosterSheet({ view }: { view: RosterView }) {
                         <td key={d.date} className={d.weekend ? 'is-weekend' : ''}>
                           <button
                             type="button"
-                            className={`roster-need${hasShifts && s !== 'I' && have + extra < needed ? ' is-short' : ''}${own ? ' is-own' : ''}`}
-                            title={extra ? tx('Μαζί με τον προϊστάμενο', 'Head of the department included') : undefined}
+                            className={`roster-need${hasShifts && s !== 'I' && have < needed ? ' is-short' : ''}${own ? ' is-own' : ''}`}
+                            title={extra ? tx(`Και ${extra} υπεράριθμος, που δεν μετρά`, `And ${extra} supernumerary, not counted`) : undefined}
                             disabled={!canEdit}
                             aria-label={`${CODES[s].name} ${fmtDay(d.date)}: ${have} ${tx('από', 'of')} ${needed}`}
                             onClick={event => {
@@ -154,8 +154,8 @@ export function RosterSheet({ view }: { view: RosterView }) {
                               setNeed({ date: d.date, shift: s, value: String(needed), top: Math.max(8, rect.top - 124), left: Math.min(rect.left, window.innerWidth - 230) })
                             }}
                           >
-                            {/* The head counts on the shift like everyone else (owner, 9/11/2026). */}
-                            {have + extra}/{needed}
+                            {/* The supernumerary is not counted (owner, 18/11/2026): shown as «+1» beside the count. */}
+                            {have}/{needed}{extra ? <small className="roster-need-extra">+{extra}</small> : null}
                           </button>
                         </td>
                       )

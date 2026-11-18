@@ -102,6 +102,7 @@ export function RostersPage() {
     maxConsecutive: tx('Πάρα πολλές συνεχόμενες βάρδιες', 'Too many shifts in a row'),
     nightsInRow: tx('Πάνω από τις επιτρεπόμενες συνεχόμενες νύχτες', 'More nights in a row than allowed'),
     restAfterNight: tx('Λείπει ρεπό μετά από νύχτα', 'No day off after a night'),
+    shortRestAfterNights: tx('Ένα μόνο ρεπό μετά από δύο νύχτες', 'Only one day off after two nights'),
     restHours: tx('Απόγευμα και την επομένη πρωί (κάτω από 11 ώρες ανάπαυση)', 'Afternoon then morning (under 11 hours of rest)'),
     morningToNight: tx('Πρωί ή ενδιάμεση και την επομένη νύχτα', 'Morning or intermediate followed by a night'),
     weeklyRest: tx('Εβδομάδα με λιγότερα ρεπό από τα απαιτούμενα', 'A week with fewer days off than required'),
