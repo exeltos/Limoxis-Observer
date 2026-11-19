@@ -40,7 +40,8 @@ const DAY_MS = 86400000
 export const DEFAULT_RULES = {
   maxConsecutive: 5,
   maxConsecutiveNights: 2,
-  restAfterNight: 1,
+  // After a night two days off (owner, 18/11/2026); after two nights two, rarely one when nothing else works.
+  restAfterNight: 2,
   restAfterTwoNights: 2,
   weeklyRestDays: 2,
   minWeekendOff: 1,
@@ -140,8 +141,9 @@ export function fullWeeks(days: RosterDay[]) {
 
 // Each person's target: the weekdays of the period minus their leave on weekdays (five days a week).
 export function shiftTargets(days: RosterDay[], employees: RosterEmployee[] | null | undefined, weeklyRestDays = DEFAULT_RULES.weeklyRestDays) {
-  // Each person's target follows the days off the roster keeps (owner, 9/11/2026): every Monday-Sunday week
-  // `weeklyRestDays` days off (a part week its whole share), the rest work, less leave.
+  // Each person's target is the working days of the period (owner, 18/11/2026): Monday–Friday that are not
+  // public holidays, less the leave on them; a period that starts on a Saturday adds nothing for that weekend.
+  // With more days off a week than two (longer shifts) the working days count in proportion (5 → 7 − days off).
   const segments: [number, number][] = []
   for (let i = 0, from = 0; i <= days.length; i += 1) {
     if (i === days.length || (i > from && days[i].weekday === 1)) {
@@ -154,10 +156,8 @@ export function shiftTargets(days: RosterDay[], employees: RosterEmployee[] | nu
     const fixed: Record<string, string> = employee.fixed || {}
     let work = 0
     for (const [from, to] of segments) {
-      const length = to - from
-      const quota = length === 7 ? weeklyRestDays : Math.floor((length * weeklyRestDays) / 7)
-      const leave = days.slice(from, to).filter((day) => isLeave(fixed[day.date])).length
-      work += Math.max(0, length - quota - leave)
+      const workdays = days.slice(from, to).filter((day) => !day.weekend && !day.holiday && !isLeave(fixed[day.date])).length
+      work += Math.max(0, Math.round((workdays * (7 - weeklyRestDays)) / 5))
     }
     // Part-time: a share of the full target.
     const percent = Number(employee.percent) > 0 && Number(employee.percent) < 100 ? Number(employee.percent) : 100
@@ -174,6 +174,8 @@ export function rowProblems(codes: string[], prefix: string[], days: RosterDay[]
   let streak = 0
   let nights = 0
   let restNeeded = 0
+  let afterTwo = false
+  let restTaken = 0
   // One stretch of a single extra shift (six in a row) is allowed once in a roster (owner, 9/11/2026).
   let exceptions = Number.isFinite(r.longStretchExceptions) ? r.longStretchExceptions as number : 1
   for (let k = 0; k < all.length; k += 1) {
@@ -199,12 +201,18 @@ export function rowProblems(codes: string[], prefix: string[], days: RosterDay[]
     }
     if (nights > 0) {
       restNeeded = nights >= 2 ? r.restAfterTwoNights : r.restAfterNight
+      afterTwo = nights >= 2
+      restTaken = 0
       nights = 0
     }
     if (isShift(code)) {
-      if (restNeeded > 0 && inside) problems.push({ rule: 'restAfterNight', index })
+      // One day off after two nights (when two are asked) is a recommendation, not a breach (owner, 18/11/2026).
+      if (restNeeded > 0 && inside) problems.push({ rule: afterTwo && restTaken >= 1 && restNeeded === 1 ? 'shortRestAfterNights' : 'restAfterNight', index })
       restNeeded = 0
-    } else if (restNeeded > 0) restNeeded -= 1
+    } else if (restNeeded > 0) {
+      restNeeded -= 1
+      restTaken += 1
+    }
   }
   if (r.weeklyRestDays > 0) {
     // Two days off a week; a week may have one more and another one less (owner, 9/11/2026), never fewer than one,
@@ -261,14 +269,14 @@ export function weeklyHoursLimit(employee: RosterEmployee | null | undefined, r:
   return Math.ceil((max * percent) / 100 / 8) * 8
 }
 // The full weeks whose hours break the limit: one week above limit + one shift, or all of them above it on average.
-export function weeklyHoursProblems(codes: string[], days: RosterDay[], limit: number, hoursOf: (code: string) => number = (code) => shiftHours(code)) {
+export function weeklyHoursProblems(codes: string[], days: RosterDay[], limit: number, hoursOf: (code: string, index: number) => number = (code) => shiftHours(code)) {
   if (limit <= 0) return [] as number[]
   const problems: number[] = []
   let total = 0
   let weeks = 0
   for (const start of fullWeeks(days)) {
     if (start + 6 >= codes.length) continue
-    const hours = codes.slice(start, start + 7).reduce((sum, code) => sum + hoursOf(code), 0)
+    const hours = codes.slice(start, start + 7).reduce((sum, code, x) => sum + hoursOf(code, start + x), 0)
     total += hours
     weeks += 1
     if (hours > limit + 8) problems.push(start + 6)
@@ -297,7 +305,7 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   for (const shift of customShifts(demand).filter((shift) => kindOf(shift.code) !== 'I')) {
     days.forEach((day) => {
       const need = customNeed(shift, day)
-      const have = active0.filter((employee) => given?.[employee.id]?.[day.date] === shift.code).length
+      const have = active0.filter((employee) => !employee.extra && given?.[employee.id]?.[day.date] === shift.code).length
       if (have < need && active0.some((employee) => isShift(given?.[employee.id]?.[day.date]))) violations.push({ rule: 'coverage', date: day.date, detail: `${shift.code} ${have}/${need}` })
     })
   }
@@ -309,7 +317,8 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   days.forEach((day, i) => {
     const need = demandFor(demand, day)
     for (const shift of SHIFT_CODES.filter((code) => code !== 'I')) {
-      const have = rows.filter((row) => row.codes[i] === shift).length
+      // The supernumerary is not counted (owner, 18/11/2026): the shift needs its people besides them.
+      const have = rows.filter((row) => !row.employee.extra && row.codes[i] === shift).length
       if (have < need[shift]) violations.push({ rule: 'coverage', date: day.date, detail: `${shift} ${have}/${need[shift]}` })
     }
   })

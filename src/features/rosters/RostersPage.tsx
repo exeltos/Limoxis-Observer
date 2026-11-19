@@ -102,6 +102,7 @@ export function RostersPage() {
     maxConsecutive: tx('Πάρα πολλές συνεχόμενες βάρδιες', 'Too many shifts in a row'),
     nightsInRow: tx('Πάνω από τις επιτρεπόμενες συνεχόμενες νύχτες', 'More nights in a row than allowed'),
     restAfterNight: tx('Λείπει ρεπό μετά από νύχτα', 'No day off after a night'),
+    shortRestAfterNights: tx('Ένα μόνο ρεπό μετά από δύο νύχτες', 'Only one day off after two nights'),
     restHours: tx('Απόγευμα και την επομένη πρωί (κάτω από 11 ώρες ανάπαυση)', 'Afternoon then morning (under 11 hours of rest)'),
     morningToNight: tx('Πρωί ή ενδιάμεση και την επομένη νύχτα', 'Morning or intermediate followed by a night'),
     weeklyRest: tx('Εβδομάδα με λιγότερα ρεπό από τα απαιτούμενα', 'A week with fewer days off than required'),
@@ -163,8 +164,10 @@ export function RostersPage() {
         setDepartments(visible)
         // ?department=<id>: the department opened from the Division Director's home.
         const asked = new URLSearchParams(window.location.search).get('department')
-        setDepartmentId(current => (visible.some(d => d.id === current) ? current : visible.find(d => d.id === asked)?.id || visible[0]?.id || ''))
-        if (!visible.length) setLoading(false)
+        // The page opens with no department chosen (owner, 18/11/2026), unless asked for or there is only one.
+        const first = visible.find(d => d.id === asked)?.id || (visible.length === 1 ? visible[0].id : '')
+        setDepartmentId(current => (visible.some(d => d.id === current) ? current : first))
+        if (!first) setLoading(false)
       })
       .catch(error => notifyError(error, 'load', { operation: 'roster_departments_load' }))
   }, [tenant?.id, role, isDemo, membership?.previewDepartment, membership?.departmentIds, notifyError])
@@ -680,6 +683,8 @@ export function RostersPage() {
 
       {loading ? (
         <div className="inline-empty">{tx('Φόρτωση…', 'Loading…')}</div>
+      ) : !department && departments.length ? (
+        <div className="inline-empty">{tx('Επιλέξτε τμήμα για να δείτε ή να φτιάξετε το πρόγραμμα βαρδιών του.', 'Choose a department to see or make its shift roster.')}</div>
       ) : !roster ? (
         <div className="inline-empty">{tx('Δεν υπάρχει τμήμα για πρόγραμμα βαρδιών.', 'No department to make a roster for.')}</div>
       ) : !visible ? (
