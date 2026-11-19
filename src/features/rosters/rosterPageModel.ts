@@ -65,6 +65,7 @@ export interface RosterView {
   rules: RosterRules
   violations: RosterViolation[]
   targets: Record<string, number>
+  feasibility: { need: Record<string, number>, total: number, available: number, margin: number, needHours: number, availableHours: number, hours: boolean }
   me: RosterMember | null
   update: (next: Roster) => void
   setMember: (employeeId: string, patch: Partial<RosterMember>) => void

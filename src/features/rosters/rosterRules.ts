@@ -21,10 +21,13 @@ export type Assignments = Record<string, Record<string, string>>
 export type ShiftNeed = Record<string, number>
 export type DemandKind = 'weekday' | 'weekend' | 'holiday'
 // Another shift of the department («M:1», 07:00–19:00): its people on weekdays and weekends.
-export type CustomShift = { code: string, label: string, weekday?: number, weekend?: number }
+// `optional` (owner, 19/11/2026): a supplementary shift, given when people are left over and never a shortage; a
+// basic one must be covered. Without the flag an intermediate is supplementary and the others are basic.
+export type CustomShift = { code: string, label: string, weekday?: number, weekend?: number, optional?: boolean }
 // `holiday`: the people of a public holiday (owner, 18/11/2026); without it a holiday takes the weekend numbers.
 export type RosterDemand = { weekday?: ShiftNeed, weekend?: ShiftNeed, holiday?: ShiftNeed, overrides?: Record<string, ShiftNeed>, custom?: CustomShift[] }
-export type RosterRules = typeof DEFAULT_RULES & { longStretchExceptions?: number, [key: string]: unknown }
+// `shiftTimes`: the start and end (minutes) of each kind and shift, read from the department's shifts (shiftTimesOf).
+export type RosterRules = typeof DEFAULT_RULES & { longStretchExceptions?: number, shiftTimes?: Record<string, [number, number]>, [key: string]: unknown }
 // A person as the rules read them: id, limits, fixed codes and wishes.
 // `noNights`: no night shifts (pregnancy, breastfeeding, a medical reason…) until a date or always; `forbid`: shifts the
 // person must not get on a date (hard); `wishes[date]`: 'R' (a day off) or a shift kind they would like (soft).
@@ -40,8 +43,9 @@ const DAY_MS = 86400000
 export const DEFAULT_RULES = {
   maxConsecutive: 5,
   maxConsecutiveNights: 2,
-  // After a night two days off (owner, 18/11/2026); after two nights two, rarely one when nothing else works.
-  restAfterNight: 2,
+  // After one night one day off, after two nights two (owner, 19/11/2026: two after two nights is a strong
+  // preference, one rarely; a shift after the night still needs 11 hours of real rest).
+  restAfterNight: 1,
   restAfterTwoNights: 2,
   weeklyRestDays: 2,
   minWeekendOff: 1,
@@ -121,6 +125,44 @@ export function demandFor(demand: RosterDemand | null | undefined, day: RosterDa
   for (const shift of customShifts(demand)) need[kindOf(shift.code)] += customNeed(shift, day)
   return need
 }
+// Basic or supplementary (owner, 19/11/2026): an intermediate is supplementary unless set otherwise.
+export const isOptionalShift = (shift: CustomShift) => (typeof shift.optional === 'boolean' ? shift.optional : kindOf(shift.code) === 'I')
+// The people the basic shifts need on a day (what a shortage is measured against): the four kinds without the plain
+// intermediate, and the department's basic shifts by their kind.
+export function basicDemandFor(demand: RosterDemand | null | undefined, day: RosterDay): Record<string, number> {
+  const all = demandFor(demand, day)
+  const need: Record<string, number> = { ...all, I: 0 }
+  for (const shift of customShifts(demand)) {
+    const kind = kindOf(shift.code) as string
+    if (isOptionalShift(shift)) { if (kind !== 'I') need[kind] -= customNeed(shift, day) } else if (kind === 'I') need.I += customNeed(shift, day)
+  }
+  return need
+}
+// The start and end of each shift in minutes (owner, 19/11/2026: the rest between shifts is read from their real
+// times). The four kinds: 07–15, 10–18, 15–23, 23–07, unless the department has a single shift of that kind and none
+// of the plain one; each of the department's shifts by its label («15:00–23:00»).
+export const DEFAULT_SHIFT_TIMES: Record<string, [number, number]> = { M: [420, 900], I: [600, 1080], A: [900, 1380], N: [1380, 420] }
+export function shiftTimesOf(demand: RosterDemand | null | undefined): Record<string, [number, number]> {
+  const times: Record<string, [number, number]> = { ...DEFAULT_SHIFT_TIMES }
+  const parse = (label: string): [number, number] | null => {
+    const match = String(label || '').match(/(\d{1,2}):(\d{2})\D+(\d{1,2}):(\d{2})/)
+    return match ? [Number(match[1]) * 60 + Number(match[2]), Number(match[3]) * 60 + Number(match[4])] : null
+  }
+  const plain = (kind: string) => [demand?.weekday, demand?.weekend, demand?.holiday].some((row) => Number(row?.[kind]) > 0)
+  for (const kind of SHIFT_CODES) {
+    const own = customShifts(demand).filter((shift) => kindOf(shift.code) === kind).map((shift) => parse(shift.label)).filter(Boolean) as [number, number][]
+    if (own.length && !plain(kind) && own.every(([a, b]) => a === own[0][0] && b === own[0][1])) times[kind] = own[0]
+  }
+  for (const shift of customShifts(demand)) { const t = parse(shift.label); if (t) times[shift.code] = t }
+  return times
+}
+// Minutes of rest from the end of `prev` (one day) to the start of `next` (the next day).
+export function restMinutes(prev: string, next: string, times: Record<string, [number, number]> = DEFAULT_SHIFT_TIMES) {
+  const [ps, pe] = times[prev] || times[kindOf(prev) as string] || DEFAULT_SHIFT_TIMES.M
+  const [ns] = times[next] || times[kindOf(next) as string] || DEFAULT_SHIFT_TIMES.M
+  const end = pe <= ps ? pe + 1440 : pe
+  return ns + 1440 - end
+}
 // The department's other shifts: [{ code: 'M:1', label, weekday, weekend }].
 export const customShifts = (demand: RosterDemand | null | undefined): CustomShift[] => (Array.isArray(demand?.custom) ? demand.custom.filter((shift: CustomShift) => isShift(shift?.code) && String(shift.code).includes(':')) : [])
 export const customNeed = (shift: CustomShift, day: RosterDay) => Math.max(0, Number(day.weekend ? shift.weekend : shift.weekday) || 0)
@@ -167,8 +209,10 @@ export function shiftTargets(days: RosterDay[], employees: RosterEmployee[] | nu
 }
 
 // The hard-rule problems of one person's row; `prefix` holds their last days before the period.
-export function rowProblems(codes: string[], prefix: string[], days: RosterDay[], r: RosterRules) {
+// `real`: the same row with the department's own shifts (e.g. «A:1» 15:00–00:00), for the rest between shifts.
+export function rowProblems(codes: string[], prefix: string[], days: RosterDay[], r: RosterRules, real?: string[]) {
   const all = prefix.length ? [...prefix, ...codes] : codes
+  const realAll = real ? [...prefix, ...real] : all
   const offset = prefix.length
   const problems: { rule: string, index: number }[] = []
   let streak = 0
@@ -184,19 +228,24 @@ export function rowProblems(codes: string[], prefix: string[], days: RosterDay[]
     const index = k - offset
     if (isShift(code)) {
       streak += 1
+      // The limit is a desired one (owner, 19/11/2026): six once in the period, another six a recommendation; seven never.
       if (inside && streak === r.maxConsecutive + 1) {
         if (exceptions > 0) exceptions -= 1
-        else problems.push({ rule: 'maxConsecutive', index })
+        else problems.push({ rule: 'longStretch', index })
       } else if (inside && streak === r.maxConsecutive + 2) problems.push({ rule: 'maxConsecutive', index })
     } else streak = 0
     const prev = all[k - 1]
-    if (inside && prev === 'A' && code === 'M') problems.push({ rule: 'restHours', index })
+    // 11 hours of real rest between two shifts (owner, 19/11/2026), from their times (afternoon 15–23 → morning 07 is
+    // 8 hours); after a night the days off are their own rule.
+    if (inside && isShift(prev) && isShift(code) && kindOf(prev) !== 'N' && restMinutes(realAll[k - 1] || prev, realAll[k] || code, r.shiftTimes) < 660) problems.push({ rule: 'restHours', index })
     if (inside && r.forbidMorningToNight && isDay(prev) && code === 'N') problems.push({ rule: 'morningToNight', index })
     if (code === 'N') {
       if (nights === 0 && restNeeded > 0 && inside) problems.push({ rule: 'restAfterNight', index })
       restNeeded = 0
       nights += 1
-      if (inside && nights === r.maxConsecutiveNights + 1) problems.push({ rule: 'nightsInRow', index })
+      // One night beyond the limit only by exception (a recommendation, owner 19/11/2026); two beyond it never.
+      if (inside && nights === r.maxConsecutiveNights + 1) problems.push({ rule: 'thirdNight', index })
+      if (inside && nights === r.maxConsecutiveNights + 2) problems.push({ rule: 'nightsInRow', index })
       continue
     }
     if (nights > 0) {
@@ -236,6 +285,8 @@ export function rowProblems(codes: string[], prefix: string[], days: RosterDay[]
   return problems
 }
 
+// The rules that are recommendations, not breaches (owner, 19/11/2026): the roster may keep them when nothing else works.
+export const ADVICE_RULES = ['shortRestAfterNights', 'thirdNight', 'longStretch', 'weekendOff', 'leaveRest', 'balance']
 // A person's own limits (owner, 8/11/2026): `allowed` lists the shifts they may take (e.g. mornings only); none = all.
 export const allowedOf = (employee: RosterEmployee | null | undefined): string[] => (Array.isArray(employee?.allowed) && employee.allowed.length ? employee.allowed as string[] : SHIFT_CODES)
 // More of a person's limits: no weekends, at most so many nights in the period.
@@ -284,6 +335,26 @@ export function weeklyHoursProblems(codes: string[], days: RosterDay[], limit: n
   if (weeks && total / weeks > limit) problems.push(-1)
   return problems
 }
+// Enough people? (owner, 19/11/2026) Before a roster is made: the places of the basic shifts over the period, and
+// the shifts the people can give (the sum of their targets after leave, without the supernumerary). In hours too,
+// when the department's shifts are not all of eight hours. Enough in numbers does not prove a roster exists.
+export function rosterFeasibility(days: RosterDay[], employees: RosterEmployee[] | null | undefined, demand: RosterDemand | null | undefined, weeklyRestDays = DEFAULT_RULES.weeklyRestDays) {
+  const need: Record<string, number> = { M: 0, I: 0, A: 0, N: 0 }
+  let needHours = 0
+  for (const day of days) {
+    const basic = basicDemandFor(demand, day)
+    for (const kind of SHIFT_CODES) {
+      need[kind] += basic[kind]
+      needHours += basic[kind] * 8
+    }
+    for (const shift of customShifts(demand).filter((item) => !isOptionalShift(item))) needHours += customNeed(shift, day) * (shiftHours(shift.code, demand) - 8)
+  }
+  const people = (employees || []).filter((employee) => employee.active !== false && !employee.extra)
+  const targets = shiftTargets(days, people, weeklyRestDays)
+  const available = people.reduce((sum, employee) => sum + (targets[employee.id] || 0), 0)
+  const total = SHIFT_CODES.reduce((sum, kind) => sum + need[kind], 0)
+  return { need, total, available, margin: available - total, needHours, availableHours: available * 8, hours: needHours !== total * 8 }
+}
 // A supernumerary person (the head of the department, owner 8/11/2026) is not counted in the shifts: mornings on
 // weekdays, and a shift only where the roster cannot be made otherwise.
 export const defaultExtraCode = (employee: RosterEmployee | null | undefined, day: RosterDay) => {
@@ -296,13 +367,13 @@ export const historyOf = (history: RosterHistory | null | undefined, id: string)
 
 export interface RosterInput { days: RosterDay[], employees: RosterEmployee[] | null | undefined, assignments: Assignments | null | undefined, demand: RosterDemand | null | undefined, rules?: Partial<RosterRules> | null, history?: RosterHistory }
 export function checkRoster({ days, employees, assignments: given, demand, rules, history = {} }: RosterInput) {
-  const r: RosterRules = { ...DEFAULT_RULES, ...rules }
+  const r: RosterRules = { ...DEFAULT_RULES, ...rules, shiftTimes: shiftTimesOf(demand) }
   const violations: RosterViolation[] = []
   // Each of the department's other shifts has its own people too.
   const active0 = (employees || []).filter((employee) => employee.active !== false)
-  // Intermediates are given only from the people left over after mornings, afternoons and nights (owner,
-  // 9/11/2026): one missing is no problem.
-  for (const shift of customShifts(demand).filter((shift) => kindOf(shift.code) !== 'I')) {
+  // Only the basic shifts make a shortage (owner, 19/11/2026); a supplementary one (by default an intermediate) is
+  // given from the people left over.
+  for (const shift of customShifts(demand).filter((shift) => !isOptionalShift(shift))) {
     days.forEach((day) => {
       const need = customNeed(shift, day)
       const have = active0.filter((employee) => !employee.extra && given?.[employee.id]?.[day.date] === shift.code).length
@@ -310,15 +381,17 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
     })
   }
   const assignments = asKinds(given)
+  const optionalCodes = new Set(customShifts(demand).filter(isOptionalShift).map((shift) => shift.code))
   const active = (employees || []).filter((employee) => employee.active !== false)
   const rows = active.map((employee) => ({ employee, codes: days.map((day) => assignments?.[employee.id]?.[day.date] || '') }))
   // An empty roster (only leave and wishes entered) has nothing to check yet.
   if (!rows.some((row) => row.codes.some(isShift))) return violations
   days.forEach((day, i) => {
-    const need = demandFor(demand, day)
-    for (const shift of SHIFT_CODES.filter((code) => code !== 'I')) {
-      // The supernumerary is not counted (owner, 18/11/2026): the shift needs its people besides them.
-      const have = rows.filter((row) => !row.employee.extra && row.codes[i] === shift).length
+    const need = basicDemandFor(demand, day)
+    for (const shift of SHIFT_CODES.filter((code) => need[code] > 0)) {
+      // The supernumerary is not counted (owner, 18/11/2026): the shift needs its people besides them; nor is a
+      // supplementary shift of the same kind (owner, 19/11/2026).
+      const have = rows.filter((row) => !row.employee.extra && row.codes[i] === shift && !optionalCodes.has(given?.[row.employee.id]?.[day.date] || '')).length
       if (have < need[shift]) violations.push({ rule: 'coverage', date: day.date, detail: `${shift} ${have}/${need[shift]}` })
     }
   })
@@ -332,9 +405,16 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
     for (const index of weeklyHoursProblems(real, days, weeklyHoursLimit(employee, r), (code) => shiftHours(code, demand))) {
       violations.push({ rule: 'weeklyHours', employeeId: employee.id, date: index >= 0 ? days[index].date : undefined })
     }
-    for (const problem of rowProblems(codes, historyOf(history, employee.id), days, r)) {
+    // The real shifts for the rest between them (owner, 19/11/2026: a 15:00–00:00 then a 10:00 is 10 hours).
+    for (const problem of rowProblems(codes, historyOf(history, employee.id), days, r, real)) {
       violations.push({ rule: problem.rule, employeeId: employee.id, date: problem.index >= 0 ? days[problem.index].date : undefined })
     }
+    // Two days off before and after a leave: a recommendation (owner, 19/11/2026).
+    codes.forEach((code, i) => {
+      if (!isShift(code) || employee.fixed?.[days[i].date]) return
+      const near = [i - 2, i - 1, i + 1, i + 2].some((j) => j >= 0 && j < codes.length && isLeave(codes[j]) && codes[j] !== 'H')
+      if (near) violations.push({ rule: 'leaveRest', employeeId: employee.id, date: days[i].date })
+    })
   }
   // Fair share: each person's distance from their target, compared with the group's (a department with more people
   // than shifts leaves everyone a little under target, evenly).

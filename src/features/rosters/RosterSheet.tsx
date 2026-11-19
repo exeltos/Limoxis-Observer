@@ -1,11 +1,12 @@
 import { GripVertical } from 'lucide-react'
 import { demandFor, isShift, kindOf } from './rosterEngine'
+import { basicDemandFor } from './rosterRules'
 import { HOURS, isExtra, violationGroup, type RosterView } from './rosterPageModel'
 import type { RosterViolation } from './rosterRules'
 
 // The roster sheet: a row per person with their totals, the people on each shift under each day, the legend and the rules not kept.
 export function RosterSheet({ view }: { view: RosterView }) {
-  const { tx, canEdit, roster, CODES, RULE_TEXT, days, history, setCell, setNeed, setLimits, dragId, setDragId, dropId, setDropId, rules, violations, targets, me, setMember, dropOn, active, inactive, nameOf, codeAt, countOf, shown, others, shortOf, labelOf, cellClass, fmtDay, weekdays, hasShifts, historyDays, limitTag } = view
+  const { tx, canEdit, roster, CODES, RULE_TEXT, days, history, setCell, setNeed, setLimits, dragId, setDragId, dropId, setDropId, rules, violations, targets, feasibility, me, setMember, dropOn, active, inactive, nameOf, codeAt, countOf, shown, others, shortOf, labelOf, cellClass, fmtDay, weekdays, hasShifts, historyDays, limitTag } = view
   return (
         <section className="roster-sheet">
           <div className="roster-grid-wrap">
@@ -138,12 +139,14 @@ export function RosterSheet({ view }: { view: RosterView }) {
                       const have = active.filter(m => !isExtra(m) && kindOf(codeAt(m.employeeId, d.date)) === s).length
                       const extra = active.filter(m => isExtra(m) && kindOf(codeAt(m.employeeId, d.date)) === s).length
                       const needed = demandFor(roster.demand, d)[s]
+                      // Only a basic shift left short is a shortage (owner, 19/11/2026).
+                      const basic = basicDemandFor(roster.demand, d)[s]
                       const own = roster.demand.overrides?.[d.date]?.[s] !== undefined
                       return (
                         <td key={d.date} className={d.weekend ? 'is-weekend' : ''}>
                           <button
                             type="button"
-                            className={`roster-need${hasShifts && s !== 'I' && have < needed ? ' is-short' : ''}${own ? ' is-own' : ''}`}
+                            className={`roster-need${hasShifts && have < basic ? ' is-short' : ''}${own ? ' is-own' : ''}`}
                             title={extra ? tx(`Και ${extra} υπεράριθμος, που δεν μετρά`, `And ${extra} supernumerary, not counted`) : undefined}
                             disabled={!canEdit}
                             aria-label={`${CODES[s].name} ${fmtDay(d.date)}: ${have} ${tx('από', 'of')} ${needed}`}
@@ -187,15 +190,23 @@ export function RosterSheet({ view }: { view: RosterView }) {
             {days.some(d => d.holiday) && <span><i className="code-none roster-holiday-key">{tx('ΑΡ', 'PH')}</i>{tx('Αργία', 'Public holiday')}</span>}
             {canEdit && <span><i className="code-none is-manual-key" />{tx('Ορίστηκε με το χέρι', 'Set by hand')}</span>}
           </div>
+          {canEdit && (
+            // Enough people? (owner, 19/11/2026) The places of the basic shifts and the shifts the people can give.
+            <p className="roster-feasibility" title={`${tx('Ανά βάρδια', 'By shift')}: ${shown.filter(s => feasibility.need[s] > 0).map(s => `${CODES[s].name} ${feasibility.need[s]}`).join(' · ')}${feasibility.hours ? ` · ${tx('Ώρες', 'Hours')} ${feasibility.needHours} / ${feasibility.availableHours}` : ''}`}>
+              {tx('Ανάγκη', 'Needed')} <b>{feasibility.total}</b> · {tx('Διαθέσιμες', 'Available')} <b>{feasibility.available}</b> · {tx('Περιθώριο', 'Margin')} <b className={feasibility.margin < 0 ? 'is-short' : ''}>{feasibility.margin}</b>
+              {feasibility.hours && <> · {tx('Ώρες', 'Hours')} {feasibility.needHours} / {feasibility.availableHours}</>}
+            </p>
+          )}
           {canEdit &&
             hasShifts &&
             (violations.length === 0 ? (
-              <p className="roster-ok">✓ {tx('Όλοι οι κανόνες τηρούνται.', 'Every rule is kept.')}</p>
+              <p className="roster-ok">✓ {tx('Πλήρης κάλυψη· όλοι οι κανόνες τηρούνται.', 'Full cover; every rule is kept.')}</p>
             ) : (
               <div className="roster-violation-groups">
-                {/* Three groups (owner, 18/11/2026): hard breaches, shifts short of people, recommendations. One line per
-                    rule: the first days and the people (their cells are framed red). */}
-                {([['hard', tx('Υποχρεωτικές παραβάσεις', 'Hard breaches')], ['coverage', tx('Ελλείψεις κάλυψης', 'Coverage gaps')], ['advice', tx('Συστάσεις', 'Recommendations')]] as const).map(([group, title]) => {
+                {/* Clear states (owner, 19/11/2026): a conflict that binds, a shortage of people, a recommendation, and
+                    «Πλήρης κάλυψη» only when no basic shift is short. One line per rule: the first days and the people. */}
+                {!violations.some(v => violationGroup(v.rule) === 'coverage') && <p className="roster-ok">✓ {tx('Πλήρης κάλυψη', 'Full cover')}</p>}
+                {([['hard', tx('Υποχρεωτική σύγκρουση', 'Binding conflict')], ['coverage', tx('Έλλειψη στελέχωσης', 'Short of staff')], ['advice', tx('Σύσταση', 'Recommendation')]] as const).map(([group, title]) => {
                   const inGroup = violations.filter(v => violationGroup(v.rule) === group)
                   if (!inGroup.length) return null
                   return (

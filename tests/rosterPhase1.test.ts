@@ -111,7 +111,11 @@ describe('the screen', () => {
     const page = read('src/features/rosters/RostersPage.tsx')
     expect(page).toContain("tx('Όχι βάρδια (υποχρεωτικό)', 'Not this shift (mandatory)')")
     expect(page).toContain("tx('Επιθυμία βάρδιας', 'Wishes a shift')")
-    expect(read('src/features/rosters/RosterSheet.tsx')).toContain("tx('Υποχρεωτικές παραβάσεις', 'Hard breaches')")
+    // The groups renamed (owner, 19/11/2026): binding conflict, short of staff, recommendation, and «Πλήρης κάλυψη».
+    const sheet = read('src/features/rosters/RosterSheet.tsx')
+    expect(sheet).toContain("tx('Υποχρεωτική σύγκρουση', 'Binding conflict')")
+    expect(sheet).toContain("tx('Έλλειψη στελέχωσης', 'Short of staff')")
+    expect(sheet).toContain("tx('Πλήρης κάλυψη', 'Full cover')")
   })
 })
 

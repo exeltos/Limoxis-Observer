@@ -7,6 +7,7 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { TimeField } from '../../design-system/TimeField'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { customShifts, kindOf } from './rosterEngine'
+import { isOptionalShift } from './rosterRules'
 import { IASO_SHIFT_CODES } from './iasoShiftCodes'
 import { headsFirst } from './rosterService'
 import { LEAVES, NO_NIGHT_REASONS, RULE_FIELDS, SHIFTS, isExtra, type NeedMenu, type RosterView } from './rosterPageModel'
@@ -94,6 +95,7 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
                 <span />
                 <b>{tx('Καθημ.', 'Weekday')}</b>
                 <b>{tx('Σ/Κ', 'Weekend')}</b>
+                <b>{tx('Είδος', 'Type')}</b>
                 <span />
               </div>
             )}
@@ -104,6 +106,11 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
                 {(['weekday', 'weekend'] as const).map(kind => (
                   <input key={kind} type="number" min="0" max="20" aria-label={`${o.code.split(':')[1]} ${kind === 'weekday' ? tx('καθημερινή', 'weekday') : tx('Σαββατοκύριακο', 'weekend')}`} value={o[kind] ?? 0} onChange={event => setOther(o.code, { [kind]: Math.max(0, Math.min(20, Number(event.target.value) || 0)) })} />
                 ))}
+                {/* Basic or supplementary (owner, 19/11/2026): only a basic shift left short is a shortage. */}
+                <select aria-label={tx(`Είδος βάρδιας ${o.code.split(':')[1]}`, `Type of shift ${o.code.split(':')[1]}`)} title={tx('Βασική: πρέπει να καλυφθεί. Συμπληρωματική: δίνεται σε όποιον περισσεύει, δεν είναι έλλειψη.', 'Basic: must be covered. Supplementary: given to people left over, never a shortage.')} value={isOptionalShift(o) ? 'optional' : 'basic'} onChange={event => setOther(o.code, { optional: event.target.value === 'optional' })}>
+                  <option value="basic">{tx('Βασική', 'Basic')}</option>
+                  <option value="optional">{tx('Συμπλ.', 'Extra')}</option>
+                </select>
                 <button type="button" className="roster-other-remove" aria-label={tx(`Αφαίρεση βάρδιας ${o.code.split(':')[1]}`, `Remove shift ${o.code.split(':')[1]}`)} onClick={() => removeOther(o.code)}>×</button>
               </div>
             ))}
@@ -145,6 +152,14 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
                 <input type="number" min="0" max="14" aria-label={RULE_LABELS[key]} value={rules[key] as number} onChange={event => setRule(key, event.target.value)} />
               </div>
             ))}
+            {/* A setting of the department (owner, 19/11/2026), not a rule for every department. */}
+            <div className="roster-rule">
+              <span title={tx('Πρωί ή ενδιάμεση και την επομένη νύχτα', 'Morning or intermediate, then a night the next day')}>{tx('Πρωί → νύχτα επομένης', 'Morning → night next day')}</span>
+              <select aria-label={tx('Πρωί ή ενδιάμεση → νύχτα την επομένη', 'Morning or intermediate → night the next day')} value={rules.forbidMorningToNight === false ? 'allow' : 'forbid'} onChange={event => update({ ...roster, rules: { ...roster.rules, forbidMorningToNight: event.target.value === 'forbid' } })}>
+                <option value="forbid">{tx('Όχι', 'No')}</option>
+                <option value="allow">{tx('Ναι', 'Yes')}</option>
+              </select>
+            </div>
             <div className="roster-rule">
               <span>{tx('Μέγιστες ώρες εβδομάδας (0 = χωρίς έλεγχο)', 'Most hours a week (0 = not checked)')}</span>
               <input type="number" min="0" max="80" aria-label={tx('Μέγιστες ώρες εβδομάδας', 'Most hours a week')} value={rules.maxWeeklyHours} onChange={event => update({ ...roster, rules: { ...roster.rules, maxWeeklyHours: Math.max(0, Math.min(80, Number(event.target.value) || 0)) } })} />
@@ -154,7 +169,7 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
               <input aria-label={tx('Τοπική εορτή: ημέρα/μήνας', 'Local feast: day/month')} placeholder={tx('ΗΗ/ΜΜ', 'DD/MM')} maxLength={5} value={localFeastText(roster.rules?.localHoliday as { date?: string } | undefined)} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), date: localFeastDate(event.target.value) } } })} onBlur={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), date: localFeastDate(event.target.value, true) } } })} />
               <input aria-label={tx('Τοπική εορτή: όνομα', 'Local feast: name')} placeholder={tx('π.χ. Αγίου Αχιλλίου', 'e.g. Saint Achillios')} maxLength={60} value={(roster.rules?.localHoliday as { name?: string } | undefined)?.name || ''} onChange={event => update({ ...roster, rules: { ...roster.rules, localHoliday: { ...((roster.rules?.localHoliday as object) || {}), name: event.target.value } } })} />
             </div>
-            <p className="roster-muted">{tx('Πάντα: όχι απόγευμα → πρωί (11 ώρες ανάπαυση), όχι πρωί/ενδιάμεση → νύχτα· ίσες βάρδιες, νύχτες και Σ/Κ· ρεπό κατά προτίμηση ανά δύο. Με κλικ σε όνομα: ποιες βάρδιες κάνει το άτομο.', 'Always: no afternoon → morning (11 hours of rest), no morning/intermediate → night; even shifts, nights and weekends; days off preferably in pairs. Click a name: the shifts that person works.')}</p>
+            <p className="roster-muted">{tx('Πάντα: 11 ώρες πραγματικής ανάπαυσης ανάμεσα σε βάρδιες (από τις ώρες τους). Πρώτα η κάλυψη των βασικών βαρδιών, μετά ο στόχος του καθενός, ίσες βάρδιες, νύχτες, Σάββατα, Κυριακές και αργίες, ρεπό ανά δύο. Κατ’ εξαίρεση, μόνο για να καλυφθεί βάρδια: τρίτη νύχτα, ένα ρεπό μετά από δύο νύχτες, δεύτερο εξαήμερο. Με κλικ σε όνομα: ποιες βάρδιες κάνει το άτομο.', 'Always: 11 hours of real rest between shifts (from their times). First the cover of the basic shifts, then each person’s target, even shifts, nights, Saturdays, Sundays and holidays, days off in pairs. By exception, only to cover a shift: a third night, one day off after two nights, a second stretch of six. Click a name: the shifts that person works.')}</p>
           </div>
         </section>
         </ObserverDialog>
