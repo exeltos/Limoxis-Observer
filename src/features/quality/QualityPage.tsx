@@ -5,6 +5,7 @@ import { AlertOctagon,AlertTriangle,CalendarClock,CheckSquare2,ClipboardCheck,Cl
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
+import { Button } from '../../design-system/Button'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
@@ -246,9 +247,7 @@ export function QualityPage({section=''}: { section?: string }={}){
    {key:'evaluationDue',icon:Star,value:dash(count.evaluationDue),label:L('Οφείλεται αξιολόγηση','Evaluation due'),tone:'warning',active:supplierFilters.quick==='evaluationDue',go:()=>quick('evaluationDue')},
    // «Πιστοποιητικά προς ανανέωση» (owner, 19/11/2026): opens the renewals; hidden when none.
    ...(count.certificates||resources.loading?[{key:'certificates',icon:ShieldCheck,value:dash(count.certificates),label:L('Πιστοποιητικά προς ανανέωση','Certificates to renew'),tone:'warning',go:()=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/renewals')}}]:[]),
-   {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Μη συμμορφώσεις','Nonconformities'),status:resources.loading?null:count.nonconformities?'danger':'good',target:L('στόχος: 0','target: 0'),active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')},
-   // «Πρότυπα αξιολόγησης» (owner, 19/11/2026): a setting, not a creation: the last item of the row, for managers.
-   ...(canManage?[{key:'templates',icon:ListChecks,value:<ListChecks size={14} aria-hidden="true"/>,label:L('Πρότυπα αξιολόγησης','Evaluation templates'),go:()=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/templates')}}]:[])]})(),
+   {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Μη συμμορφώσεις','Nonconformities'),status:resources.loading?null:count.nonconformities?'danger':'good',target:L('στόχος: 0','target: 0'),active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')}]})(),
   // The questionnaires list has no cards: its filters are the search and «Φίλτρα».
   surveys:[],
  }
@@ -347,7 +346,9 @@ export function QualityPage({section=''}: { section?: string }={}){
  return <Page fill className="registry-fill-page" title={measures?L('Δείκτες & Στόχοι','Indicators & objectives'):t('quality')} subtitle={measures?L('Οι δείκτες της πλατφόρμας και των μητρώων, οι στόχοι ποιότητας και τα ερωτηματολόγια ικανοποίησης.','The platform and register indicators, the quality objectives and the satisfaction questionnaires.'):L('Από την αναφορά και την απόκλιση ως τη διορθωτική ενέργεια, τους κινδύνους και τους πόρους.','From the report and deviation to corrective action, risks and resources.')}
   actions={<div className="row-actions">
    {download}
-    {/* Suppliers (owner, 19/11/2026): «Νέος προμηθευτής» only; the templates and the renewals are in the row of counts. */}
+    {/* Suppliers (owner, 19/11/2026): «Πρότυπα αξιολόγησης» is its own button beside Εξαγωγή; «Νέος προμηθευτής» only creates.
+        The renewals open from their count in the list. */}
+   {tab==='resources'&&resourceView==='suppliers'&&suppliersOn&&canManage&&<Button variant="secondary" onClick={()=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/templates')}}><ListChecks size={15} aria-hidden="true"/>{L('Πρότυπα αξιολόγησης','Evaluation templates')}</Button>}
    <CreateAction options={createOptions} label={tab==='resources'&&resourceView==='suppliers'?L('Νέος προμηθευτής','New supplier'):L('Δημιουργία','Create')}/>
   </div>}>
   {!measures&&<CanonicalTabs items={TABS.filter(item=>item.value!=='indicators'&&(!item.manage||canManage)&&(item.value!=='resources'||EQUIPMENT_SHOWN||suppliersOn)).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>}
