@@ -38,6 +38,7 @@ import { DEMAND, HOURS, LEAVES, REQUEST_CODE, SHIFTS, isExtra, violationGroup } 
 import { RosterSheet } from './RosterSheet'
 import { markHolidays } from './rosterHolidays'
 import { RosterMyRequests, RosterPopovers, RosterRulesDialog } from './RosterPanels'
+import { rosterFeasibility } from './rosterRules'
 import type { Assignments, CustomShift, DemandKind, RosterDay, RosterHistory, ShiftNeed } from './rosterRules'
 import type { Roster, RosterDepartment, RosterMember, RosterRequest } from './rosterService'
 import type { RosterCodes, RosterView } from './rosterPageModel'
@@ -103,7 +104,10 @@ export function RostersPage() {
     nightsInRow: tx('Πάνω από τις επιτρεπόμενες συνεχόμενες νύχτες', 'More nights in a row than allowed'),
     restAfterNight: tx('Λείπει ρεπό μετά από νύχτα', 'No day off after a night'),
     shortRestAfterNights: tx('Ένα μόνο ρεπό μετά από δύο νύχτες', 'Only one day off after two nights'),
-    restHours: tx('Απόγευμα και την επομένη πρωί (κάτω από 11 ώρες ανάπαυση)', 'Afternoon then morning (under 11 hours of rest)'),
+    restHours: tx('Κάτω από 11 ώρες ανάπαυση ανάμεσα σε δύο βάρδιες', 'Under 11 hours of rest between two shifts'),
+    thirdNight: tx('Τρίτη συνεχόμενη νύχτα (κατ’ εξαίρεση)', 'A third night in a row (by exception)'),
+    longStretch: tx('Δεύτερο εξαήμερο στην περίοδο', 'A second stretch of six in the period'),
+    leaveRest: tx('Βάρδια στα 2 ρεπό πριν ή μετά από άδεια', 'A shift within the two days around a leave'),
     morningToNight: tx('Πρωί ή ενδιάμεση και την επομένη νύχτα', 'Morning or intermediate followed by a night'),
     weeklyRest: tx('Εβδομάδα με λιγότερα ρεπό από τα απαιτούμενα', 'A week with fewer days off than required'),
     weekendOff: tx('Χωρίς ρεπό Σαββατοκύριακου', 'No weekend off'),
@@ -249,6 +253,8 @@ export function RostersPage() {
     [roster, days, engineEmployees, rules, history],
   )
   const targets = useMemo(() => shiftTargets(days, engineEmployees, rules.weeklyRestDays), [days, engineEmployees, rules.weeklyRestDays])
+  // Enough people for the basic shifts? (owner, 19/11/2026) One small line next to the roster.
+  const feasibility = useMemo(() => rosterFeasibility(days, engineEmployees.map(m => ({ ...m, extra: Boolean(m.extra) })), roster?.demand), [days, engineEmployees, roster?.demand])
   // Who «I» am, for a member of the department's staff: their own employee row (in the Demo, the first colleague).
   const me = useMemo(() => {
     if (!staffMode || !roster) return null
@@ -518,7 +524,7 @@ export function RostersPage() {
   }
 
   // What the parts of the page (RosterSheet, RosterPanels) read.
-  const view: RosterView = { tx, canEdit, roster: loaded, codeStyle, CODES, REQUEST_KINDS, REQUEST_STATUS, RULE_TEXT, RULE_LABELS, days, history, dirty, saving, cell, setCell, need, setNeed, limits, setLimits, setPanel, ask, setAsk, dragId, setDragId, newShift, setNewShift, dropId, setDropId, rules, violations, targets, me, update, setMember, setDemand, setRule, addOther, setOther, removeOther, setDayNeed, setCode, dropOn, save, sendRequest, withdraw, active, inactive, nameOf, codeAt, countOf, shown, others, shortOf, labelOf, cellClass, fmtDay, weekdays, hasShifts, historyDays, myRequests, limitTag }
+  const view: RosterView = { tx, canEdit, roster: loaded, codeStyle, CODES, REQUEST_KINDS, REQUEST_STATUS, RULE_TEXT, RULE_LABELS, days, history, dirty, saving, cell, setCell, need, setNeed, limits, setLimits, setPanel, ask, setAsk, dragId, setDragId, newShift, setNewShift, dropId, setDropId, rules, violations, targets, feasibility, me, update, setMember, setDemand, setRule, addOther, setOther, removeOther, setDayNeed, setCode, dropOn, save, sendRequest, withdraw, active, inactive, nameOf, codeAt, countOf, shown, others, shortOf, labelOf, cellClass, fmtDay, weekdays, hasShifts, historyDays, myRequests, limitTag }
   return (
     <Page
       fill

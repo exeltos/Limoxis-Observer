@@ -84,6 +84,8 @@
 .roster-legend i{display:inline-grid;place-items:center;min-width:22px;height:18px;padding:0 3px;border:1px solid #e3e9f1;border-radius:4px;font-style:normal;font-weight:700;font-size:10.5px}
 .roster-legend i.is-manual-key{position:relative}
 .roster-legend i.is-manual-key::after{content:'';position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#1d5f9c}
+.roster-feasibility{margin:8px 0 0;font-size:12.5px;opacity:.85}
+.roster-feasibility .is-short{text-decoration:underline}
 .roster-ok{margin:10px 0 0;padding:8px 12px;border-radius:9px;background:#e3f4ea;color:#1f6b45;font-weight:600;font-size:13px}
 .roster-violations{margin:10px 0 0;padding:8px 12px 8px 28px;border-radius:9px;background:#fdf1f2;color:#8f2c38;font-size:12.5px}
 .roster-cell-backdrop{position:fixed;inset:0;z-index:1100}
@@ -99,7 +101,7 @@
 .roster-need-actions button.is-primary:hover{background:#174f83}
 @media (max-width:1180px){.roster-panel-rules{grid-template-columns:1fr}}
 @media (max-width:900px){.roster-tools{margin-left:0}}
-@media print{.roster-toolbar,.roster-panel,.roster-legend,.roster-violations,.roster-violation-groups,.roster-ok,.roster-inactive,.roster-grip,.roster-name input{display:none}.roster-sheet{border:0;padding:0}}
+@media print{.roster-toolbar,.roster-panel,.roster-legend,.roster-violations,.roster-violation-groups,.roster-ok,.roster-feasibility,.roster-inactive,.roster-grip,.roster-name input{display:none}.roster-sheet{border:0;padding:0}}
 .roster-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#c24150;color:#fff;font-size:11px;font-weight:700}
 .roster-count.is-quiet{background:#e3e9f1;color:#1f3348}
 .roster-requests{flex-direction:column;align-items:stretch;gap:8px}
@@ -131,9 +133,9 @@ button.roster-name-text:hover{text-decoration:underline}
 .roster-rule select{width:220px;height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;font-size:12.5px}
 .roster-others{display:grid;gap:6px;min-width:300px;font-size:12.5px;color:#1f3348}
 .roster-others>b{font-size:11.5px;color:#56677a}
-.roster-other{display:grid;grid-template-columns:32px 1fr 56px 56px 26px;gap:6px;align-items:center}
+.roster-other{display:grid;grid-template-columns:32px 1fr 56px 56px 84px 26px;gap:6px;align-items:center}
 .roster-other i{display:inline-grid;place-items:center;height:22px;border:1px solid #e3e9f1;border-radius:5px;font-style:normal;font-weight:700;font-size:11px}
-.roster-other input,.roster-other-new input{height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;text-align:center}
+.roster-other input,.roster-other select,.roster-other-new input{height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;text-align:center}
 .roster-other-remove{width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#56677a;font-size:16px;cursor:pointer}
 .roster-other-remove:hover{background:#fde8ea;color:#a8323d}
 .roster-other-new{display:grid;grid-template-columns:90px 1fr 1fr auto;gap:8px;align-items:end}

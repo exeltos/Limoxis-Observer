@@ -1,6 +1,6 @@
 // Monthly shift roster generator (pure, no I/O): builds a roster that keeps the rules of rosterRules.
 // The rules, the checker and the calendar helpers live in rosterRules; this module re-exports them.
-import { allowedOf, checkRoster, DEFAULT_RULES, customNeed, customShifts, defaultExtraCode, demandFor, fullWeeks, historyOf, isLeave, isShift, kindOf, maxNightsOf, mulberry32, personalOk, rowProblems, SHIFT_CODES, shiftHours, shiftTargets, weekendPairs, weekOff, weeklyHoursLimit, weeklyHoursProblems } from './rosterRules'
+import { allowedOf, basicDemandFor, checkRoster, DEFAULT_RULES, customNeed, customShifts, defaultExtraCode, demandFor, fullWeeks, historyOf, isLeave, isShift, kindOf, maxNightsOf, mulberry32, personalOk, rowProblems, SHIFT_CODES, shiftHours, shiftTargets, shiftTimesOf, weekendPairs, weekOff, weeklyHoursLimit, weeklyHoursProblems } from './rosterRules'
 
 import type { Assignments, RosterDay, RosterDemand, RosterEmployee, RosterHistory, RosterRules, RosterViolation } from './rosterRules'
 
@@ -39,33 +39,65 @@ interface Staff {
 }
 // Days off chosen for a week, with their cost; `long` uses the one allowed stretch of six.
 interface Combo { days: number[], value: number, long: boolean }
-interface Move { score: number, codes: string[][] }
-interface BuildState { staff: Staff[], days: RosterDay[], dailyNeed: Record<string, number>[], r: RosterRules, weekendIdx: Set<number>, weeks: number[] }
-export interface RosterResult { assignments: Assignments, violations: RosterViolation[], score: number, [key: string]: unknown }
+interface Move { score: Score, codes: string[][] }
+interface BuildState { staff: Staff[], days: RosterDay[], dailyNeed: Record<string, number>[], dailyBasic: Record<string, number>[], r: RosterRules, weekendIdx: Set<number>, weeks: number[] }
+export interface RosterResult { assignments: Assignments, violations: RosterViolation[], score: number, levels?: number[], [key: string]: unknown }
 
-// The score of a whole roster (lower is better): hard problems weigh most, then coverage, wishes, single days off,
-// distance from each person's target and the sharing of nights and weekends.
-function scoreOf(state: BuildState) {
-  const { staff, days, dailyNeed, r, weekendIdx } = state
-  let score = 0
+// The score of a whole roster, by levels compared in order (owner, 19/11/2026): a lower level never outweighs a
+// higher one, so many small preferences cannot cost a shift its people.
+//   0 breaches of the rules that bind (they make the roster not allowed)
+//   1 people missing from the basic shifts (a missing night counts double)
+//   2 distance from each person's target
+//   3 a fair share: shifts, mornings, afternoons, nights, Saturdays, Sundays, holidays, by each person's availability
+//   4 the quality of the rest: single days off, day off–shift–day off, weeks of one or four days off, the days around
+//     a leave, nights in pairs, a sixth day or a third night
+//   5 wishes
+//   6 supplementary shifts, people beyond the need and the supernumerary's own pattern
+// The breaches and the shortages decide strictly, in that order; below them the levels are weighed together, each
+// far more than the next (the target ×10), as the owner's levels allow within one level.
+export type Score = number[]
+export const LEVELS = 7
+export const rank = (score: Score) => [score[0], score[1], score[2] * 10 + score[3] + score[4] + score[5] + score[6]]
+// Is `a` better than `b`? The first rank where they differ decides.
+export function better(a: Score, b: Score) {
+  const x = rank(a)
+  const y = rank(b)
+  for (let k = 0; k < x.length; k += 1) {
+    if (x[k] < y[k] - 1e-9) return true
+    if (x[k] > y[k] + 1e-9) return false
+  }
+  return false
+}
+// The exceptions (owner, 19/11/2026: one day off after two nights, a third night, a second stretch of six) are taken
+// only to cover a basic shift: they weigh at the level of the shortages, less than a person missing.
+const EXCEPTION_COST: Record<string, number> = { shortRestAfterNights: 0.5, thirdNight: 0.6, longStretch: 0.4 }
+const ADVICE_COST: Record<string, number> = { weekendOff: 300 }
+function scoreOf(state: BuildState): Score {
+  const { staff, days, dailyNeed, dailyBasic, r, weekendIdx } = state
+  const L = [0, 0, 0, 0, 0, 0, 0]
   for (const s of staff) {
-    // A single day off after two nights is allowed rarely: it costs, but far less than a breach.
-    for (const problem of rowProblems(s.codes, s.prefix, days, r)) score += problem.rule === 'shortRestAfterNights' ? 500 : 5000
-    if (s.nightsCap < Infinity) score += Math.max(0, s.codes.filter((code) => code === 'N').length - s.nightsCap) * 1000
+    // A single day off after two nights, a third night, a second stretch of six: recommendations, kept when needed.
+    for (const problem of rowProblems(s.codes, s.prefix, days, r)) {
+      if (problem.rule in EXCEPTION_COST) L[1] += EXCEPTION_COST[problem.rule]
+      else if (problem.rule in ADVICE_COST) L[4] += ADVICE_COST[problem.rule]
+      else L[0] += 1
+    }
+    if (s.nightsCap < Infinity) L[0] += Math.max(0, s.codes.filter((code) => code === 'N').length - s.nightsCap)
     let shifts = 0
     let nights = 0
     let weekendWork = 0
     const kinds: Record<string, number> = { M: 0, I: 0, A: 0, N: 0 }
+    const days7: Record<string, number> = { sat: 0, sun: 0, holiday: 0 }
     let weekendNights = 0
-    score += weeklyHoursProblems(s.codes, days, s.hoursLimit, (code, i) => (isShift(code) ? s.hours[i][code] ?? 8 : 0)).length * 1000
+    L[0] += weeklyHoursProblems(s.codes, days, s.hoursLimit, (code, i) => (isShift(code) ? s.hours[i][code] ?? 8 : 0)).length
     for (let i = 0; i < days.length; i += 1) {
       const code = s.codes[i]
-      if (s.wishShift[i] && !s.locked[i] && code !== s.wishShift[i]) score += s.wishWeight
+      if (s.wishShift[i] && !s.locked[i] && code !== s.wishShift[i]) L[5] += s.wishWeight
       if (!isShift(code)) {
-        if (s.extra && !s.locked[i] && code !== s.pattern[i]) score += 200
-        if (code === 'R' && isShift(i === 0 ? s.prefix[s.prefix.length - 1] : s.codes[i - 1]) && isShift(s.codes[i + 1])) score += 60
+        if (s.extra && !s.locked[i] && code !== s.pattern[i]) L[6] += 200
+        if (code === 'R' && isShift(i === 0 ? s.prefix[s.prefix.length - 1] : s.codes[i - 1]) && isShift(s.codes[i + 1])) L[4] += 60
         // Shift, day off, shift, day off: never (owner, 9/11/2026).
-        if (code === 'R' && isShift(s.codes[i + 1]) && s.codes[i + 2] === 'R' && isShift(i === 0 ? s.prefix[s.prefix.length - 1] : s.codes[i - 1])) score += 80
+        if (code === 'R' && isShift(s.codes[i + 1]) && s.codes[i + 2] === 'R' && isShift(i === 0 ? s.prefix[s.prefix.length - 1] : s.codes[i - 1])) L[4] += 80
         continue
       }
       shifts += 1
@@ -74,27 +106,30 @@ function scoreOf(state: BuildState) {
       if (!s.locked[i] && code !== 'N') {
         const prev = i === 0 ? s.prefix[s.prefix.length - 1] : s.codes[i - 1]
         const next = s.codes[i + 1]
-        if (prev !== undefined && next !== undefined && !isShift(prev) && !isShift(next) && prev !== '' && next !== '') score += 400
+        if (prev !== undefined && next !== undefined && !isShift(prev) && !isShift(next) && prev !== '' && next !== '') L[4] += 400
       }
       // Nights in pairs: a single night costs the same days off as two (owner, 8/11/2026).
-      if (code === 'N' && s.codes[i - 1] !== 'N' && s.codes[i + 1] !== 'N' && i < days.length - 1 && !(i === 0 && s.prefix[s.prefix.length - 1] === 'N')) score += 40
-      if (!s.locked[i] && !personalOk(s.employee, s.allowed, days[i], code)) score += 1000
+      if (code === 'N' && s.codes[i - 1] !== 'N' && s.codes[i + 1] !== 'N' && i < days.length - 1 && !(i === 0 && s.prefix[s.prefix.length - 1] === 'N')) L[4] += 40
+      if (!s.locked[i] && !personalOk(s.employee, s.allowed, days[i], code)) L[0] += 1
       // The supernumerary keeps their pattern unless a shift needs them.
-      if (s.extra && !s.locked[i] && code !== s.pattern[i]) score += 200
+      if (s.extra && !s.locked[i] && code !== s.pattern[i]) L[6] += 200
       if (code === 'N') nights += 1
       kinds[code] = (kinds[code] || 0) + 1
+      if (days[i].holiday) days7.holiday += 1
+      else if (days[i].weekday === 6) days7.sat += 1
+      else if (days[i].weekday === 0) days7.sun += 1
       if (weekendIdx.has(i)) weekendWork += 1
       if (weekendIdx.has(i) && code === 'N') weekendNights += 1
-      if (s.wish[i]) score += s.wishWeight
+      if (s.wish[i]) L[5] += s.wishWeight
     }
-    // Two days off before and after a leave, where the roster allows (owner, 8/11/2026).
+    // Two days off before and after a leave, where the roster allows (owner, 8/11/2026; a preference, 19/11/2026).
     for (let i = 0; i < days.length; i += 1) {
       if (!isLeave(s.codes[i]) || s.codes[i] === 'H') continue
       const startsHere = i === 0 || !isLeave(s.codes[i - 1])
       const endsHere = i === days.length - 1 || !isLeave(s.codes[i + 1])
       for (const k of [startsHere && i - 1, startsHere && i - 2, endsHere && i + 1, endsHere && i + 2]) {
         if (k === false || k < 0 || k >= days.length || s.locked[k]) continue
-        if (isShift(s.codes[k])) score += 300
+        if (isShift(s.codes[k])) L[4] += 300
       }
     }
     // Exactly `weeklyRestDays` days off in every full Monday-Sunday week (owner, 8/11/2026): a week with more costs,
@@ -106,44 +141,39 @@ function scoreOf(state: BuildState) {
       // Two a week is the rule; a week of three (or one) is allowed but avoided.
       // A week of four days off (or of one) is avoided much more (owner, 18/11/2026: the days off beyond two a week
       // that the working-day target brings are spread, one week of three at a time).
-      score += rests > r.weeklyRestDays ? (rests - r.weeklyRestDays) * 40 + Math.max(0, rests - r.weeklyRestDays - 1) * 400 : off < r.weeklyRestDays ? (r.weeklyRestDays - off) * 200 : 0
+      L[4] += rests > r.weeklyRestDays ? (rests - r.weeklyRestDays) * 40 + Math.max(0, rests - r.weeklyRestDays - 1) * 400 : off < r.weeklyRestDays ? (r.weeklyRestDays - off) * 200 : 0
     }
     // The one allowed stretch of six still costs a little, so it is used only when it helps.
     {
       let run = 0
       for (const code of s.codes) {
         run = isShift(code) ? run + 1 : 0
-        if (run === r.maxConsecutive + 1) score += 60
+        if (run === r.maxConsecutive + 1) L[4] += 60
       }
     }
     s.gap = shifts - s.target
-    // Each person works their target (five days a week, two days off): below it costs most, above it is overtime.
-    // More people on a shift than asked is fine (owner, 8/11/2026).
-    // Above the target (owner, 18/11/2026: the working days) a shift costs more than a third day off in a week, so
-    // the shifts nobody needs become days off; a short shift still costs far more.
-    if (!s.extra) score += s.gap < 0 ? -s.gap * 40 : s.gap * 50
+    // Each person works their target (the working days, owner 18/11/2026): below it or above it (overtime).
+    if (!s.extra) L[2] += s.gap < 0 ? -s.gap * 4 : s.gap * 5
     s.nights = nights
     s.weekendWork = weekendWork
-    s.kinds = kinds
+    s.kinds = { ...kinds, ...days7 }
     s.weekendNights = weekendNights
   }
   const regular = staff.filter((s) => !s.extra)
   const mean = (key: 'gap' | 'weekendWork') => regular.reduce((sum, s) => sum + s[key], 0) / (regular.length || 1)
-  // Nights are shared among those who may work them.
   const nightStaff = regular.filter((s) => s.allowed.includes('N'))
-  const meanNights = nightStaff.reduce((sum, s) => sum + s.nights, 0) / (nightStaff.length || 1)
-  const meanWeekend = mean('weekendWork')
   const meanGap = mean('gap')
-  // Nobody always on mornings, always on nights or on every weekend night: each kind of shift shared out among
-  // those who may work it (owner, 9/11/2026).
-  for (const kind of SHIFT_CODES) {
-    const able = regular.filter((s) => s.allowed.includes(kind))
-    const meanKind = able.reduce((sum, s) => sum + s.kinds[kind], 0) / (able.length || 1)
-    for (const s of able) score += Math.abs(s.kinds[kind] - meanKind) * 6
+  // A fair share (owner, 19/11/2026): each kind of shift, Saturdays, Sundays and holidays shared out among those who
+  // may work them, in proportion to each person's target (someone with leave is not made equal to the others).
+  for (const [key, weight] of [['M', 15], ['A', 15], ['I', 3], ['N', 40], ['sat', 20], ['sun', 20], ['holiday', 20]] as [string, number][]) {
+    const able = regular.filter((s) => s.target > 0 && (['sat', 'sun', 'holiday'].includes(key) ? !s.employee.noWeekends : s.allowed.includes(key)))
+    const share = able.reduce((sum, s) => sum + s.kinds[key], 0) / (able.reduce((sum, s) => sum + s.target, 0) || 1)
+    // A difference of one shift is fair enough (owner, 19/11/2026: 1–2 shifts where possible).
+    for (const s of able) L[3] += Math.max(0, Math.abs(s.kinds[key] - share * s.target) - 1) * weight
   }
   const meanWeekendNights = nightStaff.reduce((sum, s) => sum + s.weekendNights, 0) / (nightStaff.length || 1)
-  for (const s of nightStaff) score += Math.abs(s.weekendNights - meanWeekendNights) * 8
-  for (const s of regular) score += Math.abs(s.gap - meanGap) * 30 + (s.allowed.includes('N') ? Math.abs(s.nights - meanNights) * 12 : 0) + Math.abs(s.weekendWork - meanWeekend) * 3
+  for (const s of nightStaff) L[3] += Math.max(0, Math.abs(s.weekendNights - meanWeekendNights) - 1) * 8
+  for (const s of regular) L[3] += Math.max(0, Math.abs(s.gap - meanGap) - 1) * 30
   const spreadWeight = 6
   for (let i = 0; i < days.length; i += 1) {
     for (const shift of SHIFT_CODES) {
@@ -151,23 +181,28 @@ function scoreOf(state: BuildState) {
       let extra = 0
       for (const s of staff) if (s.codes[i] === shift) { if (s.extra) extra += 1; else have += 1 }
       const need = dailyNeed[i][shift]
-      // A shift the day does not ask for at all (an intermediate on a Sunday) is never given; the supernumerary does
-      // not count towards the people a shift needs (owner, 18/11/2026).
-      // An intermediate costs as much as one more person on a morning or afternoon, so the search neither adds nor
-      // removes them (owner, 9/11/2026: fewer intermediates, given only to people left over).
-      if (shift === 'I' && need > 0) score += Math.min(have + extra, need) * 40 + Math.max(0, have + extra - need) * 1000
-      // A night left short costs most (owner, 18/11/2026: the gaps are covered first, nights before the rest).
-      else score += have < need ? (need - have) * (shift === 'N' ? 600 : 300) : need === 0 ? (have + extra) * 1000 : Math.max(0, have - need)
+      const basic = dailyBasic[i][shift]
+      // The basic shifts first (owner, 19/11/2026); the supernumerary does not count (owner, 18/11/2026); a missing
+      // night counts double.
+      if (have < basic) L[1] += (basic - have) * (shift === 'N' ? 2 : 1)
+      // A shift the day does not ask for at all (an intermediate on a Sunday) is never given.
+      if (need === 0) { L[6] += (have + extra) * 1000; continue }
+      // A supplementary intermediate costs as much as one more person on a morning or afternoon, so the search
+      // neither adds nor removes them (owner, 9/11/2026: given only to people left over).
+      if (shift === 'I' && basic === 0) { L[6] += Math.min(have + extra, need) * 40 + Math.max(0, have + extra - need) * 1000; continue }
+      if (have > need) L[6] += have - need
       // People beyond the need are spread over the morning and the afternoon (owner, 9/11/2026: 3/3 rather than
       // 4/2): each further extra person on the same shift costs more. Nights stay in pairs before two days off.
-      if ((shift === 'M' || shift === 'A') && need > 0 && have > need) score += (have - need) ** 2 * spreadWeight
+      if ((shift === 'M' || shift === 'A') && have > need) L[6] += (have - need) ** 2 * spreadWeight
       // Lighter weekends (owner, 9/11/2026): the people left over work the weekdays.
-      if (weekendIdx.has(i) && need > 0 && have > need) score += (have - need) * 25
-      if (shift === 'N' && need > 0 && have + extra > need + 1) score += (have + extra - need - 1) * 60
+      if (weekendIdx.has(i) && have > need) L[6] += (have - need) * 25
+      if (shift === 'N' && have + extra > need + 1) L[6] += (have + extra - need - 1) * 60
     }
   }
-  return score
+  return L
 }
+// One number for a score, for reports: the levels weighted far apart.
+export const scoreValue = (score: Score) => { const [hard, short, rest] = rank(score); return hard * 1e9 + short * 1e6 + rest }
 
 // May the person take `code` on day i? Looks backwards only (the days after are still free).
 function allowedBackward(s: Staff, i: number, code: string, r: RosterRules, days: RosterDay[]) {
@@ -198,7 +233,7 @@ function allowedBackward(s: Staff, i: number, code: string, r: RosterRules, days
 
 export interface GenerateInput { days: RosterDay[], employees: RosterEmployee[] | null | undefined, demand: RosterDemand | null | undefined, rules?: Partial<RosterRules> | null, history?: RosterHistory, seed?: number, attempts?: number, iterations?: number }
 export function generateRoster({ days, employees, demand, rules, history = {}, seed = 1, attempts = 6, iterations = 15000 }: GenerateInput): RosterResult {
-  const r: RosterRules = { ...DEFAULT_RULES, ...rules }
+  const r: RosterRules = { ...DEFAULT_RULES, ...rules, shiftTimes: shiftTimesOf(demand) }
   const seeds = mulberry32(seed)
   // The rules work on kinds; the department's other shifts set by hand come back afterwards.
   const byKind = (employees || []).map((employee) => ({ ...employee, fixed: Object.fromEntries(Object.entries(employee.fixed || {}).map(([date, code]) => [date, kindOf(code)])) }))
@@ -215,7 +250,7 @@ export function generateRoster({ days, employees, demand, rules, history = {}, s
   let best: RosterResult | null = null
   for (let attempt = 0; attempt < Math.max(1, attempts); attempt += 1) {
     const result = buildRoster({ days, employees: byKind, demand, r: build, check: r, hours, history: kindHistory, random: mulberry32(Math.floor(seeds() * 4294967296)), iterations })
-    if (!best || result.score < best.score) best = result
+    if (!best || better(result.levels as Score, best.levels as Score)) best = result
     if (result.violations.length === 0) break
   }
   const custom = customShifts(demand)
@@ -296,7 +331,8 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
     } as Staff
   })
   const dailyNeed = days.map((day) => demandFor(demand, day))
-  const state: BuildState = { staff, days, dailyNeed, r, weekendIdx, weeks: fullWeeks(days) }
+  const dailyBasic = days.map((day) => basicDemandFor(demand, day))
+  const state: BuildState = { staff, days, dailyNeed, dailyBasic, r, weekendIdx, weeks: fullWeeks(days) }
 
   const restLike = (code: string) => code === 'R' || isLeave(code)
   const regular = staff.filter((s) => !s.extra)
@@ -509,8 +545,9 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
         missing -= 1
       }
     }
-    for (const shift of ['M', 'A']) {
-      let short = dailyNeed[i][shift] - staff.filter((s) => !s.extra && s.codes[i] === shift).length
+    // A basic intermediate (owner, 19/11/2026) is filled like the morning and the afternoon.
+    for (const shift of ['M', 'A', ...(dailyBasic[i].I > 0 ? ['I'] : [])]) {
+      let short = (shift === 'I' ? dailyBasic[i].I : dailyNeed[i][shift]) - staff.filter((s) => !s.extra && s.codes[i] === shift).length
       // The hospital's rotation (4 → 19 → 20 → R): whoever could work tomorrow's night (days off after it) takes
       // an afternoon today rather than a morning, which would forbid the night.
       const nightTomorrow = (s: Staff) => i + 1 < n && !s.codes[i + 1] && (i + 2 >= n || restLike(s.codes[i + 2])) && s.allowed.includes('N') ? 1 : 0
@@ -544,10 +581,14 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
   //    people's shifts on a day, or move a day off within its week. The best roster seen is kept.
   let score = scoreOf(state)
   let best = { score, codes: staff.map((s) => s.codes.slice()) }
-  const accept = (next: number, step: number) => {
-    if (next <= score) return true
+  // A worse roster is accepted now and then early in the search, and only below the shortages: never with a new
+  // breach or a new shortage (owner, 19/11/2026).
+  const accept = (next: Score, step: number) => {
+    if (!better(score, next)) return true
+    const [x, y] = [rank(next), rank(score)]
+    if (x[0] !== y[0] || x[1] !== y[1]) return false
     const temperature = 30 * (1 - step / iterations)
-    return temperature > 0.5 && random() < Math.exp((score - next) / temperature)
+    return temperature > 0.5 && random() < Math.exp((y[2] - x[2]) / temperature)
   }
   // The days off next to a leave stay where they are (owner, 8/11/2026).
   const guard = (x: Staff, d: number) => x.codes[d] === 'R' && aroundLeave(x, d)
@@ -606,7 +647,7 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
       if (accept(next, step)) score = next
       else [sa.codes[i], sa.codes[j]] = [sa.codes[j], sa.codes[i]]
     }
-    if (score < best.score) best = { score, codes: staff.map((s) => s.codes.slice()) }
+    if (better(score, best.score)) best = { score, codes: staff.map((s) => s.codes.slice()) }
   }
   staff.forEach((s, k) => { s.codes = best.codes[k] })
   score = best.score
@@ -646,9 +687,8 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
             s.codes[y] = shiftSun
           }
           const next = scoreOf(state)
-          // Only a real gain: the weekend comes without a new broken rule or a short shift (each of those weighs
-          // 300-1000, so anything less than 900 better trades one problem for another).
-          if (next <= score - 900 && (!bestMove || next < bestMove.score)) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
+          // Only a real gain: the levels decide, so the weekend never comes with a new broken rule or a short shift.
+          if (better(next, score) && (!bestMove || better(next, bestMove.score))) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
           staff.forEach((o, k) => { o.codes = before[k] })
         }
       }
@@ -667,14 +707,14 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
   for (let round = 0; round < 3; round += 1) {
     let changed = false
     for (let i = 0; i < n; i += 1) {
-      for (const kind of ['N', 'M', 'A']) {
-        if (staff.filter((x) => !x.extra && x.codes[i] === kind).length >= dailyNeed[i][kind]) continue
+      for (const kind of ['N', 'M', 'A', 'I']) {
+        if (staff.filter((x) => !x.extra && x.codes[i] === kind).length >= dailyBasic[i][kind]) continue
         let bestMove = null as Move | null
         const tryMove = (apply: () => unknown) => {
           const before = staff.map((o) => o.codes.slice())
           if (apply() !== false) {
             const next = scoreOf(state)
-            if (next < score && (!bestMove || next < bestMove.score)) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
+            if (better(next, score) && (!bestMove || better(next, bestMove.score))) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
           }
           staff.forEach((o, k) => { o.codes = before[k] })
         }
@@ -744,7 +784,7 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
           s.codes[j] = code
           s.codes[i] = 'R'
           const next = scoreOf(state)
-          if (next < score && (!bestSwap || next < bestSwap.score)) bestSwap = { score: next, codes: staff.map((o) => o.codes.slice()) }
+          if (better(next, score) && (!bestSwap || better(next, bestSwap.score))) bestSwap = { score: next, codes: staff.map((o) => o.codes.slice()) }
           staff.forEach((o, k) => { o.codes = before[k] })
         }
       }
@@ -773,7 +813,7 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
             const before = staff.map((o) => o.codes.slice())
             s.codes[i] = code
             const next = scoreOf(state)
-            if (next < score && (!bestUp || next < bestUp.score)) bestUp = { score: next, codes: staff.map((o) => o.codes.slice()) }
+            if (better(next, score) && (!bestUp || better(next, bestUp.score))) bestUp = { score: next, codes: staff.map((o) => o.codes.slice()) }
             staff.forEach((o, k) => { o.codes = before[k] })
           }
         }
@@ -790,13 +830,46 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
         const before = staff.map((o) => o.codes.slice())
         apply()
         const next = scoreOf(state)
-        if (next < score && (!bestMove || next < bestMove.score)) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
+        if (better(next, score) && (!bestMove || better(next, bestMove.score))) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
         staff.forEach((o, k) => { o.codes = before[k] })
       }
       for (let i = 0; i < n; i += 1) {
         if (!spare(i)) continue
         tryMove(() => { s.codes[i] = 'R' })
         if (i + 1 < n && spare(i + 1)) tryMove(() => { s.codes[i] = 'R'; s.codes[i + 1] = 'R' })
+      }
+      if (bestMove) {
+        staff.forEach((o, k) => { o.codes = (bestMove as Move).codes[k] })
+        score = bestMove.score
+        changed = true
+      }
+    }
+    if (!changed) break
+  }
+
+  // 7. A fair share (owner, 19/11/2026): the person with the most nights (or Saturdays, Sundays) and the one with the
+  //    fewest trade a few days of their rows; each day keeps its people, so the cover stays. Kept where it improves.
+  for (let round = 0; round < 12; round += 1) {
+    let changed = false
+    for (const key of ['N', 'sat', 'sun']) {
+      scoreOf(state)
+      const able = regular.filter((x) => x.target > 0 && (key === 'N' ? x.allowed.includes('N') : !x.employee.noWeekends))
+      if (able.length < 2) continue
+      const ratio = (x: Staff) => x.kinds[key] / x.target
+      const most = able.reduce((a, b) => (ratio(b) > ratio(a) ? b : a))
+      const fewest = able.reduce((a, b) => (ratio(b) < ratio(a) ? b : a))
+      if (most === fewest || most.kinds[key] - fewest.kinds[key] <= 1) continue
+      let bestMove = null as Move | null
+      for (const length of [2, 3, 4]) {
+        for (let i = 0; i + length <= n; i += 1) {
+          const window = Array.from({ length }, (_, k) => i + k)
+          if (window.some((k) => most.locked[k] || fewest.locked[k]) || window.every((k) => most.codes[k] === fewest.codes[k])) continue
+          const before = staff.map((o) => o.codes.slice())
+          for (const k of window) [most.codes[k], fewest.codes[k]] = [fewest.codes[k], most.codes[k]]
+          const next = scoreOf(state)
+          if (better(next, score) && (!bestMove || better(next, bestMove.score))) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
+          staff.forEach((o, k) => { o.codes = before[k] })
+        }
       }
       if (bestMove) {
         staff.forEach((o, k) => { o.codes = (bestMove as Move).codes[k] })
@@ -824,5 +897,5 @@ function buildRoster({ days, employees, demand, r, check = r, hours, history, ra
     coverage[day.date] = count
   })
   const violations = checkRoster({ days, employees, assignments, demand, rules: check, history })
-  return { assignments, coverage, violations, totals, score }
+  return { assignments, coverage, violations, totals, score: scoreValue(score), levels: score }
 }

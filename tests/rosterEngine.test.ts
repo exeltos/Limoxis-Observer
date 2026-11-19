@@ -50,7 +50,8 @@ describe('generateRoster', () => {
   it('covers every shift and keeps every rule', () => {
     // Only a missing whole weekend off may remain (it cannot always fit with exactly two days off a week); it shows
     // red on the sheet for the head to settle by hand.
-    expect(result.violations.filter((v) => !['weekendOff', 'coverage'].includes(v.rule))).toEqual([])
+    // The recommendations (owner, 19/11/2026: e.g. a shift within the two days around a leave) may remain.
+    expect(result.violations.filter((v) => !['weekendOff', 'coverage', 'leaveRest'].includes(v.rule))).toEqual([])
     expect(result.violations.length).toBeLessThanOrEqual(3)
     const short = days.filter((day) => SHIFTS.some((shift) => result.coverage[day.date][shift] < demandFor(demand, day)[shift])).length
     expect(short).toBeLessThanOrEqual(1)
@@ -107,14 +108,17 @@ describe('checkRoster', () => {
     checkRoster({ days: days.slice(0, codes.length), employees: one, assignments: { x: Object.fromEntries(codes.split('').map((code, i) => [days[i].date, code])) }, demand: {}, rules: { minWeekendOff: 0, weeklyRestDays: 0 }, history: { x: history } }).map((v) => v.rule)
 
   it('flags three nights, a shift right after a night and only one day off after two nights', () => {
-    expect(check('NNNRR')).toContain('nightsInRow')
+    // A third night is an exception, a recommendation; a fourth never (owner, 19/11/2026).
+    expect(check('NNNRR')).toContain('thirdNight')
+    expect(check('NNNRR')).not.toContain('nightsInRow')
+    expect(check('NNNNRR')).toContain('nightsInRow')
     expect(check('NMRR')).toContain('restAfterNight')
     // After two nights one day off is allowed rarely (owner, 18/11/2026): a recommendation, not a breach.
     expect(check('NNRMR')).toContain('shortRestAfterNights')
     expect(check('NNRMR')).not.toContain('restAfterNight')
     expect(check('NNRRM')).not.toContain('restAfterNight')
-    // After one night two days off.
-    expect(check('NRMR')).toContain('restAfterNight')
+    // After one night one day off is the target again (owner, 19/11/2026); two are fine.
+    expect(check('NRMR')).toEqual([])
     expect(check('NRRM')).toEqual([])
   })
   it('flags afternoon then morning, and morning then night', () => {
@@ -128,7 +132,10 @@ describe('checkRoster', () => {
   })
   it('allows one stretch of six in a roster, not two (owner, 9/11/2026)', () => {
     expect(check('MMMR', ['M', 'M', 'M'])).not.toContain('maxConsecutive')
-    expect(check('MMMRMMMMMMR', ['M', 'M', 'M'])).toContain('maxConsecutive')
+    // A second stretch of six is a recommendation (owner, 19/11/2026); seven in a row never.
+    expect(check('MMMRMMMMMMR', ['M', 'M', 'M'])).toContain('longStretch')
+    expect(check('MMMRMMMMMMR', ['M', 'M', 'M'])).not.toContain('maxConsecutive')
+    expect(check('MMMMMMMR')).toContain('maxConsecutive')
   })
   it('flags a week with fewer than two days off', () => {
     const rules = { minWeekendOff: 0 }
