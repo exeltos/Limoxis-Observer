@@ -1,3 +1,4 @@
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { reportKindOf } from './qualityVocabulary'
 import { INCIDENT_STAGES, incidentStage } from './qualityRecordRules'
 import type { DeviationItem, QualityDraft, QualityRecord, RegisterRow } from './qualityTypes'
@@ -69,10 +70,10 @@ export function registerRows(incidents: QualityRecord[] = [], deviations: Deviat
 
 // The filters of the register; `quick` is a summary card (open, sentinel,
 // deviations without a CAPA).
-export function filterRegister(rows: RegisterRow[], { query = '', kind = 'all', source = 'all', status = 'all', stage = 'all', department = 'all', category = 'all', quick = null, language = 'el' }: { query?: string, kind?: string, source?: string, status?: string, stage?: string, department?: string, category?: string, quick?: string | null, language?: string } = {}) {
-  const text = query.trim().toLowerCase()
+// `labels`: the words the row shows (kind, category, stage, date…), so the search finds a row by anything on it.
+export function filterRegister(rows: RegisterRow[], { query = '', kind = 'all', source = 'all', status = 'all', stage = 'all', department = 'all', category = 'all', quick = null, language = 'el', labels }: { query?: string, kind?: string, source?: string, status?: string, stage?: string, department?: string, category?: string, quick?: string | null, language?: string, labels?: (row: RegisterRow) => unknown[] } = {}) {
   return rows
-    .filter((row: RegisterRow) => !text || `${row.code} ${row.title} ${row.titleEn} ${row.owner} ${row.department} ${row.reporter || ''}`.toLowerCase().includes(text))
+    .filter((row: RegisterRow) => matchesSearch(query, [row.code, row.title, row.titleEn, row.owner, row.department, row.departmentEn, row.reporter, ...(labels ? labels(row) : [])]))
     .filter((row: RegisterRow) => kind === 'all' || row.kind === kind)
     .filter((row: RegisterRow) => source === 'all' || row.source === source)
     .filter((row: RegisterRow) => status === 'all' || row.status === status)

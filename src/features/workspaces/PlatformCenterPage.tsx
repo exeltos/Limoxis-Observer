@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentProps, type ComponentType, type ReactNode } from 'react'
+import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -67,8 +69,8 @@ export function PlatformCenterPage(){
  const [createOpen,setCreateOpen]=useState(false),[saving,setSaving]=useState(false),[draft,setDraft]=useState(emptyOrganization),[formError,setFormError]=useState(''),[members,setMembers]=useState<PlatformMember[]>([]),[users,setUsers]=useState<PlatformUser[]>([]),[demos,setDemos]=useState<PlatformDemo[]>([]),[loadingStats,setLoadingStats]=useState(true),[deleteOrg,setDeleteOrg]=useState<Tenant|null>(null),[demoOpen,setDemoOpen]=useState(false),[defaultDemoDurationDays,setDefaultDemoDurationDays]=useState(30),[maxDemoUsers,setMaxDemoUsers]=useState(5),[demoResult,setDemoResult]=useState<CreatedDemo|null>(null),[demoWizardKey,setDemoWizardKey]=useState(0),[demoSaving,setDemoSaving]=useState(false),[organizationQuery,setOrganizationQuery]=useState(''),[demoQuery,setDemoQuery]=useState(''),[settingsKind,setSettingsKind]=useState<'organizations'|'demo'|null>(null)
  const organizations=useMemo(()=>memberships.map(m=>m.organization).filter(Boolean) as Tenant[],[memberships])
  const selectedOrgId=hashParams.get('organization')||'',selectedOrg=organizations.find(o=>o.id===selectedOrgId)||null,selectedDemoId=hashParams.get('demo')||'',selectedDemo=demos.find(d=>d.id===selectedDemoId)||null,requestedOrgDetailTab=hashParams.get('tab')||'details',orgDetailTab=requestedOrgDetailTab==='analysis'?'details':requestedOrgDetailTab,activeDemos=demos.filter(d=>d.status==='active'&&daysBetween(hospitalToday(),d.valid_until)>0),expiringDemos=activeDemos.filter(d=>demoProgress(d).remaining<=14)
- const filteredOrganizations=useMemo(()=>{const locale=language==='el'?'el-GR':'en-US',q=organizationQuery.trim().toLocaleLowerCase(locale);return q?organizations.filter(o=>[o.name,o.code,o.city,o.region,o.health_region].some(v=>String(v||'').toLocaleLowerCase(locale).includes(q))):organizations},[organizations,organizationQuery,language])
- const filteredDemos=useMemo(()=>{const locale=language==='el'?'el-GR':'en-US',q=demoQuery.trim().toLocaleLowerCase(locale);return q?demos.filter(d=>[d.organization?.name,d.organization?.code,d.label,d.contact_name,d.contact_email].some(v=>String(v||'').toLocaleLowerCase(locale).includes(q))):demos},[demos,demoQuery,language])
+ const filteredOrganizations=useMemo(()=>organizations.filter(o=>matchesSearch(organizationQuery,[o.name,o.code,o.city,o.region,o.health_region])),[organizations,organizationQuery])
+ const filteredDemos=useMemo(()=>demos.filter(d=>matchesSearch(demoQuery,[d.organization?.name,d.organization?.code,d.label,d.contact_name,d.contact_email,formatDay(d.valid_until,language)])),[demos,demoQuery,language])
  async function refreshPlatformData(){setLoadingStats(true);try{const[nextMembers,nextDemos,nextUsers]=await Promise.all([listPlatformOrganizationMembers(),listPlatformDemos(),listPlatformUsers().catch(e=>{console.warn(e);return []})]);setMembers(nextMembers);setDemos(nextDemos);setUsers(nextUsers)}catch(e){console.warn(e)}finally{setLoadingStats(false)}}
  useEffect(()=>{void refreshPlatformData()},[memberships.length])
  // Once per session: Demos that expired more than the configured number of days

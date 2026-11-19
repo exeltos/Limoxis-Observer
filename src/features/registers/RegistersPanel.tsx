@@ -7,6 +7,7 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { loadEntries, loadRegisters } from './registerService'
 import { indicatorReport, periodLabel, periodOf } from './registerEngine'
@@ -84,15 +85,15 @@ export function RegistersPanel({ list, only = null, onBeforeOpen, filterEnd = nu
   const departments = useMemo(() => [...new Set(list.registers.map(register => (en ? register.departmentEn : register.department)).filter(Boolean))], [list.registers, en])
   const rows = useMemo(() => list.registers
     .filter(register => !only || only(register))
-    .filter(register => `${register.code} ${register.name} ${register.nameEn} ${register.department}`.toLowerCase().includes(query.trim().toLowerCase()))
+    .filter(register => matchesSearch(query, [register.code, register.name, register.nameEn, register.department, register.departmentEn, registerKindLabel(register.kind, language), formatDay(register.lastEntry, language), registerStatusLabel(register.status, language)]))
     .filter(register => department === 'all' || (en ? register.departmentEn : register.department) === department)
-    .filter(register => kind === 'all' || register.kind === kind), [list.registers, only, query, department, kind, en])
+    .filter(register => kind === 'all' || register.kind === kind), [list.registers, only, query, department, kind, en, language])
   // The Quality Center's «Download» exports what the filters leave on screen.
   useEffect(() => { onRowsChange?.(rows) }, [rows, onRowsChange])
   const health = useRegisterHealth(list.registers)
   const open = (register: Register) => { onBeforeOpen?.(); registry.openRecord(navigate, `/registers/${register.id}`, register.id, rows.map(row => row.id)) }
   return <>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search register or department' : 'Αναζήτηση μητρώου ή τμήματος'} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (kind !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setDepartment('all'); setKind('all') }} end={filterEnd}>
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (kind !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setDepartment('all'); setKind('all') }} end={filterEnd}>
       <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(name => <option key={name} value={name}>{name}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Kind' : 'Είδος'} value={kind} onChange={setKind}><option value="all">{t('all')}</option><option value="case">{registerKindLabel('case', language)}</option><option value="sheet">{registerKindLabel('sheet', language)}</option></FilterSelect>
     </FilterBar>

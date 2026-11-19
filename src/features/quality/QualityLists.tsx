@@ -9,6 +9,8 @@ import { useSortedPaging,withSort } from './useSortedPaging'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Meter,meterTone } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
+import { translate } from '../../core/i18n/LanguageContext'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { readRegistryViewState,writeRegistryViewState } from '../../core/navigation/useRegistryMemory'
 import { CAPA_TYPES,qualityCode,qualityStatusTone,visibleSourceId,vocabularyLabel } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
@@ -47,7 +49,8 @@ export function useListFilters<T extends ListFilters>(key: string,defaults: T): 
 
 const departmentOf=(row: QualityDraft,en: boolean)=>(en?row.departmentEn:row.department)||''
 const titleOf=(row: QualityDraft,en: boolean)=>(en?row.titleEn:row.title)||row.title||''
-const matches=(row: QualityDraft,query: string | null | undefined)=>!query||`${row.id} ${row.displayId||''} ${qualityCode(row)} ${row.title} ${row.titleEn} ${recordOwners(row).join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())
+// Everything a row shows, in both languages (owner, 19/11/2026: the searches find everything).
+const matches=(row: QualityDraft,query: string | null | undefined,en=false,extra: unknown[]=[])=>{const lang=en?'en':'el';return matchesSearch(query,[row.id,row.displayId,qualityCode(row),qualityCode(row,lang),row.title,row.titleEn,row.department,row.departmentEn,...recordOwners(row),...recordOwners(row).map((name: string)=>roleTitleText(name,lang)),row.status?translate(String(row.status),lang):'',formatDay(row.dueDate,lang),formatDay(row.date,lang),...extra])}
 
 // The corrective and preventive actions, each with the record it came from (a
 // finding, a report, a control, a bundle, a training, a risk or a review); and
@@ -75,8 +78,7 @@ export function actionRows(findings: QualityRecord[],capas: QualityRecord[],inci
 }
 
 export function filterActions(rows: ActionRow[],filters: ActionFilters,en: boolean){
- const q=String(filters.query||'').trim().toLowerCase()
- return rows.filter((row: ActionRow)=>matches(row,filters.query)||(q&&`${row.sourceCode||''} ${row.sourceTitle||''} ${row.sourceTitleEn||''}`.toLowerCase().includes(q)))
+ return rows.filter((row: ActionRow)=>matches(row,filters.query,en,[vocabularyLabel(CAPA_TYPES,row.actionType||'corrective',en?'en':'el'),sourceKindLabel(row.sourceKind,en?'en':'el'),row.sourceCode,row.sourceTitle,row.sourceTitleEn]))
   .filter((row: ActionRow)=>filters.kind==='all'||row.kind===filters.kind)
   .filter((row: ActionRow)=>filters.status==='all'||row.status===filters.status)
   .filter((row: ActionRow)=>filters.department==='all'||departmentOf(row,en)===filters.department)
@@ -177,7 +179,7 @@ export function auditRows(audits: QualityRecord[],findings: QualityRecord[]=[]):
 export function auditCycleKey(row: QualityDraft){const day=String(row.completedDate||row.plannedDate||'');return day.length<7?'':`${day.slice(0,4)}-${Number(day.slice(5,7))<=6?0:1}`}
 export const auditCycleName=(key: string,en: boolean)=>`${key.endsWith('-0')?(en?'Spring':'Άνοιξη'):(en?'Autumn':'Φθινόπωρο')} ${key.slice(0,4)}`
 export function filterAudits(rows: AuditRow[],filters: AuditFilters,en: boolean){
- return rows.filter((row: AuditRow)=>matches(row,filters.query))
+ return rows.filter((row: AuditRow)=>matches(row,filters.query,en,[row.standard?standardShort(row.standard):'',...(row.clausesScope||[]),vocabularyLabel(AUDIT_KINDS,row.auditType||'internal',en?'en':'el'),formatDay(row.plannedDate,en?'en':'el'),roleTitleText(row.leadAuditor,en?'en':'el')]))
   .filter((row: AuditRow)=>filters.status==='all'||row.status===filters.status)
   .filter((row: AuditRow)=>filters.type==='all'||(row.auditType||'internal')===filters.type)
   .filter((row: AuditRow)=>!filters.standard||filters.standard==='all'||(row.standard||'other')===filters.standard)

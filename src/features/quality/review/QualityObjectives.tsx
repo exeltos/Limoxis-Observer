@@ -129,6 +129,11 @@ export function objectivesExport(rows: ObjectiveListRow[], language: string) {
   }
 }
 
+// What an objective's row shows, for the search box: the cells of the export, the measure's source, the owner's title.
+export function objectiveSearchParts(objective: ObjectiveListRow, language: string) {
+  return [...objectivesExport([objective], language).rows[0], objective.title, objective.titleEn, roleTitleText(objective.ownerLabel, language), objective.kind === 'plan' ? objective.committeeName : objectiveMeasureSource(objective, language)]
+}
+
 export function reviewsExport(rows: Review[], language: string) {
   const en = language === 'en'
   return {

@@ -18,6 +18,10 @@ import { useDepartments } from '../../management/useLibraries'
 import { ReviewsTable, reviewsExport, useReviews } from '../review/QualityObjectives'
 import '../quality.css'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import { formatDay } from '../../../core/i18n/formatDay'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
+import { frequencyLabel, groupStatus } from './meetingModel'
+import { reviewStatusLabel } from '../review/reviewTemplate'
 import type { Translate } from '../../../types/featureTypes'
 import type { RegistryExport } from '../../../core/export/registryExports'
 import type { MeetingGroup, ReviewDecisions } from './meetingModel'
@@ -44,7 +48,7 @@ export function DepartmentMeetingsScreen({ home = '/meetings?tab=departments', o
   const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
-  const shown = useMemo(() => { const q = query.trim().toLowerCase(); return { ...data, groups: data.groups.filter(group => !q || `${group.name} ${group.department}`.toLowerCase().includes(q)) } }, [data, query])
+  const shown = useMemo(() => { const today = hospitalToday(); return { ...data, groups: data.groups.filter(group => { const status = groupStatus(group, data.meetings.meetings, today); return matchesSearch(query, [group.name, group.department, group.departmentEn, frequencyLabel(group.frequencyDays, language), status.last ? formatDay(status.last.meetingDate, language) : '', status.nextDue ? formatDay(status.nextDue, language) : '', status.overdue ? (language === 'en' ? 'Overdue' : 'Εκπρόθεσμη') : '']) }) } }, [data, query, language])
   // The department's own page opens straight into its group when it has one.
   if (ownDepartment && !data.loading && data.groups.length === 1) return <MeetingGroupPage groupId={data.groups[0].id} home={home} />
   async function addGroup(group: MeetingGroup) {
@@ -57,7 +61,7 @@ export function DepartmentMeetingsScreen({ home = '/meetings?tab=departments', o
       {data.canManage && <ActionButton label={L('Νέο τμήμα συναντήσεων', 'New meeting department')} tone="primary" onClick={() => setAdding(true)}><Plus size={18} /><span>{L('Τμήμα', 'Department')}</span></ActionButton>}
     </div>}>
     <section className="surface registry-workspace workspace-column workspace-fill">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση τμήματος…', 'Search department…')} onClear={() => setQuery('')} />
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση…', 'Search…')} onClear={() => setQuery('')} />
       <MeetingGroupsList data={shown} language={language} onOpen={(group: MeetingGroup) => goTo(`/meetings/groups/${group.id}`)} />
     </section>
     {adding && <MeetingGroupDialog initial={{}} departments={departments} saving={saving} onClose={() => setAdding(false)} onSave={addGroup} language={language} />}
@@ -76,14 +80,14 @@ export function ManagementReviewsScreen() {
   const reviews = useReviews(tenant?.id)
   const [query, setQuery] = useState('')
   const [quick, setQuick] = useState<string | null>(null)
-  const visible = useMemo(() => { const q = query.trim().toLowerCase(); return reviews.reviews.filter(item => !q || `${item.code} ${item.reviewDate || ''}`.toLowerCase().includes(q)).filter(item => quick === 'open' ? openDecisions(item).length > 0 : quick === 'late' ? lateDecisions(item).length > 0 : true) }, [reviews.reviews, query, quick])
+  const visible = useMemo(() => { return reviews.reviews.filter(item => matchesSearch(query, [item.code, item.reviewDate, formatDay(item.reviewDate, language), formatDay(item.periodFrom, language), formatDay(item.periodTo, language), formatDay(item.nextReviewDate, language), reviewStatusLabel(item.status, language)])).filter(item => quick === 'open' ? openDecisions(item).length > 0 : quick === 'late' ? lateDecisions(item).length > 0 : true) }, [reviews.reviews, query, quick, language])
   return <Page fill className="registry-fill-page" title={t('sidebarNav.tabManagementReview')} subtitle={t('sidebarNav.managementReviewSubtitle')}
     actions={<div className="row-actions">
       <ExportMenu disabled={!visible.length} onPrint={() => printList(reviewsExport(visible, language), t('sidebarNav.tabManagementReview'))} onExcel={() => exportRegistry(reviewsExport(visible, language))} />
       {canManage && <ActionButton label={L('Ανασκόπηση Διοίκησης', 'Management review')} tone="primary" onClick={() => navigate('/quality/reviews/new')}><Plus size={18} /><span>{t('create')}</span></ActionButton>}
     </div>}>
     <section className="surface registry-workspace workspace-column workspace-fill">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση ανασκόπησης', 'Search review')} onClear={() => { setQuery(''); setQuick(null) }} />
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση…', 'Search…')} onClear={() => { setQuery(''); setQuick(null) }} />
       <ReviewsTable rows={visible} loading={reviews.loading} onOpen={review => navigate(`/quality/reviews/${review.id}`)} />
     </section>
   </Page>

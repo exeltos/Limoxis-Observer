@@ -76,13 +76,13 @@ export function EquipmentList({ list, registry = null, filters, setFilters, onOp
   const { t, language } = useLanguage()
   const en = language === 'en'
   const set = (key: string, value: unknown) => setFilters(current => ({ ...current, [key]: value }))
-  const rows = useMemo(() => filterEquipment(list.equipment, filters), [list.equipment, filters])
+  const rows = useMemo(() => filterEquipment(list.equipment, filters, language), [list.equipment, filters, language])
   const sortBy = { code: (row: EquipmentRow) => row.code, criticality: (row: EquipmentRow) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[row.criticality] || 0, device: (row: EquipmentRow) => row.name, department: (row: EquipmentRow) => (en ? row.departmentEn : row.department), next: (row: EquipmentRow) => row.next?.nextDue || null, programme: (row: EquipmentRow) => row.due, status: (row: EquipmentRow) => row.state }
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const usedDepartments = useMemo(() => { const ids = new Set(list.equipment.map(item => item.departmentId).filter(Boolean)); return list.departments.filter(item => ids.has(item.id || item.name)) }, [list.equipment, list.departments])
   const advanced = (['department', 'state', 'due', 'criticality'] as const).filter(key => filters[key] !== 'all').length
   return <>
-    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search device, serial number, location…' : 'Αναζήτηση εξοπλισμού, σειριακού αριθμού, θέσης…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))} end={filterEnd}>
+    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))} end={filterEnd}>
       {showDepartment && usedDepartments.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={filters.department} onChange={value => set('department', value)}><option value="all">{t('all')}</option>{usedDepartments.map(item => <option key={item.id || item.name} value={item.id || item.name}>{en ? item.nameEn || item.name : item.name}</option>)}</FilterSelect>}
       <FilterSelect label={t('status')} value={filters.state} onChange={value => set('state', value)}><option value="all">{en ? 'In use' : 'Σε χρήση'}</option>{EQUIPMENT_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Programme' : 'Πρόγραμμα'} value={filters.due} onChange={value => set('due', value)}><option value="all">{t('all')}</option>{DUE_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -113,12 +113,12 @@ export function SuppliersList({ list, registry = null, filters, setFilters, onOp
   // The certificates to renew by e-mail open from «Δημιουργία» of the Quality Center (with the evaluation templates).
   const end = filterEnd
   const set = (key: string, value: unknown) => setFilters(current => ({ ...current, [key]: value }))
-  const rows = useMemo(() => filterSuppliers(list.suppliers, filters), [list.suppliers, filters])
+  const rows = useMemo(() => filterSuppliers(list.suppliers, filters, language, row => supplierNotes(row, language).map(note => note.label)), [list.suppliers, filters, language])
   const sortBy = { code: (row: SupplierRow) => row.code, criticality: (row: SupplierRow) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[row.criticality] || 0, supplier: (row: SupplierRow) => row.name, evaluation: (row: SupplierRow) => row.latestEvaluation?.evaluatedOn || null, attention: (row: SupplierRow) => supplierNotes(row, language).length, approval: (row: SupplierRow) => row.approval }
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const advanced = (['category', 'approval', 'criticality'] as const).filter(key => filters[key] !== 'all').length + (filters.status !== 'active' ? 1 : 0)
   return <>
-    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search supplier, tax ID, products…' : 'Αναζήτηση προμηθευτή, ΑΦΜ, προϊόντων…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))} end={end}>
+    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))} end={end}>
       <FilterSelect label={en ? 'Category' : 'Κατηγορία'} value={filters.category} onChange={value => set('category', value)}><option value="all">{t('all')}</option>{SUPPLIER_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Approval' : 'Έγκριση'} value={filters.approval} onChange={value => set('approval', value)}><option value="all">{t('all')}</option>{APPROVALS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>

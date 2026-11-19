@@ -1,4 +1,5 @@
 import './indicatorsScreens.css'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useCallback,useEffect,useMemo,useState,type ReactNode,type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { KpiFigures } from '../../design-system/KpiCard'
@@ -114,7 +115,7 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
  // The approval column only when some result has been saved for the period.
  const showApproval=snapshots.length>0
  const kpiMatch=useCallback((r: IndicatorRow)=>kpi==='all'||(kpi==='approved'?snapshotFor(r)?.status==='approved':r.status===kpi),[kpi,snapshotFor])
- const filtered=useMemo(()=>listRows.filter(r=>(category==='all'||r.category===category)&&(targetFilter==='all'||(targetFilter==='with')===hasTarget(r))&&kpiMatch(r)&&`${r.titleEl} ${r.titleEn} ${r.source}`.toLowerCase().includes(query.toLowerCase())),[listRows,category,query,kpiMatch,targetFilter]);const onTarget=listRows.filter(r=>r.status==='onTarget').length,attention=listRows.filter(r=>r.status==='attention').length,approvedCount=listRows.filter(r=>snapshotFor(r)?.status==='approved').length
+ const filtered=useMemo(()=>listRows.filter(r=>(category==='all'||r.category===category)&&(targetFilter==='all'||(targetFilter==='with')===hasTarget(r))&&kpiMatch(r)&&matchesSearch(query,[r.titleEl,r.titleEn,r.source,categoryLabel(r.category||'',t),r.unit,r.unitEn,r.evidence,hasTarget(r)?statusText(r.status,t):''])),[listRows,category,query,kpiMatch,targetFilter,t]);const onTarget=listRows.filter(r=>r.status==='onTarget').length,attention=listRows.filter(r=>r.status==='attention').length,approvedCount=listRows.filter(r=>snapshotFor(r)?.status==='approved').length
  // The arrows in the headers sort the whole filtered list; then the page is cut.
  const approvalRank: Record<string,number>={approved:2,calculated:1,reviewed:1}
  const {sorted:sortedRows,sort,onSort}=useTableSort(filtered,{
@@ -127,7 +128,7 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
  })
  useEffect(()=>setPage(1),[query,category,kpi,targetFilter,effectiveDepartment,from,to,pageSize,sort])
  // The totals beside the search count what the other filters leave; each one narrows the list to its rows.
- const base=listRows.filter(r=>(category==='all'||r.category===category)&&(targetFilter==='all'||(targetFilter==='with')===hasTarget(r))&&`${r.titleEl} ${r.titleEn} ${r.source}`.toLowerCase().includes(query.toLowerCase()))
+ const base=listRows.filter(r=>(category==='all'||r.category===category)&&(targetFilter==='all'||(targetFilter==='with')===hasTarget(r))&&matchesSearch(query,[r.titleEl,r.titleEn,r.source,categoryLabel(r.category||'',t),r.unit,r.unitEn,r.evidence,hasTarget(r)?statusText(r.status,t):'']))
  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=sortedRows.slice((safePage-1)*pageSize,safePage*pageSize);const sequenceIds=sortedRows.map(r=>r.definitionId).filter(Boolean)
  const activeFilterCount=(category!=='all'?1:0)+(targetFilter!==defaultTargetFilter?1:0)+(kpi!=='all'?1:0)+(!departmentScoped&&department?1:0)+(from!==defaultFrom?1:0)+(to!==defaultTo?1:0)
  function clearFilters(){setQuery('');setCategory('all');setTargetFilter(defaultTargetFilter);setKpi('all');if(!departmentScoped)setDepartment('');setFrom(defaultFrom);setTo(defaultTo);setPage(1)}

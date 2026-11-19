@@ -114,7 +114,7 @@ function LinksTab({ items, sources, loading, language, canManage, onEdit }: TabP
   const withNews = useMemo(() => new Set(sources.filter(source => source.active && source.itemId).map(source => source.itemId)), [sources])
   const options = [{ value: 'all', label: L('Όλοι', 'All'), count: total }, ...LINK_GROUPS.filter(entry => counts[entry.value]).map(entry => ({ value: entry.value, label: entry[en ? 'en' : 'el'], count: counts[entry.value] }))]
   return <>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση φορέα, θέματος ή διεύθυνσης…', 'Search organisation, topic or address…')} onClear={() => { setQuery(''); setGroup('all') }} />
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση…', 'Search…')} onClear={() => { setQuery(''); setGroup('all') }} />
     <Chips options={options} value={group} onChange={setGroup} label={L('Ομάδα', 'Group')} />
     {!loading && !groups.length ? <div className="lib-scroll"><RegistryEmptyState filtered={Boolean(query) || group !== 'all'} onClearFilters={() => { setQuery(''); setGroup('all') }} icon={LinkIcon} title={query || group !== 'all' ? undefined : L('Δεν υπάρχουν ακόμη σύνδεσμοι', 'No links yet')} text={query || group !== 'all' ? undefined : L('Οι σύνδεσμοι της πλατφόρμας εμφανίζονται εδώ.', 'The platform\'s links appear here.')} /></div>
       : <div className="scroll-table"><table className="data-table sticky-table lib-links-table">
@@ -160,7 +160,7 @@ function GuidelinesTab({ items, loading, language, canManage, onAdd, onEdit }: T
   const all = L('Όλα', 'All')
   return <div className={`lib-guides${selected ? '' : ' no-drawer'}`}>
     <div className="lib-guides-main">
-      <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={L('Αναζήτηση τίτλου ή λέξης-κλειδιού…', 'Search title or keyword…')} onClear={filtered ? () => setFilters(NO_GUIDELINE_FILTERS) : undefined} activeAdvancedCount={(['organisation', 'topic', 'year'] as const).filter(key => String(filters[key]) !== 'all').length}>
+      <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={L('Αναζήτηση…', 'Search…')} onClear={filtered ? () => setFilters(NO_GUIDELINE_FILTERS) : undefined} activeAdvancedCount={(['organisation', 'topic', 'year'] as const).filter(key => String(filters[key]) !== 'all').length}>
           <FilterSelect label={L('Φορέας', 'Organisation')} value={filters.organisation} onChange={value => set('organisation', value)}><option value="all">{L('Όλοι', 'All')}</option>{options.organisations.map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect>
           <FilterSelect label={L('Θέμα', 'Topic')} value={filters.topic} onChange={value => set('topic', value)}><option value="all">{all}</option>{options.topics.map(value => <option key={value} value={value}>{topicLabel(value, language)}</option>)}</FilterSelect>
           <FilterSelect label={L('Έτος', 'Year')} value={String(filters.year)} onChange={value => set('year', value)}><option value="all">{all}</option>{options.years.map(value => <option key={value} value={String(value)}>{value}</option>)}</FilterSelect>

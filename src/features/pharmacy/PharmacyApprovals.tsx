@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useNavigate } from 'react-router-dom'
 import { Check, ShieldCheck, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -52,7 +53,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
     } finally { setBusyId('') }
   }
 
-  const filtered = useMemo(() => rows.filter(row => (status === 'all' || row.approvalStatus === status) && `${row.antimicrobial} ${row.patientCode} ${row.department} ${row.indication}`.toLowerCase().includes(query.trim().toLowerCase())), [rows, status, query])
+  const filtered = useMemo(() => rows.filter(row => (status === 'all' || row.approvalStatus === status) && matchesSearch(query, [row.antimicrobial, row.patientCode, row.department, row.indication])), [rows, status, query])
   // The arrows in the headers sort the whole filtered list (newest start first); then the page is cut.
   const { sorted: sortedRows, sort, onSort } = useTableSort(filtered, {
     started: row => row.startedAt,

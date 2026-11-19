@@ -8,6 +8,8 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { useSortedPaging,withSort } from './useSortedPaging'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
+import { translate } from '../../core/i18n/LanguageContext'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { loadBundleAssessments } from '../prevention/bundleCloudService'
@@ -84,8 +86,9 @@ function useClassifiedRegister(incidents: QualityRecord[],capas: QualityRecord[]
  const rows=useMemo(()=>registerRows(incidents,[],capas).filter((row): row is ReportRow=>mode==='reports'?row.kind==='report':row.kind!=='report'),[incidents,capas,mode])
  // «Από / Έως» on the incident date; `base` is the list without the quick figure, for the totals beside the search.
  const inRange=(row: RegisterRow)=>{const day=String(row.date||'').slice(0,10);return (!filters.dateFrom||day>=filters.dateFrom)&&(!filters.dateTo||day<=filters.dateTo)}
- const base=useMemo(()=>filterRegister(rows,{...filters,quick:null,language}).filter(inRange),[rows,filters,language]) // eslint-disable-line react-hooks/exhaustive-deps
- const filtered=useMemo(()=>filterRegister(rows,{...filters,language}).filter(inRange),[rows,filters,language]) // eslint-disable-line react-hooks/exhaustive-deps
+ const labels=(row: RegisterRow)=>[kindText(row.kind,language),incidentCategoryLabel(row.category,[],language),stageLabel(row.stage,language),formatDay(row.date,language),roleTitleText(row.owner,language),row.severity?translate(String(row.severity),language):'',row.anonymous?(language==='en'?'Anonymous':'Ανώνυμη'):'']
+ const base=useMemo(()=>filterRegister(rows,{...filters,quick:null,language,labels}).filter(inRange),[rows,filters,language]) // eslint-disable-line react-hooks/exhaustive-deps
+ const filtered=useMemo(()=>filterRegister(rows,{...filters,language,labels}).filter(inRange),[rows,filters,language]) // eslint-disable-line react-hooks/exhaustive-deps
  const counts=useMemo(()=>registerCounts(rows),[rows])
  const departments=useMemo(()=>departmentsOf(rows,language),[rows,language])
  const categories=useMemo(()=>[...new Set(rows.map(row=>row.category).filter(Boolean))] as string[],[rows])
@@ -129,11 +132,11 @@ function findingRows(findings: QualityRecord[],capas: QualityRecord[]){
 
 // The search and the filters of the deviations list (the automatic signals have no kind, causes or recurrence).
 export function filterDeviations(rows: RegisterRow[],filters: DeviationFilters,language='el'){
- const text=String(filters.query||'').trim().toLowerCase()
  const day=(row: RegisterRow)=>String(row.date||'').slice(0,10)
  return rows
   .filter((row: RegisterRow)=>filters.scope==='all'||(filters.scope==='registry'?row.type==='finding':row.type==='deviation'))
-  .filter((row: RegisterRow)=>!text||`${row.code} ${row.title} ${row.titleEn} ${row.owner||''} ${row.department||''} ${row.item?.reportedBy||''}`.toLowerCase().includes(text))
+  // Everything the row shows (owner, 19/11/2026: the searches find everything).
+  .filter((row: RegisterRow)=>matchesSearch(filters.query,[row.code,row.title,row.titleEn,row.owner,roleTitleText(row.owner,language),row.department,row.departmentEn,row.item?.reportedBy,row.item?.notes,row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):findingSourceText(row.source,language),row.recurring?(language==='en'?'Recurring':'Επαναλαμβανόμενη'):'',formatDay(row.date,language),row.type==='finding'?translate(String(row.status||''),language):(language==='en'?'To assess':'Προς αξιολόγηση'),row.severity?translate(String(row.severity),language):'']))
   .filter((row: RegisterRow)=>filters.source==='all'||row.source===filters.source)
   .filter((row: RegisterRow)=>filters.status==='all'||(row.type==='finding'&&row.status===filters.status))
   .filter((row: RegisterRow)=>filters.priority==='all'||row.severity===filters.priority)
@@ -280,7 +283,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
   {key:'sentinel',value:base.filter((row: RegisterRow)=>row.sentinel&&isOpen(row)).length,label:'sentinel',active:filters.quick==='sentinel',onClick:toggle('sentinel')},
  ]}/>:null
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={inbox?(en?'Search code, title, department, reporter…':'Αναζήτηση σε κωδικό, τίτλο, τμήμα, αναφέροντα…'):(en?'Search…':'Αναζήτηση…')} activeAdvancedCount={advanced} onClear={view.clear} end={end}>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search…':'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={view.clear} end={end}>
    {popover}
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef as RefObject<HTMLDivElement>}>

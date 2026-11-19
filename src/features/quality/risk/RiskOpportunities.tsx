@@ -6,6 +6,7 @@ import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { EFFECTIVENESS,OPPORTUNITY_RATINGS,normalizeOpportunity,opportunityCode,parseMeasures } from './riskModel'
 import { L,defaultFrame,returnedClass,usePaged,type RiskFrame } from './riskUi'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
 import type { LabeledOption,Opportunity,OpportunityListRow } from './riskTypes'
 
 const pick=(list: LabeledOption[],id: string,en: boolean)=>{const x=list.find(item=>item.id===id);return x?(en?x.en:x.el):''}
@@ -27,8 +28,8 @@ export function RiskOpportunities({items,en,onOpen,actions=null,returned='',fram
  const owners=useMemo(()=>[...new Set<string>(all.map(x=>x.o.owner).filter(Boolean) as string[])].sort(),[all])
  const counts=useMemo(()=>Object.fromEntries(Object.entries(QUICK).map(([id,test])=>[id,all.filter(test).length])),[all])
  const rows=all.filter(x=>!quick||QUICK[quick](x)).filter(({o,code})=>{
-  const text=`${code} ${o.activity} ${o.opportunity} ${o.actionPlan} ${o.owner} ${o.effectiveness}`.toLowerCase()
-  if(query&&!text.includes(query.toLowerCase()))return false
+  // Everything the row shows (owner, 19/11/2026: the searches find everything).
+  if(!matchesSearch(query,[code,o.activity,o.opportunity,o.actionPlan,o.owner,o.timeframe,o.effectiveness,o.ratingId?pick(OPPORTUNITY_RATINGS,o.ratingId as string,en):'',(x=>x?(en?x.en:x.el):L(en,'Δεν αξιολογήθηκε','Not assessed'))(EFFECTIVENESS.find(item=>item.id===o.effectivenessStatus))]))return false
   if(rating!=='all'&&o.ratingId!==rating)return false
   if(effect==='none'?Boolean(o.effectivenessStatus):effect!=='all'&&o.effectivenessStatus!==effect)return false
   if(owner!=='all'&&o.owner!==owner)return false
@@ -46,7 +47,7 @@ export function RiskOpportunities({items,en,onOpen,actions=null,returned='',fram
  ]}/>
  return frame(null,<>
   <div className="risk-toolbar">
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση ευκαιρίας, σχεδίου δράσης, υπευθύνου…','Search opportunity, action plan, owner…')} activeAdvancedCount={active} end={totals} onClear={()=>{setQuery('');setRating('all');setEffect('all');setOwner('all');setQuick(null)}}>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση…','Search…')} activeAdvancedCount={active} end={totals} onClear={()=>{setQuery('');setRating('all');setEffect('all');setOwner('all');setQuick(null)}}>
     <FilterSelect label={L(en,'Απόδοση','Yield')} value={rating} onChange={setRating}><option value="all">{L(en,'Όλες','All')}</option>{OPPORTUNITY_RATINGS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</FilterSelect>
     <FilterSelect label={L(en,'Αποτελεσματικότητα','Effectiveness')} value={effect} onChange={setEffect}><option value="all">{L(en,'Όλες','All')}</option>{EFFECTIVENESS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}<option value="none">{L(en,'Δεν αξιολογήθηκε','Not assessed')}</option></FilterSelect>
     <FilterSelect label={L(en,'Υπεύθυνος','Owner')} value={owner} onChange={setOwner}><option value="all">{L(en,'Όλοι','All')}</option>{owners.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>

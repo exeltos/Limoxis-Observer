@@ -17,6 +17,7 @@ import { CheckboxField } from '../../../design-system/CheckboxField'
 import { SectionHeader } from '../../../design-system/SectionHeader'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { useAuth } from '../../../core/auth/AuthContext'
@@ -64,13 +65,13 @@ function QuestionnaireLibrary() {
   const { templates, loading } = useAuditTemplates(tenant?.id)
   const [query, setQuery] = useState('')
   const [standard, setStandard] = useState('all')
-  const rows = templates.filter(item => (standard === 'all' || item.standard === standard) && (!query.trim() || `${item.title} ${item.description}`.toLowerCase().includes(query.trim().toLowerCase())))
+  const rows = templates.filter(item => (standard === 'all' || item.standard === standard) && matchesSearch(query, [item.title, item.description, item.version, standardShort(item.standard), item.standardVersion, ...(item.departmentTypes?.length ? item.departmentTypes.map((area: string) => areaLabel(area, language)) : [L(en, 'Όλα τα τμήματα', 'Every department')]), item.isSystem ? L(en, 'Βιβλιοθήκη πλατφόρμας', 'Platform library') : L(en, 'Του νοσοκομείου', 'Hospital'), item.active !== false ? L(en, 'Ενεργό', 'Active') : L(en, 'Ανενεργό', 'Inactive')]))
   return <Page fill className="audit-questionnaires-page" navigation={<BackButton onClick={goBack} label={L(en, 'Πίσω στις επιθεωρήσεις', 'Back to audits')} />}
     title={L(en, 'Ερωτηματολόγια επιθεώρησης', 'Audit questionnaires')}
     subtitle={L(en, 'Ένα ερωτηματολόγιο ανά πρότυπο, οργανωμένο ανά άρθρο ή κεφάλαιο. Είναι βοήθημα επιθεώρησης, όχι το κείμενο του προτύπου· δημιουργήστε αντίγραφο για να το προσαρμόσετε στο νοσοκομείο.', 'One questionnaire per standard, organised by clause or chapter. An audit aid, not the text of the standard; make a copy to adapt it to the hospital.')}
     actions={<div className="row-actions"><ExportMenu disabled={!rows.length} onExcel={() => exportRegistry(questionsExport(rows, en))} />{access.canManage && <Button onClick={() => navigate('/quality/audit-questionnaires/new')}><Plus size={15} />{L(en, 'Νέο ερωτηματολόγιο', 'New questionnaire')}</Button>}</div>}>
     <section className="surface registry-workspace workspace-column workspace-fill">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en, 'Αναζήτηση ερωτηματολογίου…', 'Search questionnaires…')} activeAdvancedCount={standard !== 'all' ? 1 : 0} onClear={() => { setQuery(''); setStandard('all') }}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en, 'Αναζήτηση…', 'Search…')} activeAdvancedCount={standard !== 'all' ? 1 : 0} onClear={() => { setQuery(''); setStandard('all') }}>
         <FilterSelect label={L(en, 'Πρότυπο', 'Standard')} value={standard} onChange={setStandard}><option value="all">{L(en, 'Όλα', 'All')}</option>{AUDIT_STANDARDS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       </FilterBar>
       <div className="scroll-table">

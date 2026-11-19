@@ -13,7 +13,8 @@ import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { createAssessmentSeries,createRiskAssessment } from './riskService'
 import { importPlan,importRiskWorkbook } from './riskImport'
 import { summarizeRisks,levelLabel,suggestPeriodLabel } from './riskModel'
-import { AssessmentStatusBadge,L,PERIOD_KINDS,fmtDate,returnedClass,txt,usePaged,useReturnedRow } from './riskUi'
+import { AssessmentStatusBadge,L,PERIOD_KINDS,fmtDate,returnedClass,statusLabel,txt,usePaged,useReturnedRow } from './riskUi'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
 import './riskAssessment.css'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
 import type { AssessmentListRow,AssessmentTextField,ImportFix,ImportPreview,RiskAssessment,RiskAssessmentDraft,RiskAssessmentHeader } from './riskTypes'
@@ -54,7 +55,7 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
  const [preview,setPreview]=useState<ImportPreview | null>(null)
  const [query,setQuery]=useState('')
  const {items,loading}=list
- const rows=useMemo(()=>{const q=query.trim().toLowerCase();return items.filter(a=>!q||`${a.periodLabel} ${a.title||''} ${a.titleEn||''} ${a.formCode||''} ${a.code}`.toLowerCase().includes(q)).map((a): AssessmentListRow=>({a,s:summarizeRisks(a.risks||[])}))},[items,query])
+ const rows=useMemo(()=>{return items.filter(a=>matchesSearch(query,[a.periodLabel,PERIOD_KINDS[a.periodKind]?.[en?1:0],a.title,a.titleEn,a.formCode,a.code,fmtDate(a.assessedOn,locale),fmtDate(a.nextReviewOn,locale),statusLabel(a.status,en)])).map((a): AssessmentListRow=>({a,s:summarizeRisks(a.risks||[])}))},[items,query,en,locale])
  // Back from an assessment returns to this tab.
  const assessmentRow=useReturnedRow('limoxis.quality.risk.returnedAssessment')
  const sortBy={period:({a}: AssessmentListRow)=>a.periodStart||a.periodLabel,title:({a}: AssessmentListRow)=>txt(a,'title',en),date:({a}: AssessmentListRow)=>a.assessedOn,risks:({s}: AssessmentListRow)=>s.total,veryHigh:({s}: AssessmentListRow)=>s.levels.residual.very_high,high:({s}: AssessmentListRow)=>s.levels.residual.high,residual:({s}: AssessmentListRow)=>s.averages.residual,status:({a}: AssessmentListRow)=>a.status}
