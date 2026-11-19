@@ -1169,6 +1169,7 @@ button.registry-total.is-active{border-color:var(--accent);background:var(--lo-c
 @media (max-width:560px){.excel-fields{grid-template-columns:1fr}}
 /* Choices of a printout (PrintOptionsDialog). */
 .print-options{display:grid;gap:12px}
+.infection-print-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 /* A total judged against its target (owner, 8/11/2026). */
 .registry-total.is-good strong{color:var(--text-success-300-2)}
 .registry-total.is-warning strong{color:var(--text-warning-271)}

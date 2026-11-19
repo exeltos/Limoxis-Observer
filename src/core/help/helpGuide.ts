@@ -304,7 +304,7 @@ export const guideContent = {
       users: l('Υπεύθυνος Ποιότητας, Διαχειριστής Νοσοκομείου.', 'Quality Manager, Hospital Admin.'),
       needs: null,
       analysis: l('Καρτέλα «Ποιότητα & ασφάλεια τροφίμων»: πιστοποιητικά που λήγουν ή έληξαν.', 'Tab “Food quality & safety”: certificates expiring or expired.'),
-      start: l('Καταχωρήστε τους προμηθευτές με το email τους και τα πιστοποιητικά τους.', 'Enter the suppliers with their email and certificates.'),
+      start: l('Καταχωρήστε τους προμηθευτές με το «Νέος προμηθευτής», με το email τους και τα πιστοποιητικά τους. Τα «Πρότυπα αξιολόγησης» έχουν δικό τους κουμπί δίπλα στην Εξαγωγή· τα «Πιστοποιητικά προς ανανέωση» ανοίγουν από τον μετρητή τους στη λίστα.', 'Enter the suppliers with «New supplier», with their email and certificates. The «Evaluation templates» have their own button beside Export; the «Certificates to renew» open from their count in the list.'),
     },
     interviews: {
       what: l('Αιτήσεις και συνεντεύξεις υποψηφίων: θέση, εκπαίδευση, γλώσσες, προηγούμενοι εργοδότες, αξιολογητές και απόφαση.', 'Candidate applications and interviews: position, education, languages, previous employers, evaluators and decision.'),

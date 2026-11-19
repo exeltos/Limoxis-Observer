@@ -43,7 +43,7 @@ import { Field } from '../../design-system/Field'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround, waitingHours } from './model/laboratoryModel'
-import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
+import { recentSince, useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
 import { LAB_STATUS_ORDER, LaboratoryStatus, labResultLabel, labSampleStatus, labStatusLabel } from './LaboratoryStatus'
 import { OUTCOME_RESULTS } from './LaboratoryStatus'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
@@ -53,6 +53,13 @@ import { LAB_RESULT_SCOPES, defaultLabScope, matchesLabScope, maskStaffSamples, 
 import { SampleReviewTag } from '../surveillance/SampleReviewWorklist'
 import './LaboratoryWorkspace.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import { InfectionReportDialog } from '../surveillance/InfectionReportDialog'
+import type { InfectionPrintChoice } from '../surveillance/InfectionReportDialog'
+import { infectionDocument, laboratoryItems, reachesBefore } from '../surveillance/infectionReport'
+import type { PatientDaysEntry } from '../surveillance/infectionReport'
+import { downloadReportWord, printReportLater } from '../../core/export/reportDocument'
+import { demoPatientDayPeriods } from '../management/managementData'
+import { loadPatientDayPeriods } from '../management/patientDayPeriodsCloudService'
 import type { RefObject } from 'react'
 import type { Translate } from '../../types/featureTypes'
 import type { SubjectChoice } from '../../design-system/SubjectChoiceStep'
@@ -107,6 +114,7 @@ export function LaboratoryWorkspace() {
   const [notifiableNew, setNotifiableNew] = useState(false)
   // The data checks and the EARS-Net export (formerly «Reporting & data quality» of the hospital overview), from «⋯».
   const [reportingPart, setReportingPart] = useState('')
+  const [infectionPrint, setInfectionPrint] = useState(false)
   const [duplicate, setDuplicate] = useState<{ draft: NewSampleRequest, matches: Patient[] } | null>(null)
 
   useEffect(() => {
@@ -257,7 +265,40 @@ export function LaboratoryWorkspace() {
       labSampleStatus(sample, language)?.text || '',
     ]),
   })
-  const exportActions = <ExportMenu {...registryMenu(exportSamples, { language, kind: language === 'el' ? 'Εργαστήριο' : 'Laboratory', title: language === 'el' ? 'Δείγματα εργαστηρίου' : 'Laboratory samples', onBlocked: () => notify(language === 'el' ? 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.' : 'Allow pop-ups to print.', 'error') })} disabled={!sortedRows.length} />
+  // «Αναφορά λοιμώξεων» (owner, 19/11/2026): the positive samples of patients that the list's filters keep (search,
+  // department, status, result, the quick choice), at any date; the dialog sets the period and the comparison.
+  const reportFilter = (samples: LabSample[]) => samples
+    .filter(sample => canAccessRecord(sample) && sample.subjectType !== 'employee' && sample.subjectType !== 'environment')
+    .filter(sample => `${sample.id} ${sample.patient} ${sample.patientEn} ${sample.patientId} ${sample.organism ?? ''} ${sample.surveillanceCase ?? ''}`.toLowerCase().includes(query.toLowerCase()))
+    .filter(sample => status === 'all' || sample.status === status)
+    .filter(sample => result === 'all' || (result === 'critical' ? sample.critical : sample.result === result))
+    .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)
+    .filter(sample => quick === 'all' || (quick === 'today' ? String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === hospitalToday() : LAB_PENDING_STATUSES.includes(sample.status)))
+  const printInfections = (choice: InfectionPrintChoice) => {
+    setInfectionPrint(false)
+    const en = language === 'en'
+    const resultWords: Record<string, string> = { positive: t('positive'), negative: t('negative'), critical: t('criticalResult') }
+    const words = [
+      department !== 'all' && `${t('department')}: ${department}`,
+      status !== 'all' && `${en ? 'Status' : 'Κατάσταση'}: ${labStatusLabel(status, language)}`,
+      result !== 'all' && `${t('result')}: ${resultWords[result] || result}`,
+      quick !== 'all' && (quick === 'today' ? t('laboratoryRecords.samplesToday') : t('laboratoryRecords.pendingResults')),
+      query.trim() && `${en ? 'Search' : 'Αναζήτηση'}: «${query.trim()}»`,
+    ].filter(Boolean) as string[]
+    const failed = (error: unknown) => notify((error as Error)?.message || t('actionFailed'), 'error')
+    const build = async () => {
+      const periods = isDemo ? demoPatientDayPeriods : tenant?.id ? await loadPatientDayPeriods(tenant.id).catch(() => []) : []
+      const patientDays: PatientDaysEntry[] = periods.map(row => ({ from: row.from, to: row.to, value: Number(row.value) || 0, department: row.scope === 'department' ? (en ? row.departmentEn || row.departmentEl : row.departmentEl) || row.departmentId : '' }))
+      // The list holds the last 12 months first: a report that reaches earlier reads every sample (owner, 19/11/2026).
+      const older = recentOnly && reachesBefore(recentSince(), { from: choice.from, to: choice.to }, choice.compare, { from: choice.compareFrom, to: choice.compareTo })
+      const base = reportFilter(older ? maskStaffSamples((await labRepository.list(null, { since: null })).data, role || actualRole) : repositoryRows)
+      return infectionDocument({ source: 'laboratory', items: laboratoryItems(base, { language, typeOf: sample => sampleTypeLabel(sample, t, language), statusOf: sample => labSampleStatus(sample, language)?.text || '', codeOf: sample => displaySampleCode(sample) }), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, filters: words, department: department === 'all' ? '' : department, patientDays })
+    }
+    if (choice.word) { build().then(doc => downloadReportWord(doc)).catch(failed); return }
+    if (!printReportLater(build, { language, onError: failed })) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  }
+  const periodFrom = period !== 'all' && period !== 'older' && Number(period) > 0 ? (() => { const day = new Date(`${hospitalToday()}T00:00:00Z`); day.setUTCDate(day.getUTCDate() - Number(period) + 1); return day.toISOString().slice(0, 10) })() : ''
+  const exportActions = <ExportMenu {...registryMenu(exportSamples, { language, kind: language === 'el' ? 'Εργαστήριο' : 'Laboratory', title: language === 'el' ? 'Δείγματα εργαστηρίου' : 'Laboratory samples', onBlocked: () => notify(language === 'el' ? 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.' : 'Allow pop-ups to print.', 'error') })} disabled={!sortedRows.length && !repositoryRows.length} items={[{ id: 'infection-report', kind: 'print', label: language === 'en' ? 'Infection report' : 'Αναφορά λοιμώξεων', onClick: () => setInfectionPrint(true) }]} />
   // The totals beside the search (owner, 8/11/2026: no cards): each one filters the list, a second click clears it;
   // short words in the line, the full name in the tooltip.
   const LAB_SHORT: Record<string, [string, string]> = { today: ['σήμερα', 'today'], pending: ['εκκρεμή', 'pending'], positive: ['θετικά 30 ημ.', 'positive 30 d'], critical: ['κρίσιμα', 'critical'] }
@@ -292,6 +333,7 @@ export function LaboratoryWorkspace() {
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
     </section>
     {duplicateDialog}
+    {infectionPrint && <InfectionReportDialog language={language} laboratory from={periodFrom} to={periodFrom ? hospitalToday() : ''} onPrint={printInfections} onClose={() => setInfectionPrint(false)} />}
   </Page>
 }
 

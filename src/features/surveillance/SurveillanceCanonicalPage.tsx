@@ -35,7 +35,7 @@ import {
 } from '../laboratory/laboratoryCloudService'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { createClinicalRepository } from './clinicalRepository'
-import { loadClinicalCases } from './clinicalCloudService'
+import { loadClinicalCases, loadHaiClassificationsByCase } from './clinicalCloudService'
 import { demoSurveillanceList } from './clinicalDemoData'
 import {
   employeeSurveillanceRecords,
@@ -66,6 +66,15 @@ import { loadSamplesAwaitingReviewByIds } from '../laboratory/laboratoryCloudSer
 import { normalizeLaboratorySamples } from '../laboratory/model/laboratoryModel'
 import { samplesAwaitingReview } from '../laboratory/sampleReviewModel'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
+import { InfectionReportDialog } from './InfectionReportDialog'
+import type { InfectionPrintChoice } from './InfectionReportDialog'
+import { infectionDocument, surveillanceItems, withHaiClassifications } from './infectionReport'
+import type { PatientDaysEntry } from './infectionReport'
+import { episodeTypeLabel } from './clinicalRecordLabels'
+import { downloadReportWord, printReportLater } from '../../core/export/reportDocument'
+import { hospitalToday } from '../../core/dates/hospitalDate'
+import { demoPatientDayPeriods } from '../management/managementData'
+import { loadPatientDayPeriods } from '../management/patientDayPeriodsCloudService'
 import { EmployeeRows, groupByPatient, HIDDEN_CASE_STATUSES, matchesEmployeeQuick, matchesEnvironmentQuick, matchesQuick, PatientRows } from './SurveillanceListRows'
 import type { ClinicalCase } from './clinicalTypes'
 import type { LibraryDepartment } from '../management/useLibraries'
@@ -312,6 +321,43 @@ export function SurveillanceCanonicalPage() {
     canAccessRecord,
     quick,
   ])
+  // The infection report (owner, 19/11/2026): the episodes the list's filters keep, at any date (the dialog sets the
+  // period and the comparison), with the patient days entered for them.
+  const [infectionPrint, setInfectionPrint] = useState(false)
+  const reportCases = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return cases
+      .filter(canAccessRecord)
+      .filter(x => !quick || matchesQuick(x, quick))
+      .filter(x => `${x.patient || ''} ${x.patientEn || ''} ${x.patientId || ''} ${latestOrganism(x) || ''}`.toLowerCase().includes(q))
+      .filter(x => department === 'all' || (language === 'el' ? x.department : x.departmentEn) === department)
+      .filter(x => (status === 'all' ? !HIDDEN_CASE_STATUSES.has(x.status as string) : x.status === status))
+  }, [cases, canAccessRecord, quick, query, department, language, status])
+  const printInfections = (choice: InfectionPrintChoice) => {
+    setInfectionPrint(false)
+    const en = language === 'en'
+    const words = [
+      department !== 'all' && `${t('department')}: ${department}`,
+      status !== 'all' && `${t('svFilterStatus')}: ${t(status)}`,
+      query.trim() && `${t('svFilterSearch')}: “${query.trim()}”`,
+      quick && t('svFilterQuick'),
+    ].filter(Boolean) as string[]
+    const failed = (error: unknown) => notifyError(error, 'export', { operation: 'infection_report' })
+    const build = async () => {
+      const periods = isDemo ? demoPatientDayPeriods : tenant?.id ? await loadPatientDayPeriods(tenant.id).catch(() => []) : []
+      const patientDays: PatientDaysEntry[] = periods.map(row => ({ from: row.from, to: row.to, value: Number(row.value) || 0, department: row.scope === 'department' ? (en ? row.departmentEn || row.departmentEl : row.departmentEl) || row.departmentId : '' }))
+      // The production list reads summaries without the HAI classification: it is read here for these episodes;
+      // if it cannot be read, the report shows «—» instead of a false «no» (owner, 19/11/2026).
+      const hai = isDemo ? null : await loadHaiClassificationsByCase(tenant?.id, reportCases.map(x => String(x.recordId || '')).filter(Boolean)).catch(() => null)
+      const withHai = isDemo ? reportCases : withHaiClassifications(reportCases, hai)
+      return infectionDocument({ source: 'surveillance', items: surveillanceItems(withHai, { language, siteOf: x => { const site = episodeTypeLabel(x, t); return site === '—' ? '' : site } }), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, filters: words, department: department === 'all' ? '' : department, patientDays })
+    }
+    if (choice.word) { build().then(doc => downloadReportWord(doc)).catch(failed); return }
+    if (!printReportLater(build, { language, onError: failed })) notify(t('indicatorsRecords.allowPopups'), 'error')
+  }
+  // The list's period filter (the last 7, 30, 90 or 365 days) comes into the dialog as dates.
+  const periodFrom = period !== 'all' && Number(period) > 0 ? (() => { const day = new Date(`${hospitalToday()}T00:00:00Z`); day.setUTCDate(day.getUTCDate() - Number(period) + 1); return day.toISOString().slice(0, 10) })() : ''
+
   // The arrows in the headers sort the whole filtered list; the page is cut afterwards.
   const { sorted: sortedRows, sort, onSort } = useTableSort(filtered, {
     patient: x => (language === 'el' ? x.patient : x.patientEn),
@@ -557,7 +603,7 @@ export function SurveillanceCanonicalPage() {
       title={t('clinicalRecords.surveillanceCenter')}
       actions={
         <div className="record-actions">
-            <ExportMenu {...registryMenu(() => surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) }), { language, kind: t('sidebarNav.surveillanceSection'), onBlocked: () => notify(t('indicatorsRecords.allowPopups'), 'error') })} disabled={!filtered.length} />
+            <ExportMenu {...registryMenu(() => surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) }), { language, kind: t('sidebarNav.surveillanceSection'), onBlocked: () => notify(t('indicatorsRecords.allowPopups'), 'error') })} disabled={!filtered.length && !(mode === 'patients' && cases.length)} items={mode === 'patients' ? [{ id: 'infection-report', kind: 'print', label: t('svInfectionReport'), onClick: () => setInfectionPrint(true) }] : []} />
             {canCreate && (
             <Button variant="primary" onClick={() => startCreation(mode)}>
               <Plus size={15} aria-hidden="true" />
@@ -684,6 +730,7 @@ export function SurveillanceCanonicalPage() {
           }}
         />
       )}
+      {infectionPrint && <InfectionReportDialog language={language} from={periodFrom} to={periodFrom ? hospitalToday() : ''} onPrint={printInfections} onClose={() => setInfectionPrint(false)} />}
     </Page>
   )
 }

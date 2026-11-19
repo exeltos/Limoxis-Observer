@@ -291,6 +291,18 @@ export async function loadClinicalCases(organizationId: string | null | undefine
   return hydrateCases(rows)
 }
 
+// The latest HAI classification of each episode (by its record id), for the «Αναφορά λοιμώξεων» of the list
+// (owner, 19/11/2026): the list reads summaries, which do not carry the classification.
+export async function loadHaiClassificationsByCase(organizationId: string | null | undefined, caseRecordIds: string[]): Promise<Map<string, ReturnType<typeof mapHai>>> {
+  assertCloud()
+  const byCase = new Map<string, ReturnType<typeof mapHai>>()
+  if (!organizationId || !caseRecordIds.length) return byCase
+  const result = await relatedRows(organizationId, 'hai_classifications', HAI_SELECT, 'surveillance_case_id', caseRecordIds, 'classified_at', NEWEST)
+  if (result.error) throw result.error
+  for (const row of (result.data || []) as HaiRow[]) if (!byCase.has(String(row.surveillance_case_id))) byCase.set(String(row.surveillance_case_id), mapHai(row))
+  return byCase
+}
+
 export async function loadClinicalCase(organizationId: string | null | undefined, caseRecordId: string) {
   assertCloud()
   if (!organizationId || !UUID.test(String(caseRecordId || ''))) return null
