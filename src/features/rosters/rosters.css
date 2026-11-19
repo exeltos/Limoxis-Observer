@@ -133,7 +133,7 @@ button.roster-name-text:hover{text-decoration:underline}
 .roster-rule select{width:220px;height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;font-size:12.5px}
 .roster-others{display:grid;gap:6px;min-width:300px;font-size:12.5px;color:#1f3348}
 .roster-others>b{font-size:11.5px;color:#56677a}
-.roster-other{display:grid;grid-template-columns:32px 1fr 56px 56px 84px 26px;gap:6px;align-items:center}
+.roster-other{display:grid;grid-template-columns:32px 1fr 52px 52px 78px 26px;gap:6px;align-items:center}
 .roster-other i{display:inline-grid;place-items:center;height:22px;border:1px solid #e3e9f1;border-radius:5px;font-style:normal;font-weight:700;font-size:11px}
 .roster-other input,.roster-other select,.roster-other-new input{height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;text-align:center}
 .roster-other-remove{width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#56677a;font-size:16px;cursor:pointer}

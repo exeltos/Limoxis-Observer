@@ -109,7 +109,7 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
                 {/* Basic or supplementary (owner, 19/11/2026): only a basic shift left short is a shortage. */}
                 <select aria-label={tx(`Είδος βάρδιας ${o.code.split(':')[1]}`, `Type of shift ${o.code.split(':')[1]}`)} title={tx('Βασική: πρέπει να καλυφθεί. Συμπληρωματική: δίνεται σε όποιον περισσεύει, δεν είναι έλλειψη.', 'Basic: must be covered. Supplementary: given to people left over, never a shortage.')} value={isOptionalShift(o) ? 'optional' : 'basic'} onChange={event => setOther(o.code, { optional: event.target.value === 'optional' })}>
                   <option value="basic">{tx('Βασική', 'Basic')}</option>
-                  <option value="optional">{tx('Συμπληρ.', 'Suppl.')}</option>
+                  <option value="optional">{tx('Συμπλ.', 'Extra')}</option>
                 </select>
                 <button type="button" className="roster-other-remove" aria-label={tx(`Αφαίρεση βάρδιας ${o.code.split(':')[1]}`, `Remove shift ${o.code.split(':')[1]}`)} onClick={() => removeOther(o.code)}>×</button>
               </div>
@@ -154,10 +154,10 @@ export function RosterRulesDialog({ view }: { view: RosterView }) {
             ))}
             {/* A setting of the department (owner, 19/11/2026), not a rule for every department. */}
             <div className="roster-rule">
-              <span>{tx('Πρωί ή ενδιάμεση → νύχτα την επομένη', 'Morning or intermediate → night the next day')}</span>
+              <span title={tx('Πρωί ή ενδιάμεση και την επομένη νύχτα', 'Morning or intermediate, then a night the next day')}>{tx('Πρωί → νύχτα επομένης', 'Morning → night next day')}</span>
               <select aria-label={tx('Πρωί ή ενδιάμεση → νύχτα την επομένη', 'Morning or intermediate → night the next day')} value={rules.forbidMorningToNight === false ? 'allow' : 'forbid'} onChange={event => update({ ...roster, rules: { ...roster.rules, forbidMorningToNight: event.target.value === 'forbid' } })}>
-                <option value="forbid">{tx('Δεν επιτρέπεται', 'Not allowed')}</option>
-                <option value="allow">{tx('Επιτρέπεται', 'Allowed')}</option>
+                <option value="forbid">{tx('Όχι', 'No')}</option>
+                <option value="allow">{tx('Ναι', 'Yes')}</option>
               </select>
             </div>
             <div className="roster-rule">
