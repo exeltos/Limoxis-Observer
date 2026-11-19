@@ -276,6 +276,8 @@ export function demoSurveillanceList() {
       organism: item.organism || item.samples?.find((sample: EpisodeSample) => sample.organism)?.organism || null,
       resistance: item.resistance || null,
       isolation: item.isolation ? { ...item.isolation } : null,
+      // The classification travels with the row, for the «Αναφορά λοιμώξεων» (owner, 19/11/2026).
+      haiClassification: item.haiClassification || null,
       samples: item.samples || [],
     }))
     .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))
