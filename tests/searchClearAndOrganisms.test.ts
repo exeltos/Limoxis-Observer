@@ -66,3 +66,14 @@ describe('laboratory report: positive patients per 1,000 patient days', () => {
     expect(partial).not.toContain('Θετικοί ασθενείς ανά 1.000 κλινοημέρες')
   })
 })
+
+describe('NICU neonate card: the late-onset hint', () => {
+  it('shows only the candidates of this entry still waiting, as a hint with a link to «Προς έλεγχο»', () => {
+    const page = readSource('src/features/registers/RegisterEntryPage.tsx')
+    expect(page).toContain("rows.filter(row => row.entryId === found.id && row.decision === null)")
+    expect(page).toContain("'Πιθανή όψιμη λοίμωξη: περιμένει απόφαση'")
+    expect(page).toContain("navigate('/surveillance?review=1')")
+    // A hint only: the page never writes the confirmed field from it.
+    expect(page).not.toMatch(/set\('late_infection'/)
+  })
+})

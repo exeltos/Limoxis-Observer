@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Calculator, Check, Lock, Pencil, Trash2, UserRound } from 'lucide-react'
+import { AlertTriangle, Calculator, Check, Lock, Pencil, Trash2, UserRound } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -18,7 +18,9 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { formatDay } from '../../core/i18n/formatDay'
 import { auditActorFromAuth } from '../../core/audit/actor'
-import { deleteEntry, loadEntry, loadRegister, saveEntry } from './registerService'
+import { deleteEntry, loadEntry, loadLateInfectionCandidates, loadRegister, saveEntry } from './registerService'
+import { lateOnsetDay } from '../surveillance/lateOnsetFlags'
+import type { LateInfectionCandidate } from './registerService'
 import { findApacheScore } from './registerScaleLookup'
 import { ApacheCalculatorDialog } from './ApacheCalculatorDialog'
 import { useRegisterAccess } from './registerAccess'
@@ -54,6 +56,9 @@ export function RegisterEntryPage() {
   const [apacheOpen, setApacheOpen] = useState(false)
   // The section the page is at (the side index follows the scrolling).
   const [activeSection, setActiveSection] = useState<string | null>(null)
+  // ΜΕΝΝ (owner, 19/11/2026): this neonate's late-onset blood cultures still waiting for a decision in Surveillance. Only a
+  // hint: it never sets «Επιβεβαιωμένη όψιμη λοίμωξη»; confirmed ones need none, rejected ones show nothing.
+  const [lateWaiting, setLateWaiting] = useState<LateInfectionCandidate[]>([])
   const pageRef = useRef<HTMLDivElement>(null)
   const back = () => navigate(`/registers/${registerId}`, { replace: true })
 
@@ -70,6 +75,7 @@ export function RegisterEntryPage() {
           setEntry(found)
           setValues(found?.values || {})
           setIdentity(found?.identity || { caseNumber: '', patientName: '' })
+          if (found && next.templateKey === 'nicu') loadLateInfectionCandidates(next).then(rows => { if (active) setLateWaiting(rows.filter(row => row.entryId === found.id && row.decision === null)) }).catch(() => {})
         }
       } catch (error) { console.error(error) } finally { if (active) setLoading(false) }
     })()
@@ -158,6 +164,7 @@ export function RegisterEntryPage() {
   return <Page fill><EntityRecordShell className="register-record-shell register-entry-shell workspace-fill" avatar={<ThemeIcon size={19} />} eyebrow={en ? register.nameEn : register.name} title={title} subtitle={subtitle} recordId={isNew ? undefined : entry!.id} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}
     headerActions={!isNew && canEdit && !editing && <><IconButton label={en ? 'Edit' : 'Επεξεργασία'} tone="edit" onClick={() => setEditing(true)}><Pencil size={16} /></IconButton><IconButton label={en ? 'Delete case' : 'Διαγραφή περιστατικού'} tone="danger" onClick={remove}><Trash2 size={16} /></IconButton></>}>
     <div className={`register-form-page register-entry-form${theme ? ` is-theme-${theme}` : ''}`} data-category={marker?.value || undefined}><div className="lo-form-cards register-entry-scroll" ref={pageRef}>
+      {lateWaiting.map(row => <div key={row.sampleId} className="governance-banner register-late-hint" role="status"><AlertTriangle size={16} aria-hidden="true" /><span>{en ? 'Possible late-onset infection: waiting for a decision' : 'Πιθανή όψιμη λοίμωξη: περιμένει απόφαση'}{row.organism ? ` · ${row.organism}` : ''} · {en ? `day ${lateOnsetDay(row.hoursAfter)} of the stay` : `${lateOnsetDay(row.hoursAfter)}η ημέρα νοσηλείας`}</span><Button variant="secondary" onClick={() => navigate('/surveillance?review=1')}>{en ? 'To review' : 'Προς έλεγχο'}</Button></div>)}
       {entry?.locked && <div className="governance-banner"><Lock size={16} /><span>{en ? 'This case belongs to a closed period and is read-only.' : 'Το περιστατικό ανήκει σε κλειστή περίοδο και δεν αλλάζει.'}</span></div>}
       <div className={`register-entry-layout${sectionIndex.length > 1 ? '' : ' has-no-rail'}`}>
         {sectionIndex.length > 1 && <nav className="register-entry-rail" aria-label={en ? 'Sections of the entry' : 'Ενότητες της καταχώρισης'}>
