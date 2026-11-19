@@ -1,4 +1,6 @@
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 // Legislation (ISO 9001 §4.2, §6.1, §9.1.3; ISO 15189 §4.1): the platform's
 // library of texts that apply to hospitals and each hospital's register of how
 // it complies, requirement by requirement. A hospital reads only published
@@ -160,10 +162,14 @@ export function registerCounts(entries: RegisterEntry[] = []) {
 }
 
 export const NO_FILTERS: RegisterFilters = { query: '', topic: 'all', kind: 'all', state: 'all', quick: null }
-export function filterRegister(entries: RegisterEntry[] = [], filters: RegisterFilters = NO_FILTERS) {
-  const q = String(filters.query || '').trim().toLocaleLowerCase('el')
+// The search finds a text by anything its row shows (owner, 19/11/2026: the searches find everything): code, version,
+// title, kind, reference, issuer, topics, next review, state, plus the summary.
+export function registerSearchParts(entry: RegisterEntry, language = 'el') {
+  return [entry.text.code, `v${entry.text.version}`, entry.text.title, entry.text.reference, entry.text.issuer, entry.text.summary, kindLabel(entry.text.kind, language), textStatusLabel(entry.text.status, language), ...(entry.text.topics || []).map(topic => topicLabel(topic, language)), entry.row?.nextReviewOn ? formatDay(entry.row.nextReviewOn, language) : '', entry.reviewLate ? (language === 'en' ? 'Overdue' : 'Εκπρόθεσμη') : '', registerStateLabel(entry.state, language)]
+}
+export function filterRegister(entries: RegisterEntry[] = [], filters: RegisterFilters = NO_FILTERS, language = 'el') {
   return entries
-    .filter(entry => !q || [entry.text.code, entry.text.title, entry.text.reference, entry.text.issuer, entry.text.summary].some(value => String(value || '').toLocaleLowerCase('el').includes(q)))
+    .filter(entry => matchesSearch(filters.query, registerSearchParts(entry, language)))
     .filter(entry => filters.topic === 'all' || (entry.text.topics || []).includes(filters.topic))
     .filter(entry => filters.kind === 'all' || entry.text.kind === filters.kind)
     .filter(entry => filters.state === 'all' || entry.state === filters.state)

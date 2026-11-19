@@ -10,6 +10,8 @@ import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { printReport } from '../../core/export/reportDocument'
 import { exportRegistry } from '../../core/export/registryExports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { ExpiryBadge } from './ControlExpiryEntry'
 import { compareExpiryItems,expiryCounts,expiryItems,expiryWindow,formLabel } from './controlExpiry'
 import { expiryReturnFormHtml,printHtml } from './controlExpiryPrint'
@@ -133,8 +135,9 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFil
  const {notify}=useFeedback()
  const items=useMemo(():Item[]=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort(compareExpiryItems),[sources])
  const departmentOptions:string[]=[...new Set<string>(items.map(item=>item.department))].sort((a,b)=>a.localeCompare(b,'el'))
- const needle=normalize(query)
- const matched=needle?items.filter(item=>normalize(`${item.row.item} ${item.department} ${item.record.title} ${item.row.lot||''}`).includes(needle)):items
+ // Everything the line shows (owner, 19/11/2026: the searches find everything): item, department, control, lot, form,
+ // quantity, note, expiry date and status.
+ const matched=items.filter(item=>matchesSearch(query,[item.row.item,item.department,item.record.title,item.record.titleEn,item.row.lot,formLabel(item.row.form,language),item.row.quantity,item.row.note,day(item.row.expiry),item.row.expiry?formatDay(item.row.expiry,language):'',statusText(item,language),rowFindingText(item.row,language)]))
  // «11 expired» / «19 expiring» in the page's totals narrow the list to them.
  const searched=stateFilter?matched.filter(item=>item.state===stateFilter):matched
  const counts=expiryCounts(searched)

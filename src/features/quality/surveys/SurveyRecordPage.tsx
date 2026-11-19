@@ -83,7 +83,7 @@ export function SurveyRecordPage() {
   const own = useMemo(() => new Set([...(membership?.departmentIds || []), membership?.previewDepartment].filter(Boolean)), [membership])
   const covered = useMemo(() => ((survey || null)?.departmentIds?.length ? departments.filter(item => (survey as Survey).departmentIds.includes(item.id || item.name)) : departments), [departments, survey])
   const entryDepartments = useMemo(() => (canManage || (isDemo && role === ROLES.DEMO) ? covered : covered.filter(item => own.has(item.id) || own.has(item.name))), [canManage, isDemo, role, covered, own])
-  const shown = useMemo(() => filterResponses(responses, filters), [responses, filters])
+  const shown = useMemo(() => filterResponses(responses, filters, survey || null, language), [responses, filters, survey, language])
   useEffect(() => setPage(1), [filters])
 
   if (survey === null) return <Page fill><TableSkeleton/></Page>
@@ -136,10 +136,10 @@ export function SurveyRecordPage() {
   function printResults(choice: SurveyPrintChoice) {
     if (!survey) return
     const screen = { ...filters, from: '', to: '' }
-    const base = filterResponses(responses, screen)
+    const base = filterResponses(responses, screen, survey, language)
     const departmentName = (id: string) => { const item = departments.find(row => (row.id || row.name) === id); return item ? (en ? item.nameEn || item.name : item.name) : '' }
     const words = [filters.department !== 'all' && `${en ? 'Department' : 'Τμήμα'}: ${departmentName(filters.department)}`, filters.channel !== 'all' && `${en ? 'Channel' : 'Τρόπος'}: ${channelLabel(filters.channel, language)}`, filters.query && `${en ? 'Search' : 'Αναζήτηση'}: ${filters.query}`].filter(Boolean) as string[]
-    const build = async () => surveyDocument({ survey, responses: base, earlier: choice.compare === 'none' ? [] : filterResponses(await loadEarlierResponses(tenant?.id, survey), screen), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, departments: (survey.departmentIds || []).map(departmentName).filter(Boolean), filters: words })
+    const build = async () => surveyDocument({ survey, responses: base, earlier: choice.compare === 'none' ? [] : filterResponses(await loadEarlierResponses(tenant?.id, survey), screen, survey, language), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, departments: (survey.departmentIds || []).map(departmentName).filter(Boolean), filters: words })
     setPrinting(false)
     const failed = (error: unknown) => { console.error(error); notify(en ? 'The document could not be prepared.' : 'Το έντυπο δεν ετοιμάστηκε.', 'error') }
     if (choice.word) { build().then(doc => downloadReportWord(doc)).catch(failed); return }
@@ -173,7 +173,7 @@ export function SurveyRecordPage() {
     <FilterDate label={en ? 'To' : 'Έως'} value={filters.to} onChange={value => setFilters(current => ({ ...current, to: value }))} />
   </>
   const advanced = ['department', 'channel'].filter(key => filters[key] !== 'all').length + (filters.from ? 1 : 0) + (filters.to ? 1 : 0)
-  const filterBar = <FilterBar query={filters.query} onQueryChange={query => setFilters(current => ({ ...current, query }))} placeholder={en ? 'Search the comments…' : 'Αναζήτηση στα σχόλια…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)}>{departmentFilter}</FilterBar>
+  const filterBar = <FilterBar query={filters.query} onQueryChange={query => setFilters(current => ({ ...current, query }))} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)}>{departmentFilter}</FilterBar>
   const pageSize = 20
   const pages = Math.max(1, Math.ceil(shown.length / pageSize)), safePage = Math.min(page, pages)
   const overall = survey.questions.find(question => question.id === 'overall') || survey.questions.find(question => question.type === 'rating')
@@ -185,7 +185,7 @@ export function SurveyRecordPage() {
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
     {/* Results: no heading of its own (the tab says it); the figures beside the filters, the definitions in their tooltips. */}
     {tab === 'results' && <section className="record-tab-panel survey-results-panel"><div className="record-tab-panel-body">
-      <FilterBar query={filters.query} onQueryChange={query => setFilters(current => ({ ...current, query }))} placeholder={en ? 'Search the comments…' : 'Αναζήτηση στα σχόλια…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)} end={<SurveyResultsLine survey={survey} responses={shown} language={language} />}>{departmentFilter}</FilterBar>
+      <FilterBar query={filters.query} onQueryChange={query => setFilters(current => ({ ...current, query }))} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)} end={<SurveyResultsLine survey={survey} responses={shown} language={language} />}>{departmentFilter}</FilterBar>
       <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} showLine={false} />
       {survey.code && <LinkedActions sourceId={`SRV:${survey.code}`} organizationId={tenant?.id} returnTab="results" />}
     </div></section>}

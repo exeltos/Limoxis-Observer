@@ -12,6 +12,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { listRuntimeEvents } from '../../core/diagnostics/runtimeDiagnosticsService'
 import { localModule, localRoute } from './HospitalDiagnosticsPanel'
 import { athensDateTime } from './platformOverviewShared'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { RecordLink } from './RecordLink'
 import { useRecordLinks, usePlatformUsers } from './useRecordLinks'
 import type { OrganizationRuntimeEvent,PlatformOrganization,UserRef } from './platformTypes'
@@ -72,10 +73,10 @@ export function PlatformHealthView({organizations=[],language='el',tabs=null}: {
   const filtered=useMemo(()=>rows.filter(row=>{
     if(organizationId!=='all'&&row.organizationId!==organizationId)return false
     if(severity!=='all'&&row.severity!==severity)return false
-    const needle=query.trim().toLowerCase()
-    if(!needle)return true
-    return `${row.organizationName} ${row.message} ${row.module} ${row.operation} ${row.actorName} ${row.diagnosticCode}`.toLowerCase().includes(needle)
-  }),[rows,organizationId,severity,query])
+    // Everything the row shows (owner, 19/11/2026: the searches find everything), plus the technical names.
+    const org=organizationMap.get(row.organizationId)
+    return matchesSearch(query,[fmtDate(row.occurredAt),org?.name||row.organizationName,org?.code,(severityMeta[row.severity]||severityMeta.info)[en?'en':'el'],localModule(row.module,language),localRoute(row.route,language),row.message,row.diagnosticCode,row.actorName,row.appVersion,row.module,row.operation])
+  }),[rows,organizationId,severity,query,organizationMap,en,language])
   const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=filtered.slice((safePage-1)*pageSize,safePage*pageSize)
   useEffect(()=>setPage(1),[query,organizationId,severity,pageSize])
   useEffect(()=>{if(page>totalPages)setPage(totalPages)},[page,totalPages])
@@ -91,7 +92,7 @@ export function PlatformHealthView({organizations=[],language='el',tabs=null}: {
   >
     {tabs}
     <div className="platform-registry-shell workspace-column">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση οργανισμού, περιγραφής ή ενότητας…','Search organization, description or area…')} end={<RegistryTotals label={healthLabel} items={[{key:'failures',value:failures,always:true,label:tx('αποτυχίες / αποκλεισμοί','errors / blocked'),tone:failures?'danger':'good',title:healthLabel},{key:'warnings',value:warnings,always:true,label:tx('προειδοποιήσεις','warnings'),tone:warnings?'warning':undefined},{key:'organizations',value:affectedOrganizations,always:true,display:`${affectedOrganizations}/${organizations.length}`,label:tx('οργανισμοί με συμβάντα','organizations affected')}]}/>} activeAdvancedCount={(organizationId!=='all'?1:0)+(severity!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setSeverity('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση…','Search…')} end={<RegistryTotals label={healthLabel} items={[{key:'failures',value:failures,always:true,label:tx('αποτυχίες / αποκλεισμοί','errors / blocked'),tone:failures?'danger':'good',title:healthLabel},{key:'warnings',value:warnings,always:true,label:tx('προειδοποιήσεις','warnings'),tone:warnings?'warning':undefined},{key:'organizations',value:affectedOrganizations,always:true,display:`${affectedOrganizations}/${organizations.length}`,label:tx('οργανισμοί με συμβάντα','organizations affected')}]}/>} activeAdvancedCount={(organizationId!=='all'?1:0)+(severity!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setSeverity('all')}}>
         <FilterSelect label={tx('Οργανισμός','Organization')} value={organizationId} onChange={setOrganizationId}>
           <option value="all">{tx('Όλοι','All')}</option>
           {organizations.map(org=><option key={org.id} value={org.id}>{org.name||org.code}</option>)}

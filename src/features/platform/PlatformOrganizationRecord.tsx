@@ -21,6 +21,8 @@ import './platformDashboard.css'
 import { PlatformOrganizationDetailsTab } from './PlatformOrganizationDetailsTab'
 import { PlatformOrganizationUsersTab } from './PlatformOrganizationUsersTab'
 import { platformUserState } from './PlatformUsersRegistry'
+import { userStateLabel } from './PlatformUserCells'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { PlatformOrganizationUserRecord } from './PlatformOrganizationUserRecord'
 import { ROLES, toDraft } from './platformOrganizationShared'
 import { loadEmployeesAsync } from '../employees/employeeService'
@@ -202,8 +204,7 @@ export function PlatformOrganizationRecord({
   const onlineUserIds = useMemo(() => new Set(sessions.filter(row => row.online).map(row => row.userId)), [sessions])
   const orgUserState = (user: OrganizationMember) => platformUserState({ status: user.status, invitation: user.invitationStatus })
   const filteredUsers = useMemo(() => {
-    const locale = language === 'el' ? 'el-GR' : 'en-US',
-      query = userQuery.trim().toLocaleLowerCase(locale)
+    const say = (elText: string, enText: string) => (language === 'en' ? enText : elText)
     const byFilter = users.filter(user => {
       const state = platformUserState({ status: user.status, invitation: user.invitationStatus })
       if (userFilter === 'active') return state === 'active'
@@ -212,13 +213,9 @@ export function PlatformOrganizationRecord({
       if (userFilter === 'online') return onlineUserIds.has(user.userId)
       return true
     })
-    if (!query) return byFilter
+    // Everything the row shows (owner, 19/11/2026: the searches find everything).
     return byFilter.filter(user =>
-      [user.name, user.email, user.username, roleLabel(user.role, language)].some(value =>
-        String(value || '')
-          .toLocaleLowerCase(locale)
-          .includes(query),
-      ),
+      matchesSearch(userQuery, [user.name, user.email, user.username, roleLabel(user.role, language), userStateLabel(say, platformUserState({ status: user.status, invitation: user.invitationStatus })), onlineUserIds.has(user.userId) ? say('Συνδεδεμένος τώρα', 'Online now') : '']),
     )
   }, [users, userQuery, userFilter, onlineUserIds, language])
   const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize)),

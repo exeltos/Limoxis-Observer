@@ -6,6 +6,7 @@ import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { demoLibrarySeed } from './managementData'
@@ -30,7 +31,8 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
   const [query,setQuery]=useState('')
   const [draft,setDraft]=useState<EnvironmentalStandardDraft|null>(null)
   const readOnlySystem=Boolean(draft?.system&&!isPlatformOwner)
-  const filtered=useMemo(()=>rows.filter(x=>`${x.protocolCode} ${x.subjectType} ${x.sourceCode} ${x.unit} ${x.source||''}`.toLowerCase().includes(query.toLowerCase())),[rows,query])
+  // Everything the row shows (owner, 19/11/2026: the searches find everything), plus the technical names.
+  const filtered=useMemo(()=>rows.filter(x=>matchesSearch(query,[x.protocolCode,x.system?(isPlatformOwner?t('librariesPanel.systemOwnerBadge'):t('librariesPanel.systemReadOnlyBadge')):'',sampleTypeLabel(x.subjectType,t),environmentalMethodLabel(x.sourceCode,t),x.unit,x.limitCfu??t('notConfigured'),x.active?t('active'):t('environmentalStandards.protocolInactive'),x.subjectType,x.sourceCode,x.source])),[rows,query,t,isPlatformOwner])
   async function persist(next: EnvironmentalStandard[]){await saveData(next);window.dispatchEvent(new CustomEvent('limoxis:environmental-standards-updated'))}
   async function save(){
     if(!draft)return

@@ -10,6 +10,7 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { listPlatformAuditEvents } from './platformAuditService'
 import { athensDateTime } from './platformOverviewShared'
 import { describeAuditGroup,entityLabel,eventLabel,groupAuditEvents } from './auditTrailModel'
@@ -55,11 +56,10 @@ export function PlatformAuditSecurityView({organizations=[],language='el',tabs=n
     // Platform-level rows have no organization (including those of deleted organizations).
     if(organizationId==='platform'?Boolean(row.organizationId):organizationId!=='all'&&row.organizationId!==organizationId)return false
     if(eventType!=='all'&&row.eventType!==eventType)return false
-    const needle=query.trim().toLocaleLowerCase(en?'en-US':'el-GR')
-    if(!needle)return true
+    // Everything the row shows (owner, 19/11/2026: the searches find everything), plus the technical names.
     const org=organizationMap.get(row.organizationId)
-    return `${org?.name||row.metadata?.organization_name||''} ${org?.code||row.metadata?.organization_code||''} ${row.actorName} ${row.actorRole} ${row.eventType} ${row.entityType} ${row.entityId}`.toLocaleLowerCase(en?'en-US':'el-GR').includes(needle)
-  }),[rows,organizationId,eventType,query,organizationMap,en])
+    return matchesSearch(query,[fmtDate(row.createdAt),org?.name||row.metadata?.organization_name||(row.organizationId?'':(en?'Platform level':'Επίπεδο πλατφόρμας')),org?.code||row.metadata?.organization_code,row.actorName,row.actorRole?roleLabel(row.actorRole,language):'',eventLabel(row.eventType,en),entityLabel(row.entityType,en),row.eventType,row.entityType,row.entityId])
+  }),[rows,organizationId,eventType,query,organizationMap,en,language])
   // Identical consecutive actions of one person within 15 minutes are one row with a count.
   const groups=useMemo(()=>groupAuditEvents([...filtered].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))),[filtered])
   const totalPages=Math.max(1,Math.ceil(groups.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=groups.slice((safePage-1)*pageSize,safePage*pageSize)
@@ -73,7 +73,7 @@ export function PlatformAuditSecurityView({organizations=[],language='el',tabs=n
   return <Page title={tx('Ιστορικό & Υγεία','History & Health')} actions={<div className="row-actions"><ExportMenu items={[{id:'audit',label:tx('Excel: ιστορικό ενεργειών','Excel: audit trail'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('istoriko-energeion','audit-trail'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Χρήστης','User'),tx('Ρόλος','Role'),tx('Ενέργεια','Action'),tx('Αντικείμενο','Entity'),tx('Αναγνωριστικό','Identifier')],rows:filtered.map(row=>{const org=organizationMap.get(row.organizationId);return [fmtDate(row.createdAt),org?.name||tx('Επίπεδο πλατφόρμας','Platform level'),row.actorName||'',row.actorRole?roleLabel(row.actorRole,language):'',eventLabel(row.eventType,en),entityLabel(row.entityType,en),row.entityId||'']})})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}>
     {tabs}
     <div className="platform-registry-shell workspace-column">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση οργανισμού, χρήστη ή ενέργειας…','Search organization, user or action…')} end={rows.length?<RegistryTotals label={tx('Σύνολα ιστορικού','History totals')} items={[{key:'all',value:rows.length,always:true,label:tx('ενέργειες','actions')},{key:'owner',value:ownerActions,label:tx('του Ιδιοκτήτη','by the Owner')},{key:'access',value:accessChanges,label:tx('αλλαγές πρόσβασης','access changes')},{key:'destructive',value:destructive,label:tx('διαγραφές','deletions'),tone:'danger'}]}/>:null} activeAdvancedCount={(organizationId!=='all'?1:0)+(eventType!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setEventType('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση…','Search…')} end={rows.length?<RegistryTotals label={tx('Σύνολα ιστορικού','History totals')} items={[{key:'all',value:rows.length,always:true,label:tx('ενέργειες','actions')},{key:'owner',value:ownerActions,label:tx('του Ιδιοκτήτη','by the Owner')},{key:'access',value:accessChanges,label:tx('αλλαγές πρόσβασης','access changes')},{key:'destructive',value:destructive,label:tx('διαγραφές','deletions'),tone:'danger'}]}/>:null} activeAdvancedCount={(organizationId!=='all'?1:0)+(eventType!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setEventType('all')}}>
         <FilterSelect label={tx('Οργανισμός','Organization')} value={organizationId} onChange={setOrganizationId}><option value="all">{tx('Όλοι','All')}</option><option value="platform">{tx('Επίπεδο πλατφόρμας','Platform level')}</option>{organizations.map(org=><option key={org.id} value={org.id}>{org.name||org.code}</option>)}</FilterSelect>
         <FilterSelect label={tx('Ενέργεια','Action')} value={eventType} onChange={setEventType}><option value="all">{tx('Όλες','All')}</option>{eventTypes.map(value=><option key={value} value={value}>{eventLabel(value,en)}</option>)}</FilterSelect>
       </FilterBar>

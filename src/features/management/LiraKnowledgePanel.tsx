@@ -8,6 +8,7 @@ import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase } from '../../core/supabase/client'
@@ -32,7 +33,8 @@ export function LiraKnowledgePanel(){
  // Reload when the organization changes (RLS decides which sources it sees).
  useEffect(()=>{load()},[load,tenant?.id])
  const authorities=useMemo(()=>[...new Set(rows.map(x=>x.authority).filter(Boolean))].sort(),[rows])
- const filtered=useMemo(()=>{const q=query.trim().toLocaleLowerCase();return rows.filter(x=>(authority==='all'||x.authority===authority)&&(status==='all'||x.status===status)&&(!q||[x.authority,x.title,x.source_version].some(v=>String(v||'').toLocaleLowerCase().includes(q))))},[rows,query,authority,status])
+ // Everything the row shows (owner, 19/11/2026: the searches find everything).
+ const filtered=useMemo(()=>rows.filter(x=>(authority==='all'||x.authority===authority)&&(status==='all'||x.status===status)&&matchesSearch(query,[x.authority,x.title,x.source_version,statusLabel(x.status,en),ingestionLabel(x.ingestion_status,en)])),[rows,query,authority,status,en])
  // Pages of 15 with the registries' pager (owner, 10/11/2026: every owner list pages, the page itself does not scroll).
  const paging=useSortedPaging(filtered,`${query}|${authority}|${status}`,{authority:(x: KnowledgeSource)=>x.authority,source:(x: KnowledgeSource)=>x.title,version:(x: KnowledgeSource)=>x.source_version,status:(x: KnowledgeSource)=>x.status,knowledge:(x: KnowledgeSource)=>x.ingestion_status})
  async function open(row: KnowledgeSource){setSelected(row);setVersion('');const {data,error}=await cloudClient().from('lira_knowledge_chunks').select('id,chunk_index,heading,content,citation_label,page_start,page_end').eq('source_id',row.id).order('chunk_index');if(error)notify(error.message,'error');setChunks(data||[])}
@@ -43,7 +45,7 @@ export function LiraKnowledgePanel(){
  return <section className="management-section management-scroll-section">
   {/* On the platform the page title («LIRA & AI») names it: no second heading. */}
   {!platformScreen&&<div className="section-toolbar"><div><h2>{en?'LIRA Knowledge':'Γνώση LIRA'}</h2><p>{en?'Governed clinical knowledge used by LIRA. Open a source to review its evidence and lifecycle.':'Ελεγχόμενη κλινική γνώση που χρησιμοποιεί η LIRA. Ανοίξτε μια πηγή για έλεγχο τεκμηρίωσης και διαχείριση έκδοσης.'}</p></div></div>}
-  <FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search sources…':'Αναζήτηση πηγών…'} onClear={()=>{setQuery('');setAuthority('all');setStatus('all')}} activeAdvancedCount={(authority==='all'?0:1)+(status==='all'?0:1)} advanced={<><label className="filter-select"><span>{en?'Authority':'Φορέας'}</span><select value={authority} onChange={e=>setAuthority(e.target.value)}><option value="all">{en?'All authorities':'Όλοι οι φορείς'}</option>{authorities.map(x=><option key={x} value={x}>{x}</option>)}</select></label><label className="filter-select"><span>{en?'Status':'Κατάσταση'}</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">{en?'All statuses':'Όλες οι καταστάσεις'}</option><option value="review">{en?'In review':'Προς έλεγχο'}</option><option value="approved">{en?'Approved':'Εγκεκριμένες'}</option><option value="retired">{en?'Retired':'Αποσυρμένες'}</option></select></label></>}/>
+  <FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search…':'Αναζήτηση…'} onClear={()=>{setQuery('');setAuthority('all');setStatus('all')}} activeAdvancedCount={(authority==='all'?0:1)+(status==='all'?0:1)} advanced={<><label className="filter-select"><span>{en?'Authority':'Φορέας'}</span><select value={authority} onChange={e=>setAuthority(e.target.value)}><option value="all">{en?'All authorities':'Όλοι οι φορείς'}</option>{authorities.map(x=><option key={x} value={x}>{x}</option>)}</select></label><label className="filter-select"><span>{en?'Status':'Κατάσταση'}</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">{en?'All statuses':'Όλες οι καταστάσεις'}</option><option value="review">{en?'In review':'Προς έλεγχο'}</option><option value="approved">{en?'Approved':'Εγκεκριμένες'}</option><option value="retired">{en?'Retired':'Αποσυρμένες'}</option></select></label></>}/>
   {loading?<TableSkeleton/>:<RegistryTable
    wrapperClassName="table-wrap scroll-table"
    columns={[{key:'authority',label:en?'Authority':'Φορέας',sortable:true},{key:'source',label:en?'Source':'Πηγή',sortable:true},{key:'version',label:en?'Version':'Έκδοση',sortable:true},{key:'status',label:en?'Approval':'Έγκριση',sortable:true},{key:'knowledge',label:en?'Knowledge':'Γνώση',sortable:true}]}

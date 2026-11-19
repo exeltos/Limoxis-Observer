@@ -13,7 +13,7 @@ import { wasteCategoryTone, wastePeriodLabel } from './wasteVisuals'
 import type { RegistryTotal } from '../../design-system/RegistryTotals'
 import type { SortState } from '../../design-system/useTableSort'
 import type { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
-import type { AntisepticRecord, BundleAssessment, HandHygieneSession, PreventionEmployee, PreventionRecord, WasteMeasurement } from './preventionTypes'
+import type { AntisepticRecord, BundleAssessment, HandHygieneSession, PreventionEmployee, PreventionRecord, PreventionTabRow, WasteMeasurement } from './preventionTypes'
 import type { Vaccination } from '../occupational-health/vaccinationService'
 
 // What every tab's table gets from the page: its sorted rows, the sort, the registry memory
@@ -369,6 +369,17 @@ export function VaccinationTable({ sort, onSort, rows, t, language, fmtDate, emp
       }}
     />
   )
+}
+// What a row of each tab shows, for the search (owner, 19/11/2026: the searches find everything): the same texts
+// as the table cells, in the screen's language, with the department in both languages.
+export function preventionSearchParts(tab: string, x: PreventionTabRow, { t, language, employee }: { t: (key: string) => string; language: string; employee?: PreventionEmployee }): unknown[] {
+  const department = [x.departmentEl, x.departmentEn]
+  const number = (value: unknown) => (value == null || value === '' ? '' : Number(value).toLocaleString(localeFromLanguage(language)))
+  if (tab === 'vaccinations') return [employee?.id, employee?.lastName, employee?.firstName, employee?.lastNameEn, employee?.firstNameEn, x.vaccine, x.dose, dayLabel(x.date, language), dayLabel(x.validUntil, language), x.status ? t(x.status) : '']
+  if (tab === 'handHygiene') return [dayLabel(x.date, language), ...department, x.profession ? t(x.profession) : '', x.observations, x.compliant, x.rate == null ? '' : `${fmtNumber(x.rate, language)}%`, x.observer]
+  if (tab === 'waste') return [wastePeriodLabel(x, value => dayLabel(value, language)), ...department, x.wasteType || x.type, x.typeEn, `${number(x.weight)} kg`, x.containers, number(x.indicator), x.documentNumber]
+  if (tab === 'antiseptics') return [fmtMonth(x.period), ...department, x.product, x.productEn, `${number(x.litres)} L`, x.patientDays, number(x.indicator), x.method && x.method !== DEFAULT_SOURCE ? antisepticMethodLabel(x.method, language) : '']
+  return [dayLabel(x.date || x.period, language), x.templateTitle, x.templateName, x.bundle, ...department, x.shift ? (t(`shift_${x.shift}`) !== `shift_${x.shift}` ? t(`shift_${x.shift}`) : x.shift) : '', x.score == null ? '' : `${x.score}%`, x.allOrNone ? t('yes') : t('no')]
 }
 function localeFromLanguage(language: string) {
   return language === 'en' ? 'en-GB' : 'el-GR'
