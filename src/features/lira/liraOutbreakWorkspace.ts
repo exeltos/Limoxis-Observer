@@ -26,12 +26,13 @@ export async function updateOutbreakActionStatus(organizationId: string,actionId
 // with the sample, the patient and the department joined; the line list then keeps the period and the department.
 const OUTBREAK_LAB_PAGE=1000
 type OutbreakLabResult={id: string,organism: string|null,result_status: string|null,resistance_class: string|null,resulted_at: string|null,validation_status: string|null,sample: {id: string,patient_id: string|null,sample_type: string|null,collected_at: string|null,patient: {patient_code: string|null,first_name: string|null,last_name: string|null}|null,department: {name: string|null,code: string|null}|null}|null}
-export async function loadOutbreakLaboratory(organizationId: string,organism: string|null|undefined): Promise<LiraLabRow[]>{
+export async function loadOutbreakLaboratory(organizationId: string,organism: string|null|undefined): Promise<LiraLabRow[]|null>{
  const name=String(organism||'').replace(/\s*\([^)]*\)\s*$/,'').trim().replace(/[%_,()]/g,' ').trim()
- if(!name)return []
+ // No organism: no narrower read; the caller keeps the general laboratory data, as before.
+ if(!name)return null
  const rows: OutbreakLabResult[]=[]
  for(let from=0;from<50*OUTBREAK_LAB_PAGE;from+=OUTBREAK_LAB_PAGE){
-  const {data,error}=await cloudClient().from('microbiology_results').select('id,organism,result_status,resistance_class,resulted_at,validation_status,sample:laboratory_samples!inner(id,patient_id,sample_type,collected_at,patient:patients(patient_code,first_name,last_name),department:departments(name,code))').eq('organization_id',organizationId).eq('result_status','positive').ilike('organism',`%${name}%`).order('resulted_at',{ascending:true}).range(from,from+OUTBREAK_LAB_PAGE-1)
+  const {data,error}=await cloudClient().from('microbiology_results').select('id,organism,result_status,resistance_class,resulted_at,validation_status,sample:laboratory_samples!inner(id,patient_id,sample_type,collected_at,patient:patients(patient_code,first_name,last_name),department:departments(name,code))').eq('organization_id',organizationId).eq('result_status','positive').ilike('organism',`%${name}%`).order('resulted_at',{ascending:true}).order('id',{ascending:true}).range(from,from+OUTBREAK_LAB_PAGE-1)
   if(error)throw error
   rows.push(...((data||[]) as unknown as OutbreakLabResult[]))
   if((data||[]).length<OUTBREAK_LAB_PAGE)break
