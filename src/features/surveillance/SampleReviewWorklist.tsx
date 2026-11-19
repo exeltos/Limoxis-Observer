@@ -66,7 +66,10 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
     setBusy(true)
     try { await action(); setSelected(new Set()) } finally { setBusy(false) }
   }
+  // The table fills the page down to its pages, like every list (owner, 19/11/2026): the bar and the pages sit
+  // outside the scrolling part.
   return (
+    <>
     <div className="scroll-table sample-review-worklist">
       {anyLate && <div className="sample-review-bulkbar">
         <CheckboxField className="sample-review-late-only" checked={lateOnly} onChange={setLateOnly} label={en ? 'Only possible late-onset infections (≥ 72 hours)' : 'Μόνο πιθανές όψιμες λοιμώξεις (≥72 ώρες)'} />
@@ -108,6 +111,7 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
           </>
         )}
       />
+    </div>
       {/* The ticked rows (owner, 19/11/2026): no buttons on the rows; one bar above the pages while something is ticked.
           One sample ticked takes the single paths (the episode form with its stay, the single dialog). */}
       {selectable && picked.length > 0 && <div className="sample-review-selection-bar" role="region" aria-label={en ? 'Selected samples' : 'Επιλεγμένα δείγματα'}>
@@ -147,7 +151,7 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
           }}
         />
       )}
-    </div>
+    </>
   )
 }
 
