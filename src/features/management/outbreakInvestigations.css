@@ -1,11 +1,6 @@
 /* color tokens: start */
 :root{
   --border-brand-849:#cfd9e2;
-  --border-brand-902-4:#dbe7f1;
-  --border-neutral-947:#eef2f5;
-  --border-warning-741:#f0cf8a;
-  --shadow-neutral-1000:#ffffff;
-  --surface-brand-443:#2582bd;
   --text-neutral-429:#5f6e7c;
   --text-warning-239-2:#7a5a00;
 }
@@ -16,35 +11,12 @@
 .outbreak-workspace .record-section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .outbreak-workspace .record-section-header h3{display:flex;align-items:center;gap:7px;margin:2px 0 0;font-size:15px;color:var(--text-heading)}
 .outbreak-workspace .record-section-header p{margin:4px 0 0;font-size:12px;color:var(--text-neutral-429);max-width:760px}
-.outbreak-workspace .outbreak-summary .record-details-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;border:1px solid var(--border-neutral-947);border-radius:10px;overflow:hidden;padding:0!important;margin:0!important;background:var(--lo-color-surface)!important}
-.outbreak-workspace .outbreak-summary .record-details-grid>.detail-item{padding:10px 12px!important;margin:0!important;border:0!important;border-right:1px solid var(--border-neutral-947)!important;border-radius:0!important;background:var(--lo-color-surface)!important;display:flex;flex-direction:column;gap:5px}
-.outbreak-workspace .outbreak-summary .detail-item>span{font-size:11px;font-weight:700;color:var(--text-neutral-429)}
-.outbreak-workspace .outbreak-summary .detail-item>strong{font-size:13.5px;color:var(--text-heading)}
-.outbreak-workspace .outbreak-summary .status-badge{display:inline-flex!important;width:auto!important;max-width:max-content}
-.outbreak-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
-.outbreak-metrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-.outbreak-metric{padding:10px 12px;border:1px solid var(--border-brand-914-2);border-radius:10px;background:var(--surface-subtle)}
-.outbreak-metric span{display:block;font-size:11.5px;color:var(--text-neutral-429)}
-.outbreak-metric strong{display:block;margin-top:4px;font-size:22px;color:var(--text-heading);font-variant-numeric:tabular-nums}
-.outbreak-metric.is-warning{border-color:var(--border-warning-741);background:var(--surface-warning-955)}
-.outbreak-metric.is-warning strong{color:var(--text-warning-271)}
-.outbreak-blockers{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .outbreak-workspace .table-wrap{border:1px solid var(--border-brand-914-2);border-radius:10px;overflow:auto}
 .outbreak-workspace td small{display:block;font-size:11.5px;color:var(--text-neutral-429)}
 .outbreak-status-select{height:34px;min-width:150px;padding:0 10px;border:1px solid var(--border-brand-849);border-radius:8px;background:var(--lo-color-surface);font:inherit;font-size:13px}
-.outbreak-timeline,.outbreak-evidence{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--border-brand-902-4);display:flex;flex-direction:column;gap:10px}
-.outbreak-timeline li{display:grid;grid-template-columns:100px auto minmax(0,1fr);align-items:center;gap:10px;position:relative;font-size:13px;color:var(--text-brand-286)}
-.outbreak-timeline li::before,.outbreak-evidence li::before{content:'';position:absolute;left:-20px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--surface-brand-443);box-shadow:0 0 0 3px var(--shadow-neutral-1000)}
-.outbreak-timeline time{font-weight:700;color:var(--text-heading);font-variant-numeric:tabular-nums}
-.outbreak-evidence li{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:10px}
-.outbreak-evidence li strong{display:block;font-size:13px;color:var(--text-heading);font-weight:600}
-.outbreak-evidence li time{display:block;margin-top:2px;font-size:11.5px;color:var(--text-neutral-429)}
 .outbreak-note{width:100%;padding:10px 12px;border:1px solid var(--border-brand-849);border-radius:10px;font:inherit;font-size:13px;resize:vertical}
 .outbreak-note-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
-@media(max-width:900px){.outbreak-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.outbreak-workspace .outbreak-summary .record-details-grid{grid-template-columns:1fr 1fr!important}}
 .outbreak-workspace .outbreak-status-select{width:170px!important;max-width:170px}
-.outbreak-evidence li{grid-template-columns:150px minmax(0,1fr)!important}
-.outbreak-evidence li>.status-badge{justify-self:start}
 .outbreak-workspace #lira-investigation-capa td:first-child{min-width:220px}
 .outbreak-investigations{margin-top:14px}
 .page-fill>.outbreak-investigations{margin-top:0;flex:1;min-height:0;display:flex;flex-direction:column}
@@ -72,3 +44,9 @@
 .outbreak-steps .is-current b{background:var(--lo-color-primary);color:var(--text-inverse)}
 .outbreak-steps .is-done b{background:var(--surface-subtle);color:var(--text-success)}
 @media(max-width:760px){.outbreak-steps{flex-wrap:wrap}.outbreak-steps li{flex:1 1 45%}}
+/* The cases of an investigation fill the page down to their pages and scroll inside (owner, 19/11/2026). */
+.outbreak-record-shell>.entity-record-body{display:flex;flex-direction:column;min-height:0}
+.outbreak-record-shell .outbreak-workspace{flex:1 1 0;min-height:0}
+.outbreak-record-shell .outbreak-workspace>.record-section.outbreak-cases{flex:1 1 0!important;min-height:240px!important;display:flex!important;flex-direction:column}
+.outbreak-cases>.record-section-header{flex:0 0 auto}
+.outbreak-record-shell .outbreak-cases>.scroll-table.outbreak-case-table{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}

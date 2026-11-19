@@ -81,7 +81,7 @@ describe('no raw ids on screen', () => {
     expect(list.rows[0].patientLabel).toBe('PT-0001')
     expect(list.rows[0].patientKey).toBe(uuid)
     const panel = readSource('src/features/management/LiraOutbreakInvestigationsPanel.jsx')
-    expect(panel).toContain("<td>{row.patientLabel||'—'}</td>")
+    expect(panel).toContain("<td><strong>{row.patientLabel||'—'}</strong>")
     expect(panel).not.toContain("<td>{row.patientKey||'—'}</td>")
   })
   it('localizes employee screening source codes', () => {
