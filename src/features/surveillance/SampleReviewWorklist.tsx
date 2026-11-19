@@ -6,6 +6,7 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { Field } from '../../design-system/Field'
 import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDateTime } from '../../core/i18n/formatDay'
@@ -49,6 +50,12 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
   const anyLate = allRows.some(row => row.recordId && lateOnset[String(row.recordId)] != null)
   const rows = useMemo(() => reviewRowsShown(allRows, { lateOnly: lateOnly && anyLate, lateOnset }), [allRows, lateOnly, anyLate, lateOnset])
   const selectable = !readOnly && Boolean(onBulkDecide)
+  // Pages like every other list (owner, 19/11/2026).
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const pageRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
   // Only what is still shown counts as ticked (a decided sample leaves the list).
   const picked = rows.filter(row => selected.has(keyOf(row)))
   const allPicked = rows.length > 0 && picked.length === rows.length
@@ -71,9 +78,8 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
           { key: 'patient', label: `${t('patient')} · ${t('department')}` },
           { key: 'sample', label: `${t('sampleType')} · ${en ? 'Date' : 'Ημερομηνία'}` },
           { key: 'alert', label: en ? 'Organism / alert' : 'Μικροοργανισμός / ειδοποίηση' },
-          { key: 'actions', label: en ? 'Decision' : 'Απόφαση' },
         ]}
-        rows={rows}
+        rows={pageRows}
         emptyTitle={empty?.title}
         emptyText={empty?.text}
         emptyIcon={empty?.icon || ClipboardCheck}
@@ -99,31 +105,19 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
                 {[sample.resistance, sample.critical ? (en ? 'Critical' : 'Κρίσιμο') : '', sample.type === 'bloodCulture' ? (en ? 'Blood culture' : 'Αιμοκαλλιέργεια') : ''].filter(Boolean).join(' · ')}
               </small>
             </td>
-            <td>
-              {readOnly ? <small>{en ? 'Decided by infection control' : 'Αποφασίζει η ομάδα λοιμώξεων'}</small> : <span className="sample-review-actions">
-                {canOpenEpisode && (
-                  <Button className="sample-review-open" variant="secondary" onClick={() => onOpenEpisode(sample)}>
-                    <PlayCircle size={14} />
-                    {en ? 'Open episode' : 'Άνοιγμα επεισοδίου'}
-                  </Button>
-                )}
-                <Button className="sample-review-dismiss" variant="ghost" onClick={() => setDeciding(sample)}>
-                  {en ? 'No surveillance needed' : 'Δεν χρειάζεται επιτήρηση'}
-                </Button>
-              </span>}
-            </td>
           </>
         )}
       />
-      {/* The ticked rows (owner, 19/11/2026): one bar at the bottom, only while something is ticked; the rows keep their own buttons. */}
+      {/* The ticked rows (owner, 19/11/2026): no buttons on the rows; one bar above the pages while something is ticked.
+          One sample ticked takes the single paths (the episode form with its stay, the single dialog). */}
       {selectable && picked.length > 0 && <div className="sample-review-selection-bar" role="region" aria-label={en ? 'Selected samples' : 'Επιλεγμένα δείγματα'}>
         <strong>{en ? `${picked.length} selected` : `${picked.length} επιλεγμένα`}</strong>
         <span className="sample-review-bulk-actions">
-          {canOpenEpisode && onBulkOpen && <Button variant="secondary" disabled={busy} onClick={() => run(() => onBulkOpen(picked))}>
+          {canOpenEpisode && <Button variant="secondary" disabled={busy || (picked.length > 1 && !onBulkOpen)} onClick={() => (picked.length === 1 ? onOpenEpisode(picked[0]) : onBulkOpen && run(() => onBulkOpen(picked)))}>
             <PlayCircle size={14} />
-            {en ? 'Open episodes' : 'Άνοιγμα επεισοδίων'}
+            {picked.length === 1 ? (en ? 'Open episode' : 'Άνοιγμα επεισοδίου') : (en ? 'Open episodes' : 'Άνοιγμα επεισοδίων')}
           </Button>}
-          <Button variant="secondary" disabled={busy} onClick={() => setBulkDeciding(true)}>
+          <Button variant="secondary" disabled={busy} onClick={() => (picked.length === 1 ? setDeciding(picked[0]) : setBulkDeciding(true))}>
             {en ? 'No surveillance needed' : 'Δεν χρειάζεται επιτήρηση'}
           </Button>
           <Button variant="ghost" disabled={busy} onClick={() => setSelected(new Set())}>
@@ -131,6 +125,7 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
           </Button>
         </span>
       </div>}
+      <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }} />
       {bulkDeciding && onBulkDecide && (
         <NoSurveillanceDialog
           count={picked.length}
