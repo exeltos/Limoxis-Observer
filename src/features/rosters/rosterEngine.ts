@@ -1,6 +1,6 @@
 // Monthly shift roster generator (pure, no I/O): builds a roster that keeps the rules of rosterRules.
 // The rules, the checker and the calendar helpers live in rosterRules; this module re-exports them.
-import { allowedOf, basicDemandFor, checkRoster, DEFAULT_RULES, customNeed, customShifts, defaultExtraCode, demandFor, fullWeeks, historyOf, isLeave, isShift, kindOf, maxNightsOf, mulberry32, personalOk, rowProblems, SHIFT_CODES, shiftHours, shiftTargets, shiftTimesOf, weekendPairs, weekOff, weeklyHoursLimit, weeklyHoursProblems } from './rosterRules'
+import { allowedOf, basicDemandFor, checkRoster, isOptionalShift, DEFAULT_RULES, customNeed, customShifts, defaultExtraCode, demandFor, fullWeeks, historyOf, isLeave, isShift, kindOf, maxNightsOf, mulberry32, personalOk, rowProblems, SHIFT_CODES, shiftHours, shiftTargets, shiftTimesOf, weekendPairs, weekOff, weeklyHoursLimit, weeklyHoursProblems } from './rosterRules'
 
 import type { Assignments, RosterDay, RosterDemand, RosterEmployee, RosterHistory, RosterRules, RosterViolation } from './rosterRules'
 
@@ -262,9 +262,10 @@ export function generateRoster({ days, employees, demand, rules, history = {}, s
   for (const employee of employees || []) {
     for (const [date, code] of Object.entries(employee.fixed || {})) if (assignments[employee.id]) assignments[employee.id][date] = code
   }
-  // Each of the department's other shifts takes its people from its kind on the day, sharing it out.
+  // Each of the department's other shifts takes its people from its kind on the day, sharing it out; the basic ones
+  // first, so that a supplementary shift never takes the person a basic one needs (owner, 19/11/2026).
   const given: Record<string, number> = {}
-  for (const shift of custom) {
+  for (const shift of [...custom.filter((item) => !isOptionalShift(item)), ...custom.filter(isOptionalShift)]) {
     for (const day of days) {
       let need = customNeed(shift, day) - (employees || []).filter((employee) => assignments[employee.id]?.[day.date] === shift.code).length
       const options = (employees || [])

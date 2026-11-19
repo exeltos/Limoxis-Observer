@@ -90,3 +90,30 @@ describe('the ICU roster', () => {
     expect(engine).toContain('if (x[0] !== y[0] || x[1] !== y[1]) return false')
   })
 })
+
+describe('review fixes (PR #666)', () => {
+  it('the checker reads the real rest from the real shifts, not their kinds', () => {
+    const demand = { weekday: { M: 0, A: 0, N: 0 }, weekend: { M: 0, A: 0, N: 0 }, custom: [{ code: 'A:1', label: '15:00–00:00', weekday: 0, weekend: 0 }, { code: 'A:2', label: '12:00–20:00', weekday: 0, weekend: 0 }, { code: 'I:1', label: '10:00–18:00', weekday: 0, weekend: 0 }] }
+    const two = days.slice(2, 4)
+    const assignments = { x: { [two[0].date]: 'A:1', [two[1].date]: 'I:1' } }
+    const rules = (v: { rule: string }[]) => v.map((item) => item.rule)
+    expect(rules(checkRoster({ days: two, employees: [{ id: 'x', active: true }], assignments, demand, rules: { weeklyRestDays: 0, minWeekendOff: 0 } }))).toContain('restHours')
+    const fine = { x: { [two[0].date]: 'A:2', [two[1].date]: 'I:1' } }
+    expect(rules(checkRoster({ days: two, employees: [{ id: 'x', active: true }], assignments: fine, demand, rules: { weeklyRestDays: 0, minWeekendOff: 0 } }))).not.toContain('restHours')
+  })
+  it('a basic shift takes its people before a supplementary one of the same kind', () => {
+    const day = days.find((d) => !d.weekend)!
+    const demand = { weekday: { M: 0, A: 0, N: 0 }, weekend: { M: 0, A: 0, N: 0 }, custom: [{ code: 'M:2', label: '08:00–14:00', weekday: 1, weekend: 0, optional: true }, { code: 'M:1', label: '07:00–15:00', weekday: 1, weekend: 0, optional: false }] }
+    const made = generateRoster({ days: [day], employees: [{ id: 'a', active: true, allowed: ['M'] }], demand, rules: { weeklyRestDays: 0, minWeekendOff: 0, maxWeeklyHours: 0 }, seed: 1, attempts: 1, iterations: 200 })
+    expect(made.assignments.a[day.date]).toBe('M:1')
+    expect(made.violations.filter((v) => v.rule === 'coverage')).toEqual([])
+    // A supplementary shift does not count for the basic one of the same kind.
+    const wrong = checkRoster({ days: [day], employees: [{ id: 'a', active: true }], assignments: { a: { [day.date]: 'M:2' } }, demand, rules: { weeklyRestDays: 0, minWeekendOff: 0 } })
+    expect(wrong.filter((v) => v.rule === 'coverage').map((v) => v.detail)).toContain('M 0/1')
+  })
+  it('availability follows the department’s days off a week', () => {
+    const staff = icuStaff()
+    expect(rosterFeasibility(days, staff, icuDemand, 3).available).toBeLessThan(rosterFeasibility(days, staff, icuDemand).available)
+    expect(readSource('src/features/rosters/RostersPage.tsx')).toContain('rosterFeasibility(days, engineEmployees.map(m => ({ ...m, extra: Boolean(m.extra) })), roster?.demand, rules.weeklyRestDays)')
+  })
+})

@@ -209,8 +209,10 @@ export function shiftTargets(days: RosterDay[], employees: RosterEmployee[] | nu
 }
 
 // The hard-rule problems of one person's row; `prefix` holds their last days before the period.
-export function rowProblems(codes: string[], prefix: string[], days: RosterDay[], r: RosterRules) {
+// `real`: the same row with the department's own shifts (e.g. «A:1» 15:00–00:00), for the rest between shifts.
+export function rowProblems(codes: string[], prefix: string[], days: RosterDay[], r: RosterRules, real?: string[]) {
   const all = prefix.length ? [...prefix, ...codes] : codes
+  const realAll = real ? [...prefix, ...real] : all
   const offset = prefix.length
   const problems: { rule: string, index: number }[] = []
   let streak = 0
@@ -235,7 +237,7 @@ export function rowProblems(codes: string[], prefix: string[], days: RosterDay[]
     const prev = all[k - 1]
     // 11 hours of real rest between two shifts (owner, 19/11/2026), from their times (afternoon 15–23 → morning 07 is
     // 8 hours); after a night the days off are their own rule.
-    if (inside && isShift(prev) && isShift(code) && kindOf(prev) !== 'N' && restMinutes(prev, code, r.shiftTimes) < 660) problems.push({ rule: 'restHours', index })
+    if (inside && isShift(prev) && isShift(code) && kindOf(prev) !== 'N' && restMinutes(realAll[k - 1] || prev, realAll[k] || code, r.shiftTimes) < 660) problems.push({ rule: 'restHours', index })
     if (inside && r.forbidMorningToNight && isDay(prev) && code === 'N') problems.push({ rule: 'morningToNight', index })
     if (code === 'N') {
       if (nights === 0 && restNeeded > 0 && inside) problems.push({ rule: 'restAfterNight', index })
@@ -336,7 +338,7 @@ export function weeklyHoursProblems(codes: string[], days: RosterDay[], limit: n
 // Enough people? (owner, 19/11/2026) Before a roster is made: the places of the basic shifts over the period, and
 // the shifts the people can give (the sum of their targets after leave, without the supernumerary). In hours too,
 // when the department's shifts are not all of eight hours. Enough in numbers does not prove a roster exists.
-export function rosterFeasibility(days: RosterDay[], employees: RosterEmployee[] | null | undefined, demand: RosterDemand | null | undefined) {
+export function rosterFeasibility(days: RosterDay[], employees: RosterEmployee[] | null | undefined, demand: RosterDemand | null | undefined, weeklyRestDays = DEFAULT_RULES.weeklyRestDays) {
   const need: Record<string, number> = { M: 0, I: 0, A: 0, N: 0 }
   let needHours = 0
   for (const day of days) {
@@ -348,7 +350,7 @@ export function rosterFeasibility(days: RosterDay[], employees: RosterEmployee[]
     for (const shift of customShifts(demand).filter((item) => !isOptionalShift(item))) needHours += customNeed(shift, day) * (shiftHours(shift.code, demand) - 8)
   }
   const people = (employees || []).filter((employee) => employee.active !== false && !employee.extra)
-  const targets = shiftTargets(days, people)
+  const targets = shiftTargets(days, people, weeklyRestDays)
   const available = people.reduce((sum, employee) => sum + (targets[employee.id] || 0), 0)
   const total = SHIFT_CODES.reduce((sum, kind) => sum + need[kind], 0)
   return { need, total, available, margin: available - total, needHours, availableHours: available * 8, hours: needHours !== total * 8 }
@@ -379,6 +381,7 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
     })
   }
   const assignments = asKinds(given)
+  const optionalCodes = new Set(customShifts(demand).filter(isOptionalShift).map((shift) => shift.code))
   const active = (employees || []).filter((employee) => employee.active !== false)
   const rows = active.map((employee) => ({ employee, codes: days.map((day) => assignments?.[employee.id]?.[day.date] || '') }))
   // An empty roster (only leave and wishes entered) has nothing to check yet.
@@ -386,8 +389,9 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   days.forEach((day, i) => {
     const need = basicDemandFor(demand, day)
     for (const shift of SHIFT_CODES.filter((code) => need[code] > 0)) {
-      // The supernumerary is not counted (owner, 18/11/2026): the shift needs its people besides them.
-      const have = rows.filter((row) => !row.employee.extra && row.codes[i] === shift).length
+      // The supernumerary is not counted (owner, 18/11/2026): the shift needs its people besides them; nor is a
+      // supplementary shift of the same kind (owner, 19/11/2026).
+      const have = rows.filter((row) => !row.employee.extra && row.codes[i] === shift && !optionalCodes.has(given?.[row.employee.id]?.[day.date] || '')).length
       if (have < need[shift]) violations.push({ rule: 'coverage', date: day.date, detail: `${shift} ${have}/${need[shift]}` })
     }
   })
@@ -401,7 +405,8 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
     for (const index of weeklyHoursProblems(real, days, weeklyHoursLimit(employee, r), (code) => shiftHours(code, demand))) {
       violations.push({ rule: 'weeklyHours', employeeId: employee.id, date: index >= 0 ? days[index].date : undefined })
     }
-    for (const problem of rowProblems(codes, historyOf(history, employee.id), days, r)) {
+    // The real shifts for the rest between them (owner, 19/11/2026: a 15:00–00:00 then a 10:00 is 10 hours).
+    for (const problem of rowProblems(codes, historyOf(history, employee.id), days, r, real)) {
       violations.push({ rule: problem.rule, employeeId: employee.id, date: problem.index >= 0 ? days[problem.index].date : undefined })
     }
     // Two days off before and after a leave: a recommendation (owner, 19/11/2026).

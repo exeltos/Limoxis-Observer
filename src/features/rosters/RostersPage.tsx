@@ -254,7 +254,7 @@ export function RostersPage() {
   )
   const targets = useMemo(() => shiftTargets(days, engineEmployees, rules.weeklyRestDays), [days, engineEmployees, rules.weeklyRestDays])
   // Enough people for the basic shifts? (owner, 19/11/2026) One small line next to the roster.
-  const feasibility = useMemo(() => rosterFeasibility(days, engineEmployees.map(m => ({ ...m, extra: Boolean(m.extra) })), roster?.demand), [days, engineEmployees, roster?.demand])
+  const feasibility = useMemo(() => rosterFeasibility(days, engineEmployees.map(m => ({ ...m, extra: Boolean(m.extra) })), roster?.demand, rules.weeklyRestDays), [days, engineEmployees, roster?.demand, rules.weeklyRestDays])
   // Who «I» am, for a member of the department's staff: their own employee row (in the Demo, the first colleague).
   const me = useMemo(() => {
     if (!staffMode || !roster) return null
