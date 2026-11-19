@@ -50,7 +50,7 @@ function scoreOf(state: BuildState) {
   let score = 0
   for (const s of staff) {
     // A single day off after two nights is allowed rarely: it costs, but far less than a breach.
-    for (const problem of rowProblems(s.codes, s.prefix, days, r)) score += problem.rule === 'shortRestAfterNights' ? 150 : 5000
+    for (const problem of rowProblems(s.codes, s.prefix, days, r)) score += problem.rule === 'shortRestAfterNights' ? 500 : 5000
     if (s.nightsCap < Infinity) score += Math.max(0, s.codes.filter((code) => code === 'N').length - s.nightsCap) * 1000
     let shifts = 0
     let nights = 0
@@ -69,6 +69,13 @@ function scoreOf(state: BuildState) {
         continue
       }
       shifts += 1
+      // A single shift between two days off (day off, shift, day off): avoided (owner, 19/11/2026). A night is not
+      // one: its days off after it are the rule.
+      if (!s.locked[i] && code !== 'N') {
+        const prev = i === 0 ? s.prefix[s.prefix.length - 1] : s.codes[i - 1]
+        const next = s.codes[i + 1]
+        if (prev !== undefined && next !== undefined && !isShift(prev) && !isShift(next) && prev !== '' && next !== '') score += 400
+      }
       // Nights in pairs: a single night costs the same days off as two (owner, 8/11/2026).
       if (code === 'N' && s.codes[i - 1] !== 'N' && s.codes[i + 1] !== 'N' && i < days.length - 1 && !(i === 0 && s.prefix[s.prefix.length - 1] === 'N')) score += 40
       if (!s.locked[i] && !personalOk(s.employee, s.allowed, days[i], code)) score += 1000
@@ -99,7 +106,7 @@ function scoreOf(state: BuildState) {
       // Two a week is the rule; a week of three (or one) is allowed but avoided.
       // A week of four days off (or of one) is avoided much more (owner, 18/11/2026: the days off beyond two a week
       // that the working-day target brings are spread, one week of three at a time).
-      score += rests > r.weeklyRestDays ? (rests - r.weeklyRestDays) * 40 + Math.max(0, rests - r.weeklyRestDays - 1) * 200 : off < r.weeklyRestDays ? (r.weeklyRestDays - off) * 100 : 0
+      score += rests > r.weeklyRestDays ? (rests - r.weeklyRestDays) * 40 + Math.max(0, rests - r.weeklyRestDays - 1) * 400 : off < r.weeklyRestDays ? (r.weeklyRestDays - off) * 200 : 0
     }
     // The one allowed stretch of six still costs a little, so it is used only when it helps.
     {
