@@ -14,7 +14,11 @@
   .platform-identity-grid>.field-wide,.platform-identity-grid>.platform-identity-logo{grid-column:auto}
   .platform-identity-logo-box{width:120px;height:42px}
   .platform-identity-logo-box img{max-width:110px;max-height:34px}
+  /* The logo, «Change» and the bin on one line, as tall as the fields beside them: no second row (owner, 19/11/2026). */
+  .platform-identity-logo-row{flex-wrap:nowrap}
+  .platform-identity-logo-row .button{min-height:42px;padding-inline:10px;white-space:nowrap}
 }
 .platform-identity-logo-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .platform-identity-logo-box{display:grid;place-items:center;width:160px;height:56px;border:1px dashed var(--border-brand-782);border-radius:10px;background:var(--surface-neutral-976);color:var(--text-brand-702)}
 .platform-identity-logo-box img{max-width:148px;max-height:46px;object-fit:contain}
+.platform-identity-logo-remove{padding-inline:10px}
