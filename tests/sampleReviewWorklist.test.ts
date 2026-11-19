@@ -52,6 +52,7 @@ describe('«Προς έλεγχο» selection', () => {
       expect(canReviewSamples(role)).toBe(true)
       expect(defaultLabScope(role)).toBe(LAB_RESULT_SCOPES.POSITIVE)
     }
+    expect(canReviewSamples('platform_owner')).toBe(true)
     expect(canReviewSamples('laboratory')).toBe(false)
     expect(defaultLabScope('laboratory')).toBe(LAB_RESULT_SCOPES.ALL)
     // «Μόνο θετικά» hides negatives from the view only.

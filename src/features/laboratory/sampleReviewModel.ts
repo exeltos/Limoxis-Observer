@@ -11,7 +11,7 @@ type Sample = Partial<LabSample> | null | undefined
 export const REVIEW_STATUS = Object.freeze({ EPISODE_OPENED: 'episode_opened', NO_SURVEILLANCE: 'no_surveillance_needed' })
 
 // The roles that decide on a sample (the same four the review_laboratory_sample RPC accepts).
-export const SAMPLE_REVIEW_ROLES: readonly string[] = Object.freeze([ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.DOCTOR_REVIEWER, ROLES.HOSPITAL_ADMIN])
+export const SAMPLE_REVIEW_ROLES: readonly string[] = Object.freeze([ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.DOCTOR_REVIEWER, ROLES.HOSPITAL_ADMIN, ROLES.PLATFORM_OWNER])
 export const canReviewSamples = (role: string | null | undefined) => SAMPLE_REVIEW_ROLES.includes(role as string)
 
 // Reason codes of «Δεν χρειάζεται επιτήρηση» (stored as code, shown in plain words).
