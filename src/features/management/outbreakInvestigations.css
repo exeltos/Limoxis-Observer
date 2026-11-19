@@ -50,7 +50,7 @@
 .page-fill>.outbreak-investigations{margin-top:0;flex:1;min-height:0;display:flex;flex-direction:column}
 /* The clusters fill the page down to their pages and scroll inside (owner, 19/11/2026). */
 .page-fill>.outbreak-investigations>.outbreak-clusters{flex:1 1 0;min-height:220px;display:flex;flex-direction:column}
-.page-fill>.outbreak-investigations>.outbreak-clusters>h3,.page-fill>.outbreak-investigations>.outbreak-clusters>.outbreak-cluster-note{flex:0 0 auto}
+.page-fill>.outbreak-investigations>.outbreak-clusters>.outbreak-cluster-note{flex:0 0 auto}
 .outbreak-clusters .outbreak-cluster-table{flex:1 1 auto;min-height:0;overflow:auto;background:var(--lo-color-surface);border-radius:8px}
 .page-fill>.outbreak-investigations>.scroll-table{flex:1 1 0;min-height:160px}
 .outbreak-clusters{margin:0 0 14px;padding:10px 14px;border:1px solid var(--border-brand-914-2);border-radius:10px;background:var(--surface-subtle)}
@@ -61,3 +61,14 @@
 .outbreak-cluster-table small.outbreak-cluster-rule{display:block;margin-top:2px;font-size:12px;color:var(--text-warning-239-2)}
 .outbreak-create-form{min-width:0;max-width:100%}
 .outbreak-create-form .lo-form-grid>*{min-width:0}
+/* The steps of an investigation (owner, 19/11/2026). */
+.outbreak-steps{display:flex;gap:8px;margin:0 0 12px;padding:0;list-style:none}
+.outbreak-steps li{flex:1;min-width:0}
+.outbreak-steps button{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font:inherit;font-size:13px;color:var(--text-neutral-429);text-align:left;cursor:pointer}
+.outbreak-steps b{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:var(--surface-subtle);font-size:12px}
+.outbreak-steps span{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.outbreak-steps small{margin-left:auto;font-size:12px;white-space:nowrap}
+.outbreak-steps .is-current button{border-color:var(--lo-color-primary);color:var(--text-heading)}
+.outbreak-steps .is-current b{background:var(--lo-color-primary);color:var(--text-inverse)}
+.outbreak-steps .is-done b{background:var(--surface-subtle);color:var(--text-success)}
+@media(max-width:760px){.outbreak-steps{flex-wrap:wrap}.outbreak-steps li{flex:1 1 45%}}
