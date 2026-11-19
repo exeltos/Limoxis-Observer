@@ -185,3 +185,13 @@ describe('Sorting the environmental samples list', () => {
     expect(sortRowsBy(rows, x => x.result, 'asc').map(x => x.result)).toEqual(['fail', 'pass'])
   })
 })
+
+describe('Outbreak investigation department (owner, 19/11/2026)', () => {
+  it('keeps the department of the title when the laboratory knows it, otherwise the whole hospital', async () => {
+    const { outbreakDepartment } = await import('../src/features/management/LiraOutbreakInvestigationsPanel')
+    const lab = [{ department: 'Παθολογική' }, { department: 'ΜΕΘ' }]
+    expect(outbreakDepartment({ title: 'Candida spp — Παθολογική' }, lab)).toBe('Παθολογική')
+    expect(outbreakDepartment({ title: 'Candida spp — Καρδιολογική' }, lab)).toBe('all')
+    expect(outbreakDepartment({ title: 'Candida spp' }, lab)).toBe('all')
+  })
+})
