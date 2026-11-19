@@ -215,11 +215,12 @@ export function infectionDocument({ source, items, period: chosen = null, compar
       ]),
       { name: L('Με αντοχή', 'With resistance'), sub: L('MRSA, VRE, ESBL, CRE κ.λπ.', 'MRSA, VRE, ESBL, CRE etc.'), count: resistant(inPeriod), share: (resistant(inPeriod) / total) * 100, max: total, alert: true, before: compared ? resistant(compared) : null },
     ]
-    const rated = (list: InfectionItem[]) => (lab || !haiKnown ? list.length : hai(list))
+    // The laboratory counts the positive patients, each once (owner, 19/11/2026), always on the library's patient days.
+    const rated = (list: InfectionItem[]) => (lab ? patients(list) : !haiKnown ? list.length : hai(list))
     const rateNow = rate(rated(inPeriod), days)
     if (rateNow != null) {
       const rateBefore = compared ? rate(rated(compared), daysBefore) : null
-      summary.push({ name: lab ? L('Θετικά ανά 1.000 κλινοημέρες', 'Positives per 1,000 patient days') : haiKnown ? L('ΛΣΦΥ ανά 1.000 κλινοημέρες', 'HAI per 1,000 patient days') : L('Επεισόδια ανά 1.000 κλινοημέρες', 'Episodes per 1,000 patient days'), sub: `${number(days as number, language, 0)} ${L('κλινοημέρες', 'patient days')}`, count: rateNow, max: 0, plain: number(rateNow, language, 2), beforeText: rateBefore == null ? '—' : number(rateBefore, language, 2) })
+      summary.push({ name: lab ? L('Θετικοί ασθενείς ανά 1.000 κλινοημέρες', 'Positive patients per 1,000 patient days') : haiKnown ? L('ΛΣΦΥ ανά 1.000 κλινοημέρες', 'HAI per 1,000 patient days') : L('Επεισόδια ανά 1.000 κλινοημέρες', 'Episodes per 1,000 patient days'), sub: `${number(days as number, language, 0)} ${L('κλινοημέρες', 'patient days')}`, count: rateNow, max: 0, plain: number(rateNow, language, 2), beforeText: rateBefore == null ? '—' : number(rateBefore, language, 2) })
     }
     sections.push({ title: L('Σύνοψη', 'Summary'), keepTogether: true, table: { columns: columnsFor(L('Μέγεθος', 'Figure')), rows: summary.map(cells) } })
 

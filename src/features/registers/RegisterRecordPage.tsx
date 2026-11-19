@@ -48,6 +48,8 @@ export function RegisterRecordPage() {
   const access = useRegisterAccess()
   // ΜΕΝΝ Ν6β: how many positive blood cultures ≥ 72 h after admission still wait for a decision in Surveillance.
   const [lateWaiting, setLateWaiting] = useState(0)
+  // «Πιθανές» (owner, 19/11/2026): the entries with a late-onset blood culture not rejected (waiting or confirmed).
+  const [latePossible, setLatePossible] = useState<Set<string>>(() => new Set())
   const [register, setRegister] = useState<Register | null>(null)
   const [entries, setEntries] = useState<RegisterEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,7 +78,7 @@ export function RegisterRecordPage() {
   useEffect(() => {
     if (!register || register.templateKey !== 'nicu') return undefined
     let live = true
-    loadLateInfectionCandidates(register).then(rows => { if (live) setLateWaiting(rows.filter(row => !row.decision).length) }).catch(() => { if (live) setLateWaiting(0) })
+    loadLateInfectionCandidates(register).then(rows => { if (live) { setLateWaiting(rows.filter(row => !row.decision).length); setLatePossible(new Set(rows.filter(row => row.decision !== 'rejected').map(row => row.entryId))) } }).catch(() => { if (live) { setLateWaiting(0); setLatePossible(new Set()) } })
     return () => { live = false }
   }, [register])
   useEffect(() => { void reload() }, [reload])
@@ -118,7 +120,7 @@ export function RegisterRecordPage() {
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={(() => { const key = registerThemeKey(register); const Icon = key ? themeIcon(key) : sheet ? CalendarRange : ClipboardList; return <Icon size={19} /> })()} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
 >
     {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries as SheetEntry[]} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
-    {tab === 'indicators' && <RegisterIndicators notes={lateWaiting ? { late_infection_rate: en ? `${lateWaiting} blood cultures wait for a decision in Surveillance › To review` : `${lateWaiting} αιμοκαλλιέργειες περιμένουν απόφαση στην Επιτήρηση › Προς έλεγχο` } : undefined} register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? (indicatorId: string) => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
+    {tab === 'indicators' && <RegisterIndicators possible={latePossible.size ? { late_infection_rate: latePossible } : undefined} notes={lateWaiting ? { late_infection_rate: en ? `${lateWaiting} blood cultures wait for a decision in Surveillance › To review` : `${lateWaiting} αιμοκαλλιέργειες περιμένουν απόφαση στην Επιτήρηση › Προς έλεγχο` } : undefined} register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? (indicatorId: string) => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
     {tab === 'definition' && <RegisterBuilder entries={entries} register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={(next: Register | null) => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}
     {entriesPrint && <RegisterPrintDialog mode="entries" language={language} onPrint={printEntries} onClose={() => setEntriesPrint(false)} />}

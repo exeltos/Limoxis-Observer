@@ -141,8 +141,9 @@ describe('cloud loaders (mocked client)', () => {
     const calls = []
     vi.doMock('../src/core/supabase/client', () => client(calls, { 'rpc:patient_infection_flags': [{ patient_id: 'p1', classification: 'MDR', organism: 'K. pneumoniae', since: '2026-08-01T00:00:00+00:00' }] }))
     const { loadPatientInfectionFlags } = await import('../src/features/patients/patientInfectionFlagsService')
-    expect(await loadPatientInfectionFlags('org-1')).toEqual({ p1: { resistance: { classification: 'MDR', organism: 'K. pneumoniae', since: '2026-08-01T00:00:00+00:00' }, isolation: null } })
-    expect(calls).toEqual([{ table: 'rpc:patient_infection_flags', args: { p_organization_id: 'org-1' } }])
+    // With the latest organisms read beside it (owner, 19/11/2026: patient_latest_organisms; none in this mock).
+    expect(await loadPatientInfectionFlags('org-1')).toEqual({ p1: { resistance: { classification: 'MDR', organism: 'K. pneumoniae', since: '2026-08-01T00:00:00+00:00' }, isolation: null, organism: null } })
+    expect(calls).toEqual([{ table: 'rpc:patient_infection_flags', args: { p_organization_id: 'org-1' } }, { table: 'rpc:patient_latest_organisms', args: { p_organization_id: 'org-1' } }])
   })
 
   it('patient flags carry the active isolation from the same read', async () => {
@@ -153,8 +154,8 @@ describe('cloud loaders (mocked client)', () => {
     ] }))
     const { loadPatientInfectionFlags } = await import('../src/features/patients/patientInfectionFlagsService')
     expect(await loadPatientInfectionFlags('org-1')).toEqual({
-      p1: { resistance: { classification: 'MDR', organism: 'K. pneumoniae', since: '2026-08-01T00:00:00+00:00' }, isolation: { since: '2026-08-02T00:00:00+00:00', precautions: ['contactPrecautions'] } },
-      p2: { resistance: null, isolation: { since: '2026-09-01T00:00:00+00:00', precautions: [] } },
+      p1: { resistance: { classification: 'MDR', organism: 'K. pneumoniae', since: '2026-08-01T00:00:00+00:00' }, isolation: { since: '2026-08-02T00:00:00+00:00', precautions: ['contactPrecautions'] }, organism: null },
+      p2: { resistance: null, isolation: { since: '2026-09-01T00:00:00+00:00', precautions: [] }, organism: null },
     })
   })
 

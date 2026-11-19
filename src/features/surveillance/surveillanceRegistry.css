@@ -25,3 +25,9 @@
 .environmental-registry td.env-batch{white-space:nowrap}
 
 /* The annual culture plan of the environmental surveillance: the year, the arrows and the export on one line above the calendar. */
+
+/* «Προς έλεγχο», several at once (owner, 19/11/2026): the late-onset filter and the decisions for the ticked samples. */
+.sample-review-bulkbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px}
+.sample-review-bulk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.sample-review-selection-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+.sample-review-worklist .sample-review-select{width:40px;text-align:center}

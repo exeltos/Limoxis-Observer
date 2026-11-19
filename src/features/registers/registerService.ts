@@ -378,10 +378,26 @@ export const setEntryLocked = (...args: Parameters<typeof setEntryLockedNow>) =>
 // «Προς έλεγχο» (an episode opened records the late-onset infection on the entry); here only how many still wait.
 export interface LateInfectionCandidate { entryId: string, sampleId: string, collectedAt: string, organism: string, hoursAfter: number, decision: 'confirmed' | 'rejected' | null }
 export async function loadLateInfectionCandidates(register: Register): Promise<LateInfectionCandidate[]> {
-  if (isLocal() || register.templateKey !== 'nicu') return []
+  if (register.templateKey !== 'nicu') return []
+  if (isLocal()) return demoLateInfectionCandidates(localState().entries.filter(entry => entry.registerId === register.id))
   const { data, error } = await supabase.rpc('register_late_infection_candidates', { p_register_id: register.id })
   if (error) throw error
   return groupLateInfectionRows((data || []) as LateInfectionRow[])
+}
+// The demo (owner, 19/11/2026: «Πιθανές» beside «Επιβεβαιωμένες»): a confirmed blood culture for every recorded late-onset
+// infection and a few more still waiting for a decision among the neonates with a line; the same every time.
+export function demoLateInfectionCandidates(entries: RegisterEntry[] = []): LateInfectionCandidate[] {
+  const ORGANISMS = ['Staphylococcus epidermidis', 'Klebsiella pneumoniae', 'Escherichia coli', 'Staphylococcus aureus', 'Candida albicans']
+  const out: LateInfectionCandidate[] = []
+  entries.forEach((entry, index) => {
+    const values = entry.values || {}
+    const confirmed = values.late_infection === true || values.late_infection === 'yes'
+    const pending = !confirmed && Number(values.central_line_days) > 0 && index % 7 === 3
+    if (!confirmed && !pending) return
+    const admitted = String(values.admission_date || entry.entryDate || '').slice(0, 10)
+    out.push({ entryId: entry.id, sampleId: `demo-bc-${entry.id}`, collectedAt: `${admitted}T08:00:00Z`, organism: ORGANISMS[index % ORGANISMS.length], hoursAfter: 72 + (index % 5) * 24, decision: confirmed ? 'confirmed' : null })
+  })
+  return out
 }
 export interface LateInfectionRow { entry_id: string, sample_id: string, collected_at: string, organism: string | null, hours_after: number, decision: LateInfectionCandidate['decision'] }
 // One sample can carry several organisms (one row each): one line per sample, the organisms together.

@@ -15,7 +15,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { downloadReportWord, printReport } from '../../core/export/reportDocument'
 import { comparePeriod, comparisonFor, indicatorsDocument } from './registerReport'
 import { RegisterPrintDialog, type RegisterPrintChoice } from './RegisterPrintDialog'
-import { PERIODS, breakdown, isActiveCensus, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodLength, periodOf, shiftPeriod, textOf } from './registerEngine'
+import { PERIODS, breakdown, computeIndicator, isActiveCensus, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodLength, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey } from './registerThemes'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
@@ -47,8 +47,8 @@ const lastMonth = () => { const date = new Date(`${hospitalDate().slice(0, 7)}-0
 // (with the target line) and its split by the register's list fields.
 // onDefineTarget(indicatorId): opens the indicator in «Definition» (for those who may define the register).
 // `notes`: a line under an indicator's value (ΜΕΝΝ: blood cultures still waiting for a decision in Surveillance).
-interface RegisterIndicatorsProps { register: Register, entries: RegisterEntry[], onDefineTarget?: ((indicatorId: string) => void) | null, onExportApi?: ((api: ExportApi | null) => void) | null, notes?: Record<string, string> }
-export function RegisterIndicators({ register, entries: allEntries, onDefineTarget = null, onExportApi = null, notes = {} }: RegisterIndicatorsProps) {
+interface RegisterIndicatorsProps { possible?: Record<string, Set<string>>, register: Register, entries: RegisterEntry[], onDefineTarget?: ((indicatorId: string) => void) | null, onExportApi?: ((api: ExportApi | null) => void) | null, notes?: Record<string, string> }
+export function RegisterIndicators({ register, entries: allEntries, onDefineTarget = null, onExportApi = null, notes: givenNotes = {}, possible = {} }: RegisterIndicatorsProps) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notifyError } = useFeedback()
@@ -80,6 +80,22 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   const period = periodOf(kind, `${month}-01`)
   const report = useMemo(() => indicatorReport(register, entries, period), [register, entries, period.key]) // eslint-disable-line react-hooks/exhaustive-deps
   const open = report.find(row => row.indicator.id === openId) || null
+  // ΜΕΝΝ (owner, 19/11/2026): beside the confirmed late-onset infections, the «Πιθανές»: every entry with a late-onset blood
+  // culture not rejected, counted as if confirmed, on the same days; the target is judged on the confirmed ones.
+  const possibleText = useMemo(() => Object.fromEntries(Object.entries(possible).map(([id, ids]) => {
+    const indicator = register.indicators.find(item => item.id === id)
+    if (!indicator) return [id, '']
+    const marked = entries.map(entry => (ids.has(entry.id) ? { ...entry, values: { ...entry.values, late_infection: true } } : entry))
+    const result = computeIndicator(register, indicator, marked, period)
+    const value = formatIndicatorValue(result.value, indicator, language)
+    const ratio = result.numerator != null && result.denominator != null ? ` (${result.numerator} / ${result.denominator} ${en ? 'days' : 'ημ.'})` : ''
+    return [id, `${en ? 'Possible' : 'Πιθανές'}: ${value}${ratio} · ${en ? 'the value above: confirmed' : 'η τιμή επάνω: επιβεβαιωμένες'}`]
+  })), [possible, register, entries, period.key, language]) // eslint-disable-line react-hooks/exhaustive-deps
+  const notes = useMemo(() => {
+    const merged: Record<string, string> = { ...givenNotes }
+    for (const [id, text] of Object.entries(possibleText)) if (text) merged[id] = [text, givenNotes[id]].filter(Boolean).join(' · ')
+    return merged
+  }, [givenNotes, possibleText])
   // First the indicators that are judged (better higher or lower), then the ones shown for context.
   const count = (status: string) => report.filter(row => row.current.status === status).length
   const shown = report

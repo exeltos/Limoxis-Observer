@@ -2684,6 +2684,7 @@ button{letter-spacing:0}
 
 /* Patient registry flags: MDR / isolation badges next to clinical-scale risk flags. */
 .patient-flags-cell,.patient-infection-flags,.patient-signal-tags{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.patient-infection-organism{font-style:italic;font-size:12px;white-space:nowrap}
 
 /* Tone classes are risk-tone-* because the global button.danger rule
    (destructive buttons) would otherwise strip the flag's background.
