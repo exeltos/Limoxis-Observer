@@ -58,3 +58,16 @@ describe('several samples at once', () => {
     expect(list).toContain("const selectable = !readOnly && Boolean(onBulkDecide)")
   })
 })
+
+describe('the patient of a production sample (Codex #668)', () => {
+  it('reads the patient record from the laboratory list, which keeps it as subjectId', async () => {
+    const { normalizeLaboratorySamples } = await import('../src/features/laboratory/model/laboratoryModel')
+    const { patientRecordOf, groupSamplesByPatient } = await import('../src/features/surveillance/sampleReviewBulk')
+    const uuid = '3f1c2b7a-9d4e-4c1a-8b2f-1a2b3c4d5e6f'
+    const [row] = normalizeLaboratorySamples([{ id: 'a1', code: 'LAB-1', subject_type: 'patient', patient_id: uuid, patient_code: 'P-1', result_status: 'positive' }]) as never[]
+    expect(patientRecordOf(row)).toBe(uuid)
+    const [twin] = normalizeLaboratorySamples([{ id: 'a2', code: 'LAB-2', subject_type: 'patient', patient_id: uuid, patient_code: 'P-1', result_status: 'positive' }]) as never[]
+    expect(groupSamplesByPatient([row, twin])).toHaveLength(1)
+    expect(patientRecordOf({ id: 'x', patientId: 'PT-1' } as never)).toBeNull()
+  })
+})

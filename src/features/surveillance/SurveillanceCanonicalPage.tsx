@@ -61,7 +61,7 @@ import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleReviewModel'
 import { SampleReviewWorklist, bulkSummaryText, worklistTexts } from './SampleReviewWorklist'
-import { decideAll, episodeDraftFor, groupSamplesByPatient, openEpisodesFor } from './sampleReviewBulk'
+import { decideAll, episodeDraftFor, groupSamplesByPatient, openEpisodesFor, patientRecordOf } from './sampleReviewBulk'
 import { loadLateOnsetFlags } from './lateOnsetFlags'
 import { loadSamplesAwaitingReviewByIds } from '../laboratory/laboratoryCloudService'
 import { normalizeLaboratorySamples } from '../laboratory/model/laboratoryModel'
@@ -681,7 +681,7 @@ export function SurveillanceCanonicalPage() {
                 const result = await openEpisodesFor(groupSamplesByPatient(samples as ReviewSample[]), {
                   createCase: group => {
                     const first = group.samples[0]
-                    return clinical.createCase({ id: first.patientId || undefined, recordId: first.patientRecordId || undefined, name: first.patient, nameEn: first.patientEn || first.patient, department: first.department, departmentEn: first.departmentEn || first.department }, episodeDraftFor(group, type => t(type), hospitalToday()))
+                    return clinical.createCase({ id: first.patientId || undefined, recordId: patientRecordOf(first) || undefined, name: first.patient, nameEn: first.patientEn || first.patient, department: first.department, departmentEn: first.departmentEn || first.department }, episodeDraftFor(group, type => t(type), hospitalToday()))
                   },
                   link: (sample, caseId) => awaitingReview.repository.review(sample, { status: 'episode_opened', caseId }),
                 })

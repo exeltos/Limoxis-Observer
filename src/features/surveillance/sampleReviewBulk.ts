@@ -4,8 +4,16 @@ import type { ReviewSample } from './surveillanceListTypes'
 // patient (a neonate with several positive samples gets one episode carrying them all), or one reason for all of
 // them. Pure: the page passes the services it already uses for a single decision.
 
+// The patient record of a sample: the laboratory list keeps it as `subjectId` (the patients.id uuid) and leaves
+// `patientRecordId` out, so both are read (Codex #668: without it every production episode lacked its patient).
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const patientRecordOf = (sample: ReviewSample): string | null => {
+  const subject = sample as ReviewSample & { subjectId?: unknown, subjectType?: unknown }
+  if (sample.patientRecordId) return String(sample.patientRecordId)
+  return (!subject.subjectType || subject.subjectType === 'patient') && UUID.test(String(subject.subjectId || '')) ? String(subject.subjectId) : null
+}
 // The patient a sample belongs to: the patient record (production), else the patient code (demo).
-export const patientKeyOf = (sample: ReviewSample) => String(sample.patientRecordId || sample.patientId || sample.recordId || sample.id || '')
+export const patientKeyOf = (sample: ReviewSample) => String(patientRecordOf(sample) || sample.patientId || sample.recordId || sample.id || '')
 
 // Only the possible late-onset infections (ΜΕΝΝ: positive blood culture 72 hours or more after admission).
 export function reviewRowsShown(rows: ReviewSample[], { lateOnly = false, lateOnset = {} }: { lateOnly?: boolean, lateOnset?: Record<string, number> } = {}) {
