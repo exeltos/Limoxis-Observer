@@ -25,7 +25,7 @@ export const helpManualEn: HelpBook={
  ],steps:['Review the information in your record.','Open the section available to your role.','Request administrative corrections from the authorized role when needed.'],preview:'profile'},
  '/patients':{title:'Patients',summary:'Patient registry and entry point to the surveillance record.',audience:'Infection Control and authorized clinical roles',chapters:[
   ['Patient search','Always search before creating a new patient record to reduce the risk of duplicate records.'],
-  ['Organism / isolation','The column shows each patient’s latest organism from a positive culture, resistant or not, with the resistance tag (e.g. MDR) beside it when there is one and the isolation when it is in place.'],
+  ['Organism / isolation','The column shows each patient’s latest organism from a positive culture, resistant or not, with the resistance tag (e.g. MDR) beside it when there is one and the isolation when it is in place. The list’s search finds anything the row shows: name, code, department, admission date, status, organism and resistance, regardless of accents and capitals; with two words (e.g. «nicu coli») it finds those that have both.'],
   ['Patient record','The patient record brings together demographics and linked surveillance episodes. Available actions depend on your permission set.'],
   ['New patient','A new patient can be created only by users with Create permission and only with the minimum required information.']
  ],steps:['Search for the patient first.','Open the existing record or create a new one if permitted.','Continue to the linked surveillance episode.'],preview:'registry'},
