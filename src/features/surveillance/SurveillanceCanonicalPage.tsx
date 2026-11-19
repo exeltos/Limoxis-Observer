@@ -35,7 +35,7 @@ import {
 } from '../laboratory/laboratoryCloudService'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { createClinicalRepository } from './clinicalRepository'
-import { loadClinicalCases } from './clinicalCloudService'
+import { loadClinicalCases, loadHaiClassificationsByCase } from './clinicalCloudService'
 import { demoSurveillanceList } from './clinicalDemoData'
 import {
   employeeSurveillanceRecords,
@@ -68,7 +68,7 @@ import { samplesAwaitingReview } from '../laboratory/sampleReviewModel'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
 import { InfectionReportDialog } from './InfectionReportDialog'
 import type { InfectionPrintChoice } from './InfectionReportDialog'
-import { infectionDocument, surveillanceItems } from './infectionReport'
+import { infectionDocument, surveillanceItems, withHaiClassifications } from './infectionReport'
 import type { PatientDaysEntry } from './infectionReport'
 import { episodeTypeLabel } from './clinicalRecordLabels'
 import { downloadReportWord, printReportLater } from '../../core/export/reportDocument'
@@ -346,7 +346,11 @@ export function SurveillanceCanonicalPage() {
     const build = async () => {
       const periods = isDemo ? demoPatientDayPeriods : tenant?.id ? await loadPatientDayPeriods(tenant.id).catch(() => []) : []
       const patientDays: PatientDaysEntry[] = periods.map(row => ({ from: row.from, to: row.to, value: Number(row.value) || 0, department: row.scope === 'department' ? (en ? row.departmentEn || row.departmentEl : row.departmentEl) || row.departmentId : '' }))
-      return infectionDocument({ source: 'surveillance', items: surveillanceItems(reportCases, { language, siteOf: x => { const site = episodeTypeLabel(x, t); return site === '—' ? '' : site } }), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, filters: words, department: department === 'all' ? '' : department, patientDays })
+      // The production list reads summaries without the HAI classification: it is read here for these episodes;
+      // if it cannot be read, the report shows «—» instead of a false «no» (owner, 19/11/2026).
+      const hai = isDemo ? null : await loadHaiClassificationsByCase(tenant?.id, reportCases.map(x => String(x.recordId || '')).filter(Boolean)).catch(() => null)
+      const withHai = isDemo ? reportCases : withHaiClassifications(reportCases, hai)
+      return infectionDocument({ source: 'surveillance', items: surveillanceItems(withHai, { language, siteOf: x => { const site = episodeTypeLabel(x, t); return site === '—' ? '' : site } }), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, filters: words, department: department === 'all' ? '' : department, patientDays })
     }
     if (choice.word) { build().then(doc => downloadReportWord(doc)).catch(failed); return }
     if (!printReportLater(build, { language, onError: failed })) notify(t('indicatorsRecords.allowPopups'), 'error')

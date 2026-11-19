@@ -78,15 +78,45 @@ export function infectionComparePeriod(choice: ReportCompare | undefined, period
 }
 
 // The patient days of a period: the entries that lie inside it, the department's when the screen is on one,
-// else the hospital's (or, without those, the departments' together). Null when none were entered.
+// else the hospital's (or, without those, the departments' together). The entries must cover every day of the
+// period without a gap (owner, 19/11/2026: a rate only over the whole period); otherwise null, as for none.
 export function patientDaysIn(entries: PatientDaysEntry[] = [], period: InfectionPeriod | null, department = ''): number | null {
   if (!period) return null
-  const inside = entries.filter(entry => entry.from >= period.from && entry.to <= period.to && Number(entry.value) > 0)
+  const inside = entries.filter(entry => entry.from >= period.from && entry.to <= period.to && entry.from <= entry.to && Number(entry.value) > 0)
   const chosen = department
     ? inside.filter(entry => entry.department === department)
     : inside.some(entry => !entry.department) ? inside.filter(entry => !entry.department) : inside
   if (!chosen.length) return null
+  let reached = addDays(period.from, -1)
+  for (const entry of [...chosen].sort((a, b) => a.from.localeCompare(b.from))) {
+    if (entry.from > addDays(reached, 1)) return null
+    if (entry.to > reached) reached = entry.to
+  }
+  if (reached < period.to) return null
   return chosen.reduce((sum, entry) => sum + Number(entry.value), 0)
+}
+
+// The HAI classification of each episode, read apart when the list rows do not carry it (the production list
+// reads summaries): `byCase` by the episode's record id (or code); null when it could not be read, so the report
+// shows «—» rather than a false «no».
+export function withHaiClassifications<T extends { id?: string | null, recordId?: string | null, haiClassification?: unknown }>(cases: T[], byCase: Map<string, unknown> | null): T[] {
+  return cases.map(item => {
+    const { haiClassification: _drop, ...rest } = item
+    void _drop
+    if (!byCase) return rest as T
+    return { ...rest, haiClassification: byCase.get(String(item.recordId || '')) ?? byCase.get(String(item.id || '')) ?? null } as T
+  })
+}
+
+// Whether the report reaches before the dates already read (the laboratory list reads the last 12 months first):
+// a period without a start (everything), or a period or its comparison that starts earlier.
+export function reachesBefore(since: string, period?: Partial<InfectionPeriod> | null, compare: ReportCompare = 'none', custom?: Partial<InfectionPeriod> | null) {
+  if (!since) return false
+  if (!period?.from) return true
+  if (period.from < since) return true
+  if (compare === 'none') return false
+  const compared = infectionComparePeriod(compare, { from: period.from, to: period.to || period.from }, custom)
+  return Boolean(compared && compared.from < since)
 }
 
 export type InfectionGroup = { key: string, count: number, share: number }

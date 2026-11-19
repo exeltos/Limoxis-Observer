@@ -1,6 +1,6 @@
 // «Αναφορά λοιμώξεων» (owner, 19/11/2026): the printed report of the infections from Surveillance and the Laboratory.
 import { describe, expect, it } from 'vitest'
-import { countChange, groupItems, infectionComparePeriod, infectionDocument, infectionPeriod, itemsInPeriod, laboratoryItems, patientDaysIn, surveillanceItems } from '../src/features/surveillance/infectionReport'
+import { countChange, groupItems, infectionComparePeriod, infectionDocument, infectionPeriod, itemsInPeriod, laboratoryItems, patientDaysIn, reachesBefore, surveillanceItems, withHaiClassifications } from '../src/features/surveillance/infectionReport'
 import { buildReportHtml } from '../src/core/export/reportDocument'
 import { readSource } from './helpers/readSource'
 import type { InfectionItem } from '../src/features/surveillance/infectionReport'
@@ -99,5 +99,42 @@ describe('Infection report: the lines from the screens', () => {
     const lab = readSource('src/features/laboratory/LaboratoryWorkspace.tsx')
     expect(lab).toContain("source: 'laboratory'")
     expect(lab).toContain("sample.subjectType !== 'employee' && sample.subjectType !== 'environment'")
+  })
+})
+
+describe('Infection report: review fixes (owner, 19/11/2026)', () => {
+  it('the patient days must cover the whole period, or there is no rate', () => {
+    const october = [{ from: '2026-10-01', to: '2026-10-31', value: 900 }]
+    expect(patientDaysIn(october, { from: '2026-10-01', to: '2026-11-30' })).toBeNull()
+    expect(patientDaysIn([...october, { from: '2026-11-01', to: '2026-11-30', value: 800 }], { from: '2026-10-01', to: '2026-11-30' })).toBe(1700)
+    expect(patientDaysIn([{ from: '2026-10-01', to: '2026-10-10', value: 300 }, { from: '2026-10-12', to: '2026-10-31', value: 600 }], { from: '2026-10-01', to: '2026-10-31' })).toBeNull()
+    const html = buildReportHtml(infectionDocument({ source: 'surveillance', items, period: { from: '2026-10-01', to: '2026-11-30' }, patientDays: october }))
+    expect(html).not.toContain('ανά 1.000 κλινοημέρες</strong>')
+  })
+  it('the HAI classification read apart; unknown when it could not be read', () => {
+    const cases = [{ id: 'SV-1', recordId: 'u1', patientId: 'P1', startedAt: '2026-10-03', department: 'ΜΕΘ', haiClassification: null }]
+    const known = surveillanceItems(withHaiClassifications(cases, new Map([['u1', { status: 'confirmed', criteriaMet: true, type: 'bloodstreamInfection' }]])), { siteOf: () => '' })
+    expect(known[0].hai).toBe(true)
+    const unknown = surveillanceItems(withHaiClassifications(cases, null), { siteOf: () => '' })
+    expect(unknown[0].hai).toBeUndefined()
+    const html = buildReportHtml(infectionDocument({ source: 'surveillance', items: unknown, detail: 'full' }))
+    expect(html).not.toContain('(ΛΣΦΥ)')
+    const page = readSource('src/features/surveillance/SurveillanceCanonicalPage.tsx')
+    expect(page).toContain('loadHaiClassificationsByCase(tenant?.id')
+  })
+  it('the laboratory report keeps the result and the quick choice of the list, and names them', () => {
+    const lab = readSource('src/features/laboratory/LaboratoryWorkspace.tsx')
+    const report = lab.slice(lab.indexOf('const reportFilter'), lab.indexOf('const printInfections'))
+    expect(report).toContain("result === 'all' || (result === 'critical' ? sample.critical : sample.result === result)")
+    expect(report).toContain("quick === 'all' || (quick === 'today'")
+    expect(lab).toContain("result !== 'all' && `${t('result')}: ${resultWords[result] || result}`")
+  })
+  it('a report that reaches before the last 12 months reads the older samples', () => {
+    expect(reachesBefore('2025-11-19', { from: '', to: '' })).toBe(true)
+    expect(reachesBefore('2025-11-19', { from: '2026-10-01', to: '2026-10-31' })).toBe(false)
+    expect(reachesBefore('2025-11-19', { from: '2026-10-01', to: '2026-10-31' }, 'lastYear')).toBe(true)
+    expect(reachesBefore('2025-11-19', { from: '2026-10-01', to: '2026-10-31' }, 'custom', { from: '2025-01-01', to: '2025-01-31' })).toBe(true)
+    const lab = readSource('src/features/laboratory/LaboratoryWorkspace.tsx')
+    expect(lab).toContain('labRepository.list(null, { since: null })')
   })
 })
