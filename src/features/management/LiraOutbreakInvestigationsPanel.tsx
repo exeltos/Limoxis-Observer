@@ -8,6 +8,7 @@ import {EntityRecordShell} from '../../design-system/EntityRecordShell'
 import {SectionTabsProvider} from '../../design-system/SectionTabs'
 import {FilterBar} from '../../design-system/FilterBar'
 import {RegistryTable} from '../../design-system/RegistryTable'
+import {RegistryPagination} from '../../design-system/RegistryPagination'
 import {RegistryEmptyState} from '../../design-system/RegistryEmptyState'
 import {StatusBadge} from '../../design-system/StatusBadge'
 import {DetailList} from '../../design-system/DetailList'
@@ -123,12 +124,15 @@ export function LiraOutbreakInvestigationsPanel({shell=null}: { shell?: Outbreak
  async function saveAction(){if(!selected||!actionForm.title.trim())return;if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{const action=await createOutbreakAction(tenant!.id,selected.id,actionForm);await appendOutbreakInvestigationEvent(tenant!.id,selected.id,'decision',{action:'capa_created',capaId:action.id,title:action.title});setActions(await loadOutbreakActions(tenant!.id,selected.id));setAddingAction(false);setActionForm({title:'',owner:'',dueDate:'',priority:'medium',actionType:'corrective',description:''});notify(en?'IPC/CAPA action created.':'Η διορθωτική ενέργεια IPC δημιουργήθηκε.','success')}catch(e){notify((e as Error).message,'error')}}
  async function changeActionStatus(action: InvestigationAction,status: string){if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{await updateOutbreakActionStatus(tenant!.id,action.id,status);await appendOutbreakInvestigationEvent(tenant!.id,selected!.id,'decision',{action:'capa_status',capaId:action.id,status});setActions(await loadOutbreakActions(tenant!.id,selected!.id));setEvents(await loadOutbreakInvestigationEvents(selected!.id))}catch(e){notify((e as Error).message,'error')}}
  async function addEvidence(type: string){if(!note.trim())return;if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{await appendOutbreakInvestigationEvent(tenant!.id,selected!.id,type,{text:note.trim()});setNote('');setEvents(await loadOutbreakInvestigationEvents(selected!.id));notify(en?'Recorded.':'Καταγράφηκε.','success')}catch(e){notify((e as Error).message,'error')}}
-  const visibleClusters=useMemo(()=>clusters.filter(c=>!rows.some(r=>r.status!=='closed'&&sameOrganism(r.organism,c.organism))).sort(bySeriousness),[clusters,rows]),[showAllClusters,setShowAllClusters]=useState(false)
+  const visibleClusters=useMemo(()=>clusters.filter(c=>!rows.some(r=>r.status!=='closed'&&sameOrganism(r.organism,c.organism))).sort(bySeriousness),[clusters,rows]),[clusterPage,setClusterPage]=useState(1),[clusterPageSize,setClusterPageSize]=useState(15)
   function startNew(){setForm(EMPTY_FORM);setCreating(true)}
   function startFromCluster(cluster: Cluster){setForm(investigationFormFromCluster(cluster));setCreating(true)}
   function closeCreate(){setCreating(false);setForm(EMPTY_FORM);validation.reset()}
   const newButton=canCreate?<Button disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={startNew}><Plus size={16}/>{en?'New investigation':'Νέα διερεύνηση'}</Button>:null
   const hasRows=rows.length>0,hasClusters=visibleClusters.length>0
+  const clusterPages=Math.max(1,Math.ceil(visibleClusters.length/clusterPageSize)),clusterSafePage=Math.min(clusterPage,clusterPages)
+  const clusterPageRows=visibleClusters.slice((clusterSafePage-1)*clusterPageSize,clusterSafePage*clusterPageSize)
+  const clusterClickable=canCreate&&!blockedReason
   const loading=!rowsLoaded||!clustersLoaded
   const openCount=rows.filter(x=>x.status!=='closed').length,closedCount=rows.length-openCount
   // The counts beside the search (owner, 8/11/2026: no cards); without investigations the clusters say it themselves.
@@ -147,12 +151,17 @@ export function LiraOutbreakInvestigationsPanel({shell=null}: { shell?: Outbreak
    {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={<>{outbreakTotals}{toolbarButton}</>}/>:toolbarButton&&<div className="outbreak-toolbar">{toolbarButton}</div>}
    {hasClusters&&<section className="outbreak-clusters" aria-label={en?'Possible clusters':'Πιθανές συρροές'}>
     <h3>{en?'Possible clusters':'Πιθανές συρροές'}</h3>
-    <p className="outbreak-cluster-note">{en?'We flag 3 or more positive results of the same organism in the same department within 14 days. Start an investigation for the ones that worry you.':'Εντοπίζουμε 3 ή περισσότερα θετικά αποτελέσματα του ίδιου μικροοργανισμού στο ίδιο τμήμα μέσα σε 14 ημέρες. Ξεκινάς διερεύνηση για όσα σε προβληματίζουν.'}</p>
-    <ul>{(showAllClusters?visibleClusters:visibleClusters.slice(0,5)).map(c=><li key={clusterAlertId(c)}>
-     <div><strong>{c.organism}</strong><span>{c.department} · {clusterPatientsText(c,en)}{clusterRangeText(c,en)?` · ${clusterRangeText(c,en)}`:''}{c.resistanceLabels?.length?` · ${c.resistanceLabels.join(', ')}`:''}</span>{c.skinFloraRule&&<small className="outbreak-cluster-rule">{skinFloraRuleNote(en)}</small>}</div>
-     {canCreate&&<Button variant="secondary" className="outbreak-start" disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={()=>startFromCluster(c)}>{en?'Start investigation':'Έναρξη διερεύνησης'}</Button>}
-    </li>)}</ul>
-    {visibleClusters.length>5&&<Button variant="secondary" className="outbreak-show-all" onClick={()=>setShowAllClusters(v=>!v)}>{showAllClusters?(en?'Show fewer':'Εμφάνιση λιγότερων'):(en?`Show all ${visibleClusters.length}`:`Εμφάνιση όλων (${visibleClusters.length})`)}</Button>}
+    <p className="outbreak-cluster-note">{en?'We flag 3 or more positive results of the same organism in the same department within 14 days. Click a cluster to start an investigation.':'Εντοπίζουμε 3 ή περισσότερα θετικά αποτελέσματα του ίδιου μικροοργανισμού στο ίδιο τμήμα μέσα σε 14 ημέρες. Πατήστε μια συρροή για να ξεκινήσετε διερεύνηση.'}</p>
+    {/* A paged table filling the page, no buttons on the rows (owner, 19/11/2026): a click on a cluster opens the new investigation, filled in. */}
+    <RegistryTable
+     wrapperClassName="table-wrap scroll-table outbreak-cluster-table"
+     columns={[{key:'organism',label:en?'Organism':'Μικροοργανισμός'},{key:'department',label:en?'Department':'Τμήμα'},{key:'patients',label:en?'Patients / samples':'Ασθενείς / δείγματα'},{key:'period',label:en?'Period':'Περίοδος'},{key:'resistance',label:en?'Resistance':'Αντοχή'}]}
+     rows={clusterPageRows}
+     rowKey={c=>clusterAlertId(c)}
+     rowProps={c=>clusterClickable?{className:'clickable-row',tabIndex:0,title:en?'Start an investigation':'Έναρξη διερεύνησης',onClick:()=>startFromCluster(c),onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();startFromCluster(c)}}}:{}}
+     renderRow={c=><><td><strong>{c.organism}</strong>{c.skinFloraRule&&<small className="outbreak-cluster-rule">{skinFloraRuleNote(en)}</small>}</td><td>{c.department||'—'}</td><td>{clusterPatientsText(c,en)}</td><td>{clusterRangeText(c,en)||'—'}</td><td>{c.resistanceLabels?.length?c.resistanceLabels.join(', '):'—'}</td></>}
+    />
+    <RegistryPagination language={en?'en':'el'} page={clusterSafePage} totalPages={clusterPages} totalItems={visibleClusters.length} pageSize={clusterPageSize} onPageChange={setClusterPage} onPageSizeChange={size=>{setClusterPageSize(size);setClusterPage(1)}}/>
    </section>}
    {hasRows&&<h3 className="outbreak-section-title">{en?'Investigations':'Διερευνήσεις'}</h3>}
    {hasRows&&<RegistryTable

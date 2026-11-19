@@ -47,21 +47,17 @@
 .outbreak-evidence li>.status-badge{justify-self:start}
 .outbreak-workspace #lira-investigation-capa td:first-child{min-width:220px}
 .outbreak-investigations{margin-top:14px}
-.page-fill>.outbreak-investigations{margin-top:0}
+.page-fill>.outbreak-investigations{margin-top:0;flex:1;min-height:0;display:flex;flex-direction:column}
+/* The clusters fill the page down to their pages and scroll inside (owner, 19/11/2026). */
+.page-fill>.outbreak-investigations>.outbreak-clusters{flex:1 1 0;min-height:220px;display:flex;flex-direction:column}
+.page-fill>.outbreak-investigations>.outbreak-clusters>h3,.page-fill>.outbreak-investigations>.outbreak-clusters>.outbreak-cluster-note{flex:0 0 auto}
+.outbreak-clusters .outbreak-cluster-table{flex:1 1 auto;min-height:0;overflow:auto;background:var(--lo-color-surface);border-radius:8px}
+.page-fill>.outbreak-investigations>.scroll-table{flex:1 1 0;min-height:160px}
 .outbreak-clusters{margin:0 0 14px;padding:10px 14px;border:1px solid var(--border-brand-914-2);border-radius:10px;background:var(--surface-subtle)}
 .outbreak-clusters h3{margin:0 0 6px;font-size:13px;font-weight:750;color:var(--text-heading)}
-.outbreak-clusters ul{margin:0;padding:0;list-style:none}
-.outbreak-clusters li{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid var(--border-neutral-947)}
-.outbreak-clusters li:first-child{border-top:0}
-.outbreak-clusters li>div{min-width:0}
-.outbreak-clusters li strong{display:block;font-size:13px;color:var(--text-heading)}
-.outbreak-clusters li span{display:block;margin-top:2px;font-size:12px;color:var(--text-neutral-429)}
 .outbreak-toolbar{display:flex;justify-content:flex-end;margin:0 0 10px}
 .outbreak-section-title{margin:0 0 6px;font-size:13px;font-weight:750;color:var(--text-heading)}
-.outbreak-clusters li .outbreak-start{flex:none;min-height:30px;padding:3px 12px;font-size:12.5px}
 .outbreak-cluster-note{margin:0 0 12px;font-size:12.5px;color:var(--text-neutral-357)}
-.outbreak-clusters li small.outbreak-cluster-rule{display:block;margin-top:2px;font-size:12px;color:var(--text-warning-239-2)}
+.outbreak-cluster-table small.outbreak-cluster-rule{display:block;margin-top:2px;font-size:12px;color:var(--text-warning-239-2)}
 .outbreak-create-form{min-width:0;max-width:100%}
 .outbreak-create-form .lo-form-grid>*{min-width:0}
-@media(max-width:640px){.outbreak-clusters li{flex-direction:column;align-items:flex-start}}
-.outbreak-clusters .outbreak-show-all{margin-top:8px}

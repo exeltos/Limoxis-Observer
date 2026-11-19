@@ -57,14 +57,16 @@ describe('Outbreak investigations tab', () => {
     const newButtons = screen.getAllByRole('button', { name: /Νέα διερεύνηση/ })
     expect(newButtons).toHaveLength(1)
     expect(newButtons[0]).not.toBeDisabled()
-    expect(screen.getAllByRole('button', { name: 'Έναρξη διερεύνησης' }).length).toBeGreaterThan(0)
+    // No buttons on the cluster rows (owner, 19/11/2026): the row itself starts the investigation.
+    expect(screen.queryByRole('button', { name: 'Έναρξη διερεύνησης' })).not.toBeInTheDocument()
+    expect(document.querySelectorAll('.outbreak-cluster-table tbody tr.clickable-row').length).toBeGreaterThan(0)
   })
 
   it('pre-fills a new investigation from a cluster and keeps it on the screen in the demo', async () => {
     await openOutbreaks()
-    const start = (await screen.findAllByRole('button', { name: 'Έναρξη διερεύνησης' }))[0]
-    const cluster = start.closest('li')
-    const organism = cluster.querySelector('strong').textContent
+    await screen.findByText('Πιθανές συρροές')
+    const start = document.querySelector('.outbreak-cluster-table tbody tr.clickable-row') as HTMLElement
+    const organism = start.querySelector('strong').textContent
     fireEvent.click(start)
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByDisplayValue(organism)).toBeInTheDocument()
