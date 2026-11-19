@@ -43,7 +43,7 @@ import { Field } from '../../design-system/Field'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround, waitingHours } from './model/laboratoryModel'
-import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
+import { recentSince, useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
 import { LAB_STATUS_ORDER, LaboratoryStatus, labResultLabel, labSampleStatus, labStatusLabel } from './LaboratoryStatus'
 import { OUTCOME_RESULTS } from './LaboratoryStatus'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
@@ -55,7 +55,7 @@ import './LaboratoryWorkspace.css'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { InfectionReportDialog } from '../surveillance/InfectionReportDialog'
 import type { InfectionPrintChoice } from '../surveillance/InfectionReportDialog'
-import { infectionDocument, laboratoryItems } from '../surveillance/infectionReport'
+import { infectionDocument, laboratoryItems, reachesBefore } from '../surveillance/infectionReport'
 import type { PatientDaysEntry } from '../surveillance/infectionReport'
 import { downloadReportWord, printReportLater } from '../../core/export/reportDocument'
 import { demoPatientDayPeriods } from '../management/managementData'
@@ -266,24 +266,32 @@ export function LaboratoryWorkspace() {
     ]),
   })
   // «Αναφορά λοιμώξεων» (owner, 19/11/2026): the positive samples of patients that the list's filters keep (search,
-  // department, status), at any date; the dialog sets the period and the comparison.
+  // department, status, result, the quick choice), at any date; the dialog sets the period and the comparison.
+  const reportFilter = (samples: LabSample[]) => samples
+    .filter(sample => canAccessRecord(sample) && sample.subjectType !== 'employee' && sample.subjectType !== 'environment')
+    .filter(sample => `${sample.id} ${sample.patient} ${sample.patientEn} ${sample.patientId} ${sample.organism ?? ''} ${sample.surveillanceCase ?? ''}`.toLowerCase().includes(query.toLowerCase()))
+    .filter(sample => status === 'all' || sample.status === status)
+    .filter(sample => result === 'all' || (result === 'critical' ? sample.critical : sample.result === result))
+    .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)
+    .filter(sample => quick === 'all' || (quick === 'today' ? String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === hospitalToday() : LAB_PENDING_STATUSES.includes(sample.status)))
   const printInfections = (choice: InfectionPrintChoice) => {
     setInfectionPrint(false)
     const en = language === 'en'
-    const base = repositoryRows
-      .filter(sample => canAccessRecord(sample) && sample.subjectType !== 'employee' && sample.subjectType !== 'environment')
-      .filter(sample => `${sample.id} ${sample.patient} ${sample.patientEn} ${sample.patientId} ${sample.organism ?? ''} ${sample.surveillanceCase ?? ''}`.toLowerCase().includes(query.toLowerCase()))
-      .filter(sample => status === 'all' || sample.status === status)
-      .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)
+    const resultWords: Record<string, string> = { positive: t('positive'), negative: t('negative'), critical: t('criticalResult') }
     const words = [
       department !== 'all' && `${t('department')}: ${department}`,
       status !== 'all' && `${en ? 'Status' : 'Κατάσταση'}: ${labStatusLabel(status, language)}`,
+      result !== 'all' && `${t('result')}: ${resultWords[result] || result}`,
+      quick !== 'all' && (quick === 'today' ? t('laboratoryRecords.samplesToday') : t('laboratoryRecords.pendingResults')),
       query.trim() && `${en ? 'Search' : 'Αναζήτηση'}: «${query.trim()}»`,
     ].filter(Boolean) as string[]
     const failed = (error: unknown) => notify((error as Error)?.message || t('actionFailed'), 'error')
     const build = async () => {
       const periods = isDemo ? demoPatientDayPeriods : tenant?.id ? await loadPatientDayPeriods(tenant.id).catch(() => []) : []
       const patientDays: PatientDaysEntry[] = periods.map(row => ({ from: row.from, to: row.to, value: Number(row.value) || 0, department: row.scope === 'department' ? (en ? row.departmentEn || row.departmentEl : row.departmentEl) || row.departmentId : '' }))
+      // The list holds the last 12 months first: a report that reaches earlier reads every sample (owner, 19/11/2026).
+      const older = recentOnly && reachesBefore(recentSince(), { from: choice.from, to: choice.to }, choice.compare, { from: choice.compareFrom, to: choice.compareTo })
+      const base = reportFilter(older ? maskStaffSamples((await labRepository.list(null, { since: null })).data, role || actualRole) : repositoryRows)
       return infectionDocument({ source: 'laboratory', items: laboratoryItems(base, { language, typeOf: sample => sampleTypeLabel(sample, t, language), statusOf: sample => labSampleStatus(sample, language)?.text || '', codeOf: sample => displaySampleCode(sample) }), period: { from: choice.from, to: choice.to }, compare: choice.compare, custom: { from: choice.compareFrom, to: choice.compareTo }, detail: choice.detail, language, filters: words, department: department === 'all' ? '' : department, patientDays })
     }
     if (choice.word) { build().then(doc => downloadReportWord(doc)).catch(failed); return }

@@ -14,7 +14,8 @@ const initialState: RegistryState = { rows: [], loading: true, error: null, read
 // kept stable by the caller) narrows the production read to one patient.
 // `recent`: the laboratory's own list reads the last 12 months (and what is still open); showOlder() reads every sample.
 export const RECENT_MONTHS = 12
-const sinceDate = () => { const day = new Date(); day.setMonth(day.getMonth() - RECENT_MONTHS); return hospitalDate(day) }
+export const recentSince = () => { const day = new Date(); day.setMonth(day.getMonth() - RECENT_MONTHS); return hospitalDate(day) }
+const sinceDate = recentSince
 export function useLaboratoryRegistry({ enabled = true, scope = null, recent = false }: { enabled?: boolean, scope?: LaboratoryScope | null, recent?: boolean } = {}) {
   const repository = useLaboratoryRepository()
   const [state, setState] = useState<RegistryState>(enabled ? initialState : { ...initialState, loading: false })
