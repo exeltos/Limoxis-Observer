@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type HTMLAttributes, type ReactNode } from 'react'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -139,8 +140,5 @@ export function KitchenList<T extends KitchenListItem>({ rows, query, onQueryCha
   </>
 }
 
-export const matches = (query: string, ...values: unknown[]) => {
-  const needle = String(query || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
-  if (!needle) return true
-  return values.join(' ').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(needle)
-}
+// Every typed word must appear in what the row shows, without accents or case (the platform's search).
+export const matches = (query: string, ...values: unknown[]) => matchesSearch(query, values)

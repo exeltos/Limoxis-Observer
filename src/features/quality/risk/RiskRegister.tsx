@@ -4,7 +4,8 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { AlertTriangle,ChevronRight,Star } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryTable } from '../../../design-system/RegistryTable'
-import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from './riskModel'
+import { JCI_CHAPTERS,LEVELS,SECTIONS,levelLabel,riskWarnings,scored,warningLabel } from './riskModel'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
 import { L,LevelChip,defaultFrame,returnedClass,txt,usePaged,type RiskFrame } from './riskUi'
 import { IndicatorBadge } from './RiskIndicatorsUi'
 import type { HeatCell,IndicatorValueMap,RegisterPreset,RegisterRow,Risk,RiskEvidenceCount,ScoredRisk } from './riskTypes'
@@ -51,8 +52,8 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
  const all=useMemo(()=>risks.map(risk=>({risk,s:scored(risk),warnings:riskWarnings(risk)})),[risks])
  const counts=useMemo(()=>Object.fromEntries(Object.entries(QUICK).map(([id,test])=>[id,all.filter(test).length])),[all])
  const rows=useMemo(()=>all.filter(x=>!quick||QUICK[quick](x)).filter(({risk,s,warnings})=>{
-  const text=`${risk.lineageKey} ${txt(risk,'process',en)} ${txt(risk,'scope',en)} ${txt(risk,'hazard',en)} ${txt(risk,'owner',en)} ${risk.indicator||''}`.toLowerCase()
-  if(query&&!text.includes(query.toLowerCase()))return false
+  // Everything the row shows (owner, 19/11/2026: the searches find everything).
+  if(!matchesSearch(query,[risk.lineageKey,txt(risk,'process',en),txt(risk,'scope',en),txt(risk,'hazard',en),txt(risk,'owner',en),risk.indicator,risk.jci?`JCI ${risk.jci}`:'',...[s.inherent,s.residual,s.target].map(x=>x.level?levelLabel(x.level,en):''),risk.dueDate?formatDay(risk.dueDate,en?'en':'el'):'',...warnings.filter(w=>w.tone!=='info').map(w=>warningLabel(w.id,en))]))return false
   if(section!=='all'&&risk.section!==section)return false
   if(process!=='all'&&txt(risk,'process',en)!==process)return false
   if(level!=='all'&&s.residual.level!==level)return false
@@ -83,7 +84,7 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
  ]}/>
  return frame(null,<>
   <div className="risk-toolbar">
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση κινδύνου, διεργασίας, τμήματος…','Search risk, process, department…')} activeAdvancedCount={active} end={totals} onClear={()=>{setQuery('');setSection('all');setProcess('all');setLevel('all');setJci('all');setFlag('all');setQuick(null);onClearCell?.()}}>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση…','Search…')} activeAdvancedCount={active} end={totals} onClear={()=>{setQuery('');setSection('all');setProcess('all');setLevel('all');setJci('all');setFlag('all');setQuick(null);onClearCell?.()}}>
     <FilterSelect label={L(en,'Ενότητα','Section')} value={section} onChange={setSection}><option value="all">{L(en,'Όλες','All')}</option>{SECTIONS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</FilterSelect>
     <FilterSelect label={L(en,'Διεργασία','Process')} value={process} onChange={setProcess}><option value="all">{L(en,'Όλες','All')}</option>{processes.map(p=><option key={p} value={p}>{p}</option>)}</FilterSelect>
     <FilterSelect label={L(en,'Υπολειπόμενος κίνδυνος','Residual risk')} value={level} onChange={setLevel}><option value="all">{L(en,'Όλα τα επίπεδα','All levels')}</option>{LEVELS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</FilterSelect>

@@ -3,6 +3,8 @@ import { useEffect,useMemo,useState,type RefObject } from 'react'
 import { Plus,Upload,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
+import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { Page } from '../../design-system/Page'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -50,7 +52,7 @@ export function EmployeesPage(){
   const [hospitalDepartments,setHospitalDepartments]=useState<string[]>([])
   useEffect(()=>{setHospitalDepartments([]);if(isDemo||!tenant?.id)return;let live=true;loadDepartments(tenant.id).then(rows=>{if(live)setHospitalDepartments((rows||[]).filter(row=>row.is_active!==false).map(row=>row.name))}).catch(()=>{if(live)setHospitalDepartments([])});return()=>{live=false}},[isDemo,tenant?.id])
   const departments=useMemo(()=>{const names=new Map();for(const name of [...employeeRows.map(x=>language==='el'?x.department:x.departmentEn),...hospitalDepartments].filter(Boolean)){const key=String(name).trim().toLocaleLowerCase('el');if(!names.has(key))names.set(key,String(name).trim())}return [...names.values()].sort((a,b)=>a.localeCompare(b,language==='el'?'el':'en',{sensitivity:'base'}))},[employeeRows,language,hospitalDepartments])
-  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||String((language==='el'?x.department:x.departmentEn)||'').trim().toLocaleLowerCase('el')===department.toLocaleLowerCase('el')).filter(x=>status==='all'||(status==='new'?isNewHire(x):x.employmentStatus===status)).filter(x=>category==='all'||staffCategoryOf(x)===category),[employeeRows,query,department,status,category,language,canAccessRecord])
+  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>{const visit=showHealth?lastVisitOf(x):null;return matchesSearch(query,[x.id,x.firstName,x.firstNameEn,x.lastName,x.lastNameEn,x.email,x.department,x.departmentEn,x.profession,x.professionEn,x.position,x.positionEn,isStaffEmployee(x)?'':staffCategoryLabel(staffCategoryOf(x),language),t(x.employmentStatus),visit?formatDay(visit.date,language):'',visit?fitnessLabel(visit.fitStatus,language):''])}).filter(x=>department==='all'||String((language==='el'?x.department:x.departmentEn)||'').trim().toLocaleLowerCase('el')===department.toLocaleLowerCase('el')).filter(x=>status==='all'||(status==='new'?isNewHire(x):x.employmentStatus===status)).filter(x=>category==='all'||staffCategoryOf(x)===category),[employeeRows,query,department,status,category,language,canAccessRecord,showHealth,lastVisitOf,t])
   useEffect(()=>setPage(1),[query,department,status,category,pageSize])
   const photoUrls=useEmployeePhotoUrls(useMemo(()=>rows.slice((page-1)*pageSize,page*pageSize),[rows,page,pageSize]))
   if(loading)return <RouteLoading/>

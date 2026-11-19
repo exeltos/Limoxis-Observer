@@ -1,4 +1,4 @@
-// Search that finds a row by anything it shows (owner, 19/11/2026: «οι αναζητήσεις να ψάχνουν τα πάντα»), without
+// Search that finds a row by anything it shows (owner, 19/11/2026: the searches find everything), without
 // minding accents or capitals: every word typed must appear somewhere in the row's texts.
 export const foldSearch = (value: unknown) => String(value ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 

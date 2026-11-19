@@ -24,7 +24,7 @@ export function DepartmentSelfAssessmentsPage() {
   const navigate = useNavigate()
   const list = useSelfAssessments(tenant?.id)
   const [query, setQuery] = useState('')
-  const rows = useMemo(() => filterSelf(list.items.filter(item => item.status !== 'draft'), query), [list.items, query])
+  const rows = useMemo(() => filterSelf(list.items.filter(item => item.status !== 'draft'), query, language), [list.items, query, language])
   return <Page fill title={L(en, 'Αυτοαξιολόγηση τμήματος', 'Department self-assessment')} subtitle={L(en, 'Οι αυτοαξιολογήσεις που σας ανέθεσε το Γραφείο Ποιότητας, ως προετοιμασία για την επιθεώρηση.', 'The self-assessments the Quality Office released to you, as a preparation for the audit.')}>
     <section className="surface registry-workspace workspace-column workspace-fill">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en, 'Αναζήτηση…', 'Search…')} />

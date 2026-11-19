@@ -1,4 +1,6 @@
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import { formatDay } from '../../../core/i18n/formatDay'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
 // Quality resources (ISO 9001 §7.1.5 and §8.4): the medical equipment and its
 // maintenance and calibration programme, and the external providers with their
 // certifications, yearly evaluations and nonconformities. Everything here is
@@ -131,11 +133,11 @@ export function equipmentCounts(rows: EquipmentRow[] = []) {
 }
 
 export const NO_EQUIPMENT_FILTERS: EquipmentFilters = { query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }
-export function filterEquipment(rows: EquipmentRow[] = [], filters: EquipmentFilters = NO_EQUIPMENT_FILTERS) {
-  const q = String(filters.query || '').trim().toLocaleLowerCase('el')
+// The search finds a row by anything it shows (owner, 19/11/2026: the searches find everything).
+export function filterEquipment(rows: EquipmentRow[] = [], filters: EquipmentFilters = NO_EQUIPMENT_FILTERS, language = 'el') {
   const quick = filters.quick
   return rows
-    .filter(row => !q || [row.code, row.name, row.manufacturer, row.model, row.serialNumber, row.inventoryNumber, row.location, row.department, row.supplierName].some(value => String(value || '').toLocaleLowerCase('el').includes(q)))
+    .filter(row => matchesSearch(filters.query, [row.code, row.name, row.manufacturer, row.model, row.serialNumber, row.inventoryNumber, row.location, row.department, row.departmentEn, row.supplierName, criticalityLabel(row.criticality, language), row.next ? eventKindLabel(row.next.kind, language) : '', row.next ? formatDay(row.next.nextDue, language) : '', dueStateLabel(row.due, language), equipmentStateLabel(row.state, language), row.downSince ? formatDay(row.downSince, language) : '']))
     .filter(row => filters.department === 'all' || row.departmentId === filters.department)
     .filter(row => (filters.state === 'all' ? row.state !== 'retired' || quick === 'retired' : row.state === filters.state))
     .filter(row => filters.due === 'all' || row.due === filters.due)
@@ -317,11 +319,11 @@ export function supplierCounts(rows: SupplierRow[] = []) {
 }
 
 export const NO_SUPPLIER_FILTERS: SupplierFilters = { query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }
-export function filterSuppliers(rows: SupplierRow[] = [], filters: SupplierFilters = NO_SUPPLIER_FILTERS) {
-  const q = String(filters.query || '').trim().toLocaleLowerCase('el')
+// `notes`: the «needs attention» labels the row shows.
+export function filterSuppliers(rows: SupplierRow[] = [], filters: SupplierFilters = NO_SUPPLIER_FILTERS, language = 'el', notes: (row: SupplierRow) => string[] = () => []) {
   const quick = filters.quick
   return rows
-    .filter(row => !q || [row.code, row.name, row.legalName, row.taxId, row.products, row.contactName, row.city].some(value => String(value || '').toLocaleLowerCase('el').includes(q)))
+    .filter(row => matchesSearch(filters.query, [row.code, row.name, row.legalName, row.taxId, row.products, row.contactName, row.city, criticalityLabel(row.criticality, language), supplierCategoryLabel(row.category, language), row.latestEvaluation ? formatDay(row.latestEvaluation.evaluatedOn, language) : '', formatDay(row.nextEvaluation, language), approvalLabel(row.approval, language), ...notes(row)]))
     .filter(row => filters.category === 'all' || supplierCategoryOf(row.category) === filters.category)
     .filter(row => filters.approval === 'all' || row.approval === filters.approval)
     .filter(row => filters.criticality === 'all' || row.criticality === filters.criticality)

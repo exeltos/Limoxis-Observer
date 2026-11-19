@@ -58,8 +58,9 @@ export const domainOf = (url: string) => { try { const parsed = new URL(url); re
 export const isHttpUrl = (value: unknown) => /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(String(value || '').trim())
 
 const fold = (text: unknown) => String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('el').replace(/ς/g, 'σ')
-const haystack = (item: LibraryItem, language: string) => fold([item.name, item.abbreviation, item.organisation, item.url, item.descriptionEl, item.descriptionEn, ...(item.tags || []).map((tag: string) => topicLabel(tag, language)), ...(item.tags || [])].join(' '))
-export const matchesQuery = (item: LibraryItem, query: string, language: string) => !String(query || '').trim() || haystack(item, language).includes(fold(query.trim()))
+const haystack = (item: LibraryItem, language: string) => fold([item.name, item.abbreviation, item.organisation, item.url, item.descriptionEl, item.descriptionEn, item.year, ...(item.tags || []).map((tag: string) => topicLabel(tag, language)), ...(item.tags || [])].join(' '))
+// Every typed word must appear somewhere in the entry (the platform's search, with final sigma folded too).
+export const matchesQuery = (item: LibraryItem, query: string, language: string) => { const words = fold(query).split(/\s+/).filter(Boolean); if (!words.length) return true; const text = haystack(item, language); return words.every(word => text.includes(word)) }
 
 // The «Σύνδεσμοι» tab: the published links, grouped, with the hospital's own in their group.
 export function linkGroups(items: LibraryItem[], { query = '', group = 'all', language = 'el' }: { query?: string, group?: string, language?: string } = {}) {

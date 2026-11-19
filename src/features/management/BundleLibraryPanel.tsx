@@ -1,4 +1,5 @@
 import './managementScreens.css'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useEffect,useMemo,useState } from 'react'
 import { Check,Copy,LockKeyhole,Plus,RotateCcw,Trash2,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -43,7 +44,7 @@ export function BundleLibraryPanel({global=false}: {global?: boolean}={}){
  const [query,setQuery]=useState('')
  const [status,setStatus]=useState('all')
  const [selected,setSelected]=useState<BundleLibraryTemplate|null>(null)
- const filtered=useMemo(()=>rows.filter(x=>!x.hidden).filter(x=>status==='all'||x.status===status).filter(x=>`${x.bundleKey||''} ${x.name||''} ${x.titleEl||''} ${x.titleEn||''} ${x.source||''} ${x.scope||''}`.toLowerCase().includes(query.toLowerCase())),[rows,query,status])
+ const filtered=useMemo(()=>rows.filter(x=>!x.hidden).filter(x=>status==='all'||x.status===status).filter(x=>matchesSearch(query,[x.bundleKey,x.name,x.titleEl,x.titleEn,x.source,x.scope])),[rows,query,status])
 
  useEffect(()=>{
   if(isDemo){setRows(loadBundleLibrary().map(normalize));setLoading(false);return}

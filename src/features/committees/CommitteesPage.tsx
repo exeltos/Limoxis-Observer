@@ -1,4 +1,5 @@
 import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useEffect,useMemo,useState,type RefObject } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookOpenCheck,Plus } from 'lucide-react'
@@ -33,7 +34,7 @@ export function CommitteesPage(){
  const isOverdue=(row: Row)=>(row.decisions||[]).some(x=>!['completed','closed'].includes(x.status)&&x.dueDate&&new Date(x.dueDate)<new Date())
  // When each committee should meet next: last meeting held + its frequency, or the meeting already planned.
  const schedules=useMemo(()=>new Map(rows.map(row=>[row.id,committeeSchedule(row)])),[rows])
- const base=useMemo(()=>rows.filter(x=>(status==='all'||x.status===status)&&(!overdueOnly||isOverdue(x))&&`${x.name} ${x.shortName} ${x.chair}`.toLowerCase().includes(query.toLowerCase())),[rows,query,status,overdueOnly])
+ const base=useMemo(()=>rows.filter(x=>(status==='all'||x.status===status)&&(!overdueOnly||isOverdue(x))&&matchesSearch(query,[x.name,x.shortName,x.chair])),[rows,query,status,overdueOnly])
  const filtered=useMemo(()=>base.filter(x=>meetingState==='all'||schedules.get(x.id)?.state===meetingState),[base,meetingState,schedules])
  const sortAccessors=useMemo((): Record<string,(row: Row)=>string|number>=>({code:row=>row.id||'',name:row=>row.name||'',chair:row=>row.chair||'',term:row=>row.termStart||'',members:row=>row.members?.length||0,pending:row=>row.decisions?.filter(x=>!['completed','closed'].includes(x.status)).length||0,next:row=>schedules.get(row.id)?.due||'9999',status:row=>row.status==='active'?(en?'Active':'Ενεργή'):(en?'Inactive':'Ανενεργή')}),[en,schedules])
  const sorted=useMemo(()=>{const list=[...filtered];const get=sortAccessors[sort.key]||sortAccessors.name;list.sort((a,b)=>{const av=get(a),bv=get(b);const cmp=typeof av==='number'&&typeof bv==='number'?av-bv:String(av).localeCompare(String(bv),language);return sort.dir==='asc'?cmp:-cmp});return list},[filtered,sort,sortAccessors,language])

@@ -1,4 +1,5 @@
 import './trainingScreens.css'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useMemo,useState } from 'react'
 import { Plus,Search,Trash2,UserRoundPlus,Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -20,7 +21,7 @@ export function TrainingParticipantsDialog({employees=[],alreadyAssignedIds=[],d
  const [mode,setMode]=useState(employees.length?'registry':'manual'),[ids,setIds]=useState<string[]>([]),[query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[manualDraft,setManualDraft]=useState(emptyManual),[manualEntries,setManualEntries]=useState<ManualEntry[]>([])
  const assignedSet=useMemo(()=>new Set((alreadyAssignedIds||[]).map(String)),[alreadyAssignedIds])
  const departmentNames=useMemo(()=>[...new Set(employees.map(x=>x.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el')),[employees])
- const visible=useMemo(()=>employees.filter(x=>(department==='all'||x.department===department)&&`${x.firstName||''} ${x.lastName||''} ${x.id||''} ${x.employeeCode||''} ${x.email||''} ${x.department||''}`.toLowerCase().includes(query.toLowerCase())),[employees,department,query])
+ const visible=useMemo(()=>employees.filter(x=>(department==='all'||x.department===department)&&matchesSearch(query,[x.firstName,x.lastName,x.firstNameEn,x.lastNameEn,x.id,x.employeeCode,x.email,x.department,x.profession,x.position])),[employees,department,query])
  const selectableVisible=useMemo(()=>visible.filter(x=>!assignedSet.has(String(x.id||x.employeeCode||''))),[visible,assignedSet])
  const selected=useMemo(()=>employees.filter(x=>ids.includes(x.id)&&!assignedSet.has(String(x.id||x.employeeCode||''))),[employees,ids,assignedSet])
  const availableCount=useMemo(()=>employees.filter(x=>!assignedSet.has(String(x.id||x.employeeCode||''))).length,[employees,assignedSet])

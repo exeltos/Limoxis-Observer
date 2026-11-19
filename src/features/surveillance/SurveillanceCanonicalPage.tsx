@@ -17,7 +17,8 @@ import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTableSort } from '../../design-system/useTableSort'
-import { formatDay } from '../../core/i18n/formatDay'
+import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -51,6 +52,7 @@ import {
   EnvironmentalSurveillanceFlow,
   environmentalNeedsAction,
   environmentalResampleInitial,
+  environmentalStatusDisplay,
 } from './EnvironmentalSurveillanceFlow'
 import { isEnvironmentalSample } from './environmentalSurveillanceData'
 import { PERIOD_DAYS, employeeScreeningLabel, inPeriod } from './surveillanceOptions'
@@ -63,7 +65,7 @@ import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleRevie
 import { SampleReviewWorklist, bulkSummaryText, worklistTexts } from './SampleReviewWorklist'
 import { decideAll, episodeDraftFor, groupSamplesByPatient, openEpisodesFor, patientRecordOf } from './sampleReviewBulk'
 import { loadLateOnsetFlags } from './lateOnsetFlags'
-import { loadSamplesAwaitingReviewByIds } from '../laboratory/laboratoryCloudService'
+import { loadSamplesAwaitingReviewByIds, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { normalizeLaboratorySamples } from '../laboratory/model/laboratoryModel'
 import { samplesAwaitingReview } from '../laboratory/sampleReviewModel'
 import { latestOrganism, latestResistance, reviewState } from './surveillanceListModel'
@@ -76,7 +78,7 @@ import { downloadReportWord, printReportLater } from '../../core/export/reportDo
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { demoPatientDayPeriods } from '../management/managementData'
 import { loadPatientDayPeriods } from '../management/patientDayPeriodsCloudService'
-import { EmployeeRows, groupByPatient, HIDDEN_CASE_STATUSES, matchesEmployeeQuick, matchesEnvironmentQuick, matchesQuick, PatientRows } from './SurveillanceListRows'
+import { EmployeeRows, employeeFollowupState, groupByPatient, HIDDEN_CASE_STATUSES, matchesEmployeeQuick, matchesEnvironmentQuick, matchesQuick, PatientRows } from './SurveillanceListRows'
 import type { ClinicalCase } from './clinicalTypes'
 import type { LibraryDepartment } from '../management/useLibraries'
 import type { EmployeeScreeningRow, EnvironmentalResample, EnvironmentalSampleRow, NewEpisodeDraft, OpenProtocolRun, ReviewSample, SurveillanceListRow, SurveillancePatient } from './surveillanceListTypes'
@@ -170,14 +172,13 @@ export function SurveillanceCanonicalPage() {
     return () => { live = false }
   }, [lateOnset, awaitingReview.rows, tenant?.id, isDemo])
   const reviewRows = useMemo(() => {
-    const q = query.trim().toLowerCase()
     const merged = [...lateOnsetRows, ...awaitingReview.rows.filter(row => !lateOnsetRows.some(extra => extra.recordId === row.recordId))]
     const flaggedFirst = [...merged].sort((a, b) => Number(lateOnset[String(b.recordId)] != null) - Number(lateOnset[String(a.recordId)] != null))
     return flaggedFirst
       .filter(canAccessRecord)
-      .filter(x => !q || `${x.patient || ''} ${x.patientEn || ''} ${x.patientId || ''} ${x.organism || ''} ${x.id || ''}`.toLowerCase().includes(q))
+      .filter(x => matchesSearch(query, [x.patient, x.patientEn, x.patientId, x.department, x.departmentEn, x.organism, x.resistance, x.id, formatDateTime(x.collectedAt || x.requestedAt, language), sampleTypeLabel(x, t, language)]))
       .filter(x => department === 'all' || (language === 'el' ? x.department : x.departmentEn) === department)
-  }, [awaitingReview.rows, lateOnsetRows, lateOnset, canAccessRecord, query, department, language])
+  }, [awaitingReview.rows, lateOnsetRows, lateOnset, canAccessRecord, query, department, language, t])
   const showWorklist = canSeeReview && mode === 'patients' && quick === 'review'
   const platformOwnerNoTenant = !isDemo && actualRole === ROLES.PLATFORM_OWNER && !tenant?.id
   const productionOrganizations = (memberships || []).filter(
@@ -263,17 +264,13 @@ export function SurveillanceCanonicalPage() {
 
   const fmt = (value: unknown) => formatDay(value, language)
   const filtered = useMemo((): SurveillanceListRow[] => {
-    const q = query.trim().toLowerCase()
     if (mode === 'patients')
       return groupByPatient(
         cases
           .filter(canAccessRecord)
           .filter(x => !quick || matchesQuick(x, quick))
-          .filter(x =>
-            `${x.patient || ''} ${x.patientEn || ''} ${x.patientId || ''} ${latestOrganism(x) || ''}`
-              .toLowerCase()
-              .includes(q),
-          )
+          // Everything the row shows (owner, 19/11/2026: the searches find everything).
+          .filter(x => matchesSearch(query, [x.patient, x.patientEn, x.patientId, x.id, x.department, x.departmentEn, formatDay(x.startedAt, language), latestOrganism(x), latestResistance(x), t(x.status as string)]))
           .filter(
             x =>
               department === 'all' ||
@@ -287,11 +284,7 @@ export function SurveillanceCanonicalPage() {
     if (mode === 'employees')
       return employeeRows
         .filter(x => !quick || matchesEmployeeQuick(x, quick))
-        .filter(x =>
-          `${x.employeeName || ''} ${x.employeeNameEn || ''} ${x.employeeId || ''}`
-            .toLowerCase()
-            .includes(q),
-        )
+        .filter(x => matchesSearch(query, [x.employeeName, x.employeeNameEn, x.employeeId, x.department, x.departmentEn, formatDay(x.startedAt, language), ...(x.screeningTypes || []).map((id: string) => employeeScreeningLabel(id, language)), t(String(x.resultStatus || 'pending')), employeeFollowupState(x) === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(employeeFollowupState(x))]))
         .filter(
           x =>
             department === 'all' ||
@@ -301,11 +294,7 @@ export function SurveillanceCanonicalPage() {
         .filter(x => status === 'all' || x.resultStatus === status || x.status === status)
     return environmentRows
       .filter(x => !quick || matchesEnvironmentQuick(x, quick))
-      .filter(x =>
-        `${x.type || ''} ${x.source || ''} ${x.department || ''} ${x.organism || ''}`
-          .toLowerCase()
-          .includes(q),
-      )
+      .filter(x => matchesSearch(query, [x.id, x.code, sampleTypeLabel(x.type, t, language), x.department, x.location, x.point, x.environmentalBatchId, x.organism, formatDay(x.collectedAt || x.requestedAt, language), x.result ? t(String(x.result)) : '', environmentalStatusDisplay(x, t).label]))
       .filter(x => department === 'all' || x.department === department)
       .filter(x => inPeriod(x.collectedAt || x.requestedAt, period))
       .filter(x => status === 'all' || x.status === status)
@@ -321,19 +310,19 @@ export function SurveillanceCanonicalPage() {
     language,
     canAccessRecord,
     quick,
+    t,
   ])
   // The infection report (owner, 19/11/2026): the episodes the list's filters keep, at any date (the dialog sets the
   // period and the comparison), with the patient days entered for them.
   const [infectionPrint, setInfectionPrint] = useState(false)
   const reportCases = useMemo(() => {
-    const q = query.trim().toLowerCase()
     return cases
       .filter(canAccessRecord)
       .filter(x => !quick || matchesQuick(x, quick))
-      .filter(x => `${x.patient || ''} ${x.patientEn || ''} ${x.patientId || ''} ${latestOrganism(x) || ''}`.toLowerCase().includes(q))
+      .filter(x => matchesSearch(query, [x.patient, x.patientEn, x.patientId, x.id, x.department, x.departmentEn, formatDay(x.startedAt, language), latestOrganism(x), latestResistance(x), t(x.status as string)]))
       .filter(x => department === 'all' || (language === 'el' ? x.department : x.departmentEn) === department)
       .filter(x => (status === 'all' ? !HIDDEN_CASE_STATUSES.has(x.status as string) : x.status === status))
-  }, [cases, canAccessRecord, quick, query, department, language, status])
+  }, [cases, canAccessRecord, quick, query, department, language, status, t])
   const printInfections = (choice: InfectionPrintChoice) => {
     setInfectionPrint(false)
     const en = language === 'en'

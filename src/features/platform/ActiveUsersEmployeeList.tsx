@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { Button } from '../../design-system/Button'
 import { ROLES } from './platformOrganizationShared'
-import { LIST_ROLES, errorText, employeeIssue, fold, needsDepartment, planEmployees, suggestRole } from './activeUsersModel'
+import { LIST_ROLES, errorText, employeeIssue, needsDepartment, planEmployees, suggestRole } from './activeUsersModel'
 import type { CheckedPerson, DepartmentChoice, EmployeeChoice, EmployeePick } from './activeUsersModel'
 
 // «Ενεργοί με προσωρινό κωδικό» › «Από τη λίστα εργαζομένων» (Platform Owner): the active
@@ -46,8 +47,7 @@ export function ActiveUsersEmployeeList({ employees, departments, memberNames, p
 
   const departmentNames = useMemo(() => [...new Set(employees.map(row => row.departmentName).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [employees])
   const visible = useMemo(() => {
-    const q = fold(query)
-    return employees.filter(row => (!departmentFilter || row.departmentName === departmentFilter) && (!q || fold(`${row.name} ${row.profession} ${row.email}`).includes(q)))
+    return employees.filter(row => (!departmentFilter || row.departmentName === departmentFilter) && matchesSearch(query, [row.name, row.profession, row.email, row.departmentName]))
   }, [employees, query, departmentFilter])
   const selectable = visible.filter(row => !issueOf.get(row.employeeId))
   const allChecked = selectable.length > 0 && selectable.every(row => selected.has(row.employeeId))
