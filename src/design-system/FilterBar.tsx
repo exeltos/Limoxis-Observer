@@ -74,7 +74,8 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
   },[open])
 
   const filterContent=(children||advanced)?<>{children}{advanced}</>:null
-  const showClear=Boolean(onClear&&(query||activeAdvancedCount>0))
+  // The filters in force show once (owner, 19/11/2026): the «Filters N» count and the chips with ×; «Clear filters» lives
+  // only inside the filters window, and the search box clears by itself.
   const clearLabel=t('clearFilters')
 
   const popover=filterContent&&open&&createPortal(
@@ -100,7 +101,6 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
       {onQueryChange&&<label className="filter-search"><Search size={16}/><input value={query} onChange={e=>onQueryChange(e.target.value)} placeholder={placeholder||`${t('search')}...`}/></label>}
       {filterContent&&<button ref={triggerRef} type="button" className={`filter-trigger ${open||activeAdvancedCount?'active':''}`} aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Filter size={16}/><span>{t('filters')}</span>{activeAdvancedCount>0&&<b>{activeAdvancedCount}</b>}</button>}
       {activeFilters.length>0&&<div className="filter-active-row">{activeFilters.map(item=><button key={item.key} type="button" className="filter-active-chip" onClick={item.onRemove} aria-label={`${clearLabel}: ${item.label}`}>{item.label}<X size={12} aria-hidden="true"/></button>)}</div>}
-      {showClear&&<ActionButton label={clearLabel} tone="neutral" className="filter-clear-button" onClick={onClear}><X size={14}/><span>{clearLabel}</span></ActionButton>}
       {end&&<div className="filter-end">{end}</div>}
     </div>
     {popover}
