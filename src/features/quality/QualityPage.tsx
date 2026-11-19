@@ -246,7 +246,9 @@ export function QualityPage({section=''}: { section?: string }={}){
    {key:'evaluationDue',icon:Star,value:dash(count.evaluationDue),label:L('Οφείλεται αξιολόγηση','Evaluation due'),tone:'warning',active:supplierFilters.quick==='evaluationDue',go:()=>quick('evaluationDue')},
    // «Πιστοποιητικά προς ανανέωση» (owner, 19/11/2026): opens the renewals; hidden when none.
    ...(count.certificates||resources.loading?[{key:'certificates',icon:ShieldCheck,value:dash(count.certificates),label:L('Πιστοποιητικά προς ανανέωση','Certificates to renew'),tone:'warning',go:()=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/renewals')}}]:[]),
-   {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Μη συμμορφώσεις','Nonconformities'),status:resources.loading?null:count.nonconformities?'danger':'good',target:L('στόχος: 0','target: 0'),active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')}]})(),
+   {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Μη συμμορφώσεις','Nonconformities'),status:resources.loading?null:count.nonconformities?'danger':'good',target:L('στόχος: 0','target: 0'),active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')},
+   // «Πρότυπα αξιολόγησης» (owner, 19/11/2026): a setting, not a creation: the last item of the row, for managers.
+   ...(canManage?[{key:'templates',icon:ListChecks,value:<ListChecks size={14} aria-hidden="true"/>,label:L('Πρότυπα αξιολόγησης','Evaluation templates'),go:()=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/templates')}}]:[])]})(),
   // The questionnaires list has no cards: its filters are the search and «Φίλτρα».
   surveys:[],
  }
@@ -345,11 +347,7 @@ export function QualityPage({section=''}: { section?: string }={}){
  return <Page fill className="registry-fill-page" title={measures?L('Δείκτες & Στόχοι','Indicators & objectives'):t('quality')} subtitle={measures?L('Οι δείκτες της πλατφόρμας και των μητρώων, οι στόχοι ποιότητας και τα ερωτηματολόγια ικανοποίησης.','The platform and register indicators, the quality objectives and the satisfaction questionnaires.'):L('Από την αναφορά και την απόκλιση ως τη διορθωτική ενέργεια, τους κινδύνους και τους πόρους.','From the report and deviation to corrective action, risks and resources.')}
   actions={<div className="row-actions">
    {download}
-    {/* Suppliers (owner, 19/11/2026): «Νέος προμηθευτής» only; the templates and the renewals are not creating, so they sit in «⋯». */}
-   {tab==='resources'&&resourceView==='suppliers'&&suppliersOn&&canManage&&<OverflowMenu label={L('Περισσότερα','More')} items={[
-    {id:'templates',label:L('Πρότυπα αξιολόγησης','Evaluation templates'),icon:ListChecks,onClick:()=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/templates')}},
-    {id:'renewals',label:L('Πιστοποιητικά προς ανανέωση','Certificates to renew'),icon:ShieldCheck,onClick:()=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/renewals')}},
-   ]}/>}
+    {/* Suppliers (owner, 19/11/2026): «Νέος προμηθευτής» only; the templates and the renewals are in the row of counts. */}
    <CreateAction options={createOptions} label={tab==='resources'&&resourceView==='suppliers'?L('Νέος προμηθευτής','New supplier'):L('Δημιουργία','Create')}/>
   </div>}>
   {!measures&&<CanonicalTabs items={TABS.filter(item=>item.value!=='indicators'&&(!item.manage||canManage)&&(item.value!=='resources'||EQUIPMENT_SHOWN||suppliersOn)).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>}
