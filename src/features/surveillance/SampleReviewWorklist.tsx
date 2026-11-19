@@ -61,17 +61,8 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
   }
   return (
     <div className="scroll-table sample-review-worklist">
-      {(anyLate || (selectable && picked.length > 0)) && <div className="sample-review-bulkbar">
-        {anyLate && <CheckboxField className="sample-review-late-only" checked={lateOnly} onChange={setLateOnly} label={en ? 'Only possible late-onset infections (≥ 72 hours)' : 'Μόνο πιθανές όψιμες λοιμώξεις (≥72 ώρες)'} />}
-        {selectable && picked.length > 0 && <span className="sample-review-bulk-actions">
-          {canOpenEpisode && onBulkOpen && <Button variant="secondary" disabled={busy} onClick={() => run(() => onBulkOpen(picked))}>
-            <PlayCircle size={14} />
-            {en ? `Open episodes (${picked.length})` : `Άνοιγμα επεισοδίων (${picked.length})`}
-          </Button>}
-          <Button variant="ghost" disabled={busy} onClick={() => setBulkDeciding(true)}>
-            {en ? `No surveillance needed (${picked.length})` : `Δεν χρειάζεται επιτήρηση (${picked.length})`}
-          </Button>
-        </span>}
+      {anyLate && <div className="sample-review-bulkbar">
+        <CheckboxField className="sample-review-late-only" checked={lateOnly} onChange={setLateOnly} label={en ? 'Only possible late-onset infections (≥ 72 hours)' : 'Μόνο πιθανές όψιμες λοιμώξεις (≥72 ώρες)'} />
       </div>}
       <RegistryTable
         bare
@@ -124,6 +115,22 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
           </>
         )}
       />
+      {/* The ticked rows (owner, 19/11/2026): one bar at the bottom, only while something is ticked; the rows keep their own buttons. */}
+      {selectable && picked.length > 0 && <div className="sample-review-selection-bar" role="region" aria-label={en ? 'Selected samples' : 'Επιλεγμένα δείγματα'}>
+        <strong>{en ? `${picked.length} selected` : `${picked.length} επιλεγμένα`}</strong>
+        <span className="sample-review-bulk-actions">
+          {canOpenEpisode && onBulkOpen && <Button variant="secondary" disabled={busy} onClick={() => run(() => onBulkOpen(picked))}>
+            <PlayCircle size={14} />
+            {en ? 'Open episodes' : 'Άνοιγμα επεισοδίων'}
+          </Button>}
+          <Button variant="secondary" disabled={busy} onClick={() => setBulkDeciding(true)}>
+            {en ? 'No surveillance needed' : 'Δεν χρειάζεται επιτήρηση'}
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={() => setSelected(new Set())}>
+            {en ? 'Clear selection' : 'Ακύρωση επιλογής'}
+          </Button>
+        </span>
+      </div>}
       {bulkDeciding && onBulkDecide && (
         <NoSurveillanceDialog
           count={picked.length}
