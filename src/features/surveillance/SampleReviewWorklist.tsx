@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ClipboardCheck, PlayCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { CheckboxField } from '../../design-system/CheckboxField'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { Field } from '../../design-system/Field'
 import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
@@ -11,6 +12,7 @@ import { formatDateTime } from '../../core/i18n/formatDay'
 import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { NO_SURVEILLANCE_REASONS, reasonLabel } from '../laboratory/sampleReviewModel'
 import { lateOnsetDay } from './lateOnsetFlags'
+import { reviewRowsShown } from './sampleReviewBulk'
 import './surveillanceRegistry.css'
 import type { ReviewSample } from './surveillanceListTypes'
 import type { Handler } from './surveillanceTypes'
@@ -32,15 +34,49 @@ interface SampleReviewWorklistProps {
   lateOnset?: Record<string, number>
   // Read-only (the Platform Owner): the list and its tags, no decision.
   readOnly?: boolean
+  // Several at once (owner, 19/11/2026): the ticked samples; the page opens one episode per patient, or applies one reason.
+  onBulkOpen?: (samples: ReviewSample[]) => Promise<unknown>
+  onBulkDecide?: (samples: ReviewSample[], decision: { status: 'no_surveillance_needed', reason: string, note: string }) => Promise<unknown>
 }
-export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide, lateOnset = {}, readOnly = false }: SampleReviewWorklistProps) {
+export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide, lateOnset = {}, readOnly = false, onBulkOpen, onBulkDecide }: SampleReviewWorklistProps) {
   const en = language === 'en'
   const [deciding, setDeciding] = useState<ReviewSample | null>(null)
+  const [lateOnly, setLateOnly] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkDeciding, setBulkDeciding] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const keyOf = (sample: ReviewSample) => String(sample.recordId || sample.id)
+  const anyLate = allRows.some(row => row.recordId && lateOnset[String(row.recordId)] != null)
+  const rows = useMemo(() => reviewRowsShown(allRows, { lateOnly: lateOnly && anyLate, lateOnset }), [allRows, lateOnly, anyLate, lateOnset])
+  const selectable = !readOnly && Boolean(onBulkDecide)
+  // Only what is still shown counts as ticked (a decided sample leaves the list).
+  const picked = rows.filter(row => selected.has(keyOf(row)))
+  const allPicked = rows.length > 0 && picked.length === rows.length
+  const toggle = (key: string) => setSelected(current => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next })
+  const toggleAll = () => setSelected(allPicked ? new Set() : new Set(rows.map(keyOf)))
+  async function run(action: () => Promise<unknown>) {
+    if (busy) return
+    setBusy(true)
+    try { await action(); setSelected(new Set()) } finally { setBusy(false) }
+  }
   return (
     <div className="scroll-table sample-review-worklist">
+      {(anyLate || (selectable && picked.length > 0)) && <div className="sample-review-bulkbar">
+        {anyLate && <CheckboxField className="sample-review-late-only" checked={lateOnly} onChange={setLateOnly} label={en ? 'Only possible late-onset infections (≥ 72 hours)' : 'Μόνο πιθανές όψιμες λοιμώξεις (≥72 ώρες)'} />}
+        {selectable && picked.length > 0 && <span className="sample-review-bulk-actions">
+          {canOpenEpisode && onBulkOpen && <Button variant="secondary" disabled={busy} onClick={() => run(() => onBulkOpen(picked))}>
+            <PlayCircle size={14} />
+            {en ? `Open episodes (${picked.length})` : `Άνοιγμα επεισοδίων (${picked.length})`}
+          </Button>}
+          <Button variant="ghost" disabled={busy} onClick={() => setBulkDeciding(true)}>
+            {en ? `No surveillance needed (${picked.length})` : `Δεν χρειάζεται επιτήρηση (${picked.length})`}
+          </Button>
+        </span>}
+      </div>}
       <RegistryTable
         bare
         columns={[
+          ...(selectable ? [{ key: 'select', className: 'sample-review-select', label: <CheckboxField checked={allPicked} disabled={!rows.length || busy} ariaLabel={en ? 'Select all' : 'Επιλογή όλων'} onChange={toggleAll} /> }] : []),
           { key: 'patient', label: `${t('patient')} · ${t('department')}` },
           { key: 'sample', label: `${t('sampleType')} · ${en ? 'Date' : 'Ημερομηνία'}` },
           { key: 'alert', label: en ? 'Organism / alert' : 'Μικροοργανισμός / ειδοποίηση' },
@@ -54,6 +90,9 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
         rowKey={sample => (sample.recordId || sample.id) as string}
         renderRow={sample => (
           <>
+            {selectable && <td className="sample-review-select">
+              <CheckboxField checked={selected.has(keyOf(sample))} disabled={busy} ariaLabel={`${en ? 'Select' : 'Επιλογή'}: ${en ? sample.patientEn || sample.patient : sample.patient} · ${sample.id}`} onChange={() => toggle(keyOf(sample))} />
+            </td>}
             <td>
               <strong>{en ? sample.patientEn || sample.patient : sample.patient}</strong>
               <small>{[sample.patientId, en ? sample.departmentEn : sample.department].filter(Boolean).join(' · ') || '—'}</small>
@@ -85,6 +124,17 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
           </>
         )}
       />
+      {bulkDeciding && onBulkDecide && (
+        <NoSurveillanceDialog
+          count={picked.length}
+          language={language}
+          onClose={() => setBulkDeciding(false)}
+          onSave={async decision => {
+            await run(() => onBulkDecide(picked, decision))
+            setBulkDeciding(false)
+          }}
+        />
+      )}
       {deciding && (
         <NoSurveillanceDialog
           sample={deciding}
@@ -100,12 +150,14 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
 }
 
 interface NoSurveillanceDialogProps {
-  sample: ReviewSample
+  sample?: ReviewSample
+  // Several samples at once: the subtitle says how many.
+  count?: number
   language: string
   onClose: Handler
   onSave: Handler
 }
-export function NoSurveillanceDialog({ sample, language, onClose, onSave }: NoSurveillanceDialogProps) {
+export function NoSurveillanceDialog({ sample, count, language, onClose, onSave }: NoSurveillanceDialogProps) {
   const en = language === 'en'
   const [reason, setReason] = useState('')
   const [note, setNote] = useState('')
@@ -124,7 +176,7 @@ export function NoSurveillanceDialog({ sample, language, onClose, onSave }: NoSu
     <ObserverDialog
       width="small"
       title={en ? 'No surveillance needed' : 'Δεν χρειάζεται επιτήρηση'}
-      subtitle={[en ? sample.patientEn || sample.patient : sample.patient, sample.organism, sample.id].filter(Boolean).join(' · ')}
+      subtitle={sample ? [en ? sample.patientEn || sample.patient : sample.patient, sample.organism, sample.id].filter(Boolean).join(' · ') : en ? `${count} samples: one reason for all` : `${count} δείγματα: ένας λόγος για όλα`}
       onClose={onClose}
       footer={
         <FormSubmit form={form} icon={false} disabled={busy} onSubmit={save}>
@@ -155,4 +207,14 @@ interface SampleReviewTagProps {
 export function SampleReviewTag({ label }: SampleReviewTagProps) {
   if (!label) return null
   return <StatusBadge tone="neutral">{label}</StatusBadge>
+}
+
+// What a decision for several samples did, in one sentence: how many, and which failed (owner, 19/11/2026).
+export function bulkSummaryText(result: { done: number, failed: { label: string }[] }, kind: 'open' | 'decide', language: string) {
+  const en = language === 'en'
+  const head = kind === 'open'
+    ? (en ? `${result.done} episode(s) opened.` : `Άνοιξαν ${result.done} επεισόδια.`)
+    : (en ? `${result.done} sample(s) recorded as «No surveillance needed».` : `${result.done} δείγματα καταχωρίστηκαν ως «Δεν χρειάζεται επιτήρηση».`)
+  if (!result.failed.length) return head
+  return `${head} ${en ? 'Not done' : 'Δεν έγιναν'} (${result.failed.length}): ${result.failed.slice(0, 5).map(item => item.label).join(', ')}${result.failed.length > 5 ? '…' : ''}`
 }
