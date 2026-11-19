@@ -8,6 +8,7 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
 import { loadResponses, loadSurveys } from './surveyService'
 import { SURVEY_AUDIENCES, SURVEY_STATUSES, audienceLabel, isSurveyOpen, satisfactionCounts, surveyStatusLabel, surveyStatusTone } from './surveyModel'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
@@ -61,10 +62,10 @@ export function surveyCounts(surveys: SurveyListItem[] = []) {
   }
 }
 
-export function filterSurveys(surveys: SurveyListItem[], filters: SurveyFilters) {
-  const q = String(filters.query || '').trim().toLowerCase()
+// `departmentNames`: the names of the departments a questionnaire is about, which the row shows.
+export function filterSurveys(surveys: SurveyListItem[], filters: SurveyFilters, language = 'el', departmentNames: (survey: SurveyListItem) => string[] = () => []) {
   return surveys
-    .filter(survey => !q || `${survey.code} ${survey.title} ${survey.titleEn || ''}`.toLowerCase().includes(q))
+    .filter(survey => matchesSearch(filters.query, [survey.code, survey.title, survey.titleEn, audienceLabel(survey.audience, language), ...departmentNames(survey), formatDay(survey.opensOn, language), formatDay(survey.closesOn, language), surveyClosingSoon(survey) ? (language === 'en' ? 'Closes soon' : 'Λήγει σύντομα') : '', surveyStatusLabel(survey.status, language)]))
     .filter(survey => filters.audience === 'all' || survey.audience === filters.audience)
     .filter(survey => filters.status === 'all' || survey.status === filters.status)
     .filter(survey => !filters.quick || (filters.quick === 'open' ? isSurveyOpen(survey) : filters.quick === 'closing' ? surveyClosingSoon(survey) : filters.quick === 'draft' ? survey.status === 'draft' : true))
@@ -88,7 +89,7 @@ export function SurveysList({ list, registry = null, filters, setFilters, onOpen
   // The departments a questionnaire is about, by name (up to three; otherwise how many).
   const departmentsOf = (survey: Survey) => { const names = (survey.departmentIds || []).map((id: string) => departments.find(item => (item.id || item.name) === id)).filter(Boolean).map(item => (en ? item.nameEn || item.name : item.name)); return names.length > 3 ? `${names.length} ${en ? 'departments' : 'τμήματα'}` : names.join(', ') }
   const set = (key: string, value: unknown) => setFilters(current => ({ ...current, [key]: value }))
-  const rows = useMemo(() => filterSurveys(list.surveys, filters), [list.surveys, filters])
+  const rows = useMemo(() => filterSurveys(list.surveys, filters, language, survey => (survey.departmentIds || []).map((id: string) => departments.find(item => (item.id || item.name) === id)).filter(Boolean).map(item => (item?.nameEn ? `${item.name} ${item.nameEn}` : item?.name || ''))), [list.surveys, filters, language, departments])
   const sortBy: Record<string, (survey: SurveyListItem) => unknown> = { code: (survey: SurveyListItem) => survey.code, survey: (survey: SurveyListItem) => (en ? survey.titleEn || survey.title : survey.title), period: (survey: SurveyListItem) => survey.opensOn, responses: (survey: SurveyListItem) => survey.responseCount || 0, status: (survey: SurveyListItem) => survey.status }
   const satisfaction = useSatisfaction(list.surveys)
   const satisfiedOf = (survey: SurveyListItem) => { const counts = satisfaction.get(survey.id); return counts?.answered ? Math.round((counts.satisfied / counts.answered) * 1000) / 10 : null }
@@ -96,7 +97,7 @@ export function SurveysList({ list, registry = null, filters, setFilters, onOpen
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const advanced = (['audience', 'status'] as const).filter(key => filters[key] !== 'all').length
   return <>
-    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search questionnaires…' : 'Αναζήτηση ερωτηματολογίου…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))} end={filterEnd}>
+    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))} end={filterEnd}>
       <FilterSelect label={en ? 'Asks' : 'Απευθύνεται σε'} value={filters.audience} onChange={value => set('audience', value)}><option value="all">{t('all')}</option>{SURVEY_AUDIENCES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="all">{t('all')}</option>{SURVEY_STATUSES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>

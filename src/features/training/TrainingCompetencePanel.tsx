@@ -1,4 +1,5 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { AlertTriangle,CheckCircle2,Clock3,Pencil,Plus,Trash2,XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -74,7 +75,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  const plan=useMemo(()=>retrainingPlan(matrix,{today}),[matrix,today])
  // The search (name) and a state picked from the totals narrow what the matrix and the list show; the printouts keep it all.
  const q=query.trim().toLocaleLowerCase('el')
- const matchName=(e: TrainingEmployee)=>!q||[e.lastName,e.firstName,e.lastNameEn,e.firstNameEn,e.department,e.profession].filter(Boolean).join(' ').toLocaleLowerCase('el').includes(q)
+ const matchName=(e: TrainingEmployee)=>matchesSearch(q,[e.lastName,e.firstName,e.lastNameEn,e.firstNameEn,e.department,e.profession,e.position,e.id,e.employeeCode])
  const shownRows=useMemo(()=>matrix.rows.filter(row=>matchName(row.employee)&&(!stateFilter||row.cells.some(cell=>cell?.state===stateFilter))),[matrix,q,stateFilter]) // eslint-disable-line react-hooks/exhaustive-deps
  const shownPlan=useMemo(()=>plan.filter(item=>matchName(item.employee)&&(!stateFilter||item.state===stateFilter)),[plan,q,stateFilter]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{setPage(1)},[q,stateFilter,department,view])

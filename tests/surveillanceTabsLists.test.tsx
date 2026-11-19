@@ -50,21 +50,27 @@ async function openOutbreaks() {
 }
 
 describe('Outbreak investigations tab', () => {
-  it('shows candidates and investigations in one view, with one New button and no empty card while clusters exist', async () => {
+  it('shows candidates and investigations one at a time, with one New button and no empty card while clusters exist', async () => {
     await openOutbreaks()
-    expect(await screen.findByText('Πιθανές συρροές')).toBeInTheDocument()
+    // One list at a time (owner, 19/11/2026): the switch «Possible clusters | Investigations», clusters first.
+    expect(await screen.findByRole('radio', { name: /Πιθανές συρροές/ })).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(screen.getByRole('radio', { name: /Διερευνήσεις/ }))
+    expect(document.querySelector('.outbreak-cluster-table')).toBeNull()
+    fireEvent.click(screen.getByRole('radio', { name: /Πιθανές συρροές/ }))
     expect(screen.queryByText('Δεν υπάρχουν διερευνήσεις εξάρσεων.')).not.toBeInTheDocument()
     const newButtons = screen.getAllByRole('button', { name: /Νέα διερεύνηση/ })
     expect(newButtons).toHaveLength(1)
     expect(newButtons[0]).not.toBeDisabled()
-    expect(screen.getAllByRole('button', { name: 'Έναρξη διερεύνησης' }).length).toBeGreaterThan(0)
+    // No buttons on the cluster rows (owner, 19/11/2026): the row itself starts the investigation.
+    expect(screen.queryByRole('button', { name: 'Έναρξη διερεύνησης' })).not.toBeInTheDocument()
+    expect(document.querySelectorAll('.outbreak-cluster-table tbody tr.clickable-row').length).toBeGreaterThan(0)
   })
 
   it('pre-fills a new investigation from a cluster and keeps it on the screen in the demo', async () => {
     await openOutbreaks()
-    const start = (await screen.findAllByRole('button', { name: 'Έναρξη διερεύνησης' }))[0]
-    const cluster = start.closest('li')
-    const organism = cluster.querySelector('strong').textContent
+    await screen.findByRole('radio', { name: /Πιθανές συρροές/ })
+    const start = document.querySelector('.outbreak-cluster-table tbody tr.clickable-row') as HTMLElement
+    const organism = start.querySelector('strong').textContent
     fireEvent.click(start)
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByDisplayValue(organism)).toBeInTheDocument()

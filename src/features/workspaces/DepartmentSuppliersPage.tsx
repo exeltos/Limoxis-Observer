@@ -1,4 +1,5 @@
 import { useMemo,useState } from 'react'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { FigureCards } from '../../design-system/FigureCards'
 import { Truck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -18,7 +19,7 @@ export function DepartmentSuppliersPage(){
  const {language}=useLanguage(),en=language==='en'
  const list=useResources(true)
  const [query,setQuery]=useState('')
- const rows=useMemo(()=>list.suppliers.filter(item=>item.status!=='inactive').filter(item=>`${item.name} ${item.legalName||''}`.toLowerCase().includes(query.trim().toLowerCase())),[list.suppliers,query])
+ const rows=useMemo(()=>list.suppliers.filter(item=>item.status!=='inactive').filter(item=>matchesSearch(query,[item.code,item.name,item.legalName,item.products,item.contactName,item.city])),[list.suppliers,query])
  const attention=rows.filter(row=>row.approval==='conditional'||row.approval==='rejected').length
  const dueNow=rows.filter(row=>row.evaluationDue).length
  const expiring=rows.filter(row=>row.expiredCertificates||row.expiringCertificates).length

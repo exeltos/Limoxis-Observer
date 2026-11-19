@@ -1,4 +1,6 @@
 import { certificationState, daysBetween, todayIso } from './resourceModel'
+import { formatDay } from '../../../core/i18n/formatDay'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
 import type { AttachmentDbRow, CertificateRequest, CertificateRequestDbRow, CertificateSnapshot, Certification, RenewalGroup, RenewalGroupBase, RenewalQueueRow, RenewalSendGroup, RenewalSubmission, RequestItem, RequestItemDbRow, RequestItemWithRequest, SendHistoryEntry, Supplier, SupplierAccess } from './resourceTypes'
 
 // Renewal of expired supplier certificates by e-mail
@@ -158,7 +160,6 @@ export function renewalGroups(rows: RenewalQueueRow[] = [], now = new Date()): R
 
 // request: all | none (something to send) | proposed | sent | no_response | submitted.
 export function filterRenewals(groups: RenewalGroup[] = [], { query = '', state = 'all', request = 'all' } = {}) {
-  const needle = String(query || '').trim().toLocaleLowerCase('el')
   return groups.map(group => (state === 'all' ? group : { ...group, rows: group.rows.filter(row => row.state === state || isOpenItem(row.item)) }))
     .map((group): RenewalGroup => ({ ...group, selectable: group.rows.filter(row => row.selectable) }))
     .filter(group => {
@@ -167,8 +168,7 @@ export function filterRenewals(groups: RenewalGroup[] = [], { query = '', state 
       if (request === 'no_response' && group.noResponse == null) return false
       if (request === 'submitted' && !group.submitted) return false
       if (['proposed', 'sent'].includes(request) && group.request?.status !== request) return false
-      if (!needle) return true
-      return [group.supplierName, group.supplierCode, group.recipient, ...group.rows.flatMap(row => [row.certification.type, row.certification.title, row.certification.number])].some(value => String(value || '').toLocaleLowerCase('el').includes(needle))
+      return matchesSearch(query, [group.supplierName, group.supplierCode, group.recipient, ...group.rows.flatMap(row => [row.certification.type, row.certification.title, row.certification.number, formatDay(row.certification.expiresOn, 'el')])])
     })
 }
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { AlertTriangle, Clock3, Megaphone } from 'lucide-react'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
@@ -104,7 +105,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
     .filter(row => disease === 'all' || row.title === disease)
     .filter(row => status === 'all' || (status === 'overdue' ? row.overdue : row.status === status))
     .filter(row => inPeriod(row.start || row.date, period))
-    .filter(row => `${row.title} ${row.patientName} ${row.patientCode} ${row.report?.reference || ''}`.toLowerCase().includes(query.toLowerCase()))
+    .filter(row => matchesSearch(query, [row.title, row.patientName, row.patientCode, row.report?.reference, row.sample, row.organism, row.date ? formatDay(row.date, language) : '']))
   // The arrows in the headers sort the whole filtered list (newest first); then the page is cut.
   const dueTime = (row: PanelRow) => { const due = row.status === 'pending' && row.entry ? deadlineDueAt(row.entry.deadline, row.start) : null; return due ? new Date(due).getTime() : null }
   const { sorted: sortedRows, sort, onSort } = useTableSort(shown, {

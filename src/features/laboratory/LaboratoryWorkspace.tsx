@@ -29,6 +29,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { formatDateTime } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { ENVIRONMENTAL_SAMPLE_TYPES, EMPLOYEE_SCREENING_TYPES, LAB_PRIORITIES, patientSampleSources, patientSampleTypeOptions, referenceOptions, sampleSourceCatalog, sampleSourceLabel } from './laboratoryReferenceData'
 import { createPatient, findPatientMatches, loadPatients } from '../patients/patientsService'
 import { DuplicatePatientDialog } from '../patients/DuplicatePatientDialog'
@@ -80,6 +81,11 @@ const DuplicatePatientWindow = DuplicatePatientDialog
 // Samples still on their way to a result (the «Pending» chip).
 const LAB_PENDING_STATUSES: unknown[] = ['requested', 'collected', 'received', 'processing']
 
+
+// What a sample row shows, for the search box (owner, 19/11/2026: the searches find everything).
+export function labSampleSearchParts(sample: LabSample, t: (key: string) => string, language: string) {
+  return [sample.id, sample.patient, sample.patientEn, sample.patientId, sample.department, sample.departmentEn, formatDateTime(sample.collectedAt, language), sampleTypeLabel(sample, t, language), sample.surveillanceCase, sample.employeeSurveillanceCase, sample.environmentalSurveillanceCase, sample.environmentalBatchId, environmentalPlateText(sample, t), sampleSourceLabel(language === 'el' ? sample.source : sample.sourceEn, language), sample.anatomicalSite, sample.organism, sample.resistance, labResultLabel(sample, t, language), labSampleStatus(sample, language).text, reviewTag(sample, language)]
+}
 export function LaboratoryWorkspace() {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
@@ -144,14 +150,14 @@ export function LaboratoryWorkspace() {
   const displaySampleCode = (sample: LabSample) => /^LAB-EMP-[0-9a-f-]{20,}$/i.test(sample.id) ? (language === 'el' ? 'Δείγμα εργαζομένου' : 'Employee sample') : sample.id
   const rows = useMemo(() => repositoryRows
     .filter(sample => canAccessRecord(sample))
-    .filter(sample => `${sample.id} ${sample.patient} ${sample.patientEn} ${sample.patientId} ${sample.organism ?? ''} ${sample.surveillanceCase ?? ''}`.toLowerCase().includes(query.toLowerCase()))
+    .filter(sample => matchesSearch(query, labSampleSearchParts(sample, t, language)))
     .filter(sample => status === 'all' || sample.status === status)
     .filter(sample => result === 'all' || (result === 'critical' ? sample.critical : sample.result === result))
     .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)
     .filter(sample => matchesLabScope(sample, scope))
     .filter(sample => quick === 'all' || (quick === 'today' ? String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === hospitalToday() : LAB_PENDING_STATUSES.includes(sample.status)))
     .filter(sample => inPeriod(sample.collectedAt || sample.requestedAt, period === 'older' ? 'all' : period)),
-  [query, status, result, department, period, scope, quick, language, repositoryRows, canAccessRecord])
+  [query, status, result, department, period, scope, quick, language, repositoryRows, canAccessRecord, t])
 
   const clearFilters = () => { setQuery(''); setStatus('all'); setResult('all'); setDepartment('all'); setPeriod('all'); setQuick('all'); setScope(LAB_RESULT_SCOPES.ALL) }
   // A department requests cultures for its own department; the laboratory manages all samples.
@@ -269,7 +275,7 @@ export function LaboratoryWorkspace() {
   // department, status, result, the quick choice), at any date; the dialog sets the period and the comparison.
   const reportFilter = (samples: LabSample[]) => samples
     .filter(sample => canAccessRecord(sample) && sample.subjectType !== 'employee' && sample.subjectType !== 'environment')
-    .filter(sample => `${sample.id} ${sample.patient} ${sample.patientEn} ${sample.patientId} ${sample.organism ?? ''} ${sample.surveillanceCase ?? ''}`.toLowerCase().includes(query.toLowerCase()))
+    .filter(sample => matchesSearch(query, labSampleSearchParts(sample, t, language)))
     .filter(sample => status === 'all' || sample.status === status)
     .filter(sample => result === 'all' || (result === 'critical' ? sample.critical : sample.result === result))
     .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)

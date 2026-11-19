@@ -38,7 +38,7 @@ export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot
   const { notify, confirm } = useFeedback()
   const navigate = useNavigate()
   const list = useSelfAssessments(tenant?.id)
-  const rows = useMemo(() => filterSelf(list.items, query), [list.items, query])
+  const rows = useMemo(() => filterSelf(list.items, query, language), [list.items, query, language])
   const counts = selfCounts(list.items)
   const gaps = list.items.filter(item => item.status === 'submitted').reduce((sum, item) => sum + selfGaps(item.checklist).length, 0)
   async function act(item: SelfAssessment, status: string, message: string) {

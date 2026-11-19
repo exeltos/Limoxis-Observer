@@ -16,6 +16,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { exportRegistry } from '../../core/export/registryExports'
 import { downloadReportWord, printReport } from '../../core/export/reportDocument'
 import { entriesDocument, entriesInRange } from './registerReport'
@@ -131,6 +132,14 @@ const historyTitle = (action: string, language: string) => ((language === 'en' ?
 
 // The columns of the case list: the date the case counts on, then the fields
 // marked `list` (or the first four).
+// What a case's row shows: the name and number (when the role sees them), the short code, the state and every column.
+export function entrySearchParts(register: Register, entry: RegisterEntry, language: string) {
+  const en = language === 'en'
+  const values = computeValues(register.fields, entry.values)
+  return [entry.identity?.patientName, entry.identity?.caseNumber, String(entry.id).slice(-6).toUpperCase(), isTreatmentRegister(register) ? (entry.values?.end_date ? (en ? 'Completed' : 'Ολοκλήρωσε') : (en ? 'Active' : 'Ενεργός')) : '',
+    ...listFields(register).map(field => { const marker = field.key === 'category' ? caseMarker(register, values, language) : null; return marker ? marker.label : field.key === 'discharge_date' && !values[field.key] ? (en ? 'Still in' : 'Νοσηλεύεται') : formatValue(field, values[field.key], language, values) })]
+}
+
 export function listFields(register: Register): RegisterField[] {
   const dateField = register.fields.find(field => field.key === register.settings?.entryDateField)
   const marked = register.fields.filter(field => field.list && field !== dateField)
@@ -158,8 +167,9 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }: 
     .filter(entry => year === 'all' || String(entry.entryDate).startsWith(year))
     .filter(entry => !stays || stay === 'all' || (stay === 'in') === !entry.values?.discharge_date)
     .filter(entry => !treatment || state === 'all' || (state === 'active') === !entry.values?.end_date)
-    .filter(entry => !query.trim() || `${entry.identity?.caseNumber || ''} ${entry.identity?.patientName || ''}`.toLowerCase().includes(query.trim().toLowerCase()))
-    .sort((a, b) => (treatment ? Number(Boolean(a.values?.end_date)) - Number(Boolean(b.values?.end_date)) : 0) || String(b.entryDate).localeCompare(String(a.entryDate))), [entries, year, query, stay, stays, state, treatment])
+    // Everything the row shows (owner, 19/11/2026: the searches find everything).
+    .filter(entry => matchesSearch(query, entrySearchParts(register, entry, language)))
+    .sort((a, b) => (treatment ? Number(Boolean(a.values?.end_date)) - Number(Boolean(b.values?.end_date)) : 0) || String(b.entryDate).localeCompare(String(a.entryDate))), [entries, year, query, stay, stays, state, treatment, register, language])
   useEffect(() => setPage(1), [query, year, stay, state, pageSize])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -169,7 +179,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }: 
   const open = (entry: RegisterEntry) => registry.openRecord(navigate, `/registers/${register.id}/entries/${entry.id}`, entry.id, rows.map(item => item.id))
   return <RecordTabPanel className="register-cases" title={en ? 'Cases' : 'Περιστατικά'} subtitle={withIdentity ? (en ? 'Your department’s cases. The case number and name stay inside the department.' : 'Τα περιστατικά του τμήματος. Αριθμός περιστατικού και όνομα μένουν στο τμήμα.') : (en ? 'The values the indicators read, without names.' : 'Οι τιμές που διαβάζουν οι δείκτες, χωρίς ονόματα.')}
     footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={(year !== 'all' ? 1 : 0) + (stay !== 'all' ? 1 : 0) + (state !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setYear('all'); setStay('all'); setState('all') }}>
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={(year !== 'all' ? 1 : 0) + (stay !== 'all' ? 1 : 0) + (state !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setYear('all'); setStay('all'); setState('all') }}>
       <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
       {stays && <FilterSelect label={en ? 'Stay' : 'Νοσηλεία'} value={stay} onChange={setStay}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="in">{en ? 'Still in' : 'Νοσηλεύονται'}</option><option value="out">{en ? 'Discharged' : 'Έχουν βγει'}</option></FilterSelect>}
       {treatment && <FilterSelect label={en ? 'Status' : 'Κατάσταση'} value={state} onChange={setState}><option value="all">{en ? 'All patients' : 'Όλοι οι ασθενείς'}</option><option value="active">{en ? 'Active' : 'Ενεργοί'}</option><option value="ended">{en ? 'Completed' : 'Ολοκλήρωσαν'}</option></FilterSelect>}

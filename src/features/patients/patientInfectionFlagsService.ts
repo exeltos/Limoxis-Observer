@@ -70,8 +70,20 @@ export async function loadPatientInfectionFlags(organizationId: string | null | 
 // Every patient's latest organism (patient_latest_organisms, 20261231598000). Until that read exists in a database the
 // list shows the flags as before: a missing function is no error here.
 type LatestOrganismRow = { patient_id: string, organism: string, resistance: string | null, resulted_at: string | null }
+// Read in pages of 1,000 (owner, 19/11/2026: a hospital with 1,195 patients lost the organism of those past the
+// server's 1,000-row limit).
+type LatestOrganismsResult = { data: LatestOrganismRow[] | null, error: unknown }
+type LatestOrganismsQuery = PromiseLike<LatestOrganismsResult> & { range?: (from: number, to: number) => PromiseLike<LatestOrganismsResult> }
+const ORGANISM_PAGE = 1000
 async function loadLatestOrganisms(organizationId: string): Promise<LatestOrganismRow[]> {
-  const { data, error } = await (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: LatestOrganismRow[] | null, error: unknown }> }).rpc('patient_latest_organisms', { p_organization_id: organizationId })
-  if (error) return []
-  return (data || []).filter(row => row?.patient_id && row.organism)
+  const rows: LatestOrganismRow[] = []
+  for (let from = 0; from < 100 * ORGANISM_PAGE; from += ORGANISM_PAGE) {
+    const query = (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => LatestOrganismsQuery }).rpc('patient_latest_organisms', { p_organization_id: organizationId })
+    const paged = typeof query.range === 'function'
+    const { data, error } = await (paged ? query.range!(from, from + ORGANISM_PAGE - 1) : query)
+    if (error) return rows.filter(row => row?.patient_id && row.organism)
+    rows.push(...(data || []))
+    if (!paged || (data || []).length < ORGANISM_PAGE) break
+  }
+  return rows.filter(row => row?.patient_id && row.organism)
 }

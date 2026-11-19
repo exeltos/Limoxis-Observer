@@ -1,4 +1,5 @@
 import './platformScreens.css'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
@@ -65,13 +66,14 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
   const sorted = useMemo(() => [...users].sort((a, b) => String(a.organization?.name || '~').localeCompare(String(b.organization?.name || '~'), 'el') || String(a.name).localeCompare(String(b.name), 'el')), [users])
   const counts = useMemo(() => sorted.reduce((acc, user) => { acc[user.kind] = (acc[user.kind] || 0) + 1; const state = platformUserState(user); if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; if (onlineIds.has(user.userId)) acc.online += 1; return acc }, { invited: 0, inactive: 0, online: 0 } as Record<string, number>), [sorted, onlineIds])
   const visible = useMemo(() => {
-    const locale = en ? 'en-US' : 'el-GR', q = query.trim().toLocaleLowerCase(locale)
+    const say = (el: string, english: string) => (en ? english : el)
     return sorted.filter(user => {
       if (filter === 'invited') { const state = platformUserState(user); if (state !== 'pending' && state !== 'expired') return false }
       else if (filter === 'inactive') { if (platformUserState(user) !== 'inactive') return false }
       else if (filter === 'online') { if (!onlineIds.has(user.userId)) return false }
       else if (filter !== 'all' && user.kind !== filter) return false
-      return !q || [user.name, user.email, user.username, user.organization?.name, user.organization?.code, user.role ? roleLabel(user.role, language) : ''].some(value => String(value || '').toLocaleLowerCase(locale).includes(q))
+      // Everything the row shows (owner, 19/11/2026: the searches find everything).
+      return matchesSearch(query, [user.name, user.email, user.username, user.organization?.name, user.organization?.code, user.role ? roleLabel(user.role, language) : '', ({ hospital: say('Νοσοκομείο', 'Hospital'), demo: 'Demo', platform: say('Πλατφόρμα', 'Platform'), none: say('Χωρίς οργανισμό', 'No organization') } as Record<string, string>)[user.kind], userStateLabel(say, platformUserState(user)), onlineIds.has(user.userId) ? say('Συνδεδεμένος τώρα', 'Online now') : ''])
     })
   }, [sorted, filter, query, en, language, onlineIds])
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize)), safePage = Math.min(page, totalPages)
@@ -102,7 +104,7 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
     </div>}>
     {tabs}
     <div className="platform-registry-shell workspace-column">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση χρήστη, email ή οργανισμού…', 'Search user, email or organization…')} end={sorted.length ? <RegistryTotals label={tx('Σύνολα χρηστών', 'User totals')} items={totals}/> : null}/>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση…', 'Search…')} end={sorted.length ? <RegistryTotals label={tx('Σύνολα χρηστών', 'User totals')} items={totals}/> : null}/>
       <div className="platform-center-section platform-registry-card workspace-column">
         {loading ? <div className="registry-empty-state"><span>{tx('Φόρτωση…', 'Loading…')}</span></div> : visible.length ? <>
           <div className="scroll-table">

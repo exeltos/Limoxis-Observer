@@ -14,6 +14,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { loadPatients, suggestPatientCode } from './patientsService'
 export { suggestPatientCode }
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { patientsListExport, registryMenu } from '../../core/export/registryExports'
@@ -73,10 +74,11 @@ export function PatientsPage(){
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
     .filter(p=>canAccessRecord(p))
-    .filter(p=>`${p.id} ${p.name} ${p.nameEn||''} ${p.hospitalRecordNumber||''}`.toLowerCase().includes(query.toLowerCase()))
+    // Everything the row shows (owner, 19/11/2026): code, names, department, admission date, status, organism.
+    .filter(p=>{const flags=infectionFlags[p.recordId||'']||infectionFlags[p.id];const state=effectiveStatus(p);return matchesSearch(query,[p.id,p.name,p.nameEn,p.hospitalRecordNumber,p.department,p.departmentEn,formatDay(p.lastAdmissionDate||p.admissionDate,language),state==='noAdmission'?t('patientNoAdmission'):state==='discharged'?t('patientsCountDischarged'):t(p.status||''),flags?.organism?.name,flags?.resistance?.classification,flags?.resistance?.organism,flags?.isolation?t('infectionFlags.isolation'):''])})
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
     .filter(p=>inPeriod(p.admissionDate,period))
-    .filter(p=>status==='all'||(status==='isolation'?isolated(p):effectiveStatus(p)===status)),[query,patients,department,status,period,language,canAccessRecord,isolated])
+    .filter(p=>status==='all'||(status==='isolation'?isolated(p):effectiveStatus(p)===status)),[query,patients,department,status,period,language,canAccessRecord,isolated,infectionFlags,t])
   const {sorted:sortedRows,sort,onSort}=useTableSort(rows,{name:p=>language==='el'?p.name:(p.nameEn||p.name),department:p=>language==='el'?p.department:p.departmentEn,admission:p=>p.lastAdmissionDate||p.admissionDate,status:p=>effectiveStatus(p)},{key:'admission',dir:'desc'})
   useEffect(()=>{setPage(1)},[sort])
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))

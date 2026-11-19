@@ -42,7 +42,8 @@ import { IndicatorsPage } from '../indicators/IndicatorsPage'
 import { RegistersPanel,useRegisterList } from '../registers/RegistersPanel'
 import { registerKindLabel,registerStatusLabel } from '../registers/registerText'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
-import { ObjectivesTable,objectivesExport,useObjectives } from './review/QualityObjectives'
+import { ObjectivesTable,objectiveSearchParts,objectivesExport,useObjectives } from './review/QualityObjectives'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { loadDossierExtras,loadObjectiveHistories,objectivesDossier,objectivesListDoc } from './review/objectiveDossier'
 import { OBJECTIVE_LEVELS,levelLabel } from './review/objectiveSources'
 import { loadReviews } from './review/reviewService'
@@ -186,10 +187,10 @@ export function QualityPage({section=''}: { section?: string }={}){
  const dossierYear=objectiveFilters.year==='auto'||objectiveFilters.year==='all'?new Date().getFullYear():Number(objectiveFilters.year)
  useEffect(()=>{if(tab!=='indicators'||measureView!=='objectives'||objectives.loading||!tenant?.id){return undefined}let live=true;Promise.all([loadObjectiveHistories(tenant.id,objectives.objectives,objectives.definitions),loadReviews(tenant.id).catch(()=>[]),loadDossierExtras(tenant.id,dossierYear).catch(()=>null)]).then(([histories,reviews,extras])=>{if(live)setDossierData({histories,reviews,extras})}).catch(()=>{if(live)setDossierData(null)});return()=>{live=false}},[tab,measureView,objectives.loading,objectives.objectives,objectives.definitions,tenant?.id,dossierYear])
  const surveys=useSurveys()
- const visibleSurveys=useMemo(()=>filterSurveys(surveys.surveys,surveyFilters),[surveys.surveys,surveyFilters])
+ const visibleSurveys=useMemo(()=>filterSurveys(surveys.surveys,surveyFilters,language),[surveys.surveys,surveyFilters,language])
  const resources=useResources(tab==='resources')
- const visibleEquipment=useMemo(()=>filterEquipment(resources.equipment,equipmentFilters),[resources.equipment,equipmentFilters])
- const visibleSuppliers=useMemo(()=>filterSuppliers(resources.suppliers,supplierFilters),[resources.suppliers,supplierFilters])
+ const visibleEquipment=useMemo(()=>filterEquipment(resources.equipment,equipmentFilters,language),[resources.equipment,equipmentFilters,language])
+ const visibleSuppliers=useMemo(()=>filterSuppliers(resources.suppliers,supplierFilters,language),[resources.suppliers,supplierFilters,language])
 
  // The year of the objectives shown: this year's when there are any, else all (the older years stay one choice away).
  const objectiveYears=useMemo(()=>[...new Set(objectives.objectives.map(item=>item.year).filter(Boolean))].sort((a,b)=>b-a),[objectives.objectives])
@@ -201,8 +202,8 @@ export function QualityPage({section=''}: { section?: string }={}){
  // The objectives' totals count what the year, level and search leave; each one sets the state filter.
  const setObjectiveState=(state: string)=>setObjectiveFilters(current=>({...current,state:current.state===state?'all':state}))
  const objectivesLoaded=!objectives.loading
- const objectiveBase=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return [...objectives.objectives,...planRows].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>!q||`${item.code||''} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''} ${item.committeeName||''}`.toLowerCase().includes(q))},[objectives.objectives,planRows,objectiveFilters,objectiveYear])
- const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();const plans=objectiveFilters.state==='all'?planRows:[];return [...objectives.objectives,...plans].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>!q||`${item.code||''} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''} ${item.committeeName||''}`.toLowerCase().includes(q)).filter(item=>item.kind==='plan'||objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,planRows,objectiveFilters,objectiveYear])
+ const objectiveBase=useMemo(()=>{return [...objectives.objectives,...planRows].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>matchesSearch(objectiveFilters.query,objectiveSearchParts(item,language)))},[objectives.objectives,planRows,objectiveFilters,objectiveYear,language])
+ const visibleObjectives=useMemo(()=>{const plans=objectiveFilters.state==='all'?planRows:[];return [...objectives.objectives,...plans].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>matchesSearch(objectiveFilters.query,objectiveSearchParts(item,language))).filter(item=>item.kind==='plan'||objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,planRows,objectiveFilters,objectiveYear,language])
  const todayIso=hospitalToday()
 
  const overdueActions=actions.filter(isOverdueAction).length
@@ -392,7 +393,7 @@ export function QualityPage({section=''}: { section?: string }={}){
    {tab==='risks'&&<RiskAssessmentsPanel totals={asTotals(tabFigures.risks,L('Κίνδυνοι','Risks'))} list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
    {tab==='indicators'&&measureView==='registers'&&<RegistersPanel filterEnd={asTotals(tabFigures.registers,L('Μητρώα','Registers'))} list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>
-    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={(objectiveFilters.state!=='all'?1:0)+(objectiveFilters.year!=='auto'?1:0)+(objectiveFilters.level!=='all'?1:0)} onClear={()=>setObjectiveFilters({query:'',state:'all',year:'auto',level:'all'})} end={objectivesLoaded&&<RegistryTotals label={L('Σύνολα','Totals')} items={[
+    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση…','Search…')} activeAdvancedCount={(objectiveFilters.state!=='all'?1:0)+(objectiveFilters.year!=='auto'?1:0)+(objectiveFilters.level!=='all'?1:0)} onClear={()=>setObjectiveFilters({query:'',state:'all',year:'auto',level:'all'})} end={objectivesLoaded&&<RegistryTotals label={L('Σύνολα','Totals')} items={[
      {key:'all',always:true,value:objectiveBase.length,label:L('στόχοι','objectives'),active:objectiveFilters.state==='all',onClick:()=>setObjectiveState('all')},
      {key:'met',value:objectiveBase.filter(item=>item.current?.status==='met').length,label:L('επιτυγχάνονται','met'),active:objectiveFilters.state==='met',onClick:()=>setObjectiveState('met')},
      {key:'missed',value:objectiveBase.filter(item=>item.kind!=='plan'&&isMissed(item)).length,label:L('δεν επιτυγχάνονται','not met'),active:objectiveFilters.state==='missed',onClick:()=>setObjectiveState('missed')},

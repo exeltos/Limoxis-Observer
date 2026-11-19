@@ -1,5 +1,8 @@
 import { auditScore, needsClass, questionsForAudit } from '../audits/auditModel'
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import { formatDay } from '../../../core/i18n/formatDay'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
+import { standardShort } from '../audits/auditStandards'
 
 // One question of a self-assessment (a row of the audit questionnaire) with the department's answer.
 // A type, not an interface, so that the checklist is stored as JSON as it is.
@@ -77,9 +80,9 @@ export function selfCounts(items: SelfAssessment[] = []) {
   }
 }
 
-export function filterSelf(items: SelfAssessment[] = [], query = '') {
-  const q = String(query || '').trim().toLowerCase()
-  return q ? items.filter(item => `${item.title} ${item.departmentName}`.toLowerCase().includes(q)) : items
+// The search finds a row by anything it shows (owner, 19/11/2026: the searches find everything).
+export function filterSelf(items: SelfAssessment[] = [], query = '', language = 'el') {
+  return items.filter(item => matchesSearch(query, [item.title, item.departmentName, item.standard ? standardShort(item.standard) : '', item.score == null ? '' : `${item.score}%`, formatDay(item.dueOn, language), isOverdue(item) ? (language === 'en' ? 'overdue' : 'εκπρόθεσμη') : '', selfStatusLabel(item.status, language)]))
 }
 
 export const selfExport = (items: SelfAssessment[] = [], language = 'el') => {
