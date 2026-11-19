@@ -12,7 +12,9 @@ describe('patient infection flags', () => {
     ])
     expect(flags.p1.resistance).toMatchObject({ classification: 'MDR', organism: 'K. pneumoniae' })
     expect(flags.p1.isolation).toMatchObject({ since: '2026-08-02' })
-    expect(flags.p2).toEqual({ resistance: expect.objectContaining({ classification: 'MRSA' }), isolation: null })
+    // The latest organism too (owner, 19/11/2026): none recorded for p2.
+    expect(flags.p2).toEqual({ resistance: expect.objectContaining({ classification: 'MRSA' }), isolation: null, organism: null })
+    expect(flags.p1.organism).toMatchObject({ name: 'K. pneumoniae' })
     expect(flags.p3).toBeUndefined()
   })
 

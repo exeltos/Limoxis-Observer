@@ -33,6 +33,7 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
   const [open,setOpen]=useState(false)
   const [placement,setPlacement]=useState<{top:number,left:number,side:'above'|'below'}|null>(null)
   const triggerRef=useRef<HTMLButtonElement>(null)
+  const searchRef=useRef<HTMLInputElement>(null)
   const popoverRef=useRef<HTMLDivElement>(null)
 
   const positionPopover=()=>{
@@ -98,7 +99,8 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
 
   return <div className={`filter-system ${compact?'compact':''}`}>
     <div className="filter-primary-row">
-      {onQueryChange&&<label className="filter-search"><Search size={16}/><input value={query} onChange={e=>onQueryChange(e.target.value)} placeholder={placeholder||`${t('search')}...`}/></label>}
+      {/* The search clears with its own × once something is typed (owner, 19/11/2026); the focus goes back to the field. */}
+      {onQueryChange&&<label className="filter-search"><Search size={16}/><input ref={searchRef} value={query} onChange={e=>onQueryChange(e.target.value)} placeholder={placeholder||`${t('search')}...`}/>{query&&<button type="button" className="filter-search-clear" aria-label={t('clearSearch')} title={t('clearSearch')} onClick={()=>{onQueryChange('');searchRef.current?.focus()}}><X size={14} aria-hidden="true"/></button>}</label>}
       {filterContent&&<button ref={triggerRef} type="button" className={`filter-trigger ${open||activeAdvancedCount?'active':''}`} aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Filter size={16}/><span>{t('filters')}</span>{activeAdvancedCount>0&&<b>{activeAdvancedCount}</b>}</button>}
       {activeFilters.length>0&&<div className="filter-active-row">{activeFilters.map(item=><button key={item.key} type="button" className="filter-active-chip" onClick={item.onRemove} aria-label={`${clearLabel}: ${item.label}`}>{item.label}<X size={12} aria-hidden="true"/></button>)}</div>}
       {end&&<div className="filter-end">{end}</div>}

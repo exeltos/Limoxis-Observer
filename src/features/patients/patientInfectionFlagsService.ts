@@ -9,6 +9,8 @@ type CaseLike = { status?: string, patientRecordId?: string, patientId?: string,
 export interface InfectionFlags {
   resistance: { classification: string, organism: string, since: string | null } | null
   isolation: { since: string | null, precautions: string[] } | null
+  // The latest organism from a positive culture, resistant or not (owner, 19/11/2026).
+  organism?: { name: string, since: string | null } | null
 }
 
 const caseDate = (row: CaseLike | null | undefined) => String(row?.startedAt || row?.admissionDate || '')
@@ -25,7 +27,9 @@ export function infectionFlagsFromCases(cases: readonly CaseLike[] = []): Record
   for (const row of sorted) {
     const key = row.patientRecordId || row.patientId
     if (!key) continue
-    const flags: InfectionFlags = out[key] ??= { resistance: null, isolation: null }
+    const flags: InfectionFlags = out[key] ??= { resistance: null, isolation: null, organism: null }
+    const organism = row.organism || row.samples?.find((sample) => sample?.organism)?.organism || ''
+    if (!flags.organism && organism) flags.organism = { name: organism, since: row.startedAt || null }
     const resistance = row.resistance || row.samples?.find((sample) => sample?.resistance)?.resistance || null
     if (!flags.resistance && resistance) {
       flags.resistance = { classification: resistance, organism: row.organism || row.samples?.find((sample) => sample?.organism)?.organism || '', since: row.startedAt || null }
@@ -45,10 +49,29 @@ export async function loadPatientInfectionFlags(organizationId: string | null | 
   // Active isolation from the same read (20261129200000).
   assertCloud()
   // assertCloud() has checked that the client is configured.
-  const { data, error } = await (supabase as Cloud).rpc('patient_infection_flags', { p_organization_id: organizationId })
+  const [{ data, error }, organisms] = await Promise.all([
+    (supabase as Cloud).rpc('patient_infection_flags', { p_organization_id: organizationId }),
+    loadLatestOrganisms(organizationId),
+  ])
   if (error) throw error
-  return Object.fromEntries((data || []).map(row => [row.patient_id, {
+  const out: Record<string, InfectionFlags> = Object.fromEntries((data || []).map(row => [row.patient_id, {
     resistance: row.classification ? { classification: row.classification, organism: row.organism || '', since: row.since || null } : null,
     isolation: row.isolated ? { since: row.isolation_since || null, precautions: row.isolation_precautions || [] } : null,
+    organism: null,
   }]))
+  for (const row of organisms) {
+    const flags = out[row.patient_id] ??= { resistance: null, isolation: null, organism: null }
+    flags.organism = { name: row.organism, since: row.resulted_at || null }
+    if (!flags.resistance && row.resistance) flags.resistance = { classification: row.resistance, organism: row.organism, since: row.resulted_at || null }
+  }
+  return out
+}
+
+// Every patient's latest organism (patient_latest_organisms, 20261231598000). Until that read exists in a database the
+// list shows the flags as before: a missing function is no error here.
+type LatestOrganismRow = { patient_id: string, organism: string, resistance: string | null, resulted_at: string | null }
+async function loadLatestOrganisms(organizationId: string): Promise<LatestOrganismRow[]> {
+  const { data, error } = await (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: LatestOrganismRow[] | null, error: unknown }> }).rpc('patient_latest_organisms', { p_organization_id: organizationId })
+  if (error) return []
+  return (data || []).filter(row => row?.patient_id && row.organism)
 }
