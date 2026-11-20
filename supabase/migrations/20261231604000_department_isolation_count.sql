@@ -48,7 +48,8 @@ begin
     return 0;
   end if;
 
-  return (select count(*)::integer
+  -- Ασθενείς, όχι επεισόδια: ένας ασθενής με δύο ενεργές απομονώσεις μετρά μία φορά.
+  return (select count(distinct x.patient_id)::integer
             from public.isolation_episodes x
            where x.organization_id = p_organization_id
              and x.status = 'active'

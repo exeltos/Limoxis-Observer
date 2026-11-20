@@ -24,6 +24,8 @@ const KIND_ONE: Record<'el' | 'en', Record<string, string>>={
 export function calendarTypeLabel(event: CalendarEvent,language='el'){
  const lang=language==='en'?'en':'el'
  const filter=calendarFilterOf(event)
+ // A department's meeting is a «Συνάντηση», a committee's a «Συνεδρίαση».
+ if(/^dmg?:/.test(String(event.id||'')))return lang==='en'?'Department meeting':'Συνάντηση'
  // An expiry says what expires: a certificate, a kitchen material or a licence.
  if(filter==='expiries'){const id=String(event.id||'');const what=id.startsWith('cert:')?(lang==='en'?'Certificate expiry':'Λήξη πιστοποιητικού'):id.startsWith('kit-exp:')?(lang==='en'?'Material expiry':'Λήξη υλικού'):event.kind==='documents'?(lang==='en'?'Licence expiry':'Λήξη άδειας'):'';if(what)return what}
  return FILTER_ONE[lang][filter]||KIND_ONE[lang][event.kind]||calendarKindLabel(event.kind,language)
@@ -139,13 +141,12 @@ export function hasSingleDepartment(role: string | null | undefined,membership: 
 // A department role (and the Division Director, for the departments of the division) sees the items of its departments,
 // matched by name (the items carry the department's name; a hospital's membership its departments' names, the sample data
 // the previewed department): never an item without a department. Besides those: a training programme whose audience names
-// the department or the whole staff; the hospital committees only where the database loaded them (a hospital loads only the
-// committees the person sits on; the sample data, which loads all of them, shows none); a certificate's expiry to its own
+// the department or the whole staff; never the hospital committees' sessions, only the department's own meetings; a certificate's expiry to its own
 // person, and to the manager or director of its department, never with a colleague's name to a plain user.
 export interface CalendarScope { all: boolean, departments: string[], ownCertificatesOnly: boolean, committees: boolean, userId: string | null, employeeId: string | null }
 type ScopeMembership = { departmentNames?: unknown, departmentName?: unknown, previewDepartment?: unknown, previewDepartments?: unknown } | null | undefined
 const PLAIN_ROLES=new Set(['department_user','link_nurse'])
-export function calendarScopeFor({role,membership,userId=null,employeeId=null,departmentNames=[],committees=false}: { role: string | null | undefined, membership?: object | null, userId?: string | null, employeeId?: string | null, departmentNames?: readonly string[], committees?: boolean }): CalendarScope{
+export function calendarScopeFor({role,membership,userId=null,employeeId=null,departmentNames=[]}: { role: string | null | undefined, membership?: object | null, userId?: string | null, employeeId?: string | null, departmentNames?: readonly string[] }): CalendarScope{
  const own={userId:userId||null,employeeId:employeeId||null}
  if(uxPolicyFor(role).scope!==SCOPES.DEPARTMENT)return {all:true,departments:[],ownCertificatesOnly:false,committees:true,...own}
  const scope=membership as ScopeMembership
@@ -153,7 +154,8 @@ export function calendarScopeFor({role,membership,userId=null,employeeId=null,de
  // The sample data's previewed department (or division) is the scope, as in recordWithinRoleScope.
  const names=scope?.previewDepartment?[scope.previewDepartment]:preview||[...(Array.isArray(scope?.departmentNames)?scope.departmentNames:[]),scope?.departmentName,...departmentNames]
  const departments=[...new Set(names.map(name=>foldSearch(name).trim()).filter(Boolean))]
- return {all:false,departments,ownCertificatesOnly:PLAIN_ROLES.has(String(role)),committees,...own}
+ // The departments see their own meetings, never the hospital committees' sessions (owner, 20/11/2026).
+ return {all:false,departments,ownCertificatesOnly:PLAIN_ROLES.has(String(role)),committees:false,...own}
 }
 // A training programme's audience for the whole staff: «Όλο το προσωπικό», «Κλινικό προσωπικό», «Όλο το νοσοκομείο»…
 const HOSPITAL_WIDE=['ολο το προσωπικο','κλινικο προσωπικο','ολο το νοσοκομειο','ολα τα τμηματα','ολο το νοσηλευτικο προσωπικο','all staff','clinical staff','whole hospital','entire hospital','all departments','hospital-wide']

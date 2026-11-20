@@ -36,6 +36,9 @@ interface Tile { key: string, label: string, value: number | null | undefined, d
 const shortDate = (key: string, en: boolean) => key ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { day: 'numeric', month: 'numeric', year: '2-digit' }).format(new Date(`${key}T12:00:00`)) : ''
 const STATUS_TONE: Record<OwnTrainingStatus, string> = { overdue: 'danger', expired: 'danger', due: 'info', expiring: 'warning', completed: 'success' }
 
+// A record's page (/training/TRN-001) is open to whoever may open its section (/training).
+const sectionPath = (path: string) => `/${String(path || '').split('?')[0].split('/').filter(Boolean)[0] || ''}`
+
 export function UserHome({ language, figures, trainingOn, isolationOn, trainings, week, canOpen, onOpen, todoCard, announcementsCard }: UserHomeProps) {
   const en = language === 'en'
   const tr = (el: string, enText: string) => en ? enText : el
@@ -69,7 +72,7 @@ export function UserHome({ language, figures, trainingOn, isolationOn, trainings
         {todoCard}
         {trainingOn && <Card className="dashboard-card userhome-trainings-card">
           <CardHeader icon={GraduationCap} title={tr('Οι εκπαιδεύσεις μου', 'My trainings')} actions={canOpen('/my-profile') && <button type="button" className="text-button" onClick={() => onOpen('/my-profile')}>{tr('Όλες', 'All')}<ArrowRight size={14}/></button>}/>
-          {trainings === null ? <TableSkeleton/> : trainings.length ? <ul className="userhome-trainings">{trainings.map(row => <li key={row.id}><button type="button" disabled={!canOpen(row.path)} onClick={() => onOpen(row.path)}>
+          {trainings === null ? <TableSkeleton/> : trainings.length ? <ul className="userhome-trainings">{trainings.map(row => <li key={row.id}><button type="button" disabled={!canOpen(sectionPath(row.path))} onClick={() => onOpen(row.path)}>
             <span className="userhome-training-copy"><strong title={row.title}>{row.title}</strong><small>{dateText(row)}</small></span>
             <span className={`status-badge ${STATUS_TONE[row.status]}`}>{statusText(row)}</span>
           </button></li>)}</ul> : <div className="inline-empty">{tr('Δεν σας έχει ανατεθεί εκπαίδευση.', 'No training is assigned to you.')}</div>}

@@ -85,7 +85,8 @@ const FILTER_LABELS: Record<'el' | 'en', Record<string, string>>={
  el:{controls:'Έλεγχοι',cultures:'Καλλιέργειες',training:'Εκπαιδεύσεις',meetings:'Συνεδριάσεις',expiries:'Λήξεις',other:'Λοιπά'},
  en:{controls:'Controls',cultures:'Cultures',training:'Trainings',meetings:'Meetings',expiries:'Expiries',other:'Other'},
 }
-export const calendarFilterLabel=(filter: string,language='el')=>FILTER_LABELS[language==='en'?'en':'el'][filter]||filter
+// In a department's calendar the meetings are the department's own: «Συναντήσεις».
+export const calendarFilterLabel=(filter: string,language='el',departmentView=false)=>departmentView&&filter==='meetings'?(language==='en'?'Department meetings':'Συναντήσεις'):FILTER_LABELS[language==='en'?'en':'el'][filter]||filter
 export function calendarFilterOf(event: CalendarEvent){
  if(event.expiry||/^(cert|kit-exp):/.test(String(event.id||'')))return 'expiries'
  if(event.kind==='controls')return 'controls'

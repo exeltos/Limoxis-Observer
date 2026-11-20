@@ -133,6 +133,9 @@ describe('the home of the Department User', () => {
     expect(isolation).not.toHaveBeenCalled()
   })
 
+  it('opens a training record when its section is open', () => {
+    expect(readSource('src/features/dashboard/UserHome.tsx')).toContain('disabled={!canOpen(sectionPath(row.path))}')
+  })
   it('keeps «Το τμήμα μου» for the Department Manager', () => {
     const page = readSource('src/features/workspaces/MyDepartmentPage.tsx')
     expect(page).toContain('const userHome=role===ROLES.DEPARTMENT_USER||role===ROLES.LINK_NURSE')
@@ -148,6 +151,7 @@ describe('the isolation count in the database', () => {
     expect(sql).toContain('om.user_id = auth.uid()')
     expect(sql).toContain('x.organization_id = p_organization_id')
     expect(sql).toContain('returns integer')
+    expect(sql).toContain('count(distinct x.patient_id)')
     expect(sql).not.toMatch(/\b(drop|revoke|delete)\b/i)
   })
 })

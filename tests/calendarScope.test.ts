@@ -3,8 +3,8 @@
 // department; trainings by their audience; a plain user only their own certificates; the hospital committees only where
 // the database loaded them. The roles of the whole hospital see everything, as before.
 import { describe, expect, it } from 'vitest'
-import { buildCalendarEvents, type CalendarEvent } from '../src/features/calendar/calendarEvents'
-import { audienceIncludes, calendarScopeFor, eventInDepartment, eventWithinScope } from '../src/features/calendar/calendarView'
+import { buildCalendarEvents, calendarFilterLabel, type CalendarEvent } from '../src/features/calendar/calendarEvents'
+import { audienceIncludes, calendarScopeFor, calendarTypeLabel, eventInDepartment, eventWithinScope } from '../src/features/calendar/calendarView'
 import { readSource } from './helpers/readSource'
 
 const today = '2026-11-20'
@@ -91,10 +91,11 @@ describe('certificates, trainings and committees', () => {
     expect(eventInDepartment(byId('trn-due:P1')[0], 'Παθολογική')).toBe(true)
     expect(eventInDepartment(byId('trn-due:P3')[0], 'ΜΕΘ')).toBe(false)
   })
-  it('shows the hospital committees to a department role only where the database loaded them for the person', () => {
-    const meeting = byId('mtg:')[0]
-    expect(eventWithinScope(meeting, icuUser)).toBe(false)
-    expect(eventWithinScope(meeting, calendarScopeFor({ role: 'department_user', membership: { departmentIds: ['d'], departmentNames: ['ΜΕΘ'] }, committees: true }))).toBe(true)
+  it('shows department roles their own meetings, never the hospital committees\' sessions', () => {
+    expect(eventWithinScope(byId('mtg:')[0], icuUser)).toBe(false)
+    expect(calendarTypeLabel(ev({ id: 'dmg:G1', kind: 'committees', title: 'Συνάντηση ΜΕΘ' }))).toBe('Συνάντηση')
+    expect(calendarFilterLabel('meetings', 'el', true)).toBe('Συναντήσεις')
+    expect(calendarFilterLabel('meetings')).toBe('Συνεδριάσεις')
   })
   it('leaves the roles of the whole hospital unchanged', () => {
     const admin = calendarScopeFor({ role: 'hospital_admin', membership: hospitalMember })

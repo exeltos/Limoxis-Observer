@@ -11,7 +11,7 @@ import { calendarScopeFor,type CalendarScope } from './calendarView'
 // «Mine» is the user's account in a hospital and the sample data's own employee in the Demo («Η καρτέλα μου»).
 // A previewed Division Director of a hospital carries the ids of the division's departments only: their names are read once.
 export function useCalendarScope(): CalendarScope{
- const {tenant,role,membership,isDemo,isRolePreview}=useTenant()
+ const {tenant,role,membership,isDemo}=useTenant()
  // A screen rendered without the sign-in above it has no account: nothing is «mine» then.
  const auth=useOptionalAuth()
  const userId=auth?.profile?.id||auth?.user?.id||null
@@ -28,5 +28,5 @@ export function useCalendarScope(): CalendarScope{
   return()=>{active=false}
  },[needsNames,tenant?.id,ids])
  // The hospital committees: only where the database loaded them for this person (not in a preview, not in the sample data).
- return useMemo(()=>calendarScopeFor({role,membership,userId:isDemo?null:userId,employeeId:isDemo?DEMO_SELF_EMPLOYEE_ID:null,departmentNames:names,committees:!isDemo&&!isRolePreview}),[role,membership,userId,isDemo,names,isRolePreview])
+ return useMemo(()=>calendarScopeFor({role,membership,userId:isDemo?null:userId,employeeId:isDemo?DEMO_SELF_EMPLOYEE_ID:null,departmentNames:names}),[role,membership,userId,isDemo,names])
 }
