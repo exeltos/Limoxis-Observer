@@ -143,7 +143,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
 
 // «Το τμήμα μου» of the Department Manager in the Demo: the same sample records as the
 // other Demo screens (clinical cases, laboratory samples, hand hygiene sessions,
-// controls), counted for the period and its comparison as department_home_overview counts a hospital (a contamination
+// controls), counted for the period and its comparison as department_home_period_overview counts a hospital (a contamination
 // note is no positive); the roster requests, training, influenza vaccination and falls are the department's row of
 // the Division Director's sample figures.
 export function collectDemoDepartmentHome({ department, now = new Date(), window = departmentHomeWindow('month', hospitalDate(now)) }: { department: string | null, now?: Date, window?: DepartmentHomeWindow }): DepartmentHomeOverview {

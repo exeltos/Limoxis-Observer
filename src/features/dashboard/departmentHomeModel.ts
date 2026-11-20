@@ -1,6 +1,6 @@
 // «Το τμήμα μου» of the Department Manager: the figures of their department(s) for a period and its comparison
 // period, the series of its charts and the organisms of its positive samples (counts only, never a patient). A
-// hospital reads them in one call (department_home_overview, 20261231603000), the Demo from its sample records
+// hospital reads them in one call (department_home_period_overview, 20261231603000), the Demo from its sample records
 // (demoDashboardMetrics.collectDemoDepartmentHome); both end up in this shape.
 // The period (owner, 20/11/2026): Μήνας, Τρίμηνο, Εξάμηνο or Έτος as the registers have them (registerEngine), compared
 // with the previous period or the same period last year (registerReport.comparePeriod); the current month by default.

@@ -20,12 +20,10 @@
 -- τα θετικά αποτελέσματα, εξαίρεση των σημειωμάτων επιμόλυνσης, κανένα όνομα ασθενούς,
 -- κλείδωμα ενοτήτων. Μόνο ανάγνωση.
 --
--- ΠΡΟΣΟΧΗ: οι νέες παράμετροι φτιάχνουν νέα υπογραφή (overload). Η παλιά
--- department_home_overview(uuid, uuid[]) σβήνεται πρώτα, ώστε να μείνει ένα σημείο εισόδου.
--- Εφαρμόζεται από τον ιδιοκτήτη στο SQL Editor.
-drop function if exists public.department_home_overview(uuid, uuid[]);
+-- Νέο όνομα (department_home_period_overview), ώστε η παλιά department_home_overview(uuid, uuid[])
+-- να δουλεύει ως τη νέα έκδοση της εφαρμογής· σβήνεται αργότερα από τον ιδιοκτήτη στο SQL Editor.
 
-create or replace function public.department_home_overview(p_organization_id uuid, p_department_ids uuid[] default null, p_from date default null, p_to date default null, p_compare_from date default null, p_compare_to date default null, p_bucket text default 'week')
+create or replace function public.department_home_period_overview(p_organization_id uuid, p_department_ids uuid[] default null, p_from date default null, p_to date default null, p_compare_from date default null, p_compare_to date default null, p_bucket text default 'week')
 returns jsonb
 language plpgsql
 stable
@@ -395,5 +393,5 @@ begin
 end
 $function$;
 
-revoke all on function public.department_home_overview(uuid, uuid[], date, date, date, date, text) from public, anon;
-grant execute on function public.department_home_overview(uuid, uuid[], date, date, date, date, text) to authenticated;
+revoke all on function public.department_home_period_overview(uuid, uuid[], date, date, date, date, text) from public, anon;
+grant execute on function public.department_home_period_overview(uuid, uuid[], date, date, date, date, text) to authenticated;

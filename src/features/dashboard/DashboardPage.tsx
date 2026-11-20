@@ -138,7 +138,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     return()=>{active=false}
   },[tenant?.id,isDemo,role,membership?.departmentIds,divisionHome])
   const demo=useMemo(()=>isDemo?collectDemoDashboardMetrics({department}):null,[isDemo,department])
-  // «Το τμήμα μου»: one read of the department's figures for the chosen period and its comparison (department_home_overview);
+  // «Το τμήμα μου»: one read of the department's figures for the chosen period and its comparison (department_home_period_overview);
   // the Demo counts its sample records. A failed read shows the error line and empty figures, never the Demo's.
   const departmentPeriod=useDepartmentHomeWindow()
   const periodWindow=departmentPeriod.window

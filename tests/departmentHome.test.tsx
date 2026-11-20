@@ -394,13 +394,11 @@ describe('department_home_overview: roles and resistance (Codex review, 20/11/20
 describe('department_home_overview with a period (owner, 20/11/2026)', () => {
   const migration = readSource('supabase/migrations/20261231603000_department_home_period.sql')
   const sql = migration.replace(/^--.*$/gm, '')
-  it('drops the old signature first, so one entry point is left, and opens the new one to signed-in users only', () => {
-    const drop = sql.indexOf('drop function if exists public.department_home_overview(uuid, uuid[]);')
-    expect(drop).toBeGreaterThanOrEqual(0)
-    expect(drop).toBeLessThan(sql.indexOf('create or replace function public.department_home_overview('))
-    expect(sql).toContain("create or replace function public.department_home_overview(p_organization_id uuid, p_department_ids uuid[] default null, p_from date default null, p_to date default null, p_compare_from date default null, p_compare_to date default null, p_bucket text default 'week')")
-    expect(sql).toContain('revoke all on function public.department_home_overview(uuid, uuid[], date, date, date, date, text) from public, anon;')
-    expect(sql).toContain('grant execute on function public.department_home_overview(uuid, uuid[], date, date, date, date, text) to authenticated;')
+  it('is a new function beside the old one (no drop) and opens the new one to signed-in users only', () => {
+    expect(sql).not.toContain('drop function')
+    expect(sql).toContain("create or replace function public.department_home_period_overview(p_organization_id uuid, p_department_ids uuid[] default null, p_from date default null, p_to date default null, p_compare_from date default null, p_compare_to date default null, p_bucket text default 'week')")
+    expect(sql).toContain('revoke all on function public.department_home_period_overview(uuid, uuid[], date, date, date, date, text) from public, anon;')
+    expect(sql).toContain('grant execute on function public.department_home_period_overview(uuid, uuid[], date, date, date, date, text) to authenticated;')
     expect(sql).toContain('security definer')
     expect(sql).toContain("set search_path to ''")
     expect(sql).not.toMatch(/\b(insert|update|delete|truncate)\b/i)
