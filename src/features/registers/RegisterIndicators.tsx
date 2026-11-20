@@ -18,7 +18,7 @@ import { RegisterPrintDialog, type RegisterPrintChoice } from './RegisterPrintDi
 import { PERIODS, breakdown, computeIndicator, isActiveCensus, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodLength, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey } from './registerThemes'
-import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
+import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone, shortUnit } from './registerText'
 import { hospitalDate, hospitalToday } from '../../core/dates/hospitalDate'
 import type { ExportApi, FieldOption, IndicatorFilter, Register, RegisterEntry, RegisterIndicator } from './registerTypes'
 import type { BreakdownRow, IndicatorResult, Period } from './registerEngine'
@@ -172,9 +172,6 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
     {printOpen && <RegisterPrintDialog language={language} onPrint={printIndicators} onClose={() => setPrintOpen(false)} />}
   </RecordTabPanel>
 }
-
-// A unit short enough to sit beside the value («/1.000 ημ. καθετήρα»).
-const shortUnit = (unit: unknown) => String(unit || '').replace(/ημέρες/g, 'ημ.').replace(/ημέρα/g, 'ημ.').replace(/\bdays\b/g, 'd')
 
 interface ChangeProps { now: number | null, before: number | null, indicator: RegisterIndicator, language: string }
 function Change({ now, before, indicator, language }: ChangeProps) {

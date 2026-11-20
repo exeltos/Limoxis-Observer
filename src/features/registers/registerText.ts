@@ -4,6 +4,9 @@ export const registerStatusLabel = (status: string, language = 'el') => ((langua
 export const indicatorStatusLabel = (status: string | undefined, language = 'el') => ((language === 'en' ? { onTarget: 'On target', attention: 'Below target', breach: 'Past the limit', context: 'No target' } : { onTarget: 'Εντός στόχου', attention: 'Εκτός στόχου', breach: 'Πέρα από το όριο', context: 'Χωρίς στόχο' }) as Record<string, string>)[status ?? ''] || ''
 export const indicatorStatusTone = (status: string | undefined) => ({ onTarget: 'success', attention: 'warning', breach: 'danger' } as Record<string, string>)[status ?? ''] || 'neutral'
 
+// A unit short enough to sit beside the value («/1.000 ημ. καθετήρα»).
+export const shortUnit = (unit: unknown) => String(unit || '').replace(/ημέρες/g, 'ημ.').replace(/ημέρα/g, 'ημ.').replace(/\bdays\b/g, 'd')
+
 export function formatIndicatorValue(value: number | null | undefined, indicator: { unit?: string, unitEn?: string } | null | undefined, language = 'el') {
   if (value == null) return '—'
   const en = language === 'en'

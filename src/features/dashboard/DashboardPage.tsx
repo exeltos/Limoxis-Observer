@@ -1,6 +1,6 @@
 import './dashboardScreens.css'
 import { SECTION_TABS,sectionTabsFor } from '../../core/navigation/sectionTabs'
-import { Suspense,useEffect,useMemo,useState } from 'react'
+import { Suspense,useEffect,useMemo,useState,type ReactNode } from 'react'
 import { type LucideIcon, Activity, ArrowRight, Award, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
@@ -12,7 +12,9 @@ import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { loadDashboardMetrics, readStoredDashboardMetrics, type DashboardMetrics } from './dashboardCloudService'
 import { FirstStepsCard, firstSteps } from './FirstStepsCard'
-import { collectDemoDashboardMetrics } from './demoDashboardMetrics'
+import { collectDemoDashboardMetrics, collectDemoDepartmentHome } from './demoDashboardMetrics'
+import { loadDepartmentHomeOverview } from './departmentHomeService'
+import type { DepartmentHomeOverview } from './departmentHomeModel'
 import { DEPARTMENT_ROLES, pendingActionsOf } from './dashboardTasks'
 import './dashboard.css'
 import { roleTitleText } from '../../core/i18n/roleTitles'
@@ -29,6 +31,8 @@ import type { NotificationItem } from '../../core/notifications/notificationType
 
 // The Division Director's home (its departments, rosters and interviews): its own chunk.
 const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome')
+// The Department Manager's «Το τμήμα μου» (figures, charts, register or incidents): its own chunk.
+const DepartmentHome=lazyPage(()=>import('./DepartmentHome'),'DepartmentHome')
 
 
 type Metrics=Record<string, number | undefined>
@@ -105,7 +109,8 @@ const TODO_FOLDED=8,WEEK_SHOWN=6
 
 // title/subtitle/showKpis let the department home reuse this layout: its
 // counts are organization-wide, so the department view hides them.
-export function DashboardPage({title,subtitle,showKpis=true,department=null}: { title?: string, subtitle?: string, showKpis?: boolean, department?: string | null }={}) {
+// departmentHome: the Department Manager's «Το τμήμα μου» (figures and charts of the department above the cards).
+export function DashboardPage({title,subtitle,showKpis=true,department=null,departmentHome=false}: { title?: string, subtitle?: string, showKpis?: boolean, department?: string | null, departmentHome?: boolean }={}) {
   const { role: actualRole, actualRole: signedInRole, tenant, isDemo, moduleEnabled, membership, canAccessRecord } = useTenant()
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
@@ -132,6 +137,19 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}: { 
     return()=>{active=false}
   },[tenant?.id,isDemo,role,membership?.departmentIds,divisionHome])
   const demo=useMemo(()=>isDemo?collectDemoDashboardMetrics({department}):null,[isDemo,department])
+  // «Το τμήμα μου»: one read of the department's figures (department_home_overview); the Demo counts its sample records.
+  // A failed read shows the error line and empty figures, never the Demo's.
+  const [departmentOverview,setDepartmentOverview]=useState<{data: DepartmentHomeOverview | null, status: 'loading' | 'ready' | 'error'}>({data:null,status:'loading'})
+  const demoOverview=useMemo(()=>departmentHome&&isDemo?collectDemoDepartmentHome({department}):null,[departmentHome,isDemo,department])
+  useEffect(()=>{
+    let active=true
+    if(!departmentHome||isDemo)return()=>{active=false}
+    setDepartmentOverview(current=>({data:current.data,status:'loading'}))
+    loadDepartmentHomeOverview(tenant?.id,membership?.departmentIds).then(data=>{if(active)setDepartmentOverview({data,status:'ready'})}).catch(()=>{if(active)setDepartmentOverview({data:null,status:'error'})})
+    return()=>{active=false}
+  },[departmentHome,isDemo,tenant?.id,membership?.departmentIds])
+  const overview=demoOverview||departmentOverview.data
+  const overviewStatus=demoOverview?'ready':departmentOverview.status
   const values: Metrics=demo?demo.metrics:metrics
   const roleRows=useMemo(()=>roleKpis(role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
   // «Προς έλεγχο (N)»: new positive samples with no episode and no decision, for the infection-control roles.
@@ -171,6 +189,11 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}: { 
    const metricOf=(task: NotificationItem)=>String(task.id||'').startsWith('LIVE-')?String(task.id).split('-').slice(2).join('-'):task.id
    if(!adminHome)for(const task of tasks){const key=metricOf(task);add({key,title:task.title,count:task.count??null,to:task.to||null,tone:TILE_TARGETS[key]||'info',task})}
    if(!adminHome&&showKpis)for(const [label,value,,key] of roleRows){const tone=TILE_TARGETS[key];const to=ROLE_TILE_SCREENS[String(role)]?.[key]??TILES[key]?.[1];if(tone&&Number(value)>0)add({key,title:label,count:Number(value),to:to&&canOpen(to)?to:null,tone})}
+   // The department's own waiting work on «Το τμήμα μου»: roster requests to answer and training that falls due within 30 days.
+   if(departmentHome&&overview){
+    if(overview.pendingRosterRequests>0)add({key:'rosterRequests',title:tr('Αιτήματα βαρδιών σε αναμονή','Roster requests waiting'),count:overview.pendingRosterRequests,to:canOpen('/rosters')?'/rosters':null,tone:'warning'})
+    if(Number(overview.trainingExpiring30)>0)add({key:'trainingExpiring',title:tr('Εκπαιδεύσεις που λήγουν σε 30 ημέρες','Training due within 30 days'),count:Number(overview.trainingExpiring30),to:canOpen('/training')?'/training':null,tone:'info'})
+   }
    if(missedObjectives>0)add({key:'objectives',title:tr('Στόχοι που δεν επιτυγχάνονται','Objectives not met'),count:missedObjectives,to:'/quality/measures',tone:'warning'})
    const rank: Record<Tone, number>={danger:0,warning:1,info:2}
    return items.sort((a,b)=>rank[a.tone]-rank[b.tone])
@@ -185,23 +208,31 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}: { 
     <CardHeader icon={CalendarDays} title={tr('Επόμενες 7 ημέρες','Next 7 days')} subtitle={tr('Συνεδριάσεις, επιθεωρήσεις και προθεσμίες.','Meetings, audits and deadlines.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/calendar')}>{tr('Ημερολόγιο','Calendar')}<ArrowRight size={14}/></button>}/>
     {week===null?<TableSkeleton/>:week.length?<div className="dashboard-week-list">{week.slice(0,WEEK_SHOWN).map(event=><button type="button" key={event.id} disabled={!event.path} onClick={()=>event.path&&navigate(event.path)}><span className="dashboard-week-day">{dayLabel(event.date)}</span><span className="dashboard-week-copy"><strong>{event.title}</strong><small>{calendarKindLabel(event.kind,language)}{event.department?` · ${event.department}`:''}</small></span></button>)}</div>:<div className="inline-empty">{tr('Τίποτα προγραμματισμένο για τις επόμενες 7 ημέρες.','Nothing planned for the next 7 days.')}</div>}
   </Card>
-  if(divisionHome)return <Suspense fallback={<RouteLoading/>}><DivisionHome weekCard={weekCard||null}/></Suspense>
-
-  return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
-    <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
-    <div className="dashboard-home">
-      <Card className="dashboard-card dashboard-todo" id="dashboard-tasks" tabIndex={-1}>
+  // «Για μένα σήμερα» and the announcements: the same cards on every home; «Το τμήμα μου» adds the department's 30 days under the announcements.
+  const todoCard=<Card className="dashboard-card dashboard-todo" id="dashboard-tasks" tabIndex={-1}>
         <CardHeader icon={ListChecks} title={tr('Για μένα σήμερα','For me today')} subtitle={todo.length?tr('Τα πιο επείγοντα πρώτα.','The most urgent first.'):tr('Τίποτα δεν περιμένει από εσάς.','Nothing is waiting for you.')}/>
         {metricsState==='stale'&&<div className="inline-empty" role="status">{tr('Ενημερώνεται…','Updating…')}</div>}
         {metricsState==='error'&&<div className="inline-empty">{tr('Κάποιες εκκρεμότητες δεν φορτώθηκαν.','Some pending items did not load.')}</div>}
         {todo.length?<div className="task-list">{shownTodo.map(item=><button className="task-row" key={item.key} disabled={!item.to} onClick={()=>openTodo(item)}><span className={`priority ${item.tone==='danger'?'high':item.tone==='warning'?'medium':'low'}`}/><span className="task-copy"><strong>{item.title}</strong></span>{item.count!=null&&<b className={`task-count${item.tone==='danger'?' urgent':''}`}>{item.count}</b>}{item.to&&<ArrowRight size={17}/>}</button>)}</div>:metricsState!=='loading'&&<div className="inline-empty">{tr('Όλα είναι σε τάξη.','All is in order.')}</div>}
         {todo.length>TODO_FOLDED&&<button type="button" className="text-button dashboard-more" onClick={()=>setAllTodo(value=>!value)}>{allTodo?tr('Λιγότερα','Fewer'):tr(`Όλα (${todo.length})`,`All (${todo.length})`)}</button>}
       </Card>
-      <div className="dashboard-side">
-        <Card className="dashboard-card" id="dashboard-announcements" tabIndex={-1}>
-          <CardHeader icon={Megaphone} title={tr('Ενημερώσεις & ανακοινώσεις','Updates & announcements')} subtitle={nctx.unreadCount?`${nctx.unreadCount} ${tr('μη αναγνωσμένες ειδοποιήσεις','unread notifications')}`:tr('Όλα διαβασμένα','All caught up')} actions={nctx.unreadCount>0&&<button type="button" className="text-button" onClick={nctx.markAllRead}><Bell size={14}/>{tr('Σήμανση όλων','Mark all read')}</button>}/>
-          {announcements.length?<div className="dashboard-announcements">{announcements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{roleTitleText(a.createdBy,language) as string}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}
+  const shownAnnouncements=departmentHome?announcements.slice(0,3):announcements
+  const announcementsCard=(footer: ReactNode)=><Card className="dashboard-card" id="dashboard-announcements" tabIndex={-1}>
+          <CardHeader icon={Megaphone} title={departmentHome?tr('Ανακοινώσεις','Announcements'):tr('Ενημερώσεις & ανακοινώσεις','Updates & announcements')} subtitle={nctx.unreadCount?`${nctx.unreadCount} ${tr('μη αναγνωσμένες ειδοποιήσεις','unread notifications')}`:tr('Όλα διαβασμένα','All caught up')} actions={nctx.unreadCount>0&&<button type="button" className="text-button" onClick={nctx.markAllRead}><Bell size={14}/>{tr('Σήμανση όλων','Mark all read')}</button>}/>
+          {shownAnnouncements.length?<div className="dashboard-announcements">{shownAnnouncements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{roleTitleText(a.createdBy,language) as string}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}
+          {footer}
         </Card>
+  if(divisionHome)return <Suspense fallback={<RouteLoading/>}><DivisionHome weekCard={weekCard||null}/></Suspense>
+  if(departmentHome)return <Page fill className="dashboard-page" title={title||tr('Το τμήμα μου','My department')} subtitle={subtitle}>
+    <Suspense fallback={<RouteLoading/>}><DepartmentHome overview={overview} status={overviewStatus} language={language} moduleEnabled={moduleEnabled} canOpen={canOpen} onOpen={navigate} todoCard={todoCard} announcementsCard={announcementsCard}/></Suspense>
+  </Page>
+
+  return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
+    <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
+    <div className="dashboard-home">
+      {todoCard}
+      <div className="dashboard-side">
+        {announcementsCard(null)}
         {weekCard}
       </div>
     </div>

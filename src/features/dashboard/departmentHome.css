@@ -1,0 +1,81 @@
+/* «Το τμήμα μου» of the Department Manager: four figures, then two rows of cards in one screen.
+   The page does not scroll on a computer or tablet: the rows share the height, the to-do list and the
+   announcements scroll (the organisms, register and incidents cards never: their lines share the card). */
+.dashboard-page.page-fill>.dephome{flex:1 1 0;min-height:0}
+.dephome{display:grid;grid-template-rows:auto minmax(200px,1fr) minmax(200px,1.2fr);gap:12px;min-height:0}
+.dephome:has(>.dephome-error){grid-template-rows:auto auto minmax(200px,1fr) minmax(200px,1.2fr)}
+.dephome:not(:has(>.dephome-charts)){grid-template-rows:auto minmax(200px,1fr)}
+.dephome:has(>.dephome-error):not(:has(>.dephome-charts)){grid-template-rows:auto auto minmax(200px,1fr)}
+.dephome-error{padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+
+.dephome-tiles{display:grid;grid-template-columns:repeat(var(--dephome-tiles,5),minmax(0,1fr));gap:12px}
+.dephome-tile{display:flex;flex-direction:column;gap:2px;min-width:0;padding:11px 14px;border:1px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.dephome-tile:hover:not(:disabled){border-color:var(--lo-color-border-strong);background:var(--lo-color-surface-muted)}
+.dephome-tile:disabled{cursor:default}
+.dephome-tile-label{font-size:12.5px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dephome-tile-value{font-size:26px;line-height:1.15;font-weight:800;font-variant-numeric:tabular-nums;color:var(--lo-color-text)}
+.dephome-tile.is-danger .dephome-tile-value{color:var(--lo-color-danger)}
+.dephome-tile.is-warning .dephome-tile-value{color:var(--lo-color-warning)}
+.dephome-tile.is-success .dephome-tile-value{color:var(--lo-color-success)}
+.dephome-tile-detail{min-height:16px;font-size:12px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.dephome-charts{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;min-height:0}
+
+/* «Μικρόβια του τμήματος»: four figures, then at most five lines that share the rest of the card. */
+.dephome-organism-figures{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 6px}
+.dephome-organism-figures>div{display:flex;flex-direction:column-reverse;min-width:0}
+.dephome-organism-figures dt{font-size:11.5px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dephome-organism-figures dd{margin:0;font-size:22px;line-height:1.15;font-weight:800;font-variant-numeric:tabular-nums;color:var(--lo-color-text)}
+.dephome-organism-figures dd.is-danger{color:var(--lo-color-danger)}
+.dephome-organism-list{flex:1 1 auto;display:grid;grid-template-rows:repeat(5,minmax(0,1fr));min-height:0;max-height:160px;margin:0;padding:0;list-style:none;overflow:hidden}
+.dephome-organism-list>li{display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,34%) 28px;align-items:center;gap:10px;min-height:0;border-top:1px solid var(--lo-color-border);font-size:13px}
+.dephome-organism-list em{font-style:italic;color:var(--lo-color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dephome-organism-list>li.is-more>span:first-child{color:var(--lo-color-muted)}
+.dephome-organism-list b{text-align:right;font-variant-numeric:tabular-nums;color:var(--lo-color-text)}
+.dephome-organism-bar{display:block;height:8px}
+.dephome-organism-bar>span{display:block;height:100%;border-radius:4px;overflow:hidden}
+.dephome-organism-bar i{display:block;height:100%}
+.dephome .dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.dephome .dashboard-card .lo-card-header{margin:0 0 8px;padding:0 0 8px}
+.dephome-chart-card .lo-card-heading{flex-direction:row;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dephome-chart-card .lo-card-actions{display:flex;align-items:center;gap:10px}
+.dephome-legend{display:inline-flex;gap:12px;font-size:12px;font-weight:700;color:var(--lo-color-muted)}
+.dephome-legend>span{display:inline-flex;align-items:center;gap:5px}
+.dephome-legend i{width:10px;height:10px;border-radius:3px}
+
+.dephome-chart{position:relative;flex:1 1 auto;min-height:0;min-width:0;overflow:hidden}
+.dephome-chart>svg{position:absolute;inset:0;width:100%;height:100%}
+.dephome-chart .viz-tooltip{z-index:1}
+.dephome-chart-empty{position:absolute;inset:0;display:grid;place-items:center;margin:0;font-size:12.5px;color:var(--lo-color-muted);pointer-events:none;z-index:1}
+.dephome-chart-empty>span{padding:4px 10px;border-radius:8px;background:var(--lo-color-surface)}
+.dephome-target{stroke:var(--lo-color-success);stroke-width:1.5;stroke-dasharray:6 4}
+.dephome-target-label{font-size:11px;font-weight:700;fill:var(--lo-color-success)}
+.dephome-point{fill:var(--lo-color-surface)}
+
+.dephome-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-height:0}
+.dephome-cards>.dashboard-card{min-height:0}
+.dephome-cards .task-list,.dephome-cards .dashboard-announcements{flex:1 1 auto;min-height:0;overflow:auto;align-content:start}
+/* The register / incidents card: a fixed number of lines sharing the card's height, cut rather than scrolled. */
+.dephome-focus-list{flex:1 1 auto;display:grid;grid-auto-rows:minmax(0,1fr);min-height:0;max-height:208px;margin:0;padding:0;list-style:none;overflow:hidden}
+.dephome-focus-list>li{display:grid;grid-template-columns:minmax(0,1fr) auto 112px;align-items:center;gap:10px;min-height:0;padding:0 4px;border-bottom:1px solid var(--lo-color-border)}
+.dephome-focus-list>li:last-child{border-bottom:0}
+.dephome-focus-list.is-counts>li{grid-template-columns:minmax(0,1fr) auto}
+.dephome-focus-list .status-badge{justify-self:end;white-space:nowrap}
+.dephome-focus-copy{display:flex;flex-direction:column;min-width:0}
+.dephome-focus-copy strong{font-size:13px;font-weight:600;color:var(--lo-color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dephome-focus-copy small{font-size:11.5px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dephome-focus-value{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--lo-color-text);white-space:nowrap}
+.dephome-focus-value.is-warning{color:var(--lo-color-warning)}
+.dephome-focus-list>li.is-open{border-top:1px solid var(--lo-color-border-strong)}
+
+.dephome-month{flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--lo-color-border)}
+.dephome-month>strong{display:block;margin-bottom:4px;font-size:12.5px;color:var(--lo-color-text)}
+.dephome-month dl{display:grid;gap:3px;margin:0}
+.dephome-month dl>div{display:flex;justify-content:space-between;gap:10px;font-size:12.5px}
+.dephome-month dt{color:var(--lo-color-muted)}
+.dephome-month dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums;color:var(--lo-color-text)}
+
+/* Tablet: the five figures stay in one row, a little smaller; a long label wraps instead of being cut. */
+@media(max-width:1180px){.dephome-tile{padding:9px 11px}.dephome-tile-label,.dephome-tile-detail{white-space:normal;font-size:11.5px;line-height:1.25}.dephome-tile-value{font-size:22px}.dephome .dashboard-card .lo-card-heading small,.dephome .dashboard-card .lo-card-icon{display:none}}
+/* Phone (or a short window): everything stacks and the page scrolls. */
+@media(max-width:760px),(max-height:640px){.dephome{display:flex;flex-direction:column}.dashboard-page.page-fill>.dephome{flex:none}.dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.dephome-charts,.dephome-cards{grid-template-columns:1fr}.dephome-chart{height:190px;flex:none}.dephome-organism-list{grid-template-rows:none;grid-auto-rows:auto}.dephome-organism-list>li{padding:5px 0}.dephome-cards>.dashboard-card{max-height:none}.dephome-focus-list{grid-auto-rows:auto}.dephome-focus-list>li{padding:6px 4px}}
