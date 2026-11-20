@@ -20,7 +20,8 @@ export function departmentOverdueCount(events: CalendarEvent[]) {
   return events.filter(event => (event.kind === 'controls' || event.kind === 'cultures') && event.state === 'overdue').length
 }
 
-const isOwn = (row: { userId?: string | null, employeeId?: string | null }, own: Own) => Boolean((own.userId && row.userId === own.userId) || (own.employeeId && row.employeeId === own.employeeId))
+// A training record is the user's when it carries their account (a hospital) or their employee code (the Demo); also the Training page.
+export const isOwn = (row: { userId?: string | null, employeeId?: string | null }, own: Own) => Boolean((own.userId && row.userId === own.userId) || (own.employeeId && row.employeeId === own.employeeId))
 const ownAssignments = (training: Training | null | undefined, own: Own) => (training?.assignments || []).filter(row => isOwn(row, own))
 // A certificate is the user's when it names them, or when it closes one of their assignments.
 function ownCertificates(training: Training | null | undefined, own: Own) {

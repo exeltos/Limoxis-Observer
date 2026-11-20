@@ -51,7 +51,9 @@ describe('training certificates: earned certificates can be downloaded as a PDF'
   })
 
   it('lets an employee download their own certificate from the assignments list', () => {
-    expect(productionPage).toContain('async function downloadCertificate(row: TrainingAssignment,program: TrainingProgram|null|undefined,pdf=false)')
-    expect(productionPage).toContain("import { downloadCertificatePdf } from './trainingCertificate'")
+    // The departments' list (TrainingMyView, owner 20/11/2026) keeps the certificate's download.
+    const myView = read('src/features/training/TrainingMyView.tsx')
+    expect(myView).toContain('async function downloadCertificate(row: TrainingAssignment,program: TrainingProgram|null|undefined,pdf=false)')
+    expect(myView).toContain("import { downloadCertificatePdf } from './trainingCertificate'")
   })
 })
