@@ -23,6 +23,7 @@ import type { CommunicatedSample } from '../surveillance/surveillanceListTypes'
 import { handHygieneRows } from '../prevention/preventionDemoData'
 import { sampleDepartmentFigures } from '../division/divisionService'
 import { needsSurveillanceReview } from '../laboratory/sampleReviewModel'
+import { isContaminationNote } from '../surveillance/skinFloraOrganisms'
 import { DEFAULT_HAND_HYGIENE_TARGET, isMdrClass, monthlyHandHygieneSeries, normalizeDepartmentHome, weeklyPositiveSeries, weekStarts, type DepartmentHomeOverview } from './departmentHomeModel'
 
 // What the counts read of the Demo records of the other modules.
@@ -140,7 +141,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
 
 // «Το τμήμα μου» of the Department Manager in the Demo: the same sample records as the
 // other Demo screens (clinical cases, laboratory samples, hand hygiene sessions,
-// controls), counted as department_home_overview counts a hospital; the roster
+// controls), counted as department_home_overview counts a hospital (a contamination note is no positive); the roster
 // requests, training, influenza vaccination and falls are the department's row of the
 // Division Director's sample figures.
 export function collectDemoDepartmentHome({ department, now = new Date() }: { department: string | null, now?: Date }): DepartmentHomeOverview {
@@ -151,7 +152,7 @@ export function collectDemoDepartmentHome({ department, now = new Date() }: { de
   const isolations: Isolation[] = cases.map(item => item.isolation).filter((item): item is Isolation => Boolean(item && !Array.isArray(item)))
   const firstDay = [weekStarts(today)[0], hospitalDate(new Date(now.getTime() - 29 * 86400000))].sort()[0]
   const positives = laboratorySamples
-    .filter(row => inDepartment(row) && (!row.subjectType || row.subjectType === 'patient') && row.result === 'positive' && !['rejected', 'cancelled'].includes(row.status as string) && row.collectedAt)
+    .filter(row => inDepartment(row) && (!row.subjectType || row.subjectType === 'patient') && row.result === 'positive' && !isContaminationNote(row.organism as string) && !['rejected', 'cancelled'].includes(row.status as string) && row.collectedAt)
     .map(row => ({ row, day: hospitalDate(row.collectedAt as string) }))
     .filter(({ day }) => day >= firstDay && day <= today)
     .sort((a, b) => String(b.row.collectedAt).localeCompare(String(a.row.collectedAt)))

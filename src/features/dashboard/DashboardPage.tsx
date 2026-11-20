@@ -31,7 +31,7 @@ import type { NotificationItem } from '../../core/notifications/notificationType
 
 // The Division Director's home (its departments, rosters and interviews): its own chunk.
 const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome')
-// The Department Manager's «Το τμήμα μου» (figures, charts, latest positives): its own chunk.
+// The Department Manager's «Το τμήμα μου» (figures, charts, register or incidents): its own chunk.
 const DepartmentHome=lazyPage(()=>import('./DepartmentHome'),'DepartmentHome')
 
 

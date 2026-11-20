@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // «Το τμήμα μου» of the Department Manager (owner, 20/11/2026): five figures, two charts and three
-// cards for the manager's department; locked modules are not shown; a hospital reads one RPC
+// cards for the manager's department (the middle one: the department's register, or its incidents); locked modules are not shown; a hospital reads one RPC
 // (department_home_overview) and a failed read never shows the Demo's figures; the Link Nurse keeps
 // the previous home.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,6 +9,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { monthKeys, monthlyHandHygieneSeries, normalizeDepartmentHome, weekStarts, weeklyPositiveSeries } from '../src/features/dashboard/departmentHomeModel'
+import { countDepartmentIncidents } from '../src/features/dashboard/departmentFocusService'
 
 let tenant
 vi.mock('../src/core/tenant/TenantContext', () => ({ useTenant: () => tenant }))
@@ -112,7 +113,7 @@ describe('«Το τμήμα μου» of the Department Manager', () => {
     expect(screen.getByText('Υγιεινή χεριών ανά μήνα')).toBeTruthy()
     expect(container.querySelectorAll('.dephome-cards>.dashboard-card')).toHaveLength(3)
     expect(screen.getByText('Για μένα σήμερα')).toBeTruthy()
-    expect(screen.getByText('Τελευταία θετικά')).toBeTruthy()
+    expect(container.textContent).not.toContain('Τελευταία θετικά')
     expect(screen.getByText('Ανακοινώσεις')).toBeTruthy()
     expect(screen.getByText('Το τμήμα (30 ημ.)')).toBeTruthy()
     expect(container.textContent).not.toContain('Σήμερα στη βάρδια')
@@ -137,7 +138,7 @@ describe('«Το τμήμα μου» of the Department Manager', () => {
     const { container } = open()
     await waitFor(() => expect(screen.getByText('Τα στοιχεία του τμήματος δεν φορτώθηκαν. Δοκιμάστε ξανά σε λίγο.')).toBeTruthy())
     expect(loadOverview).toHaveBeenCalledWith('org-1', ['dep-1'])
-    expect(container.querySelectorAll('.dephome-latest-list button')).toHaveLength(0)
+    expect(container.querySelectorAll('.dephome-focus-list li')).toHaveLength(0)
     expect(container.querySelector('.dephome-tile-value')?.textContent).toBe('—')
   })
 
@@ -149,6 +150,82 @@ describe('«Το τμήμα μου» of the Department Manager', () => {
     expect(container.querySelector('.dephome')).toBeNull()
     expect(container.querySelector('.dashboard-home')).not.toBeNull()
     expect(screen.getByText('Ενημερώσεις & ανακοινώσεις')).toBeTruthy()
+  })
+})
+
+describe('the register or incidents card (owner, 20/11/2026)', () => {
+  it('shows the ICU register\'s main indicators this month, worst first, in four lines that never scroll', async () => {
+    configureDataEnvironment({ mode: 'demo' })
+    tenant = managerTenant()
+    const { container } = open()
+    await waitFor(() => expect(container.querySelector('.dephome-focus .lo-card-heading strong')?.textContent).toMatch(/^Μητρώο: /))
+    const lines = [...container.querySelectorAll('.dephome-focus-list li')]
+    expect(lines.length).toBeGreaterThan(0)
+    expect(lines.length).toBeLessThanOrEqual(4)
+    const rank = { 'Πέρα από το όριο': 0, 'Εκτός στόχου': 1, 'Εντός στόχου': 2 }
+    const ranks = lines.map(line => rank[line.querySelector('.status-badge')?.textContent ?? ''] ?? 3)
+    expect([...ranks].sort((a, b) => a - b)).toEqual(ranks)
+    expect(lines.every(line => line.querySelector('.dephome-focus-copy small')?.textContent)).toBe(true)
+    expect(container.querySelector('.dephome-focus .inline-empty')).toBeNull()
+    // The falls / pressure ulcers stay in the announcements' footer while the card shows the register.
+    expect(screen.getByText('Πτώσεις / κατακλίσεις')).toBeTruthy()
+  })
+
+  it('shows the incidents of the last 30 days for a department without a register, and drops falls from the footer', async () => {
+    configureDataEnvironment({ mode: 'demo' })
+    tenant = managerTenant({ membership: { previewDepartment: 'Καρδιολογική', capabilities: [], customCapabilities: [] } })
+    const { container } = open()
+    await waitFor(() => expect(screen.getByText('Συμβάντα τμήματος')).toBeTruthy())
+    expect([...container.querySelectorAll('.dephome-focus-list li .dephome-focus-copy strong')].map(el => el.textContent)).toEqual(['Πτώση', 'Έλκη που αναπτύσσονται κατά τη νοσηλεία', 'Φαρμακευτικό λάθος', 'Λοιπά συμβάντα', 'Ανοιχτά (υπό αξιολόγηση)'])
+    expect(container.textContent).not.toContain('Πτώσεις / κατακλίσεις')
+    expect(container.textContent).not.toContain('Μητρώο:')
+  })
+
+  it('counts the reports of 30 days by kind (earlier categories read as their ΟΔΙΠΥ item), suggestions left out', () => {
+    const counts = countDepartmentIncidents([
+      { category: 'odipy-fall', status: 'reported', at: '2026-11-20' },
+      { category: 'fall', status: 'closed', at: '2026-10-22' },
+      { category: 'pressureinjury', status: 'under_review', at: '2026-11-01T10:00:00Z' },
+      { category: 'odipy-medication', status: 'closed', at: '2026-11-02' },
+      { category: 'equipment', status: 'underReview', at: '2026-11-03' },
+      { category: 'other', status: 'reported', reportKind: 'suggestion', at: '2026-11-04' },
+      { category: 'odipy-fall', status: 'reported', at: '2026-10-21' },
+    ], '2026-11-20')
+    expect(counts).toEqual({ total: 5, open: 3, falls: 2, pressureUlcers: 1, medication: 1, other: 1 })
+  })
+
+  it('keeps the card at a fixed height: no scrolling list inside it', () => {
+    const css = readSource('src/features/dashboard/departmentHome.css')
+    const rule = css.match(/\.dephome-focus-list\{[^}]*\}/)?.[0] || ''
+    expect(rule).toContain('overflow:hidden')
+    expect(rule).not.toMatch(/overflow(-y)?:\s*(auto|scroll)/)
+    expect(css).not.toContain('dephome-latest')
+    expect(readSource('src/features/dashboard/DepartmentHome.tsx')).not.toContain('latestPositives')
+  })
+})
+
+describe('contamination notes are no positives (owner, 20/11/2026)', () => {
+  it('leaves a contamination note out of the Demo department home', async () => {
+    configureDataEnvironment({ mode: 'demo' })
+    const { laboratorySamples } = await import('../src/features/laboratory/laboratoryDemoData')
+    const now = new Date('2026-08-29T12:00:00+03:00')
+    const before = collectDemoDepartmentHome({ department: 'ΜΕΘ', now })
+    const note = { ...laboratorySamples.find(row => row.department === 'ΜΕΘ' && row.result === 'positive'), id: 'LAB-CONTAM-1', organism: 'Επιμόλυνση δείγματος', resistance: 'MDR', collectedAt: '2026-08-28T09:00:00+03:00', status: 'completed' }
+    laboratorySamples.push(note)
+    try {
+      const after = collectDemoDepartmentHome({ department: 'ΜΕΘ', now })
+      expect(after.positives30).toBe(before.positives30)
+      expect(after.positivesMdr30).toBe(before.positivesMdr30)
+      expect(after.weeklyPositives).toEqual(before.weeklyPositives)
+    } finally { laboratorySamples.splice(laboratorySamples.indexOf(note), 1) }
+  })
+  it('leaves it out of department_home_overview, Candida still counting', () => {
+    const sql = readSource('supabase/migrations/20261231602000_department_home_contamination.sql')
+    expect(sql).toContain("and coalesce(res.organism, '') !~* '(επιμόλυνση|επιμολυνση|contaminat|3\\s+είδ|3\\s+ειδ)'")
+    expect(sql.toLowerCase()).not.toContain('^\\s*candida')
+    expect(sql).toContain("array['department_manager', 'infection_control_lead', 'infection_control_member', 'doctor_reviewer']::public.app_role[]")
+    expect(sql).toContain("array_agg(z.c order by case z.c when 'PDR' then 3 when 'XDR' then 2 else 1 end desc)")
+    expect(sql).toContain('revoke all on function public.department_home_overview(uuid, uuid[]) from public, anon;')
   })
 })
 
