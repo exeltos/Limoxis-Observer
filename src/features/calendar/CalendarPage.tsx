@@ -7,8 +7,12 @@ import { IconButton } from '../../design-system/IconButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { RouteLoading } from '../../design-system/RouteLoading'
-import { FilterSelect } from '../../design-system/FilterBar'
+import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -16,26 +20,37 @@ import { can } from '../../core/permissions/roles'
 import { registryMenu } from '../../core/export/registryExports'
 import { programmeCalendar } from '../controls/controlCalendar'
 import { useAuditActor } from '../../core/audit/useAuditActor'
+import { hospitalToday } from '../../core/dates/hospitalDate'
 import { loadControlCalendarMonths } from '../controls/controlCloudService'
 import { calendarKindsFor,useCalendarSources } from './useCalendarSources'
-import { type CalendarEvent,CALENDAR_KINDS,buildCalendarEvents,calendarFilterLabel,calendarFilterOf,calendarFiltersFor,calendarKindLabel,controlExecutionEvents,dayKey,monthGrid,parseCalendarFilter } from './calendarEvents'
+import { type CalendarEvent,CALENDAR_KINDS,buildCalendarEvents,calendarFilterLabel,calendarFilterOf,calendarFiltersFor,calendarKindLabel,controlExecutionEvents,monthGrid,parseCalendarFilter } from './calendarEvents'
+import { type CalendarGroup,addDay,calendarFilterCounts,calendarItemLine,calendarTypeLabel,dayCellGroups,dueInText,groupCalendarEvents,hasSingleDepartment,monthGlance,nextDaysGroups,overdueDurationText,pendingEvents,personInitials,searchCalendarGroups } from './calendarView'
 import type { CalendarMonthCount } from '../controls/controlCloudService'
 import './calendar.css'
 
 const WEEKDAYS={el:['Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ','Κυρ'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']}
-// A day cell shows one line per module: its dot, the count and the name (singular / plural).
-const KIND_COUNT: Record<string, string[]>={controls:['έλεγχος','έλεγχοι','control','controls'],cultures:['καλλιέργεια','καλλιέργειες','culture','cultures'],capa:['διορθωτική ενέργεια','διορθωτικές ενέργειες','corrective action','corrective actions'],audits:['επιθεώρηση','επιθεωρήσεις','audit','audits'],training:['εκπαίδευση','εκπαιδεύσεις','training','trainings'],documents:['έγγραφο','έγγραφα','document','documents'],committees:['επιτροπή','επιτροπές','committee item','committee items'],suppliers:['αξιολόγηση προμηθευτή','αξιολογήσεις προμηθευτών','supplier evaluation','supplier evaluations'],kitchen:['εκκρεμότητα κουζίνας','εκκρεμότητες κουζίνας','kitchen item','kitchen items']}
-// Short module names for narrow day cells (the full name stays in the tooltip).
-const KIND_SHORT: Array<Record<string, string>>=[{controls:'Έλεγχοι',cultures:'Καλλιέργ.',capa:'CAPA',audits:'Επιθ.',training:'Εκπαίδ.',documents:'Έγγρ.',committees:'Επιτρ.',suppliers:'Προμ.',kitchen:'Κουζ.'},{controls:'Controls',cultures:'Cultures',capa:'CAPA',audits:'Audits',training:'Training',documents:'Docs',committees:'Comm.',suppliers:'Suppl.',kitchen:'Kitchen'}]
-const countLabel=(kind: string,n: number,en: boolean)=>{const forms=KIND_COUNT[kind]||['','','','' ];const word=en?(n===1?forms[2]:forms[3]):(n===1?forms[0]:forms[1]);return word.charAt(0).toLocaleUpperCase(en?'en':'el')+word.slice(1)}
 const overdueLabel=(n: number,en: boolean)=>en?`${n} overdue`:`${n} εκπρόθεσμ${n===1?'ο':'α'}`
+const numericDate=(key: string)=>key.split('-').reverse().join('/')
+// The height of an element (the month grid, a card's list), so the lines shown fit it without a scroll bar.
+function useHeight<T extends HTMLElement>(){
+ const [node,setNode]=useState<T|null>(null)
+ const [height,setHeight]=useState(0)
+ useEffect(()=>{
+  if(!node||typeof ResizeObserver==='undefined')return undefined
+  const observer=new ResizeObserver(([entry])=>setHeight(entry.contentRect.height))
+  observer.observe(node)
+  return()=>observer.disconnect()
+ },[node])
+ return [setNode,height] as const
+}
 
 // One calendar of what has to be done across the hospital: control due dates,
 // CAPA and step deadlines, effectiveness reviews, planned audits, training
 // deadlines and certificate expiries, document reviews, committee meetings
 // and decisions. Each source is loaded only when the user may see it.
-// departmentOnly: the department's own calendar (My department › Calendar): the same days, with the culture sampling first and
-// the next sampling on top.
+// departmentOnly: the department's own calendar (My department › Calendar): the same days, with the culture sampling first.
+// Month: the weeks share the page's height (no scrolling) and the right column has the month at a glance, the chosen day
+// and the next 7 days. To do: the overdue items or those of the next 30 days, one row for the same item of many people.
 export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean }={}){
  const {language,locale}=useLanguage();const en=language==='en'
  const {notify}=useFeedback()
@@ -46,9 +61,17 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  // The culture calendar is for whoever sees the Quality Center (or the controls): it shows that one source only.
  const allowedKey=calendarKindsFor(mayDo).join(',')
  const allowedKinds=useMemo(()=>allowedKey?allowedKey.split(','):[],[allowedKey])
- const [cursor,setCursor]=useState(()=>{const d=new Date();return {year:d.getFullYear(),month:d.getMonth()}})
- const [selected,setSelected]=useState(()=>dayKey(new Date()))
+ const today=hospitalToday()
+ const [cursor,setCursor]=useState(()=>({year:Number(today.slice(0,4)),month:Number(today.slice(5,7))-1}))
+ const [selected,setSelected]=useState(today)
+ const [dayOpen,setDayOpen]=useState(false)
  const [view,setView]=useState('month')
+ // To do: the overdue items or the next 30 days, a search, the page of the table and the rows opened to their people.
+ const [scope,setScope]=useState<'overdue'|'upcoming'|null>(null)
+ const [query,setQuery]=useState('')
+ const [page,setPage]=useState(1)
+ const [pageSize,setPageSize]=useState(15)
+ const [expanded,setExpanded]=useState<Set<string>>(()=>new Set())
  // The chips (controls, trainings, meetings, expiries, other) live in the address: ?filter=controls opens only the controls.
  const [searchParams,setSearchParams]=useSearchParams()
  const filterKinds=useMemo(()=>calendarFiltersFor(allowedKinds),[allowedKinds])
@@ -58,8 +81,13 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  // The controls' done, late and missed executions of the shown year (counted in the database; null in the demo).
  const [controlMonths,setControlMonths]=useState<{ year: number | null, months: Map<string, CalendarMonthCount[]> | null }>({year:null,months:null})
  const [department,setDepartment]=useState('all')
- // A module line in a day cell narrows that day's panel to the module.
- const [panelKind,setPanelKind]=useState<string|null>(null)
+ // A department role with one department has nothing to choose: no «Department» select, and the title names the department.
+ const singleDepartment=hasSingleDepartment(role,membership)
+ const departmentName=String(membership?.previewDepartment||membership?.departmentName||'')
+ const departmentView=departmentOnly||singleDepartment
+ const [gridRef,gridHeight]=useHeight<HTMLDivElement>()
+ const [nextRef,nextHeight]=useHeight<HTMLUListElement>()
+ const [sideRef,sideHeight]=useHeight<HTMLElement>()
 
  const sources=useCalendarSources(tenant?.id,allowedKinds,language)
 
@@ -71,8 +99,7 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
   return()=>{active=false}
  },[controlsAllowed,tenant?.id,cursor.year])
  const weeks=useMemo(()=>monthGrid(cursor.year,cursor.month),[cursor])
- const today=dayKey(new Date())
- const range=useMemo(()=>{const from=weeks[0][0],last=weeks[weeks.length-1][6];const horizon=dayKey(new Date(Date.now()+60*24*60*60*1000));return {from:from<today?from:today,to:last>horizon?last:horizon}},[weeks,today])
+ const range=useMemo(()=>{const from=weeks[0][0],last=weeks[weeks.length-1][6];const horizon=addDay(today,60);return {from:from<today?from:today,to:last>horizon?last:horizon}},[weeks,today])
  const executions=useMemo(()=>{
   if(!sources?.controls?.length||controlMonths.year!==cursor.year)return []
   const lines=programmeCalendar(sources.controls.map(item=>({item,departments:Object.keys(item.assignments||{})})),cursor.year,new Date(),controlMonths.months)
@@ -86,84 +113,161 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
   return [...planned,...executions.filter(e=>e.state!=='missed'||!overdueKeys.has(`${e.path}|${e.department}|${e.date}`))].sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'99').localeCompare(b.time||'99'))
  },[sources,range,today,language,isDemo,userId,executions])
  const departments=useMemo(()=>[...new Set(allEvents.map(e=>e.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,language)),[allEvents,language])
- const events=useMemo(()=>allEvents.filter(e=>allowedKinds.includes(e.kind)&&isOn(calendarFilterOf(e))&&(department==='all'||e.department===department)&&(!e.department||canAccessRecord({department:e.department}))),[allEvents,allowedKinds,isOn,department,canAccessRecord])
+ // scoped: what the user may see in the chosen department; the chips' counts are taken from it, so a chip turned off keeps its number.
+ const scoped=useMemo(()=>allEvents.filter(e=>allowedKinds.includes(e.kind)&&(department==='all'||e.department===department)&&(!e.department||canAccessRecord({department:e.department}))),[allEvents,allowedKinds,department,canAccessRecord])
+ const events=useMemo(()=>scoped.filter(e=>isOn(calendarFilterOf(e))),[scoped,isOn])
  const byDay=useMemo(()=>{const map=new Map<string, CalendarEvent[]>();for(const e of events){const list=map.get(e.date)||[];list.push(e);map.set(e.date,list)}return map},[events])
  const overdue=events.filter(e=>e.state==='overdue')
  const monthKey=`${cursor.year}-${String(cursor.month+1).padStart(2,'0')}`
  const monthEvents=events.filter(e=>e.date.startsWith(monthKey))
  // Modules switched off or a department chosen, and nothing left this month: say it is the filters.
  const filtered=Boolean(picked)||department!=='all'
- const upcoming=events.filter(e=>!['done','late','missed'].includes(e.state)&&(e.state==='overdue'||e.date>=today)).slice(0,200)
+ const upcomingList=pendingEvents(events,{today,scope:'upcoming'})
+ const activeScope=scope||(overdue.length||!upcomingList.length?'overdue':'upcoming')
+ const scopeEvents=activeScope==='overdue'?overdue:upcomingList
+ const groups=useMemo(()=>searchCalendarGroups(groupCalendarEvents(scopeEvents),query,language),[scopeEvents,query,language])
+ const totalPages=Math.max(1,Math.ceil(groups.length/pageSize)),safePage=Math.min(page,totalPages)
+ const pageGroups=groups.slice((safePage-1)*pageSize,safePage*pageSize)
  const monthTitle=new Intl.DateTimeFormat(locale,{month:'long',year:'numeric'}).format(new Date(cursor.year,cursor.month,1))
  const fmtDay=(key: string)=>new Intl.DateTimeFormat(locale,{weekday:'long',day:'numeric',month:'long'}).format(new Date(`${key}T12:00:00`))
  const fmtShort=(key: string)=>new Intl.DateTimeFormat(locale,{day:'numeric',month:'short'}).format(new Date(`${key}T12:00:00`))
+ const fmtWeekday=(key: string)=>new Intl.DateTimeFormat(locale,{weekday:'short'}).format(new Date(`${key}T12:00:00`)).replace('.','')
 
  function moveMonth(step: number){setCursor(c=>{const d=new Date(c.year,c.month+step,1);return {year:d.getFullYear(),month:d.getMonth()}})}
- function openDay(key: string){setCursor({year:Number(key.slice(0,4)),month:Number(key.slice(5,7))-1});setSelected(key);setPanelKind(null)}
- function goToday(){const d=new Date();setCursor({year:d.getFullYear(),month:d.getMonth()});setSelected(dayKey(d));setPanelKind(null)}
- function setFilter(next: Set<string> | null){setSearchParams(current=>{const params=new URLSearchParams(current);if(!next||filterKinds.every(filter=>next.has(filter)))params.delete('filter');else params.set('filter',[...next].join(',')||'none');return params},{replace:true})}
- function clearFilters(){setFilter(null);setDepartment('all')}
+ function openDay(key: string){setCursor({year:Number(key.slice(0,4)),month:Number(key.slice(5,7))-1});setSelected(key)}
+ function goToday(){setCursor({year:Number(today.slice(0,4)),month:Number(today.slice(5,7))-1});setSelected(today)}
+ function setFilter(next: Set<string> | null){setPage(1);setSearchParams(current=>{const params=new URLSearchParams(current);if(!next||filterKinds.every(filter=>next.has(filter)))params.delete('filter');else params.set('filter',[...next].join(',')||'none');return params},{replace:true})}
+ function clearFilters(){setFilter(null);setDepartment('all');setQuery('')}
  function toggleFilter(filter: string){const next=new Set(filterKinds.filter(isOn));if(next.has(filter))next.delete(filter);else next.add(filter);setFilter(next)}
+ function toggleGroup(key: string){setExpanded(current=>{const next=new Set(current);if(next.has(key))next.delete(key);else next.add(key);return next})}
+ // A row of many people (or departments) opens to them; a single item opens its record.
+ function openGroup(group: CalendarGroup){if(group.items.length>1)toggleGroup(group.key);else navigate(group.first.path as string)}
+ function openPending(){setView('list');setScope('upcoming');setPage(1)}
  function monthExport(){
   return ({name:en?`calendar-${monthKey}`:`imerologio-${monthKey}`,
    headers:en?['Date','Time','Module','Item','Detail','Department','Status']:['Ημερομηνία','Ώρα','Ενότητα','Θέμα','Λεπτομέρεια','Τμήμα','Κατάσταση'],
    rows:[...overdue.filter(e=>!e.date.startsWith(monthKey)),...monthEvents].map(e=>[new Intl.DateTimeFormat(locale).format(new Date(`${e.date}T12:00:00`)),e.time||'',calendarKindLabel(e.kind,language),e.title,e.detail||'',e.department||'',stateLabel(e.state,en)])})
  }
 
- const filtersHideAll=filtered&&(view==='month'?!monthEvents.length:!upcoming.length)
+ const filtersHideAll=filtered&&view==='month'&&!monthEvents.length
  if(!sources)return <RouteLoading/>
- // In the department's calendar the culture sampling comes first in every day, and the next one is on top of the page.
+ // In the department's calendar the culture sampling comes first in every day.
  const dayKinds=departmentOnly?['cultures',...CALENDAR_KINDS.filter(kind=>kind!=='cultures')]:CALENDAR_KINDS
  const dayEvents=byDay.get(selected)||[]
- const selectedEvents=panelKind?dayEvents.filter(e=>e.kind===panelKind):dayEvents
  // An empty day points to the next day that has something, so a quiet day is never a dead end.
  const nextDay=dayEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
- return <Page fill className="calendar-page" title={departmentOnly?(en?'Department calendar':'Ημερολόγιο τμήματος'):(en?'Calendar':'Ημερολόγιο')} subtitle={departmentOnly?(en?'What concerns your department by date: the culture samples that will be taken, controls, trainings and deadlines.':'Ό,τι αφορά το τμήμα σας ανά ημερομηνία: οι καλλιέργειες που θα παρθούν, έλεγχοι, εκπαιδεύσεις και προθεσμίες.'):(en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.')} actions={<ExportMenu disabled={!monthEvents.length&&!overdue.length} {...registryMenu(monthExport,{language,kind:en?'Calendar':'Ημερολόγιο',title:`${en?'Calendar':'Ημερολόγιο'} ${monthKey}`,onBlocked:()=>notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')})}/>}>
+ // The lines a day cell has room for (up to 3; the rest as «+N» beside the day's number), from the height of the weeks.
+ const rowHeight=gridHeight?(gridHeight-24-5*weeks.length)/weeks.length:0
+ const dayLines=rowHeight?Math.max(1,Math.min(3,Math.floor((rowHeight-30)/20))):3
+ const glance=monthGlance(events,{monthKey,today})
+ const nextGroups=nextDaysGroups(events,today)
+ const nextFit=nextHeight?Math.max(1,Math.floor(nextHeight/40)):6
+ const nextShown=nextGroups.slice(0,nextFit)
+ // The chosen day keeps up to 3 items; a short screen (a tablet) leaves the rest of the column to the next 7 days.
+ const dayShown=dayEvents.slice(0,sideHeight&&sideHeight<420?1:sideHeight&&sideHeight<560?2:3)
+ const chipCounts=calendarFilterCounts(view==='month'?scoped.filter(e=>e.date.startsWith(monthKey)):pendingEvents(scoped,{today,scope:activeScope}))
+ const chips=<div className="calendar-kinds" role="group" aria-label={en?'Show':'Εμφάνιση'}>{filterKinds.filter(filter=>view==='month'||chipCounts[filter]||!isOn(filter)).map(filter=><button key={filter} type="button" className={`calendar-kind-toggle filter-${filter} ${isOn(filter)?'':'off'}`} aria-pressed={isOn(filter)} onClick={()=>toggleFilter(filter)}><span className="calendar-dot"/>{calendarFilterLabel(filter,language)}<b className="calendar-kind-count">{chipCounts[filter]||0}</b></button>)}</div>
+ const departmentSelect=singleDepartment?null:<div className="calendar-department"><FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={value=>{setDepartment(value);setPage(1)}}><option value="all">{en?'All':'Όλα'}</option>{departments.map(d=><option key={d} value={d}>{d}</option>)}</FilterSelect></div>
+ const title=departmentView?`${en?'Department calendar':'Ημερολόγιο τμήματος'}${departmentName?` · ${departmentName}`:''}`:(en?'Calendar':'Ημερολόγιο')
+ const subtitle=departmentView?(en?'Controls, cultures, trainings, meetings and expiries of the department, by date.':'Έλεγχοι, καλλιέργειες, εκπαιδεύσεις, συνεδριάσεις και λήξεις του τμήματος, ανά ημερομηνία.'):(en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.')
+ const lateColumn=activeScope==='overdue'?(en?'Overdue by':'Καθυστέρηση'):(en?'Due':'Προθεσμία')
+ return <Page fill className="calendar-page" title={title} subtitle={subtitle} actions={<ExportMenu disabled={!monthEvents.length&&!overdue.length} {...registryMenu(monthExport,{language,kind:en?'Calendar':'Ημερολόγιο',title:`${en?'Calendar':'Ημερολόγιο'} ${monthKey}`,onBlocked:()=>notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')})}/>}>
   <CanonicalTabs value={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} items={[{value:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{value:'list',label:`${en?'To do':'Εκκρεμότητες'}${overdue.length?` · ${overdueLabel(overdue.length,en)}`:''}`,icon:ListChecks}]}/>
-  <section className="surface registry-workspace workspace-column workspace-fill calendar-workspace">
+  {view==='month'?<div className="calendar-month-view">
    <div className="calendar-toolbar">
-    <div className="calendar-kinds" role="group" aria-label={en?'Show':'Εμφάνιση'}>{filterKinds.map(filter=><button key={filter} type="button" className={`calendar-kind-toggle filter-${filter} ${isOn(filter)?'':'off'}`} aria-pressed={isOn(filter)} onClick={()=>toggleFilter(filter)}><span className="calendar-dot"/>{calendarFilterLabel(filter,language)}</button>)}</div>
-    <div className="calendar-department"><FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All':'Όλα'}</option>{departments.map(d=><option key={d} value={d}>{d}</option>)}</FilterSelect></div>
+    <div className="calendar-month-head"><IconButton label={en?'Previous month':'Προηγούμενος μήνας'} onClick={()=>moveMonth(-1)}><ChevronLeft size={18}/></IconButton><h3>{monthTitle}</h3><IconButton label={en?'Next month':'Επόμενος μήνας'} onClick={()=>moveMonth(1)}><ChevronRight size={18}/></IconButton></div>
+    <Button variant="secondary" onClick={goToday}>{en?'Today':'Σήμερα'}</Button>
+    {chips}
+    {departmentSelect}
    </div>
    {filtersHideAll&&<div className="calendar-filter-empty"><RegistryEmptyState filtered title={en?'Nothing pending with the selected filters':'Δεν υπάρχουν εκκρεμότητες με τα επιλεγμένα φίλτρα'} text={en?'Turn a module back on or choose another department.':'Ενεργοποιήστε ξανά μια ενότητα ή επιλέξτε άλλο τμήμα.'} onClearFilters={clearFilters}/></div>}
-   {view==='month'?<div className="calendar-month-layout">
-    <div className="calendar-month">
-     <div className="calendar-month-head"><IconButton label={en?'Previous month':'Προηγούμενος μήνας'} onClick={()=>moveMonth(-1)}><ChevronLeft size={18}/></IconButton><h3>{monthTitle}</h3><IconButton label={en?'Next month':'Επόμενος μήνας'} onClick={()=>moveMonth(1)}><ChevronRight size={18}/></IconButton><Button variant="secondary" onClick={goToday}>{en?'Today':'Σήμερα'}</Button></div>
-     <div className="calendar-grid" role="grid" aria-label={monthTitle}>
+   <div className="calendar-month-layout">
+    <div className="calendar-month surface">
+     <div ref={gridRef} className="calendar-grid" role="grid" aria-label={monthTitle}>
       {WEEKDAYS[en?'en':'el'].map(d=><div key={d} className="calendar-weekday" role="columnheader">{d}</div>)}
-      {weeks.flat().map(key=>{const list=byDay.get(key)||[];const outside=!key.startsWith(monthKey);const late=list.some(e=>e.state==='overdue');// The day selects its agenda; an item in it opens its record.
-       return <div key={key} role="gridcell" tabIndex={0} className={`calendar-day ${outside?'outside':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>{setSelected(key);setPanelKind(null)}} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();setSelected(key);setPanelKind(null)}}} aria-label={`${fmtDay(key)}: ${list.length}`} aria-selected={key===selected}>
-       <span className="calendar-day-number">{Number(key.slice(8))}</span>
-       {dayKinds.map(kind=>{const items=list.filter(e=>e.kind===kind);if(!items.length)return null;const late=items.filter(e=>e.state==='overdue').length;const name=countLabel(kind,items.length,en);const full=`${items.length} ${name}${late?` · ${overdueLabel(late,en)}`:''}`
-        return <button type="button" key={kind} className={`calendar-kind-line kind-${kind}${late?' overdue':''}${key===selected&&panelKind===kind?' active':''}`} title={full} aria-label={full} onClick={event=>{event.stopPropagation();setSelected(key);setPanelKind(kind)}}><span className="calendar-dot"/><b>{items.length}</b><span className="calendar-kind-name full">{name}</span><span className="calendar-kind-name short" aria-hidden="true">{KIND_SHORT[en?1:0][kind]||name}</span>{late>0&&<small className="calendar-kind-late">{overdueLabel(late,en)}</small>}</button>})}
+      {weeks.flat().map((key,index)=>{const list=byDay.get(key)||[];const outside=!key.startsWith(monthKey);const late=list.some(e=>e.state==='overdue');const lines=dayCellGroups(list,dayKinds);const shown=lines.slice(0,dayLines);const more=lines.length-shown.length
+       // The day selects its agenda in the right column; an item there opens its record.
+       return <div key={key} role="gridcell" tabIndex={0} className={`calendar-day ${outside?'outside':''} ${index%7>4?'weekend':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>setSelected(key)} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();setSelected(key)}}} aria-label={`${fmtDay(key)}: ${list.length}`} aria-selected={key===selected}>
+       <span className="calendar-day-head"><span className="calendar-day-number">{Number(key.slice(8))}</span>{more>0&&<small className="calendar-day-more">+{more}</small>}</span>
+       {shown.map(group=>{const line=calendarItemLine(group.first,language);const text=group.items.length>1?`${line} · ${group.items.length}`:line
+        return <span key={group.key} className={`calendar-item filter-${calendarFilterOf(group.first)}${group.first.state==='overdue'?' overdue':''}`} title={text}><span className="calendar-dot"/><span className="calendar-item-text">{text}</span></span>})}
       </div>})}
      </div>
     </div>
-    <aside className="calendar-day-panel" aria-live="polite">
-     <div className="calendar-day-panel-head"><h4>{fmtDay(selected)}</h4>{panelKind&&<span className="calendar-panel-kind"><span className={`calendar-dot kind-${panelKind}`}/>{calendarKindLabel(panelKind,language)}</span>}</div>
-     {selectedEvents.length?<ul className="calendar-agenda">{selectedEvents.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path as string)}/>)}</ul>:<div className="inline-empty">{en?'Nothing scheduled.':'Δεν υπάρχει κάτι προγραμματισμένο.'}{nextDay&&<button type="button" className="calendar-next-day" onClick={()=>openDay(nextDay)}>{en?'Next':'Επόμενο'}: <strong>{fmtShort(nextDay)}</strong> · {byDay.get(nextDay)?.[0].title}<ChevronRight size={14} aria-hidden="true"/></button>}</div>}
+    <aside ref={sideRef} className="calendar-side" aria-live="polite">
+     <section className="calendar-card calendar-glance"><h4>{en?'The month at a glance':'Ο μήνας με μια ματιά'}</h4>
+      <div className="calendar-glance-grid">
+       <div className={glance.overdue?'danger':''}><strong>{glance.overdue}</strong><span>{en?'overdue':'εκπρόθεσμα'}</span></div>
+       <div><strong>{glance.week}</strong><span>{en?'this week':'αυτή την εβδομάδα'}</span></div>
+       <div><strong>{glance.training}</strong><span>{en?'trainings':'εκπαιδεύσεις'}</span></div>
+       <div><strong>{glance.expiries}</strong><span>{en?'expiries':'λήξεις'}</span></div>
+      </div>
+     </section>
+     <section className="calendar-card calendar-day-card"><div className="calendar-card-head"><h4>{fmtDay(selected)}</h4>{dayEvents.length>dayShown.length&&<button type="button" className="calendar-card-more" onClick={()=>setDayOpen(true)}>+{dayEvents.length-dayShown.length} {en?'more':'ακόμη'}</button>}</div>
+      {dayShown.length?<ul className="calendar-agenda">{dayShown.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path as string)}/>)}</ul>:<div className="calendar-card-empty">{selected===today?(en?'Nothing scheduled today.':'Τίποτα προγραμματισμένο σήμερα.'):(en?'Nothing scheduled.':'Δεν υπάρχει κάτι προγραμματισμένο.')}{nextDay&&<button type="button" className="calendar-next-day" onClick={()=>openDay(nextDay)}>{en?'Next':'Επόμενο'}: <strong>{fmtShort(nextDay)}</strong> · {byDay.get(nextDay)?.[0].title}<ChevronRight size={14} aria-hidden="true"/></button>}</div>}
+     </section>
+     <section className="calendar-card calendar-next-card"><div className="calendar-card-head"><h4>{en?'Next 7 days':'Επόμενες 7 ημέρες'}</h4>{nextGroups.length>nextShown.length&&<button type="button" className="calendar-card-more" onClick={openPending}>+{nextGroups.length-nextShown.length} {en?'more':'ακόμη'}</button>}</div>
+      <ul ref={nextRef} className="calendar-next-list">{nextShown.map(group=>{const filter=calendarFilterOf(group.first)
+       return <li key={group.key}><button type="button" className={`calendar-next-item filter-${filter}`} onClick={()=>navigate(group.first.path as string)}>
+        <span className="calendar-next-date"><small>{fmtWeekday(group.date)}</small><b>{Number(group.date.slice(8))}</b></span>
+        <span className="calendar-dot"/><span className="calendar-next-title" title={group.first.title}>{calendarItemLine(group.first,language)}{group.items.length>1?` · ${group.items.length}`:''}</span>
+        {filter==='expiries'&&<span className="calendar-expiry-badge">{en?'expires':'λήγει'}</span>}
+       </button></li>})}
+       {!nextGroups.length&&<li className="calendar-card-empty">{en?'Nothing in the next 7 days.':'Τίποτα τις επόμενες 7 ημέρες.'}</li>}
+      </ul>
+     </section>
     </aside>
-   </div>:<div className="calendar-list scroll-panel">
-    {overdue.length>0&&<section><h4 className="calendar-list-heading danger">{en?'Overdue':'Εκπρόθεσμα'} · {overdue.length}</h4><ul className="calendar-agenda">{overdue.map(e=><EventRow key={e.id} event={e} language={language} date={fmtShort(e.date)} onOpen={()=>navigate(e.path as string)}/>)}</ul></section>}
-    {groupByDate(upcoming.filter(e=>e.state!=='overdue')).map(([key,list])=><section key={key}><h4 className={`calendar-list-heading ${key===today?'today':''}`}>{key===today?(en?'Today':'Σήμερα'):fmtDay(key)}</h4><ul className="calendar-agenda">{list.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path as string)}/>)}</ul></section>)}
-    {!upcoming.length&&!filtersHideAll&&<div className="registry-empty-state"><strong>{en?'Nothing pending':'Δεν υπάρχουν εκκρεμότητες'}</strong></div>}
-   </div>}
-  </section>
+   </div>
+  </div>:<section className="surface registry-workspace workspace-column workspace-fill calendar-pending">
+   <FilterBar query={query} onQueryChange={value=>{setQuery(value);setPage(1)}} placeholder={en?'Search…':'Αναζήτηση…'} end={<>
+    <ModeSwitch className="calendar-scope" ariaLabel={en?'Which items':'Ποιες εκκρεμότητες'} value={activeScope} onChange={value=>{setScope(value as 'overdue'|'upcoming');setPage(1)}} options={[{value:'overdue',label:`${en?'Overdue':'Εκπρόθεσμα'} (${overdue.length})`},{value:'upcoming',label:`${en?'Next 30 days':'Επόμενες 30 ημέρες'} (${upcomingList.length})`}]}/>
+    {chips}
+    {departmentSelect}
+   </>}/>
+   <RegistryTable className="calendar-pending-table" sortable={false} columns={[{key:'date',label:en?'From':'Από'},{key:'what',label:en?'What':'Τι'},{key:'kind',label:en?'Kind':'Είδος'},{key:'who',label:en?'Who':'Ποιοι'},{key:'late',label:lateColumn}]}
+    rows={pageGroups.flatMap(group=>expanded.has(group.key)&&group.items.length>1?[{group,people:false},{group,people:true}]:[{group,people:false}])}
+    rowKey={row=>`${row.group.key}${row.people?'|people':''}`}
+    rowProps={row=>row.people?{className:'calendar-pending-people-row'}:{className:`clickable-row${expanded.has(row.group.key)?' is-expanded':''}`,tabIndex:0,'aria-expanded':row.group.items.length>1?expanded.has(row.group.key):undefined,onClick:()=>openGroup(row.group),onKeyDown:event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openGroup(row.group)}}}}
+    renderRow={row=>row.people?<td colSpan={5}><ul className="calendar-pending-people">{row.group.items.map(item=><li key={item.id}><button type="button" onClick={()=>navigate(item.path as string)}>{item.person&&<span className="calendar-avatar" aria-hidden="true">{personInitials(item.person)}</span>}<strong>{item.person||item.owner||item.department||item.title}</strong><small>{numericDate(item.date)}</small><small className={item.state==='overdue'?'danger':''}>{item.state==='overdue'?overdueDurationText(item.date,today,language):dueInText(item.date,today,language)}</small></button></li>)}</ul></td>:<PendingCells group={row.group} language={language} today={today} showDepartment={!singleDepartment&&department==='all'}/>}
+    emptyTitle={activeScope==='overdue'?(en?'Nothing overdue':'Δεν υπάρχουν εκπρόθεσμα'):(en?'Nothing in the next 30 days':'Τίποτα τις επόμενες 30 ημέρες')} emptyFiltered={Boolean(query)||filtered} onClearFilters={clearFilters}/>
+   <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={groups.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
+  </section>}
+  {/* The whole chosen day, when the column has room for only some of its items. */}
+  {dayOpen&&<ObserverDialog title={fmtDay(selected)} subtitle={`${dayEvents.length} ${en?'items':'εγγραφές'}`} onClose={()=>setDayOpen(false)}><ul className="calendar-agenda">{dayEvents.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path as string)}/>)}</ul></ObserverDialog>}
  </Page>
 }
 
-function EventRow({event,language,date,onOpen}: { event: CalendarEvent, language: string, date?: string, onOpen: () => void }){
+// The cells of a to-do row: from (with the year), what, kind, who, how late.
+function PendingCells({group,language,today,showDepartment}: { group: CalendarGroup, language: string, today: string, showDepartment: boolean }){
  const en=language==='en'
- return <li><button type="button" className={`calendar-event kind-${event.kind} ${event.state}`} onClick={onOpen}>
-  <span className="calendar-event-when">{date||event.time||''}</span>
-  <span className="calendar-event-main"><strong title={event.title}>{event.title}</strong><small>{[calendarKindLabel(event.kind,language),event.detail,event.department].filter(Boolean).join(' · ')}</small></span>
+ const first=group.first
+ const filter=calendarFilterOf(first)
+ const owners=[...new Set(group.items.map(e=>e.owner).filter(Boolean))]
+ const sub=[first.action??first.detail,showDepartment&&group.departments.length===1?group.departments[0]:''].filter(Boolean).join(' · ')
+ const overdue=first.state==='overdue'
+ const who=group.people.length>1?<><span className="calendar-avatars" aria-hidden="true">{group.people.slice(0,3).map(name=><span key={name} className="calendar-avatar">{personInitials(name)}</span>)}</span>{`${group.people.length} ${en?'employees':'εργαζόμενοι'}`}</>
+  :group.people.length===1?<><span className="calendar-avatar" aria-hidden="true">{personInitials(group.people[0])}</span>{group.people[0]}</>
+  :group.departments.length>1&&group.items.length>1?`${group.departments.length} ${en?'departments':'τμήματα'}`
+  :owners.length?owners.join(', '):'—'
+ return <>
+  <td className="calendar-pending-date">{numericDate(group.date)}</td>
+  <td className="calendar-pending-what"><strong>{first.title}</strong>{sub&&<small>{sub}</small>}</td>
+  <td><span className={`calendar-pending-kind filter-${filter}`}><span className="calendar-dot"/>{calendarTypeLabel(first,language)}</span></td>
+  <td><span className="calendar-pending-who">{who}</span></td>
+  <td className="calendar-pending-late"><span className={overdue?'danger':''}>{overdue?overdueDurationText(group.date,today,language):dueInText(group.date,today,language)}</span></td>
+ </>
+}
+
+// An item of the chosen day: its time, title and detail; it opens its record.
+function EventRow({event,language,onOpen}: { event: CalendarEvent, language: string, onOpen: () => void }){
+ const en=language==='en'
+ return <li><button type="button" className={`calendar-event filter-${calendarFilterOf(event)} ${event.state}`} onClick={onOpen}>
+  {event.time&&<span className="calendar-event-when">{event.time}</span>}
+  <span className="calendar-event-main"><strong title={event.title}>{calendarItemLine(event,language)}</strong><small>{[event.detail,event.department].filter(Boolean).join(' · ')||calendarKindLabel(event.kind,language)}</small></span>
+  {/* The controls' executions keep the colours of their own calendar: done, late, missed. */}
+  {['controls','cultures'].includes(event.kind)&&['done','late','missed'].includes(event.state)&&<span className={`status-badge calendar-execution ${event.state}`}>{stateLabel(event.state,en)}</span>}
   {event.state==='overdue'&&<span className="status-badge danger">{en?'Overdue':'Εκπρόθεσμο'}</span>}
-  {/* The controls' executions keep the colours of their own calendar: done, late, missed, planned. */}
-  {['controls','cultures'].includes(event.kind)&&['done','late','missed','planned'].includes(event.state)&&<span className={`status-badge calendar-execution ${event.state}`}>{event.detail||stateLabel(event.state,en)}</span>}
-  {event.criticality==='high'&&<span className="status-badge danger">{en?'High':'Υψηλή'}</span>}
-  <ChevronRight size={16} aria-hidden="true"/>
  </button></li>
 }
 
-function groupByDate(events: CalendarEvent[]){const map=new Map<string, CalendarEvent[]>();for(const e of events){const list=map.get(e.date)||[];list.push(e);map.set(e.date,list)}return [...map.entries()].slice(0,45)}
 function stateLabel(state: string | undefined,en: boolean){return ({overdue:en?'Overdue':'Εκπρόθεσμο',due:en?'Due':'Προς εκτέλεση',planned:en?'Planned':'Προγραμματισμένο',done:en?'Done':'Ολοκληρώθηκε',late:en?'Done late':'Έγινε με καθυστέρηση',missed:en?'Missed':'Χάθηκε'} as Record<string, string>)[state||'']||state}
