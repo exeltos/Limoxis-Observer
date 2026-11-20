@@ -230,19 +230,28 @@ export async function loadEmployeeSurveillanceSamples(organizationId: string|nul
 // «Προς έλεγχο»: patient samples with a positive result, no episode and no decision yet,
 // read without the organization's whole list (the filter runs in the database: an
 // inner join on the positive result). The caller narrows them with samplesAwaitingReview.
-export async function loadSamplesAwaitingReview(organizationId: string|null|undefined,{limit=300}: {limit?: number}={}){
+// Every sample still awaiting a decision (owner, 20/11/2026: the 300 most recent hid most of them, e.g. the NICU's
+// older positives), read in pages of 1,000 with a unique order so that no row repeats or goes missing.
+const AWAITING_REVIEW_PAGE=1000
+export async function loadSamplesAwaitingReview(organizationId: string|null|undefined,{limit=20000}: {limit?: number}={}){
   const supabase=cloudClient()
   if(!organizationId)return []
-  const {data,error}=await supabase.from('laboratory_samples').select('*,microbiology_results!inner(id)')
-    .eq('organization_id',organizationId).eq('microbiology_results.result_status','positive')
-    .is('surveillance_case_id',null).is('surveillance_review_status',null).not('patient_id','is',null)
-    .order('requested_at',{ascending:false}).limit(limit)
-  if(error)throw error
-  const unique=[...new Map((data||[]).map(({microbiology_results:_joined,...row})=>[row.id,row])).values()]
-  return hydrateSamples(unique)
+  const rows: Record<string, unknown>[]=[]
+  for(let from=0;from<limit;from+=AWAITING_REVIEW_PAGE){
+    const to=Math.min(from+AWAITING_REVIEW_PAGE,limit)-1
+    const {data,error}=await supabase.from('laboratory_samples').select('*,microbiology_results!inner(id)')
+      .eq('organization_id',organizationId).eq('microbiology_results.result_status','positive')
+      .is('surveillance_case_id',null).is('surveillance_review_status',null).not('patient_id','is',null)
+      .order('requested_at',{ascending:false}).order('id',{ascending:true}).range(from,to)
+    if(error)throw error
+    rows.push(...(data||[]))
+    if((data||[]).length<to-from+1)break
+  }
+  const unique=[...new Map(rows.map(({microbiology_results:_joined,...row})=>[row.id,row])).values()]
+  return hydrateSamples(unique as LaboratorySampleRow[])
 }
 
-// Named samples still awaiting a decision, beyond the 300 most recent (ΜΕΝΝ Ν6β: the late-onset blood cultures
+// Named samples still awaiting a decision, by id (ΜΕΝΝ Ν6β: the late-onset blood cultures
 // of the NICU must show whatever their date): the same conditions as above, by row id.
 export async function loadSamplesAwaitingReviewByIds(organizationId: string|null|undefined,ids: string[]){
   const supabase=cloudClient()

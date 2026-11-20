@@ -77,7 +77,7 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
       <RegistryTable
         bare
         columns={[
-          ...(selectable ? [{ key: 'select', className: 'sample-review-select', label: <CheckboxField checked={allPicked} disabled={!rows.length || busy} ariaLabel={en ? 'Select all' : 'Επιλογή όλων'} onChange={toggleAll} /> }] : []),
+          ...(selectable ? [{ key: 'select', className: 'sample-review-select', label: <CheckboxField checked={allPicked} disabled={!rows.length || busy} ariaLabel={en ? 'Select the whole list' : 'Επιλογή όλης της λίστας'} onChange={toggleAll} /> }] : []),
           { key: 'patient', label: `${t('patient')} · ${t('department')}` },
           { key: 'sample', label: `${t('sampleType')} · ${en ? 'Date' : 'Ημερομηνία'}` },
           { key: 'alert', label: en ? 'Organism / alert' : 'Μικροοργανισμός / ειδοποίηση' },
@@ -115,7 +115,7 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
       {/* The ticked rows (owner, 19/11/2026): no buttons on the rows; one bar above the pages while something is ticked.
           One sample ticked takes the single paths (the episode form with its stay, the single dialog). */}
       {selectable && picked.length > 0 && <div className="sample-review-selection-bar" role="region" aria-label={en ? 'Selected samples' : 'Επιλεγμένα δείγματα'}>
-        <strong>{en ? `${picked.length} selected` : `${picked.length} επιλεγμένα`}</strong>
+        <strong>{en ? `${picked.length} selected` : `${picked.length} επιλεγμένα`}{allPicked && rows.length > pageRows.length ? (en ? ' (the whole list, every page)' : ' (όλη η λίστα, όλες οι σελίδες)') : ''}</strong>
         <span className="sample-review-bulk-actions">
           {canOpenEpisode && <Button variant="secondary" disabled={busy || (picked.length > 1 && !onBulkOpen)} onClick={() => (picked.length === 1 ? onOpenEpisode(picked[0]) : onBulkOpen && run(() => onBulkOpen(picked)))}>
             <PlayCircle size={14} />

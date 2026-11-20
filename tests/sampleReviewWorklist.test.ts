@@ -179,3 +179,27 @@ describe('one action, one place', () => {
     expect(read('src/features/dashboard/DashboardPage.jsx')).toContain("to:'/surveillance?tab=episodes&review=1'")
   })
 })
+
+describe('«Προς έλεγχο» reads every sample awaiting a decision (owner, 20/11/2026)', () => {
+  it('pages by 1,000 with a unique order instead of the 300 most recent', async () => {
+    const { readSource } = await import('./helpers/readSource')
+    const source = readSource('src/features/laboratory/laboratoryCloudService.ts')
+    const loader = source.slice(source.indexOf('export async function loadSamplesAwaitingReview'), source.indexOf('export async function loadSamplesAwaitingReviewByIds'))
+    expect(loader).toContain(".order('id',{ascending:true}).range(from,to)")
+    expect(loader).not.toContain('.limit(limit)')
+    expect(source).toContain('const AWAITING_REVIEW_PAGE=1000')
+  })
+})
+
+describe('ΜΕΝΝ automatic surveillance rule (owner, 20/11/2026)', () => {
+  it('opens an episode for a NICU positive blood culture and waits for a second culture for skin flora', async () => {
+    const { readSource } = await import('./helpers/readSource')
+    const sql = readSource('supabase/migrations/20261231600000_nicu_auto_surveillance.sql')
+    expect(sql).toContain("template_key = 'nicu' and r.status = 'active'")
+    expect(sql).toContain("return 'skin_single'")
+    expect(sql).toContain('48 * 3600')
+    expect(sql).toContain("surveillance_review_note = 'Αυτόματα από κανόνα ΜΕΝΝ'")
+    expect(sql).toContain('create or replace trigger microbiology_results_nicu_auto_surveillance')
+    expect(sql).toContain('revoke execute on function private.nicu_auto_surveillance(uuid) from public, anon, authenticated')
+  })
+})
