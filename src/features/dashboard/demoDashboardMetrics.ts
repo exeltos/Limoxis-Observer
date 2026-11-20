@@ -24,7 +24,7 @@ import { handHygieneRows } from '../prevention/preventionDemoData'
 import { sampleDepartmentFigures } from '../division/divisionService'
 import { needsSurveillanceReview } from '../laboratory/sampleReviewModel'
 import { isContaminationNote } from '../surveillance/skinFloraOrganisms'
-import { DEFAULT_HAND_HYGIENE_TARGET, isMdrClass, monthlyHandHygieneSeries, normalizeDepartmentHome, weeklyPositiveSeries, weekStarts, type DepartmentHomeOverview } from './departmentHomeModel'
+import { DEFAULT_HAND_HYGIENE_TARGET, isMdrClass, monthlyHandHygieneSeries, normalizeDepartmentHome, organismSummary, weeklyPositiveSeries, weekStarts, type DepartmentHomeOverview } from './departmentHomeModel'
 
 // What the counts read of the Demo records of the other modules.
 type DepartmentRow = { department?: string | { name?: string | null } | null, department_id?: string | null }
@@ -187,15 +187,6 @@ export function collectDemoDepartmentHome({ department, now = new Date() }: { de
     pressureUlcers30: figures?.pressureUlcers30 ?? 0,
     weeklyPositives: weeklyPositiveSeries(positives.map(({ row, day }) => ({ day, mdr: isMdrClass(row.resistance) })), today),
     monthlyHandHygiene: monthlyHandHygieneSeries(sessions, today),
-    latestPositives: positives.slice(0, 5).map(({ row }) => ({
-      sampleCode: row.id,
-      patientId: row.patientId ?? null,
-      patient: row.patient ?? null,
-      patientEn: row.patientEn ?? null,
-      organism: row.organism ?? null,
-      resistance: isMdrClass(row.resistance) ? String(row.resistance).toUpperCase() : null,
-      collectedAt: row.collectedAt ?? null,
-      awaiting: needsSurveillanceReview(row),
-    })),
+    ...organismSummary(month.map(({ row }) => ({ patient: (row.patientId ?? row.patient ?? null) as string | null, organism: (row.organism ?? null) as string | null, mdr: isMdrClass(row.resistance) }))),
   }, today)
 }

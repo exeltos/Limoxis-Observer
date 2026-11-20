@@ -4,14 +4,16 @@ import { ArrowRight } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { HandHygieneChart, WeeklyPositivesChart } from './DepartmentHomeCharts'
 import { DepartmentFocusCard } from './DepartmentHomeFocus'
+import { OrganismsCard } from './DepartmentHomeOrganisms'
 import { useDepartmentFocus } from './departmentFocusService'
 import { SERIES_COLORS } from '../analysis/AnalysisCharts'
 import type { DepartmentHomeOverview } from './departmentHomeModel'
 
-// «Το τμήμα μου» of the Department Manager (owner, 20/11/2026): five figures of the department,
-// two charts, then «Για μένα σήμερα», the department's register (or, without one, its incidents) and the
-// announcements with the department's 30 days. One screen at 1440×900 without the page scrolling; the lists scroll,
-// the register / incidents card never does (a fixed number of lines).
+// «Το τμήμα μου» of the Department Manager (owner, 20/11/2026, final layout): the department's figures; then the
+// positive samples per week and «Μικρόβια του τμήματος» (numbers only); then «Για μένα σήμερα», the department's
+// register (without one, hand hygiene per month; without that either, its incidents) and the announcements with
+// the department's 30 days. One screen at 1440×900 without the page scrolling; the to-do list and the announcements
+// scroll, the organisms, register and incidents cards never do (a fixed number of lines).
 // A figure, chart or card of a module the hospital has locked is not shown.
 type Tone = 'danger' | 'warning' | 'success' | null
 interface Tile { key: string, label: string, value: string, detail: string, tone: Tone, to: string }
@@ -57,7 +59,8 @@ export function DepartmentHome({ overview, status, language, moduleEnabled, canO
   })
   const loading = status === 'loading' && !o
   // «Τελευταία θετικά» gave way to the department's register, or its incidents (owner, 20/11/2026).
-  const focus = useDepartmentFocus(moduleEnabled('quality'))
+  // The incidents only as the last choice: no register and the hand hygiene chart locked.
+  const focus = useDepartmentFocus(moduleEnabled('quality') && !moduleEnabled('prevention'))
   const open = (to: string) => { if (canOpen(to)) onOpen(to) }
   const chartAction = (to: string) => canOpen(to) && <button type="button" className="text-button" onClick={() => onOpen(to)}>{tr('Άνοιγμα', 'Open')}<ArrowRight size={14}/></button>
 
@@ -81,22 +84,22 @@ export function DepartmentHome({ overview, status, language, moduleEnabled, canO
         <small className="dephome-tile-detail">{loading ? '' : tile.detail}</small>
       </button>)}
     </div>
-    {(moduleEnabled('laboratory') || moduleEnabled('prevention')) && <div className="dephome-charts">
-      {moduleEnabled('laboratory') && <Card className="dashboard-card dephome-chart-card">
+    {moduleEnabled('laboratory') && <div className="dephome-charts">
+      <Card className="dashboard-card dephome-chart-card">
         <CardHeader title={tr('Θετικά δείγματα ανά εβδομάδα', 'Positive samples per week')} subtitle={tr('τελευταίες 12 εβδομάδες', 'last 12 weeks')} actions={<>
           <span className="dephome-legend"><span><i style={{ background: SERIES_COLORS[1] }}/>MDR/XDR</span><span><i style={{ background: SERIES_COLORS[0] }}/>{tr('Λοιπά', 'Other')}</span></span>
           {chartAction('/laboratory')}
         </>}/>
         <WeeklyPositivesChart rows={o?.weeklyPositives || []} en={en} label={tr('Θετικά δείγματα ανά εβδομάδα', 'Positive samples per week')}/>
-      </Card>}
-      {moduleEnabled('prevention') && <Card className="dashboard-card dephome-chart-card">
-        <CardHeader title={tr('Υγιεινή χεριών ανά μήνα', 'Hand hygiene per month')} subtitle={`${tr('στόχος', 'target')} ${target}%`} actions={chartAction('/prevention?tab=handHygiene')}/>
-        <HandHygieneChart rows={o?.monthlyHandHygiene || []} target={target} en={en} label={tr('Υγιεινή χεριών ανά μήνα', 'Hand hygiene per month')}/>
-      </Card>}
+      </Card>
+      <OrganismsCard overview={o} loading={loading} language={language} action={chartAction('/laboratory')}/>
     </div>}
     <div className="dephome-cards">
       {todoCard}
-      <DepartmentFocusCard focus={focus} language={language} canOpen={canOpen} onOpen={onOpen}/>
+      {focus.kind !== 'register' && focus.kind !== 'loading' && moduleEnabled('prevention') ? <Card className="dashboard-card dephome-chart-card">
+        <CardHeader title={tr('Υγιεινή χεριών ανά μήνα', 'Hand hygiene per month')} subtitle={`${tr('στόχος', 'target')} ${target}%`} actions={chartAction('/prevention?tab=handHygiene')}/>
+        <HandHygieneChart rows={o?.monthlyHandHygiene || []} target={target} en={en} label={tr('Υγιεινή χεριών ανά μήνα', 'Hand hygiene per month')}/>
+      </Card> : <DepartmentFocusCard focus={focus} language={language} canOpen={canOpen} onOpen={onOpen}/>}
       {announcementsCard(footer)}
     </div>
   </div>

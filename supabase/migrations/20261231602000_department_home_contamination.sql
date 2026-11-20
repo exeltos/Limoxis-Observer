@@ -6,6 +6,11 @@
 --
 -- Ολόκληρη η συνάρτηση του 20261231601000 (έλεγχος ρόλων και αντοχή από όλα τα
 -- θετικά αποτελέσματα όπως ήταν) με την εξαίρεση στο `pos`. Μόνο ανάγνωση.
+--
+-- «Μικρόβια του τμήματος» (ιδιοκτήτης, 20/11/2026): οι ασθενείς (διακριτοί) και τα
+-- είδη μικροβίων των θετικών 30 ημερών, τα 4 συχνότερα είδη με πόσα δείγματα και
+-- πόσα MDR/XDR, και πόσα δείγματα έχουν τα υπόλοιπα είδη. Μόνο αριθμοί: τα «5
+-- τελευταία θετικά» (με ονόματα ασθενών) δεν επιστρέφονται πια.
 create or replace function public.department_home_overview(p_organization_id uuid, p_department_ids uuid[] default null)
 returns jsonb
 language plpgsql
@@ -179,6 +184,15 @@ begin
       from public.quality_incidents i
      where i.organization_id = p_organization_id and i.department_id = any (v_departments) and i.lifecycle_status <> 'voided'
        and (coalesce(i.occurred_at, i.created_at) at time zone 'Europe/Athens')::date > v_today - 30
+  ),
+  -- The organisms of the 30 days' positive samples (the chosen result's organism, trimmed), the most frequent first:
+  -- counts only, never a patient (owner, 20/11/2026: «Μικρόβια του τμήματος»).
+  org as (
+    select g.organism, g.n, g.mdr, row_number() over (order by g.n desc, g.organism) as rank
+      from (select nullif(btrim(pos.organism), '') as organism, count(*) as n, count(*) filter (where pos.resistance is not null) as mdr
+              from pos
+             where pos.day > v_today - 30 and nullif(btrim(pos.organism), '') is not null
+             group by 1) g
   )
   select jsonb_build_object(
     'departmentIds', to_jsonb(v_departments),
@@ -228,19 +242,12 @@ begin
                'compliant', coalesce((select sum(hh.compliant_observations) from hh where hh.observation_date >= m.month and hh.observation_date < (m.month + interval '1 month')::date), 0)
              ) order by m.month), '[]'::jsonb)
         from (select (v_month0 + make_interval(months => g))::date as month from generate_series(0, 5) as g) m) end,
-    'latestPositives', case when 'laboratory' = any (v_disabled) then '[]'::jsonb else (
-      select coalesce(jsonb_agg(jsonb_build_object(
-               'sampleCode', l.sample_code,
-               'patientId', l.patient_id,
-               'patient', nullif(trim(concat_ws(' ', p.last_name, p.first_name)), ''),
-               'patientCode', p.patient_code,
-               'organism', l.organism,
-               'resistance', l.resistance,
-               'collectedAt', l.collected_at,
-               'awaiting', l.awaiting
-             ) order by l.collected_at desc, l.sample_code), '[]'::jsonb)
-        from (select * from pos order by pos.collected_at desc, pos.sample_code limit 5) l
-        left join public.patients p on p.id = l.patient_id and p.organization_id = p_organization_id) end
+    'patients30', case when 'laboratory' = any (v_disabled) then null else (select count(distinct pos.patient_id) from pos where pos.day > v_today - 30) end,
+    'organisms30Count', case when 'laboratory' = any (v_disabled) then null else (select count(*) from org) end,
+    'organisms30', case when 'laboratory' = any (v_disabled) then '[]'::jsonb else (
+      select coalesce(jsonb_agg(jsonb_build_object('organism', org.organism, 'count', org.n, 'mdr', org.mdr) order by org.rank), '[]'::jsonb)
+        from org where org.rank <= 4) end,
+    'organismsOtherCount', case when 'laboratory' = any (v_disabled) then null else (select coalesce(sum(org.n), 0) from org where org.rank > 4) end
   ) into v_result;
 
   return v_result;

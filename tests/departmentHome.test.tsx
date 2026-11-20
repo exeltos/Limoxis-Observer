@@ -8,7 +8,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { readSource } from './helpers/readSource'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
-import { monthKeys, monthlyHandHygieneSeries, normalizeDepartmentHome, weekStarts, weeklyPositiveSeries } from '../src/features/dashboard/departmentHomeModel'
+import { monthKeys, monthlyHandHygieneSeries, normalizeDepartmentHome, organismSummary, weekStarts, weeklyPositiveSeries } from '../src/features/dashboard/departmentHomeModel'
 import { countDepartmentIncidents } from '../src/features/dashboard/departmentFocusService'
 
 let tenant
@@ -63,13 +63,27 @@ describe('the series of the department home', () => {
     expect(rows[4].pct).toBeNull()
   })
   it('fills the weeks and months the database left out and keeps null for locked modules', () => {
-    const overview = normalizeDepartmentHome({ inpatients: 4, handHygienePct: null, activeSurveillance: null, weeklyPositives: [{ week: '2026-11-16', mdr: 2, other: 1 }], monthlyHandHygiene: [{ month: '2026-11', observations: 5, compliant: 4 }], latestPositives: [{ sampleCode: 'L-1', patientCode: 'P-9', resistance: 'xdr', awaiting: true }] }, '2026-11-20')
+    const overview = normalizeDepartmentHome({ inpatients: 4, handHygienePct: null, activeSurveillance: null, weeklyPositives: [{ week: '2026-11-16', mdr: 2, other: 1 }], monthlyHandHygiene: [{ month: '2026-11', observations: 5, compliant: 4 }], organisms30: [{ organism: ' Klebsiella pneumoniae ', count: 3, mdr: 2 }, { organism: '', count: 1, mdr: 0 }], organismsOtherCount: 2, patients30: 3 }, '2026-11-20')
     expect(overview.weeklyPositives).toHaveLength(12)
     expect(overview.weeklyPositives.at(-1)).toEqual({ week: '2026-11-16', mdr: 2, other: 1 })
     expect(overview.monthlyHandHygiene.at(-1)).toMatchObject({ pct: 80 })
     expect(overview.activeSurveillance).toBeNull()
     expect(overview.handHygieneTarget).toBe(80)
-    expect(overview.latestPositives[0]).toMatchObject({ patient: 'P-9', resistance: 'XDR', awaiting: true })
+    expect(overview.organisms30).toEqual([{ organism: 'Klebsiella pneumoniae', count: 3, mdr: 2 }])
+    expect(overview).toMatchObject({ organismsOtherCount: 2, patients30: 3, organisms30Count: null })
+    expect(overview).not.toHaveProperty('latestPositives')
+  })
+  it('counts the organisms of the positives: distinct patients and kinds, the 4 most frequent and the rest together', () => {
+    const summary = organismSummary([
+      { patient: 'p1', organism: 'Klebsiella pneumoniae', mdr: true }, { patient: 'p2', organism: 'Klebsiella pneumoniae ', mdr: false },
+      { patient: 'p2', organism: 'Acinetobacter baumannii', mdr: true }, { patient: 'p3', organism: 'Escherichia coli', mdr: false },
+      { patient: 'p4', organism: 'Pseudomonas aeruginosa', mdr: false }, { patient: 'p5', organism: 'Candida albicans', mdr: false },
+      { patient: 'p5', organism: 'Serratia marcescens', mdr: false }, { patient: 'p6', organism: null, mdr: false },
+    ])
+    expect(summary).toEqual({
+      patients30: 6, organisms30Count: 6, organismsOtherCount: 2,
+      organisms30: [{ organism: 'Klebsiella pneumoniae', count: 2, mdr: 1 }, { organism: 'Acinetobacter baumannii', count: 1, mdr: 1 }, { organism: 'Candida albicans', count: 1, mdr: 0 }, { organism: 'Escherichia coli', count: 1, mdr: 0 }],
+    })
   })
 })
 
@@ -84,13 +98,16 @@ describe('the Demo department home', () => {
     expect(icu.weeklyPositives).toHaveLength(12)
     expect(icu.monthlyHandHygiene).toHaveLength(6)
     expect(icu.handHygienePct).toBeGreaterThan(0)
-    expect(icu.latestPositives.length).toBeGreaterThan(0)
-    expect(icu.latestPositives.length).toBeLessThanOrEqual(5)
-    const dates = icu.latestPositives.map(row => row.collectedAt)
-    expect([...dates].sort().reverse()).toEqual(dates)
+    expect(icu.organisms30.length).toBeGreaterThan(0)
+    expect(icu.organisms30.length).toBeLessThanOrEqual(4)
+    expect(icu.organisms30.reduce((sum, row) => sum + row.count, 0) + icu.organismsOtherCount).toBeLessThanOrEqual(icu.positives30)
+    expect(icu.organisms30.map(row => row.count)).toEqual([...icu.organisms30.map(row => row.count)].sort((a, b) => b - a))
+    expect(icu.patients30).toBeGreaterThan(0)
+    expect(icu.patients30).toBeLessThanOrEqual(icu.positives30)
+    expect(JSON.stringify(icu)).not.toMatch(/"patient"|sampleCode/)
     expect(icu).toMatchObject({ pendingRosterRequests: 2, trainingPct: 94, fluPct: 71 })
     const none = collectDemoDepartmentHome({ department: 'Καμία', now: new Date('2026-08-29T12:00:00+03:00') })
-    expect(none).toMatchObject({ inpatients: 0, positives30: 0, handHygienePct: null, latestPositives: [], pendingRosterRequests: 0 })
+    expect(none).toMatchObject({ inpatients: 0, positives30: 0, handHygienePct: null, organisms30: [], patients30: 0, organisms30Count: 0, pendingRosterRequests: 0 })
   })
 })
 
@@ -102,15 +119,19 @@ const managerTenant = (overrides = {}) => ({
 })
 
 describe('«Το τμήμα μου» of the Department Manager', () => {
-  it('shows five figures, two charts and three cards, and no roster card', async () => {
+  it('shows four figures, the weekly chart with the organisms, and three cards, and no roster card', async () => {
     configureDataEnvironment({ mode: 'demo' })
     tenant = managerTenant()
     const { container } = open()
     await waitFor(() => expect(container.querySelectorAll('.dephome-tile')).toHaveLength(4))
     expect([...container.querySelectorAll('.dephome-tile-label')].map(el => el.textContent)).toEqual(['Θετικά δείγματα (30 ημ.)', 'Σε επιτήρηση / απομόνωση', 'Υγιεινή χεριών', 'Εκπρόθεσμοι έλεγχοι'])
-    expect(container.querySelectorAll('.dephome-chart svg')).toHaveLength(2)
     expect(screen.getByText('Θετικά δείγματα ανά εβδομάδα')).toBeTruthy()
-    expect(screen.getByText('Υγιεινή χεριών ανά μήνα')).toBeTruthy()
+    expect(screen.getByText('Μικρόβια του τμήματος')).toBeTruthy()
+    expect([...container.querySelectorAll('.dephome-organism-figures dt')].map(el => el.textContent)).toEqual(['θετικά δείγματα', 'ασθενείς', 'MDR/XDR', 'είδη μικροβίων'])
+    // The ICU has a register: its card takes the place of the monthly hand hygiene chart.
+    await waitFor(() => expect(container.querySelector('.dephome-focus .lo-card-heading strong')?.textContent).toMatch(/^Μητρώο: /))
+    expect(container.querySelectorAll('.dephome-chart svg')).toHaveLength(1)
+    expect(container.textContent).not.toContain('Υγιεινή χεριών ανά μήνα')
     expect(container.querySelectorAll('.dephome-cards>.dashboard-card')).toHaveLength(3)
     expect(screen.getByText('Για μένα σήμερα')).toBeTruthy()
     expect(container.textContent).not.toContain('Τελευταία θετικά')
@@ -171,9 +192,21 @@ describe('the register or incidents card (owner, 20/11/2026)', () => {
     expect(screen.getByText('Πτώσεις / κατακλίσεις')).toBeTruthy()
   })
 
-  it('shows the incidents of the last 30 days for a department without a register, and drops falls from the footer', async () => {
+  it('shows hand hygiene per month for a department without a register, the falls staying in the footer', async () => {
     configureDataEnvironment({ mode: 'demo' })
     tenant = managerTenant({ membership: { previewDepartment: 'Καρδιολογική', capabilities: [], customCapabilities: [] } })
+    const { container } = open()
+    await waitFor(() => expect(screen.getByText('Υγιεινή χεριών ανά μήνα')).toBeTruthy())
+    expect(container.querySelectorAll('.dephome-cards>.dashboard-card')).toHaveLength(3)
+    expect(container.querySelectorAll('.dephome-chart svg')).toHaveLength(2)
+    expect(container.textContent).not.toContain('Μητρώο:')
+    expect(container.textContent).not.toContain('Συμβάντα τμήματος')
+    expect(screen.getByText('Πτώσεις / κατακλίσεις')).toBeTruthy()
+  })
+
+  it('shows the incidents of the last 30 days when there is no register and hand hygiene is locked, and drops falls from the footer', async () => {
+    configureDataEnvironment({ mode: 'demo' })
+    tenant = managerTenant({ moduleEnabled: module => module !== 'prevention', membership: { previewDepartment: 'Καρδιολογική', capabilities: [], customCapabilities: [] } })
     const { container } = open()
     await waitFor(() => expect(screen.getByText('Συμβάντα τμήματος')).toBeTruthy())
     expect([...container.querySelectorAll('.dephome-focus-list li .dephome-focus-copy strong')].map(el => el.textContent)).toEqual(['Πτώση', 'Έλκη που αναπτύσσονται κατά τη νοσηλεία', 'Φαρμακευτικό λάθος', 'Λοιπά συμβάντα', 'Ανοιχτά (υπό αξιολόγηση)'])
@@ -196,9 +229,11 @@ describe('the register or incidents card (owner, 20/11/2026)', () => {
 
   it('keeps the card at a fixed height: no scrolling list inside it', () => {
     const css = readSource('src/features/dashboard/departmentHome.css')
-    const rule = css.match(/\.dephome-focus-list\{[^}]*\}/)?.[0] || ''
-    expect(rule).toContain('overflow:hidden')
-    expect(rule).not.toMatch(/overflow(-y)?:\s*(auto|scroll)/)
+    for (const list of ['dephome-focus-list', 'dephome-organism-list']) {
+      const rule = css.match(new RegExp(`\\.${list}\\{[^}]*\\}`))?.[0] || ''
+      expect(rule).toContain('overflow:hidden')
+      expect(rule).not.toMatch(/overflow(-y)?:\s*(auto|scroll)/)
+    }
     expect(css).not.toContain('dephome-latest')
     expect(readSource('src/features/dashboard/DepartmentHome.tsx')).not.toContain('latestPositives')
   })
@@ -226,6 +261,14 @@ describe('contamination notes are no positives (owner, 20/11/2026)', () => {
     expect(sql).toContain("array['department_manager', 'infection_control_lead', 'infection_control_member', 'doctor_reviewer']::public.app_role[]")
     expect(sql).toContain("array_agg(z.c order by case z.c when 'PDR' then 3 when 'XDR' then 2 else 1 end desc)")
     expect(sql).toContain('revoke all on function public.department_home_overview(uuid, uuid[]) from public, anon;')
+  })
+  it('returns the organisms as counts only, never a patient\'s name', () => {
+    const sql = readSource('supabase/migrations/20261231602000_department_home_contamination.sql').replace(/^--.*$/gm, '')
+    for (const key of ["'patients30'", "'organisms30Count'", "'organisms30'", "'organismsOtherCount'"]) expect(sql).toContain(key)
+    expect(sql).toContain("nullif(btrim(pos.organism), '')")
+    expect(sql).toContain('row_number() over (order by g.n desc, g.organism)')
+    expect(sql).not.toMatch(/latestPositives|last_name|first_name|patient_code/)
+    expect(sql).not.toMatch(/\b(insert|update|delete|drop|truncate)\b/i)
   })
 })
 

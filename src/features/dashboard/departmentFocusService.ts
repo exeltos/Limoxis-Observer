@@ -1,6 +1,7 @@
 // The bottom-middle card of «Το τμήμα μου» (owner, 20/11/2026: «να μη σκρολάρει κι αντί γι' αυτό να βλέπουν
 // στοιχεία από τα μητρώα τους… όσα δεν έχουν, μόνο π.χ. συμβάντα»): the main indicators of the department's
-// register for the current month, or, for a department without one, its incidents of the last 30 days.
+// register for the current month; a department without one sees hand hygiene per month there, and its incidents
+// of the last 30 days only when that chart is locked.
 // Both are read as the register and Quality screens read them, under the same policies (register_can_read,
 // quality_incident_org_read): what the manager may not read leaves the register card out.
 import { useEffect, useState } from 'react'
@@ -76,8 +77,9 @@ export type DepartmentFocus =
   | { kind: 'incidents', incidents: DepartmentIncidents | null }
   | { kind: 'none' }
 
-// The department's register (the first active one with indicators the manager is a member of and may read), else its incidents.
-export function useDepartmentFocus(qualityOn: boolean): DepartmentFocus {
+// The department's register (the first active one with indicators the manager is a member of and may read), else, when
+// asked for (incidentsWanted: the quality module on and nothing else to show in their place), its incidents.
+export function useDepartmentFocus(incidentsWanted: boolean): DepartmentFocus {
   const { tenant, isDemo, membership } = useTenant()
   const access = useRegisterAccess()
   const [focus, setFocus] = useState<DepartmentFocus>({ kind: 'loading' })
@@ -97,11 +99,11 @@ export function useDepartmentFocus(qualityOn: boolean): DepartmentFocus {
           return
         }
       } catch { /* a register the manager may not read: the incidents instead */ }
-      if (!qualityOn) { if (active) setFocus({ kind: 'none' }); return }
+      if (!incidentsWanted) { if (active) setFocus({ kind: 'none' }); return }
       const incidents = await loadDepartmentIncidents(tenant?.id, departmentKey ? departmentKey.split('|') : null, department, today).catch(() => null)
       if (active) setFocus({ kind: 'incidents', incidents })
     })()
     return () => { active = false }
-  }, [tenant?.id, departmentKey, department, access, qualityOn])
+  }, [tenant?.id, departmentKey, department, access, incidentsWanted])
   return focus
 }

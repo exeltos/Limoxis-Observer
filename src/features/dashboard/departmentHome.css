@@ -1,9 +1,11 @@
-/* «Το τμήμα μου» of the Department Manager: five figures, two charts, three cards in one screen.
-   The page does not scroll on a computer or tablet: the rows share the height, the lists scroll
-   (the register / incidents card never: its lines share the card). */
+/* «Το τμήμα μου» of the Department Manager: four figures, then two rows of cards in one screen.
+   The page does not scroll on a computer or tablet: the rows share the height, the to-do list and the
+   announcements scroll (the organisms, register and incidents cards never: their lines share the card). */
 .dashboard-page.page-fill>.dephome{flex:1 1 0;min-height:0}
-.dephome{display:grid;grid-template-rows:auto minmax(130px,1fr) minmax(180px,1.3fr);gap:12px;min-height:0}
-.dephome:has(>.dephome-error){grid-template-rows:auto auto minmax(130px,1fr) minmax(180px,1.3fr)}
+.dephome{display:grid;grid-template-rows:auto minmax(200px,1fr) minmax(200px,1.2fr);gap:12px;min-height:0}
+.dephome:has(>.dephome-error){grid-template-rows:auto auto minmax(200px,1fr) minmax(200px,1.2fr)}
+.dephome:not(:has(>.dephome-charts)){grid-template-rows:auto minmax(200px,1fr)}
+.dephome:has(>.dephome-error):not(:has(>.dephome-charts)){grid-template-rows:auto auto minmax(200px,1fr)}
 .dephome-error{padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
 
 .dephome-tiles{display:grid;grid-template-columns:repeat(var(--dephome-tiles,5),minmax(0,1fr));gap:12px}
@@ -17,8 +19,22 @@
 .dephome-tile.is-success .dephome-tile-value{color:var(--lo-color-success)}
 .dephome-tile-detail{min-height:16px;font-size:12px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-.dephome-charts{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:12px;min-height:0}
-.dephome-charts:has(>:only-child){grid-template-columns:minmax(0,1fr)}
+.dephome-charts{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;min-height:0}
+
+/* «Μικρόβια του τμήματος»: four figures, then at most five lines that share the rest of the card. */
+.dephome-organism-figures{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 6px}
+.dephome-organism-figures>div{display:flex;flex-direction:column-reverse;min-width:0}
+.dephome-organism-figures dt{font-size:11.5px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dephome-organism-figures dd{margin:0;font-size:22px;line-height:1.15;font-weight:800;font-variant-numeric:tabular-nums;color:var(--lo-color-text)}
+.dephome-organism-figures dd.is-danger{color:var(--lo-color-danger)}
+.dephome-organism-list{flex:1 1 auto;display:grid;grid-template-rows:repeat(5,minmax(0,1fr));min-height:0;max-height:160px;margin:0;padding:0;list-style:none;overflow:hidden}
+.dephome-organism-list>li{display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,34%) 28px;align-items:center;gap:10px;min-height:0;border-top:1px solid var(--lo-color-border);font-size:13px}
+.dephome-organism-list em{font-style:italic;color:var(--lo-color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dephome-organism-list>li.is-more>span:first-child{color:var(--lo-color-muted)}
+.dephome-organism-list b{text-align:right;font-variant-numeric:tabular-nums;color:var(--lo-color-text)}
+.dephome-organism-bar{display:block;height:8px}
+.dephome-organism-bar>span{display:block;height:100%;border-radius:4px;overflow:hidden}
+.dephome-organism-bar i{display:block;height:100%}
 .dephome .dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
 .dephome .dashboard-card .lo-card-header{margin:0 0 8px;padding:0 0 8px}
 .dephome-chart-card .lo-card-heading{flex-direction:row;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -62,4 +78,4 @@
 /* Tablet: the five figures stay in one row, a little smaller; a long label wraps instead of being cut. */
 @media(max-width:1180px){.dephome-tile{padding:9px 11px}.dephome-tile-label,.dephome-tile-detail{white-space:normal;font-size:11.5px;line-height:1.25}.dephome-tile-value{font-size:22px}.dephome .dashboard-card .lo-card-heading small,.dephome .dashboard-card .lo-card-icon{display:none}}
 /* Phone (or a short window): everything stacks and the page scrolls. */
-@media(max-width:760px),(max-height:640px){.dephome{display:flex;flex-direction:column}.dashboard-page.page-fill>.dephome{flex:none}.dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.dephome-charts,.dephome-cards{grid-template-columns:1fr}.dephome-chart{height:190px;flex:none}.dephome-cards>.dashboard-card{max-height:none}.dephome-focus-list{grid-auto-rows:auto}.dephome-focus-list>li{padding:6px 4px}}
+@media(max-width:760px),(max-height:640px){.dephome{display:flex;flex-direction:column}.dashboard-page.page-fill>.dephome{flex:none}.dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.dephome-charts,.dephome-cards{grid-template-columns:1fr}.dephome-chart{height:190px;flex:none}.dephome-organism-list{grid-template-rows:none;grid-auto-rows:auto}.dephome-organism-list>li{padding:5px 0}.dephome-cards>.dashboard-card{max-height:none}.dephome-focus-list{grid-auto-rows:auto}.dephome-focus-list>li{padding:6px 4px}}

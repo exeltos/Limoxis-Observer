@@ -1,5 +1,5 @@
 // «Το τμήμα μου» of the Department Manager: the figures of their department(s), the two
-// series of its charts and the latest positive samples. A hospital reads them in one call
+// series of its charts and the organisms of its positive samples (counts only, never a patient). A hospital reads them in one call
 // (department_home_overview, 20261231601000), the Demo from its sample records
 // (demoDashboardMetrics.collectDemoDepartmentHome); both end up in this shape.
 import { hospitalDate } from '../../core/dates/hospitalDate'
@@ -8,8 +8,8 @@ import { hospitalDate } from '../../core/dates/hospitalDate'
 export interface WeeklyPositives { week: string, mdr: number, other: number }
 // A month of hand hygiene ('YYYY-MM'): observed opportunities and compliant ones (pct null without observations).
 export interface MonthlyHandHygiene { month: string, observations: number, compliant: number, pct: number | null }
-// One of the latest positive samples of the department.
-export interface LatestPositive { sampleCode: string, patientId: string | null, patient: string | null, patientEn?: string | null, organism: string | null, resistance: string | null, collectedAt: string | null, awaiting: boolean }
+// One of the most frequent organisms of the 30 days: how many positive samples, how many of them MDR/XDR/PDR.
+export interface OrganismCount { organism: string, count: number, mdr: number }
 
 // A figure is null when its module is locked (or, for a percentage, when nothing was recorded).
 export interface DepartmentHomeOverview {
@@ -35,10 +35,15 @@ export interface DepartmentHomeOverview {
   pressureUlcers30: number | null
   weeklyPositives: WeeklyPositives[]
   monthlyHandHygiene: MonthlyHandHygiene[]
-  latestPositives: LatestPositive[]
+  patients30: number | null
+  organisms30Count: number | null
+  organisms30: OrganismCount[]
+  organismsOtherCount: number | null
 }
 
 export const WEEKS_SHOWN = 12
+// The organisms «Μικρόβια του τμήματος» names; the rest add up in one line.
+export const ORGANISMS_SHOWN = 4
 export const MONTHS_SHOWN = 6
 // The WHO hand hygiene target when the hospital has none of its own.
 export const DEFAULT_HAND_HYGIENE_TARGET = 80
@@ -80,6 +85,27 @@ export function weeklyPositiveSeries(samples: Array<{ day: string, mdr: boolean 
 }
 
 const percent = (compliant: number, observations: number) => observations > 0 ? Math.round(compliant / observations * 1000) / 10 : null
+// Positive samples ({ patient, organism, mdr }) as «Μικρόβια του τμήματος» counts them: distinct patients, distinct
+// organisms (trimmed), the most frequent first (then by name) and how many samples the other organisms have.
+export function organismSummary(samples: Array<{ patient: string | null, organism: string | null, mdr: boolean }>, shown = ORGANISMS_SHOWN) {
+  const groups = new Map<string, OrganismCount>()
+  for (const sample of samples) {
+    const name = String(sample.organism ?? '').trim()
+    if (!name) continue
+    const group = groups.get(name) || { organism: name, count: 0, mdr: 0 }
+    group.count += 1
+    if (sample.mdr) group.mdr += 1
+    groups.set(name, group)
+  }
+  const ranked = [...groups.values()].sort((a, b) => b.count - a.count || (a.organism < b.organism ? -1 : a.organism > b.organism ? 1 : 0))
+  return {
+    patients30: new Set(samples.map(sample => sample.patient).filter(Boolean)).size,
+    organisms30Count: ranked.length,
+    organisms30: ranked.slice(0, shown),
+    organismsOtherCount: ranked.slice(shown).reduce((sum, row) => sum + row.count, 0),
+  }
+}
+
 // Hand hygiene sessions ({ day, observations, compliant }) added up by month.
 export function monthlyHandHygieneSeries(sessions: Array<{ day: string, observations: number, compliant: number }>, today: string, count = MONTHS_SHOWN): MonthlyHandHygiene[] {
   const rows = monthKeys(today, count).map(month => ({ month, observations: 0, compliant: 0, pct: null as number | null }))
@@ -127,15 +153,9 @@ export function normalizeDepartmentHome(raw: Record<string, unknown> | null | un
       const observations = count(row?.observations), compliant = count(row?.compliant)
       return { month, observations, compliant, pct: row?.pct != null ? maybe(row.pct) : percent(compliant, observations) }
     }),
-    latestPositives: (Array.isArray(data.latestPositives) ? data.latestPositives : []).slice(0, 5).map((row: Record<string, unknown>) => ({
-      sampleCode: String(row.sampleCode ?? ''),
-      patientId: row.patientId ? String(row.patientId) : null,
-      patient: row.patient ? String(row.patient) : row.patientCode ? String(row.patientCode) : null,
-      patientEn: row.patientEn ? String(row.patientEn) : null,
-      organism: row.organism ? String(row.organism) : null,
-      resistance: isMdrClass(row.resistance) ? String(row.resistance).toUpperCase() : null,
-      collectedAt: row.collectedAt ? String(row.collectedAt) : null,
-      awaiting: row.awaiting === true,
-    })),
+    patients30: maybe(data.patients30),
+    organisms30Count: maybe(data.organisms30Count),
+    organisms30: (Array.isArray(data.organisms30) ? data.organisms30 : []).slice(0, ORGANISMS_SHOWN).map((row: Record<string, unknown>) => ({ organism: String(row.organism ?? '').trim(), count: count(row.count), mdr: count(row.mdr) })).filter(row => row.organism && row.count > 0),
+    organismsOtherCount: maybe(data.organismsOtherCount),
   }
 }
