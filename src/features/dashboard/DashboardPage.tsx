@@ -14,7 +14,8 @@ import { loadDashboardMetrics, readStoredDashboardMetrics, type DashboardMetrics
 import { FirstStepsCard, firstSteps } from './FirstStepsCard'
 import { collectDemoDashboardMetrics, collectDemoDepartmentHome } from './demoDashboardMetrics'
 import { loadDepartmentHomeOverview } from './departmentHomeService'
-import type { DepartmentHomeOverview } from './departmentHomeModel'
+import { windowSubtitleParts, type DepartmentHomeOverview } from './departmentHomeModel'
+import { DepartmentPeriodControls, useDepartmentHomeWindow } from './DepartmentHomePeriod'
 import { DEPARTMENT_ROLES, pendingActionsOf } from './dashboardTasks'
 import './dashboard.css'
 import { roleTitleText } from '../../core/i18n/roleTitles'
@@ -137,17 +138,19 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     return()=>{active=false}
   },[tenant?.id,isDemo,role,membership?.departmentIds,divisionHome])
   const demo=useMemo(()=>isDemo?collectDemoDashboardMetrics({department}):null,[isDemo,department])
-  // «Το τμήμα μου»: one read of the department's figures (department_home_overview); the Demo counts its sample records.
-  // A failed read shows the error line and empty figures, never the Demo's.
+  // «Το τμήμα μου»: one read of the department's figures for the chosen period and its comparison (department_home_period_overview);
+  // the Demo counts its sample records. A failed read shows the error line and empty figures, never the Demo's.
+  const departmentPeriod=useDepartmentHomeWindow()
+  const periodWindow=departmentPeriod.window
   const [departmentOverview,setDepartmentOverview]=useState<{data: DepartmentHomeOverview | null, status: 'loading' | 'ready' | 'error'}>({data:null,status:'loading'})
-  const demoOverview=useMemo(()=>departmentHome&&isDemo?collectDemoDepartmentHome({department}):null,[departmentHome,isDemo,department])
+  const demoOverview=useMemo(()=>departmentHome&&isDemo?collectDemoDepartmentHome({department,window:periodWindow}):null,[departmentHome,isDemo,department,periodWindow])
   useEffect(()=>{
     let active=true
     if(!departmentHome||isDemo)return()=>{active=false}
     setDepartmentOverview(current=>({data:current.data,status:'loading'}))
-    loadDepartmentHomeOverview(tenant?.id,membership?.departmentIds).then(data=>{if(active)setDepartmentOverview({data,status:'ready'})}).catch(()=>{if(active)setDepartmentOverview({data:null,status:'error'})})
+    loadDepartmentHomeOverview(tenant?.id,membership?.departmentIds,periodWindow).then(data=>{if(active)setDepartmentOverview({data,status:'ready'})}).catch(()=>{if(active)setDepartmentOverview({data:null,status:'error'})})
     return()=>{active=false}
-  },[departmentHome,isDemo,tenant?.id,membership?.departmentIds])
+  },[departmentHome,isDemo,tenant?.id,membership?.departmentIds,periodWindow])
   const overview=demoOverview||departmentOverview.data
   const overviewStatus=demoOverview?'ready':departmentOverview.status
   const values: Metrics=demo?demo.metrics:metrics
@@ -222,9 +225,10 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
           {shownAnnouncements.length?<div className="dashboard-announcements">{shownAnnouncements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{roleTitleText(a.createdBy,language) as string}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}
           {footer}
         </Card>
+  const subtitleParts=windowSubtitleParts(periodWindow,language)
   if(divisionHome)return <Suspense fallback={<RouteLoading/>}><DivisionHome weekCard={weekCard||null}/></Suspense>
-  if(departmentHome)return <Page fill className="dashboard-page" title={title||tr('Το τμήμα μου','My department')} subtitle={subtitle}>
-    <Suspense fallback={<RouteLoading/>}><DepartmentHome overview={overview} status={overviewStatus} language={language} moduleEnabled={moduleEnabled} canOpen={canOpen} onOpen={navigate} todoCard={todoCard} announcementsCard={announcementsCard}/></Suspense>
+  if(departmentHome)return <Page fill className="dashboard-page" title={title||tr('Το τμήμα μου','My department')} subtitle={<><span className="dephome-subtitle-period">{subtitleParts.period} </span>{subtitleParts.compare}</>} actions={<DepartmentPeriodControls window={periodWindow} language={language} onKind={departmentPeriod.setKind} onChoice={departmentPeriod.setChoice} onStep={departmentPeriod.step}/>}>
+    <Suspense fallback={<RouteLoading/>}><DepartmentHome overview={overview} window={periodWindow} status={overviewStatus} language={language} moduleEnabled={moduleEnabled} canOpen={canOpen} onOpen={navigate} todoCard={todoCard} announcementsCard={announcementsCard}/></Suspense>
   </Page>
 
   return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
