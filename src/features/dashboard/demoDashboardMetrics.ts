@@ -5,8 +5,10 @@
 import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
 import { clinicalCases, demoSurveillanceList } from '../surveillance/clinicalDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
-import { loadControlAssignmentsLocal } from '../controls/controlStore'
-import { periodBounds } from '../controls/controlDueRules'
+import { loadControlAssignmentsLocal, loadControlDefinitionsLocal, loadControlExecutionsLocal } from '../controls/controlStore'
+import { periodBounds, zonedInstant } from '../controls/controlDueRules'
+import { countAdherence } from '../controls/controlAdherence'
+import type { ControlFrequency } from '../controls/controlTypes'
 import { loadQualityLocal } from '../quality/qualityStore'
 import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
@@ -24,7 +26,7 @@ import { handHygieneRows } from '../prevention/preventionDemoData'
 import { sampleDepartmentFigures } from '../division/divisionService'
 import { needsSurveillanceReview } from '../laboratory/sampleReviewModel'
 import { isContaminationNote } from '../surveillance/skinFloraOrganisms'
-import { DEFAULT_HAND_HYGIENE_TARGET, isMdrClass, monthlyHandHygieneSeries, normalizeDepartmentHome, organismSummary, weeklyPositiveSeries, weekStarts, type DepartmentHomeOverview } from './departmentHomeModel'
+import { DEFAULT_HAND_HYGIENE_TARGET, bucketedPositives, departmentHomeWindow, handHygieneMonthCount, isMdrClass, monthlyHandHygieneSeries, normalizeDepartmentHome, organismSummary, type DepartmentHomeOverview, type DepartmentHomeWindow } from './departmentHomeModel'
 
 // What the counts read of the Demo records of the other modules.
 type DepartmentRow = { department?: string | { name?: string | null } | null, department_id?: string | null }
@@ -141,41 +143,85 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
 
 // «Το τμήμα μου» of the Department Manager in the Demo: the same sample records as the
 // other Demo screens (clinical cases, laboratory samples, hand hygiene sessions,
-// controls), counted as department_home_overview counts a hospital (a contamination note is no positive); the roster
-// requests, training, influenza vaccination and falls are the department's row of the
-// Division Director's sample figures.
-export function collectDemoDepartmentHome({ department, now = new Date() }: { department: string | null, now?: Date }): DepartmentHomeOverview {
+// controls), counted for the period and its comparison as department_home_period_overview counts a hospital (a contamination
+// note is no positive); the roster requests, training, influenza vaccination and falls are the department's row of
+// the Division Director's sample figures.
+export function collectDemoDepartmentHome({ department, now = new Date(), window = departmentHomeWindow('month', hospitalDate(now)) }: { department: string | null, now?: Date, window?: DepartmentHomeWindow }): DepartmentHomeOverview {
   const today = hospitalDate(now)
   const inDepartment = (row: DepartmentRow) => !department || departmentOf(row) === department
   const { metrics } = collectDemoDashboardMetrics({ department, now })
-  const cases = Object.values(clinicalCases).filter(inDepartment)
-  const isolations: Isolation[] = cases.map(item => item.isolation).filter((item): item is Isolation => Boolean(item && !Array.isArray(item)))
-  const firstDay = [weekStarts(today)[0], hospitalDate(new Date(now.getTime() - 29 * 86400000))].sort()[0]
+  const { period, compare, bucket } = window
+  const within = (day: string | null | undefined, range: { from: string, to: string }) => Boolean(day) && (day as string) >= range.from && (day as string) <= range.to && (day as string) <= today
+  const cases = Object.values(clinicalCases).filter(inDepartment).filter(item => item.lifecycleStatus !== 'voided')
   const positives = laboratorySamples
     .filter(row => inDepartment(row) && (!row.subjectType || row.subjectType === 'patient') && row.result === 'positive' && !isContaminationNote(row.organism as string) && !['rejected', 'cancelled'].includes(row.status as string) && row.collectedAt)
-    .map(row => ({ row, day: hospitalDate(row.collectedAt as string) }))
-    .filter(({ day }) => day >= firstDay && day <= today)
-    .sort((a, b) => String(b.row.collectedAt).localeCompare(String(a.row.collectedAt)))
-  const month = positives.filter(({ day }) => day > hospitalDate(new Date(now.getTime() - 30 * 86400000)))
+    .map(row => ({ row, day: hospitalDate(row.collectedAt as string), mdr: isMdrClass(row.resistance) }))
+  const inPeriod = positives.filter(({ day }) => within(day, period))
+  const inCompare = positives.filter(({ day }) => within(day, compare))
   const sessions = handHygieneRows
     .filter(row => !department || row.departmentEl === department)
     .map(row => ({ day: row.date, observations: Number(row.observations) || 0, compliant: Number(row.compliant) || 0 }))
-  const recent = sessions.filter(row => row.day > hospitalDate(new Date(now.getTime() - 30 * 86400000)) && row.day <= today)
-  const observations = recent.reduce((sum, row) => sum + row.observations, 0)
-  const compliant = recent.reduce((sum, row) => sum + row.compliant, 0)
+  const handHygiene = (range: { from: string, to: string }) => {
+    const rows = sessions.filter(row => within(row.day, range))
+    const observations = rows.reduce((sum, row) => sum + row.observations, 0)
+    const compliant = rows.reduce((sum, row) => sum + row.compliant, 0)
+    return { handHygienePct: observations ? Math.round(compliant / observations * 1000) / 10 : null, handHygieneObservations: observations }
+  }
+  // «Έλεγχοι εκτός χρόνου»: entries done outside their window (controlAdherence, as control_adherence_counts), and
+  // assignments fallen overdue in the period and not done yet.
+  const definitions = new Map(loadControlDefinitionsLocal().map(row => [row.id, row]))
+  const executions = loadControlExecutionsLocal()
+  const assignments = loadControlAssignmentsLocal().filter(inDepartment)
+  const lateControls = (range: { from: string, to: string }) => {
+    const start = zonedInstant(...(range.from.split('-').map(Number) as [number, number, number]))
+    const [year, month, day] = range.to.split('-').map(Number)
+    const end = new Date(Math.min(zonedInstant(year, month, day + 1).getTime() - 1, now.getTime()))
+    let late = 0
+    for (const assignment of assignments) {
+      const frequency = (assignment.frequency_config || definitions.get(assignment.control_id)?.frequency_config || {}) as ControlFrequency
+      const history = executions.filter(row => row.assignment_id === assignment.id).map(row => ({ at: row.performed_at, status: row.status, cancelledAt: row.cancelled_at, isExtra: row.is_extra }))
+      const { performed, onTime } = countAdherence(history, frequency, start, end)
+      late += performed - onTime
+      if (isOpen(assignment.status) && assignment.next_due_at && new Date(assignment.next_due_at) >= start && new Date(assignment.next_due_at) <= end) late += 1
+    }
+    return late
+  }
+  const started = (range: { from: string, to: string }) => ({
+    newSurveillance: cases.filter(item => within(String(item.startedAt || '').slice(0, 10), range)).length,
+    newIsolation: cases.filter(item => item.isolation && !Array.isArray(item.isolation) && within(String((item.isolation as { startedAt?: string }).startedAt || '').slice(0, 10), range)).length,
+  })
+  const organisms = organismSummary(inPeriod.map(({ row, mdr }) => ({ patient: (row.patientId ?? row.patient ?? null) as string | null, organism: (row.organism ?? null) as string | null, mdr })), inCompare.map(({ row }) => ({ organism: (row.organism ?? null) as string | null })))
   const figures = sampleDepartmentFigures(department)
+  const monthCount = handHygieneMonthCount(period)
   return normalizeDepartmentHome({
+    positives: inPeriod.length,
+    positivesMdr: inPeriod.filter(({ mdr }) => mdr).length,
+    positivesAwaiting: inPeriod.filter(({ row }) => needsSurveillanceReview(row)).length,
+    patients: organisms.patients,
+    organismsCount: organisms.organismsCount,
+    organisms: organisms.organisms,
+    organismsOtherCount: organisms.organismsOtherCount,
+    ...started(period),
+    ...handHygiene(period),
+    lateControls: lateControls(period),
+    compare: {
+      positives: inCompare.length,
+      positivesMdr: inCompare.filter(({ mdr }) => mdr).length,
+      positivesAwaiting: inCompare.filter(({ row }) => needsSurveillanceReview(row)).length,
+      patients: new Set(inCompare.map(({ row }) => row.patientId ?? row.patient).filter(Boolean)).size,
+      organismsCount: organisms.compareOrganismsCount,
+      ...started(compare),
+      ...handHygiene(compare),
+      lateControls: lateControls(compare),
+    },
+    positivesSeries: bucketedPositives(inPeriod, period.from, period.to, bucket),
+    positivesCompareSeries: bucketedPositives(inCompare, compare.from, compare.to, bucket),
+    monthlyHandHygiene: monthlyHandHygieneSeries(sessions.filter(row => row.day <= today), period.to, monthCount),
+    monthlyHandHygieneCompare: monthlyHandHygieneSeries(sessions.filter(row => row.day <= today), compare.to, monthCount),
     inpatients: metrics.inpatients,
     beds: null,
     admissionsToday: cases.filter(item => item.admissionDate === today).length,
-    positives30: month.length,
-    positivesMdr30: month.filter(({ row }) => isMdrClass(row.resistance)).length,
-    positivesAwaiting30: month.filter(({ row }) => needsSurveillanceReview(row)).length,
-    activeSurveillance: metrics.activeSurveillance,
-    activeIsolation: isolations.filter(item => item.status === 'active').length,
     reassessmentsDueToday: metrics.isolationReviewsDue,
-    handHygienePct: observations ? Math.round(compliant / observations * 1000) / 10 : null,
-    handHygieneObservations: observations,
     handHygieneTarget: DEFAULT_HAND_HYGIENE_TARGET,
     overdueControls: metrics.overdueControls,
     controlsDueToday: metrics.controlsDueToday,
@@ -185,8 +231,5 @@ export function collectDemoDepartmentHome({ department, now = new Date() }: { de
     fluPct: figures?.fluPct ?? null,
     falls30: figures?.falls30 ?? 0,
     pressureUlcers30: figures?.pressureUlcers30 ?? 0,
-    weeklyPositives: weeklyPositiveSeries(positives.map(({ row, day }) => ({ day, mdr: isMdrClass(row.resistance) })), today),
-    monthlyHandHygiene: monthlyHandHygieneSeries(sessions, today),
-    ...organismSummary(month.map(({ row }) => ({ patient: (row.patientId ?? row.patient ?? null) as string | null, organism: (row.organism ?? null) as string | null, mdr: isMdrClass(row.resistance) }))),
-  }, today)
+  }, window)
 }
