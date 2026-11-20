@@ -40,6 +40,15 @@ describe('training of the departments: the model', () => {
     expect(rows.find(row => row.id === 'A5')!.result).toBe('review')
   })
 
+  it('the latest assignment is the one assigned last, not the one with the later deadline', () => {
+    const repeated = { ...records, assignments: [
+      assignment('B1', 'P2', { userId: 'u-me', assignedDate: '2026-01-10', dueDate: '2026-12-31' }),
+      assignment('B2', 'P2', { userId: 'u-me', assignedDate: '2026-10-01', dueDate: '2026-11-10' }),
+    ] } as unknown as TrainingState
+    const rows = ownTrainingRows(repeated, me, today)
+    expect(rows.map(row => row.id)).toEqual(['B2'])
+    expect(rows[0].status).toBe('overdue')
+  })
   it('the Demo’s own employee is «mine» by the employee code', () => {
     expect(ownTrainingRows(records, { userId: null, employeeId: 'EMP-009' }, today).map(row => row.id)).toEqual(['A8'])
   })

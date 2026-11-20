@@ -37,7 +37,8 @@ export interface TrainingMyRow {
 
 const day = (value: unknown) => String(value || '').slice(0, 10)
 const doneDate = (row: TrainingAssignment) => day(row.completedDate || row.completedAt || row.completionConfirmedAt)
-const latestFirst = (a: TrainingAssignment, b: TrainingAssignment) => (doneDate(b) || day(b.dueDate) || day(b.assignedDate)).localeCompare(doneDate(a) || day(a.dueDate) || day(a.assignedDate)) || day(b.assignedDate).localeCompare(day(a.assignedDate))
+// The latest assignment is the one assigned last; without an assignment date, the later deadline or completion.
+const latestFirst = (a: TrainingAssignment, b: TrainingAssignment) => day(b.assignedDate).localeCompare(day(a.assignedDate)) || (doneDate(b) || day(b.dueDate)).localeCompare(doneDate(a) || day(a.dueDate))
 
 // A certificate: expired, expiring within 90 days, valid, or none.
 export function certificateState(certificate: Pick<TrainingCertificate, 'validUntil'> | null | undefined, today: string, days = 90): CertificateState {
