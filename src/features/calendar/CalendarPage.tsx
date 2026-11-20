@@ -12,6 +12,7 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -63,6 +64,7 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  const today=hospitalToday()
  const [cursor,setCursor]=useState(()=>({year:Number(today.slice(0,4)),month:Number(today.slice(5,7))-1}))
  const [selected,setSelected]=useState(today)
+ const [dayOpen,setDayOpen]=useState(false)
  const [view,setView]=useState('month')
  // To do: the overdue items or the next 30 days, a search, the page of the table and the rows opened to their people.
  const [scope,setScope]=useState<'overdue'|'upcoming'|null>(null)
@@ -201,7 +203,7 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
        <div><strong>{glance.expiries}</strong><span>{en?'expiries':'λήξεις'}</span></div>
       </div>
      </section>
-     <section className="calendar-card calendar-day-card"><div className="calendar-card-head"><h4>{fmtDay(selected)}</h4>{dayEvents.length>dayShown.length&&<small className="calendar-card-more">+{dayEvents.length-dayShown.length} {en?'more':'ακόμη'}</small>}</div>
+     <section className="calendar-card calendar-day-card"><div className="calendar-card-head"><h4>{fmtDay(selected)}</h4>{dayEvents.length>dayShown.length&&<button type="button" className="calendar-card-more" onClick={()=>setDayOpen(true)}>+{dayEvents.length-dayShown.length} {en?'more':'ακόμη'}</button>}</div>
       {dayShown.length?<ul className="calendar-agenda">{dayShown.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path as string)}/>)}</ul>:<div className="calendar-card-empty">{selected===today?(en?'Nothing scheduled today.':'Τίποτα προγραμματισμένο σήμερα.'):(en?'Nothing scheduled.':'Δεν υπάρχει κάτι προγραμματισμένο.')}{nextDay&&<button type="button" className="calendar-next-day" onClick={()=>openDay(nextDay)}>{en?'Next':'Επόμενο'}: <strong>{fmtShort(nextDay)}</strong> · {byDay.get(nextDay)?.[0].title}<ChevronRight size={14} aria-hidden="true"/></button>}</div>}
      </section>
      <section className="calendar-card calendar-next-card"><div className="calendar-card-head"><h4>{en?'Next 7 days':'Επόμενες 7 ημέρες'}</h4>{nextGroups.length>nextShown.length&&<button type="button" className="calendar-card-more" onClick={openPending}>+{nextGroups.length-nextShown.length} {en?'more':'ακόμη'}</button>}</div>
@@ -230,6 +232,8 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
     emptyTitle={activeScope==='overdue'?(en?'Nothing overdue':'Δεν υπάρχουν εκπρόθεσμα'):(en?'Nothing in the next 30 days':'Τίποτα τις επόμενες 30 ημέρες')} emptyFiltered={Boolean(query)||filtered} onClearFilters={clearFilters}/>
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={groups.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
   </section>}
+  {/* The whole chosen day, when the column has room for only some of its items. */}
+  {dayOpen&&<ObserverDialog title={fmtDay(selected)} subtitle={`${dayEvents.length} ${en?'items':'εγγραφές'}`} onClose={()=>setDayOpen(false)}><ul className="calendar-agenda">{dayEvents.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path as string)}/>)}</ul></ObserverDialog>}
  </Page>
 }
 
