@@ -15,6 +15,22 @@ export const patientRecordOf = (sample: ReviewSample): string | null => {
 // The patient a sample belongs to: the patient record (production), else the patient code (demo).
 export const patientKeyOf = (sample: ReviewSample) => String(patientRecordOf(sample) || sample.patientId || sample.recordId || sample.id || '')
 
+// «Ασθενείς» (owner, 20/11/2026): the samples awaiting a decision of each patient of the registry, by the patient's
+// code. A sample finds its patient by the patient record (production) or, when it has none, by the patient code (demo).
+export function pendingSamplesByPatient(samples: ReviewSample[], patients: { id: string, recordId?: string | null }[]): Map<string, ReviewSample[]> {
+  const byRecord = new Map(patients.filter(patient => patient.recordId).map(patient => [String(patient.recordId), patient.id]))
+  const byCode = new Map(patients.map(patient => [String(patient.id), patient.id]))
+  const pending = new Map<string, ReviewSample[]>()
+  for (const sample of samples) {
+    const record = patientRecordOf(sample)
+    const code = record ? byRecord.get(record) : byCode.get(String(sample.patientId || ''))
+    if (!code) continue
+    if (!pending.has(code)) pending.set(code, [])
+    pending.get(code)!.push(sample)
+  }
+  return pending
+}
+
 // Only the possible late-onset infections (ΜΕΝΝ: positive blood culture 72 hours or more after admission).
 export function reviewRowsShown(rows: ReviewSample[], { lateOnly = false, lateOnset = {} }: { lateOnly?: boolean, lateOnset?: Record<string, number> } = {}) {
   return lateOnly ? rows.filter(row => row.recordId && lateOnset[String(row.recordId)] != null) : rows

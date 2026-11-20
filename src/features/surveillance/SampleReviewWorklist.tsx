@@ -23,6 +23,11 @@ export const worklistTexts = (language: string) => language === 'en'
   ? { title: 'To review', emptyTitle: 'No samples to review', emptyText: 'New positive samples without an episode appear here until a decision is made.', saved: 'Decision saved.' }
   : { title: 'Προς έλεγχο', emptyTitle: 'Δεν υπάρχουν δείγματα προς έλεγχο', emptyText: 'Τα νέα θετικά δείγματα χωρίς επεισόδιο εμφανίζονται εδώ μέχρι να ληφθεί απόφαση.', saved: 'Η απόφαση αποθηκεύτηκε.' }
 
+// The tick boxes of «Προς έλεγχο» and «Ασθενείς» (owner, 20/11/2026).
+export const selectionTexts = (language: string) => language === 'en'
+  ? { selectAll: 'Select the whole list', select: 'Select', selectedPatients: 'Selected patients' }
+  : { selectAll: 'Επιλογή όλης της λίστας', select: 'Επιλογή', selectedPatients: 'Επιλεγμένοι ασθενείς' }
+
 interface SampleReviewWorklistProps {
   rows: ReviewSample[]
   empty?: { title?: string, text?: string, icon?: LucideIcon } | null
@@ -77,7 +82,7 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
       <RegistryTable
         bare
         columns={[
-          ...(selectable ? [{ key: 'select', className: 'sample-review-select', label: <CheckboxField checked={allPicked} disabled={!rows.length || busy} ariaLabel={en ? 'Select the whole list' : 'Επιλογή όλης της λίστας'} onChange={toggleAll} /> }] : []),
+          ...(selectable ? [{ key: 'select', className: 'sample-review-select', label: <CheckboxField checked={allPicked} disabled={!rows.length || busy} ariaLabel={selectionTexts(language).selectAll} onChange={toggleAll} /> }] : []),
           { key: 'patient', label: `${t('patient')} · ${t('department')}` },
           { key: 'sample', label: `${t('sampleType')} · ${en ? 'Date' : 'Ημερομηνία'}` },
           { key: 'alert', label: en ? 'Organism / alert' : 'Μικροοργανισμός / ειδοποίηση' },
@@ -91,7 +96,7 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
         renderRow={sample => (
           <>
             {selectable && <td className="sample-review-select">
-              <CheckboxField checked={selected.has(keyOf(sample))} disabled={busy} ariaLabel={`${en ? 'Select' : 'Επιλογή'}: ${en ? sample.patientEn || sample.patient : sample.patient} · ${sample.id}`} onChange={() => toggle(keyOf(sample))} />
+              <CheckboxField checked={selected.has(keyOf(sample))} disabled={busy} ariaLabel={`${selectionTexts(language).select}: ${en ? sample.patientEn || sample.patient : sample.patient} · ${sample.id}`} onChange={() => toggle(keyOf(sample))} />
             </td>}
             <td>
               <strong>{en ? sample.patientEn || sample.patient : sample.patient}</strong>
@@ -114,21 +119,17 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
     </div>
       {/* The ticked rows (owner, 19/11/2026): no buttons on the rows; one bar above the pages while something is ticked.
           One sample ticked takes the single paths (the episode form with its stay, the single dialog). */}
-      {selectable && picked.length > 0 && <div className="sample-review-selection-bar" role="region" aria-label={en ? 'Selected samples' : 'Επιλεγμένα δείγματα'}>
-        <strong>{en ? `${picked.length} selected` : `${picked.length} επιλεγμένα`}{allPicked && rows.length > pageRows.length ? (en ? ' (the whole list, every page)' : ' (όλη η λίστα, όλες οι σελίδες)') : ''}</strong>
-        <span className="sample-review-bulk-actions">
-          {canOpenEpisode && <Button variant="secondary" disabled={busy || (picked.length > 1 && !onBulkOpen)} onClick={() => (picked.length === 1 ? onOpenEpisode(picked[0]) : onBulkOpen && run(() => onBulkOpen(picked)))}>
-            <PlayCircle size={14} />
-            {picked.length === 1 ? (en ? 'Open episode' : 'Άνοιγμα επεισοδίου') : (en ? 'Open episodes' : 'Άνοιγμα επεισοδίων')}
-          </Button>}
-          <Button variant="secondary" disabled={busy} onClick={() => (picked.length === 1 ? setDeciding(picked[0]) : setBulkDeciding(true))}>
-            {en ? 'No surveillance needed' : 'Δεν χρειάζεται επιτήρηση'}
-          </Button>
-          <Button variant="ghost" disabled={busy} onClick={() => setSelected(new Set())}>
-            {en ? 'Clear selection' : 'Ακύρωση επιλογής'}
-          </Button>
-        </span>
-      </div>}
+      {selectable && picked.length > 0 && <ReviewSelectionBar
+        language={language}
+        ariaLabel={en ? 'Selected samples' : 'Επιλεγμένα δείγματα'}
+        count={picked.length}
+        wholeList={allPicked && rows.length > pageRows.length}
+        busy={busy}
+        onOpen={canOpenEpisode ? () => (picked.length === 1 ? onOpenEpisode(picked[0]) : onBulkOpen && run(() => onBulkOpen(picked))) : undefined}
+        openDisabled={picked.length > 1 && !onBulkOpen}
+        onNoSurveillance={() => (picked.length === 1 ? setDeciding(picked[0]) : setBulkDeciding(true))}
+        onClear={() => setSelected(new Set())}
+      />}
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }} />
       {bulkDeciding && onBulkDecide && (
         <NoSurveillanceDialog
@@ -152,6 +153,40 @@ export function SampleReviewWorklist({ rows: allRows, empty, language, t, canOpe
         />
       )}
     </>
+  )
+}
+
+// The bar of the ticked rows, shared by «Προς έλεγχο» and «Ασθενείς» (owner, 19-20/11/2026): above the pages, not sticky.
+// No «Open» button when `onOpen` is missing (no right to open an episode).
+interface ReviewSelectionBarProps {
+  language: string
+  ariaLabel: string
+  count: number
+  wholeList?: boolean
+  busy?: boolean
+  onOpen?: () => unknown
+  openDisabled?: boolean
+  onNoSurveillance: () => unknown
+  onClear: () => unknown
+}
+export function ReviewSelectionBar({ language, ariaLabel, count, wholeList = false, busy = false, onOpen, openDisabled = false, onNoSurveillance, onClear }: ReviewSelectionBarProps) {
+  const en = language === 'en'
+  return (
+    <div className="sample-review-selection-bar" role="region" aria-label={ariaLabel}>
+      <strong>{en ? `${count} selected` : `${count} επιλεγμένα`}{wholeList ? (en ? ' (the whole list, every page)' : ' (όλη η λίστα, όλες οι σελίδες)') : ''}</strong>
+      <span className="sample-review-bulk-actions">
+        {onOpen && <Button variant="secondary" disabled={busy || openDisabled} onClick={() => onOpen()}>
+          <PlayCircle size={14} />
+          {count === 1 ? (en ? 'Open episode' : 'Άνοιγμα επεισοδίου') : (en ? 'Open episodes' : 'Άνοιγμα επεισοδίων')}
+        </Button>}
+        <Button variant="secondary" disabled={busy} onClick={() => onNoSurveillance()}>
+          {en ? 'No surveillance needed' : 'Δεν χρειάζεται επιτήρηση'}
+        </Button>
+        <Button variant="ghost" disabled={busy} onClick={() => onClear()}>
+          {en ? 'Clear selection' : 'Ακύρωση επιλογής'}
+        </Button>
+      </span>
+    </div>
   )
 }
 

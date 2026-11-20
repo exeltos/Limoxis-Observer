@@ -51,9 +51,12 @@ describe('several samples at once', () => {
   })
 
   it('the page links the samples with «episode_opened», the path that records the NICU late-onset infection', () => {
+    // The shared bulk actions (owner, 20/11/2026): «Προς έλεγχο» and «Ασθενείς» use the same ones.
+    const actions = readSource('src/features/surveillance/bulkSampleActions.ts')
+    expect(actions).toContain("link: (sample, caseId) => awaitingReview.repository.review(sample, { status: 'episode_opened', caseId })")
     const page = readSource('src/features/surveillance/SurveillanceCanonicalPage.tsx')
-    expect(page).toContain("link: (sample, caseId) => awaitingReview.repository.review(sample, { status: 'episode_opened', caseId })")
-    expect(page).toContain('onBulkOpen={canReview && canCreate ?')
+    expect(page).toContain('onBulkOpen={canReview && canCreate ? bulkReview.openEpisodes : undefined}')
+    expect(readSource('src/features/patients/PatientsPage.tsx')).toContain('bulkSampleActions({awaitingReview,clinical,language,t,notify,onDone:reloadFlags})')
     const list = readSource('src/features/surveillance/SampleReviewWorklist.tsx')
     expect(list).toContain("const selectable = !readOnly && Boolean(onBulkDecide)")
   })

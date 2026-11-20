@@ -62,8 +62,8 @@ import { useEpiIndex } from './epiQuestionnaire/useEpiIndex'
 import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleReviewModel'
-import { SampleReviewWorklist, bulkSummaryText, worklistTexts } from './SampleReviewWorklist'
-import { decideAll, episodeDraftFor, groupSamplesByPatient, openEpisodesFor, patientRecordOf } from './sampleReviewBulk'
+import { SampleReviewWorklist, worklistTexts } from './SampleReviewWorklist'
+import { bulkSampleActions } from './bulkSampleActions'
 import { loadLateOnsetFlags } from './lateOnsetFlags'
 import { loadSamplesAwaitingReviewByIds, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { normalizeLaboratorySamples } from '../laboratory/model/laboratoryModel'
@@ -158,6 +158,7 @@ export function SurveillanceCanonicalPage() {
   const canSeeReview = canReview || (actualRole === ROLES.PLATFORM_OWNER && Boolean(tenant?.id))
   const awaitingReview = useSamplesAwaitingReview({ enabled: canSeeReview && Boolean(tenant?.id || isDemo) })
   const [lateOnset, setLateOnset] = useState<Record<string, number>>({})
+  const bulkReview = bulkSampleActions({ awaitingReview, clinical, language, t, notify })
   useEffect(() => { let live = true; loadLateOnsetFlags(tenant?.id, isDemo).then(flags => { if (live) setLateOnset(flags) }); return () => { live = false } }, [tenant?.id, isDemo])
   // NICU late-onset (N6b): the flagged blood cultures show whatever their date (also the ones the list has not read), first.
   const [lateOnsetRows, setLateOnsetRows] = useState<typeof awaitingReview.rows>([])
@@ -664,24 +665,9 @@ export function SurveillanceCanonicalPage() {
                   return false
                 }
               }}
-              // Several at once (owner, 19/11/2026): one episode per patient through the same start and the same link as
-              // «Open episode» (the link records the NICU late-onset infection), or one reason for all; then one reload.
-              onBulkOpen={canReview && canCreate ? async samples => {
-                const result = await openEpisodesFor(groupSamplesByPatient(samples as ReviewSample[]), {
-                  createCase: group => {
-                    const first = group.samples[0]
-                    return clinical.createCase({ id: first.patientId || undefined, recordId: patientRecordOf(first) || undefined, name: first.patient, nameEn: first.patientEn || first.patient, department: first.department, departmentEn: first.departmentEn || first.department }, episodeDraftFor(group, type => t(type), hospitalToday()))
-                  },
-                  link: (sample, caseId) => awaitingReview.repository.review(sample, { status: 'episode_opened', caseId }),
-                })
-                await awaitingReview.reload()
-                notify(bulkSummaryText(result, 'open', language), result.failed.length ? 'warning' : 'success')
-              } : undefined}
-              onBulkDecide={canReview ? async (samples, decision) => {
-                const result = await decideAll(samples as ReviewSample[], decision, (sample, value) => awaitingReview.repository.review(sample, value))
-                await awaitingReview.reload()
-                notify(bulkSummaryText(result, 'decide', language), result.failed.length ? 'warning' : 'success')
-              } : undefined}
+              // Several at once (owner, 19/11/2026): the shared bulk actions (one episode per patient, or one reason for all).
+              onBulkOpen={canReview && canCreate ? bulkReview.openEpisodes : undefined}
+              onBulkDecide={canReview ? bulkReview.decide : undefined}
             />
           )
         ) : mode === 'patients' ? (
