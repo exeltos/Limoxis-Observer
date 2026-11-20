@@ -6,11 +6,6 @@
 .dephome-period{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 /* One toolbar (owner, 20/11/2026: «δεν έχουν ωραία εικόνα»): the four kinds joined in one segmented control, the stepper and the
    comparison at the same 36px height, border and radius. */
-.dephome-period-kind{display:flex;align-items:center;height:36px;padding:2px;box-sizing:border-box;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--surface-neutral-971)}
-.dephome-period-kind>button{height:30px;padding:0 14px;border:0;border-radius:7px;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:var(--lo-color-muted);cursor:pointer}
-.dephome-period-kind>button:hover{background:var(--lo-color-surface);color:var(--lo-color-text)}
-.dephome-period-kind>button.active{background:var(--lo-color-surface);color:var(--text-brand-308);box-shadow:0 1px 2px rgb(15 23 42 / .12)}
-.dephome-period-kind>button:focus-visible{outline:2px solid var(--border-brand-761);outline-offset:1px}
 .dephome-period .lo-period-stepper>strong{min-width:120px;font-size:12.5px}
 .dephome-period-compare.searchable-select .searchable-select-control>input{height:36px;border-color:var(--lo-color-border);border-radius:9px;padding-left:12px;font-size:12.5px;font-weight:600;color:var(--lo-color-text)}
 .dephome-period-compare{min-width:272px}

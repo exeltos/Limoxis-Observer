@@ -8,7 +8,7 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { SegmentedControl } from '../../design-system/SegmentedControl'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
@@ -220,7 +220,7 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
    </div>
   </div>:<section className="surface registry-workspace workspace-column workspace-fill calendar-pending">
    <FilterBar query={query} onQueryChange={value=>{setQuery(value);setPage(1)}} placeholder={en?'Search…':'Αναζήτηση…'} end={<>
-    <ModeSwitch className="calendar-scope" ariaLabel={en?'Which items':'Ποιες εκκρεμότητες'} value={activeScope} onChange={value=>{setScope(value as 'overdue'|'upcoming');setPage(1)}} options={[{value:'overdue',label:`${en?'Overdue':'Εκπρόθεσμα'} (${overdue.length})`},{value:'upcoming',label:`${en?'Next 30 days':'Επόμενες 30 ημέρες'} (${upcomingList.length})`}]}/>
+    <SegmentedControl className="calendar-scope" ariaLabel={en?'Which items':'Ποιες εκκρεμότητες'} value={activeScope} onChange={value=>{setScope(value as 'overdue'|'upcoming');setPage(1)}} options={[{value:'overdue',label:`${en?'Overdue':'Εκπρόθεσμα'} (${overdue.length})`},{value:'upcoming',label:`${en?'Next 30 days':'Επόμενες 30 ημέρες'} (${upcomingList.length})`}]}/>
     {chips}
     {departmentSelect}
    </>}/>
