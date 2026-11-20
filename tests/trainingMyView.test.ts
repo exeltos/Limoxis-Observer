@@ -3,7 +3,7 @@
 // «Σε εξέλιξη | Ολοκληρωμένες | Όλες»; a certificate expired, expiring within 90 days or valid.
 import { describe, expect, it } from 'vitest'
 import { readSource } from './helpers/readSource'
-import { certificateState, departmentTrainingRows, filterTrainingRows, ownTrainingRows, trainingStatusCounts, trainingTiles } from '../src/features/training/trainingMyView'
+import { certificateState, departmentTrainingRows, filterProgramRows, filterTrainingRows, hospitalProgramRows, hospitalProgramTiles, ownTrainingRows, programState, programStatusCounts, trainingRowAction, trainingStatusCounts, trainingTiles } from '../src/features/training/trainingMyView'
 import type { TrainingState } from '../src/features/training/trainingData'
 
 const today = '2026-11-20'
@@ -94,5 +94,65 @@ describe('training of the departments: the model', () => {
     expect(view).toContain('<SegmentedControl')
     expect(view).toContain('<RegistryPagination')
     expect(view).toContain('useCalendarScope()')
+  })
+})
+
+describe('«Όλο το νοσοκομείο»: the hospital’s programmes', () => {
+  const hospital = {
+    ...records,
+    programs: [
+      { ...program('P1', 'Χρήση απινιδωτή'), trainer: 'Δρ. Ρήγας', audience: 'Κλινικό προσωπικό', startDate: '2026-09-01', dueDate: '2026-12-10' },
+      { ...program('P2', 'Υγιεινή χεριών'), owner: 'Ομάδα IPC', audience: 'ΜΕΘ', startDate: '2026-10-01', dueDate: '2026-11-30' },
+      { ...program('P3', 'Αιχμηρά', 'completed'), dueDate: '2026-06-30' },
+      { ...program('P4', 'Ακυρωμένο', 'cancelled') },
+      { ...program('P5', 'Μέτρα απομόνωσης', 'planned'), startDate: '2027-01-15', dueDate: '2027-02-15', audience: 'Παθολογική' },
+      { ...program('P6', 'Παλιό σεμινάριο', 'completed'), dueDate: '2025-05-10' },
+    ],
+  } as unknown as TrainingState
+  const rows = hospitalProgramRows(hospital, me, today)
+
+  it('one line per programme, the cancelled left out, no participant’s name', () => {
+    expect(rows.map(row => row.id)).toEqual(['P2', 'P1', 'P5', 'P3', 'P6'])
+    expect(rows.map(row => row.state)).toEqual(['in_progress', 'in_progress', 'planned', 'completed', 'completed'])
+    expect(rows.find(row => row.id === 'P2')!.trainer).toBe('Ομάδα IPC')
+    expect(JSON.stringify(rows.map(row => [row.title, row.trainer, row.audience]))).not.toContain('Συνάδελφος')
+  })
+
+  it('«Συμμετέχω» with the user’s own latest assignment, and the same button as «Οι δικές μου»', () => {
+    expect(rows.filter(row => row.own).map(row => [row.id, row.own!.id])).toEqual([['P2', 'A4'], ['P1', 'A3'], ['P3', 'A5']])
+    expect(rows.find(row => row.id === 'P5')!.own).toBeNull()
+    expect(trainingRowAction(rows.find(row => row.id === 'P1')!.own!, true)).toBe('start')
+    expect(trainingRowAction(rows.find(row => row.id === 'P3')!.own!, true)).toBe('certificate')
+  })
+
+  it('an active programme that has not started yet counts as planned', () => {
+    expect(programState({ status: 'active', startDate: '2026-11-27' }, today)).toBe('planned')
+    expect(programState({ status: 'active', startDate: '2026-11-20' }, today)).toBe('in_progress')
+    expect(programState({ status: 'active', startDate: '' }, today)).toBe('in_progress')
+    expect(programState({ status: 'completed', startDate: '2027-01-01' }, today)).toBe('completed')
+  })
+
+  it('«Τρέχοντα | Προγραμματισμένα | Όλα» and the search', () => {
+    expect(programStatusCounts(rows)).toEqual({ current: 2, planned: 1, all: 5 })
+    expect(filterProgramRows(rows, 'current').map(row => row.id)).toEqual(['P2', 'P1'])
+    expect(filterProgramRows(rows, 'planned').map(row => row.id)).toEqual(['P5'])
+    expect(filterProgramRows(rows, 'all', 'ρηγας').map(row => row.id)).toEqual(['P1'])
+    expect(filterProgramRows(rows, 'all', 'παθολογικη').map(row => row.id)).toEqual(['P5'])
+    expect(filterProgramRows(rows, 'all', 'λοιμωξεων', row => [row.program.category === 'ipc' ? 'Πρόληψη & Έλεγχος Λοιμώξεων' : '']).length).toBe(5)
+    expect(filterProgramRows(rows, 'current', 'απομονωση')).toEqual([])
+  })
+
+  it('the four figures: in progress, planned (the next start), completed this year, «Συμμετέχω σε»', () => {
+    expect(hospitalProgramTiles(rows, today)).toEqual({ current: 2, planned: 1, nextStart: '2027-01-15', completedYear: 1, own: 3, ownOpen: 2 })
+    expect(hospitalProgramTiles([], today)).toEqual({ current: 0, planned: 0, nextStart: '', completedYear: 0, own: 0, ownOpen: 0 })
+  })
+
+  it('the screen: a third choice, its own filter, no opening of the manager’s record', () => {
+    const view = readSource('src/features/training/TrainingMyView.tsx')
+    expect(view).toContain("{value:'hospital',label:tr('Όλο το νοσοκομείο','Whole hospital')}")
+    expect(view).toContain("tr('Όλο το προσωπικό','All staff')")
+    expect(view).toContain("hospitalProgramRows(state,scope,today)")
+    expect(view).toContain("tr('Τρέχοντα','Current')")
+    expect(view).not.toContain('navigate(`/training/')
   })
 })
