@@ -7,6 +7,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadIndicatorDefinitions } from '../indicators/indicatorDefinitionService'
+import { indicatorsForModules } from '../indicators/indicatorModules'
 import { fmtDate, createTopic, COMMITTEE_ROLE_OPTIONS, compositionLabel } from './committeeRecordFormat'
 import {
   BADGE_ROLES,
@@ -574,7 +575,8 @@ export function DecisionDialog({ initial, meetings, members = [], busy, onClose,
 }
 
 export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps<CommitteePlanDraft> & { initial?: CommitteePlanItem }) {
-  const { tenant } = useTenant()
+  const { tenant, moduleEnabled } = useTenant()
+  const surveillanceOn = moduleEnabled?.('surveillance') !== false
   const [v, setV] = useState<CommitteePlanDraft>(
     initial
       ? { ...initial, status: initial.status || 'open' }
@@ -600,7 +602,7 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps<C
     }
     loadIndicatorDefinitions(tenant.id)
       .then(rows => {
-        if (active) setIndicatorOptions((rows || []).filter(x => x.status === 'active'))
+        if (active) setIndicatorOptions(indicatorsForModules((rows || []).filter(x => x.status === 'active'), module => module !== 'surveillance' || surveillanceOn))
       })
       .catch(() => {
         if (active) setIndicatorOptions([])
@@ -608,7 +610,7 @@ export function PlanDialog({ initial, busy, onClose, onSave, en }: DialogProps<C
     return () => {
       active = false
     }
-  }, [tenant?.id])
+  }, [tenant?.id, surveillanceOn])
   const selectedIndicator =
     indicatorOptions.find(x =>
       [x.titleEl, x.titleEn, x.key].filter(Boolean).includes(v.indicator as string),

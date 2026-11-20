@@ -48,7 +48,8 @@ export function RiskAssessmentPage(){
  const {assessmentCode}=useParams()
  const [search,setSearch]=useSearchParams()
  const {language,locale}=useLanguage();const en=language==='en'
- const {role,membership,tenant,actualRole,isRolePreview}=useTenant()
+ const {role,membership,tenant,actualRole,isRolePreview,moduleEnabled}=useTenant()
+ const surveillanceOn=moduleEnabled?.('surveillance')!==false
  const {profile,user}=useAuth()
  const {notify}=useFeedback()
  const {goBack:goBackTo}=useContextualNavigation('/quality')
@@ -103,7 +104,7 @@ export function RiskAssessmentPage(){
    .then(([one,list])=>{if(active){setAssessment(one);setAll(list)}}).catch(()=>{if(active)setAssessment(null)}).finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}},[organizationId,assessmentCode])
  // The indicators of the Indicators module, with their 90-day values; the page works without them.
- useEffect(()=>{let active=true;loadIndicatorValues(organizationId).then(v=>{if(active)setIndicatorValues(v)}).catch(()=>{if(active)setIndicatorValues(new Map())});return()=>{active=false}},[organizationId])
+ useEffect(()=>{let active=true;loadIndicatorValues(organizationId,undefined,surveillanceOn).then(v=>{if(active)setIndicatorValues(v)}).catch(()=>{if(active)setIndicatorValues(new Map())});return()=>{active=false}},[organizationId,surveillanceOn])
  // A CAPA links back here with ?risk=R001: open that risk.
  useEffect(()=>{const key=search.get('risk');if(!key||!assessment)return;if((assessment.risks||[]).some(r=>r.lineageKey===key))navigate(`/quality/risks/${assessment.code}/${key}`,{replace:true});else setSearch(p=>{p.delete('risk');return p},{replace:true})},[assessment,search,setSearch,navigate])
 

@@ -10,6 +10,8 @@ import { ChoiceField } from '../../../design-system/ChoiceField'
 import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
+import { useTenant } from '../../../core/tenant/TenantContext'
+import { indicatorsForModules } from '../../indicators/indicatorModules'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, periodOf, textOf } from '../../registers/registerEngine'
@@ -232,7 +234,11 @@ export function ObjectiveFields({ objective, set, registers, definitions = [], l
   const measure = objective.measure || objectiveSource(objective)
   const register = registers.find(item => item.id === objective.registerId)
   const indicatorOptions = useMemo(() => (register?.indicators || []).map(item => ({ value: item.id, label: textOf(item, language) })), [register, language])
-  const definitionOptions = useMemo(() => definitions.map(def => ({ value: def.id, label: en ? def.titleEn || def.titleEl : def.titleEl, description: def.unit || '' })), [definitions, en])
+  // Without the Surveillance module its indicators are not offered (an objective already linked to one keeps it).
+  const { moduleEnabled } = useTenant()
+  const surveillanceOn = moduleEnabled?.('surveillance') !== false
+  const offered = useMemo(() => indicatorsForModules(definitions, module => module !== 'surveillance' || surveillanceOn), [definitions, surveillanceOn])
+  const definitionOptions = useMemo(() => [...offered, ...definitions.filter(def => def.id === objective.platformIndicatorKey && !offered.includes(def))].map(def => ({ value: def.id, label: en ? def.titleEn || def.titleEl : def.titleEl, description: def.unit || '' })), [offered, definitions, objective.platformIndicatorKey, en])
   const indicatorTarget = linkedTarget(registers, objective, definitions)
   const setMeasure = (value: string) => set(value === 'register' ? { measure: value, platformIndicatorKey: '' } : value === 'indicator' ? { measure: value, registerId: '', indicatorKey: '' } : { measure: value, registerId: '', indicatorKey: '', platformIndicatorKey: '' })
   return <>

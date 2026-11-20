@@ -28,7 +28,8 @@ export function RiskRecordPage(){
  const navigate=useNavigate()
  const location=useLocation()
  const {language}=useLanguage();const en=language==='en'
- const {role,membership,tenant,actualRole,isRolePreview}=useTenant()
+ const {role,membership,tenant,actualRole,isRolePreview,moduleEnabled}=useTenant()
+ const surveillanceOn=moduleEnabled?.('surveillance')!==false
  const {notify}=useFeedback()
  const organizationId=tenant?.id
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
@@ -43,7 +44,7 @@ export function RiskRecordPage(){
  const {goTo}=useContextualNavigation('/quality')
  const [indicatorValues,setIndicatorValues]=useState<IndicatorValueMap | null>(null)
  useEffect(()=>{let active=true;setLoading(true);loadRiskAssessment(organizationId,assessmentCode as string).then(a=>{if(active)setAssessment(a)}).catch(()=>{if(active)setAssessment(null)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[organizationId,assessmentCode])
- useEffect(()=>{let active=true;loadIndicatorValues(organizationId).then(v=>{if(active)setIndicatorValues(v)}).catch(()=>{if(active)setIndicatorValues(new Map())});return()=>{active=false}},[organizationId])
+ useEffect(()=>{let active=true;loadIndicatorValues(organizationId,undefined,surveillanceOn).then(v=>{if(active)setIndicatorValues(v)}).catch(()=>{if(active)setIndicatorValues(new Map())});return()=>{active=false}},[organizationId,surveillanceOn])
  const risks=useMemo(()=>assessment?.risks||[],[assessment])
  const processes=useMemo(()=>[...new Set<string>(risks.map(r=>r.process).filter(Boolean))].sort(),[risks])
  const isNew=riskKey==='new'

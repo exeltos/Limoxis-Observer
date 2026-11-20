@@ -251,7 +251,7 @@ export const guideContent = {
       start: l('Ανοίξτε το ενεργό επεισόδιο ενός ασθενή και συμπληρώστε την κλινική αξιολόγηση.', 'Open a patient’s active episode and fill in the clinical assessment.'),
     },
     indicators: {
-      what: l('Δείκτες με ορισμό, αριθμητή, παρονομαστή και περίοδο, που υπολογίζονται από τα δεδομένα της επιτήρησης και τις κλινοημέρες.', 'Indicators with a definition, numerator, denominator and period, computed from surveillance data and patient-days.'),
+      what: l('Δείκτες με ορισμό, αριθμητή, παρονομαστή και περίοδο, που υπολογίζονται από τα δεδομένα της επιτήρησης, του εργαστηρίου και τις κλινοημέρες. Χωρίς την ενότητα Επιτήρηση εμφανίζονται μόνο οι δείκτες από το εργαστήριο και τις υπόλοιπες ενότητες.', 'Indicators with a definition, numerator, denominator and period, computed from surveillance and laboratory data and patient-days. Without the Surveillance module only indicators from the laboratory and the other modules are shown.'),
       users: l('Ομάδα Ελέγχου Λοιμώξεων, Διοίκηση.', 'Infection Control team, management.'),
       needs: ['surveillance'],
       analysis: l('Δεν έχει δική του καρτέλα: οι δείκτες φαίνονται στην οθόνη «Δείκτες» και τροφοδοτούν τη Σύνοψη.', 'No tab of its own: indicators appear on the “Indicators” screen and feed the Overview.'),

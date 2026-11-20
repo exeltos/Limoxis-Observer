@@ -171,7 +171,7 @@ export function ExecutiveDashboardPage(){
  const [printing,setPrinting]=useState(false)
  const unfoldAll=()=>flushSync(()=>{setPrinting(true)})
  // «Infections» also has its annual report, a document of its own (the window opens in the click, the data is read after).
- function printInfectionReport(pdf?: unknown){const year=Number(String(range.to||range.from).slice(0,4))||new Date().getFullYear();if(!printReportLater(async()=>infectionReportDocument({...await loadInfectionReportRows(organizationId,year),year,language}) as ReportDoc,{language,pdf:pdf===true}))notifyError(new Error(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'),'export')}
+ function printInfectionReport(pdf?: unknown){const year=Number(String(range.to||range.from).slice(0,4))||new Date().getFullYear();if(!printReportLater(async()=>infectionReportDocument({...await loadInfectionReportRows(organizationId,year,moduleEnabled),year,language}) as ReportDoc,{language,pdf:pdf===true}))notifyError(new Error(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'),'export')}
  // «Αναφορά Δ.Σ.» and «Αναφορά τμήματος» (owner, 7/11/2026): short documents of their own, not the screen.
  function printDocument(doc: ReportDoc,pdf?: boolean){if(!printReport(doc,{pdf:pdf===true}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'})}
  function boardReport(pdf: boolean){printDocument(boardReportDocument({kpis,highlights:summaryHighlights(kpis,snapshot,{en,against:againstText}),compared:Boolean(previousSnapshot),grid,hospital,periodLine,compareLabel:compareLabelText,versus:versusText,currentLabel:currentLabelText,language}),pdf)}
