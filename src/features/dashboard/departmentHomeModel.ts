@@ -9,11 +9,11 @@ import { periodLabel, periodLength, periodOf, type Period } from '../registers/r
 import { comparePeriod } from '../registers/registerReport'
 
 export type PeriodKind = 'month' | 'quarter' | 'half' | 'year'
-export type CompareChoice = 'previous' | 'lastYear'
+export type CompareChoice = 'previous' | 'lastYear' | 'none'
 // The positives chart counts weeks for a month or a quarter, months for a half-year or a year.
 export type Bucket = 'week' | 'month'
 export const PERIOD_KINDS: readonly PeriodKind[] = Object.freeze(['month', 'quarter', 'half', 'year'])
-export const COMPARE_CHOICES: readonly CompareChoice[] = Object.freeze(['previous', 'lastYear'])
+export const COMPARE_CHOICES: readonly CompareChoice[] = Object.freeze(['previous', 'lastYear', 'none'])
 // The period shown and the one it is compared with.
 export interface DepartmentHomeWindow { kind: PeriodKind, choice: CompareChoice, period: Period, compare: Period, bucket: Bucket }
 
@@ -88,7 +88,7 @@ const monthOf = (index: number) => `${Math.floor(index / 12)}-${String(index % 1
 // The period of a kind that holds `day`, its comparison and the chart's bucket.
 export function departmentHomeWindow(kind: PeriodKind = 'month', day: string = hospitalDate(), choice: CompareChoice = 'previous'): DepartmentHomeWindow {
   const period = periodOf(kind, day)
-  return { kind, choice, period, compare: comparePeriod(choice, period) as Period, bucket: kind === 'month' || kind === 'quarter' ? 'week' : 'month' }
+  return { kind, choice, period, compare: comparePeriod(choice === 'none' ? 'previous' : choice, period) as Period, bucket: kind === 'month' || kind === 'quarter' ? 'week' : 'month' }
 }
 
 // The buckets of a period: its weeks (Monday to Sunday, the first one starting on or before its first day) or its months.
@@ -171,11 +171,12 @@ const KIND_LABELS: Record<PeriodKind, [string, string]> = { month: ['Μήνας'
 export function windowSubtitleParts(window: DepartmentHomeWindow, language = 'el') {
   const en = language === 'en'
   const kind = window.kind === 'month' ? '' : `${KIND_LABELS[window.kind][en ? 1 : 0]} `
-  return { period: `${kind}${periodRangeLabel(window.period, language)}`, compare: `${en ? 'compared with' : 'σε σύγκριση με'} ${periodRangeLabel(window.compare, language)}` }
+  // «Χωρίς σύγκριση» (owner, 20/11/2026): the period alone.
+  return { period: `${kind}${periodRangeLabel(window.period, language)}`, compare: window.choice === 'none' ? '' : `${en ? 'compared with' : 'σε σύγκριση με'} ${periodRangeLabel(window.compare, language)}` }
 }
 export function windowSubtitle(window: DepartmentHomeWindow, language = 'el') {
   const { period, compare } = windowSubtitleParts(window, language)
-  return `${period} ${compare}`
+  return compare ? `${period} ${compare}` : period
 }
 
 const count = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0

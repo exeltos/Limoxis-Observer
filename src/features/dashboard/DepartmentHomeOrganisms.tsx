@@ -7,8 +7,8 @@ import type { DepartmentHomeOverview } from './departmentHomeModel'
 // samples, patients, MDR/XDR and kinds of organism, then the 4 most frequent organisms with a bar (MDR/XDR in the
 // colour of the weekly chart), the difference from the comparison period («+2», «−1», nothing when equal) and one
 // line for the rest. A fixed number of lines: the card never scrolls.
-interface OrganismsCardProps { overview: DepartmentHomeOverview | null, loading: boolean, language: string, action: ReactNode, periodText: string }
-export function OrganismsCard({ overview: o, loading, language, action, periodText }: OrganismsCardProps) {
+interface OrganismsCardProps { overview: DepartmentHomeOverview | null, loading: boolean, language: string, action: ReactNode, periodText: string, comparing?: boolean }
+export function OrganismsCard({ overview: o, loading, language, action, periodText, comparing = true }: OrganismsCardProps) {
   const en = language === 'en'
   const tr = (el: string, enText: string) => en ? enText : el
   const number = (value: number | null | undefined) => loading || value == null ? '—' : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
@@ -31,7 +31,7 @@ export function OrganismsCard({ overview: o, loading, language, action, periodTe
           <span style={{ width: `${row.count / top * 100}%`, background: SERIES_COLORS[0] }}><i style={{ width: `${row.mdr / row.count * 100}%`, background: SERIES_COLORS[1] }}/></span>
         </span>
         <b>{row.count}</b>
-        <OrganismChange now={row.count} before={row.compareCount} en={en}/>
+        {comparing ? <OrganismChange now={row.count} before={row.compareCount} en={en}/> : <span/>}
       </li>)}
       {more > 0 && <li className="is-more"><span>{en ? `+ ${more} more ${more === 1 ? 'kind' : 'kinds'}` : `+ ${more} ακόμη ${more === 1 ? 'είδος' : 'είδη'}`}</span><span/><b>{o?.organismsOtherCount ?? 0}</b><span/></li>}
     </ul> : <div className="inline-empty">{loading ? tr('Φόρτωση…', 'Loading…') : tr('Κανένα θετικό δείγμα στην περίοδο.', 'No positive samples in the period.')}</div>}

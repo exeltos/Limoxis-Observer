@@ -420,3 +420,14 @@ describe('department_home_overview with a period (owner, 20/11/2026)', () => {
     expect(sql).not.toMatch(/latestPositives|last_name|first_name|patient_code|sample_code',/)
   })
 })
+
+describe('«Χωρίς σύγκριση» (owner, 20/11/2026)', () => {
+  it('offers no comparison and drops the comparison from the subtitle', async () => {
+    const model = await import('../src/features/dashboard/departmentHomeModel')
+    expect(model.COMPARE_CHOICES).toContain('none')
+    const window = model.departmentHomeWindow('quarter', '2026-11-20', 'none')
+    expect(window.choice).toBe('none')
+    expect(model.windowSubtitleParts(window, 'el').compare).toBe('')
+    expect(model.windowSubtitle(window, 'el')).not.toContain('σύγκριση')
+  })
+})

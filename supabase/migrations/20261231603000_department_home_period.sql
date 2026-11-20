@@ -153,7 +153,7 @@ begin
     select jsonb_build_object(
       'current',
         coalesce((select sum(c.performed - c.on_time)
-                    from public.control_adherence_counts(p_organization_id, (v_from::timestamp at time zone 'Europe/Athens'), ((v_to + 1)::timestamp at time zone 'Europe/Athens')) c
+                    from public.control_adherence_counts(p_organization_id, (v_from::timestamp at time zone 'Europe/Athens'), ((v_to + 1)::timestamp at time zone 'Europe/Athens') - interval '1 microsecond') c
                     join public.control_assignments a on a.id = c.assignment_id
                    where a.organization_id = p_organization_id and a.department_id = any (v_departments)), 0)
         + (select count(*) from public.control_assignments a
@@ -162,7 +162,7 @@ begin
               and a.next_due_at < least(((v_to + 1)::timestamp at time zone 'Europe/Athens'), now())),
       'compare',
         coalesce((select sum(c.performed - c.on_time)
-                    from public.control_adherence_counts(p_organization_id, (v_cfrom::timestamp at time zone 'Europe/Athens'), ((v_cto + 1)::timestamp at time zone 'Europe/Athens')) c
+                    from public.control_adherence_counts(p_organization_id, (v_cfrom::timestamp at time zone 'Europe/Athens'), ((v_cto + 1)::timestamp at time zone 'Europe/Athens') - interval '1 microsecond') c
                     join public.control_assignments a on a.id = c.assignment_id
                    where a.organization_id = p_organization_id and a.department_id = any (v_departments)), 0)
         + (select count(*) from public.control_assignments a
@@ -312,7 +312,8 @@ begin
                          where x.organization_id = p_organization_id and x.status <> 'cancelled' and x.department_id = any (v_departments)
                            and (x.started_at at time zone 'Europe/Athens')::date between v_from and v_to) end,
     'newIsolation', case when 'surveillance' = any (v_disabled) then null else (select count(*) from public.isolation_episodes x
-                      where x.organization_id = p_organization_id and x.status <> 'cancelled' and x.department_id = any (v_departments)
+                      where x.organization_id = p_organization_id and x.status <> 'cancelled'
+                        and not exists (select 1 from public.surveillance_cases sc where sc.id = x.surveillance_case_id and sc.status = 'cancelled') and x.department_id = any (v_departments)
                         and (x.started_at at time zone 'Europe/Athens')::date between v_from and v_to) end,
     'handHygienePct', case when 'prevention' = any (v_disabled) then null else (select case when coalesce(sum(hh.observations), 0) = 0 then null
                         else round(100.0 * sum(hh.compliant_observations) / sum(hh.observations), 1) end from hh where hh.observation_date between v_from and v_to) end,
@@ -328,7 +329,8 @@ begin
                            where x.organization_id = p_organization_id and x.status <> 'cancelled' and x.department_id = any (v_departments)
                              and (x.started_at at time zone 'Europe/Athens')::date between v_cfrom and v_cto) end,
       'newIsolation', case when 'surveillance' = any (v_disabled) then null else (select count(*) from public.isolation_episodes x
-                        where x.organization_id = p_organization_id and x.status <> 'cancelled' and x.department_id = any (v_departments)
+                        where x.organization_id = p_organization_id and x.status <> 'cancelled'
+                        and not exists (select 1 from public.surveillance_cases sc where sc.id = x.surveillance_case_id and sc.status = 'cancelled') and x.department_id = any (v_departments)
                           and (x.started_at at time zone 'Europe/Athens')::date between v_cfrom and v_cto) end,
       'handHygienePct', case when 'prevention' = any (v_disabled) then null else (select case when coalesce(sum(hh.observations), 0) = 0 then null
                           else round(100.0 * sum(hh.compliant_observations) / sum(hh.observations), 1) end from hh where hh.observation_date between v_cfrom and v_cto) end,

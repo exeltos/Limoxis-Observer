@@ -147,7 +147,8 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   useEffect(()=>{
     let active=true
     if(!departmentHome||isDemo)return()=>{active=false}
-    setDepartmentOverview(current=>({data:current.data,status:'loading'}))
+    // A new period clears the figures until its own answer arrives: never the previous period under the new labels.
+    setDepartmentOverview({data:null,status:'loading'})
     loadDepartmentHomeOverview(tenant?.id,membership?.departmentIds,periodWindow).then(data=>{if(active)setDepartmentOverview({data,status:'ready'})}).catch(()=>{if(active)setDepartmentOverview({data:null,status:'error'})})
     return()=>{active=false}
   },[departmentHome,isDemo,tenant?.id,membership?.departmentIds,periodWindow])

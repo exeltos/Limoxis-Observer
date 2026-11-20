@@ -23,7 +23,7 @@ export function DepartmentFocusCard({ focus, language, canOpen, onOpen }: Depart
   if (focus.kind === 'register') {
     const { register, period, compare, choice, rows } = focus
     return <Card className="dashboard-card dephome-focus">
-      <CardHeader icon={ClipboardList} title={`${tr('Μητρώο', 'Register')}: ${en ? register.nameEn || register.name : register.name}`} subtitle={`${periodRangeLabel(period, language)} · ${tr('σύγκριση:', 'vs')} ${periodRangeLabel(compare, language)}`} actions={openButton(() => onOpen(`/registers/${register.id}`, { state: { registerTab: 'indicators' } }))}/>
+      <CardHeader icon={ClipboardList} title={`${tr('Μητρώο', 'Register')}: ${en ? register.nameEn || register.name : register.name}`} subtitle={choice === 'none' ? periodRangeLabel(period, language) : `${periodRangeLabel(period, language)} · ${tr('σύγκριση:', 'vs')} ${periodRangeLabel(compare, language)}`} actions={openButton(() => onOpen(`/registers/${register.id}`, { state: { registerTab: 'indicators' } }))}/>
       {rows.length ? <ul className="dephome-focus-list">{rows.map(({ indicator, current, previous, lastYear }) => {
         const target = indicator.target === '' || indicator.target == null ? null : Number(indicator.target)
         const unit = en ? indicator.unitEn || indicator.unit : indicator.unit
@@ -31,7 +31,7 @@ export function DepartmentFocusCard({ focus, language, canOpen, onOpen }: Depart
         return <li key={indicator.id}>
           <span className="dephome-focus-copy"><strong title={textOf(indicator, language)}>{textOf(indicator, language)}</strong><small>{target == null ? tr('χωρίς στόχο', 'no target') : `${tr('στόχος', 'target')} ${indicator.direction === 'higher' ? '≥' : '≤'} ${formatIndicatorValue(target, { unit: shortUnit(unit), unitEn: '' }, language)}`}</small></span>
           <b className="dephome-focus-value">{value}</b>
-          <IndicatorChange now={current} before={choice === 'lastYear' ? lastYear : previous} indicator={indicator} language={language}/>
+          {choice === 'none' ? <span className="dephome-change"/> : <IndicatorChange now={current} before={choice === 'lastYear' ? lastYear : previous} indicator={indicator} language={language}/>}
           {current.status && current.status !== 'context' ? <StatusBadge tone={indicatorStatusTone(current.status) as Tone}>{indicatorStatusLabel(current.status, language)}</StatusBadge> : <span/>}
         </li>
       })}</ul> : <div className="inline-empty">{tr('Το μητρώο δεν έχει ακόμη δείκτες.', 'The register has no indicators yet.')}</div>}

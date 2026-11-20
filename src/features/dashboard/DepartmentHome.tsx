@@ -73,6 +73,8 @@ export function DepartmentHome({ overview, window, status, language, moduleEnabl
   const loading = status === 'loading' && !o
   const periodText = periodRangeLabel(window.period, language)
   const compareText = periodRangeLabel(window.compare, language)
+  // «Χωρίς σύγκριση»: no changes, no comparison line, no legend for it (owner, 20/11/2026).
+  const comparing = window.choice !== 'none'
   // «Τελευταία θετικά» gave way to the department's register, or its incidents (owner, 20/11/2026).
   // The incidents only as the last choice: no register and the hand hygiene chart locked.
   const focus = useDepartmentFocus(moduleEnabled('quality') && !moduleEnabled('prevention'), window.period, window.compare, window.choice)
@@ -96,28 +98,28 @@ export function DepartmentHome({ overview, window, status, language, moduleEnabl
     <div className="dephome-tiles" style={{ '--dephome-tiles': tiles.length }}>
       {tiles.map(tile => <button type="button" key={tile.key} className={`dephome-tile${tile.tone ? ` is-${tile.tone}` : ''}`} disabled={!canOpen(tile.to)} onClick={() => open(tile.to)} aria-busy={loading || undefined}>
         <span className="dephome-tile-label">{tile.label}</span>
-        <span className="dephome-tile-figure"><strong className="dephome-tile-value">{loading ? '…' : tile.value}</strong>{!loading && <TileChange change={tile.change} en={en} compareText={compareText}/>}</span>
+        <span className="dephome-tile-figure"><strong className="dephome-tile-value">{loading ? '…' : tile.value}</strong>{!loading && comparing && <TileChange change={tile.change} en={en} compareText={compareText}/>}</span>
         <small className="dephome-tile-detail">{loading ? '' : tile.detail}</small>
       </button>)}
     </div>
     {moduleEnabled('laboratory') && <div className="dephome-charts">
       <Card className="dashboard-card dephome-chart-card">
         <CardHeader title={positivesTitle} subtitle={periodText} actions={<>
-          <span className="dephome-legend"><span><i style={{ background: SERIES_COLORS[1] }}/>MDR/XDR</span><span><i style={{ background: SERIES_COLORS[0] }}/>{tr('Λοιπά', 'Other')}</span><span><i className="dephome-legend-compare"/>{compareText}</span></span>
+          <span className="dephome-legend"><span><i style={{ background: SERIES_COLORS[1] }}/>MDR/XDR</span><span><i style={{ background: SERIES_COLORS[0] }}/>{tr('Λοιπά', 'Other')}</span>{comparing && <span><i className="dephome-legend-compare"/>{compareText}</span>}</span>
           {chartAction('/laboratory')}
         </>}/>
-        <PositivesChart rows={o?.positivesSeries || []} compareRows={o?.positivesCompareSeries || []} bucket={window.bucket} from={window.period.from} en={en} label={positivesTitle} compareLabel={compareText}/>
+        <PositivesChart rows={o?.positivesSeries || []} compareRows={comparing ? o?.positivesCompareSeries || [] : []} bucket={window.bucket} from={window.period.from} en={en} label={positivesTitle} compareLabel={compareText}/>
       </Card>
-      <OrganismsCard overview={o} loading={loading} language={language} action={chartAction('/laboratory')} periodText={periodText}/>
+      <OrganismsCard overview={o} loading={loading} language={language} action={chartAction('/laboratory')} periodText={periodText} comparing={comparing}/>
     </div>}
     <div className="dephome-cards">
       {todoCard}
       {focus.kind !== 'register' && focus.kind !== 'loading' && moduleEnabled('prevention') ? <Card className="dashboard-card dephome-chart-card">
         <CardHeader title={tr('Υγιεινή χεριών ανά μήνα', 'Hand hygiene per month')} subtitle={`${tr('στόχος', 'target')} ${target}%`} actions={<>
-          <span className="dephome-legend"><span><i className="dephome-legend-compare"/>{compareText}</span></span>
+          {comparing && <span className="dephome-legend"><span><i className="dephome-legend-compare"/>{compareText}</span></span>}
           {chartAction('/prevention?tab=handHygiene')}
         </>}/>
-        <HandHygieneChart rows={o?.monthlyHandHygiene || []} compareRows={o?.monthlyHandHygieneCompare || []} target={target} en={en} label={tr('Υγιεινή χεριών ανά μήνα', 'Hand hygiene per month')} compareLabel={compareText}/>
+        <HandHygieneChart rows={o?.monthlyHandHygiene || []} compareRows={comparing ? o?.monthlyHandHygieneCompare || [] : []} target={target} en={en} label={tr('Υγιεινή χεριών ανά μήνα', 'Hand hygiene per month')} compareLabel={compareText}/>
       </Card> : <DepartmentFocusCard focus={focus} language={language} canOpen={canOpen} onOpen={onOpen}/>}
       {announcementsCard(footer)}
     </div>

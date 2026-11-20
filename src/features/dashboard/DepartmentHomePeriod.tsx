@@ -38,7 +38,7 @@ interface DepartmentPeriodControlsProps { window: DepartmentHomeWindow, language
 export function DepartmentPeriodControls({ window, language, onKind, onChoice, onStep }: DepartmentPeriodControlsProps) {
   const en = language === 'en'
   const kinds = optionsOf(PERIODS, language)
-  const compareOptions = COMPARE_CHOICES.map(value => ({ value, label: value === 'previous' ? (en ? 'Compare: previous period' : 'Σύγκριση: προηγούμενη περίοδος') : (en ? 'Compare: same period last year' : 'Σύγκριση: ίδια περίοδος πέρσι') }))
+  const compareOptions = COMPARE_CHOICES.map(value => ({ value, label: value === 'none' ? (en ? 'No comparison' : 'Χωρίς σύγκριση') : value === 'previous' ? (en ? 'Compare: previous period' : 'Σύγκριση: προηγούμενη περίοδος') : (en ? 'Compare: same period last year' : 'Σύγκριση: ίδια περίοδος πέρσι') }))
   return <div className="dephome-period">
     <ModeSwitch className="dephome-period-kind" ariaLabel={en ? 'Period' : 'Περίοδος'} options={kinds} value={window.kind} onChange={value => onKind(value as PeriodKind)}/>
     <PeriodStepper label={periodRangeLabel(window.period, language)} onPrevious={() => onStep(-1)} onNext={() => onStep(1)} nextDisabled={shiftPeriod(window.period, periodLength(window.period)).from > hospitalToday()}/>
