@@ -80,8 +80,10 @@ export async function downloadCertificatePdf({
   participantName,
   en = false,
   pdf = false,
-}: CertificateInput & { pdf?: boolean }) {
-  if (!printReport(certificateDocument({ certificate, program, participantName, en }), { pdf }))
+  branding,
+}: CertificateInput & { pdf?: boolean, branding?: ReturnType<typeof getReportBranding> }) {
+  // The learner's link has no signed-in hospital: it passes the hospital's name and logo (branding).
+  if (!printReport(certificateDocument({ certificate, program, participantName, en, ...(branding ? { branding } : {}) }), { pdf }))
     throw new Error(
       en
         ? 'Allow pop-ups to print the certificate.'

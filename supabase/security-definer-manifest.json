@@ -519,6 +519,12 @@
       "authenticated": true,
       "reason": "Adds the participant's active seconds on one file of the programme; the access token identifies the assignment, a call counts at most the time that passed since the previous one."
     },
+    "training_access_certificate": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Returns the certificate of the assignment behind a participant's personal link (number, dates, issuer) and the hospital's name and logo for printing it; the access token identifies the assignment."
+    },
     "training_email_access": {
       "category": "public-token",
       "anon": true,

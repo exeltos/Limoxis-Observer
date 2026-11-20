@@ -118,3 +118,17 @@ export function trainingTiles(rows: TrainingMyRow[], today: string, mine: { reco
     certificates: mine ? ownCertificatesDue(mine.records, mine.own, today) : { count: due.length, expired: due.filter(row => row.certificateState === 'expired').length },
   }
 }
+
+// The one small button of a row (owner, 20/11/2026). «Οι δικές μου»: «Έναρξη» for a training not started yet,
+// «Συνέχεια» for one in progress (the attendance or the evaluation already begun), and, once submitted, the
+// certificate's «Λήψη» or, without a certificate, «Αποτέλεσμα» — all on the learner's page (training-access).
+// «Όλο το τμήμα»: only the certificate's «Λήψη», as before: nobody opens another person's training.
+export type TrainingRowAction = 'start' | 'continue' | 'result' | 'certificate' | null
+export function trainingRowAction(row: Pick<TrainingMyRow, 'assignment' | 'status' | 'certificate'>, mine: boolean): TrainingRowAction {
+  const assignment = row.assignment
+  const submitted = Boolean(assignment.feedbackSubmittedAt || assignment.completionConfirmedAt || row.status === 'completed')
+  if (row.certificate && (submitted || !mine)) return 'certificate'
+  if (!mine) return null
+  if (submitted) return 'result'
+  return assignment.status === 'in_progress' || assignment.attendanceResponse === 'confirmed' || assignment.attendance ? 'continue' : 'start'
+}

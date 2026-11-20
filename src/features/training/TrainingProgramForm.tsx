@@ -14,9 +14,22 @@ const TRAINING_CATEGORY_OPTIONS=[['ipc','Πρόληψη & Έλεγχος Λοι�
 const TRAINING_DELIVERY_KIND_OPTIONS=[['internal','Εσωτερική','Internal'],['external','Εξωτερική','External'],['intra_department','Ενδοτμηματική','Intra-departmental']]
 export const TRAINING_DELIVERY_KINDS=TRAINING_DELIVERY_KIND_OPTIONS.map(([key])=>key)
 const TRAINING_METHOD_OPTIONS=[['in_person','Δια ζώσης','In person'],['online','Διαδικτυακά','Online'],['hybrid','Υβριδικά','Hybrid'],['on_the_job','Εκπαίδευση στο χώρο εργασίας','On-the-job'],['self_study','Αυτοεκπαίδευση','Self-study']]
+// Older or imported programmes may carry a method written another way («elearning», «classroom»): it is read as the
+// matching method, and a code that is still unknown is never shown as such («—»); free text in words is shown as written.
+const TRAINING_LABEL_ALIASES: Record<string, string[]>={elearning:['e_learning','e-learning','elearning','online_course','lms'],online:['webinar','virtual','remote','distance','teleconference'],in_person:['classroom','onsite','on_site','face_to_face','in-person','inperson','lecture'],hybrid:['blended','mixed'],on_the_job:['ojt','on-the-job','workplace'],self_study:['self-study','selfstudy','self_paced','self-paced'],simulation:['sim','drill'],workshop:['hands_on','hands-on','practical']}
+const TRAINING_EXTRA_LABELS: Record<string, [string, string]>={elearning:['Ηλεκτρονική εκπαίδευση','E-learning'],simulation:['Προσομοίωση / άσκηση','Simulation / drill'],workshop:['Πρακτικό εργαστήριο','Hands-on workshop']}
+function optionLabel(options: string[][],value: string|null|undefined,language='el'){
+ const key=String(value||'').trim();if(!key)return '—'
+ const folded=key.toLowerCase().replace(/\s+/g,'_'),pick=(row: string[]|[string,string])=>language==='en'?row[row.length-1]:row[row.length-2]
+ const direct=options.find(x=>x[0]===key||x[0]===folded||x[0]===folded.replace(/-/g,'_'));if(direct)return pick(direct)
+ const alias=Object.entries(TRAINING_LABEL_ALIASES).find(([,names])=>names.includes(folded))?.[0]||(folded in TRAINING_EXTRA_LABELS?folded:'')
+ const aliased=alias&&options.find(x=>x[0]===alias);if(aliased)return pick(aliased)
+ if(alias&&TRAINING_EXTRA_LABELS[alias]&&options===TRAINING_METHOD_OPTIONS)return pick(TRAINING_EXTRA_LABELS[alias])
+ return /^[a-z0-9]+([_-][a-z0-9]+)*$/i.test(key)?'—':key
+}
 export function trainingCategoryLabel(value: string|null|undefined,language='el'){const row=TRAINING_CATEGORY_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
-export function trainingDeliveryKindLabel(value: string|null|undefined,language='el'){const row=TRAINING_DELIVERY_KIND_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
-export function trainingMethodLabel(value: string|null|undefined,language='el'){const row=TRAINING_METHOD_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
+export function trainingDeliveryKindLabel(value: string|null|undefined,language='el'){return optionLabel(TRAINING_DELIVERY_KIND_OPTIONS,value,language)}
+export function trainingMethodLabel(value: string|null|undefined,language='el'){return optionLabel(TRAINING_METHOD_OPTIONS,value,language)}
 function normalizeTrainingProgramDraft(value: TrainingProgramDraft|null|undefined={}): TrainingProgramDraft{return {...TRAINING_PROGRAM_DEFAULTS,...value}}
 export function trainingProgramIsValid(v: TrainingProgramDraft|null|undefined){return Boolean(v?.title?.trim()&&v?.trainer?.trim()&&v?.audience?.trim()&&v?.dueDate&&(!v.startDate||v.dueDate>=v.startDate)&&(!v.requiresAssessment||Number(v.passScore)>=0&&Number(v.passScore)<=100))}
 function unique(values: unknown[]){return [...new Set(values.map(x=>String(x||'').trim()).filter(Boolean))]}

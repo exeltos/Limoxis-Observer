@@ -19438,6 +19438,7 @@ export type Database = {
         Returns: Json
       }
       touch_login_session: { Args: never; Returns: boolean }
+      training_access_certificate: { Args: { p_token: string }; Returns: Json }
       training_access_files: { Args: { p_token: string }; Returns: Json }
       training_delete_record: {
         Args: { p_organization_id: string; p_record_key: string }
@@ -19453,6 +19454,10 @@ export type Database = {
           p_points?: Json
         }
         Returns: Json
+      }
+      training_my_access: {
+        Args: { p_assignment_key: string; p_organization_id: string }
+        Returns: string
       }
       training_save_assignment: {
         Args: { p_assignment: Json; p_organization_id: string }

@@ -7,3 +7,5 @@
 .training-my-due{white-space:nowrap}
 .training-my-due small.danger{color:var(--lo-color-danger);font-weight:700}
 .training-my-result,.training-my-certificate{white-space:nowrap}
+/* The row's one small button: «Έναρξη» / «Συνέχεια» / «Αποτέλεσμα» (the learner's page of the user's own training). */
+.training-my-table .training-my-open{min-height:30px;padding:4px 10px;font-size:12px;white-space:nowrap}
