@@ -1,10 +1,9 @@
-// «Εκπαίδευση» for the departments that do not manage training (owner, 20/11/2026): the Department User and the Link
-// Nurse see «Οι δικές μου» (one line per programme, the latest assignment, «3 φορές · τελευταία …» when repeated), the
-// Department Manager «Όλο το τμήμα» (one line per assignment, with the employee). Four figures over the list, the same
-// «mine» as the user's home (userHomeModel: the account in a hospital, the sample data's own employee in the Demo).
-// «Όλο το νοσοκομείο» (owner, 20/11/2026): the hospital's programmes, never the participants' names.
+// «Εκπαίδευση» for the departments that do not manage training (owner, 20/11/2026): «Οι δικές μου» is one line per
+// programme of the user (the latest assignment, «3 φορές · τελευταία …» when repeated), with the same «mine» as the
+// user's home (userHomeModel: the account in a hospital, the sample data's own employee in the Demo). «Του τμήματός μου»
+// and «Όλο το νοσοκομείο» list programmes, never employees (hospitalProgramRows below).
 // Pure functions over the training records, so the screen and the tests agree.
-import { addDay, type CalendarScope } from '../calendar/calendarView'
+import { addDay, audienceIncludes, type CalendarScope } from '../calendar/calendarView'
 import { isOwn, ownCertificatesDue } from '../dashboard/userHomeModel'
 import { foldSearch, matchesSearch } from '../../core/i18n/searchMatch'
 import { computedAssignmentStatus, type TrainingState } from './trainingData'
@@ -83,13 +82,6 @@ export function ownTrainingRows(records: Records, own: Own, today: string): Trai
   return sortRows([...groups.values()].map(group => { const sorted = [...group].sort(latestFirst); return rowOf(sorted[0], records, today, sorted) }))
 }
 
-// «Όλο το τμήμα»: one line per assignment. The database keeps a department's people to its department; the sample data
-// has no such rule, so there the department's names (the calendar's scope, already folded) keep it.
-export function departmentTrainingRows(records: Records, today: string, departments: string[] | null = null): TrainingMyRow[] {
-  const inDepartment = (row: TrainingAssignment) => !departments || departments.includes(foldSearch(row.department).trim())
-  return sortRows(usable(records).filter(inDepartment).map(row => rowOf(row, records, today)))
-}
-
 export function filterTrainingRows(rows: TrainingMyRow[], status: TrainingMyStatus) {
   return status === 'all' ? rows : rows.filter(row => status === 'completed' ? row.status === 'completed' : row.status !== 'completed')
 }
@@ -123,7 +115,7 @@ export function trainingTiles(rows: TrainingMyRow[], today: string, mine: { reco
 // The one small button of a row (owner, 20/11/2026). «Οι δικές μου»: «Έναρξη» for a training not started yet,
 // «Συνέχεια» for one in progress (the attendance or the evaluation already begun), and, once submitted, the
 // certificate's «Λήψη» or, without a certificate, «Αποτέλεσμα» — all on the learner's page (training-access).
-// «Όλο το τμήμα»: only the certificate's «Λήψη», as before: nobody opens another person's training.
+// Another person's row (mine=false): only the certificate's «Λήψη»: nobody opens another person's training.
 export type TrainingRowAction = 'start' | 'continue' | 'result' | 'certificate' | null
 export function trainingRowAction(row: Pick<TrainingMyRow, 'assignment' | 'status' | 'certificate'>, mine: boolean): TrainingRowAction {
   const assignment = row.assignment
@@ -134,11 +126,35 @@ export function trainingRowAction(row: Pick<TrainingMyRow, 'assignment' | 'statu
   return assignment.status === 'in_progress' || assignment.attendanceResponse === 'confirmed' || assignment.attendance ? 'continue' : 'start'
 }
 
-// «Όλο το νοσοκομείο» (owner, 20/11/2026): one line per programme of the hospital (the cancelled ones left out), with its
-// trainer, period, audience and state, and «Συμμετέχω» with the user's own latest assignment (the same line as in «Οι
-// δικές μου», so the same button). No participant's name: what the hospital offers, not who attends.
+
+// The programmes (owner, 20/11/2026: «δεν θέλω να βλέπω εργαζόμενους αλλά εκπαιδεύσεις»): one line per programme (the
+// cancelled ones left out), never a list of employees. «Του τμήματός μου» and the «Τμήμα» filter keep the programmes that
+// concern a department: its audience names the department or the whole hospital (audienceIncludes, as the calendar), or
+// at least one of the department's people was assigned. «Συμμετοχή τμήματος» counts only numbers (completed of assigned);
+// «Εγώ» is the user's own part: the own training's button, «Ολοκληρώθηκε», a request waiting or rejected, or «Αίτηση».
 export type TrainingProgramState = 'in_progress' | 'planned' | 'completed'
-export type TrainingProgramFilter = 'current' | 'planned' | 'all'
+export type TrainingProgramFilter = 'current' | 'planned' | 'completed' | 'all'
+export interface TrainingDepartment { id: string, name: string, nameEn?: string }
+// How many of a department were assigned a programme and how many completed it (no names): the database's
+// training_program_participation in a hospital, the sample data's assignments in the Demo.
+export interface TrainingParticipation { programId: string, departmentId: string | null, departmentName: string, assigned: number, completed: number }
+export type TrainingRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
+export interface TrainingParticipationRequest {
+  id: string
+  programId: string
+  programTitle: string
+  requesterUserId: string | null
+  employeeId: string | null
+  requesterName: string
+  department: string
+  departmentId: string | null
+  note: string
+  status: TrainingRequestStatus
+  decisionReason: string
+  decidedAt: string
+  createdAt: string
+  assignmentId: string | null
+}
 export interface TrainingProgramRow {
   id: string
   program: TrainingProgram
@@ -149,6 +165,8 @@ export interface TrainingProgramRow {
   dueDate: string
   state: TrainingProgramState
   own: TrainingMyRow | null
+  participation: { assigned: number, completed: number } | null
+  request: TrainingParticipationRequest | null
 }
 
 // An active programme that has not started yet is still «Προγραμματισμένο».
@@ -165,33 +183,105 @@ function sortProgramRows(rows: TrainingProgramRow[]) {
     || a.title.localeCompare(b.title))
 }
 
-export function hospitalProgramRows(records: Records, own: Own, today: string): TrainingProgramRow[] {
+// The sample data's figures: the assignments, per programme and department.
+export function participationFromAssignments(records: Pick<Records, 'programs' | 'assignments'>): TrainingParticipation[] {
+  const groups = new Map<string, TrainingParticipation>()
+  for (const row of usable(records as Records)) {
+    const key = `${row.programId}|${row.departmentId || ''}|${foldSearch(row.department).trim()}`
+    const item = groups.get(key) || { programId: String(row.programId || ''), departmentId: row.departmentId || null, departmentName: row.department || '', assigned: 0, completed: 0 }
+    item.assigned += 1
+    if (row.status === 'completed') item.completed += 1
+    groups.set(key, item)
+  }
+  return [...groups.values()]
+}
+
+// A row of a department: the same department id, or the same name (the sample data and rows without an id).
+export function inTrainingDepartment(row: { departmentId?: string | null, departmentName?: string | null }, department: TrainingDepartment) {
+  if (row.departmentId && row.departmentId === department.id) return true
+  const name = foldSearch(row.departmentName).trim()
+  return Boolean(name) && [department.name, department.nameEn].some(value => foldSearch(value).trim() === name)
+}
+
+export function programConcernsDepartment(program: Pick<TrainingProgram, 'id' | 'audience'>, department: TrainingDepartment, participation: TrainingParticipation[]) {
+  return audienceIncludes(program.audience, [department.name, department.nameEn || ''].filter(Boolean))
+    || participation.some(row => row.programId === program.id && row.assigned > 0 && inTrainingDepartment(row, department))
+}
+
+// Completed of assigned for the department (or the whole hospital without one); null when nobody was assigned.
+export function programParticipation(programId: string, participation: TrainingParticipation[], department: TrainingDepartment | null = null) {
+  const rows = participation.filter(row => row.programId === programId && (!department || inTrainingDepartment(row, department)))
+  const assigned = rows.reduce((sum, row) => sum + row.assigned, 0)
+  return assigned ? { assigned, completed: rows.reduce((sum, row) => sum + row.completed, 0) } : null
+}
+
+// The user's own request: the account in a hospital, the sample data's own employee in the Demo.
+export const isOwnRequest = (request: Pick<TrainingParticipationRequest, 'requesterUserId' | 'employeeId'>, own: Own) =>
+  Boolean((own.userId && request.requesterUserId === own.userId) || (own.employeeId && request.employeeId === own.employeeId))
+// The latest of the user's requests for a programme (a withdrawn one is as if it was never made).
+export function latestOwnRequest(requests: TrainingParticipationRequest[], programId: string, own: Own) {
+  return requests.filter(request => request.programId === programId && request.status !== 'cancelled' && isOwnRequest(request, own))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] || null
+}
+
+export interface TrainingProgramOptions { department?: TrainingDepartment | null, participation?: TrainingParticipation[] | null, requests?: TrainingParticipationRequest[] }
+// The programmes of the hospital, or of a department, with the user's own latest assignment and request.
+export function hospitalProgramRows(records: Records, own: Own, today: string, { department = null, participation = null, requests = [] }: TrainingProgramOptions = {}): TrainingProgramRow[] {
   const mine = new Map(ownTrainingRows(records, own, today).map(row => [String(row.assignment.programId || ''), row]))
-  return sortProgramRows(records.programs.filter(program => program.status !== 'cancelled').map(program => ({
+  const counts = participation || participationFromAssignments(records)
+  return sortProgramRows(records.programs.filter(program => program.status !== 'cancelled' && (!department || programConcernsDepartment(program, department, counts))).map(program => ({
     id: program.id, program, title: program.title || '', trainer: program.trainer || program.owner || '', audience: program.audience || '',
     startDate: day(program.startDate), dueDate: day(program.dueDate), state: programState(program, today), own: mine.get(String(program.id)) || null,
+    participation: programParticipation(program.id, counts, department), request: latestOwnRequest(requests, program.id, own),
   })))
 }
 
-// «Τρέχοντα | Προγραμματισμένα | Όλα» and the search (title, trainer, audience and the labels the screen shows).
-export function filterProgramRows(rows: TrainingProgramRow[], filter: TrainingProgramFilter, query = '', labelsOf: (row: TrainingProgramRow) => string[] = () => []) {
-  return rows.filter(row => (filter === 'all' || (filter === 'current' ? row.state === 'in_progress' : row.state === 'planned'))
+// «Εγώ»: the own training's button while it is open, «Ολοκληρώθηκε», the request waiting or rejected, or «Αίτηση
+// συμμετοχής» for a programme still running or planned; nothing for a completed programme the user did not attend.
+export type TrainingMeState = 'action' | 'completed' | 'pending' | 'rejected' | 'request' | null
+export function trainingMeState(row: Pick<TrainingProgramRow, 'own' | 'request' | 'state'>): TrainingMeState {
+  if (row.own) return row.own.status === 'completed' ? 'completed' : 'action'
+  if (row.request?.status === 'pending') return 'pending'
+  if (row.request?.status === 'rejected') return 'rejected'
+  return row.state === 'completed' ? null : 'request'
+}
+
+// The «Κατάσταση» filter, the «Κατηγορία» filter and the search (title, trainer, audience and the labels the screen shows).
+export function filterProgramRows(rows: TrainingProgramRow[], filter: TrainingProgramFilter, query = '', labelsOf: (row: TrainingProgramRow) => string[] = () => [], category = 'all') {
+  const wanted: Record<TrainingProgramFilter, TrainingProgramState | null> = { current: 'in_progress', planned: 'planned', completed: 'completed', all: null }
+  return rows.filter(row => (!wanted[filter] || row.state === wanted[filter]) && (category === 'all' || row.program.category === category)
     && matchesSearch(query, [row.title, row.trainer, row.audience, ...labelsOf(row)]))
 }
 export function programStatusCounts(rows: TrainingProgramRow[]) {
-  return { current: rows.filter(row => row.state === 'in_progress').length, planned: rows.filter(row => row.state === 'planned').length, all: rows.length }
+  return { current: rows.filter(row => row.state === 'in_progress').length, planned: rows.filter(row => row.state === 'planned').length, completed: rows.filter(row => row.state === 'completed').length, all: rows.length }
 }
 
-export interface TrainingProgramTiles { current: number, planned: number, nextStart: string, completedYear: number, own: number, ownOpen: number }
-// The four figures: running, planned (with the next start), completed this year (by their end), the ones the user attends.
-export function hospitalProgramTiles(rows: TrainingProgramRow[], today: string): TrainingProgramTiles {
-  const year = today.slice(0, 4)
+export interface TrainingProgramTiles { current: number, planned: number, nextStart: string, pending: number, requests: number, rejected: number }
+// The four figures: running, planned (with the next start), still to complete in the running ones (the department's,
+// or the hospital's without a department), the user's requests waiting (and the rejected ones).
+export function programTiles(rows: TrainingProgramRow[], today: string, requests: TrainingParticipationRequest[] = [], own: Own | null = null): TrainingProgramTiles {
   const planned = rows.filter(row => row.state === 'planned')
-  const own = rows.filter(row => row.own)
+  const ownRequests = own ? requests.filter(request => isOwnRequest(request, own)) : []
   return {
     current: rows.filter(row => row.state === 'in_progress').length, planned: planned.length,
     nextStart: planned.map(row => row.startDate).filter(date => date && date >= today).sort()[0] || '',
-    completedYear: rows.filter(row => row.state === 'completed' && (row.dueDate || row.startDate).slice(0, 4) === year).length,
-    own: own.length, ownOpen: own.filter(row => row.own!.status !== 'completed').length,
+    pending: rows.filter(row => row.state === 'in_progress' && row.participation).reduce((sum, row) => sum + row.participation!.assigned - row.participation!.completed, 0),
+    requests: ownRequests.filter(request => request.status === 'pending').length, rejected: ownRequests.filter(request => request.status === 'rejected').length,
   }
+}
+
+// The names (owner, 20/11/2026): only the Department Manager (and the Division Director), only for a department of
+// their own, and only who has not completed the programme. Nobody else sees a name on this screen; the database keeps
+// the assignments a role reads to its department anyway.
+const NAME_ROLES = new Set(['department_manager', 'division_director'])
+export function canSeeDepartmentNames(role: string | null | undefined, department: TrainingDepartment | null, ownDepartments: string[]) {
+  if (!NAME_ROLES.has(String(role)) || !department) return false
+  return ownDepartments.includes(department.id) || [department.name, department.nameEn].some(name => name && ownDepartments.includes(foldSearch(name).trim()))
+}
+export interface TrainingPendingPerson { id: string, name: string, status: string, dueDate: string }
+export function departmentPendingPeople(records: Records, programId: string, department: TrainingDepartment, today: string): TrainingPendingPerson[] {
+  return usable(records).filter(row => row.programId === programId && inTrainingDepartment({ departmentId: row.departmentId, departmentName: row.department }, department))
+    .map(row => ({ id: row.id, name: row.employeeName || '', status: computedAssignmentStatus(row, new Date(`${today}T12:00:00`)), dueDate: day(row.dueDate) }))
+    .filter(row => row.status !== 'completed')
+    .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999') || a.name.localeCompare(b.name))
 }

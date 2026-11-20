@@ -1,9 +1,9 @@
 // «Εκπαίδευση» for the departments that do not manage training (owner, 20/11/2026): «Οι δικές μου» is one line per
-// programme of the user (the latest assignment, how many times), «Όλο το τμήμα» one line per assignment; four figures;
-// «Σε εξέλιξη | Ολοκληρωμένες | Όλες»; a certificate expired, expiring within 90 days or valid.
+// programme of the user (the latest assignment, how many times); «Του τμήματός μου» and «Όλο το νοσοκομείο» list
+// programmes, never employees; four figures; a certificate expired, expiring within 90 days or valid.
 import { describe, expect, it } from 'vitest'
 import { readSource } from './helpers/readSource'
-import { certificateState, departmentTrainingRows, filterProgramRows, filterTrainingRows, hospitalProgramRows, hospitalProgramTiles, ownTrainingRows, programState, programStatusCounts, trainingRowAction, trainingStatusCounts, trainingTiles } from '../src/features/training/trainingMyView'
+import { canSeeDepartmentNames, certificateState, departmentPendingPeople, filterProgramRows, filterTrainingRows, hospitalProgramRows, ownTrainingRows, participationFromAssignments, programConcernsDepartment, programParticipation, programState, programStatusCounts, programTiles, trainingMeState, trainingRowAction, trainingStatusCounts, trainingTiles, type TrainingParticipationRequest } from '../src/features/training/trainingMyView'
 import type { TrainingState } from '../src/features/training/trainingData'
 
 const today = '2026-11-20'
@@ -53,29 +53,16 @@ describe('training of the departments: the model', () => {
     expect(ownTrainingRows(records, { userId: null, employeeId: 'EMP-009' }, today).map(row => row.id)).toEqual(['A8'])
   })
 
-  it('«Όλο το τμήμα»: one line per assignment; in the sample data only the department’s names', () => {
-    expect(departmentTrainingRows(records, today).length).toBe(7)
-    const icu = departmentTrainingRows(records, today, ['μεθ'])
-    expect(icu.map(row => row.id)).not.toContain('A8')
-    expect(icu.length).toBe(6)
-    expect(icu[0].id).toBe('A4')
-    expect(icu.find(row => row.id === 'A2')!.result).toBe('score')
-  })
-
   it('the status choice and its counts', () => {
-    const rows = departmentTrainingRows(records, today, ['μεθ'])
-    expect(trainingStatusCounts(rows)).toEqual({ open: 3, completed: 3, all: 6 })
+    const rows = ownTrainingRows(records, me, today)
+    expect(trainingStatusCounts(rows)).toEqual({ open: 2, completed: 1, all: 3 })
     expect(filterTrainingRows(rows, 'open').every(row => row.status !== 'completed')).toBe(true)
-    expect(filterTrainingRows(rows, 'completed').length).toBe(3)
-    expect(filterTrainingRows(rows, 'all').length).toBe(6)
+    expect(filterTrainingRows(rows, 'completed').map(row => row.id)).toEqual(['A5'])
   })
 
-  it('the four figures: to complete (the next deadline), overdue, completed in the last year, certificates', () => {
+  it('the four figures of «Οι δικές μου»: to complete (the next deadline), overdue, completed in the last year, certificates', () => {
     const own = ownTrainingRows(records, me, today)
     expect(trainingTiles(own, today, { records, own: me })).toEqual({ open: 2, nextDue: '2026-12-10', overdue: 1, completedYear: 1, certificates: { count: 2, expired: 1 } })
-    const department = departmentTrainingRows(records, today, ['μεθ'])
-    // The department: the latest certificate of each person and programme (the renewed one replaced the expired).
-    expect(trainingTiles(department, today)).toEqual({ open: 3, nextDue: '2026-11-25', overdue: 1, completedYear: 1, certificates: { count: 1, expired: 0 } })
   })
 
   it('a certificate: expired, expiring within 90 days, valid, none', () => {
@@ -90,7 +77,8 @@ describe('training of the departments: the model', () => {
     const page = readSource('src/features/training/TrainingProductionPage.tsx')
     const view = readSource('src/features/training/TrainingMyView.tsx')
     expect(page).toContain('if(!canManage)return <TrainingMyView')
-    expect(view).toContain("useState<TrainingMyScope>(managerView?'department':'mine')")
+    expect(view).toContain("const initialView: TrainingMyScope=scope.all?'hospital':PLAIN_ROLES.has(String(role))&&!managerView?'mine':'department'")
+    expect(view).toContain('useState<TrainingMyScope>(initialView)')
     expect(view).toContain('<SegmentedControl')
     expect(view).toContain('<RegistryPagination')
     expect(view).toContain('useCalendarScope()')
@@ -132,8 +120,11 @@ describe('«Όλο το νοσοκομείο»: the hospital’s programmes', ()
     expect(programState({ status: 'completed', startDate: '2027-01-01' }, today)).toBe('completed')
   })
 
-  it('«Τρέχοντα | Προγραμματισμένα | Όλα» and the search', () => {
-    expect(programStatusCounts(rows)).toEqual({ current: 2, planned: 1, all: 5 })
+  it('«Τρέχοντα | Προγραμματισμένα | Ολοκληρωμένα | Όλα», the category and the search', () => {
+    expect(programStatusCounts(rows)).toEqual({ current: 2, planned: 1, completed: 2, all: 5 })
+    expect(filterProgramRows(rows, 'completed').map(row => row.id)).toEqual(['P3', 'P6'])
+    expect(filterProgramRows(rows, 'all', '', () => [], 'ipc').length).toBe(5)
+    expect(filterProgramRows(rows, 'all', '', () => [], 'quality')).toEqual([])
     expect(filterProgramRows(rows, 'current').map(row => row.id)).toEqual(['P2', 'P1'])
     expect(filterProgramRows(rows, 'planned').map(row => row.id)).toEqual(['P5'])
     expect(filterProgramRows(rows, 'all', 'ρηγας').map(row => row.id)).toEqual(['P1'])
@@ -142,17 +133,123 @@ describe('«Όλο το νοσοκομείο»: the hospital’s programmes', ()
     expect(filterProgramRows(rows, 'current', 'απομονωση')).toEqual([])
   })
 
-  it('the four figures: in progress, planned (the next start), completed this year, «Συμμετέχω σε»', () => {
-    expect(hospitalProgramTiles(rows, today)).toEqual({ current: 2, planned: 1, nextStart: '2027-01-15', completedYear: 1, own: 3, ownOpen: 2 })
-    expect(hospitalProgramTiles([], today)).toEqual({ current: 0, planned: 0, nextStart: '', completedYear: 0, own: 0, ownOpen: 0 })
+  it('the four figures: in progress, planned (the next start), still to complete, the user’s requests', () => {
+    expect(programTiles(rows, today)).toEqual({ current: 2, planned: 1, nextStart: '2027-01-15', pending: 4, requests: 0, rejected: 0 })
+    expect(programTiles([], today)).toEqual({ current: 0, planned: 0, nextStart: '', pending: 0, requests: 0, rejected: 0 })
   })
 
-  it('the screen: a third choice, its own filter, no opening of the manager’s record', () => {
+  it('the screen: three choices, the filters in the filters window, no opening of the manager’s record, no employee list', () => {
     const view = readSource('src/features/training/TrainingMyView.tsx')
+    expect(view).toContain("{value:'mine',label:tr('Οι δικές μου','Mine')}")
+    expect(view).toContain("{value:'department',label:tr('Του τμήματός μου','My department')}")
     expect(view).toContain("{value:'hospital',label:tr('Όλο το νοσοκομείο','Whole hospital')}")
-    expect(view).toContain("tr('Όλο το προσωπικό','All staff')")
-    expect(view).toContain("hospitalProgramRows(state,scope,today)")
-    expect(view).toContain("tr('Τρέχοντα','Current')")
+    expect(view).not.toContain("tr('Όλο το προσωπικό','All staff')")
+    expect(view).not.toContain("tr('Όλο το τμήμα','Whole department')")
+    expect(view).toContain('hospitalProgramRows(state,scope,today,{department,participation:counted,requests})')
+    expect(view).toContain("<FilterSelect label={tr('Τμήμα','Department')}")
+    expect(view).toContain("<FilterSelect label={tr('Κατάσταση','Status')}")
+    expect(view).toContain("<FilterSelect label={tr('Κατηγορία','Category')}")
+    expect(view).toContain("tr('Συμμετοχή τμήματος','Department participation')")
+    expect(view).toContain("{key:'me',label:tr('Εγώ','Me')}")
+    expect(view).not.toContain("label:tr('Εργαζόμενος','Employee')},{key:'title'")
     expect(view).not.toContain('navigate(`/training/')
+  })
+})
+
+describe('the department’s programmes (owner, 20/11/2026: «δεν θέλω να βλέπω εργαζόμενους αλλά εκπαιδεύσεις»)', () => {
+  const icu = { id: 'D-ICU', name: 'ΜΕΘ', nameEn: 'ICU' }
+  const medicine = { id: 'D-MED', name: 'Παθολογική', nameEn: 'Internal Medicine' }
+  const surgery = { id: 'D-SUR', name: 'Χειρουργική' }
+  const hospital = {
+    ...records,
+    programs: [
+      { ...program('P1', 'Χρήση απινιδωτή'), audience: 'Ομάδα αναζωογόνησης', startDate: '2026-09-01', dueDate: '2026-12-10' },
+      { ...program('P2', 'Υγιεινή χεριών'), audience: 'Όλο το προσωπικό', startDate: '2026-10-01', dueDate: '2026-11-30' },
+      { ...program('P3', 'Αιχμηρά', 'completed'), audience: 'ΜΕΘ', dueDate: '2026-06-30' },
+      { ...program('P4', 'Ακυρωμένο', 'cancelled'), audience: 'Χειρουργική' },
+      { ...program('P5', 'Μέτρα απομόνωσης', 'planned'), startDate: '2027-01-15', dueDate: '2027-02-15', audience: 'Χειρουργική · Ορθοπαιδική' },
+    ],
+  } as unknown as TrainingState
+  const counts = participationFromAssignments(hospital)
+
+  it('a programme concerns a department by its audience (or the whole hospital) or by an assignment of its people', () => {
+    expect(programConcernsDepartment(hospital.programs[0], surgery, counts)).toBe(false)
+    expect(programConcernsDepartment(hospital.programs[1], surgery, counts)).toBe(true)
+    expect(programConcernsDepartment(hospital.programs[4], surgery, counts)).toBe(true)
+    // «Ομάδα αναζωογόνησης» names no department; the ICU has people in it.
+    expect(programConcernsDepartment(hospital.programs[0], icu, counts)).toBe(true)
+    expect(hospitalProgramRows(hospital, me, today, { department: surgery, participation: counts }).map(row => row.id)).toEqual(['P2', 'P5'])
+    expect(hospitalProgramRows(hospital, me, today, { department: medicine, participation: counts }).map(row => row.id)).toEqual(['P2'])
+    expect(hospitalProgramRows(hospital, me, today, { participation: counts }).map(row => row.id)).toEqual(['P2', 'P1', 'P5', 'P3'])
+  })
+
+  it('«Συμμετοχή τμήματος»: completed of assigned for the department, the hospital’s totals without one, numbers only', () => {
+    expect(programParticipation('P1', counts, icu)).toEqual({ assigned: 4, completed: 2 })
+    expect(programParticipation('P2', counts, medicine)).toEqual({ assigned: 1, completed: 0 })
+    expect(programParticipation('P2', counts)).toEqual({ assigned: 2, completed: 0 })
+    expect(programParticipation('P5', counts, icu)).toBeNull()
+    // The database’s figures match a department by its id too.
+    expect(programParticipation('P1', [{ programId: 'P1', departmentId: 'D-ICU', departmentName: '', assigned: 20, completed: 12 }], icu)).toEqual({ assigned: 20, completed: 12 })
+    const rows = hospitalProgramRows(hospital, me, today, { department: icu, participation: counts })
+    expect(JSON.stringify(rows.map(row => [row.title, row.trainer, row.audience, row.participation]))).not.toContain('Συνάδελφος')
+    // In the running ones: P1 (4 − 2) and P2 (1 − 0).
+    expect(programTiles(rows, today).pending).toBe(3)
+  })
+
+  const request = (id: string, programId: string, extra: Partial<TrainingParticipationRequest>): TrainingParticipationRequest => ({ id, programId, programTitle: '', requesterUserId: 'u-me', employeeId: null, requesterName: 'Εγώ', department: 'ΜΕΘ', departmentId: null, note: '', status: 'pending', decisionReason: '', decidedAt: '', createdAt: '2026-11-01T10:00:00Z', assignmentId: null, ...extra })
+  it('«Εγώ»: the own button, «Ολοκληρώθηκε», a request waiting or rejected, otherwise «Αίτηση συμμετοχής»', () => {
+    const requests = [
+      request('R1', 'P5', { status: 'rejected', decisionReason: 'Δεν αφορά τη θέση σας', createdAt: '2026-10-01T10:00:00Z' }),
+      request('R2', 'P5', { status: 'cancelled', createdAt: '2026-11-10T10:00:00Z' }),
+      request('R3', 'P2', { requesterUserId: 'u-other' }),
+    ]
+    const rows = hospitalProgramRows(hospital, me, today, { participation: counts, requests })
+    const state = (id: string) => trainingMeState(rows.find(row => row.id === id)!)
+    expect(state('P1')).toBe('action')
+    expect(state('P2')).toBe('action')
+    expect(state('P3')).toBe('completed')
+    expect(state('P5')).toBe('rejected')
+    expect(rows.find(row => row.id === 'P5')!.request!.decisionReason).toBe('Δεν αφορά τη θέση σας')
+    const other = { userId: 'u-other', employeeId: null }
+    const theirs = hospitalProgramRows(hospital, other, today, { participation: counts, requests })
+    expect(trainingMeState(theirs.find(row => row.id === 'P2')!)).toBe('pending')
+    expect(trainingMeState(theirs.find(row => row.id === 'P5')!)).toBe('request')
+    // A completed programme the user did not attend: nothing to ask for.
+    expect(trainingMeState(theirs.find(row => row.id === 'P3')!)).toBeNull()
+    expect(programTiles(theirs, today, requests, other)).toMatchObject({ requests: 1, rejected: 0 })
+    expect(programTiles(rows, today, requests, me)).toMatchObject({ requests: 0, rejected: 1 })
+  })
+
+  it('the names: only the Department Manager (and the Division Director), only for a department of their own, only who has not completed', () => {
+    expect(canSeeDepartmentNames('department_manager', icu, ['μεθ'])).toBe(true)
+    expect(canSeeDepartmentNames('department_manager', icu, ['D-ICU'])).toBe(true)
+    expect(canSeeDepartmentNames('division_director', icu, ['μεθ', 'παθολογικη'])).toBe(true)
+    expect(canSeeDepartmentNames('department_manager', medicine, ['μεθ'])).toBe(false)
+    expect(canSeeDepartmentNames('department_manager', null, ['μεθ'])).toBe(false)
+    expect(canSeeDepartmentNames('department_user', icu, ['μεθ'])).toBe(false)
+    expect(canSeeDepartmentNames('link_nurse', icu, ['μεθ'])).toBe(false)
+    expect(canSeeDepartmentNames('hospital_admin', icu, ['μεθ'])).toBe(false)
+    const people = departmentPendingPeople(hospital, 'P1', icu, today)
+    expect(people.map(person => [person.id, person.status])).toEqual([['A7', 'assigned'], ['A3', 'assigned']])
+    expect(departmentPendingPeople(hospital, 'P1', medicine, today)).toEqual([])
+  })
+
+  it('the screen: the requests, the manager’s names, the module’s request list', () => {
+    const view = readSource('src/features/training/TrainingMyView.tsx')
+    expect(view).toContain('requestTrainingParticipationAsync(organizationId,requesting.program,requestNote)')
+    expect(view).toContain("const namesAllowed=!mine&&canSeeDepartmentNames(role,department,ownKeys)")
+    expect(view).toContain('departmentPendingPeople(state,namesOf.id,department,today)')
+    const page = readSource('src/features/training/TrainingProductionPage.tsx')
+    expect(page).toContain("{value:'requests',label:en?'Participation requests':'Αιτήσεις συμμετοχής',icon:Inbox,count:pendingRequests.length||null}")
+    expect(page).toContain('<TrainingRequestsPanel requests={requests}')
+    const panel = readSource('src/features/training/TrainingRequestsPanel.tsx')
+    expect(panel).toContain('<GovernedReasonDialog')
+    expect(panel).toContain("onDecide(request,true)")
+    const service = readSource('src/features/training/trainingRequestService.ts')
+    expect(service).toContain("rpc('training_request_participation',{p_organization_id:organizationId,p_program_key:program.id,p_note:note.trim()||null})")
+    expect(service).toContain("rpc('training_decide_participation',{p_request_id:request.id,p_accept:accept,p_reason:reason.trim()||null})")
+    expect(service).toContain("rpc('training_program_participation',{p_organization_id:organizationId})")
+    // The Demo keeps its requests in the sample state, never in the database.
+    expect(service).toContain('if(isDemoDataEnvironment())return demoRequests(loadTrainingState())')
   })
 })
