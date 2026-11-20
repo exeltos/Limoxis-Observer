@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // «Το τμήμα μου» of the Department Manager (owner, 20/11/2026): four figures, two charts and three
 // cards for the manager's department (the middle one: the department's register, or its incidents); locked modules are not shown; a hospital reads one RPC
-// (department_home_overview) and a failed read never shows the Demo's figures; the Link Nurse keeps
-// the previous home. The figures, charts, organisms and register follow a period (Μήνας | Τρίμηνο | Εξάμηνο | Έτος)
+// (department_home_overview) and a failed read never shows the Demo's figures; the Link Nurse has the
+// user's home (userHome.test.tsx). The figures, charts, organisms and register follow a period (Μήνας | Τρίμηνο | Εξάμηνο | Έτος)
 // with its comparison (the previous period or the same period last year).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -199,13 +199,13 @@ describe('«Το τμήμα μου» of the Department Manager', () => {
     expect(container.querySelector('.dephome-tile-value')?.textContent).toBe('—')
   })
 
-  it('keeps the previous home for the Link Nurse', async () => {
+  it('gives the Link Nurse the user\'s home, not the manager\'s (owner, 20/11/2026)', async () => {
     configureDataEnvironment({ mode: 'demo' })
     tenant = managerTenant({ role: 'link_nurse', actualRole: 'link_nurse' })
     const { container } = open()
     await waitFor(() => expect(screen.getByText('Για μένα σήμερα')).toBeTruthy())
     expect(container.querySelector('.dephome')).toBeNull()
-    expect(container.querySelector('.dashboard-home')).not.toBeNull()
+    expect(container.querySelector('.userhome')).not.toBeNull()
     expect(screen.getByText('Ενημερώσεις & ανακοινώσεις')).toBeTruthy()
   })
 })

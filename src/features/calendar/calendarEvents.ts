@@ -16,7 +16,7 @@ import type { withSupplierStatus } from '../quality/resources/resourceModel'
 // What the calendar reads of each source (the services return more): the pure functions take
 // these, so the screens pass their records and the tests only the fields that matter.
 type CalendarQualityRecord = { id: string, lifecycleStatus?: string | null, status?: string | null, title?: string, titleEn?: string, department?: string, departmentEn?: string, dueDate?: string | null, displayId?: string, effectivenessDue?: string | null, effectivenessStatus?: string | null, subActions?: { id?: string, title?: string, dueDate?: string | null, done?: boolean, owner?: string }[], plannedDate?: string | null, standard?: string | null, leadAuditor?: string | null, plannedMonthOnly?: boolean }
-type CalendarTraining = { programs?: { id: string, status?: string, title: string, startDate?: string | null, dueDate?: string | null, audience?: string, effectiveness?: { plannedDate?: string | null, result?: unknown } | null }[], assignments?: { id: string, programId?: string | null, status?: string, employeeName?: string, department?: string }[], certificates?: { id: string, assignmentId?: string | null, title: string, validUntil?: string | null }[] }
+type CalendarTraining = { programs?: { id: string, status?: string, title: string, startDate?: string | null, dueDate?: string | null, audience?: string, effectiveness?: { plannedDate?: string | null, result?: unknown } | null }[], assignments?: { id: string, programId?: string | null, status?: string, employeeName?: string, department?: string, userId?: string | null, employeeId?: string | null, dueDate?: string | null, completedDate?: string | null }[], certificates?: { id: string, assignmentId?: string | null, title: string, validUntil?: string | null, userId?: string | null, employeeId?: string | null }[] }
 type DocumentFamily = { activePublished?: Partial<ReturnType<typeof groupDocumentFamilies>[number]['activePublished'] & object> | null, root?: { id?: string } | null, versions?: ReturnType<typeof groupDocumentFamilies>[number]['versions'] }
 type ProtocolSuggestion = Awaited<ReturnType<typeof loadProtocolSuggestionsAsync>>[number]
 type CalendarSupplier = ReturnType<typeof withSupplierStatus>[number]
@@ -45,6 +45,11 @@ export interface CalendarEvent {
  // The person a certificate belongs to, and the owner of a CAPA step or a committee decision (already shown in the detail).
  person?: string
  owner?: string
+ // A certificate's person as a user account and as an employee code: «my own» certificate (calendarScope).
+ personUserId?: string | null
+ personEmployeeId?: string | null
+ // Who a training programme is for («ΜΕΘ · Παθολογική», «Όλο το προσωπικό»): free text, not a department.
+ audience?: string
  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extra fields of each module's items
  [key: string]: any
 }
@@ -211,18 +216,19 @@ function trainingEvents(training: CalendarTraining | null,range: Range | null,to
  const assignments=training?.assignments||[]
  for(const program of programs){
   const path=`/training/${program.id}`
-  // Effectiveness is evaluated months after the programme, so completed ones count.
-  if(program.status!=='cancelled'&&program.effectiveness?.plannedDate&&!program.effectiveness.result){const day=toDay(program.effectiveness.plannedDate);push(list,{id:`trn-eff:${program.id}`,kind:'training',date:day,title:program.title,detail:en?'Effectiveness evaluation':'Αξιολόγηση αποτελεσματικότητας',department:program.audience||'',path,state:stateOf(day,today)},range)}
+  // Effectiveness is evaluated months after the programme, so completed ones count. A programme names its audience, not a
+  // department: the calendar shows it to a department whose name the audience contains, or to all when it is hospital-wide.
+  if(program.status!=='cancelled'&&program.effectiveness?.plannedDate&&!program.effectiveness.result){const day=toDay(program.effectiveness.plannedDate);push(list,{id:`trn-eff:${program.id}`,kind:'training',date:day,title:program.title,detail:en?'Effectiveness evaluation':'Αξιολόγηση αποτελεσματικότητας',department:'',audience:program.audience||'',path,state:stateOf(day,today)},range)}
   if(['completed','cancelled'].includes(program.status as string))continue
   const open=assignments.filter(a=>a.programId===program.id&&a.status!=='completed').length
-  if(program.startDate&&toDay(program.startDate)>=today)push(list,{id:`trn-start:${program.id}`,kind:'training',date:toDay(program.startDate),title:program.title,detail:en?'Starts':'Έναρξη',department:program.audience||'',path,state:'planned'},range)
-  push(list,{id:`trn-due:${program.id}`,kind:'training',date:toDay(program.dueDate),title:program.title,detail:en?`Completion due · ${open} pending`:`Προθεσμία ολοκλήρωσης · ${open} εκκρεμούν`,department:program.audience||'',path,state:open?stateOf(toDay(program.dueDate),today):'done'},range)
+  if(program.startDate&&toDay(program.startDate)>=today)push(list,{id:`trn-start:${program.id}`,kind:'training',date:toDay(program.startDate),title:program.title,detail:en?'Starts':'Έναρξη',department:'',audience:program.audience||'',path,state:'planned'},range)
+  push(list,{id:`trn-due:${program.id}`,kind:'training',date:toDay(program.dueDate),title:program.title,detail:en?`Completion due · ${open} pending`:`Προθεσμία ολοκλήρωσης · ${open} εκκρεμούν`,department:'',audience:program.audience||'',path,state:open?stateOf(toDay(program.dueDate),today):'done'},range)
  }
  for(const certificate of training?.certificates||[]){
   const day=toDay(certificate.validUntil)
   if(!day)continue
   const person=assignments.find(a=>a.id===certificate.assignmentId)
-  push(list,{id:`cert:${certificate.id}`,kind:'training',date:day,title:certificate.title,detail:`${en?'Certificate expires':'Λήξη πιστοποιητικού'}${person?` · ${person.employeeName}`:''}`,action:en?'Certificate expires':'Λήξη πιστοποιητικού',person:person?.employeeName||'',department:person?.department||'',path:'/training',state:day<today?'overdue':'planned'},range)
+  push(list,{id:`cert:${certificate.id}`,kind:'training',date:day,title:certificate.title,detail:`${en?'Certificate expires':'Λήξη πιστοποιητικού'}${person?` · ${person.employeeName}`:''}`,action:en?'Certificate expires':'Λήξη πιστοποιητικού',person:person?.employeeName||'',personUserId:certificate.userId||person?.userId||null,personEmployeeId:certificate.employeeId||person?.employeeId||null,department:person?.department||'',path:'/training',state:day<today?'overdue':'planned'},range)
  }
 }
 

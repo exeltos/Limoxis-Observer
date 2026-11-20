@@ -190,7 +190,7 @@ export function TenantProvider({ children }: { children?: ReactNode }) {
   const membership = useMemo(() => withDemoAdminHealth(previewMembership()), [baseMembership, rolePreview, canRolePreview, tenant?.mode, platformDemoMode, realDemoTenant]) // eslint-disable-line react-hooks/exhaustive-deps
   function previewMembership(): Membership | null {
     if (!(rolePreview?.role && canRolePreview)) return baseMembership
-    const preview = {...baseMembership as Membership, role: rolePreview.role, capabilities: [], customCapabilities: [], assignments: []}
+    const preview = {...baseMembership as Membership, role: rolePreview.role, departmentNames: [], capabilities: [], customCapabilities: [], assignments: []}
     // A Division Director oversees the departments of the chosen division: in a hospital by id, in the
     // sample data by the names its records carry (the first sample division when none is chosen).
     if (rolePreview.role === ROLES.DIVISION_DIRECTOR) {
@@ -201,7 +201,7 @@ export function TenantProvider({ children }: { children?: ReactNode }) {
     }
     // In a real organization the previewed department is a real department:
     // scope by its id (as a member of that department) and show its name.
-    if (tenant?.mode !== 'demo' && !platformDemoMode && rolePreview.department) return {...preview, departmentIds: [rolePreview.department], departmentId: rolePreview.department, departmentName: rolePreview.departmentName || '', previewDepartment: null}
+    if (tenant?.mode !== 'demo' && !platformDemoMode && rolePreview.department) return {...preview, departmentIds: [rolePreview.department], departmentId: rolePreview.department, departmentName: rolePreview.departmentName || '', departmentNames: rolePreview.departmentName ? [rolePreview.departmentName] : [], previewDepartment: null}
     if (tenant?.mode !== 'demo' && !platformDemoMode) return {...preview, departmentIds: [], previewDepartment: null}
     // Sample data: a department-scoped role without a chosen department is in the ICU.
     const ownDepartment = rolePreview.department || (uxPolicyFor(rolePreview.role).scope === SCOPES.DEPARTMENT ? SAMPLE_DEFAULT_DEPARTMENT : null)

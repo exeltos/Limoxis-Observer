@@ -32,6 +32,8 @@ export async function listMemberships(userId: string | null | undefined): Promis
     ...membership,
     departmentIds: (membership.scopes ?? []).map((item) => item.department_id).filter(Boolean),
     departmentName: (membership.scopes ?? []).map((item) => item.department?.name).find(Boolean) || '',
+    // Every department of the scopes by name: the calendar matches its items by the department's name.
+    departmentNames: (membership.scopes ?? []).map((item) => item.department?.name).filter((name): name is string => Boolean(name)),
     capabilities: (membership.add_ons ?? []).map((item) => item.capability).filter(Boolean),
     customCapabilities: (membership.custom_role?.capabilities ?? []).map((item) => item.capability).filter(Boolean),
     assignments: (membership.assignments ?? []).filter((item) => item.status !== 'completed' && item.status !== 'cancelled'),

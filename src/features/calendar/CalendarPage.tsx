@@ -24,7 +24,8 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import { loadControlCalendarMonths } from '../controls/controlCloudService'
 import { calendarKindsFor,useCalendarSources } from './useCalendarSources'
 import { type CalendarEvent,CALENDAR_KINDS,buildCalendarEvents,calendarFilterLabel,calendarFilterOf,calendarFiltersFor,calendarKindLabel,controlExecutionEvents,monthGrid,parseCalendarFilter } from './calendarEvents'
-import { type CalendarGroup,addDay,calendarFilterCounts,calendarItemLine,calendarTypeLabel,dayCellGroups,dueInText,groupCalendarEvents,hasSingleDepartment,monthGlance,nextDaysGroups,overdueDurationText,pendingEvents,personInitials,searchCalendarGroups } from './calendarView'
+import { type CalendarGroup,addDay,calendarFilterCounts,calendarItemLine,calendarTypeLabel,dayCellGroups,dueInText,eventInDepartment,eventWithinScope,groupCalendarEvents,hasSingleDepartment,monthGlance,nextDaysGroups,overdueDurationText,pendingEvents,personInitials,searchCalendarGroups } from './calendarView'
+import { useCalendarScope } from './useCalendarScope'
 import type { CalendarMonthCount } from '../controls/controlCloudService'
 import './calendar.css'
 
@@ -54,7 +55,8 @@ function useHeight<T extends HTMLElement>(){
 export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean }={}){
  const {language,locale}=useLanguage();const en=language==='en'
  const {notify}=useFeedback()
- const {tenant,role,membership,canAccessRecord,isDemo}=useTenant()
+ const {tenant,role,membership,isDemo}=useTenant()
+ const calendarScope=useCalendarScope()
  const userId=useAuditActor()?.id||null
  const navigate=useNavigate()
  const mayDo=(capability: string)=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
@@ -65,7 +67,6 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  const [cursor,setCursor]=useState(()=>({year:Number(today.slice(0,4)),month:Number(today.slice(5,7))-1}))
  const [selected,setSelected]=useState(today)
  const [dayOpen,setDayOpen]=useState(false)
- const [view,setView]=useState('month')
  // To do: the overdue items or the next 30 days, a search, the page of the table and the rows opened to their people.
  const [scope,setScope]=useState<'overdue'|'upcoming'|null>(null)
  const [query,setQuery]=useState('')
@@ -74,6 +75,8 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  const [expanded,setExpanded]=useState<Set<string>>(()=>new Set())
  // The chips (controls, trainings, meetings, expiries, other) live in the address: ?filter=controls opens only the controls.
  const [searchParams,setSearchParams]=useSearchParams()
+ // ?view=list opens «Εκκρεμότητες» (the user's home links its overdue figure there).
+ const [view,setView]=useState(()=>searchParams.get('view')==='list'?'list':'month')
  const filterKinds=useMemo(()=>calendarFiltersFor(allowedKinds),[allowedKinds])
  const filterParam=searchParams.get('filter')||''
  const picked=useMemo(()=>parseCalendarFilter(filterParam),[filterParam])
@@ -112,9 +115,9 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
   const overdueKeys=new Set(planned.filter(e=>e.kind==='controls'&&e.state==='overdue').map(e=>`${e.path}|${e.department}|${e.date}`))
   return [...planned,...executions.filter(e=>e.state!=='missed'||!overdueKeys.has(`${e.path}|${e.department}|${e.date}`))].sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'99').localeCompare(b.time||'99'))
  },[sources,range,today,language,isDemo,userId,executions])
- const departments=useMemo(()=>[...new Set(allEvents.map(e=>e.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,language)),[allEvents,language])
- // scoped: what the user may see in the chosen department; the chips' counts are taken from it, so a chip turned off keeps its number.
- const scoped=useMemo(()=>allEvents.filter(e=>allowedKinds.includes(e.kind)&&(department==='all'||e.department===department)&&(!e.department||canAccessRecord({department:e.department}))),[allEvents,allowedKinds,department,canAccessRecord])
+ const departments=useMemo(()=>[...new Set(allEvents.filter(e=>eventWithinScope(e,calendarScope)).map(e=>e.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,language)),[allEvents,language,calendarScope])
+ // scoped: what the user may see (eventWithinScope) in the chosen department; the chips' counts are taken from it, so a chip turned off keeps its number.
+ const scoped=useMemo(()=>allEvents.filter(e=>allowedKinds.includes(e.kind)&&(department==='all'||eventInDepartment(e,department))&&eventWithinScope(e,calendarScope)),[allEvents,allowedKinds,department,calendarScope])
  const events=useMemo(()=>scoped.filter(e=>isOn(calendarFilterOf(e))),[scoped,isOn])
  const byDay=useMemo(()=>{const map=new Map<string, CalendarEvent[]>();for(const e of events){const list=map.get(e.date)||[];list.push(e);map.set(e.date,list)}return map},[events])
  const overdue=events.filter(e=>e.state==='overdue')
@@ -146,7 +149,7 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  function monthExport(){
   return ({name:en?`calendar-${monthKey}`:`imerologio-${monthKey}`,
    headers:en?['Date','Time','Module','Item','Detail','Department','Status']:['Ημερομηνία','Ώρα','Ενότητα','Θέμα','Λεπτομέρεια','Τμήμα','Κατάσταση'],
-   rows:[...overdue.filter(e=>!e.date.startsWith(monthKey)),...monthEvents].map(e=>[new Intl.DateTimeFormat(locale).format(new Date(`${e.date}T12:00:00`)),e.time||'',calendarKindLabel(e.kind,language),e.title,e.detail||'',e.department||'',stateLabel(e.state,en)])})
+   rows:[...overdue.filter(e=>!e.date.startsWith(monthKey)),...monthEvents].map(e=>[new Intl.DateTimeFormat(locale).format(new Date(`${e.date}T12:00:00`)),e.time||'',calendarKindLabel(e.kind,language),e.title,e.detail||'',e.department||e.audience||'',stateLabel(e.state,en)])})
  }
 
  const filtersHideAll=filtered&&view==='month'&&!monthEvents.length
@@ -243,7 +246,7 @@ function PendingCells({group,language,today,showDepartment}: { group: CalendarGr
  const first=group.first
  const filter=calendarFilterOf(first)
  const owners=[...new Set(group.items.map(e=>e.owner).filter(Boolean))]
- const sub=[first.action??first.detail,showDepartment&&group.departments.length===1?group.departments[0]:''].filter(Boolean).join(' · ')
+ const sub=[first.action??first.detail,showDepartment&&group.departments.length===1?group.departments[0]:'',showDepartment&&!group.departments.length?first.audience:''].filter(Boolean).join(' · ')
  const overdue=first.state==='overdue'
  const who=group.people.length>1?<><span className="calendar-avatars" aria-hidden="true">{group.people.slice(0,3).map(name=><span key={name} className="calendar-avatar">{personInitials(name)}</span>)}</span>{`${group.people.length} ${en?'employees':'εργαζόμενοι'}`}</>
   :group.people.length===1?<><span className="calendar-avatar" aria-hidden="true">{personInitials(group.people[0])}</span>{group.people[0]}</>
@@ -263,7 +266,7 @@ function EventRow({event,language,onOpen}: { event: CalendarEvent, language: str
  const en=language==='en'
  return <li><button type="button" className={`calendar-event filter-${calendarFilterOf(event)} ${event.state}`} onClick={onOpen}>
   {event.time&&<span className="calendar-event-when">{event.time}</span>}
-  <span className="calendar-event-main"><strong title={event.title}>{calendarItemLine(event,language)}</strong><small>{[event.detail,event.department].filter(Boolean).join(' · ')||calendarKindLabel(event.kind,language)}</small></span>
+  <span className="calendar-event-main"><strong title={event.title}>{calendarItemLine(event,language)}</strong><small>{[event.detail,event.department||event.audience].filter(Boolean).join(' · ')||calendarKindLabel(event.kind,language)}</small></span>
   {/* The controls' executions keep the colours of their own calendar: done, late, missed. */}
   {['controls','cultures'].includes(event.kind)&&['done','late','missed'].includes(event.state)&&<span className={`status-badge calendar-execution ${event.state}`}>{stateLabel(event.state,en)}</span>}
   {event.state==='overdue'&&<span className="status-badge danger">{en?'Overdue':'Εκπρόθεσμο'}</span>}

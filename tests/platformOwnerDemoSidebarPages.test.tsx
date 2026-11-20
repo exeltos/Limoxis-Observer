@@ -15,15 +15,14 @@ import { cleanup, render, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 
-vi.mock('../src/core/auth/AuthContext', () => ({
-  useAuth: () => ({
+const ownerAuth = () => ({
     user: { id: 'owner-1' },
     profile: { id: 'owner-1', isPlatformOwner: true, fullName: 'Platform Owner', isDemo: false },
     isAuthenticated: true,
     isDemoSession: false,
     loading: false,
-  }),
-}))
+})
+vi.mock('../src/core/auth/AuthContext', () => ({ useAuth: ownerAuth, useOptionalAuth: ownerAuth }))
 
 afterEach(() => cleanup())
 
