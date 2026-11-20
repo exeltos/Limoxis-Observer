@@ -1,10 +1,10 @@
 // The bottom-middle card of «Το τμήμα μου» (owner, 20/11/2026: «να μη σκρολάρει κι αντί γι' αυτό να βλέπουν
 // στοιχεία από τα μητρώα τους… όσα δεν έχουν, μόνο π.χ. συμβάντα»): the main indicators of the department's
-// register for the current month; a department without one sees hand hygiene per month there, and its incidents
+// register for the period the page shows, with the change from its comparison period; a department without one sees hand hygiene per month there, and its incidents
 // of the last 30 days only when that chart is locked.
 // Both are read as the register and Quality screens read them, under the same policies (register_can_read,
 // quality_incident_org_read): what the manager may not read leaves the register card out.
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '../../core/supabase/client'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -13,7 +13,7 @@ import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { hospitalDate } from '../../core/dates/hospitalDate'
 import { useRegisterAccess } from '../registers/registerAccess'
 import { loadEntries, loadRegisters } from '../registers/registerService'
-import { indicatorReport, periodOf, type Period } from '../registers/registerEngine'
+import { indicatorReport, type Period } from '../registers/registerEngine'
 import { loadQualityRecords } from '../quality/qualityService'
 import { odipyItem } from '../quality/odipyCategories'
 import type { Register } from '../registers/registerTypes'
@@ -71,18 +71,22 @@ export async function loadDepartmentIncidents(organizationId: string | null | un
   return countDepartmentIncidents((data || []).map((row: Record<string, string | null>) => ({ category: row.category, status: row.status, reportKind: row.report_kind, at: row.occurred_at || row.created_at })), today)
 }
 
+// The register's comparison: the previous period or the same period last year (indicatorReport computes both).
+export type FocusCompare = 'previous' | 'lastYear'
 export type DepartmentFocus =
   | { kind: 'loading' }
-  | { kind: 'register', register: Register, period: Period, rows: ReportRow[] }
+  | { kind: 'register', register: Register, period: Period, compare: Period, choice: FocusCompare, rows: ReportRow[] }
   | { kind: 'incidents', incidents: DepartmentIncidents | null }
   | { kind: 'none' }
 
 // The department's register (the first active one with indicators the manager is a member of and may read), else, when
-// asked for (incidentsWanted: the quality module on and nothing else to show in their place), its incidents.
-export function useDepartmentFocus(incidentsWanted: boolean): DepartmentFocus {
+// asked for (incidentsWanted: the quality module on and nothing else to show in their place), its incidents. The register
+// is read once; its indicators follow the period (and comparison) the page shows.
+type LoadedFocus = Exclude<DepartmentFocus, { kind: 'register' }> | { kind: 'register', register: Register, entries: Parameters<typeof indicatorReport>[1] }
+export function useDepartmentFocus(incidentsWanted: boolean, period: Period, compare: Period, choice: FocusCompare): DepartmentFocus {
   const { tenant, isDemo, membership } = useTenant()
   const access = useRegisterAccess()
-  const [focus, setFocus] = useState<DepartmentFocus>({ kind: 'loading' })
+  const [loaded, setFocus] = useState<LoadedFocus>({ kind: 'loading' })
   const departmentIds: string[] = membership?.departmentIds || []
   const departmentKey = departmentIds.join('|')
   const department: string | null = isDemo ? membership?.previewDepartment || null : null
@@ -94,8 +98,7 @@ export function useDepartmentFocus(incidentsWanted: boolean): DepartmentFocus {
         const register = (await loadRegisters(tenant?.id)).find(item => item.status === 'active' && (item.indicators?.length || 0) > 0 && access.isMember(item) && access.canSee(item))
         if (register) {
           const entries = await loadEntries(tenant?.id, register.id, { withIdentity: false, register })
-          const period = periodOf('month', today)
-          if (active) setFocus({ kind: 'register', register, period, rows: registerFocusRows(register, entries, period) })
+          if (active) setFocus({ kind: 'register', register, entries })
           return
         }
       } catch { /* a register the manager may not read: the incidents instead */ }
@@ -105,5 +108,7 @@ export function useDepartmentFocus(incidentsWanted: boolean): DepartmentFocus {
     })()
     return () => { active = false }
   }, [tenant?.id, departmentKey, department, access, incidentsWanted])
-  return focus
+  return useMemo<DepartmentFocus>(() => loaded.kind === 'register'
+    ? { kind: 'register', register: loaded.register, period, compare, choice, rows: registerFocusRows(loaded.register, loaded.entries, period) }
+    : loaded, [loaded, period, compare, choice])
 }
