@@ -179,3 +179,14 @@ describe('one action, one place', () => {
     expect(read('src/features/dashboard/DashboardPage.jsx')).toContain("to:'/surveillance?tab=episodes&review=1'")
   })
 })
+
+describe('«Προς έλεγχο» reads every sample awaiting a decision (owner, 20/11/2026)', () => {
+  it('pages by 1,000 with a unique order instead of the 300 most recent', async () => {
+    const { readSource } = await import('./helpers/readSource')
+    const source = readSource('src/features/laboratory/laboratoryCloudService.ts')
+    const loader = source.slice(source.indexOf('export async function loadSamplesAwaitingReview'), source.indexOf('export async function loadSamplesAwaitingReviewByIds'))
+    expect(loader).toContain(".order('id',{ascending:true}).range(from,to)")
+    expect(loader).not.toContain('.limit(limit)')
+    expect(source).toContain('const AWAITING_REVIEW_PAGE=1000')
+  })
+})
