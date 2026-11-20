@@ -72,7 +72,7 @@ export async function loadDepartmentIncidents(organizationId: string | null | un
 }
 
 // The register's comparison: the previous period or the same period last year (indicatorReport computes both).
-export type FocusCompare = 'previous' | 'lastYear'
+export type FocusCompare = 'previous' | 'lastYear' | 'none'
 export type DepartmentFocus =
   | { kind: 'loading' }
   | { kind: 'register', register: Register, period: Period, compare: Period, choice: FocusCompare, rows: ReportRow[] }

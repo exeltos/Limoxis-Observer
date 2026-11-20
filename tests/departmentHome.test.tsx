@@ -158,8 +158,8 @@ describe('«Το τμήμα μου» of the Department Manager', () => {
     expect([...container.querySelectorAll('.dephome-tile-label')].map(el => el.textContent)).toEqual(['Θετικά δείγματα', 'Νέα επεισόδια / απομονώσεις', 'Υγιεινή χεριών', 'Έλεγχοι εκτός χρόνου'])
     expect(container.querySelectorAll('.dephome-tile')[3].querySelector('.dephome-tile-detail')?.textContent).toMatch(/^σήμερα: \d+ εκπρόθεσμ/)
     // The period on the title's line: the current month against the previous one.
-    expect([...container.querySelectorAll('.dephome-period .lo-mode-switch button')].map(el => el.textContent)).toEqual(['Μήνας', 'Τρίμηνο', 'Εξάμηνο', 'Έτος'])
-    expect(container.querySelector('.dephome-period .lo-mode-switch button.active')?.textContent).toBe('Μήνας')
+    expect([...container.querySelectorAll('.dephome-period .dephome-period-kind button')].map(el => el.textContent)).toEqual(['Μήνας', 'Τρίμηνο', 'Εξάμηνο', 'Έτος'])
+    expect(container.querySelector('.dephome-period .dephome-period-kind button.active')?.textContent).toBe('Μήνας')
     expect(container.querySelector('.page-header p')?.textContent).toMatch(/σε σύγκριση με/)
     expect(screen.getByText('Θετικά δείγματα ανά εβδομάδα')).toBeTruthy()
     expect(screen.getByText('Μικρόβια του τμήματος')).toBeTruthy()

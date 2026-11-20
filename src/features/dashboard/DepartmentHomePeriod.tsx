@@ -1,6 +1,5 @@
 import './departmentHome.css'
 import { useMemo, useState } from 'react'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { hospitalToday } from '../../core/dates/hospitalDate'
@@ -40,7 +39,10 @@ export function DepartmentPeriodControls({ window, language, onKind, onChoice, o
   const kinds = optionsOf(PERIODS, language)
   const compareOptions = COMPARE_CHOICES.map(value => ({ value, label: value === 'none' ? (en ? 'No comparison' : 'Χωρίς σύγκριση') : value === 'previous' ? (en ? 'Compare: previous period' : 'Σύγκριση: προηγούμενη περίοδος') : (en ? 'Compare: same period last year' : 'Σύγκριση: ίδια περίοδος πέρσι') }))
   return <div className="dephome-period">
-    <ModeSwitch className="dephome-period-kind" ariaLabel={en ? 'Period' : 'Περίοδος'} options={kinds} value={window.kind} onChange={value => onKind(value as PeriodKind)}/>
+    {/* One segmented control (owner, 20/11/2026: «δεν έχουν ωραία εικόνα»), the same radios as ModeSwitch without its form styles. */}
+    <div className="dephome-period-kind" role="radiogroup" aria-label={en ? 'Period' : 'Περίοδος'}>
+      {kinds.map(option => <button key={option.value} type="button" role="radio" aria-checked={option.value === window.kind} className={option.value === window.kind ? 'active' : ''} onClick={() => onKind(option.value as PeriodKind)}>{option.label}</button>)}
+    </div>
     <PeriodStepper label={periodRangeLabel(window.period, language)} onPrevious={() => onStep(-1)} onNext={() => onStep(1)} nextDisabled={shiftPeriod(window.period, periodLength(window.period)).from > hospitalToday()}/>
     <SearchableSelect hideLabel className="dephome-period-compare" label={en ? 'Comparison' : 'Σύγκριση'} value={window.choice} onChange={value => value && onChoice(value as CompareChoice)} options={compareOptions}/>
   </div>
