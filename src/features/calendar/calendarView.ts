@@ -24,6 +24,8 @@ const KIND_ONE: Record<'el' | 'en', Record<string, string>>={
 export function calendarTypeLabel(event: CalendarEvent,language='el'){
  const lang=language==='en'?'en':'el'
  const filter=calendarFilterOf(event)
+ // An expiry says what expires: a certificate, a kitchen material or a licence.
+ if(filter==='expiries'){const id=String(event.id||'');const what=id.startsWith('cert:')?(lang==='en'?'Certificate expiry':'Λήξη πιστοποιητικού'):id.startsWith('kit-exp:')?(lang==='en'?'Material expiry':'Λήξη υλικού'):event.kind==='documents'?(lang==='en'?'Licence expiry':'Λήξη άδειας'):'';if(what)return what}
  return FILTER_ONE[lang][filter]||KIND_ONE[lang][event.kind]||calendarKindLabel(event.kind,language)
 }
 // «Εκπαίδευση: Υγιεινή χεριών»; a title that already starts with its kind («Έλεγχος ψυγείου») is not repeated.

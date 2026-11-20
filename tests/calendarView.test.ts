@@ -69,7 +69,9 @@ describe('calendar screen: month', () => {
   it('lists the next 7 days from today and writes each item as kind and title', () => {
     expect(nextDaysGroups(events, today).map(g => g.date)).toEqual(['2026-11-21', '2026-11-22', '2026-11-25'])
     expect(calendarItemLine(events[2])).toBe('Εκπαίδευση: Υγιεινή χεριών')
-    expect(calendarItemLine(events[4])).toBe('Λήξη: Διάλυμα χλωρίου')
+    expect(calendarItemLine(events[4])).toBe('Λήξη υλικού: Διάλυμα χλωρίου')
+    expect(calendarItemLine(ev({ id: 'cert:1', kind: 'training', title: 'ΚΑΡΠΑ' }))).toBe('Λήξη πιστοποιητικού: ΚΑΡΠΑ')
+    expect(calendarItemLine(ev({ id: 'kit-exp:2', kind: 'kitchen', title: 'Λήξη παρτίδας: Γάλα' }))).toBe('Λήξη παρτίδας: Γάλα')
     expect(calendarItemLine(ev({ title: 'Έλεγχος ψυγείου φαρμάκων' }))).toBe('Έλεγχος ψυγείου φαρμάκων')
     expect(calendarItemLine(events[2], 'en')).toBe('Training: Υγιεινή χεριών')
   })
