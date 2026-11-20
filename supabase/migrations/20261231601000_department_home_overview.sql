@@ -44,6 +44,12 @@ begin
     raise exception 'PERMISSION_DENIED' using errcode = '42501';
   end if;
   v_admin := public.current_user_is_platform_owner() or public.is_org_admin(p_organization_id);
+  -- The figures include patients' names and results: only the roles that read the department's patients
+  -- (patients_clinical_read), never any member with a department scope.
+  if not (v_admin or public.current_user_has_org_role(p_organization_id,
+       array['department_manager', 'infection_control_lead', 'infection_control_member', 'doctor_reviewer']::public.app_role[])) then
+    raise exception 'PERMISSION_DENIED' using errcode = '42501';
+  end if;
 
   if coalesce(cardinality(p_department_ids), 0) > 0 then
     foreach v_department in array p_department_ids loop
@@ -100,21 +106,31 @@ begin
            (s.collected_at at time zone 'Europe/Athens')::date as day,
            s.surveillance_case_id is null and s.surveillance_review_status is null and s.sample_code !~ '-R[0-9]+$' as awaiting,
            res.organism,
-           case when upper(coalesce(res.resistance_class, '')) in ('MDR', 'XDR', 'PDR') then upper(res.resistance_class) else res.amr_class end as resistance
+           rz.resistance
       from public.laboratory_samples s
       cross join lateral (
-        select r.organism, r.resistance_class,
-               (select upper(a.classification)
-                  from public.amr_classifications a
-                 where a.organization_id = p_organization_id and a.microbiology_result_id = r.id and a.status <> 'rejected'
-                   and upper(coalesce(a.classification, '')) in ('MDR', 'XDR', 'PDR')
-                 order by a.created_at desc
-                 limit 1) as amr_class
+        select r.organism
           from public.microbiology_results r
          where r.organization_id = p_organization_id and r.sample_id = s.id and r.result_status = 'positive'
-         order by (upper(coalesce(r.resistance_class, '')) in ('MDR', 'XDR', 'PDR')) desc, r.resulted_at desc
+         order by r.resulted_at desc nulls last
          limit 1
       ) res
+      -- The sample's resistance across all its positive results, from the result itself or its AMR classification.
+      cross join lateral (
+        select (array_agg(z.c order by case z.c when 'PDR' then 3 when 'XDR' then 2 else 1 end desc))[1] as resistance
+          from (
+            select upper(r.resistance_class) as c
+              from public.microbiology_results r
+             where r.organization_id = p_organization_id and r.sample_id = s.id and r.result_status = 'positive'
+               and upper(coalesce(r.resistance_class, '')) in ('MDR', 'XDR', 'PDR')
+            union all
+            select upper(a.classification)
+              from public.amr_classifications a
+              join public.microbiology_results r on r.id = a.microbiology_result_id
+             where a.organization_id = p_organization_id and r.sample_id = s.id and r.result_status = 'positive'
+               and a.status <> 'rejected' and upper(coalesce(a.classification, '')) in ('MDR', 'XDR', 'PDR')
+          ) z
+      ) rz
      where s.organization_id = p_organization_id
        and s.department_id = any (v_departments)
        and s.patient_id is not null

@@ -185,3 +185,13 @@ describe('department_home_overview migration', () => {
     expect(manifest.functions?.department_home_overview ?? manifest.department_home_overview).toMatchObject({ category: 'rpc', authenticated: true })
   })
 })
+
+describe('department_home_overview: roles and resistance (Codex review, 20/11/2026)', () => {
+  it('lets only the roles that read the department\'s patients in and takes resistance across all positive results', async () => {
+    const { readSource } = await import('./helpers/readSource')
+    const sql = readSource('supabase/migrations/20261231601000_department_home_overview.sql')
+    expect(sql).toContain("array['department_manager', 'infection_control_lead', 'infection_control_member', 'doctor_reviewer']::public.app_role[]")
+    expect(sql).toContain("array_agg(z.c order by case z.c when 'PDR' then 3 when 'XDR' then 2 else 1 end desc)")
+    expect(sql).toContain('join public.microbiology_results r on r.id = a.microbiology_result_id')
+  })
+})
