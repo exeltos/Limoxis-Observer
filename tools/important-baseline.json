@@ -15,7 +15,7 @@
   "src/design-system/StatusBadge.css": 3,
   "src/features/analysis/AnalysisCharts.css": 10,
   "src/features/analysis/analysisScreens.css": 122,
-  "src/features/calendar/calendar.css": 6,
+  "src/features/calendar/calendar.css": 1,
   "src/features/clinical-scales/clinicalScales.css": 8,
   "src/features/clinical-scales/clinicalScalesScreens.css": 28,
   "src/features/committees/committeeRefinements.css": 31,
