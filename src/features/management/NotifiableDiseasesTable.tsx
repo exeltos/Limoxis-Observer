@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterSelect } from '../../design-system/FilterBar'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { EODY_FOOTNOTES,eodyEntryByName } from '../reporting/eodyCatalogue'
 import type { LanguageContextValue } from '../../core/i18n/languageTypes'
 import type { LibraryTuple } from './managementCloudService'
@@ -17,15 +18,16 @@ const FILTERS=[['all','eodyFilterAll'],['immediate','eodyFilterImmediate'],['24h
 
 // Splits the platform library rows into the 57 catalogue entries (in ΕΟΔΥ order) and the earlier rows
 // that are not in the catalogue; earlier rows are listed only while they are still active.
-export function splitNotifiableRows(rows: LibraryTuple[]=[],{deadline='all',query=''}: {deadline?: string,query?: string}={}){
- const text=query.trim().toLowerCase()
- const match=(row: LibraryTuple)=>!text||`${row[0]} ${row[1]} ${row[2]?.code||''}`.toLowerCase().includes(text)
+// The search finds a row by anything it shows (owner, 19/11/2026: the searches find everything): both names, the code,
+// the deadline and the status, without accents.
+export function splitNotifiableRows(rows: LibraryTuple[]=[],{deadline='all',query='',t}: {deadline?: string,query?: string,t?: T}={}){
+ const match=(row: LibraryTuple,entry?: EodyEntry)=>matchesSearch(query,[row[0],row[1],row[2]?.code,entry?.el,entry?.en,entry&&t?t(`librariesPanel.${DEADLINE_SHORT[entry.deadline]}`):'',t?(row[2]?.active===false?t('librariesPanel.inactiveStatus'):t('librariesPanel.activeStatus')):''])
  const catalogue: CatalogueRow[]=[],legacy: LibraryTuple[]=[]
  for(const row of rows){const entry=eodyEntryByName(row[0]);if(entry)catalogue.push({row,entry});else if(row[2]?.active!==false)legacy.push(row)}
  catalogue.sort((a,b)=>a.entry.n-b.entry.n)
  return {
-  catalogue:catalogue.filter(({row,entry})=>(deadline==='all'||entry.deadline===deadline)&&match(row)),
-  legacy:deadline==='all'?legacy.filter(match):[],
+  catalogue:catalogue.filter(({row,entry})=>(deadline==='all'||entry.deadline===deadline)&&match(row,entry)),
+  legacy:deadline==='all'?legacy.filter(row=>match(row)):[],
  }
 }
 
@@ -35,7 +37,7 @@ export function EodyDeadlineFilter({value,onChange,t}: {value: string,onChange: 
 }
 
 export function NotifiableDiseasesTable({rows,query,deadline='all',language,t,loading,onOpen}: {rows: LibraryTuple[],query: string,deadline?: string,language: string,t: T,loading?: boolean,onOpen?: (row: LibraryTuple)=>void}){
- const {catalogue,legacy}=useMemo(()=>splitNotifiableRows(rows,{deadline,query}),[rows,deadline,query])
+ const {catalogue,legacy}=useMemo(()=>splitNotifiableRows(rows,{deadline,query,t}),[rows,deadline,query,t])
  const en=language==='en'
  const statusCell=(meta: LibraryMeta)=>meta.active===false?<span className="status-badge temporary">{t('librariesPanel.inactiveStatus')}</span>:<span className="eody-status">{t('librariesPanel.activeStatus')}</span>
  return <div className="eody-library">

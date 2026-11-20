@@ -1,4 +1,6 @@
 import { hospitalToday } from '../../../core/dates/hospitalDate'
+import { formatDay } from '../../../core/i18n/formatDay'
+import { matchesSearch } from '../../../core/i18n/searchMatch'
 import type { SatisfactionCounts, Survey, SurveyAnswer, SurveyAnswers, SurveyContent, SurveyComment, SurveyFigures, SurveyResponseInput, SurveyOptionResult, SurveyQuestion, SurveyQuestionResult, SurveyResponse, SurveySection, SurveyTemplate } from './surveyTypes'
 
 // A survey, one of its questions and one response (answers by question id), as the screens use them (surveyTypes).
@@ -382,11 +384,16 @@ export function monthlyTrend(survey: Survey, responses: SurveyResponse[] = []) {
   })
 }
 
-// The responses that match the filters of the results screen.
-export function filterResponses(responses: SurveyResponse[] = [], { query = '', department = 'all', channel = 'all', from = '', to = '' } = {}) {
-  const q = String(query || '').trim().toLowerCase()
+// The responses that match the filters of the results screen. The search finds a response by anything its row
+// and its dialog show (owner, 19/11/2026: the searches find everything): date, department, channel and every answer.
+export function responseSearchParts(response: SurveyResponse, survey: Survey | null = null, language = 'el') {
+  const labels = (survey?.questions || []).map(question => answerText(question, response.answers?.[question.id], language))
+  const raw = Object.values(response.answers || {}).map(value => (typeof value === 'string' || typeof value === 'number' ? value : ''))
+  return [formatDay(response.submittedAt, language), response.department, response.departmentEn, channelLabel(response.channel, language), ...labels, ...raw]
+}
+export function filterResponses(responses: SurveyResponse[] = [], { query = '', department = 'all', channel = 'all', from = '', to = '' } = {}, survey: Survey | null = null, language = 'el') {
   return responses
-    .filter(response => !q || Object.values(response.answers || {}).some(value => typeof value === 'string' && value.toLowerCase().includes(q)))
+    .filter(response => matchesSearch(query, responseSearchParts(response, survey, language)))
     .filter(response => department === 'all' || (response.departmentId || '') === department)
     .filter(response => channel === 'all' || response.channel === channel)
     .filter(response => !from || String(response.submittedAt).slice(0, 10) >= from)

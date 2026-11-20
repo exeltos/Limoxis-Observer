@@ -126,7 +126,7 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersCo
               <FilterBar
                 query={userQuery}
                 onQueryChange={setUserQuery}
-                placeholder={tx('Αναζήτηση χρήστη, email ή ρόλου…', 'Search user, email or role…')}
+                placeholder={tx('Αναζήτηση…', 'Search…')}
                 end={<>{users.length ? <RegistryTotals label={tx('Σύνολα χρηστών', 'User totals')} items={totals} /> : null}</>}
               />
               {loadingUsers ? (

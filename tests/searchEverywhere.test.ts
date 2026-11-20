@@ -9,6 +9,12 @@ import { audienceLabel } from '../src/features/quality/surveys/surveyModel'
 import { filterSelf, selfStatusLabel } from '../src/features/quality/selfAssessment/selfAssessmentModel'
 import { matches as kitchenMatches } from '../src/features/kitchen/KitchenShared'
 import { matchesQuery } from '../src/features/library/libraryModel'
+import { filterResponses } from '../src/features/quality/surveys/surveyModel'
+import { filterRegister as filterLegislation, NO_FILTERS as NO_LEGISLATION_FILTERS } from '../src/features/legislation/legislationModel'
+import { filterCandidates } from '../src/features/interviews/interviewsModel'
+import { splitNotifiableRows } from '../src/features/management/NotifiableDiseasesTable'
+import { preventionSearchParts } from '../src/features/prevention/PreventionTables'
+import { matchesSearch } from '../src/core/i18n/searchMatch'
 import { readSource } from './helpers/readSource'
 
 // The owner, 19/11/2026: «οι αναζητήσεις να ψάχνουν τα πάντα» — every list's search finds a row by anything
@@ -92,5 +98,68 @@ describe('search everywhere: the other lists', () => {
     expect(lab).toContain('matchesSearch(query, labSampleSearchParts(sample, t, language))')
     expect(lab).toContain('labSampleStatus(sample, language).text')
     expect(readSource('src/features/training/TrainingProductionPage.tsx')).toContain('programDepartments.get(x.id),periodText(x.startDate,x.dueDate)')
+  })
+})
+
+describe('search everywhere: the remaining lists', () => {
+  it('survey responses by every answer (in words), the department, the channel and the date', () => {
+    const survey = { questions: [
+      { id: 'q1', type: 'yesno', label: 'Θα μας προτείνατε;', labelEn: 'Would you recommend us?' },
+      { id: 'q2', type: 'single', label: 'Φαγητό', options: [{ value: 'hot', label: 'Ζεστό', labelEn: 'Hot' }, { value: 'cold', label: 'Κρύο', labelEn: 'Cold' }] },
+      { id: 'q3', type: 'text', label: 'Σχόλιο' },
+    ] } as never
+    const responses = [
+      { id: 'r1', departmentId: 'd1', department: 'Παθολογική', departmentEn: 'Internal medicine', channel: 'paper', submittedAt: '2026-10-05T10:00:00Z', answers: { q1: true, q2: 'cold', q3: 'Καθαρό δωμάτιο' } },
+      { id: 'r2', departmentId: 'd2', department: 'ΜΕΘ', departmentEn: 'ICU', channel: 'link', submittedAt: '2026-10-06T10:00:00Z', answers: { q1: false, q2: 'hot' } },
+    ] as never[]
+    const ids = (query: string, language = 'el') => filterResponses(responses, { query }, survey, language).map(row => row.id)
+    expect(ids('κρυο')).toEqual(['r1'])
+    expect(ids('cold', 'en')).toEqual(['r1'])
+    expect(ids('εντυπο καθαρο')).toEqual(['r1'])
+    expect(ids('icu')).toEqual(['r2'])
+    expect(ids('6/10/2026')).toEqual(['r2'])
+    // Without the questionnaire (an earlier year's answers) the free text still counts.
+    expect(filterResponses(responses, { query: 'καθαρο' }).map(row => row.id)).toEqual(['r1'])
+  })
+
+  it('legislation by kind, state and reference; candidates by status; notifiable diseases by deadline', () => {
+    const entry = (code: string, kind: string, state: string) => ({ text: { id: code, code, title: code, kind, status: 'in_force', topics: [], version: 1, reference: 'ΦΕΚ Β 100/2020' }, row: null, history: [], state, summary: { total: 0, compliant: 0, partial: 0, non_compliant: 0, not_applicable: 0, unassessed: 0, percent: null }, reviewLate: false, changed: new Set() })
+    const entries = [entry('LEG-1', 'law', 'new'), entry('LEG-2', 'circular', 'compliant')] as never[]
+    expect(filterLegislation(entries, { ...NO_LEGISLATION_FILTERS, query: 'εγκυκλιος' }, 'el').map(row => row.text.code)).toEqual(['LEG-2'])
+    expect(filterLegislation(entries, { ...NO_LEGISLATION_FILTERS, query: 'needs a decision' }, 'en').map(row => row.text.code)).toEqual(['LEG-1'])
+    expect(filterLegislation(entries, { ...NO_LEGISLATION_FILTERS, query: 'φεκ 100' }, 'el')).toHaveLength(2)
+    const candidates = [
+      { id: '1', code: 'ΥΠ-1', fullName: 'Μαρία Παπά', status: 'offer', requestedPosition: 'Μάγειρας', appliedOn: '2026-03-05' },
+      { id: '2', code: 'ΥΠ-2', fullName: 'Νίκος Ιωάννου', status: 'new', requestedPosition: 'Μάγειρας', appliedOn: '2026-03-06' },
+    ] as never[]
+    expect(filterCandidates(candidates, { query: 'προταση μαγειρας' }).map(row => row.code)).toEqual(['ΥΠ-1'])
+    expect(filterCandidates(candidates, { query: '6/3/2026' }).map(row => row.code)).toEqual(['ΥΠ-2'])
+    expect(filterCandidates(candidates, { query: 'new application', language: 'en' }).map(row => row.code)).toEqual(['ΥΠ-2'])
+    const t = (key: string) => (key === 'librariesPanel.eodyFilterImmediate' ? 'Άμεσα' : key)
+    const legacy = [['Παλιό νόσημα', 'Old disease', { code: 'ND-OLD' }]] as never[]
+    expect(splitNotifiableRows(legacy, { query: 'παλιο ND-OLD', t }).legacy).toHaveLength(1)
+  })
+
+  it('prevention rows by what each tab shows, not by hidden fields', () => {
+    const t = (key: string) => ({ nursing: 'Νοσηλευτικό προσωπικό', complete: 'Ολοκληρωμένος' } as Record<string, string>)[key] || key
+    const hand = { id: 'h1', date: '2026-04-02', departmentEl: 'Χειρουργική', departmentEn: 'Surgery', profession: 'nursing', observations: 10, compliant: 8, rate: 80, observer: 'Ελένη', internalNote: 'κρυφό' } as never
+    expect(matchesSearch('νοσηλευτικο χειρουργικη 02/04/2026', preventionSearchParts('handHygiene', hand, { t, language: 'el' }))).toBe(true)
+    expect(matchesSearch('surgery', preventionSearchParts('handHygiene', hand, { t, language: 'el' }))).toBe(true)
+    expect(matchesSearch('κρυφο', preventionSearchParts('handHygiene', hand, { t, language: 'el' }))).toBe(false)
+    const vaccination = { id: 'v1', employeeId: 'E1', vaccine: 'Γρίπη', status: 'complete', date: '2026-10-01' } as never
+    expect(matchesSearch('γριπη ολοκληρωμενος παπαδοπουλος', preventionSearchParts('vaccinations', vaccination, { t, language: 'el', employee: { id: 'E1', lastName: 'Παπαδόπουλος', firstName: 'Γιώργος' } as never }))).toBe(true)
+  })
+
+  it('platform, management, controls and training lists search what the row shows', () => {
+    expect(readSource('src/features/platform/PlatformAuditSecurityView.tsx')).toContain('eventLabel(row.eventType,en),entityLabel(row.entityType,en)')
+    expect(readSource('src/features/platform/PlatformHealthView.tsx')).toContain('localModule(row.module,language),localRoute(row.route,language)')
+    expect(readSource('src/features/platform/PlatformLoginSessionsView.tsx')).toContain('sessionStatus(row,en).label')
+    expect(readSource('src/features/platform/HospitalDiagnosticsPanel.tsx')).toContain('localMessage(row.message,language)')
+    expect(readSource('src/features/management/LibrariesPanel.tsx')).toContain('matchesSearch(query,librarySearchParts(x))')
+    expect(readSource('src/features/management/EnvironmentalStandardsPanel.tsx')).toContain('sampleTypeLabel(x.subjectType,t),environmentalMethodLabel(x.sourceCode,t)')
+    expect(readSource('src/features/management/ManagementRolesPanel.tsx')).toContain('matchesSearch(roleQuery,[role.name,roleAreas(role.capabilities,en)')
+    expect(readSource('src/features/management/LiraKnowledgePanel.tsx')).toContain('ingestionLabel(x.ingestion_status,en)])')
+    expect(readSource('src/features/controls/ControlExpiryPanel.tsx')).toContain('statusText(item,language),rowFindingText(item.row,language)')
+    expect(readSource('src/features/analysis/TrainingAnalyticsReport.tsx')).toContain('matchesSearch(employeeQuery,[name,department,profession')
   })
 })

@@ -21,6 +21,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { exportRegistry, printRegistry } from '../../core/export/registryExports'
 import { useLegislationAccess } from './legislationAccess'
 import { checkSourcesNow, loadCandidates, loadLibrary, loadRegister, loadSources, removeSource, saveSource, setCandidate } from './legislationService'
@@ -78,7 +79,7 @@ export function LegislationPage() {
   const counts = registerCounts(entries)
   const pending = candidates.items.filter(item => item.status === 'pending')
   const failing = sources.items.filter(item => sourceHealth(item) === 'failing')
-  const visible = useMemo(() => filterRegister(entries, filters), [entries, filters])
+  const visible = useMemo(() => filterRegister(entries, filters, language), [entries, filters, language])
   const { notify } = useFeedback()
 
   const actions = <div className="row-actions">
@@ -113,7 +114,7 @@ function RegisterList({ entries, counts = {}, loading, filters, setFilters, lang
   const paging = usePaging(entries, [filters])
   const advanced = (['topic', 'kind', 'state'] as const).filter(key => filters[key] !== 'all').length + (filters.quick ? 1 : 0)
   return <>
-    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search text, reference, issuer…' : 'Αναζήτηση κειμένου, ΦΕΚ, φορέα…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)}>
+    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)}>
       {/* What needs attention (in place of the cards above the list). */}
       <FilterSelect label={en ? 'Needs attention' : 'Χρειάζεται προσοχή'} value={filters.quick || 'all'} onChange={value => set('quick', value === 'all' ? null : value)}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="new">{en ? `New texts to decide on (${counts.newTexts || 0})` : `Νέα κείμενα προς απόφαση (${counts.newTexts || 0})`}</option><option value="nonCompliant">{en ? `With non-compliance (${counts.nonCompliant || 0})` : `Με μη συμμόρφωση (${counts.nonCompliant || 0})`}</option><option value="reviewLate">{en ? `Review overdue (${counts.reviewLate || 0})` : `Εκπρόθεσμη επανεξέταση (${counts.reviewLate || 0})`}</option></FilterSelect>
       <FilterSelect label={en ? 'Topic' : 'Θέμα'} value={filters.topic} onChange={value => set('topic', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{TOPICS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -150,10 +151,11 @@ function LibraryList({ library, language, onOpen }: { library: LibraryState, lan
   const en = language === 'en'
   const [query, setQuery] = useState('')
   const history = useMemo(() => { const map = new Map<string, LegislationVersion[]>(); for (const version of library.versions) { const list = map.get(version.textId) || []; list.push(version); map.set(version.textId, list) } return map }, [library.versions])
-  const rows = library.texts.filter(item => !query.trim() || `${item.code} ${item.title} ${item.reference}`.toLocaleLowerCase('el').includes(query.trim().toLocaleLowerCase('el')))
+  // Everything the row shows (owner, 19/11/2026: the searches find everything).
+  const rows = library.texts.filter(item => matchesSearch(query, [item.code, item.title, kindLabel(item.kind, language), item.reference, item.version ? `v${item.version}` : '', item.version ? formatDay(item.publishedAt, language) : (en ? 'Not published' : 'Μη δημοσιευμένο'), textStatusLabel(item.status, language)]))
   const paging = usePaging(rows, [query])
   return <>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search the library…' : 'Αναζήτηση στη βιβλιοθήκη…'} onClear={() => setQuery('')} />
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search…' : 'Αναζήτηση…'} onClear={() => setQuery('')} />
     <div className="scroll-table">
       <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!library.loading && !rows.length}
         columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'text', label: en ? 'Text' : 'Κείμενο' }, { key: 'requirements', label: en ? 'Requirements' : 'Απαιτήσεις' }, { key: 'published', label: en ? 'Published' : 'Δημοσίευση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
@@ -178,8 +180,7 @@ function ReviewList({ candidates, texts, language, onChanged, base }: { candidat
   const [status, setStatus] = useState('pending')
   const [query, setQuery] = useState('')
   const [linking, setLinking] = useState<{ candidate: LegislationCandidate, textId: string } | null>(null)
-  const needle = query.trim().toLowerCase()
-  const rows = candidates.items.filter(item => (status === 'all' || item.status === status) && (!needle || [item.title, item.sourceName, item.excerpt, ...(item.matchedKeywords || [])].join(' ').toLowerCase().includes(needle)))
+  const rows = candidates.items.filter(item => (status === 'all' || item.status === status) && matchesSearch(query, [formatDay(item.detectedAt, language), item.sourceName, item.title, item.excerpt, ...(item.matchedKeywords || []), candidateStatusLabel(item.status, language)]))
   const paging = usePaging(rows, [status, query])
   async function dismiss(item: LegislationCandidate) {
     try { await setCandidate(item.id, { status: 'dismissed' }); onChanged() } catch { notify(en ? 'Could not save.' : 'Δεν αποθηκεύτηκε.', 'error') }
@@ -194,7 +195,7 @@ function ReviewList({ candidates, texts, language, onChanged, base }: { candidat
     ] : []),
   ]
   return <>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search the findings…' : 'Αναζήτηση ευρημάτων…'} activeAdvancedCount={status !== 'pending' ? 1 : 0} onClear={() => { setQuery(''); setStatus('pending') }}>
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={status !== 'pending' ? 1 : 0} onClear={() => { setQuery(''); setStatus('pending') }}>
       <FilterSelect label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus}><option value="pending">{en ? 'To review' : 'Προς έλεγχο'}</option><option value="linked">{en ? 'Added' : 'Καταχωρίστηκαν'}</option><option value="dismissed">{en ? 'Dismissed' : 'Απορρίφθηκαν'}</option><option value="all">{en ? 'All' : 'Όλα'}</option></FilterSelect>
     </FilterBar>
     <div className="scroll-table">

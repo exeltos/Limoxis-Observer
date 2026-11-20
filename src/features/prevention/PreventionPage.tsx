@@ -20,7 +20,8 @@ import { loadAntisepticRecords, loadAntisepticSupportData } from './antisepticCl
 import { loadBundleAssessments, loadBundleSupportData } from './bundleCloudService'
 import { loadWasteMeasurements, loadWasteSupportData } from './wasteCloudService'
 import { readRegistryViewState, useRegistryMemory } from '../../core/navigation/useRegistryMemory'
-import { AntisepticTable, BundleTable, HandTable, PreventionEmpty, PreventionKpis, VaccinationTable, WasteTable, dayLabel, fmtMonth, tabIcons } from './PreventionTables'
+import { AntisepticTable, BundleTable, HandTable, PreventionEmpty, PreventionKpis, VaccinationTable, WasteTable, dayLabel, fmtMonth, preventionSearchParts, tabIcons } from './PreventionTables'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import type { AntisepticRecord, BundleAssessment, HandHygieneSession, PreventionEmployee, PreventionTabRow, WasteMeasurement } from './preventionTypes'
 import type { Vaccination } from '../occupational-health/vaccinationService'
 import type { WasteSupport } from './wasteCloudService'
@@ -172,12 +173,7 @@ export function PreventionPage() {
       return source
         .filter(x => Boolean(employeeMap[x.employeeId as string]))
         .filter(x => canAccessRecord(employeeMap[x.employeeId as string]))
-        .filter(x => {
-          const e = employeeMap[x.employeeId as string]
-          const hay =
-            `${e?.id ?? ''} ${e?.firstName ?? ''} ${e?.firstNameEn ?? ''} ${e?.lastName ?? ''} ${e?.lastNameEn ?? ''} ${x.vaccine ?? ''}`.toLowerCase()
-          return hay.includes(query.toLowerCase())
-        })
+        .filter(x => matchesSearch(query, preventionSearchParts(tab, x as PreventionTabRow, { t, language, employee: employeeMap[x.employeeId as string] })))
         .filter(x =>
           inDepartment(
             department,
@@ -190,7 +186,8 @@ export function PreventionPage() {
       source
         .filter(x => x.lifecycleStatus !== 'voided')
         .filter(x => canAccessRecord({ ...x, department: x.departmentEl }))
-        .filter(x => JSON.stringify(x).toLowerCase().includes(query.toLowerCase()))
+        // Everything the row shows (owner, 19/11/2026: the searches find everything).
+        .filter(x => matchesSearch(query, preventionSearchParts(tab, x as PreventionTabRow, { t, language })))
         .filter(x => inDepartment(department, x.departmentEl, x.departmentEn))
         .filter(x => period === 'all' || x.period === period)
         .filter(x => product === 'all' || x.product === product)
@@ -210,6 +207,8 @@ export function PreventionPage() {
     method,
     status,
     canAccessRecord,
+    t,
+    language,
   ])
 
   const reloadHandHygiene = useCallback(async () => {
@@ -496,7 +495,7 @@ export function PreventionPage() {
         <FilterBar
           query={query}
           onQueryChange={setQuery}
-          placeholder={tab === 'vaccinations' ? t('searchEmployees') : t('searchPrevention')}
+          placeholder={t('searchPrevention')}
           end={<PreventionKpis
             tab={tab}
             language={language}

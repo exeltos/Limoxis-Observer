@@ -7,14 +7,19 @@
 /* Platform Owner: hospital screen lock and identity on the organization record. */
 .platform-identity-grid .field>span svg{vertical-align:-2px}
 .platform-identity-logo{grid-column:1/-1}
-/* One row on a desktop (owner, 19/11/2026: the organization record fits without scrolling): lock, guides, report
-   header and logo side by side; tablets keep two columns. */
-@media(min-width:1181px){
-  .platform-identity-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .platform-identity-grid>.field-wide,.platform-identity-grid>.platform-identity-logo{grid-column:auto}
-  .platform-identity-logo-box{width:120px;height:42px}
-  .platform-identity-logo-box img{max-width:110px;max-height:34px}
-}
 .platform-identity-logo-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .platform-identity-logo-box{display:grid;place-items:center;width:160px;height:56px;border:1px dashed var(--border-brand-782);border-radius:10px;background:var(--surface-neutral-976);color:var(--text-brand-702)}
 .platform-identity-logo-box img{max-width:148px;max-height:46px;object-fit:contain}
+/* On a desktop (owner, 19/11/2026): lock, guides and report header on one row; the logo below them on one compact
+   line with «Change» and the bin, so that the record fits without scrolling. Tablets keep two columns.
+   Kept after the base rules so that it wins. */
+@media(min-width:1181px){
+  .platform-form-grid.platform-identity-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .platform-form-grid.platform-identity-grid>.field-wide{grid-column:auto}
+  .platform-form-grid.platform-identity-grid>.platform-identity-logo{grid-column:1/-1}
+  .platform-identity-grid .platform-identity-logo-box{width:120px;height:42px}
+  .platform-identity-grid .platform-identity-logo-box img{max-width:110px;max-height:34px}
+  /* The logo, «Change» and the bin on one line, as tall as the fields beside them: no second row (owner, 19/11/2026). */
+  .platform-identity-grid .platform-identity-logo-row{flex-wrap:nowrap}
+  .platform-identity-grid .platform-identity-logo-row .button{min-height:42px;padding-inline:10px;white-space:nowrap}
+}

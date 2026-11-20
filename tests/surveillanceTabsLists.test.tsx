@@ -185,3 +185,28 @@ describe('Sorting the environmental samples list', () => {
     expect(sortRowsBy(rows, x => x.result, 'asc').map(x => x.result)).toEqual(['fail', 'pass'])
   })
 })
+
+describe('Outbreak investigation department (owner, 19/11/2026)', () => {
+  it('keeps the department of the title when the laboratory knows it, otherwise the whole hospital', async () => {
+    const { outbreakDepartment } = await import('../src/features/management/LiraOutbreakInvestigationsPanel')
+    const lab = [{ department: 'Παθολογική' }, { department: 'ΜΕΘ' }]
+    expect(outbreakDepartment({ title: 'Candida spp — Παθολογική' }, lab)).toBe('Παθολογική')
+    expect(outbreakDepartment({ title: 'Candida spp — Καρδιολογική' }, lab)).toBe('all')
+    expect(outbreakDepartment({ title: 'Candida spp' }, lab)).toBe('all')
+  })
+})
+
+describe('An open outbreak investigation (owner, 19/11/2026)', () => {
+  it('has two tabs and a case row opens its review with a click', async () => {
+    await openOutbreaks()
+    fireEvent.click(await screen.findByRole('radio', { name: /Διερευνήσεις/ }))
+    fireEvent.click(document.querySelector('.outbreak-investigations tbody tr.clickable-row'))
+    await waitFor(() => expect(document.querySelector('.outbreak-case-table tbody tr.clickable-row')).not.toBeNull())
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual(['Περιστατικά', 'Ενέργειες & αποφάσεις'])
+    expect(screen.queryByText('Βοηθός διερεύνησης LIRA')).not.toBeInTheDocument()
+    expect(screen.queryByText('Πίνακας διερεύνησης')).not.toBeInTheDocument()
+    expect(document.querySelector('.outbreak-case-table tbody button')).toBeNull()
+    fireEvent.keyDown(document.querySelector('.outbreak-case-table tbody tr.clickable-row'), { key: 'Enter' })
+    expect(await screen.findByText('Ανθρώπινη αξιολόγηση περιστατικού')).toBeInTheDocument()
+  })
+})

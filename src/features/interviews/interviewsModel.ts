@@ -1,5 +1,7 @@
 // Συνεντεύξεις υποψηφίων: the pipeline of an application, the interview evaluation and
 // the decision. Pure: the screens, the service and the reports read these.
+import { formatDay } from '../../core/i18n/formatDay'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import type { Candidate, CandidateDecision, CandidateLanguage, Interview, InterviewEmployee, UpcomingInterview } from './interviewsTypes'
 
 type LabelMap = Record<string, string[]> // the labels of each value: [Greek, English]
@@ -98,12 +100,13 @@ export function pipelineCounts(candidates: Candidate[] = []): Record<string, num
 export const positionsOf = (candidates: Candidate[]) => [...new Set(candidates.map(item => String(item.requestedPosition || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
 
 const fold = (value: unknown) => String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-export function filterCandidates(candidates: Candidate[] = [], { query = '', status = 'all', position = 'all', source = 'all' }: { query?: string, status?: string, position?: string, source?: string } = {}) {
-  const needle = fold(query).trim()
+// The search finds an application by anything its row shows (owner, 19/11/2026: the searches find everything).
+export const candidateSearchParts = (item: Candidate, language = 'el') => [item.code, item.fullName, item.email, item.phoneMobile, item.phoneLandline, item.requestedPosition, item.area, categoryLabel(item.professionalCategory, language), employmentLabel(item.employmentType, language), item.appliedOn ? fmtDay(item.appliedOn) : '', item.appliedOn ? formatDay(item.appliedOn, language) : '', statusLabel(item.status, language), item.source === 'tablet' ? (language === 'en' ? 'From tablet' : 'Από tablet') : '']
+export function filterCandidates(candidates: Candidate[] = [], { query = '', status = 'all', position = 'all', source = 'all', language = 'el' }: { query?: string, status?: string, position?: string, source?: string, language?: string } = {}) {
   return candidates.filter(item => (status === 'all' || (status === 'open' ? OPEN_STATUSES.includes(item.status) : item.status === status))
     && (position === 'all' || String(item.requestedPosition || '').trim() === position)
     && (source === 'all' || item.source === source)
-    && (!needle || fold([item.code, item.fullName, item.email, item.phoneMobile, item.phoneLandline, item.requestedPosition, item.area].join(' ')).includes(needle)))
+    && matchesSearch(query, candidateSearchParts(item, language)))
 }
 
 // An application's interviews in order, the next one to come and the latest evaluated.

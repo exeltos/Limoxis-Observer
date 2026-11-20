@@ -15,6 +15,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { listLoginAttempts,listLoginSessions,releaseLoginLock } from './platformAuditService'
 import { athensDateTime,athensTime } from './platformOverviewShared'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { RecordLink } from './RecordLink'
 import { useRecordLinks,usePlatformUsers } from './useRecordLinks'
 import { useEndLoginSessions } from './useEndLoginSessions'
@@ -68,20 +69,21 @@ export function PlatformLoginSessionsView({language='el',tabs=null}: {language?:
   const online=sessions.filter(row=>row.online).length
   const active=sessions.filter(row=>row.active).length
   const failed24=attempts.filter(row=>!row.success&&now-new Date(row.createdAt).getTime()<86400000).length
-  const needle=query.trim().toLocaleLowerCase(en?'en-US':'el-GR')
-  const matches=(text: string)=>!needle||String(text).toLocaleLowerCase(en?'en-US':'el-GR').includes(needle)
+  // Everything the row shows (owner, 19/11/2026: the searches find everything).
+  const matches=(parts: unknown[])=>matchesSearch(query,parts)
+  const resultLabel=(row: LoginAttempt)=>row.success?tx('Επιτυχία','Success'):row.reason==='locked'?tx('Κλειδωμένο','Locked'):row.reason==='unknown_user'?tx('Άγνωστος χρήστης','Unknown user'):tx('Λάθος κωδικός','Wrong password')
 
   const filteredSessions=useMemo(()=>sessions.filter(row=>{
     if(status==='online'&&!row.online)return false
     if(status==='active'&&!row.active)return false
     if(status==='ended'&&row.active)return false
-    return matches(`${row.fullName} ${row.username} ${row.email} ${row.organizations} ${row.ip} ${row.lastIp} ${deviceLabel(row.userAgent,en)}`)
-  }),[sessions,status,needle,en]) // eslint-disable-line react-hooks/exhaustive-deps
+    return matches([row.fullName,row.username,row.email,row.isPlatformOwner?tx('Ιδιοκτήτης Πλατφόρμας','Platform Owner'):row.organizations,row.ip,row.lastIp,deviceLabel(row.userAgent,en),short(row.startedAt),short(row.endedAt||row.lastSeenAt),sessionStatus(row,en).label])
+  }),[sessions,status,query,en]) // eslint-disable-line react-hooks/exhaustive-deps
   const filteredAttempts=useMemo(()=>attempts.filter(row=>{
     if(result==='failed'&&row.success)return false
     if(result==='success'&&!row.success)return false
-    return matches(`${row.identifier} ${row.ip} ${deviceLabel(row.userAgent,en)}`)
-  }),[attempts,result,needle,en]) // eslint-disable-line react-hooks/exhaustive-deps
+    return matches([short(row.createdAt),row.identifier,row.ip,deviceLabel(row.userAgent,en),resultLabel(row)])
+  }),[attempts,result,query,en]) // eslint-disable-line react-hooks/exhaustive-deps
   const list=mode==='sessions'?filteredSessions:filteredAttempts
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize)),safePage=Math.min(page,totalPages),paged=list.slice((safePage-1)*pageSize,safePage*pageSize)
 
@@ -93,7 +95,6 @@ export function PlatformLoginSessionsView({language='el',tabs=null}: {language?:
     catch(err){notifyError(err,'save',{operation:'platform_release_login_lock'})}
   }
 
-  const resultLabel=(row: LoginAttempt)=>row.success?tx('Επιτυχία','Success'):row.reason==='locked'?tx('Κλειδωμένο','Locked'):row.reason==='unknown_user'?tx('Άγνωστος χρήστης','Unknown user'):tx('Λάθος κωδικός','Wrong password')
   const exportItems=[
     {id:'sessions',label:tx('Excel: συνδέσεις','Excel: sessions'),disabled:!filteredSessions.length,onClick:()=>exportRegistry({name:tx('syndeseis','sign-ins'),headers:[tx('Χρήστης','User'),tx('Όνομα χρήστη','Username'),tx('Οργανισμός','Organization'),'IP',tx('Τελευταία IP','Last IP'),tx('Συσκευή','Device'),tx('Έναρξη','Start'),tx('Τελευταία δραστηριότητα','Last activity'),tx('Λήξη','End'),tx('Διάρκεια','Duration'),tx('Κατάσταση','Status')],rows:filteredSessions.map(row=>[row.fullName,row.username,row.isPlatformOwner?tx('Ιδιοκτήτης Πλατφόρμας','Platform Owner'):row.organizations,row.ip,row.lastIp,deviceLabel(row.userAgent,en),fmt(row.startedAt),fmt(row.lastSeenAt),fmt(row.endedAt),durationText(row,now,en),sessionStatus(row,en).label])})},
     {id:'attempts',label:tx('Excel: προσπάθειες σύνδεσης','Excel: sign-in attempts'),disabled:!filteredAttempts.length,onClick:()=>exportRegistry({name:tx('prospatheies-syndesis','sign-in-attempts'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Όνομα χρήστη / email','Username / e-mail'),'IP',tx('Συσκευή','Device'),tx('Αποτέλεσμα','Result')],rows:filteredAttempts.map(row=>[fmt(row.createdAt),row.identifier,row.ip,deviceLabel(row.userAgent,en),resultLabel(row)])})},
@@ -112,7 +113,7 @@ export function PlatformLoginSessionsView({language='el',tabs=null}: {language?:
       </div>
     </div>}
     <div className="platform-registry-shell workspace-column">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση χρήστη, οργανισμού ή IP…','Search user, organization or IP…')} activeAdvancedCount={mode==='sessions'?(status!=='all'?1:0):(result!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setResult('all')}}
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση…','Search…')} activeAdvancedCount={mode==='sessions'?(status!=='all'?1:0):(result!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setResult('all')}}
         end={<div className="login-sessions-end"><ModeSwitch ariaLabel={tx('Προβολή','View')} value={mode} onChange={setMode} options={[{value:'sessions',label:tx('Συνδέσεις','Sessions')},{value:'attempts',label:tx('Προσπάθειες','Attempts')}]}/><RegistryTotals label={tx('Σύνολα συνδέσεων','Sign-in totals')} items={mode==='sessions'?[
           {key:'online',value:online,always:true,label:tx('συνδεδεμένοι τώρα','online now'),tone:online?'good':undefined,active:status==='online',onClick:()=>setStatus(status==='online'?'all':'online')},
           {key:'active',value:active,label:tx('ενεργές συνδέσεις','active sessions'),active:status==='active',onClick:()=>setStatus(status==='active'?'all':'active')},

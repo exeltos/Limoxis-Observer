@@ -46,7 +46,7 @@ function InterviewsListPage() {
   const candidates = useMemo(() => state?.candidates || [], [state])
   const counts = useMemo(() => pipelineCounts(candidates), [candidates])
   const positions = useMemo(() => positionsOf(candidates), [candidates])
-  const rows = useMemo(() => filterCandidates(candidates, { query, status, position }).sort((a, b) => String(b.appliedOn || '').localeCompare(String(a.appliedOn || '')) || String(b.code).localeCompare(String(a.code))), [candidates, query, status, position])
+  const rows = useMemo(() => filterCandidates(candidates, { query, status, position, language }).sort((a, b) => String(b.appliedOn || '').localeCompare(String(a.appliedOn || '')) || String(b.code).localeCompare(String(a.code))), [candidates, query, status, position, language])
   useEffect(() => setPage(1), [query, status, position, pageSize])
 
   if (!state) return <Page fill title={en ? 'Interviews' : 'Συνεντεύξεις'}><div className="inline-empty">{loading ? (en ? 'Loading…' : 'Φόρτωση…') : (en ? 'The applications could not be loaded.' : 'Δεν ήταν δυνατή η φόρτωση των αιτήσεων.')}</div></Page>
@@ -67,7 +67,7 @@ function InterviewsListPage() {
   </div>
   return <Page fill className="registry-fill-page interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'} subtitle={en ? 'Candidate applications, interviews with their evaluation, the decision and the hiring.' : 'Αιτήσεις υποψηφίων, συνεντεύξεις με την αξιολόγησή τους, απόφαση και πρόσληψη.'} actions={actions}>
     <section className="surface registry-workspace workspace-column workspace-fill">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search name, code, phone, email, position…' : 'Αναζήτηση ονόματος, κωδικού, τηλεφώνου, email, θέσης…'} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (position !== 'all' ? 1 : 0)} onClear={clear}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (position !== 'all' ? 1 : 0)} onClear={clear}>
         <FilterSelect label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus}><option value="all">{en ? 'All' : 'Όλες'}</option><option value="open">{en ? 'Open (in progress)' : 'Ανοιχτές (σε εξέλιξη)'}</option>{statusOptions(language).map(item => <option key={item.value} value={item.value}>{item.label}{['new', 'interview_scheduled', 'offer', 'hired'].includes(item.value) ? ` (${counts[item.value] || 0})` : ''}</option>)}</FilterSelect>
         <FilterSelect label={en ? 'Position' : 'Θέση'} value={position} onChange={setPosition}><option value="all">{en ? 'All positions' : 'Όλες οι θέσεις'}</option>{positions.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
       </FilterBar>

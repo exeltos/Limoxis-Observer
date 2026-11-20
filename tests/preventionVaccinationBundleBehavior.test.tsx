@@ -113,13 +113,13 @@ describe('staff vaccinations as a native Prevention tab', () => {
     expect(rowOf('Αντωνίου Γεώργιος')).toHaveTextContent('Ηπατίτιδα Β')
     const workspace = document.querySelector<HTMLElement>('.registry-workspace.prevention-workspace')
     expect(workspace.querySelector('.filter-system')).not.toBeNull()
-    expect(within(workspace).getByPlaceholderText('Αναζήτηση εργαζομένου…')).toBeInTheDocument()
+    expect(within(workspace).getByPlaceholderText('Αναζήτηση στην Πρόληψη…')).toBeInTheDocument()
     expect(workspace.querySelector('.registry-pagination')).not.toBeNull()
   })
 
   it('filters the vaccination registry from the filter bar search', async () => {
     await openVaccinations()
-    fireEvent.change(screen.getByPlaceholderText('Αναζήτηση εργαζομένου…'), { target: { value: 'Αντωνίου' } })
+    fireEvent.change(screen.getByPlaceholderText('Αναζήτηση στην Πρόληψη…'), { target: { value: 'Αντωνίου' } })
     await waitFor(() => expect(rowOf('Παπαδοπούλου Μαρία')).toBeUndefined())
     expect(rowOf('Αντωνίου Γεώργιος')).toBeTruthy()
   })

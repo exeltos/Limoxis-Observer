@@ -71,7 +71,7 @@ export function OrganizationIdentitySection({organization,language='el',onSaved}
      <div className="platform-identity-logo-box">{draft.logo?<img src={draft.logo} alt=""/>:<Building2 size={22}/>}</div>
      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden onChange={event=>void pick(event)}/>
      <Button variant="secondary" onClick={()=>fileRef.current?.click()}><ImagePlus size={15}/>{draft.logo?tx(' Αλλαγή',' Change'):tx(' Επιλογή εικόνας',' Choose image')}</Button>
-     {draft.logo&&<Button variant="secondary" onClick={()=>setDraft(current=>({...current,logo:''}))}><Trash2 size={15}/>{tx(' Αφαίρεση',' Remove')}</Button>}
+     {draft.logo&&<Button variant="secondary" className="platform-identity-logo-remove" aria-label={tx('Αφαίρεση λογότυπου','Remove logo')} title={tx('Αφαίρεση λογότυπου','Remove logo')} onClick={()=>setDraft(current=>({...current,logo:''}))}><Trash2 size={15}/></Button>}
     </div>
    </div>
   </div>

@@ -13,6 +13,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { deviceLabel,durationText,sessionStatus } from './loginSessionsModel'
 import { useEndLoginSessions } from './useEndLoginSessions'
 import { athensDateTime } from './platformOverviewShared'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { RecordLink } from './RecordLink'
 import './loginSessions.css'
 import type { LoginSession,RuntimeEventRow } from './platformTypes'
@@ -47,10 +48,10 @@ export function HospitalDiagnosticsPanel({organization,language='el',sessions=[]
  const load=useCallback(async()=>{if(!organization?.id){setRows([]);setLoading(false);return}setLoading(true);setError(null);try{setRows(await listRuntimeEvents(organization.id,{limit:500}))}catch(err){setError(err);notifyError(err,'load',{operation:'platform_diagnostics_load'})}finally{setLoading(false)}},[organization?.id,notifyError])
  useEffect(()=>{void load()},[load])
  const modules=useMemo(()=>[...new Set(rows.map(x=>x.module).filter(Boolean))].sort(),[rows])
- const filtered=useMemo(()=>rows.filter(row=>{if(severity!=='all'&&row.severity!==severity)return false;if(module!=='all'&&row.module!==module)return false;const hay=`${row.message} ${row.actorName} ${row.role} ${row.module} ${row.operation} ${row.route} ${row.diagnosticCode}`.toLowerCase();return hay.includes(query.trim().toLowerCase())}),[rows,severity,module,query])
+ const filtered=useMemo(()=>rows.filter(row=>{if(severity!=='all'&&row.severity!==severity)return false;if(module!=='all'&&row.module!==module)return false;const meta=severityMeta[row.severity]||severityMeta.info;return matchesSearch(query,[fmtDate(row.occurredAt,language),meta[language==='en'?'en':'el']||meta.el,localModule(row.module,language),localRoute(row.route,language),localMessage(row.message,language),row.message,row.diagnosticCode,row.actorName,roleLabel(row.role,language),localOperation(row.operation,language),row.appVersion,row.module,row.operation])}),[rows,severity,module,query,language])
  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=filtered.slice((safePage-1)*pageSize,safePage*pageSize)
- const needle=query.trim().toLocaleLowerCase(en?'en-US':'el-GR')
- const filteredSessions=useMemo(()=>sessions.filter(row=>{if(sessionStatusFilter==='online'&&!row.online)return false;if(sessionStatusFilter==='active'&&!row.active)return false;if(sessionStatusFilter==='ended'&&row.active)return false;return !needle||`${row.fullName} ${row.username} ${row.email} ${row.ip} ${row.lastIp} ${deviceLabel(row.userAgent,en)}`.toLocaleLowerCase(en?'en-US':'el-GR').includes(needle)}).sort((a,b)=>String(b.startedAt||'').localeCompare(String(a.startedAt||''))),[sessions,sessionStatusFilter,needle,en])
+ // Both lists find a row by everything it shows (owner, 19/11/2026: the searches find everything).
+ const filteredSessions=useMemo(()=>sessions.filter(row=>{if(sessionStatusFilter==='online'&&!row.online)return false;if(sessionStatusFilter==='active'&&!row.active)return false;if(sessionStatusFilter==='ended'&&row.active)return false;return matchesSearch(query,[row.fullName,row.username,row.email,row.ip,row.lastIp,deviceLabel(row.userAgent,en),shortTime(row.startedAt),shortTime(row.endedAt||row.lastSeenAt),sessionStatus(row,en).label])}).sort((a,b)=>String(b.startedAt||'').localeCompare(String(a.startedAt||''))),[sessions,sessionStatusFilter,query,en])
  const listLength=mode==='sessions'?filteredSessions.length:filtered.length,listPages=Math.max(1,Math.ceil(listLength/pageSize)),listPage=Math.min(page,listPages),pagedSessions=filteredSessions.slice((listPage-1)*pageSize,listPage*pageSize)
  useEffect(()=>setPage(1),[query,severity,module,pageSize,mode,sessionStatusFilter]);useEffect(()=>{if(page>listPages)setPage(listPages)},[page,listPages])
  const count=(key: string)=>rows.filter(x=>x.severity===key).length,errorCount=count('error'),blockedCount=count('blocked'),warningCount=count('warning')
@@ -84,7 +85,7 @@ export function HospitalDiagnosticsPanel({organization,language='el',sessions=[]
  // Clinical record content is never shown here: only technical and operational events and sign-ins.
  return <div className="platform-diagnostics-view workspace-column workspace-fill">
   <section className="surface registry-workspace workspace-column workspace-fill platform-diagnostics-registry">
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={mode==='sessions'?tx('Αναζήτηση χρήστη ή IP…','Search user or IP…'):tx('Αναζήτηση περιγραφής, χρήστη ή ενότητας…','Search description, user or area…')} activeAdvancedCount={mode==='sessions'?(sessionStatusFilter!=='all'?1:0):(severity!=='all'?1:0)+(module!=='all'?1:0)} onClear={()=>{setQuery('');setSeverity('all');setModule('all');setSessionStatusFilter('all')}}
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση…','Search…')} activeAdvancedCount={mode==='sessions'?(sessionStatusFilter!=='all'?1:0):(severity!=='all'?1:0)+(module!=='all'?1:0)} onClear={()=>{setQuery('');setSeverity('all');setModule('all');setSessionStatusFilter('all')}}
     end={<div className="login-sessions-end"><ModeSwitch ariaLabel={tx('Προβολή','View')} value={mode} onChange={setMode} options={[{value:'events',label:tx('Συμβάντα','Events')},{value:'sessions',label:tx('Συνδέσεις','Sign-ins')}]}/><RegistryTotals label={mode==='sessions'?tx('Σύνολα συνδέσεων','Sign-in totals'):tx('Σύνολα συμβάντων','Event totals')} items={totals}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={refresh} disabled={mode==='sessions'?loadingSessions:loading}><RefreshCw size={16}/></IconButton></div>}>
     {mode==='sessions'
      ?<FilterSelect label={tx('Κατάσταση','Status')} value={sessionStatusFilter} onChange={setSessionStatusFilter}><option value="all">{tx('Όλες','All')}</option><option value="online">{tx('Συνδεδεμένοι τώρα','Online now')}</option><option value="active">{tx('Ενεργές','Active')}</option><option value="ended">{tx('Έληξαν','Ended')}</option></FilterSelect>

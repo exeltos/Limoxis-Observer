@@ -8,6 +8,7 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterBar } from '../../design-system/FilterBar'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { demoLibrarySeed,newLocalLibraryItem } from './managementData'
@@ -58,7 +59,9 @@ export function LibrariesPanel({global=false,only=null,exclude=[],leadItems=[],e
  const [active,setActive]=useState(()=>{const ids=[...leadItems.map(item=>item.id),...visibleCategories.map(([id])=>id),...extraItems.map(item=>item.id)];return initial&&ids.includes(initial)?initial:ids[0]});const extra=[...leadItems,...extraItems].find(item=>item.id===active)||null;const activeCategory=categories.find(([id])=>id===active);const [query,setQuery]=useState('');const [eodyDeadline,setEodyDeadline]=useState('all');const [rows,setRows]=useState<LibraryMap>(()=>isDemo?loadDemoState():{});const [loading,setLoading]=useState(!isDemo);const [editor,setEditor]=useState<LibraryEditor|null>(null);const [draft,setDraft]=useState({el:'',en:'',type:'general'})
  useEffect(()=>{if(global){let mounted=true;setLoading(true);loadGlobalLibraryItems().then(data=>{if(mounted)setRows(data as LibraryMap)}).catch(error=>{if(mounted)notify(error?.message||t('loadFailed'),'error')}).finally(()=>{if(mounted)setLoading(false)});return()=>{mounted=false}}if(isDemo){setRows(loadDemoState());setLoading(false);return}if(!tenant?.id){setRows({});setLoading(false);return}let mounted=true;setLoading(true);loadManagementLibraries(tenant.id).then(data=>{if(mounted)setRows(data)}).catch(error=>{if(mounted)notify(error?.message||t('loadFailed'),'error')}).finally(()=>{if(mounted)setLoading(false)});return()=>{mounted=false}},[global,isDemo,tenant?.id,notify,t])
  const [statusFilter,setStatusFilter]=useState('all')
- const filtered=useMemo(()=>(rows[active]||[]).filter(x=>(statusFilter==='all'||(statusFilter==='inactive')===(x[2]?.active===false))&&`${x[0]} ${x[1]} ${x[2]?.source||''}`.toLowerCase().includes(query.toLowerCase())),[active,query,rows,statusFilter])
+ // Everything the row shows (owner, 19/11/2026: the searches find everything): both names, source and version, type, status.
+ const librarySearchParts=(x: LibraryRow)=>{const meta=x[2]||{};const departmentType=active==='departments'?departmentTypeValue(meta.departmentType):'general';return [x[0],x[1],!meta.source||meta.source==='Hospital'?t('libraryHospitalSource'):meta.source,meta.version&&meta.version!=='current'?(meta.version==='local'?t('libraryLocalVersion'):meta.version):'',departmentType!=='general'?t(`librariesPanel.departmentType_${departmentType}`):'',meta.active===false?t('librariesPanel.inactiveStatus'):t('librariesPanel.statusActive')]}
+ const filtered=useMemo(()=>(rows[active]||[]).filter(x=>(statusFilter==='all'||(statusFilter==='inactive')===(x[2]?.active===false))&&matchesSearch(query,librarySearchParts(x))),[active,query,rows,statusFilter]) // eslint-disable-line react-hooks/exhaustive-deps
  // Pages of 15 with the registries' pager, the whole list sorted first (owner, 10/11/2026: the table area keeps its
  // height and the page does not scroll).
  const paging=useSortedPaging(filtered,`${active}|${query}|${statusFilter}`,{name:(row: LibraryRow)=>String(row[language==='el'?0:1]||''),source:(row: LibraryRow)=>String(row[2]?.source||''),status:(row: LibraryRow)=>(row[2]?.active===false?1:0)})
@@ -115,8 +118,8 @@ function GroupedRail({groups,items,active,onSelect,renderItem,t}: {groups: RailG
  const [search,setSearch]=useState('')
  const [open,setOpen]=useState(()=>new Set(groups.filter(group=>group.ids.includes(active)).map(group=>group.id)))
  const byId=new Map(items.map(item=>[item.id,item]))
- const q=search.trim().toLowerCase()
- const matched=groups.map(group=>({...group,items:group.ids.map(id=>byId.get(id)).filter(Boolean).filter(item=>!q||item.label.toLowerCase().includes(q))})).filter(group=>group.items.length)
+ const q=search.trim()
+ const matched=groups.map(group=>({...group,items:group.ids.map(id=>byId.get(id)).filter(Boolean).filter(item=>matchesSearch(q,[item.label]))})).filter(group=>group.items.length)
  // Lists with nothing in them (and not the open one) are gathered in one closed group at the end.
  const isEmpty=(item: RailEntry)=>item.count===0&&item.id!==active
  const shown=[...matched.map(group=>({...group,items:group.items.filter(item=>!isEmpty(item))})).filter(group=>group.items.length),...(matched.flatMap(group=>group.items.filter(isEmpty)).length?[{id:'__empty',label:t('librariesPanel.emptyLists'),items:matched.flatMap(group=>group.items.filter(isEmpty))}]:[])]
