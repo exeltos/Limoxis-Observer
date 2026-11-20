@@ -87,7 +87,6 @@ button.calendar-card-more{cursor:pointer}
 .calendar-pending .filter-end{flex:1 1 auto;justify-content:flex-start}
 .calendar-pending .calendar-kinds{margin-left:auto}
 .calendar-pending .filter-search{flex:0 1 300px}
-.calendar-scope>button{white-space:nowrap}
 .calendar-pending-date{width:110px;white-space:nowrap}
 .calendar-pending-what strong{display:block;font-size:12.5px;color:var(--lo-color-text)}
 .calendar-pending-what small{display:block;margin-top:1px;font-size:11px;color:var(--lo-color-muted)}

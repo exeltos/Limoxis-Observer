@@ -1,0 +1,26 @@
+/* The home of the Department User and the Link Nurse: four figures (the department home's tiles), then three columns in
+   one screen. The page does not scroll on a computer or tablet: the lists scroll inside their cards. */
+.dashboard-page.page-fill>.userhome{flex:1 1 0;min-height:0}
+.userhome{display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;min-height:0}
+.userhome-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-height:0}
+.userhome-stack{display:grid;grid-template-rows:minmax(0,1.15fr) minmax(0,1fr);gap:12px;min-height:0}
+.userhome-stack.is-single{grid-template-rows:minmax(0,1fr)}
+.userhome .dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.userhome .dashboard-card .lo-card-header{margin:0 0 8px;padding:0 0 8px}
+.userhome .task-list,.userhome .dashboard-announcements,.userhome .dashboard-week-list,.userhome-trainings{flex:1 1 auto;min-height:0;overflow:auto;align-content:start}
+.userhome-trainings{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.userhome-trainings button{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;padding:8px 4px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.userhome-trainings button:hover:not(:disabled){background:var(--lo-shell-control-hover)}
+.userhome-trainings button:disabled{cursor:default}
+.userhome-training-copy{display:flex;flex-direction:column;min-width:0}
+.userhome-training-copy strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.userhome-training-copy small{font-size:11.5px;color:var(--lo-color-muted)}
+.userhome-week-card .dashboard-week-list>button{grid-template-columns:74px minmax(0,1fr)}
+.userhome-own{display:inline-block;margin-right:6px;padding:0 6px;border-radius:999px;background:var(--lo-status-info-bg);color:var(--lo-color-primary);font-style:normal;font-size:11px;font-weight:700}
+.userhome-calendar-link{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 8px;border:0;border-radius:8px;background:none;color:var(--lo-color-primary);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.userhome-calendar-link:hover{background:var(--lo-color-surface-muted)}
+/* A tablet keeps the three columns, with smaller figures so the tiles' words fit. */
+@media(max-width:1180px){.userhome .dephome-tile{padding:9px 12px}.userhome .dephome-tile-value{font-size:22px}.userhome-week-card .dashboard-week-list>button{grid-template-columns:62px minmax(0,1fr);gap:8px}
+  /* «Σήμανση όλων» keeps its bell only (its words stay its accessible name), so the title has the card's width. */
+  .userhome .lo-card-actions .text-button{font-size:0;gap:0}}
+@media(max-width:900px){.userhome-columns{grid-template-columns:1fr;grid-template-rows:none}.userhome-stack{grid-template-rows:auto}}

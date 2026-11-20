@@ -29,6 +29,8 @@ export interface Membership {
   // Το τμήμα της προεπισκόπησης ρόλου σε πραγματικό νοσοκομείο.
   departmentId?: string
   departmentName?: string
+  // Τα ονόματα όλων των τμημάτων του εύρους (organization_member_scopes): το ημερολόγιο ταιριάζει τις εγγραφές με το όνομα.
+  departmentNames?: string[]
   // Το τμήμα (όνομα) της προεπισκόπησης στο νοσοκομείο-δείγμα.
   previewDepartment?: string | null
   // Διευθυντής Διεύθυνσης: η Διεύθυνση (hr_divisions) και, στο δείγμα, τα τμήματά της με το όνομά τους.

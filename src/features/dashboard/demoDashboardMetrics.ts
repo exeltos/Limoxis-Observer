@@ -88,6 +88,8 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     isolationReviewsDue: isolations.filter(
       item => item.status === 'active' && item.nextReview && item.nextReview <= today,
     ).length,
+    // Patients in isolation now (the user's home: a number only, never who).
+    activeIsolation: isolations.filter(item => item.status === 'active').length,
     overdueControls,
     controlsDueToday,
     pendingSamples,

@@ -21,5 +21,7 @@ export function MyDepartmentPage(){
   const departmentCounts=(isManager||role===ROLES.LINK_NURSE)&&(isDemo?Boolean(membership?.previewDepartment):Boolean(membership?.departmentIds?.length))
   // The manager's «Το τμήμα μου» (owner, 20/11/2026): the department's figures and charts above the cards, in one screen.
   const departmentHome=isManager&&departmentCounts
-  return <DashboardPage showKpis={departmentCounts} departmentHome={departmentHome} department={isDemo?membership?.previewDepartment||null:null} title={department} subtitle={departmentHome?undefined:isManager?(en?'Department overview, pending work and actions matching your role.':'Τμηματική εικόνα, εκκρεμότητες και ενέργειες που αντιστοιχούν στον ρόλο σας.'):(en?'Personal and departmental work relevant to you.':'Οι προσωπικές και τμηματικές εργασίες που σας αφορούν.')}/>
+  // The Department User's and the Link Nurse's home (owner, 20/11/2026): four figures, their day, trainings and the department's week.
+  const userHome=role===ROLES.DEPARTMENT_USER||role===ROLES.LINK_NURSE
+  return <DashboardPage showKpis={departmentCounts} departmentHome={departmentHome} userHome={userHome} department={isDemo?membership?.previewDepartment||null:null} title={department} subtitle={departmentHome?undefined:isManager?(en?'Department overview, pending work and actions matching your role.':'Τμηματική εικόνα, εκκρεμότητες και ενέργειες που αντιστοιχούν στον ρόλο σας.'):(en?'Personal and departmental work relevant to you.':'Οι προσωπικές και τμηματικές εργασίες που σας αφορούν.')}/>
 }

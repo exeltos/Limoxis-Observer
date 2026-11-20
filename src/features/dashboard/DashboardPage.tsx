@@ -23,6 +23,11 @@ import { decisionItems } from './adminHomeModel'
 import { useObjectives } from '../quality/review/QualityObjectives'
 import { calendarKindsFor, useCalendarSources } from '../calendar/useCalendarSources'
 import { buildCalendarEvents, calendarKindLabel, dayKey } from '../calendar/calendarEvents'
+import { addDay, eventWithinScope } from '../calendar/calendarView'
+import { useCalendarScope } from '../calendar/useCalendarScope'
+import { hospitalToday } from '../../core/dates/hospitalDate'
+import { departmentOverdueCount, departmentWeek, ownCertificatesDue, ownTrainings, todayTaskCount } from './userHomeModel'
+import { loadDepartmentIsolationCount } from './userHomeService'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples } from '../laboratory/sampleReviewModel'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
@@ -34,6 +39,8 @@ import type { NotificationItem } from '../../core/notifications/notificationType
 const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome')
 // The Department Manager's «Το τμήμα μου» (figures, charts, register or incidents): its own chunk.
 const DepartmentHome=lazyPage(()=>import('./DepartmentHome'),'DepartmentHome')
+// The Department User's and the Link Nurse's home (four figures, their day, trainings, the department's week): its own chunk.
+const UserHome=lazyPage(()=>import('./UserHome'),'UserHome')
 
 
 type Metrics=Record<string, number | undefined>
@@ -111,8 +118,9 @@ const TODO_FOLDED=8,WEEK_SHOWN=6
 // title/subtitle/showKpis let the department home reuse this layout: its
 // counts are organization-wide, so the department view hides them.
 // departmentHome: the Department Manager's «Το τμήμα μου» (figures and charts of the department above the cards).
-export function DashboardPage({title,subtitle,showKpis=true,department=null,departmentHome=false}: { title?: string, subtitle?: string, showKpis?: boolean, department?: string | null, departmentHome?: boolean }={}) {
-  const { role: actualRole, actualRole: signedInRole, tenant, isDemo, moduleEnabled, membership, canAccessRecord } = useTenant()
+// userHome: the Department User's and the Link Nurse's home (four figures, then their day, the department's week and the announcements).
+export function DashboardPage({title,subtitle,showKpis=true,department=null,departmentHome=false,userHome=false}: { title?: string, subtitle?: string, showKpis?: boolean, department?: string | null, departmentHome?: boolean, userHome?: boolean }={}) {
+  const { role: actualRole, actualRole: signedInRole, tenant, isDemo, moduleEnabled, membership } = useTenant()
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
   const role=actualRole===ROLES.DEMO||(actualRole===ROLES.PLATFORM_OWNER&&tenant)?ROLES.HOSPITAL_ADMIN:actualRole
@@ -180,8 +188,22 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   const calendarKey=calendarKinds.join(',')
   const allowedKinds=useMemo(()=>calendarKey?calendarKey.split(','):[],[calendarKey])
   const calendarOn=menuPaths.has('/calendar')&&allowedKinds.length>0
-  const calendarSources=useCalendarSources(tenant?.id,allowedKinds,language,{enabled:calendarOn})
-  const week=useMemo(()=>{if(!calendarOn)return []; if(!calendarSources)return null;const today=dayKey(new Date()),to=dayKey(new Date(Date.now()+7*24*60*60*1000));return buildCalendarEvents(calendarSources,{from:today,to,today,language}).filter(event=>allowedKinds.includes(event.kind)&&event.state!=='overdue'&&event.date>=today&&event.date<=to&&(!event.department||canAccessRecord({department:event.department})))},[calendarOn,calendarSources,allowedKinds,language,canAccessRecord])
+  const calendarSources=useCalendarSources(tenant?.id,allowedKinds,language,{enabled:calendarOn||(userHome&&allowedKinds.length>0)})
+  // What the user may see of the calendar (eventWithinScope): a department role its departments' items, by name.
+  const calendarScope=useCalendarScope()
+  const week=useMemo(()=>{if(!calendarOn)return []; if(!calendarSources)return null;const today=dayKey(new Date()),to=dayKey(new Date(Date.now()+7*24*60*60*1000));return buildCalendarEvents(calendarSources,{from:today,to,today,language}).filter(event=>allowedKinds.includes(event.kind)&&event.state!=='overdue'&&event.date>=today&&event.date<=to&&eventWithinScope(event,calendarScope))},[calendarOn,calendarSources,allowedKinds,language,calendarScope])
+  // The user's home: the department's events of the coming week and its overdue ones (scoped), their own trainings and certificates.
+  const homeToday=hospitalToday()
+  const homeEvents=useMemo(()=>{if(!userHome||!calendarSources)return null;return buildCalendarEvents(calendarSources,{from:homeToday,to:addDay(homeToday,6),today:homeToday,language}).filter(event=>allowedKinds.includes(event.kind)&&eventWithinScope(event,calendarScope))},[userHome,calendarSources,homeToday,language,allowedKinds,calendarScope])
+  const isolationOn=userHome&&moduleEnabled('surveillance')
+  const [isolationCount,setIsolationCount]=useState<number | null | undefined>(undefined)
+  useEffect(()=>{
+    let active=true
+    if(!isolationOn||isDemo)return()=>{active=false}
+    setIsolationCount(undefined)
+    loadDepartmentIsolationCount(tenant?.id).then(count=>{if(active)setIsolationCount(count)}).catch(()=>{if(active)setIsolationCount(null)})
+    return()=>{active=false}
+  },[isolationOn,isDemo,tenant?.id])
   // «Για μένα σήμερα»: everything that waits for this user in one list, the most urgent first: the administrator's decisions
   // (or the role's own work), new positive samples to review, objectives off course and what the notifications assign.
   const todo=(()=>{
@@ -228,6 +250,16 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
         </Card>
   const subtitleParts=windowSubtitleParts(periodWindow,language)
   if(divisionHome)return <Suspense fallback={<RouteLoading/>}><DivisionHome weekCard={weekCard||null}/></Suspense>
+  if(userHome){
+    const trainingOn=moduleEnabled('training')&&allowedKinds.includes('training')
+    const training=calendarSources?.training||null
+    // The department's overdue controls and cultures: the same count as «Για μένα σήμερα» (dashboard metrics); the calendar's when there is none.
+    const overdueMetric=values.overdueControls
+    const figures={overdue:metricsState==='loading'?undefined:overdueMetric!=null?Number(overdueMetric):homeEvents?departmentOverdueCount(homeEvents):undefined,today:metricsState==='loading'?undefined:todayTaskCount(todo),certificates:calendarSources?ownCertificatesDue(training,calendarScope,homeToday):null,isolation:isDemo?(demo?.metrics.activeIsolation??null):isolationCount}
+    return <Page fill className="dashboard-page" title={title||tr('Το τμήμα μου','My department')} subtitle={subtitle}>
+      <Suspense fallback={<RouteLoading/>}><UserHome language={language} figures={figures} trainingOn={trainingOn} isolationOn={isolationOn} trainings={calendarSources?ownTrainings(training,calendarScope,homeToday):null} week={homeEvents?departmentWeek(homeEvents,calendarScope,homeToday):null} canOpen={canOpen} onOpen={navigate} todoCard={todoCard} announcementsCard={announcementsCard(null)}/></Suspense>
+    </Page>
+  }
   if(departmentHome)return <Page fill className="dashboard-page" title={title||tr('Το τμήμα μου','My department')} subtitle={<><span className="dephome-subtitle-period">{subtitleParts.period} </span>{subtitleParts.compare}</>} actions={<DepartmentPeriodControls window={periodWindow} language={language} onKind={departmentPeriod.setKind} onChoice={departmentPeriod.setChoice} onStep={departmentPeriod.step}/>}>
     <Suspense fallback={<RouteLoading/>}><DepartmentHome overview={overview} window={periodWindow} status={overviewStatus} language={language} moduleEnabled={moduleEnabled} canOpen={canOpen} onOpen={navigate} todoCard={todoCard} announcementsCard={announcementsCard}/></Suspense>
   </Page>

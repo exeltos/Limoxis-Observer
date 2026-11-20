@@ -193,3 +193,8 @@ export function useAuth() {
   if (!context) throw new Error('useAuth must be used inside AuthProvider')
   return context
 }
+
+// The signed-in account where there may be none above (a screen rendered on its own): null instead of an error.
+export function useOptionalAuth() {
+  return useContext(AuthContext)
+}

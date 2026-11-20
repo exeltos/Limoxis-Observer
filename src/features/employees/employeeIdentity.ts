@@ -3,6 +3,8 @@
 import type { Employee, MembershipLink, SignedInProfile, SignedInUser } from './employeeTypes'
 
 const normalizeEmail = (value: unknown) => String(value || '').trim().toLowerCase()
+// The browser-only demo's own employee: «Η καρτέλα μου», and «mine» in the calendar and the user's home.
+export const DEMO_SELF_EMPLOYEE_ID = 'EMP-001'
 
 // The record the Platform Owner sees as "My profile": a platform account is not
 // a hospital employee, so it gets a synthetic, read-only identity.
@@ -58,7 +60,7 @@ export function resolveSelfEmployee<T extends Pick<Employee, 'id'> & Partial<Pic
   }
 
   if (profile?.isPlatformOwner || profile?.is_platform_owner) return platformOwnerEmployee(profile, user)
-  if (isDemo) return employeeRows.find(row => row.id === 'EMP-001') || employeeRows[0] || null
+  if (isDemo) return employeeRows.find(row => row.id === DEMO_SELF_EMPLOYEE_ID) || employeeRows[0] || null
   return null
 }
 
