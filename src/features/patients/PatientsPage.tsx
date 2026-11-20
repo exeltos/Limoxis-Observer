@@ -6,7 +6,7 @@ import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
-import { UI_ACTIONS } from '../../core/actions/actionPolicy'
+import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -34,6 +34,15 @@ import { RegistryTotals } from '../../design-system/RegistryTotals'
 import type { Patient, PatientDepartment, PatientFormDraft } from './patientTypes'
 import type { RiskFlagRow } from '../clinical-scales/patientRiskFlagsService'
 import type { InfectionFlags } from './patientInfectionFlagsService'
+import { CheckboxField } from '../../design-system/CheckboxField'
+import { useAuditActor } from '../../core/audit/useAuditActor'
+import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
+import { canReviewSamples } from '../laboratory/sampleReviewModel'
+import { createClinicalRepository } from '../surveillance/clinicalRepository'
+import { NoSurveillanceDialog, ReviewSelectionBar, selectionTexts } from '../surveillance/SampleReviewWorklist'
+import { bulkSampleActions } from '../surveillance/bulkSampleActions'
+import { pendingSamplesByPatient } from '../surveillance/sampleReviewBulk'
+import type { ReviewSample } from '../surveillance/surveillanceListTypes'
 
 // clinical-scales is still JavaScript: its default (rows=[]) would type the rows as never[].
 const ClinicalRiskText=ClinicalRiskTextJs as ComponentType<{ rows: RiskFlagRow[], language: string, max?: number }>
@@ -47,7 +56,7 @@ export function PatientsPage(){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const navigate=useNavigate()
-  const {canAccessRecord,tenant,isDemo,role,membership}=useTenant()
+  const {canAccessRecord,tenant,isDemo,role,actualRole,membership}=useTenant()
   const registry=useRegistryMemory('patients')
   const saved=registry.loadViewState({query:'',department:'all',status:'all',period:'all'})
   const [query,setQuery]=useState(saved.query)
@@ -70,6 +79,20 @@ export function PatientsPage(){
     return ()=>{alive=false}
   },[tenant?.id,isDemo,notify,t])
   useEffect(()=>{setPage(1)},[query,department,status,period,pageSize])
+  // Several at once (owner, 20/11/2026): the roles that decide tick the patients with a positive sample awaiting a
+  // decision («To review») and act on all those samples from the bar above the pages, as the worklist does.
+  const canReview=canReviewSamples(role||actualRole)
+  const awaitingReview=useSamplesAwaitingReview({enabled:canReview&&Boolean(tenant?.id||isDemo)})
+  const actor=useAuditActor()
+  const clinical=useMemo(()=>createClinicalRepository({isDemo,organizationId:tenant?.id,actor}),[isDemo,tenant?.id,actor])
+  const canOpenEpisodes=canPerform({role:role||actualRole,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],action:UI_ACTIONS.CREATE,resourceCapability:CAPABILITIES.CREATE_SURVEILLANCE})
+  const reloadFlags=useCallback(()=>loadPatientInfectionFlags(tenant?.id,{isDemo}).then(setInfectionFlags).catch(()=>{}),[tenant?.id,isDemo])
+  const bulkReview=bulkSampleActions({awaitingReview,clinical,language,t,notify,onDone:reloadFlags})
+  const pending=useMemo(()=>canReview?pendingSamplesByPatient(awaitingReview.rows as unknown as ReviewSample[],patients):new Map<string,ReviewSample[]>(),[canReview,awaitingReview.rows,patients])
+  const selectable=pending.size>0
+  const [selected,setSelected]=useState<Set<string>>(new Set())
+  const [bulkDeciding,setBulkDeciding]=useState(false)
+  const [busy,setBusy]=useState(false)
   const isolated=useCallback((p: Patient)=>Boolean((infectionFlags[p.recordId||'']||infectionFlags[p.id])?.isolation),[infectionFlags])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
@@ -85,6 +108,17 @@ export function PatientsPage(){
   const safePage=Math.min(page,totalPages)
   const pagedRows=sortedRows.slice((safePage-1)*pageSize,safePage*pageSize)
   const fmt=(value: unknown)=>formatDay(value,language)
+  // Only what is still pending counts as ticked (a decided patient loses the tick); the header tick takes every page.
+  const pendingRows=sortedRows.filter(p=>pending.has(p.id))
+  const picked=pendingRows.filter(p=>selected.has(p.id))
+  const allPicked=pendingRows.length>0&&picked.length===pendingRows.length
+  const pickedSamples=picked.flatMap(p=>pending.get(p.id)||[])
+  const toggle=(id: string)=>setSelected(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next})
+  async function runBulk(action: ()=>Promise<unknown>){
+    if(busy)return
+    setBusy(true)
+    try{await action();setSelected(new Set())}finally{setBusy(false)}
+  }
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
   const canCreate=can(role,CAPABILITIES.CREATE_PATIENT,membership?.capabilities??[],membership?.customCapabilities??[])
   function pageAction(action: string){
@@ -111,12 +145,12 @@ export function PatientsPage(){
         wrapperRef={registry.scrollRef as Ref<HTMLDivElement>}
         sort={sort}
         onSort={onSort}
-        columns={[{key:'name',label:t('patient'),sortable:true},{key:'department',label:t('department'),sortable:true},{key:'admission',label:t('admissionDate'),sortable:true},{key:'status',label:t('status'),sortable:true},{key:'infection',label:t('patientsColumnInfection')},{key:'scores',label:t('patientsColumnScores')}]}
+        columns={[...(selectable?[{key:'select',className:'sample-review-select',label:<CheckboxField checked={allPicked} disabled={!pendingRows.length||busy} ariaLabel={selectionTexts(language).selectAll} onChange={()=>setSelected(allPicked?new Set():new Set(pendingRows.map(p=>p.id)))}/>}]:[]),{key:'name',label:t('patient'),sortable:true},{key:'department',label:t('department'),sortable:true},{key:'admission',label:t('admissionDate'),sortable:true},{key:'status',label:t('status'),sortable:true},{key:'infection',label:t('patientsColumnInfection')},{key:'scores',label:t('patientsColumnScores')}]}
         rows={pagedRows}
         loading={loading}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,sortedRows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status||'')}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId||'']||infectionFlags[patient.id]} t={t} fmtDate={(value: string)=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId||'']||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
+        renderRow={patient=><>{selectable&&<td className="sample-review-select" onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}>{pending.has(patient.id)&&<CheckboxField checked={selected.has(patient.id)} disabled={busy} ariaLabel={`${selectionTexts(language).select}: ${language==='el'?patient.name:(patient.nameEn||patient.name)} · ${patient.id}`} onChange={()=>toggle(patient.id)}/>}</td>}<td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status||'')}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId||'']||infectionFlags[patient.id]} t={t} fmtDate={(value: string)=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId||'']||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}
         emptyFiltered={scopedPatients.length>0}
@@ -124,8 +158,10 @@ export function PatientsPage(){
         emptyIcon={UsersRound}
         emptyAction={canCreate?{label:t('newPatient'),icon:Plus,onClick:()=>pageAction(UI_ACTIONS.CREATE)}:null}
       />
+      {picked.length>0&&<ReviewSelectionBar language={language} ariaLabel={selectionTexts(language).selectedPatients} count={picked.length} wholeList={allPicked&&pendingRows.length>pagedRows.filter(p=>pending.has(p.id)).length} busy={busy} onOpen={canOpenEpisodes?()=>runBulk(()=>bulkReview.openEpisodes(pickedSamples)):undefined} onNoSurveillance={()=>setBulkDeciding(true)} onClear={()=>setSelected(new Set())}/>}
       {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </div>
+    {bulkDeciding&&<NoSurveillanceDialog sample={pickedSamples.length===1?pickedSamples[0]:undefined} count={pickedSamples.length} language={language} onClose={()=>setBulkDeciding(false)} onSave={async (decision: {status:'no_surveillance_needed',reason:string,note:string})=>{await runBulk(()=>bulkReview.decide(pickedSamples,decision));setBulkDeciding(false)}}/>}
   </Page>
 }
 
