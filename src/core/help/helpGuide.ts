@@ -282,7 +282,7 @@ export const guideContent = {
     },
     training: {
       what: l('Εκπαιδευτικά προγράμματα, συμμετέχοντες, ολοκληρώσεις, αξιολογήσεις και πιστοποιητικά.', 'Training programmes, participants, completions, assessments and certificates.'),
-      users: l('Διαχειριστές εκπαίδευσης· ο εργαζόμενος βλέπει μόνο τις δικές του εκπαιδεύσεις.', 'Training managers; an employee sees only their own training.'),
+      users: l('Διαχειριστές εκπαίδευσης· τα τμήματα βλέπουν «Οι δικές μου | Όλο το τμήμα» (ο Προϊστάμενος αρχικά όλο το τμήμα).', 'Training managers; the departments see “Mine | Whole department” (the Department Manager starts on the whole department).'),
       needs: null,
       analysis: l('Καρτέλα «Εκπαίδευση»: ποσοστό ολοκλήρωσης, εκπρόθεσμες αναθέσεις, μέση βαθμολογία, ανά τμήμα.', 'Tab “Training”: completion rate, overdue assignments, average score, per department.'),
       start: l('Δημιουργήστε ένα πρόγραμμα και αναθέστε το σε ένα τμήμα.', 'Create a programme and assign it to a department.'),

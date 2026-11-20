@@ -1,0 +1,9 @@
+/* «Εκπαίδευση» of the departments (TrainingMyView): the four figures of the homes, then the list fills the rest of the
+   screen and pages (the page does not scroll on a computer or a tablet). */
+.training-my-page>.training-my-tiles{flex:0 0 auto;margin-bottom:12px}
+.training-my-list .filter-end{flex:1 1 auto;justify-content:flex-end}
+.training-my-table td small{display:block;margin-top:1px;font-size:11px;color:var(--lo-color-muted)}
+.training-my-title strong{display:block;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.training-my-due{white-space:nowrap}
+.training-my-due small.danger{color:var(--lo-color-danger);font-weight:700}
+.training-my-result,.training-my-certificate{white-space:nowrap}
