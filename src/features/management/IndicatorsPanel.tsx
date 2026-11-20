@@ -12,6 +12,7 @@ import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { IndicatorDefinitionForm,createEmptyIndicatorDefinition,indicatorDefinitionIsValid } from '../indicators/IndicatorDefinitionForm'
 import { loadIndicatorDefinitions,retireIndicatorDefinition,saveIndicatorDefinition } from '../indicators/indicatorDefinitionService'
 import { loadDisabledIndicatorKeys,saveIndicatorEnabled } from '../indicators/indicatorCloudService'
+import { indicatorsForModules } from '../indicators/indicatorModules'
 import { CheckboxField } from '../../design-system/CheckboxField'
 // The definition in the form: read-only for a system definition the user may not change.
 type DefinitionEditor = IndicatorDefinition & { readOnly?: boolean }
@@ -21,10 +22,12 @@ const SOURCE_EN=[['ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014','Ministerial Decisi
 const sourceText=(value: string,el: boolean)=>el||!value?value:SOURCE_EN.reduce((text,[from,to])=>text.split(from).join(to),value)
 
 export function IndicatorsPanel({global=false}: {global?: boolean}={}){
- const {language}=useLanguage();const {tenant,role,membership}=useTenant();const {notify,confirm}=useFeedback();const el=language==='el';const isOwner=global;const canManage=global||can(role,CAPABILITIES.MANAGE_INDICATORS,membership?.capabilities||[],membership?.customCapabilities||[])
+ const {language}=useLanguage();const {tenant,role,membership,moduleEnabled}=useTenant();const {notify,confirm}=useFeedback();const el=language==='el';const isOwner=global;const canManage=global||can(role,CAPABILITIES.MANAGE_INDICATORS,membership?.capabilities||[],membership?.customCapabilities||[])
  const [rows,setRows]=useState<IndicatorDefinition[]>([]),[loading,setLoading]=useState(false),[editor,setEditor]=useState<DefinitionEditor|null>(null)
  useEffect(()=>{if(!global&&!tenant?.id){setRows([]);return}let active=true;setLoading(true);loadIndicatorDefinitions(global?null:tenant?.id).then(data=>active&&setRows(data)).catch(error=>active&&notify(error?.message||(el?'Αποτυχία φόρτωσης δεικτών.':'Failed to load indicators.'),'error')).finally(()=>active&&setLoading(false));return()=>{active=false}},[global,tenant?.id,notify,el])
- const visible=useMemo(()=>rows.filter(x=>x.status!=='retired'),[rows])
+ // A hospital without the Surveillance module does not see the indicators computed only from it (the Platform Owner's catalogue keeps them all).
+ const surveillanceOn=global||moduleEnabled?.('surveillance')!==false
+ const visible=useMemo(()=>indicatorsForModules(rows.filter(x=>x.status!=='retired'),module=>module!=='surveillance'||surveillanceOn),[rows,surveillanceOn])
  // A shared indicator this hospital does not use: it stays in the catalogue here, out of «Indicators & objectives».
  const [off,setOff]=useState(()=>new Set<string>())
  useEffect(()=>{if(global||!tenant?.id)return;let active=true;loadDisabledIndicatorKeys(tenant.id).then(keys=>active&&setOff(keys)).catch(()=>{});return()=>{active=false}},[global,tenant?.id])

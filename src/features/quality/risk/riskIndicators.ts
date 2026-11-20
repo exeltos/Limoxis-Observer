@@ -2,6 +2,7 @@
 // Indicators module (indicator_definitions.indicator_key); their current value
 // and trend come from the same calculation the Indicators page uses.
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadOperationalIndicatorDefinitions } from '../../indicators/indicatorCloudService'
+import { indicatorsForModules } from '../../indicators/indicatorModules'
 import { hospitalDate } from '../../../core/dates/hospitalDate'
 import type { IndicatorValue,RiskDraft } from './riskTypes'
 
@@ -44,7 +45,8 @@ export function suggestIndicators(risk: RiskDraft, available: string[] = [], lim
 const iso = (date: Date) => hospitalDate(date)
 
 // Current value (last 90 days) and the 90 days before, per indicator key.
-export async function loadIndicatorValues(organizationId: string | null | undefined, now = new Date()) {
+// Without the Surveillance module (surveillanceOn false) the indicators computed only from it are left out.
+export async function loadIndicatorValues(organizationId: string | null | undefined, now = new Date(), surveillanceOn = true) {
   const day = 86400000
   const to = iso(now), from = iso(new Date(now.getTime() - 90 * day)), prevTo = iso(new Date(now.getTime() - 91 * day)), prevFrom = iso(new Date(now.getTime() - 181 * day))
   const [definitions, current, previous] = await Promise.all([
@@ -53,7 +55,7 @@ export async function loadIndicatorValues(organizationId: string | null | undefi
     collectCloudIndicatorMetrics(organizationId, { from: prevFrom, to: prevTo }),
   ])
   const values = new Map<string, IndicatorValue>()
-  for (const def of definitions) {
+  for (const def of indicatorsForModules(definitions, module => module !== 'surveillance' || surveillanceOn)) {
     const now90 = calculateCloudDefinition(def, current), before = calculateCloudDefinition(def, previous)
     values.set(def.id, { key: def.id, titleEl: def.titleEl, titleEn: def.titleEn || def.titleEl, category: def.category, unit: def.unit, unitEn: def.unitEn, target: def.target, direction: def.direction, value: now90.value, previous: before.value, status: now90.status, trend: indicatorTrend(now90.value, before.value, def.direction) })
   }

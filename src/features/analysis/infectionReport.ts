@@ -1,4 +1,5 @@
 import { loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
+import { indicatorsForModules } from '../indicators/indicatorModules'
 import { loadObjectives } from '../quality/review/reviewService'
 import { loadDossierIndicators, missingDataTable, platformIndicatorsTable } from '../quality/review/dossierIndicators'
 import type { DossierIndicatorRow, Objective, PlatformIndicatorDef } from '../quality/review/reviewTypes'
@@ -20,8 +21,9 @@ const GROUPS: { id: string; el: string; en: string; match: (def: ReportDefinitio
 ]
 export const infectionDefinitions = <T extends ReportDefinition>(definitions: T[] | null | undefined) => (definitions || []).filter(def => GROUPS.some(group => group.match(def)))
 
-export async function loadInfectionReportRows(organizationId: string, year: number | string) {
-  const definitions = infectionDefinitions(await loadOperationalIndicatorDefinitions(organizationId).catch((): Awaited<ReturnType<typeof loadOperationalIndicatorDefinitions>> => []))
+// moduleEnabled: without the Surveillance module the report leaves out the indicators computed only from it.
+export async function loadInfectionReportRows(organizationId: string, year: number | string, moduleEnabled: (module: string) => boolean = () => true) {
+  const definitions = indicatorsForModules(infectionDefinitions(await loadOperationalIndicatorDefinitions(organizationId).catch((): Awaited<ReturnType<typeof loadOperationalIndicatorDefinitions>> => [])), moduleEnabled)
   const [rows, objectives] = await Promise.all([loadDossierIndicators(organizationId, year, definitions as PlatformIndicatorDef[]), loadObjectives(organizationId).catch(() => [])])
   // The hospital's own objective of the year, where it has one, is the target of the indicator it is measured by.
   return { rows, objectives: (objectives || []).filter((objective: Objective) => Number(objective.year) === Number(year)) }
