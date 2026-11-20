@@ -190,3 +190,16 @@ describe('«Προς έλεγχο» reads every sample awaiting a decision (owne
     expect(source).toContain('const AWAITING_REVIEW_PAGE=1000')
   })
 })
+
+describe('ΜΕΝΝ automatic surveillance rule (owner, 20/11/2026)', () => {
+  it('opens an episode for a NICU positive blood culture and waits for a second culture for skin flora', async () => {
+    const { readSource } = await import('./helpers/readSource')
+    const sql = readSource('supabase/migrations/20261231600000_nicu_auto_surveillance.sql')
+    expect(sql).toContain("template_key = 'nicu' and r.status = 'active'")
+    expect(sql).toContain("return 'skin_single'")
+    expect(sql).toContain('48 * 3600')
+    expect(sql).toContain("surveillance_review_note = 'Αυτόματα από κανόνα ΜΕΝΝ'")
+    expect(sql).toContain('create or replace trigger microbiology_results_nicu_auto_surveillance')
+    expect(sql).toContain('revoke execute on function private.nicu_auto_surveillance(uuid) from public, anon, authenticated')
+  })
+})
