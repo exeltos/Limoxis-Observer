@@ -33,10 +33,7 @@ export function DepartmentHome({ overview, status, language, moduleEnabled, canO
   const o = overview
   const n = (value: number | null | undefined) => Number(value) || 0
   const tiles: Tile[] = []
-  tiles.push({
-    key: 'inpatients', label: tr('Νοσηλευόμενοι σήμερα', 'Inpatients today'), value: numberText(o?.inpatients, en), tone: null, to: '/surveillance?tab=registry',
-    detail: [o?.beds != null ? tr(`από ${o.beds} κλίνες`, `of ${o.beds} beds`) : '', en ? plural(n(o?.admissionsToday), 'admission today', 'admissions today') : plural(n(o?.admissionsToday), 'εισαγωγή σήμερα', 'εισαγωγές σήμερα')].filter(Boolean).join(' · '),
-  })
+  // No inpatients tile (owner, 20/11/2026): the figures that need attention only.
   if (moduleEnabled('laboratory')) tiles.push({
     key: 'positives', label: tr('Θετικά δείγματα (30 ημ.)', 'Positive samples (30 days)'), value: numberText(o?.positives30, en), tone: n(o?.positivesMdr30) > 0 ? 'danger' : null, to: '/laboratory',
     detail: `${n(o?.positivesMdr30)} MDR/XDR · ${tr(`${n(o?.positivesAwaiting30)} προς έλεγχο`, `${n(o?.positivesAwaiting30)} to review`)}`,
