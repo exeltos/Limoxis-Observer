@@ -2,7 +2,7 @@
   "src/features/auth/activation.css": 10,
   "src/features/auth/authPages.css": 10,
   "src/features/auth/landing.css": 47,
-  "src/features/calendar/calendar.css": 50,
+  "src/features/calendar/calendar.css": 20,
   "src/features/division/division.css": 4,
   "src/features/executive/executive.css": 20,
   "src/features/interviews/apply/application.css": 63,

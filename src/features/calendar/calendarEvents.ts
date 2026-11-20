@@ -40,6 +40,11 @@ export interface CalendarEvent {
  state: string
  expiry?: boolean
  criticality?: string
+ // What is due, without the person (a certificate's «Certificate expires»): the same item for many people is one row of the to-do list.
+ action?: string
+ // The person a certificate belongs to, and the owner of a CAPA step or a committee decision (already shown in the detail).
+ person?: string
+ owner?: string
  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extra fields of each module's items
  [key: string]: any
 }
@@ -184,7 +189,7 @@ function capaEvents(capas: CalendarQualityRecord[],range: Range | null,today: st
    push(list,{id:`capa:${capa.id}`,kind:'capa',date:toDay(capa.dueDate),title,detail:en?'CAPA due':'Προθεσμία διορθωτικής ενέργειας',department,path,state:stateOf(toDay(capa.dueDate),today)},range)
    for(const step of capa.subActions||[]){
     if(step.done)continue
-    push(list,{id:`capa-step:${capa.id}:${step.id}`,kind:'capa',date:toDay(step.dueDate),title:step.title as string,detail:`${capa.displayId||capa.id}${step.owner?` · ${step.owner}`:''}`,department,path,state:stateOf(toDay(step.dueDate),today)},range)
+    push(list,{id:`capa-step:${capa.id}:${step.id}`,kind:'capa',date:toDay(step.dueDate),title:step.title as string,detail:`${capa.displayId||capa.id}${step.owner?` · ${step.owner}`:''}`,owner:step.owner||'',department,path,state:stateOf(toDay(step.dueDate),today)},range)
    }
   }
   if(capa.effectivenessDue&&(capa.effectivenessStatus||'pending')==='pending'){
@@ -217,7 +222,7 @@ function trainingEvents(training: CalendarTraining | null,range: Range | null,to
   const day=toDay(certificate.validUntil)
   if(!day)continue
   const person=assignments.find(a=>a.id===certificate.assignmentId)
-  push(list,{id:`cert:${certificate.id}`,kind:'training',date:day,title:certificate.title,detail:`${en?'Certificate expires':'Λήξη πιστοποιητικού'}${person?` · ${person.employeeName}`:''}`,department:person?.department||'',path:'/training',state:day<today?'overdue':'planned'},range)
+  push(list,{id:`cert:${certificate.id}`,kind:'training',date:day,title:certificate.title,detail:`${en?'Certificate expires':'Λήξη πιστοποιητικού'}${person?` · ${person.employeeName}`:''}`,action:en?'Certificate expires':'Λήξη πιστοποιητικού',person:person?.employeeName||'',department:person?.department||'',path:'/training',state:day<today?'overdue':'planned'},range)
  }
 }
 
@@ -242,7 +247,7 @@ function committeeEvents(committees: CalendarCommittee[],range: Range | null,tod
   for(const decision of committee.decisions||[]){
    if(['completed','closed','done'].includes(decision.status))continue
    const day=toDay(decision.dueDate)
-   push(list,{id:`dec:${committee.id}:${decision.id}`,kind:'committees',date:day,title:decision.title,detail:`${name} · ${en?'decision':'απόφαση'}${decision.owner?` · ${decision.owner}`:''}`,department:'',path,state:stateOf(day,today)},range)
+   push(list,{id:`dec:${committee.id}:${decision.id}`,kind:'committees',date:day,title:decision.title,detail:`${name} · ${en?'decision':'απόφαση'}${decision.owner?` · ${decision.owner}`:''}`,owner:decision.owner||'',department:'',path,state:stateOf(day,today)},range)
   }
  }
 }
