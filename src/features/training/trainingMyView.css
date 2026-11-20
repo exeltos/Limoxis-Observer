@@ -9,3 +9,16 @@
 .training-my-result,.training-my-certificate{white-space:nowrap}
 /* The row's one small button: «Έναρξη» / «Συνέχεια» / «Αποτέλεσμα» (the learner's page of the user's own training). */
 .training-my-table .training-my-open{min-height:30px;padding:4px 10px;font-size:12px;white-space:nowrap}
+/* «Όλο το νοσοκομείο»: the hospital's programmes, «Συμμετέχω» and the user's own button side by side. */
+.training-hospital-own{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}
+.training-hospital-audience{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.training-hospital-table .training-my-title strong,.training-hospital-table .training-my-title small{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.training-hospital-table .training-hospital-trainer{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A tablet: the six columns fit without a sideways scroll. */
+@media (max-width:1180px){
+  .training-hospital-table .training-my-title strong,.training-hospital-table .training-my-title small{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .training-hospital-table .training-hospital-trainer{max-width:120px}
+  .training-hospital-audience{max-width:130px}
+  /* «Συμμετέχω» over the user's own button. */
+  .training-hospital-own{flex-direction:column;align-items:flex-end;gap:4px}
+}

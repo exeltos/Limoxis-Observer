@@ -2,14 +2,15 @@
 // Nurse see «Οι δικές μου» (one line per programme, the latest assignment, «3 φορές · τελευταία …» when repeated), the
 // Department Manager «Όλο το τμήμα» (one line per assignment, with the employee). Four figures over the list, the same
 // «mine» as the user's home (userHomeModel: the account in a hospital, the sample data's own employee in the Demo).
+// «Όλο το νοσοκομείο» (owner, 20/11/2026): the hospital's programmes, never the participants' names.
 // Pure functions over the training records, so the screen and the tests agree.
 import { addDay, type CalendarScope } from '../calendar/calendarView'
 import { isOwn, ownCertificatesDue } from '../dashboard/userHomeModel'
-import { foldSearch } from '../../core/i18n/searchMatch'
+import { foldSearch, matchesSearch } from '../../core/i18n/searchMatch'
 import { computedAssignmentStatus, type TrainingState } from './trainingData'
 import type { TrainingAssignment, TrainingCertificate, TrainingProgram } from './trainingTypes'
 
-export type TrainingMyScope = 'mine' | 'department'
+export type TrainingMyScope = 'mine' | 'department' | 'hospital'
 export type TrainingMyStatus = 'open' | 'completed' | 'all'
 export type CertificateState = 'none' | 'valid' | 'expiring' | 'expired'
 export type ResultKind = 'score' | 'review' | 'done' | 'none'
@@ -131,4 +132,66 @@ export function trainingRowAction(row: Pick<TrainingMyRow, 'assignment' | 'statu
   if (!mine) return null
   if (submitted) return 'result'
   return assignment.status === 'in_progress' || assignment.attendanceResponse === 'confirmed' || assignment.attendance ? 'continue' : 'start'
+}
+
+// «Όλο το νοσοκομείο» (owner, 20/11/2026): one line per programme of the hospital (the cancelled ones left out), with its
+// trainer, period, audience and state, and «Συμμετέχω» with the user's own latest assignment (the same line as in «Οι
+// δικές μου», so the same button). No participant's name: what the hospital offers, not who attends.
+export type TrainingProgramState = 'in_progress' | 'planned' | 'completed'
+export type TrainingProgramFilter = 'current' | 'planned' | 'all'
+export interface TrainingProgramRow {
+  id: string
+  program: TrainingProgram
+  title: string
+  trainer: string
+  audience: string
+  startDate: string
+  dueDate: string
+  state: TrainingProgramState
+  own: TrainingMyRow | null
+}
+
+// An active programme that has not started yet is still «Προγραμματισμένο».
+export function programState(program: Pick<TrainingProgram, 'status' | 'startDate'>, today: string): TrainingProgramState {
+  if (program.status === 'completed') return 'completed'
+  return program.status === 'planned' || day(program.startDate) > today ? 'planned' : 'in_progress'
+}
+
+// The ones running first (the nearest end first), then the planned (the nearest start first), then the completed (the latest first).
+const stateOrder: Record<TrainingProgramState, number> = { in_progress: 0, planned: 1, completed: 2 }
+function sortProgramRows(rows: TrainingProgramRow[]) {
+  return rows.sort((a, b) => stateOrder[a.state] - stateOrder[b.state]
+    || (a.state === 'completed' ? (b.dueDate || b.startDate).localeCompare(a.dueDate || a.startDate) : a.state === 'planned' ? (a.startDate || a.dueDate || '9999').localeCompare(b.startDate || b.dueDate || '9999') : (a.dueDate || '9999').localeCompare(b.dueDate || '9999'))
+    || a.title.localeCompare(b.title))
+}
+
+export function hospitalProgramRows(records: Records, own: Own, today: string): TrainingProgramRow[] {
+  const mine = new Map(ownTrainingRows(records, own, today).map(row => [String(row.assignment.programId || ''), row]))
+  return sortProgramRows(records.programs.filter(program => program.status !== 'cancelled').map(program => ({
+    id: program.id, program, title: program.title || '', trainer: program.trainer || program.owner || '', audience: program.audience || '',
+    startDate: day(program.startDate), dueDate: day(program.dueDate), state: programState(program, today), own: mine.get(String(program.id)) || null,
+  })))
+}
+
+// «Τρέχοντα | Προγραμματισμένα | Όλα» and the search (title, trainer, audience and the labels the screen shows).
+export function filterProgramRows(rows: TrainingProgramRow[], filter: TrainingProgramFilter, query = '', labelsOf: (row: TrainingProgramRow) => string[] = () => []) {
+  return rows.filter(row => (filter === 'all' || (filter === 'current' ? row.state === 'in_progress' : row.state === 'planned'))
+    && matchesSearch(query, [row.title, row.trainer, row.audience, ...labelsOf(row)]))
+}
+export function programStatusCounts(rows: TrainingProgramRow[]) {
+  return { current: rows.filter(row => row.state === 'in_progress').length, planned: rows.filter(row => row.state === 'planned').length, all: rows.length }
+}
+
+export interface TrainingProgramTiles { current: number, planned: number, nextStart: string, completedYear: number, own: number, ownOpen: number }
+// The four figures: running, planned (with the next start), completed this year (by their end), the ones the user attends.
+export function hospitalProgramTiles(rows: TrainingProgramRow[], today: string): TrainingProgramTiles {
+  const year = today.slice(0, 4)
+  const planned = rows.filter(row => row.state === 'planned')
+  const own = rows.filter(row => row.own)
+  return {
+    current: rows.filter(row => row.state === 'in_progress').length, planned: planned.length,
+    nextStart: planned.map(row => row.startDate).filter(date => date && date >= today).sort()[0] || '',
+    completedYear: rows.filter(row => row.state === 'completed' && (row.dueDate || row.startDate).slice(0, 4) === year).length,
+    own: own.length, ownOpen: own.filter(row => row.own!.status !== 'completed').length,
+  }
 }
