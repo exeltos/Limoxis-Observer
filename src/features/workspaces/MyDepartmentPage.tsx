@@ -19,5 +19,7 @@ export function MyDepartmentPage(){
   const isManager=role===ROLES.DEPARTMENT_MANAGER
   // The manager's and the Link Nurse's tiles count the department only: in the Demo its sample department, in a hospital the departments of the membership.
   const departmentCounts=(isManager||role===ROLES.LINK_NURSE)&&(isDemo?Boolean(membership?.previewDepartment):Boolean(membership?.departmentIds?.length))
-  return <DashboardPage showKpis={departmentCounts} department={isDemo?membership?.previewDepartment||null:null} title={department} subtitle={isManager?(en?'Department overview, pending work and actions matching your role.':'Τμηματική εικόνα, εκκρεμότητες και ενέργειες που αντιστοιχούν στον ρόλο σας.'):(en?'Personal and departmental work relevant to you.':'Οι προσωπικές και τμηματικές εργασίες που σας αφορούν.')}/>
+  // The manager's «Το τμήμα μου» (owner, 20/11/2026): the department's figures and charts above the cards, in one screen.
+  const departmentHome=isManager&&departmentCounts
+  return <DashboardPage showKpis={departmentCounts} departmentHome={departmentHome} department={isDemo?membership?.previewDepartment||null:null} title={department} subtitle={departmentHome?(en?'The department today · last 30 days':'Η εικόνα του τμήματος σήμερα · τελευταίες 30 ημέρες'):isManager?(en?'Department overview, pending work and actions matching your role.':'Τμηματική εικόνα, εκκρεμότητες και ενέργειες που αντιστοιχούν στον ρόλο σας.'):(en?'Personal and departmental work relevant to you.':'Οι προσωπικές και τμηματικές εργασίες που σας αφορούν.')}/>
 }

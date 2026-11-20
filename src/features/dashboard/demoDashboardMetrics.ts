@@ -20,6 +20,10 @@ import { interviewsDemoState } from '../interviews/interviewsDemoData'
 import { OPEN_STATUSES as OPEN_CANDIDATE_STATUSES } from '../interviews/interviewsModel'
 import { hospitalDate } from '../../core/dates/hospitalDate'
 import type { CommunicatedSample } from '../surveillance/surveillanceListTypes'
+import { handHygieneRows } from '../prevention/preventionDemoData'
+import { sampleDepartmentFigures } from '../division/divisionService'
+import { needsSurveillanceReview } from '../laboratory/sampleReviewModel'
+import { DEFAULT_HAND_HYGIENE_TARGET, isMdrClass, monthlyHandHygieneSeries, normalizeDepartmentHome, weeklyPositiveSeries, weekStarts, type DepartmentHomeOverview } from './departmentHomeModel'
 
 // What the counts read of the Demo records of the other modules.
 type DepartmentRow = { department?: string | { name?: string | null } | null, department_id?: string | null }
@@ -132,4 +136,65 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   })
   metrics.pendingActions = pendingActionsOf(metrics)
   return { metrics, snapshot }
+}
+
+// «Το τμήμα μου» of the Department Manager in the Demo: the same sample records as the
+// other Demo screens (clinical cases, laboratory samples, hand hygiene sessions,
+// controls), counted as department_home_overview counts a hospital; the roster
+// requests, training, influenza vaccination and falls are the department's row of the
+// Division Director's sample figures.
+export function collectDemoDepartmentHome({ department, now = new Date() }: { department: string | null, now?: Date }): DepartmentHomeOverview {
+  const today = hospitalDate(now)
+  const inDepartment = (row: DepartmentRow) => !department || departmentOf(row) === department
+  const { metrics } = collectDemoDashboardMetrics({ department, now })
+  const cases = Object.values(clinicalCases).filter(inDepartment)
+  const isolations: Isolation[] = cases.map(item => item.isolation).filter((item): item is Isolation => Boolean(item && !Array.isArray(item)))
+  const firstDay = [weekStarts(today)[0], hospitalDate(new Date(now.getTime() - 29 * 86400000))].sort()[0]
+  const positives = laboratorySamples
+    .filter(row => inDepartment(row) && (!row.subjectType || row.subjectType === 'patient') && row.result === 'positive' && !['rejected', 'cancelled'].includes(row.status as string) && row.collectedAt)
+    .map(row => ({ row, day: hospitalDate(row.collectedAt as string) }))
+    .filter(({ day }) => day >= firstDay && day <= today)
+    .sort((a, b) => String(b.row.collectedAt).localeCompare(String(a.row.collectedAt)))
+  const month = positives.filter(({ day }) => day > hospitalDate(new Date(now.getTime() - 30 * 86400000)))
+  const sessions = handHygieneRows
+    .filter(row => !department || row.departmentEl === department)
+    .map(row => ({ day: row.date, observations: Number(row.observations) || 0, compliant: Number(row.compliant) || 0 }))
+  const recent = sessions.filter(row => row.day > hospitalDate(new Date(now.getTime() - 30 * 86400000)) && row.day <= today)
+  const observations = recent.reduce((sum, row) => sum + row.observations, 0)
+  const compliant = recent.reduce((sum, row) => sum + row.compliant, 0)
+  const figures = sampleDepartmentFigures(department)
+  return normalizeDepartmentHome({
+    inpatients: metrics.inpatients,
+    beds: null,
+    admissionsToday: cases.filter(item => item.admissionDate === today).length,
+    positives30: month.length,
+    positivesMdr30: month.filter(({ row }) => isMdrClass(row.resistance)).length,
+    positivesAwaiting30: month.filter(({ row }) => needsSurveillanceReview(row)).length,
+    activeSurveillance: metrics.activeSurveillance,
+    activeIsolation: isolations.filter(item => item.status === 'active').length,
+    reassessmentsDueToday: metrics.isolationReviewsDue,
+    handHygienePct: observations ? Math.round(compliant / observations * 1000) / 10 : null,
+    handHygieneObservations: observations,
+    handHygieneTarget: DEFAULT_HAND_HYGIENE_TARGET,
+    overdueControls: metrics.overdueControls,
+    controlsDueToday: metrics.controlsDueToday,
+    pendingRosterRequests: figures?.pendingRequests ?? 0,
+    trainingExpiring30: figures?.trainingExpiring30 ?? 0,
+    trainingPct: figures?.trainingPct ?? null,
+    fluPct: figures?.fluPct ?? null,
+    falls30: figures?.falls30 ?? 0,
+    pressureUlcers30: figures?.pressureUlcers30 ?? 0,
+    weeklyPositives: weeklyPositiveSeries(positives.map(({ row, day }) => ({ day, mdr: isMdrClass(row.resistance) })), today),
+    monthlyHandHygiene: monthlyHandHygieneSeries(sessions, today),
+    latestPositives: positives.slice(0, 5).map(({ row }) => ({
+      sampleCode: row.id,
+      patientId: row.patientId ?? null,
+      patient: row.patient ?? null,
+      patientEn: row.patientEn ?? null,
+      organism: row.organism ?? null,
+      resistance: isMdrClass(row.resistance) ? String(row.resistance).toUpperCase() : null,
+      collectedAt: row.collectedAt ?? null,
+      awaiting: needsSurveillanceReview(row),
+    })),
+  }, today)
 }

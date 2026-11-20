@@ -73,6 +73,12 @@ const SAMPLE_DIVISIONS: Array<{ id: string, name: string, categories: string[] }
 const sampleRow = ([name, staff, staffOnLeave, staffNew30, rosterNextMonth, uncoveredNights, pendingRequests, pendingRequestsOver3Days, trainingPct, trainingExpiring30, fluPct, handHygienePct, falls30, pressureUlcers30, incidentsOpen]: SampleRow): DivisionDepartment =>
   ({ id: name, name, staff, staffOnLeave, staffNew30, rosterNextMonth, uncoveredNights, pendingRequests, pendingRequestsOver3Days, trainingPct, trainingExpiring30, fluPct, handHygienePct, falls30, pressureUlcers30, incidentsOpen })
 
+// One sample department's figures by name (the Department Manager's home in the Demo reads the same row); none in the empty preview.
+export function sampleDepartmentFigures(name: string | null | undefined): DivisionDepartment | null {
+  const row = isEmptyPreview() ? null : Object.values(SAMPLE_ROWS).flat().find(item => item[0] === name)
+  return row ? sampleRow(row) : null
+}
+
 function sampleOverview(divisionId: string | null): DivisionOverview {
   const division = (SAMPLE_DIVISIONS.find(item => item.id === divisionId) || SAMPLE_DIVISIONS.find(item => item.id === SAMPLE_DEFAULT_DIVISION)) as typeof SAMPLE_DIVISIONS[number]
   const empty = isEmptyPreview()

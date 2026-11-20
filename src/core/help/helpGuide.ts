@@ -115,6 +115,7 @@ export const guideContent = {
         l('Ένα συμβάν αναφέρεται από το κουμπί «+ Αναφορά συμβάντος» στο κάτω μέρος του μενού: «Νέα αναφορά» ή «Οι αναφορές μου».', 'Report an incident with the “+ Incident report” button at the foot of the menu: “New report” or “My reports”.'),
         l('Ανοίξτε την εργασία που περιμένει και ολοκληρώστε την. Μην ξαναγράφετε δεδομένα που υπάρχουν ήδη: το Εργαστήριο, η Επιτήρηση και οι Δείκτες μοιράζονται τα ίδια στοιχεία.', 'Open the task that is waiting and complete it. Do not re-enter data that already exists: Laboratory, Surveillance and Indicators share the same data.'),
         l('Στο τέλος της εβδομάδας δείτε τις εκκρεμότητες του τμήματος και τα καθυστερημένα.', 'At the end of the week check the department’s pending and overdue items.'),
+        l('Ο Προϊστάμενος Τμήματος ξεκινά από το «Το τμήμα μου»: νοσηλευόμενοι, θετικά δείγματα, επιτήρηση και απομόνωση, υγιεινή χεριών και εκπρόθεσμοι έλεγχοι του τμήματος, δύο γραφήματα και τα τελευταία θετικά σε μία οθόνη.', 'The Department Manager starts from “My department”: the department’s inpatients, positive samples, surveillance and isolation, hand hygiene and overdue controls, two charts and the latest positives on one screen.'),
       ],
       done: l('Δεν υπάρχουν εκπρόθεσμες εργασίες χωρίς λόγο.', 'There are no overdue tasks without a reason.'),
     },

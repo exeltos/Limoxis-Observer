@@ -654,6 +654,11 @@
       "authenticated": true,
       "reason": "Home of the Division Director: per-department counts and percentages for one division (staff of the division's professional categories, next roster period status and uncovered nights, pending roster requests, training, influenza vaccination percentage only, hand hygiene, falls / pressure ulcers / open incidents); no employee rows. Callers: a Division Director for their own divisions only, or the organisation's Hospital Admin / the Platform Owner (role preview)."
     },
+    "department_home_overview": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Home of the Department Manager («Το τμήμα μου»): read-only counts of the user's own departments (inpatients, positive samples of 30 days with MDR/XDR and awaiting decision, active surveillance / isolation, hand hygiene with target, overdue controls, pending roster requests, training, influenza vaccination percentage only, falls / pressure ulcers), the weekly positives and monthly hand hygiene series and the 5 latest positive samples of those departments (sample code, patient name, organism, resistance). Callers: a user with department scope (organization_member_scopes) on every requested department, or the organisation's Hospital Admin / the Platform Owner; values of locked modules are null."
+    },
     "register_late_infection_candidates": {
       "category": "rpc",
       "authenticated": true,
