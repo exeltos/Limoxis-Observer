@@ -78,7 +78,7 @@ describe('training of the departments: the model', () => {
     const view = readSource('src/features/training/TrainingMyView.tsx')
     expect(page).toContain('if(!canManage)return <TrainingMyView')
     expect(view).toContain("const initialView: TrainingMyScope=scope.all?'hospital':PLAIN_ROLES.has(String(role))&&!managerView?'mine':'department'")
-    expect(view).toContain('useState<TrainingMyScope>(initialView)')
+    expect(view).toContain('useState<TrainingMyScope>(memory?.view||initialView)')
     expect(view).toContain('<SegmentedControl')
     expect(view).toContain('<RegistryPagination')
     expect(view).toContain('useCalendarScope()')
@@ -138,7 +138,7 @@ describe('«Όλο το νοσοκομείο»: the hospital’s programmes', ()
     expect(programTiles([], today)).toEqual({ current: 0, planned: 0, nextStart: '', pending: 0, requests: 0, rejected: 0 })
   })
 
-  it('the screen: three choices, the filters in the filters window, no opening of the manager’s record, no employee list', () => {
+  it('the screen: three choices, the filters in the filters window, a row opens the programme’s page, no employee list', () => {
     const view = readSource('src/features/training/TrainingMyView.tsx')
     expect(view).toContain("{value:'mine',label:tr('Οι δικές μου','Mine')}")
     expect(view).toContain("{value:'department',label:tr('Του τμήματός μου','My department')}")
@@ -152,7 +152,9 @@ describe('«Όλο το νοσοκομείο»: the hospital’s programmes', ()
     expect(view).toContain("tr('Συμμετοχή τμήματος','Department participation')")
     expect(view).toContain("{key:'me',label:tr('Εγώ','Me')}")
     expect(view).not.toContain("label:tr('Εργαζόμενος','Employee')},{key:'title'")
-    expect(view).not.toContain('navigate(`/training/')
+    // A row opens /training/<programKey> (the read-only page, TrainingProgramView) and keeps the list's choice for «Πίσω».
+    expect(view).toContain('navigate(`/training/${encodeURIComponent(programId)}`,{state:{trainingMyView:keep}})')
+    expect(view).toContain('rowProps={(row: TrainingProgramRow)=>rowOpen(row.id)}')
   })
 })
 
@@ -235,10 +237,11 @@ describe('the department’s programmes (owner, 20/11/2026: «δεν θέλω ν
   })
 
   it('the screen: the requests, the manager’s names, the module’s request list', () => {
-    const view = readSource('src/features/training/TrainingMyView.tsx')
-    expect(view).toContain('requestTrainingParticipationAsync(organizationId,requesting.program,requestNote)')
-    expect(view).toContain("const namesAllowed=!mine&&canSeeDepartmentNames(role,department,ownKeys)")
-    expect(view).toContain('departmentPendingPeople(state,namesOf.id,department,today)')
+    expect(readSource('src/features/training/useTrainingOwnActions.tsx')).toContain('requestTrainingParticipationAsync(organizationId,requesting.program,requestNote)')
+    // The names moved to the programme's page (owner, 21/11/2026): only the Department Manager / Division Director of the department.
+    const programView = readSource('src/features/training/TrainingProgramView.tsx')
+    expect(programView).toContain('const namesAllowed=canSeeDepartmentNames(role,ownDepartment,ownKeys)')
+    expect(programView).toContain('departmentParticipants(state,program.id,ownDepartment,today)')
     const page = readSource('src/features/training/TrainingProductionPage.tsx')
     expect(page).toContain("{value:'requests',label:en?'Participation requests':'Αιτήσεις συμμετοχής',icon:Inbox,count:pendingRequests.length||null}")
     expect(page).toContain('<TrainingRequestsPanel requests={requests}')

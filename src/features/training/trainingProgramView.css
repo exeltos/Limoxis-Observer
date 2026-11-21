@@ -1,0 +1,36 @@
+/* The programme's read-only page (TrainingProgramView): the details, description and material on the left; «Η
+   συμμετοχή μου» and «Συμμετοχή τμήματος» on the right. On a computer and a tablet it fits the screen: only the
+   department's names list scrolls inside its card. */
+.training-program-view .entity-record-body{display:flex;flex-direction:column;min-height:0}
+.training-program-view-grid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,1fr);gap:20px;padding:4px 4px 8px}
+.training-program-view-main{display:flex;flex-direction:column;gap:14px;min-width:0;min-height:0;overflow:auto}
+.training-program-view-main>.record-section-header:is(div,#lo-training-view){margin:0;min-height:0;padding:0 0 8px}
+.training-program-view-block h4{margin:0 0 6px;font-size:13px;color:var(--lo-color-muted);font-weight:600}
+.training-program-view-block p{margin:0}
+.training-program-view-text{white-space:pre-line;line-height:1.5}
+.training-program-view-files{margin:0}
+.training-program-view-files li strong{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.training-program-view-files a{display:inline-flex;align-items:center;gap:4px}
+.training-program-view-note{margin-top:8px;font-size:12px;color:var(--lo-color-muted)}
+.training-program-view-side{display:flex;flex-direction:column;gap:14px;min-width:0;min-height:0}
+.training-program-view-card{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);min-height:0}
+.training-program-view-card h3{margin:0;font-size:15px}
+.training-program-view-card h3 small{display:block;margin-top:2px;font-size:12px;font-weight:500;color:var(--lo-color-muted)}
+.training-program-view-card p{margin:0}
+.training-program-view-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.training-program-view-department{flex:1 1 auto}
+.training-program-view-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:0}
+.training-program-view-facts dt{font-size:12px;color:var(--lo-color-muted)}
+.training-program-view-facts dd{margin:2px 0 0;font-weight:600}
+.training-program-view-action{display:flex;justify-content:flex-start;gap:8px}
+.training-program-view-meter .lo-meter{width:100%;max-width:260px}
+.training-program-view-people{flex:1 1 auto;min-height:0;overflow:auto}
+/* A tablet in portrait: one column, the page scrolls. */
+@media (max-width:900px){
+  .training-program-view-grid{grid-template-columns:minmax(0,1fr)}
+  .training-program-view-main{overflow:visible}
+}
+.training-program-view-side>.training-program-view-card:first-child{flex:0 0 auto}
+.training-program-view-details:is(div,#lo-training-view){margin-top:0}
+.training-program-view-people table:is(table,#lo-training-view){width:100%;min-width:0}
+.training-program-view-people td,.training-program-view-people th{padding-left:10px;padding-right:10px}

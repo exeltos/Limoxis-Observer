@@ -87,7 +87,8 @@ describe('«Οι δικές μου»: one small button per row', () => {
     expect(trainingRowAction(row({}, 'completed', { id: 'C1' }), false)).toBe('certificate')
   })
   it('opens the user’s own page through training_my_access, in the same tab', () => {
-    const view = readSource('src/features/training/TrainingMyView.tsx')
+    // The own buttons are shared by the list and the programme's page (useTrainingOwnActions).
+    const view = readSource('src/features/training/useTrainingOwnActions.tsx')
     expect(view).toContain('openOwnTrainingAccessAsync(organizationId,row.assignment.id)')
     expect(view).toContain('navigate(`/training-access/${encodeURIComponent(key)}`,{state:{trainingFromApp:true}})')
     expect(readSource('src/features/training/trainingInvitationService.ts')).toContain("supabase.rpc('training_my_access',{p_organization_id:organizationId,p_assignment_key:assignmentKey})")
