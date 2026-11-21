@@ -38,6 +38,7 @@ import { TrainingParticipantsDialog } from './TrainingParticipantsDialog'
 import { TrainingAssignDepartmentsDialog } from './TrainingAssignDepartmentsDialog'
 import { assignDepartmentsAsync,loadDepartmentTargetsAsync,previewDepartmentAssignmentAsync,stopDepartmentTargetsAsync,syncDemoDepartmentTargets } from './trainingDepartmentAssignService'
 import { departmentTargetsText } from './trainingDepartmentAssign'
+import { loadTrainingParticipantCandidatesAsync } from './trainingParticipantCandidates'
 import type { DepartmentAssignSelection,DepartmentTarget } from './trainingDepartmentAssign'
 import { TrainingAssessmentEditor } from './TrainingAssessmentEditor'
 import { TrainingResultsReview } from './TrainingResultsReview'
@@ -199,6 +200,10 @@ function ProgramRecord({pendingRequests=[],onShowRequests,en,language,organizati
  const loadTargets=useCallback(()=>loadDepartmentTargetsAsync(organizationId,program).then(setTargets).catch(()=>setTargets([])),[organizationId,program])
  useEffect(()=>{void loadTargets()},[loadTargets])
  const programOpen=program.status!=='completed'&&program.status!=='cancelled'
+ // «Προσθήκη συμμετεχόντων»: in a hospital the staff list comes from the server (training_participant_candidate_list), so a
+ // training manager without access to the staff register still sees it; in the Demo, the staff already loaded.
+ const [candidates,setCandidates]=useState<TrainingEmployee[]|null>(null),pickerOpen=dialog?.type==='participants'
+ useEffect(()=>{if(!pickerOpen){setCandidates(null);return}let active=true;loadTrainingParticipantCandidatesAsync(organizationId,employees).then(rows=>{if(active)setCandidates(rows)}).catch(error=>{if(!active)return;notifyError(error,'load',{operation:'training_participant_candidate_list'});setCandidates(employees)});return()=>{active=false}},[pickerOpen,organizationId,employees,notifyError])
  const previewAssign=(selection: DepartmentAssignSelection)=>previewDepartmentAssignmentAsync(organizationId,program,selection,{employees,assignments:state.assignments,departments})
  async function assignToDepartments(selection: DepartmentAssignSelection){
   setAssignBusy(true)
@@ -223,7 +228,7 @@ function ProgramRecord({pendingRequests=[],onShowRequests,en,language,organizati
  async function removeParticipant(row: TrainingAssignment){if(row.status==='completed'){notify(en?'Completed training records are retained for traceability.':'Οι ολοκληρωμένες εκπαιδεύσεις διατηρούνται για ιχνηλασιμότητα.','warning');return}if(!await confirm({title:en?'Remove participant':'Αφαίρεση συμμετέχοντα',message:en?'Remove this participant from the training program?':'Να αφαιρεθεί ο συμμετέχων από το πρόγραμμα εκπαίδευσης;',danger:true}))return;try{await deleteTrainingRecordAsync(organizationId,row.id);notify(en?'Participant removed.':'Ο συμμετέχων αφαιρέθηκε.','success');await reload()}catch(error){notifyError(error,'delete',{operation:'training_participant_delete'})}}
  async function addParticipants({selected,manualEntries}: {selected: TrainingEmployee[],manualEntries: ManualEntry[]}){
   const now=new Date().toISOString(),stamp=Date.now()
-  const fromEmployees=selected.map((employee,index)=>({id:`TRA-${stamp}-${index}-${employee.id}`,programId:program.id,employeeId:employee.employeeCode||employee.id,employeeName:`${employee.firstName||''} ${employee.lastName||''}`.trim(),department:employee.department||'',departmentId:employee.departmentId||null,email:employee.email||'',assignedDate:now.slice(0,10),dueDate:program.dueDate,status:'assigned',attendanceResponse:'not_sent',attendance:null,completionConfirmedAt:null,score:null,competent:null,certificateId:null,createdAt:now}))
+  const fromEmployees=selected.map((employee,index)=>({id:`TRA-${stamp}-${index}-${employee.id}`,programId:program.id,employeeId:employee.employeeCode||employee.id,employeeName:`${employee.firstName||''} ${employee.lastName||''}`.trim(),department:employee.department||'',departmentId:employee.departmentId||null,email:employee.email||'',...(employee.userId?{userId:employee.userId}:{}),assignedDate:now.slice(0,10),dueDate:program.dueDate,status:'assigned',attendanceResponse:'not_sent',attendance:null,completionConfirmedAt:null,score:null,competent:null,certificateId:null,createdAt:now}))
   const fromManual=(manualEntries||[]).map((manual,index)=>({id:`TRA-MAN-${stamp}-${index}`,programId:program.id,employeeId:'',employeeName:manual.name.trim(),department:manual.department.trim(),email:manual.email.trim(),assignedDate:now.slice(0,10),dueDate:program.dueDate,status:'assigned',attendanceResponse:'not_sent',attendance:null,completionConfirmedAt:null,score:null,competent:null,certificateId:null,createdAt:now,manualEntry:true}))
   const saved=await onPersist({...state,assignments:[...state.assignments,...fromEmployees,...fromManual]},en?'Participants added.':'Οι συμμετέχοντες προστέθηκαν.')
   if(saved)setDialog(null)
@@ -234,7 +239,7 @@ function ProgramRecord({pendingRequests=[],onShowRequests,en,language,organizati
    ...(program.status!=='cancelled'&&program.status!=='completed'?[{id:'cancel',label:en?'Cancel the program':'Ακύρωση προγράμματος',icon:XCircle,disabled:busy,onClick:cancelProgram}]:[]),
    {id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:onDelete},
  ]}/>:null
- const activeEmployees=employees.filter(isActiveEmployee),assignedEmployeeIds=new Set(assignments.map(a=>String(a.employeeId||'')).filter(Boolean))
+ const activeEmployees=(candidates||[]).filter(isActiveEmployee),assignedEmployeeIds=new Set(assignments.map(a=>String(a.employeeId||'')).filter(Boolean))
  // The programme's single «Εξαγωγή»: the programme sheet with its attendance list, and its participants in Excel.
  const statusText=(v: string)=>labels[v]?.[en?1:0]||v||''
  const participantsTable=()=>trainingParticipationExport(assignments,[program],state.certificates||[],{en,statusLabel:statusText})
@@ -244,7 +249,8 @@ function ProgramRecord({pendingRequests=[],onShowRequests,en,language,organizati
   {id:'program-participants-excel',kind:'excel',label:en?'Excel: participants':'Excel: συμμετέχοντες',disabled:!assignments.length,onClick:()=>setSheet('excel')},
  ]}/>
  const departmentsDialog=dialog?.type==='departments'?<TrainingAssignDepartmentsDialog en={en} departments={departments} preview={previewAssign} onApply={assignToDepartments} onClose={()=>setDialog(null)} confirm={confirm} busy={assignBusy}/>:null
- if(dialog?.type==='participants')return <TrainingParticipantsDialog en={en} departments={departments} employees={activeEmployees} alreadyAssignedIds={[...assignedEmployeeIds]} busy={busy} onClose={()=>setDialog(null)} onSave={addParticipants}/>
+ if(pickerOpen&&!candidates)return <RouteLoading/>
+ if(pickerOpen)return <TrainingParticipantsDialog en={en} departments={departments} employees={activeEmployees} alreadyAssignedIds={[...assignedEmployeeIds]} busy={busy} onClose={()=>setDialog(null)} onSave={addParticipants}/>
  return (
   <Page fill>
    {departmentsDialog}
