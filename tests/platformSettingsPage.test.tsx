@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Ρυθμίσεις › Ρυθμίσεις πλατφόρμας: μία σελίδα με τρεις καρτέλες (Οργανισμοί, Demo, Σελίδα παρουσίασης) στη θέση
+// Ρυθμίσεις › Ρυθμίσεις πλατφόρμας: μία σελίδα σε όλο το πλάτος με τρεις ομάδες (Οργανισμοί, Demo, Σελίδα παρουσίασης) στη θέση
 // των γραναζιών των μητρώων Οργανισμοί και Demo.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -21,39 +21,34 @@ const field = (name: string) => new RegExp(`^${name}`)
 const renderPage = (entry = '/platform/settings') => render(<MemoryRouter initialEntries={[entry]}><LanguageProvider><PlatformSettingsPage/></LanguageProvider></MemoryRouter>)
 
 describe('PlatformSettingsPage', () => {
-  it('shows the three tabs and saves only the fields of the open tab', async () => {
+  it('shows the three groups on one screen and saves only the fields of its own group', async () => {
     service.getPlatformSettings.mockResolvedValue(SETTINGS)
     service.updatePlatformSettings.mockImplementation(async values => ({ ...SETTINGS, ...values, maxDemoUsers: Number(values.maxDemoUsers) }))
-    renderPage()
+    const { container } = renderPage()
     expect(screen.getByRole('heading', { name: 'Ρυθμίσεις πλατφόρμας' })).toBeInTheDocument()
-    for (const tab of ['Οργανισμοί', 'Demo', 'Σελίδα παρουσίασης']) expect(screen.getByRole('tab', { name: tab })).toBeInTheDocument()
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(await screen.findByLabelText(field('Περίοδος χάριτος διαγραφής'))).toHaveValue(30)
     expect(screen.getByLabelText(field('Email υποστήριξης'))).toHaveValue('support@example.org')
-    // Nothing changed: «Αποθήκευση» stays off.
-    expect(screen.getByRole('button', { name: 'Αποθήκευση' })).toBeDisabled()
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Demo' }))
     expect(screen.getByLabelText(field('Διάρκεια νέου Demo'))).toHaveValue(30)
+    for (const label of ['Εταιρεία', 'Email επικοινωνίας', 'Τηλέφωνο', 'Ιστοσελίδα']) expect(screen.getByLabelText(field(label))).toBeInTheDocument()
+    const saves = () => screen.getAllByRole('button', { name: 'Αποθήκευση' })
+    // Nothing changed: every «Αποθήκευση» stays off.
+    expect(saves()).toHaveLength(3)
+    for (const button of saves()) expect(button).toBeDisabled()
+
     fireEvent.change(screen.getByLabelText(field('Χρήστες ανά Demo')), { target: { value: '40' } })
     expect(screen.getByText('Επιτρέπονται 1–20.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Αποθήκευση' })).toBeDisabled()
+    const demoSave = container.querySelectorAll('.platform-settings-form')[1].querySelector('button') as HTMLButtonElement
+    expect(demoSave).toBeDisabled()
     fireEvent.change(screen.getByLabelText(field('Χρήστες ανά Demo')), { target: { value: '8' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Αποθήκευση' }))
+    expect(saves()[0]).toBeDisabled()
+    fireEvent.click(demoSave)
     await waitFor(() => expect(service.updatePlatformSettings).toHaveBeenCalledWith(expect.objectContaining({ maxDemoUsers: '8', supportEmail: 'support@example.org', publicName: 'Exeltos' })))
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Οι ρυθμίσεις αποθηκεύτηκαν.', 'success', expect.anything()))
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Σελίδα παρουσίασης' }))
-    for (const label of ['Εταιρεία', 'Email επικοινωνίας', 'Τηλέφωνο', 'Ιστοσελίδα']) expect(screen.getByLabelText(field(label))).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText(field('Email επικοινωνίας')), { target: { value: 'not-an-email' } })
     expect(screen.getByText('Μη έγκυρο email.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Αποθήκευση' })).toBeDisabled()
-  })
-
-  it('opens a tab from the address', async () => {
-    service.getPlatformSettings.mockResolvedValue(SETTINGS)
-    renderPage('/platform/settings?tab=presentation')
-    expect(await screen.findByLabelText(field('Εταιρεία'))).toHaveValue('Exeltos')
-    expect(screen.getByRole('tab', { name: 'Σελίδα παρουσίασης' })).toHaveAttribute('aria-selected', 'true')
+    expect(saves()[2]).toBeDisabled()
   })
 
   it('sits in the owner menu under Settings, behind the platform capability, and the registries have no gear', () => {

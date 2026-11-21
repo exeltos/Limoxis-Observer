@@ -67,7 +67,8 @@ export function PlatformSettingsForm({kind,settings,language='el',onSaved}: {kin
   }
   const [title,hint]=TITLES[kind]
   return <FormCard className="platform-settings-form" title={tx(...title)} hint={tx(...hint)}>
-    <FormGrid columns={2}>
+    {/* The presentation page spans the screen: its four fields side by side (two per row on a tablet). */}
+    <FormGrid columns={kind==='presentation'?undefined:2} className={kind==='presentation'?'platform-settings-public-grid':''}>
       {fields.map(field=><label key={field.key} className="field">
         <span className="lo-field-label">{tx(...field.label)}</span>
         {field.email
