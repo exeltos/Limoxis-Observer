@@ -3,7 +3,8 @@
 // programmes, never employees; four figures; a certificate expired, expiring within 90 days or valid.
 import { describe, expect, it } from 'vitest'
 import { readSource } from './helpers/readSource'
-import { canSeeDepartmentNames, certificateState, departmentPendingPeople, filterProgramRows, filterTrainingRows, hospitalProgramRows, ownTrainingRows, participationFromAssignments, programConcernsDepartment, programParticipation, programState, programStatusCounts, programTiles, trainingMeState, trainingRowAction, trainingStatusCounts, trainingTiles, type TrainingParticipationRequest } from '../src/features/training/trainingMyView'
+import { canSeeDepartmentNames, certificateState, departmentPendingPeople, filterProgramRows, filterTrainingRows, hospitalProgramRows, ownTrainingRows, participationFromAssignments, programOrganisedByDepartment, programOrganizer, programParticipation, programState, programStatusCounts, programTiles, trainingMeState, trainingRowAction, trainingStatusCounts, trainingTiles, type TrainingParticipationRequest } from '../src/features/training/trainingMyView'
+import { programOrganizerMap } from '../src/features/training/trainingProgramDepartments'
 import type { TrainingState } from '../src/features/training/trainingData'
 
 const today = '2026-11-20'
@@ -145,7 +146,7 @@ describe('«Όλο το νοσοκομείο»: the hospital’s programmes', ()
     expect(view).toContain("{value:'hospital',label:tr('Όλο το νοσοκομείο','Whole hospital')}")
     expect(view).not.toContain("tr('Όλο το προσωπικό','All staff')")
     expect(view).not.toContain("tr('Όλο το τμήμα','Whole department')")
-    expect(view).toContain('hospitalProgramRows(state,scope,today,{department,participation:counted,requests})')
+    expect(view).toContain('hospitalProgramRows(state,scope,today,{department,participation:counted,requests,departments:departmentList,organizers,en})')
     expect(view).toContain("<FilterSelect label={tr('Τμήμα','Department')}")
     expect(view).toContain("<FilterSelect label={tr('Κατάσταση','Status')}")
     expect(view).toContain("<FilterSelect label={tr('Κατηγορία','Category')}")
@@ -165,24 +166,39 @@ describe('the department’s programmes (owner, 20/11/2026: «δεν θέλω ν
   const hospital = {
     ...records,
     programs: [
-      { ...program('P1', 'Χρήση απινιδωτή'), audience: 'Ομάδα αναζωογόνησης', startDate: '2026-09-01', dueDate: '2026-12-10' },
-      { ...program('P2', 'Υγιεινή χεριών'), audience: 'Όλο το προσωπικό', startDate: '2026-10-01', dueDate: '2026-11-30' },
-      { ...program('P3', 'Αιχμηρά', 'completed'), audience: 'ΜΕΘ', dueDate: '2026-06-30' },
+      { ...program('P1', 'Χρήση απινιδωτή'), audience: 'Ομάδα αναζωογόνησης', startDate: '2026-09-01', dueDate: '2026-12-10', organizerDepartmentId: 'D-ICU' },
+      { ...program('P2', 'Υγιεινή χεριών'), audience: 'Όλο το προσωπικό', startDate: '2026-10-01', dueDate: '2026-11-30', owner: 'Δρ. Ελένη Κ.' },
+      { ...program('P3', 'Αιχμηρά', 'completed'), audience: 'ΜΕΘ', dueDate: '2026-06-30', owner: 'Ομάδα Πρόληψης Λοιμώξεων' },
       { ...program('P4', 'Ακυρωμένο', 'cancelled'), audience: 'Χειρουργική' },
-      { ...program('P5', 'Μέτρα απομόνωσης', 'planned'), startDate: '2027-01-15', dueDate: '2027-02-15', audience: 'Χειρουργική · Ορθοπαιδική' },
+      { ...program('P5', 'Μέτρα απομόνωσης', 'planned'), startDate: '2027-01-15', dueDate: '2027-02-15', audience: 'Χειρουργική · Ορθοπαιδική', owner: 'ΧΕΙΡΟΥΡΓΙΚΗ' },
     ],
   } as unknown as TrainingState
   const counts = participationFromAssignments(hospital)
+  // The training office's resolution: the owner's department for a person, the owner as written otherwise.
+  const organizers = programOrganizerMap(hospital.programs, [{ firstName: 'Ελένη', lastName: 'Κ.', name: 'Δρ. Ελένη Κ.', department: 'ΜΕΘ' }])
 
-  it('a programme concerns a department by its audience (or the whole hospital) or by an assignment of its people', () => {
-    expect(programConcernsDepartment(hospital.programs[0], surgery, counts)).toBe(false)
-    expect(programConcernsDepartment(hospital.programs[1], surgery, counts)).toBe(true)
-    expect(programConcernsDepartment(hospital.programs[4], surgery, counts)).toBe(true)
-    // «Ομάδα αναζωογόνησης» names no department; the ICU has people in it.
-    expect(programConcernsDepartment(hospital.programs[0], icu, counts)).toBe(true)
-    expect(hospitalProgramRows(hospital, me, today, { department: surgery, participation: counts }).map(row => row.id)).toEqual(['P2', 'P5'])
-    expect(hospitalProgramRows(hospital, me, today, { department: medicine, participation: counts }).map(row => row.id)).toEqual(['P2'])
-    expect(hospitalProgramRows(hospital, me, today, { participation: counts }).map(row => row.id)).toEqual(['P2', 'P1', 'P5', 'P3'])
+  it('«Του τμήματός μου» keeps only what the department organised; not the audience, the whole hospital or its participants', () => {
+    // The organiser department of a department training, by id.
+    expect(programOrganisedByDepartment(hospital.programs[0], icu, organizers)).toBe(true)
+    expect(programOrganisedByDepartment(hospital.programs[0], surgery, organizers)).toBe(false)
+    // Older programmes: the owner's department (a person) or the owner as written, accent and case aside.
+    expect(programOrganisedByDepartment(hospital.programs[1], icu, organizers)).toBe(true)
+    expect(programOrganisedByDepartment(hospital.programs[4], surgery, organizers)).toBe(true)
+    // «Όλο το προσωπικό» or «ΜΕΘ» in the audience, or the department's participants, no longer count.
+    expect(programOrganisedByDepartment(hospital.programs[1], surgery, organizers)).toBe(false)
+    expect(programOrganisedByDepartment(hospital.programs[2], icu, organizers)).toBe(false)
+    expect(programOrganisedByDepartment(hospital.programs[1], medicine, organizers)).toBe(false)
+    expect(hospitalProgramRows(hospital, me, today, { department: surgery, participation: counts, organizers }).map(row => row.id)).toEqual(['P5'])
+    expect(hospitalProgramRows(hospital, me, today, { department: icu, participation: counts, organizers }).map(row => row.id)).toEqual(['P2', 'P1'])
+    expect(hospitalProgramRows(hospital, me, today, { department: medicine, participation: counts, organizers }).map(row => row.id)).toEqual([])
+    expect(hospitalProgramRows(hospital, me, today, { participation: counts, organizers }).map(row => row.id)).toEqual(['P2', 'P1', 'P5', 'P3'])
+  })
+
+  it('«Διοργάνωση»: the organising department, or «—» when none', () => {
+    const departments = [icu, medicine, surgery]
+    const rows = hospitalProgramRows(hospital, me, today, { participation: counts, organizers, departments, en: true })
+    expect(Object.fromEntries(rows.map(row => [row.id, row.organizer]))).toEqual({ P1: 'ICU', P2: 'ΜΕΘ', P3: 'Ομάδα Πρόληψης Λοιμώξεων', P5: 'ΧΕΙΡΟΥΡΓΙΚΗ' })
+    expect(programOrganizer(program('P9', 'Χωρίς'), departments, organizers)).toEqual({ departmentId: null, name: '' })
   })
 
   it('«Συμμετοχή τμήματος»: completed of assigned for the department, the hospital’s totals without one, numbers only', () => {
@@ -192,7 +208,7 @@ describe('the department’s programmes (owner, 20/11/2026: «δεν θέλω ν
     expect(programParticipation('P5', counts, icu)).toBeNull()
     // The database’s figures match a department by its id too.
     expect(programParticipation('P1', [{ programId: 'P1', departmentId: 'D-ICU', departmentName: '', assigned: 20, completed: 12 }], icu)).toEqual({ assigned: 20, completed: 12 })
-    const rows = hospitalProgramRows(hospital, me, today, { department: icu, participation: counts })
+    const rows = hospitalProgramRows(hospital, me, today, { department: icu, participation: counts, organizers })
     expect(JSON.stringify(rows.map(row => [row.title, row.trainer, row.audience, row.participation]))).not.toContain('Συνάδελφος')
     // In the running ones: P1 (4 − 2) and P2 (1 − 0).
     expect(programTiles(rows, today).pending).toBe(3)

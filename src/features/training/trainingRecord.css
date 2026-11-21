@@ -30,3 +30,8 @@
 /* The programme's participation requests waiting (owner, 20/11/2026): one line with «Άνοιγμα αιτήσεων». */
 .training-record-requests{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
 .training-record-requests>span{flex:1 1 auto;min-width:0}
+/* «Ανάθεση σε τμήματα» (owner, 21/11/2026): the dialog's fields, its count line, and the followed departments over the participants. */
+.training-assign-departments-fields{display:grid;gap:14px}
+.training-assign-departments-count{flex:1 1 auto;min-width:0;font-size:13px;color:var(--lo-color-muted)}
+.training-department-targets{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 20px;border-bottom:1px solid var(--lo-color-border);font-size:13px}
+.training-department-targets>span{flex:1 1 auto;min-width:0}
