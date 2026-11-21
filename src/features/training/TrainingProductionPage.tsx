@@ -3,7 +3,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { matchesSearch } from '../../core/i18n/searchMatch'
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
 import { useLocation,useNavigate,useParams } from 'react-router-dom'
-import { Award, BookOpenCheck, CalendarRange, CheckCircle2, ClipboardCheck, FileText, Inbox, Pencil, Plus, Send, Trash2, Users, XCircle } from 'lucide-react'
+import { Award, BookOpenCheck, Building2, CalendarRange, CheckCircle2, ClipboardCheck, FileText, Inbox, Pencil, Plus, Send, Trash2, Users, XCircle } from 'lucide-react'
 import './trainingRecord.css'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -35,6 +35,10 @@ import { sendTrainingInvitationsAsync } from './trainingInvitationService'
 import { TrainingProgramForm,trainingProgramIsValid,trainingCategoryLabel,trainingMethodLabel,TrainingProgramDetails,trainingDeliveryKindLabel,TRAINING_DELIVERY_KINDS } from './TrainingProgramForm'
 import { programOrganizerMap } from './trainingProgramDepartments'
 import { TrainingParticipantsDialog } from './TrainingParticipantsDialog'
+import { TrainingAssignDepartmentsDialog } from './TrainingAssignDepartmentsDialog'
+import { assignDepartmentsAsync,loadDepartmentTargetsAsync,previewDepartmentAssignmentAsync,stopDepartmentTargetsAsync,syncDemoDepartmentTargets } from './trainingDepartmentAssignService'
+import { departmentTargetsText } from './trainingDepartmentAssign'
+import type { DepartmentAssignSelection,DepartmentTarget } from './trainingDepartmentAssign'
 import { TrainingAssessmentEditor } from './TrainingAssessmentEditor'
 import { TrainingResultsReview } from './TrainingResultsReview'
 import { TrainingStatusBadge,trainingStatusLabels } from './TrainingStatusBadge'
@@ -111,6 +115,8 @@ export function TrainingProductionPage(){
  // Opening a programme reads its details; until they arrive the record waits (a save never goes out from a lean row).
  useEffect(()=>{let active=true;if(!programId||!canManage||!tenant?.id)return()=>{active=false};void detailOrLeave(programId).then(next=>{if(active&&next)setDetail(next)});return()=>{active=false}},[programId,canManage,tenant?.id,detailOrLeave])
  const state=useMemo(()=>detail?.key===programId?withProgramDetail(leanState,detail):leanState,[leanState,detail,programId])
+ // «Και όσοι προστεθούν αργότερα στα τμήματα» in the Demo: the newcomers of a followed department are added (in a hospital the database trigger does it).
+ useEffect(()=>{if(!isDemo||loading||!employees?.length)return;const next=syncDemoDepartmentTargets(employees,departments);if(next)setState(next)},[isDemo,loading,employees,departments])
  // loadDepartments is a plain cloud call with no demo awareness — calling it
  // with tenant.id='demo-hospital' (not a real UUID) fails with a Postgres 400.
  useEffect(()=>{let active=true;if(isDemo){setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})));return()=>{active=false}}if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[isDemo,tenant?.id])
@@ -188,6 +194,26 @@ function ProgramRecord({pendingRequests=[],onShowRequests,en,language,organizati
  const [sheet,setSheet]=useState<string|null>(null)
  const [tab,setTab]=useState('overview'),[dialog,setDialog]=useState<{type: string}|null>(null),[mailBusy,setMailBusy]=useState(false),[editing,setEditing]=useState(false),[draft,setDraft]=useState<TrainingProgramDraft>(program)
  useEffect(()=>{setDraft(program);setEditing(false)},[program])
+ // «Ανάθεση σε τμήματα» (owner, 21/11/2026): the departments the programme follows for people added later.
+ const [targets,setTargets]=useState<DepartmentTarget[]>([]),[assignBusy,setAssignBusy]=useState(false)
+ const loadTargets=useCallback(()=>loadDepartmentTargetsAsync(organizationId,program).then(setTargets).catch(()=>setTargets([])),[organizationId,program])
+ useEffect(()=>{void loadTargets()},[loadTargets])
+ const programOpen=program.status!=='completed'&&program.status!=='cancelled'
+ const previewAssign=(selection: DepartmentAssignSelection)=>previewDepartmentAssignmentAsync(organizationId,program,selection,{employees,assignments:state.assignments,departments})
+ async function assignToDepartments(selection: DepartmentAssignSelection){
+  setAssignBusy(true)
+  try{const {result}=await assignDepartmentsAsync(organizationId,program,selection,{employees,departments});await reload();await loadTargets();setDialog(null)
+   notify(en?`${result.added} ${result.added===1?'participant':'participants'} added${result.already?` · ${result.already} already participating`:''}.`:`${result.added===1?'Προστέθηκε':'Προστέθηκαν'} ${result.added} ${result.added===1?'συμμετέχων':'συμμετέχοντες'}${result.already?` · ${result.already} συμμετείχαν ήδη`:''}.`,'success')}
+  catch(error){notifyError(error,'save',{operation:'training_assign_departments'})}
+  finally{setAssignBusy(false)}
+ }
+ async function stopTargets(){
+  if(!await confirm({title:en?'Stop adding automatically':'Διακοπή αυτόματης προσθήκης',message:en?'People added to these departments later will no longer be added. The participants already added stay.':'Όσοι προστεθούν αργότερα στα τμήματα δεν θα προστίθενται πια. Οι συμμετέχοντες που προστέθηκαν μένουν.',confirmLabel:en?'Stop':'Διακοπή'}))return
+  setAssignBusy(true)
+  try{await stopDepartmentTargetsAsync(organizationId,targets);await loadTargets();notify(en?'Automatic adding stopped.':'Η αυτόματη προσθήκη σταμάτησε.','success')}
+  catch(error){notifyError(error,'save',{operation:'training_stop_department_target'})}
+  finally{setAssignBusy(false)}
+ }
  // The active reading time of each participant on the programme's files (only a saved programme has any).
  const [materialSeconds,setMaterialSeconds]=useState(()=>new Map<unknown, number>())
  useEffect(()=>{let active=true;if(!program.dbId)return()=>{active=false};loadProgramMaterialTimes(program.dbId).then(rows=>{if(!active)return;const map=new Map();for(const row of rows)map.set(row.assignment_id,(map.get(row.assignment_id)||0)+(row.active_seconds||0));setMaterialSeconds(map)}).catch(()=>{});return()=>{active=false}},[program.dbId,tab])
@@ -217,14 +243,16 @@ function ProgramRecord({pendingRequests=[],onShowRequests,en,language,organizati
   {id:'program-sheet',kind:'print',label:en?'Print: programme sheet':'Εκτύπωση: φύλλο προγράμματος',onClick:()=>setSheet('print')},
   {id:'program-participants-excel',kind:'excel',label:en?'Excel: participants':'Excel: συμμετέχοντες',disabled:!assignments.length,onClick:()=>setSheet('excel')},
  ]}/>
+ const departmentsDialog=dialog?.type==='departments'?<TrainingAssignDepartmentsDialog en={en} departments={departments} preview={previewAssign} onApply={assignToDepartments} onClose={()=>setDialog(null)} confirm={confirm} busy={assignBusy}/>:null
  if(dialog?.type==='participants')return <TrainingParticipantsDialog en={en} departments={departments} employees={activeEmployees} alreadyAssignedIds={[...assignedEmployeeIds]} busy={busy} onClose={()=>setDialog(null)} onSave={addParticipants}/>
  return (
   <Page fill>
+   {departmentsDialog}
    {sheet==='print'&&<PrintOptionsDialog storageKey="limoxis.training.print.sheet" title={en?'Programme sheet':'Φύλλο προγράμματος'} options={[{key:'attendance',label:en?'Attendance list':'Λίστα παρουσιών',choices:[{value:'blank',label:en?'Blank, for signatures':'Κενή, για υπογραφές'},{value:'attended',label:en?'With who attended':'Με όσους παρακολούθησαν'}],initial:program.status==='completed'?'attended':'blank'}]} onConfirm={printSheet} onClose={()=>setSheet(null)}/>}
    {sheet==='excel'&&<ExcelFieldsDialog storageKey="limoxis.training.program.participants.excel" fields={tableFields(participantsTable())} onClose={()=>setSheet(null)} onConfirm={keys=>{exportRegistry(pickColumns(participantsTable(),keys));setSheet(null)}}/>}
    <EntityRecordShell className="training-record-shell" headerActions={programExport} avatar={<BookOpenCheck size={19}/>} eyebrow={program.id} title={program.title} subtitle={[program.category?trainingCategoryLabel(program.category,language):'',trainingMethodLabel(program.method,language),program.owner?`${en?'Organiser':'Διοργανωτής'}: ${program.owner}`:'',`${en?'Trainer':'Εκπαιδευτής'}: ${program.trainer||'—'}`].filter(part=>part&&part!=='—').join(' · ')} status={<Badge status={program.status}/>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={onBack} backLabel={en?'Back to programs':'Πίσω στα προγράμματα'}>
      {tab==='overview'&&<section className="record-section training-program-overview"><div className="record-section-header"><div><h3>{en?'Program details':'Στοιχεία προγράμματος'}</h3></div>{programMenu}</div>{editing?<TrainingProgramForm value={draft} onChange={setDraft} language={language} employees={employees} departments={departments}/>:<TrainingProgramDetails value={program} language={language}/>}{!editing&&<TrainingProgramProgress en={en} program={program} assignments={assignments}/>}{!editing&&pendingRequests.length>0&&<div className="training-record-requests"><Inbox size={16} aria-hidden="true"/><span>{en?`${pendingRequests.length} participation request${pendingRequests.length===1?'':'s'} pending: ${pendingRequests.map(request=>request.requesterName).filter(Boolean).join(', ')}`:`${pendingRequests.length} ${pendingRequests.length===1?'αίτηση συμμετοχής σε αναμονή':'αιτήσεις συμμετοχής σε αναμονή'}: ${pendingRequests.map(request=>request.requesterName).filter(Boolean).join(', ')}`}</span>{onShowRequests&&<Button variant="secondary" onClick={onShowRequests}>{en?'Open requests':'Άνοιγμα αιτήσεων'}</Button>}</div>}{editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft(program);setEditing(false)}} disabled={busy}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton loading={busy} disabled={!trainingProgramIsValid(draft)||busy} onClick={saveProgram}>{en?'Save':'Αποθήκευση'}</SaveButton></div>}{program.id&&<LinkedActionsPanel sourceId={`TRAINING:${program.id}`} organizationId={organizationId} returnTab="overview"/>}</section>}
-     {tab==='participants'&&<Participants inactiveCodes={inactiveEmployeeCodes(employees)} materialSeconds={materialSeconds} measured={Boolean(program.materials?.length)||materialSeconds.size>0} rows={assignments} en={en} language={language} busy={busy} mailBusy={mailBusy} onInviteAll={sendForms} onRemove={removeParticipant} onAdd={()=>setDialog({type:'participants'})}/>}
+     {tab==='participants'&&<Participants inactiveCodes={inactiveEmployeeCodes(employees)} materialSeconds={materialSeconds} measured={Boolean(program.materials?.length)||materialSeconds.size>0} rows={assignments} en={en} language={language} busy={busy} mailBusy={mailBusy} onInviteAll={sendForms} onRemove={removeParticipant} onAdd={()=>setDialog({type:'participants'})} onAssignDepartments={programOpen?()=>setDialog({type:'departments'}):undefined} targetsText={departmentTargetsText(targets,departments,en)} onStopTargets={programOpen?stopTargets:undefined}/>}
      {tab==='materials'&&<RecordTabPanel className="training-content-panel" title={en?'Material':'Υλικό'} subtitle={en?'Upload presentations, procedures, attendance sheets or supporting material.':'Ανεβάστε παρουσιάσεις, διαδικασίες, παρουσιολόγια ή άλλο υποστηρικτικό υλικό.'}>
        <div className="training-content-stack">
          {/* The files of the program are its attachments (below); only external links are listed here, so nothing shows twice. */}
@@ -239,8 +267,8 @@ function ProgramRecord({pendingRequests=[],onShowRequests,en,language,organizati
  )
 }
 
-interface ParticipantsProps { inactiveCodes: Set<string>, materialSeconds: Map<unknown, number>, measured: boolean, rows: TrainingAssignment[], en: boolean, language: string, onAdd: ()=>void, busy: boolean, mailBusy: boolean, onInviteAll: (rows: TrainingAssignment[])=>unknown, onRemove: (row: TrainingAssignment)=>unknown }
-function Participants({inactiveCodes,materialSeconds,measured,rows,en,language,onAdd,busy,mailBusy,onInviteAll,onRemove}: ParticipantsProps){
+interface ParticipantsProps { inactiveCodes: Set<string>, materialSeconds: Map<unknown, number>, measured: boolean, rows: TrainingAssignment[], en: boolean, language: string, onAdd: ()=>void, busy: boolean, mailBusy: boolean, onInviteAll: (rows: TrainingAssignment[])=>unknown, onRemove: (row: TrainingAssignment)=>unknown, onAssignDepartments?: ()=>void, targetsText?: string, onStopTargets?: ()=>unknown }
+function Participants({inactiveCodes,materialSeconds,measured,rows,en,language,onAdd,busy,mailBusy,onInviteAll,onRemove,onAssignDepartments,targetsText='',onStopTargets}: ParticipantsProps){
  const [query,setQuery]=useState(''),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(15),[selectedIds,setSelectedIds]=useState(()=>new Set<unknown>())
  const sent=rows.filter(x=>x.invitationSentAt).length,confirmed=rows.filter(x=>x.attendanceResponse==='confirmed').length,completed=rows.filter(x=>x.status==='completed').length
  const filtered=useMemo(()=>rows.filter(x=>matchesSearch(query,[x.employeeName,x.employeeId,x.department,x.email])),[rows,query])
@@ -251,9 +279,10 @@ function Participants({inactiveCodes,materialSeconds,measured,rows,en,language,o
  function toggle(id: unknown,checked: boolean){setSelectedIds(current=>{const next=new Set(current);if(checked)next.add(id);else next.delete(id);return next})}
  function toggleAll(checked: boolean){setSelectedIds(current=>{const next=new Set(current);for(const row of selectableRows){if(checked)next.add(row.id);else next.delete(row.id)}return next})}
  const factsText=rows.length?`${sent}/${rows.length} ${en?'forms sent':'φόρμες στάλθηκαν'} · ${confirmed}/${rows.length} ${en?'attendance confirmed':'επιβεβαίωσαν συμμετοχή'} · ${completed}/${rows.length} ${en?'completed':'ολοκλήρωσαν'}`:''
- const actions=<><Button variant="secondary" disabled={busy||mailBusy||selectedRows.length===0} onClick={()=>onInviteAll(selectedRows)}><Send size={14}/>{mailBusy?(en?'Sending…':'Αποστολή…'):(en?`Send evaluation (${selectedRows.length})`:`Αποστολή αξιολόγησης (${selectedRows.length})`)}</Button><Button disabled={busy} onClick={onAdd}><Plus size={15}/>{en?'Add participants':'Προσθήκη συμμετεχόντων'}</Button></>
+ const actions=<><Button variant="secondary" disabled={busy||mailBusy||selectedRows.length===0} onClick={()=>onInviteAll(selectedRows)}><Send size={14}/>{mailBusy?(en?'Sending…':'Αποστολή…'):(en?`Send evaluation (${selectedRows.length})`:`Αποστολή αξιολόγησης (${selectedRows.length})`)}</Button>{onAssignDepartments&&<Button variant="secondary" disabled={busy} onClick={onAssignDepartments}><Building2 size={14}/>{en?'Assign to departments':'Ανάθεση σε τμήματα'}</Button>}<Button disabled={busy} onClick={onAdd}><Plus size={15}/>{en?'Add participants':'Προσθήκη συμμετεχόντων'}</Button></>
  return <RecordTabPanel className="training-participants-view" title={en?'Participants':'Συμμετέχοντες'} subtitle={factsText||undefined} actions={actions} footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}>
   <div className="training-participants-registry workspace-column workspace-fill">
+   {targetsText&&<div className="training-department-targets"><Building2 size={15} aria-hidden="true"/><span>{targetsText}</span>{onStopTargets&&<Button variant="quiet" disabled={busy} onClick={onStopTargets}>{en?'Stop adding automatically':'Διακοπή αυτόματης προσθήκης'}</Button>}</div>}
    <FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search...':'Αναζήτηση...'}/>
    <div className="scroll-table"><table className="data-table sticky-table training-participants-table"><thead><tr><th className="training-select-col"><input type="checkbox" aria-label={en?'Select all eligible participants':'Επιλογή όλων των διαθέσιμων συμμετεχόντων'} checked={allVisibleSelected} onChange={e=>toggleAll(e.target.checked)} disabled={!selectableRows.length}/></th><th>{en?'Participant':'Συμμετέχων'}</th><th>{en?'Department':'Τμήμα'}</th><th>{en?'Progress':'Πρόοδος'}</th><th></th></tr></thead><tbody>{pagedRows.map(x=>{const wasSent=Boolean(x.invitationSentAt),done=x.status==='completed',submitted=Boolean(x.feedbackSubmittedAt),reviewPending=x.assessmentReviewStatus==='pending',eligible=Boolean(x.email)&&!done&&!submitted;const inactive=!x.manualEntry&&inactiveCodes?.has(String(x.employeeId||''));return <tr key={x.id} className={inactive?'inactive-employee-row':undefined}><td className="training-select-col"><input type="checkbox" aria-label={`${en?'Select':'Επιλογή'} ${x.employeeName||''}`} checked={selectedIds.has(x.id)} disabled={!eligible} onChange={e=>toggle(x.id,e.target.checked)}/></td><td><strong>{x.employeeName||'—'}</strong><InactiveEmployeeBadge inactive={inactive}/><small>{[x.manualEntry?(en?'Manual entry':'Χειροκίνητη καταχώρηση'):(x.employeeId||''),x.email].filter(Boolean).join(' · ')||'—'}</small></td><td>{x.department||'—'}</td><td>{reviewPending?<span className="status-badge">{en?'Review pending':'Αναμονή ελέγχου'}</span>:done?<span className="status-badge active">{x.score!=null?`${en?'Completed':'Ολοκληρώθηκε'} · ${x.score}%`:(en?'Completed':'Ολοκληρώθηκε')}</span>:submitted?<span className="status-badge active">{en?'Form submitted':'Υποβλήθηκε η φόρμα'}</span>:x.attendanceResponse==='confirmed'?<span className="status-badge active">{en?'Attendance confirmed':'Επιβεβαίωσε συμμετοχή'}</span>:wasSent?<><span className="status-badge">{en?'Form sent':'Στάλθηκε φόρμα'}</span><small>{fmt(x.invitationSentAt)}</small></>:<span className="status-badge">{en?'Not sent':'Δεν στάλθηκε'}</span>}{measured?<small>{en?'Viewing time':'Χρόνος παρακολούθησης'}: {formatActiveTime(materialSeconds.get(x.dbId)||0,en)}</small>:null}</td><td className="open-record-cell">{!done&&!submitted&&<OverflowMenu label={en?'Participant actions':'Ενέργειες συμμετέχοντα'} items={[{id:'remove',label:en?'Remove participant':'Αφαίρεση συμμετέχοντα',icon:Trash2,tone:'danger',onClick:()=>onRemove(x)}]}/>}</td></tr>})}</tbody></table>{!filtered.length&&<div className="registry-empty-state"><strong>{rows.length?(en?'No participants match the search.':'Δεν βρέθηκαν συμμετέχοντες για την αναζήτηση.'):(en?'No participants yet.':'Δεν έχουν προστεθεί συμμετέχοντες.')}</strong></div>}</div>
   </div>
