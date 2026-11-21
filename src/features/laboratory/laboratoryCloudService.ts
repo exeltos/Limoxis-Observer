@@ -9,6 +9,7 @@ import type { Json, TablesUpdate } from '../../core/supabase/database.types'
 import { ENVIRONMENTAL_TYPES } from '../surveillance/environmentalSurveillanceData'
 import { AMR_CATEGORY_SELECT, amrCalculationColumns, amrCalculationSnapshot, amrCategoryRows } from './amrCalculation'
 import { hospitalToday } from '../../core/dates/hospitalDate'
+import { samplesAwaitingReview } from './sampleReviewModel'
 
 const iso=(value: unknown)=>value?new Date(value as string|number|Date).toISOString():null
 const environmentalTypes=['water','surface','environment','environmental','room','air','νερό','επιφάνεια','επιφανεια']
@@ -249,6 +250,37 @@ export async function loadSamplesAwaitingReview(organizationId: string|null|unde
   }
   const unique=[...new Map(rows.map(({microbiology_results:_joined,...row})=>[row.id,row])).values()]
   return hydrateSamples(unique as LaboratorySampleRow[])
+}
+
+// The home's «Δείγματα προς έλεγχο» figure: the same samples counted from the few columns the check reads
+// (samplesAwaitingReview), without the patients, the results' tests and the classifications. The whole list
+// (loadSamplesAwaitingReview) of a hospital with thousands of undecided positives took over half a minute.
+type AwaitingCountRow={id: string,sample_code: string|null,status: string|null,sample_type: string|null,subject_type: string|null,surveillance_case_id: string|null,surveillance_review_status: string|null,
+  results: {result_status: string|null,organism: string|null,resistance_class: string|null,is_critical: boolean|null,resulted_at: string|null,amr: {classification: string|null,created_at: string|null}[]|null}[]|null}
+// The latest row decides, as in the list (descending, an undated one first).
+function latestBy<T>(items: T[]|null|undefined,date: (item: T)=>string|null|undefined){
+  return [...(items||[])].sort((a,b)=>(date(b)==null?1:0)-(date(a)==null?1:0)||String(date(b)||'').localeCompare(String(date(a)||'')))[0]
+}
+export async function countSamplesAwaitingReview(organizationId: string|null|undefined,{limit=20000}: {limit?: number}={}){
+  const supabase=cloudClient()
+  if(!organizationId)return 0
+  const rows: AwaitingCountRow[]=[]
+  for(let from=0;from<limit;from+=AWAITING_REVIEW_PAGE){
+    const to=Math.min(from+AWAITING_REVIEW_PAGE,limit)-1
+    const {data,error}=await supabase.from('laboratory_samples').select('id,sample_code,status,sample_type,subject_type,surveillance_case_id,surveillance_review_status,positive:microbiology_results!inner(id),results:microbiology_results(result_status,organism,resistance_class,is_critical,resulted_at,amr:amr_classifications(classification,created_at))')
+      .eq('organization_id',organizationId).eq('positive.result_status','positive')
+      .is('surveillance_case_id',null).is('surveillance_review_status',null).not('patient_id','is',null)
+      .order('requested_at',{ascending:false}).order('id',{ascending:true}).range(from,to)
+    if(error)throw error
+    rows.push(...((data||[]) as unknown as AwaitingCountRow[]))
+    if((data||[]).length<to-from+1)break
+  }
+  const unique=[...new Map(rows.map(row=>[row.id,row])).values()]
+  return samplesAwaitingReview(unique.map(row=>{
+    const result=latestBy(row.results,item=>item.resulted_at)
+    return {id:row.sample_code||'',status:row.status||'',type:row.sample_type||'',subjectType:row.subject_type||'patient',surveillanceCaseId:row.surveillance_case_id,surveillanceReviewStatus:row.surveillance_review_status,
+      result:result?.result_status||null,organism:result?.organism||null,resistance:latestBy(result?.amr,item=>item.created_at)?.classification||result?.resistance_class||null,critical:Boolean(result?.is_critical)} as unknown as Partial<LabSample>
+  })).length
 }
 
 // Named samples still awaiting a decision, by id (ΜΕΝΝ Ν6β: the late-onset blood cultures

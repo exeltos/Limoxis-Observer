@@ -42,10 +42,3 @@ export function PlatformAuditSecurityPage(){
     ?<PlatformHealthView organizations={organizations} language={language} tabs={tabs}/>
     :<PlatformAuditSecurityView organizations={organizations} language={language} tabs={tabs}/>
 }
-
-// The platform settings now sit where each is used (owner, 10/11/2026): the Demo defaults on the Demo screen, the
-// deletion grace period and the support email on Organizations, the maintenance message among the Announcements.
-// An old link to /platform/settings opens Organizations.
-export function PlatformSettingsPage(){
-  return <Navigate to="/platform#organizations" replace/>
-}

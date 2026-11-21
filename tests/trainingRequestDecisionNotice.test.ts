@@ -65,7 +65,7 @@ describe('the notice text', () => {
 })
 
 describe('the requester’s actions', () => {
-  const view = readSource('src/features/training/TrainingMyView.tsx')
+  const view = readSource('src/features/training/useTrainingOwnActions.tsx')
   it('cancels a waiting request after a confirmation, through the service', () => {
     expect(view).toContain("label={tr('Ακύρωση αίτησης','Cancel request')}")
     expect(view).toContain("if(!await confirm({title:tr('Ακύρωση αίτησης','Cancel request'),")

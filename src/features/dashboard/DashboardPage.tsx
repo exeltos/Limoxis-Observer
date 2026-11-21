@@ -19,7 +19,9 @@ import { DepartmentPeriodControls, useDepartmentHomeWindow } from './DepartmentH
 import { DEPARTMENT_ROLES, pendingActionsOf } from './dashboardTasks'
 import './dashboard.css'
 import { roleTitleText } from '../../core/i18n/roleTitles'
-import { decisionItems } from './adminHomeModel'
+import { adminHomeTiles, departmentsNeedingAttention, otherDecisionItems, overdueControlDepartments, weekSummary } from './adminHomeModel'
+import { loadActiveIsolationCount } from './adminHomeService'
+import { countPendingTrainingRequestsAsync } from '../training/trainingRequestService'
 import { useObjectives } from '../quality/review/QualityObjectives'
 import { calendarKindsFor, useCalendarSources } from '../calendar/useCalendarSources'
 import { buildCalendarEvents, calendarKindLabel, dayKey } from '../calendar/calendarEvents'
@@ -29,6 +31,7 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import { departmentOverdueCount, departmentWeek, ownCertificatesDue, ownTrainings, todayTaskCount } from './userHomeModel'
 import { loadDepartmentIsolationCount } from './userHomeService'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
+import { useSamplesAwaitingReviewCount } from '../laboratory/hooks/useSamplesAwaitingReviewCount'
 import { canReviewSamples } from '../laboratory/sampleReviewModel'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { lazyPage } from '../../core/errors/chunkRecovery'
@@ -41,13 +44,16 @@ const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome
 const DepartmentHome=lazyPage(()=>import('./DepartmentHome'),'DepartmentHome')
 // The Department User's and the Link Nurse's home (four figures, their day, trainings, the department's week): its own chunk.
 const UserHome=lazyPage(()=>import('./UserHome'),'UserHome')
+// The hospital administrator's home (five figures, the departments, what else needs a decision, the week): its own chunk.
+const AdminHome=lazyPage(()=>import('./AdminHome'),'AdminHome')
+type AdminDecision=import('./AdminHome').AdminDecision
 
 
 type Metrics=Record<string, number | undefined>
 // [label, value, capability, metric key]
 type KpiRow=[string, number | string, string | undefined, string]
 type Tone='danger' | 'warning' | 'info'
-interface TodoItem { key: string, title: string, count: number | null, to: string | null, tone: Tone, task?: NotificationItem }
+interface TodoItem { key: string, title: string, count: number | null, to: string | null, tone: Tone, task?: NotificationItem, state?: unknown }
 // What the home reads of an objective (still an open record in the Quality module): its year, status and where it stands now.
 type ObjectiveState = { year?: number | string, status?: string, current?: { status?: string } }
 
@@ -166,12 +172,14 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   const roleRows=useMemo(()=>roleKpis(role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
   // «Προς έλεγχο (N)»: new positive samples with no episode and no decision, for the infection-control roles.
   const reviewCard=showKpis&&!department&&canReviewSamples(role)&&menuPaths.has('/surveillance')
-  const awaitingReview=useSamplesAwaitingReview({enabled:reviewCard&&Boolean(isDemo||tenant?.id)})
-  const tasks=nctx.operational
   const adminHome=role===ROLES.HOSPITAL_ADMIN&&showKpis
+  // The administrator's figure only counts them (a light read): the whole list of a hospital with thousands of undecided
+  // positives took over half a minute and the figure stayed on «…».
+  const awaitingReview=useSamplesAwaitingReview({enabled:reviewCard&&!adminHome&&Boolean(isDemo||tenant?.id)})
+  const awaitingReviewCount=useSamplesAwaitingReviewCount({enabled:reviewCard&&adminHome&&Boolean(isDemo||tenant?.id)})
+  const tasks=nctx.operational
   // A tile opens a screen of the menu; a tab of a merged section (?tab=) only when the role may open that tab.
   const canOpen=(to: string | null | undefined)=>{const [path,search='']=String(to||'').split('?');if(!menuPaths.has(path))return false;const tab=new URLSearchParams(search).get('tab');const section=Object.keys(SECTION_TABS).find(id=>SECTION_TABS[id].path===path);return !tab||!section||sectionTabsFor(section,{role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[]}).some(item=>item.id===tab)}
-  const decisions=adminHome?decisionItems(values,{moduleEnabled,canOpen,language}):[]
   // Tiles without a screen of their own lead to the card listing what they count.
   const announcements=nctx.visibleAnnouncements.slice(0,4)
   // A Demo comes set up: its evaluation guide lives in the Demo line instead.
@@ -188,7 +196,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   const calendarKey=calendarKinds.join(',')
   const allowedKinds=useMemo(()=>calendarKey?calendarKey.split(','):[],[calendarKey])
   const calendarOn=menuPaths.has('/calendar')&&allowedKinds.length>0
-  const calendarSources=useCalendarSources(tenant?.id,allowedKinds,language,{enabled:calendarOn||(userHome&&allowedKinds.length>0)})
+  const calendarSources=useCalendarSources(tenant?.id,allowedKinds,language,{enabled:calendarOn||((userHome||adminHome)&&allowedKinds.length>0)})
   // What the user may see of the calendar (eventWithinScope): a department role its departments' items, by name.
   const calendarScope=useCalendarScope()
   const week=useMemo(()=>{if(!calendarOn)return []; if(!calendarSources)return null;const today=dayKey(new Date()),to=dayKey(new Date(Date.now()+7*24*60*60*1000));return buildCalendarEvents(calendarSources,{from:today,to,today,language}).filter(event=>allowedKinds.includes(event.kind)&&event.state!=='overdue'&&event.date>=today&&event.date<=to&&eventWithinScope(event,calendarScope))},[calendarOn,calendarSources,allowedKinds,language,calendarScope])
@@ -204,13 +212,34 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     loadDepartmentIsolationCount(tenant?.id).then(count=>{if(active)setIsolationCount(count)}).catch(()=>{if(active)setIsolationCount(null)})
     return()=>{active=false}
   },[isolationOn,isDemo,tenant?.id])
+  // The administrator's home: the calendar's coming week and its overdue items (controls, corrective actions, staff
+  // certificates, each with its department), the training requests waiting and the hospital's patients in isolation.
+  const adminEvents=useMemo(()=>{if(!adminHome||!calendarSources)return null;return buildCalendarEvents(calendarSources,{from:homeToday,to:addDay(homeToday,6),today:homeToday,language}).filter(event=>allowedKinds.includes(event.kind))},[adminHome,calendarSources,homeToday,language,allowedKinds])
+  // The counts by department read the events in Greek (one name per department in every language) and the hospital's time.
+  const adminCountEvents=useMemo(()=>{if(!adminHome||!calendarSources)return null;if(language==='el')return adminEvents;return buildCalendarEvents(calendarSources,{from:homeToday,to:addDay(homeToday,6),today:homeToday,language:'el'}).filter(event=>allowedKinds.includes(event.kind))},[adminHome,calendarSources,homeToday,language,allowedKinds,adminEvents])
+  const adminNow={date:homeToday,time:new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Athens',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date())}
+  const trainingRequestsOn=adminHome&&moduleEnabled('training')&&mayDo(CAPABILITIES.MANAGE_TRAINING)&&menuPaths.has('/training')
+  const [trainingRequests,setTrainingRequests]=useState<number | null | undefined>(undefined)
+  useEffect(()=>{
+    let active=true
+    if(!trainingRequestsOn){setTrainingRequests(null);return()=>{active=false}}
+    countPendingTrainingRequestsAsync(tenant?.id).then(count=>{if(active)setTrainingRequests(count)}).catch(()=>{if(active)setTrainingRequests(null)})
+    return()=>{active=false}
+  },[trainingRequestsOn,tenant?.id])
+  const adminIsolationOn=adminHome&&moduleEnabled('surveillance')
+  const [adminIsolation,setAdminIsolation]=useState<number | null>(null)
+  useEffect(()=>{
+    let active=true
+    if(!adminIsolationOn||isDemo){setAdminIsolation(null);return()=>{active=false}}
+    loadActiveIsolationCount(tenant?.id).then(count=>{if(active)setAdminIsolation(count)}).catch(()=>{if(active)setAdminIsolation(null)})
+    return()=>{active=false}
+  },[adminIsolationOn,isDemo,tenant?.id])
   // «Για μένα σήμερα»: everything that waits for this user in one list, the most urgent first: the administrator's decisions
   // (or the role's own work), new positive samples to review, objectives off course and what the notifications assign.
   const todo=(()=>{
    const items: TodoItem[]=[]
    const add=(item: TodoItem)=>{if(item&&item.count!==0&&!items.some(other=>other.key===item.key||other.title===item.title))items.push(item)}
    if(reviewCard&&!awaitingReview.loading&&awaitingReview.rows.length)add({key:'review',title:tr('Θετικά δείγματα προς έλεγχο','Positive samples to review'),count:awaitingReview.rows.length,to:'/surveillance?tab=episodes&review=1',tone:'danger'})
-   for(const item of decisions)add({key:item.key,title:item.title,count:item.count,to:item.to,tone:item.urgent?'danger':'warning'})
    // The role's tasks (dashboardTasks: «LIVE-<role>-<metric>») first, with their fuller titles; a tile counting the same metric adds nothing.
    const metricOf=(task: NotificationItem)=>String(task.id||'').startsWith('LIVE-')?String(task.id).split('-').slice(2).join('-'):task.id
    if(!adminHome)for(const task of tasks){const key=metricOf(task);add({key,title:task.title,count:task.count??null,to:task.to||null,tone:TILE_TARGETS[key]||'info',task})}
@@ -226,7 +255,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   })()
   const [allTodo,setAllTodo]=useState(false)
   const shownTodo=allTodo?todo:todo.slice(0,TODO_FOLDED)
-  const openTodo=(item: TodoItem)=>{if(!item.to)return;if(item.task)nctx.markRead(item.task.id);navigate(item.to)}
+  const openTodo=(item: TodoItem)=>{if(!item.to)return;if(item.task)nctx.markRead(item.task.id);navigate(item.to,item.state?{state:item.state}:undefined)}
   const dayLabel=(date: string)=>{const today=dayKey(new Date()),tomorrow=dayKey(new Date(Date.now()+24*60*60*1000));if(date===today)return tr('Σήμερα','Today');if(date===tomorrow)return tr('Αύριο','Tomorrow');return new Intl.DateTimeFormat(english?'en-GB':'el-GR',{weekday:'short',day:'numeric',month:'numeric'}).format(new Date(`${date}T12:00:00`))}
 
   // «Επόμενες 7 ημέρες»: the calendar's coming week, on the home of every role.
@@ -264,6 +293,22 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     <Suspense fallback={<RouteLoading/>}><DepartmentHome overview={overview} window={periodWindow} status={overviewStatus} language={language} moduleEnabled={moduleEnabled} canOpen={canOpen} onOpen={navigate} todoCard={todoCard} announcementsCard={announcementsCard}/></Suspense>
   </Page>
 
+  if(adminHome){
+    const tileSources={loading:metricsState==='loading'||(reviewCard&&awaitingReviewCount===undefined),awaitingReview:reviewCard?awaitingReviewCount:null,isolation:isDemo?(demo?.metrics.activeIsolation??null):adminIsolation,overdueControlDepartments:adminCountEvents?overdueControlDepartments(adminCountEvents,adminNow):null,openCapa:calendarSources&&allowedKinds.includes('capa')?(calendarSources.capas||[]).filter(capa=>capa.lifecycleStatus!=='voided'&&!['closed','completed','cancelled'].includes(String(capa.status))).length:null}
+    const certificatesOn=moduleEnabled('training')&&allowedKinds.includes('training')
+    // «Χρειάζονται και αυτά απόφαση»: what the figures do not show, with the objectives off course and the training requests the home counts.
+    const decisionMetrics={...values,missedObjectives,trainingRequests:trainingRequests??undefined}
+    const openDecision=(item: AdminDecision)=>item.key==='trainingRequests'?navigate(item.to,{state:{trainingView:'requests'}}):navigate(item.to)
+    const latest=nctx.visibleAnnouncements[0]
+    return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
+      <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
+      <Suspense fallback={<RouteLoading/>}><AdminHome language={language} tiles={adminHomeTiles(values,tileSources,{moduleEnabled,canOpen,language})}
+        departments={adminCountEvents?departmentsNeedingAttention(adminCountEvents,calendarSources?.training,8,adminNow):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
+        decisions={metricsState==='loading'?null:otherDecisionItems(decisionMetrics,{moduleEnabled,canOpen,language})} decisionsNote={metricsState==='error'?tr('Κάποιες εκκρεμότητες δεν φορτώθηκαν.','Some pending items did not load.'):null} onDecision={openDecision}
+        week={adminEvents?weekSummary(adminEvents,homeToday,language):null} calendarOn={calendarOn}
+        announcements={{unread:nctx.unreadCount,latest:latest?.title||null,items:nctx.visibleAnnouncements.slice(0,6).map(item=>({id:String(item.id),title:String(item.title||''),message:String(item.message||'')})),onMarkAll:nctx.markAllRead,onOpen:()=>window.dispatchEvent(new CustomEvent('limoxis:open-notifications'))}} canOpen={canOpen} onOpen={navigate}/></Suspense>
+    </Page>
+  }
   return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
     <div className="dashboard-home">

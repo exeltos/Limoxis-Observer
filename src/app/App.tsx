@@ -24,7 +24,7 @@ const LegalPage = lazyNamed(() => import('../features/legal/LegalPage'), 'LegalP
 const PlatformCenterPage = lazyNamed(() => import('../features/workspaces/PlatformCenterPage'), 'PlatformCenterPage')
 const PlatformHealthPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformHealthPage')
 const PlatformAuditSecurityPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformAuditSecurityPage')
-const PlatformSettingsPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformSettingsPage')
+const PlatformSettingsPage = lazyNamed(() => import('../features/platform/PlatformSettingsPage'), 'PlatformSettingsPage')
 const RostersPage = lazyNamed(() => import('../features/rosters/RostersPage'), 'RostersPage')
 const PlatformAnnouncementsPage = lazyNamed(() => import('../features/platform/PlatformAnnouncementsPage'), 'PlatformAnnouncementsPage')
 const PlatformDemoRequestsPage = lazyNamed(() => import('../features/platform/PlatformDemoRequestsPage'), 'PlatformDemoRequestsPage')

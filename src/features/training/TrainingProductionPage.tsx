@@ -39,6 +39,8 @@ import { TrainingAssessmentEditor } from './TrainingAssessmentEditor'
 import { TrainingResultsReview } from './TrainingResultsReview'
 import { TrainingStatusBadge,trainingStatusLabels } from './TrainingStatusBadge'
 import { TrainingMyView } from './TrainingMyView'
+import { TrainingProgramView } from './TrainingProgramView'
+import { trainingProgramPageMode } from './trainingDepartmentPrograms'
 import { TrainingRequestsPanel } from './TrainingRequestsPanel'
 import { decideTrainingRequestAsync,loadTrainingRequestsAsync } from './trainingRequestService'
 import { trainingDecisionNoticeLink,trainingDecisionNoticeText } from './trainingDecisionNotice'
@@ -147,8 +149,10 @@ export function TrainingProductionPage(){
  const overdue=assignments.filter(x=>x.computedStatus==='overdue').length
  if(loading||(selected&&canManage&&(detail?.key!==programId||(!isDemo&&!detail?.program))))return <RouteLoading/>
  if(selected&&canManage)return <ProgramRecord en={en} language={language} organizationId={tenant!.id} program={selected} pendingRequests={pendingRequests.filter(request=>request.programId===selected.id)} onShowRequests={()=>{setTrainingView('requests');navigate('/training')}} assignments={selectedAssignments} state={state} employees={employees||[]} departments={departments} busy={busy} notify={notify} notifyError={notifyError} confirm={confirm} reload={reload} onBack={location.state?.limoxisFrom?undefined:()=>navigate('/training')} onPersist={persist} onDelete={async()=>{if(selectedAssignments.length){notify(en?'The program has participants and cannot be deleted.':'Το πρόγραμμα έχει συμμετέχοντες και δεν μπορεί να διαγραφεί.','warning');return}if(!await confirm({title:en?'Delete program':'Διαγραφή προγράμματος',message:en?'Delete this training program?':'Να διαγραφεί το πρόγραμμα εκπαίδευσης;',danger:true}))return;await deleteTrainingRecordAsync(tenant!.id,selected.id);navigate('/training');await reload()}}/>
+ // Everyone else opens a programme read-only (owner, 21/11/2026: TrainingProgramView); «Πίσω» keeps the list's choice.
+ if(selected&&trainingProgramPageMode({canManage,found:true})==='readonly')return <TrainingProgramView program={selected} state={state} language={language} isDemo={isDemo} organizationId={tenant?.id||null} departments={departments} employees={employees||[]} onStateChange={setState} onBack={location.state?.limoxisFrom?undefined:()=>navigate('/training',{state:location.state?.trainingMyView?{trainingMyView:location.state.trainingMyView}:undefined})}/>
  // The departments that do not manage training (owner, 20/11/2026): «Οι δικές μου | Του τμήματός μου | Όλο το νοσοκομείο» (TrainingMyView).
- if(!canManage)return <TrainingMyView state={state} language={language} managerView={managerView} isDemo={isDemo} organizationId={tenant?.id||null} departments={departments}/>
+ if(!canManage)return <TrainingMyView state={state} language={language} managerView={managerView} isDemo={isDemo} organizationId={tenant?.id||null} departments={departments} employees={employees||[]} canManageTraining={canManage} onStateChange={setState}/>
  async function saveRequirement(requirement: TrainingRequirement){setBusy(true);try{setState(await saveTrainingRequirementAsync(tenant!.id,requirement,state));notify(en?'Requirement saved.':'Η απαίτηση αποθηκεύτηκε.','success');return true}catch(error){notifyError(error,'save',{operation:'training_requirement_save'});return false}finally{setBusy(false)}}
  async function removeRequirement(requirement: TrainingRequirement){if(!await confirm({title:en?'Delete requirement':'Διαγραφή απαίτησης',message:en?`Delete “${requirement.title}”? Completed training records are not affected.`:`Να διαγραφεί η απαίτηση «${requirement.title}»; Οι ολοκληρωμένες εκπαιδεύσεις δεν επηρεάζονται.`,danger:true}))return;setBusy(true);try{setState(await deleteTrainingRequirementAsync(tenant!.id,requirement.id,state));notify(en?'Requirement deleted.':'Η απαίτηση διαγράφηκε.','success')}catch(error){notifyError(error,'delete',{operation:'training_requirement_delete'})}finally{setBusy(false)}}
  function pageAction(action: string){if(action===UI_ACTIONS.CREATE)navigate('/training/new')}

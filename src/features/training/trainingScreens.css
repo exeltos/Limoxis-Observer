@@ -234,3 +234,6 @@
 .training-participants-registry .training-participants-table th.training-select-col{text-align:center!important}
 @media(max-width:980px){.training-participants-registry .training-participants-table th:nth-child(3),
   .training-participants-registry .training-participants-table td:nth-child(3){display:none}}
+/* «Εκπαίδευση τμήματος»: the picker has only the department's staff, so a plain line takes the place of the source tabs. */
+.training-participant-scope{display:flex;align-items:center;gap:10px;padding:0 6px;color:var(--lo-color-text)}
+.training-participant-scope small{color:var(--lo-color-muted)}

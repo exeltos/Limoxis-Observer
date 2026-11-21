@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { analysisPeriodOf, periodTag, sharedPeriodOfAnalysis } from '../src/features/analysis/sharedPeriod'
-import { decisionItems, moduleStatusRows } from '../src/features/dashboard/adminHomeModel'
+import { decisionItems } from '../src/features/dashboard/adminHomeModel'
 import { roleLabel, roleLabelForKey } from '../src/core/permissions/roleLabels'
 
 const today = new Date(2026, 9, 20)
@@ -26,11 +26,6 @@ describe("the administrator's home", () => {
   it('lists only what is pending, severe first, and leaves locked modules out', () => {
     const items = decisionItems(metrics, { moduleEnabled: module => module !== 'kitchen' })
     expect(items.map(item => item.key)).toEqual(['expiredCertificates', 'overdueCapa'])
-  })
-  it('shows one row per open module the user can reach', () => {
-    const rows = moduleStatusRows(metrics, { moduleEnabled: module => module !== 'pharmacy', canOpen: to => to !== '/meetings' })
-    expect(rows.map(row => row.module)).toEqual(['surveillance', 'laboratory', 'controls', 'quality', 'suppliers', 'kitchen', 'interviews'])
-    expect(rows.find(row => row.module === 'suppliers').status).toBe('danger')
   })
 })
 
