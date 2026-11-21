@@ -209,6 +209,12 @@ function normalize(state: unknown): TrainingState{
  const source=(state&&typeof state==='object'?state:structuredClone(trainingDemoState)) as StoredState
  return {...source,programs:(source.programs||[]).map(p=>{const clean=withoutKeys(p,['checkInToken','completionToken']);return {...clean,trainer:clean.trainer||clean.owner||'',materials:clean.materials||[],assessmentQuestions:clean.assessmentQuestions||[],feedbackResponses:clean.feedbackResponses||[]}}),assignments:(source.assignments||[]).map(a=>{const clean=withoutKeys(a,['checkInAt']);return {...clean,email:clean.email||'',accountLinked:clean.accountLinked!==false,invitationSentAt:clean.invitationSentAt||null,attendanceResponse:clean.attendanceResponse||(clean.attendance?'confirmed':'not_sent'),attendanceConfirmedAt:clean.attendanceConfirmedAt||null,completionConfirmedAt:clean.completionConfirmedAt||null,feedbackSubmittedAt:clean.feedbackSubmittedAt||null,assessmentSubmittedAt:clean.assessmentSubmittedAt||null}}),certificates:source.certificates||[],emailOutbox:source.emailOutbox||[],history:source.history||[]} as TrainingState
 }
+// The Demo's participation requests (owner, 20/11/2026): two people asked to attend a programme still open; the
+// training managers see them in «Αιτήσεις συμμετοχής» (trainingRequestService keeps the Demo's ones here).
+trainingDemoState.participationRequests=[
+ {id:'REQ-DEMO-1',programId:'TRN-002',programTitle:'Ορθή χρήση ΜΑΠ & απομόνωση',requesterUserId:null,employeeId:'EMP-002',requesterName:'Νικόλαος Δημητρίου',department:'Παθολογική',departmentId:null,note:'Θα ήθελα να την παρακολουθήσω πριν από τις εφημερίες του επόμενου μήνα.',status:'pending',decisionReason:'',decidedAt:'',createdAt:'2026-08-26T09:15:00Z',assignmentId:null},
+ {id:'REQ-DEMO-2',programId:'TRN-001',programTitle:'Υγιεινή Χεριών – 5 Στιγμές του ΠΟΥ',requesterUserId:null,employeeId:'EMP-003',requesterName:'Ελένη Κωνσταντίνου',department:'Χειρουργική',departmentId:null,note:'',status:'pending',decisionReason:'',decidedAt:'',createdAt:'2026-08-28T11:40:00Z',assignmentId:null},
+]
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([trainingDemoState])
 // The demo shows every training type: internal, external, within a department.

@@ -9,16 +9,30 @@
 .training-my-result,.training-my-certificate{white-space:nowrap}
 /* The row's one small button: «Έναρξη» / «Συνέχεια» / «Αποτέλεσμα» (the learner's page of the user's own training). */
 .training-my-table .training-my-open{min-height:30px;padding:4px 10px;font-size:12px;white-space:nowrap}
-/* «Όλο το νοσοκομείο»: the hospital's programmes, «Συμμετέχω» and the user's own button side by side. */
+/* «Του τμήματός μου» / «Όλο το νοσοκομείο»: the programmes; «Εγώ» holds the user's one item (button or badge). */
 .training-hospital-own{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}
 .training-hospital-audience{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .training-hospital-table .training-my-title strong,.training-hospital-table .training-my-title small{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.training-hospital-table .training-hospital-trainer{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* «Συμμετοχή τμήματος»: «12 από 20» over a small bar. */
+.training-programme-participation{white-space:nowrap}
+.training-programme-participation>span{display:block;font-weight:600}
+.training-programme-participation .lo-meter{width:96px;margin-top:4px}
+/* The request's short explanation and the manager's list of names. */
+.training-request-intro{margin:0 0 10px;color:var(--lo-color-muted);font-size:13px}
+.training-names-table td{white-space:nowrap}
+/* «Αιτήσεις συμμετοχής» of the training managers. */
+.training-requests-table td small{display:block;margin-top:1px;font-size:11px;color:var(--lo-color-muted)}
+.training-requests-program,.training-requests-note{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.training-requests-date{white-space:nowrap}
+.training-requests-actions{display:inline-flex;justify-content:flex-end;gap:6px;white-space:nowrap}
+.training-requests-table .training-my-open{min-height:30px;padding:4px 10px;font-size:12px;white-space:nowrap}
 /* A tablet: the six columns fit without a sideways scroll. */
 @media (max-width:1180px){
-  .training-hospital-table .training-my-title strong,.training-hospital-table .training-my-title small{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .training-hospital-table .training-hospital-trainer{max-width:120px}
-  .training-hospital-audience{max-width:130px}
-  /* «Συμμετέχω» over the user's own button. */
-  .training-hospital-own{flex-direction:column;align-items:flex-end;gap:4px}
+  .training-hospital-table .training-my-title strong,.training-hospital-table .training-my-title small{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .training-hospital-table th{white-space:normal}
+  .training-programme-participation .lo-meter{width:56px}
+  /* «Αίτηση συμμετοχής» shortens to «Αίτηση». */
+  .training-request-more{display:none}
+  .training-requests-program,.training-requests-note{max-width:160px}
+  .training-hospital-audience{max-width:100px}
 }

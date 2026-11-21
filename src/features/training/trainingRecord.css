@@ -27,3 +27,6 @@
 .training-program-progress dl>div{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--lo-color-border)}
 .training-program-progress dt{color:var(--lo-color-muted)}
 .training-program-progress dd{margin:0;font-weight:600}
+/* The programme's participation requests waiting (owner, 20/11/2026): one line with «Άνοιγμα αιτήσεων». */
+.training-record-requests{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.training-record-requests>span{flex:1 1 auto;min-width:0}
