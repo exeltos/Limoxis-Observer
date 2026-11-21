@@ -3,7 +3,7 @@
 // user's home (userHomeModel: the account in a hospital, the sample data's own employee in the Demo). «Του τμήματός μου»
 // and «Όλο το νοσοκομείο» list programmes, never employees (hospitalProgramRows below).
 // Pure functions over the training records, so the screen and the tests agree.
-import { addDay, audienceIncludes, type CalendarScope } from '../calendar/calendarView'
+import { addDay, type CalendarScope } from '../calendar/calendarView'
 import { isOwn, ownCertificatesDue } from '../dashboard/userHomeModel'
 import { foldSearch, matchesSearch } from '../../core/i18n/searchMatch'
 import { computedAssignmentStatus, type TrainingState } from './trainingData'
@@ -128,9 +128,8 @@ export function trainingRowAction(row: Pick<TrainingMyRow, 'assignment' | 'statu
 
 
 // The programmes (owner, 20/11/2026: «δεν θέλω να βλέπω εργαζόμενους αλλά εκπαιδεύσεις»): one line per programme (the
-// cancelled ones left out), never a list of employees. «Του τμήματός μου» and the «Τμήμα» filter keep the programmes that
-// concern a department: its audience names the department or the whole hospital (audienceIncludes, as the calendar), or
-// at least one of the department's people was assigned. «Συμμετοχή τμήματος» counts only numbers (completed of assigned);
+// cancelled ones left out), never a list of employees. «Του τμήματός μου» and the «Τμήμα» filter keep only the programmes
+// the department organised (owner, 21/11/2026: programOrganisedByDepartment); «Διοργάνωση» names that department. «Συμμετοχή τμήματος» counts only numbers (completed of assigned);
 // «Εγώ» is the user's own part: the own training's button, «Ολοκληρώθηκε», a request waiting or rejected, or «Αίτηση».
 export type TrainingProgramState = 'in_progress' | 'planned' | 'completed'
 export type TrainingProgramFilter = 'current' | 'planned' | 'completed' | 'all'
@@ -167,6 +166,8 @@ export interface TrainingProgramRow {
   own: TrainingMyRow | null
   participation: { assigned: number, completed: number } | null
   request: TrainingParticipationRequest | null
+  // «Διοργάνωση»: the department that organised the programme ('' when unknown).
+  organizer?: string
 }
 
 // An active programme that has not started yet is still «Προγραμματισμένο».
@@ -203,9 +204,21 @@ export function inTrainingDepartment(row: { departmentId?: string | null, depart
   return Boolean(name) && [department.name, department.nameEn].some(value => foldSearch(value).trim() === name)
 }
 
-export function programConcernsDepartment(program: Pick<TrainingProgram, 'id' | 'audience'>, department: TrainingDepartment, participation: TrainingParticipation[]) {
-  return audienceIncludes(program.audience, [department.name, department.nameEn || ''].filter(Boolean))
-    || participation.some(row => row.programId === program.id && row.assigned > 0 && inTrainingDepartment(row, department))
+// The department that organised a programme (owner, 21/11/2026: «ό,τι έκανε το τμήμα μου»): the organiser department
+// of a department training, otherwise what the training office's list shows (programOrganizerMap: the owner's or
+// trainer's department, or the organiser as written). `organizers` holds the latter per programme.
+export function programOrganizer(program: Pick<TrainingProgram, 'id' | 'organizerDepartmentId'>, departments: TrainingDepartment[] = [], organizers: Map<string, string> = new Map(), en = false): { departmentId: string | null, name: string } {
+  if (program.organizerDepartmentId) {
+    const found = departments.find(item => item.id === program.organizerDepartmentId)
+    return { departmentId: program.organizerDepartmentId, name: found ? (en && found.nameEn ? found.nameEn : found.name) : '' }
+  }
+  return { departmentId: null, name: String(organizers.get(program.id) || '').trim() }
+}
+// «Του τμήματός μου» and the «Τμήμα» filter: only the programmes the department organised. The audience text, a
+// hospital-wide programme or participants from the department no longer count.
+export function programOrganisedByDepartment(program: Pick<TrainingProgram, 'id' | 'organizerDepartmentId'>, department: TrainingDepartment, organizers: Map<string, string> = new Map()) {
+  if (program.organizerDepartmentId) return program.organizerDepartmentId === department.id
+  return inTrainingDepartment({ departmentName: organizers.get(program.id) || '' }, department)
 }
 
 // Completed of assigned for the department (or the whole hospital without one); null when nobody was assigned.
@@ -224,15 +237,16 @@ export function latestOwnRequest(requests: TrainingParticipationRequest[], progr
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] || null
 }
 
-export interface TrainingProgramOptions { department?: TrainingDepartment | null, participation?: TrainingParticipation[] | null, requests?: TrainingParticipationRequest[] }
+export interface TrainingProgramOptions { department?: TrainingDepartment | null, participation?: TrainingParticipation[] | null, requests?: TrainingParticipationRequest[], departments?: TrainingDepartment[], organizers?: Map<string, string>, en?: boolean }
 // The programmes of the hospital, or of a department, with the user's own latest assignment and request.
-export function hospitalProgramRows(records: Records, own: Own, today: string, { department = null, participation = null, requests = [] }: TrainingProgramOptions = {}): TrainingProgramRow[] {
+export function hospitalProgramRows(records: Records, own: Own, today: string, { department = null, participation = null, requests = [], departments = [], organizers = new Map(), en = false }: TrainingProgramOptions = {}): TrainingProgramRow[] {
   const mine = new Map(ownTrainingRows(records, own, today).map(row => [String(row.assignment.programId || ''), row]))
   const counts = participation || participationFromAssignments(records)
-  return sortProgramRows(records.programs.filter(program => program.status !== 'cancelled' && (!department || programConcernsDepartment(program, department, counts))).map(program => ({
+  return sortProgramRows(records.programs.filter(program => program.status !== 'cancelled' && (!department || programOrganisedByDepartment(program, department, organizers))).map(program => ({
     id: program.id, program, title: program.title || '', trainer: program.trainer || program.owner || '', audience: program.audience || '',
     startDate: day(program.startDate), dueDate: day(program.dueDate), state: programState(program, today), own: mine.get(String(program.id)) || null,
     participation: programParticipation(program.id, counts, department), request: latestOwnRequest(requests, program.id, own),
+    organizer: programOrganizer(program, departments.length ? departments : department ? [department] : [], organizers, en).name,
   })))
 }
 

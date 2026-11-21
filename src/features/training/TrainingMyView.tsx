@@ -24,6 +24,7 @@ import { TrainingStatusBadge as Badge } from './TrainingStatusBadge'
 import { useTrainingOwnActions } from './useTrainingOwnActions'
 import { canCreateDepartmentTraining } from './trainingDepartmentPrograms'
 import { TrainingDepartmentForm } from './TrainingDepartmentForm'
+import { programOrganizerMap } from './trainingProgramDepartments'
 import { filterProgramRows,filterTrainingRows,hospitalProgramRows,ownTrainingRows,participationFromAssignments,programStatusCounts,programTiles,trainingStatusCounts,trainingTiles,type TrainingDepartment,type TrainingMyRow,type TrainingMyScope,type TrainingMyStatus,type TrainingParticipation,type TrainingParticipationRequest,type TrainingProgramFilter,type TrainingProgramRow } from './trainingMyView'
 import type { TrainingState } from './trainingData'
 import type { TrainingEmployee, TrainingProgram } from './trainingTypes'
@@ -77,12 +78,14 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
  const programDetail=(program: TrainingProgram|null|undefined)=>[program?.category?trainingCategoryLabel(program.category,language):'',program?.deliveryKind?trainingDeliveryKindLabel(program.deliveryKind,language):program?.method?trainingMethodLabel(program.method,language):''].filter(part=>part&&part!=='—').join(' · ')
  const detailOf=(row: TrainingMyRow)=>programDetail(row.program)
  const filtered=useMemo(()=>filterTrainingRows(rows,status).filter(row=>matchesSearch(query,[row.title,row.department,detailOf(row)])),[rows,status,query])// eslint-disable-line react-hooks/exhaustive-deps
- // The programmes: of the chosen department (by the audience or its people), or of the whole hospital.
+ // The programmes: those the chosen department organised, or of the whole hospital.
  const department=departmentList.find(item=>item.id===departmentId)||null
  // In a hospital the numbers come only from the database (the assignments the user reads are limited by RLS, so they
  // are never counted as totals); until they arrive, or when they fail, the column shows «—». The Demo counts its own.
  const counted=useMemo(()=>isDemo?participationFromAssignments(state):(participation||[]),[isDemo,participation,state])
- const programRows=useMemo(()=>hospitalProgramRows(state,scope,today,{department,participation:counted,requests}),[state,scope,today,department,counted,requests])
+ // «Διοργάνωση» (owner, 21/11/2026): the organiser department, resolved as the training office's list does.
+ const organizers=useMemo(()=>programOrganizerMap(state.programs,employees),[state.programs,employees])
+ const programRows=useMemo(()=>hospitalProgramRows(state,scope,today,{department,participation:counted,requests,departments:departmentList,organizers,en}),[state,scope,today,department,counted,requests,departmentList,organizers,en])
  const tileRows=useMemo(()=>mine?hospitalProgramRows(state,scope,today,{participation:counted,requests}).filter(row=>row.own&&row.own.status!=='completed'):programRows,[mine,state,scope,today,counted,requests,programRows])
  const programFigures=programTiles(tileRows,today,requests,scope),programCounts=programStatusCounts(programRows)
  const categories=useMemo(()=>[...new Set(programRows.map(row=>row.program.category).filter(Boolean))] as string[],[programRows])
@@ -129,9 +132,9 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
   return <td className="training-programme-participation"><span>{label}</span><Meter value={assigned?completed/assigned*100:0} tone={completed===assigned?'success':'neutral'} label={en?`${completed} of ${assigned} completed`:`${completed} από ${assigned} ολοκλήρωσαν`}/></td>
  }
  const columns=[{key:'title',label:tr('Εκπαίδευση','Training')},{key:'due',label:tr('Προθεσμία','Due')},{key:'status',label:tr('Κατάσταση','Status')},{key:'result',label:tr('Αποτέλεσμα','Result')},{key:'certificate',label:tr('Πιστοποιητικό','Certificate')},{key:'action',label:'',ariaLabel:tr('Ενέργεια','Action')}]
- const programColumns=[{key:'title',label:tr('Εκπαίδευση','Training')},{key:'period',label:tr('Περίοδος','Period')},{key:'audience',label:tr('Απευθύνεται σε','Intended for')},{key:'participation',label:department?tr('Συμμετοχή τμήματος','Department participation'):tr('Συμμετοχή','Participation')},{key:'status',label:tr('Κατάσταση','Status')},{key:'me',label:tr('Εγώ','Me')}]
+ const programColumns=[{key:'title',label:tr('Εκπαίδευση','Training')},{key:'period',label:tr('Περίοδος','Period')},{key:'organizer',label:tr('Διοργάνωση','Organised by')},{key:'audience',label:tr('Απευθύνεται σε','Intended for')},{key:'participation',label:department?tr('Συμμετοχή τμήματος','Department participation'):tr('Συμμετοχή','Participation')},{key:'status',label:tr('Κατάσταση','Status')},{key:'me',label:tr('Εγώ','Me')}]
  const programEmpty=state.programs.length?tr('Κανένα πρόγραμμα σε αυτή την επιλογή.','No programme in this choice.'):tr('Δεν υπάρχουν προγράμματα εκπαίδευσης στο νοσοκομείο.','No training programmes in the hospital.')
- const subtitle=mine?tr('Οι εκπαιδεύσεις σας, οι προθεσμίες και τα πιστοποιητικά σας.','Your trainings, deadlines and certificates.'):department?(en?`The training programmes that concern ${department.nameEn||department.name}.`:`Τα προγράμματα εκπαίδευσης που αφορούν το τμήμα ${department.name}.`):tr('Τα προγράμματα εκπαίδευσης του νοσοκομείου.','The hospital’s training programmes.')
+ const subtitle=mine?tr('Οι εκπαιδεύσεις σας, οι προθεσμίες και τα πιστοποιητικά σας.','Your trainings, deadlines and certificates.'):department?(en?`The training programmes organised by ${department.nameEn||department.name}.`:`Τα προγράμματα εκπαίδευσης που διοργάνωσε το τμήμα ${department.name}.`):tr('Τα προγράμματα εκπαίδευσης του νοσοκομείου.','The hospital’s training programmes.')
  const emptyTitle=rows.length?tr('Καμία εκπαίδευση σε αυτή την επιλογή.','No training in this choice.'):tr('Δεν σας έχει ανατεθεί εκπαίδευση.','No training is assigned to you.')
  const statusLabel: Record<TrainingProgramFilter, string>={current:tr('Τρέχοντα','Current'),planned:tr('Προγραμματισμένα','Planned'),completed:tr('Ολοκληρωμένα','Completed'),all:tr('Όλα','All')}
  const departmentName=(item: TrainingDepartment)=>en&&item.nameEn?item.nameEn:item.name
@@ -162,6 +165,7 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
     renderRow={(row: TrainingProgramRow)=>{const detail=[programDetail(row.program),row.trainer].filter(Boolean).join(' · ');return <tr>
      <td className="training-my-title"><strong title={row.title}>{row.title}</strong>{detail&&<small title={detail}>{detail}</small>}</td>
      <td className="training-my-due">{periodText(row.startDate,row.dueDate)||'—'}</td>
+     <td className="training-hospital-organizer">{row.organizer||'—'}</td>
      <td className="training-hospital-audience" title={row.audience}>{row.audience||'—'}</td>
      {participationCell(row)}
      <td><Badge status={row.state}/></td>
