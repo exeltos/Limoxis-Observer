@@ -22,9 +22,9 @@ import { readSessionValue,writeSessionJson,writeSessionValue } from '../../core/
 import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry,printRegistry,qualityExport,type RegistryExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
-import { fillAuditProgramme,loadQualityRecords } from './qualityService'
+import { fillAuditProgramme,loadAuditChecklists,loadQualityRecords } from './qualityService'
 import { DeviationQueue,ReportRegister,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
-import { printReport, type ReportDoc } from '../../core/export/reportDocument'
+import { printReport, printReportLater, type ReportDoc } from '../../core/export/reportDocument'
 import { PrintOptionsDialog } from '../../design-system/PrintOptionsDialog'
 import { ExcelFieldsDialog,pickColumns,tableFields } from '../../design-system/ExcelFieldsDialog'
 import { incidentRegisterDoc,incidentStatisticsDoc } from './incidentReports'
@@ -306,7 +306,8 @@ export function QualityPage({section=''}: { section?: string }={}){
   suppliers:{title:L('Προμηθευτές','Suppliers'),file:L('promitheftes','suppliers'),columns:[0,1,2,5,6,7,8,9,11],groups:[['category',2,L('Ανά κατηγορία','By category')],['criticality',5,L('Ανά κρισιμότητα','By criticality')],['approval',8,L('Ανά έγκριση','By approval')]]},
  }
  const printResources=(kind: string,{groupBy}: Record<string, string>)=>{setIncidentDialog(null);const spec=RESOURCE_PRINT[kind];const column=spec.groups.find(([key])=>key===groupBy)?.[1]??null;if(!printReport(groupedListDoc({title:spec.title,filename:spec.file,table:resourceTable(kind),columns:spec.columns,groupBy:column,language})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
- const printAuditSummary=(list: Parameters<typeof auditDetailedBatchDocument>[0])=>{if(!printReport(auditDetailedBatchDocument(list,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
+ // The list holds the answers only: the report's questions and notes are read when it is printed.
+ const printAuditSummary=(list: Parameters<typeof auditDetailedBatchDocument>[0])=>{if(!printReportLater(async()=>auditDetailedBatchDocument(await loadAuditChecklists(tenant?.id,list),records.data.findings,{language}),{pdf:false,language}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  const printList=(data: () => RegistryExport,title: string,pdf: boolean)=>{if(!printRegistry(data(),{language,kind:t('quality'),title,pdf}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  // `doc`: a list with its own printed layout (the objectives, grouped by place); Excel stays the full table.
  const printDoc=(doc: () => ReportDoc,pdf: boolean)=>{if(!printReport(doc(),{pdf}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}

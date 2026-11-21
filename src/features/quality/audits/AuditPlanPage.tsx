@@ -12,7 +12,7 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { auditActorFromAuth } from '../../../core/audit/actor'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
-import { loadQualityRecords, saveQualityRecord } from '../qualityService'
+import { loadQualityRecord, saveQualityRecord } from '../qualityService'
 import { independenceBlocks } from './auditModel'
 import { AuditPlanFields } from './AuditPlanFields'
 import { useAuditTemplates, useAuditorCompetence } from './useAuditTemplates'
@@ -42,9 +42,9 @@ export function AuditPlanPage() {
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     let active = true
-    loadQualityRecords('audits', tenant?.id).then(rows => {
+    // The whole record (with its checklist): a save writes the checklist back.
+    loadQualityRecord('audits', tenant?.id, String(recordId)).then(found => {
       if (!active) return
-      const found = rows.find((row: QualityAudit) => String(row.id) === String(recordId))
       if (found) { setRecord(found); setDraft(structuredClone(found)) } else setMissing(true)
     }).catch(() => { if (active) setMissing(true) })
     return () => { active = false }

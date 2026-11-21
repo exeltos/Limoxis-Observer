@@ -113,7 +113,11 @@ export function progressRow(entry: Partial<CapaProgressEntry> = {}) {
 // --- Audit checklist ---------------------------------------------------------------------------
 
 const STANDARDS = ['iso9001', 'iso15224', 'haccp', 'iso15189', 'temos', 'jci', 'other']
-export const CHECKLIST_SELECT = 'checklist:quality_audit_checklist_items(*,finding:quality_findings!quality_audit_checklist_items_finding_id_organization_id_fkey(code))'
+export const CHECKLIST_COLUMNS = '*,finding:quality_findings!quality_audit_checklist_items_finding_id_organization_id_fkey(code)'
+export const CHECKLIST_SELECT = `checklist:quality_audit_checklist_items(${CHECKLIST_COLUMNS})`
+// The lists read only what the scores, the programme and the dashboards need (no question texts, notes
+// or evidence); the record and the printed reports read the whole checklist (loadAuditChecklists).
+export const CHECKLIST_SUMMARY_SELECT = 'checklist:quality_audit_checklist_items(position,result,answer,weight,chapter_ref,chapter_title,clause_ref,standard)'
 export const CHECKLIST_FIELDS = ['position', 'item', 'item_en', 'required', 'answer', 'result', 'note', 'finding_id', 'template_question_id', 'chapter_ref', 'chapter_title', 'clause_ref', 'guidance', 'evidence_required', 'evidence', 'weight', 'critical', 'finding_class', 'ad_hoc', 'standard']
 const ANSWERS = ['yes', 'partial', 'no', 'na']
 const CLASSES = ['major', 'minor', 'observation', 'opportunity']
