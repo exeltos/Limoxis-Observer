@@ -46,6 +46,9 @@ export type TrainingProgram = {
   passScore?: number | null
   status: string
   departmentId?: string | null
+  // «Εκπαίδευση τμήματος»: το τμήμα που τη διοργανώνει, και αν τη δημιούργησε ο Διευθυντής του τμήματος.
+  organizerDepartmentId?: string | null
+  departmentManaged?: boolean
   userId?: string | null
   materials: TrainingMaterial[]
   assessmentQuestions?: AssessmentQuestion[]

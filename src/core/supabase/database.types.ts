@@ -17281,6 +17281,7 @@ export type Database = {
           cost: number | null
           created_at: string
           created_by: string | null
+          created_by_department_manager: boolean
           delivery_kind: string | null
           department_id: string | null
           description: string | null
@@ -17293,6 +17294,7 @@ export type Database = {
           location: string | null
           method: string | null
           organization_id: string
+          organizer_department_id: string | null
           owner: string | null
           owner_employee_id: string | null
           pass_score: number | null
@@ -17315,6 +17317,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          created_by_department_manager?: boolean
           delivery_kind?: string | null
           department_id?: string | null
           description?: string | null
@@ -17327,6 +17330,7 @@ export type Database = {
           location?: string | null
           method?: string | null
           organization_id: string
+          organizer_department_id?: string | null
           owner?: string | null
           owner_employee_id?: string | null
           pass_score?: number | null
@@ -17349,6 +17353,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          created_by_department_manager?: boolean
           delivery_kind?: string | null
           department_id?: string | null
           description?: string | null
@@ -17361,6 +17366,7 @@ export type Database = {
           location?: string | null
           method?: string | null
           organization_id?: string
+          organizer_department_id?: string | null
           owner?: string | null
           owner_employee_id?: string | null
           pass_score?: number | null
