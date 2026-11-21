@@ -23,9 +23,10 @@ vi.mock('../src/features/laboratory/hooks/useSamplesAwaitingReview', () => ({ us
 vi.mock('../src/features/dashboard/dashboardCloudService', () => ({
   loadDashboardMetrics: async () => ({ overdueControls: 3 }),
   readStoredDashboardMetrics: async () => null,
+  peekDashboardMetrics: () => undefined,
 }))
 const loadOverview = vi.fn()
-vi.mock('../src/features/dashboard/departmentHomeService', () => ({ loadDepartmentHomeOverview: (...args) => loadOverview(...args) }))
+vi.mock('../src/features/dashboard/departmentHomeService', () => ({ loadDepartmentHomeOverview: (...args) => loadOverview(...args), peekDepartmentHomeOverview: () => null }))
 
 const { collectDemoDepartmentHome } = await import('../src/features/dashboard/demoDashboardMetrics')
 const { MyDepartmentPage } = await import('../src/features/workspaces/MyDepartmentPage')
@@ -418,6 +419,17 @@ describe('department_home_overview with a period (owner, 20/11/2026)', () => {
     expect(sql).toContain("v_from := coalesce(p_from, date_trunc('month', v_today::timestamp)::date);")
     expect(sql).toContain("raise exception 'INVALID_PERIOD'")
     expect(sql).not.toMatch(/latestPositives|last_name|first_name|patient_code|sample_code',/)
+  })
+})
+
+describe('«Έλεγχοι εκτός χρόνου» faster (21/11/2026)', () => {
+  const sql = readSource('supabase/migrations/20261231614000_control_marks_rules_once.sql').replace(/^--.*$/gm, '')
+  it('keeps the signature of control_execution_marks and works out each frequency once, ranking narrow rows', () => {
+    expect(sql).toContain("create or replace function private.control_execution_marks(p_organization_id uuid, p_from timestamp with time zone, p_to timestamp with time zone, p_tz text default 'Europe/Athens'::text)")
+    expect(sql).toContain('returns table(assignment_id uuid, performed_at timestamp with time zone, counted boolean, on_time boolean)')
+    expect(sql).toContain("select distinct on (coalesce(c.cfg::text, ''))")
+    expect(sql).toContain('join defs x on x.assignment_id = k.assignment_id')
+    expect(sql).not.toMatch(/\b(drop|revoke|insert|update|delete|truncate|security definer)\b/i)
   })
 })
 

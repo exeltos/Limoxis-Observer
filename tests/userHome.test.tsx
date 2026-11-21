@@ -61,7 +61,7 @@ vi.mock('../src/core/notifications/NotificationContext', () => ({
 vi.mock('../src/features/quality/review/QualityObjectives', () => ({ useObjectives: () => ({ objectives: [] }) }))
 vi.mock('../src/features/calendar/useCalendarSources', () => ({ calendarKindsFor: () => ['controls', 'cultures', 'training', 'committees'], useCalendarSources: (_id, _kinds, _language, { enabled }) => enabled ? sources : null }))
 vi.mock('../src/features/laboratory/hooks/useSamplesAwaitingReview', () => ({ useSamplesAwaitingReview: () => ({ rows: [], loading: false }) }))
-vi.mock('../src/features/dashboard/dashboardCloudService', () => ({ loadDashboardMetrics: async () => ({}), readStoredDashboardMetrics: async () => null }))
+vi.mock('../src/features/dashboard/dashboardCloudService', () => ({ loadDashboardMetrics: async () => ({}), readStoredDashboardMetrics: async () => null, peekDashboardMetrics: () => undefined }))
 const isolation = vi.fn()
 vi.mock('../src/features/dashboard/userHomeService', () => ({ loadDepartmentIsolationCount: (...args) => isolation(...args) }))
 

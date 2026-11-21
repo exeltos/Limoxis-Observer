@@ -10,10 +10,10 @@ import { useNotifications } from '../../core/notifications/NotificationContext'
 import { CAPABILITIES, ROLES, can, isProfileDisabled } from '../../core/permissions/roles'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { loadDashboardMetrics, readStoredDashboardMetrics, type DashboardMetrics } from './dashboardCloudService'
+import { loadDashboardMetrics, peekDashboardMetrics, readStoredDashboardMetrics, type DashboardMetrics } from './dashboardCloudService'
 import { FirstStepsCard, firstSteps } from './FirstStepsCard'
 import { collectDemoDashboardMetrics, collectDemoDepartmentHome } from './demoDashboardMetrics'
-import { loadDepartmentHomeOverview } from './departmentHomeService'
+import { loadDepartmentHomeOverview, peekDepartmentHomeOverview } from './departmentHomeService'
 import { windowSubtitleParts, type DepartmentHomeOverview } from './departmentHomeModel'
 import { DepartmentPeriodControls, useDepartmentHomeWindow } from './DepartmentHomePeriod'
 import { DEPARTMENT_ROLES, pendingActionsOf } from './dashboardTasks'
@@ -145,8 +145,11 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   useEffect(()=>{
     let active=true,fresh=false,shownStored=false
     if(isDemo||!tenant?.id||divisionHome){setMetrics({});setMetricsState('ready');return()=>{active=false}}
-    setMetricsState('loading')
     const scope={departmentIds:DEPARTMENT_ROLES.has(String(role))?membership?.departmentIds:null}
+    // Back on the home page within a couple of minutes: the counts just read show at once, with no new read.
+    const kept=peekDashboardMetrics(tenant.id,scope)
+    if(kept){setMetrics(kept);setMetricsState('ready');return()=>{active=false}}
+    setMetricsState('loading')
     readStoredDashboardMetrics(tenant.id,scope).then(stored=>{if(active&&!fresh&&stored){shownStored=true;setMetrics(stored);setMetricsState('stale')}}).catch(()=>{})
     loadDashboardMetrics(tenant.id,scope).then(data=>{fresh=true;if(!active)return;if(shownStored&&!Object.keys(data).length){setMetricsState('error');return}setMetrics(data);setMetricsState('ready')}).catch(()=>{fresh=true;if(active){if(!shownStored)setMetrics({});setMetricsState('error')}})
     return()=>{active=false}
@@ -156,12 +159,15 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   // the Demo counts its sample records. A failed read shows the error line and empty figures, never the Demo's.
   const departmentPeriod=useDepartmentHomeWindow()
   const periodWindow=departmentPeriod.window
-  const [departmentOverview,setDepartmentOverview]=useState<{data: DepartmentHomeOverview | null, status: 'loading' | 'ready' | 'error'}>({data:null,status:'loading'})
+  const [departmentOverview,setDepartmentOverview]=useState<{data: DepartmentHomeOverview | null, status: 'loading' | 'ready' | 'error'}>(()=>{const kept=departmentHome&&!isDemo?peekDepartmentHomeOverview(tenant?.id,membership?.departmentIds,periodWindow):null;return kept?{data:kept,status:'ready'}:{data:null,status:'loading'}})
   const demoOverview=useMemo(()=>departmentHome&&isDemo?collectDemoDepartmentHome({department,window:periodWindow}):null,[departmentHome,isDemo,department,periodWindow])
   useEffect(()=>{
     let active=true
     if(!departmentHome||isDemo)return()=>{active=false}
-    // A new period clears the figures until its own answer arrives: never the previous period under the new labels.
+    // A period read a moment ago shows at once; a new period clears the figures until its own answer arrives: never the
+    // previous period under the new labels.
+    const kept=peekDepartmentHomeOverview(tenant?.id,membership?.departmentIds,periodWindow)
+    if(kept){setDepartmentOverview({data:kept,status:'ready'});return()=>{active=false}}
     setDepartmentOverview({data:null,status:'loading'})
     loadDepartmentHomeOverview(tenant?.id,membership?.departmentIds,periodWindow).then(data=>{if(active)setDepartmentOverview({data,status:'ready'})}).catch(()=>{if(active)setDepartmentOverview({data:null,status:'error'})})
     return()=>{active=false}

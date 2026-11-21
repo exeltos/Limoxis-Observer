@@ -4,6 +4,7 @@ import { cloudClient } from '../../core/supabase/cloudContext'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { hospitalDate, hospitalToday } from '../../core/dates/hospitalDate'
 import { readUserCache, writeUserCache } from '../../core/data/userCache'
+import { cachedRead, forgetCachedReads, peekCachedRead } from '../../core/data/readCache'
 
 export type DashboardMetrics=Record<string, number>
 
@@ -17,30 +18,32 @@ const startOfToday=()=>`${hospitalToday()}T00:00:00.000Z`
 const endOfToday=()=>`${hospitalToday()}T23:59:59.999Z`
 const addDays=(days: number)=>{const d=new Date(`${hospitalDate()}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)}
 
-// The home page and the bell ask for the same counts when the home page
-// opens: one read serves both for a short while.
-const SHARE_MS=30*1000
-const shared=new Map<string, { at: number, promise: Promise<DashboardMetrics> }>()
-export function forgetDashboardMetrics(){shared.clear()}
+// The home page and the bell ask for the same counts when the home page opens, and the home page again when the user
+// returns to it: one read serves them for a short while (readCache, 2 minutes; a save empties it).
+export function forgetDashboardMetrics(){forgetCachedReads()}
+const scopeKey=(organizationId: string,departmentIds: string[] | null | undefined)=>`${organizationId}|${departmentIds?.length?[...departmentIds].sort().join(','):'*'}`
 
 // `departmentIds` narrows the department-level counts to a department role's own departments.
 export function loadDashboardMetrics(organizationId: string | null | undefined,{departmentIds=null}: { departmentIds?: string[] | null }={}): Promise<DashboardMetrics>{
   if(!hasSupabaseConfig||!supabase||!organizationId)return Promise.resolve({})
-  const key=`${organizationId}|${departmentIds?.length?[...departmentIds].sort().join(','):'*'}`
-  const now=Date.now(),hit=shared.get(key)
-  if(hit&&now-hit.at<SHARE_MS)return hit.promise
-  const promise=readDashboardMetrics(organizationId,departmentIds)
-  shared.set(key,{at:now,promise})
-  // The user is read when the request starts: a sign-out or another user's sign-in before the answer arrives drops the
-  // write, so one user's counts never land under another's key. An empty answer (every count failed) is not kept.
-  const startedFor=storedKey(key)
-  promise.then(async metrics=>{
-    const before=await startedFor
-    if(!before||!Object.keys(metrics).length)return
-    if(await storedKey(key)===before)writeUserCache(before,metrics)
-  }).catch(()=>{})
-  promise.catch(()=>{if(shared.get(key)?.promise===promise)shared.delete(key)})
-  return promise
+  const key=scopeKey(organizationId,departmentIds)
+  return cachedRead('dashboard_metrics',key,()=>{
+    const promise=readDashboardMetrics(organizationId,departmentIds)
+    // The user is read when the request starts: a sign-out or another user's sign-in before the answer arrives drops the
+    // write, so one user's counts never land under another's key. An empty answer (every count failed) is not kept.
+    const startedFor=storedKey(key)
+    promise.then(async metrics=>{
+      const before=await startedFor
+      if(!before||!Object.keys(metrics).length)return
+      if(await storedKey(key)===before)writeUserCache(before,metrics)
+    }).catch(()=>{})
+    return promise
+  })
+}
+// The counts read a moment ago, at once (no read): the home page shows them on its first paint when the user returns.
+export function peekDashboardMetrics(organizationId: string | null | undefined,{departmentIds=null}: { departmentIds?: string[] | null }={}): DashboardMetrics | undefined{
+  if(!hasSupabaseConfig||!supabase||!organizationId)return undefined
+  return peekCachedRead<DashboardMetrics>('dashboard_metrics',scopeKey(organizationId,departmentIds))
 }
 
 // The home page's last counts for this user, hospital and scope (userCache): shown at once while the fresh ones load.
@@ -51,7 +54,7 @@ async function storedKey(key: string): Promise<string | null> {
 }
 export async function readStoredDashboardMetrics(organizationId: string | null | undefined,{departmentIds=null}: { departmentIds?: string[] | null }={}): Promise<DashboardMetrics | null>{
   if(!hasSupabaseConfig||!supabase||!organizationId)return null
-  const stored=await storedKey(`${organizationId}|${departmentIds?.length?[...departmentIds].sort().join(','):'*'}`)
+  const stored=await storedKey(scopeKey(organizationId,departmentIds))
   return stored?readUserCache<DashboardMetrics>(stored):null
 }
 
