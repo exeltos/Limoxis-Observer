@@ -50,6 +50,16 @@ export async function loadTrainingParticipationAsync(organizationId: string|null
  return ((data||[]) as {program_key: string,department_id: string|null,department_name: string|null,assigned: number,completed: number}[]).map(row=>({programId:row.program_key,departmentId:row.department_id||null,departmentName:row.department_name||'',assigned:Number(row.assigned)||0,completed:Number(row.completed)||0}))
 }
 
+// «Διοργάνωση»: the organising department of each programme, resolved in the database (organizer_department_id, else the
+// department of the employee named as organiser), so it never depends on which employees the user may read. The Demo
+// resolves it from its own sample data (null here).
+export async function loadTrainingOrganizersAsync(organizationId: string|null|undefined): Promise<Map<string, string>|null>{
+ if(isDemoDataEnvironment()||!organizationId)return null
+ const {data,error}=await cloud().rpc('training_program_organizers',{p_organization_id:organizationId})
+ if(error)throw error
+ return new Map(((data||[]) as {program_key: string,department_name: string|null}[]).filter(row=>row.department_name).map(row=>[row.program_key,String(row.department_name)]))
+}
+
 // The user's request for a programme (the Demo's own employee asks in the sample data).
 export async function requestTrainingParticipationAsync(organizationId: string|null|undefined,program: Pick<TrainingProgram,'id'|'title'>,note=''): Promise<TrainingParticipationRequest[]>{
  if(isDemoDataEnvironment()){

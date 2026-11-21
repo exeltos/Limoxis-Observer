@@ -187,3 +187,17 @@ describe('the roles',()=>{
   expect(can(ROLES.DEPARTMENT_MANAGER,CAPABILITIES.MANAGE_TRAINING)).toBe(false)
  })
 })
+
+describe('the Codex findings on PR #683', () => {
+  const sql = readSource('supabase/migrations/20261231610000_training_organizers_and_follow_lock.sql')
+  it('resolves the organiser department in the database, independent of which employees the viewer reads', () => {
+    expect(sql).toContain('create or replace function private.training_program_organizers(p_organization_id uuid)')
+    expect(sql).toContain("public.current_user_has_capability(p_organization_id, 'view_training')")
+    expect(sql).toContain('security definer')
+    expect(readSource('src/features/training/TrainingMyView.tsx')).toContain('isDemo?programOrganizerMap(state.programs,employees):(serverOrganizers||new Map<string, string>())')
+  })
+  it('locks the programme before an automatic addition, like the bulk assignment', () => {
+    expect(sql).toContain('perform 1 from public.training_programs p where p.id = v_program.id for update;')
+    expect(sql).not.toMatch(/\b(drop|revoke|delete)\b/i)
+  })
+})

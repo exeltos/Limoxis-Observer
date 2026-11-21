@@ -18,7 +18,7 @@ import { useCalendarScope } from '../calendar/useCalendarScope'
 import { dueInText,overdueDurationText } from '../calendar/calendarView'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
-import { loadTrainingParticipationAsync,loadTrainingRequestsAsync } from './trainingRequestService'
+import { loadTrainingOrganizersAsync,loadTrainingParticipationAsync,loadTrainingRequestsAsync } from './trainingRequestService'
 import { trainingCategoryLabel,trainingMethodLabel,trainingDeliveryKindLabel } from './TrainingProgramForm'
 import { TrainingStatusBadge as Badge } from './TrainingStatusBadge'
 import { useTrainingOwnActions } from './useTrainingOwnActions'
@@ -84,7 +84,10 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
  // are never counted as totals); until they arrive, or when they fail, the column shows «—». The Demo counts its own.
  const counted=useMemo(()=>isDemo?participationFromAssignments(state):(participation||[]),[isDemo,participation,state])
  // «Διοργάνωση» (owner, 21/11/2026): the organiser department, resolved as the training office's list does.
- const organizers=useMemo(()=>programOrganizerMap(state.programs,employees),[state.programs,employees])
+ // In a hospital the database resolves it (a department user reads only their own employee row); the Demo from its data.
+ const [serverOrganizers,setServerOrganizers]=useState<Map<string, string>|null>(null)
+ useEffect(()=>{let active=true;if(isDemo){setServerOrganizers(null);return()=>{active=false}}loadTrainingOrganizersAsync(organizationId).then(map=>{if(active&&map)setServerOrganizers(map)}).catch(()=>{/* the last resolved organisers stay */});return()=>{active=false}},[isDemo,organizationId,state.programs])
+ const organizers=useMemo(()=>isDemo?programOrganizerMap(state.programs,employees):(serverOrganizers||new Map<string, string>()),[isDemo,state.programs,employees,serverOrganizers])
  const programRows=useMemo(()=>hospitalProgramRows(state,scope,today,{department,participation:counted,requests,departments:departmentList,organizers,en}),[state,scope,today,department,counted,requests,departmentList,organizers,en])
  const tileRows=useMemo(()=>mine?hospitalProgramRows(state,scope,today,{participation:counted,requests}).filter(row=>row.own&&row.own.status!=='completed'):programRows,[mine,state,scope,today,counted,requests,programRows])
  const programFigures=programTiles(tileRows,today,requests,scope),programCounts=programStatusCounts(programRows)
