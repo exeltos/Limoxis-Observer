@@ -1,9 +1,10 @@
 import '../dashboard/departmentHome.css'
 import './trainingMyView.css'
 import { useEffect,useMemo,useState } from 'react'
-import { ClipboardCheck,GraduationCap,PlayCircle,Send } from 'lucide-react'
+import { ClipboardCheck,GraduationCap,PlayCircle,Send,X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
+import { IconButton } from '../../design-system/IconButton'
 import { Page } from '../../design-system/Page'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { SegmentedControl } from '../../design-system/SegmentedControl'
@@ -22,7 +23,7 @@ import { useCalendarScope } from '../calendar/useCalendarScope'
 import { dueInText,overdueDurationText } from '../calendar/calendarView'
 import { downloadCertificatePdf } from './trainingCertificate'
 import { openOwnTrainingAccessAsync } from './trainingInvitationService'
-import { loadTrainingParticipationAsync,loadTrainingRequestsAsync,requestTrainingParticipationAsync } from './trainingRequestService'
+import { cancelTrainingRequestAsync,loadTrainingParticipationAsync,loadTrainingRequestsAsync,requestTrainingParticipationAsync } from './trainingRequestService'
 import { trainingCategoryLabel,trainingMethodLabel,trainingDeliveryKindLabel } from './TrainingProgramForm'
 import { TrainingStatusBadge as Badge } from './TrainingStatusBadge'
 import { canSeeDepartmentNames,departmentPendingPeople,filterProgramRows,filterTrainingRows,hospitalProgramRows,ownTrainingRows,participationFromAssignments,programStatusCounts,programTiles,trainingMeState,trainingRowAction,trainingStatusCounts,trainingTiles,type TrainingDepartment,type TrainingMyRow,type TrainingMyScope,type TrainingMyStatus,type TrainingParticipation,type TrainingParticipationRequest,type TrainingProgramFilter,type TrainingProgramRow } from './trainingMyView'
@@ -53,7 +54,7 @@ const PLAIN_ROLES=new Set(['department_user','link_nurse'])
 
 export function TrainingMyView({state,language,managerView,isDemo,organizationId=null,departments=[]}: TrainingMyViewProps){
  const en=language==='en',tr=(el: string,enText: string)=>en?enText:el
- const {notify,notifyError}=useFeedback(),navigate=useNavigate(),{role,membership}=useTenant()
+ const {notify,notifyError,confirm}=useFeedback(),navigate=useNavigate(),{role,membership}=useTenant()
  const scope=useCalendarScope(),today=hospitalToday()
  // The hospital's departments for «Τμήμα», and the user's own (the department scope; a hospital-wide role its membership's).
  const departmentList=useMemo((): TrainingDepartment[]=>departments.filter(item=>item.name).map(item=>({id:String(item.id||item.name),name:String(item.name),nameEn:item.nameEn||''})).sort((a,b)=>a.name.localeCompare(b.name,'el')),[departments])
@@ -117,6 +118,17 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
   catch(error){notifyError(error,'save',{operation:'training_request_participation'})}
   finally{setRequestBusy(false)}
  }
+ // «Ακύρωση αίτησης»: the user withdraws a request still waiting (after a confirmation).
+ const [cancelBusyId,setCancelBusyId]=useState<string|null>(null)
+ async function cancelRequest(row: TrainingProgramRow){
+  const request=row.request
+  if(!request||request.status!=='pending'||cancelBusyId)return
+  if(!await confirm({title:tr('Ακύρωση αίτησης','Cancel request'),message:en?`Withdraw your request to attend “${row.title}”?`:`Να ακυρωθεί η αίτησή σας για «${row.title}»;`,confirmLabel:tr('Απόσυρση αίτησης','Withdraw request'),danger:true}))return
+  setCancelBusyId(request.id)
+  try{setRequests(await cancelTrainingRequestAsync(organizationId,request.id));notify(tr('Η αίτηση ακυρώθηκε.','The request was cancelled.'),'success')}
+  catch(error){notifyError(error,'save',{operation:'training_cancel_participation_request'})}
+  finally{setCancelBusyId(null)}
+ }
  const expired=tiles.certificates.expired
  const scopeText=department?tr('στο τμήμα','in the department'):tr('στο νοσοκομείο','in the hospital')
  const requestsTile={key:'requests',label:tr('Οι αιτήσεις μου','My requests'),value:programFigures.requests,detail:programFigures.rejected?(en?`${programFigures.rejected} rejected`:`${programFigures.rejected} ${programFigures.rejected===1?'απορρίφθηκε':'απορρίφθηκαν'}`):tr('σε αναμονή απάντησης','awaiting an answer'),tone:'',onClick:()=>{changeView(ownDepartment?'department':'hospital');setProgramFilter('all')}}
@@ -149,8 +161,9 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
   const me=trainingMeState(row)
   if(me==='action')return actionCell(row.own!,true)
   if(me==='completed')return <span className="status-badge active">{tr('Ολοκληρώθηκε','Completed')}</span>
-  if(me==='pending')return <span className="status-badge info">{tr('Αίτηση σε αναμονή','Request pending')}</span>
-  if(me==='rejected')return <span className="status-badge danger" title={row.request?.decisionReason||undefined}>{tr('Απορρίφθηκε','Rejected')}</span>
+  if(me==='pending')return <><span className="status-badge info">{tr('Αίτηση σε αναμονή','Request pending')}</span><IconButton size="sm" className="training-request-cancel" label={tr('Ακύρωση αίτησης','Cancel request')} disabled={Boolean(cancelBusyId)} onClick={event=>{event.stopPropagation();void cancelRequest(row)}}><X size={14}/></IconButton></>
+  // A rejected request: the reason on the badge, and «Νέα αίτηση» while the programme is still open.
+  if(me==='rejected')return <><span className="status-badge danger" title={row.request?.decisionReason||undefined}>{tr('Απορρίφθηκε','Rejected')}</span>{row.state!=='completed'&&<Button variant="secondary" className="training-my-open" onClick={event=>{event.stopPropagation();setRequesting(row);setRequestNote('')}}><Send size={14}/>{tr('Νέα αίτηση','New request')}</Button>}</>
   if(me==='request')return <Button variant="secondary" className="training-my-open" onClick={event=>{event.stopPropagation();setRequesting(row);setRequestNote('')}}><Send size={14}/>{tr('Αίτηση','Request')}<span className="training-request-more">{tr(' συμμετοχής',' to attend')}</span></Button>
   return '—'
  }

@@ -11,6 +11,8 @@
 .training-my-table .training-my-open{min-height:30px;padding:4px 10px;font-size:12px;white-space:nowrap}
 /* «Του τμήματός μου» / «Όλο το νοσοκομείο»: the programmes; «Εγώ» holds the user's one item (button or badge). */
 .training-hospital-own{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}
+/* A request waiting: the badge and a quiet × («Ακύρωση αίτησης»). */
+.training-hospital-own .training-request-cancel{width:26px;height:26px;color:var(--lo-color-muted)}
 .training-hospital-audience{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .training-hospital-table .training-my-title strong,.training-hospital-table .training-my-title small{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* «Συμμετοχή τμήματος»: «12 από 20» over a small bar. */

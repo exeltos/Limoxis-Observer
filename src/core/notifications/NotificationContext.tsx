@@ -22,6 +22,8 @@ import { collectDemoOrganismClusters,loadActiveClustersAsync } from '../../featu
 import { clusterAlertId } from '../../features/surveillance/clusterDetection'
 import { loadPlatformAttentionItems } from '../../features/platform/platformAttentionService'
 import { useOptionalFeedback } from '../feedback/FeedbackContext'
+// A training request's answer (a personal announcement) in the user's language.
+import { localizeTrainingDecisionNotice } from '../../features/training/trainingDecisionNotice'
 // The control programme loads only to work out the expiry alerts.
 const controlServiceModule=()=>import('../../features/controls/controlCloudService')
 // Legislation loads only for the Platform Owner and the hospital's quality people.
@@ -101,7 +103,7 @@ const hospitalRole=role==='platform_owner'?'hospital_admin':role;try{const metri
  // is in view, not every minute in every open tab (each run is an edge function call).
  useEffect(()=>{if(isDemo||!tenant?.id)return;return whenIdle(()=>void processNotificationOutboxAsync(tenant.id).catch(()=>{}))},[isDemo,tenant?.id,dataTick])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
- const visibleAnnouncements=useMemo(()=>announcements.filter(a=>(!isDemo||applies(a,audience))&&withinWindow(a,clock)).map((a): NotificationItem=>{const localized=isDemo?demoAnnouncementText[language]?.[a.id]:null;return {...a,...(localized||{}),acknowledged:announcementAcknowledgements.has(a.id)}}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,isDemo,audience,clock,language,announcementAcknowledgements])
+ const visibleAnnouncements=useMemo(()=>announcements.filter(a=>(!isDemo||applies(a,audience))&&withinWindow(a,clock)).map((a): NotificationItem=>{const localized=(isDemo?demoAnnouncementText[language]?.[a.id]:null)||localizeTrainingDecisionNotice(a,language);return {...a,...(localized||{}),acknowledged:announcementAcknowledgements.has(a.id)}}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,isDemo,audience,clock,language,announcementAcknowledgements])
  // Birthdays: only the active employees with a birth date, and only these columns (not the employee register).
  const [employeeRows,setEmployeeRows]=useState<NotificationItem[]>([])
  useEffect(()=>{let alive=true;const cancel=whenIdle(()=>{Promise.resolve().then(()=>loadBirthdayEmployeesAsync(tenant?.id)).then(rows=>{if(alive)setEmployeeRows(rows)}).catch(()=>{if(alive)setEmployeeRows([])})});return()=>{alive=false;cancel()}},[tenant?.id])

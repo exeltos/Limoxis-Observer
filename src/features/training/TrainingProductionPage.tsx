@@ -41,6 +41,8 @@ import { TrainingStatusBadge,trainingStatusLabels } from './TrainingStatusBadge'
 import { TrainingMyView } from './TrainingMyView'
 import { TrainingRequestsPanel } from './TrainingRequestsPanel'
 import { decideTrainingRequestAsync,loadTrainingRequestsAsync } from './trainingRequestService'
+import { trainingDecisionNoticeLink,trainingDecisionNoticeText } from './trainingDecisionNotice'
+import { useNotifications } from '../../core/notifications/NotificationContext'
 import type { TrainingParticipationRequest } from './trainingMyView'
 import { exportRegistry,trainingParticipationExport,trainingProgramsExport } from '../../core/export/registryExports'
 import { ExcelFieldsDialog,pickColumns,tableFields } from '../../design-system/ExcelFieldsDialog'
@@ -94,7 +96,7 @@ function withProgramDetail(state: TrainingState,detail: ProgramDetail|undefined)
 
 export function TrainingProductionPage(){
  // The employees service is not typed yet: Training reads the fields TrainingEmployee declares.
- const {programId}=useParams(),navigate=useNavigate(),location=useLocation(),registry=useRegistryMemory('training-programs'),{language,t}=useLanguage(),en=language==='en',{tenant,role,membership,isDemo}=useTenant(),{notify,notifyError,confirm}=useFeedback(),employees=useEmployeesData().data as TrainingEmployee[]
+ const {programId}=useParams(),navigate=useNavigate(),location=useLocation(),registry=useRegistryMemory('training-programs'),{language,t}=useLanguage(),en=language==='en',{tenant,role,membership,isDemo}=useTenant(),{notify,notifyError,confirm}=useFeedback(),notifications=useNotifications(),employees=useEmployeesData().data as TrainingEmployee[]
  const printBlocked=()=>notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  const [leanState,setState]=useState<TrainingState>(blankState),[detail,setDetail]=useState<ProgramDetail|undefined>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[query,setQuery]=useState(''),[status,setStatus]=useState('all'),[category,setCategory]=useState('all'),[deliveryKind,setDeliveryKind]=useState('all'),[departmentFilter,setDepartmentFilter]=useState('all'),[dateFrom,setDateFrom]=useState(''),[dateTo,setDateTo]=useState(''),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(15),[departments,setDepartments]=useState<DepartmentOption[]>([]),[sort,setSort]=useState({key:'title',dir:'asc'}),[trainingView,setTrainingView]=useState(()=>location.state?.trainingView==='requests'?'requests':'programs'),[excelOpen,setExcelOpen]=useState<string|false>(false),[printDialog,setPrintDialog]=useState<string|null>(null)
  const canManage=can(role,CAPABILITIES.MANAGE_TRAINING,membership?.capabilities??[],membership?.customCapabilities??[]),managerView=role===ROLES.DEPARTMENT_MANAGER&&!canManage
@@ -117,7 +119,10 @@ export function TrainingProductionPage(){
  async function decideRequest(request: TrainingParticipationRequest,accept: boolean,reason=''){
   if(decisionBusy)return
   setDecisionBusy(request.id)
-  try{setRequests(await decideTrainingRequestAsync(tenant!.id,request,accept,reason));if(accept)await reload();notify(accept?(en?'The request was accepted; the training was assigned.':'Η αίτηση έγινε δεκτή· η εκπαίδευση ανατέθηκε.'):(en?'The request was rejected.':'Η αίτηση απορρίφθηκε.'),'success')}
+  try{setRequests(await decideTrainingRequestAsync(tenant!.id,request,accept,reason));if(accept)await reload()
+  // The requester's notice in the bell: the database writes it in a hospital; the Demo (whose one user is the requester) adds it here.
+  if(isDemo){const program=state.programs.find(item=>item.id===request.programId);notifications.addAnnouncement({...trainingDecisionNoticeText(accept?'accepted':'rejected',program?.title||request.programTitle,reason.trim(),'el'),priority:'normal',audienceType:'all',audienceValues:[],requiresAck:false,startAt:'',endAt:'',linkPath:trainingDecisionNoticeLink(request.id,accept?'accepted':'rejected')})}
+  notify(accept?(en?'The request was accepted; the training was assigned.':'Η αίτηση έγινε δεκτή· η εκπαίδευση ανατέθηκε.'):(en?'The request was rejected.':'Η αίτηση απορρίφθηκε.'),'success')}
   catch(error){notifyError(error,'save',{operation:'training_decide_participation'})}
   finally{setDecisionBusy(null)}
  }
