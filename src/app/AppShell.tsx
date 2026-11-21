@@ -8,7 +8,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, LoaderCircle, BarChart3, Bell, Bot, Building2, ChevronDown, Database, Eye, FlaskConical, Inbox, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Scale, ShieldCheck, Users, X } from 'lucide-react'
+import { ArrowLeft, LoaderCircle, BarChart3, Bell, Bot, Building2, ChevronDown, Database, Eye, FlaskConical, Inbox, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Scale, Settings, ShieldCheck, Users, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useSidebarRail } from './useSidebarRail'
@@ -83,8 +83,8 @@ export function AppShell(){
   useEffect(()=>{if(!navOpen)return;const onKey=(event: KeyboardEvent)=>{if(event.key==='Escape')setNavOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[navOpen])
   const platformHashKey=location.hash.replace(/^#/,'').split('?')[0]
   // The Platform Owner's menu (owner, 9/11/2026): the work areas, then «Monitoring» (reports, history & health)
-  // and «Settings» (announcements, lists, legislation & sources, LIRA & AI), each under its heading; every settings
-  // screen opens in this same shell, with the menu. The platform's own settings sit where each is used (10/11/2026).
+  // and «Settings» (announcements, lists, platform settings, legislation & sources, LIRA & AI), each under its heading; every settings
+  // screen opens in this same shell, with the menu. The platform's own settings: Platform settings (21/11/2026).
   // The new demo requests (public presentation page): a count beside «Requests», refreshed on every navigation
   // and when a status changes.
   const [newDemoRequests,setNewDemoRequests]=useState(0)
@@ -99,6 +99,7 @@ export function AppShell(){
     {key:'platformNav.audit',label:'platformNav.menuAudit',path:'/platform/audit',hash:'',icon:ShieldCheck,group:'monitoring'},
     {key:'platformNav.announcements',label:'platformNav.menuAnnouncements',path:'/platform/announcements',hash:'',icon:Megaphone,group:'settings'},
     {key:'platformNav.libraries',label:'platformNav.menuLists',path:'/platform',hash:'management?group=libraries',icon:Database,group:'settings'},
+    {key:'platformNav.settings',label:'platformNav.settings',path:'/platform/settings',hash:'',icon:Settings,group:'settings'},
     {key:'platformNav.legislation',label:'platformNav.menuLegislationSources',path:'/platform/legislation',hash:'',icon:Scale,group:'settings'},
     {key:'platformNav.lira',label:'platformNav.menuLira',path:'/platform',hash:'management?group=lira',icon:Bot,group:'settings'},
   ]

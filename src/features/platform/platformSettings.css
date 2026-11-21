@@ -1,15 +1,12 @@
-/* The platform settings where they are used: the Demo / Organizations settings dialogs and the maintenance message
-   editor of Announcements (owner, 10/11/2026). */
-.platform-settings-dialog{display:grid;gap:16px}
-.platform-settings-dialog .field input{height:40px}
-/* Ομάδα «Σελίδα παρουσίασης» στις Ρυθμίσεις οργανισμών. */
-.platform-settings-group{display:grid;gap:14px;margin:4px 0 0;padding:14px 0 0;border:0;border-top:1px solid var(--lo-color-border)}
-.platform-settings-group>legend{padding:0 0 4px;font-size:13px;font-weight:750;color:var(--text-brand-216-2)}
-.platform-settings-group>p{margin:-6px 0 0}
-.platform-settings-dialog .field-hint,.platform-settings-dialog .field-error{font-size:11.5px;line-height:1.45}
-.platform-settings-dialog .platform-settings-duration-control>span{font-size:12px}
+/* The platform settings: the forms of «Ρυθμίσεις πλατφόρμας» (Οργανισμοί, Demo, Σελίδα παρουσίασης) and the maintenance
+   message editor of Announcements (owner, 21/11/2026). */
+.platform-settings-screen{display:grid;gap:14px;max-width:760px;margin-top:14px}
+.platform-settings-form .field input{height:40px}
+.platform-settings-form .field-hint,.platform-settings-form .field-error{font-size:11.5px;line-height:1.45}
+.platform-settings-form .platform-settings-duration-control>span{font-size:12px}
+.platform-settings-form-actions{display:flex;justify-content:flex-end;padding-top:4px}
 .platform-maintenance-banner.platform-settings-preview-banner{position:static;transform:none;width:100%;box-shadow:none;grid-template-columns:auto minmax(0,1fr);white-space:pre-wrap}
 .platform-settings-preview-empty{padding:12px 14px;border:1px dashed var(--lo-color-border);border-radius:var(--lo-radius-control);color:var(--lo-color-muted);font-size:12.5px}
-/* The announcement and maintenance editors and the settings dialogs: one readable label size for every field (the shared 10px label is too
+/* The announcement and maintenance editors and the settings forms: one readable label size for every field (the shared 10px label is too
    small on a full-width form), the controls one height. */
-:is(.platform-announcement-editor,.platform-settings-dialog) :is(.lo-field-label,#lo-field-label-scope){font-size:12px!important;font-weight:650!important;color:var(--text-neutral-292)!important}
+:is(.platform-announcement-editor,.platform-settings-form) :is(.lo-field-label,#lo-field-label-scope){font-size:12px!important;font-weight:650!important;color:var(--text-neutral-292)!important}
