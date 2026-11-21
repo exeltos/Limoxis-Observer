@@ -19,11 +19,13 @@ import { DepartmentPeriodControls, useDepartmentHomeWindow } from './DepartmentH
 import { DEPARTMENT_ROLES, pendingActionsOf } from './dashboardTasks'
 import './dashboard.css'
 import { roleTitleText } from '../../core/i18n/roleTitles'
-import { decisionItems } from './adminHomeModel'
+import { adminHomeTiles, decisionItems, departmentsNeedingAttention, expiredCertificateEvents, moduleStatusRows, overdueControlDepartments } from './adminHomeModel'
+import { loadActiveIsolationCount } from './adminHomeService'
+import { countPendingTrainingRequestsAsync } from '../training/trainingRequestService'
 import { useObjectives } from '../quality/review/QualityObjectives'
 import { calendarKindsFor, useCalendarSources } from '../calendar/useCalendarSources'
 import { buildCalendarEvents, calendarKindLabel, dayKey } from '../calendar/calendarEvents'
-import { addDay, eventWithinScope } from '../calendar/calendarView'
+import { addDay, eventWithinScope, nextDaysGroups } from '../calendar/calendarView'
 import { useCalendarScope } from '../calendar/useCalendarScope'
 import { hospitalToday } from '../../core/dates/hospitalDate'
 import { departmentOverdueCount, departmentWeek, ownCertificatesDue, ownTrainings, todayTaskCount } from './userHomeModel'
@@ -41,13 +43,15 @@ const DivisionHome=lazyPage(()=>import('../division/DivisionHome'),'DivisionHome
 const DepartmentHome=lazyPage(()=>import('./DepartmentHome'),'DepartmentHome')
 // The Department User's and the Link Nurse's home (four figures, their day, trainings, the department's week): its own chunk.
 const UserHome=lazyPage(()=>import('./UserHome'),'UserHome')
+// The hospital administrator's home (five figures, decisions, departments, modules, the week): its own chunk.
+const AdminHome=lazyPage(()=>import('./AdminHome'),'AdminHome')
 
 
 type Metrics=Record<string, number | undefined>
 // [label, value, capability, metric key]
 type KpiRow=[string, number | string, string | undefined, string]
 type Tone='danger' | 'warning' | 'info'
-interface TodoItem { key: string, title: string, count: number | null, to: string | null, tone: Tone, task?: NotificationItem }
+interface TodoItem { key: string, title: string, count: number | null, to: string | null, tone: Tone, task?: NotificationItem, state?: unknown }
 // What the home reads of an objective (still an open record in the Quality module): its year, status and where it stands now.
 type ObjectiveState = { year?: number | string, status?: string, current?: { status?: string } }
 
@@ -188,7 +192,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   const calendarKey=calendarKinds.join(',')
   const allowedKinds=useMemo(()=>calendarKey?calendarKey.split(','):[],[calendarKey])
   const calendarOn=menuPaths.has('/calendar')&&allowedKinds.length>0
-  const calendarSources=useCalendarSources(tenant?.id,allowedKinds,language,{enabled:calendarOn||(userHome&&allowedKinds.length>0)})
+  const calendarSources=useCalendarSources(tenant?.id,allowedKinds,language,{enabled:calendarOn||((userHome||adminHome)&&allowedKinds.length>0)})
   // What the user may see of the calendar (eventWithinScope): a department role its departments' items, by name.
   const calendarScope=useCalendarScope()
   const week=useMemo(()=>{if(!calendarOn)return []; if(!calendarSources)return null;const today=dayKey(new Date()),to=dayKey(new Date(Date.now()+7*24*60*60*1000));return buildCalendarEvents(calendarSources,{from:today,to,today,language}).filter(event=>allowedKinds.includes(event.kind)&&event.state!=='overdue'&&event.date>=today&&event.date<=to&&eventWithinScope(event,calendarScope))},[calendarOn,calendarSources,allowedKinds,language,calendarScope])
@@ -204,6 +208,25 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     loadDepartmentIsolationCount(tenant?.id).then(count=>{if(active)setIsolationCount(count)}).catch(()=>{if(active)setIsolationCount(null)})
     return()=>{active=false}
   },[isolationOn,isDemo,tenant?.id])
+  // The administrator's home: the calendar's coming week and its overdue items (controls, corrective actions, staff
+  // certificates, each with its department), the training requests waiting and the hospital's patients in isolation.
+  const adminEvents=useMemo(()=>{if(!adminHome||!calendarSources)return null;return buildCalendarEvents(calendarSources,{from:homeToday,to:addDay(homeToday,6),today:homeToday,language}).filter(event=>allowedKinds.includes(event.kind))},[adminHome,calendarSources,homeToday,language,allowedKinds])
+  const trainingRequestsOn=adminHome&&moduleEnabled('training')&&mayDo(CAPABILITIES.MANAGE_TRAINING)&&menuPaths.has('/training')
+  const [trainingRequests,setTrainingRequests]=useState<number | null | undefined>(undefined)
+  useEffect(()=>{
+    let active=true
+    if(!trainingRequestsOn){setTrainingRequests(null);return()=>{active=false}}
+    countPendingTrainingRequestsAsync(tenant?.id).then(count=>{if(active)setTrainingRequests(count)}).catch(()=>{if(active)setTrainingRequests(null)})
+    return()=>{active=false}
+  },[trainingRequestsOn,tenant?.id])
+  const adminIsolationOn=adminHome&&moduleEnabled('surveillance')
+  const [adminIsolation,setAdminIsolation]=useState<number | null>(null)
+  useEffect(()=>{
+    let active=true
+    if(!adminIsolationOn||isDemo){setAdminIsolation(null);return()=>{active=false}}
+    loadActiveIsolationCount(tenant?.id).then(count=>{if(active)setAdminIsolation(count)}).catch(()=>{if(active)setAdminIsolation(null)})
+    return()=>{active=false}
+  },[adminIsolationOn,isDemo,tenant?.id])
   // «Για μένα σήμερα»: everything that waits for this user in one list, the most urgent first: the administrator's decisions
   // (or the role's own work), new positive samples to review, objectives off course and what the notifications assign.
   const todo=(()=>{
@@ -220,13 +243,14 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     if(overview.pendingRosterRequests>0)add({key:'rosterRequests',title:tr('Αιτήματα βαρδιών σε αναμονή','Roster requests waiting'),count:overview.pendingRosterRequests,to:canOpen('/rosters')?'/rosters':null,tone:'warning'})
     if(Number(overview.trainingExpiring30)>0)add({key:'trainingExpiring',title:tr('Εκπαιδεύσεις που λήγουν σε 30 ημέρες','Training due within 30 days'),count:Number(overview.trainingExpiring30),to:canOpen('/training')?'/training':null,tone:'info'})
    }
+   if(adminHome&&Number(trainingRequests)>0)add({key:'trainingRequests',title:tr('Αιτήσεις συμμετοχής σε εκπαίδευση','Training participation requests'),count:Number(trainingRequests),to:'/training',state:{trainingView:'requests'},tone:'warning'})
    if(missedObjectives>0)add({key:'objectives',title:tr('Στόχοι που δεν επιτυγχάνονται','Objectives not met'),count:missedObjectives,to:'/quality/measures',tone:'warning'})
    const rank: Record<Tone, number>={danger:0,warning:1,info:2}
    return items.sort((a,b)=>rank[a.tone]-rank[b.tone])
   })()
   const [allTodo,setAllTodo]=useState(false)
   const shownTodo=allTodo?todo:todo.slice(0,TODO_FOLDED)
-  const openTodo=(item: TodoItem)=>{if(!item.to)return;if(item.task)nctx.markRead(item.task.id);navigate(item.to)}
+  const openTodo=(item: TodoItem)=>{if(!item.to)return;if(item.task)nctx.markRead(item.task.id);navigate(item.to,item.state?{state:item.state}:undefined)}
   const dayLabel=(date: string)=>{const today=dayKey(new Date()),tomorrow=dayKey(new Date(Date.now()+24*60*60*1000));if(date===today)return tr('Σήμερα','Today');if(date===tomorrow)return tr('Αύριο','Tomorrow');return new Intl.DateTimeFormat(english?'en-GB':'el-GR',{weekday:'short',day:'numeric',month:'numeric'}).format(new Date(`${date}T12:00:00`))}
 
   // «Επόμενες 7 ημέρες»: the calendar's coming week, on the home of every role.
@@ -236,7 +260,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   </Card>
   // «Για μένα σήμερα» and the announcements: the same cards on every home; «Το τμήμα μου» adds the department's 30 days under the announcements.
   const todoCard=<Card className="dashboard-card dashboard-todo" id="dashboard-tasks" tabIndex={-1}>
-        <CardHeader icon={ListChecks} title={tr('Για μένα σήμερα','For me today')} subtitle={todo.length?tr('Τα πιο επείγοντα πρώτα.','The most urgent first.'):tr('Τίποτα δεν περιμένει από εσάς.','Nothing is waiting for you.')}/>
+        <CardHeader icon={ListChecks} title={adminHome?tr('Απαιτούν απόφαση','Needs a decision'):tr('Για μένα σήμερα','For me today')} subtitle={todo.length?tr('Τα πιο επείγοντα πρώτα.','The most urgent first.'):tr('Τίποτα δεν περιμένει από εσάς.','Nothing is waiting for you.')}/>
         {metricsState==='stale'&&<div className="inline-empty" role="status">{tr('Ενημερώνεται…','Updating…')}</div>}
         {metricsState==='error'&&<div className="inline-empty">{tr('Κάποιες εκκρεμότητες δεν φορτώθηκαν.','Some pending items did not load.')}</div>}
         {todo.length?<div className="task-list">{shownTodo.map(item=><button className="task-row" key={item.key} disabled={!item.to} onClick={()=>openTodo(item)}><span className={`priority ${item.tone==='danger'?'high':item.tone==='warning'?'medium':'low'}`}/><span className="task-copy"><strong>{item.title}</strong></span>{item.count!=null&&<b className={`task-count${item.tone==='danger'?' urgent':''}`}>{item.count}</b>}{item.to&&<ArrowRight size={17}/>}</button>)}</div>:metricsState!=='loading'&&<div className="inline-empty">{tr('Όλα είναι σε τάξη.','All is in order.')}</div>}
@@ -264,6 +288,19 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     <Suspense fallback={<RouteLoading/>}><DepartmentHome overview={overview} window={periodWindow} status={overviewStatus} language={language} moduleEnabled={moduleEnabled} canOpen={canOpen} onOpen={navigate} todoCard={todoCard} announcementsCard={announcementsCard}/></Suspense>
   </Page>
 
+  if(adminHome){
+    const tileSources={loading:metricsState==='loading'||(reviewCard&&awaitingReview.loading),awaitingReview:reviewCard?(awaitingReview.error?null:awaitingReview.loading?undefined:awaitingReview.rows.length):null,isolation:isDemo?(demo?.metrics.activeIsolation??null):adminIsolation,overdueControlDepartments:adminEvents?overdueControlDepartments(adminEvents):null,openCapa:calendarSources&&allowedKinds.includes('capa')?(calendarSources.capas||[]).filter(capa=>capa.lifecycleStatus!=='voided'&&!['closed','completed','cancelled'].includes(String(capa.status))).length:null}
+    const certificatesOn=moduleEnabled('training')&&allowedKinds.includes('training')
+    const moduleMetrics={...values,trainingRequests:trainingRequests??undefined,trainingCertificatesExpired:adminEvents&&certificatesOn?expiredCertificateEvents(adminEvents,calendarSources?.training).length:undefined}
+    const latest=nctx.visibleAnnouncements[0]
+    return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
+      <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
+      <Suspense fallback={<RouteLoading/>}><AdminHome language={language} today={homeToday} tiles={adminHomeTiles(values,tileSources,{moduleEnabled,canOpen,language})} decisionCard={todoCard}
+        departments={adminEvents?departmentsNeedingAttention(adminEvents,calendarSources?.training):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
+        modules={moduleStatusRows(moduleMetrics,{moduleEnabled,canOpen,language})} week={adminEvents?nextDaysGroups(adminEvents,homeToday):null} calendarOn={calendarOn}
+        announcements={{unread:nctx.unreadCount,latest:latest?.title||null,onMarkAll:nctx.markAllRead,onOpen:()=>window.dispatchEvent(new CustomEvent('limoxis:open-notifications'))}} canOpen={canOpen} onOpen={navigate}/></Suspense>
+    </Page>
+  }
   return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
     <div className="dashboard-home">

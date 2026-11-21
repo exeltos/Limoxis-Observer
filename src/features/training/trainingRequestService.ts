@@ -96,3 +96,12 @@ export async function cancelTrainingRequestAsync(organizationId: string|null|und
  if(error)throw error
  return loadTrainingRequestsAsync(organizationId)
 }
+
+// «Αιτήσεις συμμετοχής σε εκπαίδευση» on the administrator's home: how many wait for a decision (one count, no rows).
+// The Demo counts its sample requests; a hospital reads the table (manage_training reads all of the hospital's).
+export async function countPendingTrainingRequestsAsync(organizationId: string|null|undefined): Promise<number|null>{
+ if(isDemoDataEnvironment())return demoRequests(loadTrainingState()).filter(request=>request.status==='pending').length
+ if(!organizationId||!hasSupabaseConfig||!configuredSupabase)return null
+ const {count,error}=await cloud().from('training_participation_requests').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).eq('status','pending')
+ return error||count==null?null:Number(count)
+}

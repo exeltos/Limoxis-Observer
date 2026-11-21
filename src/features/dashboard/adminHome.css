@@ -1,0 +1,65 @@
+/* The administrator's home: five figures (the department home's tiles), then three columns in one screen. The page does
+   not scroll on a computer or tablet: the decision list scrolls inside its card, the week shows the lines that fit. */
+.dashboard-page.page-fill>.adminhome{flex:1 1 0;min-height:0}
+.adminhome{display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;min-height:0}
+.adminhome:not(:has(>.dephome-tiles)){grid-template-rows:minmax(0,1fr)}
+.adminhome-columns{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
+.adminhome-stack{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:12px;min-height:0}
+.adminhome-stack.is-single{grid-template-rows:minmax(0,1fr)}
+.adminhome .dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.adminhome .dashboard-card .lo-card-header{margin:0 0 8px;padding:0 0 8px}
+.adminhome .task-list{flex:1 1 auto;min-height:0;overflow:auto;align-content:start}
+.adminhome .task-list>.task-row{padding:9px 6px}
+.adminhome .task-list .priority{height:20px}
+.adminhome .dashboard-todo .lo-card-heading small{display:none}
+
+/* «Τμήματα που θέλουν προσοχή»: three departments, numbers only. */
+.adminhome-departments-table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+.adminhome-departments-table th,.adminhome-departments-table td{padding:6px 4px;border-bottom:1px solid var(--lo-color-border);text-align:right;font-variant-numeric:tabular-nums}
+.adminhome-departments-table thead th{font-size:11.5px;font-weight:700;color:var(--lo-color-muted);width:64px}
+.adminhome-departments-table thead th:first-child{width:auto}
+.adminhome-departments-table abbr{text-decoration:none}
+.adminhome-departments-table th[scope=row],.adminhome-departments-table thead th:first-child{text-align:left;font-weight:600;color:var(--lo-color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-departments-table thead th:first-child{color:var(--lo-color-muted)}
+.adminhome-departments-table td{color:var(--lo-color-muted)}
+.adminhome-departments-table td.is-late{color:var(--lo-color-danger);font-weight:700}
+.adminhome-departments-table tbody tr:last-child>*{border-bottom:0}
+
+/* «Οι ενότητες με μια ματιά»: one line per module, its critical figures red and its warnings amber. */
+.adminhome-module-list{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.adminhome-module-list button{display:grid;grid-template-columns:8px 92px minmax(0,1fr);align-items:baseline;gap:10px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.adminhome-module-list button:hover:not(:disabled){background:var(--lo-shell-control-hover)}
+.adminhome-module-list button:disabled{cursor:default}
+.adminhome-module-list strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-module-dot{width:8px;height:8px;border-radius:50%;background:var(--lo-color-success);align-self:center}
+.adminhome-module-dot.is-warning{background:var(--lo-color-warning)}
+.adminhome-module-dot.is-danger{background:var(--lo-color-danger)}
+.adminhome-module-figures{min-width:0;font-size:12px;line-height:1.35;color:var(--lo-color-muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.adminhome-module-figures b{font-variant-numeric:tabular-nums;color:var(--lo-color-text)}
+.adminhome-module-figures i{font-style:normal}
+.adminhome-module-figures .is-danger,.adminhome-module-figures .is-danger b{color:var(--lo-color-danger)}
+.adminhome-module-figures .is-warning,.adminhome-module-figures .is-warning b{color:var(--lo-color-warning)}
+
+/* «Επόμενες 7 ημέρες»: lines of one height, as many as fit. */
+.adminhome-week-list{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.adminhome-week-list>button{flex:none;display:grid;grid-template-columns:62px minmax(0,1fr);grid-template-rows:auto auto;align-content:center;align-items:center;column-gap:10px;height:44px;padding:0 4px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.adminhome-week-list>button:hover:not(:disabled){background:var(--lo-shell-control-hover)}
+.adminhome-week-list>button:disabled{cursor:default}
+.adminhome-week-list>button>.dashboard-week-day{grid-row:1/3}
+.adminhome-week-list>button>strong{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-week-list>button>small{grid-column:2;font-size:11.5px;line-height:1.2;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-week-list>.adminhome-week-more{display:inline-flex;align-items:center;gap:6px;border-bottom:0;color:var(--lo-color-primary);font-size:12.5px;font-weight:700}
+
+/* The announcements in one line. */
+.adminhome-announcement-line{margin:0;font-size:12.5px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-announcement-line strong{color:var(--lo-color-text)}
+
+/* A tablet keeps the three columns, with smaller figures so the tiles' words fit. */
+@media(max-width:1180px){.adminhome .dephome-tile{padding:9px 11px}.adminhome .dephome-tile-label,.adminhome .dephome-tile-detail{font-size:11.5px}.adminhome .dephome-tile-value{font-size:22px}
+  .adminhome-module-list button{grid-template-columns:8px 78px minmax(0,1fr);gap:8px;padding:7px 4px}.adminhome-module-list strong{font-size:12.5px}.adminhome-module-figures{display:block;white-space:nowrap;text-overflow:ellipsis;font-size:11.5px}
+  .adminhome .dashboard-card .lo-card-heading small,.adminhome .dashboard-card .lo-card-icon{display:none}
+  /* «Σήμανση όλων» keeps its bell only (its words stay its accessible name), so the title has the card's width. */
+  .adminhome-announcements .lo-card-actions .text-button:first-child:not(:last-child){font-size:0;gap:0}}
+/* Phone (or a short window): everything stacks and the page scrolls. */
+@media(max-width:900px),(max-height:640px){.dashboard-page.page-fill>.adminhome{flex:none}.adminhome{display:flex;flex-direction:column}.adminhome-columns{grid-template-columns:1fr}.adminhome-stack{grid-template-rows:auto}.adminhome .task-list{max-height:320px}.adminhome-week-list{min-height:228px}}
+@media(max-width:760px){.adminhome .dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
