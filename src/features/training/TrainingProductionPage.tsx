@@ -200,10 +200,10 @@ function ProgramRecord({pendingRequests=[],onShowRequests,en,language,organizati
  const loadTargets=useCallback(()=>loadDepartmentTargetsAsync(organizationId,program).then(setTargets).catch(()=>setTargets([])),[organizationId,program])
  useEffect(()=>{void loadTargets()},[loadTargets])
  const programOpen=program.status!=='completed'&&program.status!=='cancelled'
- // «Προσθήκη συμμετεχόντων»: in a hospital the staff list comes from the server (training_participant_candidates), so a
+ // «Προσθήκη συμμετεχόντων»: in a hospital the staff list comes from the server (training_participant_candidate_list), so a
  // training manager without access to the staff register still sees it; in the Demo, the staff already loaded.
  const [candidates,setCandidates]=useState<TrainingEmployee[]|null>(null),pickerOpen=dialog?.type==='participants'
- useEffect(()=>{if(!pickerOpen){setCandidates(null);return}let active=true;loadTrainingParticipantCandidatesAsync(organizationId,employees).then(rows=>{if(active)setCandidates(rows)}).catch(error=>{if(!active)return;notifyError(error,'load',{operation:'training_participant_candidates'});setCandidates(employees)});return()=>{active=false}},[pickerOpen,organizationId,employees,notifyError])
+ useEffect(()=>{if(!pickerOpen){setCandidates(null);return}let active=true;loadTrainingParticipantCandidatesAsync(organizationId,employees).then(rows=>{if(active)setCandidates(rows)}).catch(error=>{if(!active)return;notifyError(error,'load',{operation:'training_participant_candidate_list'});setCandidates(employees)});return()=>{active=false}},[pickerOpen,organizationId,employees,notifyError])
  const previewAssign=(selection: DepartmentAssignSelection)=>previewDepartmentAssignmentAsync(organizationId,program,selection,{employees,assignments:state.assignments,departments})
  async function assignToDepartments(selection: DepartmentAssignSelection){
   setAssignBusy(true)
