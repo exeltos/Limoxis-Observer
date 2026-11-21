@@ -80,6 +80,8 @@ export function AppShell(){
   useEffect(()=>watchTableCells(),[])
   useEffect(()=>watchWheelChaining(),[])
   useEffect(()=>{setNavOpen(false)},[location.pathname,location.hash])
+  // The administrator's home opens the bell from its announcements card (Open).
+  useEffect(()=>{const open=()=>setNotificationOpen(true);window.addEventListener('limoxis:open-notifications',open);return()=>window.removeEventListener('limoxis:open-notifications',open)},[])
   useEffect(()=>{if(!navOpen)return;const onKey=(event: KeyboardEvent)=>{if(event.key==='Escape')setNavOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[navOpen])
   const platformHashKey=location.hash.replace(/^#/,'').split('?')[0]
   // The Platform Owner's menu (owner, 9/11/2026): the work areas, then «Monitoring» (reports, history & health)
