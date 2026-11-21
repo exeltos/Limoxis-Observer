@@ -211,6 +211,9 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   // The administrator's home: the calendar's coming week and its overdue items (controls, corrective actions, staff
   // certificates, each with its department), the training requests waiting and the hospital's patients in isolation.
   const adminEvents=useMemo(()=>{if(!adminHome||!calendarSources)return null;return buildCalendarEvents(calendarSources,{from:homeToday,to:addDay(homeToday,6),today:homeToday,language}).filter(event=>allowedKinds.includes(event.kind))},[adminHome,calendarSources,homeToday,language,allowedKinds])
+  // The counts by department read the events in Greek (one name per department in every language) and the hospital's time.
+  const adminCountEvents=useMemo(()=>{if(!adminHome||!calendarSources)return null;if(language==='el')return adminEvents;return buildCalendarEvents(calendarSources,{from:homeToday,to:addDay(homeToday,6),today:homeToday,language:'el'}).filter(event=>allowedKinds.includes(event.kind))},[adminHome,calendarSources,homeToday,language,allowedKinds,adminEvents])
+  const adminNow={date:homeToday,time:new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Athens',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date())}
   const trainingRequestsOn=adminHome&&moduleEnabled('training')&&mayDo(CAPABILITIES.MANAGE_TRAINING)&&menuPaths.has('/training')
   const [trainingRequests,setTrainingRequests]=useState<number | null | undefined>(undefined)
   useEffect(()=>{
@@ -289,16 +292,16 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   </Page>
 
   if(adminHome){
-    const tileSources={loading:metricsState==='loading'||(reviewCard&&awaitingReview.loading),awaitingReview:reviewCard?(awaitingReview.error?null:awaitingReview.loading?undefined:awaitingReview.rows.length):null,isolation:isDemo?(demo?.metrics.activeIsolation??null):adminIsolation,overdueControlDepartments:adminEvents?overdueControlDepartments(adminEvents):null,openCapa:calendarSources&&allowedKinds.includes('capa')?(calendarSources.capas||[]).filter(capa=>capa.lifecycleStatus!=='voided'&&!['closed','completed','cancelled'].includes(String(capa.status))).length:null}
+    const tileSources={loading:metricsState==='loading'||(reviewCard&&awaitingReview.loading),awaitingReview:reviewCard?(awaitingReview.error?null:awaitingReview.loading?undefined:awaitingReview.rows.length):null,isolation:isDemo?(demo?.metrics.activeIsolation??null):adminIsolation,overdueControlDepartments:adminCountEvents?overdueControlDepartments(adminCountEvents,adminNow):null,openCapa:calendarSources&&allowedKinds.includes('capa')?(calendarSources.capas||[]).filter(capa=>capa.lifecycleStatus!=='voided'&&!['closed','completed','cancelled'].includes(String(capa.status))).length:null}
     const certificatesOn=moduleEnabled('training')&&allowedKinds.includes('training')
-    const moduleMetrics={...values,trainingRequests:trainingRequests??undefined,trainingCertificatesExpired:adminEvents&&certificatesOn?expiredCertificateEvents(adminEvents,calendarSources?.training).length:undefined}
+    const moduleMetrics={...values,trainingRequests:trainingRequests??undefined,trainingCertificatesExpired:adminCountEvents&&certificatesOn?expiredCertificateEvents(adminCountEvents,calendarSources?.training).length:undefined}
     const latest=nctx.visibleAnnouncements[0]
     return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
       <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
       <Suspense fallback={<RouteLoading/>}><AdminHome language={language} today={homeToday} tiles={adminHomeTiles(values,tileSources,{moduleEnabled,canOpen,language})} decisionCard={todoCard}
-        departments={adminEvents?departmentsNeedingAttention(adminEvents,calendarSources?.training):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
+        departments={adminCountEvents?departmentsNeedingAttention(adminCountEvents,calendarSources?.training,3,adminNow):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
         modules={moduleStatusRows(moduleMetrics,{moduleEnabled,canOpen,language})} week={adminEvents?nextDaysGroups(adminEvents,homeToday):null} calendarOn={calendarOn}
-        announcements={{unread:nctx.unreadCount,latest:latest?.title||null,onMarkAll:nctx.markAllRead,onOpen:()=>window.dispatchEvent(new CustomEvent('limoxis:open-notifications'))}} canOpen={canOpen} onOpen={navigate}/></Suspense>
+        announcements={{unread:nctx.unreadCount,latest:latest?.title||null,items:nctx.visibleAnnouncements.slice(0,6).map(item=>({id:String(item.id),title:String(item.title||''),message:String(item.message||'')})),onMarkAll:nctx.markAllRead,onOpen:()=>window.dispatchEvent(new CustomEvent('limoxis:open-notifications'))}} canOpen={canOpen} onOpen={navigate}/></Suspense>
     </Page>
   }
   return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>

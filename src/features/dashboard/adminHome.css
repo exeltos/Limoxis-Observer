@@ -63,3 +63,6 @@
 /* Phone (or a short window): everything stacks and the page scrolls. */
 @media(max-width:900px),(max-height:640px){.dashboard-page.page-fill>.adminhome{flex:none}.adminhome{display:flex;flex-direction:column}.adminhome-columns{grid-template-columns:1fr}.adminhome-stack{grid-template-rows:auto}.adminhome .task-list{max-height:320px}.adminhome-week-list{min-height:228px}}
 @media(max-width:760px){.adminhome .dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.adminhome-announcement-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.adminhome-announcement-list li{padding:10px 0;border-bottom:1px solid var(--lo-color-border)}
+.adminhome-announcement-list p{margin:4px 0 0;color:var(--lo-color-muted);font-size:13px}

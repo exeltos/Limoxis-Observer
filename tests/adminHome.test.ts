@@ -71,3 +71,18 @@ describe('the modules at a glance', () => {
     expect(page).toContain("state:{trainingView:'requests'}")
   })
 })
+
+describe('the Codex findings on the administrator home', () => {
+  it('counts a control as overdue from its due time on the same day', () => {
+    const control = { id: 'ctrl:1:2026-11-21', kind: 'controls', date: '2026-11-21', time: '09:00', state: 'due', title: 'Απινιδωτής', department: 'ΜΕΘ' }
+    expect(overdueControlDepartments([control], { date: '2026-11-21', time: '12:00' })).toBe(1)
+    expect(overdueControlDepartments([control], { date: '2026-11-21', time: '08:30' })).toBe(0)
+    expect(departmentsNeedingAttention([control], null, 3, { date: '2026-11-21', time: '12:00' })[0]).toMatchObject({ department: 'ΜΕΘ', controls: 1 })
+  })
+  it('counts the departments on Greek events and the announcements open read ones too', () => {
+    const page = readSource('src/features/dashboard/DashboardPage.tsx')
+    expect(page).toContain("language:'el'}).filter(event=>allowedKinds.includes(event.kind))")
+    expect(page).toContain('items:nctx.visibleAnnouncements.slice(0,6)')
+    expect(readSource('src/features/dashboard/AdminHome.tsx')).toContain('setAnnouncementsOpen(true)')
+  })
+})

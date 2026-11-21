@@ -109,7 +109,7 @@ export function adminHomeTiles(metrics: Metrics = {}, sources: AdminTileSources 
 }
 
 // The calendar's events the home reads (calendarEvents.buildCalendarEvents): overdue ones carry their department.
-interface HomeEvent { id: string, kind: string, date: string, state: string, title: string, department?: string }
+interface HomeEvent { id: string, kind: string, date: string, state: string, title: string, department?: string, time?: string }
 
 // A staff certificate expired and not renewed: no later certificate of the same title for the same person. The
 // training records are read in full (a renewal lies years ahead, outside the calendar's week).
@@ -124,16 +124,22 @@ export function expiredCertificateEvents<T extends HomeEvent>(events: T[], train
 }
 
 // «Εκπρόθεσμοι έλεγχοι σε N τμήματα»: the departments with a control past its due date.
-const overdueControl = (event: HomeEvent) => (event.kind === 'controls' || event.kind === 'cultures') && event.state === 'overdue' && String(event.id).startsWith('ctrl:')
+// A control is late from its due time (the metric counts next_due_at < now): a daily control due at 09:00 is overdue at
+// noon the same day, although the calendar marks the whole day «due». now: the hospital's day and time (HH:MM).
+export interface HomeNow { date: string, time: string }
+const overdueControl = (event: HomeEvent, now: HomeNow | null = null) => (event.kind === 'controls' || event.kind === 'cultures') && String(event.id).startsWith('ctrl:')
+  && (event.state === 'overdue' || Boolean(now && event.state === 'due' && event.date === now.date && event.time && String(event.time) <= now.time))
 const overdueCapa = (event: HomeEvent) => event.kind === 'capa' && event.state === 'overdue' && String(event.id).startsWith('capa:')
-export function overdueControlDepartments(events: HomeEvent[]) {
-  return new Set(events.filter(event => overdueControl(event) && event.department).map(event => event.department)).size
+export function overdueControlDepartments(events: HomeEvent[], now: HomeNow | null = null) {
+  return new Set(events.filter(event => overdueControl(event, now) && event.department).map(event => event.department)).size
 }
 
 // «Τμήματα που θέλουν προσοχή»: the departments with the most overdue items — controls, corrective actions, expired staff
 // certificates — numbers only. A column whose source the user cannot read is null (not shown).
 export interface DepartmentAttention { department: string, controls: number, capa: number, certificates: number, total: number }
-export function departmentsNeedingAttention(events: HomeEvent[], training: HomeTraining | null | undefined = null, limit = 3): DepartmentAttention[] {
+// The events are built in Greek for these counts (a CAPA's department in English is its translated name: the same
+// department would split into two rows).
+export function departmentsNeedingAttention(events: HomeEvent[], training: HomeTraining | null | undefined = null, limit = 3, now: HomeNow | null = null): DepartmentAttention[] {
   const rows = new Map<string, DepartmentAttention>()
   const bump = (department: string | undefined, column: 'controls' | 'capa' | 'certificates') => {
     if (!department) return
@@ -143,7 +149,7 @@ export function departmentsNeedingAttention(events: HomeEvent[], training: HomeT
     rows.set(department, row)
   }
   for (const event of events) {
-    if (overdueControl(event)) bump(event.department, 'controls')
+    if (overdueControl(event, now)) bump(event.department, 'controls')
     else if (overdueCapa(event)) bump(event.department, 'capa')
   }
   for (const event of expiredCertificateEvents(events, training)) bump(event.department, 'certificates')

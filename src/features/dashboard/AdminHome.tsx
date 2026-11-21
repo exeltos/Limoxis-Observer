@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowRight, Bell, Building2, CalendarDays, LayoutGrid, Megaphone } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import type { CalendarGroup } from '../calendar/calendarView'
 import { adminWeekLine, type AdminTile, type DepartmentAttention, type moduleStatusRows } from './adminHomeModel'
 
@@ -24,7 +25,8 @@ export interface AdminHomeProps {
   modules: ModuleRow[]
   week: CalendarGroup[] | null
   calendarOn: boolean
-  announcements: { unread: number, latest: string | null, onMarkAll: () => void, onOpen: () => void }
+  // items: the latest announcements, read or not, with their message («Άνοιγμα» shows them again after they are read).
+  announcements: { unread: number, latest: string | null, items?: { id: string, title?: string, message?: string, createdAt?: string }[], onMarkAll: () => void, onOpen: () => void }
   canOpen: (to: string) => boolean
   onOpen: (to: string) => void
 }
@@ -47,6 +49,7 @@ function useFittingRows(rowHeight: number, fallback = 6) {
 }
 
 export function AdminHome({ language, today, tiles, decisionCard, departments, departmentColumns, modules, week, calendarOn, announcements, canOpen, onOpen }: AdminHomeProps) {
+  const [announcementsOpen, setAnnouncementsOpen] = useState(false)
   const en = language === 'en'
   const tr = (el: string, enText: string) => en ? enText : el
   const number = (value: number) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
@@ -105,7 +108,7 @@ export function AdminHome({ language, today, tiles, decisionCard, departments, d
         <Card className="dashboard-card adminhome-announcements" id="dashboard-announcements" tabIndex={-1}>
           <CardHeader icon={Megaphone} title={tr('Ανακοινώσεις', 'Announcements')} actions={<>
             {announcements.unread > 0 && <button type="button" className="text-button" onClick={announcements.onMarkAll}><Bell size={14}/>{tr('Σήμανση όλων', 'Mark all read')}</button>}
-            <button type="button" className="text-button" onClick={announcements.onOpen}>{tr('Άνοιγμα', 'Open')}<ArrowRight size={14}/></button>
+            <button type="button" className="text-button" onClick={() => announcements.items?.length ? setAnnouncementsOpen(true) : announcements.onOpen()}>{tr('Άνοιγμα', 'Open')}<ArrowRight size={14}/></button>
           </>}/>
           <p className="adminhome-announcement-line">
             {announcements.latest ? <><strong>{announcements.unread ? tr(`${announcements.unread} μη αναγνωσμένες`, `${announcements.unread} unread`) : tr('Όλα διαβασμένα', 'All caught up')}</strong>{' · '}{tr('τελευταία:', 'latest:')} «{announcements.latest}»</> : announcements.unread ? <strong>{tr(`${announcements.unread} μη αναγνωσμένες`, `${announcements.unread} unread`)}</strong> : tr('Καμία νέα ανακοίνωση.', 'No new announcements.')}
@@ -113,5 +116,8 @@ export function AdminHome({ language, today, tiles, decisionCard, departments, d
         </Card>
       </div>
     </div>
+    {announcementsOpen && <ObserverDialog title={tr('Ανακοινώσεις', 'Announcements')} onClose={() => setAnnouncementsOpen(false)}>
+      <ul className="adminhome-announcement-list">{(announcements.items || []).map(item => <li key={item.id}><strong>{item.title}</strong>{item.message && <p>{item.message}</p>}</li>)}</ul>
+    </ObserverDialog>}
   </div>
 }
