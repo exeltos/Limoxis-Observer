@@ -8,12 +8,12 @@
 .calendar-department .filter-field select{min-width:180px}
 .calendar-dot{display:inline-block;flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--calendar-color,#8a97a5)}
 /* The filter chips and every item's dot: controls, cultures, trainings, meetings, expiries, other. */
-.filter-controls{--calendar-color:#7c4dcc}
-.filter-cultures{--calendar-color:#1f8a8a}
-.filter-training{--calendar-color:#2f8a57}
-.filter-meetings{--calendar-color:#24467a}
-.filter-expiries{--calendar-color:#b4560f}
-.filter-other{--calendar-color:#8a97a5}
+.filter-controls{--calendar-color:var(--lo-calendar-controls)}
+.filter-cultures{--calendar-color:var(--lo-calendar-cultures)}
+.filter-training{--calendar-color:var(--lo-calendar-training)}
+.filter-meetings{--calendar-color:var(--lo-calendar-meetings)}
+.filter-expiries{--calendar-color:var(--lo-calendar-expiries)}
+.filter-other{--calendar-color:var(--lo-calendar-other)}
 
 /* Month: the toolbar, then the grid and the right column share the rest of the page's height (no scrolling). */
 .calendar-month-view{display:flex;flex-direction:column;gap:10px;flex:1 1 0;min-height:0}

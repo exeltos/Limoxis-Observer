@@ -1,68 +1,79 @@
-/* The administrator's home: five figures (the department home's tiles), then three columns in one screen. The page does
-   not scroll on a computer or tablet: the decision list scrolls inside its card, the week shows the lines that fit. */
+/* The administrator's home: five figures (the department home's tiles), then two columns in one screen. The page does
+   not scroll on a computer or tablet: the departments show the bars that fit, the week has seven lines that share its card. */
 .dashboard-page.page-fill>.adminhome{flex:1 1 0;min-height:0}
 .adminhome{display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;min-height:0}
 .adminhome:not(:has(>.dephome-tiles)){grid-template-rows:minmax(0,1fr)}
-.adminhome-columns{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
+.adminhome-columns{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;min-height:0}
 .adminhome-stack{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:12px;min-height:0}
-.adminhome-stack.is-single{grid-template-rows:minmax(0,1fr)}
+.adminhome-stack:not(:has(>.adminhome-week)){grid-template-rows:auto}
 .adminhome .dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
 .adminhome .dashboard-card .lo-card-header{margin:0 0 8px;padding:0 0 8px}
-.adminhome .task-list{flex:1 1 auto;min-height:0;overflow:auto;align-content:start}
-.adminhome .task-list>.task-row{padding:9px 6px}
-.adminhome .task-list .priority{height:20px}
-.adminhome .dashboard-todo .lo-card-heading small{display:none}
 
-/* «Τμήματα που θέλουν προσοχή»: three departments, numbers only. */
-.adminhome-departments-table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
-.adminhome-departments-table th,.adminhome-departments-table td{padding:6px 4px;border-bottom:1px solid var(--lo-color-border);text-align:right;font-variant-numeric:tabular-nums}
-.adminhome-departments-table thead th{font-size:11.5px;font-weight:700;color:var(--lo-color-muted);width:64px}
-.adminhome-departments-table thead th:first-child{width:auto}
-.adminhome-departments-table abbr{text-decoration:none}
-.adminhome-departments-table th[scope=row],.adminhome-departments-table thead th:first-child{text-align:left;font-weight:600;color:var(--lo-color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.adminhome-departments-table thead th:first-child{color:var(--lo-color-muted)}
-.adminhome-departments-table td{color:var(--lo-color-muted)}
-.adminhome-departments-table td.is-late{color:var(--lo-color-danger);font-weight:700}
-.adminhome-departments-table tbody tr:last-child>*{border-bottom:0}
+/* «Τμήματα με τις περισσότερες εκκρεμότητες»: one stacked bar per department (red controls, amber corrective actions,
+   slate staff certificates), scaled to the largest total, as many as fit (up to eight). */
+.adminhome-bars{flex:1 1 auto;min-height:84px;overflow:hidden;display:flex;flex-direction:column}
+.adminhome-bar-row{flex:none;display:grid;grid-template-columns:minmax(96px,30%) minmax(0,1fr) 40px;align-items:center;gap:10px;height:28px;padding:0 4px;border:0;border-radius:6px;background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.adminhome-bar-row:hover:not(:disabled){background:var(--lo-shell-control-hover)}
+.adminhome-bar-row:disabled{cursor:default}
+.adminhome-bar-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-bar{display:flex;height:12px;min-width:0;border-radius:4px;overflow:hidden;background:var(--lo-color-surface-muted)}
+.adminhome-bar>i{display:block;height:100%}
+.adminhome-bar>i+i{box-shadow:inset 1px 0 0 var(--lo-color-surface)}
+.adminhome-bar>.is-controls,.adminhome-legend .is-controls{background:var(--lo-color-danger)}
+.adminhome-bar>.is-capa,.adminhome-legend .is-capa{background:var(--lo-color-warning)}
+.adminhome-bar>.is-certificates,.adminhome-legend .is-certificates{background:var(--lo-color-muted)}
+.adminhome-bar-total{font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+.adminhome-legend{flex:none;display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0 0;padding:0 4px;list-style:none;font-size:11.5px;color:var(--lo-color-muted)}
+.adminhome-legend li{display:inline-flex;align-items:center;gap:6px}
+.adminhome-legend i{width:10px;height:10px;border-radius:3px}
 
-/* «Οι ενότητες με μια ματιά»: one line per module, its critical figures red and its warnings amber. */
-.adminhome-module-list{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
-.adminhome-module-list button{display:grid;grid-template-columns:8px 92px minmax(0,1fr);align-items:baseline;gap:10px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
-.adminhome-module-list button:hover:not(:disabled){background:var(--lo-shell-control-hover)}
-.adminhome-module-list button:disabled{cursor:default}
-.adminhome-module-list strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.adminhome-module-dot{width:8px;height:8px;border-radius:50%;background:var(--lo-color-success);align-self:center}
-.adminhome-module-dot.is-warning{background:var(--lo-color-warning)}
-.adminhome-module-dot.is-danger{background:var(--lo-color-danger)}
-.adminhome-module-figures{min-width:0;font-size:12px;line-height:1.35;color:var(--lo-color-muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.adminhome-module-figures b{font-variant-numeric:tabular-nums;color:var(--lo-color-text)}
-.adminhome-module-figures i{font-style:normal}
-.adminhome-module-figures .is-danger,.adminhome-module-figures .is-danger b{color:var(--lo-color-danger)}
-.adminhome-module-figures .is-warning,.adminhome-module-figures .is-warning b{color:var(--lo-color-warning)}
+/* «Χρειάζονται και αυτά απόφαση»: only what the figures do not show, two columns of short lines. */
+.adminhome-others{flex:none;margin-top:10px;padding-top:8px;border-top:1px solid var(--lo-color-border)}
+.adminhome-attention>.adminhome-others:only-of-type{flex:1 1 auto;min-height:0;overflow:auto;margin-top:0;padding-top:0;border-top:0}
+.adminhome-others h3{margin:0 0 4px;font-size:12.5px;font-weight:700;color:var(--lo-color-muted)}
+.adminhome-decisions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;margin:0;padding:0;list-style:none}
+.adminhome-decisions button{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;height:30px;padding:0 4px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.adminhome-decisions button:hover{background:var(--lo-shell-control-hover)}
+.adminhome-decision-dot{width:8px;height:8px;border-radius:50%;background:var(--lo-color-warning)}
+.adminhome-decision-dot.is-danger{background:var(--lo-color-danger)}
+.adminhome-decision-title{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-decisions b{font-size:13px;font-variant-numeric:tabular-nums;color:var(--lo-color-warning)}
+.adminhome-decisions b.is-danger{color:var(--lo-color-danger)}
+.adminhome-decisions-empty{margin:4px 0 0;font-size:12.5px;color:var(--lo-color-muted)}
 
-/* «Επόμενες 7 ημέρες»: lines of one height, as many as fit. */
-.adminhome-week-list{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-.adminhome-week-list>button{flex:none;display:grid;grid-template-columns:62px minmax(0,1fr);grid-template-rows:auto auto;align-content:center;align-items:center;column-gap:10px;height:44px;padding:0 4px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
-.adminhome-week-list>button:hover:not(:disabled){background:var(--lo-shell-control-hover)}
-.adminhome-week-list>button:disabled{cursor:default}
-.adminhome-week-list>button>.dashboard-week-day{grid-row:1/3}
-.adminhome-week-list>button>strong{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.adminhome-week-list>button>small{grid-column:2;font-size:11.5px;line-height:1.2;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.adminhome-week-list>.adminhome-week-more{display:inline-flex;align-items:center;gap:6px;border-bottom:0;color:var(--lo-color-primary);font-size:12.5px;font-weight:700}
+/* «Η εβδομάδα»: seven lines sharing the card, the day and its chips in the calendar's colours. */
+.adminhome-week-days{flex:1 1 auto;min-height:0;display:grid;grid-template-rows:repeat(7,minmax(0,1fr));margin:0;padding:0;list-style:none}
+.adminhome-week-days>li{min-height:0;border-bottom:1px solid var(--lo-color-border)}
+.adminhome-week-days>li:last-child{border-bottom:0}
+.adminhome-week-days button{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:10px;width:100%;height:100%;min-height:30px;padding:0 4px;border:0;background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.adminhome-week-days button:hover:not(:disabled){background:var(--lo-shell-control-hover)}
+.adminhome-week-days button:disabled{cursor:default}
+.adminhome-week-label{font-size:12.5px;font-weight:700;color:var(--lo-color-muted);white-space:nowrap}
+.adminhome-week-days button.is-today .adminhome-week-label{color:var(--lo-color-primary)}
+.adminhome-week-chips{display:flex;gap:6px;min-width:0;overflow:hidden;white-space:nowrap}
+.adminhome-week-chips small{font-size:12px;color:var(--lo-color-muted)}
+.adminhome-chip{--adminhome-chip:var(--lo-calendar-other);flex:none;min-width:0;padding:2px 8px;border-left:3px solid var(--adminhome-chip);border-radius:5px;background:color-mix(in srgb,var(--adminhome-chip) 11%,var(--lo-color-surface));font-size:11.5px;line-height:17px;overflow:hidden;text-overflow:ellipsis}
+.adminhome-chip.is-named,.adminhome-chip:last-child{flex:0 1 auto}
+.adminhome-chip.is-controls{--adminhome-chip:var(--lo-calendar-controls)}
+.adminhome-chip.is-cultures{--adminhome-chip:var(--lo-calendar-cultures)}
+.adminhome-chip.is-training{--adminhome-chip:var(--lo-calendar-training)}
+.adminhome-chip.is-meetings{--adminhome-chip:var(--lo-calendar-meetings)}
+.adminhome-chip.is-expiries{--adminhome-chip:var(--lo-calendar-expiries)}
 
 /* The announcements in one line. */
 .adminhome-announcement-line{margin:0;font-size:12.5px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .adminhome-announcement-line strong{color:var(--lo-color-text)}
 
-/* A tablet keeps the three columns, with smaller figures so the tiles' words fit. */
+/* A tablet keeps the two columns, with smaller figures so the tiles' words fit. */
 @media(max-width:1180px){.adminhome .dephome-tile{padding:9px 11px}.adminhome .dephome-tile-label,.adminhome .dephome-tile-detail{font-size:11.5px}.adminhome .dephome-tile-value{font-size:22px}
-  .adminhome-module-list button{grid-template-columns:8px 78px minmax(0,1fr);gap:8px;padding:7px 4px}.adminhome-module-list strong{font-size:12.5px}.adminhome-module-figures{display:block;white-space:nowrap;text-overflow:ellipsis;font-size:11.5px}
   .adminhome .dashboard-card .lo-card-heading small,.adminhome .dashboard-card .lo-card-icon{display:none}
+  .adminhome-week-days button{grid-template-columns:54px minmax(0,1fr);gap:8px}
+  .adminhome-decisions{column-gap:10px}.adminhome-decisions button{gap:6px;padding:0 2px}.adminhome-decision-title{font-size:12px}
   /* «Σήμανση όλων» keeps its bell only (its words stay its accessible name), so the title has the card's width. */
   .adminhome-announcements .lo-card-actions .text-button:first-child:not(:last-child){font-size:0;gap:0}}
 /* Phone (or a short window): everything stacks and the page scrolls. */
-@media(max-width:900px),(max-height:640px){.dashboard-page.page-fill>.adminhome{flex:none}.adminhome{display:flex;flex-direction:column}.adminhome-columns{grid-template-columns:1fr}.adminhome-stack{grid-template-rows:auto}.adminhome .task-list{max-height:320px}.adminhome-week-list{min-height:228px}}
-@media(max-width:760px){.adminhome .dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px),(max-height:640px){.dashboard-page.page-fill>.adminhome{flex:none}.adminhome{display:flex;flex-direction:column}.adminhome-columns{grid-template-columns:1fr}.adminhome-stack{grid-template-rows:auto}.adminhome-bars{flex:none}.adminhome-week-days{grid-template-rows:none}.adminhome-week-days button{height:36px}}
+@media(max-width:760px){.adminhome .dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.adminhome-decisions{grid-template-columns:1fr}}
 .adminhome-announcement-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
 .adminhome-announcement-list li{padding:10px 0;border-bottom:1px solid var(--lo-color-border)}
 .adminhome-announcement-list p{margin:4px 0 0;color:var(--lo-color-muted);font-size:13px}

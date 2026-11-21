@@ -1,10 +1,10 @@
 // The administrator's home in one screen (owner, 21/11/2026): five figures by module, the departments with the most
-// overdue items, the coming week one line per item (the same control of many departments once) and the training line.
+// pending items, only the decisions the figures do not show, and the week as seven days with their chips.
 import { describe, expect, it } from 'vitest'
 import { readSource } from './helpers/readSource'
 import { buildCalendarEvents } from '../src/features/calendar/calendarEvents'
-import { nextDaysGroups } from '../src/features/calendar/calendarView'
-import { adminHomeTiles, adminWeekLine, departmentsNeedingAttention, expiredCertificateEvents, moduleStatusRows, overdueControlDepartments } from '../src/features/dashboard/adminHomeModel'
+import { calendarDayParam } from '../src/features/calendar/calendarView'
+import { adminHomeTiles, departmentsNeedingAttention, expiredCertificateEvents, otherDecisionItems, overdueControlDepartments, weekSummary } from '../src/features/dashboard/adminHomeModel'
 
 const today = '2026-11-21'
 const metrics = { activeSurveillance: 5, overdueControls: 3, overdueCapa: 2, expiredCertificates: 4 }
@@ -20,6 +20,14 @@ describe('the five figures', () => {
     expect(adminHomeTiles({ overdueControls: 1 }, { awaitingReview: null }).map(tile => tile.key)).toEqual(['overdueControls'])
     expect(adminHomeTiles({}, { loading: true, awaitingReview: null }).map(tile => tile.value)).toEqual([undefined, undefined, undefined, undefined])
     expect(adminHomeTiles(metrics, {}, { language: 'en' })[0]).toMatchObject({ label: 'Active surveillance', detail: 'patients under surveillance' })
+  })
+  it('says «κανείς σε απομόνωση» for none and names the suppliers on the certificates figure', () => {
+    const tiles = adminHomeTiles(metrics, { isolation: 0 })
+    expect(tiles[0].detail).toBe('κανείς σε απομόνωση')
+    expect(tiles.find(tile => tile.key === 'expiredCertificates')?.detail).toBe('προμηθευτών, χωρίς ανανέωση')
+    const english = adminHomeTiles(metrics, { isolation: 0 }, { language: 'en' })
+    expect(english[0].detail).toBe('no one in isolation')
+    expect(english.find(tile => tile.key === 'expiredCertificates')?.detail).toBe("suppliers', not renewed")
   })
 })
 
@@ -51,18 +59,61 @@ describe('the departments that need attention and the coming week', () => {
       { department: 'Παθολογική', controls: 0, capa: 0, certificates: 1, total: 1 },
     ])
   })
-  it('shows the same control of many departments as one line', () => {
-    const lines = nextDaysGroups(events, today).map(group => adminWeekLine(group, 'el'))
-    expect(lines.filter(line => line.what.startsWith('Απινιδωτής'))).toEqual([{ what: 'Απινιδωτής · Έλεγχος', where: '3 τμήματα', text: 'Απινιδωτής · Έλεγχος · 3 τμήματα' }])
+  it('ranks up to eight departments by default', () => {
+    const many = Array.from({ length: 10 }, (_, index) => ({ id: `capa:${index}`, kind: 'capa', date: '2026-11-01', state: 'overdue', title: 'Δ', department: `Τμήμα ${index}` }))
+    expect(departmentsNeedingAttention(many)).toHaveLength(8)
   })
 })
 
-describe('the modules at a glance', () => {
-  it('adds the training line only when its figures were counted', () => {
-    expect(moduleStatusRows(metrics).map(row => row.module)).not.toContain('training')
-    const rows = moduleStatusRows({ ...metrics, trainingRequests: 2, trainingCertificatesExpired: 0 })
-    expect(rows.map(row => row.module).slice(3, 5)).toEqual(['quality', 'training'])
-    expect(rows.find(row => row.module === 'training')?.status).toBe('warning')
+describe('«Χρειάζονται και αυτά απόφαση»', () => {
+  it('leaves out what the figures already show and adds objectives, minutes, expiring supplier certificates and training requests', () => {
+    const all = { expiredCertificates: 4, overdueControls: 3, overdueCapa: 2, awaitingReview: 7, criticalUncommunicated: 1, pendingApprovals: 2, missedObjectives: 1, pendingMinutes: 2, expiringCertificates: 5, trainingRequests: 3, kitchenUnverifiedDays: 0 }
+    const items = otherDecisionItems(all)
+    expect(items.map(item => item.key)).toEqual(['criticalUncommunicated', 'pendingApprovals', 'missedObjectives', 'pendingMinutes', 'expiringCertificates', 'trainingRequests'])
+    expect(items[0]).toMatchObject({ title: 'Κρίσιμα χωρίς ενημέρωση', count: 1, urgent: true })
+    expect(otherDecisionItems(all, { moduleEnabled: module => module !== 'training', canOpen: to => to !== '/meetings', language: 'en' }).map(item => item.title)).toEqual(['Critical results not communicated', 'Antimicrobials to approve', 'Objectives not met', 'Suppliers: expiring in 30 days'])
+    expect(otherDecisionItems({ expiredCertificates: 4, overdueControls: 3 })).toEqual([])
+  })
+})
+
+describe('«Η εβδομάδα»', () => {
+  const day = (id: string, kind: string, date: string, extra: Record<string, unknown> = {}) => ({ id, kind, date, state: 'planned', title: 'Τ', ...extra })
+  const week = [
+    ...Array.from({ length: 5 }, (_, index) => day(`ctrl:${index}`, 'controls', today, { state: 'due', department: index < 3 ? 'ΜΕΘ' : 'ΤΕΠ' })),
+    day('ctrl:x', 'controls', today, { state: 'done', department: 'ΜΕΘ' }),
+    day('ctrl:late', 'controls', '2026-11-10', { state: 'overdue', department: 'ΜΕΘ' }),
+    day('ctrl:9', 'controls', '2026-11-22', { department: 'ΜΕΘ' }), day('ctrl:10', 'controls', '2026-11-22', { department: 'ΤΕΠ' }),
+    day('cert:1', 'training', '2026-11-22'), day('cert:2', 'training', '2026-11-22'),
+    day('mtg:c1:m1', 'committees', '2026-11-23', { title: '3η συνεδρίαση', detail: 'Επιτροπή Λοιμώξεων' }),
+    day('trn-start:p1', 'training', '2026-11-23', { title: 'Υγιεινή χεριών' }),
+    day('mtg:c2:a', 'committees', '2026-11-24', { detail: 'Α' }), day('mtg:c3:b', 'committees', '2026-11-24', { detail: 'Β' }), day('dm:1', 'committees', '2026-11-24', { title: 'Γ' }),
+    day('doc:1', 'documents', '2026-11-25'),
+    day('ctrl:out', 'controls', '2026-11-28'),
+  ]
+  it('has exactly seven days from today, each opening the calendar on that day', () => {
+    const days = weekSummary(week, today)
+    expect(days.map(item => item.date)).toEqual(['2026-11-21', '2026-11-22', '2026-11-23', '2026-11-24', '2026-11-25', '2026-11-26', '2026-11-27'])
+    expect(days.map(item => item.label)).toEqual(['Σήμερα', 'Κυρ 22', 'Δευ 23', 'Τρί 24', 'Τετ 25', 'Πέμ 26', 'Παρ 27'])
+    expect(days[3].path).toBe('/calendar?day=2026-11-24')
+    expect(days[5].chips).toEqual([])
+  })
+  it('counts controls (with departments today), expiries and documents, and names one or two trainings or meetings', () => {
+    const texts = weekSummary(week, today).map(item => item.chips.map(chip => `${chip.kind}:${chip.text}`))
+    expect(texts[0]).toEqual(['controls:5 έλεγχοι · 2 τμήματα'])
+    expect(texts[1]).toEqual(['controls:2 έλεγχοι', 'expiries:2 λήξεις'])
+    expect(texts[2]).toEqual(['meetings:Επιτροπή Λοιμώξεων', 'training:Υγιεινή χεριών (έναρξη)'])
+    expect(weekSummary(week, today)[2].chips.every(chip => chip.named)).toBe(true)
+    expect(texts[3]).toEqual(['meetings:3 συνεδριάσεις'])
+    expect(texts[4]).toEqual(['documents:1 έγγραφο'])
+    expect(weekSummary(week, today, 'en').map(item => item.chips.map(chip => chip.text))[0]).toEqual(['5 controls · 2 departments'])
+    expect(weekSummary(week, today, 'en')[2].chips[1].text).toBe('Υγιεινή χεριών (start)')
+  })
+  it('opens the calendar on the chosen day (?day=YYYY-MM-DD) and ignores anything else', () => {
+    expect(calendarDayParam('2026-11-24')).toBe('2026-11-24')
+    expect(calendarDayParam('2026-02-30')).toBeNull()
+    expect(calendarDayParam('24/11/2026')).toBeNull()
+    expect(calendarDayParam(null)).toBeNull()
+    expect(readSource('src/features/calendar/CalendarPage.tsx')).toContain("const startDay=calendarDayParam(searchParams.get('day'))||today")
   })
   it('is the home of the administrator and of the Platform Owner inside a hospital', () => {
     const page = readSource('src/features/dashboard/DashboardPage.tsx')
@@ -72,12 +123,22 @@ describe('the modules at a glance', () => {
   })
 })
 
+describe('the samples to review on the administrator home', () => {
+  it('counts them from a light read and leaves the figure out when it cannot be read', () => {
+    const page = readSource('src/features/dashboard/DashboardPage.tsx')
+    expect(page).toContain('useSamplesAwaitingReview({enabled:reviewCard&&!adminHome')
+    expect(page).toContain('awaitingReview:reviewCard?awaitingReviewCount:null')
+    expect(readSource('src/features/laboratory/hooks/useSamplesAwaitingReviewCount.ts')).toContain('countSamplesAwaitingReview(tenant?.id)')
+    expect(adminHomeTiles({}, { awaitingReview: null }).map(tile => tile.key)).not.toContain('awaitingReview')
+  })
+})
+
 describe('the Codex findings on the administrator home', () => {
   it('counts a control as overdue from its due time on the same day', () => {
     const control = { id: 'ctrl:1:2026-11-21', kind: 'controls', date: '2026-11-21', time: '09:00', state: 'due', title: 'Απινιδωτής', department: 'ΜΕΘ' }
     expect(overdueControlDepartments([control], { date: '2026-11-21', time: '12:00' })).toBe(1)
     expect(overdueControlDepartments([control], { date: '2026-11-21', time: '08:30' })).toBe(0)
-    expect(departmentsNeedingAttention([control], null, 3, { date: '2026-11-21', time: '12:00' })[0]).toMatchObject({ department: 'ΜΕΘ', controls: 1 })
+    expect(departmentsNeedingAttention([control], null, 8, { date: '2026-11-21', time: '12:00' })[0]).toMatchObject({ department: 'ΜΕΘ', controls: 1 })
   })
   it('counts the departments on Greek events and the announcements open read ones too', () => {
     const page = readSource('src/features/dashboard/DashboardPage.tsx')

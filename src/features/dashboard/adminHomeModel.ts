@@ -1,17 +1,13 @@
-// The hospital administrator's home: five figures, what needs a decision, the departments that need attention,
-// one compact status line per module and the coming week. Counts come from dashboard_metrics (a real hospital,
-// 20261202110000) or demoDashboardMetrics.js (the Demo). A module the
-// organization's profile switches off, or whose screen is not in the user's
-// menu, is left out. Pure.
+// The hospital administrator's home: five figures, the departments with the most pending items, what else needs a
+// decision and the week day by day. Counts come from dashboard_metrics (a real hospital, 20261202110000) or
+// demoDashboardMetrics.js (the Demo). A module the organization's profile switches off, or whose screen is not in the
+// user's menu, is left out. Pure.
 
-import { foldSearch } from '../../core/i18n/searchMatch'
-import { calendarTypeLabel, type CalendarGroup } from '../calendar/calendarView'
+import { addDay } from '../calendar/calendarView'
+import { calendarFilterOf, type CalendarEvent } from '../calendar/calendarEvents'
 
-// [metric key, Greek, English, screen, module] — only what is pending appears.
-// [metric key, Greek, English, screen, module]
+// [metric key, Greek, English, screen, module ('' when no module gates it)]
 type DecisionItem = readonly [string, string, string, string, string]
-// [module, Greek, English, screen, [[metric key, Greek, English, tone when > 0]]]
-type ModuleRow = readonly [string, string, string, string, ReadonlyArray<readonly [string, string, string, string?]>]
 type Metrics = Record<string, unknown>
 interface HomeOptions { moduleEnabled?: (module: string) => boolean, canOpen?: (to: string) => boolean, language?: string }
 
@@ -38,34 +34,29 @@ export function decisionItems(metrics: Metrics = {}, { moduleEnabled = () => tru
     .sort((a, b) => Number(b.urgent) - Number(a.urgent))
 }
 
-// [module, Greek, English, screen, [[metric key, Greek, English, tone when > 0]]]
-export const MODULE_ROWS: readonly ModuleRow[] = Object.freeze([
-  ['surveillance', 'Επιτήρηση', 'Surveillance', '/surveillance', [['activeSurveillance', 'ενεργές επιτηρήσεις', 'active cases'], ['isolationReviewsDue', 'επανεκτιμήσεις απομόνωσης', 'isolation reviews due', 'warning']]],
-  ['laboratory', 'Εργαστήριο', 'Laboratory', '/laboratory', [['pendingSamples', 'εκκρεμή δείγματα', 'pending samples'], ['criticalUncommunicated', 'κρίσιμα χωρίς ενημέρωση', 'critical not communicated', 'danger']]],
-  ['controls', 'Έλεγχοι', 'Controls', '/controls', [['overdueControls', 'εκπρόθεσμοι', 'overdue', 'danger']]],
-  ['quality', 'Ποιότητα', 'Quality', '/quality', [['openIncidents', 'ανοιχτά συμβάντα', 'open incidents'], ['overdueCapa', 'εκπρόθεσμες διορθωτικές', 'overdue CAPA', 'danger']]],
-  ['suppliers', 'Προμηθευτές', 'Suppliers', '/quality', [['expiredCertificates', 'ληγμένα πιστοποιητικά χωρίς ανανέωση', 'expired certificates not renewed', 'danger'], ['expiringCertificates', 'λήγουν σε 30 ημέρες', 'expire within 30 days', 'warning']]],
-  ['kitchen', 'Κουζίνα', 'Kitchen', '/kitchen', [['kitchenOutOfLimits30d', 'εκτός ορίων (30 ημ.)', 'out of limits (30 d)', 'warning'], ['kitchenUnverifiedDays', 'ημέρες χωρίς επαλήθευση', 'days not verified', 'warning']]],
-  ['pharmacy', 'Φαρμακείο', 'Pharmacy', '/pharmacy', [['pendingApprovals', 'εγκρίσεις σε αναμονή', 'approvals pending', 'warning'], ['antimicrobialTherapies', 'αντιμικροβιακές αγωγές', 'antimicrobial therapies']]],
-  ['interviews', 'Συνεντεύξεις', 'Interviews', '/interviews', [['openCandidates', 'ανοιχτές αιτήσεις', 'open applications'], ['newCandidates', 'νέες', 'new', 'warning'], ['upcomingInterviews', 'προγραμματισμένες', 'scheduled']]],
-  ['governance', 'Επιτροπές', 'Committees', '/meetings', [['pendingMinutes', 'πρακτικά σε εκκρεμότητα', 'minutes pending', 'warning'], ['openDecisions', 'ανοιχτές αποφάσεις', 'open decisions']]],
-])
-
-// «Εκπαίδευση» (owner, 21/11/2026): its figures are not in dashboard_metrics; the home counts them (participation
-// requests waiting, expired staff certificates) and the line shows only when one of them was counted.
-export const TRAINING_ROW: ModuleRow = Object.freeze(['training', 'Εκπαίδευση', 'Training', '/training', [['trainingRequests', 'αιτήσεις συμμετοχής', 'participation requests', 'warning'], ['trainingCertificatesExpired', 'ληγμένα πιστοποιητικά προσωπικού', 'expired staff certificates', 'danger']]])
-
-export function moduleStatusRows(metrics: Metrics = {}, { moduleEnabled = () => true, canOpen = () => true, language = 'el' }: HomeOptions = {}) {
+// «Χρειάζονται και αυτά απόφαση» (owner, 21/11/2026): only what the five figures do not already show — no expired
+// certificates, overdue controls, overdue corrective actions or samples to review — with the objectives off course,
+// the minutes pending, supplier certificates expiring within 30 days and the training participation requests.
+// missedObjectives and trainingRequests are counted by the home (they are not in dashboard_metrics).
+export const TILE_DECISION_KEYS: ReadonlySet<string> = new Set(['expiredCertificates', 'overdueControls', 'overdueCapa', 'awaitingReview'])
+// Short titles: two columns of them fit the card on a tablet (the full title stays in each line's tooltip).
+export const HOME_DECISION_ITEMS: readonly DecisionItem[] = Object.freeze([
+  ['criticalUncommunicated', 'Κρίσιμα χωρίς ενημέρωση', 'Critical results not communicated', '/laboratory', 'laboratory'],
+  ['pendingApprovals', 'Αντιμικροβιακές προς έγκριση', 'Antimicrobials to approve', '/pharmacy', 'pharmacy'],
+  ['missedObjectives', 'Στόχοι που δεν επιτυγχάνονται', 'Objectives not met', '/quality/measures', ''],
+  ['pendingMinutes', 'Πρακτικά σε εκκρεμότητα', 'Minutes pending', '/meetings', 'governance'],
+  ['expiringCertificates', 'Προμηθευτές: λήξη σε 30 ημέρες', 'Suppliers: expiring in 30 days', '/quality', 'suppliers'],
+  ['supplierRenewalsToApprove', 'Ανανεώσεις προς αποστολή', 'Renewals to approve', '/quality', 'suppliers'],
+  ['supplierRenewalsToReview', 'Πιστοποιητικά προς έλεγχο', 'Certificates to review', '/quality', 'suppliers'],
+  ['trainingRequests', 'Αιτήσεις συμμετοχής εκπαίδευσης', 'Training requests', '/training', 'training'],
+  ['kitchenUnverifiedDays', 'Κουζίνα χωρίς επαλήθευση HACCP', 'Kitchen days not verified', '/kitchen', 'kitchen'],
+] as DecisionItem[])
+export function otherDecisionItems(metrics: Metrics = {}, { moduleEnabled = () => true, canOpen = () => true, language = 'el' }: HomeOptions = {}) {
   const en = language === 'en'
-  const training = TRAINING_ROW[4].some(([key]) => metrics[key] != null)
-  const rows = MODULE_ROWS.flatMap(row => row[0] === 'quality' && training ? [row, TRAINING_ROW] : [row])
-  return rows
-    .filter(([module, , , to]) => moduleEnabled(module) && canOpen(to))
-    .map(([module, el, enText, to, figures]) => {
-      const values = figures.map(([key, fel, fen, tone]) => ({ key, label: en ? fen : fel, value: metrics[key] == null ? null : count(metrics[key]), tone: tone && count(metrics[key]) > 0 ? tone : '' }))
-      const status = values.some(item => item.tone === 'danger') ? 'danger' : values.some(item => item.tone === 'warning') ? 'warning' : 'good'
-      return { module, title: en ? enText : el, to, values, status }
-    })
+  return HOME_DECISION_ITEMS
+    .filter(([key, , , to, module]) => !TILE_DECISION_KEYS.has(key) && count(metrics[key]) > 0 && (!module || moduleEnabled(module)) && canOpen(to))
+    .map(([key, el, enText, to]) => ({ key, title: en ? enText : el, count: count(metrics[key]), to, urgent: URGENT.has(key) }))
+    .sort((a, b) => Number(b.urgent) - Number(a.urgent))
 }
 
 // ——— The administrator's home, one screen (owner, 21/11/2026) ———
@@ -94,7 +85,7 @@ export function adminHomeTiles(metrics: Metrics = {}, sources: AdminTileSources 
   }
   const isolation = sources.isolation
   add('surveillance', 'activeSurveillance', metric('activeSurveillance'), { label: tr('Ενεργές επιτηρήσεις', 'Active surveillance'), to: '/surveillance', tone: null,
-    detail: isolation != null ? tr(`${isolation} σε απομόνωση`, `${isolation} in isolation`) : tr('ασθενείς σε επιτήρηση', 'patients under surveillance') })
+    detail: isolation === 0 ? tr('κανείς σε απομόνωση', 'no one in isolation') : isolation != null ? tr(`${isolation} σε απομόνωση`, `${isolation} in isolation`) : tr('ασθενείς σε επιτήρηση', 'patients under surveillance') })
   if (sources.awaitingReview !== null) add('laboratory', 'awaitingReview', sources.awaitingReview, { label: tr('Δείγματα προς έλεγχο', 'Samples to review'), to: '/surveillance?tab=episodes&review=1',
     tone: Number(sources.awaitingReview) > 0 ? 'danger' : null, detail: tr('θετικά χωρίς απόφαση', 'positive, no decision yet') })
   const departments = sources.overdueControlDepartments
@@ -104,7 +95,7 @@ export function adminHomeTiles(metrics: Metrics = {}, sources: AdminTileSources 
   add('quality', 'overdueCapa', metric('overdueCapa'), { label: tr('Εκπρόθεσμες διορθωτικές', 'Overdue corrective actions'), to: '/quality?tab=actions', tone: Number(metrics.overdueCapa) > 0 ? 'danger' : null,
     detail: open != null ? tr(`από ${open} ανοιχτές`, `of ${open} open`) : tr('εκτός προθεσμίας', 'past their due date') })
   add('suppliers', 'expiredCertificates', metric('expiredCertificates'), { label: tr('Ληγμένα πιστοποιητικά', 'Expired certificates'), to: '/quality?tab=resources', tone: Number(metrics.expiredCertificates) > 0 ? 'warning' : null,
-    detail: tr('χωρίς ανανέωση', 'not renewed') })
+    detail: tr('προμηθευτών, χωρίς ανανέωση', "suppliers', not renewed") })
   return tiles
 }
 
@@ -134,12 +125,12 @@ export function overdueControlDepartments(events: HomeEvent[], now: HomeNow | nu
   return new Set(events.filter(event => overdueControl(event, now) && event.department).map(event => event.department)).size
 }
 
-// «Τμήματα που θέλουν προσοχή»: the departments with the most overdue items — controls, corrective actions, expired staff
-// certificates — numbers only. A column whose source the user cannot read is null (not shown).
+// «Τμήματα με τις περισσότερες εκκρεμότητες»: the departments with the most overdue items — controls, corrective actions,
+// expired staff certificates — one stacked bar each.
 export interface DepartmentAttention { department: string, controls: number, capa: number, certificates: number, total: number }
 // The events are built in Greek for these counts (a CAPA's department in English is its translated name: the same
 // department would split into two rows).
-export function departmentsNeedingAttention(events: HomeEvent[], training: HomeTraining | null | undefined = null, limit = 3, now: HomeNow | null = null): DepartmentAttention[] {
+export function departmentsNeedingAttention(events: HomeEvent[], training: HomeTraining | null | undefined = null, limit = 8, now: HomeNow | null = null): DepartmentAttention[] {
   const rows = new Map<string, DepartmentAttention>()
   const bump = (department: string | undefined, column: 'controls' | 'capa' | 'certificates') => {
     if (!department) return
@@ -156,16 +147,55 @@ export function departmentsNeedingAttention(events: HomeEvent[], training: HomeT
   return [...rows.values()].sort((a, b) => b.total - a.total || b.controls - a.controls || a.department.localeCompare(b.department, 'el')).slice(0, limit)
 }
 
-// «Επόμενες 7 ημέρες»: one line per item, the same control of many departments once —
-// «Απινιδωτής · Έλεγχος» with «6 τμήματα» beside it (calendarView.nextDaysGroups groups them).
-export function adminWeekLine(group: CalendarGroup, language = 'el') {
-  const en = language === 'en'
-  const title = String(group.first.title || '')
-  const type = calendarTypeLabel(group.first, language)
-  const word = foldSearch(type).split(' ')[0]
-  const what = foldSearch(title).startsWith(word) ? title : `${title} · ${type}`
-  const where = group.departments.length > 1 ? (en ? `${group.departments.length} departments` : `${group.departments.length} τμήματα`)
-    : group.people.length > 1 ? (en ? `${group.people.length} people` : `${group.people.length} άτομα`)
-      : group.departments[0] || ''
-  return { what, where, text: where ? `${what} · ${where}` : what }
+// «Η εβδομάδα» (owner, 21/11/2026): exactly seven lines, today and the next six days, each with what it has as short
+// chips — controls and cultures as counts («41 έλεγχοι · 12 τμήματα» today), expiries and documents as counts,
+// trainings and meetings by name when a day has one or two of them, else as counts. Nothing is cut with «+N ακόμη»:
+// the line opens the calendar on that day (/calendar?day=YYYY-MM-DD).
+export type WeekChipKind = 'controls' | 'cultures' | 'meetings' | 'training' | 'expiries' | 'documents' | 'other'
+// named: a training or a meeting by its name (it may be shortened); counts keep their width.
+export interface WeekChip { key: string, kind: WeekChipKind, text: string, named?: boolean }
+export interface WeekDay { date: string, label: string, today: boolean, chips: WeekChip[], path: string }
+const WEEK_DONE = new Set(['done', 'late', 'missed', 'overdue'])
+const WEEK_WORDS: Record<'el' | 'en', Record<string, [string, string]>> = {
+  el: { controls: ['έλεγχος', 'έλεγχοι'], cultures: ['καλλιέργεια', 'καλλιέργειες'], departments: ['τμήμα', 'τμήματα'], expiries: ['λήξη', 'λήξεις'], documents: ['έγγραφο', 'έγγραφα'], training: ['εκπαίδευση', 'εκπαιδεύσεις'], meetings: ['συνεδρίαση', 'συνεδριάσεις'], other: ['άλλο', 'άλλα'] },
+  en: { controls: ['control', 'controls'], cultures: ['culture', 'cultures'], departments: ['department', 'departments'], expiries: ['expiry', 'expiries'], documents: ['document', 'documents'], training: ['training', 'trainings'], meetings: ['meeting', 'meetings'], other: ['other', 'other'] },
+}
+const TRAINING_STEP: Record<'el' | 'en', Record<string, string>> = { el: { start: 'έναρξη', due: 'προθεσμία', eff: 'αξιολόγηση' }, en: { start: 'start', due: 'due', eff: 'evaluation' } }
+function weekKind(event: CalendarEvent): WeekChipKind {
+  const filter = calendarFilterOf(event)
+  if (filter === 'controls' || filter === 'cultures' || filter === 'expiries' || filter === 'training' || filter === 'meetings') return filter
+  return event.kind === 'documents' ? 'documents' : 'other'
+}
+// The name a training or a meeting shows: «Υγιεινή χεριών (έναρξη)», a committee meeting by its committee.
+function weekName(event: CalendarEvent, lang: 'el' | 'en') {
+  const id = String(event.id || '')
+  const step = /^trn-(start|due|eff):/.exec(id)?.[1]
+  if (step) return `${event.title} (${TRAINING_STEP[lang][step]})`
+  if (id.startsWith('mtg:')) return String(event.detail || event.title || '')
+  return String(event.title || '')
+}
+export function weekSummary(events: CalendarEvent[] | null | undefined, today: string, language = 'el'): WeekDay[] {
+  const lang = language === 'en' ? 'en' : 'el'
+  const words = WEEK_WORDS[lang]
+  const many = (value: number, kind: string) => `${value} ${words[kind][value === 1 ? 0 : 1]}`
+  const weekday = new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'el-GR', { weekday: 'short' })
+  const open = (events || []).filter(event => !WEEK_DONE.has(event.state))
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDay(today, index)
+    const byKind = new Map<WeekChipKind, CalendarEvent[]>()
+    for (const event of open) if (event.date === date) { const kind = weekKind(event); byKind.set(kind, [...(byKind.get(kind) || []), event]) }
+    const chips: WeekChip[] = []
+    for (const kind of ['controls', 'cultures', 'meetings', 'training', 'expiries', 'documents', 'other'] as const) {
+      const list = byKind.get(kind)
+      if (!list?.length) continue
+      if (kind === 'meetings' || kind === 'training') {
+        const names = [...new Set(list.map(event => weekName(event, lang)).filter(Boolean))]
+        if (names.length && names.length <= 2) { names.forEach(name => chips.push({ key: `${kind}:${name}`, kind, text: name, named: true })); continue }
+      }
+      const departments = kind === 'controls' && index === 0 ? new Set(list.map(event => event.department).filter(Boolean)).size : 0
+      chips.push({ key: kind, kind, text: departments > 1 ? `${many(list.length, kind)} · ${many(departments, 'departments')}` : many(list.length, kind) })
+    }
+    const label = index === 0 ? (lang === 'en' ? 'Today' : 'Σήμερα') : `${weekday.format(new Date(`${date}T12:00:00`))} ${Number(date.slice(8, 10))}`
+    return { date, label, today: index === 0, chips, path: `/calendar?day=${date}` }
+  })
 }

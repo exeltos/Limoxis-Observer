@@ -24,7 +24,7 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import { loadControlCalendarMonths } from '../controls/controlCloudService'
 import { calendarKindsFor,useCalendarSources } from './useCalendarSources'
 import { type CalendarEvent,CALENDAR_KINDS,buildCalendarEvents,calendarFilterLabel,calendarFilterOf,calendarFiltersFor,calendarKindLabel,controlExecutionEvents,monthGrid,parseCalendarFilter } from './calendarEvents'
-import { type CalendarGroup,addDay,calendarFilterCounts,calendarItemLine,calendarTypeLabel,dayCellGroups,dueInText,eventInDepartment,eventWithinScope,groupCalendarEvents,hasSingleDepartment,monthGlance,nextDaysGroups,overdueDurationText,pendingEvents,personInitials,searchCalendarGroups } from './calendarView'
+import { type CalendarGroup,addDay,calendarDayParam,calendarFilterCounts,calendarItemLine,calendarTypeLabel,dayCellGroups,dueInText,eventInDepartment,eventWithinScope,groupCalendarEvents,hasSingleDepartment,monthGlance,nextDaysGroups,overdueDurationText,pendingEvents,personInitials,searchCalendarGroups } from './calendarView'
 import { useCalendarScope } from './useCalendarScope'
 import type { CalendarMonthCount } from '../controls/controlCloudService'
 import './calendar.css'
@@ -64,8 +64,12 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  const allowedKey=calendarKindsFor(mayDo).join(',')
  const allowedKinds=useMemo(()=>allowedKey?allowedKey.split(','):[],[allowedKey])
  const today=hospitalToday()
- const [cursor,setCursor]=useState(()=>({year:Number(today.slice(0,4)),month:Number(today.slice(5,7))-1}))
- const [selected,setSelected]=useState(today)
+ // The chips (controls, trainings, meetings, expiries, other) live in the address: ?filter=controls opens only the controls.
+ const [searchParams,setSearchParams]=useSearchParams()
+ // ?day=YYYY-MM-DD (a day of the administrator's «Η εβδομάδα») opens that day's month with the day chosen.
+ const startDay=calendarDayParam(searchParams.get('day'))||today
+ const [cursor,setCursor]=useState(()=>({year:Number(startDay.slice(0,4)),month:Number(startDay.slice(5,7))-1}))
+ const [selected,setSelected]=useState(startDay)
  const [dayOpen,setDayOpen]=useState(false)
  // To do: the overdue items or the next 30 days, a search, the page of the table and the rows opened to their people.
  const [scope,setScope]=useState<'overdue'|'upcoming'|null>(null)
@@ -73,8 +77,6 @@ export function CalendarPage({departmentOnly=false}: { departmentOnly?: boolean 
  const [page,setPage]=useState(1)
  const [pageSize,setPageSize]=useState(15)
  const [expanded,setExpanded]=useState<Set<string>>(()=>new Set())
- // The chips (controls, trainings, meetings, expiries, other) live in the address: ?filter=controls opens only the controls.
- const [searchParams,setSearchParams]=useSearchParams()
  // ?view=list opens «Εκκρεμότητες» (the user's home links its overdue figure there).
  const [view,setView]=useState(()=>searchParams.get('view')==='list'?'list':'month')
  const filterKinds=useMemo(()=>calendarFiltersFor(allowedKinds),[allowedKinds])

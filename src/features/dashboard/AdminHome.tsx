@@ -1,39 +1,39 @@
 import './departmentHome.css'
 import './adminHome.css'
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowRight, Bell, Building2, CalendarDays, LayoutGrid, Megaphone } from 'lucide-react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { ArrowRight, Bell, Building2, CalendarDays, ListChecks, Megaphone } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
-import type { CalendarGroup } from '../calendar/calendarView'
-import { adminWeekLine, type AdminTile, type DepartmentAttention, type moduleStatusRows } from './adminHomeModel'
+import type { AdminTile, DepartmentAttention, WeekDay } from './adminHomeModel'
 
 // The home of the hospital administrator, and of the Platform Owner inside a hospital (owner, 21/11/2026, «ναι σε όλα»):
-// five figures, then three columns in one screen at 1440×900 and 1024×768 without the page scrolling —
-// «Απαιτούν απόφαση» with «Τμήματα που θέλουν προσοχή» under it, «Οι ενότητες με μια ματιά», and the coming 7 days
-// (one line per item, the same control of many departments once) with a one-line announcements card under them.
-// The week shows the lines that fit and «+N ακόμη» to the calendar; nothing scrolls but the decision list.
-type ModuleRow = ReturnType<typeof moduleStatusRows>[number]
+// five figures, then two columns in one screen at 1440×900 and 1024×768 without the page scrolling —
+// on the left «Τμήματα με τις περισσότερες εκκρεμότητες» (one stacked bar per department, as many as fit, up to eight)
+// with «Χρειάζονται και αυτά απόφαση» under it (only what the figures do not already show); on the right «Η εβδομάδα»
+// (seven lines, today and the next six days, each opening the calendar on that day) and the one-line announcements.
 export interface DepartmentColumns { controls: boolean, capa: boolean, certificates: boolean }
+export interface AdminDecision { key: string, title: string, count: number, to: string, urgent: boolean }
 export interface AdminHomeProps {
   language: string
-  today: string
   tiles: AdminTile[]
-  decisionCard: ReactNode
   departments: DepartmentAttention[] | null
   departmentColumns: DepartmentColumns
-  modules: ModuleRow[]
-  week: CalendarGroup[] | null
+  // null while the counts load; note: a line when some could not be read.
+  decisions: AdminDecision[] | null
+  decisionsNote?: string | null
+  week: WeekDay[] | null
   calendarOn: boolean
   // items: the latest announcements, read or not, with their message («Άνοιγμα» shows them again after they are read).
   announcements: { unread: number, latest: string | null, items?: { id: string, title?: string, message?: string, createdAt?: string }[], onMarkAll: () => void, onOpen: () => void }
   canOpen: (to: string) => boolean
   onOpen: (to: string) => void
+  onDecision: (item: AdminDecision) => void
 }
 
 // How many lines of a fixed height fit in the list's box (the box shares the card's height).
-const WEEK_ROW = 44
-function useFittingRows(rowHeight: number, fallback = 6) {
+const BAR_ROW = 28
+function useFittingRows(rowHeight: number, fallback = 8) {
   const ref = useRef<HTMLDivElement>(null)
   const [rows, setRows] = useState(fallback)
   useLayoutEffect(() => {
@@ -48,18 +48,38 @@ function useFittingRows(rowHeight: number, fallback = 6) {
   return [ref, rows] as const
 }
 
-export function AdminHome({ language, today, tiles, decisionCard, departments, departmentColumns, modules, week, calendarOn, announcements, canOpen, onOpen }: AdminHomeProps) {
+type PartKey = 'controls' | 'capa' | 'certificates'
+// The screen of a department's largest part.
+const PART_SCREEN: Record<PartKey, string> = { controls: '/controls', capa: '/quality?tab=actions', certificates: '/training' }
+
+export function AdminHome({ language, tiles, departments, departmentColumns, decisions, decisionsNote, week, calendarOn, announcements, canOpen, onOpen, onDecision }: AdminHomeProps) {
   const [announcementsOpen, setAnnouncementsOpen] = useState(false)
   const en = language === 'en'
   const tr = (el: string, enText: string) => en ? enText : el
   const number = (value: number) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
-  const [weekRef, weekRows] = useFittingRows(WEEK_ROW)
-  const weekList = week || []
-  const weekShown = weekList.length > weekRows ? weekList.slice(0, Math.max(0, weekRows - 1)) : weekList
-  const weekMore = weekList.length - weekShown.length
-  const dayLabel = (date: string) => date === today ? tr('Σήμερα', 'Today') : new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`))
-  const columns = ([['controls', tr('Έλεγχοι', 'Controls'), tr('Εκπρόθεσμοι έλεγχοι', 'Overdue controls')], ['capa', tr('Διορθ.', 'CAPA'), tr('Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue corrective actions')], ['certificates', tr('Πιστ.', 'Cert.'), tr('Ληγμένα πιστοποιητικά προσωπικού', 'Expired staff certificates')]] as const).filter(([key]) => departmentColumns[key])
+  const [barsRef, barRows] = useFittingRows(BAR_ROW)
+  const parts = ([
+    ['controls', tr('Εκπρόθεσμοι έλεγχοι', 'Overdue controls')],
+    ['capa', tr('Εκπρόθεσμες διορθωτικές', 'Overdue corrective actions')],
+    ['certificates', tr('Ληγμένα πιστοποιητικά προσωπικού', 'Expired staff certificates')],
+  ] as const).filter(([key]) => departmentColumns[key])
+  const shownDepartments = (departments || []).slice(0, Math.min(8, barRows))
+  const most = Math.max(1, ...shownDepartments.map(row => row.total))
   const link = (to: string, label: string) => canOpen(to) && <button type="button" className="text-button" onClick={() => onOpen(to)}>{label}<ArrowRight size={14}/></button>
+  const departmentTarget = (row: DepartmentAttention) => {
+    const largest = parts.map(([key]) => key).sort((a, b) => row[b] - row[a])[0]
+    return largest && canOpen(PART_SCREEN[largest]) ? PART_SCREEN[largest] : canOpen('/controls') ? '/controls' : null
+  }
+  const others = <>
+    {decisions === null ? <TableSkeleton/> : decisions.length ? <ul className="adminhome-decisions">{decisions.map(item => <li key={item.key}>
+      <button type="button" onClick={() => onDecision(item)} title={`${item.title}: ${number(item.count)}`}>
+        <span className={`adminhome-decision-dot${item.urgent ? ' is-danger' : ''}`} aria-hidden="true"/>
+        <span className="adminhome-decision-title">{item.title}</span>
+        <b className={item.urgent ? 'is-danger' : undefined}>{number(item.count)}</b>
+      </button>
+    </li>)}</ul> : <p className="adminhome-decisions-empty">{tr('Τίποτα άλλο σε εκκρεμότητα.', 'Nothing else pending.')}</p>}
+    {decisionsNote && <p className="adminhome-decisions-empty" role="status">{decisionsNote}</p>}
+  </>
 
   return <div className="adminhome">
     {tiles.length > 0 && <div className="dephome-tiles" style={{ '--dephome-tiles': tiles.length }}>
@@ -70,40 +90,37 @@ export function AdminHome({ language, today, tiles, decisionCard, departments, d
       </button>)}
     </div>}
     <div className="adminhome-columns">
-      <div className={`adminhome-stack${columns.length ? '' : ' is-single'}`}>
-        {decisionCard}
-        {columns.length > 0 && <Card className="dashboard-card adminhome-departments">
-          <CardHeader icon={Building2} title={tr('Τμήματα που θέλουν προσοχή', 'Departments needing attention')} actions={link('/controls', tr('Όλα', 'All'))}/>
-          {departments === null ? <TableSkeleton/> : departments.length ? <table className="adminhome-departments-table">
-            <thead><tr><th scope="col">{tr('Τμήμα', 'Department')}</th>{columns.map(([key, short, full]) => <th scope="col" key={key} title={full}><abbr title={full}>{short}</abbr></th>)}</tr></thead>
-            <tbody>{departments.map(row => <tr key={row.department}><th scope="row" title={row.department}>{row.department}</th>{columns.map(([key]) => <td key={key} className={row[key] ? 'is-late' : ''}>{row[key]}</td>)}</tr>)}</tbody>
-          </table> : <div className="inline-empty">{tr('Κανένα τμήμα με εκπρόθεσμα.', 'No department has overdue items.')}</div>}
-        </Card>}
-      </div>
-      <Card className="dashboard-card adminhome-modules">
-        <CardHeader icon={LayoutGrid} title={tr('Οι ενότητες με μια ματιά', 'Modules at a glance')}/>
-        {modules.length ? <ul className="adminhome-module-list">{modules.map(row => {
-          const figures = row.values.filter(item => item.value != null)
-          return <li key={row.module}><button type="button" disabled={!canOpen(row.to)} onClick={() => onOpen(row.to)}>
-            <span className={`adminhome-module-dot is-${row.status}`} aria-hidden="true"/>
-            <strong>{row.title}</strong>
-            <span className="adminhome-module-figures">{figures.length ? figures.map((item, index) => <span key={item.key} className={item.tone ? `is-${item.tone}` : undefined}>{index > 0 && <i aria-hidden="true"> · </i>}<b>{number(Number(item.value))}</b> {item.label}</span>) : '—'}</span>
-          </button></li>
-        })}</ul> : <div className="inline-empty">{tr('Δεν υπάρχουν ενεργές ενότητες.', 'No module is enabled.')}</div>}
-      </Card>
-      <div className="adminhome-stack is-week">
+      {parts.length > 0 ? <Card className="dashboard-card adminhome-attention">
+        <CardHeader icon={Building2} title={tr('Τμήματα με τις περισσότερες εκκρεμότητες', 'Departments with the most pending items')} actions={link('/controls', tr('Όλα τα τμήματα', 'All departments'))}/>
+        <div className="adminhome-bars" ref={barsRef}>
+          {departments === null ? <TableSkeleton/> : shownDepartments.length ? shownDepartments.map(row => {
+            const to = departmentTarget(row)
+            const label = `${row.department}: ${parts.map(([key, name]) => `${name} ${row[key]}`).join(', ')}`
+            return <button type="button" key={row.department} className="adminhome-bar-row" disabled={!to} onClick={() => to && onOpen(to)} title={label} aria-label={label}>
+              <span className="adminhome-bar-name">{row.department}</span>
+              <span className="adminhome-bar" aria-hidden="true">{parts.map(([key]) => row[key] > 0 && <i key={key} className={`is-${key}`} style={{ width: `${(row[key] / most) * 100}%` }}/>)}</span>
+              <b className="adminhome-bar-total">{number(row.total)}</b>
+            </button>
+          }) : <div className="inline-empty">{tr('Κανένα τμήμα με εκπρόθεσμα.', 'No department has overdue items.')}</div>}
+        </div>
+        {shownDepartments.length > 0 && <ul className="adminhome-legend" aria-hidden="true">{parts.map(([key, name]) => <li key={key}><i className={`is-${key}`}/>{name}</li>)}</ul>}
+        <div className="adminhome-others">
+          <h3>{tr('Χρειάζονται και αυτά απόφαση', 'Also need a decision')}</h3>
+          {others}
+        </div>
+      </Card> : <Card className="dashboard-card adminhome-attention">
+        <CardHeader icon={ListChecks} title={tr('Χρειάζονται απόφαση', 'Need a decision')}/>
+        <div className="adminhome-others">{others}</div>
+      </Card>}
+      <div className="adminhome-stack">
         {calendarOn ? <Card className="dashboard-card adminhome-week">
-          <CardHeader icon={CalendarDays} title={tr('Επόμενες 7 ημέρες', 'Next 7 days')} actions={link('/calendar', tr('Ημερολόγιο', 'Calendar'))}/>
-          <div className="adminhome-week-list" ref={weekRef}>
-            {week === null ? <TableSkeleton/> : weekList.length ? <>
-              {weekShown.map(group => { const line = adminWeekLine(group, language); return <button type="button" key={group.key} disabled={!group.first.path} onClick={() => group.first.path && onOpen(group.first.path)} title={line.text}>
-                <span className="dashboard-week-day">{dayLabel(group.date)}</span>
-                <strong>{line.what}</strong>
-                {line.where && <small>{line.where}</small>}
-              </button> })}
-              {weekMore > 0 && <button type="button" className="adminhome-week-more" onClick={() => onOpen('/calendar')}>{en ? `+${weekMore} more` : `+${weekMore} ακόμη`}<ArrowRight size={14}/></button>}
-            </> : <div className="inline-empty">{tr('Τίποτα προγραμματισμένο για τις επόμενες 7 ημέρες.', 'Nothing planned for the next 7 days.')}</div>}
-          </div>
+          <CardHeader icon={CalendarDays} title={tr('Η εβδομάδα', 'The week')} subtitle={tr('τι έχει κάθε ημέρα', 'what each day holds')} actions={link('/calendar', tr('Ημερολόγιο', 'Calendar'))}/>
+          {week === null ? <TableSkeleton/> : <ol className="adminhome-week-days">
+            {week.map(day => <li key={day.date}><button type="button" className={day.today ? 'is-today' : undefined} disabled={!canOpen('/calendar')} onClick={() => onOpen(day.path)} title={`${day.label}: ${day.chips.map(chip => chip.text).join(' · ') || tr('τίποτα προγραμματισμένο', 'nothing planned')}`}>
+              <span className="adminhome-week-label">{day.label}</span>
+              <span className="adminhome-week-chips">{day.chips.length ? day.chips.map(chip => <span key={chip.key} className={`adminhome-chip is-${chip.kind}${chip.named ? ' is-named' : ''}`}>{chip.text}</span>) : <small>{tr('τίποτα προγραμματισμένο', 'nothing planned')}</small>}</span>
+            </button></li>)}
+          </ol>}
         </Card> : null}
         <Card className="dashboard-card adminhome-announcements" id="dashboard-announcements" tabIndex={-1}>
           <CardHeader icon={Megaphone} title={tr('Ανακοινώσεις', 'Announcements')} actions={<>

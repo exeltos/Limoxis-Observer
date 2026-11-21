@@ -90,6 +90,13 @@
   --lo-color-danger:#a9444c;
   --lo-color-success:#39785a;
   --lo-color-warning:#956d23;
+  /* The calendar's kinds (its chips and dots, and the administrator's «Η εβδομάδα»): controls, cultures, trainings, meetings, expiries, other. */
+  --lo-calendar-controls:#7c4dcc;
+  --lo-calendar-cultures:#1f8a8a;
+  --lo-calendar-training:#2f8a57;
+  --lo-calendar-meetings:#24467a;
+  --lo-calendar-expiries:#b4560f;
+  --lo-calendar-other:#8a97a5;
   --lo-radius-control:7px;
   --lo-radius-card:10px;
   --lo-shell-control-height:34px;

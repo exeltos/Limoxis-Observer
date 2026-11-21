@@ -10,6 +10,8 @@ const DONE=['done','late','missed']
 // Days between two YYYY-MM-DD days (to - from), at noon so summer time never shifts a day.
 export function daysBetween(from: string,to: string){return Math.round((new Date(`${to}T12:00:00`).getTime()-new Date(`${from}T12:00:00`).getTime())/86400000)}
 export function addDay(key: string,days: number){const d=new Date(`${key}T12:00:00`);d.setDate(d.getDate()+days);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+// ?day=YYYY-MM-DD (a day of «Η εβδομάδα» on the administrator's home): the calendar opens that month with the day chosen; anything else is ignored.
+export function calendarDayParam(value: string | null | undefined){const day=String(value||'');return /^\d{4}-\d{2}-\d{2}$/.test(day)&&addDay(day,0)===day?day:null}
 const isOpen=(event: CalendarEvent)=>!DONE.includes(event.state)
 
 // The kind of an item in one word: the chip's name in the singular (a control, a training, an expiry), else the module's.
