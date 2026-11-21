@@ -65,7 +65,7 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
  useEffect(()=>{if(view==='department'&&departmentId==='all'&&ownDepartment)setDepartmentId(ownDepartment.id)},[view,ownDepartment])// eslint-disable-line react-hooks/exhaustive-deps
  // The figures per department (numbers only) and the user's requests; the Demo keeps both in its sample data.
  const [participation,setParticipation]=useState<TrainingParticipation[]|null>(null),[requests,setRequests]=useState<TrainingParticipationRequest[]>([]),[requesting,setRequesting]=useState<TrainingProgramRow|null>(null),[requestNote,setRequestNote]=useState(''),[requestBusy,setRequestBusy]=useState(false),[namesOf,setNamesOf]=useState<TrainingProgramRow|null>(null)
- useEffect(()=>{let active=true;loadTrainingParticipationAsync(isDemo?null:organizationId).then(rows=>{if(active)setParticipation(rows)}).catch(()=>{if(active)setParticipation(null)});return()=>{active=false}},[isDemo,organizationId,state])
+ useEffect(()=>{let active=true;loadTrainingParticipationAsync(isDemo?null:organizationId).then(rows=>{if(active)setParticipation(rows)}).catch(()=>{/* a failed load keeps the last numbers the database gave */});return()=>{active=false}},[isDemo,organizationId,state])
  useEffect(()=>{let active=true;loadTrainingRequestsAsync(organizationId).then(rows=>{if(active)setRequests(rows)}).catch(()=>{if(active)setRequests([])});return()=>{active=false}},[organizationId,state])
  const mine=view==='mine'
  const rows=useMemo(()=>mine?ownTrainingRows(state,scope,today):[],[mine,state,scope,today])
@@ -75,7 +75,9 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
  const filtered=useMemo(()=>filterTrainingRows(rows,status).filter(row=>matchesSearch(query,[row.title,row.department,detailOf(row)])),[rows,status,query])// eslint-disable-line react-hooks/exhaustive-deps
  // The programmes: of the chosen department (by the audience or its people), or of the whole hospital.
  const department=departmentList.find(item=>item.id===departmentId)||null
- const counted=useMemo(()=>participation||participationFromAssignments(state),[participation,state])
+ // In a hospital the numbers come only from the database (the assignments the user reads are limited by RLS, so they
+ // are never counted as totals); until they arrive, or when they fail, the column shows «—». The Demo counts its own.
+ const counted=useMemo(()=>isDemo?participationFromAssignments(state):(participation||[]),[isDemo,participation,state])
  const programRows=useMemo(()=>hospitalProgramRows(state,scope,today,{department,participation:counted,requests}),[state,scope,today,department,counted,requests])
  const tileRows=useMemo(()=>mine?hospitalProgramRows(state,scope,today,{participation:counted,requests}).filter(row=>row.own&&row.own.status!=='completed'):programRows,[mine,state,scope,today,counted,requests,programRows])
  const programFigures=programTiles(tileRows,today,requests,scope),programCounts=programStatusCounts(programRows)

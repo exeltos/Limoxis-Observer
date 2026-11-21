@@ -98,3 +98,15 @@ describe('the functions', () => {
     }
   })
 })
+
+describe('the production numbers and the requests list', () => {
+  it('counts participation from the database in a hospital, never from the RLS-limited assignments', () => {
+    const view = readSource('src/features/training/TrainingMyView.tsx')
+    expect(view).toContain('isDemo?participationFromAssignments(state):(participation||[])')
+  })
+  it('reads every page of the requests, so an old pending request is never cut off', () => {
+    const service = readSource('src/features/training/trainingRequestService.ts')
+    expect(service).toContain('.range(from,from+999)')
+    expect(service).not.toContain('.limit(1000)')
+  })
+})

@@ -30,9 +30,15 @@ const demoRequests=(state: TrainingState)=>(Array.isArray(state.participationReq
 export async function loadTrainingRequestsAsync(organizationId: string|null|undefined): Promise<TrainingParticipationRequest[]>{
  if(isDemoDataEnvironment())return demoRequests(loadTrainingState())
  if(!organizationId)return []
- const {data,error}=await cloud().from('training_participation_requests').select(REQUEST_SELECT).eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(1000)
- if(error)throw error
- return ((data||[]) as RequestRow[]).map(requestFromRow)
+ // Every page (1,000 rows each), so an old pending request is never cut off.
+ const rows: RequestRow[]=[]
+ for(let from=0;;from+=1000){
+  const {data,error}=await cloud().from('training_participation_requests').select(REQUEST_SELECT).eq('organization_id',organizationId).order('created_at',{ascending:false}).order('id').range(from,from+999)
+  if(error)throw error
+  rows.push(...((data||[]) as RequestRow[]))
+  if(!data||data.length<1000)break
+ }
+ return rows.map(requestFromRow)
 }
 
 // «Συμμετοχή τμήματος»: only numbers per programme and department, for every department (no names). The Demo counts
