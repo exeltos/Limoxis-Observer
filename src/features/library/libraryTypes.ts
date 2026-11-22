@@ -7,6 +7,8 @@ export type LibraryItem = {
   kind: string
   group?: string
   name: string
+  // A guideline's title in Greek (the main line in Greek; `name` is the original title).
+  titleEl?: string
   abbreviation?: string
   organisation?: string
   url?: string

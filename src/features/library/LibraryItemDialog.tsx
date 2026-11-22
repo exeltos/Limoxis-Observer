@@ -90,6 +90,7 @@ export function LibraryItemDialog({ scope, organizationId = null, item = null, k
     <div className="lib-form">
       {isNew && <div className="lib-span"><ChoiceChips label={L('Τύπος', 'Type')} options={kinds.map(value => ({ value, label: kindLabel(value, language) }))} selected={[k]} onToggle={value => setDraft(current => ({ ...blankDraft(value, scope), name: current.name, url: current.url }))} /></div>}
       <Field label={nameLabel} error={err('name')}><input value={draft.name} onChange={e => set('name', e.target.value)} /></Field>
+      {k === 'guideline' && <Field label={L('Τίτλος στα ελληνικά', 'Greek title')} hint={L('Προαιρετικά · αν ο τίτλος είναι σε άλλη γλώσσα, εμφανίζεται πρώτος στα ελληνικά', 'Optional · if the title is in another language, it shows first in Greek')}><input value={draft.titleEl || ''} onChange={e => set('titleEl', e.target.value)} /></Field>}
       {(k === 'link' || k === 'news_source' || k === 'announcement') && <Field label={L('Συντομογραφία (για το εικονίδιο)', 'Abbreviation (for the icon)')} error={err('abbreviation')}>
         <span className="lib-abbr"><span className={`lib-logo tone-${logoTone({ ...draft, organizationId: platform ? null : organizationId || 'hospital' })}${initials(draft).length > 4 ? ' is-long' : ''}`} aria-hidden="true">{initials(draft)}</span><input value={draft.abbreviation} maxLength={8} onChange={e => set('abbreviation', e.target.value)} placeholder={L('π.χ. ECDC', 'e.g. ECDC')} /></span>
       </Field>}

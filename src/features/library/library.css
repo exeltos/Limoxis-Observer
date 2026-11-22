@@ -114,3 +114,33 @@
 .lib-form-panel .lib-form input[type=file]{width:100%}
 .lib-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
 .lib-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+/* Guidelines: the Greek title, under it the original title and one line of description. */
+.lib-guide-title{display:grid;gap:2px;min-width:0;max-width:720px}
+.lib-guide-title strong{font-size:13.5px;line-height:1.35;color:var(--lo-color-text)}
+.lib-guide-title strong .lib-tag{margin-left:6px;vertical-align:1px}
+.lib-guide-row td .lib-guide-title small{margin-top:0}
+.lib-guide-row td small.lib-guide-original{font-size:11.5px;line-height:1.35;color:var(--lo-color-muted);font-style:italic}
+.lib-guide-row td small.lib-guide-about{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11.5px;color:var(--lo-color-muted)}
+.lib-drawer-original{margin:4px 0 0;font-size:12px;line-height:1.4;font-style:italic;color:var(--lo-color-muted)}
+.lib-drawer ul.lib-drawer-sources{font-size:11.5px;line-height:1.45;color:var(--lo-color-muted)}
+/* Clinical guides as cards; the whole guide opens in the drawer. */
+.lib-clinical-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.lib-clinical-card{position:relative;display:grid;gap:10px;align-content:start;padding:14px 14px 12px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);cursor:pointer;min-width:0}
+.lib-clinical-card:hover{border-color:var(--lo-color-border-strong)}
+.lib-clinical-card:focus-visible{outline:2px solid var(--lo-color-primary);outline-offset:2px}
+.lib-clinical-card.is-selected{border-color:var(--lo-color-primary);background:var(--lo-status-info-bg)}
+.lib-clinical-head{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:start}
+.lib-clinical-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:var(--lo-status-info-bg);color:var(--lo-color-primary)}
+.lib-clinical-head h3{margin:0;font-size:14px;line-height:1.3;color:var(--lo-color-text)}
+.lib-clinical-meta{display:block;margin-top:2px;font-size:11.5px;color:var(--lo-color-muted)}
+.lib-card-menu{margin:-4px -6px 0 0}
+.lib-clinical-points{margin:0;padding-left:18px;font-size:12.5px;line-height:1.45;color:var(--lo-color-text)}
+.lib-clinical-points li+li{margin-top:3px}
+.lib-clinical-points li>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.lib-clinical-points li.is-numbered,.lib-drawer ul li.is-numbered{list-style:none;margin-left:-14px}
+.lib-clinical-about{margin:0;font-size:12.5px;line-height:1.45;color:var(--lo-color-muted)}
+.lib-clinical-more{align-self:center;font-size:11px;font-weight:600;color:var(--lo-color-primary)}
+/* News under «This week / This month / Older». */
+.lib-news-period{display:grid;gap:8px}
+.lib-news-period>h3{margin:6px 0 0;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--lo-color-text)}
+.lib-news-period>h3 b{font-size:11.5px;font-weight:600;color:var(--lo-color-muted)}

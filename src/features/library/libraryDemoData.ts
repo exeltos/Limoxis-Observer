@@ -1,5 +1,5 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
-import { NEWS_SOURCES, PLATFORM_GUIDELINES, PLATFORM_LINKS, type NewsSourceSeed } from './libraryCatalogue'
+import { NEWS_SOURCES, PLATFORM_CLINICAL_GUIDES, PLATFORM_GUIDELINES, PLATFORM_LINKS, type NewsSourceSeed } from './libraryCatalogue'
 import type { LibraryItem, LibraryNews } from './libraryTypes'
 
 // The Library in the preview and the Demo: the platform's real starting content
@@ -44,6 +44,6 @@ emptyInPreview(hospitalItems)
 emptyInPreview(hospitalNews)
 emptyInPreview(sourceNews)
 
-export const demoLibraryItems = (): LibraryItem[] => [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES, ...hospitalItems].map((item: LibraryItem & { tags: string[] }) => ({ ...item, tags: [...item.tags], updatedAt: item.updatedAt || ago(12) }))
+export const demoLibraryItems = (): LibraryItem[] => [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES, ...PLATFORM_CLINICAL_GUIDES, ...hospitalItems].map((item: LibraryItem & { tags: string[] }) => ({ ...item, tags: [...item.tags], updatedAt: item.updatedAt || ago(12) }))
 export const demoLibraryNews = (): LibraryNews[] => [...sourceNews, ...hospitalNews].map(item => ({ ...item }))
 export const DEMO_LIBRARY_ORG = DEMO_ORG
