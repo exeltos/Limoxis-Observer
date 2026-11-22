@@ -311,7 +311,8 @@ function ClinicalDrawer({ item, language, onClose, onEdit }: { item: LibraryItem
     <div className="lib-row">
       {item.url && <a className="button button-primary" href={item.url} {...external}><ExternalLink size={16} />{L('Άνοιγμα πηγής', 'Open source')}</a>}
       {item.filePath && <Button variant="secondary" onClick={openFile}><FileText size={16} />{L('Αρχείο', 'File')}</Button>}
-      <ExportMenu onPrint={print} language={language} />
+      {/* Print the one-page guide only when it has text; a guide uploaded as an image or PDF prints from «Αρχείο». */}
+      {points.length > 0 && <ExportMenu onPrint={print} language={language} />}
       {onEdit && <IconButton label={L('Επεξεργασία', 'Edit')} onClick={onEdit}><Pencil size={15} /></IconButton>}
     </div>
     {description && <p className="leg-note">{description}{en && auto.has(`${item.id}:description_el`) && item.descriptionEn && <AutoTranslatedMark />}</p>}

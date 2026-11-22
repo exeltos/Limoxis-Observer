@@ -125,7 +125,11 @@ describe('library model', () => {
     expect(topics[0]).toEqual({ value: 'ipc', count: PLATFORM_GUIDELINES.filter(item => item.tags.includes('ipc')).length })
     const who = guidelineTopicCounts(items, { query: '', organisation: 'WHO', topic: 'sepsis', year: 'all' })
     expect(who.total).toBe(PLATFORM_GUIDELINES.filter(item => item.organisation === 'WHO').length)
-    expect(who.topics.find(topic => topic.value === 'sepsis')).toBeUndefined()
+    // The chosen topic stays listed with 0, so the chip and the list keep showing the filter still applied.
+    expect(who.topics.find(topic => topic.value === 'sepsis')).toEqual({ value: 'sepsis', count: 0 })
+    expect(guidelineTopicCounts(items, { query: '', organisation: 'WHO', topic: 'all', year: 'all' }).topics.find(topic => topic.value === 'sepsis')).toBeUndefined()
+    // A guide uploaded as an image or PDF has no text to print: it prints from «Αρχείο».
+    expect(readSource('src/features/library/LibraryPage.tsx')).toContain('{points.length > 0 && <ExportMenu onPrint={print} language={language} />}')
   })
 
   it('prints a clinical guide on one clean page, escaped', () => {

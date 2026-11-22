@@ -95,6 +95,9 @@ export function guidelineTopicCounts(items: LibraryItem[], filters: Readonly<Gui
   const rows = filterGuidelines(items, { ...filters, topic: 'all' }, language)
   const counts: Record<string, number> = {}
   for (const item of rows) for (const tag of new Set(item.tags || [])) counts[tag] = (counts[tag] || 0) + 1
+  // The chosen topic stays listed (with 0) when the search leaves none of it, so the chip and the
+  // «Θέμα» list keep showing the filter that is still applied.
+  if (filters.topic && filters.topic !== 'all' && !counts[filters.topic]) counts[filters.topic] = 0
   return { total: rows.length, topics: Object.entries(counts).sort((a, b) => b[1] - a[1] || topicLabel(a[0], language).localeCompare(topicLabel(b[0], language), 'el')).map(([value, count]) => ({ value, count })) }
 }
 // A guideline's title: in Greek the Greek title, with the original under it; in English the original only.
