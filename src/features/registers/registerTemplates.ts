@@ -1,4 +1,4 @@
-import { HOSPITAL_TEMPLATES } from './registerTemplatesHospital'
+import { HOSPITAL_TEMPLATES, deviceUse } from './registerTemplatesHospital'
 import type { RegisterDraft, RegisterTemplate } from './registerTypes'
 
 // Ready-made registers from the FileMaker review (docs/quality/
@@ -41,7 +41,7 @@ const NICU_FIELDS = [
   { key: 'oxygen_after_36w', section: 'stay', type: 'yesNo', aliases: ['ΗΜΕΡΕΣ ΣΥΝΟΛΙΚΗΣ ΧΟΡΗΓΗΣΗ ΟΞΥΓΟΝΟΥ ΜΕΤΑ ΤΙΣ 36W', 'ΧΟΡΗΓΗΣΗΣ Ο2 ΜΕΤΑ ΤΙΣ 36W'], help: 'Στην εισαγωγή: ημέρες πάνω από 0 σημαίνουν Ναι.', helpEn: 'On import: days above 0 mean Yes.', label: 'Οξυγόνο μετά τις 36 εβδ.', labelEn: 'Oxygen after 36 weeks' },
   { key: 'umbilical_catheter', section: 'stay', type: 'choice', provisional: true, label: 'Ομφαλικός καθετήρας', labelEn: 'Umbilical catheter', aliases: ['ΤΟΠΟΘΕΤΗΣΗ ΟΜΦΑΛΙΚΟΥ ΚΑΘΕΤΗΡΑ'], options: [o('none', 'Όχι', 'None', ['ΟΧΙ']), o('venous', 'Φλεβικός', 'Venous', ['ΦΛΕΒΙΚ']), o('arterial', 'Αρτηριακός', 'Arterial', ['ΑΡΤΗΡΙΑΚ']), o('both', 'Φλεβικός και αρτηριακός', 'Venous and arterial', ['ΚΑΙ ΤΑ ΔΥΟ', 'ΦΛΕΒΙΚΟΣ ΚΑΙ']), o('unspecified', 'Ναι, χωρίς είδος', 'Yes, type not recorded', ['ΝΑΙ'])] },
   // Days of the umbilical catheter (ιδιοκτήτης 17/11/2026): the central-line days of the late-onset infection rate.
-  { key: 'umbilical_days', section: 'stay', type: 'number', unit: 'ημέρες', unitEn: 'days', min: 0, max: 60, label: 'Ημέρες ομφαλικού καθετήρα', labelEn: 'Umbilical catheter days', showWhen: { field: 'umbilical_catheter' } },
+  { key: 'umbilical_days', section: 'stay', type: 'number', unit: 'ημέρες', unitEn: 'days', min: 0, max: 60, label: 'Ημέρες ομφαλικού καθετήρα', labelEn: 'Umbilical catheter days', showWhen: { field: 'umbilical_catheter' }, help: 'Συμπληρώστε τις ημέρες κάθε φορά που υπάρχει ομφαλικός καθετήρας: μετρούν μαζί με το PICC στις ημέρες κεντρικού καθετήρα (παρονομαστής του CLABSI).', helpEn: 'Fill in the days whenever there is an umbilical catheter: with the PICC they make the central-line days (the CLABSI denominator).' },
   // PICC = the percutaneous central line (ΙΑΣΩ ΜΕΝΝ 17/11/2026): one field; the FileMaker column was «ΦΕΡΕΙ PICC LINE» until 2023.
   { key: 'central_line_days', section: 'stay', type: 'number', aliases: ['ΔΙΑΡΚΕΙΑ ΦΛΕΒΙΚΟΥ ΚΑΘΕΤΗΡΑ', 'ΦΕΡΕΙ PICC _ LINE', 'ΦΕΡΕΙ PICC LINE', 'PICC LINE', 'PICC'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες PICC (διαδερμικός καθετήρας)', labelEn: 'PICC (percutaneous central line) days' },
   { key: 'arterial_line_days', section: 'stay', type: 'number', aliases: ['ΔΙΑΡΚΕΙΑ ΑΡΤΗΡΙΑΚΟΥ ΚΑΘΕΤΗΡΑ'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες αρτηριακού καθετήρα', labelEn: 'Arterial line days' },
@@ -95,6 +95,9 @@ const NICU_INDICATORS = [
   { id: 'mean_central_line', title: 'Μέσες ημέρες PICC (διαδερμικού καθετήρα)', titleEn: 'Mean PICC (percutaneous central line) days', aggregation: 'mean', field: 'central_line_days', filters: [{ field: 'central_line_days', op: 'gt', value: 0 }], dateField: 'discharge_date', unit: 'ημέρες', unitEn: 'days', direction: 'lower' },
   { id: 'tpn_rate', title: '% σε παρεντερική διατροφή', titleEn: '% on parenteral nutrition', aggregation: 'percent', filters: [{ field: 'tpn_days', op: 'gt', value: 0 }], denominatorFilters: [], dateField: 'discharge_date', unit: '%', direction: 'context' },
   { id: 'transfer_rate', title: '% μεταφορές σε άλλο νοσοκομείο', titleEn: '% transferred to another hospital', aggregation: 'percent', filters: [{ field: 'outcome', op: 'eq', value: 'transfer_hospital' }], denominatorFilters: [{ field: 'outcome', op: 'filled' }], dateField: 'discharge_date', unit: '%', direction: 'context' },
+  { id: 'patient_days_total', title: 'Ημέρες νοσηλείας (σύνολο)', titleEn: 'Patient-days (total)', aggregation: 'sum', field: 'length_of_stay', filters: discharged, dateField: 'discharge_date', unit: 'ημέρες', unitEn: 'days', direction: 'context', note: 'Οι ημέρες νοσηλείας όσων βγήκαν, στον μήνα εξόδου.', noteEn: 'The stay days of those discharged, in the month of discharge.' },
+  deviceUse('central_line_use', 'Χρήση κεντρικού καθετήρα (PICC και ομφαλικός)', 'Central line utilisation (PICC and umbilical)', 'central_line_days+umbilical_days', 'Ημέρες PICC και ομφαλικού', 'PICC and umbilical days'),
+  deviceUse('ventilator_use', 'Χρήση αναπνευστήρα', 'Ventilator utilisation', 'ventilator_days', 'Ημέρες αναπνευστήρα', 'Ventilator days'),
 ]
 
 const row = (key: string, label: string, labelEn: string, help = '', helpEn = '', aliases?: string[]) => ({ key, label, labelEn, ...(help ? { help, helpEn } : {}), ...(aliases ? { aliases } : {}) })

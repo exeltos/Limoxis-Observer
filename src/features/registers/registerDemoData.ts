@@ -180,6 +180,9 @@ export function demoRegisterEntries(today = hospitalToday()) {
         apache_postop: cardiac || icuRandom() < 0.3,
         euroscore: cardiac ? Math.round((1 + icuRandom() * 7) * 10) / 10 : null,
         ventilator_hours: ventilated ? Math.round(6 + icuRandom() * (cardiac ? 30 : 160)) : 0,
+        // Device days without drawing from icuRandom, so the other demo numbers stay the same.
+        central_line_days: cardiac || ventilated ? stay : Math.max(0, stay - 2),
+        urinary_catheter_days: Math.max(1, stay - 1),
         pressure_ulcer: !cardiac && icuRandom() < 0.045,
         vap: ventilated && !cardiac && icuRandom() < 0.05,
         air_mattress: !cardiac && icuRandom() < 0.7,

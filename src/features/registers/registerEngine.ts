@@ -311,6 +311,9 @@ const median = (numbers: number[]) => {
 }
 const numbersOf = (rows: EntryValues[], field: string | undefined) => rows.map(values => values[field!]).filter(value => !isBlank(value) && Number.isFinite(Number(value))).map(Number)
 const round = (value: number | null, digits = 1) => (value == null || !Number.isFinite(value) ? null : Number(value.toFixed(digits)))
+// Day fields of a rate: «a+b» adds fields, «hours/24» divides one (ventilator hours as days).
+const dayParts = (spec: string | undefined) => String(spec || '').split('+').filter(Boolean).map(part => { const [key, by] = part.split('/'); return { key, by: Number(by) || 1 } })
+const daysOf = (rows: EntryValues[], spec: string | undefined) => dayParts(spec).reduce((sum, { key, by }) => sum + numbersOf(rows, key).reduce((total, n) => total + n, 0) / by, 0)
 
 // A sheet entry as the totals the indicators read: row × measure.
 const sheetCell = (values: EntryValues | null | undefined, row: string, measure: string) => {
@@ -368,14 +371,17 @@ export function indicatorNotRecorded(register: Register, indicator: RegisterIndi
     const values = entries.map(entry => entry.values?.[filter.field])
     if (values.some(value => UNTYPED.has(String(value))) && !values.some(value => wanted.includes(String(value)))) return true
   }
-  const need = new Set<string>([...(indicator.denominatorFilters || []).map((filter: IndicatorFilter) => filter.field), indicator.field].filter(Boolean))
+  const rateDays = indicator.aggregation === 'rate' && Boolean(indicator.field)
+  const need = new Set<string>([...(indicator.denominatorFilters || []).map((filter: IndicatorFilter) => filter.field), rateDays ? '' : indicator.field].filter(Boolean))
   // A date-based count of a treatment register rests on the start dates (no one ended yet is a real 0, no dates at all is not).
   if (indicator.dateField) need.add(isTreatmentRegister(register) ? 'start_date' : indicator.dateField)
   if (!need.size && !indicator.denominatorField) return false
   const recorded = recordedFields(register, entries)
   // Days summed from several fields («a+b»): recorded when any of them is.
-  const dayFields = String(indicator.denominatorField || '').split('+').filter(Boolean)
+  const dayFields = dayParts(indicator.denominatorField).map(part => part.key)
   if (dayFields.length && !dayFields.some(key => recorded.has(key))) return true
+  // Device days over patient-days: not recorded until some entry has the device days.
+  if (rateDays && !dayParts(indicator.field).some(part => recorded.has(part.key))) return true
   return [...need].some(key => !recorded.has(key))
 }
 
@@ -460,11 +466,12 @@ function computeIndicatorValue(register: Register, indicator: RegisterIndicator,
       break
     }
     case 'rate': {
-      const events = selected.length
+      // With a numerator field the events are days too (device days per 100 patient-days, ΜΕΘ/ΜΕΝΝ 22/11/2026).
+      const events = indicator.field ? daysOf(selected, indicator.field) : selected.length
       // Several day fields add up («central_line_days+picc_days»: all central-line days, ΜΕΝΝ 17/11/2026).
       const base = rows.filter(values => matchesAll(indicator.denominatorFilters, values))
-      const days = String(indicator.denominatorField || '').split('+').filter(Boolean).reduce((sum, field) => sum + numbersOf(base, field).reduce((total, n) => total + n, 0), 0)
-      result.numerator = events
+      const days = daysOf(base, indicator.denominatorField)
+      result.numerator = indicator.field ? round(events) : events
       result.denominator = days
       result.value = days ? round((events / days) * (Number(indicator.multiplier) || 1000), 2) : null
       break

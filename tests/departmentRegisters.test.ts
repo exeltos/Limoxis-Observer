@@ -145,7 +145,9 @@ describe('periods and templates', () => {
       expect(new Set(keys).size).toBe(keys.length)
       for (const item of template.indicators) {
         for (const filter of [...(item.filters || []), ...(item.denominatorFilters || [])]) expect(keys).toContain(filter.field)
-        if (item.field) expect(keys).toContain(item.field)
+        // A rate's day fields may add up («a+b») or divide («ventilator_hours/24»).
+        for (const part of String(item.field || '').split('+').filter(Boolean)) expect(keys).toContain(part.split('/')[0])
+        for (const part of String(item.denominatorField || '').split('+').filter(Boolean)) expect(keys).toContain(part.split('/')[0])
         if (item.dateField) expect(keys).toContain(item.dateField)
         for (const rowKey of item.rows || []) expect(template.sheet.rows.map(row => row.key)).toContain(rowKey)
       }
