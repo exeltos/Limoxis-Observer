@@ -52,7 +52,7 @@ describe('Self-assessment model', () => {
 
   it('the demo list seeds itself whichever screen opens first and shows the clause code apart', () => {
     expect(readSource('src/features/dashboard/demoDashboardMetrics.ts')).toContain("loadSnapshot('quality_local_self_assessments', null)")
-    expect(readSource('src/features/quality/selfAssessment/SelfAssessmentRunPage.tsx')).toContain('<span className="self-clause">{row.clauseRef}</span>')
+    expect(readSource('src/features/quality/selfAssessment/SelfAssessmentRunPage.tsx')).toContain('<span className="audit-clause">{row.clauseRef}</span>')
   })
 })
 
