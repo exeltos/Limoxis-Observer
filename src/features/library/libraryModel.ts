@@ -1,4 +1,5 @@
 import { LIBRARY_TOPICS, LINK_GROUPS } from './libraryCatalogue'
+import { hospitalDay, hospitalToday } from '../../core/dates/hospitalDate'
 import type { LibraryDraft, LibraryItem, LibraryNews, LibrarySource } from './libraryTypes'
 
 // «Βιβλιοθήκη» (Library): the rules of the screen, kept apart from React so they are tested on their own.
@@ -58,7 +59,7 @@ export const domainOf = (url: string) => { try { const parsed = new URL(url); re
 export const isHttpUrl = (value: unknown) => /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(String(value || '').trim())
 
 const fold = (text: unknown) => String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('el').replace(/ς/g, 'σ')
-const haystack = (item: LibraryItem, language: string) => fold([item.name, item.abbreviation, item.organisation, item.url, item.descriptionEl, item.descriptionEn, item.year, ...(item.tags || []).map((tag: string) => topicLabel(tag, language)), ...(item.tags || [])].join(' '))
+const haystack = (item: LibraryItem, language: string) => fold([item.name, item.titleEl, item.abbreviation, item.organisation, item.url, item.descriptionEl, item.descriptionEn, item.year, ...(item.tags || []).map((tag: string) => topicLabel(tag, language)), ...(item.tags || [])].join(' '))
 // Every typed word must appear somewhere in the entry (the platform's search, with final sigma folded too).
 export const matchesQuery = (item: LibraryItem, query: string, language: string) => { const words = fold(query).split(/\s+/).filter(Boolean); if (!words.length) return true; const text = haystack(item, language); return words.every(word => text.includes(word)) }
 
@@ -89,14 +90,73 @@ export function filterGuidelines(items: LibraryItem[], filters: Readonly<Guideli
     && (filters.year === 'all' || String(item.year) === String(filters.year)))
     .sort((a, b) => (b.year || 0) - (a.year || 0) || bySortOrder(a, b))
 }
+// The topic chips above the guidelines: the guidelines the other filters leave, counted per topic.
+export function guidelineTopicCounts(items: LibraryItem[], filters: Readonly<GuidelineFilters> = NO_GUIDELINE_FILTERS, language = 'el') {
+  const rows = filterGuidelines(items, { ...filters, topic: 'all' }, language)
+  const counts: Record<string, number> = {}
+  for (const item of rows) for (const tag of new Set(item.tags || [])) counts[tag] = (counts[tag] || 0) + 1
+  // The chosen topic stays listed (with 0) when the search leaves none of it, so the chip and the
+  // «Θέμα» list keep showing the filter that is still applied.
+  if (filters.topic && filters.topic !== 'all' && !counts[filters.topic]) counts[filters.topic] = 0
+  return { total: rows.length, topics: Object.entries(counts).sort((a, b) => b[1] - a[1] || topicLabel(a[0], language).localeCompare(topicLabel(b[0], language), 'el')).map(([value, count]) => ({ value, count })) }
+}
+// A guideline's title: in Greek the Greek title, with the original under it; in English the original only.
+export function guidelineTitle(item: Pick<LibraryItem, 'name' | 'titleEl'>, language: string) {
+  const greek = String(item.titleEl || '').trim()
+  if (language === 'en' || !greek || greek === item.name) return { main: item.name, original: '' }
+  return { main: greek, original: item.name }
+}
 export const clinicalGuides = (items: LibraryItem[], query = '', language = 'el') => items.filter(item => item.kind === 'clinical_guide' && item.status !== 'archived' && matchesQuery(item, query, language)).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')) || bySortOrder(a, b))
 
 export const bulletLines = (text: unknown) => String(text || '').split(/\n+/).map(line => line.replace(/^[-•·]\s*/, '').trim()).filter(Boolean)
+// The sources of a clinical guide, from its note («Πηγές: A (2020)· B (2009)»), one per line.
+export const sourceLines = (note: unknown) => String(note || '').replace(/^\s*(Πηγές|Πηγή|Sources?)\s*:\s*/i, '').split(/\s*·\s+|\n+/).map(line => line.trim()).filter(Boolean)
+
+const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c])
+// «Εκτύπωση» of a clinical guide: one clean A4 page (title, what we do, sources, date), opened in a print window.
+export function clinicalGuidePrintHtml(item: LibraryItem, language: string, { today = hospitalToday(), band = '' }: { today?: string, band?: string } = {}) {
+  const en = language === 'en'
+  const L = (el: string, english: string) => (en ? english : el)
+  const points = bulletLines((en ? item.summaryEn : item.summaryEl) || item.summaryEl)
+  const sources = sourceLines((en ? item.noteEn : item.noteEl) || item.noteEl)
+  const description = (en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl
+  const meta = [item.organisation, item.year].filter(Boolean).join(' · ')
+  const [y, m, d] = String(today).split('-')
+  const printed = y && m && d ? `${Number(d)}/${Number(m)}/${y}` : today
+  return `<!doctype html><html lang="${en ? 'en' : 'el'}"><head><meta charset="utf-8"><title>${escapeHtml(item.name)}</title><style>
+@page{size:A4;margin:16mm 16mm 14mm}*{box-sizing:border-box}
+body{margin:0;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#17233a;font-size:12.5px;line-height:1.45}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5d6f80}
+h1{margin:2px 0 4px;font-size:21px;line-height:1.25}.lead{margin:0 0 14px;color:#3d4f61}
+h2{margin:16px 0 6px;padding-bottom:4px;border-bottom:1px solid #cfd9e2;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#1d3a52}
+ul{margin:0;padding-left:20px}li{margin:0 0 5px}.sources li{margin:0 0 3px;font-size:11px;color:#3d4f61}
+.footer{margin-top:18px;padding-top:8px;border-top:1px solid #cfd9e2;font-size:10px;color:#5d6f80;display:flex;justify-content:space-between;gap:12px;overflow-wrap:anywhere}
+@media print{body{padding:0}}
+</style></head><body>${band}
+<div class="eyebrow">${escapeHtml([L('Κλινικός οδηγός', 'Clinical guide'), meta].filter(Boolean).join(' · '))}</div>
+<h1>${escapeHtml(item.name)}</h1>${description ? `<p class="lead">${escapeHtml(description)}</p>` : ''}
+${points.length ? `<h2>${L('Τι κάνουμε', 'What we do')}</h2><ul>${points.map(point => `<li>${escapeHtml(point)}</li>`).join('')}</ul>` : ''}
+${sources.length ? `<h2>${L('Πηγές', 'Sources')}</h2><ul class="sources">${sources.map(source => `<li>${escapeHtml(source)}</li>`).join('')}</ul>` : ''}
+<div class="footer"><span>${escapeHtml(item.url || '')}</span><span>${L('Εκτύπωση', 'Printed')} ${escapeHtml(printed)} · Limoxis Observer</span></div>
+</body></html>`
+}
 
 // --- News ----------------------------------------------------------------------------------
 
 const DAY = 86400000
 export const newsDate = (item: LibraryNews) => item.publishedAt || item.detectedAt || ''
+// The headings of the «Νέα» list, by the listed date in hospital time: this (calendar) week from
+// Monday, the rest of this month, older.
+export const NEWS_PERIODS = Object.freeze(['week', 'month', 'older'])
+export function newsPeriod(item: LibraryNews, today = hospitalToday()) {
+  const day = hospitalDay(newsDate(item))
+  if (!day) return 'older'
+  const monday = new Date(`${today}T12:00:00Z`)
+  monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7))
+  if (day >= monday.toISOString().slice(0, 10)) return 'week'
+  return day.slice(0, 7) === today.slice(0, 7) ? 'month' : 'older'
+}
+export const newsByPeriod = (items: LibraryNews[], today = hospitalToday()) => NEWS_PERIODS.map(period => ({ period, items: items.filter(item => newsPeriod(item, today) === period) })).filter(group => group.items.length)
 export const isRecentNews = (item: LibraryNews, now = Date.now()) => { const time = Date.parse(newsDate(item)); return Number.isFinite(time) && now - time < 3 * DAY }
 // Greek bodies and the hospital's own on one side, the international agencies on the other.
 const GREEK_SOURCES = new Set(['ΕΟΔΥ', 'ΕΕΕΛ', 'ΕΝΕ', 'ΕΟΦ', 'ΕΕΛ'])
@@ -140,7 +200,7 @@ export function sourceStateLabel(source: Partial<LibrarySource>, language: strin
 // --- The form --------------------------------------------------------------------------------
 
 export function blankDraft(kind = 'link', scope = 'platform'): LibraryDraft {
-  return { id: '', kind, scope, group: scope === 'hospital' ? 'hospital' : 'international', name: '', abbreviation: '', organisation: '', url: '', descriptionEl: '', descriptionEn: '', summaryEl: '', summaryEn: '', noteEl: '', noteEn: '', tags: [], year: '', language: 'el', proposed: false, status: 'published', file: null, filePath: '', fileName: '', excerpt: '', publishedAt: '', news: { enabled: false, id: '', url: '', kind: 'rss', intervalHours: 2, keywords: '' } }
+  return { id: '', kind, scope, group: scope === 'hospital' ? 'hospital' : 'international', name: '', titleEl: '', abbreviation: '', organisation: '', url: '', descriptionEl: '', descriptionEn: '', summaryEl: '', summaryEn: '', noteEl: '', noteEn: '', tags: [], year: '', language: 'el', proposed: false, status: 'published', file: null, filePath: '', fileName: '', excerpt: '', publishedAt: '', news: { enabled: false, id: '', url: '', kind: 'rss', intervalHours: 2, keywords: '' } }
 }
 
 export function validateDraft(draft: LibraryDraft): Record<string, string> {

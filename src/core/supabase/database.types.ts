@@ -8016,6 +8016,7 @@ export type Database = {
           summary_el: string | null
           summary_en: string | null
           tags: string[]
+          title_el: string | null
           updated_at: string
           url: string | null
           year: number | null
@@ -8046,6 +8047,7 @@ export type Database = {
           summary_el?: string | null
           summary_en?: string | null
           tags?: string[]
+          title_el?: string | null
           updated_at?: string
           url?: string | null
           year?: number | null
@@ -8076,6 +8078,7 @@ export type Database = {
           summary_el?: string | null
           summary_en?: string | null
           tags?: string[]
+          title_el?: string | null
           updated_at?: string
           url?: string | null
           year?: number | null

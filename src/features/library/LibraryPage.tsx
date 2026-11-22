@@ -1,11 +1,13 @@
 import './libraryScreens.css'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { BookOpenCheck, Bookmark, ExternalLink, FileText, Image as ImageIcon, Info, Link as LinkIcon, Link2, Newspaper, Pencil, Plus, Rss, Stethoscope, X } from 'lucide-react'
+import { BookOpenCheck, Bookmark, ExternalLink, FileText, Image as ImageIcon, Info, Link as LinkIcon, Link2, Newspaper, Pencil, Plus, Rss, Stethoscope } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -18,8 +20,9 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { ROLES } from '../../core/permissions/roles'
 import { formatDay } from '../../core/i18n/formatDay'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { brandBandHtml } from '../../design-system/printElement'
 import { LINK_GROUPS } from './libraryCatalogue'
-import { LIBRARY_TABS, NEWS_FILTERS, NO_GUIDELINE_FILTERS, type GuidelineFilters, bulletLines, canManageHospitalLibrary, clinicalGuides, domainOf, filterGuidelines, filterNews, guidelineOptions, initials, isRecentNews, linkGroups, logoTone, newsBucket, newsCounts, newsDate, sourceState, sourceStateLabel, topicLabel } from './libraryModel'
+import { LIBRARY_TABS, NEWS_FILTERS, NO_GUIDELINE_FILTERS, type GuidelineFilters, bulletLines, canManageHospitalLibrary, clinicalGuidePrintHtml, clinicalGuides, domainOf, filterGuidelines, filterNews, guidelineOptions, guidelineTitle, guidelineTopicCounts, initials, isRecentNews, linkGroups, logoTone, newsBucket, newsByPeriod, newsCounts, newsDate, sourceLines, sourceState, sourceStateLabel, topicLabel } from './libraryModel'
 import { fileUrl, loadLibrary, loadNews, loadSources } from './libraryService'
 import { DEMO_LIBRARY_ORG } from './libraryDemoData'
 import { LibraryItemDialog } from './LibraryItemDialog'
@@ -155,22 +158,26 @@ function GuidelinesTab({ items, loading, language, canManage, onAdd, onEdit }: T
   const [selectedId, setSelectedId] = useState('')
   const options = useMemo(() => guidelineOptions(items), [items])
   const rows = useMemo(() => filterGuidelines(items, filters, language), [items, filters, language])
+  const topicCounts = useMemo(() => guidelineTopicCounts(items, filters, language), [items, filters, language])
+  // A chip for every topic with three or more guidelines (one line, never a second: owner 22/11/2026); every topic is in «Φίλτρα».
+  const chips = [{ value: 'all', label: L('Όλα', 'All'), count: topicCounts.total }, ...topicCounts.topics.filter(topic => topic.count > 2 || topic.value === filters.topic).map(topic => ({ value: topic.value, label: topicLabel(topic.value, language), count: topic.count }))]
   const selected = rows.find(item => item.id === selectedId) || null
   const set = (key: string, value: string) => setFilters(current => ({ ...current, [key]: value }))
   const filtered = filters !== NO_GUIDELINE_FILTERS && JSON.stringify(filters) !== JSON.stringify(NO_GUIDELINE_FILTERS)
   const all = L('Όλα', 'All')
-  return <div className={`lib-guides${selected ? '' : ' no-drawer'}`}>
+  return <div className="lib-guides">
     <div className="lib-guides-main">
-      <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={L('Αναζήτηση…', 'Search…')} onClear={filtered ? () => setFilters(NO_GUIDELINE_FILTERS) : undefined} activeAdvancedCount={(['organisation', 'topic', 'year'] as const).filter(key => String(filters[key]) !== 'all').length}>
+      <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={L('Αναζήτηση…', 'Search…')} onClear={filtered ? () => setFilters(NO_GUIDELINE_FILTERS) : undefined} activeAdvancedCount={(['organisation', 'year'] as const).filter(key => String(filters[key]) !== 'all').length}>
           <FilterSelect label={L('Φορέας', 'Organisation')} value={filters.organisation} onChange={value => set('organisation', value)}><option value="all">{L('Όλοι', 'All')}</option>{options.organisations.map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect>
-          <FilterSelect label={L('Θέμα', 'Topic')} value={filters.topic} onChange={value => set('topic', value)}><option value="all">{all}</option>{options.topics.map(value => <option key={value} value={value}>{topicLabel(value, language)}</option>)}</FilterSelect>
+          <FilterSelect label={L('Θέμα', 'Topic')} value={filters.topic} onChange={value => set('topic', value)}><option value="all">{all}</option>{topicCounts.topics.map(topic => <option key={topic.value} value={topic.value}>{topicLabel(topic.value, language)} ({topic.count})</option>)}</FilterSelect>
           <FilterSelect label={L('Έτος', 'Year')} value={String(filters.year)} onChange={value => set('year', value)}><option value="all">{all}</option>{options.years.map(value => <option key={value} value={String(value)}>{value}</option>)}</FilterSelect>
       </FilterBar>
+      {topicCounts.total > 0 && <Chips options={chips} value={filters.topic} onChange={value => set('topic', value)} label={L('Θέμα', 'Topic')} />}
       {!loading && !rows.length ? <div className="lib-scroll"><RegistryEmptyState filtered={filtered} onClearFilters={() => setFilters(NO_GUIDELINE_FILTERS)} icon={BookOpenCheck} title={filtered ? undefined : L('Δεν υπάρχουν ακόμη κατευθυντήριες οδηγίες', 'No guidelines yet')} text={filtered ? undefined : L('Οι οδηγίες που προσθέτει η πλατφόρμα ή το νοσοκομείο εμφανίζονται εδώ, με σύνδεσμο στη σελίδα του φορέα.', 'Guidelines added by the platform or the hospital appear here, linked to the publisher\'s page.')} action={canManage ? { label: L('Προσθήκη οδηγίας', 'Add a guideline'), icon: Plus, onClick: onAdd } : null} /></div>
         : <div className="scroll-table"><table className="data-table sticky-table">
           <thead><tr><th>{L('Τίτλος', 'Title')}</th><th>{L('Φορέας', 'Organisation')}</th><th>{L('Θέμα', 'Topic')}</th><th>{L('Έτος', 'Year')}</th></tr></thead>
           <tbody>{rows.map(item => <tr key={item.id} tabIndex={0} className={`registry-row-clickable lib-guide-row${item.id === selectedId ? ' is-selected' : ''}`} aria-selected={item.id === selectedId} onClick={() => setSelectedId(item.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(item.id) } }}>
-            <td><strong>{item.name}</strong><small>{item.language === 'el' ? L('Ελληνικά', 'Greek') : item.language === 'en' ? L('Αγγλικά', 'English') : L('Άλλη γλώσσα', 'Other language')} · {item.filePath ? L('αρχείο + σελίδα', 'file + page') : L('σελίδα φορέα', "publisher's page")}{item.organizationId ? ` · ${L('Του νοσοκομείου', "Hospital's own")}` : ''}</small></td>
+            <td><GuidelineTitleCell item={item} language={language} /></td>
             <td>{item.organisation || '—'}</td>
             <td>{(item.tags || []).slice(0, 1).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}</td>
             <td>{item.year || '—'}</td>
@@ -178,6 +185,20 @@ function GuidelinesTab({ items, loading, language, canManage, onAdd, onEdit }: T
         </table></div>}
     </div>
     {selected && <GuidelineDrawer item={selected} language={language} onClose={() => setSelectedId('')} onEdit={canManage && selected.organizationId ? () => onEdit(selected) : null} />}
+  </div>
+}
+
+// The title cell of a guideline: the Greek title (in English the original), under it the original
+// title and one line of description, smaller; the hospital's own marked.
+function GuidelineTitleCell({ item, language }: { item: LibraryItem, language: string }) {
+  const en = language === 'en'
+  const L = (el: string, english: string) => (en ? english : el)
+  const { main, original } = guidelineTitle(item, language)
+  const description = (en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl
+  return <div className="lib-guide-title">
+    <strong>{main}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}</strong>
+    {original && <small className="lib-guide-original" lang="en">{original}</small>}
+    {description && <small className="lib-guide-about">{description}</small>}
   </div>
 }
 
@@ -193,11 +214,9 @@ function GuidelineDrawer({ item, language, onClose, onEdit }: { item: LibraryIte
   useEffect(() => { setSaved(readSaved().has(item.id)) }, [item.id])
   const toggleSaved = () => { const set = readSaved(); if (set.has(item.id)) set.delete(item.id); else set.add(item.id); writeSaved(set); setSaved(set.has(item.id)) }
   const openFile = async () => { try { const url = await fileUrl(item); if (url) window.open(url, '_blank', 'noopener,noreferrer') } catch (error) { notifyError(error, 'load', { operation: 'library_file' }) } }
-  return <aside className="lib-drawer" aria-label={item.name}>
-    <div className="lib-drawer-head">
-      <div><span className="lib-eyebrow">{[L('Κατευθυντήρια οδηγία', 'Guideline'), item.organisation, item.year].filter(Boolean).join(' · ')}</span><h2>{item.name}</h2></div>
-      <IconButton label={L('Κλείσιμο', 'Close')} onClick={onClose}><X size={17} /></IconButton>
-    </div>
+  const { main, original } = guidelineTitle(item, language)
+  // The guideline opens as a card in front of the list (owner 22/11/2026), not beside it.
+  return <ObserverDialog width="standard" className="lib-detail-dialog" eyebrow={[L('Κατευθυντήρια οδηγία', 'Guideline'), item.organisation, item.year].filter(Boolean).join(' · ')} title={main} subtitle={original ? <span className="lib-drawer-original" lang="en">{original}</span> : undefined} onClose={onClose}><div className="lib-drawer">
     <div className="lib-row">{item.status === 'published' && <StatusBadge tone="success">{L('Ισχύει', 'Current')}</StatusBadge>}{(item.tags || []).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}</div>
     <dl>
       <dt>{L('Φορέας', 'Organisation')}</dt><dd>{item.organisation || '—'}</dd>
@@ -214,7 +233,7 @@ function GuidelineDrawer({ item, language, onClose, onEdit }: { item: LibraryIte
       <Button variant="secondary" aria-pressed={saved} onClick={toggleSaved}><Bookmark size={16} />{saved ? L('Αποθηκευμένο', 'Saved') : L('Αποθήκευση', 'Save')}</Button>
       {onEdit && <IconButton label={L('Επεξεργασία', 'Edit')} onClick={onEdit}><Pencil size={15} /></IconButton>}
     </div>
-  </aside>
+  </div></ObserverDialog>
 }
 
 // «Αποθήκευση» in the drawer: the viewer's own bookmarks, kept in this browser.
@@ -225,26 +244,76 @@ function writeSaved(set: Set<string>) { try { window.localStorage.setItem(SAVED_
 function ClinicalTab({ items, loading, language, canManage, onAdd, onEdit }: TabProps) {
   const en = language === 'en'
   const L = (el: string, english: string) => (en ? english : el)
-  const { notifyError } = useFeedback()
   const [query, setQuery] = useState('')
+  const [selectedId, setSelectedId] = useState('')
   const rows = useMemo(() => clinicalGuides(items, query, language), [items, query, language])
-  const open = async (item: LibraryItem) => { try { const url = await fileUrl(item); if (url) window.open(url, '_blank', 'noopener,noreferrer') } catch (error) { notifyError(error, 'load', { operation: 'library_file' }) } }
-  return <>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση οδηγού…', 'Search guides…')} onClear={query ? () => setQuery('') : undefined} />
-    <div className="scroll-table">
-      {!loading && !rows.length && <RegistryEmptyState filtered={Boolean(query)} onClearFilters={() => setQuery('')} icon={Stethoscope} title={query ? undefined : L('Δεν υπάρχουν ακόμη κλινικοί οδηγοί', 'No clinical guides yet')} text={query ? undefined : L('Οδηγοί μίας σελίδας (π.χ. infographic για τη σήψη) ως εικόνα, PDF ή σύνδεσμος, με την πηγή και την ημερομηνία τους.', 'One-page guides (e.g. a sepsis infographic) as an image, PDF or link, with their source and date.')} action={canManage ? { label: L('Προσθήκη οδηγού', 'Add a guide'), icon: Plus, onClick: onAdd } : null} />}
-      {rows.length > 0 && <table className="data-table sticky-table lib-clinical-table">
-        <thead><tr><th>{L('Οδηγός', 'Guide')}</th><th>{L('Φορέας', 'Organisation')}</th><th>{L('Θέμα', 'Topic')}</th><th>{L('Ημερομηνία', 'Date')}</th><th aria-label={L('Ενέργειες', 'Actions')} /></tr></thead>
-        <tbody>{rows.map(item => <tr key={item.id} className="registry-row-clickable" tabIndex={0} onClick={event => { if (!(event.target as Element).closest('button')) open(item) }} onKeyDown={event => { if (event.key === 'Enter' && event.target === event.currentTarget) open(item) }}>
-          <td><div className="lib-link-name"><span className="lib-logo" aria-hidden="true">{/^image\//.test(item.fileType || '') ? <ImageIcon size={16} /> : <FileText size={16} />}</span><div><strong>{item.name}</strong>{((en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl) && <small>{(en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl}</small>}</div></div></td>
-          <td>{item.organisation || '—'}</td>
-          <td><div className="lib-tags">{(item.tags || []).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}</div></td>
-          <td className="nowrap-cell">{[item.year, item.updatedAt ? formatDay(item.updatedAt, language) : ''].filter(Boolean).join(' · ') || '—'}</td>
-          <td className="lib-row-menu"><OverflowMenu label={L('Ενέργειες', 'Actions')} items={[{ id: 'open', label: L('Άνοιγμα', 'Open'), icon: ExternalLink, onClick: () => open(item) }, ...(canManage && item.organizationId ? [{ id: 'edit', label: L('Επεξεργασία', 'Edit'), icon: Pencil, onClick: () => onEdit(item) }] : [])]} /></td>
-        </tr>)}</tbody>
-      </table>}
+  const selected = rows.find(item => item.id === selectedId) || null
+  return <div className="lib-guides">
+    <div className="lib-guides-main">
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση οδηγού…', 'Search guides…')} onClear={query ? () => setQuery('') : undefined} />
+      <div className="lib-scroll">
+        {!loading && !rows.length && <RegistryEmptyState filtered={Boolean(query)} onClearFilters={() => setQuery('')} icon={Stethoscope} title={query ? undefined : L('Δεν υπάρχουν ακόμη κλινικοί οδηγοί', 'No clinical guides yet')} text={query ? undefined : L('Οδηγοί μίας σελίδας (π.χ. infographic για τη σήψη) ως εικόνα, PDF ή σύνδεσμος, με την πηγή και την ημερομηνία τους.', 'One-page guides (e.g. a sepsis infographic) as an image, PDF or link, with their source and date.')} action={canManage ? { label: L('Προσθήκη οδηγού', 'Add a guide'), icon: Plus, onClick: onAdd } : null} />}
+        {rows.length > 0 && <div className="lib-clinical-grid">{rows.map(item => <ClinicalCard key={item.id} item={item} language={language} selected={item.id === selectedId} onOpen={() => setSelectedId(item.id)} onEdit={canManage && item.organizationId ? () => onEdit(item) : null} />)}</div>}
+      </div>
     </div>
-  </>
+    {selected && <ClinicalDrawer item={selected} language={language} onClose={() => setSelectedId('')} onEdit={canManage && selected.organizationId ? () => onEdit(selected) : null} />}
+  </div>
+}
+
+// A point that carries its own number («1. Πριν από…») is shown without the bullet.
+const numbered = (point: string) => (/^\d+[.)]\s/.test(point) ? 'is-numbered' : undefined)
+
+// A clinical guide as a card: the first 3 «Τι κάνουμε» points (or its description), the hospital's «⋯» top right.
+function ClinicalCard({ item, language, selected, onOpen, onEdit }: { item: LibraryItem, language: string, selected: boolean, onOpen: () => void, onEdit: (() => void) | null }) {
+  const en = language === 'en'
+  const L = (el: string, english: string) => (en ? english : el)
+  const points = bulletLines((en ? item.summaryEn : item.summaryEl) || item.summaryEl)
+  const description = (en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl
+  const meta = [item.organisation, item.year].filter(Boolean).join(' · ')
+  return <article className={`lib-clinical-card${selected ? ' is-selected' : ''}`} tabIndex={0} aria-label={item.name} onClick={event => { if (!(event.target as Element).closest('a,button,[role="menu"]')) onOpen() }} onKeyDown={event => { if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) { event.preventDefault(); onOpen() } }}>
+    <div className="lib-clinical-head">
+      <span className="lib-clinical-icon" aria-hidden="true">{/^image\//.test(item.fileType || '') ? <ImageIcon size={18} /> : item.filePath ? <FileText size={18} /> : <Stethoscope size={18} />}</span>
+      <div><h3>{item.name}</h3>{meta && <span className="lib-clinical-meta">{meta}</span>}</div>
+      {onEdit && <div className="lib-card-menu"><OverflowMenu label={L('Ενέργειες', 'Actions')} items={[{ id: 'edit', label: L('Επεξεργασία', 'Edit'), icon: Pencil, onClick: onEdit }]} /></div>}
+    </div>
+    {points.length > 0 ? <ul className="lib-clinical-points">{points.slice(0, 3).map(point => <li key={point} className={numbered(point)}><span>{point}</span></li>)}</ul> : description && <p className="lib-clinical-about">{description}</p>}
+    <div className="lib-tags">{(item.tags || []).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}{points.length > 3 && <span className="lib-clinical-more">{L(`+${points.length - 3} ακόμη`, `+${points.length - 3} more`)}</span>}</div>
+  </article>
+}
+
+// The whole guide in front of the cards: every point, the sources, the source link and a clean A4 print.
+function ClinicalDrawer({ item, language, onClose, onEdit }: { item: LibraryItem, language: string, onClose: () => void, onEdit: (() => void) | null }) {
+  const en = language === 'en'
+  const L = (el: string, english: string) => (en ? english : el)
+  const { notifyError } = useFeedback()
+  const points = bulletLines((en ? item.summaryEn : item.summaryEl) || item.summaryEl)
+  const sources = sourceLines((en ? item.noteEn : item.noteEl) || item.noteEl)
+  const description = (en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl
+  const auto = useContext(AutoTranslatedContext)
+  const openFile = async () => { try { const url = await fileUrl(item); if (url) window.open(url, '_blank', 'noopener,noreferrer') } catch (error) { notifyError(error, 'load', { operation: 'library_file' }) } }
+  const print = () => {
+    const win = window.open('', '_blank', 'width=900,height=1000')
+    if (!win) return
+    win.document.open()
+    win.document.write(clinicalGuidePrintHtml(item, language, { band: brandBandHtml(undefined, { language }) }))
+    win.document.close()
+    win.focus()
+    setTimeout(() => win.print(), 250)
+  }
+  // The guide opens as a card in front of the cards (owner 22/11/2026), read like the one page it is.
+  return <ObserverDialog width="standard" className="lib-detail-dialog" eyebrow={[L('Κλινικός οδηγός', 'Clinical guide'), item.organisation, item.year].filter(Boolean).join(' · ')} title={item.name} onClose={onClose}><div className="lib-drawer">
+    <div className="lib-row">{(item.tags || []).map((tag: string) => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}{item.organizationId && <span className="lib-tag is-hospital">{L('Του νοσοκομείου', "Hospital's own")}</span>}</div>
+    <div className="lib-row">
+      {item.url && <a className="button button-primary" href={item.url} {...external}><ExternalLink size={16} />{L('Άνοιγμα πηγής', 'Open source')}</a>}
+      {item.filePath && <Button variant="secondary" onClick={openFile}><FileText size={16} />{L('Αρχείο', 'File')}</Button>}
+      {/* Print the one-page guide only when it has text; a guide uploaded as an image or PDF prints from «Αρχείο». */}
+      {points.length > 0 && <ExportMenu onPrint={print} language={language} />}
+      {onEdit && <IconButton label={L('Επεξεργασία', 'Edit')} onClick={onEdit}><Pencil size={15} /></IconButton>}
+    </div>
+    {description && <p className="leg-note">{description}{en && auto.has(`${item.id}:description_el`) && item.descriptionEn && <AutoTranslatedMark />}</p>}
+    {points.length > 0 && <div><span className="lib-eyebrow">{L('Τι κάνουμε', 'What we do')}</span><ul>{points.map(point => <li key={point} className={numbered(point)}>{point}</li>)}</ul>{en && auto.has(`${item.id}:summary_el`) && item.summaryEn && <AutoTranslatedMark />}</div>}
+    {sources.length > 0 && <div><span className="lib-eyebrow">{L('Πηγές', 'Sources')}</span><ul className="lib-drawer-sources">{sources.map(source => <li key={source}>{source}</li>)}</ul></div>}
+  </div></ObserverDialog>
 }
 
 interface NewsTabProps { news: LibraryNews[], sources: LibrarySource[], showSources: boolean, read: Set<string>, onRead: (item: LibraryNews) => void, loading: boolean, language: string, canManage: boolean, onAdd: () => void, onEdit: (item: LibraryEntry) => void }
@@ -258,12 +327,13 @@ function NewsTab({ news, sources, showSources, read, onRead, loading, language, 
   const labels: Record<string, string> = { all: L('Όλα', 'All'), greek: L('Ελληνικοί φορείς', 'Greek bodies'), international: 'WHO / ECDC / CDC', hospital: L('Του νοσοκομείου', "Hospital's own"), unread: L('Μη αναγνωσμένα', 'Unread') }
   const options = NEWS_FILTERS.filter(value => value === 'all' || counts[value]).map(value => ({ value, label: labels[value], count: counts[value] }))
   const markRead = onRead
+  const periodLabels: Record<string, string> = { week: L('Αυτή την εβδομάδα', 'This week'), month: L('Αυτόν τον μήνα', 'This month'), older: L('Παλαιότερα', 'Older') }
   const activeSources = sources.filter(source => source.active)
   return <div className={`lib-news${showSources ? '' : ' is-wide'}`}>
     <div className="lib-group">
       <Chips options={options} value={filter} onChange={setFilter} label={L('Φίλτρο', 'Filter')} />
       {!loading && !rows.length ? <RegistryEmptyState filtered={filter !== 'all'} onClearFilters={() => setFilter('all')} icon={Newspaper} title={filter !== 'all' ? undefined : L('Δεν υπάρχουν ακόμη νέα', 'No news yet')} text={filter !== 'all' ? undefined : L('Τα νέα των φορέων εμφανίζονται εδώ μόλις ελεγχθούν οι πηγές· τα νέα του νοσοκομείου τα προσθέτει ο Διαχειριστής ή ο Υπεύθυνος Ποιότητας.', 'News from the sources appears here once they are checked; the hospital\'s own news is added by its Administrator or Quality Manager.')} action={canManage ? { label: L('Νέα ανακοίνωση', 'New announcement'), icon: Plus, onClick: onAdd } : null} />
-        : <div className="lib-news-list">{rows.map(item => {
+        : newsByPeriod(rows).map(group => <section key={group.period} className="lib-news-period" aria-label={periodLabels[group.period]}><h3>{periodLabels[group.period]} <b>{group.items.length}</b></h3><div className="lib-news-list">{group.items.map(item => {
           const unread = !read.has(item.id) && isRecentNews(item)
           const source = item.organizationId ? L('Του νοσοκομείου', "Hospital's own") : `${item.sourceName || item.sourceAbbreviation}`
           const logo = { abbreviation: item.sourceAbbreviation || (item.organizationId ? '' : '?'), name: item.sourceName || item.title, organizationId: item.organizationId, group: newsBucket(item) === 'greek' ? 'greek' : 'international' }
@@ -280,7 +350,7 @@ function NewsTab({ news, sources, showSources, read, onRead, loading, language, 
               {canManage && item.organizationId && <OverflowMenu label={L('Ενέργειες', 'Actions')} items={[{ id: 'edit', label: L('Επεξεργασία', 'Edit'), icon: Pencil, onClick: () => onEdit(item) }]} />}
             </div>
           </article>
-        })}</div>}
+        })}</div></section>)}
     </div>
     {showSources && <aside className="lib-group">
       <div className="lib-panel">

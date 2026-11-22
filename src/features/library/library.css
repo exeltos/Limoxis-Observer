@@ -16,8 +16,10 @@
 /* «Βιβλιοθήκη» (Library): links, guidelines, clinical guides and news for every user. */
 .lib-workspace{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .lib-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 14px 16px;display:grid;gap:16px;align-content:start}
-.lib-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
-.lib-chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 11px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.lib-chips{display:flex;flex:0 0 auto;flex-wrap:nowrap;align-items:center;gap:6px;padding:12px 14px;overflow-x:auto;scrollbar-width:thin}
+/* In «Νέα» the chips open the list: the list's own side padding, and room above them. */
+.lib-news .lib-chips{margin-top:0;padding:14px 0 2px}
+.lib-chip{display:inline-flex;flex:0 0 auto;align-items:center;gap:6px;min-height:34px;padding:0 13px;white-space:nowrap;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 .lib-chip b{font-size:11.5px;color:var(--lo-color-muted)}
 .lib-chip.is-active{border-color:var(--lo-color-primary);background:var(--lo-status-info-bg);color:var(--lo-color-primary)}
 .lib-chip.is-active b{color:var(--lo-color-primary)}
@@ -40,16 +42,13 @@
 .lib-tag.is-rss{border-color:var(--lo-status-warning-border);background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
 .lib-tag.is-hospital{border-color:var(--lo-status-success-border);background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
 .lib-tag.is-proposed{border-style:dashed;border-color:var(--lo-status-info-border);background:var(--lo-status-info-bg);color:var(--lo-status-info-fg);font-weight:700}
-.lib-guides{display:grid;grid-template-columns:minmax(0,1fr) 380px;flex:1 1 auto;min-height:0}
-.lib-guides.no-drawer{grid-template-columns:minmax(0,1fr)}
+.lib-guides{display:grid;grid-template-columns:minmax(0,1fr);flex:1 1 auto;min-height:0}
 .lib-guides-main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .lib-guides-main .scroll-table{flex:1 1 auto;min-height:0}
 .lib-guide-row td small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:11.5px}
 .lib-guide-row.is-selected td{background:var(--lo-status-info-bg)}
-.lib-drawer{display:grid;gap:12px;align-content:start;padding:16px 18px;border-left:1px solid var(--lo-color-border);background:var(--lo-color-surface);overflow:auto}
-.lib-drawer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.lib-drawer{display:grid;gap:12px;align-content:start}
 .lib-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-color-muted)}
-.lib-drawer h2{margin:2px 0 0;font-size:17px;line-height:1.3;color:var(--lo-color-text)}
 .lib-drawer dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;margin:0;font-size:12.5px}
 .lib-drawer dt{color:var(--lo-color-muted)}
 .lib-drawer dd{margin:0;font-weight:600;color:var(--lo-color-text)}
@@ -90,8 +89,6 @@
 .lib-admin-toolbar>.filter-system{border-bottom:0}
 .lib-admin-toolbar .lib-chips{padding:0}
 @media (max-width:1100px){
-  .lib-guides{grid-template-columns:minmax(0,1fr)}
-  .lib-drawer{border-left:0;border-top:1px solid var(--lo-color-border)}
   .lib-news{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:760px){.lib-form{grid-template-columns:minmax(0,1fr)}}
@@ -114,3 +111,33 @@
 .lib-form-panel .lib-form input[type=file]{width:100%}
 .lib-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
 .lib-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+/* Guidelines: the Greek title, under it the original title and one line of description. */
+.lib-guide-title{display:grid;gap:2px;min-width:0;max-width:720px}
+.lib-guide-title strong{font-size:13.5px;line-height:1.35;color:var(--lo-color-text)}
+.lib-guide-title strong .lib-tag{margin-left:6px;vertical-align:1px}
+.lib-guide-row td .lib-guide-title small{margin-top:0}
+.lib-guide-row td small.lib-guide-original{font-size:11.5px;line-height:1.35;color:var(--lo-color-muted);font-style:italic}
+.lib-guide-row td small.lib-guide-about{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11.5px;color:var(--lo-color-muted)}
+.lib-drawer-original{margin:4px 0 0;font-size:12px;line-height:1.4;font-style:italic;color:var(--lo-color-muted)}
+.lib-drawer ul.lib-drawer-sources{font-size:11.5px;line-height:1.45;color:var(--lo-color-muted)}
+/* Clinical guides as cards; the whole guide opens in the drawer. */
+.lib-clinical-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.lib-clinical-card{position:relative;display:grid;gap:10px;align-content:start;padding:14px 14px 12px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);cursor:pointer;min-width:0}
+.lib-clinical-card:hover{border-color:var(--lo-color-border-strong)}
+.lib-clinical-card:focus-visible{outline:2px solid var(--lo-color-primary);outline-offset:2px}
+.lib-clinical-card.is-selected{border-color:var(--lo-color-primary);background:var(--lo-status-info-bg)}
+.lib-clinical-head{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:start}
+.lib-clinical-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:var(--lo-status-info-bg);color:var(--lo-color-primary)}
+.lib-clinical-head h3{margin:0;font-size:14px;line-height:1.3;color:var(--lo-color-text)}
+.lib-clinical-meta{display:block;margin-top:2px;font-size:11.5px;color:var(--lo-color-muted)}
+.lib-card-menu{margin:-4px -6px 0 0}
+.lib-clinical-points{margin:0;padding-left:18px;font-size:12.5px;line-height:1.45;color:var(--lo-color-text)}
+.lib-clinical-points li+li{margin-top:3px}
+.lib-clinical-points li>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.lib-clinical-points li.is-numbered,.lib-drawer ul li.is-numbered{list-style:none;margin-left:-14px}
+.lib-clinical-about{margin:0;font-size:12.5px;line-height:1.45;color:var(--lo-color-muted)}
+.lib-clinical-more{align-self:center;font-size:11px;font-weight:600;color:var(--lo-color-primary)}
+/* News under «This week / This month / Older». */
+.lib-news-period{display:grid;gap:8px}
+.lib-news-period>h3{margin:6px 0 0;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--lo-color-text)}
+.lib-news-period>h3 b{font-size:11.5px;font-weight:600;color:var(--lo-color-muted)}

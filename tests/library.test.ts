@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { NEWS_SOURCES, PLATFORM_GUIDELINES, PLATFORM_LINKS } from '../src/features/library/libraryCatalogue'
-import { blankDraft, canManageHospitalLibrary, filterGuidelines, filterNews, guidelineOptions, initials, isHttpUrl, linkGroups, newsCounts, sourceState, validateDraft } from '../src/features/library/libraryModel'
+import { NEWS_SOURCES, PLATFORM_CLINICAL_GUIDES, PLATFORM_GUIDELINES, PLATFORM_LINKS } from '../src/features/library/libraryCatalogue'
+import { blankDraft, canManageHospitalLibrary, clinicalGuidePrintHtml, filterGuidelines, filterNews, guidelineOptions, guidelineTitle, guidelineTopicCounts, initials, isHttpUrl, linkGroups, newsByPeriod, newsCounts, newsPeriod, sourceLines, sourceState, validateDraft } from '../src/features/library/libraryModel'
 import { dueSources, EXCERPT_LIMIT, MAX_ITEMS_PER_CHECK, newsRows } from '../supabase/functions/_shared/libraryNews.ts'
 import { parseFeed, parsePage } from '../supabase/functions/_shared/legislationWatch.ts'
 import { readSource } from './helpers/readSource'
@@ -10,6 +10,8 @@ const read = file => readSource(file)
 const migration = read('supabase/migrations/20261203200000_library.sql')
 const seed = read('supabase/migrations/20261203200100_library_seed.sql')
 const cleanup = read('supabase/migrations/20261231618000_library_cleanup.sql')
+const newContent = read('supabase/migrations/20261231620000_library_new_content.sql')
+const titleEl = read('supabase/migrations/20261231621000_library_title_el.sql')
 const ingest = read('supabase/functions/library-news-ingest/index.ts')
 
 describe('library catalogue (the platform starting content)', () => {
@@ -22,6 +24,7 @@ describe('library catalogue (the platform starting content)', () => {
     }
     for (const abbreviation of ['ICNA', 'SARS', 'NMAP', 'RCNA']) {
       expect(byAbbreviation[abbreviation].group).toBe('archive')
+      expect(byAbbreviation[abbreviation].status).toBe('archived')
       expect(byAbbreviation[abbreviation].noteEl).toBeTruthy()
       expect(byAbbreviation[abbreviation].noteEn).toBeTruthy()
     }
@@ -45,17 +48,37 @@ describe('library catalogue (the platform starting content)', () => {
       expect(isHttpUrl(item.url), item.name).toBe(true)
       if (item.language === 'en') expect(item.year, item.name).toBeGreaterThan(2000)
     }
-    expect(PLATFORM_GUIDELINES.find(item => item.abbreviation === 'SSC')).toMatchObject({ organisation: 'SCCM / ESICM', year: 2021 })
+    expect(PLATFORM_GUIDELINES.find(item => item.abbreviation === 'SSC')).toMatchObject({ organisation: 'SCCM / ESICM', year: 2026 })
+    // Every guideline has a Greek title; the Greek-language ones keep their own name.
+    for (const item of PLATFORM_GUIDELINES) {
+      expect(item.titleEl, item.name).toMatch(/[Α-Ωα-ωά-ώ]/)
+      if (item.language === 'el') expect(item.titleEl, item.name).toBe(item.name)
+    }
   })
 
-  it('seeds exactly the catalogue rows in the migration', () => {
-    for (const item of [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES]) {
-      // The seed, as corrected later by the cleanup migration (links that moved, each guideline's own page).
-      expect(seed + cleanup, item.name).toContain(`${item.name.replace(/'/g, "''")}`)
-      expect(seed + cleanup, item.name).toContain(`${item.url}`)
+  it('holds the 9 one-page clinical guides with their points and sources', () => {
+    expect(PLATFORM_CLINICAL_GUIDES).toHaveLength(9)
+    for (const item of PLATFORM_CLINICAL_GUIDES) {
+      expect(isHttpUrl(item.url), item.name).toBe(true)
+      expect(item.summaryEl.split('\n').length, item.name).toBeGreaterThan(3)
+      expect(item.noteEl, item.name).toMatch(/^Πηγές: /)
+      expect(sourceLines(item.noteEl).length, item.name).toBeGreaterThan(0)
     }
+  })
+
+  it('seeds exactly the catalogue rows in the migrations', () => {
+    // The seed, as corrected by the cleanup (links that moved, each guideline's own page) and
+    // completed by the new content (guidelines, clinical guides) and the Greek titles.
+    const all = seed + cleanup + newContent + titleEl
+    for (const item of [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES, ...PLATFORM_CLINICAL_GUIDES]) {
+      expect(all, item.name).toContain(`${item.name.replace(/'/g, "''")}`)
+      expect(all, item.name).toContain(`${item.url}`)
+    }
+    for (const item of PLATFORM_GUIDELINES) if (item.titleEl !== item.name) expect(titleEl, item.name).toContain(`set title_el = $q$${item.titleEl}$q$`)
+    for (const item of PLATFORM_LINKS.filter(link => link.status === 'archived')) expect(cleanup, item.name).toContain(`'${item.url}'`)
     for (const source of NEWS_SOURCES) expect(seed, source.name).toContain(`'${source.url}'`)
-    expect((seed.match(/\(null, '(link|guideline)'/g) || []).length).toBe(PLATFORM_LINKS.length + PLATFORM_GUIDELINES.length)
+    expect((seed.match(/\(null, '(link|guideline)'/g) || []).length + (newContent.match(/select null, '(guideline|clinical_guide)'/g) || []).length).toBe(PLATFORM_LINKS.length + PLATFORM_GUIDELINES.length + PLATFORM_CLINICAL_GUIDES.length)
+    expect((titleEl.match(/^update public\.library_items set title_el/gm) || []).length).toBe(PLATFORM_GUIDELINES.length)
     // Run once: the Platform Owner's later edits are never overwritten.
     expect(seed).toContain('if exists (select 1 from public.library_items where organization_id is null) then')
   })
@@ -67,12 +90,13 @@ describe('library model', () => {
 
   it('groups the links, the hospital additions in their own group', () => {
     const { groups, counts, total } = linkGroups(items)
-    expect(groups.map(group => group.value)).toEqual(['greek', 'international', 'nursing', 'archive', 'hospital'])
+    // The withdrawn links (the «Αρχείο» ones, AIDS) are not listed.
+    expect(groups.map(group => group.value)).toEqual(['greek', 'international', 'nursing', 'hospital'])
     expect(counts.hospital).toBe(1)
-    expect(total).toBe(PLATFORM_LINKS.length + 1)
+    expect(total).toBe(PLATFORM_LINKS.filter(link => link.status !== 'archived').length + 1)
     expect(linkGroups(items, { query: 'eody' }).total).toBe(1)
     expect(linkGroups(items, { query: 'υγιεινη χεριων' }).total).toBeGreaterThan(0)
-    expect(linkGroups(items, { group: 'archive' }).groups.map(group => group.value)).toEqual(['archive'])
+    expect(linkGroups(items, { group: 'nursing' }).groups.map(group => group.value)).toEqual(['nursing'])
   })
 
   it('filters guidelines by organisation, topic and year, newest first', () => {
@@ -81,7 +105,54 @@ describe('library model', () => {
     expect(options.years[0]).toBe(2026)
     const who = filterGuidelines(items, { query: '', organisation: 'WHO', topic: 'all', year: 'all' })
     expect(who.every(item => item.organisation === 'WHO')).toBe(true)
-    expect(filterGuidelines(items, { query: '', organisation: 'all', topic: 'sepsis', year: '2021' }).map(item => item.abbreviation)).toEqual(['SSC'])
+    expect(filterGuidelines(items, { query: '', organisation: 'all', topic: 'sepsis', year: '2026' }).map(item => item.abbreviation)).toEqual(['SSC'])
+    // The search finds a guideline by its Greek title too.
+    expect(filterGuidelines(items, { query: 'ενδαγγειακους καθετηρες', organisation: 'all', topic: 'all', year: 'all' }).map(item => item.organisation)).toEqual(['CDC / HICPAC'])
+  })
+
+  it('shows the Greek title in Greek, the original under it, and only the original in English', () => {
+    const cdc = PLATFORM_GUIDELINES.find(item => item.name === 'Guidelines for the Prevention of Intravascular Catheter-Related Infections')!
+    expect(guidelineTitle(cdc, 'el')).toEqual({ main: 'Οδηγίες CDC/HICPAC για την πρόληψη λοιμώξεων από ενδαγγειακούς καθετήρες', original: cdc.name })
+    expect(guidelineTitle(cdc, 'en')).toEqual({ main: cdc.name, original: '' })
+    const greek = PLATFORM_GUIDELINES.find(item => item.language === 'el')!
+    expect(guidelineTitle(greek, 'el')).toEqual({ main: greek.name, original: '' })
+    expect(guidelineTitle({ name: 'Local protocol' }, 'el')).toEqual({ main: 'Local protocol', original: '' })
+  })
+
+  it('counts the topic chips over what the other filters leave', () => {
+    const { total, topics } = guidelineTopicCounts(items)
+    expect(total).toBe(PLATFORM_GUIDELINES.length)
+    expect(topics[0]).toEqual({ value: 'ipc', count: PLATFORM_GUIDELINES.filter(item => item.tags.includes('ipc')).length })
+    const who = guidelineTopicCounts(items, { query: '', organisation: 'WHO', topic: 'sepsis', year: 'all' })
+    expect(who.total).toBe(PLATFORM_GUIDELINES.filter(item => item.organisation === 'WHO').length)
+    // The chosen topic stays listed with 0, so the chip and the list keep showing the filter still applied.
+    expect(who.topics.find(topic => topic.value === 'sepsis')).toEqual({ value: 'sepsis', count: 0 })
+    expect(guidelineTopicCounts(items, { query: '', organisation: 'WHO', topic: 'all', year: 'all' }).topics.find(topic => topic.value === 'sepsis')).toBeUndefined()
+    // A guide uploaded as an image or PDF has no text to print: it prints from «Αρχείο».
+    expect(readSource('src/features/library/LibraryPage.tsx')).toContain('{points.length > 0 && <ExportMenu onPrint={print} language={language} />}')
+  })
+
+  it('prints a clinical guide on one clean page, escaped', () => {
+    const guide = { ...PLATFORM_CLINICAL_GUIDES[0], name: 'Χέρια <b>' }
+    const html = clinicalGuidePrintHtml(guide, 'el', { today: '2026-11-22' })
+    expect(html).toContain('@page{size:A4')
+    expect(html).toContain('Χέρια &lt;b&gt;')
+    expect(html).toContain('<h2>Τι κάνουμε</h2>')
+    expect(html).toContain('<h2>Πηγές</h2>')
+    expect(html).toContain('Εκτύπωση 22/11/2026')
+    expect(clinicalGuidePrintHtml(guide, 'en', { today: '2026-11-22' })).toContain('<h2>What we do</h2>')
+  })
+
+  it('groups the news under this week, this month and older (hospital time)', () => {
+    const at = (publishedAt: string) => ({ id: publishedAt, title: 't', publishedAt }) as LibraryNews
+    // Sunday 22/11/2026: the week started on Monday 16/11.
+    expect(newsPeriod(at('2026-11-16T08:00:00Z'), '2026-11-22')).toBe('week')
+    expect(newsPeriod(at('2026-11-15T22:30:00Z'), '2026-11-22')).toBe('week')
+    expect(newsPeriod(at('2026-11-15T10:00:00Z'), '2026-11-22')).toBe('month')
+    expect(newsPeriod(at('2026-10-31T10:00:00Z'), '2026-11-22')).toBe('older')
+    expect(newsPeriod(at('2026-11-30T10:00:00Z'), '2026-12-01')).toBe('week')
+    expect(newsPeriod({ id: 'x', title: 't' }, '2026-11-22')).toBe('older')
+    expect(newsByPeriod([at('2026-11-20T10:00:00Z'), at('2026-10-01T10:00:00Z')], '2026-11-22').map(group => group.period)).toEqual(['week', 'older'])
   })
 
   it('lets only the Hospital Admin and the Quality Manager (and the Platform Owner, the Demo) add for the hospital', () => {

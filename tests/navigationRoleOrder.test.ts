@@ -59,11 +59,13 @@ describe('sidebar order per role', () => {
     expect(sidebarLayout(ROLES.DEMO, navigationFor({ role: ROLES.DEMO })).every(block => block.kind === 'group')).toBe(true)
   })
 
-  it('puts the staff screens of every role that sees two or more of them under one «Staff» group', () => {
+  it('puts the staff screens of every role that sees three or more of them under one «Staff» group', () => {
     for (const role of Object.values(ROLES)) {
       const items = navigationFor({ role })
       const staff = items.filter(item => ['employees', 'training', 'interviews', 'occupationalHealth'].includes(item.key))
-      if (staff.length < 2) continue
+      // Two staff screens stay in the list: a group would only add a click.
+      if (staff.length === 2) expect(staff.some(item => item.group === 'staff'), role).toBe(false)
+      if (staff.length < 3) continue
       expect(staff.every(item => item.group === 'staff'), role).toBe(true)
       expect(sidebarLayout(role, items).filter(block => block.kind === 'group' && block.id === 'staff'), role).toHaveLength(1)
     }
@@ -84,7 +86,7 @@ describe('sidebar order per role', () => {
 
   it('leads each specialised role with its own module', () => {
     expect(order(ROLES.LABORATORY).slice(0, 2)).toEqual(['dashboard', 'laboratory'])
-    expect(order(ROLES.OCCUPATIONAL_PHYSICIAN).slice(0, 2)).toEqual(['dashboard', 'staff:occupationalHealth'])
+    expect(order(ROLES.OCCUPATIONAL_PHYSICIAN).slice(0, 2)).toEqual(['dashboard', 'occupationalHealth'])
     expect(order(ROLES.LINK_NURSE)[0]).toBe('myDepartment')
   })
 

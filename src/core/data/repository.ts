@@ -77,9 +77,9 @@ const TABLES: Readonly<Record<string, TableConfig>>=Object.freeze({
   legislation_local_candidates:{storageKey:'limoxis.legislationLocalCandidates.v1',kind:'rows',cloud:false},
   legislation_local_sources:{storageKey:'limoxis.legislationLocalSources.v1',kind:'rows',cloud:false},
   // Demo «Βιβλιοθήκη». Production lives in library_items / library_news / library_sources (src/features/library/libraryService.js).
-  library_local_items:{storageKey:'limoxis.libraryLocalItems.v1',kind:'rows',cloud:false},
-  library_local_news:{storageKey:'limoxis.libraryLocalNews.v1',kind:'rows',cloud:false},
-  library_local_sources:{storageKey:'limoxis.libraryLocalSources.v1',kind:'rows',cloud:false},
+  library_local_items:{storageKey:'limoxis.libraryLocalItems.v2',kind:'rows',cloud:false},
+  library_local_news:{storageKey:'limoxis.libraryLocalNews.v2',kind:'rows',cloud:false},
+  library_local_sources:{storageKey:'limoxis.libraryLocalSources.v2',kind:'rows',cloud:false},
   regulations_local:{storageKey:'limoxis.regulationsLocal.v1',kind:'rows',cloud:false},
   quality_local_objectives:{storageKey:'limoxis.qualityLocalObjectives.v2',kind:'rows',cloud:false},
   quality_local_objective_values:{storageKey:'limoxis.qualityLocalObjectiveValues.v1',kind:'rows',cloud:false},

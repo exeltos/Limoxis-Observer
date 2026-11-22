@@ -222,7 +222,8 @@ const roleMenuPolicy: Readonly<Record<string, ListPolicy | GroupedPolicy>>=Objec
 })
 
 // «Προσωπικό» (Staff): the staff screens stay separate pages but share one
-// headed group for every role that sees two or more of them (grouped roles name it themselves).
+// headed group for every role that sees three or more of them (grouped roles name it themselves);
+// with two, a group would only add a click, so they stay in the list.
 const STAFF_KEYS=['employees','training','interviews','occupationalHealth']
 
 // Roles whose «More» entries fold under one expandable entry; for the others
@@ -249,11 +250,11 @@ function applyGroupedPolicy(currentPolicy: GroupedPolicy,items: NavItem[]){
   return [...grouped.filter(item=>item.group!=='management'),...rest,...management]
 }
 
-// Two or more staff screens: one «Staff» group where the first of them stood,
+// Three or more staff screens: one «Staff» group where the first of them stood,
 // never inside «More» (from `limit`, the end of the main list, it closes the main list).
 function groupStaff(ordered: NavItem[],limit: number){
   const staff=ordered.filter(item=>STAFF_KEYS.includes(item.key))
-  if(staff.length<2)return ordered
+  if(staff.length<3)return ordered
   const at=Math.min(ordered.findIndex(item=>STAFF_KEYS.includes(item.key)),limit)
   const rest=ordered.filter(item=>!STAFF_KEYS.includes(item.key))
   const before=rest.filter(item=>ordered.indexOf(item)<at)
