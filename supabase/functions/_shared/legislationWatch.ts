@@ -29,10 +29,13 @@ export function parseFeed(xml: string): WatchItem[] {
   }).filter(item => item.title && item.key)
 }
 
-// A page's links with a real title (at least 20 characters), on the same site.
-export function parsePage(html: string, pageUrl: string): WatchItem[] {
+// A page's links with a real title (at least 20 characters), on the same site;
+// with a pattern, only links whose path (and query) match it: the articles, not the site's menus.
+export function parsePage(html: string, pageUrl: string, linkPattern?: string | null): WatchItem[] {
   let base: URL
   try { base = new URL(pageUrl) } catch { return [] }
+  let only: RegExp | null = null
+  if (linkPattern) { try { only = new RegExp(linkPattern) } catch { only = null } }
   const seen = new Set<string>()
   const items: WatchItem[] = []
   for (const m of String(html || '').matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
@@ -41,6 +44,7 @@ export function parsePage(html: string, pageUrl: string): WatchItem[] {
     let url: URL
     try { url = new URL(decodeEntities(m[1]), base) } catch { continue }
     if (url.hostname.replace(/^www\./, '') !== base.hostname.replace(/^www\./, '')) continue
+    if (only && !only.test(`${url.pathname}${url.search}`)) continue
     const key = url.href
     if (seen.has(key)) continue
     seen.add(key)

@@ -32,9 +32,13 @@ const toIso = (value: string) => { const time = Date.parse(value || ''); return 
 const httpUrl = (value: string) => (/^https?:\/\//i.test(String(value || '')) ? String(value).slice(0, 2000) : null)
 
 // The rows written to library_news for one check: the newest items (with a
-// title and a key), filtered by the source's keywords when it has any.
+// title and a key), filtered by the source's keywords when it has any. A feed
+// need not list its newest first (WHO's mixes years): dated items are sorted
+// newest first, undated ones keep the source's order after them.
 export function newsRows(sourceId: string, items: WatchItem[], keywords: string[] = []) {
+  const time = (item: WatchItem) => { const value = Date.parse(item.published || ''); return Number.isFinite(value) ? value : -Infinity }
   const kept = (items || []).filter(item => item.title && item.key && (!keywords.length || matchedKeywords(item, keywords).length))
+    .map((item, index) => ({ item, index })).sort((a, b) => (time(b.item) - time(a.item)) || (a.index - b.index)).map(entry => entry.item)
   return kept.slice(0, MAX_ITEMS_PER_CHECK).map(item => ({
     source_id: sourceId,
     item_key: String(item.key).slice(0, 1000),
