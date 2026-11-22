@@ -56,7 +56,7 @@ export async function loadLibrary(organizationId: string | null | undefined, { a
 
 export async function loadNews(organizationId: string | null | undefined): Promise<LibraryNews[]> {
   if (isLocal()) return local().news
-  let query = cloudClient().from('library_news').select('id,source_id,organization_id,title,url,excerpt,published_at,detected_at,library_sources(name,abbreviation)').order('published_at', { ascending: false, nullsFirst: false }).order('detected_at', { ascending: false }).limit(200)
+  let query = cloudClient().from('library_news').select('id,source_id,organization_id,title,url,excerpt,published_at,detected_at,library_sources(name,abbreviation)').order('listed_at', { ascending: false }).limit(200)
   query = organizationId ? query.or(`organization_id.is.null,organization_id.eq.${organizationId}`) : query.is('organization_id', null)
   return (must(await query) || []).map(toNews)
 }

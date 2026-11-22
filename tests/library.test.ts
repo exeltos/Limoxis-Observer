@@ -2,19 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { NEWS_SOURCES, PLATFORM_GUIDELINES, PLATFORM_LINKS } from '../src/features/library/libraryCatalogue'
 import { blankDraft, canManageHospitalLibrary, filterGuidelines, filterNews, guidelineOptions, initials, isHttpUrl, linkGroups, newsCounts, sourceState, validateDraft } from '../src/features/library/libraryModel'
 import { dueSources, EXCERPT_LIMIT, MAX_ITEMS_PER_CHECK, newsRows } from '../supabase/functions/_shared/libraryNews.ts'
-import { parseFeed } from '../supabase/functions/_shared/legislationWatch.ts'
+import { parseFeed, parsePage } from '../supabase/functions/_shared/legislationWatch.ts'
 import { readSource } from './helpers/readSource'
 import type { LibraryNews, NewsSettings } from '../src/features/library/libraryTypes'
 
 const read = file => readSource(file)
 const migration = read('supabase/migrations/20261203200000_library.sql')
 const seed = read('supabase/migrations/20261203200100_library_seed.sql')
+const cleanup = read('supabase/migrations/20261231618000_library_cleanup.sql')
 const ingest = read('supabase/functions/library-news-ingest/index.ts')
 
 describe('library catalogue (the platform starting content)', () => {
   it('holds the owner-approved links in their groups, the defunct ones in «Αρχείο» with a note', () => {
     const byAbbreviation = Object.fromEntries(PLATFORM_LINKS.map(item => [item.abbreviation, item]))
-    for (const [abbreviation, domain, group] of [['ΕΟΔΥ', 'eody.gov.gr', 'greek'], ['ΕΕΕΛ', 'eeel.gr', 'greek'], ['ΕΕΛ', 'loimoxeis.gr', 'greek'], ['AIDS', 'aidshellas.gr', 'greek'], ['CDC', 'cdc.gov', 'international'], ['APIC', 'apic.org', 'international'], ['HIS', 'his.org.uk', 'international'], ['AORN', 'aorn.org', 'international'], ['CHICA', 'chica.org', 'international'], ['WHO', 'who.int', 'international'], ['ΕΣΔΝΕ', 'esdne.gr', 'nursing'], ['ICN', 'icn.ch', 'nursing'], ['ANA', 'nursingworld.org', 'nursing'], ['CNA', 'cna-nurses.ca', 'nursing'], ['RCN', 'rcn.org.uk', 'nursing'], ['NS', 'nursing-standard.co.uk', 'nursing'], ['ΕΝΕ', 'enne.gr', 'nursing']]) {
+    for (const [abbreviation, domain, group] of [['ΕΟΔΥ', 'eody.gov.gr', 'greek'], ['ΕΕΕΛ', 'eeel.gr', 'greek'], ['ΕΕΛ', 'loimoxeis.gr', 'greek'], ['AIDS', 'aidshellas.gr', 'greek'], ['CDC', 'cdc.gov', 'international'], ['APIC', 'apic.org', 'international'], ['HIS', 'his.org.uk', 'international'], ['AORN', 'aorn.org', 'international'], ['CHICA', 'ipac-canada.org', 'international'], ['WHO', 'who.int', 'international'], ['ΕΣΝΕ', 'esne.gr', 'nursing'], ['ICN', 'icn.ch', 'nursing'], ['ANA', 'nursingworld.org', 'nursing'], ['CNA', 'cna-aiic.ca', 'nursing'], ['RCN', 'rcn.org.uk', 'nursing'], ['NS', 'journals.rcni.com', 'nursing'], ['ΕΝΕ', 'enne.gr', 'nursing']]) {
       expect(byAbbreviation[abbreviation]?.url, abbreviation).toContain(domain)
       expect(byAbbreviation[abbreviation].group, abbreviation).toBe(group)
       expect(byAbbreviation[abbreviation].proposed, abbreviation).toBe(false)
@@ -49,8 +50,9 @@ describe('library catalogue (the platform starting content)', () => {
 
   it('seeds exactly the catalogue rows in the migration', () => {
     for (const item of [...PLATFORM_LINKS, ...PLATFORM_GUIDELINES]) {
-      expect(seed, item.name).toContain(`'${item.name.replace(/'/g, "''")}'`)
-      expect(seed, item.name).toContain(`'${item.url}'`)
+      // The seed, as corrected later by the cleanup migration (links that moved, each guideline's own page).
+      expect(seed + cleanup, item.name).toContain(`${item.name.replace(/'/g, "''")}`)
+      expect(seed + cleanup, item.name).toContain(`${item.url}`)
     }
     for (const source of NEWS_SOURCES) expect(seed, source.name).toContain(`'${source.url}'`)
     expect((seed.match(/\(null, '(link|guideline)'/g) || []).length).toBe(PLATFORM_LINKS.length + PLATFORM_GUIDELINES.length)
@@ -76,7 +78,7 @@ describe('library model', () => {
   it('filters guidelines by organisation, topic and year, newest first', () => {
     const options = guidelineOptions(items)
     expect(options.organisations).toContain('WHO')
-    expect(options.years[0]).toBe(2024)
+    expect(options.years[0]).toBe(2026)
     const who = filterGuidelines(items, { query: '', organisation: 'WHO', topic: 'all', year: 'all' })
     expect(who.every(item => item.organisation === 'WHO')).toBe(true)
     expect(filterGuidelines(items, { query: '', organisation: 'all', topic: 'sepsis', year: '2021' }).map(item => item.abbreviation)).toEqual(['SSC'])
@@ -133,6 +135,17 @@ describe('library news ingestion (library-news-ingest)', () => {
     expect(rows[0].excerpt.length).toBeLessThanOrEqual(EXCERPT_LIMIT)
     expect(newsRows('s1', [{ key: 'k', title: 'Bad link', url: 'javascript:alert(1)', excerpt: '', published: 'not a date' }])[0]).toMatchObject({ url: null, published_at: null })
     expect(newsRows('s1', parseFeed(xml), ['item 3'])).toHaveLength(1)
+  })
+
+  it('keeps the newest items of a feed that mixes years, and only the articles of a page', () => {
+    const xml = `<rss><channel>${[['old', 'Mon, 02 Jun 2018 10:00:00 GMT'], ['new', 'Sat, 10 Oct 2026 07:49:45 GMT'], ['mid', 'Tue, 06 Oct 2020 16:42:38 GMT'], ['nodate', '']].map(([key, date]) => `<item><title>Item ${key}</title><link>https://example.org/${key}</link><guid>${key}</guid>${date ? `<pubDate>${date}</pubDate>` : ''}</item>`).join('')}</channel></rss>`
+    expect(newsRows('s1', parseFeed(xml)).map(row => row.item_key)).toEqual(['new', 'mid', 'old', 'nodate'])
+    const html = '<a href="/mmwr/volumes/75/wr/mm7545a2.htm">Respiratory Virus Activity — United States, July 2025–June 2026</a><a href="/mmwr/publications/index.html">View all Publications of the series</a><a href="/mmwr/volumes/75/wr/mm7544a1.htm">Use of Glucagon-Like Peptide-1 Medications Among Adults</a>'
+    expect(parsePage(html, 'https://www.cdc.gov/mmwr/index.html').map(item => item.url)).toHaveLength(3)
+    expect(parsePage(html, 'https://www.cdc.gov/mmwr/index.html', '^/mmwr/volumes/').map(item => item.url)).toEqual(['https://www.cdc.gov/mmwr/volumes/75/wr/mm7545a2.htm', 'https://www.cdc.gov/mmwr/volumes/75/wr/mm7544a1.htm'])
+    expect(parsePage(html, 'https://www.cdc.gov/mmwr/index.html', '([')).toHaveLength(3)
+    expect(ingest).toContain('parsePage(page.body, source.url, source.link_pattern)')
+    expect(readSource('src/features/library/libraryService.ts')).toContain(".order('listed_at', { ascending: false })")
   })
 
   it('is server-only, behind the scheduler secret, and survives a failing source', () => {

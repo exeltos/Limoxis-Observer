@@ -60,11 +60,12 @@ export function LibraryPage() {
   }, [organizationId])
   useEffect(() => { reload() }, [reload])
 
-  // Which news the viewer has opened (this browser): the «Νέα» tab counts the unread ones (as the
-  // «Μη αναγνωσμένα» filter does), the other tabs no count (a count on a tab means something needs attention).
+  // Which news the viewer has opened (this browser): the «Νέα» tab counts only the new ones not yet
+  // opened (the last 3 days, those marked «Νέο» in the list), never the whole year's backlog; the
+  // other tabs no count (a count on a tab means something needs attention).
   const [read, setRead] = useState(readSet)
   const markRead = (item: LibraryNews) => setRead(current => { const next = new Set(current); next.add(item.id); rememberRead(next); return next })
-  const unread = newsCounts(state.news, read).unread
+  const unread = state.news.filter(item => !read.has(item.id) && isRecentNews(item)).length
   // The sources' check (when each was last read) is the platform owner's concern.
   const showSources = !isRolePreview && actualRole === ROLES.PLATFORM_OWNER
   const tabs = [

@@ -26,7 +26,7 @@ async function fetchText(url: string) {
 }
 
 async function checkSources(admin: Admin) {
-  const { data: sources, error } = await admin.from('library_sources').select('id,name,url,kind,interval_hours,keywords,active,last_checked_at,consecutive_failures').eq('active', true)
+  const { data: sources, error } = await admin.from('library_sources').select('id,name,url,kind,interval_hours,keywords,link_pattern,active,last_checked_at,consecutive_failures').eq('active', true)
   if (error) throw error
   const due = dueSources(sources || []).slice(0, MAX_SOURCES_PER_RUN)
   let checked = 0, stored = 0, failed = 0
@@ -36,7 +36,7 @@ async function checkSources(admin: Admin) {
     try {
       const page = await fetchText(source.url)
       if (!page.ok) throw new Error(`HTTP ${page.status}`)
-      const items = source.kind === 'page' ? parsePage(page.body, source.url) : parseFeed(page.body)
+      const items = source.kind === 'page' ? parsePage(page.body, source.url, source.link_pattern) : parseFeed(page.body)
       if (!items.length) throw new Error('NO_ITEMS')
       const rows = newsRows(source.id, items, source.keywords || [])
       if (rows.length) {

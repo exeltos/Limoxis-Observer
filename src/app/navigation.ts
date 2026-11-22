@@ -163,8 +163,9 @@ const roleMenuPolicy: Readonly<Record<string, ListPolicy | GroupedPolicy>>=Objec
   ),
   [ROLES.DEPARTMENT_MANAGER]:policy(
     ['myDepartment','departmentCalendar','departmentMeetings','rosters','controls','surveillance','laboratory','departmentRegisters','departmentSuppliers','departmentSelfAssessment','employees','calendar'],
-    ['indicators','training','documents','library'],
-    ['management','pharmacy','occupationalHealth'],
+    ['training','documents','library'],
+    // The hospital's indicators are not the department's: its numbers are on «Το τμήμα μου».
+    ['indicators','management','pharmacy','occupationalHealth'],
   ),
   [ROLES.LINK_NURSE]:policy(
     ['myDepartment','departmentCalendar','departmentMeetings','rosters','surveillance','prevention','controls','calendar'],

@@ -8097,6 +8097,7 @@ export type Database = {
           excerpt: string | null
           id: string
           item_key: string
+          listed_at: string | null
           organization_id: string | null
           published_at: string | null
           source_id: string | null
@@ -8159,6 +8160,7 @@ export type Database = {
           last_error: string | null
           last_ok_at: string | null
           last_status: number | null
+          link_pattern: string | null
           name: string
           updated_at: string
           url: string
@@ -8178,6 +8180,7 @@ export type Database = {
           last_error?: string | null
           last_ok_at?: string | null
           last_status?: number | null
+          link_pattern?: string | null
           name: string
           updated_at?: string
           url: string
@@ -8197,6 +8200,7 @@ export type Database = {
           last_error?: string | null
           last_ok_at?: string | null
           last_status?: number | null
+          link_pattern?: string | null
           name?: string
           updated_at?: string
           url?: string
