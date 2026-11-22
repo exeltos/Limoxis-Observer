@@ -9,6 +9,9 @@ export type LibrarySource = { id: string, kind: 'rss' | 'page', interval_hours?:
 // At most this many items are kept from one check, and only title, link, date
 // and a short excerpt: the article stays at its source.
 export const MAX_ITEMS_PER_CHECK = 20
+// An item dated more than this many days ago is never kept: a feed that serves its archive (WHO's
+// did, with news from 2018–2020) must not fill «Νέα» with the past. Undated items are kept.
+export const MAX_AGE_DAYS = 90
 export const EXCERPT_LIMIT = 300
 
 // A source is due when it was never checked or its interval has passed.
@@ -35,9 +38,11 @@ const httpUrl = (value: string) => (/^https?:\/\//i.test(String(value || '')) ? 
 // title and a key), filtered by the source's keywords when it has any. A feed
 // need not list its newest first (WHO's mixes years): dated items are sorted
 // newest first, undated ones keep the source's order after them.
-export function newsRows(sourceId: string, items: WatchItem[], keywords: string[] = []) {
+export function newsRows(sourceId: string, items: WatchItem[], keywords: string[] = [], now = Date.now()) {
   const time = (item: WatchItem) => { const value = Date.parse(item.published || ''); return Number.isFinite(value) ? value : -Infinity }
+  const oldest = now - MAX_AGE_DAYS * 86400000
   const kept = (items || []).filter(item => item.title && item.key && (!keywords.length || matchedKeywords(item, keywords).length))
+    .filter(item => time(item) === -Infinity || time(item) >= oldest)
     .map((item, index) => ({ item, index })).sort((a, b) => (time(b.item) - time(a.item)) || (a.index - b.index)).map(entry => entry.item)
   return kept.slice(0, MAX_ITEMS_PER_CHECK).map(item => ({
     source_id: sourceId,
