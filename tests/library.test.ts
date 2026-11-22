@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { NEWS_SOURCES, PLATFORM_CLINICAL_GUIDES, PLATFORM_GUIDELINES, PLATFORM_LINKS } from '../src/features/library/libraryCatalogue'
 import { blankDraft, canManageHospitalLibrary, clinicalGuidePrintHtml, filterGuidelines, filterNews, guidelineOptions, guidelineTitle, guidelineTopicCounts, initials, isHttpUrl, linkGroups, newsByPeriod, newsCounts, newsPeriod, sourceLines, sourceState, validateDraft } from '../src/features/library/libraryModel'
-import { dueSources, EXCERPT_LIMIT, MAX_ITEMS_PER_CHECK, newsRows } from '../supabase/functions/_shared/libraryNews.ts'
+import { dueSources, EXCERPT_LIMIT, MAX_AGE_DAYS, MAX_ITEMS_PER_CHECK, newsRows } from '../supabase/functions/_shared/libraryNews.ts'
 import { parseFeed, parsePage } from '../supabase/functions/_shared/legislationWatch.ts'
 import { readSource } from './helpers/readSource'
 import type { LibraryNews, NewsSettings } from '../src/features/library/libraryTypes'
@@ -200,17 +200,20 @@ describe('library news ingestion (library-news-ingest)', () => {
   it('keeps title, link, date and a short excerpt only', () => {
     const long = 'Λέξη '.repeat(200)
     const xml = `<rss><channel>${Array.from({ length: 30 }, (_, i) => `<item><title>Item ${i}</title><link>https://example.org/${i}</link><guid>g${i}</guid><pubDate>Mon, 19 Oct 2026 10:00:00 GMT</pubDate><description>${long}</description></item>`).join('')}</channel></rss>`
-    const rows = newsRows('s1', parseFeed(xml))
+    const now = Date.parse('2026-10-20T00:00:00Z')
+    const rows = newsRows('s1', parseFeed(xml), [], now)
     expect(rows).toHaveLength(MAX_ITEMS_PER_CHECK)
     expect(rows[0]).toMatchObject({ source_id: 's1', item_key: 'g0', title: 'Item 0', url: 'https://example.org/0', published_at: '2026-10-19T10:00:00.000Z' })
     expect(rows[0].excerpt.length).toBeLessThanOrEqual(EXCERPT_LIMIT)
     expect(newsRows('s1', [{ key: 'k', title: 'Bad link', url: 'javascript:alert(1)', excerpt: '', published: 'not a date' }])[0]).toMatchObject({ url: null, published_at: null })
-    expect(newsRows('s1', parseFeed(xml), ['item 3'])).toHaveLength(1)
+    expect(newsRows('s1', parseFeed(xml), ['item 3'], now)).toHaveLength(1)
   })
 
   it('keeps the newest items of a feed that mixes years, and only the articles of a page', () => {
-    const xml = `<rss><channel>${[['old', 'Mon, 02 Jun 2018 10:00:00 GMT'], ['new', 'Sat, 10 Oct 2026 07:49:45 GMT'], ['mid', 'Tue, 06 Oct 2020 16:42:38 GMT'], ['nodate', '']].map(([key, date]) => `<item><title>Item ${key}</title><link>https://example.org/${key}</link><guid>${key}</guid>${date ? `<pubDate>${date}</pubDate>` : ''}</item>`).join('')}</channel></rss>`
-    expect(newsRows('s1', parseFeed(xml)).map(row => row.item_key)).toEqual(['new', 'mid', 'old', 'nodate'])
+    const xml = `<rss><channel>${[['old', 'Thu, 20 Aug 2026 10:00:00 GMT'], ['new', 'Sat, 10 Oct 2026 07:49:45 GMT'], ['mid', 'Tue, 01 Sep 2026 16:42:38 GMT'], ['archive', 'Mon, 02 Jun 2018 10:00:00 GMT'], ['nodate', '']].map(([key, date]) => `<item><title>Item ${key}</title><link>https://example.org/${key}</link><guid>${key}</guid>${date ? `<pubDate>${date}</pubDate>` : ''}</item>`).join('')}</channel></rss>`
+    // Newest first; an item older than MAX_AGE_DAYS (the feed's archive) is never kept; undated ones are.
+    expect(newsRows('s1', parseFeed(xml), [], Date.parse('2026-10-12T00:00:00Z')).map(row => row.item_key)).toEqual(['new', 'mid', 'old', 'nodate'])
+    expect(MAX_AGE_DAYS).toBe(90)
     const html = '<a href="/mmwr/volumes/75/wr/mm7545a2.htm">Respiratory Virus Activity — United States, July 2025–June 2026</a><a href="/mmwr/publications/index.html">View all Publications of the series</a><a href="/mmwr/volumes/75/wr/mm7544a1.htm">Use of Glucagon-Like Peptide-1 Medications Among Adults</a>'
     expect(parsePage(html, 'https://www.cdc.gov/mmwr/index.html').map(item => item.url)).toHaveLength(3)
     expect(parsePage(html, 'https://www.cdc.gov/mmwr/index.html', '^/mmwr/volumes/').map(item => item.url)).toEqual(['https://www.cdc.gov/mmwr/volumes/75/wr/mm7545a2.htm', 'https://www.cdc.gov/mmwr/volumes/75/wr/mm7544a1.htm'])
